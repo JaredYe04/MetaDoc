@@ -16,29 +16,29 @@ const colorPalettes = [
     { r: 99 / 255, g: 102 / 255, b: 241 / 255 }, // 靛蓝
     { r: 139 / 255, g: 92 / 255, b: 246 / 255 }, // 紫色
     { r: 168 / 255, g: 85 / 255, b: 247 / 255 }, // 粉紫
-    { r: 59 / 255, g: 130 / 255, b: 246 / 255 }, // 蓝色
+    { r: 59 / 255, g: 130 / 255, b: 246 / 255 } // 蓝色
   ],
   // 青绿渐变
   [
-    { r: 34 / 255, g: 197 / 255, b: 94 / 255 },  // 绿色
+    { r: 34 / 255, g: 197 / 255, b: 94 / 255 }, // 绿色
     { r: 59 / 255, g: 130 / 255, b: 246 / 255 }, // 蓝色
     { r: 14 / 255, g: 165 / 255, b: 233 / 255 }, // 青色
-    { r: 6 / 255, g: 182 / 255, b: 212 / 255 },  // 浅青
+    { r: 6 / 255, g: 182 / 255, b: 212 / 255 } // 浅青
   ],
   // 暖色渐变
   [
     { r: 249 / 255, g: 115 / 255, b: 22 / 255 }, // 橙色
-    { r: 239 / 255, g: 68 / 255, b: 68 / 255 },  // 红色
+    { r: 239 / 255, g: 68 / 255, b: 68 / 255 }, // 红色
     { r: 236 / 255, g: 72 / 255, b: 153 / 255 }, // 粉红
-    { r: 251 / 255, g: 146 / 255, b: 60 / 255 }, // 浅橙
+    { r: 251 / 255, g: 146 / 255, b: 60 / 255 } // 浅橙
   ],
   // 冷色渐变
   [
     { r: 59 / 255, g: 130 / 255, b: 246 / 255 }, // 蓝色
     { r: 14 / 255, g: 165 / 255, b: 233 / 255 }, // 青色
     { r: 99 / 255, g: 102 / 255, b: 241 / 255 }, // 靛蓝
-    { r: 6 / 255, g: 182 / 255, b: 212 / 255 },  // 浅青
-  ],
+    { r: 6 / 255, g: 182 / 255, b: 212 / 255 } // 浅青
+  ]
 ]
 
 // 合并所有配色方案，让粒子从所有配色中选择颜色
@@ -53,11 +53,11 @@ const getColorFromAllPalettes = (index: number, total: number) => {
   const color1 = allColors[colorIndex % allColors.length]
   const color2 = allColors[(colorIndex + 1) % allColors.length]
   const t = (index / total) * allColors.length - colorIndex
-  
+
   return {
     r: color1.r + (color2.r - color1.r) * t,
     g: color1.g + (color2.g - color1.g) * t,
-    b: color1.b + (color2.b - color1.b) * t,
+    b: color1.b + (color2.b - color1.b) * t
   }
 }
 
@@ -124,7 +124,7 @@ export class ParticleEffect {
   // 初始化 Three.js
   private initThreeJS() {
     this.logger.debug('[Particle] initThreeJS: 开始初始化 Three.js')
-    
+
     // 如果已经初始化，先清理
     if (this.renderer) {
       this.logger.debug('[Particle] initThreeJS: 检测到已有 renderer，先清理')
@@ -133,14 +133,14 @@ export class ParticleEffect {
       }
       this.renderer.dispose()
     }
-    
+
     this.scene = new THREE.Scene()
     this.logger.debug('[Particle] initThreeJS: Scene 创建', { scene: this.scene })
-    
+
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000)
     this.camera.position.z = 800
-    this.logger.debug('[Particle] initThreeJS: Camera 创建', { 
-      aspect: this.camera.aspect, 
+    this.logger.debug('[Particle] initThreeJS: Camera 创建', {
+      aspect: this.camera.aspect,
       position: { x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z }
     })
 
@@ -149,23 +149,23 @@ export class ParticleEffect {
       this.logger.error('[Particle] initThreeJS: 找不到 particle-bg 容器')
       return
     }
-    
+
     // 获取容器的实际尺寸
     const containerRect = container.getBoundingClientRect()
     const containerWidth = containerRect.width || window.innerWidth
     const containerHeight = containerRect.height || window.innerHeight
-    
+
     // 优化渲染器设置：禁用不必要的特性以提高性能
-    this.renderer = new THREE.WebGLRenderer({ 
+    this.renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: false,
       powerPreference: 'high-performance',
       stencil: false,
-      depth: true,
+      depth: true
     })
     this.renderer.setSize(containerWidth, containerHeight)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    
+
     // 设置 canvas 样式
     this.renderer.domElement.style.position = 'absolute'
     this.renderer.domElement.style.top = '0'
@@ -177,13 +177,13 @@ export class ParticleEffect {
     this.renderer.domElement.style.filter = 'none'
     // 初始状态隐藏 canvas，只有在启用粒子效果时才显示
     this.renderer.domElement.style.display = 'none'
-    
+
     container.appendChild(this.renderer.domElement)
-    
+
     // 缓存容器尺寸
     this.cachedContainerWidth = containerWidth
     this.cachedContainerHeight = containerHeight
-    
+
     this.logger.debug('[Particle] initThreeJS: Three.js 初始化完成', {
       scene: !!this.scene,
       camera: !!this.camera,
@@ -195,23 +195,23 @@ export class ParticleEffect {
   // 清理粒子
   private disposeParticles() {
     this.logger.debug('[Particle] disposeParticles: 开始清理粒子')
-    
+
     if (!this.scene) {
       this.logger.debug('[Particle] disposeParticles: Scene 不存在，跳过清理')
       this.particles = null
       return
     }
-    
+
     const sceneChildren = (this.scene as any).children ? [...(this.scene as any).children] : []
     let removedCount = 0
-    
+
     sceneChildren.forEach((child: THREE.Object3D) => {
       if (child instanceof THREE.Points || child instanceof THREE.Group) {
         if (this.scene) {
           this.scene.remove(child)
           removedCount++
         }
-        
+
         if (child instanceof THREE.Points) {
           const points = child as any
           if (points.geometry) points.geometry.dispose()
@@ -236,42 +236,49 @@ export class ParticleEffect {
         }
       }
     })
-    
+
     if (removedCount > 0) {
-      this.logger.debug('[Particle] disposeParticles: 清理完成', { 
+      this.logger.debug('[Particle] disposeParticles: 清理完成', {
         removedCount,
         remainingChildren: (this.scene as any).children?.length || 0
       })
     }
-    
+
     this.particles = null
   }
 
   // 创建粒子
   private async createParticles() {
     this.logger.debug('[Particle] createParticles: 开始创建粒子')
-    
+
     if (!this.scene) {
       this.logger.error('[Particle] createParticles: Scene 不存在，无法创建粒子')
       return
     }
-    
+
     this.disposeParticles()
-    
+
     const areaSize = 1500
     // 减少基础粒子数量，让画面更清爽
     const baseParticleCount = 40
-    const scaleFactor = Math.min(this.cachedContainerWidth * this.cachedContainerHeight / (1920 * 1080), 1.2)
+    const scaleFactor = Math.min(
+      (this.cachedContainerWidth * this.cachedContainerHeight) / (1920 * 1080),
+      1.2
+    )
     const particleCount = Math.floor(baseParticleCount * scaleFactor)
     let wordList: string[] = []
 
     // 获取文档格式和对应的文本
     const docText = this.particleMarkdown.value || ''
     let textForSegmentation = docText
-    
+
     // 判断是否为 LaTeX 格式（通过检查是否包含 LaTeX 命令）
-    const isLaTeX = docText.includes('\\section') || docText.includes('\\begin{') || docText.includes('\\documentclass') || docText.includes('\\subsection')
-    
+    const isLaTeX =
+      docText.includes('\\section') ||
+      docText.includes('\\begin{') ||
+      docText.includes('\\documentclass') ||
+      docText.includes('\\subsection')
+
     if (isLaTeX) {
       textForSegmentation = this.extractPlainTextFromLatex(docText)
       this.logger.debug('[Particle] createParticles: LaTeX 文本提取完成', {
@@ -279,8 +286,8 @@ export class ParticleEffect {
         extractedLength: textForSegmentation.length
       })
     }
-    
-    this.logger.debug('[Particle] createParticles: 开始分词', { 
+
+    this.logger.debug('[Particle] createParticles: 开始分词', {
       isLaTeX,
       textLength: textForSegmentation?.length || 0,
       textPreview: textForSegmentation?.substring(0, 100) || ''
@@ -289,9 +296,9 @@ export class ParticleEffect {
     try {
       const words = await this.ipcRenderer?.invoke?.('cut-words', { text: textForSegmentation })
       wordList = Array.isArray(words) ? Array.from(new Set(words)) : []
-      this.logger.debug('[Particle] createParticles: 分词完成', { 
+      this.logger.debug('[Particle] createParticles: 分词完成', {
         wordCount: wordList.length,
-        isLaTeX 
+        isLaTeX
       })
     } catch (error) {
       this.logger.warn('[Particle] createParticles: 粒子生成分词失败', error)
@@ -299,7 +306,9 @@ export class ParticleEffect {
 
     const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：""【】《》？！￥…（）—0123456789'
     wordList = wordList.filter((word) => !symbols.includes(word) && word.length > 1)
-    this.logger.debug('[Particle] createParticles: 过滤后的词语数量', { wordCount: wordList.length })
+    this.logger.debug('[Particle] createParticles: 过滤后的词语数量', {
+      wordCount: wordList.length
+    })
 
     if (wordList.length < 20) {
       this.logger.debug('[Particle] createParticles: 使用点粒子效果', { particleCount })
@@ -328,59 +337,64 @@ export class ParticleEffect {
         opacity: 0.6,
         sizeAttenuation: true,
         fog: false,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.AdditiveBlending
       })
 
       this.particles = new THREE.Points(geometry, material)
       this.logger.debug('[Particle] createParticles: 点粒子创建完成')
     } else {
-      this.logger.debug('[Particle] createParticles: 使用文字粒子效果', { 
+      this.logger.debug('[Particle] createParticles: 使用文字粒子效果', {
         wordCount: wordList.length,
-        particleCount 
+        particleCount
       })
       const group = new THREE.Group()
-      const sampled = wordList.sort(() => 0.5 - Math.random()).slice(0, Math.min(wordList.length, particleCount))
-      
+      const sampled = wordList
+        .sort(() => 0.5 - Math.random())
+        .slice(0, Math.min(wordList.length, particleCount))
+
       const textureSize = 256
-      
+
       sampled.forEach((word, index) => {
         const color = getColorFromAllPalettes(index, sampled.length)
         const r = Math.floor(color.r * 255)
         const g = Math.floor(color.g * 255)
         const b = Math.floor(color.b * 255)
-        
+
         const fontSize = textureSize * 0.3
         const fontFamily = 'sans-serif'
         const font = `bold ${fontSize}px ${fontFamily}`
-        
+
         const measureCanvas = document.createElement('canvas')
         const measureCtx = measureCanvas.getContext('2d')
         if (!measureCtx) {
-          this.logger.warn('[Particle] createParticles: 无法获取测量 canvas context', { word, index })
+          this.logger.warn('[Particle] createParticles: 无法获取测量 canvas context', {
+            word,
+            index
+          })
           return
         }
         measureCtx.font = font
-        
+
         const maxTextWidth = textureSize * 2
         const minTextWidth = textureSize * 0.5
-        
+
         let displayText = word
         let textWidth = measureCtx.measureText(displayText).width
-        
+
         if (textWidth > maxTextWidth) {
           const ellipsis = '...'
           const ellipsisWidth = measureCtx.measureText(ellipsis).width
           const maxCharWidth = maxTextWidth - ellipsisWidth
-          
+
           let left = 0
           let right = word.length
           let bestLength = 0
-          
+
           while (left <= right) {
             const mid = Math.floor((left + right) / 2)
             const testText = word.substring(0, mid)
             const testWidth = measureCtx.measureText(testText).width
-            
+
             if (testWidth <= maxCharWidth) {
               bestLength = mid
               left = mid + 1
@@ -388,20 +402,23 @@ export class ParticleEffect {
               right = mid - 1
             }
           }
-          
+
           displayText = word.substring(0, bestLength) + ellipsis
           textWidth = measureCtx.measureText(displayText).width
         }
-        
-        const canvasWidth = Math.max(textureSize, Math.min(maxTextWidth, Math.max(minTextWidth, textWidth + 20)))
+
+        const canvasWidth = Math.max(
+          textureSize,
+          Math.min(maxTextWidth, Math.max(minTextWidth, textWidth + 20))
+        )
         const canvasHeight = textureSize
-        
+
         const canvas = document.createElement('canvas')
         canvas.width = canvasWidth
         canvas.height = canvasHeight
-        const ctx = canvas.getContext('2d', { 
+        const ctx = canvas.getContext('2d', {
           willReadFrequently: false,
-          alpha: true 
+          alpha: true
         })
         if (!ctx) {
           this.logger.warn('[Particle] createParticles: 无法获取 canvas context', { word, index })
@@ -409,7 +426,7 @@ export class ParticleEffect {
         }
 
         ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-        
+
         ctx.font = font
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -421,11 +438,11 @@ export class ParticleEffect {
         ;(texture as any).magFilter = 1006 // THREE.LinearFilter
         ;(texture as any).generateMipmaps = false
         ;(texture as any).needsUpdate = true
-        
-        const material = new THREE.SpriteMaterial({ 
-          map: texture, 
+
+        const material = new THREE.SpriteMaterial({
+          map: texture,
           transparent: true,
-          fog: false,
+          fog: false
         })
         const sprite = new THREE.Sprite(material)
 
@@ -440,21 +457,21 @@ export class ParticleEffect {
         const widthRatio = canvasWidth / textureSize
         const scale = baseScale * widthRatio
         sprite.scale.set(scale, baseScale, 1)
-        
+
         // 添加轻微的透明度变化，增强层次感
         material.opacity = 0.6 + Math.random() * 0.2
 
         group.add(sprite)
       })
       this.particles = group
-      this.logger.debug('[Particle] createParticles: 文字粒子创建完成', { 
+      this.logger.debug('[Particle] createParticles: 文字粒子创建完成', {
         spriteCount: (group as any).children?.length || 0
       })
     }
 
     if (this.scene && this.particles) {
       this.scene.add(this.particles)
-      this.logger.debug('[Particle] createParticles: 粒子已添加到 scene', { 
+      this.logger.debug('[Particle] createParticles: 粒子已添加到 scene', {
         particlesType: this.particles.constructor.name,
         sceneChildrenCount: (this.scene as any).children?.length || 0
       })
@@ -467,12 +484,12 @@ export class ParticleEffect {
       this.logger.debug('[Particle] startAnimation: 动画已在运行，跳过')
       return
     }
-    
+
     if (!this.renderer || !this.camera || !this.scene) {
       this.logger.error('[Particle] startAnimation: 缺少必要的 Three.js 对象')
       return
     }
-    
+
     this.logger.debug('[Particle] startAnimation: 开始动画循环')
     this.isAnimating = true
     this.animate()
@@ -514,13 +531,15 @@ export class ParticleEffect {
 
     const containerWidth = this.cachedContainerWidth || window.innerWidth
     const containerHeight = this.cachedContainerHeight || window.innerHeight
-    
+
     // 更慢的旋转速度，让画面更稳定
     const baseRotationSpeed = 0.0001
     const mouseRotationFactor = 0.06
-    
-    this.particles.rotation.x += baseRotationSpeed + (this.mouseY.value / containerHeight) * mouseRotationFactor
-    this.particles.rotation.y += baseRotationSpeed + (this.mouseX.value / containerWidth) * mouseRotationFactor
+
+    this.particles.rotation.x +=
+      baseRotationSpeed + (this.mouseY.value / containerHeight) * mouseRotationFactor
+    this.particles.rotation.y +=
+      baseRotationSpeed + (this.mouseX.value / containerWidth) * mouseRotationFactor
 
     try {
       this.renderer.render(this.scene, this.camera)
@@ -542,19 +561,19 @@ export class ParticleEffect {
     if (!this.camera || !this.renderer) {
       return
     }
-    
+
     const container = document.getElementById(this.containerId)
     if (!container) {
       return
     }
-    
+
     const containerRect = container.getBoundingClientRect()
     const containerWidth = containerRect.width || window.innerWidth
     const containerHeight = containerRect.height || window.innerHeight
-    
+
     this.cachedContainerWidth = containerWidth
     this.cachedContainerHeight = containerHeight
-    
+
     this.camera.aspect = containerWidth / containerHeight
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(containerWidth, containerHeight)
@@ -568,7 +587,7 @@ export class ParticleEffect {
       hasScene: !!this.scene,
       hasParticles: !!this.particles
     })
-    
+
     if (this.particleEffectInitialized && this.scene && this.camera && this.renderer) {
       this.logger.debug('[Particle] particleEffect: 已初始化且 Three.js 对象存在，跳过')
       if (!this.particles && !this.particleEffectEnabled.value && !this.isCreatingParticles) {
@@ -581,67 +600,71 @@ export class ParticleEffect {
       }
       return
     }
-    
+
     this.particleEffectInitialized = true
-    
+
     if (!this.scene || !this.camera || !this.renderer) {
       this.initThreeJS()
     }
-    
+
     if (this.eventHandlerRef) {
       this.eventBus.off('toggle-particle-effect', this.eventHandlerRef)
       this.eventHandlerRef = null
       this.eventHandlerRegistered = false
     }
-    
+
     if (!this.eventHandlerRegistered) {
       this.eventHandlerRegistered = true
-      
+
       const eventHandler = async () => {
         const now = Date.now()
-        
+
         if (this.isCreatingParticles) {
           return
         }
-        
-        if (this.particles && this.scene && (this.scene as any).children?.includes(this.particles as any)) {
+
+        if (
+          this.particles &&
+          this.scene &&
+          (this.scene as any).children?.includes(this.particles as any)
+        ) {
           return
         }
-        
+
         if (this.lastParticleCreationTime > 0 && now - this.lastParticleCreationTime < 500) {
           return
         }
-        
+
         this.isCreatingParticles = true
         this.lastParticleCreationTime = now
-        
+
         try {
           const enabled = await this.getSetting('particleEffect')
-          
+
           if (enabled) {
             this.particleEffectEnabled.value = true
-            
+
             if (!this.scene || !this.camera || !this.renderer) {
               this.initThreeJS()
             }
-            
+
             this.disposeParticles()
             await this.createParticles()
-            
+
             this.lastMarkdownHash = getMarkdownHash(this.particleMarkdown.value || '')
-            
+
             if (this.renderer && !this.renderer.domElement.parentNode) {
               const container = document.getElementById(this.containerId)
               if (container) {
                 container.appendChild(this.renderer.domElement)
               }
             }
-            
+
             // 显示 canvas
             if (this.renderer?.domElement) {
               this.renderer.domElement.style.display = 'block'
             }
-            
+
             this.startAnimation()
           } else {
             this.particleEffectEnabled.value = false
@@ -658,7 +681,7 @@ export class ParticleEffect {
           this.isCreatingParticles = false
         }
       }
-      
+
       this.eventHandlerRef = eventHandler
       this.eventBus.on('toggle-particle-effect', eventHandler)
     }
@@ -670,28 +693,28 @@ export class ParticleEffect {
           if (!this.particleEffectEnabled.value) {
             return
           }
-          
+
           if (this.isCreatingParticles) {
             return
           }
-          
+
           const newHash = getMarkdownHash(newValue || '')
           if (newHash === this.lastMarkdownHash) {
             return
           }
-          
+
           const oldLength = oldValue?.length || 0
           const newLength = newValue?.length || 0
           const lengthDiff = Math.abs(newLength - oldLength)
-          
+
           if (oldLength > 0 && lengthDiff < oldLength * 0.1 && lengthDiff < 100) {
             return
           }
-          
+
           if (!this.isCreatingParticles) {
             this.isCreatingParticles = true
             this.disposeParticles()
-            
+
             this.createParticles()
               .then(() => {
                 this.lastMarkdownHash = newHash
@@ -705,9 +728,19 @@ export class ParticleEffect {
       )
     }
 
-    if (this.eventHandlerRegistered && !this.isCreatingParticles && !this.particleEffectEnabled.value && !this.particles) {
+    if (
+      this.eventHandlerRegistered &&
+      !this.isCreatingParticles &&
+      !this.particleEffectEnabled.value &&
+      !this.particles
+    ) {
       nextTick(() => {
-        if (!this.isCreatingParticles && !this.particleEffectEnabled.value && !this.particles && this.eventHandlerRegistered) {
+        if (
+          !this.isCreatingParticles &&
+          !this.particleEffectEnabled.value &&
+          !this.particles &&
+          this.eventHandlerRegistered
+        ) {
           this.eventBus.emit('toggle-particle-effect', {})
         }
       })
@@ -717,36 +750,35 @@ export class ParticleEffect {
   // 清理资源
   dispose() {
     this.logger.debug('[Particle] dispose: 开始清理')
-    
+
     if (this.watchUnwatch) {
       this.watchUnwatch()
       this.watchUnwatch = null
     }
-    
+
     if (this.eventHandlerRef && this.eventHandlerRegistered) {
       this.eventBus.off('toggle-particle-effect', this.eventHandlerRef)
       this.eventHandlerRef = null
     }
-    
+
     this.stopAnimation()
     this.disposeParticles()
-    
+
     if (this.renderer) {
       if (this.renderer.domElement.parentNode) {
         this.renderer.domElement.parentNode.removeChild(this.renderer.domElement)
       }
       this.renderer.dispose()
     }
-    
+
     this.isCreatingParticles = false
     this.eventHandlerRegistered = false
     this.lastMarkdownHash = 0
     this.lastParticleCreationTime = 0
     this.particleEffectInitialized = false
-    
+
     this.scene = null
     this.camera = null
     this.renderer = null
   }
 }
-

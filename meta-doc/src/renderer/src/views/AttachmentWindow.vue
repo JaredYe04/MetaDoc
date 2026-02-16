@@ -21,76 +21,90 @@
         @rename="handleRenameAttachment"
         @delete="handleDeleteAttachment"
       >
-      <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
-        <div v-if="!activeAttachment" class="empty-state" :style="emptyStateStyle">
-          <p>{{ t('attachment.noAttachmentSelected', '请选择一个附件或上传新附件') }}</p>
-        </div>
-        
-        <div v-else class="session-content-panel" :style="panelStyle">
-          <!-- 附件信息 -->
-          <div class="attachment-info" :style="attachmentInfoStyle">
-            <div class="attachment-info-header">
-              <div class="attachment-info-text">
-                <h3 :style="attachmentTitleStyle">{{ activeAttachment.title }}</h3>
-                <p v-if="activeAttachment.file_type" :style="attachmentTextStyle">{{ t('attachment.fileType', '文件类型') }}: {{ activeAttachment.file_type }}</p>
-              </div>
-              <div class="attachment-actions">
-                <el-button 
-                  size="small"
-                  :loading="processing"
-                  @click="handleParse"
-                  :disabled="analyzing"
-                >
-                  {{ parsedContent && parsedContent.trim() ? t('attachment.reparse', '重新解析') : t('attachment.parse', '解析附件') }}
-                </el-button>
-                <el-button 
-                  type="primary"
-                  size="small"
-                  :loading="analyzing"
-                  @click="handleAiAnalysis"
-                  :disabled="!parsedContent || processing"
-                >
-                  {{ aiAnalysis && aiAnalysis.trim() ? t('attachment.reanalyze', '重新AI分析') : t('attachment.startAnalysis', '开始AI分析') }}
-                </el-button>
-              </div>
-            </div>
+        <!-- 右侧内容区域 -->
+        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+          <div v-if="!activeAttachment" class="empty-state" :style="emptyStateStyle">
+            <p>{{ t('attachment.noAttachmentSelected', '请选择一个附件或上传新附件') }}</p>
           </div>
 
-          <!-- 解析内容 -->
-          <div v-if="activeAttachment" class="parsed-section">
-            <el-tabs v-model="activeTab">
-              <el-tab-pane :label="t('attachment.tabs.parsed', '解析内容')" name="parsed">
-                <div v-if="parsedContent && parsedContent.trim()" class="content-display" :style="contentDisplayStyle">
-                  <div :ref="el => setTextEditorRef(el as HTMLElement | null)" class="text-editor-container"></div>
+          <div v-else class="session-content-panel" :style="panelStyle">
+            <!-- 附件信息 -->
+            <div class="attachment-info" :style="attachmentInfoStyle">
+              <div class="attachment-info-header">
+                <div class="attachment-info-text">
+                  <h3 :style="attachmentTitleStyle">{{ activeAttachment.title }}</h3>
+                  <p v-if="activeAttachment.file_type" :style="attachmentTextStyle">
+                    {{ t('attachment.fileType', '文件类型') }}: {{ activeAttachment.file_type }}
+                  </p>
                 </div>
-                <div v-else class="no-content" :style="noAnalysisStyle">
-                  <p>{{ t('attachment.noParsedContent', '暂无解析内容') }}</p>
+                <div class="attachment-actions">
+                  <el-button
+                    size="small"
+                    :loading="processing"
+                    @click="handleParse"
+                    :disabled="analyzing"
+                  >
+                    {{
+                      parsedContent && parsedContent.trim()
+                        ? t('attachment.reparse', '重新解析')
+                        : t('attachment.parse', '解析附件')
+                    }}
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    :loading="analyzing"
+                    @click="handleAiAnalysis"
+                    :disabled="!parsedContent || processing"
+                  >
+                    {{
+                      aiAnalysis && aiAnalysis.trim()
+                        ? t('attachment.reanalyze', '重新AI分析')
+                        : t('attachment.startAnalysis', '开始AI分析')
+                    }}
+                  </el-button>
                 </div>
-              </el-tab-pane>
-              <el-tab-pane :label="t('attachment.tabs.aiAnalysis', 'AI分析')" name="analysis">
-                <div class="analysis-display">
-                  <!-- 流式输出显示 -->
-                  <StreamingContentDisplay
-                    v-if="isAnalyzingStreaming"
-                    :content-ref="aiAnalysisStreamingRefWrapper"
-                    :done="aiAnalysisDoneValue"
-                  />
-                  <el-scrollbar v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
-                    <div 
-                      ref="aiAnalysisContainerRef"
-                      class="ai-analysis-container"
+              </div>
+            </div>
+
+            <!-- 解析内容 -->
+            <div v-if="activeAttachment" class="parsed-section">
+              <el-tabs v-model="activeTab">
+                <el-tab-pane :label="t('attachment.tabs.parsed', '解析内容')" name="parsed">
+                  <div
+                    v-if="parsedContent && parsedContent.trim()"
+                    class="content-display"
+                    :style="contentDisplayStyle"
+                  >
+                    <div
+                      :ref="(el) => setTextEditorRef(el as HTMLElement | null)"
+                      class="text-editor-container"
                     ></div>
-                  </el-scrollbar>
-                  <div v-else class="no-analysis" :style="noAnalysisStyle">
-                    <p>{{ t('attachment.noAnalysis', '暂无AI分析结果') }}</p>
                   </div>
-                </div>
-              </el-tab-pane>
-            </el-tabs>
+                  <div v-else class="no-content" :style="noAnalysisStyle">
+                    <p>{{ t('attachment.noParsedContent', '暂无解析内容') }}</p>
+                  </div>
+                </el-tab-pane>
+                <el-tab-pane :label="t('attachment.tabs.aiAnalysis', 'AI分析')" name="analysis">
+                  <div class="analysis-display">
+                    <!-- 流式输出显示 -->
+                    <StreamingContentDisplay
+                      v-if="isAnalyzingStreaming"
+                      :content-ref="aiAnalysisStreamingRefWrapper"
+                      :done="aiAnalysisDoneValue"
+                    />
+                    <el-scrollbar v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
+                      <div ref="aiAnalysisContainerRef" class="ai-analysis-container"></div>
+                    </el-scrollbar>
+                    <div v-else class="no-analysis" :style="noAnalysisStyle">
+                      <p>{{ t('attachment.noAnalysis', '暂无AI分析结果') }}</p>
+                    </div>
+                  </div>
+                </el-tab-pane>
+              </el-tabs>
+            </div>
           </div>
         </div>
-      </div>
       </SessionList>
     </div>
   </div>
@@ -121,7 +135,7 @@ const attachments = ref<SessionListItem[]>([])
 const activeAttachmentId = ref<string | null>(null)
 const activeAttachment = computed(() => {
   if (!activeAttachmentId.value) return null
-  return attachments.value.find(s => s.id === activeAttachmentId.value) as any
+  return attachments.value.find((s) => s.id === activeAttachmentId.value) as any
 })
 
 const parsedContent = ref<string>('')
@@ -164,17 +178,17 @@ const setTextEditorRef = (el: HTMLElement | null) => {
 const initTextEditor = async () => {
   const container = textEditorRef.value
   if (!container || !parsedContent.value) return
-  
+
   // 如果已经存在编辑器，先销毁
   if (textEditor) {
     textEditor.dispose()
     textEditor = null
     textEditorId = null
   }
-  
+
   // 等待DOM更新，确保容器有正确的高度
   await nextTick()
-  
+
   // 确保容器有明确的高度，如果没有则延迟创建
   if (container.offsetHeight === 0) {
     setTimeout(() => {
@@ -182,11 +196,11 @@ const initTextEditor = async () => {
     }, 100)
     return
   }
-  
+
   try {
     // 禁用 Monaco Worker，避免卡死
     // 不调用 setupMonacoWorker()
-    
+
     // 创建编辑器（从全局 monaco 获取，不使用 ref）
     textEditor = monaco.editor.create(container, {
       value: parsedContent.value || '',
@@ -201,26 +215,31 @@ const initTextEditor = async () => {
       scrollBeyondLastLine: false,
       fontFamily: "'JetBrains Mono', 'Consolas', monospace"
     })
-    
+
     // 保存 editor ID，而不是 editor 对象本身
     textEditorId = textEditor.getId()
-    
+
     // 手动触发布局更新，确保编辑器正确显示
     setTimeout(() => {
       if (textEditor) {
         textEditor.layout()
       }
     }, 0)
-    
+
     // 监听主题变化（通过 editor ID 从全局获取 editor）
-    watch(() => themeState.currentTheme.type, (newType) => {
-      // 从全局 monaco 获取 editor
-      const editors = (monaco.editor as any).getEditors?.() ?? []
-      const ed = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === textEditorId)
-      if (ed) {
-        monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
+    watch(
+      () => themeState.currentTheme.type,
+      (newType) => {
+        // 从全局 monaco 获取 editor
+        const editors = (monaco.editor as any).getEditors?.() ?? []
+        const ed = editors.find(
+          (e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === textEditorId
+        )
+        if (ed) {
+          monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
+        }
       }
-    })
+    )
   } catch (error) {
     console.error('初始化文本编辑器失败:', error)
   }
@@ -236,32 +255,38 @@ const disposeTextEditor = () => {
 }
 
 // 监听解析内容变化，更新编辑器内容
-watch(() => parsedContent.value, (newContent) => {
-  if (textEditor && newContent) {
-    try {
-      const currentValue = textEditor.getValue()
-      if (currentValue !== newContent) {
-        textEditor.setValue(newContent || '')
+watch(
+  () => parsedContent.value,
+  (newContent) => {
+    if (textEditor && newContent) {
+      try {
+        const currentValue = textEditor.getValue()
+        if (currentValue !== newContent) {
+          textEditor.setValue(newContent || '')
+        }
+      } catch (error) {
+        // 编辑器可能已被销毁，忽略错误
+        console.warn('更新编辑器内容失败:', error)
       }
-    } catch (error) {
-      // 编辑器可能已被销毁，忽略错误
-      console.warn('更新编辑器内容失败:', error)
+    } else if (newContent && textEditorRef.value) {
+      // 如果内容存在但编辑器未初始化，初始化编辑器
+      nextTick(() => {
+        initTextEditor()
+      })
     }
-  } else if (newContent && textEditorRef.value) {
-    // 如果内容存在但编辑器未初始化，初始化编辑器
-    nextTick(() => {
-      initTextEditor()
-    })
   }
-})
+)
 
 // 监听活动标签页变化，初始化编辑器
-watch(() => activeTab.value, async (newTab) => {
-  if (newTab === 'parsed' && parsedContent.value && textEditorRef.value) {
-    await nextTick()
-    initTextEditor()
+watch(
+  () => activeTab.value,
+  async (newTab) => {
+    if (newTab === 'parsed' && parsedContent.value && textEditorRef.value) {
+      await nextTick()
+      initTextEditor()
+    }
   }
-})
+)
 
 // 清理编辑器
 onBeforeUnmount(() => {
@@ -269,20 +294,24 @@ onBeforeUnmount(() => {
 })
 
 // 监听parsedContent变化，确保UI更新
-watch(() => parsedContent.value, (newValue) => {
-  if (newValue && newValue.trim()) {
-    // 确保切换到解析内容标签页
-    if (activeTab.value !== 'parsed') {
-      activeTab.value = 'parsed'
+watch(
+  () => parsedContent.value,
+  (newValue) => {
+    if (newValue && newValue.trim()) {
+      // 确保切换到解析内容标签页
+      if (activeTab.value !== 'parsed') {
+        activeTab.value = 'parsed'
+      }
     }
-  }
-}, { immediate: true, deep: false })
+  },
+  { immediate: true, deep: false }
+)
 
 // 加载附件列表
 const loadAttachments = async () => {
   try {
     const dbAttachments = await attachmentSessionsDb.getAll()
-    attachments.value = dbAttachments.map(a => ({
+    attachments.value = dbAttachments.map((a) => ({
       id: a.id,
       title: a.title,
       updatedAt: a.updated_at
@@ -295,16 +324,20 @@ const loadAttachments = async () => {
 // 上传附件
 const handleUploadAttachment = async () => {
   try {
-    const filePaths = await selectReferenceFiles('all', false, t('attachment.selectFile', '选择附件'))
+    const filePaths = await selectReferenceFiles(
+      'all',
+      false,
+      t('attachment.selectFile', '选择附件')
+    )
     if (filePaths.length === 0) return
 
     for (const filePath of filePaths) {
       const fileName = filePath.split(/[/\\]/).pop() || 'unknown'
       const fileType = fileName.split('.').pop()?.toLowerCase() || ''
-      
+
       const id = `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const title = fileName
-      
+
       await attachmentSessionsDb.create({
         id,
         title,
@@ -316,11 +349,13 @@ const handleUploadAttachment = async () => {
         ai_analysis: undefined
       })
     }
-    
+
     await loadAttachments()
     if (filePaths.length === 1) {
       // 自动选择新上传的附件
-      const newAttachment = attachments.value.find(a => a.title === filePaths[0].split(/[/\\]/).pop())
+      const newAttachment = attachments.value.find(
+        (a) => a.title === filePaths[0].split(/[/\\]/).pop()
+      )
       if (newAttachment) {
         activeAttachmentId.value = newAttachment.id
         await handleSelectAttachment(newAttachment)
@@ -338,9 +373,9 @@ const handleSelectAttachment = async (item: SessionListItem) => {
   if (loadingSession.value) {
     return
   }
-  
+
   loadingSession.value = true
-  
+
   try {
     activeAttachmentId.value = item.id
     const attachment = await attachmentSessionsDb.getById(item.id)
@@ -348,10 +383,10 @@ const handleSelectAttachment = async (item: SessionListItem) => {
       // 确保值被正确设置
       const content = attachment.parsed_content || ''
       const analysis = attachment.ai_analysis || ''
-      
+
       parsedContent.value = content
       aiAnalysis.value = analysis
-      
+
       // 如果有解析内容，切换到解析内容标签页
       await nextTick()
       if (content && content.trim()) {
@@ -400,7 +435,7 @@ const handleParse = async () => {
   if (!activeAttachmentId.value) {
     return
   }
-  
+
   processing.value = true
   // 清空之前的解析结果（重新解析时）
   parsedContent.value = ''
@@ -409,7 +444,7 @@ const handleParse = async () => {
     if (!attachment) {
       return
     }
-    
+
     // 使用reference-processor解析文件
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
@@ -420,18 +455,18 @@ const handleParse = async () => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
+
     // 读取文件并转换为File对象
-    const fileData = await ipcRenderer.invoke('read-file-for-upload', attachment.file_path) as {
+    const fileData = (await ipcRenderer.invoke('read-file-for-upload', attachment.file_path)) as {
       name: string
       data: string
       mimeType: string
     }
-    
+
     const binaryString = atob(fileData.data)
     const bytes = new Uint8Array(binaryString.length)
     for (let i = 0; i < binaryString.length; i++) {
@@ -439,23 +474,23 @@ const handleParse = async () => {
     }
     const blob = new Blob([bytes], { type: fileData.mimeType })
     const file = new File([blob], fileData.name, { type: fileData.mimeType })
-    
+
     // 使用reference-processor解析
     const reference = await processFileUpload(file)
     const content = reference.parsedContent || ''
-    
+
     // 先更新显示（立即更新，确保UI响应）
     parsedContent.value = content
-    
+
     // 保存解析结果到数据库
     await attachmentSessionsDb.update(activeAttachmentId.value, {
       parsed_content: content
     })
-    
+
     // 确保UI更新并切换到解析内容标签页
     await nextTick()
     activeTab.value = 'parsed'
-    
+
     ElMessage.success(t('attachment.parseSuccess', '解析完成'))
   } catch (error) {
     ElMessage.error('解析失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -470,20 +505,22 @@ const handleAiAnalysis = async () => {
     ElMessage.warning(t('attachment.noParsedContent', '请先解析附件'))
     return
   }
-  
+
   analyzing.value = true
   try {
     const attachment = await attachmentSessionsDb.getById(activeAttachmentId.value)
     if (!attachment) return
-    
+
     const prompt = generateAttachmentAnalysisPrompt(parsedContent.value, attachment.file_name)
     const target = vueRef('')
     const originKey = `attachment-analysis-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    
-    const messages: AIDialogMessage[] = [{
-      role: 'user',
-      content: prompt,
-    }]
+
+    const messages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]
     const { done } = createAiTask(
       t('attachment.analyzing', '分析附件'),
       messages,
@@ -492,11 +529,11 @@ const handleAiAnalysis = async () => {
       originKey,
       { stream: true }
     )
-    
+
     // 设置流式显示
     aiAnalysisStreamingRef.value = ''
     aiAnalysisDonePromise.value = done
-    
+
     // 同步target到streamingRef
     const syncWatcher = watch(
       () => target.value,
@@ -505,17 +542,17 @@ const handleAiAnalysis = async () => {
       },
       { immediate: true }
     )
-    
+
     try {
       await done
     } catch (error) {
       // 如果是取消错误，保留已生成的内容，当作完成处理
-      const isCancelled = error instanceof Error && (
-        error.message === '任务已取消' || 
-        error.message.includes('任务已取消') ||
-        (error as any).name === 'AbortError'
-      )
-      
+      const isCancelled =
+        error instanceof Error &&
+        (error.message === '任务已取消' ||
+          error.message.includes('任务已取消') ||
+          (error as any).name === 'AbortError')
+
       if (isCancelled) {
         // 取消时保留已生成的内容，继续执行后续逻辑
         // 不显示错误消息，因为用户主动取消
@@ -524,18 +561,18 @@ const handleAiAnalysis = async () => {
         throw error
       }
     }
-    
+
     // 清理监听器
     syncWatcher()
     aiAnalysisDonePromise.value = null
     aiAnalysis.value = target.value
-    
+
     // 如果有内容，保存分析结果
     if (aiAnalysis.value && aiAnalysis.value.trim()) {
       await attachmentSessionsDb.update(activeAttachmentId.value, {
         ai_analysis: aiAnalysis.value
       })
-      
+
       activeTab.value = 'analysis'
       ElMessage.success(t('attachment.analysisSuccess', '分析完成'))
     }
@@ -548,13 +585,13 @@ const handleAiAnalysis = async () => {
 
 // 主题样式
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
+  borderColor: borderColor.value
 }))
 
 const contentAreaStyle = computed(() => ({
@@ -613,9 +650,9 @@ const renderAiAnalysis = async () => {
   if (!aiAnalysisContainerRef.value || !aiAnalysis.value) {
     return
   }
-  
+
   const container = aiAnalysisContainerRef.value as HTMLDivElement
-  
+
   try {
     // 使用统一的 Markdown 预览渲染函数
     await renderMarkdownPreview(container, aiAnalysis.value)
@@ -695,7 +732,10 @@ onMounted(() => {
   overflow: hidden;
   margin: 0;
   height: 100%;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
   gap: 16px;
 }
 
@@ -826,4 +866,3 @@ onMounted(() => {
   gap: 16px;
 }
 </style>
-

@@ -42,19 +42,25 @@ export interface TaskResult<T> {
  * 统一管理所有使用进度条的任务
  */
 class TaskManager {
-  private tasks = new Map<string, {
-    handle: ProgressHandle
-    name?: string
-    promise: Promise<any>
-    resolve: (value: any) => void
-    reject: (error: any) => void
-  }>()
+  private tasks = new Map<
+    string,
+    {
+      handle: ProgressHandle
+      name?: string
+      promise: Promise<any>
+      resolve: (value: any) => void
+      reject: (error: any) => void
+    }
+  >()
 
   /**
    * 注册一个新任务
    * 返回 handle 和 promise，任务必须通过 handle.success/fail/cancel 明确结束
    */
-  register<T>(taskFn: (handle: ProgressHandle) => Promise<T>, options: TaskOptions = {}): TaskResult<T> {
+  register<T>(
+    taskFn: (handle: ProgressHandle) => Promise<T>,
+    options: TaskOptions = {}
+  ): TaskResult<T> {
     const handle = createProgressHandle({
       requestId: options.requestId,
       message: options.message,
@@ -90,20 +96,23 @@ class TaskManager {
         }
 
         const result = await taskFn(handle)
-        
+
         // 如果任务成功但没有调用 handle.success，自动调用
         if (!handle.signal.aborted) {
           handle.success()
         }
-        
+
         return result
       } catch (error) {
         // 如果是取消错误，不显示错误消息
-        if (error instanceof Error && (error.message === '操作已取消' || error.name === 'AbortError')) {
+        if (
+          error instanceof Error &&
+          (error.message === '操作已取消' || error.name === 'AbortError')
+        ) {
           handle.cancel()
           throw error
         }
-        
+
         // 其他错误，标记为失败
         if (!handle.signal.aborted) {
           handle.fail(error instanceof Error ? error.message : String(error))
@@ -128,7 +137,9 @@ class TaskManager {
       reject
     })
 
-    getLogger().debug(`[TaskManager] 注册任务: ${options.name || 'unnamed'}, requestId: ${handle.requestId}`)
+    getLogger().debug(
+      `[TaskManager] 注册任务: ${options.name || 'unnamed'}, requestId: ${handle.requestId}`
+    )
 
     return {
       handle,
@@ -148,13 +159,13 @@ class TaskManager {
     }
 
     getLogger().debug(`[TaskManager] 取消任务: ${task.name || 'unnamed'}, requestId: ${requestId}`)
-    
+
     // 取消 handle
     task.handle.cancel()
-    
+
     // 拒绝 promise
     task.reject(new Error('操作已取消'))
-    
+
     // 清理注册
     this.tasks.delete(requestId)
   }
@@ -165,7 +176,7 @@ class TaskManager {
   cancelAll(): void {
     const requestIds = Array.from(this.tasks.keys())
     getLogger().debug(`[TaskManager] 取消所有任务，共 ${requestIds.length} 个`)
-    requestIds.forEach(id => this.cancelTask(id))
+    requestIds.forEach((id) => this.cancelTask(id))
   }
 
   /**
@@ -195,7 +206,7 @@ const taskManager = new TaskManager()
  *   // ... 执行任务
  *   return result
  * }, { name: '处理文件' })
- * 
+ *
  * const result = await promise
  * ```
  */
@@ -226,4 +237,3 @@ export function cancelAllTasks(): void {
 export function getTaskManager(): TaskManager {
   return taskManager
 }
-

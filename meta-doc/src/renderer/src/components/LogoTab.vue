@@ -102,4 +102,3 @@ const handleLogoClick = () => {
   display: block;
 }
 </style>
-

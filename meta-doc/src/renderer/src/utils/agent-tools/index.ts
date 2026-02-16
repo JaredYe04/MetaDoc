@@ -91,7 +91,7 @@ export async function initializeAgentTools(): Promise<void> {
 
   // 初始化默认工具集（包含所有内置工具）
   initializeDefaultToolSet()
-  
+
   // 初始化默认Agent配置
   initializeDefaultAgentConfig()
 
@@ -100,11 +100,15 @@ export async function initializeAgentTools(): Promise<void> {
     try {
       const { workflowManager } = await import('../agent-framework/workflow-manager')
       await workflowManager.initializeBuiltinWorkflows()
-      
+
       // 初始化默认工作流工具集
-      const builtinWorkflows = ['builtin-article-expansion', 'builtin-smart-charting', 'builtin-article-polishing']
+      const builtinWorkflows = [
+        'builtin-article-expansion',
+        'builtin-smart-charting',
+        'builtin-article-polishing'
+      ]
       await toolCollectionManager.initializeDefaultWorkflowCollection(builtinWorkflows)
-      
+
       // 更新默认AgentConfig，包含默认工具集和默认工作流工具集
       const { agentConfigManager } = await import('../agent-framework/agent-config-manager')
       agentConfigManager.updateConfig('default-agent-config', {
@@ -122,11 +126,11 @@ export async function initializeAgentTools(): Promise<void> {
 import { toolCollectionManager } from '../agent-framework'
 export function initializeDefaultToolSet(): void {
   const allTools = agentToolManager.getAllTools()
-  
+
   // 获取所有内置工具ID（排除工作流工具）
   const builtInToolIds = allTools
-    .map(tool => tool.config.id)
-    .filter(id => !id.startsWith('workflow-'))
+    .map((tool) => tool.config.id)
+    .filter((id) => !id.startsWith('workflow-'))
 
   // 初始化默认工具集
   toolCollectionManager.initializeDefaultToolSet(builtInToolIds)
@@ -139,7 +143,7 @@ import { agentConfigManager } from '../agent-framework'
 export function initializeDefaultAgentConfig(): void {
   // 默认工具集ID
   const defaultToolCollectionId = 'default-tool-set'
-  
+
   // 初始化默认Agent配置（先只包含默认工具集，工作流工具集稍后异步添加）
   agentConfigManager.initializeDefaultAgentConfig(defaultToolCollectionId, [])
 }
@@ -150,4 +154,3 @@ export function initializeDefaultAgentConfig(): void {
 export function getRegisteredTools() {
   return agentToolManager.getAllTools()
 }
-

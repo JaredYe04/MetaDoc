@@ -19,7 +19,13 @@ import localIpcRenderer from '../web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import axios from 'axios'
 import ProofreadDisplay from './components/ProofreadDisplay.vue'
-import { cleanJsonString, parseJsonWithClean, parsePartialJsonArray, createDetailedError, retryLLMCall } from './tool-utils'
+import {
+  cleanJsonString,
+  parseJsonWithClean,
+  parsePartialJsonArray,
+  createDetailedError,
+  retryLLMCall
+} from './tool-utils'
 import { extractOuterJsonString } from '../regex-utils'
 import { useWorkspace } from '../../stores/workspace'
 import { searchNode } from '../outline-helpers'
@@ -60,16 +66,16 @@ export type ErrorType = 'grammar' | 'spelling' | 'latex' | 'style' | 'other'
  */
 export interface ProofreadError {
   type: ErrorType
-  line: number          // 行号（1-based）
-  column: number        // 列号（1-based）
-  length: number        // 错误文本长度
-  text: string          // 错误的文本
-  suggestion: string    // 修改建议（第一个建议，向后兼容）
+  line: number // 行号（1-based）
+  column: number // 列号（1-based）
+  length: number // 错误文本长度
+  text: string // 错误的文本
+  suggestion: string // 修改建议（第一个建议，向后兼容）
   suggestions: string[] // 修改建议列表（1-5个）
-  message: string       // 错误描述
-  severity: 'error' | 'warning' | 'info'  // 严重程度
-  fixed?: boolean       // 是否已自动修复（可选）
-  selectedSuggestion?: string  // 用户选择的建议（可选）
+  message: string // 错误描述
+  severity: 'error' | 'warning' | 'info' // 严重程度
+  fixed?: boolean // 是否已自动修复（可选）
+  selectedSuggestion?: string // 用户选择的建议（可选）
 }
 
 /**
@@ -81,8 +87,8 @@ export interface ProofreadResult {
   errorCounts: Record<ErrorType, number>
   text: string
   format: 'text' | 'markdown' | 'latex'
-  fixedCount?: number   // 已修复的错误数量（可选）
-  autoFixed?: boolean   // 是否已自动应用修复（可选）
+  fixedCount?: number // 已修复的错误数量（可选）
+  autoFixed?: boolean // 是否已自动应用修复（可选）
 }
 
 /**
@@ -98,7 +104,7 @@ async function loadTextFromFile(filePath: string, signal?: AbortSignal): Promise
   }
 
   try {
-    const content = await ipcRenderer.invoke('read-file-content', filePath) as string | null
+    const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string | null
     if (content === null || content === undefined) {
       throw new Error('文件内容为空或文件不存在')
     }
@@ -124,12 +130,12 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
     // 优先使用主进程代理（避免CORS）
     if (ipcRenderer) {
       try {
-        const response = await ipcRenderer.invoke('execute-http-request', {
+        const response = (await ipcRenderer.invoke('execute-http-request', {
           url,
           method: 'GET',
           timeout: 30000,
           maxRedirects: 5
-        }) as { content: string }
+        })) as { content: string }
         return response.content
       } catch (error) {
         getLogger().warn('主进程HTTP请求失败，尝试使用axios:', error)
@@ -169,49 +175,60 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
  */
 function validateError(error: ProofreadError, originalText: string): ProofreadError | null {
   const lines = originalText.split('\n')
-  
+
   // 验证行号范围
   if (error.line < 1 || error.line > lines.length) {
-    getLogger().warn(`[validateError] 行号 ${error.line} 超出范围 [1, ${lines.length}]，跳过错误:`, JSON.stringify(error))
+    getLogger().warn(
+      `[validateError] 行号 ${error.line} 超出范围 [1, ${lines.length}]，跳过错误:`,
+      JSON.stringify(error)
+    )
     return null
   }
-  
+
   const lineIndex = error.line - 1
   const line = lines[lineIndex]
-  
+
   // 验证列号范围
   if (error.column < 1 || error.column > line.length) {
-    getLogger().warn(`[validateError] 列号 ${error.column} 超出范围 [1, ${line.length}]，行 ${error.line}，跳过错误:`, JSON.stringify(error))
+    getLogger().warn(
+      `[validateError] 列号 ${error.column} 超出范围 [1, ${line.length}]，行 ${error.line}，跳过错误:`,
+      JSON.stringify(error)
+    )
     return null
   }
-  
+
   // 验证错误文本是否匹配
   const actualText = line.substring(error.column - 1, error.column - 1 + error.length)
-  
+
   if (actualText !== error.text) {
     // 尝试在附近查找错误文本（允许一定的容错）
     const searchStart = Math.max(0, error.column - 1 - 10)
     const searchEnd = Math.min(line.length, error.column - 1 + error.length + 10)
     const searchArea = line.substring(searchStart, searchEnd)
-    
+
     if (searchArea.includes(error.text)) {
       // 找到了，但位置不对，尝试修正列号
       const foundIndex = line.indexOf(error.text, searchStart)
       if (foundIndex !== -1) {
-        getLogger().warn(`[validateError] 错误文本位置不准确，从列 ${error.column} 修正为 ${foundIndex + 1}:`, error.text)
+        getLogger().warn(
+          `[validateError] 错误文本位置不准确，从列 ${error.column} 修正为 ${foundIndex + 1}:`,
+          error.text
+        )
         return {
           ...error,
           column: foundIndex + 1
         }
       }
     }
-    
+
     // 如果找不到，记录警告并跳过
-    getLogger().warn(`[validateError] 错误文本不匹配，期望 "${error.text}"，实际 "${actualText}"，行 ${error.line} 列 ${error.column}，跳过错误`)
+    getLogger().warn(
+      `[validateError] 错误文本不匹配，期望 "${error.text}"，实际 "${actualText}"，行 ${error.line} 列 ${error.column}，跳过错误`
+    )
     getLogger().debug(`[validateError] 行内容: "${line}"`)
     return null
   }
-  
+
   return error
 }
 
@@ -227,40 +244,43 @@ async function proofreadWithCSpell(
   getLogger().info('[proofreadWithCSpell] 开始通过 IPC 调用主进程拼写检查服务')
   getLogger().debug('[proofreadWithCSpell] 文本长度:', text.length)
   getLogger().debug('[proofreadWithCSpell] 文本格式:', format)
-  
+
   if (signal?.aborted) {
     throw new Error('操作已取消')
   }
-  
+
   // 更新进度
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'proofreading',
-        format
+    onUpdate(
+      {
+        content: {
+          stage: 'proofreading',
+          format
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在使用拼写检查器检查文本...'
-    })
+      {
+        percentage: 30,
+        message: '正在使用拼写检查器检查文本...'
+      }
+    )
   }
-  
+
   try {
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用，无法调用拼写检查服务')
     }
-    
+
     // 获取当前用户选择的语言
     // 确保使用正确的格式（下划线格式，如 'fr_FR', 'zh_CN'）
     let currentLocale = getLocale()
-    
+
     // 标准化语言格式：将连字符转换为下划线，确保格式一致
     // i18n 使用下划线格式（zh_CN, fr_FR），但某些地方可能使用连字符（zh-CN, fr-FR）
     if (currentLocale && typeof currentLocale === 'string') {
       currentLocale = currentLocale.replace('-', '_')
     }
-    
+
     // 如果获取失败，尝试从 localStorage 获取
     if (!currentLocale || currentLocale === 'zh_CN') {
       const savedLang = localStorage.getItem('lang')
@@ -268,27 +288,33 @@ async function proofreadWithCSpell(
         currentLocale = savedLang.replace('-', '_')
       }
     }
-    
+
     // 确保有默认值
     if (!currentLocale) {
       currentLocale = 'zh_CN'
     }
-    
+
     getLogger().debug('[proofreadWithCSpell] 使用语言:', currentLocale, '格式:', format)
-    
+
     // 通过 IPC 调用主进程的拼写检查服务
-    const result = await ipcRenderer.invoke('spell-check', {
+    const result = (await ipcRenderer.invoke('spell-check', {
       text: text,
       format: format,
       locale: currentLocale
-    }) as { issues: Array<{ offset: number; length: number; text: string; suggestions?: string[] }> }
-    
-    getLogger().info('[proofreadWithCSpell] 主进程拼写检查完成，发现', result.issues?.length || 0, '个问题')
-    
+    })) as {
+      issues: Array<{ offset: number; length: number; text: string; suggestions?: string[] }>
+    }
+
+    getLogger().info(
+      '[proofreadWithCSpell] 主进程拼写检查完成，发现',
+      result.issues?.length || 0,
+      '个问题'
+    )
+
     // 将主进程返回的结果转换为 ProofreadError 格式
     const errors: ProofreadError[] = []
     const lines = text.split('\n')
-    
+
     if (result.issues && Array.isArray(result.issues) && result.issues.length > 0) {
       for (const issue of result.issues) {
         // 计算行号和列号
@@ -297,7 +323,7 @@ async function proofreadWithCSpell(
         let currentOffset = 0
         let lineNumber = 1
         let columnNumber = 1
-        
+
         // 找到错误所在的行
         for (let i = 0; i < lines.length; i++) {
           const lineLength = lines[i].length + 1 // +1 是换行符
@@ -308,28 +334,30 @@ async function proofreadWithCSpell(
           }
           currentOffset += lineLength
         }
-        
+
         // 验证 issue 对象
         if (!issue || typeof issue !== 'object') {
           getLogger().warn('[proofreadWithCSpell] 跳过无效的 issue 对象:', issue)
           continue
         }
-        
+
         // 获取错误文本
         const issueLength = (issue.length ?? 0) || (issue.text?.length ?? 0) || 0
-        const errorText = issue.text || (text ? text.substring(issueOffset, issueOffset + issueLength) : '')
-        
+        const errorText =
+          issue.text || (text ? text.substring(issueOffset, issueOffset + issueLength) : '')
+
         if (!errorText) {
           getLogger().warn('[proofreadWithCSpell] 跳过无文本的 issue:', issue)
           continue
         }
-        
+
         // 获取建议列表（最多5个，如果没有则使用原文本作为默认建议）
-        const allSuggestions = (issue.suggestions && Array.isArray(issue.suggestions) && issue.suggestions.length > 0)
-          ? issue.suggestions.slice(0, 5) // 最多取5个建议
-          : [errorText]
+        const allSuggestions =
+          issue.suggestions && Array.isArray(issue.suggestions) && issue.suggestions.length > 0
+            ? issue.suggestions.slice(0, 5) // 最多取5个建议
+            : [errorText]
         const firstSuggestion = allSuggestions[0] || errorText
-        
+
         // 创建错误对象
         const error: ProofreadError = {
           type: 'spelling',
@@ -342,7 +370,7 @@ async function proofreadWithCSpell(
           message: `拼写错误：${errorText}${allSuggestions.length > 0 ? `，建议：${allSuggestions.join('、')}` : ''}`,
           severity: 'error'
         }
-        
+
         // 验证错误
         const validatedError = validateError(error, text)
         if (validatedError) {
@@ -350,10 +378,9 @@ async function proofreadWithCSpell(
         }
       }
     }
-    
+
     getLogger().info('[proofreadWithCSpell] ✅ 拼写检查完成，有效错误数量:', errors.length)
     return errors
-    
   } catch (error) {
     getLogger().error('[proofreadWithCSpell] 拼写检查失败:', error)
     throw new Error(`拼写检查失败: ${error instanceof Error ? error.message : String(error)}`)
@@ -430,7 +457,7 @@ async function getTextByNodePath(
   }
 
   const content = getNodeText(node)
-  const format = doc.format === 'tex' ? 'latex' : (doc.format === 'md' ? 'markdown' : 'text')
+  const format = doc.format === 'tex' ? 'latex' : doc.format === 'md' ? 'markdown' : 'text'
 
   return { content, format }
 }
@@ -481,7 +508,7 @@ async function getFullDocumentText(
   }
 
   const content = doc.format === 'md' ? doc.markdown : doc.tex
-  const format = doc.format === 'tex' ? 'latex' : (doc.format === 'md' ? 'markdown' : 'text')
+  const format = doc.format === 'tex' ? 'latex' : doc.format === 'md' ? 'markdown' : 'text'
 
   return { content, format }
 }
@@ -496,9 +523,11 @@ export const proofreadToolCallback: ToolCallback = async (params, signal, onUpda
   // 3. URL：{ text: "https://...", source: "url" }
   // 4. 全文比对：{ source: "document" } 或 {}（不提供text和nodePath）
   // 5. 段落比对：{ nodePath: "1.1" }（根据大纲节点路径）
-  
+
   const text = params.text as string | undefined
-  const source: 'text' | 'file' | 'url' | 'document' = (params.source as 'text' | 'file' | 'url' | 'document') || (text ? ('text' as const) : ('document' as const))
+  const source: 'text' | 'file' | 'url' | 'document' =
+    (params.source as 'text' | 'file' | 'url' | 'document') ||
+    (text ? ('text' as const) : ('document' as const))
   const format = (params.format as 'text' | 'markdown' | 'latex' | undefined) || undefined
   const nodePath = params.nodePath as string | undefined
   const tabId = params.tabId as string | undefined
@@ -507,7 +536,9 @@ export const proofreadToolCallback: ToolCallback = async (params, signal, onUpda
   if (nodePath) {
     try {
       // 支持测试环境的 mock 数据（通过 _mockDocument 参数传入）
-      const mockDocument = (params as any)._mockDocument as { content: string; format: 'text' | 'markdown' | 'latex'; outline?: any } | undefined
+      const mockDocument = (params as any)._mockDocument as
+        | { content: string; format: 'text' | 'markdown' | 'latex'; outline?: any }
+        | undefined
       const { content, format: docFormat } = await getTextByNodePath(nodePath, tabId, mockDocument)
       return await performProofread(content, docFormat, signal, onUpdate, tabId, false)
     } catch (error) {
@@ -535,7 +566,9 @@ export const proofreadToolCallback: ToolCallback = async (params, signal, onUpda
   if ((source as string) === 'document' || (!text && !nodePath)) {
     try {
       // 支持测试环境的 mock 数据（通过 _mockDocument 参数传入）
-      const mockDocument = (params as any)._mockDocument as { content: string; format: 'text' | 'markdown' | 'latex' } | undefined
+      const mockDocument = (params as any)._mockDocument as
+        | { content: string; format: 'text' | 'markdown' | 'latex' }
+        | undefined
       const { content, format: docFormat } = await getFullDocumentText(tabId, mockDocument)
       return await performProofread(content, docFormat, signal, onUpdate, tabId, false)
     } catch (error) {
@@ -583,21 +616,25 @@ export const proofreadToolCallback: ToolCallback = async (params, signal, onUpda
 
   // 加载文本
   let content: string
-  let finalFormat: 'text' | 'markdown' | 'latex' = (format as 'text' | 'markdown' | 'latex') || 'text'
+  let finalFormat: 'text' | 'markdown' | 'latex' =
+    (format as 'text' | 'markdown' | 'latex') || 'text'
 
   try {
-    onUpdate({
-      content: {
-        stage: 'loading',
-        source,
-        format: finalFormat
+    onUpdate(
+      {
+        content: {
+          stage: 'loading',
+          source,
+          format: finalFormat
+        },
+        format: 'json',
+        componentName: 'ProofreadDisplay'
       },
-      format: 'json',
-      componentName: 'ProofreadDisplay'
-    }, {
-      percentage: 10,
-      message: i18n.global.t('agent.tool.proofread.progress.loading', '正在加载文本...')
-    })
+      {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.proofread.progress.loading', '正在加载文本...')
+      }
+    )
 
     if (source === 'file') {
       content = await loadTextFromFile(text, signal)
@@ -635,56 +672,58 @@ function applyFixes(
 ): { fixedContent: string; fixedErrors: ProofreadError[] } {
   // 筛选出可以修复的错误（必须有suggestion）
   const fixableErrors = errors.filter(
-    error => error.suggestion && error.suggestion.trim().length > 0
+    (error) => error.suggestion && error.suggestion.trim().length > 0
   )
-  
+
   if (fixableErrors.length === 0) {
     return { fixedContent: content, fixedErrors: [] }
   }
-  
+
   // 按行号和列号从后往前排序，避免位置偏移问题
   const sortedErrors = [...fixableErrors].sort((a, b) => {
     if (a.line !== b.line) return b.line - a.line
     return b.column - a.column
   })
-  
+
   const lines = content.split(/\r?\n/)
   const fixedErrors: ProofreadError[] = []
-  
+
   // 从后往前应用修复
   for (const error of sortedErrors) {
     if (error.line > 0 && error.line <= lines.length) {
       const lineIndex = error.line - 1
       const line = lines[lineIndex]
-      
+
       // 验证错误位置是否有效
       if (error.column > 0 && error.column <= line.length) {
         const before = line.substring(0, error.column - 1)
         const after = line.substring(error.column - 1 + error.length)
-        
+
         // 验证原始文本是否匹配
         const actualText = line.substring(error.column - 1, error.column - 1 + error.length)
         if (actualText === error.text) {
           // 使用用户选择的建议，如果没有选择则使用第一个建议
           const selectedSuggestion = error.selectedSuggestion || error.suggestion
-          
+
           // 应用修复
           lines[lineIndex] = before + selectedSuggestion + after
-          
+
           // 标记为已修复
           fixedErrors.push({
             ...error,
             fixed: true
           })
-          
-          getLogger().debug(`已修复错误: 第${error.line}行第${error.column}列 "${error.text}" -> "${selectedSuggestion}"`)
+
+          getLogger().debug(
+            `已修复错误: 第${error.line}行第${error.column}列 "${error.text}" -> "${selectedSuggestion}"`
+          )
         } else {
           getLogger().warn(`错误位置不匹配，跳过修复: 期望 "${error.text}"，实际 "${actualText}"`)
         }
       }
     }
   }
-  
+
   return {
     fixedContent: lines.join('\n'),
     fixedErrors
@@ -704,26 +743,26 @@ function updateDocumentInWorkspace(
 ): void {
   try {
     const windowType = getWindowType()
-    
+
     // 如果不是document来源，不更新workspace
     if (windowType === 'setting') {
       // 设置窗口模式下，可能需要通过广播更新，这里暂时不处理
       getLogger().debug('设置窗口模式，跳过workspace更新')
       return
     }
-    
+
     const targetTabId = tabId || workspace.activeTabId.value
     if (!targetTabId) {
       getLogger().warn('没有活动的文档标签页，无法更新文档')
       return
     }
-    
+
     const doc = workspace.ensureDocument(targetTabId)
     if (!doc) {
       getLogger().warn('文档不存在，无法更新')
       return
     }
-    
+
     // 根据格式更新对应的内容
     if (format === 'latex' && doc.format === 'tex') {
       workspace.updateDocumentTex(targetTabId, fixedContent)
@@ -759,21 +798,29 @@ async function performProofread(
   autoFix: boolean = false
 ): Promise<ToolCallbackResult> {
   try {
-    onUpdate({
-      content: {
-        stage: 'proofreading',
-        format,
-        textLength: content.length
+    onUpdate(
+      {
+        content: {
+          stage: 'proofreading',
+          format,
+          textLength: content.length
+        },
+        format: 'json',
+        componentName: 'ProofreadDisplay'
       },
-      format: 'json',
-      componentName: 'ProofreadDisplay'
-    }, {
-      percentage: 30,
-      message: i18n.global.t('agent.tool.proofread.progress.proofreading', '正在校对文本...')
-    })
+      {
+        percentage: 30,
+        message: i18n.global.t('agent.tool.proofread.progress.proofreading', '正在校对文本...')
+      }
+    )
 
     // 使用 cspell-lib 进行拼写检查
-    getLogger().info('[performProofread] 开始调用 cspell-lib 进行拼写检查，文本长度:', content.length, '格式:', format)
+    getLogger().info(
+      '[performProofread] 开始调用 cspell-lib 进行拼写检查，文本长度:',
+      content.length,
+      '格式:',
+      format
+    )
     let cspellErrors: ProofreadError[] = []
     let isTimeout = false
     try {
@@ -801,10 +848,10 @@ async function performProofread(
         throw error
       }
     }
-    
+
     // 使用 cspell 检查的结果
     let errors = cspellErrors
-    
+
     // 如果未发现错误，记录信息（不是警告，这是正常情况）
     if (errors.length === 0) {
       getLogger().info('校对完成：未发现任何错误')
@@ -862,17 +909,20 @@ async function performProofread(
       getLogger().warn('校对任务超时，但已返回已有结果')
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        result
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          result
+        },
+        format: 'json',
+        componentName: 'ProofreadDisplay'
       },
-      format: 'json',
-      componentName: 'ProofreadDisplay'
-    }, {
-      percentage: 100,
-      message: completedMessage
-    })
+      {
+        percentage: 100,
+        message: completedMessage
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -904,15 +954,18 @@ const proofreadToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Proofread',
-    description: 'Check for grammar, spelling, and LaTeX syntax errors in text, return error locations and suggestions'
+    description:
+      'Check for grammar, spelling, and LaTeX syntax errors in text, return error locations and suggestions'
   },
   de_DE: {
     name: 'Korrekturlesen',
-    description: 'Überprüfen Sie Text auf Grammatik-, Rechtschreib- und LaTeX-Syntaxfehler, geben Sie Fehlerpositionen und Vorschläge zurück'
+    description:
+      'Überprüfen Sie Text auf Grammatik-, Rechtschreib- und LaTeX-Syntaxfehler, geben Sie Fehlerpositionen und Vorschläge zurück'
   },
   fr_FR: {
     name: 'Correction',
-    description: 'Vérifier les erreurs de grammaire, d\'orthographe et de syntaxe LaTeX dans le texte, retourner les emplacements d\'erreurs et suggestions'
+    description:
+      "Vérifier les erreurs de grammaire, d'orthographe et de syntaxe LaTeX dans le texte, retourner les emplacements d'erreurs et suggestions"
   },
   ja_JP: {
     name: '校正',
@@ -931,7 +984,8 @@ export const proofreadToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'proofread',
-    brief: 'Check text for grammar errors, spelling errors, LaTeX syntax errors, etc. Returns detailed error information and suggestions.',
+    brief:
+      'Check text for grammar errors, spelling errors, LaTeX syntax errors, etc. Returns detailed error information and suggestions.',
     fullSpec: `# Text Proofreading Tool
 
 ## Description
@@ -1171,4 +1225,3 @@ Returns array of errors with line numbers, positions, suggestions, and severity 
     }
   }
 }
-

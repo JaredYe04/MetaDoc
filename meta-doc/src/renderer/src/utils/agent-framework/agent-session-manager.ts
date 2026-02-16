@@ -37,11 +37,7 @@ class AgentSessionManager {
   /**
    * 创建Agent会话
    */
-  createSession(
-    agentConfigId: string,
-    title: string,
-    description?: string
-  ): AgentSession {
+  createSession(agentConfigId: string, title: string, description?: string): AgentSession {
     const id = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const now = Date.now()
 
@@ -112,14 +108,14 @@ class AgentSessionManager {
    * 处理消息队列（在Agent执行下一步之前调用）
    */
   processMessageQueue(session: AgentSession): QueuedMessage[] {
-    const unprocessed = session.messageQueue.filter(msg => !msg.processed)
-    
+    const unprocessed = session.messageQueue.filter((msg) => !msg.processed)
+
     if (unprocessed.length === 0) {
       return []
     }
 
     // 标记为已处理
-    unprocessed.forEach(msg => {
+    unprocessed.forEach((msg) => {
       msg.processed = true
     })
 
@@ -162,7 +158,7 @@ class AgentSessionManager {
    * 移除引用素材
    */
   removeReference(session: AgentSession, referenceId: string): void {
-    const index = session.referenceStore.findIndex(ref => ref.id === referenceId)
+    const index = session.referenceStore.findIndex((ref) => ref.id === referenceId)
     if (index === -1) {
       throw new Error(`引用素材 ${referenceId} 未找到`)
     }
@@ -186,18 +182,16 @@ class AgentSessionManager {
     })
     session.referenceStore.push(reference)
     this.touchSession(session)
-    this.getLogger().info(`[addReferenceObject] 引用素材已添加到referenceStore，当前引用数: ${session.referenceStore.length}`)
+    this.getLogger().info(
+      `[addReferenceObject] 引用素材已添加到referenceStore，当前引用数: ${session.referenceStore.length}`
+    )
   }
 
   /**
    * 更新引用素材
    */
-  updateReference(
-    session: AgentSession,
-    referenceId: string,
-    updates: Partial<Reference>
-  ): void {
-    const reference = session.referenceStore.find(ref => ref.id === referenceId)
+  updateReference(session: AgentSession, referenceId: string, updates: Partial<Reference>): void {
+    const reference = session.referenceStore.find((ref) => ref.id === referenceId)
     if (!reference) {
       throw new Error(`引用素材 ${referenceId} 未找到`)
     }
@@ -212,11 +206,7 @@ class AgentSessionManager {
   /**
    * 写入公共上下文空间
    */
-  writeToPublicContext(
-    session: AgentSession,
-    key: string,
-    value: unknown
-  ): void {
+  writeToPublicContext(session: AgentSession, key: string, value: unknown): void {
     if (!session.publicContext.custom) {
       session.publicContext.custom = {}
     }
@@ -276,7 +266,7 @@ class AgentSessionManager {
     nodeId: string,
     updates: Partial<ExecutionNode>
   ): void {
-    const node = session.executionNodes.find(n => n.id === nodeId)
+    const node = session.executionNodes.find((n) => n.id === nodeId)
     if (!node) {
       throw new Error(`执行节点 ${nodeId} 未找到`)
     }
@@ -290,7 +280,7 @@ class AgentSessionManager {
    * 重试到指定节点
    */
   retryToNode(session: AgentSession, nodeId: string): void {
-    const nodeIndex = session.executionNodes.findIndex(n => n.id === nodeId)
+    const nodeIndex = session.executionNodes.findIndex((n) => n.id === nodeId)
     if (nodeIndex === -1) {
       throw new Error(`执行节点 ${nodeId} 未找到`)
     }
@@ -303,7 +293,7 @@ class AgentSessionManager {
     const node = session.executionNodes[nodeIndex]
     if (node && node.timestamp) {
       session.messages = session.messages.filter(
-        msg => new Date(msg.timestamp).getTime() <= node.timestamp
+        (msg) => new Date(msg.timestamp).getTime() <= node.timestamp
       )
     }
 
@@ -327,7 +317,7 @@ class AgentSessionManager {
 
     // 如果指定了节点ID，只保留到该节点的内容
     if (atNodeId) {
-      const nodeIndex = duplicated.executionNodes.findIndex(n => n.id === atNodeId)
+      const nodeIndex = duplicated.executionNodes.findIndex((n) => n.id === atNodeId)
       if (nodeIndex !== -1) {
         const node = duplicated.executionNodes[nodeIndex]
         duplicated.executionNodes = duplicated.executionNodes.slice(0, nodeIndex + 1)
@@ -335,7 +325,7 @@ class AgentSessionManager {
 
         if (node && node.timestamp) {
           duplicated.messages = duplicated.messages.filter(
-            msg => new Date(msg.timestamp).getTime() <= node.timestamp
+            (msg) => new Date(msg.timestamp).getTime() <= node.timestamp
           )
         }
       }
@@ -371,7 +361,10 @@ class AgentSessionManager {
   /**
    * 序列化会话（用于导出）
    */
-  serializeSession(session: AgentSession, includeDependencies = false): {
+  serializeSession(
+    session: AgentSession,
+    includeDependencies = false
+  ): {
     session: AgentSession
     dependencies?: {
       agentConfig?: any
@@ -436,10 +429,7 @@ class AgentSessionManager {
       // 导入AgentConfig
       if (dependencies.agentConfig) {
         try {
-          agentConfigManager.importConfig(
-            dependencies.agentConfig,
-            options.overwriteDependencies
-          )
+          agentConfigManager.importConfig(dependencies.agentConfig, options.overwriteDependencies)
         } catch (error) {
           this.getLogger().warn(`导入AgentConfig失败: ${error}`)
         }
@@ -449,10 +439,7 @@ class AgentSessionManager {
       if (dependencies.toolCollections) {
         for (const collectionEntity of dependencies.toolCollections) {
           try {
-            toolCollectionManager.importCollection(
-              collectionEntity,
-              options.overwriteDependencies
-            )
+            toolCollectionManager.importCollection(collectionEntity, options.overwriteDependencies)
           } catch (error) {
             this.getLogger().warn(`导入工具集失败: ${error}`)
           }
@@ -463,10 +450,7 @@ class AgentSessionManager {
       if (dependencies.workflows) {
         for (const workflowEntity of dependencies.workflows) {
           try {
-            workflowManager.importWorkflow(
-              workflowEntity,
-              options.overwriteDependencies
-            )
+            workflowManager.importWorkflow(workflowEntity, options.overwriteDependencies)
           } catch (error) {
             this.getLogger().warn(`导入工作流失败: ${error}`)
           }
@@ -488,13 +472,13 @@ class AgentSessionManager {
    * 将会话状态回退到指定节点，移除该节点之后的所有内容
    */
   revertToNode(session: AgentSession, nodeId: string): void {
-    const nodeIndex = session.executionNodes.findIndex(n => n.id === nodeId)
+    const nodeIndex = session.executionNodes.findIndex((n) => n.id === nodeId)
     if (nodeIndex === -1) {
       throw new Error(`执行节点 ${nodeId} 未找到`)
     }
 
     const targetNode = session.executionNodes[nodeIndex]
-    
+
     // 移除该节点之后的所有节点
     session.executionNodes = session.executionNodes.slice(0, nodeIndex + 1)
     session.currentExecutionNodeId = nodeId
@@ -503,13 +487,13 @@ class AgentSessionManager {
     if (targetNode && targetNode.timestamp) {
       const nodeTimestamp = targetNode.timestamp
       session.messages = session.messages.filter(
-        msg => new Date(msg.timestamp).getTime() <= nodeTimestamp
+        (msg) => new Date(msg.timestamp).getTime() <= nodeTimestamp
       )
     }
 
     // 重置状态
     session.status = 'idle'
-    
+
     this.touchSession(session)
     this.getLogger().info(`已回溯到节点: ${nodeId}`)
   }
@@ -519,13 +503,13 @@ class AgentSessionManager {
    */
   getMessageNode(session: AgentSession, messageId: string): ExecutionNode | null {
     // 查找与消息时间戳最接近的执行节点
-    const message = session.messages.find(m => m.id === messageId)
+    const message = session.messages.find((m) => m.id === messageId)
     if (!message) {
       return null
     }
 
     const messageTimestamp = new Date(message.timestamp).getTime()
-    
+
     // 查找时间戳最接近且早于或等于消息时间的节点
     let closestNode: ExecutionNode | null = null
     let minDiff = Infinity
@@ -546,7 +530,7 @@ class AgentSessionManager {
    */
   getToolCallNode(session: AgentSession, toolCallId: string): ExecutionNode | null {
     // 查找类型为tool-call且包含该toolCallId的节点
-    const toolNode = session.executionNodes.find(node => {
+    const toolNode = session.executionNodes.find((node) => {
       if (node.type === 'tool-call') {
         const data = node.data as any
         return data?.tool_call_id === toolCallId || data?.id === toolCallId
@@ -566,7 +550,7 @@ class AgentSessionManager {
     messageId: string,
     onReplay?: (message: AgentMessage) => Promise<void>
   ): Promise<void> {
-    const message = session.messages.find(m => m.id === messageId)
+    const message = session.messages.find((m) => m.id === messageId)
     if (!message) {
       throw new Error(`消息 ${messageId} 未找到`)
     }
@@ -576,7 +560,7 @@ class AgentSessionManager {
     }
 
     // 找到消息在列表中的位置
-    const messageIndex = session.messages.findIndex(m => m.id === messageId)
+    const messageIndex = session.messages.findIndex((m) => m.id === messageId)
     if (messageIndex === -1) {
       throw new Error(`消息 ${messageId} 在会话中未找到`)
     }
@@ -587,7 +571,7 @@ class AgentSessionManager {
     // 移除该消息时间戳之后的所有执行节点
     const messageTimestamp = new Date(message.timestamp).getTime()
     session.executionNodes = session.executionNodes.filter(
-      node => node.timestamp < messageTimestamp
+      (node) => node.timestamp < messageTimestamp
     )
 
     // 重置状态
@@ -616,7 +600,7 @@ class AgentSessionManager {
     onReplay?: (toolCallData: any) => Promise<void>
   ): Promise<void> {
     // 查找工具调用消息
-    const toolMessageIndex = session.messages.findIndex(msg => {
+    const toolMessageIndex = session.messages.findIndex((msg) => {
       if (msg.role === 'tool' && msg.type === 'tool') {
         const toolMsg = msg as any
         return toolMsg.tool_call_id === toolCallId
@@ -631,7 +615,7 @@ class AgentSessionManager {
     // 查找包含该工具调用的assistant消息
     let assistantMessageIndex = -1
     let assistantMessage: AgentMessage | null = null
-    
+
     for (let i = toolMessageIndex - 1; i >= 0; i--) {
       const msg = session.messages[i]
       if (msg.role === 'assistant' && msg.type === 'chat') {
@@ -672,7 +656,7 @@ class AgentSessionManager {
     if (toolMessage) {
       const messageTimestamp = new Date(toolMessage.timestamp).getTime()
       session.executionNodes = session.executionNodes.filter(
-        node => node.timestamp <= messageTimestamp
+        (node) => node.timestamp <= messageTimestamp
       )
     }
 
@@ -696,7 +680,10 @@ class AgentSessionManager {
   /**
    * 增强序列化：支持每个节点的完整序列化（包含执行上下文）
    */
-  serializeSessionWithNodes(session: AgentSession, includeDependencies = false): {
+  serializeSessionWithNodes(
+    session: AgentSession,
+    includeDependencies = false
+  ): {
     session: AgentSession
     nodeMetadata?: Array<{
       nodeId: string
@@ -718,18 +705,18 @@ class AgentSessionManager {
     }
   } {
     const serialized = this.serializeSession(session, includeDependencies)
-    
+
     // 为每个执行节点生成元数据
     const nodeMetadata = session.executionNodes.map((node, index) => {
       const nodeTimestamp = node.timestamp
-      
+
       // 查找该节点时间戳范围内的消息
       const messageIds = session.messages
-        .filter(msg => {
+        .filter((msg) => {
           const msgTimestamp = new Date(msg.timestamp).getTime()
           return msgTimestamp <= nodeTimestamp
         })
-        .map(msg => msg.id)
+        .map((msg) => msg.id)
 
       // 如果是工具调用节点，提取toolCallIds
       const toolCallIds: string[] = []
@@ -771,4 +758,3 @@ class AgentSessionManager {
 
 // 导出单例
 export const agentSessionManager = new AgentSessionManager()
-

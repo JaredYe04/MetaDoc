@@ -1,12 +1,7 @@
 <template>
   <Teleport to="body">
     <transition name="fade">
-      <div
-        v-if="visible && position"
-        class="input-context-menu"
-        :style="menuStyle"
-        @click.stop
-      >
+      <div v-if="visible && position" class="input-context-menu" :style="menuStyle" @click.stop>
         <button
           type="button"
           class="input-context-menu__item"
@@ -31,11 +26,7 @@
         >
           {{ t('contextMenu.paste') }}
         </button>
-        <button
-          type="button"
-          class="input-context-menu__item"
-          @click="handleSelectAll"
-        >
+        <button type="button" class="input-context-menu__item" @click="handleSelectAll">
           {{ t('contextMenu.selectAll') }}
         </button>
         <button
@@ -73,14 +64,15 @@ const targetElement = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 const menuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
-  borderColor: themeState.currentTheme.type === 'dark'
-    ? 'rgba(255, 255, 255, 0.1)'
-    : 'rgba(0, 0, 0, 0.08)',
-  ...(position.value ? {
-    position: 'fixed' as const,
-    left: position.value.x + 'px',
-    top: position.value.y + 'px'
-  } : {})
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+  ...(position.value
+    ? {
+        position: 'fixed' as const,
+        left: position.value.x + 'px',
+        top: position.value.y + 'px'
+      }
+    : {})
 }))
 
 const canCut = computed(() => {
@@ -179,7 +171,9 @@ function close() {
   targetElement.value = null
 }
 
-function handleContextMenuShow(e: CustomEvent<{ target: HTMLInputElement | HTMLTextAreaElement; x: number; y: number }>) {
+function handleContextMenuShow(
+  e: CustomEvent<{ target: HTMLInputElement | HTMLTextAreaElement; x: number; y: number }>
+) {
   const { target, x, y } = e.detail || {}
   if (!target) return
   targetElement.value = target

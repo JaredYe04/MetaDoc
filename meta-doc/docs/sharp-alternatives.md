@@ -22,18 +22,18 @@ import Jimp from 'jimp';
 // 预处理图片
 private async preprocessImage(imageBuffer: Buffer): Promise<Buffer> {
   let image = await Jimp.read(imageBuffer);
-  
+
   // 调整大小
   if (width < minSize || height < minSize) {
     image = image.contain(newWidth, newHeight);
   }
-  
+
   // 灰度转换
   image = image.greyscale();
-  
+
   // 归一化
   image = image.normalize();
-  
+
   // 锐化
   const sharpenKernel = [
     [0, -1, 0],
@@ -41,7 +41,7 @@ private async preprocessImage(imageBuffer: Buffer): Promise<Buffer> {
     [0, -1, 0]
   ];
   image = image.convolute(sharpenKernel);
-  
+
   return await image.quality(100).getBufferAsync(Jimp.MIME_PNG);
 }
 ```
@@ -51,42 +51,45 @@ private async preprocessImage(imageBuffer: Buffer): Promise<Buffer> {
 **文件**: `scripts/generate-icons.js`
 
 ```javascript
-const { Resvg } = require('@resvg/resvg-js');
+const { Resvg } = require('@resvg/resvg-js')
 
 // SVG 转 PNG
 async function svgToPngBuffer(svgPath, width, height) {
-  const svgContent = fs.readFileSync(svgPath, 'utf-8');
+  const svgContent = fs.readFileSync(svgPath, 'utf-8')
   const resvg = new Resvg(svgContent, {
     fitTo: {
       mode: 'contain',
       value: { width, height }
     },
     background: 'transparent'
-  });
-  const pngData = resvg.render();
-  return pngData.asPng();
+  })
+  const pngData = resvg.render()
+  return pngData.asPng()
 }
 ```
 
 ## 依赖变更
 
 ### 移除的依赖
+
 - ❌ `sharp` - 已从 `dependencies` 中移除
 
 ### 新增的依赖
+
 - ✅ `jimp` - 纯 JavaScript 图像处理库
 
 ### 已存在的依赖（无需新增）
+
 - ✅ `@resvg/resvg-js` - 已在项目中，用于 SVG 处理
 
 ## 性能对比
 
-| 操作 | Sharp | Jimp | 性能比 |
-|------|-------|------|--------|
-| 调整大小 | ~10ms | ~50ms | 5x |
-| 灰度转换 | ~5ms | ~30ms | 6x |
-| 归一化 | ~8ms | ~40ms | 5x |
-| 锐化 | ~12ms | ~60ms | 5x |
+| 操作     | Sharp     | Jimp       | 性能比  |
+| -------- | --------- | ---------- | ------- |
+| 调整大小 | ~10ms     | ~50ms      | 5x      |
+| 灰度转换 | ~5ms      | ~30ms      | 6x      |
+| 归一化   | ~8ms      | ~40ms      | 5x      |
+| 锐化     | ~12ms     | ~60ms      | 5x      |
 | **总计** | **~35ms** | **~180ms** | **~5x** |
 
 **注意**: 虽然 Jimp 性能较慢，但对于 OCR 预处理场景通常可接受，且完全避免了原生模块的打包问题。
@@ -103,6 +106,7 @@ async function svgToPngBuffer(svgPath, width, height) {
 ### electron-builder.yml
 
 **移除的配置**:
+
 ```yaml
 asarUnpack:
   - node_modules/sharp/**
@@ -113,8 +117,9 @@ asarUnpack:
 ### GitHub Actions
 
 **移除的参数**:
+
 ```yaml
-run: npm ci --include=optional  # 改为 npm ci
+run: npm ci --include=optional # 改为 npm ci
 ```
 
 ## 测试建议
@@ -122,6 +127,7 @@ run: npm ci --include=optional  # 改为 npm ci
 迁移后建议测试以下功能：
 
 1. **OCR 功能**
+
    - 测试图片 OCR 识别准确性
    - 测试不同格式图片的处理
    - 测试大图片的处理性能

@@ -12,15 +12,15 @@ export function basename(filePath) {
   if (!filePath || typeof filePath !== 'string') {
     return ''
   }
-  
+
   // 统一处理路径分隔符
   const normalized = filePath.replace(/\\/g, '/')
   const parts = normalized.split('/').filter(Boolean)
-  
+
   if (parts.length === 0) {
     return filePath
   }
-  
+
   return parts[parts.length - 1]
 }
 
@@ -33,15 +33,15 @@ export function dirname(filePath) {
   if (!filePath || typeof filePath !== 'string') {
     return ''
   }
-  
+
   // 统一处理路径分隔符
   const normalized = filePath.replace(/\\/g, '/')
   const parts = normalized.split('/').filter(Boolean)
-  
+
   if (parts.length <= 1) {
     return ''
   }
-  
+
   return parts.slice(0, -1).join('/')
 }
 
@@ -54,14 +54,14 @@ export function join(...parts) {
   if (parts.length === 0) {
     return ''
   }
-  
+
   // 规范化所有部分
   const normalized = parts
-    .filter(p => p && typeof p === 'string')
-    .map(p => p.replace(/\\/g, '/'))
+    .filter((p) => p && typeof p === 'string')
+    .map((p) => p.replace(/\\/g, '/'))
     .join('/')
     .replace(/\/+/g, '/') // 合并多个斜杠
-  
+
   return normalized
 }
 
@@ -74,17 +74,17 @@ export function isAbsolute(filePath) {
   if (!filePath || typeof filePath !== 'string') {
     return false
   }
-  
+
   // Windows 绝对路径：C:\ 或 D:\ 等
   if (/^[A-Za-z]:[\\/]/.test(filePath)) {
     return true
   }
-  
+
   // Unix 绝对路径：以 / 开头
   if (filePath.startsWith('/')) {
     return true
   }
-  
+
   return false
 }
 
@@ -97,14 +97,14 @@ export function normalize(filePath) {
   if (!filePath || typeof filePath !== 'string') {
     return ''
   }
-  
+
   // 统一使用 / 作为分隔符
   let normalized = filePath.replace(/\\/g, '/')
-  
+
   // 处理 .. 和 .
   const parts = normalized.split('/')
   const result = []
-  
+
   for (const part of parts) {
     if (part === '..') {
       if (result.length > 0 && result[result.length - 1] !== '..') {
@@ -116,7 +116,7 @@ export function normalize(filePath) {
       result.push(part)
     }
   }
-  
+
   return result.join('/')
 }
 
@@ -129,14 +129,14 @@ export function extname(filePath) {
   if (!filePath || typeof filePath !== 'string') {
     return ''
   }
-  
+
   const basename = filePath.split(/[/\\]/).pop() || ''
   const lastDotIndex = basename.lastIndexOf('.')
-  
+
   if (lastDotIndex === -1 || lastDotIndex === 0) {
     return ''
   }
-  
+
   return basename.substring(lastDotIndex)
 }
 
@@ -150,24 +150,24 @@ export function relative(from, to) {
   if (!from || !to || typeof from !== 'string' || typeof to !== 'string') {
     return to
   }
-  
+
   // 规范化路径
   const fromNormalized = normalize(from).replace(/\\/g, '/')
   const toNormalized = normalize(to).replace(/\\/g, '/')
-  
+
   // 如果路径相同，返回空字符串
   if (fromNormalized === toNormalized) {
     return ''
   }
-  
+
   // 分割路径
   const fromParts = fromNormalized.split('/').filter(Boolean)
   const toParts = toNormalized.split('/').filter(Boolean)
-  
+
   // 找到共同前缀
   let commonLength = 0
   const minLength = Math.min(fromParts.length, toParts.length)
-  
+
   for (let i = 0; i < minLength; i++) {
     if (fromParts[i] === toParts[i]) {
       commonLength++
@@ -175,17 +175,16 @@ export function relative(from, to) {
       break
     }
   }
-  
+
   // 计算需要向上几级
   const upLevels = fromParts.length - commonLength
-  
+
   // 计算目标路径的剩余部分
   const remainingParts = toParts.slice(commonLength)
-  
+
   // 构建相对路径
   const upPath = '../'.repeat(upLevels)
   const downPath = remainingParts.join('/')
-  
+
   return upPath + downPath || '.'
 }
-

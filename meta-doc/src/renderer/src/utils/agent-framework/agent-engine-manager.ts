@@ -3,7 +3,14 @@
  * 负责AgentEngine的CRUD操作和持久化
  */
 
-import type { AgentEngine, SerializedEntity, EngineType, LlmConfigMode, CustomLlmConfig, EngineInterceptor } from '../../types/agent-framework'
+import type {
+  AgentEngine,
+  SerializedEntity,
+  EngineType,
+  LlmConfigMode,
+  CustomLlmConfig,
+  EngineInterceptor
+} from '../../types/agent-framework'
 import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 
@@ -137,12 +144,12 @@ class AgentEngineManager {
       entityType: 'agent-engine',
       id,
       name: {
-        'zh_cn': { name: nameZh },
-        'en_us': { name: nameEn }
+        zh_cn: { name: nameZh },
+        en_us: { name: nameEn }
       },
       description: {
-        'zh_cn': { description: descZh },
-        'en_us': { description: descEn }
+        zh_cn: { description: descZh },
+        en_us: { description: descEn }
       },
       engineType,
       version: '1.0.0',
@@ -169,12 +176,12 @@ class AgentEngineManager {
     llmConfigMode: LlmConfigMode = 'global',
     customLlmConfig?: CustomLlmConfig
   ): AgentEngine {
-    const nameText: LocalizedText = typeof name === 'string'
-      ? { 'zh_cn': { name }, 'en_us': { name } }
-      : name
-    const descText: LocalizedText = typeof description === 'string'
-      ? { 'zh_cn': { description }, 'en_us': { description } }
-      : description
+    const nameText: LocalizedText =
+      typeof name === 'string' ? { zh_cn: { name }, en_us: { name } } : name
+    const descText: LocalizedText =
+      typeof description === 'string'
+        ? { zh_cn: { description }, en_us: { description } }
+        : description
 
     const id = `agent-engine-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const now = Date.now()
@@ -219,7 +226,7 @@ class AgentEngineManager {
    * 获取启用的引擎
    */
   getEnabledEngines(): AgentEngine[] {
-    return Array.from(this.engines.values()).filter(e => e.enabled !== false)
+    return Array.from(this.engines.values()).filter((e) => e.enabled !== false)
   }
 
   /**
@@ -227,7 +234,7 @@ class AgentEngineManager {
    */
   getEnginesByType(engineType: EngineType): AgentEngine[] {
     return Array.from(this.engines.values()).filter(
-      e => e.engineType === engineType && e.enabled !== false
+      (e) => e.engineType === engineType && e.enabled !== false
     )
   }
 
@@ -258,7 +265,7 @@ class AgentEngineManager {
         'updatedAt'
       ]
       const invalidKeys = Object.keys(updates).filter(
-        key => !allowedUpdates.includes(key as keyof AgentEngine)
+        (key) => !allowedUpdates.includes(key as keyof AgentEngine)
       )
       if (invalidKeys.length > 0) {
         throw new Error(`内置引擎不允许修改: ${invalidKeys.join(', ')}`)
@@ -430,4 +437,3 @@ class AgentEngineManager {
 
 // 导出单例
 export const agentEngineManager = new AgentEngineManager()
-

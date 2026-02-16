@@ -3,7 +3,7 @@
  * 用于测试 cleanTitleMarkers 函数在各种情况下的行为
  */
 
-import { testFramework, type TestFunction } from './test-framework';
+import { testFramework, type TestFunction } from './test-framework'
 
 /**
  * 清理标题中的Markdown和LaTeX标记
@@ -13,30 +13,33 @@ function cleanTitleMarkers(title: string): string {
   if (!title || typeof title !== 'string') {
     return title
   }
-  
+
   let cleaned = title.trim()
-  
+
   // 1. 移除Markdown标题标记（#、##、###等）
   // 确保：行首 + 一个或多个# + 至少一个空格
   // 避免匹配代码中的 # 符号（通过要求后面必须有空格）
   cleaned = cleaned.replace(/^#+\s+/, '')
-  
+
   // 2. 移除LaTeX标题命令标记
   // 只匹配已知的标题命令，避免误匹配其他LaTeX命令
   // 支持的标题命令：\part, \chapter, \section, \subsection, \subsubsection, \paragraph, \subparagraph, \title
   // 也支持带星号的变体：\section*, \subsection* 等（用于不编号的章节）
-  
+
   // 匹配嵌套大括号的辅助函数
-  const extractBracedContent = (str: string, startPos: number): { content: string; endPos: number } | null => {
+  const extractBracedContent = (
+    str: string,
+    startPos: number
+  ): { content: string; endPos: number } | null => {
     if (str[startPos] !== '{') return null
-    
+
     let depth = 0
     let i = startPos
     let content = ''
-    
+
     while (i < str.length) {
       const char = str[i]
-      
+
       // 检查是否是转义的字符（\ 后面跟 { 或 } 或 \）
       if (char === '\\' && i + 1 < str.length) {
         const nextChar = str[i + 1]
@@ -49,7 +52,7 @@ function cleanTitleMarkers(title: string): string {
           continue
         }
       }
-      
+
       if (char === '{') {
         depth++
         // 只有深度大于1时才加入content（跳过最外层的大括号）
@@ -73,25 +76,31 @@ function cleanTitleMarkers(title: string): string {
       }
       i++
     }
-    
+
     return null // 未找到匹配的右括号
   }
-  
+
   // 精确匹配LaTeX标题命令
   // 匹配模式：\命令名[*]{内容}
   const latexTitleCommands = [
-    'part', 'chapter', 'section', 'subsection', 'subsubsection',
-    'paragraph', 'subparagraph', 'title'
+    'part',
+    'chapter',
+    'section',
+    'subsection',
+    'subsubsection',
+    'paragraph',
+    'subparagraph',
+    'title'
   ]
-  
+
   for (const cmd of latexTitleCommands) {
     // 匹配 \command 或 \command*
     const cmdPattern = new RegExp(`^\\\\${cmd}\\*?`, 'i')
     const match = cleaned.match(cmdPattern)
-    
+
     if (match) {
       const afterCmd = cleaned.substring(match[0].length).trim()
-      
+
       // 如果后面跟着 {，尝试提取大括号内容
       if (afterCmd.startsWith('{')) {
         const result = extractBracedContent(afterCmd, 0)
@@ -102,7 +111,7 @@ function cleanTitleMarkers(title: string): string {
       }
     }
   }
-  
+
   return cleaned.trim()
 }
 
@@ -675,4 +684,3 @@ export function registerTitleFormatTests() {
   testFramework.register(testWithSpaces)
   testFramework.register(testHashInMiddle)
 }
-

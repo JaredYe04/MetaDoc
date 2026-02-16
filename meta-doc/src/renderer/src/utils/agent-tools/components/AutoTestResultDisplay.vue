@@ -36,7 +36,7 @@
 
     <el-tabs v-model="activeTab" type="border-card" tab-position="top">
       <el-tab-pane :label="$t('agent.display.autoTest.testResults')" name="results">
-        <el-scrollbar style="height: 100%;">
+        <el-scrollbar style="height: 100%">
           <div class="test-results-list">
             <div
               v-for="(result, index) in testResults"
@@ -54,7 +54,9 @@
                     <Check v-if="result.passed" />
                     <Close v-else />
                   </el-icon>
-                  <span class="test-name" :style="testNameStyle">{{ result.toolName }} - {{ result.testCaseName }}</span>
+                  <span class="test-name" :style="testNameStyle"
+                    >{{ result.toolName }} - {{ result.testCaseName }}</span
+                  >
                   <el-tooltip
                     v-if="result.testCaseId"
                     :content="$t('agent.display.autoTest.clickToCopy')"
@@ -67,7 +69,7 @@
                       effect="plain"
                       class="test-case-id-tag"
                       @click.stop="copyTestCaseId(result.testCaseId)"
-                      style="cursor: pointer; margin-left: 8px; user-select: none;"
+                      style="cursor: pointer; margin-left: 8px; user-select: none"
                     >
                       {{ result.testCaseId }}
                     </el-tag>
@@ -84,28 +86,44 @@
                     {{ $t('agent.tool.exportSnapshot') }}
                   </el-button>
                   <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
-                    {{ result.passed ? $t('agent.display.autoTest.passed') : $t('agent.display.autoTest.failed') }}
+                    {{
+                      result.passed
+                        ? $t('agent.display.autoTest.passed')
+                        : $t('agent.display.autoTest.failed')
+                    }}
                   </el-tag>
                 </div>
               </div>
-              
+
               <div v-if="result.params" class="test-params" :style="testSectionStyle">
-                <strong :style="sectionLabelStyle">{{ $t('agent.display.autoTest.params') }}:</strong>
+                <strong :style="sectionLabelStyle"
+                  >{{ $t('agent.display.autoTest.params') }}:</strong
+                >
                 <pre :style="preStyle">{{ JSON.stringify(result.params, null, 2) }}</pre>
               </div>
 
-              <div v-if="!result.passed && result.error" class="test-error" :style="testSectionStyle">
-                <strong :style="sectionLabelStyle">{{ $t('agent.display.autoTest.error') }}:</strong>
+              <div
+                v-if="!result.passed && result.error"
+                class="test-error"
+                :style="testSectionStyle"
+              >
+                <strong :style="sectionLabelStyle"
+                  >{{ $t('agent.display.autoTest.error') }}:</strong
+                >
                 <pre :style="errorPreStyle">{{ result.error }}</pre>
               </div>
 
               <div v-if="result.result" class="test-result-data" :style="testSectionStyle">
-                <strong :style="sectionLabelStyle">{{ $t('agent.display.autoTest.result') }}:</strong>
+                <strong :style="sectionLabelStyle"
+                  >{{ $t('agent.display.autoTest.result') }}:</strong
+                >
                 <!-- 如果有Display组件，使用组件渲染 -->
                 <component
                   v-if="getDisplayComponentForTool(result.toolId)"
                   :is="getDisplayComponentForTool(result.toolId)"
-                  :data="formatDataForDisplay(result.result, result.passed ? 'succeeded' : 'failed')"
+                  :data="
+                    formatDataForDisplay(result.result, result.passed ? 'succeeded' : 'failed')
+                  "
                   :status="result.passed ? 'succeeded' : 'failed'"
                   :error="result.error"
                   :tool-config="getToolConfig(result.toolId)"
@@ -115,7 +133,11 @@
                 <pre v-else :style="preStyle">{{ formatResult(result.result) }}</pre>
               </div>
 
-              <div v-if="result.duration !== undefined" class="test-duration" :style="testDurationStyle">
+              <div
+                v-if="result.duration !== undefined"
+                class="test-duration"
+                :style="testDurationStyle"
+              >
                 {{ $t('agent.display.autoTest.executionTime') }}: {{ result.duration }}ms
               </div>
             </div>
@@ -124,11 +146,15 @@
       </el-tab-pane>
 
       <el-tab-pane :label="$t('agent.display.autoTest.markdownSummary')" name="markdown">
-        <el-scrollbar style="height: 100%;">
+        <el-scrollbar style="height: 100%">
           <div class="markdown-content" :style="markdownContentStyle">
-            <div ref="markdownContainerRef" class="markdown-render-container" :style="{
+            <div
+              ref="markdownContainerRef"
+              class="markdown-render-container"
+              :style="{
                 color: themeState.currentTheme.textColor
-              }"></div>
+              }"
+            ></div>
           </div>
         </el-scrollbar>
       </el-tab-pane>
@@ -168,19 +194,19 @@ const { t } = useI18n()
 
 // Display组件映射
 const displayComponentMap: Record<string, any> = {
-  'ChartGenerationDisplay': ChartGenerationDisplay,
-  'RAGToolDisplay': RAGToolDisplay,
-  'TodoListDisplay': TodoListDisplay,
-  'DataAnalysisDisplay': DataAnalysisDisplay,
-  'TerminalExecutionDisplay': TerminalExecutionDisplay,
-  'DiffDisplay': DiffDisplay,
-  'GrepDisplay': GrepDisplay,
-  'ProofreadDisplay': ProofreadDisplay,
-  'EditDisplay': EditDisplay,
-  'MetadataDisplay': MetadataDisplay,
-  'OutlineTreeDisplay': OutlineTreeDisplay,
-  'OutlineOptimizeDisplay': OutlineOptimizeDisplay,
-  'ColorDisplay': ColorDisplay
+  ChartGenerationDisplay: ChartGenerationDisplay,
+  RAGToolDisplay: RAGToolDisplay,
+  TodoListDisplay: TodoListDisplay,
+  DataAnalysisDisplay: DataAnalysisDisplay,
+  TerminalExecutionDisplay: TerminalExecutionDisplay,
+  DiffDisplay: DiffDisplay,
+  GrepDisplay: GrepDisplay,
+  ProofreadDisplay: ProofreadDisplay,
+  EditDisplay: EditDisplay,
+  MetadataDisplay: MetadataDisplay,
+  OutlineTreeDisplay: OutlineTreeDisplay,
+  OutlineOptimizeDisplay: OutlineOptimizeDisplay,
+  ColorDisplay: ColorDisplay
 }
 
 // 获取Tool的Display组件
@@ -190,19 +216,24 @@ const getDisplayComponentForTool = (toolId: string) => {
     if (!tool || !tool.config.displayComponent) {
       return null
     }
-    
+
     const displayComponent = tool.config.displayComponent
     if (typeof displayComponent === 'string') {
       const component = displayComponentMap[displayComponent]
       if (!component) {
-        console.warn(`Display component "${displayComponent}" not found in displayComponentMap for tool "${toolId}"`)
+        console.warn(
+          `Display component "${displayComponent}" not found in displayComponentMap for tool "${toolId}"`
+        )
         return null
       }
       return component
     }
-    
+
     // 如果是组件对象，尝试获取组件名称
-    const componentName = (displayComponent as any)?.name || (displayComponent as any)?.__name || (displayComponent as any)?.__file
+    const componentName =
+      (displayComponent as any)?.name ||
+      (displayComponent as any)?.__name ||
+      (displayComponent as any)?.__file
     if (componentName) {
       const component = displayComponentMap[componentName] || displayComponent
       // 验证组件是否有效
@@ -212,13 +243,16 @@ const getDisplayComponentForTool = (toolId: string) => {
       }
       return component
     }
-    
+
     // 直接返回组件，但需要验证
-    if (!displayComponent || (typeof displayComponent === 'object' && !displayComponent.setup && !displayComponent.render)) {
+    if (
+      !displayComponent ||
+      (typeof displayComponent === 'object' && !displayComponent.setup && !displayComponent.render)
+    ) {
       console.warn(`Invalid display component object for tool "${toolId}"`)
       return null
     }
-    
+
     return displayComponent
   } catch (error) {
     console.error(`Error getting display component for tool "${toolId}":`, error)
@@ -236,13 +270,13 @@ export interface TestResult {
   toolId: string
   toolName: string
   testCaseName: string
-  testCaseId?: string  // 测试用例ID
+  testCaseId?: string // 测试用例ID
   params: any
   passed: boolean
   error?: string
   result?: any
   duration?: number
-  invocationId?: string  // 添加invocationId字段
+  invocationId?: string // 添加invocationId字段
 }
 
 interface Props {
@@ -296,11 +330,12 @@ const formatDataForDisplay = (result: any, status?: string) => {
       }
       return result
     }
-    
+
     // 特殊处理：如果result是diffResult格式（有chunks和summary字段），需要包装成正确的格式
     if (result && typeof result === 'object' && 'chunks' in result && 'summary' in result) {
       // 这是diff tool的返回格式，需要包装成ToolCallbackData
-      const stage = status === 'succeeded' ? 'completed' : (status === 'failed' ? 'error' : 'computing')
+      const stage =
+        status === 'succeeded' ? 'completed' : status === 'failed' ? 'error' : 'computing'
       return {
         content: {
           stage,
@@ -311,11 +346,11 @@ const formatDataForDisplay = (result: any, status?: string) => {
         format: 'json'
       }
     }
-    
+
     // 如果result是对象，需要包装成ToolCallbackData格式
     if (result && typeof result === 'object') {
       // 根据status设置stage
-      const stage = status === 'succeeded' ? 'completed' : (status === 'failed' ? 'error' : 'parsing')
+      const stage = status === 'succeeded' ? 'completed' : status === 'failed' ? 'error' : 'parsing'
       return {
         content: {
           ...result,
@@ -324,9 +359,9 @@ const formatDataForDisplay = (result: any, status?: string) => {
         format: 'json'
       }
     }
-    
+
     // 否则，将result包装成ToolCallbackData格式
-    const stage = status === 'succeeded' ? 'completed' : (status === 'failed' ? 'error' : 'parsing')
+    const stage = status === 'succeeded' ? 'completed' : status === 'failed' ? 'error' : 'parsing'
     return {
       content: {
         ...(result || {}),
@@ -339,7 +374,7 @@ const formatDataForDisplay = (result: any, status?: string) => {
     // 返回一个安全的默认格式
     return {
       content: {
-        stage: status === 'succeeded' ? 'completed' : (status === 'failed' ? 'error' : 'parsing'),
+        stage: status === 'succeeded' ? 'completed' : status === 'failed' ? 'error' : 'parsing',
         error: error instanceof Error ? error.message : String(error)
       },
       format: 'json'
@@ -352,7 +387,9 @@ const copyMarkdown = async () => {
     await navigator.clipboard.writeText(props.markdownSummary)
     ElMessage.success(t('agent.display.autoTest.copySuccess'))
   } catch (error) {
-    ElMessage.error(`${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+    ElMessage.error(
+      `${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -362,7 +399,9 @@ const copyTestCaseId = async (testCaseId: string) => {
     await navigator.clipboard.writeText(testCaseId)
     ElMessage.success(t('agent.display.autoTest.testCaseIdCopied', { id: testCaseId }))
   } catch (error) {
-    ElMessage.error(`${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+    ElMessage.error(
+      `${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -376,37 +415,49 @@ const exportResultSnapshot = async (result: TestResult) => {
     }
 
     // 从result创建快照
-    const snapshot = createSnapshotFromHistoryEntry({
-      toolId: result.toolId,
-      toolName: result.toolName,
-      timestamp: Date.now(), // 测试结果可能没有timestamp，使用当前时间
-      status: result.passed ? 'succeeded' : 'failed',
-      params: result.params,
-      result: result.result,
-      data: result.result ? {
-        content: result.result,
-        format: 'json',
-        componentName: getDisplayComponentForTool(result.toolId)?.name || undefined
-      } : undefined,
-      progress: undefined,
-      error: result.error,
-      outputs: result.result ? [{
-        id: 'output-1',
-        label: '执行结果',
-        format: 'json',
-        data: result.result,
-        timestamp: Date.now()
-      }] : undefined,
-      invocationId: result.invocationId
-    }, tool.config ? {
-      id: tool.config.id,
-      name: tool.config.name,
-      description: tool.config.description,
-      origin: tool.config.origin,
-      displayComponent: typeof tool.config.displayComponent === 'string'
-        ? tool.config.displayComponent
-        : (tool.config.displayComponent as any)?.name || undefined
-    } : undefined)
+    const snapshot = createSnapshotFromHistoryEntry(
+      {
+        toolId: result.toolId,
+        toolName: result.toolName,
+        timestamp: Date.now(), // 测试结果可能没有timestamp，使用当前时间
+        status: result.passed ? 'succeeded' : 'failed',
+        params: result.params,
+        result: result.result,
+        data: result.result
+          ? {
+              content: result.result,
+              format: 'json',
+              componentName: getDisplayComponentForTool(result.toolId)?.name || undefined
+            }
+          : undefined,
+        progress: undefined,
+        error: result.error,
+        outputs: result.result
+          ? [
+              {
+                id: 'output-1',
+                label: '执行结果',
+                format: 'json',
+                data: result.result,
+                timestamp: Date.now()
+              }
+            ]
+          : undefined,
+        invocationId: result.invocationId
+      },
+      tool.config
+        ? {
+            id: tool.config.id,
+            name: tool.config.name,
+            description: tool.config.description,
+            origin: tool.config.origin,
+            displayComponent:
+              typeof tool.config.displayComponent === 'string'
+                ? tool.config.displayComponent
+                : (tool.config.displayComponent as any)?.name || undefined
+          }
+        : undefined
+    )
 
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
@@ -427,12 +478,17 @@ const exportResultSnapshot = async (result: TestResult) => {
     const fileName = `tool-snapshot-${result.toolId}-${result.testCaseName}-${Date.now()}.json`
     const logger = createRendererLogger('AutoTestResultDisplay')
     logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
-    
+
     // 调用保存文件对话框
-    const saveResult = await ipcRenderer.invoke('save-json-file', serialized, fileName) as { success: boolean; path?: string; error?: string; canceled?: boolean } | null
-    
+    const saveResult = (await ipcRenderer.invoke('save-json-file', serialized, fileName)) as {
+      success: boolean
+      path?: string
+      error?: string
+      canceled?: boolean
+    } | null
+
     logger.debug('[导出快照] 保存文件对话框返回结果:', saveResult)
-    
+
     if (!saveResult) {
       console.error('[导出快照] 保存文件调用返回空结果')
       throw new Error('保存文件调用返回空结果')
@@ -453,7 +509,9 @@ const exportResultSnapshot = async (result: TestResult) => {
     }
   } catch (error) {
     console.error('导出快照失败:', error)
-    ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+    ElMessage.error(
+      `${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -479,9 +537,8 @@ const containerStyle = computed(() => ({
 const getTestResultItemStyle = (passed: boolean) => {
   return {
     backgroundColor: themeState.currentTheme.background,
-    borderColor: themeState.currentTheme.type === 'dark' 
-      ? 'rgba(255, 255, 255, 0.1)' 
-      : 'rgba(0, 0, 0, 0.08)',
+    borderColor:
+      themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
     borderLeftColor: passed ? '#67c23a' : '#f56c6c'
   }
 }
@@ -789,7 +846,7 @@ onMounted(() => {
   border-radius: 6px;
   overflow-x: auto;
   margin: 12px 0;
-  border: 1px solid ;
+  border: 1px solid;
 }
 
 .markdown-render-container :deep(.vditor-reset pre code) {
@@ -825,7 +882,7 @@ onMounted(() => {
 
 .markdown-render-container :deep(.vditor-reset table th),
 .markdown-render-container :deep(.vditor-reset table td) {
-  border: 1px solid ;
+  border: 1px solid;
   padding: 8px 12px;
   text-align: left;
 }
@@ -845,8 +902,7 @@ onMounted(() => {
 
 .markdown-render-container :deep(.vditor-reset hr) {
   border: none;
-  border-top: 1px solid ;
+  border-top: 1px solid;
   margin: 16px 0;
 }
 </style>
-

@@ -1,12 +1,12 @@
 /**
  * Agent Tool 公共服务接口
- * 
+ *
  * 为外部 Tool 提供统一的运行时服务接口，包括：
  * - 主题状态（themeState）
  * - 国际化服务（i18n）
  * - 工作区服务（workspace）
  * - 本地 IPC 接口（文件操作等）
- * 
+ *
  * 注意：内部 Tool 可以直接导入这些服务，此接口主要用于外部 Tool 扩展。
  */
 
@@ -38,7 +38,7 @@ export interface ThemeService {
     textColor2: string
     [key: string]: any
   }
-  
+
   /**
    * 监听主题变化
    * @param callback 主题变化回调
@@ -55,7 +55,7 @@ export interface I18nService {
    * 获取当前语言代码
    */
   getCurrentLocale(): string
-  
+
   /**
    * 翻译文本
    * @param key 翻译键（支持嵌套，如 'agent.tool.status.running'）
@@ -63,7 +63,7 @@ export interface I18nService {
    * @returns 翻译后的文本
    */
   t(key: string, params?: Record<string, any>): string
-  
+
   /**
    * 监听语言变化
    * @param callback 语言变化回调
@@ -88,7 +88,7 @@ export interface WorkspaceService {
     meta: any
     outline: any
   } | null
-  
+
   /**
    * 获取所有标签页
    */
@@ -98,12 +98,12 @@ export interface WorkspaceService {
     path: string
     format: 'md' | 'tex'
   }>
-  
+
   /**
    * 获取当前活动标签页 ID
    */
   getActiveTabId(): string | null
-  
+
   /**
    * 监听文档变化
    * @param callback 文档变化回调
@@ -127,7 +127,7 @@ export interface IpcService {
     filters?: Array<{ name: string; extensions: string[] }>
     properties?: Array<'openFile' | 'openDirectory' | 'multiSelections'>
   }): Promise<string | string[] | null>
-  
+
   /**
    * 打开保存文件对话框
    * @param options 对话框选项
@@ -138,40 +138,40 @@ export interface IpcService {
     defaultPath?: string
     filters?: Array<{ name: string; extensions: string[] }>
   }): Promise<string | null>
-  
+
   /**
    * 打开文件夹（在系统文件管理器中）
    * @param path 文件夹路径
    */
   openFolder(path: string): Promise<void>
-  
+
   /**
    * 打开文件（使用系统默认应用）
    * @param path 文件路径
    */
   openFile(path: string): Promise<void>
-  
+
   /**
    * 读取文件内容
    * @param filePath 文件路径
    * @returns 文件内容（UTF-8）
    */
   readFile(filePath: string): Promise<string>
-  
+
   /**
    * 写入文件内容
    * @param filePath 文件路径
    * @param content 文件内容
    */
   writeFile(filePath: string, content: string): Promise<void>
-  
+
   /**
    * 检查文件是否存在
    * @param filePath 文件路径
    * @returns 是否存在
    */
   fileExists(filePath: string): Promise<boolean>
-  
+
   /**
    * 获取文件所在目录路径
    * @param filePath 文件路径
@@ -186,54 +186,54 @@ export interface IpcService {
  */
 class AgentToolServices {
   private static instance: AgentToolServices
-  
+
   private themeService: ThemeService
   private i18nService: I18nService
   private workspaceService: WorkspaceService
   private ipcService: IpcService
-  
+
   private constructor() {
     this.themeService = this.createThemeService()
     this.i18nService = this.createI18nService()
     this.workspaceService = this.createWorkspaceService()
     this.ipcService = this.createIpcService()
   }
-  
+
   static getInstance(): AgentToolServices {
     if (!AgentToolServices.instance) {
       AgentToolServices.instance = new AgentToolServices()
     }
     return AgentToolServices.instance
   }
-  
+
   /**
    * 获取主题服务
    */
   getThemeService(): ThemeService {
     return this.themeService
   }
-  
+
   /**
    * 获取国际化服务
    */
   getI18nService(): I18nService {
     return this.i18nService
   }
-  
+
   /**
    * 获取工作区服务
    */
   getWorkspaceService(): WorkspaceService {
     return this.workspaceService
   }
-  
+
   /**
    * 获取 IPC 服务
    */
   getIpcService(): IpcService {
     return this.ipcService
   }
-  
+
   /**
    * 创建主题服务
    */
@@ -242,7 +242,7 @@ class AgentToolServices {
       getCurrentTheme: () => {
         return { ...themeState.currentTheme }
       },
-      
+
       onThemeChange: (callback) => {
         // 使用 Vue 的 watch 监听 themeState 变化
         // 注意：这需要在 Vue 组件中使用，外部 Tool 可以通过轮询或事件总线实现
@@ -251,7 +251,7 @@ class AgentToolServices {
       }
     }
   }
-  
+
   /**
    * 创建国际化服务
    */
@@ -259,14 +259,19 @@ class AgentToolServices {
     // 动态导入 i18n，避免循环依赖
     let currentLocale = 'zh_cn'
     let i18nInstance: any = null
-    
+
     // 延迟初始化 i18n
     const initI18n = () => {
       if (!i18nInstance && typeof window !== 'undefined') {
         try {
           // 尝试从全局获取 i18n 实例（如果应用已初始化）
           const app = (window as any).__VUE_APP__
-          if (app && app.config && app.config.globalProperties && app.config.globalProperties.$i18n) {
+          if (
+            app &&
+            app.config &&
+            app.config.globalProperties &&
+            app.config.globalProperties.$i18n
+          ) {
             i18nInstance = app.config.globalProperties.$i18n
             currentLocale = i18nInstance.locale.value || 'zh_cn'
           }
@@ -276,13 +281,13 @@ class AgentToolServices {
       }
       return i18nInstance
     }
-    
+
     return {
       getCurrentLocale: () => {
         initI18n()
         return currentLocale
       },
-      
+
       t: (key: string, params?: Record<string, any>) => {
         initI18n()
         if (!i18nInstance) {
@@ -296,7 +301,7 @@ class AgentToolServices {
           return key
         }
       },
-      
+
       onLocaleChange: (callback) => {
         // 监听 i18n 语言变化
         // 注意：这需要在 Vue 组件中使用，外部 Tool 可以通过轮询或事件总线实现
@@ -304,19 +309,19 @@ class AgentToolServices {
       }
     }
   }
-  
+
   /**
    * 创建工作区服务
    */
   private createWorkspaceService(): WorkspaceService {
     const workspace = useWorkspace()
     const { activeDocument } = useActiveDocument()
-    
+
     return {
       getActiveDocument: () => {
         const doc = activeDocument.value
         if (!doc) return null
-        
+
         return {
           id: doc.id,
           path: doc.path,
@@ -327,20 +332,20 @@ class AgentToolServices {
           outline: doc.outline || {}
         }
       },
-      
+
       getTabs: () => {
-        return workspace.tabs.map(tab => ({
+        return workspace.tabs.map((tab) => ({
           id: tab.id,
           title: tab.title,
           path: tab.path,
           format: tab.format
         }))
       },
-      
+
       getActiveTabId: () => {
         return workspace.activeTabId || null
       },
-      
+
       onDocumentChange: (callback) => {
         // 监听文档变化
         // 注意：这需要在 Vue 组件中使用，外部 Tool 可以通过轮询或事件总线实现
@@ -348,7 +353,7 @@ class AgentToolServices {
       }
     }
   }
-  
+
   /**
    * 创建 IPC 服务
    */
@@ -358,7 +363,7 @@ class AgentToolServices {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        
+
         try {
           // 注意：此接口需要在主进程中实现对应的 IPC handler
           // 建议在主进程中添加: ipcMain.handle('show-open-dialog', ...)
@@ -369,13 +374,13 @@ class AgentToolServices {
             filters: options.filters || [{ name: 'All Files', extensions: ['*'] }],
             properties: options.properties || ['openFile']
           })
-          
+
           if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
             return null
           }
-          
-          return options.properties?.includes('multiSelections') 
-            ? result.filePaths 
+
+          return options.properties?.includes('multiSelections')
+            ? result.filePaths
             : result.filePaths[0]
         } catch (error) {
           console.error('打开文件对话框失败:', error)
@@ -387,12 +392,12 @@ class AgentToolServices {
           throw error
         }
       },
-      
+
       showSaveDialog: async (options = {}) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        
+
         try {
           // 注意：此接口需要在主进程中实现对应的 IPC handler
           // 建议在主进程中添加: ipcMain.handle('show-save-dialog', ...)
@@ -402,11 +407,11 @@ class AgentToolServices {
             defaultPath: options.defaultPath,
             filters: options.filters || [{ name: 'All Files', extensions: ['*'] }]
           })
-          
+
           if (result.canceled || !result.filePath) {
             return null
           }
-          
+
           return result.filePath
         } catch (error) {
           console.error('保存文件对话框失败:', error)
@@ -418,12 +423,12 @@ class AgentToolServices {
           throw error
         }
       },
-      
+
       openFolder: async (path: string) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        
+
         try {
           // 注意：此接口需要在主进程中实现对应的 IPC handler
           // 建议在主进程中添加: ipcMain.handle('open-folder', async (event, path) => { shell.showItemInFolder(path) })
@@ -439,12 +444,12 @@ class AgentToolServices {
           throw error
         }
       },
-      
+
       openFile: async (path: string) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        
+
         try {
           // 注意：此接口需要在主进程中实现对应的 IPC handler
           // 建议在主进程中添加: ipcMain.handle('open-file', async (event, path) => { shell.openPath(path) })
@@ -460,12 +465,12 @@ class AgentToolServices {
           throw error
         }
       },
-      
+
       readFile: async (filePath: string) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化')
         }
-        
+
         try {
           return await ipcRenderer.invoke('read-file-content', filePath)
         } catch (error) {
@@ -473,12 +478,12 @@ class AgentToolServices {
           throw error
         }
       },
-      
+
       writeFile: async (filePath: string, content: string) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        
+
         try {
           // 注意：此接口需要在主进程中实现对应的 IPC handler
           // 建议在主进程中添加: ipcMain.handle('write-file-content', async (event, { filePath, content }) => { fs.writeFileSync(filePath, content, 'utf-8') })
@@ -494,12 +499,12 @@ class AgentToolServices {
           throw error
         }
       },
-      
+
       fileExists: async (filePath: string) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        
+
         try {
           // 注意：此接口需要在主进程中实现对应的 IPC handler
           // 建议在主进程中添加: ipcMain.handle('file-exists', async (event, filePath) => { return fs.existsSync(filePath) })
@@ -515,12 +520,12 @@ class AgentToolServices {
           return false
         }
       },
-      
+
       getDirectoryPath: async (filePath: string) => {
         if (!ipcRenderer) {
           throw new Error('IPC Renderer 未初始化')
         }
-        
+
         try {
           return await ipcRenderer.invoke('get-directory-path', filePath)
         } catch (error) {
@@ -544,4 +549,3 @@ export const getThemeService = () => agentToolServices.getThemeService()
 export const getI18nService = () => agentToolServices.getI18nService()
 export const getWorkspaceService = () => agentToolServices.getWorkspaceService()
 export const getIpcService = () => agentToolServices.getIpcService()
-

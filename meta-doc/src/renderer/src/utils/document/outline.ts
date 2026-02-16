@@ -11,11 +11,11 @@ const CHUNK_SIZE = 500
  * 从 Markdown 文本中提取大纲树
  */
 export function extractOutlineTreeFromMarkdown(
-  md: string, 
+  md: string,
   bypassText = false
 ): DocumentOutlineNode {
   const lines = md.split('\n')
-  
+
   // 虚拟根节点，title_level 为 0，表示最低级别
   const root: DocumentOutlineNode = {
     title: '',
@@ -32,7 +32,7 @@ export function extractOutlineTreeFromMarkdown(
   for (const line of lines) {
     // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
     const match = line.match(/^(#+)\s+(.*)/)
-    
+
     if (match) {
       const hashes = match[1]
       const title = match[2]
@@ -80,10 +80,10 @@ function generateOutlinePaths(root: DocumentOutlineNode): void {
 
   // 广度优先遍历，为每个节点的子节点分配编号
   const queue: DocumentOutlineNode[] = [...root.children]
-  
+
   while (queue.length > 0) {
     const node = queue.shift()!
-    
+
     for (let i = 0; i < node.children.length; i++) {
       node.children[i].path = node.path + '.' + (i + 1)
       queue.push(node.children[i])
@@ -108,7 +108,7 @@ export function generateMarkdownFromOutlineTree(outlineTree: DocumentOutlineNode
     if (node.title && node.title_level > 0) {
       md += '#'.repeat(node.title_level) + ' ' + node.title + '\n'
       md += node.text
-      
+
       // 保证末尾有换行符
       if (node.text === '' || node.text[node.text.length - 1] !== '\n') {
         md += '\n'
@@ -139,7 +139,7 @@ export function searchNode(path: string, node: DocumentOutlineNode): DocumentOut
   if (node.path === path) {
     return node
   }
-  
+
   if (node.children) {
     for (const child of node.children) {
       const result = searchNode(path, child)
@@ -148,27 +148,30 @@ export function searchNode(path: string, node: DocumentOutlineNode): DocumentOut
       }
     }
   }
-  
+
   return null
 }
 
 /**
  * 搜索指定节点的父节点
  */
-export function searchParentNode(path: string, node: DocumentOutlineNode): DocumentOutlineNode | null {
+export function searchParentNode(
+  path: string,
+  node: DocumentOutlineNode
+): DocumentOutlineNode | null {
   if (node.children) {
     for (const child of node.children) {
       if (child.path === path) {
         return node
       }
-      
+
       const result = searchParentNode(path, child)
       if (result) {
         return result
       }
     }
   }
-  
+
   return null
 }
 
@@ -177,13 +180,13 @@ export function searchParentNode(path: string, node: DocumentOutlineNode): Docum
  */
 export function countNodes(node: DocumentOutlineNode): number {
   let count = 1
-  
+
   if (node.children) {
     for (const child of node.children) {
       count += countNodes(child)
     }
   }
-  
+
   return count
 }
 
@@ -191,12 +194,12 @@ export function countNodes(node: DocumentOutlineNode): number {
  * 调整大纲树的标题层级
  */
 export function adjustTitleLevel(
-  outlineTree: DocumentOutlineNode, 
+  outlineTree: DocumentOutlineNode,
   firstLevel: number
 ): DocumentOutlineNode {
   function dfs(node: DocumentOutlineNode, level: number): void {
     node.title_level = level
-    
+
     for (const child of node.children) {
       dfs(child, level + 1)
     }
@@ -204,7 +207,7 @@ export function adjustTitleLevel(
 
   // 深拷贝一份大纲树
   const node = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
-  
+
   if (node.path === 'dummy') {
     for (const child of node.children) {
       dfs(child, firstLevel)
@@ -212,7 +215,7 @@ export function adjustTitleLevel(
   } else {
     dfs(node, firstLevel)
   }
-  
+
   return node
 }
 
@@ -221,15 +224,15 @@ export function adjustTitleLevel(
  */
 export function removeTextFromOutline(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
   const newOutlineTree = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
-  
+
   function dfs(node: DocumentOutlineNode): void {
     node.text = ''
-    
+
     for (const child of node.children) {
       dfs(child)
     }
   }
-  
+
   dfs(newOutlineTree)
   return newOutlineTree
 }
@@ -286,10 +289,7 @@ export function generateLightMarkdownFromOutlineTree(outlineTree: DocumentOutlin
  * @param bypassText 是否跳过文本内容（对于精简版，始终为true）
  * @returns 精简的Markdown大纲字符串
  */
-export function extractOutlineTreeFromMarkdownLight(
-  md: string,
-  bypassText = true
-): string {
+export function extractOutlineTreeFromMarkdownLight(md: string, bypassText = true): string {
   // 先使用完整方法获取大纲树（bypassText=true，因为我们只需要结构）
   const outlineTree = extractOutlineTreeFromMarkdown(md, true)
   // 转换为精简的Markdown大纲
@@ -304,17 +304,17 @@ export function extractOutlineTreeFromMarkdownLight(
  */
 export function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
   const node = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
-  
+
   function dfs(n: DocumentOutlineNode): void {
     if (n.title) {
       n.title = removeTitleIndex(n.title)
     }
-    
+
     for (const child of n.children) {
       dfs(child)
     }
   }
-  
+
   if (node.path === 'dummy') {
     for (const child of node.children) {
       dfs(child)
@@ -322,6 +322,6 @@ export function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): Docume
   } else {
     dfs(node)
   }
-  
+
   return node
 }

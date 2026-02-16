@@ -5,7 +5,12 @@
 
 // 导入mxgraph全局设置（必须在其他mxgraph导入之前）
 import '../mxgraph-setup'
-import type { Workflow, ArtifactNode, ControlFlowNode, WorkflowEdge } from '../../types/agent-framework'
+import type {
+  Workflow,
+  ArtifactNode,
+  ControlFlowNode,
+  WorkflowEdge
+} from '../../types/agent-framework'
 
 let mxgraphFactory: any = null
 let mx: any = null
@@ -22,10 +27,10 @@ export async function initMxGraph(): Promise<any> {
     // mxLoadResources 已在模块级别定义，这里直接导入mxgraph
     // 动态导入 mxgraph
     const mxgraphModule = await import('mxgraph')
-    
+
     // mxgraph 是一个工厂函数，需要调用它来获取API
     mxgraphFactory = mxgraphModule.default || mxgraphModule
-    
+
     if (typeof mxgraphFactory === 'function') {
       // 调用工厂函数获取mxgraph API
       // 不传入任何参数，使用默认配置（资源加载已被禁用）
@@ -34,7 +39,7 @@ export async function initMxGraph(): Promise<any> {
       // 如果不是函数，尝试直接使用模块
       mx = mxgraphModule as any
     }
-    
+
     if (!mx || !mx.mxGraph) {
       throw new Error('mxGraph initialization failed')
     }
@@ -157,16 +162,7 @@ export function mapWorkflowNodeToGraphCell(
     }
   }
 
-  const cell = graph.insertVertex(
-    parent,
-    null,
-    label,
-    x,
-    y,
-    width,
-    height,
-    style
-  )
+  const cell = graph.insertVertex(parent, null, label, x, y, width, height, style)
 
   // 附加节点信息
   Object.assign(cell, nodeInfo)
@@ -194,14 +190,7 @@ export function mapWorkflowEdgeToGraphEdge(
   const label = edge.label || ''
   const style = 'edgeStyle=orthogonalEdgeStyle;rounded=0;strokeWidth=2;'
 
-  const cell = graph.insertEdge(
-    parent,
-    null,
-    label,
-    sourceCell,
-    targetCell,
-    style
-  )
+  const cell = graph.insertEdge(parent, null, label, sourceCell, targetCell, style)
 
   // 附加边信息
   cell.edgeId = edge.id
@@ -211,4 +200,3 @@ export function mapWorkflowEdgeToGraphEdge(
 
   return cell
 }
-

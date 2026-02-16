@@ -1,19 +1,19 @@
-import { BaseExportAdapter } from './base-adapter';
-import type { DocxExportOptions, ExportOptionField } from './types';
-import type { DocumentFormat, ExportFormat } from '../../../../types';
+import { BaseExportAdapter } from './base-adapter'
+import type { DocxExportOptions, ExportOptionField } from './types'
+import type { DocumentFormat, ExportFormat } from '../../../../types'
 
 /**
  * Markdown -> DOCX 导出适配器
  */
 export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportOptions> {
-  sourceFormat: 'md' = 'md';
-  targetFormat: 'docx' = 'docx';
-  id = 'md-to-docx';
-  name = 'Markdown to DOCX';
-  nameKey = 'export.adapters.mdToDocx.name';
-  description = 'Export Markdown document to DOCX format';
-  descriptionKey = 'export.adapters.mdToDocx.description';
-  
+  sourceFormat: 'md' = 'md'
+  targetFormat: 'docx' = 'docx'
+  id = 'md-to-docx'
+  name = 'Markdown to DOCX'
+  nameKey = 'export.adapters.mdToDocx.name'
+  description = 'Export Markdown document to DOCX format'
+  descriptionKey = 'export.adapters.mdToDocx.description'
+
   getDefaultOptions(): DocxExportOptions {
     return {
       enableStyleMapping: true,
@@ -21,28 +21,28 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         normal: {
           fontFamily: 'Microsoft YaHei',
           fontSize: 10.5, // pt
-          lineHeight: 1.15,
+          lineHeight: 1.15
         },
         heading1: {
           fontFamily: 'Microsoft YaHei',
           fontSize: 18, // pt
-          lineHeight: 1.2,
+          lineHeight: 1.2
         },
         heading2: {
           fontFamily: 'Microsoft YaHei',
           fontSize: 16, // pt
-          lineHeight: 1.2,
+          lineHeight: 1.2
         },
         heading3: {
           fontFamily: 'Microsoft YaHei',
           fontSize: 14, // pt
-          lineHeight: 1.2,
+          lineHeight: 1.2
         },
         heading4: {
           fontFamily: 'Microsoft YaHei',
           fontSize: 12, // pt
-          lineHeight: 1.2,
-        },
+          lineHeight: 1.2
+        }
       },
       generateCover: true,
       generateToc: true,
@@ -51,10 +51,10 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
       showHeader: false,
       autoNumberImages: false,
       imageLabelFontSize: 10.5, // pt
-      imageLabelFontFamily: 'SimHei', // 默认黑体（中文）或 Arial Bold（英文）
-    };
+      imageLabelFontFamily: 'SimHei' // 默认黑体（中文）或 Arial Bold（英文）
+    }
   }
-  
+
   getOptionFields(): ExportOptionField[] {
     return [
       // 第一个 tab：封面、目录等设置
@@ -66,7 +66,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         default: true,
         description: '在第一页显示文档标题、作者、摘要和关键词',
         descriptionKey: 'export.options.generateCover.description',
-        tab: 'basic',
+        tab: 'basic'
       },
       {
         key: 'generateToc',
@@ -76,7 +76,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         default: true,
         description: '在封面后（或文档开头）生成目录',
         descriptionKey: 'export.options.generateToc.description',
-        tab: 'basic',
+        tab: 'basic'
       },
       {
         key: 'processFormula',
@@ -86,7 +86,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         default: true,
         description: '是否自动处理 LaTeX 公式',
         descriptionKey: 'export.options.processFormula.description',
-        tab: 'basic',
+        tab: 'basic'
       },
       // 第二个 tab：字体、行距等设置
       {
@@ -97,7 +97,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         default: true,
         description: '是否将Markdown元素映射到Word样式（如标题1、标题2等）',
         descriptionKey: 'export.options.enableStyleMapping.description',
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.normal.fontFamily',
@@ -108,7 +108,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '正文使用的字体',
         descriptionKey: 'export.options.normalFontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.normal.fontSize',
@@ -119,7 +119,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '正文字体大小',
         descriptionKey: 'export.options.normalFontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.normal.lineHeight',
@@ -133,7 +133,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '正文行距倍数',
         descriptionKey: 'export.options.normalLineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading1.fontFamily',
@@ -144,7 +144,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '一级标题使用的字体',
         descriptionKey: 'export.options.heading1FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading1.fontSize',
@@ -155,7 +155,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '一级标题字体大小',
         descriptionKey: 'export.options.heading1FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading1.lineHeight',
@@ -169,7 +169,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '一级标题行距倍数',
         descriptionKey: 'export.options.heading1LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading2.fontFamily',
@@ -180,7 +180,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '二级标题使用的字体',
         descriptionKey: 'export.options.heading2FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading2.fontSize',
@@ -191,7 +191,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '二级标题字体大小',
         descriptionKey: 'export.options.heading2FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading2.lineHeight',
@@ -205,7 +205,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '二级标题行距倍数',
         descriptionKey: 'export.options.heading2LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading3.fontFamily',
@@ -216,7 +216,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '三级标题使用的字体',
         descriptionKey: 'export.options.heading3FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading3.fontSize',
@@ -227,7 +227,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '三级标题字体大小',
         descriptionKey: 'export.options.heading3FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading3.lineHeight',
@@ -241,7 +241,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '三级标题行距倍数',
         descriptionKey: 'export.options.heading3LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading4.fontFamily',
@@ -252,7 +252,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题使用的字体',
         descriptionKey: 'export.options.heading4FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading4.fontSize',
@@ -263,7 +263,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题字体大小',
         descriptionKey: 'export.options.heading4FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       {
         key: 'styleMapping.heading4.lineHeight',
@@ -277,7 +277,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题行距倍数',
         descriptionKey: 'export.options.heading4LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
-        tab: 'style',
+        tab: 'style'
       },
       // 页眉页脚功能暂时隐藏（功能未完成）
       // {
@@ -306,7 +306,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         default: false,
         description: '为文档中的图片自动添加编号标签（如图 1、图 2）',
         descriptionKey: 'export.options.autoNumberImages.description',
-        tab: 'basic',
+        tab: 'basic'
       },
       {
         key: 'imageLabelFontSize',
@@ -317,7 +317,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '图片编号标签的字号大小（pt）',
         descriptionKey: 'export.options.imageLabelFontSize.description',
         showWhen: (options) => options.autoNumberImages === true,
-        tab: 'basic',
+        tab: 'basic'
       },
       {
         key: 'imageLabelFontFamily',
@@ -328,25 +328,25 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '图片编号标签的字体',
         descriptionKey: 'export.options.imageLabelFontFamily.description',
         showWhen: (options) => options.autoNumberImages === true,
-        tab: 'basic',
-      },
-    ];
+        tab: 'basic'
+      }
+    ]
   }
-  
+
   validateOptions(options: Partial<DocxExportOptions>): { valid: boolean; error?: string } {
     if (options.enableStyleMapping && options.styleMapping) {
-      const sm = options.styleMapping;
+      const sm = options.styleMapping
       // 验证字体大小
       const sizes = [
         sm.normal?.fontSize,
         sm.heading1?.fontSize,
         sm.heading2?.fontSize,
         sm.heading3?.fontSize,
-        sm.heading4?.fontSize,
-      ];
+        sm.heading4?.fontSize
+      ]
       for (const size of sizes) {
         if (size !== undefined && (size < 6 || size > 72)) {
-          return { valid: false, error: '字体大小必须在6-72磅之间' };
+          return { valid: false, error: '字体大小必须在6-72磅之间' }
         }
       }
       // 验证行距
@@ -355,46 +355,45 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         sm.heading1?.lineHeight,
         sm.heading2?.lineHeight,
         sm.heading3?.lineHeight,
-        sm.heading4?.lineHeight,
-      ];
+        sm.heading4?.lineHeight
+      ]
       for (const lh of lineHeights) {
         if (lh !== undefined && (lh < 0.5 || lh > 3)) {
-          return { valid: false, error: '行距必须在0.5-3之间' };
+          return { valid: false, error: '行距必须在0.5-3之间' }
         }
       }
     }
-    return { valid: true };
+    return { valid: true }
   }
-  
+
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: DocxExportOptions,
     context?: any
   ): Promise<{
-    md: string;
-    json: string;
-    tex: string;
-    html?: string;
-    imageUrls?: string[];
+    md: string
+    json: string
+    tex: string
+    html?: string
+    imageUrls?: string[]
   }> {
     return {
-      ...data,
-    };
+      ...data
+    }
   }
-  
+
   async executeExport(
     preparedData: {
-      md: string;
-      json: string;
-      tex: string;
-      html?: string;
-      imageUrls?: string[];
+      md: string
+      json: string
+      tex: string
+      html?: string
+      imageUrls?: string[]
     },
     targetPath: string,
     options: DocxExportOptions,
     context?: any
   ): Promise<void> {
-    throw new Error('executeExport should be called in main process');
+    throw new Error('executeExport should be called in main process')
   }
 }
-

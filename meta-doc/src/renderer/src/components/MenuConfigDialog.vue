@@ -15,14 +15,22 @@
       <div class="menu-items-list">
         <el-scrollbar height="400px">
           <div class="menu-items-container" ref="sortableContainer">
-            <template v-for="(item, index) in sortedMenuItems" :key="'type' in item && item.type === 'divider' ? item.key : ('id' in item ? item.id : index)">
+            <template
+              v-for="(item, index) in sortedMenuItems"
+              :key="
+                'type' in item && item.type === 'divider'
+                  ? item.key
+                  : 'id' in item
+                    ? item.id
+                    : index
+              "
+            >
               <!-- 分割线 -->
-              <div
-                v-if="'type' in item && item.type === 'divider'"
-                class="menu-divider"
-              >
+              <div v-if="'type' in item && item.type === 'divider'" class="menu-divider">
                 <div class="divider-line"></div>
-                <span class="divider-label">{{ $t('leftMenu.menuConfig.bottomMenuDivider', '下侧菜单') }}</span>
+                <span class="divider-label">{{
+                  $t('leftMenu.menuConfig.bottomMenuDivider', '下侧菜单')
+                }}</span>
                 <div class="divider-line"></div>
               </div>
               <!-- 菜单项 -->
@@ -38,11 +46,23 @@
                   </el-icon>
                 </div>
                 <div class="menu-item-content">
-                  <el-icon v-if="item.icon && !item.iconImage && typeof item.icon !== 'string'" class="menu-item-icon">
+                  <el-icon
+                    v-if="item.icon && !item.iconImage && typeof item.icon !== 'string'"
+                    class="menu-item-icon"
+                  >
                     <component :is="item.icon" />
                   </el-icon>
-                  <span v-else-if="item.icon && typeof item.icon === 'string'" class="menu-item-icon-text">{{ item.icon }}</span>
-                  <img v-if="item.iconImage" :src="item.iconImage" alt="" class="menu-item-icon-image" />
+                  <span
+                    v-else-if="item.icon && typeof item.icon === 'string'"
+                    class="menu-item-icon-text"
+                    >{{ item.icon }}</span
+                  >
+                  <img
+                    v-if="item.iconImage"
+                    :src="item.iconImage"
+                    alt=""
+                    class="menu-item-icon-image"
+                  />
                   <span class="menu-item-label">{{ item.label }}</span>
                 </div>
                 <div class="menu-item-actions" v-if="!item.isCore">
@@ -64,7 +84,9 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleReset">{{ $t('leftMenu.menuConfig.reset') }}</el-button>
-        <el-button type="primary" @click="handleSave">{{ $t('leftMenu.menuConfig.save') }}</el-button>
+        <el-button type="primary" @click="handleSave">{{
+          $t('leftMenu.menuConfig.save')
+        }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -107,7 +129,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  'save': [items: MenuConfigItem[]]
+  save: [items: MenuConfigItem[]]
 }>()
 
 const visible = computed({
@@ -119,36 +141,36 @@ const menuItems = ref<MenuConfigItem[]>([])
 
 // 计算是否有上侧和下侧菜单
 const hasTopMenu = computed(() => {
-  return menuItems.value.some(item => item.position === 'top' || !item.position)
+  return menuItems.value.some((item) => item.position === 'top' || !item.position)
 })
 
 const hasBottomMenu = computed(() => {
-  return menuItems.value.some(item => item.position === 'bottom')
+  return menuItems.value.some((item) => item.position === 'bottom')
 })
 
 // 获取排序后的菜单项（用于显示，包含分割线）
 const sortedMenuItems = computed(() => {
   const items: MenuItemOrDivider[] = []
   let lastPosition: 'top' | 'bottom' | null = null
-  
+
   for (const item of menuItems.value) {
     const currentPosition = item.position || 'top'
-    
+
     // 如果从top切换到bottom，添加分割线
     if (lastPosition === 'top' && currentPosition === 'bottom') {
       items.push({ type: 'divider', key: 'divider-top-bottom' })
     }
-    
+
     items.push(item)
     lastPosition = currentPosition
   }
-  
+
   return items
 })
 
 // 初始化菜单项
 const initMenuItems = () => {
-  menuItems.value = props.items.map(item => ({ ...item, position: item.position || 'top' }))
+  menuItems.value = props.items.map((item) => ({ ...item, position: item.position || 'top' }))
 }
 
 // 加载配置
@@ -158,37 +180,38 @@ const loadConfig = async () => {
     if (config && Array.isArray(config)) {
       // 按照保存的顺序和配置合并
       const configMap = new Map(config.map((item: any) => [item.id, item]))
-      
+
       // 先按照保存的顺序排列
       const orderedItems: MenuConfigItem[] = []
       const processedIds = new Set<string>()
-      
+
       // 先添加保存顺序中的项目
       for (const savedItem of config) {
-        const originalItem = props.items.find(item => item.id === savedItem.id)
+        const originalItem = props.items.find((item) => item.id === savedItem.id)
         if (originalItem) {
           // 将 middle 位置转换为 bottom（迁移逻辑）
           const savedPosition = (savedItem.position as any) || originalItem.position || 'top'
-          let position: 'top' | 'bottom' = savedPosition === 'middle' ? 'bottom' : (savedPosition === 'top' ? 'top' : 'bottom')
-          
+          let position: 'top' | 'bottom' =
+            savedPosition === 'middle' ? 'bottom' : savedPosition === 'top' ? 'top' : 'bottom'
+
           orderedItems.push({
             ...originalItem,
             // 核心菜单项强制可见
             visible: originalItem.isCore ? true : (savedItem.visible ?? originalItem.visible),
             // 恢复位置信息（确保只有 top 或 bottom）
-            position,
+            position
           })
           processedIds.add(savedItem.id)
         }
       }
-      
+
       // 再添加新增的项目（不在保存配置中的）
       for (const item of props.items) {
         if (!processedIds.has(item.id)) {
           orderedItems.push({ ...item })
         }
       }
-      
+
       menuItems.value = orderedItems
     } else {
       initMenuItems()
@@ -203,7 +226,7 @@ const loadConfig = async () => {
 const saveConfig = async () => {
   try {
     // 只保存可序列化的字段，移除Vue组件引用
-    const serializableItems = menuItems.value.map(item => {
+    const serializableItems = menuItems.value.map((item) => {
       // 将 middle 位置转换为 bottom（迁移逻辑）
       let position: 'top' | 'bottom' = item.position || 'top'
       if ((position as any) === 'middle') {
@@ -211,7 +234,7 @@ const saveConfig = async () => {
       }
       // 确保只有 top 或 bottom
       position = position === 'top' ? 'top' : 'bottom'
-      
+
       return {
         id: item.id,
         label: item.label,
@@ -235,7 +258,7 @@ const saveConfig = async () => {
 const handleReset = () => {
   initMenuItems()
   // 确保核心菜单项始终可见
-  menuItems.value.forEach(item => {
+  menuItems.value.forEach((item) => {
     if (item.isCore) {
       item.visible = true
     }
@@ -246,7 +269,7 @@ const handleReset = () => {
 const handleSave = async () => {
   try {
     // 确保核心菜单项始终可见
-    menuItems.value.forEach(item => {
+    menuItems.value.forEach((item) => {
       if (item.isCore) {
         item.visible = true
       }
@@ -261,7 +284,7 @@ const handleSave = async () => {
 // 可见性改变
 const handleVisibilityChange = () => {
   // 自动保存
-  saveConfig().catch(error => {
+  saveConfig().catch((error) => {
     logger.error('自动保存菜单配置失败:', error)
   })
 }
@@ -280,10 +303,14 @@ const initSortable = () => {
         animation: 150,
         filter: '.menu-divider', // 过滤掉分割线，不允许拖拽
         onEnd: (evt) => {
-          if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+          if (
+            evt.oldIndex !== undefined &&
+            evt.newIndex !== undefined &&
+            evt.oldIndex !== evt.newIndex
+          ) {
             // 获取DOM中所有元素（包括分割线）
             const items = Array.from(sortableContainer.value!.children)
-            
+
             // 找到分割线在DOM中的实际索引位置
             let dividerDomIndex = -1
             items.forEach((el, index) => {
@@ -291,13 +318,13 @@ const initSortable = () => {
                 dividerDomIndex = index
               }
             })
-            
+
             // 根据DOM中的实际位置更新position
             items.forEach((el, domIndex) => {
               if (!el.classList.contains('menu-divider')) {
                 const itemId = (el as HTMLElement).dataset.itemId
                 if (itemId) {
-                  const item = menuItems.value.find(i => i.id === itemId)
+                  const item = menuItems.value.find((i) => i.id === itemId)
                   if (item) {
                     // 如果分割线存在，根据分割线的位置判断
                     if (dividerDomIndex !== -1) {
@@ -311,24 +338,24 @@ const initSortable = () => {
                 }
               }
             })
-            
+
             // 重新排序 menuItems 以匹配 DOM 顺序
             const orderedItems: MenuConfigItem[] = []
             items.forEach((el) => {
               if (!el.classList.contains('menu-divider')) {
                 const itemId = (el as HTMLElement).dataset.itemId
                 if (itemId) {
-                  const item = menuItems.value.find(i => i.id === itemId)
+                  const item = menuItems.value.find((i) => i.id === itemId)
                   if (item) {
                     orderedItems.push(item)
                   }
                 }
               }
             })
-            
+
             menuItems.value = orderedItems
             // 自动保存排序
-            saveConfig().catch(error => {
+            saveConfig().catch((error) => {
               logger.error('自动保存菜单配置失败:', error)
             })
           }
@@ -349,11 +376,15 @@ watch(visible, (newVal) => {
   }
 })
 
-watch(() => props.items, () => {
-  if (visible.value) {
-    loadConfig()
-  }
-}, { deep: true })
+watch(
+  () => props.items,
+  () => {
+    if (visible.value) {
+      loadConfig()
+    }
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
@@ -470,4 +501,3 @@ watch(() => props.items, () => {
   white-space: nowrap;
 }
 </style>
-

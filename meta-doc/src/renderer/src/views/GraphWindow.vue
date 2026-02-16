@@ -21,43 +21,49 @@
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
       >
-      <!-- 右侧内容区域 -->
-      <div class="content-area" :style="panelStyle" v-loading="loadingSession">
-        <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
-          <p>{{ t('graph.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
-        </div>
-        
-        <div v-else class="dialog-container">
-          <el-scrollbar class="conversation-scroll">
-            <GraphMessageBubble
-              v-for="(msg, index) in messages.filter(item => item.role !== 'system')"
-              :key="index"
-              :message="msg"
-              :index="index"
-              :is-streaming="index === messages.length - 1 && isStreaming && msg.role === 'assistant'"
-              :streaming-content="index === messages.length - 1 && isStreaming ? streamingContent : ''"
-              @delete="onMsgDelete"
-              @edit="onMsgEdit"
-              @regenerate="regenerate"
-              @export="handleExport"
-            />
-            <div class="conversation-bottom-spacer" />
-          </el-scrollbar>
-          <div class="composer-wrapper">
-            <ChatComposer
-              v-model="currentPrompt"
-              :loading="generating || analyzingIntent"
-              :disabled="false"
-              :placeholder="t('graph.inputPlaceholder', '输入绘图需求，AI会自动选择合适的图表引擎...')"
-              :show-voice="false"
-              :show-attach="false"
-              :show-knowledge-base="false"
-              @submit="handleGenerate"
-              @cancel="handleCancel"
-            />
+        <!-- 右侧内容区域 -->
+        <div class="content-area" :style="panelStyle" v-loading="loadingSession">
+          <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
+            <p>{{ t('graph.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
+          </div>
+
+          <div v-else class="dialog-container">
+            <el-scrollbar class="conversation-scroll">
+              <GraphMessageBubble
+                v-for="(msg, index) in messages.filter((item) => item.role !== 'system')"
+                :key="index"
+                :message="msg"
+                :index="index"
+                :is-streaming="
+                  index === messages.length - 1 && isStreaming && msg.role === 'assistant'
+                "
+                :streaming-content="
+                  index === messages.length - 1 && isStreaming ? streamingContent : ''
+                "
+                @delete="onMsgDelete"
+                @edit="onMsgEdit"
+                @regenerate="regenerate"
+                @export="handleExport"
+              />
+              <div class="conversation-bottom-spacer" />
+            </el-scrollbar>
+            <div class="composer-wrapper">
+              <ChatComposer
+                v-model="currentPrompt"
+                :loading="generating || analyzingIntent"
+                :disabled="false"
+                :placeholder="
+                  t('graph.inputPlaceholder', '输入绘图需求，AI会自动选择合适的图表引擎...')
+                "
+                :show-voice="false"
+                :show-attach="false"
+                :show-knowledge-base="false"
+                @submit="handleGenerate"
+                @cancel="handleCancel"
+              />
+            </div>
           </div>
         </div>
-      </div>
       </SessionList>
     </div>
   </div>
@@ -80,7 +86,11 @@ import { themeState } from '../utils/themes'
 import GraphMessageBubble from '../components/GraphMessageBubble.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
 import { updateTitlePrompt } from '../utils/prompts'
-import { parseSchemaJson, DOCUMENT_TITLE_SCHEMA, type DocumentTitleSchemaResult } from '../utils/schemas'
+import {
+  parseSchemaJson,
+  DOCUMENT_TITLE_SCHEMA,
+  type DocumentTitleSchemaResult
+} from '../utils/schemas'
 import { getSetting } from '../utils/settings'
 import { ai_types } from '../utils/ai_tasks'
 import { useWorkspace } from '../stores/workspace'
@@ -90,13 +100,17 @@ const logger = createRendererLogger('GraphWindow')
 const workspace = useWorkspace()
 
 const GRAPH_ROUTES = ['/graph', '/ai-graph', '/smart-drawing-assistant']
-const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && GRAPH_ROUTES.includes(tab.route ?? ''))?.id ?? null)
+const ourTabId = computed(
+  () =>
+    workspace.tabs.find((tab) => tab.kind === 'tool' && GRAPH_ROUTES.includes(tab.route ?? ''))
+      ?.id ?? null
+)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
 const activeSession = computed(() => {
   if (!activeSessionId.value) return null
-  return sessions.value.find(s => s.id === activeSessionId.value) as any
+  return sessions.value.find((s) => s.id === activeSessionId.value) as any
 })
 
 const currentPrompt = ref('')
@@ -129,7 +143,7 @@ const isStreaming = computed(() => {
 
 // 获取所有支持的图表引擎列表（用于intent-processer）
 const getAvailableEngines = () => {
-  return graphEngineConfig.map(engine => ({
+  return graphEngineConfig.map((engine) => ({
     name: engine.name.toLowerCase(),
     displayName: engine.name,
     supportedTypes: engine['graph-supported'],
@@ -139,16 +153,20 @@ const getAvailableEngines = () => {
 }
 
 // Intent-processer: 分析用户需求，自动选择图表引擎
-const analyzeIntent = async (userPrompt: string): Promise<{
+const analyzeIntent = async (
+  userPrompt: string
+): Promise<{
   engine: string
   type: string
   specialPrompt: string
   notes: string
 }> => {
   const availableEngines = getAvailableEngines()
-  const enginesList = availableEngines.map(e => 
-    `- ${e.displayName} (${e.name}): ${e.tip}，支持类型：${e.supportedTypes.join('、')}`
-  ).join('\n')
+  const enginesList = availableEngines
+    .map(
+      (e) => `- ${e.displayName} (${e.name}): ${e.tip}，支持类型：${e.supportedTypes.join('、')}`
+    )
+    .join('\n')
 
   const intentPrompt = `你是一个图表意图分析助手。用户想要绘制图表，请根据用户的需求，从以下可用的图表引擎中选择最合适的一个：
 
@@ -173,12 +191,14 @@ ${enginesList}
 
   const intentTarget = vueRef('')
   const originKey = `graph-intent-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: intentPrompt,
-  }]
-  
+
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: intentPrompt
+    }
+  ]
+
   const { done } = createAiTask(
     t('graph.analyzingIntent', '分析意图中...'),
     messages,
@@ -187,39 +207,42 @@ ${enginesList}
     originKey,
     { stream: true }
   )
-  
+
   // 设置流式显示（虽然意图分析通常很快，但也显示）
   streamingContent.value = ''
   streamingDonePromise.value = done
-  
+
   try {
     await done
   } catch (error) {
     // 如果是取消错误，保留已生成的内容，当作完成处理
-    const isCancelled = error instanceof Error && (
-      error.message === '任务已取消' || 
-      error.message.includes('任务已取消') ||
-      (error as any).name === 'AbortError'
-    )
-    
+    const isCancelled =
+      error instanceof Error &&
+      (error.message === '任务已取消' ||
+        error.message.includes('任务已取消') ||
+        (error as any).name === 'AbortError')
+
     if (!isCancelled) {
       // 非取消错误，重新抛出
       throw error
     }
     // 取消时继续执行，使用已生成的内容
   }
-  
+
   streamingDonePromise.value = null
-  
+
   // 提取JSON
   let jsonStr = extractOuterJsonString(intentTarget.value)
   if (!jsonStr) {
     // 如果提取失败，尝试清理
     jsonStr = intentTarget.value.trim()
     // 移除可能的markdown代码块标记
-    jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+    jsonStr = jsonStr
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim()
   }
-  
+
   try {
     const result = JSON.parse(jsonStr)
     return {
@@ -242,24 +265,41 @@ ${enginesList}
 
 // 检查用户是否想要优化之前的图表
 const isOptimizeRequest = (userPrompt: string): boolean => {
-  const optimizeKeywords = ['优化', '改进', '修改', '调整', '更新', '改一下', '改改', '优化一下', '改进一下', '使用', '改成', '改为', '改为', '改成', '换成', '换为']
-  return optimizeKeywords.some(keyword => userPrompt.includes(keyword))
+  const optimizeKeywords = [
+    '优化',
+    '改进',
+    '修改',
+    '调整',
+    '更新',
+    '改一下',
+    '改改',
+    '优化一下',
+    '改进一下',
+    '使用',
+    '改成',
+    '改为',
+    '改为',
+    '改成',
+    '换成',
+    '换为'
+  ]
+  return optimizeKeywords.some((keyword) => userPrompt.includes(keyword))
 }
 
 // 检查是否应该使用之前的引擎（多轮对话优化场景）
 const shouldUsePreviousEngine = (userPrompt: string, hasPreviousChart: boolean): boolean => {
   if (!hasPreviousChart) return false
-  
+
   // 如果用户明确指定了新引擎，不使用之前的
   const engineKeywords = ['mermaid', 'echarts', 'plantuml', 'graphviz', 'mindmap', 'markmap']
-  const hasExplicitEngine = engineKeywords.some(keyword => 
+  const hasExplicitEngine = engineKeywords.some((keyword) =>
     userPrompt.toLowerCase().includes(keyword)
   )
   if (hasExplicitEngine) return false
-  
+
   // 如果是优化请求，使用之前的引擎
   if (isOptimizeRequest(userPrompt)) return true
-  
+
   // 如果对话历史中有图表，且用户没有明确要求新图表，使用之前的引擎
   return true
 }
@@ -279,13 +319,13 @@ const getLastChartCode = (): string | null => {
 const buildConversationHistory = (): AIDialogMessage[] => {
   // 深拷贝消息列表，因为Proxy不能直接拷贝
   const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value))
-  
+
   // 过滤系统消息，并转换格式
   const history: AIDialogMessage[] = []
-  
+
   for (const msg of messageCopy) {
     if (msg.role === 'system') continue
-    
+
     // 对于助手消息，如果有图表代码，使用图表代码作为内容
     if (msg.role === 'assistant' && (msg as GraphMessage).chartMarkdown) {
       history.push({
@@ -299,7 +339,7 @@ const buildConversationHistory = (): AIDialogMessage[] => {
       })
     }
   }
-  
+
   return history
 }
 
@@ -313,24 +353,24 @@ const generateChartCodePrompt = (
   isOptimize: boolean = false,
   previousChartCode?: string | null
 ): string => {
-  const engineConfig = graphEngineConfig.find(e => e.name.toLowerCase() === engine.toLowerCase())
+  const engineConfig = graphEngineConfig.find((e) => e.name.toLowerCase() === engine.toLowerCase())
   const engineDisplayName = engineConfig?.name || engine
-  
+
   let prompt = ''
-  
+
   if (isOptimize && previousChartCode) {
     // 优化模式：包含之前的图表代码和对话历史
     const recentHistory = messages.value
-      .filter(msg => msg.role !== 'system')
+      .filter((msg) => msg.role !== 'system')
       .slice(-6) // 最近3轮对话
-      .map(msg => {
+      .map((msg) => {
         if (msg.role === 'assistant' && msg.chartMarkdown) {
           return `助手: [图表代码]\n${msg.chartMarkdown}`
         }
         return `${msg.role === 'user' ? '用户' : '助手'}: ${msg.content}`
       })
       .join('\n\n')
-    
+
     prompt = `用户想要优化之前的图表。以下是对话历史和之前的图表代码：
 
 对话历史：
@@ -342,15 +382,15 @@ ${recentHistory}
   } else {
     // 新建模式：包含对话历史（如果有）
     const history = messages.value
-      .filter(msg => msg.role !== 'system')
+      .filter((msg) => msg.role !== 'system')
       .slice(0, -1) // 排除当前用户消息（因为还没添加到 messages）
-      .map(msg => {
+      .map((msg) => {
         if (msg.role === 'assistant' && msg.chartMarkdown) {
           return `助手: [图表代码]\n${msg.chartMarkdown}`
         }
         return `${msg.role === 'user' ? '用户' : '助手'}: ${msg.content}`
       })
-    
+
     if (history.length > 0) {
       prompt = `以下是之前的对话历史：
 
@@ -367,7 +407,7 @@ ${history.join('\n\n')}
 用户需求：${userPrompt}`
     }
   }
-  
+
   return `${prompt}
 
 ${specialPrompt ? `特殊要求：${specialPrompt}\n` : ''}
@@ -381,12 +421,11 @@ ${notes ? `注意事项：${notes}\n` : ''}
 5. 从第一行开始就是代码框`
 }
 
-
 // 加载会话列表
 const loadSessions = async () => {
   try {
     const dbSessions = await graphSessionsDb.getAll()
-    sessions.value = dbSessions.map(s => ({
+    sessions.value = dbSessions.map((s) => ({
       id: s.id,
       title: s.title,
       updatedAt: s.updated_at
@@ -401,7 +440,7 @@ const handleCreateSession = async () => {
   try {
     const id = `graph-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const title = t('graph.defaultTitle', '新绘图会话')
-    
+
     await graphSessionsDb.create({
       id,
       title,
@@ -411,7 +450,7 @@ const handleCreateSession = async () => {
       output_format: 'svg',
       output_path: undefined
     })
-    
+
     await loadSessions()
     activeSessionId.value = id
     const tid = ourTabId.value
@@ -432,9 +471,9 @@ const handleSelectSession = async (item: SessionListItem) => {
   if (loadingSession.value) {
     return
   }
-  
+
   loadingSession.value = true
-  
+
   try {
     activeSessionId.value = item.id
     const tid = ourTabId.value
@@ -461,7 +500,7 @@ const handleSelectSession = async (item: SessionListItem) => {
           // 忽略解析错误
         }
       }
-      
+
       // 恢复最后生成的图表代码
       if (messages.value.length > 0) {
         for (let i = messages.value.length - 1; i >= 0; i--) {
@@ -472,15 +511,15 @@ const handleSelectSession = async (item: SessionListItem) => {
           }
         }
       }
-      
+
       // 加载会话时清空输入框（在恢复消息之后）
       await nextTick()
       currentPrompt.value = ''
-      
+
       // 等待 DOM 更新后渲染所有图表
       await nextTick()
       setTimeout(async () => {
-        const filteredMessages = messages.value.filter(item => item.role !== 'system')
+        const filteredMessages = messages.value.filter((item) => item.role !== 'system')
         for (let i = 0; i < filteredMessages.length; i++) {
           const msg = filteredMessages[i]
           if (msg.role === 'assistant' && msg.chartMarkdown) {
@@ -515,7 +554,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
   try {
     const session = await graphSessionsDb.getById(item.id)
     if (!session) return
-    
+
     const id = `graph-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     await graphSessionsDb.create({
       id,
@@ -526,7 +565,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       output_format: session.output_format,
       output_path: session.output_path
     })
-    
+
     await loadSessions()
     ElMessage.success(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
@@ -557,43 +596,43 @@ const handleGenerate = async () => {
     ElMessage.warning(t('graph.noPrompt', '请输入绘图需求'))
     return
   }
-  
+
   generating.value = true
   analyzingIntent.value = true
-  
+
   try {
     const userPrompt = currentPrompt.value.trim()
     if (!userPrompt) {
       ElMessage.warning(t('graph.noPrompt', '请输入绘图需求'))
       return
     }
-    
+
     const isOptimize = isOptimizeRequest(userPrompt)
     const previousChartCode = isOptimize ? getLastChartCode() : null
-    
+
     // 立即清空输入框（在添加消息之前）
     currentPrompt.value = ''
-    
+
     // 添加用户消息
     const userMessage: GraphMessage = {
       role: 'user',
       content: userPrompt
     }
     messages.value.push(userMessage)
-    
+
     // 创建助手占位消息
     const assistantPlaceholder: GraphMessage = {
       role: 'assistant',
       content: ''
     }
     messages.value.push(assistantPlaceholder)
-    
+
     // 步骤1: 分析意图，自动选择图表引擎
     // 智能判断：如果已有图表且是优化请求，优先使用之前的引擎
     let intentResult
     const hasPreviousChart = !!previousChartCode
     const usePreviousEngine = shouldUsePreviousEngine(userPrompt, hasPreviousChart)
-    
+
     if (usePreviousEngine && previousChartCode) {
       // 使用之前的引擎：从之前的图表代码中提取引擎信息
       const codeBlockMatch = previousChartCode.match(/```(\w+)\s*\n([\s\S]*?)\n?```/)
@@ -620,9 +659,9 @@ const handleGenerate = async () => {
       detectedType.value = intentResult.type
       detectedSpecialPrompt.value = intentResult.specialPrompt
     }
-    
+
     analyzingIntent.value = false
-    
+
     // 步骤2: 生成图表代码
     const chartPrompt = generateChartCodePrompt(
       userPrompt,
@@ -633,20 +672,20 @@ const handleGenerate = async () => {
       isOptimize,
       previousChartCode
     )
-    
+
     const codeTarget = vueRef('')
     const originKey = `graph-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    
+
     // 构建完整的对话历史（多轮对话支持）- 类似 AIChat.vue 的实现
     // 先获取当前消息（不包括刚添加的占位消息）
     const currentMessages = messages.value.slice(0, -1) // 排除占位消息
     const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(currentMessages))
-    
+
     // 转换为 AIDialogMessage 格式，包含图表代码
     const conversationHistory: AIDialogMessage[] = []
     for (const msg of messageCopy) {
       if (msg.role === 'system') continue
-      
+
       const graphMsg = msg as GraphMessage
       if (graphMsg.role === 'assistant' && graphMsg.chartMarkdown) {
         // 助手消息：使用图表代码作为内容
@@ -662,13 +701,13 @@ const handleGenerate = async () => {
         })
       }
     }
-    
+
     // 添加当前用户请求（使用图表生成提示词）
     conversationHistory.push({
       role: 'user',
       content: chartPrompt
     })
-    
+
     const { handle, done } = createAiTask(
       t('graph.generating', '生成图表'),
       conversationHistory,
@@ -677,13 +716,13 @@ const handleGenerate = async () => {
       originKey,
       { stream: true }
     )
-    
+
     currentAiTaskHandle.value = handle
-    
+
     // 设置流式显示
     streamingContent.value = ''
     streamingDonePromise.value = done
-    
+
     // 同步codeTarget到streamingContent和占位消息
     const syncWatcher = watch(
       () => codeTarget.value,
@@ -693,17 +732,17 @@ const handleGenerate = async () => {
       },
       { immediate: true }
     )
-    
+
     try {
       await done
     } catch (error) {
       // 如果是取消错误，保留已生成的内容
-      const isCancelled = error instanceof Error && (
-        error.message === '任务已取消' || 
-        error.message.includes('任务已取消') ||
-        (error as any).name === 'AbortError'
-      )
-      
+      const isCancelled =
+        error instanceof Error &&
+        (error.message === '任务已取消' ||
+          error.message.includes('任务已取消') ||
+          (error as any).name === 'AbortError')
+
       if (!isCancelled) {
         // 非取消错误，重新抛出
         throw error
@@ -713,10 +752,10 @@ const handleGenerate = async () => {
       streamingDonePromise.value = null
       currentAiTaskHandle.value = null
     }
-    
+
     let chartCode = codeTarget.value.trim()
     let chartMarkdown = chartCode
-    
+
     // 确保代码被代码块包裹
     if (!chartCode.includes('```')) {
       const engine = detectedEngine.value || 'mermaid'
@@ -728,22 +767,22 @@ const handleGenerate = async () => {
         chartCode = codeBlockMatch[2].trim()
       }
     }
-    
+
     lastGeneratedChartCode.value = chartMarkdown
-    
+
     // 更新助手消息
     assistantPlaceholder.content = t('graph.generated', '图表已生成')
     assistantPlaceholder.chartMarkdown = chartMarkdown
     assistantPlaceholder.code = chartCode
-    
+
     // 强制触发响应式更新，确保图表立即渲染
     await nextTick()
-    
+
     // 等待 DOM 更新后触发图表渲染
     // 使用双重 nextTick 确保 Vue 的响应式系统完成更新
     await nextTick()
     await nextTick()
-    
+
     // 再次确保图表渲染（GraphMessageBubble 的 watch 应该已经触发）
     setTimeout(async () => {
       // 如果图表还没有渲染，强制触发一次
@@ -762,7 +801,7 @@ const handleGenerate = async () => {
         await nextTick()
       }
     }, 150)
-    
+
     // 保存会话
     await graphSessionsDb.update(activeSessionId.value, {
       conversation_history: JSON.stringify(messages.value),
@@ -775,9 +814,9 @@ const handleGenerate = async () => {
         manuallyRenamed: manuallyRenamedSessions.value.has(activeSessionId.value)
       })
     })
-    
+
     ElMessage.success(t('graph.generateSuccess', '生成成功'))
-    
+
     // 生成标题（如果会话未被手动重命名）
     if (activeSessionId.value && !manuallyRenamedSessions.value.has(activeSessionId.value)) {
       updateTitle(userPrompt).catch((error) => {
@@ -786,7 +825,11 @@ const handleGenerate = async () => {
     }
   } catch (error) {
     // 如果出错，移除占位消息
-    if (messages.value.length > 0 && messages.value[messages.value.length - 1].role === 'assistant' && !messages.value[messages.value.length - 1].content) {
+    if (
+      messages.value.length > 0 &&
+      messages.value[messages.value.length - 1].role === 'assistant' &&
+      !messages.value[messages.value.length - 1].content
+    ) {
       messages.value.pop()
     }
     ElMessage.error('生成失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -819,12 +862,12 @@ const handleCancel = () => {
 const onMsgDelete = (index: number) => {
   // GraphMessageBubble 传递的 index 是相对于过滤后的消息的索引
   // 需要找到实际的消息索引
-  const filteredMessages = messages.value.filter(item => item.role !== 'system')
+  const filteredMessages = messages.value.filter((item) => item.role !== 'system')
   if (index < 0 || index >= filteredMessages.length) return
-  
+
   const actualIndex = messages.value.indexOf(filteredMessages[index])
   if (actualIndex < 0) return
-  
+
   messages.value.splice(actualIndex, 1)
   ElMessage.success(t('common.deleteSuccess', '删除成功'))
   saveSession()
@@ -832,17 +875,17 @@ const onMsgDelete = (index: number) => {
 
 // 消息操作：编辑
 const onMsgEdit = async (payload: { index: number; message: string }) => {
-  const filteredMessages = messages.value.filter(item => item.role !== 'system')
+  const filteredMessages = messages.value.filter((item) => item.role !== 'system')
   if (payload.index < 0 || payload.index >= filteredMessages.length) return
-  
+
   const actualIndex = messages.value.indexOf(filteredMessages[payload.index])
   if (actualIndex < 0) return
-  
+
   const message = messages.value[actualIndex]
   if (!message) return
-  
+
   message.content = payload.message
-  
+
   // 如果是用户消息，重新生成
   if (message.role === 'user') {
     await regenerate(actualIndex)
@@ -855,23 +898,23 @@ const onMsgEdit = async (payload: { index: number; message: string }) => {
 const regenerate = async (index: number) => {
   // GraphMessageBubble 传递的 index 是相对于过滤后的消息的索引
   // 需要找到实际的消息索引
-  const filteredMessages = messages.value.filter(item => item.role !== 'system')
+  const filteredMessages = messages.value.filter((item) => item.role !== 'system')
   if (index < 0 || index >= filteredMessages.length) return
-  
+
   const actualIndex = messages.value.indexOf(filteredMessages[index])
   if (actualIndex < 0) return
-  
+
   // 找到用户消息的位置
   let userIndex = actualIndex
   while (userIndex >= 0 && messages.value[userIndex].role !== 'user') {
     userIndex--
   }
-  
+
   if (userIndex < 0) return
-  
+
   // 移除该用户消息之后的所有消息
   messages.value.splice(userIndex + 1)
-  
+
   // 使用该用户消息的内容重新生成
   const userMessage = messages.value[userIndex]
   currentPrompt.value = userMessage.content
@@ -881,7 +924,7 @@ const regenerate = async (index: number) => {
 // 保存会话
 const saveSession = async () => {
   if (!activeSessionId.value) return
-  
+
   try {
     await graphSessionsDb.update(activeSessionId.value, {
       conversation_history: JSON.stringify(messages.value),
@@ -906,16 +949,17 @@ const handleExport = async (chartMarkdown?: string) => {
     ElMessage.warning(t('graph.noChart', '没有可导出的图表'))
     return
   }
-  
+
   try {
     // 确保chartCode是字符串
     const chartCodeStr = typeof chartCode === 'string' ? chartCode : String(chartCode)
-    
+
     // 从markdown中提取代码
     let code = chartCodeStr
     let engine = detectedEngine.value || 'mermaid'
-    
-    const codeBlockMatch = typeof code === 'string' ? code.match(/```(\w+)\s*\n([\s\S]*?)\n?```/) : null
+
+    const codeBlockMatch =
+      typeof code === 'string' ? code.match(/```(\w+)\s*\n([\s\S]*?)\n?```/) : null
     if (codeBlockMatch) {
       engine = codeBlockMatch[1]
       code = codeBlockMatch[2].trim()
@@ -923,7 +967,7 @@ const handleExport = async (chartMarkdown?: string) => {
       // 如果没有代码块，直接使用代码
       code = typeof code === 'string' ? code.trim() : String(code).trim()
     }
-    
+
     // 获取 IPC 渲染器
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
@@ -934,11 +978,11 @@ const handleExport = async (chartMarkdown?: string) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
+
     // 打开保存对话框，让用户选择格式
     const result = await ipcRenderer.invoke('save-file-dialog', {
       defaultName: `graph-${Date.now()}.svg`,
@@ -948,19 +992,19 @@ const handleExport = async (chartMarkdown?: string) => {
         { name: 'PDF Files', extensions: ['pdf'] }
       ]
     })
-    
+
     if (!result || result.canceled || !result.filePath) {
       return
     }
-    
+
     // 根据文件扩展名确定格式
     const filePath = result.filePath
     const ext = filePath.split('.').pop()?.toLowerCase() || 'svg'
-    
+
     // 参考 chart-pre-renderer.js 的处理方式：targetFormat = format === 'bitmap' ? 'png' : 'svg'
     // 对于 PDF，先渲染为 SVG，然后转换
     const targetFormat = ext === 'png' ? 'png' : 'svg'
-    
+
     // 使用 renderChart 渲染图表（参考 chart-pre-renderer.js 的处理方式）
     const { renderChart } = await import('../utils/chart-renderer')
     const imageUrl = await renderChart({
@@ -968,11 +1012,11 @@ const handleExport = async (chartMarkdown?: string) => {
       code: code,
       format: targetFormat as 'svg' | 'png'
     })
-    
+
     if (!imageUrl) {
       throw new Error('渲染失败')
     }
-    
+
     if (ext === 'svg') {
       // SVG：直接写入文件（已经弹出对话框，不需要再弹出）
       let svgContent: string
@@ -1001,7 +1045,10 @@ const handleExport = async (chartMarkdown?: string) => {
         // blob URL -> 文本内容
         const response = await fetch(imageUrl)
         svgContent = await response.text()
-      } else if (imageUrl.startsWith('http://localhost:52521/images/') || imageUrl.startsWith('http://')) {
+      } else if (
+        imageUrl.startsWith('http://localhost:52521/images/') ||
+        imageUrl.startsWith('http://')
+      ) {
         // HTTP URL -> 文本内容
         const response = await fetch(imageUrl)
         if (!response.ok) {
@@ -1014,12 +1061,12 @@ const handleExport = async (chartMarkdown?: string) => {
         if (localPath.startsWith('/') && /^[A-Za-z]:/.test(localPath.substring(1))) {
           localPath = localPath.substring(1)
         }
-        svgContent = await ipcRenderer.invoke('read-file-content', localPath) as string
+        svgContent = (await ipcRenderer.invoke('read-file-content', localPath)) as string
       } else {
         // 本地文件路径 -> 读取内容
-        svgContent = await ipcRenderer.invoke('read-file-content', imageUrl) as string
+        svgContent = (await ipcRenderer.invoke('read-file-content', imageUrl)) as string
       }
-      
+
       // 直接写入文件
       await ipcRenderer.invoke('write-file-content', {
         filePath: filePath,
@@ -1047,7 +1094,10 @@ const handleExport = async (chartMarkdown?: string) => {
         })
         const commaIdx = dataUrl.indexOf(',')
         base64Data = dataUrl.substring(commaIdx + 1)
-      } else if (imageUrl.startsWith('http://localhost:52521/images/') || imageUrl.startsWith('http://')) {
+      } else if (
+        imageUrl.startsWith('http://localhost:52521/images/') ||
+        imageUrl.startsWith('http://')
+      ) {
         // HTTP URL -> fetch 获取内容 -> base64
         const response = await fetch(imageUrl)
         if (!response.ok) {
@@ -1064,14 +1114,14 @@ const handleExport = async (chartMarkdown?: string) => {
         base64Data = dataUrl.substring(commaIdx + 1)
       } else {
         // 本地文件路径 -> 读取为 base64
-        const fileData = await ipcRenderer.invoke('read-file-for-upload', imageUrl) as {
+        const fileData = (await ipcRenderer.invoke('read-file-for-upload', imageUrl)) as {
           name: string
           data: string
           mimeType: string
         }
         base64Data = fileData.data
       }
-      
+
       // 直接写入文件（base64 编码）
       await ipcRenderer.invoke('write-file-content', {
         filePath: filePath,
@@ -1086,14 +1136,17 @@ const handleExport = async (chartMarkdown?: string) => {
         code: code,
         format: 'svg'
       })
-      
+
       if (!svgImageUrl) {
         throw new Error('渲染 SVG 失败')
       }
-      
+
       // 如果 SVG URL 是 HTTP URL，需要先转换为本地路径（参考 FomulaRecognition.vue）
       let svgPath: string
-      if (svgImageUrl.startsWith('http://localhost:52521/images/') || svgImageUrl.startsWith('http://')) {
+      if (
+        svgImageUrl.startsWith('http://localhost:52521/images/') ||
+        svgImageUrl.startsWith('http://')
+      ) {
         // HTTP URL -> 本地路径
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${svgImageUrl})`
@@ -1107,12 +1160,15 @@ const handleExport = async (chartMarkdown?: string) => {
         const formData = new FormData()
         const file = new File([blob], fileName, { type: 'image/svg+xml' })
         formData.append('file[]', file, fileName)
-        const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', { method: 'POST', body: formData })
+        const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+          method: 'POST',
+          body: formData
+        })
         if (!resp.ok) throw new Error('上传 SVG 失败')
         const json = await resp.json()
         const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
         const httpUrl = `http://localhost:52521/images/${uploaded}`
-        
+
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${httpUrl})`
         const converted = await image2local(mdTmp)
@@ -1125,12 +1181,15 @@ const handleExport = async (chartMarkdown?: string) => {
         const formData = new FormData()
         const file = new File([blob], fileName, { type: 'image/svg+xml' })
         formData.append('file[]', file, fileName)
-        const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', { method: 'POST', body: formData })
+        const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+          method: 'POST',
+          body: formData
+        })
         if (!resp.ok) throw new Error('上传 SVG 失败')
         const json = await resp.json()
         const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
         const httpUrl = `http://localhost:52521/images/${uploaded}`
-        
+
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${httpUrl})`
         const converted = await image2local(mdTmp)
@@ -1140,18 +1199,18 @@ const handleExport = async (chartMarkdown?: string) => {
         // 本地文件路径
         svgPath = svgImageUrl
       }
-      
+
       // 使用统一的 SVG 转 PDF 工具函数（参考 chart-generation-tool.ts）
       const { convertSvgToPdf } = await import('../utils/svg-to-pdf-utils')
       const pdfPath = await convertSvgToPdf(svgPath, { returnUrl: false })
-      
+
       // 读取 PDF 文件为 base64，然后写入目标文件（已经弹出对话框，不需要再弹出）
-      const fileData = await ipcRenderer.invoke('read-file-for-upload', pdfPath) as {
+      const fileData = (await ipcRenderer.invoke('read-file-for-upload', pdfPath)) as {
         name: string
         data: string
         mimeType: string
       }
-      
+
       // 直接写入文件（base64 编码）
       await ipcRenderer.invoke('write-file-content', {
         filePath: filePath,
@@ -1169,12 +1228,12 @@ const handleExport = async (chartMarkdown?: string) => {
 
 // 主题样式
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)'
 )
 
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
-  color: themeState.currentTheme.textColor,
+  color: themeState.currentTheme.textColor
 }))
 
 const panelStyle = computed(() => ({
@@ -1187,7 +1246,7 @@ const panelStyle = computed(() => ({
   overflow: 'hidden' as const,
   padding: 0,
   boxSizing: 'border-box' as const,
-  transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+  transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
 }))
 
 const emptyStateStyle = computed(() => ({
@@ -1208,12 +1267,16 @@ const buildTitleSource = (seedText?: string): string => {
   const recentMessages = messages.value
     .filter((msg) => msg.role !== 'system')
     .slice(-TITLE_CONTEXT_LIMIT)
-  
+
   // 如果传入了 seedText（用户刚发送的消息），确保它包含在上下文中
   if (seedText && seedText.trim()) {
     // 检查最后一条消息是否是用户消息，且内容匹配 seedText
     const lastMessage = recentMessages[recentMessages.length - 1]
-    if (lastMessage && lastMessage.role === 'user' && lastMessage.content.trim() === seedText.trim()) {
+    if (
+      lastMessage &&
+      lastMessage.role === 'user' &&
+      lastMessage.content.trim() === seedText.trim()
+    ) {
       // 如果最后一条消息就是用户刚发送的消息，使用完整的对话上下文（包括用户消息）
       return recentMessages
         .map((msg) => {
@@ -1227,14 +1290,13 @@ const buildTitleSource = (seedText?: string): string => {
     }
     // 如果最后一条消息不匹配（理论上不应该发生），仍然使用 seedText 和之前的消息
     const previousMessages = recentMessages.slice(0, -1)
-    const contextMessages = previousMessages.length > 0 
-      ? [...previousMessages, { role: 'user', content: seedText.trim() }]
-      : [{ role: 'user', content: seedText.trim() }]
-    return contextMessages
-      .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-      .join('\n')
+    const contextMessages =
+      previousMessages.length > 0
+        ? [...previousMessages, { role: 'user', content: seedText.trim() }]
+        : [{ role: 'user', content: seedText.trim() }]
+    return contextMessages.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n')
   }
-  
+
   // 如果没有传入 seedText，使用最近的对话消息
   return recentMessages
     .map((msg) => {
@@ -1254,7 +1316,10 @@ const sanitizeGeneratedTitle = (raw: string): string => {
   }
   next = next.replace(/\s+/g, ' ')
   if (next.length > MAX_TITLE_LENGTH) {
-    next = next.slice(0, MAX_TITLE_LENGTH).replace(/[，。,;:!?、．…-]+$/, '').trim()
+    next = next
+      .slice(0, MAX_TITLE_LENGTH)
+      .replace(/[，。,;:!?、．…-]+$/, '')
+      .trim()
   }
   if (!next) {
     next = t('graph.defaultTitle', '新绘图会话')
@@ -1264,18 +1329,20 @@ const sanitizeGeneratedTitle = (raw: string): string => {
 
 const updateTitle = async (seedText?: string) => {
   if (!activeSessionId.value) return
-  
+
   const titleSource = buildTitleSource(seedText)
   const prompt = updateTitlePrompt(JSON.stringify(titleSource))
-  
+
   // 保存当前会话ID，因为生成标题需要时间，用户可能在此期间切换会话
   const sessionId = activeSessionId.value
-  
+
   // 构建消息数组，将 prompt 转换为对话格式
-  const titleMessages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
+  const titleMessages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
 
   const generatedText = vueRef('')
   const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
@@ -1287,7 +1354,7 @@ const updateTitle = async (seedText?: string) => {
     'graph-generate-title',
     { stream: true, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
   )
-  
+
   try {
     await done
   } catch (err) {
@@ -1301,12 +1368,12 @@ const updateTitle = async (seedText?: string) => {
   try {
     const parsed = parseSchemaJson<DocumentTitleSchemaResult>(
       generatedText.value,
-      DOCUMENT_TITLE_SCHEMA,
+      DOCUMENT_TITLE_SCHEMA
     )
     schemaTitle = parsed.title
   } catch (error) {
     logger.warn('解析标题JSON失败，尝试从文本中提取', error, generatedText.value)
-    
+
     // 尝试从生成的文本中提取标题
     const titleMatch = generatedText.value.match(/"title"\s*:\s*"([^"]+)"/)
     if (titleMatch) {
@@ -1316,7 +1383,10 @@ const updateTitle = async (seedText?: string) => {
       if (quotedMatch) {
         fallbackTitle = quotedMatch[1]
       } else {
-        const lines = generatedText.value.split('\n').map(l => l.trim()).filter(l => l)
+        const lines = generatedText.value
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l)
         if (lines.length > 0) {
           const firstLine = lines[0]
             .replace(/^[{\[]/, '')
@@ -1336,7 +1406,7 @@ const updateTitle = async (seedText?: string) => {
   let newTitle = sanitizeGeneratedTitle(
     schemaTitle ?? fallbackTitle ?? generatedText.value ?? titleSource
   )
-  
+
   // 确保标题不为空
   if (!newTitle || newTitle.trim() === '') {
     newTitle = t('graph.defaultTitle', '新绘图会话')
@@ -1361,9 +1431,9 @@ watch(
     if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
     const state = workspace.getTabToolState(tid)
     const savedId = state.activeSessionId
-    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (!savedId || !sessions.value.some((s) => s.id === savedId)) return
     if (activeSessionId.value === savedId) return
-    const item = sessions.value.find(s => s.id === savedId)!
+    const item = sessions.value.find((s) => s.id === savedId)!
     activeSessionId.value = savedId
     handleSelectSession(item)
   },

@@ -1,11 +1,5 @@
 <template>
-  <div
-    ref="menuRef"
-    class="context-menu"
-    :style="menuStyle"
-    @contextmenu.prevent
-    @mousedown.stop
-  >
+  <div ref="menuRef" class="context-menu" :style="menuStyle" @contextmenu.prevent @mousedown.stop>
     <template v-for="(item, index) in items" :key="item.value ?? `divider-${index}`">
       <div v-if="item.type === 'divider'" class="context-menu__divider" />
       <div
@@ -14,7 +8,7 @@
         :style="menuItemStyle"
         :class="{
           'is-danger': item.danger,
-          'is-disabled': item.disabled,
+          'is-disabled': item.disabled
         }"
         @mousedown.prevent="onMenuItemMouseDown(item)"
       >
@@ -26,86 +20,97 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch , type CSSProperties } from 'vue';
-import type { ContextMenuItem } from './contextMenus/types';
-import { themeState, mixColors } from '../utils/themes';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type CSSProperties } from 'vue'
+import type { ContextMenuItem } from './contextMenus/types'
+import { themeState, mixColors } from '../utils/themes'
 
-const props = withDefaults(defineProps<{
-  x: number;
-  y: number;
-  items?: ContextMenuItem[];
-}>(), {
-  items: () => [],
-});
+const props = withDefaults(
+  defineProps<{
+    x: number
+    y: number
+    items?: ContextMenuItem[]
+  }>(),
+  {
+    items: () => []
+  }
+)
 
 const emit = defineEmits<{
-  (e: 'trigger', value: string): void;
-  (e: 'close'): void;
-}>();
+  (e: 'trigger', value: string): void
+  (e: 'close'): void
+}>()
 
-const menuRef = ref<HTMLElement | null>(null);
-const menuPosition = ref({ top: props.y ?? 0, left: props.x ?? 0 });
+const menuRef = ref<HTMLElement | null>(null)
+const menuPosition = ref({ top: props.y ?? 0, left: props.x ?? 0 })
 
 const adjustWithinViewport = () => {
-  const el = menuRef.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const padding = 8;
-  const maxLeft = Math.max(padding, window.innerWidth - rect.width - padding);
-  const maxTop = Math.max(padding, window.innerHeight - rect.height - padding);
-  const nextLeft = Math.min(Math.max(padding, menuPosition.value.left), maxLeft);
-  const nextTop = Math.min(Math.max(padding, menuPosition.value.top), maxTop);
+  const el = menuRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const padding = 8
+  const maxLeft = Math.max(padding, window.innerWidth - rect.width - padding)
+  const maxTop = Math.max(padding, window.innerHeight - rect.height - padding)
+  const nextLeft = Math.min(Math.max(padding, menuPosition.value.left), maxLeft)
+  const nextTop = Math.min(Math.max(padding, menuPosition.value.top), maxTop)
   if (nextLeft !== menuPosition.value.left || nextTop !== menuPosition.value.top) {
-    menuPosition.value = { top: nextTop, left: nextLeft };
+    menuPosition.value = { top: nextTop, left: nextLeft }
   }
-};
+}
 
 const updatePosition = (x: number, y: number) => {
-  menuPosition.value = { top: y, left: x };
-  nextTick(adjustWithinViewport);
-};
+  menuPosition.value = { top: y, left: x }
+  nextTick(adjustWithinViewport)
+}
 
 watch(
   () => [props.x, props.y],
   ([x, y]) => updatePosition(x ?? 0, y ?? 0),
-  { immediate: true },
-);
+  { immediate: true }
+)
 
-const closeMenu = () => emit('close');
+const closeMenu = () => emit('close')
 const handleDocumentPointer = (event: Event) => {
-  const target = event.target as Node | null;
+  const target = event.target as Node | null
   if (!target || !menuRef.value || menuRef.value.contains(target)) {
-    return;
+    return
   }
-  closeMenu();
-};
+  closeMenu()
+}
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
-    closeMenu();
+    closeMenu()
   }
-};
+}
 
 onMounted(() => {
-  document.addEventListener('mousedown', handleDocumentPointer);
-  window.addEventListener('scroll', closeMenu, true);
-  window.addEventListener('resize', closeMenu);
-  window.addEventListener('keydown', handleKeydown);
-  nextTick(adjustWithinViewport);
-});
+  document.addEventListener('mousedown', handleDocumentPointer)
+  window.addEventListener('scroll', closeMenu, true)
+  window.addEventListener('resize', closeMenu)
+  window.addEventListener('keydown', handleKeydown)
+  nextTick(adjustWithinViewport)
+})
 
 onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', handleDocumentPointer);
-  window.removeEventListener('scroll', closeMenu, true);
-  window.removeEventListener('resize', closeMenu);
-  window.removeEventListener('keydown', handleKeydown);
-});
+  document.removeEventListener('mousedown', handleDocumentPointer)
+  window.removeEventListener('scroll', closeMenu, true)
+  window.removeEventListener('resize', closeMenu)
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 const menuStyle = computed(() => {
-  const background = themeState.currentTheme.background2nd;
-  const textColor = themeState.currentTheme.textColor;
-  const borderColor = mixColors(background, textColor, themeState.currentTheme.type === 'dark' ? 0.5 : 0.35);
-  const dividerColor = mixColors(background, textColor, themeState.currentTheme.type === 'dark' ? 0.6 : 0.25);
+  const background = themeState.currentTheme.background2nd
+  const textColor = themeState.currentTheme.textColor
+  const borderColor = mixColors(
+    background,
+    textColor,
+    themeState.currentTheme.type === 'dark' ? 0.5 : 0.35
+  )
+  const dividerColor = mixColors(
+    background,
+    textColor,
+    themeState.currentTheme.type === 'dark' ? 0.6 : 0.25
+  )
   const style: CSSProperties & Record<string, string | number> = {
     top: `${menuPosition.value.top}px`,
     left: `${menuPosition.value.left}px`,
@@ -120,28 +125,26 @@ const menuStyle = computed(() => {
     borderRadius: '10px',
     padding: '4px 0',
     minWidth: '184px',
-    zIndex: 2000,
-  };
-  style['--menu-divider-color'] = dividerColor;
-  return style;
-});
+    zIndex: 2000
+  }
+  style['--menu-divider-color'] = dividerColor
+  return style
+})
 
 const menuItemStyle = computed(() => {
-  const baseBg = themeState.currentTheme.background2nd;
-  const baseText = themeState.currentTheme.textColor;
+  const baseBg = themeState.currentTheme.background2nd
+  const baseText = themeState.currentTheme.textColor
   const hoverColor =
     themeState.currentTheme.type === 'dark'
       ? mixColors(baseBg, '#ffffff', 0.18)
-      : mixColors(baseBg, '#000000', 0.08);
+      : mixColors(baseBg, '#000000', 0.08)
   const activeColor =
     themeState.currentTheme.type === 'dark'
       ? mixColors(baseBg, '#ffffff', 0.06)
-      : mixColors(baseBg, '#000000', 0.15);
-  const disabledColor = mixColors(baseBg, baseText, 0.08);
+      : mixColors(baseBg, '#000000', 0.15)
+  const disabledColor = mixColors(baseBg, baseText, 0.08)
   const dangerColor =
-    themeState.currentTheme.type === 'dark'
-      ? mixColors('#ff4d4f', '#ffffff', 0.3)
-      : '#d93026';
+    themeState.currentTheme.type === 'dark' ? mixColors('#ff4d4f', '#ffffff', 0.3) : '#d93026'
   return {
     color: baseText,
     height: '30px',
@@ -156,15 +159,15 @@ const menuItemStyle = computed(() => {
     '--menu-hover-color': hoverColor,
     '--menu-active-color': activeColor,
     '--menu-disabled-color': disabledColor,
-    '--menu-danger-color': dangerColor,
-  } as CSSProperties & Record<string, string | number>;
-});
+    '--menu-danger-color': dangerColor
+  } as CSSProperties & Record<string, string | number>
+})
 
 const onMenuItemMouseDown = (item: ContextMenuItem) => {
-  if (!item.value || item.disabled) return;
-  emit('trigger', item.value);
-  closeMenu();
-};
+  if (!item.value || item.disabled) return
+  emit('trigger', item.value)
+  closeMenu()
+}
 </script>
 
 <style scoped>
@@ -178,7 +181,9 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: background-color ease, color ease;
+  transition:
+    background-color ease,
+    color ease;
   border-radius: 0;
 }
 

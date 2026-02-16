@@ -1,18 +1,14 @@
 <template>
-  <div 
-    class="resizable-container" 
-    :class="containerClass" 
-    :style="seamlessDivider ? { '--seamless-divider-half': (dividerSize / 2) + 'px' } : undefined"
+  <div
+    class="resizable-container"
+    :class="containerClass"
+    :style="seamlessDivider ? { '--seamless-divider-half': dividerSize / 2 + 'px' } : undefined"
     ref="containerRef"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
   >
     <!-- 主要内容区域 -->
-    <div 
-      class="main-content" 
-      :class="mainContentClass"
-      :style="mainContentStyle"
-    >
+    <div class="main-content" :class="mainContentClass" :style="mainContentStyle">
       <slot name="main"></slot>
     </div>
 
@@ -29,7 +25,7 @@
       @resize-end="handleResizeEnd"
     >
       <!-- 折叠按钮（在分割线上显示，仅在鼠标靠近 divider 中心时显示） -->
-      <div 
+      <div
         v-if="collapsible && showCollapseButton"
         class="collapse-button"
         :class="[collapseButtonClass, { 'collapse-button-visible': showCollapseButtonHover }]"
@@ -38,14 +34,17 @@
         @mouseleave="handleCollapseButtonLeave"
         :title="collapseButtonTitle"
       >
-        <el-icon><ArrowLeft v-if="sidebarOnLeft" /><ArrowRight v-else-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
+        <el-icon
+          ><ArrowLeft v-if="sidebarOnLeft" /><ArrowRight
+            v-else-if="sidebarPosition === 'start'" /><ArrowLeft v-else
+        /></el-icon>
       </div>
     </ResizableDivider>
 
     <!-- 侧边内容区域（未折叠时显示，或折叠且 collapsedWidth>0 时显示为窄条） -->
-    <div 
+    <div
       v-if="showSidebar && (!isCollapsed || collapsedWidth > 0)"
-      class="sidebar-content" 
+      class="sidebar-content"
       :class="[sidebarClass, { 'sidebar-collapsed-narrow': isCollapsed && collapsedWidth > 0 }]"
       :style="sidebarStyle"
     >
@@ -55,7 +54,7 @@
     </div>
 
     <!-- 展开按钮（当折叠时显示，仅在 hover 时显示） -->
-    <div 
+    <div
       v-if="showSidebar && isCollapsed && collapsible && showCollapseButton"
       class="expand-button"
       :class="[expandButtonClass, { 'expand-button-visible': showExpandButton }]"
@@ -65,7 +64,10 @@
       @mouseleave="handleExpandButtonLeave"
       :title="expandButtonTitle"
     >
-      <el-icon><ArrowRight v-if="sidebarOnLeft" /><ArrowLeft v-else-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
+      <el-icon
+        ><ArrowRight v-if="sidebarOnLeft" /><ArrowLeft
+          v-else-if="sidebarPosition === 'start'" /><ArrowRight v-else
+      /></el-icon>
     </div>
   </div>
 </template>
@@ -148,18 +150,25 @@ function loadFromStorage(): { size?: number; collapsed?: boolean } | null {
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + props.storageKey)
     if (raw) return JSON.parse(raw)
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null
 }
 
 function saveToStorage() {
   if (!props.storageKey) return
   try {
-    localStorage.setItem(STORAGE_PREFIX + props.storageKey, JSON.stringify({
-      size: sidebarSize.value,
-      collapsed: isCollapsed.value
-    }))
-  } catch { /* ignore */ }
+    localStorage.setItem(
+      STORAGE_PREFIX + props.storageKey,
+      JSON.stringify({
+        size: sidebarSize.value,
+        collapsed: isCollapsed.value
+      })
+    )
+  } catch {
+    /* ignore */
+  }
 }
 
 // 从 localStorage 恢复初始值
@@ -203,7 +212,8 @@ const containerClass = computed(() => ({
   'vertical-layout': props.direction === 'vertical',
   'sidebar-start': props.sidebarPosition === 'start',
   'sidebar-end': props.sidebarPosition === 'end',
-  'sidebar-on-left': props.sidebarOnLeft && props.sidebarPosition === 'start' && props.direction === 'vertical',
+  'sidebar-on-left':
+    props.sidebarOnLeft && props.sidebarPosition === 'start' && props.direction === 'vertical',
   'seamless-divider-mode': props.seamlessDivider
 }))
 
@@ -215,7 +225,7 @@ const mainContentClass = computed(() => ({
 
 const mainContentStyle = computed(() => {
   if (!props.showSidebar) return { flex: '1' }
-  
+
   return {
     flex: '1',
     overflow: 'hidden'
@@ -289,8 +299,8 @@ const expandButtonStyle = computed(() => {
 })
 
 // 检测鼠标是否在 divider 中心附近（用于折叠按钮的 hover 显示）
-const DIVIDER_CENTER_THRESHOLD = 60   // 沿 divider 方向中心区域半宽（像素）
-const DIVIDER_SIDE_THRESHOLD = 35     // 垂直于 divider 方向的半宽（像素）
+const DIVIDER_CENTER_THRESHOLD = 60 // 沿 divider 方向中心区域半宽（像素）
+const DIVIDER_SIDE_THRESHOLD = 35 // 垂直于 divider 方向的半宽（像素）
 
 // 只取本容器直接子元素中的 divider，避免嵌套时误匹配到内层 ResizableContainer 的 divider
 function getOwnDividerElement(container: HTMLElement): HTMLElement | null {
@@ -312,22 +322,26 @@ function isMouseNearDividerCenter(mouseX: number, mouseY: number): boolean {
   const centerY = dr.top + dr.height / 2
   if (props.direction === 'vertical') {
     // 垂直分割线：鼠标 X 靠近分割线，Y 靠近分割线垂直中心
-    const xNear = mouseX >= dr.left - DIVIDER_SIDE_THRESHOLD && mouseX <= dr.right + DIVIDER_SIDE_THRESHOLD
+    const xNear =
+      mouseX >= dr.left - DIVIDER_SIDE_THRESHOLD && mouseX <= dr.right + DIVIDER_SIDE_THRESHOLD
     const yNear = Math.abs(mouseY - centerY) <= DIVIDER_CENTER_THRESHOLD
     // 仅当鼠标在「侧边栏一侧」时显示：start=侧边在左，要求鼠标在分割线左或分割条上；end=侧边在右，要求鼠标在分割线右或分割条上
     const dividerPad = Math.min(props.dividerSize || 5, DIVIDER_SIDE_THRESHOLD)
-    const onSidebarSide = props.sidebarPosition === 'start'
-      ? mouseX <= dr.right + dividerPad
-      : mouseX >= dr.left - dividerPad
+    const onSidebarSide =
+      props.sidebarPosition === 'start'
+        ? mouseX <= dr.right + dividerPad
+        : mouseX >= dr.left - dividerPad
     return xNear && yNear && onSidebarSide
   } else {
     // 水平分割线：鼠标 Y 靠近分割线，X 靠近分割线水平中心
-    const yNear = mouseY >= dr.top - DIVIDER_SIDE_THRESHOLD && mouseY <= dr.bottom + DIVIDER_SIDE_THRESHOLD
+    const yNear =
+      mouseY >= dr.top - DIVIDER_SIDE_THRESHOLD && mouseY <= dr.bottom + DIVIDER_SIDE_THRESHOLD
     const xNear = Math.abs(mouseX - centerX) <= DIVIDER_CENTER_THRESHOLD
     const dividerPad = Math.min(props.dividerSize || 5, DIVIDER_SIDE_THRESHOLD)
-    const onSidebarSide = props.sidebarPosition === 'start'
-      ? mouseY <= dr.bottom + dividerPad
-      : mouseY >= dr.top - dividerPad
+    const onSidebarSide =
+      props.sidebarPosition === 'start'
+        ? mouseY <= dr.bottom + dividerPad
+        : mouseY >= dr.top - dividerPad
     return yNear && xNear && onSidebarSide
   }
 }
@@ -397,12 +411,12 @@ function handleMouseLeave() {
     if (showCollapseButtonHover.value && container) {
       const collapseButton = container.querySelector('.collapse-button') as HTMLElement
       const stillNearDivider = isMouseNearDividerCenter(mouseX, mouseY)
-      const onCollapseButton = collapseButton && (
+      const onCollapseButton =
+        collapseButton &&
         mouseX >= collapseButton.getBoundingClientRect().left &&
         mouseX <= collapseButton.getBoundingClientRect().right &&
         mouseY >= collapseButton.getBoundingClientRect().top &&
         mouseY <= collapseButton.getBoundingClientRect().bottom
-      )
       if (!stillNearDivider && !onCollapseButton) {
         showCollapseButtonHover.value = false
       }
@@ -460,7 +474,7 @@ function handleExpandButtonLeave() {
       const mouseY = (window as any).lastMouseY || 0
       const edgeThreshold = 30
       const edgeX = getExpandEdgeX(rect)
-      
+
       let isInEdgeZone = false
       if (props.direction === 'vertical') {
         if (props.sidebarPosition === 'end') {
@@ -479,7 +493,7 @@ function handleExpandButtonLeave() {
           isInEdgeZone = y >= -edgeThreshold && y <= edgeThreshold
         }
       }
-      
+
       if (!isInEdgeZone) {
         showExpandButton.value = false
       }
@@ -516,7 +530,7 @@ onMounted(async () => {
           emit('collapse', true)
         }
       }
-      
+
       // 设置 ResizeObserver 监听后续变化
       resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
@@ -528,7 +542,7 @@ onMounted(async () => {
         }
       })
       resizeObserver.observe(parentContainer)
-      
+
       // 等待 DOM 完全渲染后立即检查一次初始宽度
       // 使用 requestAnimationFrame 确保在下一帧渲染后检查
       requestAnimationFrame(() => {
@@ -539,7 +553,7 @@ onMounted(async () => {
       })
     }
   }
-  
+
   // 监听全局鼠标移动，记录鼠标位置并检测边缘/divider 中心
   handleGlobalMouseMove = (event: MouseEvent) => {
     ;(window as any).lastMouseX = event.clientX
@@ -574,7 +588,8 @@ function handleResize(delta: number, event: MouseEvent) {
     const rect = container.getBoundingClientRect()
     const containerWidth = container.clientWidth
     const scale = rect.width > 0 ? containerWidth / rect.width : 1
-    const sidebarOnRight = props.sidebarPosition === 'end' || (props.sidebarPosition === 'start' && !props.sidebarOnLeft)
+    const sidebarOnRight =
+      props.sidebarPosition === 'end' || (props.sidebarPosition === 'start' && !props.sidebarOnLeft)
     if (sidebarOnRight) {
       newSize = (rect.right - event.clientX) * scale
     } else {
@@ -584,7 +599,8 @@ function handleResize(delta: number, event: MouseEvent) {
     const rect = container.getBoundingClientRect()
     const containerHeight = container.clientHeight
     const scale = rect.height > 0 ? containerHeight / rect.height : 1
-    const sidebarOnBottom = props.sidebarPosition === 'end' || (props.sidebarPosition === 'start' && !props.sidebarOnLeft)
+    const sidebarOnBottom =
+      props.sidebarPosition === 'end' || (props.sidebarPosition === 'start' && !props.sidebarOnLeft)
     if (sidebarOnBottom) {
       newSize = (rect.bottom - event.clientY) * scale
     } else {
@@ -741,7 +757,9 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 4px;
-  transition: opacity 0.2s, visibility 0.2s;
+  transition:
+    opacity 0.2s,
+    visibility 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   opacity: 0;
   visibility: hidden;
@@ -788,7 +806,9 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 4px;
-  transition: opacity 0.2s, visibility 0.2s;
+  transition:
+    opacity 0.2s,
+    visibility 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   opacity: 0;
   visibility: hidden;

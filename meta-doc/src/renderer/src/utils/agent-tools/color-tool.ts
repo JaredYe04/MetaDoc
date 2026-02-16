@@ -128,17 +128,20 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   try {
-    onUpdate({
-      content: {
-        stage: 'processing',
-        operation,
-        color1
+    onUpdate(
+      {
+        content: {
+          stage: 'processing',
+          operation,
+          color1
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: i18n.global.t('agent.tool.color.progress.processing', '正在处理颜色...')
-    })
+      {
+        percentage: 30,
+        message: i18n.global.t('agent.tool.color.progress.processing', '正在处理颜色...')
+      }
+    )
 
     let result: any
     const color = tinycolor(color1)
@@ -265,19 +268,22 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         }
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        result,
-        operation,
-        input: { color1, color2, weight, amount, format }
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          result,
+          operation,
+          input: { color1, color2, weight, amount, format }
+        },
+        format: 'json',
+        componentName: 'ColorDisplay'
       },
-      format: 'json',
-      componentName: 'ColorDisplay'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.color.progress.completed', '颜色处理完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.color.progress.completed', '颜色处理完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -327,7 +333,8 @@ export const colorToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'color-processing',
-    brief: 'Process color mixing, brightness/contrast adjustment, complementary colors, and color format conversion.',
+    brief:
+      'Process color mixing, brightness/contrast adjustment, complementary colors, and color format conversion.',
     fullSpec: `# Color Processing Tool
 
 ## Description
@@ -424,4 +431,3 @@ Provides various color processing functions:
   },
   locales: colorToolLocales
 }
-

@@ -2,20 +2,20 @@
  * 格式初始化 - 注册所有支持的文档格式
  */
 
-import { formatRegistry, type FormatConfig } from './format-registry';
-import { getOutlineAdapter } from './outline-adapters';
-import { convertLatexToMarkdown } from './latex-utils';
-import { extname } from './path-utils';
-import MarkdownEditor from '../views/MarkdownEditor.vue';
-import LaTeXEditor from '../views/LaTeXEditor.vue';
-import PlainTextEditor from '../views/PlainTextEditor.vue';
+import { formatRegistry, type FormatConfig } from './format-registry'
+import { getOutlineAdapter } from './outline-adapters'
+import { convertLatexToMarkdown } from './latex-utils'
+import { extname } from './path-utils'
+import MarkdownEditor from '../views/MarkdownEditor.vue'
+import LaTeXEditor from '../views/LaTeXEditor.vue'
+import PlainTextEditor from '../views/PlainTextEditor.vue'
 
 /**
  * LaTeX格式检测器
  */
 function detectLatex(content: string): string | null {
   if (!content || content.trim().length === 0) {
-    return null;
+    return null
   }
 
   const latexPatterns = [
@@ -39,16 +39,16 @@ function detectLatex(content: string): string | null {
     /\\includegraphics/i,
     /\\ref\{/i,
     /\\cite\{/i,
-    /\\label\{/i,
-  ];
+    /\\label\{/i
+  ]
 
   for (const pattern of latexPatterns) {
     if (pattern.test(content)) {
-      return 'tex';
+      return 'tex'
     }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -57,16 +57,16 @@ function detectLatex(content: string): string | null {
 function detectPlainText(content: string, filePath?: string): string | null {
   // 纯文本格式主要通过文件扩展名检测，内容检测总是返回null
   // 这样可以让其他格式优先检测（如LaTeX、Markdown）
-  return null;
+  return null
 }
 
 /**
  * 根据文件扩展名检测Monaco语言
  */
 function detectMonacoLanguageFromExtension(filePath?: string): string {
-  if (!filePath) return 'plaintext';
+  if (!filePath) return 'plaintext'
 
-  const ext = extname(filePath).toLowerCase();
+  const ext = extname(filePath).toLowerCase()
 
   // 常见代码文件扩展名映射
   const extensionToLanguage: Record<string, string> = {
@@ -124,10 +124,10 @@ function detectMonacoLanguageFromExtension(filePath?: string): string {
     '.patch': 'diff',
     '.log': 'log',
     '.txt': 'plaintext',
-    '.text': 'plaintext',
-  };
+    '.text': 'plaintext'
+  }
 
-  return extensionToLanguage[ext] || 'plaintext';
+  return extensionToLanguage[ext] || 'plaintext'
 }
 
 /**
@@ -151,28 +151,28 @@ export function initializeFormats(): void {
     editorComponent: MarkdownEditor,
     contentAdapter: {
       toMarkdown: (content: string) => content, // Markdown本身就是Markdown
-      fromMarkdown: (markdown: string) => markdown,
+      fromMarkdown: (markdown: string) => markdown
     },
     outlineAdapter: getOutlineAdapter('md'),
     detector: (content: string, filePath?: string) => {
       // Markdown格式检测：如果不是LaTeX，且扩展名是.md，则认为是Markdown
       if (filePath) {
-        const ext = extname(filePath).toLowerCase();
+        const ext = extname(filePath).toLowerCase()
         if (ext === '.md' || ext === '.markdown') {
           // 先检查是否是LaTeX
           if (detectLatex(content) === 'tex') {
-            return null; // LaTeX优先
+            return null // LaTeX优先
           }
-          return 'md';
+          return 'md'
         }
       }
       // 如果没有文件路径，且不是LaTeX，默认认为是Markdown
       if (detectLatex(content) !== 'tex') {
-        return 'md';
+        return 'md'
       }
-      return null;
-    },
-  });
+      return null
+    }
+  })
 
   // 注册 LaTeX 格式
   formatRegistry.register({
@@ -191,11 +191,11 @@ export function initializeFormats(): void {
     editorComponent: LaTeXEditor,
     contentAdapter: {
       toMarkdown: convertLatexToMarkdown,
-      fromMarkdown: (markdown: string) => markdown, // 从Markdown转LaTeX需要特殊处理，这里简化
+      fromMarkdown: (markdown: string) => markdown // 从Markdown转LaTeX需要特殊处理，这里简化
     },
     outlineAdapter: getOutlineAdapter('tex'),
-    detector: detectLatex,
-  });
+    detector: detectLatex
+  })
 
   // 注册纯文本格式
   formatRegistry.register({
@@ -205,15 +205,58 @@ export function initializeFormats(): void {
     description: '纯文本文件',
     descriptionKey: 'newDocument.formats.plaintext.description',
     extensions: [
-      '.txt', '.text',
+      '.txt',
+      '.text',
       // 代码文件
-      '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.hpp',
-      '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala',
-      '.sh', '.bash', '.zsh', '.ps1',
-      '.html', '.htm', '.css', '.scss', '.sass', '.less',
-      '.json', '.xml', '.yaml', '.yml', '.toml', '.ini', '.conf',
-      '.sql', '.r', '.m', '.mm', '.vue', '.svelte', '.dart', '.lua',
-      '.pl', '.pm', '.vim', '.diff', '.patch', '.log',
+      '.js',
+      '.jsx',
+      '.ts',
+      '.tsx',
+      '.py',
+      '.java',
+      '.cpp',
+      '.c',
+      '.h',
+      '.hpp',
+      '.cs',
+      '.php',
+      '.rb',
+      '.go',
+      '.rs',
+      '.swift',
+      '.kt',
+      '.scala',
+      '.sh',
+      '.bash',
+      '.zsh',
+      '.ps1',
+      '.html',
+      '.htm',
+      '.css',
+      '.scss',
+      '.sass',
+      '.less',
+      '.json',
+      '.xml',
+      '.yaml',
+      '.yml',
+      '.toml',
+      '.ini',
+      '.conf',
+      '.sql',
+      '.r',
+      '.m',
+      '.mm',
+      '.vue',
+      '.svelte',
+      '.dart',
+      '.lua',
+      '.pl',
+      '.pm',
+      '.vim',
+      '.diff',
+      '.patch',
+      '.log'
     ],
     defaultExtension: '.txt',
     monacoLanguage: 'plaintext', // 默认语言，会根据文件扩展名动态调整
@@ -225,10 +268,10 @@ export function initializeFormats(): void {
     contentAdapter: {
       // 纯文本转Markdown：直接返回，作为Markdown处理
       toMarkdown: (content: string) => content,
-      fromMarkdown: (markdown: string) => markdown,
+      fromMarkdown: (markdown: string) => markdown
     },
-    detector: detectPlainText,
-  });
+    detector: detectPlainText
+  })
 
   // 注册 PDF 格式（仅用于文件浏览器显示，实际打开时会转换为 Markdown）
   formatRegistry.register({
@@ -247,43 +290,42 @@ export function initializeFormats(): void {
     editorComponent: PlainTextEditor, // PDF不会直接编辑，但需要占位组件
     contentAdapter: {
       toMarkdown: (content: string) => content,
-      fromMarkdown: (markdown: string) => markdown,
+      fromMarkdown: (markdown: string) => markdown
     },
     detector: (content: string, filePath?: string) => {
       // PDF格式只通过扩展名检测
       if (filePath) {
-        const ext = extname(filePath).toLowerCase();
+        const ext = extname(filePath).toLowerCase()
         if (ext === '.pdf') {
-          return 'pdf';
+          return 'pdf'
         }
       }
-      return null;
-    },
-  });
+      return null
+    }
+  })
 }
 
 /**
  * 根据文件路径获取Monaco语言ID
  */
 export function getMonacoLanguageFromPath(filePath: string): string {
-  return detectMonacoLanguageFromExtension(filePath);
+  return detectMonacoLanguageFromExtension(filePath)
 }
 
 /**
  * 根据格式ID和文件路径获取Monaco语言ID
  */
 export function getMonacoLanguage(formatId: string, filePath?: string): string {
-  const format = formatRegistry.getFormat(formatId);
+  const format = formatRegistry.getFormat(formatId)
   if (!format) {
-    return filePath ? detectMonacoLanguageFromExtension(filePath) : 'plaintext';
+    return filePath ? detectMonacoLanguageFromExtension(filePath) : 'plaintext'
   }
 
   // 如果是纯文本格式，根据文件扩展名动态确定语言
   if (formatId === 'txt' && filePath) {
-    return detectMonacoLanguageFromExtension(filePath);
+    return detectMonacoLanguageFromExtension(filePath)
   }
 
   // 否则使用格式配置的语言
-  return format.monacoLanguage || 'plaintext';
+  return format.monacoLanguage || 'plaintext'
 }
-

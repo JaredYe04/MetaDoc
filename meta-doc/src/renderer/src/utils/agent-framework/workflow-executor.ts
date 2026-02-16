@@ -65,11 +65,7 @@ class WorkflowExecutor {
       workflowManager.updateExecution(executionId, { status: 'running' })
 
       // 执行工作流
-      const result = await this.executeWorkflowInternal(
-        workflow,
-        execution,
-        signal
-      )
+      const result = await this.executeWorkflowInternal(workflow, execution, signal)
 
       // 更新状态为成功
       workflowManager.updateExecution(executionId, {
@@ -197,7 +193,7 @@ class WorkflowExecutor {
       // 如果配置支持并发，并行执行；否则顺序执行
       if (workflow.config?.concurrent) {
         const results = await Promise.all(
-          nodesToExecute.map(n => this.executeNode(workflow, execution, n.id, signal))
+          nodesToExecute.map((n) => this.executeNode(workflow, execution, n.id, signal))
         )
         // 合并结果（可以根据配置决定如何合并）
         return results.length === 1 ? results[0] : results
@@ -373,15 +369,15 @@ class WorkflowExecutor {
   ): Promise<unknown> {
     // 获取LLM配置（从节点配置或工作流配置）
     const llmConfig = node.config?.llmConfig || {}
-    
+
     // 构建提示词
     const prompt = node.config?.prompt || JSON.stringify(params)
     const decisionOptions = node.config?.decisionOptions || ['continue', 'stop', 'retry']
-    
+
     try {
       // 导入LLM API
       const { createAiTask } = await import('../ai_tasks')
-      
+
       // 构建决策提示词
       const decisionPrompt = `请根据以下信息做出决策：
 
@@ -399,10 +395,12 @@ ${JSON.stringify(params, null, 2)}
 
       // 创建AI任务
       const resultRef = { value: '' }
-      const messages: AIDialogMessage[] = [{
-        role: 'user',
-        content: decisionPrompt,
-      }]
+      const messages: AIDialogMessage[] = [
+        {
+          role: 'user',
+          content: decisionPrompt
+        }
+      ]
       const task = createAiTask(
         'LLM决策',
         messages,
@@ -419,7 +417,7 @@ ${JSON.stringify(params, null, 2)}
       // 等待结果
       let attempts = 0
       while (resultRef.value === '' && attempts < 100) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
         attempts++
         if (signal?.aborted) {
           throw new Error('LLM决策已取消')
@@ -465,7 +463,7 @@ ${JSON.stringify(params, null, 2)}
       // 导入AgentConfig管理器和会话管理器
       const { agentConfigManager } = await import('./agent-config-manager')
       const { agentSessionManager } = await import('./agent-session-manager')
-      
+
       // 1. 获取AgentConfig
       const config = agentConfigManager.getConfig(agentConfigId)
       if (!config) {
@@ -480,9 +478,8 @@ ${JSON.stringify(params, null, 2)}
       )
 
       // 3. 构建用户消息
-      const userMessage = typeof params.message === 'string' 
-        ? params.message 
-        : JSON.stringify(params)
+      const userMessage =
+        typeof params.message === 'string' ? params.message : JSON.stringify(params)
 
       // 4. 添加用户消息到会话
       agentSessionManager.addMessage(session, {
@@ -496,10 +493,10 @@ ${JSON.stringify(params, null, 2)}
       // 5. 执行Agent（这里需要实现Agent执行逻辑）
       // 由于Agent执行逻辑比较复杂，这里提供一个框架
       // 实际执行需要调用Agent执行引擎
-      
+
       // 获取可用工具
       const availableToolIds = agentConfigManager.getAvailableToolIds(agentConfigId)
-      
+
       // TODO: 实现Agent执行逻辑
       // 这里应该：
       // 1. 调用LLM生成回复
@@ -535,16 +532,11 @@ ${JSON.stringify(params, null, 2)}
     }
 
     // 使用 LLM 进行条件判断，返回 {"result": true} 或 {"result": false}
-    const conditionResult = await this.executeLLMConditionNode(
-      workflow,
-      execution,
-      node,
-      signal
-    )
+    const conditionResult = await this.executeLLMConditionNode(workflow, execution, node, signal)
 
     // 获取下游节点
     const downstreamNodes = this.getDownstreamNodes(workflow, node.id)
-    
+
     // 根据条件选择要执行的节点
     if (conditionResult) {
       // 条件为真，执行第一个分支（通常是true分支）
@@ -577,10 +569,7 @@ ${JSON.stringify(params, null, 2)}
       // 构建上下文：工作流变量 + 已有节点结果
       const variableContext = Object.fromEntries(execution.variableValues)
       const nodeResultContext = Object.fromEntries(
-        Array.from(execution.nodeResults.entries()).map(([id, value]) => [
-          id,
-          value
-        ])
+        Array.from(execution.nodeResults.entries()).map(([id, value]) => [id, value])
       )
 
       const prompt = `你是一个严格的布尔判断助手。
@@ -594,23 +583,25 @@ ${JSON.stringify(params, null, 2)}
 
 上下文（variables 和 nodeResults 可以为空对象）：
 ${JSON.stringify(
-        {
-          variables: variableContext,
-          nodeResults: nodeResultContext
-        },
-        null,
-        2
-      )}
+  {
+    variables: variableContext,
+    nodeResults: nodeResultContext
+  },
+  null,
+  2
+)}
 
 条件：
 ${node.config.condition}
 `
 
       const resultRef: { value: string } = { value: '' }
-      const messages: AIDialogMessage[] = [{
-        role: 'user',
-        content: prompt,
-      }]
+      const messages: AIDialogMessage[] = [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
       const task = createAiTask(
         'Workflow Condition',
         messages,
@@ -625,7 +616,7 @@ ${node.config.condition}
       // 轮询等待结果
       let attempts = 0
       while (resultRef.value === '' && attempts < 100) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
         attempts++
         if (signal?.aborted) {
           throw new Error('条件判断已取消')
@@ -669,11 +660,7 @@ ${node.config.condition}
       }
 
       // 评估循环条件
-      const shouldContinue = await this.evaluateCondition(
-        workflow,
-        execution,
-        loopCondition
-      )
+      const shouldContinue = await this.evaluateCondition(workflow, execution, loopCondition)
 
       if (!shouldContinue) {
         break
@@ -686,12 +673,7 @@ ${node.config.condition}
       }
 
       // 执行循环体
-      const result = await this.executeNode(
-        workflow,
-        execution,
-        downstreamNodes[0].id,
-        signal
-      )
+      const result = await this.executeNode(workflow, execution, downstreamNodes[0].id, signal)
       results.push(result)
 
       // 更新循环变量（如果配置了）
@@ -722,9 +704,7 @@ ${node.config.condition}
     const nodesToExecute = downstreamNodes.slice(0, parallelCount)
 
     // 并行执行
-    const promises = nodesToExecute.map(n =>
-      this.executeNode(workflow, execution, n.id, signal)
-    )
+    const promises = nodesToExecute.map((n) => this.executeNode(workflow, execution, n.id, signal))
 
     const results = await Promise.all(promises)
     return results.length === 1 ? results[0] : results
@@ -741,20 +721,15 @@ ${node.config.condition}
   ): Promise<unknown> {
     // 合并节点等待所有上游节点完成
     // 获取上游节点
-    const upstreamEdges = workflow.edges.filter(e => e.target === node.id)
-    const upstreamNodeIds = upstreamEdges.map(e => e.source)
+    const upstreamEdges = workflow.edges.filter((e) => e.target === node.id)
+    const upstreamNodeIds = upstreamEdges.map((e) => e.source)
 
     // 等待所有上游节点完成（如果还没完成）
     const upstreamResults: unknown[] = []
     for (const upstreamNodeId of upstreamNodeIds) {
       if (!execution.completedNodeIds.includes(upstreamNodeId)) {
         // 如果上游节点未完成，执行它
-        const result = await this.executeNode(
-          workflow,
-          execution,
-          upstreamNodeId,
-          signal
-        )
+        const result = await this.executeNode(workflow, execution, upstreamNodeId, signal)
         upstreamResults.push(result)
       } else {
         // 如果已完成，直接获取结果
@@ -781,13 +756,13 @@ ${node.config.condition}
 
     // 异步执行下游节点（不等待）
     for (const downstreamNode of downstreamNodes) {
-      this.executeNode(workflow, execution, downstreamNode.id, signal).catch(error => {
+      this.executeNode(workflow, execution, downstreamNode.id, signal).catch((error) => {
         this.getLogger().error(`异步节点执行失败: ${error}`)
       })
     }
 
     // 立即返回
-    return { async: true, nodes: downstreamNodes.map(n => n.id) }
+    return { async: true, nodes: downstreamNodes.map((n) => n.id) }
   }
 
   /**
@@ -800,21 +775,16 @@ ${node.config.condition}
     signal?: AbortSignal
   ): Promise<unknown> {
     const strategy = node.config.aggregateStrategy || 'all'
-    
+
     // 获取上游节点
-    const upstreamEdges = workflow.edges.filter(e => e.target === node.id)
-    const upstreamNodeIds = upstreamEdges.map(e => e.source)
+    const upstreamEdges = workflow.edges.filter((e) => e.target === node.id)
+    const upstreamNodeIds = upstreamEdges.map((e) => e.source)
 
     // 收集所有上游节点的结果
     const results: unknown[] = []
     for (const upstreamNodeId of upstreamNodeIds) {
       if (!execution.completedNodeIds.includes(upstreamNodeId)) {
-        const result = await this.executeNode(
-          workflow,
-          execution,
-          upstreamNodeId,
-          signal
-        )
+        const result = await this.executeNode(workflow, execution, upstreamNodeId, signal)
         results.push(result)
       } else {
         const result = execution.nodeResults.get(upstreamNodeId)
@@ -827,17 +797,20 @@ ${node.config.condition}
       case 'all':
         return results
       case 'any':
-        return results.find(r => r !== null && r !== undefined) ?? null
+        return results.find((r) => r !== null && r !== undefined) ?? null
       case 'first':
         return results[0]
       case 'last':
         return results[results.length - 1]
       case 'merge':
         // 合并为对象
-        return results.reduce((acc, r, index) => {
-          acc[`result_${index}`] = r
-          return acc
-        }, {} as Record<string, unknown>)
+        return results.reduce(
+          (acc, r, index) => {
+            acc[`result_${index}`] = r
+            return acc
+          },
+          {} as Record<string, unknown>
+        )
       default:
         return results
     }
@@ -858,19 +831,13 @@ ${node.config.condition}
         ...Object.fromEntries(execution.variableValues),
         // 节点结果（通过$nodeId访问）
         ...Object.fromEntries(
-          Array.from(execution.nodeResults.entries()).map(([id, value]) => [
-            `$node_${id}`,
-            value
-          ])
+          Array.from(execution.nodeResults.entries()).map(([id, value]) => [`$node_${id}`, value])
         )
       }
 
       // 简单的条件表达式评估（支持基本的比较和逻辑运算）
       // 注意：这里使用Function构造器，在生产环境中应该使用更安全的表达式解析器
-      const func = new Function(
-        ...Object.keys(context),
-        `return ${condition}`
-      )
+      const func = new Function(...Object.keys(context), `return ${condition}`)
 
       const result = func(...Object.values(context))
       return Boolean(result)
@@ -888,8 +855,8 @@ ${node.config.condition}
     nodeId: string
   ): ArtifactNode | ControlFlowNode | undefined {
     return (
-      workflow.artifactNodes.find(n => n.id === nodeId) ||
-      workflow.controlFlowNodes.find(n => n.id === nodeId)
+      workflow.artifactNodes.find((n) => n.id === nodeId) ||
+      workflow.controlFlowNodes.find((n) => n.id === nodeId)
     )
   }
 
@@ -897,7 +864,9 @@ ${node.config.condition}
    * 判断是否是工件节点
    */
   private isArtifactNode(node: ArtifactNode | ControlFlowNode): node is ArtifactNode {
-    return 'type' in node && ['tool', 'llm-decision', 'workflow', 'agent-config'].includes(node.type)
+    return (
+      'type' in node && ['tool', 'llm-decision', 'workflow', 'agent-config'].includes(node.type)
+    )
   }
 
   /**
@@ -919,10 +888,10 @@ ${node.config.condition}
     workflow: Workflow,
     nodeId: string
   ): (ArtifactNode | ControlFlowNode)[] {
-    const edges = workflow.edges.filter(e => e.source === nodeId)
-    const nodeIds = edges.map(e => e.target)
+    const edges = workflow.edges.filter((e) => e.source === nodeId)
+    const nodeIds = edges.map((e) => e.target)
     return nodeIds
-      .map(id => this.getNodeById(workflow, id))
+      .map((id) => this.getNodeById(workflow, id))
       .filter((n): n is ArtifactNode | ControlFlowNode => n !== undefined)
   }
 
@@ -935,11 +904,11 @@ ${node.config.condition}
     sourceNodeId: string,
     nodes: (ArtifactNode | ControlFlowNode)[]
   ): Promise<(ArtifactNode | ControlFlowNode)[]> {
-    const edges = workflow.edges.filter(e => e.source === sourceNodeId)
+    const edges = workflow.edges.filter((e) => e.source === sourceNodeId)
     const filteredNodes: (ArtifactNode | ControlFlowNode)[] = []
 
     for (const node of nodes) {
-      const edge = edges.find(e => e.target === node.id)
+      const edge = edges.find((e) => e.target === node.id)
       if (!edge) {
         continue
       }
@@ -982,4 +951,3 @@ ${node.config.condition}
 
 // 导出单例
 export const workflowExecutor = new WorkflowExecutor()
-

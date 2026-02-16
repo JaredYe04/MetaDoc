@@ -12,7 +12,7 @@ export function removeMetaInfoFromMarkdown(content: string): string {
   if (!content || typeof content !== 'string') {
     return content || ''
   }
-  
+
   // 移除 Markdown 中的元信息标记（<!--meta-info: ... -->）
   return content.replace(/<!--meta-info:\s*[^>]*-->/g, '').trim()
 }
@@ -26,15 +26,15 @@ export function removeMetaInfoFromLatex(content: string): string {
   if (!content || typeof content !== 'string') {
     return content || ''
   }
-  
+
   let result = content
-  
+
   // 移除警告行
   result = result.replace(/% 请勿手动修改此行及下面的 META-INFO.*\n?/g, '')
-  
+
   // 移除 META-INFO 行
   result = result.replace(/%META-INFO:\s*[^\n]*\n?/g, '')
-  
+
   return result.trim()
 }
 
@@ -51,4 +51,3 @@ export function removeMetaInfo(content: string, format: 'md' | 'tex'): string {
     return removeMetaInfoFromMarkdown(content)
   }
 }
-

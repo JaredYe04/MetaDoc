@@ -9,14 +9,7 @@
     "@cspell/dict-markdown/cspell-ext.json",
     "@cspell/dict-latex/cspell-ext.json"
   ],
-  "dictionaries": [
-    "fr-fr",
-    "es-es",
-    "de-de",
-    "ru-ru",
-    "markdown",
-    "latex"
-  ],
+  "dictionaries": ["fr-fr", "es-es", "de-de", "ru-ru", "markdown", "latex"],
   "dictionaryDefinitions": [
     {
       "name": "fr-fr",
@@ -59,11 +52,6 @@
       "dictionaries": ["latex"]
     }
   ],
-  "ignorePaths": [
-    "node_modules/**",
-    "dist/**",
-    "out/**",
-    "build/**"
-  ],
+  "ignorePaths": ["node_modules/**", "dist/**", "out/**", "build/**"],
   "words": []
 }

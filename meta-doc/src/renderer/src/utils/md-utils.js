@@ -1,107 +1,106 @@
 //这个文件需要实现一系列Markdown相关的功能函数
 
-import Vditor from "vditor"
-import eventBus, { isElectronEnv } from "./event-bus"
-import { getImagePath, getSetting } from "./settings"
-import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
-import {localVditorCDN, vditorCDN } from "./vditor-cdn";
-import { createRendererLogger } from "./logger.ts";
-import { preRenderAllCharts } from './chart-pre-renderer.js';
-import { themeState } from "./themes";
+import Vditor from 'vditor'
+import eventBus, { isElectronEnv } from './event-bus'
+import { getImagePath, getSetting } from './settings'
+import { convertNumberToChinese, removeTitleIndex } from './regex-utils'
+import { localVditorCDN, vditorCDN } from './vditor-cdn'
+import { createRendererLogger } from './logger.ts'
+import { preRenderAllCharts } from './chart-pre-renderer.js'
+import { themeState } from './themes'
 
 // 懒加载logger，避免初始化顺序问题
-let loggerInstance = null;
+let loggerInstance = null
 
 function getLogger() {
   if (!loggerInstance) {
-    loggerInstance = createRendererLogger('MDUtils');
+    loggerInstance = createRendererLogger('MDUtils')
   }
-  return loggerInstance;
+  return loggerInstance
 }
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
-    const lines = md.split('\n');
-    // 虚拟根节点，title_level 为 0，表示最低级别
-    const root = {
-        title: '',
-        title_level: 0,
-        path: 'dummy',
+  const lines = md.split('\n')
+  // 虚拟根节点，title_level 为 0，表示最低级别
+  const root = {
+    title: '',
+    title_level: 0,
+    path: 'dummy',
+    text: '',
+    children: []
+  }
+  // 栈初始化，起始只有根节点
+  let stack = [root]
+  // 跟踪是否在代码块中（三个反引号包裹的代码块）
+  let inCodeBlock = false
+  // 遍历每一行
+  for (let line of lines) {
+    // 检查是否是代码块开始/结束标记（三个反引号）
+    const codeBlockMatch = line.match(/^```/)
+    if (codeBlockMatch) {
+      // 切换代码块状态
+      inCodeBlock = !inCodeBlock
+      // 非标题行，追加到当前节点的 text 中
+      if (!bypassText) {
+        stack[stack.length - 1].text += line + '\n'
+      }
+      continue
+    }
+
+    // 如果在代码块中，跳过标题匹配
+    if (inCodeBlock) {
+      // 非标题行，追加到当前节点的 text 中
+      if (!bypassText) {
+        stack[stack.length - 1].text += line + '\n'
+      }
+      continue
+    }
+
+    // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
+    const match = line.match(/^(#+)\s+(.*)/)
+    if (match) {
+      const hashes = match[1]
+      const title = match[2]
+      const level = hashes.length // 标题等级
+
+      const new_node = {
+        title: title,
+        title_level: level,
+        path: '',
         text: '',
         children: []
-    };
-    // 栈初始化，起始只有根节点
-    let stack = [root];
-    // 跟踪是否在代码块中（三个反引号包裹的代码块）
-    let inCodeBlock = false;
-    // 遍历每一行
-    for (let line of lines) {
-        // 检查是否是代码块开始/结束标记（三个反引号）
-        const codeBlockMatch = line.match(/^```/);
-        if (codeBlockMatch) {
-            // 切换代码块状态
-            inCodeBlock = !inCodeBlock;
-            // 非标题行，追加到当前节点的 text 中
-            if (!bypassText) {
-                stack[stack.length - 1].text += line + '\n';
-            }
-            continue;
-        }
-        
-        // 如果在代码块中，跳过标题匹配
-        if (inCodeBlock) {
-            // 非标题行，追加到当前节点的 text 中
-            if (!bypassText) {
-                stack[stack.length - 1].text += line + '\n';
-            }
-            continue;
-        }
-        
-        // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
-        const match = line.match(/^(#+)\s+(.*)/);
-        if (match) {
-            const hashes = match[1];
-            const title = match[2];
-            const level = hashes.length;  // 标题等级
+      }
+      // 如果当前栈顶节点的 title_level >= 当前标题等级，则不断弹出，直到找到父节点
+      while (stack.length > 0 && stack[stack.length - 1].title_level >= level) {
+        stack.pop()
+      }
+      // 此时栈顶的节点即为新节点的父节点
+      stack[stack.length - 1].children.push(new_node)
+      // 将新节点入栈
+      stack.push(new_node)
+    } else {
+      // 非标题行，追加到当前节点的 text 中
+      if (!bypassText) {
+        stack[stack.length - 1].text += line + '\n'
+      }
+    }
+  }
+  // 根据大纲树生成路径（采用简单的广度优先遍历）
+  for (let i = 0; i < root.children.length; i++) {
+    root.children[i].path = `${i + 1}`
+  }
+  let queue = [...root.children]
+  while (queue.length > 0) {
+    const node = queue.shift()
+    for (let i = 0; i < node.children.length; i++) {
+      node.children[i].path = node.path + '.' + (i + 1)
+      queue.push(node.children[i])
+    }
+  }
 
-            const new_node = {
-                title: title,
-                title_level: level,
-                path: '',
-                text: '',
-                children: []
-            };
-            // 如果当前栈顶节点的 title_level >= 当前标题等级，则不断弹出，直到找到父节点
-            while (stack.length > 0 && stack[stack.length - 1].title_level >= level) {
-                stack.pop();
-            }
-            // 此时栈顶的节点即为新节点的父节点
-            stack[stack.length - 1].children.push(new_node);
-            // 将新节点入栈
-            stack.push(new_node);
-        } else {
-            // 非标题行，追加到当前节点的 text 中
-            if (!bypassText) {
-                stack[stack.length - 1].text += line + '\n';
-            }
-        }
-    }
-    // 根据大纲树生成路径（采用简单的广度优先遍历）
-    for (let i = 0; i < root.children.length; i++) {
-        root.children[i].path = `${i + 1}`;
-    }
-    let queue = [...root.children];
-    while (queue.length > 0) {
-        const node = queue.shift();
-        for (let i = 0; i < node.children.length; i++) {
-            node.children[i].path = node.path + '.' + (i + 1);
-            queue.push(node.children[i]);
-        }
-    }
-
-    return root;
+  return root
 }
-
 
 // 1. 从Markdown文本中提取所有标题，生成大纲树
 
@@ -175,41 +174,40 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
 // 2. 从大纲树生成 Markdown 文本
 
 export function generateMarkdownFromOutlineTree(outline_tree) {
-    let md = '';
-    // 深度优先遍历生成 Markdown
-    function dfs(node) {
-        // 如果是非虚拟根节点，则生成标题行
-        
-        //如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
-        if(node.title_level==undefined||node.title_level==null){
-            //如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
-            node.title_level=node.path.split('.').length
-        }
+  let md = ''
+  // 深度优先遍历生成 Markdown
+  function dfs(node) {
+    // 如果是非虚拟根节点，则生成标题行
 
-        if (node.title && node.title_level > 0) {
-            md += '#'.repeat(node.title_level) + ' ' + node.title + '\n';
-            md += node.text;
-            // 保证末尾有换行符
-            if (node.text === '' || node.text[node.text.length - 1] !== '\n') {
-                md += '\n';
-            }
-        } else {
-            // 如果是虚拟根节点，也可以输出其 text（如果有的话）
-            if (node.text) {
-                md += node.text + '\n';
-            }
-        }
-        // 遍历子节点
-        if (node.children && Array.isArray(node.children)){
-            for (let child of node.children) {
-                dfs(child);
-            }
-        }
-
+    //如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
+    if (node.title_level == undefined || node.title_level == null) {
+      //如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
+      node.title_level = node.path.split('.').length
     }
-    
-    dfs(outline_tree);
-    return md;
+
+    if (node.title && node.title_level > 0) {
+      md += '#'.repeat(node.title_level) + ' ' + node.title + '\n'
+      md += node.text
+      // 保证末尾有换行符
+      if (node.text === '' || node.text[node.text.length - 1] !== '\n') {
+        md += '\n'
+      }
+    } else {
+      // 如果是虚拟根节点，也可以输出其 text（如果有的话）
+      if (node.text) {
+        md += node.text + '\n'
+      }
+    }
+    // 遍历子节点
+    if (node.children && Array.isArray(node.children)) {
+      for (let child of node.children) {
+        dfs(child)
+      }
+    }
+  }
+
+  dfs(outline_tree)
+  return md
 }
 
 /**
@@ -217,30 +215,30 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
  * 用于在prompts中传递，节省token开销
  */
 function generateLightMarkdownFromOutlineTree(outline_tree) {
-    let md = '';
-    // 深度优先遍历生成 Markdown，只包含标题
-    function dfs(node) {
-        //如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
-        if(node.title_level==undefined||node.title_level==null){
-            //如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
-            node.title_level=node.path.split('.').length
-        }
-
-        // 只输出标题，不输出文本内容
-        if (node.title && node.title_level > 0) {
-            md += '#'.repeat(node.title_level) + ' ' + node.title + '\n';
-        }
-        
-        // 遍历子节点
-        if (node.children && Array.isArray(node.children)){
-            for (let child of node.children) {
-                dfs(child);
-            }
-        }
+  let md = ''
+  // 深度优先遍历生成 Markdown，只包含标题
+  function dfs(node) {
+    //如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
+    if (node.title_level == undefined || node.title_level == null) {
+      //如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
+      node.title_level = node.path.split('.').length
     }
-    
-    dfs(outline_tree);
-    return md.trim();
+
+    // 只输出标题，不输出文本内容
+    if (node.title && node.title_level > 0) {
+      md += '#'.repeat(node.title_level) + ' ' + node.title + '\n'
+    }
+
+    // 遍历子节点
+    if (node.children && Array.isArray(node.children)) {
+      for (let child of node.children) {
+        dfs(child)
+      }
+    }
+  }
+
+  dfs(outline_tree)
+  return md.trim()
 }
 
 /**
@@ -251,10 +249,10 @@ function generateLightMarkdownFromOutlineTree(outline_tree) {
  * @returns 精简的Markdown大纲字符串
  */
 export function extractOutlineTreeFromMarkdownLight(md, bypassText = true) {
-    // 先使用完整方法获取大纲树（bypassText=true，因为我们只需要结构）
-    const outlineTree = extractOutlineTreeFromMarkdown(md, true);
-    // 转换为精简的Markdown大纲
-    return generateLightMarkdownFromOutlineTree(outlineTree);
+  // 先使用完整方法获取大纲树（bypassText=true，因为我们只需要结构）
+  const outlineTree = extractOutlineTreeFromMarkdown(md, true)
+  // 转换为精简的Markdown大纲
+  return generateLightMarkdownFromOutlineTree(outlineTree)
 }
 
 // // 2. 从大纲树生成Markdown文本
@@ -286,419 +284,411 @@ export function extractOutlineTreeFromMarkdownLight(md, bypassText = true) {
 // }
 
 export function removeTextFromOutline(outline_tree) {
-    let new_outline_tree = JSON.parse(JSON.stringify(outline_tree))
-    function dfs(node) {
-        node.text = ''
-        for (let i = 0; i < node.children.length; i++) {
-            dfs(node.children[i])
-        }
+  let new_outline_tree = JSON.parse(JSON.stringify(outline_tree))
+  function dfs(node) {
+    node.text = ''
+    for (let i = 0; i < node.children.length; i++) {
+      dfs(node.children[i])
     }
-    dfs(new_outline_tree)
-    return new_outline_tree
+  }
+  dfs(new_outline_tree)
+  return new_outline_tree
 }
-export function adjustTitleLevel(outline_tree,first_level){
-    //深度搜索遍历大纲树，调整标题级别，如果是dummy则从children开始调整，等级为first_level，从子节点依次+1
-    function dfs(node, level) {
-        node.title_level = level
-        for (let i = 0; i < node.children.length; i++) {
-            dfs(node.children[i], level + 1)
-        }
+export function adjustTitleLevel(outline_tree, first_level) {
+  //深度搜索遍历大纲树，调整标题级别，如果是dummy则从children开始调整，等级为first_level，从子节点依次+1
+  function dfs(node, level) {
+    node.title_level = level
+    for (let i = 0; i < node.children.length; i++) {
+      dfs(node.children[i], level + 1)
     }
-    let node=JSON.parse(JSON.stringify(outline_tree))//深拷贝一份大纲树
-    if(node.path=='dummy'){
-        for (let i = 0; i < node.children.length; i++) {
-            dfs(node.children[i], first_level)
-        }
+  }
+  let node = JSON.parse(JSON.stringify(outline_tree)) //深拷贝一份大纲树
+  if (node.path == 'dummy') {
+    for (let i = 0; i < node.children.length; i++) {
+      dfs(node.children[i], first_level)
     }
-    else{
-        dfs(node, first_level)
-    }
-    return node
+  } else {
+    dfs(node, first_level)
+  }
+  return node
 }
-export function adjustTitleIndex(outline_tree, cover, level1TitleChinese){
-    let node=JSON.parse(JSON.stringify(outline_tree))//深拷贝一份大纲树
-    //深度搜索遍历大纲树，调整标题编号，如果是dummy则从children开始调整，编号为1 2 3 4...如果用户要求level1TitleChinese，则第一级标题用中文数字表示
-    function dfs(node,index,parentIndex) {
-        let title=node.title;
-        if(cover)title=removeTitleIndex(title)//去除标题开头的数字和点号
-        let index_string=''
-        if(parentIndex==''){
-            index_string=index;
-        }
-        else{
-            index_string=parentIndex+"."+index;
-        }
-        if(level1TitleChinese && parentIndex==''){
-            node.title=convertNumberToChinese(index)+" "+title//加上标题编号
-        }
-        else{
-            node.title=index_string+" "+title//加上标题编号
-        }
-        
-        for (let i = 0; i < node.children.length; i++) {
-            dfs(node.children[i],i+1,index_string)
-        }
+export function adjustTitleIndex(outline_tree, cover, level1TitleChinese) {
+  let node = JSON.parse(JSON.stringify(outline_tree)) //深拷贝一份大纲树
+  //深度搜索遍历大纲树，调整标题编号，如果是dummy则从children开始调整，编号为1 2 3 4...如果用户要求level1TitleChinese，则第一级标题用中文数字表示
+  function dfs(node, index, parentIndex) {
+    let title = node.title
+    if (cover) title = removeTitleIndex(title) //去除标题开头的数字和点号
+    let index_string = ''
+    if (parentIndex == '') {
+      index_string = index
+    } else {
+      index_string = parentIndex + '.' + index
     }
-    if(node.path=='dummy'){
-        for (let i = 0; i < node.children.length; i++) {
-            dfs(node.children[i],i+1, '')
-        }
-    }
-    else{
-        dfs(node,1, '')
-    }
-    return node
-}
-export function generatePieFromData(data, title) {//饼图
-    // 检查数据格式是否正确
-    if (!Array.isArray(data)) {
-        throw new Error("Input data must be an array.");
+    if (level1TitleChinese && parentIndex == '') {
+      node.title = convertNumberToChinese(index) + ' ' + title //加上标题编号
+    } else {
+      node.title = index_string + ' ' + title //加上标题编号
     }
 
-    data.forEach(item => {
-        if (typeof item.label !== 'string' || typeof item.value !== 'number') {
-            throw new Error("Each data item must have a 'label' (string) and 'value' (number).");
-        }
-    });
+    for (let i = 0; i < node.children.length; i++) {
+      dfs(node.children[i], i + 1, index_string)
+    }
+  }
+  if (node.path == 'dummy') {
+    for (let i = 0; i < node.children.length; i++) {
+      dfs(node.children[i], i + 1, '')
+    }
+  } else {
+    dfs(node, 1, '')
+  }
+  return node
+}
+export function generatePieFromData(data, title) {
+  //饼图
+  // 检查数据格式是否正确
+  if (!Array.isArray(data)) {
+    throw new Error('Input data must be an array.')
+  }
 
-    // ECharts 配置模板
-    const maxLength = 5;
-    const echartConfig = {
-        tooltip: {
-            trigger: 'item',
-            formatter: '{a} <br/>{b}: {c} ({d}%)',
-            /**靠右 显示 */
-            position: 'top',
+  data.forEach((item) => {
+    if (typeof item.label !== 'string' || typeof item.value !== 'number') {
+      throw new Error("Each data item must have a 'label' (string) and 'value' (number).")
+    }
+  })
+
+  // ECharts 配置模板
+  const maxLength = 5
+  const echartConfig = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)',
+      /**靠右 显示 */
+      position: 'top'
+    },
+    legend: {
+      top: '0',
+      left: 'center',
+      orient: 'horizontal',
+      formatter: (name) => {
+        return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name
+      },
+      textStyle: {
+        color: '#999999' // 可选：图例文字颜色
+      }
+    },
+    series: [
+      {
+        name: title,
+        type: 'pie',
+        radius: '50%',
+        data: data.map((item) => ({ name: item.label, value: item.value })),
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
         },
-        legend: {
-            top: '0',
-            left: 'center',
-            orient: 'horizontal',
-            formatter: (name) => {
-                return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
-            },
-            textStyle: {
-                color: '#999999', // 可选：图例文字颜色
-            },
-        },
-        series: [
-            {
-                name: title,
-                type: 'pie',
-                radius: '50%',
-                data: data.map(item => ({ name: item.label, value: item.value })),
-                emphasis: {
-                    itemStyle: {
-                        shadowBlur: 10,
-                        shadowOffsetX: 0,
-                        shadowColor: 'rgba(0, 0, 0, 0.5)',
-                    },
-                },
-                label: {
-                    formatter: (params) => {
-                        const label = params.name;
-                        return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label;
-                    },
-                    color: '#999999', // 可选：标签文字颜色
-                },
-            },
-        ],
-    };
+        label: {
+          formatter: (params) => {
+            const label = params.name
+            return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label
+          },
+          color: '#999999' // 可选：标签文字颜色
+        }
+      }
+    ]
+  }
 
-    //     // 转换为 Markdown 所需的 JSON 字符串
-    //     const echartMarkdown = `
-    // \`\`\`echarts
-    // ${JSON.stringify(echartConfig, null, 2)}
-    // \`\`\`
-    //     `.trim();
+  //     // 转换为 Markdown 所需的 JSON 字符串
+  //     const echartMarkdown = `
+  // \`\`\`echarts
+  // ${JSON.stringify(echartConfig, null, 2)}
+  // \`\`\`
+  //     `.trim();
 
-    return echartConfig;
+  return echartConfig
 }
 
+export function generateMarkdownHistogramWithStaticColors(data) {
+  //频度直方图
+  // 检查数据格式是否正确
+  if (!Array.isArray(data)) {
+    throw new Error('Input data must be an array.')
+  }
 
-export function generateMarkdownHistogramWithStaticColors(data) {//频度直方图
-    // 检查数据格式是否正确
-    if (!Array.isArray(data)) {
-        throw new Error("Input data must be an array.");
+  data.forEach((item) => {
+    if (typeof item.word !== 'string' || typeof item.size !== 'number') {
+      throw new Error("Each data item must have a 'word' (string) and 'size' (number).")
     }
+  })
 
-    data.forEach(item => {
-        if (typeof item.word !== 'string' || typeof item.size !== 'number') {
-            throw new Error("Each data item must have a 'word' (string) and 'size' (number).");
-        }
-    });
+  // 提取词语和频度
+  const words = data.map((item) => item.word)
+  const sizes = data.map((item) => item.size)
 
-    // 提取词语和频度
-    const words = data.map(item => item.word);
-    const sizes = data.map(item => item.size);
+  // 生成颜色从深到浅的渐变效果（基于 HSL 色调）
+  const baseColor = { h: 120, s: 60, l: 20 } // 基准颜色（绿色系）
+  const gradientColors = Array.from({ length: data.length }, (_, i) => {
+    const lightness = baseColor.l + (50 / data.length) * i // 随数据索引渐变亮度
+    return `hsl(${baseColor.h}, ${baseColor.s}%, ${lightness}%)`
+  })
 
-    // 生成颜色从深到浅的渐变效果（基于 HSL 色调）
-    const baseColor = { h: 120, s: 60, l: 20 }; // 基准颜色（绿色系）
-    const gradientColors = Array.from({ length: data.length }, (_, i) => {
-        const lightness = baseColor.l + (50 / data.length) * i; // 随数据索引渐变亮度
-        return `hsl(${baseColor.h}, ${baseColor.s}%, ${lightness}%)`;
-    });
+  // 将颜色与数据绑定
+  const dataWithColors = data.map((item, index) => ({
+    name: item.word,
+    value: item.size,
+    itemStyle: {
+      color: gradientColors[index]
+    }
+  }))
 
-    // 将颜色与数据绑定
-    const dataWithColors = data.map((item, index) => ({
-        name: item.word,
-        value: item.size,
-        itemStyle: {
-            color: gradientColors[index],
-        },
-    }));
+  // ECharts 配置模板
+  const echartConfig = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    xAxis: {
+      type: 'category',
+      data: words,
+      axisLabel: {
+        rotate: 45, // 旋转以避免文字重叠
+        interval: 0 // 显示所有标签
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '词频'
+    },
+    series: [
+      {
+        name: '词频',
+        type: 'bar',
+        data: dataWithColors.map((item) => ({
+          value: item.value,
+          itemStyle: item.itemStyle
+        }))
+      }
+    ]
+  }
 
-    // ECharts 配置模板
-    const echartConfig = {
-        tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-                type: 'shadow',
-            },
-        },
-        xAxis: {
-            type: 'category',
-            data: words,
-            axisLabel: {
-                rotate: 45, // 旋转以避免文字重叠
-                interval: 0, // 显示所有标签
-            },
-        },
-        yAxis: {
-            type: 'value',
-            name: '词频',
-        },
-        series: [
-            {
-                name: '词频',
-                type: 'bar',
-                data: dataWithColors.map(item => ({
-                    value: item.value,
-                    itemStyle: item.itemStyle,
-                })),
-            },
-        ],
-    };
-
-    // 转换为 Markdown 所需的 JSON 字符串
-    const echartMarkdown = `
+  // 转换为 Markdown 所需的 JSON 字符串
+  const echartMarkdown = `
 \`\`\`echarts
 ${JSON.stringify(echartConfig, null, 2)}
 \`\`\`
-    `.trim();
+    `.trim()
 
-    return echartMarkdown;
+  return echartMarkdown
 }
 export function generateWordCountBarChart(text) {
-    // 计算输入文本的字数
-    const articleWordCount = text.length;
+  // 计算输入文本的字数
+  const articleWordCount = text.length
 
-    // 标准文本与字数对比数据
-    const comparisonData = [
-        { name: '学术报告', wordCount: 10000 },
-        { name: '长篇小说章节', wordCount: 8000 },
-        { name: '研究论文', wordCount: 5000 },
-        { name: '小说中篇', wordCount: 15000 },
-        { name: '短篇小说', wordCount: 3000 },
-        { name: '新闻报道', wordCount: 1000 },
-        { name: '新闻社论', wordCount: 1100 },
-        { name: '短篇文章', wordCount: 1300 },
-        { name: '诗歌', wordCount: 300 },
-        { name: '技术博客', wordCount: 2000 },
-        { name: '商业计划书', wordCount: 7000 },
-        { name: '市场分析报告', wordCount: 4000 },
-        { name: '用户手册', wordCount: 8000 },
-        { name: '产品说明书', wordCount: 3000 },
-        { name: '会议纪要', wordCount: 1200 },
-        { name: '求职信', wordCount: 500 },
-        { name: '电子邮件', wordCount: 200 },
-        { name: '朋友圈', wordCount: 100 },
-        { name: '短信', wordCount: 50 },
-        { name: '五言绝句', wordCount: 20 },
-        { name: '七言律诗', wordCount: 56 },
-        { name: '广告文案', wordCount: 300 },
-        { name: '网页文章', wordCount: 1500 },
-        { name: '小说序章', wordCount: 2500 },
-    ];
+  // 标准文本与字数对比数据
+  const comparisonData = [
+    { name: '学术报告', wordCount: 10000 },
+    { name: '长篇小说章节', wordCount: 8000 },
+    { name: '研究论文', wordCount: 5000 },
+    { name: '小说中篇', wordCount: 15000 },
+    { name: '短篇小说', wordCount: 3000 },
+    { name: '新闻报道', wordCount: 1000 },
+    { name: '新闻社论', wordCount: 1100 },
+    { name: '短篇文章', wordCount: 1300 },
+    { name: '诗歌', wordCount: 300 },
+    { name: '技术博客', wordCount: 2000 },
+    { name: '商业计划书', wordCount: 7000 },
+    { name: '市场分析报告', wordCount: 4000 },
+    { name: '用户手册', wordCount: 8000 },
+    { name: '产品说明书', wordCount: 3000 },
+    { name: '会议纪要', wordCount: 1200 },
+    { name: '求职信', wordCount: 500 },
+    { name: '电子邮件', wordCount: 200 },
+    { name: '朋友圈', wordCount: 100 },
+    { name: '短信', wordCount: 50 },
+    { name: '五言绝句', wordCount: 20 },
+    { name: '七言律诗', wordCount: 56 },
+    { name: '广告文案', wordCount: 300 },
+    { name: '网页文章', wordCount: 1500 },
+    { name: '小说序章', wordCount: 2500 }
+  ]
 
+  // 组合输入文本和标准文本数据
+  // 计算与每个文体字数的差异，并排序
+  const sortedComparisonData = comparisonData
+    .map((item) => ({
+      ...item,
+      difference: Math.abs(item.wordCount - articleWordCount) // 计算字数差异
+    }))
+    .sort((a, b) => a.difference - b.difference) // 按差异排序，从小到大
 
-    // 组合输入文本和标准文本数据
-    // 计算与每个文体字数的差异，并排序
-    const sortedComparisonData = comparisonData
-        .map(item => ({
-            ...item,
-            difference: Math.abs(item.wordCount - articleWordCount), // 计算字数差异
-        }))
-        .sort((a, b) => a.difference - b.difference); // 按差异排序，从小到大
+  // 选择字数最接近的 5 个文体
+  const closestComparisonData = sortedComparisonData.slice(0, 5)
 
-    // 选择字数最接近的 5 个文体
-    const closestComparisonData = sortedComparisonData.slice(0, 5);
+  // 组合输入文本和最接近的 5 个标准文本数据
+  const data = [
+    { name: '我的文章', wordCount: articleWordCount, isHighlighted: true }, // 输入文本高亮
+    ...closestComparisonData.map((item) => ({ ...item, isHighlighted: false }))
+  ].sort((a, b) => a.wordCount - b.wordCount) // 按字数排序，从小到大
 
-    // 组合输入文本和最接近的 5 个标准文本数据
-    const data = [
-        { name: '我的文章', wordCount: articleWordCount, isHighlighted: true }, // 输入文本高亮
-        ...closestComparisonData.map(item => ({ ...item, isHighlighted: false })),
-    ].sort((a, b) => a.wordCount - b.wordCount); // 按字数排序，从小到大
-
-    // 配置条形图
-    const echartConfig = {
-        tooltip: {},
-        xAxis: {
-            type: 'category',
-            data: data.map(item => item.name), // X 轴显示文本名称
-            axisLabel: {
-                interval: 0, // 显示所有标签
-                formatter: (value, index) => {
-                    return data[index].isHighlighted ? `{a|${value}}` : value; // 高亮显示输入文本
-                },
-                rich: {
-                    a: {
-                        color: '#4caf50', // 高亮颜色为绿色
-                        fontweight: 'bold', // 加粗
-                    },
-                },
-
-                align: 'center', // 标签居中对齐
-            },
+  // 配置条形图
+  const echartConfig = {
+    tooltip: {},
+    xAxis: {
+      type: 'category',
+      data: data.map((item) => item.name), // X 轴显示文本名称
+      axisLabel: {
+        interval: 0, // 显示所有标签
+        formatter: (value, index) => {
+          return data[index].isHighlighted ? `{a|${value}}` : value // 高亮显示输入文本
         },
-        yAxis: {
-            type: 'value',
+        rich: {
+          a: {
+            color: '#4caf50', // 高亮颜色为绿色
+            fontweight: 'bold' // 加粗
+          }
         },
-        series: [
-            {
-                data: data.map(item => item.wordCount),
-                type: 'bar',
-                itemStyle: {
-                    // 条形图颜色设置：高亮的颜色与普通颜色
-                    color: (params) => {
-                        const isHighlighted = data[params.dataIndex].isHighlighted;
-                        return isHighlighted ? '#4caf50' : '#42a5f5'; // 高亮条形图为绿色，普通为蓝色
-                    },
-                },
-                label: {
-                    show: true, // 显示标签
-                    position: 'top', // 标签显示在条形图的顶部
-                    // color: '#000', // 标签的字体颜色
-                    fontWeight: 'bold', // 标签字体加粗
-                    fontSize: 14, // 标签字体大小
-                },
-            },
-        ],
-    };
 
-    return echartConfig;
+        align: 'center' // 标签居中对齐
+      }
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        data: data.map((item) => item.wordCount),
+        type: 'bar',
+        itemStyle: {
+          // 条形图颜色设置：高亮的颜色与普通颜色
+          color: (params) => {
+            const isHighlighted = data[params.dataIndex].isHighlighted
+            return isHighlighted ? '#4caf50' : '#42a5f5' // 高亮条形图为绿色，普通为蓝色
+          }
+        },
+        label: {
+          show: true, // 显示标签
+          position: 'top', // 标签显示在条形图的顶部
+          // color: '#000', // 标签的字体颜色
+          fontWeight: 'bold', // 标签字体加粗
+          fontSize: 14 // 标签字体大小
+        }
+      }
+    ]
+  }
+
+  return echartConfig
 }
-
 
 export function outlineToMindMap(outline) {
-    // 递归函数，将大纲树节点转换为MindMap格式
-    function convertNode(node, indentLevel = 0) {
-        // 基本的MindMap节点格式，动态缩进
-        let result = `${'  '.repeat(indentLevel)}- ${node.title}`;
+  // 递归函数，将大纲树节点转换为MindMap格式
+  function convertNode(node, indentLevel = 0) {
+    // 基本的MindMap节点格式，动态缩进
+    let result = `${'  '.repeat(indentLevel)}- ${node.title}`
 
-        // 如果节点有子节点，递归调用convertNode
-        if (node.children && node.children.length > 0) {
-            node.children.forEach(child => {
-                // 为每个子节点递归调用，增加缩进级别
-                result += `\n${convertNode(child, indentLevel + 1)}`;
-            });
-        }
-
-        return result;
+    // 如果节点有子节点，递归调用convertNode
+    if (node.children && node.children.length > 0) {
+      node.children.forEach((child) => {
+        // 为每个子节点递归调用，增加缩进级别
+        result += `\n${convertNode(child, indentLevel + 1)}`
+      })
     }
 
-    // 启动递归并返回完整的MindMap Markdown
-    //     return `
-    // \`\`\`mindmap
-    // ${convertNode(outline)}
-    // \`\`\`
-    //     `.trim(); // 移除前后多余的换行
-    return convertNode(outline);
-}
+    return result
+  }
 
+  // 启动递归并返回完整的MindMap Markdown
+  //     return `
+  // \`\`\`mindmap
+  // ${convertNode(outline)}
+  // \`\`\`
+  //     `.trim(); // 移除前后多余的换行
+  return convertNode(outline)
+}
 
 export function generateWordFrequencyTrendChart(text, topWords) {
-    const windowCount = 16;  // 定义窗口的数量，可以根据需要调整
-    const windowSize = Math.ceil(text.length / windowCount);
+  const windowCount = 16 // 定义窗口的数量，可以根据需要调整
+  const windowSize = Math.ceil(text.length / windowCount)
 
-    // 词频统计函数
-    function countWordFrequencyInWindow(windowStart, windowEnd, word) {
-        let cnt = 0;
-        for (let i = windowStart; i < windowEnd - word.length + 1; i++) {
-            if (text.substring(i, i + word.length) === word) {
-                cnt++;
-            }
-        }
-        return cnt;
+  // 词频统计函数
+  function countWordFrequencyInWindow(windowStart, windowEnd, word) {
+    let cnt = 0
+    for (let i = windowStart; i < windowEnd - word.length + 1; i++) {
+      if (text.substring(i, i + word.length) === word) {
+        cnt++
+      }
+    }
+    return cnt
+  }
+
+  // 生成 X 轴数据（文章进度的百分比）
+  const xAxisData = Array.from({ length: windowCount }, (_, i) => {
+    return ((((i + 1) * windowSize) / text.length) * text.length).toFixed(0) + '字' // 计算进度百分比
+  })
+
+  // 生成每个词的 Y 轴数据
+  const seriesData = topWords.map((word, index) => {
+    const wordFrequencies = []
+
+    for (let i = 0; i < windowCount; i++) {
+      const windowStart = i * windowSize
+      const windowEnd = Math.min((i + 1) * windowSize, text.length)
+
+      // 统计滑动窗口内的词频
+      const frequency = countWordFrequencyInWindow(windowStart, windowEnd, word)
+      wordFrequencies.push(frequency)
     }
 
-    // 生成 X 轴数据（文章进度的百分比）
-    const xAxisData = Array.from({ length: windowCount }, (_, i) => {
-        return (((i + 1) * windowSize) / text.length * text.length).toFixed(0) + '字';  // 计算进度百分比
-    });
+    return {
+      name: word,
+      type: 'line',
+      smooth: true,
+      itemStyle: {
+        color: `hsl(${index * 60}, 70%, 50%)` // 每个词的颜色不同
+      },
+      areaStyle: {
+        normal: {}
+      },
+      z: index + 1,
+      data: wordFrequencies
+    }
+  })
 
-    // 生成每个词的 Y 轴数据
-    const seriesData = topWords.map((word, index) => {
-        const wordFrequencies = [];
+  // ECharts 配置
+  const echartConfig = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      }
+    },
+    legend: {
+      data: topWords,
+      textStyle: {
+        color: '#999999' // 可选：图例文字颜色
+      }
+    },
+    xAxis: [
+      {
+        type: 'category',
+        boundaryGap: false,
+        data: xAxisData,
+        axisTick: { show: false },
+        axisLine: { show: false }
+      }
+    ],
+    yAxis: {
+      type: 'value'
+    },
+    series: seriesData
+  }
 
-        for (let i = 0; i < windowCount; i++) {
-            const windowStart = i * windowSize;
-            const windowEnd = Math.min((i + 1) * windowSize, text.length);
-
-            // 统计滑动窗口内的词频
-            const frequency = countWordFrequencyInWindow(windowStart, windowEnd, word);
-            wordFrequencies.push(frequency);
-        }
-
-        return {
-            name: word,
-            type: 'line',
-            smooth: true,
-            itemStyle: {
-                color: `hsl(${index * 60}, 70%, 50%)`, // 每个词的颜色不同
-            },
-            areaStyle: {
-                normal: {},
-            },
-            z: index + 1,
-            data: wordFrequencies,
-        };
-    });
-
-    // ECharts 配置
-    const echartConfig = {
-        tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-                type: 'cross',
-            },
-        },
-        legend: {
-            data: topWords,
-            textStyle: {
-                color: '#999999', // 可选：图例文字颜色
-            },
-        },
-        xAxis: [
-            {
-                type: 'category',
-                boundaryGap: false,
-                data: xAxisData,
-                axisTick: { show: false },
-                axisLine: { show: false },
-            },
-        ],
-        yAxis: {
-            type: 'value',
-        },
-        series: seriesData,
-    };
-
-    // 返回 ECharts 配置
-    return echartConfig;
+  // 返回 ECharts 配置
+  return echartConfig
 }
-
-
 
 /**
  * 将 Markdown 中的图片转换为内联 data URL
@@ -708,401 +698,415 @@ export function generateWordFrequencyTrendChart(text, topWords) {
  * @param {boolean} convertSvgToBitmap - 是否将 SVG 转换为位图（默认 true，用于 DOCX 导出）
  * @returns {Promise<string>} 处理后的 Markdown 文本
  */
-export async function embedImagesInline(md, convertSvgToBitmap = true){
-    //查找markdown里面所有的图片链接，读取图片，转换为内联 data URL，返回经过替换后的markdown
-    // 注意：SVG 图片默认转换为位图（PNG）后再转 base64，因为 html-to-docx 不支持 SVG
-    // 但对于 HTML 导出，可以保持 SVG 格式（convertSvgToBitmap=false）
+export async function embedImagesInline(md, convertSvgToBitmap = true) {
+  //查找markdown里面所有的图片链接，读取图片，转换为内联 data URL，返回经过替换后的markdown
+  // 注意：SVG 图片默认转换为位图（PNG）后再转 base64，因为 html-to-docx 不支持 SVG
+  // 但对于 HTML 导出，可以保持 SVG 格式（convertSvgToBitmap=false）
 
-    const lines = md.split('\n')
-    let new_md = ''
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        const match = line.match(/!\[.*?\]\((.*?)\)/)
-        if (match) {
-            const image_path = match[1]
-            
-            // 检查 image_path 是否为空
-            if (!image_path || image_path.trim() === '') {
-                getLogger().warn('发现空的图片路径，跳过处理')
-                new_md += line + '\n'
-                continue
+  const lines = md.split('\n')
+  let new_md = ''
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const match = line.match(/!\[.*?\]\((.*?)\)/)
+    if (match) {
+      const image_path = match[1]
+
+      // 检查 image_path 是否为空
+      if (!image_path || image_path.trim() === '') {
+        getLogger().warn('发现空的图片路径，跳过处理')
+        new_md += line + '\n'
+        continue
+      }
+
+      let dataUrl = ''
+      try {
+        // 处理 file:// 协议的 URL
+        if (image_path.startsWith('file://')) {
+          // 将 file:// URL 转换为本地文件路径
+          let localPath = image_path.replace(/^file:\/\//, '')
+          // Windows 路径处理：file:///C:/path -> C:/path
+          if (localPath.startsWith('/') && /^[A-Za-z]:/.test(localPath.substring(1))) {
+            localPath = localPath.substring(1)
+          }
+          // 解码 URL 编码的路径部分
+          try {
+            localPath = decodeURIComponent(localPath)
+          } catch (e) {
+            // 如果解码失败，使用原始路径
+            getLogger().warn('URL 解码失败，使用原始路径', e)
+          }
+
+          // 通过 IPC 读取文件
+          let ipcRenderer = null
+          if (typeof window !== 'undefined') {
+            if (window.electron?.ipcRenderer) {
+              ipcRenderer = window.electron.ipcRenderer
+            } else {
+              const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
+              ipcRenderer = localIpcRenderer
             }
-            
-            let dataUrl = ''
+          }
+
+          if (!ipcRenderer) {
+            throw new Error('IPC 渲染器不可用，无法读取本地文件')
+          }
+
+          // 读取文件内容
+          const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath)
+
+          if (!fileData || !fileData.data) {
+            throw new Error('文件数据为空')
+          }
+
+          // 检测文件类型（支持无后缀名图片）
+          // 先尝试从 mimeType 判断，如果没有则通过文件内容判断
+          let detectedMimeType = fileData.mimeType || 'application/octet-stream'
+          let isSvg = false
+
+          // 检查是否为 SVG（通过扩展名或 mimeType）
+          if (
+            localPath.toLowerCase().endsWith('.svg') ||
+            detectedMimeType.includes('image/svg+xml') ||
+            detectedMimeType.includes('image/svg')
+          ) {
+            isSvg = true
+          } else {
+            // 如果没有扩展名或 mimeType 不确定，尝试通过文件内容判断
+            // 解码 base64 并检查文件头
             try {
-                // 处理 file:// 协议的 URL
-                if (image_path.startsWith('file://')) {
-                    // 将 file:// URL 转换为本地文件路径
-                    let localPath = image_path.replace(/^file:\/\//, '')
-                    // Windows 路径处理：file:///C:/path -> C:/path
-                    if (localPath.startsWith('/') && /^[A-Za-z]:/.test(localPath.substring(1))) {
-                        localPath = localPath.substring(1)
-                    }
-                    // 解码 URL 编码的路径部分
-                    try {
-                        localPath = decodeURIComponent(localPath)
-                    } catch (e) {
-                        // 如果解码失败，使用原始路径
-                        getLogger().warn('URL 解码失败，使用原始路径', e)
-                    }
-                    
-                    // 通过 IPC 读取文件
-                    let ipcRenderer = null
-                    if (typeof window !== 'undefined') {
-                        if (window.electron?.ipcRenderer) {
-                            ipcRenderer = window.electron.ipcRenderer
-                        } else {
-                            const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
-                            ipcRenderer = localIpcRenderer
-                        }
-                    }
-                    
-                    if (!ipcRenderer) {
-                        throw new Error('IPC 渲染器不可用，无法读取本地文件')
-                    }
-                    
-                    // 读取文件内容
-                    const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath)
-                    
-                    if (!fileData || !fileData.data) {
-                        throw new Error('文件数据为空')
-                    }
-                    
-                    // 检测文件类型（支持无后缀名图片）
-                    // 先尝试从 mimeType 判断，如果没有则通过文件内容判断
-                    let detectedMimeType = fileData.mimeType || 'application/octet-stream'
-                    let isSvg = false
-                    
-                    // 检查是否为 SVG（通过扩展名或 mimeType）
-                    if (localPath.toLowerCase().endsWith('.svg') || 
-                        detectedMimeType.includes('image/svg+xml') ||
-                        detectedMimeType.includes('image/svg')) {
-                        isSvg = true
-                    } else {
-                        // 如果没有扩展名或 mimeType 不确定，尝试通过文件内容判断
-                        // 解码 base64 并检查文件头
-                        try {
-                            const fileBytes = atob(fileData.data)
-                            const header = fileBytes.substring(0, 100) // 检查前100个字符
-                            
-                            // 检查是否为 SVG（SVG 通常以 <svg 开头）
-                            if (header.trim().startsWith('<svg') || header.includes('<?xml') && header.includes('<svg')) {
-                                isSvg = true
-                                detectedMimeType = 'image/svg+xml'
-                            } else {
-                                // 使用 getMimeType 函数检测图片类型（需要先转换为字节数组）
-                                const { getMimeType } = await import('./image-utils')
-                                const bytes = new Uint8Array(fileBytes.length)
-                                for (let j = 0; j < fileBytes.length; j++) {
-                                    bytes[j] = fileBytes.charCodeAt(j)
-                                }
-                                const detectedType = getMimeType(bytes)
-                                if (detectedType !== 'application/octet-stream') {
-                                    detectedMimeType = detectedType
-                                }
-                            }
-                        } catch (e) {
-                            getLogger().warn('检测文件类型失败，使用默认类型', e)
-                        }
-                    }
-                    
-                    if (isSvg) {
-                        // SVG：根据 convertSvgToBitmap 参数决定是否转换为位图
-                        if (convertSvgToBitmap) {
-                            // DOCX 导出需要转换为位图（PNG），因为 html-to-docx 不支持 SVG
-                            getLogger().debug('检测到 SVG 图片，转换为位图')
-                            
-                            try {
-                                // 读取 SVG 文本内容
-                                const svgText = atob(fileData.data)
-                                if (!svgText || svgText.trim().length === 0) {
-                                    throw new Error('SVG 内容为空')
-                                }
-                                
-                                // 使用 convertSvgToPng 将 SVG 转换为 PNG
-                                const { convertSvgToPng } = await import('./chart-pre-renderer')
-                                const pngDataUrl = await convertSvgToPng(svgText, 2.0)
-                                
-                                // 提取 base64 部分
-                                const base64Match = pngDataUrl.match(/^data:image\/png;base64,(.+)$/)
-                                if (base64Match) {
-                                    dataUrl = pngDataUrl
-                                    getLogger().debug(`SVG 转换为 PNG data URL 成功，长度: ${dataUrl.length}`)
-                                } else {
-                                    throw new Error('PNG 转换结果格式不正确')
-                                }
-                            } catch (svgError) {
-                                getLogger().warn('SVG 转 PNG 失败，尝试使用原始 SVG', svgError)
-                                // 如果转换失败，尝试使用原始 SVG（虽然可能不被 html-to-docx 支持）
-                                const svgText = atob(fileData.data)
-                                const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
-                                dataUrl = `data:image/svg+xml;base64,${base64Svg}`
-                            }
-                        } else {
-                            // HTML 导出保持 SVG 格式
-                            getLogger().debug('检测到 SVG 图片，保持 SVG 格式')
-                            const svgText = atob(fileData.data)
-                            const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
-                            dataUrl = `data:image/svg+xml;base64,${base64Svg}`
-                        }
-                    } else {
-                        // 位图：直接使用 base64 data URL
-                        // 使用检测到的 mimeType，如果没有则使用 fileData.mimeType
-                        const mimeType = detectedMimeType !== 'application/octet-stream' 
-                            ? detectedMimeType 
-                            : (fileData.mimeType || 'image/png')
-                        dataUrl = `data:${mimeType};base64,${fileData.data}`
-                        getLogger().debug(`位图转换为 data URL 成功，长度: ${dataUrl.length}, 类型: ${mimeType}`)
-                    }
+              const fileBytes = atob(fileData.data)
+              const header = fileBytes.substring(0, 100) // 检查前100个字符
+
+              // 检查是否为 SVG（SVG 通常以 <svg 开头）
+              if (
+                header.trim().startsWith('<svg') ||
+                (header.includes('<?xml') && header.includes('<svg'))
+              ) {
+                isSvg = true
+                detectedMimeType = 'image/svg+xml'
+              } else {
+                // 使用 getMimeType 函数检测图片类型（需要先转换为字节数组）
+                const { getMimeType } = await import('./image-utils')
+                const bytes = new Uint8Array(fileBytes.length)
+                for (let j = 0; j < fileBytes.length; j++) {
+                  bytes[j] = fileBytes.charCodeAt(j)
+                }
+                const detectedType = getMimeType(bytes)
+                if (detectedType !== 'application/octet-stream') {
+                  detectedMimeType = detectedType
+                }
+              }
+            } catch (e) {
+              getLogger().warn('检测文件类型失败，使用默认类型', e)
+            }
+          }
+
+          if (isSvg) {
+            // SVG：根据 convertSvgToBitmap 参数决定是否转换为位图
+            if (convertSvgToBitmap) {
+              // DOCX 导出需要转换为位图（PNG），因为 html-to-docx 不支持 SVG
+              getLogger().debug('检测到 SVG 图片，转换为位图')
+
+              try {
+                // 读取 SVG 文本内容
+                const svgText = atob(fileData.data)
+                if (!svgText || svgText.trim().length === 0) {
+                  throw new Error('SVG 内容为空')
+                }
+
+                // 使用 convertSvgToPng 将 SVG 转换为 PNG
+                const { convertSvgToPng } = await import('./chart-pre-renderer')
+                const pngDataUrl = await convertSvgToPng(svgText, 2.0)
+
+                // 提取 base64 部分
+                const base64Match = pngDataUrl.match(/^data:image\/png;base64,(.+)$/)
+                if (base64Match) {
+                  dataUrl = pngDataUrl
+                  getLogger().debug(`SVG 转换为 PNG data URL 成功，长度: ${dataUrl.length}`)
                 } else {
-                    // 非 file:// 协议，使用原有的 fetch 方式
-                    const response = await fetch(image_path)
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-                    }
-                    
-                    // 检查是否为 SVG（通过 URL 或 Content-Type）
-                    const contentType = response.headers.get('content-type') || ''
-                    let isSvg = image_path.toLowerCase().endsWith('.svg') || 
-                               contentType.includes('image/svg+xml') ||
-                               contentType.includes('image/svg')
-                    
-                    if (isSvg) {
-                        // SVG：根据 convertSvgToBitmap 参数决定是否转换为位图
-                        // 先读取 SVG 文本内容并保存，避免 response body 被重复读取
-                        const svgText = await response.text()
-                        if (!svgText || svgText.trim().length === 0) {
-                            throw new Error('SVG 内容为空')
-                        }
-                        
-                        if (convertSvgToBitmap) {
-                            // DOCX 导出需要转换为位图（PNG），因为 html-to-docx 不支持 SVG
-                            getLogger().debug('检测到 SVG 图片，转换为位图')
-                            
-                            try {
-                                // 使用 convertSvgToPng 将 SVG 转换为 PNG
-                                // 注意：convertSvgToPng 返回的是 Blob，需要转换为 data URL
-                                const { convertSvgToPng } = await import('./chart-pre-renderer')
-                                const pngBlob = await convertSvgToPng(svgText, 2.0)
-                                
-                                // 将 Blob 转换为 data URL
-                                const reader = new FileReader()
-                                dataUrl = await new Promise((resolve, reject) => {
-                                    reader.onload = () => {
-                                        if (reader.result && typeof reader.result === 'string') {
-                                            resolve(reader.result)
-                                        } else {
-                                            reject(new Error('读取 PNG 数据失败'))
-                                        }
-                                    }
-                                    reader.onerror = () => reject(new Error('FileReader 错误'))
-                                    reader.readAsDataURL(pngBlob)
-                                })
-                                
-                                getLogger().debug(`SVG 转换为 PNG data URL 成功，长度: ${dataUrl.length}`)
-                            } catch (svgError) {
-                                getLogger().warn('SVG 转 PNG 失败，尝试使用主进程转换或原始 SVG', svgError)
-                                
-                                // 尝试使用主进程的 SVG 转 PNG 功能（如果可用）
-                                try {
-                                    let ipcRenderer = null
-                                    if (typeof window !== 'undefined') {
-                                        if (window.electron?.ipcRenderer) {
-                                            ipcRenderer = window.electron.ipcRenderer
-                                        } else {
-                                            const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
-                                            ipcRenderer = localIpcRenderer
-                                        }
-                                    }
-                                    
-                                    if (ipcRenderer) {
-                                        // 尝试通过主进程转换 SVG 为 PNG
-                                        // 主进程的 convert-svg-string-to-png 返回 HTTP URL，我们需要读取它并转换为 base64
-                                        try {
-                                            // 调用主进程的 SVG 转 PNG 功能
-                                            const result = await ipcRenderer.invoke('convert-svg-string-to-png', svgText, 2.0)
-                                            
-                                            if (result.success && result.url) {
-                                                // 读取生成的 PNG 文件并转换为 base64
-                                                const pngResponse = await fetch(result.url)
-                                                if (pngResponse.ok) {
-                                                    const pngBlob = await pngResponse.blob()
-                                                    const reader = new FileReader()
-                                                    dataUrl = await new Promise((resolve, reject) => {
-                                                        reader.onload = () => {
-                                                            if (reader.result && typeof reader.result === 'string') {
-                                                                resolve(reader.result)
-                                                            } else {
-                                                                reject(new Error('读取 PNG 数据失败'))
-                                                            }
-                                                        }
-                                                        reader.onerror = () => reject(new Error('FileReader 错误'))
-                                                        reader.readAsDataURL(pngBlob)
-                                                    })
-                                                    getLogger().debug(`主进程 SVG 转 PNG 成功，长度: ${dataUrl.length}`)
-                                                } else {
-                                                    throw new Error(`读取 PNG 文件失败: ${pngResponse.status}`)
-                                                }
-                                            } else {
-                                                throw new Error(result.error || '主进程 SVG 转换失败')
-                                            }
-                                        } catch (ipcError) {
-                                            getLogger().warn('主进程 SVG 转换失败，使用原始 SVG', ipcError)
-                                            const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
-                                            dataUrl = `data:image/svg+xml;base64,${base64Svg}`
-                                        }
-                                    } else {
-                                        // 如果没有 IPC，使用原始 SVG
-                                        const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
-                                        dataUrl = `data:image/svg+xml;base64,${base64Svg}`
-                                    }
-                                } catch (fallbackError) {
-                                    // 如果所有转换都失败，使用原始 SVG（虽然可能不被 html-to-docx 支持）
-                                    getLogger().warn('所有 SVG 转换方法都失败，使用原始 SVG', fallbackError)
-                                    const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
-                                    dataUrl = `data:image/svg+xml;base64,${base64Svg}`
-                                }
-                            }
-                        } else {
-                            // HTML 导出保持 SVG 格式
-                            getLogger().debug('检测到 SVG 图片，保持 SVG 格式')
-                            const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
-                            dataUrl = `data:image/svg+xml;base64,${base64Svg}`
-                        }
+                  throw new Error('PNG 转换结果格式不正确')
+                }
+              } catch (svgError) {
+                getLogger().warn('SVG 转 PNG 失败，尝试使用原始 SVG', svgError)
+                // 如果转换失败，尝试使用原始 SVG（虽然可能不被 html-to-docx 支持）
+                const svgText = atob(fileData.data)
+                const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+              }
+            } else {
+              // HTML 导出保持 SVG 格式
+              getLogger().debug('检测到 SVG 图片，保持 SVG 格式')
+              const svgText = atob(fileData.data)
+              const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+              dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+            }
+          } else {
+            // 位图：直接使用 base64 data URL
+            // 使用检测到的 mimeType，如果没有则使用 fileData.mimeType
+            const mimeType =
+              detectedMimeType !== 'application/octet-stream'
+                ? detectedMimeType
+                : fileData.mimeType || 'image/png'
+            dataUrl = `data:${mimeType};base64,${fileData.data}`
+            getLogger().debug(
+              `位图转换为 data URL 成功，长度: ${dataUrl.length}, 类型: ${mimeType}`
+            )
+          }
+        } else {
+          // 非 file:// 协议，使用原有的 fetch 方式
+          const response = await fetch(image_path)
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+
+          // 检查是否为 SVG（通过 URL 或 Content-Type）
+          const contentType = response.headers.get('content-type') || ''
+          let isSvg =
+            image_path.toLowerCase().endsWith('.svg') ||
+            contentType.includes('image/svg+xml') ||
+            contentType.includes('image/svg')
+
+          if (isSvg) {
+            // SVG：根据 convertSvgToBitmap 参数决定是否转换为位图
+            // 先读取 SVG 文本内容并保存，避免 response body 被重复读取
+            const svgText = await response.text()
+            if (!svgText || svgText.trim().length === 0) {
+              throw new Error('SVG 内容为空')
+            }
+
+            if (convertSvgToBitmap) {
+              // DOCX 导出需要转换为位图（PNG），因为 html-to-docx 不支持 SVG
+              getLogger().debug('检测到 SVG 图片，转换为位图')
+
+              try {
+                // 使用 convertSvgToPng 将 SVG 转换为 PNG
+                // 注意：convertSvgToPng 返回的是 Blob，需要转换为 data URL
+                const { convertSvgToPng } = await import('./chart-pre-renderer')
+                const pngBlob = await convertSvgToPng(svgText, 2.0)
+
+                // 将 Blob 转换为 data URL
+                const reader = new FileReader()
+                dataUrl = await new Promise((resolve, reject) => {
+                  reader.onload = () => {
+                    if (reader.result && typeof reader.result === 'string') {
+                      resolve(reader.result)
                     } else {
-                        // 位图：使用 base64 编码的 data URL
-                        // 添加重试机制，因为文件可能还没完全写入
-                        let blob = await response.blob()
-                        let retryCount = 0
-                        const maxRetries = 3
-                        const retryDelay = 200 // 200ms
-                        
-                        // 如果 blob 为空，尝试重试
-                        while ((!blob || blob.size === 0) && retryCount < maxRetries) {
-                            retryCount++
-                            if (retryCount <= maxRetries) {
-                                getLogger().warn(`图片数据为空，重试 ${retryCount}/${maxRetries}: ${image_path}`)
-                                // 等待一段时间让文件完全写入
-                                await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount))
-                                // 重新 fetch
-                                try {
-                                    const retryResponse = await fetch(image_path)
-                                    if (retryResponse.ok) {
-                                        blob = await retryResponse.blob()
-                                    }
-                                } catch (retryError) {
-                                    getLogger().warn(`重试 fetch 失败: ${image_path}`, retryError)
-                                }
-                            }
-                        }
-                        
-                        if (!blob || blob.size === 0) {
-                            throw new Error(`图片数据为空（已重试 ${retryCount} 次）: ${image_path}`)
-                        }
-                        
-                        // 检测图片类型（支持无后缀名图片）
-                        let detectedMimeType = contentType || blob.type || 'image/png'
-                        
-                        // 如果 Content-Type 不确定，尝试通过文件内容判断
-                        if (!contentType || contentType === 'application/octet-stream' || !blob.type) {
-                            try {
-                                const arrayBuffer = await blob.arrayBuffer()
-                                const bytes = new Uint8Array(arrayBuffer)
-                                const { getMimeType } = await import('./image-utils')
-                                const detectedType = getMimeType(bytes)
-                                if (detectedType !== 'application/octet-stream') {
-                                    detectedMimeType = detectedType
-                                }
-                            } catch (e) {
-                                getLogger().warn('检测文件类型失败，使用默认类型', e)
-                            }
-                        }
-                        
-                        const reader = new FileReader()
-                        reader.readAsDataURL(blob)
-                        dataUrl = await new Promise((resolve, reject) => {
+                      reject(new Error('读取 PNG 数据失败'))
+                    }
+                  }
+                  reader.onerror = () => reject(new Error('FileReader 错误'))
+                  reader.readAsDataURL(pngBlob)
+                })
+
+                getLogger().debug(`SVG 转换为 PNG data URL 成功，长度: ${dataUrl.length}`)
+              } catch (svgError) {
+                getLogger().warn('SVG 转 PNG 失败，尝试使用主进程转换或原始 SVG', svgError)
+
+                // 尝试使用主进程的 SVG 转 PNG 功能（如果可用）
+                try {
+                  let ipcRenderer = null
+                  if (typeof window !== 'undefined') {
+                    if (window.electron?.ipcRenderer) {
+                      ipcRenderer = window.electron.ipcRenderer
+                    } else {
+                      const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
+                      ipcRenderer = localIpcRenderer
+                    }
+                  }
+
+                  if (ipcRenderer) {
+                    // 尝试通过主进程转换 SVG 为 PNG
+                    // 主进程的 convert-svg-string-to-png 返回 HTTP URL，我们需要读取它并转换为 base64
+                    try {
+                      // 调用主进程的 SVG 转 PNG 功能
+                      const result = await ipcRenderer.invoke(
+                        'convert-svg-string-to-png',
+                        svgText,
+                        2.0
+                      )
+
+                      if (result.success && result.url) {
+                        // 读取生成的 PNG 文件并转换为 base64
+                        const pngResponse = await fetch(result.url)
+                        if (pngResponse.ok) {
+                          const pngBlob = await pngResponse.blob()
+                          const reader = new FileReader()
+                          dataUrl = await new Promise((resolve, reject) => {
                             reader.onload = () => {
-                                if (reader.result && typeof reader.result === 'string') {
-                                    // 如果检测到的类型与 blob 类型不同，替换 mime type
-                                    if (detectedMimeType !== blob.type && detectedMimeType !== 'image/png') {
-                                        const base64Match = reader.result.match(/^data:[^;]+;base64,(.+)$/)
-                                        if (base64Match) {
-                                            resolve(`data:${detectedMimeType};base64,${base64Match[1]}`)
-                                        } else {
-                                            resolve(reader.result)
-                                        }
-                                    } else {
-                                        resolve(reader.result)
-                                    }
-                                } else {
-                                    reject(new Error('读取图片数据失败'))
-                                }
+                              if (reader.result && typeof reader.result === 'string') {
+                                resolve(reader.result)
+                              } else {
+                                reject(new Error('读取 PNG 数据失败'))
+                              }
                             }
                             reader.onerror = () => reject(new Error('FileReader 错误'))
-                        })
-                        getLogger().debug(`位图转换为 data URL 成功，长度: ${dataUrl.length}, 原始大小: ${blob.size} bytes, 类型: ${detectedMimeType}`)
+                            reader.readAsDataURL(pngBlob)
+                          })
+                          getLogger().debug(`主进程 SVG 转 PNG 成功，长度: ${dataUrl.length}`)
+                        } else {
+                          throw new Error(`读取 PNG 文件失败: ${pngResponse.status}`)
+                        }
+                      } else {
+                        throw new Error(result.error || '主进程 SVG 转换失败')
+                      }
+                    } catch (ipcError) {
+                      getLogger().warn('主进程 SVG 转换失败，使用原始 SVG', ipcError)
+                      const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                      dataUrl = `data:image/svg+xml;base64,${base64Svg}`
                     }
-                    
-                    // 验证 data URL 格式
-                    if (!dataUrl || !dataUrl.startsWith('data:')) {
-                        throw new Error('生成的 data URL 格式不正确')
-                    }
+                  } else {
+                    // 如果没有 IPC，使用原始 SVG
+                    const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                    dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+                  }
+                } catch (fallbackError) {
+                  // 如果所有转换都失败，使用原始 SVG（虽然可能不被 html-to-docx 支持）
+                  getLogger().warn('所有 SVG 转换方法都失败，使用原始 SVG', fallbackError)
+                  const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                  dataUrl = `data:image/svg+xml;base64,${base64Svg}`
                 }
-            } catch (error) {
-                getLogger().error(`图片转换失败: ${image_path}`, error)
-                eventBus.emit('show-error', `图片转换失败: ${image_path} - ${error.message}`)
-                // 转换失败时保持原路径
-                dataUrl = image_path
+              }
+            } else {
+              // HTML 导出保持 SVG 格式
+              getLogger().debug('检测到 SVG 图片，保持 SVG 格式')
+              const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+              dataUrl = `data:image/svg+xml;base64,${base64Svg}`
             }
-            // 替换图片路径为 data URL
-            const newLine = line.replace(image_path, dataUrl)
-            new_md += newLine + '\n'
-        } else {
-            new_md += line + '\n'
+          } else {
+            // 位图：使用 base64 编码的 data URL
+            // 添加重试机制，因为文件可能还没完全写入
+            let blob = await response.blob()
+            let retryCount = 0
+            const maxRetries = 3
+            const retryDelay = 200 // 200ms
+
+            // 如果 blob 为空，尝试重试
+            while ((!blob || blob.size === 0) && retryCount < maxRetries) {
+              retryCount++
+              if (retryCount <= maxRetries) {
+                getLogger().warn(`图片数据为空，重试 ${retryCount}/${maxRetries}: ${image_path}`)
+                // 等待一段时间让文件完全写入
+                await new Promise((resolve) => setTimeout(resolve, retryDelay * retryCount))
+                // 重新 fetch
+                try {
+                  const retryResponse = await fetch(image_path)
+                  if (retryResponse.ok) {
+                    blob = await retryResponse.blob()
+                  }
+                } catch (retryError) {
+                  getLogger().warn(`重试 fetch 失败: ${image_path}`, retryError)
+                }
+              }
+            }
+
+            if (!blob || blob.size === 0) {
+              throw new Error(`图片数据为空（已重试 ${retryCount} 次）: ${image_path}`)
+            }
+
+            // 检测图片类型（支持无后缀名图片）
+            let detectedMimeType = contentType || blob.type || 'image/png'
+
+            // 如果 Content-Type 不确定，尝试通过文件内容判断
+            if (!contentType || contentType === 'application/octet-stream' || !blob.type) {
+              try {
+                const arrayBuffer = await blob.arrayBuffer()
+                const bytes = new Uint8Array(arrayBuffer)
+                const { getMimeType } = await import('./image-utils')
+                const detectedType = getMimeType(bytes)
+                if (detectedType !== 'application/octet-stream') {
+                  detectedMimeType = detectedType
+                }
+              } catch (e) {
+                getLogger().warn('检测文件类型失败，使用默认类型', e)
+              }
+            }
+
+            const reader = new FileReader()
+            reader.readAsDataURL(blob)
+            dataUrl = await new Promise((resolve, reject) => {
+              reader.onload = () => {
+                if (reader.result && typeof reader.result === 'string') {
+                  // 如果检测到的类型与 blob 类型不同，替换 mime type
+                  if (detectedMimeType !== blob.type && detectedMimeType !== 'image/png') {
+                    const base64Match = reader.result.match(/^data:[^;]+;base64,(.+)$/)
+                    if (base64Match) {
+                      resolve(`data:${detectedMimeType};base64,${base64Match[1]}`)
+                    } else {
+                      resolve(reader.result)
+                    }
+                  } else {
+                    resolve(reader.result)
+                  }
+                } else {
+                  reject(new Error('读取图片数据失败'))
+                }
+              }
+              reader.onerror = () => reject(new Error('FileReader 错误'))
+            })
+            getLogger().debug(
+              `位图转换为 data URL 成功，长度: ${dataUrl.length}, 原始大小: ${blob.size} bytes, 类型: ${detectedMimeType}`
+            )
+          }
+
+          // 验证 data URL 格式
+          if (!dataUrl || !dataUrl.startsWith('data:')) {
+            throw new Error('生成的 data URL 格式不正确')
+          }
         }
+      } catch (error) {
+        getLogger().error(`图片转换失败: ${image_path}`, error)
+        eventBus.emit('show-error', `图片转换失败: ${image_path} - ${error.message}`)
+        // 转换失败时保持原路径
+        dataUrl = image_path
+      }
+      // 替换图片路径为 data URL
+      const newLine = line.replace(image_path, dataUrl)
+      new_md += newLine + '\n'
+    } else {
+      new_md += line + '\n'
     }
-    return new_md
+  }
+  return new_md
 }
 
+export async function image2local(md) {
+  //查找markdown里面所有的图片链接，读取图片，将路径替换为本地路径，返回经过替换后的markdown
+  const local_path = await getImagePath()
+  const lines = md.split('\n')
+  let new_md = ''
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    //把'http://localhost:52521/images/'替换成local_path
+    const match = line.match(/!\[.*?\]\((.*?)\)/)
+    if (match) {
+      const image_path = match[1]
 
-export async function image2local(md){
-    //查找markdown里面所有的图片链接，读取图片，将路径替换为本地路径，返回经过替换后的markdown
-    const local_path = await getImagePath()
-    const lines = md.split('\n')
-    let new_md = ''
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        //把'http://localhost:52521/images/'替换成local_path
-        const match = line.match(/!\[.*?\]\((.*?)\)/)
-        if (match) {
-            const image_path = match[1]
-            
-            let image_name = '';
-            
-            if (image_path.startsWith('http://localhost:52521/images/')) {
-                // HTTP URL，提取文件名
-                const prefix_len = 'http://localhost:52521/images/'.length;
-                image_name = image_path.slice(prefix_len);
-            } else if (image_path.startsWith('data:image/')) {
-                // Base64 图片，跳过（不需要转换为本地路径）
-                new_md += line + '\n';
-                continue;
-            } else {
-                // 其他格式，尝试提取文件名
-                image_name = image_path.split(/[/\\]/).pop() || image_path;
-            }
-            
-            // 使用 path.join 确保路径正确（跨平台兼容）
-            
-            const local_image_path = await getImagePath()
-            const local_image_url = local_image_path +'/'+ image_name
-            new_md += line.replace(image_path, local_image_url) + '\n'
-        } else {
-            new_md += line + '\n'
-        }
+      let image_name = ''
+
+      if (image_path.startsWith('http://localhost:52521/images/')) {
+        // HTTP URL，提取文件名
+        const prefix_len = 'http://localhost:52521/images/'.length
+        image_name = image_path.slice(prefix_len)
+      } else if (image_path.startsWith('data:image/')) {
+        // Base64 图片，跳过（不需要转换为本地路径）
+        new_md += line + '\n'
+        continue
+      } else {
+        // 其他格式，尝试提取文件名
+        image_name = image_path.split(/[/\\]/).pop() || image_path
+      }
+
+      // 使用 path.join 确保路径正确（跨平台兼容）
+
+      const local_image_path = await getImagePath()
+      const local_image_url = local_image_path + '/' + image_name
+      new_md += line.replace(image_path, local_image_url) + '\n'
+    } else {
+      new_md += line + '\n'
     }
-    return new_md
+  }
+  return new_md
 }
 /**
  * 将本地图片路径转换为 HTTP URL
@@ -1110,140 +1114,149 @@ export async function image2local(md){
  * @param docPath 可选，文档路径，用于解析相对路径
  * @returns 转换后的 Markdown 文本
  */
-export async function local2httpProtocol(md, docPath = ''){
+export async function local2httpProtocol(md, docPath = '') {
+  //把local_path替换成'http://localhost:52521/images/'
+
+  const local_path = await getImagePath()
+  const lines = md.split('\n')
+  let new_md = ''
+
+  // 使用统一的路径解析服务（在函数外部导入，避免重复导入）
+  // 注意：这里使用动态导入是因为 path-resolver 是 TypeScript 文件
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     //把local_path替换成'http://localhost:52521/images/'
-    
-    const local_path = await getImagePath()
-    const lines = md.split('\n')
-    let new_md = ''
-    
-    // 使用统一的路径解析服务（在函数外部导入，避免重复导入）
-    // 注意：这里使用动态导入是因为 path-resolver 是 TypeScript 文件
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        //把local_path替换成'http://localhost:52521/images/'
-        // 改进正则表达式，确保正确处理嵌套链接和 URL
-        // 匹配格式: ![alt](url) 或 ![alt text](url)
-        // 使用更精确的匹配，避免匹配到嵌套链接中的内容
-        const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
-        if (match) {
-            let image_path = match[2].trim() // 提取 URL 并去除首尾空格
-            
-            // 处理不同的路径格式：
-            // 1. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
-            // 2. 相对路径（./xxx.jpg 或 ../xxx.jpg）：先转换为绝对路径
-            // 3. local_path 下的本地路径：直接提取文件名并转换
-            // 4. 其他本地路径：先通过 API 上传，然后转换为 HTTP URL
-            
-            let server_url = '';
-            
-            if (image_path.startsWith('http://localhost:52521/images/')) {
-                // 已经是 HTTP URL，直接使用
-                new_md += line + '\n';
-                continue;
-            } else if (image_path.startsWith('http://') || image_path.startsWith('https://')) {
-                // 其他 HTTP/HTTPS URL，保持原样
-                new_md += line + '\n';
-                continue;
-            } else if (image_path.startsWith('data:')) {
-                // Base64 图片，保持原样
-                new_md += line + '\n';
-                continue;
-            } else {
-                // 所有路径都经过 path-resolver 处理（绝对路径会直接返回，相对路径会解析）
-                let resolvedImagePath = image_path;
-                
-                if (docPath) {
-                    // 使用统一的路径解析服务（同步函数，不需要 await）
-                    const { resolvePathWithLinkBase } = await import('./path-resolver');
-                    // 将 docPath 转换为 linkBase 格式（目录路径）
-                    const { getLinkBase } = await import('../stores/workspace');
-                    const linkBase = getLinkBase(docPath);
-                    resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath);
-                    //getLogger().debug(`路径解析结果: ${image_path} -> ${resolvedImagePath}`, { docPath, linkBase });
-                }
-                
-                // 本地路径处理
-                // 支持 Windows 路径（\）和 Unix 路径（/）
-                const normalizedLocalPath = local_path.replace(/\\/g, '/');
-                const normalizedImagePath = resolvedImagePath.replace(/\\/g, '/');
-                
-                // 判断是否在 local_path 下
-                const isInLocalPath = normalizedImagePath.startsWith(normalizedLocalPath + '/') || 
-                                     normalizedImagePath.startsWith(normalizedLocalPath);
-                
-                if (isInLocalPath) {
-                    // 在 local_path 下，直接提取文件名并转换
-                    let image_name = '';
-                    if (normalizedImagePath.startsWith(normalizedLocalPath + '/')) {
-                        image_name = normalizedImagePath.slice(normalizedLocalPath.length + 1);
-                    } else if (normalizedImagePath === normalizedLocalPath) {
-                        // 如果路径就是 local_path 本身（不太可能，但处理一下）
-                        image_name = resolvedImagePath.split(/[/\\]/).pop();
-                    } else {
-                        image_name = normalizedImagePath.slice(normalizedLocalPath.length);
-                    }
-                    server_url = 'http://localhost:52521/images/' + image_name;
-                } else {
-                    // 不在 local_path 下，需要通过 API 上传
-                    // 注意：这里使用解析后的绝对路径（如果之前是相对路径，已经转换了）
-                    try {
-                        getLogger().debug(`上传图片: ${resolvedImagePath}`, { originalPath: image_path, docPath });
-                        const response = await fetch('http://localhost:52521/api/image/url-upload', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ url: resolvedImagePath }),
-                        });
-                        
-                        if (!response.ok) {
-                            // 如果是 404 错误，说明文件不存在，保持原路径
-                            if (response.status === 404) {
-                                getLogger().warn(`图片文件不存在，保持原路径: ${resolvedImagePath}`, { originalPath: image_path });
-                                // 保持原路径，不进行转换
-                                new_md += line + '\n';
-                                continue;
-                            }
-                            throw new Error(`上传失败: ${response.status}`);
-                        }
-                        
-                        const result = await response.json();
-                        if (result.code === 0 && result.data && result.data.url) {
-                            // 从返回的服务器路径中提取文件名
-                            // result.data.url 格式类似: C:\Users\...\Pictures\meta-doc-imgs\1234567890.jpg
-                            const serverPath = result.data.url;
-                            const fileName = serverPath.split(/[/\\]/).pop();
-                            server_url = 'http://localhost:52521/images/' + fileName;
-                        } else {
-                            throw new Error(result.error || '上传失败');
-                        }
-                    } catch (error) {
-                        // 如果是 404 错误（文件不存在），保持原路径
-                        if (error.message && error.message.includes('404')) {
-                            getLogger().warn(`图片文件不存在，保持原路径: ${resolvedImagePath}`, { originalPath: image_path, error: error.message });
-                            // 保持原路径，不进行转换
-                            new_md += line + '\n';
-                            continue;
-                        }
-                        getLogger().error(`图片上传失败: ${resolvedImagePath}`, error);
-                        eventBus.emit('show-error', `图片上传失败: ${resolvedImagePath} - ${error.message}`);
-                        // 上传失败时，保持原路径（不再尝试使用文件名作为回退方案，因为文件可能不存在）
-                        new_md += line + '\n';
-                        continue;
-                    }
-                }
-            }
-            
-            // 修复：应该替换 match[2]（图片路径），而不是 match[1]（alt 文本）
-            new_md += line.replace(match[2], server_url) + '\n'
-        } else {
-            new_md += line + '\n'
+    // 改进正则表达式，确保正确处理嵌套链接和 URL
+    // 匹配格式: ![alt](url) 或 ![alt text](url)
+    // 使用更精确的匹配，避免匹配到嵌套链接中的内容
+    const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
+    if (match) {
+      let image_path = match[2].trim() // 提取 URL 并去除首尾空格
+
+      // 处理不同的路径格式：
+      // 1. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
+      // 2. 相对路径（./xxx.jpg 或 ../xxx.jpg）：先转换为绝对路径
+      // 3. local_path 下的本地路径：直接提取文件名并转换
+      // 4. 其他本地路径：先通过 API 上传，然后转换为 HTTP URL
+
+      let server_url = ''
+
+      if (image_path.startsWith('http://localhost:52521/images/')) {
+        // 已经是 HTTP URL，直接使用
+        new_md += line + '\n'
+        continue
+      } else if (image_path.startsWith('http://') || image_path.startsWith('https://')) {
+        // 其他 HTTP/HTTPS URL，保持原样
+        new_md += line + '\n'
+        continue
+      } else if (image_path.startsWith('data:')) {
+        // Base64 图片，保持原样
+        new_md += line + '\n'
+        continue
+      } else {
+        // 所有路径都经过 path-resolver 处理（绝对路径会直接返回，相对路径会解析）
+        let resolvedImagePath = image_path
+
+        if (docPath) {
+          // 使用统一的路径解析服务（同步函数，不需要 await）
+          const { resolvePathWithLinkBase } = await import('./path-resolver')
+          // 将 docPath 转换为 linkBase 格式（目录路径）
+          const { getLinkBase } = await import('../stores/workspace')
+          const linkBase = getLinkBase(docPath)
+          resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath)
+          //getLogger().debug(`路径解析结果: ${image_path} -> ${resolvedImagePath}`, { docPath, linkBase });
         }
+
+        // 本地路径处理
+        // 支持 Windows 路径（\）和 Unix 路径（/）
+        const normalizedLocalPath = local_path.replace(/\\/g, '/')
+        const normalizedImagePath = resolvedImagePath.replace(/\\/g, '/')
+
+        // 判断是否在 local_path 下
+        const isInLocalPath =
+          normalizedImagePath.startsWith(normalizedLocalPath + '/') ||
+          normalizedImagePath.startsWith(normalizedLocalPath)
+
+        if (isInLocalPath) {
+          // 在 local_path 下，直接提取文件名并转换
+          let image_name = ''
+          if (normalizedImagePath.startsWith(normalizedLocalPath + '/')) {
+            image_name = normalizedImagePath.slice(normalizedLocalPath.length + 1)
+          } else if (normalizedImagePath === normalizedLocalPath) {
+            // 如果路径就是 local_path 本身（不太可能，但处理一下）
+            image_name = resolvedImagePath.split(/[/\\]/).pop()
+          } else {
+            image_name = normalizedImagePath.slice(normalizedLocalPath.length)
+          }
+          server_url = 'http://localhost:52521/images/' + image_name
+        } else {
+          // 不在 local_path 下，需要通过 API 上传
+          // 注意：这里使用解析后的绝对路径（如果之前是相对路径，已经转换了）
+          try {
+            getLogger().debug(`上传图片: ${resolvedImagePath}`, {
+              originalPath: image_path,
+              docPath
+            })
+            const response = await fetch('http://localhost:52521/api/image/url-upload', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ url: resolvedImagePath })
+            })
+
+            if (!response.ok) {
+              // 如果是 404 错误，说明文件不存在，保持原路径
+              if (response.status === 404) {
+                getLogger().warn(`图片文件不存在，保持原路径: ${resolvedImagePath}`, {
+                  originalPath: image_path
+                })
+                // 保持原路径，不进行转换
+                new_md += line + '\n'
+                continue
+              }
+              throw new Error(`上传失败: ${response.status}`)
+            }
+
+            const result = await response.json()
+            if (result.code === 0 && result.data && result.data.url) {
+              // 从返回的服务器路径中提取文件名
+              // result.data.url 格式类似: C:\Users\...\Pictures\meta-doc-imgs\1234567890.jpg
+              const serverPath = result.data.url
+              const fileName = serverPath.split(/[/\\]/).pop()
+              server_url = 'http://localhost:52521/images/' + fileName
+            } else {
+              throw new Error(result.error || '上传失败')
+            }
+          } catch (error) {
+            // 如果是 404 错误（文件不存在），保持原路径
+            if (error.message && error.message.includes('404')) {
+              getLogger().warn(`图片文件不存在，保持原路径: ${resolvedImagePath}`, {
+                originalPath: image_path,
+                error: error.message
+              })
+              // 保持原路径，不进行转换
+              new_md += line + '\n'
+              continue
+            }
+            getLogger().error(`图片上传失败: ${resolvedImagePath}`, error)
+            eventBus.emit('show-error', `图片上传失败: ${resolvedImagePath} - ${error.message}`)
+            // 上传失败时，保持原路径（不再尝试使用文件名作为回退方案，因为文件可能不存在）
+            new_md += line + '\n'
+            continue
+          }
+        }
+      }
+
+      // 修复：应该替换 match[2]（图片路径），而不是 match[1]（alt 文本）
+      new_md += line.replace(match[2], server_url) + '\n'
+    } else {
+      new_md += line + '\n'
     }
-    //console.log(new_md);
-    return new_md
+  }
+  //console.log(new_md);
+  return new_md
 }
 
 /**
@@ -1252,106 +1265,109 @@ export async function local2httpProtocol(md, docPath = ''){
  * @param docPath 可选，文档路径，用于解析相对路径
  * @returns 转换后的 Markdown 文本
  */
-export async function local2fileProtocol(md, docPath = ''){
-    const lines = md.split('\n')
-    let new_md = ''
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        // 匹配格式: ![alt](url) 或 ![alt text](url)
-        const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
-        if (match) {
-            let image_path = match[2].trim() // 提取 URL 并去除首尾空格
-            
-            // 如果已经是 HTTP/HTTPS URL、data URL 或 file:// 协议，保持原样
-            if (image_path.startsWith('http://') || 
-                image_path.startsWith('https://') || 
-                image_path.startsWith('data:') ||
-                image_path.startsWith('file://')) {
-                new_md += line + '\n';
-                continue;
-            }
-            
-            // 处理相对路径
-            let resolvedImagePath = image_path;
-            if (docPath) {
-                try {
-                    // 使用统一的路径解析服务
-                    const { resolvePathWithLinkBase } = await import('./path-resolver');
-                    const { getLinkBase } = await import('../stores/workspace');
-                    const linkBase = getLinkBase(docPath);
-                    resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath);
-                } catch (error) {
-                    getLogger().warn('路径解析失败，使用原始路径', error);
-                }
-            }
-            
-            // 转换为 file:// 协议
-            // Windows 路径处理：C:\path\to\file -> file:///C:/path/to/file
-            // Unix 路径处理：/path/to/file -> file:///path/to/file
-            let fileUrl = resolvedImagePath;
-            
-            // 统一使用正斜杠
-            fileUrl = fileUrl.replace(/\\/g, '/');
-            
-            // 如果是 Windows 路径（如 C:/path），转换为 file:///C:/path
-            if (/^[A-Za-z]:/.test(fileUrl)) {
-                // Windows 路径：C:/path -> file:///C:/path
-                // 注意：file:// 协议在 Windows 上需要三个斜杠：file:///C:/path
-                fileUrl = 'file:///' + fileUrl;
-            } else if (fileUrl.startsWith('/')) {
-                // Unix 绝对路径：/path -> file:///path
-                fileUrl = 'file://' + fileUrl;
-            } else {
-                // 相对路径：保持原样（或者可以基于 docPath 转换为绝对路径）
-                // 这里我们保持原样，因为相对路径在浏览器中可能无法正确解析
-                new_md += line + '\n';
-                continue;
-            }
-            
-            // 对路径进行编码
-            // Windows 路径格式：file:///C:/Users/...
-            // 需要将路径的每一部分编码，但保持驱动器号和斜杠
-            let encodedFileUrl = fileUrl;
-            
-            if (/^file:\/\/\/[A-Za-z]:/.test(fileUrl)) {
-                // Windows 路径：file:///C:/Users/...
-                // 提取协议、驱动器号和路径部分
-                const match = fileUrl.match(/^(file:\/\/\/)([A-Za-z]:)(\/.*)$/);
-                if (match) {
-                    const [, protocol, drive, path] = match;
-                    // 对路径的每一部分进行编码，但保持斜杠
-                    const encodedPath = path.split('/').map(part => 
-                        part ? encodeURIComponent(part) : ''
-                    ).join('/');
-                    encodedFileUrl = protocol + drive + encodedPath;
-                }
-            } else {
-                // Unix 路径或其他情况
-                // 对路径的每一部分进行编码
-                const parts = fileUrl.split('/');
-                const encodedParts = parts.map((part, index) => {
-                    if (index === 0) {
-                        // file:// 保持不变
-                        return part;
-                    }
-                    if (index === 1 && part === '') {
-                        // 空部分（file:// 后的第一个空部分）保持不变
-                        return part;
-                    }
-                    // 对其他部分进行编码
-                    return part ? encodeURIComponent(part) : '';
-                });
-                encodedFileUrl = encodedParts.join('/');
-            }
-            
-            // 替换图片路径为 file:// URL
-            new_md += line.replace(match[2], encodedFileUrl) + '\n'
-        } else {
-            new_md += line + '\n'
+export async function local2fileProtocol(md, docPath = '') {
+  const lines = md.split('\n')
+  let new_md = ''
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    // 匹配格式: ![alt](url) 或 ![alt text](url)
+    const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
+    if (match) {
+      let image_path = match[2].trim() // 提取 URL 并去除首尾空格
+
+      // 如果已经是 HTTP/HTTPS URL、data URL 或 file:// 协议，保持原样
+      if (
+        image_path.startsWith('http://') ||
+        image_path.startsWith('https://') ||
+        image_path.startsWith('data:') ||
+        image_path.startsWith('file://')
+      ) {
+        new_md += line + '\n'
+        continue
+      }
+
+      // 处理相对路径
+      let resolvedImagePath = image_path
+      if (docPath) {
+        try {
+          // 使用统一的路径解析服务
+          const { resolvePathWithLinkBase } = await import('./path-resolver')
+          const { getLinkBase } = await import('../stores/workspace')
+          const linkBase = getLinkBase(docPath)
+          resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath)
+        } catch (error) {
+          getLogger().warn('路径解析失败，使用原始路径', error)
         }
+      }
+
+      // 转换为 file:// 协议
+      // Windows 路径处理：C:\path\to\file -> file:///C:/path/to/file
+      // Unix 路径处理：/path/to/file -> file:///path/to/file
+      let fileUrl = resolvedImagePath
+
+      // 统一使用正斜杠
+      fileUrl = fileUrl.replace(/\\/g, '/')
+
+      // 如果是 Windows 路径（如 C:/path），转换为 file:///C:/path
+      if (/^[A-Za-z]:/.test(fileUrl)) {
+        // Windows 路径：C:/path -> file:///C:/path
+        // 注意：file:// 协议在 Windows 上需要三个斜杠：file:///C:/path
+        fileUrl = 'file:///' + fileUrl
+      } else if (fileUrl.startsWith('/')) {
+        // Unix 绝对路径：/path -> file:///path
+        fileUrl = 'file://' + fileUrl
+      } else {
+        // 相对路径：保持原样（或者可以基于 docPath 转换为绝对路径）
+        // 这里我们保持原样，因为相对路径在浏览器中可能无法正确解析
+        new_md += line + '\n'
+        continue
+      }
+
+      // 对路径进行编码
+      // Windows 路径格式：file:///C:/Users/...
+      // 需要将路径的每一部分编码，但保持驱动器号和斜杠
+      let encodedFileUrl = fileUrl
+
+      if (/^file:\/\/\/[A-Za-z]:/.test(fileUrl)) {
+        // Windows 路径：file:///C:/Users/...
+        // 提取协议、驱动器号和路径部分
+        const match = fileUrl.match(/^(file:\/\/\/)([A-Za-z]:)(\/.*)$/)
+        if (match) {
+          const [, protocol, drive, path] = match
+          // 对路径的每一部分进行编码，但保持斜杠
+          const encodedPath = path
+            .split('/')
+            .map((part) => (part ? encodeURIComponent(part) : ''))
+            .join('/')
+          encodedFileUrl = protocol + drive + encodedPath
+        }
+      } else {
+        // Unix 路径或其他情况
+        // 对路径的每一部分进行编码
+        const parts = fileUrl.split('/')
+        const encodedParts = parts.map((part, index) => {
+          if (index === 0) {
+            // file:// 保持不变
+            return part
+          }
+          if (index === 1 && part === '') {
+            // 空部分（file:// 后的第一个空部分）保持不变
+            return part
+          }
+          // 对其他部分进行编码
+          return part ? encodeURIComponent(part) : ''
+        })
+        encodedFileUrl = encodedParts.join('/')
+      }
+
+      // 替换图片路径为 file:// URL
+      new_md += line.replace(match[2], encodedFileUrl) + '\n'
+    } else {
+      new_md += line + '\n'
     }
-    return new_md
+  }
+  return new_md
 }
 
 /**
@@ -1361,116 +1377,119 @@ export async function local2fileProtocol(md, docPath = ''){
  * @param docPath 可选，文档路径，用于解析相对路径
  * @returns 转换后的 Markdown 文本
  */
-export async function local2fileProtocolForHtml(md, docPath = ''){
-    const { getImagePath } = await import('./settings')
-    const local_path = await getImagePath()
-    const lines = md.split('\n')
-    let new_md = ''
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        // 匹配格式: ![alt](url) 或 ![alt text](url)
-        const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
-        if (match) {
-            let image_path = match[2].trim() // 提取 URL 并去除首尾空格
-            
-            // 如果已经是 http(s) 网络链接、data URL 或 file:// 协议，保持原样
-            if ((image_path.startsWith('http://') && !image_path.startsWith('http://localhost:52521/')) || 
-                image_path.startsWith('https://') || 
-                image_path.startsWith('data:') ||
-                image_path.startsWith('file://')) {
-                new_md += line + '\n';
-                continue;
-            }
-            
-            // 处理 localhost:52521 的 URL 或系统路径
-            let resolvedImagePath = image_path;
-            
-            // 如果是 localhost:52521 的 URL，转换为本地路径
-            if (image_path.startsWith('http://localhost:52521/images/')) {
-                const imageName = image_path.replace('http://localhost:52521/images/', '');
-                resolvedImagePath = local_path.replace(/\\/g, '/') + '/' + imageName;
-            } else {
-                // 处理相对路径
-                if (docPath) {
-                    try {
-                        // 使用统一的路径解析服务
-                        const { resolvePathWithLinkBase } = await import('./path-resolver');
-                        const { getLinkBase } = await import('../stores/workspace');
-                        const linkBase = getLinkBase(docPath);
-                        resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath);
-                    } catch (error) {
-                        getLogger().warn('路径解析失败，使用原始路径', error);
-                    }
-                }
-            }
-            
-            // 转换为 file:// 协议
-            // Windows 路径处理：C:\path\to\file -> file:///C:/path/to/file
-            // Unix 路径处理：/path/to/file -> file:///path/to/file
-            let fileUrl = resolvedImagePath;
-            
-            // 统一使用正斜杠
-            fileUrl = fileUrl.replace(/\\/g, '/');
-            
-            // 如果是 Windows 路径（如 C:/path），转换为 file:///C:/path
-            if (/^[A-Za-z]:/.test(fileUrl)) {
-                // Windows 路径：C:/path -> file:///C:/path
-                // 注意：file:// 协议在 Windows 上需要三个斜杠：file:///C:/path
-                fileUrl = 'file:///' + fileUrl;
-            } else if (fileUrl.startsWith('/')) {
-                // Unix 绝对路径：/path -> file:///path
-                fileUrl = 'file://' + fileUrl;
-            } else {
-                // 相对路径：保持原样（或者可以基于 docPath 转换为绝对路径）
-                // 这里我们保持原样，因为相对路径在浏览器中可能无法正确解析
-                new_md += line + '\n';
-                continue;
-            }
-            
-            // 对路径进行编码
-            // Windows 路径格式：file:///C:/Users/...
-            // 需要将路径的每一部分编码，但保持驱动器号和斜杠
-            let encodedFileUrl = fileUrl;
-            
-            if (/^file:\/\/\/[A-Za-z]:/.test(fileUrl)) {
-                // Windows 路径：file:///C:/Users/...
-                // 提取协议、驱动器号和路径部分
-                const match = fileUrl.match(/^(file:\/\/\/)([A-Za-z]:)(\/.*)$/);
-                if (match) {
-                    const [, protocol, drive, path] = match;
-                    // 对路径的每一部分进行编码，但保持斜杠
-                    const encodedPath = path.split('/').map(part => 
-                        part ? encodeURIComponent(part) : ''
-                    ).join('/');
-                    encodedFileUrl = protocol + drive + encodedPath;
-                }
-            } else {
-                // Unix 路径或其他情况
-                // 对路径的每一部分进行编码
-                const parts = fileUrl.split('/');
-                const encodedParts = parts.map((part, index) => {
-                    if (index === 0) {
-                        // file:// 保持不变
-                        return part;
-                    }
-                    if (index === 1 && part === '') {
-                        // 空部分（file:// 后的第一个空部分）保持不变
-                        return part;
-                    }
-                    // 对其他部分进行编码
-                    return part ? encodeURIComponent(part) : '';
-                });
-                encodedFileUrl = encodedParts.join('/');
-            }
-            
-            // 替换图片路径为 file:// URL
-            new_md += line.replace(match[2], encodedFileUrl) + '\n'
-        } else {
-            new_md += line + '\n'
+export async function local2fileProtocolForHtml(md, docPath = '') {
+  const { getImagePath } = await import('./settings')
+  const local_path = await getImagePath()
+  const lines = md.split('\n')
+  let new_md = ''
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    // 匹配格式: ![alt](url) 或 ![alt text](url)
+    const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
+    if (match) {
+      let image_path = match[2].trim() // 提取 URL 并去除首尾空格
+
+      // 如果已经是 http(s) 网络链接、data URL 或 file:// 协议，保持原样
+      if (
+        (image_path.startsWith('http://') && !image_path.startsWith('http://localhost:52521/')) ||
+        image_path.startsWith('https://') ||
+        image_path.startsWith('data:') ||
+        image_path.startsWith('file://')
+      ) {
+        new_md += line + '\n'
+        continue
+      }
+
+      // 处理 localhost:52521 的 URL 或系统路径
+      let resolvedImagePath = image_path
+
+      // 如果是 localhost:52521 的 URL，转换为本地路径
+      if (image_path.startsWith('http://localhost:52521/images/')) {
+        const imageName = image_path.replace('http://localhost:52521/images/', '')
+        resolvedImagePath = local_path.replace(/\\/g, '/') + '/' + imageName
+      } else {
+        // 处理相对路径
+        if (docPath) {
+          try {
+            // 使用统一的路径解析服务
+            const { resolvePathWithLinkBase } = await import('./path-resolver')
+            const { getLinkBase } = await import('../stores/workspace')
+            const linkBase = getLinkBase(docPath)
+            resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath)
+          } catch (error) {
+            getLogger().warn('路径解析失败，使用原始路径', error)
+          }
         }
+      }
+
+      // 转换为 file:// 协议
+      // Windows 路径处理：C:\path\to\file -> file:///C:/path/to/file
+      // Unix 路径处理：/path/to/file -> file:///path/to/file
+      let fileUrl = resolvedImagePath
+
+      // 统一使用正斜杠
+      fileUrl = fileUrl.replace(/\\/g, '/')
+
+      // 如果是 Windows 路径（如 C:/path），转换为 file:///C:/path
+      if (/^[A-Za-z]:/.test(fileUrl)) {
+        // Windows 路径：C:/path -> file:///C:/path
+        // 注意：file:// 协议在 Windows 上需要三个斜杠：file:///C:/path
+        fileUrl = 'file:///' + fileUrl
+      } else if (fileUrl.startsWith('/')) {
+        // Unix 绝对路径：/path -> file:///path
+        fileUrl = 'file://' + fileUrl
+      } else {
+        // 相对路径：保持原样（或者可以基于 docPath 转换为绝对路径）
+        // 这里我们保持原样，因为相对路径在浏览器中可能无法正确解析
+        new_md += line + '\n'
+        continue
+      }
+
+      // 对路径进行编码
+      // Windows 路径格式：file:///C:/Users/...
+      // 需要将路径的每一部分编码，但保持驱动器号和斜杠
+      let encodedFileUrl = fileUrl
+
+      if (/^file:\/\/\/[A-Za-z]:/.test(fileUrl)) {
+        // Windows 路径：file:///C:/Users/...
+        // 提取协议、驱动器号和路径部分
+        const match = fileUrl.match(/^(file:\/\/\/)([A-Za-z]:)(\/.*)$/)
+        if (match) {
+          const [, protocol, drive, path] = match
+          // 对路径的每一部分进行编码，但保持斜杠
+          const encodedPath = path
+            .split('/')
+            .map((part) => (part ? encodeURIComponent(part) : ''))
+            .join('/')
+          encodedFileUrl = protocol + drive + encodedPath
+        }
+      } else {
+        // Unix 路径或其他情况
+        // 对路径的每一部分进行编码
+        const parts = fileUrl.split('/')
+        const encodedParts = parts.map((part, index) => {
+          if (index === 0) {
+            // file:// 保持不变
+            return part
+          }
+          if (index === 1 && part === '') {
+            // 空部分（file:// 后的第一个空部分）保持不变
+            return part
+          }
+          // 对其他部分进行编码
+          return part ? encodeURIComponent(part) : ''
+        })
+        encodedFileUrl = encodedParts.join('/')
+      }
+
+      // 替换图片路径为 file:// URL
+      new_md += line.replace(match[2], encodedFileUrl) + '\n'
+    } else {
+      new_md += line + '\n'
     }
-    return new_md
+  }
+  return new_md
 }
 
 /**
@@ -1479,134 +1498,140 @@ export async function local2fileProtocolForHtml(md, docPath = ''){
  * @param docPath 可选，文档路径，用于解析相对路径
  * @returns 转换后的 Markdown 文本
  */
-export async function downloadAndUploadNetworkImages(md, docPath = ''){
-    const lines = md.split('\n')
-    let new_md = ''
-    
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        // 匹配格式: ![alt](url) 或 ![alt text](url)
-        const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
-        if (match) {
-            let image_path = match[2].trim() // 提取 URL 并去除首尾空格
-            
-            // 检查是否是网络图片（http(s)但不是localhost:52521）
-            const isNetworkImage = (image_path.startsWith('http://') && !image_path.startsWith('http://localhost:52521/')) || 
-                                  image_path.startsWith('https://');
-            
-            // 检查是否是 data: URL 或 blob: URL（图表渲染后的图片）
-            const isDataUrl = image_path.startsWith('data:');
-            const isBlobUrl = image_path.startsWith('blob:');
-            
-            if (isNetworkImage) {
-                // 下载网络图片并上传到本地服务
-                try {
-                    getLogger().debug(`下载并上传网络图片: ${image_path}`);
-                    const response = await fetch('http://localhost:52521/api/image/url-upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ url: image_path }),
-                    });
-                    
-                    if (!response.ok) {
-                        getLogger().warn(`网络图片上传失败: ${image_path}`, { status: response.status });
-                        // 上传失败时保持原URL
-                        new_md += line + '\n';
-                        continue;
-                    }
-                    
-                    const result = await response.json();
-                    if (result.code === 0 && result.data && result.data.url) {
-                        // 从返回的服务器路径中提取文件名
-                        const serverPath = result.data.url;
-                        const fileName = serverPath.split(/[/\\]/).pop();
-                        const server_url = 'http://localhost:52521/images/' + fileName;
-                        // 替换为本地URL - 使用完整的匹配来确保正确替换
-                        const newLine = line.replace(match[0], `![${match[1]}](${server_url})`);
-                        new_md += newLine + '\n';
-                        getLogger().debug(`网络图片已上传: ${image_path} -> ${server_url}`);
-                    } else {
-                        throw new Error(result.error || '上传失败');
-                    }
-                } catch (error) {
-                    getLogger().error(`网络图片处理失败: ${image_path}`, error);
-                    // 处理失败时保持原URL
-                    new_md += line + '\n';
-                }
-            } else if (isDataUrl || isBlobUrl) {
-                // 处理 data: URL 或 blob: URL（图表渲染后的图片）
-                try {
-                    getLogger().debug(`上传 ${isDataUrl ? 'data' : 'blob'} URL 图片到本地服务`);
-                    
-                    let blob;
-                    if (isDataUrl) {
-                        // 将 data URL 转换为 Blob
-                        const response = await fetch(image_path);
-                        blob = await response.blob();
-                    } else {
-                        // 将 blob URL 转换为 Blob
-                        const response = await fetch(image_path);
-                        blob = await response.blob();
-                    }
-                    
-                    // 确定文件扩展名
-                    let ext = 'png';
-                    if (blob.type) {
-                        if (blob.type.includes('svg')) {
-                            ext = 'svg';
-                        } else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) {
-                            ext = 'jpg';
-                        } else if (blob.type.includes('gif')) {
-                            ext = 'gif';
-                        } else if (blob.type.includes('webp')) {
-                            ext = 'webp';
-                        }
-                    }
-                    
-                    // 生成文件名（使用时间戳避免冲突）
-                    const fileName = `chart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${ext}`;
-                    
-                    // 上传到本地服务器
-                    const formData = new FormData();
-                    const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
-                    formData.append('file[]', file, fileName);
-                    
-                    const uploadResponse = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
-                        method: 'POST',
-                        body: formData,
-                    });
-                    
-                    if (!uploadResponse.ok) {
-                        throw new Error(`上传失败: ${uploadResponse.status}`);
-                    }
-                    
-                    const uploadResult = await uploadResponse.json();
-                    if (uploadResult.code === 0 && uploadResult.data && uploadResult.data.succMap) {
-                        const uploadedFileName = Object.keys(uploadResult.data.succMap)[0] || fileName;
-                        const server_url = 'http://localhost:52521/images/' + uploadedFileName;
-                        // 替换为本地URL
-                        const newLine = line.replace(match[0], `![${match[1]}](${server_url})`);
-                        new_md += newLine + '\n';
-                        getLogger().debug(`${isDataUrl ? 'data' : 'blob'} URL 图片已上传: ${image_path.substring(0, 50)}... -> ${server_url}`);
-                    } else {
-                        throw new Error(uploadResult.error || '上传失败');
-                    }
-                } catch (error) {
-                    getLogger().error(`${isDataUrl ? 'data' : 'blob'} URL 图片处理失败: ${image_path.substring(0, 50)}...`, error);
-                    // 处理失败时保持原URL
-                    new_md += line + '\n';
-                }
-            } else {
-                // 非网络图片，保持原样
-                new_md += line + '\n';
-            }
-        } else {
+export async function downloadAndUploadNetworkImages(md, docPath = '') {
+  const lines = md.split('\n')
+  let new_md = ''
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    // 匹配格式: ![alt](url) 或 ![alt text](url)
+    const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
+    if (match) {
+      let image_path = match[2].trim() // 提取 URL 并去除首尾空格
+
+      // 检查是否是网络图片（http(s)但不是localhost:52521）
+      const isNetworkImage =
+        (image_path.startsWith('http://') && !image_path.startsWith('http://localhost:52521/')) ||
+        image_path.startsWith('https://')
+
+      // 检查是否是 data: URL 或 blob: URL（图表渲染后的图片）
+      const isDataUrl = image_path.startsWith('data:')
+      const isBlobUrl = image_path.startsWith('blob:')
+
+      if (isNetworkImage) {
+        // 下载网络图片并上传到本地服务
+        try {
+          getLogger().debug(`下载并上传网络图片: ${image_path}`)
+          const response = await fetch('http://localhost:52521/api/image/url-upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: image_path })
+          })
+
+          if (!response.ok) {
+            getLogger().warn(`网络图片上传失败: ${image_path}`, { status: response.status })
+            // 上传失败时保持原URL
             new_md += line + '\n'
+            continue
+          }
+
+          const result = await response.json()
+          if (result.code === 0 && result.data && result.data.url) {
+            // 从返回的服务器路径中提取文件名
+            const serverPath = result.data.url
+            const fileName = serverPath.split(/[/\\]/).pop()
+            const server_url = 'http://localhost:52521/images/' + fileName
+            // 替换为本地URL - 使用完整的匹配来确保正确替换
+            const newLine = line.replace(match[0], `![${match[1]}](${server_url})`)
+            new_md += newLine + '\n'
+            getLogger().debug(`网络图片已上传: ${image_path} -> ${server_url}`)
+          } else {
+            throw new Error(result.error || '上传失败')
+          }
+        } catch (error) {
+          getLogger().error(`网络图片处理失败: ${image_path}`, error)
+          // 处理失败时保持原URL
+          new_md += line + '\n'
         }
+      } else if (isDataUrl || isBlobUrl) {
+        // 处理 data: URL 或 blob: URL（图表渲染后的图片）
+        try {
+          getLogger().debug(`上传 ${isDataUrl ? 'data' : 'blob'} URL 图片到本地服务`)
+
+          let blob
+          if (isDataUrl) {
+            // 将 data URL 转换为 Blob
+            const response = await fetch(image_path)
+            blob = await response.blob()
+          } else {
+            // 将 blob URL 转换为 Blob
+            const response = await fetch(image_path)
+            blob = await response.blob()
+          }
+
+          // 确定文件扩展名
+          let ext = 'png'
+          if (blob.type) {
+            if (blob.type.includes('svg')) {
+              ext = 'svg'
+            } else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) {
+              ext = 'jpg'
+            } else if (blob.type.includes('gif')) {
+              ext = 'gif'
+            } else if (blob.type.includes('webp')) {
+              ext = 'webp'
+            }
+          }
+
+          // 生成文件名（使用时间戳避免冲突）
+          const fileName = `chart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${ext}`
+
+          // 上传到本地服务器
+          const formData = new FormData()
+          const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' })
+          formData.append('file[]', file, fileName)
+
+          const uploadResponse = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+            method: 'POST',
+            body: formData
+          })
+
+          if (!uploadResponse.ok) {
+            throw new Error(`上传失败: ${uploadResponse.status}`)
+          }
+
+          const uploadResult = await uploadResponse.json()
+          if (uploadResult.code === 0 && uploadResult.data && uploadResult.data.succMap) {
+            const uploadedFileName = Object.keys(uploadResult.data.succMap)[0] || fileName
+            const server_url = 'http://localhost:52521/images/' + uploadedFileName
+            // 替换为本地URL
+            const newLine = line.replace(match[0], `![${match[1]}](${server_url})`)
+            new_md += newLine + '\n'
+            getLogger().debug(
+              `${isDataUrl ? 'data' : 'blob'} URL 图片已上传: ${image_path.substring(0, 50)}... -> ${server_url}`
+            )
+          } else {
+            throw new Error(uploadResult.error || '上传失败')
+          }
+        } catch (error) {
+          getLogger().error(
+            `${isDataUrl ? 'data' : 'blob'} URL 图片处理失败: ${image_path.substring(0, 50)}...`,
+            error
+          )
+          // 处理失败时保持原URL
+          new_md += line + '\n'
+        }
+      } else {
+        // 非网络图片，保持原样
+        new_md += line + '\n'
+      }
+    } else {
+      new_md += line + '\n'
     }
-    return new_md
+  }
+  return new_md
 }
 
 /**
@@ -1615,75 +1640,78 @@ export async function downloadAndUploadNetworkImages(md, docPath = ''){
  * @param html HTML 文本
  * @returns 转换后的 HTML 文本
  */
-export async function local2fileProtocolForHtmlInHtml(html){
-    const { getImagePath } = await import('./settings')
-    const local_path = await getImagePath()
-    
-    // 处理 HTML 中的图片链接
-    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-    let processedHtml = html;
-    
-    processedHtml = processedHtml.replace(imgRegex, (match, src) => {
-        // 如果是 localhost:52521 的 URL，转换为 file 协议
-        if (src.startsWith('http://localhost:52521/images/')) {
-            const imageName = src.replace('http://localhost:52521/images/', '');
-            const resolvedImagePath = local_path.replace(/\\/g, '/') + '/' + imageName;
-            
-            // 转换为 file:// 协议
-            let fileUrl = resolvedImagePath;
-            
-            // 统一使用正斜杠
-            fileUrl = fileUrl.replace(/\\/g, '/');
-            
-            // 如果是 Windows 路径（如 C:/path），转换为 file:///C:/path
-            if (/^[A-Za-z]:/.test(fileUrl)) {
-                fileUrl = 'file:///' + fileUrl;
-            } else if (fileUrl.startsWith('/')) {
-                fileUrl = 'file://' + fileUrl;
-            } else {
-                // 相对路径：保持原样
-                return match;
-            }
-            
-            // 对路径进行编码
-            let encodedFileUrl = fileUrl;
-            
-            if (/^file:\/\/\/[A-Za-z]:/.test(fileUrl)) {
-                const match = fileUrl.match(/^(file:\/\/\/)([A-Za-z]:)(\/.*)$/);
-                if (match) {
-                    const [, protocol, drive, path] = match;
-                    const encodedPath = path.split('/').map(part => 
-                        part ? encodeURIComponent(part) : ''
-                    ).join('/');
-                    encodedFileUrl = protocol + drive + encodedPath;
-                }
-            } else {
-                const parts = fileUrl.split('/');
-                const encodedParts = parts.map((part, index) => {
-                    if (index === 0) {
-                        return part;
-                    }
-                    if (index === 1 && part === '') {
-                        return part;
-                    }
-                    return part ? encodeURIComponent(part) : '';
-                });
-                encodedFileUrl = encodedParts.join('/');
-            }
-            
-            // 替换 src 属性
-            return match.replace(src, encodedFileUrl);
+export async function local2fileProtocolForHtmlInHtml(html) {
+  const { getImagePath } = await import('./settings')
+  const local_path = await getImagePath()
+
+  // 处理 HTML 中的图片链接
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+  let processedHtml = html
+
+  processedHtml = processedHtml.replace(imgRegex, (match, src) => {
+    // 如果是 localhost:52521 的 URL，转换为 file 协议
+    if (src.startsWith('http://localhost:52521/images/')) {
+      const imageName = src.replace('http://localhost:52521/images/', '')
+      const resolvedImagePath = local_path.replace(/\\/g, '/') + '/' + imageName
+
+      // 转换为 file:// 协议
+      let fileUrl = resolvedImagePath
+
+      // 统一使用正斜杠
+      fileUrl = fileUrl.replace(/\\/g, '/')
+
+      // 如果是 Windows 路径（如 C:/path），转换为 file:///C:/path
+      if (/^[A-Za-z]:/.test(fileUrl)) {
+        fileUrl = 'file:///' + fileUrl
+      } else if (fileUrl.startsWith('/')) {
+        fileUrl = 'file://' + fileUrl
+      } else {
+        // 相对路径：保持原样
+        return match
+      }
+
+      // 对路径进行编码
+      let encodedFileUrl = fileUrl
+
+      if (/^file:\/\/\/[A-Za-z]:/.test(fileUrl)) {
+        const match = fileUrl.match(/^(file:\/\/\/)([A-Za-z]:)(\/.*)$/)
+        if (match) {
+          const [, protocol, drive, path] = match
+          const encodedPath = path
+            .split('/')
+            .map((part) => (part ? encodeURIComponent(part) : ''))
+            .join('/')
+          encodedFileUrl = protocol + drive + encodedPath
         }
-        // 如果是 http(s) 网络链接，保持原样
-        if ((src.startsWith('http://') && !src.startsWith('http://localhost:52521/')) || 
-            src.startsWith('https://')) {
-            return match;
-        }
-        // 其他情况（data URL、file:// 等）保持原样
-        return match;
-    });
-    
-    return processedHtml;
+      } else {
+        const parts = fileUrl.split('/')
+        const encodedParts = parts.map((part, index) => {
+          if (index === 0) {
+            return part
+          }
+          if (index === 1 && part === '') {
+            return part
+          }
+          return part ? encodeURIComponent(part) : ''
+        })
+        encodedFileUrl = encodedParts.join('/')
+      }
+
+      // 替换 src 属性
+      return match.replace(src, encodedFileUrl)
+    }
+    // 如果是 http(s) 网络链接，保持原样
+    if (
+      (src.startsWith('http://') && !src.startsWith('http://localhost:52521/')) ||
+      src.startsWith('https://')
+    ) {
+      return match
+    }
+    // 其他情况（data URL、file:// 等）保持原样
+    return match
+  })
+
+  return processedHtml
 }
 
 /**
@@ -1697,66 +1725,64 @@ export async function local2fileProtocolForHtmlInHtml(html){
  * @returns {Promise<void>}
  */
 export async function renderMarkdownPreview(container, markdown, options = {}) {
-    const { linkBase = '', renderCode = true, renderMath = true } = options;
-    
-    // 获取 CDN
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN;
-    
-    // 获取主题设置
-    let contentTheme = await getSetting('contentTheme');
-    if (contentTheme === 'auto' || !contentTheme) {
-        contentTheme = themeState.currentTheme.vditorTheme;
+  const { linkBase = '', renderCode = true, renderMath = true } = options
+
+  // 获取 CDN
+  const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
+
+  // 获取主题设置
+  let contentTheme = await getSetting('contentTheme')
+  if (contentTheme === 'auto' || !contentTheme) {
+    contentTheme = themeState.currentTheme.vditorTheme
+  }
+  const codeTheme = themeState.currentTheme.codeTheme
+  const lineNumber = (await getSetting('lineNumber')) ?? true
+  const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
+
+  // 清空容器
+  container.innerHTML = ''
+
+  // 构建预览选项
+  const previewOptions = {
+    cdn,
+    mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
+    theme: {
+      current: contentTheme
+    },
+    markdown: {
+      linkBase: linkBase
+    },
+    hljs: {
+      style: codeTheme,
+      lineNumber: lineNumber
+    },
+    math: {
+      inlineDigit: mathInlineDigit
     }
-    const codeTheme = themeState.currentTheme.codeTheme;
-    const lineNumber = await getSetting('lineNumber') ?? true;
-    const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
-    
-    // 清空容器
-    container.innerHTML = '';
-    
-    // 构建预览选项
-    const previewOptions = {
-        cdn,
-        mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-        theme: {
-            current: contentTheme
-        },
-        markdown: {
-            linkBase: linkBase
-        },
-        hljs: {
-            style: codeTheme,
-            lineNumber: lineNumber
-        },
-        math: {
-            inlineDigit: mathInlineDigit
-        }
-    };
-    
-    // 调用 Vditor.preview
-    await Vditor.preview(container, markdown, previewOptions);
-    
-    // 可选：渲染代码块和数学公式
-    if (renderCode && typeof Vditor.codeRender === 'function') {
-        Vditor.codeRender(container);
-    }
-    
-    if (renderMath && typeof Vditor.mathRender === 'function') {
-        Vditor.mathRender(container, { cdn });
-    }
+  }
+
+  // 调用 Vditor.preview
+  await Vditor.preview(container, markdown, previewOptions)
+
+  // 可选：渲染代码块和数学公式
+  if (renderCode && typeof Vditor.codeRender === 'function') {
+    Vditor.codeRender(container)
+  }
+
+  if (renderMath && typeof Vditor.mathRender === 'function') {
+    Vditor.mathRender(container, { cdn })
+  }
 }
 
 export async function ConvertMarkdownToHtmlVditor(md) {
-    let cdn = '';
-    if(isElectronEnv()){
-        cdn=localVditorCDN;
-    }
-    else{
-        cdn=vditorCDN;
-    }
-    //logger.debug(`ConvertMarkdownToHtmlVditor: ${await Vditor.md2html(md,{cdn: cdn})}`);
-    return await Vditor.md2html(md,{cdn: cdn})
-
+  let cdn = ''
+  if (isElectronEnv()) {
+    cdn = localVditorCDN
+  } else {
+    cdn = vditorCDN
+  }
+  //logger.debug(`ConvertMarkdownToHtmlVditor: ${await Vditor.md2html(md,{cdn: cdn})}`);
+  return await Vditor.md2html(md, { cdn: cdn })
 }
 
 /**
@@ -1768,448 +1794,469 @@ export async function ConvertMarkdownToHtmlVditor(md) {
 let ipcRenderer = null
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
-
 } else {
-  webMainCalls();
+  webMainCalls()
   ipcRenderer = localIpcRenderer
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = true) {
-    const contentTheme = await getSetting('contentTheme')
-    const codeTheme = await getSetting('codeTheme')
-    const lineNumber = await getSetting('lineNumber')
-    
-    let cdn = '';
-    if(isElectronEnv()){
-        cdn=localVditorCDN;
-    }
-    else{
-        cdn=vditorCDN;
-    }
-    
-    // 第一步：从 Markdown 中提取所有图片 URL，根据 convertImagesToBase64 参数决定是否转换为 data URL
-    // 如果 convertImagesToBase64 为 false，则保持原始 URL
-    const imageUrlMap = new Map(); // 原始 URL -> data URL 的映射（仅在 convertImagesToBase64 为 true 时使用）
-    const imageRegex = /!\[([^\]]*)\]\((.*?)\)/g;
-    let match;
-    const imagePromises = [];
-    
-    if (convertImagesToBase64) {
-        // 只有在需要转换为 base64 时才处理
-        while ((match = imageRegex.exec(md)) !== null) {
-            const altText = match[1];
-            const imageUrl = match[2];
-            
-            // 跳过已经是 data URL 的图片，但需要建立映射以便后续替换HTML中的图片
-            if (imageUrl.startsWith('data:')) {
-                // 如果已经是 data URL，直接建立映射（用于后续HTML替换）
-                imageUrlMap.set(imageUrl, imageUrl);
-                if (altText) {
-                    imageUrlMap.set(altText, imageUrl);
-                }
-                continue;
-            }
-            
-            // 异步获取图片的 data URL
-            const promise = (async () => {
-                try {
-                    let response;
-                    let contentType = '';
-                    let isSvg = false;
-                    let actualImageUrl = imageUrl;
-                    
-                    // 处理本地路径和file:// URL
-                    if (!imageUrl.startsWith('http://') && 
-                        !imageUrl.startsWith('https://') && 
-                        !imageUrl.startsWith('data:') &&
-                        !imageUrl.startsWith('file://')) {
-                        // 本地路径：先转换为HTTP URL
-                        try {
-                            const { local2httpProtocol } = await import('./md-utils');
-                            const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '');
-                            const match = converted.match(/!\[.*?\]\((.*?)\)/);
-                            if (match && match[1] && match[1].startsWith('http://localhost:52521/')) {
-                                actualImageUrl = match[1];
-                            } else {
-                                // 转换失败，尝试使用file://协议
-                                actualImageUrl = imageUrl.startsWith('/') 
-                                    ? `file://${imageUrl}` 
-                                    : `file:///${imageUrl}`;
-                            }
-                        } catch (e) {
-                            // 转换失败，尝试使用file://协议
-                            actualImageUrl = imageUrl.startsWith('/') 
-                                ? `file://${imageUrl}` 
-                                : `file:///${imageUrl}`;
-                        }
-                    } else if (imageUrl.startsWith('file://')) {
-                        // file:// URL：转换为本地路径，然后通过IPC读取
-                        actualImageUrl = imageUrl;
-                    }
-                    
-                    // 如果是file:// URL或本地路径，通过IPC读取
-                    if (actualImageUrl.startsWith('file://') || 
-                        (!actualImageUrl.startsWith('http://') && !actualImageUrl.startsWith('https://'))) {
-                        let localPath = actualImageUrl;
-                        if (localPath.startsWith('file://')) {
-                            localPath = localPath.replace(/^file:\/\//, '');
-                            // Windows 路径处理：file:///C:/path -> C:/path
-                            if (localPath.startsWith('/') && /^\/[A-Za-z]:/.test(localPath)) {
-                                localPath = localPath.substring(1);
-                            }
-                            // 解码 URL 编码
-                            try {
-                                localPath = decodeURIComponent(localPath);
-                            } catch (e) {
-                                // 解码失败，使用原始路径
-                            }
-                        }
-                        
-                        // 通过IPC读取文件
-                        let ipcRenderer = null;
-                        if (typeof window !== 'undefined') {
-                            if (window.electron?.ipcRenderer) {
-                                ipcRenderer = window.electron.ipcRenderer;
-                            } else {
-                                const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer');
-                                ipcRenderer = localIpcRenderer;
-                            }
-                        }
-                        
-                        if (ipcRenderer) {
-                            const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath);
-                            if (fileData && fileData.data) {
-                                contentType = fileData.mimeType || '';
-                                isSvg = localPath.toLowerCase().endsWith('.svg') || 
-                                       contentType.includes('image/svg+xml') ||
-                                       contentType.includes('image/svg');
-                                
-                                let dataUrl = '';
-                                if (isSvg) {
-                                    // SVG：转换为base64
-                                    const svgText = atob(fileData.data);
-                                    if (svgText && svgText.trim().length > 0) {
-                                        const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
-                                        dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
-                                    }
-                                } else {
-                                    // 位图：直接使用base64
-                                    const mimeType = contentType || 'image/png';
-                                    dataUrl = `data:${mimeType};base64,${fileData.data}`;
-                                }
-                                
-                                if (dataUrl) {
-                                    imageUrlMap.set(imageUrl, dataUrl);
-                                    if (altText) {
-                                        imageUrlMap.set(altText, dataUrl);
-                                    }
-                                    getLogger().debug(`本地图片转换为 data URL 成功: ${imageUrl.substring(0, 50)}...`);
-                                }
-                                return;
-                            }
-                        }
-                        // 如果IPC读取失败，尝试使用HTTP URL
-                        if (actualImageUrl.startsWith('http://localhost:52521/')) {
-                            response = await fetch(actualImageUrl);
-                        } else {
-                            throw new Error('无法读取本地文件');
-                        }
-                    } else {
-                        // HTTP/HTTPS URL：直接fetch
-                        response = await fetch(actualImageUrl);
-                    }
-                    
-                    if (response) {
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        
-                        contentType = response.headers.get('content-type') || '';
-                        isSvg = actualImageUrl.toLowerCase().endsWith('.svg') || 
-                               contentType.includes('image/svg+xml') ||
-                               contentType.includes('image/svg');
-                        
-                        let dataUrl = '';
-                        if (isSvg) {
-                            const svgText = await response.text();
-                            if (svgText && svgText.trim().length > 0) {
-                                const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
-                                dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
-                            }
-                        } else {
-                            const blob = await response.blob();
-                            if (blob && blob.size > 0) {
-                                const reader = new FileReader();
-                                reader.readAsDataURL(blob);
-                                dataUrl = await new Promise((resolve, reject) => {
-                                    reader.onload = () => {
-                                        if (reader.result && typeof reader.result === 'string') {
-                                            resolve(reader.result);
-                                        } else {
-                                            reject(new Error('读取图片数据失败'));
-                                        }
-                                    };
-                                    reader.onerror = () => reject(new Error('FileReader 错误'));
-                                });
-                            }
-                        }
-                        
-                        if (dataUrl) {
-                            imageUrlMap.set(imageUrl, dataUrl);
-                            // 也通过 alt 文本建立映射（作为备用）
-                            if (altText) {
-                                imageUrlMap.set(altText, dataUrl);
-                            }
-                            getLogger().debug(`图片 URL 映射创建: ${imageUrl.substring(0, 50)}... -> data URL (长度: ${dataUrl.length})`);
-                        }
-                    }
-                } catch (error) {
-                    getLogger().warn(`获取图片 data URL 失败: ${imageUrl}`, error);
-                    // 如果转换失败，尝试通过 alt 文本建立映射（作为最后的回退）
-                    // 这样即使转换失败，HTML 中也能通过 alt 文本找到映射
-                    if (altText) {
-                        // 尝试从原始路径推断可能的 HTTP URL
-                        // 如果图片路径看起来像是本地路径，尝试转换为 HTTP URL
-                        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://') && !imageUrl.startsWith('data:')) {
-                            try {
-                                const { local2httpProtocol } = await import('./md-utils');
-                                const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '');
-                                const match = converted.match(/!\[.*?\]\((.*?)\)/);
-                                if (match && match[1] && match[1].startsWith('http://localhost:52521/')) {
-                                    // 如果转换成功，尝试 fetch 这个 HTTP URL
-                                    try {
-                                        const httpResponse = await fetch(match[1]);
-                                        if (httpResponse.ok) {
-                                            const contentType = httpResponse.headers.get('content-type') || '';
-                                            const isSvg = imageUrl.toLowerCase().endsWith('.svg') || 
-                                                       contentType.includes('image/svg+xml') ||
-                                                       contentType.includes('image/svg');
-                                            
-                                            let dataUrl = '';
-                                            if (isSvg) {
-                                                const svgText = await httpResponse.text();
-                                                if (svgText && svgText.trim().length > 0) {
-                                                    const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
-                                                    dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
-                                                }
-                                            } else {
-                                                const blob = await httpResponse.blob();
-                                                if (blob && blob.size > 0) {
-                                                    const reader = new FileReader();
-                                                    reader.readAsDataURL(blob);
-                                                    dataUrl = await new Promise((resolve, reject) => {
-                                                        reader.onload = () => {
-                                                            if (reader.result && typeof reader.result === 'string') {
-                                                                resolve(reader.result);
-                                                            } else {
-                                                                reject(new Error('读取图片数据失败'));
-                                                            }
-                                                        };
-                                                        reader.onerror = () => reject(new Error('FileReader 错误'));
-                                                    });
-                                                }
-                                            }
-                                            
-                                            if (dataUrl) {
-                                                imageUrlMap.set(imageUrl, dataUrl);
-                                                imageUrlMap.set(altText, dataUrl);
-                                                getLogger().debug(`通过回退方法成功转换图片: ${imageUrl.substring(0, 50)}...`);
-                                            }
-                                        }
-                                    } catch (fetchError) {
-                                        getLogger().warn(`回退方法也失败: ${imageUrl}`, fetchError);
-                                    }
-                                }
-                            } catch (convertError) {
-                                getLogger().warn(`无法转换本地路径: ${imageUrl}`, convertError);
-                            }
-                        }
-                    }
-                }
-            })();
-            
-            imagePromises.push(promise);
+  const contentTheme = await getSetting('contentTheme')
+  const codeTheme = await getSetting('codeTheme')
+  const lineNumber = await getSetting('lineNumber')
+
+  let cdn = ''
+  if (isElectronEnv()) {
+    cdn = localVditorCDN
+  } else {
+    cdn = vditorCDN
+  }
+
+  // 第一步：从 Markdown 中提取所有图片 URL，根据 convertImagesToBase64 参数决定是否转换为 data URL
+  // 如果 convertImagesToBase64 为 false，则保持原始 URL
+  const imageUrlMap = new Map() // 原始 URL -> data URL 的映射（仅在 convertImagesToBase64 为 true 时使用）
+  const imageRegex = /!\[([^\]]*)\]\((.*?)\)/g
+  let match
+  const imagePromises = []
+
+  if (convertImagesToBase64) {
+    // 只有在需要转换为 base64 时才处理
+    while ((match = imageRegex.exec(md)) !== null) {
+      const altText = match[1]
+      const imageUrl = match[2]
+
+      // 跳过已经是 data URL 的图片，但需要建立映射以便后续替换HTML中的图片
+      if (imageUrl.startsWith('data:')) {
+        // 如果已经是 data URL，直接建立映射（用于后续HTML替换）
+        imageUrlMap.set(imageUrl, imageUrl)
+        if (altText) {
+          imageUrlMap.set(altText, imageUrl)
         }
-        
-        // 等待所有图片转换完成
-        await Promise.all(imagePromises);
-    }
-    
-        // 第二步：使用 Markdown 进行渲染
-        // 注意：如果 convertImagesToBase64 为 true，md 可能已经包含 data URL（如果 processMarkdownImages 已经转换）
-        // 创建一个临时的 DOM 容器来执行完整的渲染
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-99999px';
-        tempContainer.style.top = '-99999px';
-        tempContainer.style.width = '800px';
-        document.body.appendChild(tempContainer);
-        
+        continue
+      }
+
+      // 异步获取图片的 data URL
+      const promise = (async () => {
         try {
-            // 检查是否还有残留的 PlantUML 代码块（预渲染失败的情况）
-            // 如果预渲染成功，PlantUML 代码块应该已经被替换为图片链接
-            const plantumlCodeBlockRegex = /```plantuml\s*\n([\s\S]*?)\n?```/gi;
-            let processedMd = md;
-            const hasPlantUMLBlocks = plantumlCodeBlockRegex.test(processedMd);
-            if (hasPlantUMLBlocks) {
-                getLogger().warn('检测到残留的 PlantUML 代码块，可能预渲染失败。尝试移除代码块标记，保留代码内容作为文本。');
-                // 移除 PlantUML 代码块标记，保留代码内容（作为普通文本）
-                processedMd = processedMd.replace(plantumlCodeBlockRegex, (match, code) => {
-                    return `\`\`\`\n${code}\n\`\`\``;
-                });
+          let response
+          let contentType = ''
+          let isSvg = false
+          let actualImageUrl = imageUrl
+
+          // 处理本地路径和file:// URL
+          if (
+            !imageUrl.startsWith('http://') &&
+            !imageUrl.startsWith('https://') &&
+            !imageUrl.startsWith('data:') &&
+            !imageUrl.startsWith('file://')
+          ) {
+            // 本地路径：先转换为HTTP URL
+            try {
+              const { local2httpProtocol } = await import('./md-utils')
+              const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '')
+              const match = converted.match(/!\[.*?\]\((.*?)\)/)
+              if (match && match[1] && match[1].startsWith('http://localhost:52521/')) {
+                actualImageUrl = match[1]
+              } else {
+                // 转换失败，尝试使用file://协议
+                actualImageUrl = imageUrl.startsWith('/')
+                  ? `file://${imageUrl}`
+                  : `file:///${imageUrl}`
+              }
+            } catch (e) {
+              // 转换失败，尝试使用file://协议
+              actualImageUrl = imageUrl.startsWith('/')
+                ? `file://${imageUrl}`
+                : `file:///${imageUrl}`
             }
-            
-            // 使用 Vditor.preview 进行完整的渲染（包括代码高亮和数学公式）
-            // 如果 md 中已经包含 data URL，Vditor 应该能正确处理
-            const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
-            const previewOptions = {
-                cdn: cdn,
-                markdown: {
-                    theme: { current: contentTheme }
-                },
-                hljs: {
-                    style: codeTheme,
-                    lineNumber: lineNumber
-                },
-                math: {
-                    inlineDigit: mathInlineDigit
-                }
-            };
-            
-            Vditor.preview(tempContainer, processedMd, previewOptions);
-        
-        // 等待 preview 完成
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // 执行代码高亮渲染（确保代码块被正确高亮）
-        if (typeof Vditor.codeRender === 'function') {
-            Vditor.codeRender(tempContainer);
-        }
-        
-        // 执行数学公式渲染（确保数学公式被正确渲染）
-        if (typeof Vditor.mathRender === 'function') {
-            Vditor.mathRender(tempContainer, {
-                cdn: cdn
-            });
-        }
-        
-        // 等待渲染完成（数学公式和代码高亮可能需要一些时间）
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 获取渲染后的 HTML 内容
-        let finalHtml = tempContainer.innerHTML;
-        
-        // 第三步：处理图片 URL
-        // 无论是否转换为 base64，都要确保 img 标签有 src 属性
-        finalHtml = finalHtml.replace(/<img([^>]*?)>/gi, (match, attributes) => {
-            // 提取 src 属性
-            const srcMatch = attributes.match(/src\s*=\s*"([^"]*)"/i);
-            const altMatch = attributes.match(/alt\s*=\s*"([^"]*)"/i);
-            
-            let imageUrl = srcMatch ? srcMatch[1] : null;
-            const altText = altMatch ? altMatch[1] : null;
-            
-            if (convertImagesToBase64) {
-                // 转换为 base64 模式
-                // 如果已经有 data URL，不需要替换
-                if (imageUrl && imageUrl.startsWith('data:')) {
-                    return match;
-                }
-                
-                // 尝试从映射中找到对应的 data URL
-                let dataUrl = null;
-                if (imageUrl && imageUrlMap.has(imageUrl)) {
-                    dataUrl = imageUrlMap.get(imageUrl);
-                } else if (altText && imageUrlMap.has(altText)) {
-                    dataUrl = imageUrlMap.get(altText);
-                }
-                
-                if (dataUrl) {
-                    // 替换 src 属性
-                    if (srcMatch) {
-                        return match.replace(/src\s*=\s*"([^"]*)"/i, `src="${dataUrl}"`);
-                    } else {
-                        // 如果没有 src 属性，添加一个
-                        return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${dataUrl}"$2`);
-                    }
+          } else if (imageUrl.startsWith('file://')) {
+            // file:// URL：转换为本地路径，然后通过IPC读取
+            actualImageUrl = imageUrl
+          }
+
+          // 如果是file:// URL或本地路径，通过IPC读取
+          if (
+            actualImageUrl.startsWith('file://') ||
+            (!actualImageUrl.startsWith('http://') && !actualImageUrl.startsWith('https://'))
+          ) {
+            let localPath = actualImageUrl
+            if (localPath.startsWith('file://')) {
+              localPath = localPath.replace(/^file:\/\//, '')
+              // Windows 路径处理：file:///C:/path -> C:/path
+              if (localPath.startsWith('/') && /^\/[A-Za-z]:/.test(localPath)) {
+                localPath = localPath.substring(1)
+              }
+              // 解码 URL 编码
+              try {
+                localPath = decodeURIComponent(localPath)
+              } catch (e) {
+                // 解码失败，使用原始路径
+              }
+            }
+
+            // 通过IPC读取文件
+            let ipcRenderer = null
+            if (typeof window !== 'undefined') {
+              if (window.electron?.ipcRenderer) {
+                ipcRenderer = window.electron.ipcRenderer
+              } else {
+                const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
+                ipcRenderer = localIpcRenderer
+              }
+            }
+
+            if (ipcRenderer) {
+              const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath)
+              if (fileData && fileData.data) {
+                contentType = fileData.mimeType || ''
+                isSvg =
+                  localPath.toLowerCase().endsWith('.svg') ||
+                  contentType.includes('image/svg+xml') ||
+                  contentType.includes('image/svg')
+
+                let dataUrl = ''
+                if (isSvg) {
+                  // SVG：转换为base64
+                  const svgText = atob(fileData.data)
+                  if (svgText && svgText.trim().length > 0) {
+                    const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                    dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+                  }
                 } else {
-                    // 如果找不到映射，尝试从原始 Markdown 中查找
-                    // 这可能是因为 embedImagesInline 已经转换了图片，但映射没有建立
-                    if (!imageUrl) {
-                        getLogger().warn('发现没有 src 属性的 img 标签，且无法找到映射:', match.substring(0, 100));
-                        // 如果没有 src 也没有映射，尝试从 alt 文本中恢复
-                        // 检查原始 Markdown 中是否有对应的图片
-                        if (altText) {
-                            const escapedAlt = altText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                            const altRegex = new RegExp(`!\\[${escapedAlt}\\]\\((.*?)\\)`, 'i');
-                            const altMatch = md.match(altRegex);
-                            if (altMatch && altMatch[1]) {
-                                const originalUrl = altMatch[1];
-                                // 如果原始 URL 是 data URL，直接使用
-                                if (originalUrl.startsWith('data:')) {
-                                    return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${originalUrl}"$2`);
-                                }
-                                // 如果映射中有原始 URL，使用映射
-                                if (imageUrlMap.has(originalUrl)) {
-                                    const dataUrl = imageUrlMap.get(originalUrl);
-                                    return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${dataUrl}"$2`);
-                                }
-                            }
-                        }
-                        // 如果还是找不到，保持原样，让后续的 processHtmlImages 处理
+                  // 位图：直接使用base64
+                  const mimeType = contentType || 'image/png'
+                  dataUrl = `data:${mimeType};base64,${fileData.data}`
+                }
+
+                if (dataUrl) {
+                  imageUrlMap.set(imageUrl, dataUrl)
+                  if (altText) {
+                    imageUrlMap.set(altText, dataUrl)
+                  }
+                  getLogger().debug(`本地图片转换为 data URL 成功: ${imageUrl.substring(0, 50)}...`)
+                }
+                return
+              }
+            }
+            // 如果IPC读取失败，尝试使用HTTP URL
+            if (actualImageUrl.startsWith('http://localhost:52521/')) {
+              response = await fetch(actualImageUrl)
+            } else {
+              throw new Error('无法读取本地文件')
+            }
+          } else {
+            // HTTP/HTTPS URL：直接fetch
+            response = await fetch(actualImageUrl)
+          }
+
+          if (response) {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            }
+
+            contentType = response.headers.get('content-type') || ''
+            isSvg =
+              actualImageUrl.toLowerCase().endsWith('.svg') ||
+              contentType.includes('image/svg+xml') ||
+              contentType.includes('image/svg')
+
+            let dataUrl = ''
+            if (isSvg) {
+              const svgText = await response.text()
+              if (svgText && svgText.trim().length > 0) {
+                const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+              }
+            } else {
+              const blob = await response.blob()
+              if (blob && blob.size > 0) {
+                const reader = new FileReader()
+                reader.readAsDataURL(blob)
+                dataUrl = await new Promise((resolve, reject) => {
+                  reader.onload = () => {
+                    if (reader.result && typeof reader.result === 'string') {
+                      resolve(reader.result)
                     } else {
-                        getLogger().warn(`无法找到图片 URL 的 data URL 映射: ${imageUrl.substring(0, 50)}...`);
-                        // 如果 imageUrl 是 data URL，直接使用
-                        if (imageUrl.startsWith('data:')) {
-                            return match;
-                        }
+                      reject(new Error('读取图片数据失败'))
                     }
-                    return match;
-                }
-            } else {
-                // 不转换为 base64，但确保有 src 属性
-                if (!imageUrl) {
-                    // 如果没有 src 属性，尝试从 alt 文本或映射中恢复
-                    // 如果还是找不到，记录警告但保持原样
-                    getLogger().warn('发现没有 src 属性的 img 标签:', match.substring(0, 100));
-                    return match;
-                }
-                // 如果有 src 属性，保持原样
-                return match;
+                  }
+                  reader.onerror = () => reject(new Error('FileReader 错误'))
+                })
+              }
             }
-        });
-        
-        // 验证所有 img 标签都有 src 属性
-        const imgTags = finalHtml.match(/<img[^>]*>/gi);
-        if (imgTags) {
-            imgTags.forEach(imgTag => {
-                if (!/src\s*=/i.test(imgTag)) {
-                    getLogger().warn('替换后仍缺少 src 属性的 img 标签:', imgTag.substring(0, 100));
-                }
-            });
-        }
-        
-        // 第四步：获取并内嵌 Vditor CSS
-        let vditorCss = '';
-        try {
-            const cssUrl = `${cdn}/dist/index.css`;
-            const cssResponse = await fetch(cssUrl);
-            if (cssResponse.ok) {
-                vditorCss = await cssResponse.text();
-                getLogger().debug(`Vditor CSS 获取成功，长度: ${vditorCss.length}`);
-            } else {
-                getLogger().warn(`无法获取 Vditor CSS: ${cssUrl}`);
+
+            if (dataUrl) {
+              imageUrlMap.set(imageUrl, dataUrl)
+              // 也通过 alt 文本建立映射（作为备用）
+              if (altText) {
+                imageUrlMap.set(altText, dataUrl)
+              }
+              getLogger().debug(
+                `图片 URL 映射创建: ${imageUrl.substring(0, 50)}... -> data URL (长度: ${dataUrl.length})`
+              )
             }
+          }
         } catch (error) {
-            getLogger().warn('获取 Vditor CSS 失败:', error);
+          getLogger().warn(`获取图片 data URL 失败: ${imageUrl}`, error)
+          // 如果转换失败，尝试通过 alt 文本建立映射（作为最后的回退）
+          // 这样即使转换失败，HTML 中也能通过 alt 文本找到映射
+          if (altText) {
+            // 尝试从原始路径推断可能的 HTTP URL
+            // 如果图片路径看起来像是本地路径，尝试转换为 HTTP URL
+            if (
+              !imageUrl.startsWith('http://') &&
+              !imageUrl.startsWith('https://') &&
+              !imageUrl.startsWith('data:')
+            ) {
+              try {
+                const { local2httpProtocol } = await import('./md-utils')
+                const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '')
+                const match = converted.match(/!\[.*?\]\((.*?)\)/)
+                if (match && match[1] && match[1].startsWith('http://localhost:52521/')) {
+                  // 如果转换成功，尝试 fetch 这个 HTTP URL
+                  try {
+                    const httpResponse = await fetch(match[1])
+                    if (httpResponse.ok) {
+                      const contentType = httpResponse.headers.get('content-type') || ''
+                      const isSvg =
+                        imageUrl.toLowerCase().endsWith('.svg') ||
+                        contentType.includes('image/svg+xml') ||
+                        contentType.includes('image/svg')
+
+                      let dataUrl = ''
+                      if (isSvg) {
+                        const svgText = await httpResponse.text()
+                        if (svgText && svgText.trim().length > 0) {
+                          const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                          dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+                        }
+                      } else {
+                        const blob = await httpResponse.blob()
+                        if (blob && blob.size > 0) {
+                          const reader = new FileReader()
+                          reader.readAsDataURL(blob)
+                          dataUrl = await new Promise((resolve, reject) => {
+                            reader.onload = () => {
+                              if (reader.result && typeof reader.result === 'string') {
+                                resolve(reader.result)
+                              } else {
+                                reject(new Error('读取图片数据失败'))
+                              }
+                            }
+                            reader.onerror = () => reject(new Error('FileReader 错误'))
+                          })
+                        }
+                      }
+
+                      if (dataUrl) {
+                        imageUrlMap.set(imageUrl, dataUrl)
+                        imageUrlMap.set(altText, dataUrl)
+                        getLogger().debug(
+                          `通过回退方法成功转换图片: ${imageUrl.substring(0, 50)}...`
+                        )
+                      }
+                    }
+                  } catch (fetchError) {
+                    getLogger().warn(`回退方法也失败: ${imageUrl}`, fetchError)
+                  }
+                }
+              } catch (convertError) {
+                getLogger().warn(`无法转换本地路径: ${imageUrl}`, convertError)
+              }
+            }
+          }
         }
-        
-        // 从 finalHtml 中移除 Vditor 注入的 CSS 链接（如果有）
-        finalHtml = finalHtml.replace(/<link[^>]*rel\s*=\s*["']stylesheet["'][^>]*href\s*=\s*["'][^"']*vditor[^"']*["'][^>]*>/gi, '');
-        
-        // 包装成完整的 HTML 文档，内嵌所有 CSS
-        const html = `<!DOCTYPE html>
+      })()
+
+      imagePromises.push(promise)
+    }
+
+    // 等待所有图片转换完成
+    await Promise.all(imagePromises)
+  }
+
+  // 第二步：使用 Markdown 进行渲染
+  // 注意：如果 convertImagesToBase64 为 true，md 可能已经包含 data URL（如果 processMarkdownImages 已经转换）
+  // 创建一个临时的 DOM 容器来执行完整的渲染
+  const tempContainer = document.createElement('div')
+  tempContainer.style.position = 'absolute'
+  tempContainer.style.left = '-99999px'
+  tempContainer.style.top = '-99999px'
+  tempContainer.style.width = '800px'
+  document.body.appendChild(tempContainer)
+
+  try {
+    // 检查是否还有残留的 PlantUML 代码块（预渲染失败的情况）
+    // 如果预渲染成功，PlantUML 代码块应该已经被替换为图片链接
+    const plantumlCodeBlockRegex = /```plantuml\s*\n([\s\S]*?)\n?```/gi
+    let processedMd = md
+    const hasPlantUMLBlocks = plantumlCodeBlockRegex.test(processedMd)
+    if (hasPlantUMLBlocks) {
+      getLogger().warn(
+        '检测到残留的 PlantUML 代码块，可能预渲染失败。尝试移除代码块标记，保留代码内容作为文本。'
+      )
+      // 移除 PlantUML 代码块标记，保留代码内容（作为普通文本）
+      processedMd = processedMd.replace(plantumlCodeBlockRegex, (match, code) => {
+        return `\`\`\`\n${code}\n\`\`\``
+      })
+    }
+
+    // 使用 Vditor.preview 进行完整的渲染（包括代码高亮和数学公式）
+    // 如果 md 中已经包含 data URL，Vditor 应该能正确处理
+    const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
+    const previewOptions = {
+      cdn: cdn,
+      markdown: {
+        theme: { current: contentTheme }
+      },
+      hljs: {
+        style: codeTheme,
+        lineNumber: lineNumber
+      },
+      math: {
+        inlineDigit: mathInlineDigit
+      }
+    }
+
+    Vditor.preview(tempContainer, processedMd, previewOptions)
+
+    // 等待 preview 完成
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    // 执行代码高亮渲染（确保代码块被正确高亮）
+    if (typeof Vditor.codeRender === 'function') {
+      Vditor.codeRender(tempContainer)
+    }
+
+    // 执行数学公式渲染（确保数学公式被正确渲染）
+    if (typeof Vditor.mathRender === 'function') {
+      Vditor.mathRender(tempContainer, {
+        cdn: cdn
+      })
+    }
+
+    // 等待渲染完成（数学公式和代码高亮可能需要一些时间）
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    // 获取渲染后的 HTML 内容
+    let finalHtml = tempContainer.innerHTML
+
+    // 第三步：处理图片 URL
+    // 无论是否转换为 base64，都要确保 img 标签有 src 属性
+    finalHtml = finalHtml.replace(/<img([^>]*?)>/gi, (match, attributes) => {
+      // 提取 src 属性
+      const srcMatch = attributes.match(/src\s*=\s*"([^"]*)"/i)
+      const altMatch = attributes.match(/alt\s*=\s*"([^"]*)"/i)
+
+      let imageUrl = srcMatch ? srcMatch[1] : null
+      const altText = altMatch ? altMatch[1] : null
+
+      if (convertImagesToBase64) {
+        // 转换为 base64 模式
+        // 如果已经有 data URL，不需要替换
+        if (imageUrl && imageUrl.startsWith('data:')) {
+          return match
+        }
+
+        // 尝试从映射中找到对应的 data URL
+        let dataUrl = null
+        if (imageUrl && imageUrlMap.has(imageUrl)) {
+          dataUrl = imageUrlMap.get(imageUrl)
+        } else if (altText && imageUrlMap.has(altText)) {
+          dataUrl = imageUrlMap.get(altText)
+        }
+
+        if (dataUrl) {
+          // 替换 src 属性
+          if (srcMatch) {
+            return match.replace(/src\s*=\s*"([^"]*)"/i, `src="${dataUrl}"`)
+          } else {
+            // 如果没有 src 属性，添加一个
+            return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${dataUrl}"$2`)
+          }
+        } else {
+          // 如果找不到映射，尝试从原始 Markdown 中查找
+          // 这可能是因为 embedImagesInline 已经转换了图片，但映射没有建立
+          if (!imageUrl) {
+            getLogger().warn(
+              '发现没有 src 属性的 img 标签，且无法找到映射:',
+              match.substring(0, 100)
+            )
+            // 如果没有 src 也没有映射，尝试从 alt 文本中恢复
+            // 检查原始 Markdown 中是否有对应的图片
+            if (altText) {
+              const escapedAlt = altText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+              const altRegex = new RegExp(`!\\[${escapedAlt}\\]\\((.*?)\\)`, 'i')
+              const altMatch = md.match(altRegex)
+              if (altMatch && altMatch[1]) {
+                const originalUrl = altMatch[1]
+                // 如果原始 URL 是 data URL，直接使用
+                if (originalUrl.startsWith('data:')) {
+                  return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${originalUrl}"$2`)
+                }
+                // 如果映射中有原始 URL，使用映射
+                if (imageUrlMap.has(originalUrl)) {
+                  const dataUrl = imageUrlMap.get(originalUrl)
+                  return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${dataUrl}"$2`)
+                }
+              }
+            }
+            // 如果还是找不到，保持原样，让后续的 processHtmlImages 处理
+          } else {
+            getLogger().warn(`无法找到图片 URL 的 data URL 映射: ${imageUrl.substring(0, 50)}...`)
+            // 如果 imageUrl 是 data URL，直接使用
+            if (imageUrl.startsWith('data:')) {
+              return match
+            }
+          }
+          return match
+        }
+      } else {
+        // 不转换为 base64，但确保有 src 属性
+        if (!imageUrl) {
+          // 如果没有 src 属性，尝试从 alt 文本或映射中恢复
+          // 如果还是找不到，记录警告但保持原样
+          getLogger().warn('发现没有 src 属性的 img 标签:', match.substring(0, 100))
+          return match
+        }
+        // 如果有 src 属性，保持原样
+        return match
+      }
+    })
+
+    // 验证所有 img 标签都有 src 属性
+    const imgTags = finalHtml.match(/<img[^>]*>/gi)
+    if (imgTags) {
+      imgTags.forEach((imgTag) => {
+        if (!/src\s*=/i.test(imgTag)) {
+          getLogger().warn('替换后仍缺少 src 属性的 img 标签:', imgTag.substring(0, 100))
+        }
+      })
+    }
+
+    // 第四步：获取并内嵌 Vditor CSS
+    let vditorCss = ''
+    try {
+      const cssUrl = `${cdn}/dist/index.css`
+      const cssResponse = await fetch(cssUrl)
+      if (cssResponse.ok) {
+        vditorCss = await cssResponse.text()
+        getLogger().debug(`Vditor CSS 获取成功，长度: ${vditorCss.length}`)
+      } else {
+        getLogger().warn(`无法获取 Vditor CSS: ${cssUrl}`)
+      }
+    } catch (error) {
+      getLogger().warn('获取 Vditor CSS 失败:', error)
+    }
+
+    // 从 finalHtml 中移除 Vditor 注入的 CSS 链接（如果有）
+    finalHtml = finalHtml.replace(
+      /<link[^>]*rel\s*=\s*["']stylesheet["'][^>]*href\s*=\s*["'][^"']*vditor[^"']*["'][^>]*>/gi,
+      ''
+    )
+
+    // 包装成完整的 HTML 文档，内嵌所有 CSS
+    const html = `<!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
@@ -2242,65 +2289,73 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
 <body>
     ${finalHtml}
 </body>
-</html>`;
-        
-        return html;
-    } finally {
-        // 清理临时容器
-        if (tempContainer.parentNode) {
-            tempContainer.parentNode.removeChild(tempContainer);
-        }
+</html>`
+
+    return html
+  } finally {
+    // 清理临时容器
+    if (tempContainer.parentNode) {
+      tempContainer.parentNode.removeChild(tempContainer)
     }
+  }
 }
 
 export const ConvertHtmlForPdf = async (md) => {
-    getLogger().info(`ConvertHtmlForPdf 开始，Markdown 长度: ${md.length}`);
-    
-    let cdn = '';
-    if(isElectronEnv()){
-        cdn=localVditorCDN;
-    }
-    else{
-        cdn=vditorCDN;
-    }
-    getLogger().info(`使用 CDN: ${cdn}`);
-    
-    // 预渲染所有图表为图片（统一处理）
-    // 统一使用 SVG 矢量图
-    // 注意：图表预渲染应该在 prepareMarkdownForExport 中完成
-    // 这里只做最后的检查和清理，确保没有残留的 PlantUML 代码块
-    let processedMd = md;
-    
-    // 检查是否还有残留的 PlantUML 代码块（预渲染失败的情况）
-    const plantumlCodeBlockRegex = /```plantuml\s*\n([\s\S]*?)\n?```/gi;
-    const hasPlantUMLBlocks = plantumlCodeBlockRegex.test(processedMd);
-    if (hasPlantUMLBlocks) {
-        getLogger().warn('检测到残留的 PlantUML 代码块，可能预渲染失败。尝试移除代码块标记，保留代码内容作为文本。');
-        // 移除 PlantUML 代码块标记，保留代码内容（作为普通文本）
-        processedMd = processedMd.replace(plantumlCodeBlockRegex, (match, code) => {
-            return `\`\`\`\n${code}\n\`\`\``;
-        });
-    }
-    
-    // 验证预渲染结果：检查是否还有 PlantUML 代码块
-    const plantumlBlockCount = (processedMd.match(/```plantuml\s*\n/gi) || []).length;
-    const plantumlImageCount = (processedMd.match(/!\[.*?\]\(http:\/\/localhost:52521\/images\/.*?_plantuml\.(svg|png)\)/gi) || []).length;
-    getLogger().info(`PlantUML 代码块数量: ${plantumlBlockCount}, PlantUML 图片数量: ${plantumlImageCount}`);
-    
-    if (plantumlBlockCount > 0) {
-        getLogger().warn(`检测到 ${plantumlBlockCount} 个未预渲染的 PlantUML 代码块，可能预渲染失败`);
-    }
-    
-    // 使用 JSON.stringify 对处理后的 md 进行转义
-    const safeMarkdown = JSON.stringify(processedMd);
-    
-    const contentTheme = await getSetting('contentTheme');
-    const codeTheme = await getSetting('codeTheme');
-    const lineNumber = await getSetting('lineNumber');
-    const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
-    getLogger().info(`主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}, mathInlineDigit=${mathInlineDigit}`);
+  getLogger().info(`ConvertHtmlForPdf 开始，Markdown 长度: ${md.length}`)
 
-    const html=`<!DOCTYPE html>
+  let cdn = ''
+  if (isElectronEnv()) {
+    cdn = localVditorCDN
+  } else {
+    cdn = vditorCDN
+  }
+  getLogger().info(`使用 CDN: ${cdn}`)
+
+  // 预渲染所有图表为图片（统一处理）
+  // 统一使用 SVG 矢量图
+  // 注意：图表预渲染应该在 prepareMarkdownForExport 中完成
+  // 这里只做最后的检查和清理，确保没有残留的 PlantUML 代码块
+  let processedMd = md
+
+  // 检查是否还有残留的 PlantUML 代码块（预渲染失败的情况）
+  const plantumlCodeBlockRegex = /```plantuml\s*\n([\s\S]*?)\n?```/gi
+  const hasPlantUMLBlocks = plantumlCodeBlockRegex.test(processedMd)
+  if (hasPlantUMLBlocks) {
+    getLogger().warn(
+      '检测到残留的 PlantUML 代码块，可能预渲染失败。尝试移除代码块标记，保留代码内容作为文本。'
+    )
+    // 移除 PlantUML 代码块标记，保留代码内容（作为普通文本）
+    processedMd = processedMd.replace(plantumlCodeBlockRegex, (match, code) => {
+      return `\`\`\`\n${code}\n\`\`\``
+    })
+  }
+
+  // 验证预渲染结果：检查是否还有 PlantUML 代码块
+  const plantumlBlockCount = (processedMd.match(/```plantuml\s*\n/gi) || []).length
+  const plantumlImageCount = (
+    processedMd.match(/!\[.*?\]\(http:\/\/localhost:52521\/images\/.*?_plantuml\.(svg|png)\)/gi) ||
+    []
+  ).length
+  getLogger().info(
+    `PlantUML 代码块数量: ${plantumlBlockCount}, PlantUML 图片数量: ${plantumlImageCount}`
+  )
+
+  if (plantumlBlockCount > 0) {
+    getLogger().warn(`检测到 ${plantumlBlockCount} 个未预渲染的 PlantUML 代码块，可能预渲染失败`)
+  }
+
+  // 使用 JSON.stringify 对处理后的 md 进行转义
+  const safeMarkdown = JSON.stringify(processedMd)
+
+  const contentTheme = await getSetting('contentTheme')
+  const codeTheme = await getSetting('codeTheme')
+  const lineNumber = await getSetting('lineNumber')
+  const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
+  getLogger().info(
+    `主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}, mathInlineDigit=${mathInlineDigit}`
+  )
+
+  const html = `<!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
@@ -2496,26 +2551,26 @@ export const ConvertHtmlForPdf = async (md) => {
         }
     </style>
 </body>
-</html>`;
-        //     <style>
-        //     @font-face {
-        //     font-family: "NotoSansSC";
-        //     src: url("data:font/ttf;base64,${fontBase64}") format("truetype");
-        //     font-weight: normal;
-        //     font-style: normal;
-        //     }
+</html>`
+  //     <style>
+  //     @font-face {
+  //     font-family: "NotoSansSC";
+  //     src: url("data:font/ttf;base64,${fontBase64}") format("truetype");
+  //     font-weight: normal;
+  //     font-style: normal;
+  //     }
 
-        //     body {
-        //     font-family: "NotoSansSC", "SimSun", sans-serif;
-        //     }
-        // </style>
-    getLogger().info(`HTML 生成完成，长度: ${html.length}`);
-    return html;
+  //     body {
+  //     font-family: "NotoSansSC", "SimSun", sans-serif;
+  //     }
+  // </style>
+  getLogger().info(`HTML 生成完成，长度: ${html.length}`)
+  return html
 }
 
-export function filterMetaDataFromMd(md){
-    // 只移除 meta-info 注释，不改变文件内容的原始格式（包括末尾换行符）
-    // 使用全局替换，移除所有 meta-info 注释
-    const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/g, '');
-    return pureMd;
+export function filterMetaDataFromMd(md) {
+  // 只移除 meta-info 注释，不改变文件内容的原始格式（包括末尾换行符）
+  // 使用全局替换，移除所有 meta-info 注释
+  const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/g, '')
+  return pureMd
 }

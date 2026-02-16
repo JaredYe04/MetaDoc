@@ -77,7 +77,7 @@ export class ProgressHandle {
     if (options.message || options.initialPercentage !== undefined) {
       this.emit({
         message: options.message,
-        percentage: options.initialPercentage ?? 0,
+        percentage: options.initialPercentage ?? 0
       })
     }
   }
@@ -88,7 +88,7 @@ export class ProgressHandle {
     this.segmentTarget = targetPercent
     this.emit({
       ...opts,
-      percentage: this.segmentStart,
+      percentage: this.segmentStart
     })
   }
 
@@ -102,7 +102,7 @@ export class ProgressHandle {
     const percent = this.segmentStart + (this.segmentTarget - this.segmentStart) * ratio
     this.emit({
       ...opts,
-      percentage: percent,
+      percentage: percent
     })
   }
 
@@ -110,7 +110,7 @@ export class ProgressHandle {
   mark(percent: number, opts: ProgressSegmentOptions = {}): void {
     this.emit({
       ...opts,
-      percentage: percent,
+      percentage: percent
     })
   }
 
@@ -118,7 +118,7 @@ export class ProgressHandle {
     this.emit({
       ...opts,
       percentage: 100,
-      status: 'success',
+      status: 'success'
     })
     this.disposeLater()
   }
@@ -127,7 +127,7 @@ export class ProgressHandle {
     this.emit({
       message,
       status: 'exception',
-      percentage: 0,
+      percentage: 0
     })
     this.disposeLater()
   }
@@ -182,9 +182,11 @@ export class ProgressHandle {
       params: payload.params,
       showPercentage: payload.showPercentage,
       canCancel: this.canCancel,
-      requestId: this.requestId,
+      requestId: this.requestId
     }
-    this.logger.debug(`[ProgressHandle] 更新进度: ${progressPayload.percentage}%, message: ${progressPayload.message}`)
+    this.logger.debug(
+      `[ProgressHandle] 更新进度: ${progressPayload.percentage}%, message: ${progressPayload.message}`
+    )
     eventBus.emit('global-progress', progressPayload)
   }
 
@@ -196,5 +198,3 @@ export class ProgressHandle {
 export function createProgressHandle(options?: ProgressHandleOptions): ProgressHandle {
   return new ProgressHandle(options)
 }
-
-

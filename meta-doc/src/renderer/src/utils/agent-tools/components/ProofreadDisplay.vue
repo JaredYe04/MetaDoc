@@ -1,29 +1,51 @@
 <template>
   <div class="proofread-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading' || displayData.stage === 'proofreading' || displayData.stage === 'fixing'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="
+        displayData.stage === 'loading' ||
+        displayData.stage === 'proofreading' ||
+        displayData.stage === 'fixing'
+      "
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span v-if="displayData.stage === 'fixing'">{{ $t('agent.display.proofread.fixing') }}</span>
       <span v-else>{{ $t('agent.display.proofread.proofreading') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && resultData" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && resultData"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="proofread-header" :style="headerStyle">
-        <h3 class="proofread-title" :style="titleStyle">{{ $t('agent.display.proofread.title') }}</h3>
+        <h3 class="proofread-title" :style="titleStyle">
+          {{ $t('agent.display.proofread.title') }}
+        </h3>
         <div class="error-stats" :style="statsStyle">
-          <el-tag type="danger" size="small">{{ $t('agent.display.proofread.totalErrors', { count: resultData.totalErrors || 0 }) }}</el-tag>
-          <el-tag v-for="(count, type) in resultData.errorCounts" :key="type" :type="getErrorTypeTag(type)" size="small" v-if="count > 0">
+          <el-tag type="danger" size="small">{{
+            $t('agent.display.proofread.totalErrors', { count: resultData.totalErrors || 0 })
+          }}</el-tag>
+          <el-tag
+            v-for="(count, type) in resultData.errorCounts"
+            :key="type"
+            :type="getErrorTypeTag(type)"
+            size="small"
+            v-if="count > 0"
+          >
             {{ getErrorTypeLabel(type) }}: {{ count }}
           </el-tag>
           <el-button-group class="mode-switch">
-            <el-button 
-              :type="viewMode === 'unified' ? 'primary' : 'default'" 
+            <el-button
+              :type="viewMode === 'unified' ? 'primary' : 'default'"
               size="small"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.proofread.unifiedView') }}
             </el-button>
-            <el-button 
-              :type="viewMode === 'split' ? 'primary' : 'default'" 
+            <el-button
+              :type="viewMode === 'split' ? 'primary' : 'default'"
               size="small"
               @click="viewMode = 'split'"
             >
@@ -37,11 +59,14 @@
       <div v-if="viewMode === 'unified'">
         <el-scrollbar max-height="500px">
           <div class="errors-list">
-            <div v-if="!resultData.errors || resultData.errors.length === 0" class="no-errors-message">
+            <div
+              v-if="!resultData.errors || resultData.errors.length === 0"
+              class="no-errors-message"
+            >
               <p>{{ $t('agent.display.proofread.noErrors') }}</p>
             </div>
             <div
-              v-for="(error, index) in (resultData.errors || [])"
+              v-for="(error, index) in resultData.errors || []"
               v-else
               :key="index"
               class="error-item"
@@ -49,11 +74,22 @@
               :style="errorItemStyle"
             >
               <div class="error-header">
-                <el-tag :type="getSeverityType(error.severity)" size="small">{{ getSeverityLabel(error.severity) }}</el-tag>
-                <el-tag :type="getErrorTypeTag(error.type)" size="small">{{ getErrorTypeLabel(error.type) }}</el-tag>
-                <el-tag v-if="error.fixed" type="success" size="small">{{ $t('agent.display.proofread.autoFixed') }}</el-tag>
+                <el-tag :type="getSeverityType(error.severity)" size="small">{{
+                  getSeverityLabel(error.severity)
+                }}</el-tag>
+                <el-tag :type="getErrorTypeTag(error.type)" size="small">{{
+                  getErrorTypeLabel(error.type)
+                }}</el-tag>
+                <el-tag v-if="error.fixed" type="success" size="small">{{
+                  $t('agent.display.proofread.autoFixed')
+                }}</el-tag>
                 <span class="error-location" :style="locationStyle">
-                  {{ $t('agent.display.proofread.location', { line: error.line, column: error.column }) }}
+                  {{
+                    $t('agent.display.proofread.location', {
+                      line: error.line,
+                      column: error.column
+                    })
+                  }}
                 </span>
               </div>
               <div class="error-content" :style="contentStyle">
@@ -62,10 +98,12 @@
                   <code>{{ error.text }}</code>
                 </div>
                 <div class="error-suggestions">
-                  <span class="label">{{ $t('agent.display.proofread.suggestions', '修改建议') }}:</span>
+                  <span class="label"
+                    >{{ $t('agent.display.proofread.suggestions', '修改建议') }}:</span
+                  >
                   <div class="suggestions-list">
                     <el-tag
-                      v-for="(suggestion, sugIndex) in (error.suggestions || [error.suggestion])"
+                      v-for="(suggestion, sugIndex) in error.suggestions || [error.suggestion]"
                       :key="sugIndex"
                       type="info"
                       class="suggestion-tag"
@@ -92,19 +130,35 @@
             <div class="editor-header" :style="editorHeaderStyle">
               <span class="editor-label">{{ $t('agent.display.proofread.originalText') }}</span>
             </div>
-            <div :id="originalEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+            <div
+              :id="originalEditorId"
+              class="monaco-editor-container"
+              :style="editorContainerStyle"
+            ></div>
           </div>
           <div class="editor-panel corrected-panel">
             <div class="editor-header" :style="editorHeaderStyle">
               <span class="editor-label">{{ $t('agent.display.proofread.correctedText') }}</span>
             </div>
-            <div :id="correctedEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+            <div
+              :id="correctedEditorId"
+              class="monaco-editor-container"
+              :style="editorContainerStyle"
+            ></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && resultData && (!resultData.errors || resultData.errors.length === 0)" class="no-errors" :style="noErrorsStyle">
+    <div
+      v-else-if="
+        displayData.stage === 'completed' &&
+        resultData &&
+        (!resultData.errors || resultData.errors.length === 0)
+      "
+      class="no-errors"
+      :style="noErrorsStyle"
+    >
       <el-result icon="success" :title="$t('agent.display.proofread.noErrors')" />
     </div>
 
@@ -140,15 +194,19 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 )
 
 const viewMode = ref<'unified' | 'split'>('unified')
-const originalEditorId = ref(`proofread-original-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
-const correctedEditorId = ref(`proofread-corrected-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+const originalEditorId = ref(
+  `proofread-original-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+)
+const correctedEditorId = ref(
+  `proofread-corrected-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+)
 let originalMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let correctedMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     const getStage = (): 'loading' | 'proofreading' | 'fixing' | 'completed' | 'error' => {
       if (parsed.stage) {
@@ -162,14 +220,19 @@ const displayData = computed(() => {
       }
       return 'proofreading'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'proofreading')
+
+  const defaultStage =
+    props.status === 'succeeded'
+      ? 'completed'
+      : props.status === 'failed'
+        ? 'error'
+        : 'proofreading'
   return {
     stage: defaultStage,
     result: undefined,
@@ -186,7 +249,7 @@ const resultData = computed((): ProofreadResult | null => {
     // 3. 从 data 本身获取（如果 data 就是 ProofreadResult）
     // 4. 从 props.data 中获取（fallback）
     let result = data.result || data.content?.result
-    
+
     // 如果 result 不是 ProofreadResult 格式，尝试从 props.data 获取
     if (!result || !result.errors || !Array.isArray(result.errors)) {
       const propsData = props.data as any
@@ -194,18 +257,18 @@ const resultData = computed((): ProofreadResult | null => {
         // 尝试从 props.data.content.result 获取
         if (propsData.content?.result) {
           result = propsData.content.result
-        } 
+        }
         // 尝试从 props.data.result 获取
         else if (propsData.result) {
           result = propsData.result
-        } 
+        }
         // 如果 props.data 本身就是 ProofreadResult
         else if (propsData.errors && Array.isArray(propsData.errors)) {
           result = propsData
         }
       }
     }
-    
+
     // 验证 result 是否是有效的 ProofreadResult
     if (result && typeof result === 'object' && result.errors && Array.isArray(result.errors)) {
       return result as ProofreadResult
@@ -224,21 +287,21 @@ const correctedText = computed(() => {
   if (!resultData.value || !resultData.value.errors || resultData.value.errors.length === 0) {
     return originalText.value
   }
-  
+
   let text = originalText.value
   const lines = text.split(/\r?\n/)
-  
+
   // 从后往前应用修正，避免位置偏移
   const sortedErrors = [...resultData.value.errors].sort((a, b) => {
     if (a.line !== b.line) return b.line - a.line
     return b.column - a.column
   })
-  
+
   for (const error of sortedErrors) {
     if (error.line > 0 && error.line <= lines.length) {
       const lineIndex = error.line - 1
       const line = lines[lineIndex]
-      
+
       if (error.column > 0 && error.column <= line.length) {
         const before = line.substring(0, error.column - 1)
         const after = line.substring(error.column - 1 + error.length)
@@ -248,7 +311,7 @@ const correctedText = computed(() => {
       }
     }
   }
-  
+
   return lines.join('\n')
 })
 
@@ -284,15 +347,15 @@ const getErrorTypeLabel = (type: string) => {
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
   if (viewMode.value !== 'split') return
-  
+
   // 确保 Monaco Worker 已配置
   setupMonacoWorker()
-  
+
   await nextTick()
-  
+
   const originalContainer = document.getElementById(originalEditorId.value)
   const correctedContainer = document.getElementById(correctedEditorId.value)
-  
+
   if (!originalContainer || !correctedContainer) {
     console.warn('Monaco编辑器容器未找到')
     return
@@ -300,9 +363,9 @@ const initMonacoEditors = async () => {
 
   // 从全局获取编辑器实例
   const editors = monaco.editor.getEditors()
-  const originalEditor = editors.find(e => e.getId?.() === originalEditorId.value)
-  const correctedEditor = editors.find(e => e.getId?.() === correctedEditorId.value)
-  
+  const originalEditor = editors.find((e) => e.getId?.() === originalEditorId.value)
+  const correctedEditor = editors.find((e) => e.getId?.() === correctedEditorId.value)
+
   if (originalEditor) {
     originalEditor.dispose()
   }
@@ -370,11 +433,17 @@ const initMonacoEditors = async () => {
 }
 
 const highlightErrors = () => {
-  if (!originalMonacoEditor || !correctedMonacoEditor || !resultData.value || !resultData.value.errors) return
-  
+  if (
+    !originalMonacoEditor ||
+    !correctedMonacoEditor ||
+    !resultData.value ||
+    !resultData.value.errors
+  )
+    return
+
   const originalDecorations: monaco.editor.IModelDeltaDecoration[] = []
   const correctedDecorations: monaco.editor.IModelDeltaDecoration[] = []
-  
+
   for (const error of resultData.value.errors) {
     // 在原始编辑器中高亮错误（红色）
     if (error.line > 0) {
@@ -388,14 +457,16 @@ const highlightErrors = () => {
         range,
         options: {
           inlineClassName: 'proofread-error-highlight',
-          hoverMessage: { value: `${error.message || ''}\n建议: ${error.selectedSuggestion || error.suggestion || ''}` },
+          hoverMessage: {
+            value: `${error.message || ''}\n建议: ${error.selectedSuggestion || error.suggestion || ''}`
+          },
           minimap: {
             color: 'rgba(245, 108, 108, 0.5)',
             position: monaco.editor.MinimapPosition.Inline
           }
         }
       })
-      
+
       // 整行背景高亮
       originalDecorations.push({
         range: new monaco.Range(error.line, 1, error.line, 1),
@@ -406,7 +477,7 @@ const highlightErrors = () => {
         }
       })
     }
-    
+
     // 在修正编辑器中高亮修正（绿色）
     const selectedSuggestion = error.selectedSuggestion || error.suggestion
     if (error.line > 0 && selectedSuggestion) {
@@ -428,7 +499,7 @@ const highlightErrors = () => {
           }
         }
       })
-      
+
       // 整行背景高亮
       correctedDecorations.push({
         range: new monaco.Range(error.line, 1, error.line, 1),
@@ -440,7 +511,7 @@ const highlightErrors = () => {
       })
     }
   }
-  
+
   originalMonacoEditor.deltaDecorations([], originalDecorations)
   correctedMonacoEditor.deltaDecorations([], correctedDecorations)
 }
@@ -475,12 +546,15 @@ watch([() => resultData.value, originalText, correctedText], async () => {
 })
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, () => {
-  if (viewMode.value === 'split') {
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    monaco.editor.setTheme(theme)
+watch(
+  () => themeState.currentTheme.type,
+  () => {
+    if (viewMode.value === 'split') {
+      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+      monaco.editor.setTheme(theme)
+    }
   }
-})
+)
 
 onMounted(async () => {
   if (viewMode.value === 'split' && resultData.value) {
@@ -735,4 +809,3 @@ code {
   background-color: rgba(103, 194, 58, 0.3) !important;
 }
 </style>
-

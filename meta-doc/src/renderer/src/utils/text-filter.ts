@@ -74,7 +74,7 @@ function removeMeaninglessBlocks(content: string): string {
 
   for (const line of lines) {
     const trimmedLine = line.trim()
-    
+
     // 跳过空行
     if (trimmedLine.length === 0) {
       filteredLines.push(line) // 保留空行以维持格式
@@ -117,7 +117,7 @@ function isMeaningless(str: string): boolean {
     }
     const maxFrequency = Math.max(...Object.values(charFrequency))
     const maxFrequencyRatio = maxFrequency / clean.length
-    
+
     // 如果某个字符占比超过50%，可能是无意义的hash（放宽阈值）
     if (maxFrequencyRatio > 0.5) {
       return true
@@ -128,7 +128,7 @@ function isMeaningless(str: string): boolean {
   // 对于包含中文的文本，非字母数字字符比例会较高，这是正常的
   const hasChinese = /[\u4e00-\u9fa5]/.test(str)
   const nonAlphaNumRatio = (clean.match(/[^A-Za-z0-9\u4e00-\u9fa5]/g)?.length || 0) / clean.length
-  
+
   // 如果有中文，放宽阈值到0.8；否则使用0.7（进一步放宽）
   const threshold = hasChinese ? 0.8 : 0.7
   if (nonAlphaNumRatio > threshold && clean.length > 20) {
@@ -141,5 +141,3 @@ function isMeaningless(str: string): boolean {
 
   return false
 }
-
-

@@ -62,4 +62,3 @@ export interface SectionInfo {
   /** 标题行号（用于LaTeX，保留标题行） */
   titleLine?: number
 }
-

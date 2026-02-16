@@ -14,11 +14,13 @@
       :get-item-id="(item) => item.id"
       :get-item-title="(item) => getLocalizedText(item.name)"
       :get-item-description="(item) => getLocalizedText(item.description)"
-      :get-item-meta="(item) => [
-        t('agent.manage.toolCollection.toolCount') + ': ' + item.toolIds.length,
-        item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
-      ]"
-      :get-badge="(item) => item.isBuiltIn ? t('agent.manage.toolCollection.builtIn') : null"
+      :get-item-meta="
+        (item) => [
+          t('agent.manage.toolCollection.toolCount') + ': ' + item.toolIds.length,
+          item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+        ]
+      "
+      :get-badge="(item) => (item.isBuiltIn ? t('agent.manage.toolCollection.builtIn') : null)"
       :get-actions="getActions"
       :is-disabled="() => false"
       @item-click="handleEdit"
@@ -28,7 +30,11 @@
     <!-- 创建/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="editingCollection ? t('agent.manage.toolCollection.edit') : t('agent.manage.toolCollection.create')"
+      :title="
+        editingCollection
+          ? t('agent.manage.toolCollection.edit')
+          : t('agent.manage.toolCollection.create')
+      "
       width="600px"
       :style="dialogStyle"
     >
@@ -58,7 +64,9 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave" :disabled="editingCollection?.isBuiltIn">{{ t('common.save') }}</el-button>
+        <el-button type="primary" @click="handleSave" :disabled="editingCollection?.isBuiltIn">{{
+          t('common.save')
+        }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -91,7 +99,7 @@ const formData = ref({
 })
 
 const availableTools = computed(() => {
-  return agentToolManager.getAllTools().map(tool => ({
+  return agentToolManager.getAllTools().map((tool) => ({
     id: tool.config.id,
     name: agentToolManager.getLocalizedText(tool.config.name)
   }))
@@ -159,8 +167,12 @@ const handleCreate = () => {
 const handleEdit = (collection: ToolCollection) => {
   editingCollection.value = collection
   formData.value = {
-    name: typeof collection.name === 'string' ? collection.name : collection.name['zh_cn']?.name || '',
-    description: typeof collection.description === 'string' ? collection.description : collection.description['zh_cn']?.description || '',
+    name:
+      typeof collection.name === 'string' ? collection.name : collection.name['zh_cn']?.name || '',
+    description:
+      typeof collection.description === 'string'
+        ? collection.description
+        : collection.description['zh_cn']?.description || '',
     toolIds: [...collection.toolIds]
   }
   dialogVisible.value = true
@@ -280,4 +292,3 @@ onMounted(() => {
   margin: 0;
 }
 </style>
-

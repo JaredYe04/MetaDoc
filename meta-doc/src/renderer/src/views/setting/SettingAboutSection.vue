@@ -71,7 +71,13 @@
               v-if="updateStatus.updateAvailable"
               type="success"
               :title="$t('setting.about.updateAvailable')"
-              :description="updateStatus.updateInfo ? $t('setting.about.updateAvailableDesc', { version: updateStatus.updateInfo.version }) : ''"
+              :description="
+                updateStatus.updateInfo
+                  ? $t('setting.about.updateAvailableDesc', {
+                      version: updateStatus.updateInfo.version
+                    })
+                  : ''
+              "
               show-icon
               :closable="false"
             />
@@ -102,19 +108,10 @@
             >
               {{ $t('setting.about.downloadUpdate') }}
             </el-button>
-            <el-button
-              v-if="downloading"
-              type="primary"
-              :loading="true"
-              disabled
-            >
+            <el-button v-if="downloading" type="primary" :loading="true" disabled>
               {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
             </el-button>
-            <el-button
-              v-if="downloaded"
-              type="success"
-              @click="handleInstallUpdate"
-            >
+            <el-button v-if="downloaded" type="success" @click="handleInstallUpdate">
               {{ $t('setting.about.installAndRestart') }}
             </el-button>
             <el-alert
@@ -125,7 +122,7 @@
               show-icon
               :closable="true"
               @close="downloadError = null"
-              style="margin-top: 16px;"
+              style="margin-top: 16px"
             />
           </div>
         </div>
@@ -155,247 +152,244 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { getAppVersion } from '../../utils/version';
-import { useWorkspace } from '../../stores/workspace';
-import { setSetting, getSetting } from '../../utils/settings';
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer';
-import { isDevEnvironment } from '../../utils/dev-env';
-import logo from '../../assets/logo.svg';
-import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw';
-import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw';
-const { t } = useI18n();
-const workspace = useWorkspace();
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getAppVersion } from '../../utils/version'
+import { useWorkspace } from '../../stores/workspace'
+import { setSetting, getSetting } from '../../utils/settings'
+import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
+import { isDevEnvironment } from '../../utils/dev-env'
+import logo from '../../assets/logo.svg'
+import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
+import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
+const { t } = useI18n()
+const workspace = useWorkspace()
 
 function openFeedbackTab() {
-  workspace.openSystemTab('/user-feedback', t('leftMenu.userFeedback') || t('userFeedback.title') || '用户反馈');
+  workspace.openSystemTab(
+    '/user-feedback',
+    t('leftMenu.userFeedback') || t('userFeedback.title') || '用户反馈'
+  )
 }
 
-let ipcRenderer: any = null;
+let ipcRenderer: any = null
 if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer;
+  ipcRenderer = window.electron.ipcRenderer
 } else {
-  ipcRenderer = localIpcRenderer;
+  ipcRenderer = localIpcRenderer
 }
 
-const version = ref<string>('');
-const releaseDate = ref<string | null>(null);
-const buildEnvironment = ref<string>('');
-const autoCheckUpdates = ref<boolean>(true);
-const updateChannel = ref<'dev' | 'release'>('release');
-const checking = ref<boolean>(false);
+const version = ref<string>('')
+const releaseDate = ref<string | null>(null)
+const buildEnvironment = ref<string>('')
+const autoCheckUpdates = ref<boolean>(true)
+const updateChannel = ref<'dev' | 'release'>('release')
+const checking = ref<boolean>(false)
 const updateStatus = ref<{
-  checking: boolean;
-  updateAvailable: boolean;
-  updateNotAvailable: boolean;
-  error: string | null;
-  updateInfo: any;
-} | null>(null);
-const downloading = ref<boolean>(false);
-const downloaded = ref<boolean>(false);
-const downloadProgress = ref<number>(0);
-const downloadError = ref<string | null>(null);
-const openSourceLicenses = ref<string>('');
-const thirdPartyAssets = ref<string>('');
-const activeTab = ref<string>('updates');
-
-
+  checking: boolean
+  updateAvailable: boolean
+  updateNotAvailable: boolean
+  error: string | null
+  updateInfo: any
+} | null>(null)
+const downloading = ref<boolean>(false)
+const downloaded = ref<boolean>(false)
+const downloadProgress = ref<number>(0)
+const downloadError = ref<string | null>(null)
+const openSourceLicenses = ref<string>('')
+const thirdPartyAssets = ref<string>('')
+const activeTab = ref<string>('updates')
 
 // 加载版本信息
 const loadVersionInfo = async () => {
   try {
-    version.value = await getAppVersion();
-    
+    version.value = await getAppVersion()
+
     // 获取构建环境信息
-    const isDev = await isDevEnvironment();
-    buildEnvironment.value = isDev 
+    const isDev = await isDevEnvironment()
+    buildEnvironment.value = isDev
       ? t('setting.about.buildEnvironmentDev')
-      : t('setting.about.buildEnvironmentRelease');
-    
+      : t('setting.about.buildEnvironmentRelease')
+
     // 获取版本文件的详细信息（包含发布日期）
     try {
-      const versionInfo = await ipcRenderer.invoke('get-version-info');
+      const versionInfo = await ipcRenderer.invoke('get-version-info')
       if (versionInfo && versionInfo.updatedAt) {
-        releaseDate.value = versionInfo.updatedAt;
+        releaseDate.value = versionInfo.updatedAt
       }
     } catch (error) {
-      console.warn('获取版本详细信息失败:', error);
+      console.warn('获取版本详细信息失败:', error)
     }
   } catch (error) {
-    console.error('加载版本信息失败:', error);
-    version.value = 'Unknown';
+    console.error('加载版本信息失败:', error)
+    version.value = 'Unknown'
   }
-};
+}
 
 // 加载设置
 const loadSettings = async () => {
   try {
-    const autoCheck = await getSetting('autoCheckUpdates');
-    autoCheckUpdates.value = autoCheck !== undefined ? autoCheck : true;
+    const autoCheck = await getSetting('autoCheckUpdates')
+    autoCheckUpdates.value = autoCheck !== undefined ? autoCheck : true
 
-    const channel = await getSetting('updateChannel');
-    updateChannel.value = (channel === 'dev' || channel === 'release') ? channel : 'release';
+    const channel = await getSetting('updateChannel')
+    updateChannel.value = channel === 'dev' || channel === 'release' ? channel : 'release'
   } catch (error) {
-    console.error('加载设置失败:', error);
+    console.error('加载设置失败:', error)
   }
-};
+}
 
 // 格式化日期
 const formatDate = (dateString: string): string => {
   try {
-    const date = new Date(dateString);
+    const date = new Date(dateString)
     return date.toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    });
+    })
   } catch (error) {
-    return dateString;
+    return dateString
   }
-};
+}
 
 // 处理自动检查更新开关变化
 const handleAutoCheckChange = () => {
-  setSetting('autoCheckUpdates', autoCheckUpdates.value);
-};
+  setSetting('autoCheckUpdates', autoCheckUpdates.value)
+}
 
 // 处理更新渠道变化
 const handleChannelChange = () => {
-  setSetting('updateChannel', updateChannel.value);
-};
+  setSetting('updateChannel', updateChannel.value)
+}
 
 // 手动检查更新
 const handleCheckUpdate = async () => {
-  checking.value = true;
-  updateStatus.value = null;
-  downloaded.value = false;
-  downloading.value = false;
-  downloadProgress.value = 0;
-  downloadError.value = null;
+  checking.value = true
+  updateStatus.value = null
+  downloaded.value = false
+  downloading.value = false
+  downloadProgress.value = 0
+  downloadError.value = null
 
   try {
-    const status = await ipcRenderer.invoke('check-for-updates', updateChannel.value);
-    updateStatus.value = status;
+    const status = await ipcRenderer.invoke('check-for-updates', updateChannel.value)
+    updateStatus.value = status
   } catch (error) {
-    console.error('检查更新失败:', error);
+    console.error('检查更新失败:', error)
     updateStatus.value = {
       checking: false,
       updateAvailable: false,
       updateNotAvailable: false,
       error: error instanceof Error ? error.message : String(error),
       updateInfo: null
-    };
+    }
   } finally {
-    checking.value = false;
+    checking.value = false
   }
-};
+}
 
 // 下载更新
 const handleDownloadUpdate = async () => {
-  downloading.value = true;
-  downloadProgress.value = 0;
-  downloadError.value = null;
+  downloading.value = true
+  downloadProgress.value = 0
+  downloadError.value = null
 
   try {
     // 监听下载进度
     const progressHandler = (event: any, progress: { percent: number }) => {
-      downloadProgress.value = Math.round(progress.percent);
-    };
-
-    if (ipcRenderer && ipcRenderer.on) {
-      ipcRenderer.on('update-download-progress', progressHandler);
+      downloadProgress.value = Math.round(progress.percent)
     }
 
-    const result = await ipcRenderer.invoke('download-update');
-    
+    if (ipcRenderer && ipcRenderer.on) {
+      ipcRenderer.on('update-download-progress', progressHandler)
+    }
+
+    const result = await ipcRenderer.invoke('download-update')
+
     if (ipcRenderer && ipcRenderer.removeListener) {
-      ipcRenderer.removeListener('update-download-progress', progressHandler);
+      ipcRenderer.removeListener('update-download-progress', progressHandler)
     }
 
     if (result.success) {
-      downloaded.value = true;
-      downloading.value = false;
-      downloadProgress.value = 100;
+      downloaded.value = true
+      downloading.value = false
+      downloadProgress.value = 100
     } else {
-      downloadError.value = result.error || t('setting.about.downloadError');
-      downloading.value = false;
+      downloadError.value = result.error || t('setting.about.downloadError')
+      downloading.value = false
     }
   } catch (error) {
-    console.error('下载更新失败:', error);
-    downloadError.value = error instanceof Error ? error.message : String(error);
-    downloading.value = false;
+    console.error('下载更新失败:', error)
+    downloadError.value = error instanceof Error ? error.message : String(error)
+    downloading.value = false
   }
-};
+}
 
 // 安装更新并重启
 const handleInstallUpdate = async () => {
   try {
-    await ipcRenderer.invoke('quit-and-install');
+    await ipcRenderer.invoke('quit-and-install')
   } catch (error) {
-    console.error('安装更新失败:', error);
-    downloadError.value = error instanceof Error ? error.message : String(error);
+    console.error('安装更新失败:', error)
+    downloadError.value = error instanceof Error ? error.message : String(error)
   }
-};
+}
 
 // 监听自动下载完成事件
 const handleUpdateDownloaded = (event: any, data: { version: string }) => {
-  downloaded.value = true;
-  downloading.value = false;
-  downloadProgress.value = 100;
+  downloaded.value = true
+  downloading.value = false
+  downloadProgress.value = 100
   // 如果有更新状态，更新它
   if (updateStatus.value) {
-    updateStatus.value.updateAvailable = true;
+    updateStatus.value.updateAvailable = true
     if (data.version) {
-      updateStatus.value.updateInfo = { ...updateStatus.value.updateInfo, version: data.version };
+      updateStatus.value.updateInfo = { ...updateStatus.value.updateInfo, version: data.version }
     }
   }
-};
+}
 
 // 加载许可证和资产信息
 const loadLicenseAndAssets = async () => {
   try {
-    openSourceLicenses.value = openSourceLicensesText;
-    thirdPartyAssets.value = thirdPartyAssetsText;
+    openSourceLicenses.value = openSourceLicensesText
+    thirdPartyAssets.value = thirdPartyAssetsText
   } catch (error) {
-    console.error('加载许可证和资产信息失败:', error);
-    openSourceLicenses.value = '加载失败，请稍后重试。';
-    thirdPartyAssets.value = '加载失败，请稍后重试。';
+    console.error('加载许可证和资产信息失败:', error)
+    openSourceLicenses.value = '加载失败，请稍后重试。'
+    thirdPartyAssets.value = '加载失败，请稍后重试。'
   }
-};
+}
 
 onMounted(async () => {
-  await Promise.all([
-    loadVersionInfo(),
-    loadSettings(),
-    loadLicenseAndAssets(),
-  ]);
+  await Promise.all([loadVersionInfo(), loadSettings(), loadLicenseAndAssets()])
 
   // 监听自动下载完成事件
   if (ipcRenderer && ipcRenderer.on) {
-    ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
+    ipcRenderer.on('update-downloaded', handleUpdateDownloaded)
   }
 
   // 检查是否有已下载的更新
   try {
-    const status = await ipcRenderer.invoke('get-update-status');
+    const status = await ipcRenderer.invoke('get-update-status')
     if (status && status.updateAvailable) {
-      updateStatus.value = status;
+      updateStatus.value = status
       // 检查更新是否已下载（通过检查是否有 update-downloaded 事件）
       // 这里我们假设如果状态显示有更新可用，可能已经下载完成
       // 实际应该通过其他方式判断，比如检查下载状态
     }
   } catch (error) {
-    console.warn('获取更新状态失败:', error);
+    console.warn('获取更新状态失败:', error)
   }
-});
+})
 
 // 组件卸载时清理监听器
 onUnmounted(() => {
   if (ipcRenderer && ipcRenderer.removeListener) {
-    ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded);
+    ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded)
   }
-});
+})
 </script>
 
 <style scoped>

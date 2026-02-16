@@ -22,10 +22,10 @@ function deepEqual(obj1: any, obj2: any): boolean {
   if (obj1 === obj2) return true
   if (obj1 == null || obj2 == null) return false
   if (typeof obj1 !== typeof obj2) return false
-  
+
   if (typeof obj1 === 'object') {
     if (Array.isArray(obj1) !== Array.isArray(obj2)) return false
-    
+
     if (Array.isArray(obj1)) {
       if (obj1.length !== obj2.length) return false
       for (let i = 0; i < obj1.length; i++) {
@@ -33,18 +33,18 @@ function deepEqual(obj1: any, obj2: any): boolean {
       }
       return true
     }
-    
+
     const keys1 = Object.keys(obj1).sort()
     const keys2 = Object.keys(obj2).sort()
     if (keys1.length !== keys2.length) return false
-    
+
     for (const key of keys1) {
       if (!keys2.includes(key)) return false
       if (!deepEqual(obj1[key], obj2[key])) return false
     }
     return true
   }
-  
+
   return false
 }
 
@@ -53,8 +53,8 @@ function deepEqual(obj1: any, obj2: any): boolean {
  */
 function normalizeResult(result: ParsedToolCall[] | null): StandardToolCall[] | null {
   if (!result || result.length === 0) return null
-  
-  return result.map(item => ({
+
+  return result.map((item) => ({
     tool_id: item.tool_id,
     parameters: item.parameters
   }))
@@ -79,7 +79,7 @@ function createTestFunction(
       try {
         const parsed = parseToolCalls(inputText)
         const normalized = normalizeResult(parsed)
-        
+
         // 处理预期结果
         let expectedNormalized: StandardToolCall[] | null = null
         if (expected === null) {
@@ -89,10 +89,10 @@ function createTestFunction(
         } else {
           expectedNormalized = [expected]
         }
-        
+
         // 比较结果
         const passed = deepEqual(normalized, expectedNormalized)
-        
+
         return {
           input: inputText,
           output: normalized,
@@ -141,53 +141,67 @@ function createDummyToolTestFunction(
       try {
         const parsed = parseToolCalls(inputText)
         const normalized = normalizeResult(parsed)
-        
+
         // 验证是否返回了dummy-tool
-        const hasDummyTool = normalized && normalized.length > 0 && normalized[0].tool_id === 'dummy-tool'
-        
+        const hasDummyTool =
+          normalized && normalized.length > 0 && normalized[0].tool_id === 'dummy-tool'
+
         if (!hasDummyTool) {
           return {
             input: inputText,
             output: normalized,
-            expected: [{ tool_id: 'dummy-tool', parameters: { error: expectedErrorPattern || '错误信息', rawContent: '原始内容' } }],
+            expected: [
+              {
+                tool_id: 'dummy-tool',
+                parameters: { error: expectedErrorPattern || '错误信息', rawContent: '原始内容' }
+              }
+            ],
             passed: false,
             error: `未返回dummy-tool作为fallback。实际返回: ${JSON.stringify(normalized)}`
           }
         }
-        
+
         // 验证dummy-tool的参数结构
         const dummyToolParams = normalized[0].parameters
         const hasError = dummyToolParams && typeof dummyToolParams.error === 'string'
         const hasRawContent = dummyToolParams && typeof dummyToolParams.rawContent === 'string'
-        
+
         if (!hasError) {
           return {
             input: inputText,
             output: normalized,
-            expected: [{ tool_id: 'dummy-tool', parameters: { error: '错误信息', rawContent: '原始内容' } }],
+            expected: [
+              { tool_id: 'dummy-tool', parameters: { error: '错误信息', rawContent: '原始内容' } }
+            ],
             passed: false,
             error: 'dummy-tool的参数中缺少error字段'
           }
         }
-        
+
         // 如果提供了错误模式，验证错误信息是否包含预期关键词
         if (expectedErrorPattern) {
           const errorMessage = dummyToolParams.error as string
-          const pattern = typeof expectedErrorPattern === 'string' 
-            ? new RegExp(expectedErrorPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
-            : expectedErrorPattern
-          
+          const pattern =
+            typeof expectedErrorPattern === 'string'
+              ? new RegExp(expectedErrorPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+              : expectedErrorPattern
+
           if (!pattern.test(errorMessage)) {
             return {
               input: inputText,
               output: normalized,
-              expected: [{ tool_id: 'dummy-tool', parameters: { error: expectedErrorPattern, rawContent: '原始内容' } }],
+              expected: [
+                {
+                  tool_id: 'dummy-tool',
+                  parameters: { error: expectedErrorPattern, rawContent: '原始内容' }
+                }
+              ],
               passed: false,
               error: `错误信息不匹配。实际: "${errorMessage}", 预期应包含: "${expectedErrorPattern}"`
             }
           }
         }
-        
+
         return {
           input: inputText,
           output: normalized,
@@ -456,7 +470,7 @@ const testLooseJsonSingleQuote: TestFunction = createTestFunction(
   'tool-call-parser.loose-json-single-quote',
   '宽松JSON-单引号',
   '测试单引号JSON格式',
-  '<tool_call>{\'name\': \'chart-generation\', \'arguments\': {\'type\': \'bar\'}}</tool_call>',
+  "<tool_call>{'name': 'chart-generation', 'arguments': {'type': 'bar'}}</tool_call>",
   {
     tool_id: 'chart-generation',
     parameters: { type: 'bar' }
@@ -602,7 +616,8 @@ const testDSMLNestedInToolCall: TestFunction = createTestFunction(
   {
     tool_id: 'chart-generation',
     parameters: {
-      prompt: '生成一个可信软件工程技术栈和工作流程的PlantUML活动图，包含以下内容：1. 需求获取阶段：非正式规范、半正式规范、正式规范 2. 开发阶段：SOFL三步形式化规范技术、混合规范（GUI+半正式+正式）、基于规范的增量实现 3. 验证阶段：基于规范的检查、基于测试的形式验证、人机结对编程中的监控和预测 4. 人工智能支持：LLM在规范精化、代码生成、代码审查、测试、形式验证中的应用 5. 最终目标：可信软件交付。请展示这些阶段之间的流程关系。',
+      prompt:
+        '生成一个可信软件工程技术栈和工作流程的PlantUML活动图，包含以下内容：1. 需求获取阶段：非正式规范、半正式规范、正式规范 2. 开发阶段：SOFL三步形式化规范技术、混合规范（GUI+半正式+正式）、基于规范的增量实现 3. 验证阶段：基于规范的检查、基于测试的形式验证、人机结对编程中的监控和预测 4. 人工智能支持：LLM在规范精化、代码生成、代码审查、测试、形式验证中的应用 5. 最终目标：可信软件交付。请展示这些阶段之间的流程关系。',
       chartType: 'plantuml',
       format: 'svg'
     }
@@ -827,7 +842,12 @@ const testPureXMLWithUseCurl: TestFunction = createTestFunction(
   '<web-crawler>\n{"url": "https://arxiv.org/list/cs/new", "method": "GET", "timeout": 30000, "useCurl": true}\n</web-crawler>',
   {
     tool_id: 'web-crawler',
-    parameters: { url: 'https://arxiv.org/list/cs/new', method: 'GET', timeout: 30000, useCurl: true }
+    parameters: {
+      url: 'https://arxiv.org/list/cs/new',
+      method: 'GET',
+      timeout: 30000,
+      useCurl: true
+    }
   }
 )
 
@@ -1007,7 +1027,12 @@ const testParamValueNestedArray: TestFunction = createTestFunction(
   '<tool_call>{"name": "chart-generation", "arguments": {"data": [[1, 2], [3, 4]]}}</tool_call>',
   {
     tool_id: 'chart-generation',
-    parameters: { data: [[1, 2], [3, 4]] }
+    parameters: {
+      data: [
+        [1, 2],
+        [3, 4]
+      ]
+    }
   }
 )
 
@@ -1210,13 +1235,13 @@ export function registerToolCallParserTests() {
   testFramework.register(testStandardBasic)
   testFramework.register(testStandardMultiParams)
   testFramework.register(testStandardNestedParams)
-  
+
   // 标签变体
   testFramework.register(testTagVariantToolCall)
   testFramework.register(testTagVariantToolCallCamel)
   testFramework.register(testTagVariantFunctionCall)
   testFramework.register(testTagVariantFunctionCallUnderscore)
-  
+
   // 字段名称变体
   testFramework.register(testFieldVariantToolId)
   testFramework.register(testFieldVariantToolIdCamel)
@@ -1225,23 +1250,23 @@ export function registerToolCallParserTests() {
   testFramework.register(testFieldVariantParameters)
   testFramework.register(testFieldVariantParams)
   testFramework.register(testFieldVariantArgs)
-  
+
   // 代码块格式
   testFramework.register(testCodeBlockJson)
   testFramework.register(testCodeBlockNoLang)
-  
+
   // 宽松JSON格式
   testFramework.register(testLooseJsonSingleQuote)
   testFramework.register(testLooseJsonTrailingComma)
   testFramework.register(testLooseJsonSingleLineComment)
   testFramework.register(testLooseJsonMultiLineComment)
-  
+
   // 数组格式
   testFramework.register(testArrayFormat)
-  
+
   // 多行格式
   testFramework.register(testMultilineFormat)
-  
+
   // DSML格式
   testFramework.register(testDSMLBasic)
   testFramework.register(testDSMLFunctionCalls)
@@ -1252,28 +1277,28 @@ export function registerToolCallParserTests() {
   testFramework.register(testDSMLCallTag)
   testFramework.register(testDSMLCallWithFunctionCalls)
   testFramework.register(testDSMLCallNestedInToolCall)
-  
+
   // XML格式
   testFramework.register(testXMLBasic)
   testFramework.register(testXMLMultiParams)
   testFramework.register(testXMLNestedParams)
   testFramework.register(testXMLEmptyParams)
   testFramework.register(testXMLSingleLine)
-  
+
   // 纯XML格式（标签名即工具ID）
   testFramework.register(testPureXMLBasic)
   testFramework.register(testPureXMLMultiParams)
   testFramework.register(testPureXMLWithUseCurl)
   testFramework.register(testPureXMLSingleLine)
   testFramework.register(testPureXMLNestedParams)
-  
+
   // OpenAI格式
   testFramework.register(testOpenAIBasic)
   testFramework.register(testOpenAIFieldVariant)
-  
+
   // 多个工具调用
   testFramework.register(testMultipleToolCalls)
-  
+
   // 边界情况
   testFramework.register(testEmptyParams)
   testFramework.register(testNoParamsField)
@@ -1282,11 +1307,11 @@ export function registerToolCallParserTests() {
   testFramework.register(testParamValueNumber)
   testFramework.register(testParamValueArray)
   testFramework.register(testParamValueNestedArray)
-  
+
   // 无效格式（返回null）
   testFramework.register(testInvalidNoMarkers)
   testFramework.register(testInvalidIncomplete)
-  
+
   // 无效格式（返回dummy-tool作为fallback）
   testFramework.register(testInvalidMissingToolId)
   testFramework.register(testInvalidParamsNotObject)

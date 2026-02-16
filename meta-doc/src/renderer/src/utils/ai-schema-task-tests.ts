@@ -12,16 +12,19 @@ import { generateWithSchema } from './ai-schema-task'
 /**
  * 验证 JSON 数据是否符合 Schema 定义
  */
-function validateSchema<T>(data: any, schema: SchemaDefinition<T>): { valid: boolean; errors: string[] } {
+function validateSchema<T>(
+  data: any,
+  schema: SchemaDefinition<T>
+): { valid: boolean; errors: string[] } {
   const errors: string[] = []
-  
+
   if (!data || typeof data !== 'object') {
     errors.push('数据必须是对象类型')
     return { valid: false, errors }
   }
-  
+
   const schemaObj = schema.schema as any
-  
+
   // 检查必需字段
   if (schemaObj.required && Array.isArray(schemaObj.required)) {
     for (const field of schemaObj.required) {
@@ -30,14 +33,14 @@ function validateSchema<T>(data: any, schema: SchemaDefinition<T>): { valid: boo
       }
     }
   }
-  
+
   // 检查属性类型
   if (schemaObj.properties) {
     for (const [field, value] of Object.entries(data)) {
       const fieldSchema = (schemaObj.properties as any)[field]
       if (fieldSchema) {
         const expectedType = fieldSchema.type
-        
+
         // 类型检查
         if (expectedType) {
           const actualType = Array.isArray(value) ? 'array' : typeof value
@@ -45,7 +48,7 @@ function validateSchema<T>(data: any, schema: SchemaDefinition<T>): { valid: boo
             errors.push(`字段 ${field} 类型不匹配: 期望 ${expectedType}, 实际 ${actualType}`)
           }
         }
-        
+
         // 数组项类型检查
         if (expectedType === 'array' && fieldSchema.items) {
           if (!Array.isArray(value)) {
@@ -55,29 +58,35 @@ function validateSchema<T>(data: any, schema: SchemaDefinition<T>): { valid: boo
             for (let i = 0; i < value.length; i++) {
               const itemActualType = typeof value[i]
               if (itemActualType !== itemType) {
-                errors.push(`字段 ${field}[${i}] 类型不匹配: 期望 ${itemType}, 实际 ${itemActualType}`)
+                errors.push(
+                  `字段 ${field}[${i}] 类型不匹配: 期望 ${itemType}, 实际 ${itemActualType}`
+                )
               }
             }
           }
         }
-        
+
         // 字符串长度检查
         if (expectedType === 'string' && fieldSchema.maxLength) {
           if (typeof value === 'string' && value.length > fieldSchema.maxLength) {
-            errors.push(`字段 ${field} 长度超过限制: 最大 ${fieldSchema.maxLength}, 实际 ${value.length}`)
+            errors.push(
+              `字段 ${field} 长度超过限制: 最大 ${fieldSchema.maxLength}, 实际 ${value.length}`
+            )
           }
         }
-        
+
         // 数组长度检查
         if (expectedType === 'array' && fieldSchema.maxItems) {
           if (Array.isArray(value) && value.length > fieldSchema.maxItems) {
-            errors.push(`字段 ${field} 数组长度超过限制: 最大 ${fieldSchema.maxItems}, 实际 ${value.length}`)
+            errors.push(
+              `字段 ${field} 数组长度超过限制: 最大 ${fieldSchema.maxItems}, 实际 ${value.length}`
+            )
           }
         }
       }
     }
   }
-  
+
   return {
     valid: errors.length === 0,
     errors
@@ -105,12 +114,12 @@ const testBuildSchemaPrompt: TestFunction = {
         }
       }
     }
-    
+
     const result = buildSchemaPrompt(schema, userPrompt)
     const hasSchema = result.includes('"type": "object"')
     const hasUserPrompt = result.includes(userPrompt)
     const hasInstruction = result.includes('请严格输出')
-    
+
     return {
       input: { userPrompt },
       output: result,
@@ -140,7 +149,7 @@ const testExtractSimpleJson: TestFunction = {
   fn: (text: string) => {
     const result = extractOuterJsonString(text)
     const expected = '{"title":"测试标题","count":123}'
-    
+
     return {
       input: { text },
       output: result,
@@ -170,7 +179,7 @@ const testExtractNestedJson: TestFunction = {
   fn: (text: string) => {
     const result = extractOuterJsonString(text)
     const expected = '{"outer":{"inner":{"value":123}}}'
-    
+
     return {
       input: { text },
       output: result,
@@ -200,7 +209,7 @@ const testExtractJsonArray: TestFunction = {
   fn: (text: string) => {
     const result = extractOuterJsonString(text)
     const expected = '[{"id":1,"name":"项目1"},{"id":2,"name":"项目2"}]'
-    
+
     return {
       input: { text },
       output: result,
@@ -239,7 +248,7 @@ const testParseSchemaJson: TestFunction = {
         }
       }
     }
-    
+
     try {
       const result = parseSchemaJson(jsonText, schema)
       return {
@@ -288,7 +297,7 @@ const testParseJsonWithExtraText: TestFunction = {
         }
       }
     }
-    
+
     try {
       const result = parseSchemaJson(text, schema)
       return {
@@ -328,7 +337,7 @@ const testExtractIncompleteJson: TestFunction = {
   module: 'AI Schema Task',
   fn: (text: string) => {
     const result = extractOuterJsonString(text)
-    
+
     return {
       input: { text },
       output: result,
@@ -367,11 +376,11 @@ const testBuildPromptWithExample: TestFunction = {
       },
       example: '{"title":"示例标题"}'
     }
-    
+
     const result = buildSchemaPrompt(schema, userPrompt)
     const hasExample = result.includes('示例输出')
     const hasExampleContent = result.includes('示例标题')
-    
+
     return {
       input: { userPrompt },
       output: result,
@@ -401,7 +410,7 @@ const testExtractFirstJson: TestFunction = {
   fn: (text: string) => {
     const result = extractOuterJsonString(text)
     const expected = '{"first":{"value":1}}'
-    
+
     return {
       input: { text },
       output: result,
@@ -442,14 +451,14 @@ const testCompleteFlow: TestFunction = {
         }
       }
     }
-    
+
     // 2. 构建提示词
     const fullPrompt = buildSchemaPrompt(schema, userPrompt)
-    
+
     // 3. 模拟 AI 输出（使用传入的 aiOutput）
     // 4. 提取 JSON
     const jsonString = extractOuterJsonString(aiOutput)
-    
+
     if (!jsonString) {
       return {
         input: { userPrompt, aiOutput },
@@ -459,7 +468,7 @@ const testCompleteFlow: TestFunction = {
         error: '未能从 AI 输出中提取 JSON'
       }
     }
-    
+
     // 5. 解析 JSON
     try {
       const result = parseSchemaJson(jsonString, schema)
@@ -494,7 +503,8 @@ const testCompleteFlow: TestFunction = {
     {
       name: 'aiOutput',
       type: 'string',
-      defaultValue: '根据您的要求，我生成了以下结果：{"title":"测试标题","description":"这是一个测试描述"} 希望这符合您的需求。',
+      defaultValue:
+        '根据您的要求，我生成了以下结果：{"title":"测试标题","description":"这是一个测试描述"} 希望这符合您的需求。',
       description: '模拟的 AI 输出（包含 JSON 和其他文本）'
     }
   ]
@@ -526,19 +536,15 @@ const testFullChainSimpleTitle: TestFunction = {
         }
       }
     }
-    
+
     const outputRef = ref('')
-    
+
     try {
-      const result = await generateWithSchema<{ title: string }>(
-        schema,
-        userPrompt,
-        outputRef
-      )
-      
+      const result = await generateWithSchema<{ title: string }>(schema, userPrompt, outputRef)
+
       // 验证结果是否符合 Schema
       const validation = validateSchema(result, schema)
-      
+
       return {
         input: { userPrompt },
         output: {
@@ -548,8 +554,8 @@ const testFullChainSimpleTitle: TestFunction = {
         },
         expected: '返回符合 Schema 的 JSON 对象',
         passed: validation.valid && typeof result.title === 'string' && result.title.length > 0,
-        note: validation.valid 
-          ? `✅ Schema 验证通过，标题: "${result.title}"` 
+        note: validation.valid
+          ? `✅ Schema 验证通过，标题: "${result.title}"`
           : `❌ Schema 验证失败: ${validation.errors.join(', ')}`,
         errors: validation.errors.length > 0 ? validation.errors : undefined
       }
@@ -607,19 +613,19 @@ const testFullChainTitleWithKeywords: TestFunction = {
       },
       example: '{"title":"项目进度讨论","keywords":["项目","进度"]}'
     }
-    
+
     const outputRef = ref('')
-    
+
     try {
       const result = await generateWithSchema<{ title: string; keywords?: string[] }>(
         schema,
         userPrompt,
         outputRef
       )
-      
+
       // 验证结果是否符合 Schema
       const validation = validateSchema(result, schema)
-      
+
       return {
         input: { userPrompt },
         output: {
@@ -629,8 +635,8 @@ const testFullChainTitleWithKeywords: TestFunction = {
         },
         expected: '返回包含 title 和可选 keywords 的 JSON 对象',
         passed: validation.valid && typeof result.title === 'string' && result.title.length > 0,
-        note: validation.valid 
-          ? `✅ Schema 验证通过，标题: "${result.title}", 关键词: ${result.keywords?.length || 0} 个` 
+        note: validation.valid
+          ? `✅ Schema 验证通过，标题: "${result.title}", 关键词: ${result.keywords?.length || 0} 个`
           : `❌ Schema 验证失败: ${validation.errors.join(', ')}`,
         errors: validation.errors.length > 0 ? validation.errors : undefined
       }
@@ -701,32 +707,28 @@ const testFullChainComplexObject: TestFunction = {
         }
       }
     }
-    
+
     const outputRef = ref('')
-    
+
     try {
       const result = await generateWithSchema<{
         title: string
         description: string
         tags: string[]
         priority: number
-      }>(
-        schema,
-        userPrompt,
-        outputRef
-      )
-      
+      }>(schema, userPrompt, outputRef)
+
       // 验证结果是否符合 Schema
       const validation = validateSchema(result, schema)
-      
+
       // 额外的业务逻辑验证
       const businessValidation: string[] = []
       if (result.priority < 1 || result.priority > 10) {
         businessValidation.push(`priority 应该在 1-10 之间，实际: ${result.priority}`)
       }
-      
+
       const allValid = validation.valid && businessValidation.length === 0
-      
+
       return {
         input: { userPrompt },
         output: {
@@ -736,17 +738,19 @@ const testFullChainComplexObject: TestFunction = {
           businessValidation
         },
         expected: '返回包含所有必需字段的复杂对象',
-        passed: allValid && 
-                typeof result.title === 'string' && 
-                typeof result.description === 'string' &&
-                Array.isArray(result.tags) &&
-                typeof result.priority === 'number',
+        passed:
+          allValid &&
+          typeof result.title === 'string' &&
+          typeof result.description === 'string' &&
+          Array.isArray(result.tags) &&
+          typeof result.priority === 'number',
         note: allValid
           ? `✅ Schema 验证通过，包含 ${Object.keys(result).length} 个字段`
           : `❌ 验证失败: ${[...validation.errors, ...businessValidation].join(', ')}`,
-        errors: [...validation.errors, ...businessValidation].length > 0 
-          ? [...validation.errors, ...businessValidation] 
-          : undefined
+        errors:
+          [...validation.errors, ...businessValidation].length > 0
+            ? [...validation.errors, ...businessValidation]
+            : undefined
       }
     } catch (error) {
       return {
@@ -807,19 +811,19 @@ const testFullChainArrayType: TestFunction = {
         }
       }
     }
-    
+
     const outputRef = ref('')
-    
+
     try {
       const result = await generateWithSchema<{ items: Array<{ id: number; name: string }> }>(
         schema,
         userPrompt,
         outputRef
       )
-      
+
       // 验证结果是否符合 Schema
       const validation = validateSchema(result, schema)
-      
+
       // 额外的数组长度验证
       const arrayValidation: string[] = []
       if (!Array.isArray(result.items)) {
@@ -841,9 +845,9 @@ const testFullChainArrayType: TestFunction = {
           }
         })
       }
-      
+
       const allValid = validation.valid && arrayValidation.length === 0
-      
+
       return {
         input: { userPrompt },
         output: {
@@ -857,9 +861,10 @@ const testFullChainArrayType: TestFunction = {
         note: allValid
           ? `✅ Schema 验证通过，数组包含 ${result.items.length} 个项目`
           : `❌ 验证失败: ${[...validation.errors, ...arrayValidation].join(', ')}`,
-        errors: [...validation.errors, ...arrayValidation].length > 0 
-          ? [...validation.errors, ...arrayValidation] 
-          : undefined
+        errors:
+          [...validation.errors, ...arrayValidation].length > 0
+            ? [...validation.errors, ...arrayValidation]
+            : undefined
       }
     } catch (error) {
       return {
@@ -892,19 +897,15 @@ const testFullChainDocumentTitle: TestFunction = {
   fn: async (userPrompt: string) => {
     // 导入实际的 DOCUMENT_TITLE_SCHEMA
     const { DOCUMENT_TITLE_SCHEMA } = await import('./schemas')
-    
+
     const outputRef = ref('')
-    
+
     try {
-      const result = await generateWithSchema(
-        DOCUMENT_TITLE_SCHEMA,
-        userPrompt,
-        outputRef
-      )
-      
+      const result = await generateWithSchema(DOCUMENT_TITLE_SCHEMA, userPrompt, outputRef)
+
       // 验证结果是否符合 Schema
       const validation = validateSchema(result, DOCUMENT_TITLE_SCHEMA)
-      
+
       return {
         input: { userPrompt },
         output: {
@@ -913,10 +914,11 @@ const testFullChainDocumentTitle: TestFunction = {
           validation
         },
         expected: '返回符合 DOCUMENT_TITLE_SCHEMA 的对象',
-        passed: validation.valid && 
-                typeof result.title === 'string' && 
-                result.title.length > 0 &&
-                (!result.keywords || Array.isArray(result.keywords)),
+        passed:
+          validation.valid &&
+          typeof result.title === 'string' &&
+          result.title.length > 0 &&
+          (!result.keywords || Array.isArray(result.keywords)),
         note: validation.valid
           ? `✅ Schema 验证通过，标题: "${result.title}", 关键词: ${result.keywords?.length || 0} 个`
           : `❌ Schema 验证失败: ${validation.errors.join(', ')}`,
@@ -959,7 +961,7 @@ export function registerAiSchemaTaskTests() {
   testFramework.register(testBuildPromptWithExample)
   testFramework.register(testExtractFirstJson)
   testFramework.register(testCompleteFlow)
-  
+
   // 全链路测试（实际调用 AI）
   testFramework.register(testFullChainSimpleTitle)
   testFramework.register(testFullChainTitleWithKeywords)
@@ -967,4 +969,3 @@ export function registerAiSchemaTaskTests() {
   testFramework.register(testFullChainArrayType)
   testFramework.register(testFullChainDocumentTitle)
 }
-

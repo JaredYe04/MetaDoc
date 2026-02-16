@@ -2,14 +2,10 @@
   <div class="homepage">
     <!-- 快速开始面板 - 优先级最高，覆盖其他所有内容 -->
     <!-- 注意：快速开始面板只在 GlobalHome 中显示，Home.vue 只显示文档总览 -->
-    
+
     <!-- 如果文档格式未选择，显示格式选择界面 -->
     <div v-if="needsFormatSelection" class="format-selection-container">
-      <NewDocumentWorkspace 
-        v-if="activeTabId"
-        :tab-id="activeTabId"
-        :active="true"
-      />
+      <NewDocumentWorkspace v-if="activeTabId" :tab-id="activeTabId" :active="true" />
     </div>
 
     <!-- 如果已选择格式，显示文档预览 -->
@@ -28,7 +24,7 @@
               <h1 class="document-title" :style="{ color: themeState.currentTheme.textColor }">
                 {{ fileName }}
               </h1>
-              
+
               <!-- 纯文本格式：显示文件格式、创建日期、修改日期 -->
               <div class="meta-info-row">
                 <div class="meta-item" v-if="fileFormat">
@@ -56,8 +52,8 @@
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
             <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
-            <div 
-              ref="monacoPreviewRef" 
+            <div
+              ref="monacoPreviewRef"
               class="content-preview monaco-preview"
               v-loading="isRendering"
             ></div>
@@ -74,7 +70,7 @@
               <h1 class="document-title" :style="{ color: themeState.currentTheme.textColor }">
                 {{ metaTitle || $t('article.no_title') }}
               </h1>
-              
+
               <!-- 其他格式（Markdown/LaTeX）：显示作者和摘要 -->
               <div class="meta-info-row">
                 <div class="meta-item" v-if="metaAuthor">
@@ -96,11 +92,11 @@
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
             <!-- 其他格式：使用Markdown预览 -->
-            <div 
-              ref="previewContainerRef" 
-              class="content-preview" 
+            <div
+              ref="previewContainerRef"
+              class="content-preview"
               :class="themeState.currentTheme.mdeditorClass"
-              :style="{ color: themeState.currentTheme.textColor }" 
+              :style="{ color: themeState.currentTheme.textColor }"
               v-loading="isRendering"
             ></div>
           </div>
@@ -148,15 +144,15 @@ const fileName = computed(() => {
 
 const fileFormat = computed(() => {
   if (!currentFilePath.value) return ''
-  
+
   // 获取文件扩展名
   const lastDotIndex = currentFilePath.value.lastIndexOf('.')
   const ext = lastDotIndex >= 0 ? currentFilePath.value.substring(lastDotIndex).toLowerCase() : ''
-  
+
   // 尝试从格式注册表获取格式信息
   const formatId = activeDocument.value?.format || formatRegistry.getFormatByExtension(ext) || 'txt'
   const formatConfig = formatRegistry.getFormat(formatId)
-  
+
   if (formatConfig) {
     // 如果有扩展名，显示扩展名，否则显示格式标签
     if (ext) {
@@ -164,7 +160,7 @@ const fileFormat = computed(() => {
     }
     return formatConfig.label || 'TXT'
   }
-  
+
   // 回退：显示扩展名或默认格式
   if (ext) {
     return ext.toUpperCase().substring(1) // 移除点号
@@ -214,15 +210,19 @@ const loadFileStats = async () => {
     fileStats.value = null
     return
   }
-  
+
   try {
     const ipcRenderer = getIpcRenderer()
     if (!ipcRenderer) {
       logger.warn('IPC renderer 不可用，无法获取文件统计信息')
       return
     }
-    
-    const stats = await ipcRenderer.invoke('get-file-stats', currentFilePath.value) as { birthtime: number; mtime: number; size: number } | null
+
+    const stats = (await ipcRenderer.invoke('get-file-stats', currentFilePath.value)) as {
+      birthtime: number
+      mtime: number
+      size: number
+    } | null
     fileStats.value = stats
   } catch (error) {
     logger.error('获取文件统计信息失败', error)
@@ -281,9 +281,9 @@ const needsFormatSelection = computed(() => {
 
 // 计算当前文档的 linkBase（用于 Markdown 预览解析相对路径）
 const currentLinkBase = computed(() => {
-  const path = currentFilePath.value;
-  if (!path) return '';
-  return workspace.getLinkBase(path);
+  const path = currentFilePath.value
+  if (!path) return ''
+  return workspace.getLinkBase(path)
 })
 
 const previewMarkdown = computed(() => {
@@ -350,24 +350,24 @@ const initMonacoPreview = async () => {
   if (monacoPreviewEditor && monacoPreviewEditorId) {
     // 检查编辑器是否仍然有效
     try {
-      const editors = monaco.editor.getEditors();
-      const existingEditor = editors.find(e => e.getId() === monacoPreviewEditorId);
+      const editors = monaco.editor.getEditors()
+      const existingEditor = editors.find((e) => e.getId() === monacoPreviewEditorId)
       if (existingEditor && existingEditor.getContainerDomNode() === monacoPreviewRef.value) {
         // 编辑器仍然有效，只需要更新内容和主题，不需要重新创建
-        updateMonacoPreview();
-        syncMonacoPreviewTheme();
-        return;
+        updateMonacoPreview()
+        syncMonacoPreviewTheme()
+        return
       }
     } catch (e) {
-      logger.warn('检查Monaco预览编辑器状态失败', e);
+      logger.warn('检查Monaco预览编辑器状态失败', e)
     }
   }
 
   try {
     isRendering.value = true
-    
+
     setupMonacoWorker()
-    
+
     // 如果已存在编辑器，先销毁
     if (monacoPreviewEditor || monacoPreviewEditorId) {
       try {
@@ -375,10 +375,10 @@ const initMonacoPreview = async () => {
           monacoPreviewEditor.dispose()
         } else if (monacoPreviewEditorId) {
           // 如果只有 ID，从全局获取并销毁
-          const editors = monaco.editor.getEditors();
-          const existingEditor = editors.find(e => e.getId() === monacoPreviewEditorId);
+          const editors = monaco.editor.getEditors()
+          const existingEditor = editors.find((e) => e.getId() === monacoPreviewEditorId)
           if (existingEditor) {
-            existingEditor.dispose();
+            existingEditor.dispose()
           }
         }
       } catch (e) {
@@ -389,12 +389,11 @@ const initMonacoPreview = async () => {
     }
 
     // 对于纯文本格式，内容存储在 markdown 字段中
-    const content = activeDocument.value?.format === 'txt' 
-      ? (activeDocument.value?.markdown ?? '') 
-      : ''
+    const content =
+      activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : ''
     const language = getMonacoLanguage('txt', currentFilePath.value)
     const isDark = themeState.currentTheme.type === 'dark'
-    
+
     // 从用户设置中读取行号显示偏好
     let showLineNumbers = true
     try {
@@ -407,7 +406,7 @@ const initMonacoPreview = async () => {
     } catch (error) {
       logger.warn('读取行号设置失败，使用默认值', error)
     }
-    
+
     const editor = monaco.editor.create(monacoPreviewRef.value, {
       value: content,
       language: language,
@@ -422,20 +421,19 @@ const initMonacoPreview = async () => {
       scrollBeyondLastLine: false,
       fontFamily: "'JetBrains Mono', 'Consolas', monospace"
     })
-    
+
     monacoPreviewEditor = editor
     monacoPreviewEditorId = editor.getId()
-    
+
     // 确保编辑器布局正确（等待 DOM 更新）
     nextTick(() => {
       if (monacoPreviewEditor) {
         monacoPreviewEditor.layout()
       }
     })
-    
+
     // 同步主题
     syncMonacoPreviewTheme()
-    
   } catch (error) {
     logger.error('初始化Monaco预览编辑器失败', error)
   } finally {
@@ -446,7 +444,7 @@ const initMonacoPreview = async () => {
 // 同步Monaco预览编辑器主题
 const syncMonacoPreviewTheme = () => {
   if (!monacoPreviewEditor) return
-  
+
   const isDark = themeState.currentTheme.type === 'dark'
   const themeName = isDark ? 'vs-dark' : 'vs'
   const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
@@ -454,7 +452,7 @@ const syncMonacoPreviewTheme = () => {
     if (isDark) return mixColors(color, '#000000', 0.3)
     else return mixColors(color, '#FFFFFF', 0.3)
   }
-  
+
   monaco.editor.defineTheme('homePreviewTheme', {
     base: themeName,
     inherit: true,
@@ -466,7 +464,7 @@ const syncMonacoPreviewTheme = () => {
       }
     ],
     colors: {
-      'editor.background': deeperColor(themeState.currentTheme.background),
+      'editor.background': deeperColor(themeState.currentTheme.background)
     }
   })
   monaco.editor.setTheme('homePreviewTheme')
@@ -475,17 +473,16 @@ const syncMonacoPreviewTheme = () => {
 // 更新Monaco预览编辑器内容
 const updateMonacoPreview = () => {
   if (!monacoPreviewEditor || !isPlainTextFormat.value) return
-  
+
   try {
     // 对于纯文本格式，内容存储在 markdown 字段中
-    const content = activeDocument.value?.format === 'txt' 
-      ? (activeDocument.value?.markdown ?? '') 
-      : ''
+    const content =
+      activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : ''
     const currentValue = monacoPreviewEditor.getValue()
     if (currentValue !== content) {
       monacoPreviewEditor.setValue(content)
     }
-    
+
     // 如果路径变化，可能需要更新语言
     if (currentFilePath.value) {
       const language = getMonacoLanguage('txt', currentFilePath.value)
@@ -494,7 +491,7 @@ const updateMonacoPreview = () => {
         monaco.editor.setModelLanguage(model, language)
       }
     }
-    
+
     // 确保编辑器布局正确
     nextTick(() => {
       if (monacoPreviewEditor) {
@@ -554,7 +551,7 @@ const renderPreview = async () => {
       </div>
     `
     container.innerHTML = emptyContentHtml
-    
+
     // 添加按钮点击事件和悬停效果
     nextTick(() => {
       const button = container.querySelector('.quick-start-button') as HTMLButtonElement
@@ -570,12 +567,12 @@ const renderPreview = async () => {
           button.style.transform = 'translateY(0)'
           button.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)'
         })
-        
+
         // 点击事件：切换到或创建 GlobalHome tab，并打开快速开始面板
         button.addEventListener('click', () => {
           // 切换到或创建 GlobalHome tab
           const homeTab = openSystemTab('/global-home', t('headMenu.home') || '主页')
-          
+
           // 等待 tab 切换和组件挂载完成后再触发快速开始
           // 使用多次 nextTick 和延迟确保 GlobalHome 组件已完全挂载并注册了事件监听器
           nextTick(() => {
@@ -590,7 +587,7 @@ const renderPreview = async () => {
         })
       }
     })
-    
+
     isRendering.value = false
     return
   }
@@ -606,8 +603,8 @@ const renderPreview = async () => {
     const docPath = currentFilePath.value
     markdown = await local2httpProtocol(markdown, docPath)
     const processedMarkdown = await local2fileProtocol(markdown, docPath)
-    
-    const linkBase = currentLinkBase.value;
+
+    const linkBase = currentLinkBase.value
     await renderMarkdownPreview(container, processedMarkdown, {
       linkBase: linkBase,
       renderCode: false,
@@ -622,35 +619,43 @@ const renderPreview = async () => {
 }
 
 // 监听预览内容变化
-watch([previewMarkdown, () => themeState.currentTheme.type, showDocumentPreview, isPlainTextFormat], () => {
-  if (!showDocumentPreview.value) return
-  nextTick(() => {
-    if (isPlainTextFormat.value) {
-      // 纯文本格式：使用Monaco预览
-      if (monacoPreviewEditor) {
-        updateMonacoPreview()
+watch(
+  [previewMarkdown, () => themeState.currentTheme.type, showDocumentPreview, isPlainTextFormat],
+  () => {
+    if (!showDocumentPreview.value) return
+    nextTick(() => {
+      if (isPlainTextFormat.value) {
+        // 纯文本格式：使用Monaco预览
+        if (monacoPreviewEditor) {
+          updateMonacoPreview()
+        } else {
+          initMonacoPreview()
+        }
+        // 同步主题
+        syncMonacoPreviewTheme()
+        // 加载文件统计信息
+        loadFileStats()
       } else {
-        initMonacoPreview()
+        // 其他格式：使用Markdown预览
+        renderPreview()
       }
-      // 同步主题
-      syncMonacoPreviewTheme()
-      // 加载文件统计信息
-      loadFileStats()
-    } else {
-      // 其他格式：使用Markdown预览
-    renderPreview()
-    }
-  })
-}, { immediate: false })
+    })
+  },
+  { immediate: false }
+)
 
 // 监听文件路径变化，重新加载文件统计信息
-watch([currentFilePath, isPlainTextFormat], () => {
-  if (isPlainTextFormat.value && currentFilePath.value) {
-    loadFileStats()
-  } else {
-    fileStats.value = null
-  }
-}, { immediate: true })
+watch(
+  [currentFilePath, isPlainTextFormat],
+  () => {
+    if (isPlainTextFormat.value && currentFilePath.value) {
+      loadFileStats()
+    } else {
+      fileStats.value = null
+    }
+  },
+  { immediate: true }
+)
 
 // 监听文档内容变化（纯文本格式）
 watch([() => activeDocument.value?.markdown, currentFilePath, isPlainTextFormat], () => {
@@ -658,7 +663,6 @@ watch([() => activeDocument.value?.markdown, currentFilePath, isPlainTextFormat]
     updateMonacoPreview()
   }
 })
-
 
 onMounted(() => {
   preventNavigate()
@@ -693,10 +697,9 @@ onBeforeUnmount(() => {
     monacoPreviewEditor = null
     monacoPreviewEditorId = null
   }
-  
+
   eventBus.off('sync-editor-theme')
 })
-
 </script>
 
 <style scoped>
@@ -711,7 +714,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background-color: v-bind('themeState.currentTheme.background');
 }
-
 
 .format-selection-container {
   width: 100%;

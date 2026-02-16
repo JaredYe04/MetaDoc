@@ -3,24 +3,24 @@
  * 处理分卷模型文件的合并
  */
 
-import fs from 'fs';
-import path from 'path';
-import pathService from './path-service';
-import type { FilePath, ModelInfo, ModelMergeResult } from '../../types/utils';
-import { createMainLogger } from '../logger';
+import fs from 'fs'
+import path from 'path'
+import pathService from './path-service'
+import type { FilePath, ModelInfo, ModelMergeResult } from '../../types/utils'
+import { createMainLogger } from '../logger'
 
-const logger = createMainLogger('ModelMergeService');
+const logger = createMainLogger('ModelMergeService')
 
 /**
  * 模型合并服务实现类
  */
 class ModelMergeService {
-  private readonly modelsJsonPath: FilePath;
-  private readonly resourcesPath: FilePath;
+  private readonly modelsJsonPath: FilePath
+  private readonly resourcesPath: FilePath
 
   constructor() {
-    this.resourcesPath = pathService.getResourcesPath();
-    this.modelsJsonPath = path.join(this.resourcesPath, 'models.json');
+    this.resourcesPath = pathService.getResourcesPath()
+    this.modelsJsonPath = path.join(this.resourcesPath, 'models.json')
   }
 
   /**
@@ -29,13 +29,13 @@ class ModelMergeService {
    * @returns 合并后的完整模型路径
    */
   async mergeModel(modelFileName: string): Promise<string> {
-    const result = await this.tryMergeModel(modelFileName);
-    
+    const result = await this.tryMergeModel(modelFileName)
+
     if (!result.success) {
-      throw new Error(result.error || 'Model merge failed');
+      throw new Error(result.error || 'Model merge failed')
     }
 
-    return result.mergedPath!;
+    return result.mergedPath!
   }
 
   /**
@@ -46,47 +46,46 @@ class ModelMergeService {
   async tryMergeModel(modelFileName: string): Promise<ModelMergeResult> {
     try {
       // 检查模型是否在配置中
-      const modelExists = await this.isModelConfigured(modelFileName);
+      const modelExists = await this.isModelConfigured(modelFileName)
       if (!modelExists) {
         return {
           success: false,
           error: `模型 ${modelFileName} 在 models.json 中未找到`
-        };
+        }
       }
 
-      const mergedPath = path.join(this.resourcesPath, modelFileName);
+      const mergedPath = path.join(this.resourcesPath, modelFileName)
 
       // 如果完整模型已存在，清理分卷文件并返回
       if (fs.existsSync(mergedPath)) {
-        await this.cleanupPartFiles(modelFileName);
+        await this.cleanupPartFiles(modelFileName)
         return {
           success: true,
           mergedPath
-        };
+        }
       }
 
       // 查找分卷文件
-      const partFiles = this.findPartFiles(modelFileName);
+      const partFiles = this.findPartFiles(modelFileName)
       if (partFiles.length === 0) {
         return {
           success: false,
           error: `模型 ${modelFileName} 的分卷文件不存在`
-        };
+        }
       }
 
       // 执行合并
-      await this.performMerge(modelFileName, partFiles, mergedPath);
+      await this.performMerge(modelFileName, partFiles, mergedPath)
 
       return {
         success: true,
         mergedPath
-      };
-
+      }
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown merge error'
-      };
+      }
     }
   }
 
@@ -95,13 +94,11 @@ class ModelMergeService {
    */
   private async isModelConfigured(modelFileName: string): Promise<boolean> {
     try {
-      const modelsData: string[] = JSON.parse(
-        fs.readFileSync(this.modelsJsonPath, 'utf-8')
-      );
-      return modelsData.includes(modelFileName);
+      const modelsData: string[] = JSON.parse(fs.readFileSync(this.modelsJsonPath, 'utf-8'))
+      return modelsData.includes(modelFileName)
     } catch (error) {
-      logger.error('读取 models.json 失败', error);
-      return false;
+      logger.error('读取 models.json 失败', error)
+      return false
     }
   }
 
@@ -110,13 +107,11 @@ class ModelMergeService {
    */
   private findPartFiles(modelFileName: string): string[] {
     try {
-      const files = fs.readdirSync(this.resourcesPath);
-      return files
-        .filter(file => file.startsWith(modelFileName + '.part'))
-        .sort(); // 保证按序合并
+      const files = fs.readdirSync(this.resourcesPath)
+      return files.filter((file) => file.startsWith(modelFileName + '.part')).sort() // 保证按序合并
     } catch (error) {
-      logger.error('读取资源目录失败', error);
-      return [];
+      logger.error('读取资源目录失败', error)
+      return []
     }
   }
 
@@ -128,37 +123,37 @@ class ModelMergeService {
     partFiles: string[],
     mergedPath: FilePath
   ): Promise<void> {
-    logger.info('开始合并模型分卷', { model: modelFileName, parts: partFiles.length });
+    logger.info('开始合并模型分卷', { model: modelFileName, parts: partFiles.length })
 
-    const writeStream = fs.createWriteStream(mergedPath, { flags: 'w' });
+    const writeStream = fs.createWriteStream(mergedPath, { flags: 'w' })
 
     try {
       for (const partFile of partFiles) {
-        const partPath = path.join(this.resourcesPath, partFile);
-        const data = fs.readFileSync(partPath);
-        writeStream.write(data);
-        
+        const partPath = path.join(this.resourcesPath, partFile)
+        const data = fs.readFileSync(partPath)
+        writeStream.write(data)
+
         // 合并后删除分卷
-        fs.unlinkSync(partPath);
+        fs.unlinkSync(partPath)
       }
     } finally {
-      writeStream.close();
+      writeStream.close()
     }
 
-    logger.info('模型合并完成', { path: mergedPath });
+    logger.info('模型合并完成', { path: mergedPath })
   }
 
   /**
    * 清理分卷文件
    */
   private async cleanupPartFiles(modelFileName: string): Promise<void> {
-    const partFiles = this.findPartFiles(modelFileName);
+    const partFiles = this.findPartFiles(modelFileName)
     for (const partFile of partFiles) {
-      const partPath = path.join(this.resourcesPath, partFile);
+      const partPath = path.join(this.resourcesPath, partFile)
       try {
-        fs.unlinkSync(partPath);
+        fs.unlinkSync(partPath)
       } catch (error) {
-        logger.warn(`删除模型分卷失败: ${partFile}`, error);
+        logger.warn(`删除模型分卷失败: ${partFile}`, error)
       }
     }
   }
@@ -167,23 +162,23 @@ class ModelMergeService {
    * 获取模型信息
    */
   getModelInfo(modelFileName: string): ModelInfo {
-    const mergedPath = path.join(this.resourcesPath, modelFileName);
-    const exists = fs.existsSync(mergedPath);
-    const partFiles = this.findPartFiles(modelFileName);
+    const mergedPath = path.join(this.resourcesPath, modelFileName)
+    const exists = fs.existsSync(mergedPath)
+    const partFiles = this.findPartFiles(modelFileName)
 
     return {
       name: modelFileName,
       exists,
       partFiles
-    };
+    }
   }
 
   /**
    * 检查模型是否需要合并
    */
   needsMerge(modelFileName: string): boolean {
-    const info = this.getModelInfo(modelFileName);
-    return !info.exists && info.partFiles.length > 0;
+    const info = this.getModelInfo(modelFileName)
+    return !info.exists && info.partFiles.length > 0
   }
 
   /**
@@ -191,25 +186,23 @@ class ModelMergeService {
    */
   async getAvailableModels(): Promise<ModelInfo[]> {
     try {
-      const modelsData: string[] = JSON.parse(
-        fs.readFileSync(this.modelsJsonPath, 'utf-8')
-      );
-      
-      return modelsData.map(modelName => this.getModelInfo(modelName));
+      const modelsData: string[] = JSON.parse(fs.readFileSync(this.modelsJsonPath, 'utf-8'))
+
+      return modelsData.map((modelName) => this.getModelInfo(modelName))
     } catch (error) {
-      logger.error('Error reading models configuration:', error);
-      return [];
+      logger.error('Error reading models configuration:', error)
+      return []
     }
   }
 }
 
 // 创建单例实例
-const modelMergeService = new ModelMergeService();
+const modelMergeService = new ModelMergeService()
 
 // 导出单例实例和类
-export default modelMergeService;
-export { ModelMergeService };
+export default modelMergeService
+export { ModelMergeService }
 
 // 向后兼容的导出（保持原有API）
 export const mergeModel = (modelFileName: string): Promise<string> =>
-  modelMergeService.mergeModel(modelFileName);
+  modelMergeService.mergeModel(modelFileName)

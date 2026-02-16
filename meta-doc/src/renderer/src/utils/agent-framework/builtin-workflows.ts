@@ -13,12 +13,12 @@ export const builtinArticleExpansionWorkflow: Workflow = {
   entityType: 'workflow',
   id: 'builtin-article-expansion',
   name: {
-    'zh_cn': { name: '文章扩写' },
-    'en_us': { name: 'Article Expansion' }
+    zh_cn: { name: '文章扩写' },
+    en_us: { name: 'Article Expansion' }
   } as any,
   description: {
-    'zh_cn': { description: '调用大纲优化工具，在合适的地方添加子章节并生成内容。' },
-    'en_us': { description: 'Uses outline optimization to add sub-chapters and generate content.' }
+    zh_cn: { description: '调用大纲优化工具，在合适的地方添加子章节并生成内容。' },
+    en_us: { description: 'Uses outline optimization to add sub-chapters and generate content.' }
   } as any,
   version: '1.0.0',
   createdAt: Date.now(),
@@ -34,7 +34,8 @@ export const builtinArticleExpansionWorkflow: Workflow = {
       label: 'LLM决策扩写点',
       position: { x: 200, y: 150 },
       config: {
-        prompt: '分析文章大纲，决定在哪个节点添加子章节或生成内容，并提供操作类型和节点路径。输出JSON格式：{ "operation": "generateChildren" | "generateContent" | "generateChildrenChildren" | "generateChildrenContent", "nodePath": "节点路径", "userPrompt": "用户提示词" }'
+        prompt:
+          '分析文章大纲，决定在哪个节点添加子章节或生成内容，并提供操作类型和节点路径。输出JSON格式：{ "operation": "generateChildren" | "generateContent" | "generateChildrenChildren" | "generateChildrenContent", "nodePath": "节点路径", "userPrompt": "用户提示词" }'
       }
     },
     {
@@ -116,12 +117,15 @@ export const builtinSmartChartingWorkflow: Workflow = {
   entityType: 'workflow',
   id: 'builtin-smart-charting',
   name: {
-    'zh_cn': { name: '智能绘图' },
-    'en_us': { name: 'Smart Charting' }
+    zh_cn: { name: '智能绘图' },
+    en_us: { name: 'Smart Charting' }
   } as any,
   description: {
-    'zh_cn': { description: '阅读文章，在合适的位置使用图表生成工具生成图表，并插入到文档中。' },
-    'en_us': { description: 'Reads the article and generates charts at appropriate positions using chart generation tool.' }
+    zh_cn: { description: '阅读文章，在合适的位置使用图表生成工具生成图表，并插入到文档中。' },
+    en_us: {
+      description:
+        'Reads the article and generates charts at appropriate positions using chart generation tool.'
+    }
   } as any,
   version: '1.0.0',
   createdAt: Date.now(),
@@ -137,7 +141,8 @@ export const builtinSmartChartingWorkflow: Workflow = {
       label: 'LLM决策图表类型',
       position: { x: 200, y: 150 },
       config: {
-        prompt: '阅读文章内容，决定在哪个位置插入图表，图表类型（mermaid/echarts/plantuml/flowchart/mindmap/graphviz），以及图表描述。输出JSON格式：{ "position": { "line": 10, "column": 1 }, "chartType": "mermaid", "prompt": "图表描述", "chartName": "图表名称", "format": "svg" 或 "pdf" }'
+        prompt:
+          '阅读文章内容，决定在哪个位置插入图表，图表类型（mermaid/echarts/plantuml/flowchart/mindmap/graphviz），以及图表描述。输出JSON格式：{ "position": { "line": 10, "column": 1 }, "chartType": "mermaid", "prompt": "图表描述", "chartName": "图表名称", "format": "svg" 或 "pdf" }'
       }
     },
     {
@@ -205,7 +210,8 @@ export const builtinSmartChartingWorkflow: Workflow = {
       label: '准备插入操作',
       position: { x: 500, y: 200 },
       config: {
-        prompt: '根据图表生成结果和文档格式（Markdown或LaTeX），准备插入图表的编辑操作。对于Markdown，使用 ![alt](url) 格式；对于LaTeX，如果format是pdf，使用 \\includegraphics[width=0.8\\textwidth]{path} 格式，如果是svg，需要先转换为pdf。输出JSON格式：{ "operations": [{ "type": "insert", "range": { "start": { "line": 10, "column": 1 }, "end": { "line": 10, "column": 1 } }, "content": "插入内容" }] }'
+        prompt:
+          '根据图表生成结果和文档格式（Markdown或LaTeX），准备插入图表的编辑操作。对于Markdown，使用 ![alt](url) 格式；对于LaTeX，如果format是pdf，使用 \\includegraphics[width=0.8\\textwidth]{path} 格式，如果是svg，需要先转换为pdf。输出JSON格式：{ "operations": [{ "type": "insert", "range": { "start": { "line": 10, "column": 1 }, "end": { "line": 10, "column": 1 } }, "content": "插入内容" }] }'
       },
       inputs: [
         {
@@ -289,12 +295,18 @@ export const builtinArticlePolishingWorkflow: Workflow = {
   entityType: 'workflow',
   id: 'builtin-article-polishing',
   name: {
-    'zh_cn': { name: '文章润色' },
-    'en_us': { name: 'Article Polishing' }
+    zh_cn: { name: '文章润色' },
+    en_us: { name: 'Article Polishing' }
   } as any,
   description: {
-    'zh_cn': { description: '阅读文章，在合适的位置进行文本替换、插入、删除操作。可选择性地使用知识库检索增强润色效果。' },
-    'en_us': { description: 'Reads the article and performs text replacement, insertion, and deletion at appropriate positions. Optionally uses knowledge base retrieval to enhance polishing.' }
+    zh_cn: {
+      description:
+        '阅读文章，在合适的位置进行文本替换、插入、删除操作。可选择性地使用知识库检索增强润色效果。'
+    },
+    en_us: {
+      description:
+        'Reads the article and performs text replacement, insertion, and deletion at appropriate positions. Optionally uses knowledge base retrieval to enhance polishing.'
+    }
   } as any,
   version: '1.0.0',
   createdAt: Date.now(),
@@ -310,7 +322,8 @@ export const builtinArticlePolishingWorkflow: Workflow = {
       label: 'LLM决策润色策略',
       position: { x: 200, y: 150 },
       config: {
-        prompt: '分析文章内容，决定润色策略：是否需要检索知识库，以及在哪些位置进行文本替换、插入或删除。输出JSON格式：{ "useRAG": true/false, "ragQuestion": "检索问题（如果useRAG为true）", "operations": [{ "type": "replace" | "insert" | "delete", "range": { "start": { "line": 10, "column": 1 }, "end": { "line": 10, "column": 20 } }, "content": "新内容（可选）" }] }'
+        prompt:
+          '分析文章内容，决定润色策略：是否需要检索知识库，以及在哪些位置进行文本替换、插入或删除。输出JSON格式：{ "useRAG": true/false, "ragQuestion": "检索问题（如果useRAG为true）", "operations": [{ "type": "replace" | "insert" | "delete", "range": { "start": { "line": 10, "column": 1 }, "end": { "line": 10, "column": 20 } }, "content": "新内容（可选）" }] }'
       }
     },
     {
@@ -368,7 +381,8 @@ export const builtinArticlePolishingWorkflow: Workflow = {
       label: '是否使用RAG',
       position: { x: 300, y: 150 },
       config: {
-        condition: '根据 useRAG 字段判断是否需要调用知识库检索，返回 {"result": true} 表示需要使用 RAG'
+        condition:
+          '根据 useRAG 字段判断是否需要调用知识库检索，返回 {"result": true} 表示需要使用 RAG'
       }
     },
     {

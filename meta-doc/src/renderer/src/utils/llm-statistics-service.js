@@ -3,24 +3,24 @@
  * 管理 LLM API 的 token 用量和请求次数统计
  */
 
-import localIpcRenderer from './web-adapter/local-ipc-renderer';
-import { createRendererLogger } from './logger.ts';
+import localIpcRenderer from './web-adapter/local-ipc-renderer'
+import { createRendererLogger } from './logger.ts'
 
 // 懒加载logger，避免初始化顺序问题
-let loggerInstance = null;
+let loggerInstance = null
 
 function getLogger() {
   if (!loggerInstance) {
-    loggerInstance = createRendererLogger('LLM-Statistics');
+    loggerInstance = createRendererLogger('LLM-Statistics')
   }
-  return loggerInstance;
+  return loggerInstance
 }
 
-let ipcRenderer = null;
+let ipcRenderer = null
 if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer;
+  ipcRenderer = window.electron.ipcRenderer
 } else {
-  ipcRenderer = localIpcRenderer;
+  ipcRenderer = localIpcRenderer
 }
 
 /**
@@ -28,13 +28,13 @@ if (window && window.electron) {
  */
 async function getStatisticsFilePath() {
   try {
-    const resourcesPath = await ipcRenderer.invoke('resources-path');
+    const resourcesPath = await ipcRenderer.invoke('resources-path')
     // 在 renderer 进程中，路径拼接使用字符串操作
-    const separator = resourcesPath.includes('\\') ? '\\' : '/';
-    return `${resourcesPath}${separator}llm-statistics.json`;
+    const separator = resourcesPath.includes('\\') ? '\\' : '/'
+    return `${resourcesPath}${separator}llm-statistics.json`
   } catch (error) {
-    getLogger().error('获取统计文件路径失败:', error);
-    throw error;
+    getLogger().error('获取统计文件路径失败:', error)
+    throw error
   }
 }
 
@@ -43,11 +43,11 @@ async function getStatisticsFilePath() {
  */
 async function loadStatistics() {
   try {
-    const filePath = await getStatisticsFilePath();
-    
+    const filePath = await getStatisticsFilePath()
+
     // 读取文件内容，如果文件不存在则返回 null
-    const content = await ipcRenderer.invoke('read-file-content', filePath);
-    
+    const content = await ipcRenderer.invoke('read-file-content', filePath)
+
     // 如果文件不存在或内容为空，返回默认值
     if (!content || content === null) {
       return {
@@ -55,30 +55,30 @@ async function loadStatistics() {
         totalRequests: 0,
         totalPromptTokens: 0,
         totalCompletionTokens: 0,
-        totalTokens: 0,
-      };
+        totalTokens: 0
+      }
     }
 
-    const data = JSON.parse(content);
-    
+    const data = JSON.parse(content)
+
     // 确保数据结构正确
     return {
       requests: data.requests || [],
       totalRequests: data.totalRequests || 0,
       totalPromptTokens: data.totalPromptTokens || 0,
       totalCompletionTokens: data.totalCompletionTokens || 0,
-      totalTokens: data.totalTokens || 0,
-    };
+      totalTokens: data.totalTokens || 0
+    }
   } catch (error) {
-    getLogger().error('读取统计数据失败:', error);
+    getLogger().error('读取统计数据失败:', error)
     // 返回默认值
     return {
       requests: [],
       totalRequests: 0,
       totalPromptTokens: 0,
       totalCompletionTokens: 0,
-      totalTokens: 0,
-    };
+      totalTokens: 0
+    }
   }
 }
 
@@ -87,12 +87,12 @@ async function loadStatistics() {
  */
 async function saveStatistics(data) {
   try {
-    const filePath = await getStatisticsFilePath();
-    const content = JSON.stringify(data, null, 2);
-    await ipcRenderer.invoke('write-file-content', { filePath, content });
+    const filePath = await getStatisticsFilePath()
+    const content = JSON.stringify(data, null, 2)
+    await ipcRenderer.invoke('write-file-content', { filePath, content })
   } catch (error) {
-    getLogger().error('保存统计数据失败:', error);
-    throw error;
+    getLogger().error('保存统计数据失败:', error)
+    throw error
   }
 }
 
@@ -105,13 +105,13 @@ async function saveStatistics(data) {
 export async function recordLlmRequest(usage, model = null, type = null) {
   try {
     if (!usage || typeof usage !== 'object') {
-      getLogger().warn('记录 LLM 请求失败：usage 信息无效', usage);
-      return;
+      getLogger().warn('记录 LLM 请求失败：usage 信息无效', usage)
+      return
     }
 
-    const stats = await loadStatistics();
-    const now = new Date();
-    
+    const stats = await loadStatistics()
+    const now = new Date()
+
     const requestRecord = {
       timestamp: now.toISOString(),
       date: now.toISOString().split('T')[0], // YYYY-MM-DD
@@ -119,20 +119,20 @@ export async function recordLlmRequest(usage, model = null, type = null) {
       completion_tokens: usage.completion_tokens || 0,
       total_tokens: usage.total_tokens || 0,
       model: model || 'unknown',
-      type: type || 'unknown',
-    };
+      type: type || 'unknown'
+    }
 
-    stats.requests.push(requestRecord);
-    stats.totalRequests += 1;
-    stats.totalPromptTokens += requestRecord.prompt_tokens;
-    stats.totalCompletionTokens += requestRecord.completion_tokens;
-    stats.totalTokens += requestRecord.total_tokens;
+    stats.requests.push(requestRecord)
+    stats.totalRequests += 1
+    stats.totalPromptTokens += requestRecord.prompt_tokens
+    stats.totalCompletionTokens += requestRecord.completion_tokens
+    stats.totalTokens += requestRecord.total_tokens
 
-    await saveStatistics(stats);
-    
-    getLogger().debug('已记录 LLM 请求统计:', requestRecord);
+    await saveStatistics(stats)
+
+    getLogger().debug('已记录 LLM 请求统计:', requestRecord)
   } catch (error) {
-    getLogger().error('记录 LLM 请求失败:', error);
+    getLogger().error('记录 LLM 请求失败:', error)
   }
 }
 
@@ -144,33 +144,36 @@ export async function recordLlmRequest(usage, model = null, type = null) {
  */
 export async function getStatistics(startDate = null, endDate = null) {
   try {
-    const stats = await loadStatistics();
-    
+    const stats = await loadStatistics()
+
     if (!startDate && !endDate) {
-      return stats;
+      return stats
     }
 
     // 过滤指定时间范围内的请求
-    const filteredRequests = stats.requests.filter(req => {
-      const reqDate = new Date(req.timestamp);
-      if (startDate && reqDate < startDate) return false;
-      if (endDate && reqDate > endDate) return false;
-      return true;
-    });
+    const filteredRequests = stats.requests.filter((req) => {
+      const reqDate = new Date(req.timestamp)
+      if (startDate && reqDate < startDate) return false
+      if (endDate && reqDate > endDate) return false
+      return true
+    })
 
     // 计算过滤后的统计
     const filteredStats = {
       requests: filteredRequests,
       totalRequests: filteredRequests.length,
       totalPromptTokens: filteredRequests.reduce((sum, req) => sum + (req.prompt_tokens || 0), 0),
-      totalCompletionTokens: filteredRequests.reduce((sum, req) => sum + (req.completion_tokens || 0), 0),
-      totalTokens: filteredRequests.reduce((sum, req) => sum + (req.total_tokens || 0), 0),
-    };
+      totalCompletionTokens: filteredRequests.reduce(
+        (sum, req) => sum + (req.completion_tokens || 0),
+        0
+      ),
+      totalTokens: filteredRequests.reduce((sum, req) => sum + (req.total_tokens || 0), 0)
+    }
 
-    return filteredStats;
+    return filteredStats
   } catch (error) {
-    getLogger().error('获取统计数据失败:', error);
-    throw error;
+    getLogger().error('获取统计数据失败:', error)
+    throw error
   }
 }
 
@@ -184,13 +187,13 @@ export async function clearStatistics() {
       totalRequests: 0,
       totalPromptTokens: 0,
       totalCompletionTokens: 0,
-      totalTokens: 0,
-    };
-    await saveStatistics(emptyStats);
-    getLogger().info('统计数据已清空');
+      totalTokens: 0
+    }
+    await saveStatistics(emptyStats)
+    getLogger().info('统计数据已清空')
   } catch (error) {
-    getLogger().error('清空统计数据失败:', error);
-    throw error;
+    getLogger().error('清空统计数据失败:', error)
+    throw error
   }
 }
 
@@ -202,11 +205,10 @@ export async function clearStatistics() {
  */
 export async function exportStatistics(startDate = null, endDate = null) {
   try {
-    const stats = await getStatistics(startDate, endDate);
-    return JSON.stringify(stats, null, 2);
+    const stats = await getStatistics(startDate, endDate)
+    return JSON.stringify(stats, null, 2)
   } catch (error) {
-    getLogger().error('导出统计数据失败:', error);
-    throw error;
+    getLogger().error('导出统计数据失败:', error)
+    throw error
   }
 }
-

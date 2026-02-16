@@ -1,64 +1,64 @@
 /* 新增内容样式（绿色背景） */
 .ai-suggestion-insert {
-    user-select: none;
-    pointer-events: none;
-    color: rgb(0, 0, 0);
-    background: rgba(76, 175, 80, 0.2); /* 绿色半透明背景 */
-    opacity: 0.8;
-    display: inline-block;
-    vertical-align: middle;
+  user-select: none;
+  pointer-events: none;
+  color: rgb(0, 0, 0);
+  background: rgba(76, 175, 80, 0.2); /* 绿色半透明背景 */
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .ai-suggestion-insert-dark {
-    user-select: none;
-    pointer-events: none;
-    color: rgb(255, 255, 255);
-    background: rgba(76, 175, 80, 0.3); /* 绿色半透明背景（暗色主题） */
-    opacity: 0.8;
-    display: inline-block;
-    vertical-align: middle;
+  user-select: none;
+  pointer-events: none;
+  color: rgb(255, 255, 255);
+  background: rgba(76, 175, 80, 0.3); /* 绿色半透明背景（暗色主题） */
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* 删除内容样式（红色背景） */
 .ai-suggestion-delete {
-    user-select: none;
-    pointer-events: none;
-    color: rgb(0, 0, 0);
-    background: rgba(244, 67, 54, 0.2); /* 红色半透明背景 */
-    opacity: 0.8;
-    display: inline-block;
-    vertical-align: middle;
-    text-decoration: line-through;
+  user-select: none;
+  pointer-events: none;
+  color: rgb(0, 0, 0);
+  background: rgba(244, 67, 54, 0.2); /* 红色半透明背景 */
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
+  text-decoration: line-through;
 }
 
 .ai-suggestion-delete-dark {
-    user-select: none;
-    pointer-events: none;
-    color: rgb(255, 255, 255);
-    background: rgba(244, 67, 54, 0.3); /* 红色半透明背景（暗色主题） */
-    opacity: 0.8;
-    display: inline-block;
-    vertical-align: middle;
-    text-decoration: line-through;
+  user-select: none;
+  pointer-events: none;
+  color: rgb(255, 255, 255);
+  background: rgba(244, 67, 54, 0.3); /* 红色半透明背景（暗色主题） */
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
+  text-decoration: line-through;
 }
 
 /* 向后兼容的旧样式 */
 .ai-suggestion {
-    user-select: none;
-    pointer-events: none;
-    color: rgb(0, 0, 0);
-    background: rgba(128, 128, 128, 0.3);
-    opacity: 0.8;
-    display: inline-block;
-    vertical-align: middle;
+  user-select: none;
+  pointer-events: none;
+  color: rgb(0, 0, 0);
+  background: rgba(128, 128, 128, 0.3);
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .ai-suggestion-dark {
-    user-select: none;
-    pointer-events: none;
-    color: rgb(255, 255, 255);
-    background: rgba(128, 128, 128, 0.3);
-    opacity: 0.8;
-    display: inline-block;
-    vertical-align: middle;
+  user-select: none;
+  pointer-events: none;
+  color: rgb(255, 255, 255);
+  background: rgba(128, 128, 128, 0.3);
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
 }

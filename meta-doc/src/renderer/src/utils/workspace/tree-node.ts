@@ -39,7 +39,7 @@ export class TreeNodeUtils {
     if (node.uri === targetURI) {
       return node
     }
-    
+
     if (node.children) {
       for (const child of node.children) {
         const found = this.findNodeByURI(child as TreeNode, targetURI)
@@ -48,7 +48,7 @@ export class TreeNodeUtils {
         }
       }
     }
-    
+
     return null
   }
 
@@ -57,14 +57,13 @@ export class TreeNodeUtils {
    */
   static getAllNodes(node: TreeNode, expandedURIs: Set<URI>): TreeNode[] {
     const result: TreeNode[] = [node]
-    
+
     if (node.children && expandedURIs.has(node.uri)) {
       for (const child of node.children) {
         result.push(...this.getAllNodes(child as TreeNode, expandedURIs))
       }
     }
-    
+
     return result
   }
 }
-

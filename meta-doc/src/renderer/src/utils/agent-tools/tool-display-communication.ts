@@ -4,7 +4,7 @@
  */
 
 import eventBus from '../event-bus.js'
-import { createRendererLogger } from '../logger';
+import { createRendererLogger } from '../logger'
 
 /**
  * Tool执行更新事件名称前缀
@@ -33,7 +33,7 @@ export function emitToolUpdate(
   progress?: { percentage: number; message?: string }
 ): void {
   const eventName = `${TOOL_UPDATE_EVENT_PREFIX}${invocationId}`
-  const logger = createRendererLogger('tool-display-communication');
+  const logger = createRendererLogger('tool-display-communication')
   const payload = {
     invocationId,
     data,
@@ -59,7 +59,7 @@ export function emitToolComplete(
   }
 ): void {
   const eventName = `${TOOL_COMPLETE_EVENT_PREFIX}${invocationId}`
-  const logger = createRendererLogger('tool-display-communication');
+  const logger = createRendererLogger('tool-display-communication')
   const payload = {
     invocationId,
     ...result,
@@ -74,10 +74,7 @@ export function emitToolComplete(
  * @param invocationId - Tool执行ID
  * @param error - 错误信息
  */
-export function emitToolFailed(
-  invocationId: string,
-  error: string
-): void {
+export function emitToolFailed(invocationId: string, error: string): void {
   eventBus.emit(`${TOOL_FAILED_EVENT_PREFIX}${invocationId}`, {
     error,
     timestamp: Date.now()
@@ -92,9 +89,14 @@ export function emitToolFailed(
  */
 export function onToolUpdate(
   invocationId: string,
-  callback: (data: { invocationId: string; data: unknown; progress?: { percentage: number; message?: string }; timestamp: number }) => void
+  callback: (data: {
+    invocationId: string
+    data: unknown
+    progress?: { percentage: number; message?: string }
+    timestamp: number
+  }) => void
 ): () => void {
-  const logger = createRendererLogger('tool-display-communication');
+  const logger = createRendererLogger('tool-display-communication')
   const eventName = `${TOOL_UPDATE_EVENT_PREFIX}${invocationId}`
   logger.debug(`[onToolUpdate] 注册监听器: ${eventName}`)
   const handler = (payload: any) => {
@@ -102,7 +104,7 @@ export function onToolUpdate(
     callback(payload)
   }
   eventBus.on(eventName, handler)
-  
+
   return () => {
     logger.debug(`[onToolUpdate] 移除监听器: ${eventName}`)
     eventBus.off(eventName, handler)
@@ -126,7 +128,7 @@ export function onToolComplete(
     timestamp: number
   }) => void
 ): () => void {
-  const logger = createRendererLogger('tool-display-communication');
+  const logger = createRendererLogger('tool-display-communication')
   const eventName = `${TOOL_COMPLETE_EVENT_PREFIX}${invocationId}`
   logger.debug(`[onToolComplete] 注册监听器: ${eventName}`)
   const handler = (payload: any) => {
@@ -134,7 +136,7 @@ export function onToolComplete(
     callback(payload)
   }
   eventBus.on(eventName, handler)
-  
+
   return () => {
     logger.debug(`[onToolComplete] 移除监听器: ${eventName}`)
     eventBus.off(eventName, handler)
@@ -151,7 +153,7 @@ export function onToolFailed(
   invocationId: string,
   callback: (error: { invocationId: string; error: string; timestamp: number }) => void
 ): () => void {
-  const logger = createRendererLogger('tool-display-communication');
+  const logger = createRendererLogger('tool-display-communication')
   const eventName = `${TOOL_FAILED_EVENT_PREFIX}${invocationId}`
   logger.debug(`[onToolFailed] 注册监听器: ${eventName}`)
   const handler = (payload: any) => {
@@ -159,7 +161,7 @@ export function onToolFailed(
     callback(payload)
   }
   eventBus.on(eventName, handler)
-  
+
   return () => {
     logger.debug(`[onToolFailed] 移除监听器: ${eventName}`)
     eventBus.off(eventName, handler)
@@ -174,9 +176,8 @@ export function removeToolListeners(invocationId: string): void {
   const updateEvent = `${TOOL_UPDATE_EVENT_PREFIX}${invocationId}`
   const completeEvent = `${TOOL_COMPLETE_EVENT_PREFIX}${invocationId}`
   const failedEvent = `${TOOL_FAILED_EVENT_PREFIX}${invocationId}`
-  
+
   // eventBus可能没有removeAll方法，所以我们需要手动移除
   // 这里假设eventBus有off方法可以移除所有监听器
   // 如果不行，需要在调用时保存回调函数引用
 }
-

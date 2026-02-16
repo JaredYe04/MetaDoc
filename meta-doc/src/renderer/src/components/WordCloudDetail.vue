@@ -1,26 +1,30 @@
 <template>
   <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
-
-    <div style="width: 100% ;height: fit-content; align-items: end; ">
-      <el-button 
-        circle plain
-        size="small" 
-        type="danger" 
+    <div style="width: 100%; height: fit-content; align-items: end">
+      <el-button
+        circle
+        plain
+        size="small"
+        type="danger"
         @click="handleClose"
-        class="aero-btn" 
-        style="float: inline-start;"
+        class="aero-btn"
+        style="float: inline-start"
         @mousedown.stop
       >
       </el-button>
-      <p style="font-weight: bold;" @mousedown.stop>
+      <p style="font-weight: bold" @mousedown.stop>
         {{ props.word ? props.word : t('wordCloudDetail.defaultWord') }}
       </p>
-      <p style="font-size: 12px; color: #666666;" @mousedown.stop>
+      <p style="font-size: 12px; color: #666666" @mousedown.stop>
         {{ t('wordCloudDetail.frequency') }}: {{ props.frequency }}
       </p>
     </div>
-    <el-scrollbar class="md-container" v-if="generated || generating" @mousedown.stop
-      style="  max-height: 20vh; padding: 5px; margin: 0;">
+    <el-scrollbar
+      class="md-container"
+      v-if="generated || generating"
+      @mousedown.stop
+      style="max-height: 20vh; padding: 5px; margin: 0"
+    >
       <MarkdownItEditor :source="generatedText" />
     </el-scrollbar>
   </div>
@@ -29,13 +33,13 @@
 <script setup lang="ts">
 import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
 // @ts-ignore - vue3-markdown-it没有类型定义
-import MarkdownItEditor from 'vue3-markdown-it';
-import { computed, onMounted, ref, watch } from 'vue';
-import { explainWordPrompt } from '../utils/prompts';
-import type { VisualizeAdapter } from '../utils/visualize-adapters';
-import { themeState } from '../utils/themes';
-import { useActiveDocument } from '../composables/useActiveDocument';
-import { searchNode } from '../utils/outline-helpers';
+import MarkdownItEditor from 'vue3-markdown-it'
+import { computed, onMounted, ref, watch } from 'vue'
+import { explainWordPrompt } from '../utils/prompts'
+import type { VisualizeAdapter } from '../utils/visualize-adapters'
+import { themeState } from '../utils/themes'
+import { useActiveDocument } from '../composables/useActiveDocument'
+import { searchNode } from '../utils/outline-helpers'
 const props = defineProps({
   word: {
     type: String,
@@ -43,108 +47,116 @@ const props = defineProps({
   },
   frequency: {
     type: Number,
-    required: true,
+    required: true
   },
   position: {
     type: Object,
-    required: true,
+    required: true
   },
   path: {
     type: String,
-    required: false,
+    required: false
   },
   documentContent: {
     type: String,
     required: false,
-    default: '',
+    default: ''
   },
   adapter: {
     type: Object,
     required: false,
-    default: null,
-  },
+    default: null
+  }
 })
 
 // onMounted(() => {
 //   reset();
 //   generate();
 // })
-const emit = defineEmits(["accept", 'close']);
+const emit = defineEmits(['accept', 'close'])
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask } from '../utils/ai_tasks';
-import { getSetting } from '../utils/settings';
-import type { AIDialogMessage } from '@/types';
+import { ai_types, createAiTask } from '../utils/ai_tasks'
+import { getSetting } from '../utils/settings'
+import type { AIDialogMessage } from '@/types'
 const { t } = useI18n()
 
 const handleClose = () => {
-  emit('close');
-};
+  emit('close')
+}
 const generate = async () => {
-  generating.value = true;
-  
+  generating.value = true
+
   // 搜索词语在文档中的上下文
-  let contexts: string[] = [];
+  let contexts: string[] = []
   if (props.adapter && props.documentContent && props.word) {
     try {
       console.log('[WordCloudDetail] 开始搜索上下文:', {
         word: props.word,
         documentContentLength: props.documentContent.length,
         adapter: props.adapter.getFormat()
-      });
-      
+      })
+
       contexts = props.adapter.searchWordContexts(
         props.documentContent,
         props.word,
         3, // 最多3个上下文
         200 // 每个上下文200字符
-      );
-      
+      )
+
       console.log('[WordCloudDetail] 找到的上下文:', {
         count: contexts.length,
         contexts: contexts
-      });
+      })
     } catch (error) {
-      console.error('[WordCloudDetail] 搜索上下文失败:', error);
+      console.error('[WordCloudDetail] 搜索上下文失败:', error)
     }
   } else {
     console.warn('[WordCloudDetail] 无法搜索上下文:', {
       hasAdapter: !!props.adapter,
       hasDocumentContent: !!props.documentContent,
       hasWord: !!props.word
-    });
+    })
   }
-  
-  const prompt = explainWordPrompt(props.word, contexts);
-  console.log('[WordCloudDetail] 生成的提示词:', prompt);
-  
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
-  const { handle, done } = createAiTask(props.word, messages, generatedText, ai_types.chat, 'word-cloud-detail');
+
+  const prompt = explainWordPrompt(props.word, contexts)
+  console.log('[WordCloudDetail] 生成的提示词:', prompt)
+
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
+  const { handle, done } = createAiTask(
+    props.word,
+    messages,
+    generatedText,
+    ai_types.chat,
+    'word-cloud-detail'
+  )
 
   try {
-    await done;
+    await done
   } catch (err) {
-    console.warn('任务失败或取消：', err);
+    console.warn('任务失败或取消：', err)
   } finally {
-    generated.value = true;
-    generating.value = false;
+    generated.value = true
+    generating.value = false
   }
 }
 
 const reset = () => {
-  generated.value = false;
-  generatedText.value = '';
+  generated.value = false
+  generatedText.value = ''
 }
-const generating = ref(false);
-const userPrompt = ref('');
-const generatedText = ref('');
-const generated = ref(false);
+const generating = ref(false)
+const userPrompt = ref('')
+const generatedText = ref('')
+const generated = ref(false)
 // 定义计算属性 menuStyles
-const { activeDocument } = useActiveDocument();
-const currentOutline = computed(() => activeDocument.value?.outline ?? null);
-const articleContent = ref(''); // 定义 articleContent 变量
+const { activeDocument } = useActiveDocument()
+const currentOutline = computed(() => activeDocument.value?.outline ?? null)
+const articleContent = ref('') // 定义 articleContent 变量
 const menuStyles = computed(() => ({
   position: 'absolute' as const,
   top: `${menuPosition.value.top}px`,
@@ -158,60 +170,65 @@ const menuStyles = computed(() => ({
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(8px)',
   background: themeState.currentTheme.titleMenuBackground,
-  borderRadius: '4px', // 更小的圆角半径
-}));
+  borderRadius: '4px' // 更小的圆角半径
+}))
 const refreshContent = () => {
   menuPosition.value = {
     top: props.position.top,
-    left: props.position.left,
+    left: props.position.left
   }
-  reset();
-  generate();
+  reset()
+  generate()
   if (props.path && currentOutline.value) {
-    const node = searchNode(props.path, currentOutline.value);
-    articleContent.value = node?.text ?? '';
+    const node = searchNode(props.path, currentOutline.value)
+    articleContent.value = node?.text ?? ''
   } else {
-    articleContent.value = '';
+    articleContent.value = ''
   }
 }
 //如果props的word变了，触发refreshContent
-watch(() => props.word, (newVal, oldVal) => {
-  refreshContent();
-})
+watch(
+  () => props.word,
+  (newVal, oldVal) => {
+    refreshContent()
+  }
+)
 
-const menuPosition = ref({ top: props.position.top, left: props.position.left });
-const isDragging = ref(false);
-const dragStart = ref({ x: 0, y: 0 });
-const onMouseDown = (event: { clientX: number; clientY: number; }) => {
-  isDragging.value = true;
+const menuPosition = ref({ top: props.position.top, left: props.position.left })
+const isDragging = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
+const onMouseDown = (event: { clientX: number; clientY: number }) => {
+  isDragging.value = true
   dragStart.value = {
     x: event.clientX - menuPosition.value.left,
-    y: event.clientY - menuPosition.value.top,
-  };
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
-};
+    y: event.clientY - menuPosition.value.top
+  }
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
 
-const onMouseMove = (event: { clientY: number; clientX: number; }) => {
-  if (!isDragging.value) return;
+const onMouseMove = (event: { clientY: number; clientX: number }) => {
+  if (!isDragging.value) return
   menuPosition.value = {
     top: event.clientY - dragStart.value.y,
-    left: event.clientX - dragStart.value.x,
-  };
-};
+    left: event.clientX - dragStart.value.x
+  }
+}
 
 const onMouseUp = () => {
-  isDragging.value = false;
-  document.removeEventListener("mousemove", onMouseMove);
-  document.removeEventListener("mouseup", onMouseUp);
-};
+  isDragging.value = false
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
+}
 onMounted(() => {
-  refreshContent();
+  refreshContent()
 })
-watch(() => props.path, (newVal, oldVal) => {
-  //refreshContent();
-})
-
+watch(
+  () => props.path,
+  (newVal, oldVal) => {
+    //refreshContent();
+  }
+)
 </script>
 
 <style scoped>

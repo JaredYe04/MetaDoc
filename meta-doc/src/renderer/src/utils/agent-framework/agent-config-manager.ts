@@ -40,12 +40,12 @@ class AgentConfigManager {
     toolCollectionIds: string[] = []
   ): AgentConfig {
     // 转换为LocalizedText格式
-    const nameText: LocalizedText = typeof name === 'string' 
-      ? { 'zh_cn': { name }, 'en_us': { name } }
-      : name
-    const descText: LocalizedText = typeof description === 'string'
-      ? { 'zh_cn': { description }, 'en_us': { description } }
-      : description
+    const nameText: LocalizedText =
+      typeof name === 'string' ? { zh_cn: { name }, en_us: { name } } : name
+    const descText: LocalizedText =
+      typeof description === 'string'
+        ? { zh_cn: { description }, en_us: { description } }
+        : description
     const id = `agent-config-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const now = Date.now()
 
@@ -86,7 +86,7 @@ class AgentConfigManager {
    * 获取启用的Agent配置
    */
   getEnabledConfigs(): AgentConfig[] {
-    return Array.from(this.configs.values()).filter(c => c.enabled !== false)
+    return Array.from(this.configs.values()).filter((c) => c.enabled !== false)
   }
 
   /**
@@ -94,7 +94,7 @@ class AgentConfigManager {
    */
   getConfigsByScenario(scenario: AgentConfig['scenario']): AgentConfig[] {
     return Array.from(this.configs.values()).filter(
-      c => c.scenario === scenario && c.enabled !== false
+      (c) => c.scenario === scenario && c.enabled !== false
     )
   }
 
@@ -141,12 +141,17 @@ class AgentConfigManager {
   /**
    * 初始化默认Agent配置
    */
-  initializeDefaultAgentConfig(defaultToolCollectionId: string, additionalToolCollectionIds: string[] = []): void {
+  initializeDefaultAgentConfig(
+    defaultToolCollectionId: string,
+    additionalToolCollectionIds: string[] = []
+  ): void {
     const defaultId = 'default-agent-config'
-    
+
     // 合并所有工具集ID
-    const allToolCollectionIds = [defaultToolCollectionId, ...additionalToolCollectionIds].filter(Boolean)
-    
+    const allToolCollectionIds = [defaultToolCollectionId, ...additionalToolCollectionIds].filter(
+      Boolean
+    )
+
     // 检查是否已存在
     if (this.configs.has(defaultId)) {
       // 更新工具集列表
@@ -157,12 +162,18 @@ class AgentConfigManager {
       this.updateConfig(defaultId, {
         toolCollectionIds: mergedIds,
         name: {
-          'zh_cn': { name: '默认Agent配置' },
-          'en_us': { name: 'Default Agent Config' }
+          zh_cn: { name: '默认Agent配置' },
+          en_us: { name: 'Default Agent Config' }
         },
         description: {
-          'zh_cn': { description: 'MetaDoc默认Agent配置。MetaDoc是一个专业的AI写作助手，高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。该配置定义了MetaDoc的核心职责和工作方式，包括理解用户需求、检索知识、生成可视化内容、优化文档结构、确保内容质量等能力。' },
-          'en_us': { description: 'Default MetaDoc Agent config. MetaDoc is a professional AI writing assistant that efficiently uses AI tools to generate well-illustrated, rich, professional, multi-domain articles for users. This config defines MetaDoc\'s core responsibilities and working methods, including understanding user needs, retrieving knowledge, generating visualizations, optimizing document structure, and ensuring content quality.' }
+          zh_cn: {
+            description:
+              'MetaDoc默认Agent配置。MetaDoc是一个专业的AI写作助手，高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。该配置定义了MetaDoc的核心职责和工作方式，包括理解用户需求、检索知识、生成可视化内容、优化文档结构、确保内容质量等能力。'
+          },
+          en_us: {
+            description:
+              "Default MetaDoc Agent config. MetaDoc is a professional AI writing assistant that efficiently uses AI tools to generate well-illustrated, rich, professional, multi-domain articles for users. This config defines MetaDoc's core responsibilities and working methods, including understanding user needs, retrieving knowledge, generating visualizations, optimizing document structure, and ensuring content quality."
+          }
         },
         llmConfig: {
           systemPrompt: `你是MetaDoc，一个专业的AI助手。你的核心职责是根据用户需求，灵活地使用所含的AI工具，帮助用户完成各种任务，包括但不限于：生成文章、数据分析、分析附件报告、知识检索、可视化内容生成等。
@@ -374,12 +385,18 @@ class AgentConfigManager {
       entityType: 'agent-config',
       id: defaultId,
       name: {
-        'zh_cn': { name: '默认Agent配置' },
-        'en_us': { name: 'Default Agent Config' }
+        zh_cn: { name: '默认Agent配置' },
+        en_us: { name: 'Default Agent Config' }
       },
       description: {
-        'zh_cn': { description: 'MetaDoc默认Agent配置。MetaDoc是一个专业的AI写作助手，高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。该配置定义了MetaDoc的核心职责和工作方式，包括理解用户需求、检索知识、生成可视化内容、优化文档结构、确保内容质量等能力。' },
-        'en_us': { description: 'Default MetaDoc Agent config. MetaDoc is a professional AI writing assistant that efficiently uses AI tools to generate well-illustrated, rich, professional, multi-domain articles for users. This config defines MetaDoc\'s core responsibilities and working methods, including understanding user needs, retrieving knowledge, generating visualizations, optimizing document structure, and ensuring content quality.' }
+        zh_cn: {
+          description:
+            'MetaDoc默认Agent配置。MetaDoc是一个专业的AI写作助手，高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。该配置定义了MetaDoc的核心职责和工作方式，包括理解用户需求、检索知识、生成可视化内容、优化文档结构、确保内容质量等能力。'
+        },
+        en_us: {
+          description:
+            "Default MetaDoc Agent config. MetaDoc is a professional AI writing assistant that efficiently uses AI tools to generate well-illustrated, rich, professional, multi-domain articles for users. This config defines MetaDoc's core responsibilities and working methods, including understanding user needs, retrieving knowledge, generating visualizations, optimizing document structure, and ensuring content quality."
+        }
       },
       version: '1.0.0',
       createdAt: Date.now(),
@@ -748,4 +765,3 @@ class AgentConfigManager {
 
 // 导出单例
 export const agentConfigManager = new AgentConfigManager()
-

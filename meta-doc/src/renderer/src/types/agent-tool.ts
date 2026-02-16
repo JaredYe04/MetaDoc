@@ -159,15 +159,15 @@ export interface AgentToolConfig {
       description?: string
       [key: string]: string | undefined
     }
-  },
+  }
   /** 正在运行 */
-  running?: boolean,
+  running?: boolean
   /** 是否需要LLM */
-  requiresLLM?: boolean,
+  requiresLLM?: boolean
   /** 输入模式 */
-  inputSchema?: any,
+  inputSchema?: any
   /** 输出模式 */
-  outputSchema?: any,
+  outputSchema?: any
 }
 
 /**
@@ -213,7 +213,11 @@ export interface ToolInvocationContext {
   /** AbortController */
   controller: AbortController
   /** 状态更新回调 */
-  onStatusUpdate?: (status: ToolExecutionStatus, data?: ToolCallbackData, progress?: ToolProgress) => void
+  onStatusUpdate?: (
+    status: ToolExecutionStatus,
+    data?: ToolCallbackData,
+    progress?: ToolProgress
+  ) => void
   /** 超时计数（用于跟踪连续超时次数） */
   timeoutCount?: number
   /** 最后一次更新时间（用于检测是否有实际进展） */
@@ -269,7 +273,7 @@ export interface ToolExecutionSnapshot {
     name: LocalizedText
     description: LocalizedText
     origin: ToolOrigin
-    displayComponent?: string  // 组件名称或路径，不序列化组件本身
+    displayComponent?: string // 组件名称或路径，不序列化组件本身
   }
 }
 
@@ -292,4 +296,3 @@ export interface ToolSerializer {
    */
   deserialize(serialized: string): ToolExecutionSnapshot
 }
-

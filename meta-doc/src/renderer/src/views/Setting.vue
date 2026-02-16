@@ -1,7 +1,10 @@
 <template>
   <div
     class="settings-container"
-    :style="{ backgroundColor: themeState.currentTheme.background, color: themeState.currentTheme.textColor }"
+    :style="{
+      backgroundColor: themeState.currentTheme.background,
+      color: themeState.currentTheme.textColor
+    }"
   >
     <el-container class="settings-layout">
       <el-aside class="settings-aside" width="120px">
@@ -36,24 +39,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { getSetting, settings } from '../utils/settings.js';
-import { themeState, mixColors } from '../utils/themes.js';
-import SettingBasicSection from './setting/SettingBasicSection.vue';
-import SettingLlmSection from './setting/SettingLlmSection.vue';
-import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue';
-import SettingThemeSection from './setting/SettingThemeSection.vue';
-import SettingLoggerSection from './setting/SettingLoggerSection.vue';
-import SettingImageSection from './setting/SettingImageSection.vue';
+import { ref, computed, onMounted } from 'vue'
+import { getSetting, settings } from '../utils/settings.js'
+import { themeState, mixColors } from '../utils/themes.js'
+import SettingBasicSection from './setting/SettingBasicSection.vue'
+import SettingLlmSection from './setting/SettingLlmSection.vue'
+import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue'
+import SettingThemeSection from './setting/SettingThemeSection.vue'
+import SettingLoggerSection from './setting/SettingLoggerSection.vue'
+import SettingImageSection from './setting/SettingImageSection.vue'
 // import SettingDebugSection from './setting/SettingDebugSection.vue';
-import SettingAboutSection from './setting/SettingAboutSection.vue';
-import { isDevEnvironment } from '../utils/dev-env';
-import '../assets/aero-btn.css';
-import '../assets/aero-div.css';
-import '../assets/modern-side-menu.css';
+import SettingAboutSection from './setting/SettingAboutSection.vue'
+import { isDevEnvironment } from '../utils/dev-env'
+import '../assets/aero-btn.css'
+import '../assets/aero-div.css'
+import '../assets/modern-side-menu.css'
 
-const activeMenu = ref('basic');
-const isDev = ref(false);
+const activeMenu = ref('basic')
+const isDev = ref(false)
 
 const componentMap: Record<string, any> = {
   basic: SettingBasicSection,
@@ -64,7 +67,7 @@ const componentMap: Record<string, any> = {
   logs: SettingLoggerSection,
   // debug: SettingDebugSection,
   about: SettingAboutSection
-};
+}
 
 const menuItems = computed(() => {
   const items = [
@@ -75,45 +78,51 @@ const menuItems = computed(() => {
     { key: 'images', label: 'setting.image.title' },
     { key: 'logs', label: 'setting.logs' },
     { key: 'about', label: 'setting.about.title' }
-  ];
-  
+  ]
+
   // // 仅在开发环境显示调试菜单
   // if (isDev.value) {
   //   items.push({ key: 'debug', label: 'setting.debug.title' });
   // }
-  
-  return items;
-});
 
-const currentComponent = computed(() => componentMap[activeMenu.value] ?? SettingBasicSection);
+  return items
+})
+
+const currentComponent = computed(() => componentMap[activeMenu.value] ?? SettingBasicSection)
 
 // 计算选中状态的背景色和文字色（与 HeadMenu 保持一致）
-const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3));
-const activeTextColor = computed(() => themeState.currentTheme.textColor);
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
+const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const handleMenuSelect = (index: string) => {
-  activeMenu.value = index;
-};
+  activeMenu.value = index
+}
 
 const fetchSettings = async () => {
-  const keys = Object.keys(settings) as (keyof typeof settings)[];
+  const keys = Object.keys(settings) as (keyof typeof settings)[]
   for (const key of keys) {
-    if (typeof settings[key] === 'object' && settings[key] !== null && !Array.isArray(settings[key])) {
-      continue;
+    if (
+      typeof settings[key] === 'object' &&
+      settings[key] !== null &&
+      !Array.isArray(settings[key])
+    ) {
+      continue
     }
-    const value: (typeof settings)[typeof key] | undefined = await getSetting(key as string);
+    const value: (typeof settings)[typeof key] | undefined = await getSetting(key as string)
     if (value !== undefined) {
       // @ts-expect-error: value type from storage may not match static type, but is safe here
-      settings[key] = value;
+      settings[key] = value
     }
   }
-};
+}
 
 onMounted(async () => {
-  fetchSettings();
+  fetchSettings()
   // 检查是否为开发环境
-  isDev.value = await isDevEnvironment();
-});
+  isDev.value = await isDevEnvironment()
+})
 </script>
 
 <style scoped>

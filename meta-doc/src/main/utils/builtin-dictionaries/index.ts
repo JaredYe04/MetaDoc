@@ -39,7 +39,7 @@ const BUILTIN_DICTIONARY = [
  * 获取内置词典（返回 Set 以便合并）
  */
 export function getBuiltinDictionary(): Set<string> {
-  return new Set(BUILTIN_DICTIONARY.map(word => word.toLowerCase()))
+  return new Set(BUILTIN_DICTIONARY.map((word) => word.toLowerCase()))
 }
 
 /**
@@ -53,4 +53,3 @@ export {
   MISC_DICTIONARY,
   BUILTIN_DICTIONARY
 }
-

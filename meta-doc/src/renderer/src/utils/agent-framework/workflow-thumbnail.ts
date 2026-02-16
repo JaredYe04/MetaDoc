@@ -42,15 +42,25 @@ export async function generateWorkflowThumbnail(
 /**
  * 生成简化的工作流SVG图
  */
-async function generateSimpleWorkflowSVG(workflow: Workflow, width: number, height: number): Promise<string> {
+async function generateSimpleWorkflowSVG(
+  workflow: Workflow,
+  width: number,
+  height: number
+): Promise<string> {
   const padding = 20
   const nodeWidth = 80
   const nodeHeight = 40
   const nodeSpacing = 30
-  
+
   // 计算节点位置
-  const nodes: Array<{ id: string; label: string; x: number; y: number; type: 'artifact' | 'control' }> = []
-  
+  const nodes: Array<{
+    id: string
+    label: string
+    x: number
+    y: number
+    type: 'artifact' | 'control'
+  }> = []
+
   // 添加工件节点
   workflow.artifactNodes.forEach((node, idx) => {
     const pos = node.position || { x: padding + idx * (nodeWidth + nodeSpacing), y: height / 2 }
@@ -62,7 +72,7 @@ async function generateSimpleWorkflowSVG(workflow: Workflow, width: number, heig
       type: 'artifact'
     })
   })
-  
+
   // 添加控制流节点
   workflow.controlFlowNodes.forEach((node, idx) => {
     const pos = node.position || { x: padding + idx * (nodeWidth + nodeSpacing), y: height / 2 }
@@ -74,7 +84,7 @@ async function generateSimpleWorkflowSVG(workflow: Workflow, width: number, heig
       type: 'control'
     })
   })
-  
+
   // 获取主题颜色
   const isDark = themeState.currentTheme.type === 'dark'
   const bgColor = themeState.currentTheme.background2nd || (isDark ? '#1e1e1e' : '#ffffff')
@@ -82,14 +92,14 @@ async function generateSimpleWorkflowSVG(workflow: Workflow, width: number, heig
   const nodeTextColor = themeState.currentTheme.textColor || (isDark ? '#ffffff' : '#333333')
   const edgeColor = isDark ? '#64b5f6' : '#409eff'
   const nodeBorderColor = edgeColor
-  
+
   // 构建SVG - 不设置背景色，让父容器控制
   let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" style="display: block; border-radius: 4px;">`
-  
+
   // 添加边
   for (const edge of workflow.edges) {
-    const sourceNode = nodes.find(n => n.id === edge.source)
-    const targetNode = nodes.find(n => n.id === edge.target)
+    const sourceNode = nodes.find((n) => n.id === edge.source)
+    const targetNode = nodes.find((n) => n.id === edge.target)
     if (sourceNode && targetNode) {
       const x1 = sourceNode.x + nodeWidth
       const y1 = sourceNode.y + nodeHeight / 2
@@ -98,12 +108,12 @@ async function generateSimpleWorkflowSVG(workflow: Workflow, width: number, heig
       svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${edgeColor}" stroke-width="2" marker-end="url(#arrowhead)"/>`
     }
   }
-  
+
   // 添加箭头标记
   svg += `<defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><polygon points="0 0, 10 3, 0 6" fill="${edgeColor}"/></marker></defs>`
-  
+
   // 添加节点
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (node.type === 'control') {
       // 菱形（条件节点）
       const x = node.x + nodeWidth / 2
@@ -113,18 +123,18 @@ async function generateSimpleWorkflowSVG(workflow: Workflow, width: number, heig
       // 矩形
       svg += `<rect x="${node.x}" y="${node.y}" width="${nodeWidth}" height="${nodeHeight}" fill="${nodeBgColor}" stroke="${nodeBorderColor}" stroke-width="2" rx="4"/>`
     }
-    
+
     // 添加文本
     const text = node.label.length > 8 ? node.label.substring(0, 8) + '...' : node.label
     svg += `<text x="${node.x + nodeWidth / 2}" y="${node.y + nodeHeight / 2}" font-size="10" fill="${nodeTextColor}" text-anchor="middle" dominant-baseline="middle">${escapeXml(text)}</text>`
   })
-  
+
   svg += '</svg>'
-  
+
   // 转换为data URL
   const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
   const reader = new FileReader()
-  
+
   return new Promise<string>((resolve) => {
     reader.onload = () => {
       resolve(reader.result as string)
@@ -153,23 +163,23 @@ function generatePlaceholderThumbnail(width: number, height: number): string {
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')
-  
+
   if (ctx) {
     // 获取主题颜色
     const isDark = themeState.currentTheme.type === 'dark'
     const bgColor = themeState.currentTheme.background2nd || (isDark ? '#1e1e1e' : '#f5f5f5')
     const textColor = themeState.currentTheme.textColor2 || (isDark ? '#888888' : '#999999')
     const borderColor = themeState.currentTheme.textColor2 || (isDark ? '#444444' : '#dddddd')
-    
+
     // 填充背景
     ctx.fillStyle = bgColor
     ctx.fillRect(0, 0, width, height)
-    
+
     // 绘制边框
     ctx.strokeStyle = borderColor
     ctx.lineWidth = 1
     ctx.strokeRect(0, 0, width, height)
-    
+
     // 绘制占位符文本
     ctx.fillStyle = textColor
     ctx.font = '14px Arial'
@@ -177,7 +187,7 @@ function generatePlaceholderThumbnail(width: number, height: number): string {
     ctx.textBaseline = 'middle'
     ctx.fillText('工作流', width / 2, height / 2)
   }
-  
+
   return canvas.toDataURL('image/png')
 }
 
@@ -191,14 +201,14 @@ const thumbnailCache = new Map<string, string>()
  */
 export async function getWorkflowThumbnail(workflow: Workflow): Promise<string> {
   const cacheKey = `${workflow.id}-${workflow.updatedAt}`
-  
+
   if (thumbnailCache.has(cacheKey)) {
     return thumbnailCache.get(cacheKey)!
   }
-  
+
   const thumbnail = await generateWorkflowThumbnail(workflow)
   thumbnailCache.set(cacheKey, thumbnail)
-  
+
   return thumbnail
 }
 
@@ -208,4 +218,3 @@ export async function getWorkflowThumbnail(workflow: Workflow): Promise<string> 
 export function clearThumbnailCache(): void {
   thumbnailCache.clear()
 }
-

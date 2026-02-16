@@ -1,17 +1,33 @@
 <template>
   <div class="outline-tree-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'retrieving' || displayData.stage === 'loading' || displayData.stage === 'extracting'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="
+        displayData.stage === 'retrieving' ||
+        displayData.stage === 'loading' ||
+        displayData.stage === 'extracting'
+      "
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && displayData.outlineTree" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && displayData.outlineTree"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="outline-header" :style="headerStyle">
         <div class="header-content">
           <el-icon><Document /></el-icon>
-          <h3 class="outline-title" :style="titleStyle">{{ $t('agent.display.outlineTree.title') }}</h3>
+          <h3 class="outline-title" :style="titleStyle">
+            {{ $t('agent.display.outlineTree.title') }}
+          </h3>
         </div>
-        <el-tag type="info" size="small">{{ $t('agent.display.outlineTree.nodeCount', { count: nodeCount }) }}</el-tag>
+        <el-tag type="info" size="small">{{
+          $t('agent.display.outlineTree.nodeCount', { count: nodeCount })
+        }}</el-tag>
       </div>
 
       <el-scrollbar max-height="500px">
@@ -28,13 +44,22 @@
                 <el-tag v-if="data.path" size="small" type="info" :style="nodeTagStyle">
                   {{ $t('agent.display.outlineTree.path') }}: {{ data.path }}
                 </el-tag>
-                <el-tag v-if="data.titleLevel !== undefined" size="small" type="warning" :style="nodeTagStyle">
+                <el-tag
+                  v-if="data.titleLevel !== undefined"
+                  size="small"
+                  type="warning"
+                  :style="nodeTagStyle"
+                >
                   {{ $t('agent.display.outlineTree.level') }}: {{ data.titleLevel }}
                 </el-tag>
                 <el-tag v-if="data.hasContent" size="small" type="success" :style="nodeTagStyle">
                   {{ $t('agent.display.outlineTree.hasContent') }}
                 </el-tag>
-                <el-tag v-if="data.childrenCount !== undefined && data.childrenCount > 0" size="small" :style="nodeTagStyle">
+                <el-tag
+                  v-if="data.childrenCount !== undefined && data.childrenCount > 0"
+                  size="small"
+                  :style="nodeTagStyle"
+                >
                   {{ $t('agent.display.outlineTree.childrenCount', { count: data.childrenCount }) }}
                 </el-tag>
               </div>
@@ -76,7 +101,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'retrieving' | 'loading' | 'extracting' | 'completed' | 'error' => {
@@ -92,7 +117,7 @@ const displayData = computed(() => {
       }
       return 'retrieving'
     }
-    
+
     return {
       ...parsed,
       stage: getStage(),
@@ -100,9 +125,10 @@ const displayData = computed(() => {
       outlineTree: parsed.outlineTree || parsed.outline
     }
   }
-  
+
   // 如果没有数据，根据status设置默认stage
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'retrieving')
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'retrieving'
   return {
     stage: defaultStage,
     outlineTree: undefined,
@@ -138,27 +164,30 @@ const nodeCount = computed(() => {
 const convertToTreeData = (node: DocumentOutlineNode): any => {
   const hasContent = node.text && node.text.trim().length > 0
   const childrenCount = node.children ? node.children.length : 0
-  
+
   return {
     label: node.title || t('agent.display.outlineTree.emptyTitle'),
     path: node.path,
     titleLevel: node.title_level,
     hasContent,
     childrenCount,
-    children: node.children && node.children.length > 0 
-      ? node.children.map((child: DocumentOutlineNode) => convertToTreeData(child))
-      : undefined
+    children:
+      node.children && node.children.length > 0
+        ? node.children.map((child: DocumentOutlineNode) => convertToTreeData(child))
+        : undefined
   }
 }
 
 const treeData = computed(() => {
   if (!displayData.value.outlineTree) return []
-  
+
   // 只显示根节点的子节点（不显示虚拟根节点）
   if (displayData.value.outlineTree.children && displayData.value.outlineTree.children.length > 0) {
-    return displayData.value.outlineTree.children.map((child: DocumentOutlineNode) => convertToTreeData(child))
+    return displayData.value.outlineTree.children.map((child: DocumentOutlineNode) =>
+      convertToTreeData(child)
+    )
   }
-  
+
   return []
 })
 
@@ -305,4 +334,3 @@ const nodeTagStyle = computed(() => ({
   padding: 12px;
 }
 </style>
-

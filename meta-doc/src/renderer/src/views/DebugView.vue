@@ -1,5 +1,11 @@
 <template>
-  <div class="debug-view-container" :style="{ backgroundColor: themeState.currentTheme.background, color: themeState.currentTheme.textColor }">
+  <div
+    class="debug-view-container"
+    :style="{
+      backgroundColor: themeState.currentTheme.background,
+      color: themeState.currentTheme.textColor
+    }"
+  >
     <el-scrollbar class="debug-scrollbar" height="100%">
       <div class="debug-content-wrapper">
         <SettingDebugSection />
@@ -9,8 +15,8 @@
 </template>
 
 <script setup lang="ts">
-import { themeState } from '../utils/themes';
-import SettingDebugSection from './setting/SettingDebugSection.vue';
+import { themeState } from '../utils/themes'
+import SettingDebugSection from './setting/SettingDebugSection.vue'
 </script>
 
 <style scoped>
@@ -50,4 +56,3 @@ import SettingDebugSection from './setting/SettingDebugSection.vue';
   min-height: 100%;
 }
 </style>
-

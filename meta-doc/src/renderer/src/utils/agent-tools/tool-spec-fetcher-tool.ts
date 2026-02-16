@@ -24,7 +24,7 @@ const logger = createRendererLogger('ToolSpecFetcherTool')
 const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) => {
   // 支持单个 toolId 或 toolIds 数组
   let toolIds: string[] = []
-  
+
   if (params.toolId) {
     // 单个工具ID
     toolIds = [params.toolId as string]
@@ -36,14 +36,8 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
       status: 'failed',
       error: createDetailedError(
         'Missing required parameter: toolId or toolIds',
-        [
-          '{"toolId": "edit"}',
-          '{"toolIds": ["edit", "chart-generation"]}'
-        ],
-        [
-          'Use toolId for a single tool',
-          'Use toolIds (array) for multiple tools'
-        ]
+        ['{"toolId": "edit"}', '{"toolIds": ["edit", "chart-generation"]}'],
+        ['Use toolId for a single tool', 'Use toolIds (array) for multiple tools']
       )
     }
   }
@@ -56,20 +50,24 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
   }
 
   // 更新状态：开始获取
-  onUpdate({
-    content: {
-      stage: 'fetching',
-      toolIds,
-      specs: []
+  onUpdate(
+    {
+      content: {
+        stage: 'fetching',
+        toolIds,
+        specs: []
+      },
+      format: 'json'
     },
-    format: 'json'
-  }, {
-    percentage: 10,
-    message: `Fetching specs for ${toolIds.length} tool(s)...`
-  })
+    {
+      percentage: 10,
+      message: `Fetching specs for ${toolIds.length} tool(s)...`
+    }
+  )
 
   try {
-    const specs: Array<{ toolId: string; name: string; fullSpec: string | null; error?: string }> = []
+    const specs: Array<{ toolId: string; name: string; fullSpec: string | null; error?: string }> =
+      []
 
     for (const toolId of toolIds) {
       try {
@@ -79,9 +77,10 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
         let toolName: string = toolId
 
         if (tool && tool.config.enabled) {
-          toolName = typeof tool.config.name === 'string'
-            ? tool.config.name
-            : tool.config.name['zh_cn']?.name || tool.config.name['en_us']?.name || toolId
+          toolName =
+            typeof tool.config.name === 'string'
+              ? tool.config.name
+              : tool.config.name['zh_cn']?.name || tool.config.name['en_us']?.name || toolId
 
           if (tool.config.spec?.fullSpec) {
             fullSpec = tool.config.spec.fullSpec
@@ -90,9 +89,10 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
             if (typeof tool.config.instruction === 'string') {
               fullSpec = tool.config.instruction
             } else {
-              fullSpec = tool.config.instruction['zh_cn']?.instruction || 
-                        tool.config.instruction['en_us']?.instruction || 
-                        null
+              fullSpec =
+                tool.config.instruction['zh_cn']?.instruction ||
+                tool.config.instruction['en_us']?.instruction ||
+                null
             }
           } else {
             fullSpec = null
@@ -101,9 +101,10 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
           // 尝试从workflow获取
           const workflow = workflowManager.getWorkflow(toolId)
           if (workflow) {
-            toolName = typeof workflow.name === 'string'
-              ? workflow.name
-              : workflow.name['zh_cn']?.name || workflow.name['en_us']?.name || toolId
+            toolName =
+              typeof workflow.name === 'string'
+                ? workflow.name
+                : workflow.name['zh_cn']?.name || workflow.name['en_us']?.name || toolId
 
             const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
             if (registeredWorkflowTool?.config.spec?.fullSpec) {
@@ -112,9 +113,10 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
               if (typeof registeredWorkflowTool.config.instruction === 'string') {
                 fullSpec = registeredWorkflowTool.config.instruction
               } else {
-                fullSpec = registeredWorkflowTool.config.instruction['zh_cn']?.instruction || 
-                          registeredWorkflowTool.config.instruction['en_us']?.instruction || 
-                          null
+                fullSpec =
+                  registeredWorkflowTool.config.instruction['zh_cn']?.instruction ||
+                  registeredWorkflowTool.config.instruction['en_us']?.instruction ||
+                  null
               }
             } else {
               fullSpec = null
@@ -147,17 +149,20 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
     }
 
     // 更新状态：完成
-    onUpdate({
-      content: {
-        stage: 'completed',
-        toolIds,
-        specs
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          toolIds,
+          specs
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 100,
-      message: `Fetched specs for ${specs.length} tool(s)`
-    })
+      {
+        percentage: 100,
+        message: `Fetched specs for ${specs.length} tool(s)`
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -193,7 +198,8 @@ export const toolSpecFetcherToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'tool-spec-fetcher',
-    brief: 'Fetch the full specification (fullSpec) of one or more tools. Use this when you need detailed information about how to use a specific tool.',
+    brief:
+      'Fetch the full specification (fullSpec) of one or more tools. Use this when you need detailed information about how to use a specific tool.',
     fullSpec: `# Tool Spec Fetcher
 
 ## Description
@@ -314,10 +320,7 @@ Fetches the full specification (fullSpec) of one or more tools. This allows you 
         description: 'Array of tool IDs to fetch specs for (use this OR toolId, not both)'
       }
     },
-    oneOf: [
-      { required: ['toolId'] },
-      { required: ['toolIds'] }
-    ]
+    oneOf: [{ required: ['toolId'] }, { required: ['toolIds'] }]
   },
   outputSchema: {
     type: 'object',
@@ -358,4 +361,3 @@ Fetches the full specification (fullSpec) of one or more tools. This allows you 
     }
   }
 }
-

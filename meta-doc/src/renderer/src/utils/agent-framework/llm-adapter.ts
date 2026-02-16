@@ -45,11 +45,19 @@ export interface LlmResponseConfig {
   apiUrl: string
   apiKey?: string
   model: string
-  type: 'openai' | 'ollama' | 'metadoc' | 'openai-official' | 'deepseek' | 'gemini' | 'openai-compatible' | 'manual'
+  type:
+    | 'openai'
+    | 'ollama'
+    | 'metadoc'
+    | 'openai-official'
+    | 'deepseek'
+    | 'gemini'
+    | 'openai-compatible'
+    | 'manual'
   chatSuffix?: string
   completionSuffix?: string
-  enableMaxTokens?: boolean  // 是否启用 max_tokens 限制
-  maxTokens?: number  // max_tokens 最大值
+  enableMaxTokens?: boolean // 是否启用 max_tokens 限制
+  maxTokens?: number // max_tokens 最大值
 }
 
 /**
@@ -106,8 +114,8 @@ export class LlmAdapter {
           if (!metadocConfig) {
             throw new Error('获取MetaDoc配置失败')
           }
-          const enableMaxTokens = await getSetting('metadocEnableMaxTokens') ?? false
-          const maxTokens = await getSetting('metadocMaxTokens') || 4096
+          const enableMaxTokens = (await getSetting('metadocEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('metadocMaxTokens')) || 4096
           config = {
             apiUrl: metadocConfig.apiUrl || '',
             apiKey: metadocConfig.apiKey,
@@ -121,8 +129,8 @@ export class LlmAdapter {
           break
         }
         case 'openai': {
-          const enableMaxTokens = await getSetting('openaiEnableMaxTokens') ?? false
-          const maxTokens = await getSetting('openaiMaxTokens') || 4096
+          const enableMaxTokens = (await getSetting('openaiEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('openaiMaxTokens')) || 4096
           config = {
             apiUrl: (await getSetting('openaiApiUrl')) || 'https://api.openai.com/v1',
             apiKey: (await getSetting('openaiApiKey')) || '',
@@ -136,8 +144,8 @@ export class LlmAdapter {
           break
         }
         case 'openai-official': {
-          const enableMaxTokens = await getSetting('openaiOfficialEnableMaxTokens') ?? false
-          const maxTokens = await getSetting('openaiOfficialMaxTokens') || 4096
+          const enableMaxTokens = (await getSetting('openaiOfficialEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('openaiOfficialMaxTokens')) || 4096
           config = {
             apiUrl: 'https://api.openai.com/v1',
             apiKey: (await getSetting('openaiOfficialApiKey')) || '',
@@ -151,8 +159,8 @@ export class LlmAdapter {
           break
         }
         case 'deepseek': {
-          const enableMaxTokens = await getSetting('deepseekEnableMaxTokens') ?? false
-          const maxTokens = await getSetting('deepseekMaxTokens') || 4096
+          const enableMaxTokens = (await getSetting('deepseekEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('deepseekMaxTokens')) || 4096
           config = {
             apiUrl: 'https://api.deepseek.com',
             apiKey: (await getSetting('deepseekApiKey')) || '',
@@ -166,8 +174,8 @@ export class LlmAdapter {
           break
         }
         case 'gemini': {
-          const enableMaxTokens = await getSetting('geminiEnableMaxTokens') ?? false
-          const maxTokens = await getSetting('geminiMaxTokens') || 4096
+          const enableMaxTokens = (await getSetting('geminiEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('geminiMaxTokens')) || 4096
           config = {
             apiUrl: 'https://generativelanguage.googleapis.com/v1beta',
             apiKey: (await getSetting('geminiApiKey')) || '',
@@ -181,8 +189,8 @@ export class LlmAdapter {
           break
         }
         case 'ollama': {
-          const enableMaxTokens = await getSetting('ollamaEnableMaxTokens') ?? false
-          const maxTokens = await getSetting('ollamaMaxTokens') || 4096
+          const enableMaxTokens = (await getSetting('ollamaEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('ollamaMaxTokens')) || 4096
           config = {
             apiUrl: (await getSetting('ollamaApiUrl')) || 'http://localhost:11434/api',
             apiKey: undefined,
@@ -251,18 +259,22 @@ export class LlmAdapter {
       // 对于 Gemini 类型，使用适配器模式
       if (config.type === 'gemini') {
         const adapter = await createAdapterFromSettings(null)
-        
+
         if (stream) {
           // 流式响应
           if (!adapter.generateChatStream) {
             throw new Error('Gemini适配器不支持流式对话')
           }
           let fullText = ''
-          const stream = adapter.generateChatStream(messages, {
-            temperature,
-            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
-          }, signal)
-          
+          const stream = adapter.generateChatStream(
+            messages,
+            {
+              temperature,
+              ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
+            },
+            signal
+          )
+
           for await (const { delta } of stream) {
             if (delta) {
               fullText += delta
@@ -274,29 +286,41 @@ export class LlmAdapter {
           if (!adapter.generateChatNonStream) {
             throw new Error('Gemini适配器不支持非流式对话')
           }
-          
+
           // 添加调试日志：检查传入的消息
           getLogger().debug('调用 Gemini generateChatNonStream', {
             messagesCount: messages.length,
-            firstMessage: messages[0] ? {
-              role: messages[0].role,
-              contentLength: typeof messages[0].content === 'string' ? messages[0].content.length : 'not string',
-              contentPreview: typeof messages[0].content === 'string' ? messages[0].content.substring(0, 100) : messages[0].content
-            } : null,
+            firstMessage: messages[0]
+              ? {
+                  role: messages[0].role,
+                  contentLength:
+                    typeof messages[0].content === 'string'
+                      ? messages[0].content.length
+                      : 'not string',
+                  contentPreview:
+                    typeof messages[0].content === 'string'
+                      ? messages[0].content.substring(0, 100)
+                      : messages[0].content
+                }
+              : null,
             temperature,
             maxTokens: effectiveMaxTokens
-          });
-          
-          const { text } = await adapter.generateChatNonStream(messages, {
-            temperature,
-            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
-          }, signal)
-          
+          })
+
+          const { text } = await adapter.generateChatNonStream(
+            messages,
+            {
+              temperature,
+              ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
+            },
+            signal
+          )
+
           getLogger().debug('Gemini generateChatNonStream 返回', {
             textLength: text.length,
             textPreview: text.substring(0, 100)
-          });
-          
+          })
+
           return text
         }
       }
@@ -304,11 +328,13 @@ export class LlmAdapter {
       let url: string
       let payload: any
 
-      if (config.type === 'openai-compatible' || 
-          config.type === 'openai' || 
-          config.type === 'openai-official' ||
-          config.type === 'deepseek' ||
-          config.type === 'metadoc') {
+      if (
+        config.type === 'openai-compatible' ||
+        config.type === 'openai' ||
+        config.type === 'openai-official' ||
+        config.type === 'deepseek' ||
+        config.type === 'metadoc'
+      ) {
         // OpenAI 兼容格式
         url = `${config.apiUrl}${config.chatSuffix || '/chat/completions'}`
         payload = {
@@ -393,18 +419,22 @@ export class LlmAdapter {
       // 对于 Gemini 类型，使用适配器模式
       if (config.type === 'gemini') {
         const adapter = await createAdapterFromSettings(null)
-        
+
         if (stream) {
           // 流式响应
           if (!adapter.generateContentStream) {
             throw new Error('Gemini适配器不支持流式补全')
           }
           let fullText = ''
-          const stream = adapter.generateContentStream(prompt, {
-            temperature,
-            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
-          }, signal)
-          
+          const stream = adapter.generateContentStream(
+            prompt,
+            {
+              temperature,
+              ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
+            },
+            signal
+          )
+
           for await (const { delta } of stream) {
             if (delta) {
               fullText += delta
@@ -416,10 +446,14 @@ export class LlmAdapter {
           if (!adapter.generateContentNonStream) {
             throw new Error('Gemini适配器不支持非流式补全')
           }
-          const { text } = await adapter.generateContentNonStream(prompt, {
-            temperature,
-            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
-          }, signal)
+          const { text } = await adapter.generateContentNonStream(
+            prompt,
+            {
+              temperature,
+              ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
+            },
+            signal
+          )
           return text
         }
       }
@@ -427,11 +461,13 @@ export class LlmAdapter {
       let url: string
       let payload: any
 
-      if (config.type === 'openai-compatible' || 
-          config.type === 'openai' || 
-          config.type === 'openai-official' ||
-          config.type === 'deepseek' ||
-          config.type === 'metadoc') {
+      if (
+        config.type === 'openai-compatible' ||
+        config.type === 'openai' ||
+        config.type === 'openai-official' ||
+        config.type === 'deepseek' ||
+        config.type === 'metadoc'
+      ) {
         // OpenAI 兼容格式
         url = `${config.apiUrl}${config.completionSuffix || '/completions'}`
         payload = {
@@ -593,7 +629,13 @@ export class LlmAdapter {
    */
   static async callChatViaTask(
     config: LlmResponseConfig,
-    messages: Array<{ role: string; content: string | null; tool_calls?: any; tool_call_id?: string; name?: string }>,
+    messages: Array<{
+      role: string
+      content: string | null
+      tool_calls?: any
+      tool_call_id?: string
+      name?: string
+    }>,
     options: {
       temperature?: number
       maxTokens?: number
@@ -603,10 +645,22 @@ export class LlmAdapter {
       originKey?: string
       reactiveMessage?: { markdown?: string; content?: string } // 可选的响应式消息对象，用于实时更新
       onTaskCreated?: (handle: string) => void // 任务创建时的回调，用于保存handle
-      onToolCallsDetected?: (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => Promise<void> // 工具调用检测回调
+      onToolCallsDetected?: (
+        toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>
+      ) => Promise<void> // 工具调用检测回调
     } = {}
   ): Promise<string> {
-    const { temperature, maxTokens: optionsMaxTokens, stream = false, signal, taskName = 'Agent LLM调用', originKey, reactiveMessage, onTaskCreated, onToolCallsDetected } = options
+    const {
+      temperature,
+      maxTokens: optionsMaxTokens,
+      stream = false,
+      signal,
+      taskName = 'Agent LLM调用',
+      originKey,
+      reactiveMessage,
+      onTaskCreated,
+      onToolCallsDetected
+    } = options
 
     // 根据配置决定是否使用 max_tokens
     // 如果 enableMaxTokens 为 false，则不传递 max_tokens (传递 undefined)
@@ -638,7 +692,7 @@ export class LlmAdapter {
     // 清理消息格式，确保符合API规范
     // 使用统一的sanitizeMessages函数，确保所有消息格式正确
     // 特别是确保tool消息的content是字符串，而不是对象
-    
+
     // 记录原始消息格式（用于调试）
     // 检查系统提示词中是否包含格式警告
     const systemMessage = messages.find((msg: any) => msg.role === 'system')
@@ -647,20 +701,20 @@ export class LlmAdapter {
       const hasFormatWarning = systemContent.includes('⚠️ 重要：当前文档是')
       const hasMarkdownWarning = systemContent.includes('Markdown 格式')
       const hasLatexWarning = systemContent.includes('LaTeX 格式')
-      
+
       getLogger().info('[callChatViaTask] 系统提示词格式检测', {
         hasSystemMessage: !!systemMessage,
         systemContentLength: systemContent.length,
         hasFormatWarning,
         hasMarkdownWarning,
         hasLatexWarning,
-        formatWarningPreview: hasFormatWarning 
+        formatWarningPreview: hasFormatWarning
           ? systemContent.substring(
               Math.max(0, systemContent.indexOf('⚠️ 重要：当前文档是') - 50),
               Math.min(systemContent.length, systemContent.indexOf('⚠️ 重要：当前文档是') + 200)
             )
           : '未找到格式警告',
-        systemContentPreview: systemContent.substring(0, 1000)  // 前1000字符预览
+        systemContentPreview: systemContent.substring(0, 1000) // 前1000字符预览
       })
     } else {
       getLogger().warn('[callChatViaTask] ⚠️ 未找到系统消息或系统消息内容为空', {
@@ -668,7 +722,7 @@ export class LlmAdapter {
         systemMessageContent: systemMessage?.content
       })
     }
-    
+
     getLogger().debug('[callChatViaTask] 原始消息格式:', {
       messageCount: messages.length,
       messages: messages.map((msg, idx) => ({
@@ -677,17 +731,19 @@ export class LlmAdapter {
         contentType: typeof msg.content,
         hasToolCalls: !!(msg as any).tool_calls,
         toolCallId: (msg as any).tool_call_id,
-        toolCalls: (msg as any).tool_calls ? (msg as any).tool_calls.map((tc: any) => ({
-          id: tc.id,
-          type: tc.type,
-          functionName: tc.function?.name,
-          argumentsType: typeof tc.function?.arguments
-        })) : undefined
+        toolCalls: (msg as any).tool_calls
+          ? (msg as any).tool_calls.map((tc: any) => ({
+              id: tc.id,
+              type: tc.type,
+              functionName: tc.function?.name,
+              argumentsType: typeof tc.function?.arguments
+            }))
+          : undefined
       }))
     })
-    
+
     const sanitizedMessages = sanitizeMessages(messages)
-    
+
     // 记录清理后的消息格式（用于调试）
     getLogger().debug('[callChatViaTask] 清理后的消息格式:', {
       messageCount: sanitizedMessages.length,
@@ -697,41 +753,53 @@ export class LlmAdapter {
         contentType: typeof msg.content,
         hasToolCalls: !!msg.tool_calls,
         toolCallId: msg.tool_call_id,
-        toolCalls: msg.tool_calls ? msg.tool_calls.map((tc: any) => ({
-          id: tc.id,
-          type: tc.type,
-          functionName: tc.function?.name,
-          argumentsType: typeof tc.function?.arguments,
-          argumentsIsObject: typeof tc.function?.arguments === 'object'
-        })) : undefined
+        toolCalls: msg.tool_calls
+          ? msg.tool_calls.map((tc: any) => ({
+              id: tc.id,
+              type: tc.type,
+              functionName: tc.function?.name,
+              argumentsType: typeof tc.function?.arguments,
+              argumentsIsObject: typeof tc.function?.arguments === 'object'
+            }))
+          : undefined
       }))
     })
 
     // 创建一个ref来存储结果
     const resultRef = ref('')
-    
+
     // 生成唯一的originKey（如果没有提供）
-    const uniqueOriginKey = originKey || `agent-llm-call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    
+    const uniqueOriginKey =
+      originKey || `agent-llm-call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
     // 宽松解析工具调用（不需要完整的end标记，用于兜底机制）
     // 使用统一的工具调用处理工具
-    const parseToolCallsFromContentLoose = (content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null => {
+    const parseToolCallsFromContentLoose = (
+      content: string
+    ): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null => {
       try {
-        getLogger().debug('[parseToolCallsFromContentLoose] 开始宽松解析工具调用，内容长度:', content.length)
-        
+        getLogger().debug(
+          '[parseToolCallsFromContentLoose] 开始宽松解析工具调用，内容长度:',
+          content.length
+        )
+
         // 使用统一的工具调用解析函数（宽松模式）
         const parsedToolCalls = parseToolCalls(content, {
           loose: true, // 宽松模式：允许没有结束标记
           validateToolId: false // 不在这里验证
         })
-        
+
         if (!parsedToolCalls || parsedToolCalls.length === 0) {
           return null
         }
-        
+
         // 转换格式并处理无效的工具调用
-        const toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
-        
+        const toolCalls: Array<{
+          id: string
+          tool_id: string
+          parameters: Record<string, unknown>
+        }> = []
+
         for (const parsed of parsedToolCalls) {
           if (parsed.isValid) {
             // 有效的工具调用
@@ -742,57 +810,10 @@ export class LlmAdapter {
             })
           } else {
             // 无效的工具调用：使用dummy-tool处理
-            getLogger().warn(`[parseToolCallsFromContentLoose] 检测到无效的工具调用，使用dummy-tool处理:`, parsed.error)
-            toolCalls.push({
-              id: parsed.id,
-              tool_id: 'dummy-tool',
-              parameters: parsed.parameters // 包含错误信息
-            })
-          }
-        }
-        
-        getLogger().debug(`[parseToolCallsFromContentLoose] ✅ 宽松解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter(p => p.isValid).length}, 无效: ${parsedToolCalls.filter(p => !p.isValid).length}）`, {
-          toolCalls: toolCalls.map(tc => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
-        })
-        return toolCalls.length > 0 ? toolCalls : null
-      } catch (error) {
-        getLogger().error('[parseToolCallsFromContentLoose] ❌ 宽松解析标记格式工具调用失败:', error)
-        return null
-      }
-    }
-    
-    // 解析标记格式的工具调用（与agent-engine-executor.ts中的逻辑一致）
-    // 使用统一的工具调用处理工具
-    const parseToolCallsFromContent = (content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null => {
-      try {
-        getLogger().debug('[parseToolCallsFromContent] 开始解析工具调用，内容长度:', content.length, {
-          contentPreview: content.substring(Math.max(0, content.length - 500))
-        })
-        
-        // 使用统一的工具调用解析函数（严格模式）
-        const parsedToolCalls = parseToolCalls(content, {
-          loose: false, // 严格模式：需要完整的结束标记
-          validateToolId: false // 不在这里验证
-        })
-        
-        if (!parsedToolCalls || parsedToolCalls.length === 0) {
-          return null
-        }
-        
-        // 转换格式并处理无效的工具调用
-        const toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
-        
-        for (const parsed of parsedToolCalls) {
-          if (parsed.isValid) {
-            // 有效的工具调用
-            toolCalls.push({
-              id: parsed.id,
-              tool_id: parsed.tool_id,
-              parameters: parsed.parameters
-            })
-          } else {
-            // 无效的工具调用：使用dummy-tool处理
-            getLogger().warn(`[parseToolCallsFromContent] 检测到无效的工具调用，使用dummy-tool处理:`, parsed.error)
+            getLogger().warn(
+              `[parseToolCallsFromContentLoose] 检测到无效的工具调用，使用dummy-tool处理:`,
+              parsed.error
+            )
             toolCalls.push({
               id: parsed.id,
               tool_id: 'dummy-tool',
@@ -801,21 +822,93 @@ export class LlmAdapter {
           }
         }
 
-        getLogger().debug(`[parseToolCallsFromContent] ✅ 解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter(p => p.isValid).length}, 无效: ${parsedToolCalls.filter(p => !p.isValid).length}）`, {
-          toolCalls: toolCalls.map(tc => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
+        getLogger().debug(
+          `[parseToolCallsFromContentLoose] ✅ 宽松解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter((p) => p.isValid).length}, 无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`,
+          {
+            toolCalls: toolCalls.map((tc) => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
+          }
+        )
+        return toolCalls.length > 0 ? toolCalls : null
+      } catch (error) {
+        getLogger().error(
+          '[parseToolCallsFromContentLoose] ❌ 宽松解析标记格式工具调用失败:',
+          error
+        )
+        return null
+      }
+    }
+
+    // 解析标记格式的工具调用（与agent-engine-executor.ts中的逻辑一致）
+    // 使用统一的工具调用处理工具
+    const parseToolCallsFromContent = (
+      content: string
+    ): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null => {
+      try {
+        getLogger().debug(
+          '[parseToolCallsFromContent] 开始解析工具调用，内容长度:',
+          content.length,
+          {
+            contentPreview: content.substring(Math.max(0, content.length - 500))
+          }
+        )
+
+        // 使用统一的工具调用解析函数（严格模式）
+        const parsedToolCalls = parseToolCalls(content, {
+          loose: false, // 严格模式：需要完整的结束标记
+          validateToolId: false // 不在这里验证
         })
+
+        if (!parsedToolCalls || parsedToolCalls.length === 0) {
+          return null
+        }
+
+        // 转换格式并处理无效的工具调用
+        const toolCalls: Array<{
+          id: string
+          tool_id: string
+          parameters: Record<string, unknown>
+        }> = []
+
+        for (const parsed of parsedToolCalls) {
+          if (parsed.isValid) {
+            // 有效的工具调用
+            toolCalls.push({
+              id: parsed.id,
+              tool_id: parsed.tool_id,
+              parameters: parsed.parameters
+            })
+          } else {
+            // 无效的工具调用：使用dummy-tool处理
+            getLogger().warn(
+              `[parseToolCallsFromContent] 检测到无效的工具调用，使用dummy-tool处理:`,
+              parsed.error
+            )
+            toolCalls.push({
+              id: parsed.id,
+              tool_id: 'dummy-tool',
+              parameters: parsed.parameters // 包含错误信息
+            })
+          }
+        }
+
+        getLogger().debug(
+          `[parseToolCallsFromContent] ✅ 解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter((p) => p.isValid).length}, 无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`,
+          {
+            toolCalls: toolCalls.map((tc) => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
+          }
+        )
         return toolCalls.length > 0 ? toolCalls : null
       } catch (error) {
         getLogger().error('[parseToolCallsFromContent] ❌ 解析标记格式工具调用失败:', error)
         return null
       }
     }
-    
+
     // 用于跟踪已经处理过的工具调用ID（避免重复处理）
     const processedToolCallIds = new Set<string>()
     // 记录最后一个已处理工具调用的结束位置（用于只解析新内容，避免重复解析）
     let lastProcessedEndIndex = 0
-    
+
     // 记录初始状态
     getLogger().debug('[callChatViaTask] 初始化工具调用检测:', {
       hasReactiveMessage: !!reactiveMessage,
@@ -823,12 +916,12 @@ export class LlmAdapter {
       hasOnToolCallsDetected: !!onToolCallsDetected,
       taskName
     })
-    
+
     // 如果提供了reactiveMessage且是流式输出，设置watch实时更新
     let stopWatcher: (() => void) | null = null
     if (reactiveMessage && stream) {
       getLogger().debug('[callChatViaTask] 设置watch监听resultRef变化，准备检测工具调用')
-      
+
       stopWatcher = watch(
         resultRef,
         async (newValue, oldValue) => {
@@ -838,50 +931,58 @@ export class LlmAdapter {
           } else if ('content' in reactiveMessage) {
             reactiveMessage.content = newValue
           }
-          
+
           // 检测工具调用标记（仅在流式输出且提供回调时）
           // 重要：跟踪已处理的工具调用ID，只处理新的工具调用
           if (onToolCallsDetected) {
             // 检查是否有完整的工具调用标记块（必须同时包含开始和结束标记）
             const toolCallsBeginPattern = /<tool_call>/i
             const toolCallsEndPattern = /<\/tool_call>/i
-            
+
             const hasBegin = toolCallsBeginPattern.test(newValue)
             const hasEnd = toolCallsEndPattern.test(newValue)
-            
+
             if (hasBegin && hasEnd) {
               // 检测到完整的工具调用标记块，解析并触发回调
               // 但需要验证JSON是否完整（避免在流式输出过程中解析不完整的JSON）
               const beginIndex = newValue.lastIndexOf('<tool_call>')
               const endIndex = newValue.lastIndexOf('</tool_call>')
-              
+
               if (beginIndex !== -1 && endIndex !== -1 && endIndex > beginIndex) {
-                const toolCallBlock = newValue.substring(beginIndex + '<tool_call>'.length, endIndex).trim()
-                
+                const toolCallBlock = newValue
+                  .substring(beginIndex + '<tool_call>'.length, endIndex)
+                  .trim()
+
                 // 检查JSON是否看起来完整（有开始和结束括号，且括号匹配）
                 const hasJsonStart = /[\[{]/.test(toolCallBlock)
                 const openBraces = (toolCallBlock.match(/{/g) || []).length
                 const closeBraces = (toolCallBlock.match(/}/g) || []).length
                 const openBrackets = (toolCallBlock.match(/\[/g) || []).length
                 const closeBrackets = (toolCallBlock.match(/\]/g) || []).length
-                
+
                 // 只有当括号匹配时才认为JSON可能完整
                 const bracesMatch = openBraces === closeBraces
                 const bracketsMatch = openBrackets === closeBrackets
-                
+
                 if (hasJsonStart && bracesMatch && bracketsMatch) {
                   // 只解析从上次处理位置之后的新内容，避免重复解析
                   const contentToParse = newValue.substring(lastProcessedEndIndex)
-                  
-                  getLogger().debug('[callChatViaTask] ✅ 检测到完整的工具调用标记块，开始解析新内容...', {
-                    contentLength: newValue.length,
-                    lastProcessedEndIndex,
-                    newContentLength: contentToParse.length,
-                    toolCallBlockLength: toolCallBlock.length,
-                    contentSnippet: toolCallBlock.substring(0, Math.min(200, toolCallBlock.length)),
-                    processedCount: processedToolCallIds.size
-                  })
-                  
+
+                  getLogger().debug(
+                    '[callChatViaTask] ✅ 检测到完整的工具调用标记块，开始解析新内容...',
+                    {
+                      contentLength: newValue.length,
+                      lastProcessedEndIndex,
+                      newContentLength: contentToParse.length,
+                      toolCallBlockLength: toolCallBlock.length,
+                      contentSnippet: toolCallBlock.substring(
+                        0,
+                        Math.min(200, toolCallBlock.length)
+                      ),
+                      processedCount: processedToolCallIds.size
+                    }
+                  )
+
                   // 只解析新内容中的工具调用
                   const allToolCalls = parseToolCallsFromContent(contentToParse)
                   if (allToolCalls && allToolCalls.length > 0) {
@@ -895,12 +996,16 @@ export class LlmAdapter {
                       const endIndexInFullContent = lastProcessedEndIndex + endIndexInNewContent
                       maxEndIndex = Math.max(maxEndIndex, endIndexInFullContent)
                     }
-                    
+
                     // 基于工具调用的内容生成稳定的ID（用于去重）
                     // 由于工具调用ID是动态生成的，我们需要基于工具ID和参数来去重
                     const toolCallSignatures = new Set<string>()
-                    const newToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
-                    
+                    const newToolCalls: Array<{
+                      id: string
+                      tool_id: string
+                      parameters: Record<string, unknown>
+                    }> = []
+
                     for (const tc of allToolCalls) {
                       // 生成一个基于工具ID和参数的稳定签名
                       const signature = `${tc.tool_id}:${JSON.stringify(tc.parameters)}`
@@ -914,26 +1019,29 @@ export class LlmAdapter {
                         })
                       }
                     }
-                    
+
                     if (newToolCalls.length > 0) {
                       // 更新最后处理位置
                       lastProcessedEndIndex = maxEndIndex
-                      
+
                       // 标记这些工具调用为已处理（基于ID）
-                      newToolCalls.forEach(tc => processedToolCallIds.add(tc.id))
-                      
-                      getLogger().debug('[callChatViaTask] ✅✅✅ 发现新的工具调用，准备触发回调:', {
-                        newToolCallsCount: newToolCalls.length,
-                        totalToolCallsCount: allToolCalls.length,
-                        processedCount: processedToolCallIds.size,
-                        newLastProcessedEndIndex: lastProcessedEndIndex,
-                        newToolCalls: newToolCalls.map(tc => ({ 
-                          id: tc.id,
-                          tool_id: tc.tool_id, 
-                          params: Object.keys(tc.parameters)
-                        }))
-                      })
-                      
+                      newToolCalls.forEach((tc) => processedToolCallIds.add(tc.id))
+
+                      getLogger().debug(
+                        '[callChatViaTask] ✅✅✅ 发现新的工具调用，准备触发回调:',
+                        {
+                          newToolCallsCount: newToolCalls.length,
+                          totalToolCallsCount: allToolCalls.length,
+                          processedCount: processedToolCallIds.size,
+                          newLastProcessedEndIndex: lastProcessedEndIndex,
+                          newToolCalls: newToolCalls.map((tc) => ({
+                            id: tc.id,
+                            tool_id: tc.tool_id,
+                            params: Object.keys(tc.parameters)
+                          }))
+                        }
+                      )
+
                       try {
                         await onToolCallsDetected(newToolCalls)
                         getLogger().debug('[callChatViaTask] ✅✅✅ 工具调用回调执行成功')
@@ -953,18 +1061,23 @@ export class LlmAdapter {
                       })
                     }
                   } else {
-                    getLogger().debug('[callChatViaTask] 检测到工具调用标记，但解析失败，可能JSON不完整，等待更多内容...')
+                    getLogger().debug(
+                      '[callChatViaTask] 检测到工具调用标记，但解析失败，可能JSON不完整，等待更多内容...'
+                    )
                   }
                 } else {
-                  getLogger().debug('[callChatViaTask] 检测到工具调用标记，但JSON可能不完整，等待更多内容...', {
-                    bracesMatch,
-                    bracketsMatch,
-                    openBraces,
-                    closeBraces,
-                    openBrackets,
-                    closeBrackets,
-                    toolCallBlockLength: toolCallBlock.length
-                  })
+                  getLogger().debug(
+                    '[callChatViaTask] 检测到工具调用标记，但JSON可能不完整，等待更多内容...',
+                    {
+                      bracesMatch,
+                      bracketsMatch,
+                      openBraces,
+                      closeBraces,
+                      openBrackets,
+                      closeBrackets,
+                      toolCallBlockLength: toolCallBlock.length
+                    }
+                  )
                 }
               }
             } else if (hasBegin && !hasEnd) {
@@ -979,7 +1092,7 @@ export class LlmAdapter {
         },
         { immediate: true }
       )
-      
+
       getLogger().debug('[callChatViaTask] watch已设置完成')
     } else {
       getLogger().warn('[callChatViaTask] ⚠️ 未设置watch监听:', {
@@ -1031,30 +1144,37 @@ export class LlmAdapter {
 
       // 如果流式输出完成，再次检查是否有未处理的工具调用（兜底机制）
       if (onToolCallsDetected) {
-        getLogger().debug('[callChatViaTask] 流式输出完成，检查最终结果中是否包含未处理的工具调用:', {
-          resultLength: resultRef.value.length,
-          hasBegin: /<tool_call>/i.test(resultRef.value),
-          hasEnd: /<\/tool_call>/i.test(resultRef.value),
-          processedCount: processedToolCallIds.size
-        })
-        
+        getLogger().debug(
+          '[callChatViaTask] 流式输出完成，检查最终结果中是否包含未处理的工具调用:',
+          {
+            resultLength: resultRef.value.length,
+            hasBegin: /<tool_call>/i.test(resultRef.value),
+            hasEnd: /<\/tool_call>/i.test(resultRef.value),
+            processedCount: processedToolCallIds.size
+          }
+        )
+
         // 只解析从上次处理位置之后的新内容（兜底机制）
         const contentToParse = resultRef.value.substring(lastProcessedEndIndex)
-        
+
         // 首先尝试标准解析（需要完整的begin和end标记）
         let allToolCalls = parseToolCallsFromContent(contentToParse)
-        
+
         // 如果标准解析失败，尝试宽松解析（不需要完整的end标记）
         if (!allToolCalls || allToolCalls.length === 0) {
           getLogger().debug('[callChatViaTask] 标准解析失败，尝试宽松解析（不需要完整end标记）')
           allToolCalls = parseToolCallsFromContentLoose(contentToParse)
         }
-        
+
         if (allToolCalls && allToolCalls.length > 0) {
           // 基于工具调用的内容生成稳定的ID（用于去重）
           const toolCallSignatures = new Set<string>()
-          const newToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
-          
+          const newToolCalls: Array<{
+            id: string
+            tool_id: string
+            parameters: Record<string, unknown>
+          }> = []
+
           for (const tc of allToolCalls) {
             // 生成一个基于工具ID和参数的稳定签名
             const signature = `${tc.tool_id}:${JSON.stringify(tc.parameters)}`
@@ -1068,25 +1188,29 @@ export class LlmAdapter {
               })
             }
           }
-          
+
           if (newToolCalls.length > 0) {
             // 更新最后处理位置（整个内容都已处理）
             lastProcessedEndIndex = resultRef.value.length
-            
+
             // 标记这些工具调用为已处理
-            newToolCalls.forEach(tc => processedToolCallIds.add(tc.id))
-            
+            newToolCalls.forEach((tc) => processedToolCallIds.add(tc.id))
+
             getLogger().debug('[callChatViaTask] ✅ 流式输出完成，发现未处理的工具调用:', {
               newToolCallsCount: newToolCalls.length,
               totalToolCallsCount: allToolCalls.length,
               processedCount: processedToolCallIds.size,
               lastProcessedEndIndex,
-              newToolCalls: newToolCalls.map(tc => ({ id: tc.id, tool_id: tc.tool_id, params: Object.keys(tc.parameters) }))
+              newToolCalls: newToolCalls.map((tc) => ({
+                id: tc.id,
+                tool_id: tc.tool_id,
+                params: Object.keys(tc.parameters)
+              }))
             })
             try {
               await onToolCallsDetected(newToolCalls)
               getLogger().debug('[callChatViaTask] ✅ 工具调用回调执行成功')
-              
+
               // 注意：不删除markdown中的工具调用标记
               // 原因：
               // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
@@ -1111,9 +1235,12 @@ export class LlmAdapter {
               resultPreview: resultRef.value.substring(Math.max(0, resultRef.value.length - 300))
             })
           } else {
-            getLogger().debug('[callChatViaTask] 流式输出完成，未找到新的工具调用（已处理过一些）', {
-              processedCount: processedToolCallIds.size
-            })
+            getLogger().debug(
+              '[callChatViaTask] 流式输出完成，未找到新的工具调用（已处理过一些）',
+              {
+                processedCount: processedToolCallIds.size
+              }
+            )
           }
         }
       } else if (!onToolCallsDetected) {
@@ -1132,4 +1259,3 @@ export class LlmAdapter {
     }
   }
 }
-

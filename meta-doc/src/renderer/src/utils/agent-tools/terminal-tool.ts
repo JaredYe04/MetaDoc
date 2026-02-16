@@ -110,11 +110,13 @@ Executes terminal/command line commands and returns results. Requires user appro
   },
   de_DE: {
     name: 'Terminal-Ausführung',
-    description: 'Führt Terminal-Befehle aus, erfordert Benutzerbestätigung (Vertrauensmodus kann eingestellt werden)'
+    description:
+      'Führt Terminal-Befehle aus, erfordert Benutzerbestätigung (Vertrauensmodus kann eingestellt werden)'
   },
   fr_FR: {
     name: 'Exécution de terminal',
-    description: 'Exécute des commandes de terminal, nécessite l\'approbation de l\'utilisateur (mode de confiance peut être défini)'
+    description:
+      "Exécute des commandes de terminal, nécessite l'approbation de l'utilisateur (mode de confiance peut être défini)"
   },
   ja_JP: {
     name: 'ターミナル実行',
@@ -144,7 +146,7 @@ function isTrustMode(): boolean {
 async function requestApproval(command: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const approvalId = `approval-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    
+
     // 存储批准请求
     pendingApprovals.set(approvalId, {
       command,
@@ -165,7 +167,7 @@ async function requestApproval(command: string): Promise<boolean> {
             logger.error('保存信任模式失败:', error)
           }
         }
-        
+
         pendingApprovals.delete(approvalId)
         eventBus.off('terminal-command-approved', handleApproved)
         eventBus.off('terminal-command-rejected', handleRejected)
@@ -205,20 +207,26 @@ async function executeCommand(
   onStreamUpdate?: (type: 'stdout' | 'stderr', data: string) => void
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const ipcRenderer = (window as any).electron?.ipcRenderer || null
-  
+
   if (!ipcRenderer) {
     throw new Error('终端执行功能仅在Electron环境中可用')
   }
 
   // 设置流式输出监听器
   if (invocationId && onStreamUpdate) {
-    const stdoutHandler = (_event: any, payload: { invocationId: string; data: string; command: string }) => {
+    const stdoutHandler = (
+      _event: any,
+      payload: { invocationId: string; data: string; command: string }
+    ) => {
       if (payload.invocationId === invocationId && payload.command === command) {
         onStreamUpdate('stdout', payload.data)
       }
     }
-    
-    const stderrHandler = (_event: any, payload: { invocationId: string; data: string; command: string }) => {
+
+    const stderrHandler = (
+      _event: any,
+      payload: { invocationId: string; data: string; command: string }
+    ) => {
       if (payload.invocationId === invocationId && payload.command === command) {
         onStreamUpdate('stderr', payload.data)
       }
@@ -254,7 +262,8 @@ async function executeCommand(
         command,
         cwd,
         timeout,
-        invocationId: invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        invocationId:
+          invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       })
       return result
     } catch (error) {
@@ -288,33 +297,33 @@ ${stderr ? `标准错误:\n${stderr}` : ''}
   const target = ref('')
   const originKey = `terminal-analysis-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
-  const { handle, done } = createAiTask(
-    '分析终端输出',
-    messages,
-    target,
-    'chat',
-    originKey,
-    { stream: true }
-  )
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
+  const { handle, done } = createAiTask('分析终端输出', messages, target, 'chat', originKey, {
+    stream: true
+  })
 
   // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'analyzing-streaming',
-        command,
-        analysisTargetRef: target,
-        analysisDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'analyzing-streaming',
+          command,
+          analysisTargetRef: target,
+          analysisDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 70,
-      message: '正在分析命令输出（流式输出）...'
-    })
+      {
+        percentage: 70,
+        message: '正在分析命令输出（流式输出）...'
+      }
+    )
   }
 
   if (signal) {
@@ -327,12 +336,12 @@ ${stderr ? `标准错误:\n${stderr}` : ''}
     await done
   } catch (error) {
     // 检查是否是取消错误，保留已生成的内容
-    const isCancelled = error instanceof Error && (
-      error.message === '任务已取消' || 
-      error.message.includes('任务已取消') ||
-      (error as any).name === 'AbortError'
-    )
-    
+    const isCancelled =
+      error instanceof Error &&
+      (error.message === '任务已取消' ||
+        error.message.includes('任务已取消') ||
+        (error as any).name === 'AbortError')
+
     if (!isCancelled) {
       // 重新抛出原始错误，让调用者知道任务失败
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -382,34 +391,40 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       logger.info('信任模式已启用，自动批准命令执行')
     } else {
       // 显示等待批准状态
-      onUpdate({
-        content: {
-          stage: 'waiting_approval',
-          command
+      onUpdate(
+        {
+          content: {
+            stage: 'waiting_approval',
+            command
+          },
+          format: 'json',
+          componentName: 'TerminalExecutionDisplay'
         },
-        format: 'json',
-        componentName: 'TerminalExecutionDisplay'
-      }, {
-        percentage: 10,
-        message: i18n.global.t('agent.tool.terminal.progress.approving', '等待用户批准...')
-      })
+        {
+          percentage: 10,
+          message: i18n.global.t('agent.tool.terminal.progress.approving', '等待用户批准...')
+        }
+      )
 
       // 请求用户批准
       try {
         approved = await requestApproval(command)
       } catch (error) {
         // 用户拒绝
-        onUpdate({
-          content: {
-            stage: 'rejected',
-            command
+        onUpdate(
+          {
+            content: {
+              stage: 'rejected',
+              command
+            },
+            format: 'json',
+            componentName: 'TerminalExecutionDisplay'
           },
-          format: 'json',
-          componentName: 'TerminalExecutionDisplay'
-        }, {
-          percentage: 0,
-          message: i18n.global.t('agent.tool.terminal.progress.rejected', '命令执行已被拒绝')
-        })
+          {
+            percentage: 0,
+            message: i18n.global.t('agent.tool.terminal.progress.rejected', '命令执行已被拒绝')
+          }
+        )
         return {
           status: 'failed',
           error: i18n.global.t('agent.tool.terminal.error.rejected', '用户拒绝了命令执行')
@@ -419,7 +434,7 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
     // 生成 invocationId 用于流式输出
     const invocationId = `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    
+
     // 用于累积流式输出
     let accumulatedStdout = ''
     let accumulatedStderr = ''
@@ -433,41 +448,48 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
 
       // 实时更新显示
-      onUpdate({
+      onUpdate(
+        {
+          content: {
+            stage: 'executing',
+            command,
+            approved,
+            stdout: accumulatedStdout,
+            stderr: accumulatedStderr
+          },
+          format: 'json',
+          componentName: 'TerminalExecutionDisplay'
+        },
+        {
+          percentage:
+            20 + Math.min(50, ((accumulatedStdout.length + accumulatedStderr.length) / 1000) * 30),
+          message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
+        }
+      )
+    }
+
+    onUpdate(
+      {
         content: {
           stage: 'executing',
           command,
           approved,
-          stdout: accumulatedStdout,
-          stderr: accumulatedStderr
+          stdout: '',
+          stderr: ''
         },
         format: 'json',
         componentName: 'TerminalExecutionDisplay'
-      }, {
-        percentage: 20 + Math.min(50, (accumulatedStdout.length + accumulatedStderr.length) / 1000 * 30),
-        message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
-      })
-    }
-
-    onUpdate({
-      content: {
-        stage: 'executing',
-        command,
-        approved,
-        stdout: '',
-        stderr: ''
       },
-      format: 'json',
-      componentName: 'TerminalExecutionDisplay'
-    }, {
-      percentage: 20,
-      message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
-    })
+      {
+        percentage: 20,
+        message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
+      }
+    )
 
     // 执行命令（支持流式输出）
     const { exitCode, stdout, stderr } = await executeCommand(
-      command, 
-      cwd, 
+      command,
+      cwd,
       timeout,
       invocationId,
       handleStreamUpdate
@@ -477,20 +499,23 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const finalStdout = accumulatedStdout || stdout
     const finalStderr = accumulatedStderr || stderr
 
-    onUpdate({
-      content: {
-        stage: 'analyzing',
-        command,
-        exitCode,
-        stdout: finalStdout,
-        stderr: finalStderr
+    onUpdate(
+      {
+        content: {
+          stage: 'analyzing',
+          command,
+          exitCode,
+          stdout: finalStdout,
+          stderr: finalStderr
+        },
+        format: 'json',
+        componentName: 'TerminalExecutionDisplay'
       },
-      format: 'json',
-      componentName: 'TerminalExecutionDisplay'
-    }, {
-      percentage: 70,
-      message: i18n.global.t('agent.tool.terminal.progress.analyzing', '正在分析输出...')
-    })
+      {
+        percentage: 70,
+        message: i18n.global.t('agent.tool.terminal.progress.analyzing', '正在分析输出...')
+      }
+    )
 
     // 使用LLM分析输出（如果启用）
     let summary: string | undefined
@@ -511,17 +536,20 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       approved: true
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        ...result
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          ...result
+        },
+        format: 'json',
+        componentName: 'TerminalExecutionDisplay'
       },
-      format: 'json',
-      componentName: 'TerminalExecutionDisplay'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.terminal.progress.completed', '命令执行完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.terminal.progress.completed', '命令执行完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -540,7 +568,11 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     logger.error('终端执行失败:', error)
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.terminal.error.failed', { error: errorMessage }, `命令执行失败: ${errorMessage}`)
+      error: i18n.global.t(
+        'agent.tool.terminal.error.failed',
+        { error: errorMessage },
+        `命令执行失败: ${errorMessage}`
+      )
     }
   }
 }
@@ -552,7 +584,8 @@ export const terminalToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'terminal-execution',
-    brief: 'Execute terminal/command line commands in a sandboxed environment. Requires user approval by default, supports trust mode for automatic execution.',
+    brief:
+      'Execute terminal/command line commands in a sandboxed environment. Requires user approval by default, supports trust mode for automatic execution.',
     fullSpec: `# Terminal Execution Tool
 
 ## Description
@@ -639,4 +672,3 @@ Executes terminal/command line commands and returns results. Requires user appro
 
 // 导出信任模式相关函数供UI使用
 export { isTrustMode, requestApproval }
-

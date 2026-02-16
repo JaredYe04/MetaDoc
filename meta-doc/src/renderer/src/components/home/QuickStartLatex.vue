@@ -4,13 +4,7 @@
       <!-- 头部 -->
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartTitle') }} · LaTeX</h2>
-        <el-button 
-          @click="emitClose" 
-          class="close-button"
-          circle
-          size="small"
-          :icon="Close"
-        />
+        <el-button @click="emitClose" class="close-button" circle size="small" :icon="Close" />
       </div>
 
       <!-- 主内容区域 -->
@@ -166,21 +160,12 @@
                     </el-button>
                   </el-tooltip>
                   <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                    <el-button 
-                      v-if="generated" 
-                      @click="reset"
-                      :icon="RefreshLeft"
-                    >
+                    <el-button v-if="generated" @click="reset" :icon="RefreshLeft">
                       {{ $t('home.tooltip.reset') }}
                     </el-button>
                   </el-tooltip>
                   <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                    <el-button 
-                      v-if="generated" 
-                      type="success"
-                      @click="accept"
-                      :icon="Check"
-                    >
+                    <el-button v-if="generated" type="success" @click="accept" :icon="Check">
                       {{ $t('home.tooltip.accept') }}
                     </el-button>
                   </el-tooltip>
@@ -226,7 +211,11 @@ import SuggestionTags from './SuggestionTags.vue'
 import AutoResizeTextarea from '../base/AutoResizeTextarea.vue'
 import KeywordInput from '../KeywordInput.vue'
 import { loggedIn, user } from '../../stores/user'
-import { generateTitlePrompt, generateDescriptionPrompt, generateKeywordsPrompt } from '../../utils/prompts'
+import {
+  generateTitlePrompt,
+  generateDescriptionPrompt,
+  generateKeywordsPrompt
+} from '../../utils/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
 import { ElMessage } from 'element-plus'
 
@@ -319,13 +308,13 @@ const onSpeechRecognized = (text: string) => {
   userPrompt.value = text
 }
 
-  const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
-    const presetList = getPresets()
-    const results = queryString
-      ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
-      : presetList
-    cb(results)
-  }
+const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
+  const presetList = getPresets()
+  const results = queryString
+    ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+    : presetList
+  cb(results)
+}
 
 const buildLatexPrompt = () => {
   return generateLatexPrompt(mood.value, userPrompt.value)
@@ -344,10 +333,12 @@ const generate = async () => {
   if (editor) {
     editor.setValue('')
   }
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
   const { done } = createAiTask(
     userPrompt.value,
     messages,
@@ -360,10 +351,10 @@ const generate = async () => {
   try {
     await done
     generated.value = true
-    
+
     // 自动生成标题、摘要、关键词
     await autoGenerateMetaInfo()
-    
+
     // 设置作者
     if (loggedIn.value && user.value?.username) {
       metaAuthor.value = user.value.username
@@ -381,19 +372,21 @@ const generate = async () => {
 // 自动生成元信息（标题、摘要、关键词）
 const autoGenerateMetaInfo = async () => {
   if (!generatedText.value) return
-  
+
   try {
     // 将 LaTeX 转换为 Markdown 以提取大纲
     const markdown = convertLatexToMarkdown(generatedText.value)
     const outline = extractOutlineTreeFromMarkdown(markdown) ?? DEFAULT_OUTLINE_TREE
     const outlineJson = JSON.stringify(outline)
-    
+
     // 生成标题
     const titleResult = ref('')
-    const titleMessages: AIDialogMessage[] = [{
-      role: 'user',
-      content: generateTitlePrompt(outlineJson),
-    }]
+    const titleMessages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: generateTitlePrompt(outlineJson)
+      }
+    ]
     const { done: titleDone } = createAiTask(
       t('article.generate_title'),
       titleMessages,
@@ -408,13 +401,15 @@ const autoGenerateMetaInfo = async () => {
       const titleMatch = titleText.match(/^[^\n]+/)
       metaTitle.value = titleMatch ? titleMatch[0].trim() : titleText
     }
-    
+
     // 生成摘要
     const descResult = ref('')
-    const descMessages: AIDialogMessage[] = [{
-      role: 'user',
-      content: generateDescriptionPrompt(outlineJson),
-    }]
+    const descMessages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: generateDescriptionPrompt(outlineJson)
+      }
+    ]
     const { done: descDone } = createAiTask(
       t('article.generate_description'),
       descMessages,
@@ -428,13 +423,15 @@ const autoGenerateMetaInfo = async () => {
     if (descText) {
       metaDescription.value = descText
     }
-    
+
     // 生成关键词
     const keywordsResult = ref('')
-    const keywordsMessages: AIDialogMessage[] = [{
-      role: 'user',
-      content: generateKeywordsPrompt(outlineJson),
-    }]
+    const keywordsMessages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: generateKeywordsPrompt(outlineJson)
+      }
+    ]
     const { done: keywordsDone } = createAiTask(
       t('article.generate_keywords'),
       keywordsMessages,
@@ -504,7 +501,9 @@ const cleanupEditor = () => {
   if (editorId) {
     try {
       const editors = (monaco.editor as any).getEditors?.() ?? []
-      const editor = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId)
+      const editor = editors.find(
+        (e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId
+      )
       if (editor) {
         editor.dispose()
       }
@@ -517,7 +516,7 @@ const cleanupEditor = () => {
 
 const accept = async () => {
   logger.info('[QuickStartLatex] accept 开始')
-  
+
   const latexContent = generatedText.value
 
   // 创建并激活新文档 tab
@@ -537,7 +536,8 @@ const accept = async () => {
     meta.description = metaDescription.value
     meta.keywords = metaKeywords.value
   })
-  const outline = extractOutlineTreeFromMarkdown(convertLatexToMarkdown(latexContent)) ?? DEFAULT_OUTLINE_TREE
+  const outline =
+    extractOutlineTreeFromMarkdown(convertLatexToMarkdown(latexContent)) ?? DEFAULT_OUTLINE_TREE
   updateDocumentOutline(tabId, outline)
 
   // 切换视图
@@ -606,7 +606,7 @@ const initMonacoEditor = async () => {
     contextmenu: false,
     scrollBeyondLastLine: false
   })
-  
+
   // 保存 editorId，不使用 ref
   editorId = editor.getId()
 
@@ -627,7 +627,7 @@ const syncEditorTheme = () => {
   if (!editor) return
   const isDark = themeState.currentTheme.type === 'dark'
   const themeName = isDark ? 'vs-dark' : 'vs'
-  
+
   // 定义自定义主题
   const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
   const deeperColor = (color: string) => {
@@ -660,10 +660,10 @@ onMounted(async () => {
   refreshButtons()
   tab.value = segmentOptions.value[0]
   eventBus.emit('theme-changed')
-  
+
   await nextTick()
   initMonacoEditor()
-  
+
   // 监听主题变化
   eventBus.on('sync-editor-theme', syncEditorTheme)
 })
@@ -690,7 +690,7 @@ eventBus.on('reset-quickstart', reset)
 onBeforeUnmount(() => {
   eventBus.off('reset-quickstart', reset)
   eventBus.off('sync-editor-theme', syncEditorTheme)
-  
+
   // 清理编辑器
   cleanupEditor()
 })

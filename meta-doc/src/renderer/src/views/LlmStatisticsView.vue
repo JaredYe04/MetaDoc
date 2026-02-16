@@ -6,7 +6,11 @@
         <el-button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
           {{ $t('llmStatistics.export') }}
         </el-button>
-        <el-button @click="handleClear" type="danger" :style="{ color: themeState.currentTheme.textColor }">
+        <el-button
+          @click="handleClear"
+          type="danger"
+          :style="{ color: themeState.currentTheme.textColor }"
+        >
           {{ $t('llmStatistics.clear') }}
         </el-button>
       </div>

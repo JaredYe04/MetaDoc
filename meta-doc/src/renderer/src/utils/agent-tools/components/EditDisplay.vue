@@ -1,27 +1,46 @@
 <template>
   <div class="edit-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading' || displayData.stage === 'applying' || displayData.stage === 'updating'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="
+        displayData.stage === 'loading' ||
+        displayData.stage === 'applying' ||
+        displayData.stage === 'updating'
+      "
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed'"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div v-if="resultData" class="edit-header" :style="headerStyle">
         <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
         <div class="edit-stats" :style="statsStyle">
-          <el-tag type="success" size="small">{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</el-tag>
-          <el-tag v-if="resultData.failedEdits > 0" type="danger" size="small">{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</el-tag>
-          <el-tag type="info" size="small">{{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}</el-tag>
+          <el-tag type="success" size="small"
+            >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</el-tag
+          >
+          <el-tag v-if="resultData.failedEdits > 0" type="danger" size="small"
+            >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</el-tag
+          >
+          <el-tag type="info" size="small"
+            >{{ $t('agent.display.edit.totalOperations') }}:
+            {{ resultData.operations.length }}</el-tag
+          >
           <el-button-group v-if="hasFullContent" class="mode-switch">
-            <el-button 
-              :type="viewMode === 'unified' ? 'primary' : 'default'" 
+            <el-button
+              :type="viewMode === 'unified' ? 'primary' : 'default'"
               size="small"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.edit.unifiedView') }}
             </el-button>
-            <el-button 
-              :type="viewMode === 'split' ? 'primary' : 'default'" 
+            <el-button
+              :type="viewMode === 'split' ? 'primary' : 'default'"
               size="small"
               @click="viewMode = 'split'"
             >
@@ -40,11 +59,20 @@
         >
           <template #default>
             <div class="summary-content">
-              <p>{{ $t('agent.display.edit.summaryDescription') || '编辑操作已成功完成。由于verbose模式未启用，未包含完整内容以节省空间。' }}</p>
+              <p>
+                {{
+                  $t('agent.display.edit.summaryDescription') ||
+                  '编辑操作已成功完成。由于verbose模式未启用，未包含完整内容以节省空间。'
+                }}
+              </p>
               <ul class="summary-list">
                 <li>{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</li>
-                <li v-if="resultData.failedEdits > 0">{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</li>
-                <li>{{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}</li>
+                <li v-if="resultData.failedEdits > 0">
+                  {{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}
+                </li>
+                <li>
+                  {{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}
+                </li>
               </ul>
             </div>
           </template>
@@ -72,7 +100,10 @@
             >
               <div class="chunk-header" :style="chunkHeaderStyle">
                 <span class="chunk-info" :style="chunkInfoStyle">
-                  @@ -{{ hunk.oldStart }},{{ hunk.oldCount }} +{{ hunk.newStart }},{{ hunk.newCount }} @@
+                  @@ -{{ hunk.oldStart }},{{ hunk.oldCount }} +{{ hunk.newStart }},{{
+                    hunk.newCount
+                  }}
+                  @@
                 </span>
                 <el-tag :type="getHunkTypeTag(hunk)" size="small">
                   {{ getHunkTypeLabel(hunk) }}
@@ -86,7 +117,9 @@
                   class="diff-line diff-delete"
                   :style="getDiffLineStyle('delete')"
                 >
-                  <span class="line-number" :style="lineNumberStyle">{{ hunk.oldStart + lineIndex }}</span>
+                  <span class="line-number" :style="lineNumberStyle">{{
+                    hunk.oldStart + lineIndex
+                  }}</span>
                   <span class="line-content">- {{ line }}</span>
                 </div>
               </div>
@@ -98,12 +131,17 @@
                   class="diff-line diff-insert"
                   :style="getDiffLineStyle('insert')"
                 >
-                  <span class="line-number" :style="lineNumberStyle">{{ hunk.newStart + lineIndex }}</span>
+                  <span class="line-number" :style="lineNumberStyle">{{
+                    hunk.newStart + lineIndex
+                  }}</span>
                   <span class="line-content">+ {{ line }}</span>
                 </div>
               </div>
               <!-- 显示上下文行 -->
-              <div v-if="hunk.contextLines && hunk.contextLines.length > 0" class="diff-lines context-lines">
+              <div
+                v-if="hunk.contextLines && hunk.contextLines.length > 0"
+                class="diff-lines context-lines"
+              >
                 <div
                   v-for="(line, lineIndex) in hunk.contextLines"
                   :key="`context-${hunkIndex}-${lineIndex}`"
@@ -111,7 +149,7 @@
                   :style="getDiffLineStyle('context')"
                 >
                   <span class="line-number" :style="lineNumberStyle"></span>
-                  <span class="line-content">  {{ line }}</span>
+                  <span class="line-content"> {{ line }}</span>
                 </div>
               </div>
             </div>
@@ -138,13 +176,25 @@
                 </span>
               </div>
               <div class="operation-content" :style="contentStyle">
-                <div v-if="operation.type === 'insert' || operation.type === 'replace'" class="operation-new">
-                  <span class="content-label" :style="labelStyle">{{ $t('agent.display.edit.newContent') }}:</span>
+                <div
+                  v-if="operation.type === 'insert' || operation.type === 'replace'"
+                  class="operation-new"
+                >
+                  <span class="content-label" :style="labelStyle"
+                    >{{ $t('agent.display.edit.newContent') }}:</span
+                  >
                   <pre class="content-text" :style="textStyle">{{ operation.content || '' }}</pre>
                 </div>
-                <div v-if="operation.type === 'delete' || operation.type === 'replace'" class="operation-old">
-                  <span class="content-label" :style="labelStyle">{{ $t('agent.display.edit.oldContent') }}:</span>
-                  <pre class="content-text deleted-text" :style="deletedTextStyle">{{ getOldContent(operation) }}</pre>
+                <div
+                  v-if="operation.type === 'delete' || operation.type === 'replace'"
+                  class="operation-old"
+                >
+                  <span class="content-label" :style="labelStyle"
+                    >{{ $t('agent.display.edit.oldContent') }}:</span
+                  >
+                  <pre class="content-text deleted-text" :style="deletedTextStyle">{{
+                    getOldContent(operation)
+                  }}</pre>
                 </div>
               </div>
             </div>
@@ -158,7 +208,9 @@
           <!-- 左侧：操作列表 -->
           <div class="operations-panel" :style="{ width: leftPanelWidth + '%' }">
             <div class="operations-header" :style="editorHeaderStyle">
-              <span class="editor-label">{{ $t('agent.display.edit.operations') || '操作列表' }}</span>
+              <span class="editor-label">{{
+                $t('agent.display.edit.operations') || '操作列表'
+              }}</span>
             </div>
             <el-scrollbar class="operations-scroll">
               <div class="operations-list-compact">
@@ -179,19 +231,18 @@
                     </span>
                   </div>
                   <div v-if="operation.content" class="operation-preview" :style="contentStyle">
-                    <pre class="content-text-preview" :style="textStyle">{{ truncateText(operation.content, 50) }}</pre>
+                    <pre class="content-text-preview" :style="textStyle">{{
+                      truncateText(operation.content, 50)
+                    }}</pre>
                   </div>
                 </div>
               </div>
             </el-scrollbar>
           </div>
-          
+
           <!-- 分割线（固定30/70比例，不可调整） -->
-          <div 
-            class="resize-handle"
-            :style="resizeHandleStyle"
-          ></div>
-          
+          <div class="resize-handle" :style="resizeHandleStyle"></div>
+
           <!-- 右侧：Monaco 编辑器对比 -->
           <div class="editors-panel" :style="{ width: rightPanelWidth + '%' }">
             <div class="split-editors">
@@ -199,13 +250,21 @@
                 <div class="editor-header" :style="editorHeaderStyle">
                   <span class="editor-label">{{ $t('agent.display.edit.oldContent') }}</span>
                 </div>
-                <div :id="oldEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+                <div
+                  :id="oldEditorId"
+                  class="monaco-editor-container"
+                  :style="editorContainerStyle"
+                ></div>
               </div>
               <div class="editor-panel new-panel">
                 <div class="editor-header" :style="editorHeaderStyle">
                   <span class="editor-label">{{ $t('agent.display.edit.newContent') }}</span>
                 </div>
-                <div :id="newEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+                <div
+                  :id="newEditorId"
+                  class="monaco-editor-container"
+                  :style="editorContainerStyle"
+                ></div>
               </div>
             </div>
           </div>
@@ -252,8 +311,8 @@ let oldMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let newMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 左右面板宽度（百分比）
-const leftPanelWidth = ref(30)  // 默认30%
-const rightPanelWidth = ref(70)  // 默认70%
+const leftPanelWidth = ref(30) // 默认30%
+const rightPanelWidth = ref(70) // 默认70%
 const selectedOperationIndex = ref<number | null>(null)
 const isResizing = ref(false)
 
@@ -263,10 +322,10 @@ const displayData = computed(() => {
   // 优先使用实时数据（通过onUpdate发送的），这是工具主动发送的，更可靠
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   // 优先使用实时状态（通过eventBus更新的）
   const currentStatus = realtimeStatus.value !== 'running' ? realtimeStatus.value : props.status
-  
+
   if (parsed && typeof parsed === 'object') {
     const getStage = (): 'loading' | 'applying' | 'updating' | 'completed' | 'error' => {
       // 优先使用parsed中的stage（来自onUpdate）
@@ -282,15 +341,16 @@ const displayData = computed(() => {
       }
       return 'loading'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
+
   // 如果没有解析到数据，根据状态推断stage
-  const defaultStage = currentStatus === 'succeeded' ? 'completed' : (currentStatus === 'failed' ? 'error' : 'loading')
+  const defaultStage =
+    currentStatus === 'succeeded' ? 'completed' : currentStatus === 'failed' ? 'error' : 'loading'
   return {
     stage: defaultStage,
     result: undefined,
@@ -307,9 +367,14 @@ const resultData = computed((): EditResult | null => {
     // 3. 从data.content获取（如果content本身就是result）
     // 4. 如果data本身就有operations，说明data就是result
     let result = data.result || data.content?.result || data.content || data
-    
+
     // 如果result有operations字段，说明它是EditResult
-    if (result && typeof result === 'object' && 'operations' in result && Array.isArray(result.operations)) {
+    if (
+      result &&
+      typeof result === 'object' &&
+      'operations' in result &&
+      Array.isArray(result.operations)
+    ) {
       return result as EditResult
     }
   }
@@ -346,7 +411,10 @@ const getStageMessage = (stage: string) => {
   return t('agent.display.edit.processing')
 }
 
-const formatRange = (range: { start: { line: number; column: number }; end: { line: number; column: number } }) => {
+const formatRange = (range: {
+  start: { line: number; column: number }
+  end: { line: number; column: number }
+}) => {
   if (range.start.line === range.end.line && range.start.column === range.end.column) {
     return `行 ${range.start.line}, 列 ${range.start.column}`
   }
@@ -355,14 +423,14 @@ const formatRange = (range: { start: { line: number; column: number }; end: { li
 
 const getOldContent = (operation: EditOperation) => {
   if (!resultData.value?.originalContent) return ''
-  
+
   if (operation.type === 'delete' || operation.type === 'replace') {
     // 从原始内容中提取被删除/替换的部分
     const lines = resultData.value.originalContent.split(/\r?\n/)
     if (operation.range.start.line > 0 && operation.range.start.line <= lines.length) {
       const lineIndex = operation.range.start.line - 1
       const line = lines[lineIndex]
-      
+
       if (operation.range.start.line === operation.range.end.line) {
         // 同一行的内容
         const startCol = operation.range.start.column - 1
@@ -435,22 +503,20 @@ const getDiffLineStyle = (type: 'insert' | 'delete' | 'context') => {
   if (type === 'delete') {
     return {
       ...baseStyle,
-      backgroundColor: themeState.currentTheme.type === 'dark' 
-        ? 'rgba(245, 108, 108, 0.15)' 
-        : 'rgba(245, 108, 108, 0.1)',
-      color: themeState.currentTheme.type === 'dark'
-        ? '#f56c6c'
-        : '#c45656'
+      backgroundColor:
+        themeState.currentTheme.type === 'dark'
+          ? 'rgba(245, 108, 108, 0.15)'
+          : 'rgba(245, 108, 108, 0.1)',
+      color: themeState.currentTheme.type === 'dark' ? '#f56c6c' : '#c45656'
     }
   } else if (type === 'insert') {
     return {
       ...baseStyle,
-      backgroundColor: themeState.currentTheme.type === 'dark'
-        ? 'rgba(103, 194, 58, 0.15)'
-        : 'rgba(103, 194, 58, 0.1)',
-      color: themeState.currentTheme.type === 'dark'
-        ? '#67c23a'
-        : '#529b2e'
+      backgroundColor:
+        themeState.currentTheme.type === 'dark'
+          ? 'rgba(103, 194, 58, 0.15)'
+          : 'rgba(103, 194, 58, 0.1)',
+      color: themeState.currentTheme.type === 'dark' ? '#67c23a' : '#529b2e'
     }
   } else {
     return {
@@ -517,8 +583,8 @@ const startResize = (e: MouseEvent) => {
 
 const resizeHandleStyle = computed(() => ({
   cursor: 'col-resize',
-  backgroundColor: isResizing.value 
-    ? themeState.currentTheme.textColor2 + '40' 
+  backgroundColor: isResizing.value
+    ? themeState.currentTheme.textColor2 + '40'
     : themeState.currentTheme.textColor2 + '20',
   width: '4px',
   transition: isResizing.value ? 'none' : 'background-color 0.2s'
@@ -527,15 +593,15 @@ const resizeHandleStyle = computed(() => ({
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
   if (viewMode.value !== 'split') return
-  
+
   // 确保 Monaco Worker 已配置
   setupMonacoWorker()
-  
+
   await nextTick()
-  
+
   const oldContainer = document.getElementById(oldEditorId.value)
   const newContainer = document.getElementById(newEditorId.value)
-  
+
   if (!oldContainer || !newContainer) {
     console.warn('Monaco编辑器容器未找到')
     return
@@ -543,9 +609,9 @@ const initMonacoEditors = async () => {
 
   // 从全局获取编辑器实例
   const editors = monaco.editor.getEditors()
-  const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-  const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-  
+  const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+  const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
   if (oldEditor) {
     oldEditor.dispose()
   }
@@ -612,10 +678,10 @@ const initMonacoEditors = async () => {
 
 const highlightEdits = () => {
   if (!oldMonacoEditor || !newMonacoEditor || !resultData.value) return
-  
+
   const oldDecorations: monaco.editor.IModelDeltaDecoration[] = []
   const newDecorations: monaco.editor.IModelDeltaDecoration[] = []
-  
+
   for (const op of resultData.value.operations) {
     if (op.type === 'delete' || op.type === 'replace') {
       // 在旧编辑器中高亮删除的部分
@@ -637,7 +703,7 @@ const highlightEdits = () => {
         }
       })
     }
-    
+
     if (op.type === 'insert' || op.type === 'replace') {
       // 在新编辑器中高亮插入的部分
       // 需要计算插入后的位置（简化处理）
@@ -660,7 +726,7 @@ const highlightEdits = () => {
       })
     }
   }
-  
+
   oldMonacoEditor.deltaDecorations([], oldDecorations)
   newMonacoEditor.deltaDecorations([], newDecorations)
 }
@@ -695,12 +761,15 @@ watch([() => resultData.value, oldContent, newContent], async () => {
 })
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, () => {
-  if (viewMode.value === 'split') {
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    monaco.editor.setTheme(theme)
+watch(
+  () => themeState.currentTheme.type,
+  () => {
+    if (viewMode.value === 'split') {
+      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+      monaco.editor.setTheme(theme)
+    }
   }
-})
+)
 
 onMounted(async () => {
   if (viewMode.value === 'split' && resultData.value) {
@@ -1106,4 +1175,3 @@ const lineNumberStyle = computed(() => ({
   background-color: rgba(103, 194, 58, 0.1) !important;
 }
 </style>
-

@@ -9,7 +9,12 @@ import type { LocalizedText } from './agent-tool'
 /**
  * 实体类型标识符（用于序列化/反序列化时识别实体类型）
  */
-export type EntityType = 'workflow' | 'tool-collection' | 'agent-config' | 'agent-session' | 'agent-engine'
+export type EntityType =
+  | 'workflow'
+  | 'tool-collection'
+  | 'agent-config'
+  | 'agent-session'
+  | 'agent-engine'
 
 /**
  * 工件（Artifact）类型
@@ -347,7 +352,14 @@ export interface QueuedMessage {
 /**
  * Agent会话状态
  */
-export type AgentSessionStatus = 'idle' | 'thinking' | 'generating' | 'tool-calling' | 'workflow-executing' | 'waiting-input' | 'error'
+export type AgentSessionStatus =
+  | 'idle'
+  | 'thinking'
+  | 'generating'
+  | 'tool-calling'
+  | 'workflow-executing'
+  | 'waiting-input'
+  | 'error'
 
 /**
  * Agent会话执行节点（用于重试和Duplicate）
@@ -511,7 +523,7 @@ export interface CustomLlmConfig {
 /**
  * 引擎拦截器类型
  */
-export type InterceptorType = 
+export type InterceptorType =
   | 'input-sanitization'
   | 'security-review'
   | 'token-control'
@@ -522,7 +534,7 @@ export type InterceptorType =
 /**
  * 拦截器阶段
  */
-export type InterceptorStage = 
+export type InterceptorStage =
   | 'beforeLLMCall'
   | 'afterLLMCall'
   | 'beforeToolCall'
@@ -595,4 +607,3 @@ export interface AgentEngine {
   /** 是否为内置引擎（不可删除） */
   isBuiltIn?: boolean
 }
-

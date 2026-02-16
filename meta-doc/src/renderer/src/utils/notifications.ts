@@ -78,14 +78,14 @@ export function markAllNotificationsRead(): void {
 }
 
 export function markNotificationRead(id: string): void {
-  notifications.value = notifications.value.map((item) => (
+  notifications.value = notifications.value.map((item) =>
     item.id === id
       ? {
           ...item,
           read: true
         }
       : item
-  ))
+  )
 }
 
 export function removeNotification(id: string): void {
@@ -133,13 +133,21 @@ function registerEventListeners(): void {
   eventBus.on('save-success', (payload) => {
     const t = getTranslator()
     const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
-    pushNotification(t('main.notification.save.title'), t('main.notification.save.message', { name }), 'success')
+    pushNotification(
+      t('main.notification.save.title'),
+      t('main.notification.save.message', { name }),
+      'success'
+    )
   })
 
   eventBus.on('open-doc-success', (payload) => {
     const t = getTranslator()
     const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
-    pushNotification(t('main.notification.open.title'), t('main.notification.open.message', { name }), 'success')
+    pushNotification(
+      t('main.notification.open.title'),
+      t('main.notification.open.message', { name }),
+      'success'
+    )
   })
 
   eventBus.on('export-success', (payload) => {
@@ -147,7 +155,10 @@ function registerEventListeners(): void {
     const outputPath =
       typeof payload === 'string'
         ? payload
-        : typeof payload === 'object' && payload !== null && 'path' in payload && typeof (payload as { path?: unknown }).path === 'string'
+        : typeof payload === 'object' &&
+            payload !== null &&
+            'path' in payload &&
+            typeof (payload as { path?: unknown }).path === 'string'
           ? (payload as { path: string }).path
           : ''
 
@@ -168,7 +179,10 @@ function registerEventListeners(): void {
     const message =
       typeof payload === 'string'
         ? payload
-        : typeof payload === 'object' && payload !== null && 'message' in payload && typeof (payload as { message?: unknown }).message === 'string'
+        : typeof payload === 'object' &&
+            payload !== null &&
+            'message' in payload &&
+            typeof (payload as { message?: unknown }).message === 'string'
           ? (payload as { message: string }).message
           : ''
     pushNotification(t('main.notification.success.title'), message, 'success')
@@ -179,7 +193,10 @@ function registerEventListeners(): void {
     const message =
       typeof payload === 'string'
         ? payload
-        : typeof payload === 'object' && payload !== null && 'message' in payload && typeof (payload as { message?: unknown }).message === 'string'
+        : typeof payload === 'object' &&
+            payload !== null &&
+            'message' in payload &&
+            typeof (payload as { message?: unknown }).message === 'string'
           ? (payload as { message: string }).message
           : ''
     pushNotification(t('main.notification.info.title'), message, 'info')
@@ -190,7 +207,10 @@ function registerEventListeners(): void {
     const message =
       typeof payload === 'string'
         ? payload
-        : typeof payload === 'object' && payload !== null && 'message' in payload && typeof (payload as { message?: unknown }).message === 'string'
+        : typeof payload === 'object' &&
+            payload !== null &&
+            'message' in payload &&
+            typeof (payload as { message?: unknown }).message === 'string'
           ? (payload as { message: string }).message
           : ''
     pushNotification(t('main.notification.warning.title'), message, 'warning')
@@ -201,7 +221,10 @@ function registerEventListeners(): void {
     const message =
       typeof payload === 'string'
         ? payload
-        : typeof payload === 'object' && payload !== null && 'message' in payload && typeof (payload as { message?: unknown }).message === 'string'
+        : typeof payload === 'object' &&
+            payload !== null &&
+            'message' in payload &&
+            typeof (payload as { message?: unknown }).message === 'string'
           ? (payload as { message: string }).message
           : ''
     pushNotification(t('main.notification.error.title'), message, 'error')
@@ -212,4 +235,3 @@ export function initializeNotificationListeners(translator: Translator): void {
   activeTranslator = translator
   registerEventListeners()
 }
-

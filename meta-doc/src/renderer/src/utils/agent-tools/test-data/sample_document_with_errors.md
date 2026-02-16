@@ -34,7 +34,7 @@
 
 ```javascript
 function hello() {
-  console.log("Hello, World!");  // 这里有一个拼写错误：consol（应该是console）
+  console.log('Hello, World!') // 这里有一个拼写错误：consol（应该是console）
 }
 ```
 
@@ -46,8 +46,8 @@ function hello() {
 
 ## 表格示例
 
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
+| 列1   | 列2   | 列3   |
+| ----- | ----- | ----- |
 | 数据1 | 数据2 | 数据3 |
 | 数据4 | 数据5 | 数据6 |
 
@@ -70,4 +70,3 @@ function hello() {
 ![示例图片](https://example.com/image.png)
 
 这里有一个语法错误：The dog wagged it's tail.（应该是its tail）
-

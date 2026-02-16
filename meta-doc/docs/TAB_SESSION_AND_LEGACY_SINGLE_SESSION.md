@@ -12,7 +12,7 @@
   从「最近文档」或「打开文档」打开文件时，未初始化的「新文档」Tab 的标题会被错误地改成刚打开的文件名（如 `aaa.md`）。原因有两处：
   1. **替换逻辑（已删）**：`Main.vue` 原先会「替换」当前空 Tab，导致该 Tab 被写成打开的文件；已改为**始终在新 Tab 中打开文件**，不再替换。
   2. **`update-current-path` 竞态**：主进程在 `openDoc()` 里会连续发送 `open-doc-success` 和 `update-current-path`。若渲染端先处理 `update-current-path`，此时新 Tab 尚未由 `workspace-open-document` 创建，`getDocument()` 拿到的是当前（未初始化）Tab，旧逻辑会往该 Tab 写入 path 并 `markDocumentSaved`，从而把标题改成文件名。  
-  **修复**：在 `event-bus.js` 的 `update-current-path` 处理中，**仅当已有某个 Tab 正在使用该 path 时才做同步**；若尚无任何 Tab 使用该 path，直接 return，不更新当前 Tab，由 `workspace-open-document` 负责创建新 Tab 并设置 path。
+     **修复**：在 `event-bus.js` 的 `update-current-path` 处理中，**仅当已有某个 Tab 正在使用该 path 时才做同步**；若尚无任何 Tab 使用该 path，直接 return，不更新当前 Tab，由 `workspace-open-document` 负责创建新 Tab 并设置 path。
 
 ---
 

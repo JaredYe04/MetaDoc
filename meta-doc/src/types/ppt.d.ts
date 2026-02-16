@@ -14,7 +14,7 @@ declare module 'ppt' {
      * @param opts 选项
      * @returns 解析后的演示文稿对象
      */
-    readFile(filename: string, opts?: any): Presentation;
+    readFile(filename: string, opts?: any): Presentation
 
     /**
      * 解析PPT CFB对象
@@ -22,7 +22,7 @@ declare module 'ppt' {
      * @param opts 选项
      * @returns 解析后的演示文稿对象
      */
-    parse_pptcfb(cfb: any, opts?: any): Presentation;
+    parse_pptcfb(cfb: any, opts?: any): Presentation
 
     /**
      * 工具函数
@@ -33,8 +33,8 @@ declare module 'ppt' {
        * @param pres 演示文稿对象
        * @returns 文本数组
        */
-      to_text(pres: Presentation): string[];
-    };
+      to_text(pres: Presentation): string[]
+    }
   }
 
   /**
@@ -44,17 +44,17 @@ declare module 'ppt' {
     /**
      * 文档数组
      */
-    docs?: Document[];
+    docs?: Document[]
 
     /**
      * 幻灯片数组
      */
-    slides?: Slide[];
+    slides?: Slide[]
 
     /**
      * 其他可能的属性
      */
-    [key: string]: any;
+    [key: string]: any
   }
 
   /**
@@ -64,12 +64,12 @@ declare module 'ppt' {
     /**
      * 幻灯片列表
      */
-    slideList?: Slide[];
+    slideList?: Slide[]
 
     /**
      * 其他可能的属性
      */
-    [key: string]: any;
+    [key: string]: any
   }
 
   /**
@@ -79,7 +79,7 @@ declare module 'ppt' {
     /**
      * 文本内容
      */
-    text?: string;
+    text?: string
 
     /**
      * 绘图组形状
@@ -87,18 +87,17 @@ declare module 'ppt' {
     drawing?: {
       groupShape?: Array<{
         clientTextbox?: {
-          t?: string;
-        };
-      }>;
-    };
+          t?: string
+        }
+      }>
+    }
 
     /**
      * 其他可能的属性
      */
-    [key: string]: any;
+    [key: string]: any
   }
 
-  const PPT: PPT;
-  export = PPT;
+  const PPT: PPT
+  export = PPT
 }
-

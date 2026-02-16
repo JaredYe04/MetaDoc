@@ -67,24 +67,28 @@ export const SUPPORTED_FILE_EXTENSIONS = new Set<string>([
   '.vim',
   '.diff',
   '.patch',
-  '.log',
-]);
+  '.log'
+])
 
 /**
  * 根据文件扩展名判断是否支持该格式
  */
 export function isSupportedFormat(extension: string): boolean {
-  const normalizedExt = extension.startsWith('.') ? extension.toLowerCase() : `.${extension.toLowerCase()}`;
-  return SUPPORTED_FILE_EXTENSIONS.has(normalizedExt);
+  const normalizedExt = extension.startsWith('.')
+    ? extension.toLowerCase()
+    : `.${extension.toLowerCase()}`
+  return SUPPORTED_FILE_EXTENSIONS.has(normalizedExt)
 }
 
 /**
  * 判断是否为纯文本格式（不需要处理元信息）
  */
 export function isPlainTextFormat(extension: string): boolean {
-  const normalizedExt = extension.startsWith('.') ? extension.toLowerCase() : `.${extension.toLowerCase()}`;
+  const normalizedExt = extension.startsWith('.')
+    ? extension.toLowerCase()
+    : `.${extension.toLowerCase()}`
   // 除了 .md 和 .tex 之外的所有格式都是纯文本格式
-  return normalizedExt !== '.md' && normalizedExt !== '.markdown' && normalizedExt !== '.tex';
+  return normalizedExt !== '.md' && normalizedExt !== '.markdown' && normalizedExt !== '.tex'
 }
 
 /**
@@ -92,25 +96,24 @@ export function isPlainTextFormat(extension: string): boolean {
  * 注意：这个方法应该与渲染进程的 formatRegistry.detectFormat 保持一致
  */
 export function detectFileFormatFromPath(filePath: string): string {
-  const path = require('path');
-  const ext = path.extname(filePath).toLowerCase();
-  
+  const path = require('path')
+  const ext = path.extname(filePath).toLowerCase()
+
   // LaTeX 格式
   if (ext === '.tex') {
-    return 'tex';
+    return 'tex'
   }
-  
+
   // Markdown 格式
   if (ext === '.md' || ext === '.markdown') {
-    return 'md';
+    return 'md'
   }
-  
+
   // 其他支持的格式都当作纯文本处理（包括 .txt, .json 等）
   if (isSupportedFormat(ext)) {
-    return 'txt';
+    return 'txt'
   }
-  
-  // 默认当作 markdown（向后兼容，但应该尽量避免这种情况）
-  return 'md';
-}
 
+  // 默认当作 markdown（向后兼容，但应该尽量避免这种情况）
+  return 'md'
+}

@@ -616,9 +616,7 @@ const executeEditorCommand = (command: string) => {
     editorRoot.querySelector('.vditor-sv') ||
     editorRoot
 
-  if (!editableElement) return
-
-  // 确保元素获得焦点
+  if (!editableElement) return // 确保元素获得焦点
   ;(editableElement as HTMLElement).focus()
 
   // 使用 document.execCommand，Vditor 会自动处理这些命令

@@ -222,14 +222,14 @@ importers:
         specifier: ^13.5.6
         version: 13.5.6
       node-latex-compiler:
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.3
+        version: 1.0.3
       node-pdf-to-markdown:
         specifier: ^1.2.5
         version: 1.2.5(encoding@0.1.13)
       node-plantuml-2:
-        specifier: ^1.0.3
-        version: 1.1.0
+        specifier: ^1.1.8
+        version: 1.1.8
       office-to-pdf:
         specifier: ^4.0.0
         version: 4.0.0
@@ -2021,23 +2021,23 @@ packages:
     resolution: {integrity: sha512-/p08f93LEbsL5mDZFQ3DBxcPv/I4QG9EDYRRq1WNlCOXVfAHBTHMSVMwxlqG/AtnSfUr9+vgfN7MKiyDo0+Weg==}
     engines: {node: '>= 10'}
 
-  '@node-latex-compiler/bin-darwin-arm64@1.0.1':
-    resolution: {integrity: sha512-B+Ss4qzTGJKVXiIuRsmUH7isRQc2YlzWSRNhQWAF6Vf5ovkpN9LU9iZ9CDi/1WYwMWE6K/hxAl9nUPX8SEhhOQ==}
+  '@node-latex-compiler/bin-darwin-arm64@1.0.3':
+    resolution: {integrity: sha512-gaEFlAHfEZm0KnywdpH6udSJiA78Ei0FYjEDAKw53akqgwSOGvnViIlFRJq2obw72dfMTCbGOIwnkCy/AZfS8Q==}
     cpu: [arm64]
     os: [darwin]
 
-  '@node-latex-compiler/bin-darwin-x64@1.0.1':
-    resolution: {integrity: sha512-IHOf7HCaJutAfImb0WWD4TjU+7LV0k87ffob2wFbPpnsBTeex9BH9UsjmOvjqIFo0nBoUFZD0o9ImRFSz5C3tQ==}
+  '@node-latex-compiler/bin-darwin-x64@1.0.3':
+    resolution: {integrity: sha512-wtAyfZod1rOjLXP0Gq3HyYxj8v1KpVTl17u0rffm+TmWXURjgBGACmg8ud6VRPfWr5htVkbq25zRSiWmnGihnQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@node-latex-compiler/bin-linux-x64@1.0.1':
-    resolution: {integrity: sha512-f6BVIhQjzqEPKoG5b/lBo1LmfAOkEV6156YTUDhZajWHK5L1bej6JpobsemuO9caarcSuUSMJ6XsXHzzQQtzsQ==}
+  '@node-latex-compiler/bin-linux-x64@1.0.3':
+    resolution: {integrity: sha512-HcVXTb+g01jhf1vqJnbETzOtWeb7z5YC3XYpmkmXbxrPBrjDBqqqz3IYMbyuMYTIimjIwxO8BDG51jAXlX9vvQ==}
     cpu: [x64]
     os: [linux]
 
-  '@node-latex-compiler/bin-win32-x64@1.0.1':
-    resolution: {integrity: sha512-z2Gytc21Ov2RWKe8II3otFb6Si3ZKmT8wUEPF6kTqs71j4G53iEPmjWipbtN8L3fxp1/0Y0sncAcRS/qSQD3oQ==}
+  '@node-latex-compiler/bin-win32-x64@1.0.3':
+    resolution: {integrity: sha512-x9ZIAxiRA6N6I2aXzdxjND8DK+Qdvl0sH+Rj/U/Tj74vSpa6bJi2aUy+CbJZZpLNr+kI8HXaOR7P2VxPkpmVew==}
     cpu: [x64]
     os: [win32]
 
@@ -2125,38 +2125,38 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@node-plantuml-2/graphviz-darwin-arm64@1.1.0':
-    resolution: {integrity: sha512-yiMU49wB/UWruLVZEDCEXBNY4QFkhEL7EJ+KRxojX+cBJlPGxiVLHftilG+1OKhHlqmB3cwJqZgrhoqLQItOEg==, tarball: https://registry.npmjs.org/@node-plantuml-2/graphviz-darwin-arm64/-/graphviz-darwin-arm64-1.1.0.tgz}
+  '@node-plantuml-2/graphviz-darwin-arm64@1.1.8':
+    resolution: {integrity: sha512-p5199r4GTNQW7P8RqhIDUlRi1SyYAsdRSaF23w19ZRGpwhwx3uvpzD14+Hp2SF4TZa5I69SLTx70uLuVO6hJqA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@node-plantuml-2/graphviz-darwin-x64@1.1.1':
-    resolution: {integrity: sha512-NiNIex0X2vkFRCFjjHH2BpzLvgvdS9og8+Ib60dTopha0SJdkTdsfqpOX/l2p3wsp7NEu4S/gt2IDISpJbki+g==, tarball: https://registry.npmjs.org/@node-plantuml-2/graphviz-darwin-x64/-/graphviz-darwin-x64-1.1.1.tgz}
+  '@node-plantuml-2/graphviz-darwin-x64@1.1.8':
+    resolution: {integrity: sha512-nmvo6gfWgWT24itT5AM75P5gf/C0Z6yDN4BPPbU0JdS2lruTYASAAEthW60TEett3XC/tYgxgTHCRpPO9hh7MQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@node-plantuml-2/graphviz-linux-x64@1.1.1':
-    resolution: {integrity: sha512-k0ZiHVtb61tMPuDOuQCVtk+VGUJxYB1BFuc3T62REAuMzYZlQoqr9gGb7r6pMptZ/FDG43oOWmJAbUiXgAaPwA==}
+  '@node-plantuml-2/graphviz-linux-x64@1.1.8':
+    resolution: {integrity: sha512-18/qdBMQsaQDoBUk42GRCwegOgNCPffs5tjyGVJvEORGGbChhLQfyvS7kJwzh3JPux3a30sojAwo3WLOqeXC/A==}
     cpu: [x64]
     os: [linux]
 
-  '@node-plantuml-2/graphviz-win32-x64@1.1.1':
-    resolution: {integrity: sha512-tdcpFRjwjdsb5SvoILL6CWbWK0rwomZyShnQ0aE3vFmpDoCE1tiu2qu5qhatqEPEFKCvQP6jaMeN8k3gyPJKCQ==}
+  '@node-plantuml-2/graphviz-win32-x64@1.1.8':
+    resolution: {integrity: sha512-XUH2oZ6qJ9WCcTf5MtAeS4JfT6X9FahiR4GdOPR9csPgPT6YDRlK0AOdJIukbWjDnn65jgmhg2yeDpzeeweFRQ==}
     cpu: [x64]
     os: [win32]
 
-  '@node-plantuml-2/jre-darwin-arm64@1.1.1':
-    resolution: {integrity: sha512-o2GFk//BTJuAnubLxbCMbFFA8tTh0PvMT1OGcCL+9mLfX7/P+VCorc0A3MH42EvypJ16+p0DS537SzOVCuswIw==}
+  '@node-plantuml-2/jre-darwin-arm64@1.1.8':
+    resolution: {integrity: sha512-3YCcVN90kRYVmmg3SUwAIn99oDw6YmaIPtcvaZ93MjzdI9wpIWASLZ7sjFyJs3KfT5WRYBgxBiKktJXW61/5OA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@node-plantuml-2/jre-linux-x64@1.1.1':
-    resolution: {integrity: sha512-uoEhyx59vFutotoutt800XZuHv4sa+L+sqT5SBeukvsfMQCzQGvwczvjZPU8XUWbBbckkzV9972grtMO9wkbJQ==}
+  '@node-plantuml-2/jre-linux-x64@1.1.8':
+    resolution: {integrity: sha512-QVR+yjgb4Wr0iPviSSapIvS8kuSF5G9Dyd5hp2Y+sJ4gC2eJHMOGykh95vJQumaDMTeZmMah1wiwCv9lAB9NZw==}
     cpu: [x64]
     os: [linux]
 
-  '@node-plantuml-2/jre-win32-x64@1.1.1':
-    resolution: {integrity: sha512-+tJ/voD+MgbJFumqwZq7kIat6qywloIaJwT8tTvCowfrcTzivqe9zZn5BezXAinm/e82PdjUhggYIoNKktcdVA==}
+  '@node-plantuml-2/jre-win32-x64@1.1.8':
+    resolution: {integrity: sha512-tMY4zs+KhMlXVIPVFOqE1GOscDgJPFcjOClvL5XewB+sdLGakkjUxuHt8YjVW8TjCUi+AbQlE7neaXtNoYS8hA==}
     cpu: [x64]
     os: [win32]
 
@@ -3820,6 +3820,10 @@ packages:
 
   commander@14.0.2:
     resolution: {integrity: sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==}
+    engines: {node: '>=20'}
+
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
 
   commander@2.20.3:
@@ -6862,8 +6866,8 @@ packages:
   node-html-parser@5.4.2:
     resolution: {integrity: sha512-RaBPP3+51hPne/OolXxcz89iYvQvKOydaqoePpOgXcrOKZhjVIzmpKZz+Hd/RBO2/zN2q6CNJhQzucVz+u3Jyw==}
 
-  node-latex-compiler@1.0.1:
-    resolution: {integrity: sha512-I3rv7l+QDtvhA37sU9n0AmYy/VSQ8NO94pVtBWX+lyIQW2g61RCsUY7IlaoSTuEL0lUg4zds6XulGc0FxH2z2A==}
+  node-latex-compiler@1.0.3:
+    resolution: {integrity: sha512-B8mQy2lNB7wefCFR+agseYXkbsC1WgOpW5kwM0KAi4D9keBRVS+axfwHqEmbonMOHtmI0CyAqQAlXQZE2OJMyA==}
     engines: {node: '>= 14.x'}
 
   node-llama-cpp@3.14.2:
@@ -6887,8 +6891,8 @@ packages:
   node-pdf-to-markdown@1.2.5:
     resolution: {integrity: sha512-RPfRuC8MwJKQz7V9GlvyHrdlx0ssucvWEUHqEmFnMybGDl+u+iIxJKwrwRQnHT06s7yE2mh7GZF2QKq3d03EYg==}
 
-  node-plantuml-2@1.1.0:
-    resolution: {integrity: sha512-vPDTykTaHAbmXdXHlcqjXO3T/t6WO2+Bg1pjmOTvcm9TqwyzEhaNlq9R8iYvV4WYST/yQ0O30NSjnHTihV/4ow==}
+  node-plantuml-2@1.1.8:
+    resolution: {integrity: sha512-MIeD6C8OmVN7ytaOy3edxyYno9UwONXzJv3NMJ6F5El1wPVmgyowyYqPNUC+yX1opz9wB6gt/4DRymdpoBOOhg==}
     engines: {node: '>= 12.x'}
     hasBin: true
 
@@ -11363,16 +11367,16 @@ snapshots:
       '@napi-rs/canvas-win32-x64-msvc': 0.1.88
     optional: true
 
-  '@node-latex-compiler/bin-darwin-arm64@1.0.1':
+  '@node-latex-compiler/bin-darwin-arm64@1.0.3':
     optional: true
 
-  '@node-latex-compiler/bin-darwin-x64@1.0.1':
+  '@node-latex-compiler/bin-darwin-x64@1.0.3':
     optional: true
 
-  '@node-latex-compiler/bin-linux-x64@1.0.1':
+  '@node-latex-compiler/bin-linux-x64@1.0.3':
     optional: true
 
-  '@node-latex-compiler/bin-win32-x64@1.0.1':
+  '@node-latex-compiler/bin-win32-x64@1.0.3':
     optional: true
 
   '@node-llama-cpp/linux-arm64@3.14.2':
@@ -11414,25 +11418,25 @@ snapshots:
   '@node-llama-cpp/win-x64@3.14.2':
     optional: true
 
-  '@node-plantuml-2/graphviz-darwin-arm64@1.1.0':
+  '@node-plantuml-2/graphviz-darwin-arm64@1.1.8':
     optional: true
 
-  '@node-plantuml-2/graphviz-darwin-x64@1.1.1':
+  '@node-plantuml-2/graphviz-darwin-x64@1.1.8':
     optional: true
 
-  '@node-plantuml-2/graphviz-linux-x64@1.1.1':
+  '@node-plantuml-2/graphviz-linux-x64@1.1.8':
     optional: true
 
-  '@node-plantuml-2/graphviz-win32-x64@1.1.1':
+  '@node-plantuml-2/graphviz-win32-x64@1.1.8':
     optional: true
 
-  '@node-plantuml-2/jre-darwin-arm64@1.1.1':
+  '@node-plantuml-2/jre-darwin-arm64@1.1.8':
     optional: true
 
-  '@node-plantuml-2/jre-linux-x64@1.1.1':
+  '@node-plantuml-2/jre-linux-x64@1.1.8':
     optional: true
 
-  '@node-plantuml-2/jre-win32-x64@1.1.1':
+  '@node-plantuml-2/jre-win32-x64@1.1.8':
     optional: true
 
   '@nodelib/fs.scandir@2.1.5':
@@ -13150,7 +13154,7 @@ snapshots:
 
   codepage@1.3.8:
     dependencies:
-      commander: 14.0.2
+      commander: 14.0.3
       concat-stream: 2.0.0
       voc: 1.2.0
 
@@ -13181,6 +13185,8 @@ snapshots:
   commander@12.1.0: {}
 
   commander@14.0.2: {}
+
+  commander@14.0.3: {}
 
   commander@2.20.3: {}
 
@@ -16807,12 +16813,12 @@ snapshots:
       css-select: 4.3.0
       he: 1.2.0
 
-  node-latex-compiler@1.0.1:
+  node-latex-compiler@1.0.3:
     optionalDependencies:
-      '@node-latex-compiler/bin-darwin-arm64': 1.0.1
-      '@node-latex-compiler/bin-darwin-x64': 1.0.1
-      '@node-latex-compiler/bin-linux-x64': 1.0.1
-      '@node-latex-compiler/bin-win32-x64': 1.0.1
+      '@node-latex-compiler/bin-darwin-arm64': 1.0.3
+      '@node-latex-compiler/bin-darwin-x64': 1.0.3
+      '@node-latex-compiler/bin-linux-x64': 1.0.3
+      '@node-latex-compiler/bin-win32-x64': 1.0.3
 
   node-llama-cpp@3.14.2(typescript@5.9.3):
     dependencies:
@@ -16879,20 +16885,20 @@ snapshots:
       - encoding
       - supports-color
 
-  node-plantuml-2@1.1.0:
+  node-plantuml-2@1.1.8:
     dependencies:
       commander: 2.20.3
       node-nailgun-client: 0.1.2
       node-nailgun-server: 0.1.4
       plantuml-encoder: 1.4.0
     optionalDependencies:
-      '@node-plantuml-2/graphviz-darwin-arm64': 1.1.0
-      '@node-plantuml-2/graphviz-darwin-x64': 1.1.1
-      '@node-plantuml-2/graphviz-linux-x64': 1.1.1
-      '@node-plantuml-2/graphviz-win32-x64': 1.1.1
-      '@node-plantuml-2/jre-darwin-arm64': 1.1.1
-      '@node-plantuml-2/jre-linux-x64': 1.1.1
-      '@node-plantuml-2/jre-win32-x64': 1.1.1
+      '@node-plantuml-2/graphviz-darwin-arm64': 1.1.8
+      '@node-plantuml-2/graphviz-darwin-x64': 1.1.8
+      '@node-plantuml-2/graphviz-linux-x64': 1.1.8
+      '@node-plantuml-2/graphviz-win32-x64': 1.1.8
+      '@node-plantuml-2/jre-darwin-arm64': 1.1.8
+      '@node-plantuml-2/jre-linux-x64': 1.1.8
+      '@node-plantuml-2/jre-win32-x64': 1.1.8
 
   node-releases@2.0.27: {}
 

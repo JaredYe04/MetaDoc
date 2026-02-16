@@ -290,12 +290,10 @@ const chartFormat = targetFormat === 'docx' ? 'bitmap' : 'svg'
 ### 渲染进程
 
 1. **导出管理器**：`meta-doc/src/renderer/src/services/export-manager.ts`
-
    - 行 244：决定图表格式（`chartFormat`）
    - 行 248：调用 `preRenderAllCharts`
 
 2. **图表预渲染器**：`meta-doc/src/renderer/src/utils/chart-pre-renderer.js`
-
    - 行 1010-1197：`preRenderAllCharts` 函数
    - 行 1105：决定目标格式（`targetFormat`）
    - 行 1127-1138：PlantUML 渲染逻辑
@@ -306,7 +304,6 @@ const chartFormat = targetFormat === 'docx' ? 'bitmap' : 'svg'
 ### 主进程
 
 1. **导出管理器**：`meta-doc/src/main/export/export-manager.ts`
-
    - 行 1599-2009：`convertMarkdownToDocxBuffer` 函数
    - 行 715-842：`processCodeBlocksForWord` 函数
    - 行 2576-2661：PDF 导出处理
@@ -321,12 +318,10 @@ const chartFormat = targetFormat === 'docx' ? 'bitmap' : 'svg'
 ## 验证步骤
 
 1. **检查预渲染结果**：
-
    - 在 `preRenderAllCharts` 中添加日志，确认 PlantUML 被正确替换为图片链接
    - 检查图片 URL 格式（SVG vs PNG）
 
 2. **检查 HTML 内容**：
-
    - 在 `convertMarkdownToDocxBuffer` 中打印 HTML，确认图片标签正确
    - 检查是否有残留的代码块标签
 

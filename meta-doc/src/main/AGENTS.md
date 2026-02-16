@@ -40,15 +40,15 @@ main/
 
 ## WHERE TO LOOK
 
-| Task                   | File                                   | Notes                                                                 |
-| ---------------------- | -------------------------------------- | --------------------------------------------------------------------- |
-| Add new IPC handler    | `main-calls.ts`                        | Add `ipcMain.handle('channel', ...)` — but discuss extraction first   |
-| Create new window type | `window-manager.ts`                    | Follow `openAuxiliaryWindow` pattern                                  |
-| Tab drag between windows | `drag-manager.ts`                    | 跨窗口拖拽标签页时的主进程协调，含窗口定位与拖拽事件转发               |
-| File-window tracking   | `file-registry.ts`                     | 跟踪文件在哪个窗口打开，防止重复打开                                   |
-| Add database table     | `database/schemas.ts` → `migration.ts` | Add migration in `resources/migrations/` too                          |
-| Add new service        | `utils/`                               | Singleton pattern, export from `utils/index.ts`                       |
-| Modify export pipeline | `export/export-manager.ts`             | Server-side orchestration; renderer adapters handle format conversion |
+| Task                     | File                                   | Notes                                                                 |
+| ------------------------ | -------------------------------------- | --------------------------------------------------------------------- |
+| Add new IPC handler      | `main-calls.ts`                        | Add `ipcMain.handle('channel', ...)` — but discuss extraction first   |
+| Create new window type   | `window-manager.ts`                    | Follow `openAuxiliaryWindow` pattern                                  |
+| Tab drag between windows | `drag-manager.ts`                      | 跨窗口拖拽标签页时的主进程协调，含窗口定位与拖拽事件转发              |
+| File-window tracking     | `file-registry.ts`                     | 跟踪文件在哪个窗口打开，防止重复打开                                  |
+| Add database table       | `database/schemas.ts` → `migration.ts` | Add migration in `resources/migrations/` too                          |
+| Add new service          | `utils/`                               | Singleton pattern, export from `utils/index.ts`                       |
+| Modify export pipeline   | `export/export-manager.ts`             | Server-side orchestration; renderer adapters handle format conversion |
 
 ## CONVENTIONS
 

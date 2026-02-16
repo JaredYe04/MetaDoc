@@ -14,14 +14,12 @@ MetaDoc 的发布流程使用了两个仓库：
 ### 当前工作流程
 
 1. **在 MetaDoc 仓库中**：
-
    - 运行 `npm run release:prod` 或 `npm run release:dev`
    - 构建并打包应用
    - 创建标签（`vX.Y.Z` 或 `dev-X.Y.Z`）并推送到 MetaDoc 仓库
    - 标签推送触发 GitHub Actions 工作流
 
 2. **GitHub Actions 自动执行**（在 MetaDoc 仓库中）：
-
    - 检出 MetaDoc 仓库的代码
    - 构建并打包应用
    - **发布到 MetaDoc-Releases 仓库**（使用 `softprops/action-gh-release@v1`）
@@ -38,7 +36,6 @@ MetaDoc 的发布流程使用了两个仓库：
 如果还没有创建 `MetaDoc-Releases` 仓库，需要：
 
 1. 在 GitHub 上创建新仓库：
-
    - 仓库名：`MetaDoc-Releases`
    - 所有者：与 MetaDoc 仓库相同（例如：`JaredYe04`）
    - **推荐设置为公开仓库**（这样应用程序不需要 Token 就能检查更新）
@@ -54,7 +51,6 @@ MetaDoc 的发布流程使用了两个仓库：
 确保 GitHub Secrets 中的 `GH_TOKEN` 有权限发布到 `MetaDoc-Releases` 仓库：
 
 1. 创建 Personal Access Token (PAT)：
-
    - 访问：GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
    - 点击 "Generate new token (classic)"
    - 权限设置：
@@ -63,7 +59,6 @@ MetaDoc 的发布流程使用了两个仓库：
        - ✅ `public_repo`（如果仓库是公开的）
 
 2. 在 MetaDoc 仓库配置 Secret：
-
    - 访问：MetaDoc 仓库 → Settings → Secrets and variables → Actions
    - 添加或更新 Secret：
      - Name: `GH_TOKEN`
@@ -109,7 +104,6 @@ UPDATE_GITHUB_REPO=MetaDoc-Releases
    ```
 
 2. 查看 GitHub Actions：
-
    - 访问：MetaDoc 仓库 → Actions 标签
    - 查看工作流执行状态
    - 如果失败，检查错误信息
@@ -161,17 +155,14 @@ UPDATE_GITHUB_REPO=MetaDoc-Releases
 **你需要做的操作：**
 
 1. ✅ 创建 `MetaDoc-Releases` 仓库（如果还没有）
-
    - 设置为公开仓库（推荐）
    - 不需要初始化文件
 
 2. ✅ 配置 GitHub Secrets
-
    - 在 MetaDoc 仓库中配置 `GH_TOKEN`
    - Token 需要有 `repo` 权限
 
 3. ✅ 验证配置
-
    - 检查 `.env` 文件配置
    - 检查工作流配置
 

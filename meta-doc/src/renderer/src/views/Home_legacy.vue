@@ -166,8 +166,7 @@
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
                   <el-button circle type="success" @click="allSet"
-                    ><el-icon>
-                      <Check /> </el-icon
+                    ><el-icon> <Check /> </el-icon
                   ></el-button>
                 </el-tooltip>
               </div>
@@ -336,20 +335,17 @@
                     type="primary"
                     @click="generate"
                     :disabled="generated || generating || userPrompt.length === 0"
-                    ><el-icon>
-                      <Promotion /> </el-icon
+                    ><el-icon> <Promotion /> </el-icon
                   ></el-button>
                 </el-tooltip>
                 <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
                   <el-button circle type="info" @click="reset" v-if="generated"
-                    ><el-icon>
-                      <RefreshLeft /> </el-icon
+                    ><el-icon> <RefreshLeft /> </el-icon
                   ></el-button>
                 </el-tooltip>
                 <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
                   <el-button circle type="success" @click="accept" v-if="generated"
-                    ><el-icon>
-                      <Check /> </el-icon
+                    ><el-icon> <Check /> </el-icon
                   ></el-button>
                 </el-tooltip>
               </div>

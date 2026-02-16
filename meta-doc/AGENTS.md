@@ -41,25 +41,25 @@ meta-doc/
 
 ## WHERE TO LOOK
 
-| Task                            | Location                                       | Notes                                                  |
-| ------------------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-| IPC handlers (main↔renderer)   | `src/main/main-calls.ts`                       | 5475-line monolith; all `ipcMain.handle` registrations |
-| App lifecycle & window creation | `src/main/index.ts`                            | Entry point; GPU compat, .env loading, window pool     |
-| Window management               | `src/main/window-manager.ts`, `window-pool.ts` | Multi-window + auxiliary window system                 |
-| Tab drag between windows        | `src/main/drag-manager.ts`                     | 主进程侧跨窗口标签页拖拽协调                            |
-| File-window association         | `src/main/file-registry.ts`                    | 文件在哪个窗口打开的注册表                               |
-| Tab switcher (Ctrl+Tab)         | `src/renderer/src/composables/useTabSwitcher.ts`, `TabSwitcherOverlay.vue` | 键盘快捷切换标签页 |
-| Tab drag & drop (renderer)      | `src/renderer/src/composables/useTabDrag.ts`   | 渲染进程侧标签页拖拽逻辑                                |
-| Tab operations (close/move)     | `src/renderer/src/composables/useTabOperations.ts` | 标签页关闭、移动等操作                               |
-| AI agent orchestration          | `src/renderer/src/utils/agent-framework/`      | Engine executors (AutoGPT, ReAct, PlanExecute, etc.)   |
-| AI tool implementations         | `src/renderer/src/utils/agent-tools/`          | 20+ tools (edit, grep, chart, data-analysis, etc.)     |
-| Document model & state          | `src/renderer/src/stores/workspace.ts`         | 1847-line Pinia store; tabs, documents, workspace tree |
-| Editor integration              | `src/renderer/src/editor/`                     | Monaco + Vditor adapters behind unified interface      |
-| Export pipeline                 | `src/renderer/src/services/export-adapters/`   | Adapter pattern: md→docx/html/pdf/tex, tex→pdf         |
-| LLM API integration             | `src/renderer/src/utils/llm-adapters/`         | OpenAI, Ollama, Gemini adapters via factory            |
-| Database / knowledge base       | `src/main/database/`                           | better-sqlite3 + sqlite-vec for RAG vectors            |
-| Shared types                    | `src/types/index.ts`                           | DocumentOutlineNode, LLMConfig, AppSettings, etc.      |
-| Build & release                 | `scripts/`                                     | version-manager, release-dev/prod, copy-env, icons     |
+| Task                            | Location                                                                   | Notes                                                  |
+| ------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------ |
+| IPC handlers (main↔renderer)   | `src/main/main-calls.ts`                                                   | 5475-line monolith; all `ipcMain.handle` registrations |
+| App lifecycle & window creation | `src/main/index.ts`                                                        | Entry point; GPU compat, .env loading, window pool     |
+| Window management               | `src/main/window-manager.ts`, `window-pool.ts`                             | Multi-window + auxiliary window system                 |
+| Tab drag between windows        | `src/main/drag-manager.ts`                                                 | 主进程侧跨窗口标签页拖拽协调                           |
+| File-window association         | `src/main/file-registry.ts`                                                | 文件在哪个窗口打开的注册表                             |
+| Tab switcher (Ctrl+Tab)         | `src/renderer/src/composables/useTabSwitcher.ts`, `TabSwitcherOverlay.vue` | 键盘快捷切换标签页                                     |
+| Tab drag & drop (renderer)      | `src/renderer/src/composables/useTabDrag.ts`                               | 渲染进程侧标签页拖拽逻辑                               |
+| Tab operations (close/move)     | `src/renderer/src/composables/useTabOperations.ts`                         | 标签页关闭、移动等操作                                 |
+| AI agent orchestration          | `src/renderer/src/utils/agent-framework/`                                  | Engine executors (AutoGPT, ReAct, PlanExecute, etc.)   |
+| AI tool implementations         | `src/renderer/src/utils/agent-tools/`                                      | 20+ tools (edit, grep, chart, data-analysis, etc.)     |
+| Document model & state          | `src/renderer/src/stores/workspace.ts`                                     | 1847-line Pinia store; tabs, documents, workspace tree |
+| Editor integration              | `src/renderer/src/editor/`                                                 | Monaco + Vditor adapters behind unified interface      |
+| Export pipeline                 | `src/renderer/src/services/export-adapters/`                               | Adapter pattern: md→docx/html/pdf/tex, tex→pdf         |
+| LLM API integration             | `src/renderer/src/utils/llm-adapters/`                                     | OpenAI, Ollama, Gemini adapters via factory            |
+| Database / knowledge base       | `src/main/database/`                                                       | better-sqlite3 + sqlite-vec for RAG vectors            |
+| Shared types                    | `src/types/index.ts`                                                       | DocumentOutlineNode, LLMConfig, AppSettings, etc.      |
+| Build & release                 | `scripts/`                                                                 | version-manager, release-dev/prod, copy-env, icons     |
 
 ## CONVENTIONS
 

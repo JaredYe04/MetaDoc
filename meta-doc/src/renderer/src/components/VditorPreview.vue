@@ -1,5 +1,13 @@
 <template>
-  <div ref="containerRef" class="vditor-preview-container"></div>
+  <div class="vditor-preview-wrapper">
+    <el-skeleton
+      v-if="isRendering"
+      :rows="15"
+      animated
+      class="vditor-preview-skeleton"
+    />
+    <div v-else ref="containerRef" class="vditor-preview-container"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -19,11 +27,24 @@ const props = withDefaults(
 
 const emit = defineEmits<{ rendered: [] }>()
 const containerRef = ref<HTMLElement | null>(null)
+const isRendering = ref(false)
 
 const renderMarkdown = async () => {
-  if (!containerRef.value || !props.markdown) return
+  if (!props.markdown) {
+    isRendering.value = false
+    return
+  }
+
+  // 等待容器挂载
+  await nextTick()
+  if (!containerRef.value) {
+    isRendering.value = false
+    return
+  }
 
   try {
+    isRendering.value = true
+
     // 设置容器文字颜色
     containerRef.value.style.color = themeState.currentTheme.textColor
 
@@ -43,6 +64,8 @@ const renderMarkdown = async () => {
     if (containerRef.value) {
       containerRef.value.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
     }
+  } finally {
+    isRendering.value = false
   }
 }
 
@@ -65,9 +88,38 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.vditor-preview-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+}
+
 .vditor-preview-container {
   width: 100%;
   min-height: 100px;
   padding: 16px;
+  flex: 1;
+}
+
+.vditor-preview-skeleton {
+  flex: 1;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.vditor-preview-skeleton :deep(.el-skeleton__item) {
+  height: 20px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+}
+
+.vditor-preview-skeleton :deep(.el-skeleton__item:last-child) {
+  width: 60%;
 }
 </style>

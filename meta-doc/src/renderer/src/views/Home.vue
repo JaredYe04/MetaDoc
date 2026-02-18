@@ -52,10 +52,16 @@
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
             <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
+            <el-skeleton
+              v-if="isRendering"
+              :rows="15"
+              animated
+              class="content-preview-skeleton"
+            />
             <div
+              v-else
               ref="monacoPreviewRef"
               class="content-preview monaco-preview"
-              v-loading="isRendering"
             ></div>
           </div>
         </div>
@@ -92,12 +98,18 @@
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
             <!-- 其他格式：使用Markdown预览 -->
+            <el-skeleton
+              v-if="isRendering"
+              :rows="15"
+              animated
+              class="content-preview-skeleton"
+            />
             <div
+              v-else
               ref="previewContainerRef"
               class="content-preview"
               :class="themeState.currentTheme.mdeditorClass"
               :style="{ color: themeState.currentTheme.textColor }"
-              v-loading="isRendering"
             ></div>
           </div>
         </div>
@@ -893,6 +905,28 @@ onBeforeUnmount(() => {
   padding: 0; /* Monaco 编辑器内部有 padding */
   box-sizing: border-box;
   overflow: hidden; /* 防止内容溢出 */
+}
+
+/* Skeleton 加载样式 */
+.content-preview-skeleton {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.content-preview-skeleton :deep(.el-skeleton__item) {
+  height: 20px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+}
+
+.content-preview-skeleton :deep(.el-skeleton__item:last-child) {
+  width: 60%;
 }
 
 /* 响应式设计 */

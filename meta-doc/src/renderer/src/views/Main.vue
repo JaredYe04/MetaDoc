@@ -477,9 +477,10 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         fileName: getDisplayName(doc, '')
       })
       eventBus.emit('is-need-save', true)
-      // 文件打开成功，确认注册
+      // PDF转换为MD后，MD tab是新文档（path为空），不应该占用原PDF文件的打开状态
+      // 释放PDF路径的占用，允许用户再次打开原PDF文件
       if (resolvedPath && ipcRenderer) {
-        await ipcRenderer.invoke('confirm-file-open', resolvedPath)
+        await ipcRenderer.invoke('release-file-claim', resolvedPath)
       }
       return
     } catch (error) {
@@ -766,19 +767,50 @@ function initMainEventListeners() {
   }
   eventBus.on('open-doc-success', handleOpenDocSuccess)
 
-  // PDF 临时 tab 在 ViewMenu 切到非 Home 时：先关掉临时 tab，再按「双击」流程转 PDF→MD 并新建正式 tab
-  const handleConvertPdfPreviewTabToMd = (payload: unknown) => {
+  // PDF tab（临时或正式）在 ViewMenu 切到非 Home 时：先关掉当前 tab，再按「双击」流程转 PDF→MD 并新建正式 tab
+  const handleConvertPdfPreviewTabToMd = async (payload: unknown) => {
     const tabId =
       payload && typeof payload === 'object' && 'tabId' in payload
         ? (payload as { tabId: string }).tabId
         : ''
     if (!tabId) return
     const tab = workspaceTabs.find((t) => t.id === tabId)
-    if (!tab || tab.kind !== 'file' || !tab.preview) return
+    if (!tab || tab.kind !== 'file') return
+    
+    // 检查是否是PDF格式的tab（无论是预览模式还是正式打开）
     const path = tab.path || ensureDocument(tabId).path || ''
-    if (!path || !path.toLowerCase().endsWith('.pdf')) return
+    const format = tab.format || ensureDocument(tabId).format || ''
+    const isPdfTab = path.toLowerCase().endsWith('.pdf') && format.toLowerCase() === 'pdf'
+    
+    if (!isPdfTab) return
+    
+    // 保存路径
+    const pdfPath = path
+    
+    // 先释放文件占用（如果是预览tab），然后移除tab
+    // 注意：正式打开的PDF tab在转换时也会释放占用（见上面的修复）
+    if (tab.preview && pdfPath) {
+      try {
+        // 获取 ipcRenderer 实例
+        let ipcRenderer: any = null
+        if (window && (window as any).electron) {
+          ipcRenderer = (window as any).electron.ipcRenderer
+        } else {
+          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+          ipcRenderer = localIpcRenderer
+        }
+        if (ipcRenderer?.invoke) {
+          await ipcRenderer.invoke('release-file-claim', pdfPath)
+        }
+      } catch (error) {
+        logger.warn('释放PDF文件占用失败:', error)
+      }
+    }
+    
     removeTab(tabId)
-    eventBus.emit('workspace-open-document', { path, format: 'pdf', content: '', preview: false })
+    
+    // 按「双击」流程转 PDF→MD 并新建正式 tab
+    eventBus.emit('workspace-open-document', { path: pdfPath, format: 'pdf', content: '', preview: false })
   }
   eventBus.on('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd)
 

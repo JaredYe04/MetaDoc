@@ -11,9 +11,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview, local2fileProtocol } from '../utils/md-utils'
+import eventBus from '../utils/event-bus'
 
 const props = withDefaults(
   defineProps<{
@@ -28,13 +29,54 @@ const props = withDefaults(
 const emit = defineEmits<{ rendered: [] }>()
 const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
+let linkClickHandler: ((e: MouseEvent) => void) | null = null
+
+/**
+ * 设置链接点击事件处理器
+ * 拦截容器内所有链接的点击，如果是外部链接（http/https），则在系统浏览器中打开
+ */
+const setupLinkClickHandler = (container: HTMLElement) => {
+  // 移除之前的事件监听器（如果存在）
+  if (linkClickHandler && container) {
+    container.removeEventListener('click', linkClickHandler)
+  }
+  
+  // 创建新的事件处理器
+  linkClickHandler = (e: MouseEvent) => {
+    const target = e.target as HTMLElement
+    // 查找最近的 <a> 标签
+    const link = target.closest('a')
+    
+    if (link && link.href) {
+      const url = link.href
+      
+      // 判断是否为外部链接（http/https）
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        e.preventDefault()
+        e.stopPropagation()
+        
+        // 使用 eventBus 在系统浏览器中打开链接
+        eventBus.emit('open-link', url)
+      }
+      // 对于其他类型的链接（如锚点链接、file:// 协议等），保持默认行为
+    }
+  }
+  
+  // 添加事件监听器
+  container.addEventListener('click', linkClickHandler)
+}
 
 const renderMarkdown = async () => {
   if (!props.markdown || !props.markdown.trim()) {
     isRendering.value = false
-    // 清空容器
+    // 清空容器并移除事件监听器
     await nextTick()
     if (containerRef.value) {
+      // 移除事件监听器
+      if (linkClickHandler) {
+        containerRef.value.removeEventListener('click', linkClickHandler)
+        linkClickHandler = null
+      }
       containerRef.value.innerHTML = ''
     }
     return
@@ -83,6 +125,10 @@ const renderMarkdown = async () => {
 
     // 使用统一的 Markdown 预览渲染函数
     await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown)
+    
+    // 添加链接点击事件监听器，使外部链接在系统浏览器中打开
+    setupLinkClickHandler(containerRef.value)
+    
     emit('rendered')
   } catch (error) {
     console.error('渲染 Markdown 失败:', error)
@@ -101,6 +147,11 @@ watch(
     if (!props.markdown || !props.markdown.trim()) {
       isRendering.value = false
       if (containerRef.value) {
+        // 移除事件监听器
+        if (linkClickHandler) {
+          containerRef.value.removeEventListener('click', linkClickHandler)
+          linkClickHandler = null
+        }
         containerRef.value.innerHTML = ''
       }
       return
@@ -121,6 +172,14 @@ onMounted(async () => {
   await nextTick()
   if (props.markdown && props.markdown.trim()) {
     renderMarkdown()
+  }
+})
+
+onBeforeUnmount(() => {
+  // 清理事件监听器
+  if (linkClickHandler && containerRef.value) {
+    containerRef.value.removeEventListener('click', linkClickHandler)
+    linkClickHandler = null
   }
 })
 </script>

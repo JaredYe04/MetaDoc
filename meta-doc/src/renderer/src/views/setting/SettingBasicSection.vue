@@ -22,7 +22,8 @@
         />
       </el-form-item>
 
-      <el-form-item>
+      <!-- 粒子效果相关代码已注释，以备后用 -->
+      <!-- <el-form-item>
         <template #label>
           <span>{{ t('setting.particleEffect') }}</span>
           <el-tooltip :content="t('setting.particleEffectHint')" placement="top">
@@ -36,7 +37,7 @@
           :inactive-text="t('setting.disabled')"
           @change="handleParticleToggle"
         />
-      </el-form-item>
+      </el-form-item> -->
 
       <el-form-item :label="t('setting.autoSave')">
         <el-select v-model="settings.autoSave" @change="saveSetting('autoSave', settings.autoSave)">
@@ -187,11 +188,12 @@ const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value)
 }
 
-const handleParticleToggle = () => {
-  saveSetting('particleEffect', settings.particleEffect)
-  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
-  eventBus.emit('toggle-particle-effect', {})
-}
+// 粒子效果相关代码已注释，以备后用
+// const handleParticleToggle = () => {
+//   saveSetting('particleEffect', settings.particleEffect)
+//   // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+//   eventBus.emit('toggle-particle-effect', {})
+// }
 
 // 格式化文件大小
 const formatFileSize = (bytes: number): string => {
@@ -290,6 +292,11 @@ const clearReferenceDir = async () => {
 }
 
 onMounted(() => {
+  // 粒子效果相关代码已注释，强制关闭粒子效果设置
+  // 确保粒子效果设置永远关闭
+  if (settings.particleEffect !== false) {
+    saveSetting('particleEffect', false)
+  }
   refreshReferenceDirSize()
 })
 </script>

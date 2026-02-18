@@ -820,6 +820,7 @@
       "quickStart": "快速开始：快速生成一篇文档",
       "newDoc": "创建一篇新文档",
       "openFile": "打开已有文档",
+      "userManual": "学习如何使用MetaDoc",
       "close": "关闭快速开始",
       "ready": "准备就绪",
       "selectTemperature": "选择生成温度，影响内容多样性",
@@ -833,6 +834,7 @@
       "quickStart": "快速开始",
       "newDoc": "新建文档",
       "openFile": "打开文档",
+      "userManual": "使用教程",
       "refresh": "刷新"
     },
     "tabActions": {
@@ -3288,5 +3290,138 @@
   },
   "dummyView": {
     "emptyDescription": "暂无打开的文档"
+  },
+  "userManual": {
+    "title": "使用教程",
+    "searchPlaceholder": "搜索教程内容...",
+    "emptyContent": "请从左侧选择章节",
+    "navigation": {
+      "core": "核心操作",
+      "markdown": "Markdown教学",
+      "latex": "LaTeX教学",
+      "charts": "图表绘制",
+      "ai": "AI工具",
+      "agent": "Agent使用",
+      "design": "设计理念"
+    },
+    "profile": {
+      "title": "用户画像问卷",
+      "buttonText": "完善我的使用偏好",
+      "scenario": "使用场景",
+      "scenarios": {
+        "student": "学生",
+        "researcher": "科研人员",
+        "it": "IT人员",
+        "office": "办公族",
+        "other": "其他"
+      },
+      "markdownLevel": "Markdown熟练度",
+      "latexLevel": "LaTeX熟练度",
+      "knowsAgent": "是否了解AI Agent",
+      "levels": {
+        "none": "完全不了解",
+        "basic": "知道基本概念",
+        "intermediate": "熟练编写",
+        "advanced": "专家级"
+      },
+      "yes": "是",
+      "no": "否",
+      "skip": "跳过",
+      "submit": "提交"
+    },
+    "core": {
+      "fileOperations": {
+        "title": "文件操作",
+        "content": "# 文件操作\n\nMetaDoc支持多种文件操作，包括新建、打开、保存等基础功能。\n\n## 新建文档\n\n点击左侧菜单的\"文件\" → \"新建\"，或使用快捷键 `Ctrl+N` 创建新文档。\n\n## 打开文档\n\n- 点击左侧菜单的\"文件\" → \"打开\"，或使用快捷键 `Ctrl+O`\n- 支持打开 `.md` (Markdown) 和 `.tex` (LaTeX) 格式的文件\n- 最近打开的文档会显示在主页的\"最近文档\"列表中\n\n## 保存文档\n\n- 使用快捷键 `Ctrl+S` 保存当前文档\n- 使用 `Ctrl+Shift+S` 另存为\n- 使用 `Ctrl+K S` 保存所有打开的文档\n\n## 导出文档\n\n支持导出为多种格式：\n\n- **PDF**: 适合打印和分享\n- **HTML**: 适合网页展示\n- **DOCX**: 适合Word编辑\n- **LaTeX**: 适合学术论文\n\n在\"文件\" → \"导出\"菜单中选择需要的格式。"
+      },
+      "editor": {
+        "title": "编辑器使用",
+        "content": "# 编辑器使用\n\nMetaDoc提供两种编辑器：Markdown编辑器和LaTeX编辑器。\n\n## Markdown编辑器\n\n- 基于Vditor，支持实时预览\n- 语法高亮和自动补全\n- 支持数学公式、代码块、表格等\n- 快捷键：\n  - `Ctrl+B`: 加粗\n  - `Ctrl+I`: 斜体\n  - `Ctrl+K`: 插入链接\n\n## LaTeX编辑器\n\n- 基于Monaco Editor，提供专业的LaTeX编辑体验\n- 实时编译预览PDF\n- 语法检查和错误提示\n- 支持宏包自动下载\n\n## 多标签页操作\n\n- 可以同时打开多个文档\n- 使用 `Ctrl+Tab` 快速切换标签页\n- 拖拽标签页可以重新排序\n- 右键标签页可以固定、关闭、移动到新窗口等"
+      },
+      "multiTab": {
+        "title": "多标签页操作",
+        "content": "# 多标签页操作\n\nMetaDoc支持类似浏览器的多标签页管理。\n\n## 基本操作\n\n- **新建标签页**: 点击标签栏右侧的 `+` 按钮\n- **切换标签页**: 点击标签页或使用 `Ctrl+Tab`\n- **关闭标签页**: 点击标签页上的 `×` 或使用 `Ctrl+W`\n- **恢复关闭的标签页**: 使用 `Ctrl+Shift+T`\n\n## 标签页管理\n\n```mermaid\ngraph LR\nA[新建文档] --> B[打开文档]\nB --> C[编辑文档]\nC --> D[保存文档]\nD --> E[关闭标签页]\n```\n\n## 固定标签页\n\n右键标签页选择\"固定标签页\"，固定后的标签页会始终显示在左侧，且不可关闭。\n\n## 标签页拖拽\n\n- 拖拽标签页可以重新排序\n- 将标签页拖出窗口可以创建新窗口\n- 将标签页拖到其他窗口可以合并"
+      },
+      "multiWindow": {
+        "title": "多窗口操作",
+        "content": "# 多窗口操作\n\nMetaDoc支持多窗口管理，可以在不同窗口中打开不同的文档。\n\n## 创建新窗口\n\n- 将标签页拖出窗口边界\n- 右键标签页选择\"在新窗口中打开\"\n- 使用 `Ctrl+N` 在新窗口创建文档\n\n## 窗口间切换\n\n- 使用 `Alt+Tab` 切换窗口\n- 每个窗口都有独立的标签页列表\n\n## 合并窗口\n\n将标签页从一个窗口拖到另一个窗口即可合并。"
+      },
+      "export": {
+        "title": "导出功能",
+        "content": "# 导出功能\n\nMetaDoc支持将文档导出为多种格式。\n\n## 支持的导出格式\n\n| 源格式 | 支持导出格式 |\n|--------|------------|\n| Markdown | MD, HTML, DOCX, PDF, TEX |\n| LaTeX | TEX, PDF, MD, HTML, DOCX |\n\n## 导出步骤\n\n1. 打开要导出的文档\n2. 点击\"文件\" → \"导出\"\n3. 选择目标格式\n4. 配置导出选项（如PDF页面大小、HTML样式等）\n5. 点击\"导出\"按钮\n\n## 导出选项\n\n不同格式有不同的导出选项：\n\n- **PDF**: 页面大小、边距、页眉页脚等\n- **HTML**: CSS样式、是否内嵌资源等\n- **DOCX**: 模板选择、样式映射等"
+      }
+    },
+    "markdown": {
+      "basic": {
+        "title": "Markdown基础语法",
+        "content": "# Markdown基础语法\n\nMarkdown是一种轻量级标记语言，用于编写格式化的文档。\n\n## 标题\n\n使用 `#` 表示标题，`#` 的数量表示标题级别：\n\n```markdown\n# 一级标题\n## 二级标题\n### 三级标题\n```\n\n## 文本格式\n\n- **粗体**: `**文本**` 或 `__文本__`\n- *斜体*: `*文本*` 或 `_文本_`\n- ~~删除线~~: `~~文本~~`\n- `代码`: 使用反引号包裹\n\n## 列表\n\n### 无序列表\n\n```markdown\n- 项目1\n- 项目2\n  - 子项目2.1\n  - 子项目2.2\n```\n\n### 有序列表\n\n```markdown\n1. 第一项\n2. 第二项\n3. 第三项\n```\n\n## 链接和图片\n\n```markdown\n[链接文本](https://example.com)\n![图片描述](image.png)\n```\n\n## 代码块\n\n使用三个反引号包裹代码：\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n## 表格\n\n```markdown\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 数据1 | 数据2 | 数据3 |\n| 数据4 | 数据5 | 数据6 |\n```"
+      },
+      "advanced": {
+        "title": "Markdown高级特性",
+        "content": "# Markdown高级特性\n\n## 数学公式\n\n### 行内公式\n\n使用 `$公式$` 表示行内公式：\n\n例如：$E = mc^2$\n\n### 块级公式\n\n使用 `$$公式$$` 表示块级公式：\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n## 图表\n\nMetaDoc支持多种图表类型，详见\"图表绘制\"章节。\n\n## 任务列表\n\n```markdown\n- [x] 已完成的任务\n- [ ] 未完成的任务\n```\n\n## 引用\n\n```markdown\n> 这是一段引用文本\n> 可以多行\n```\n\n## 水平线\n\n```markdown\n---\n```\n\n## HTML支持\n\nMarkdown支持内嵌HTML：\n\n```html\n<div style=\"color: red;\">红色文本</div>\n```"
+      }
+    },
+    "latex": {
+      "basic": {
+        "title": "LaTeX基础",
+        "content": "# LaTeX基础\n\nLaTeX是一种专业的文档排版系统，特别适合学术论文和科技文档。\n\n## 文档结构\n\n```latex\n\\documentclass{article}\n\\begin{document}\n\\section{章节标题}\n文档内容...\n\\end{document}\n```\n\n## 常用命令\n\n- `\\section{}`: 一级章节\n- `\\subsection{}`: 二级章节\n- `\\textbf{}`: 粗体\n- `\\textit{}`: 斜体\n- `\\emph{}`: 强调\n\n## 数学公式\n\n### 行内公式\n\n使用 `$公式$` 或 `\\(公式\\)`：\n\n例如：$a^2 + b^2 = c^2$\n\n### 块级公式\n\n使用 `$$公式$$` 或 `\\[公式\\]`：\n\n$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$\n\n## 列表\n\n```latex\n\\begin{itemize}\n  \\item 项目1\n  \\item 项目2\n\\end{itemize}\n```\n\n## 表格\n\n```latex\n\\begin{tabular}{|c|c|c|}\n\\hline\n列1 & 列2 & 列3 \\\\\n\\hline\n数据1 & 数据2 & 数据3 \\\\\n\\hline\n\\end{tabular}\n```"
+      },
+      "advanced": {
+        "title": "LaTeX进阶",
+        "content": "# LaTeX进阶\n\n## 宏包管理\n\n使用 `\\usepackage{}` 引入宏包：\n\n```latex\n\\usepackage{amsmath}\n\\usepackage{graphicx}\n```\n\nMetaDoc会自动下载缺失的宏包。\n\n## 参考文献\n\n使用BibTeX管理参考文献：\n\n```latex\n\\bibliographystyle{plain}\n\\bibliography{references}\n```\n\n## 图表插入\n\n```latex\n\\begin{figure}[h]\n  \\centering\n  \\includegraphics{image.png}\n  \\caption{图片标题}\n\\end{figure}\n```\n\n## 自定义命令\n\n```latex\n\\newcommand{\\mycommand}[1]{#1的格式}\n```\n\n## 编译\n\nMetaDoc使用Tectonic编译器，支持：\n\n- 实时编译预览\n- 自动下载缺失宏包\n- 错误定位和提示"
+      }
+    },
+    "charts": {
+      "introduction": {
+        "title": "图表绘制介绍",
+        "content": "# 图表绘制介绍\n\nMetaDoc支持多种图表绘制引擎，可以创建各种类型的图表。\n\n## 支持的图表引擎\n\n| 引擎 | 适用场景 |\n|------|---------|\n| Mermaid | 流程图、UML图、甘特图 |\n| PlantUML | 专业UML建模 |\n| ECharts | 数据可视化图表 |\n| Flowchart | 基础流程图 |\n| Mindmap | 思维导图 |\n\n## 插入图表\n\n在Markdown文档中使用代码块插入图表：\n\n````markdown\n```mermaid\ngraph TD\n    A[开始] --> B[处理]\n    B --> C[结束]\n```\n````\n\n## 图表渲染\n\n- 图表会在编辑器中实时渲染\n- 支持导出为PDF、HTML等格式\n- 图表代码支持i18n多语言"
+      },
+      "mermaid": {
+        "title": "Mermaid图表",
+        "content": "# Mermaid图表\n\nMermaid适合快速绘制流程图、序列图和项目计划图。\n\n## 流程图\n\n```mermaid\ngraph TD\n    A[开始] --> B{判断}\n    B -->|是| C[操作1]\n    B -->|否| D[操作2]\n    C --> E[结束]\n    D --> E\n```\n\n## 序列图\n\n```mermaid\nsequenceDiagram\n    participant A as 用户\n    participant B as 系统\n    A->>B: 请求\n    B-->>A: 响应\n```\n\n## UML类图\n\n```mermaid\nclassDiagram\n    class Animal {\n        +String name\n        +int age\n        +eat()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal <|-- Dog\n```\n\n## 甘特图\n\n```mermaid\ngantt\n    title 项目计划\n    dateFormat YYYY-MM-DD\n    section 阶段1\n    任务1 :a1, 2024-01-01, 30d\n    任务2 :a2, after a1, 20d\n```\n\n## 注意事项\n\n- 建议使用 `[\"...\"]` 包裹字符串避免转义错误\n- 在类图中避免使用带空格或特殊字符的标识符"
+      },
+      "plantuml": {
+        "title": "PlantUML图表",
+        "content": "# PlantUML图表\n\nPlantUML专注于UML建模，适合详细建模各种软件结构与行为图。\n\n## UML类图\n\n```plantuml\n@startuml\nclass Animal {\n    -name: String\n    -age: int\n    +eat()\n}\n\nclass Dog {\n    +bark()\n}\n\nAnimal <|-- Dog\n@enduml\n```\n\n## 序列图\n\n```plantuml\n@startuml\nAlice -> Bob: 请求\nBob --> Alice: 响应\n@enduml\n```\n\n## 活动图\n\n```plantuml\n@startuml\nstart\n:处理数据;\nif (数据有效?) then (是)\n  :保存数据;\nelse (否)\n  :显示错误;\nendif\nstop\n@enduml\n```\n\n## 注意事项\n\n- PlantUML使用类Pascal风格语法\n- 不支持中文标识符\n- 注意布局控制如 `skinparam` 等"
+      },
+      "echarts": {
+        "title": "ECharts图表",
+        "content": "# ECharts图表\n\nECharts适合制作数据驱动、交互性强的可视化图表。\n\n## 折线图\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"折线图示例\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [150, 230, 224, 218, 135, 147, 260],\n    \"type\": \"line\"\n  }]\n}\n```\n\n## 柱状图\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"柱状图示例\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [120, 200, 150, 80, 70, 110, 130],\n    \"type\": \"bar\"\n  }]\n}\n```\n\n## 饼图\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"饼图示例\"\n  },\n  \"series\": [{\n    \"type\": \"pie\",\n    \"data\": [\n      {\"value\": 1048, \"name\": \"搜索引擎\"},\n      {\"value\": 735, \"name\": \"直接访问\"},\n      {\"value\": 580, \"name\": \"邮件营销\"}\n    ]\n  }]\n}\n```\n\n## 注意事项\n\n- 配置项需遵循ECharts的JSON格式\n- 可通过ECharts官网的Option Builder获取模板\n- 代码框的语言直接写成 `echarts`，而不是 `javascript`\n- 代码框内仅包含JSON格式的配置项，不需要其他内容"
+      }
+    },
+    "ai": {
+      "llmConfig": {
+        "title": "LLM配置引导",
+        "content": "# LLM配置引导\n\nMetaDoc支持多种LLM API，您可以根据需要配置自己的API密钥。\n\n## 支持的LLM API\n\nMetaDoc支持以下LLM服务：\n\n- **OpenAI**: GPT-3.5, GPT-4等\n- **DeepSeek**: DeepSeek Chat等\n- **Ollama**: 本地部署的模型\n- **Gemini**: Google Gemini\n- **MetaDoc**: MetaDoc官方API\n- **自定义API**: 兼容OpenAI格式的自定义API\n\n## 配置步骤\n\n1. 打开\"设置\" → \"LLM配置\"\n2. 选择LLM类型\n3. 输入API密钥（如需要）\n4. 选择模型\n5. 配置其他选项（温度、最大Token等）\n6. 点击\"保存\"\n\n## API密钥获取\n\n### OpenAI\n\n1. 访问 https://platform.openai.com/api-keys\n2. 登录账号\n3. 创建新的API密钥\n4. 复制密钥到MetaDoc\n\n### DeepSeek\n\n1. 访问 https://platform.deepseek.com/api_keys\n2. 登录账号\n3. 创建API密钥\n4. 复制密钥到MetaDoc\n\n### Ollama（本地部署）\n\n1. 安装Ollama: https://ollama.ai\n2. 运行 `ollama serve`\n3. 在MetaDoc中配置API URL为 `http://localhost:11434/api`\n4. 选择已安装的模型\n\n## 注意事项\n\n- API密钥请妥善保管，不要泄露\n- 使用API会产生费用，请注意使用量\n- 某些API可能需要科学上网才能访问"
+      },
+      "tools": {
+        "title": "AI工具使用",
+        "content": "# AI工具使用\n\nMetaDoc提供了丰富的AI工具，帮助您提高文档创作效率。\n\n## 可用工具\n\n### 1. AI对话\n\n与AI进行对话，获取帮助和建议。\n\n- 点击左侧菜单\"AI助手\" → \"与AI对话\"\n- 或使用快捷键打开AI对话窗口\n- 支持上下文理解，可以基于当前文档内容进行对话\n\n### 2. 公式识别\n\n识别手写或图片中的数学公式。\n\n- 点击\"AI助手\" → \"手写公式识别\"\n- 上传图片或使用摄像头拍照\n- AI会自动识别公式并转换为LaTeX格式\n\n### 3. 智能绘图助手\n\n使用AI生成图表代码。\n\n- 描述您想要的图表\n- AI会生成对应的Mermaid、PlantUML或ECharts代码\n- 可以直接插入到文档中\n\n### 4. 数据分析工具\n\n分析文档中的数据表格。\n\n- 选择文档中的表格\n- 点击\"AI助手\" → \"数据分析工具\"\n- AI会分析数据并生成可视化图表\n\n### 5. OCR文字识别\n\n识别图片中的文字。\n\n- 点击\"AI助手\" → \"OCR文字识别\"\n- 上传图片\n- AI会识别图片中的文字并提取\n\n### 6. 附件解析工具\n\n解析PDF、Word等附件文件。\n\n- 点击\"AI助手\" → \"附件解析工具\"\n- 上传附件文件\n- AI会提取文件内容并添加到知识库\n\n## 使用技巧\n\n- 使用RAG知识库可以提高AI回答的准确性\n- 在对话中引用文档内容可以获得更相关的回答\n- 合理使用工具可以大大提高工作效率"
+      },
+      "chat": {
+        "title": "AI会话使用",
+        "content": "# AI会话使用\n\nAI会话功能允许您与AI进行多轮对话，并保存对话历史。\n\n## 创建会话\n\n1. 打开AI对话窗口\n2. 点击\"新建会话\"\n3. 输入会话名称（可选）\n4. 开始对话\n\n## 会话管理\n\n- **切换会话**: 在会话列表中选择不同的会话\n- **重命名会话**: 右键会话选择\"重命名\"\n- **删除会话**: 右键会话选择\"删除\"\n- **导出会话**: 右键会话选择\"导出\"，可以导出为Markdown格式\n\n## 会话功能\n\n### 上下文理解\n\nAI会话会记住之前的对话内容，可以基于上下文进行回答。\n\n### 文档引用\n\n在对话中可以引用当前打开的文档内容：\n\n- 选择文档中的文本\n- 在AI对话中输入\"请分析这段文字\"\n- AI会基于选中的文本进行分析\n\n### 知识库检索\n\n启用RAG知识库后，AI会从知识库中检索相关信息来回答问题。\n\n## 快捷键\n\n- `Ctrl+L`: 打开/关闭AI对话窗口\n- `Enter`: 发送消息\n- `Shift+Enter`: 换行\n- `Ctrl+/`: 清空输入框"
+      }
+    },
+    "agent": {
+      "introduction": {
+        "title": "Agent使用教学",
+        "content": "# Agent使用教学\n\nAgent是MetaDoc的核心功能之一，它是一个智能助手，可以自动执行复杂的任务。\n\n## 什么是Agent\n\nAgent是一个基于LLM的智能系统，它可以：\n\n- 理解您的意图\n- 规划执行步骤\n- 调用各种工具完成任务\n- 自动修正错误\n\n## Agent的工作方式\n\nAgent使用\"思考-行动-观察\"的循环模式：\n\n1. **思考**: 分析任务，制定计划\n2. **行动**: 调用工具执行操作\n3. **观察**: 查看结果，判断是否需要继续\n4. **反思**: 评估执行效果，调整策略\n\n## 使用场景\n\nAgent适合以下场景：\n\n- 文档内容生成和优化\n- 图表自动生成和插入\n- 文档结构优化\n- 批量处理任务\n\n## 开始使用\n\n1. 打开\"Agent\"视图\n2. 创建新的Agent会话\n3. 输入任务描述\n4. Agent会自动执行任务\n\n## 注意事项\n\n- Agent会消耗API调用次数，请注意成本\n- 复杂任务可能需要较长时间\n- 建议先从小任务开始熟悉Agent的使用"
+      },
+      "capabilities": {
+        "title": "Agent能力说明",
+        "content": "# Agent能力说明\n\nAgent支持多种能力，可以帮助您完成各种文档处理任务。\n\n## 核心能力\n\n### 1. 文档编辑\n\n- 插入、删除、替换文本\n- 格式化文本\n- 调整文档结构\n\n### 2. 大纲操作\n\n- 生成文档大纲\n- 优化大纲结构\n- 添加子章节\n- 生成章节内容\n\n### 3. 图表生成\n\n- 根据内容自动生成图表\n- 插入Mermaid、PlantUML、ECharts代码\n- 优化图表布局\n\n### 4. 内容生成\n\n- 基于大纲生成内容\n- 扩写文档\n- 润色文本\n\n### 5. 知识检索\n\n- 从知识库检索相关信息\n- 基于检索结果生成内容\n\n## 工具集\n\nAgent可以使用以下工具：\n\n- `edit`: 编辑文档内容\n- `outline-tree`: 获取文档大纲\n- `outline-optimize`: 优化大纲结构\n- `chart-generation`: 生成图表\n- `rag-query`: 查询知识库\n- 等等...\n\n## 工作流\n\nAgent还支持自定义工作流，可以将多个工具组合成复杂的工作流程。\n\n## 限制\n\n- Agent的执行受限于可用的工具\n- 某些操作可能需要用户确认\n- 复杂任务可能需要多轮交互"
+      },
+      "risks": {
+        "title": "Agent风险与开销",
+        "content": "# Agent风险与开销\n\n使用Agent时需要注意以下风险和开销。\n\n## 风险\n\n### 1. 内容准确性\n\n- Agent生成的内容可能不完全准确\n- 建议人工审核和修改\n- 重要文档请谨慎使用\n\n### 2. 意外修改\n\n- Agent可能会修改您不希望修改的内容\n- 建议在使用前保存文档\n- 可以使用版本控制功能\n\n### 3. 隐私安全\n\n- Agent会将文档内容发送到LLM API\n- 敏感信息请谨慎使用\n- 建议使用本地部署的LLM（如Ollama）\n\n## 开销\n\n### API调用费用\n\n使用Agent会产生API调用费用：\n\n- **OpenAI GPT-4**: 约 $0.03-0.06 每1000 tokens\n- **OpenAI GPT-3.5**: 约 $0.001-0.002 每1000 tokens\n- **DeepSeek**: 约 $0.0001-0.0002 每1000 tokens\n- **Ollama**: 免费（本地部署）\n\n### Token消耗\n\nAgent的Token消耗取决于：\n\n- 文档长度\n- 任务复杂度\n- 工具调用次数\n\n一个中等复杂度的任务可能消耗：\n\n- 输入: 1000-5000 tokens\n- 输出: 500-2000 tokens\n- 工具调用: 500-2000 tokens\n\n总计: 2000-9000 tokens\n\n## 优化建议\n\n1. **使用本地LLM**: 如果可能，使用Ollama等本地部署的LLM\n2. **合理设置**: 调整温度、最大Token等参数\n3. **分批处理**: 将大任务拆分成小任务\n4. **监控使用**: 定期查看LLM统计，了解使用情况\n\n## 成本估算\n\n假设每天使用Agent处理10个文档，每个文档平均消耗5000 tokens：\n\n- 使用GPT-3.5: 约 $0.05-0.10/天\n- 使用GPT-4: 约 $1.50-3.00/天\n- 使用DeepSeek: 约 $0.005-0.01/天\n- 使用Ollama: $0/天"
+      }
+    },
+    "design": {
+      "philosophy": {
+        "title": "MetaDoc设计理念",
+        "content": "# MetaDoc设计理念\n\nMetaDoc的设计遵循以下核心理念。\n\n## 自举式设计\n\n用户手册本身就是用Markdown编写的，展示了MetaDoc的能力。这体现了\"自举\"（Bootstrapping）的设计理念：用产品本身来展示产品。\n\n## 文档驱动\n\nMetaDoc是一个\"文档驱动\"的系统：\n\n- 文档是核心，所有功能都围绕文档展开\n- 支持多种文档格式（Markdown、LaTeX）\n- 文档可以导出为多种格式\n\n## 智能化\n\n通过AI和Agent技术，让文档创作更智能：\n\n- AI辅助写作和校对\n- Agent自动执行复杂任务\n- 智能图表生成\n\n## 可扩展性\n\n- 支持自定义工具和工作流\n- 插件化架构\n- 开放的API接口\n\n## 用户体验\n\n- 简洁美观的界面\n- 流畅的操作体验\n- 丰富的快捷键支持\n- 多语言支持\n\n## 技术栈\n\n- **前端**: Vue 3 + TypeScript\n- **桌面**: Electron\n- **编辑器**: Monaco + Vditor\n- **AI**: LLM Agent框架\n- **数据库**: SQLite + sqlite-vec\n\n## 未来规划\n\n- 更多AI能力\n- 更好的协作功能\n- 云端同步\n- 移动端支持"
+      }
+    }
   }
 }

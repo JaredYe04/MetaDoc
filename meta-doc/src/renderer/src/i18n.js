@@ -12,7 +12,12 @@ const savedLang = localStorage.getItem('lang') || 'zh_CN'
 export const i18n = createI18n({
   locale: savedLang,
   fallbackLocale: 'zh_CN',
-  messages: { en_US, zh_CN, ja_JP, ko_KR, de_DE, fr_FR }
+  messages: { en_US, zh_CN, ja_JP, ko_KR, de_DE, fr_FR },
+  // 禁用插值解析，避免解析代码块中的大括号
+  // 注意：这会影响所有消息，但我们可以通过直接访问messages来获取原始内容
+  legacy: false,
+  // 使用composition API模式
+  globalInjection: true
 })
 
 export const getLocale = () => {

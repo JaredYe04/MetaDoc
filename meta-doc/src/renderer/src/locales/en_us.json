@@ -389,6 +389,7 @@
       "quickStart": "Quick Start: Generate a document fast",
       "newDoc": "Create a new document",
       "openFile": "Open an existing document",
+      "userManual": "Learn how to use MetaDoc",
       "close": "Close Quick Start",
       "ready": "Ready",
       "selectTemperature": "Select generation temperature, affects content diversity",
@@ -402,6 +403,7 @@
       "quickStart": "Quick Start",
       "newDoc": "New Document",
       "openFile": "Open Document",
+      "userManual": "User Manual",
       "refresh": "Refresh"
     },
     "tabActions": {
@@ -1972,5 +1974,141 @@
     "expand": "Expand",
     "workspace": "Workspace",
     "metaInfo": "Meta Info"
+  },
+  "leftMenu": {
+    "userManual": "User Manual"
+  },
+  "userManual": {
+    "title": "User Manual",
+    "searchPlaceholder": "Search tutorial content...",
+    "emptyContent": "Please select a section from the left",
+    "navigation": {
+      "core": "Core Operations",
+      "markdown": "Markdown Tutorial",
+      "latex": "LaTeX Tutorial",
+      "charts": "Chart Drawing",
+      "ai": "AI Tools",
+      "agent": "Agent Usage",
+      "design": "Design Philosophy"
+    },
+    "profile": {
+      "title": "User Profile Questionnaire",
+      "buttonText": "Improve My Preferences",
+      "scenario": "Usage Scenario",
+      "scenarios": {
+        "student": "Student",
+        "researcher": "Researcher",
+        "it": "IT Professional",
+        "office": "Office Worker",
+        "other": "Other"
+      },
+      "markdownLevel": "Markdown Proficiency",
+      "latexLevel": "LaTeX Proficiency",
+      "knowsAgent": "Do you know about AI Agent?",
+      "levels": {
+        "none": "Completely unfamiliar",
+        "basic": "Know basic concepts",
+        "intermediate": "Proficient",
+        "advanced": "Expert level"
+      },
+      "yes": "Yes",
+      "no": "No",
+      "skip": "Skip",
+      "submit": "Submit"
+    },
+    "core": {
+      "fileOperations": {
+        "title": "File Operations",
+        "content": "# File Operations\n\nMetaDoc supports various file operations including creating, opening, and saving documents.\n\n## Create Document\n\nClick \"File\" → \"New\" in the left menu, or use `Ctrl+N` to create a new document.\n\n## Open Document\n\n- Click \"File\" → \"Open\" in the left menu, or use `Ctrl+O`\n- Supports `.md` (Markdown) and `.tex` (LaTeX) files\n- Recently opened documents are shown in the \"Recent Documents\" list on the home page\n\n## Save Document\n\n- Use `Ctrl+S` to save the current document\n- Use `Ctrl+Shift+S` to save as\n- Use `Ctrl+K S` to save all open documents\n\n## Export Document\n\nSupports exporting to multiple formats:\n\n- **PDF**: Suitable for printing and sharing\n- **HTML**: Suitable for web display\n- **DOCX**: Suitable for Word editing\n- **LaTeX**: Suitable for academic papers\n\nSelect the desired format from \"File\" → \"Export\" menu."
+      },
+      "editor": {
+        "title": "Editor Usage",
+        "content": "# Editor Usage\n\nMetaDoc provides two editors: Markdown editor and LaTeX editor.\n\n## Markdown Editor\n\n- Based on Vditor with real-time preview\n- Syntax highlighting and auto-completion\n- Supports math formulas, code blocks, tables, etc.\n- Shortcuts:\n  - `Ctrl+B`: Bold\n  - `Ctrl+I`: Italic\n  - `Ctrl+K`: Insert link\n\n## LaTeX Editor\n\n- Based on Monaco Editor for professional LaTeX editing\n- Real-time PDF preview compilation\n- Syntax checking and error hints\n- Supports automatic package downloads\n\n## Multi-tab Operations\n\n- Can open multiple documents simultaneously\n- Use `Ctrl+Tab` to quickly switch tabs\n- Drag tabs to reorder\n- Right-click tabs for pin, close, move to new window, etc."
+      },
+      "multiTab": {
+        "title": "Multi-tab Operations",
+        "content": "# Multi-tab Operations\n\nMetaDoc supports browser-like multi-tab management.\n\n## Basic Operations\n\n- **New Tab**: Click the `+` button on the right side of the tab bar\n- **Switch Tabs**: Click tabs or use `Ctrl+Tab`\n- **Close Tab**: Click `×` on tabs or use `Ctrl+W`\n- **Restore Closed Tab**: Use `Ctrl+Shift+T`\n\n## Tab Management\n\n```mermaid\ngraph LR\nA[New Document] --> B[Open Document]\nB --> C[Edit Document]\nC --> D[Save Document]\nD --> E[Close Tab]\n```\n\n## Pin Tabs\n\nRight-click a tab and select \"Pin Tab\". Pinned tabs always appear on the left and cannot be closed.\n\n## Tab Dragging\n\n- Drag tabs to reorder\n- Drag tabs out of window to create new window\n- Drag tabs to other windows to merge"
+      },
+      "multiWindow": {
+        "title": "Multi-window Operations",
+        "content": "# Multi-window Operations\n\nMetaDoc supports multi-window management, allowing you to open different documents in different windows.\n\n## Create New Window\n\n- Drag a tab out of the window boundary\n- Right-click a tab and select \"Open in New Window\"\n- Use `Ctrl+N` to create a document in a new window\n\n## Switch Between Windows\n\n- Use `Alt+Tab` to switch windows\n- Each window has its own tab list\n\n## Merge Windows\n\nDrag tabs from one window to another to merge."
+      },
+      "export": {
+        "title": "Export Function",
+        "content": "# Export Function\n\nMetaDoc supports exporting documents to multiple formats.\n\n## Supported Export Formats\n\n| Source Format | Supported Export Formats |\n|--------------|------------------------|\n| Markdown | MD, HTML, DOCX, PDF, TEX |\n| LaTeX | TEX, PDF, MD, HTML, DOCX |\n\n## Export Steps\n\n1. Open the document to export\n2. Click \"File\" → \"Export\"\n3. Select target format\n4. Configure export options (such as PDF page size, HTML styles, etc.)\n5. Click \"Export\" button\n\n## Export Options\n\nDifferent formats have different export options:\n\n- **PDF**: Page size, margins, headers and footers, etc.\n- **HTML**: CSS styles, whether to embed resources, etc.\n- **DOCX**: Template selection, style mapping, etc."
+      }
+    },
+    "markdown": {
+      "basic": {
+        "title": "Markdown Basics",
+        "content": "# Markdown Basics\n\nMarkdown is a lightweight markup language for writing formatted documents.\n\n## Headings\n\nUse `#` for headings, the number of `#` indicates the heading level:\n\n```markdown\n# Level 1 Heading\n## Level 2 Heading\n### Level 3 Heading\n```\n\n## Text Formatting\n\n- **Bold**: `**text**` or `__text__`\n- *Italic*: `*text*` or `_text_`\n- ~~Strikethrough~~: `~~text~~`\n- `Code`: Wrap with backticks\n\n## Lists\n\n### Unordered List\n\n```markdown\n- Item 1\n- Item 2\n  - Sub-item 2.1\n  - Sub-item 2.2\n```\n\n### Ordered List\n\n```markdown\n1. First item\n2. Second item\n3. Third item\n```\n\n## Links and Images\n\n```markdown\n[Link text](https://example.com)\n![Image description](image.png)\n```\n\n## Code Blocks\n\nWrap code with three backticks:\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n## Tables\n\n```markdown\n| Col1 | Col2 | Col3 |\n|------|------|------|\n| Data1 | Data2 | Data3 |\n| Data4 | Data5 | Data6 |\n```"
+      },
+      "advanced": {
+        "title": "Markdown Advanced Features",
+        "content": "# Markdown Advanced Features\n\n## Math Formulas\n\n### Inline Formulas\n\nUse `$formula$` for inline formulas:\n\nFor example: $E = mc^2$\n\n### Block Formulas\n\nUse `$$formula$$` for block formulas:\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n## Charts\n\nMetaDoc supports various chart types, see the \"Chart Drawing\" section for details.\n\n## Task Lists\n\n```markdown\n- [x] Completed task\n- [ ] Incomplete task\n```\n\n## Blockquotes\n\n```markdown\n> This is a blockquote\n> Can be multiple lines\n```\n\n## Horizontal Rules\n\n```markdown\n---\n```\n\n## HTML Support\n\nMarkdown supports embedded HTML:\n\n```html\n<div style=\"color: red;\">Red text</div>\n```"
+      }
+    },
+    "latex": {
+      "basic": {
+        "title": "LaTeX Basics",
+        "content": "# LaTeX Basics\n\nLaTeX is a professional document typesetting system, especially suitable for academic papers and technical documents.\n\n## Document Structure\n\n```latex\n\\documentclass{article}\n\\begin{document}\n\\section{Section Title}\nDocument content...\n\\end{document}\n```\n\n## Common Commands\n\n- `\\section{}`: Level 1 section\n- `\\subsection{}`: Level 2 section\n- `\\textbf{}`: Bold\n- `\\textit{}`: Italic\n- `\\emph{}`: Emphasis\n\n## Math Formulas\n\n### Inline Formulas\n\nUse `$formula$` or `\\(formula\\)`:\n\nFor example: $a^2 + b^2 = c^2$\n\n### Block Formulas\n\nUse `$$formula$$` or `\\[formula\\]`:\n\n$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$\n\n## Lists\n\n```latex\n\\begin{itemize}\n  \\item Item 1\n  \\item Item 2\n\\end{itemize}\n```\n\n## Tables\n\n```latex\n\\begin{tabular}{|c|c|c|}\n\\hline\nCol1 & Col2 & Col3 \\\\\n\\hline\nData1 & Data2 & Data3 \\\\\n\\hline\n\\end{tabular}\n```"
+      },
+      "advanced": {
+        "title": "LaTeX Advanced",
+        "content": "# LaTeX Advanced\n\n## Package Management\n\nUse `\\usepackage{}` to import packages:\n\n```latex\n\\usepackage{amsmath}\n\\usepackage{graphicx}\n```\n\nMetaDoc automatically downloads missing packages.\n\n## Bibliography\n\nUse BibTeX to manage references:\n\n```latex\n\\bibliographystyle{plain}\n\\bibliography{references}\n```\n\n## Inserting Figures\n\n```latex\n\\begin{figure}[h]\n  \\centering\n  \\includegraphics{image.png}\n  \\caption{Figure Title}\n\\end{figure}\n```\n\n## Custom Commands\n\n```latex\n\\newcommand{\\mycommand}[1]{Format of #1}\n```\n\n## Compilation\n\nMetaDoc uses Tectonic compiler, supporting:\n\n- Real-time compilation preview\n- Automatic package downloads\n- Error location and hints"
+      }
+    },
+    "charts": {
+      "introduction": {
+        "title": "Chart Drawing Introduction",
+        "content": "# Chart Drawing Introduction\n\nMetaDoc supports multiple chart engines to create various types of charts.\n\n## Supported Chart Engines\n\n| Engine | Use Cases |\n|--------|----------|\n| Mermaid | Flowcharts, UML diagrams, Gantt charts |\n| PlantUML | Professional UML modeling |\n| ECharts | Data visualization charts |\n| Flowchart | Basic flowcharts |\n| Mindmap | Mind maps |\n\n## Inserting Charts\n\nUse code blocks in Markdown documents to insert charts:\n\n````markdown\n```mermaid\ngraph TD\n    A[Start] --> B[Process]\n    B --> C[End]\n```\n````\n\n## Chart Rendering\n\n- Charts are rendered in real-time in the editor\n- Supports export to PDF, HTML and other formats\n- Chart code supports i18n multi-language"
+      },
+      "mermaid": {
+        "title": "Mermaid Charts",
+        "content": "# Mermaid Charts\n\nMermaid is suitable for quickly drawing flowcharts, sequence diagrams, and project planning charts.\n\n## Flowchart\n\n```mermaid\ngraph TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[Action1]\n    B -->|No| D[Action2]\n    C --> E[End]\n    D --> E\n```\n\n## Sequence Diagram\n\n```mermaid\nsequenceDiagram\n    participant A as User\n    participant B as System\n    A->>B: Request\n    B-->>A: Response\n```\n\n## UML Class Diagram\n\n```mermaid\nclassDiagram\n    class Animal {\n        +String name\n        +int age\n        +eat()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal <|-- Dog\n```\n\n## Gantt Chart\n\n```mermaid\ngantt\n    title Project Plan\n    dateFormat YYYY-MM-DD\n    section Phase 1\n    Task1 :a1, 2024-01-01, 30d\n    Task2 :a2, after a1, 20d\n```\n\n## Notes\n\n- It is recommended to use `[\"...\"]` to wrap strings to avoid escape errors\n- Avoid identifiers with spaces or special characters in class diagrams"
+      },
+      "plantuml": {
+        "title": "PlantUML Charts",
+        "content": "# PlantUML Charts\n\nPlantUML focuses on UML modeling, suitable for detailed modeling of various software structures and behavior diagrams.\n\n## UML Class Diagram\n\n```plantuml\n@startuml\nclass Animal {\n    -name: String\n    -age: int\n    +eat()\n}\n\nclass Dog {\n    +bark()\n}\n\nAnimal <|-- Dog\n@enduml\n```\n\n## Sequence Diagram\n\n```plantuml\n@startuml\nAlice -> Bob: Request\nBob --> Alice: Response\n@enduml\n```\n\n## Activity Diagram\n\n```plantuml\n@startuml\nstart\n:Process data;\nif (Data valid?) then (yes)\n  :Save data;\nelse (no)\n  :Show error;\nendif\nstop\n@enduml\n```\n\n## Notes\n\n- PlantUML uses Pascal-like syntax\n- Does not support Chinese identifiers\n- Pay attention to layout controls such as `skinparam`"
+      },
+      "echarts": {
+        "title": "ECharts Charts",
+        "content": "# ECharts Charts\n\nECharts is suitable for creating data-driven, highly interactive visualization charts.\n\n## Line Chart\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"Line Chart Example\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [150, 230, 224, 218, 135, 147, 260],\n    \"type\": \"line\"\n  }]\n}\n```\n\n## Bar Chart\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"Bar Chart Example\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [120, 200, 150, 80, 70, 110, 130],\n    \"type\": \"bar\"\n  }]\n}\n```\n\n## Pie Chart\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"Pie Chart Example\"\n  },\n  \"series\": [{\n    \"type\": \"pie\",\n    \"data\": [\n      {\"value\": 1048, \"name\": \"Search Engine\"},\n      {\"value\": 735, \"name\": \"Direct Access\"},\n      {\"value\": 580, \"name\": \"Email Marketing\"}\n    ]\n  }]\n}\n```\n\n## Notes\n\n- Configuration items must follow ECharts JSON format\n- Templates can be obtained from ECharts official Option Builder\n- Write the code block language as `echarts`, not `javascript`\n- Code block contains only JSON format configuration items, no other content"
+      }
+    },
+    "ai": {
+      "llmConfig": {
+        "title": "LLM Configuration Guide",
+        "content": "# LLM Configuration Guide\n\nMetaDoc supports multiple LLM APIs. You can configure your own API keys as needed.\n\n## Supported LLM APIs\n\nMetaDoc supports the following LLM services:\n\n- **OpenAI**: GPT-3.5, GPT-4, etc.\n- **DeepSeek**: DeepSeek Chat, etc.\n- **Ollama**: Locally deployed models\n- **Gemini**: Google Gemini\n- **MetaDoc**: MetaDoc official API\n- **Custom API**: Custom APIs compatible with OpenAI format\n\n## Configuration Steps\n\n1. Open \"Settings\" → \"LLM Configuration\"\n2. Select LLM type\n3. Enter API key (if required)\n4. Select model\n5. Configure other options (temperature, max tokens, etc.)\n6. Click \"Save\"\n\n## API Key Acquisition\n\n### OpenAI\n\n1. Visit https://platform.openai.com/api-keys\n2. Log in\n3. Create a new API key\n4. Copy the key to MetaDoc\n\n### DeepSeek\n\n1. Visit https://platform.deepseek.com/api_keys\n2. Log in\n3. Create API key\n4. Copy the key to MetaDoc\n\n### Ollama (Local Deployment)\n\n1. Install Ollama: https://ollama.ai\n2. Run `ollama serve`\n3. Configure API URL in MetaDoc as `http://localhost:11434/api`\n4. Select installed model\n\n## Notes\n\n- Keep API keys secure, do not leak\n- Using APIs incurs costs, please monitor usage\n- Some APIs may require VPN to access"
+      },
+      "tools": {
+        "title": "AI Tools Usage",
+        "content": "# AI Tools Usage\n\nMetaDoc provides rich AI tools to help improve document creation efficiency.\n\n## Available Tools\n\n### 1. AI Chat\n\nChat with AI to get help and suggestions.\n\n- Click \"AI Assistant\" → \"Chat with AI\" in the left menu\n- Or use shortcut keys to open AI chat window\n- Supports context understanding, can chat based on current document content\n\n### 2. Formula Recognition\n\nRecognize mathematical formulas in handwritten or image format.\n\n- Click \"AI Assistant\" → \"Handwriting Formula Recognition\"\n- Upload image or use camera to take photo\n- AI automatically recognizes formulas and converts to LaTeX format\n\n### 3. Smart Drawing Assistant\n\nUse AI to generate chart code.\n\n- Describe the chart you want\n- AI generates corresponding Mermaid, PlantUML or ECharts code\n- Can be directly inserted into document\n\n### 4. Data Analysis Tool\n\nAnalyze data tables in documents.\n\n- Select table in document\n- Click \"AI Assistant\" → \"Data Analysis Tool\"\n- AI analyzes data and generates visualization charts\n\n### 5. OCR Text Recognition\n\nRecognize text in images.\n\n- Click \"AI Assistant\" → \"OCR Text Recognition\"\n- Upload image\n- AI recognizes and extracts text from image\n\n### 6. Attachment Parser Tool\n\nParse PDF, Word and other attachment files.\n\n- Click \"AI Assistant\" → \"Attachment Parser Tool\"\n- Upload attachment file\n- AI extracts file content and adds to knowledge base\n\n## Usage Tips\n\n- Using RAG knowledge base can improve AI answer accuracy\n- Referencing document content in chat can get more relevant answers\n- Proper use of tools can greatly improve work efficiency"
+      },
+      "chat": {
+        "title": "AI Chat Usage",
+        "content": "# AI Chat Usage\n\nThe AI chat feature allows you to have multi-turn conversations with AI and save conversation history.\n\n## Create Chat\n\n1. Open AI chat window\n2. Click \"New Chat\"\n3. Enter chat name (optional)\n4. Start chatting\n\n## Chat Management\n\n- **Switch Chat**: Select different chats in chat list\n- **Rename Chat**: Right-click chat and select \"Rename\"\n- **Delete Chat**: Right-click chat and select \"Delete\"\n- **Export Chat**: Right-click chat and select \"Export\", can export as Markdown format\n\n## Chat Features\n\n### Context Understanding\n\nAI chat remembers previous conversation content and can answer based on context.\n\n### Document Reference\n\nCan reference currently open document content in chat:\n\n- Select text in document\n- Type \"Please analyze this text\" in AI chat\n- AI analyzes based on selected text\n\n### Knowledge Base Retrieval\n\nAfter enabling RAG knowledge base, AI retrieves relevant information from knowledge base to answer questions.\n\n## Shortcuts\n\n- `Ctrl+L`: Open/close AI chat window\n- `Enter`: Send message\n- `Shift+Enter`: New line\n- `Ctrl+/`: Clear input box"
+      }
+    },
+    "agent": {
+      "introduction": {
+        "title": "Agent Usage Tutorial",
+        "content": "# Agent Usage Tutorial\n\nAgent is one of MetaDoc's core features. It is an intelligent assistant that can automatically execute complex tasks.\n\n## What is Agent\n\nAgent is an LLM-based intelligent system that can:\n\n- Understand your intent\n- Plan execution steps\n- Call various tools to complete tasks\n- Automatically correct errors\n\n## How Agent Works\n\nAgent uses a \"think-act-observe\" loop:\n\n1. **Think**: Analyze task, make plan\n2. **Act**: Call tools to perform operations\n3. **Observe**: Check results, determine if need to continue\n4. **Reflect**: Evaluate execution effect, adjust strategy\n\n## Use Cases\n\nAgent is suitable for:\n\n- Document content generation and optimization\n- Automatic chart generation and insertion\n- Document structure optimization\n- Batch processing tasks\n\n## Getting Started\n\n1. Open \"Agent\" view\n2. Create new Agent session\n3. Enter task description\n4. Agent automatically executes task\n\n## Notes\n\n- Agent consumes API calls, please monitor costs\n- Complex tasks may take longer\n- Recommend starting with small tasks to familiarize with Agent usage"
+      },
+      "capabilities": {
+        "title": "Agent Capabilities",
+        "content": "# Agent Capabilities\n\nAgent supports various capabilities to help you complete various document processing tasks.\n\n## Core Capabilities\n\n### 1. Document Editing\n\n- Insert, delete, replace text\n- Format text\n- Adjust document structure\n\n### 2. Outline Operations\n\n- Generate document outline\n- Optimize outline structure\n- Add subsections\n- Generate section content\n\n### 3. Chart Generation\n\n- Automatically generate charts based on content\n- Insert Mermaid, PlantUML, ECharts code\n- Optimize chart layout\n\n### 4. Content Generation\n\n- Generate content based on outline\n- Expand documents\n- Polish text\n\n### 5. Knowledge Retrieval\n\n- Retrieve relevant information from knowledge base\n- Generate content based on retrieval results\n\n## Tool Collection\n\nAgent can use the following tools:\n\n- `edit`: Edit document content\n- `outline-tree`: Get document outline\n- `outline-optimize`: Optimize outline structure\n- `chart-generation`: Generate charts\n- `rag-query`: Query knowledge base\n- etc...\n\n## Workflows\n\nAgent also supports custom workflows, combining multiple tools into complex work processes.\n\n## Limitations\n\n- Agent execution is limited by available tools\n- Some operations may require user confirmation\n- Complex tasks may require multiple interactions"
+      },
+      "risks": {
+        "title": "Agent Risks and Costs",
+        "content": "# Agent Risks and Costs\n\nWhen using Agent, please note the following risks and costs.\n\n## Risks\n\n### 1. Content Accuracy\n\n- Agent-generated content may not be completely accurate\n- Recommend manual review and modification\n- Use with caution for important documents\n\n### 2. Unexpected Modifications\n\n- Agent may modify content you don't want modified\n- Recommend saving documents before use\n- Can use version control features\n\n### 3. Privacy and Security\n\n- Agent sends document content to LLM API\n- Use with caution for sensitive information\n- Recommend using locally deployed LLM (such as Ollama)\n\n## Costs\n\n### API Call Fees\n\nUsing Agent incurs API call fees:\n\n- **OpenAI GPT-4**: About $0.03-0.06 per 1000 tokens\n- **OpenAI GPT-3.5**: About $0.001-0.002 per 1000 tokens\n- **DeepSeek**: About $0.0001-0.0002 per 1000 tokens\n- **Ollama**: Free (local deployment)\n\n### Token Consumption\n\nAgent token consumption depends on:\n\n- Document length\n- Task complexity\n- Number of tool calls\n\nA medium complexity task may consume:\n\n- Input: 1000-5000 tokens\n- Output: 500-2000 tokens\n- Tool calls: 500-2000 tokens\n\nTotal: 2000-9000 tokens\n\n## Optimization Suggestions\n\n1. **Use Local LLM**: If possible, use locally deployed LLM like Ollama\n2. **Reasonable Settings**: Adjust temperature, max tokens and other parameters\n3. **Batch Processing**: Split large tasks into small tasks\n4. **Monitor Usage**: Regularly check LLM statistics to understand usage\n\n## Cost Estimation\n\nAssuming using Agent to process 10 documents per day, each document averages 5000 tokens:\n\n- Using GPT-3.5: About $0.05-0.10/day\n- Using GPT-4: About $1.50-3.00/day\n- Using DeepSeek: About $0.005-0.01/day\n- Using Ollama: $0/day"
+      }
+    },
+    "design": {
+      "philosophy": {
+        "title": "MetaDoc Design Philosophy",
+        "content": "# MetaDoc Design Philosophy\n\nMetaDoc's design follows the following core principles.\n\n## Bootstrapping Design\n\nThe user manual itself is written in Markdown, demonstrating MetaDoc's capabilities. This reflects the \"bootstrapping\" design philosophy: using the product itself to showcase the product.\n\n## Document-Driven\n\nMetaDoc is a \"document-driven\" system:\n\n- Documents are the core, all features revolve around documents\n- Supports multiple document formats (Markdown, LaTeX)\n- Documents can be exported to multiple formats\n\n## Intelligence\n\nThrough AI and Agent technology, make document creation more intelligent:\n\n- AI-assisted writing and proofreading\n- Agent automatically executes complex tasks\n- Intelligent chart generation\n\n## Extensibility\n\n- Supports custom tools and workflows\n- Plugin architecture\n- Open API interface\n\n## User Experience\n\n- Clean and beautiful interface\n- Smooth operation experience\n- Rich shortcut key support\n- Multi-language support\n\n## Technology Stack\n\n- **Frontend**: Vue 3 + TypeScript\n- **Desktop**: Electron\n- **Editor**: Monaco + Vditor\n- **AI**: LLM Agent framework\n- **Database**: SQLite + sqlite-vec\n\n## Future Plans\n\n- More AI capabilities\n- Better collaboration features\n- Cloud sync\n- Mobile support"
+      }
+    }
   }
 }

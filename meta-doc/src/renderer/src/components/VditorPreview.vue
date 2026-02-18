@@ -6,7 +6,7 @@
       animated
       class="vditor-preview-skeleton"
     />
-    <div v-else ref="containerRef" class="vditor-preview-container"></div>
+    <div v-show="!isRendering" ref="containerRef" class="vditor-preview-container"></div>
   </div>
 </template>
 
@@ -30,14 +30,26 @@ const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
 
 const renderMarkdown = async () => {
-  if (!props.markdown) {
+  if (!props.markdown || !props.markdown.trim()) {
     isRendering.value = false
+    // 清空容器
+    await nextTick()
+    if (containerRef.value) {
+      containerRef.value.innerHTML = ''
+    }
     return
   }
 
-  // 等待容器挂载
-  await nextTick()
+  // 等待容器挂载，多次尝试确保容器已准备好
+  let retries = 0
+  while (!containerRef.value && retries < 20) {
+    await nextTick()
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    retries++
+  }
+
   if (!containerRef.value) {
+    console.warn('VditorPreview: 容器元素未找到，重试次数:', retries)
     isRendering.value = false
     return
   }
@@ -46,7 +58,9 @@ const renderMarkdown = async () => {
     isRendering.value = true
 
     // 设置容器文字颜色
-    containerRef.value.style.color = themeState.currentTheme.textColor
+    if (containerRef.value) {
+      containerRef.value.style.color = themeState.currentTheme.textColor
+    }
 
     // 预览组件需要 file:// 协议，以便浏览器能够加载本地图片
     // local2fileProtocol 可以处理：
@@ -55,6 +69,17 @@ const renderMarkdown = async () => {
     // - HTTP URL（会保持原样，但预览时可能无法加载，建议先转本地路径）
     // 注意：如果输入包含 HTTP URL（如预渲染的图表），可能需要先转换为本地路径
     const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
+
+    // 再次检查容器是否存在（防止异步过程中被销毁）
+    await nextTick()
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    await nextTick()
+    
+    if (!containerRef.value) {
+      console.warn('VditorPreview: 容器元素在渲染过程中被销毁')
+      isRendering.value = false
+      return
+    }
 
     // 使用统一的 Markdown 预览渲染函数
     await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown)
@@ -72,18 +97,31 @@ const renderMarkdown = async () => {
 // 监听 Markdown 内容变化和主题变化
 watch(
   [() => props.markdown, () => themeState.currentTheme.type],
-  () => {
-    nextTick(() => {
-      renderMarkdown()
-    })
+  async () => {
+    if (!props.markdown || !props.markdown.trim()) {
+      isRendering.value = false
+      if (containerRef.value) {
+        containerRef.value.innerHTML = ''
+      }
+      return
+    }
+    // 等待DOM更新完成
+    await nextTick()
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    await nextTick()
+    renderMarkdown()
   },
-  { immediate: true }
+  { immediate: false }
 )
 
-onMounted(() => {
-  nextTick(() => {
+onMounted(async () => {
+  // 等待DOM完全挂载
+  await nextTick()
+  await new Promise(resolve => requestAnimationFrame(resolve))
+  await nextTick()
+  if (props.markdown && props.markdown.trim()) {
     renderMarkdown()
-  })
+  }
 })
 </script>
 

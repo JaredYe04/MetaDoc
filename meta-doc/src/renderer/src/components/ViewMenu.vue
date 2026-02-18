@@ -212,16 +212,21 @@ const handleSelect = (key: string): void => {
   const activeTabId = workspace.activeTabId.value
   const activeTab = workspace.activeTab.value
   if (activeTabId && (activeTab?.kind === 'file' || activeTab?.kind === 'new')) {
+    // 检查是否是PDF格式的tab（无论是预览模式还是正式打开）
+    const path = (activeTab.path || activeDocument.value?.path || '').toLowerCase()
+    const isPdfTab =
+      path.endsWith('.pdf') &&
+      (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
+    
+    // 如果是PDF tab且切换到非Home视图，需要转换为MD
+    if (isPdfTab && key !== 'home') {
+      // PDF tab（临时或正式）：转为 PDF→MD 的正式新文件 tab
+      eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId })
+      return
+    }
+    
+    // 其他预览tab的处理
     if (activeTab.preview && key !== 'home') {
-      const path = (activeTab.path || activeDocument.value?.path || '').toLowerCase()
-      const isPdfPreview =
-        path.endsWith('.pdf') &&
-        (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
-      if (isPdfPreview) {
-        // PDF 临时 tab：与双击一致，转为 PDF→MD 的正式新文件 tab（临时 tab 关闭，新建带 MD 内容的 tab）
-        eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId })
-        return
-      }
       workspace.pinTab(activeTabId)
     }
     workspace.updateDocumentLastView(activeTabId, key as DocumentView)

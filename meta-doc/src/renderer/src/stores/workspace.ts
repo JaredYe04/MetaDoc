@@ -483,9 +483,13 @@ function removeTab(id: string): void {
           // 标记文件正在关闭
           if (ipcRenderer.invoke) {
             await ipcRenderer.invoke('mark-file-closing', doc.path)
+            // 对于预览tab，需要释放文件占用，允许再次打开
+            if (tab.preview) {
+              await ipcRenderer.invoke('release-file-claim', doc.path)
+            }
           }
           const logger = createRendererLogger('Workspace')
-          logger.debug('停止文件监听', { filePath: doc.path, tabId: id })
+          logger.debug('停止文件监听', { filePath: doc.path, tabId: id, isPreview: tab.preview })
         }
       } catch (error) {
         const logger = createRendererLogger('Workspace')

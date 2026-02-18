@@ -52,14 +52,15 @@
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
             <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
+            <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
             <el-skeleton
-              v-if="isRendering"
+              v-show="isRendering"
               :rows="15"
               animated
               class="content-preview-skeleton"
             />
             <div
-              v-else
+              v-show="!isRendering"
               ref="monacoPreviewRef"
               class="content-preview monaco-preview"
             ></div>
@@ -98,14 +99,15 @@
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
             <!-- 其他格式：使用Markdown预览 -->
+            <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
             <el-skeleton
-              v-if="isRendering"
+              v-show="isRendering"
               :rows="15"
               animated
               class="content-preview-skeleton"
             />
             <div
-              v-else
+              v-show="!isRendering"
               ref="previewContainerRef"
               class="content-preview"
               :class="themeState.currentTheme.mdeditorClass"
@@ -517,15 +519,62 @@ const updateMonacoPreview = () => {
 
 // 渲染预览内容（Markdown格式）
 const renderPreview = async () => {
+  // 首先检查是否应该显示预览
+  if (!showDocumentPreview.value) {
+    logger.debug('renderPreview: showDocumentPreview 为 false，跳过渲染')
+    return
+  }
+  
   if (isPdfTab.value) return
-  if (!previewContainerRef.value || isPlainTextFormat.value) return
+  if (isPlainTextFormat.value) return
+  
+  // 确保容器存在
+  if (!previewContainerRef.value) {
+    // 如果 showDocumentPreview 为 false，这是正常的（比如系统 tab），不需要警告
+    if (!showDocumentPreview.value) {
+      logger.debug('renderPreview: showDocumentPreview 为 false，容器不存在是正常的')
+      return
+    }
+    
+    logger.debug('预览容器不存在，等待 DOM 更新', {
+      showDocumentPreview: showDocumentPreview.value,
+      activeTab: activeTab.value?.kind,
+      needsFormatSelection: needsFormatSelection.value
+    })
+    // 等待一下再重试
+    await nextTick()
+    await nextTick() // 再等待一次，确保 DOM 完全更新
+    
+    // 再次检查条件
+    if (!showDocumentPreview.value) {
+      logger.debug('renderPreview: DOM 更新后 showDocumentPreview 变为 false，跳过渲染')
+      return
+    }
+    
+    if (!previewContainerRef.value) {
+      // 只有在 showDocumentPreview 为 true 但容器仍然不存在时才报错
+      logger.error('预览容器仍然不存在，无法渲染', {
+        showDocumentPreview: showDocumentPreview.value,
+        activeTab: activeTab.value,
+        needsFormatSelection: needsFormatSelection.value
+      })
+      return
+    }
+  }
 
-  const container = previewContainerRef.value as HTMLDivElement
+  // 不要保存容器引用，每次都从 ref 获取最新的引用
   let markdown = previewMarkdown.value
 
   // 修复：即使内容为空，也显示空内容提示，而不是清空容器
   if (!markdown || markdown.trim() === '') {
+    // 获取最新的容器引用
+    const container = previewContainerRef.value as HTMLDivElement | null
+    if (!container) {
+      logger.debug('renderPreview: 容器不存在，跳过空内容渲染')
+      return
+    }
     const primaryColor = themeState.currentTheme.primaryColor || '#6366f1'
+    
     const emptyContentHtml = `
       <div style="
         display: flex;
@@ -606,6 +655,20 @@ const renderPreview = async () => {
 
   try {
     isRendering.value = true
+    
+    // 获取最新的容器引用
+    const initialContainer = previewContainerRef.value as HTMLDivElement | null
+    logger.debug('开始渲染预览', {
+      markdownLength: markdown?.length || 0,
+      docPath: currentFilePath.value,
+      containerExists: !!initialContainer
+    })
+    
+    if (!initialContainer) {
+      logger.warn('容器不存在，无法渲染')
+      return
+    }
+    
     // 预览渲染需要 file:// 协议，以便浏览器能够加载本地图片
     // 转换策略：
     // 1. 先转换为 HTTP URL（统一格式，处理相对路径和预渲染的图表）
@@ -617,14 +680,150 @@ const renderPreview = async () => {
     const processedMarkdown = await local2fileProtocol(markdown, docPath)
 
     const linkBase = currentLinkBase.value
-    await renderMarkdownPreview(container, processedMarkdown, {
-      linkBase: linkBase,
-      renderCode: false,
-      renderMath: false
+    
+    // 确保容器完全准备好（参考 VditorPreview.vue 的实现）
+    // 注意：由于使用了 v-show，容器应该始终存在，但我们需要等待 DOM 更新
+    await nextTick()
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    await nextTick()
+    
+    // 每次都从 ref 获取最新的容器引用，不要使用之前保存的引用
+    // 使用 v-show 后，容器应该始终存在（除非组件被卸载）
+    let container = previewContainerRef.value as HTMLDivElement | null
+    if (!container) {
+      logger.warn('容器在准备过程中不存在，等待重试', {
+        showDocumentPreview: showDocumentPreview.value,
+        isRendering: isRendering.value,
+        note: '这不应该发生，因为使用了 v-show'
+      })
+      // 等待一下再重试
+      await nextTick()
+      await new Promise(resolve => requestAnimationFrame(resolve))
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 100))
+      container = previewContainerRef.value as HTMLDivElement | null
+      if (!container) {
+        logger.error('重试后容器仍然不存在', {
+          showDocumentPreview: showDocumentPreview.value,
+          isRendering: isRendering.value
+        })
+        return
+      }
+      logger.debug('重试后容器已找到')
+    }
+    
+    // 记录渲染前的容器状态
+    logger.debug('渲染前容器状态', {
+      containerInnerHTML: container.innerHTML.substring(0, 100),
+      containerChildren: container.children.length,
+      markdownLength: processedMarkdown?.length || 0,
+      isRendering: isRendering.value,
+      containerVisible: window.getComputedStyle(container).display !== 'none'
     })
+    
+    try {
+      // 注意：启用代码和数学公式渲染，确保内容能正确显示
+      await renderMarkdownPreview(container, processedMarkdown, {
+        linkBase: linkBase,
+        renderCode: true,  // 启用代码渲染
+        renderMath: true   // 启用数学公式渲染
+      })
+      
+      // 等待 DOM 更新和 Vditor 完成渲染（使用 requestAnimationFrame 确保渲染完成）
+      await nextTick()
+      await new Promise(resolve => requestAnimationFrame(resolve))
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 200)) // 给 Vditor 更多时间完成渲染
+      
+      // 再次获取最新的容器引用（可能在等待过程中发生了变化）
+      const currentContainer = previewContainerRef.value as HTMLDivElement | null
+      if (!currentContainer) {
+        logger.warn('容器在渲染后不存在')
+        return
+      }
+      
+      // 如果容器引用发生了变化，使用新的容器
+      const finalContainer = currentContainer === container ? container : currentContainer
+      
+      // 记录渲染后的容器状态
+      const afterRenderState = {
+        containerInnerHTML: finalContainer.innerHTML.substring(0, 200),
+        containerChildren: finalContainer.children.length,
+        containerTextContent: finalContainer.textContent?.substring(0, 100),
+        hasVditorPreview: !!finalContainer.querySelector('.vditor-preview'),
+        hasMdEditorPreview: !!finalContainer.querySelector('.md-editor-preview'),
+        containerStyle: window.getComputedStyle(finalContainer).display,
+        containerVisible: window.getComputedStyle(finalContainer).visibility !== 'hidden',
+        containerOpacity: window.getComputedStyle(finalContainer).opacity,
+        containerHeight: finalContainer.offsetHeight,
+        containerWidth: finalContainer.offsetWidth,
+        containerParentVisible: finalContainer.parentElement ? window.getComputedStyle(finalContainer.parentElement).display !== 'none' : false,
+        containerChanged: finalContainer !== container
+      }
+      
+      logger.debug('渲染后容器状态', afterRenderState)
+      
+      // 如果容器仍然是空的，记录警告并尝试重新渲染
+      if (!finalContainer.innerHTML || finalContainer.innerHTML.trim() === '') {
+        logger.warn('渲染后容器仍然为空！尝试重新渲染', {
+          ...afterRenderState,
+          markdownPreview: processedMarkdown.substring(0, 200)
+        })
+        
+        // 尝试再次渲染（可能是 Vditor.preview 没有正确执行）
+        try {
+          finalContainer.innerHTML = '<p>正在加载预览...</p>'
+          await renderMarkdownPreview(finalContainer, processedMarkdown, {
+            linkBase: linkBase,
+            renderCode: true,
+            renderMath: true
+          })
+          await nextTick()
+          await new Promise(resolve => setTimeout(resolve, 300))
+          
+          // 再次检查容器
+          const retryContainer = previewContainerRef.value as HTMLDivElement | null
+          const checkContainer = retryContainer || finalContainer
+          
+          if (!checkContainer.innerHTML || checkContainer.innerHTML.trim() === '') {
+            logger.error('重新渲染后容器仍然为空！')
+            checkContainer.innerHTML = `<p style="color: var(--console-err, #fe8771);">预览渲染失败，请刷新页面重试</p>`
+          }
+        } catch (retryError) {
+          logger.error('重新渲染失败', retryError)
+          const errorContainer = previewContainerRef.value as HTMLDivElement | null
+          if (errorContainer) {
+            errorContainer.innerHTML = `<p style="color: var(--console-err, #fe8771);">预览渲染失败: ${retryError instanceof Error ? retryError.message : String(retryError)}</p>`
+          }
+        }
+      }
+      
+      logger.debug('预览渲染完成')
+    } catch (renderError) {
+      logger.error('renderMarkdownPreview 执行出错', renderError)
+      throw renderError // 重新抛出，让外层 catch 处理
+    }
   } catch (error) {
     logger.error('渲染预览失败', error)
-    container.innerHTML = `<p style="color: var(--console-err, #fe8771);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    container.innerHTML = `
+      <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 200px;
+        color: ${themeState.currentTheme.textColor};
+        opacity: 0.7;
+        font-size: 14px;
+        text-align: center;
+        padding: 24px;
+      ">
+        <p style="margin: 0; color: var(--console-err, #fe8771);">渲染失败: ${errorMessage}</p>
+        <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.6;">请检查文档内容或刷新页面重试</p>
+      </div>
+    `
   } finally {
     isRendering.value = false
   }
@@ -633,27 +832,54 @@ const renderPreview = async () => {
 // 监听预览内容变化
 watch(
   [previewMarkdown, () => themeState.currentTheme.type, showDocumentPreview, isPlainTextFormat],
-  () => {
-    if (!showDocumentPreview.value) return
+  (newValues, oldValues) => {
+    // 如果 showDocumentPreview 为 false，直接返回，不执行任何操作
+    if (!showDocumentPreview.value) {
+      logger.debug('watch: showDocumentPreview 为 false，跳过渲染', {
+        activeTab: activeTab.value?.kind,
+        activeDocument: !!activeDocument.value
+      })
+      return
+    }
+    
+    // 只有在 showDocumentPreview 为 true 时才执行渲染
     nextTick(() => {
-      if (isPlainTextFormat.value) {
-        // 纯文本格式：使用Monaco预览
-        if (monacoPreviewEditor) {
-          updateMonacoPreview()
-        } else {
-          initMonacoPreview()
+      // 确保 DOM 已经更新
+      nextTick(() => {
+        // 再次检查，确保条件仍然满足（可能在 DOM 更新过程中条件发生了变化）
+        if (!showDocumentPreview.value) {
+          logger.debug('watch: DOM 更新后 showDocumentPreview 变为 false，跳过渲染')
+          return
         }
-        // 同步主题
-        syncMonacoPreviewTheme()
-        // 加载文件统计信息
-        loadFileStats()
-      } else {
-        // 其他格式：使用Markdown预览
-        renderPreview()
-      }
+        
+        // 确保容器存在（对于非纯文本格式）
+        if (!isPlainTextFormat.value && !previewContainerRef.value) {
+          logger.warn('watch: 预览容器不存在，跳过渲染', {
+            showDocumentPreview: showDocumentPreview.value,
+            isPlainTextFormat: isPlainTextFormat.value
+          })
+          return
+        }
+        
+        if (isPlainTextFormat.value) {
+          // 纯文本格式：使用Monaco预览
+          if (monacoPreviewEditor) {
+            updateMonacoPreview()
+          } else {
+            initMonacoPreview()
+          }
+          // 同步主题
+          syncMonacoPreviewTheme()
+          // 加载文件统计信息
+          loadFileStats()
+        } else {
+          // 其他格式：使用Markdown预览
+          renderPreview()
+        }
+      })
     })
   },
-  { immediate: false }
+  { immediate: true }
 )
 
 // 监听文件路径变化，重新加载文件统计信息
@@ -685,16 +911,35 @@ onMounted(() => {
   })
 
   // 初始渲染（只在需要显示文档预览时）
+  // 使用多个 nextTick 确保 DOM 完全更新
   nextTick(() => {
-    if (showDocumentPreview.value) {
-      if (isPlainTextFormat.value) {
-        initMonacoPreview()
-        // 加载文件统计信息
-        loadFileStats()
+    nextTick(() => {
+      logger.debug('Home.vue mounted', {
+        showDocumentPreview: showDocumentPreview.value,
+        isPlainTextFormat: isPlainTextFormat.value,
+        activeTab: activeTab.value?.id,
+        activeDocument: !!activeDocument.value,
+        previewMarkdownLength: previewMarkdown.value?.length || 0,
+        previewContainerRef: !!previewContainerRef.value,
+        monacoPreviewRef: !!monacoPreviewRef.value
+      })
+      
+      if (showDocumentPreview.value) {
+        if (isPlainTextFormat.value) {
+          initMonacoPreview()
+          // 加载文件统计信息
+          loadFileStats()
+        } else {
+          renderPreview()
+        }
       } else {
-        renderPreview()
+        logger.debug('不显示文档预览', {
+          tab: activeTab.value,
+          currentFilePath: currentFilePath.value,
+          format: activeDocument.value?.format
+        })
       }
-    }
+    })
   })
 })
 

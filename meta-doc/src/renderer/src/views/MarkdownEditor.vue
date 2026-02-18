@@ -93,7 +93,7 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { ElButton, ElDialog, ElLoading } from 'element-plus'
+import { ElButton, ElDialog, ElLoading, ElMessageBox, ElMessage } from 'element-plus'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import '../assets/aero-div.css'
@@ -102,7 +102,7 @@ import '../assets/aero-input.css'
 import '../assets/title-menu.css'
 import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger.ts'
-import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils'
+import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree, convertLatexDelimiters } from '../utils/md-utils'
 import { wholeArticleContextPrompt } from '../utils/prompts.ts'
 import TitleMenu from '../components/TitleMenu.vue'
 import SectionOptimizer from '../components/SectionOptimizer.vue'
@@ -999,6 +999,55 @@ const handleInsertGraph = async () => {
   }
 }
 
+// 处理 LaTeX 公式格式转换
+const handleConvertLatexFormulas = async () => {
+  if (!vditor.value || !props.tabId) {
+    eventBus.emit('show-warning', t('article.toolbar.convert_latex_formulas_no_editor', '编辑器未就绪'))
+    return
+  }
+
+  try {
+    // 显示确认对话框
+    await ElMessageBox.confirm(
+      t('article.toolbar.convert_latex_formulas_message'),
+      t('article.toolbar.convert_latex_formulas_title'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'info'
+      }
+    )
+
+    // 获取当前文档内容
+    const currentContent = vditor.value.getValue()
+    
+    // 检查是否有需要转换的内容
+    const hasInlineFormula = /\\\([\s\S]*?\\\)/.test(currentContent)
+    const hasBlockFormula = /\\\[[\s\S]*?\\\]/.test(currentContent)
+    
+    if (!hasInlineFormula && !hasBlockFormula) {
+      ElMessage.info(t('article.toolbar.convert_latex_formulas_no_match'))
+      return
+    }
+
+    // 执行转换
+    const convertedContent = convertLatexDelimiters(currentContent)
+    
+    // 更新编辑器内容
+    scheduleSetValue(convertedContent, { clearHistory: false, timeoutMs: 0 })
+    
+    // 显示成功消息
+    ElMessage.success(t('article.toolbar.convert_latex_formulas_success'))
+  } catch (error) {
+    // 用户取消操作
+    if (error === 'cancel') {
+      return
+    }
+    logger.error('转换 LaTeX 公式格式失败:', error)
+    eventBus.emit('show-error', error instanceof Error ? error.message : String(error))
+  }
+}
+
 const openSectionOptimizerFromContext = async () => {
   logger.debug('[MarkdownEditor] ========== openSectionOptimizerFromContext 开始 ==========')
 
@@ -1764,6 +1813,32 @@ onMounted(async () => {
     // 导入图片上传服务
     const { uploadImage, processImagePath } = await import('../utils/image-upload-service')
 
+    // 辅助函数：读取 SVG 文件内容并返回 SVG 字符串
+    const getSvgIconContent = async (svgUrl: string): Promise<string> => {
+      try {
+        const response = await fetch(svgUrl)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch SVG: ${response.statusText}`)
+        }
+        const svgText = await response.text()
+        // 提取 SVG 内容，移除 XML 声明和 doctype（如果有）
+        const svgMatch = svgText.match(/<svg[\s\S]*?<\/svg>/i)
+        if (svgMatch) {
+          // 调整 SVG 尺寸以适应工具栏
+          return svgMatch[0].replace(/width="[^"]*"/i, 'width="20"').replace(/height="[^"]*"/i, 'height="20"')
+        }
+        return svgText
+      } catch (error) {
+        logger.warn('读取 SVG 图标失败，使用默认图标:', error)
+        // 回退到默认图标
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+      }
+    }
+
+    // 获取数学公式图标（根据当前主题）
+    const mathIconUrl = (themeState.currentTheme as any).MathIcon
+    const mathIconSvg = await getSvgIconContent(mathIconUrl)
+
     vditor.value = new Vditor(props.editorDomId, {
       lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
       mode: vditorMode as 'wysiwyg' | 'ir' | 'sv',
@@ -1976,6 +2051,16 @@ onMounted(async () => {
           icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
           click() {
             eventBus.emit('search-replace')
+          }
+        },
+        {
+          name: 'convert-latex-formulas',
+          tip: t('article.toolbar.convert_latex_formulas'),
+          tipPosition: 's',
+          className: 'right',
+          icon: mathIconSvg,
+          click() {
+            handleConvertLatexFormulas()
           }
         },
         {

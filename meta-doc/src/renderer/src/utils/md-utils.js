@@ -2574,3 +2574,66 @@ export function filterMetaDataFromMd(md) {
   const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/g, '')
   return pureMd
 }
+
+/**
+ * 将 LaTeX 标准格式的公式分隔符转换为 Vditor 兼容格式
+ * - 将 \(...\) 转换为 $...$（行内公式）
+ * - 将 \[...\] 转换为 $$...$$（块级公式）
+ * 
+ * 注意：此函数会排除代码块中的内容，避免误转换
+ * 
+ * @param {string} markdown - Markdown 文本
+ * @returns {string} 转换后的 Markdown 文本
+ */
+export function convertLatexDelimiters(markdown) {
+  if (!markdown || typeof markdown !== 'string') {
+    return markdown
+  }
+
+  // 先标记代码块，避免转换代码块中的内容
+  const codeBlockRegex = /```[\s\S]*?```|`[^`\n]+`/g
+  const codeBlocks = []
+  let codeBlockIndex = 0
+  
+  // 用占位符替换代码块
+  const markdownWithoutCodeBlocks = markdown.replace(codeBlockRegex, (match) => {
+    const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`
+    codeBlocks[codeBlockIndex] = match
+    codeBlockIndex++
+    return placeholder
+  })
+
+  let result = markdownWithoutCodeBlocks
+
+  // 先转换块级公式 \[...\] 为 $$...$$
+  // 使用非贪婪匹配，确保正确匹配成对的 \[ 和 \]
+  result = result.replace(/\\\[([\s\S]*?)\\\]/g, (match, content) => {
+    // 检查是否包含未匹配的 \[ 或 \]，如果有则跳过（可能是嵌套或格式错误）
+    const openCount = (content.match(/\\\[/g) || []).length
+    const closeCount = (content.match(/\\\]/g) || []).length
+    if (openCount !== closeCount) {
+      return match // 不转换，保持原样
+    }
+    return `$$${content}$$`
+  })
+
+  // 再转换行内公式 \(...\) 为 $...$
+  // 注意：行内公式不能跨行，使用 [^\n]*? 确保不匹配换行符
+  // 这样可以避免误匹配块级公式或跨行的内容
+  result = result.replace(/\\\(([^\n]*?)\\\)/g, (match, content) => {
+    // 检查是否包含未匹配的 \( 或 \)，如果有则跳过
+    const openCount = (content.match(/\\\(/g) || []).length
+    const closeCount = (content.match(/\\\)/g) || []).length
+    if (openCount !== closeCount) {
+      return match
+    }
+    return `$${content}$`
+  })
+
+  // 恢复代码块
+  codeBlocks.forEach((codeBlock, index) => {
+    result = result.replace(`__CODE_BLOCK_${index}__`, codeBlock)
+  })
+
+  return result
+}

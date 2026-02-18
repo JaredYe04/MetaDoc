@@ -77,6 +77,8 @@ import RedoIconBlack from '../assets/icons/redo-black.svg'
 import RedoIconWhite from '../assets/icons/redo-white.svg'
 import ClearIconBlack from '../assets/icons/clear-black.svg'
 import ClearIconWhite from '../assets/icons/clear-white.svg'
+import MathIconBlack from '../assets/icons/math-black.svg'
+import MathIconWhite from '../assets/icons/math-white.svg'
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -290,7 +292,8 @@ const generateThemeIcons = (isDarkMode) => {
       light: MaximizeIconBlack,
       dark: MaximizeIconWhite
     }),
-    RestoreIcon: selectIconByTheme(isDarkMode, { light: RestoreIconBlack, dark: RestoreIconWhite })
+    RestoreIcon: selectIconByTheme(isDarkMode, { light: RestoreIconBlack, dark: RestoreIconWhite }),
+    MathIcon: selectIconByTheme(isDarkMode, { light: MathIconBlack, dark: MathIconWhite })
   }
 }
 

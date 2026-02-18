@@ -1,5 +1,8 @@
 <template>
   <div id="particle-bg" class="homepage">
+    <!-- 动态背景动画 -->
+    <DynamicBackgroundAnimation />
+    
     <!-- 极简网格装饰 -->
     <div class="grid-decoration"></div>
 
@@ -61,6 +64,25 @@
               <ArrowRight />
             </el-icon>
           </div>
+
+          <div 
+            class="action-card manual-card" 
+            :class="{ 'highlight-pulse': showManualHighlight }"
+            @click="openUserManual"
+          >
+            <div class="action-icon">
+              <el-icon :size="22">
+                <Reading />
+              </el-icon>
+            </div>
+            <div class="action-content">
+              <h3 class="action-title">{{ $t('home.button.userManual') || '使用教程' }}</h3>
+              <p class="action-desc">{{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}</p>
+            </div>
+            <el-icon class="action-arrow" :size="16">
+              <ArrowRight />
+            </el-icon>
+          </div>
         </div>
 
         <!-- 最近文档列表 -->
@@ -100,6 +122,7 @@
     </el-scrollbar>
 
     <QuickStartPanel v-if="quickStartStage !== 'inactive'" @close="handleQuickStartClose" />
+    <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
   </div>
 </template>
 
@@ -108,18 +131,21 @@ import { ref, computed, onMounted, onBeforeUnmount, onActivated } from 'vue'
 import { useI18n } from 'vue-i18n'
 import QuickStartPanel from '../components/home/QuickStartPanel.vue'
 import DistortionBanner from '../components/home/DistortionBanner.vue'
+import DynamicBackgroundAnimation from '../components/home/DynamicBackgroundAnimation.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
-import { getSetting } from '../utils/settings'
+// 粒子效果相关代码已注释，以备后用
+// import { getSetting } from '../utils/settings'
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
 import { themeState, mixColors } from '../utils/themes'
-import { ParticleEffect } from '../utils/particle-effect'
+// 粒子效果相关代码已注释，以备后用
+// import { ParticleEffect } from '../utils/particle-effect'
 import type { IpcRendererLike } from '../utils/particle-effect'
-import { extractPlainTextFromLatex } from '../utils/latex-utils'
+// import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
 import {
   Document,
@@ -127,9 +153,13 @@ import {
   FolderOpened,
   ArrowRight,
   Close,
-  DocumentAdd
+  DocumentAdd,
+  Reading
 } from '@element-plus/icons-vue'
 import { basename } from '../utils/path-utils'
+import { hasCompletedProfile } from '../utils/user-profile'
+import { useWorkspace } from '../stores/workspace'
+import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 
 const { t } = useI18n()
 
@@ -153,6 +183,9 @@ const maybeWindow =
 const quickStartStage = ref<'inactive' | 'format' | 'markdown' | 'latex'>('inactive')
 const recentDocs = ref<string[]>([])
 const showWelcome = computed(() => quickStartStage.value === 'inactive')
+const showManualHighlight = ref(false)
+const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
+const workspace = useWorkspace()
 
 const openQuickStart = () => {
   eventBus.emit('reset-quickstart')
@@ -171,6 +204,23 @@ const openNewDoc = () => {
 
 const openFile = () => {
   eventBus.emit('open-doc')
+}
+
+const openUserManual = () => {
+  workspace.openSystemTab('/user-manual', t('userManual.title') || '使用教程')
+  // 如果首次使用，显示问卷
+  checkAndShowProfileDialog()
+}
+
+const checkAndShowProfileDialog = async () => {
+  const completed = await hasCompletedProfile()
+  if (!completed && profileDialogRef.value) {
+    profileDialogRef.value.open()
+  }
+}
+
+const handleProfileSubmitted = () => {
+  showManualHighlight.value = false
 }
 
 // 获取文件名
@@ -233,85 +283,87 @@ if (maybeWindow?.electron?.ipcRenderer) {
   ipcRenderer = localIpcRenderer as IpcRendererLike
 }
 
-// 获取最后一个打开文档的内容用于粒子效果
-const lastDocumentText = ref('')
+// 粒子效果相关代码已注释，以备后用
+// // 获取最后一个打开文档的内容用于粒子效果
+// const lastDocumentText = ref('')
 
-// 监听文档打开事件，获取文档内容用于粒子效果
-const updateLastDocumentText = async () => {
-  try {
-    // 先尝试从 workspace 获取当前打开的文档
-    const { useWorkspace } = await import('../stores/workspace')
-    const workspace = useWorkspace()
-    const tabs = workspace.tabs
+// // 监听文档打开事件，获取文档内容用于粒子效果
+// const updateLastDocumentText = async () => {
+//   try {
+//     // 先尝试从 workspace 获取当前打开的文档
+//     const { useWorkspace } = await import('../stores/workspace')
+//     const workspace = useWorkspace()
+//     const tabs = workspace.tabs
 
-    // 查找最近打开的文件类型的 tab
-    const fileTab = tabs.find((t) => t.kind === 'file' && t.path)
-    if (fileTab) {
-      const doc = workspace.ensureDocument(fileTab.id)
-      if (doc) {
-        // 根据文档格式选择文本源
-        if (doc.format === 'tex') {
-          lastDocumentText.value = doc.tex ?? ''
-        } else {
-          lastDocumentText.value = doc.markdown ?? ''
-        }
-        return
-      }
-    }
+//     // 查找最近打开的文件类型的 tab
+//     const fileTab = tabs.find((t) => t.kind === 'file' && t.path)
+//     if (fileTab) {
+//       const doc = workspace.ensureDocument(fileTab.id)
+//       if (doc) {
+//         // 根据文档格式选择文本源
+//         if (doc.format === 'tex') {
+//           lastDocumentText.value = doc.tex ?? ''
+//         } else {
+//           lastDocumentText.value = doc.markdown ?? ''
+//         }
+//         return
+//       }
+//     }
 
-    // 如果 workspace 中没有打开的文档，尝试从最近文档列表读取
-    const docs = await getRecentDocs()
-    if (docs.length > 0 && ipcRenderer?.invoke) {
-      const lastDocPath = docs[0]
-      try {
-        const content = (await ipcRenderer.invoke('read-file-content', lastDocPath)) as string
-        lastDocumentText.value = content || ''
-      } catch (error) {
-        logger.warn('读取文档内容失败', error)
-        lastDocumentText.value = ''
-      }
-    } else {
-      lastDocumentText.value = ''
-    }
-  } catch (error) {
-    logger.warn('更新文档文本失败', error)
-    lastDocumentText.value = ''
-  }
-}
+//     // 如果 workspace 中没有打开的文档，尝试从最近文档列表读取
+//     const docs = await getRecentDocs()
+//     if (docs.length > 0 && ipcRenderer?.invoke) {
+//       const lastDocPath = docs[0]
+//       try {
+//         const content = (await ipcRenderer.invoke('read-file-content', lastDocPath)) as string
+//         lastDocumentText.value = content || ''
+//       } catch (error) {
+//         logger.warn('读取文档内容失败', error)
+//         lastDocumentText.value = ''
+//       }
+//     } else {
+//       lastDocumentText.value = ''
+//     }
+//   } catch (error) {
+//     logger.warn('更新文档文本失败', error)
+//     lastDocumentText.value = ''
+//   }
+// }
 
-// 初始化粒子效果（使用最后一个打开文档的内容）
-const particleEffectInstance = new ParticleEffect({
-  logger,
-  eventBus,
-  getSetting,
-  ipcRenderer,
-  particleMarkdown: computed(() => lastDocumentText.value),
-  extractPlainTextFromLatex,
-  containerId: 'particle-bg'
-})
+// // 初始化粒子效果（使用最后一个打开文档的内容）
+// const particleEffectInstance = new ParticleEffect({
+//   logger,
+//   eventBus,
+//   getSetting,
+//   ipcRenderer,
+//   particleMarkdown: computed(() => lastDocumentText.value),
+//   extractPlainTextFromLatex,
+//   containerId: 'particle-bg'
+// })
 
-const scheduleParticleEffect = () => {
-  const runner = async () => {
-    // 先更新文档文本
-    await updateLastDocumentText()
-    // 然后初始化粒子效果
-    await particleEffectInstance.init()
-    // 触发粒子效果启用事件
-    eventBus.emit('toggle-particle-effect', {})
-  }
-  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-    window.requestIdleCallback(() =>
-      runner().catch((err) => logger.warn('粒子效果初始化失败', err))
-    )
-  } else {
-    setTimeout(() => runner().catch((err) => logger.warn('粒子效果初始化失败', err)), 0)
-  }
-}
+// const scheduleParticleEffect = () => {
+//   const runner = async () => {
+//     // 先更新文档文本
+//     await updateLastDocumentText()
+//     // 然后初始化粒子效果
+//     await particleEffectInstance.init()
+//     // 触发粒子效果启用事件
+//     eventBus.emit('toggle-particle-effect', {})
+//   }
+//   if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+//     window.requestIdleCallback(() =>
+//       runner().catch((err) => logger.warn('粒子效果初始化失败', err))
+//     )
+//   } else {
+//     setTimeout(() => runner().catch((err) => logger.warn('粒子效果初始化失败', err)), 0)
+//   }
+// }
 
-onMounted(() => {
-  scheduleParticleEffect()
-  window.addEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
-  window.addEventListener('resize', () => particleEffectInstance.handleWindowResize())
+onMounted(async () => {
+  // 粒子效果相关代码已注释，以备后用
+  // scheduleParticleEffect()
+  // window.addEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
+  // window.addEventListener('resize', () => particleEffectInstance.handleWindowResize())
 
   // 监听 quickStartPanel 的状态变化
   eventBus.on('open-quickstart', () => {
@@ -325,18 +377,25 @@ onMounted(() => {
   // 加载最近文档列表
   loadRecentDocs()
 
+  // 检查是否首次使用，显示高亮动画
+  const completed = await hasCompletedProfile()
+  if (!completed) {
+    showManualHighlight.value = true
+  }
+
   // 监听文档打开成功事件，刷新最近文档列表和更新粒子效果文本
   eventBus.on('open-doc-success', () => {
     handleDocOpenSuccess()
-    // 延迟一下，确保文档已加载
-    setTimeout(() => {
-      updateLastDocumentText().then(() => {
-        // 更新后重新创建粒子
-        if (particleEffectInstance) {
-          eventBus.emit('toggle-particle-effect', {})
-        }
-      })
-    }, 500)
+    // 粒子效果相关代码已注释，以备后用
+    // // 延迟一下，确保文档已加载
+    // setTimeout(() => {
+    //   updateLastDocumentText().then(() => {
+    //     // 更新后重新创建粒子
+    //     if (particleEffectInstance) {
+    //       eventBus.emit('toggle-particle-effect', {})
+    //     }
+    //   })
+    // }, 500)
   })
 
   // 监听文档打开事件，也刷新列表
@@ -344,20 +403,22 @@ onMounted(() => {
 })
 
 // 当组件激活时（Tab 切换回来时），重新检查粒子效果设置
-onActivated(async () => {
-  // 确保粒子效果已初始化
-  if (particleEffectInstance) {
-    // 先初始化粒子效果（如果还没有初始化的话）
-    await particleEffectInstance.init()
-    // 触发粒子效果检查，确保设置改变时能实时响应
-    eventBus.emit('toggle-particle-effect', {})
-  }
-})
+// 粒子效果相关代码已注释，以备后用
+// onActivated(async () => {
+//   // 确保粒子效果已初始化
+//   if (particleEffectInstance) {
+//     // 先初始化粒子效果（如果还没有初始化的话）
+//     await particleEffectInstance.init()
+//     // 触发粒子效果检查，确保设置改变时能实时响应
+//     eventBus.emit('toggle-particle-effect', {})
+//   }
+// })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
-  window.removeEventListener('resize', () => particleEffectInstance.handleWindowResize())
-  particleEffectInstance.dispose()
+  // 粒子效果相关代码已注释，以备后用
+  // window.removeEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
+  // window.removeEventListener('resize', () => particleEffectInstance.handleWindowResize())
+  // particleEffectInstance.dispose()
   eventBus.off('open-quickstart')
   eventBus.off('open-doc-success', handleDocOpenSuccess)
   eventBus.off('open-doc', handleDocOpen)
@@ -438,8 +499,9 @@ onBeforeUnmount(() => {
   z-index: 10;
 }
 
+/* 粒子效果相关代码已注释，以备后用 */
 /* 粒子画布（排除 DistortionBanner 的 canvas） */
-#particle-bg > canvas {
+/* #particle-bg > canvas {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
@@ -448,7 +510,7 @@ onBeforeUnmount(() => {
   z-index: 1 !important;
   pointer-events: none !important;
   background: transparent !important;
-}
+} */
 
 /* ===== 内容容器 ===== */
 .center-content {
@@ -508,7 +570,7 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 820px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   animation: fadeIn 0.5s ease-out 0.08s both;
 }
@@ -786,7 +848,30 @@ onBeforeUnmount(() => {
   }
 }
 
+/* ===== 使用教程卡片高亮动画 ===== */
+.manual-card.highlight-pulse {
+  animation: highlightPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(64, 158, 255, 0.4);
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 20px rgba(64, 158, 255, 0.4);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 0 30px rgba(64, 158, 255, 0.6);
+  }
+}
+
 /* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .action-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .action-section {
     grid-template-columns: 1fr;

@@ -339,6 +339,10 @@
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
           {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>
+
+        <UISubMenuItem :icon="Reading" @click="openUserManual">
+          {{ $t('leftMenu.userManual', '使用教程') }}
+        </UISubMenuItem>
       </UISubMenu>
       <!-- 主页 -->
       <UIMenuItem
@@ -1189,6 +1193,11 @@ const openLlmStatistics = () => {
 // 打开用户反馈
 const openUserFeedback = () => {
   workspace.openSystemTab('/user-feedback', t('leftMenu.userFeedback', '用户反馈'))
+}
+
+// 打开用户手册
+const openUserManual = () => {
+  workspace.openSystemTab('/user-manual', t('leftMenu.userManual', '使用教程'))
 }
 
 // 更新全局 CSS 变量以匹配 active 背景色

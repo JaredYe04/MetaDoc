@@ -568,6 +568,25 @@ const borderColor = computed(() => {
   }
 })
 
+// 不活跃Tab的文本颜色 - 根据主题类型设置更深的灰色
+const inactiveTabTextColor = computed(() => {
+  try {
+    const isDark = themeState.currentTheme.type === 'dark'
+    // 浅色模式：使用更深的灰色（接近黑色但仍是灰色）
+    // 深色模式：使用更浅的灰色（接近白色但仍是灰色）
+    // 不混合纯黑/白色，而是使用固定的灰色值，让对比更明显
+    if (isDark) {
+      // 深色模式：使用较浅的灰色，但比默认的 secondary 更深
+      return '#bbbbbb' // 比 #cccccc 更深，但仍是灰色
+    } else {
+      // 浅色模式：使用较深的灰色，但比纯黑色浅
+      return '#555555' // 比 #666666 更深，但仍是灰色
+    }
+  } catch {
+    return themeState.currentTheme.type === 'dark' ? '#bbbbbb' : '#555555'
+  }
+})
+
 // 窗口控制函数
 const handleMinimize = () => {
   let ipcRenderer: any = null
@@ -1501,7 +1520,7 @@ onUnmounted(() => {
 .main-tab-label__text {
   font-size: 13px;
   font-weight: 400;
-  color: var(--el-text-color-secondary);
+  color: v-bind('inactiveTabTextColor');
   overflow: hidden !important; /* 确保溢出隐藏 */
   text-overflow: ellipsis !important; /* 确保显示省略号 */
   white-space: nowrap !important; /* 确保不换行 */

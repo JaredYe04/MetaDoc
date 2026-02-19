@@ -1,258 +1,404 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import zh_CN from '../locales/zh_cn.json'
-import en_US from '../locales/en_us.json'
+import type { 
+  ManualIndex, 
+  ManualArticle, 
+  ManualCategory, 
+  UserProfile, 
+  ArticleProgress,
+  BreadcrumbItem,
+  SearchResult
+} from '../manuals/types'
+import {
+  loadManualIndex,
+  getAllArticles,
+  getArticleById,
+  generateLearningPath,
+  buildLearningGraph,
+  calculateProgress,
+  parseInternalLinks,
+  convertInternalLinksToHTML
+} from '../manuals/utils'
+import { getUserProfile } from '../utils/user-profile'
 
-export interface ManualSection {
-  id: string
-  title: string
-  path: string[]
-  children?: ManualSection[]
-}
+// 导出类型供外部使用
+export type { UserProfile, ManualArticle, ManualCategory }
 
-export interface UserProfile {
-  scenario?: 'student' | 'researcher' | 'it' | 'office' | 'other'
-  markdownLevel?: 0 | 1 | 2 | 3
-  latexLevel?: 0 | 1 | 2 | 3
-  knowsAgent?: boolean
-  completedAt?: string
-}
-
-// 当前选中的章节
-const currentSection = ref<string>('')
+// 当前选中的文档ID
+const currentArticleId = ref<string>('')
 
 // 用户画像
 const userProfile = ref<UserProfile | null>(null)
 
-// 构建导航树结构
-function buildNavigationTree(t: (key: string) => string): ManualSection[] {
-  return [
-    {
-      id: 'core',
-      title: t('userManual.navigation.core'),
-      path: ['core'],
-      children: [
-        {
-          id: 'core.fileOperations',
-          title: t('userManual.core.fileOperations.title'),
-          path: ['core', 'fileOperations']
-        },
-        {
-          id: 'core.editor',
-          title: t('userManual.core.editor.title'),
-          path: ['core', 'editor']
-        },
-        {
-          id: 'core.multiTab',
-          title: t('userManual.core.multiTab.title'),
-          path: ['core', 'multiTab']
-        },
-        {
-          id: 'core.multiWindow',
-          title: t('userManual.core.multiWindow.title'),
-          path: ['core', 'multiWindow']
-        },
-        {
-          id: 'core.export',
-          title: t('userManual.core.export.title'),
-          path: ['core', 'export']
-        }
-      ]
-    },
-    {
-      id: 'markdown',
-      title: t('userManual.navigation.markdown'),
-      path: ['markdown'],
-      children: [
-        {
-          id: 'markdown.basic',
-          title: t('userManual.markdown.basic.title'),
-          path: ['markdown', 'basic']
-        },
-        {
-          id: 'markdown.advanced',
-          title: t('userManual.markdown.advanced.title'),
-          path: ['markdown', 'advanced']
-        }
-      ]
-    },
-    {
-      id: 'latex',
-      title: t('userManual.navigation.latex'),
-      path: ['latex'],
-      children: [
-        {
-          id: 'latex.basic',
-          title: t('userManual.latex.basic.title'),
-          path: ['latex', 'basic']
-        },
-        {
-          id: 'latex.advanced',
-          title: t('userManual.latex.advanced.title'),
-          path: ['latex', 'advanced']
-        }
-      ]
-    },
-    {
-      id: 'charts',
-      title: t('userManual.navigation.charts'),
-      path: ['charts'],
-      children: [
-        {
-          id: 'charts.introduction',
-          title: t('userManual.charts.introduction.title'),
-          path: ['charts', 'introduction']
-        },
-        {
-          id: 'charts.mermaid',
-          title: t('userManual.charts.mermaid.title'),
-          path: ['charts', 'mermaid']
-        },
-        {
-          id: 'charts.plantuml',
-          title: t('userManual.charts.plantuml.title'),
-          path: ['charts', 'plantuml']
-        },
-        {
-          id: 'charts.echarts',
-          title: t('userManual.charts.echarts.title'),
-          path: ['charts', 'echarts']
-        }
-      ]
-    },
-    {
-      id: 'ai',
-      title: t('userManual.navigation.ai'),
-      path: ['ai'],
-      children: [
-        {
-          id: 'ai.llmConfig',
-          title: t('userManual.ai.llmConfig.title'),
-          path: ['ai', 'llmConfig']
-        },
-        {
-          id: 'ai.tools',
-          title: t('userManual.ai.tools.title'),
-          path: ['ai', 'tools']
-        },
-        {
-          id: 'ai.chat',
-          title: t('userManual.ai.chat.title'),
-          path: ['ai', 'chat']
-        }
-      ]
-    },
-    {
-      id: 'agent',
-      title: t('userManual.navigation.agent'),
-      path: ['agent'],
-      children: [
-        {
-          id: 'agent.introduction',
-          title: t('userManual.agent.introduction.title'),
-          path: ['agent', 'introduction']
-        },
-        {
-          id: 'agent.capabilities',
-          title: t('userManual.agent.capabilities.title'),
-          path: ['agent', 'capabilities']
-        },
-        {
-          id: 'agent.risks',
-          title: t('userManual.agent.risks.title'),
-          path: ['agent', 'risks']
-        }
-      ]
-    },
-    {
-      id: 'design',
-      title: t('userManual.navigation.design'),
-      path: ['design'],
-      children: [
-        {
-          id: 'design.philosophy',
-          title: t('userManual.design.philosophy.title'),
-          path: ['design', 'philosophy']
-        }
-      ]
+// 文档索引
+const manualIndex = ref<ManualIndex | null>(null)
+
+// 学习路径（文档ID列表）
+const learningPath = ref<string[]>([])
+
+// 文档进度映射
+const articleProgress = ref<Map<string, ArticleProgress>>(new Map())
+
+// 面包屑导航历史
+const breadcrumbHistory = ref<BreadcrumbItem[]>([])
+
+// 导航来源标志：'navigation' | 'link' | 'search' | 'breadcrumb'
+const navigationSource = ref<'navigation' | 'link' | 'search' | 'breadcrumb'>('navigation')
+
+// 搜索查询
+const searchQuery = ref('')
+
+// 搜索结果
+const searchResults = ref<SearchResult[]>([])
+
+/**
+ * 初始化文档索引
+ */
+async function initManualIndex() {
+  if (!manualIndex.value) {
+    manualIndex.value = await loadManualIndex()
+  }
+  return manualIndex.value
+}
+
+/**
+ * 构建导航树结构（基于索引）
+ */
+function buildNavigationTree(index: ManualIndex, locale: string): Array<{
+  id: string
+  title: string
+  icon?: string
+  children?: Array<{ id: string; title: string }>
+}> {
+  return index.categories.map(category => ({
+    id: category.id,
+    title: category.title[locale] || category.title.en_US || category.id,
+    icon: category.icon,
+    children: category.articles.map(article => ({
+      id: article.id,
+      title: article.title[locale] || article.title.en_US || article.id
+    }))
+  }))
+}
+
+// 预加载所有文档（使用 import.meta.glob）
+const manualModules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' })
+
+/**
+ * 加载文档内容
+ */
+async function loadArticleContent(articleId: string, locale: string): Promise<string> {
+  const article = await getArticleById(articleId)
+  if (!article) {
+    return ''
+  }
+
+  try {
+    // 标准化locale格式
+    const normalizedLocale = locale.replace('-', '_').toLowerCase()
+    const localeMap: Record<string, string> = {
+      'zh_cn': 'zh_CN',
+      'en_us': 'en_US',
+      'ja_jp': 'ja_JP',
+      'ko_kr': 'ko_KR',
+      'fr_fr': 'fr_FR',
+      'de_de': 'de_DE'
     }
-  ]
+    const targetLocale = localeMap[normalizedLocale] || 'zh_CN'
+
+    // 构建文件路径
+    const filePath = `../manuals/${targetLocale}/${article.file}`
+    
+    // 从预加载的模块中获取
+    const moduleKey = Object.keys(manualModules).find(key => 
+      key.includes(`manuals/${targetLocale}/${article.file}`)
+    )
+    
+    if (moduleKey && manualModules[moduleKey]) {
+      return manualModules[moduleKey] as string
+    }
+    
+    console.warn(`未找到文档: ${filePath}`)
+    return ''
+  } catch (error) {
+    console.error(`加载文档失败: ${articleId}`, error)
+    return ''
+  }
+}
+
+/**
+ * 更新文档进度
+ */
+function updateArticleProgress(articleId: string, progress: Partial<ArticleProgress>) {
+  const current = articleProgress.value.get(articleId) || {
+    articleId,
+    read: false,
+    readTime: 0,
+    lastAccessed: Date.now(),
+    completion: 0
+  }
+
+  articleProgress.value.set(articleId, {
+    ...current,
+    ...progress,
+    lastAccessed: Date.now()
+  })
+
+  // 保存到本地存储
+  saveProgressToStorage()
+}
+
+/**
+ * 标记文档为已读
+ */
+function markArticleAsRead(articleId: string) {
+  updateArticleProgress(articleId, {
+    read: true,
+    completion: 100
+  })
+}
+
+/**
+ * 从本地存储加载进度
+ */
+function loadProgressFromStorage() {
+  try {
+    const stored = localStorage.getItem('manual_progress')
+    if (stored) {
+      const data = JSON.parse(stored)
+      articleProgress.value = new Map(Object.entries(data))
+    }
+  } catch (error) {
+    console.error('加载进度失败:', error)
+  }
+}
+
+/**
+ * 加载用户画像
+ */
+async function loadUserProfile() {
+  try {
+    const profile = await getUserProfile()
+    if (profile) {
+      userProfile.value = profile
+      // 生成学习路径
+      const path = await generateLearningPath(profile)
+      learningPath.value = path
+    }
+  } catch (error) {
+    console.error('加载用户画像失败:', error)
+  }
+}
+
+/**
+ * 保存进度到本地存储
+ */
+function saveProgressToStorage() {
+  try {
+    const data = Object.fromEntries(articleProgress.value)
+    localStorage.setItem('manual_progress', JSON.stringify(data))
+  } catch (error) {
+    console.error('保存进度失败:', error)
+  }
+}
+
+/**
+ * 搜索文档
+ */
+async function performSearch(query: string): Promise<SearchResult[]> {
+  if (!query.trim()) {
+    searchResults.value = []
+    return []
+  }
+
+  const articles = await getAllArticles()
+  const resultsMap = new Map<string, SearchResult>() // 使用 Map 去重
+  const lowerQuery = query.toLowerCase()
+
+  for (const article of articles) {
+    const title = article.title.zh_CN || article.title.en_US || ''
+    let bestScore = 0
+
+    // 搜索标题
+    if (title.toLowerCase().includes(lowerQuery)) {
+      const score = title.toLowerCase().indexOf(lowerQuery) === 0 ? 100 : 80
+      bestScore = Math.max(bestScore, score)
+    }
+
+    // 搜索标签
+    if (article.tags.some(tag => tag.toLowerCase().includes(lowerQuery))) {
+      bestScore = Math.max(bestScore, 60)
+    }
+
+    // 如果找到匹配，添加或更新结果（保留最高分）
+    if (bestScore > 0) {
+      const existing = resultsMap.get(article.id)
+      if (!existing || existing.score < bestScore) {
+        resultsMap.set(article.id, {
+          type: 'article',
+          articleId: article.id,
+          title,
+          score: bestScore
+        })
+      }
+    }
+
+    // TODO: 搜索文档内容片段（需要加载文档内容）
+  }
+
+  // 转换为数组并按相关性排序
+  const results = Array.from(resultsMap.values())
+  results.sort((a, b) => b.score - a.score)
+  searchResults.value = results
+  return results
 }
 
 export function useUserManual() {
-  const { t, locale } = useI18n()
+  const { locale } = useI18n()
   
-  // 导航树必须在 setup 函数内部创建
-  const navigationTree = computed<ManualSection[]>(() => {
-    return buildNavigationTree(t)
+  // 初始化
+  initManualIndex()
+  loadProgressFromStorage()
+  
+  // 加载用户画像
+  loadUserProfile()
+
+  // 导航树
+  const navigationTree = computed(() => {
+    if (!manualIndex.value) return []
+    const currentLocale = locale.value || 'zh_CN'
+    return buildNavigationTree(manualIndex.value, currentLocale)
   })
+
+  // 当前文档
+  const currentArticle = computed(async () => {
+    if (!currentArticleId.value) return null
+    return await getArticleById(currentArticleId.value)
+  })
+
+  // 当前文档内容
+  const currentArticleContent = ref('')
   
-  // 获取当前章节的Markdown内容
-  const getCurrentSectionContent = computed(() => {
-    if (!currentSection.value) {
-      return ''
+  // 加载当前文档内容
+  watch([currentArticleId, locale], async () => {
+    // 如果articleId为空，不加载内容（显示概览页面）
+    if (!currentArticleId.value) {
+      currentArticleContent.value = ''
+      return
     }
     
-    const path = currentSection.value.split('.')
-    const key = `userManual.${path.join('.')}.content`
-    
-    try {
-      // 直接导入JSON文件获取原始内容，避免vue-i18n解析代码块中的大括号
-      let currentLocale = locale.value || 'zh_CN'
+    if (currentArticleId.value) {
+      // 先保存当前的导航来源，因为后面会重置
+      const source = navigationSource.value
       
-      // 标准化locale格式
-      if (typeof currentLocale === 'string') {
-        currentLocale = currentLocale.replace('-', '_')
-      }
+      const content = await loadArticleContent(currentArticleId.value, locale.value || 'zh_CN')
+      currentArticleContent.value = content
       
-      // 选择对应的JSON文件
-      let localeData: any = null
-      if (currentLocale === 'zh_CN' || currentLocale === 'zh_cn') {
-        localeData = zh_CN
-      } else if (currentLocale === 'en_US' || currentLocale === 'en_us') {
-        localeData = en_US
-      } else {
-        // fallback to zh_CN
-        localeData = zh_CN
-      }
-      
-      // 递归获取嵌套的key值
-      const keys = key.split('.')
-      let value: any = localeData
-      
-      for (let i = 0; i < keys.length; i++) {
-        const k = keys[i]
-        if (value && typeof value === 'object' && k in value) {
-          value = value[k]
+      const article = await getArticleById(currentArticleId.value)
+      if (article) {
+        const currentLocale = locale.value || 'zh_CN'
+        const title = article.title[currentLocale] || article.title.en_US || article.id
+        
+        // 根据导航来源决定是否更新面包屑
+        if (source === 'link') {
+          // 从文档内链接跳转：添加到面包屑
+          // 移除重复项
+          breadcrumbHistory.value = breadcrumbHistory.value.filter(item => item.articleId !== currentArticleId.value)
+          
+          // 添加到历史
+          breadcrumbHistory.value.push({
+            articleId: currentArticleId.value,
+            title
+          })
+          
+          // 限制历史长度
+          if (breadcrumbHistory.value.length > 10) {
+            breadcrumbHistory.value = breadcrumbHistory.value.slice(-10)
+          }
+        } else if (source === 'navigation' || source === 'search') {
+          // 从导航或搜索切换：重置面包屑
+          breadcrumbHistory.value = [{
+            articleId: currentArticleId.value,
+            title
+          }]
+        } else if (source === 'breadcrumb') {
+          // 从面包屑点击：截取到当前位置
+          const currentIndex = breadcrumbHistory.value.findIndex(item => item.articleId === currentArticleId.value)
+          if (currentIndex >= 0) {
+            breadcrumbHistory.value = breadcrumbHistory.value.slice(0, currentIndex + 1)
+          } else {
+            breadcrumbHistory.value = [{
+              articleId: currentArticleId.value,
+              title
+            }]
+          }
         } else {
-          console.warn(`未找到key: ${keys.slice(0, i + 1).join('.')}`, '当前值类型:', typeof value, '可用keys:', value && typeof value === 'object' ? Object.keys(value).slice(0, 5) : 'N/A')
-          return ''
+          // 默认情况：重置面包屑
+          breadcrumbHistory.value = [{
+            articleId: currentArticleId.value,
+            title
+          }]
         }
+        
+        // 重置导航来源为默认值（在下次切换时使用）
+        navigationSource.value = 'navigation'
       }
       
-      if (typeof value === 'string' && value.trim()) {
-        console.log(`✅ 成功获取内容: ${key}, 长度: ${value.length}`)
-        return value
-      } else {
-        console.warn(`key ${key} 的值不是有效字符串:`, typeof value, value ? '值为空或非字符串' : '值为null/undefined')
-        return ''
-      }
-    } catch (error) {
-      console.error('获取用户手册内容失败:', error, 'key:', key)
-      return ''
+      // 更新访问时间
+      updateArticleProgress(currentArticleId.value, {
+        lastAccessed: Date.now()
+      })
     }
+  }, { immediate: true })
+
+  // 学习进度
+  const learningProgress = computed(() => {
+    if (learningPath.value.length === 0) return 0
+    return calculateProgress(learningPath.value, articleProgress.value)
   })
-  
+
+  // 学习图数据
+  const learningGraph = computed(async () => {
+    if (learningPath.value.length === 0) return { nodes: [], edges: [] }
+    return await buildLearningGraph(learningPath.value)
+  })
+
   return {
-    currentSection,
+    // 状态
+    currentArticleId,
     userProfile,
+    manualIndex,
+    learningPath,
+    articleProgress,
+    breadcrumbHistory,
+    searchQuery,
+    searchResults,
+    currentArticleContent,
+    
+    // 计算属性
     navigationTree,
-    getCurrentSectionContent,
-    setCurrentSection: (sectionId: string) => {
-      currentSection.value = sectionId
+    currentArticle,
+    learningProgress,
+    learningGraph,
+    
+    // 方法
+    setCurrentArticle: async (articleId: string, source: 'navigation' | 'link' | 'search' | 'breadcrumb' = 'navigation') => {
+      navigationSource.value = source
+      // 如果articleId为空字符串，表示返回概览页面
+      currentArticleId.value = articleId || ''
     },
-    setUserProfile: (profile: UserProfile) => {
+    setUserProfile: async (profile: UserProfile) => {
       userProfile.value = profile
-    }
+      // 生成学习路径
+      const path = await generateLearningPath(profile)
+      learningPath.value = path
+    },
+    markArticleAsRead,
+    updateArticleProgress,
+    performSearch,
+    getArticleById,
+    getAllArticles,
+    parseInternalLinks,
+    convertInternalLinksToHTML
   }
 }

@@ -1995,16 +1995,76 @@
       "title": "User Profile Questionnaire",
       "buttonText": "Improve My Preferences",
       "scenario": "Usage Scenario",
+      "scenarioHint": "Please select your main usage scenario, which will help us recommend the most suitable learning path for you",
+      "reanalyze": "Reanalyze User Profile",
       "scenarios": {
         "student": "Student",
         "researcher": "Researcher",
         "it": "IT Professional",
         "office": "Office Worker",
-        "other": "Other"
+        "other": "Other",
+        "hint": {
+          "student": "Student: Mainly for course notes, homework documents, study materials organization, etc.",
+          "researcher": "Researcher: Mainly for academic papers, research reports, experiment records, etc.",
+          "it": "IT Professional: Mainly for technical documentation, code comments, API documentation, project documentation, etc.",
+          "office": "Office Worker: Mainly for meeting minutes, work reports, business documents, etc.",
+          "other": "Other: General document editing scenarios"
+        },
+        "tooltip": {
+          "student": "Student: Mainly for course notes, homework documents, study materials organization, etc.",
+          "researcher": "Researcher: Mainly for academic papers, research reports, experiment records, etc.",
+          "it": "IT Professional: Mainly for technical documentation, code comments, API documentation, project documentation, etc.",
+          "office": "Office Worker: Mainly for meeting minutes, work reports, business documents, etc.",
+          "other": "Other: General document editing scenarios"
+        }
       },
       "markdownLevel": "Markdown Proficiency",
+      "markdownLevelHints": {
+        "none": "Completely unfamiliar with Markdown syntax, need to start learning from basic syntax",
+        "basic": "Know basic syntax (headings, lists, bold, etc.), can write simple documents",
+        "intermediate": "Proficient in Markdown syntax, familiar with advanced features like tables, code blocks, links, etc.",
+        "advanced": "Expert in Markdown, familiar with extended syntax, math formulas, charts, and other advanced features"
+      },
       "latexLevel": "LaTeX Proficiency",
+      "latexLevelHints": {
+        "none": "Completely unfamiliar with LaTeX, need to start learning from basic syntax and document structure",
+        "basic": "Know basic syntax and document structure, can write simple LaTeX documents",
+        "intermediate": "Proficient in LaTeX, familiar with common features like math formulas, tables, image insertion, etc.",
+        "advanced": "Expert in LaTeX, familiar with advanced features like package usage, custom commands, bibliography management, etc."
+      },
+      "agentLevel": "AI Agent Knowledge Level",
+      "agentLevels": {
+        "none": "Completely unfamiliar",
+        "heard": "Heard of it but don't understand",
+        "basic": "Know basic concepts",
+        "used": "Have used it",
+        "proficient": "Proficient user"
+      },
       "knowsAgent": "Do you know about AI Agent?",
+      "usedWysiwygMarkdown": "Have you used WYSIWYG Markdown editors?",
+      "usedWysiwygMarkdownHint": "Such as Typora, Mark Text, Zettlr and other WYSIWYG editors",
+      "usedLatexEditor": "Have you used LaTeX editors?",
+      "usedLatexEditorHint": "Such as Overleaf, TeXStudio, TeXworks, TeXShop and other LaTeX editors",
+      "usedOtherMarkdownEditor": "Have you used other Markdown editors?",
+      "usedOtherMarkdownEditorHint": "Such as VS Code, Obsidian, Notion, Yuque and other editors that support Markdown",
+      "steps": {
+        "scenario": "Usage Scenario",
+        "markdown": "Markdown",
+        "markdownEditor": "Markdown Editor",
+        "latex": "LaTeX",
+        "latexEditor": "LaTeX Editor",
+        "agent": "AI Agent",
+        "experience": "Experience"
+      },
+      "markdownEditorHint": "Please tell us about your Markdown editor experience",
+      "latexEditorHint": "Please tell us about your LaTeX editor experience",
+      "experienceTitle": "Editor Experience",
+      "markdownLevelHint": "Please assess your familiarity with Markdown syntax",
+      "latexLevelHint": "Please assess your familiarity with LaTeX syntax",
+      "agentLevelHint": "Please assess your knowledge of AI Agent",
+      "experienceHint": "Please tell us about your editor experience",
+      "noExperienceQuestions": "Based on your answers, we have collected sufficient information.",
+      "next": "Next",
       "levels": {
         "none": "Completely unfamiliar",
         "basic": "Know basic concepts",

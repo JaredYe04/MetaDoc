@@ -1,52 +1,60 @@
 <template>
   <div class="user-manual-page">
     <div class="manual-header">
-      <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
-      <div class="header-actions">
+      <div class="header-left">
         <el-button
-          type="primary"
-          plain
-          :icon="User"
-          @click="openProfileDialog"
+          v-if="currentArticleId"
+          text
+          :icon="ArrowLeft"
+          @click="backToOverview"
         >
-          {{ $t('userManual.profile.buttonText') || '完善我的使用偏好' }}
+          {{ $t('userManual.backToOverview') || '返回概览' }}
         </el-button>
-        <el-input
-          v-model="searchQuery"
-          :placeholder="$t('userManual.searchPlaceholder')"
-          class="search-input"
-          clearable
-          @keydown.ctrl.k.prevent="focusSearch"
-          @keydown.esc="clearSearch"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+        <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
+      </div>
+      <div class="header-actions">
+        <ManualSearch />
       </div>
     </div>
     <div class="manual-body">
-      <ManualNavigation />
-      <ManualContent />
+      <!-- 概览页面 -->
+      <ManualOverview
+        v-if="!currentArticleId"
+        @open-profile="openProfileDialog"
+      />
+      
+      <!-- 文档内容页面 -->
+      <template v-else>
+        <div class="manual-sidebar">
+          <LearningProgress v-if="learningPath.length > 0" />
+          <LearningGraph v-if="learningPath.length > 0 && showGraph" />
+          <ManualNavigation />
+        </div>
+        <ManualContent />
+      </template>
     </div>
     <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ManualNavigation from '../components/manual/ManualNavigation.vue'
 import ManualContent from '../components/manual/ManualContent.vue'
+import ManualOverview from '../components/manual/ManualOverview.vue'
+import ManualSearch from '../components/manual/ManualSearch.vue'
+import LearningProgress from '../components/manual/LearningProgress.vue'
+import LearningGraph from '../components/manual/LearningGraph.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
-import { Search, User } from '@element-plus/icons-vue'
+import { User, ArrowLeft } from '@element-plus/icons-vue'
 import { useUserManual } from '../stores/userManual'
 
 const { t } = useI18n()
-const { setCurrentSection } = useUserManual()
+const { currentArticleId, learningPath, setCurrentArticle, setUserProfile } = useUserManual()
 
-const searchQuery = ref('')
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
+const showGraph = ref(true) // 默认显示有向图
 
 const openProfileDialog = () => {
   if (profileDialogRef.value) {
@@ -54,37 +62,30 @@ const openProfileDialog = () => {
   }
 }
 
-const handleProfileSubmitted = () => {
-  // 可以在这里根据用户画像推荐学习路径
-  console.log('用户画像已更新')
-}
-
-const focusSearch = () => {
-  const input = document.querySelector('.search-input input') as HTMLInputElement
-  if (input) {
-    input.focus()
-  }
-}
-
-const clearSearch = () => {
-  searchQuery.value = ''
+const handleProfileSubmitted = async (profile: any) => {
+  // 根据用户画像生成学习路径
+  await setUserProfile(profile)
+  // 不自动跳转，保持在概览页面，让用户查看学习路径图后自己点击开始学习
+  showGraph.value = true
 }
 
 // 监听F1快捷键
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'F1') {
     e.preventDefault()
-    // F1功能：跳转到当前页面对应的教程
-    // 这里可以根据当前路由或上下文来决定跳转到哪个章节
-    // 暂时先聚焦搜索框
-    focusSearch()
+    // F1功能：打开用户手册（如果不在手册页面）
+    // 这里可以根据当前路由来决定行为
   }
 }
 
-onMounted(() => {
+const backToOverview = () => {
+  setCurrentArticle('', 'navigation')
+  showGraph.value = false
+}
+
+onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)
-  // 设置默认章节
-  setCurrentSection('core.fileOperations')
+  // 不设置默认文档，显示概览页面
 })
 
 onBeforeUnmount(() => {
@@ -110,6 +111,12 @@ onBeforeUnmount(() => {
   background-color: v-bind('themeState.currentTheme.background2nd');
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .manual-title {
   font-size: 20px;
   font-weight: 600;
@@ -127,13 +134,21 @@ onBeforeUnmount(() => {
   margin-right: 0;
 }
 
-.search-input {
-  width: 300px;
-}
-
 .manual-body {
   flex: 1;
   display: flex;
+  overflow: hidden;
+}
+
+.manual-sidebar {
+  flex: 0 0 auto;
+  width: min(320px, 25%);
+  min-width: 240px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
+  background-color: v-bind('themeState.currentTheme.background2nd');
   overflow: hidden;
 }
 </style>

@@ -76,7 +76,7 @@
               </el-icon>
             </div>
             <div class="action-content">
-              <h3 class="action-title">{{ $t('home.button.userManual') || '使用教程' }}</h3>
+              <h3 class="action-title">{{ $t('home.button.userManual') || '用户手册' }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}</p>
             </div>
             <el-icon class="action-arrow" :size="16">
@@ -207,7 +207,7 @@ const openFile = () => {
 }
 
 const openUserManual = () => {
-  workspace.openSystemTab('/user-manual', t('userManual.title') || '使用教程')
+  workspace.openSystemTab('/user-manual', t('userManual.title') || '用户手册')
   // 如果首次使用，显示问卷
   checkAndShowProfileDialog()
 }
@@ -848,7 +848,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* ===== 使用教程卡片高亮动画 ===== */
+/* ===== 用户手册卡片高亮动画 ===== */
 .manual-card.highlight-pulse {
   animation: highlightPulse 2s ease-in-out infinite;
   box-shadow: 0 0 20px rgba(64, 158, 255, 0.4);

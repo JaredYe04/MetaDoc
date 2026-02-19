@@ -35,9 +35,14 @@ let linkClickHandler: ((e: MouseEvent) => void) | null = null
  * 设置链接点击事件处理器
  * 拦截容器内所有链接的点击，如果是外部链接（http/https），则在系统浏览器中打开
  */
-const setupLinkClickHandler = (container: HTMLElement) => {
+const setupLinkClickHandler = (container: HTMLElement | null) => {
+  if (!container) {
+    console.warn('VditorPreview: setupLinkClickHandler called with null container')
+    return
+  }
+  
   // 移除之前的事件监听器（如果存在）
-  if (linkClickHandler && container) {
+  if (linkClickHandler) {
     container.removeEventListener('click', linkClickHandler)
   }
   
@@ -48,6 +53,11 @@ const setupLinkClickHandler = (container: HTMLElement) => {
     const link = target.closest('a')
     
     if (link && link.href) {
+      // 跳过内部链接（manual-internal-link）
+      if (link.classList.contains('manual-internal-link')) {
+        return // 让内部链接的事件处理器处理
+      }
+      
       const url = link.href
       
       // 判断是否为外部链接（http/https）

@@ -6,7 +6,7 @@
         :props="{ children: 'children', label: 'title' }"
         :default-expand-all="false"
         :highlight-current="true"
-        :current-node-key="currentSection"
+        :current-node-key="currentArticleId"
         node-key="id"
         @node-click="handleNodeClick"
         class="navigation-tree"
@@ -20,6 +20,12 @@
               <Document />
             </el-icon>
             <span class="node-label">{{ data.title }}</span>
+            <el-icon
+              v-if="!data.children && isArticleRead(data.id)"
+              class="read-icon"
+            >
+              <Check />
+            </el-icon>
           </div>
         </template>
       </el-tree>
@@ -30,18 +36,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
-import { Folder, Document } from '@element-plus/icons-vue'
+import { Folder, Document, Check } from '@element-plus/icons-vue'
 
-const { navigationTree, currentSection, setCurrentSection } = useUserManual()
+const { navigationTree, currentArticleId, articleProgress, setCurrentArticle } = useUserManual()
 
 const treeData = computed(() => navigationTree.value)
 
+const isArticleRead = (articleId: string) => {
+  const progress = articleProgress.value.get(articleId)
+  return progress?.read === true
+}
+
 const handleNodeClick = (data: any) => {
   if (data.id) {
-    // 如果点击的是有子节点的节点，不设置section（让树自动展开/折叠）
-    // 只有当节点没有子节点时才设置section
+    // 如果点击的是有子节点的节点，不设置article（让树自动展开/折叠）
+    // 只有当节点没有子节点时才设置article
     if (!data.children || data.children.length === 0) {
-      setCurrentSection(data.id)
+      setCurrentArticle(data.id, 'navigation')
     }
   }
 }
@@ -49,13 +60,12 @@ const handleNodeClick = (data: any) => {
 
 <style scoped>
 .manual-navigation {
-  width: 280px;
+  flex: 1;
   min-width: 200px;
   height: 100%;
-  border-right: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
-  background-color: v-bind('themeState.currentTheme.background2nd');
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .navigation-scrollbar {
@@ -114,6 +124,13 @@ const handleNodeClick = (data: any) => {
   white-space: nowrap;
   min-width: 0;
   max-width: 100%;
+}
+
+.read-icon {
+  font-size: 16px;
+  color: #67c23a;
+  flex-shrink: 0;
+  margin-left: 4px;
 }
 
 .navigation-tree :deep(.el-tree-node__expand-icon) {

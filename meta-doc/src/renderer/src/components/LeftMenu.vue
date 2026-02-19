@@ -265,6 +265,15 @@
         @click="openLlmStatistics"
       />
 
+      <!-- 用户手册 -->
+      <UIMenuItem
+        v-if="menuId === 'user-manual' && isMenuItemVisible('user-manual')"
+        :label="$t('leftMenu.userManual', '用户手册')"
+        :tooltip="$t('leftMenu.userManual', '用户手册')"
+        :icon="Reading"
+        @click="openUserManual"
+      />
+
       <!-- 用户资料 -->
       <UIMenuItem
         v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
@@ -336,12 +345,17 @@
           {{ $t('leftMenu.userFeedback', '用户反馈') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
-          {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
+        <!-- 用户手册：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
+        <UISubMenuItem
+          v-if="!isMenuItemVisible('user-manual')"
+          :icon="Reading"
+          @click="openUserManual"
+        >
+          {{ $t('leftMenu.userManual', '用户手册') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="openUserManual">
-          {{ $t('leftMenu.userManual', '使用教程') }}
+        <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
+          {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>
       </UISubMenu>
       <!-- 主页 -->
@@ -672,6 +686,16 @@
         @click="openLlmStatistics"
       />
 
+      <!-- 用户手册 -->
+      <UIMenuItem
+        v-if="menuId === 'user-manual' && isMenuItemVisible('user-manual')"
+        :label="$t('leftMenu.userManual', '用户手册')"
+        :tooltip="$t('leftMenu.userManual', '用户手册')"
+        :icon="Reading"
+        class="bottom-menu"
+        @click="openUserManual"
+      />
+
       <!-- 用户资料 -->
       <UIMenuItem
         v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
@@ -743,6 +767,15 @@
           @click="openUserFeedback"
         >
           {{ $t('leftMenu.userFeedback', '用户反馈') }}
+        </UISubMenuItem>
+
+        <!-- 用户手册：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
+        <UISubMenuItem
+          v-if="!isMenuItemVisible('user-manual')"
+          :icon="Reading"
+          @click="openUserManual"
+        >
+          {{ $t('leftMenu.userManual', '用户手册') }}
         </UISubMenuItem>
 
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
@@ -959,6 +992,14 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
       id: 'user-feedback',
       label: t('leftMenu.userFeedback', '用户反馈'),
       iconImage: (themeState.currentTheme as any).FeedbackIcon,
+      visible: false,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'user-manual',
+      label: t('leftMenu.userManual', '用户手册'),
+      icon: Reading,
       visible: false,
       isCore: false,
       position: 'top'
@@ -1197,7 +1238,7 @@ const openUserFeedback = () => {
 
 // 打开用户手册
 const openUserManual = () => {
-  workspace.openSystemTab('/user-manual', t('leftMenu.userManual', '使用教程'))
+  workspace.openSystemTab('/user-manual', t('leftMenu.userManual', '用户手册'))
 }
 
 // 更新全局 CSS 变量以匹配 active 背景色

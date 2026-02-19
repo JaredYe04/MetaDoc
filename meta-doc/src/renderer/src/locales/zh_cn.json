@@ -840,7 +840,7 @@
       "quickStart": "快速开始",
       "newDoc": "新建文档",
       "openFile": "打开文档",
-      "userManual": "使用教程",
+      "userManual": "用户手册",
       "refresh": "刷新"
     },
     "tabActions": {
@@ -3298,9 +3298,10 @@
     "emptyDescription": "暂无打开的文档"
   },
   "userManual": {
-    "title": "使用教程",
-    "searchPlaceholder": "搜索教程内容...",
+    "title": "用户手册",
+    "searchPlaceholder": "搜索文档内容...",
     "emptyContent": "请从左侧选择章节",
+    "backToOverview": "返回概览",
     "navigation": {
       "core": "核心操作",
       "markdown": "Markdown教学",
@@ -3314,16 +3315,76 @@
       "title": "用户画像问卷",
       "buttonText": "完善我的使用偏好",
       "scenario": "使用场景",
+      "scenarioHint": "请选择您的主要使用场景，这将帮助我们为您推荐最适合的学习路径",
+      "reanalyze": "重新分析用户画像",
       "scenarios": {
         "student": "学生",
         "researcher": "科研人员",
         "it": "IT人员",
         "office": "办公族",
-        "other": "其他"
+        "other": "其他",
+        "hint": {
+          "student": "学生：主要用于课程笔记、作业文档、学习资料整理等场景",
+          "researcher": "科研人员：主要用于学术论文、研究报告、实验记录等场景",
+          "it": "IT人员：主要用于技术文档、代码注释、API文档、项目文档等场景",
+          "office": "办公人员：主要用于会议纪要、工作报告、商务文档等场景",
+          "other": "其他：通用文档编辑场景"
+        },
+        "tooltip": {
+          "student": "学生：主要用于课程笔记、作业文档、学习资料整理等场景",
+          "researcher": "科研人员：主要用于学术论文、研究报告、实验记录等场景",
+          "it": "IT人员：主要用于技术文档、代码注释、API文档、项目文档等场景",
+          "office": "办公人员：主要用于会议纪要、工作报告、商务文档等场景",
+          "other": "其他：通用文档编辑场景"
+        }
       },
       "markdownLevel": "Markdown熟练度",
+      "markdownLevelHints": {
+        "none": "完全不了解Markdown语法，需要从基础语法开始学习",
+        "basic": "了解基本语法（标题、列表、加粗等），可以编写简单的文档",
+        "intermediate": "熟练使用Markdown语法，了解表格、代码块、链接等高级功能",
+        "advanced": "精通Markdown，熟悉扩展语法、数学公式、图表等高级特性"
+      },
       "latexLevel": "LaTeX熟练度",
+      "latexLevelHints": {
+        "none": "完全不了解LaTeX，需要从基础语法和文档结构开始学习",
+        "basic": "了解基本语法和文档结构，可以编写简单的LaTeX文档",
+        "intermediate": "熟练使用LaTeX，了解数学公式、表格、图片插入等常用功能",
+        "advanced": "精通LaTeX，熟悉宏包使用、自定义命令、参考文献管理等高级特性"
+      },
+      "agentLevel": "AI Agent了解程度",
+      "agentLevels": {
+        "none": "完全不了解",
+        "heard": "听说过但不了解",
+        "basic": "了解基本概念",
+        "used": "使用过",
+        "proficient": "熟练使用"
+      },
       "knowsAgent": "是否了解AI Agent",
+      "usedWysiwygMarkdown": "是否使用过WYSIWYG Markdown编辑器",
+      "usedWysiwygMarkdownHint": "如Typora、Mark Text、Zettlr等所见即所得编辑器",
+      "usedLatexEditor": "是否使用过LaTeX编辑器",
+      "usedLatexEditorHint": "如Overleaf、TeXStudio、TeXworks、TeXShop等LaTeX编辑器",
+      "usedOtherMarkdownEditor": "是否使用过其他Markdown编辑器",
+      "usedOtherMarkdownEditorHint": "如VS Code、Obsidian、Notion、语雀等支持Markdown的编辑器",
+      "steps": {
+        "scenario": "使用场景",
+        "markdown": "Markdown",
+        "markdownEditor": "Markdown编辑器",
+        "latex": "LaTeX",
+        "latexEditor": "LaTeX编辑器",
+        "agent": "AI Agent",
+        "experience": "使用经验"
+      },
+      "markdownEditorHint": "请告诉我们您使用过的Markdown编辑器经验",
+      "latexEditorHint": "请告诉我们您使用过的LaTeX编辑器经验",
+      "experienceTitle": "编辑器经验",
+      "markdownLevelHint": "请评估您对Markdown语法的熟悉程度",
+      "latexLevelHint": "请评估您对LaTeX语法的熟悉程度",
+      "agentLevelHint": "请评估您对AI Agent的了解程度",
+      "experienceHint": "请告诉我们您使用过的编辑器经验",
+      "noExperienceQuestions": "根据您的回答，我们已收集到足够的信息。",
+      "next": "下一步",
       "levels": {
         "none": "完全不了解",
         "basic": "知道基本概念",
@@ -3428,6 +3489,44 @@
         "title": "MetaDoc设计理念",
         "content": "# MetaDoc设计理念\n\nMetaDoc的设计遵循以下核心理念。\n\n## 自举式设计\n\n用户手册本身就是用Markdown编写的，展示了MetaDoc的能力。这体现了\"自举\"（Bootstrapping）的设计理念：用产品本身来展示产品。\n\n## 文档驱动\n\nMetaDoc是一个\"文档驱动\"的系统：\n\n- 文档是核心，所有功能都围绕文档展开\n- 支持多种文档格式（Markdown、LaTeX）\n- 文档可以导出为多种格式\n\n## 智能化\n\n通过AI和Agent技术，让文档创作更智能：\n\n- AI辅助写作和校对\n- Agent自动执行复杂任务\n- 智能图表生成\n\n## 可扩展性\n\n- 支持自定义工具和工作流\n- 插件化架构\n- 开放的API接口\n\n## 用户体验\n\n- 简洁美观的界面\n- 流畅的操作体验\n- 丰富的快捷键支持\n- 多语言支持\n\n## 技术栈\n\n- **前端**: Vue 3 + TypeScript\n- **桌面**: Electron\n- **编辑器**: Monaco + Vditor\n- **AI**: LLM Agent框架\n- **数据库**: SQLite + sqlite-vec\n\n## 未来规划\n\n- 更多AI能力\n- 更好的协作功能\n- 云端同步\n- 移动端支持"
       }
+    },
+    "overview": {
+      "welcome": "欢迎使用用户手册",
+      "description": "根据您的使用偏好，我们为您推荐了最适合的学习路径",
+      "profile": "我的用户画像",
+      "progress": "学习进度",
+      "recommendedPath": "推荐学习路径",
+      "quickStart": "快速开始",
+      "quickLinks": "快速链接",
+      "noProfile": "还没有设置用户画像？让我们先了解一下您的使用偏好，以便为您推荐最适合的学习路径。",
+      "startLearning": "开始学习",
+      "viewGraph": "查看学习路径图",
+      "completed": "已完成",
+      "current": "当前",
+      "pending": "待学习",
+      "articles": "篇文章",
+      "skillRadar": "技能雷达图"
+    },
+    "progress": {
+      "label": "学习进度",
+      "completed": "已完成"
+    },
+    "graph": {
+      "title": "学习路径图",
+      "expand": "展开",
+      "collapse": "收起",
+      "completed": "已完成",
+      "current": "当前",
+      "pending": "待学习",
+      "confirmTitle": "确认学习",
+      "confirmStart": "是否开始学习\"{title}\"？",
+      "confirm": "开始学习",
+      "cancel": "取消"
+    },
+    "search": {
+      "fragment": "片段",
+      "line": "行",
+      "noResults": "未找到相关文档"
     }
   }
 }

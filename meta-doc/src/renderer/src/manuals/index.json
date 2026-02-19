@@ -1,0 +1,1052 @@
+{
+  "$schema": "./schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-19",
+  "categories": [
+    {
+      "id": "quick-start",
+      "title": {
+        "zh_CN": "快速开始",
+        "en_US": "Quick Start"
+      },
+      "icon": "🚀",
+      "articles": [
+        {
+          "id": "quick-start.guide",
+          "title": {
+            "zh_CN": "快速开始指南",
+            "en_US": "Quick Start Guide"
+          },
+          "tags": ["基础", "入门"],
+          "difficulty": 1,
+          "estimatedTime": 5,
+          "prerequisites": [],
+          "relatedArticles": ["core.file-operations", "core.editor-basics"],
+          "file": "quick-start/guide.md"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "title": {
+        "zh_CN": "核心操作",
+        "en_US": "Core Operations"
+      },
+      "icon": "📝",
+      "articles": [
+        {
+          "id": "core.file-operations",
+          "title": {
+            "zh_CN": "文件操作",
+            "en_US": "File Operations"
+          },
+          "tags": ["文件", "基础"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["core.editor-basics", "core.multi-tab"],
+          "file": "core/file-operations.md"
+        },
+        {
+          "id": "core.editor-basics",
+          "title": {
+            "zh_CN": "编辑器基础操作",
+            "en_US": "Editor Basics"
+          },
+          "tags": ["编辑器", "基础"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": ["core.file-operations"],
+          "relatedArticles": ["markdown.editor", "latex.editor", "core.editor-settings"],
+          "file": "core/editor-basics.md"
+        },
+        {
+          "id": "core.editor-settings",
+          "title": {
+            "zh_CN": "编辑器设置",
+            "en_US": "Editor Settings"
+          },
+          "tags": ["编辑器", "设置"],
+          "difficulty": 1,
+          "estimatedTime": 5,
+          "prerequisites": ["core.editor-basics"],
+          "relatedArticles": ["core.editor-basics"],
+          "file": "core/editor-settings.md"
+        },
+        {
+          "id": "core.multi-tab",
+          "title": {
+            "zh_CN": "多标签页管理",
+            "en_US": "Multi-Tab Management"
+          },
+          "tags": ["标签页", "管理"],
+          "difficulty": 1,
+          "estimatedTime": 8,
+          "prerequisites": ["core.file-operations"],
+          "relatedArticles": ["core.multi-window"],
+          "file": "core/multi-tab.md"
+        },
+        {
+          "id": "core.multi-window",
+          "title": {
+            "zh_CN": "多窗口管理",
+            "en_US": "Multi-Window Management"
+          },
+          "tags": ["窗口", "管理"],
+          "difficulty": 2,
+          "estimatedTime": 10,
+          "prerequisites": ["core.multi-tab"],
+          "relatedArticles": ["core.multi-tab"],
+          "file": "core/multi-window.md"
+        },
+        {
+          "id": "core.multi-window",
+          "title": {
+            "zh_CN": "多窗口管理",
+            "en_US": "Multi-Window Management"
+          },
+          "tags": ["窗口", "管理"],
+          "difficulty": 2,
+          "estimatedTime": 10,
+          "prerequisites": ["core.multi-tab"],
+          "relatedArticles": ["core.multi-tab"],
+          "file": "core/multi-window.md"
+        },
+        {
+          "id": "core.export",
+          "title": {
+            "zh_CN": "导出功能",
+            "en_US": "Export Functions"
+          },
+          "tags": ["导出", "格式"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["core.file-operations"],
+          "relatedArticles": ["core.file-operations", "markdown.basics", "latex.basics"],
+          "file": "core/export.md"
+        },
+        {
+          "id": "core.document-metadata",
+          "title": {
+            "zh_CN": "文档元信息",
+            "en_US": "Document Metadata"
+          },
+          "tags": ["元信息", "文档"],
+          "difficulty": 1,
+          "estimatedTime": 8,
+          "prerequisites": ["core.file-operations"],
+          "relatedArticles": ["core.file-operations"],
+          "file": "core/document-metadata.md"
+        }
+      ]
+    },
+    {
+      "id": "markdown",
+      "title": {
+        "zh_CN": "Markdown编辑器",
+        "en_US": "Markdown Editor"
+      },
+      "icon": "📄",
+      "articles": [
+        {
+          "id": "markdown.editor",
+          "title": {
+            "zh_CN": "Markdown编辑器使用指南",
+            "en_US": "Markdown Editor Guide"
+          },
+          "tags": ["Markdown", "编辑器"],
+          "difficulty": 1,
+          "estimatedTime": 15,
+          "prerequisites": ["core.editor-basics"],
+          "relatedArticles": ["markdown.basics", "markdown.advanced", "markdown.features"],
+          "file": "markdown/editor.md"
+        },
+        {
+          "id": "markdown.basics",
+          "title": {
+            "zh_CN": "Markdown语法",
+            "en_US": "Markdown Syntax"
+          },
+          "tags": ["Markdown", "语法"],
+          "difficulty": 1,
+          "estimatedTime": 20,
+          "prerequisites": ["markdown.editor"],
+          "relatedArticles": ["markdown.advanced", "markdown.editor"],
+          "file": "markdown/basics.md"
+        },
+        {
+          "id": "markdown.advanced",
+          "title": {
+            "zh_CN": "Markdown高级功能",
+            "en_US": "Markdown Advanced Features"
+          },
+          "tags": ["Markdown", "高级"],
+          "difficulty": 2,
+          "estimatedTime": 25,
+          "prerequisites": ["markdown.basics"],
+          "relatedArticles": ["markdown.basics", "markdown.features"],
+          "file": "markdown/advanced.md"
+        },
+        {
+          "id": "markdown.features",
+          "title": {
+            "zh_CN": "Markdown编辑器功能",
+            "en_US": "Markdown Editor Features"
+          },
+          "tags": ["Markdown", "功能"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": ["markdown.basics"],
+          "relatedArticles": ["markdown.editor", "ai.completion"],
+          "file": "markdown/features.md"
+        }
+      ]
+    },
+    {
+      "id": "latex",
+      "title": {
+        "zh_CN": "LaTeX编辑器",
+        "en_US": "LaTeX Editor"
+      },
+      "icon": "📐",
+      "articles": [
+        {
+          "id": "latex.editor",
+          "title": {
+            "zh_CN": "LaTeX编辑器使用指南",
+            "en_US": "LaTeX Editor Guide"
+          },
+          "tags": ["LaTeX", "编辑器"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["core.editor-basics"],
+          "relatedArticles": ["latex.basics", "latex.compilation", "latex.pdf-preview"],
+          "file": "latex/editor.md"
+        },
+        {
+          "id": "latex.basics",
+          "title": {
+            "zh_CN": "LaTeX语法",
+            "en_US": "LaTeX Syntax"
+          },
+          "tags": ["LaTeX", "语法"],
+          "difficulty": 2,
+          "estimatedTime": 30,
+          "prerequisites": ["latex.editor"],
+          "relatedArticles": ["latex.compilation", "latex.editor"],
+          "file": "latex/basics.md"
+        },
+        {
+          "id": "latex.compilation",
+          "title": {
+            "zh_CN": "LaTeX编译与预览",
+            "en_US": "LaTeX Compilation and Preview"
+          },
+          "tags": ["LaTeX", "编译"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": ["latex.basics"],
+          "relatedArticles": ["latex.pdf-preview", "latex.console"],
+          "file": "latex/compilation.md"
+        },
+        {
+          "id": "latex.pdf-preview",
+          "title": {
+            "zh_CN": "PDF预览功能",
+            "en_US": "PDF Preview"
+          },
+          "tags": ["PDF", "预览"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": ["latex.compilation"],
+          "relatedArticles": ["latex.compilation", "latex.editor"],
+          "file": "latex/pdf-preview.md"
+        },
+        {
+          "id": "latex.console",
+          "title": {
+            "zh_CN": "控制台输出",
+            "en_US": "Console Output"
+          },
+          "tags": ["控制台", "日志"],
+          "difficulty": 1,
+          "estimatedTime": 8,
+          "prerequisites": ["latex.compilation"],
+          "relatedArticles": ["latex.compilation"],
+          "file": "latex/console.md"
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "title": {
+        "zh_CN": "AI功能",
+        "en_US": "AI Features"
+      },
+      "icon": "🤖",
+      "articles": [
+        {
+          "id": "ai.chat",
+          "title": {
+            "zh_CN": "AI对话功能",
+            "en_US": "AI Chat"
+          },
+          "tags": ["AI", "对话"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["ai.llm-config", "ai.proofread"],
+          "file": "ai/chat.md"
+        },
+        {
+          "id": "ai.completion",
+          "title": {
+            "zh_CN": "AI自动补全",
+            "en_US": "AI Auto Completion"
+          },
+          "tags": ["AI", "补全"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["ai.llm-config"],
+          "relatedArticles": ["ai.llm-config", "markdown.features"],
+          "file": "ai/completion.md"
+        },
+        {
+          "id": "ai.proofread",
+          "title": {
+            "zh_CN": "AI校对功能",
+            "en_US": "AI Proofreading"
+          },
+          "tags": ["AI", "校对"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["ai.llm-config"],
+          "relatedArticles": ["ai.llm-config", "ai.chat"],
+          "file": "ai/proofread.md"
+        },
+        {
+          "id": "ai.task-queue",
+          "title": {
+            "zh_CN": "AI任务队列",
+            "en_US": "AI Task Queue"
+          },
+          "tags": ["AI", "任务"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": ["ai.chat"],
+          "relatedArticles": ["ai.chat", "ai.completion"],
+          "file": "ai/task-queue.md"
+        },
+        {
+          "id": "ai.llm-config",
+          "title": {
+            "zh_CN": "LLM配置",
+            "en_US": "LLM Configuration"
+          },
+          "tags": ["AI", "配置"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": [],
+          "relatedArticles": ["ai.chat", "ai.completion", "ai.proofread"],
+          "file": "ai/llm-config.md"
+        },
+        {
+          "id": "ai.assistants",
+          "title": {
+            "zh_CN": "AI助手功能",
+            "en_US": "AI Assistants"
+          },
+          "tags": ["AI", "助手"],
+          "difficulty": 2,
+          "estimatedTime": 25,
+          "prerequisites": ["ai.llm-config"],
+          "relatedArticles": ["ai.chat", "ai.completion"],
+          "file": "ai/assistants.md"
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "title": {
+        "zh_CN": "Agent框架",
+        "en_US": "Agent Framework"
+      },
+      "icon": "⚙️",
+      "articles": [
+        {
+          "id": "agent.introduction",
+          "title": {
+            "zh_CN": "Agent框架概述",
+            "en_US": "Agent Framework Overview"
+          },
+          "tags": ["Agent", "框架"],
+          "difficulty": 3,
+          "estimatedTime": 20,
+          "prerequisites": ["ai.llm-config"],
+          "relatedArticles": ["agent.session", "agent.config", "agent.tools"],
+          "file": "agent/introduction.md"
+        },
+        {
+          "id": "agent.session",
+          "title": {
+            "zh_CN": "Agent会话管理",
+            "en_US": "Agent Session Management"
+          },
+          "tags": ["Agent", "会话"],
+          "difficulty": 3,
+          "estimatedTime": 25,
+          "prerequisites": ["agent.introduction"],
+          "relatedArticles": ["agent.config", "agent.workflow"],
+          "file": "agent/session.md"
+        },
+        {
+          "id": "agent.config",
+          "title": {
+            "zh_CN": "Agent配置管理",
+            "en_US": "Agent Configuration"
+          },
+          "tags": ["Agent", "配置"],
+          "difficulty": 3,
+          "estimatedTime": 25,
+          "prerequisites": ["agent.introduction"],
+          "relatedArticles": ["agent.tools", "agent.workflow"],
+          "file": "agent/config.md"
+        },
+        {
+          "id": "agent.tools",
+          "title": {
+            "zh_CN": "工具集管理",
+            "en_US": "Tool Collection Management"
+          },
+          "tags": ["Agent", "工具"],
+          "difficulty": 3,
+          "estimatedTime": 30,
+          "prerequisites": ["agent.introduction"],
+          "relatedArticles": ["agent.config"],
+          "file": "agent/tools.md"
+        },
+        {
+          "id": "agent.workflow",
+          "title": {
+            "zh_CN": "工作流管理",
+            "en_US": "Workflow Management"
+          },
+          "tags": ["Agent", "工作流"],
+          "difficulty": 3,
+          "estimatedTime": 35,
+          "prerequisites": ["agent.config"],
+          "relatedArticles": ["agent.session", "agent.config"],
+          "file": "agent/workflow.md"
+        }
+      ]
+    },
+    {
+      "id": "knowledge-base",
+      "title": {
+        "zh_CN": "知识库",
+        "en_US": "Knowledge Base"
+      },
+      "icon": "📚",
+      "articles": [
+        {
+          "id": "knowledge-base.usage",
+          "title": {
+            "zh_CN": "知识库使用",
+            "en_US": "Knowledge Base Usage"
+          },
+          "tags": ["知识库", "RAG"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": [],
+          "relatedArticles": ["knowledge-base.config", "knowledge-base.management", "ai.llm-config"],
+          "file": "knowledge-base/usage.md"
+        },
+        {
+          "id": "knowledge-base.management",
+          "title": {
+            "zh_CN": "知识库管理",
+            "en_US": "Knowledge Base Management"
+          },
+          "tags": ["知识库", "管理"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": [],
+          "relatedArticles": ["knowledge-base.config", "knowledge-base.usage"],
+          "file": "knowledge-base/management.md"
+        },
+        {
+          "id": "knowledge-base.config",
+          "title": {
+            "zh_CN": "知识库配置",
+            "en_US": "Knowledge Base Configuration"
+          },
+          "tags": ["知识库", "配置"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["knowledge-base.management"],
+          "relatedArticles": ["knowledge-base.management", "knowledge-base.usage"],
+          "file": "knowledge-base/config.md"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "title": {
+        "zh_CN": "系统设置",
+        "en_US": "Settings"
+      },
+      "icon": "⚙️",
+      "articles": [
+        {
+          "id": "settings.basic",
+          "title": {
+            "zh_CN": "基础设置",
+            "en_US": "Basic Settings"
+          },
+          "tags": ["设置", "基础"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.theme", "settings.image"],
+          "file": "settings/basic.md"
+        },
+        {
+          "id": "settings.theme",
+          "title": {
+            "zh_CN": "主题配置",
+            "en_US": "Theme Configuration"
+          },
+          "tags": ["设置", "主题"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.basic", "settings.theme-custom"],
+          "file": "settings/theme.md"
+        },
+        {
+          "id": "settings.theme-custom",
+          "title": {
+            "zh_CN": "自定义主题管理",
+            "en_US": "Custom Theme Management"
+          },
+          "tags": ["设置", "主题", "自定义"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["settings.theme"],
+          "relatedArticles": ["settings.theme"],
+          "file": "settings/theme-custom.md"
+        },
+        {
+          "id": "settings.image",
+          "title": {
+            "zh_CN": "图片上传配置",
+            "en_US": "Image Upload Configuration"
+          },
+          "tags": ["设置", "图片"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.basic", "settings.image-upload"],
+          "file": "settings/image.md"
+        },
+        {
+          "id": "settings.image-upload",
+          "title": {
+            "zh_CN": "上传服务设置",
+            "en_US": "Upload Service Settings"
+          },
+          "tags": ["设置", "图片", "上传"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["settings.image"],
+          "relatedArticles": ["settings.image"],
+          "file": "settings/image-upload.md"
+        },
+        {
+          "id": "settings.logging",
+          "title": {
+            "zh_CN": "日志配置",
+            "en_US": "Logging Configuration"
+          },
+          "tags": ["设置", "日志"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.basic", "settings.about"],
+          "file": "settings/logging.md"
+        },
+        {
+          "id": "settings.about",
+          "title": {
+            "zh_CN": "关于信息",
+            "en_US": "About Information"
+          },
+          "tags": ["设置", "关于"],
+          "difficulty": 1,
+          "estimatedTime": 5,
+          "prerequisites": [],
+          "relatedArticles": ["settings.basic"],
+          "file": "settings/about.md"
+        },
+        {
+          "id": "settings.llm",
+          "title": {
+            "zh_CN": "LLM配置",
+            "en_US": "LLM Configuration"
+          },
+          "tags": ["设置", "LLM", "AI"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": [],
+          "relatedArticles": ["settings.llm-management", "settings.llm-types", "ai.chat"],
+          "file": "settings/llm.md"
+        },
+        {
+          "id": "settings.llm-management",
+          "title": {
+            "zh_CN": "LLM配置管理",
+            "en_US": "LLM Configuration Management"
+          },
+          "tags": ["设置", "LLM", "管理"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": ["settings.llm"],
+          "relatedArticles": ["settings.llm", "settings.llm-types"],
+          "file": "settings/llm-management.md"
+        },
+        {
+          "id": "settings.llm-types",
+          "title": {
+            "zh_CN": "LLM类型配置",
+            "en_US": "LLM Type Configuration"
+          },
+          "tags": ["设置", "LLM", "配置"],
+          "difficulty": 2,
+          "estimatedTime": 25,
+          "prerequisites": ["settings.llm"],
+          "relatedArticles": ["settings.llm", "settings.llm-management"],
+          "file": "settings/llm-types.md"
+        },
+        {
+          "id": "settings.language",
+          "title": {
+            "zh_CN": "多语言支持",
+            "en_US": "Multi-language Support"
+          },
+          "tags": ["设置", "语言"],
+          "difficulty": 1,
+          "estimatedTime": 5,
+          "prerequisites": [],
+          "relatedArticles": ["settings.basic"],
+          "file": "settings/language.md"
+        },
+        {
+          "id": "settings.menu",
+          "title": {
+            "zh_CN": "菜单配置",
+            "en_US": "Menu Configuration"
+          },
+          "tags": ["设置", "菜单"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.basic"],
+          "file": "settings/menu.md"
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "title": {
+        "zh_CN": "主页功能",
+        "en_US": "Home Features"
+      },
+      "icon": "🏠",
+      "articles": [
+        {
+          "id": "home.features",
+          "title": {
+            "zh_CN": "主页功能",
+            "en_US": "Home Features"
+          },
+          "tags": ["主页", "基础"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["quick-start.guide", "core.file-operations"],
+          "file": "home/features.md"
+        }
+      ]
+    },
+    {
+      "id": "user",
+      "title": {
+        "zh_CN": "用户功能",
+        "en_US": "User Features"
+      },
+      "icon": "👤",
+      "articles": [
+        {
+          "id": "user.profile",
+          "title": {
+            "zh_CN": "用户资料",
+            "en_US": "User Profile"
+          },
+          "tags": ["用户", "设置"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["home.features", "user.feedback"],
+          "file": "user/profile.md"
+        },
+        {
+          "id": "user.feedback",
+          "title": {
+            "zh_CN": "用户反馈",
+            "en_US": "User Feedback"
+          },
+          "tags": ["用户", "反馈"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.about", "user.profile"],
+          "file": "user/feedback.md"
+        }
+      ]
+    },
+    {
+      "id": "workspace",
+      "title": {
+        "zh_CN": "工作目录",
+        "en_US": "Workspace"
+      },
+      "icon": "📁",
+      "articles": [
+        {
+          "id": "workspace.management",
+          "title": {
+            "zh_CN": "工作目录管理",
+            "en_US": "Workspace Management"
+          },
+          "tags": ["工作目录", "文件管理"],
+          "difficulty": 1,
+          "estimatedTime": 15,
+          "prerequisites": [],
+          "relatedArticles": ["core.file-operations", "core.multi-tab"],
+          "file": "workspace/management.md"
+        }
+      ]
+    },
+    {
+      "id": "shortcuts",
+      "title": {
+        "zh_CN": "快捷键",
+        "en_US": "Shortcuts"
+      },
+      "icon": "⌨️",
+      "articles": [
+        {
+          "id": "shortcuts.global",
+          "title": {
+            "zh_CN": "全局快捷键",
+            "en_US": "Global Shortcuts"
+          },
+          "tags": ["快捷键", "基础"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["shortcuts.editor", "core.file-operations"],
+          "file": "shortcuts/global.md"
+        },
+        {
+          "id": "shortcuts.editor",
+          "title": {
+            "zh_CN": "编辑器快捷键",
+            "en_US": "Editor Shortcuts"
+          },
+          "tags": ["快捷键", "编辑器"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": ["shortcuts.global"],
+          "relatedArticles": ["shortcuts.global", "core.editor-basics"],
+          "file": "shortcuts/editor.md"
+        }
+      ]
+    },
+    {
+      "id": "views",
+      "title": {
+        "zh_CN": "视图切换",
+        "en_US": "View Switching"
+      },
+      "icon": "👁️",
+      "articles": [
+        {
+          "id": "views.types",
+          "title": {
+            "zh_CN": "视图类型",
+            "en_US": "View Types"
+          },
+          "tags": ["视图", "界面"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["core.multi-tab", "outline.basics"],
+          "file": "views/types.md"
+        }
+      ]
+    },
+    {
+      "id": "statistics",
+      "title": {
+        "zh_CN": "统计和监控",
+        "en_US": "Statistics and Monitoring"
+      },
+      "icon": "📊",
+      "articles": [
+        {
+          "id": "statistics.llm",
+          "title": {
+            "zh_CN": "LLM统计",
+            "en_US": "LLM Statistics"
+          },
+          "tags": ["统计", "LLM"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["settings.llm", "ai.chat", "statistics.proofread"],
+          "file": "statistics/llm.md"
+        },
+        {
+          "id": "statistics.proofread",
+          "title": {
+            "zh_CN": "校对工具统计",
+            "en_US": "Proofread Statistics"
+          },
+          "tags": ["统计", "校对"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["ai.proofread", "statistics.llm"],
+          "file": "statistics/proofread.md"
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "title": {
+        "zh_CN": "功能特性",
+        "en_US": "Features"
+      },
+      "icon": "✨",
+      "articles": [
+        {
+          "id": "features.paragraph-optimization",
+          "title": {
+            "zh_CN": "段落优化功能",
+            "en_US": "Paragraph Optimization"
+          },
+          "tags": ["功能", "AI"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["outline.basics"],
+          "relatedArticles": ["outline.basics", "ai.chat"],
+          "file": "features/paragraph-optimization.md"
+        }
+      ]
+    },
+    {
+      "id": "formats",
+      "title": {
+        "zh_CN": "文档格式",
+        "en_US": "Document Formats"
+      },
+      "icon": "📄",
+      "articles": [
+        {
+          "id": "formats.supported",
+          "title": {
+            "zh_CN": "支持的格式",
+            "en_US": "Supported Formats"
+          },
+          "tags": ["格式", "基础"],
+          "difficulty": 1,
+          "estimatedTime": 10,
+          "prerequisites": [],
+          "relatedArticles": ["markdown.basics", "latex.basics"],
+          "file": "formats/supported.md"
+        }
+      ]
+    },
+    {
+      "id": "development",
+      "title": {
+        "zh_CN": "开发工具",
+        "en_US": "Development Tools"
+      },
+      "icon": "🔧",
+      "articles": [
+        {
+          "id": "development.debug",
+          "title": {
+            "zh_CN": "调试工具",
+            "en_US": "Debug Tools"
+          },
+          "tags": ["开发", "调试"],
+          "difficulty": 3,
+          "estimatedTime": 15,
+          "prerequisites": [],
+          "relatedArticles": ["agent.session"],
+          "file": "development/debug.md"
+        }
+      ]
+    },
+    {
+      "id": "charts",
+      "title": {
+        "zh_CN": "图表功能",
+        "en_US": "Charts"
+      },
+      "icon": "📊",
+      "articles": [
+        {
+          "id": "charts.introduction",
+          "title": {
+            "zh_CN": "图表功能介绍",
+            "en_US": "Charts Introduction"
+          },
+          "tags": ["图表"],
+          "difficulty": 2,
+          "estimatedTime": 15,
+          "prerequisites": ["markdown.basics"],
+          "relatedArticles": ["charts.mermaid", "charts.plantuml", "charts.echarts"],
+          "file": "charts/introduction.md"
+        },
+        {
+          "id": "charts.mermaid",
+          "title": {
+            "zh_CN": "Mermaid图表",
+            "en_US": "Mermaid Charts"
+          },
+          "tags": ["图表", "Mermaid"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": ["charts.introduction"],
+          "relatedArticles": ["charts.introduction"],
+          "file": "charts/mermaid.md"
+        },
+        {
+          "id": "charts.plantuml",
+          "title": {
+            "zh_CN": "PlantUML图表",
+            "en_US": "PlantUML Charts"
+          },
+          "tags": ["图表", "PlantUML"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": ["charts.introduction"],
+          "relatedArticles": ["charts.introduction"],
+          "file": "charts/plantuml.md"
+        },
+        {
+          "id": "charts.echarts",
+          "title": {
+            "zh_CN": "ECharts图表",
+            "en_US": "ECharts Charts"
+          },
+          "tags": ["图表", "ECharts"],
+          "difficulty": 3,
+          "estimatedTime": 25,
+          "prerequisites": ["charts.introduction"],
+          "relatedArticles": ["charts.introduction"],
+          "file": "charts/echarts.md"
+        }
+      ]
+    }
+  ],
+  "learningPaths": {
+    "student": {
+      "name": {
+        "zh_CN": "学生路径",
+        "en_US": "Student Path"
+      },
+      "description": {
+        "zh_CN": "适合学生用户的学习路径，重点学习基础编辑和Markdown功能",
+        "en_US": "Learning path for students, focusing on basic editing and Markdown features"
+      },
+      "articles": [
+        "quick-start.guide",
+        "core.file-operations",
+        "core.editor-basics",
+        "markdown.editor",
+        "markdown.basics",
+        "markdown.features",
+        "core.export",
+        "ai.chat"
+      ]
+    },
+    "researcher": {
+      "name": {
+        "zh_CN": "研究者路径",
+        "en_US": "Researcher Path"
+      },
+      "description": {
+        "zh_CN": "适合研究者的学习路径，重点学习LaTeX和学术写作功能",
+        "en_US": "Learning path for researchers, focusing on LaTeX and academic writing"
+      },
+      "articles": [
+        "quick-start.guide",
+        "core.file-operations",
+        "core.editor-basics",
+        "latex.editor",
+        "latex.basics",
+        "latex.compilation",
+        "latex.pdf-preview",
+        "ai.proofread",
+        "core.export"
+      ]
+    },
+    "it": {
+      "name": {
+        "zh_CN": "IT从业者路径",
+        "en_US": "IT Professional Path"
+      },
+      "description": {
+        "zh_CN": "适合IT从业者的学习路径，重点学习Agent框架和高级功能",
+        "en_US": "Learning path for IT professionals, focusing on Agent framework and advanced features"
+      },
+      "articles": [
+        "quick-start.guide",
+        "core.file-operations",
+        "core.editor-basics",
+        "markdown.editor",
+        "markdown.basics",
+        "ai.llm-config",
+        "agent.introduction",
+        "agent.session",
+        "agent.config",
+        "agent.tools",
+        "agent.workflow"
+      ]
+    },
+    "office": {
+      "name": {
+        "zh_CN": "办公用户路径",
+        "en_US": "Office User Path"
+      },
+      "description": {
+        "zh_CN": "适合办公用户的学习路径，重点学习基础功能和导出",
+        "en_US": "Learning path for office users, focusing on basic features and export"
+      },
+      "articles": [
+        "quick-start.guide",
+        "core.file-operations",
+        "core.editor-basics",
+        "markdown.editor",
+        "markdown.basics",
+        "core.export",
+        "settings.basic"
+      ]
+    }
+  }
+}

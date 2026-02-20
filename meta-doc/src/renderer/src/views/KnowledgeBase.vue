@@ -359,6 +359,7 @@ import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
 import { createRendererLogger } from '../utils/logger.ts'
+import messageBridge from '../bridge/message-bridge'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import * as monaco from 'monaco-editor'
 
@@ -816,19 +817,15 @@ async function openFolder(): Promise<void> {
     return
   }
   try {
-    // 获取 IPC renderer
-    const ipcRenderer = window.electron?.ipcRenderer
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       eventBus.emit('show-error', 'IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
       return
     }
 
-    // 使用 IPC 调用主进程获取目录路径
-    const dirPath = await ipcRenderer.invoke('get-directory-path', info.path)
+    const dirPath = await messageBridge.invoke('get-directory-path', info.path)
 
     if (dirPath) {
-      // 使用 shell-open 事件打开目录
-      ipcRenderer.send('shell-open', dirPath)
+      messageBridge.send('shell-open', dirPath)
     } else {
       eventBus.emit('show-error', t('knowledgeBase.open_folder_error'))
     }

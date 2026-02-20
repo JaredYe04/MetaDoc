@@ -189,7 +189,7 @@ API URL: https://api.example.com/upload
 
 本地服务的图片可以通过以下方式访问：
 
-- **HTTP服务**：通过`http://localhost:52521/images/`访问
+- **HTTP服务**：通过运行时服务器的 `/images/` 路径访问（默认地址由应用配置，如 `http://127.0.0.1:52521/images/`）
 - **文件路径**：直接使用文件系统路径
 
 ## 最佳实践

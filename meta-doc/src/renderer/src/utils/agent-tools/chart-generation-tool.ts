@@ -1384,7 +1384,9 @@ ${currentCode}
   }
 }
 
-const chartGenerationToolLocales: ToolLocales = {
+function getChartGenerationToolLocales(): ToolLocales {
+  const baseUrl = getRuntimeServerBaseUrlSync()
+  return {
   zh_cn: {
     name: '图表生成',
     description:
@@ -1473,7 +1475,7 @@ const chartGenerationToolLocales: ToolLocales = {
 返回JSON格式的结果，包含：
 - \`chartName\`: 图表名称
 - \`chartType\`: 图表类型
-- \`url\`: **图表图片URL**（http://localhost:52521/images/...）- **这是要插入到文档中的URL，不是代码！**
+- \`url\`: **图表图片URL**（运行时服务器图片地址，形如 ${baseUrl}/images/xxx.svg）- **这是要插入到文档中的URL，不是代码！**
 - \`localPath\`: 本地绝对路径
 - \`chartCode\`: 提取后的可直接渲染的图表代码（仅用于调试，**不应该插入到文档中**）
 
@@ -1484,14 +1486,14 @@ const chartGenerationToolLocales: ToolLocales = {
 ### 对于Markdown格式文档：
 插入图片URL使用Markdown图片语法：
 \`\`\`markdown
-![图表描述](http://localhost:52521/images/xxx.svg)
+![图表描述](${baseUrl}/images/xxx.svg)
 \`\`\`
 
 ### 对于LaTeX格式文档：
 1. **必须使用PDF格式**：LaTeX文档只支持PDF格式的图表，必须设置 \`format: "pdf"\`
 2. 插入图片URL使用LaTeX图片语法：
 \`\`\`latex
-\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}
+\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}
 \`\`\`
 或者使用完整路径：
 \`\`\`latex
@@ -1509,7 +1511,7 @@ const chartGenerationToolLocales: ToolLocales = {
     "format": "svg"  // Markdown使用svg或png，LaTeX必须使用pdf
   }
 }
-// 返回结果包含 url: "http://localhost:52521/images/xxx.svg"
+// 返回结果包含 url: "${baseUrl}/images/xxx.svg"
 
 // 步骤2：使用edit工具插入图片URL（不是插入代码！）
 {
@@ -1521,9 +1523,9 @@ const chartGenerationToolLocales: ToolLocales = {
         "start": {"line": 15, "column": 1},  // 先使用outline-tree定位位置
         "end": {"line": 15, "column": 1}
       },
-      "content": "![数据趋势图](http://localhost:52521/images/xxx.svg)\n"  // Markdown格式
+      "content": "![数据趋势图](${baseUrl}/images/xxx.svg)\n"  // Markdown格式
       // 或者对于LaTeX：
-      // "content": "\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}\n"
+      // "content": "\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}\n"
     }]
   }
 }
@@ -1639,7 +1641,7 @@ Reasons:
 Returns JSON format result containing:
 - \`chartName\`: Chart name
 - \`chartType\`: Chart type
-- \`url\`: **Chart image URL** (http://localhost:52521/images/...) - **This is the URL to insert into document, not code!**
+- \`url\`: **Chart image URL** (${baseUrl}/images/...) - **This is the URL to insert into document, not code!**
 - \`localPath\`: Local absolute path
 - \`chartCode\`: Extracted directly renderable chart code (for debugging only, **should not be inserted into document**)
 
@@ -1650,14 +1652,14 @@ Returns JSON format result containing:
 ### For Markdown Format Documents:
 Insert image URL using Markdown image syntax:
 \`\`\`markdown
-![Chart Description](http://localhost:52521/images/xxx.svg)
+![Chart Description](${baseUrl}/images/xxx.svg)
 \`\`\`
 
 ### For LaTeX Format Documents:
 1. **Must use PDF format**: LaTeX documents only support PDF format charts, must set \`format: "pdf"\`
 2. Insert image URL using LaTeX image syntax:
 \`\`\`latex
-\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}
+\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}
 \`\`\`
 Or use full path:
 \`\`\`latex
@@ -1675,7 +1677,7 @@ Or use full path:
     "format": "svg"  // Markdown uses svg or png, LaTeX must use pdf
   }
 }
-// Returns result containing url: "http://localhost:52521/images/xxx.svg"
+// Returns result containing url: "${baseUrl}/images/xxx.svg"
 
 // Step 2: Use edit tool to insert image URL (not insert code!)
 {
@@ -1687,9 +1689,9 @@ Or use full path:
         "start": {"line": 15, "column": 1},  // First use outline-tree to locate position
         "end": {"line": 15, "column": 1}
       },
-      "content": "![Data Trend Chart](http://localhost:52521/images/xxx.svg)\n"  // Markdown format
+      "content": "![Data Trend Chart](${baseUrl}/images/xxx.svg)\n"  // Markdown format
       // Or for LaTeX:
-      // "content": "\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}\n"
+      // "content": "\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}\n"
     }]
   }
 }
@@ -1737,7 +1739,10 @@ Or use full path:
     description:
       '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
   }
+  }
 }
+
+const chartGenerationToolLocales = getChartGenerationToolLocales()
 
 /**
  * 图表生成Tool配置

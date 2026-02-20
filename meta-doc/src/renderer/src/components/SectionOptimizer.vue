@@ -207,20 +207,19 @@ import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  title: string
-  position: { top: number; left: number }
-  path: string
-  tree: any
-  adapter: SectionOptimizerAdapter
-  language: 'markdown' | 'latex'
-  sectionInfo?: SectionInfo // 可选的初始sectionInfo
-  mode?: 'normal' | 'demo'
-}>()
-
-withDefaults(props, {
-  mode: 'normal'
-})
+const props = withDefaults(
+  defineProps<{
+    title: string
+    position: { top: number; left: number }
+    path: string
+    tree: any
+    adapter: SectionOptimizerAdapter
+    language: 'markdown' | 'latex'
+    sectionInfo?: SectionInfo // 可选的初始sectionInfo
+    mode?: 'normal' | 'demo'
+  }>(),
+  { mode: 'normal' }
+)
 
 const emit = defineEmits<{
   (e: 'close'): void

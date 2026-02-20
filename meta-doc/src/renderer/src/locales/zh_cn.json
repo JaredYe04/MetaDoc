@@ -1,5 +1,10 @@
 {
   "lang": "zh_CN",
+  "editorModeFirstTime": {
+    "title": "选择默认编辑器模式",
+    "message": "请选择您习惯的 Markdown 编辑模式，之后可在设置中修改。",
+    "changeLaterHint": "稍后可在「设置」中修改默认编辑模式。"
+  },
   "contextMenu": {
     "aiAnalysis": "AI全文分析",
     "cut": "剪切",
@@ -1302,6 +1307,14 @@
     "metadataSaveModeEmbedHint": "将元信息以注释形式嵌入到文件内容中。这种方式会修改文档内容，使用其他软件打开时可能会看到这些注释。",
     "metadataSaveModeNone": "不保存元信息",
     "metadataSaveModeNoneHint": "不保存任何元信息。文档的作者、摘要、关键词、Agent会话记录等信息将不会被保存。",
+    "defaultEditorMode": "默认 Markdown 编辑模式",
+    "defaultEditorModeHint": "新打开文档时使用的编辑器模式，可在编辑器工具栏中随时切换。",
+    "editorModeWysiwyg": "所见即所得（WYSIWYG）",
+    "editorModeWysiwygHint": "对不熟悉 Markdown 的用户较为友好，熟悉 Markdown 也可无缝使用。",
+    "editorModeIr": "即时渲染（IR）",
+    "editorModeIrHint": "熟悉 Typora 的用户不会感到陌生，理论上是最优雅的 Markdown 编辑方式。",
+    "editorModeSv": "分屏预览（SV）",
+    "editorModeSvHint": "传统的分屏预览模式，适合大屏下的 Markdown 编辑。",
     "llmType": "选择大模型类型",
     "chooseLlm": "选择大模型",
     "metadoc": "MetaDoc",

@@ -2,9 +2,34 @@
 
 ## 概述
 
-MetaDoc的Markdown编辑器基于Vditor，提供了强大的Markdown编辑和预览功能。编辑器支持三种编辑模式，实时预览，以及丰富的格式化工具，让您能够高效地编写和编辑Markdown文档。
+MetaDoc的Markdown编辑器基于Vditor构建，通过 `editor/vditor-adapter.ts` 适配器实现统一的编辑接口。编辑器提供了强大的Markdown编辑和预览功能，支持三种编辑模式，实时预览，以及丰富的格式化工具，让您能够高效地编写和编辑Markdown文档。
 
-## Vditor编辑器介绍
+**技术实现**：
+- **适配器模式**：`VditorTextEditorAdapter` 实现 `TextEditorAdapter` 接口（定义于 `text-editor-types.ts`）
+- **视图组件**：`views/MarkdownEditor.vue` (1400+行代码)
+- **编辑模式**：IR（即时渲染）、WYSIWYG（所见即所得）、SV（分屏预览）
+- **大纲同步**：基于防抖机制（200ms）自动同步文档大纲
+
+## Vditor编辑器架构
+
+### 整体架构
+
+```
+MarkdownEditor.vue (视图层)
+    ↓
+VditorTextEditorAdapter (适配器层)
+    ↓
+Vditor Editor (编辑器核心)
+    ↓
+DOM操作 + Markdown渲染
+```
+
+**核心文件**：
+- `src/renderer/src/editor/vditor-adapter.ts` - Vditor适配器实现 (1472行)
+- `src/renderer/src/editor/text-editor-types.ts` - 统一接口定义 (243行)
+- `src/renderer/src/views/MarkdownEditor.vue` - Markdown编辑器视图 (1400+行)
+
+### Vditor编辑器特点
 
 Vditor是一款所见即所得的Markdown编辑器，具有以下特点：
 
@@ -13,27 +38,40 @@ Vditor是一款所见即所得的Markdown编辑器，具有以下特点：
 - **语法高亮**：代码块支持语法高亮
 - **数学公式**：支持LaTeX数学公式渲染
 - **工具栏**：提供丰富的格式化工具
+- **AI补全**：集成AI自动补全功能（基于 `AISuggestionGhost.vue`）
+- **大纲同步**：自动提取文档大纲结构
 
 ## 编辑模式切换
 
-Vditor提供三种编辑模式，每种模式适合不同的使用场景：
+Vditor提供三种编辑模式，通过 `switchVditorMode()` 函数实现模式切换。每种模式适合不同的使用场景：
 
 ```mermaid
 graph TB
-    A[Markdown编辑器] --> B[IR模式<br/>即时渲染]
-    A --> C[WYSIWYG模式<br/>所见即所得]
-    A --> D[SV模式<br/>分屏预览]
-    B --> E[语法可见<br/>实时渲染]
-    C --> F[可视化编辑<br/>无需语法]
-    D --> G[编辑区+预览区<br/>实时同步]
+    subgraph 编辑模式架构
+        A[MarkdownEditor.vue] --> B{switchVditorMode}
+        B -->|ir| C[IR模式<br/>.vditor-ir__node]
+        B -->|wysiwyg| D[WYSIWYG模式<br/>.vditor-wysiwyg]
+        B -->|sv| E[SV模式<br/>.vditor-sv__node]
+        C --> F[即时渲染<br/>语法可见]
+        D --> G[所见即所得<br/>可视化编辑]
+        E --> H[分屏预览<br/>实时同步]
+    end
     style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
-    style B fill:#f3f4f6,stroke:#374151
+    style B fill:#e5e7eb,stroke:#6b7280
     style C fill:#f3f4f6,stroke:#374151
     style D fill:#f3f4f6,stroke:#374151
-    style E fill:#e5e7eb,stroke:#6b7280
-    style F fill:#e5e7eb,stroke:#6b7280
-    style G fill:#e5e7eb,stroke:#6b7280
+    style E fill:#f3f4f6,stroke:#374151
 ```
+
+### 三种模式的DOM结构差异
+
+根据代码实现（`MarkdownEditor.vue` 第1261-1293行），三种模式在DOM结构上有明显差异：
+
+| 模式 | DOM选择器 | 特点 |
+|------|-----------|------|
+| **IR模式** | `.vditor-ir__node` | 包裹标题元素，语法标记可见 |
+| **WYSIWYG模式** | `.vditor-wysiwyg .vditor-reset` | 直接操作H1-H6标签 |
+| **SV模式** | `.vditor-sv__node` | 源码和预览分屏显示 |
 
 ### IR模式（即时渲染）
 
@@ -127,11 +165,21 @@ Markdown编辑器支持实时预览：
 
 ### 自动提取大纲
 
-编辑器会自动从文档中提取大纲结构：
+编辑器通过 `syncOutlineFromMarkdown()` 函数自动从文档中提取大纲结构。该功能基于防抖机制（200ms延迟）实现性能优化：
 
+**实现代码**（`MarkdownEditor.vue` 第285-298行）：
+```typescript
+const syncOutlineFromMarkdown = debounce(() => {
+  const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value)
+  currentOutline.value = outline
+}, 200)
+```
+
+**功能特点**：
 - **标题识别**：自动识别H1-H6级别的标题
 - **大纲树**：生成文档的大纲树结构
-- **实时更新**：编辑时自动更新大纲
+- **实时更新**：编辑时自动更新大纲（200ms防抖）
+- **提取函数**：`extractOutlineTreeFromMarkdown()` 解析Markdown源码生成树形结构
 
 ### 大纲导航
 

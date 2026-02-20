@@ -9,6 +9,7 @@ import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 import { createRendererLogger } from './logger.ts'
 import { preRenderAllCharts } from './chart-pre-renderer.js'
 import { themeState } from './themes'
+import messageBridge from '../bridge/message-bridge'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance = null
@@ -737,23 +738,11 @@ export async function embedImagesInline(md, convertSvgToBitmap = true) {
             getLogger().warn('URL 解码失败，使用原始路径', e)
           }
 
-          // 通过 IPC 读取文件
-          let ipcRenderer = null
-          if (typeof window !== 'undefined') {
-            if (window.electron?.ipcRenderer) {
-              ipcRenderer = window.electron.ipcRenderer
-            } else {
-              const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
-              ipcRenderer = localIpcRenderer
-            }
-          }
-
-          if (!ipcRenderer) {
+          if (!messageBridge.getIpc()) {
             throw new Error('IPC 渲染器不可用，无法读取本地文件')
           }
 
-          // 读取文件内容
-          const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath)
+          const fileData = await messageBridge.invoke('read-file-for-upload', localPath)
 
           if (!fileData || !fileData.data) {
             throw new Error('文件数据为空')
@@ -904,24 +893,10 @@ export async function embedImagesInline(md, convertSvgToBitmap = true) {
               } catch (svgError) {
                 getLogger().warn('SVG 转 PNG 失败，尝试使用主进程转换或原始 SVG', svgError)
 
-                // 尝试使用主进程的 SVG 转 PNG 功能（如果可用）
                 try {
-                  let ipcRenderer = null
-                  if (typeof window !== 'undefined') {
-                    if (window.electron?.ipcRenderer) {
-                      ipcRenderer = window.electron.ipcRenderer
-                    } else {
-                      const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
-                      ipcRenderer = localIpcRenderer
-                    }
-                  }
-
-                  if (ipcRenderer) {
-                    // 尝试通过主进程转换 SVG 为 PNG
-                    // 主进程的 convert-svg-string-to-png 返回 HTTP URL，我们需要读取它并转换为 base64
+                  if (messageBridge.getIpc()) {
                     try {
-                      // 调用主进程的 SVG 转 PNG 功能
-                      const result = await ipcRenderer.invoke(
+                      const result = await messageBridge.invoke(
                         'convert-svg-string-to-png',
                         svgText,
                         2.0
@@ -1791,16 +1766,6 @@ export async function ConvertMarkdownToHtmlVditor(md) {
  * - span.language-math 视为行内
  * - div.language-math 视为块级
  */
-// 移至 chart-pre-renderer.js 中，避免 md-utils 过载
-let ipcRenderer = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
-  webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
-}
-
 export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = true) {
   const contentTheme = await getSetting('contentTheme')
   const codeTheme = await getSetting('codeTheme')
@@ -1895,19 +1860,8 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
               }
             }
 
-            // 通过IPC读取文件
-            let ipcRenderer = null
-            if (typeof window !== 'undefined') {
-              if (window.electron?.ipcRenderer) {
-                ipcRenderer = window.electron.ipcRenderer
-              } else {
-                const { localIpcRenderer } = await import('./web-adapter/local-ipc-renderer')
-                ipcRenderer = localIpcRenderer
-              }
-            }
-
-            if (ipcRenderer) {
-              const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath)
+            if (messageBridge.getIpc()) {
+              const fileData = await messageBridge.invoke('read-file-for-upload', localPath)
               if (fileData && fileData.data) {
                 contentType = fileData.mimeType || ''
                 isSvg =

@@ -72,9 +72,6 @@ function ensureDemoComponentsLoaded(): Promise<void> {
 // Vditor 渲染完成后：先处理内部链接，再把占位 div 替换为 Vue 组件（不破坏 Mermaid 等）
 // 必须在同步阶段捕获 appContext，否则在 setTimeout/async 回调中 getCurrentInstance() 为 null
 const handleRendered = (container?: HTMLElement | null) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:handleRendered',message:'handleRendered called',data:{hasContainer:!!container,containerTag:container?.tagName,containerClass:container?.className},hypothesisId:'H1',timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (processTimer) clearTimeout(processTimer)
   const targetContainer = container ?? document.querySelector('.vditor-preview-container')
   processTimer = setTimeout(() => {
@@ -86,24 +83,15 @@ const handleRendered = (container?: HTMLElement | null) => {
 }
 
 async function injectDemoComponents(appContext: AppContext | null, container: HTMLElement | null) {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:injectDemoComponents',message:'injectDemoComponents entry',data:{hasAppContext:!!appContext,hasContainer:!!container,containerTag:container?.tagName},hypothesisId:'H2',timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (!appContext || !container) return
   const placeholders = container.querySelectorAll('[data-demo-component]')
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:injectDemoComponents',message:'placeholders count',data:{placeholdersLength:placeholders.length,containerInnerHTMLLength:container.innerHTML?.length},hypothesisId:'H3',timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (placeholders.length === 0) return
   await ensureDemoComponentsLoaded()
-  placeholders.forEach((el, i) => {
+  placeholders.forEach((el) => {
     const componentName = (el as HTMLElement).getAttribute('data-demo-component')
     const propsJson = (el as HTMLElement).getAttribute('data-demo-props')
-    const Component = getDemoComponent(componentName ?? '')
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:injectDemoComponents:forEach',message:'placeholder',data:{index:i,componentName,hasPropsJson:!!propsJson,hasComponent:!!Component},hypothesisId:'H4',timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!componentName || !propsJson) return
+    const Component = getDemoComponent(componentName)
     if (!Component) return
     let props: Record<string, unknown>
     try {
@@ -111,11 +99,39 @@ async function injectDemoComponents(appContext: AppContext | null, container: HT
     } catch {
       return
     }
-    render(null, el as HTMLElement)
+    const placeholder = el as HTMLElement
+    render(null, placeholder)
+    const wrapper = document.createElement('div')
+    wrapper.className = 'manual-demo-inline'
+    placeholder.appendChild(wrapper)
+    blockDemoEvents(wrapper)
     const vnode = createVNode(Component, props)
     vnode.appContext = appContext
-    render(vnode, el as HTMLElement)
+    render(vnode, wrapper)
   })
+}
+
+/** 在包装元素上拦截所有交互事件，避免手册内 Demo 触发真实业务逻辑（不修改组件本身） */
+function blockDemoEvents(wrapper: HTMLElement) {
+  const block = (e: Event) => {
+    e.stopPropagation()
+    e.preventDefault()
+  }
+  const events = [
+    'click',
+    'mousedown',
+    'mouseup',
+    'dblclick',
+    'contextmenu',
+    'keydown',
+    'keypress',
+    'keyup',
+    'submit',
+    'touchstart',
+    'touchend',
+    'touchmove'
+  ] as const
+  events.forEach((type) => wrapper.addEventListener(type, block, true))
 }
 
 // 监听内容变化，延迟处理内部链接（等待渲染完成）
@@ -277,6 +293,54 @@ function processInternalLinks() {
   border: 1px dashed v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.15)"');
   border-radius: 8px;
   background-color: v-bind('themeState.currentTheme.background2nd || "transparent"');
+}
+
+/* 手册内 Demo：样式与交互均在此处统一处理，不依赖各组件内部逻辑 */
+.markdown-preview :deep(.manual-demo-inline) {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  isolation: isolate;
+  /* 阻断指针事件，防止触发组件内业务逻辑（配合 JS 中 blockDemoEvents 的捕获阶段拦截） */
+  pointer-events: none;
+}
+
+.markdown-preview :deep(.manual-demo-inline *) {
+  pointer-events: none;
+}
+
+/* 任意 Demo 组件根在手册内均强制内联（防止 fixed/absolute 浮层） */
+.markdown-preview :deep(.manual-demo-inline > *) {
+  position: relative !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none;
+}
+
+/* 各 Demo 组件根在手册内强制内联展示（覆盖其原有的 fixed/absolute/全屏样式） */
+.markdown-preview :deep(.manual-demo-inline .quick-start-panel-wrapper),
+.markdown-preview :deep(.manual-demo-inline .quick-start-overlay) {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 200px;
+  max-height: 420px;
+}
+
+.markdown-preview :deep(.manual-demo-inline .quick-start-panel-wrapper) {
+  padding: 16px;
+}
+
+.markdown-preview :deep(.manual-demo-inline .view-menu-container),
+.markdown-preview :deep(.manual-demo-inline .main-tabs-wrapper) {
+  position: relative !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0;
 }
 
 .empty-content {

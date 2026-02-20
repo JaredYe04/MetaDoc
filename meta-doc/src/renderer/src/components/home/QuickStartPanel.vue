@@ -233,11 +233,6 @@ import type { AIDialogMessage } from '@/types'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
-
 const stage = ref<'format' | 'select' | 'editor' | 'markdown' | 'latex'>('format')
 const selectedFormat = ref<'md' | 'tex' | null>(null)
 
@@ -503,7 +498,6 @@ function handleClose() {
 }
 
 const closeQuickStart = () => {
-  if (props.mode === 'demo') return
   stage.value = 'format'
   eventBus.emit('reset-quickstart')
   eventBus.emit('quickstart-stage-changed', 'inactive')
@@ -515,7 +509,6 @@ const handleQuickStartClose = () => {
 }
 
 const selectQuickStartFormat = (format: 'md' | 'tex') => {
-  if (props.mode === 'demo') return
   logger.info('[QuickStartPanel] selectQuickStartFormat 开始', { format })
 
   // 仅切换界面状态，不创建或激活任何文档 tab

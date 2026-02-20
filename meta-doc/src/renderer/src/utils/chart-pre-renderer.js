@@ -7,6 +7,7 @@ import { isElectronEnv } from './event-bus'
 import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { getSetting } from './settings'
+import messageBridge from '../bridge/message-bridge'
 //import mermaid from 'mermaid';
 // mermaid 改为动态导入，实现按需加载
 // 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
@@ -182,19 +183,11 @@ export async function renderPlantUMLViaIpc(code, format = 'svg') {
     // 不抛出错误，继续尝试渲染，让 PlantUML 自己处理
   }
 
-  let ipcRenderer = null
-  if (window && window.electron) {
-    ipcRenderer = window.electron.ipcRenderer
-  } else {
-    const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default
-    ipcRenderer = localIpcRenderer
-  }
-
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('无法获取 IPC 渲染器')
   }
 
-  return await ipcRenderer.invoke('render-plantuml', encodedCode, format)
+  return await messageBridge.invoke('render-plantuml', encodedCode, format)
 }
 
 /**
@@ -204,15 +197,7 @@ export async function renderPlantUMLViaIpc(code, format = 'svg') {
  */
 export async function renderEChartsViaIpc(optionJson, format = 'svg') {
   const logger = createRendererLogger('EChartsRenderer')
-  let ipcRenderer = null
-  if (window && window.electron) {
-    ipcRenderer = window.electron.ipcRenderer
-  } else {
-    const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default
-    ipcRenderer = localIpcRenderer
-  }
-
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('无法获取 IPC 渲染器')
   }
 
@@ -251,8 +236,7 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
 
   logger.debug('发送 ECharts option 到主进程，长度:', jsonString.length)
 
-  // 主进程只返回 SVG 字符串，PNG 转换在渲染进程中完成
-  let svgContent = await ipcRenderer.invoke('render-echarts', jsonString)
+  let svgContent = await messageBridge.invoke('render-echarts', jsonString)
 
   // 检查返回的是否是 URL（错误情况）
   if (typeof svgContent === 'string' && svgContent.startsWith('http://')) {
@@ -331,18 +315,9 @@ export async function renderMermaidViaApi(code, format = 'svg') {
     const hashBase = await computeHash(String(code) + ':mermaid:' + ext)
 
     if (format === 'png') {
-      // 转换为 PNG（使用主进程 resvg）
-      let ipcRenderer = null
-      if (window && window.electron) {
-        ipcRenderer = window.electron.ipcRenderer
-      } else {
-        const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default
-        ipcRenderer = localIpcRenderer
-      }
-      if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器')
+      if (!messageBridge.getIpc()) throw new Error('无法获取 IPC 渲染器')
 
-      // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
-      const ret = await ipcRenderer.invoke('convert-svg-string-to-png', cleanedSvg, 2.0)
+      const ret = await messageBridge.invoke('convert-svg-string-to-png', cleanedSvg, 2.0)
       if (!ret?.success || !ret.url) {
         throw new Error(ret?.error || '主进程 SVG→PNG 失败')
       }
@@ -508,22 +483,11 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
               document.body.removeChild(container)
 
               if (targetFormat === 'png') {
-                // 需要转换为 PNG：为避免渲染进程 canvas 污染，Mermaid 走主进程 resvg
                 if (chartType === 'mermaid') {
                   ;(async () => {
                     try {
-                      let ipcRenderer = null
-                      if (window && window.electron) {
-                        ipcRenderer = window.electron.ipcRenderer
-                      } else {
-                        const localIpcRenderer = (
-                          await import('./web-adapter/local-ipc-renderer.ts')
-                        ).default
-                        ipcRenderer = localIpcRenderer
-                      }
-                      if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器')
-                      // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
-                      const ret = await ipcRenderer.invoke(
+                      if (!messageBridge.getIpc()) throw new Error('无法获取 IPC 渲染器')
+                      const ret = await messageBridge.invoke(
                         'convert-svg-string-to-png',
                         svgContent,
                         2.0

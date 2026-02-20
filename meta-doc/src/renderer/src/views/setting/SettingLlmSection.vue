@@ -727,7 +727,6 @@ import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus, { sendBroadcast } from '../../utils/event-bus.js'
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
 import { createRendererLogger } from '../../utils/logger.ts'
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
 import { isDevEnvironment } from '../../utils/dev-env'
 import { themeState } from '../../utils/themes.js'
 import {
@@ -754,13 +753,6 @@ import {
 import { Plus, Edit, Delete, DocumentCopy, MoreFilled, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ai_types, createAiTask } from '../../utils/ai_tasks.ts'
-
-let ipcRenderer: any = null
-if (window && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
-}
 
 interface OllamaModel {
   name: string

@@ -147,17 +147,42 @@
 #### P3 - 遗留文件
 - ~~`views/Home_legacy.vue`~~ 已删除（未被引用）
 
+### 剩余需迁移（全量 grep 排查）
+
+以下为本次全量搜索 `ipcRenderer` / `window.electron` / `localIpcRenderer` 后仍**直接使用 IPC**、需改为 messageBridge 的文件：
+
+| 文件 | 说明 |
+|------|------|
+| [x] `views/KnowledgeBase.vue` | ✅ 已改为 messageBridge |
+| [x] `views/setting/SettingLlmSection.vue` | ✅ 已删除未使用的 ipcRenderer 初始化 |
+| [x] `utils/md-utils.js` | ✅ 已改为 messageBridge |
+| [x] `utils/chart-pre-renderer.js` | ✅ 已改为 messageBridge |
+| [x] `services/export-manager.ts` | ✅ 已改为 messageBridge |
+| [x] `components/WorkspaceExplorer.vue` | ✅ 已改为 messageBridge.* |
+
+**仅环境检查、类型或注释（无需改逻辑）：**  
+`message-bridge.ts`、`local-ipc-renderer.ts`、`particle-effect.ts`（options 字段）、`logger.ts`、`themes.js`、`database-tests.ts`（已用 messageBridge）、workspace 的 `fs-planner/fs-executor/refresh-service`（由调用方注入 ipc）、各文件中的 `if (!window.electron?.ipcRenderer) webMainCalls()`。
+
+### 52521 / 运行时服务器地址（剩余）
+
+| 文件 | 说明 |
+|------|------|
+| [x] `manuals/zh_CN/settings/image-upload.md` | ✅ 已改为“运行时服务器”说明 |
+| [x] `utils/agent-tools/chart-generation-tool.ts` | ✅ 提示词中示例 URL 改为占位 `<runtime-server>/images/` |
+| [ ] `src/renderer/config/runtime-server.ts` | 已有 fallback `127.0.0.1:52521`，属配置默认值 ✅ |
+| [ ] `services/image-processor.ts` | 仅注释提及 localhost:52521，逻辑已用 `getRuntimeServerBaseUrlSync()` ✅ |
+
 ---
 
 ## 三、迁移统计
 
 ### 运行时服务器地址
-- ✅ 已完成：~20 个文件
-- ⏳ 待检查：文档和注释中的示例
+- ✅ 已完成：~20 个文件，逻辑已统一走 config
+- ⏳ 待更新：文档/提示词中的示例 URL（见上表）
 
 ### IPC 消息桥
-- ✅ 已完成：6 个核心文件
-- ⏳ 待迁移：~80+ 个文件（约 1000+ 处 IPC 调用）
+- ✅ 绝大部分已迁移至 messageBridge
+- ⏳ 待完成：上表 6 个文件（本次排查剩余）
 
 ---
 

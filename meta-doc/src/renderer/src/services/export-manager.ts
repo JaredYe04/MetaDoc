@@ -59,9 +59,7 @@ export const prepareExportPayload = async (
   explicitName?: string,
   exportOptions?: ExportOptions
 ): Promise<BaseExportPayload> => {
-  const { default: localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-  const { webMainCalls } = await import('../utils/web-adapter/web-main-calls')
-  const ipcRenderer = (window as any)?.electron?.ipcRenderer ?? (webMainCalls(), localIpcRenderer)
+  const messageBridge = (await import('../bridge/message-bridge')).default
   const { createProgressHandle } = await import('../utils/progress-handle')
 
   const requestId = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -71,7 +69,7 @@ export const prepareExportPayload = async (
     initialPercentage: 0,
     onCancel: () => {
       try {
-        ipcRenderer?.invoke?.('cancel-export-task', requestId)
+        messageBridge.invoke('cancel-export-task', requestId)
       } catch (err) {
         // ignore
       }

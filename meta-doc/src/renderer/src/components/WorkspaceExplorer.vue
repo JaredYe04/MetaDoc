@@ -677,7 +677,7 @@ const addWorkspaceFolder = async () => {
   }
 
   try {
-    const result = (await ipcRenderer.invoke('show-open-dialog', {
+    const result = (await messageBridge.invoke('show-open-dialog', {
       title: t('workspaceExplorer.selectFolder'),
       properties: ['openDirectory']
     })) as { canceled: boolean; filePaths?: string[] }
@@ -779,7 +779,7 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
   return directoryLoadPool.execute(async () => {
     try {
       // 读取目录内容
-      const entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
+      const entries = (await messageBridge.invoke('read-directory', nodePath)) as Array<{
         name: string
         path: string
         isDirectory: boolean
@@ -807,7 +807,7 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
       logger.error('加载目录内容失败:', { path: nodePath, error: err })
       // 如果 Worker 处理失败，回退到主线程处理
       try {
-        const entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
+        const entries = (await messageBridge.invoke('read-directory', nodePath)) as Array<{
           name: string
           path: string
           isDirectory: boolean
@@ -1220,7 +1220,7 @@ const startDirectoryWatcher = (folderPath: string) => {
   }
 
   try {
-    ipcRenderer.send('watch-directory', folderPath)
+    messageBridge.send('watch-directory', folderPath)
     logger.info('启动目录监听', { folderPath })
   } catch (err) {
     logger.error('启动目录监听失败', { folderPath, error: err })
@@ -1235,7 +1235,7 @@ const stopDirectoryWatcher = (folderPath: string) => {
   }
 
   try {
-    ipcRenderer.send('unwatch-directory', folderPath)
+    messageBridge.send('unwatch-directory', folderPath)
     logger.info('停止目录监听', { folderPath })
   } catch (err) {
     logger.error('停止目录监听失败', { folderPath, error: err })
@@ -1284,7 +1284,7 @@ onMounted(async () => {
   // 监听目录变化事件（来自主进程）
   const ipcRenderer = getIpcRenderer()
   if (ipcRenderer) {
-    ipcRenderer.on('directory-changed', handleDirectoryChange)
+    messageBridge.on('directory-changed', handleDirectoryChange)
   }
 })
 
@@ -1304,7 +1304,7 @@ onBeforeUnmount(() => {
 
   const ipcRenderer = getIpcRenderer()
   if (ipcRenderer) {
-    ipcRenderer.removeListener('directory-changed', handleDirectoryChange)
+    messageBridge.removeListener('directory-changed', handleDirectoryChange)
   }
 
   // 清理 Worker
@@ -1530,12 +1530,12 @@ const handleContextMenuCommand = async (command: string) => {
         break
       case 'showInFolder':
         if (node) {
-          await ipcRenderer.invoke('show-item-in-folder', node.path)
+          await messageBridge.invoke('show-item-in-folder', node.path)
         }
         break
       case 'openFolder':
         if (node && (node.type === 'directory' || node.isWorkspaceRoot)) {
-          await ipcRenderer.invoke('show-item-in-folder', node.path)
+          await messageBridge.invoke('show-item-in-folder', node.path)
         }
         break
       case 'newFile':
@@ -1621,11 +1621,11 @@ const handlePaste = async (targetPathParam: string | null) => {
     let targetDir = targetPathParam || workspaceFolders.value[0]
 
     // 检查目标路径是否存在
-    const exists = (await ipcRenderer.invoke('check-path-exists', targetDir)) as boolean
+    const exists = (await messageBridge.invoke('check-path-exists', targetDir)) as boolean
     if (exists) {
       // 检查是否为目录
       try {
-        await ipcRenderer.invoke('read-directory', targetDir)
+        await messageBridge.invoke('read-directory', targetDir)
         // 是目录，直接使用
       } catch {
         // 不是目录，使用其父目录
@@ -1912,7 +1912,7 @@ const handleNewFileConfirm = async () => {
       fileName = fileName + defaultExtension
     }
 
-    const filePath = await ipcRenderer.invoke('create-file', {
+    const filePath = await messageBridge.invoke('create-file', {
       parentPath: newFileParentPath.value,
       fileName,
       content: ''
@@ -1950,7 +1950,7 @@ const handleNewFolderConfirm = async () => {
   if (!ipcRenderer) return
 
   try {
-    await ipcRenderer.invoke('create-directory', {
+    await messageBridge.invoke('create-directory', {
       parentPath: newFolderParentPath.value,
       folderName: newFolderName.value.trim()
     })

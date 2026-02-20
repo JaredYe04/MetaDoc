@@ -8,6 +8,7 @@ import path from 'path'
 import { PDFDocument } from 'pdf-lib'
 import { createMainLogger } from '../logger'
 import { imageUploadDir } from '../express-server'
+import { getRuntimeServerBaseUrl } from '../runtime-server-config'
 // 仅保留 resvg-js 渲染链路，不再引入 BrowserWindow 或 sharp 回退
 
 const logger = createMainLogger('SvgToPdf')
@@ -136,7 +137,7 @@ export async function convertSvgToPdf(svgPath: string): Promise<string> {
 
 /**
  * 使用 resvg 将 SVG 字符串渲染为 PNG 文件，并保存到本地图片目录
- * 返回本地 HTTP URL（http://localhost:52521/images/xxx.png）
+ * 返回本地 HTTP URL（运行时服务器 /images/xxx.png）
  * @param scale - 缩放因子，用于生成高分辨率位图。默认 2.0（相当于 192 DPI），与矢量图清晰度相当
  */
 export async function convertSvgStringToPngFile(
@@ -154,7 +155,7 @@ export async function convertSvgStringToPngFile(
     const fileName = `${hash}_mermaid.png`
     const filePath = path.join(imageUploadDir, fileName)
     if (fs.existsSync(filePath)) {
-      return `http://localhost:52521/images/${fileName}`
+      return `${getRuntimeServerBaseUrl()}/images/${fileName}`
     }
 
     // 规范化 SVG
@@ -229,7 +230,7 @@ export async function convertSvgStringToPngFile(
     const renderedPngBuffer = Buffer.from(pngData.asPng())
     await fs.promises.writeFile(filePath, renderedPngBuffer)
     logger.debug(`高分辨率 PNG 已生成（缩放因子: ${scale}x，宽度: ${targetWidth}px）`)
-    return `http://localhost:52521/images/${fileName}`
+    return `${getRuntimeServerBaseUrl()}/images/${fileName}`
   } catch (error) {
     logger.error('SVG 字符串转 PNG 失败:', error)
     throw error
@@ -314,7 +315,7 @@ function normalizeSvgForResvg(input: string): string {
 
 /**
  * 使用 resvg 将 SVG 字符串渲染为 PDF 文件，并保存到本地图片目录
- * 返回本地 HTTP URL（http://localhost:52521/images/xxx.pdf）
+ * 返回本地 HTTP URL（运行时服务器 /images/xxx.pdf）
  */
 export async function convertSvgStringToPdfFile(svgContent: string): Promise<string> {
   try {
@@ -323,7 +324,7 @@ export async function convertSvgStringToPdfFile(svgContent: string): Promise<str
     const fileName = `${hash}_chart.pdf`
     const filePath = path.join(imageUploadDir, fileName)
     if (fs.existsSync(filePath)) {
-      return `http://localhost:52521/images/${fileName}`
+      return `${getRuntimeServerBaseUrl()}/images/${fileName}`
     }
 
     // 规范化 SVG
@@ -414,7 +415,7 @@ export async function convertSvgStringToPdfFile(svgContent: string): Promise<str
     const pdfBytes = await pdfDoc.save()
     fs.writeFileSync(filePath, pdfBytes)
     logger.debug(`SVG 字符串已转换为 PDF: ${filePath}`)
-    return `http://localhost:52521/images/${fileName}`
+    return `${getRuntimeServerBaseUrl()}/images/${fileName}`
   } catch (error) {
     logger.error('SVG 字符串转 PDF 失败:', error)
     throw error

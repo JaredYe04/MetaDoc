@@ -3,7 +3,8 @@
  * 负责应用初始化、窗口管理和生命周期控制
  */
 
-import { app, shell, BrowserWindow, ipcMain, IpcMainEvent, dialog } from 'electron'
+import { app, shell, BrowserWindow, IpcMainEvent, dialog } from 'electron'
+import { ipcBridge } from './bridge/ipc-bridge'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 // import icon from '../../resources/icon.png?asset';
@@ -103,9 +104,9 @@ initLogger()
 initI18n()
 const logger = createMainLogger('MainProcess')
 
+import { getRuntimeServerHost, getRuntimeServerPort } from './runtime-server-config'
+
 const SUPPORTED_FILE_EXTENSIONS = new Set(['.md', '.json', '.txt', '.tex'])
-const RUNTIME_API_HOST = '127.0.0.1'
-const RUNTIME_API_PORT = 52521
 
 const startupFileArgument = findSupportedFileArgument(process.argv)
 const prelaunchDelegationPromise = attemptDelegationToRunningInstance(startupFileArgument)
@@ -196,6 +197,9 @@ let isShortcutPressed: boolean = false
 let isAppQuitting = false
 // 已绑定快捷键处理器的窗口 ID 集合，防止重复绑定
 const shortcutBoundWindows = new Set<number>()
+// Ctrl+K 后按 S 触发「保存全部」的等待截止时间（0 表示未在等待）
+let pendingSaveAllUntil = 0
+const SAVE_ALL_SEQUENCE_MS = 1500
 
 function focusMainApplicationWindow(): void {
   // 仅操作已显示的窗口，避免误显示窗口池中的备用窗口
@@ -308,13 +312,13 @@ function createWindow(): void {
               _event: IpcMainEvent,
               tabs: Array<{ tabId: string; fileName: string; path: string }>
             ) => {
-              ipcMain.removeListener('unsaved-tabs-info-response', handler)
+              ipcBridge.removeListener('unsaved-tabs-info-response', handler)
               resolve(tabs || [])
             }
-            ipcMain.once('unsaved-tabs-info-response', handler)
+            ipcBridge.registerOnce('unsaved-tabs-info-response', handler)
             // 设置超时，避免无限等待
             setTimeout(() => {
-              ipcMain.removeListener('unsaved-tabs-info-response', handler)
+              ipcBridge.removeListener('unsaved-tabs-info-response', handler)
               resolve([])
             }, 1000)
           }
@@ -371,14 +375,14 @@ function createWindow(): void {
                 result: { tabId: string; success: boolean; error?: string }
               ) => {
                 if (result.tabId === tab.tabId) {
-                  ipcMain.removeListener('save-tab-response', handler)
+                  ipcBridge.removeListener('save-tab-response', handler)
                   resolve(result)
                 }
               }
-              ipcMain.on('save-tab-response', handler)
+              ipcBridge.registerOn('save-tab-response', handler)
               // 设置超时，避免无限等待
               setTimeout(() => {
-                ipcMain.removeListener('save-tab-response', handler)
+                ipcBridge.removeListener('save-tab-response', handler)
                 resolve({ tabId: tab.tabId, success: false, error: '保存超时' })
               }, 10000)
             })
@@ -432,14 +436,14 @@ function createWindow(): void {
                 result: { tabId: string; success: boolean }
               ) => {
                 if (result.tabId === tab.tabId) {
-                  ipcMain.removeListener('discard-tab-response', handler)
+                  ipcBridge.removeListener('discard-tab-response', handler)
                   resolve()
                 }
               }
-              ipcMain.on('discard-tab-response', handler)
+              ipcBridge.registerOn('discard-tab-response', handler)
               // 设置超时，避免无限等待
               setTimeout(() => {
-                ipcMain.removeListener('discard-tab-response', handler)
+                ipcBridge.removeListener('discard-tab-response', handler)
                 resolve()
               }, 1000)
             })
@@ -460,13 +464,13 @@ function createWindow(): void {
         // 等待响应（通常很快，但我们也设置超时）
         await new Promise<void>((resolve) => {
           const handler = (_event: IpcMainEvent, result: { success: boolean }) => {
-            ipcMain.removeListener('close-all-tabs-response', handler)
+            ipcBridge.removeListener('close-all-tabs-response', handler)
             resolve()
           }
-          ipcMain.once('close-all-tabs-response', handler)
+          ipcBridge.registerOnce('close-all-tabs-response', handler)
           // 设置超时，避免无限等待
           setTimeout(() => {
-            ipcMain.removeListener('close-all-tabs-response', handler)
+            ipcBridge.removeListener('close-all-tabs-response', handler)
             resolve()
           }, 2000)
         })
@@ -494,7 +498,7 @@ function createWindow(): void {
   })
 
   // 处理关闭单个tab的请求
-  ipcMain.on('request-close-tab', async (event, tabId: string) => {
+  ipcBridge.registerOn('request-close-tab', async (event, tabId: string) => {
     if (!mainWindow || mainWindow.isDestroyed()) return
 
     try {
@@ -508,13 +512,13 @@ function createWindow(): void {
             _event: IpcMainEvent,
             info: { fileName: string; path: string; dirty: boolean } | null
           ) => {
-            ipcMain.removeListener('tab-info-response', handler)
+            ipcBridge.removeListener('tab-info-response', handler)
             resolve(info)
           }
-          ipcMain.once('tab-info-response', handler)
+          ipcBridge.registerOnce('tab-info-response', handler)
           // 设置超时，避免无限等待
           setTimeout(() => {
-            ipcMain.removeListener('tab-info-response', handler)
+            ipcBridge.removeListener('tab-info-response', handler)
             resolve(null)
           }, 1000)
         }
@@ -589,16 +593,16 @@ function createWindow(): void {
       for (const win of windows) {
         const result = await new Promise<{ tabId: string | null }>((resolve) => {
           const handler = (_event: IpcMainEvent, response: { tabId: string | null } | null) => {
-            ipcMain.removeListener('file-exists-in-window-response', handler)
+            ipcBridge.removeListener('file-exists-in-window-response', handler)
             resolve(response || { tabId: null })
           }
 
-          ipcMain.once('file-exists-in-window-response', handler)
+          ipcBridge.registerOnce('file-exists-in-window-response', handler)
           win.webContents.send('check-file-exists-in-window', path)
 
           // 超时处理
           setTimeout(() => {
-            ipcMain.removeListener('file-exists-in-window-response', handler)
+            ipcBridge.removeListener('file-exists-in-window-response', handler)
             resolve({ tabId: null })
           }, 1000)
         })
@@ -733,7 +737,7 @@ app.whenReady().then(async () => {
 /**
  * 监听保存状态
  */
-ipcMain.on('is-need-save', (event: IpcMainEvent, arg: boolean) => {
+ipcBridge.registerOn('is-need-save', (event: IpcMainEvent, arg: boolean) => {
   is_need_save = arg
 })
 
@@ -852,12 +856,37 @@ function attachShortcutHandler(win: BrowserWindow): void {
     if (input.type !== 'keyDown') return
 
     const ctrl = input.control || input.meta
-    if (!ctrl) return
-
-    // 匹配快捷键
     const key = input.key.toLowerCase()
     const shift = input.shift
 
+    // 两键序列：Ctrl+K 后按 S → 保存全部
+    if (pendingSaveAllUntil > 0) {
+      if (Date.now() > pendingSaveAllUntil) {
+        pendingSaveAllUntil = 0
+      } else if (key === 's') {
+        pendingSaveAllUntil = 0
+        if (!input.isAutoRepeat) {
+          event.preventDefault()
+          win.webContents.send('save-all-triggered')
+        }
+        return
+      } else {
+        pendingSaveAllUntil = 0
+      }
+    }
+
+    if (!ctrl) return
+
+    // Ctrl+K：进入「保存全部」等待第二键 S
+    if (key === 'k' && !shift) {
+      if (!input.isAutoRepeat) {
+        pendingSaveAllUntil = Date.now() + SAVE_ALL_SEQUENCE_MS
+        event.preventDefault()
+      }
+      return
+    }
+
+    // 匹配单键快捷键
     let channel: string | null = null
 
     if (key === 's' && !shift) channel = 'save-triggered'
@@ -867,6 +896,32 @@ function attachShortcutHandler(win: BrowserWindow): void {
     else if (key === 'w' && !shift) channel = 'close-tab-triggered'
     else if (key === 't' && shift) channel = 'reopen-tab-triggered'
     else if (key === 't' && !shift) channel = 'new-tab-triggered'
+    else if (key === 'n' && !shift) channel = 'new-doc-triggered'
+
+    if (channel === 'new-doc-triggered') {
+      if (!input.isAutoRepeat && !isShortcutPressed) {
+        isShortcutPressed = true
+        setTimeout(() => {
+          isShortcutPressed = false
+        }, 1000)
+        event.preventDefault()
+        win.webContents.send(channel)
+      }
+      return
+    }
+
+    // Ctrl+O：打开文件对话框（主进程直接调 openDoc，无需经渲染进程）
+    if (key === 'o' && !shift) {
+      if (!input.isAutoRepeat && !isShortcutPressed) {
+        isShortcutPressed = true
+        setTimeout(() => {
+          isShortcutPressed = false
+        }, 1000)
+        event.preventDefault()
+        openDoc(undefined, win.webContents.id)
+      }
+      return
+    }
 
     if (!channel) return
 
@@ -990,8 +1045,8 @@ function findSupportedFileArgument(args: string[]): string | null {
 
 async function attemptDelegationToRunningInstance(filePath?: string | null): Promise<boolean> {
   const statusResponse = await performHttpRequest({
-    host: RUNTIME_API_HOST,
-    port: RUNTIME_API_PORT,
+    host: getRuntimeServerHost(),
+    port: getRuntimeServerPort(),
     path: '/api/runtime/status',
     method: 'GET'
   })
@@ -1014,8 +1069,8 @@ async function attemptDelegationToRunningInstance(filePath?: string | null): Pro
     const payload = JSON.stringify({ path: path.resolve(filePath) })
     const openResponse = await performHttpRequest(
       {
-        host: RUNTIME_API_HOST,
-        port: RUNTIME_API_PORT,
+        host: getRuntimeServerHost(),
+        port: getRuntimeServerPort(),
         path: '/api/runtime/open-document',
         method: 'POST',
         headers: {
@@ -1035,8 +1090,8 @@ async function attemptDelegationToRunningInstance(filePath?: string | null): Pro
   }
 
   const focusResponse = await performHttpRequest({
-    host: RUNTIME_API_HOST,
-    port: RUNTIME_API_PORT,
+    host: getRuntimeServerHost(),
+    port: getRuntimeServerPort(),
     path: '/api/runtime/focus-window',
     method: 'POST',
     headers: {
@@ -1059,8 +1114,8 @@ function performHttpRequest(
   return new Promise((resolve) => {
     const req = http.request(
       {
-        host: RUNTIME_API_HOST,
-        port: RUNTIME_API_PORT,
+        host: getRuntimeServerHost(),
+        port: getRuntimeServerPort(),
         timeout: 500,
         ...options,
         headers: {
@@ -1105,7 +1160,7 @@ function performHttpRequest(
  * 初始化广播频道
  */
 export const initBroadcastChannel = (): void => {
-  ipcMain.on('send-broadcast', (event: IpcMainEvent, message: any) => {
+  ipcBridge.registerOn('send-broadcast', (event: IpcMainEvent, message: any) => {
     if (
       message &&
       typeof message === 'object' &&

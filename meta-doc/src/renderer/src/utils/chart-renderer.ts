@@ -9,7 +9,7 @@ import {
   CHART_TYPES
 } from './chart-pre-renderer'
 import { renderPlantUMLViaIpc } from './chart-pre-renderer'
-import { localVditorCDN, vditorCDN } from './vditor-cdn'
+import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
 import { isElectronEnv } from './event-bus'
 import { createRendererLogger } from './logger'
 
@@ -64,7 +64,7 @@ export async function renderChart(options: RenderChartOptions): Promise<string> 
       imageUrl = await renderMermaidViaApi(code, targetFormat)
     } else {
       // 使用 Vditor 渲染（其他图表类型）
-      const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
+      const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
       imageUrl = await renderChartViaVditor(chartType, code, cdn, chartConfig, targetFormat)
     }
 

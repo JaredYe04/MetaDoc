@@ -4,7 +4,8 @@
 import Vditor from 'vditor'
 import { createRendererLogger } from './logger.ts'
 import { isElectronEnv } from './event-bus'
-import { localVditorCDN, vditorCDN } from './vditor-cdn'
+import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
+import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { getSetting } from './settings'
 //import mermaid from 'mermaid';
 // mermaid 改为动态导入，实现按需加载
@@ -1009,11 +1010,12 @@ export async function convertLanguageMathHtmlToImages(htmlContent) {
  * @returns {Promise<string>} - 上传后的图片 URL
  */
 async function uploadImageToLocal(imageBlob, fileName) {
+  const baseUrl = await getRuntimeServerBaseUrl()
   // 先检查是否已存在相同文件（基于稳定命名）
   try {
-    const headResp = await fetch(`http://localhost:52521/images/${fileName}`, { method: 'HEAD' })
+    const headResp = await fetch(`${baseUrl}/images/${fileName}`, { method: 'HEAD' })
     if (headResp.ok) {
-      return `http://localhost:52521/images/${fileName}`
+      return `${baseUrl}/images/${fileName}`
     }
   } catch (_) {
     // 忽略 HEAD 失败，继续上传
@@ -1026,7 +1028,7 @@ async function uploadImageToLocal(imageBlob, fileName) {
   })
   formData.append('file[]', file, fileName)
 
-  const response = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+  const response = await fetch(`${baseUrl}/api/image/upload?keepName=1`, {
     method: 'POST',
     body: formData
   })
@@ -1039,11 +1041,11 @@ async function uploadImageToLocal(imageBlob, fileName) {
   if (result.code === 0 && result.data && result.data.succMap) {
     // 如果后端仍然添加了时间戳，我们优先使用我们期望的文件名（若文件名未被占用时）
     const uploadedFileName = Object.keys(result.data.succMap)[0] || fileName
-    return `http://localhost:52521/images/${uploadedFileName}`
+    return `${baseUrl}/images/${uploadedFileName}`
   }
 
   // 回退：直接返回我们期望的命名路径（适配后端直接保存原名的实现）
-  return `http://localhost:52521/images/${fileName}`
+  return `${baseUrl}/images/${fileName}`
 }
 
 /**
@@ -1059,7 +1061,7 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
 
   if (!cdn) {
     if (isElectronEnv()) {
-      cdn = localVditorCDN
+      cdn = getLocalVditorCDN()
     } else {
       cdn = vditorCDN
     }

@@ -12,6 +12,7 @@ import { t, getLocale } from '../i18n'
 import { compileLatexToPDF } from '../utils'
 import { createMainLogger } from '../logger'
 import { imageUploadDir } from '../express-server'
+import { getRuntimeServerBaseUrl } from '../runtime-server-config'
 import { MainProgressHandle } from '../utils/progress-handle'
 import {
   saveImagesToFolder,
@@ -44,9 +45,9 @@ const cleanupIntermediateImages = async (imageUrls: string[]): Promise<void> => 
     for (const url of imageUrls) {
       try {
         // 从 URL 中提取文件名
-        // URL 格式: http://localhost:52521/images/filename
-        if (url.startsWith('http://localhost:52521/images/')) {
-          const fileName = url.replace('http://localhost:52521/images/', '')
+        const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
+        if (url.startsWith(imagesPrefix)) {
+          const fileName = url.replace(imagesPrefix, '')
           const filePath = path.join(imageUploadDir, fileName)
 
           // 检查文件是否存在
@@ -2415,9 +2416,10 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         const imageUrls: string[] = []
         const regex = /!\[.*?\]\((.*?)\)/g
         let match
+        const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
         while ((match = regex.exec(finalMarkdown)) !== null) {
           const url = match[1]
-          if (url.startsWith('http://localhost:52521/images/')) {
+          if (url.startsWith(imagesPrefix)) {
             imageUrls.push(url)
           }
         }
@@ -2494,7 +2496,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         const matches = Array.from(finalHtml.matchAll(imgRegex))
         for (const match of matches) {
           const src = match[1]
-          // 收集所有图片URL：localhost:52521、http(s)网络链接、file://协议
+          // 收集所有图片URL：运行时服务器、http(s)网络链接、file://协议
           // 排除 data URL（已经是内嵌的）
           if (!src.startsWith('data:')) {
             imageUrls.push(src)
@@ -2866,7 +2868,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           `提取图片/PDF路径 - originalPath: ${originalPath}, resolvedPath: ${resolvedPath}, 文件类型: ${resolvedPath.endsWith('.pdf') ? 'PDF' : '图片'}`
         )
 
-        // 收集所有图片URL：localhost:52521、http(s)网络链接、file://协议、本地路径
+        // 收集所有图片URL：运行时服务器、http(s)网络链接、file://协议、本地路径
         // 排除 data URL（已经是内嵌的）
         if (!resolvedPath.startsWith('data:')) {
           // 如果是本地路径（不是 URL），需要解析为绝对路径
@@ -3028,7 +3030,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       }
     } else if (imageProcessing === 'original') {
       // original 模式：需要确保网络图片已经被下载并上传到本地服务
-      // 同时需要将 localhost:52521 的 URL 转换为本地文件路径，因为 LaTeX 无法直接读取 HTTP URL
+      // 同时需要将运行时服务器 images URL 转换为本地文件路径，因为 LaTeX 无法直接读取 HTTP URL
       const imageRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g
       const imageMappings = new Map<string, string>()
       let match
@@ -3041,9 +3043,10 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           imagePath = detokenizeMatch[1]
         }
 
-        // 检查是否是 localhost:52521 的 URL，需要转换为本地路径
-        if (imagePath.startsWith('http://localhost:52521/images/')) {
-          const fileName = imagePath.replace('http://localhost:52521/images/', '')
+        // 检查是否是运行时服务器 images URL，需要转换为本地路径
+        const runtimeImagesPrefix = getRuntimeServerBaseUrl() + '/images/'
+        if (imagePath.startsWith(runtimeImagesPrefix)) {
+          const fileName = imagePath.replace(runtimeImagesPrefix, '')
           const localPath = path.join(imageUploadDir, fileName)
 
           // 检查文件是否存在
@@ -3060,9 +3063,9 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
             logger.warn(`图片文件不存在: ${localPath}`)
           }
         }
-        // 检查是否是网络图片（http(s)但不是localhost:52521）
+        // 检查是否是网络图片（http(s)但不是运行时服务器）
         else if (
-          (imagePath.startsWith('http://') && !imagePath.startsWith('http://localhost:52521/')) ||
+          (imagePath.startsWith('http://') && !imagePath.startsWith(getRuntimeServerBaseUrl() + '/')) ||
           imagePath.startsWith('https://')
         ) {
           // 如果还有网络图片，尝试在 main 进程中下载并上传
@@ -3072,7 +3075,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
             const https = require('https')
             const { URL } = require('url')
 
-            const uploadUrl = 'http://localhost:52521/api/image/url-upload'
+            const uploadUrl = getRuntimeServerBaseUrl() + '/api/image/url-upload'
             const urlObj = new URL(uploadUrl)
             const protocol = urlObj.protocol === 'https:' ? https : http
 
@@ -3179,9 +3182,10 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       const imageUrls: string[] = []
       const latexRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g
       let match
+      const runtimeImagesPrefix = getRuntimeServerBaseUrl() + '/images/'
       while ((match = latexRegex.exec(finalTex)) !== null) {
         const imagePath = match[1]
-        if (imagePath.startsWith('http://localhost:52521/images/')) {
+        if (imagePath.startsWith(runtimeImagesPrefix)) {
           imageUrls.push(imagePath)
         }
       }
@@ -3356,9 +3360,10 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       const imageUrls: string[] = []
       const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
       const matches = Array.from(finalHtml.matchAll(imgRegex))
+      const runtimeImagesPrefix = getRuntimeServerBaseUrl() + '/images/'
       for (const match of matches) {
         const src = match[1]
-        if (src.startsWith('http://localhost:52521/images/')) {
+        if (src.startsWith(runtimeImagesPrefix)) {
           imageUrls.push(src)
         }
       }

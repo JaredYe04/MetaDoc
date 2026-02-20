@@ -17,20 +17,16 @@ function getLogger() {
 }
 
 /**
- * 获取 IPC 渲染器（统一方法）
+ * 通过消息桥获取 IPC（统一入口）
  */
 async function getIpcRenderer() {
-  if (window && window.electron) {
-    return window.electron.ipcRenderer
-  } else {
-    const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default
-    return localIpcRenderer
-  }
+  const messageBridge = (await import('../bridge/message-bridge')).default
+  return messageBridge.getIpc()
 }
 
 /**
  * 将 HTTP URL 转换为本地文件路径
- * @param {string} imageUrl - HTTP URL (http://localhost:52521/images/...)
+ * @param {string} imageUrl - HTTP URL (运行时服务器 /images/...)
  * @returns {Promise<string>} 本地文件路径
  */
 async function convertUrlToLocalPath(imageUrl) {
@@ -54,7 +50,7 @@ async function convertUrlToLocalPath(imageUrl) {
  * 支持多种输入格式，自动选择最优转换方式
  *
  * @param {string} input - SVG 输入，可以是：
- *   - HTTP URL: "http://localhost:52521/images/xxx.svg"
+ *   - HTTP URL: "运行时服务器 /images/xxx.svg"
  *   - 本地文件路径: "C:/path/to/file.svg" 或 "/path/to/file.svg"
  *   - SVG 字符串: "<svg>...</svg>"
  * @param {Object} options - 可选配置
@@ -64,7 +60,7 @@ async function convertUrlToLocalPath(imageUrl) {
  *
  * @example
  * // 从 HTTP URL 转换
- * const pdfPath = await convertSvgToPdf('http://localhost:52521/images/chart.svg')
+ * const pdfPath = await convertSvgToPdf('运行时服务器 /images/chart.svg')
  *
  * // 从本地路径转换
  * const pdfPath = await convertSvgToPdf('C:/images/chart.svg')
@@ -73,17 +69,14 @@ async function convertUrlToLocalPath(imageUrl) {
  * const pdfPath = await convertSvgToPdf('<svg>...</svg>')
  *
  * // 返回 HTTP URL
- * const pdfUrl = await convertSvgToPdf('http://localhost:52521/images/chart.svg', { returnUrl: true })
+ * const pdfUrl = await convertSvgToPdf('运行时服务器 /images/chart.svg', { returnUrl: true })
  */
 export async function convertSvgToPdf(input, options = {}) {
   const { returnUrl = false, returnPath = true } = options
 
   try {
-    // 获取 IPC 渲染器
-    const ipcRenderer = await getIpcRenderer()
-    if (!ipcRenderer) {
-      throw new Error('无法获取 IPC 渲染器')
-    }
+    // 通过消息桥调用 IPC
+    const messageBridge = (await import('../bridge/message-bridge')).default
 
     // 检测输入类型
     let svgPath = null
@@ -124,10 +117,10 @@ export async function convertSvgToPdf(input, options = {}) {
 
     if (useStringMethod && svgContent) {
       // 方法1: 使用字符串方法（推荐，兼容性最好）
-      result = await ipcRenderer.invoke('convert-svg-string-to-pdf', svgContent)
+      result = await messageBridge.invoke('convert-svg-string-to-pdf', svgContent)
     } else if (svgPath) {
       // 方法2: 使用路径方法（适用于已有本地文件的情况）
-      result = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath)
+      result = await messageBridge.invoke('convert-svg-to-pdf', svgPath)
     } else {
       throw new Error('无法确定输入类型或获取 SVG 内容')
     }
@@ -142,7 +135,8 @@ export async function convertSvgToPdf(input, options = {}) {
     if (returnUrl) {
       // 从路径中提取文件名
       const fileName = pdfPath.split(/[/\\]/).pop() || pdfPath
-      return `http://localhost:52521/images/${fileName}`
+      const { getRuntimeServerBaseUrlSync } = await import('../config/runtime-server')
+      return `${getRuntimeServerBaseUrlSync()}/images/${fileName}`
     } else {
       return pdfPath
     }

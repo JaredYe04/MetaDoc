@@ -2,21 +2,11 @@
 import { ref, watch, type Ref } from 'vue'
 import { answerQuestion, continueConversation } from './llm-api'
 import eventBus, { isMainWindow, getWindowType } from './event-bus'
-import localIpcRenderer from './web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 import { ai_task_status } from './consts'
 import { i18n } from '../i18n.js'
-import { webMainCalls } from './web-adapter/web-main-calls'
 import type { AITaskInfo, AITaskType, AITaskStatusValue, AIDialogMessage } from '../../../types'
 import { createRendererLogger } from './logger.ts'
-
-// IPC渲染器适配
-let ipcRenderer: any = null
-if (window && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer
-} else {
-  webMainCalls()
-  ipcRenderer = localIpcRenderer
-}
 
 // 任务存储
 type InternalAITaskInfo = AITaskInfo & {
@@ -181,7 +171,7 @@ export function createAiTask(
         payload.prompt = []
       }
     }
-    ipcRenderer.send('register-ai-task', payload)
+    messageBridge.send('register-ai-task', payload)
     logger.debug(`[createAiTask] 已发送register-ai-task IPC事件到主窗口`)
   } else {
     // 主窗口的任务已经添加到tasks.value，任务队列组件会自动显示
@@ -191,7 +181,7 @@ export function createAiTask(
   if (autoStart) {
     // 如果是主窗口，直接启动任务，如果不是的话，让主窗口来启动
     if (!isMainWindow()) {
-      ipcRenderer.send('start-task', handle)
+      messageBridge.send('start-task', handle)
     } else {
       startAiTask(handle)
     }
@@ -372,7 +362,7 @@ export async function startAiTask(handle: string): Promise<void> {
 
       // 对于流式输出，发送最终结果；对于非流式，也发送结果
       // 先发送结果，再resolve，确保子窗口能收到结果
-      ipcRenderer.send('ai-task-result', { handle, result, error: null })
+      messageBridge.send('ai-task-result', { handle, result, error: null })
       // 等待一小段时间，确保IPC消息已发送
       await new Promise((resolve) => setTimeout(resolve, 50))
     }
@@ -391,7 +381,7 @@ export async function startAiTask(handle: string): Promise<void> {
     }
 
     if (!isMainWindow()) {
-      ipcRenderer.send('ai-task-done', handle)
+      messageBridge.send('ai-task-done', handle)
     }
   } catch (e: any) {
     const logger = createRendererLogger('AiTasks')
@@ -423,7 +413,7 @@ export async function startAiTask(handle: string): Promise<void> {
     // 如果是主窗口的mirror任务（来自子窗口），需要将错误发送回子窗口
     if (currentTask.mirror) {
       const msg = e.name === 'AbortError' ? i18n.global.t('aiTask.taskCancelled2') : errorMessage
-      ipcRenderer.send('ai-task-result', { handle, result: null, error: msg })
+      messageBridge.send('ai-task-result', { handle, result: null, error: msg })
     }
 
     if (e.name === 'AbortError') {
@@ -509,7 +499,7 @@ export function cancelAiTask(
 
   // 如果是mirror任务，通知子窗口任务已取消
   if (task.mirror) {
-    ipcRenderer.send('ai-task-result', { handle, result: null, error: '任务已取消' })
+    messageBridge.send('ai-task-result', { handle, result: null, error: '任务已取消' })
   }
 
   // 延迟删除任务，让UI有时间更新状态
@@ -518,7 +508,7 @@ export function cancelAiTask(
   }, 100)
 
   if (propagate) {
-    ipcRenderer.send('broadcast-cancel-ai-task', task.handle)
+    messageBridge.send('broadcast-cancel-ai-task', task.handle)
   }
 }
 
@@ -556,7 +546,7 @@ export function getTaskMap(): Map<string, InternalAITaskInfo> {
 // ========== IPC事件监听器 ==========
 
 // 在主窗口中：接收任务注册
-ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
+messageBridge.on('register-ai-task', (_: any, taskInfo: any) => {
   const logger = createRendererLogger('AiTasks')
   logger.debug('主界面任务注册', taskInfo)
   const { handle, name, prompt, type, origin_key, meta: incomingMeta } = taskInfo
@@ -600,7 +590,7 @@ ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
         updateTimer = setTimeout(() => {
           if (newValue !== lastSentValue) {
             lastSentValue = newValue
-            ipcRenderer.send('ai-task-update', { handle, result: newValue })
+            messageBridge.send('ai-task-update', { handle, result: newValue })
           }
         }, 50) // 流式输出时，每50ms更新一次，确保实时性
       },
@@ -610,7 +600,7 @@ ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
 })
 
 // 在主窗口中：任务完成，删除
-ipcRenderer.on('ai-task-done', (_: any, handle: string) => {
+messageBridge.on('ai-task-done', (_: any, handle: string) => {
   const task = taskMap.get(handle)
   if (task) {
     task.status.value = ai_task_status.FINISHED as AITaskStatusValue
@@ -619,17 +609,17 @@ ipcRenderer.on('ai-task-done', (_: any, handle: string) => {
 })
 
 // 所有窗口都监听取消命令
-ipcRenderer.on('cancel-task', (_: any, handle: string) => {
+messageBridge.on('cancel-task', (_: any, handle: string) => {
   cancelAiTask(handle, false, false)
 })
 
 // 所有窗口监听启动命令（主窗口发起 → 主进程 → 渲染进程）
-ipcRenderer.on('start-task', (_: any, handle: string) => {
+messageBridge.on('start-task', (_: any, handle: string) => {
   startAiTask(handle)
 })
 
 // 在子窗口中：接收主窗口的任务结果（非流式或最终结果）
-ipcRenderer.on(
+messageBridge.on(
   'ai-task-result',
   (_: any, data: { handle: string; result: string | null; error: string | null }) => {
     const { handle, result, error } = data
@@ -662,7 +652,7 @@ ipcRenderer.on(
 )
 
 // 在子窗口中：接收主窗口的流式更新（实时同步）
-ipcRenderer.on('ai-task-update', (_: any, data: { handle: string; result: string }) => {
+messageBridge.on('ai-task-update', (_: any, data: { handle: string; result: string }) => {
   const { handle, result } = data
   const task = taskMap.get(handle)
   if (task && task.target) {

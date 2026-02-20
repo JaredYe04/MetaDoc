@@ -8,6 +8,7 @@
 
 import { embedImagesInline, local2httpProtocol } from '../utils/md-utils'
 import { createRendererLogger } from '../utils/logger'
+import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -71,7 +72,9 @@ export async function processMarkdownImages(
     // 检查是否已经是 HTTP URL 格式，避免重复转换
     // embedImagesInline 可以处理 HTTP URL、file:// URL 和本地路径
     // 但如果输入已经是 HTTP URL，就不需要先转换
-    const hasHttpUrl = /!\[.*?\]\(http:\/\/localhost:52521\/images\//.test(markdown)
+    const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
+    const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const hasHttpUrl = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped).test(markdown)
     const hasFileUrl = /!\[.*?\]\(file:\/\//.test(markdown)
 
     let processed = markdown
@@ -129,7 +132,7 @@ export async function processHtmlImages(html: string, mode: ImageProcessingMode)
       const src = match[1]
 
       // 如果是 HTTP URL，转换为 Base64
-      if (src.startsWith('http://localhost:52521/images/')) {
+      if (src.startsWith(getRuntimeServerBaseUrlSync() + '/images/')) {
         try {
           const response = await fetch(src)
           if (!response.ok) continue
@@ -194,7 +197,7 @@ export function extractImageUrls(markdown: string): string[] {
 
   while ((match = regex.exec(markdown)) !== null) {
     const url = match[1]
-    if (url.startsWith('http://localhost:52521/images/')) {
+    if (url.startsWith(getRuntimeServerBaseUrlSync() + '/images/')) {
       urls.push(url)
     }
   }
@@ -212,7 +215,7 @@ export function extractImageUrlsFromHtml(html: string): string[] {
 
   for (const match of matches) {
     const src = match[1]
-    if (src.startsWith('http://localhost:52521/images/')) {
+    if (src.startsWith(getRuntimeServerBaseUrlSync() + '/images/')) {
       urls.push(src)
     }
   }

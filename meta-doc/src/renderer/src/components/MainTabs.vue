@@ -2,7 +2,7 @@
   <div
     ref="tabsWrapperRef"
     class="main-tabs-wrapper"
-    :class="{ 'is-locked': isLocked }"
+    :class="{ 'is-locked': isLockedEffective }"
     @dblclick="handleDoubleClick"
     @dragover.prevent="handleWrapperDragOver"
     @wheel.prevent="handleTabWheel"
@@ -66,7 +66,7 @@
       <!-- 新建文档按钮 - 在 scroll 外面，永远可见 -->
       <div
         class="new-tab-button"
-        :class="{ 'is-locked': isLocked }"
+        :class="{ 'is-locked': isLockedEffective }"
         @click="handleNewTabClick"
         title="新建文档"
       >
@@ -234,6 +234,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import eventBus from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
 import { Close, Plus, ArrowRight } from '@element-plus/icons-vue'
 import { mixColors, themeState } from '../utils/themes'
@@ -258,12 +259,23 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
+const props = withDefaults(
+  defineProps<{ mode?: 'normal' | 'demo' }>(),
+  { mode: 'normal' }
+)
+
 const workspace = useWorkspace()
 const tabsWrapperRef = ref<HTMLElement | null>(null)
 const tabsViewportRef = ref<HTMLElement | null>(null)
 const tabsListRef = ref<HTMLElement | null>(null)
 
 const { closeTab, isLocked } = useCloseTab()
+const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
+
+const DEMO_TABS: WorkspaceTab[] = [
+  { id: 'demo-1', kind: 'file', title: '未命名', subtitle: '', path: '', format: 'md', dirty: false },
+  { id: 'demo-2', kind: 'system', title: '用户手册', subtitle: '', path: '', format: 'md', dirty: false, route: '/user-manual' }
+]
 
 // 使用新的拖拽 composable
 const {
@@ -351,14 +363,14 @@ const canMoveToOtherWindow = (tab: WorkspaceTab | null): boolean => {
 }
 
 const openTabContextMenu = async (e: MouseEvent, tab: WorkspaceTab) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   tabContextMenuVisible.value = true
   tabContextMenuPosition.value = { x: e.clientX, y: e.clientY }
   tabContextMenuTab.value = tab
   showMoveToWindowSubmenu.value = false
   try {
-    if (ipcRenderer && canMoveToOtherWindow(tab)) {
-      otherWindowsList.value = await ipcRenderer.invoke('get-all-windows')
+    if (messageBridge.getIpc() && canMoveToOtherWindow(tab)) {
+      otherWindowsList.value = await messageBridge.invoke('get-all-windows')
     } else {
       otherWindowsList.value = []
     }
@@ -436,8 +448,8 @@ const handleContextMenuAction = async (action: string) => {
       }
       break
     case 'showInFolder':
-      if (hasFileTabPath(tab) && tab.path && ipcRenderer) {
-        await ipcRenderer.invoke('show-item-in-folder', tab.path)
+      if (hasFileTabPath(tab) && tab.path && messageBridge.getIpc()) {
+        await messageBridge.invoke('show-item-in-folder', tab.path)
       }
       break
     case 'moveLeft': {
@@ -462,7 +474,7 @@ const handleContextMenuAction = async (action: string) => {
 }
 
 const handleOpenInNewWindow = async (tab: WorkspaceTab) => {
-  if (!canMoveToOtherWindow(tab) || !ipcRenderer) return
+  if (!canMoveToOtherWindow(tab) || !messageBridge.getIpc()) return
   const tabData = serializeTabData(tab.id)
   if (!tabData) return
 
@@ -474,7 +486,7 @@ const handleOpenInNewWindow = async (tab: WorkspaceTab) => {
   }
 
   try {
-    await ipcRenderer.invoke('create-window-with-tab', { tabData, position })
+    await messageBridge.invoke('create-window-with-tab', { tabData, position })
     await removeTabAfterDrag(tab.id, myWindowId)
     logger.info(`Tab ${tab.id} 已在新窗口中打开`)
   } catch (error) {
@@ -488,13 +500,13 @@ const handleMoveToWindow = async (targetWindowId: number) => {
   closeTabContextMenu()
 
   const tabData = serializeTabData(tab.id)
-  if (!tabData || !ipcRenderer) return
+  if (!tabData || !messageBridge.getIpc()) return
 
   const myWindowId = await getCurrentWindowId()
   if (targetWindowId === myWindowId) return
 
   try {
-    ipcRenderer.send('transfer-tab-to-window', {
+    messageBridge.send('transfer-tab-to-window', {
       targetWindowId,
       tabData: { ...tabData, sourceWindowId: myWindowId },
       insertIndex: 0
@@ -589,22 +601,14 @@ const inactiveTabTextColor = computed(() => {
 
 // 窗口控制函数
 const handleMinimize = () => {
-  let ipcRenderer: any = null
-  if (window && (window as any).electron) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  }
-  if (ipcRenderer) {
-    ipcRenderer.send('window-minimize')
+  if (messageBridge.getIpc()) {
+    messageBridge.send('window-minimize')
   }
 }
 
 const handleMaximize = () => {
-  let ipcRenderer: any = null
-  if (window && (window as any).electron) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  }
-  if (ipcRenderer) {
-    ipcRenderer.send('window-maximize')
+  if (messageBridge.getIpc()) {
+    messageBridge.send('window-maximize')
   }
 }
 
@@ -633,8 +637,8 @@ const handleDoubleClick = (event: MouseEvent) => {
 
 const handleClose = () => {
   // 关闭当前窗口，而非退出整个应用；主进程根据可见窗口数量决定是否退出
-  if (ipcRenderer) {
-    ipcRenderer.send('close-window')
+  if (messageBridge.getIpc()) {
+    messageBridge.send('close-window')
   } else {
     eventBus.emit('quit')
   }
@@ -642,12 +646,13 @@ const handleClose = () => {
 
 // 点击新建文档按钮
 const handleNewTabClick = () => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   workspace.openNewDocumentTab()
 }
 
-// 合并文档Tab和系统Tab、工具Tab，过滤掉空白页Tab
+// 合并文档Tab和系统Tab、工具Tab，过滤掉空白页Tab；demo 模式用静态示例
 const allTabs = computed(() => {
+  if (props.mode === 'demo') return DEMO_TABS
   return workspace.tabs.filter((tab) => !(tab.kind === 'system' && tab.route === '/dummy'))
 })
 
@@ -655,9 +660,10 @@ const allTabs = computed(() => {
 const tabCount = computed(() => allTabs.value.length)
 
 const currentActiveId = computed({
-  get: () => workspace.activeTabId.value,
+  get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
   set: (value: string) => {
-    if (isLocked.value) return
+    if (isLockedEffective.value) return
+    if (props.mode === 'demo') return
     if (value !== workspace.activeTabId.value) {
       workspace.activateTab(value)
       // 如果Tab有route，切换路由（仅对系统Tab和工具Tab）
@@ -697,7 +703,7 @@ const canCloseTab = (tab: WorkspaceTab): boolean => {
 const canDragTab = (tab: WorkspaceTab): boolean => {
   // 所有Tab都可以拖拽来改变顺序（在本窗口内）
   // 但系统Tab和工具Tab不允许拖拽到其他窗口
-  return !isLocked.value
+  return !isLockedEffective.value
 }
 
 // 检查Tab是否可以拖拽到其他窗口（工具、系统 Tab 也可迁移）
@@ -707,7 +713,7 @@ const canDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
 
 // 处理 Tab 点击激活 - 通过 click 事件而非 mousedown
 const handleTabClickActivate = (tab: WorkspaceTab) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   if (tab.id === workspace.activeTabId.value) return
 
   workspace.activateTab(tab.id)
@@ -721,7 +727,7 @@ const handleTabClickActivate = (tab: WorkspaceTab) => {
 
 // 在 mousedown 时预加载拖拽缩略图，但不切换 tab（避免拖拽时切换）
 const handleTabMouseDown = async (event: MouseEvent, tab: WorkspaceTab) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   // 如果点在关闭按钮上，不处理（让关闭按钮处理）
   const target = event.target as HTMLElement
   if (target.closest('.main-tab-label__close')) return
@@ -745,7 +751,7 @@ const handleTabMouseDown = async (event: MouseEvent, tab: WorkspaceTab) => {
 const handleTabItemAuxClick = (event: MouseEvent, tab: WorkspaceTab) => {
   if (event.button !== 1) return
   event.preventDefault()
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   handleCloseTab(tab.id)
 }
 
@@ -760,13 +766,17 @@ const handleTabLabelDblclick = (tab: WorkspaceTab) => {
   }
 }
 
-// 窗口控制 IPC
-const ipcRenderer = window.electron?.ipcRenderer
+// IPC 监听器引用（用于 onUnmounted 时移除）
+let handlerMaximizedChanged: ((...args: any[]) => void) | null = null
+let handlerAddTabFromDrag: ((...args: any[]) => void) | null = null
+let handlerRemoveTabFromDrag: ((...args: any[]) => void) | null = null
+let handlerRequestTabCount: (() => void) | null = null
+let handlerDragCreateDetached: ((...args: any[]) => void) | null = null
 
 const getCurrentWindowId = async (): Promise<number> => {
-  if (!ipcRenderer) return -1
+  if (!messageBridge.getIpc()) return -1
   try {
-    return await ipcRenderer.invoke('get-window-id')
+    return await messageBridge.invoke('get-window-id')
   } catch (error) {
     logger.error('获取窗口ID失败:', error)
     return -1
@@ -802,7 +812,7 @@ const normalizeDropPreview = (
 }
 
 const handleDragStart = async (id: string, event: DragEvent) => {
-  if (isLocked.value) {
+  if (isLockedEffective.value) {
     event.preventDefault()
     return
   }
@@ -817,7 +827,7 @@ const handleDragStart = async (id: string, event: DragEvent) => {
 }
 
 const handleDragOver = (targetId: string, event: DragEvent) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
 
   // 获取当前拖拽的 Tab
   const tab = allTabs.value.find((t) => t.id === targetId)
@@ -855,7 +865,7 @@ const handleDragLeave = () => {
 }
 
 const handleDrop = async (targetId: string, event: DragEvent) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
 
   const tab = allTabs.value.find((t) => t.id === targetId)
   if (!tab) return
@@ -938,9 +948,8 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
       if (existingFileTab) {
         workspace.activateTab(existingFileTab.id)
         // 纠正注册表：所有权应属于当前窗口的现有 tab
-        const ipc = window.electron?.ipcRenderer
-        if (ipc?.invoke) {
-          await ipc.invoke('transfer-file-ownership', {
+        if (messageBridge.getIpc()?.invoke) {
+          await messageBridge.invoke('transfer-file-ownership', {
             filePath: tab.path,
             newTabId: existingFileTab.id
           })
@@ -1031,9 +1040,8 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
 
     // 转移文件所有权到新窗口的 tab
     if (tab.path && (tab.kind === 'file' || tab.kind === 'new')) {
-      const ipc = window.electron?.ipcRenderer
-      if (ipc?.invoke) {
-        await ipc.invoke('transfer-file-ownership', { filePath: tab.path, newTabId: tab.id })
+      if (messageBridge.getIpc()?.invoke) {
+        await messageBridge.invoke('transfer-file-ownership', { filePath: tab.path, newTabId: tab.id })
       }
     }
 
@@ -1051,8 +1059,8 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
     const wasActive = workspace.activeTabId.value === tabId
 
     // 标记文件正在关闭
-    if (tab?.path && ipcRenderer) {
-      await ipcRenderer.invoke('mark-file-closing', tab.path)
+    if (tab?.path && messageBridge.getIpc()) {
+      await messageBridge.invoke('mark-file-closing', tab.path)
     }
 
     // 移除Tab
@@ -1070,11 +1078,11 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
     }
 
     // 检查窗口是否可以关闭
-    if (ipcRenderer) {
-      const { canClose, tabCount } = await ipcRenderer.invoke('check-window-can-close')
+    if (messageBridge.getIpc()) {
+      const { canClose, tabCount } = await messageBridge.invoke('check-window-can-close')
       if (canClose && tabCount === 0) {
         // 窗口可以关闭
-        ipcRenderer.send('close-window')
+        messageBridge.send('close-window')
       }
     }
   } catch (error) {
@@ -1084,7 +1092,7 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
 
 // Issue 5 & 6: 处理 wrapper 的 dragover - 在 LogoTab 左侧和窗口控制按钮右侧显示指示器
 const handleWrapperDragOver = (event: DragEvent) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   if (!isDragging.value || !draggingId.value) return
   if (allTabs.value.length === 0) return
 
@@ -1128,7 +1136,7 @@ const handleWrapperDragOver = (event: DragEvent) => {
 
 // Issue 8: 鼠标滚轮切换 tab
 const handleTabWheel = (event: WheelEvent) => {
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   if (allTabs.value.length <= 1) return
 
   const currentIndex = allTabs.value.findIndex((t) => t.id === workspace.activeTabId.value)
@@ -1163,7 +1171,7 @@ const handleWrapperAuxClick = (event: MouseEvent) => {
   if (event.button !== 1) return
   event.preventDefault()
   event.stopPropagation()
-  if (isLocked.value) return
+  if (isLockedEffective.value) return
   const target = event.target as HTMLElement
   const tabItem = target.closest('.tab-item') as HTMLElement | null
   if (!tabItem) return
@@ -1180,15 +1188,16 @@ onMounted(async () => {
   getCurrentWindowId()
 
   // 获取当前窗口最大化状态并监听变化（用于标题栏最大化/还原图标）
-  if (ipcRenderer) {
+  if (messageBridge.getIpc()) {
     try {
-      isMaximized.value = await ipcRenderer.invoke('get-window-maximized')
+      isMaximized.value = await messageBridge.invoke('get-window-maximized')
     } catch {
       isMaximized.value = false
     }
-    ipcRenderer.on('window-maximized-changed', (_e: any, maximized: boolean) => {
+    handlerMaximizedChanged = (_e: any, maximized: boolean) => {
       isMaximized.value = maximized
-    })
+    }
+    messageBridge.on('window-maximized-changed', handlerMaximizedChanged)
   }
 
   // Tab 右键菜单：点击外部关闭
@@ -1213,53 +1222,51 @@ onMounted(async () => {
   )
 
   // 监听来自主进程的Tab添加请求
-  if (ipcRenderer) {
-    ipcRenderer.on('add-tab-from-drag', async (_event: any, data: any) => {
+  if (messageBridge.getIpc()) {
+    handlerAddTabFromDrag = async (_event: any, data: any) => {
       try {
-        // 确保workspace已初始化
         await nextTick()
-
         const tabData = data.tabData || data
         const insertIndex = data.insertIndex
-
         if (!tabData || !tabData.tab) {
           logger.error('接收到的Tab数据无效:', data)
           return
         }
-
         await addTabFromDrag(tabData, insertIndex)
         logger.info('成功添加Tab到新窗口:', tabData.tab.id)
       } catch (error) {
         logger.error('添加Tab失败:', error)
       }
-    })
+    }
+    messageBridge.on('add-tab-from-drag', handlerAddTabFromDrag)
 
-    ipcRenderer.on('remove-tab-from-drag', async (_event: any, tabId: string) => {
+    handlerRemoveTabFromDrag = async (_event: any, tabId: string) => {
       await removeTabAfterDrag(tabId, await getCurrentWindowId())
-    })
+    }
+    messageBridge.on('remove-tab-from-drag', handlerRemoveTabFromDrag)
 
-    ipcRenderer.on('request-tab-count', () => {
-      if (ipcRenderer) {
-        ipcRenderer.send('window-tab-count-response', { tabCount: allTabs.value.length })
+    handlerRequestTabCount = () => {
+      if (messageBridge.getIpc()) {
+        messageBridge.send('window-tab-count-response', { tabCount: allTabs.value.length })
       }
-    })
+    }
+    messageBridge.on('request-tab-count', handlerRequestTabCount)
 
-    // 监听DragManager的创建分离窗口通知
-    ipcRenderer.on('drag:create-detached-window', async (_event: any, data: any) => {
+    handlerDragCreateDetached = async (_event: any, data: any) => {
       try {
         const { tabData, position, width, height } = data
-        const newWindowId = await ipcRenderer.invoke('create-window-with-tab', {
+        const newWindowId = await messageBridge.invoke('create-window-with-tab', {
           tabData,
           position,
           width,
           height
         })
-        // Tab 的移除由 DragManager 通过 remove-tab-from-drag 处理
         logger.info('通过拖拽分离创建新窗口:', newWindowId)
       } catch (error) {
         logger.error('创建分离窗口失败:', error)
       }
-    })
+    }
+    messageBridge.on('drag:create-detached-window', handlerDragCreateDetached)
   }
 })
 
@@ -1312,12 +1319,20 @@ onUnmounted(() => {
   resetDragState()
   cleanupDragImage()
 
-  if (ipcRenderer) {
-    ipcRenderer.removeAllListeners('add-tab-from-drag')
-    ipcRenderer.removeAllListeners('remove-tab-from-drag')
-    ipcRenderer.removeAllListeners('request-tab-count')
-    ipcRenderer.removeAllListeners('window-maximized-changed')
-    ipcRenderer.removeAllListeners('drag:create-detached-window')
+  if (handlerMaximizedChanged) {
+    messageBridge.removeListener('window-maximized-changed', handlerMaximizedChanged)
+  }
+  if (handlerAddTabFromDrag) {
+    messageBridge.removeListener('add-tab-from-drag', handlerAddTabFromDrag)
+  }
+  if (handlerRemoveTabFromDrag) {
+    messageBridge.removeListener('remove-tab-from-drag', handlerRemoveTabFromDrag)
+  }
+  if (handlerRequestTabCount) {
+    messageBridge.removeListener('request-tab-count', handlerRequestTabCount)
+  }
+  if (handlerDragCreateDetached) {
+    messageBridge.removeListener('drag:create-detached-window', handlerDragCreateDetached)
   }
 })
 </script>

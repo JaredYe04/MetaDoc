@@ -1,20 +1,15 @@
 import eventBus from './event-bus'
-import localIpcRenderer from './web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from './web-adapter/web-main-calls'
 import { reactive } from 'vue'
 
-let ipcRenderer = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
+if (typeof window !== 'undefined' && !window.electron) {
   webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 export async function getSetting(key) {
   try {
-    const result = await ipcRenderer.invoke('get-setting', { key: key })
+    const result = await messageBridge.invoke('get-setting', { key: key })
     return result
   } catch (error) {
     console.error(`Error getting setting for key "${key}":`, error)
@@ -36,23 +31,23 @@ export async function setSetting(key, value) {
       serializableValue = { ...value }
     }
   }
-  await ipcRenderer.invoke('set-setting', { key: key, value: serializableValue })
+  await messageBridge.invoke('set-setting', { key: key, value: serializableValue })
 }
 
 export async function updateRecentDocs(filePath) {
-  ipcRenderer.invoke('update-recent-docs', { path: filePath })
+  messageBridge.invoke('update-recent-docs', { path: filePath })
 }
 
 export async function getRecentDocs() {
-  return await ipcRenderer.invoke('get-recent-docs')
+  return await messageBridge.invoke('get-recent-docs')
 }
 
 export async function removeRecentDoc(filePath) {
-  return await ipcRenderer.invoke('remove-recent-doc', { path: filePath })
+  return await messageBridge.invoke('remove-recent-doc', { path: filePath })
 }
 
 export async function getImagePath() {
-  return await ipcRenderer.invoke('get-image-path')
+  return await messageBridge.invoke('get-image-path')
 }
 
 export const settings = reactive({
@@ -155,7 +150,7 @@ const CRITICAL_SETTINGS = [
 // 加载单个设置的辅助函数
 async function loadSetting(key) {
   try {
-    const value = await ipcRenderer.invoke('get-setting', { key: key })
+    const value = await messageBridge.invoke('get-setting', { key: key })
     if (value === undefined) {
       //如果没有设置，则使用默认值
       // 对于 themeConfigs，确保是可序列化的

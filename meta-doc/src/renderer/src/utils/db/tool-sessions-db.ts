@@ -3,19 +3,7 @@
  * 提供数据分析、OCR、附件解析、绘图工具会话的CRUD操作
  */
 
-import localIpcRenderer from '../web-adapter/local-ipc-renderer'
-import { webMainCalls } from '../web-adapter/web-main-calls'
-
-// 获取IPC渲染器
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
-}
+import messageBridge from '../../bridge/message-bridge'
 
 export interface DataAnalysisSession {
   id: string
@@ -113,16 +101,14 @@ export interface AIChatSession {
  */
 export const dataAnalysisSessionsDb = {
   async getAll(): Promise<DataAnalysisSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM data_analysis_sessions ORDER BY updated_at DESC',
       params: []
     })) as DataAnalysisSession[]
   },
 
   async getById(id: string): Promise<DataAnalysisSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM data_analysis_sessions WHERE id = ?',
       params: [id]
     })) as DataAnalysisSession[]
@@ -130,8 +116,7 @@ export const dataAnalysisSessionsDb = {
   },
 
   async create(session: Omit<DataAnalysisSession, 'created_at' | 'updated_at'>): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO data_analysis_sessions 
             (id, title, description, data_file_path, data_format, header_row_index, analysis_result, report_markdown, analysis_request, auto_group_by, generate_report, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -155,7 +140,6 @@ export const dataAnalysisSessionsDb = {
     id: string,
     updates: Partial<Omit<DataAnalysisSession, 'id' | 'created_at'>>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -203,15 +187,14 @@ export const dataAnalysisSessionsDb = {
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE data_analysis_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM data_analysis_sessions WHERE id = ?',
       params: [id]
     })
@@ -223,16 +206,14 @@ export const dataAnalysisSessionsDb = {
  */
 export const ocrSessionsDb = {
   async getAll(): Promise<OcrSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM ocr_sessions ORDER BY updated_at DESC',
       params: []
     })) as OcrSession[]
   },
 
   async getById(id: string): Promise<OcrSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM ocr_sessions WHERE id = ?',
       params: [id]
     })) as OcrSession[]
@@ -240,8 +221,7 @@ export const ocrSessionsDb = {
   },
 
   async create(session: Omit<OcrSession, 'created_at' | 'updated_at'>): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO ocr_sessions 
             (id, title, description, images, ocr_languages, ocr_results, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -257,7 +237,6 @@ export const ocrSessionsDb = {
   },
 
   async update(id: string, updates: Partial<Omit<OcrSession, 'id' | 'created_at'>>): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -285,15 +264,14 @@ export const ocrSessionsDb = {
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE ocr_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM ocr_sessions WHERE id = ?',
       params: [id]
     })
@@ -305,16 +283,14 @@ export const ocrSessionsDb = {
  */
 export const attachmentSessionsDb = {
   async getAll(): Promise<AttachmentSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM attachment_sessions ORDER BY updated_at DESC',
       params: []
     })) as AttachmentSession[]
   },
 
   async getById(id: string): Promise<AttachmentSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM attachment_sessions WHERE id = ?',
       params: [id]
     })) as AttachmentSession[]
@@ -322,8 +298,7 @@ export const attachmentSessionsDb = {
   },
 
   async create(session: Omit<AttachmentSession, 'created_at' | 'updated_at'>): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO attachment_sessions 
             (id, title, description, file_path, file_name, file_type, parsed_content, ai_analysis, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -344,7 +319,6 @@ export const attachmentSessionsDb = {
     id: string,
     updates: Partial<Omit<AttachmentSession, 'id' | 'created_at'>>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -368,15 +342,14 @@ export const attachmentSessionsDb = {
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE attachment_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM attachment_sessions WHERE id = ?',
       params: [id]
     })
@@ -388,16 +361,14 @@ export const attachmentSessionsDb = {
  */
 export const graphSessionsDb = {
   async getAll(): Promise<GraphSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM graph_sessions ORDER BY updated_at DESC',
       params: []
     })) as GraphSession[]
   },
 
   async getById(id: string): Promise<GraphSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM graph_sessions WHERE id = ?',
       params: [id]
     })) as GraphSession[]
@@ -405,8 +376,7 @@ export const graphSessionsDb = {
   },
 
   async create(session: Omit<GraphSession, 'created_at' | 'updated_at'>): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO graph_sessions 
             (id, title, description, conversation_history, current_prompt, output_format, output_path, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -426,7 +396,6 @@ export const graphSessionsDb = {
     id: string,
     updates: Partial<Omit<GraphSession, 'id' | 'created_at'>>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -458,15 +427,14 @@ export const graphSessionsDb = {
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE graph_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM graph_sessions WHERE id = ?',
       params: [id]
     })
@@ -478,16 +446,14 @@ export const graphSessionsDb = {
  */
 export const aiChatSessionsDb = {
   async getAll(): Promise<AIChatSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM ai_chat_sessions ORDER BY updated_at DESC',
       params: []
     })) as AIChatSession[]
   },
 
   async getById(id: string): Promise<AIChatSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM ai_chat_sessions WHERE id = ?',
       params: [id]
     })) as AIChatSession[]
@@ -495,8 +461,7 @@ export const aiChatSessionsDb = {
   },
 
   async create(session: AIChatSession): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO ai_chat_sessions 
             (id, title, messages, reference_store, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)`,
@@ -515,7 +480,6 @@ export const aiChatSessionsDb = {
     id: string,
     updates: Partial<Omit<AIChatSession, 'id' | 'created_at'>>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -538,24 +502,22 @@ export const aiChatSessionsDb = {
 
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE ai_chat_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM ai_chat_sessions WHERE id = ?',
       params: [id]
     })
   },
 
   async tableExists(): Promise<boolean> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     try {
-      const results = (await ipcRenderer.invoke('db-query', {
+      const results = (await messageBridge.invoke('db-query', {
         sql: "SELECT name FROM sqlite_master WHERE type='table' AND name='ai_chat_sessions'",
         params: []
       })) as Array<{ name: string }>
@@ -571,16 +533,14 @@ export const aiChatSessionsDb = {
  */
 export const formulaRecognitionSessionsDb = {
   async getAll(): Promise<FormulaRecognitionSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM formula_recognition_sessions ORDER BY updated_at DESC',
       params: []
     })) as FormulaRecognitionSession[]
   },
 
   async getById(id: string): Promise<FormulaRecognitionSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM formula_recognition_sessions WHERE id = ?',
       params: [id]
     })) as FormulaRecognitionSession[]
@@ -590,8 +550,7 @@ export const formulaRecognitionSessionsDb = {
   async create(
     session: Omit<FormulaRecognitionSession, 'created_at' | 'updated_at'>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO formula_recognition_sessions 
             (id, title, description, canvas_image, latex_result, brush_size, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -610,7 +569,6 @@ export const formulaRecognitionSessionsDb = {
     id: string,
     updates: Partial<Omit<FormulaRecognitionSession, 'id' | 'created_at'>>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -638,15 +596,14 @@ export const formulaRecognitionSessionsDb = {
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE formula_recognition_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM formula_recognition_sessions WHERE id = ?',
       params: [id]
     })
@@ -658,16 +615,14 @@ export const formulaRecognitionSessionsDb = {
  */
 export const aigcDetectionSessionsDb = {
   async getAll(): Promise<AigcDetectionSession[]> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return (await ipcRenderer.invoke('db-query', {
+    return (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM aigc_detection_sessions ORDER BY updated_at DESC',
       params: []
     })) as AigcDetectionSession[]
   },
 
   async getById(id: string): Promise<AigcDetectionSession | null> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = (await ipcRenderer.invoke('db-query', {
+    const results = (await messageBridge.invoke('db-query', {
       sql: 'SELECT * FROM aigc_detection_sessions WHERE id = ?',
       params: [id]
     })) as AigcDetectionSession[]
@@ -675,8 +630,7 @@ export const aigcDetectionSessionsDb = {
   },
 
   async create(session: Omit<AigcDetectionSession, 'created_at' | 'updated_at'>): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO aigc_detection_sessions 
             (id, title, description, article_content, content_source, source_file_path, source_tab_id, overall_analysis, paragraph_analyses, report_markdown, paragraph_texts, paragraph_paraphrases, language, domain, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
@@ -703,7 +657,6 @@ export const aigcDetectionSessionsDb = {
     id: string,
     updates: Partial<Omit<AigcDetectionSession, 'id' | 'created_at'>>
   ): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
 
@@ -763,15 +716,14 @@ export const aigcDetectionSessionsDb = {
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
 
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: `UPDATE aigc_detection_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
     })
   },
 
   async delete(id: string): Promise<void> {
-    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    await ipcRenderer.invoke('db-execute', {
+    await messageBridge.invoke('db-execute', {
       sql: 'DELETE FROM aigc_detection_sessions WHERE id = ?',
       params: [id]
     })

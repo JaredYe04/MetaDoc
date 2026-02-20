@@ -6,12 +6,12 @@ import mitt from 'mitt'
 import { basename } from './path-utils.js'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertMarkdownToHtmlManually } from './md-utils.js'
-import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
+import { webMainCalls } from './web-adapter/web-main-calls.js'
+import messageBridge from '../bridge/message-bridge'
 import { useWorkspace } from '../stores/workspace'
 import { serializeDocument } from '../services/document-serializer'
 import { convertLatexToMarkdown } from './latex-utils'
 import { NotImplementedExportError, prepareExportPayload } from '../services/export-manager.ts'
-import { webMainCalls } from './web-adapter/web-main-calls.js'
 import { createRendererLogger } from './logger.ts'
 import { i18n } from '../i18n.js'
 import { ElMessage } from 'element-plus'
@@ -35,13 +35,8 @@ export function isMainWindow() {
   return cachedWindowType === 'home'
 }
 
-let ipcRenderer = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
+if (typeof window !== 'undefined' && !window.electron) {
   webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 // 懒加载logger，避免初始化顺序问题
@@ -171,19 +166,19 @@ eventBus.on('response-ai-dialogs', (dialogs) => {
 })
 
 eventBus.on('shell-open', (filePath) => {
-  ipcRenderer.send('shell-open', filePath)
+  messageBridge.send('shell-open', filePath)
 })
 
-ipcRenderer.on('os-theme-changed', (event) => {
+messageBridge.on('os-theme-changed', (event) => {
   eventBus.emit('theme-changed')
   eventBus.emit('sync-theme')
 })
 // 响应主进程请求获取活动文档信息
-ipcRenderer.on('request-active-document-info', () => {
+messageBridge.on('request-active-document-info', () => {
   try {
     const doc = workspace.activeDocument.value
     if (!doc) {
-      ipcRenderer.send('active-document-info-response', null)
+      messageBridge.send('active-document-info-response', null)
       return
     }
     const path = doc.path || ''
@@ -196,15 +191,15 @@ ipcRenderer.on('request-active-document-info', () => {
     if (!fileName) {
       fileName = 'Untitled'
     }
-    ipcRenderer.send('active-document-info-response', { fileName, path })
+    messageBridge.send('active-document-info-response', { fileName, path })
   } catch (error) {
     getLogger().error('获取活动文档信息失败:', error)
-    ipcRenderer.send('active-document-info-response', null)
+    messageBridge.send('active-document-info-response', null)
   }
 })
 
 // 响应主进程请求获取所有未保存的tabs信息
-ipcRenderer.on('request-unsaved-tabs-info', () => {
+messageBridge.on('request-unsaved-tabs-info', () => {
   try {
     const unsavedTabs = []
 
@@ -229,19 +224,19 @@ ipcRenderer.on('request-unsaved-tabs-info', () => {
       }
     }
 
-    ipcRenderer.send('unsaved-tabs-info-response', unsavedTabs)
+    messageBridge.send('unsaved-tabs-info-response', unsavedTabs)
   } catch (error) {
     getLogger().error('获取未保存tabs信息失败:', error)
-    ipcRenderer.send('unsaved-tabs-info-response', [])
+    messageBridge.send('unsaved-tabs-info-response', [])
   }
 })
 
 // 响应主进程请求获取特定tab信息
-ipcRenderer.on('request-tab-info', (_event, tabId) => {
+messageBridge.on('request-tab-info', (_event, tabId) => {
   try {
     const tab = tabs.find((t) => t.id === tabId)
     if (!tab) {
-      ipcRenderer.send('tab-info-response', null)
+      messageBridge.send('tab-info-response', null)
       return
     }
 
@@ -257,34 +252,34 @@ ipcRenderer.on('request-tab-info', (_event, tabId) => {
       fileName = 'Untitled'
     }
 
-    ipcRenderer.send('tab-info-response', {
+    messageBridge.send('tab-info-response', {
       fileName,
       path,
       dirty: tab.dirty || doc.dirty
     })
   } catch (error) {
     getLogger().error('获取tab信息失败:', error)
-    ipcRenderer.send('tab-info-response', null)
+    messageBridge.send('tab-info-response', null)
   }
 })
 
 // 检查文件是否在当前窗口打开
-ipcRenderer.on('check-file-exists-in-window', (_event, filePath) => {
+messageBridge.on('check-file-exists-in-window', (_event, filePath) => {
   try {
     const tab = tabs.find((t) => t.path === filePath && (t.kind === 'file' || t.kind === 'new'))
     if (tab) {
-      ipcRenderer.send('file-exists-in-window-response', { tabId: tab.id })
+      messageBridge.send('file-exists-in-window-response', { tabId: tab.id })
     } else {
-      ipcRenderer.send('file-exists-in-window-response', { tabId: null })
+      messageBridge.send('file-exists-in-window-response', { tabId: null })
     }
   } catch (error) {
     getLogger().error('检查文件是否在当前窗口打开失败:', error)
-    ipcRenderer.send('file-exists-in-window-response', { tabId: null })
+    messageBridge.send('file-exists-in-window-response', { tabId: null })
   }
 })
 
 // 检查工具/系统 Tab 是否在当前窗口打开（toolType 或 route）
-ipcRenderer.on('check-tool-tab-in-window', (_event, payload) => {
+messageBridge.on('check-tool-tab-in-window', (_event, payload) => {
   try {
     const { toolType, route } = payload || {}
     const tab = tabs.find((t) => {
@@ -293,18 +288,18 @@ ipcRenderer.on('check-tool-tab-in-window', (_event, payload) => {
       return false
     })
     if (tab) {
-      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: tab.id })
+      messageBridge.send('tool-tab-exists-in-window-response', { tabId: tab.id })
     } else {
-      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null })
+      messageBridge.send('tool-tab-exists-in-window-response', { tabId: null })
     }
   } catch (error) {
     getLogger().error('检查工具Tab是否在当前窗口打开失败:', error)
-    ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null })
+    messageBridge.send('tool-tab-exists-in-window-response', { tabId: null })
   }
 })
 
 // 激活指定的Tab
-ipcRenderer.on('activate-tab-by-id', (_event, tabId) => {
+messageBridge.on('activate-tab-by-id', (_event, tabId) => {
   try {
     const tab = tabs.find((t) => t.id === tabId)
     if (tab) {
@@ -316,12 +311,12 @@ ipcRenderer.on('activate-tab-by-id', (_event, tabId) => {
 })
 
 // 注意：close-triggered 现在由主进程直接处理，这里保留以防需要
-ipcRenderer.on('close-triggered', () => {
+messageBridge.on('close-triggered', () => {
   // 主进程现在直接处理关闭确认对话框，这里不再需要显示 web 对话框
   // 保留此处理以防需要，但通常不会执行到这里
 })
 
-ipcRenderer.on('sync-theme', (event) => {
+messageBridge.on('sync-theme', (event) => {
   eventBus.emit('sync-theme') //同步主题
 })
 
@@ -329,7 +324,7 @@ ipcRenderer.on('sync-theme', (event) => {
 // 多 Tab 模式：主进程在 openDoc 后会发送 update-current-path，且可能与 open-doc-success 几乎同时到达。
 // 若先处理 update-current-path，此时新 Tab 尚未创建，getDocument() 会拿到未初始化的 Tab，错误地给它写入 path，导致该 Tab 标题被改成打开的文件名。
 // 因此：仅当已有 Tab 使用该 path 时才做同步；若尚无任何 Tab 使用该 path，不做任何更新（由 workspace-open-document 创建新 Tab 并设置 path）。
-ipcRenderer.on('update-current-path', (_event, path) => {
+messageBridge.on('update-current-path', (_event, path) => {
   if (!path) return
 
   const existingTab = tabs.find((tab) => tab.path === path)
@@ -346,7 +341,7 @@ ipcRenderer.on('update-current-path', (_event, path) => {
   }
 })
 
-ipcRenderer.on('save-success', (_event, data = {}) => {
+messageBridge.on('save-success', (_event, data = {}) => {
   const doc = getDocument()
   if (doc) {
     markDocumentSaved(doc.tabId, data.path ?? doc.path)
@@ -371,19 +366,19 @@ ipcRenderer.on('save-success', (_event, data = {}) => {
   }
 })
 
-ipcRenderer.on('save-file-path', (_event, path) => {
+messageBridge.on('save-file-path', (_event, path) => {
   eventBus.emit('save-file-path', path)
   const doc = getDocument()
   if (!doc) return
   doc.path = path || ''
   markDocumentSaved(doc.tabId, doc.path)
 })
-ipcRenderer.on('export-success', (event, data) => {
+messageBridge.on('export-success', (event, data) => {
   //console.log(data)
   eventBus.emit('export-success', data)
 })
 
-ipcRenderer.on('export-error', (event, data) => {
+messageBridge.on('export-error', (event, data) => {
   const message =
     typeof data === 'string'
       ? data
@@ -392,10 +387,10 @@ ipcRenderer.on('export-error', (event, data) => {
   eventBus.emit('show-error', message)
 })
 
-ipcRenderer.on('save-triggered', () => {
+messageBridge.on('save-triggered', () => {
   eventBus.emit('save')
 })
-ipcRenderer.on('save-as-triggered', () => {
+messageBridge.on('save-as-triggered', () => {
   eventBus.emit('save-as')
 })
 const searchReplaceSharedState = {
@@ -403,36 +398,42 @@ const searchReplaceSharedState = {
   expandReplace: false
 }
 
-ipcRenderer.on('search-replace-triggered', () => {
+messageBridge.on('search-replace-triggered', () => {
   searchReplaceSharedState.isVisible = true
   eventBus.emit('search-replace')
 })
 
-ipcRenderer.on('search-replace-expand-triggered', () => {
+messageBridge.on('search-replace-expand-triggered', () => {
   searchReplaceSharedState.isVisible = true
   searchReplaceSharedState.expandReplace = true
   eventBus.emit('search-replace', { expandReplace: true })
 })
 
 // 标签页快捷键
-ipcRenderer.on('next-tab-triggered', () => {
+messageBridge.on('next-tab-triggered', () => {
   eventBus.emit('tab-next')
 })
-ipcRenderer.on('prev-tab-triggered', () => {
+messageBridge.on('prev-tab-triggered', () => {
   eventBus.emit('tab-prev')
 })
-ipcRenderer.on('close-tab-triggered', () => {
+messageBridge.on('close-tab-triggered', () => {
   eventBus.emit('tab-close')
 })
-ipcRenderer.on('reopen-tab-triggered', () => {
+messageBridge.on('reopen-tab-triggered', () => {
   eventBus.emit('tab-reopen')
 })
-ipcRenderer.on('new-tab-triggered', () => {
+messageBridge.on('new-tab-triggered', () => {
   eventBus.emit('tab-new')
+})
+messageBridge.on('new-doc-triggered', () => {
+  eventBus.emit('new-doc')
+})
+messageBridge.on('save-all-triggered', () => {
+  eventBus.emit('save-all')
 })
 
 // 监听主进程发送的全局进度事件
-ipcRenderer.on('global-progress', (_event, progressData) => {
+messageBridge.on('global-progress', (_event, progressData) => {
   eventBus.emit('global-progress', progressData)
 })
 
@@ -462,7 +463,7 @@ eventBus.on('search-replace-closed', () => {
 //   });
 // })
 
-ipcRenderer.on('open-doc-success', (event, payload) => {
+messageBridge.on('open-doc-success', (event, payload) => {
   const fileName = extractFileName(payload?.path, payload?.fileName)
   // recent-docs 更新现在统一在 Main.vue 的 handleOpenDocSuccess 中处理
   eventBus.emit('workspace-open-document', {
@@ -472,7 +473,7 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
 })
 
 // 监听文件变化事件（来自主进程的文件监听服务）
-ipcRenderer.on('file-changed', (event, payload) => {
+messageBridge.on('file-changed', (event, payload) => {
   const { filePath, tabId, content, modifiedTime, diff } = payload || {}
   if (!filePath) {
     getLogger().warn('文件变化事件缺少文件路径', payload)
@@ -490,7 +491,7 @@ ipcRenderer.on('file-changed', (event, payload) => {
 })
 
 // 监听文件删除事件
-ipcRenderer.on('file-deleted', (event, payload) => {
+messageBridge.on('file-deleted', (event, payload) => {
   const { filePath, tabId } = payload || {}
   if (!filePath) {
     return
@@ -555,7 +556,7 @@ const save = async (mode = 'save', args, targetTabId) => {
     markDocumentSaved(resolvedTabId, currentPath)
 
     const payload = await buildSavePayload(doc)
-    ipcRenderer.send(mode, {
+    messageBridge.send(mode, {
       ...payload,
       args
     })
@@ -580,39 +581,39 @@ eventBus.on('save', async (payload) => {
 
 eventBus.on('is-need-save', (msg) => {
   //console.log('is-need-save',msg)
-  ipcRenderer.send('is-need-save', msg)
+  messageBridge.send('is-need-save', msg)
 })
 
 eventBus.on('save-and-quit', async () => {
   eventBus.emit('is-need-save', false)
   await save('save')
-  ipcRenderer.send('quit')
+  messageBridge.send('quit')
 })
 
 // 响应主进程请求保存特定tab
-ipcRenderer.on('save-tab', async (_event, tabId) => {
+messageBridge.on('save-tab', async (_event, tabId) => {
   try {
     const result = await saveDocument(tabId, { saveAs: false })
-    ipcRenderer.send('save-tab-response', { tabId, success: result })
+    messageBridge.send('save-tab-response', { tabId, success: result })
   } catch (error) {
     getLogger().error('保存tab失败:', error)
-    ipcRenderer.send('save-tab-response', { tabId, success: false, error: error.message })
+    messageBridge.send('save-tab-response', { tabId, success: false, error: error.message })
   }
 })
 
 // 响应主进程请求放弃特定tab的更改（直接关闭tab）
-ipcRenderer.on('discard-tab', (_event, tabId) => {
+messageBridge.on('discard-tab', (_event, tabId) => {
   try {
     removeTab(tabId)
-    ipcRenderer.send('discard-tab-response', { tabId, success: true })
+    messageBridge.send('discard-tab-response', { tabId, success: true })
   } catch (error) {
     getLogger().error('关闭tab失败:', error)
-    ipcRenderer.send('discard-tab-response', { tabId, success: false, error: error.message })
+    messageBridge.send('discard-tab-response', { tabId, success: false, error: error.message })
   }
 })
 
 // 响应主进程请求关闭所有剩余的tabs
-ipcRenderer.on('close-all-tabs', () => {
+messageBridge.on('close-all-tabs', () => {
   try {
     // 获取所有tab的ID（需要先复制数组，因为removeTab会修改tabs数组）
     const tabIds = tabs.map((tab) => tab.id)
@@ -620,24 +621,24 @@ ipcRenderer.on('close-all-tabs', () => {
     for (const tabId of tabIds) {
       removeTab(tabId)
     }
-    ipcRenderer.send('close-all-tabs-response', { success: true })
+    messageBridge.send('close-all-tabs-response', { success: true })
   } catch (error) {
     getLogger().error('关闭所有tabs失败:', error)
-    ipcRenderer.send('close-all-tabs-response', { success: false, error: error.message })
+    messageBridge.send('close-all-tabs-response', { success: false, error: error.message })
   }
 })
 
 eventBus.on('open-doc', async (path) => {
   //await init()
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('open-doc', path)
+  messageBridge.send('open-doc', path)
   // recent-docs 更新现在统一在 Main.vue 的 handleOpenDocSuccess 中处理
 })
 eventBus.on('open-link', async (url) => {
-  ipcRenderer.send('open-link', url)
+  messageBridge.send('open-link', url)
 })
 eventBus.on('quit', () => {
-  ipcRenderer.send('quit')
+  messageBridge.send('quit')
 })
 
 eventBus.on('save-as', async (args) => {
@@ -676,18 +677,18 @@ eventBus.on('export', async ({ format, filename, options }) => {
   const handleDialogOpening = () => {
     restoreCursor()
   }
-  ipcRenderer.on('export-dialog-opening', handleDialogOpening)
+  messageBridge.on('export-dialog-opening', handleDialogOpening)
 
   try {
     const payload = await prepareExportPayload(doc, format, filename, options)
-    const result = await ipcRenderer.invoke('perform-export', payload)
+    const result = await messageBridge.invoke('perform-export', payload)
 
     // 如果用户取消了对话框（result.success === false 且没有 error），取消任务
     if (!result.success && !result.error) {
       // 用户取消了对话框，取消任务
       if (payload.requestId) {
         try {
-          await ipcRenderer.invoke('cancel-export-task', payload.requestId)
+          await messageBridge.invoke('cancel-export-task', payload.requestId)
         } catch (err) {
           // ignore
         }
@@ -713,42 +714,42 @@ eventBus.on('export', async ({ format, filename, options }) => {
     }
   } finally {
     // 清理事件监听器
-    ipcRenderer.removeListener('export-dialog-opening', handleDialogOpening)
+    messageBridge.removeListener('export-dialog-opening', handleDialogOpening)
   }
 })
 // eventBus.on('export-to-pdf', async (args) => {
 //   //console.log('export-to-pdf', htmlContent)
-//   const saveResult = await ipcRenderer.invoke('export-to-pdf', args)
+//   const saveResult = await messageBridge.invoke('export-to-pdf', args)
 //   if (saveResult !== '') {
 //     eventBus.emit('export-success', saveResult)
 //   }
 // })
 eventBus.on('setting', () => {
-  ipcRenderer.send('setting')
+  messageBridge.send('setting')
 })
 eventBus.on('ai-chat', () => {
-  ipcRenderer.send('ai-chat')
+  messageBridge.send('ai-chat')
 })
 eventBus.on('ai-graph', () => {
-  ipcRenderer.send('ai-graph')
+  messageBridge.send('ai-graph')
 })
 eventBus.on('smart-drawing-assistant', () => {
-  ipcRenderer.send('smart-drawing-assistant')
+  messageBridge.send('smart-drawing-assistant')
 })
 eventBus.on('fomula-recognition', () => {
-  ipcRenderer.send('fomula-recognition')
+  messageBridge.send('fomula-recognition')
 })
 eventBus.on('data-analysis', () => {
-  ipcRenderer.send('data-analysis')
+  messageBridge.send('data-analysis')
 })
 eventBus.on('ocr', () => {
-  ipcRenderer.send('ocr')
+  messageBridge.send('ocr')
 })
 eventBus.on('attachment', () => {
-  ipcRenderer.send('attachment')
+  messageBridge.send('attachment')
 })
 eventBus.on('graph', () => {
-  ipcRenderer.send('graph')
+  messageBridge.send('graph')
 })
 eventBus.on('aigc-detection', () => {
   const workspace = useWorkspace()
@@ -757,15 +758,15 @@ eventBus.on('aigc-detection', () => {
 
 eventBus.on('system-notification', (data) => {
   //console.log(data)
-  ipcRenderer.send('system-notification', data)
+  messageBridge.send('system-notification', data)
 })
 
 eventBus.on('open-log-file', () => {
-  ipcRenderer.send('open-log-file')
+  messageBridge.send('open-log-file')
 })
 
 eventBus.on('open-log-directory', () => {
-  ipcRenderer.send('open-log-directory')
+  messageBridge.send('open-log-directory')
 })
 
 eventBus.on('theme-changed', () => {
@@ -774,7 +775,7 @@ eventBus.on('theme-changed', () => {
 })
 eventBus.on('send-broadcast', (message) => {
   //console.log('发送广播消息:', message)
-  ipcRenderer.send('send-broadcast', message) //公共的广播信道
+  messageBridge.send('send-broadcast', message) //公共的广播信道
   //示例：
   //   eventBus.emit('send-broadcast', {
   //   to: 'all', // 或者指定窗口类型，如 'home' 或 'ai-chat'
@@ -799,13 +800,13 @@ export function sendBroadcast(to, eventName, data) {
   }
 }
 
-ipcRenderer.on('receive-broadcast', (event, message) => {
+messageBridge.on('receive-broadcast', (event, message) => {
   //console.log('接收到广播消息:', message)
   eventBus.emit('receive-broadcast', message) //接收到广播消息
 })
 
 eventBus.on('update-window-title', (title) => {
-  ipcRenderer.send('update-window-title', title)
+  messageBridge.send('update-window-title', title)
 })
 
 //处理广播逻辑

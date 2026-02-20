@@ -35,6 +35,7 @@ import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from './utils/logger'
 import { initMonacoEnvironment } from './utils/monaco-worker-config'
+import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { aiCompletionService } from './utils/ai-completion-service'
 import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
@@ -98,9 +99,19 @@ function initGlobalEventListeners() {
     eventBus.emit('sync-editor-theme') //触发vditor主题同步事件
   })
 
-  // 全局键盘快捷键监听（Ctrl+F/H 查找替换）
+  // 全局键盘快捷键监听（F1 用户手册；Ctrl+F/H 查找替换）
   // 注意：使用 capture 阶段确保在编辑器内部处理之前捕获
   const handleGlobalKeyDown = (e: KeyboardEvent) => {
+    // F1：打开用户手册（任意界面生效）
+    if (e.key === 'F1') {
+      e.preventDefault()
+      eventBus.emit('open-system-tab', {
+        route: '/user-manual',
+        title: t('userManual.title') || '用户手册'
+      })
+      return
+    }
+
     const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
     const modifierKey = isMac ? e.metaKey : e.ctrlKey
 
@@ -246,6 +257,9 @@ const autoOpenDoc = async () => {
 }
 
 onMounted(async () => {
+  // 初始化运行时服务器地址缓存（供 getRuntimeServerBaseUrlSync 等使用）
+  await getRuntimeServerBaseUrl()
+
   // 初始化全局事件监听器（必须在其他初始化之前）
   initGlobalEventListeners()
 

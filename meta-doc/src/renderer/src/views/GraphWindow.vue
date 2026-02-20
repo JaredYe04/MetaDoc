@@ -983,6 +983,8 @@ const handleExport = async (chartMarkdown?: string) => {
       throw new Error('IPC渲染器不可用')
     }
 
+    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+
     // 打开保存对话框，让用户选择格式
     const result = await ipcRenderer.invoke('save-file-dialog', {
       defaultName: `graph-${Date.now()}.svg`,
@@ -1046,7 +1048,7 @@ const handleExport = async (chartMarkdown?: string) => {
         const response = await fetch(imageUrl)
         svgContent = await response.text()
       } else if (
-        imageUrl.startsWith('http://localhost:52521/images/') ||
+        imageUrl.startsWith(baseUrl + '/images/') ||
         imageUrl.startsWith('http://')
       ) {
         // HTTP URL -> 文本内容
@@ -1095,7 +1097,7 @@ const handleExport = async (chartMarkdown?: string) => {
         const commaIdx = dataUrl.indexOf(',')
         base64Data = dataUrl.substring(commaIdx + 1)
       } else if (
-        imageUrl.startsWith('http://localhost:52521/images/') ||
+        imageUrl.startsWith(baseUrl + '/images/') ||
         imageUrl.startsWith('http://')
       ) {
         // HTTP URL -> fetch 获取内容 -> base64
@@ -1144,7 +1146,7 @@ const handleExport = async (chartMarkdown?: string) => {
       // 如果 SVG URL 是 HTTP URL，需要先转换为本地路径（参考 FomulaRecognition.vue）
       let svgPath: string
       if (
-        svgImageUrl.startsWith('http://localhost:52521/images/') ||
+        svgImageUrl.startsWith(baseUrl + '/images/') ||
         svgImageUrl.startsWith('http://')
       ) {
         // HTTP URL -> 本地路径
@@ -1160,14 +1162,14 @@ const handleExport = async (chartMarkdown?: string) => {
         const formData = new FormData()
         const file = new File([blob], fileName, { type: 'image/svg+xml' })
         formData.append('file[]', file, fileName)
-        const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+        const resp = await fetch(baseUrl + '/api/image/upload?keepName=1', {
           method: 'POST',
           body: formData
         })
         if (!resp.ok) throw new Error('上传 SVG 失败')
         const json = await resp.json()
         const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
-        const httpUrl = `http://localhost:52521/images/${uploaded}`
+        const httpUrl = `${baseUrl}/images/${uploaded}`
 
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${httpUrl})`
@@ -1181,14 +1183,14 @@ const handleExport = async (chartMarkdown?: string) => {
         const formData = new FormData()
         const file = new File([blob], fileName, { type: 'image/svg+xml' })
         formData.append('file[]', file, fileName)
-        const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+        const resp = await fetch(baseUrl + '/api/image/upload?keepName=1', {
           method: 'POST',
           body: formData
         })
         if (!resp.ok) throw new Error('上传 SVG 失败')
         const json = await resp.json()
         const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
-        const httpUrl = `http://localhost:52521/images/${uploaded}`
+        const httpUrl = `${baseUrl}/images/${uploaded}`
 
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${httpUrl})`

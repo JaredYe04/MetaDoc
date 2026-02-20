@@ -3316,7 +3316,9 @@
       "buttonText": "完善我的使用偏好",
       "scenario": "使用场景",
       "scenarioHint": "请选择您的主要使用场景，这将帮助我们为您推荐最适合的学习路径",
-      "reanalyze": "重新分析用户画像",
+      "reanalyze": "重新分析",
+      "reanalyzeConfirmTitle": "重置用户画像",
+      "reanalyzeConfirmMessage": "重置用户画像将清空当前学习进度，是否继续？",
       "scenarios": {
         "student": "学生",
         "researcher": "科研人员",
@@ -3491,9 +3493,12 @@
       }
     },
     "overview": {
-      "welcome": "欢迎使用用户手册",
-      "description": "根据您的使用偏好，我们为您推荐了最适合的学习路径",
+      "title": "概览",
+      "welcome": "快速上手 MetaDoc",
+      "description": "本页帮助您快速了解自己的使用定位，并推荐一条适合的学习路径。您可以按推荐顺序学习，或从左侧目录随时跳转到任意章节。",
       "profile": "我的用户画像",
+      "profileSummary": "您的使用定位",
+      "profileSummarySentence": "您主要面向「{scenario}」场景；当前对 Markdown 为 {markdown}、LaTeX 为 {latex}、AI Agent 为 {agent}。",
       "progress": "学习进度",
       "recommendedPath": "推荐学习路径",
       "quickStart": "快速开始",
@@ -3509,7 +3514,16 @@
     },
     "progress": {
       "label": "学习进度",
-      "completed": "已完成"
+      "completed": "已完成",
+      "completed100": "恭喜！您已完成推荐路径的全部内容。",
+      "clearProgress": "清空学习进度",
+      "clearProgressConfirm": "确定要清空当前推荐路径的学习进度吗？已读状态将全部重置。",
+      "clearProgressDone": "学习进度已清空"
+    },
+    "sidebar": {
+      "recommendedList": "推荐学习",
+      "onlyRecommended": "只显示推荐路径",
+      "onlyRecommendedTip": "关闭后显示完整手册目录"
     },
     "graph": {
       "title": "学习路径图",
@@ -3518,6 +3532,7 @@
       "completed": "已完成",
       "current": "当前",
       "pending": "待学习",
+      "selected": "已选中",
       "confirmTitle": "确认学习",
       "confirmStart": "是否开始学习\"{title}\"？",
       "confirm": "开始学习",

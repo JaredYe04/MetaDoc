@@ -468,24 +468,14 @@ function removeTab(id: string): void {
     // 异步停止文件监听（避免阻塞）
     ;(async () => {
       try {
-        // 获取 ipcRenderer
-        let ipcRenderer: any = null
-        if (typeof window !== 'undefined' && (window as any).electron) {
-          ipcRenderer = (window as any).electron.ipcRenderer
-        } else {
-          // 在非 Electron 环境中，使用 localIpcRenderer
-          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-          ipcRenderer = localIpcRenderer
-        }
-
-        if (ipcRenderer) {
-          ipcRenderer.send('unwatch-file', doc.path)
-          // 标记文件正在关闭
-          if (ipcRenderer.invoke) {
-            await ipcRenderer.invoke('mark-file-closing', doc.path)
-            // 对于预览tab，需要释放文件占用，允许再次打开
+        const messageBridge = (await import('../bridge/message-bridge')).default
+        const ipc = messageBridge.getIpc()
+        if (ipc) {
+          messageBridge.send('unwatch-file', doc.path)
+          if (ipc.invoke) {
+            await messageBridge.invoke('mark-file-closing', doc.path)
             if (tab.preview) {
-              await ipcRenderer.invoke('release-file-claim', doc.path)
+              await messageBridge.invoke('release-file-claim', doc.path)
             }
           }
           const logger = createRendererLogger('Workspace')
@@ -1232,34 +1222,16 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
       try {
         // 停止旧路径的监听
         if (oldPath) {
-          let ipcRenderer: any = null
-          if (typeof window !== 'undefined' && (window as any).electron) {
-            ipcRenderer = (window as any).electron.ipcRenderer
-          } else {
-            const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-            ipcRenderer = localIpcRenderer
-          }
-
-          if (ipcRenderer) {
-            ipcRenderer.send('unwatch-file', oldPath)
-          }
+          const messageBridge = (await import('../bridge/message-bridge')).default
+          messageBridge.send('unwatch-file', oldPath)
         }
 
         // 启动新路径的监听
-        let ipcRenderer: any = null
-        if (typeof window !== 'undefined' && (window as any).electron) {
-          ipcRenderer = (window as any).electron.ipcRenderer
-        } else {
-          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-          ipcRenderer = localIpcRenderer
-        }
-
-        if (ipcRenderer) {
-          ipcRenderer.send('watch-file', newPath, tabId)
-          ipcRenderer.send('update-file-watcher-tab-id', newPath, tabId)
-          const logger = createRendererLogger('Workspace')
-          logger.debug('更新文件监听路径', { oldPath, newPath, tabId })
-        }
+        const messageBridge = (await import('../bridge/message-bridge')).default
+        messageBridge.send('watch-file', newPath, tabId)
+        messageBridge.send('update-file-watcher-tab-id', newPath, tabId)
+        const logger = createRendererLogger('Workspace')
+        logger.debug('更新文件监听路径', { oldPath, newPath, tabId })
       } catch (error) {
         const logger = createRendererLogger('Workspace')
         logger.warn('更新文件监听失败', { oldPath, newPath, tabId, error })
@@ -1269,19 +1241,10 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
     // 如果是从无路径到有路径（首次保存），启动文件监听
     ;(async () => {
       try {
-        let ipcRenderer: any = null
-        if (typeof window !== 'undefined' && (window as any).electron) {
-          ipcRenderer = (window as any).electron.ipcRenderer
-        } else {
-          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-          ipcRenderer = localIpcRenderer
-        }
-
-        if (ipcRenderer) {
-          ipcRenderer.send('watch-file', doc.path, tabId)
-          const logger = createRendererLogger('Workspace')
-          logger.debug('启动文件监听（首次保存）', { filePath: doc.path, tabId })
-        }
+        const messageBridge = (await import('../bridge/message-bridge')).default
+        messageBridge.send('watch-file', doc.path, tabId)
+        const logger = createRendererLogger('Workspace')
+        logger.debug('启动文件监听（首次保存）', { filePath: doc.path, tabId })
       } catch (error) {
         const logger = createRendererLogger('Workspace')
         logger.warn('启动文件监听失败', { filePath: doc.path, tabId, error })

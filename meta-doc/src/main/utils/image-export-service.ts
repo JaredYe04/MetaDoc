@@ -9,6 +9,7 @@ import path from 'path'
 import http from 'http'
 import { createMainLogger } from '../logger'
 import { imageUploadDir } from '../express-server'
+import { getRuntimeServerBaseUrl } from '../runtime-server-config'
 
 const logger = createMainLogger('ImageExportService')
 
@@ -20,7 +21,7 @@ export interface ImageExportResult {
 
 /**
  * 将图片或 PDF 文件保存到指定文件夹
- * @param imageUrl - 图片或 PDF 文件 URL（http://localhost:52521/images/filename 或本地路径）
+ * @param imageUrl - 图片或 PDF 文件 URL（运行时服务器 /images/filename 或本地路径）
  * @param targetFolder - 目标文件夹路径
  * @param imageName - 文件名（可选，如果不提供则从 URL 提取）
  * @returns 保存结果
@@ -58,8 +59,9 @@ export async function saveImageToFolder(
     // 从 URL 提取文件名
     let fileName = imageName
     if (!fileName) {
-      if (imageUrl.startsWith('http://localhost:52521/images/')) {
-        fileName = imageUrl.replace('http://localhost:52521/images/', '')
+      const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
+      if (imageUrl.startsWith(imagesPrefix)) {
+        fileName = imageUrl.replace(imagesPrefix, '')
       } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         // 网络图片：从URL路径中提取文件名
         try {
@@ -102,9 +104,10 @@ export async function saveImageToFolder(
     let imageBuffer: Buffer | null = null
 
     // 首先尝试从本地文件系统读取
-    if (imageUrl.startsWith('http://localhost:52521/images/')) {
-      // localhost:52521 的 URL：从 imageUploadDir 读取
-      const localFileName = imageUrl.replace('http://localhost:52521/images/', '')
+    const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
+    if (imageUrl.startsWith(imagesPrefix)) {
+      // 运行时服务器 images URL：从 imageUploadDir 读取
+      const localFileName = imageUrl.replace(imagesPrefix, '')
       const localPath = path.join(imageUploadDir, localFileName)
 
       if (fs.existsSync(localPath)) {
@@ -171,7 +174,7 @@ export async function saveImageToFolder(
       }
     }
 
-    // 如果本地文件不存在，尝试通过 HTTP/HTTPS 下载（包括网络图片和 localhost:52521）
+    // 如果本地文件不存在，尝试通过 HTTP/HTTPS 下载（包括网络图片和运行时服务器 URL）
     if (!imageBuffer) {
       // 只对 HTTP/HTTPS URL 进行下载
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
@@ -483,8 +486,9 @@ export function updateLatexImageLinks(latex: string, imageMappings: Map<string, 
     }
 
     // 如果没有找到映射，但路径是 HTTP URL，尝试直接查找
+    const runtimeImagesPrefix = getRuntimeServerBaseUrl() + '/images/'
     if (
-      actualPath.startsWith('http://localhost:52521/images/') ||
+      actualPath.startsWith(runtimeImagesPrefix) ||
       actualPath.startsWith('http://') ||
       actualPath.startsWith('https://')
     ) {

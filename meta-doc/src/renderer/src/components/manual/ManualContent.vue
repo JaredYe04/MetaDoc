@@ -1,7 +1,7 @@
 <template>
   <div class="manual-content">
     <ManualBreadcrumb />
-    <el-scrollbar class="content-scrollbar">
+    <el-scrollbar ref="scrollbarRef" class="content-scrollbar" @scroll="onContentScroll">
       <div class="content-wrapper">
         <div v-if="processedContent && processedContent.trim()" class="markdown-wrapper">
           <VditorPreview
@@ -20,44 +20,95 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, getCurrentInstance, nextTick, createVNode, render, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
 import { parseInternalLinks } from '../../manuals/utils'
+import { preprocessMarkdownWithDemoPlaceholders } from '../../manuals/demo-mode'
+import { getDemoComponent } from '../../manuals/demo-registry'
 import VditorPreview from '../VditorPreview.vue'
 import ManualBreadcrumb from './ManualBreadcrumb.vue'
 
 const { locale } = useI18n()
-const { currentArticleContent, currentArticleId, setCurrentArticle } = useUserManual()
+const { currentArticleContent, currentArticleId, setCurrentArticle, markArticleAsRead } = useUserManual()
 
-// 处理内部链接：在Markdown渲染后通过DOM操作添加链接
-// 不在Markdown文本中插入HTML，而是先渲染Markdown，然后替换链接文本
-const processedContent = computed(() => {
-  const content = currentArticleContent.value
-  if (!content) return ''
-  
-  // 解析内部链接，但不在文本中插入HTML
-  // 返回原始内容，链接将在渲染后通过DOM操作添加
-  return content
-})
+const scrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
+const hasMarkedReadForArticle = ref<string | null>(null)
+
+// 先占位符替换再交给 Vditor，不破坏 Mermaid 等渲染；渲染完成后再把占位 div 替换成 Vue 组件
+const processedContent = computed(() => preprocessMarkdownWithDemoPlaceholders(currentArticleContent.value ?? ''))
+
+const BOTTOM_THRESHOLD = 80
+
+function onContentScroll({ scrollTop, scrollLeft }: { scrollTop: number; scrollLeft: number }) {
+  const id = currentArticleId.value
+  if (!id || hasMarkedReadForArticle.value === id) return
+  const scrollbar = scrollbarRef.value?.$el
+  if (!scrollbar) return
+  const wrap = scrollbar.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  if (!wrap) return
+  const { scrollHeight, clientHeight } = wrap
+  if (scrollTop + clientHeight >= scrollHeight - BOTTOM_THRESHOLD) {
+    hasMarkedReadForArticle.value = id
+    markArticleAsRead(id)
+  }
+}
 
 // 使用防抖避免重复处理
 let processTimer: ReturnType<typeof setTimeout> | null = null
 
-// 监听VditorPreview的rendered事件，在渲染完成后处理内部链接
-const handleRendered = () => {
-  if (processTimer) {
-    clearTimeout(processTimer)
+// 懒加载 Demo 组件注册表，避免循环依赖（仅在手册需要嵌入 Demo 时加载）
+let demoComponentsLoadPromise: Promise<void> | null = null
+function ensureDemoComponentsLoaded(): Promise<void> {
+  if (!demoComponentsLoadPromise) {
+    demoComponentsLoadPromise = import('../../manuals/demo-registry-components').then(() => {})
   }
+  return demoComponentsLoadPromise
+}
+
+// Vditor 渲染完成后：先处理内部链接，再把占位 div 替换为 Vue 组件（不破坏 Mermaid 等）
+const handleRendered = () => {
+  if (processTimer) clearTimeout(processTimer)
   processTimer = setTimeout(() => {
-    nextTick(() => {
+    nextTick(async () => {
       processInternalLinks()
+      await injectDemoComponents()
     })
   }, 100)
 }
 
+async function injectDemoComponents() {
+  const placeholders = document.querySelectorAll('.vditor-preview-container [data-demo-component]')
+  if (placeholders.length === 0) return
+  await ensureDemoComponentsLoaded()
+  const container = document.querySelector('.vditor-preview-container')
+  if (!container) return
+  const instance = getCurrentInstance()
+  const appContext = instance?.appContext
+  if (!appContext) return
+  placeholders.forEach((el) => {
+    const componentName = (el as HTMLElement).getAttribute('data-demo-component')
+    const propsJson = (el as HTMLElement).getAttribute('data-demo-props')
+    if (!componentName || !propsJson) return
+    const Component = getDemoComponent(componentName)
+    if (!Component) return
+    let props: Record<string, unknown>
+    try {
+      props = JSON.parse(propsJson) as Record<string, unknown>
+    } catch {
+      return
+    }
+    // 先卸载可能已挂载的实例（同一文章重渲染时）
+    render(null, el as HTMLElement)
+    const vnode = createVNode(Component, props)
+    vnode.appContext = appContext
+    render(vnode, el as HTMLElement)
+  })
+}
+
 // 监听内容变化，延迟处理内部链接（等待渲染完成）
 watch([processedContent, currentArticleId], () => {
+  hasMarkedReadForArticle.value = null
   if (processTimer) {
     clearTimeout(processTimer)
   }
@@ -74,84 +125,55 @@ onBeforeUnmount(() => {
   }
 })
 
-// 处理内部链接：在渲染后的DOM中查找并替换
+// 处理内部链接：在渲染后的 DOM 中查找并替换
 function processInternalLinks() {
-  const container = document.querySelector('.vditor-preview-container')
-  if (!container) {
-    console.warn('ManualContent: 容器未找到')
-    return
-  }
-
   const content = currentArticleContent.value
   if (!content) return
 
-  // 先移除所有已存在的内部链接（避免重复添加）
-  const existingLinks = container.querySelectorAll('.manual-internal-link')
-  existingLinks.forEach(link => {
-    const text = link.textContent || ''
-    const parent = link.parentNode
-    if (parent) {
-      parent.replaceChild(document.createTextNode(text), link)
-      // 合并相邻的文本节点
-      parent.normalize()
-    }
-  })
+  const containers = Array.from(document.querySelectorAll('.vditor-preview-container'))
+  if (containers.length === 0) return
 
-  // 解析内部链接
   const links = parseInternalLinks(content)
-  if (links.length === 0) {
-    console.log('ManualContent: 未找到内部链接')
-    return
-  }
+  if (links.length === 0) return
 
-  console.log('ManualContent: 找到', links.length, '个内部链接')
-
-  // 检查节点是否在代码块中
-  function isInCodeBlock(node: Node): boolean {
-    let checkNode: Node | null = node
-    while (checkNode && checkNode !== container) {
-      if (checkNode.nodeType === Node.ELEMENT_NODE) {
-        const element = checkNode as Element
-        if (element.tagName === 'CODE' || element.tagName === 'PRE') {
-          return true
-        }
+  for (const container of containers) {
+    const existingLinks = container.querySelectorAll('.manual-internal-link')
+    existingLinks.forEach(link => {
+      const text = link.textContent || ''
+      const parent = link.parentNode
+      if (parent) {
+        parent.replaceChild(document.createTextNode(text), link)
+        parent.normalize()
       }
-      checkNode = checkNode.parentNode
-    }
-    return false
-  }
+    })
 
-  // 递归查找并替换文本（查找完整的链接格式或显示文本）
-  function replaceTextInNode(node: Node, link: ReturnType<typeof parseInternalLinks>[0]): boolean {
-    // 跳过代码块
-    if (isInCodeBlock(node)) {
+    function isInCodeBlock(node: Node): boolean {
+      let checkNode: Node | null = node
+      while (checkNode && checkNode !== container) {
+        if (checkNode.nodeType === Node.ELEMENT_NODE) {
+          const element = checkNode as Element
+          if (element.tagName === 'CODE' || element.tagName === 'PRE') return true
+        }
+        checkNode = checkNode.parentNode
+      }
       return false
     }
 
-    if (node.nodeType === Node.TEXT_NODE) {
-      const textNode = node as Text
-      const text = textNode.textContent || ''
-      
-      // 检查是否已经在链接中
-      const parent = textNode.parentElement
-      if (parent && parent.tagName === 'A' && parent.classList.contains('manual-internal-link')) {
-        return false
-      }
-      
-      // 先尝试查找完整的链接格式 [[articleId|displayText]]
-      let index = text.indexOf(link.fullMatch)
-      let matchLength = link.fullMatch.length
-      let replaceText = link.displayText
-      
-      // 如果没找到完整格式，再查找显示文本
-      if (index < 0) {
-        index = text.indexOf(link.displayText)
-        matchLength = link.displayText.length
-        replaceText = link.displayText
-      }
-      
-      if (index >= 0) {
-        // 创建链接元素
+    function replaceTextInNode(node: Node, link: ReturnType<typeof parseInternalLinks>[0]): boolean {
+      if (isInCodeBlock(node)) return false
+      if (node.nodeType === Node.TEXT_NODE) {
+        const textNode = node as Text
+        const text = textNode.textContent || ''
+        const parent = textNode.parentElement
+        if (parent?.tagName === 'A' && parent.classList.contains('manual-internal-link')) return false
+        let index = text.indexOf(link.fullMatch)
+        let matchLength = link.fullMatch.length
+        let replaceText = link.displayText
+        if (index < 0) {
+          index = text.indexOf(link.displayText)
+          matchLength = link.displayText.length
+        }
+        if (index < 0) return false
         const linkElement = document.createElement('a')
         linkElement.className = 'manual-internal-link'
         linkElement.setAttribute('data-article-id', link.articleId)
@@ -161,60 +183,36 @@ function processInternalLinks() {
         linkElement.style.textDecoration = 'none'
         linkElement.style.borderBottom = '1px solid var(--el-color-primary, #409EFF)'
         linkElement.style.cursor = 'pointer'
-        
         linkElement.addEventListener('click', (e) => {
           e.preventDefault()
           e.stopPropagation()
           setCurrentArticle(link.articleId, 'link')
         })
-
-        // 替换文本节点
         const beforeText = text.substring(0, index)
         const afterText = text.substring(index + matchLength)
-        
         const fragment = document.createDocumentFragment()
-        if (beforeText) {
-          fragment.appendChild(document.createTextNode(beforeText))
-        }
+        if (beforeText) fragment.appendChild(document.createTextNode(beforeText))
         fragment.appendChild(linkElement)
-        if (afterText) {
-          fragment.appendChild(document.createTextNode(afterText))
-        }
-        
+        if (afterText) fragment.appendChild(document.createTextNode(afterText))
         textNode.parentNode?.replaceChild(fragment, textNode)
-        console.log('ManualContent: 替换链接', link.articleId, '->', replaceText)
         return true
       }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element
-      // 跳过已经是内部链接的元素和代码块
-      if (element.tagName === 'A' && element.classList.contains('manual-internal-link')) {
-        return false
-      }
-      if (element.tagName === 'CODE' || element.tagName === 'PRE') {
-        return false
-      }
-      
-      // 递归处理子节点（从后往前，避免索引偏移）
-      const children = Array.from(element.childNodes).reverse()
-      for (const child of children) {
-        if (replaceTextInNode(child, link)) {
-          return true
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element
+        if (element.tagName === 'A' && element.classList.contains('manual-internal-link')) return false
+        if (element.tagName === 'CODE' || element.tagName === 'PRE') return false
+        const children = Array.from(element.childNodes).reverse()
+        for (const child of children) {
+          if (replaceTextInNode(child, link)) return true
         }
       }
+      return false
     }
-    
-    return false
-  }
 
-  // 处理每个链接（从后往前，避免索引偏移）
-  let replacedCount = 0
-  for (const link of links.reverse()) {
-    if (replaceTextInNode(container, link)) {
-      replacedCount++
+    for (const link of links.reverse()) {
+      replaceTextInNode(container, link)
     }
   }
-  console.log('ManualContent: 成功替换', replacedCount, '个链接')
 }
 </script>
 
@@ -258,6 +256,15 @@ function processInternalLinks() {
 .markdown-preview :deep(.manual-internal-link:hover) {
   color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
   border-bottom-width: 2px;
+}
+
+/* Vditor 输出中的 Demo 占位 div，注入 Vue 组件后保留此容器样式 */
+.markdown-preview :deep(.manual-demo-placeholder) {
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px dashed v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.15)"');
+  border-radius: 8px;
+  background-color: v-bind('themeState.currentTheme.background2nd || "transparent"');
 }
 
 .empty-content {

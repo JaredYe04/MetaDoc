@@ -27,6 +27,20 @@ MetaDoc的主界面包含以下区域：
 4. **侧边栏**：包含大纲视图、工作目录等辅助功能
 5. **状态栏**：显示文档统计信息、保存状态等
 
+下方为对应的真实界面控件展示，便于您对照操作：
+
+**顶部菜单栏**
+
+<LeftMenu mode="demo" />
+
+**标签页栏**
+
+<MainTabs mode="demo" />
+
+**侧边栏**
+
+<ViewMenu mode="demo" />
+
 ```mermaid
 graph TB
     A[顶部菜单栏] --> B[标签页栏]
@@ -49,6 +63,18 @@ graph TB
    - **Markdown**：适合日常笔记、博客、技术文档等
    - **LaTeX**：适合学术论文、科技文档等
 3. 根据向导提示完成文档创建
+
+快速开始向导的格式选择界面如下：
+
+<QuickStartPanel mode="demo" />
+
+选择 **Markdown** 后进入的向导界面：
+
+<QuickStartMarkdown mode="demo" />
+
+选择 **LaTeX** 后进入的向导界面：
+
+<QuickStartLatex mode="demo" />
 
 快速开始向导支持：
 - AI辅助生成文档内容

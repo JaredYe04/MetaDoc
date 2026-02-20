@@ -222,6 +222,7 @@ import { useWorkspaceOperations } from '../composables/useWorkspaceOperations'
 import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
 import logoPath from '../assets/logo.svg'
+import messageBridge from '../bridge/message-bridge'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
@@ -238,14 +239,8 @@ const handleLogoClick = () => {
   }, 1500) // 动画持续时间
 }
 
-// 获取 IPC renderer
-const getIpcRenderer = () => {
-  if (window && (window as any).electron) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
-
+// 通过消息桥获取 IPC（统一入口，便于未来迁移）
+const getIpcRenderer = () => messageBridge.getIpc()
 const ipcRenderer = getIpcRenderer()
 
 // 使用新的操作模型

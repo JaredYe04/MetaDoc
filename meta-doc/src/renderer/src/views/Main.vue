@@ -122,6 +122,7 @@ import { formatRegistry } from '../utils/format-registry'
 import TabSwitcherOverlay from '../components/TabSwitcherOverlay.vue'
 import { useTabSwitcher } from '../composables/useTabSwitcher'
 import { useCloseTab } from '../composables/useCloseTab'
+import messageBridge from '../bridge/message-bridge'
 
 // ============================================================================
 // 初始化和基础设置
@@ -290,21 +291,6 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   const normalizePathForCompare = (p: string) => (p || '').replace(/\\/g, '/')
   const resolvedPathNorm = normalizePathForCompare(resolvedPath)
 
-  // 获取 ipcRenderer 实例
-  const getIpcRenderer = async () => {
-    let ipcRenderer: any = null
-    if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer
-    }
-    return ipcRenderer
-  }
-
-  // 预初始化 ipcRenderer，后续多处需要使用
-  let ipcRenderer: any = null
-
   if (resolvedPath) {
     // 先检查当前窗口是否已打开该文件（路径规范化后比较，避免 D:\ 与 D:/ 等导致误判）
     const existing = workspaceTabs.find(
@@ -332,12 +318,11 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     }
 
     // 预占式注册：防止并发重复打开
-    ipcRenderer = await getIpcRenderer()
-    if (ipcRenderer && typeof ipcRenderer.invoke === 'function') {
+    if (messageBridge.getIpc()) {
       // 生成 tabId（在预占时就需要）
       const tempTabId = `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
-      const claim = (await ipcRenderer.invoke('claim-file-open', {
+      const claim = (await messageBridge.invoke('claim-file-open', {
         filePath: resolvedPath,
         tabId: tempTabId
       })) as {
@@ -353,7 +338,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
           // 重试一次（如果是 transferring 状态）
           if (claim.existingState === 'transferring') {
             await new Promise((resolve) => setTimeout(resolve, 600))
-            const retryResult = (await ipcRenderer.invoke(
+            const retryResult = (await messageBridge.invoke(
               'find-window-with-file',
               resolvedPath
             )) as { windowId: number | null; tabId: string | null }
@@ -369,7 +354,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
             `文件 ${resolvedPath} 已在窗口 ${claim.existingWindowId} 的Tab ${claim.existingTabId} 中打开`
           )
           // 调用 find-window-with-file 触发主进程的窗口切换逻辑
-          await ipcRenderer.invoke('find-window-with-file', resolvedPath)
+          await messageBridge.invoke('find-window-with-file', resolvedPath)
         }
         return
       }
@@ -380,7 +365,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         // 继续下面的打开逻辑...
       } catch (error) {
         // 打开失败，释放预占
-        await ipcRenderer.invoke('release-file-claim', resolvedPath)
+        await messageBridge.invoke('release-file-claim', resolvedPath)
         throw error
       }
     }
@@ -432,17 +417,17 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     })
     eventBus.emit('is-need-save', false)
     // 文件打开成功，确认注册
-    if (resolvedPath && ipcRenderer) {
-      await ipcRenderer.invoke('confirm-file-open', resolvedPath)
+    if (resolvedPath && messageBridge.getIpc()) {
+      await messageBridge.invoke('confirm-file-open', resolvedPath)
     }
     return
   }
   if (isPdf && !isPreview) {
     try {
-      if (!ipcRenderer?.invoke) {
+      if (!messageBridge.getIpc()?.invoke) {
         throw new Error('IPC 渲染器不可用')
       }
-      const result = (await ipcRenderer.invoke('convert-pdf-to-markdown', resolvedPath)) as {
+      const result = (await messageBridge.invoke('convert-pdf-to-markdown', resolvedPath)) as {
         success: boolean
         markdown?: string
         error?: string
@@ -479,8 +464,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       eventBus.emit('is-need-save', true)
       // PDF转换为MD后，MD tab是新文档（path为空），不应该占用原PDF文件的打开状态
       // 释放PDF路径的占用，允许用户再次打开原PDF文件
-      if (resolvedPath && ipcRenderer) {
-        await ipcRenderer.invoke('release-file-claim', resolvedPath)
+      if (resolvedPath && messageBridge.getIpc()) {
+        await messageBridge.invoke('release-file-claim', resolvedPath)
       }
       return
     } catch (error) {
@@ -488,8 +473,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       const message = error instanceof Error ? error.message : String(error)
       eventBus.emit('show-error', `PDF转换失败: ${message}`)
       // PDF转换失败，释放预占
-      if (resolvedPath && ipcRenderer) {
-        await ipcRenderer.invoke('release-file-claim', resolvedPath)
+      if (resolvedPath && messageBridge.getIpc()) {
+        await messageBridge.invoke('release-file-claim', resolvedPath)
       }
       return
     }
@@ -498,11 +483,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   // 如果内容为空但有路径，读取文件内容（但不用于格式检测）
   if (!content && resolvedPath) {
     try {
-      const ipcRenderer =
-        window.electron?.ipcRenderer ||
-        (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
-      if (ipcRenderer?.invoke) {
-        content = ((await ipcRenderer.invoke('read-file-content', resolvedPath)) as string) || ''
+      if (messageBridge.getIpc()?.invoke) {
+        content = ((await messageBridge.invoke('read-file-content', resolvedPath)) as string) || ''
       }
     } catch (err) {
       logger.error('读取文件内容失败:', err)
@@ -550,8 +532,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       if (existingAfterCheck) {
         // 文件已在异步操作期间被打开，激活现有Tab并返回
         // 释放预占，让实际打开的窗口持有
-        if (resolvedPath && ipcRenderer) {
-          await ipcRenderer.invoke('release-file-claim', resolvedPath)
+        if (resolvedPath && messageBridge.getIpc()) {
+          await messageBridge.invoke('release-file-claim', resolvedPath)
         }
         activateTab(existingAfterCheck.id)
         const existingDoc = ensureDocument(existingAfterCheck.id)
@@ -587,16 +569,16 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     eventBus.emit('is-need-save', false)
 
     // 文件打开成功，确认注册
-    if (resolvedPath && ipcRenderer) {
-      await ipcRenderer.invoke('confirm-file-open', resolvedPath)
+    if (resolvedPath && messageBridge.getIpc()) {
+      await messageBridge.invoke('confirm-file-open', resolvedPath)
     }
   } catch (error) {
     logger.error('Failed to open document:', error)
     const message = error instanceof Error ? error.message : String(error)
     eventBus.emit('show-error', `${t('main.notification.error.title')}: ${message}`)
     // 打开失败，释放预占
-    if (resolvedPath && ipcRenderer) {
-      await ipcRenderer.invoke('release-file-claim', resolvedPath)
+    if (resolvedPath && messageBridge.getIpc()) {
+      await messageBridge.invoke('release-file-claim', resolvedPath)
     }
   }
 }
@@ -671,10 +653,8 @@ function initMainEventListeners() {
   eventBus.on('tab-reopen', handleTabReopen)
 
   const handleTabNew = () => {
-    const tab = workspace.openNewDocumentTab()
-    if (tab) {
-      tabSwitcher.flashIndicator(tab.id)
-    }
+    workspace.openNewDocumentTab()
+    // 不再调用 flashIndicator：浮层会覆盖新标签页内容并在 600ms 后自动关闭，导致用户无法在新建标签页界面内操作
   }
   eventBus.on('tab-new', handleTabNew)
 
@@ -746,18 +726,9 @@ function initMainEventListeners() {
         await updateRecentDocs(filePath)
       }
 
-      // 获取 ipcRenderer
-      let ipcRenderer: any = null
-      if (window && (window as any).electron) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-
-      if (ipcRenderer) {
+      if (messageBridge.getIpc()) {
         // 启动文件监听
-        ipcRenderer.send('watch-file', filePath, tabId)
+        messageBridge.send('watch-file', filePath, tabId)
         logger.debug('启动文件监听', { filePath, tabId })
       }
     }
@@ -791,16 +762,8 @@ function initMainEventListeners() {
     // 注意：正式打开的PDF tab在转换时也会释放占用（见上面的修复）
     if (tab.preview && pdfPath) {
       try {
-        // 获取 ipcRenderer 实例
-        let ipcRenderer: any = null
-        if (window && (window as any).electron) {
-          ipcRenderer = (window as any).electron.ipcRenderer
-        } else {
-          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-          ipcRenderer = localIpcRenderer
-        }
-        if (ipcRenderer?.invoke) {
-          await ipcRenderer.invoke('release-file-claim', pdfPath)
+        if (messageBridge.getIpc()?.invoke) {
+          await messageBridge.invoke('release-file-claim', pdfPath)
         }
       } catch (error) {
         logger.warn('释放PDF文件占用失败:', error)
@@ -827,14 +790,8 @@ function initMainEventListeners() {
     const tabId = activeTabId.value
     if (!tabId) return
 
-    // 获取ipcRenderer
-    let ipcRenderer: any = null
-    if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    }
-
-    if (!ipcRenderer) {
-      // 如果没有ipcRenderer，回退到原来的逻辑
+    if (!messageBridge.getIpc()) {
+      // 如果没有 IPC，回退到原来的逻辑
       const doc = ensureDocument(tabId)
       if (doc?.dirty) {
         try {
@@ -858,7 +815,7 @@ function initMainEventListeners() {
     // 使用系统对话框
     try {
       // 发送请求到主进程
-      ipcRenderer.send('request-close-tab', tabId)
+      messageBridge.send('request-close-tab', tabId)
 
       // 等待响应
       const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>(
@@ -868,14 +825,14 @@ function initMainEventListeners() {
             response: { tabId: string; action: 'save' | 'discard' | 'cancel' }
           ) => {
             if (response.tabId === tabId) {
-              ipcRenderer.removeListener('close-tab-response', handler)
+              messageBridge.removeListener('close-tab-response', handler)
               resolve(response)
             }
           }
-          ipcRenderer.on('close-tab-response', handler)
+          messageBridge.on('close-tab-response', handler)
           // 设置超时，避免无限等待
           setTimeout(() => {
-            ipcRenderer.removeListener('close-tab-response', handler)
+            messageBridge.removeListener('close-tab-response', handler)
             resolve({ tabId, action: 'cancel' })
           }, 10000)
         }

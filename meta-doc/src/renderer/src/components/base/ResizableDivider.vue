@@ -31,6 +31,8 @@ interface Props {
   maxValue?: number
   /** 是否反向计算（如从右到左） */
   reverse?: boolean
+  /** 模式：normal 正常业务，demo 手册沙箱（不触发 resize 副作用） */
+  mode?: 'normal' | 'demo'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -39,7 +41,8 @@ const props = withDefaults(defineProps<Props>(), {
   hoverColor: '#55555566',
   minValue: 100,
   maxValue: 1000,
-  reverse: false
+  reverse: false,
+  mode: 'normal'
 })
 
 const emit = defineEmits<{
@@ -83,33 +86,45 @@ const dividerStyle = computed(() => {
   }
 })
 
-// 开始拖拽
+// 开始拖拽（demo 模式下不发出 resize，仅做视觉反馈，松手后恢复）
 function startResize(event: MouseEvent) {
   isResizing.value = true
+  if (props.mode === 'demo') {
+    const onDemoEnd = () => {
+      isResizing.value = false
+      document.removeEventListener('mouseup', onDemoEnd)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      emit('resizeEnd', event)
+    }
+    document.addEventListener('mouseup', onDemoEnd)
+    document.body.style.cursor = props.direction === 'horizontal' ? 'row-resize' : 'col-resize'
+    document.body.style.userSelect = 'none'
+    emit('resizeStart', event)
+    return
+  }
   startX = event.clientX
   startY = event.clientY
-
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)
   document.body.style.cursor = props.direction === 'horizontal' ? 'row-resize' : 'col-resize'
   document.body.style.userSelect = 'none'
-
   emit('resizeStart', event)
 }
 
-// 处理拖拽
+// 处理拖拽：每次移动只发出相对上一帧的增量（demo 模式不发出）
 function handleResize(event: MouseEvent) {
-  if (!isResizing.value) return
+  if (!isResizing.value || props.mode === 'demo') return
 
   let delta: number
-
   if (props.direction === 'horizontal') {
     delta = event.clientY - startY
+    startY = event.clientY
   } else {
     delta = event.clientX - startX
+    startX = event.clientX
   }
 
-  // 如果是反向计算
   if (props.reverse) {
     delta = -delta
   }
@@ -121,12 +136,12 @@ function handleResize(event: MouseEvent) {
 function stopResize(event: MouseEvent) {
   if (isResizing.value) {
     isResizing.value = false
-
-    document.removeEventListener('mousemove', handleResize)
-    document.removeEventListener('mouseup', stopResize)
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-
+    if (props.mode === 'normal') {
+      document.removeEventListener('mousemove', handleResize)
+      document.removeEventListener('mouseup', stopResize)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
     emit('resizeEnd', event)
   }
 }

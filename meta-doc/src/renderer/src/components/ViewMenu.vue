@@ -137,10 +137,16 @@ import { useWorkspace, type DocumentView } from '../stores/workspace'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import '../assets/modern-side-menu.css'
 import { useI18n } from 'vue-i18n'
+
+const props = withDefaults(
+  defineProps<{ mode?: 'normal' | 'demo' }>(),
+  { mode: 'normal' }
+)
+
 const { t } = useI18n()
 const { activeDocument } = useActiveDocument()
 const workspace = useWorkspace()
-const isLocked = computed(() => workspace.uiLocked?.value === true)
+const isLocked = computed(() => props.mode === 'demo' || workspace.uiLocked?.value === true)
 
 // 判断是否为纯文本格式
 const isPlainTextFormat = computed(() => {
@@ -153,13 +159,14 @@ const isCollapsed = ref(false)
 // 切换折叠状态
 const toggleCollapse = () => {
   if (isLocked.value) return
+  if (props.mode === 'demo') return
   isCollapsed.value = !isCollapsed.value
-  // 通过事件总线通知Main.vue更新宽度
   eventBus.emit('view-menu-collapse-changed', isCollapsed.value)
 }
 
 // 监听折叠状态变化，通知父组件
 watch(isCollapsed, (newVal) => {
+  if (props.mode === 'demo') return
   eventBus.emit('view-menu-collapse-changed', newVal)
 })
 
@@ -174,7 +181,7 @@ eventBus.on('view-menu-collapse-sync', handleViewMenuCollapseSync)
 
 // 组件挂载时请求同步状态
 onMounted(() => {
-  // 请求Main.vue同步当前的折叠状态
+  if (props.mode === 'demo') return
   eventBus.emit('view-menu-collapse-request')
 })
 
@@ -194,6 +201,7 @@ const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const handleSelect = (key: string): void => {
   if (isLocked.value) return
+  if (props.mode === 'demo') return
 
   // 如果点击的是"主页"，且当前文档是新文档且尚未选择格式，切换到 GlobalHome 标签页
   if (key === 'home') {

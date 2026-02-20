@@ -34,6 +34,10 @@ import { updateServiceStatus } from './service-status'
 import { MainProgressHandle } from './utils/progress-handle'
 import type { BrowserWindow } from 'electron'
 import { LEGACY_CONFIG_FILES } from './utils/express-server-legacy'
+import {
+  getRuntimeServerPort,
+  getRuntimeServerBaseUrl
+} from './runtime-server-config'
 
 // ============ 接口定义 ============
 
@@ -243,8 +247,9 @@ function setupRuntimeAPI(): void {
  */
 function startServer(): void {
   try {
-    server = expressApp.listen(52521, () => {
-      logger.info('本地 CDN 服务已启动 http://localhost:52521')
+    const port = getRuntimeServerPort()
+    server = expressApp.listen(port, () => {
+      logger.info(`本地 CDN 服务已启动 ${getRuntimeServerBaseUrl()}`)
       updateServiceStatus('express', 'ready')
     })
 
@@ -253,7 +258,7 @@ function startServer(): void {
       updateServiceStatus('express', 'error', error.message)
 
       if (error.code === 'EADDRINUSE') {
-        logger.warn('端口 52521 已被占用，10 秒后重试')
+        logger.warn(`端口 ${port} 已被占用，10 秒后重试`)
         setTimeout(() => {
           try {
             if (server) {

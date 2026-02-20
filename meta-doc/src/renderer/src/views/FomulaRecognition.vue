@@ -1200,14 +1200,15 @@ async function confirmExport() {
       const formData = new FormData()
       const file = new File([blob], fileName, { type: 'image/svg+xml' })
       formData.append('file[]', file, fileName)
-      const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+      const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+      const resp = await fetch(`${baseUrl}/api/image/upload?keepName=1`, {
         method: 'POST',
         body: formData
       })
       if (!resp.ok) throw new Error('上传 SVG 失败')
       const json = await resp.json()
       const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
-      const imageUrl = `http://localhost:52521/images/${uploaded}`
+      const imageUrl = `${baseUrl}/images/${uploaded}`
 
       const saveResult = (await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg')) as {
         success: boolean
@@ -1244,14 +1245,15 @@ async function confirmExport() {
       const formData = new FormData()
       const file = new File([blob], fileName, { type: 'image/svg+xml' })
       formData.append('file[]', file, fileName)
-      const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+      const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+      const resp = await fetch(`${baseUrl}/api/image/upload?keepName=1`, {
         method: 'POST',
         body: formData
       })
       if (!resp.ok) throw new Error('上传 SVG 失败')
       const json = await resp.json()
       const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
-      const imageUrl = `http://localhost:52521/images/${uploaded}`
+      const imageUrl = `${baseUrl}/images/${uploaded}`
 
       // 转本地路径
       const { image2local } = await import('../utils/md-utils.js')

@@ -818,6 +818,12 @@
     "expandCanvasNoNeed": "画布已不小于视口，无需扩大",
     "resultTitle": "识别结果"
   },
+  "celebration": {
+    "title": "准备就绪！",
+    "subtitle": "您已完成 MetaDoc 完整学习指南",
+    "continue": "开始使用 MetaDoc →",
+    "skip": "点击任意处跳过"
+  },
   "home": {
     "recentDocuments": "最近文档",
     "metaDoc": "MetaDoc智能文字处理软件",
@@ -896,7 +902,7 @@
       "creative": "创意"
     },
     "defaultText": "# 欢迎使用MetaDoc\n\n这是一款AI驱动的文字处理软件，可以帮助您快速生成文档内容。",
-    "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{欢迎使用 MetaDoc}\n\\\\author{AI 助手}\n\\\\maketitle\n\n\\\\section{简介}\n这是由 MetaDoc 生成的 LaTeX 快速开始模板。\n\n\\\\end{document}"
+    "defaultLatexText": "\\\\documentclass\u007Barticle\u007D\n\\\\begin\u007Bdocument\u007D\n\\\\title\u007B欢迎使用 MetaDoc\u007D\n\\\\author\u007BAI 助手\u007D\n\\\\maketitle\n\n\\\\section\u007B简介\u007D\n这是由 MetaDoc 生成的 LaTeX 快速开始模板。\n\n\\\\end\u007Bdocument\u007D"
   },
   "main": {
     "notification": {
@@ -3302,6 +3308,7 @@
     "searchPlaceholder": "搜索文档内容...",
     "emptyContent": "请从左侧选择章节",
     "backToOverview": "返回概览",
+    "replayCelebration": "重新播放庆祝动画",
     "navigation": {
       "core": "核心操作",
       "markdown": "Markdown教学",

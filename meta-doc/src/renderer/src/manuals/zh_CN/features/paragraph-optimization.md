@@ -24,6 +24,14 @@
 3. **选择优化**：在右键菜单中选择"段落优化"或类似选项
 4. **打开对话框**：段落优化对话框会打开
 
+您可以通过侧边栏访问大纲视图：
+
+<ViewMenuItemsDemo mode="demo" :items='["outline"]' />
+
+段落优化器界面如下：
+
+<SectionOptimizer mode="demo" title="示例章节" :position='{"top": 100, "left": 200}' path="1" :tree='{"text": "示例章节", "children": []}' language="markdown" :adapter='null' />
+
 ### 自动识别章节
 
 段落优化会自动识别当前章节：

@@ -13,6 +13,28 @@
 - **本地服务**：将图片保存到本地目录
 - **自定义**：使用自定义API上传图片
 
+您可以通过顶部菜单栏访问图片上传设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+```mermaid
+graph TB
+    A[图片上传设置] --> B{上传服务类型}
+    B -->|本地服务| C[配置本地目录]
+    B -->|自定义| D[配置API]
+    C --> E[选择目录]
+    D --> F[输入API URL]
+    D --> G[配置请求方法]
+    D --> H[配置字段名]
+    E --> I[保存配置]
+    F --> I
+    G --> I
+    H --> I
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#f3f4f6,stroke:#374151
+    style I fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 本地服务
 
 本地服务将图片保存到本地文件系统：

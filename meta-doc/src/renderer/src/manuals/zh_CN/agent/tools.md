@@ -60,6 +60,10 @@ graph TB
    - 显示工具的类型和描述
 5. **保存工具集**：点击"保存"按钮
 
+您可以通过侧边栏访问Agent视图：
+
+<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
+
 ### 工具选择
 
 选择工具时，系统会显示：

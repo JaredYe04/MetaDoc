@@ -69,6 +69,23 @@ graph LR
 
 处理时间取决于文件大小，大文件可能需要较长时间。
 
+```mermaid
+graph TB
+    A[添加文件到知识库] --> B[选择文件]
+    B --> C[文件转换]
+    C --> D[文本分块]
+    D --> E[生成向量]
+    E --> F[存储到数据库]
+    F --> G[文件处理完成]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 知识库文件管理
 
 ### 文件列表

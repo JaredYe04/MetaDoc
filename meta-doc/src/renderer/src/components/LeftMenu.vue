@@ -897,7 +897,8 @@ const props = withDefaults(
 )
 const emitMenu = (name: string, ...args: any[]) => {
   if (props.mode === 'demo') return
-  emitMenu(name, ...args)
+  // mitt 的 emit 只接受两个参数，将多个参数合并为一个对象
+  eventBus.emit(name, args.length === 1 ? args[0] : args.length > 1 ? args : undefined)
 }
 
 const recentDocs = ref([])

@@ -6,7 +6,7 @@
         plain
         size="small"
         type="danger"
-        @click="$emit('close')"
+        @click="props.mode === 'demo' ? undefined : $emit('close')"
         class="aero-btn"
         style="float: inline-start"
         @mousedown.prevent
@@ -159,6 +159,11 @@ const props = defineProps({
   tree: {
     type: Object,
     required: true
+  },
+  mode: {
+    type: String,
+    default: 'normal',
+    validator: (value: string) => ['normal', 'demo'].includes(value)
   }
 })
 const context_mode = ref(1)
@@ -203,6 +208,7 @@ const pushDialogToDocument = (dialog) => {
 }
 
 const accept = (append = false) => {
+  if (props.mode === 'demo') return
   //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
   // latest_view.value='outline';
   // sync();
@@ -224,6 +230,7 @@ const accept = (append = false) => {
 }
 
 const generate = async () => {
+  if (props.mode === 'demo') return
   const outlineNode = currentOutline.value
   if (!outlineNode) return
   generating.value = true
@@ -257,6 +264,7 @@ const generate = async () => {
   }
 }
 const chat = async () => {
+  if (props.mode === 'demo') return
   const outlineNode = currentOutline.value
   if (!outlineNode) return
   const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode)

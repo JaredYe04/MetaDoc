@@ -23,6 +23,25 @@ MetaDoc目前支持以下语言：
 2. 选择要使用的语言
 3. 界面会立即更新为所选语言
 
+您可以通过顶部菜单栏访问语言设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+```mermaid
+graph LR
+    A[语言切换] --> B[打开语言选择器]
+    B --> C[选择语言]
+    C --> D[界面更新]
+    D --> E[保存设置]
+    E --> F[下次启动生效]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 语言保存
 
 选择的语言会自动保存：

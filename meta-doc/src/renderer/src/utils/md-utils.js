@@ -1698,10 +1698,11 @@ export async function local2fileProtocolForHtmlInHtml(html) {
  * @param {string} options.linkBase - 用于解析相对路径的基础路径
  * @param {boolean} options.renderCode - 是否渲染代码块（默认 true）
  * @param {boolean} options.renderMath - 是否渲染数学公式（默认 true）
+ * @param {boolean} options.applyMermaidTheme - 是否应用 Mermaid 主题适配（默认 false，仅在用户手册中使用）
  * @returns {Promise<void>}
  */
 export async function renderMarkdownPreview(container, markdown, options = {}) {
-  const { linkBase = '', renderCode = true, renderMath = true } = options
+  const { linkBase = '', renderCode = true, renderMath = true, applyMermaidTheme = false } = options
 
   // 获取 CDN
   const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
@@ -1748,6 +1749,157 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
   if (renderMath && typeof Vditor.mathRender === 'function') {
     Vditor.mathRender(container, { cdn })
   }
+
+  // 仅在用户手册中统一适配 Mermaid 图表主题：根据当前主题统一节点背景色和字体颜色
+  // 延迟执行以确保 Mermaid 完全渲染完成
+  if (applyMermaidTheme) {
+    // 立即执行一次
+    applyMermaidThemeToContainer(container)
+    // 延迟执行以确保覆盖所有动态渲染的元素
+    setTimeout(() => {
+      applyMermaidThemeToContainer(container)
+    }, 100)
+    setTimeout(() => {
+      applyMermaidThemeToContainer(container)
+    }, 500)
+  }
+}
+
+/**
+ * 统一适配 Mermaid 图表主题，确保节点背景色和字体颜色随主题变化
+ * 仅在用户手册中使用
+ * @param {HTMLElement} container - 包含 Mermaid 图表的容器
+ */
+function applyMermaidThemeToContainer(container) {
+  if (!container) return
+
+  const isDark = themeState.currentTheme.type === 'dark'
+  
+  // 定义主题配色：亮色/暗色模式下的节点背景色、边框色、字体颜色
+  const lightTheme = {
+    nodeFill: '#f3f4f6',      // 浅灰背景（与手册中硬编码的一致）
+    nodeStroke: '#374151',    // 深灰边框
+    textFill: '#333333',       // 深色文字
+    edgeStroke: '#333333',     // 深色连线
+    clusterFill: '#ffffde',    // 浅黄集群背景
+    clusterStroke: '#aaaa33'   // 深黄集群边框
+  }
+  
+  const darkTheme = {
+    nodeFill: '#2d2d30',      // 深灰背景
+    nodeStroke: '#3e3e42',    // 稍浅的深灰边框
+    textFill: '#cccccc',      // 浅色文字
+    edgeStroke: '#cccccc',    // 浅色连线
+    clusterFill: '#3d3d2d',   // 深黄集群背景
+    clusterStroke: '#888833'  // 浅黄集群边框
+  }
+  
+  const theme = isDark ? darkTheme : lightTheme
+
+  // 查找所有 Mermaid SVG 元素
+  const mermaidSvgs = container.querySelectorAll('.language-mermaid svg, [class*="mermaid"] svg')
+  
+  mermaidSvgs.forEach((svg) => {
+    if (!(svg instanceof SVGElement)) return
+
+    // 1. 强制统一节点背景色和边框色（所有可能的节点形状）
+    // 包括：rect.label-container, .node 下的所有形状，以及所有可能的节点容器
+    const nodeShapes = svg.querySelectorAll(
+      'rect.label-container, circle.label-container, ellipse.label-container, polygon.label-container, path.label-container, ' +
+      '.node rect, .node circle, .node ellipse, .node polygon, .node path, ' +
+      'g.node rect, g.node circle, g.node ellipse, g.node polygon, g.node path, ' +
+      'rect[class*="label"], circle[class*="label"], ellipse[class*="label"], polygon[class*="label"], path[class*="label"]'
+    )
+    nodeShapes.forEach((shape) => {
+      const element = /** @type {SVGElement} */ (shape)
+      // 强制设置 fill 和 stroke，覆盖所有现有样式
+      element.setAttribute('fill', theme.nodeFill)
+      element.setAttribute('stroke', theme.nodeStroke)
+      // 同时更新 style 属性以确保优先级
+      const currentStyle = element.getAttribute('style') || ''
+      const newStyle = currentStyle
+        .replace(/fill:\s*[^;]+/gi, `fill: ${theme.nodeFill}`)
+        .replace(/stroke:\s*[^;]+/gi, `stroke: ${theme.nodeStroke}`)
+      if (!newStyle.includes('fill:')) {
+        element.setAttribute('style', (newStyle + ` fill: ${theme.nodeFill}; stroke: ${theme.nodeStroke};`).trim())
+      } else {
+        element.setAttribute('style', newStyle)
+      }
+    })
+
+    // 2. 强制统一文字颜色（所有 text 元素）
+    const textElements = svg.querySelectorAll('text, .label text, .nodeLabel text, .edgeLabel text, foreignObject text, tspan')
+    textElements.forEach((textEl) => {
+      const element = /** @type {SVGElement} */ (textEl)
+      // 强制设置文字颜色
+      element.setAttribute('fill', theme.textFill)
+      // 更新 style 属性
+      const currentStyle = element.getAttribute('style') || ''
+      const newStyle = currentStyle.replace(/fill:\s*[^;]+/gi, `fill: ${theme.textFill}`)
+      if (!newStyle.includes('fill:')) {
+        element.setAttribute('style', (newStyle + ` fill: ${theme.textFill};`).trim())
+      } else {
+        element.setAttribute('style', newStyle)
+      }
+    })
+
+    // 3. 统一连线颜色（edgePath, flowchart-link）
+    const edgePaths = svg.querySelectorAll('.edgePath .path, .flowchart-link, .edgePath path, .edgePath line, line[class*="link"]')
+    edgePaths.forEach((edge) => {
+      const element = /** @type {SVGElement} */ (edge)
+      element.setAttribute('stroke', theme.edgeStroke)
+      const currentStyle = element.getAttribute('style') || ''
+      const newStyle = currentStyle.replace(/stroke:\s*[^;]+/gi, `stroke: ${theme.edgeStroke}`)
+      if (!newStyle.includes('stroke:')) {
+        element.setAttribute('style', (newStyle + ` stroke: ${theme.edgeStroke};`).trim())
+      } else {
+        element.setAttribute('style', newStyle)
+      }
+    })
+
+    // 4. 统一集群背景色（cluster rect）
+    const clusterRects = svg.querySelectorAll('.cluster rect, g.cluster rect')
+    clusterRects.forEach((rect) => {
+      const element = /** @type {SVGElement} */ (rect)
+      element.setAttribute('fill', theme.clusterFill)
+      element.setAttribute('stroke', theme.clusterStroke)
+      const currentStyle = element.getAttribute('style') || ''
+      const newStyle = currentStyle
+        .replace(/fill:\s*[^;]+/gi, `fill: ${theme.clusterFill}`)
+        .replace(/stroke:\s*[^;]+/gi, `stroke: ${theme.clusterStroke}`)
+      if (!newStyle.includes('fill:')) {
+        element.setAttribute('style', (newStyle + ` fill: ${theme.clusterFill}; stroke: ${theme.clusterStroke};`).trim())
+      } else {
+        element.setAttribute('style', newStyle)
+      }
+    })
+
+    // 5. 添加全局样式覆盖（最高优先级，确保覆盖所有情况）
+    let existingStyle = svg.querySelector('style[data-mermaid-theme]')
+    if (!existingStyle) {
+      existingStyle = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+      existingStyle.setAttribute('data-mermaid-theme', 'true')
+      svg.insertBefore(existingStyle, svg.firstChild)
+    }
+    existingStyle.textContent = `
+      rect.label-container, circle.label-container, ellipse.label-container, polygon.label-container, path.label-container,
+      .node rect, .node circle, .node ellipse, .node polygon, .node path,
+      g.node rect, g.node circle, g.node ellipse, g.node polygon, g.node path {
+        fill: ${theme.nodeFill} !important;
+        stroke: ${theme.nodeStroke} !important;
+      }
+      text, .label text, .nodeLabel text, .edgeLabel text, foreignObject text, tspan {
+        fill: ${theme.textFill} !important;
+      }
+      .edgePath .path, .flowchart-link, .edgePath path, .edgePath line {
+        stroke: ${theme.edgeStroke} !important;
+      }
+      .cluster rect, g.cluster rect {
+        fill: ${theme.clusterFill} !important;
+        stroke: ${theme.clusterStroke} !important;
+      }
+    `
+  })
 }
 
 export async function ConvertMarkdownToHtmlVditor(md) {

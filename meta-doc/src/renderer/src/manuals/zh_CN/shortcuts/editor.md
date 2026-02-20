@@ -20,6 +20,25 @@
 - **功能**：打开查找替换对话框
 - **使用场景**：查找并替换文本
 
+```mermaid
+graph LR
+    A[编辑器快捷键] --> B[查找替换]
+    A --> C[文本格式化]
+    A --> D[AI补全]
+    A --> E[代码块操作]
+    A --> F[折叠展开]
+    A --> G[多光标编辑]
+    B --> H[Ctrl+F查找]
+    B --> I[Ctrl+H替换]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 查找功能
 
 查找对话框支持以下功能：
@@ -29,6 +48,10 @@
 - **正则表达式**：支持正则表达式搜索
 - **大小写匹配**：区分大小写
 - **全字匹配**：匹配完整单词
+
+查找替换菜单界面如下：
+
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 
 ## 文本格式化
 

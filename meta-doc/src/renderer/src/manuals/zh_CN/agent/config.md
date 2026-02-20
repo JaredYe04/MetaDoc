@@ -64,6 +64,10 @@ AgentConfig包含以下主要部分：
    - 最大工具调用次数：限制Agent的工具调用次数（null表示无限制）
 7. **保存配置**：点击"保存"按钮
 
+您可以通过侧边栏访问Agent视图：
+
+<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
+
 ### 默认配置
 
 系统提供一个默认的AgentConfig（`default-agent-config`），包含所有内置工具，不可删除但可以复制。

@@ -25,6 +25,20 @@ AI任务队列是一个管理界面，显示所有正在执行或等待执行的
 - **大纲生成**：大纲生成任务
 - **其他AI任务**：其他AI相关任务
 
+```mermaid
+graph TB
+    A[AI任务队列] --> B[任务列表]
+    A --> C[任务状态]
+    A --> D[任务控制]
+    B --> E[AI对话<br/>AI补全<br/>段落优化<br/>大纲生成]
+    C --> F[等待中<br/>执行中<br/>已完成<br/>已取消<br/>已失败]
+    D --> G[取消任务<br/>清空任务<br/>查看详情]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 打开任务队列
 
 ### 访问方式

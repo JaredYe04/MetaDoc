@@ -46,6 +46,10 @@ graph LR
 3. 选择要打开的文件夹
 4. 目录会在侧边栏中显示
 
+您可以通过侧边栏访问工作目录视图：
+
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
 ### 切换目录
 
 如果需要切换到其他目录：

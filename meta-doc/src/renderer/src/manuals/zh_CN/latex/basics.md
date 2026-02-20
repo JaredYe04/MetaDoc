@@ -27,6 +27,23 @@ LaTeX文档的基本结构：
 \end{document}
 ```
 
+```mermaid
+graph TB
+    A[LaTeX文档结构] --> B[文档类声明]
+    A --> C[宏包导入]
+    A --> D[文档信息]
+    A --> E[文档内容]
+    B --> F[\documentclass]
+    C --> G[\usepackage]
+    D --> H[\title<br/>\author<br/>\date]
+    E --> I[\begin{document}<br/>...<br/>\end{document}]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 数学公式
 
 **行内公式**：

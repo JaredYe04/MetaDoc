@@ -16,6 +16,10 @@ AI对话支持多会话管理、引用素材、知识库集成等功能，让您
 - **快捷键**：使用快捷键快速打开（如果配置了）
 - **侧边栏**：从侧边栏打开AI对话面板
 
+您可以通过顶部菜单栏的AI助手菜单访问AI对话功能：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat"]}]' />
+
 ### 界面介绍
 
 AI对话界面包含以下部分：
@@ -34,10 +38,14 @@ graph TB
     C --> F[消息气泡]
     D --> G[发送消息]
     G --> H[AI回复]
-    style A fill:#f3f4f6,stroke:#374151
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
     style B fill:#f3f4f6,stroke:#374151
     style C fill:#f3f4f6,stroke:#374151
     style D fill:#f3f4f6,stroke:#374151
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
 ```
 
 ## 会话管理
@@ -49,6 +57,29 @@ graph TB
 1. **点击新建**：点击会话列表上方的"新建会话"按钮
 2. **输入标题**：可选输入会话标题（默认使用第一条消息）
 3. **开始对话**：输入第一条消息开始对话
+
+### 会话操作
+
+```mermaid
+graph LR
+    A[会话列表] --> B[创建会话]
+    A --> C[重命名会话]
+    A --> D[删除会话]
+    A --> E[复制会话]
+    A --> F[导出/导入会话]
+    B --> G[输入标题]
+    G --> H[开始对话]
+    C --> I[输入新名称]
+    D --> J[确认删除]
+    E --> K[创建副本]
+    F --> L[保存/恢复历史]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style D fill:#f3f4f6,stroke:#374151
+    style E fill:#f3f4f6,stroke:#374151
+    style F fill:#f3f4f6,stroke:#374151
+```
 
 ### 重命名会话
 
@@ -121,6 +152,22 @@ AI回复采用流式输出：
 - **逐步生成**：内容逐步生成，无需等待完成
 - **可中断**：可以随时中断AI生成
 
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant C as 客户端
+    participant AI as AI服务
+    U->>C: 发送消息
+    C->>AI: 请求生成回复
+    AI-->>C: 流式返回内容
+    C-->>U: 实时显示内容
+    U->>C: 中断生成(可选)
+    C->>AI: 取消请求
+    style U fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style AI fill:#f3f4f6,stroke:#374151
+```
+
 ### 消息操作
 
 对AI回复可以进行以下操作：
@@ -150,6 +197,26 @@ AI回复采用流式输出：
 2. **添加引用**：点击"添加引用"按钮
 3. **选择类型**：选择引用类型（文件、URL等）
 4. **选择内容**：选择要引用的内容
+
+```mermaid
+graph TB
+    A[添加引用] --> B{选择类型}
+    B -->|文件| C[选择本地文件]
+    B -->|URL| D[输入网页URL]
+    B -->|文档| E[选择当前文档]
+    C --> F[解析文件内容]
+    D --> G[抓取网页内容]
+    E --> H[提取文档内容]
+    F --> I[添加到引用列表]
+    G --> I
+    H --> I
+    I --> J[激活引用]
+    J --> K[AI使用引用生成回复]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#f3f4f6,stroke:#374151
+    style I fill:#e5e7eb,stroke:#6b7280
+    style K fill:#e5e7eb,stroke:#6b7280
+```
 
 ### 引用类型
 

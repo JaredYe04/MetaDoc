@@ -14,6 +14,28 @@
 - **菜单选项**：在左侧菜单的"更多功能"中可能有菜单配置选项
 - **右键菜单**：某些菜单项可能有配置选项
 
+您可以通过顶部菜单栏访问菜单配置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+```mermaid
+graph TB
+    A[菜单配置] --> B[打开配置对话框]
+    B --> C[菜单项列表]
+    C --> D{操作类型}
+    D -->|显示/隐藏| E[切换可见性]
+    D -->|排序| F[拖拽排序]
+    D -->|位置| G[设置位置]
+    E --> H[保存配置]
+    F --> H
+    G --> H
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 菜单项管理
 
 ### 菜单项列表

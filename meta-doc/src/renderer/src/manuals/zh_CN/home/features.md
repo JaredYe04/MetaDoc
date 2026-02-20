@@ -16,6 +16,10 @@
 4. **预览文档**：预览生成的文档内容
 5. **创建文档**：确认后创建文档
 
+快速开始向导的格式选择界面如下：
+
+<QuickStartPanel mode="demo" />
+
 ### Markdown快速开始
 
 选择Markdown格式后：
@@ -24,6 +28,10 @@
 - **内容生成**：AI可以生成Markdown内容
 - **快速编辑**：创建后立即开始编辑
 
+选择Markdown后进入的向导界面：
+
+<QuickStartMarkdown mode="demo" />
+
 ### LaTeX快速开始
 
 选择LaTeX格式后：
@@ -31,6 +39,10 @@
 - **文档类型**：可以选择文档类型（article、book等）
 - **内容生成**：AI可以生成LaTeX内容
 - **编译预览**：创建后可以编译预览PDF
+
+选择LaTeX后进入的向导界面：
+
+<QuickStartLatex mode="demo" />
 
 ```mermaid
 graph LR

@@ -18,6 +18,23 @@
 - **多光标编辑**：支持多光标同时编辑
 - **代码折叠**：支持代码块折叠
 
+```mermaid
+graph LR
+    A[纯文本编辑器] --> B[Monaco Editor]
+    B --> C[语法高亮]
+    B --> D[代码补全]
+    B --> E[多光标编辑]
+    B --> F[代码折叠]
+    B --> G[AI补全]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 支持的文件格式
 
 纯文本编辑器支持以下文件格式：
@@ -173,6 +190,10 @@ AI补全的设置与Markdown编辑器相同：
 - **替换**：`Ctrl+H`打开查找替换对话框
 - **正则表达式**：支持使用正则表达式查找替换
 - **大小写匹配**：支持区分大小写查找
+
+查找替换菜单界面如下：
+
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 
 ### 多光标编辑
 

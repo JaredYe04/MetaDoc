@@ -15,6 +15,28 @@
 - **发布日期**：当前版本的发布日期
 - **构建环境**：开发版本或发布版本
 
+您可以通过顶部菜单栏访问关于页面：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+```mermaid
+graph LR
+    A[关于页面] --> B[版本信息]
+    A --> C[用户反馈]
+    A --> D[更新设置]
+    A --> E[开源许可证]
+    A --> F[第三方资产]
+    B --> G[查看版本号]
+    C --> H[提交反馈]
+    D --> I[检查更新]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 版本格式
 
 版本号使用语义化版本格式：

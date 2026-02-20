@@ -5,13 +5,20 @@
 本文档定义了MetaDoc用户手册的编写规范，确保所有文档风格统一、内容完整、易于维护。
 
 **最后更新**: 2026-02-20  
-**版本**: 1.1.0
+**版本**: 1.2.0
 
 ---
 
-## 🧩 嵌入 Vue 组件（Demo 模式 / 沙箱）
+## 🧩 嵌入 Vue 组件（Demo 模式 / 沙箱）- ✅ 已完全实现
 
 用户手册支持在 Markdown 中**直接嵌入项目内真实 Vue 组件**，使用 `mode="demo"` 在沙箱中展示。**原则：文档中提到了哪些界面控件，就展示哪些组件**，让用户边看文档边对照真实 UI 操作。
+
+**技术实现状态（2026-02-20）**：
+- ✅ 占位符预处理：`manuals/demo-mode.ts` 将组件标签替换为占位符 div
+- ✅ 后渲染注入：Vditor 渲染完成后，`ManualContent.vue` 将占位符替换为真实组件
+- ✅ 样式适配：组件容器自适应大小并居中显示，样式在手册层统一处理
+- ✅ 交互阻断：通过事件拦截和 CSS 防止触发业务逻辑
+- ✅ Mermaid 主题适配：用户手册中的 Mermaid 图表自动适配主题（仅在手册中生效）
 
 ### 语法
 
@@ -29,29 +36,139 @@
 
 ### 约束与原则
 
-- **文档描述到哪个控件，就嵌入哪个组件**：例如写「顶部菜单栏」时嵌入 `<LeftMenu mode="demo" />`，写「标签页栏」时嵌入 `<MainTabs mode="demo" />`，写「快速开始向导」时嵌入 `<QuickStartPanel mode="demo" />`、`<QuickStartMarkdown mode="demo" />`、`<QuickStartLatex mode="demo" />` 等。不要嵌入与正文无关的组件（例如不要在介绍界面时只嵌一个分割线）。
+#### 核心原则：文档描述到哪个控件，就嵌入哪个组件
+
+**重要**：根据文档内容选择合适的组件，不要只使用菜单组件。文档中提到哪个具体的界面元素，就展示哪个对应的组件。
+
+#### 组件选择规范
+
+**1. 菜单组件使用规范（重要）**
+
+- ❌ **禁止使用完整菜单组件**：不要使用 `<LeftMenu mode="demo" />` 或 `<ViewMenu mode="demo" />` 展示完整菜单
+- ✅ **必须使用特定菜单项组件**：
+  - **顶部菜单项**：使用 `<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />` 只展示文档中提到的特定菜单项
+  - **侧边栏菜单项**：使用 `<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />` 只展示文档中提到的特定视图菜单项
+- **示例**：
+  - 如果文档介绍"文件菜单的新建功能"，使用 `<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new"]}]' />`
+  - 如果文档介绍"设置菜单"，使用 `<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />`
+  - 如果文档介绍"编辑器视图和大纲视图"，使用 `<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />`
+
+**2. 功能相关组件选择**
+
+根据文档描述的具体功能选择合适的组件：
+
+- **标签页功能**：使用 `<MainTabs mode="demo" />` 展示标签页栏
+- **快速开始向导**：
+  - 格式选择：`<QuickStartPanel mode="demo" />`
+  - Markdown向导：`<QuickStartMarkdown mode="demo" />`
+  - LaTeX向导：`<QuickStartLatex mode="demo" />`
+- **编辑器功能**：
+  - **查找替换**：使用 `<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />` 展示查找替换菜单
+  - **段落优化**：使用 `<SectionOptimizer mode="demo" title="示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />` 展示段落优化器
+  - **标题菜单**：使用 `<TitleMenu mode="demo" title="示例标题" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />` 展示标题菜单
+- **LaTeX编辑器功能**：
+  - **PDF预览**：使用 `<PdfPreviewPanel mode="demo" pdfUrl="" />` 展示PDF预览面板
+  - **控制台输出**：使用 `<ConsoleTerminal mode="demo" consoleKey="demo" :history='[]' />` 展示控制台输出
+- **文档元信息**：使用 `<MetaInfoPanel mode="demo" :meta='{"title": "", "author": "", "description": "", "keywords": []}' :outlineJson='""' />` 展示元信息面板
+
+**3. 组件选择示例**
+
+根据文档内容选择合适的组件：
+
+- ✅ **介绍Markdown编辑器**：可以展示 `TitleMenu` 或 `SectionOptimizer`（如果提到段落优化功能）
+- ✅ **介绍LaTeX编辑器**：可以展示 `PdfPreviewPanel` 或 `ConsoleTerminal`（如果提到PDF预览或编译输出）
+- ✅ **介绍查找替换功能**：展示 `SearchReplaceMenu`
+- ✅ **介绍元信息功能**：展示 `MetaInfoPanel`
+- ✅ **介绍标签页操作**：展示 `MainTabs`
+- ✅ **介绍快速开始**：展示 `QuickStartPanel`、`QuickStartMarkdown` 或 `QuickStartLatex`
+- ❌ **不要**：无论什么内容都只展示菜单组件
+
+#### 技术约束
+
 - **真实组件**：必须使用项目内真实组件，不得为手册单独维护 Mock 副本。
-- **组件改造**：需支持可选 prop `mode?: 'normal' | 'demo'`，默认 `'normal'`；所有副作用仅在 `mode === 'normal'` 时执行。
-- **注册**：新组件需在 `manuals/demo-registry.ts` 中注册后才能在文档中使用。
-- **禁止在用户可见文档中写**：「Demo 模式：仅展示外观与交互…」「不会改变本手册页面布局」等说明性废话，不要展示给用户。
+- **组件改造**：需支持可选 prop `mode?: 'normal' | 'demo'`，默认 `'normal'`；所有副作用（事件处理、API调用等）仅在 `mode === 'normal'` 时执行。
+- **注册**：新组件需在 `manuals/demo-registry-components.ts` 中注册后才能在文档中使用。
+- **禁止说明性文字**：**禁止在用户可见的文档中写**「Demo 模式：仅展示外观与交互…」「不会改变本手册页面布局」等说明性废话，不要展示给用户。组件应该自然地嵌入文档中，让用户看到真实的UI界面。
+
+#### 已支持的 Demo 组件列表
+
+当前已支持以下组件在文档中使用（demo 模式下不触发真实导航/文件操作/事件）：
+
+- **菜单组件**：`MenuItemsDemo`、`ViewMenuItemsDemo`
+- **标签页组件**：`MainTabs`
+- **快速开始组件**：`QuickStartPanel`、`QuickStartMarkdown`、`QuickStartLatex`
+- **编辑器组件**：`TitleMenu`、`SectionOptimizer`、`SearchReplaceMenu`
+- **LaTeX组件**：`PdfPreviewPanel`、`ConsoleTerminal`
+- **元信息组件**：`MetaInfoPanel`
+- **其他组件**：`ResizableDivider`（可调整大小的分隔条）
+
+**注意**：如需使用其他组件，需要先修改组件代码支持 `mode="demo"`，然后在 `demo-registry-components.ts` 中注册。
 
 ### 示例（正确）
 
 ```markdown
-1. **顶部菜单栏**：提供文件、编辑等菜单。
+1. **文件菜单**：提供新建、打开、保存等文件操作。
 
-<LeftMenu mode="demo" />
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
 
-2. **标签页栏**：显示当前打开的文档标签。
+2. **侧边栏视图切换**：提供编辑器、大纲等视图切换。
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+3. **标签页栏**：显示当前打开的文档标签，支持切换和关闭操作。
 
 <MainTabs mode="demo" />
+
+4. **查找替换功能**：在编辑器中按 Ctrl+F 打开查找对话框。
+
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
+
+5. **LaTeX PDF预览**：编译后可以在右侧面板查看PDF预览。
+
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+```
+
+### 示例（错误）
+
+```markdown
+❌ 错误示例1：使用完整菜单组件
+<LeftMenu mode="demo" />
+<ViewMenu mode="demo" />
+
+❌ 错误示例2：无论什么内容都只展示菜单
+介绍PDF预览功能时，只展示了菜单组件，没有展示PdfPreviewPanel
+
+❌ 错误示例3：添加说明性废话
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+（Demo 模式：仅展示外观，不会触发真实操作）
 ```
 
 ### 图表与 Demo 结合
 
-- 在流程说明处使用 Mermaid / PlantUML 图表。
-- 在需要展示「对应界面长什么样」的地方嵌入所述的真实组件。
-- 二者可同篇使用，互不替代。
+- **流程图**：在流程说明处使用 Mermaid / PlantUML 图表，展示操作流程、系统架构等。
+- **界面展示**：在需要展示「对应界面长什么样」的地方嵌入所述的真实组件（使用 `mode="demo"`）。
+- **互补使用**：图表和 Demo 组件可同篇使用，互不替代：
+  - 图表用于说明流程、结构、关系
+  - Demo 组件用于展示实际的界面元素
+  - 例如：用流程图说明"如何打开设置"，然后用 MenuItemsDemo 展示设置菜单项的实际样子
+
+**示例**：
+
+```markdown
+## 打开设置
+
+打开设置的流程如下：
+
+```mermaid
+graph LR
+    A[点击菜单] --> B[选择设置]
+    B --> C[打开设置页面]
+```
+
+您可以通过顶部菜单栏访问设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+```
 
 ---
 
@@ -243,19 +360,29 @@ estimatedTime: 10
 
 ## 📈 进度跟踪
 
-### 当前进度
+### 当前状态（2026-02-20 更新）
 
-#### ✅ 已完成
+#### ✅ Demo 模式实现完成
 
-- [x] 文档索引系统设计
-- [x] 文档编写规范制定
-- [x] 文档存储结构重构
+- ✅ **组件注入机制**：实现了在 Markdown 中嵌入真实 Vue 组件的完整流程
+  - 占位符预处理：`demo-mode.ts` 将组件标签替换为占位符 div
+  - 后渲染注入：Vditor 渲染完成后，将占位符替换为真实组件
+  - 样式适配：在 `ManualContent.vue` 中统一处理，组件自适应大小并居中显示
+  - 交互阻断：通过事件拦截和 CSS 防止触发业务逻辑
+- ✅ **Mermaid 主题适配**：用户手册中的 Mermaid 图表自动适配亮色/暗色主题
+- ✅ **标杆文档**：`quick-start/guide.md` 已完善，包含图表和 Demo 组件，可作为编写参考
 
-#### 🚧 进行中
+#### 🚧 文档完善进行中
 
-- [ ] Markdown相关文档编写
-- [ ] LaTeX相关文档编写
-- [ ] 核心功能文档编写
+- 所有文档初稿已完成，但需要按照标杆文档的标准进行完善：
+  - 添加 Mermaid/PlantUML 图表（流程、结构、关系图）
+  - 嵌入 Demo 组件（文档提到哪个控件就展示哪个组件，使用MenuItemsDemo和ViewMenuItemsDemo只显示相关菜单项）
+  - 完善内容结构和功能说明
+
+**当前进度（2026-02-20更新）**：
+- ✅ **已完善文档**：25篇（包含图表和Demo组件）
+- ✅ **新增组件**：MenuItemsDemo、ViewMenuItemsDemo（用于展示特定菜单项）
+- 🚧 **待完善文档**：约35篇
 
 #### 📋 待完成
 
@@ -484,5 +611,15 @@ A: 这是因为...
 
 ---
 
-**最后更新**: 2026-02-19  
+**最后更新**: 2026-02-20  
+**版本**: 1.2.0  
 **维护者**: MetaDoc团队
+
+---
+
+## 📘 相关文档
+
+- **`AGENT_WRITING_GUIDE.md`** - AI Agent 编写提示词（供新的 agent 参考）
+- **`IMPLEMENTATION_SUMMARY.md`** - 实现总结和当前状态
+- **`USER_MANUAL_INDEX.md`** - 完整的文档索引结构
+- **标杆文档**：`zh_CN/quick-start/guide.md` - 快速开始指南（已完善，可作为编写参考）

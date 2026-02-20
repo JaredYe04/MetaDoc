@@ -24,6 +24,20 @@
 - **风格问题**：风格检查发现的问题
 - **其他错误**：其他类型的错误
 
+```mermaid
+graph TB
+    A[校对统计] --> B[错误统计]
+    A --> C[修复统计]
+    A --> D[校对历史]
+    B --> E[拼写错误<br/>语法错误<br/>LaTeX错误<br/>风格问题]
+    C --> F[修复数量<br/>修复类型<br/>修复率]
+    D --> G[校对时间<br/>校对文档<br/>错误数量]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 错误统计
 
 ### 错误分类

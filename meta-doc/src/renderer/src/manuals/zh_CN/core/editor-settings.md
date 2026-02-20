@@ -17,11 +17,31 @@ MetaDoc支持多种主题模式：
 - **深色主题**：始终使用深色主题
 - **自定义主题**：使用自定义颜色配置
 
+```mermaid
+graph TB
+    A[编辑器主题] --> B[系统同步]
+    A --> C[浅色主题]
+    A --> D[深色主题]
+    A --> E[自定义主题]
+    E --> F[创建新主题]
+    E --> G[编辑现有主题]
+    E --> H[复制主题]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style D fill:#f3f4f6,stroke:#374151
+    style E fill:#f3f4f6,stroke:#374151
+```
+
 ### 设置主题
 
 1. 打开设置页面（点击菜单"设置"或使用快捷键）
 2. 进入"主题设置"部分
 3. 选择您喜欢的主题
+
+您可以通过顶部菜单栏访问设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
 主题设置会立即生效，无需重启应用。
 
@@ -133,6 +153,20 @@ Markdown编辑器（Vditor）的特定设置：
 - **编辑模式**：IR模式、WYSIWYG模式、SV模式
 - **实时预览**：启用/禁用实时预览功能
 - **工具栏配置**：自定义工具栏按钮
+
+```mermaid
+graph LR
+    A[Markdown编辑器设置] --> B[编辑模式]
+    A --> C[实时预览]
+    A --> D[工具栏配置]
+    B --> E[IR/WYSIWYG/SV]
+    C --> F[启用/禁用]
+    D --> G[自定义按钮]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+```
 
 详见[[markdown.editor|Markdown编辑器使用指南]]。
 

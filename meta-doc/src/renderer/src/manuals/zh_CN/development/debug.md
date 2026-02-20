@@ -15,6 +15,10 @@
 3. **调试工具**：在设置页面中找到"调试工具"选项
 4. **打开工具**：点击打开调试工具界面
 
+您可以通过顶部菜单栏访问调试工具（仅在开发环境）：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 ### 工具类型
 
 调试工具包含以下功能模块：
@@ -26,6 +30,25 @@
 - **Agent会话调试**：调试Agent会话
 - **快照导入**：导入文档快照
 - **更新测试**：测试更新功能
+
+```mermaid
+graph TB
+    A[调试工具] --> B[EventBus测试]
+    A --> C[广播测试]
+    A --> D[Agent Tool测试]
+    A --> E[单元测试]
+    A --> F[Agent会话调试]
+    A --> G[快照导入]
+    A --> H[更新测试]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+```
 
 ## EventBus测试
 

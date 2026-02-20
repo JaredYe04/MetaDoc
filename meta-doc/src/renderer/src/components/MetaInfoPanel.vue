@@ -212,7 +212,12 @@ const props = defineProps<{
   markdown?: string | null
   latex?: string | null
   outlineJson: string
+  mode?: 'normal' | 'demo'
 }>()
+
+withDefaults(props, {
+  mode: 'normal'
+})
 
 const emit = defineEmits<{
   (e: 'update-meta', patch: Partial<ArticleMetaData>): void
@@ -254,6 +259,7 @@ watch(
 )
 
 const emitUpdate = (patch: Partial<ArticleMetaData>) => {
+  if (props.mode === 'demo') return
   emit('update-meta', patch)
 }
 
@@ -339,6 +345,7 @@ const handleKeywordsGenerate = async () => {
 }
 
 const commitForm = () => {
+  if (props.mode === 'demo') return
   emitUpdate({
     title: formState.title,
     author: formState.author,

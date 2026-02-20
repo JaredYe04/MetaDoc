@@ -13,6 +13,15 @@
         <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
       </div>
       <div class="header-actions">
+        <el-button
+          v-if="learningProgress >= 100"
+          type="primary"
+          text
+          :icon="Promotion"
+          @click="showCelebration = true"
+        >
+          {{ $t('userManual.replayCelebration') || '重新播放庆祝动画' }}
+        </el-button>
         <ManualSearch />
       </div>
     </div>
@@ -74,7 +83,7 @@ import LearningProgress from '../components/manual/LearningProgress.vue'
 import LearningPathList from '../components/manual/LearningPathList.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
-import { User, ArrowLeft, DataBoard } from '@element-plus/icons-vue'
+import { User, ArrowLeft, DataBoard, Promotion } from '@element-plus/icons-vue'
 import { useUserManual } from '../stores/userManual'
 import CelebrationOverlay from '../components/CelebrationOverlay.vue'
 
@@ -84,8 +93,6 @@ const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learn
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
 /** 仅显示推荐学习列表（否则显示完整目录） */
 const onlyRecommended = ref(true)
-/** 是否已展示过 100% 完成提示（避免重复弹出） */
-const hasShown100Feedback = ref(false)
 /** 是否显示庆祝动画 */
 const showCelebration = ref(false)
 
@@ -93,8 +100,7 @@ const showCelebration = ref(false)
 onMounted(() => {
   console.log('[UserManual] Component mounted:', {
     learningProgress: learningProgress.value,
-    learningPathLength: learningPath.value.length,
-    hasShown: hasShown100Feedback.value
+    learningPathLength: learningPath.value.length
   })
 })
 
@@ -132,16 +138,14 @@ const goToOverview = () => {
 
 // 学习进度达到 100% 时显示庆祝动画
 watch(
-  () => ({ progress: learningProgress.value, pathLength: learningPath.value.length }),
-  (cur) => {
-    console.log('[UserManual] Watch triggered:', cur, 'hasShown:', hasShown100Feedback.value)
-    if (cur.progress >= 100 && cur.pathLength > 0 && !hasShown100Feedback.value) {
-      console.log('[UserManual] Triggering celebration!')
-      hasShown100Feedback.value = true
+  () => learningProgress.value,
+  (newProgress, oldProgress) => {
+    // 只在从非100%变为100%时触发，且要有学习路径
+    if (newProgress >= 100 && oldProgress < 100 && learningPath.value.length > 0) {
+      console.log('[UserManual] Progress reached 100%, triggering celebration!')
       showCelebration.value = true
     }
-  },
-  { immediate: true }
+  }
 )
 
 // 监控 showCelebration 变化

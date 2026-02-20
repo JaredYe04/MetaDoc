@@ -2,15 +2,8 @@
  * 版本号工具函数
  */
 
-import localIpcRenderer from './web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 import { isDevEnvironment } from './dev-env'
-
-let ipcRenderer: any = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
-}
 
 /**
  * 获取应用版本号
@@ -18,7 +11,10 @@ if (window && window.electron) {
  */
 export async function getAppVersion(): Promise<string> {
   try {
-    let version = await ipcRenderer.invoke('get-app-version')
+    if (!messageBridge.getIpc()?.invoke) {
+      throw new Error('IPC 不可用')
+    }
+    let version = await messageBridge.invoke('get-app-version')
 
     // 如果是开发环境，在版本号后面添加 "-dev"
     const isDev = await isDevEnvironment()

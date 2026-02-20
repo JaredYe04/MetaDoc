@@ -525,19 +525,19 @@ export const themeState = reactive({
   currentTheme: lightTheme
 })
 
-// 获取系统主题信息的辅助函数
-async function getOsThemeInfo(ipcRenderer) {
+// 获取系统主题信息的辅助函数（通过 messageBridge）
+async function getOsThemeInfo() {
   try {
-    if (ipcRenderer && 'invoke' in ipcRenderer) {
-      return await ipcRenderer.invoke('get-os-theme-info')
-    } else {
-      // Web 环境
-      const mode =
-        window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light'
-      return { mode, accentColor: undefined }
+    const bridge = (await import('../bridge/message-bridge')).default
+    if (bridge.getIpc()?.invoke) {
+      return await bridge.invoke('get-os-theme-info')
     }
+    // Web 环境
+    const mode =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+    return { mode, accentColor: undefined }
   } catch (e) {
     console.error('获取系统主题信息失败:', e)
     return { mode: 'light', accentColor: undefined }
@@ -558,26 +558,15 @@ function applyThemeClasses(themeType) {
 /**
  * 应用主题（从设置中加载并应用主题）
  * @param {Function} getSetting - 获取设置的函数，如果未提供则从 settings.js 导入
- * @param {Object} ipcRenderer - IPC Renderer 实例，如果未提供则自动获取
+ * @param {Object} _ipcRendererInstance - 已废弃，保留参数仅为兼容；IPC 通过 messageBridge 获取
  * @returns {Promise<void>}
  */
-export async function applyTheme(getSettingFn = null, ipcRendererInstance = null) {
-  // 动态导入 getSetting 和 ipcRenderer（避免循环依赖）
+export async function applyTheme(getSettingFn = null, _ipcRendererInstance = null) {
   let getSetting = getSettingFn
-  let ipcRenderer = ipcRendererInstance
 
   if (!getSetting) {
     const settingsModule = await import('./settings.js')
     getSetting = settingsModule.getSetting
-  }
-
-  if (!ipcRenderer) {
-    if (window && window.electron) {
-      ipcRenderer = window.electron.ipcRenderer
-    } else {
-      const localIpcRenderer = await import('./web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer.default
-    }
   }
 
   try {
@@ -585,7 +574,7 @@ export async function applyTheme(getSettingFn = null, ipcRendererInstance = null
     const globalTheme = await getSetting('globalTheme')
 
     // 获取系统主题信息（用于 sync-color）
-    const osThemeInfo = await getOsThemeInfo(ipcRenderer)
+    const osThemeInfo = await getOsThemeInfo()
 
     // 根据设置应用主题
     if (globalTheme === 'light' || globalTheme === undefined) {

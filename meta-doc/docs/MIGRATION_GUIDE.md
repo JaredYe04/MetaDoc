@@ -2,8 +2,6 @@
 
 本文档说明当前架构状态、已完成的工作、剩余任务，以及如何继续完成迁移工作。
 
-**若需委托其他 Agent 继续迁移**：请使用 **`docs/AGENT_PROMPT_FOR_MIGRATION.md`** 中的提示词，将其中「任务说明」复制给 Agent 即可。
-
 ---
 
 ## 一、架构概述
@@ -102,88 +100,7 @@
 
 ## 三、剩余工作
 
-### 3.1 渲染进程 IPC 迁移（约 1000+ 处）
-
-**需要迁移的文件列表（部分）：**
-
-#### 视图组件（Views）
-- `views/Main.vue`
-- `views/App.vue`
-- `views/GlobalHome.vue`
-- `views/GraphWindow.vue`
-- `views/Home.vue`
-- `views/DataAnalysisWindow.vue`
-- `views/OcrWindow.vue`
-- `views/FomulaRecognition.vue`
-- `views/LaTeXEditor.vue`
-- `views/PlainTextEditor.vue`
-- `views/Visualize.vue`
-- `views/ProofreadView.vue`
-- `views/AttachmentWindow.vue`
-- `views/AigcDetectionWindow.vue`
-- `views/UserFeedbackView.vue`
-- `views/Home_legacy.vue`
-- `views/setting/SettingBasicSection.vue`
-- `views/setting/SettingDebugSection.vue`
-- `views/setting/SettingThemeSection.vue`
-- `views/setting/SettingLoggerSection.vue`
-- `views/setting/SettingKnowledgeBaseSection.vue`
-- `views/setting/SettingImageSection.vue`
-- `views/setting/SettingAboutSection.vue`
-
-#### 组件（Components）
-- `components/MainTabs.vue`
-- `components/agent/AgentToolResultCard.vue`
-- `components/agent/ReferenceManager.vue`
-- `components/chat/ChatComposer.vue`
-- `components/ConsoleTerminal.vue`
-- `components/ConsoleOutput.vue`
-- `components/LlmStatisticsContent.vue`
-- `components/VersionInfoPanel.vue`
-- `components/workspace/WorkspaceTabs.vue`
-- `components/agent-tools/components/AutoTestResultDisplay.vue`
-
-#### 工具函数（Utils）
-- `utils/db/tool-sessions-db.ts`
-- `utils/themes.js`
-- `utils/logger.ts`
-- `utils/service-status.ts`
-- `utils/rag_utils.js`
-- `utils/simpletex-utils.js`
-- `utils/version.ts`
-- `utils/env-utils.ts`
-- `utils/dev-env.ts`
-- `utils/particle-effect.ts`
-- `utils/llm-statistics-service.js`
-- `utils/latex-omml-conversion-tests.ts`
-- `utils/database-tests.ts`
-- `utils/ai_tasks.ts`
-- `utils/db/migrate-ai-chat.ts`
-- `utils/obsolete/ai_tasks.js`
-- `utils/workspace/refresh-service.ts`
-- `utils/workspace/fs-planner.ts`
-- `utils/workspace/fs-executor.ts`
-- `utils/agent-tools/workspace-tool.ts`
-- `utils/agent-tools/web-crawler-tool.ts`
-- `utils/agent-tools/terminal-tool.ts`
-- `utils/agent-tools/proofread-tool.ts`
-- `utils/agent-tools/diff-tool.ts`
-- `utils/agent-tools/data-analysis-tool.ts`
-- `utils/agent-tools/agent-tool-services.ts`
-- `utils/agent-framework/reference-processor.ts`
-- `utils/agent-framework/reference-adapters.ts`
-
-#### 服务（Services）
-- `services/font-service.ts`
-- `services/document-save.ts`
-- `services/document-loader.ts`
-
-#### Composables
-- `composables/useWorkspaceOperations.ts`
-- `composables/useTabSwitcher.ts`
-- `composables/useTabOperations.ts`
-- `composables/useTabDrag.ts`
-- `composables/useCloseTab.ts`
+当前「待迁移」文件与进度以 **`docs/MIGRATION_TODO_LIST.md`** 为准（按 P0～P3 分类，含完成状态）。渲染进程仍有少量文件直接使用 `ipcRenderer`，需逐步改为通过 `messageBridge` 调用。
 
 ---
 

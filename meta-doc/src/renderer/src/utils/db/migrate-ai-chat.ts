@@ -7,6 +7,7 @@ import { readAiChatDialogs } from '../ai-chat-storage'
 import { aiChatSessionsDb } from './tool-sessions-db'
 import { createRendererLogger } from '../logger'
 import { getAppVersion } from '../version'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('AIChatMigration')
 
@@ -54,24 +55,14 @@ function compareVersion(version1: string, version2: string): boolean {
  * 等待表创建（最多等待5秒）
  */
 async function waitForTable(tableName: string, maxWaitMs: number = 5000): Promise<boolean> {
-  let ipcRenderer: any = null
-  if (typeof window !== 'undefined') {
-    if ((window as any).electron?.ipcRenderer) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const { localIpcRenderer } = await import('../web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer
-    }
-  }
-
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     return false
   }
 
   const startTime = Date.now()
   while (Date.now() - startTime < maxWaitMs) {
     try {
-      const result = (await ipcRenderer.invoke('db-table-exists', tableName)) as {
+      const result = (await messageBridge.invoke('db-table-exists', tableName)) as {
         success: boolean
         exists?: boolean
       }
@@ -99,22 +90,11 @@ export async function isAIChatMigrated(): Promise<boolean> {
       return false
     }
 
-    // 检查表中是否有数据（如果有数据，说明可能已经迁移过）
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       return false
     }
 
-    const countResult = (await ipcRenderer.invoke(
+    const countResult = (await messageBridge.invoke(
       'db-query',
       'SELECT COUNT(*) as count FROM ai_chat_sessions',
       []

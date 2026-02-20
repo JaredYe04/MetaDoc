@@ -219,10 +219,8 @@ const colorConfirmedMap = ref<Record<string, boolean>>({}) // 标记颜色是否
 // 获取系统主题信息
 const fetchOsThemeInfo = async () => {
   try {
-    let ipcRenderer = null
-    if (window && window.electron) {
-      ipcRenderer = window.electron.ipcRenderer
-    } else {
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()?.invoke) {
       // Web 环境
       const mode =
         window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -232,14 +230,12 @@ const fetchOsThemeInfo = async () => {
       return
     }
 
-    if (ipcRenderer) {
-      const result = (await ipcRenderer.invoke('get-os-theme-info')) as {
+    const result = (await messageBridge.invoke('get-os-theme-info')) as {
         mode: 'dark' | 'light'
         accentColor?: string
       }
-      // 创建新对象以确保响应式更新
-      osThemeInfo.value = { ...result }
-    }
+    // 创建新对象以确保响应式更新
+    osThemeInfo.value = { ...result }
   } catch (e) {
     console.error('获取系统主题信息失败:', e)
     osThemeInfo.value = { mode: 'light', accentColor: undefined }
@@ -778,16 +774,9 @@ onMounted(async () => {
   }
 
   // 监听系统主题变化事件（来自主进程，包括颜色变化）
-  let ipcRenderer = null
-  if (window && window.electron) {
-    ipcRenderer = window.electron.ipcRenderer
-  }
-  if (ipcRenderer) {
-    ipcRenderer.on('os-theme-changed', async () => {
-      // 系统主题变化时，重新获取系统主题信息
-      // fetchOsThemeInfo 内部已经创建新对象，确保响应式更新
-      // 这会触发 getThemePreviewColor 重新计算
-      // 对于 sync-color 类型的主题卡片，预览颜色会自动更新
+  const messageBridge = (await import('../../bridge/message-bridge')).default
+  if (messageBridge.getIpc()?.on) {
+    messageBridge.on('os-theme-changed', async () => {
       await fetchOsThemeInfo()
     })
   }

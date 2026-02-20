@@ -187,6 +187,7 @@ import EditDisplay from './EditDisplay.vue'
 import MetadataDisplay from './MetadataDisplay.vue'
 import OutlineTreeDisplay from './OutlineTreeDisplay.vue'
 import OutlineOptimizeDisplay from './OutlineOptimizeDisplay.vue'
+import messageBridge from '../../../bridge/message-bridge'
 import ColorDisplay from './ColorDisplay.vue'
 import { createRendererLogger } from '../../logger'
 
@@ -462,25 +463,11 @@ const exportResultSnapshot = async (result: TestResult) => {
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
 
-    // 获取 IPC 渲染器用于保存文件（动态获取，确保使用正确的 IPC）
-    let ipcRenderer: any = null
-    if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const localIpcRenderer = (await import('../../web-adapter/local-ipc-renderer')).default
-      ipcRenderer = localIpcRenderer
-    }
-
-    if (!ipcRenderer) {
-      throw new Error('无法获取 IPC 渲染器')
-    }
-
     const fileName = `tool-snapshot-${result.toolId}-${result.testCaseName}-${Date.now()}.json`
     const logger = createRendererLogger('AutoTestResultDisplay')
     logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
 
-    // 调用保存文件对话框
-    const saveResult = (await ipcRenderer.invoke('save-json-file', serialized, fileName)) as {
+    const saveResult = (await messageBridge.invoke('save-json-file', serialized, fileName)) as {
       success: boolean
       path?: string
       error?: string

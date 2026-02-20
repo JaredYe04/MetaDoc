@@ -1780,9 +1780,7 @@ import {
 } from '@element-plus/icons-vue'
 import eventBus, { sendBroadcast } from '../../utils/event-bus'
 import { testFramework, type TestFunction } from '../../utils/test-framework'
-// 移除 dayjs 导入，改用原生 Date 格式化
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
-import { webMainCalls } from '../../utils/web-adapter/web-main-calls'
+import messageBridge from '../../bridge/message-bridge'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 import type { LocalizedText } from '../../types/agent-tool'
 import { getLocalizedInstruction } from '../../utils/agent-tools/i18n-helper'
@@ -1889,15 +1887,6 @@ const getDisplayComponent = (componentName: string | undefined) => {
 
 const { t } = useI18n()
 
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if (window.electron?.ipcRenderer) {
-    ipcRenderer = window.electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
-}
 
 const activeTab = ref('eventbus')
 
@@ -2328,9 +2317,9 @@ const getWindowTypeLabel = (windowType: string): string => {
 // 获取所有窗口类型
 const fetchWindowTypes = async () => {
   const logger = createRendererLogger('SettingDebugSection')
-  if (!ipcRenderer) return
+  if (!messageBridge.getIpc()) return
   try {
-    const windowTypes = (await ipcRenderer.invoke('get-all-window-types')) as string[]
+    const windowTypes = (await messageBridge.invoke('get-all-window-types')) as string[]
     availableWindowTypes.value = windowTypes || ['home']
   } catch (error) {
     logger.error('获取窗口类型失败:', error)
@@ -4161,29 +4150,15 @@ const exportEntrySnapshot = async (entry: any) => {
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
     const logger = createRendererLogger('SettingDebugSection')
-    // 获取 IPC 渲染器用于保存文件（动态获取，确保使用正确的 IPC）
-    let effectiveIpcRenderer: any = null
-    if (window && (window as any).electron) {
-      effectiveIpcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const localIpcRenderer = (await import('../../utils/web-adapter/local-ipc-renderer')).default
-      effectiveIpcRenderer = localIpcRenderer
-    }
-
-    if (!effectiveIpcRenderer) {
+    if (!messageBridge.getIpc()) {
       throw new Error('无法获取 IPC 渲染器')
     }
 
     const fileName = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
-    logger.debug(
-      '[导出快照] 开始调用保存文件对话框，文件名:',
-      fileName,
-      'ipcRenderer类型:',
-      effectiveIpcRenderer === ipcRenderer ? '模块级' : '动态获取'
-    )
+    logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
 
     // 调用保存文件对话框
-    const result = await effectiveIpcRenderer.invoke('save-json-file', serialized, fileName)
+    const result = await messageBridge.invoke('save-json-file', serialized, fileName)
 
     logger.debug('[导出快照] 保存文件对话框返回结果:', result)
 

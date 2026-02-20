@@ -68,15 +68,10 @@ import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick, computed } 
 import { useI18n } from 'vue-i18n'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts'
+import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls.js'
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer as typeof localIpcRenderer
-} else {
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
   webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
 }
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
@@ -193,9 +188,9 @@ const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
 }
 
 const ensureConsoleFont = async () => {
-  if (consoleFontLoaded || !ipcRenderer?.invoke) return
+  if (consoleFontLoaded || !messageBridge.getIpc()?.invoke) return
   try {
-    const resourcesPath = await ipcRenderer.invoke('resources-path')
+    const resourcesPath = await messageBridge.invoke('resources-path')
     if (typeof resourcesPath !== 'string' || !resourcesPath) return
     const normalized = resourcesPath.replace(/\\/g, '/').replace(/^\/+/, '')
     const fontUrl = `file:///${normalized}/consola.ttf`
@@ -356,9 +351,9 @@ const lastTabCompletionInput = ref('')
 
 // 从主进程初始化终端 cwd
 const initTerminalCwd = async () => {
-  if (ipcRenderer?.invoke) {
+  if (messageBridge.getIpc()?.invoke) {
     try {
-      const cwd = (await ipcRenderer.invoke('terminal-get-cwd', {
+      const cwd = (await messageBridge.invoke('terminal-get-cwd', {
         consoleKey: props.consoleKey,
         initialCwd: props.initialDirectory || ''
       })) as string
@@ -374,10 +369,9 @@ const initTerminalCwd = async () => {
 
 // 初始化终端字符集
 const initTerminalEncoding = async () => {
-  if (ipcRenderer?.invoke) {
+  if (messageBridge.getIpc()?.invoke) {
     try {
-      // 初始化时设置默认字符集（UTF-8）
-      await ipcRenderer.invoke('terminal-set-encoding', {
+      await messageBridge.invoke('terminal-set-encoding', {
         consoleKey: props.consoleKey,
         encoding: terminalEncoding.value || 'utf8'
       })
@@ -405,10 +399,9 @@ const handleTabCompletion = async (
   prompt: string,
   originalUserInput: string
 ) => {
-  if (!ipcRenderer?.invoke) return
+  if (!messageBridge.getIpc()?.invoke) return
 
   try {
-    // 解析路径：获取目录路径和要匹配的前缀
     let normalizedPath = normalize(lastWord.replace(/\\/g, '/'))
 
     // 如果路径不是以 ./、../ 开头，也不是绝对路径，也没有包含 /，默认添加 ./ 前缀（当前目录）
@@ -447,7 +440,7 @@ const handleTabCompletion = async (
 
     // 先尝试读取目标路径作为目录（如果它是目录，会成功）
     try {
-      await ipcRenderer.invoke('read-directory', targetPath)
+      await messageBridge.invoke('read-directory', targetPath)
       // 如果成功，说明目标路径是目录
       // 但如果输入没有改变且有候选，说明用户在切换候选，应该使用父目录
       if (!inputChanged && tabCompletionCandidates.value.length > 0) {
@@ -513,7 +506,7 @@ const handleTabCompletion = async (
 
     // 如果还没有候选，获取目录内容
     if (tabCompletionCandidates.value.length === 0) {
-      const entries = (await ipcRenderer.invoke('read-directory', dirPath)) as Array<{
+      const entries = (await messageBridge.invoke('read-directory', dirPath)) as Array<{
         name: string
         path: string
         isDirectory: boolean
@@ -660,8 +653,8 @@ const createEditor = async () => {
         e.preventDefault()
         e.stopPropagation()
 
-        if (ipcRenderer?.invoke) {
-          ipcRenderer
+        if (messageBridge.getIpc()?.invoke) {
+          messageBridge
             .invoke('terminal-send-interrupt', {
               invocationId: currentInvocationId.value
             })
@@ -909,9 +902,9 @@ const createEditor = async () => {
               // 执行 cd 命令
               if (targetPath !== null && targetPath !== '') {
                 // 调用主进程更新 cwd（主进程会处理相对路径解析和路径验证）
-                if (ipcRenderer?.invoke) {
+                if (messageBridge.getIpc()?.invoke) {
                   try {
-                    const result = (await ipcRenderer.invoke('terminal-set-cwd', {
+                    const result = (await messageBridge.invoke('terminal-set-cwd', {
                       consoleKey: props.consoleKey,
                       cwd: targetPath
                     })) as { success: boolean; error?: string; resolvedPath?: string }
@@ -1242,8 +1235,8 @@ const saveConsole = async () => {
   const text = lines.value.map((l) => l.content).join('\n')
 
   try {
-    if (!ipcRenderer) {
-      // 如果没有IPC，使用浏览器下载方式（降级方案）
+    if (!messageBridge.getIpc()) {
+      // 如果没有 IPC，使用浏览器下载方式（降级方案）
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -1257,8 +1250,7 @@ const saveConsole = async () => {
       return
     }
 
-    // 使用IPC调用保存对话框
-    const result = (await ipcRenderer.invoke('save-file-dialog', {
+    const result = (await messageBridge.invoke('save-file-dialog', {
       defaultName: `console-${props.consoleKey}.log`,
       filters: [
         { name: 'Log Files', extensions: ['log', 'txt'] },
@@ -1270,8 +1262,7 @@ const saveConsole = async () => {
       return // 用户取消了保存
     }
 
-    // 写入文件（使用write-file-content IPC handler）
-    await ipcRenderer.invoke('write-file-content', {
+    await messageBridge.invoke('write-file-content', {
       filePath: result.filePath,
       content: text,
       encoding: 'utf8'
@@ -1332,10 +1323,9 @@ const terminalEncoding = ref<string>('utf8')
 const handleEncodingChange = async (encoding: string) => {
   terminalEncoding.value = encoding
 
-  // 调用主进程设置字符集（影响新的输出）
-  if (ipcRenderer?.invoke) {
+  if (messageBridge.getIpc()?.invoke) {
     try {
-      await ipcRenderer.invoke('terminal-set-encoding', {
+      await messageBridge.invoke('terminal-set-encoding', {
         consoleKey: props.consoleKey,
         encoding: encoding
       })
@@ -1460,10 +1450,8 @@ onMounted(() => {
   eventBus.on('clear-console', onEventBusClear)
   eventBus.on('console-command-finished', handleCommandFinished)
   eventBus.on('console-scroll-to-bottom', handleScrollToBottom)
-  if (ipcRenderer) {
-    ipcRenderer.on('console-out', onConsoleOut)
-    ipcRenderer.on('console-err', onConsoleErr)
-  }
+  messageBridge.on('console-out', onConsoleOut)
+  messageBridge.on('console-err', onConsoleErr)
 })
 
 onBeforeUnmount(() => {
@@ -1478,10 +1466,8 @@ onBeforeUnmount(() => {
   }
   editorId = null
   decorationIds = []
-  if (ipcRenderer) {
-    ipcRenderer.removeListener('console-out', onConsoleOut)
-    ipcRenderer.removeListener('console-err', onConsoleErr)
-  }
+  messageBridge.removeListener('console-out', onConsoleOut)
+  messageBridge.removeListener('console-err', onConsoleErr)
 })
 </script>
 

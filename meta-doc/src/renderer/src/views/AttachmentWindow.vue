@@ -127,6 +127,7 @@ import { themeState } from '../utils/themes'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import * as monaco from 'monaco-editor'
 import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
+import messageBridge from '../bridge/message-bridge'
 // 不导入 setupMonacoWorker，禁用 worker 避免卡死
 
 const { t } = useI18n()
@@ -445,23 +446,8 @@ const handleParse = async () => {
       return
     }
 
-    // 使用reference-processor解析文件
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
-      throw new Error('IPC渲染器不可用')
-    }
-
-    // 读取文件并转换为File对象
-    const fileData = (await ipcRenderer.invoke('read-file-for-upload', attachment.file_path)) as {
+    // 使用reference-processor解析文件，通过消息桥读取文件
+    const fileData = (await messageBridge.invoke('read-file-for-upload', attachment.file_path)) as {
       name: string
       data: string
       mimeType: string

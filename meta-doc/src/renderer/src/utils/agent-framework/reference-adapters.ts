@@ -4,12 +4,11 @@
  */
 
 import { createRendererLogger } from '../logger'
-import localIpcRenderer from '../web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import { extractOuterJsonString } from '../regex-utils'
 import axios from 'axios'
 
-// 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
 
 function getLogger() {
@@ -19,15 +18,8 @@ function getLogger() {
   return loggerInstance
 }
 
-// 获取IPC渲染器
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
+  webMainCalls()
 }
 
 /**
@@ -169,12 +161,12 @@ class PdfAdapter implements ReferenceAdapter {
       typeof content === 'string' &&
       (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content))
     ) {
-      if (!ipcRenderer) {
+      if (!messageBridge.getIpc()) {
         throw new Error('IPC渲染器不可用，无法解析PDF文件')
       }
 
       try {
-        const text = (await ipcRenderer.invoke('convert-pdf-to-text', content)) as string
+        const text = (await messageBridge.invoke('convert-pdf-to-text', content)) as string
         return text
       } catch (error) {
         getLogger().error('PDF转换失败:', error)
@@ -203,14 +195,13 @@ class WordAdapter implements ReferenceAdapter {
       typeof content === 'string' &&
       (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content))
     ) {
-      if (!ipcRenderer) {
+      if (!messageBridge.getIpc()) {
         throw new Error('IPC渲染器不可用，无法解析Word文件')
       }
 
       try {
-        // 从metadata中获取requestId（如果存在）
         const requestId = metadata?.requestId as string | undefined
-        const text = (await ipcRenderer.invoke(
+        const text = (await messageBridge.invoke(
           'convert-docx-to-text',
           content,
           requestId
@@ -260,12 +251,12 @@ class ExcelAdapter implements ReferenceAdapter {
         typeof content === 'string' &&
         (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content))
       ) {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC渲染器不可用，无法解析Excel文件')
         }
 
         try {
-          const text = (await ipcRenderer.invoke('convert-excel-to-text', content)) as string
+          const text = (await messageBridge.invoke('convert-excel-to-text', content)) as string
           // Excel转换后的文本已经包含结构化信息，直接返回
           return text
         } catch (error) {
@@ -346,14 +337,13 @@ class PptxAdapter implements ReferenceAdapter {
       typeof content === 'string' &&
       (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content))
     ) {
-      if (!ipcRenderer) {
+      if (!messageBridge.getIpc()) {
         throw new Error('IPC渲染器不可用，无法解析PPTX文件')
       }
 
       try {
-        // 从metadata中获取requestId（如果存在）
         const requestId = metadata?.requestId as string | undefined
-        const text = (await ipcRenderer.invoke(
+        const text = (await messageBridge.invoke(
           'convert-pptx-to-text',
           content,
           requestId
@@ -380,7 +370,7 @@ class ImageAdapter implements ReferenceAdapter {
     format: string,
     metadata?: Record<string, unknown>
   ): Promise<string> {
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用，无法进行OCR识别')
     }
 
@@ -388,15 +378,13 @@ class ImageAdapter implements ReferenceAdapter {
       let ocrText: string
 
       if (typeof content === 'string') {
-        // 如果是文件路径
         if (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content)) {
-          ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
+          ocrText = (await messageBridge.invoke('ocr-recognize-file', {
             imagePath: content,
             languages: getDefaultOcrLanguages()
           })) as string
         } else if (content.startsWith('data:image')) {
-          // 如果是Base64数据URL
-          ocrText = (await ipcRenderer.invoke('ocr-recognize-base64', {
+          ocrText = (await messageBridge.invoke('ocr-recognize-base64', {
             base64String: content,
             languages: getDefaultOcrLanguages()
           })) as string
@@ -404,7 +392,6 @@ class ImageAdapter implements ReferenceAdapter {
           throw new Error('不支持的图片内容格式')
         }
       } else {
-        // 如果是ArrayBuffer，先转换为Base64
         const bytes = new Uint8Array(content)
         let binary = ''
         for (let i = 0; i < bytes.byteLength; i++) {
@@ -414,7 +401,7 @@ class ImageAdapter implements ReferenceAdapter {
         const mimeType = this.getMimeTypeFromFormat(format) || 'image/png'
         const dataUrl = `data:${mimeType};base64,${base64}`
 
-        ocrText = (await ipcRenderer.invoke('ocr-recognize-base64', {
+        ocrText = (await messageBridge.invoke('ocr-recognize-base64', {
           base64String: dataUrl,
           languages: getDefaultOcrLanguages()
         })) as string

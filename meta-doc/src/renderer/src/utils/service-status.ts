@@ -1,6 +1,5 @@
 import eventBus from './event-bus'
-import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
-import { webMainCalls } from './web-adapter/web-main-calls.js'
+import messageBridge from '../bridge/message-bridge'
 // import { createRendererLogger } from './logger.ts';
 // const logger = createRendererLogger('ServiceStatus');
 type ServiceName = 'express' | 'rag'
@@ -34,21 +33,7 @@ const waiters: Record<ServiceName, Waiter[]> = {
   rag: []
 }
 
-let ipcRenderer: (typeof window.electron)['ipcRenderer'] | typeof localIpcRenderer | null = null
 let initialized = false
-
-const ensureIpcRenderer = () => {
-  if (ipcRenderer) {
-    return
-  }
-
-  if (typeof window !== 'undefined' && window.electron?.ipcRenderer) {
-    ipcRenderer = window.electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
-}
 
 const cloneStatus = (): ServiceStatusMap => ({
   express: { ...status.express },
@@ -109,23 +94,20 @@ export const initServiceStatusWatcher = async (): Promise<void> => {
     return
   }
 
-  ensureIpcRenderer()
-
-  if (!ipcRenderer || typeof ipcRenderer.invoke !== 'function') {
+  if (!messageBridge.getIpc()?.invoke) {
     initialized = true
     return
   }
 
   try {
-    const snapshot = await ipcRenderer.invoke('get-service-status')
+    const snapshot = await messageBridge.invoke('get-service-status')
     applyStatusSnapshot(snapshot)
   } catch (error) {
     console.warn('[ServiceStatus] 获取服务状态失败', error)
-    //logger.warn('[ServiceStatus] 获取服务状态失败', error);
   }
 
-  if (typeof ipcRenderer.on === 'function') {
-    ipcRenderer.on('service-status-updated', (_event: any, snapshot: ServiceStatusMap) => {
+  if (messageBridge.getIpc()?.on) {
+    messageBridge.on('service-status-updated', (_event: any, snapshot: ServiceStatusMap) => {
       applyStatusSnapshot(snapshot)
     })
   }

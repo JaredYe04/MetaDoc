@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, getCurrentInstance, nextTick, createVNode, render, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, getCurrentInstance, nextTick, createVNode, render, onBeforeUnmount, type AppContext } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
 import { parseInternalLinks } from '../../manuals/utils'
@@ -31,6 +31,9 @@ import ManualBreadcrumb from './ManualBreadcrumb.vue'
 
 const { locale } = useI18n()
 const { currentArticleContent, currentArticleId, setCurrentArticle, markArticleAsRead } = useUserManual()
+
+// 在 setup 顶层捕获 appContext，事件回调中 getCurrentInstance() 可能为 null
+const capturedAppContext = getCurrentInstance()?.appContext ?? null
 
 const scrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
 const hasMarkedReadForArticle = ref<string | null>(null)
@@ -67,30 +70,40 @@ function ensureDemoComponentsLoaded(): Promise<void> {
 }
 
 // Vditor 渲染完成后：先处理内部链接，再把占位 div 替换为 Vue 组件（不破坏 Mermaid 等）
-const handleRendered = () => {
+// 必须在同步阶段捕获 appContext，否则在 setTimeout/async 回调中 getCurrentInstance() 为 null
+const handleRendered = (container?: HTMLElement | null) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:handleRendered',message:'handleRendered called',data:{hasContainer:!!container,containerTag:container?.tagName,containerClass:container?.className},hypothesisId:'H1',timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (processTimer) clearTimeout(processTimer)
+  const targetContainer = container ?? document.querySelector('.vditor-preview-container')
   processTimer = setTimeout(() => {
     nextTick(async () => {
       processInternalLinks()
-      await injectDemoComponents()
+      await injectDemoComponents(capturedAppContext, targetContainer as HTMLElement | null)
     })
   }, 100)
 }
 
-async function injectDemoComponents() {
-  const placeholders = document.querySelectorAll('.vditor-preview-container [data-demo-component]')
+async function injectDemoComponents(appContext: AppContext | null, container: HTMLElement | null) {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:injectDemoComponents',message:'injectDemoComponents entry',data:{hasAppContext:!!appContext,hasContainer:!!container,containerTag:container?.tagName},hypothesisId:'H2',timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  if (!appContext || !container) return
+  const placeholders = container.querySelectorAll('[data-demo-component]')
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:injectDemoComponents',message:'placeholders count',data:{placeholdersLength:placeholders.length,containerInnerHTMLLength:container.innerHTML?.length},hypothesisId:'H3',timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (placeholders.length === 0) return
   await ensureDemoComponentsLoaded()
-  const container = document.querySelector('.vditor-preview-container')
-  if (!container) return
-  const instance = getCurrentInstance()
-  const appContext = instance?.appContext
-  if (!appContext) return
-  placeholders.forEach((el) => {
+  placeholders.forEach((el, i) => {
     const componentName = (el as HTMLElement).getAttribute('data-demo-component')
     const propsJson = (el as HTMLElement).getAttribute('data-demo-props')
+    const Component = getDemoComponent(componentName ?? '')
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ManualContent.vue:injectDemoComponents:forEach',message:'placeholder',data:{index:i,componentName,hasPropsJson:!!propsJson,hasComponent:!!Component},hypothesisId:'H4',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!componentName || !propsJson) return
-    const Component = getDemoComponent(componentName)
     if (!Component) return
     let props: Record<string, unknown>
     try {
@@ -98,7 +111,6 @@ async function injectDemoComponents() {
     } catch {
       return
     }
-    // 先卸载可能已挂载的实例（同一文章重渲染时）
     render(null, el as HTMLElement)
     const vnode = createVNode(Component, props)
     vnode.appContext = appContext

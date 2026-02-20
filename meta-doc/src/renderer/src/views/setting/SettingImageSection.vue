@@ -156,6 +156,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import { settings, setSetting, getImagePath } from '../../utils/settings.js'
+import messageBridge from '../../bridge/message-bridge'
 
 const { t } = useI18n()
 
@@ -171,21 +172,7 @@ const handleUploadServiceChange = async (value: string) => {
 
 const selectImageDirectory = async () => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
-      throw new Error('IPC渲染器不可用')
-    }
-
-    const result = (await ipcRenderer.invoke('show-open-dialog', {
+    const result = (await messageBridge.invoke('show-open-dialog', {
       title: t('setting.image.selectImageDirectory', '选择图片目录'),
       properties: ['openDirectory']
     })) as { canceled: boolean; filePaths?: string[] }
@@ -200,20 +187,6 @@ const selectImageDirectory = async () => {
 
 const openImageDirectory = async () => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
-      throw new Error('IPC渲染器不可用')
-    }
-
     // 获取要打开的目录路径
     let dirPath = settings.imageUpload.localImageDir
     if (!dirPath) {
@@ -223,7 +196,7 @@ const openImageDirectory = async () => {
 
     if (dirPath) {
       // 使用 shell-open 打开目录
-      ipcRenderer.send('shell-open', dirPath)
+      messageBridge.send('shell-open', dirPath)
     } else {
       ElMessage.warning(t('setting.image.noImageDirSet', '未设置图片目录'))
     }

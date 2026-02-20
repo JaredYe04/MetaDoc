@@ -46,13 +46,13 @@ export async function getSystemFonts(): Promise<SystemFont[]> {
  * 从主进程加载字体列表
  */
 async function loadFonts(): Promise<SystemFont[]> {
-  // 获取 ipcRenderer
-  const { default: localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-  const { webMainCalls } = await import('../utils/web-adapter/web-main-calls')
-  const ipcRenderer = (window as any)?.electron?.ipcRenderer ?? (webMainCalls(), localIpcRenderer)
+  const messageBridge = (await import('../bridge/message-bridge')).default
+  if (!messageBridge.getIpc()?.invoke) {
+    return getDefaultFonts()
+  }
 
   try {
-    const fonts = await ipcRenderer.invoke('get-system-fonts')
+    const fonts = await messageBridge.invoke('get-system-fonts')
     return fonts || getDefaultFonts()
   } catch (error) {
     console.error('IPC 调用失败:', error)

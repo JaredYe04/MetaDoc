@@ -1,15 +1,9 @@
 import { ref, computed, reactive } from 'vue'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
+import messageBridge from '../bridge/message-bridge'
 
 const logger = createRendererLogger('useTabSwitcher')
-
-const getIpcRenderer = () => {
-  if (typeof window !== 'undefined' && (window as any).electron?.ipcRenderer) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
 
 const isVisible = ref(false)
 const isCapturing = ref(false)
@@ -30,8 +24,7 @@ function waitForFrame(): Promise<void> {
 }
 
 async function captureCurrentThumbnail(tabId: string): Promise<void> {
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return
+  if (!messageBridge.getIpc()) return
 
   try {
     // 截图前隐藏 overlay，避免把切换面板截进缩略图
@@ -41,7 +34,7 @@ async function captureCurrentThumbnail(tabId: string): Promise<void> {
       await waitForFrame()
     }
 
-    const dataUrl = await ipcRenderer.invoke('capture-window-thumbnail')
+    const dataUrl = await messageBridge.invoke('capture-window-thumbnail')
     if (dataUrl) {
       thumbnailCache[tabId] = dataUrl
     }

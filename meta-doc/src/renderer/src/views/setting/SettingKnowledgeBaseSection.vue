@@ -59,16 +59,9 @@ import { useI18n } from 'vue-i18n'
 import { settings, setSetting } from '../../utils/settings.js'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 import eventBus from '../../utils/event-bus.js'
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 
 const { t } = useI18n()
-
-let ipcRenderer: any = null
-if (window && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
-}
 
 const sliderMarks = computed(() => ({
   0.1: '0.1',
@@ -108,7 +101,7 @@ const handleKnowledgeBaseThresholdChange = () => {
 const handleEmbeddingModeChange = async () => {
   setSetting('embeddingMode', settings.embeddingMode)
   // 同步到主进程
-  await ipcRenderer.invoke('set-embedding-mode', settings.embeddingMode)
+  await messageBridge.invoke('set-embedding-mode', settings.embeddingMode)
 }
 </script>
 

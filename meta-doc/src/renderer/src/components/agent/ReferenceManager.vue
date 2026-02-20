@@ -293,19 +293,9 @@ import {
   processUrlReference,
   selectReferenceFiles
 } from '../../utils/agent-framework/reference-processor'
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 import { createRendererLogger } from '../../utils/logger'
 import { useWorkspace } from '../../stores/workspace'
-
-// 获取IPC渲染器
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    ipcRenderer = localIpcRenderer
-  }
-}
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -466,23 +456,7 @@ const handleAdd = () => {
  * 将文件路径转换为 File 对象
  */
 async function pathToFile(filePath: string): Promise<File> {
-  // 获取IPC渲染器
-  let ipcRenderer: any = null
-  if (typeof window !== 'undefined') {
-    if ((window as any).electron?.ipcRenderer) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer
-    }
-  }
-
-  if (!ipcRenderer) {
-    throw new Error('IPC渲染器不可用')
-  }
-
-  // 通过 IPC 调用主进程读取文件
-  const result = (await ipcRenderer.invoke('read-file-for-upload', filePath)) as {
+  const result = (await messageBridge.invoke('read-file-for-upload', filePath)) as {
     name: string
     data: string
     mimeType: string
@@ -642,9 +616,9 @@ const handleCancelParsing = () => {
   }
 
   // 如果有requestId，发送取消请求到主进程
-  if (currentRequestId.value && ipcRenderer) {
+  if (currentRequestId.value) {
     try {
-      ipcRenderer.invoke('cancel-file-conversion', currentRequestId.value)
+      messageBridge.invoke('cancel-file-conversion', currentRequestId.value)
     } catch (error) {
       getLogger().warn('发送取消请求失败:', error)
     }

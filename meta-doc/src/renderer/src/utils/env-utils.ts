@@ -3,16 +3,7 @@
  * 封装从主进程获取环境变量的逻辑
  */
 
-import localIpcRenderer from './web-adapter/local-ipc-renderer'
-
-let ipcRenderer: any = null
-
-// 初始化 ipcRenderer
-if (typeof window !== 'undefined' && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
-}
+import messageBridge from '../bridge/message-bridge'
 
 /**
  * 获取环境变量
@@ -21,7 +12,7 @@ if (typeof window !== 'undefined' && (window as any).electron) {
  */
 export async function getEnv(key: string): Promise<string | undefined> {
   try {
-    return await ipcRenderer.invoke('get-env', key)
+    return await messageBridge.invoke('get-env', key)
   } catch (error) {
     console.error(`Error getting env for key "${key}":`, error)
     return undefined

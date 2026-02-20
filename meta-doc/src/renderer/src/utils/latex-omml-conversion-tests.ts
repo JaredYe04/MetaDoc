@@ -4,30 +4,18 @@
  */
 
 import { testFramework, type TestFunction } from './test-framework'
+import messageBridge from '../bridge/message-bridge'
 
 /**
  * 规范化 XML 字符串（移除空白和缩进，用于比较）
  */
 function normalizeXml(xml: string): string {
   return xml
-    .replace(/>\s+</g, '><') // 移除标签间的空白
-    .replace(/\s+/g, ' ') // 规范化空白字符
-    .replace(/\s*>\s*/g, '>') // 移除标签结束符周围的空白
-    .replace(/\s*<\s*/g, '<') // 移除标签开始符周围的空白
+    .replace(/>\s+</g, '><')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*>\s*/g, '>')
+    .replace(/\s*<\s*/g, '<')
     .trim()
-}
-
-/**
- * 获取 IPC 渲染器
- */
-function getIpcRenderer(): any {
-  if (typeof window !== 'undefined' && (window as any).electron) {
-    return (window as any).electron.ipcRenderer
-  } else {
-    // 使用本地 IPC 渲染器（用于 Web 环境）
-    const localIpcRenderer = require('./web-adapter/local-ipc-renderer').default
-    return localIpcRenderer
-  }
 }
 
 /**
@@ -45,14 +33,11 @@ interface ConversionResult {
  */
 async function convertLatexToOMML(latex: string, displayMode: boolean): Promise<ConversionResult> {
   try {
-    const ipcRenderer = getIpcRenderer()
-
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC 渲染器不可用，无法调用主进程函数')
     }
 
-    // 直接调用主进程的 latex-to-omml IPC 处理器
-    const omml = await ipcRenderer.invoke('latex-to-omml', latex, displayMode)
+    const omml = await messageBridge.invoke('latex-to-omml', latex, displayMode)
 
     if (!omml) {
       throw new Error('OMML 转换返回空结果')

@@ -1,15 +1,10 @@
 import eventBus from './event-bus'
-import localIpcRenderer from './web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from './web-adapter/web-main-calls'
 import { getEnv } from './env-utils'
 
-let ipcRenderer = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
+if (typeof window !== 'undefined' && !window.electron?.ipcRenderer) {
   webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 // 配置 App 信息（从环境变量获取）
@@ -41,7 +36,7 @@ function randomStr(randomLength = 16) {
 
 // MD5 加密方法
 async function md5(str) {
-  return ipcRenderer.invoke('compute-md5', str)
+  return messageBridge.invoke('compute-md5', str)
 }
 
 // 生成请求头及签名数据，逻辑与 Python 版本一致
@@ -106,7 +101,7 @@ export async function simpletexOcr(base64string) {
   // 发送到主进程
   // 注意：浏览器环境不支持 Buffer，直接传递 ArrayBuffer，主进程会处理
   // IPC 可以序列化 ArrayBuffer，主进程会使用 Buffer.from() 转换
-  let result = await ipcRenderer.invoke('simpletex-ocr', {
+  let result = await messageBridge.invoke('simpletex-ocr', {
     fileName: file.name, // 传递文件名
     fileType: file.type, // 传递文件类型
     fileBuffer: fileBuffer, // 直接传递 ArrayBuffer，主进程会转换为 Buffer

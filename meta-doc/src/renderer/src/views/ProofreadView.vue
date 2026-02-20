@@ -177,18 +177,12 @@ import type { ProofreadResult, ProofreadError } from '../utils/agent-tools/proof
 import { themeState } from '../utils/themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
+import messageBridge from '../bridge/message-bridge'
 
-// 获取IPC渲染器（与 proofread-tool.ts 中的逻辑一致）
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
+// 非 Electron 环境下需初始化 webMainCalls（与 proofread-tool.ts 中的逻辑一致）
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
+  webMainCalls()
 }
 
 const { t } = useI18n()
@@ -784,12 +778,8 @@ const handleAddToDictionary = async (index: number) => {
   if (!error || !error.text) return
 
   try {
-    if (!ipcRenderer) {
-      throw new Error('IPC渲染器不可用')
-    }
-
-    // 通过 IPC 调用主进程添加单词到词典
-    await ipcRenderer.invoke('spell-check-add-word', error.text)
+    // 通过消息桥调用主进程添加单词到词典
+    await messageBridge.invoke('spell-check-add-word', error.text)
 
     // 找到所有相同的错误（相同的文本）
     const sameTextErrors = proofreadResult.value.errors.filter(

@@ -26,7 +26,7 @@ const props = withDefaults(
   }
 )
 
-const emit = defineEmits<{ rendered: [] }>()
+const emit = defineEmits<{ rendered: [container: HTMLElement] }>()
 const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
 let linkClickHandler: ((e: MouseEvent) => void) | null = null
@@ -138,8 +138,11 @@ const renderMarkdown = async () => {
     
     // 添加链接点击事件监听器，使外部链接在系统浏览器中打开
     setupLinkClickHandler(containerRef.value)
-    
-    emit('rendered')
+    const container = containerRef.value
+    // #region agent log
+    if (container) fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VditorPreview.vue:emit rendered',message:'emitting rendered',data:{tagName:container.tagName,className:container.className,hasDataDemo:!!container.querySelector('[data-demo-component]')},hypothesisId:'H0',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    if (container) emit('rendered', container)
   } catch (error) {
     console.error('渲染 Markdown 失败:', error)
     if (containerRef.value) {

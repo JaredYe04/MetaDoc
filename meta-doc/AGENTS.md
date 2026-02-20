@@ -78,7 +78,7 @@ meta-doc/
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-- **DO NOT modify META-INFO lines** in `document-serializer.ts` and `obsolete/common-data.ts` — breaks metadata parsing
+- **DO NOT modify META-INFO lines** in `document-serializer.ts` — breaks metadata parsing
 - **Agent tool specs contain embedded LLM instructions** ("Do NOT", "Important Notes") — treat as first-class config, not comments
 - **CSS `!important` is widespread** — avoid adding more; present in 30+ component style blocks
 - **`main-calls.ts` is a 5475-line monolith** — all IPC handlers in one file; do not add more without discussing extraction

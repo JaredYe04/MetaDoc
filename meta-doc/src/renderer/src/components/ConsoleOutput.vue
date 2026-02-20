@@ -30,14 +30,10 @@ import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts'
+import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls.js'
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer as typeof localIpcRenderer
-} else {
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
   webMainCalls()
-  ipcRenderer = localIpcRenderer
 }
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
@@ -141,9 +137,9 @@ const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
 }
 
 const ensureConsoleFont = async () => {
-  if (consoleFontLoaded || !ipcRenderer?.invoke) return
+  if (consoleFontLoaded || !messageBridge.getIpc()?.invoke) return
   try {
-    const resourcesPath = await ipcRenderer.invoke('resources-path')
+    const resourcesPath = await messageBridge.invoke('resources-path')
     if (typeof resourcesPath !== 'string' || !resourcesPath) return
     const normalized = resourcesPath.replace(/\\/g, '/').replace(/^\/+/, '')
     const fontUrl = `file:///${normalized}/consola.ttf`
@@ -374,7 +370,7 @@ const saveConsole = async () => {
   const text = lines.value.map((l) => l.content).join('\n')
 
   try {
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -388,7 +384,7 @@ const saveConsole = async () => {
       return
     }
 
-    const result = (await ipcRenderer.invoke('save-file-dialog', {
+    const result = (await messageBridge.invoke('save-file-dialog', {
       defaultName: `console-${props.consoleKey}.log`,
       filters: [
         { name: 'Log Files', extensions: ['log', 'txt'] },
@@ -400,7 +396,7 @@ const saveConsole = async () => {
       return
     }
 
-    await ipcRenderer.invoke('write-file-content', {
+    await messageBridge.invoke('write-file-content', {
       filePath: result.filePath,
       content: text,
       encoding: 'utf8'
@@ -583,10 +579,8 @@ onMounted(() => {
   eventBus.on('clear-console', onEventBusClear)
   eventBus.on('console-scroll-to-bottom', handleScrollToBottom)
   eventBus.on('get-console-content', handleGetConsoleContent)
-  if (ipcRenderer) {
-    ipcRenderer.on('console-out', onConsoleOut)
-    ipcRenderer.on('console-err', onConsoleErr)
-  }
+  messageBridge.on('console-out', onConsoleOut)
+  messageBridge.on('console-err', onConsoleErr)
 })
 
 onBeforeUnmount(() => {
@@ -601,10 +595,8 @@ onBeforeUnmount(() => {
   }
   editorId = null
   decorationIds = []
-  if (ipcRenderer) {
-    ipcRenderer.removeListener('console-out', onConsoleOut)
-    ipcRenderer.removeListener('console-err', onConsoleErr)
-  }
+  messageBridge.removeListener('console-out', onConsoleOut)
+  messageBridge.removeListener('console-err', onConsoleErr)
 })
 </script>
 

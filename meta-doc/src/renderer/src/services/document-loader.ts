@@ -94,23 +94,14 @@ const ensureArrayAgentSessions = (value: unknown): AgentSession[] => {
  */
 async function tryLoadMetadataFromSidecar(filePath: string): Promise<any | null> {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
-      logger.warn('[tryLoadMetadataFromSidecar] ipcRenderer不可用')
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
+      logger.warn('[tryLoadMetadataFromSidecar] IPC不可用')
       return null
     }
 
     const sidecarPath = getSidecarPath(filePath)
-    const buffer = await ipcRenderer.invoke('read-sidecar-file', { path: sidecarPath })
+    const buffer = await messageBridge.invoke('read-sidecar-file', { path: sidecarPath })
 
     if (!buffer || (Array.isArray(buffer) && buffer.length === 0)) {
       logger.warn('[tryLoadMetadataFromSidecar] Buffer为空或长度为0', {

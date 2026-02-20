@@ -55,97 +55,97 @@
 
 #### P0 - 核心视图组件
 - [x] `views/Main.vue` - 主窗口，大量 IPC 调用 ✅
-- [ ] `views/App.vue` - 应用入口
+- [x] `views/App.vue` - 应用入口 ✅
 - [x] `components/MainTabs.vue` - 标签页管理，大量 IPC 调用 ✅
-- [ ] `views/GraphWindow.vue` - 图表窗口
+- [x] `views/GraphWindow.vue` - 图表窗口 ✅
 - [x] `views/Home.vue` - 主页 ✅
 
 #### P0 - 核心工具函数
 - [x] `utils/db/tool-sessions-db.ts` - 数据库操作，大量 `ipcRenderer.invoke('db-query', ...)` ✅
 - [x] `utils/ai_tasks.ts` - AI 任务管理 ✅
-- [ ] `composables/useWorkspaceOperations.ts` - 工作区操作（接收 ipc 参数，由调用方传入 messageBridge.getIpc()）
+- [x] `composables/useWorkspaceOperations.ts` - 工作区操作（由调用方传入 messageBridge.getIpc()）✅
 - [x] `composables/useTabOperations.ts` - 标签操作 ✅
 - [x] `composables/useCloseTab.ts` - 关闭标签 ✅
 
 #### P1 - 重要视图组件
-- [ ] `views/GlobalHome.vue`
-- [ ] `views/DataAnalysisWindow.vue`
-- [ ] `views/OcrWindow.vue`
-- [ ] `views/FomulaRecognition.vue`
-- [ ] `views/LaTeXEditor.vue`
-- [ ] `views/PlainTextEditor.vue`
-- [ ] `views/AttachmentWindow.vue`
-- [ ] `views/AigcDetectionWindow.vue`
-- [ ] `views/Visualize.vue`
-- [ ] `views/ProofreadView.vue`
-- [ ] `views/UserFeedbackView.vue`
+- [x] `views/GlobalHome.vue` ✅
+- [x] `views/DataAnalysisWindow.vue` ✅
+- [x] `views/OcrWindow.vue` ✅
+- [x] `views/FomulaRecognition.vue` ✅
+- [x] `views/LaTeXEditor.vue` ✅
+- [x] `views/PlainTextEditor.vue` ✅
+- [x] `views/AttachmentWindow.vue` ✅
+- [x] `views/AigcDetectionWindow.vue` ✅
+- [x] `views/Visualize.vue` ✅
+- [x] `views/ProofreadView.vue` ✅
+- [x] `views/UserFeedbackView.vue` ✅
 
 #### P1 - 设置页面
-- [ ] `views/setting/SettingBasicSection.vue`
-- [ ] `views/setting/SettingDebugSection.vue`
-- [ ] `views/setting/SettingThemeSection.vue`
-- [ ] `views/setting/SettingLoggerSection.vue`
-- [ ] `views/setting/SettingKnowledgeBaseSection.vue`
-- [ ] `views/setting/SettingImageSection.vue`
-- [ ] `views/setting/SettingAboutSection.vue`
+- [x] `views/setting/SettingBasicSection.vue` ✅
+- [x] `views/setting/SettingDebugSection.vue` ✅
+- [x] `views/setting/SettingThemeSection.vue` ✅
+- [x] `views/setting/SettingLoggerSection.vue` ✅
+- [x] `views/setting/SettingKnowledgeBaseSection.vue` ✅
+- [x] `views/setting/SettingImageSection.vue` ✅
+- [x] `views/setting/SettingAboutSection.vue` ✅
 
 #### P1 - 组件
-- [ ] `components/agent/AgentToolResultCard.vue`
-- [ ] `components/agent/ReferenceManager.vue`
-- [ ] `components/chat/ChatComposer.vue`
-- [ ] `components/ConsoleTerminal.vue`
-- [ ] `components/ConsoleOutput.vue`
-- [ ] `components/LlmStatisticsContent.vue`
-- [ ] `components/VersionInfoPanel.vue`
-- [ ] `components/workspace/WorkspaceTabs.vue`
-- [ ] `components/agent-tools/components/AutoTestResultDisplay.vue`
+- [x] `components/agent/AgentToolResultCard.vue` ✅
+- [x] `components/agent/ReferenceManager.vue` ✅
+- [x] `components/chat/ChatComposer.vue` ✅
+- [x] `components/ConsoleTerminal.vue` ✅
+- [x] `components/ConsoleOutput.vue` ✅
+- [x] `components/LlmStatisticsContent.vue` ✅
+- [x] `components/VersionInfoPanel.vue` ✅
+- [x] `components/workspace/WorkspaceTabs.vue` ✅
+- [x] `components/agent-tools/components/AutoTestResultDisplay.vue` ✅
 
 #### P1 - 工具函数
-- [ ] `utils/themes.js`
-- [ ] `utils/logger.ts`
-- [ ] `utils/service-status.ts`
-- [ ] `utils/rag_utils.js`
-- [ ] `utils/simpletex-utils.js`
-- [ ] `utils/version.ts`
-- [ ] `utils/ai_tasks.ts`
-- [ ] `utils/db/migrate-ai-chat.ts`
-- [ ] `utils/workspace/refresh-service.ts`
-- [ ] `utils/workspace/fs-planner.ts`
-- [ ] `utils/workspace/fs-executor.ts`
+- [x] `utils/themes.js` ✅
+- [x] `utils/logger.ts` ✅
+- [x] `utils/service-status.ts` ✅
+- [x] `utils/rag_utils.js` ✅
+- [x] `utils/simpletex-utils.js` ✅
+- [x] `utils/version.ts` ✅
+- [x] `utils/ai_tasks.ts` ✅（无直接 IPC 调用）
+- [x] `utils/db/migrate-ai-chat.ts` ✅
+- [x] `utils/workspace/refresh-service.ts` ✅（由 useWorkspaceOperations 注入 ipc）
+- [x] `utils/workspace/fs-planner.ts` ✅（同上）
+- [x] `utils/workspace/fs-executor.ts` ✅（同上）
 
 #### P1 - Agent 工具
-- [ ] `utils/agent-tools/workspace-tool.ts`
-- [ ] `utils/agent-tools/web-crawler-tool.ts`
-- [ ] `utils/agent-tools/terminal-tool.ts`
-- [ ] `utils/agent-tools/proofread-tool.ts`
-- [ ] `utils/agent-tools/diff-tool.ts`
-- [ ] `utils/agent-tools/data-analysis-tool.ts`
-- [ ] `utils/agent-tools/agent-tool-services.ts`
+- [x] `utils/agent-tools/workspace-tool.ts` ✅
+- [x] `utils/agent-tools/web-crawler-tool.ts` ✅
+- [x] `utils/agent-tools/terminal-tool.ts` ✅
+- [x] `utils/agent-tools/proofread-tool.ts` ✅
+- [x] `utils/agent-tools/diff-tool.ts` ✅
+- [x] `utils/agent-tools/data-analysis-tool.ts` ✅
+- [x] `utils/agent-tools/agent-tool-services.ts` ✅
 
 #### P1 - Agent 框架
-- [ ] `utils/agent-framework/reference-processor.ts`
-- [ ] `utils/agent-framework/reference-adapters.ts`
+- [x] `utils/agent-framework/reference-processor.ts` ✅
+- [x] `utils/agent-framework/reference-adapters.ts` ✅
 
 #### P1 - 服务
-- [ ] `services/font-service.ts`
-- [ ] `services/document-save.ts`
-- [ ] `services/document-loader.ts`
+- [x] `services/font-service.ts` ✅
+- [x] `services/document-save.ts` ✅
+- [x] `services/document-loader.ts` ✅
 
 #### P2 - Composables
-- [ ] `composables/useTabSwitcher.ts`
-- [ ] `composables/useTabDrag.ts`
+- [x] `composables/useTabSwitcher.ts` ✅
+- [x] `composables/useTabDrag.ts` ✅
 
 #### P2 - 工具函数
-- [ ] `utils/env-utils.ts`
-- [ ] `utils/dev-env.ts`
-- [ ] `utils/particle-effect.ts`
-- [ ] `utils/llm-statistics-service.js`
-- [ ] `utils/latex-omml-conversion-tests.ts`
-- [ ] `utils/database-tests.ts`
-- [ ] `utils/obsolete/ai_tasks.js`
+- [x] `utils/env-utils.ts` ✅
+- [x] `utils/dev-env.ts` ✅
+- [x] `utils/particle-effect.ts` ✅
+- [x] `utils/llm-statistics-service.js` ✅
+- [x] `utils/latex-omml-conversion-tests.ts` ✅
+- [x] `utils/database-tests.ts` ✅
+- ~~`utils/obsolete/ai_tasks.js`~~ 已删除（与 `utils/ai_tasks.ts` 重复）
 
 #### P3 - 遗留文件
-- [ ] `views/Home_legacy.vue`
+- ~~`views/Home_legacy.vue`~~ 已删除（未被引用）
 
 ---
 

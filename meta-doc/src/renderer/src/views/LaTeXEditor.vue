@@ -265,8 +265,7 @@ import { useWorkspace } from '../stores/workspace'
 import 'monaco-latex'
 import { ArrowLeft, ArrowRight, Refresh, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
-import { webMainCalls } from '../utils/web-adapter/web-main-calls'
+import messageBridge from '../bridge/message-bridge'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
@@ -693,14 +692,6 @@ import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api'
 import { wholeArticleContextPrompt } from '../utils/prompts.ts'
 let pdfInitialized = false
 
-let ipcRenderer: any = null
-if (window && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer
-} else {
-  webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
-}
 // 计算最优缩放比例（使用整数倍或接近整数倍，避免模糊）
 function calculateOptimalScale(baseScale: number): number {
   // 将缩放比例调整为接近整数倍，提高清晰度
@@ -2242,7 +2233,7 @@ function togglePdf() {
 }
 
 const compile = async () => {
-  if (!editor.value || !ipcRenderer) return
+  if (!editor.value || !messageBridge.getIpc()) return
   // 自动打开终端输出界面
   showConsole.value = true
   eventBus.emit('clear-console', { key: 'latex' })
@@ -2292,7 +2283,7 @@ const compile = async () => {
   })
 
   try {
-    const compileResult: any = await ipcRenderer.invoke('compile-tex', {
+    const compileResult: any = await messageBridge.invoke('compile-tex', {
       tex: currentTex.value,
       texPath: currentPath.value ?? '',
       outputDir: '', //todo:用户后续可以设置保存在哪
@@ -3018,13 +3009,13 @@ async function openPdfDirectory() {
     // 从file:///路径提取实际路径
     const pdfPath = pdfUrl.value.replace('file:///', '')
 
-    if (!ipcRenderer) return
+    if (!messageBridge.getIpc()) return
     // 使用IPC调用主进程获取目录路径
-    const dirPath = await ipcRenderer.invoke('get-directory-path', pdfPath)
+    const dirPath = await messageBridge.invoke('get-directory-path', pdfPath)
 
     if (dirPath) {
       // 使用shell-open事件打开目录
-      ipcRenderer.send('shell-open', dirPath)
+      messageBridge.send('shell-open', dirPath)
       eventBus.emit('show-success', t('latexEditor.notification.directoryOpened'))
     } else {
       eventBus.emit('show-error', t('latexEditor.notification.openDirectoryFailed'))
@@ -3046,9 +3037,9 @@ async function savePdf() {
     // 从file:///路径提取实际路径
     const pdfPath = pdfUrl.value.replace('file:///', '')
 
-    if (!ipcRenderer) return
+    if (!messageBridge.getIpc()) return
     // 使用IPC调用主进程保存PDF
-    const result = await ipcRenderer.invoke('save-pdf-dialog', {
+    const result = await messageBridge.invoke('save-pdf-dialog', {
       sourcePath: pdfPath,
       defaultName: pdfPath.split(/[\\/]/).pop() || 'document.pdf'
     })
@@ -3079,22 +3070,13 @@ const insertText = (text: string) => {
 // 处理粘贴图片（用于LaTeX编辑器）
 const handlePasteImage = async () => {
   try {
-    // 获取IPC渲染器
-    let ipcRenderer: any = null
-    if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer
-    }
-
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       logger.warn('IPC渲染器不可用，无法读取剪切板图片')
       return false
     }
 
     // 读取剪切板图片
-    const clipboardImage = (await ipcRenderer.invoke('read-clipboard-image')) as string | null
+    const clipboardImage = (await messageBridge.invoke('read-clipboard-image')) as string | null
     if (!clipboardImage) {
       return false // 没有图片，返回false让后续处理文本粘贴
     }

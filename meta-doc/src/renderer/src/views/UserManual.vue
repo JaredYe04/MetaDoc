@@ -89,6 +89,15 @@ const hasShown100Feedback = ref(false)
 /** 是否显示庆祝动画 */
 const showCelebration = ref(false)
 
+// 组件挂载时打印诊断信息
+onMounted(() => {
+  console.log('[UserManual] Component mounted:', {
+    learningProgress: learningProgress.value,
+    learningPathLength: learningPath.value.length,
+    hasShown: hasShown100Feedback.value
+  })
+})
+
 const SIDEBAR_MIN = 240
 const SIDEBAR_MAX = 520
 const sidebarWidth = ref(320)
@@ -122,14 +131,18 @@ const goToOverview = () => {
 }
 
 // 学习进度达到 100% 时显示庆祝动画
-watch(learningProgress, (cur) => {
-  console.log('[UserManual] Learning progress changed:', cur, 'hasShown:', hasShown100Feedback.value)
-  if (cur >= 100 && learningPath.value.length > 0 && !hasShown100Feedback.value) {
-    console.log('[UserManual] Triggering celebration!')
-    hasShown100Feedback.value = true
-    showCelebration.value = true
-  }
-}, { immediate: true })
+watch(
+  () => ({ progress: learningProgress.value, pathLength: learningPath.value.length }),
+  (cur) => {
+    console.log('[UserManual] Watch triggered:', cur, 'hasShown:', hasShown100Feedback.value)
+    if (cur.progress >= 100 && cur.pathLength > 0 && !hasShown100Feedback.value) {
+      console.log('[UserManual] Triggering celebration!')
+      hasShown100Feedback.value = true
+      showCelebration.value = true
+    }
+  },
+  { immediate: true }
+)
 
 // 处理庆祝动画继续
 const handleCelebrationContinue = () => {

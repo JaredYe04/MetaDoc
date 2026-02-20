@@ -250,7 +250,13 @@ function initThree() {
   const width = rect.width
   const height = rect.height
   
-  console.log('[CelebrationOverlay] Initializing Three.js:', { width, height })
+  console.log('[CelebrationOverlay] Initializing Three.js:', { width, height, canvas: canvasRef.value })
+  
+  if (width === 0 || height === 0) {
+    console.error('[CelebrationOverlay] Canvas size is 0, retrying in 100ms')
+    setTimeout(initThree, 100)
+    return
+  }
   
   // Renderer
   try {
@@ -259,6 +265,12 @@ function initThree() {
       alpha: true,
       antialias: true 
     })
+    
+    if (!renderer) {
+      console.error('[CelebrationOverlay] Failed to create WebGL renderer')
+      return
+    }
+    
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     
@@ -266,8 +278,8 @@ function initThree() {
     scene = new THREE.Scene()
     
     // Camera - 调整视野以覆盖整个屏幕
-    camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 2000)
-    camera.position.z = 800
+    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 5000)
+    camera.position.z = 1200
     
     console.log('[CelebrationOverlay] Three.js initialized successfully')
     
@@ -438,13 +450,15 @@ function handleResize() {
 }
 
 // 监听 visible 变化
-watch(() => props.visible, (newVal) => {
+watch(() => props.visible, async (newVal) => {
   console.log('[CelebrationOverlay] visible changed:', newVal)
   if (newVal) {
-    nextTick(() => {
-      console.log('[CelebrationOverlay] nextTick fired, canvas:', canvasRef.value)
-      initThree()
-    })
+    // 等待 DOM 更新
+    await nextTick()
+    // 再等待一帧确保布局完成
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    console.log('[CelebrationOverlay] DOM ready, canvas:', canvasRef.value)
+    initThree()
   } else {
     closeCelebration()
   }

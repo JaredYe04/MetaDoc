@@ -144,6 +144,11 @@ watch(
   { immediate: true }
 )
 
+// 监控 showCelebration 变化
+watch(showCelebration, (newVal) => {
+  console.log('[UserManual] showCelebration changed:', newVal)
+})
+
 // 处理庆祝动画继续
 const handleCelebrationContinue = () => {
   showCelebration.value = false

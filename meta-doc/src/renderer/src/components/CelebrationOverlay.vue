@@ -439,8 +439,10 @@ function handleResize() {
 
 // 监听 visible 变化
 watch(() => props.visible, (newVal) => {
+  console.log('[CelebrationOverlay] visible changed:', newVal)
   if (newVal) {
     nextTick(() => {
+      console.log('[CelebrationOverlay] nextTick fired, canvas:', canvasRef.value)
       initThree()
     })
   } else {

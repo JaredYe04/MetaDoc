@@ -123,7 +123,9 @@ const goToOverview = () => {
 
 // 学习进度达到 100% 时显示庆祝动画
 watch(learningProgress, (cur) => {
+  console.log('[UserManual] Learning progress changed:', cur, 'hasShown:', hasShown100Feedback.value)
   if (cur >= 100 && learningPath.value.length > 0 && !hasShown100Feedback.value) {
+    console.log('[UserManual] Triggering celebration!')
     hasShown100Feedback.value = true
     showCelebration.value = true
   }

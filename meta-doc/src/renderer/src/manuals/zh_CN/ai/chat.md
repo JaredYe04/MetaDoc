@@ -163,9 +163,6 @@ sequenceDiagram
     C-->>U: 实时显示内容
     U->>C: 中断生成(可选)
     C->>AI: 取消请求
-    style U fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style AI fill:#f3f4f6,stroke:#374151
 ```
 
 ### 消息操作

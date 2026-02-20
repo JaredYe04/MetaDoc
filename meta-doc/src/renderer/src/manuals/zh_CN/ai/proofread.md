@@ -208,9 +208,6 @@ sequenceDiagram
     U->>UI: 点击修复
     UI->>UI: 应用修复
     UI->>U: 标记为已修复
-    style U fill:#f3f4f6,stroke:#374151
-    style UI fill:#f3f4f6,stroke:#374151
-    style AI fill:#f3f4f6,stroke:#374151
 ```
 
 ### 一键修复

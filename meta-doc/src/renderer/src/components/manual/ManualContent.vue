@@ -545,6 +545,74 @@ function processInternalLinks() {
   min-height: 300px;
 }
 
+/* SearchReplaceMenu: 在手册中改为相对定位，防止被挤出容器 */
+.markdown-preview :deep(.manual-demo-inline .search-replace-panel) {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  /* 确保在容器内完整显示 */
+  width: 100% !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+  /* 防止被其他元素遮挡 */
+  z-index: 10 !important;
+}
+
+/* TitleMenu: 在手册中改为相对定位，防止定位问题 */
+.markdown-preview :deep(.manual-demo-inline .title-menu-container) {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: 320px !important;
+  margin: 0 auto !important;
+}
+
+/* SectionOptimizer: 在手册中改为相对定位，防止定位问题 */
+.markdown-preview :deep(.manual-demo-inline .section-optimizer-container) {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
+}
+
+/* PdfPreviewPanel: 在手册中限制最大高度 */
+.markdown-preview :deep(.manual-demo-inline .pdf-preview-panel) {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 500px !important;
+  margin: 0 auto !important;
+}
+
+/* ConsoleTerminal: 在手册中限制最大高度 */
+.markdown-preview :deep(.manual-demo-inline .console-terminal) {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 200px !important;
+  max-height: 400px !important;
+  margin: 0 auto !important;
+}
+
+/* MetaInfoPanel: 在手册中自适应宽度 */
+.markdown-preview :deep(.manual-demo-inline .meta-info-panel) {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+}
+
 .empty-content {
   display: flex;
   align-items: center;

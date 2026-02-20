@@ -153,7 +153,8 @@ import {
   DocumentAdd,
   Reading
 } from '@element-plus/icons-vue'
-import { basename } from '../utils/path-utils'
+import { basename, extname } from '../utils/path-utils'
+import { formatRegistry } from '../utils/format-registry'
 import { hasCompletedProfile } from '../utils/user-profile'
 import { useWorkspace } from '../stores/workspace'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
@@ -226,9 +227,16 @@ const getFileName = (filePath: string): string => {
   }
 }
 
-// 打开最近文档
+// 打开最近文档：与工作区树一致，使用 workspace-open-document，以便已打开时 focus 到对应 tab
 const openRecentDoc = (filePath: string) => {
-  eventBus.emit('open-doc', filePath)
+  const fileExt = extname(filePath)
+  const formatId = formatRegistry.getFormatByExtension(fileExt) || 'txt'
+  eventBus.emit('workspace-open-document', {
+    path: filePath,
+    format: formatId,
+    content: '',
+    preview: false
+  })
 }
 
 // 删除最近文档

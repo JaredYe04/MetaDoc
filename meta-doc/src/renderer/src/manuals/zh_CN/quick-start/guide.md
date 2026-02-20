@@ -4,13 +4,13 @@
 
 欢迎使用MetaDoc！本指南将帮助您快速了解MetaDoc的基本功能，让您在几分钟内开始创建和编辑文档。
 
-MetaDoc是一款智能文档编辑与创作工具，支持Markdown和LaTeX两种主流文档格式，集成了AI助手、知识库、Agent框架等强大功能，帮助您高效完成文档创作任务。
+MetaDoc是一款基于LLM Agent的智能文档处理软件，面向学生与IT从业者。它支持Markdown和LaTeX两种主流文档格式，集成了AI助手、知识库、Agent框架等强大功能，帮助您高效完成文档创作任务。
 
 ## 首次使用
 
 ### 启动应用
 
-启动MetaDoc后，您将看到主页界面。主页提供了以下主要功能：
+启动MetaDoc后，您将看到主页界面。主页基于Vue 3和Electron构建，提供了直观的功能入口：
 
 - **快速开始**：选择文档格式（Markdown或LaTeX），快速创建新文档
 - **新建文档**：创建空白文档
@@ -19,12 +19,24 @@ MetaDoc是一款智能文档编辑与创作工具，支持Markdown和LaTeX两种
 
 ### 界面介绍
 
-MetaDoc的主界面包含以下区域：
+MetaDoc的主界面采用现代化的三栏式布局，包含以下区域：
 
-1. **顶部菜单栏**：提供文件操作、编辑、视图等菜单选项
-2. **标签页栏**：显示当前打开的文档标签，支持多文档同时编辑
+1. **顶部菜单栏**（LeftMenu组件）：提供文件操作、编辑、视图等菜单选项
+   - 基于`components/LeftMenu.vue`实现
+   - 支持折叠/展开，可自定义菜单项显示
+   
+2. **标签页栏**（MainTabs组件）：显示当前打开的文档标签
+   - 基于`components/MainTabs.vue`实现
+   - 支持多文档同时编辑、标签页拖拽、跨窗口移动
+   
 3. **编辑器区域**：文档编辑的主要工作区
-4. **侧边栏**：包含大纲视图、工作目录等辅助功能
+   - Markdown编辑器基于Vditor（`editor/vditor-adapter.ts`）
+   - LaTeX编辑器基于Monaco Editor（`editor/monaco-adapter.ts`）
+   
+4. **侧边栏**（ViewMenu组件）：包含大纲视图、工作目录等辅助功能
+   - 基于`components/ViewMenu.vue`实现
+   - 支持编辑器视图、大纲视图、Agent视图等切换
+   
 5. **状态栏**：显示文档统计信息、保存状态等
 
 下方为对应的真实界面控件展示，便于您对照操作：
@@ -43,10 +55,12 @@ MetaDoc的主界面包含以下区域：
 
 ```mermaid
 graph TB
-    A[顶部菜单栏] --> B[标签页栏]
-    B --> C[编辑器区域]
-    C --> D[侧边栏]
-    C --> E[状态栏]
+    subgraph 主界面布局
+        A[顶部菜单栏<br/>LeftMenu.vue] --> B[标签页栏<br/>MainTabs.vue]
+        B --> C[编辑器区域<br/>Vditor/Monaco]
+        C --> D[侧边栏<br/>ViewMenu.vue]
+        C --> E[状态栏<br/>StatusBar]
+    end
     style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
     style B fill:#f3f4f6,stroke:#374151,stroke-width:2px
     style C fill:#f3f4f6,stroke:#374151,stroke-width:2px
@@ -58,39 +72,60 @@ graph TB
 
 ### 方式一：使用快速开始向导
 
+快速开始向导是MetaDoc的特色功能，基于 `components/home/QuickStartPanel.vue` 组件实现，提供了可视化的文档创建流程：
+
 1. 在主页点击"快速开始"按钮
 2. 选择文档格式：
-   - **Markdown**：适合日常笔记、博客、技术文档等
-   - **LaTeX**：适合学术论文、科技文档等
+   - **Markdown**（对应组件：`QuickStartMarkdown.vue`）：适合日常笔记、博客、技术文档等
+   - **LaTeX**（对应组件：`QuickStartLatex.vue`）：适合学术论文、科技文档等
 3. 根据向导提示完成文档创建
 
-快速开始向导的格式选择界面如下：
+#### 快速开始向导的格式选择界面
 
 <QuickStartPanel mode="demo" />
 
-选择 **Markdown** 后进入的向导界面：
+**QuickStartPanel 组件说明**：
+- 基于 `components/home/QuickStartPanel.vue` 实现
+- Props：`mode: 'normal' | 'demo'` - 运行模式
+- 内部状态管理使用 Vue 3 Composition API
+- 支持三种 stage：`'format'`（格式选择）、`'markdown'`（Markdown向导）、`'latex'`（LaTeX向导）
+
+#### 选择 Markdown 后进入的向导界面
 
 <QuickStartMarkdown mode="demo" />
 
-选择 **LaTeX** 后进入的向导界面：
+**QuickStartMarkdown 组件说明**：
+- 基于 `components/home/QuickStartMarkdown.vue` 实现
+- 功能：
+  - 支持设置文档元信息（标题、作者、描述）
+  - 基于当前文档内容生成AI建议
+  - 实时预览生成的Markdown内容
+  - 集成 AI 服务 (`utils/llm-api.js`) 生成文档
+
+#### 选择 LaTeX 后进入的向导界面
 
 <QuickStartLatex mode="demo" />
 
-快速开始向导支持：
-- AI辅助生成文档内容
-- 设置文档元信息（标题、作者、描述等）
-- 预览生成的文档内容
+**QuickStartLatex 组件说明**：
+- 基于 `components/home/QuickStartLatex.vue` 实现
+- 功能：
+  - 支持 LaTeX 模板选择
+  - 支持文档类型设置（论文、报告等）
+  - AI 辅助生成 LaTeX 文档结构
+  - 实时预览生成的 LaTeX 代码
+
+#### 快速开始向导流程
 
 ```mermaid
 graph LR
-    A[点击快速开始] --> B{选择格式}
-    B -->|Markdown| C[Markdown向导]
-    B -->|LaTeX| D[LaTeX向导]
+    A[点击快速开始] --> B{选择格式<br/>QuickStartPanel}
+    B -->|Markdown| C[Markdown向导<br/>QuickStartMarkdown.vue]
+    B -->|LaTeX| D[LaTeX向导<br/>QuickStartLatex.vue]
     C --> E[设置元信息]
     D --> E
-    E --> F[AI生成内容]
-    F --> G[预览文档]
-    G --> H[创建文档]
+    E --> F[AI生成内容<br/>调用 llm-api.js]
+    F --> G[预览文档<br/>MarkdownItEditor]
+    G --> H[创建文档<br/>workspaceStore]
     style A fill:#f3f4f6,stroke:#374151
     style B fill:#f3f4f6,stroke:#374151
     style C fill:#f3f4f6,stroke:#374151
@@ -100,6 +135,23 @@ graph LR
     style G fill:#f3f4f6,stroke:#374151
     style H fill:#f3f4f6,stroke:#374151
 ```
+
+#### 快速开始向导的核心功能
+
+**AI辅助生成文档内容**：
+- 基于 `utils/llm-api.js` 调用LLM服务
+- 使用 `utils/prompts.ts` 中的提示词模板
+- 支持多语言生成（根据用户设置）
+
+**设置文档元信息**：
+- 标题、作者、描述、关键词
+- 元信息保存模式：侧边文件(.meta.json)、嵌入文档、不保存
+- 基于 `stores/document.ts` 管理元信息状态
+
+**预览生成的文档内容**：
+- Markdown预览使用 `components/MarkdownItEditor.vue`
+- 支持实时渲染、代码高亮、数学公式
+- 基于 `vditor` 和 `markdown-it` 实现
 
 ### 方式二：直接新建文档
 

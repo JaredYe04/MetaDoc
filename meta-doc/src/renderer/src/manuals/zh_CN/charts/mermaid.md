@@ -34,6 +34,26 @@ Mermaid支持多种图表类型：
 - **思维导图**（mindmap）
 - **时间线**（timeline）
 
+```mermaid
+graph TB
+    A[Mermaid图表] --> B[流程图]
+    A --> C[序列图]
+    A --> D[类图]
+    A --> E[状态图]
+    A --> F[其他图表]
+    B --> G[graph/flowchart]
+    C --> H[sequenceDiagram]
+    D --> I[classDiagram]
+    E --> J[stateDiagram]
+    F --> K[甘特图<br/>饼图<br/>Git图等]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 流程图
 
 ### 基本流程图

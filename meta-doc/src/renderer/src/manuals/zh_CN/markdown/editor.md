@@ -18,6 +18,23 @@ Vditor是一款所见即所得的Markdown编辑器，具有以下特点：
 
 Vditor提供三种编辑模式，每种模式适合不同的使用场景：
 
+```mermaid
+graph TB
+    A[Markdown编辑器] --> B[IR模式<br/>即时渲染]
+    A --> C[WYSIWYG模式<br/>所见即所得]
+    A --> D[SV模式<br/>分屏预览]
+    B --> E[语法可见<br/>实时渲染]
+    C --> F[可视化编辑<br/>无需语法]
+    D --> G[编辑区+预览区<br/>实时同步]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style D fill:#f3f4f6,stroke:#374151
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+```
+
 ### IR模式（即时渲染）
 
 IR模式是默认的编辑模式，特点：
@@ -68,6 +85,23 @@ SV模式同时显示编辑区和预览区：
 2. **循环切换**：点击模式按钮会在三种模式间循环切换
 3. **设置保存**：切换后的模式会自动保存，下次打开文档时恢复
 
+```mermaid
+graph LR
+    A[点击模式按钮] --> B{当前模式}
+    B -->|IR模式| C[切换到WYSIWYG]
+    B -->|WYSIWYG模式| D[切换到SV]
+    B -->|SV模式| E[切换到IR]
+    C --> F[保存设置]
+    D --> F
+    E --> F
+    style A fill:#f3f4f6,stroke:#374151
+    style B fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style D fill:#f3f4f6,stroke:#374151
+    style E fill:#f3f4f6,stroke:#374151
+    style F fill:#f3f4f6,stroke:#374151
+```
+
 ## 实时预览功能
 
 ### 预览模式
@@ -107,11 +141,51 @@ Markdown编辑器支持实时预览：
 - **结构预览**：查看文档的整体结构
 - **层级显示**：显示标题的层级关系
 
+您可以通过侧边栏访问大纲视图：
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+```mermaid
+graph TB
+    A[编辑Markdown文档] --> B[自动提取标题]
+    B --> C[生成大纲树]
+    C --> D[更新侧边栏大纲]
+    D --> E[点击大纲节点]
+    E --> F[跳转到对应位置]
+    style A fill:#f3f4f6,stroke:#374151
+    style B fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style D fill:#f3f4f6,stroke:#374151
+    style E fill:#f3f4f6,stroke:#374151
+    style F fill:#f3f4f6,stroke:#374151
+```
+
 大纲功能详见[[outline.basics|大纲视图功能]]。
+
+您可以通过侧边栏访问大纲视图，侧边栏包含编辑器、大纲等视图切换选项：
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 
 ## 工具栏功能
 
-Markdown编辑器提供丰富的工具栏按钮：
+Markdown编辑器提供丰富的工具栏按钮，位于编辑器顶部：
+
+```mermaid
+graph LR
+    A[工具栏] --> B[文本格式化]
+    A --> C[列表和引用]
+    A --> D[高级功能]
+    B --> E[加粗/斜体/删除线]
+    B --> F[链接/图片]
+    C --> G[有序/无序列表]
+    C --> H[引用/任务列表]
+    D --> I[表格/代码块]
+    D --> J[数学公式/图表]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+```
 
 ### 文本格式化
 

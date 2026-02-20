@@ -18,6 +18,10 @@
 
 标准输出以普通文本显示，帮助您了解编译过程。
 
+控制台输出面板界面如下：
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译开始...", "type": "out"}, {"content": "警告：未定义的引用", "type": "warn"}, {"content": "编译完成", "type": "out"}]' />
+
 ### 输出格式
 
 控制台输出使用不同颜色区分不同类型的信息：

@@ -56,6 +56,23 @@ MetaDoc支持多种文档格式，包括Markdown、LaTeX和纯文本格式。系
 - 简单文本编辑
 - 数据文件编辑
 
+```mermaid
+graph TB
+    A[支持的文档格式] --> B[Markdown]
+    A --> C[LaTeX]
+    A --> D[纯文本]
+    B --> E[.md<br/>.markdown]
+    C --> F[.tex]
+    D --> G[.txt<br/>.json等]
+    E --> H[实时预览<br/>大纲视图<br/>AI补全]
+    F --> I[PDF预览<br/>编译支持<br/>宏包下载]
+    G --> J[语法高亮<br/>代码编辑]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 文件格式检测
 
 ### 自动检测

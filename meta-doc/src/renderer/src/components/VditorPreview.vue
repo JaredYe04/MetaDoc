@@ -134,7 +134,11 @@ const renderMarkdown = async () => {
     }
 
     // 使用统一的 Markdown 预览渲染函数
-    await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown)
+    // 用户手册需要应用 Mermaid 主题适配，其他场景不需要
+    const isManualContext = containerRef.value?.closest('.manual-content') !== null
+    await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown, {
+      applyMermaidTheme: isManualContext
+    })
     
     // 添加链接点击事件监听器，使外部链接在系统浏览器中打开
     setupLinkClickHandler(containerRef.value)

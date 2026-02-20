@@ -21,16 +21,40 @@ const SELF_CLOSING_TAG = /<([A-Z][a-zA-Z0-9]*)(\s+[^/>]*)?\s*\/>/g
 
 /**
  * 解析属性字符串为对象，支持 key="value"、key='value'、key=value
+ * 支持JSON格式的属性值，如 :items='[{"id": "file"}]'
  */
 function parseAttrs(attrStr: string): Record<string, unknown> {
   const attrs: Record<string, unknown> = {}
   if (!attrStr || !attrStr.trim()) return attrs
-  const regex = /(\w+)=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
+  
+  // 先尝试匹配带冒号的属性（Vue绑定语法），如 :items='[...]'
+  const vueBindRegex = /:(\w+)=(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/g
   let m: RegExpExecArray | null
-  while ((m = regex.exec(attrStr)) !== null) {
+  const processedKeys = new Set<string>()
+  
+  while ((m = vueBindRegex.exec(attrStr)) !== null) {
+    const key = m[1]
     const value = m[2] ?? m[3] ?? m[4] ?? ''
-    attrs[m[1]] = value
+    processedKeys.add(key)
+    try {
+      // 尝试解析JSON
+      attrs[key] = JSON.parse(value)
+    } catch {
+      // 如果不是JSON，直接使用字符串值
+      attrs[key] = value
+    }
   }
+  
+  // 再匹配普通属性 key="value"、key='value'、key=value
+  const regex = /(\w+)=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
+  while ((m = regex.exec(attrStr)) !== null) {
+    const key = m[1]
+    // 跳过已经处理的Vue绑定属性
+    if (processedKeys.has(key)) continue
+    const value = m[2] ?? m[3] ?? m[4] ?? ''
+    attrs[key] = value
+  }
+  
   return attrs
 }
 

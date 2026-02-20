@@ -25,6 +25,29 @@ PlantUML图表必须包含：
 - **@startuml**：图表开始标记
 - **@enduml**：图表结束标记
 
+```mermaid
+graph TB
+    A[PlantUML图表] --> B[序列图]
+    A --> C[用例图]
+    A --> D[类图]
+    A --> E[活动图]
+    A --> F[组件图]
+    A --> G[其他UML图]
+    B --> H[@startuml<br/>@enduml]
+    C --> H
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 支持的图表类型
 
 ### 序列图

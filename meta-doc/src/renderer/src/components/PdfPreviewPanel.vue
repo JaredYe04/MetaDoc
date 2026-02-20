@@ -169,8 +169,9 @@ const props = withDefaults(
     pdfUrl: string
     /** 默认每行页数，Home 传 2，LaTeXEditor 不传则 1 */
     defaultPagesPerRow?: number
+    mode?: 'normal' | 'demo'
   }>(),
-  { defaultPagesPerRow: 1 }
+  { defaultPagesPerRow: 1, mode: 'normal' }
 )
 
 const PDF_RENDER_SCALE = 2.5
@@ -241,6 +242,7 @@ function setPageRef(el: any, pageNum: number) {
 }
 
 function setPdfViewMode(mode: 'pointer' | 'hand') {
+  if (props.mode === 'demo') return
   pdfViewMode.value = mode
   nextTick(() => {
     if (pdfPagesWrapper.value) {
@@ -265,35 +267,34 @@ function safeUpdateZoomScale(newScale: number) {
 }
 
 function pdfZoomIn() {
-  if (!isPdfContainerReady()) return
+  if (props.mode === 'demo' || !isPdfContainerReady()) return
   const newScale = Math.min(Math.max(zoomScale.value + 0.1, 0.2), 5)
   safeUpdateZoomScale(calculateOptimalScale(newScale))
 }
 function pdfZoomOut() {
-  if (!isPdfContainerReady()) return
+  if (props.mode === 'demo' || !isPdfContainerReady()) return
   const newScale = Math.min(Math.max(zoomScale.value - 0.1, 0.2), 5)
   safeUpdateZoomScale(calculateOptimalScale(newScale))
 }
 function pdfZoomReset() {
-  if (!isPdfContainerReady()) return
+  if (props.mode === 'demo' || !isPdfContainerReady()) return
   safeUpdateZoomScale(calculateOptimalScale(1.0))
 }
 
 function goPrevPage() {
-  if (currentPdfPage.value > 1) {
-    currentPdfPage.value--
-    inputPdfPage.value = currentPdfPage.value
-    scrollToPage(currentPdfPage.value)
-  }
+  if (props.mode === 'demo' || currentPdfPage.value <= 1) return
+  currentPdfPage.value--
+  inputPdfPage.value = currentPdfPage.value
+  scrollToPage(currentPdfPage.value)
 }
 function goNextPage() {
-  if (currentPdfPage.value < totalPdfPages.value) {
-    currentPdfPage.value++
-    inputPdfPage.value = currentPdfPage.value
-    scrollToPage(currentPdfPage.value)
-  }
+  if (props.mode === 'demo' || currentPdfPage.value >= totalPdfPages.value) return
+  currentPdfPage.value++
+  inputPdfPage.value = currentPdfPage.value
+  scrollToPage(currentPdfPage.value)
 }
 function jumpToPage() {
+  if (props.mode === 'demo') return
   const page = Math.min(Math.max(inputPdfPage.value, 1), totalPdfPages.value)
   currentPdfPage.value = page
   inputPdfPage.value = page

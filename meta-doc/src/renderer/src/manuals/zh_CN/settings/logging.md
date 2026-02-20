@@ -14,11 +14,35 @@
 2. 将开关切换到"启用"状态
 3. 日志会开始记录到文件
 
+您可以通过顶部菜单栏访问日志设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 启用日志后，系统会记录应用的运行信息，包括：
 - 操作记录
 - 错误信息
 - 警告信息
 - 调试信息（如果启用）
+
+```mermaid
+graph TB
+    A[日志配置] --> B[启用日志]
+    B --> C[设置日志级别]
+    C --> D{配置过滤?}
+    D -->|是| E[设置过滤规则]
+    D -->|否| F[设置保留期限]
+    E --> F
+    F --> G[保存配置]
+    G --> H[日志开始记录]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+```
 
 **注意事项**：
 - 日志会占用一定的磁盘空间

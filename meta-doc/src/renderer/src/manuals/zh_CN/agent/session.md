@@ -35,6 +35,10 @@ graph TB
 4. **输入标题**：可选输入会话标题（默认使用第一条消息作为标题）
 5. **开始对话**：输入第一条消息开始与Agent交互
 
+您可以通过侧边栏访问Agent视图：
+
+<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
+
 ### 会话初始化
 
 创建会话时，系统会自动：
@@ -118,6 +122,21 @@ graph TB
 - 公共上下文
 - 执行节点
 
+```mermaid
+graph LR
+    A[导出会话] --> B[选择会话]
+    B --> C[生成JSON文件]
+    C --> D[保存文件]
+    D --> E[包含所有数据]
+    E --> F[消息历史]
+    E --> G[引用素材]
+    E --> H[公共上下文]
+    E --> I[执行节点]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style C fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 导入会话
 
 从JSON文件导入会话：
@@ -128,6 +147,23 @@ graph TB
 4. **导入会话**：导入成功后创建新会话
 
 导入的会话会创建新的会话ID，不会覆盖现有会话。
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant UI as Agent界面
+    participant S as 系统
+    U->>UI: 选择导入
+    UI->>U: 选择JSON文件
+    U->>UI: 确认导入
+    UI->>S: 验证文件格式
+    S->>S: 解析会话数据
+    S->>UI: 创建新会话
+    UI->>U: 显示导入成功
+    style U fill:#f3f4f6,stroke:#374151
+    style UI fill:#f3f4f6,stroke:#374151
+    style S fill:#f3f4f6,stroke:#374151
+```
 
 ## 重试会话
 

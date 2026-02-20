@@ -26,11 +26,21 @@ import { useUserManual } from '../../stores/userManual'
 import { parseInternalLinks } from '../../manuals/utils'
 import { preprocessMarkdownWithDemoPlaceholders } from '../../manuals/demo-mode'
 import { getDemoComponent } from '../../manuals/demo-registry'
+import { themeState } from '../../utils/themes'
+import { mixColors } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'
 import ManualBreadcrumb from './ManualBreadcrumb.vue'
 
 const { locale } = useI18n()
 const { currentArticleContent, currentArticleId, setCurrentArticle, markArticleAsRead } = useUserManual()
+
+// 计算 ViewMenu 活跃状态的背景色和文字颜色（用于 CSS v-bind）
+const activeMenuBgColor = computed(() => {
+  const bg2nd = themeState.currentTheme.background2nd || themeState.currentTheme.background
+  const textColor = themeState.currentTheme.textColor || '#333333'
+  return mixColors(bg2nd, textColor, 0.3)
+})
+const activeMenuTextColor = computed(() => themeState.currentTheme.textColor || '#333333')
 
 // 在 setup 顶层捕获 appContext，事件回调中 getCurrentInstance() 可能为 null
 const capturedAppContext = getCurrentInstance()?.appContext ?? null
@@ -42,8 +52,17 @@ const hasMarkedReadForArticle = ref<string | null>(null)
 const processedContent = computed(() => preprocessMarkdownWithDemoPlaceholders(currentArticleContent.value ?? ''))
 
 const BOTTOM_THRESHOLD = 80
+// 最小内容高度阈值：只有内容高度小于此值时才自动标记为已读（避免误判长文章）
+const MIN_CONTENT_HEIGHT_FOR_AUTO_MARK = 400
 
-function onContentScroll({ scrollTop, scrollLeft }: { scrollTop: number; scrollLeft: number }) {
+// ResizeObserver 用于监听内容高度变化，在高度稳定后检查是否需要自动标记
+let resizeObserver: ResizeObserver | null = null
+let heightCheckTimer: ReturnType<typeof setTimeout> | null = null
+let lastHeight = 0
+
+// 检查内容是否已经全部可见（不需要滚动）
+// 只在内容确实很短且高度稳定时才自动标记为已读，避免误判长文章
+function checkIfContentFullyVisible() {
   const id = currentArticleId.value
   if (!id || hasMarkedReadForArticle.value === id) return
   const scrollbar = scrollbarRef.value?.$el
@@ -51,7 +70,70 @@ function onContentScroll({ scrollTop, scrollLeft }: { scrollTop: number; scrollL
   const wrap = scrollbar.querySelector('.el-scrollbar__wrap') as HTMLElement | null
   if (!wrap) return
   const { scrollHeight, clientHeight } = wrap
-  if (scrollTop + clientHeight >= scrollHeight - BOTTOM_THRESHOLD) {
+  
+  // 只有在内容确实很短（小于阈值）且完全可见时，才自动标记
+  // 这样可以避免误判长文章
+  if (scrollHeight <= MIN_CONTENT_HEIGHT_FOR_AUTO_MARK && scrollHeight <= clientHeight) {
+    hasMarkedReadForArticle.value = id
+    markArticleAsRead(id)
+  }
+}
+
+// 设置 ResizeObserver 监听内容高度变化
+function setupHeightObserver() {
+  // 清理旧的 observer
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+  
+  const scrollbar = scrollbarRef.value?.$el
+  if (!scrollbar) return
+  
+  const wrap = scrollbar.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  if (!wrap) return
+  
+  // 创建 ResizeObserver 监听滚动容器的高度变化
+  resizeObserver = new ResizeObserver(() => {
+    const currentHeight = wrap.scrollHeight
+    
+    // 如果高度发生变化，重置计时器
+    if (currentHeight !== lastHeight) {
+      lastHeight = currentHeight
+      
+      // 清除之前的计时器
+      if (heightCheckTimer) {
+        clearTimeout(heightCheckTimer)
+      }
+      
+      // 高度稳定 1.5 秒后，再检查是否需要自动标记
+      // 这样可以确保图片、图表等异步内容都已加载完成
+      heightCheckTimer = setTimeout(() => {
+        checkIfContentFullyVisible()
+      }, 1500)
+    }
+  })
+  
+  resizeObserver.observe(wrap)
+}
+
+function onContentScroll({ scrollTop, scrollLeft }: { scrollTop: number; scrollLeft: number }) {
+  const id = currentArticleId.value
+  if (!id || hasMarkedReadForArticle.value === id) return
+  
+  // 如果滚动位置在顶部附近（可能是刚切换文章，滚动位置还没重置），不处理
+  // 这样可以避免切换文章时立即误判
+  if (scrollTop < 10) return
+  
+  const scrollbar = scrollbarRef.value?.$el
+  if (!scrollbar) return
+  const wrap = scrollbar.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  if (!wrap) return
+  const { scrollHeight, clientHeight } = wrap
+  
+  // 确保内容高度大于可视区域高度（避免短文章误判）
+  // 只有用户主动滚动到底部时才标记为已读
+  if (scrollHeight > clientHeight && scrollTop + clientHeight >= scrollHeight - BOTTOM_THRESHOLD) {
     hasMarkedReadForArticle.value = id
     markArticleAsRead(id)
   }
@@ -76,8 +158,12 @@ const handleRendered = (container?: HTMLElement | null) => {
   const targetContainer = container ?? document.querySelector('.vditor-preview-container')
   processTimer = setTimeout(() => {
     nextTick(async () => {
+      // 确保滚动位置在顶部（避免切换文章时保留滚动位置）
+      resetScrollPosition()
       processInternalLinks()
       await injectDemoComponents(capturedAppContext, targetContainer as HTMLElement | null)
+      // 设置高度监听器，在内容高度稳定后检查是否需要自动标记
+      setupHeightObserver()
     })
   }, 100)
 }
@@ -134,15 +220,42 @@ function blockDemoEvents(wrapper: HTMLElement) {
   events.forEach((type) => wrapper.addEventListener(type, block, true))
 }
 
+// 重置滚动位置到顶部
+function resetScrollPosition() {
+  nextTick(() => {
+    const scrollbar = scrollbarRef.value?.$el
+    if (!scrollbar) return
+    const wrap = scrollbar.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+    if (!wrap) return
+    wrap.scrollTop = 0
+  })
+}
+
 // 监听内容变化，延迟处理内部链接（等待渲染完成）
 watch([processedContent, currentArticleId], () => {
   hasMarkedReadForArticle.value = null
+  lastHeight = 0 // 重置高度记录
+  
+  // 重置滚动位置到顶部，避免切换文章时保留上一个文章的滚动位置
+  resetScrollPosition()
+  
+  // 清理旧的监听器
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+  if (heightCheckTimer) {
+    clearTimeout(heightCheckTimer)
+    heightCheckTimer = null
+  }
+  
   if (processTimer) {
     clearTimeout(processTimer)
   }
   processTimer = setTimeout(() => {
     nextTick(() => {
       processInternalLinks()
+      // 高度监听器会在 handleRendered 中设置
     })
   }, 200)
 })
@@ -150,6 +263,14 @@ watch([processedContent, currentArticleId], () => {
 onBeforeUnmount(() => {
   if (processTimer) {
     clearTimeout(processTimer)
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+  if (heightCheckTimer) {
+    clearTimeout(heightCheckTimer)
+    heightCheckTimer = null
   }
 })
 
@@ -292,14 +413,24 @@ function processInternalLinks() {
   padding: 8px;
   border: 1px dashed v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.15)"');
   border-radius: 8px;
-  background-color: v-bind('themeState.currentTheme.background2nd || "transparent"');
+  background-color: transparent;
 }
 
 /* 手册内 Demo：样式与交互均在此处统一处理，不依赖各组件内部逻辑 */
 .markdown-preview :deep(.manual-demo-inline) {
+  /* 创建新的定位上下文，让内部 absolute 元素相对于此容器定位（而不是视口） */
   position: relative;
-  width: 100%;
-  overflow: auto;
+  /* 根据内容自适应宽度，不强制 100% */
+  width: fit-content;
+  max-width: 100%;
+  /* 居中显示 */
+  margin: 0 auto;
+  display: block;
+  /* 允许内容完整显示，如果内容过大则允许滚动 */
+  overflow: visible;
+  /* 最小高度确保能容纳组件内容 */
+  min-height: fit-content;
+  /* 保持正常的文档流，不影响内部定位 */
   isolation: isolate;
   /* 阻断指针事件，防止触发组件内业务逻辑（配合 JS 中 blockDemoEvents 的捕获阶段拦截） */
   pointer-events: none;
@@ -309,38 +440,109 @@ function processInternalLinks() {
   pointer-events: none;
 }
 
-/* 任意 Demo 组件根在手册内均强制内联（防止 fixed/absolute 浮层） */
-.markdown-preview :deep(.manual-demo-inline > *) {
+/* 手册内 Demo：只改变定位方式（防止浮层），保持组件原始尺寸和布局 */
+/* QuickStartPanel: 原为 absolute 全屏，改为 relative，让 wrapper 自适应内容高度 */
+.markdown-preview :deep(.manual-demo-inline .quick-start-panel-wrapper) {
   position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  /* wrapper 自适应内容，内部容器保持原始 max-width: 900px, max-height: 600px */
   width: 100% !important;
   height: auto !important;
-  max-height: none;
+  /* 移除 padding，让内部容器居中显示 */
+  padding: 0 !important;
+  /* 确保内部容器能完整显示 */
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 各 Demo 组件根在手册内强制内联展示（覆盖其原有的 fixed/absolute/全屏样式） */
-.markdown-preview :deep(.manual-demo-inline .quick-start-panel-wrapper),
+/* 确保内部容器保持原始尺寸限制（QuickStartPanel 有 max-width/max-height，QuickStartMarkdown/Latex 没有） */
+.markdown-preview :deep(.manual-demo-inline .quick-start-panel-container) {
+  /* QuickStartPanel 的容器：保持原始 max-width: 900px, max-height: 600px */
+  /* QuickStartMarkdown/Latex 的容器：保持 width: 100%, height: 100% */
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .markdown-preview :deep(.manual-demo-inline .quick-start-overlay) {
   position: relative !important;
   top: auto !important;
   left: auto !important;
   right: auto !important;
   bottom: auto !important;
+  /* 保持原始尺寸：width: 70vw, height: 90vh，在手册内改为固定尺寸 */
   width: 100% !important;
+  height: auto !important;
+  min-height: 500px;
+}
+
+/* ViewMenu: 保持原始宽度（120px/64px）和高度（100%），只改定位 */
+.markdown-preview :deep(.manual-demo-inline .view-menu-container) {
+  position: relative !important;
+  /* 保持原始宽度和高度，不强制 100% */
+  width: auto !important;
   height: auto !important;
   min-height: 200px;
-  max-height: 420px;
 }
 
-.markdown-preview :deep(.manual-demo-inline .quick-start-panel-wrapper) {
-  padding: 16px;
+/* ViewMenu: 修复活跃状态的样式，确保背景覆盖整个菜单项 */
+.markdown-preview :deep(.manual-demo-inline .view-menu-container .modern-side-menu) {
+  /* 确保菜单本身有正确的宽度 */
+  width: auto !important;
 }
 
-.markdown-preview :deep(.manual-demo-inline .view-menu-container),
+.markdown-preview :deep(.manual-demo-inline .view-menu-container .el-menu-item) {
+  /* 确保每个菜单项都有正确的宽度和布局 */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+.markdown-preview :deep(.manual-demo-inline .view-menu-container .el-menu-item.is-active) {
+  background-color: v-bind('activeMenuBgColor') !important;
+  color: v-bind('activeMenuTextColor') !important;
+  border-radius: 6px !important;
+  /* 确保背景覆盖整个菜单项 */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 2px 0 !important;
+}
+
+.markdown-preview :deep(.manual-demo-inline .view-menu-container .el-menu-item.is-active::before) {
+  /* 移除 Element Plus 默认的左侧指示条，使用背景色代替 */
+  display: none !important;
+}
+
+.markdown-preview :deep(.manual-demo-inline .view-menu-container .el-menu-item.is-active .icon-wrapper),
+.markdown-preview :deep(.manual-demo-inline .view-menu-container .el-menu-item.is-active span) {
+  /* 确保内部元素正常显示 */
+  position: relative;
+  z-index: 1;
+}
+
+/* MainTabs: 保持原始固定高度（40px），只改定位 */
 .markdown-preview :deep(.manual-demo-inline .main-tabs-wrapper) {
   position: relative !important;
+  /* 保持原始高度：height: 40px; max-height: 40px */
+  height: 40px !important;
+  max-height: 40px !important;
   width: 100% !important;
+}
+
+/* LeftMenu (UIMenu): 保持原始宽度，高度自适应 */
+.markdown-preview :deep(.manual-demo-inline .ui-menu) {
+  position: relative !important;
+  /* 保持原始宽度（通常由组件内部样式控制），高度自适应 */
+  width: auto !important;
   height: auto !important;
-  min-height: 0;
+  min-height: 300px;
 }
 
 .empty-content {

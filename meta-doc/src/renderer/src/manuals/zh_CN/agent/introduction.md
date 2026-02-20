@@ -110,6 +110,34 @@ Agent的基本执行流程：
 8. **迭代循环**：根据引擎类型，可能进行多轮迭代直到完成任务
 9. **结果输出**：将最终结果展示给用户
 
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant S as Agent会话
+    participant C as Agent配置
+    participant E as Agent引擎
+    participant L as LLM
+    participant T as 工具
+    U->>S: 输入消息
+    S->>C: 获取配置
+    C->>E: 选择引擎
+    E->>L: 构建上下文
+    L->>L: 生成回复/工具调用
+    alt 需要调用工具
+        L->>T: 调用工具
+        T->>L: 返回结果
+        L->>L: 处理结果
+    end
+    L->>S: 返回最终结果
+    S->>U: 显示结果
+    style U fill:#f3f4f6,stroke:#374151
+    style S fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style E fill:#f3f4f6,stroke:#374151
+    style L fill:#f3f4f6,stroke:#374151
+    style T fill:#f3f4f6,stroke:#374151
+```
+
 ## 功能特性
 
 ### 核心功能

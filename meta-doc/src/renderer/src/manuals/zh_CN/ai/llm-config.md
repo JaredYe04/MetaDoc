@@ -34,12 +34,36 @@ LLM（大语言模型）是 MetaDoc 中 AI 对话、校对、补全、助手与 
    - 设置温度、是否自动移除推理标签等全局选项
    - 管理多个 LLM 配置（创建、编辑、删除、排序）
 
+您可以通过顶部菜单栏访问LLM设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 ### 配置具体服务
 
 在 **LLM 配置管理** 中选择或新建一条配置，并按服务类型填写：
 
 - **MetaDoc API / Ollama / OpenAI 兼容 / OpenAI 官方 / DeepSeek / Gemini** 等  
   详细字段与步骤见 [[settings.llm-types|LLM类型配置]]（API 地址、API Key、模型名、最大 Token 等）。
+
+```mermaid
+graph TB
+    A[LLM配置] --> B[启用LLM]
+    B --> C[配置管理]
+    C --> D{选择服务类型}
+    D -->|MetaDoc API| E[选择模型]
+    D -->|Ollama| F[配置API URL<br/>选择模型]
+    D -->|OpenAI兼容| G[配置API URL<br/>API Key<br/>选择模型]
+    D -->|其他类型| H[配置对应参数]
+    E --> I[保存配置]
+    F --> I
+    G --> I
+    H --> I
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style I fill:#e5e7eb,stroke:#6b7280
+```
 
 ### 使用建议
 

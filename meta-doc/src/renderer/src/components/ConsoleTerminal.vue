@@ -119,6 +119,11 @@ const props = defineProps({
   initialDirectory: {
     type: String,
     default: ''
+  },
+  mode: {
+    type: String,
+    default: 'normal',
+    validator: (value: string) => ['normal', 'demo'].includes(value)
   }
 })
 
@@ -1216,6 +1221,7 @@ const appendToLastLine = (content: string, type: ConsoleLineType = 'out') => {
 }
 
 const clearConsole = () => {
+  if (props.mode === 'demo') return
   lines.value = []
   const editor = getEditor()
   if (editor) {
@@ -1225,6 +1231,7 @@ const clearConsole = () => {
 }
 
 const copyConsole = () => {
+  if (props.mode === 'demo') return
   const text = lines.value.map((l) => l.content).join('\n')
   navigator.clipboard.writeText(text).then(() => {
     eventBus.emit('show-success', t('console.copiedToClipboard'))
@@ -1232,6 +1239,7 @@ const copyConsole = () => {
 }
 
 const saveConsole = async () => {
+  if (props.mode === 'demo') return
   const text = lines.value.map((l) => l.content).join('\n')
 
   try {

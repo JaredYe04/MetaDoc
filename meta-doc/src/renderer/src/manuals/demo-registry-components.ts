@@ -10,6 +10,14 @@ import QuickStartPanel from '../components/home/QuickStartPanel.vue'
 import QuickStartMarkdown from '../components/home/QuickStartMarkdown.vue'
 import QuickStartLatex from '../components/home/QuickStartLatex.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
+import MenuItemsDemo from '../components/manual/MenuItemsDemo.vue'
+import ViewMenuItemsDemo from '../components/manual/ViewMenuItemsDemo.vue'
+import TitleMenu from '../components/TitleMenu.vue'
+import SectionOptimizer from '../components/SectionOptimizer.vue'
+import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
+import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
+import ConsoleTerminal from '../components/ConsoleTerminal.vue'
+import MetaInfoPanel from '../components/MetaInfoPanel.vue'
 import { registerDemoComponent } from './demo-registry'
 
 registerDemoComponent('LeftMenu', LeftMenu)
@@ -19,3 +27,11 @@ registerDemoComponent('QuickStartPanel', QuickStartPanel)
 registerDemoComponent('QuickStartMarkdown', QuickStartMarkdown)
 registerDemoComponent('QuickStartLatex', QuickStartLatex)
 registerDemoComponent('ResizableDivider', ResizableDivider)
+registerDemoComponent('MenuItemsDemo', MenuItemsDemo)
+registerDemoComponent('ViewMenuItemsDemo', ViewMenuItemsDemo)
+registerDemoComponent('TitleMenu', TitleMenu)
+registerDemoComponent('SectionOptimizer', SectionOptimizer)
+registerDemoComponent('SearchReplaceMenu', SearchReplaceMenu)
+registerDemoComponent('PdfPreviewPanel', PdfPreviewPanel)
+registerDemoComponent('ConsoleTerminal', ConsoleTerminal)
+registerDemoComponent('MetaInfoPanel', MetaInfoPanel)

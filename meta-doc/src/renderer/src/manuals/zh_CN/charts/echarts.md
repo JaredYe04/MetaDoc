@@ -39,6 +39,27 @@ ECharts配置必须是有效的JSON：
 - **英文标点**：使用英文逗号、冒号、引号
 - **配置完整**：包含必要的配置项
 
+```mermaid
+graph TB
+    A[ECharts图表] --> B[折线图]
+    A --> C[柱状图]
+    A --> D[饼图]
+    A --> E[散点图]
+    A --> F[其他图表]
+    B --> G[JSON配置]
+    C --> G
+    D --> G
+    E --> G
+    F --> G
+    G --> H[title<br/>xAxis<br/>yAxis<br/>series]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 支持的图表类型
 
 ### 折线图

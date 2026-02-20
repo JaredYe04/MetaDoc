@@ -98,6 +98,30 @@
 4. **添加附件**：可选，添加附件
 5. **提交反馈**：点击"提交反馈"按钮
 
+您可以通过设置页面访问用户反馈：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+```mermaid
+graph TB
+    A[用户反馈] --> B[选择反馈类型]
+    B --> C[填写标题]
+    C --> D[填写详细描述]
+    D --> E{添加附件?}
+    E -->|是| F[上传附件]
+    E -->|否| G[提交反馈]
+    F --> G
+    G --> H[反馈已提交]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 提交验证
 
 提交前会进行验证：

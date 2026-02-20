@@ -14,6 +14,10 @@ LLM（大语言模型）配置是MetaDoc AI功能的核心设置。通过配置L
 2. 将开关切换到"启用"状态
 3. 系统会自动加载默认的LLM配置
 
+您可以通过顶部菜单栏访问设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 启用LLM后，您才能使用以下AI功能：
 - AI对话
 - AI校对

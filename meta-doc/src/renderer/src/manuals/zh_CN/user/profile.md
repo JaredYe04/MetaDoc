@@ -25,6 +25,27 @@
 5. **LaTeX编辑器经验**：选择使用过的LaTeX编辑器类型
 6. **Agent使用经验**：评估Agent框架使用经验
 
+```mermaid
+graph TB
+    A[用户资料设置] --> B[使用场景选择]
+    B --> C[Markdown熟练度]
+    C --> D[Markdown编辑器经验]
+    D --> E[LaTeX熟练度]
+    E --> F[LaTeX编辑器经验]
+    F --> G[Agent使用经验]
+    G --> H[保存资料]
+    H --> I[生成学习路径]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+    style I fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 使用场景选择
 
 ### 场景类型

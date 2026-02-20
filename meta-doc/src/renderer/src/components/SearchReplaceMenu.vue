@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div
     ref="panelRef"
     class="search-replace-panel"
@@ -257,7 +257,12 @@ const logger = createRendererLogger('SearchReplaceMenu')
 const props = defineProps<{
   position: { top: number; left: number }
   adapter: TextEditorAdapter | null
+  mode?: 'normal' | 'demo'
 }>()
+
+withDefaults(props, {
+  mode: 'normal'
+})
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -501,6 +506,7 @@ watch(
 )
 
 const handleFind = (direction: 'next' | 'previous') => {
+  if (props.mode === 'demo') return
   if (!props.adapter || !canSearch.value) return
   logger.debug('handleFind', direction)
   const state = props.adapter.find(direction)
@@ -508,7 +514,7 @@ const handleFind = (direction: 'next' | 'previous') => {
 }
 
 const handleFindFromStart = () => {
-  if (!props.adapter || !canSearch.value) return
+  if (props.mode === 'demo' || !props.adapter || !canSearch.value) return
   logger.debug('handleFindFromStart')
   // 先移动到文档开头
   props.adapter.goTo({ line: 1, column: 1 })
@@ -569,7 +575,7 @@ const handleFindFromStart = () => {
 }
 
 const handleReplace = () => {
-  if (!props.adapter || !canReplace.value) return
+  if (props.mode === 'demo' || !props.adapter || !canReplace.value) return
   const state = props.adapter.replaceCurrent(form.replaceText)
   searchState.value = state
 
@@ -615,6 +621,7 @@ const handleReplace = () => {
 }
 
 const handleReplaceAll = () => {
+  if (props.mode === 'demo') return
   if (!props.adapter || !canReplace.value) return
   const { state, replacedCount } = props.adapter.replaceAll(form.replaceText)
   searchState.value = state
@@ -629,6 +636,7 @@ const handleReplaceAll = () => {
 }
 
 const handleFindAll = () => {
+  if (props.mode === 'demo') return
   if (!props.adapter || !canSearch.value) return
   const state = props.adapter.getSearchState()
   searchState.value = state
@@ -903,6 +911,7 @@ const matchesScrollbarStyle = computed(() => {
 })
 
 const handleReset = () => {
+  if (props.mode === 'demo') return
   // 只重置搜索结果，不清除搜索和替换文本
   regexError.value = null
   props.adapter?.clearSearch()
@@ -915,6 +924,7 @@ const handleReset = () => {
 }
 
 const handleClose = () => {
+  if (props.mode === 'demo') return
   props.adapter?.clearSearch()
   userSelectedIndex.value = null // 清除用户选择标记
   eventBus.emit('search-replace-closed')

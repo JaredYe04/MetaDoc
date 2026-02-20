@@ -31,7 +31,7 @@ MetaDoc的主界面包含以下区域：
 
 **顶部菜单栏**
 
-<LeftMenu mode="demo" />
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}, {"id": "edit", "items": ["undo", "redo", "find"]}, {"id": "view", "items": ["editor", "outline"]}]' />
 
 **标签页栏**
 
@@ -39,7 +39,7 @@ MetaDoc的主界面包含以下区域：
 
 **侧边栏**
 
-<ViewMenu mode="demo" />
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "home"]' />
 
 ```mermaid
 graph TB

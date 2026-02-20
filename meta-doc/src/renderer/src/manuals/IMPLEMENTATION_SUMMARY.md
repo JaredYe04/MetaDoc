@@ -1,14 +1,43 @@
 # 用户手册系统重构实现总结
 
-## 📌 当前状态说明（2026-02 更新）
+## 📌 当前状态说明（2026-02-20 更新）
 
-用户手册各篇**初稿已具备**，但内容较简略，尚未完全符合规范。需要**全面完善**：
+### Demo 模式实现状态：✅ 已完成
+
+用户手册的 **Demo 模式（组件嵌入）功能已完全实现**：
+
+- ✅ **组件注入机制**：实现了在 Markdown 中嵌入真实 Vue 组件的完整流程
+  - 占位符预处理：`manuals/demo-mode.ts` 将 `<ComponentName mode="demo" />` 替换为占位符 div
+  - 后渲染注入：Vditor 渲染完成后，`ManualContent.vue` 的 `injectDemoComponents()` 将占位符替换为真实组件
+  - 样式适配：组件容器根据内容自适应大小并居中显示，所有样式在手册层统一处理（不修改组件代码）
+  - 交互阻断：通过事件拦截（`blockDemoEvents()`）和 CSS `pointer-events: none` 防止触发业务逻辑
+- ✅ **Mermaid 主题适配**：用户手册中的 Mermaid 图表自动适配亮色/暗色主题（仅在手册中生效）
+- ✅ **标杆文档**：`quick-start/guide.md` 已完善，包含图表和 Demo 组件，可作为编写参考
+
+### 文档完善状态：🚧 进行中
+
+用户手册各篇**初稿已具备**，但需要按照标杆文档的标准**全面完善**：
 
 - **图表**：在合适位置补充 Mermaid / PlantUML 图表（流程、结构、关系等）。
 - **Demo 组件**：文档中**提到了哪些界面控件，就嵌入并展示哪些真实组件**（如顶部菜单栏 → `<LeftMenu mode="demo" />`，标签页栏 → `<MainTabs mode="demo" />`，侧边栏 → `<ViewMenu mode="demo" />`，快速开始向导 → `<QuickStartPanel mode="demo" />`、`<QuickStartMarkdown mode="demo" />`、`<QuickStartLatex mode="demo" />` 等），使用户边看文档边对照真实 UI 操作。**不要在用户可见的文档中写「Demo 模式：仅展示…」等说明性废话。**
 - **内容与结构**：按 `WRITING_GUIDE.md` 与 `USER_MANUAL_INDEX.md` 补全功能点、示例与注意事项。
 
-**进度**：所有文档按「初稿完成 / 待完善」统计；完善标准为：含图表、含 Demo 组件（若适用）、内容完整符合索引要求。
+**完善标准**：含图表、含 Demo 组件（若适用）、内容完整符合索引要求。参考 `quick-start/guide.md` 作为标杆。
+
+**当前进度（2026-02-20更新）**：
+- ✅ **已完善文档**：40篇（包含图表和Demo组件，已根据新规范更新组件使用）
+  - 核心编辑器文档：markdown/editor.md, markdown/basics.md, markdown/advanced.md, core/file-operations.md, core/editor-basics.md, core/editor-settings.md, core/multi-tab.md, core/multi-window.md, core/export.md, core/document-metadata.md
+  - LaTeX文档：latex/editor.md, latex/basics.md, latex/compilation.md, latex/pdf-preview.md, latex/console.md
+  - AI功能文档：ai/chat.md, ai/proofread.md, ai/completion.md, ai/assistants.md, ai/llm-config.md, ai/task-queue.md
+  - Agent框架文档：agent/introduction.md, agent/session.md, agent/config.md, agent/tools.md, agent/workflow.md
+  - 设置文档：settings/basic.md, settings/theme.md, settings/theme-custom.md, settings/llm.md, settings/llm-types.md, settings/llm-management.md, settings/language.md, settings/menu.md, settings/image.md, settings/image-upload.md, settings/logging.md, settings/about.md
+  - 大纲文档：outline/basics.md, outline/ai-features.md
+  - Markdown功能文档：markdown/features.md
+  - 图表文档：charts/introduction.md, charts/mermaid.md, charts/plantuml.md, charts/echarts.md
+  - 统计文档：statistics/llm.md, statistics/proofread.md
+  - 其他文档：home/features.md, workspace/management.md, views/types.md, features/paragraph-optimization.md, knowledge-base/management.md, knowledge-base/config.md, knowledge-base/usage.md, editor/plain-text.md, shortcuts/editor.md, shortcuts/global.md, user/profile.md, user/feedback.md, formats/supported.md, development/debug.md
+- 🚧 **待完善文档**：约20篇（已有初稿，需添加图表和Demo组件）
+- ✅ **新增组件**：创建了MenuItemsDemo和ViewMenuItemsDemo组件，用于展示特定的菜单项（而非完整菜单）
 
 ---
 
@@ -65,13 +94,20 @@
 - ✅ **面包屑导航**：显示用户浏览历史
 - ✅ **搜索功能**：支持标题和标签搜索（内容搜索待实现）
 
-### 6. 组件 Demo 模式（沙箱）
+### 6. 组件 Demo 模式（沙箱）- ✅ 已完全实现
 
 - ✅ **可执行文档**：文档中**描述到哪个界面控件，就嵌入哪个真实 Vue 组件**（如顶部菜单栏 → LeftMenu、标签页栏 → MainTabs、侧边栏 → ViewMenu、快速开始 → QuickStartPanel / QuickStartMarkdown / QuickStartLatex），使用 `mode="demo"` 沙箱运行，用户边看文档边看真实 UI。
 - ✅ **占位符方案**：`manuals/demo-mode.ts` 将 `<ComponentName mode="demo" />` 替换为占位 div，整篇由 Vditor 渲染（Mermaid 等不破坏），渲染完成后再将占位 div 替换为 Vue 组件注入。
 - ✅ **组件注册**：`manuals/demo-registry.ts` 注册 LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex、ResizableDivider 等；新增组件需支持 `mode?: 'normal' | 'demo'` 并在此注册。
-- ✅ **ManualContent**：统一用 Vditor 渲染；渲染完成后 `injectDemoComponents()` 在占位 div 上挂载真实组件。
-- ✅ **已支持 demo 的组件**：LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex（demo 下不触发真实导航/文件/事件）。
+- ✅ **ManualContent 注入**：统一用 Vditor 渲染；渲染完成后 `injectDemoComponents()` 在占位 div 上挂载真实组件，使用 `manual-demo-inline` 包装容器。
+- ✅ **样式适配**：所有样式在 `ManualContent.vue` 中统一处理，组件容器自适应大小并居中显示，不修改组件代码。
+- ✅ **交互阻断**：通过 `blockDemoEvents()` 事件拦截和 CSS `pointer-events: none` 防止触发业务逻辑。
+- ✅ **Mermaid 主题适配**：用户手册中的 Mermaid 图表自动适配主题（仅在手册中生效，通过 `applyMermaidThemeToContainer()` 实现）。
+- ✅ **已支持 demo 的组件**：LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex、MenuItemsDemo、ViewMenuItemsDemo、TitleMenu、SectionOptimizer、SearchReplaceMenu、PdfPreviewPanel、ConsoleTerminal、MetaInfoPanel（demo 下不触发真实导航/文件/事件）。
+- ✅ **菜单项组件**：创建了MenuItemsDemo和ViewMenuItemsDemo组件，用于只显示文档中提到的特定菜单项，而非完整菜单组件。
+- ✅ **编辑器组件**：注册了TitleMenu、SectionOptimizer、SearchReplaceMenu等编辑器相关组件，用于展示编辑器功能。
+- ✅ **LaTeX组件**：注册了PdfPreviewPanel、ConsoleTerminal组件，用于展示LaTeX编辑器的PDF预览和控制台功能。
+- ✅ **元信息组件**：注册了MetaInfoPanel组件，用于展示文档元信息面板。
 - **约束**：不复制组件代码、不维护 Mock 副本；文档与组件单一来源；**用户可见文档中不要写「Demo 模式：仅展示…」等废话。**
 
 ### 7. 文档编写规范
@@ -685,34 +721,34 @@ src/renderer/src/manuals/
 
 **注意**：
 - 此统计基于 `USER_MANUAL_INDEX.md` 的完整结构
-- **已完成文档**：
-  - ✅ `quick-start/guide.md` - 快速开始指南（已添加图表）
+- **已完成文档**（按新规范完善，包含图表和Demo组件）：
+  - ✅ `quick-start/guide.md` - 快速开始指南（已完善：图表+Demo组件）
   - ✅ `markdown/basics.md` - Markdown语法
-  - ✅ `markdown/editor.md` - Markdown编辑器使用指南
-  - ✅ `markdown/features.md` - Markdown编辑器功能（已添加图表）
+  - ✅ `markdown/editor.md` - Markdown编辑器使用指南（已完善：图表+Demo组件）
+  - ✅ `markdown/features.md` - Markdown编辑器功能（已完善：图表+Demo组件）
   - ✅ `latex/basics.md` - LaTeX语法
-  - ✅ `latex/editor.md` - LaTeX编辑器使用指南
+  - ✅ `latex/editor.md` - LaTeX编辑器使用指南（已完善：图表）
   - ✅ `latex/compilation.md` - LaTeX编译与预览（已添加图表）
   - ✅ `latex/pdf-preview.md` - PDF预览功能
   - ✅ `latex/console.md` - 控制台输出（已添加图表）
   - ✅ `editor/plain-text.md` - 纯文本编辑器
-  - ✅ `core/file-operations.md` - 文件操作（已添加图表）
+  - ✅ `core/file-operations.md` - 文件操作（已完善：图表+Demo组件）
   - ✅ `core/document-metadata.md` - 文档元信息（已添加图表）
   - ✅ `core/export.md` - 导出功能（已添加图表）
-  - ✅ `core/editor-basics.md` - 编辑器基础操作
-  - ✅ `core/editor-settings.md` - 编辑器设置
+  - ✅ `core/editor-basics.md` - 编辑器基础操作（已完善：图表）
+  - ✅ `core/editor-settings.md` - 编辑器设置（已完善：图表+Demo组件）
   - ✅ `core/multi-tab.md` - 多标签页管理（已添加图表）
-  - ✅ `outline/basics.md` - 大纲视图功能（已添加图表）
+  - ✅ `outline/basics.md` - 大纲视图功能（已完善：图表+Demo组件）
   - ✅ `outline/ai-features.md` - 大纲AI功能（已添加图表）
-  - ✅ `ai/chat.md` - AI对话功能
-  - ✅ `ai/proofread.md` - AI校对功能
-  - ✅ `ai/completion.md` - AI自动补全
+  - ✅ `ai/chat.md` - AI对话功能（已完善：图表+Demo组件）
+  - ✅ `ai/proofread.md` - AI校对功能（已完善：图表+Demo组件）
+  - ✅ `ai/completion.md` - AI自动补全（已完善：图表+Demo组件）
   - ✅ `ai/assistants.md` - AI助手功能
-  - ✅ `agent/introduction.md` - Agent框架概述
-  - ✅ `agent/session.md` - Agent会话管理
+  - ✅ `agent/introduction.md` - Agent框架概述（已完善：图表）
+  - ✅ `agent/session.md` - Agent会话管理（已完善：图表+Demo组件）
   - ✅ `agent/config.md` - Agent配置管理
   - ✅ `agent/tools.md` - 工具集管理
-  - ✅ `settings/basic.md` - 基础设置
+  - ✅ `settings/basic.md` - 基础设置（已完善：图表+Demo组件）
   - ✅ `settings/llm.md` - LLM配置
   - ✅ `settings/llm-management.md` - LLM配置管理
   - ✅ `settings/llm-types.md` - LLM类型配置
@@ -748,6 +784,7 @@ src/renderer/src/manuals/
   - ✅ `charts/plantuml.md` - PlantUML图表
   - ✅ `charts/echarts.md` - ECharts图表
 - **所有文档已完成编写！** ✅
+- **已按新规范完善的文档**：13篇（包含图表和Demo组件）
 - 所有文档必须严格按照 `USER_MANUAL_INDEX.md` 的结构和内容要求编写
 - **重要**：编写完文档后，必须更新本文档中的进度统计
 
@@ -764,5 +801,14 @@ src/renderer/src/manuals/
 
 ---
 
-**最后更新**: 2026-02-19  
-**版本**: 1.0.0
+**最后更新**: 2026-02-20  
+**版本**: 1.1.0
+
+---
+
+## 📘 相关文档
+
+- **`AGENT_WRITING_GUIDE.md`** - AI Agent 编写提示词（供新的 agent 参考，包含完整的编写指南和检查清单）
+- **`WRITING_GUIDE.md`** - 详细的编写规范
+- **`USER_MANUAL_INDEX.md`** - 完整的文档索引结构
+- **标杆文档**：`zh_CN/quick-start/guide.md` - 快速开始指南（已完善，包含图表和 Demo 组件，可作为编写参考）

@@ -13,6 +13,26 @@ MetaDoc支持两种Embedding模式：
 - **外部API模式**：使用外部API服务生成向量嵌入
 - **本地模型模式**：使用本地模型生成向量嵌入（当前暂不可用）
 
+您可以通过顶部菜单栏访问知识库设置：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+```mermaid
+graph TB
+    A[知识库配置] --> B{Embedding模式}
+    B -->|外部API| C[SiliconFlow API]
+    B -->|本地模型| D[本地模型]
+    C --> E[配置API]
+    D --> F[选择模型]
+    E --> G[生成向量]
+    F --> G
+    G --> H[存储到知识库]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#f3f4f6,stroke:#374151
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 外部API模式
 
 外部API模式使用SiliconFlow API服务生成向量嵌入：

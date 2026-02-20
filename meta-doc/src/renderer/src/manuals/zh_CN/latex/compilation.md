@@ -87,6 +87,10 @@ PDF预览面板提供以下功能：
 
 详见[[latex.pdf-preview|PDF预览功能]]。
 
+PDF预览面板界面如下：
+
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
 ## 控制台输出
 
 ### 编译日志
@@ -96,6 +100,10 @@ PDF预览面板提供以下功能：
 - **标准输出**：编译过程的正常输出
 - **错误信息**：编译错误和警告信息
 - **实时更新**：编译过程中实时更新日志
+
+控制台输出面板界面如下：
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译开始...", "type": "out"}, {"content": "正在下载宏包: amsmath", "type": "out"}, {"content": "警告: 未定义的引用", "type": "warn"}, {"content": "编译完成", "type": "out"}]' />
 
 ### 错误信息
 

@@ -16,6 +16,27 @@ Markdown是一种轻量级标记语言，允许您使用易读易写的纯文本
 ### 三级标题
 ```
 
+```mermaid
+graph LR
+    A[Markdown语法] --> B[标题]
+    A --> C[段落]
+    A --> D[列表]
+    A --> E[引用]
+    A --> F[代码]
+    A --> G[链接和图片]
+    A --> H[表格]
+    A --> I[数学公式]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+    style H fill:#e5e7eb,stroke:#6b7280
+    style I fill:#e5e7eb,stroke:#6b7280
+```
+
 ### 段落
 
 段落之间使用空行分隔。

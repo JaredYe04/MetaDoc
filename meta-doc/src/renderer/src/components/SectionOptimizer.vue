@@ -6,7 +6,7 @@
         plain
         size="small"
         type="danger"
-        @click="$emit('close')"
+        @click="props.mode === 'demo' ? undefined : $emit('close')"
         class="aero-btn"
         style="float: inline-start"
         @mousedown.prevent
@@ -215,7 +215,12 @@ const props = defineProps<{
   adapter: SectionOptimizerAdapter
   language: 'markdown' | 'latex'
   sectionInfo?: SectionInfo // 可选的初始sectionInfo
+  mode?: 'normal' | 'demo'
 }>()
+
+withDefaults(props, {
+  mode: 'normal'
+})
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -266,6 +271,7 @@ const pushDialogToDocument = (dialog: any) => {
 }
 
 const accept = async (append = false) => {
+  if (props.mode === 'demo') return
   let content = generatedText.value
   if (content.length > 0 && content[content.length - 1] !== '\n') {
     content += '\n'
@@ -368,6 +374,7 @@ const accept = async (append = false) => {
 }
 
 const generate = async () => {
+  if (props.mode === 'demo') return
   const outlineNode = currentOutline.value
   if (!outlineNode) return
   generating.value = true
@@ -413,6 +420,7 @@ const generate = async () => {
 }
 
 const chat = async () => {
+  if (props.mode === 'demo') return
   const outlineNode = currentOutline.value
   if (!outlineNode) return
   const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode)

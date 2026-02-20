@@ -17,6 +17,28 @@ Monaco Editor为LaTeX编辑提供了以下特性：
 - **小地图预览**：右侧显示代码缩略图，快速浏览文档结构
 - **多光标编辑**：支持多光标同时编辑
 
+```mermaid
+graph TB
+    A[Monaco编辑器] --> B[语法高亮]
+    A --> C[自动补全]
+    A --> D[代码折叠]
+    A --> E[行号显示]
+    A --> F[小地图预览]
+    A --> G[多光标编辑]
+    B --> H[LaTeX命令/环境/注释]
+    C --> I[命令提示]
+    D --> J[折叠代码块]
+    E --> K[定位代码位置]
+    F --> L[快速浏览文档]
+    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
+    style B fill:#e5e7eb,stroke:#6b7280
+    style C fill:#e5e7eb,stroke:#6b7280
+    style D fill:#e5e7eb,stroke:#6b7280
+    style E fill:#e5e7eb,stroke:#6b7280
+    style F fill:#e5e7eb,stroke:#6b7280
+    style G fill:#e5e7eb,stroke:#6b7280
+```
+
 ## 代码高亮和语法提示
 
 ### 语法高亮
@@ -169,6 +191,10 @@ Monaco编辑器支持多光标同时编辑：
 - **快捷键**：`Ctrl+H` 打开查找替换对话框
 - **单个替换**：逐个替换匹配的文本
 - **全部替换**：一次性替换所有匹配的文本
+
+查找替换菜单界面如下：
+
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 
 ### 高级选项
 

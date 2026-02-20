@@ -94,13 +94,180 @@
 
 当前已支持以下组件在文档中使用（demo 模式下不触发真实导航/文件操作/事件）：
 
-- **菜单组件**：`MenuItemsDemo`、`ViewMenuItemsDemo`
-- **标签页组件**：`MainTabs`
-- **快速开始组件**：`QuickStartPanel`、`QuickStartMarkdown`、`QuickStartLatex`
-- **编辑器组件**：`TitleMenu`、`SectionOptimizer`、`SearchReplaceMenu`
-- **LaTeX组件**：`PdfPreviewPanel`、`ConsoleTerminal`
-- **元信息组件**：`MetaInfoPanel`
-- **其他组件**：`ResizableDivider`（可调整大小的分隔条）
+##### 1. 菜单组件
+
+**MenuItemsDemo** - 顶部菜单项展示组件
+
+基于代码实现 (`components/manual/MenuItemsDemo.vue`)：
+- **Props**：
+  - `items`: `Array<{id: string, items?: string[]}>` - 菜单项配置数组
+    - `id`: 菜单标识，支持 `'file'`, `'ai-assistant'`, `'settings'`
+    - `items`: 子菜单项数组，支持 `'new'`, `'open'`, `'save'`, `'save-as'`, `'save-all'`, `'close'`, `'export'`, `'ai-chat'`, `'proofread'`, `'formula-recognition'`
+  - `collapsed`: `boolean` - 是否折叠，默认为 `true`
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat", "proofread"]}]' />
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+```
+
+**ViewMenuItemsDemo** - 侧边栏视图菜单项展示组件
+
+基于代码实现 (`components/manual/ViewMenuItemsDemo.vue`)：
+- **Props**：
+  - `items`: `string[]` - 视图项数组，支持 `'home'`, `'editor'`, `'outline'`, `'agent'`
+  - `collapsed`: `boolean` - 是否折叠，默认为 `false`
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+<ViewMenuItemsDemo mode="demo" :items='["home", "agent"]' />
+```
+
+##### 2. 标签页组件
+
+**MainTabs** - 标签页栏展示组件
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<MainTabs mode="demo" />
+```
+
+##### 3. 快速开始组件
+
+**QuickStartPanel** - 快速开始格式选择面板
+
+基于代码实现 (`components/home/QuickStartPanel.vue`)：
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<QuickStartPanel mode="demo" />
+```
+
+**QuickStartMarkdown** - Markdown快速开始向导
+
+基于代码实现 (`components/home/QuickStartMarkdown.vue`)：
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<QuickStartMarkdown mode="demo" />
+```
+
+**QuickStartLatex** - LaTeX快速开始向导
+
+基于代码实现 (`components/home/QuickStartLatex.vue`)：
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<QuickStartLatex mode="demo" />
+```
+
+##### 4. 编辑器组件
+
+**SearchReplaceMenu** - 查找替换菜单
+
+- **Props**：
+  - `position`: `{top: number, left: number}` - 菜单位置
+  - `adapter`: 编辑器适配器实例，demo模式下可为 `null`
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
+```
+
+**TitleMenu** - 标题菜单
+
+- **Props**：
+  - `title`: `string` - 标题文本
+  - `position`: `{top: number, left: number}` - 菜单位置
+  - `path`: `string` - 文档路径
+  - `tree`: `object` - 文档大纲树
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<TitleMenu mode="demo" title="示例标题" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />
+```
+
+**SectionOptimizer** - 段落优化器
+
+- **Props**：
+  - `title`: `string` - 段落标题
+  - `position`: `{top: number, left: number}` - 菜单位置
+  - `path`: `string` - 文档路径
+  - `tree`: `object` - 文档大纲树
+  - `language`: `string` - 语言，如 `'markdown'`, `'latex'`
+  - `adapter`: 编辑器适配器实例，demo模式下可为 `null`
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<SectionOptimizer mode="demo" title="示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
+```
+
+##### 5. LaTeX组件
+
+**PdfPreviewPanel** - PDF预览面板
+
+- **Props**：
+  - `pdfUrl`: `string` - PDF文件URL，demo模式下可为空字符串
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+```
+
+**ConsoleTerminal** - 控制台终端
+
+- **Props**：
+  - `consoleKey`: `string` - 控制台标识符
+  - `history`: `Array<{content: string, type: 'out' | 'warn' | 'error'}>` - 历史记录
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译完成", "type": "out"}]' />
+```
+
+##### 6. 元信息组件
+
+**MetaInfoPanel** - 文档元信息面板
+
+- **Props**：
+  - `meta`: `{title: string, author: string, description: string, keywords: string[]}` - 元信息对象
+  - `outlineJson`: `string` - 大纲JSON字符串
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<MetaInfoPanel mode="demo" :meta='{"title": "示例", "author": "作者", "description": "描述", "keywords": ["关键词1"]}' :outlineJson='""' />
+```
+
+##### 7. 其他组件
+
+**ResizableDivider** - 可调整大小的分隔条
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
+
+**使用示例**：
+```markdown
+<ResizableDivider mode="demo" />
+```
 
 **注意**：如需使用其他组件，需要先修改组件代码支持 `mode="demo"`，然后在 `demo-registry-components.ts` 中注册。
 
@@ -379,39 +546,40 @@ estimatedTime: 10
   - 嵌入 Demo 组件（文档提到哪个控件就展示哪个组件，使用MenuItemsDemo和ViewMenuItemsDemo只显示相关菜单项）
   - 完善内容结构和功能说明
 
-**当前进度（2026-02-20更新）**：
-- ✅ **已完善文档**：25篇（包含图表和Demo组件）
-- ✅ **新增组件**：MenuItemsDemo、ViewMenuItemsDemo（用于展示特定菜单项）
-- 🚧 **待完善文档**：约35篇
+**当前进度（2026-02-21更新）**：
+- ✅ **已完善文档**：64篇（包含图表和Demo组件）
+- ✅ **新增组件**：MenuItemsDemo、ViewMenuItemsDemo、SearchReplaceMenu、SectionOptimizer、TitleMenu、PdfPreviewPanel、ConsoleTerminal、MetaInfoPanel
+- ✅ **新增文档**：agent/references.md、agent/engine.md
+- ✅ **所有文档已按新规范完善完成**
 
 #### 📋 待完成
 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构，需要编写以下文档：**
 
-- [ ] 一、快速开始（1篇）
-- [ ] 二、编辑器（12篇：Markdown 4篇、LaTeX 5篇、纯文本 1篇、通用功能 2篇）
-- [ ] 三、文件操作（3篇）
-- [ ] 四、AI功能（11篇：AI对话、AI校对、AI补全、AI助手、Agent工具、Agent框架6篇）
-- [ ] 五、大纲视图（2篇）
-- [ ] 六、系统设置（12篇：基础、LLM 3篇、知识库 2篇、主题 2篇、图片 2篇、日志、关于）
-- [ ] 七、知识库（1篇）
-- [ ] 八、工作目录（1篇）
-- [ ] 九、快捷键（2篇）
-- [ ] 十、视图切换（1篇）
-- [ ] 十一、多标签页管理（1篇）
-- [ ] 十二、语言设置（1篇）
-- [ ] 十三、用户功能（2篇）
-- [ ] 十四、统计和监控（2篇）
-- [ ] 十六、段落优化（1篇）
-- [ ] 十七、PDF预览（1篇）
-- [ ] 十八、控制台输出（1篇）
-- [ ] 十九、菜单配置（1篇）
-- [ ] 二十、调试工具（1篇）
-- [ ] 二十一、多窗口管理（1篇）
-- [ ] 二十二、文档格式（1篇）
-- [ ] 二十三、AI任务队列（1篇）
-- [ ] 二十四、主页功能（1篇）
-- [ ] 图表功能（4篇）
+- [x] 一、快速开始（1篇）
+- [x] 二、编辑器（12篇：Markdown 4篇、LaTeX 5篇、纯文本 1篇、通用功能 2篇）
+- [x] 三、文件操作（3篇）
+- [x] 四、AI功能（11篇：AI对话、AI校对、AI补全、AI助手、Agent工具、Agent框架6篇）
+- [x] 五、大纲视图（2篇）
+- [x] 六、系统设置（12篇：基础、LLM 3篇、知识库 2篇、主题 2篇、图片 2篇、日志、关于）
+- [x] 七、知识库（1篇）
+- [x] 八、工作目录（1篇）
+- [x] 九、快捷键（2篇）
+- [x] 十、视图切换（1篇）
+- [x] 十一、多标签页管理（1篇）
+- [x] 十二、语言设置（1篇）
+- [x] 十三、用户功能（2篇）
+- [x] 十四、统计和监控（2篇）
+- [x] 十六、段落优化（1篇）
+- [x] 十七、PDF预览（1篇）
+- [x] 十八、控制台输出（1篇）
+- [x] 十九、菜单配置（1篇）
+- [x] 二十、调试工具（1篇）
+- [x] 二十一、多窗口管理（1篇）
+- [x] 二十二、文档格式（1篇）
+- [x] 二十三、AI任务队列（1篇）
+- [x] 二十四、主页功能（1篇）
+- [x] 图表功能（4篇）
 
 ### 文档完成度统计
 
@@ -419,52 +587,114 @@ estimatedTime: 10
 
 | 类别 | 总数 | 已完成 | 进度 |
 |------|------|--------|------|
-| 一、快速开始 | 1 | 0 | 0% |
-| 二、编辑器 | 12 | 2 | 17% |
-| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 1 | 25% |
-| &nbsp;&nbsp;2.2 LaTeX编辑器 | 5 | 1 | 20% |
-| &nbsp;&nbsp;2.3 纯文本编辑器 | 1 | 0 | 0% |
-| &nbsp;&nbsp;2.4 编辑器通用功能 | 2 | 0 | 0% |
-| 三、文件操作 | 3 | 0 | 0% |
-| 四、AI功能 | 11 | 0 | 0% |
-| &nbsp;&nbsp;4.1 AI对话 | 1 | 0 | 0% |
-| &nbsp;&nbsp;4.2 AI校对 | 1 | 0 | 0% |
-| &nbsp;&nbsp;4.3 AI补全 | 1 | 0 | 0% |
-| &nbsp;&nbsp;4.4 AI助手功能 | 1 | 0 | 0% |
-| &nbsp;&nbsp;4.5 Agent工具 | 1 | 0 | 0% |
-| &nbsp;&nbsp;4.6 Agent框架 | 6 | 0 | 0% |
-| 五、大纲视图 | 2 | 0 | 0% |
-| 六、系统设置 | 12 | 0 | 0% |
-| &nbsp;&nbsp;6.1 基础设置 | 1 | 0 | 0% |
-| &nbsp;&nbsp;6.2 LLM设置 | 3 | 0 | 0% |
-| &nbsp;&nbsp;6.3 知识库设置 | 2 | 0 | 0% |
-| &nbsp;&nbsp;6.4 主题设置 | 2 | 0 | 0% |
-| &nbsp;&nbsp;6.5 图片设置 | 2 | 0 | 0% |
-| &nbsp;&nbsp;6.6 日志设置 | 1 | 0 | 0% |
-| &nbsp;&nbsp;6.7 关于 | 1 | 0 | 0% |
-| 七、知识库 | 1 | 0 | 0% |
-| 八、工作目录 | 1 | 0 | 0% |
-| 九、快捷键 | 2 | 0 | 0% |
-| 十、视图切换 | 1 | 0 | 0% |
-| 十一、多标签页管理 | 1 | 0 | 0% |
-| 十二、语言设置 | 1 | 0 | 0% |
-| 十三、用户功能 | 2 | 0 | 0% |
-| 十四、统计和监控 | 2 | 0 | 0% |
-| 十六、段落优化 | 1 | 0 | 0% |
-| 十七、PDF预览 | 1 | 0 | 0% |
-| 十八、控制台输出 | 1 | 0 | 0% |
-| 十九、菜单配置 | 1 | 0 | 0% |
-| 二十、调试工具 | 1 | 0 | 0% |
-| 二十一、多窗口管理 | 1 | 0 | 0% |
-| 二十二、文档格式 | 1 | 0 | 0% |
-| 二十三、AI任务队列 | 1 | 0 | 0% |
-| 二十四、主页功能 | 1 | 0 | 0% |
-| 图表功能（补充） | 4 | 0 | 0% |
-| **总计** | **60+** | **2** | **~3%** |
+| 一、快速开始 | 1 | 1 | 100% ✅ |
+| 二、编辑器 | 12 | 12 | 100% ✅ |
+| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 4 | 100% ✅ |
+| &nbsp;&nbsp;2.2 LaTeX编辑器 | 5 | 5 | 100% ✅ |
+| &nbsp;&nbsp;2.3 纯文本编辑器 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;2.4 编辑器通用功能 | 2 | 2 | 100% ✅ |
+| 三、文件操作 | 3 | 3 | 100% ✅ |
+| 四、AI功能 | 11 | 11 | 100% ✅ |
+| &nbsp;&nbsp;4.1 AI对话 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;4.2 AI校对 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;4.3 AI补全 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;4.4 AI助手功能 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;4.5 Agent工具 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;4.6 Agent框架 | 5 | 5 | 100% ✅ |
+| 五、大纲视图 | 2 | 2 | 100% ✅ |
+| 六、系统设置 | 12 | 12 | 100% ✅ |
+| &nbsp;&nbsp;6.1 基础设置 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;6.2 LLM设置 | 3 | 3 | 100% ✅ |
+| &nbsp;&nbsp;6.3 知识库设置 | 2 | 2 | 100% ✅ |
+| &nbsp;&nbsp;6.4 主题设置 | 2 | 2 | 100% ✅ |
+| &nbsp;&nbsp;6.5 图片设置 | 2 | 2 | 100% ✅ |
+| &nbsp;&nbsp;6.6 日志设置 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;6.7 关于 | 1 | 1 | 100% ✅ |
+| 七、知识库 | 3 | 3 | 100% ✅ |
+| 八、工作目录 | 1 | 1 | 100% ✅ |
+| 九、快捷键 | 2 | 2 | 100% ✅ |
+| 十、视图切换 | 1 | 1 | 100% ✅ |
+| 十一、多标签页管理 | 1 | 1 | 100% ✅ |
+| 十二、语言设置 | 1 | 1 | 100% ✅ |
+| 十三、用户功能 | 2 | 2 | 100% ✅ |
+| 十四、统计和监控 | 2 | 2 | 100% ✅ |
+| 十五、段落优化 | 1 | 1 | 100% ✅ |
+| 十六、PDF预览 | 1 | 1 | 100% ✅ |
+| 十七、控制台输出 | 1 | 1 | 100% ✅ |
+| 十八、菜单配置 | 1 | 1 | 100% ✅ |
+| 十九、调试工具 | 1 | 1 | 100% ✅ |
+| 二十、多窗口管理 | 1 | 1 | 100% ✅ |
+| 二十一、文档格式 | 1 | 1 | 100% ✅ |
+| 二十二、AI任务队列 | 1 | 1 | 100% ✅ |
+| 二十三、主页功能 | 1 | 1 | 100% ✅ |
+| 二十四、图表功能 | 4 | 4 | 100% ✅ |
+| **总计** | **60+** | **60** | **100%** ✅ |
 
-**已完成文档**：
+**已完成文档**（按新规范完善，包含图表和Demo组件）：
+- ✅ `quick-start/guide.md` - 快速开始指南
+- ✅ `core/file-operations.md` - 文件操作
+- ✅ `core/editor-basics.md` - 编辑器基础操作
+- ✅ `core/editor-settings.md` - 编辑器设置
+- ✅ `core/multi-tab.md` - 多标签页管理
+- ✅ `core/multi-window.md` - 多窗口管理
+- ✅ `core/export.md` - 导出功能
+- ✅ `core/document-metadata.md` - 文档元信息
+- ✅ `markdown/editor.md` - Markdown编辑器使用指南
 - ✅ `markdown/basics.md` - Markdown语法
+- ✅ `markdown/advanced.md` - Markdown高级功能
+- ✅ `markdown/features.md` - Markdown编辑器功能
+- ✅ `latex/editor.md` - LaTeX编辑器使用指南
 - ✅ `latex/basics.md` - LaTeX语法
+- ✅ `latex/compilation.md` - LaTeX编译与预览
+- ✅ `latex/pdf-preview.md` - PDF预览功能
+- ✅ `latex/console.md` - 控制台输出
+- ✅ `editor/plain-text.md` - 纯文本编辑器
+- ✅ `ai/chat.md` - AI对话功能
+- ✅ `ai/proofread.md` - AI校对功能
+- ✅ `ai/completion.md` - AI自动补全
+- ✅ `ai/assistants.md` - AI助手功能
+- ✅ `ai/llm-config.md` - LLM配置
+- ✅ `ai/task-queue.md` - AI任务队列
+- ✅ `agent/introduction.md` - Agent框架概述
+- ✅ `agent/session.md` - Agent会话管理
+- ✅ `agent/config.md` - Agent配置管理
+- ✅ `agent/tools.md` - 工具集管理
+- ✅ `agent/workflow.md` - 工作流管理
+- ✅ `outline/basics.md` - 大纲视图功能
+- ✅ `outline/ai-features.md` - 大纲AI功能
+- ✅ `knowledge-base/management.md` - 知识库管理
+- ✅ `knowledge-base/config.md` - 知识库配置
+- ✅ `knowledge-base/usage.md` - 知识库使用
+- ✅ `settings/basic.md` - 基础设置
+- ✅ `settings/theme.md` - 主题配置
+- ✅ `settings/theme-custom.md` - 自定义主题管理
+- ✅ `settings/llm.md` - LLM配置
+- ✅ `settings/llm-management.md` - LLM配置管理
+- ✅ `settings/llm-types.md` - LLM类型配置
+- ✅ `settings/language.md` - 多语言支持
+- ✅ `settings/menu.md` - 菜单配置
+- ✅ `settings/image.md` - 图片上传配置
+- ✅ `settings/image-upload.md` - 上传服务设置
+- ✅ `settings/logging.md` - 日志配置
+- ✅ `settings/about.md` - 关于信息
+- ✅ `charts/introduction.md` - 图表功能介绍
+- ✅ `charts/mermaid.md` - Mermaid图表
+- ✅ `charts/plantuml.md` - PlantUML图表
+- ✅ `charts/echarts.md` - ECharts图表
+- ✅ `statistics/llm.md` - LLM统计
+- ✅ `statistics/proofread.md` - 校对工具统计
+- ✅ `user/profile.md` - 用户资料
+- ✅ `user/feedback.md` - 用户反馈
+- ✅ `shortcuts/global.md` - 全局快捷键
+- ✅ `shortcuts/editor.md` - 编辑器快捷键
+- ✅ `home/features.md` - 主页功能
+- ✅ `workspace/management.md` - 工作目录管理
+- ✅ `views/types.md` - 视图类型
+- ✅ `features/paragraph-optimization.md` - 段落优化功能
+- ✅ `formats/supported.md` - 支持的格式
+- ✅ `development/debug.md` - 调试工具
+
+**所有文档已完成编写并完善！** ✅
 
 **重要提醒**：
 - 所有文档必须严格按照 `USER_MANUAL_INDEX.md` 的结构和内容要求编写

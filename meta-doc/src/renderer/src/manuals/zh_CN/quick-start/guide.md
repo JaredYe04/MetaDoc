@@ -43,13 +43,19 @@ MetaDoc的主界面采用现代化的三栏式布局，包含以下区域：
 
 **顶部菜单栏**
 
+位于窗口最上方，包含文件、编辑、视图等主菜单，提供应用级操作入口。您可以通过菜单栏执行新建、打开、保存文档，以及访问各种编辑和视图功能。
+
 <MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}, {"id": "edit", "items": ["undo", "redo", "find"]}, {"id": "view", "items": ["editor", "outline"]}]' />
 
 **标签页栏**
 
+位于菜单栏下方，显示当前打开的所有文档标签。您可以通过点击标签切换文档，拖拽标签调整顺序，或右键点击标签进行更多操作（如关闭、固定、移动到新窗口等）。
+
 <MainTabs mode="demo" />
 
 **侧边栏**
+
+位于编辑器左侧，提供多种辅助功能面板的入口。您可以通过侧边栏在编辑器视图、大纲视图、Agent视图等之间快速切换，提高文档编辑效率。
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "home"]' />
 

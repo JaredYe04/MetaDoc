@@ -10,36 +10,75 @@ Agent框架基于已有的Tool系统构建，通过工作流（Workflow）、Age
 
 ### 架构分层
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        UI层 (Vue组件)                            │
-│  AgentToolResultCard, RAGToolDisplay, EditDisplay等             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────────┐
-│                     Agent工具层 (agent-tools)                    │
-│  20+内置工具: edit, grep, rag, chart, outline, proofread等      │
-│  统一接口: AgentToolConfig, ToolCallback                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────────┐
-│                   Agent框架核心 (agent-framework)                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │ Config管理   │  │ Session管理  │  │ Tool集管理   │             │
-│  │ (CRUD+持久化)│  │ (生命周期)   │  │ (工具组织)   │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │ Workflow引擎 │  │ Agent引擎    │  │ LLM适配器    │             │
-│  │ (图执行)     │  │ (5种范式)    │  │ (多提供商)   │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────────┐
-│                      基础设施层                                   │
-│  存储: localStorage + IndexedDB + SQLite                        │
-│  通信: IPC (Electron) + eventBus                                │
-│  LLM: OpenAI/Ollama/Gemini/DeepSeek/MetaDoc                     │
-└─────────────────────────────────────────────────────────────────┘
+```plantuml
+@startuml
+!define RECTANGLE class
+
+package "UI层" {
+    RECTANGLE VueComponents {
+        AgentToolResultCard
+        RAGToolDisplay
+        EditDisplay
+    }
+}
+
+package "Agent工具层" {
+    RECTANGLE AgentTools {
+        20+内置工具: edit, grep, rag
+        chart, outline, proofread等
+        --
+        统一接口: AgentToolConfig
+        ToolCallback
+    }
+}
+
+package "Agent框架核心" {
+    RECTANGLE ConfigManager {
+        Config管理
+        (CRUD+持久化)
+    }
+    RECTANGLE SessionManager {
+        Session管理
+        (生命周期)
+    }
+    RECTANGLE ToolCollectionManager {
+        Tool集管理
+        (工具组织)
+    }
+    RECTANGLE WorkflowEngine {
+        Workflow引擎
+        (图执行)
+    }
+    RECTANGLE AgentEngine {
+        Agent引擎
+        (5种范式)
+    }
+    RECTANGLE LLMAdapter {
+        LLM适配器
+        (多提供商)
+    }
+}
+
+package "基础设施层" {
+    RECTANGLE Infrastructure {
+        存储: localStorage + IndexedDB + SQLite
+        通信: IPC (Electron) + eventBus
+        LLM: OpenAI/Ollama/Gemini/DeepSeek/MetaDoc
+    }
+}
+
+VueComponents --> AgentTools
+AgentTools --> ConfigManager
+AgentTools --> SessionManager
+AgentTools --> ToolCollectionManager
+ConfigManager --> WorkflowEngine
+ConfigManager --> AgentEngine
+ConfigManager --> LLMAdapter
+WorkflowEngine --> Infrastructure
+AgentEngine --> Infrastructure
+LLMAdapter --> Infrastructure
+
+@enduml
 ```
 
 ### 核心文件路径
@@ -231,12 +270,6 @@ sequenceDiagram
     end
     L->>S: 返回最终结果
     S->>U: 显示结果
-    style U fill:#f3f4f6,stroke:#374151
-    style S fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
-    style L fill:#f3f4f6,stroke:#374151
-    style T fill:#f3f4f6,stroke:#374151
 ```
 
 ## 功能特性

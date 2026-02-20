@@ -207,17 +207,16 @@ import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { getSetting } from '../utils/settings'
 import { extractOuterJsonString } from '../utils/regex-utils'
 
-const props = defineProps<{
-  meta: ArticleMetaData
-  markdown?: string | null
-  latex?: string | null
-  outlineJson: string
-  mode?: 'normal' | 'demo'
-}>()
-
-withDefaults(props, {
-  mode: 'normal'
-})
+const props = withDefaults(
+  defineProps<{
+    meta: ArticleMetaData
+    markdown?: string | null
+    latex?: string | null
+    outlineJson: string
+    mode?: 'normal' | 'demo'
+  }>(),
+  { mode: 'normal' }
+)
 
 const emit = defineEmits<{
   (e: 'update-meta', patch: Partial<ArticleMetaData>): void

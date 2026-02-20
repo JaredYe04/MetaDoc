@@ -254,15 +254,14 @@ import { generateMatchContext } from '../utils/match-context'
 
 const logger = createRendererLogger('SearchReplaceMenu')
 
-const props = defineProps<{
-  position: { top: number; left: number }
-  adapter: TextEditorAdapter | null
-  mode?: 'normal' | 'demo'
-}>()
-
-withDefaults(props, {
-  mode: 'normal'
-})
+const props = withDefaults(
+  defineProps<{
+    position: { top: number; left: number }
+    adapter: TextEditorAdapter | null
+    mode?: 'normal' | 'demo'
+  }>(),
+  { mode: 'normal' }
+)
 
 const emit = defineEmits<{
   (e: 'close'): void

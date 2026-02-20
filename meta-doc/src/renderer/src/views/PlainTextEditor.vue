@@ -168,6 +168,7 @@ import { debounce } from 'lodash'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import { getMonacoLanguage } from '../utils/format-initializer'
+import messageBridge from '../bridge/message-bridge'
 
 const { t } = useI18n()
 const logger = createRendererLogger('PlainTextEditor', {
@@ -698,24 +699,13 @@ const handleConsoleInput = async (payload: any) => {
   if (!command) return
 
   try {
-    const ipcRenderer =
-      window.electron?.ipcRenderer ||
-      (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
-    if (!ipcRenderer?.invoke) {
-      eventBus.emit('console-err', {
-        key: 'plaintext',
-        content: '错误: IPC 不可用，无法执行命令\n'
-      })
-      return
-    }
-
     // 生成 invocationId
     const invocationId = `plaintext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     currentInvocationId.value = invocationId
 
     // 执行命令（不等待完成，支持交互式输入）
     // 传递consoleKey，主进程会使用维护的 cwd 状态
-    const result = (await ipcRenderer.invoke('execute-terminal-command', {
+    const result = (await messageBridge.invoke('execute-terminal-command', {
       command,
       invocationId,
       consoleKey: 'plaintext'
@@ -827,15 +817,10 @@ onMounted(async () => {
     eventBus.on('console-input', handleConsoleInput)
 
     // 监听终端输出流和事件（如果主进程支持）
-    const ipcRenderer =
-      window.electron?.ipcRenderer ||
-      (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
-    if (ipcRenderer) {
-      ipcRenderer.on('terminal-stdout-stream', handleTerminalStdoutStream)
-      ipcRenderer.on('terminal-stderr-stream', handleTerminalStderrStream)
-      ipcRenderer.on('terminal-close', handleTerminalClose)
-      ipcRenderer.on('terminal-error', handleTerminalError)
-    }
+    messageBridge.on('terminal-stdout-stream', handleTerminalStdoutStream)
+    messageBridge.on('terminal-stderr-stream', handleTerminalStderrStream)
+    messageBridge.on('terminal-close', handleTerminalClose)
+    messageBridge.on('terminal-error', handleTerminalError)
 
     eventBus.on('sync-editor-theme', () => {
       const isDark = themeState.currentTheme.type === 'dark'
@@ -877,13 +862,10 @@ onUnmounted(() => {
   eventBus.off('console-input', handleConsoleInput)
 
   // 移除终端输出流监听
-  const ipcRenderer = window.electron?.ipcRenderer || (window as any).localIpcRenderer
-  if (ipcRenderer) {
-    ipcRenderer.removeListener('terminal-stdout-stream', handleTerminalStdoutStream)
-    ipcRenderer.removeListener('terminal-stderr-stream', handleTerminalStderrStream)
-    ipcRenderer.removeListener('terminal-close', handleTerminalClose)
-    ipcRenderer.removeListener('terminal-error', handleTerminalError)
-  }
+  messageBridge.removeListener('terminal-stdout-stream', handleTerminalStdoutStream)
+  messageBridge.removeListener('terminal-stderr-stream', handleTerminalStderrStream)
+  messageBridge.removeListener('terminal-close', handleTerminalClose)
+  messageBridge.removeListener('terminal-error', handleTerminalError)
 
   if (contentChangeListener) {
     contentChangeListener.dispose()

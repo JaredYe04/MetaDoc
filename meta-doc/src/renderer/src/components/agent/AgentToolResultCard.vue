@@ -143,6 +143,7 @@ import {
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../utils/monaco-worker-config'
 import { createRendererLogger } from '../../utils/logger'
+import messageBridge from '../../bridge/message-bridge'
 
 const props = defineProps<{
   message: ToolAgentMessage
@@ -751,26 +752,13 @@ const exportSnapshot = async () => {
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
 
-    // 获取 IPC 渲染器用于保存文件
-    let ipcRenderer: any = null
-    if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const localIpcRenderer = (await import('../../utils/web-adapter/local-ipc-renderer')).default
-      ipcRenderer = localIpcRenderer
-    }
-
-    if (!ipcRenderer) {
-      throw new Error('无法获取 IPC 渲染器')
-    }
-
     const fileName = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
 
     const logger = createRendererLogger('AgentToolResultCard')
     logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
 
-    // 调用保存文件对话框
-    const result = await ipcRenderer.invoke('save-json-file', serialized, fileName)
+    // 通过消息桥调用保存文件对话框
+    const result = await messageBridge.invoke('save-json-file', serialized, fileName)
 
     logger.debug('[导出快照] 保存文件对话框返回结果:', result)
 

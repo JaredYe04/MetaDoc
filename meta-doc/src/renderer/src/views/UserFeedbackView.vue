@@ -136,6 +136,7 @@ import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import ImagePreviewDialog from '../components/common/ImagePreviewDialog.vue'
+import messageBridge from '../bridge/message-bridge'
 
 // 与 Gist 能力一致：单文件 raw 可至约 10 MB，最多 5 个附件
 const SINGLE_FILE_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -221,7 +222,7 @@ async function injectSystemInfoFromMain(): Promise<void> {
   let ram = 'N/A'
   let gpu = 'N/A'
   try {
-    const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
+    const ipc = messageBridge.getIpc()
     if (ipc?.invoke) {
       const info = await ipc.invoke('get-system-info')
       if (info) {
@@ -435,13 +436,13 @@ async function handleSubmit() {
   submitting.value = true
   uploadedAttachmentIndices.value = []
   try {
-    const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
+    const ipc = messageBridge.getIpc()
     if (!ipc?.invoke) {
       ElMessage.error(t('userFeedback.errors.noIpc'))
       return
     }
     const attachmentsJson = JSON.stringify(attachmentBase64List.value)
-    await ipc.invoke('trigger-feedback-workflow', {
+    await messageBridge.invoke('trigger-feedback-workflow', {
       title: form.value.title.trim(),
       type: form.value.type,
       body,
@@ -467,13 +468,10 @@ async function handleSubmit() {
 let feedbackAttachmentUploadedHandler: ((_e: any, index: number) => void) | null = null
 
 onMounted(async () => {
-  const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
-  if (ipc?.on) {
-    feedbackAttachmentUploadedHandler = (_e: any, index: number) => {
-      uploadedAttachmentIndices.value = [...uploadedAttachmentIndices.value, index]
-    }
-    ipc.on('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
+  feedbackAttachmentUploadedHandler = (_e: any, index: number) => {
+    uploadedAttachmentIndices.value = [...uploadedAttachmentIndices.value, index]
   }
+  messageBridge.on('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
   setupMonacoWorker()
   if (!editorContainer.value) return
   const template = await buildBodyTemplate()
@@ -513,9 +511,8 @@ watch(submitting, (v) => {
 })
 
 onBeforeUnmount(() => {
-  const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
-  if (ipc?.removeListener && feedbackAttachmentUploadedHandler) {
-    ipc.removeListener('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
+  if (feedbackAttachmentUploadedHandler) {
+    messageBridge.removeListener('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
     feedbackAttachmentUploadedHandler = null
   }
   if (editor) {

@@ -1178,15 +1178,8 @@ async function confirmExport() {
     return
   }
   try {
-    // 获取 IPC 渲染器
-    let ipcRenderer = null
-    if (window && window.electron) {
-      ipcRenderer = window.electron.ipcRenderer
-    } else {
-      const localIpcRenderer = (await import('../utils/web-adapter/local-ipc-renderer.ts')).default
-      ipcRenderer = localIpcRenderer
-    }
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('无法获取 IPC 渲染器')
     }
 
@@ -1210,7 +1203,7 @@ async function confirmExport() {
       const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
       const imageUrl = `${baseUrl}/images/${uploaded}`
 
-      const saveResult = (await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg')) as {
+      const saveResult = (await messageBridge.invoke('save-image-file', imageUrl, 'formula.svg')) as {
         success: boolean
         error?: string
       }
@@ -1230,7 +1223,7 @@ async function confirmExport() {
         reader.readAsDataURL(pngBlob)
       })
 
-      const result = (await ipcRenderer.invoke('save-image-file', dataUrl, 'formula.png')) as {
+      const result = (await messageBridge.invoke('save-image-file', dataUrl, 'formula.png')) as {
         success: boolean
         error?: string
       }
@@ -1262,7 +1255,7 @@ async function confirmExport() {
       const m = converted.match(/!\[.*?\]\((.+?)\)/)
       const svgPath = m ? m[1] : imageUrl
 
-      const convertResult = (await ipcRenderer.invoke('convert-svg-to-pdf', svgPath)) as {
+      const convertResult = (await messageBridge.invoke('convert-svg-to-pdf', svgPath)) as {
         success: boolean
         pdfPath?: string
         error?: string
@@ -1270,7 +1263,7 @@ async function confirmExport() {
       if (!convertResult.success || !convertResult.pdfPath) {
         throw new Error(convertResult.error || 'SVG 转 PDF 失败')
       }
-      const saveResult = (await ipcRenderer.invoke(
+      const saveResult = (await messageBridge.invoke(
         'save-image-file',
         convertResult.pdfPath,
         'formula.pdf'

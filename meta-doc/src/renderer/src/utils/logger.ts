@@ -23,13 +23,12 @@ import {
   LoggerConfig,
   DEFAULT_LOGGER_CONFIG
 } from '../../../common/logger-constants'
-import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
-import { webMainCalls } from './web-adapter/web-main-calls.js'
+import messageBridge from '../bridge/message-bridge'
 
 declare global {
   interface Window {
     electron?: {
-      ipcRenderer?: typeof localIpcRenderer
+      ipcRenderer?: unknown
     }
     console: Console
   }
@@ -70,17 +69,6 @@ const consoleMethodMap: Record<LogLevel, ConsoleMethod> = {
   info: 'info',
   warn: 'warn',
   error: 'error'
-}
-
-let ipcRenderer: typeof localIpcRenderer | null = null
-
-if (typeof window !== 'undefined') {
-  if (window.electron?.ipcRenderer) {
-    ipcRenderer = window.electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
 }
 
 const state: {
@@ -150,12 +138,12 @@ const shouldLog = (level: LogLevel, scope?: string): boolean => {
 }
 
 const ensureConfigLoaded = async () => {
-  if (state.initialized || !ipcRenderer || typeof ipcRenderer.invoke !== 'function') {
+  if (state.initialized || !messageBridge.getIpc()?.invoke) {
     return
   }
 
   try {
-    const remoteConfig = await ipcRenderer.invoke('get-logger-config')
+    const remoteConfig = await messageBridge.invoke('get-logger-config')
     if (remoteConfig) {
       state.config = {
         ...state.config,
@@ -169,8 +157,8 @@ const ensureConfigLoaded = async () => {
   }
 }
 
-if (ipcRenderer && typeof ipcRenderer.on === 'function') {
-  ipcRenderer.on('logger-config-updated', (_event, config: LoggerConfig) => {
+if (messageBridge.getIpc()?.on) {
+  messageBridge.on('logger-config-updated', (_event, config: LoggerConfig) => {
     state.config = {
       ...state.config,
       ...config
@@ -185,7 +173,7 @@ const logThroughConsole = (level: LogLevel, message: string) => {
 }
 
 const dispatch = async (payload: LogPayload, level: LogLevel, formattedMessage: string) => {
-  if (!ipcRenderer || typeof ipcRenderer.send !== 'function') {
+  if (!messageBridge.getIpc()?.send) {
     logThroughConsole(level, formattedMessage)
     return
   }
@@ -198,7 +186,7 @@ const dispatch = async (payload: LogPayload, level: LogLevel, formattedMessage: 
     return
   }
 
-  ipcRenderer.send('logger-log', payload)
+  messageBridge.send('logger-log', payload)
   logThroughConsole(level, formattedMessage)
 }
 
@@ -429,12 +417,12 @@ const normalizeHistoryEntry = (entry: any): LoggerHistoryEntry | null => {
 }
 
 export const fetchLoggerHistory = async (): Promise<LoggerHistoryEntry[]> => {
-  if (!ipcRenderer || typeof ipcRenderer.invoke !== 'function') {
+  if (!messageBridge.getIpc()?.invoke) {
     return [...historyCache]
   }
 
   try {
-    const data = await ipcRenderer.invoke('get-logger-history')
+    const data = await messageBridge.invoke('get-logger-history')
     if (Array.isArray(data)) {
       historyCache.splice(0, historyCache.length)
       data.forEach((item) => {

@@ -20,6 +20,7 @@ import { cancelAiTask } from '../ai_tasks'
 import { ref } from 'vue'
 import TerminalExecutionDisplay from './components/TerminalExecutionDisplay.vue'
 import { createDetailedError } from './tool-utils'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('TerminalTool')
 
@@ -206,13 +207,11 @@ async function executeCommand(
   invocationId?: string,
   onStreamUpdate?: (type: 'stdout' | 'stderr', data: string) => void
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const ipcRenderer = (window as any).electron?.ipcRenderer || null
-
-  if (!ipcRenderer) {
+  const ipc = messageBridge.getIpc()
+  if (!ipc) {
     throw new Error('终端执行功能仅在Electron环境中可用')
   }
 
-  // 设置流式输出监听器
   if (invocationId && onStreamUpdate) {
     const stdoutHandler = (
       _event: any,
@@ -232,17 +231,16 @@ async function executeCommand(
       }
     }
 
-    ipcRenderer.on('terminal-stdout-stream', stdoutHandler)
-    ipcRenderer.on('terminal-stderr-stream', stderrHandler)
+    messageBridge.on('terminal-stdout-stream', stdoutHandler)
+    messageBridge.on('terminal-stderr-stream', stderrHandler)
 
-    // 清理函数
     const cleanup = () => {
-      ipcRenderer.removeListener('terminal-stdout-stream', stdoutHandler)
-      ipcRenderer.removeListener('terminal-stderr-stream', stderrHandler)
+      messageBridge.removeListener('terminal-stdout-stream', stdoutHandler)
+      messageBridge.removeListener('terminal-stderr-stream', stderrHandler)
     }
 
     try {
-      const result = await ipcRenderer.invoke('execute-terminal-command', {
+      const result = await messageBridge.invoke('execute-terminal-command', {
         command,
         cwd,
         timeout,
@@ -256,9 +254,8 @@ async function executeCommand(
       throw error
     }
   } else {
-    // 不支持流式输出的旧方式
     try {
-      const result = await ipcRenderer.invoke('execute-terminal-command', {
+      const result = await messageBridge.invoke('execute-terminal-command', {
         command,
         cwd,
         timeout,

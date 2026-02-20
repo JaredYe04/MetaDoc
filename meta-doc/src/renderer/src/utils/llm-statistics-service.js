@@ -3,10 +3,9 @@
  * 管理 LLM API 的 token 用量和请求次数统计
  */
 
-import localIpcRenderer from './web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from './logger.ts'
 
-// 懒加载logger，避免初始化顺序问题
 let loggerInstance = null
 
 function getLogger() {
@@ -16,19 +15,12 @@ function getLogger() {
   return loggerInstance
 }
 
-let ipcRenderer = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
-}
-
 /**
  * 获取统计文件路径
  */
 async function getStatisticsFilePath() {
   try {
-    const resourcesPath = await ipcRenderer.invoke('resources-path')
+    const resourcesPath = await messageBridge.invoke('resources-path')
     // 在 renderer 进程中，路径拼接使用字符串操作
     const separator = resourcesPath.includes('\\') ? '\\' : '/'
     return `${resourcesPath}${separator}llm-statistics.json`
@@ -46,7 +38,7 @@ async function loadStatistics() {
     const filePath = await getStatisticsFilePath()
 
     // 读取文件内容，如果文件不存在则返回 null
-    const content = await ipcRenderer.invoke('read-file-content', filePath)
+    const content = await messageBridge.invoke('read-file-content', filePath)
 
     // 如果文件不存在或内容为空，返回默认值
     if (!content || content === null) {
@@ -89,7 +81,7 @@ async function saveStatistics(data) {
   try {
     const filePath = await getStatisticsFilePath()
     const content = JSON.stringify(data, null, 2)
-    await ipcRenderer.invoke('write-file-content', { filePath, content })
+    await messageBridge.invoke('write-file-content', { filePath, content })
   } catch (error) {
     getLogger().error('保存统计数据失败:', error)
     throw error

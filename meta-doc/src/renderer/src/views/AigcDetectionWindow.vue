@@ -302,6 +302,7 @@ import { useWorkspace } from '../stores/workspace'
 import VditorPreview from '../components/VditorPreview.vue'
 import ResizableContainer from '../components/base/ResizableContainer.vue'
 import eventBus from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import { ref as vueRef } from 'vue'
 
@@ -1270,16 +1271,6 @@ const handleFileChange = async (file: any) => {
     } else {
       // pdf/doc/docx：保存到 reference 后通过 adapter 解析
       const fileContent = await file.raw.arrayBuffer()
-      let ipcRenderer: any = null
-      if (typeof window !== 'undefined') {
-        if ((window as any).electron?.ipcRenderer) {
-          ipcRenderer = (window as any).electron.ipcRenderer
-        } else {
-          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-          ipcRenderer = localIpcRenderer
-        }
-      }
-      if (!ipcRenderer) throw new Error('IPC渲染器不可用')
       const uint8Array = new Uint8Array(fileContent)
       const chunkSize = 8192
       let base64 = ''
@@ -1288,7 +1279,7 @@ const handleFileChange = async (file: any) => {
         base64 += String.fromCharCode.apply(null, Array.from(chunk))
       }
       base64 = btoa(base64)
-      const filePath = (await ipcRenderer.invoke('save-reference-file', {
+      const filePath = (await messageBridge.invoke('save-reference-file', {
         filename: fileName,
         content: base64
       })) as string

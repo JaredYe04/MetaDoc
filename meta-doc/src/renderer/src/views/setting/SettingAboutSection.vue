@@ -157,7 +157,7 @@ import { useI18n } from 'vue-i18n'
 import { getAppVersion } from '../../utils/version'
 import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 import { isDevEnvironment } from '../../utils/dev-env'
 import logo from '../../assets/logo.svg'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
@@ -170,13 +170,6 @@ function openFeedbackTab() {
     '/user-feedback',
     t('leftMenu.userFeedback') || t('userFeedback.title') || '用户反馈'
   )
-}
-
-let ipcRenderer: any = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
 }
 
 const version = ref<string>('')
@@ -213,7 +206,7 @@ const loadVersionInfo = async () => {
 
     // 获取版本文件的详细信息（包含发布日期）
     try {
-      const versionInfo = await ipcRenderer.invoke('get-version-info')
+      const versionInfo = await messageBridge.invoke('get-version-info')
       if (versionInfo && versionInfo.updatedAt) {
         releaseDate.value = versionInfo.updatedAt
       }
@@ -273,7 +266,7 @@ const handleCheckUpdate = async () => {
   downloadError.value = null
 
   try {
-    const status = await ipcRenderer.invoke('check-for-updates', updateChannel.value)
+    const status = await messageBridge.invoke('check-for-updates', updateChannel.value)
     updateStatus.value = status
   } catch (error) {
     console.error('检查更新失败:', error)
@@ -301,15 +294,11 @@ const handleDownloadUpdate = async () => {
       downloadProgress.value = Math.round(progress.percent)
     }
 
-    if (ipcRenderer && ipcRenderer.on) {
-      ipcRenderer.on('update-download-progress', progressHandler)
-    }
+    messageBridge.on('update-download-progress', progressHandler)
 
-    const result = await ipcRenderer.invoke('download-update')
+    const result = await messageBridge.invoke('download-update')
 
-    if (ipcRenderer && ipcRenderer.removeListener) {
-      ipcRenderer.removeListener('update-download-progress', progressHandler)
-    }
+    messageBridge.removeListener('update-download-progress', progressHandler)
 
     if (result.success) {
       downloaded.value = true
@@ -329,7 +318,7 @@ const handleDownloadUpdate = async () => {
 // 安装更新并重启
 const handleInstallUpdate = async () => {
   try {
-    await ipcRenderer.invoke('quit-and-install')
+    await messageBridge.invoke('quit-and-install')
   } catch (error) {
     console.error('安装更新失败:', error)
     downloadError.value = error instanceof Error ? error.message : String(error)
@@ -366,13 +355,11 @@ onMounted(async () => {
   await Promise.all([loadVersionInfo(), loadSettings(), loadLicenseAndAssets()])
 
   // 监听自动下载完成事件
-  if (ipcRenderer && ipcRenderer.on) {
-    ipcRenderer.on('update-downloaded', handleUpdateDownloaded)
-  }
+  messageBridge.on('update-downloaded', handleUpdateDownloaded)
 
   // 检查是否有已下载的更新
   try {
-    const status = await ipcRenderer.invoke('get-update-status')
+    const status = await messageBridge.invoke('get-update-status')
     if (status && status.updateAvailable) {
       updateStatus.value = status
       // 检查更新是否已下载（通过检查是否有 update-downloaded 事件）
@@ -386,9 +373,7 @@ onMounted(async () => {
 
 // 组件卸载时清理监听器
 onUnmounted(() => {
-  if (ipcRenderer && ipcRenderer.removeListener) {
-    ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded)
-  }
+  messageBridge.removeListener('update-downloaded', handleUpdateDownloaded)
 })
 </script>
 

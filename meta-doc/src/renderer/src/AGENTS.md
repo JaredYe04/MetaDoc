@@ -83,4 +83,3 @@ renderer/src/
 - `workspace.ts` (1847 lines) — oversized Pinia store; avoid adding more actions without discussion
 - `utils/` has 93 files at one level — flat structure makes discovery hard; prefer subfolders
 - Many utils are JS (`md-utils.js`, `llm-api.js`, `event-bus.js`) — new code should be TypeScript
-- `utils/obsolete/` contains active legacy code — `common-data.ts` META-INFO lines must not be modified

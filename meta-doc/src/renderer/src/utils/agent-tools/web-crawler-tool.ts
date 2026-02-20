@@ -14,22 +14,15 @@ import type {
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
-import localIpcRenderer from '../web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import WebCrawlerDisplay from './components/WebCrawlerDisplay.vue'
 import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('WebCrawlerTool')
 
-// 获取IPC渲染器
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
+  webMainCalls()
 }
 
 /**
@@ -164,7 +157,7 @@ async function executeViaProxy(
   content: string
   contentType: string
 }> {
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('IPC渲染器不可用，无法使用代理模式')
   }
 
@@ -187,7 +180,7 @@ async function executeViaProxy(
       }
     }
 
-    const result = await ipcRenderer.invoke('execute-http-request', {
+    const result = await messageBridge.invoke('execute-http-request', {
       url,
       method,
       headers,

@@ -207,21 +207,12 @@ const formatFileSize = (bytes: number): string => {
 // 获取reference目录大小
 const refreshReferenceDirSize = async () => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
-    const size = (await ipcRenderer.invoke('get-reference-dir-size')) as number
+    const size = (await messageBridge.invoke('get-reference-dir-size')) as number
     referenceDirSize.value = size
   } catch (error) {
     ElMessage.error('获取目录大小失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -231,21 +222,12 @@ const refreshReferenceDirSize = async () => {
 // 打开reference目录
 const openReferenceDir = async () => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
-    await ipcRenderer.invoke('open-reference-dir')
+    await messageBridge.invoke('open-reference-dir')
   } catch (error) {
     ElMessage.error('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
   }
@@ -267,21 +249,12 @@ const clearReferenceDir = async () => {
       }
     )
 
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
-    await ipcRenderer.invoke('clear-reference-dir')
+    await messageBridge.invoke('clear-reference-dir')
     await refreshReferenceDirSize()
     ElMessage.success(t('setting.clearReferenceDirSuccess', '目录已清空'))
   } catch (error) {

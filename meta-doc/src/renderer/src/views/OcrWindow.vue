@@ -705,21 +705,12 @@ const getImageDataUrl = async (imagePath: string): Promise<string> => {
     }
 
     // 通过IPC读取文件并转换为base64
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
-    const fileData = (await ipcRenderer.invoke('read-file-for-upload', localPath)) as {
+    const fileData = (await messageBridge.invoke('read-file-for-upload', localPath)) as {
       name: string
       data: string
       mimeType: string
@@ -1065,21 +1056,12 @@ const handleImageChange = async (file: any, fileList: any[]) => {
     }
     base64 = btoa(base64)
 
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
-    const filePath = (await ipcRenderer.invoke('save-reference-file', {
+    const filePath = (await messageBridge.invoke('save-reference-file', {
       filename: file.name,
       content: base64
     })) as string
@@ -1175,21 +1157,12 @@ const handlePasteFromClipboard = async () => {
     }
 
     // 读取剪切板图片
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
-    const clipboardImage = (await ipcRenderer.invoke('read-clipboard-image')) as string | null
+    const clipboardImage = (await messageBridge.invoke('read-clipboard-image')) as string | null
     if (!clipboardImage) {
       ElMessage.warning(t('ocr.noClipboardImage'))
       return
@@ -1206,7 +1179,7 @@ const handlePasteFromClipboard = async () => {
 
     // 保存图片到临时目录
     const timestamp = Date.now()
-    const filePath = (await ipcRenderer.invoke('save-reference-file', {
+    const filePath = (await messageBridge.invoke('save-reference-file', {
       filename: `clipboard-${timestamp}.png`,
       content: base64Content
     })) as string
@@ -1314,17 +1287,8 @@ const handleRecognizeSingle = async (index: number) => {
       }
     }
 
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
@@ -1345,7 +1309,7 @@ const handleRecognizeSingle = async (index: number) => {
         }
       : undefined
 
-    const ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
+    const ocrText = (await messageBridge.invoke('ocr-recognize-file', {
       imagePath: String(imagePath), // 确保是字符串，使用实际路径
       languages: languages, // 传递可序列化的数组
       preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
@@ -1421,17 +1385,8 @@ const handleReRecognizeSingle = async (index: number) => {
       }
     }
 
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
@@ -1452,7 +1407,7 @@ const handleReRecognizeSingle = async (index: number) => {
         }
       : undefined
 
-    const ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
+    const ocrText = (await messageBridge.invoke('ocr-recognize-file', {
       imagePath: String(imagePath), // 确保是字符串，使用实际路径
       languages: languages, // 传递可序列化的数组
       preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
@@ -1523,17 +1478,8 @@ const handleOcr = async () => {
   processing.value = true
 
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
@@ -1583,7 +1529,7 @@ const handleOcr = async () => {
             }
           : undefined
 
-        const ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
+        const ocrText = (await messageBridge.invoke('ocr-recognize-file', {
           imagePath: String(imagePath), // 确保是字符串，使用实际路径
           languages: languages, // 传递可序列化的数组
           preprocessingParams: preprocessingParams // 传递可序列化的预处理参数

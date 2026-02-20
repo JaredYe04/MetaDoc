@@ -139,12 +139,9 @@ import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 // 粒子效果相关代码已注释，以备后用
 // import { getSetting } from '../utils/settings'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
-import { webMainCalls } from '../utils/web-adapter/web-main-calls'
 import { themeState, mixColors } from '../utils/themes'
 // 粒子效果相关代码已注释，以备后用
 // import { ParticleEffect } from '../utils/particle-effect'
-import type { IpcRendererLike } from '../utils/particle-effect'
 // import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
 import {
@@ -174,11 +171,6 @@ const homepageBackgroundColor = computed(() => {
     return mixColors(baseBackground, '#fafafa', 0.5)
   }
 })
-
-const maybeWindow =
-  typeof window !== 'undefined'
-    ? (window as Window & { electron?: { ipcRenderer?: IpcRendererLike } })
-    : undefined
 
 const quickStartStage = ref<'inactive' | 'format' | 'markdown' | 'latex'>('inactive')
 const recentDocs = ref<string[]>([])
@@ -273,14 +265,6 @@ const handleDocOpen = () => {
   setTimeout(() => {
     loadRecentDocs()
   }, 100)
-}
-
-let ipcRenderer: IpcRendererLike | null = null
-if (maybeWindow?.electron?.ipcRenderer) {
-  ipcRenderer = maybeWindow.electron.ipcRenderer
-} else {
-  webMainCalls()
-  ipcRenderer = localIpcRenderer as IpcRendererLike
 }
 
 // 粒子效果相关代码已注释，以备后用

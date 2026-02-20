@@ -82,7 +82,7 @@ import * as echarts from 'echarts'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { createRendererLogger } from '../utils/logger'
 import * as XLSX from 'xlsx'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 
 const { t } = useI18n()
 const logger = createRendererLogger('LlmStatisticsContent')
@@ -445,14 +445,6 @@ function updateTokenUsageChart() {
   tokenUsageChart.setOption(option)
 }
 
-// 获取 IPC Renderer
-function getIpcRenderer() {
-  if (window && (window as any).electron?.ipcRenderer) {
-    return (window as any).electron.ipcRenderer
-  }
-  return localIpcRenderer
-}
-
 // 将数据转换为 CSV 格式
 function convertToCSV(data: any): string {
   const { requests } = data
@@ -629,9 +621,6 @@ async function handleExport() {
       ? `${dateRange.value[0].split(' ')[0]}_${dateRange.value[1].split(' ')[0]}`
       : 'all'
 
-    // 获取 IPC Renderer
-    const ipcRenderer = getIpcRenderer()
-
     // 根据格式确定文件扩展名和过滤器
     let filters: Array<{ name: string; extensions: string[] }> = []
     let defaultFileName = ''
@@ -657,8 +646,7 @@ async function handleExport() {
         throw new Error('不支持的导出格式')
     }
 
-    // 使用 Electron 的保存对话框
-    const dialogResult = await ipcRenderer.invoke('save-file-dialog', {
+    const dialogResult = await messageBridge.invoke('save-file-dialog', {
       defaultName: defaultFileName,
       filters: filters
     })
@@ -680,14 +668,13 @@ async function handleExport() {
         binary += String.fromCharCode.apply(null, Array.from(chunk) as any)
       }
       const base64 = btoa(binary)
-      await ipcRenderer.invoke('write-file-content', {
+      await messageBridge.invoke('write-file-content', {
         filePath: dialogResult.filePath,
         content: base64,
         encoding: 'base64'
       })
     } else {
-      // JSON 和 CSV 是文本文件
-      await ipcRenderer.invoke('write-file-content', {
+      await messageBridge.invoke('write-file-content', {
         filePath: dialogResult.filePath,
         content: fileContent as string,
         encoding: 'utf8'

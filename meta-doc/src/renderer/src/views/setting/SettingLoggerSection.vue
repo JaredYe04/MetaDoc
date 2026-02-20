@@ -94,29 +94,10 @@ import { settings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.ts'
 import type { LoggerHistoryEntry } from '../../utils/logger.ts'
-import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer.ts'
-import { webMainCalls } from '../../utils/web-adapter/web-main-calls.js'
+import messageBridge from '../../bridge/message-bridge'
 import ConsoleOutput from '../../components/ConsoleOutput.vue'
 
-declare global {
-  interface Window {
-    electron?: {
-      ipcRenderer?: typeof localIpcRenderer
-    }
-  }
-}
-
 const { t } = useI18n()
-
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if (window.electron?.ipcRenderer) {
-    ipcRenderer = window.electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
-}
 
 const logFilePath = ref('')
 const logDirectory = ref('')
@@ -199,18 +180,14 @@ const configListener = (_event: unknown, config: { logFilePath: string; logDirec
 onMounted(() => {
   refreshLoggerConfig()
   refreshLoggerHistory()
-  if (ipcRenderer && typeof ipcRenderer.on === 'function') {
-    ipcRenderer.on('logger-config-updated', configListener as any)
+  if (messageBridge.getIpc()?.on) {
+    messageBridge.on('logger-config-updated', configListener as any)
   }
 })
 
 onBeforeUnmount(() => {
-  if (!ipcRenderer) {
-    return
-  }
-
-  if (typeof ipcRenderer.removeListener === 'function') {
-    ipcRenderer.removeListener('logger-config-updated', configListener as any)
+  if (messageBridge.getIpc()?.removeListener) {
+    messageBridge.removeListener('logger-config-updated', configListener as any)
   }
 })
 </script>

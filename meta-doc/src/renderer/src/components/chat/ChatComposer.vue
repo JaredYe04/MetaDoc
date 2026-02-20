@@ -125,6 +125,7 @@ import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
 import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
+import messageBridge from '../../bridge/message-bridge'
 
 const props = withDefaults(
   defineProps<{
@@ -279,23 +280,7 @@ const toggleSendMode = () => {
  * 将文件路径转换为 File 对象
  */
 async function pathToFile(filePath: string): Promise<File> {
-  // 获取IPC渲染器
-  let ipcRenderer: any = null
-  if (typeof window !== 'undefined') {
-    if ((window as any).electron?.ipcRenderer) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer
-    }
-  }
-
-  if (!ipcRenderer) {
-    throw new Error('IPC渲染器不可用')
-  }
-
-  // 通过 IPC 调用主进程读取文件
-  const result = (await ipcRenderer.invoke('read-file-for-upload', filePath)) as {
+  const result = (await messageBridge.invoke('read-file-for-upload', filePath)) as {
     name: string
     data: string
     mimeType: string

@@ -86,6 +86,7 @@ import { useWorkspace, type WorkspaceTab } from '../../stores/workspace'
 import eventBus from '../../utils/event-bus'
 import { Plus, DocumentAdd, FolderAdd } from '@element-plus/icons-vue'
 import { createRendererLogger } from '../../utils/logger'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('WorkspaceTabs')
 const props = defineProps({
@@ -139,14 +140,9 @@ const handleRemove = async (id: string | number) => {
   if (isLocked.value) return
   const tabId = String(id)
 
-  // 获取ipcRenderer
-  let ipcRenderer: any = null
-  if (window && (window as any).electron) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  }
-
-  if (!ipcRenderer) {
-    // 如果没有ipcRenderer，回退到原来的逻辑
+  const ipc = messageBridge.getIpc()
+  if (!ipc) {
+    // 如果没有 IPC，回退到原来的逻辑
     const doc = workspace.ensureDocument?.(tabId)
     if (doc?.dirty) {
       try {
@@ -169,10 +165,8 @@ const handleRemove = async (id: string | number) => {
 
   // 使用系统对话框
   try {
-    // 发送请求到主进程
-    ipcRenderer.send('request-close-tab', tabId)
+    messageBridge.send('request-close-tab', tabId)
 
-    // 等待响应
     const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>(
       (resolve) => {
         const handler = (
@@ -180,14 +174,13 @@ const handleRemove = async (id: string | number) => {
           response: { tabId: string; action: 'save' | 'discard' | 'cancel' }
         ) => {
           if (response.tabId === tabId) {
-            ipcRenderer.removeListener('close-tab-response', handler)
+            messageBridge.removeListener('close-tab-response', handler)
             resolve(response)
           }
         }
-        ipcRenderer.on('close-tab-response', handler)
-        // 设置超时，避免无限等待
+        messageBridge.on('close-tab-response', handler)
         setTimeout(() => {
-          ipcRenderer.removeListener('close-tab-response', handler)
+          messageBridge.removeListener('close-tab-response', handler)
           resolve({ tabId, action: 'cancel' })
         }, 10000)
       }

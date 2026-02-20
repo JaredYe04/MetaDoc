@@ -14,14 +14,7 @@ import { themeState } from '../themes'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'
 import { isElectronEnv } from '../event-bus'
-
-// 动态导入 IPC Renderer（避免在非 Electron 环境中出错）
-let ipcRenderer: any = null
-if (isElectronEnv() && typeof window !== 'undefined') {
-  if (window.electron?.ipcRenderer) {
-    ipcRenderer = window.electron.ipcRenderer
-  }
-}
+import messageBridge from '../../bridge/message-bridge'
 
 /**
  * 主题服务接口
@@ -360,15 +353,12 @@ class AgentToolServices {
   private createIpcService(): IpcService {
     return {
       showOpenDialog: async (options = {}) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
 
         try {
-          // 注意：此接口需要在主进程中实现对应的 IPC handler
-          // 建议在主进程中添加: ipcMain.handle('show-open-dialog', ...)
-          // 如果接口名称不同，请根据实际情况调整
-          const result = await ipcRenderer.invoke('show-open-dialog', {
+          const result = await messageBridge.invoke('show-open-dialog', {
             title: options.title || '选择文件',
             defaultPath: options.defaultPath,
             filters: options.filters || [{ name: 'All Files', extensions: ['*'] }],
@@ -394,15 +384,12 @@ class AgentToolServices {
       },
 
       showSaveDialog: async (options = {}) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
 
         try {
-          // 注意：此接口需要在主进程中实现对应的 IPC handler
-          // 建议在主进程中添加: ipcMain.handle('show-save-dialog', ...)
-          // 如果接口名称不同，请根据实际情况调整
-          const result = await ipcRenderer.invoke('show-save-dialog', {
+          const result = await messageBridge.invoke('show-save-dialog', {
             title: options.title || '保存文件',
             defaultPath: options.defaultPath,
             filters: options.filters || [{ name: 'All Files', extensions: ['*'] }]
@@ -425,15 +412,12 @@ class AgentToolServices {
       },
 
       openFolder: async (path: string) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
 
         try {
-          // 注意：此接口需要在主进程中实现对应的 IPC handler
-          // 建议在主进程中添加: ipcMain.handle('open-folder', async (event, path) => { shell.showItemInFolder(path) })
-          // 如果接口名称不同，请根据实际情况调整
-          await ipcRenderer.invoke('open-folder', path)
+          await messageBridge.invoke('open-folder', path)
         } catch (error) {
           console.error('打开文件夹失败:', error)
           // 如果接口不存在，静默失败，以便外部 Tool 可以优雅处理
@@ -446,15 +430,12 @@ class AgentToolServices {
       },
 
       openFile: async (path: string) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
 
         try {
-          // 注意：此接口需要在主进程中实现对应的 IPC handler
-          // 建议在主进程中添加: ipcMain.handle('open-file', async (event, path) => { shell.openPath(path) })
-          // 如果接口名称不同，请根据实际情况调整
-          await ipcRenderer.invoke('open-file', path)
+          await messageBridge.invoke('open-file', path)
         } catch (error) {
           console.error('打开文件失败:', error)
           // 如果接口不存在，静默失败，以便外部 Tool 可以优雅处理
@@ -467,12 +448,12 @@ class AgentToolServices {
       },
 
       readFile: async (filePath: string) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化')
         }
 
         try {
-          return await ipcRenderer.invoke('read-file-content', filePath)
+          return await messageBridge.invoke('read-file-content', filePath)
         } catch (error) {
           console.error('读取文件失败:', error)
           throw error
@@ -480,15 +461,12 @@ class AgentToolServices {
       },
 
       writeFile: async (filePath: string, content: string) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
 
         try {
-          // 注意：此接口需要在主进程中实现对应的 IPC handler
-          // 建议在主进程中添加: ipcMain.handle('write-file-content', async (event, { filePath, content }) => { fs.writeFileSync(filePath, content, 'utf-8') })
-          // 如果接口名称不同，请根据实际情况调整
-          await ipcRenderer.invoke('write-file-content', { filePath, content })
+          await messageBridge.invoke('write-file-content', { filePath, content })
         } catch (error) {
           console.error('写入文件失败:', error)
           // 如果接口不存在，抛出错误
@@ -501,15 +479,12 @@ class AgentToolServices {
       },
 
       fileExists: async (filePath: string) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
 
         try {
-          // 注意：此接口需要在主进程中实现对应的 IPC handler
-          // 建议在主进程中添加: ipcMain.handle('file-exists', async (event, filePath) => { return fs.existsSync(filePath) })
-          // 如果接口名称不同，请根据实际情况调整
-          return await ipcRenderer.invoke('file-exists', filePath)
+          return await messageBridge.invoke('file-exists', filePath)
         } catch (error) {
           console.error('检查文件是否存在失败:', error)
           // 如果接口不存在，返回 false
@@ -522,12 +497,12 @@ class AgentToolServices {
       },
 
       getDirectoryPath: async (filePath: string) => {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化')
         }
 
         try {
-          return await ipcRenderer.invoke('get-directory-path', filePath)
+          return await messageBridge.invoke('get-directory-path', filePath)
         } catch (error) {
           console.error('获取目录路径失败:', error)
           throw error

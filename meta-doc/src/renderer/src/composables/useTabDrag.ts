@@ -2,6 +2,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useWorkspace, type WorkspaceTab, type WorkspaceTabKind } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
 import { themeState } from '../utils/themes'
+import messageBridge from '../bridge/message-bridge'
 
 // Lazy logger to avoid circular dependency: logger → web-main-calls → router → … → useTabDrag → logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -31,11 +32,10 @@ export const setTabBarElement = (el: HTMLElement | null) => {
  * 预获取拖拽缩略图（在 mousedown 时调用，提前加载图片）
  */
 export const prefetchDragThumbnail = async (): Promise<void> => {
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return
+  if (!messageBridge.getIpc()) return
 
   try {
-    const dataUrl = await ipcRenderer.invoke('capture-window-thumbnail')
+    const dataUrl = await messageBridge.invoke('capture-window-thumbnail')
     if (!dataUrl) return
 
     cachedThumbnailDataUrl = dataUrl
@@ -64,23 +64,12 @@ const clearCachedThumbnail = () => {
 }
 
 /**
- * 获取 IPC 渲染器
- */
-const getIpcRenderer = () => {
-  if (typeof window !== 'undefined' && (window as any).electron?.ipcRenderer) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
-
-/**
  * 获取当前窗口 ID
  */
 const getCurrentWindowId = async (): Promise<number> => {
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return -1
+  if (!messageBridge.getIpc()) return -1
   try {
-    return await ipcRenderer.invoke('get-window-id')
+    return await messageBridge.invoke('get-window-id')
   } catch (error) {
     getLogger().error('Failed to get window ID:', error)
     return -1
@@ -369,7 +358,6 @@ export const checkCanDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
  */
 export const useTabDrag = (options: UseTabDragOptions = {}) => {
   const workspace = useWorkspace()
-  const ipcRenderer = getIpcRenderer()
 
   const { onDragStart, onDragEnd, onDrop } = options
 
@@ -411,7 +399,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
 
     // 异步部分：初始化拖拽会话
     const initSession = async () => {
-      if (!ipcRenderer) return
+      if (!messageBridge.getIpc()) return
 
       try {
         // 序列化 Tab 数据
@@ -423,7 +411,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
         tabData.sourceWindowId = sourceWindowId
 
         // 调用主进程创建拖拽会话
-        const result = await ipcRenderer.invoke('drag:start', {
+        const result = await messageBridge.invoke('drag:start', {
           tabId: tab.id,
           tabData
         })
@@ -444,7 +432,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     // 添加 ESC 键监听
     escapeKeyHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && currentSessionId) {
-        ipcRenderer?.send('drag:cancel', { sessionId: currentSessionId })
+        messageBridge.send('drag:cancel', { sessionId: currentSessionId })
         resetDragState()
         cleanupDragImage()
       }
@@ -557,10 +545,10 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     }
 
     // 通知主进程此拖拽已被消费（同窗口内）
-    if (currentSessionId && ipcRenderer) {
+    if (currentSessionId && messageBridge.getIpc()) {
       try {
         const currentWindowId = await getCurrentWindowId()
-        await ipcRenderer.invoke('drag:drop', {
+        await messageBridge.invoke('drag:drop', {
           sessionId: currentSessionId,
           targetWindowId: currentWindowId,
           insertIndex
@@ -603,9 +591,9 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     }
 
     // 通知主进程拖拽结束（携带 Tab 栏边界）
-    if (currentSessionId && ipcRenderer) {
+    if (currentSessionId && messageBridge.getIpc()) {
       try {
-        const result = await ipcRenderer.invoke('drag:end', {
+        const result = await messageBridge.invoke('drag:end', {
           sessionId: currentSessionId,
           tabBarBounds
         })

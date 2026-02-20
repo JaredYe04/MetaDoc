@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { ref, watch, nextTick, type ComputedRef } from 'vue'
 import type { RendererLogger } from './logger'
 import type { extractPlainTextFromLatex } from './latex-utils'
+import messageBridge from '../bridge/message-bridge'
 
 export type IpcRendererLike = {
   invoke?: (channel: string, ...args: any[]) => Promise<any>
@@ -294,7 +295,7 @@ export class ParticleEffect {
     })
 
     try {
-      const words = await this.ipcRenderer?.invoke?.('cut-words', { text: textForSegmentation })
+      const words = await messageBridge.invoke('cut-words', { text: textForSegmentation })
       wordList = Array.isArray(words) ? Array.from(new Set(words)) : []
       this.logger.debug('[Particle] createParticles: 分词完成', {
         wordCount: wordList.length,

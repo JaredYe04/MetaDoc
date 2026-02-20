@@ -99,19 +99,14 @@ import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import WordCloudDetail from '../components/WordCloudDetail.vue'
 import { getSetting } from '../utils/settings'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
 import { useWorkspace } from '../stores/workspace'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
-let ipcRenderer: any = null
-if (window && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer
-} else {
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
   webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 interface WordCountItem {
@@ -433,13 +428,7 @@ const processWords = async () => {
   }
 
   try {
-    if (!ipcRenderer || typeof ipcRenderer.invoke !== 'function') {
-      wordCount.value = []
-      words.value = []
-      return
-    }
-
-    const rawWords: string[] = (await ipcRenderer.invoke('cut-words', { text })) || []
+    const rawWords: string[] = (await messageBridge.invoke('cut-words', { text })) || []
     words.value = rawWords
 
     const counts: Record<string, number> = Object.create(null)

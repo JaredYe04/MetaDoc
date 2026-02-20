@@ -29,8 +29,6 @@ import {
   initNonCriticalSettings
 } from './utils/settings'
 import { themeState, applyTheme } from './utils/themes'
-import localIpcRenderer from './utils/web-adapter/local-ipc-renderer'
-import { webMainCalls } from './utils/web-adapter/web-main-calls'
 import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from './utils/logger'
@@ -41,24 +39,12 @@ import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
 import './assets/hide-native-scrollbar.css'
 
-type IpcRenderer =
-  | typeof localIpcRenderer
-  | (typeof window extends { electron: { ipcRenderer: infer T } } ? T : never)
-
 const route = useRoute()
 const { locale, t } = useI18n()
 const logger = createRendererLogger('App', {
   windowTypeProvider: () => getWindowType()
 })
 
-let ipcRenderer: IpcRenderer | null = null
-if (window && (window as any).electron) {
-  ipcRenderer = (window as any).electron.ipcRenderer as IpcRenderer
-} else {
-  webMainCalls()
-  ipcRenderer = localIpcRenderer
-  //todo 说明当前环境不是electron环境，需要另外适配
-}
 // 获取当前路由信息
 
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单

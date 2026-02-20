@@ -13,7 +13,7 @@ import type {
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
-import localIpcRenderer from '../web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import axios from 'axios'
 import DiffDisplay from './components/DiffDisplay.vue'
@@ -29,15 +29,8 @@ function getLogger() {
   return loggerInstance
 }
 
-// 获取IPC渲染器
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
+  webMainCalls()
 }
 
 /**
@@ -77,7 +70,7 @@ export interface DiffResult {
  * 从文件路径读取内容
  */
 async function loadTextFromFile(filePath: string, signal?: AbortSignal): Promise<string> {
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('IPC渲染器不可用，无法读取文件')
   }
 
@@ -86,7 +79,7 @@ async function loadTextFromFile(filePath: string, signal?: AbortSignal): Promise
   }
 
   try {
-    const content = await ipcRenderer.invoke('read-file-content', filePath)
+    const content = await messageBridge.invoke('read-file-content', filePath)
     return content
   } catch (error) {
     getLogger().error('读取文件失败:', error)
@@ -103,10 +96,9 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
   }
 
   try {
-    // 优先使用主进程代理（避免CORS）
-    if (ipcRenderer) {
+    if (messageBridge.getIpc()) {
       try {
-        const response = await ipcRenderer.invoke('execute-http-request', {
+        const response = await messageBridge.invoke('execute-http-request', {
           url,
           method: 'GET',
           timeout: 30000,

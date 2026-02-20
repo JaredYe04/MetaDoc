@@ -968,25 +968,15 @@ const handleExport = async (chartMarkdown?: string) => {
       code = typeof code === 'string' ? code.trim() : String(code).trim()
     }
 
-    // 获取 IPC 渲染器
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) {
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
       throw new Error('IPC渲染器不可用')
     }
 
     const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
 
     // 打开保存对话框，让用户选择格式
-    const result = await ipcRenderer.invoke('save-file-dialog', {
+    const result = await messageBridge.invoke('save-file-dialog', {
       defaultName: `graph-${Date.now()}.svg`,
       filters: [
         { name: 'SVG Files', extensions: ['svg'] },
@@ -1063,14 +1053,14 @@ const handleExport = async (chartMarkdown?: string) => {
         if (localPath.startsWith('/') && /^[A-Za-z]:/.test(localPath.substring(1))) {
           localPath = localPath.substring(1)
         }
-        svgContent = (await ipcRenderer.invoke('read-file-content', localPath)) as string
+        svgContent = (await messageBridge.invoke('read-file-content', localPath)) as string
       } else {
         // 本地文件路径 -> 读取内容
-        svgContent = (await ipcRenderer.invoke('read-file-content', imageUrl)) as string
+        svgContent = (await messageBridge.invoke('read-file-content', imageUrl)) as string
       }
 
       // 直接写入文件
-      await ipcRenderer.invoke('write-file-content', {
+      await messageBridge.invoke('write-file-content', {
         filePath: filePath,
         content: svgContent,
         encoding: 'utf8'
@@ -1116,7 +1106,7 @@ const handleExport = async (chartMarkdown?: string) => {
         base64Data = dataUrl.substring(commaIdx + 1)
       } else {
         // 本地文件路径 -> 读取为 base64
-        const fileData = (await ipcRenderer.invoke('read-file-for-upload', imageUrl)) as {
+        const fileData = (await messageBridge.invoke('read-file-for-upload', imageUrl)) as {
           name: string
           data: string
           mimeType: string
@@ -1125,7 +1115,7 @@ const handleExport = async (chartMarkdown?: string) => {
       }
 
       // 直接写入文件（base64 编码）
-      await ipcRenderer.invoke('write-file-content', {
+      await messageBridge.invoke('write-file-content', {
         filePath: filePath,
         content: base64Data,
         encoding: 'base64'
@@ -1207,14 +1197,14 @@ const handleExport = async (chartMarkdown?: string) => {
       const pdfPath = await convertSvgToPdf(svgPath, { returnUrl: false })
 
       // 读取 PDF 文件为 base64，然后写入目标文件（已经弹出对话框，不需要再弹出）
-      const fileData = (await ipcRenderer.invoke('read-file-for-upload', pdfPath)) as {
+      const fileData = (await messageBridge.invoke('read-file-for-upload', pdfPath)) as {
         name: string
         data: string
         mimeType: string
       }
 
       // 直接写入文件（base64 编码）
-      await ipcRenderer.invoke('write-file-content', {
+      await messageBridge.invoke('write-file-content', {
         filePath: filePath,
         content: fileData.data,
         encoding: 'base64'

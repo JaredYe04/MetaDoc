@@ -4,21 +4,10 @@
  */
 
 import { testFramework, type TestFunction } from './test-framework'
+import messageBridge from '../bridge/message-bridge'
 
-/**
- * 获取IPC渲染器（仅支持Electron环境，数据库操作需要Node.js）
- */
 function getIpcRenderer() {
-  let ipcRenderer: any = null
-  if (typeof window !== 'undefined') {
-    if ((window as any).electron?.ipcRenderer) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      // 数据库测试需要Electron环境，web环境不支持
-      throw new Error('数据库测试需要在Electron环境中运行')
-    }
-  }
-  return ipcRenderer
+  return messageBridge.getIpc()
 }
 
 /**
@@ -36,7 +25,7 @@ const testDatabaseConnection: TestFunction = {
     }
 
     try {
-      const result = await ipcRenderer.invoke('test-database-connection')
+      const result = await messageBridge.invoke('test-database-connection')
       return {
         success: result.success,
         message: result.message || '数据库连接成功',
@@ -65,7 +54,7 @@ const testCreateTables: TestFunction = {
     }
 
     try {
-      const result = await ipcRenderer.invoke('test-database-create-tables')
+      const result = await messageBridge.invoke('test-database-create-tables')
       return {
         success: result.success,
         message: result.message || '表创建成功',
@@ -96,7 +85,7 @@ const testKnowledgeFileCRUD: TestFunction = {
 
     try {
       // 1. 创建文件
-      const createResult = await ipcRenderer.invoke('test-database-create-file', {
+      const createResult = await messageBridge.invoke('test-database-create-file', {
         filename: testFilename,
         originalPath: testPath,
         format: 'txt',
@@ -110,7 +99,7 @@ const testKnowledgeFileCRUD: TestFunction = {
       const fileId = createResult.fileId
 
       // 2. 读取文件
-      const readResult = await ipcRenderer.invoke('test-database-read-file', {
+      const readResult = await messageBridge.invoke('test-database-read-file', {
         filename: testFilename
       })
 
@@ -119,7 +108,7 @@ const testKnowledgeFileCRUD: TestFunction = {
       }
 
       // 3. 更新文件
-      const updateResult = await ipcRenderer.invoke('test-database-update-file', {
+      const updateResult = await messageBridge.invoke('test-database-update-file', {
         fileId: fileId,
         updates: {
           chunks: 10,
@@ -134,7 +123,7 @@ const testKnowledgeFileCRUD: TestFunction = {
       }
 
       // 4. 验证更新
-      const verifyResult = await ipcRenderer.invoke('test-database-read-file', {
+      const verifyResult = await messageBridge.invoke('test-database-read-file', {
         filename: testFilename
       })
 
@@ -143,7 +132,7 @@ const testKnowledgeFileCRUD: TestFunction = {
       }
 
       // 5. 删除文件
-      const deleteResult = await ipcRenderer.invoke('test-database-delete-file', {
+      const deleteResult = await messageBridge.invoke('test-database-delete-file', {
         fileId: fileId
       })
 
@@ -152,7 +141,7 @@ const testKnowledgeFileCRUD: TestFunction = {
       }
 
       // 6. 验证删除
-      const verifyDeleteResult = await ipcRenderer.invoke('test-database-read-file', {
+      const verifyDeleteResult = await messageBridge.invoke('test-database-read-file', {
         filename: testFilename
       })
 
@@ -204,7 +193,7 @@ const testDataChunksAndVectors: TestFunction = {
       // 1. 如果没有提供fileId，先创建一个测试文件
       let fileId = knowledgeFileId
       if (!fileId) {
-        const createResult = await ipcRenderer.invoke('test-database-create-file', {
+        const createResult = await messageBridge.invoke('test-database-create-file', {
           filename: 'test-vector-file.txt',
           originalPath: '/test/path/test-vector-file.txt',
           format: 'txt',
@@ -223,7 +212,7 @@ const testDataChunksAndVectors: TestFunction = {
         { index: 2, text: '这是第三个数据块', embedding_model: 'bce-embedding-base_v1' }
       ]
 
-      const createChunksResult = await ipcRenderer.invoke('test-database-create-chunks', {
+      const createChunksResult = await messageBridge.invoke('test-database-create-chunks', {
         knowledgeFileId: fileId,
         chunks: chunks
       })
@@ -243,7 +232,7 @@ const testDataChunksAndVectors: TestFunction = {
         embedding: new Array(768).fill(0).map((_, i) => Math.random() * 2 - 1) // 随机向量
       }))
 
-      const createVectorsResult = await ipcRenderer.invoke('test-database-create-vectors', {
+      const createVectorsResult = await messageBridge.invoke('test-database-create-vectors', {
         vectors: vectors
       })
 
@@ -252,7 +241,7 @@ const testDataChunksAndVectors: TestFunction = {
       }
 
       // 4. 查询数据块和向量
-      const queryChunksResult = await ipcRenderer.invoke('test-database-query-chunks', {
+      const queryChunksResult = await messageBridge.invoke('test-database-query-chunks', {
         knowledgeFileId: fileId
       })
 
@@ -263,7 +252,7 @@ const testDataChunksAndVectors: TestFunction = {
       }
 
       // 5. 查询向量
-      const queryVectorsResult = await ipcRenderer.invoke('test-database-query-vectors', {
+      const queryVectorsResult = await messageBridge.invoke('test-database-query-vectors', {
         knowledgeFileId: fileId
       })
 
@@ -282,7 +271,7 @@ const testDataChunksAndVectors: TestFunction = {
 
       // 7. 清理测试数据（如果创建了测试文件）
       if (!knowledgeFileId) {
-        await ipcRenderer.invoke('test-database-delete-file', { fileId: fileId })
+        await messageBridge.invoke('test-database-delete-file', { fileId: fileId })
       }
 
       return {
@@ -324,19 +313,19 @@ const testVectorSearch: TestFunction = {
     try {
       // 0. 先清理可能存在的旧测试数据
       const testFilename = 'test-search-file.txt'
-      const existingFile = await ipcRenderer.invoke('test-database-read-file', {
+      const existingFile = await messageBridge.invoke('test-database-read-file', {
         filename: testFilename
       })
 
       if (existingFile.success && existingFile.file) {
         // 如果文件已存在，先删除它（包括相关的向量和数据块）
-        await ipcRenderer.invoke('test-database-delete-file', {
+        await messageBridge.invoke('test-database-delete-file', {
           fileId: existingFile.file.id
         })
       }
 
       // 1. 创建测试文件和数据
-      const createResult = await ipcRenderer.invoke('test-database-create-file', {
+      const createResult = await messageBridge.invoke('test-database-create-file', {
         filename: testFilename,
         originalPath: '/test/path/test-search-file.txt',
         format: 'txt',
@@ -364,7 +353,7 @@ const testVectorSearch: TestFunction = {
         { index: 2, text: '自然语言处理是NLP的缩写', embedding_model: 'bce-embedding-base_v1' }
       ]
 
-      const createChunksResult = await ipcRenderer.invoke('test-database-create-chunks', {
+      const createChunksResult = await messageBridge.invoke('test-database-create-chunks', {
         knowledgeFileId: fileId,
         chunks: chunks
       })
@@ -378,7 +367,7 @@ const testVectorSearch: TestFunction = {
         embedding: baseVector.map((v, i) => v + index * 0.1 + Math.random() * 0.01) // 相似但略有不同
       }))
 
-      const createVectorsResult = await ipcRenderer.invoke('test-database-create-vectors', {
+      const createVectorsResult = await messageBridge.invoke('test-database-create-vectors', {
         vectors: vectors
       })
 
@@ -396,7 +385,7 @@ const testVectorSearch: TestFunction = {
       }
 
       // 先验证文件是否启用（测试用例中文件默认是启用的）
-      const fileInfo = await ipcRenderer.invoke('test-database-read-file', {
+      const fileInfo = await messageBridge.invoke('test-database-read-file', {
         filename: testFilename
       })
 
@@ -406,7 +395,7 @@ const testVectorSearch: TestFunction = {
 
       if (fileInfo.file.enabled !== 1) {
         // 如果文件未启用，先启用它
-        await ipcRenderer.invoke('test-database-update-file', {
+        await messageBridge.invoke('test-database-update-file', {
           fileId: fileId,
           updates: { enabled: 1 }
         })
@@ -416,7 +405,7 @@ const testVectorSearch: TestFunction = {
       // 注意：相似度转换可能产生负值，所以使用 -1.0 作为阈值，确保能找到所有结果
       // 如果 vec0_index 表中没有数据，搜索会失败
       // 但测试用例中应该已经将向量插入到 vec0_index 中了
-      const searchResult = await ipcRenderer.invoke('test-database-search-vectors', {
+      const searchResult = await messageBridge.invoke('test-database-search-vectors', {
         queryVector: searchVector,
         topK: 3,
         threshold: -1.0, // 使用 -1.0 阈值，确保能找到所有结果（即使相似度转换后是负数）
@@ -439,7 +428,7 @@ const testVectorSearch: TestFunction = {
       // 4. 验证搜索结果
       if (!searchResult.results || searchResult.results.length === 0) {
         // 提供更详细的错误信息，帮助调试
-        const vectorsInfo = await ipcRenderer.invoke('test-database-query-vectors', {
+        const vectorsInfo = await messageBridge.invoke('test-database-query-vectors', {
           knowledgeFileId: fileId
         })
         throw new Error(
@@ -467,7 +456,7 @@ const testVectorSearch: TestFunction = {
       }
 
       // 6. 清理测试数据
-      await ipcRenderer.invoke('test-database-delete-file', { fileId: fileId })
+      await messageBridge.invoke('test-database-delete-file', { fileId: fileId })
 
       return {
         success: true,
@@ -507,7 +496,7 @@ const testBatchOperations: TestFunction = {
 
     try {
       // 1. 创建测试文件
-      const createResult = await ipcRenderer.invoke('test-database-create-file', {
+      const createResult = await messageBridge.invoke('test-database-create-file', {
         filename: 'test-batch-file.txt',
         originalPath: '/test/path/test-batch-file.txt',
         format: 'txt',
@@ -528,7 +517,7 @@ const testBatchOperations: TestFunction = {
       }))
 
       const startChunks = Date.now()
-      const createChunksResult = await ipcRenderer.invoke('test-database-create-chunks', {
+      const createChunksResult = await messageBridge.invoke('test-database-create-chunks', {
         knowledgeFileId: fileId,
         chunks: chunks
       })
@@ -547,7 +536,7 @@ const testBatchOperations: TestFunction = {
       }))
 
       const startVectors = Date.now()
-      const createVectorsResult = await ipcRenderer.invoke('test-database-create-vectors', {
+      const createVectorsResult = await messageBridge.invoke('test-database-create-vectors', {
         vectors: vectors
       })
       const vectorsDuration = Date.now() - startVectors
@@ -558,13 +547,13 @@ const testBatchOperations: TestFunction = {
 
       // 4. 查询性能测试
       const startQuery = Date.now()
-      const queryResult = await ipcRenderer.invoke('test-database-query-chunks', {
+      const queryResult = await messageBridge.invoke('test-database-query-chunks', {
         knowledgeFileId: fileId
       })
       const queryDuration = Date.now() - startQuery
 
       // 5. 清理测试数据
-      await ipcRenderer.invoke('test-database-delete-file', { fileId: fileId })
+      await messageBridge.invoke('test-database-delete-file', { fileId: fileId })
 
       return {
         success: true,

@@ -4,7 +4,7 @@
  */
 
 import { createRendererLogger } from '../logger'
-import localIpcRenderer from '../web-adapter/local-ipc-renderer'
+import messageBridge from '../../bridge/message-bridge'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import { referenceAdapterManager } from './reference-adapters'
 import type { Reference } from '../../types/agent-framework'
@@ -46,15 +46,8 @@ function getLogger() {
   return loggerInstance
 }
 
-// 获取IPC渲染器
-let ipcRenderer: typeof localIpcRenderer | null = null
-if (typeof window !== 'undefined') {
-  if ((window as any).electron?.ipcRenderer) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  } else {
-    webMainCalls()
-    ipcRenderer = localIpcRenderer
-  }
+if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
+  webMainCalls()
 }
 
 /**
@@ -155,11 +148,10 @@ export async function processFileUpload(
             params: { filename }
           })
 
-          if (ipcRenderer) {
-            // 如果已取消，立即中断，不执行后续操作
+          if (messageBridge.getIpc()) {
             throwIfCancelled()
             filePath = await withCancellation(
-              ipcRenderer.invoke('save-reference-file', {
+              messageBridge.invoke('save-reference-file', {
                 filename,
                 content: arrayBufferToBase64(arrayBuffer)
               }) as Promise<string>
@@ -189,11 +181,11 @@ export async function processFileUpload(
             params: { filename, format: format.toUpperCase() }
           })
 
-          if (ipcRenderer) {
+          if (messageBridge.getIpc()) {
             try {
               throwIfCancelled()
               filePath = await withCancellation(
-                ipcRenderer.invoke('save-reference-file', {
+                messageBridge.invoke('save-reference-file', {
                   filename,
                   content: arrayBufferToBase64(arrayBuffer)
                 }) as Promise<string>
@@ -282,9 +274,9 @@ export async function processFileUpload(
       requestId,
       onCancel: async (reqId) => {
         // 通知主进程取消文件转换任务
-        if (ipcRenderer && requestId) {
+        if (messageBridge.getIpc() && requestId) {
           try {
-            await ipcRenderer.invoke('cancel-file-conversion', reqId)
+            await messageBridge.invoke('cancel-file-conversion', reqId)
           } catch (err) {
             getLogger().warn('取消主进程任务失败:', err)
           }
@@ -384,7 +376,7 @@ export async function processUrlReference(
 
           if (response.status >= 200 && response.status < 300) {
             const arrayBuffer = response.data as ArrayBuffer
-            if (ipcRenderer) {
+            if (messageBridge.getIpc()) {
               const pathname = urlObj.pathname
               const lastSlash = pathname.lastIndexOf('/')
               const filename =
@@ -393,7 +385,7 @@ export async function processUrlReference(
 
               throwIfCancelled()
               filePath = await withCancellation(
-                ipcRenderer.invoke('save-reference-file', {
+                messageBridge.invoke('save-reference-file', {
                   filename: finalFilename,
                   content: arrayBufferToBase64(arrayBuffer)
                 }) as Promise<string>
@@ -690,23 +682,12 @@ export async function selectReferenceFiles(
   multiple: boolean = false,
   title?: string
 ): Promise<string[]> {
-  // 获取IPC渲染器
-  let ipcRenderer: typeof localIpcRenderer | null = null
-  if (typeof window !== 'undefined') {
-    if ((window as any).electron?.ipcRenderer) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      webMainCalls()
-      ipcRenderer = localIpcRenderer
-    }
-  }
-
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('IPC渲染器不可用')
   }
 
   try {
-    const result = (await ipcRenderer.invoke('select-reference-files', {
+    const result = (await messageBridge.invoke('select-reference-files', {
       category,
       multiple,
       title

@@ -1,7 +1,6 @@
 import { serializeDocument } from './document-serializer'
 import type { WorkspaceDocument } from '../stores/workspace'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
-import { webMainCalls } from '../utils/web-adapter/web-main-calls.js'
+import messageBridge from '../bridge/message-bridge'
 import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/title-extractor'
 
 type SaveResult = {
@@ -9,28 +8,12 @@ type SaveResult = {
   format: string
 } | null
 
-const resolveIpcRenderer = (): any => {
-  if (typeof window !== 'undefined') {
-    if (window.electron?.ipcRenderer) {
-      return window.electron.ipcRenderer
-    }
-    try {
-      webMainCalls()
-    } catch (error) {
-      console.warn('[DocumentSave] 初始化 webMainCalls 失败', error)
-    }
-    return localIpcRenderer
-  }
-  return null
-}
-
 export const saveWorkspaceDocument = async (
   doc: WorkspaceDocument,
   options?: { saveAs?: boolean }
 ): Promise<SaveResult> => {
-  const ipcRenderer: any = resolveIpcRenderer()
-  if (!ipcRenderer || typeof ipcRenderer.invoke !== 'function') {
-    console.warn('[DocumentSave] ipcRenderer 不可用，跳过保存')
+  if (!messageBridge.getIpc()?.invoke) {
+    console.warn('[DocumentSave] IPC 不可用，跳过保存')
     return null
   }
 
@@ -52,7 +35,7 @@ export const saveWorkspaceDocument = async (
 
   // 确保保存操作完全完成（包括Sidecar文件写入）
   // workspace-save-document 是同步的，会等待所有文件写入完成（包括fsync）
-  const result = await ipcRenderer.invoke('workspace-save-document', {
+  const result = await messageBridge.invoke('workspace-save-document', {
     data: payload,
     saveAs: options?.saveAs ?? doc.path === ''
   })

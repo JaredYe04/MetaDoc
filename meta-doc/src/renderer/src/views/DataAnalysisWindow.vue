@@ -621,24 +621,15 @@ const loadPreviewData = async () => {
   }
 
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) return
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) return
 
     const filePath = activeSessionData.value.data_file_path
     const format = activeSessionData.value.data_format || 'csv'
     const finalHeaderRowIndex = headerRowIndex.value !== undefined ? headerRowIndex.value : 0
 
     if (format === 'csv') {
-      const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string
+      const content = (await messageBridge.invoke('read-file-content', filePath)) as string
       if (!content) {
         console.error('CSV文件不存在或无法读取:', filePath)
         previewData.value = []
@@ -682,7 +673,7 @@ const loadPreviewData = async () => {
       previewData.value = previewRows
     } else if (format === 'xlsx' || format === 'xls') {
       // 检查文件是否存在
-      const fileExists = (await ipcRenderer.invoke('file-exists', filePath)) as boolean
+      const fileExists = (await messageBridge.invoke('file-exists', filePath)) as boolean
       if (!fileExists) {
         console.error(
           'Excel文件不存在:',
@@ -693,7 +684,7 @@ const loadPreviewData = async () => {
         return
       }
 
-      const excelText = (await ipcRenderer.invoke('convert-excel-to-text', filePath)) as string
+      const excelText = (await messageBridge.invoke('convert-excel-to-text', filePath)) as string
       const lines = excelText.split('\n').filter((line) => line.trim())
 
       let dataStartIndex = -1
@@ -756,19 +747,10 @@ const loadPreviewData = async () => {
 // 预览表头（CSV）
 const previewCsvHeader = async (filePath: string, rowIndex: number) => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) return []
 
-    if (!ipcRenderer) return []
-
-    const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string
+    const content = (await messageBridge.invoke('read-file-content', filePath)) as string
     const lines = content
       .trim()
       .split('\n')
@@ -787,20 +769,11 @@ const previewCsvHeader = async (filePath: string, rowIndex: number) => {
 // 预览表头（Excel）
 const previewExcelHeader = async (filePath: string, rowIndex: number) => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) return []
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) return []
 
     // 检查文件是否存在
-    const fileExists = (await ipcRenderer.invoke('file-exists', filePath)) as boolean
+    const fileExists = (await messageBridge.invoke('file-exists', filePath)) as boolean
     if (!fileExists) {
       console.error(
         'Excel文件不存在:',
@@ -810,7 +783,7 @@ const previewExcelHeader = async (filePath: string, rowIndex: number) => {
       return []
     }
 
-    const excelText = (await ipcRenderer.invoke('convert-excel-to-text', filePath)) as string
+    const excelText = (await messageBridge.invoke('convert-excel-to-text', filePath)) as string
     const lines = excelText.split('\n').filter((line) => line.trim())
 
     let dataStartIndex = -1
@@ -894,19 +867,10 @@ const handleHeaderRowIndexChange = async () => {
 // 检测CSV表头行数
 const detectCsvHeaderRow = async (filePath: string) => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) return
 
-    if (!ipcRenderer) return
-
-    const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string
+    const content = (await messageBridge.invoke('read-file-content', filePath)) as string
     const lines = content
       .trim()
       .split('\n')
@@ -955,20 +919,11 @@ const detectCsvHeaderRow = async (filePath: string) => {
 // 检测Excel表头行数
 const detectExcelHeaderRow = async (filePath: string) => {
   try {
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
-      }
-    }
-
-    if (!ipcRenderer) return
+    const messageBridge = (await import('../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) return
 
     // 检查文件是否存在
-    const fileExists = (await ipcRenderer.invoke('file-exists', filePath)) as boolean
+    const fileExists = (await messageBridge.invoke('file-exists', filePath)) as boolean
     if (!fileExists) {
       console.error(
         'Excel文件不存在:',
@@ -980,7 +935,7 @@ const detectExcelHeaderRow = async (filePath: string) => {
       return
     }
 
-    const excelText = (await ipcRenderer.invoke('convert-excel-to-text', filePath)) as string
+    const excelText = (await messageBridge.invoke('convert-excel-to-text', filePath)) as string
     const lines = excelText.split('\n').filter((line) => line.trim())
 
     let dataStartIndex = -1
@@ -1062,21 +1017,12 @@ const handleFileChange = async (file: any) => {
       const fileContent = await file.raw.arrayBuffer()
       const base64 = btoa(String.fromCharCode(...new Uint8Array(fileContent)))
 
-      let ipcRenderer: any = null
-      if (typeof window !== 'undefined') {
-        if ((window as any).electron?.ipcRenderer) {
-          ipcRenderer = (window as any).electron.ipcRenderer
-        } else {
-          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-          ipcRenderer = localIpcRenderer
-        }
-      }
-
-      if (!ipcRenderer) {
+      const messageBridge = (await import('../bridge/message-bridge')).default
+      if (!messageBridge.getIpc()) {
         throw new Error('IPC渲染器不可用')
       }
 
-      filePath = (await ipcRenderer.invoke('save-reference-file', {
+      filePath = (await messageBridge.invoke('save-reference-file', {
         filename: file.name,
         content: base64
       })) as string

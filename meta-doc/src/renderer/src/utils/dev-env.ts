@@ -13,13 +13,11 @@ export async function isDevEnvironment(): Promise<boolean> {
     return isDevCache
   }
 
-  // 检查是否在 Electron 环境中
-  if (typeof window !== 'undefined' && window.electron?.ipcRenderer) {
+  if (typeof window !== 'undefined') {
     try {
-      // 尝试通过 IPC 获取主进程的 isPackaged 状态
-      const ipcRenderer = window.electron.ipcRenderer
-      if (typeof ipcRenderer.invoke === 'function') {
-        const isPackaged = await ipcRenderer.invoke('get-is-packaged')
+      const ipc = (await import('../bridge/message-bridge')).default.getIpc()
+      if (ipc?.invoke) {
+        const isPackaged = await ipc.invoke('get-is-packaged')
         isDevCache = !isPackaged
         return isDevCache
       }

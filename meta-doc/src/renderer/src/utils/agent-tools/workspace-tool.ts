@@ -19,18 +19,9 @@ import type { AIDialogMessage } from '@/types'
 import { createDetailedError } from './tool-utils'
 import WorkspaceDisplay from './components/WorkspaceDisplay.vue'
 import eventBus from '../event-bus'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('WorkspaceTool')
-
-/**
- * 获取 IPC renderer
- */
-function getIpcRenderer() {
-  if (window && (window as any).electron) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
 
 /**
  * 工作区文件读取结果
@@ -118,8 +109,7 @@ async function readDirectoryTree(
   maxDepth: number = 10,
   currentDepth: number = 0
 ): Promise<Array<{ name: string; path: string; isDirectory: boolean }>> {
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('IPC renderer not available')
   }
 
@@ -128,7 +118,7 @@ async function readDirectoryTree(
   }
 
   try {
-    const entries = await ipcRenderer.invoke('read-directory', dirPath)
+    const entries = await messageBridge.invoke('read-directory', dirPath)
     const result: Array<{ name: string; path: string; isDirectory: boolean }> = []
 
     for (const entry of entries) {
@@ -156,12 +146,11 @@ async function readFileContent(
   startLine?: number,
   endLine?: number
 ): Promise<{ content: string; totalLines: number }> {
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) {
+  if (!messageBridge.getIpc()) {
     throw new Error('IPC renderer not available')
   }
 
-  const fileContent = await ipcRenderer.invoke('read-file-content', filePath)
+  const fileContent = await messageBridge.invoke('read-file-content', filePath)
 
   if (!fileContent) {
     throw new Error(`文件不存在或无法读取: ${filePath}`)
@@ -438,11 +427,10 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     const findFileInWorkspaceFolders = async (filePath: string): Promise<string | null> => {
       // 如果是绝对路径，直接尝试读取
       if (isAbsolutePath(filePath)) {
-        const ipcRenderer = getIpcRenderer()
-        if (!ipcRenderer) return null
+        if (!messageBridge.getIpc()) return null
 
         try {
-          const exists = await ipcRenderer.invoke('file-exists', filePath)
+          const exists = await messageBridge.invoke('file-exists', filePath)
           return exists ? filePath : null
         } catch {
           return null
@@ -450,18 +438,16 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       }
 
       // 相对路径：在所有工作区文件夹中搜索
-      const ipcRenderer = getIpcRenderer()
-      if (!ipcRenderer) return null
+      if (!messageBridge.getIpc()) return null
 
       for (const folderPath of foldersToSearch) {
-        // 清理路径分隔符
-        const cleanFilePath = filePath.replace(/^[/\\]+/, '') // 移除开头的斜杠
+        const cleanFilePath = filePath.replace(/^[/\\]+/, '')
         const fullPath = `${folderPath.replace(/[/\\]+$/, '')}/${cleanFilePath}`
           .replace(/[/\\]+/g, '/')
           .replace(/\/+/g, '/')
 
         try {
-          const exists = await ipcRenderer.invoke('file-exists', fullPath)
+          const exists = await messageBridge.invoke('file-exists', fullPath)
           if (exists) {
             return fullPath
           }

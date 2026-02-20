@@ -135,16 +135,9 @@ import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'
 import { getSetting } from '../utils/settings'
 import { isDevEnvironment } from '../utils/dev-env'
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
+import messageBridge from '../bridge/message-bridge'
 
 const { t } = useI18n()
-
-let ipcRenderer: any = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
-} else {
-  ipcRenderer = localIpcRenderer
-}
 
 const visible = ref(false)
 const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
@@ -189,7 +182,7 @@ const loadVersionInfo = async () => {
 
     // 获取版本文件的详细信息（包含发布日期）
     try {
-      const versionInfo = await ipcRenderer.invoke('get-version-info')
+      const versionInfo = await messageBridge.invoke('get-version-info')
       if (versionInfo && versionInfo.updatedAt) {
         releaseDate.value = versionInfo.updatedAt
       }
@@ -230,7 +223,7 @@ const handleCheckUpdate = async () => {
     const channel = await getSetting('updateChannel')
     const updateChannel = channel === 'dev' || channel === 'release' ? channel : 'release'
 
-    const status = await ipcRenderer.invoke('check-for-updates', updateChannel)
+    const status = await messageBridge.invoke('check-for-updates', updateChannel)
     updateStatus.value = status
   } catch (error) {
     console.error('检查更新失败:', error)
@@ -258,15 +251,11 @@ const handleDownloadUpdate = async () => {
       downloadProgress.value = Math.round(progress.percent)
     }
 
-    if (ipcRenderer && ipcRenderer.on) {
-      ipcRenderer.on('update-download-progress', progressHandler)
-    }
+    messageBridge.on('update-download-progress', progressHandler)
 
-    const result = await ipcRenderer.invoke('download-update')
+    const result = await messageBridge.invoke('download-update')
 
-    if (ipcRenderer && ipcRenderer.removeListener) {
-      ipcRenderer.removeListener('update-download-progress', progressHandler)
-    }
+    messageBridge.removeListener('update-download-progress', progressHandler)
 
     if (result.success) {
       downloaded.value = true
@@ -280,16 +269,14 @@ const handleDownloadUpdate = async () => {
     console.error('下载更新失败:', error)
     downloadError.value = error instanceof Error ? error.message : String(error)
     downloading.value = false
-    if (ipcRenderer && ipcRenderer.removeListener) {
-      ipcRenderer.removeListener('update-download-progress', () => {})
-    }
+    messageBridge.removeListener('update-download-progress', () => {})
   }
 }
 
 // 安装更新并重启
 const handleInstallUpdate = async () => {
   try {
-    await ipcRenderer.invoke('quit-and-install')
+    await messageBridge.invoke('quit-and-install')
   } catch (error) {
     console.error('安装更新失败:', error)
     downloadError.value = error instanceof Error ? error.message : String(error)
@@ -361,7 +348,7 @@ function handleClickOutside(event: MouseEvent) {
 // 加载更新状态
 const loadUpdateStatus = async () => {
   try {
-    const status = await ipcRenderer.invoke('get-update-status')
+    const status = await messageBridge.invoke('get-update-status')
     if (status && (status.updateAvailable || status.updateNotAvailable || status.error)) {
       updateStatus.value = status
       // 检查是否有已下载的更新（通过检查下载状态）
@@ -389,18 +376,14 @@ function setupEventListeners() {
   eventBus.on('close-version-info-panel', closePanel)
 
   // 监听更新下载完成事件
-  if (ipcRenderer && ipcRenderer.on) {
-    ipcRenderer.on('update-downloaded', handleUpdateDownloaded)
-  }
+  messageBridge.on('update-downloaded', handleUpdateDownloaded)
 }
 
 function removeEventListeners() {
   eventBus.off('toggle-version-info-panel', toggleVisibility)
   eventBus.off('close-version-info-panel', closePanel)
 
-  if (ipcRenderer && ipcRenderer.removeListener) {
-    ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded)
-  }
+  messageBridge.removeListener('update-downloaded', handleUpdateDownloaded)
 }
 
 onMounted(() => {

@@ -104,16 +104,43 @@ class Firework {
   }
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 function initCanvas() {
   if (!canvasRef.value) return
   const canvas = canvasRef.value
   const overlay = canvas.parentElement
   if (!overlay) return
+
   const rect = overlay.getBoundingClientRect()
-  canvas.width = rect.width; canvas.height = rect.height
+
+  // 如果尺寸为0，延迟重试
+  if (rect.width === 0 || rect.height === 0) {
+    console.warn('[CelebrationOverlay] Overlay size is 0, retrying in 100ms...')
+    setTimeout(initCanvas, 100)
+    return
+  }
+
+  // 使用获取到的尺寸，或使用 window 作为 fallback
+  canvas.width = rect.width || window.innerWidth
+  canvas.height = rect.height || window.innerHeight
+
   console.log('[CelebrationOverlay] Canvas initialized:', { width: canvas.width, height: canvas.height })
   ctx = canvas.getContext('2d'); if (!ctx) return
   startAnimation(); scheduleFireworks()
+
+  // 添加 ResizeObserver 监听 overlay 尺寸变化
+  if (!resizeObserver) {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (canvasRef.value && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          canvasRef.value.width = entry.contentRect.width
+          canvasRef.value.height = entry.contentRect.height
+        }
+      }
+    })
+    resizeObserver.observe(overlay)
+  }
 }
 
 function startAnimation() {
@@ -166,7 +193,14 @@ watch(() => props.visible, async (newVal) => {
 })
 
 onMounted(() => window.addEventListener('resize', handleResize))
-onBeforeUnmount(() => { window.removeEventListener('resize', handleResize); closeCelebration() })
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+  closeCelebration()
+})
 </script>
 
 <style scoped>

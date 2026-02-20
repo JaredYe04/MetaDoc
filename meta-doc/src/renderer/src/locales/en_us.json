@@ -1,5 +1,10 @@
 {
   "lang": "en_US",
+  "editorModeFirstTime": {
+    "title": "Choose Default Editor Mode",
+    "message": "Select your preferred Markdown editor mode. You can change it later in Settings.",
+    "changeLaterHint": "You can change the default editor mode in Settings later."
+  },
   "contextMenu": {
     "aiAnalysis": "AI Full Analysis",
     "cut": "Cut",
@@ -726,6 +731,14 @@
       "customUploadApiFieldNameHint": "The form field name used by the upload API to receive files.",
       "selectImageDirectory": "Select Image Directory"
     },
+    "defaultEditorMode": "Default Markdown Editor Mode",
+    "defaultEditorModeHint": "Editor mode used when opening documents. You can switch it from the editor toolbar anytime.",
+    "editorModeWysiwyg": "WYSIWYG",
+    "editorModeWysiwygHint": "Friendly for users unfamiliar with Markdown; works seamlessly for Markdown users too.",
+    "editorModeIr": "Instant Rendering (IR)",
+    "editorModeIrHint": "Familiar to Typora users; one of the most elegant ways to edit Markdown.",
+    "editorModeSv": "Split View (SV)",
+    "editorModeSvHint": "Traditional split preview mode, suitable for large screens.",
     "llmType": "Select LLM Type",
     "chooseLlm": "Select a Model",
     "metadoc": "MetaDoc",

@@ -22,6 +22,25 @@
         />
       </el-form-item>
 
+      <el-form-item>
+        <template #label>
+          <span>{{ t('setting.defaultEditorMode') }}</span>
+          <el-tooltip :content="t('setting.defaultEditorModeHint')" placement="top">
+            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+          </el-tooltip>
+        </template>
+        <el-select
+          v-model="settings.vditorMode"
+          @change="saveSetting('vditorMode', settings.vditorMode)"
+          class="editor-mode-select"
+        >
+          <el-option :label="t('setting.editorModeWysiwyg')" value="wysiwyg" />
+          <el-option :label="t('setting.editorModeIr')" value="ir" />
+          <el-option :label="t('setting.editorModeSv')" value="sv" />
+        </el-select>
+        <div class="editor-mode-current-hint">{{ currentEditorModeHint }}</div>
+      </el-form-item>
+
       <!-- 粒子效果相关代码已注释，以备后用 -->
       <!-- <el-form-item>
         <template #label>
@@ -171,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
@@ -183,6 +202,14 @@ import eventBus from '../../utils/event-bus'
 const { t } = useI18n()
 
 const referenceDirSize = ref<number>(0)
+
+const currentEditorModeHint = computed(() => {
+  const mode = settings.vditorMode
+  if (mode === 'wysiwyg') return t('setting.editorModeWysiwygHint')
+  if (mode === 'ir') return t('setting.editorModeIrHint')
+  if (mode === 'sv') return t('setting.editorModeSvHint')
+  return t('setting.editorModeIrHint')
+})
 
 const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value)
@@ -338,5 +365,12 @@ onMounted(() => {
 
 .metadata-info-icon:hover {
   color: var(--el-color-primary);
+}
+
+.editor-mode-current-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
 }
 </style>

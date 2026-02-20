@@ -2,9 +2,61 @@
 
 ## 概述
 
-Agent框架是MetaDoc中用于构建和管理智能Agent系统的核心框架。它提供了完整的Agent生命周期管理，包括会话管理、配置管理、工具集管理、工作流管理和引擎管理等功能。
+Agent框架是MetaDoc中用于构建和管理智能Agent系统的核心框架，采用**分层架构设计**。它提供了完整的Agent生命周期管理，包括会话管理、配置管理、工具集管理、工作流管理和引擎管理等功能。
 
 Agent框架基于已有的Tool系统构建，通过工作流（Workflow）、Agent配置（AgentConfig）、工具集（ToolCollection）和Agent会话（AgentSession）等核心组件，实现了灵活、可扩展的Agent系统。
+
+## 技术架构
+
+### 架构分层
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        UI层 (Vue组件)                            │
+│  AgentToolResultCard, RAGToolDisplay, EditDisplay等             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────────┐
+│                     Agent工具层 (agent-tools)                    │
+│  20+内置工具: edit, grep, rag, chart, outline, proofread等      │
+│  统一接口: AgentToolConfig, ToolCallback                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────────┐
+│                   Agent框架核心 (agent-framework)                │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │ Config管理   │  │ Session管理  │  │ Tool集管理   │             │
+│  │ (CRUD+持久化)│  │ (生命周期)   │  │ (工具组织)   │             │
+│  └─────────────┘  └─────────────┘  └─────────────┘             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │ Workflow引擎 │  │ Agent引擎    │  │ LLM适配器    │             │
+│  │ (图执行)     │  │ (5种范式)    │  │ (多提供商)   │             │
+│  └─────────────┘  └─────────────┘  └─────────────┘             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────────┐
+│                      基础设施层                                   │
+│  存储: localStorage + IndexedDB + SQLite                        │
+│  通信: IPC (Electron) + eventBus                                │
+│  LLM: OpenAI/Ollama/Gemini/DeepSeek/MetaDoc                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 核心文件路径
+
+| 类别 | 文件路径 | 说明 |
+|------|----------|------|
+| **类型定义** | `src/renderer/src/types/agent-framework.ts` | Agent框架核心类型定义 |
+| **类型定义** | `src/renderer/src/types/agent-tool.ts` | Agent工具类型定义 |
+| **配置管理** | `src/renderer/src/utils/agent-framework/agent-config-manager.ts` | AgentConfig的CRUD和持久化 |
+| **会话管理** | `src/renderer/src/utils/agent-framework/agent-session-manager.ts` | AgentSession生命周期管理 |
+| **工具集管理** | `src/renderer/src/utils/agent-framework/tool-collection-manager.ts` | 工具集的组织和管理 |
+| **工作流管理** | `src/renderer/src/utils/agent-framework/workflow-manager.ts` | 工作流CRUD和执行状态 |
+| **工作流执行** | `src/renderer/src/utils/agent-framework/workflow-executor.ts` | 工作流图执行引擎 |
+| **引擎管理** | `src/renderer/src/utils/agent-framework/agent-engine-manager.ts` | Agent引擎配置管理 |
+| **引擎执行** | `src/renderer/src/utils/agent-framework/agent-engine-executor.ts` | 5种执行范式实现 |
+| **工具运行** | `src/renderer/src/utils/agent-framework/tool-runner.ts` | 统一工具调用入口 |
+| **LLM适配** | `src/renderer/src/utils/agent-framework/llm-adapter.ts` | 多LLM提供商适配 |
 
 ```mermaid
 graph TB
@@ -34,16 +86,65 @@ graph TB
 
 ### Agent会话（AgentSession）
 
-Agent会话是AgentConfig的实例，代表一个独立的、有上下文的Agent执行环境。每个会话维护自己的消息历史、引用素材、公共上下文空间，并支持消息队列、重试、Duplicate等高级功能。
+Agent会话是AgentConfig的实例，代表一个独立的、有上下文的Agent执行环境。基于 `agent-session-manager.ts` 实现，每个会话维护自己的消息历史、引用素材、公共上下文空间，并支持消息队列、重试、Duplicate等高级功能。
+
+**类型定义**（`types/agent-framework.ts` 第387-424行）：
+
+```typescript
+export interface AgentSession {
+  entityType: 'agent-session'
+  id: string
+  title: string
+  agentConfigId: string          // 关联的AgentConfig
+  messages: AgentMessage[]       // 消息历史
+  messageQueue: QueuedMessage[]  // 消息队列
+  referenceStore: Reference[]    // 引用素材
+  publicContext: PublicContext   // 公共上下文
+  executionNodes: ExecutionNode[] // 执行节点（用于重试）
+  status: AgentSessionStatus     // 会话状态
+}
+```
+
+**会话状态机**：
+```
+idle → thinking → generating → tool-calling → workflow-executing → waiting-input → error
+```
 
 详见[[agent.session|Agent会话管理]]。
 
 ### Agent配置（AgentConfig）
 
-AgentConfig定义了Agent的身份和能力范围，包括：
-- 关联的工具集（决定Agent可以使用哪些工具）
-- LLM配置（模型、温度等参数）
-- 行为配置（是否允许工具调用、最大调用次数等）
+AgentConfig定义了Agent的身份和能力范围，基于 `agent-config-manager.ts` 实现。
+
+**类型定义**（`types/agent-framework.ts` 第242-289行）：
+
+```typescript
+export interface AgentConfig {
+  entityType: 'agent-config'
+  id: string
+  name: LocalizedText           // 支持i18n的名称
+  description: LocalizedText    // 支持i18n的描述
+  toolCollectionIds: string[]   // 关联的工具集ID（取交集）
+  maxToolCalls?: number | null  // 最大工具调用次数
+  llmConfig?: {
+    model?: string
+    temperature?: number
+    systemPrompt?: string       // 系统提示词
+    injectTimestamp?: boolean
+  }
+  behavior?: {
+    allowToolCalls?: boolean
+    allowWorkflowCalls?: boolean
+  }
+  scenario?: 'outline' | 'editor' | 'analysis' | 'visualization' | 'custom'
+}
+```
+
+**核心功能**：
+- **默认配置**：`default-agent-config`（内置，不可删除）
+- **工具集交集**：关联多个工具集时，可用工具是所有工具集的交集
+- **LLM参数覆盖**：可以覆盖全局LLM配置
+- **持久化**：存储于 `localStorage`，键为 `'agent-configs'`
 
 详见[[agent.config|Agent配置管理]]。
 

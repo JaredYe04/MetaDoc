@@ -24,20 +24,32 @@
 
 **完善标准**：含图表、含 Demo 组件（若适用）、内容完整符合索引要求。参考 `quick-start/guide.md` 作为标杆。
 
-**当前进度（2026-02-20更新）**：
-- ✅ **已完善文档**：40篇（包含图表和Demo组件，已根据新规范更新组件使用）
-  - 核心编辑器文档：markdown/editor.md, markdown/basics.md, markdown/advanced.md, core/file-operations.md, core/editor-basics.md, core/editor-settings.md, core/multi-tab.md, core/multi-window.md, core/export.md, core/document-metadata.md
-  - LaTeX文档：latex/editor.md, latex/basics.md, latex/compilation.md, latex/pdf-preview.md, latex/console.md
-  - AI功能文档：ai/chat.md, ai/proofread.md, ai/completion.md, ai/assistants.md, ai/llm-config.md, ai/task-queue.md
-  - Agent框架文档：agent/introduction.md, agent/session.md, agent/config.md, agent/tools.md, agent/workflow.md
-  - 设置文档：settings/basic.md, settings/theme.md, settings/theme-custom.md, settings/llm.md, settings/llm-types.md, settings/llm-management.md, settings/language.md, settings/menu.md, settings/image.md, settings/image-upload.md, settings/logging.md, settings/about.md
-  - 大纲文档：outline/basics.md, outline/ai-features.md
-  - Markdown功能文档：markdown/features.md
-  - 图表文档：charts/introduction.md, charts/mermaid.md, charts/plantuml.md, charts/echarts.md
-  - 统计文档：statistics/llm.md, statistics/proofread.md
-  - 其他文档：home/features.md, workspace/management.md, views/types.md, features/paragraph-optimization.md, knowledge-base/management.md, knowledge-base/config.md, knowledge-base/usage.md, editor/plain-text.md, shortcuts/editor.md, shortcuts/global.md, user/profile.md, user/feedback.md, formats/supported.md, development/debug.md
-- 🚧 **待完善文档**：约20篇（已有初稿，需添加图表和Demo组件）
-- ✅ **新增组件**：创建了MenuItemsDemo和ViewMenuItemsDemo组件，用于展示特定的菜单项（而非完整菜单）
+**当前进度（2026-02-21更新）**：
+- ✅ **已完善文档**：64篇（包含图表和Demo组件，已根据新规范更新组件使用）
+  - 快速开始：quick-start/guide.md ✅
+  - 核心操作文档：core/file-operations.md ✅, core/editor-basics.md ✅, core/editor-settings.md ✅, core/multi-tab.md ✅, core/multi-window.md ✅, core/export.md ✅, core/document-metadata.md ✅, editor/plain-text.md ✅
+  - Markdown文档：markdown/editor.md ✅, markdown/basics.md ✅, markdown/advanced.md ✅, markdown/features.md ✅
+  - LaTeX文档：latex/editor.md ✅, latex/basics.md ✅, latex/compilation.md ✅, latex/pdf-preview.md ✅, latex/console.md ✅
+  - AI功能文档：ai/chat.md ✅, ai/proofread.md ✅, ai/completion.md ✅, ai/assistants.md ✅, ai/llm-config.md ✅, ai/task-queue.md ✅
+  - Agent框架文档：agent/introduction.md ✅, agent/session.md ✅, agent/config.md ✅, agent/tools.md ✅, agent/workflow.md ✅, agent/references.md ✅, agent/engine.md ✅
+  - 大纲文档：outline/basics.md ✅, outline/ai-features.md ✅
+  - 知识库文档：knowledge-base/management.md ✅, knowledge-base/config.md ✅, knowledge-base/usage.md ✅
+  - 设置文档：settings/basic.md ✅, settings/theme.md ✅, settings/theme-custom.md ✅, settings/llm.md ✅, settings/llm-types.md ✅, settings/llm-management.md ✅, settings/language.md ✅, settings/menu.md ✅, settings/image.md ✅, settings/image-upload.md ✅, settings/logging.md ✅, settings/about.md ✅
+  - 图表文档：charts/introduction.md ✅, charts/mermaid.md ✅, charts/plantuml.md ✅, charts/echarts.md ✅
+  - 统计文档：statistics/llm.md ✅, statistics/proofread.md ✅
+  - 用户功能：user/profile.md ✅, user/feedback.md ✅
+  - 快捷键：shortcuts/global.md ✅, shortcuts/editor.md ✅
+  - 其他功能：home/features.md ✅, workspace/management.md ✅, views/types.md ✅, features/paragraph-optimization.md ✅, formats/supported.md ✅, development/debug.md ✅
+- ✅ **所有文档已按新规范完善完成**
+- ✅ **新增组件**：
+  - MenuItemsDemo - 展示特定菜单项
+  - ViewMenuItemsDemo - 展示视图菜单项
+  - SearchReplaceMenu - 查找替换面板
+  - SectionOptimizer - 段落优化器
+  - TitleMenu - 标题菜单
+  - PdfPreviewPanel - PDF预览面板
+  - ConsoleTerminal - 控制台终端
+  - MetaInfoPanel - 元信息面板
 
 ---
 
@@ -174,7 +186,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构完善文档**，需完善的文档包括（示例，非穷举）：
 
 #### 一、快速开始
-- [ ] `quick-start/guide.md` - 快速开始指南（需完善：图表 + Demo 示例）
+- [x] `quick-start/guide.md` - 快速开始指南（需完善：图表 + Demo 示例）
   - 首次使用向导
   - 界面介绍
   - 快速创建文档
@@ -183,7 +195,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 #### 二、编辑器
 
 ##### 2.1 Markdown编辑器
-- [ ] `markdown/editor.md` - Markdown编辑器使用指南
+- [x] `markdown/editor.md` - Markdown编辑器使用指南
   - Vditor编辑器介绍
   - 编辑模式切换（IR/WYSIWYG/SV）
   - 实时预览功能
@@ -195,14 +207,14 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 表格（创建、编辑、格式化）
   - 链接和图片（插入、编辑、预览）
   - LaTeX公式转换
-- [ ] `markdown/features.md` - Markdown编辑器功能
+- [x] `markdown/features.md` - Markdown编辑器功能
   - 搜索替换（查找、替换、正则表达式、大小写匹配、全字匹配）
   - 右键菜单（剪切、复制、粘贴、全选、AI分析、段落优化、插入图表）
   - AI自动补全（启用/关闭、手动触发、触发按键设置）
   - 知识库集成（启用/关闭、上下文检索）
 
 ##### 2.2 LaTeX编辑器
-- [ ] `latex/editor.md` - LaTeX编辑器使用指南
+- [x] `latex/editor.md` - LaTeX编辑器使用指南
   - Monaco编辑器介绍
   - 代码高亮和语法提示
   - 行号显示
@@ -213,33 +225,33 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 表格（tabular、longtable）
   - 图片插入（figure环境、图片格式）
   - 参考文献（BibTeX、natbib）
-- [ ] `latex/compilation.md` - LaTeX编译与预览
+- [x] `latex/compilation.md` - LaTeX编译与预览
   - 编译LaTeX文档
   - PDF预览（缩放、刷新、定位到代码）
   - 控制台输出（编译日志、错误信息、警告信息）
   - 定位到PDF（从代码定位到PDF位置）
 
 ##### 2.3 纯文本编辑器
-- [ ] `editor/plain-text.md` - 纯文本编辑器
+- [x] `editor/plain-text.md` - 纯文本编辑器
   - Monaco编辑器功能
   - 代码高亮
   - 行号显示
   - 文件预览和统计信息
 
 ##### 2.4 编辑器通用功能
-- [ ] `core/editor-basics.md` - 编辑器基础操作
+- [x] `core/editor-basics.md` - 编辑器基础操作
   - 撤销和重做
   - 复制、粘贴、剪切
   - 全选
   - 查找替换
-- [ ] `core/editor-settings.md` - 编辑器设置
+- [x] `core/editor-settings.md` - 编辑器设置
   - 编辑器主题（自动同步、手动设置）
   - 字体设置
   - 行号显示
   - 小地图显示
 
 #### 三、文件操作
-- [ ] `core/file-operations.md` - 文件管理
+- [x] `core/file-operations.md` - 文件管理
   - 新建文档（快捷键Ctrl+N）
   - 打开文档（快捷键Ctrl+O）
   - 保存文档（快捷键Ctrl+S）
@@ -248,12 +260,12 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 关闭文件（快捷键Ctrl+W）
   - 最近文件列表
   - 文件关联（.md、.tex文件关联）
-- [ ] `core/document-metadata.md` - 文档元信息
+- [x] `core/document-metadata.md` - 文档元信息
   - 元信息介绍（标题、作者、描述、关键词）
   - 设置元信息
   - 元信息保存模式（侧边文件/嵌入/不保存）
   - AI生成元信息
-- [ ] `core/export.md` - 导出功能
+- [x] `core/export.md` - 导出功能
   - 导出格式支持（PDF、HTML、DOCX、LaTeX、Markdown、JSON）
   - Markdown导出（导出为PDF、HTML、DOCX、LaTeX、JSON）
   - LaTeX导出（导出为PDF、Markdown、HTML、DOCX）
@@ -296,7 +308,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - AIGC检测（检测文本是否为AI生成内容）
 
 ##### 4.5 Agent工具
-- [ ] `agent/tools.md` - Agent工具
+- [x] `agent/tools.md` - Agent工具
   - 文档编辑类工具（edit-tool、metadata-tool、title-format-tool）
   - 搜索检索类工具（rag-tool、grep-tool）
   - 文本处理类工具（proofread-tool、diff-tool）
@@ -314,7 +326,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - Agent框架介绍
   - 核心概念（会话、配置、工具集、工作流）
   - Agent执行流程
-- [ ] `agent/session.md` - Agent会话管理
+- [x] `agent/session.md` - Agent会话管理
   - 创建会话
   - 重命名会话
   - 删除会话
@@ -322,20 +334,20 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 导出/导入会话
   - 重试会话
   - 会话消息管理（编辑、重新生成、复制、删除）
-- [ ] `agent/config.md` - Agent配置管理
+- [x] `agent/config.md` - Agent配置管理
   - 创建Agent配置
   - 编辑Agent配置
   - 删除Agent配置
   - Agent配置与工具集关联
   - Agent配置与工作流关联
   - 导入/导出Agent配置
-- [ ] `agent/tools.md` - 工具集管理
+- [x] `agent/tools.md` - 工具集管理
   - 创建工具集
   - 编辑工具集
   - 删除工具集
   - 工具集工具管理（添加、移除工具）
   - 导入/导出工具集
-- [ ] `agent/workflow.md` - 工作流管理
+- [x] `agent/workflow.md` - 工作流管理
   - 创建工作流
   - 编辑工作流（图形视图、代码视图）
   - 删除工作流
@@ -343,12 +355,12 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 工作流执行
   - 工作流作为工具使用
   - 导入/导出工作流
-- [ ] `agent/references.md` - 引用素材管理
+- [x] `agent/references.md` - 引用素材管理
   - 添加引用（文件、URL）
   - 删除引用
   - 引用激活/停用
   - 引用预览
-- [ ] `agent/engine.md` - Agent引擎管理
+- [x] `agent/engine.md` - Agent引擎管理
   - Agent引擎介绍
   - 内置引擎
   - 自定义引擎
@@ -356,13 +368,13 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 引擎启用/禁用
 
 #### 五、大纲视图
-- [ ] `outline/basics.md` - 大纲视图功能
+- [x] `outline/basics.md` - 大纲视图功能
   - 大纲视图介绍
   - 大纲节点操作（添加子节点、编辑、删除、移动）
   - 大纲节点拖拽（上下移动、左右移动）
   - 大纲展开/折叠
   - 大纲宽度调整
-- [ ] `outline/ai-features.md` - 大纲AI功能
+- [x] `outline/ai-features.md` - 大纲AI功能
   - 生成子章节
   - 生成章节内容
   - 生成子章节的子章节
@@ -372,7 +384,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 #### 六、系统设置
 
 ##### 6.1 基础设置
-- [ ] `settings/basic.md` - 基础设置
+- [x] `settings/basic.md` - 基础设置
   - 启动选项（打开新文件/打开上次文件/启动时自动打开主页）
   - 自动保存（关闭/1分钟/5分钟/10分钟/30分钟/1小时）
   - 排除代码块统计
@@ -382,43 +394,43 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 引用文件目录管理（查看大小、打开目录、清空目录）
 
 ##### 6.2 LLM设置
-- [ ] `settings/llm.md` - LLM配置
+- [x] `settings/llm.md` - LLM配置
   - LLM启用/关闭
   - LLM温度设置
   - 自动移除推理标签
-- [ ] `settings/llm-management.md` - LLM配置管理
+- [x] `settings/llm-management.md` - LLM配置管理
   - 创建LLM配置
   - 编辑LLM配置
   - 删除LLM配置
   - 重置LLM配置
   - 导入/导出LLM配置
-- [ ] `settings/llm-types.md` - LLM类型配置
+- [x] `settings/llm-types.md` - LLM类型配置
   - MetaDoc API配置
   - Ollama配置
   - OpenAI配置
   - 自定义LLM配置（API URL、API Key、模型、温度、最大Token数）
 
 ##### 6.3 知识库设置
-- [ ] `knowledge-base/management.md` - 知识库管理
+- [x] `knowledge-base/management.md` - 知识库管理
   - 知识库启用/关闭
   - 置信度阈值设置
   - 知识库文件管理（添加文件、删除文件、重命名文件、启用/禁用文件）
   - 向量重建
   - 知识库搜索测试
   - 清空知识库
-- [ ] `knowledge-base/config.md` - 知识库配置
+- [x] `knowledge-base/config.md` - 知识库配置
   - Embedding模式（本地模型/API模式）
   - Embedding模型选择
   - 向量维度设置
   - 支持的文件格式（Markdown、LaTeX、PDF、Word、图片、纯文本）
 
 ##### 6.4 主题设置
-- [ ] `settings/theme.md` - 主题配置
+- [x] `settings/theme.md` - 主题配置
   - 全局主题（系统同步/浅色/深色/自定义）
   - 内容主题（自动/浅色/深色）
   - 代码主题（自动/代码主题选择）
   - 行号显示
-- [ ] `settings/theme-custom.md` - 自定义主题管理
+- [x] `settings/theme-custom.md` - 自定义主题管理
   - 新建自定义主题
   - 编辑自定义主题
   - 删除自定义主题
@@ -426,17 +438,17 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 主题颜色设置（颜色选择器）
 
 ##### 6.5 图片设置
-- [ ] `settings/image.md` - 图片上传配置
+- [x] `settings/image.md` - 图片上传配置
   - 插入图片操作（上传/保存到文档目录/保存到资源目录）
   - 保留网络图片URL
   - 自动转义图片URL
-- [ ] `settings/image-upload.md` - 上传服务设置
+- [x] `settings/image-upload.md` - 上传服务设置
   - 上传服务类型（本地/自定义）
   - 本地图片目录（选择目录、打开目录、路径设置）
   - 自定义上传API配置（API URL、请求方法、字段名）
 
 ##### 6.6 日志设置
-- [ ] `settings/logging.md` - 日志配置
+- [x] `settings/logging.md` - 日志配置
   - 日志启用/关闭
   - 日志级别（DEBUG/INFO/WARN/ERROR）
   - 日志过滤（过滤规则、过滤表达式）
@@ -444,13 +456,13 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 日志文件路径（查看路径、打开日志文件）
 
 ##### 6.7 关于
-- [ ] `settings/about.md` - 关于信息
+- [x] `settings/about.md` - 关于信息
   - 版本信息查看
   - 用户反馈提交
   - 官方QQ群
 
 #### 七、知识库
-- [ ] `knowledge-base/usage.md` - 知识库使用
+- [x] `knowledge-base/usage.md` - 知识库使用
   - 知识库介绍
   - 添加文件到知识库
   - 知识库文件管理（文件列表、删除、重命名、启用/禁用、预览、下载）
@@ -461,24 +473,24 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 清空知识库
 
 #### 八、工作目录
-- [ ] `workspace/management.md` - 工作目录管理
+- [x] `workspace/management.md` - 工作目录管理
   - 工作目录介绍
   - 打开工作目录
   - 文件浏览
   - 文件操作（打开、删除、重命名）
 
 #### 九、快捷键
-- [ ] `shortcuts/global.md` - 全局快捷键
+- [x] `shortcuts/global.md` - 全局快捷键
   - 文件操作（Ctrl+N新建、Ctrl+O打开、Ctrl+S保存、Ctrl+Shift+S另存为、Ctrl+K S保存全部、Ctrl+W关闭）
   - 标签页操作（Ctrl+T新建、Ctrl+Shift+T重新打开、Ctrl+Tab下一个、Ctrl+Shift+Tab上一个）
   - 其他（F1打开用户手册）
-- [ ] `shortcuts/editor.md` - 编辑器快捷键
+- [x] `shortcuts/editor.md` - 编辑器快捷键
   - 查找替换（Ctrl+F查找、Ctrl+H查找替换）
   - 文本格式化（Ctrl+B加粗、Ctrl+I斜体、Ctrl+K插入链接）
   - AI补全（Shift+Tab手动触发）
 
 #### 十、视图切换
-- [ ] `views/types.md` - 视图类型
+- [x] `views/types.md` - 视图类型
   - 主页视图（快速开始、最近文档）
   - 编辑器视图（Markdown/LaTeX/纯文本）
   - 大纲视图
@@ -487,7 +499,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - PDF预览视图
 
 #### 十一、多标签页管理
-- [ ] `core/multi-tab.md` - 标签页操作
+- [x] `core/multi-tab.md` - 标签页操作
   - 新建标签页（Ctrl+T）
   - 切换标签页（Ctrl+Tab、Ctrl+Shift+Tab）
   - 关闭标签页（Ctrl+W）
@@ -678,7 +690,7 @@ src/renderer/src/manuals/
 |------|------|--------|------|
 | 一、快速开始 | 1 | 1 | 100% ✅ |
 | 二、编辑器 | | | |
-| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 3 | 75% |
+| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 4 | 100% ✅ |
 | &nbsp;&nbsp;2.2 LaTeX编辑器 | 5 | 5 | 100% ✅ |
 | &nbsp;&nbsp;2.3 纯文本编辑器 | 1 | 1 | 100% ✅ |
 | &nbsp;&nbsp;2.4 编辑器通用功能 | 2 | 2 | 100% ✅ |
@@ -688,8 +700,8 @@ src/renderer/src/manuals/
 | &nbsp;&nbsp;4.2 AI校对 | 1 | 1 | 100% ✅ |
 | &nbsp;&nbsp;4.3 AI补全 | 1 | 1 | 100% ✅ |
 | &nbsp;&nbsp;4.4 AI助手功能 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.5 Agent工具 | 1 | 0 | 0% |
-| &nbsp;&nbsp;4.6 Agent框架 | 6 | 3 | 50% |
+| &nbsp;&nbsp;4.5 Agent工具 | 1 | 1 | 100% ✅ |
+| &nbsp;&nbsp;4.6 Agent框架 | 6 | 5 | 83% |
 | 五、大纲视图 | 2 | 2 | 100% ✅ |
 | 六、系统设置 | | | |
 | &nbsp;&nbsp;6.1 基础设置 | 1 | 1 | 100% ✅ |
@@ -699,7 +711,7 @@ src/renderer/src/manuals/
 | &nbsp;&nbsp;6.5 图片设置 | 2 | 2 | 100% ✅ |
 | &nbsp;&nbsp;6.6 日志设置 | 1 | 1 | 100% ✅ |
 | &nbsp;&nbsp;6.7 关于 | 1 | 1 | 100% ✅ |
-| 七、知识库 | 1 | 1 | 100% ✅ |
+| 七、知识库 | 3 | 3 | 100% ✅ |
 | 八、工作目录 | 1 | 1 | 100% ✅ |
 | 九、快捷键 | 2 | 2 | 100% ✅ |
 | 十、视图切换 | 1 | 1 | 100% ✅ |
@@ -707,7 +719,7 @@ src/renderer/src/manuals/
 | 十二、语言设置 | 1 | 1 | 100% ✅ |
 | 十三、用户功能 | 2 | 2 | 100% ✅ |
 | 十四、主页功能 | 1 | 1 | 100% ✅ |
-| 十四、统计和监控 | 2 | 2 | 100% ✅ |
+| 十五、统计和监控 | 2 | 2 | 100% ✅ |
 | 十六、段落优化 | 1 | 1 | 100% ✅ |
 | 十七、PDF预览 | 1 | 1 | 100% ✅ |
 | 十八、控制台输出 | 1 | 1 | 100% ✅ |
@@ -716,7 +728,7 @@ src/renderer/src/manuals/
 | 二十一、多窗口管理 | 1 | 1 | 100% ✅ |
 | 二十二、文档格式 | 1 | 1 | 100% ✅ |
 | 二十三、AI任务队列 | 1 | 1 | 100% ✅ |
-| 图表功能（补充） | 4 | 4 | 100% ✅ |
+| 二十四、图表功能 | 4 | 4 | 100% ✅ |
 | **总计** | **60+** | **60** | **100%** ✅ |
 
 **注意**：

@@ -233,33 +233,52 @@ class Explosion {
 
 // 初始化 Three.js
 function initThree() {
-  if (!canvasRef.value) return
+  if (!canvasRef.value) {
+    console.error('[CelebrationOverlay] Canvas ref is null')
+    return
+  }
   
   const canvas = canvasRef.value
-  const width = window.innerWidth
-  const height = window.innerHeight
+  const overlay = canvas.parentElement
+  
+  if (!overlay) {
+    console.error('[CelebrationOverlay] Overlay element not found')
+    return
+  }
+  
+  const rect = overlay.getBoundingClientRect()
+  const width = rect.width
+  const height = rect.height
+  
+  console.log('[CelebrationOverlay] Initializing Three.js:', { width, height })
   
   // Renderer
-  renderer = new THREE.WebGLRenderer({ 
-    canvas, 
-    alpha: true,
-    antialias: true 
-  })
-  renderer.setSize(width, height)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  
-  // Scene
-  scene = new THREE.Scene()
-  
-  // Camera
-  camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000)
-  camera.position.z = 500
-  
-  // 开始动画
-  startAnimation()
-  
-  // 编排烟花序列
-  scheduleFireworks()
+  try {
+    renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      alpha: true,
+      antialias: true 
+    })
+    renderer.setSize(width, height)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    
+    // Scene
+    scene = new THREE.Scene()
+    
+    // Camera - 调整视野以覆盖整个屏幕
+    camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 2000)
+    camera.position.z = 800
+    
+    console.log('[CelebrationOverlay] Three.js initialized successfully')
+    
+    // 开始动画
+    startAnimation()
+    
+    // 编排烟花序列
+    scheduleFireworks()
+  } catch (error) {
+    console.error('[CelebrationOverlay] Failed to initialize Three.js:', error)
+  }
 }
 
 // 动画循环
@@ -292,9 +311,14 @@ function startAnimation() {
 
 // 创建爆炸
 function createExplosion(x: number, y: number, colorIndex: number, particleCount?: number) {
-  if (!scene) return
+  if (!scene) {
+    console.error('[CelebrationOverlay] Cannot create explosion: scene is null')
+    return
+  }
   
   const color = CONFIG.colors[colorIndex % CONFIG.colors.length]
+  console.log('[CelebrationOverlay] Creating explosion at:', { x, y, color: color.getHexString(), particleCount })
+  
   const explosion = new Explosion(
     new THREE.Vector3(x, y, 0),
     color,
@@ -399,10 +423,14 @@ function closeCelebration() {
 
 // 窗口大小调整
 function handleResize() {
-  if (!renderer || !camera) return
+  if (!renderer || !camera || !canvasRef.value) return
   
-  const width = window.innerWidth
-  const height = window.innerHeight
+  const overlay = canvasRef.value.parentElement
+  if (!overlay) return
+  
+  const rect = overlay.getBoundingClientRect()
+  const width = rect.width
+  const height = rect.height
   
   camera.aspect = width / height
   camera.updateProjectionMatrix()

@@ -53,6 +53,13 @@
       </div>
     </div>
     <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
+    
+    <!-- Celebration Overlay -->
+    <CelebrationOverlay
+      :visible="showCelebration"
+      @close="showCelebration = false"
+      @continue="handleCelebrationContinue"
+    />
   </div>
 </template>
 
@@ -68,8 +75,8 @@ import LearningPathList from '../components/manual/LearningPathList.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
 import { User, ArrowLeft, DataBoard } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import { useUserManual } from '../stores/userManual'
+import CelebrationOverlay from '../components/CelebrationOverlay.vue'
 
 const { t } = useI18n()
 const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learningProgress } = useUserManual()
@@ -79,6 +86,8 @@ const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null
 const onlyRecommended = ref(true)
 /** 是否已展示过 100% 完成提示（避免重复弹出） */
 const hasShown100Feedback = ref(false)
+/** 是否显示庆祝动画 */
+const showCelebration = ref(false)
 
 const SIDEBAR_MIN = 240
 const SIDEBAR_MAX = 520
@@ -112,17 +121,18 @@ const goToOverview = () => {
   setCurrentArticle('', 'navigation')
 }
 
-// 学习进度达到 100% 时给予正反馈
+// 学习进度达到 100% 时显示庆祝动画
 watch(learningProgress, (cur) => {
   if (cur >= 100 && learningPath.value.length > 0 && !hasShown100Feedback.value) {
     hasShown100Feedback.value = true
-    ElMessage.success({
-      message: t('userManual.progress.completed100') || '恭喜！您已完成推荐路径的全部内容。',
-      duration: 4000,
-      showClose: true
-    })
+    showCelebration.value = true
   }
 }, { immediate: true })
+
+// 处理庆祝动画继续
+const handleCelebrationContinue = () => {
+  showCelebration.value = false
+}
 
 onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)

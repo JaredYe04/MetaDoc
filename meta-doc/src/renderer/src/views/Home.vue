@@ -125,6 +125,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
 import { getSetting } from '../utils/settings'
 import { themeState, mixColors } from '../utils/themes'
@@ -226,13 +227,12 @@ const loadFileStats = async () => {
   }
 
   try {
-    const ipcRenderer = getIpcRenderer()
-    if (!ipcRenderer) {
+    if (!messageBridge.getIpc()) {
       logger.warn('IPC renderer 不可用，无法获取文件统计信息')
       return
     }
 
-    const stats = (await ipcRenderer.invoke('get-file-stats', currentFilePath.value)) as {
+    const stats = (await messageBridge.invoke('get-file-stats', currentFilePath.value)) as {
       birthtime: number
       mtime: number
       size: number
@@ -277,14 +277,6 @@ const pdfUrlForHome = computed(() => {
   if (!path || !isPdfTab.value) return ''
   return encodeFilePathToUrl(path)
 })
-
-// 获取 IPC renderer
-const getIpcRenderer = () => {
-  if (window && (window as any).electron) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
 
 // 判断是否需要显示格式选择界面
 const needsFormatSelection = computed(() => {

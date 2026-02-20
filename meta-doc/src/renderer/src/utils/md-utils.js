@@ -4,7 +4,8 @@ import Vditor from 'vditor'
 import eventBus, { isElectronEnv } from './event-bus'
 import { getImagePath, getSetting } from './settings'
 import { convertNumberToChinese, removeTitleIndex } from './regex-utils'
-import { localVditorCDN, vditorCDN } from './vditor-cdn'
+import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
+import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 import { createRendererLogger } from './logger.ts'
 import { preRenderAllCharts } from './chart-pre-renderer.js'
 import { themeState } from './themes'
@@ -1077,17 +1078,17 @@ export async function image2local(md) {
   let new_md = ''
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    //把'http://localhost:52521/images/'替换成local_path
+    // 把运行时服务器 /images/ URL 替换成 local_path
+    const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
     const match = line.match(/!\[.*?\]\((.*?)\)/)
     if (match) {
       const image_path = match[1]
 
       let image_name = ''
 
-      if (image_path.startsWith('http://localhost:52521/images/')) {
+      if (image_path.startsWith(imagesPrefix)) {
         // HTTP URL，提取文件名
-        const prefix_len = 'http://localhost:52521/images/'.length
-        image_name = image_path.slice(prefix_len)
+        image_name = image_path.slice(imagesPrefix.length)
       } else if (image_path.startsWith('data:image/')) {
         // Base64 图片，跳过（不需要转换为本地路径）
         new_md += line + '\n'
@@ -1115,8 +1116,8 @@ export async function image2local(md) {
  * @returns 转换后的 Markdown 文本
  */
 export async function local2httpProtocol(md, docPath = '') {
-  //把local_path替换成'http://localhost:52521/images/'
-
+  // 把 local_path 替换成运行时服务器 /images/ URL
+  const serverImagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
   const local_path = await getImagePath()
   const lines = md.split('\n')
   let new_md = ''
@@ -1126,7 +1127,7 @@ export async function local2httpProtocol(md, docPath = '') {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    //把local_path替换成'http://localhost:52521/images/'
+    // 把 local_path 替换成运行时服务器 /images/ URL
     // 改进正则表达式，确保正确处理嵌套链接和 URL
     // 匹配格式: ![alt](url) 或 ![alt text](url)
     // 使用更精确的匹配，避免匹配到嵌套链接中的内容
@@ -1135,14 +1136,14 @@ export async function local2httpProtocol(md, docPath = '') {
       let image_path = match[2].trim() // 提取 URL 并去除首尾空格
 
       // 处理不同的路径格式：
-      // 1. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
+      // 1. HTTP URL：运行时服务器 /images/filename（已经是正确的，不需要转换）
       // 2. 相对路径（./xxx.jpg 或 ../xxx.jpg）：先转换为绝对路径
       // 3. local_path 下的本地路径：直接提取文件名并转换
       // 4. 其他本地路径：先通过 API 上传，然后转换为 HTTP URL
 
       let server_url = ''
 
-      if (image_path.startsWith('http://localhost:52521/images/')) {
+      if (image_path.startsWith(serverImagesPrefix)) {
         // 已经是 HTTP URL，直接使用
         new_md += line + '\n'
         continue
@@ -1189,7 +1190,7 @@ export async function local2httpProtocol(md, docPath = '') {
           } else {
             image_name = normalizedImagePath.slice(normalizedLocalPath.length)
           }
-          server_url = 'http://localhost:52521/images/' + image_name
+          server_url = serverImagesPrefix + image_name
         } else {
           // 不在 local_path 下，需要通过 API 上传
           // 注意：这里使用解析后的绝对路径（如果之前是相对路径，已经转换了）
@@ -1198,7 +1199,7 @@ export async function local2httpProtocol(md, docPath = '') {
               originalPath: image_path,
               docPath
             })
-            const response = await fetch('http://localhost:52521/api/image/url-upload', {
+            const response = await fetch(getRuntimeServerBaseUrlSync() + '/api/image/url-upload', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -1225,7 +1226,7 @@ export async function local2httpProtocol(md, docPath = '') {
               // result.data.url 格式类似: C:\Users\...\Pictures\meta-doc-imgs\1234567890.jpg
               const serverPath = result.data.url
               const fileName = serverPath.split(/[/\\]/).pop()
-              server_url = 'http://localhost:52521/images/' + fileName
+              server_url = getRuntimeServerBaseUrlSync() + '/images/' + fileName
             } else {
               throw new Error(result.error || '上传失败')
             }
@@ -1371,7 +1372,7 @@ export async function local2fileProtocol(md, docPath = '') {
 }
 
 /**
- * 将本地图片路径和localhost:52521的URL转换为 file:// 协议 URL（用于HTML导出）
+ * 将本地图片路径和运行时服务器 images URL 转换为 file:// 协议 URL（用于HTML导出）
  * 但保留http(s)网络链接
  * @param md Markdown 文本
  * @param docPath 可选，文档路径，用于解析相对路径
@@ -1392,7 +1393,7 @@ export async function local2fileProtocolForHtml(md, docPath = '') {
 
       // 如果已经是 http(s) 网络链接、data URL 或 file:// 协议，保持原样
       if (
-        (image_path.startsWith('http://') && !image_path.startsWith('http://localhost:52521/')) ||
+        (image_path.startsWith('http://') && !image_path.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
         image_path.startsWith('https://') ||
         image_path.startsWith('data:') ||
         image_path.startsWith('file://')
@@ -1401,12 +1402,12 @@ export async function local2fileProtocolForHtml(md, docPath = '') {
         continue
       }
 
-      // 处理 localhost:52521 的 URL 或系统路径
+      // 处理运行时服务器 images URL 或系统路径
       let resolvedImagePath = image_path
 
-      // 如果是 localhost:52521 的 URL，转换为本地路径
-      if (image_path.startsWith('http://localhost:52521/images/')) {
-        const imageName = image_path.replace('http://localhost:52521/images/', '')
+      const runtimeImagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
+      if (image_path.startsWith(runtimeImagesPrefix)) {
+        const imageName = image_path.replace(runtimeImagesPrefix, '')
         resolvedImagePath = local_path.replace(/\\/g, '/') + '/' + imageName
       } else {
         // 处理相对路径
@@ -1509,9 +1510,9 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
     if (match) {
       let image_path = match[2].trim() // 提取 URL 并去除首尾空格
 
-      // 检查是否是网络图片（http(s)但不是localhost:52521）
+      // 检查是否是网络图片（http(s)但不是运行时服务器）
       const isNetworkImage =
-        (image_path.startsWith('http://') && !image_path.startsWith('http://localhost:52521/')) ||
+        (image_path.startsWith('http://') && !image_path.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
         image_path.startsWith('https://')
 
       // 检查是否是 data: URL 或 blob: URL（图表渲染后的图片）
@@ -1522,7 +1523,7 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
         // 下载网络图片并上传到本地服务
         try {
           getLogger().debug(`下载并上传网络图片: ${image_path}`)
-          const response = await fetch('http://localhost:52521/api/image/url-upload', {
+          const response = await fetch(getRuntimeServerBaseUrlSync() + '/api/image/url-upload', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -1542,7 +1543,7 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
             // 从返回的服务器路径中提取文件名
             const serverPath = result.data.url
             const fileName = serverPath.split(/[/\\]/).pop()
-            const server_url = 'http://localhost:52521/images/' + fileName
+            const server_url = getRuntimeServerBaseUrlSync() + '/images/' + fileName
             // 替换为本地URL - 使用完整的匹配来确保正确替换
             const newLine = line.replace(match[0], `![${match[1]}](${server_url})`)
             new_md += newLine + '\n'
@@ -1593,7 +1594,7 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
           const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' })
           formData.append('file[]', file, fileName)
 
-          const uploadResponse = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+          const uploadResponse = await fetch(getRuntimeServerBaseUrlSync() + '/api/image/upload?keepName=1', {
             method: 'POST',
             body: formData
           })
@@ -1605,7 +1606,7 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
           const uploadResult = await uploadResponse.json()
           if (uploadResult.code === 0 && uploadResult.data && uploadResult.data.succMap) {
             const uploadedFileName = Object.keys(uploadResult.data.succMap)[0] || fileName
-            const server_url = 'http://localhost:52521/images/' + uploadedFileName
+            const server_url = getRuntimeServerBaseUrlSync() + '/images/' + uploadedFileName
             // 替换为本地URL
             const newLine = line.replace(match[0], `![${match[1]}](${server_url})`)
             new_md += newLine + '\n'
@@ -1635,7 +1636,7 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
 }
 
 /**
- * 将 HTML 中的 localhost:52521 URL 转换为 file:// 协议（用于HTML导出的original模式）
+ * 将 HTML 中的运行时服务器 images URL 转换为 file:// 协议（用于HTML导出的original模式）
  * 但保留http(s)网络链接
  * @param html HTML 文本
  * @returns 转换后的 HTML 文本
@@ -1649,9 +1650,9 @@ export async function local2fileProtocolForHtmlInHtml(html) {
   let processedHtml = html
 
   processedHtml = processedHtml.replace(imgRegex, (match, src) => {
-    // 如果是 localhost:52521 的 URL，转换为 file 协议
-    if (src.startsWith('http://localhost:52521/images/')) {
-      const imageName = src.replace('http://localhost:52521/images/', '')
+    const runtimeImagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
+    if (src.startsWith(runtimeImagesPrefix)) {
+      const imageName = src.replace(runtimeImagesPrefix, '')
       const resolvedImagePath = local_path.replace(/\\/g, '/') + '/' + imageName
 
       // 转换为 file:// 协议
@@ -1702,7 +1703,7 @@ export async function local2fileProtocolForHtmlInHtml(html) {
     }
     // 如果是 http(s) 网络链接，保持原样
     if (
-      (src.startsWith('http://') && !src.startsWith('http://localhost:52521/')) ||
+      (src.startsWith('http://') && !src.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
       src.startsWith('https://')
     ) {
       return match
@@ -1728,7 +1729,7 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
   const { linkBase = '', renderCode = true, renderMath = true } = options
 
   // 获取 CDN
-  const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
+  const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
 
   // 获取主题设置
   let contentTheme = await getSetting('contentTheme')
@@ -1777,7 +1778,7 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
 export async function ConvertMarkdownToHtmlVditor(md) {
   let cdn = ''
   if (isElectronEnv()) {
-    cdn = localVditorCDN
+    cdn = getLocalVditorCDN()
   } else {
     cdn = vditorCDN
   }
@@ -1807,7 +1808,7 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
 
   let cdn = ''
   if (isElectronEnv()) {
-    cdn = localVditorCDN
+    cdn = getLocalVditorCDN()
   } else {
     cdn = vditorCDN
   }
@@ -1855,7 +1856,7 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
               const { local2httpProtocol } = await import('./md-utils')
               const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '')
               const match = converted.match(/!\[.*?\]\((.*?)\)/)
-              if (match && match[1] && match[1].startsWith('http://localhost:52521/')) {
+              if (match && match[1] && match[1].startsWith(getRuntimeServerBaseUrlSync() + '/')) {
                 actualImageUrl = match[1]
               } else {
                 // 转换失败，尝试使用file://协议
@@ -1939,7 +1940,7 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
               }
             }
             // 如果IPC读取失败，尝试使用HTTP URL
-            if (actualImageUrl.startsWith('http://localhost:52521/')) {
+            if (actualImageUrl.startsWith(getRuntimeServerBaseUrlSync() + '/')) {
               response = await fetch(actualImageUrl)
             } else {
               throw new Error('无法读取本地文件')
@@ -2012,7 +2013,7 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
                 const { local2httpProtocol } = await import('./md-utils')
                 const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '')
                 const match = converted.match(/!\[.*?\]\((.*?)\)/)
-                if (match && match[1] && match[1].startsWith('http://localhost:52521/')) {
+                if (match && match[1] && match[1].startsWith(getRuntimeServerBaseUrlSync() + '/')) {
                   // 如果转换成功，尝试 fetch 这个 HTTP URL
                   try {
                     const httpResponse = await fetch(match[1])
@@ -2305,7 +2306,7 @@ export const ConvertHtmlForPdf = async (md) => {
 
   let cdn = ''
   if (isElectronEnv()) {
-    cdn = localVditorCDN
+    cdn = getLocalVditorCDN()
   } else {
     cdn = vditorCDN
   }
@@ -2333,7 +2334,7 @@ export const ConvertHtmlForPdf = async (md) => {
   // 验证预渲染结果：检查是否还有 PlantUML 代码块
   const plantumlBlockCount = (processedMd.match(/```plantuml\s*\n/gi) || []).length
   const plantumlImageCount = (
-    processedMd.match(/!\[.*?\]\(http:\/\/localhost:52521\/images\/.*?_plantuml\.(svg|png)\)/gi) ||
+    processedMd.match(new RegExp('!\\\\[.*?\\\\]\\\\(' + getRuntimeServerBaseUrlSync().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/images/.*?_plantuml\\\\.(svg|png)\\\\)', 'gi')) ||
     []
   ).length
   getLogger().info(

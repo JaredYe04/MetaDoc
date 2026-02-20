@@ -3,7 +3,12 @@ import { useWorkspace, type WorkspaceTab, type WorkspaceTabKind } from '../store
 import { createRendererLogger } from '../utils/logger'
 import { themeState } from '../utils/themes'
 
-const logger = createRendererLogger('useTabDrag')
+// Lazy logger to avoid circular dependency: logger → web-main-calls → router → … → useTabDrag → logger
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
+function getLogger() {
+  if (!loggerInstance) loggerInstance = createRendererLogger('useTabDrag')
+  return loggerInstance
+}
 
 // 拖拽数据 MIME 类型常量 —— 使用自定义类型避免 OS 级转发导致崩溃
 const TAB_DRAG_MIME_TYPE = 'application/x-metadoc-tab'
@@ -44,7 +49,7 @@ export const prefetchDragThumbnail = async (): Promise<void> => {
     })
     cachedThumbnailImg = img
   } catch (error) {
-    logger.warn('预获取缩略图失败:', error)
+    getLogger().warn('预获取缩略图失败:', error)
     cachedThumbnailDataUrl = null
     cachedThumbnailImg = null
   }
@@ -77,7 +82,7 @@ const getCurrentWindowId = async (): Promise<number> => {
   try {
     return await ipcRenderer.invoke('get-window-id')
   } catch (error) {
-    logger.error('Failed to get window ID:', error)
+    getLogger().error('Failed to get window ID:', error)
     return -1
   }
 }
@@ -335,7 +340,7 @@ export const serializeTabData = (tabId: string): SerializedTabData | null => {
         }
       }
     } catch (error) {
-      logger.warn('序列化文档数据失败:', error)
+      getLogger().warn('序列化文档数据失败:', error)
     }
   }
 
@@ -427,9 +432,9 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
           currentSessionId = result.sessionId
         }
 
-        logger.debug('拖拽会话开始:', currentSessionId)
+        getLogger().debug('拖拽会话开始:', currentSessionId)
       } catch (error) {
-        logger.error('初始化拖拽会话失败:', error)
+        getLogger().error('初始化拖拽会话失败:', error)
       }
     }
 
@@ -449,7 +454,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     // 调用回调
     onDragStart?.(tab, event)
 
-    logger.debug('拖拽开始:', tab.id)
+    getLogger().debug('拖拽开始:', tab.id)
   }
 
   /**
@@ -561,14 +566,14 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
           insertIndex
         })
       } catch (error) {
-        logger.warn('通知主进程 drop 失败:', error)
+        getLogger().warn('通知主进程 drop 失败:', error)
       }
     }
 
     await onDrop?.(fromId, toId, mode)
     resetDragState()
 
-    logger.debug('投放完成:', { fromId, toId, mode })
+    getLogger().debug('投放完成:', { fromId, toId, mode })
   }
 
   /**
@@ -606,10 +611,10 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
         })
 
         if (result?.action === 'detach') {
-          logger.info('Tab 已分离到新窗口:', result.newWindowId)
+          getLogger().info('Tab 已分离到新窗口:', result.newWindowId)
         }
       } catch (error) {
-        logger.error('通知主进程拖拽结束失败:', error)
+        getLogger().error('通知主进程拖拽结束失败:', error)
       }
     }
 
@@ -622,7 +627,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     cleanupDragImage()
     clearCachedThumbnail()
 
-    logger.debug('拖拽结束')
+    getLogger().debug('拖拽结束')
   }
 
   /**

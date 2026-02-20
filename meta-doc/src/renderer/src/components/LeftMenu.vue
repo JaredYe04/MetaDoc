@@ -49,11 +49,11 @@
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" @click="eventBus.emit('save')">
+        <UISubMenuItem :icon="FolderChecked" @click="emitMenu('save')">
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderAdd" @click="eventBus.emit('save-as')">
+        <UISubMenuItem :icon="FolderAdd" @click="emitMenu('save-as')">
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
@@ -81,7 +81,7 @@
           </UISubMenuItem>
         </UISubMenu>
 
-        <UISubMenuItem :icon="CircleClose" @click="eventBus.emit('close-active-tab')">
+        <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.closeFile') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -108,31 +108,31 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="ChatDotRound" @click="eventBus.emit('ai-chat')">
+        <UISubMenuItem :icon="ChatDotRound" @click="emitMenu('ai-chat')">
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="eventBus.emit('fomula-recognition')">
+        <UISubMenuItem :icon="Reading" @click="emitMenu('fomula-recognition')">
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Picture" @click="eventBus.emit('smart-drawing-assistant')">
+        <UISubMenuItem :icon="Picture" @click="emitMenu('smart-drawing-assistant')">
           {{ $t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="eventBus.emit('data-analysis')">
+        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('data-analysis')">
           {{ $t('leftMenu.dataAnalysis') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="View" @click="eventBus.emit('ocr')">
+        <UISubMenuItem :icon="View" @click="emitMenu('ocr')">
           {{ $t('leftMenu.ocr') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Paperclip" @click="eventBus.emit('attachment')">
+        <UISubMenuItem :icon="Paperclip" @click="emitMenu('attachment')">
           {{ $t('leftMenu.attachment') }}
         </UISubMenuItem>
 
-        <UISubMenuItem @click="eventBus.emit('aigc-detection')">
+        <UISubMenuItem @click="emitMenu('aigc-detection')">
           <template #icon>
             <img
               :src="(themeState.currentTheme as any).PenAiIcon"
@@ -150,7 +150,7 @@
         :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
         :icon-image="(themeState.currentTheme as any).SettingIcon"
-        @click="eventBus.emit('setting')"
+        @click="emitMenu('setting')"
       />
 
       <!-- 最近文件菜单 -->
@@ -187,7 +187,7 @@
           :icon="Document"
           @click="
             askSave(() => {
-              eventBus.emit('open-doc', item)
+              emitMenu('open-doc', item)
             })
           "
         >
@@ -467,11 +467,11 @@
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" @click="eventBus.emit('save')">
+        <UISubMenuItem :icon="FolderChecked" @click="emitMenu('save')">
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderAdd" @click="eventBus.emit('save-as')">
+        <UISubMenuItem :icon="FolderAdd" @click="emitMenu('save-as')">
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
@@ -499,7 +499,7 @@
           </UISubMenuItem>
         </UISubMenu>
 
-        <UISubMenuItem :icon="CircleClose" @click="eventBus.emit('close-active-tab')">
+        <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.closeFile') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -527,31 +527,31 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="ChatDotRound" @click="eventBus.emit('ai-chat')">
+        <UISubMenuItem :icon="ChatDotRound" @click="emitMenu('ai-chat')">
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="eventBus.emit('fomula-recognition')">
+        <UISubMenuItem :icon="Reading" @click="emitMenu('fomula-recognition')">
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Picture" @click="eventBus.emit('smart-drawing-assistant')">
+        <UISubMenuItem :icon="Picture" @click="emitMenu('smart-drawing-assistant')">
           {{ $t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="eventBus.emit('data-analysis')">
+        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('data-analysis')">
           {{ $t('leftMenu.dataAnalysis') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="View" @click="eventBus.emit('ocr')">
+        <UISubMenuItem :icon="View" @click="emitMenu('ocr')">
           {{ $t('leftMenu.ocr') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Paperclip" @click="eventBus.emit('attachment')">
+        <UISubMenuItem :icon="Paperclip" @click="emitMenu('attachment')">
           {{ $t('leftMenu.attachment') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="eventBus.emit('aigc-detection')">
+        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('aigc-detection')">
           {{ $t('leftMenu.aigcDetection') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -563,7 +563,7 @@
         :tooltip="$t('leftMenu.settings')"
         :icon="Setting"
         class="bottom-menu"
-        @click="eventBus.emit('setting')"
+        @click="emitMenu('setting')"
       />
 
       <!-- 最近文件菜单 -->
@@ -604,7 +604,7 @@
           :icon="Document"
           @click="
             askSave(() => {
-              eventBus.emit('open-doc', item)
+              emitMenu('open-doc', item)
             })
           "
         >
@@ -890,6 +890,16 @@ import { exportAdapterRegistry } from '../services/export-adapters'
 import ExportOptionsDialog from './ExportOptionsDialog.vue'
 import type { ExportOptions } from '../services/export-adapters/types'
 import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
+
+const props = withDefaults(
+  defineProps<{ mode?: 'normal' | 'demo' }>(),
+  { mode: 'normal' }
+)
+const emitMenu = (name: string, ...args: any[]) => {
+  if (props.mode === 'demo') return
+  emitMenu(name, ...args)
+}
+
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
@@ -1171,11 +1181,11 @@ const changeLang = (lang: string) => {
   localStorage.setItem('lang', lang)
   logger.info(`Language changed to ${lang}`)
   // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
-  eventBus.emit('lang-changed', lang)
+  emitMenu('lang-changed', lang)
 }
 
 const toggleUserProfile = () => {
-  eventBus.emit('toggle-user-profile')
+  emitMenu('toggle-user-profile')
 }
 
 const { activeDocument } = useActiveDocument()
@@ -1218,7 +1228,7 @@ const openKnowledgeBase = () => {
 
 // 切换工作目录菜单
 const toggleWorkspaceExplorer = () => {
-  eventBus.emit('toggle-workspace-explorer')
+  emitMenu('toggle-workspace-explorer')
 }
 
 // 打开调试工具
@@ -1269,20 +1279,20 @@ const askSave = async (callBack: any) => {
 }
 const newDoc = () => {
   askSave(() => {
-    eventBus.emit('new-doc')
+    emitMenu('new-doc')
   })
 }
 
 const openDoc = () => {
   askSave(() => {
-    eventBus.emit('open-doc')
+    emitMenu('open-doc')
   })
 }
 const saveAll = () => {
-  eventBus.emit('save-all')
+  emitMenu('save-all')
 }
 const saveAndQuit = () => {
-  eventBus.emit('save-and-quit')
+  emitMenu('save-and-quit')
 }
 const saveAllAndQuit = () => {
   // 检查是否有需要保存的文档tab
@@ -1291,15 +1301,15 @@ const saveAllAndQuit = () => {
 
   // 如果没有文档tab，直接退出
   if (!hasFileTabs) {
-    eventBus.emit('quit')
+    emitMenu('quit')
     return
   }
 
   // 有文档tab，执行保存全部并退出
-  eventBus.emit('save-all-and-quit')
+  emitMenu('save-all-and-quit')
 }
 const quitWithoutSave = () => {
-  eventBus.emit('quit')
+  emitMenu('quit')
 }
 
 // 导出选项对话框相关
@@ -1318,13 +1328,13 @@ const handleExportClick = (format: ExportFormat) => {
     showExportOptionsDialog.value = true
   } else {
     // 如果没有选项，直接导出
-    eventBus.emit('export', { format, filename: exportTitle.value })
+    emitMenu('export', { format, filename: exportTitle.value })
   }
 }
 
 const handleExportOptionsConfirm = (options: ExportOptions) => {
   if (currentExportFormat.value) {
-    eventBus.emit('export', {
+    emitMenu('export', {
       format: currentExportFormat.value,
       filename: exportTitle.value,
       options

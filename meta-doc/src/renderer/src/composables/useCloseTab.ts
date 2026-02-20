@@ -3,8 +3,14 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
+import messageBridge from '../bridge/message-bridge'
 
-const logger = createRendererLogger('useCloseTab')
+// Lazy logger to avoid circular dependency: logger → web-main-calls → router → … → useCloseTab → logger
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
+function getLogger() {
+  if (!loggerInstance) loggerInstance = createRendererLogger('useCloseTab')
+  return loggerInstance
+}
 
 /**
  * 关闭 Tab 的 composable
@@ -14,16 +20,6 @@ export const useCloseTab = () => {
   const workspace = useWorkspace()
   const { t } = useI18n()
   const isLocked = computed(() => workspace.uiLocked?.value === true)
-
-  /**
-   * 获取 IPC renderer
-   */
-  const getIpcRenderer = () => {
-    if (window && (window as any).electron) {
-      return (window as any).electron.ipcRenderer
-    }
-    return null
-  }
 
   /**
    * 关闭指定的 Tab
@@ -40,14 +36,11 @@ export const useCloseTab = () => {
       return false
     }
 
-    // 获取ipcRenderer
-    const ipcRenderer = getIpcRenderer()
-
     // 如果是文档Tab且有未保存内容，需要确认
     if (tab.kind === 'file' || tab.kind === 'new') {
       const doc = workspace.documents[tabId]
       if (doc?.dirty) {
-        if (!ipcRenderer) {
+        if (!messageBridge.getIpc()) {
           try {
             await ElMessageBox.confirm(
               t('main.dialogs.closeTabMessage'),
@@ -63,7 +56,7 @@ export const useCloseTab = () => {
           }
         } else {
           try {
-            ipcRenderer.send('request-close-tab', tabId)
+            messageBridge.send('request-close-tab', tabId)
             const result = await new Promise<{
               tabId: string
               action: 'save' | 'discard' | 'cancel'
@@ -73,13 +66,13 @@ export const useCloseTab = () => {
                 response: { tabId: string; action: 'save' | 'discard' | 'cancel' }
               ) => {
                 if (response.tabId === tabId) {
-                  ipcRenderer.removeListener('close-tab-response', handler)
+                  messageBridge.removeListener('close-tab-response', handler)
                   resolve(response)
                 }
               }
-              ipcRenderer.on('close-tab-response', handler)
+              messageBridge.on('close-tab-response', handler)
               setTimeout(() => {
-                ipcRenderer.removeListener('close-tab-response', handler)
+                messageBridge.removeListener('close-tab-response', handler)
                 resolve({ tabId, action: 'cancel' })
               }, 10000)
             })
@@ -94,7 +87,7 @@ export const useCloseTab = () => {
               return false
             }
           } catch (error) {
-            logger.error('关闭tab失败:', error)
+            getLogger().error('关闭tab失败:', error)
             return false
           }
         }

@@ -1347,7 +1347,8 @@ const submitManualResponse = async () => {
       }
     }
 
-    const response = await fetch('http://localhost:52521/api/llm/submit-response', {
+    const baseUrl = await import('../../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+    const response = await fetch(`${baseUrl}/api/llm/submit-response`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1376,7 +1377,8 @@ const submitManualResponse = async () => {
 
 const fetchPendingRequests = async () => {
   try {
-    const response = await fetch('http://localhost:52521/api/llm/pending-requests')
+    const baseUrl = await import('../../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+    const response = await fetch(`${baseUrl}/api/llm/pending-requests`)
     const data = await response.json()
     pendingRequests.value = data.requests || []
 

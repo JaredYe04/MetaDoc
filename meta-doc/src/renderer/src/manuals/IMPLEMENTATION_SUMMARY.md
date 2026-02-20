@@ -1,5 +1,17 @@
 # 用户手册系统重构实现总结
 
+## 📌 当前状态说明（2026-02 更新）
+
+用户手册各篇**初稿已具备**，但内容较简略，尚未完全符合规范。需要**全面完善**：
+
+- **图表**：在合适位置补充 Mermaid / PlantUML 图表（流程、结构、关系等）。
+- **Demo 组件**：文档中**提到了哪些界面控件，就嵌入并展示哪些真实组件**（如顶部菜单栏 → `<LeftMenu mode="demo" />`，标签页栏 → `<MainTabs mode="demo" />`，侧边栏 → `<ViewMenu mode="demo" />`，快速开始向导 → `<QuickStartPanel mode="demo" />`、`<QuickStartMarkdown mode="demo" />`、`<QuickStartLatex mode="demo" />` 等），使用户边看文档边对照真实 UI 操作。**不要在用户可见的文档中写「Demo 模式：仅展示…」等说明性废话。**
+- **内容与结构**：按 `WRITING_GUIDE.md` 与 `USER_MANUAL_INDEX.md` 补全功能点、示例与注意事项。
+
+**进度**：所有文档按「初稿完成 / 待完善」统计；完善标准为：含图表、含 Demo 组件（若适用）、内容完整符合索引要求。
+
+---
+
 ## ✅ 已完成的工作
 
 ### 1. 文档索引系统
@@ -53,7 +65,16 @@
 - ✅ **面包屑导航**：显示用户浏览历史
 - ✅ **搜索功能**：支持标题和标签搜索（内容搜索待实现）
 
-### 6. 文档编写规范
+### 6. 组件 Demo 模式（沙箱）
+
+- ✅ **可执行文档**：文档中**描述到哪个界面控件，就嵌入哪个真实 Vue 组件**（如顶部菜单栏 → LeftMenu、标签页栏 → MainTabs、侧边栏 → ViewMenu、快速开始 → QuickStartPanel / QuickStartMarkdown / QuickStartLatex），使用 `mode="demo"` 沙箱运行，用户边看文档边看真实 UI。
+- ✅ **占位符方案**：`manuals/demo-mode.ts` 将 `<ComponentName mode="demo" />` 替换为占位 div，整篇由 Vditor 渲染（Mermaid 等不破坏），渲染完成后再将占位 div 替换为 Vue 组件注入。
+- ✅ **组件注册**：`manuals/demo-registry.ts` 注册 LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex、ResizableDivider 等；新增组件需支持 `mode?: 'normal' | 'demo'` 并在此注册。
+- ✅ **ManualContent**：统一用 Vditor 渲染；渲染完成后 `injectDemoComponents()` 在占位 div 上挂载真实组件。
+- ✅ **已支持 demo 的组件**：LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex（demo 下不触发真实导航/文件/事件）。
+- **约束**：不复制组件代码、不维护 Mock 副本；文档与组件单一来源；**用户可见文档中不要写「Demo 模式：仅展示…」等废话。**
+
+### 7. 文档编写规范
 
 - ✅ 创建了 `WRITING_GUIDE.md` 文档编写规范
 - ✅ 定义了文档格式、链接规范、内容结构等
@@ -106,12 +127,18 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 
 ## 📋 待完成的工作
 
-### 1. 文档编写
+### 1. 文档完善（初稿已有，需全面完善）
 
-**严格按照 `USER_MANUAL_INDEX.md` 的结构编写文档**，需要编写以下文档：
+**说明**：各篇用户手册初稿已存在，但内容较简略且不完全符合规范。需**全部重新完善**，包括：
+
+- **图表**：在合适位置加入 Mermaid / PlantUML 图表（流程、结构、关系等）。
+- **Demo 组件**：文档中**提到哪个界面控件就嵌入哪个真实组件**（如顶部菜单栏 → `<LeftMenu mode="demo" />`，标签页 → `<MainTabs mode="demo" />`，侧边栏 → `<ViewMenu mode="demo" />`，快速开始 → `<QuickStartPanel mode="demo" />` 等），不在用户可见文档中写「Demo 模式：仅展示…」等说明。
+- **内容与结构**：按 `USER_MANUAL_INDEX.md` 与 `WRITING_GUIDE.md` 补全功能点、示例与注意事项。
+
+**严格按照 `USER_MANUAL_INDEX.md` 的结构完善文档**，需完善的文档包括（示例，非穷举）：
 
 #### 一、快速开始
-- [ ] `quick-start/guide.md` - 快速开始指南
+- [ ] `quick-start/guide.md` - 快速开始指南（需完善：图表 + Demo 示例）
   - 首次使用向导
   - 界面介绍
   - 快速创建文档

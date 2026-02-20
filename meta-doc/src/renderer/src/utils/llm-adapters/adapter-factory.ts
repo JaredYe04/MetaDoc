@@ -193,7 +193,7 @@ export async function createAdapterFromSettings(
       }
 
       case 'manual': {
-        config.apiUrl = 'http://localhost:52521/api/llm'
+        config.apiUrl = (await import('../../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())) + '/api/llm'
         config.selectedModel = 'manual-model'
         config.apiKey = ''
         config.completionSuffix = '/completions'

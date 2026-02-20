@@ -221,6 +221,11 @@ import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['close'])
 
+const props = withDefaults(
+  defineProps<{ mode?: 'normal' | 'demo' }>(),
+  { mode: 'normal' }
+)
+
 const { t } = useI18n()
 const workspace = useWorkspace()
 const {
@@ -568,6 +573,7 @@ const resetM = () => {
 }
 
 const emitClose = () => {
+  if (props.mode === 'demo') return
   emit('close')
 }
 

@@ -1982,6 +1982,27 @@
     "title": "User Manual",
     "searchPlaceholder": "Search tutorial content...",
     "emptyContent": "Please select a section from the left",
+    "backToOverview": "Back to Overview",
+    "overview": {
+      "title": "Overview",
+      "welcome": "Get Started with MetaDoc",
+      "description": "This page helps you understand your usage profile and recommends a learning path. You can follow the path or jump to any chapter from the left sidebar.",
+      "profile": "My Profile",
+      "profileSummary": "Your Usage Profile",
+      "profileSummarySentence": "You're mainly in the \"{scenario}\" scenario; currently Markdown: {markdown}, LaTeX: {latex}, AI Agent: {agent}.",
+      "progress": "Learning Progress",
+      "recommendedPath": "Recommended Path",
+      "quickStart": "Quick Start",
+      "quickLinks": "Quick Links",
+      "noProfile": "Haven't set your profile yet? Tell us your preferences so we can recommend a learning path.",
+      "startLearning": "Start Learning",
+      "viewGraph": "View Learning Graph",
+      "completed": "Completed",
+      "current": "Current",
+      "pending": "Pending",
+      "articles": " articles",
+      "skillRadar": "Skill Radar"
+    },
     "navigation": {
       "core": "Core Operations",
       "markdown": "Markdown Tutorial",
@@ -1996,7 +2017,9 @@
       "buttonText": "Improve My Preferences",
       "scenario": "Usage Scenario",
       "scenarioHint": "Please select your main usage scenario, which will help us recommend the most suitable learning path for you",
-      "reanalyze": "Reanalyze User Profile",
+      "reanalyze": "Reanalyze",
+      "reanalyzeConfirmTitle": "Reset User Profile",
+      "reanalyzeConfirmMessage": "Resetting your profile will clear your current learning progress. Continue?",
       "scenarios": {
         "student": "Student",
         "researcher": "Researcher",
@@ -2169,6 +2192,28 @@
         "title": "MetaDoc Design Philosophy",
         "content": "# MetaDoc Design Philosophy\n\nMetaDoc's design follows the following core principles.\n\n## Bootstrapping Design\n\nThe user manual itself is written in Markdown, demonstrating MetaDoc's capabilities. This reflects the \"bootstrapping\" design philosophy: using the product itself to showcase the product.\n\n## Document-Driven\n\nMetaDoc is a \"document-driven\" system:\n\n- Documents are the core, all features revolve around documents\n- Supports multiple document formats (Markdown, LaTeX)\n- Documents can be exported to multiple formats\n\n## Intelligence\n\nThrough AI and Agent technology, make document creation more intelligent:\n\n- AI-assisted writing and proofreading\n- Agent automatically executes complex tasks\n- Intelligent chart generation\n\n## Extensibility\n\n- Supports custom tools and workflows\n- Plugin architecture\n- Open API interface\n\n## User Experience\n\n- Clean and beautiful interface\n- Smooth operation experience\n- Rich shortcut key support\n- Multi-language support\n\n## Technology Stack\n\n- **Frontend**: Vue 3 + TypeScript\n- **Desktop**: Electron\n- **Editor**: Monaco + Vditor\n- **AI**: LLM Agent framework\n- **Database**: SQLite + sqlite-vec\n\n## Future Plans\n\n- More AI capabilities\n- Better collaboration features\n- Cloud sync\n- Mobile support"
       }
+    },
+    "progress": {
+      "label": "Learning Progress",
+      "completed": "Completed",
+      "completed100": "Congratulations! You have completed all recommended content.",
+      "clearProgress": "Clear learning progress",
+      "clearProgressConfirm": "Clear learning progress for the current recommended path? All read states will be reset.",
+      "clearProgressDone": "Learning progress cleared"
+    },
+    "sidebar": {
+      "recommendedList": "Recommended",
+      "onlyRecommended": "Only recommended path",
+      "onlyRecommendedTip": "Turn off to show full manual index"
+    },
+    "graph": {
+      "title": "Learning Path",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "completed": "Completed",
+      "current": "Current",
+      "pending": "Pending",
+      "selected": "Selected"
     }
   }
 }

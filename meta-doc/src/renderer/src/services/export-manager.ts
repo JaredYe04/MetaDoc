@@ -24,6 +24,7 @@ import {
   type ImageProcessingMode
 } from './image-processor'
 import { prepareExportPayloadLegacy } from './export-manager.obsolete'
+import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 
 export interface BaseExportPayload {
   sourceFormat: DocumentFormat
@@ -326,16 +327,17 @@ const prepareMarkdownForExport = async (
  * 收集原始markdown中的图片URL（用于区分原始图片和预渲染生成的图片）
  */
 const collectOriginalImageUrls = (markdown: string): Set<string> => {
+  const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
   const originalImageUrls = new Set<string>()
   const originalImageRegex = /!\[.*?\]\((.*?)\)/g
   let match
   while ((match = originalImageRegex.exec(markdown)) !== null) {
     const imagePath = match[1]
-    if (imagePath.startsWith('http://localhost:52521/images/')) {
+    if (imagePath.startsWith(imagesPrefix)) {
       originalImageUrls.add(imagePath)
     } else if (!imagePath.startsWith('data:image/')) {
       const fileName = imagePath.split(/[/\\]/).pop() || imagePath
-      originalImageUrls.add(`http://localhost:52521/images/${fileName}`)
+      originalImageUrls.add(`${imagesPrefix}${fileName}`)
     }
   }
   return originalImageUrls
@@ -345,11 +347,14 @@ const collectOriginalImageUrls = (markdown: string): Set<string> => {
  * 收集预渲染生成的图片URL（排除原始图片）
  */
 const collectRenderedImageUrls = (markdown: string, originalImageUrls: Set<string>): string[] => {
+  const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
+  const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const imageUrls: string[] = []
-  const imageRegex = /!\[.*?\]\((http:\/\/localhost:52521\/images\/[^)]+)\)/g
+  const imageRegex = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)]+)\\)', 'g')
   let match
+  const baseUrl = imagesPrefix
   while ((match = imageRegex.exec(markdown)) !== null) {
-    const imageUrl = match[1]
+    const imageUrl = baseUrl + (match[1] || '')
     if (!originalImageUrls.has(imageUrl)) {
       imageUrls.push(imageUrl)
     }
@@ -421,7 +426,7 @@ const convertMarkdownToLatexWithOptions = async (
     needsChartPreRender ||
     (targetFormat === 'tex' &&
       hasChartCodeBlocks &&
-      !processedMarkdown.includes('http://localhost:52521/images/'))
+      !processedMarkdown.includes(getRuntimeServerBaseUrlSync() + '/images/'))
 
   if (shouldPreRenderCharts) {
     const { preRenderAllCharts } = await import('../utils/chart-pre-renderer')

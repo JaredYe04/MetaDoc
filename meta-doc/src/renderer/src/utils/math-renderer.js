@@ -2,7 +2,7 @@
 // 仅在 DOCX 导出链路替换为位图，其它格式不改变原文
 
 import { isElectronEnv } from './event-bus'
-import { localVditorCDN, vditorCDN } from './vditor-cdn'
+import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
 import Vditor from 'vditor'
 import domtoimage from 'dom-to-image-more'
 import { convertSvgToPng as convertSvgToPngInternal } from './chart-pre-renderer.js'
@@ -11,7 +11,7 @@ import { getSetting } from './settings'
 
 function getCdn() {
   if (isElectronEnv && typeof isElectronEnv === 'function' && isElectronEnv()) {
-    return localVditorCDN
+    return getLocalVditorCDN()
   }
   return vditorCDN
 }
@@ -304,15 +304,16 @@ export async function renderMarkdownMathToImages(markdown, output = 'png') {
   }
 
   async function uploadBlob(fileName, blob) {
+    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
     const form = new FormData()
     const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' })
     form.append('file[]', file, fileName)
-    const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+    const resp = await fetch(`${baseUrl}/api/image/upload?keepName=1`, {
       method: 'POST',
       body: form
     })
     if (!resp.ok) throw new Error('上传失败')
-    return `http://localhost:52521/images/${fileName}`
+    return `${baseUrl}/images/${fileName}`
   }
 
   // 统一处理函数：生成 SVG，再按 output 处理

@@ -5,6 +5,7 @@
 
 import * as monaco from 'monaco-editor'
 import { i18n } from '../i18n.js'
+import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 
 /**
  * 配置 Monaco Environment 的 Worker
@@ -16,30 +17,32 @@ export function setupMonacoWorker(): void {
     return
   }
 
+  const baseUrl = getRuntimeServerBaseUrlSync()
+
   ;(window as any).MonacoEnvironment = {
     getWorker: function (moduleId: string, label: string) {
       let workerPath = ''
 
       switch (label) {
         case 'json':
-          workerPath = 'http://localhost:52521/monaco/language/json/json.worker.js'
+          workerPath = `${baseUrl}/monaco/language/json/json.worker.js`
           break
         case 'css':
         case 'scss':
         case 'less':
-          workerPath = 'http://localhost:52521/monaco/language/css/css.worker.js'
+          workerPath = `${baseUrl}/monaco/language/css/css.worker.js`
           break
         case 'html':
         case 'handlebars':
         case 'razor':
-          workerPath = 'http://localhost:52521/monaco/language/html/html.worker.js'
+          workerPath = `${baseUrl}/monaco/language/html/html.worker.js`
           break
         case 'typescript':
         case 'javascript':
-          workerPath = 'http://localhost:52521/monaco/language/typescript/ts.worker.js'
+          workerPath = `${baseUrl}/monaco/language/typescript/ts.worker.js`
           break
         default:
-          workerPath = 'http://localhost:52521/monaco/editor/editor.worker.js'
+          workerPath = `${baseUrl}/monaco/editor/editor.worker.js`
       }
 
       // ESM worker: 用 import() 动态导入

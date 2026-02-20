@@ -5,7 +5,8 @@
  * 渲染进程只通过 sessionId 引用会话，不在 DataTransfer 中传递完整 payload。
  */
 
-import { BrowserWindow, ipcMain, screen, IpcMainInvokeEvent, IpcMainEvent } from 'electron'
+import { BrowserWindow, screen, IpcMainInvokeEvent, IpcMainEvent } from 'electron'
+import { ipcBridge } from './bridge/ipc-bridge'
 import { createMainLogger } from './logger'
 import { getAllMainWindows, getWindowId, getWindowById } from './index'
 import { acquirePoolWindow } from './window-pool'
@@ -45,7 +46,7 @@ function broadcastDragState(eventName: string, data: any): void {
  */
 export function registerDragManagerIPC(): void {
   // 渲染进程通知：拖拽开始
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'drag:start',
     (
       event: IpcMainInvokeEvent,
@@ -82,7 +83,7 @@ export function registerDragManagerIPC(): void {
   )
 
   // 渲染进程通知：Tab 被 drop 到目标窗口（同窗口排序或跨窗口合并）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'drag:drop',
     async (
       _event: IpcMainInvokeEvent,
@@ -131,7 +132,7 @@ export function registerDragManagerIPC(): void {
   )
 
   // 渲染进程通知：拖拽结束（用户松开鼠标）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'drag:end',
     async (
       _event: IpcMainInvokeEvent,
@@ -328,7 +329,7 @@ export function registerDragManagerIPC(): void {
   )
 
   // 渲染进程通知：拖拽取消（ESC、窗口失焦等）
-  ipcMain.on('drag:cancel', (_event: IpcMainEvent, payload: { sessionId: string }) => {
+  ipcBridge.registerOn('drag:cancel', (_event: IpcMainEvent, payload: { sessionId: string }) => {
     if (activeSession && activeSession.sessionId === payload.sessionId) {
       const session = activeSession
       activeSession = null
@@ -338,7 +339,7 @@ export function registerDragManagerIPC(): void {
   })
 
   // 查询当前活跃会话（用于目标窗口在 dragover 时判断）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'drag:get-active-session',
     (): { sessionId: string; tabId: string; sourceWindowId: number } | null => {
       if (!activeSession) return null

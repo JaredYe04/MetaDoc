@@ -7,7 +7,6 @@ import {
   app,
   shell,
   BrowserWindow,
-  ipcMain,
   nativeTheme,
   systemPreferences,
   dialog,
@@ -19,6 +18,7 @@ import {
   WebContents,
   screen
 } from 'electron'
+import { ipcBridge } from './bridge/ipc-bridge'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import path from 'path'
@@ -53,6 +53,11 @@ import {
 import { acquirePoolWindow } from './window-pool'
 import { dirname } from './index'
 import { imageUploadDir } from './express-server'
+import {
+  getRuntimeServerBaseUrl,
+  getRuntimeServerHost,
+  getRuntimeServerPort
+} from './runtime-server-config'
 import {
   queryKnowledgeBase,
   getResourcesPath,
@@ -264,17 +269,17 @@ export function mainCalls(): void {
  * 绑定基础事件处理器
  */
 function bindBasicHandlers(): void {
-  ipcMain.on('quit', quit)
-  ipcMain.on('save', async (event: IpcMainEvent, data: SaveData) => {
+  ipcBridge.registerOn('quit', quit)
+  ipcBridge.registerOn('save', async (event: IpcMainEvent, data: SaveData) => {
     await save(data, false)
     is_need_save = false
   })
 
-  ipcMain.on('save-as', async (event: IpcMainEvent, data: SaveData) => {
+  ipcBridge.registerOn('save-as', async (event: IpcMainEvent, data: SaveData) => {
     await save(data, true)
   })
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'workspace-save-document',
     async (event, payload: { data: SaveData; saveAs?: boolean }) => {
       if (!payload || !payload.data) {
@@ -285,20 +290,20 @@ function bindBasicHandlers(): void {
     }
   )
 
-  ipcMain.on('open-doc', async (event: IpcMainEvent, filePath: string) => {
+  ipcBridge.registerOn('open-doc', async (event: IpcMainEvent, filePath: string) => {
     const sourceWindowId = event.sender.id
     await openDoc(filePath, sourceWindowId)
   })
 
   // 窗口控制（使用发送请求的窗口，支持多窗口）
-  ipcMain.on('window-minimize', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('window-minimize', (event: IpcMainEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win && !win.isDestroyed()) {
       win.minimize()
     }
   })
 
-  ipcMain.on('window-maximize', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('window-maximize', (event: IpcMainEvent) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win && !win.isDestroyed()) {
       if (win.isMaximized()) {
@@ -316,39 +321,39 @@ function bindBasicHandlers(): void {
  * 绑定对话框事件处理器
  */
 function bindDialogHandlers(): void {
-  ipcMain.on('setting', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('setting', (event: IpcMainEvent) => {
     openSettingDialog(event)
   })
 
-  ipcMain.on('ai-chat', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('ai-chat', (event: IpcMainEvent) => {
     openAiChatDialog(event)
   })
 
-  ipcMain.on('ai-graph', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('ai-graph', (event: IpcMainEvent) => {
     openGraphDialog(event)
   })
 
-  ipcMain.on('smart-drawing-assistant', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('smart-drawing-assistant', (event: IpcMainEvent) => {
     openGraphDialog(event)
   })
 
-  ipcMain.on('fomula-recognition', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('fomula-recognition', (event: IpcMainEvent) => {
     openFomulaRecognitionDialog(event)
   })
 
-  ipcMain.on('data-analysis', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('data-analysis', (event: IpcMainEvent) => {
     openDataAnalysisDialog(event)
   })
 
-  ipcMain.on('ocr', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('ocr', (event: IpcMainEvent) => {
     openOcrDialog(event)
   })
 
-  ipcMain.on('attachment', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('attachment', (event: IpcMainEvent) => {
     openAttachmentDialog(event)
   })
 
-  ipcMain.on('graph', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('graph', (event: IpcMainEvent) => {
     openGraphDialog(event)
   })
 }
@@ -357,11 +362,11 @@ function bindDialogHandlers(): void {
  * 绑定文件操作处理器
  */
 function bindFileHandlers(): void {
-  ipcMain.on('open-link', (event: IpcMainEvent, url: string) => {
+  ipcBridge.registerOn('open-link', (event: IpcMainEvent, url: string) => {
     shell.openExternal(url)
   })
 
-  ipcMain.on('shell-open', async (event: IpcMainEvent, filePath: string) => {
+  ipcBridge.registerOn('shell-open', async (event: IpcMainEvent, filePath: string) => {
     try {
       await shell.openPath(filePath)
     } catch (error) {
@@ -370,7 +375,7 @@ function bindFileHandlers(): void {
   })
 
   // 保存文件对话框
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'save-file-dialog',
     async (
       event: IpcMainInvokeEvent,
@@ -396,7 +401,7 @@ function bindFileHandlers(): void {
   )
 
   // 保存PDF对话框
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'save-pdf-dialog',
     async (event: IpcMainInvokeEvent, options: { sourcePath: string; defaultName: string }) => {
       try {
@@ -433,7 +438,7 @@ function bindFileHandlers(): void {
   )
 
   // 获取文件所在目录路径
-  ipcMain.handle('get-directory-path', async (event: IpcMainInvokeEvent, filePath: string) => {
+  ipcBridge.registerHandle('get-directory-path', async (event: IpcMainInvokeEvent, filePath: string) => {
     try {
       return path.dirname(filePath)
     } catch (error) {
@@ -443,7 +448,7 @@ function bindFileHandlers(): void {
   })
 
   // 打开对话框（支持文件和文件夹选择）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'show-open-dialog',
     async (
       event: IpcMainInvokeEvent,
@@ -475,7 +480,7 @@ function bindFileHandlers(): void {
   )
 
   // 读取目录内容
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'read-directory',
     async (
       event: IpcMainInvokeEvent,
@@ -512,7 +517,7 @@ function bindFileHandlers(): void {
   )
 
   // 检查文件是否存在
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'file-exists',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
       try {
@@ -525,7 +530,7 @@ function bindFileHandlers(): void {
   )
 
   // 读取文件内容
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'read-file-content',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<string | null> => {
       try {
@@ -543,7 +548,7 @@ function bindFileHandlers(): void {
   )
 
   // 读取二进制文件内容（用于PDF等二进制文件）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'read-file-buffer',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<Buffer | null> => {
       try {
@@ -561,7 +566,7 @@ function bindFileHandlers(): void {
   )
 
   // 将PDF文件转换为Markdown
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-pdf-to-markdown',
     async (
       event: IpcMainInvokeEvent,
@@ -630,8 +635,8 @@ function bindFileHandlers(): void {
               error?: string
             }>((resolve) => {
               const options = {
-                hostname: 'localhost',
-                port: 52521,
+                hostname: getRuntimeServerHost(),
+                port: getRuntimeServerPort(),
                 path: '/api/image/upload?keepName=1',
                 method: 'POST',
                 headers: formData.getHeaders()
@@ -666,14 +671,14 @@ function bindFileHandlers(): void {
 
             if (uploadResult.success && uploadResult.fileName) {
               // 构造图片URL
-              const imageUrl = `http://localhost:52521/images/${uploadResult.fileName}`
+              const imageUrl = `${getRuntimeServerBaseUrl()}/images/${uploadResult.fileName}`
               // 使用原始图片名称作为 key，URL 作为 value
               // 这样可以在后续替换 Markdown 时使用原始名称匹配
               imageUrlMap.set(imageName, imageUrl)
             } else {
               logger.error(`上传图片 ${imageName} 失败:`, uploadResult.error)
               // 即使上传失败，也尝试使用原始名称构造 URL（降级处理）
-              const fallbackUrl = `http://localhost:52521/images/${imageName}`
+              const fallbackUrl = `${getRuntimeServerBaseUrl()}/images/${imageName}`
               imageUrlMap.set(imageName, fallbackUrl)
             }
           } catch (error) {
@@ -705,11 +710,13 @@ function bindFileHandlers(): void {
         }
 
         // 最后一步：将 URL 替换为本地路径（类似 image2local 的逻辑）
-        // 将 http://localhost:52521/images/ 替换为本地路径
+        // 将运行时服务器 images/ URL 替换为本地路径
         const localImagePath = imageUploadDir.replace(/\\/g, '/')
+        const imagesPrefix = `${getRuntimeServerBaseUrl()}/images/`
+        const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         markdownContent = markdownContent.replace(
-          /http:\/\/localhost:52521\/images\/([^\s\)]+)/g,
-          (match: string, imageName: string) => {
+          new RegExp(imagesPrefixEscaped + '([^\\s\\)]+)', 'g'),
+          (_match: string, imageName: string) => {
             return `${localImagePath}/${imageName}`
           }
         )
@@ -724,7 +731,7 @@ function bindFileHandlers(): void {
   )
 
   // 获取文件统计信息（创建时间、修改时间等）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-file-stats',
     async (
       event: IpcMainInvokeEvent,
@@ -748,7 +755,7 @@ function bindFileHandlers(): void {
   )
 
   // 删除文件或文件夹（移到回收站）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'delete-file-or-folder',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
       try {
@@ -788,7 +795,7 @@ function bindFileHandlers(): void {
   )
 
   // 重命名文件或文件夹
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'rename-file-or-folder',
     async (
       event: IpcMainInvokeEvent,
@@ -829,7 +836,7 @@ function bindFileHandlers(): void {
   )
 
   // 创建文件夹
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'create-directory',
     async (
       event: IpcMainInvokeEvent,
@@ -870,7 +877,7 @@ function bindFileHandlers(): void {
   )
 
   // 创建文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'create-file',
     async (
       event: IpcMainInvokeEvent,
@@ -917,7 +924,7 @@ function bindFileHandlers(): void {
   )
 
   // 复制文件或文件夹
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'copy-file-or-folder',
     async (
       event: IpcMainInvokeEvent,
@@ -950,7 +957,7 @@ function bindFileHandlers(): void {
   )
 
   // 移动文件或文件夹（剪切）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'move-file-or-folder',
     async (
       event: IpcMainInvokeEvent,
@@ -982,7 +989,7 @@ function bindFileHandlers(): void {
   )
 
   // 在文件管理器中显示文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'show-item-in-folder',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
       try {
@@ -998,7 +1005,7 @@ function bindFileHandlers(): void {
   )
 
   // 检查路径是否存在（用于重名检测）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'check-path-exists',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
       try {
@@ -1011,7 +1018,7 @@ function bindFileHandlers(): void {
   )
 
   // 检查路径是否为目录
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'check-path-is-directory',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
       try {
@@ -1029,7 +1036,7 @@ function bindFileHandlers(): void {
 
   // 读取Sidecar文件
   // 注意：Electron IPC会自动将Buffer序列化为ArrayBuffer，在渲染进程中会变成Uint8Array
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'read-sidecar-file',
     async (event: IpcMainInvokeEvent, payload: { path: string }): Promise<Buffer | null> => {
       try {
@@ -1085,7 +1092,7 @@ function bindFileHandlers(): void {
     }
   )
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'write-file-content',
     async (
       event: IpcMainInvokeEvent,
@@ -1120,7 +1127,7 @@ function bindFileHandlers(): void {
   )
 
   // 保存引用文件到userData/reference目录
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'save-reference-file',
     async (
       event: IpcMainInvokeEvent,
@@ -1163,13 +1170,13 @@ function bindFileHandlers(): void {
   )
 
   // 获取reference目录路径
-  ipcMain.handle('get-reference-dir-path', async (): Promise<string> => {
+  ipcBridge.registerHandle('get-reference-dir-path', async (): Promise<string> => {
     const userDataPath = app.getPath('userData')
     return path.join(userDataPath, 'reference')
   })
 
   // 获取reference目录大小
-  ipcMain.handle('get-reference-dir-size', async (): Promise<number> => {
+  ipcBridge.registerHandle('get-reference-dir-size', async (): Promise<number> => {
     const userDataPath = app.getPath('userData')
     const referenceDir = path.join(userDataPath, 'reference')
 
@@ -1196,7 +1203,7 @@ function bindFileHandlers(): void {
   })
 
   // 清空reference目录
-  ipcMain.handle('clear-reference-dir', async (): Promise<void> => {
+  ipcBridge.registerHandle('clear-reference-dir', async (): Promise<void> => {
     const userDataPath = app.getPath('userData')
     const referenceDir = path.join(userDataPath, 'reference')
 
@@ -1223,7 +1230,7 @@ function bindFileHandlers(): void {
   })
 
   // 打开reference目录
-  ipcMain.handle('open-reference-dir', async (): Promise<void> => {
+  ipcBridge.registerHandle('open-reference-dir', async (): Promise<void> => {
     const userDataPath = app.getPath('userData')
     const referenceDir = path.join(userDataPath, 'reference')
 
@@ -1237,7 +1244,7 @@ function bindFileHandlers(): void {
   })
 
   // 转换PDF到文本
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-pdf-to-text',
     async (event: IpcMainInvokeEvent, filePath: string, requestId?: string): Promise<string> => {
       const reqId = requestId || generateRequestId()
@@ -1293,7 +1300,7 @@ function bindFileHandlers(): void {
   )
 
   // 取消文件转换任务
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'cancel-file-conversion',
     async (event: IpcMainInvokeEvent, requestId: string): Promise<void> => {
       cancelTask(requestId)
@@ -1303,7 +1310,7 @@ function bindFileHandlers(): void {
   )
 
   // 转换DOCX到文本
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-docx-to-text',
     async (event: IpcMainInvokeEvent, filePath: string, requestId?: string): Promise<string> => {
       const reqId = requestId || generateRequestId()
@@ -1365,7 +1372,7 @@ function bindFileHandlers(): void {
   )
 
   // 转换PPTX到文本
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-pptx-to-text',
     async (event: IpcMainInvokeEvent, filePath: string, requestId?: string): Promise<string> => {
       const reqId = requestId || generateRequestId()
@@ -1427,7 +1434,7 @@ function bindFileHandlers(): void {
   )
 
   // 转换Excel到文本
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-excel-to-text',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<string> => {
       try {
@@ -1444,7 +1451,7 @@ function bindFileHandlers(): void {
   )
 
   // OCR识别图片（从文件路径）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'ocr-recognize-file',
     async (
       event: IpcMainInvokeEvent,
@@ -1464,7 +1471,7 @@ function bindFileHandlers(): void {
   )
 
   // OCR识别图片（从Base64）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'ocr-recognize-base64',
     async (
       event: IpcMainInvokeEvent,
@@ -1484,7 +1491,7 @@ function bindFileHandlers(): void {
   )
 
   // 读取剪切板图片
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'read-clipboard-image',
     async (event: IpcMainInvokeEvent): Promise<string | null> => {
       try {
@@ -1502,14 +1509,14 @@ function bindFileHandlers(): void {
   )
 
   // 获取OCR支持的语言列表
-  ipcMain.handle('ocr-get-supported-languages', async (): Promise<string[]> => {
+  ipcBridge.registerHandle('ocr-get-supported-languages', async (): Promise<string[]> => {
     return ocrService.getSupportedLanguages()
   })
 
   // ============ 文件监听处理器 ============
 
   // 启动文件监听
-  ipcMain.on('watch-file', (event: IpcMainEvent, filePath: string, tabId?: string) => {
+  ipcBridge.registerOn('watch-file', (event: IpcMainEvent, filePath: string, tabId?: string) => {
     try {
       if (!filePath) {
         logger.warn('文件路径为空，无法启动监听')
@@ -1522,7 +1529,7 @@ function bindFileHandlers(): void {
   })
 
   // 停止文件监听
-  ipcMain.on('unwatch-file', (event: IpcMainEvent, filePath: string) => {
+  ipcBridge.registerOn('unwatch-file', (event: IpcMainEvent, filePath: string) => {
     try {
       if (!filePath) {
         return
@@ -1534,7 +1541,7 @@ function bindFileHandlers(): void {
   })
 
   // 监听目录变化
-  ipcMain.on('watch-directory', (event: IpcMainEvent, directoryPath: string) => {
+  ipcBridge.registerOn('watch-directory', (event: IpcMainEvent, directoryPath: string) => {
     try {
       if (!directoryPath) {
         logger.warn('目录路径为空，无法启动监听')
@@ -1547,7 +1554,7 @@ function bindFileHandlers(): void {
   })
 
   // 停止监听目录变化
-  ipcMain.on('unwatch-directory', (event: IpcMainEvent, directoryPath: string) => {
+  ipcBridge.registerOn('unwatch-directory', (event: IpcMainEvent, directoryPath: string) => {
     try {
       if (!directoryPath) {
         return
@@ -1559,7 +1566,7 @@ function bindFileHandlers(): void {
   })
 
   // 更新文件监听的标签页 ID
-  ipcMain.on(
+  ipcBridge.registerOn(
     'update-file-watcher-tab-id',
     (event: IpcMainEvent, filePath: string, tabId: string) => {
       try {
@@ -1693,7 +1700,7 @@ function bindFileHandlers(): void {
    * @param options 文件选择选项
    * @returns 选中的文件路径数组
    */
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'select-reference-files',
     async (
       event: IpcMainInvokeEvent,
@@ -1731,7 +1738,7 @@ function bindFileHandlers(): void {
    * 读取文件内容并转换为 base64
    * 用于在渲染进程中创建 File 对象
    */
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'read-file-for-upload',
     async (
       event: IpcMainInvokeEvent,
@@ -1785,27 +1792,27 @@ function bindFileHandlers(): void {
 }
 
 function bindLoggerHandlers(): void {
-  ipcMain.on('logger-log', (_event: IpcMainEvent, payload: LogPayload) => {
+  ipcBridge.registerOn('logger-log', (_event: IpcMainEvent, payload: LogPayload) => {
     handleRendererLog(payload)
   })
 
-  ipcMain.handle('get-logger-config', async () => {
+  ipcBridge.registerHandle('get-logger-config', async () => {
     return getLoggerConfig()
   })
 
-  ipcMain.on('open-log-file', async () => {
+  ipcBridge.registerOn('open-log-file', async () => {
     await openCurrentLogFile()
   })
 
-  ipcMain.on('open-log-directory', async () => {
+  ipcBridge.registerOn('open-log-directory', async () => {
     await openLogDirectory()
   })
 
-  ipcMain.handle('get-logger-history', async () => {
+  ipcBridge.registerHandle('get-logger-history', async () => {
     return getLoggerHistory()
   })
 
-  ipcMain.handle('get-service-status', async () => {
+  ipcBridge.registerHandle('get-service-status', async () => {
     return getServiceStatus()
   })
 }
@@ -1814,7 +1821,7 @@ function bindLoggerHandlers(): void {
  * 绑定拼写检查处理器
  */
 function bindSpellCheckHandlers(): void {
-  ipcMain.handle('spell-check', async (_event: IpcMainInvokeEvent, params: SpellCheckParams) => {
+  ipcBridge.registerHandle('spell-check', async (_event: IpcMainInvokeEvent, params: SpellCheckParams) => {
     try {
       logger.info('[spell-check] 收到拼写检查请求，文本长度:', params.text?.length || 0)
       const result = await performSpellCheck(params)
@@ -1827,7 +1834,7 @@ function bindSpellCheckHandlers(): void {
   })
 
   // 添加单词到词典
-  ipcMain.handle('spell-check-add-word', async (_event: IpcMainInvokeEvent, word: string) => {
+  ipcBridge.registerHandle('spell-check-add-word', async (_event: IpcMainInvokeEvent, word: string) => {
     try {
       logger.info('[spell-check-add-word] 添加单词到词典:', word)
       addWordToDictionary(word)
@@ -1839,7 +1846,7 @@ function bindSpellCheckHandlers(): void {
   })
 
   // 批量添加单词到词典
-  ipcMain.handle('spell-check-add-words', async (_event: IpcMainInvokeEvent, words: string[]) => {
+  ipcBridge.registerHandle('spell-check-add-words', async (_event: IpcMainInvokeEvent, words: string[]) => {
     try {
       logger.info('[spell-check-add-words] 批量添加单词到词典，数量:', words.length)
       addWordsToDictionary(words)
@@ -1852,7 +1859,7 @@ function bindSpellCheckHandlers(): void {
 }
 
 function bindExportHandlers(): void {
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'perform-export',
     async (event: IpcMainInvokeEvent, payload: RendererExportPayload) => {
       const result = await performExportRequest(payload, mainWindow)
@@ -1865,7 +1872,7 @@ function bindExportHandlers(): void {
     }
   )
 
-  ipcMain.handle('cancel-export-task', async (_event: IpcMainInvokeEvent, requestId: string) => {
+  ipcBridge.registerHandle('cancel-export-task', async (_event: IpcMainInvokeEvent, requestId: string) => {
     return abortExportTask(requestId)
   })
 }
@@ -1874,32 +1881,32 @@ function bindExportHandlers(): void {
  * 绑定设置相关处理器
  */
 function bindSettingHandlers(): void {
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-setting',
     async (event: IpcMainInvokeEvent, data: SettingData): Promise<any> => {
       return await getSetting(data.key)
     }
   )
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'set-setting',
     async (event: IpcMainInvokeEvent, data: SettingData): Promise<void> => {
       return await setSetting(data.key, data.value)
     }
   )
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'update-recent-docs',
     async (event: IpcMainInvokeEvent, data: UpdateRecentDocsData): Promise<void> => {
       return await updateRecentDocs(data)
     }
   )
 
-  ipcMain.handle('get-recent-docs', async (event: IpcMainInvokeEvent): Promise<string[]> => {
+  ipcBridge.registerHandle('get-recent-docs', async (event: IpcMainInvokeEvent): Promise<string[]> => {
     return await getRecentDocs()
   })
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'remove-recent-doc',
     async (event: IpcMainInvokeEvent, data: RemoveRecentDocData): Promise<void> => {
       return await removeRecentDoc(data)
@@ -1907,7 +1914,7 @@ function bindSettingHandlers(): void {
   )
 
   // 获取环境变量（仅限安全的环境变量，不暴露敏感信息）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-env',
     async (event: IpcMainInvokeEvent, key: string): Promise<string | undefined> => {
       // 只允许获取特定的环境变量
@@ -1925,7 +1932,7 @@ function bindSettingHandlers(): void {
   )
 
   // 设置 embedding 模式
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'set-embedding-mode',
     async (event: IpcMainInvokeEvent, mode: 'local' | 'api'): Promise<void> => {
       setEmbeddingMode(mode)
@@ -1933,7 +1940,7 @@ function bindSettingHandlers(): void {
   )
 
   // 获取 embedding 模式
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-embedding-mode',
     async (event: IpcMainInvokeEvent): Promise<'local' | 'api'> => {
       return getEmbeddingMode()
@@ -1945,24 +1952,29 @@ function bindSettingHandlers(): void {
  * 绑定工具功能处理器
  */
 function bindUtilityHandlers(): void {
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'cut-words',
     async (event: IpcMainInvokeEvent, data: CutWordsData): Promise<any[]> => {
       return await cut_words(data.text)
     }
   )
 
-  ipcMain.handle('get-image-path', async (event: IpcMainInvokeEvent): Promise<string> => {
+  ipcBridge.registerHandle('get-image-path', async (event: IpcMainInvokeEvent): Promise<string> => {
     return await getImagePath()
   })
 
+  // 获取运行时服务器 base URL（供渲染进程统一请求本地 API/图片等）
+  ipcBridge.registerHandle('get-runtime-server-base-url', async (): Promise<string> => {
+    return getRuntimeServerBaseUrl()
+  })
+
   // 获取系统主题（亮暗色）
-  ipcMain.handle('get-os-theme', async (event: IpcMainInvokeEvent): Promise<string> => {
+  ipcBridge.registerHandle('get-os-theme', async (event: IpcMainInvokeEvent): Promise<string> => {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   })
 
   // 获取系统主题信息（包括亮暗色和主题色）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-os-theme-info',
     async (
       event: IpcMainInvokeEvent
@@ -1992,7 +2004,7 @@ function bindUtilityHandlers(): void {
   )
 
   // 获取系统字体列表
-  ipcMain.handle('get-system-fonts', async (event: IpcMainInvokeEvent): Promise<SystemFont[]> => {
+  ipcBridge.registerHandle('get-system-fonts', async (event: IpcMainInvokeEvent): Promise<SystemFont[]> => {
     return await getSystemFonts()
   })
 
@@ -2171,11 +2183,11 @@ function bindUtilityHandlers(): void {
     }
   }
 
-  ipcMain.handle('get-is-packaged', async (event: IpcMainInvokeEvent): Promise<boolean> => {
+  ipcBridge.registerHandle('get-is-packaged', async (event: IpcMainInvokeEvent): Promise<boolean> => {
     return app.isPackaged
   })
 
-  ipcMain.handle('get-all-window-types', async (event: IpcMainInvokeEvent): Promise<string[]> => {
+  ipcBridge.registerHandle('get-all-window-types', async (event: IpcMainInvokeEvent): Promise<string[]> => {
     const windows = BrowserWindow.getAllWindows()
     const windowTypes = new Set<string>()
 
@@ -2196,7 +2208,7 @@ function bindUtilityHandlers(): void {
     return Array.from(windowTypes).sort()
   })
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'compute-md5',
     async (event: IpcMainInvokeEvent, data: string): Promise<string> => {
       const crypto = require('crypto')
@@ -2204,12 +2216,12 @@ function bindUtilityHandlers(): void {
     }
   )
 
-  ipcMain.handle('resources-path', (event: IpcMainInvokeEvent): string => {
+  ipcBridge.registerHandle('resources-path', (event: IpcMainInvokeEvent): string => {
     return getResourcesPath()
   })
 
   // HTTP请求代理处理器（通过主进程绕过CORS限制）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'execute-http-request',
     async (
       event: IpcMainInvokeEvent,
@@ -2408,7 +2420,7 @@ function bindUtilityHandlers(): void {
     }
   )
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'simpletex-ocr',
     async (event: IpcMainInvokeEvent, params: SimpleTexOCRData): Promise<any> => {
       return await handleSimpleTexOCR(params)
@@ -2416,7 +2428,7 @@ function bindUtilityHandlers(): void {
   )
 
   // PlantUML 渲染处理器
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'render-plantuml',
     async (
       event: IpcMainInvokeEvent,
@@ -2427,7 +2439,7 @@ function bindUtilityHandlers(): void {
     }
   )
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'render-echarts',
     async (event: IpcMainInvokeEvent, optionJson: string): Promise<string> => {
       // 主进程只返回 SVG 字符串，PNG 转换在渲染进程中完成
@@ -2436,7 +2448,7 @@ function bindUtilityHandlers(): void {
   )
 
   // SVG 转 PDF 处理器
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-svg-to-pdf',
     async (
       event: IpcMainInvokeEvent,
@@ -2458,7 +2470,7 @@ function bindUtilityHandlers(): void {
 
   // SVG 字符串 → PNG 文件（resvg）
   // scale: 缩放因子，用于生成高分辨率位图，默认 2.0（相当于 192 DPI）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-svg-string-to-png',
     async (
       event: IpcMainInvokeEvent,
@@ -2480,7 +2492,7 @@ function bindUtilityHandlers(): void {
   )
 
   // SVG 字符串 → PDF 文件（resvg）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'convert-svg-string-to-pdf',
     async (
       event: IpcMainInvokeEvent,
@@ -2490,7 +2502,7 @@ function bindUtilityHandlers(): void {
       try {
         const url = await convertSvgStringToPdfFile(svgContent)
         // 从URL中提取文件路径（用于返回）
-        const fileName = url.replace('http://localhost:52521/images/', '')
+        const fileName = url.replace(`${getRuntimeServerBaseUrl()}/images/`, '')
         const pdfPath = path.join(imageUploadDir, fileName)
         return { success: true, pdfPath }
       } catch (error) {
@@ -2504,7 +2516,7 @@ function bindUtilityHandlers(): void {
   )
 
   // 保存图片文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'save-image-file',
     async (
       event: IpcMainInvokeEvent,
@@ -2591,7 +2603,7 @@ function bindUtilityHandlers(): void {
   )
 
   // 保存 JSON 文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'save-json-file',
     async (
       event: IpcMainInvokeEvent,
@@ -2699,7 +2711,7 @@ const terminalEncodings = new Map<string, string>()
 
 function bindTerminalHandlers(): void {
   // 获取或设置终端的当前工作目录
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'terminal-get-cwd',
     async (
       event: IpcMainInvokeEvent,
@@ -2716,7 +2728,7 @@ function bindTerminalHandlers(): void {
   )
 
   // 设置终端的字符集编码
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'terminal-set-encoding',
     async (
       event: IpcMainInvokeEvent,
@@ -2771,7 +2783,7 @@ function bindTerminalHandlers(): void {
   )
 
   // 设置终端的当前工作目录（用于cd命令）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'terminal-set-cwd',
     async (
       event: IpcMainInvokeEvent,
@@ -2811,7 +2823,7 @@ function bindTerminalHandlers(): void {
   )
 
   // 执行终端命令（不等待完成，支持交互式输入）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'execute-terminal-command',
     async (
       event: IpcMainInvokeEvent,
@@ -2904,7 +2916,7 @@ function bindTerminalHandlers(): void {
   )
 
   // 发送输入到终端进程（stdin）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'terminal-send-input',
     async (
       event: IpcMainInvokeEvent,
@@ -2942,7 +2954,7 @@ function bindTerminalHandlers(): void {
   )
 
   // 发送中断信号到终端进程（Ctrl+C）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'terminal-send-interrupt',
     async (
       event: IpcMainInvokeEvent,
@@ -2982,7 +2994,7 @@ function bindTerminalHandlers(): void {
  * 绑定知识库处理器
  */
 function bindKnowledgeHandlers(): void {
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'compile-tex',
     async (event: IpcMainInvokeEvent, data: CompileTexData): Promise<LaTeXCompileResult> => {
       try {
@@ -3019,7 +3031,7 @@ function bindKnowledgeHandlers(): void {
     }
   )
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'query-knowledge-base',
     async (event: IpcMainInvokeEvent, params: QueryKnowledgeBaseParams): Promise<string[]> => {
       return await queryKnowledgeBase(params.question, params.scoreThreshold)
@@ -3031,7 +3043,7 @@ function bindKnowledgeHandlers(): void {
  * 绑定AI任务处理器
  */
 function bindAITaskHandlers(): void {
-  ipcMain.on('register-ai-task', (_event: IpcMainEvent, taskInfo: TaskInfo) => {
+  ipcBridge.registerOn('register-ai-task', (_event: IpcMainEvent, taskInfo: TaskInfo) => {
     const targetWindow =
       mainWindow && !mainWindow.isDestroyed()
         ? mainWindow
@@ -3040,7 +3052,7 @@ function bindAITaskHandlers(): void {
     targetWindow?.webContents.send('register-ai-task', taskInfo)
   })
 
-  ipcMain.on('ai-task-done', (_event: IpcMainEvent, handle: string) => {
+  ipcBridge.registerOn('ai-task-done', (_event: IpcMainEvent, handle: string) => {
     const targetWindow =
       mainWindow && !mainWindow.isDestroyed()
         ? mainWindow
@@ -3049,13 +3061,13 @@ function bindAITaskHandlers(): void {
     targetWindow?.webContents.send('ai-task-done', handle)
   })
 
-  ipcMain.on('broadcast-cancel-ai-task', (event: IpcMainEvent, handle: string) => {
+  ipcBridge.registerOn('broadcast-cancel-ai-task', (event: IpcMainEvent, handle: string) => {
     BrowserWindow.getAllWindows().forEach((win) => {
       win.webContents.send('cancel-task', handle)
     })
   })
 
-  ipcMain.on('start-task', (event: IpcMainEvent, handle: string) => {
+  ipcBridge.registerOn('start-task', (event: IpcMainEvent, handle: string) => {
     BrowserWindow.getAllWindows().forEach((win) => {
       win.webContents.send('start-task', handle)
     })
@@ -3066,11 +3078,11 @@ function bindAITaskHandlers(): void {
  * 绑定系统事件处理器
  */
 function bindSystemHandlers(): void {
-  ipcMain.on('system-notification', (event: IpcMainEvent, data: SystemNotificationData) => {
+  ipcBridge.registerOn('system-notification', (event: IpcMainEvent, data: SystemNotificationData) => {
     systemNotification(data.title, data.body, data.path)
   })
 
-  ipcMain.on('update-window-title', (event: IpcMainEvent, title: string) => {
+  ipcBridge.registerOn('update-window-title', (event: IpcMainEvent, title: string) => {
     updateWindowTitle(title)
   })
 
@@ -3079,12 +3091,12 @@ function bindSystemHandlers(): void {
   })
 
   // 获取应用版本号
-  ipcMain.handle('get-app-version', async (event: IpcMainInvokeEvent): Promise<string> => {
+  ipcBridge.registerHandle('get-app-version', async (event: IpcMainInvokeEvent): Promise<string> => {
     return getAppVersion()
   })
 
   // 获取版本详细信息（包含发布日期）
-  ipcMain.handle('get-version-info', async (event: IpcMainInvokeEvent): Promise<any> => {
+  ipcBridge.registerHandle('get-version-info', async (event: IpcMainInvokeEvent): Promise<any> => {
     try {
       let versionFilePath: string
       if (app.isPackaged) {
@@ -3110,7 +3122,7 @@ function bindSystemHandlers(): void {
   })
 
   // 获取系统信息（用于用户反馈模板）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-system-info',
     async (
       event: IpcMainInvokeEvent
@@ -3207,7 +3219,7 @@ function bindSystemHandlers(): void {
   }
 
   // 触发用户反馈工作流（先上传正文/附件到 Gist，再 workflow_dispatch 传 URL）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'trigger-feedback-workflow',
     async (
       event: IpcMainInvokeEvent,
@@ -3386,12 +3398,12 @@ function bindSystemHandlers(): void {
   )
 
   // 获取资源路径
-  ipcMain.handle('get-resources-path', async (event: IpcMainInvokeEvent): Promise<string> => {
+  ipcBridge.registerHandle('get-resources-path', async (event: IpcMainInvokeEvent): Promise<string> => {
     return getResourcesPath()
   })
 
   // 检查更新
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'check-for-updates',
     async (event: IpcMainInvokeEvent, channel: UpdateChannel = 'release'): Promise<any> => {
       try {
@@ -3410,12 +3422,12 @@ function bindSystemHandlers(): void {
   )
 
   // 获取更新状态
-  ipcMain.handle('get-update-status', async (event: IpcMainInvokeEvent): Promise<any> => {
+  ipcBridge.registerHandle('get-update-status', async (event: IpcMainInvokeEvent): Promise<any> => {
     return getUpdateStatus()
   })
 
   // 下载更新
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'download-update',
     async (event: IpcMainInvokeEvent): Promise<{ success: boolean; error?: string }> => {
       try {
@@ -3446,7 +3458,7 @@ function bindSystemHandlers(): void {
   )
 
   // 安装更新并退出
-  ipcMain.handle('quit-and-install', async (event: IpcMainInvokeEvent): Promise<void> => {
+  ipcBridge.registerHandle('quit-and-install', async (event: IpcMainInvokeEvent): Promise<void> => {
     try {
       quitAndInstall()
     } catch (error) {
@@ -4519,7 +4531,7 @@ async function renderPlantUMLToLocalImage(
     // 如已存在，直接返回 URL（复用）
     try {
       await fs.promises.access(filePath, fs.constants.F_OK)
-      const existsUrl = `http://localhost:52521/images/${fileName}`
+      const existsUrl = `${getRuntimeServerBaseUrl()}/images/${fileName}`
       logger.info('PlantUML 已存在，复用文件:', existsUrl)
       return existsUrl
     } catch {
@@ -4531,7 +4543,7 @@ async function renderPlantUMLToLocalImage(
     logger.info(`${finalFormat.toUpperCase()} 已保存到:`, filePath)
 
     // 返回本地 HTTP URL
-    const localUrl = `http://localhost:52521/images/${fileName}`
+    const localUrl = `${getRuntimeServerBaseUrl()}/images/${fileName}`
     logger.info('返回本地 URL:', localUrl)
 
     return localUrl
@@ -4635,7 +4647,7 @@ async function renderEChartsToLocalImage(optionJson: string): Promise<string> {
  */
 function bindDatabaseTestHandlers(): void {
   // 测试数据库连接
-  ipcMain.handle('test-database-connection', async () => {
+  ipcBridge.registerHandle('test-database-connection', async () => {
     try {
       const dbPath = getDatabasePath()
       const db = getDatabase()
@@ -4658,7 +4670,7 @@ function bindDatabaseTestHandlers(): void {
   })
 
   // 测试创建表
-  ipcMain.handle('test-database-create-tables', async () => {
+  ipcBridge.registerHandle('test-database-create-tables', async () => {
     try {
       ensureInitialized()
       const tables = ['knowledge_files', 'data_chunks', 'vectors']
@@ -4679,7 +4691,7 @@ function bindDatabaseTestHandlers(): void {
   })
 
   // 测试创建知识库文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-create-file',
     async (
       _event,
@@ -4714,7 +4726,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试读取知识库文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-read-file',
     async (
       _event,
@@ -4741,7 +4753,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试更新知识库文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-update-file',
     async (
       _event,
@@ -4773,7 +4785,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试删除知识库文件
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-delete-file',
     async (
       _event,
@@ -4799,7 +4811,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试创建数据块
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-create-chunks',
     async (
       _event,
@@ -4827,7 +4839,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试查询数据块
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-query-chunks',
     async (
       _event,
@@ -4854,7 +4866,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试创建向量
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-create-vectors',
     async (
       _event,
@@ -4881,7 +4893,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试查询向量
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-query-vectors',
     async (
       _event,
@@ -4908,7 +4920,7 @@ function bindDatabaseTestHandlers(): void {
   )
 
   // 测试向量搜索
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'test-database-search-vectors',
     async (
       _event,
@@ -4950,7 +4962,7 @@ function bindDatabaseTestHandlers(): void {
  */
 function bindDatabaseHandlers(): void {
   // 执行查询（SELECT）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'db-query',
     async (
       _event: IpcMainInvokeEvent,
@@ -4971,7 +4983,7 @@ function bindDatabaseHandlers(): void {
   )
 
   // 执行查询（SELECT）返回单行
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'db-query-one',
     async (
       _event: IpcMainInvokeEvent,
@@ -4991,7 +5003,7 @@ function bindDatabaseHandlers(): void {
   )
 
   // 执行更新（INSERT、UPDATE、DELETE）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'db-execute',
     async (
       _event: IpcMainInvokeEvent,
@@ -5012,7 +5024,7 @@ function bindDatabaseHandlers(): void {
   )
 
   // 检查表是否存在
-  ipcMain.handle('db-table-exists', async (_event: IpcMainInvokeEvent, tableName: string) => {
+  ipcBridge.registerHandle('db-table-exists', async (_event: IpcMainInvokeEvent, tableName: string) => {
     try {
       const exists = tableExists(tableName)
       return { success: true, exists }
@@ -5023,7 +5035,7 @@ function bindDatabaseHandlers(): void {
   })
 
   // 执行事务
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'db-transaction',
     async (
       _event: IpcMainInvokeEvent,
@@ -5052,7 +5064,7 @@ function bindDatabaseHandlers(): void {
  */
 function bindMathHandlers(): void {
   // LaTeX 到 OMML 转换（使用 latex-to-omml 包）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'latex-to-omml',
     async (
       event: IpcMainInvokeEvent,
@@ -5084,13 +5096,13 @@ export async function findWindowWithToolTab(payload: {
   for (const win of windows) {
     const result = await new Promise<{ tabId: string | null }>((resolve) => {
       const handler = (_ev: IpcMainEvent, response: { tabId: string | null } | null) => {
-        ipcMain.removeListener('tool-tab-exists-in-window-response', handler)
+        ipcBridge.removeListener('tool-tab-exists-in-window-response', handler)
         resolve(response || { tabId: null })
       }
-      ipcMain.once('tool-tab-exists-in-window-response', handler)
+      ipcBridge.registerOnce('tool-tab-exists-in-window-response', handler)
       win.webContents.send('check-tool-tab-in-window', payload)
       setTimeout(() => {
-        ipcMain.removeListener('tool-tab-exists-in-window-response', handler)
+        ipcBridge.removeListener('tool-tab-exists-in-window-response', handler)
         resolve({ tabId: null })
       }, 1000)
     })
@@ -5106,18 +5118,18 @@ function bindWindowManagementHandlers(): void {
   const logger = createMainLogger('WindowManagement')
 
   // 获取当前窗口ID
-  ipcMain.handle('get-window-id', (event: IpcMainInvokeEvent): number => {
+  ipcBridge.registerHandle('get-window-id', (event: IpcMainInvokeEvent): number => {
     return event.sender.id
   })
 
   // 获取当前窗口是否最大化（用于标题栏最大化/还原图标切换）
-  ipcMain.handle('get-window-maximized', (event: IpcMainInvokeEvent): boolean => {
+  ipcBridge.registerHandle('get-window-maximized', (event: IpcMainInvokeEvent): boolean => {
     const win = BrowserWindow.fromWebContents(event.sender)
     return !!(win && !win.isDestroyed() && win.isMaximized())
   })
 
   // 获取所有已显示的主窗口列表（用于“移至另一个窗口”菜单，排除窗口池中未显示的窗口）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'get-all-windows',
     (event: IpcMainInvokeEvent): Array<{ id: number; title: string }> => {
       const currentWindowId = event.sender.id
@@ -5132,7 +5144,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 创建新窗口并传递Tab数据
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'create-window-with-tab',
     async (
       event: IpcMainInvokeEvent,
@@ -5265,7 +5277,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 窗口间Tab传递（由目标窗口发起，tabData 含 sourceWindowId）
-  ipcMain.on(
+  ipcBridge.registerOn(
     'transfer-tab-to-window',
     (
       _event: IpcMainEvent,
@@ -5304,7 +5316,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 从窗口移除Tab
-  ipcMain.on(
+  ipcBridge.registerOn(
     'remove-tab-from-window',
     (event: IpcMainEvent, { windowId, tabId }: { windowId: number; tabId: string }) => {
       try {
@@ -5325,7 +5337,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 检查窗口是否可以关闭（Tab数量）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'check-window-can-close',
     async (event: IpcMainInvokeEvent): Promise<{ canClose: boolean; tabCount: number }> => {
       try {
@@ -5337,17 +5349,17 @@ function bindWindowManagementHandlers(): void {
         // 请求窗口返回Tab数量
         return new Promise((resolve) => {
           const handler = (_event: IpcMainEvent, result: { tabCount: number }) => {
-            ipcMain.removeListener('window-tab-count-response', handler)
+            ipcBridge.removeListener('window-tab-count-response', handler)
             const canClose = result.tabCount <= 1
             resolve({ canClose, tabCount: result.tabCount })
           }
 
-          ipcMain.once('window-tab-count-response', handler)
+          ipcBridge.registerOnce('window-tab-count-response', handler)
           event.sender.send('request-tab-count')
 
           // 超时处理
           setTimeout(() => {
-            ipcMain.removeListener('window-tab-count-response', handler)
+            ipcBridge.removeListener('window-tab-count-response', handler)
             resolve({ canClose: true, tabCount: 0 })
           }, 1000)
         })
@@ -5359,7 +5371,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 关闭窗口
-  ipcMain.on('close-window', (event: IpcMainEvent) => {
+  ipcBridge.registerOn('close-window', (event: IpcMainEvent) => {
     try {
       const win = BrowserWindow.fromWebContents(event.sender)
       if (win && !win.isDestroyed()) {
@@ -5372,20 +5384,20 @@ function bindWindowManagementHandlers(): void {
   })
 
   // 获取所有窗口ID列表
-  ipcMain.handle('get-all-window-ids', (): number[] => {
+  ipcBridge.registerHandle('get-all-window-ids', (): number[] => {
     return getAllMainWindows()
       .filter((win) => !win.isDestroyed())
       .map((win) => getWindowId(win))
   })
 
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'find-window-with-tool-tab',
     (_event: IpcMainInvokeEvent, payload: { toolType?: string; route?: string }) =>
       findWindowWithToolTab(payload)
   )
 
   // 查询文件是否在某个窗口打开（使用注册表）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'find-window-with-file',
     async (
       event: IpcMainInvokeEvent,
@@ -5401,7 +5413,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 文件预占式注册
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'claim-file-open',
     async (event: IpcMainInvokeEvent, payload: { filePath: string; tabId: string }) => {
       const windowId = event.sender.id
@@ -5416,22 +5428,22 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 确认文件已打开
-  ipcMain.handle('confirm-file-open', async (event: IpcMainInvokeEvent, filePath: string) => {
+  ipcBridge.registerHandle('confirm-file-open', async (event: IpcMainInvokeEvent, filePath: string) => {
     confirmFileOpen(filePath)
   })
 
   // 释放文件预占
-  ipcMain.handle('release-file-claim', async (event: IpcMainInvokeEvent, filePath: string) => {
+  ipcBridge.registerHandle('release-file-claim', async (event: IpcMainInvokeEvent, filePath: string) => {
     releaseFileClaim(filePath)
   })
 
   // 标记文件正在转移
-  ipcMain.handle('mark-file-transferring', async (event: IpcMainInvokeEvent, filePath: string) => {
+  ipcBridge.registerHandle('mark-file-transferring', async (event: IpcMainInvokeEvent, filePath: string) => {
     return markFileTransferring(filePath)
   })
 
   // 转移文件所有权到新窗口
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'transfer-file-ownership',
     async (event: IpcMainInvokeEvent, payload: { filePath: string; newTabId: string }) => {
       const windowId = event.sender.id
@@ -5440,12 +5452,12 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 标记文件正在关闭
-  ipcMain.handle('mark-file-closing', async (event: IpcMainInvokeEvent, filePath: string) => {
+  ipcBridge.registerHandle('mark-file-closing', async (event: IpcMainInvokeEvent, filePath: string) => {
     markFileClosing(filePath)
   })
 
   // 捕获窗口缩略图（用于拖拽图像）
-  ipcMain.handle(
+  ipcBridge.registerHandle(
     'capture-window-thumbnail',
     async (event: IpcMainInvokeEvent): Promise<string | null> => {
       try {
@@ -5466,7 +5478,7 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 获取当前focus的窗口ID
-  ipcMain.handle('get-focused-window-id', (): number | null => {
+  ipcBridge.registerHandle('get-focused-window-id', (): number | null => {
     const focusedWindow = BrowserWindow.getFocusedWindow()
     if (!focusedWindow || focusedWindow.isDestroyed()) {
       return null

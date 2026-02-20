@@ -10,11 +10,11 @@
           </p>
         </div>
 
-        <!-- 用户画像展示 -->
+        <!-- 使用定位（用户画像） -->
         <div v-if="userProfile" class="profile-section">
           <h2 class="section-title">
             <el-icon><User /></el-icon>
-            {{ $t('userManual.overview.profile') || '我的用户画像' }}
+            {{ $t('userManual.overview.profileSummary') || '您的使用定位' }}
           </h2>
           <UserProfileVisualization :profile="userProfile" @reanalyze="openProfileDialog" />
         </div>
@@ -52,9 +52,12 @@
             <div class="path-description">
               <p>{{ pathDescription }}</p>
             </div>
-            <!-- 有向图展示 -->
+            <!-- 有向图展示：点击节点仅选中，与下方列表双向联动 -->
             <div class="path-graph-container">
-              <LearningGraph :default-expanded="true" @node-selected="handleNodeSelected" />
+              <LearningGraph
+                v-model:selected-id="selectedNodeId"
+                :default-expanded="true"
+              />
             </div>
             <div class="path-steps">
               <div
@@ -63,9 +66,11 @@
                 class="path-step"
                 :class="{
                   'is-completed': isArticleCompleted(articleId),
-                  'is-current': articleId === currentArticleId
+                  'is-current': articleId === currentArticleId,
+                  'is-selected': articleId === selectedNodeId
                 }"
-                @click="startLearning(articleId)"
+                @click="selectStep(articleId)"
+                @dblclick.prevent="startLearningStep(articleId)"
               >
                 <div class="step-number">{{ index + 1 }}</div>
                 <div class="step-content">
@@ -95,6 +100,14 @@
                 @click="startSelectedLearning"
               >
                 {{ $t('userManual.overview.startLearning') || '开始学习' }}
+              </el-button>
+              <el-button
+                text
+                type="info"
+                size="small"
+                @click="handleClearProgress"
+              >
+                {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
               </el-button>
             </div>
           </div>
@@ -153,6 +166,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile, ManualCategory } from '../../stores/userManual'
 import UserProfileVisualization from './UserProfileVisualization.vue'
@@ -177,6 +191,7 @@ const {
   currentArticleId,
   manualIndex,
   setCurrentArticle,
+  clearLearningProgress,
   getAllArticles,
   getArticleById
 } = useUserManual()
@@ -271,20 +286,43 @@ const getArticleTitle = (articleId: string) => {
   return articleId
 }
 
-const startLearning = (articleId: string) => {
-  setCurrentArticle(articleId, 'navigation')
+/** 仅选中步骤（与图节点双向绑定），不跳转 */
+const selectStep = (articleId: string) => {
+  selectedNodeId.value = selectedNodeId.value === articleId ? null : articleId
 }
 
 const selectedNodeId = ref<string | null>(null)
 
-const handleNodeSelected = (articleId: string | null) => {
-  selectedNodeId.value = articleId
-}
-
+/** 点击「开始学习」再跳转到选中的文档 */
 const startSelectedLearning = () => {
   if (selectedNodeId.value) {
     setCurrentArticle(selectedNodeId.value, 'navigation')
     selectedNodeId.value = null
+  }
+}
+
+/** 双击列表项直接开始学习 */
+const startLearningStep = (articleId: string) => {
+  setCurrentArticle(articleId, 'navigation')
+  selectedNodeId.value = null
+}
+
+/** 清空当前推荐路径的学习进度 */
+const handleClearProgress = async () => {
+  try {
+    await ElMessageBox.confirm(
+      t('userManual.progress.clearProgressConfirm'),
+      t('userManual.progress.clearProgress') || '清空学习进度',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    clearLearningProgress()
+    ElMessage.success(t('userManual.progress.clearProgressDone') || '学习进度已清空')
+  } catch {
+    // 用户取消
   }
 }
 
@@ -456,12 +494,26 @@ const navigateToCategory = async (categoryId: string) => {
 
 .path-graph-container {
   margin-bottom: 24px;
+  height: 360px;
+  min-height: 320px;
 }
 
 .path-graph-container :deep(.learning-graph) {
   border: none;
   background-color: transparent;
   margin-bottom: 0;
+  height: 100%;
+}
+
+.path-graph-container :deep(.graph-content) {
+  padding: 16px;
+  height: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+.path-graph-container :deep(.graph-canvas) {
+  min-height: 0;
+  height: 100%;
 }
 
 .path-steps {
@@ -493,6 +545,11 @@ const navigateToCategory = async (categoryId: string) => {
 .path-step.is-current {
   border-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
   background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.1)" : "rgba(64, 158, 255, 0.05)"');
+}
+
+.path-step.is-selected {
+  border-color: #e6a23c;
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(230, 162, 60, 0.12)" : "rgba(230, 162, 60, 0.08)"');
 }
 
 .step-number {

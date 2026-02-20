@@ -2,15 +2,9 @@ import { ref, computed } from 'vue'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
 import eventBus from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 
 const logger = createRendererLogger('useTabOperations')
-
-const getIpcRenderer = () => {
-  if (typeof window !== 'undefined' && (window as any).electron?.ipcRenderer) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
 
 export interface TabOperationResult {
   success: boolean
@@ -34,7 +28,7 @@ export interface OpenTabOptions {
 
 export const useTabOperations = () => {
   const workspace = useWorkspace()
-  const ipcRenderer = getIpcRenderer()
+  const ipc = messageBridge.getIpc()
 
   const isOperating = ref(false)
 
@@ -69,8 +63,8 @@ export const useTabOperations = () => {
     try {
       isOperating.value = true
 
-      if (ipcRenderer) {
-        const existingWindow = await ipcRenderer.invoke('find-window-with-file', path)
+      if (ipc) {
+        const existingWindow = await messageBridge.invoke('find-window-with-file', path)
         if (existingWindow?.windowId) {
           logger.info('File already open in window:', existingWindow.windowId)
           return { success: false, error: 'File already open in another window' }
@@ -113,9 +107,9 @@ export const useTabOperations = () => {
         const doc = workspace.documents[tabId]
         if (doc?.dirty && !force) {
           // 需要用户确认保存
-          if (ipcRenderer) {
+          if (ipc) {
             // 使用系统对话框
-            ipcRenderer.send('request-close-tab', tabId)
+            messageBridge.send('request-close-tab', tabId)
             return { success: true, tabId } // 异步处理
           } else {
             // 无法显示对话框，返回错误
@@ -137,7 +131,7 @@ export const useTabOperations = () => {
   }
 
   const moveTabToNewWindow = async (tabId: string): Promise<TabOperationResult> => {
-    if (!ipcRenderer) {
+    if (!ipc) {
       return { success: false, error: 'IPC not available' }
     }
 
@@ -167,7 +161,7 @@ export const useTabOperations = () => {
       }
 
       // 创建新窗口
-      const newWindowId = await ipcRenderer.invoke('create-window-with-tab', { tabData })
+      const newWindowId = await messageBridge.invoke('create-window-with-tab', { tabData })
 
       // 从当前窗口移除
       workspace.removeTab(tabId)
@@ -186,7 +180,7 @@ export const useTabOperations = () => {
     tabId: string,
     targetWindowId: number
   ): Promise<TabOperationResult> => {
-    if (!ipcRenderer) {
+    if (!ipc) {
       return { success: false, error: 'IPC not available' }
     }
 
@@ -213,11 +207,11 @@ export const useTabOperations = () => {
         },
         document:
           tab.kind === 'file' || tab.kind === 'new' ? workspace.ensureDocument(tab.id) : null,
-        sourceWindowId: await ipcRenderer.invoke('get-window-id')
+        sourceWindowId: await messageBridge.invoke('get-window-id')
       }
 
       // 发送 Tab 到目标窗口
-      ipcRenderer.send('transfer-tab-to-window', {
+      messageBridge.send('transfer-tab-to-window', {
         targetWindowId,
         tabData,
         insertIndex: -1

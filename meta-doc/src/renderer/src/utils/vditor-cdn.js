@@ -16,5 +16,8 @@ import { isElectronEnv } from './event-bus'
 //     }
 // }
 
-export const localVditorCDN = 'http://localhost:52521/vditor'
+import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
+export const getLocalVditorCDN = () => getRuntimeServerBaseUrlSync() + '/vditor'
+/** @deprecated 使用 getLocalVditorCDN() 以支持可配置的运行时服务器 */
+export const localVditorCDN = () => getLocalVditorCDN()
 export const vditorCDN = 'https://unpkg.com/vditor@latest'

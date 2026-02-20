@@ -10,6 +10,19 @@
 
 工作目录是MetaDoc中打开的一个文件夹，它允许您：
 
+```mermaid
+graph LR
+    A[打开文件夹] --> B[工作目录面板]
+    B --> C[浏览/打开文件]
+    C --> D[管理文件]
+    D --> E[重命名/删除/新建]
+    style A fill:#f3f4f6,stroke:#374151
+    style B fill:#f3f4f6,stroke:#374151
+    style C fill:#f3f4f6,stroke:#374151
+    style D fill:#f3f4f6,stroke:#374151
+    style E fill:#f3f4f6,stroke:#374151
+```
+
 - **浏览文件**：查看文件夹中的文件和子文件夹
 - **打开文件**：直接在MetaDoc中打开文件
 - **管理文件**：重命名、删除文件等操作

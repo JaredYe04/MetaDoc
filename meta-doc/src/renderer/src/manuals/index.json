@@ -61,6 +61,19 @@
           "file": "core/editor-basics.md"
         },
         {
+          "id": "core.plain-text-editor",
+          "title": {
+            "zh_CN": "纯文本编辑器",
+            "en_US": "Plain Text Editor"
+          },
+          "tags": ["编辑器", "代码"],
+          "difficulty": 1,
+          "estimatedTime": 12,
+          "prerequisites": ["core.editor-basics"],
+          "relatedArticles": ["core.editor-basics", "markdown.editor", "core.editor-settings"],
+          "file": "editor/plain-text.md"
+        },
+        {
           "id": "core.editor-settings",
           "title": {
             "zh_CN": "编辑器设置",
@@ -85,19 +98,6 @@
           "prerequisites": ["core.file-operations"],
           "relatedArticles": ["core.multi-window"],
           "file": "core/multi-tab.md"
-        },
-        {
-          "id": "core.multi-window",
-          "title": {
-            "zh_CN": "多窗口管理",
-            "en_US": "Multi-Window Management"
-          },
-          "tags": ["窗口", "管理"],
-          "difficulty": 2,
-          "estimatedTime": 10,
-          "prerequisites": ["core.multi-tab"],
-          "relatedArticles": ["core.multi-tab"],
-          "file": "core/multi-window.md"
         },
         {
           "id": "core.multi-window",
@@ -793,6 +793,42 @@
           "prerequisites": [],
           "relatedArticles": ["core.multi-tab", "outline.basics"],
           "file": "views/types.md"
+        }
+      ]
+    },
+    {
+      "id": "outline",
+      "title": {
+        "zh_CN": "大纲视图",
+        "en_US": "Outline View"
+      },
+      "icon": "📑",
+      "articles": [
+        {
+          "id": "outline.basics",
+          "title": {
+            "zh_CN": "大纲视图功能",
+            "en_US": "Outline View Basics"
+          },
+          "tags": ["大纲", "视图"],
+          "difficulty": 1,
+          "estimatedTime": 15,
+          "prerequisites": ["core.editor-basics"],
+          "relatedArticles": ["views.types", "outline.ai-features", "features.paragraph-optimization"],
+          "file": "outline/basics.md"
+        },
+        {
+          "id": "outline.ai-features",
+          "title": {
+            "zh_CN": "大纲AI功能",
+            "en_US": "Outline AI Features"
+          },
+          "tags": ["大纲", "AI"],
+          "difficulty": 2,
+          "estimatedTime": 20,
+          "prerequisites": ["outline.basics", "ai.llm-config"],
+          "relatedArticles": ["outline.basics", "ai.chat", "features.paragraph-optimization"],
+          "file": "outline/ai-features.md"
         }
       ]
     },

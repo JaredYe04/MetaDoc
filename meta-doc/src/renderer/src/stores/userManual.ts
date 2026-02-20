@@ -159,6 +159,20 @@ function markArticleAsRead(articleId: string) {
 }
 
 /**
+ * 清空当前推荐路径的学习进度（将路径内所有文档标记为未读）
+ */
+function clearLearningProgress() {
+  for (const articleId of learningPath.value) {
+    updateArticleProgress(articleId, {
+      read: false,
+      completion: 0
+    })
+  }
+  // 触发响应式更新，使图表、列表等依赖 articleProgress 的组件刷新
+  articleProgress.value = new Map(articleProgress.value)
+}
+
+/**
  * 从本地存储加载进度
  */
 function loadProgressFromStorage() {
@@ -395,6 +409,7 @@ export function useUserManual() {
     },
     markArticleAsRead,
     updateArticleProgress,
+    clearLearningProgress,
     performSearch,
     getArticleById,
     getAllArticles,

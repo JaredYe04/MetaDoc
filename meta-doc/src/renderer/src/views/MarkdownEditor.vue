@@ -111,7 +111,7 @@ import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import { themeState } from '../utils/themes'
 import { isSaveInProgress } from '../utils/save-guard'
 import { getSetting, setSetting } from '../utils/settings'
-import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
+import { getLocalVditorCDN, vditorCDN } from '../utils/vditor-cdn'
 import { waitForService } from '../utils/service-status.ts'
 import { useI18n } from 'vue-i18n'
 import AISuggestionGhost from '../components/AISuggestionGhost.vue'
@@ -1743,7 +1743,7 @@ onMounted(async () => {
     await refreshContextMenu()
     let cdn = ''
     if (isElectronEnv()) {
-      cdn = localVditorCDN
+      cdn = getLocalVditorCDN()
     } else {
       cdn = vditorCDN
     }
@@ -1756,6 +1756,8 @@ onMounted(async () => {
         : imageUploadConfig.action
     const uploadService = imageUploadConfig?.uploadService || 'local'
 
+    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+
     // 根据配置决定上传 URL
     // 如果 action === 'upload'，使用配置的上传服务
     // 如果 action === 'saveToDocumentDir' 或 'saveToAssetsDir'，使用本地服务并传递 targetDir
@@ -1767,9 +1769,9 @@ onMounted(async () => {
         // 本地服务：如果设置了 localImageDir，通过 targetDir 参数传递
         const localImageDir = imageUploadConfig?.localImageDir
         if (localImageDir) {
-          uploadUrl = `http://localhost:52521/api/image/upload?targetDir=${encodeURIComponent(localImageDir)}`
+          uploadUrl = `${baseUrl}/api/image/upload?targetDir=${encodeURIComponent(localImageDir)}`
         } else {
-          uploadUrl = 'http://localhost:52521/api/image/upload'
+          uploadUrl = `${baseUrl}/api/image/upload`
         }
       }
     } else if (action === 'saveToDocumentDir' || action === 'saveToAssetsDir') {
@@ -1780,10 +1782,10 @@ onMounted(async () => {
         const { dirname, join } = await import('../utils/path-utils.js')
         const docDir = dirname(docPath)
         const targetDir = action === 'saveToDocumentDir' ? docDir : join(docDir, 'assets')
-        uploadUrl = `http://localhost:52521/api/image/upload?targetDir=${encodeURIComponent(targetDir)}`
+        uploadUrl = `${baseUrl}/api/image/upload?targetDir=${encodeURIComponent(targetDir)}`
       } else {
         // 文档未保存，使用默认上传目录
-        uploadUrl = 'http://localhost:52521/api/image/upload'
+        uploadUrl = `${baseUrl}/api/image/upload`
       }
     }
 
@@ -1866,7 +1868,7 @@ onMounted(async () => {
             linkToImgUrl: !imageUploadConfig?.keepNetworkImageUrl
               ? uploadService === 'custom' && imageUploadConfig?.customUploadApiUrl
                 ? imageUploadConfig.customUploadApiUrl
-                : 'http://localhost:52521/api/image/url-upload'
+                : `${baseUrl}/api/image/url-upload`
               : undefined,
             success: async (editor, msg) => {
               try {

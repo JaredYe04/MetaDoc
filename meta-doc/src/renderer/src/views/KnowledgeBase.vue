@@ -355,6 +355,7 @@ import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
+import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
 import { createRendererLogger } from '../utils/logger.ts'
@@ -391,7 +392,7 @@ const info = reactive<Record<string, any>>({})
 const isUploading = ref<boolean>(false)
 const isRebuilding = ref<boolean>(false)
 const fileInput = ref<HTMLInputElement | null>(null)
-const baseUrl = 'http://localhost:52521/api/knowledge'
+const baseUrl = ref('')
 const knowledgeBaseEnabled = ref<boolean>(settings.enableKnowledgeBase ?? true)
 // Monaco Editor相关
 const previewEditorId = `kb-preview-editor-${Date.now()}`
@@ -427,7 +428,7 @@ async function fetchList(): Promise<void> {
   try {
     await ensureExpressReady()
     logger.info('开始获取知识库列表')
-    const r = await fetch(`${baseUrl}/list`)
+    const r = await fetch(`${baseUrl.value}/list`)
 
     const j = (await r.json()) as { items?: KnowledgeBaseItem[] }
     logger.debug('知识库列表响应', j)
@@ -488,7 +489,7 @@ async function uploadFile(file: File): Promise<void> {
   fd.append('file', file)
   try {
     await ensureExpressReady()
-    const r = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+    const r = await fetch(`${baseUrl.value}/upload`, { method: 'POST', body: fd })
 
     // 检查响应类型
     const contentType = r.headers.get('content-type')
@@ -561,7 +562,7 @@ function confirmClearAll(): void {
 async function clearAllItems(): Promise<void> {
   try {
     await ensureExpressReady()
-    const r = await fetch(`${baseUrl}/clear`, { method: 'POST' })
+    const r = await fetch(`${baseUrl.value}/clear`, { method: 'POST' })
     const j = await r.json()
     if (j.success) {
       eventBus.emit('show-success', t('knowledgeBase.clear_all_success'))
@@ -584,7 +585,7 @@ async function deleteItem(id: string): Promise<void> {
     await ensureExpressReady()
     // 对文件名进行URL编码，处理特殊字符
     const encodedId = encodeURIComponent(id)
-    const r = await fetch(`${baseUrl}/${encodedId}`, { method: 'DELETE' })
+    const r = await fetch(`${baseUrl.value}/${encodedId}`, { method: 'DELETE' })
     const j = await r.json()
     if (j.success) {
       eventBus.emit('show-success', t('knowledgeBase.deleted'))
@@ -690,7 +691,7 @@ async function fetchPreview(id: string): Promise<void> {
     await ensureExpressReady()
     // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
     const encodedId = encodeURIComponent(id)
-    const r = await fetch(`${baseUrl}/${encodedId}/preview`)
+    const r = await fetch(`${baseUrl.value}/${encodedId}/preview`)
     const j = await r.json()
     previewText.value = j.preview || ''
     isTruncated.value = !!j.truncated
@@ -713,7 +714,7 @@ async function fetchInfo(id: string): Promise<void> {
     await ensureExpressReady()
     // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
     const encodedId = encodeURIComponent(id)
-    const r = await fetch(`${baseUrl}/${encodedId}/info`)
+    const r = await fetch(`${baseUrl.value}/${encodedId}/info`)
 
     const j = await r.json()
     if (j.success) {
@@ -743,7 +744,7 @@ async function toggleEnable(row: KnowledgeBaseItem, val: boolean): Promise<void>
     await ensureExpressReady()
     // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
     const encodedId = encodeURIComponent(row.id)
-    const r = await fetch(`${baseUrl}/${encodedId}/toggle`, {
+    const r = await fetch(`${baseUrl.value}/${encodedId}/toggle`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: !!val })
@@ -785,7 +786,7 @@ async function rebuildVectors(): Promise<void> {
     await ensureExpressReady()
     // 对文件名进行URL编码，处理特殊字符
     const encodedId = encodeURIComponent(selectedItem.value.id)
-    const r = await fetch(`${baseUrl}/${encodedId}/rebuild`, { method: 'POST' })
+    const r = await fetch(`${baseUrl.value}/${encodedId}/rebuild`, { method: 'POST' })
     const j = await r.json()
     if (j.success) {
       eventBus.emit('show-success', t('knowledgeBase.rebuild_submitted'))
@@ -805,7 +806,7 @@ function downloadFile(): void {
   if (!selectedItem.value) return
   // 对文件名进行URL编码，处理特殊字符
   const encodedId = encodeURIComponent(selectedItem.value.id)
-  window.open(`${baseUrl}/${encodedId}/download`, '_blank')
+  window.open(`${baseUrl.value}/${encodedId}/download`, '_blank')
 }
 
 // 打开文件夹
@@ -874,7 +875,7 @@ async function onConfirm(): Promise<void> {
     await ensureExpressReady()
     // 这里调用你的重命名接口，传入旧名和新名
     // 假设接口是 /api/knowledge/rename，POST请求
-    const res = await fetch(`${baseUrl}/rename`, {
+    const res = await fetch(`${baseUrl.value}/rename`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -926,6 +927,8 @@ const handleKnowledgeBaseToggle = (payload: unknown) => {
 }
 
 onMounted(async () => {
+  // 初始化运行时服务器地址
+  baseUrl.value = (await getRuntimeServerBaseUrl()) + '/api/knowledge'
   // 初始化知识库状态
   knowledgeBaseEnabled.value = settings.enableKnowledgeBase ?? true
 

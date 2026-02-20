@@ -4,8 +4,54 @@
 
 本文档定义了MetaDoc用户手册的编写规范，确保所有文档风格统一、内容完整、易于维护。
 
-**最后更新**: 2026-02-19  
-**版本**: 1.0.0
+**最后更新**: 2026-02-20  
+**版本**: 1.1.0
+
+---
+
+## 🧩 嵌入 Vue 组件（Demo 模式 / 沙箱）
+
+用户手册支持在 Markdown 中**直接嵌入项目内真实 Vue 组件**，使用 `mode="demo"` 在沙箱中展示。**原则：文档中提到了哪些界面控件，就展示哪些组件**，让用户边看文档边对照真实 UI 操作。
+
+### 语法
+
+在文档中写入**自闭合标签**，组件名需**大写开头**，属性与普通 HTML 一致：
+
+```markdown
+<ComponentName mode="demo" />
+<LeftMenu mode="demo" />
+<MainTabs mode="demo" />
+<QuickStartPanel mode="demo" />
+```
+
+- **mode**：必须为 `demo`（或省略，系统会自动补全为 demo）。
+- **其他属性**：按组件 props 传入（如有需要）。
+
+### 约束与原则
+
+- **文档描述到哪个控件，就嵌入哪个组件**：例如写「顶部菜单栏」时嵌入 `<LeftMenu mode="demo" />`，写「标签页栏」时嵌入 `<MainTabs mode="demo" />`，写「快速开始向导」时嵌入 `<QuickStartPanel mode="demo" />`、`<QuickStartMarkdown mode="demo" />`、`<QuickStartLatex mode="demo" />` 等。不要嵌入与正文无关的组件（例如不要在介绍界面时只嵌一个分割线）。
+- **真实组件**：必须使用项目内真实组件，不得为手册单独维护 Mock 副本。
+- **组件改造**：需支持可选 prop `mode?: 'normal' | 'demo'`，默认 `'normal'`；所有副作用仅在 `mode === 'normal'` 时执行。
+- **注册**：新组件需在 `manuals/demo-registry.ts` 中注册后才能在文档中使用。
+- **禁止在用户可见文档中写**：「Demo 模式：仅展示外观与交互…」「不会改变本手册页面布局」等说明性废话，不要展示给用户。
+
+### 示例（正确）
+
+```markdown
+1. **顶部菜单栏**：提供文件、编辑等菜单。
+
+<LeftMenu mode="demo" />
+
+2. **标签页栏**：显示当前打开的文档标签。
+
+<MainTabs mode="demo" />
+```
+
+### 图表与 Demo 结合
+
+- 在流程说明处使用 Mermaid / PlantUML 图表。
+- 在需要展示「对应界面长什么样」的地方嵌入所述的真实组件。
+- 二者可同篇使用，互不替代。
 
 ---
 

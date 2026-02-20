@@ -19,13 +19,14 @@ import {
   renderMermaidViaApi,
   CHART_TYPES
 } from '../chart-pre-renderer'
-import { localVditorCDN, vditorCDN } from '../vditor-cdn'
+import { getLocalVditorCDN, vditorCDN } from '../vditor-cdn'
 import { isElectronEnv } from '../event-bus'
 import { createAiTask } from '../ai_tasks'
 import { cancelAiTask } from '../ai_tasks'
 import { ref, type Ref } from 'vue'
 import ChartGenerationDisplay from './components/ChartGenerationDisplay.vue'
 import { createRendererLogger } from '../logger'
+import { getRuntimeServerBaseUrlSync } from '../../config/runtime-server'
 import { extractOuterJsonString } from '../regex-utils'
 import { retryLLMCall } from './tool-utils'
 
@@ -800,17 +801,16 @@ async function generateChartCodeWithLLM(
  * 参考md-utils.js中的image2local函数
  */
 async function getLocalPathFromUrl(url: string): Promise<string> {
-  // URL格式: http://localhost:52521/images/filename
+  // URL格式: 运行时服务器 /images/filename
   // 需要获取实际的本地路径
   try {
     const { getImagePath } = await import('../settings')
     const localImagePath = await getImagePath()
 
+    const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
     let imageName = ''
-    if (url.startsWith('http://localhost:52521/images/')) {
-      // HTTP URL，提取文件名
-      const prefixLen = 'http://localhost:52521/images/'.length
-      imageName = url.slice(prefixLen)
+    if (url.startsWith(imagesPrefix)) {
+      imageName = url.slice(imagesPrefix.length)
     } else {
       // 其他格式，尝试提取文件名
       imageName = url.split(/[/\\]/).pop() || url
@@ -972,7 +972,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
 
     // 步骤2: 渲染图表
     let imageUrl: string
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
+    const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
     const targetFormat = format === 'pdf' ? 'svg' : format // PDF先渲染为SVG
 
     if (normalizedChartType === 'echarts') {
@@ -1331,7 +1331,7 @@ ${currentCode}
       localPath = pdfPath
       // 将本地路径转换为 HTTP URL 用于显示和访问
       const pdfFileName = pdfPath.split(/[/\\]/).pop() || pdfPath
-      finalUrl = `http://localhost:52521/images/${pdfFileName}`
+      finalUrl = `${getRuntimeServerBaseUrlSync()}/images/${pdfFileName}`
     }
 
     // 步骤4: 返回结果

@@ -570,7 +570,7 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 820px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   animation: fadeIn 0.5s ease-out 0.08s both;
 }

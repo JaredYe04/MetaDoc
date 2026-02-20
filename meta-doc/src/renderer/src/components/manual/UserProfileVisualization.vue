@@ -1,9 +1,8 @@
 <template>
   <div class="user-profile-visualization">
-    <!-- 用户画像卡片 -->
     <div class="profile-card">
       <div class="card-header">
-        <h3 class="card-title">{{ $t('userManual.profile.title') || '用户画像' }}</h3>
+        <h3 class="card-title">{{ $t('userManual.overview.profileSummary') || '您的使用定位' }}</h3>
         <el-button
           type="primary"
           plain
@@ -17,87 +16,40 @@
       </div>
 
       <div class="profile-content">
-        <!-- 使用场景 -->
-        <div class="profile-section">
-          <div class="section-label">{{ $t('userManual.profile.scenario') || '使用场景' }}</div>
-          <el-tag :type="getScenarioTagType(profile.scenario)" size="large" class="scenario-tag">
-            {{ getScenarioLabel(profile.scenario) }}
-          </el-tag>
-        </div>
+        <!-- 一句话定位：场景 + 能力简述 -->
+        <p class="profile-summary">
+          {{ summarySentence }}
+        </p>
 
-        <!-- 技能展示 -->
-        <div class="skills-section">
-          <!-- Markdown技能 -->
-          <div class="skill-item">
-            <div class="skill-header">
-              <span class="skill-name">Markdown</span>
-              <span class="skill-level" :style="{ color: getLevelColor(profile.markdownLevel || 0) }">
-                {{ getLevelLabel(profile.markdownLevel || 0) }}
-              </span>
-            </div>
-            <div class="skill-bar-wrapper">
-              <div 
-                class="skill-bar" 
-                :style="{ 
-                  width: `${getLevelPercentage(profile.markdownLevel || 0, 3)}%`,
-                  backgroundColor: getLevelColor(profile.markdownLevel || 0)
-                }"
-              ></div>
-            </div>
+        <!-- 能力维度：用简短标签代替进度条 -->
+        <div class="dimensions">
+          <div class="dimension">
+            <span class="dimension-name">Markdown</span>
+            <span class="dimension-badge" :class="levelClass(profile.markdownLevel ?? 0, 3)">
+              {{ getLevelLabel(profile.markdownLevel ?? 0) }}
+            </span>
           </div>
-
-          <!-- LaTeX技能 -->
-          <div class="skill-item">
-            <div class="skill-header">
-              <span class="skill-name">LaTeX</span>
-              <span class="skill-level" :style="{ color: getLevelColor(profile.latexLevel || 0) }">
-                {{ getLevelLabel(profile.latexLevel || 0) }}
-              </span>
-            </div>
-            <div class="skill-bar-wrapper">
-              <div 
-                class="skill-bar" 
-                :style="{ 
-                  width: `${getLevelPercentage(profile.latexLevel || 0, 3)}%`,
-                  backgroundColor: getLevelColor(profile.latexLevel || 0)
-                }"
-              ></div>
-            </div>
+          <div class="dimension">
+            <span class="dimension-name">LaTeX</span>
+            <span class="dimension-badge" :class="levelClass(profile.latexLevel ?? 0, 3)">
+              {{ getLevelLabel(profile.latexLevel ?? 0) }}
+            </span>
           </div>
-
-          <!-- Agent技能 -->
-          <div class="skill-item">
-            <div class="skill-header">
-              <span class="skill-name">AI Agent</span>
-              <span class="skill-level" :style="{ color: getAgentLevelColor(profile.agentLevel || 0) }">
-                {{ getAgentLevelLabel(profile.agentLevel || 0) }}
-              </span>
-            </div>
-            <div class="skill-bar-wrapper">
-              <div 
-                class="skill-bar" 
-                :style="{ 
-                  width: `${getLevelPercentage(profile.agentLevel || 0, 4)}%`,
-                  backgroundColor: getAgentLevelColor(profile.agentLevel || 0)
-                }"
-              ></div>
-            </div>
+          <div class="dimension">
+            <span class="dimension-name">AI Agent</span>
+            <span class="dimension-badge" :class="agentLevelClass(profile.agentLevel ?? 0)">
+              {{ getAgentLevelLabel(profile.agentLevel ?? 0) }}
+            </span>
           </div>
         </div>
 
-        <!-- 编辑器经验 -->
-        <div v-if="hasEditorExperience" class="experience-section">
-          <div class="section-label">{{ $t('userManual.profile.experienceTitle') || '编辑器经验' }}</div>
-          <div class="experience-tags">
-            <el-tag v-if="profile.usedWysiwygMarkdown" size="small" class="experience-tag">
-              WYSIWYG Markdown
-            </el-tag>
-            <el-tag v-if="profile.usedLatexEditor" size="small" class="experience-tag">
-              LaTeX编辑器
-            </el-tag>
-            <el-tag v-if="profile.usedOtherMarkdownEditor" size="small" class="experience-tag">
-              其他Markdown编辑器
-            </el-tag>
+        <!-- 使用过的工具（若有） -->
+        <div v-if="hasEditorExperience" class="tools-used">
+          <span class="tools-label">{{ $t('userManual.profile.experienceTitle') || '使用过的工具' }}</span>
+          <div class="tools-tags">
+            <span v-if="profile.usedWysiwygMarkdown" class="tool-tag">WYSIWYG Markdown</span>
+            <span v-if="profile.usedLatexEditor" class="tool-tag">LaTeX 编辑器</span>
+            <span v-if="profile.usedOtherMarkdownEditor" class="tool-tag">其他 Markdown 编辑器</span>
           </div>
         </div>
       </div>
@@ -108,9 +60,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessageBox } from 'element-plus'
 import type { UserProfile } from '../../stores/userManual'
 import { Refresh } from '@element-plus/icons-vue'
-import { themeState } from '../../utils/themes'
 
 const props = defineProps<{
   profile: UserProfile
@@ -122,24 +74,26 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const handleReanalyze = () => {
-  emit('reanalyze')
+const handleReanalyze = async () => {
+  try {
+    await ElMessageBox.confirm(
+      t('userManual.profile.reanalyzeConfirmMessage') || '重置用户画像将清空当前学习进度，是否继续？',
+      t('userManual.profile.reanalyzeConfirmTitle') || '重置用户画像',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    emit('reanalyze')
+  } catch {
+    // 用户取消
+  }
 }
 
 const getScenarioLabel = (scenario?: string) => {
   if (!scenario) return t('userManual.profile.scenarios.other') || '其他'
   return t(`userManual.profile.scenarios.${scenario}`) || scenario
-}
-
-const getScenarioTagType = (scenario?: string): 'success' | 'warning' | 'danger' | 'info' => {
-  const typeMap: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
-    student: 'success',
-    researcher: 'warning',
-    it: 'info',
-    office: 'danger',
-    other: 'info'
-  }
-  return typeMap[scenario || 'other'] || 'info'
 }
 
 const getLevelLabel = (level: number) => {
@@ -150,15 +104,6 @@ const getLevelLabel = (level: number) => {
     t('userManual.profile.levels.advanced') || '高级'
   ]
   return labels[level] || labels[0]
-}
-
-const getLevelPercentage = (level: number, maxLevel: number) => {
-  return Math.round((level / maxLevel) * 100)
-}
-
-const getLevelColor = (level: number) => {
-  const colors = ['#9ca3af', '#6b7280', '#4b5563', '#374151']
-  return colors[level] || colors[0]
 }
 
 const getAgentLevelLabel = (level: number) => {
@@ -172,15 +117,37 @@ const getAgentLevelLabel = (level: number) => {
   return labels[level] || labels[0]
 }
 
-const getAgentLevelColor = (level: number) => {
-  const colors = ['#9ca3af', '#9ca3af', '#6b7280', '#4b5563', '#374151']
-  return colors[level] || colors[0]
+/** 用于样式的级别 class（0–3） */
+function levelClass(level: number, maxLevel: number): string {
+  const step = maxLevel <= 0 ? 0 : level / maxLevel
+  if (step >= 2 / 3) return 'level-high'
+  if (step >= 1 / 3) return 'level-mid'
+  return 'level-low'
 }
 
+function agentLevelClass(level: number): string {
+  if (level >= 4) return 'level-high'
+  if (level >= 2) return 'level-mid'
+  return 'level-low'
+}
+
+const summarySentence = computed(() => {
+  const scenario = getScenarioLabel(props.profile.scenario)
+  const md = getLevelLabel(props.profile.markdownLevel ?? 0)
+  const tex = getLevelLabel(props.profile.latexLevel ?? 0)
+  const agent = getAgentLevelLabel(props.profile.agentLevel ?? 0)
+  return t('userManual.overview.profileSummarySentence', {
+    scenario,
+    markdown: md,
+    latex: tex,
+    agent
+  }) || `您主要面向「${scenario}」场景；当前对 Markdown 为 ${md}、LaTeX 为 ${tex}、AI Agent 为 ${agent}。`
+})
+
 const hasEditorExperience = computed(() => {
-  return props.profile.usedWysiwygMarkdown || 
-         props.profile.usedLatexEditor || 
-         props.profile.usedOtherMarkdownEditor
+  return props.profile.usedWysiwygMarkdown ||
+    props.profile.usedLatexEditor ||
+    props.profile.usedOtherMarkdownEditor
 })
 </script>
 
@@ -200,12 +167,12 @@ const hasEditorExperience = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
   color: v-bind('themeState.currentTheme.textColor');
@@ -216,93 +183,87 @@ const hasEditorExperience = computed(() => {
 }
 
 .profile-content {
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
-.profile-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.section-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.scenario-tag {
+.profile-summary {
+  margin: 0;
   font-size: 14px;
-  padding: 6px 16px;
-  width: fit-content;
-}
-
-.skills-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.skill-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.skill-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.skill-name {
-  font-size: 14px;
-  font-weight: 500;
+  line-height: 1.65;
   color: v-bind('themeState.currentTheme.textColor');
 }
 
-.skill-level {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.skill-bar-wrapper {
-  width: 100%;
-  height: 6px;
-  background: v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.skill-bar {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s ease;
-}
-
-.experience-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 20px;
-  border-top: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
-}
-
-.experience-tags {
+.dimensions {
   display: flex;
   flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dimension {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.experience-tag {
+.dimension-name {
+  font-size: 13px;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
+}
+
+.dimension-badge {
   font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.dimension-badge.level-low {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(156,163,175,0.2)" : "rgba(156,163,175,0.15)"');
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
+}
+
+.dimension-badge.level-mid {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.12)"');
+  color: #3b82f6;
+}
+
+.dimension-badge.level-high {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(34,197,94,0.2)" : "rgba(34,197,94,0.12)"');
+  color: #22c55e;
+}
+
+.tools-used {
+  padding-top: 12px;
+  border-top: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.08)"');
+}
+
+.tools-label {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.5)"');
+  display: block;
+  margin-bottom: 8px;
+}
+
+.tools-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tool-tag {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
   background: v-bind('themeState.currentTheme.background');
-  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.15)"');
-  color: v-bind('themeState.currentTheme.textColor');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.65)"');
 }
 </style>
+
+<script lang="ts">
+import { themeState } from '../../utils/themes'
+export { themeState }
+</script>

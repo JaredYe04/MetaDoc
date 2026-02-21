@@ -92,14 +92,14 @@
                 @change="saveImageSetting('localImageDir', settings.imageUpload.localImageDir)"
               >
                 <template #append>
-                  <el-button @click="openImageDirectory" size="small" type="primary">{{
+                  <Button @click="openImageDirectory" size="sm" type="primary">{{
                     t('setting.image.open')
-                  }}</el-button>
+                  }}</Button>
                 </template>
                 <template #prepend>
-                  <el-button @click="selectImageDirectory" size="default">{{
+                  <Button @click="selectImageDirectory" size="default">{{
                     t('setting.image.browse')
-                  }}</el-button>
+                  }}</Button>
                 </template>
               </el-input>
             </div>
@@ -153,8 +153,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
+ import { ElMessage } from 'element-plus'
+ import { QuestionFilled } from '@element-plus/icons-vue'
+ import { Button } from '@renderer/components/ui/button'
 import { settings, setSetting, getImagePath } from '../../utils/settings.js'
 import messageBridge from '../../bridge/message-bridge'
 

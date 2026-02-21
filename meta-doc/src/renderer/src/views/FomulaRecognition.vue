@@ -42,26 +42,26 @@
               </div>
 
               <div class="undo-redo-group tool-group">
-                <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
-                  <el-button size="large" @click="undo" circle>
-                    <img
-                      :src="(themeState.currentTheme as unknown as Record<string, string>).UndoIcon"
-                      alt=""
-                      class="formula-toolbar-icon"
-                    />
-                  </el-button>
-                </el-tooltip>
+              <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
+                <Button size="large" @click="undo" circle>
+                  <img
+                    :src="(themeState.currentTheme as unknown as Record<string, string>).UndoIcon"
+                    alt=""
+                    class="formula-toolbar-icon"
+                  />
+                </Button>
+              </el-tooltip>
                 <el-tooltip :content="$t('formulaRecognition.redo')" placement="top">
-                  <el-button size="large" circle @click="redo">
+                  <Button size="large" circle @click="redo">
                     <img
                       :src="(themeState.currentTheme as unknown as Record<string, string>).RedoIcon"
                       alt=""
                       class="formula-toolbar-icon"
                     />
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('formulaRecognition.reset')" placement="top">
-                  <el-button size="large" circle @click="resetCanvas">
+                  <Button size="large" circle @click="resetCanvas">
                     <img
                       :src="
                         (themeState.currentTheme as unknown as Record<string, string>).ClearIcon
@@ -69,23 +69,23 @@
                       alt=""
                       class="formula-toolbar-icon"
                     />
-                  </el-button>
+                  </Button>
                 </el-tooltip>
               </div>
 
               <div class="tool-group">
                 <el-tooltip :content="$t('formulaRecognition.import_image')" placement="top">
-                  <el-button @click="triggerImport">
+                  <Button @click="triggerImport">
                     <el-icon><Upload /></el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-icon size="large" style="padding: 10px">
                   <Picture />
                 </el-icon>
                 <el-tooltip :content="$t('formulaRecognition.copy_image')" placement="top">
-                  <el-button @click="copyImage">
+                  <Button @click="copyImage">
                     <el-icon><CopyDocument /></el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
               </div>
 
@@ -124,9 +124,9 @@
 
               <!-- 公式识别按钮（在笔刷粗细右侧） -->
               <div class="tool-group">
-                <el-button type="primary" @click="recognizeFormula" :loading="processing">
+                <Button type="primary" @click="recognizeFormula" :loading="processing">
                   {{ $t('formulaRecognition.recognize_formula') }}
-                </el-button>
+                </Button>
               </div>
             </div>
 
@@ -180,13 +180,13 @@
                   }}</span>
                   <div class="fomula-toolbar">
                     <el-tooltip :content="$t('formulaRecognition.edit_formula')" placement="top">
-                      <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
+                      <Button type="primary" :icon="Edit" circle @click="openEditDialog" />
                     </el-tooltip>
                     <el-tooltip :content="$t('formulaRecognition.copy_formula')" placement="top">
-                      <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
+                      <Button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
                     </el-tooltip>
                     <el-tooltip :content="$t('aigraph.exportImage')" placement="top">
-                      <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
+                      <Button type="primary" :icon="Picture" circle @click="openExportDialog" />
                     </el-tooltip>
                   </div>
                 </div>
@@ -230,12 +230,12 @@
     >
       <el-input type="textarea" v-model="latexResult" rows="4" />
       <template #footer>
-        <el-button @click="editDialogVisible = false">{{
+        <Button @click="editDialogVisible = false">{{
           $t('formulaRecognition.cancel')
-        }}</el-button>
-        <el-button type="primary" @click="editDialogVisible = false">{{
+        }}</Button>
+        <Button type="primary" @click="editDialogVisible = false">{{
           $t('formulaRecognition.confirm')
-        }}</el-button>
+        }}</Button>
       </template>
     </el-dialog>
 
@@ -254,8 +254,8 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="exportDialogVisible = false">{{ $t('common.cancel') }}</el-button>
-          <el-button type="primary" @click="confirmExport">{{ $t('common.confirm') }}</el-button>
+          <Button @click="exportDialogVisible = false">{{ $t('common.cancel') }}</Button>
+          <Button type="primary" @click="confirmExport">{{ $t('common.confirm') }}</Button>
         </div>
       </template>
     </el-dialog>
@@ -266,6 +266,7 @@
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { ElNotification, ElMessage } from 'element-plus'
 import { CopyDocument, DocumentCopy, Edit, Picture, Upload } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { convertBase64ToBlob, toBase64 } from '../utils/image-utils'
 import { simpletexOcr } from '../utils/simpletex-utils'
 import { themeState } from '../utils/themes'

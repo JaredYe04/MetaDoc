@@ -173,15 +173,15 @@
             <span class="reference-dir-size-value">{{ formatFileSize(referenceDirSize) }}</span>
           </div>
           <div class="reference-dir-actions">
-            <el-button size="small" @click="refreshReferenceDirSize">
+            <Button size="small" @click="refreshReferenceDirSize">
               {{ t('setting.refresh', '刷新') }}
-            </el-button>
-            <el-button size="small" type="primary" @click="openReferenceDir">
+            </Button>
+            <Button size="small" type="primary" @click="openReferenceDir">
               {{ t('setting.openReferenceDir', '打开目录') }}
-            </el-button>
-            <el-button size="small" type="danger" @click="clearReferenceDir">
+            </Button>
+            <Button size="small" type="danger" @click="clearReferenceDir">
               {{ t('setting.clearReferenceDir', '清空目录') }}
-            </el-button>
+            </Button>
           </div>
         </div>
       </el-form-item>
@@ -197,6 +197,7 @@ import { QuestionFilled } from '@element-plus/icons-vue'
 import MicrophoneTest from '../../components/MicrophoneTest.vue'
 import { settings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus'
+import Button from '../../components/ui/button/Button.vue'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n()

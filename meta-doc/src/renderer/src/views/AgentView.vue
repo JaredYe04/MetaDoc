@@ -12,9 +12,9 @@
         "
       >
         <p>{{ t('agent.formatSelection.noTab', '请先创建一个新文档') }}</p>
-        <el-button type="primary" @click="workspace.openNewDocumentTab()">
+        <Button type="primary" @click="workspace.openNewDocumentTab()">
           {{ t('common.create') }}
-        </el-button>
+        </Button>
       </div>
     </div>
     <!-- 否则显示正常的AgentView内容 -->
@@ -43,7 +43,9 @@
         <template #sidebar-footer>
           <div class="sidebar-footer-content">
             <el-dropdown @command="handleManageCommand" style="flex-shrink: 0">
-              <el-button size="small" type="info" :icon="Setting" circle />
+              <Button size="small" type="info" class="[&_svg]:size-4">
+                <Setting class="h-4 w-4" />
+              </Button>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="tool-collection">{{
@@ -133,7 +135,9 @@
                   </el-tag>
                 </el-tooltip>
                 <el-dropdown @command="handleSessionAction" size="small">
-                  <el-button text size="small" :icon="More" circle />
+                  <Button type="text" size="small" class="[&_svg]:size-4">
+                    <More class="h-4 w-4" />
+                  </Button>
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="retry">{{
@@ -368,14 +372,14 @@
         </div>
       </div>
       <template #footer>
-        <el-button @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button
+        <Button @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</Button>
+        <Button
           type="primary"
           @click="createSession(selectedAgentConfigId)"
           :disabled="!selectedAgentConfigId"
         >
           {{ t('common.create') }}
-        </el-button>
+        </Button>
       </template>
     </el-dialog>
 
@@ -399,7 +403,7 @@
       <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
       <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
       <template #footer>
-        <el-button @click="showManageDialog = false">{{ t('common.close') }}</el-button>
+        <Button @click="showManageDialog = false">{{ t('common.close') }}</Button>
       </template>
     </el-dialog>
 
@@ -421,7 +425,7 @@
     >
       <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
       <template #footer>
-        <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
+        <Button @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
       </template>
     </el-dialog>
 
@@ -438,10 +442,10 @@
         :placeholder="t('agent.message.editPlaceholder')"
       />
       <template #footer>
-        <el-button @click="showEditMessageDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleConfirmEditMessage">{{
+        <Button @click="showEditMessageDialog = false">{{ t('common.cancel') }}</Button>
+        <Button type="primary" @click="handleConfirmEditMessage">{{
           t('common.confirm')
-        }}</el-button>
+        }}</Button>
       </template>
     </el-dialog>
   </div>
@@ -454,6 +458,7 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { themeState, mixColors } from '../utils/themes'
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'

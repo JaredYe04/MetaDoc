@@ -4,6 +4,10 @@
 // 确保在导入任何 mxgraph 相关代码之前，全局变量已设置
 import './utils/mxgraph-init.js'
 
+// shadcn-vue CSS (Tailwind base + CSS variables)
+// Must be imported before component libraries to allow overriding
+import './styles/shadcn.css'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'

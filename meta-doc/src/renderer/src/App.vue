@@ -37,6 +37,7 @@ import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { aiCompletionService } from './utils/ai-completion-service'
 import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
+import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
 
 const route = useRoute()
@@ -243,6 +244,9 @@ const autoOpenDoc = async () => {
 }
 
 onMounted(async () => {
+  // 初始化 shadcn-vue 主题桥接（同步 themes.js 到 CSS 变量）
+  useShadcnTheme()
+
   // 初始化运行时服务器地址缓存（供 getRuntimeServerBaseUrlSync 等使用）
   await getRuntimeServerBaseUrl()
 

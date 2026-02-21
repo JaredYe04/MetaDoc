@@ -4,87 +4,92 @@
     <div class="canvas-toolbar">
       <div class="toolbar-left">
         <!-- 工具模式切换 -->
-        <el-button-group v-if="!props.readOnly">
-          <el-button
-            size="small"
+        <div v-if="!props.readOnly" class="flex items-center gap-0">
+          <Button
+            size="sm"
             :type="toolMode === 'pointer' ? 'primary' : 'default'"
-            :icon="Pointer"
             @click="toolMode = 'pointer'"
             :title="t('agent.workflow.toolbar.pointer')"
-          />
-          <el-button
-            size="small"
+          >
+            <Pointer />
+          </Button>
+          <Button
+            size="sm"
             :type="toolMode === 'select' ? 'primary' : 'default'"
-            :icon="Select"
             @click="toolMode = 'select'"
             :title="t('agent.workflow.toolbar.select')"
-          />
-          <el-button
-            size="small"
+          >
+            <Select />
+          </Button>
+          <Button
+            size="sm"
             :type="toolMode === 'pan' ? 'primary' : 'default'"
-            :icon="Rank"
             @click="toolMode = 'pan'"
             :title="t('agent.workflow.toolbar.pan')"
-          />
-          <el-button
-            size="small"
+          >
+            <Rank />
+          </Button>
+          <Button
+            size="sm"
             :type="toolMode === 'text-edit' ? 'primary' : 'default'"
-            :icon="Edit"
             @click="toolMode = 'text-edit'"
             :title="t('agent.workflow.toolbar.textEdit')"
-          />
-          <el-button
-            size="small"
+          >
+            <Edit />
+          </Button>
+          <Button
+            size="sm"
             :type="toolMode === 'delete' ? 'primary' : 'default'"
-            :icon="Delete"
             @click="toolMode = 'delete'"
             :title="t('agent.workflow.toolbar.delete')"
-          />
-        </el-button-group>
+          >
+            <Delete />
+          </Button>
+        </div>
 
         <el-divider v-if="!props.readOnly" direction="vertical" style="margin: 0 8px" />
 
         <!-- 节点创建按钮（支持拖拽） -->
         <div v-if="!props.readOnly" class="node-toolbar">
           <el-dropdown @command="handleDragNodeCreate" trigger="contextmenu">
-            <el-button-group>
-              <el-button
-                size="small"
+            <div class="flex items-center gap-0">
+              <Button
+                size="sm"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'tool')"
                 @dragend="handleNodeDragEnd"
                 @click="handleAddArtifactNode('tool')"
               >
                 {{ t('agent.workflow.addTool') }}
-              </el-button>
-              <el-button
-                size="small"
+              </Button>
+              <Button
+                size="sm"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'llm-decision')"
                 @dragend="handleNodeDragEnd"
                 @click="handleAddArtifactNode('llm-decision')"
               >
                 {{ t('agent.workflow.addLLM') }}
-              </el-button>
-              <el-button
-                size="small"
+              </Button>
+              <Button
+                size="sm"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'workflow')"
                 @dragend="handleNodeDragEnd"
                 @click="handleAddArtifactNode('workflow')"
               >
                 {{ t('agent.workflow.addWorkflow') }}
-              </el-button>
-              <el-button
-                size="small"
+              </Button>
+              <Button
+                size="sm"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'agent-config')"
                 @dragend="handleNodeDragEnd"
                 @click="handleAddArtifactNode('agent-config')"
               >
                 {{ t('agent.workflow.addAgent') }}
-              </el-button>
-            </el-button-group>
+              </Button>
+            </div>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item
@@ -98,62 +103,62 @@
             </template>
           </el-dropdown>
 
-          <el-button-group style="margin-left: 8px">
-            <el-button
-              size="small"
+          <div class="flex items-center gap-0" style="margin-left: 8px">
+            <Button
+              size="sm"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'condition', false)"
               @dragend="handleNodeDragEnd"
               @click="handleAddControlFlowNode('condition')"
             >
               {{ t('agent.workflow.addCondition') }}
-            </el-button>
-            <el-button
-              size="small"
+            </Button>
+            <Button
+              size="sm"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'loop', false)"
               @dragend="handleNodeDragEnd"
               @click="handleAddControlFlowNode('loop')"
             >
               {{ t('agent.workflow.addLoop') }}
-            </el-button>
-            <el-button
-              size="small"
+            </Button>
+            <Button
+              size="sm"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'parallel', false)"
               @dragend="handleNodeDragEnd"
               @click="handleAddControlFlowNode('parallel')"
             >
               {{ t('agent.workflow.addParallel') }}
-            </el-button>
-            <el-button
-              size="small"
+            </Button>
+            <Button
+              size="sm"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'merge', false)"
               @dragend="handleNodeDragEnd"
               @click="handleAddControlFlowNode('merge')"
             >
               {{ t('agent.workflow.addMerge') }}
-            </el-button>
-            <el-button
-              size="small"
+            </Button>
+            <Button
+              size="sm"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'async', false)"
               @dragend="handleNodeDragEnd"
               @click="handleAddControlFlowNode('async')"
             >
               {{ t('agent.workflow.addAsync') }}
-            </el-button>
-            <el-button
-              size="small"
+            </Button>
+            <Button
+              size="sm"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'aggregate', false)"
               @dragend="handleNodeDragEnd"
               @click="handleAddControlFlowNode('aggregate')"
             >
               {{ t('agent.workflow.addAggregate') }}
-            </el-button>
-          </el-button-group>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -167,63 +172,69 @@
 
       <div class="toolbar-right">
         <!-- 编辑操作 -->
-        <el-button-group v-if="!props.readOnly">
-          <el-button
-            size="small"
-            :icon="CopyDocument"
+        <div v-if="!props.readOnly" class="flex items-center gap-0">
+          <Button
+            size="sm"
             @click="handleCopy"
             :disabled="!hasSelection"
             :title="t('agent.workflow.toolbar.copy')"
-          />
-          <el-button
-            size="small"
-            :icon="DocumentCopy"
+          >
+            <CopyDocument />
+          </Button>
+          <Button
+            size="sm"
             @click="handlePaste"
             :disabled="!clipboardData"
             :title="t('agent.workflow.toolbar.paste')"
-          />
-          <el-button
-            size="small"
-            :icon="Delete"
+          >
+            <DocumentCopy />
+          </Button>
+          <Button
+            size="sm"
             @click="handleDelete"
             :disabled="!hasSelection"
             :title="t('agent.workflow.toolbar.delete')"
-          />
-        </el-button-group>
+          >
+            <Delete />
+          </Button>
+        </div>
 
         <el-divider direction="vertical" style="margin: 0 8px" />
 
         <!-- 缩放控制 -->
-        <el-button-group>
-          <el-button
-            size="small"
-            :icon="ZoomOut"
+        <div class="flex items-center gap-0">
+          <Button
+            size="sm"
             @click="handleZoomOut"
             :title="t('agent.workflow.toolbar.zoomOut')"
-          />
-          <el-button
-            size="small"
-            :icon="ZoomIn"
+          >
+            <ZoomOut />
+          </Button>
+          <Button
+            size="sm"
             @click="handleZoomIn"
             :title="t('agent.workflow.toolbar.zoomIn')"
-          />
-          <el-button
-            size="small"
-            :icon="FullScreen"
+          >
+            <ZoomIn />
+          </Button>
+          <Button
+            size="sm"
             @click="handleZoomFit"
             :title="t('agent.workflow.toolbar.zoomFit')"
-          />
-        </el-button-group>
+          >
+            <FullScreen />
+          </Button>
+        </div>
 
         <el-divider direction="vertical" style="margin: 0 8px" />
 
-        <el-button size="small" @click="handleValidate">{{
+        <Button size="sm" @click="handleValidate">{{
           t('agent.workflow.validate')
-        }}</el-button>
-        <el-button size="small" type="primary" @click="handleSave" :disabled="props.readOnly">{{
+        }}</Button>
+        <Button size="sm" type="primary" @click="handleSave" :disabled="props.readOnly">{{
           t('common.save')
-        }}</el-button>
-        <el-button size="small" @click="$emit('cancel')">{{ t('common.cancel') }}</el-button>
+        }}</Button>
+        <Button size="sm" @click="$emit('cancel')">{{ t('common.cancel') }}</Button>
       </div>
     </div>
 
@@ -320,7 +331,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import {
@@ -335,6 +346,7 @@ import {
   FullScreen
 } from '@element-plus/icons-vue'
 import { Select } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../../../utils/themes'
 import { workflowManager, agentConfigManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'

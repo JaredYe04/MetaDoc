@@ -800,6 +800,21 @@ img[class*="icon"],
   pointer-events: none !important;
 }
 
+/* Logo 图片禁止选中和拖拽 */
+img[src*="logo"],
+img[alt*="logo"],
+img[class*="logo"],
+[class*="logo"] img,
+.logo,
+.app-logo,
+.brand-logo {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  pointer-events: none !important;
+}
+
 /* 标题类文字禁止复制 */
 .ui-sub-menu__label,
 .ui-sub-menu-item__label,

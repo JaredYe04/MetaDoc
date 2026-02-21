@@ -1763,23 +1763,21 @@ onUnmounted(() => {
   justify-content: center;
   width: 18px;
   height: 18px;
-  /* 使用 relative 定位，让关闭按钮参与父容器 flex 布局实现垂直居中 */
   position: relative;
   margin: 0;
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 1px solid transparent;
   cursor: pointer;
   color: var(--el-text-color-primary);
-  transition: all 0.2s ease;
+  transition: none !important;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
   z-index: 10;
   padding: 0;
-  /* 默认所有Tab的关闭按钮都显示 */
   opacity: 1;
   pointer-events: auto;
 }
 
-/* 活跃Tab的关闭按钮：始终显示 */
 .main-tab-label__close--active {
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -1787,9 +1785,16 @@ onUnmounted(() => {
 }
 
 .main-tab-label__close:hover {
-  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.1));
+  background-color: var(--el-fill-color);
+  border: 1px solid var(--el-border-color);
   color: var(--el-text-color-primary);
-  /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); */
+}
+
+.main-tab-label__close:active {
+  border: 1px solid var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
 .main-tab-label__close .el-icon {

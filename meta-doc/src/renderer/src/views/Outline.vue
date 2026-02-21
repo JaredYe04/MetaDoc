@@ -15,10 +15,9 @@
           <h2 v-if="generating">
             {{ $t('outline.generating') }}
             <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
-              <el-button
-                type="danger"
-                plain
-                circle
+              <Button
+                variant="destructive"
+                size="sm"
                 class="aero-btn"
                 style="font-size: 12px; padding: 2px 6px"
                 @click.stop="cancelAllAiTasks"
@@ -26,7 +25,7 @@
                 <el-icon style="font-size: 14px">
                   <CloseBold />
                 </el-icon>
-              </el-button>
+              </Button>
             </el-tooltip>
           </h2>
           <!-- <h3 v-if="generateChildrenContentLoading">{{ $t('outline.generatingFor') }}:{{ nodeBeingProcessed }}</h3> -->
@@ -44,9 +43,9 @@
           </div>
           <h2 v-if="pendingAccept">
             {{ $t('outline.generationDone') }}
-            <el-button
-              type="success"
-              circle
+            <Button
+              variant="default"
+              size="sm"
               class="aero-btn"
               style="font-size: 12px; padding: 2px 6px"
               @click.stop="acceptChange"
@@ -54,10 +53,10 @@
               <el-icon style="font-size: 14px">
                 <Check />
               </el-icon>
-            </el-button>
-            <el-button
-              type="danger"
-              circle
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
               class="aero-btn"
               style="font-size: 12px; padding: 2px 6px"
               @click.stop="discardChange"
@@ -66,7 +65,7 @@
               <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
                 <Close />
               </el-icon>
-            </el-button>
+            </Button>
           </h2>
           <div>
             {{ rawstring }}
@@ -116,11 +115,10 @@
             </div>
           </el-tooltip>
           <el-tooltip :content="$t('outline.editNode')" placement="top">
-            <el-button
-              size="small"
-              type="text"
+            <Button
+              size="sm"
+              variant="ghost"
               class="aero-btn"
-              circle
               @click.stop="handleNodeButtonClick(node)"
               v-if="node.path !== 'dummy'"
               :disabled="pendingAccept || generating"
@@ -128,7 +126,7 @@
               <el-icon>
                 <More />
               </el-icon>
-            </el-button>
+            </Button>
           </el-tooltip>
           <div
             v-if="dialogVisible[node.path]"
@@ -146,9 +144,9 @@
                   "
                   placement="top"
                 >
-                  <el-button
-                    type="info"
-                    circle
+                  <Button
+                    variant="outline"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="move2Left"
@@ -157,12 +155,12 @@
                       <ArrowLeftBold v-if="direction === 'vertical'" />
                       <ArrowUpBold v-else />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.addChild')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
+                  <Button
+                    variant="default"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="addChildNode"
@@ -170,12 +168,12 @@
                     <el-icon style="font-size: 14px">
                       <Plus />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.editContent')" placement="top">
-                  <el-button
-                    type="primary"
-                    circle
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="editNode"
@@ -183,12 +181,12 @@
                     <el-icon style="font-size: 14px">
                       <Edit />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.delete')" placement="top">
-                  <el-button
-                    type="danger"
-                    circle
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="deleteNode"
@@ -196,7 +194,7 @@
                     <el-icon style="font-size: 14px">
                       <Delete />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
 
                 <el-tooltip
@@ -205,9 +203,9 @@
                   "
                   placement="top"
                 >
-                  <el-button
-                    type="info"
-                    circle
+                  <Button
+                    variant="outline"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="move2Right"
@@ -216,14 +214,14 @@
                       <ArrowRightBold v-if="direction === 'vertical'" />
                       <ArrowDownBold v-else />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
               </div>
               <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
                 <el-tooltip :content="$t('outline.generateContent')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
+                  <Button
+                    variant="default"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     :loading="generateContentLoading"
@@ -233,12 +231,12 @@
                     <el-icon style="font-size: 14px" v-if="!generateContentLoading">
                       <EditPen />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
-                  <el-button
-                    type="primary"
-                    circle
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="generateChildChapter"
@@ -248,12 +246,12 @@
                     <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
                       <Finished />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
+                  <Button
+                    variant="default"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="generateChildrenContent"
@@ -263,12 +261,12 @@
                     <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
                       <Download />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
-                  <el-button
-                    type="primary"
-                    circle
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="generateChildrenChildren"
@@ -278,7 +276,7 @@
                     <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
                       <Rank />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
               </div>
               <AutoResizeTextarea
@@ -293,9 +291,9 @@
 
               <div class="button-group" v-if="pendingAccept">
                 <el-tooltip :content="$t('outline.accept')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
+                  <Button
+                    variant="default"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="acceptChange"
@@ -303,12 +301,12 @@
                     <el-icon style="font-size: 14px">
                       <Check />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.reject')" placement="top">
-                  <el-button
-                    type="danger"
-                    circle
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     class="aero-btn"
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="discardChange"
@@ -317,7 +315,7 @@
                     <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
                       <Close />
                     </el-icon>
-                  </el-button>
+                  </Button>
                 </el-tooltip>
               </div>
               <!-- 普通菜单按钮 -->
@@ -389,16 +387,16 @@
             </el-tooltip>
           </el-form-item>
           <div style="display: flex; justify-content: space-between; margin-top: 20px">
-            <el-button type="info" @click="formatTitleDialogVisible = false">{{
+            <Button variant="outline" @click="formatTitleDialogVisible = false">{{
               $t('outline.cancel')
-            }}</el-button>
+            }}</Button>
             <div style="display: flex; gap: 10px">
-              <el-button type="danger" @click="handleRemovePrefixes">{{
+              <Button variant="destructive" @click="handleRemovePrefixes">{{
                 $t('outline.removePrefixes')
-              }}</el-button>
-              <el-button type="success" @click="executeFormatTitle">{{
+              }}</Button>
+              <Button variant="default" @click="executeFormatTitle">{{
                 $t('outline.confirm')
-              }}</el-button>
+              }}</Button>
             </div>
           </div>
         </el-form>
@@ -424,7 +422,7 @@
             />
           </el-form-item>
         </el-form>
-        <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
+        <Button variant="default" @click="changeNodeValue">{{ $t('outline.confirm') }}</Button>
       </el-dialog>
       <div class="bottom-menu aero-div">
         <el-tooltip
@@ -435,47 +433,47 @@
           "
           placement="top"
         >
-          <el-button type="info" circle @click="toggleLayout">
+          <Button variant="outline" size="icon" @click="toggleLayout">
             <el-icon>
               <Sort />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.zoomIn')" placement="top">
-          <el-button type="success" circle @click="zoomIn">
+          <Button variant="default" size="icon" @click="zoomIn">
             <el-icon>
               <Plus />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.zoomOut')" placement="top">
-          <el-button type="warning" circle @click="zoomOut">
+          <Button variant="secondary" size="icon" @click="zoomOut">
             <el-icon>
               <Minus />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.reset')" placement="top">
-          <el-button type="info" circle @click="resetScale">
+          <Button variant="outline" size="icon" @click="resetScale">
             <el-icon>
               <Refresh />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.formatTitle')" placement="top">
-          <el-button type="warning" circle @click="formatTitle">
+          <Button variant="secondary" size="icon" @click="formatTitle">
             <el-icon style="width: 1em; height: 1em"> T </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
-          <el-button
-            :type="nodeMenuToggle ? 'primary' : 'danger'"
-            circle
+          <Button
+            :variant="nodeMenuToggle ? 'default' : 'destructive'"
+            size="icon"
             @click="nodeMenuToggle = !nodeMenuToggle"
             :disabled="generating || pendingAccept"
           >
             <el-icon style="width: 1em; height: 1em"> AI </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
       </div>
     </div>
@@ -494,7 +492,8 @@ import {
   type Ref,
   type ComponentPublicInstance
 } from 'vue'
-import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
+import { ElDialog, ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
+import { Button } from '@renderer/components/ui/button'
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue'
 import { tabs, useWorkspace, type DocumentView } from '../stores/workspace'
 import eventBus, { getWindowType } from '../utils/event-bus.js'

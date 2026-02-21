@@ -23,9 +23,9 @@
           <span class="qq-value">1079841705</span>
         </div>
         <div class="feedback-entry">
-          <el-button type="primary" plain @click="openFeedbackTab">
+          <Button variant="outline" @click="openFeedbackTab">
             {{ $t('setting.about.feedback') }}
-          </el-button>
+          </Button>
         </div>
       </div>
     </div>
@@ -33,8 +33,14 @@
     <el-divider />
 
     <!-- 使用标签页组织更新设置、开源许可证和第三方资产 -->
-    <el-tabs v-model="activeTab" class="about-tabs">
-      <el-tab-pane :label="$t('setting.about.updateSettings')" name="updates">
+    <Tabs v-model="activeTab" class="about-tabs">
+      <TabsList class="about-tabs-list">
+        <TabsTrigger value="updates">{{ $t('setting.about.updateSettings') }}</TabsTrigger>
+        <TabsTrigger value="licenses">{{ $t('setting.about.openSourceLicenses') }}</TabsTrigger>
+        <TabsTrigger value="assets">{{ $t('setting.about.thirdPartyAssets') }}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="updates" class="about-tabs-content">
         <div class="update-settings">
           <el-form label-width="200px" class="settings-form">
             <el-form-item :label="$t('setting.about.autoCheckUpdates')">
@@ -54,14 +60,12 @@
             </el-form-item>
 
             <el-form-item>
-              <el-button
-                type="primary"
-                :loading="checking"
-                :disabled="checking"
+              <Button
                 @click="handleCheckUpdate"
+                :disabled="checking"
               >
                 {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
-              </el-button>
+              </Button>
             </el-form-item>
           </el-form>
 
@@ -101,19 +105,18 @@
 
           <!-- 下载和安装按钮 -->
           <div v-if="updateStatus?.updateAvailable" class="update-actions">
-            <el-button
+            <Button
               v-if="!downloaded && !downloading"
-              type="primary"
               @click="handleDownloadUpdate"
             >
               {{ $t('setting.about.downloadUpdate') }}
-            </el-button>
-            <el-button v-if="downloading" type="primary" :loading="true" disabled>
+            </Button>
+            <Button v-if="downloading" :disabled="true">
               {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
-            </el-button>
-            <el-button v-if="downloaded" type="success" @click="handleInstallUpdate">
+            </Button>
+            <Button v-if="downloaded" @click="handleInstallUpdate" class="bg-green-600 hover:bg-green-700 text-white">
               {{ $t('setting.about.installAndRestart') }}
-            </el-button>
+            </Button>
             <el-alert
               v-if="downloadError"
               type="error"
@@ -126,9 +129,9 @@
             />
           </div>
         </div>
-      </el-tab-pane>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('setting.about.openSourceLicenses')" name="licenses">
+      <TabsContent value="licenses" class="about-tabs-content">
         <div class="licenses-section">
           <el-scrollbar class="content-scrollbar">
             <div class="content-container">
@@ -136,9 +139,9 @@
             </div>
           </el-scrollbar>
         </div>
-      </el-tab-pane>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('setting.about.thirdPartyAssets')" name="assets">
+      <TabsContent value="assets" class="about-tabs-content">
         <div class="assets-section">
           <el-scrollbar class="content-scrollbar">
             <div class="content-container">
@@ -146,14 +149,16 @@
             </div>
           </el-scrollbar>
         </div>
-      </el-tab-pane>
-    </el-tabs>
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Button } from '@renderer/components/ui/button'
 import { getAppVersion } from '../../utils/version'
 import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
@@ -455,17 +460,20 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
-.about-tabs :deep(.el-tabs__content) {
+.about-tabs-list {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background-color: hsl(var(--muted));
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.about-tabs-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.about-tabs :deep(.el-tab-pane) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 .update-settings {

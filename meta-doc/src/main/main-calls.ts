@@ -5672,6 +5672,74 @@ function bindWindowManagementHandlers(): void {
     }
   )
 
+  // 创建全新的空窗口（用于 Ctrl+N 快捷键）
+  ipcBridge.registerHandle(
+    'create-new-window',
+    async (
+      event: IpcMainInvokeEvent,
+      { position }: { position?: { x: number; y: number } } = {}
+    ): Promise<{ windowId: number }> => {
+      try {
+        const sourceWindow = BrowserWindow.fromWebContents(event.sender)
+
+        // 获取源窗口的大小（非最大化状态）
+        const sourceBounds = sourceWindow?.getBounds() ?? { width: 1366, height: 768 }
+        const isMaximized = sourceWindow?.isMaximized() ?? false
+
+        // 如果源窗口是最大化的，使用默认大小
+        const width = isMaximized ? 1366 : sourceBounds.width
+        const height = isMaximized ? 768 : sourceBounds.height
+
+        const cursorPos = position ?? screen.getCursorScreenPoint()
+        const x = Math.max(10, cursorPos.x)
+        const y = Math.max(10, cursorPos.y)
+
+        // 创建新窗口
+        const newWindow = new BrowserWindow({
+          width,
+          height,
+          minWidth: 800,
+          minHeight: 600,
+          x,
+          y,
+          show: true,
+          autoHideMenuBar: true,
+          frame: false,
+          titleBarStyle: 'hidden',
+          ...(process.platform === 'linux' ? { icon: undefined } : {}),
+          webPreferences: {
+            preload: join(__dirname, '../preload/index.js'),
+            sandbox: false,
+            nodeIntegration: true,
+            webSecurity: false
+          }
+        })
+
+        // 注册新窗口
+        registerMainWindow(newWindow)
+
+        // 加载URL（显示主页）
+        let url: string
+        if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+          url = process.env['ELECTRON_RENDERER_URL'] + '/#/home?windowType=home'
+        } else {
+          const indexPath = join(__dirname, '../renderer/index.html')
+          const fileURL = pathToFileURL(indexPath).toString()
+          url = `${fileURL}#/home?windowType=home`
+        }
+
+        newWindow.loadURL(url)
+
+        const windowId = getWindowId(newWindow)
+        logger.info(`创建全新窗口: ${windowId}`)
+        return { windowId }
+      } catch (error) {
+        logger.error('创建全新窗口失败:', error as Error)
+        throw error
+      }
+    }
+  )
+
   // 窗口间Tab传递（由目标窗口发起，tabData 含 sourceWindowId）
   ipcBridge.registerOn(
     'transfer-tab-to-window',

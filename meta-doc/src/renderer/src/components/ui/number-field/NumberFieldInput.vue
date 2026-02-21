@@ -1,43 +1,20 @@
-<template>
-  <div class="flex items-center">
-    <NumberFieldDecrement as-child>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        class="h-8 w-8 rounded-r-none border-r-0"
-      >
-        <Minus class="h-3 w-3" />
-      </Button>
-    </NumberFieldDecrement>
-    <NumberFieldInput
-      :class="cn(
-        'h-8 w-20 border-y border-input bg-background px-3 py-1 text-center text-sm',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        $attrs.class ?? ''
-      )"
-    />
-    <NumberFieldIncrement as-child>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        class="h-8 w-8 rounded-l-none border-l-0"
-      >
-        <Plus class="h-3 w-3" />
-      </Button>
-    </NumberFieldIncrement>
-  </div>
-</template>
-
 <script setup>
-import { NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement } from 'radix-vue'
-import { cn } from '../../../lib/utils'
-import { Button } from '../button'
-import { Minus, Plus } from 'lucide-vue-next'
+import { NumberFieldInput } from "reka-ui";
+import { cn } from '@renderer/lib/utils';
 
-defineOptions({
-  inheritAttrs: false
-})
+const props = defineProps({
+  class: { type: null, required: false },
+});
 </script>
+
+<template>
+  <NumberFieldInput
+    data-slot="input"
+    :class="
+      cn(
+        'flex h-10 w-full rounded-md border border-input bg-background py-2 text-sm text-center ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        props.class,
+      )
+    "
+  />
+</template>

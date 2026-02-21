@@ -78,9 +78,9 @@
                           />
                         </el-form-item>
                         <el-form-item>
-                          <el-button type="primary" @click="sendEventBusEvent">
+                          <Button variant="default" @click="sendEventBusEvent">
                             {{ $t('setting.debug.sendEvent') }}
-                          </el-button>
+                          </Button>
                         </el-form-item>
                       </el-form>
                     </div>
@@ -116,9 +116,9 @@
                           />
                         </el-form-item>
                         <el-form-item>
-                          <el-button type="primary" @click="sendBroadcastEvent">
+                          <Button variant="default" @click="sendBroadcastEvent">
                             {{ $t('setting.debug.sendBroadcast') }}
-                          </el-button>
+                          </Button>
                         </el-form-item>
                       </el-form>
                     </div>
@@ -160,15 +160,20 @@
                     </el-form-item>
 
                     <el-form-item>
-                      <el-button
-                        type="primary"
-                        :loading="updateTestChecking"
+                      <Button
+                        variant="default"
                         :disabled="updateTestChecking"
                         @click="handleMockCheckUpdate"
                       >
-                        {{ updateTestChecking ? '检查中...' : '检查更新' }}
-                      </el-button>
-                      <el-button @click="handleMockReset"> 重置状态 </el-button>
+                        <template v-if="updateTestChecking">
+                          <Loading class="mr-2 h-4 w-4 animate-spin" />
+                          检查中...
+                        </template>
+                        <template v-else>
+                          检查更新
+                        </template>
+                      </Button>
+                      <Button variant="outline" @click="handleMockReset"> 重置状态 </Button>
                     </el-form-item>
                   </el-form>
 
@@ -205,31 +210,32 @@
 
                     <!-- 下载和安装按钮 -->
                     <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
-                      <el-button
+                      <Button
                         v-if="!updateTestDownloaded && !updateTestDownloading"
-                        type="primary"
+                        variant="default"
                         @click="handleMockDownloadUpdate"
                       >
                         下载更新
-                      </el-button>
-                      <el-button
+                      </Button>
+                      <Button
                         v-if="updateTestDownloading"
-                        type="primary"
-                        :loading="true"
+                        variant="default"
                         disabled
                       >
+                        <Loading class="mr-2 h-4 w-4 animate-spin" />
                         正在下载 ({{ updateTestDownloadProgress }}%)
-                      </el-button>
-                      <el-button
+                      </Button>
+                      <Button
                         v-if="updateTestDownloaded"
-                        type="success"
+                        variant="outline"
+                        class="bg-green-600 hover:bg-green-700 text-white"
                         @click="handleMockInstallUpdate"
                       >
                         安装并重启
-                      </el-button>
-                      <el-button v-if="updateTestDownloading" @click="handleMockCancelDownload">
+                      </Button>
+                      <Button v-if="updateTestDownloading" variant="outline" @click="handleMockCancelDownload">
                         取消下载
-                      </el-button>
+                      </Button>
                       <el-alert
                         v-if="updateTestDownloadError"
                         type="error"
@@ -307,7 +313,10 @@
                             @keyup.enter="loadTestCaseById"
                           >
                             <template #append>
-                              <el-button :icon="Search" @click="loadTestCaseById">加载</el-button>
+                              <Button variant="outline" size="sm" @click="loadTestCaseById">
+                                <Search class="mr-1 h-4 w-4" />
+                                加载
+                              </Button>
                             </template>
                           </el-input>
                         </div>
@@ -396,32 +405,32 @@
                             :value="config.id"
                           />
                         </el-select>
-                        <el-button
-                          type="success"
-                          size="small"
-                          :icon="Plus"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           @click="handleSaveConfigClick"
                         >
+                          <Plus class="mr-1 h-4 w-4" />
                           新建配置
-                        </el-button>
-                        <el-button
-                          type="primary"
-                          size="small"
-                          :icon="Edit"
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
                           :disabled="!selectedConfigId"
                           @click="handleEditConfigClick"
                         >
+                          <Edit class="mr-1 h-4 w-4" />
                           编辑
-                        </el-button>
-                        <el-button
-                          type="danger"
-                          size="small"
-                          :icon="Delete"
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           :disabled="!selectedConfigId"
                           @click="deleteSavedConfig"
                         >
+                          <Delete class="mr-1 h-4 w-4" />
                           删除
-                        </el-button>
+                        </Button>
                       </div>
                     </el-form-item>
 
@@ -490,14 +499,20 @@
                     </el-form-item>
 
                     <el-form-item>
-                      <el-button
-                        type="primary"
+                      <Button
+                        variant="default"
                         @click="executeToolTest"
-                        :loading="toolTestExecuting"
+                        :disabled="toolTestExecuting"
                       >
-                        执行Tool
-                      </el-button>
-                      <el-button @click="clearToolTestHistory"> 清空历史 </el-button>
+                        <template v-if="toolTestExecuting">
+                          <Loading class="mr-2 h-4 w-4 animate-spin" />
+                          执行中...
+                        </template>
+                        <template v-else>
+                          执行Tool
+                        </template>
+                      </Button>
+                      <Button variant="outline" @click="clearToolTestHistory"> 清空历史 </Button>
                     </el-form-item>
                   </el-form>
 
@@ -525,15 +540,15 @@
                         <div class="test-history-header">
                           <span class="test-name">{{ entry.toolName }}</span>
                           <div class="test-header-right">
-                            <el-button
-                              text
-                              size="small"
-                              :icon="Download"
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               @click="exportEntrySnapshot(entry)"
                               :title="$t('agent.tool.exportSnapshot')"
                             >
+                              <Download class="mr-1 h-4 w-4" />
                               {{ $t('agent.tool.exportSnapshot') }}
-                            </el-button>
+                            </Button>
                             <el-tag
                               v-if="entry.status === 'running'"
                               type="warning"
@@ -690,14 +705,14 @@
                         :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
                       />
                       <div style="margin-top: 8px">
-                        <el-button
-                          type="primary"
-                          size="small"
-                          :icon="Upload"
+                        <Button
+                          variant="default"
+                          size="sm"
                           @click="selectSnapshotFile"
                         >
+                          <Upload class="mr-1 h-4 w-4" />
                           {{ $t('setting.debug.selectSnapshotFile') }}
-                        </el-button>
+                        </Button>
                         <input
                           ref="fileInputRef"
                           type="file"
@@ -708,16 +723,22 @@
                       </div>
                     </el-form-item>
                     <el-form-item>
-                      <el-button
-                        type="primary"
+                      <Button
+                        variant="default"
                         @click="importSnapshot"
-                        :loading="importSnapshotLoading"
+                        :disabled="importSnapshotLoading"
                       >
-                        {{ $t('setting.debug.importButton') }}
-                      </el-button>
-                      <el-button @click="clearImportForm">
+                        <template v-if="importSnapshotLoading">
+                          <Loading class="mr-2 h-4 w-4 animate-spin" />
+                          {{ $t('setting.debug.importing') }}
+                        </template>
+                        <template v-else>
+                          {{ $t('setting.debug.importButton') }}
+                        </template>
+                      </Button>
+                      <Button variant="outline" @click="clearImportForm">
                         {{ $t('common.cancel') }}
-                      </el-button>
+                      </Button>
                     </el-form-item>
                   </el-form>
 
@@ -923,17 +944,22 @@
                     </el-form-item>
 
                     <el-form-item>
-                      <el-button
-                        type="primary"
+                      <Button
+                        variant="default"
                         @click="runAutoTests"
-                        :loading="autoTestRunning"
                         :disabled="autoTestRunning"
                       >
-                        {{ autoTestRunning ? '测试中...' : '开始自动测试' }}
-                      </el-button>
-                      <el-button @click="stopAutoTests" :disabled="!autoTestRunning">
+                        <template v-if="autoTestRunning">
+                          <Loading class="mr-2 h-4 w-4 animate-spin" />
+                          测试中...
+                        </template>
+                        <template v-else>
+                          开始自动测试
+                        </template>
+                      </Button>
+                      <Button variant="outline" @click="stopAutoTests" :disabled="!autoTestRunning">
                         停止测试
-                      </el-button>
+                      </Button>
                     </el-form-item>
                   </el-form>
 
@@ -1051,12 +1077,18 @@
                         </template>
 
                         <el-form-item>
-                          <el-button type="primary" @click="executeTest" :loading="testExecuting">
-                            {{ $t('setting.debug.executeTest') }}
-                          </el-button>
-                          <el-button @click="clearTestHistory">
+                          <Button variant="default" @click="executeTest" :disabled="testExecuting">
+                            <template v-if="testExecuting">
+                              <Loading class="mr-2 h-4 w-4 animate-spin" />
+                              {{ $t('setting.debug.executing') }}
+                            </template>
+                            <template v-else>
+                              {{ $t('setting.debug.executeTest') }}
+                            </template>
+                          </Button>
+                          <Button variant="outline" @click="clearTestHistory">
                             {{ $t('setting.debug.clearHistory') }}
-                          </el-button>
+                          </Button>
                         </el-form-item>
                       </el-form>
 
@@ -1148,17 +1180,22 @@
                         </el-form-item>
 
                         <el-form-item>
-                          <el-button
-                            type="primary"
+                          <Button
+                            variant="default"
                             @click="runUnitTestBatch"
-                            :loading="unitTestBatchRunning"
                             :disabled="unitTestBatchRunning"
                           >
-                            {{ unitTestBatchRunning ? '测试中...' : '开始批量测试' }}
-                          </el-button>
-                          <el-button @click="stopUnitTestBatch" :disabled="!unitTestBatchRunning">
+                            <template v-if="unitTestBatchRunning">
+                              <Loading class="mr-2 h-4 w-4 animate-spin" />
+                              测试中...
+                            </template>
+                            <template v-else>
+                              开始批量测试
+                            </template>
+                          </Button>
+                          <Button variant="outline" @click="stopUnitTestBatch" :disabled="!unitTestBatchRunning">
                             停止测试
-                          </el-button>
+                          </Button>
                         </el-form-item>
                       </el-form>
 
@@ -1248,14 +1285,14 @@
                                 </div>
                               </el-option>
                             </el-select>
-                            <el-button
-                              type="primary"
-                              :icon="Upload"
+                            <Button
+                              variant="default"
                               @click="handleImportSessionJson"
                               :disabled="!agentSessionDebugForm.tabId"
                             >
+                              <Upload class="mr-1 h-4 w-4" />
                               导入会话
-                            </el-button>
+                            </Button>
                           </div>
                         </el-form-item>
                       </el-form>
@@ -1303,21 +1340,21 @@
                                       }}</span>
                                     </div>
                                     <div class="node-actions">
-                                      <el-button
-                                        size="small"
-                                        type="primary"
+                                      <Button
+                                        size="sm"
+                                        variant="default"
                                         @click="handleRevertToNode(node.id)"
                                       >
                                         回溯到此节点
-                                      </el-button>
-                                      <el-button
+                                      </Button>
+                                      <Button
                                         v-if="node.type === 'tool-call'"
-                                        size="small"
-                                        type="warning"
+                                        size="sm"
+                                        variant="outline"
                                         @click="handleReplayToolCall(node.id)"
                                       >
                                         重新执行工具
-                                      </el-button>
+                                      </Button>
                                     </div>
                                   </div>
                                   <div class="node-status">
@@ -1395,22 +1432,22 @@
                                       }}</span>
                                     </div>
                                     <div class="message-actions">
-                                      <el-button
+                                      <Button
                                         v-if="message.role === 'user' && message.type === 'chat'"
-                                        size="small"
-                                        type="primary"
+                                        size="sm"
+                                        variant="default"
                                         @click="handleReplayMessage(message.id)"
                                       >
                                         重新执行消息
-                                      </el-button>
-                                      <el-button
+                                      </Button>
+                                      <Button
                                         v-if="message.role === 'tool' && message.type === 'tool'"
-                                        size="small"
-                                        type="warning"
+                                        size="sm"
+                                        variant="outline"
                                         @click="handleReplayToolCallFromMessage(message.id)"
                                       >
                                         重新执行工具
-                                      </el-button>
+                                      </Button>
                                     </div>
                                   </div>
                                   <div class="message-content">
@@ -1512,16 +1549,16 @@
                       <el-form :model="sessionReplayForm" label-width="140px">
                         <el-form-item label="导入会话">
                           <div style="display: flex; gap: 8px">
-                            <el-button
-                              type="primary"
-                              :icon="Upload"
+                            <Button
+                              variant="default"
                               @click="handleImportSessionForReplay"
                             >
+                              <Upload class="mr-1 h-4 w-4" />
                               导入会话JSON
-                            </el-button>
-                            <el-button v-if="replaySession" @click="handleClearReplaySession">
+                            </Button>
+                            <Button v-if="replaySession" variant="outline" @click="handleClearReplaySession">
                               清除会话
-                            </el-button>
+                            </Button>
                           </div>
                         </el-form-item>
 
@@ -1543,37 +1580,44 @@
                           <div style="display: flex; flex-direction: column; gap: 12px">
                             <!-- 第一行：主要控制按钮 -->
                             <div style="display: flex; gap: 8px; align-items: center">
-                              <el-button
-                                type="primary"
+                              <Button
+                                variant="default"
                                 @click="handleStartReplay"
                                 :disabled="isReplaying"
-                                :loading="isReplaying"
                               >
-                                {{ isReplaying ? '回放中...' : '开始回放' }}
-                              </el-button>
-                              <el-button @click="handleStopReplay" :disabled="!isReplaying">
+                                <template v-if="isReplaying">
+                                  <Loading class="mr-2 h-4 w-4 animate-spin" />
+                                  回放中...
+                                </template>
+                                <template v-else>
+                                  开始回放
+                                </template>
+                              </Button>
+                              <Button variant="outline" @click="handleStopReplay" :disabled="!isReplaying">
                                 停止回放
-                              </el-button>
-                              <el-button @click="handleResetReplay" :disabled="isReplaying">
+                              </Button>
+                              <Button variant="outline" @click="handleResetReplay" :disabled="isReplaying">
                                 重置到开头
-                              </el-button>
-                              <el-button
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 @click="handleReplayStepBack"
                                 :disabled="isReplaying || replayCurrentIndex < 0"
-                                size="small"
                               >
                                 后退
-                              </el-button>
-                              <el-button
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 @click="handleReplayStepForward"
                                 :disabled="
                                   isReplaying ||
                                   replayCurrentIndex >= replayDisplayMessages.length - 1
                                 "
-                                size="small"
                               >
                                 前进
-                              </el-button>
+                              </Button>
                               <el-slider
                                 v-model="replaySpeed"
                                 :min="0.1"
@@ -1758,8 +1802,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showSaveConfigDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveCurrentConfig">保存</el-button>
+        <Button variant="outline" @click="showSaveConfigDialog = false">取消</Button>
+        <Button variant="default" @click="saveCurrentConfig">保存</Button>
       </template>
     </el-dialog>
   </div>
@@ -1770,6 +1814,7 @@ import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'v
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Button } from '@renderer/components/ui/button'
 import {
   Plus,
   Delete,
@@ -1784,7 +1829,8 @@ import {
   Document,
   Setting,
   VideoPlay,
-  ChatDotRound
+  ChatDotRound,
+  Loading
 } from '@element-plus/icons-vue'
 import eventBus, { sendBroadcast } from '../../utils/event-bus'
 import { testFramework, type TestFunction } from '../../utils/test-framework'

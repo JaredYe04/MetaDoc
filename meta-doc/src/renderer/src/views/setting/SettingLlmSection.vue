@@ -23,7 +23,11 @@
               @update:modelValue="saveSetting('llmTemperature', settings.llmTemperature)"
               class="number-field-wrapper"
             >
+              <NumberFieldDecrement />
+              <NumberFieldDecrement />
               <NumberFieldInput />
+              <NumberFieldIncrement />
+              <NumberFieldIncrement />
             </NumberField>
           </el-tooltip>
         </el-form-item>
@@ -47,25 +51,28 @@
             <h3>{{ t('setting.llmConfigList') }}</h3>
             <div class="actions">
               <el-tooltip :content="t('setting.newConfig')">
-                <el-button
-                  size="small"
-                  type="primary"
-                  :icon="Plus"
-                  circle
+                <Button
+                  size="icon"
+                  variant="default"
                   @click="handleCreateConfig"
                   :disabled="settings.selectedLlm === 'manual'"
-                />
+                >
+                  <Plus class="h-4 w-4" />
+                </Button>
               </el-tooltip>
               <el-tooltip :content="t('setting.importConfig')">
-                <el-button
-                  size="small"
-                  :icon="DocumentCopy"
-                  circle
+                <Button
+                  size="icon"
+                  variant="outline"
                   @click="importDialogVisible = true"
-                />
+                >
+                  <DocumentCopy class="h-4 w-4" />
+                </Button>
               </el-tooltip>
               <el-tooltip :content="t('setting.exportAllConfigs')">
-                <el-button size="small" :icon="Download" circle @click="handleExportAllConfigs" />
+                <Button size="icon" variant="outline" @click="handleExportAllConfigs">
+                  <Download class="h-4 w-4" />
+                </Button>
               </el-tooltip>
             </div>
           </header>
@@ -114,15 +121,14 @@
                       </el-tag>
                     </div>
                     <div class="config-item__actions">
-                      <el-button
-                        text
-                        circle
-                        size="small"
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         class="more-btn"
                         @click.stop="toggleConfigMenu(config.id)"
                       >
-                        <el-icon><MoreFilled /></el-icon>
-                      </el-button>
+                        <MoreFilled class="h-4 w-4" />
+                      </Button>
                       <transition name="fade">
                         <div v-if="openConfigMenuId === config.id" class="config-menu" @click.stop>
                           <button
@@ -170,17 +176,16 @@
               <span v-else class="workspace-status-text">{{ t('setting.allChangesSaved') }}</span>
             </div>
             <div class="workspace-actions">
-              <el-button size="small" @click="handleDiscardChanges" :disabled="!hasUnsavedChanges">
+              <Button size="sm" variant="outline" @click="handleDiscardChanges" :disabled="!hasUnsavedChanges">
                 {{ t('setting.discardChanges') }}
-              </el-button>
-              <el-button
-                size="small"
-                type="primary"
+              </Button>
+              <Button
+                size="sm"
                 @click="handleSaveChanges"
                 :disabled="!hasUnsavedChanges"
               >
                 {{ t('setting.saveChanges') }}
-              </el-button>
+              </Button>
             </div>
           </div>
           <el-scrollbar class="config-form-scroll">
@@ -259,7 +264,11 @@
                     @update:modelValue="handleFieldChange"
                     class="number-field-wrapper"
                   >
+                    <NumberFieldDecrement />
+                    <NumberFieldDecrement />
                     <NumberFieldInput />
+                    <NumberFieldIncrement />
+                    <NumberFieldIncrement />
                   </NumberField>
                 </el-form-item>
               </template>
@@ -329,7 +338,9 @@
                     @update:modelValue="handleFieldChange"
                     class="number-field-wrapper"
                   >
+                    <NumberFieldDecrement />
                     <NumberFieldInput />
+                    <NumberFieldIncrement />
                   </NumberField>
                 </el-form-item>
               </template>
@@ -379,7 +390,9 @@
                     @update:modelValue="handleFieldChange"
                     class="number-field-wrapper"
                   >
+                    <NumberFieldDecrement />
                     <NumberFieldInput />
+                    <NumberFieldIncrement />
                   </NumberField>
                 </el-form-item>
               </template>
@@ -424,7 +437,9 @@
                     @update:modelValue="handleFieldChange"
                     class="number-field-wrapper"
                   >
+                    <NumberFieldDecrement />
                     <NumberFieldInput />
+                    <NumberFieldIncrement />
                   </NumberField>
                 </el-form-item>
               </template>
@@ -474,7 +489,9 @@
                     @update:modelValue="handleFieldChange"
                     class="number-field-wrapper"
                   >
+                    <NumberFieldDecrement />
                     <NumberFieldInput />
+                    <NumberFieldIncrement />
                   </NumberField>
                 </el-form-item>
               </template>
@@ -516,7 +533,9 @@
                     @update:modelValue="handleFieldChange"
                     class="number-field-wrapper"
                   >
+                    <NumberFieldDecrement />
                     <NumberFieldInput />
+                    <NumberFieldIncrement />
                   </NumberField>
                 </el-form-item>
               </template>
@@ -539,20 +558,19 @@
                     @input="saveManualTokenToCache"
                   />
                   <div style="margin-top: 8px; display: flex; gap: 8px">
-                    <el-button size="small" @click="clearManualToken">
+                    <Button size="sm" variant="outline" @click="clearManualToken">
                       {{ t('setting.clearManualToken') }}
-                    </el-button>
-                    <el-button
-                      size="small"
-                      type="primary"
+                    </Button>
+                    <Button
+                      size="sm"
                       @click="submitManualResponse"
                       :disabled="!manualTokenInput.trim() || !pendingManualRequestId"
                     >
                       {{ t('setting.submitManualResponse') }}
-                    </el-button>
-                    <el-button size="small" @click="openManualLLMInterface">
+                    </Button>
+                    <Button size="sm" variant="outline" @click="openManualLLMInterface">
                       {{ t('setting.openManualLLMInterface') }}
-                    </el-button>
+                    </Button>
                   </div>
                   <div
                     v-if="pendingManualRequestId"
@@ -603,7 +621,9 @@
                       "
                       class="number-field-wrapper"
                     >
+                      <NumberFieldDecrement />
                       <NumberFieldInput />
+                      <NumberFieldIncrement />
                     </NumberField>
                     <span style="color: #909399; font-size: 12px">
                       {{
@@ -633,15 +653,14 @@
               </el-form-item>
 
               <el-form-item>
-                <el-button
-                  type="primary"
+                <Button
                   @click="testLlmApi"
-                  :loading="testLoading"
+                  :disabled="testLoading"
                   class="aero-btn"
                 >
                   {{ t('setting.testLlm') }}
-                </el-button>
-                <el-button @click="clearTestResult">{{ t('setting.clearResult') }}</el-button>
+                </Button>
+                <Button variant="outline" @click="clearTestResult">{{ t('setting.clearResult') }}</Button>
               </el-form-item>
 
               <el-form-item :label="t('setting.testResult')">
@@ -672,10 +691,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="importDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleImportConfig" :disabled="!importJsonText.trim()">
+        <Button variant="outline" @click="importDialogVisible = false">{{ t('common.cancel') }}</Button>
+        <Button @click="handleImportConfig" :disabled="!importJsonText.trim()">
           {{ t('setting.importConfig') }}
-        </el-button>
+        </Button>
       </template>
     </el-dialog>
 
@@ -701,9 +720,9 @@
                 :value="req.requestId"
               />
             </el-select>
-            <el-button size="small" style="margin-top: 8px" @click="fetchPendingRequests">
+            <Button size="sm" variant="outline" style="margin-top: 8px" @click="fetchPendingRequests">
               {{ t('setting.refreshRequests') }}
-            </el-button>
+            </Button>
           </el-form-item>
           <el-form-item :label="t('setting.manualTokenInput')">
             <el-input
@@ -714,14 +733,13 @@
             />
           </el-form-item>
           <el-form-item>
-            <el-button
-              type="primary"
+            <Button
               @click="submitManualResponse"
               :disabled="!manualTokenInput.trim() || !selectedRequestId"
             >
               {{ t('setting.submitManualResponse') }}
-            </el-button>
-            <el-button @click="clearManualToken">{{ t('setting.clearManualToken') }}</el-button>
+            </Button>
+            <Button variant="outline" @click="clearManualToken">{{ t('setting.clearManualToken') }}</Button>
           </el-form-item>
         </el-form>
       </div>
@@ -765,8 +783,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ai_types, createAiTask } from '../../utils/ai_tasks.ts'
 import {
   NumberField,
-  NumberFieldInput
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement
 } from '@renderer/components/ui/number-field'
+import { Button } from '@renderer/components/ui/button'
 
 interface OllamaModel {
   name: string

@@ -1,8 +1,6 @@
 <template>
-  <NumberFieldIncrement v-bind="forwarded" :class="$attrs.class">
-    <slot>
-      <span class="text-lg leading-none">+</span>
-    </slot>
+  <NumberFieldIncrement v-bind="forwarded">
+    <slot />
   </NumberFieldIncrement>
 </template>
 

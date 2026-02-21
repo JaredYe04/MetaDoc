@@ -1,8 +1,6 @@
 <template>
-  <NumberFieldDecrement v-bind="forwarded" :class="$attrs.class">
-    <slot>
-      <span class="text-lg leading-none">−</span>
-    </slot>
+  <NumberFieldDecrement v-bind="forwarded">
+    <slot />
   </NumberFieldDecrement>
 </template>
 

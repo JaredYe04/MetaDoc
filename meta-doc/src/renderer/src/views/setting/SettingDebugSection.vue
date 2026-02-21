@@ -53,14 +53,14 @@
             <div :key="activeTab" class="tab-content-wrapper">
               <!-- EventBus 事件 -->
               <div v-if="activeTab === 'eventbus'" class="tab-content">
-                <el-tabs
-                  v-model="eventBusActiveTab"
-                  type="border-card"
-                  tab-position="top"
-                  style="height: 100%"
-                >
+                <Tabs v-model="eventBusActiveTab" class="debug-tabs">
+                  <TabsList class="debug-tabs-list">
+                    <TabsTrigger value="eventbus">{{ $t('setting.debug.eventBus') }}</TabsTrigger>
+                    <TabsTrigger value="broadcast">{{ $t('setting.debug.broadcast') }}</TabsTrigger>
+                  </TabsList>
+
                   <!-- EventBus 事件测试 -->
-                  <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
+                  <TabsContent value="eventbus" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <el-form :model="eventBusForm" label-width="140px">
                         <el-form-item :label="$t('setting.debug.eventName')">
@@ -84,10 +84,10 @@
                         </el-form-item>
                       </el-form>
                     </div>
-                  </el-tab-pane>
+                  </TabsContent>
 
                   <!-- 广播事件测试 -->
-                  <el-tab-pane :label="$t('setting.debug.broadcast')" name="broadcast">
+                  <TabsContent value="broadcast" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <el-form :model="broadcastForm" label-width="140px">
                         <el-form-item :label="$t('setting.debug.targetWindow')">
@@ -122,8 +122,8 @@
                         </el-form-item>
                       </el-form>
                     </div>
-                  </el-tab-pane>
-                </el-tabs>
+                  </TabsContent>
+                </Tabs>
               </div>
               <div v-else-if="activeTab === 'updatetest'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
@@ -965,14 +965,14 @@
                 </div>
               </div>
               <div v-else-if="activeTab === 'unittest'" class="tab-content">
-                <el-tabs
-                  v-model="unitTestActiveTab"
-                  type="border-card"
-                  tab-position="top"
-                  style="height: 100%"
-                >
+                <Tabs v-model="unitTestActiveTab" class="debug-tabs">
+                  <TabsList class="debug-tabs-list">
+                    <TabsTrigger value="single">{{ $t('setting.debug.unitTest.singleTest') }}</TabsTrigger>
+                    <TabsTrigger value="batch">{{ $t('setting.debug.unitTest.batchTest') }}</TabsTrigger>
+                  </TabsList>
+
                   <!-- 单个测试 -->
-                  <el-tab-pane :label="$t('setting.debug.unitTest.singleTest')" name="single">
+                  <TabsContent value="single" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <el-form :model="testForm" label-width="140px">
                         <el-form-item :label="$t('setting.debug.module')">
@@ -1094,10 +1094,10 @@
                         </el-scrollbar>
                       </div>
                     </div>
-                  </el-tab-pane>
+                  </TabsContent>
 
                   <!-- 批量测试 -->
-                  <el-tab-pane :label="$t('setting.debug.unitTest.batchTest')" name="batch">
+                  <TabsContent value="batch" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <el-form :model="unitTestBatchForm" label-width="140px">
                         <el-form-item :label="$t('setting.debug.unitTest.selectModules')">
@@ -1188,13 +1188,18 @@
                         </div>
                       </div>
                     </div>
-                  </el-tab-pane>
-                </el-tabs>
+                  </TabsContent>
+                </Tabs>
               </div>
               <div v-else-if="activeTab === 'agentsessiondebug'" class="tab-content">
-                <el-tabs v-model="agentSessionDebugActiveTab" type="border-card" tab-position="top">
+                <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
+                  <TabsList class="debug-tabs-list">
+                    <TabsTrigger value="debug">会话调试</TabsTrigger>
+                    <TabsTrigger value="replay">会话回放</TabsTrigger>
+                  </TabsList>
+
                   <!-- 会话调试 -->
-                  <el-tab-pane label="会话调试" name="debug">
+                  <TabsContent value="debug" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <el-form :model="agentSessionDebugForm" label-width="140px">
                         <el-form-item label="选择文档">
@@ -1261,13 +1266,15 @@
                         class="session-debug-details"
                         style="margin-top: 20px"
                       >
-                        <el-tabs
-                          v-model="sessionDebugActiveTab"
-                          type="border-card"
-                          tab-position="top"
-                        >
+                        <Tabs v-model="sessionDebugActiveTab" class="debug-tabs">
+                          <TabsList class="debug-tabs-list">
+                            <TabsTrigger value="nodes">执行节点</TabsTrigger>
+                            <TabsTrigger value="messages">消息列表</TabsTrigger>
+                            <TabsTrigger value="metadata">会话信息</TabsTrigger>
+                          </TabsList>
+
                           <!-- 执行节点列表 -->
-                          <el-tab-pane label="执行节点" name="nodes">
+                          <TabsContent value="nodes" class="debug-tabs-content">
                             <el-scrollbar height="400px">
                               <div
                                 v-if="
@@ -1350,10 +1357,10 @@
                               </div>
                               <div v-else class="test-empty">暂无执行节点</div>
                             </el-scrollbar>
-                          </el-tab-pane>
+                          </TabsContent>
 
                           <!-- 消息列表 -->
-                          <el-tab-pane label="消息列表" name="messages">
+                          <TabsContent value="messages" class="debug-tabs-content">
                             <el-scrollbar height="400px">
                               <div
                                 v-if="
@@ -1449,10 +1456,10 @@
                               </div>
                               <div v-else class="test-empty">暂无消息</div>
                             </el-scrollbar>
-                          </el-tab-pane>
+                          </TabsContent>
 
                           <!-- 会话元数据 -->
-                          <el-tab-pane label="会话信息" name="metadata">
+                          <TabsContent value="metadata" class="debug-tabs-content">
                             <el-descriptions :column="1" border>
                               <el-descriptions-item label="会话ID">{{
                                 selectedSession.id
@@ -1490,17 +1497,17 @@
                                 formatTime(selectedSession.updatedAt)
                               }}</el-descriptions-item>
                             </el-descriptions>
-                          </el-tab-pane>
-                        </el-tabs>
+                          </TabsContent>
+                        </Tabs>
                       </div>
                       <div v-else class="test-empty" style="margin-top: 20px">
                         请先选择文档和会话
                       </div>
                     </div>
-                  </el-tab-pane>
+                  </TabsContent>
 
                   <!-- 会话回放 -->
-                  <el-tab-pane label="会话回放" name="replay">
+                  <TabsContent value="replay" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <el-form :model="sessionReplayForm" label-width="140px">
                         <el-form-item label="导入会话">
@@ -1709,8 +1716,8 @@
                         请先导入会话JSON文件
                       </div>
                     </div>
-                  </el-tab-pane>
-                </el-tabs>
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </transition>
@@ -1762,6 +1769,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import {
   Plus,
   Delete,
@@ -5568,57 +5576,48 @@ onMounted(async () => {
   opacity: 0;
 }
 
-.debug-section :deep(.el-tabs) {
+/* shadcn-vue Tabs styles */
+.debug-tabs {
   display: flex;
-  flex-direction: column !important;
+  flex-direction: column;
   height: 100%;
   flex: 1;
 }
 
-.debug-section :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  background-color: v-bind('themeState.currentTheme.background') !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+.debug-tabs-list {
+  flex-shrink: 0;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 4px;
 }
 
-.debug-section :deep(.el-tabs__header.is-top) {
-  order: -999 !important;
+.debug-tabs-list [data-state='active'] {
+  background-color: v-bind('themeState.currentTheme.background');
+  color: v-bind('themeState.currentTheme.textColor');
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.debug-section :deep(.el-tabs__header.is-bottom) {
-  order: 999 !important;
-}
-
-.debug-section :deep(.el-tabs__nav-wrap) {
-  order: inherit !important;
-  flex-shrink: 0 !important;
-}
-
-.debug-section :deep(.el-tabs__nav) {
-  order: inherit !important;
-  flex-shrink: 0 !important;
-}
-
-.debug-section :deep(.el-tabs__content) {
-  order: 0 !important;
+.debug-tabs-content {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-radius: 0 0 8px 8px;
+  border-top: none;
 }
 
-.debug-section :deep(.el-tab-pane) {
-  height: 100%;
+.debug-tabs-content [data-state='inactive'] {
+  display: none;
+}
+
+.debug-tabs-content [data-state='active'] {
   display: flex;
   flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -5808,8 +5807,8 @@ onMounted(async () => {
   max-width: 100%;
 }
 
-/* 确保各个 tab pane 内的内容能够正确布局 */
-.debug-section :deep(.el-tab-pane) > * {
+/* 确保各个 tab content 内的内容能够正确布局 */
+.debug-tabs-content > * {
   height: 100%;
   display: flex;
   flex-direction: column;

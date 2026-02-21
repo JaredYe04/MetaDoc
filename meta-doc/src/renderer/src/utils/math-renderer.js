@@ -304,7 +304,9 @@ export async function renderMarkdownMathToImages(markdown, output = 'png') {
   }
 
   async function uploadBlob(fileName, blob) {
-    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+    const baseUrl = await import('../config/runtime-server').then((m) =>
+      m.getRuntimeServerBaseUrl()
+    )
     const form = new FormData()
     const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' })
     form.append('file[]', file, fileName)

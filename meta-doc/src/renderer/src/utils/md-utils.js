@@ -1368,7 +1368,8 @@ export async function local2fileProtocolForHtml(md, docPath = '') {
 
       // 如果已经是 http(s) 网络链接、data URL 或 file:// 协议，保持原样
       if (
-        (image_path.startsWith('http://') && !image_path.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
+        (image_path.startsWith('http://') &&
+          !image_path.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
         image_path.startsWith('https://') ||
         image_path.startsWith('data:') ||
         image_path.startsWith('file://')
@@ -1487,7 +1488,8 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
 
       // 检查是否是网络图片（http(s)但不是运行时服务器）
       const isNetworkImage =
-        (image_path.startsWith('http://') && !image_path.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
+        (image_path.startsWith('http://') &&
+          !image_path.startsWith(getRuntimeServerBaseUrlSync() + '/')) ||
         image_path.startsWith('https://')
 
       // 检查是否是 data: URL 或 blob: URL（图表渲染后的图片）
@@ -1569,10 +1571,13 @@ export async function downloadAndUploadNetworkImages(md, docPath = '') {
           const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' })
           formData.append('file[]', file, fileName)
 
-          const uploadResponse = await fetch(getRuntimeServerBaseUrlSync() + '/api/image/upload?keepName=1', {
-            method: 'POST',
-            body: formData
-          })
+          const uploadResponse = await fetch(
+            getRuntimeServerBaseUrlSync() + '/api/image/upload?keepName=1',
+            {
+              method: 'POST',
+              body: formData
+            }
+          )
 
           if (!uploadResponse.ok) {
             throw new Error(`上传失败: ${uploadResponse.status}`)
@@ -1774,31 +1779,31 @@ function applyMermaidThemeToContainer(container) {
   if (!container) return
 
   const isDark = themeState.currentTheme.type === 'dark'
-  
+
   // 定义主题配色：亮色/暗色模式下的节点背景色、边框色、字体颜色
   const lightTheme = {
-    nodeFill: '#f3f4f6',      // 浅灰背景（与手册中硬编码的一致）
-    nodeStroke: '#374151',    // 深灰边框
-    textFill: '#333333',       // 深色文字
-    edgeStroke: '#333333',     // 深色连线
-    clusterFill: '#ffffde',    // 浅黄集群背景
-    clusterStroke: '#aaaa33'   // 深黄集群边框
+    nodeFill: '#f3f4f6', // 浅灰背景（与手册中硬编码的一致）
+    nodeStroke: '#374151', // 深灰边框
+    textFill: '#333333', // 深色文字
+    edgeStroke: '#333333', // 深色连线
+    clusterFill: '#ffffde', // 浅黄集群背景
+    clusterStroke: '#aaaa33' // 深黄集群边框
   }
-  
+
   const darkTheme = {
-    nodeFill: '#2d2d30',      // 深灰背景
-    nodeStroke: '#3e3e42',    // 稍浅的深灰边框
-    textFill: '#cccccc',      // 浅色文字
-    edgeStroke: '#cccccc',    // 浅色连线
-    clusterFill: '#3d3d2d',   // 深黄集群背景
-    clusterStroke: '#888833'  // 浅黄集群边框
+    nodeFill: '#2d2d30', // 深灰背景
+    nodeStroke: '#3e3e42', // 稍浅的深灰边框
+    textFill: '#cccccc', // 浅色文字
+    edgeStroke: '#cccccc', // 浅色连线
+    clusterFill: '#3d3d2d', // 深黄集群背景
+    clusterStroke: '#888833' // 浅黄集群边框
   }
-  
+
   const theme = isDark ? darkTheme : lightTheme
 
   // 查找所有 Mermaid SVG 元素
   const mermaidSvgs = container.querySelectorAll('.language-mermaid svg, [class*="mermaid"] svg')
-  
+
   mermaidSvgs.forEach((svg) => {
     if (!(svg instanceof SVGElement)) return
 
@@ -1806,9 +1811,9 @@ function applyMermaidThemeToContainer(container) {
     // 包括：rect.label-container, .node 下的所有形状，以及所有可能的节点容器
     const nodeShapes = svg.querySelectorAll(
       'rect.label-container, circle.label-container, ellipse.label-container, polygon.label-container, path.label-container, ' +
-      '.node rect, .node circle, .node ellipse, .node polygon, .node path, ' +
-      'g.node rect, g.node circle, g.node ellipse, g.node polygon, g.node path, ' +
-      'rect[class*="label"], circle[class*="label"], ellipse[class*="label"], polygon[class*="label"], path[class*="label"]'
+        '.node rect, .node circle, .node ellipse, .node polygon, .node path, ' +
+        'g.node rect, g.node circle, g.node ellipse, g.node polygon, g.node path, ' +
+        'rect[class*="label"], circle[class*="label"], ellipse[class*="label"], polygon[class*="label"], path[class*="label"]'
     )
     nodeShapes.forEach((shape) => {
       const element = /** @type {SVGElement} */ (shape)
@@ -1821,14 +1826,19 @@ function applyMermaidThemeToContainer(container) {
         .replace(/fill:\s*[^;]+/gi, `fill: ${theme.nodeFill}`)
         .replace(/stroke:\s*[^;]+/gi, `stroke: ${theme.nodeStroke}`)
       if (!newStyle.includes('fill:')) {
-        element.setAttribute('style', (newStyle + ` fill: ${theme.nodeFill}; stroke: ${theme.nodeStroke};`).trim())
+        element.setAttribute(
+          'style',
+          (newStyle + ` fill: ${theme.nodeFill}; stroke: ${theme.nodeStroke};`).trim()
+        )
       } else {
         element.setAttribute('style', newStyle)
       }
     })
 
     // 2. 强制统一文字颜色（所有 text 元素）
-    const textElements = svg.querySelectorAll('text, .label text, .nodeLabel text, .edgeLabel text, foreignObject text, tspan')
+    const textElements = svg.querySelectorAll(
+      'text, .label text, .nodeLabel text, .edgeLabel text, foreignObject text, tspan'
+    )
     textElements.forEach((textEl) => {
       const element = /** @type {SVGElement} */ (textEl)
       // 强制设置文字颜色
@@ -1844,7 +1854,9 @@ function applyMermaidThemeToContainer(container) {
     })
 
     // 3. 统一连线颜色（edgePath, flowchart-link）
-    const edgePaths = svg.querySelectorAll('.edgePath .path, .flowchart-link, .edgePath path, .edgePath line, line[class*="link"]')
+    const edgePaths = svg.querySelectorAll(
+      '.edgePath .path, .flowchart-link, .edgePath path, .edgePath line, line[class*="link"]'
+    )
     edgePaths.forEach((edge) => {
       const element = /** @type {SVGElement} */ (edge)
       element.setAttribute('stroke', theme.edgeStroke)
@@ -1868,7 +1880,10 @@ function applyMermaidThemeToContainer(container) {
         .replace(/fill:\s*[^;]+/gi, `fill: ${theme.clusterFill}`)
         .replace(/stroke:\s*[^;]+/gi, `stroke: ${theme.clusterStroke}`)
       if (!newStyle.includes('fill:')) {
-        element.setAttribute('style', (newStyle + ` fill: ${theme.clusterFill}; stroke: ${theme.clusterStroke};`).trim())
+        element.setAttribute(
+          'style',
+          (newStyle + ` fill: ${theme.clusterFill}; stroke: ${theme.clusterStroke};`).trim()
+        )
       } else {
         element.setAttribute('style', newStyle)
       }
@@ -2440,8 +2455,14 @@ export const ConvertHtmlForPdf = async (md) => {
   // 验证预渲染结果：检查是否还有 PlantUML 代码块
   const plantumlBlockCount = (processedMd.match(/```plantuml\s*\n/gi) || []).length
   const plantumlImageCount = (
-    processedMd.match(new RegExp('!\\\\[.*?\\\\]\\\\(' + getRuntimeServerBaseUrlSync().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/images/.*?_plantuml\\\\.(svg|png)\\\\)', 'gi')) ||
-    []
+    processedMd.match(
+      new RegExp(
+        '!\\\\[.*?\\\\]\\\\(' +
+          getRuntimeServerBaseUrlSync().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+          '/images/.*?_plantuml\\\\.(svg|png)\\\\)',
+        'gi'
+      )
+    ) || []
   ).length
   getLogger().info(
     `PlantUML 代码块数量: ${plantumlBlockCount}, PlantUML 图片数量: ${plantumlImageCount}`
@@ -2686,9 +2707,9 @@ export function filterMetaDataFromMd(md) {
  * 将 LaTeX 标准格式的公式分隔符转换为 Vditor 兼容格式
  * - 将 \(...\) 转换为 $...$（行内公式）
  * - 将 \[...\] 转换为 $$...$$（块级公式）
- * 
+ *
  * 注意：此函数会排除代码块中的内容，避免误转换
- * 
+ *
  * @param {string} markdown - Markdown 文本
  * @returns {string} 转换后的 Markdown 文本
  */
@@ -2701,7 +2722,7 @@ export function convertLatexDelimiters(markdown) {
   const codeBlockRegex = /```[\s\S]*?```|`[^`\n]+`/g
   const codeBlocks = []
   let codeBlockIndex = 0
-  
+
   // 用占位符替换代码块
   const markdownWithoutCodeBlocks = markdown.replace(codeBlockRegex, (match) => {
     const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`

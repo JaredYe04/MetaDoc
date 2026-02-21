@@ -259,10 +259,7 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
+const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
 const workspace = useWorkspace()
 const tabsWrapperRef = ref<HTMLElement | null>(null)
@@ -273,8 +270,25 @@ const { closeTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
 
 const DEMO_TABS: WorkspaceTab[] = [
-  { id: 'demo-1', kind: 'file', title: '未命名', subtitle: '', path: '', format: 'md', dirty: false },
-  { id: 'demo-2', kind: 'system', title: '用户手册', subtitle: '', path: '', format: 'md', dirty: false, route: '/user-manual' }
+  {
+    id: 'demo-1',
+    kind: 'file',
+    title: '未命名',
+    subtitle: '',
+    path: '',
+    format: 'md',
+    dirty: false
+  },
+  {
+    id: 'demo-2',
+    kind: 'system',
+    title: '用户手册',
+    subtitle: '',
+    path: '',
+    format: 'md',
+    dirty: false,
+    route: '/user-manual'
+  }
 ]
 
 // 使用新的拖拽 composable
@@ -772,15 +786,43 @@ let handlerAddTabFromDrag: ((...args: any[]) => void) | null = null
 let handlerRemoveTabFromDrag: ((...args: any[]) => void) | null = null
 let handlerRequestTabCount: (() => void) | null = null
 let handlerDragCreateDetached: ((...args: any[]) => void) | null = null
+let handlerCanAcceptTab: ((...args: any[]) => void) | null = null
+let handlerAddTabToWindow: ((...args: any[]) => void) | null = null
+
+// 缓存当前窗口 ID（避免频繁 IPC 调用）
+let cachedWindowId: number = -1
 
 const getCurrentWindowId = async (): Promise<number> => {
   if (!messageBridge.getIpc()) return -1
+  if (cachedWindowId !== -1) return cachedWindowId
   try {
-    return await messageBridge.invoke('get-window-id')
+    cachedWindowId = await messageBridge.invoke('get-window-id')
+    return cachedWindowId
   } catch (error) {
     logger.error('获取窗口ID失败:', error)
     return -1
   }
+}
+
+// 同步获取缓存的窗口 ID（用于同步处理器）
+const getCurrentWindowIdSync = (): number => {
+  return cachedWindowId
+}
+
+// 检查是否可以接收标签页
+const checkCanAcceptTab = (tabData: any): boolean => {
+  // 检查是否有重复（除了占位标签页）
+  const existingById = workspace.tabs.find((t) => t.id === tabData.tab?.id)
+  if (existingById) return true // 可以接收，会激活已有标签页
+
+  // 文件路径重复检查
+  if (tabData.tab?.path) {
+    const existingByPath = workspace.tabs.find((t) => t.path === tabData.tab.path)
+    if (existingByPath) return true // 可以接收，会合并
+  }
+
+  // 默认可以接收
+  return true
 }
 
 type DropMode = 'before' | 'after'
@@ -926,69 +968,137 @@ const handleDragEnd = async (event: DragEvent) => {
 
 // 从拖拽添加Tab
 const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
-  try {
-    const { tab, document } = tabTransferData
+  const { tab, document, sourceWindowId } = tabTransferData
+  let placeholderRemoved = false
+  let transferSuccess = false
+  let mergedToExistingTabId: string | null = null
 
-    if (!tab) {
-      logger.error('Tab数据无效:', tabTransferData)
-      return
-    }
-
-    // 检查Tab是否已存在（避免重复添加）
-    const existingTab = workspace.tabs.find((t) => t.id === tab.id)
-    if (existingTab) {
-      logger.warn('Tab已存在，直接激活:', tab.id)
-      workspace.activateTab(tab.id)
-      return
-    }
-
-    // 检查文件是否已在当前窗口打开（通过路径）
-    if (tab.path && (tab.kind === 'file' || tab.kind === 'new')) {
-      const existingFileTab = workspace.tabs.find((t) => t.path === tab.path)
-      if (existingFileTab) {
-        workspace.activateTab(existingFileTab.id)
-        // 纠正注册表：所有权应属于当前窗口的现有 tab
-        if (messageBridge.getIpc()?.invoke) {
-          await messageBridge.invoke('transfer-file-ownership', {
-            filePath: tab.path,
-            newTabId: existingFileTab.id
-          })
-        }
-        return
+  // 辅助函数：通知源窗口转移已完成
+  const notifyTransferCompleted = async (completed: boolean, targetTabId?: string) => {
+    if (sourceWindowId != null && messageBridge.getIpc()) {
+      try {
+        await messageBridge.invoke('notify-tab-transfer-completed', {
+          sourceWindowId,
+          tabId: tab?.id,
+          completed,
+          targetTabId,
+          merged: !!mergedToExistingTabId
+        })
+      } catch (err) {
+        logger.warn('通知源窗口转移完成失败:', err)
       }
     }
+  }
 
-    // 工具/系统 Tab：若目标窗口已有相同 toolType 或 route，激活而非重复添加
+  // 辅助函数：清理占位标签页（只清理一个）
+  const cleanupPlaceholder = () => {
+    if (placeholderRemoved) return
+    const placeholder = workspace.tabs.find((t) => t._isInitialPlaceholder)
+    if (placeholder) {
+      workspace.removeTab(placeholder.id)
+      placeholderRemoved = true
+      logger.debug('已清理占位标签页:', placeholder.id)
+    }
+  }
+
+  try {
+    if (!tab) {
+      logger.error('Tab数据无效:', tabTransferData)
+      // 即使失败也要尝试通知源窗口
+      await notifyTransferCompleted(false)
+      return
+    }
+
+    // ========== 第1步：清理占位标签页（必须在最前面）==========
+    cleanupPlaceholder()
+
+    // ========== 第2步：检查Tab ID重复（同窗口拖拽或重复添加）==========
+    // 注意：新建文档标签页（kind === 'new'）允许重复，不检查ID重复
+    const existingTab = workspace.tabs.find((t) => t.id === tab.id)
+    if (existingTab && tab.kind !== 'new') {
+      logger.warn('Tab已存在，直接激活:', tab.id)
+      workspace.activateTab(tab.id)
+      transferSuccess = true
+      mergedToExistingTabId = tab.id
+      await notifyTransferCompleted(true, tab.id)
+      return
+    }
+    // 对于 kind === 'new' 的Tab，即使ID已存在也继续添加（允许重复）
+
+    // ========== 第3步：检查文件路径（允许重复，只合并未保存内容）==========
+    // 注意：普通文件标签页允许重复打开，不强制唯一性
+    // 对于 new 类型的 Tab，如果 path 为空，跳过路径检查（避免空路径匹配）
+    if (tab.path && tab.path !== '' && (tab.kind === 'file' || tab.kind === 'new')) {
+      const existingFileTab = workspace.tabs.find((t) => t.path === tab.path && t.path !== '')
+      if (existingFileTab && document?.dirty && document.markdown) {
+        // 如果已有相同文件的Tab，且被拖拽的Tab有未保存内容，提示用户选择
+        logger.info('检测到相同文件的Tab，合并未保存内容:', tab.path)
+        
+        try {
+          const targetDoc = workspace.ensureDocument(existingFileTab.id)
+          if (targetDoc) {
+            // 合并内容到已有Tab（保留两个Tab，但内容已同步）
+            const baseContent = targetDoc.savedMarkdown || targetDoc.markdown || ''
+            targetDoc.markdown = document.markdown
+            targetDoc.tex = document.tex || targetDoc.tex
+            targetDoc.outline = document.outline || targetDoc.outline
+            targetDoc.meta = document.meta || targetDoc.meta
+            targetDoc.aiDialogs = document.aiDialogs || targetDoc.aiDialogs
+            targetDoc.agentSessions = document.agentSessions || targetDoc.agentSessions
+            targetDoc.renderedHtml = document.renderedHtml || ''
+            targetDoc.dirty = true
+            targetDoc.savedMarkdown = baseContent
+            existingFileTab.dirty = true
+            logger.info('已合并未保存内容到已有Tab:', existingFileTab.id)
+            
+            // 激活已有Tab并通知转移完成（不添加新Tab，因为内容已合并）
+            workspace.activateTab(existingFileTab.id)
+            transferSuccess = true
+            mergedToExistingTabId = existingFileTab.id
+            await notifyTransferCompleted(true, existingFileTab.id)
+            return
+          }
+        } catch (mergeError) {
+          logger.warn('合并文档内容失败:', mergeError)
+        }
+      }
+      // 如果没有相同文件的Tab，或者没有未保存内容，继续添加新Tab
+    }
+
+    // ========== 第4步：检查工具/系统Tab重复 ==========
     if (tab.kind === 'tool' && tab.toolType) {
       const sameTool = workspace.tabs.find((t) => t.kind === 'tool' && t.toolType === tab.toolType)
       if (sameTool) {
+        logger.info('工具Tab已存在，激活:', tab.toolType)
         workspace.activateTab(sameTool.id)
+        transferSuccess = true
+        mergedToExistingTabId = sameTool.id
+        await notifyTransferCompleted(true, sameTool.id)
         return
       }
     }
     if (tab.kind === 'system' && tab.route) {
       const sameSystem = workspace.tabs.find((t) => t.kind === 'system' && t.route === tab.route)
       if (sameSystem) {
+        logger.info('系统Tab已存在，激活:', tab.route)
         workspace.activateTab(sameSystem.id)
+        transferSuccess = true
+        mergedToExistingTabId = sameSystem.id
+        await notifyTransferCompleted(true, sameSystem.id)
         return
       }
     }
 
-    // 由 Tab 拖出创建的新窗口：仅移除 ensureInitialTab 创建的占位 Tab
-    const placeholders = workspace.tabs.filter((t) => t._isInitialPlaceholder)
-    placeholders.forEach((t) => workspace.removeTab(t.id))
-
-    // 添加Tab
+    // ========== 第5步：添加新Tab ==========
     if (insertIndex !== undefined && insertIndex >= 0 && insertIndex < allTabs.value.length) {
       workspace.tabs.splice(insertIndex, 0, tab)
     } else {
       workspace.tabs.push(tab)
     }
 
-    // 如果是文档Tab，恢复文档内容（包括新文档和未保存的文档）
+    // 恢复文档内容（包括新文档和未保存的文档）
     if ((tab.kind === 'file' || tab.kind === 'new') && document) {
       try {
-        // 确保文档存在
         const doc = workspace.ensureDocument(tab.id)
 
         // 恢复文档内容（包括所有状态）
@@ -1012,7 +1122,7 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
         doc.savedMeta = document.savedMeta || doc.meta
         doc.savedAiDialogs = document.savedAiDialogs || doc.aiDialogs
         doc.savedAgentSessions = document.savedAgentSessions || doc.agentSessions
-        // 关键：恢复 path 和 format，否则保存会无反应（会当作“新文件”）
+        // 关键：恢复 path 和 format，否则保存会无反应（会当作"新文件"）
         doc.path = document.path ?? doc.path ?? ''
         doc.format = document.format ?? doc.format ?? tab.format
         tab.path = doc.path
@@ -1041,13 +1151,22 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
     // 转移文件所有权到新窗口的 tab
     if (tab.path && (tab.kind === 'file' || tab.kind === 'new')) {
       if (messageBridge.getIpc()?.invoke) {
-        await messageBridge.invoke('transfer-file-ownership', { filePath: tab.path, newTabId: tab.id })
+        await messageBridge.invoke('transfer-file-ownership', {
+          filePath: tab.path,
+          newTabId: tab.id
+        })
       }
     }
 
+    transferSuccess = true
+    await notifyTransferCompleted(true, tab.id)
     logger.info('成功添加并激活Tab:', tab.id, { kind: tab.kind, dirty: tab.dirty })
   } catch (error) {
     logger.error('添加Tab失败:', error)
+    await notifyTransferCompleted(false)
+  } finally {
+    // 确保占位标签页总是被清理
+    cleanupPlaceholder()
   }
 }
 
@@ -1267,6 +1386,57 @@ onMounted(async () => {
       }
     }
     messageBridge.on('drag:create-detached-window', handlerDragCreateDetached)
+
+    // 处理主进程的 drag:can-accept-tab 请求（跨窗口拖拽预检）
+    handlerCanAcceptTab = async (_event: any, data: any) => {
+      const { _requestId, tabData } = data
+
+      // 检查是否可以接收该 tab
+      const canAccept = checkCanAcceptTab(tabData)
+
+      // 发送响应回主进程
+      if (messageBridge.getIpc()) {
+        messageBridge.send('drag:renderer-response', {
+          _requestId,
+          result: canAccept
+        })
+      }
+    }
+    messageBridge.on('drag:can-accept-tab', handlerCanAcceptTab)
+
+    // 处理主进程的 drag:add-tab-to-window 请求（实际添加 tab）
+    handlerAddTabToWindow = async (_event: any, data: any) => {
+      const { _requestId, tabData, insertIndex } = data
+
+      try {
+        if (!tabData || !tabData.tab) {
+          throw new Error('无效的 tab 数据')
+        }
+
+        await addTabFromDrag(tabData, insertIndex)
+        logger.info('成功通过拖拽添加 Tab:', tabData.tab.id)
+
+        // 发送成功响应回主进程
+        if (messageBridge.getIpc()) {
+          messageBridge.send('drag:renderer-response', {
+            _requestId,
+            result: { success: true }
+          })
+        }
+      } catch (error) {
+        logger.error('通过拖拽添加 Tab 失败:', error)
+
+        // 发送失败响应回主进程
+        if (messageBridge.getIpc()) {
+          messageBridge.send('drag:renderer-response', {
+            _requestId,
+            _error: error instanceof Error ? error.message : '添加 Tab 失败',
+            result: { success: false, error: error instanceof Error ? error.message : '添加 Tab 失败' }
+          })
+        }
+      }
+    }
+    messageBridge.on('drag:add-tab-to-window', handlerAddTabToWindow)
   }
 })
 
@@ -1333,6 +1503,12 @@ onUnmounted(() => {
   }
   if (handlerDragCreateDetached) {
     messageBridge.removeListener('drag:create-detached-window', handlerDragCreateDetached)
+  }
+  if (handlerCanAcceptTab) {
+    messageBridge.removeListener('drag:can-accept-tab', handlerCanAcceptTab)
+  }
+  if (handlerAddTabToWindow) {
+    messageBridge.removeListener('drag:add-tab-to-window', handlerAddTabToWindow)
   }
 })
 </script>

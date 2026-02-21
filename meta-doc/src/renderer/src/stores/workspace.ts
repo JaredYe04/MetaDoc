@@ -327,7 +327,18 @@ export function hasDocumentContent(doc: {
   return false
 }
 
-function ensureInitialTab(): void {
+// 最大未命名文档标签页数量
+const MAX_NEW_DOC_TABS = 5
+
+function ensureInitialTab(isFromDrag: boolean = false): void {
+  // 如果是从拖拽创建的窗口，不自动创建占位标签页
+  if (isFromDrag) return
+
+  // 检查 URL 参数
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('skipAutoHome') === '1') return
+  if (urlParams.get('windowType') === 'pooled') return
+
   if (tabs.length === 0) {
     const tab = createNewDocumentTabInternal()
     tab._isInitialPlaceholder = true
@@ -1364,6 +1375,13 @@ function initializeDocumentFromTemplate(
 }
 
 function openNewDocumentTab(): WorkspaceTab {
+  const newDocTabs = tabs.filter((t) => t.kind === 'new' && !t.dirty)
+
+  if (newDocTabs.length >= MAX_NEW_DOC_TABS) {
+    activateTab(newDocTabs[0].id)
+    return newDocTabs[0]
+  }
+
   const tab = createNewDocumentTabInternal()
   activateTab(tab.id)
   return tab
@@ -1791,6 +1809,24 @@ const TOOL_TAB_ROUTES: Record<ToolTabType, string> = {
   aiChat: '/ai-chat',
   setting: '/setting',
   aigcDetection: '/aigc-detection'
+}
+
+/**
+ * 查找已存在的标签页（统一唯一性检查）
+ * @param tab 要查找的标签页
+ * @returns 已存在的标签页或 null
+ */
+function findExistingTab(tab: WorkspaceTab): WorkspaceTab | null {
+  if (tab.kind === 'tool' && tab.toolType) {
+    return tabs.find((t) => t.kind === 'tool' && t.toolType === tab.toolType) || null
+  }
+  if (tab.kind === 'system' && tab.route) {
+    return tabs.find((t) => t.kind === 'system' && t.route === tab.route) || null
+  }
+  if (tab.path && (tab.kind === 'file' || tab.kind === 'new')) {
+    return tabs.find((t) => t.path === tab.path) || null
+  }
+  return null
 }
 
 /**

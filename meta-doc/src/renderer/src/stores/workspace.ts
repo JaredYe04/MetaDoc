@@ -59,6 +59,8 @@ export interface WorkspaceTab {
   _isInitialPlaceholder?: boolean
   /** 固定标签页，始终靠左排列且不可关闭 */
   pinned?: boolean
+  /** 标记为新创建的标签页，用于入场动画 */
+  _isNewTab?: boolean
 }
 
 export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread'
@@ -107,6 +109,9 @@ const recentlyClosedTabs = ref<
     closedAt: number
   }>
 >([])
+
+// 正在删除中的标签页ID集合（防止快速双击Ctrl+W导致的竞态条件）
+const removingTabIds = new Set<string>()
 
 const documents = reactive<Record<string, WorkspaceDocument>>({})
 
@@ -400,7 +405,8 @@ function generateTabId(): string {
  */
 function addDocumentTab(
   snapshot: WorkspaceDocument,
-  overrides: Partial<WorkspaceTab> = {}
+  overrides: Partial<WorkspaceTab> = {},
+  options: { insertAfterActive?: boolean } = {}
 ): WorkspaceTab {
   const id = overrides.id ?? generateTabId()
   const clonedSnapshot = structuredCloneFallback(snapshot)
@@ -422,22 +428,38 @@ function addDocumentTab(
     format: clonedSnapshot.format,
     dirty: overrides.dirty !== undefined ? overrides.dirty : clonedSnapshot.dirty,
     readonly: overrides.readonly !== undefined ? overrides.readonly : false,
-    preview: overrides.preview !== undefined ? overrides.preview : false
+    preview: overrides.preview !== undefined ? overrides.preview : false,
+    _isNewTab: true // 标记为新标签页，用于动画
   })
 
-  tabs.push(tab)
+  // 如果指定了 insertAfterActive，在当前 active tab 后插入
+  if (options.insertAfterActive && activeTabId.value) {
+    const activeIndex = tabs.findIndex((t) => t.id === activeTabId.value)
+    if (activeIndex !== -1) {
+      tabs.splice(activeIndex + 1, 0, tab)
+    } else {
+      tabs.push(tab)
+    }
+  } else {
+    tabs.push(tab)
+  }
+
   return tab
 }
 
 function createNewDocumentTabInternal(): WorkspaceTab {
   const snapshot = createDocumentSnapshotFromTemplate('md', '')
-  return addDocumentTab(snapshot, {
-    kind: 'new',
-    title: '新建文档',
-    subtitle: '',
-    dirty: false,
-    readonly: false
-  })
+  return addDocumentTab(
+    snapshot,
+    {
+      kind: 'new',
+      title: '新建文档',
+      subtitle: '',
+      dirty: false,
+      readonly: false
+    },
+    { insertAfterActive: true }
+  )
 }
 
 /**
@@ -445,15 +467,24 @@ function createNewDocumentTabInternal(): WorkspaceTab {
  * @param id 标签页ID
  */
 function removeTab(id: string): void {
-  const index = tabs.findIndex((tab) => tab.id === id)
-  if (index === -1) return
-
-  const tab = tabs[index]
-
-  // 检查是否可以删除
-  if (!canRemoveTab(id)) {
-    return // 不可删除的Tab，直接返回
+  // 防止重复删除（快速双击Ctrl+W保护）
+  if (removingTabIds.has(id)) {
+    return
   }
+  removingTabIds.add(id)
+
+  try {
+    const index = tabs.findIndex((tab) => tab.id === id)
+    if (index === -1) {
+      return
+    }
+
+    const tab = tabs[index]
+
+    // 检查是否可以删除
+    if (!canRemoveTab(id)) {
+      return // 不可删除的Tab，直接返回
+    }
 
   const doc = documents[id]
 
@@ -510,11 +541,16 @@ function removeTab(id: string): void {
     return
   }
 
-  if (wasActive) {
+  // 如果关闭的是活跃Tab，或者已经没有活跃Tab，选择下一个
+  if (wasActive || !activeTabId.value) {
     const fallback = tabs[index] || tabs[index - 1] || tabs[0]
     if (fallback) {
       activateTab(fallback.id)
     }
+  }
+  } finally {
+    // 确保清理正在删除的标记
+    removingTabIds.delete(id)
   }
 }
 

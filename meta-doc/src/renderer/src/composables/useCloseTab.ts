@@ -12,6 +12,9 @@ function getLogger() {
   return loggerInstance
 }
 
+// 模块级别的集合，跟踪正在关闭中的 Tab ID（防止快速双击 Ctrl+W 导致的竞态条件）
+const closingTabIds = new Set<string>()
+
 /**
  * 关闭 Tab 的 composable
  * 处理 UI 锁定检查、未保存内容确认、保存等逻辑
@@ -29,12 +32,24 @@ export const useCloseTab = () => {
   const closeTab = async (tabId: string): Promise<boolean> => {
     if (isLocked.value) return false
 
-    const tab = workspace.tabs.find((t) => t.id === tabId)
-    if (!tab) return false
-
-    if (!workspace.canRemoveTab(tabId)) {
+    // 防止重复关闭同一个 Tab（快速双击 Ctrl+W 保护）
+    if (closingTabIds.has(tabId)) {
+      getLogger().debug('Tab已在关闭中，忽略重复请求', tabId)
       return false
     }
+    closingTabIds.add(tabId)
+
+    try {
+      // 再次检查，因为在 await 之前可能有其他操作
+      const tab = workspace.tabs.find((t) => t.id === tabId)
+      if (!tab) {
+        getLogger().debug('Tab已不存在，跳过关闭', tabId)
+        return false
+      }
+
+      if (!workspace.canRemoveTab(tabId)) {
+        return false
+      }
 
     // 如果是文档Tab且有未保存内容，需要确认
     if (tab.kind === 'file' || tab.kind === 'new') {
@@ -94,8 +109,12 @@ export const useCloseTab = () => {
       }
     }
 
-    workspace.removeTab(tabId)
-    return true
+      workspace.removeTab(tabId)
+      return true
+    } finally {
+      // 确保清理正在关闭的标记
+      closingTabIds.delete(tabId)
+    }
   }
 
   return {

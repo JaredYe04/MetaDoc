@@ -1,0 +1,668 @@
+/**
+ * ============================================================================
+ * Element Plus shadcn/Brutalist 风格主题覆盖
+ * Element Plus shadcn/Brutalist Theme Override
+ * ============================================================================
+ * 
+ * 设计理念 Design Philosophy:
+ * - 去掉小三角指向 (Remove arrow pointers)
+ * - 现代化列表动画 (Modern list animations)
+ * - 粗野主义原则 (Brutalist principles):
+ *   * 直角或极小圆角 (2px) - Right angles or minimal radius
+ *   * 无过渡或极短过渡 - No transitions or very short
+ *   * 硬边阴影或边框 - Hard-edged shadows or borders
+ *   * 无弹性动画 - No elastic/spring animations
+ *   * 直接、有力的视觉反馈 - Direct, powerful visual feedback
+ * 
+ * 参考风格 References:
+ * - shadcn/ui dropdown-menu, popover components
+ * - Native macOS/iOS menu style
+ * - Brutalist UI design
+ * ============================================================================
+ */
+
+/* ============================================================================
+   基础变量覆盖 Base Variable Overrides
+   ============================================================================ */
+:root {
+  /* 动画时长 - 极短，粗野主义风格 */
+  --el-transition-duration: 0.08s;
+  --el-transition-duration-fast: 0.05s;
+  
+  /* 缓动函数 - 线性或ease-out，无弹性 */
+  --el-transition-function-ease-in-out-bezier: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --el-transition-function-fast-bezier: cubic-bezier(0.4, 0, 1, 1);
+  
+  /* 圆角 - 极小 */
+  --el-border-radius-base: 2px;
+  --el-border-radius-small: 2px;
+  --el-border-radius-round: 2px;
+  
+  /* 阴影 - 硬边 */
+  --el-box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.1);
+  --el-box-shadow-light: 1px 1px 0 0 rgba(0, 0, 0, 0.08);
+  --el-box-shadow-lighter: 1px 1px 0 0 rgba(0, 0, 0, 0.05);
+  --el-box-shadow-dark: 3px 3px 0 0 rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================================================
+   1. DROPDOWN 下拉菜单 - shadcn/ui 风格
+   ============================================================================ */
+
+/* 下拉菜单弹出层 - 去掉箭头，硬边直角 */
+.el-dropdown__popper.el-popper {
+  border-radius: 2px !important;
+  box-shadow: 
+    0 0 0 1px var(--el-border-color),
+    0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  
+  /* 禁用默认动画，使用自定义 */
+  animation: dropdown-fade-in 0.12s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* 隐藏箭头 - shadcn风格 */
+.el-dropdown__popper.el-popper .el-popper__arrow {
+  display: none !important;
+}
+
+/* 下拉菜单列表容器 */
+.el-dropdown__popper .el-dropdown-menu {
+  border-radius: 2px !important;
+  padding: 4px !important;
+  background-color: var(--el-bg-color) !important;
+}
+
+/* 下拉菜单项 - 粗野主义风格 */
+.el-dropdown-menu__item {
+  border-radius: 2px !important;
+  transition: none !important;
+  padding: 8px 12px !important;
+  margin: 2px 0 !important;
+  font-size: 13px !important;
+  color: var(--el-text-color-regular) !important;
+  line-height: 1.5 !important;
+  
+  /* 移除所有过渡效果 */
+  transition-property: none !important;
+}
+
+/* 下拉菜单项 - 悬停状态 */
+.el-dropdown-menu__item:hover {
+  background-color: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+/* 下拉菜单项 - 激活/按压状态 */
+.el-dropdown-menu__item:active {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 下拉菜单项 - 禁用状态 */
+.el-dropdown-menu__item.is-disabled {
+  color: var(--el-text-color-disabled) !important;
+  cursor: not-allowed !important;
+}
+
+.el-dropdown-menu__item.is-disabled:hover {
+  background-color: transparent !important;
+}
+
+/* 下拉菜单项 - 图标 */
+.el-dropdown-menu__item .el-icon {
+  margin-right: 8px !important;
+  font-size: 14px !important;
+  color: var(--el-text-color-secondary) !important;
+  transition: none !important;
+}
+
+.el-dropdown-menu__item:hover .el-icon {
+  color: var(--el-text-color-primary) !important;
+}
+
+.el-dropdown-menu__item:active .el-icon {
+  color: var(--el-color-primary) !important;
+}
+
+/* 下拉菜单分割线 - 硬边 */
+.el-dropdown-menu__item--divided {
+  margin: 4px 0 !important;
+  border-top: 1px solid var(--el-border-color) !important;
+  pointer-events: none !important;
+}
+
+.el-dropdown-menu__item--divided::before {
+  display: none !important;
+}
+
+/* 下拉菜单动画 - fade + 轻微slide，无弹性 */
+@keyframes dropdown-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dropdown-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.99);
+  }
+}
+
+/* 下拉菜单消失动画 */
+.el-dropdown__popper.el-popper.is-disappearing {
+  animation: dropdown-fade-out 0.08s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
+
+/* ============================================================================
+   2. POPOVER 气泡卡片 - shadcn/ui 风格
+   ============================================================================ */
+
+/* Popover 弹出层 - 去掉箭头，硬边 */
+.el-popover.el-popper {
+  border-radius: 2px !important;
+  box-shadow: 
+    0 0 0 1px var(--el-border-color),
+    0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+  padding: 12px !important;
+  
+  /* 进入动画 */
+  animation: popover-fade-in 0.12s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* 隐藏箭头 */
+.el-popover.el-popper .el-popper__arrow {
+  display: none !important;
+}
+
+/* Popover 标题 - 粗野主义 */
+.el-popover__title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--el-text-color-primary) !important;
+  margin-bottom: 8px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid var(--el-border-color) !important;
+}
+
+/* Popover 内容 */
+.el-popover .el-popover__content {
+  font-size: 13px !important;
+  color: var(--el-text-color-regular) !important;
+  line-height: 1.6 !important;
+}
+
+/* Popover 动画 */
+@keyframes popover-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popover-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.el-popover.el-popper.is-disappearing {
+  animation: popover-fade-out 0.08s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
+
+/* ============================================================================
+   3. SELECT 选择器下拉 - 现代化简洁风格
+   ============================================================================ */
+
+/* Select 弹出层 - 去掉箭头 */
+.el-select__popper.el-popper {
+  border-radius: 2px !important;
+  box-shadow: 
+    0 0 0 1px var(--el-border-color),
+    0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+  margin-top: 4px !important;
+  
+  animation: select-fade-in 0.12s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* 隐藏箭头 */
+.el-select__popper.el-popper .el-popper__arrow {
+  display: none !important;
+}
+
+/* Select 下拉列表 */
+.el-select-dropdown {
+  border-radius: 2px !important;
+  padding: 4px !important;
+}
+
+/* Select 下拉项 */
+.el-select-dropdown__item {
+  border-radius: 2px !important;
+  transition: none !important;
+  padding: 8px 12px !important;
+  margin: 2px 0 !important;
+  font-size: 13px !important;
+  color: var(--el-text-color-regular) !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+
+/* Select 下拉项 - 悬停 */
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background-color: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+/* Select 下拉项 - 选中状态 */
+.el-select-dropdown__item.selected {
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  font-weight: 500 !important;
+}
+
+/* Select 下拉项 - 激活 */
+.el-select-dropdown__item:active {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Select 空状态 */
+.el-select-dropdown__empty {
+  padding: 20px 0 !important;
+  font-size: 13px !important;
+  color: var(--el-text-color-secondary) !important;
+}
+
+/* Select 分组标题 */
+.el-select-group__title {
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  color: var(--el-text-color-secondary) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Select 动画 */
+@keyframes select-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes select-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.el-select__popper.el-popper.is-disappearing {
+  animation: select-fade-out 0.08s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
+
+/* ============================================================================
+   4. MENU 菜单展开 - 简洁动画风格
+   ============================================================================ */
+
+/* 菜单弹出层 - 子菜单 */
+.el-sub-menu__popper.el-popper,
+.el-menu--popup-container {
+  border-radius: 2px !important;
+  box-shadow: 
+    0 0 0 1px var(--el-border-color),
+    0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+  padding: 4px !important;
+  
+  animation: menu-fade-in 0.1s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+/* 隐藏箭头 */
+.el-sub-menu__popper.el-popper .el-popper__arrow {
+  display: none !important;
+}
+
+/* 弹出菜单列表 */
+.el-menu--popup {
+  border-radius: 2px !important;
+  padding: 0 !important;
+  min-width: 160px !important;
+}
+
+/* 弹出菜单项 */
+.el-menu--popup .el-menu-item {
+  border-radius: 2px !important;
+  transition: none !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  padding: 0 12px !important;
+  margin: 2px 0 !important;
+  font-size: 13px !important;
+  color: var(--el-text-color-regular) !important;
+}
+
+/* 弹出菜单项 - 悬停 */
+.el-menu--popup .el-menu-item:hover {
+  background-color: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+/* 弹出菜单项 - 激活 */
+.el-menu--popup .el-menu-item.is-active {
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  font-weight: 500 !important;
+}
+
+/* 弹出菜单项 - 按压 */
+.el-menu--popup .el-menu-item:active {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 子菜单标题 */
+.el-sub-menu__title {
+  transition: none !important;
+}
+
+/* 子菜单展开动画 - 简洁无弹性 */
+.el-sub-menu .el-menu {
+  transition: none !important;
+}
+
+/* 子菜单箭头 - 简洁旋转 */
+.el-sub-menu__icon-arrow {
+  transition: transform 0.08s linear !important;
+}
+
+.el-sub-menu.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow {
+  transform: rotate(90deg) !important;
+}
+
+/* 菜单动画 */
+@keyframes menu-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes menu-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+.el-sub-menu__popper.el-popper.is-disappearing {
+  animation: menu-fade-out 0.08s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
+
+/* ============================================================================
+   5. TOOLTIP 文字提示 - 极简风格
+   ============================================================================ */
+
+/* Tooltip 弹出层 - 可选：去掉箭头 */
+.el-tooltip__popper.el-popper {
+  border-radius: 2px !important;
+  box-shadow: 
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  max-width: 280px !important;
+  word-wrap: break-word !important;
+  
+  /* 极淡的进入动画 */
+  animation: tooltip-fade-in 0.08s ease-out !important;
+}
+
+/* Tooltip 隐藏箭头 - 可选功能，取消注释即可启用 */
+/*
+.el-tooltip__popper.el-popper .el-popper__arrow {
+  display: none !important;
+}
+*/
+
+/* Tooltip 内容 */
+.el-tooltip__popper .el-tooltip__content {
+  font-size: 12px !important;
+}
+
+/* 深色 Tooltip - 保持简洁 */
+.el-tooltip__popper.is-dark {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Tooltip 动画 */
+@keyframes tooltip-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tooltip-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+.el-tooltip__popper.el-popper.is-disappearing {
+  animation: tooltip-fade-out 0.06s ease-in forwards !important;
+}
+
+/* ============================================================================
+   6. 通用样式建议 General Styling Recommendations
+   ============================================================================ */
+
+/* 所有弹出层通用 - 禁用默认动画 */
+.el-popper {
+  transition: none !important;
+}
+
+/* 弹出层触发元素 */
+.el-dropdown,
+.el-tooltip__trigger {
+  transition: none !important;
+}
+
+/* 硬边按钮风格 */
+.el-button {
+  border-radius: 2px !important;
+  transition: none !important;
+}
+
+.el-button:active:not(.is-disabled) {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transform: none !important;
+}
+
+/* 输入框风格 */
+.el-input__wrapper {
+  border-radius: 2px !important;
+  transition: none !important;
+}
+
+.el-input__wrapper.is-focus {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 卡片风格 */
+.el-card {
+  border-radius: 2px !important;
+  border: 1px solid var(--el-border-color) !important;
+  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 对话框风格 */
+.el-dialog {
+  border-radius: 2px !important;
+  box-shadow: 
+    0 0 0 1px var(--el-border-color),
+    0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ============================================================================
+   7. 暗色模式覆盖 Dark Mode Overrides
+   ============================================================================ */
+
+html.dark {
+  /* 暗色下阴影调整 */
+  --el-box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.3);
+  --el-box-shadow-light: 1px 1px 0 0 rgba(0, 0, 0, 0.2);
+}
+
+html.dark .el-dropdown__popper.el-popper,
+html.dark .el-popover.el-popper,
+html.dark .el-select__popper.el-popper,
+html.dark .el-sub-menu__popper.el-popper {
+  box-shadow: 
+    0 0 0 1px var(--el-border-color-darker),
+    0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .el-tooltip__popper.el-popper {
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================================================
+   8. 动画时长和缓动函数建议 Animation Guidelines
+   ============================================================================ */
+
+/*
+ * 动画时长建议 Animation Duration Guidelines:
+ * 
+ * 快速反馈 (Quick feedback): 50-80ms
+ *   - 按钮按压
+ *   - 颜色变化
+ *   - 图标状态切换
+ * 
+ * 标准过渡 (Standard transition): 100-150ms
+ *   - 下拉菜单出现/消失
+ *   - Popover 出现/消失
+ *   - Tooltip 显示/隐藏
+ * 
+ * 列表动画 (List animations): 80-120ms
+ *   - 菜单项滑入
+ *   - Select 选项出现
+ * 
+ * 缓动函数建议 Easing Function Guidelines:
+ * 
+ * 出现动画 (Enter): cubic-bezier(0.25, 0.1, 0.25, 1)
+ *   - 自然减速，无弹性
+ * 
+ * 消失动画 (Leave): cubic-bezier(0.4, 0, 1, 1)
+ *   - 加速消失
+ * 
+ * 移动动画 (Movement): linear 或 cubic-bezier(0.25, 0.1, 0.25, 1)
+ *   - 简洁直接
+ * 
+ * 避免使用 (Avoid):
+ *   - ease-in-out-back (回弹效果)
+ *   - spring animations (弹簧动画)
+ *   - 超过 200ms 的过渡
+ */
+
+/* ============================================================================
+   9. 视觉样式建议 Visual Styling Guidelines
+   ============================================================================ */
+
+/*
+ * 圆角 Border Radius:
+ *   基础组件: 2px (极小圆角)
+ *   按钮: 2px 或 0 (直角)
+ *   输入框: 2px
+ *   卡片: 2px
+ *   对话框: 2px
+ *   弹出层: 2px
+ * 
+ * 阴影 Box Shadows:
+ *   层级1 (hover状态): 1px 1px 0 0 rgba(0,0,0,0.05)
+ *   层级2 (下拉菜单): 0 0 0 1px border-color, 0 4px 12px rgba(0,0,0,0.08)
+ *   层级3 (对话框): 0 0 0 1px border-color, 0 8px 24px rgba(0,0,0,0.08)
+ *   特点: 硬边 + 1px border outline 创造粗野主义边框感
+ * 
+ * 边框 Borders:
+ *   默认: 1px solid var(--el-border-color)
+ *   激活: 2px solid var(--el-color-primary)
+ *   特点: 硬边、明确的分界
+ * 
+ * 间距 Spacing:
+ *   菜单项内边距: 8px 12px
+ *   菜单项间距: 2px 0
+ *   菜单容器内边距: 4px
+ *   弹出层边距: 4px (与触发元素的距离)
+ * 
+ * 颜色 Colors:
+ *   文字: 中性灰，避免纯黑
+ *   背景: 纯白或极浅灰
+ *   悬停: 浅灰背景变化
+ *   激活: 主色 outline + 浅色背景
+ */

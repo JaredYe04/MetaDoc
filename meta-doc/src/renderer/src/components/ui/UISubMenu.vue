@@ -377,8 +377,9 @@ onBeforeUnmount(() => {
   height: 40px;
   line-height: 40px;
   margin: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: none !important;
   position: relative;
   padding-left: 12px;
   display: flex;
@@ -389,18 +390,67 @@ onBeforeUnmount(() => {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: pointer;
+  color: var(--el-text-color-primary);
 }
 
+/* 粗野主义悬停效果 - 统一灰色背景 */
 .ui-sub-menu__title:hover {
   background-color: v-bind('activeBackgroundColor');
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  color: var(--el-text-color-primary);
 }
 
-/* 打开的菜单显示 active 颜色 */
+/* 打开的菜单 - 使用浅色边框，与 :active 区分开 */
 .ui-sub-menu__title.is-open {
-  background-color: v-bind('activeBackgroundColor');
-  color: v-bind('activeTextColor');
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color) !important;
+  background-color: v-bind('activeBackgroundColor') !important;
+  color: var(--el-text-color-primary) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.ui-sub-menu__title.is-open .ui-sub-menu__icon,
+.ui-sub-menu__title.is-open .ui-sub-menu__icon-image,
+.ui-sub-menu__title.is-open .ui-sub-menu__label,
+.ui-sub-menu__title.is-open .ui-sub-menu__arrow {
+  color: var(--el-text-color-primary) !important;
+}
+
+/* is-open 状态下 hover 保持 */
+.ui-sub-menu__title.is-open:hover {
+  background-color: v-bind('activeBackgroundColor') !important;
+  border: 1px solid var(--el-border-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__icon,
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__icon-image,
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__label,
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__arrow {
+  color: var(--el-text-color-primary) !important;
+}
+
+/* 粗野主义按压效果 */
+.ui-sub-menu__title:active {
+  border: 1px solid var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 已打开状态下的按压效果 - 使用更深的颜色区分 */
+.ui-sub-menu__title.is-open:active {
+  background-color: var(--el-color-primary-light-7) !important;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.ui-sub-menu__title:active .ui-sub-menu__icon,
+.ui-sub-menu__title:active .ui-sub-menu__icon-image,
+.ui-sub-menu__title:active .ui-sub-menu__label,
+.ui-sub-menu__title:active .ui-sub-menu__arrow {
+  color: var(--el-color-primary) !important;
 }
 
 .ui-sub-menu__title.is-collapsed {
@@ -476,23 +526,76 @@ onBeforeUnmount(() => {
   line-height: 34px;
   margin: 1px 4px;
   padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.ui-sub-menu__title.is-nested:hover {
+  background-color: v-bind('activeBackgroundColor');
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+
+.ui-sub-menu__title.is-nested.is-open {
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border: 1px solid var(--el-color-primary);
+  border-radius: 4px;
+}
+
+.ui-sub-menu__title.is-nested.is-open:hover {
+  background-color: v-bind('activeBackgroundColor');
+  border: 1px solid var(--el-border-color);
+  color: var(--el-text-color-primary);
 }
 
 .ui-sub-menu__arrow {
   font-size: 12px;
   margin-left: auto;
-  transition: transform 0.2s;
+  transition: none !important;
+  color: var(--el-text-color-placeholder);
+}
+
+.ui-sub-menu__title:hover .ui-sub-menu__arrow {
+  color: var(--el-text-color-secondary);
 }
 
 .ui-sub-menu__title.is-open .ui-sub-menu__arrow {
   transform: rotate(90deg);
+  color: var(--el-color-primary);
+}
+
+/* 覆盖 el-tooltip__trigger 的默认样式 */
+.ui-sub-menu__title.el-tooltip__trigger {
+  border-radius: 4px !important;
+  transition: none !important;
+  border: 1px solid transparent !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+.ui-sub-menu__title.el-tooltip__trigger:hover {
+  background-color: v-bind('activeBackgroundColor') !important;
+  border: 1px solid var(--el-border-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+.ui-sub-menu__title.el-tooltip__trigger.is-open {
+  background-color: var(--el-color-primary-light-9) !important;
+  border: 1px solid var(--el-color-primary) !important;
+  color: var(--el-color-primary) !important;
+}
+
+.ui-sub-menu__title.el-tooltip__trigger.is-open:hover {
+  background-color: v-bind('activeBackgroundColor') !important;
+  border: 1px solid var(--el-border-color) !important;
+  color: var(--el-text-color-primary) !important;
 }
 
 .ui-sub-menu__popup {
   position: fixed;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--el-border-color);
   overflow: visible;
   padding: 0;
   min-width: 180px;
@@ -503,20 +606,39 @@ onBeforeUnmount(() => {
 }
 
 .ui-sub-menu__popup-content {
-  border-radius: 10px;
+  border-radius: 4px;
   background-color: var(--sub-menu-bg);
   border: none;
   padding: 4px;
   overflow: visible;
 }
 
-.sub-menu-fade-enter-active,
-.sub-menu-fade-leave-active {
-  transition: opacity 0.15s ease;
+/* 粗野主义动画 - fade + slide，无弹性 */
+.sub-menu-fade-enter-active {
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
 }
 
-.sub-menu-fade-enter-from,
+.sub-menu-fade-leave-active {
+  transition: opacity 0.1s ease-in, transform 0.1s ease-in;
+}
+
+.sub-menu-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.sub-menu-fade-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sub-menu-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .sub-menu-fade-leave-to {
   opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

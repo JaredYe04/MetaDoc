@@ -4,6 +4,7 @@ import { is } from '@electron-toolkit/utils'
 
 import { dispatchLanguageToWindow, t } from './i18n'
 import { createMainLogger } from './logger'
+import { globalTabRegistry } from './main-calls'
 
 type AuxWindowId =
   | 'setting'
@@ -159,6 +160,12 @@ const setupWindowLifecycle = (id: AuxWindowId, win: BrowserWindow): void => {
   })
 
   win.on('closed', () => {
+    // 清理全局注册表中该窗口的标签页
+    try {
+      globalTabRegistry.cleanupWindowTabs(id)
+    } catch (error) {
+      logger.warn('清理窗口标签页失败:', error)
+    }
     windowStates[id] = { instance: null, ready: false, pendingShow: false }
   })
 

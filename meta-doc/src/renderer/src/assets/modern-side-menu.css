@@ -9,7 +9,6 @@
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  transition: width 0.3s ease;
   overflow: hidden;
 }
 
@@ -20,7 +19,6 @@
   margin: 4px 8px !important; /* 上下 4px，左右 8px 边距 */
   padding: 0 12px !important;
   border-radius: 6px !important;
-  transition: all 0.2s ease !important;
   font-size: 13px !important;
   display: flex !important;
   align-items: center !important;

@@ -27,9 +27,9 @@
         </div>
         <p class="editor-mode-change-later">{{ t('editorModeFirstTime.changeLaterHint') }}</p>
         <div class="editor-mode-panel-footer">
-          <el-button type="primary" size="large" @click="confirmFirstTimeEditorMode">
+          <Button variant="default" size="lg" @click="confirmFirstTimeEditorMode">
             {{ t('common.confirm') }}
-          </el-button>
+          </Button>
         </div>
       </div>
     </div>
@@ -135,7 +135,8 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { ElButton, ElDialog, ElMessageBox, ElMessage } from 'element-plus'
+import { ElDialog, ElMessageBox, ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import '../assets/aero-div.css'

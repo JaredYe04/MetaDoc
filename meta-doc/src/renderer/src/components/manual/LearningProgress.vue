@@ -12,17 +12,21 @@
     />
     <div class="progress-info">
       <span>{{ completedCount }} / {{ totalCount }} {{ $t('userManual.progress.completed') || '已完成' }}</span>
-      <el-tooltip v-if="showListSwitch" :content="$t('userManual.sidebar.onlyRecommendedTip')" placement="top">
-        <div class="progress-info-switch">
-          <span class="progress-info-label">{{ $t('userManual.sidebar.onlyRecommended') }}</span>
-          <el-switch
-            :model-value="onlyRecommended"
-            size="small"
-            class="progress-info-switch-control"
-            @update:model-value="emit('update:onlyRecommended', $event)"
-          />
-        </div>
-      </el-tooltip>
+      <Tooltip v-if="showListSwitch">
+        <TooltipTrigger as-child>
+          <div class="progress-info-switch">
+            <span class="progress-info-label">{{ $t('userManual.sidebar.onlyRecommended') }}</span>
+            <Switch
+              :checked="onlyRecommended"
+              class="progress-info-switch-control"
+              @update:checked="emit('update:onlyRecommended', $event)"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p>{{ $t('userManual.sidebar.onlyRecommendedTip') }}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   </div>
 </template>
@@ -30,6 +34,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 const props = withDefaults(defineProps<{
   /** 是否只显示推荐列表（否则显示完整目录） */
@@ -116,7 +126,7 @@ const progressColor = computed(() => {
 }
 
 .progress-info-switch-control {
-  --el-switch-height: 18px;
+  transform: scale(0.85);
 }
 </style>
 

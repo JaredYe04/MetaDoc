@@ -64,9 +64,9 @@
       </div>
     </div>
     <template #footer>
-      <el-button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
+      <Button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
         {{ $t('wordCountDialog.close') }}
-      </el-button>
+      </Button>
     </template>
   </el-dialog>
 </template>
@@ -76,6 +76,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
 import { getWordCountAdapter, type WordCountStats } from '../utils/word-count-adapter'
+import { Button } from '@renderer/components/ui/button'
 
 const { t } = useI18n()
 
@@ -220,15 +221,5 @@ function handleClose() {
 :deep(.el-dialog__headerbtn:hover) {
   color: v-bind('themeState.currentTheme.textColor');
   opacity: 0.7;
-}
-
-:deep(.el-button) {
-  background-color: transparent;
-  border-color: v-bind('themeState.currentTheme.textColor + "66"');
-}
-
-:deep(.el-button:hover) {
-  background-color: v-bind('themeState.currentTheme.textColor + "11"');
-  border-color: v-bind('themeState.currentTheme.textColor + "99"');
 }
 </style>

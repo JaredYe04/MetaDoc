@@ -36,28 +36,28 @@
           >
             {{ getErrorTypeLabel(type) }}: {{ count }}
           </el-tag>
-          <el-button-group class="mode-switch">
-            <el-button
-              :type="viewMode === 'unified' ? 'primary' : 'default'"
-              size="small"
+          <div class="mode-switch flex gap-1">
+            <Button
+              :variant="viewMode === 'unified' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.proofread.unifiedView') }}
-            </el-button>
-            <el-button
-              :type="viewMode === 'split' ? 'primary' : 'default'"
-              size="small"
+            </Button>
+            <Button
+              :variant="viewMode === 'split' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'split'"
             >
               {{ $t('agent.display.proofread.splitView') }}
-            </el-button>
-          </el-button-group>
+            </Button>
+          </div>
         </div>
       </div>
 
       <!-- 统一视图（错误列表） -->
       <div v-if="viewMode === 'unified'">
-        <el-scrollbar max-height="500px">
+        <ScrollArea class="max-h-[500px]">
           <div class="errors-list">
             <div
               v-if="!resultData.errors || resultData.errors.length === 0"
@@ -120,7 +120,7 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <!-- 分列视图（Monaco 编辑器对比） -->
@@ -175,6 +175,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

@@ -17,7 +17,7 @@
             }}
           </span>
         </div>
-        <el-scrollbar height="400px" class="document-list-scrollbar">
+        <ScrollArea class="h-[400px] document-list-scrollbar">
           <div class="document-list">
             <div
               v-for="tab in documentTabs"
@@ -46,7 +46,8 @@
               <el-empty :description="t('aigc.noDocuments')" :image-size="80" />
             </div>
           </div>
-        </el-scrollbar>
+          <ScrollBar />
+        </ScrollArea>
       </div>
       <template #footer>
         <div class="dialog-footer">
@@ -90,7 +91,7 @@
           <div v-else class="session-content-panel" :style="panelStyle">
             <!-- 顶部工具栏 -->
             <div class="toolbar-section">
-              <el-scrollbar class="toolbar-scrollbar" always>
+              <ScrollArea class="toolbar-scrollbar">
                 <div class="toolbar-content">
                   <div class="toolbar-left">
                     <template v-if="!articleContent">
@@ -179,7 +180,7 @@
                     </DropdownMenu>
                   </div>
                 </div>
-              </el-scrollbar>
+              </ScrollArea>
             </div>
 
             <!-- 主内容区域：无报告时 Monaco 70% / 报告 30%，有报告时 Monaco 30% / 报告 70% -->
@@ -219,14 +220,14 @@
                         {{ t('aigc.backToTop', '回到顶端') }}
                       </Button>
                     </div>
-                    <el-scrollbar
-                      class="report-scrollbar"
+                    <ScrollArea
                       v-if="reportMarkdown"
-                      always
+                      class="report-scrollbar"
                       @click="onReportAreaClick"
                     >
                       <VditorPreview :markdown="reportMarkdown" @rendered="onReportRendered" />
-                    </el-scrollbar>
+                      <ScrollBar />
+                    </ScrollArea>
                     <div v-else class="report-placeholder">
                       <p v-if="!overallAnalysis">{{ t('aigc.noAnalysisYet') }}</p>
                       <p v-else>{{ t('aigc.analyzing') }}</p>
@@ -254,6 +255,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, Document, Folder, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@renderer/components/ui/dropdown-menu'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { aigcDetectionSessionsDb, type AigcDetectionSession } from '../utils/db/tool-sessions-db'
@@ -962,7 +964,7 @@ function applyReportParagraphCollapse(container: HTMLElement) {
 /** 报告区回到顶端 */
 function scrollReportToTop() {
   const wrap = reportSectionRef.value?.querySelector(
-    '.report-scrollbar .el-scrollbar__wrap'
+    '.report-scrollbar [data-radix-scroll-area-viewport]'
   ) as HTMLElement | null
   if (wrap) wrap.scrollTop = 0
 }
@@ -2281,7 +2283,7 @@ onMounted(() => {
   width: 100%;
 }
 
-.toolbar-scrollbar :deep(.el-scrollbar__wrap) {
+.toolbar-scrollbar :deep([data-radix-scroll-area-viewport]) {
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -2381,11 +2383,13 @@ onMounted(() => {
   overflow: hidden;
   height: 100%;
 }
-.report-scrollbar :deep(.el-scrollbar__wrap) {
+.report-scrollbar :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+}
+
+.report-scrollbar :deep([data-radix-scroll-area-viewport])::-webkit-scrollbar {
+  width: 6px;
 }
 .report-scrollbar :deep(.el-scrollbar__wrap)::-webkit-scrollbar {
   display: none;

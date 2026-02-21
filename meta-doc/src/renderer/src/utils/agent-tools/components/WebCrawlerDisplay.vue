@@ -40,10 +40,15 @@
         </div>
       </div>
 
-      <el-tabs v-model="activeTab" type="border-card" class="content-tabs">
+      <Tabs v-model="activeTab" class="content-tabs border-card">
+        <TabsList>
+          <TabsTrigger value="render">{{ $t('agent.display.webCrawler.renderView') }}</TabsTrigger>
+          <TabsTrigger value="raw">{{ $t('agent.display.webCrawler.rawContent') }}</TabsTrigger>
+          <TabsTrigger value="headers">{{ $t('agent.display.webCrawler.headers') }}</TabsTrigger>
+        </TabsList>
         <!-- 渲染视图 -->
-        <el-tab-pane :label="$t('agent.display.webCrawler.renderView')" name="render">
-          <el-scrollbar max-height="500px">
+        <TabsContent value="render">
+          <ScrollArea class="max-h-[500px]">
             <div class="render-container">
               <!-- JSON 渲染 - 使用 Monaco 编辑器 -->
               <div v-if="isJsonContent" class="monaco-renderer" :style="rendererStyle">
@@ -76,19 +81,19 @@
                 <pre class="text-content" :style="codeStyle">{{ resultData.content }}</pre>
               </div>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 原始内容 -->
-        <el-tab-pane :label="$t('agent.display.webCrawler.rawContent')" name="raw">
-          <el-scrollbar max-height="500px">
+        <TabsContent value="raw">
+          <ScrollArea class="max-h-[500px]">
             <pre class="raw-content" :style="codeStyle">{{ resultData.content }}</pre>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 响应头 -->
-        <el-tab-pane :label="$t('agent.display.webCrawler.headers')" name="headers">
-          <el-scrollbar max-height="500px">
+        <TabsContent value="headers">
+          <ScrollArea class="max-h-[500px]">
             <div class="headers-list" :style="headersStyle">
               <div
                 v-for="(value, key) in resultData.headers"
@@ -100,9 +105,9 @@
                 <span class="header-value" :style="valueStyle">{{ value }}</span>
               </div>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
-      </el-tabs>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
 
     <div
@@ -160,6 +165,8 @@ import { Loading } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'

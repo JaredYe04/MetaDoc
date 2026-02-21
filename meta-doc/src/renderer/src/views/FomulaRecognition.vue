@@ -31,14 +31,19 @@
             <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
             <div class="toolbar-group" :style="toolbarGroupStyle">
               <div class="flex flex-col items-start tool-group">
-                <el-segmented v-model="tool" :options="toolOptions" size="default">
-                  <template #default="scope">
-                    <div :class="['flex', 'items-center', 'gap-2', 'flex-col']">
-                      <img :src="scope.item.icon" alt="" class="formula-tool-icon" />
-                      <div>{{ $t(scope.item.label) }}</div>
+                <ToggleGroup v-model="tool" type="single" class="formula-tool-toggle-group">
+                  <ToggleGroupItem
+                    v-for="option in toolOptions"
+                    :key="option.value"
+                    :value="option.value"
+                    class="formula-tool-item"
+                  >
+                    <div class="flex items-center gap-2 flex-col">
+                      <img :src="option.icon" alt="" class="formula-tool-icon" />
+                      <div>{{ $t(option.label) }}</div>
                     </div>
-                  </template>
-                </el-segmented>
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               <div class="undo-redo-group tool-group">
@@ -134,8 +139,8 @@
             <div class="content content-vertical">
               <!-- 上方：画布区域 70% -->
               <div class="content-top display-panel" id="canvasContainer" ref="canvasContainerRef">
-                <el-scrollbar>
-                  <div class="canvas-wrapper" :style="canvasWrapperStyle">
+              <ScrollArea>
+                <div class="canvas-wrapper" :style="canvasWrapperStyle">
                     <canvas
                       ref="drawingCanvas"
                       class="drawing-canvas"
@@ -169,7 +174,8 @@
                       @mousedown.prevent="startCanvasResize"
                     ></div>
                   </div>
-                </el-scrollbar>
+                  <ScrollBar />
+                </ScrollArea>
               </div>
 
               <!-- 下方：公式面板 30% -->
@@ -228,7 +234,7 @@
       :title="$t('formulaRecognition.edit_formula_dialog_title')"
       v-model="editDialogVisible"
     >
-      <el-input type="textarea" v-model="latexResult" rows="4" />
+      <Textarea v-model="latexResult" rows="4" />
       <template #footer>
         <Button @click="editDialogVisible = false">{{
           $t('formulaRecognition.cancel')
@@ -244,11 +250,20 @@
       <div>
         <el-form label-width="100px">
           <el-form-item :label="$t('aigraph.exportFormat')">
-            <el-radio-group v-model="exportFormat">
-              <el-radio value="svg">{{ $t('aigraph.vectorImage') }}</el-radio>
-              <el-radio value="png">{{ $t('aigraph.bitmapImage') }}</el-radio>
-              <el-radio value="pdf">{{ $t('aigraph.pdfDocument') }}</el-radio>
-            </el-radio-group>
+            <RadioGroup v-model="exportFormat" class="flex flex-row gap-4">
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="svg" id="export-svg" />
+                <label for="export-svg" class="text-sm cursor-pointer">{{ $t('aigraph.vectorImage') }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="png" id="export-png" />
+                <label for="export-png" class="text-sm cursor-pointer">{{ $t('aigraph.bitmapImage') }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="pdf" id="export-pdf" />
+                <label for="export-pdf" class="text-sm cursor-pointer">{{ $t('aigraph.pdfDocument') }}</label>
+              </div>
+            </RadioGroup>
           </el-form-item>
         </el-form>
       </div>
@@ -267,12 +282,16 @@ import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { ElNotification, ElMessage } from 'element-plus'
 import { CopyDocument, DocumentCopy, Edit, Picture, Upload } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { convertBase64ToBlob, toBase64 } from '../utils/image-utils'
 import { simpletexOcr } from '../utils/simpletex-utils'
 import { themeState } from '../utils/themes'
 import { MdPreview } from 'md-editor-v3'
 import '../assets/tool-group.css'
 import { useI18n } from 'vue-i18n'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { createRendererLogger } from '../utils/logger.ts'
 import { exportSingleFormula } from '../utils/math-renderer.js'
 import SessionList from '../components/common/SessionList.vue'
@@ -1393,6 +1412,27 @@ const toolbarGroupStyle = computed(() => ({
   object-fit: contain;
 }
 
+.formula-tool-toggle-group {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: v-bind('themeState.currentTheme.background2nd || "#f5f5f5"');
+  border-radius: 8px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+}
+
+.formula-tool-item {
+  min-width: 60px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.formula-tool-item[data-state='on'] {
+  background: v-bind('themeState.currentTheme.primary || "#409eff"');
+  color: white;
+}
+
 .formula-toolbar-icon {
   width: 18px;
   height: 18px;
@@ -1433,12 +1473,9 @@ const toolbarGroupStyle = computed(() => ({
   width: 100%;
 }
 
-.content-top .el-scrollbar {
+.content-top [data-radix-scroll-area-viewport] {
   flex: 1;
   min-height: 0;
-}
-
-.content-top .el-scrollbar__wrap {
   overflow-x: auto;
   overflow-y: auto;
 }

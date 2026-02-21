@@ -13,7 +13,7 @@
 
       <!-- 菜单项列表 -->
       <div class="menu-items-list">
-        <el-scrollbar height="400px">
+        <ScrollArea class="h-[400px]">
           <div class="menu-items-container" ref="sortableContainer">
             <template
               v-for="(item, index) in sortedMenuItems"
@@ -66,27 +66,24 @@
                   <span class="menu-item-label">{{ item.label }}</span>
                 </div>
                 <div class="menu-item-actions" v-if="!item.isCore">
-                  <el-switch
-                    v-model="item.visible"
-                    :active-text="$t('leftMenu.menuConfig.visible')"
-                    :inactive-text="$t('leftMenu.menuConfig.hidden')"
-                    inline-prompt
-                    @change="handleVisibilityChange"
+                  <Switch
+                    :checked="item.visible"
+                    @update:checked="(val) => { item.visible = val; handleVisibilityChange() }"
                   />
                 </div>
               </div>
             </template>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleReset">{{ $t('leftMenu.menuConfig.reset') }}</el-button>
-        <el-button type="primary" @click="handleSave">{{
+        <Button @click="handleReset">{{ $t('leftMenu.menuConfig.reset') }}</Button>
+        <Button type="primary" @click="handleSave">{{
           $t('leftMenu.menuConfig.save')
-        }}</el-button>
+        }}</Button>
       </div>
     </template>
   </el-dialog>
@@ -99,6 +96,9 @@ import { Rank } from '@element-plus/icons-vue'
 import { getSetting, setSetting } from '../utils/settings'
 import { createRendererLogger } from '../utils/logger'
 import Sortable from 'sortablejs'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Switch } from '@renderer/components/ui/switch'
 
 const sortableContainer = ref<HTMLElement | null>(null)
 

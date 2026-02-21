@@ -91,9 +91,9 @@
 
                   <el-table-column :label="t('knowledgeBase.enabled')" width="90">
                     <template #default="{ row }">
-                      <el-switch
-                        v-model="row.info.enabled"
-                        @change="(val: boolean) => toggleEnable(row, val)"
+                      <Switch
+                        :checked="row.info.enabled"
+                        @update:checked="(val: boolean) => toggleEnable(row, val)"
                       />
                     </template>
                   </el-table-column>
@@ -149,13 +149,11 @@
                   style="margin-bottom: 5px"
                 />
               </el-form-item>
-              <el-input
+              <Input
                 v-model="searchQuery"
                 :placeholder="t('knowledgeBase.searchTest.placeholder')"
-                size="small"
-                clearable
-                @keyup.enter.native="doSearch"
-                style="margin-bottom: 10px"
+                @keyup.enter="doSearch"
+                class="mb-2"
               />
               <Button variant="default" size="sm" @click="doSearch" :loading="searching">{{
                 t('knowledgeBase.searchTest.searchBtn')
@@ -248,11 +246,10 @@
                 >
                   <el-descriptions-item :label="t('knowledgeBase.filename')">
                     <template v-if="isEditing">
-                      <el-input
+                      <Input
                         v-model="editFilename"
-                        size="small"
                         class="edit-filename-input"
-                        @keyup.enter.native="onConfirm"
+                        @keyup.enter="onConfirm"
                       />
                       <Button
                         size="sm"
@@ -312,10 +309,10 @@
                   </el-descriptions-item>
 
                   <el-descriptions-item :label="t('knowledgeBase.enabled_state')">
-                    <el-switch
+                    <Switch
                       v-if="selectedItem && selectedItem.info"
-                      v-model="selectedItem.info.enabled"
-                      @change="(val: boolean) => selectedItem && toggleEnable(selectedItem, val)"
+                      :checked="selectedItem.info.enabled"
+                      @update:checked="(val: boolean) => selectedItem && toggleEnable(selectedItem, val)"
                     />
                   </el-descriptions-item>
                 </el-descriptions>
@@ -361,6 +358,8 @@ import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Switch } from '@renderer/components/ui/switch'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'

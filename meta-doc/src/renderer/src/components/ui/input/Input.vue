@@ -1,4 +1,4 @@
-<script setup >
+<script setup lang="ts">
 import type { HTMLAttributes } from "vue"
 import { useVModel } from "@vueuse/core"
 import { cn } from "@renderer/lib/utils"

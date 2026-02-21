@@ -5,39 +5,42 @@
     </div>
 
     <div class="feedback-form-scroll">
-      <el-form :model="form" label-position="top" class="feedback-form">
-        <el-form-item :label="$t('userFeedback.feedbackType')" required>
-          <el-select
+      <Form class="feedback-form space-y-4">
+        <FormField :label="$t('userFeedback.feedbackType')" name="type" required>
+          <Select
             v-model="form.type"
-            :placeholder="$t('userFeedback.selectType')"
-            style="width: 100%"
-            :style="{ color: themeState.currentTheme.textColor }"
             :disabled="submitting"
           >
-            <el-option
-              v-for="opt in feedbackTypeOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
-        </el-form-item>
+            <SelectTrigger :style="{ color: themeState.currentTheme.textColor, width: '100%' }">
+              <SelectValue :placeholder="$t('userFeedback.selectType')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="opt in feedbackTypeOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
 
-        <el-form-item :label="$t('userFeedback.titleLabel')" required>
-          <el-input
+        <FormField :label="$t('userFeedback.titleLabel')" name="title" required>
+          <Input
             v-model="form.title"
             :placeholder="$t('userFeedback.titlePlaceholder')"
             maxlength="200"
-            show-word-limit
             :disabled="submitting"
           />
-        </el-form-item>
+          <div class="text-xs text-muted-foreground mt-1">{{ form.title.length }}/200</div>
+        </FormField>
 
-        <el-form-item :label="$t('userFeedback.bodyLabel')" required>
+        <FormField :label="$t('userFeedback.bodyLabel')" name="body" required>
           <div ref="editorContainer" class="monaco-editor-container"></div>
-        </el-form-item>
+        </FormField>
 
-        <el-form-item :label="$t('userFeedback.attachments')">
+        <FormField :label="$t('userFeedback.attachments')" name="attachments">
           <div class="attachments-area">
             <el-upload
               ref="uploadRef"
@@ -97,7 +100,7 @@
             </div>
             <div v-if="attachmentsError" class="attachment-error">{{ attachmentsError }}</div>
           </div>
-        </el-form-item>
+        </FormField>
 
         <div class="feedback-footer">
           <div class="footer-hint">{{ $t('userFeedback.footerHint') }}</div>
@@ -112,7 +115,7 @@
             <span class="footer-copy" @click="copyToClipboard('1079841705')">1079841705</span>
           </div>
         </div>
-      </el-form>
+      </Form>
     </div>
 
     <div class="feedback-submit-bar">
@@ -132,6 +135,15 @@ import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadInstance } from 'element-plus'
 import { View, CircleClose, Check } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'

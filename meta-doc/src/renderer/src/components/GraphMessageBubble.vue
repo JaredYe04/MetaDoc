@@ -2,17 +2,23 @@
 import '../assets/response-container.css'
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import {
-  Avatar,
-  Delete,
-  Edit,
-  Refresh,
+  Trash2,
+  Pencil,
+  RefreshCw,
   User,
-  More,
-  CopyDocument,
-  DocumentAdd,
-  FolderAdd
-} from '@element-plus/icons-vue'
+  MoreVertical,
+  Copy,
+  FilePlus,
+  FolderPlus
+} from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { MdEditor, MdPreview } from 'md-editor-v3'
@@ -342,49 +348,50 @@ onBeforeUnmount(() => {
     ></el-avatar>
     <!-- 用户消息的操作按钮（在左侧） -->
     <transition name="fade">
-      <el-dropdown
+      <DropdownMenu
         v-if="role === 'user' && showActions"
-        @command="handleActionCommand"
-        trigger="click"
         @click.stop
-        @visible-change="handleDropdownVisibleChange"
+        @update:open="handleDropdownVisibleChange"
         class="side-button"
-        @mouseenter="handleActionsMouseEnter"
-        @mouseleave="handleActionsMouseLeave"
       >
-        <Button circle size="small"><el-icon><More /></el-icon></Button>
-        <template #dropdown>
-          <el-dropdown-menu
-            @mouseenter="handleDropdownMouseEnter"
-            @mouseleave="handleDropdownMouseLeave"
-          >
-            <el-dropdown-item command="copy">
-              <el-icon style="margin-right: 8px"><CopyDocument /></el-icon>
-              {{ t('common.copy', '复制') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="insert-to-document">
-              <el-icon style="margin-right: 8px"><DocumentAdd /></el-icon>
-              {{ t('aiChat.insertToDocument', '插入到文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="export-to-document">
-              <el-icon style="margin-right: 8px"><FolderAdd /></el-icon>
-              {{ t('aiChat.exportToDocument', '导出到新文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="edit">
-              <el-icon style="margin-right: 8px"><Edit /></el-icon>
-              {{ t('messageBubble.edit', '编辑') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="regenerate">
-              <el-icon style="margin-right: 8px"><Refresh /></el-icon>
-              {{ t('messageBubble.regenerate', '重新生成') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="delete" divided>
-              <el-icon style="margin-right: 8px"><Delete /></el-icon>
-              {{ t('common.delete', '删除') }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+        <DropdownMenuTrigger
+          as-child
+          @mouseenter="handleActionsMouseEnter"
+          @mouseleave="handleActionsMouseLeave"
+        >
+          <Button circle size="small"><MoreVertical class="w-4 h-4" /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          @mouseenter="handleDropdownMouseEnter"
+          @mouseleave="handleDropdownMouseLeave"
+        >
+          <DropdownMenuItem @click="handleActionCommand('copy')">
+            <Copy class="w-4 h-4 mr-2" />
+            {{ t('common.copy', '复制') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
+            <FilePlus class="w-4 h-4 mr-2" />
+            {{ t('aiChat.insertToDocument', '插入到文档') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('export-to-document')">
+            <FolderPlus class="w-4 h-4 mr-2" />
+            {{ t('aiChat.exportToDocument', '导出到新文档') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('edit')">
+            <Pencil class="w-4 h-4 mr-2" />
+            {{ t('messageBubble.edit', '编辑') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('regenerate')">
+            <RefreshCw class="w-4 h-4 mr-2" />
+            {{ t('messageBubble.regenerate', '重新生成') }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="handleActionCommand('delete')">
+            <Trash2 class="w-4 h-4 mr-2" />
+            {{ t('common.delete', '删除') }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </transition>
     <div
       class="bubble-content response-container"
@@ -434,51 +441,52 @@ onBeforeUnmount(() => {
     </div>
     <!-- AI消息的操作按钮（在右侧） -->
     <transition name="fade">
-      <el-dropdown
+      <DropdownMenu
         v-if="role !== 'user' && showActions"
-        @command="handleActionCommand"
-        trigger="click"
         @click.stop
-        @visible-change="handleDropdownVisibleChange"
+        @update:open="handleDropdownVisibleChange"
         class="side-button"
-        @mouseenter="handleActionsMouseEnter"
-        @mouseleave="handleActionsMouseLeave"
       >
-        <Button circle size="small"><el-icon><More /></el-icon></Button>
-        <template #dropdown>
-          <el-dropdown-menu
-            @mouseenter="handleDropdownMouseEnter"
-            @mouseleave="handleDropdownMouseLeave"
-          >
-            <el-dropdown-item v-if="hasChart" command="export">
-              <el-icon style="margin-right: 8px"><DocumentAdd /></el-icon>
-              {{ t('graph.export', '导出图表') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="copy">
-              <el-icon style="margin-right: 8px"><CopyDocument /></el-icon>
-              {{ t('common.copy', '复制') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="insert-to-document">
-              <el-icon style="margin-right: 8px"><DocumentAdd /></el-icon>
-              {{ t('aiChat.insertToDocument', '插入到文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="export-to-document">
-              <el-icon style="margin-right: 8px"><FolderAdd /></el-icon>
-              {{ t('aiChat.exportToDocument', '导出到新文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="edit">
-              <el-icon style="margin-right: 8px"><Edit /></el-icon>
-              {{ t('messageBubble.edit', '编辑') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="delete" divided>
-              <el-icon style="margin-right: 8px"><Delete /></el-icon>
-              {{ t('common.delete', '删除') }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+        <DropdownMenuTrigger
+          as-child
+          @mouseenter="handleActionsMouseEnter"
+          @mouseleave="handleActionsMouseLeave"
+        >
+          <Button circle size="small"><MoreVertical class="w-4 h-4" /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          @mouseenter="handleDropdownMouseEnter"
+          @mouseleave="handleDropdownMouseLeave"
+        >
+          <DropdownMenuItem v-if="hasChart" @click="handleActionCommand('export')">
+            <FilePlus class="w-4 h-4 mr-2" />
+            {{ t('graph.export', '导出图表') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('copy')">
+            <Copy class="w-4 h-4 mr-2" />
+            {{ t('common.copy', '复制') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
+            <FilePlus class="w-4 h-4 mr-2" />
+            {{ t('aiChat.insertToDocument', '插入到文档') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('export-to-document')">
+            <FolderPlus class="w-4 h-4 mr-2" />
+            {{ t('aiChat.exportToDocument', '导出到新文档') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('edit')">
+            <Pencil class="w-4 h-4 mr-2" />
+            {{ t('messageBubble.edit', '编辑') }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="handleActionCommand('delete')">
+            <Trash2 class="w-4 h-4 mr-2" />
+            {{ t('common.delete', '删除') }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </transition>
-    <el-avatar class="avatar-fallback" v-if="role === 'user'" :icon="User"></el-avatar>
+    <el-avatar class="avatar-fallback" v-if="role === 'user'"><User class="w-6 h-6" /></el-avatar>
   </div>
   <el-dialog v-model="editDialogVisible" :title="$t('messageBubble.editTitle')" width="80%">
     <md-editor

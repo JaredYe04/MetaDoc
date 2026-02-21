@@ -23,29 +23,27 @@
         <div class="header-actions">
           <!-- <el-button
           size="small"
-          type="primary" 
+          type="primary"
           text
           @click="handleMarkAllRead"
           :disabled="unreadCount === 0"
         >
           {{ t('notificationQueue.markAllRead') }}
         </el-button> -->
-          <el-tooltip :content="t('notificationQueue.clear')" placement="right">
-            <el-button size="small" type="danger" circle plain @click="handleClear">
-              <el-icon><Minus /></el-icon>
-            </el-button>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button size="small" type="danger" circle plain @click="handleClear">
+                <el-icon><Minus /></el-icon>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{{ t('notificationQueue.clear') }}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
-      <el-scrollbar
-        :style="{
-          maxWidth: '100%',
-          flex: 1,
-          overflow: 'auto'
-        }"
-        min-size="5"
-      >
+      <ScrollArea class="flex-1 w-full overflow-auto">
         <div v-if="notifications.length === 0" class="empty-state">
           {{ t('notificationQueue.empty') }}
         </div>
@@ -69,14 +67,19 @@
             <!-- <el-button size="small" text type="primary"  @click="handleRead(item.id)" :disabled="item.read">
             {{ t('notificationQueue.markRead') }}
           </el-button> -->
-            <el-tooltip :content="t('notificationQueue.remove')" placement="right">
-              <el-button size="small" circle plain type="danger" @click="handleRemove(item.id)">
-                <el-icon><Minus /></el-icon>
-              </el-button>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button size="small" circle plain type="danger" @click="handleRemove(item.id)">
+                  <el-icon><Minus /></el-icon>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{{ t('notificationQueue.remove') }}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
   </ResizablePanel>
 </template>
@@ -94,6 +97,13 @@ import {
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from '../utils/logger.ts'
 

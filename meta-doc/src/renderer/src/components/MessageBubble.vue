@@ -2,16 +2,15 @@
 import '../assets/response-container.css'
 import { ref, computed, onMounted, onBeforeMount, nextTick, watch } from 'vue'
 import {
-  Avatar,
-  Delete,
-  Edit,
-  Refresh,
   User,
-  More,
-  CopyDocument,
-  DocumentAdd,
-  FolderAdd
-} from '@element-plus/icons-vue'
+  MoreVertical,
+  Copy,
+  FilePlus,
+  FolderPlus,
+  Pencil,
+  RefreshCw,
+  Trash2
+} from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { MdEditor, MdPreview, MdCatalog } from 'md-editor-v3'
@@ -23,6 +22,18 @@ import type { AIDialogMessage } from '../../../types'
 import { useI18n } from 'vue-i18n'
 import eventBus from '../utils/event-bus'
 import { Button } from '@renderer/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[]
@@ -308,51 +319,52 @@ onBeforeMount(() => {
   >
     <!-- 用户消息的操作按钮（在左侧） -->
     <transition name="fade">
-      <el-dropdown
+      <DropdownMenu
         v-if="role === 'user' && showActions"
-        @command="handleActionCommand"
-        trigger="click"
         @click.stop
-        @visible-change="handleDropdownVisibleChange"
+        @update:open="handleDropdownVisibleChange"
         class="side-button"
-        @mouseenter="handleActionsMouseEnter"
-        @mouseleave="handleActionsMouseLeave"
       >
-        <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
-          <More class="h-4 w-4" />
-        </Button>
-        <template #dropdown>
-          <el-dropdown-menu
-            @mouseenter="handleDropdownMouseEnter"
-            @mouseleave="handleDropdownMouseLeave"
-          >
-            <el-dropdown-item command="copy">
-              <el-icon style="margin-right: 8px"><CopyDocument /></el-icon>
-              {{ t('common.copy', '复制') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="insert-to-document">
-              <el-icon style="margin-right: 8px"><DocumentAdd /></el-icon>
-              {{ t('aiChat.insertToDocument', '插入到文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="export-to-document">
-              <el-icon style="margin-right: 8px"><FolderAdd /></el-icon>
-              {{ t('aiChat.exportToDocument', '导出到新文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="edit">
-              <el-icon style="margin-right: 8px"><Edit /></el-icon>
-              {{ t('messageBubble.edit', '编辑') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="regenerate">
-              <el-icon style="margin-right: 8px"><Refresh /></el-icon>
-              {{ t('messageBubble.regenerate', '重新生成') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="delete" divided>
-              <el-icon style="margin-right: 8px"><Delete /></el-icon>
-              {{ t('common.delete', '删除') }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+        <DropdownMenuTrigger
+          as-child
+          @mouseenter="handleActionsMouseEnter"
+          @mouseleave="handleActionsMouseLeave"
+        >
+          <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
+            <MoreVertical class="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          @mouseenter="handleDropdownMouseEnter"
+          @mouseleave="handleDropdownMouseLeave"
+        >
+          <DropdownMenuItem @click="handleActionCommand('copy')">
+            <Copy class="w-4 h-4 mr-2" />
+            {{ t('common.copy', '复制') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
+            <FilePlus class="w-4 h-4 mr-2" />
+            {{ t('aiChat.insertToDocument', '插入到文档') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('export-to-document')">
+            <FolderPlus class="w-4 h-4 mr-2" />
+            {{ t('aiChat.exportToDocument', '导出到新文档') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('edit')">
+            <Pencil class="w-4 h-4 mr-2" />
+            {{ t('messageBubble.edit', '编辑') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="handleActionCommand('regenerate')">
+            <RefreshCw class="w-4 h-4 mr-2" />
+            {{ t('messageBubble.regenerate', '重新生成') }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="handleActionCommand('delete')">
+            <Trash2 class="w-4 h-4 mr-2" />
+            {{ t('common.delete', '删除') }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </transition>
     <div
       ref="bubbleContentRef"
@@ -374,35 +386,60 @@ onBeforeMount(() => {
       />
       <!-- <markdown-it :source="content" /> -->
     </div>
-    <el-avatar class="avatar-fallback" v-if="role === 'user'" :icon="User"></el-avatar>
+    <el-avatar class="avatar-fallback" v-if="role === 'user'"><User class="w-6 h-6" /></el-avatar>
   </div>
   <!-- AI消息的操作按钮（平铺在消息下方，始终显示） -->
   <div v-if="role !== 'user'" class="ai-message-actions">
-    <el-tooltip :content="t('common.copy', '复制')" placement="bottom">
-      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="copyContent">
-        <CopyDocument class="h-4 w-4" />
-      </Button>
-    </el-tooltip>
-    <el-tooltip :content="t('aiChat.insertToDocument', '插入到文档')" placement="bottom">
-      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="requestInsertToDocument">
-        <DocumentAdd class="h-4 w-4" />
-      </Button>
-    </el-tooltip>
-    <el-tooltip :content="t('aiChat.exportToDocument', '导出到新文档')" placement="bottom">
-      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="exportToNewDocument">
-        <FolderAdd class="h-4 w-4" />
-      </Button>
-    </el-tooltip>
-    <el-tooltip :content="t('messageBubble.edit', '编辑')" placement="bottom">
-      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgEdit">
-        <Edit class="h-4 w-4" />
-      </Button>
-    </el-tooltip>
-    <el-tooltip :content="t('common.delete', '删除')" placement="bottom">
-      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgDelete">
-        <Delete class="h-4 w-4" />
-      </Button>
-    </el-tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="copyContent">
+          <Copy class="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ t('common.copy', '复制') }}</p>
+      </TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="requestInsertToDocument">
+          <FilePlus class="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ t('aiChat.insertToDocument', '插入到文档') }}</p>
+      </TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="exportToNewDocument">
+          <FolderPlus class="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ t('aiChat.exportToDocument', '导出到新文档') }}</p>
+      </TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgEdit">
+          <Pencil class="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ t('messageBubble.edit', '编辑') }}</p>
+      </TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgDelete">
+          <Trash2 class="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ t('common.delete', '删除') }}</p>
+      </TooltipContent>
+    </Tooltip>
   </div>
   <!-- 引用显示（只读模式，只显示用户消息的引用） -->
   <div

@@ -1,5 +1,5 @@
 <template>
-  <el-scrollbar class="auto-resize-textarea-scrollbar" :style="scrollbarStyle">
+  <ScrollArea :class="scrollAreaClasses" :style="scrollbarStyle">
     <textarea
       ref="textareaRef"
       :value="modelValue"
@@ -10,12 +10,13 @@
       :rows="minRows"
       :style="inputStyle"
     />
-  </el-scrollbar>
+  </ScrollArea>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { themeState, colorWithOpacity } from '../../utils/themes'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 interface Props {
   modelValue?: string
@@ -90,6 +91,10 @@ const scrollbarStyle = computed(() => {
   }
 })
 
+const scrollAreaClasses = computed(() => {
+  return 'auto-resize-textarea-scrollarea border border-[rgba(145,145,145,0.5)] rounded-[8px] p-1'
+})
+
 const inputStyle = computed(() => {
   const textColor = themeState.currentTheme.textColor
   return {
@@ -100,21 +105,10 @@ const inputStyle = computed(() => {
 </script>
 
 <style scoped lang="less">
-.auto-resize-textarea-scrollbar {
+.auto-resize-textarea-scrollarea {
   border: 1px solid rgba(145, 145, 145, 0.5);
   border-radius: 8px;
   padding: 4px;
-}
-
-/* 确保 el-scrollbar 内部可以滚动 */
-.auto-resize-textarea-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-.auto-resize-textarea-scrollbar :deep(.el-scrollbar__view) {
-  width: 100%;
 }
 
 .auto-resize-textarea-input {

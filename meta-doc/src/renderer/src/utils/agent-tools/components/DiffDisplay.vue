@@ -35,27 +35,27 @@
           <el-tag type="info" size="small">{{
             $t('agent.display.diff.equal', { count: equalCount })
           }}</el-tag>
-          <el-button-group class="mode-switch">
-            <el-button
-              :type="viewMode === 'unified' ? 'primary' : 'default'"
-              size="small"
+          <div class="mode-switch flex gap-1">
+            <Button
+              :variant="viewMode === 'unified' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.diff.unifiedView', '统一视图') }}
-            </el-button>
-            <el-button
-              :type="viewMode === 'split' ? 'primary' : 'default'"
-              size="small"
+            </Button>
+            <Button
+              :variant="viewMode === 'split' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'split'"
             >
               {{ $t('agent.display.diff.splitView', '分列视图') }}
-            </el-button>
-          </el-button-group>
+            </Button>
+          </div>
         </div>
       </div>
 
       <!-- 统一视图（单列） -->
-      <el-scrollbar v-if="viewMode === 'unified'" max-height="500px">
+      <ScrollArea v-if="viewMode === 'unified'" class="max-h-[500px]">
         <div class="diff-content">
           <!-- 如果diffResult是对象，遍历chunks -->
           <template v-if="diffChunks && diffChunks.length > 0">
@@ -124,7 +124,7 @@
             {{ $t('agent.display.diff.noData', '无差异数据') }}
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
 
       <!-- 分列视图（双列 Monaco 编辑器） -->
       <div v-else class="split-view-container">
@@ -166,6 +166,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

@@ -10,45 +10,44 @@
         <h4 :style="headerTitleStyle">{{ $t('agent.display.terminalExecution.approvalTitle') }}</h4>
       </div>
 
-      <div class="command-display">
-        <div class="command-label" :style="labelStyle">
-          {{ $t('agent.display.terminalExecution.commandToExecute') }}
+        <div class="command-display">
+          <div class="command-label" :style="labelStyle">
+            {{ $t('agent.display.terminalExecution.commandToExecute') }}
+          </div>
+          <Textarea
+            :model-value="(effectiveData as any)?.command || ''"
+            :rows="3"
+            readonly
+            class="command-input w-full"
+          />
         </div>
-        <el-input
-          :model-value="(effectiveData as any)?.command || ''"
-          type="textarea"
-          :rows="3"
-          readonly
-          class="command-input"
-        />
-      </div>
 
       <div class="trust-mode-section" :style="trustModeSectionStyle">
         <el-checkbox v-model="trustMode" @change="handleTrustModeChange">
           {{ $t('agent.display.terminalExecution.trustMode') }}
         </el-checkbox>
-        <el-button
+        <Button
           v-if="trustMode"
-          type="text"
-          size="small"
+          variant="ghost"
+          size="sm"
           @click="resetTrustMode"
           style="margin-left: 8px"
         >
           {{ $t('agent.display.terminalExecution.resetTrust') }}
-        </el-button>
+        </Button>
       </div>
 
       <div class="approval-actions">
-        <el-button type="danger" @click="handleReject">
+        <Button variant="destructive" @click="handleReject">
           {{ $t('agent.display.terminalExecution.reject') }}
-        </el-button>
-        <el-button type="primary" @click="handleApprove">
+        </Button>
+        <Button variant="default" @click="handleApprove">
           {{
             trustMode
               ? $t('agent.display.terminalExecution.approveWithTrust')
               : $t('agent.display.terminalExecution.approve')
           }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -146,22 +145,22 @@
         <div class="output-header" :style="outputHeaderStyle">
           <strong>{{ $t('agent.display.terminalExecution.stdout') }}</strong>
         </div>
-        <el-scrollbar max-height="300px">
+        <ScrollArea class="max-h-[300px]">
           <pre class="output-text" :style="outputTextStyle">{{
             (effectiveData as any).stdout
           }}</pre>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <div v-if="(effectiveData as any)?.stderr" class="output-section error-output">
         <div class="output-header" :style="outputHeaderStyle">
           <strong>{{ $t('agent.display.terminalExecution.stderr') }}</strong>
         </div>
-        <el-scrollbar max-height="200px">
+        <ScrollArea class="max-h-[200px]">
           <pre class="output-text error-text" :style="errorTextStyle">{{
             (effectiveData as any).stderr
           }}</pre>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <div v-if="(effectiveData as any)?.summary" class="summary-section">
@@ -215,6 +214,9 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading, WarningFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Textarea } from '@renderer/components/ui/textarea'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../types/agent-tool'
 import eventBus from '../../../utils/event-bus.js'

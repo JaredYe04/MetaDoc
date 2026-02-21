@@ -1,15 +1,16 @@
 <template>
   <div class="microphone-test">
-    <el-button :type="isRecording ? 'danger' : 'primary'" @click="toggleRecording" circle>
+    <Button :type="isRecording ? 'danger' : 'primary'" @click="toggleRecording" circle>
       <el-icon v-if="!isRecording"><Microphone /></el-icon>
       <el-icon v-if="isRecording"><Select /></el-icon>
-    </el-button>
+    </Button>
     <audio ref="audioPlayer" :src="audioUrl" controls v-if="audioUrl" class="audio-player" />
   </div>
 </template>
 <script setup>
 import { ref } from 'vue'
-import { ElButton, ElIcon } from 'element-plus'
+import { ElIcon } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { Microphone, Select } from '@element-plus/icons-vue'
 import { convertWebMToWav } from '../utils/audio-convert'
 import { createRendererLogger } from '../utils/logger'

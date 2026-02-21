@@ -35,22 +35,20 @@
                   <div class="toolbar-left">
                     <!-- 语言包选择 -->
                     <div class="language-select-wrapper">
-                      <el-select
-                        v-model="selectedLanguages"
-                        multiple
-                        collapse-tags
-                        collapse-tags-tooltip
-                        :placeholder="t('ocr.selectLanguages')"
-                        size="default"
-                        style="width: 200px"
-                      >
-                        <el-option
-                          v-for="lang in availableLanguages"
-                          :key="lang.value"
-                          :label="lang.label"
-                          :value="lang.value"
-                        />
-                      </el-select>
+                      <Select v-model="selectedLanguages" multiple>
+                        <SelectTrigger class="w-[200px]">
+                          <SelectValue :placeholder="t('ocr.selectLanguages')" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="lang in availableLanguages"
+                            :key="lang.value"
+                            :value="lang.value"
+                          >
+                            {{ lang.label }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <!-- 上传和粘贴按钮 -->
@@ -107,14 +105,13 @@
 
             <!-- OCR结果展示 -->
             <div v-if="ocrResults.length > 0" class="result-section">
-              <el-tabs v-model="activeTab" class="ocr-tabs">
-                <el-tab-pane
-                  v-for="(result, index) in ocrResults"
-                  :key="index"
-                  :name="`image-${index}`"
-                >
-                  <!-- Tab hover 时显示的缩略图 -->
-                  <template #label>
+              <Tabs v-model="activeTab" class="ocr-tabs">
+                <TabsList>
+                  <TabsTrigger
+                    v-for="(result, index) in ocrResults"
+                    :key="index"
+                    :value="`image-${index}`"
+                  >
                     <span
                       class="tab-label-wrapper"
                       @mouseenter="(e) => handleTabHover(e, index)"
@@ -130,7 +127,13 @@
                         <Delete class="h-3 w-3" />
                       </Button>
                     </span>
-                  </template>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  v-for="(result, index) in ocrResults"
+                  :key="index"
+                  :value="`image-${index}`"
+                >
                   <div class="ocr-result-item">
                     <div class="image-section">
                       <div class="image-preview" @click="handleImageClick(result.imageUrl, index)">
@@ -237,26 +240,22 @@
                         </div>
                       </div>
                       <div class="image-actions" v-if="result.recognized">
-                        <el-dropdown
-                          v-if="aiFixedTexts.get(index)"
-                          @command="(cmd: string) => handleCopyCommand(cmd, index)"
-                          trigger="click"
-                        >
-                          <Button size="sm" variant="outline">
-                            {{ t('ocr.copyText') }}
-                            <ArrowDown class="ml-1 h-3 w-3" />
-                          </Button>
-                          <template #dropdown>
-                            <el-dropdown-menu>
-                              <el-dropdown-item command="original">
-                                {{ t('ocr.copyOriginalText') }}
-                              </el-dropdown-item>
-                              <el-dropdown-item command="fixed">
-                                {{ t('ocr.copyFixedText') }}
-                              </el-dropdown-item>
-                            </el-dropdown-menu>
-                          </template>
-                        </el-dropdown>
+                        <DropdownMenu v-if="aiFixedTexts.get(index)">
+                          <DropdownMenuTrigger as-child>
+                            <Button size="sm" variant="outline">
+                              {{ t('ocr.copyText') }}
+                              <ArrowDown class="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem @click="handleCopyCommand('original', index)">
+                              {{ t('ocr.copyOriginalText') }}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem @click="handleCopyCommand('fixed', index)">
+                              {{ t('ocr.copyFixedText') }}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button v-else size="sm" variant="outline" @click="handleCopyText(result.text)">
                           {{ t('ocr.copyText') }}
                         </Button>
@@ -300,18 +299,28 @@
                     <div class="text-result">
                       <!-- 视图切换 -->
                       <div class="text-result-header" v-if="aiFixedTexts.get(index)">
-                        <el-radio-group
+                        <RadioGroup
                           :model-value="viewModes.get(index) || 'single'"
                           @update:model-value="
                             (val: 'single' | 'diff') => viewModes.set(index, val)
                           "
-                          size="small"
+                          class="flex"
                         >
-                          <el-radio-button :label="'single'">{{
-                            t('ocr.singleView')
-                          }}</el-radio-button>
-                          <el-radio-button :label="'diff'">{{ t('ocr.diffView') }}</el-radio-button>
-                        </el-radio-group>
+                          <div class="inline-flex h-8 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+                            <div class="flex items-center">
+                              <RadioGroupItem value="single" :id="'view-single-' + index" class="sr-only peer" />
+                              <label :for="'view-single-' + index" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+                                {{ t('ocr.singleView') }}
+                              </label>
+                            </div>
+                            <div class="flex items-center">
+                              <RadioGroupItem value="diff" :id="'view-diff-' + index" class="sr-only peer" />
+                              <label :for="'view-diff-' + index" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+                                {{ t('ocr.diffView') }}
+                              </label>
+                            </div>
+                          </div>
+                        </RadioGroup>
                       </div>
                       <!-- 未识别状态 -->
                       <div
@@ -361,8 +370,8 @@
                       </div>
                     </div>
                   </div>
-                </el-tab-pane>
-              </el-tabs>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -392,6 +401,21 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '../components/ui/dropdown-menu'
 import SessionList from '../components/common/SessionList.vue'
 import ImagePreviewDialog, {
   type ImagePreprocessingParams

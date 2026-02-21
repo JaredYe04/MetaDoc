@@ -1,41 +1,37 @@
 <template>
   <div class="knowledge-base-settings">
     <h3 class="section-title">{{ t('setting.knowledgeBaseSettings') }}</h3>
-    <el-form label-width="200px" class="settings-form">
-      <el-form-item :label="t('setting.enableKnowledgeBase')">
+    <Form class="settings-form">
+      <FormField :label="t('setting.enableKnowledgeBase')" name="">
         <el-tooltip :content="t('setting.knowledgeBaseTooltip')" placement="bottom">
-          <el-switch
-            v-model="settings.enableKnowledgeBase"
-            class="mb-2"
-            :active-text="t('setting.enabled')"
-            :inactive-text="t('setting.disabled')"
-            @change="handleKnowledgeBaseToggleChange"
-          />
+          <div class="flex items-center gap-2">
+            <Switch
+              :checked="settings.enableKnowledgeBase"
+              @update:checked="handleKnowledgeBaseToggleChange"
+            />
+            <span class="text-sm text-muted-foreground">{{ settings.enableKnowledgeBase ? t('setting.enabled') : t('setting.disabled') }}</span>
+          </div>
         </el-tooltip>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item v-if="settings.enableKnowledgeBase" :label="t('setting.embeddingMode')">
+      <FormField v-if="settings.enableKnowledgeBase" :label="t('setting.embeddingMode')" name="">
         <el-tooltip :content="t('setting.embeddingModeTooltip')" placement="top">
-          <el-select
+          <Select
             v-model="settings.embeddingMode"
-            :placeholder="t('setting.chooseEmbeddingMode')"
-            @change="handleEmbeddingModeChange"
-            style="width: 300px"
+            @update:model-value="handleEmbeddingModeChange"
           >
-            <el-tooltip :content="t('setting.embeddingModeApiHint')" placement="left">
-              <el-option :label="t('setting.embeddingModeApi')" value="api" />
-            </el-tooltip>
-            <el-tooltip :content="t('setting.embeddingModeLocalHint')" placement="left">
-              <el-option :label="t('setting.embeddingModeLocal')" value="local" disabled />
-            </el-tooltip>
-          </el-select>
+            <SelectTrigger class="w-[300px]">
+              <SelectValue :placeholder="t('setting.chooseEmbeddingMode')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="api">{{ t('setting.embeddingModeApi') }}</SelectItem>
+              <SelectItem value="local" disabled>{{ t('setting.embeddingModeLocal') }}</SelectItem>
+            </SelectContent>
+          </Select>
         </el-tooltip>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item
-        v-if="settings.enableKnowledgeBase"
-        :label="t('setting.knowledgeBaseScoreThreshold')"
-      >
+      <FormField v-if="settings.enableKnowledgeBase" :label="t('setting.knowledgeBaseScoreThreshold')" name="">
         <el-tooltip :content="t('setting.knowledgeBaseScoreThresholdTooltip')" placement="top">
           <el-slider
             v-model="settings.knowledgeBaseScoreThreshold"
@@ -48,8 +44,8 @@
             style="margin-bottom: 10px; width: 400px"
           />
         </el-tooltip>
-      </el-form-item>
-    </el-form>
+      </FormField>
+    </Form>
   </div>
 </template>
 
@@ -57,9 +53,18 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting } from '../../utils/settings.js'
+import { Form, FormField } from '@renderer/components/ui/form'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 import eventBus from '../../utils/event-bus.js'
 import messageBridge from '../../bridge/message-bridge'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 
 const { t } = useI18n()
 
@@ -108,7 +113,8 @@ const handleEmbeddingModeChange = async () => {
 <style scoped>
 .knowledge-base-settings {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 

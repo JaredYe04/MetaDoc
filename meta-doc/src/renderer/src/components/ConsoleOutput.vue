@@ -8,17 +8,15 @@
     >
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
-        <el-switch
+        <Switch
           v-if="showAiAnalysis"
-          v-model="enableAiAnalysis"
-          :active-text="$t('console.enableAiAnalysis')"
-          size="small"
+          :checked="enableAiAnalysis"
+          @update:checked="handleAiAnalysisToggle"
           style="margin-right: 8px"
-          @change="handleAiAnalysisToggle"
         />
-        <el-button size="small" @click="clearConsole">{{ $t('console.clear') }}</el-button>
-        <el-button size="small" @click="copyConsole">{{ $t('console.copy') }}</el-button>
-        <el-button size="small" @click="saveConsole">{{ $t('console.saveLog') }}</el-button>
+        <Button size="sm" @click="clearConsole">{{ $t('console.clear') }}</Button>
+        <Button size="sm" @click="copyConsole">{{ $t('console.copy') }}</Button>
+        <Button size="sm" @click="saveConsole">{{ $t('console.saveLog') }}</Button>
       </div>
     </div>
     <div class="console-editor" ref="editorContainer"></div>
@@ -28,6 +26,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { Switch } from '@renderer/components/ui/switch'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import messageBridge from '../bridge/message-bridge'

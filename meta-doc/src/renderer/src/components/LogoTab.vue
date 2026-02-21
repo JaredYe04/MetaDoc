@@ -1,10 +1,15 @@
 <template>
   <div class="logo-tab-wrapper">
-    <el-tooltip :content="versionTooltip" placement="bottom">
-      <div class="logo-tab" @click="handleLogoClick">
-        <img src="../assets/logo.svg" alt="MetaDoc" class="logo-tab__image" />
-      </div>
-    </el-tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <div class="logo-tab" @click="handleLogoClick">
+          <img src="../assets/logo.svg" alt="MetaDoc" class="logo-tab__image" />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ versionTooltip }}</p>
+      </TooltipContent>
+    </Tooltip>
     <!-- 关于对话框 -->
     <el-dialog
       v-model="aboutDialogVisible"
@@ -24,6 +29,11 @@ import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 import { mixColors, themeState } from '../utils/themes'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')

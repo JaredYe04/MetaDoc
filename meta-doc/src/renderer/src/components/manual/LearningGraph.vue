@@ -2,13 +2,13 @@
   <div class="learning-graph">
     <div v-if="!defaultExpanded" class="graph-header">
       <h3>{{ $t('userManual.graph.title') || '学习路径图' }}</h3>
-      <el-button
-        text
-        :icon="isExpanded ? ArrowUp : ArrowDown"
+      <Button
+        variant="ghost"
         @click="toggleExpanded"
       >
+        <component :is="isExpanded ? ArrowUp : ArrowDown" class="mr-2 h-4 w-4" />
         {{ isExpanded ? ($t('userManual.graph.collapse') || '收起') : ($t('userManual.graph.expand') || '展开') }}
-      </el-button>
+      </Button>
     </div>
 
     <div v-if="isExpanded || defaultExpanded" class="graph-content">
@@ -52,6 +52,7 @@ import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import * as d3 from 'd3'
 
 const props = withDefaults(defineProps<{

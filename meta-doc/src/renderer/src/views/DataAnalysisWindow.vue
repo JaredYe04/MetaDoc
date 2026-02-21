@@ -68,9 +68,17 @@
             </div>
 
             <!-- Tab 内容 -->
-            <el-tabs v-model="activeTab" type="border-card" class="main-tabs" :style="tabsStyle">
+            <Tabs v-model="activeTab" class="main-tabs border-card" :style="tabsStyle">
+              <TabsList>
+                <TabsTrigger value="preview">
+                  {{ t('dataAnalysis.tabs.preview', '数据预览') }}
+                </TabsTrigger>
+                <TabsTrigger value="result">
+                  {{ t('dataAnalysis.tabs.result', '分析结果') }}
+                </TabsTrigger>
+              </TabsList>
               <!-- Tab 1: 数据预览与参数设置 -->
-              <el-tab-pane :label="t('dataAnalysis.tabs.preview', '数据预览')" name="preview">
+              <TabsContent value="preview">
                 <div class="preview-tab-content">
                   <!-- 参数设置区域 - 拆分为左右两个panel -->
                   <div
@@ -80,25 +88,22 @@
                   >
                     <!-- 左侧70%：参数设置 -->
                     <div class="params-left-panel">
-                      <el-form
-                        :model="analysisParams"
-                        label-width="200px"
-                        size="default"
-                        class="centered-form"
-                      >
-                        <el-form-item
-                          :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')"
-                        >
-                          <el-input-number
+                      <Form class="centered-form">
+                        <FormField :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')" name="">
+                          <NumberField
                             v-model="headerRowIndex"
                             :min="0"
                             :max="20"
                             :step="1"
-                            :precision="0"
-                            controls-position="right"
                             style="width: 200px"
-                            @change="handleHeaderRowIndexChange"
-                          />
+                            @update:model-value="handleHeaderRowIndexChange"
+                          >
+                            <NumberFieldContent>
+                              <NumberFieldDecrement />
+                              <NumberFieldInput />
+                              <NumberFieldIncrement />
+                            </NumberFieldContent>
+                          </NumberField>
                           <div class="header-row-hint" :style="hintStyle">
                             {{
                               t(
@@ -107,30 +112,27 @@
                               )
                             }}
                           </div>
-                        </el-form-item>
+                        </FormField>
 
-                        <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
-                          <el-switch v-model="analysisParams.autoGroupBy" />
-                        </el-form-item>
+                        <FormField :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')" name="">
+                          <Switch :checked="analysisParams.autoGroupBy" @update:checked="analysisParams.autoGroupBy = $event" />
+                        </FormField>
 
-                        <el-form-item :label="t('dataAnalysis.generateReport', '生成AI报告')">
-                          <el-switch v-model="analysisParams.generateReport" />
-                        </el-form-item>
+                        <FormField :label="t('dataAnalysis.generateReport', '生成AI报告')" name="">
+                          <Switch :checked="analysisParams.generateReport" @update:checked="analysisParams.generateReport = $event" />
+                        </FormField>
 
-                        <el-form-item
-                          v-if="analysisParams.generateReport"
-                          :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')"
-                        >
-                          <el-input
+                        <FormField v-if="analysisParams.generateReport" :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')" name="">
+                          <Textarea
                             v-model="analysisParams.analysisRequest"
-                            type="textarea"
                             :rows="2"
                             :placeholder="
                               t('dataAnalysis.analysisRequestPlaceholder', '描述您的分析需求...')
                             "
+                            class="w-full"
                           />
-                        </el-form-item>
-                      </el-form>
+                        </FormField>
+                      </Form>
                     </div>
 
                     <!-- 右侧30%：当前表头显示 -->
@@ -138,7 +140,7 @@
                       <div class="header-preview-title" :style="headerPreviewTitleStyle">
                         {{ t('dataAnalysis.currentHeader', '当前表头') }}
                       </div>
-                      <el-scrollbar
+                      <ScrollArea
                         class="header-preview-scrollbar"
                         v-if="headerPreview.length > 0"
                       >
@@ -154,7 +156,7 @@
                             {{ header || `列${index + 1}` }}
                           </el-tag>
                         </div>
-                      </el-scrollbar>
+                      </ScrollArea>
                       <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
                         {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
                       </div>
@@ -237,11 +239,11 @@
                     </div>
                   </div>
                 </div>
-              </el-tab-pane>
+              </TabsContent>
 
               <!-- Tab 2: 分析结果 -->
-              <el-tab-pane :label="t('dataAnalysis.tabs.result', '分析结果')" name="result">
-                <el-scrollbar class="result-tab-scrollbar">
+              <TabsContent value="result">
+                <ScrollArea class="result-tab-scrollbar">
                   <div class="result-tab-content" :style="resultTabContentStyle">
                     <!-- 分析状态显示（仅在非报告流式生成阶段显示） -->
                     <div
@@ -299,9 +301,9 @@
                       }}
                     </div>
                   </div>
-                </el-scrollbar>
-              </el-tab-pane>
-            </el-tabs>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </SessionList>
@@ -315,6 +317,16 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, Delete, Document, Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import SessionList from '../components/common/SessionList.vue'
 import DataTable from '../components/common/DataTable.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
@@ -327,6 +339,8 @@ import { parseCSV } from '../utils/agent-tools/data-analysis-tool'
 import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 import type { Ref } from 'vue'
 import { useWorkspace } from '../stores/workspace'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Switch } from '@renderer/components/ui/switch'
 
 const { t } = useI18n()
 const workspace = useWorkspace()

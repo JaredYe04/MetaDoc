@@ -70,7 +70,7 @@
           <el-icon><Document /></el-icon>
           <span>{{ $t('agent.display.outlineOptimize.outlineTree') }}</span>
         </div>
-        <el-scrollbar max-height="400px">
+        <ScrollArea class="max-h-[400px]">
           <el-tree
             :data="outlineTreeData"
             :props="{ children: 'children', label: 'label' }"
@@ -110,7 +110,7 @@
               </div>
             </template>
           </el-tree>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
     </div>
 
@@ -127,6 +127,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { Loading, Document } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

@@ -58,14 +58,14 @@
         <span class="pdf-toolbar__pages-per-row-label"
           >{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span
         >
-        <el-select
-          v-model="pagesPerRow"
-          size="small"
-          style="width: 80px"
-          @change="handlePagesPerRowChange"
-        >
-          <el-option v-for="num in 10" :key="num" :label="String(num)" :value="num" />
-        </el-select>
+        <Select v-model="pagesPerRow" @update:model-value="handlePagesPerRowChange">
+          <SelectTrigger class="w-[80px] h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="num in 10" :key="num" :value="num">{{ String(num) }}</SelectItem>
+          </SelectContent>
+        </Select>
       </span>
       <el-divider direction="vertical" />
       <el-tooltip :content="$t('latexEditor.toolbar.pointerMode')" placement="bottom">
@@ -95,10 +95,10 @@
         </div>
       </el-tooltip>
     </div>
-    <el-scrollbar
+    <ScrollArea
       v-if="isValidPdfUrl"
       ref="pdfScrollbarRef"
-      class="pdf-preview-container"
+      class="pdf-preview-container h-full"
       :class="{ 'hand-mode': pdfViewMode === 'hand', 'pointer-mode': pdfViewMode === 'pointer' }"
       :style="{ background: themeState.currentTheme.background }"
     >
@@ -143,7 +143,7 @@
           </div>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
     <div
       v-else
       class="pdf-preview-container pdf-empty"
@@ -161,6 +161,14 @@ import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, Refresh } from '@element-plus/i
 import { VuePdf } from 'vue3-pdfjs'
 import { themeState } from '../utils/themes'
 import { debounce } from 'lodash'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
 
 const { t } = useI18n()
 
@@ -175,7 +183,7 @@ const props = withDefaults(
 )
 
 const PDF_RENDER_SCALE = 2.5
-const pdfScrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
+const pdfScrollbarRef = ref<InstanceType<typeof ScrollArea> | null>(null)
 const pdfPagesContainer = ref<HTMLElement | null>(null)
 const pdfPagesWrapper = ref<HTMLElement | null>(null)
 const pageRefs = new Map<number, HTMLElement>()
@@ -307,7 +315,7 @@ async function scrollToPage(pageNumber: number) {
   const scrollbar = pdfScrollbarRef.value
   if (!pageElement || !scrollbar) return
   const scrollbarEl = (scrollbar as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const pageRect = pageElement.getBoundingClientRect()
@@ -368,7 +376,7 @@ function handlePdfError(_err: any, _pageNum: number) {
 function handleHandModeMouseDown(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !pdfScrollbarRef.value || e.button !== 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
   if (!scrollbarWrap) return
   isDragging = true
   dragStartX = e.clientX
@@ -390,7 +398,7 @@ function handleHandModeMouseMove(e: MouseEvent) {
 function handleHandModeMouseMoveGlobal(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !isDragging || !pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
   if (!scrollbarWrap) return
   scrollbarWrap.scrollLeft = scrollStartX + (dragStartX - e.clientX)
   scrollbarWrap.scrollTop = scrollStartY + (dragStartY - e.clientY)
@@ -437,7 +445,7 @@ function handlePdfWheel(event: WheelEvent) {
 function detectCurrentPage() {
   if (!pdfScrollbarRef.value || !pdfPagesContainer.value || totalPdfPages.value === 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const viewportCenterX = containerRect.left + containerRect.width / 2
@@ -481,7 +489,7 @@ const handleScrollDebounced = debounce(detectCurrentPage, 100)
 function setupScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
   if (scrollbarWrap)
     scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true })
 }
@@ -489,7 +497,7 @@ function setupScrollListener() {
 function removeScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
   if (scrollbarWrap) scrollbarWrap.removeEventListener('scroll', handleScrollDebounced)
 }
 
@@ -621,15 +629,15 @@ defineExpose({
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
 }
-.pdf-preview-container :deep(.el-scrollbar__wrap) {
-  overflow-x: auto;
-  overflow-y: auto;
+.pdf-preview-container :deep([data-radix-scroll-area-viewport]) {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
-.pdf-preview-container.hand-mode :deep(.el-scrollbar__wrap) {
-  overflow: hidden;
+.pdf-preview-container.hand-mode :deep([data-radix-scroll-area-viewport]) {
+  overflow: hidden !important;
 }
-.pdf-preview-container.hand-mode :deep(.el-scrollbar__bar) {
-  display: none;
+.pdf-preview-container.hand-mode :deep([data-radix-scroll-area-scrollbar]) {
+  display: none !important;
 }
 .pdf-preview-container.hand-mode .pdf-pages-wrapper {
   cursor: grab;

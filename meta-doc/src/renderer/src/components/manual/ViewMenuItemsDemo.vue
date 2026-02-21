@@ -1,113 +1,87 @@
 <template>
   <div class="view-menu-items-demo" :class="{ 'is-collapsed': collapsed }">
-    <el-menu
-      :class="[
-        'modern-side-menu',
-        'sub-view-menu',
-        { 'is-collapsed': collapsed }
-      ]"
-      mode="vertical"
-      menu-trigger="hover"
-      :default-active="activeMenuIndex"
+    <UIMenu
+      class="modern-side-menu sub-view-menu"
+      :collapse="collapsed"
       :background-color="themeState.currentTheme.background"
       :text-color="themeState.currentTheme.SideTextColor"
-      :active-text-color="themeState.currentTheme.SideTextColor"
     >
-      <el-tooltip
-        v-if="collapsed && items.includes('home')"
-        :content="$t('headMenu.home')"
-        placement="right"
-      >
-        <el-menu-item index="home">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!collapsed && items.includes('home')" index="home">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
-        </div>
-        <span>{{ $t('headMenu.home') }}</span>
-      </el-menu-item>
+      <UIMenuItem
+        v-if="items.includes('home')"
+        :tooltip="collapsed ? $t('headMenu.home') : ''"
+        :icon-image="themeState.currentTheme.HomeIcon"
+        :label="collapsed ? '' : $t('headMenu.home')"
+        :class="{ 'is-active': activeMenuIndex === 'home' }"
+        @click="handleSelect('home')"
+      />
 
-      <el-tooltip
-        v-if="collapsed && items.includes('editor')"
-        :content="$t('headMenu.editor')"
-        placement="right"
-      >
-        <el-menu-item index="editor">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!collapsed && items.includes('editor')" index="editor">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
-        </div>
-        <span>{{ $t('headMenu.editor') }}</span>
-      </el-menu-item>
+      <UIMenuItem
+        v-if="items.includes('editor')"
+        :tooltip="collapsed ? $t('headMenu.editor') : ''"
+        :icon-image="themeState.currentTheme.EditorIcon"
+        :label="collapsed ? '' : $t('headMenu.editor')"
+        :class="{ 'is-active': activeMenuIndex === 'editor' }"
+        @click="handleSelect('editor')"
+      />
 
-      <el-tooltip
-        v-if="collapsed && items.includes('outline')"
-        :content="$t('headMenu.outline')"
-        placement="right"
-      >
-        <el-menu-item index="outline">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!collapsed && items.includes('outline')" index="outline">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
-        </div>
-        <span>{{ $t('headMenu.outline') }}</span>
-      </el-menu-item>
+      <UIMenuItem
+        v-if="items.includes('outline')"
+        :tooltip="collapsed ? $t('headMenu.outline') : ''"
+        :icon-image="themeState.currentTheme.OutlineIcon"
+        :label="collapsed ? '' : $t('headMenu.outline')"
+        :class="{ 'is-active': activeMenuIndex === 'outline' }"
+        @click="handleSelect('outline')"
+      />
 
-      <el-tooltip
-        v-if="collapsed && items.includes('agent')"
-        :content="$t('headMenu.agent')"
-        placement="right"
-      >
-        <el-menu-item index="agent">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!collapsed && items.includes('agent')" index="agent">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
-        </div>
-        <span>{{ $t('headMenu.agent') }}</span>
-      </el-menu-item>
-    </el-menu>
+      <UIMenuItem
+        v-if="items.includes('agent')"
+        :tooltip="collapsed ? $t('headMenu.agent') : ''"
+        :icon-image="themeState.currentTheme.AgentIcon"
+        :label="collapsed ? '' : $t('headMenu.agent')"
+        :class="{ 'is-active': activeMenuIndex === 'agent' }"
+        @click="handleSelect('agent')"
+      />
+    </UIMenu>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { themeState } from '../../utils/themes'
+import { themeState, mixColors } from '../../utils/themes'
+import UIMenu from '../ui/UIMenu.vue'
+import UIMenuItem from '../ui/UIMenuItem.vue'
 
 const props = withDefaults(
   defineProps<{
     items: string[]
     collapsed?: boolean
+    activeMenuIndex?: string
     mode?: 'normal' | 'demo'
   }>(),
   {
     items: () => [],
     collapsed: false,
+    activeMenuIndex: '',
     mode: 'demo'
   }
 )
 
+const emit = defineEmits<{
+  (e: 'select', index: string): void
+}>()
+
 const { t } = useI18n()
-const activeMenuIndex = ref('')
+
+// 计算选中状态的背景色
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
+const activeTextColor = computed(() => themeState.currentTheme.textColor)
+
+const handleSelect = (index: string): void => {
+  emit('select', index)
+}
 </script>
 
 <style scoped>
@@ -117,7 +91,21 @@ const activeMenuIndex = ref('')
   max-width: 200px;
 }
 
-.view-menu-items-demo :deep(.menu-icon) {
+/* 激活状态样式 */
+.view-menu-items-demo :deep(.ui-menu-item.is-active) {
+  background-color: v-bind('activeBackgroundColor') !important;
+  color: v-bind('activeTextColor') !important;
+  border-radius: 6px !important;
+}
+
+/* 确保 hover 状态也有圆角 */
+.view-menu-items-demo :deep(.ui-menu-item:hover) {
+  border-radius: 6px !important;
+}
+
+/* 图标容器 */
+.view-menu-items-demo :deep(.icon-wrapper),
+.view-menu-items-demo :deep(.ui-menu-item__icon-image) {
   width: 20px;
   height: 20px;
 }
@@ -126,5 +114,28 @@ const activeMenuIndex = ref('')
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 覆盖 UIMenuItem 默认的 icon 大小 */
+.view-menu-items-demo :deep(.ui-menu-item__icon-image) {
+  width: 20px;
+  height: 20px;
+}
+
+/* 组件特定的菜单样式 */
+.view-menu-items-demo :deep(.ui-menu) {
+  height: auto;
+  min-height: unset;
+}
+
+.view-menu-items-demo :deep(.ui-menu:not(.is-collapsed)) {
+  width: 120px;
+  min-height: unset;
+}
+
+@media (max-width: 768px) {
+  .view-menu-items-demo :deep(.ui-menu:not(.is-collapsed)) {
+    width: 120px;
+  }
 }
 </style>

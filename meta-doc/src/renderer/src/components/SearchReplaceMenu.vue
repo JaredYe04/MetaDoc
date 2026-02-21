@@ -22,17 +22,15 @@
           <Loading />
         </el-icon>
       </div>
-      <el-scrollbar class="textarea-scroll">
-        <el-input
+      <ScrollArea class="textarea-scroll">
+        <Textarea
           ref="findInputRef"
           v-model="form.findText"
           :placeholder="t('searchReplace.findPlaceholder')"
-          type="textarea"
-          :autosize="{ minRows: 2, maxRows: 6 }"
-          size="small"
-          @keyup.enter="handleFind('next')"
+          :rows="2"
+          @keydown.enter.prevent="handleFind('next')"
         />
-      </el-scrollbar>
+      </ScrollArea>
       <div class="toggle-row">
         <el-tooltip :content="t('searchReplace.matchCase')" placement="top">
           <Button
@@ -79,16 +77,14 @@
 
     <section v-show="!collapsed" class="field-group draggable-zone">
       <div class="field-label">{{ t('searchReplace.replace') }}</div>
-      <el-scrollbar class="textarea-scroll">
-        <el-input
+      <ScrollArea class="textarea-scroll">
+        <Textarea
           v-model="form.replaceText"
           :placeholder="t('searchReplace.replacePlaceholder')"
-          type="textarea"
-          :autosize="{ minRows: 2, maxRows: 6 }"
-          size="small"
-          @keyup.enter="handleReplace"
+          :rows="2"
+          @keydown.enter.prevent="handleReplace"
         />
-      </el-scrollbar>
+      </ScrollArea>
     </section>
 
     <section v-if="regexError" class="error-banner">
@@ -105,7 +101,7 @@
         <div class="panel-header-small">
           <span>{{ t('searchReplace.matchesList') }} ({{ searchState.matches.length }})</span>
         </div>
-        <el-scrollbar class="matches-scrollbar" :style="matchesScrollbarStyle">
+        <ScrollArea class="matches-scrollbar" :style="matchesScrollbarStyle">
           <div class="matches-list">
             <el-tooltip
               v-for="(match, index) in searchState.matches"
@@ -129,7 +125,7 @@
               </div>
             </el-tooltip>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
     </section>
 
@@ -245,8 +241,10 @@ import {
   watch,
   watchEffect
 } from 'vue'
-import { ElInput, ElTooltip, ElScrollbar, ElIcon } from 'element-plus'
+import { ElTooltip, ElIcon } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { themeState, mixColors } from '../utils/themes'

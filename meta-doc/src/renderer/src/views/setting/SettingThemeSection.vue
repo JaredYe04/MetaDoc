@@ -65,16 +65,16 @@
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button type="text" circle size="small">
-                <el-icon><More /></el-icon>
+                <MoreVertical class="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem @click="handleAction('duplicate', theme)">
-                <el-icon class="mr-2"><CopyDocument /></el-icon>
+                <Copy class="w-4 h-4 mr-2" />
                 {{ t('setting.duplicate') }}
               </DropdownMenuItem>
               <DropdownMenuItem v-if="!theme.isDefault" @click="handleAction('edit', theme)">
-                <el-icon class="mr-2"><Edit /></el-icon>
+                <Pencil class="w-4 h-4 mr-2" />
                 {{ t('setting.edit') }}
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -82,7 +82,7 @@
                 @click="handleAction('delete', theme)"
                 class="text-red-600 focus:text-red-600"
               >
-                <el-icon class="mr-2"><Delete /></el-icon>
+                <Trash2 class="w-4 h-4 mr-2" />
                 {{ t('setting.delete') }}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -91,14 +91,14 @@
 
         <!-- 选中标记 -->
         <div v-if="theme.id === selectedThemeId" class="theme-card__check">
-          <el-icon><Check /></el-icon>
+          <Check class="w-5 h-5" />
         </div>
       </div>
 
       <!-- 新建主题卡片 -->
       <div class="theme-card theme-card--new" @click="handleNewTheme">
         <div class="theme-card__preview theme-card__preview--new">
-          <el-icon><Plus /></el-icon>
+          <Plus class="w-6 h-6" />
         </div>
         <div class="theme-card__info">
           <div class="theme-card__name">{{ t('setting.newTheme') }}</div>
@@ -107,45 +107,45 @@
     </div>
 
     <!-- 其他设置 -->
-    <el-form label-width="160px" class="settings-form">
-      <el-form-item :label="t('setting.contentTheme')">
-        <el-select
-          v-model="settings.contentTheme"
-          :placeholder="t('setting.selectContentTheme')"
-          @change="handleContentThemeChange"
-        >
-          <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-          <el-option
-            v-for="item in contentThemes"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+    <Form class="settings-form space-y-6">
+      <FormField :label="t('setting.contentTheme')" name="contentTheme">
+        <Select v-model="settings.contentTheme" @update:model-value="handleContentThemeChange">
+          <SelectTrigger class="w-[180px]">
+            <SelectValue :placeholder="t('setting.selectContentTheme')" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">{{ t('setting.auto') }}</SelectItem>
+            <SelectItem v-for="item in contentThemes" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.codeTheme')" name="codeTheme">
+        <Select v-model="settings.codeTheme" @update:model-value="handleCodeThemeChange">
+          <SelectTrigger class="w-[180px]">
+            <SelectValue :placeholder="t('setting.selectCodeTheme')" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">{{ t('setting.auto') }}</SelectItem>
+            <SelectItem v-for="item in codeThemes" :key="item" :value="item">
+              {{ item }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.lineNumber')" name="lineNumber">
+        <div class="flex items-center gap-2">
+          <Switch
+            :checked="settings.lineNumber"
+            @update:checked="(val: boolean) => { settings.lineNumber = val; saveSetting('lineNumber', val) }"
           />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('setting.codeTheme')">
-        <el-select
-          v-model="settings.codeTheme"
-          filterable
-          :placeholder="t('setting.selectCodeTheme')"
-          @change="handleCodeThemeChange"
-        >
-          <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-          <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('setting.lineNumber')">
-        <el-switch
-          v-model="settings.lineNumber"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="saveSetting('lineNumber', settings.lineNumber)"
-        />
-      </el-form-item>
-    </el-form>
+          <span class="text-sm text-muted-foreground">{{ settings.lineNumber ? t('setting.enabled') : t('setting.disabled') }}</span>
+        </div>
+      </FormField>
+    </Form>
 
     <!-- 新建/编辑主题对话框 -->
     <el-dialog
@@ -153,23 +153,23 @@
       :title="editingTheme ? t('setting.editTheme') : t('setting.newTheme')"
       width="500px"
     >
-      <el-form :model="themeForm" label-width="100px">
-        <el-form-item :label="t('setting.themeName')">
-          <el-input
+      <Form class="space-y-4">
+        <FormField :label="t('setting.themeName')" name="themeName">
+          <Input
             v-model="themeForm.name"
             :placeholder="t('setting.themeNamePlaceholder')"
             @input="handleNameInput"
           />
-        </el-form-item>
-        <el-form-item :label="t('setting.themeColor')">
+        </FormField>
+        <FormField :label="t('setting.themeColor')" name="themeColor">
           <el-color-picker
             v-model="themeForm.themeColor"
             :predefine="predefineColors"
             show-alpha
             @change="handleColorChange"
           />
-        </el-form-item>
-      </el-form>
+        </FormField>
+      </Form>
       <template #footer>
         <Button variant="ghost" @click="showCreateDialog = false">{{ t('setting.cancel') }}</Button>
         <Button @click="saveTheme">{{ t('setting.save') }}</Button>
@@ -182,14 +182,24 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { More, Plus, Check, CopyDocument, Edit, Delete } from '@element-plus/icons-vue'
+import { MoreVertical, Plus, Check, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import {
@@ -797,6 +807,7 @@ onMounted(async () => {
 <style scoped>
 .theme-settings {
   width: 100%;
+  margin: 0 auto;
 }
 
 .section-title {
@@ -808,7 +819,7 @@ onMounted(async () => {
 
 .theme-cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
   max-height: 500px;
@@ -995,10 +1006,10 @@ onMounted(async () => {
 
 /* shadcn DropdownMenu danger item style - handled via Tailwind classes */
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .theme-cards-container {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 </style>

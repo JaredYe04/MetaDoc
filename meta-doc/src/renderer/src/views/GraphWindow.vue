@@ -28,7 +28,7 @@
           </div>
 
           <div v-else class="dialog-container">
-            <el-scrollbar class="conversation-scroll">
+            <ScrollArea class="conversation-scroll">
               <GraphMessageBubble
                 v-for="(msg, index) in messages.filter((item) => item.role !== 'system')"
                 :key="index"
@@ -46,7 +46,8 @@
                 @export="handleExport"
               />
               <div class="conversation-bottom-spacer" />
-            </el-scrollbar>
+              <ScrollBar />
+            </ScrollArea>
             <div class="composer-wrapper">
               <ChatComposer
                 v-model="currentPrompt"
@@ -75,6 +76,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { graphSessionsDb } from '../utils/db/tool-sessions-db'
 import { createAiTask, cancelAiTask } from '../utils/ai_tasks'
 import { ref as vueRef } from 'vue'
@@ -1492,12 +1494,7 @@ onMounted(() => {
   padding-right: 4px;
 }
 
-.conversation-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.conversation-scroll :deep(.el-scrollbar__view) {
-  width: 100%;
+.conversation-scroll :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

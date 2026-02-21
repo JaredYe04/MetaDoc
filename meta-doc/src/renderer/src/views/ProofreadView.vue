@@ -56,7 +56,7 @@
                 {{ displayErrors.length }}
               </el-tag>
             </div>
-            <el-scrollbar class="errors-scrollbar">
+            <ScrollArea class="errors-scrollbar">
               <div v-if="displayErrors.length === 0" class="no-errors-message">
                 <p>{{ $t('proofread.noErrorsFound', '未发现错误') }}</p>
               </div>
@@ -142,7 +142,8 @@
                   </div>
                 </div>
               </div>
-            </el-scrollbar>
+              <ScrollBar />
+            </ScrollArea>
           </div>
 
           <!-- 右侧：Monaco 编辑器 -->
@@ -171,6 +172,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'
@@ -1224,7 +1226,7 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.errors-scrollbar :deep(.el-scrollbar__wrap) {
+.errors-scrollbar :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

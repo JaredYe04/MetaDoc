@@ -87,33 +87,25 @@
                 >
                   <el-tooltip :content="$t('latexEditor.toolbar.undo')" placement="bottom">
                     <div class="toolbar-icon" @click="undo">
-                      <el-icon>
-                        <ArrowLeft />
-                      </el-icon>
+                      <ArrowLeft class="w-4 h-4" />
                     </div>
                   </el-tooltip>
 
                   <el-tooltip :content="$t('latexEditor.toolbar.redo')" placement="bottom">
                     <div class="toolbar-icon" @click="redo">
-                      <el-icon>
-                        <ArrowRight />
-                      </el-icon>
+                      <ArrowRight class="w-4 h-4" />
                     </div>
                   </el-tooltip>
 
                   <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
                     <div class="toolbar-icon" @click="zoomIn">
-                      <el-icon>
-                        <ZoomIn />
-                      </el-icon>
+                      <ZoomIn class="w-4 h-4" />
                     </div>
                   </el-tooltip>
 
                   <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
                     <div class="toolbar-icon" @click="zoomOut">
-                      <el-icon>
-                        <ZoomOut />
-                      </el-icon>
+                      <ZoomOut class="w-4 h-4" />
                     </div>
                   </el-tooltip>
 
@@ -263,7 +255,7 @@ import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import { useWorkspace } from '../stores/workspace'
 
 import 'monaco-latex'
-import { ArrowLeft, ArrowRight, Refresh, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, RefreshCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { debounce } from 'lodash'
 import messageBridge from '../bridge/message-bridge'
 import { createMonacoAdapter } from '../editor/monaco-adapter'

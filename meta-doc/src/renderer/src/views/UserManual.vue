@@ -2,26 +2,26 @@
   <div class="user-manual-page">
     <div class="manual-header">
       <div class="header-left">
-        <el-button
+        <Button
           v-if="currentArticleId"
-          text
-          :icon="ArrowLeft"
+          variant="ghost"
           @click="goToOverview"
         >
+          <ArrowLeft class="mr-2 h-4 w-4" />
           {{ $t('userManual.backToOverview') || '返回概览' }}
-        </el-button>
+        </Button>
         <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
       </div>
       <div class="header-actions">
-        <el-button
+        <Button
           v-if="learningProgress >= 100"
-          type="primary"
-          text
-          :icon="Promotion"
+          variant="ghost"
+          class="text-primary"
           @click="showCelebration = true"
         >
+          <Promotion class="mr-2 h-4 w-4" />
           {{ $t('userManual.replayCelebration') || '重新播放庆祝动画' }}
-        </el-button>
+        </Button>
         <ManualSearch />
       </div>
     </div>
@@ -84,6 +84,7 @@ import LearningPathList from '../components/manual/LearningPathList.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
 import { User, ArrowLeft, DataBoard, Promotion } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../stores/userManual'
 import CelebrationOverlay from '../components/CelebrationOverlay.vue'
 

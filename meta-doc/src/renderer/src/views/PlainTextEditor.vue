@@ -37,33 +37,25 @@
           >
             <el-tooltip :content="$t('plaintextEditor.toolbar.undo')" placement="bottom">
               <div class="toolbar-icon" @click="undo">
-                <el-icon>
-                  <ArrowLeft />
-                </el-icon>
+                <ArrowLeft class="w-4 h-4" />
               </div>
             </el-tooltip>
 
             <el-tooltip :content="$t('plaintextEditor.toolbar.redo')" placement="bottom">
               <div class="toolbar-icon" @click="redo">
-                <el-icon>
-                  <ArrowRight />
-                </el-icon>
+                <ArrowRight class="w-4 h-4" />
               </div>
             </el-tooltip>
 
             <el-tooltip :content="$t('plaintextEditor.toolbar.zoomIn')" placement="bottom">
               <div class="toolbar-icon" @click="zoomIn">
-                <el-icon>
-                  <ZoomIn />
-                </el-icon>
+                <ZoomIn class="w-4 h-4" />
               </div>
             </el-tooltip>
 
             <el-tooltip :content="$t('plaintextEditor.toolbar.zoomOut')" placement="bottom">
               <div class="toolbar-icon" @click="zoomOut">
-                <el-icon>
-                  <ZoomOut />
-                </el-icon>
+                <ZoomOut class="w-4 h-4" />
               </div>
             </el-tooltip>
 
@@ -78,9 +70,7 @@
 
             <el-tooltip :content="$t('plaintextEditor.toolbar.toggleMinimap')" placement="bottom">
               <div class="toolbar-icon" @click="toggleMinimap">
-                <el-icon>
-                  <Memo />
-                </el-icon>
+                <FileText class="w-4 h-4" />
               </div>
             </el-tooltip>
 
@@ -163,7 +153,7 @@ import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
 import * as monaco from 'monaco-editor'
 import { useWorkspace } from '../stores/workspace'
-import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, Memo } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, FileText } from 'lucide-vue-next'
 import { debounce } from 'lodash'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'

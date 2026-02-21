@@ -19,22 +19,20 @@
     <div class="logger-console-wrapper" :style="wrapperStyle">
       <div class="logger-console-header">
         <h3>{{ t('setting.loggerConsoleTitle') }}</h3>
-        <el-button size="small" text type="danger" @click="closePanel">
+        <Button size="sm" variant="ghost" class="text-red-500 hover:text-red-600" @click="closePanel">
           {{ t('common.close') }}
-        </el-button>
+        </Button>
       </div>
       <div class="logger-filter">
-        <el-input
-          v-model="filterText"
-          :placeholder="t('setting.loggingFilterPlaceholder')"
-          size="small"
-          clearable
-          @input="handleFilterChange"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+        <div class="relative">
+          <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            v-model="filterText"
+            :placeholder="t('setting.loggingFilterPlaceholder')"
+            class="pl-9 w-full"
+            @input="handleFilterChange"
+          />
+        </div>
       </div>
       <ConsoleOutput console-key="logger" :history="filteredLogHistory" />
     </div>
@@ -47,6 +45,8 @@ import { useI18n } from 'vue-i18n'
 import { Search } from '@element-plus/icons-vue'
 import ResizablePanel from './base/ResizablePanel.vue'
 import ConsoleOutput from './ConsoleOutput.vue'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { fetchLoggerHistory } from '../utils/logger.ts'

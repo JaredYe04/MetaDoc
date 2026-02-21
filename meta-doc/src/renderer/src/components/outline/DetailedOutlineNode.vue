@@ -9,7 +9,7 @@
 
     <!-- 内容区域 -->
     <div class="detailed-outline-node__content-wrapper">
-      <el-scrollbar class="detailed-outline-node__scrollbar">
+      <ScrollArea class="h-full w-full">
         <div class="detailed-outline-node__content">
           <!-- AI执行时显示流式输出 -->
           <StreamingContentDisplay
@@ -22,7 +22,7 @@
           <!-- 正常显示时使用VditorPreview -->
           <VditorPreview v-else :markdown="node.text || ''" :docPath="docPath" />
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
 
     <!-- 操作按钮区域 -->
@@ -93,8 +93,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElTooltip, ElIcon, ElScrollbar } from 'element-plus'
+import { ElTooltip, ElIcon } from 'element-plus'
 import { CloseBold, Check, Close, EditPen, Minus, Star } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Button } from '@renderer/components/ui/button'
 import type { DocumentOutlineNode } from '../../../types'
 import { themeState } from '../../utils/themes'
@@ -335,15 +336,6 @@ defineExpose({
   min-height: 200px;
   max-height: 400px;
   border: 1px solid rgba(145, 145, 145, 0.3);
-}
-
-.detailed-outline-node__scrollbar {
-  height: 100%;
-  width: 100%;
-}
-
-.detailed-outline-node__scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
 }
 
 .detailed-outline-node__content {

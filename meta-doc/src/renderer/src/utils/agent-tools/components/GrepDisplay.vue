@@ -69,7 +69,7 @@
         <div class="panel-header" :style="panelHeaderStyle">
           <span>{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span>
         </div>
-        <el-scrollbar height="400px">
+        <ScrollArea class="h-[400px]">
           <div class="matches-list">
             <div
               v-for="(match, index) in resultData.matches"
@@ -94,7 +94,7 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <div v-else class="grep-content">
@@ -105,7 +105,7 @@
               >{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span
             >
           </div>
-          <el-scrollbar height="500px">
+          <ScrollArea class="h-[500px]">
             <div class="matches-list">
               <div
                 v-for="(match, index) in resultData.matches"
@@ -129,17 +129,17 @@
                 </div>
               </div>
             </div>
-          </el-scrollbar>
+          </ScrollArea>
         </div>
 
         <!-- 右侧：Monaco 编辑器显示完整上下文 -->
         <div class="editor-panel">
           <div class="panel-header" :style="panelHeaderStyle">
             <span>{{ $t('agent.display.grep.contextView') }}</span>
-            <el-button
+            <Button
               v-if="hasReplacedContent"
-              size="small"
-              :type="showReplacedContent ? 'primary' : 'default'"
+              size="sm"
+              :variant="showReplacedContent ? 'default' : 'outline'"
               @click="toggleContent"
             >
               {{
@@ -147,7 +147,7 @@
                   ? $t('agent.display.grep.showOriginal')
                   : $t('agent.display.grep.showReplaced')
               }}
-            </el-button>
+            </Button>
           </div>
           <div :id="editorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
         </div>
@@ -178,6 +178,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

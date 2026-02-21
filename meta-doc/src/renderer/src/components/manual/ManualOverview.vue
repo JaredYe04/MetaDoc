@@ -1,6 +1,6 @@
 <template>
   <div class="manual-overview">
-    <el-scrollbar class="overview-scrollbar">
+    <ScrollArea class="overview-scrollbar">
       <div class="overview-content">
         <!-- 欢迎区域 -->
         <div class="welcome-section">
@@ -93,22 +93,20 @@
               </div>
             </div>
             <div class="path-actions">
-              <el-button
-                type="primary"
-                :icon="Document"
-                :disabled="!selectedNodeId"
-                @click="startSelectedLearning"
-              >
-                {{ $t('userManual.overview.startLearning') || '开始学习' }}
-              </el-button>
-              <el-button
-                text
-                type="info"
-                size="small"
-                @click="handleClearProgress"
-              >
-                {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
-              </el-button>
+            <Button
+              :disabled="!selectedNodeId"
+              @click="startSelectedLearning"
+            >
+              <Document class="mr-2 h-4 w-4" />
+              {{ $t('userManual.overview.startLearning') || '开始学习' }}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="handleClearProgress"
+            >
+              {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
+            </Button>
             </div>
           </div>
         </div>
@@ -121,13 +119,12 @@
           </h2>
           <div class="quick-start-card">
             <p>{{ $t('userManual.overview.noProfile') || '还没有设置用户画像？让我们先了解一下您的使用偏好，以便为您推荐最适合的学习路径。' }}</p>
-            <el-button
-              type="primary"
-              :icon="User"
+            <Button
               @click="openProfileDialog"
             >
+              <User class="mr-2 h-4 w-4" />
               {{ $t('userManual.profile.buttonText') || '完善我的使用偏好' }}
-            </el-button>
+            </Button>
           </div>
         </div>
 
@@ -159,7 +156,7 @@
           </div>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
@@ -167,6 +164,7 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile, ManualCategory } from '../../stores/userManual'
 import UserProfileVisualization from './UserProfileVisualization.vue'
@@ -180,6 +178,7 @@ import {
   Lightning,
   Link
 } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../../utils/themes'
 
 const { t, locale } = useI18n()

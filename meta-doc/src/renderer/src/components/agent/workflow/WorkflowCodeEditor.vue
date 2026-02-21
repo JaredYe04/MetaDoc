@@ -5,10 +5,10 @@
         <h3>{{ t('agent.workflow.pseudoCode.title') }}</h3>
       </div>
       <div class="header-right" v-if="!props.readOnly">
-        <el-button size="small" @click="handleFormat">{{ t('common.format') }}</el-button>
-        <el-button size="small" type="primary" @click="handleApply">{{
+        <Button size="sm" @click="handleFormat">{{ t('common.format') }}</Button>
+        <Button size="sm" type="primary" @click="handleApply">{{
           t('common.apply')
-        }}</el-button>
+        }}</Button>
       </div>
     </div>
     <div ref="editorContainer" class="code-editor-content"></div>
@@ -36,6 +36,7 @@ import {
   workflowToPseudoCode,
   pseudoCodeToWorkflow
 } from '../../../utils/agent-framework/workflow-pseudo-code'
+import { Button } from '@renderer/components/ui/button'
 
 const props = defineProps<{
   workflow: Workflow

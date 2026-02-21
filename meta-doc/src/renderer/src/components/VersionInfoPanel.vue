@@ -22,14 +22,7 @@
         <h3>{{ $t('versionInfoPanel.title') }}</h3>
       </div>
 
-      <el-scrollbar
-        :style="{
-          maxWidth: '100%',
-          flex: 1,
-          overflow: 'auto'
-        }"
-        min-size="5"
-      >
+      <ScrollArea class="flex-1 w-full overflow-auto">
         <div class="version-content">
           <div class="version-info-item">
             <span class="info-label">{{ $t('versionInfoPanel.version') }}:</span>
@@ -78,7 +71,7 @@
             />
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
 
       <!-- 操作按钮 -->
       <div class="version-actions">
@@ -130,6 +123,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'

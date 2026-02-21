@@ -3,41 +3,64 @@
     <div class="debug-layout">
       <!-- 侧边栏导航 -->
       <div class="debug-sidebar">
-        <el-menu
-          :default-active="activeTab"
-          @select="handleMenuSelect"
-          class="debug-menu"
-          :collapse="false"
-        >
-          <el-menu-item index="eventbus">
-            <el-icon><Connection /></el-icon>
-            <template #title>{{ $t('setting.debug.eventBus') }}</template>
-          </el-menu-item>
-          <el-menu-item index="updatetest">
-            <el-icon><Refresh /></el-icon>
-            <template #title>更新测试</template>
-          </el-menu-item>
-          <el-menu-item index="agenttool">
-            <el-icon><Tools /></el-icon>
-            <template #title>Agent Tool测试</template>
-          </el-menu-item>
-          <el-menu-item index="importsnapshot">
-            <el-icon><Document /></el-icon>
-            <template #title>{{ $t('setting.debug.importSnapshot') }}</template>
-          </el-menu-item>
-          <el-menu-item index="autotest">
-            <el-icon><Setting /></el-icon>
-            <template #title>Tool自动测试</template>
-          </el-menu-item>
-          <el-menu-item index="unittest">
-            <el-icon><Tools /></el-icon>
-            <template #title>{{ $t('setting.debug.unitTest.title') }}</template>
-          </el-menu-item>
-          <el-menu-item index="agentsessiondebug">
-            <el-icon><ChatDotRound /></el-icon>
-            <template #title>Agent会话调试</template>
-          </el-menu-item>
-        </el-menu>
+        <div class="debug-menu">
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'eventbus' }]"
+            @click="handleMenuSelect('eventbus')"
+          >
+            <Connection class="debug-menu-icon" />
+            <span class="debug-menu-label">{{ $t('setting.debug.eventBus') }}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'updatetest' }]"
+            @click="handleMenuSelect('updatetest')"
+          >
+            <Refresh class="debug-menu-icon" />
+            <span class="debug-menu-label">更新测试</span>
+          </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'agenttool' }]"
+            @click="handleMenuSelect('agenttool')"
+          >
+            <Tools class="debug-menu-icon" />
+            <span class="debug-menu-label">Agent Tool测试</span>
+          </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'importsnapshot' }]"
+            @click="handleMenuSelect('importsnapshot')"
+          >
+            <Document class="debug-menu-icon" />
+            <span class="debug-menu-label">{{ $t('setting.debug.importSnapshot') }}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'autotest' }]"
+            @click="handleMenuSelect('autotest')"
+          >
+            <Setting class="debug-menu-icon" />
+            <span class="debug-menu-label">Tool自动测试</span>
+          </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'unittest' }]"
+            @click="handleMenuSelect('unittest')"
+          >
+            <Tools class="debug-menu-icon" />
+            <span class="debug-menu-label">{{ $t('setting.debug.unitTest.title') }}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'agentsessiondebug' }]"
+            @click="handleMenuSelect('agentsessiondebug')"
+          >
+            <ChatDotRound class="debug-menu-icon" />
+            <span class="debug-menu-label">Agent会话调试</span>
+          </Button>
+        </div>
       </div>
 
       <!-- 内容区域 -->
@@ -62,120 +85,141 @@
                   <!-- EventBus 事件测试 -->
                   <TabsContent value="eventbus" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
-                      <el-form :model="eventBusForm" label-width="140px">
-                        <el-form-item :label="$t('setting.debug.eventName')">
-                          <el-input
+                      <Form class="space-y-4">
+                        <FormField :label="$t('setting.debug.eventName')" name="eventName">
+                          <Input
                             v-model="eventBusForm.eventName"
                             :placeholder="$t('setting.debug.eventNamePlaceholder')"
                           />
-                        </el-form-item>
-                        <el-form-item :label="$t('setting.debug.eventData')">
-                          <el-input
+                        </FormField>
+                        <FormField :label="$t('setting.debug.eventData')" name="eventData">
+                          <Textarea
                             v-model="eventBusForm.eventData"
-                            type="textarea"
-                            :rows="6"
                             :placeholder="$t('setting.debug.eventDataPlaceholder')"
+                            rows="6"
                           />
-                        </el-form-item>
-                        <el-form-item>
+                        </FormField>
+                        <FormField name="actions">
                           <Button variant="default" @click="sendEventBusEvent">
                             {{ $t('setting.debug.sendEvent') }}
                           </Button>
-                        </el-form-item>
-                      </el-form>
+                        </FormField>
+                      </Form>
                     </div>
                   </TabsContent>
 
                   <!-- 广播事件测试 -->
                   <TabsContent value="broadcast" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
-                      <el-form :model="broadcastForm" label-width="140px">
-                        <el-form-item :label="$t('setting.debug.targetWindow')">
-                          <el-select v-model="broadcastForm.to" style="width: 100%">
-                            <el-option :label="$t('setting.debug.targetAll')" value="all" />
-                            <el-option
-                              v-for="windowType in availableWindowTypes"
-                              :key="windowType"
-                              :label="getWindowTypeLabel(windowType)"
-                              :value="windowType"
-                            />
-                          </el-select>
-                        </el-form-item>
-                        <el-form-item :label="$t('setting.debug.eventName')">
-                          <el-input
+                      <Form class="space-y-4">
+                        <FormField :label="$t('setting.debug.targetWindow')" name="targetWindow">
+                          <Select v-model="broadcastForm.to">
+                            <SelectTrigger class="w-[200px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">{{ $t('setting.debug.targetAll') }}</SelectItem>
+                              <SelectItem
+                                v-for="windowType in availableWindowTypes"
+                                :key="windowType"
+                                :value="windowType"
+                              >
+                                {{ getWindowTypeLabel(windowType) }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormField>
+                        <FormField :label="$t('setting.debug.eventName')" name="eventName">
+                          <Input
                             v-model="broadcastForm.eventName"
                             :placeholder="$t('setting.debug.eventNamePlaceholder')"
                           />
-                        </el-form-item>
-                        <el-form-item :label="$t('setting.debug.eventData')">
-                          <el-input
+                        </FormField>
+                        <FormField :label="$t('setting.debug.eventData')" name="eventData">
+                          <Textarea
                             v-model="broadcastForm.eventData"
-                            type="textarea"
-                            :rows="6"
                             :placeholder="$t('setting.debug.eventDataPlaceholder')"
+                            rows="6"
                           />
-                        </el-form-item>
-                        <el-form-item>
+                        </FormField>
+                        <FormField name="actions">
                           <Button variant="default" @click="sendBroadcastEvent">
                             {{ $t('setting.debug.sendBroadcast') }}
                           </Button>
-                        </el-form-item>
-                      </el-form>
+                        </FormField>
+                      </Form>
                     </div>
                   </TabsContent>
                 </Tabs>
               </div>
               <div v-else-if="activeTab === 'updatetest'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
-                  <el-form :model="updateTestForm" label-width="140px">
-                    <el-form-item label="当前版本">
-                      <el-input
+                  <Form class="space-y-4">
+                    <FormField name="currentVersion" label="当前版本">
+                      <Input
                         v-model="updateTestForm.currentVersion"
                         placeholder="例如: 0.13.4"
-                        style="width: 200px"
+                        class="w-[200px]"
                       />
-                    </el-form-item>
+                    </FormField>
 
-                    <el-form-item label="模拟更新版本">
-                      <el-input
+                    <FormField name="mockUpdateVersion" label="模拟更新版本">
+                      <Input
                         v-model="updateTestForm.mockUpdateVersion"
                         placeholder="例如: 0.14.0"
-                        style="width: 200px"
+                        class="w-[200px]"
                       />
-                    </el-form-item>
+                    </FormField>
 
-                    <el-form-item label="更新渠道">
-                      <el-radio-group v-model="updateTestForm.channel">
-                        <el-radio value="release">正式版</el-radio>
-                        <el-radio value="dev">内测版</el-radio>
-                      </el-radio-group>
-                    </el-form-item>
+                    <FormField name="channel" label="更新渠道">
+                      <RadioGroup v-model="updateTestForm.channel" class="flex flex-row gap-4">
+                        <div class="flex items-center gap-2">
+                          <RadioGroupItem value="release" id="channel-release" />
+                          <label for="channel-release" class="text-sm cursor-pointer">正式版</label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <RadioGroupItem value="dev" id="channel-dev" />
+                          <label for="channel-dev" class="text-sm cursor-pointer">内测版</label>
+                        </div>
+                      </RadioGroup>
+                    </FormField>
 
-                    <el-form-item label="测试场景">
-                      <el-radio-group v-model="updateTestForm.scenario">
-                        <el-radio value="hasUpdate">有更新可用</el-radio>
-                        <el-radio value="noUpdate">已是最新版本</el-radio>
-                        <el-radio value="error">模拟网络错误</el-radio>
-                      </el-radio-group>
-                    </el-form-item>
+                    <FormField name="scenario" label="测试场景">
+                      <RadioGroup v-model="updateTestForm.scenario" class="flex flex-row gap-4 flex-wrap">
+                        <div class="flex items-center gap-2">
+                          <RadioGroupItem value="hasUpdate" id="scenario-has-update" />
+                          <label for="scenario-has-update" class="text-sm cursor-pointer">有更新可用</label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <RadioGroupItem value="noUpdate" id="scenario-no-update" />
+                          <label for="scenario-no-update" class="text-sm cursor-pointer">已是最新版本</label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <RadioGroupItem value="error" id="scenario-error" />
+                          <label for="scenario-error" class="text-sm cursor-pointer">模拟网络错误</label>
+                        </div>
+                      </RadioGroup>
+                    </FormField>
 
-                    <el-form-item>
-                      <Button
-                        variant="default"
-                        :disabled="updateTestChecking"
-                        @click="handleMockCheckUpdate"
-                      >
-                        <template v-if="updateTestChecking">
-                          <Loading class="mr-2 h-4 w-4 animate-spin" />
-                          检查中...
-                        </template>
-                        <template v-else>
-                          检查更新
-                        </template>
-                      </Button>
-                      <Button variant="outline" @click="handleMockReset"> 重置状态 </Button>
-                    </el-form-item>
-                  </el-form>
+                    <FormField name="actions">
+                      <div class="flex gap-2">
+                        <Button
+                          variant="default"
+                          :disabled="updateTestChecking"
+                          @click="handleMockCheckUpdate"
+                        >
+                          <template v-if="updateTestChecking">
+                            <Loading class="mr-2 h-4 w-4 animate-spin" />
+                            检查中...
+                          </template>
+                          <template v-else>
+                            检查更新
+                          </template>
+                        </Button>
+                        <Button variant="outline" @click="handleMockReset"> 重置状态 </Button>
+                      </div>
+                    </FormField>
+                  </Form>
 
                   <!-- 更新状态显示 -->
                   <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px">
@@ -255,7 +299,7 @@
                     style="margin-top: 20px"
                   >
                     <el-divider>测试历史</el-divider>
-                    <el-scrollbar height="200px">
+                    <ScrollArea class="h-[200px]">
                       <div
                         v-for="(entry, index) in updateTestHistory"
                         :key="index"
@@ -294,117 +338,109 @@
                           >
                         </div>
                       </div>
-                    </el-scrollbar>
+                    </ScrollArea>
                   </div>
                 </div>
               </div>
               <div v-else-if="activeTab === 'agenttool'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
-                  <el-form :model="toolTestForm" label-width="140px">
+                  <Form class="space-y-4">
                     <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
-                    <el-form-item label="测试用例">
+                    <FormField name="testCase" label="测试用例">
                       <div style="display: flex; gap: 8px; flex-direction: column">
                         <div style="display: flex; gap: 8px">
-                          <el-input
+                          <Input
                             v-model="testCaseIdInput"
                             placeholder="输入测试用例ID（如：color-processing::mix-001）"
-                            style="flex: 1"
-                            clearable
+                            class="flex-1"
                             @keyup.enter="loadTestCaseById"
-                          >
-                            <template #append>
-                              <Button variant="outline" size="sm" @click="loadTestCaseById">
-                                <Search class="mr-1 h-4 w-4" />
-                                加载
-                              </Button>
-                            </template>
-                          </el-input>
+                          />
+                          <Button variant="outline" size="sm" @click="loadTestCaseById">
+                            <Search class="mr-1 h-4 w-4" />
+                            加载
+                          </Button>
                         </div>
-                        <el-select
+                        <Select
                           v-model="selectedTestCase"
-                          placeholder="从test-cases.json选择测试用例"
-                          style="flex: 1"
-                          @change="loadTestCase"
-                          clearable
-                          filterable
+                          @update:model-value="loadTestCase"
                         >
-                          <el-option-group
-                            v-for="(testCases, toolId) in availableTestCases"
-                            :key="toolId"
-                            :label="
-                              getToolDisplayName(
-                                agentToolManager.getTool(toolId)?.config || { id: toolId }
-                              )
-                            "
-                          >
-                            <el-option
-                              v-for="testCase in testCases.testCases"
-                              :key="`${toolId}-${testCase.name}`"
-                              :label="testCase.name"
-                              :value="`${toolId}::${testCase.name}`"
+                          <SelectTrigger class="w-[240px]">
+                            <SelectValue placeholder="从test-cases.json选择测试用例" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">清除选择</SelectItem>
+                            <SelectGroup
+                              v-for="(testCases, toolId) in availableTestCases"
+                              :key="toolId"
                             >
-                              <span>{{ testCase.name }}</span>
-                              <span
-                                v-if="testCase.id"
-                                style="
-                                  color: var(--el-text-color-secondary);
-                                  font-size: 12px;
-                                  margin-left: 8px;
-                                "
+                              <SelectLabel>
+                                {{ getToolDisplayName(agentToolManager.getTool(toolId)?.config || { id: toolId }) }}
+                              </SelectLabel>
+                              <SelectItem
+                                v-for="testCase in testCases.testCases"
+                                :key="`${toolId}-${testCase.name}`"
+                                :value="`${toolId}::${testCase.name}`"
                               >
-                                (ID: {{ testCase.id }})
-                              </span>
-                              <span
-                                v-else
-                                style="
-                                  color: var(--el-text-color-secondary);
-                                  font-size: 12px;
-                                  margin-left: 8px;
-                                "
-                              >
-                                ({{ toolId }})
-                              </span>
-                            </el-option>
-                          </el-option-group>
-                        </el-select>
+                                <div class="flex items-center justify-between w-full">
+                                  <span>{{ testCase.name }}</span>
+                                  <span
+                                    v-if="testCase.id"
+                                    class="text-xs text-muted-foreground ml-2"
+                                  >
+                                    (ID: {{ testCase.id }})
+                                  </span>
+                                  <span
+                                    v-else
+                                    class="text-xs text-muted-foreground ml-2"
+                                  >
+                                    ({{ toolId }})
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </el-form-item>
+                    </FormField>
 
-                    <el-form-item label="选择Tool">
-                      <el-select
+                    <FormField name="toolId" label="选择Tool">
+                      <Select
                         v-model="toolTestForm.toolId"
-                        placeholder="选择要测试的Tool"
-                        style="width: 100%"
-                        @change="handleToolChange"
+                        @update:model-value="handleToolChange"
                       >
-                        <el-option
-                          v-for="tool in availableTools"
-                          :key="tool.config.id"
-                          :label="
-                            getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })
-                          "
-                          :value="tool?.config?.id || ''"
-                        />
-                      </el-select>
-                    </el-form-item>
+                        <SelectTrigger class="w-[240px]">
+                          <SelectValue placeholder="选择要测试的Tool" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="tool in availableTools"
+                            :key="tool.config.id"
+                            :value="tool?.config?.id || ''"
+                          >
+                            {{ getToolDisplayName(tool?.config || { id: tool?.config?.id || '' }) }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormField>
 
                     <!-- 保存的配置列表 -->
-                    <el-form-item label="保存的配置">
+                    <FormField name="savedConfig" label="保存的配置">
                       <div style="display: flex; gap: 8px; margin-bottom: 8px">
-                        <el-select
-                          v-model="selectedConfigId"
-                          placeholder="选择已保存的配置"
-                          style="flex: 1"
-                          @change="loadSavedConfig"
-                          clearable
-                        >
-                          <el-option
-                            v-for="config in savedConfigs"
-                            :key="config.id"
-                            :label="config.name"
-                            :value="config.id"
-                          />
-                        </el-select>
+                        <Select v-model="selectedConfigId" @update:model-value="loadSavedConfig">
+                          <SelectTrigger class="w-[200px]">
+                            <SelectValue placeholder="选择已保存的配置" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">清除选择</SelectItem>
+                            <SelectItem
+                              v-for="config in savedConfigs"
+                              :key="config.id"
+                              :value="config.id"
+                            >
+                              {{ config.name }}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Button
                           variant="outline"
                           size="sm"
@@ -432,24 +468,25 @@
                           删除
                         </Button>
                       </div>
-                    </el-form-item>
+                    </FormField>
 
                     <!-- 上下文Tab选择 -->
-                    <el-form-item label="上下文Tab">
-                      <el-select
-                        v-model="toolTestForm.contextTabId"
-                        placeholder="选择上下文Tab（用于模拟文档环境，可选）"
-                        style="width: 100%"
-                        clearable
-                      >
-                        <el-option label="（不指定，使用当前活动Tab）" value="" />
-                        <el-option
-                          v-for="tab in documentTabs"
-                          :key="tab.id"
-                          :label="`${tab.title || tab.subtitle || '未命名'} (${tab.id})`"
-                          :value="tab.id"
-                        />
-                      </el-select>
+                    <FormField name="contextTabId" label="上下文Tab">
+                      <Select v-model="toolTestForm.contextTabId">
+                        <SelectTrigger class="w-[240px]">
+                          <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">（不指定，使用当前活动Tab）</SelectItem>
+                          <SelectItem
+                            v-for="tab in documentTabs"
+                            :key="tab.id"
+                            :value="tab.id"
+                          >
+                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <div
                         style="
                           margin-top: 4px;
@@ -462,21 +499,17 @@
                           >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
                         >
                       </div>
-                    </el-form-item>
+                    </FormField>
 
                     <!-- 参数编辑区域 -->
                     <el-divider>参数配置</el-divider>
-                    <el-form-item label="工具说明">
-                      <el-input
-                        :value="currentToolInstruction"
-                        type="textarea"
-                        :rows="6"
+                    <FormField name="toolInstruction" label="工具说明">
+                      <Textarea
+                        :model-value="currentToolInstruction"
                         readonly
                         placeholder="请先选择一个Tool查看说明"
-                        style="
-                          font-family: 'JetBrains Mono', 'Consolas', monospace;
-                          font-size: 12px;
-                        "
+                        rows="6"
+                        class="font-mono text-xs"
                       />
                       <div
                         style="
@@ -488,33 +521,34 @@
                         <el-icon><InfoFilled /></el-icon>
                         <span>这是工具的详细说明，包含参数格式、使用场景等信息</span>
                       </div>
-                    </el-form-item>
-                    <el-form-item label="参数JSON">
-                      <el-input
+                    </FormField>
+                    <FormField name="paramsJson" label="参数JSON">
+                      <Textarea
                         v-model="toolTestForm.paramsJson"
-                        type="textarea"
-                        :rows="8"
+                        rows="8"
                         placeholder='请输入JSON格式的参数，例如: {"prompt": "生成一个流程图", "chartType": "mermaid"}'
                       />
-                    </el-form-item>
+                    </FormField>
 
-                    <el-form-item>
-                      <Button
-                        variant="default"
-                        @click="executeToolTest"
-                        :disabled="toolTestExecuting"
-                      >
-                        <template v-if="toolTestExecuting">
-                          <Loading class="mr-2 h-4 w-4 animate-spin" />
-                          执行中...
-                        </template>
-                        <template v-else>
-                          执行Tool
-                        </template>
-                      </Button>
-                      <Button variant="outline" @click="clearToolTestHistory"> 清空历史 </Button>
-                    </el-form-item>
-                  </el-form>
+                    <FormField name="actions">
+                      <div class="flex gap-2">
+                        <Button
+                          variant="default"
+                          @click="executeToolTest"
+                          :disabled="toolTestExecuting"
+                        >
+                          <template v-if="toolTestExecuting">
+                            <Loading class="mr-2 h-4 w-4 animate-spin" />
+                            执行中...
+                          </template>
+                          <template v-else>
+                            执行Tool
+                          </template>
+                        </Button>
+                        <Button variant="outline" @click="clearToolTestHistory"> 清空历史 </Button>
+                      </div>
+                    </FormField>
+                  </Form>
 
                   <!-- 测试结果 -->
                   <div
@@ -529,7 +563,7 @@
                     }"
                   >
                     <el-divider style="margin-top: 0">执行结果</el-divider>
-                    <el-scrollbar style="flex: 1; height: 0">
+                    <ScrollArea class="flex-1">
                       <div
                         v-for="(entry, index) in toolTestHistory"
                         :key="index"
@@ -685,23 +719,22 @@
                       >
                         暂无测试历史
                       </div>
-                    </el-scrollbar>
+                    </ScrollArea>
                   </div>
                 </div>
               </div>
               <div v-else-if="activeTab === 'importsnapshot'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
-                  <el-form :model="importSnapshotForm" label-width="140px">
-                    <el-form-item :label="$t('setting.debug.importSnapshotTitle')">
+                  <Form class="space-y-4">
+                    <FormField name="importSnapshotTitle">
                       <p style="color: var(--el-text-color-secondary); font-size: 13px; margin: 0">
                         {{ $t('setting.debug.importSnapshotDescription') }}
                       </p>
-                    </el-form-item>
-                    <el-form-item :label="$t('setting.debug.snapshotFile')">
-                      <el-input
+                    </FormField>
+                    <FormField name="snapshotFile" :label="$t('setting.debug.snapshotFile')">
+                      <Textarea
                         v-model="importSnapshotForm.snapshotContent"
-                        type="textarea"
-                        :rows="12"
+                        rows="12"
                         :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
                       />
                       <div style="margin-top: 8px">
@@ -721,26 +754,28 @@
                           @change="handleFileSelect"
                         />
                       </div>
-                    </el-form-item>
-                    <el-form-item>
-                      <Button
-                        variant="default"
-                        @click="importSnapshot"
-                        :disabled="importSnapshotLoading"
-                      >
-                        <template v-if="importSnapshotLoading">
-                          <Loading class="mr-2 h-4 w-4 animate-spin" />
-                          {{ $t('setting.debug.importing') }}
-                        </template>
-                        <template v-else>
-                          {{ $t('setting.debug.importButton') }}
-                        </template>
-                      </Button>
-                      <Button variant="outline" @click="clearImportForm">
-                        {{ $t('common.cancel') }}
-                      </Button>
-                    </el-form-item>
-                  </el-form>
+                    </FormField>
+                    <FormField name="actions">
+                      <div class="flex gap-2">
+                        <Button
+                          variant="default"
+                          @click="importSnapshot"
+                          :disabled="importSnapshotLoading"
+                        >
+                          <template v-if="importSnapshotLoading">
+                            <Loading class="mr-2 h-4 w-4 animate-spin" />
+                            {{ $t('setting.debug.importing') }}
+                          </template>
+                          <template v-else>
+                            {{ $t('setting.debug.importButton') }}
+                          </template>
+                        </Button>
+                        <Button variant="outline" @click="clearImportForm">
+                          {{ $t('common.cancel') }}
+                        </Button>
+                      </div>
+                    </FormField>
+                  </Form>
 
                   <!-- 导入后的渲染结果 -->
                   <div
@@ -893,42 +928,41 @@
               </div>
               <div v-else-if="activeTab === 'autotest'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
-                  <el-form :model="autoTestForm" label-width="140px">
-                    <el-form-item label="选择要测试的Tool">
-                      <el-select
-                        v-model="autoTestForm.selectedTools"
-                        multiple
-                        placeholder="选择要测试的Tool（留空则测试所有）"
-                        style="width: 100%"
-                        filterable
-                      >
-                        <el-option
-                          v-for="tool in availableTools"
-                          :key="tool.config.id"
-                          :label="
-                            getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })
-                          "
-                          :value="tool?.config?.id || ''"
-                        />
-                      </el-select>
-                    </el-form-item>
+                  <Form class="space-y-4">
+                    <FormField name="selectedTools" label="选择要测试的Tool">
+                      <Select v-model="autoTestForm.selectedTools" multiple>
+                        <SelectTrigger class="w-[240px]">
+                          <SelectValue placeholder="选择要测试的Tool（留空则测试所有）" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="tool in availableTools"
+                            :key="tool.config.id"
+                            :value="tool?.config?.id || ''"
+                          >
+                            {{ getToolDisplayName(tool?.config || { id: tool?.config?.id || '' }) }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormField>
 
                     <!-- 上下文Tab选择 -->
-                    <el-form-item label="上下文Tab">
-                      <el-select
-                        v-model="autoTestForm.contextTabId"
-                        placeholder="选择上下文Tab（用于模拟文档环境，可选）"
-                        style="width: 100%"
-                        clearable
-                      >
-                        <el-option label="（不指定，使用当前活动Tab）" value="" />
-                        <el-option
-                          v-for="tab in documentTabs"
-                          :key="tab.id"
-                          :label="`${tab.title || tab.subtitle || '未命名'} (${tab.id})`"
-                          :value="tab.id"
-                        />
-                      </el-select>
+                    <FormField name="contextTabId" label="上下文Tab">
+                      <Select v-model="autoTestForm.contextTabId" style="width: 100%">
+                        <SelectTrigger class="w-[240px]">
+                          <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">（不指定，使用当前活动Tab）</SelectItem>
+                          <SelectItem
+                            v-for="tab in documentTabs"
+                            :key="tab.id"
+                            :value="tab.id"
+                          >
+                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <div
                         style="
                           margin-top: 4px;
@@ -941,27 +975,29 @@
                           >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
                         >
                       </div>
-                    </el-form-item>
+                    </FormField>
 
-                    <el-form-item>
-                      <Button
-                        variant="default"
-                        @click="runAutoTests"
-                        :disabled="autoTestRunning"
-                      >
-                        <template v-if="autoTestRunning">
-                          <Loading class="mr-2 h-4 w-4 animate-spin" />
-                          测试中...
-                        </template>
-                        <template v-else>
-                          开始自动测试
-                        </template>
-                      </Button>
-                      <Button variant="outline" @click="stopAutoTests" :disabled="!autoTestRunning">
-                        停止测试
-                      </Button>
-                    </el-form-item>
-                  </el-form>
+                    <FormField name="actions">
+                      <div class="flex gap-2">
+                        <Button
+                          variant="default"
+                          @click="runAutoTests"
+                          :disabled="autoTestRunning"
+                        >
+                          <template v-if="autoTestRunning">
+                            <Loading class="mr-2 h-4 w-4 animate-spin" />
+                            测试中...
+                          </template>
+                          <template v-else>
+                            开始自动测试
+                          </template>
+                        </Button>
+                        <Button variant="outline" @click="stopAutoTests" :disabled="!autoTestRunning">
+                          停止测试
+                        </Button>
+                      </div>
+                    </FormField>
+                  </Form>
 
                   <!-- 测试结果 -->
                   <div
@@ -1000,37 +1036,39 @@
                   <!-- 单个测试 -->
                   <TabsContent value="single" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
-                      <el-form :model="testForm" label-width="140px">
-                        <el-form-item :label="$t('setting.debug.module')">
-                          <el-select
-                            v-model="testForm.module"
-                            :placeholder="$t('setting.debug.selectModule')"
-                            style="width: 100%"
-                            @change="handleModuleChange"
-                          >
-                            <el-option
-                              v-for="module in modules"
-                              :key="module"
-                              :label="module"
-                              :value="module"
-                            />
-                          </el-select>
-                        </el-form-item>
-                        <el-form-item :label="$t('setting.debug.testFunction')">
-                          <el-select
-                            v-model="testForm.testId"
-                            :placeholder="$t('setting.debug.selectTestFunction')"
-                            style="width: 100%"
-                            @change="handleTestChange"
-                          >
-                            <el-option
-                              v-for="test in availableTests"
-                              :key="test.id"
-                              :label="`${test.name}${test.description ? ' - ' + test.description : ''}`"
-                              :value="test.id"
-                            />
-                          </el-select>
-                        </el-form-item>
+                      <Form class="space-y-4">
+                        <FormField name="module" :label="$t('setting.debug.module')">
+                          <Select v-model="testForm.module" @update:model-value="handleModuleChange">
+                            <SelectTrigger class="w-[200px]">
+                              <SelectValue :placeholder="$t('setting.debug.selectModule')" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                v-for="module in modules"
+                                :key="module"
+                                :value="module"
+                              >
+                                {{ module }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormField>
+                        <FormField name="testId" :label="$t('setting.debug.testFunction')">
+                          <Select v-model="testForm.testId" @update:model-value="handleTestChange">
+                            <SelectTrigger class="w-[280px]">
+                              <SelectValue :placeholder="$t('setting.debug.selectTestFunction')" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                v-for="test in availableTests"
+                                :key="test.id"
+                                :value="test.id"
+                              >
+                                {{ test.name }}{{ test.description ? ' - ' + test.description : '' }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormField>
 
                         <!-- 参数编辑区域 -->
                         <template
@@ -1039,9 +1077,10 @@
                           "
                         >
                           <el-divider>{{ $t('setting.debug.parameters') }}</el-divider>
-                          <el-form-item
+                          <FormField
                             v-for="param in selectedTest.params"
                             :key="param.name"
+                            :name="`param_${param.name}`"
                             :label="`${param.name} (${param.type})`"
                           >
                             <template
@@ -1051,32 +1090,37 @@
                                 param.type === 'boolean'
                               "
                             >
-                              <el-input
+                              <Input
                                 v-if="param.type === 'string'"
                                 v-model="testForm.params[param.name]"
                                 :placeholder="param.description || param.name"
                               />
-                              <el-input-number
+                              <NumberField
                                 v-else-if="param.type === 'number'"
                                 v-model="testForm.params[param.name]"
-                                style="width: 100%"
-                              />
+                              >
+                                <NumberFieldContent>
+                                  <NumberFieldDecrement />
+                                  <NumberFieldInput class="w-[120px]" />
+                                  <NumberFieldIncrement />
+                                </NumberFieldContent>
+                              </NumberField>
                               <el-switch
                                 v-else-if="param.type === 'boolean'"
                                 v-model="testForm.params[param.name]"
                               />
                             </template>
-                            <el-input
+                            <Textarea
                               v-else
                               v-model="testForm.params[param.name]"
-                              type="textarea"
-                              :rows="4"
+                              rows="4"
                               :placeholder="$t('setting.debug.jsonPlaceholder')"
                             />
-                          </el-form-item>
+                          </FormField>
                         </template>
 
-                        <el-form-item>
+                        <FormField name="actions">
+                          <div class="flex gap-2">
                           <Button variant="default" @click="executeTest" :disabled="testExecuting">
                             <template v-if="testExecuting">
                               <Loading class="mr-2 h-4 w-4 animate-spin" />
@@ -1089,13 +1133,14 @@
                           <Button variant="outline" @click="clearTestHistory">
                             {{ $t('setting.debug.clearHistory') }}
                           </Button>
-                        </el-form-item>
-                      </el-form>
+                          </div>
+                        </FormField>
+                      </Form>
 
                       <!-- 测试结果 -->
                       <el-divider>{{ $t('setting.debug.testResult') }}</el-divider>
                       <div class="test-result">
-                        <el-scrollbar height="300px">
+                        <ScrollArea class="h-[300px]">
                           <div
                             v-for="(entry, index) in testHistory"
                             :key="index"
@@ -1123,7 +1168,7 @@
                           <div v-if="testHistory.length === 0" class="test-empty">
                             {{ $t('setting.debug.noHistory') }}
                           </div>
-                        </el-scrollbar>
+                        </ScrollArea>
                       </div>
                     </div>
                   </TabsContent>
@@ -1131,40 +1176,41 @@
                   <!-- 批量测试 -->
                   <TabsContent value="batch" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
-                      <el-form :model="unitTestBatchForm" label-width="140px">
-                        <el-form-item :label="$t('setting.debug.unitTest.selectModules')">
-                          <el-select
-                            v-model="unitTestBatchForm.selectedModules"
-                            multiple
-                            placeholder="选择要测试的模块（留空则测试所有）"
-                            style="width: 100%"
-                            filterable
-                          >
-                            <el-option
-                              v-for="module in modules"
-                              :key="module"
-                              :label="module"
-                              :value="module"
-                            />
-                          </el-select>
-                        </el-form-item>
+                      <Form class="space-y-4">
+                        <FormField name="selectedModules" :label="$t('setting.debug.unitTest.selectModules')">
+                          <Select v-model="unitTestBatchForm.selectedModules" multiple>
+                            <SelectTrigger class="w-[240px]">
+                              <SelectValue placeholder="选择要测试的模块（留空则测试所有）" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                v-for="module in modules"
+                                :key="module"
+                                :value="module"
+                              >
+                                {{ module }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormField>
 
                         <!-- 上下文Tab选择 -->
-                        <el-form-item label="上下文Tab">
-                          <el-select
-                            v-model="unitTestBatchForm.contextTabId"
-                            placeholder="选择上下文Tab（用于模拟文档环境，可选）"
-                            style="width: 100%"
-                            clearable
-                          >
-                            <el-option label="（不指定，使用当前活动Tab）" value="" />
-                            <el-option
-                              v-for="tab in documentTabs"
-                              :key="tab.id"
-                              :label="`${tab.title || tab.subtitle || '未命名'} (${tab.id})`"
-                              :value="tab.id"
-                            />
-                          </el-select>
+                        <FormField name="contextTabId" label="上下文Tab">
+                          <Select v-model="unitTestBatchForm.contextTabId" style="width: 100%">
+                            <SelectTrigger class="w-[240px]">
+                              <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">（不指定，使用当前活动Tab）</SelectItem>
+                              <SelectItem
+                                v-for="tab in documentTabs"
+                                :key="tab.id"
+                                :value="tab.id"
+                              >
+                                {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                           <div
                             style="
                               margin-top: 4px;
@@ -1177,9 +1223,10 @@
                               >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
                             >
                           </div>
-                        </el-form-item>
+                        </FormField>
 
-                        <el-form-item>
+                        <FormField name="actions">
+                          <div class="flex gap-2">
                           <Button
                             variant="default"
                             @click="runUnitTestBatch"
@@ -1196,8 +1243,9 @@
                           <Button variant="outline" @click="stopUnitTestBatch" :disabled="!unitTestBatchRunning">
                             停止测试
                           </Button>
-                        </el-form-item>
-                      </el-form>
+                          </div>
+                        </FormField>
+                      </Form>
 
                       <!-- 测试结果 -->
                       <div
@@ -1238,53 +1286,54 @@
                   <!-- 会话调试 -->
                   <TabsContent value="debug" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
-                      <el-form :model="agentSessionDebugForm" label-width="140px">
-                        <el-form-item label="选择文档">
-                          <el-select
+                      <Form class="space-y-4">
+                        <FormField name="tabId" label="选择文档">
+                          <Select
                             v-model="agentSessionDebugForm.tabId"
-                            placeholder="选择要调试的文档"
-                            style="width: 100%"
-                            @change="handleSessionDebugTabChange"
-                            filterable
+                            @update:model-value="handleSessionDebugTabChange"
                           >
-                            <el-option
-                              v-for="tab in workspaceTabs"
-                              :key="tab.id"
-                              :label="tab.title || tab.path || '未命名文档'"
-                              :value="tab.id"
-                            />
-                          </el-select>
-                        </el-form-item>
-
-                        <el-form-item label="选择会话" v-if="agentSessionDebugForm.tabId">
-                          <div style="display: flex; gap: 8px">
-                            <el-select
-                              v-model="agentSessionDebugForm.sessionId"
-                              placeholder="选择要调试的会话"
-                              style="flex: 1"
-                              @change="handleSessionDebugSessionChange"
-                              filterable
-                            >
-                              <el-option
-                                v-for="session in availableSessions"
-                                :key="session.id"
-                                :label="session.title || session.id"
-                                :value="session.id"
+                            <SelectTrigger class="w-[240px]">
+                              <SelectValue placeholder="选择要调试的文档" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                v-for="tab in workspaceTabs"
+                                :key="tab.id"
+                                :value="tab.id"
                               >
-                                <div
-                                  style="
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                  "
+                                {{ tab.title || tab.path || '未命名文档' }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormField>
+
+                        <FormField name="sessionId" label="选择会话" v-if="agentSessionDebugForm.tabId">
+                          <div style="display: flex; gap: 8px">
+                            <Select
+                              v-model="agentSessionDebugForm.sessionId"
+                              @update:model-value="handleSessionDebugSessionChange"
+                              style="flex: 1"
+                            >
+                              <SelectTrigger class="w-[240px]">
+                                <SelectValue placeholder="选择要调试的会话" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  v-for="session in availableSessions"
+                                  :key="session.id"
+                                  :value="session.id"
                                 >
-                                  <span>{{ session.title || session.id }}</span>
-                                  <el-tag size="small" type="info" style="margin-left: 8px">
-                                    {{ session.messages?.length || 0 }} 条消息
-                                  </el-tag>
-                                </div>
-                              </el-option>
-                            </el-select>
+                                  <div
+                                    class="flex justify-between items-center w-full"
+                                  >
+                                    <span>{{ session.title || session.id }}</span>
+                                    <Badge variant="outline" size="sm">
+                                      {{ session.messages?.length || 0 }} 条消息
+                                    </Badge>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                             <Button
                               variant="default"
                               @click="handleImportSessionJson"
@@ -1294,8 +1343,8 @@
                               导入会话
                             </Button>
                           </div>
-                        </el-form-item>
-                      </el-form>
+                        </FormField>
+                      </Form>
 
                       <!-- 会话详情 -->
                       <div
@@ -1312,7 +1361,7 @@
 
                           <!-- 执行节点列表 -->
                           <TabsContent value="nodes" class="debug-tabs-content">
-                            <el-scrollbar height="400px">
+                            <ScrollArea class="h-[400px]">
                               <div
                                 v-if="
                                   selectedSession.executionNodes &&
@@ -1393,12 +1442,12 @@
                                 </div>
                               </div>
                               <div v-else class="test-empty">暂无执行节点</div>
-                            </el-scrollbar>
+                            </ScrollArea>
                           </TabsContent>
 
                           <!-- 消息列表 -->
                           <TabsContent value="messages" class="debug-tabs-content">
-                            <el-scrollbar height="400px">
+                            <ScrollArea class="h-[400px]">
                               <div
                                 v-if="
                                   selectedSession.messages && selectedSession.messages.length > 0
@@ -1492,7 +1541,7 @@
                                 </div>
                               </div>
                               <div v-else class="test-empty">暂无消息</div>
-                            </el-scrollbar>
+                            </ScrollArea>
                           </TabsContent>
 
                           <!-- 会话元数据 -->
@@ -1546,8 +1595,8 @@
                   <!-- 会话回放 -->
                   <TabsContent value="replay" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
-                      <el-form :model="sessionReplayForm" label-width="140px">
-                        <el-form-item label="导入会话">
+                      <Form class="space-y-4">
+                        <FormField name="importSession" label="导入会话">
                           <div style="display: flex; gap: 8px">
                             <Button
                               variant="default"
@@ -1560,9 +1609,9 @@
                               清除会话
                             </Button>
                           </div>
-                        </el-form-item>
+                        </FormField>
 
-                        <el-form-item v-if="replaySession" label="会话信息">
+                        <FormField name="sessionInfo" label="会话信息" v-if="replaySession">
                           <el-descriptions :column="1" border size="small">
                             <el-descriptions-item label="标题">{{
                               replaySession.title
@@ -1574,9 +1623,9 @@
                               replaySession.executionNodes?.length || 0
                             }}</el-descriptions-item>
                           </el-descriptions>
-                        </el-form-item>
+                        </FormField>
 
-                        <el-form-item v-if="replaySession" label="回放控制">
+                        <FormField name="replayControls" label="回放控制" v-if="replaySession">
                           <div style="display: flex; flex-direction: column; gap: 12px">
                             <!-- 第一行：主要控制按钮 -->
                             <div style="display: flex; gap: 8px; align-items: center">
@@ -1631,20 +1680,21 @@
                             <!-- 第二行：起始节点选择 -->
                             <div style="display: flex; gap: 8px; align-items: center">
                               <span style="min-width: 80px">起始节点:</span>
-                              <el-select
-                                v-model="replayStartIndex"
-                                :disabled="isReplaying"
-                                style="flex: 1"
-                                placeholder="选择回放起始节点"
-                              >
-                                <el-option :label="`从头开始 (0)`" :value="0" />
-                                <el-option
-                                  v-for="(msg, index) in replayDisplayMessages"
-                                  :key="msg.id"
-                                  :label="`消息 ${index + 1}: ${getMessageRoleLabel(msg.role)} - ${msg.type}`"
-                                  :value="index + 1"
-                                />
-                              </el-select>
+                              <Select v-model="replayStartIndex" :disabled="isReplaying" style="flex: 1">
+                                <SelectTrigger class="w-[240px]">
+                                  <SelectValue placeholder="选择回放起始节点" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem :value="0">从头开始 (0)</SelectItem>
+                                  <SelectItem
+                                    v-for="(msg, index) in replayDisplayMessages"
+                                    :key="msg.id"
+                                    :value="index + 1"
+                                  >
+                                    消息 {{ index + 1 }}: {{ getMessageRoleLabel(msg.role) }} - {{ msg.type }}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                               <span
                                 style="
                                   min-width: 120px;
@@ -1657,12 +1707,12 @@
                               </span>
                             </div>
                           </div>
-                        </el-form-item>
-                      </el-form>
+                        </FormField>
+                      </Form>
 
                       <!-- 回放显示区域 -->
                       <div v-if="replaySession" class="replay-display" style="margin-top: 20px">
-                        <el-scrollbar height="500px">
+                        <ScrollArea class="h-[500px]">
                           <div
                             v-for="(message, index) in replayDisplayMessages"
                             :key="message.id"
@@ -1754,7 +1804,7 @@
                           <div v-if="replayDisplayMessages.length === 0" class="test-empty">
                             暂无消息
                           </div>
-                        </el-scrollbar>
+                        </ScrollArea>
                       </div>
                       <div v-else class="test-empty" style="margin-top: 20px">
                         请先导入会话JSON文件
@@ -1770,42 +1820,46 @@
     </div>
 
     <!-- 保存配置对话框 -->
-    <el-dialog
-      v-model="showSaveConfigDialog"
-      :title="selectedConfigId ? '编辑配置' : '新建配置'"
-      width="500px"
-    >
-      <el-form label-width="100px">
-        <el-form-item label="配置名称" required>
-          <el-input
-            v-model="saveConfigName"
-            placeholder="请输入配置名称"
-            @keyup.enter="saveCurrentConfig"
-          />
-        </el-form-item>
-        <el-form-item label="Tool">
-          <el-input
-            :value="
-              toolTestForm.toolId
-                ? getToolDisplayName(
-                    agentToolManager.getTool(toolTestForm.toolId)?.config || {
-                      id: toolTestForm.toolId
-                    }
-                  )
-                : ''
-            "
-            disabled
-          />
-        </el-form-item>
-        <el-form-item label="参数预览">
-          <el-input :value="toolTestForm.paramsJson" type="textarea" :rows="4" disabled />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <Button variant="outline" @click="showSaveConfigDialog = false">取消</Button>
-        <Button variant="default" @click="saveCurrentConfig">保存</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showSaveConfigDialog">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{{ selectedConfigId ? '编辑配置' : '新建配置' }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">配置名称 <span class="text-red-500">*</span></label>
+            <Input
+              v-model="saveConfigName"
+              placeholder="请输入配置名称"
+              @keyup.enter="saveCurrentConfig"
+            />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Tool</label>
+            <Input
+              :model-value="
+                toolTestForm.toolId
+                  ? getToolDisplayName(
+                      agentToolManager.getTool(toolTestForm.toolId)?.config || {
+                        id: toolTestForm.toolId
+                      }
+                    )
+                  : ''
+              "
+              disabled
+            />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">参数预览</label>
+            <Textarea v-model="toolTestForm.paramsJson" rows="4" disabled />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showSaveConfigDialog = false">取消</Button>
+          <Button @click="saveCurrentConfig">保存</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -1815,6 +1869,35 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Badge } from '@renderer/components/ui/badge'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
+import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
 import {
   Plus,
   Delete,
@@ -5837,17 +5920,24 @@ onMounted(async () => {
   color: v-bind('themeState.currentTheme.textColor');
 }
 
-/* 确保 el-form 不会超出容器，并且根据内容自适应高度 */
-.debug-section :deep(.el-form) {
-  flex-shrink: 0;
-  flex-grow: 0;
+/* 确保 form 不会超出容器，并且根据内容自适应高度 */
+.debug-section :deep(form) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保 form 内部的输入控件也遵循宽度限制 */
+.debug-section :deep(form .el-input),
+.debug-section :deep(form [data-radix-select-viewport]),
+.debug-section :deep(form .el-textarea) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .debug-section :deep(.el-form .el-input),
-.debug-section :deep(.el-form .el-select),
+.debug-section :deep(.el-form [data-radix-select-viewport]),
 .debug-section :deep(.el-form .el-textarea) {
   width: 100%;
   max-width: 100%;
@@ -6075,5 +6165,47 @@ onMounted(async () => {
 
 .replay-message-content {
   margin-top: 8px;
+}
+
+/* shadcn-vue menu styles */
+.debug-menu {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 8px;
+  gap: 2px;
+}
+
+.debug-menu-item {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 16px;
+  height: auto;
+  font-weight: normal;
+  color: var(--el-text-color-primary);
+  transition: all 0.2s ease;
+}
+
+.debug-menu-item:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.debug-menu-item.is-active {
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.debug-menu-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.debug-menu-label {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

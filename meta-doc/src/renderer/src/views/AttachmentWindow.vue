@@ -69,8 +69,16 @@
 
             <!-- 解析内容 -->
             <div v-if="activeAttachment" class="parsed-section">
-              <el-tabs v-model="activeTab">
-                <el-tab-pane :label="t('attachment.tabs.parsed', '解析内容')" name="parsed">
+              <Tabs v-model="activeTab">
+                <TabsList>
+                  <TabsTrigger value="parsed">
+                    {{ t('attachment.tabs.parsed', '解析内容') }}
+                  </TabsTrigger>
+                  <TabsTrigger value="analysis">
+                    {{ t('attachment.tabs.aiAnalysis', 'AI分析') }}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="parsed">
                   <div
                     v-if="parsedContent && parsedContent.trim()"
                     class="content-display"
@@ -84,8 +92,8 @@
                   <div v-else class="no-content" :style="noAnalysisStyle">
                     <p>{{ t('attachment.noParsedContent', '暂无解析内容') }}</p>
                   </div>
-                </el-tab-pane>
-                <el-tab-pane :label="t('attachment.tabs.aiAnalysis', 'AI分析')" name="analysis">
+                </TabsContent>
+                <TabsContent value="analysis">
                   <div class="analysis-display">
                     <!-- 流式输出显示 -->
                     <StreamingContentDisplay
@@ -93,15 +101,15 @@
                       :content-ref="aiAnalysisStreamingRefWrapper"
                       :done="aiAnalysisDoneValue"
                     />
-                    <el-scrollbar v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
+                    <ScrollArea v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
                       <div ref="aiAnalysisContainerRef" class="ai-analysis-container"></div>
-                    </el-scrollbar>
+                    </ScrollArea>
                     <div v-else class="no-analysis" :style="noAnalysisStyle">
                       <p>{{ t('attachment.noAnalysis', '暂无AI分析结果') }}</p>
                     </div>
                   </div>
-                </el-tab-pane>
-              </el-tabs>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -115,6 +123,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRef } fro
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { attachmentSessionsDb, type AttachmentSession } from '../utils/db/tool-sessions-db'
@@ -129,6 +138,7 @@ import { renderMarkdownPreview } from '../utils/md-utils'
 import * as monaco from 'monaco-editor'
 import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 import messageBridge from '../bridge/message-bridge'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 // 不导入 setupMonacoWorker，禁用 worker 避免卡死
 
 const { t } = useI18n()

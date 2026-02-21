@@ -3,10 +3,11 @@
     <div class="manager-header">
       <h2>{{ t('agent.manage.agentEngine.title') }}</h2>
       <div>
-        <el-button @click="handleImport">{{ t('agent.manage.import') }}</el-button>
-        <el-button type="primary" :icon="Plus" @click="handleCreate">
+        <Button @click="handleImport">{{ t('agent.manage.import') }}</Button>
+        <Button type="primary" @click="handleCreate">
+          <Plus class="h-4 w-4 mr-1" />
           {{ t('agent.manage.agentEngine.create') }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -50,135 +51,170 @@
       width="800px"
       :style="dialogStyle"
     >
-      <el-form :model="formData" label-width="160px">
-        <el-form-item :label="t('agent.manage.agentEngine.name')" required>
-          <el-input v-model="formData.name" :disabled="editingEngine?.isBuiltIn" />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentEngine.description')">
-          <el-input
+      <Form class="space-y-4">
+        <FormField :label="t('agent.manage.agentEngine.name')" name="name" required>
+          <Input v-model="formData.name" :disabled="editingEngine?.isBuiltIn" class="w-full" />
+        </FormField>
+        <FormField :label="t('agent.manage.agentEngine.description')" name="description">
+          <Textarea
             v-model="formData.description"
-            type="textarea"
             :rows="3"
             :disabled="editingEngine?.isBuiltIn"
+            class="w-full"
           />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentEngine.engineType')" required>
-          <el-select
+        </FormField>
+        <FormField :label="t('agent.manage.agentEngine.engineType')" name="engineType" required>
+          <Select
             v-model="formData.engineType"
-            :placeholder="t('agent.manage.agentEngine.selectEngineType')"
             :disabled="!!editingEngine"
-            style="width: 100%"
           >
-            <el-option :label="t('agent.manage.agentEngine.engineTypes.autogpt')" value="autogpt" />
-            <el-option :label="t('agent.manage.agentEngine.engineTypes.react')" value="react" />
-            <el-option
-              :label="t('agent.manage.agentEngine.engineTypes.planExecute')"
-              value="plan-execute"
-            />
-            <el-option
-              :label="t('agent.manage.agentEngine.engineTypes.simpleChat')"
-              value="simple-chat"
-            />
-            <el-option
-              :label="t('agent.manage.agentEngine.engineTypes.workflow')"
-              value="workflow"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentEngine.llmConfigMode')" required>
-          <el-radio-group v-model="formData.llmConfigMode" :disabled="editingEngine?.isBuiltIn">
-            <el-radio value="global">{{ t('agent.manage.agentEngine.useGlobalLLM') }}</el-radio>
-            <el-radio value="custom">{{ t('agent.manage.agentEngine.useCustomLLM') }}</el-radio>
-          </el-radio-group>
+            <SelectTrigger style="width: 100%">
+              <SelectValue :placeholder="t('agent.manage.agentEngine.selectEngineType')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="autogpt">
+                {{ t('agent.manage.agentEngine.engineTypes.autogpt') }}
+              </SelectItem>
+              <SelectItem value="react">
+                {{ t('agent.manage.agentEngine.engineTypes.react') }}
+              </SelectItem>
+              <SelectItem value="plan-execute">
+                {{ t('agent.manage.agentEngine.engineTypes.planExecute') }}
+              </SelectItem>
+              <SelectItem value="simple-chat">
+                {{ t('agent.manage.agentEngine.engineTypes.simpleChat') }}
+              </SelectItem>
+              <SelectItem value="workflow">
+                {{ t('agent.manage.agentEngine.engineTypes.workflow') }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+        <FormField :label="t('agent.manage.agentEngine.llmConfigMode')" name="llmConfigMode" required>
+          <RadioGroup v-model="formData.llmConfigMode" :disabled="editingEngine?.isBuiltIn" class="flex flex-row gap-4">
+            <div class="flex items-center gap-2">
+              <RadioGroupItem value="global" id="llm-global" />
+              <label for="llm-global" class="text-sm cursor-pointer">{{ t('agent.manage.agentEngine.useGlobalLLM') }}</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <RadioGroupItem value="custom" id="llm-custom" />
+              <label for="llm-custom" class="text-sm cursor-pointer">{{ t('agent.manage.agentEngine.useCustomLLM') }}</label>
+            </div>
+          </RadioGroup>
           <div class="form-hint">
             {{ t('agent.manage.agentEngine.llmConfigModeHint') }}
           </div>
-        </el-form-item>
+        </FormField>
         <template v-if="formData.llmConfigMode === 'custom'">
-          <el-form-item :label="t('agent.manage.agentEngine.apiBaseUrl')" required>
-            <el-input
+          <FormField :label="t('agent.manage.agentEngine.apiBaseUrl')" name="apiBaseUrl" required>
+            <Input
               v-model="formData.customLlmConfig.baseUrl"
               :placeholder="t('agent.manage.agentEngine.apiBaseUrlPlaceholder')"
               :disabled="editingEngine?.isBuiltIn"
+              class="w-full"
             />
-          </el-form-item>
-          <el-form-item :label="t('agent.manage.agentEngine.apiKey')" required>
-            <el-input
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.apiKey')" name="apiKey" required>
+            <Input
               v-model="formData.customLlmConfig.apiKey"
               type="password"
               :placeholder="t('agent.manage.agentEngine.apiKeyPlaceholder')"
               :disabled="editingEngine?.isBuiltIn"
+              class="w-full"
             />
-          </el-form-item>
-          <el-form-item :label="t('agent.manage.agentEngine.model')" required>
-            <el-input
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.model')" name="model" required>
+            <Input
               v-model="formData.customLlmConfig.model"
               :placeholder="t('agent.manage.agentEngine.modelPlaceholder')"
               :disabled="editingEngine?.isBuiltIn"
+              class="w-full"
             />
-          </el-form-item>
-          <el-form-item :label="t('agent.manage.agentEngine.temperature')">
-            <el-input-number
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.temperature')" name="temperature">
+            <NumberField
               v-model="formData.customLlmConfig.temperature"
               :min="0"
               :max="2"
               :step="0.1"
               :disabled="editingEngine?.isBuiltIn"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item :label="t('agent.manage.agentEngine.maxTokens')">
-            <el-input-number
+            >
+              <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput class="w-[120px]" />
+                <NumberFieldIncrement />
+              </NumberFieldContent>
+            </NumberField>
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.maxTokens')" name="maxTokens">
+            <NumberField
               v-model="formData.customLlmConfig.maxTokens"
               :min="1"
               :max="100000"
               :disabled="editingEngine?.isBuiltIn"
-              style="width: 100%"
-            />
-          </el-form-item>
+            >
+              <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput class="w-[120px]" />
+                <NumberFieldIncrement />
+              </NumberFieldContent>
+            </NumberField>
+          </FormField>
         </template>
         <template v-if="formData.engineType === 'autogpt'">
           <el-divider />
-          <el-form-item :label="t('agent.manage.agentEngine.maxIterations')">
-            <el-input-number
+          <FormField :label="t('agent.manage.agentEngine.maxIterations')" name="maxIterations">
+            <NumberField
               v-model="formData.engineConfig.maxIterations"
               :min="1"
               :max="100"
               :disabled="editingEngine?.isBuiltIn"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item :label="t('agent.manage.agentEngine.enableReflection')">
-            <el-switch
-              v-model="formData.engineConfig.enableReflection"
+            >
+              <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput class="w-[120px]" />
+                <NumberFieldIncrement />
+              </NumberFieldContent>
+            </NumberField>
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.enableReflection')" name="enableReflection">
+            <Switch
+              :checked="formData.engineConfig.enableReflection"
               :disabled="editingEngine?.isBuiltIn"
+              @update:checked="(val) => formData.engineConfig.enableReflection = val"
             />
-          </el-form-item>
-          <el-form-item :label="t('agent.manage.agentEngine.enablePlanning')">
-            <el-switch
-              v-model="formData.engineConfig.enablePlanning"
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.enablePlanning')" name="enablePlanning">
+            <Switch
+              :checked="formData.engineConfig.enablePlanning"
               :disabled="editingEngine?.isBuiltIn"
+              @update:checked="(val) => formData.engineConfig.enablePlanning = val"
             />
-          </el-form-item>
+          </FormField>
         </template>
         <template v-if="formData.engineType === 'react'">
           <el-divider />
-          <el-form-item :label="t('agent.manage.agentEngine.thinkingDepth')">
-            <el-input-number
+          <FormField :label="t('agent.manage.agentEngine.thinkingDepth')" name="thinkingDepth">
+            <NumberField
               v-model="formData.engineConfig.thinkingDepth"
               :min="1"
               :max="20"
               :disabled="editingEngine?.isBuiltIn"
-              style="width: 100%"
-            />
-          </el-form-item>
+            >
+              <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput class="w-[120px]" />
+                <NumberFieldIncrement />
+              </NumberFieldContent>
+            </NumberField>
+          </FormField>
         </template>
-      </el-form>
+      </Form>
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave" :disabled="editingEngine?.isBuiltIn">
+        <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
+        <Button type="primary" @click="handleSave" :disabled="editingEngine?.isBuiltIn">
           {{ editingEngine?.isBuiltIn ? t('agent.manage.agentEngine.viewOnly') : t('common.save') }}
-        </el-button>
+        </Button>
       </template>
     </el-dialog>
   </div>
@@ -193,9 +229,29 @@ import { themeState } from '../../../utils/themes'
 import { agentEngineManager } from '../../../utils/agent-framework'
 import type { AgentEngine, EngineType, LlmConfigMode } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
 import CardGrid from '../../common/CardGrid.vue'
 import type { CardGridAction } from '../../common/CardGrid.vue'
 import { getLlmTemperature } from '../../../utils/settings.js'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
 
 const { t } = useI18n()
 

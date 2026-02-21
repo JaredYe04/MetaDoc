@@ -1,6 +1,6 @@
 <template>
   <div class="manual-navigation">
-    <el-scrollbar class="navigation-scrollbar">
+    <ScrollArea class="navigation-scrollbar">
       <el-tree
         :data="treeData"
         :props="{ children: 'children', label: 'title' }"
@@ -29,7 +29,7 @@
           </div>
         </template>
       </el-tree>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
@@ -37,6 +37,7 @@
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import { Folder, Document, Check } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 const { navigationTree, currentArticleId, articleProgress, setCurrentArticle } = useUserManual()
 

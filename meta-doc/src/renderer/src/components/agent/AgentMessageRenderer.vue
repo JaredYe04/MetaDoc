@@ -35,32 +35,28 @@
                 <el-icon><Edit /></el-icon>
               </Button>
             </el-tooltip>
-            <el-dropdown
-              @command="handleActionCommand"
-              trigger="click"
+            <DropdownMenu
               @click.stop
-              @visible-change="handleDropdownVisibleChange"
+              @update:open="handleDropdownVisibleChange"
             >
-              <Button circle size="small">
-                <el-icon><More /></el-icon>
-              </Button>
-              <template #dropdown>
-                <el-dropdown-menu
-                  @mouseenter="handleDropdownMouseEnter"
-                  @mouseleave="handleDropdownMouseLeave"
-                >
-                  <el-dropdown-item command="regenerate">{{
-                    t('agent.message.regenerate')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="duplicate">{{
-                    t('agent.message.duplicateSession')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>{{
-                    t('agent.message.delete')
-                  }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+              <DropdownMenuTrigger as-child>
+                <Button circle size="small" @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
+                  <el-icon><More /></el-icon>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
+                <DropdownMenuItem @click="handleActionCommand('regenerate')">
+                  {{ t('agent.message.regenerate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleActionCommand('duplicate')">
+                  {{ t('agent.message.duplicateSession') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleActionCommand('delete')">
+                  {{ t('agent.message.delete') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </transition>
 
@@ -240,6 +236,13 @@ import {
   Delete
 } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 import type {
   AgentMessage,
   ChatAgentMessage,

@@ -42,32 +42,39 @@
 
       <TabsContent value="updates" class="about-tabs-content">
         <div class="update-settings">
-          <el-form label-width="200px" class="settings-form">
-            <el-form-item :label="$t('setting.about.autoCheckUpdates')">
-              <el-switch
-                v-model="autoCheckUpdates"
-                :active-text="$t('setting.enabled')"
-                :inactive-text="$t('setting.disabled')"
-                @change="handleAutoCheckChange"
-              />
-            </el-form-item>
+          <Form class="settings-form">
+            <FormField :label="$t('setting.about.autoCheckUpdates')" name="">
+              <div class="flex items-center gap-2">
+                <Switch
+                  :checked="autoCheckUpdates"
+                  @update:checked="handleAutoCheckChange"
+                />
+                <span class="text-sm text-muted-foreground">{{ autoCheckUpdates ? $t('setting.enabled') : $t('setting.disabled') }}</span>
+              </div>
+            </FormField>
 
-            <el-form-item :label="$t('setting.about.updateChannel')">
-              <el-radio-group v-model="updateChannel" @change="handleChannelChange">
-                <el-radio value="release">{{ $t('setting.about.channelRelease') }}</el-radio>
-                <el-radio value="dev">{{ $t('setting.about.channelDev') }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
+            <FormField :label="$t('setting.about.updateChannel')" name="">
+              <RadioGroup v-model="updateChannel" @update:modelValue="handleChannelChange" class="flex flex-row gap-4">
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="release" id="update-release" />
+                  <label for="update-release" class="text-sm cursor-pointer">{{ $t('setting.about.channelRelease') }}</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="dev" id="update-dev" />
+                  <label for="update-dev" class="text-sm cursor-pointer">{{ $t('setting.about.channelDev') }}</label>
+                </div>
+              </RadioGroup>
+            </FormField>
 
-            <el-form-item>
+            <FormField>
               <Button
                 @click="handleCheckUpdate"
                 :disabled="checking"
               >
                 {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
               </Button>
-            </el-form-item>
-          </el-form>
+            </FormField>
+          </Form>
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
@@ -133,21 +140,21 @@
 
       <TabsContent value="licenses" class="about-tabs-content">
         <div class="licenses-section">
-          <el-scrollbar class="content-scrollbar">
+          <ScrollArea class="content-scrollbar flex-1">
             <div class="content-container">
               <pre class="license-content">{{ openSourceLicenses }}</pre>
             </div>
-          </el-scrollbar>
+          </ScrollArea>
         </div>
       </TabsContent>
 
       <TabsContent value="assets" class="about-tabs-content">
         <div class="assets-section">
-          <el-scrollbar class="content-scrollbar">
+          <ScrollArea class="content-scrollbar flex-1">
             <div class="content-container">
               <pre class="assets-content">{{ thirdPartyAssets }}</pre>
             </div>
-          </el-scrollbar>
+          </ScrollArea>
         </div>
       </TabsContent>
     </Tabs>
@@ -159,6 +166,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { getAppVersion } from '../../utils/version'
 import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
@@ -167,6 +176,8 @@ import { isDevEnvironment } from '../../utils/dev-env'
 import logo from '../../assets/logo.svg'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
 const { t } = useI18n()
 const workspace = useWorkspace()
 
@@ -385,7 +396,8 @@ onUnmounted(() => {
 <style scoped>
 .about-section {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   box-sizing: border-box;
   user-select: none;
 }

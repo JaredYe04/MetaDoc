@@ -3,16 +3,15 @@
     <div class="profile-card">
       <div class="card-header">
         <h3 class="card-title">{{ $t('userManual.overview.profileSummary') || '您的使用定位' }}</h3>
-        <el-button
-          type="primary"
-          plain
-          size="small"
-          :icon="Refresh"
+        <Button
+          variant="outline"
+          size="sm"
           @click="handleReanalyze"
           class="reanalyze-btn"
         >
+          <Refresh class="mr-1 h-3 w-3" />
           {{ $t('userManual.profile.reanalyze') || '重新分析' }}
-        </el-button>
+        </Button>
       </div>
 
       <div class="profile-content">
@@ -63,6 +62,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
 import type { UserProfile } from '../../stores/userManual'
 import { Refresh } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 
 const props = defineProps<{
   profile: UserProfile

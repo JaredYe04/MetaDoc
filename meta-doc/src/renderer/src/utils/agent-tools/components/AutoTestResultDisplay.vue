@@ -24,19 +24,26 @@
     <el-divider />
 
     <div class="test-actions">
-      <el-button type="primary" :icon="Document" @click="copyMarkdown">
+      <Button @click="copyMarkdown">
+        <Document class="w-4 h-4 mr-1" />
         {{ $t('agent.display.autoTest.copyMarkdown') }}
-      </el-button>
-      <el-button :icon="Download" @click="downloadMarkdown">
+      </Button>
+      <Button variant="outline" @click="downloadMarkdown">
+        <Download class="w-4 h-4 mr-1" />
         {{ $t('agent.display.autoTest.downloadMarkdown') }}
-      </el-button>
+      </Button>
     </div>
 
     <el-divider />
 
-    <el-tabs v-model="activeTab" type="border-card" tab-position="top">
-      <el-tab-pane :label="$t('agent.display.autoTest.testResults')" name="results">
-        <el-scrollbar style="height: 100%">
+    <Tabs v-model="activeTab" class="auto-test-tabs">
+      <TabsList class="w-full grid grid-cols-2">
+        <TabsTrigger value="results">{{ $t('agent.display.autoTest.testResults') }}</TabsTrigger>
+        <TabsTrigger value="markdown">{{ $t('agent.display.autoTest.markdownSummary') }}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="results" class="auto-test-tabs-content">
+        <ScrollArea class="h-full">
           <div class="test-results-list">
             <div
               v-for="(result, index) in testResults"
@@ -76,15 +83,15 @@
                   </el-tooltip>
                 </div>
                 <div class="test-result-actions">
-                  <el-button
-                    text
-                    size="small"
-                    :icon="Download"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     @click="exportResultSnapshot(result)"
                     :title="$t('agent.tool.exportSnapshot')"
                   >
+                    <Download class="w-4 h-4 mr-1" />
                     {{ $t('agent.tool.exportSnapshot') }}
-                  </el-button>
+                  </Button>
                   <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
                     {{
                       result.passed
@@ -142,11 +149,11 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
+        </ScrollArea>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('agent.display.autoTest.markdownSummary')" name="markdown">
-        <el-scrollbar style="height: 100%">
+      <TabsContent value="markdown" class="auto-test-tabs-content">
+        <ScrollArea class="h-full">
           <div class="markdown-content" :style="markdownContentStyle">
             <div
               ref="markdownContainerRef"
@@ -156,15 +163,18 @@
               }"
             ></div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
-    </el-tabs>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { useI18n } from 'vue-i18n'
 import { Document, Download, Check, Close, CopyDocument } from '@element-plus/icons-vue'
 import {
@@ -613,64 +623,34 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.auto-test-result-display :deep(.el-tabs) {
+.auto-test-tabs {
   display: flex;
-  flex-direction: column !important;
+  flex-direction: column;
   height: 100%;
   flex: 1;
   overflow: hidden;
 }
 
-.auto-test-result-display :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
+.auto-test-tabs :deep([data-state="active"]) {
+  flex: 1;
 }
 
-.auto-test-result-display :deep(.el-tabs__header.is-top) {
-  order: -999 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__header.is-bottom) {
-  order: 999 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__nav-wrap) {
-  order: inherit !important;
-  flex-shrink: 0 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__nav) {
-  order: inherit !important;
-  flex-shrink: 0 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__content) {
-  order: 0 !important;
+.auto-test-tabs-content {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
+  margin-top: 0;
 }
 
-.auto-test-result-display :deep(.el-tab-pane) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.auto-test-result-display :deep(.el-scrollbar) {
+.auto-test-tabs-content :deep(.scroll-area) {
   height: 100%;
   flex: 1;
   overflow: hidden;
 }
 
-.auto-test-result-display :deep(.el-scrollbar__wrap) {
+.auto-test-tabs-content :deep([data-radix-scroll-area-viewport]) {
   height: 100%;
 }
 

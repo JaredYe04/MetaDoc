@@ -53,9 +53,9 @@
       </el-empty>
     </div>
     <div v-else class="workspace-explorer-main">
-      <el-scrollbar
+      <ScrollArea
         ref="treeScrollbarRef"
-        class="workspace-explorer-tree"
+        class="workspace-explorer-tree h-full"
         @contextmenu.prevent="handleContentContextMenu"
       >
         <div
@@ -90,14 +90,14 @@
             />
           </template>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
     <!-- 已打开文件列表（始终显示，如果有打开的文件） -->
     <div v-if="openedFiles.length > 0" class="workspace-explorer-opened-files">
       <div class="opened-files-header">
         <span class="opened-files-title">{{ $t('workspaceExplorer.openedFiles') }}</span>
       </div>
-      <el-scrollbar class="opened-files-scrollbar">
+      <ScrollArea class="opened-files-scrollbar h-full">
         <div class="opened-files-list">
           <div
             v-for="tab in openedFiles"
@@ -118,7 +118,7 @@
             </Button>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
     <!-- 右键菜单 -->
     <ContextMenu
@@ -138,7 +138,7 @@
     >
       <el-form>
         <el-form-item :label="$t('workspaceExplorer.renameDialog.name')">
-          <el-input
+          <Input
             v-model="renameName"
             :placeholder="$t('workspaceExplorer.renameDialog.placeholder')"
             @keyup.enter="handleRenameConfirm"
@@ -161,7 +161,7 @@
     >
       <el-form>
         <el-form-item :label="$t('workspaceExplorer.newFileDialog.name')">
-          <el-input
+          <Input
             v-model="newFileName"
             :placeholder="$t('workspaceExplorer.newFileDialog.placeholder')"
             @keyup.enter="handleNewFileConfirm"
@@ -184,7 +184,7 @@
     >
       <el-form>
         <el-form-item :label="$t('workspaceExplorer.newFolderDialog.name')">
-          <el-input
+          <Input
             v-model="newFolderName"
             :placeholder="$t('workspaceExplorer.newFolderDialog.placeholder')"
             @keyup.enter="handleNewFolderConfirm"
@@ -205,8 +205,10 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loading, Warning, Close } from '@element-plus/icons-vue'
-import { ElEmpty, ElScrollbar, ElMessageBox } from 'element-plus'
+import { ElEmpty, ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Input } from '@renderer/components/ui/input'
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
@@ -224,6 +226,7 @@ import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
 import logoPath from '../assets/logo.svg'
 import messageBridge from '../bridge/message-bridge'
+
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
@@ -630,7 +633,7 @@ const newFolderParentPath = ref<string | null>(null)
 
 // 组件引用
 const workspaceExplorerRef = ref<HTMLElement | null>(null)
-const treeScrollbarRef = ref<any>(null) // el-scrollbar 组件引用
+const treeScrollbarRef = ref<InstanceType<typeof ScrollArea> | null>(null)
 
 // 处理容器点击，确保获得焦点，并清空 focus 和 selection
 const handleContainerClick = (event: MouseEvent) => {
@@ -905,12 +908,11 @@ const refreshWorkspaceFolder = async (folderPath: string) => {
 const saveScrollPosition = () => {
   if (!treeScrollbarRef.value) return null
   try {
-    const scrollbar = treeScrollbarRef.value
-    const wrap = scrollbar.wrapRef
-    if (wrap) {
+    const viewport = treeScrollbarRef.value.$el?.querySelector('[data-radix-scroll-area-viewport]')
+    if (viewport) {
       return {
-        scrollTop: wrap.scrollTop,
-        scrollLeft: wrap.scrollLeft
+        scrollTop: viewport.scrollTop,
+        scrollLeft: viewport.scrollLeft
       }
     }
   } catch (err) {
@@ -925,10 +927,10 @@ const restoreScrollPosition = (position: { scrollTop: number; scrollLeft: number
   try {
     // 使用 nextTick 确保 DOM 已更新
     setTimeout(() => {
-      const scrollbar = treeScrollbarRef.value
-      if (scrollbar && scrollbar.wrapRef) {
-        scrollbar.wrapRef.scrollTop = position.scrollTop
-        scrollbar.wrapRef.scrollLeft = position.scrollLeft
+      const viewport = treeScrollbarRef.value?.$el?.querySelector('[data-radix-scroll-area-viewport]')
+      if (viewport) {
+        viewport.scrollTop = position.scrollTop
+        viewport.scrollLeft = position.scrollLeft
       }
     }, 0)
   } catch (err) {
@@ -1353,7 +1355,8 @@ const handleContentContextMenu = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   const clickedNode = target.closest('.workspace-tree-node-item')
   const clickedOnScrollbar =
-    target.closest('.el-scrollbar__bar') || target.closest('.el-scrollbar__thumb')
+    target.closest('[data-radix-scroll-area-scrollbar]') ||
+    target.closest('[data-radix-scroll-area-thumb]')
 
   // 如果点击在节点上或滚动条上，不处理空白位置右键菜单
   if (clickedNode || clickedOnScrollbar) {

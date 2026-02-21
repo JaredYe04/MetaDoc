@@ -16,9 +16,9 @@
                 : '请选择要插入的文档'
             }}
           </span>
-          <el-button text size="small" @click="toggleSelectAll" v-if="documentTabs.length > 0">
+          <Button variant="ghost" size="sm" @click="toggleSelectAll" v-if="documentTabs.length > 0">
             {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
-          </el-button>
+          </Button>
         </div>
         <el-scrollbar height="400px" class="document-list-scrollbar">
           <div class="document-list">
@@ -54,16 +54,16 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="selectDocumentDialogVisible = false">{{
+          <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
             t('common.cancel')
-          }}</el-button>
-          <el-button
+          }}</Button>
+          <Button
             type="primary"
             @click="confirmInsertToDocument"
             :disabled="selectedTabIds.length === 0"
           >
             {{ t('common.confirm') }} ({{ selectedTabIds.length }})
-          </el-button>
+          </Button>
         </div>
       </template>
     </el-dialog>
@@ -188,7 +188,7 @@
         @update="handleReferenceUpdate"
       />
       <template #footer>
-        <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
+        <Button variant="outline" @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
       </template>
     </el-dialog>
   </div>
@@ -209,6 +209,7 @@ import MessageBubble from '../components/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import { Document, Folder } from '@element-plus/icons-vue'
 import SessionList from '../components/common/SessionList.vue'
+import { Button } from '@renderer/components/ui/button'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'

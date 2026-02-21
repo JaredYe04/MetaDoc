@@ -29,31 +29,31 @@
     <div class="detailed-outline-node__actions">
       <!-- AI执行中 -->
       <template v-if="isGenerating">
-        <el-button type="danger" size="small" circle @click="handleCancel" :loading="false">
+        <Button type="danger" size="small" circle @click="handleCancel">
           <el-icon>
             <CloseBold />
           </el-icon>
-        </el-button>
+        </Button>
       </template>
 
       <!-- AI执行完成，等待确认 -->
       <template v-else-if="pendingAccept">
-        <el-button type="success" size="small" circle @click="handleAccept">
+        <Button type="success" size="small" circle @click="handleAccept">
           <el-icon>
             <Check />
           </el-icon>
-        </el-button>
-        <el-button type="danger" size="small" circle @click="handleReject">
+        </Button>
+        <Button type="danger" size="small" circle @click="handleReject">
           <el-icon>
             <Close />
           </el-icon>
-        </el-button>
+        </Button>
       </template>
 
       <!-- 正常状态：显示操作按钮 -->
       <template v-else>
         <el-tooltip :content="$t('outline.expandContent')" placement="top">
-          <el-button
+          <Button
             type="primary"
             size="small"
             circle
@@ -63,10 +63,10 @@
             <el-icon>
               <EditPen />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.abridge')" placement="top">
-          <el-button
+          <Button
             type="warning"
             size="small"
             circle
@@ -76,14 +76,14 @@
             <el-icon>
               <Minus />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.polish')" placement="top">
-          <el-button type="info" size="small" circle @click="handlePolish" :disabled="isGenerating">
+          <Button type="info" size="small" circle @click="handlePolish" :disabled="isGenerating">
             <el-icon>
               <Star />
             </el-icon>
-          </el-button>
+          </Button>
         </el-tooltip>
       </template>
     </div>
@@ -93,8 +93,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElButton, ElTooltip, ElIcon, ElScrollbar } from 'element-plus'
+import { ElTooltip, ElIcon, ElScrollbar } from 'element-plus'
 import { CloseBold, Check, Close, EditPen, Minus, Star } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import type { DocumentOutlineNode } from '../../../types'
 import { themeState } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'

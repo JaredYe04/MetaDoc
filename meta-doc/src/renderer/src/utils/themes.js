@@ -158,7 +158,7 @@ const rgbToHex = (r, g, b) => {
 export const mixColors = (color1, color2, weight) => {
   const safeColor1 = color1 || '#ffffff'
   const safeColor2 = color2 || '#000000'
-  
+
   const c1 = hexToRgb(safeColor1)
   const c2 = hexToRgb(safeColor2)
 

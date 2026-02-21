@@ -171,6 +171,191 @@ function cleanupCancellationToken(requestId: string): void {
   cancellationTokens.delete(requestId)
 }
 
+// ============ 全局标签页注册表接口 ============
+
+/**
+ * 全局标签页状态接口
+ * 用于在主进程中维护所有窗口的标签页状态
+ */
+interface GlobalTabState {
+  id: string
+  windowId: number
+  kind: 'new' | 'file' | 'tool' | 'system'
+  path?: string
+  toolType?: string
+  route?: string
+  title: string
+  dirty: boolean
+  version: number // 状态版本控制
+}
+
+/**
+ * 全局标签页注册表
+ * 主进程维护所有窗口的标签页状态，解决多窗口标签页管理问题
+ */
+class GlobalTabRegistry {
+  private tabs = new Map<string, GlobalTabState>()
+  private windowTabs = new Map<number, Set<string>>() // windowId -> tabIds
+  private version = 0
+
+  /**
+   * 注册标签页
+   */
+  registerTab(tab: GlobalTabState): void {
+    this.tabs.set(tab.id, tab)
+
+    if (!this.windowTabs.has(tab.windowId)) {
+      this.windowTabs.set(tab.windowId, new Set())
+    }
+    this.windowTabs.get(tab.windowId)!.add(tab.id)
+
+    this.version++
+    this.broadcastState()
+  }
+
+  /**
+   * 注销标签页
+   */
+  unregisterTab(tabId: string): void {
+    const tab = this.tabs.get(tabId)
+    if (tab) {
+      this.windowTabs.get(tab.windowId)?.delete(tabId)
+      this.tabs.delete(tabId)
+      this.version++
+      this.broadcastState()
+    }
+  }
+
+  /**
+   * 更新标签页状态
+   */
+  updateTab(tabId: string, updates: Partial<Omit<GlobalTabState, 'id' | 'version'>>): boolean {
+    const tab = this.tabs.get(tabId)
+    if (!tab) return false
+
+    Object.assign(tab, updates)
+    this.version++
+    this.broadcastState()
+    return true
+  }
+
+  /**
+   * 转移标签页到另一个窗口
+   */
+  transferTab(tabId: string, targetWindowId: number): boolean {
+    const tab = this.tabs.get(tabId)
+    if (!tab) return false
+
+    // 从源窗口移除
+    this.windowTabs.get(tab.windowId)?.delete(tabId)
+
+    // 添加到目标窗口
+    tab.windowId = targetWindowId
+    if (!this.windowTabs.has(targetWindowId)) {
+      this.windowTabs.set(targetWindowId, new Set())
+    }
+    this.windowTabs.get(targetWindowId)!.add(tabId)
+
+    this.version++
+    this.broadcastState()
+    return true
+  }
+
+  /**
+   * 检查标签页是否存在
+   */
+  hasTab(tabId: string): boolean {
+    return this.tabs.has(tabId)
+  }
+
+  /**
+   * 获取单个标签页状态
+   */
+  getTab(tabId: string): GlobalTabState | undefined {
+    return this.tabs.get(tabId)
+  }
+
+  /**
+   * 获取窗口的所有标签页
+   */
+  getWindowTabs(windowId: number): GlobalTabState[] {
+    const tabIds = this.windowTabs.get(windowId)
+    if (!tabIds) return []
+    return Array.from(tabIds)
+      .map((id) => this.tabs.get(id)!)
+      .filter(Boolean)
+  }
+
+  /**
+   * 检查文件是否已打开（在任何窗口）
+   */
+  isFileOpen(filePath: string): { windowId: number; tabId: string } | null {
+    for (const [tabId, tab] of this.tabs) {
+      if (tab.path === filePath) {
+        return { windowId: tab.windowId, tabId }
+      }
+    }
+    return null
+  }
+
+  /**
+   * 获取所有标签页
+   */
+  getAllTabs(): GlobalTabState[] {
+    return Array.from(this.tabs.values())
+  }
+
+  /**
+   * 清理已关闭窗口的标签页
+   */
+  cleanupWindowTabs(windowId: number): void {
+    const tabIds = this.windowTabs.get(windowId)
+    if (tabIds) {
+      for (const tabId of tabIds) {
+        this.tabs.delete(tabId)
+      }
+      this.windowTabs.delete(windowId)
+      this.version++
+      this.broadcastState()
+    }
+  }
+
+  /**
+   * 广播状态到所有窗口
+   */
+  private broadcastState(): void {
+    const state = {
+      version: this.version,
+      tabs: Array.from(this.tabs.values())
+    }
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('global-tab-state-update', state)
+      }
+    })
+  }
+
+  /**
+   * 获取当前版本
+   */
+  getVersion(): number {
+    return this.version
+  }
+
+  /**
+   * 获取统计信息（用于调试）
+   */
+  getStats(): { totalTabs: number; windowCount: number } {
+    return {
+      totalTabs: this.tabs.size,
+      windowCount: this.windowTabs.size
+    }
+  }
+}
+
+// 导出单例
+export const globalTabRegistry = new GlobalTabRegistry()
+
 // ============ 接口定义 ============
 
 interface SaveData {
@@ -261,6 +446,7 @@ export function mainCalls(): void {
   bindMathHandlers()
   bindSpellCheckHandlers()
   bindWindowManagementHandlers()
+  bindTabRegistryHandlers()
 
   initBroadcastChannel()
 }
@@ -438,14 +624,17 @@ function bindFileHandlers(): void {
   )
 
   // 获取文件所在目录路径
-  ipcBridge.registerHandle('get-directory-path', async (event: IpcMainInvokeEvent, filePath: string) => {
-    try {
-      return path.dirname(filePath)
-    } catch (error) {
-      logger.error('获取目录路径失败:', error)
-      return null
+  ipcBridge.registerHandle(
+    'get-directory-path',
+    async (event: IpcMainInvokeEvent, filePath: string) => {
+      try {
+        return path.dirname(filePath)
+      } catch (error) {
+        logger.error('获取目录路径失败:', error)
+        return null
+      }
     }
-  })
+  )
 
   // 打开对话框（支持文件和文件夹选择）
   ipcBridge.registerHandle(
@@ -1821,41 +2010,50 @@ function bindLoggerHandlers(): void {
  * 绑定拼写检查处理器
  */
 function bindSpellCheckHandlers(): void {
-  ipcBridge.registerHandle('spell-check', async (_event: IpcMainInvokeEvent, params: SpellCheckParams) => {
-    try {
-      logger.info('[spell-check] 收到拼写检查请求，文本长度:', params.text?.length || 0)
-      const result = await performSpellCheck(params)
-      logger.info('[spell-check] 拼写检查完成，发现', result.issues.length, '个问题')
-      return result
-    } catch (error) {
-      logger.error('[spell-check] 拼写检查失败:', error)
-      throw error
+  ipcBridge.registerHandle(
+    'spell-check',
+    async (_event: IpcMainInvokeEvent, params: SpellCheckParams) => {
+      try {
+        logger.info('[spell-check] 收到拼写检查请求，文本长度:', params.text?.length || 0)
+        const result = await performSpellCheck(params)
+        logger.info('[spell-check] 拼写检查完成，发现', result.issues.length, '个问题')
+        return result
+      } catch (error) {
+        logger.error('[spell-check] 拼写检查失败:', error)
+        throw error
+      }
     }
-  })
+  )
 
   // 添加单词到词典
-  ipcBridge.registerHandle('spell-check-add-word', async (_event: IpcMainInvokeEvent, word: string) => {
-    try {
-      logger.info('[spell-check-add-word] 添加单词到词典:', word)
-      addWordToDictionary(word)
-      return { success: true }
-    } catch (error) {
-      logger.error('[spell-check-add-word] 添加单词失败:', error)
-      throw error
+  ipcBridge.registerHandle(
+    'spell-check-add-word',
+    async (_event: IpcMainInvokeEvent, word: string) => {
+      try {
+        logger.info('[spell-check-add-word] 添加单词到词典:', word)
+        addWordToDictionary(word)
+        return { success: true }
+      } catch (error) {
+        logger.error('[spell-check-add-word] 添加单词失败:', error)
+        throw error
+      }
     }
-  })
+  )
 
   // 批量添加单词到词典
-  ipcBridge.registerHandle('spell-check-add-words', async (_event: IpcMainInvokeEvent, words: string[]) => {
-    try {
-      logger.info('[spell-check-add-words] 批量添加单词到词典，数量:', words.length)
-      addWordsToDictionary(words)
-      return { success: true }
-    } catch (error) {
-      logger.error('[spell-check-add-words] 批量添加单词失败:', error)
-      throw error
+  ipcBridge.registerHandle(
+    'spell-check-add-words',
+    async (_event: IpcMainInvokeEvent, words: string[]) => {
+      try {
+        logger.info('[spell-check-add-words] 批量添加单词到词典，数量:', words.length)
+        addWordsToDictionary(words)
+        return { success: true }
+      } catch (error) {
+        logger.error('[spell-check-add-words] 批量添加单词失败:', error)
+        throw error
+      }
     }
-  })
+  )
 }
 
 function bindExportHandlers(): void {
@@ -1872,9 +2070,12 @@ function bindExportHandlers(): void {
     }
   )
 
-  ipcBridge.registerHandle('cancel-export-task', async (_event: IpcMainInvokeEvent, requestId: string) => {
-    return abortExportTask(requestId)
-  })
+  ipcBridge.registerHandle(
+    'cancel-export-task',
+    async (_event: IpcMainInvokeEvent, requestId: string) => {
+      return abortExportTask(requestId)
+    }
+  )
 }
 
 /**
@@ -1902,9 +2103,12 @@ function bindSettingHandlers(): void {
     }
   )
 
-  ipcBridge.registerHandle('get-recent-docs', async (event: IpcMainInvokeEvent): Promise<string[]> => {
-    return await getRecentDocs()
-  })
+  ipcBridge.registerHandle(
+    'get-recent-docs',
+    async (event: IpcMainInvokeEvent): Promise<string[]> => {
+      return await getRecentDocs()
+    }
+  )
 
   ipcBridge.registerHandle(
     'remove-recent-doc',
@@ -2004,9 +2208,12 @@ function bindUtilityHandlers(): void {
   )
 
   // 获取系统字体列表
-  ipcBridge.registerHandle('get-system-fonts', async (event: IpcMainInvokeEvent): Promise<SystemFont[]> => {
-    return await getSystemFonts()
-  })
+  ipcBridge.registerHandle(
+    'get-system-fonts',
+    async (event: IpcMainInvokeEvent): Promise<SystemFont[]> => {
+      return await getSystemFonts()
+    }
+  )
 
   // Windows: 从注册表获取系统主题色
   async function getWindowsAccentColor(): Promise<string | undefined> {
@@ -2183,30 +2390,36 @@ function bindUtilityHandlers(): void {
     }
   }
 
-  ipcBridge.registerHandle('get-is-packaged', async (event: IpcMainInvokeEvent): Promise<boolean> => {
-    return app.isPackaged
-  })
+  ipcBridge.registerHandle(
+    'get-is-packaged',
+    async (event: IpcMainInvokeEvent): Promise<boolean> => {
+      return app.isPackaged
+    }
+  )
 
-  ipcBridge.registerHandle('get-all-window-types', async (event: IpcMainInvokeEvent): Promise<string[]> => {
-    const windows = BrowserWindow.getAllWindows()
-    const windowTypes = new Set<string>()
+  ipcBridge.registerHandle(
+    'get-all-window-types',
+    async (event: IpcMainInvokeEvent): Promise<string[]> => {
+      const windows = BrowserWindow.getAllWindows()
+      const windowTypes = new Set<string>()
 
-    // 主窗口总是存在
-    windowTypes.add('home')
+      // 主窗口总是存在
+      windowTypes.add('home')
 
-    // 从所有窗口的 URL 中提取 windowType
-    windows.forEach((win: BrowserWindow) => {
-      if (win && !win.isDestroyed()) {
-        const url = win.webContents.getURL()
-        const match = url.match(/[?&]windowType=([^&]+)/)
-        if (match) {
-          windowTypes.add(match[1])
+      // 从所有窗口的 URL 中提取 windowType
+      windows.forEach((win: BrowserWindow) => {
+        if (win && !win.isDestroyed()) {
+          const url = win.webContents.getURL()
+          const match = url.match(/[?&]windowType=([^&]+)/)
+          if (match) {
+            windowTypes.add(match[1])
+          }
         }
-      }
-    })
+      })
 
-    return Array.from(windowTypes).sort()
-  })
+      return Array.from(windowTypes).sort()
+    }
+  )
 
   ipcBridge.registerHandle(
     'compute-md5',
@@ -3078,9 +3291,12 @@ function bindAITaskHandlers(): void {
  * 绑定系统事件处理器
  */
 function bindSystemHandlers(): void {
-  ipcBridge.registerOn('system-notification', (event: IpcMainEvent, data: SystemNotificationData) => {
-    systemNotification(data.title, data.body, data.path)
-  })
+  ipcBridge.registerOn(
+    'system-notification',
+    (event: IpcMainEvent, data: SystemNotificationData) => {
+      systemNotification(data.title, data.body, data.path)
+    }
+  )
 
   ipcBridge.registerOn('update-window-title', (event: IpcMainEvent, title: string) => {
     updateWindowTitle(title)
@@ -3091,9 +3307,12 @@ function bindSystemHandlers(): void {
   })
 
   // 获取应用版本号
-  ipcBridge.registerHandle('get-app-version', async (event: IpcMainInvokeEvent): Promise<string> => {
-    return getAppVersion()
-  })
+  ipcBridge.registerHandle(
+    'get-app-version',
+    async (event: IpcMainInvokeEvent): Promise<string> => {
+      return getAppVersion()
+    }
+  )
 
   // 获取版本详细信息（包含发布日期）
   ipcBridge.registerHandle('get-version-info', async (event: IpcMainInvokeEvent): Promise<any> => {
@@ -3398,9 +3617,12 @@ function bindSystemHandlers(): void {
   )
 
   // 获取资源路径
-  ipcBridge.registerHandle('get-resources-path', async (event: IpcMainInvokeEvent): Promise<string> => {
-    return getResourcesPath()
-  })
+  ipcBridge.registerHandle(
+    'get-resources-path',
+    async (event: IpcMainInvokeEvent): Promise<string> => {
+      return getResourcesPath()
+    }
+  )
 
   // 检查更新
   ipcBridge.registerHandle(
@@ -5024,15 +5246,18 @@ function bindDatabaseHandlers(): void {
   )
 
   // 检查表是否存在
-  ipcBridge.registerHandle('db-table-exists', async (_event: IpcMainInvokeEvent, tableName: string) => {
-    try {
-      const exists = tableExists(tableName)
-      return { success: true, exists }
-    } catch (error) {
-      logger.error('检查表是否存在失败:', error as Error, { tableName })
-      return { success: false, error: error instanceof Error ? error.message : String(error) }
+  ipcBridge.registerHandle(
+    'db-table-exists',
+    async (_event: IpcMainInvokeEvent, tableName: string) => {
+      try {
+        const exists = tableExists(tableName)
+        return { success: true, exists }
+      } catch (error) {
+        logger.error('检查表是否存在失败:', error as Error, { tableName })
+        return { success: false, error: error instanceof Error ? error.message : String(error) }
+      }
     }
-  })
+  )
 
   // 执行事务
   ipcBridge.registerHandle(
@@ -5112,6 +5337,109 @@ export async function findWindowWithToolTab(payload: {
 }
 
 /**
+ * 绑定全局标签页注册表处理器
+ */
+function bindTabRegistryHandlers(): void {
+  const logger = createMainLogger('TabRegistry')
+
+  // 注册标签页
+  ipcBridge.registerHandle(
+    'tab:register',
+    (event: IpcMainInvokeEvent, tabData: Omit<GlobalTabState, 'windowId' | 'version'>) => {
+      const windowId = BrowserWindow.fromWebContents(event.sender)?.id
+      if (!windowId) {
+        logger.warn('无法获取窗口ID，注册标签页失败')
+        return { success: false, error: '无法获取窗口ID' }
+      }
+
+      globalTabRegistry.registerTab({
+        ...tabData,
+        windowId,
+        version: globalTabRegistry.getVersion() + 1
+      })
+
+      logger.debug(`注册标签页: ${tabData.id} 到窗口 ${windowId}`)
+      return { success: true }
+    }
+  )
+
+  // 注销标签页
+  ipcBridge.registerHandle('tab:unregister', (event: IpcMainInvokeEvent, tabId: string) => {
+    globalTabRegistry.unregisterTab(tabId)
+    logger.debug(`注销标签页: ${tabId}`)
+    return { success: true }
+  })
+
+  // 更新标签页状态
+  ipcBridge.registerHandle(
+    'tab:update',
+    (
+      event: IpcMainInvokeEvent,
+      {
+        tabId,
+        updates
+      }: { tabId: string; updates: Partial<Omit<GlobalTabState, 'id' | 'version'>> }
+    ) => {
+      const success = globalTabRegistry.updateTab(tabId, updates)
+      logger.debug(`更新标签页: ${tabId}, 成功: ${success}`)
+      return { success }
+    }
+  )
+
+  // 转移标签页到另一个窗口
+  ipcBridge.registerHandle(
+    'tab:transfer',
+    (
+      event: IpcMainInvokeEvent,
+      { tabId, targetWindowId }: { tabId: string; targetWindowId: number }
+    ) => {
+      const result = globalTabRegistry.transferTab(tabId, targetWindowId)
+      logger.debug(`转移标签页: ${tabId} 到窗口 ${targetWindowId}, 成功: ${result}`)
+      return { success: result }
+    }
+  )
+
+  // 获取全局标签页状态
+  ipcBridge.registerHandle('tab:get-global-state', () => {
+    return {
+      version: globalTabRegistry.getVersion(),
+      tabs: globalTabRegistry.getAllTabs()
+    }
+  })
+
+  // 获取窗口的标签页列表
+  ipcBridge.registerHandle(
+    'tab:get-window-tabs',
+    (event: IpcMainInvokeEvent, windowId?: number) => {
+      const targetWindowId = windowId ?? BrowserWindow.fromWebContents(event.sender)?.id
+      if (!targetWindowId) return []
+      return globalTabRegistry.getWindowTabs(targetWindowId)
+    }
+  )
+
+  // 检查文件是否已在任何窗口打开
+  ipcBridge.registerHandle('tab:is-file-open', (event: IpcMainInvokeEvent, filePath: string) => {
+    const result = globalTabRegistry.isFileOpen(filePath)
+    return result
+  })
+
+  // 窗口关闭时清理标签页
+  ipcBridge.registerHandle('tab:cleanup-window', (event: IpcMainInvokeEvent, windowId?: number) => {
+    const targetWindowId = windowId ?? BrowserWindow.fromWebContents(event.sender)?.id
+    if (targetWindowId) {
+      globalTabRegistry.cleanupWindowTabs(targetWindowId)
+      logger.debug(`清理窗口 ${targetWindowId} 的标签页`)
+    }
+    return { success: true }
+  })
+
+  // 获取注册表统计信息（用于调试）
+  ipcBridge.registerHandle('tab:get-stats', () => {
+    return globalTabRegistry.getStats()
+  })
+}
+
+/**
  * 绑定窗口管理处理器
  */
 function bindWindowManagementHandlers(): void {
@@ -5149,11 +5477,49 @@ function bindWindowManagementHandlers(): void {
     async (
       event: IpcMainInvokeEvent,
       { tabData, position }: { tabData: any; position?: { x: number; y: number } }
-    ): Promise<number> => {
+    ): Promise<{ windowId: number; tabId: string; isExisting: boolean } | number> => {
       try {
         const sourceWindow = BrowserWindow.fromWebContents(event.sender)
         if (!sourceWindow) {
           throw new Error('无法获取源窗口')
+        }
+
+        const sourceWindowId = sourceWindow.id
+        const sourceTabId = tabData?.tab?.id
+        const sourceTabPath = tabData?.tab?.path
+
+        // 检查标签页是否已在全局注册表中（防止重复打开）
+        if (sourceTabId && globalTabRegistry.hasTab(sourceTabId)) {
+          const existingTab = globalTabRegistry.getTab(sourceTabId)
+          if (existingTab && existingTab.windowId !== sourceWindowId) {
+            // 标签页已在另一个窗口中，激活该窗口
+            const existingWindow = BrowserWindow.fromId(existingTab.windowId)
+            if (existingWindow && !existingWindow.isDestroyed()) {
+              existingWindow.focus()
+              logger.info(`标签页已存在，激活窗口: ${existingTab.windowId}`)
+              return { windowId: existingTab.windowId, tabId: sourceTabId, isExisting: true }
+            }
+          }
+        }
+
+        // 检查文件是否已在任何窗口打开（避免重复打开文件）
+        if (sourceTabPath) {
+          const existing = globalTabRegistry.isFileOpen(sourceTabPath)
+          if (existing) {
+            // 文件已在某窗口打开，激活该窗口
+            const existingWindow = BrowserWindow.fromId(existing.windowId)
+            if (existingWindow && !existingWindow.isDestroyed()) {
+              existingWindow.webContents.send('activate-tab-by-id', existing.tabId)
+              if (existingWindow.isMinimized()) existingWindow.restore()
+              existingWindow.show()
+              existingWindow.focus()
+              logger.info(`文件已在窗口 ${existing.windowId} 打开，激活标签页: ${existing.tabId}`)
+              return { windowId: existing.windowId, tabId: existing.tabId, isExisting: true }
+            }
+          }
+
+          // 使用 file-registry 标记文件正在转移
+          markFileTransferring(sourceTabPath)
         }
 
         // 获取源窗口的大小（非最大化状态）
@@ -5178,19 +5544,29 @@ function bindWindowManagementHandlers(): void {
 
         if (poolWindow) {
           const windowId = getWindowId(poolWindow)
-          logger.info(`创建新窗口（池）: ${windowId}, Tab: ${tabData.tab?.id || 'unknown'}`)
 
-          // 标记文件正在转移
-          if (tabData?.tab?.path) {
-            markFileTransferring(tabData.tab.path)
+          // 注册标签页到全局注册表
+          if (tabData?.tab) {
+            globalTabRegistry.registerTab({
+              id: tabData.tab.id,
+              windowId: windowId,
+              kind: tabData.tab.kind || 'new',
+              path: tabData.tab.path,
+              toolType: tabData.tab.toolType,
+              route: tabData.tab.route,
+              title: tabData.tab.title || 'Untitled',
+              dirty: tabData.tab.dirty || false,
+              version: 1
+            })
           }
 
-          return windowId
-        }
+          // 更新 file-registry 中的文件所有权
+          if (sourceTabPath) {
+            transferFileOwnership(sourceTabPath, windowId, tabData.tab.id)
+          }
 
-        // 标记文件正在转移
-        if (tabData?.tab?.path) {
-          markFileTransferring(tabData.tab.path)
+          logger.info(`创建新窗口（池）: ${windowId}, Tab: ${tabData.tab?.id || 'unknown'}`)
+          return { windowId, tabId: tabData.tab?.id, isExisting: false }
         }
 
         // 池为空时回退：创建新窗口
@@ -5266,9 +5642,29 @@ function bindWindowManagementHandlers(): void {
         newWindow.focus()
 
         const windowId = getWindowId(newWindow)
-        logger.info(`创建新窗口: ${windowId}, Tab: ${tabData.tab?.id || 'unknown'}`)
 
-        return windowId
+        // 注册标签页到全局注册表
+        if (tabData?.tab) {
+          globalTabRegistry.registerTab({
+            id: tabData.tab.id,
+            windowId: windowId,
+            kind: tabData.tab.kind || 'new',
+            path: tabData.tab.path,
+            toolType: tabData.tab.toolType,
+            route: tabData.tab.route,
+            title: tabData.tab.title || 'Untitled',
+            dirty: tabData.tab.dirty || false,
+            version: 1
+          })
+        }
+
+        // 更新 file-registry 中的文件所有权
+        if (tabData?.tab?.path) {
+          transferFileOwnership(tabData.tab.path, windowId, tabData.tab.id)
+        }
+
+        logger.info(`创建新窗口: ${windowId}, Tab: ${tabData.tab?.id || 'unknown'}`)
+        return { windowId, tabId: tabData.tab?.id, isExisting: false }
       } catch (error) {
         logger.error('创建新窗口失败:', error as Error)
         throw error
@@ -5428,19 +5824,28 @@ function bindWindowManagementHandlers(): void {
   )
 
   // 确认文件已打开
-  ipcBridge.registerHandle('confirm-file-open', async (event: IpcMainInvokeEvent, filePath: string) => {
-    confirmFileOpen(filePath)
-  })
+  ipcBridge.registerHandle(
+    'confirm-file-open',
+    async (event: IpcMainInvokeEvent, filePath: string) => {
+      confirmFileOpen(filePath)
+    }
+  )
 
   // 释放文件预占
-  ipcBridge.registerHandle('release-file-claim', async (event: IpcMainInvokeEvent, filePath: string) => {
-    releaseFileClaim(filePath)
-  })
+  ipcBridge.registerHandle(
+    'release-file-claim',
+    async (event: IpcMainInvokeEvent, filePath: string) => {
+      releaseFileClaim(filePath)
+    }
+  )
 
   // 标记文件正在转移
-  ipcBridge.registerHandle('mark-file-transferring', async (event: IpcMainInvokeEvent, filePath: string) => {
-    return markFileTransferring(filePath)
-  })
+  ipcBridge.registerHandle(
+    'mark-file-transferring',
+    async (event: IpcMainInvokeEvent, filePath: string) => {
+      return markFileTransferring(filePath)
+    }
+  )
 
   // 转移文件所有权到新窗口
   ipcBridge.registerHandle(
@@ -5451,10 +5856,51 @@ function bindWindowManagementHandlers(): void {
     }
   )
 
+  // 通知源窗口Tab转移已完成
+  ipcBridge.registerHandle(
+    'notify-tab-transfer-completed',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: {
+        sourceWindowId: number
+        tabId: string
+        completed: boolean
+        targetTabId?: string
+        merged?: boolean
+      }
+    ) => {
+      try {
+        const { sourceWindowId, tabId, completed, targetTabId, merged } = payload
+
+        // 发送通知到源窗口
+        const sourceWindow = getWindowById(sourceWindowId)
+        if (sourceWindow && !sourceWindow.isDestroyed()) {
+          sourceWindow.webContents.send('tab-transfer-completed', {
+            tabId,
+            completed,
+            targetTabId,
+            merged
+          })
+          logger.debug(
+            `Tab转移完成通知已发送: ${tabId} -> 源窗口 ${sourceWindowId}, 成功: ${completed}, 合并: ${merged}`
+          )
+        }
+
+        return { success: true }
+      } catch (error) {
+        logger.error('发送Tab转移完成通知失败:', error as Error)
+        return { success: false, error: String(error) }
+      }
+    }
+  )
+
   // 标记文件正在关闭
-  ipcBridge.registerHandle('mark-file-closing', async (event: IpcMainInvokeEvent, filePath: string) => {
-    markFileClosing(filePath)
-  })
+  ipcBridge.registerHandle(
+    'mark-file-closing',
+    async (event: IpcMainInvokeEvent, filePath: string) => {
+      markFileClosing(filePath)
+    }
+  )
 
   // 捕获窗口缩略图（用于拖拽图像）
   ipcBridge.registerHandle(

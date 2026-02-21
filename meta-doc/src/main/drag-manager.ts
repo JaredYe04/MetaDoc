@@ -1,8 +1,11 @@
 /**
- * DragManager — 主进程拖拽会话管理
+ * DragManager — 主进程拖拽会话管理（阶段2架构改进版）
  *
- * 单一拖拽会话由主进程持有，解决渲染进程间状态不一致的问题。
- * 渲染进程只通过 sessionId 引用会话，不在 DataTransfer 中传递完整 payload。
+ * 改进特性：
+ * 1. 两阶段提交的标签页转移（预检 → 添加 → 确认移除）
+ * 2. 多会话管理（支持并发拖拽）
+ * 3. 会话超时和自动清理机制
+ * 4. 请求-响应模式的安全 IPC 通信
  */
 
 import { BrowserWindow, screen, IpcMainInvokeEvent, IpcMainEvent } from 'electron'
@@ -10,28 +13,81 @@ import { ipcBridge } from './bridge/ipc-bridge'
 import { createMainLogger } from './logger'
 import { getAllMainWindows, getWindowId, getWindowById } from './index'
 import { acquirePoolWindow } from './window-pool'
+import { randomUUID } from 'crypto'
 
 const logger = createMainLogger('DragManager')
+
+const SESSION_TIMEOUT = 30000
+const REQUEST_TIMEOUT = 5000
 
 export interface DragSession {
   sessionId: string
   tabId: string
   sourceWindowId: number
-  tabData: any // 完整 Tab + 文档序列化数据
-  consumed: boolean // 是否已被 drop 消费
+  tabData: any
+  consumed: boolean
   createdAt: number
+  timeoutTimer?: NodeJS.Timeout
 }
 
-let activeSession: DragSession | null = null
+interface PendingRequest {
+  resolve: (value: any) => void
+  reject: (reason: any) => void
+  timer: NodeJS.Timeout
+}
+
+const activeSessions = new Map<string, DragSession>()
+const pendingRequests = new Map<string, PendingRequest>()
 let sessionCounter = 0
 
-function generateSessionId(): string {
-  return `drag_${Date.now()}_${++sessionCounter}`
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 }
 
-/**
- * 广播拖拽状态变化到所有窗口
- */
+async function invokeRenderer(
+  window: BrowserWindow,
+  channel: string,
+  payload: any,
+  timeout: number = REQUEST_TIMEOUT
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if (window.isDestroyed() || !window.webContents) {
+      reject(new Error('目标窗口已销毁'))
+      return
+    }
+
+    const requestId = generateRequestId()
+    const timer = setTimeout(() => {
+      pendingRequests.delete(requestId)
+      reject(new Error(`请求超时: ${channel}`))
+    }, timeout)
+
+    pendingRequests.set(requestId, { resolve, reject, timer })
+
+    window.webContents.send(channel, {
+      ...payload,
+      _requestId: requestId
+    })
+  })
+}
+
+function handleRendererResponse(_event: IpcMainEvent, response: any) {
+  const requestId = response?._requestId
+  if (!requestId) return
+
+  const pending = pendingRequests.get(requestId)
+  if (!pending) return
+
+  clearTimeout(pending.timer)
+  pendingRequests.delete(requestId)
+
+  if (response._error) {
+    pending.reject(new Error(response._error))
+  } else {
+    pending.resolve(response.result)
+  }
+}
+
 function broadcastDragState(eventName: string, data: any): void {
   const windows = getAllMainWindows()
   for (const win of windows) {
@@ -41,11 +97,156 @@ function broadcastDragState(eventName: string, data: any): void {
   }
 }
 
-/**
- * 注册拖拽管理器的 IPC 处理器
- */
+function startSessionTimeout(sessionId: string): void {
+  const timer = setTimeout(() => {
+    const session = activeSessions.get(sessionId)
+    if (session) {
+      logger.warn('拖拽会话超时，强制清理:', sessionId)
+      cleanupSession(sessionId, 'timeout')
+    }
+  }, SESSION_TIMEOUT)
+
+  const session = activeSessions.get(sessionId)
+  if (session) {
+    session.timeoutTimer = timer
+  }
+}
+
+function cleanupSession(sessionId: string, reason?: string): void {
+  const session = activeSessions.get(sessionId)
+  if (!session) return
+
+  if (session.timeoutTimer) {
+    clearTimeout(session.timeoutTimer)
+  }
+
+  if (!session.consumed && reason) {
+    const sourceWindow = getWindowById(session.sourceWindowId)
+    if (sourceWindow && !sourceWindow.isDestroyed()) {
+      sourceWindow.webContents.send('drag:session-cancelled', {
+        sessionId,
+        tabId: session.tabId,
+        reason
+      })
+    }
+  }
+
+  activeSessions.delete(sessionId)
+  broadcastDragState('drag:session-ended', { sessionId })
+  logger.debug('拖拽会话已清理:', sessionId, reason || '')
+}
+
+function cleanupAllSessions(): void {
+  for (const [sessionId, session] of activeSessions.entries()) {
+    if (session.timeoutTimer) {
+      clearTimeout(session.timeoutTimer)
+    }
+    if (!session.consumed) {
+      const sourceWindow = getWindowById(session.sourceWindowId)
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        sourceWindow.webContents.send('drag:session-cancelled', {
+          sessionId,
+          tabId: session.tabId,
+          reason: 'app-shutdown'
+        })
+      }
+    }
+  }
+  activeSessions.clear()
+  logger.info('所有拖拽会话已清理')
+}
+
+function createSession(tabData: any, sourceWindowId: number): string {
+  const sessionId = `drag_${Date.now()}_${++sessionCounter}_${randomUUID().substring(0, 8)}`
+
+  const session: DragSession = {
+    sessionId,
+    tabId: tabData.tab.id,
+    sourceWindowId,
+    tabData,
+    consumed: false,
+    createdAt: Date.now()
+  }
+
+  activeSessions.set(sessionId, session)
+  startSessionTimeout(sessionId)
+
+  logger.debug('拖拽会话创建:', sessionId, 'Tab:', tabData.tab.id)
+  return sessionId
+}
+
+async function executeTabTransfer(
+  session: DragSession,
+  targetWindowId: number,
+  insertIndex: number = -1
+): Promise<{ success: boolean; reason?: string }> {
+  const { tabData, sourceWindowId, tabId } = session
+
+  const targetWindow = getWindowById(targetWindowId)
+  if (!targetWindow || targetWindow.isDestroyed()) {
+    return { success: false, reason: '目标窗口不存在或已销毁' }
+  }
+
+  const sourceWindow = getWindowById(sourceWindowId)
+  if (!sourceWindow || sourceWindow.isDestroyed()) {
+    return { success: false, reason: '源窗口不存在或已销毁' }
+  }
+
+  try {
+    const canAccept = await invokeRenderer(
+      targetWindow,
+      'drag:can-accept-tab',
+      {
+        sourceWindowId,
+        tabData: tabData,
+        sessionId: session.sessionId
+      }
+    )
+
+    if (!canAccept) {
+      logger.warn('目标窗口拒绝接收 Tab:', { targetWindowId, reason: canAccept?.reason })
+      return {
+        success: false,
+        reason: canAccept?.reason || '目标窗口无法接收该 Tab'
+      }
+    }
+
+    const addResult = await invokeRenderer(
+      targetWindow,
+      'drag:add-tab-to-window',
+      {
+        sessionId: session.sessionId,
+        tabData,
+        insertIndex
+      }
+    )
+
+    if (!addResult || !addResult.success) {
+      logger.error('目标窗口添加 Tab 失败:', { targetWindowId, error: addResult?.error })
+      return {
+        success: false,
+        reason: addResult?.error || '目标窗口添加 Tab 失败'
+      }
+    }
+
+    session.consumed = true
+    sourceWindow.webContents.send('remove-tab-from-drag', tabId)
+
+    logger.info('Tab 跨窗口转移成功:', tabId, sourceWindowId, '->', targetWindowId)
+    return { success: true }
+
+  } catch (error) {
+    logger.error('Tab 转移执行失败:', error)
+    return {
+      success: false,
+      reason: error instanceof Error ? error.message : '执行转移时发生错误'
+    }
+  }
+}
+
 export function registerDragManagerIPC(): void {
-  // 渲染进程通知：拖拽开始
+  ipcBridge.registerOn('drag:renderer-response', handleRendererResponse)
+
   ipcBridge.registerHandle(
     'drag:start',
     (
@@ -54,23 +255,15 @@ export function registerDragManagerIPC(): void {
     ): { sessionId: string } => {
       const sourceWindowId = event.sender.id
 
-      // 清除可能的残留会话
-      if (activeSession) {
-        logger.warn('拖拽会话未正常结束，强制清理:', activeSession.sessionId)
-        activeSession = null
+      for (const [_, session] of activeSessions.entries()) {
+        if (session.tabId === payload.tabId && session.sourceWindowId === sourceWindowId) {
+          logger.warn('该 Tab 已有活跃拖拽会话，先清理旧会话:', session.sessionId)
+          cleanupSession(session.sessionId, 'replaced')
+        }
       }
 
-      const sessionId = generateSessionId()
-      activeSession = {
-        sessionId,
-        tabId: payload.tabId,
-        sourceWindowId,
-        tabData: payload.tabData,
-        consumed: false,
-        createdAt: Date.now()
-      }
+      const sessionId = createSession(payload.tabData, sourceWindowId)
 
-      // 广播给所有窗口：有拖拽进行中
       broadcastDragState('drag:session-started', {
         sessionId,
         tabId: payload.tabId,
@@ -82,56 +275,45 @@ export function registerDragManagerIPC(): void {
     }
   )
 
-  // 渲染进程通知：Tab 被 drop 到目标窗口（同窗口排序或跨窗口合并）
   ipcBridge.registerHandle(
     'drag:drop',
     async (
       _event: IpcMainInvokeEvent,
       payload: { sessionId: string; targetWindowId: number; insertIndex?: number }
-    ): Promise<{ success: boolean }> => {
-      if (!activeSession || activeSession.sessionId !== payload.sessionId) {
-        logger.warn('drop 收到无效会话:', payload.sessionId)
-        return { success: false }
+    ): Promise<{ success: boolean; reason?: string }> => {
+      const session = activeSessions.get(payload.sessionId)
+
+      if (!session) {
+        logger.warn('drop 收到无效或已过期会话:', payload.sessionId)
+        return { success: false, reason: '会话不存在或已过期' }
       }
 
-      if (activeSession.consumed) {
+      if (session.consumed) {
         logger.warn('拖拽会话已被消费:', payload.sessionId)
-        return { success: false }
+        return { success: false, reason: '会话已被消费' }
       }
 
-      activeSession.consumed = true
-      const { tabData, sourceWindowId } = activeSession
+      if (payload.targetWindowId !== session.sourceWindowId) {
+        const result = await executeTabTransfer(
+          session,
+          payload.targetWindowId,
+          payload.insertIndex ?? -1
+        )
 
-      // 跨窗口转移：将 Tab 发送到目标窗口
-      if (payload.targetWindowId !== sourceWindowId) {
-        const targetWindow = getWindowById(payload.targetWindowId)
-        if (targetWindow && !targetWindow.isDestroyed()) {
-          targetWindow.webContents.send('add-tab-from-drag', {
-            tabData,
-            insertIndex: payload.insertIndex ?? -1
-          })
-
-          // 通知源窗口移除 Tab
-          const sourceWindow = getWindowById(sourceWindowId)
-          if (sourceWindow && !sourceWindow.isDestroyed()) {
-            sourceWindow.webContents.send('remove-tab-from-drag', activeSession.tabId)
-          }
-
-          logger.info(
-            'Tab 跨窗口转移:',
-            activeSession.tabId,
-            sourceWindowId,
-            '->',
-            payload.targetWindowId
-          )
+        if (result.success) {
+          cleanupSession(payload.sessionId)
         }
+
+        return result
       }
+
+      session.consumed = true
+      cleanupSession(payload.sessionId)
 
       return { success: true }
     }
   )
 
-  // 渲染进程通知：拖拽结束（用户松开鼠标）
   ipcBridge.registerHandle(
     'drag:end',
     async (
@@ -140,37 +322,34 @@ export function registerDragManagerIPC(): void {
         sessionId: string
         tabBarBounds?: { x: number; y: number; width: number; height: number }
       }
-    ): Promise<{ action: 'none' | 'detach'; newWindowId?: number }> => {
-      if (!activeSession || activeSession.sessionId !== payload.sessionId) {
+    ): Promise<{ action: 'none' | 'detach'; newWindowId?: number; reason?: string }> => {
+      const session = activeSessions.get(payload.sessionId)
+
+      if (!session) {
+        return { action: 'none', reason: '会话不存在' }
+      }
+
+      if (session.consumed) {
+        cleanupSession(payload.sessionId)
         return { action: 'none' }
       }
 
-      // 如果已被 drop 消费，不需要做任何事
-      if (activeSession.consumed) {
-        const session = activeSession
-        activeSession = null
-        broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
-        return { action: 'none' }
-      }
-
-      // 检查鼠标是否在源窗口外（意味着要分离到新窗口）
       const cursorPos = screen.getCursorScreenPoint()
-      const sourceWindow = getWindowById(activeSession.sourceWindowId)
+      const sourceWindow = getWindowById(session.sourceWindowId)
 
       if (!sourceWindow || sourceWindow.isDestroyed()) {
-        activeSession = null
-        return { action: 'none' }
+        cleanupSession(payload.sessionId, 'source-window-destroyed')
+        return { action: 'none', reason: '源窗口已销毁' }
       }
 
       const bounds = sourceWindow.getBounds()
-      const padding = 10 // 容差区域
+      const padding = 10
       const isOutside =
         cursorPos.x < bounds.x - padding ||
         cursorPos.x > bounds.x + bounds.width + padding ||
         cursorPos.y < bounds.y - padding ||
         cursorPos.y > bounds.y + bounds.height + padding
 
-      // 检查是否在其他窗口上（如果是，说明浏览器 drop 未触发，这是跨窗口 fallback）
       const allWindows = getAllMainWindows()
       let isOverOtherWindow = false
       let targetWindowForMerge: BrowserWindow | null = null
@@ -190,47 +369,38 @@ export function registerDragManagerIPC(): void {
         }
       }
 
-      const session = activeSession
-      activeSession = null
-
-      // 场景1：鼠标在另一个窗口上（跨窗口合并 fallback）
       if (isOverOtherWindow && targetWindowForMerge) {
-        session.consumed = true
         const targetWinId = getWindowId(targetWindowForMerge)
 
-        targetWindowForMerge.webContents.send('add-tab-from-drag', {
-          tabData: session.tabData,
-          insertIndex: -1
-        })
+        const result = await executeTabTransfer(
+          session,
+          targetWinId,
+          -1
+        )
 
-        sourceWindow.webContents.send('remove-tab-from-drag', session.tabId)
-
-        broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
-        logger.info('Tab 跨窗口合并 (fallback):', session.tabId, '->', targetWinId)
-        return { action: 'none' }
+        if (result.success) {
+          cleanupSession(payload.sessionId)
+          logger.info('Tab 跨窗口合并 (fallback) 成功:', session.tabId, '->', targetWinId)
+          return { action: 'none' }
+        } else {
+          logger.warn('跨窗口合并失败，回退到分离:', result.reason)
+        }
       }
 
-      // 场景2：鼠标在源窗口外且不在任何窗口上 → 分离到新窗口
       if (isOutside) {
-        // 源窗口只有1个Tab时不允许分离
-        // 通过 tabData.sourceTabCount 检查
         const sourceTabCount = session.tabData?.sourceTabCount ?? 1
         if (sourceTabCount <= 1) {
-          broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
+          cleanupSession(payload.sessionId, 'single-tab-restriction')
           logger.debug('单Tab窗口不允许分离')
-          return { action: 'none' }
+          return { action: 'none', reason: '单Tab窗口不允许分离' }
         }
 
-        session.consumed = true
-
         try {
-          // 获取源窗口尺寸
           const sourceBounds = sourceWindow.getBounds()
           const isMaximized = sourceWindow.isMaximized()
           const width = isMaximized ? 1366 : sourceBounds.width
           const height = isMaximized ? 768 : sourceBounds.height
 
-          // 传递原始鼠标屏幕坐标，由 acquirePoolWindow 统一计算偏移
           const poolWindow = acquirePoolWindow({
             tabData: session.tabData,
             position: cursorPos,
@@ -240,18 +410,14 @@ export function registerDragManagerIPC(): void {
 
           if (poolWindow) {
             const newWindowId = getWindowId(poolWindow)
-            // 通知源窗口移除 Tab
+            session.consumed = true
             sourceWindow.webContents.send('remove-tab-from-drag', session.tabId)
-            broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
+            cleanupSession(payload.sessionId)
             logger.info('Tab 分离到新窗口(池):', session.tabId, '->', newWindowId)
             return { action: 'detach', newWindowId }
           }
 
-          // 池为空时 fallback：通过 create-window-with-tab 创建
-          // 这里直接调用现有的窗口创建逻辑（由 MainTabs.vue 端已有的 IPC 处理）
-          broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
-
-          // 通知源窗口执行创建窗口
+          cleanupSession(payload.sessionId)
           sourceWindow.webContents.send('drag:create-detached-window', {
             tabData: session.tabData,
             position: cursorPos,
@@ -262,13 +428,11 @@ export function registerDragManagerIPC(): void {
           return { action: 'detach' }
         } catch (error) {
           logger.error('创建分离窗口失败:', error)
-          broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
-          return { action: 'none' }
+          cleanupSession(payload.sessionId, 'detach-error')
+          return { action: 'none', reason: '创建分离窗口失败' }
         }
       }
 
-      // 场景2.5：鼠标在源窗口内但不在 Tab 栏上 → 分离到新窗口
-      // 允许用户通过向下拖动来在窗口内分离 Tab
       const tabBarBounds = payload.tabBarBounds
       if (tabBarBounds) {
         const isOverTabBar =
@@ -278,11 +442,8 @@ export function registerDragManagerIPC(): void {
           cursorPos.y <= tabBarBounds.y + tabBarBounds.height
 
         if (!isOverTabBar) {
-          // 鼠标在窗口内但不在 Tab 栏上，执行分离
           const sourceTabCount = session.tabData?.sourceTabCount ?? 1
           if (sourceTabCount > 1) {
-            session.consumed = true
-
             try {
               const sourceBounds = sourceWindow.getBounds()
               const isMaximized = sourceWindow.isMaximized()
@@ -298,13 +459,14 @@ export function registerDragManagerIPC(): void {
 
               if (poolWindow) {
                 const newWindowId = getWindowId(poolWindow)
+                session.consumed = true
                 sourceWindow.webContents.send('remove-tab-from-drag', session.tabId)
-                broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
+                cleanupSession(payload.sessionId)
                 logger.info('Tab 分离到新窗口(窗口内,池):', session.tabId, '->', newWindowId)
                 return { action: 'detach', newWindowId }
               }
 
-              broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
+              cleanupSession(payload.sessionId)
               sourceWindow.webContents.send('drag:create-detached-window', {
                 tabData: session.tabData,
                 position: cursorPos,
@@ -315,49 +477,72 @@ export function registerDragManagerIPC(): void {
               return { action: 'detach' }
             } catch (error) {
               logger.error('创建分离窗口失败:', error)
-              broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
-              return { action: 'none' }
+              cleanupSession(payload.sessionId, 'detach-error')
+              return { action: 'none', reason: '创建分离窗口失败' }
             }
           }
         }
       }
 
-      // 场景3：鼠标在源窗口内且在 Tab 栏上（回到原位，无需操作）
-      broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
+      cleanupSession(payload.sessionId, 'cancelled-in-tabbar')
       return { action: 'none' }
     }
   )
 
-  // 渲染进程通知：拖拽取消（ESC、窗口失焦等）
   ipcBridge.registerOn('drag:cancel', (_event: IpcMainEvent, payload: { sessionId: string }) => {
-    if (activeSession && activeSession.sessionId === payload.sessionId) {
-      const session = activeSession
-      activeSession = null
-      broadcastDragState('drag:session-ended', { sessionId: session.sessionId })
-      logger.debug('拖拽会话取消:', session.sessionId)
+    const session = activeSessions.get(payload.sessionId)
+    if (session) {
+      cleanupSession(payload.sessionId, 'user-cancelled')
+      logger.debug('拖拽会话取消:', payload.sessionId)
     }
   })
 
-  // 查询当前活跃会话（用于目标窗口在 dragover 时判断）
   ipcBridge.registerHandle(
     'drag:get-active-session',
     (): { sessionId: string; tabId: string; sourceWindowId: number } | null => {
-      if (!activeSession) return null
+      const sessions = Array.from(activeSessions.values())
+      if (sessions.length === 0) return null
+
+      const latest = sessions.sort((a, b) => b.createdAt - a.createdAt)[0]
       return {
-        sessionId: activeSession.sessionId,
-        tabId: activeSession.tabId,
-        sourceWindowId: activeSession.sourceWindowId
+        sessionId: latest.sessionId,
+        tabId: latest.tabId,
+        sourceWindowId: latest.sourceWindowId
       }
     }
   )
 
-  // 安全措施：超时自动清理（防止拖拽卡住）
-  setInterval(() => {
-    if (activeSession && Date.now() - activeSession.createdAt > 30000) {
-      logger.warn('拖拽会话超时，强制清理:', activeSession.sessionId)
-      const sessionId = activeSession.sessionId
-      activeSession = null
-      broadcastDragState('drag:session-ended', { sessionId })
+  ipcBridge.registerHandle(
+    'drag:get-all-sessions',
+    (): Array<{ sessionId: string; tabId: string; sourceWindowId: number; consumed: boolean; createdAt: number }> => {
+      return Array.from(activeSessions.values()).map(s => ({
+        sessionId: s.sessionId,
+        tabId: s.tabId,
+        sourceWindowId: s.sourceWindowId,
+        consumed: s.consumed,
+        createdAt: s.createdAt
+      }))
     }
-  }, 5000)
+  )
+
+  logger.info('拖拽管理器 IPC 已注册')
+}
+
+export function cleanupDragManager(): void {
+  cleanupAllSessions()
+
+  for (const [, pending] of pendingRequests.entries()) {
+    clearTimeout(pending.timer)
+    pending.reject(new Error('应用退出，请求被取消'))
+  }
+  pendingRequests.clear()
+
+  logger.info('拖拽管理器已清理')
+}
+
+export const __testing__ = {
+  getActiveSessions: () => activeSessions,
+  getPendingRequests: () => pendingRequests,
+  cleanupSession,
+  cleanupAllSessions
 }

@@ -594,6 +594,17 @@ const borderColor = computed(() => {
   }
 })
 
+// 粗野主义hover背景色 - 与UIMenuItem等组件统一
+const brutalistHoverBackgroundColor = computed(() => {
+  try {
+    const baseColor = themeState.currentTheme.background2nd
+    const textColor = themeState.currentTheme.textColor
+    return mixColors(baseColor, textColor, 0.3)
+  } catch {
+    return '#acacac'
+  }
+})
+
 // 不活跃Tab的文本颜色 - 根据主题类型设置更深的灰色
 const inactiveTabTextColor = computed(() => {
   try {
@@ -1785,7 +1796,7 @@ onUnmounted(() => {
 }
 
 .main-tab-label__close:hover {
-  background-color: var(--el-fill-color);
+  background-color: v-bind('brutalistHoverBackgroundColor');
   border: 1px solid var(--el-border-color);
   color: var(--el-text-color-primary);
 }
@@ -1830,10 +1841,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: none !important;
   color: var(--el-text-color-primary);
   user-select: none;
   -webkit-user-select: none;
@@ -1844,12 +1855,28 @@ onUnmounted(() => {
 }
 
 .window-control-btn:hover {
-  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+  background-color: v-bind('brutalistHoverBackgroundColor');
+  border: 1px solid var(--el-border-color);
+}
+
+.window-control-btn:active {
+  border: 1px solid var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
 .window-control-btn--close:hover {
   background-color: var(--el-color-danger);
+  border: 1px solid var(--el-color-danger);
   color: #ffffff;
+}
+
+.window-control-btn--close:active {
+  background-color: var(--el-color-danger-light-9, #fde2e2) !important;
+  border: 1px solid var(--el-color-danger) !important;
+  color: var(--el-color-danger) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
 .window-control-btn .el-icon {
@@ -1883,10 +1910,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: none !important;
   color: var(--el-text-color-primary);
   user-select: none;
   -webkit-user-select: none;
@@ -1903,7 +1930,15 @@ onUnmounted(() => {
 }
 
 .new-tab-button:hover:not(.is-locked) {
-  background-color: v-bind('tabItemHoverBackgroundColor');
+  background-color: v-bind('brutalistHoverBackgroundColor');
+  border: 1px solid var(--el-border-color);
+}
+
+.new-tab-button:active:not(.is-locked) {
+  border: 1px solid var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
 .new-tab-button.is-locked {

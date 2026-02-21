@@ -26,13 +26,13 @@
         <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
           <!-- 上半部分: 知识库列表，占50%高度 -->
           <div class="kb-list-wrapper">
-            <el-card
+            <Card
               class="kb-panel"
-              shadow="hover"
               v-loading="isUploading"
               :style="{ background: themeState.currentTheme.background2nd, height: '100%' }"
             >
-              <div class="kb-panel-header">
+              <CardContent class="kb-card-content">
+                <div class="kb-panel-header">
                 <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
                 <div class="kb-panel-actions">
                   <el-button type="primary" size="small" @click="triggerUpload">{{
@@ -99,14 +99,14 @@
                   </el-table-column>
                 </el-table>
               </el-scrollbar>
-            </el-card>
+            </CardContent>
+            </Card>
           </div>
 
           <!-- 下半部分: 检索测试，占50%高度 -->
           <div class="kb-search-wrapper">
-            <el-card
+            <Card
               class="kb-panel"
-              shadow="hover"
               :style="{
                 background: themeState.currentTheme.background2nd,
                 height: '100%',
@@ -114,6 +114,7 @@
                 flexDirection: 'column'
               }"
             >
+              <CardContent class="kb-card-content">
               <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
               <el-form-item :label="$t('setting.knowledgeBaseScoreThreshold')">
                 <el-slider
@@ -161,9 +162,8 @@
               }}</el-button>
 
               <el-scrollbar style="flex-grow: 1; margin-top: 10px; min-height: 0">
-                <el-card
+                <Card
                   class="kb-result-card"
-                  shadow="hover"
                   v-for="(result, index) in searchResults"
                   :key="index"
                   :style="{
@@ -171,8 +171,10 @@
                     marginBottom: '6px'
                   }"
                 >
-                  <pre class="result-text">{{ result }}</pre>
-                </el-card>
+                  <CardContent class="kb-result-card-content">
+                    <pre class="result-text">{{ result }}</pre>
+                  </CardContent>
+                </Card>
 
                 <div
                   v-if="searchResults.length === 0 && !searching"
@@ -182,19 +184,20 @@
                   {{ t('knowledgeBase.searchTest.noResult') }}
                 </div>
               </el-scrollbar>
-            </el-card>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         <!-- 右边 -->
         <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
           <!-- 上：preview -->
-          <el-card
+          <Card
             class="kb-panel kb-preview"
-            shadow="hover"
             v-loading="!previewLoaded"
             :style="{ background: themeState.currentTheme.background2nd }"
           >
+            <CardContent class="kb-card-content">
             <div class="kb-panel-header">
               <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
               <div v-if="selectedItem" class="kb-panel-actions">
@@ -212,14 +215,15 @@
               ></div>
             </div>
             <div v-else class="placeholder">{{ t('knowledgeBase.select_placeholder') }}</div>
-          </el-card>
+            </CardContent>
+          </Card>
 
           <!-- 下：config -->
-          <el-card
+          <Card
             class="kb-panel kb-config"
-            shadow="hover"
             :style="{ background: themeState.currentTheme.background2nd }"
           >
+            <CardContent class="kb-card-content">
             <div class="kb-panel-header">
               <h2 class="kb-panel-title">{{ t('knowledgeBase.config') }}</h2>
             </div>
@@ -330,9 +334,10 @@
                 </div>
               </div>
               <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
-            </el-scrollbar>
-          </el-card>
-        </div>
+              </el-scrollbar>
+              </CardContent>
+            </Card>
+          </div>
       </div>
     </div>
   </div>
@@ -355,6 +360,7 @@ import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
+import { Card, CardContent } from '../components/ui/card'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
@@ -973,18 +979,22 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-/* 圆角样式 */
-:deep(.el-card) {
+/* shadcn Card styles */
+:deep(.kb-panel) {
   border-radius: 12px;
   overflow: hidden;
 }
 
-:deep(.el-card__body) {
+.kb-card-content {
   padding: 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+.kb-result-card-content {
+  padding: 12px;
 }
 
 .kb-container {
@@ -1071,10 +1081,6 @@ onBeforeUnmount(() => {
 .kb-result-card {
   border-radius: 8px;
   margin-bottom: 6px;
-}
-
-.kb-result-card :deep(.el-card__body) {
-  padding: 12px;
 }
 
 .result-text {

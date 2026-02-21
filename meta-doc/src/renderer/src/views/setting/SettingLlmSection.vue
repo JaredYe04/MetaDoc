@@ -15,15 +15,16 @@
         </el-form-item>
         <el-form-item :label="t('setting.llmTemperature')">
           <el-tooltip :content="t('setting.llmTemperatureHint')" placement="top">
-            <el-input-number
+            <NumberField
               v-model="settings.llmTemperature"
               :min="0"
               :max="2"
               :step="0.1"
-              :precision="1"
-              @change="saveSetting('llmTemperature', settings.llmTemperature)"
-              style="width: 200px"
-            />
+              @update:modelValue="saveSetting('llmTemperature', settings.llmTemperature)"
+              class="number-field-wrapper"
+            >
+              <NumberFieldInput />
+            </NumberField>
           </el-tooltip>
         </el-form-item>
         <el-form-item :label="t('setting.removeThinkTag')">
@@ -250,15 +251,16 @@
                   v-if="settings.ollama.enableMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <el-input-number
+                  <NumberField
                     v-model="settings.ollama.maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    :precision="0"
-                    @change="handleFieldChange"
-                    style="width: 200px"
-                  />
+                    @update:modelValue="handleFieldChange"
+                    class="number-field-wrapper"
+                  >
+                    <NumberFieldInput />
+                  </NumberField>
                 </el-form-item>
               </template>
 
@@ -319,15 +321,16 @@
                   v-if="settings.openai.enableMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <el-input-number
+                  <NumberField
                     v-model="settings.openai.maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    :precision="0"
-                    @change="handleFieldChange"
-                    style="width: 200px"
-                  />
+                    @update:modelValue="handleFieldChange"
+                    class="number-field-wrapper"
+                  >
+                    <NumberFieldInput />
+                  </NumberField>
                 </el-form-item>
               </template>
 
@@ -368,15 +371,16 @@
                   v-if="settings['openai-official'].enableMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <el-input-number
+                  <NumberField
                     v-model="settings['openai-official'].maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    :precision="0"
-                    @change="handleFieldChange"
-                    style="width: 200px"
-                  />
+                    @update:modelValue="handleFieldChange"
+                    class="number-field-wrapper"
+                  >
+                    <NumberFieldInput />
+                  </NumberField>
                 </el-form-item>
               </template>
 
@@ -412,15 +416,16 @@
                   v-if="settings.deepseek.enableMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <el-input-number
+                  <NumberField
                     v-model="settings.deepseek.maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    :precision="0"
-                    @change="handleFieldChange"
-                    style="width: 200px"
-                  />
+                    @update:modelValue="handleFieldChange"
+                    class="number-field-wrapper"
+                  >
+                    <NumberFieldInput />
+                  </NumberField>
                 </el-form-item>
               </template>
 
@@ -461,15 +466,16 @@
                   v-if="settings.gemini.enableMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <el-input-number
+                  <NumberField
                     v-model="settings.gemini.maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    :precision="0"
-                    @change="handleFieldChange"
-                    style="width: 200px"
-                  />
+                    @update:modelValue="handleFieldChange"
+                    class="number-field-wrapper"
+                  >
+                    <NumberFieldInput />
+                  </NumberField>
                 </el-form-item>
               </template>
 
@@ -502,15 +508,16 @@
                   v-if="settings.metadoc.enableMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <el-input-number
+                  <NumberField
                     v-model="settings.metadoc.maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    :precision="0"
-                    @change="handleFieldChange"
-                    style="width: 200px"
-                  />
+                    @update:modelValue="handleFieldChange"
+                    class="number-field-wrapper"
+                  >
+                    <NumberFieldInput />
+                  </NumberField>
                 </el-form-item>
               </template>
 
@@ -586,23 +593,26 @@
                 :label="t('setting.autoCompletionMaxTokens')"
               >
                 <el-tooltip :content="t('setting.autoCompletionMaxTokensHint')" placement="bottom">
-                  <el-input-number
-                    v-model="settings.autoCompletionMaxTokens"
-                    :min="20"
-                    :step="10"
-                    :precision="0"
-                    @change="
-                      saveSetting('autoCompletionMaxTokens', settings.autoCompletionMaxTokens)
-                    "
-                    style="width: 200px"
-                  />
-                  <span style="margin-left: 8px; color: #909399; font-size: 12px">
-                    {{
-                      settings.autoCompletionMaxTokens === 0
-                        ? t('setting.unlimited')
-                        : t('setting.tokens')
-                    }}
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <NumberField
+                      v-model="settings.autoCompletionMaxTokens"
+                      :min="20"
+                      :step="10"
+                      @update:modelValue="
+                        saveSetting('autoCompletionMaxTokens', settings.autoCompletionMaxTokens)
+                      "
+                      class="number-field-wrapper"
+                    >
+                      <NumberFieldInput />
+                    </NumberField>
+                    <span style="color: #909399; font-size: 12px">
+                      {{
+                        settings.autoCompletionMaxTokens === 0
+                          ? t('setting.unlimited')
+                          : t('setting.tokens')
+                      }}
+                    </span>
+                  </div>
                 </el-tooltip>
               </el-form-item>
 
@@ -753,6 +763,10 @@ import {
 import { Plus, Edit, Delete, DocumentCopy, MoreFilled, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ai_types, createAiTask } from '../../utils/ai_tasks.ts'
+import {
+  NumberField,
+  NumberFieldInput
+} from '@renderer/components/ui/number-field'
 
 interface OllamaModel {
   name: string
@@ -2230,6 +2244,27 @@ onMounted(async () => {
 }
 
 .settings-form :deep(.el-input-number .el-input__inner) {
+  width: 100%;
+}
+
+/* shadcn NumberField wrapper styling - matches el-input-number behavior */
+.number-field-wrapper {
+  width: 200px;
+}
+
+/* Ensure NumberFieldInput takes full width of its container */
+.number-field-wrapper :deep([data-radix-number-field-input]) {
+  width: 100%;
+  text-align: center;
+}
+
+/* Ensure all sub-components in number-field are sized correctly */
+.settings-form :deep(.number-field-wrapper) {
+  width: 200px;
+}
+
+/* Ensure NumberField fits in el-form-item layout */
+.settings-form :deep(.number-field-wrapper [data-radix-number-field-input]) {
   width: 100%;
 }
 

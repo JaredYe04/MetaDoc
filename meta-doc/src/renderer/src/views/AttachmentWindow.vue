@@ -38,7 +38,7 @@
                   </p>
                 </div>
                 <div class="attachment-actions">
-                  <el-button
+                  <Button
                     size="small"
                     :loading="processing"
                     @click="handleParse"
@@ -49,8 +49,8 @@
                         ? t('attachment.reparse', '重新解析')
                         : t('attachment.parse', '解析附件')
                     }}
-                  </el-button>
-                  <el-button
+                  </Button>
+                  <Button
                     type="primary"
                     size="small"
                     :loading="analyzing"
@@ -62,7 +62,7 @@
                         ? t('attachment.reanalyze', '重新AI分析')
                         : t('attachment.startAnalysis', '开始AI分析')
                     }}
-                  </el-button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -114,6 +114,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { attachmentSessionsDb, type AttachmentSession } from '../utils/db/tool-sessions-db'

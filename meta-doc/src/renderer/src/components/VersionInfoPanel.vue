@@ -82,7 +82,7 @@
 
       <!-- 操作按钮 -->
       <div class="version-actions">
-        <el-button
+        <Button
           v-if="!updateStatus?.updateAvailable && !downloaded && !downloading"
           type="primary"
           :loading="checking"
@@ -91,26 +91,26 @@
           style="width: 100%"
         >
           {{ checking ? $t('versionInfoPanel.checking') : $t('versionInfoPanel.checkUpdate') }}
-        </el-button>
-        <el-button
+        </Button>
+        <Button
           v-if="updateStatus?.updateAvailable && !downloaded && !downloading"
           type="primary"
           @click="handleDownloadUpdate"
           style="width: 100%"
         >
           {{ $t('versionInfoPanel.downloadAndInstall') }}
-        </el-button>
-        <el-button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
+        </Button>
+        <Button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
           {{ $t('versionInfoPanel.downloadProgress', { progress: downloadProgress }) }}
-        </el-button>
-        <el-button
+        </Button>
+        <Button
           v-if="downloaded"
           type="success"
           @click="handleInstallUpdate"
           style="width: 100%"
         >
           {{ $t('versionInfoPanel.installAndRestart') }}
-        </el-button>
+        </Button>
         <el-alert
           v-if="downloadError"
           type="error"
@@ -129,6 +129,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'

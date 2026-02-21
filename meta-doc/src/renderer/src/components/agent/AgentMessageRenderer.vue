@@ -31,7 +31,9 @@
             @mouseleave="handleActionsMouseLeave"
           >
             <el-tooltip :content="t('agent.message.edit')" placement="top">
-              <el-button circle size="small" :icon="Edit" @click.stop="handleEdit" />
+              <Button circle size="small" @click.stop="handleEdit">
+                <el-icon><Edit /></el-icon>
+              </Button>
             </el-tooltip>
             <el-dropdown
               @command="handleActionCommand"
@@ -39,7 +41,9 @@
               @click.stop
               @visible-change="handleDropdownVisibleChange"
             >
-              <el-button circle size="small" :icon="More" />
+              <Button circle size="small">
+                <el-icon><More /></el-icon>
+              </Button>
               <template #dropdown>
                 <el-dropdown-menu
                   @mouseenter="handleDropdownMouseEnter"
@@ -186,19 +190,19 @@
     <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
     <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
       <el-tooltip :content="t('agent.message.regenerate')" placement="bottom">
-        <el-button
-          text
+        <Button
+          variant="ghost"
           size="small"
           class="ai-action-btn"
           @click.stop="emit('regenerate', message)"
         >
           <el-icon><Refresh /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
       <el-tooltip :content="t('agent.message.delete')" placement="bottom">
-        <el-button text size="small" class="ai-action-btn" @click.stop="emit('delete', message)">
+        <Button variant="ghost" size="small" class="ai-action-btn" @click.stop="emit('delete', message)">
           <el-icon><Delete /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
     </div>
 
@@ -235,6 +239,7 @@ import {
   Refresh,
   Delete
 } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import type {
   AgentMessage,
   ChatAgentMessage,

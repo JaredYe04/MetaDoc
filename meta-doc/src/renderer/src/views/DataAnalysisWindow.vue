@@ -40,9 +40,10 @@
                 class="compact-upload"
               >
                 <template #trigger>
-                  <el-button type="primary" :icon="UploadFilled">
+                  <Button type="primary">
+                    <el-icon><UploadFilled /></el-icon>
                     {{ t('dataAnalysis.uploadFile', '上传文件') }}
-                  </el-button>
+                  </Button>
                 </template>
                 <template #tip>
                   <div class="upload-tip" :style="tipStyle">
@@ -54,14 +55,15 @@
               <div v-else class="file-list-item" :style="fileListItemStyle">
                 <el-icon class="file-icon"><Document /></el-icon>
                 <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
-                <el-button
+                <Button
                   type="danger"
-                  :icon="Delete"
                   circle
                   plain
                   size="small"
                   @click="handleFileRemove"
-                />
+                >
+                  <el-icon><Delete /></el-icon>
+                </Button>
               </div>
             </div>
 
@@ -194,7 +196,7 @@
                     :style="analyzeButtonContainerStyle"
                   >
                     <div class="analyze-button-row">
-                      <el-button
+                      <Button
                         type="primary"
                         size="large"
                         :loading="analyzing"
@@ -206,7 +208,7 @@
                             ? t('dataAnalysis.analyzing', '分析中...')
                             : t('dataAnalysis.analyze', '开始分析')
                         }}
-                      </el-button>
+                      </Button>
                       <span
                         v-if="selectedRowCount > 0"
                         class="selection-hint"
@@ -312,6 +314,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, Delete, Document, Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import SessionList from '../components/common/SessionList.vue'
 import DataTable from '../components/common/DataTable.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'

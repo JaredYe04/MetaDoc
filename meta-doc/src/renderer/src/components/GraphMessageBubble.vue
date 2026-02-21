@@ -12,6 +12,7 @@ import {
   DocumentAdd,
   FolderAdd
 } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { MdEditor, MdPreview } from 'md-editor-v3'
@@ -351,7 +352,7 @@ onBeforeUnmount(() => {
         @mouseenter="handleActionsMouseEnter"
         @mouseleave="handleActionsMouseLeave"
       >
-        <el-button circle size="small" :icon="More" />
+        <Button circle size="small"><el-icon><More /></el-icon></Button>
         <template #dropdown>
           <el-dropdown-menu
             @mouseenter="handleDropdownMouseEnter"
@@ -443,7 +444,7 @@ onBeforeUnmount(() => {
         @mouseenter="handleActionsMouseEnter"
         @mouseleave="handleActionsMouseLeave"
       >
-        <el-button circle size="small" :icon="More" />
+        <Button circle size="small"><el-icon><More /></el-icon></Button>
         <template #dropdown>
           <el-dropdown-menu
             @mouseenter="handleDropdownMouseEnter"
@@ -492,8 +493,8 @@ onBeforeUnmount(() => {
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="editDialogVisible = false">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="saveEdit">{{ $t('common.save') }}</el-button>
+        <Button @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
+        <Button type="primary" @click="saveEdit">{{ $t('common.save') }}</Button>
       </div>
     </template>
   </el-dialog>

@@ -52,11 +52,11 @@
               :file-list="fileList"
               accept="*/*"
             >
-              <el-button
+              <Button
                 type="primary"
                 plain
                 :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
-                >{{ $t('userFeedback.addAttachment') }}</el-button
+                >{{ $t('userFeedback.addAttachment') }}</Button
               >
             </el-upload>
             <div v-if="attachmentBase64List.length > 0" class="attachment-list">
@@ -116,9 +116,9 @@
     </div>
 
     <div class="feedback-submit-bar">
-      <el-button type="primary" :loading="submitting" :disabled="!canSubmit" @click="handleSubmit">
+      <Button type="primary" :loading="submitting" :disabled="!canSubmit" @click="handleSubmit">
         {{ submitting ? $t('userFeedback.submitting') : $t('userFeedback.submit') }}
-      </el-button>
+      </Button>
     </div>
 
     <ImagePreviewDialog v-model="showImagePreview" :image-url="previewImageUrl" />
@@ -131,6 +131,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadInstance } from 'element-plus'
 import { View, CircleClose, Check } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'

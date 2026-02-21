@@ -3,14 +3,15 @@
     <div class="quick-start-panel-container" :style="formatContainerStyle">
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartFormatTitle') }}</h2>
-        <el-button
+        <Button
           class="close-button"
           @click="closeQuickStart"
           circle
           size="small"
-          :icon="Close"
-          text
-        />
+          variant="ghost"
+        >
+          <el-icon><Close /></el-icon>
+        </Button>
       </div>
       <div class="format-options-container">
         <div
@@ -44,7 +45,7 @@
   <div v-else class="quick-start-overlay" :style="overlayStyle">
     <div class="quick-start-panel aero-div">
       <div class="panel-header">
-        <el-button @click="handleClose" class="aero-btn" plain round type="danger" size="small" />
+        <Button @click="handleClose" class="aero-btn" plain round type="danger" size="small" />
       </div>
 
       <div v-if="stage === 'select'" class="format-selector">
@@ -95,9 +96,9 @@
             </div>
             <div class="form-actions">
               <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
-                <el-button circle type="success" @click="confirmDocument"
+                <Button circle type="success" @click="confirmDocument"
                   ><el-icon><Check /></el-icon
-                ></el-button>
+                ></Button>
               </el-tooltip>
             </div>
           </div>
@@ -149,7 +150,7 @@
             <div class="suggestion-container aero-div">
               <label class="section-title interactive-text">{{ $t('home.suggestionLabel') }}</label>
               <div class="suggestion-grid">
-                <el-button
+                <Button
                   v-for="(button, index) in buttons"
                   :key="index"
                   size="small"
@@ -158,9 +159,9 @@
                   :disabled="generating || generated"
                 >
                   {{ button.label }}
-                </el-button>
+                </Button>
               </div>
-              <el-button
+              <Button
                 size="small"
                 type="primary"
                 :disabled="generating || generated"
@@ -169,23 +170,23 @@
               >
                 <el-icon><Refresh /></el-icon>
                 {{ $t('home.button.refresh') }}
-              </el-button>
+              </Button>
             </div>
             <div class="action-buttons" @mousedown.stop>
               <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                <el-button circle type="primary" @click="generate" :disabled="disableGenerate"
+                <Button circle type="primary" @click="generate" :disabled="disableGenerate"
                   ><el-icon><Promotion /></el-icon
-                ></el-button>
+                ></Button>
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                <el-button circle type="info" @click="reset" v-if="generated"
+                <Button circle type="info" @click="reset" v-if="generated"
                   ><el-icon><RefreshLeft /></el-icon
-                ></el-button>
+                ></Button>
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                <el-button circle type="success" @click="accept" v-if="generated"
+                <Button circle type="success" @click="accept" v-if="generated"
                   ><el-icon><Check /></el-icon
-                ></el-button>
+                ></Button>
               </el-tooltip>
             </div>
           </div>
@@ -218,6 +219,7 @@ import {
   RefreshLeft,
   Close
 } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'

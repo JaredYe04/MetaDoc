@@ -21,13 +21,19 @@
               :max="2"
               :step="0.1"
               @update:modelValue="saveSetting('llmTemperature', settings.llmTemperature)"
-              class="number-field-wrapper"
+              class="number-field-wrapper flex items-center"
             >
-              <NumberFieldDecrement />
-              <NumberFieldDecrement />
-              <NumberFieldInput />
-              <NumberFieldIncrement />
-              <NumberFieldIncrement />
+              <NumberFieldDecrement as-child>
+                <Button type="button" variant="outline" size="icon" class="h-8 w-8 rounded-r-none border-r-0">
+                  <Minus class="h-3 w-3" />
+                </Button>
+              </NumberFieldDecrement>
+              <NumberFieldInput class="h-8 w-20 rounded-none border-x-0 text-center" />
+              <NumberFieldIncrement as-child>
+                <Button type="button" variant="outline" size="icon" class="h-8 w-8 rounded-l-none border-l-0">
+                  <PlusIcon class="h-3 w-3" />
+                </Button>
+              </NumberFieldIncrement>
             </NumberField>
           </el-tooltip>
         </el-form-item>
@@ -779,6 +785,7 @@ import {
   type LlmConfigItem
 } from '../../utils/llm-config-manager'
 import { Plus, Edit, Delete, DocumentCopy, MoreFilled, Download } from '@element-plus/icons-vue'
+import { Minus, Plus as PlusIcon } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ai_types, createAiTask } from '../../utils/ai_tasks.ts'
 import {

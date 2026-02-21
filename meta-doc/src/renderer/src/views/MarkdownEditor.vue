@@ -1,5 +1,39 @@
 <template>
   <div class="main-container">
+    <!-- 首次使用：选择默认编辑器模式（卡片式，与 QuickStartPanel 一致） -->
+    <div
+      v-if="firstTimeEditorModeDialogVisible"
+      class="editor-mode-first-time-wrapper"
+      :style="editorModePanelWrapperStyle"
+    >
+      <div class="editor-mode-first-time-container" :style="editorModePanelContainerStyle">
+        <div class="editor-mode-panel-header">
+          <h2 class="editor-mode-panel-title">{{ t('editorModeFirstTime.title') }}</h2>
+        </div>
+        <p class="editor-mode-panel-desc">{{ t('editorModeFirstTime.message') }}</p>
+        <div class="editor-mode-cards">
+          <div
+            v-for="opt in editorModeOptions"
+            :key="opt.value"
+            class="editor-mode-card"
+            :class="{ selected: firstTimeEditorModeSelected === opt.value }"
+            :style="editorModeCardBgStyle"
+            @click="firstTimeEditorModeSelected = opt.value"
+          >
+            <div class="editor-mode-card-icon">{{ opt.icon }}</div>
+            <h3 class="editor-mode-card-title">{{ t(opt.titleKey) }}</h3>
+            <p class="editor-mode-card-desc">{{ t(opt.descKey) }}</p>
+          </div>
+        </div>
+        <p class="editor-mode-change-later">{{ t('editorModeFirstTime.changeLaterHint') }}</p>
+        <div class="editor-mode-panel-footer">
+          <el-button type="primary" size="large" @click="confirmFirstTimeEditorMode">
+            {{ t('common.confirm') }}
+          </el-button>
+        </div>
+      </div>
+    </div>
+
     <div class="content-container" ref="containerRef">
       <!-- 左边：Vditor Markdown 编辑器 -->
       <!-- 菜单组件 -->
@@ -61,22 +95,30 @@
         @cancelled="onCancelSuggestion"
       />
 
-      <!-- 主编辑器区域 -->
-      <div
-        :id="props.editorDomId"
-        ref="vditorEl"
-        class="editor"
-        @keydown="handleTab"
-        @contextmenu.prevent="openContextMenu($event)"
-        :style="{
-          '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
-          '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
-          '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
-          '--editor-min-width': MARKDOWN_LAYOUT.editorMinWidth + 'px',
-          '--editor-text-color': themeState.currentTheme.textColor,
-          color: themeState.currentTheme.textColor
-        }"
-      ></div>
+      <!-- 主编辑器区域：加载时显示 skeleton 覆盖层，与 VditorPreview 一致，不阻塞其他区域 -->
+      <div class="editor-area">
+        <el-skeleton
+          v-if="isVditorLoading"
+          :rows="15"
+          animated
+          class="markdown-editor-skeleton"
+        />
+        <div
+          :id="props.editorDomId"
+          ref="vditorEl"
+          class="editor"
+          @keydown="handleTab"
+          @contextmenu.prevent="openContextMenu($event)"
+          :style="{
+            '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
+            '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
+            '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
+            '--editor-min-width': MARKDOWN_LAYOUT.editorMinWidth + 'px',
+            '--editor-text-color': themeState.currentTheme.textColor,
+            color: themeState.currentTheme.textColor
+          }"
+        ></div>
+      </div>
     </div>
   </div>
 </template>
@@ -93,7 +135,7 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { ElButton, ElDialog, ElLoading, ElMessageBox, ElMessage } from 'element-plus'
+import { ElButton, ElDialog, ElMessageBox, ElMessage } from 'element-plus'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import '../assets/aero-div.css'
@@ -110,7 +152,7 @@ import { MarkdownSectionAdapter } from '../components/section-optimizer/adapters
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import { themeState } from '../utils/themes'
 import { isSaveInProgress } from '../utils/save-guard'
-import { getSetting, setSetting } from '../utils/settings'
+import { getSetting, setSetting, settings } from '../utils/settings'
 import { getLocalVditorCDN, vditorCDN } from '../utils/vditor-cdn'
 import { waitForService } from '../utils/service-status.ts'
 import { useI18n } from 'vue-i18n'
@@ -314,8 +356,28 @@ function syncMarkdownFromOutline() {
 }
 
 /**
+ * 同步大纲 wrapper 的折叠/展开状态（用宽度折叠，不用 display:none，避免再次展开时失效）
+ */
+function setOutlineWrapperCollapsed(wrapper: HTMLElement, outlineEl: HTMLElement, collapsed: boolean) {
+  if (collapsed) {
+    wrapper.style.width = '0'
+    wrapper.style.minWidth = '0'
+    wrapper.style.overflow = 'hidden'
+    outlineEl.style.width = '0'
+    wrapper.classList.add('outline-resize-wrapper--collapsed')
+  } else {
+    wrapper.style.width = ''
+    wrapper.style.minWidth = ''
+    wrapper.style.overflow = ''
+    outlineEl.style.width = outlineWidth.value + 'px'
+    wrapper.classList.remove('outline-resize-wrapper--collapsed')
+  }
+}
+
+/**
  * 为 vditor 大纲面板注入可拖拽调整宽度的分割线
  * 用 wrapper 包裹大纲，手柄放在大纲右侧（滚动条右边），始终可见、易操作
+ * 隐藏时用宽度折叠而非 display:none，确保再次点击显示时能正常展开
  */
 function setupOutlineResizer() {
   const editorElement = vditor.value?.vditor?.element
@@ -324,8 +386,13 @@ function setupOutlineResizer() {
   const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement
   if (!outlineEl) return
 
-  // 始终应用保存的宽度
-  outlineEl.style.width = outlineWidth.value + 'px'
+  // 始终应用保存的宽度（若为展开状态）
+  const outlineVisible =
+    outlineEl.classList.contains('vditor-outline--show') ||
+    (outlineEl.style.display !== 'none' && outlineEl.style.display !== '')
+  if (outlineVisible) {
+    outlineEl.style.width = outlineWidth.value + 'px'
+  }
 
   let wrapper = outlineEl.parentElement?.classList.contains('outline-resize-wrapper')
     ? (outlineEl.parentElement as HTMLElement)
@@ -333,9 +400,11 @@ function setupOutlineResizer() {
   let handle = wrapper?.querySelector('.outline-resize-handle') as HTMLElement | null
 
   if (wrapper && handle) {
-    // 已存在 wrapper 和 handle，只更新宽度并同步显示状态
-    outlineEl.style.width = outlineWidth.value + 'px'
-    wrapper.style.display = outlineEl.style.display === 'none' ? 'none' : 'flex'
+    // 已存在 wrapper 和 handle，只更新宽度并同步折叠状态（用宽度折叠，不用 display）
+    setOutlineWrapperCollapsed(wrapper, outlineEl, !outlineVisible)
+    if (outlineVisible) {
+      outlineEl.style.width = outlineWidth.value + 'px'
+    }
     return
   }
 
@@ -354,7 +423,7 @@ function setupOutlineResizer() {
     wrapper.appendChild(handle)
   }
 
-  wrapper.style.display = outlineEl.style.display === 'none' ? 'none' : 'flex'
+  setOutlineWrapperCollapsed(wrapper, outlineEl, !outlineVisible)
 
   // 拖拽逻辑
   let startX = 0
@@ -408,7 +477,7 @@ const containerRef = ref<HTMLElement | null>(null)
 const containerWidth = ref(0)
 let layoutObserver: ResizeObserver | null = null
 
-const loadingInstance = ElLoading.service({ fullscreen: false })
+const isVditorLoading = ref(true)
 const showTitleMenu = ref(false)
 const showSectionOptimizer = ref(false)
 const currentTitle = ref('')
@@ -438,6 +507,10 @@ const menuY = ref(0) // 菜单 Y 坐标
 
 const vditorEl = ref<HTMLElement | null>(null)
 const lastAppliedContent = ref('')
+// 首次使用：选择默认编辑器模式弹窗
+const firstTimeEditorModeDialogVisible = ref(false)
+const firstTimeEditorModeSelected = ref<'wysiwyg' | 'ir' | 'sv'>('ir')
+let editorModeDialogResolve: ((mode: 'wysiwyg' | 'ir' | 'sv') => void) | null = null
 const isEditorInteracting = ref(false)
 let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined
 // 关键修复：保存时抑制 watch 的 setValue，避免不必要的回写导致闪烁
@@ -1257,6 +1330,60 @@ const handleSectionOptimizerClose = () => {
   sectionOptimizerAdapter.value = null
 }
 
+const editorModeOptions = [
+  {
+    value: 'wysiwyg' as const,
+    icon: '📝',
+    titleKey: 'setting.editorModeWysiwyg',
+    descKey: 'setting.editorModeWysiwygHint'
+  },
+  {
+    value: 'ir' as const,
+    icon: '⚡',
+    titleKey: 'setting.editorModeIr',
+    descKey: 'setting.editorModeIrHint'
+  },
+  {
+    value: 'sv' as const,
+    icon: '📋',
+    titleKey: 'setting.editorModeSv',
+    descKey: 'setting.editorModeSvHint'
+  }
+]
+
+const editorModePanelWrapperStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  background: themeState.currentTheme.quickStartBackground2 ?? 'rgba(0, 0, 0, 0.4)'
+}))
+
+const editorModePanelContainerStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  background: themeState.currentTheme.quickStartBackground1 ?? themeState.currentTheme.background,
+  borderColor: themeState.currentTheme.borderColor ?? 'rgba(0, 0, 0, 0.1)'
+}))
+
+const editorModeCardBgStyle = computed(() => ({
+  background: themeState.currentTheme.quickStartBackground2 ?? themeState.currentTheme.background
+}))
+
+/** 首次使用：显示选择默认编辑器模式弹窗，返回用户选择后的 Promise */
+function showFirstTimeEditorModeDialog(): Promise<'wysiwyg' | 'ir' | 'sv'> {
+  return new Promise((resolve) => {
+    editorModeDialogResolve = resolve
+    firstTimeEditorModeSelected.value = (settings.vditorMode as 'wysiwyg' | 'ir' | 'sv') || 'ir'
+    firstTimeEditorModeDialogVisible.value = true
+  })
+}
+
+const confirmFirstTimeEditorMode = () => {
+  const mode = firstTimeEditorModeSelected.value
+  firstTimeEditorModeDialogVisible.value = false
+  if (editorModeDialogResolve) {
+    editorModeDialogResolve(mode)
+    editorModeDialogResolve = null
+  }
+}
+
 // 切换Vditor编辑模式
 const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
   if (!vditor.value) return
@@ -1789,11 +1916,21 @@ onMounted(async () => {
       }
     }
 
-    // 读取Vditor模式设置，如果不存在则使用默认值'ir'，并保存默认值
-    let vditorMode = await getSetting('vditorMode')
-    if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
-      vditorMode = 'ir' // 默认使用ir模式
-      await setSetting('vditorMode', vditorMode) // 保存默认值
+    // 首次使用：若未弹过编辑器模式选择，先弹窗让用户选择，再继续
+    let vditorMode: 'wysiwyg' | 'ir' | 'sv'
+    const editorModePromptShown = await getSetting('editorModePromptShown')
+    if (!editorModePromptShown) {
+      vditorMode = await showFirstTimeEditorModeDialog()
+      await setSetting('editorModePromptShown', true)
+      await setSetting('vditorMode', vditorMode)
+      settings.editorModePromptShown = true
+      settings.vditorMode = vditorMode
+    } else {
+      vditorMode = (await getSetting('vditorMode')) as 'wysiwyg' | 'ir' | 'sv'
+      if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
+        vditorMode = 'ir'
+        await setSetting('vditorMode', vditorMode)
+      }
     }
     const supportedLang = [
       'en_US',
@@ -2173,6 +2310,7 @@ onMounted(async () => {
                 const currentMode = vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv'
                 if (currentMode && currentMode !== lastMode) {
                   await setSetting('vditorMode', currentMode)
+                  settings.vditorMode = currentMode
                   lastMode = currentMode
                   logger.debug('Vditor模式已切换并保存', { mode: currentMode })
                 }
@@ -2212,6 +2350,7 @@ onMounted(async () => {
                       const currentMode = vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv'
                       if (currentMode && currentMode !== lastMode) {
                         await setSetting('vditorMode', currentMode)
+                        settings.vditorMode = currentMode
                         lastMode = currentMode
                         logger.debug('通过MutationObserver检测到模式切换并保存', {
                           mode: currentMode
@@ -2239,6 +2378,19 @@ onMounted(async () => {
                     // 等待大纲显示/隐藏动画完成
                     await new Promise((resolve) => setTimeout(resolve, 300))
                     await nextTick()
+                    // 确保 wrapper 折叠状态与大纲可见性一致（用宽度折叠，不用 display）
+                    const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement
+                    if (outlineEl) {
+                      const wrapper = outlineEl.parentElement?.classList.contains('outline-resize-wrapper')
+                        ? (outlineEl.parentElement as HTMLElement)
+                        : null
+                      if (wrapper) {
+                        const isVisible =
+                          outlineEl.classList.contains('vditor-outline--show') ||
+                          (outlineEl.style.display !== 'none' && outlineEl.style.display !== '')
+                        setOutlineWrapperCollapsed(wrapper, outlineEl, !isVisible)
+                      }
+                    }
                     setupOutlineResizer()
                     bindTitleMenu()
                   })
@@ -2248,24 +2400,21 @@ onMounted(async () => {
               // 使用MutationObserver监听大纲DOM的变化
               const outlineContainer = editorElement.querySelector('.vditor-outline')
               if (outlineContainer) {
-                const outlineObserver = new MutationObserver(async (mutations) => {
-                  // 检查大纲是否从隐藏变为显示
+                const outlineObserver = new MutationObserver(async () => {
+                  const el = outlineContainer as HTMLElement
                   const isVisible =
-                    outlineContainer.classList.contains('vditor-outline--show') ||
-                    (outlineContainer as HTMLElement).offsetWidth > 0
+                    el.classList.contains('vditor-outline--show') ||
+                    (el.style.display !== 'none' && el.style.display !== '')
 
+                  const w = el.parentElement
+                  if (w?.classList.contains('outline-resize-wrapper')) {
+                    setOutlineWrapperCollapsed(w as HTMLElement, el, !isVisible)
+                  }
                   if (isVisible) {
-                    // 等待DOM更新完成
                     await nextTick()
                     await new Promise((resolve) => setTimeout(resolve, 100))
                     setupOutlineResizer()
                     bindTitleMenu()
-                  } else {
-                    // 大纲隐藏时同步隐藏 wrapper，避免残留一条 resize 条
-                    const w = (outlineContainer as HTMLElement).parentElement
-                    if (w?.classList.contains('outline-resize-wrapper')) {
-                      ;(w as HTMLElement).style.display = 'none'
-                    }
                   }
                 })
 
@@ -2287,7 +2436,7 @@ onMounted(async () => {
         } catch (e) {
           logger.error(e)
         } finally {
-          loadingInstance.close()
+          isVditorLoading.value = false
         }
 
         // 设置编辑器适配器（确保在after回调中也设置，以防input事件还没触发）
@@ -2398,7 +2547,7 @@ onMounted(async () => {
     logger.error(e)
     eventBus.emit('show-error', t('article.vditor_init_failed') + e)
   } finally {
-    loadingInstance.close()
+    isVditorLoading.value = false
   }
 })
 // 清理资源
@@ -2659,11 +2808,45 @@ watch(
 }
 
 /* 左边的编辑器样式 */
-.editor {
+.editor-area {
+  position: relative;
   flex: 1 1 auto;
   width: 100%;
   min-width: var(--editor-min-width, 360px);
+  min-height: 0;
   height: 100%;
+}
+
+.markdown-editor-skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 16px;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.markdown-editor-skeleton :deep(.el-skeleton__item) {
+  height: 20px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+}
+
+.markdown-editor-skeleton :deep(.el-skeleton__item:last-child) {
+  width: 60%;
+}
+
+.editor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  min-width: var(--editor-min-width, 360px);
   overflow: auto;
   /* 恢复滚动条显示（覆盖全局隐藏滚动条样式） */
   scrollbar-width: thin !important;
@@ -2786,6 +2969,16 @@ watch(
   flex-shrink: 0;
 }
 
+.editor :deep(.outline-resize-wrapper.outline-resize-wrapper--collapsed) {
+  min-width: 0;
+}
+
+.editor :deep(.outline-resize-wrapper.outline-resize-wrapper--collapsed .outline-resize-handle) {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .editor :deep(.outline-resize-wrapper .vditor-outline) {
   flex-shrink: 0;
 }
@@ -2810,5 +3003,141 @@ watch(
 .editor :deep(.outline-resize-handle--active) {
   background-color: rgba(128, 128, 128, 0.5) !important;
   transition: none;
+}
+
+/* 首次使用：选择默认编辑器模式（卡片式，与 QuickStartPanel 一致） */
+.editor-mode-first-time-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.editor-mode-first-time-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  backdrop-filter: blur(20px) brightness(1.05);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  padding: 32px 40px 28px;
+}
+
+.editor-mode-panel-header {
+  margin-bottom: 8px;
+}
+
+.editor-mode-panel-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  letter-spacing: -0.02em;
+}
+
+.editor-mode-panel-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.85;
+}
+
+.editor-mode-cards {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.editor-mode-card {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 24px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-mode-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.editor-mode-card:hover::before {
+  opacity: 1;
+}
+
+.editor-mode-card:hover {
+  transform: translateY(-4px);
+  border-color: v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.2)"');
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.editor-mode-card.selected {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary), 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.editor-mode-card-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+}
+
+.editor-mode-card:hover .editor-mode-card-icon {
+  transform: scale(1.08);
+}
+
+.editor-mode-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  letter-spacing: -0.01em;
+}
+
+.editor-mode-card-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.8;
+}
+
+.editor-mode-change-later {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.7;
+  margin: 0 0 20px 0;
+}
+
+.editor-mode-panel-footer {
+  display: flex;
+  justify-content: center;
 }
 </style>

@@ -127,6 +127,16 @@ export interface UseTabDragOptions {
 let currentSessionId: string | null = null
 let dragCanvasElement: HTMLCanvasElement | null = null
 let escapeKeyHandler: ((e: KeyboardEvent) => void) | null = null
+/** 全局 dragover 监听：拖到 MainTabs 外时也允许 drop，需配合 preventDefault */
+let globalDragOverHandler: ((e: DragEvent) => void) | null = null
+/** 拖拽时全屏透明层：从第一帧就强制 cursor: move，从根本上不出现禁止光标 */
+let dragCursorOverlay: HTMLDivElement | null = null
+
+function removeDragCursorOverlay() {
+  if (dragCursorOverlay?.parentNode) {
+    dragCursorOverlay.parentNode.removeChild(dragCursorOverlay)
+  }
+}
 
 /**
  * 创建拖拽预览 Canvas
@@ -397,6 +407,14 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     event.dataTransfer.setData(TAB_DRAG_MIME_TYPE, tab.id)
     event.dataTransfer.effectAllowed = 'move'
 
+    // 全屏透明层：从拖拽第一帧就强制 cursor: move，避免先出现禁止再被 dragover 改回
+    removeDragCursorOverlay()
+    dragCursorOverlay = document.createElement('div')
+    dragCursorOverlay.setAttribute('aria-hidden', 'true')
+    dragCursorOverlay.style.cssText =
+      'position:fixed;inset:0;z-index:2147483647;cursor:move;pointer-events:none;'
+    document.body.appendChild(dragCursorOverlay)
+
     // 异步部分：初始化拖拽会话
     const initSession = async () => {
       if (!messageBridge.getIpc()) return
@@ -433,11 +451,26 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     escapeKeyHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && currentSessionId) {
         messageBridge.send('drag:cancel', { sessionId: currentSessionId })
+        if (globalDragOverHandler) {
+          document.removeEventListener('dragover', globalDragOverHandler, true)
+          globalDragOverHandler = null
+        }
+        removeDragCursorOverlay()
+        dragCursorOverlay = null
         resetDragState()
         cleanupDragImage()
       }
     }
     document.addEventListener('keydown', escapeKeyHandler)
+
+    // 全局 dragover：拖到 MainTabs 外（如内容区）时也允许放置，光标显示为 move 而非禁止
+    globalDragOverHandler = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes(TAB_DRAG_MIME_TYPE)) {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+      }
+    }
+    document.addEventListener('dragover', globalDragOverHandler, true)
 
     // 调用回调
     onDragStart?.(tab, event)
@@ -577,6 +610,13 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
       document.removeEventListener('keydown', escapeKeyHandler)
       escapeKeyHandler = null
     }
+    // 移除全局 dragover 监听
+    if (globalDragOverHandler) {
+      document.removeEventListener('dragover', globalDragOverHandler, true)
+      globalDragOverHandler = null
+    }
+    removeDragCursorOverlay()
+    dragCursorOverlay = null
 
     // 计算 Tab 栏边界（屏幕坐标）
     let tabBarBounds: { x: number; y: number; width: number; height: number } | undefined
@@ -649,6 +689,12 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
       document.removeEventListener('keydown', escapeKeyHandler)
       escapeKeyHandler = null
     }
+    if (globalDragOverHandler) {
+      document.removeEventListener('dragover', globalDragOverHandler, true)
+      globalDragOverHandler = null
+    }
+    removeDragCursorOverlay()
+    dragCursorOverlay = null
   })
 
   return {

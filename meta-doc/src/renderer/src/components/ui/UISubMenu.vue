@@ -401,19 +401,34 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
 }
 
-/* 打开的菜单 - 主色边框 + 浅色背景 */
+/* 打开的菜单 - 与 :active 统一为粗野主义风格 */
 .ui-sub-menu__title.is-open {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  border: 1px solid var(--el-color-primary);
-  border-radius: 4px;
+  border: 1px solid var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.ui-sub-menu__title.is-open .ui-sub-menu__icon,
+.ui-sub-menu__title.is-open .ui-sub-menu__icon-image,
+.ui-sub-menu__title.is-open .ui-sub-menu__label,
+.ui-sub-menu__title.is-open .ui-sub-menu__arrow {
+  color: var(--el-color-primary) !important;
 }
 
 /* is-open 状态下 hover 使用统一灰色背景 */
 .ui-sub-menu__title.is-open:hover {
-  background-color: v-bind('activeBackgroundColor');
-  border: 1px solid var(--el-border-color);
-  color: var(--el-text-color-primary);
+  background-color: v-bind('activeBackgroundColor') !important;
+  border: 1px solid var(--el-border-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__icon,
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__icon-image,
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__label,
+.ui-sub-menu__title.is-open:hover .ui-sub-menu__arrow {
+  color: var(--el-text-color-primary) !important;
 }
 
 /* 粗野主义按压效果 */

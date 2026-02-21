@@ -188,8 +188,7 @@ html.dark {
 
 .el-tooltip__trigger:active {
   border-radius: 4px !important;
-  outline: 2px solid var(--el-color-primary) !important;
-  outline-offset: -2px !important;
+  border: 1px solid var(--el-color-primary) !important;
   background-color: var(--el-color-primary-light-9) !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
   color: var(--el-color-primary) !important;

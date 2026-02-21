@@ -5,9 +5,9 @@
         t('userProfile.title')
       }}</span>
       <el-tooltip :content="t('userProfile.closeMenu')" placement="top">
-        <el-button circle plain size="small" @click="closeDialog" class="aero-btn" type="danger">
+        <Button variant="destructive" size="sm" @click="closeDialog" class="aero-btn rounded-full">
           <el-icon><Close /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
     </div>
 
@@ -30,9 +30,9 @@
             ></el-input>
           </el-form-item>
           <div slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="submitLogin">{{
+            <Button variant="default" @click="submitLogin">{{
               t('userProfile.loginBtn')
-            }}</el-button>
+            }}</Button>
           </div>
         </el-form>
       </el-tab-pane>
@@ -71,9 +71,9 @@
             ></el-input>
           </el-form-item>
           <div slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="submitRegister">{{
+            <Button variant="default" @click="submitRegister">{{
               t('userProfile.registerBtn')
-            }}</el-button>
+            }}</Button>
           </div>
         </el-form>
       </el-tab-pane>
@@ -206,9 +206,9 @@
               :content="t('userProfile.logout')"
               placement="bottom"
             >
-              <el-button @click="logout" type="danger" circle>
+              <Button variant="destructive" @click="logout" class="rounded-full w-9 h-9 p-0">
                 <el-icon><SwitchButton /></el-icon>
-              </el-button>
+              </Button>
             </el-tooltip>
 
             <el-tooltip
@@ -216,9 +216,9 @@
               :content="t('userProfile.cancel')"
               placement="bottom"
             >
-              <el-button type="primary" circle @click="cancelEdit">
+              <Button variant="default" @click="cancelEdit" class="rounded-full w-9 h-9 p-0">
                 <el-icon><RefreshLeft /></el-icon>
-              </el-button>
+              </Button>
             </el-tooltip>
 
             <el-tooltip
@@ -226,12 +226,13 @@
               :content="editing ? t('userProfile.saveEdit') : t('userProfile.editProfile')"
               placement="bottom"
             >
-              <el-button
-                :type="editing ? 'success' : 'primary'"
-                :icon="editing ? Check : Edit"
-                circle
+              <Button
+                :variant="editing ? 'outline' : 'default'"
+                :class="['rounded-full w-9 h-9 p-0', editing ? 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700' : '']"
                 @click="toggleEdit"
-              />
+              >
+                <el-icon><component :is="editing ? Check : Edit" /></el-icon>
+              </Button>
             </el-tooltip>
 
             <el-tooltip
@@ -239,12 +240,13 @@
               :content="editingPwd ? t('userProfile.savePwd') : t('userProfile.changePwd')"
               placement="bottom"
             >
-              <el-button
-                :type="editingPwd ? 'success' : 'primary'"
-                :icon="editingPwd ? Check : Lock"
-                circle
+              <Button
+                :variant="editingPwd ? 'outline' : 'default'"
+                :class="['rounded-full w-9 h-9 p-0', editingPwd ? 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700' : '']"
                 @click="toggleEditPwd"
-              />
+              >
+                <el-icon><component :is="editingPwd ? Check : Lock" /></el-icon>
+              </Button>
             </el-tooltip>
           </div>
         </div>
@@ -256,7 +258,6 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import {
-  ElButton,
   ElCard,
   ElTooltip,
   ElAvatar,
@@ -266,6 +267,7 @@ import {
   ElInput,
   ElCheckbox
 } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { useLocalStorage } from '@vueuse/core'
 import { themeState } from '../utils/themes'
 import eventBus from '../utils/event-bus.js'

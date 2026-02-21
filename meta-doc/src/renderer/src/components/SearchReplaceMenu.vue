@@ -7,9 +7,9 @@
   >
     <header class="panel-header">
       <h3>{{ t('searchReplace.title') }}</h3>
-      <el-button circle size="small" class="close-btn" @click="handleClose" @mousedown.stop>
+      <Button variant="ghost" size="icon" class="close-btn h-7 w-7" @click="handleClose" @mousedown.stop>
         ✕
-      </el-button>
+      </Button>
     </header>
 
     <section class="field-group draggable-zone">
@@ -35,44 +35,44 @@
       </el-scrollbar>
       <div class="toggle-row">
         <el-tooltip :content="t('searchReplace.matchCase')" placement="top">
-          <el-button
-            size="small"
-            :type="form.matchCase ? 'primary' : 'default'"
-            class="toggle-btn"
+          <Button
+            :variant="form.matchCase ? 'default' : 'secondary'"
+            size="sm"
+            class="toggle-btn h-7 px-2"
             @click="toggleFlag('matchCase')"
           >
             Aa
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="t('searchReplace.matchWholeWord')" placement="top">
-          <el-button
-            size="small"
-            :type="form.wholeWord ? 'primary' : 'default'"
-            class="toggle-btn"
+          <Button
+            :variant="form.wholeWord ? 'default' : 'secondary'"
+            size="sm"
+            class="toggle-btn h-7 px-2"
             @click="toggleFlag('wholeWord')"
           >
             W
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="t('searchReplace.useRegex')" placement="top">
-          <el-button
-            size="small"
-            :type="form.useRegex ? 'primary' : 'default'"
-            class="toggle-btn"
+          <Button
+            :variant="form.useRegex ? 'default' : 'secondary'"
+            size="sm"
+            class="toggle-btn h-7 px-2"
             @click="toggleFlag('useRegex')"
           >
             .*
-          </el-button>
+          </Button>
         </el-tooltip>
         <el-tooltip :content="t('searchReplace.preserveCase')" placement="top">
-          <el-button
-            size="small"
-            :type="form.preserveCase ? 'primary' : 'default'"
-            class="toggle-btn"
+          <Button
+            :variant="form.preserveCase ? 'default' : 'secondary'"
+            size="sm"
+            class="toggle-btn h-7 px-2"
             @click="toggleFlag('preserveCase')"
           >
             ↔
-          </el-button>
+          </Button>
         </el-tooltip>
       </div>
     </section>
@@ -136,84 +136,97 @@
     <footer class="panel-actions" @mousedown.stop>
       <el-tooltip :content="t('searchReplace.findFromStartBtn')" placement="top">
         <span>
-          <el-button
-            size="small"
-            :icon="RefreshLeft"
-            circle
+          <Button
+            variant="secondary"
+            size="icon"
+            class="h-7 w-7"
             :disabled="!canSearch"
             @click="handleFindFromStart"
-          />
+          >
+            <RefreshLeft class="h-4 w-4" />
+          </Button>
         </span>
       </el-tooltip>
       <el-tooltip :content="t('searchReplace.findPrevBtn')" placement="top">
         <span>
-          <el-button
-            size="small"
-            :icon="Top"
-            circle
+          <Button
+            variant="secondary"
+            size="icon"
+            class="h-7 w-7"
             :disabled="!canSearch"
             @click="handleFind('previous')"
-          />
+          >
+            <Top class="h-4 w-4" />
+          </Button>
         </span>
       </el-tooltip>
       <el-tooltip :content="t('searchReplace.findNextBtn')" placement="top">
         <span>
-          <el-button
-            size="small"
-            :icon="Bottom"
-            circle
+          <Button
+            variant="secondary"
+            size="icon"
+            class="h-7 w-7"
             :disabled="!canSearch"
             @click="handleFind('next')"
-          />
+          >
+            <Bottom class="h-4 w-4" />
+          </Button>
         </span>
       </el-tooltip>
       <el-tooltip :content="t('searchReplace.findAllBtn')" placement="top">
         <span>
-          <el-button
-            size="small"
-            circle
-            :icon="View"
+          <Button
+            variant="secondary"
+            size="icon"
+            class="h-7 w-7"
             :disabled="!canSearch"
             @click="handleFindAll"
-          />
+          >
+            <View class="h-4 w-4" />
+          </Button>
         </span>
       </el-tooltip>
       <template v-if="!collapsed">
         <el-divider direction="vertical" border-style="dashed"></el-divider>
         <el-tooltip :content="t('searchReplace.replaceBtn')" placement="top">
           <span>
-            <el-button
-              size="small"
-              circle
-              :icon="EditPen"
+            <Button
+              variant="secondary"
+              size="icon"
+              class="h-7 w-7"
               :disabled="!canReplace"
               @click="handleReplace"
-            />
+            >
+              <EditPen class="h-4 w-4" />
+            </Button>
           </span>
         </el-tooltip>
         <el-tooltip :content="t('searchReplace.replaceAllBtn')" placement="top">
           <span>
-            <el-button
-              size="small"
-              circle
-              :icon="RefreshRight"
+            <Button
+              variant="secondary"
+              size="icon"
+              class="h-7 w-7"
               :disabled="!canReplace"
               @click="handleReplaceAll"
-            />
+            >
+              <RefreshRight class="h-4 w-4" />
+            </Button>
           </span>
         </el-tooltip>
       </template>
 
-      <el-button
-        size="small"
-        class="collapse-btn"
-        :icon="collapsed ? ArrowDown : ArrowUp"
-        circle
+      <Button
+        variant="secondary"
+        size="icon"
+        class="collapse-btn h-7 w-7"
         @click="collapsed = !collapsed"
-      />
-      <el-button size="small" @click="handleReset">
+      >
+        <component :is="collapsed ? ArrowDown : ArrowUp" class="h-4 w-4" />
+      </Button>
+      <Button variant="secondary" size="sm" class="h-7" @click="handleReset">
         {{ t('searchReplace.resetBtn') }}
-      </el-button>
+      </Button>
     </footer>
 
     <!-- Resizer 组件 -->
@@ -232,7 +245,8 @@ import {
   watch,
   watchEffect
 } from 'vue'
-import { ElButton, ElInput, ElTooltip, ElScrollbar, ElIcon } from 'element-plus'
+import { ElInput, ElTooltip, ElScrollbar, ElIcon } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { themeState, mixColors } from '../utils/themes'

@@ -1,17 +1,15 @@
 <template>
   <div class="section-optimizer" :style="menuStyles" @mousedown.prevent="onMouseDown">
     <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px">
-      <el-button
-        circle
-        plain
-        size="small"
-        type="danger"
-        @click="props.mode === 'demo' ? undefined : $emit('close')"
-        class="aero-btn"
+      <Button
+        variant="destructive"
+        size="icon"
+        class="aero-btn h-8 w-8"
         style="float: inline-start"
+        @click="props.mode === 'demo' ? undefined : $emit('close')"
         @mousedown.prevent
       >
-      </el-button>
+      </Button>
     </div>
 
     <p style="font-weight: bold" @mousedown.stop>
@@ -56,14 +54,15 @@
             :content="t('sectionOptimizer.showPresets')"
             placement="top"
           >
-            <el-button
-              circle
-              class="composer-btn"
+            <Button
+              variant="secondary"
+              size="icon"
+              class="composer-btn h-9 w-9"
               :disabled="disabled"
               @click.prevent="showPresets = !showPresets"
             >
-              <Plus />
-            </el-button>
+              <Plus class="h-4 w-4" />
+            </Button>
           </el-tooltip>
         </div>
 
@@ -87,14 +86,15 @@
 
         <div class="composer-actions">
           <el-tooltip :content="t('sectionOptimizer.clear')" placement="top">
-            <el-button
-              circle
-              class="composer-btn"
-              :disabled="disabled || !userPrompt.trim().length"
-              @click.prevent="userPrompt = ''"
-            >
-              <Refresh />
-            </el-button>
+          <Button
+            variant="secondary"
+            size="icon"
+            class="composer-btn h-9 w-9"
+            :disabled="disabled || !userPrompt.trim().length"
+            @click.prevent="userPrompt = ''"
+          >
+            <Refresh class="h-4 w-4" />
+          </Button>
           </el-tooltip>
         </div>
       </div>
@@ -137,26 +137,37 @@
 
     <div @mousedown.stop class="action-buttons">
       <el-tooltip :content="t('sectionOptimizer.tooltips.generate')" placement="top">
-        <el-button
-          circle
-          type="primary"
+        <Button
+          variant="default"
+          size="icon"
+          class="h-9 w-9"
           @click.prevent="generate"
           :disabled="generating || generated || userPrompt.length === 0"
         >
-          <el-icon><Promotion /></el-icon>
-        </el-button>
+          <Promotion class="h-4 w-4" />
+        </Button>
       </el-tooltip>
 
       <el-tooltip :content="t('sectionOptimizer.tooltips.reset')" placement="top" v-if="generated">
-        <el-button circle type="info" @click.prevent="reset">
-          <el-icon><RefreshLeft /></el-icon>
-        </el-button>
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+          @click.prevent="reset"
+        >
+          <RefreshLeft class="h-4 w-4" />
+        </Button>
       </el-tooltip>
 
       <el-tooltip :content="t('sectionOptimizer.tooltips.chat')" placement="top" v-if="generated">
-        <el-button circle type="info" @click.prevent="chat">
-          <el-icon><ChatLineRound /></el-icon>
-        </el-button>
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+          @click.prevent="chat"
+        >
+          <ChatLineRound class="h-4 w-4" />
+        </Button>
       </el-tooltip>
 
       <el-tooltip
@@ -164,9 +175,14 @@
         placement="top"
         v-if="generated"
       >
-        <el-button circle type="success" @click.prevent="accept(false)">
-          <el-icon><Check /></el-icon>
-        </el-button>
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+          @click.prevent="accept(false)"
+        >
+          <Check class="h-4 w-4" />
+        </Button>
       </el-tooltip>
 
       <el-tooltip
@@ -174,9 +190,14 @@
         placement="top"
         v-if="generated"
       >
-        <el-button circle type="success" @click.prevent="accept(true)">
-          <el-icon><Plus /></el-icon>
-        </el-button>
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+          @click.prevent="accept(true)"
+        >
+          <Plus class="h-4 w-4" />
+        </Button>
       </el-tooltip>
     </div>
   </div>
@@ -187,6 +208,7 @@ import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import { Promotion, RefreshLeft, ChatLineRound, Check } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
 import type { SectionOptimizerAdapter, SectionInfo } from './section-optimizer/types'

@@ -22,6 +22,7 @@ import type { Reference } from '../types/agent-framework'
 import type { AIDialogMessage } from '../../../types'
 import { useI18n } from 'vue-i18n'
 import eventBus from '../utils/event-bus'
+import { Button } from '@renderer/components/ui/button'
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[]
@@ -317,7 +318,9 @@ onBeforeMount(() => {
         @mouseenter="handleActionsMouseEnter"
         @mouseleave="handleActionsMouseLeave"
       >
-        <el-button circle size="small" :icon="More" />
+        <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
+          <More class="h-4 w-4" />
+        </Button>
         <template #dropdown>
           <el-dropdown-menu
             @mouseenter="handleDropdownMouseEnter"
@@ -376,29 +379,29 @@ onBeforeMount(() => {
   <!-- AI消息的操作按钮（平铺在消息下方，始终显示） -->
   <div v-if="role !== 'user'" class="ai-message-actions">
     <el-tooltip :content="t('common.copy', '复制')" placement="bottom">
-      <el-button text size="small" class="ai-action-btn" @click.stop="copyContent">
-        <el-icon><CopyDocument /></el-icon>
-      </el-button>
+      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="copyContent">
+        <CopyDocument class="h-4 w-4" />
+      </Button>
     </el-tooltip>
     <el-tooltip :content="t('aiChat.insertToDocument', '插入到文档')" placement="bottom">
-      <el-button text size="small" class="ai-action-btn" @click.stop="requestInsertToDocument">
-        <el-icon><DocumentAdd /></el-icon>
-      </el-button>
+      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="requestInsertToDocument">
+        <DocumentAdd class="h-4 w-4" />
+      </Button>
     </el-tooltip>
     <el-tooltip :content="t('aiChat.exportToDocument', '导出到新文档')" placement="bottom">
-      <el-button text size="small" class="ai-action-btn" @click.stop="exportToNewDocument">
-        <el-icon><FolderAdd /></el-icon>
-      </el-button>
+      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="exportToNewDocument">
+        <FolderAdd class="h-4 w-4" />
+      </Button>
     </el-tooltip>
     <el-tooltip :content="t('messageBubble.edit', '编辑')" placement="bottom">
-      <el-button text size="small" class="ai-action-btn" @click.stop="onMsgEdit">
-        <el-icon><Edit /></el-icon>
-      </el-button>
+      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgEdit">
+        <Edit class="h-4 w-4" />
+      </Button>
     </el-tooltip>
     <el-tooltip :content="t('common.delete', '删除')" placement="bottom">
-      <el-button text size="small" class="ai-action-btn" @click.stop="onMsgDelete">
-        <el-icon><Delete /></el-icon>
-      </el-button>
+      <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgDelete">
+        <Delete class="h-4 w-4" />
+      </Button>
     </el-tooltip>
   </div>
   <!-- 引用显示（只读模式，只显示用户消息的引用） -->
@@ -433,8 +436,8 @@ onBeforeMount(() => {
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="editDialogVisible = false">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="saveEdit">{{ $t('common.save') }}</el-button>
+        <Button variant="secondary" @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
+        <Button @click="saveEdit">{{ $t('common.save') }}</Button>
       </div>
     </template>
   </el-dialog>

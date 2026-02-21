@@ -17,20 +17,20 @@
       <div class="diff-container">
         <div class="diff-header">
           <div class="diff-tabs">
-            <el-button
-              :type="viewMode === 'unified' ? 'primary' : 'default'"
-              size="small"
+            <Button
+              :variant="viewMode === 'unified' ? 'default' : 'secondary'"
+              size="sm"
               @click="viewMode = 'unified'"
             >
               {{ t('agent.display.diff.unifiedView', '统一视图') }}
-            </el-button>
-            <el-button
-              :type="viewMode === 'split' ? 'primary' : 'default'"
-              size="small"
+            </Button>
+            <Button
+              :variant="viewMode === 'split' ? 'default' : 'secondary'"
+              size="sm"
               @click="viewMode = 'split'"
             >
               {{ t('agent.display.diff.splitView', '分列视图') }}
-            </el-button>
+            </Button>
           </div>
           <div class="diff-stats">
             <el-tag type="success" size="small">
@@ -64,22 +64,22 @@
                     ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
                   </span>
                   <div class="conflict-actions">
-                    <el-button
-                      :type="getConflictChoice(conflictIndex) === 'current' ? 'primary' : 'default'"
-                      size="small"
+                    <Button
+                      :variant="getConflictChoice(conflictIndex) === 'current' ? 'default' : 'secondary'"
+                      size="sm"
                       @click="chooseConflictVersion(conflictIndex, 'current')"
                     >
                       {{ t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' }) }}
-                    </el-button>
-                    <el-button
-                      :type="
-                        getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'
+                    </Button>
+                    <Button
+                      :variant="
+                        getConflictChoice(conflictIndex) === 'external' ? 'default' : 'secondary'
                       "
-                      size="small"
+                      size="sm"
                       @click="chooseConflictVersion(conflictIndex, 'external')"
                     >
                       {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用磁盘' }) }}
-                    </el-button>
+                    </Button>
                   </div>
                 </div>
                 <div class="conflict-content-split">
@@ -209,26 +209,26 @@
                         </span>
                       </div>
                       <div class="conflict-item-actions">
-                        <el-button
-                          :type="
-                            getConflictChoice(conflictIndex) === 'current' ? 'primary' : 'default'
+                        <Button
+                          :variant="
+                            getConflictChoice(conflictIndex) === 'current' ? 'default' : 'secondary'
                           "
-                          size="small"
+                          size="sm"
                           @click="chooseConflictVersion(conflictIndex, 'current')"
                         >
                           {{
                             t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' })
                           }}
-                        </el-button>
-                        <el-button
-                          :type="
-                            getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'
+                        </Button>
+                        <Button
+                          :variant="
+                            getConflictChoice(conflictIndex) === 'external' ? 'default' : 'secondary'
                           "
-                          size="small"
+                          size="sm"
                           @click="chooseConflictVersion(conflictIndex, 'external')"
                         >
                           {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用磁盘' }) }}
-                        </el-button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -243,17 +243,18 @@
     <template #footer>
       <div class="dialog-footer">
         <div class="footer-left">
-          <el-button @click="handleCancel">
+          <Button variant="secondary" @click="handleCancel">
             {{ t('main.dialogs.keepCurrentVersion', { defaultValue: '保留当前版本' }) }}
-          </el-button>
-          <el-button @click="handleUseExternal">
+          </Button>
+          <Button variant="secondary" @click="handleUseExternal">
             {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用外部版本' }) }}
-          </el-button>
+          </Button>
         </div>
         <div class="footer-right">
-          <el-button
+          <Button
             v-if="hasConflicts"
-            type="success"
+            variant="outline"
+            class="bg-green-600 text-white hover:bg-green-700 border-green-600"
             :disabled="!allConflictsResolved"
             @click="handleMerge"
           >
@@ -261,7 +262,7 @@
             <template v-if="!allConflictsResolved">
               ({{ conflictRanges.length - conflictChoices.size }}/{{ conflictRanges.length }})
             </template>
-          </el-button>
+          </Button>
         </div>
       </div>
     </template>
@@ -271,6 +272,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../utils/themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'

@@ -25,6 +25,7 @@ export default defineConfig({
       }
     },
     plugins: [vue()],
+    assetsInclude: ['**/*.ttf', '**/*.woff', '**/*.woff2', '**/*.eot', '**/*.otf'],
     optimizeDeps: {
       include: [
         'pinia',
@@ -41,7 +42,20 @@ export default defineConfig({
       holdUntilCrawlEnd: false
     },
     build: {
-      chunkSizeWarningLimit: 1000 // 增大警告阈值，因为monaco-editor等库本身就很大
+      chunkSizeWarningLimit: 1000, // 增大警告阈值，因为monaco-editor等库本身就很大
+      assetsInlineLimit: 0, // 不内联字体文件（TTF太大）
+      rollupOptions: {
+        output: {
+          assetFileNames: (assetInfo) => {
+            const info = assetInfo.name.split('.')
+            const ext = info[info.length - 1]
+            if (/\.(ttf|woff|woff2|eot|otf)$/i.test(assetInfo.name)) {
+              return 'assets/fonts/[name][extname]'
+            }
+            return 'assets/[name]-[hash][extname]'
+          }
+        }
+      }
     }
   },
   server: {

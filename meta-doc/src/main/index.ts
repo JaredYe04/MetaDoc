@@ -12,7 +12,7 @@ const icon = undefined // 暂时禁用icon导入
 import fs from 'fs'
 import http from 'http'
 import os from 'os'
-import { mainCalls, refreshMainWindowTitle, openDoc, findWindowWithToolTab } from './main-calls'
+import { mainCalls, refreshMainWindowTitle, openDoc, findWindowWithToolTab, globalTabRegistry } from './main-calls'
 import { registerDragManagerIPC } from './drag-manager'
 import { initWindowPool } from './window-pool'
 import { startFileRegistry, stopFileRegistry } from './file-registry'
@@ -141,6 +141,8 @@ export function registerMainWindow(win: BrowserWindow): void {
 
   // 窗口关闭时自动移除，释放引用，防止内存泄漏
   win.on('closed', () => {
+    // 清理全局注册表中该窗口的标签页，防止野 Tab 残留
+    globalTabRegistry.cleanupWindowTabs(id)
     mainWindows.delete(id)
     logger.debug(`移除主窗口: ${id}`)
 
@@ -929,13 +931,17 @@ function attachShortcutHandler(win: BrowserWindow): void {
     const isCycleShortcut = channel === 'next-tab-triggered' || channel === 'prev-tab-triggered'
 
     if (!isCycleShortcut && input.isAutoRepeat) return
-    if (!isCycleShortcut && isShortcutPressed) return
+    if (!isCycleShortcut && isShortcutPressed) {
+      logger.debug('快捷键防抖：忽略重复按键', channel)
+      return
+    }
 
     if (!isCycleShortcut) {
       isShortcutPressed = true
+      // 缩短防抖时间到 200ms，防止快速双击但仍保持响应性
       setTimeout(() => {
         isShortcutPressed = false
-      }, 1000)
+      }, 200)
     }
 
     event.preventDefault()

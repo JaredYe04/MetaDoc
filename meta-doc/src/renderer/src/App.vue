@@ -706,4 +706,77 @@ a {
 .el-message-box {
   border-radius: 20px !important;
 }
+
+/* ============================================
+   Mousedown 反馈效果 - 粗野主义原生风格
+   ============================================ */
+
+/* el-menu-item 原生按压效果 - 硬边、高对比、无过渡 */
+.el-menu-item {
+  transition: none !important;
+}
+
+.el-menu-item:active:not(.is-disabled) {
+  /* 粗野主义：硬边框 + 内阴影凹陷感 */
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* el-tooltip__trigger 原生按压效果 */
+.el-tooltip__trigger {
+  transition: none !important;
+}
+
+.el-tooltip__trigger:active {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 菜单项内的图标 - 原生感的颜色反转 */
+.el-menu-item .el-icon,
+.el-menu-item .icon-wrapper {
+  transition: none !important;
+}
+
+.el-menu-item:active:not(.is-disabled) .el-icon,
+.el-menu-item:active:not(.is-disabled) .icon-wrapper {
+  color: var(--el-color-primary) !important;
+  filter: brightness(0.85) !important;
+}
+
+/* 现代侧边栏菜单 - 保持粗野主义风格 */
+.modern-side-menu .el-menu-item:active:not(.is-disabled),
+.modern-sidebar-menu .el-menu-item:active:not(.is-disabled) {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 0 !important; /* 粗野主义：去圆角 */
+}
+
+/* 弹出菜单中的菜单项 */
+.el-popper .el-menu .el-menu-item:active:not(.is-disabled) {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 0 !important;
+}
+
+/* tooltip trigger 内部的按钮 - 粗野主义硬边效果 */
+.el-tooltip__trigger > .el-button {
+  transition: none !important;
+}
+
+.el-tooltip__trigger > .el-button:active {
+  outline: 2px solid var(--el-color-primary) !important;
+  outline-offset: -2px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  transform: none !important;
+}
+
 </style>

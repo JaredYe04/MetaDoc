@@ -636,11 +636,15 @@ function initMainEventListeners() {
   }
   eventBus.on('tab-prev', handleTabPrev)
 
-  const handleTabClose = () => {
+  const handleTabClose = async () => {
     const tabId = activeTabId.value
-    if (tabId) {
-      closeTab(tabId)
-    }
+    if (!tabId) return
+    
+    // 🚨 关键修复：立即清除 activeTabId，防止 await 期间重复关闭同一个
+    // 让 removeTab 自己处理切换到下一个 tab
+    workspace.activeTabId.value = ''  // 临时设为无选中
+    
+    await closeTab(tabId)
   }
   eventBus.on('tab-close', handleTabClose)
 
@@ -779,8 +783,15 @@ function initMainEventListeners() {
 
   // 新建文档请求 - 在 Main.vue 中监听，因为 Main.vue 总是被挂载
   // 而 Editor.vue 只在 /editor 路由下才挂载，在其他页面（如 Home）时无法响应事件
-  const handleNewDocumentRequest = () => {
-    workspace.openNewDocumentTab()
+  // Ctrl+N：创建新窗口（与 Ctrl+T 新建标签页区分开）
+  const handleNewDocumentRequest = async () => {
+    try {
+      await messageBridge.invoke('create-new-window', {})
+    } catch (error) {
+      logger.error('创建新窗口失败:', error)
+      // 如果创建新窗口失败，回退到在当前窗口新建标签页
+      workspace.openNewDocumentTab()
+    }
   }
   eventBus.on('new-doc', handleNewDocumentRequest)
 

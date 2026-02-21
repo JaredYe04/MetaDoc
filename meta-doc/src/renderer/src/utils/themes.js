@@ -156,8 +156,11 @@ const rgbToHex = (r, g, b) => {
 
 // 辅助函数：混合两种颜色
 export const mixColors = (color1, color2, weight) => {
-  const c1 = hexToRgb(color1)
-  const c2 = hexToRgb(color2)
+  const safeColor1 = color1 || '#ffffff'
+  const safeColor2 = color2 || '#000000'
+
+  const c1 = hexToRgb(safeColor1)
+  const c2 = hexToRgb(safeColor2)
 
   const r = Math.round(c1.r * (1 - weight) + c2.r * weight)
   const g = Math.round(c1.g * (1 - weight) + c2.g * weight)
@@ -553,6 +556,17 @@ function applyThemeClasses(themeType) {
     document.documentElement.classList.add('dark')
     document.documentElement.classList.remove('light')
   }
+
+  // Ensure OPPO Sans font variables are set
+  const root = document.documentElement
+  root.style.setProperty(
+    '--font-family-base',
+    "'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+  )
+  root.style.setProperty(
+    '--font-family-chinese',
+    "'OPPO Sans 4.0', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif"
+  )
 }
 
 /**

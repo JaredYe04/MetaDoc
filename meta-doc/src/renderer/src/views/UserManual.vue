@@ -13,6 +13,15 @@
         <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
       </div>
       <div class="header-actions">
+        <el-button
+          v-if="learningProgress >= 100"
+          type="primary"
+          text
+          :icon="Promotion"
+          @click="showCelebration = true"
+        >
+          {{ $t('userManual.replayCelebration') || '重新播放庆祝动画' }}
+        </el-button>
         <ManualSearch />
       </div>
     </div>
@@ -53,6 +62,13 @@
       </div>
     </div>
     <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
+    
+    <!-- Celebration Overlay -->
+    <CelebrationOverlay
+      :visible="showCelebration"
+      @close="showCelebration = false"
+      @continue="handleCelebrationContinue"
+    />
   </div>
 </template>
 
@@ -67,9 +83,9 @@ import LearningProgress from '../components/manual/LearningProgress.vue'
 import LearningPathList from '../components/manual/LearningPathList.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
-import { User, ArrowLeft, DataBoard } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { User, ArrowLeft, DataBoard, Promotion } from '@element-plus/icons-vue'
 import { useUserManual } from '../stores/userManual'
+import CelebrationOverlay from '../components/CelebrationOverlay.vue'
 
 const { t } = useI18n()
 const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learningProgress } = useUserManual()
@@ -77,8 +93,16 @@ const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learn
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
 /** 仅显示推荐学习列表（否则显示完整目录） */
 const onlyRecommended = ref(true)
-/** 是否已展示过 100% 完成提示（避免重复弹出） */
-const hasShown100Feedback = ref(false)
+/** 是否显示庆祝动画 */
+const showCelebration = ref(false)
+
+// 组件挂载时打印诊断信息
+onMounted(() => {
+  console.log('[UserManual] Component mounted:', {
+    learningProgress: learningProgress.value,
+    learningPathLength: learningPath.value.length
+  })
+})
 
 const SIDEBAR_MIN = 240
 const SIDEBAR_MAX = 520
@@ -112,17 +136,27 @@ const goToOverview = () => {
   setCurrentArticle('', 'navigation')
 }
 
-// 学习进度达到 100% 时给予正反馈
-watch(learningProgress, (cur) => {
-  if (cur >= 100 && learningPath.value.length > 0 && !hasShown100Feedback.value) {
-    hasShown100Feedback.value = true
-    ElMessage.success({
-      message: t('userManual.progress.completed100') || '恭喜！您已完成推荐路径的全部内容。',
-      duration: 4000,
-      showClose: true
-    })
+// 学习进度达到 100% 时显示庆祝动画
+watch(
+  () => learningProgress.value,
+  (newProgress, oldProgress) => {
+    // 只在从非100%变为100%时触发，且要有学习路径
+    if (newProgress >= 100 && oldProgress < 100 && learningPath.value.length > 0) {
+      console.log('[UserManual] Progress reached 100%, triggering celebration!')
+      showCelebration.value = true
+    }
   }
-}, { immediate: true })
+)
+
+// 监控 showCelebration 变化
+watch(showCelebration, (newVal) => {
+  console.log('[UserManual] showCelebration changed:', newVal)
+})
+
+// 处理庆祝动画继续
+const handleCelebrationContinue = () => {
+  showCelebration.value = false
+}
 
 onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)

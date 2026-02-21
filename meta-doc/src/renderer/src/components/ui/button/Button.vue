@@ -1,6 +1,7 @@
 <template>
   <component
     :is="as"
+    v-bind="$attrs"
     :class="cn(buttonVariants({ variant, size }), $attrs.class ?? '')"
   >
     <slot />

@@ -401,23 +401,23 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-primary);
 }
 
-/* 打开的菜单 - 与 :active 统一为粗野主义风格 */
+/* 打开的菜单 - 使用浅色边框，与 :active 区分开 */
 .ui-sub-menu__title.is-open {
-  border: 1px solid var(--el-color-primary) !important;
-  background-color: var(--el-color-primary-light-9) !important;
-  color: var(--el-color-primary) !important;
+  border: 1px solid var(--el-border-color) !important;
+  background-color: v-bind('activeBackgroundColor') !important;
+  color: var(--el-text-color-primary) !important;
   border-radius: 4px !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .ui-sub-menu__title.is-open .ui-sub-menu__icon,
 .ui-sub-menu__title.is-open .ui-sub-menu__icon-image,
 .ui-sub-menu__title.is-open .ui-sub-menu__label,
 .ui-sub-menu__title.is-open .ui-sub-menu__arrow {
-  color: var(--el-color-primary) !important;
+  color: var(--el-text-color-primary) !important;
 }
 
-/* is-open 状态下 hover 使用统一灰色背景 */
+/* is-open 状态下 hover 保持 */
 .ui-sub-menu__title.is-open:hover {
   background-color: v-bind('activeBackgroundColor') !important;
   border: 1px solid var(--el-border-color) !important;
@@ -436,7 +436,14 @@ onBeforeUnmount(() => {
   border: 1px solid var(--el-color-primary) !important;
   background-color: var(--el-color-primary-light-9) !important;
   color: var(--el-color-primary) !important;
+  border-radius: 4px !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 已打开状态下的按压效果 - 使用更深的颜色区分 */
+.ui-sub-menu__title.is-open:active {
+  background-color: var(--el-color-primary-light-7) !important;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.2) !important;
 }
 
 .ui-sub-menu__title:active .ui-sub-menu__icon,

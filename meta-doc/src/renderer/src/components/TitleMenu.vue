@@ -1,7 +1,7 @@
 <template>
   <div class="aero-div" :style="menuStyles" @mousedown.prevent="onMouseDown">
     <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px">
-      <el-button
+      <Button
         circle
         plain
         size="small"
@@ -11,7 +11,7 @@
         style="float: inline-start"
         @mousedown.prevent
       >
-      </el-button>
+      </Button>
     </div>
 
     <p style="font-weight: bold" @mousedown.stop>
@@ -68,45 +68,46 @@
 
     <div @mousedown.stop>
       <el-tooltip :content="t('titleMenu.tooltips.generate')" placement="top">
-        <el-button
+        <Button
           circle
           type="primary"
           @click="generate"
           :disabled="generating || generated || userPrompt.length === 0"
         >
           <el-icon><Promotion /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
 
       <el-tooltip :content="t('titleMenu.tooltips.reset')" placement="top" v-if="generated">
-        <el-button circle type="info" @click="reset">
+        <Button circle type="info" @click="reset">
           <el-icon><RefreshLeft /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
 
       <el-tooltip :content="t('titleMenu.tooltips.chat')" placement="top" v-if="generated">
-        <el-button circle type="info" @click="chat">
+        <Button circle type="info" @click="chat">
           <el-icon><ChatLineRound /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
 
       <el-tooltip :content="t('titleMenu.tooltips.acceptReplace')" placement="top" v-if="generated">
-        <el-button circle type="success" @click="accept(false)">
+        <Button circle type="success" @click="accept(false)">
           <el-icon><Check /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
 
       <el-tooltip :content="t('titleMenu.tooltips.acceptAppend')" placement="top" v-if="generated">
-        <el-button circle type="success" @click="accept(true)">
+        <Button circle type="success" @click="accept(true)">
           <el-icon><Plus /></el-icon>
-        </el-button>
+        </Button>
       </el-tooltip>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
+import { Button } from '@renderer/components/ui/button'
+import { ElDialog } from 'element-plus' // 引入 Element Plus 弹框组件
 import MarkdownItEditor from 'vue3-markdown-it'
 import { computed, onMounted, ref, watch } from 'vue'
 import { sectionChangePrompt } from '../utils/prompts'

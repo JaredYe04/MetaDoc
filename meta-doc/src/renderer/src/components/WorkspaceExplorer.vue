@@ -11,10 +11,10 @@
     <div class="workspace-explorer-header">
       <span class="workspace-explorer-title">{{ $t('workspaceExplorer.title') }}</span>
       <div class="workspace-explorer-actions">
-        <el-button
+        <Button
           v-if="workspaceFolders.length > 0"
-          text
-          size="small"
+          variant="ghost"
+          size="sm"
           @click="refreshAllWorkspaceFolders"
           :title="$t('workspaceExplorer.refresh')"
         >
@@ -23,10 +23,10 @@
             class="workspace-action-icon"
             alt="refresh"
           />
-        </el-button>
-        <el-button
-          text
-          size="small"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           @click="addWorkspaceFolder"
           :title="$t('workspaceExplorer.addFolder')"
         >
@@ -35,7 +35,7 @@
             class="workspace-action-icon"
             alt="add folder"
           />
-        </el-button>
+        </Button>
       </div>
     </div>
     <div v-if="workspaceFolders.length === 0" class="workspace-explorer-empty">
@@ -47,9 +47,9 @@
             </div>
           </div>
         </template>
-        <el-button @click="addWorkspaceFolder">
+        <Button variant="default" @click="addWorkspaceFolder">
           {{ $t('workspaceExplorer.addFolder') }}
-        </el-button>
+        </Button>
       </el-empty>
     </div>
     <div v-else class="workspace-explorer-main">
@@ -107,15 +107,15 @@
             @click="workspace.activateTab(tab.id)"
           >
             <span class="opened-file-name" :title="tab.path">{{ tab.subtitle || tab.title }}</span>
-            <el-button
-              text
-              size="small"
+            <Button
+              variant="ghost"
+              size="sm"
               class="opened-file-close"
               @click.stop="handleCloseFile(tab.id)"
               :title="$t('workspaceExplorer.closeFile')"
             >
-              <el-icon><Close /></el-icon>
-            </el-button>
+              <Close class="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </el-scrollbar>
@@ -146,10 +146,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="handleRenameDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleRenameConfirm">{{
+        <Button variant="secondary" @click="handleRenameDialogClose">{{ $t('common.cancel') }}</Button>
+        <Button variant="default" @click="handleRenameConfirm">{{
           $t('common.confirm')
-        }}</el-button>
+        }}</Button>
       </template>
     </el-dialog>
     <!-- 新建文件对话框 -->
@@ -169,10 +169,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleNewFileConfirm">{{
+        <Button variant="secondary" @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</Button>
+        <Button variant="default" @click="handleNewFileConfirm">{{
           $t('common.confirm')
-        }}</el-button>
+        }}</Button>
       </template>
     </el-dialog>
     <!-- 新建文件夹对话框 -->
@@ -192,10 +192,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleNewFolderConfirm">{{
+        <Button variant="secondary" @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</Button>
+        <Button variant="default" @click="handleNewFolderConfirm">{{
           $t('common.confirm')
-        }}</el-button>
+        }}</Button>
       </template>
     </el-dialog>
   </div>
@@ -205,7 +205,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loading, Warning, Close } from '@element-plus/icons-vue'
-import { ElButton, ElIcon, ElEmpty, ElScrollbar, ElMessageBox } from 'element-plus'
+import { ElEmpty, ElScrollbar, ElMessageBox } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'

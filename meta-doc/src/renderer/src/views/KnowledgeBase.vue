@@ -13,9 +13,9 @@
             '知识库功能当前已禁用。请在设置中启用知识库功能以使用此功能。'
           }}
         </p>
-        <el-button type="primary" @click="enableKnowledgeBase">
+        <Button variant="default" @click="enableKnowledgeBase">
           {{ t('knowledgeBase.enable') || '启用知识库' }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -35,19 +35,19 @@
                 <div class="kb-panel-header">
                 <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
                 <div class="kb-panel-actions">
-                  <el-button type="primary" size="small" @click="triggerUpload">{{
+                  <Button variant="default" size="sm" @click="triggerUpload">{{
                     t('knowledgeBase.add')
-                  }}</el-button>
-                  <el-button
-                    type="danger"
-                    size="small"
+                  }}</Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     :disabled="!selectedItem"
                     @click="confirmDelete"
-                    >{{ t('knowledgeBase.delete') }}</el-button
+                    >{{ t('knowledgeBase.delete') }}</Button
                   >
-                  <el-button size="small" @click="confirmClearAll">{{
+                  <Button variant="secondary" size="sm" @click="confirmClearAll">{{
                     t('knowledgeBase.clear_all')
-                  }}</el-button>
+                  }}</Button>
                   <input
                     ref="fileInput"
                     type="file"
@@ -157,9 +157,9 @@
                 @keyup.enter.native="doSearch"
                 style="margin-bottom: 10px"
               />
-              <el-button type="primary" size="small" @click="doSearch" :loading="searching">{{
+              <Button variant="default" size="sm" @click="doSearch" :loading="searching">{{
                 t('knowledgeBase.searchTest.searchBtn')
-              }}</el-button>
+              }}</Button>
 
               <el-scrollbar style="flex-grow: 1; margin-top: 10px; min-height: 0">
                 <Card
@@ -201,9 +201,9 @@
             <div class="kb-panel-header">
               <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
               <div v-if="selectedItem" class="kb-panel-actions">
-                <el-button size="small" :disabled="!selectedItem" @click="openInEditor">
+                <Button variant="secondary" size="sm" :disabled="!selectedItem" @click="openInEditor">
                   {{ t('knowledgeBase.open_in_editor') }}
-                </el-button>
+                </Button>
               </div>
             </div>
 
@@ -254,8 +254,8 @@
                         class="edit-filename-input"
                         @keyup.enter.native="onConfirm"
                       />
-                      <el-button
-                        size="small"
+                      <Button
+                        size="sm"
                         @click="onConfirm"
                         class="aero-btn"
                         circle
@@ -264,9 +264,9 @@
                         <el-icon v-if="!renaming" style="font-size: 14px">
                           <Check />
                         </el-icon>
-                      </el-button>
-                      <el-button
-                        size="small"
+                      </Button>
+                      <Button
+                        size="sm"
                         @click="onCancel"
                         :disabled="renaming"
                         class="aero-btn"
@@ -275,21 +275,20 @@
                         <el-icon style="font-size: 14px">
                           <Close />
                         </el-icon>
-                      </el-button>
+                      </Button>
                     </template>
                     <template v-else>
                       <span class="text-ellipsis">{{ selectedItem.name }}</span>
-                      <el-button
-                        icon="el-icon-edit"
+                      <Button
                         @click="startEditing"
                         circle
                         class="aero-btn"
-                        size="small"
+                        size="sm"
                       >
                         <el-icon style="font-size: 14px">
                           <Edit />
                         </el-icon>
-                      </el-button>
+                      </Button>
                     </template>
                   </el-descriptions-item>
                   <el-descriptions-item :label="t('knowledgeBase.path')">
@@ -322,15 +321,15 @@
                 </el-descriptions>
 
                 <div class="config-actions">
-                  <el-button size="small" @click="rebuildVectors" :loading="isRebuilding">
+                  <Button variant="secondary" size="sm" @click="rebuildVectors" :loading="isRebuilding">
                     {{ t('knowledgeBase.rebuild') }}
-                  </el-button>
-                  <el-button size="small" @click="downloadFile">
+                  </Button>
+                  <Button variant="secondary" size="sm" @click="downloadFile">
                     {{ t('knowledgeBase.download') }}
-                  </el-button>
-                  <el-button size="small" @click="openFolder">
+                  </Button>
+                  <Button variant="secondary" size="sm" @click="openFolder">
                     {{ t('knowledgeBase.open_folder') }}
-                  </el-button>
+                  </Button>
                 </div>
               </div>
               <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
@@ -361,6 +360,7 @@ import { themeState } from '../utils/themes'
 import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
 import { Card, CardContent } from '../components/ui/card'
+import { Button } from '@renderer/components/ui/button'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'

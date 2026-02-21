@@ -3,17 +3,18 @@
     <div class="manager-header">
       <h3>{{ t('agent.reference.title') }}</h3>
       <div class="header-actions">
-        <el-button
-          type="danger"
-          size="small"
+        <Button
+          variant="destructive"
+          size="sm"
           :disabled="references.length === 0"
           @click="handleClearAll"
         >
           {{ t('agent.reference.clearAll') }}
-        </el-button>
-        <el-button type="primary" size="small" :icon="Plus" @click="handleAdd">
+        </Button>
+        <Button size="sm" @click="handleAdd">
+          <Plus class="w-4 h-4 mr-1" />
           {{ t('agent.reference.add') }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -36,9 +37,10 @@
         </div>
       </div>
       <div class="built-in-reference-actions">
-        <el-button size="small" :icon="View" @click="handlePreviewBuiltInDocument">
+        <Button size="sm" variant="secondary" @click="handlePreviewBuiltInDocument">
+          <View class="w-4 h-4 mr-1" />
           {{ t('agent.reference.builtInDocument.preview', '预览') }}
-        </el-button>
+        </Button>
         <el-switch
           v-model="enableBuiltInDocRef"
           @change="handleToggleBuiltInDocRef"
@@ -108,19 +110,24 @@
           <template #default="{ row }">
             <div class="action-buttons">
               <el-tooltip :content="t('agent.reference.viewContent')" placement="top">
-                <el-button size="small" circle :icon="Document" @click="handleViewContent(row)" />
+                <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleViewContent(row)">
+                  <Document class="w-4 h-4" />
+                </Button>
               </el-tooltip>
               <el-tooltip :content="t('common.edit')" placement="top">
-                <el-button size="small" circle :icon="Edit" @click="handleEdit(row)" />
+                <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
+                  <Edit class="w-4 h-4" />
+                </Button>
               </el-tooltip>
               <el-tooltip :content="t('common.delete')" placement="top">
-                <el-button
-                  size="small"
-                  circle
-                  type="danger"
-                  :icon="Delete"
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  class="h-8 w-8"
                   @click="handleDelete(row)"
-                />
+                >
+                  <Delete class="w-4 h-4" />
+                </Button>
               </el-tooltip>
             </div>
           </template>
@@ -167,10 +174,10 @@
         </el-descriptions>
       </el-scrollbar>
       <template #footer>
-        <el-button @click="contentDialogVisible = false">{{ t('common.close') }}</el-button>
-        <el-button type="primary" @click="handleCopyContent" v-if="viewingReference?.parsedContent">
+        <Button variant="secondary" @click="contentDialogVisible = false">{{ t('common.close') }}</Button>
+        <Button @click="handleCopyContent" v-if="viewingReference?.parsedContent">
           {{ t('common.copy') }}
-        </el-button>
+        </Button>
       </template>
     </el-dialog>
 
@@ -197,9 +204,9 @@
             <div v-if="parsingProgress" style="font-size: 12px; color: #999">
               {{ parsingProgress }}
             </div>
-            <el-button size="small" style="margin-top: 16px" @click="handleCancelParsing">
+            <Button size="sm" variant="secondary" class="mt-4" @click="handleCancelParsing">
               {{ t('common.cancel') }}
-            </el-button>
+            </Button>
           </div>
         </div>
 
@@ -230,9 +237,9 @@
             required
             v-if="formData.inputType === 'file'"
           >
-            <el-button type="primary" :disabled="parsing" @click="handleSelectFile">
+            <Button :disabled="parsing" @click="handleSelectFile">
               {{ t('agent.reference.selectFile') }}
-            </el-button>
+            </Button>
             <div v-if="selectedFile" style="margin-top: 8px; color: #666; font-size: 12px">
               {{ selectedFile.name }}
             </div>
@@ -261,18 +268,17 @@
         </el-form>
       </div>
       <template #footer>
-        <el-button @click="handleDialogClose" :disabled="parsing">{{
+        <Button variant="secondary" @click="handleDialogClose" :disabled="parsing">{{
           t('common.cancel')
-        }}</el-button>
-        <el-button
-          type="primary"
+        }}</Button>
+        <Button
           @click="handleSave"
           :disabled="
             parsing || (formData.inputType === 'file' && !parsedReference && !editingReference)
           "
         >
           {{ t('common.save') }}
-        </el-button>
+        </Button>
       </template>
     </el-dialog>
   </div>
@@ -296,6 +302,7 @@ import {
 import messageBridge from '../../bridge/message-bridge'
 import { createRendererLogger } from '../../utils/logger'
 import { useWorkspace } from '../../stores/workspace'
+import { Button } from '@renderer/components/ui/button'
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null

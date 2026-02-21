@@ -6,9 +6,9 @@
           <h1 class="meta-panel__title" :style="{ color: themeState.currentTheme.textColor }">
             {{ $t('article.meta_info') }}
           </h1>
-          <el-button circle plain size="small" @click="metaDialogVisible = true">
-            <el-icon><Edit /></el-icon>
-          </el-button>
+          <Button variant="outline" size="icon" class="h-7 w-7" @click="metaDialogVisible = true">
+            <Edit class="h-4 w-4" />
+          </Button>
         </div>
 
         <div class="meta-panel__item">
@@ -16,15 +16,14 @@
             <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('article.title') }}：</span
             >
-            <el-button
-              circle
-              plain
-              size="small"
-              class="meta-panel__edit-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="meta-panel__edit-btn h-6 w-6"
               @click="titleAssistantVisible = true"
             >
-              <el-icon><Edit /></el-icon>
-            </el-button>
+              <Edit class="h-3.5 w-3.5" />
+            </Button>
           </div>
           <div class="meta-panel__value-wrapper">
             <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{
@@ -38,15 +37,14 @@
             <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('article.author') }}：</span
             >
-            <el-button
-              circle
-              plain
-              size="small"
-              class="meta-panel__edit-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="meta-panel__edit-btn h-6 w-6"
               @click="authorAssistantVisible = true"
             >
-              <el-icon><Edit /></el-icon>
-            </el-button>
+              <Edit class="h-3.5 w-3.5" />
+            </Button>
           </div>
           <div class="meta-panel__value-wrapper">
             <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{
@@ -60,15 +58,14 @@
             <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('article.description') }}：</span
             >
-            <el-button
-              circle
-              plain
-              size="small"
-              class="meta-panel__edit-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="meta-panel__edit-btn h-6 w-6"
               @click="descriptionAssistantVisible = true"
             >
-              <el-icon><Edit /></el-icon>
-            </el-button>
+              <Edit class="h-3.5 w-3.5" />
+            </Button>
           </div>
           <div class="meta-panel__value-wrapper meta-panel__value-wrapper--description">
             <el-scrollbar class="meta-panel__description-scroll" max-height="200px">
@@ -96,9 +93,7 @@
               @keydown.space.prevent="handleKeywordsGenerate"
             >
               {{ $t('article.keywords') }}：
-              <el-icon v-if="keywordsGenerating" class="meta-keywords__icon" :size="14">
-                <Loading />
-              </el-icon>
+              <Loader2 v-if="keywordsGenerating" class="meta-keywords__icon h-3.5 w-3.5 animate-spin" />
             </span>
           </el-tooltip>
           <div class="meta-panel__value meta-panel__value--keywords">
@@ -169,16 +164,17 @@
             </el-form-item>
           </el-form>
           <template #footer>
-            <el-button
+            <Button
+              variant="secondary"
               @click="metaDialogVisible = false"
               :style="{ color: themeState.currentTheme.textColor }"
-              >{{ $t('common.cancel') }}</el-button
+              >{{ $t('common.cancel') }}</Button
             >
-            <el-button
-              type="primary"
+            <Button
+              variant="default"
               @click="commitForm"
               :style="{ color: themeState.currentTheme.textColor }"
-              >{{ $t('common.confirm') }}</el-button
+              >{{ $t('common.confirm') }}</Button
             >
           </template>
         </el-dialog>
@@ -190,8 +186,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElMessage, ElMessageBox } from 'element-plus'
-import { Loading, Edit } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Loader2, Edit } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
 import { themeState, mixColors } from '../utils/themes'
 import {
   generateDescriptionPrompt,

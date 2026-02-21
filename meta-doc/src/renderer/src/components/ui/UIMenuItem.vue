@@ -107,8 +107,9 @@ const handleMouseLeave = () => {
   height: 40px;
   line-height: 40px;
   margin: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: none !important;
   position: relative;
   padding-left: 12px;
   display: flex;
@@ -119,11 +120,27 @@ const handleMouseLeave = () => {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: pointer;
+  color: var(--el-text-color-primary);
 }
 
 .ui-menu-item:hover:not(.is-disabled) {
   background-color: v-bind('activeBackgroundColor');
-  border-radius: 6px;
+  border-radius: 4px;
+}
+
+/* 粗野主义按压效果 - 主色边框 + 浅色背景 */
+.ui-menu-item:active:not(.is-disabled) {
+  border: 1px solid var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 按压时图标颜色 */
+.ui-menu-item:active:not(.is-disabled) .ui-menu-item__icon,
+.ui-menu-item:active:not(.is-disabled) .ui-menu-item__icon-image {
+  color: var(--el-color-primary) !important;
 }
 
 .ui-menu-item.is-disabled {

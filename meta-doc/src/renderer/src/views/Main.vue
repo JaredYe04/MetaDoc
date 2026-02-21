@@ -636,11 +636,15 @@ function initMainEventListeners() {
   }
   eventBus.on('tab-prev', handleTabPrev)
 
-  const handleTabClose = () => {
+  const handleTabClose = async () => {
     const tabId = activeTabId.value
-    if (tabId) {
-      closeTab(tabId)
-    }
+    if (!tabId) return
+    
+    // 🚨 关键修复：立即清除 activeTabId，防止 await 期间重复关闭同一个
+    // 让 removeTab 自己处理切换到下一个 tab
+    workspace.activeTabId.value = ''  // 临时设为无选中
+    
+    await closeTab(tabId)
   }
   eventBus.on('tab-close', handleTabClose)
 

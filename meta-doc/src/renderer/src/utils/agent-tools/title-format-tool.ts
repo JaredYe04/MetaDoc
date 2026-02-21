@@ -214,7 +214,10 @@ const titleFormatCallback: ToolCallback = async (
       workspace.lockUI?.()
       try {
         workspace.updateDocumentOutline(targetTabId!, modifiedTree)
-        workspace.updateDocumentLastView(targetTabId!, 'outline')
+        const currentView = doc.lastView ?? 'editor'
+        if (currentView === 'outline') {
+          workspace.updateDocumentLastView(targetTabId!, 'outline')
+        }
 
         // 使用适配器同步正文文本，并抑制自动大纲同步以避免死循环
         await workspace.withAutoOutlineSyncSuppressed(async () => {

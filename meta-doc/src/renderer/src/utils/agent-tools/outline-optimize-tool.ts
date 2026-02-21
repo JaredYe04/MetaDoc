@@ -164,9 +164,12 @@ async function syncOutlineToDocument(
     throw new Error('文档不存在')
   }
 
-  // 更新大纲
+  // 更新大纲（不强制切换视图：仅在当前已是 outline 视图时更新 lastView，避免 Agent 执行工具时莫名切到大纲树）
   workspace.updateDocumentOutline(tabId, outline)
-  workspace.updateDocumentLastView(tabId, 'outline')
+  const currentView = doc.lastView ?? 'editor'
+  if (currentView === 'outline') {
+    workspace.updateDocumentLastView(tabId, 'outline')
+  }
 
   // 使用适配器同步正文文本
   const format = docFormat || doc.format

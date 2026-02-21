@@ -1,106 +1,169 @@
 <template>
   <div class="outline-page" :data-direction="direction" :class="{ 'is-dragging': isDraggingNode }">
-    <div class="container">
-      <el-scrollbar
-        class="aero-div generate-preview"
-        v-if="generating || pendingAccept"
-        :style="{
-          backgroundColor: themeState.currentTheme.background,
-          top: position.top + 'px',
-          left: position.left + 'px'
-        }"
-        @mousedown.stop="startDrag"
-      >
+  <div class="container">
+    <!-- 左上角AI工具工具栏：指针保持图标；选中其他工具时该按钮浮起并向右溢出显示名称 -->
+    <div class="ai-toolbar aero-div">
+      <el-tooltip :content="$t('outline.aiTool.pointer')" placement="right">
+        <el-button
+          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'pointer' }]"
+          :type="selectedAiTool === 'pointer' ? 'primary' : 'default'"
+          size="small"
+          @click="selectedAiTool = 'pointer'"
+        >
+          <el-icon><Pointer /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.aiTool.generateChildren')" placement="right">
+        <el-button
+          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildren', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildren' }]"
+          :type="selectedAiTool === 'generateChildren' ? 'primary' : 'default'"
+          size="small"
+          @click="selectedAiTool = 'generateChildren'"
+        >
+          <el-icon><Finished /></el-icon>
+          <span v-if="selectedAiTool === 'generateChildren'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildren') }}</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.aiTool.generateContent')" placement="right">
+        <el-button
+          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateContent', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateContent' }]"
+          :type="selectedAiTool === 'generateContent' ? 'primary' : 'default'"
+          size="small"
+          @click="selectedAiTool = 'generateContent'"
+        >
+          <el-icon><EditPen /></el-icon>
+          <span v-if="selectedAiTool === 'generateContent'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateContent') }}</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.aiTool.generateChildrenChildren')" placement="right">
+        <el-button
+          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildrenChildren', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildrenChildren' }]"
+          :type="selectedAiTool === 'generateChildrenChildren' ? 'primary' : 'default'"
+          size="small"
+          @click="selectedAiTool = 'generateChildrenChildren'"
+        >
+          <el-icon><Rank /></el-icon>
+          <span v-if="selectedAiTool === 'generateChildrenChildren'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenChildren') }}</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.aiTool.generateChildrenContent')" placement="right">
+        <el-button
+          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildrenContent', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildrenContent' }]"
+          :type="selectedAiTool === 'generateChildrenContent' ? 'primary' : 'default'"
+          size="small"
+          @click="selectedAiTool = 'generateChildrenContent'"
+        >
+          <el-icon><Download /></el-icon>
+          <span v-if="selectedAiTool === 'generateChildrenContent'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenContent') }}</span>
+        </el-button>
+      </el-tooltip>
+    </div>
+
+    <div class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
+      backgroundColor: themeState.currentTheme.background2nd, top: position.top + 'px',
+      left: position.left + 'px',
+    }" @mousedown.stop="startDrag">
+      <el-scrollbar class="generate-preview-scrollbar" :wrap-style="{ maxHeight: '70vh' }">
         <div class="noselect-display">
-          <h2 v-if="generating">
-            {{ $t('outline.generating') }}
-            <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
-              <el-button
-                type="danger"
-                plain
-                circle
-                class="aero-btn"
-                style="font-size: 12px; padding: 2px 6px"
-                @click.stop="cancelAllAiTasks"
-              >
-                <el-icon style="font-size: 14px">
-                  <CloseBold />
-                </el-icon>
-              </el-button>
-            </el-tooltip>
-          </h2>
-          <!-- <h3 v-if="generateChildrenContentLoading">{{ $t('outline.generatingFor') }}:{{ nodeBeingProcessed }}</h3> -->
-          <div v-if="generateChildrenContentLoading">
-            <div v-for="(item, index) in parallelChildren" :key="index">
-              <!-- <h3>{{ $t('outline.generatingFor') }}:{{ item.title }}</h3> -->
-              <div v-if="item.value">{{ item.value }}</div>
+          <template v-if="generating">
+            <h2>
+              {{ $t('outline.generating') }}
+              <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
+                <el-button type="danger" plain circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="cancelAllAiTasks">
+                  <el-icon style="font-size: 14px">
+                    <Check />
+                  </el-icon>
+                </el-button>
+                <el-button
+                  type="danger"
+                  circle
+                  class="aero-btn"
+                  style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="discardChange"
+                  :loading="generateChildChapterLoading"
+                >
+                  <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
+                    <Close />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+            </h2>
+            <div class="generate-preview-content">{{ rawstring }}</div>
+          </template>
+          <template v-else-if="pendingAccept">
+            <h2>{{ $t('outline.previewResult') || '生成结果' }}</h2>
+            <div class="generate-preview-content">{{ rawstring }}</div>
+            <div class="generate-preview-actions">
+              <el-tooltip :content="$t('outline.accept')" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="acceptChange">
+                  <el-icon style="font-size: 14px"><Check /></el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.reject')" placement="top">
+                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="discardChange" :loading="generateChildChapterLoading">
+                  <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading"><Close /></el-icon>
+                </el-button>
+              </el-tooltip>
             </div>
-          </div>
-          <div v-if="generateChildrenChildrenLoading">
-            <div v-for="(item, index) in parallelChildren" :key="index">
-              <!-- <h3>{{ $t('outline.generatingFor') }}:{{ item.title }}</h3> -->
-              <div v-if="item.value">{{ item.value }}</div>
-            </div>
-          </div>
-          <h2 v-if="pendingAccept">
-            {{ $t('outline.generationDone') }}
-            <el-button
-              type="success"
-              circle
-              class="aero-btn"
-              style="font-size: 12px; padding: 2px 6px"
-              @click.stop="acceptChange"
-            >
-              <el-icon style="font-size: 14px">
-                <Check />
-              </el-icon>
-            </el-button>
-            <el-button
-              type="danger"
-              circle
-              class="aero-btn"
-              style="font-size: 12px; padding: 2px 6px"
-              @click.stop="discardChange"
-              :loading="generateChildChapterLoading"
-            >
-              <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                <Close />
-              </el-icon>
-            </el-button>
-          </h2>
-          <div>
-            {{ rawstring }}
-          </div>
+          </template>
         </div>
       </el-scrollbar>
+    </div>
 
       <vue-tree
-        ref="treeRef"
-        class="outline-tree-container"
-        :class="{ 'is-dragging': isDraggingNode }"
-        style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 12px"
-        :style="{ backgroundColor: themeState.currentTheme.background }"
-        :dataset="treeData"
-        :config="treeConfig"
-        :direction="direction"
-        link-style="straight"
-        @node-click="handleNodeClick"
-        @drag-node-end="handleNodeDrag"
-        @wheel="handleWheelZoom"
-      >
-        <template
-          #node="{ node, collapsed }"
-          :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-        >
-          <el-tooltip
-            :content="node.title || ''"
-            placement="top"
+      ref="treeRef"
+      class="outline-tree-container"
+      :class="{ 'is-dragging': isDraggingNode }"
+      style="width: 100%; height: 100%; border-radius: 12px;"
+      :style="{ backgroundColor: themeState.currentTheme.background }"
+      :dataset="treeData"
+      :config="treeConfig"
+      :direction="direction"
+      link-style="straight"
+      @node-click="handleNodeClick"
+      @drag-node-end="handleNodeDrag"
+      @wheel="handleWheelZoom"
+    >
+
+      <template #node="{ node, collapsed }" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
+        <!-- 如果节点展开，显示详细节点面板 -->
+        <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
+          <div
+            class="detailed-node-wrapper"
+            :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
+            @mousedown.stop
+            @pointerdown.stop
+            @click.stop
+          >
+            <DetailedOutlineNode
+              :node="node"
+              :outlineTree="treeData"
+              :docPath="activeDocument?.path || ''"
+              :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
+              :userPrompt="aiConfig.userPrompt || userPrompt"
+              :temperature="aiConfig.temperature"
+              :wordCount="aiConfig.wordCount"
+              @content-updated="(content: string) => handleNodeContentUpdate(node.path, content)"
+              @cancel="handleNodeContentCancel(node.path)"
+              @collapse="toggleNodeExpand(node.path)"
+              class="detailed-node-inline"
+            />
+          </div>
+        </template>
+        <!-- 如果节点未展开，显示正常节点 -->
+        <template v-else>
+          <el-tooltip 
+            :content="node.title || ''" 
+            placement="top" 
             :disabled="!node.title || !isNodeTextTruncated(node.path)"
           >
             <div
               class="tree-node"
               :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-              :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
+              :class="dropPreview.targetPath === node.path ? ('drop-' + dropPreview.mode) : ''"
               draggable="true"
               @dragstart.stop="onNodeDragStart(node)"
               @dragover.prevent="onNodeDragOver($event, node)"
@@ -110,12 +173,26 @@
               @mousedown.stop
               @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
             >
-              <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{
-                node.title
-              }}</span>
+              <span class="tree-node-text" :ref="el => setTextElementRef(el, node.path)">{{ node.title }}</span>
+              <!-- 展开按钮：小尺寸、扁平，不凸起 -->
+              <el-tooltip :content="$t('outline.expand')" placement="top">
+                <button
+                  type="button"
+                  class="tree-node-expand-btn"
+                  @click.stop="toggleNodeExpand(node.path)"
+                  v-if="node.path !== 'dummy'"
+                  :disabled="pendingAccept || generating"
+                  aria-label="Expand"
+                >
+                  <el-icon>
+                    <ArrowDown />
+                  </el-icon>
+                </button>
+              </el-tooltip>
             </div>
           </el-tooltip>
-          <el-tooltip :content="$t('outline.editNode')" placement="top">
+          <!-- 节点操作按钮（根据选择的工具切换图标） -->
+          <el-tooltip :content="selectedAiTool === 'pointer' ? $t('outline.editNode') : getAiToolTip(selectedAiTool)" placement="top">
             <el-button
               size="small"
               type="text"
@@ -125,419 +202,354 @@
               v-if="node.path !== 'dummy'"
               :disabled="pendingAccept || generating"
             >
-              <el-icon>
+              <el-icon v-if="selectedAiTool === 'pointer'">
                 <More />
+              </el-icon>
+              <el-icon v-else-if="selectedAiTool === 'generateChildren'">
+                <Finished />
+              </el-icon>
+              <el-icon v-else-if="selectedAiTool === 'generateContent'">
+                <EditPen />
+              </el-icon>
+              <el-icon v-else-if="selectedAiTool === 'generateChildrenChildren'">
+                <Rank />
+              </el-icon>
+              <el-icon v-else-if="selectedAiTool === 'generateChildrenContent'">
+                <Download />
               </el-icon>
             </el-button>
           </el-tooltip>
-          <div
-            v-if="dialogVisible[node.path]"
-            class="aero-div node-edit-box"
-            @click.stop
-            @mousemove.stop
-            @mousedown.stop
-            @mouseup.stop
-          >
-            <div>
-              <div class="button-group" v-if="!nodeMenuToggle">
-                <el-tooltip
-                  :content="
-                    direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')
-                  "
-                  placement="top"
-                >
-                  <el-button
-                    type="info"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="move2Left"
-                  >
-                    <el-icon style="font-size: 14px">
-                      <ArrowLeftBold v-if="direction === 'vertical'" />
-                      <ArrowUpBold v-else />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.addChild')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="addChildNode"
-                  >
-                    <el-icon style="font-size: 14px">
-                      <Plus />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.editContent')" placement="top">
-                  <el-button
-                    type="primary"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="editNode"
-                  >
-                    <el-icon style="font-size: 14px">
-                      <Edit />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.delete')" placement="top">
-                  <el-button
-                    type="danger"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="deleteNode"
-                  >
-                    <el-icon style="font-size: 14px">
-                      <Delete />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-
-                <el-tooltip
-                  :content="
-                    direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown')
-                  "
-                  placement="top"
-                >
-                  <el-button
-                    type="info"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="move2Right"
-                  >
-                    <el-icon style="font-size: 14px">
-                      <ArrowRightBold v-if="direction === 'vertical'" />
-                      <ArrowDownBold v-else />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-              </div>
-              <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
-                <el-tooltip :content="$t('outline.generateContent')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    :loading="generateContentLoading"
-                    @click.stop="generateContent"
-                    :disabled="generating"
-                  >
-                    <el-icon style="font-size: 14px" v-if="!generateContentLoading">
-                      <EditPen />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
-                  <el-button
-                    type="primary"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="generateChildChapter"
-                    :loading="generateChildChapterLoading"
-                    :disabled="generating"
-                  >
-                    <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                      <Finished />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="generateChildrenContent"
-                    :loading="generateChildrenContentLoading"
-                    :disabled="generating"
-                  >
-                    <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
-                      <Download />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
-                  <el-button
-                    type="primary"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="generateChildrenChildren"
-                    :loading="generateChildrenChildrenLoading"
-                    :disabled="generating"
-                  >
-                    <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
-                      <Rank />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-              </div>
-              <AutoResizeTextarea
-                v-if="nodeMenuToggle && !pendingAccept"
-                v-model="userPrompt"
-                :disabled="generating"
-                :placeholder="t('outline.userPromptPlaceholder')"
-                :autosize="{ minRows: 3 }"
-                max-height="10vh"
-                height="8vh"
-              />
-
-              <div class="button-group" v-if="pendingAccept">
-                <el-tooltip :content="$t('outline.accept')" placement="top">
-                  <el-button
-                    type="success"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="acceptChange"
-                  >
-                    <el-icon style="font-size: 14px">
-                      <Check />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.reject')" placement="top">
-                  <el-button
-                    type="danger"
-                    circle
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="discardChange"
-                    :loading="generateChildChapterLoading"
-                  >
-                    <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                      <Close />
-                    </el-icon>
-                  </el-button>
-                </el-tooltip>
-              </div>
-              <!-- 普通菜单按钮 -->
-            </div>
-          </div>
         </template>
-      </vue-tree>
-      <el-dialog
-        v-model="formatTitleDialogVisible"
-        :title="$t('outline.formatTitleWizard')"
-        width="30%"
-      >
-        <el-form label-width="200px" class="demo-ruleForm">
-          <el-form-item :label="$t('outline.adjustMarkdown')" prop="adjustMarkdown">
-            <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.adjustMarkdown"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item
-            v-if="formatTitleConfig.adjustMarkdown"
-            :label="$t('outline.firstMarkdownTitleLevel')"
-            prop="firstMarkdownTitleLevel"
-          >
-            <el-input-number
-              v-model="formatTitleConfig.firstMarkdownTitleLevel"
-              :min="1"
-              :max="6"
-              :step="1"
-              class="inline-input"
-            />
-          </el-form-item>
-          <el-form-item :label="$t('outline.adjustTitle')" prop="adjustTitle">
-            <el-tooltip :content="$t('outline.adjustTitleTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.adjustTitle"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item
-            v-if="formatTitleConfig.adjustTitle"
-            :label="$t('outline.coverOriginalNumber')"
-            prop="append"
-          >
-            <el-tooltip :content="$t('outline.coverTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.cover"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item
-            v-if="formatTitleConfig.adjustTitle"
-            :label="$t('outline.level1Chinese')"
-            prop="level1TitleChinese"
-          >
-            <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.level1TitleChinese"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <div style="display: flex; justify-content: space-between; margin-top: 20px">
-            <el-button type="info" @click="formatTitleDialogVisible = false">{{
-              $t('outline.cancel')
-            }}</el-button>
-            <div style="display: flex; gap: 10px">
-              <el-button type="danger" @click="handleRemovePrefixes">{{
-                $t('outline.removePrefixes')
-              }}</el-button>
-              <el-button type="success" @click="executeFormatTitle">{{
-                $t('outline.confirm')
-              }}</el-button>
+        <div v-if="dialogVisible[node.path]" class="aero-div node-edit-box" @click.stop @mousemove.stop @mousedown.stop
+          @mouseup.stop>
+          <div>
+            <div class="button-group" v-if="!nodeMenuToggle">
+              <el-tooltip :content="direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')" placement="top">
+                <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="move2Left">
+                  <el-icon style="font-size: 14px">
+                    <ArrowLeftBold v-if="direction === 'vertical'" />
+                    <ArrowUpBold v-else />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.addChild')" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="addChildNode">
+                  <el-icon style="font-size: 14px">
+                    <Plus />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.editContent')" placement="top">
+                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="editNode">
+                  <el-icon style="font-size: 14px">
+                    <Edit />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.delete')" placement="top">
+                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="deleteNode">
+                  <el-icon style="font-size: 14px">
+                    <Delete />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+
+              <el-tooltip :content="direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown')" placement="top">
+                <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="move2Right">
+                  <el-icon style="font-size: 14px">
+                    <ArrowRightBold v-if="direction === 'vertical'" />
+                    <ArrowDownBold v-else />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+
             </div>
-          </div>
-        </el-form>
-      </el-dialog>
-      <el-dialog
-        v-model="editValueDialogVisible"
-        :title="$t('outline.editChapterTitle')"
-        width="40%"
-      >
-        <el-form>
-          <el-form-item :label="$t('outline.chapterName')">
-            <el-input v-model="currentChapterValue" autocomplete="off" class="aero-input" />
-          </el-form-item>
-          <el-form-item :label="$t('outline.chapterContent')">
-            <md-editor
-              v-model="currentChapterContent"
-              show-code-row-number
-              preview-theme="github"
-              code-style-reverse
-              style="text-align: left"
-              :auto-fold-threshold="300"
-              :theme="editorTheme"
+            <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
+              <el-tooltip :content="$t('outline.generateContent')" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  :loading="generateContentLoading" @click.stop="generateContent" :disabled="generating">
+                  <el-icon style="font-size: 14px" v-if="!generateContentLoading">
+                    <EditPen />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
+                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="generateChildChapter" :loading="generateChildChapterLoading" :disabled="generating">
+                  <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
+                    <Finished />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="generateChildrenContent" :loading="generateChildrenContentLoading"
+                  :disabled="generating">
+                  <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
+                    <Download />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
+                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="generateChildrenChildren" :loading="generateChildrenChildrenLoading"
+                  :disabled="generating">
+                  <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
+                    <Rank />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+            </div>
+            <AutoResizeTextarea 
+              v-if="nodeMenuToggle && !pendingAccept"
+              v-model="userPrompt"
+              :disabled="generating"
+              :placeholder="t('outline.userPromptPlaceholder')"
+              :autosize="{ minRows: 3 }"
+              max-height="10vh"
+              height="8vh"
             />
-          </el-form-item>
-        </el-form>
-        <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
-      </el-dialog>
-      <div class="bottom-menu aero-div">
-        <el-tooltip
-          :content="
-            direction === 'horizontal'
-              ? $t('outline.switchToVertical')
-              : $t('outline.switchToHorizontal')
-          "
-          placement="top"
-        >
-          <el-button type="info" circle @click="toggleLayout">
-            <el-icon>
-              <Sort />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.zoomIn')" placement="top">
-          <el-button type="success" circle @click="zoomIn">
-            <el-icon>
-              <Plus />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.zoomOut')" placement="top">
-          <el-button type="warning" circle @click="zoomOut">
-            <el-icon>
-              <Minus />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.reset')" placement="top">
-          <el-button type="info" circle @click="resetScale">
-            <el-icon>
-              <Refresh />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.formatTitle')" placement="top">
-          <el-button type="warning" circle @click="formatTitle">
-            <el-icon style="width: 1em; height: 1em"> T </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
-          <el-button
-            :type="nodeMenuToggle ? 'primary' : 'danger'"
-            circle
-            @click="nodeMenuToggle = !nodeMenuToggle"
-            :disabled="generating || pendingAccept"
-          >
-            <el-icon style="width: 1em; height: 1em"> AI </el-icon>
-          </el-button>
-        </el-tooltip>
+
+            <div class="button-group" v-if="pendingAccept">
+              <el-tooltip :content="$t('outline.accept')" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="acceptChange">
+                  <el-icon style="font-size: 14px">
+                    <Check />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('outline.reject')" placement="top">
+                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="discardChange" :loading="generateChildChapterLoading">
+                  <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
+                    <Close />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+            </div>
+            <!-- 普通菜单按钮 -->
+
+
+          </div>
+        </div>
+      </template>
+
+    </vue-tree>
+    <el-dialog v-model="formatTitleDialogVisible" :title="$t('outline.formatTitleWizard')" width="30%">
+      <el-form label-width="200px" class="demo-ruleForm">
+        <el-form-item :label="$t('outline.adjustMarkdown')" prop="adjustMarkdown">
+          <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
+            <el-switch v-model="formatTitleConfig.adjustMarkdown" active-color="#13ce66" inactive-color="#ff4949" />
+          </el-tooltip>
+        </el-form-item>
+        <el-form-item v-if='formatTitleConfig.adjustMarkdown' :label="$t('outline.firstMarkdownTitleLevel')"
+          prop="firstMarkdownTitleLevel">
+          <el-input-number v-model="formatTitleConfig.firstMarkdownTitleLevel" :min="1" :max="6" :step="1"
+            class="inline-input" />
+        </el-form-item>
+        <el-form-item :label="$t('outline.adjustTitle')" prop="adjustTitle">
+          <el-tooltip :content="$t('outline.adjustTitleTip')" placement="right">
+            <el-switch v-model="formatTitleConfig.adjustTitle" active-color="#13ce66" inactive-color="#ff4949" />
+          </el-tooltip>
+        </el-form-item>
+        <el-form-item v-if="formatTitleConfig.adjustTitle" :label="$t('outline.coverOriginalNumber')" prop="append">
+          <el-tooltip :content="$t('outline.coverTip')" placement="right">
+            <el-switch v-model="formatTitleConfig.cover" active-color="#13ce66" inactive-color="#ff4949" />
+          </el-tooltip>
+        </el-form-item>
+        <el-form-item v-if="formatTitleConfig.adjustTitle" :label="$t('outline.level1Chinese')"
+          prop="level1TitleChinese">
+          <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
+            <el-switch v-model="formatTitleConfig.level1TitleChinese" active-color="#13ce66" inactive-color="#ff4949" />
+          </el-tooltip>
+        </el-form-item>
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+          <el-button type="info" @click="formatTitleDialogVisible = false">{{ $t('outline.cancel') }}</el-button>
+          <div style="display: flex; gap: 10px;">
+            <el-button type="danger" @click="handleRemovePrefixes">{{ $t('outline.removePrefixes') }}</el-button>
+            <el-button type="success" @click="executeFormatTitle">{{ $t('outline.confirm') }}</el-button>
+          </div>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog v-model="editValueDialogVisible" :title="$t('outline.editChapterTitle')" width="40%">
+      <el-form>
+        <el-form-item :label="$t('outline.chapterName')">
+          <el-input v-model="currentChapterValue" autocomplete="off" class="aero-input" />
+        </el-form-item>
+        <el-form-item :label="$t('outline.chapterContent')">
+          <md-editor
+            v-model="currentChapterContent"
+            show-code-row-number
+            preview-theme="github"
+            code-style-reverse
+            style="text-align: left"
+            :auto-fold-threshold="300"
+            :theme="editorTheme"
+          />
+
+        </el-form-item>
+      </el-form>
+      <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
+    </el-dialog>
+
+    <!-- AI配置对话框：Tailwind 风格、温度标尺、关键词控件、AI 推荐关键词 -->
+    <el-dialog
+      v-model="aiConfigDialogVisible"
+      :title="$t('outline.aiConfig.title')"
+      width="560px"
+      class="ai-config-dialog"
+      @opened="onAiConfigDialogOpened"
+    >
+      <div class="ai-config-body">
+        <!-- 温度：刻度体现严谨 / 平衡 / 创意，默认 1 为平衡 -->
+        <div class="ai-config-section">
+          <label class="ai-config-label">{{ $t('outline.aiConfig.temperature') }}</label>
+          <el-slider
+            v-model="aiConfig.temperature"
+            :min="0"
+            :max="2"
+            :step="0.1"
+            :show-tooltip="true"
+            :marks="temperatureMarks"
+            class="ai-config-temperature-slider"
+          />
+        </div>
+
+        <!-- 关键词：KeywordInput + AI 推荐 -->
+        <div class="ai-config-section">
+          <label class="ai-config-label">{{ $t('outline.aiConfig.keywords') }}</label>
+          <KeywordInput
+            v-model="aiConfig.keywords"
+            :placeholder="$t('outline.aiConfig.keywordsPlaceholder')"
+            class="ai-config-keywords-input"
+          />
+          <div class="ai-config-recommended">
+            <span class="ai-config-recommended-title">{{ $t('outline.aiConfig.recommendedKeywords') }}：</span>
+            <template v-if="recommendedKeywordsLoading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span class="ai-config-recommended-text">{{ $t('outline.aiConfig.generatingKeywords') }}</span>
+            </template>
+            <template v-else-if="recommendedKeywords.length">
+              <div class="ai-config-recommended-tags">
+                <el-tag
+                  v-for="k in recommendedKeywords"
+                  :key="k"
+                  size="small"
+                  type="info"
+                  class="ai-config-recommended-tag"
+                  @click="addRecommendedKeyword(k)"
+                >
+                  {{ k }} <el-icon class="ai-config-tag-add"><Plus /></el-icon>
+                </el-tag>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 目标字数：普通输入框，仅数字 -->
+        <div class="ai-config-section">
+          <label class="ai-config-label">{{ $t('outline.aiConfig.wordCount') }}</label>
+          <el-input
+            :model-value="wordCountInput"
+            type="text"
+            inputmode="numeric"
+            :placeholder="$t('outline.aiConfig.wordCountPlaceholder')"
+            class="ai-config-word-count-input"
+            maxlength="6"
+            @update:model-value="onWordCountInput"
+          />
+        </div>
+
+        <!-- 用户提示词 -->
+        <div class="ai-config-section">
+          <label class="ai-config-label">{{ $t('outline.aiConfig.userPrompt') }}</label>
+          <AutoResizeTextarea
+            v-model="aiConfig.userPrompt"
+            :placeholder="$t('outline.aiConfig.userPromptPlaceholder')"
+            :autosize="{ minRows: 4 }"
+            :preset-options="presetPrompts"
+            class="ai-config-user-prompt"
+          />
+        </div>
       </div>
+      <template #footer>
+        <el-button @click="aiConfigDialogVisible = false">{{ $t('outline.cancel') }}</el-button>
+        <el-button type="primary" @click="handleAiConfigConfirm">{{ $t('outline.confirm') }}</el-button>
+      </template>
+    </el-dialog>
+    <div class="bottom-menu aero-div">
+      <el-tooltip :content="direction === 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal')" placement="top">
+        <el-button type="info" circle @click="toggleLayout">
+          <el-icon>
+            <Sort />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.zoomIn')" placement="top">
+        <el-button type="success" circle @click="zoomIn">
+          <el-icon>
+            <Plus />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.zoomOut')" placement="top">
+        <el-button type="warning" circle @click="zoomOut">
+          <el-icon>
+            <Minus />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.reset')" placement="top">
+        <el-button type="info" circle @click="resetScale">
+          <el-icon>
+            <Refresh />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.formatTitle')" placement="top">
+        <el-button type="warning" circle @click="formatTitle">
+          <el-icon style="width: 1em; height: 1em;">
+            T
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
+        <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" circle @click="nodeMenuToggle = !nodeMenuToggle"
+          :disabled="generating || pendingAccept">
+          <el-icon style="width: 1em; height: 1em;">
+            AI
+          </el-icon>
+
+        </el-button>
+      </el-tooltip>
     </div>
+  </div>
   </div>
 </template>
 <script setup lang="ts">
-import {
-  ref,
-  reactive,
-  watch,
-  computed,
-  onMounted,
-  onBeforeMount,
-  onUnmounted,
-  nextTick,
-  type Ref,
-  type ComponentPublicInstance
-} from 'vue'
-import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
-import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue'
-import { tabs, useWorkspace, type DocumentView } from '../stores/workspace'
-import eventBus, { getWindowType } from '../utils/event-bus.js'
-import '../assets/aero-div.css'
-import '../assets/aero-btn.css'
-import '../assets/aero-input.css'
-import { MdEditor, type Themes } from 'md-editor-v3'
-import {
-  Plus,
-  Edit,
-  Delete,
-  More,
-  Minus,
-  ArrowLeftBold,
-  ArrowRightBold,
-  ArrowUpBold,
-  ArrowDownBold,
-  Finished,
-  EditPen,
-  Checked,
-  Close,
-  Check,
-  Download,
-  Rank,
-  CloseBold,
-  Sort
-} from '@element-plus/icons-vue'
-import type { DocumentOutlineNode } from '../../../types'
-import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
-import { searchNode, searchParentNode } from '../utils/outline-helpers'
-import {
-  adjustTitleIndex,
-  adjustTitleLevel,
-  removeTextFromOutline,
-  generateMarkdownFromOutlineTree
-} from '../utils/md-utils.js'
-import { removeTitleIndex } from '../utils/regex-utils.js'
-import {
-  expandTreeNodePrompt,
-  generateContentPrompt,
-  generateParentNodeContentPrompt,
-  outlineChangePrompt
-} from '../utils/prompts'
+import { ref, reactive, watch, computed, onMounted, onBeforeMount, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
+import { ElButton, ElDialog, ElMessageBox, ElNotification, ElSlider, ElSelect, ElOption, ElForm, ElFormItem, ElInputNumber } from 'element-plus'; // 引入 Element Plus 组件
+import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue';
+import { tabs, useWorkspace, type DocumentView } from '../stores/workspace';
+import eventBus, { getWindowType } from '../utils/event-bus.js';
+import '../assets/aero-div.css';
+import '../assets/aero-btn.css';
+import "../assets/aero-input.css";
+import { MdEditor, type Themes } from 'md-editor-v3';
+import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, ArrowUpBold, ArrowDownBold, Finished, EditPen, Checked, Close, Check, Download, Rank, CloseBold, Sort, Pointer, ArrowDown, ArrowUp, Loading } from '@element-plus/icons-vue';
+import type { DocumentOutlineNode } from '../../../types';
+import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document';
+import { searchNode, searchParentNode } from '../utils/outline-helpers';
+import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline, generateMarkdownFromOutlineTree } from '../utils/md-utils.js';
+import { removeTitleIndex } from '../utils/regex-utils.js';
+import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts';
 
 import { themeState } from '../utils/themes.js'
 import { extractOuterJsonString } from '../utils/regex-utils.js'
@@ -545,10 +557,17 @@ import { getOutlineAdapter } from '../utils/outline-adapters'
 import {
   generateChildNodes as generateChildNodesUtil,
   generateNodeContent as generateNodeContentUtil,
+  generateChildrenChildren as generateChildrenChildrenUtil,
+  generateChildrenContent as generateChildrenContentUtil,
   cleanNodeTitleMarkers,
   cleanRawContent
-} from '../utils/outline-ai-utils'
-import '../assets/noselect-display.css'
+} from '../utils/outline-ai-utils';
+import DetailedOutlineNode from '../components/outline/DetailedOutlineNode.vue';
+import KeywordInput from '../components/KeywordInput.vue';
+import '../assets/noselect-display.css';
+import { generateWithSchema } from '../utils/ai-schema-task';
+import { OUTLINE_SECTION_KEYWORDS_SCHEMA } from '../utils/schemas';
+import { generateOutlineSectionKeywordsPrompt } from '../utils/prompts';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
 import { getSetting, setSetting } from '../utils/settings.js'
@@ -665,51 +684,30 @@ const generateChildrenChildren = async () => {
     workspace.unlockUI?.()
     return
   }
-  parallelChildren.value = []
-  const taskPromises: Promise<void>[] = []
+  parallelChildren.value = [];
 
-  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
-    if (!curNode) return
-
-    if (curNode.children && curNode.children.length > 0) {
-      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
-      return
-    }
-
-    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-    // 为每个节点创建一个独立的ref用于显示原始内容
-    const nodeRawContentRef = ref('')
-    parallelChildren.value.push(nodeRawContentRef)
-
-    const task = generateChildNodesUtil(
-      curNode,
-      treeData.value,
-      userPrompt.value,
-      undefined, // signal
-      docFormat,
-      nodeRawContentRef // 传入ref，用于实时显示原始内容
-    )
-      .then((newChildren) => {
-        if (!curNode.children) {
-          curNode.children = []
-        }
-        curNode.children.push(...newChildren)
-        eventBus.emit(
-          'show-success',
-          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
-        )
-      })
-      .catch((err) => {
-        logger.warn(`节点 ${curNode.title} 生成子节点失败`, err)
-      })
-
-    taskPromises.push(task)
-  }
+  // 构建增强的用户提示词
+  let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
+  const kwStr = getKeywordsPromptString()
+  if (kwStr) enhancedPrompt += `\n关键词：${kwStr}`
 
   try {
-    await traverseAndGenerate(rootNode)
-    await Promise.all(taskPromises)
-    eventBus.emit('show-success', t('outline.generateChildSuccess'))
+    // 使用公共工具函数
+    await generateChildrenChildrenUtil(
+      rootNode,
+      treeData.value,
+      enhancedPrompt,
+      (activeDocument.value?.format ?? 'md') as 'md' | 'tex',
+      undefined, // signal
+      (curNode, nodeRawContentRef) => {
+        // 为每个节点创建一个独立的ref用于显示原始内容
+        parallelChildren.value.push(nodeRawContentRef);
+      },
+      undefined, // onUpdate
+      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined // 传递温度参数
+    );
+    
+    eventBus.emit('show-success', t('outline.generateChildSuccess'));
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     eventBus.emit('show-error', t('outline.generateChildFail', { error: message }))
@@ -740,56 +738,47 @@ const generateChildrenContent = async () => {
     workspace.unlockUI?.()
     return
   }
-  parallelChildren.value = [] // 清空并行生成列表
-  const taskPromises: Promise<unknown>[] = [] // 用于收集所有任务的done promise
+  parallelChildren.value = []; // 清空并行生成列表
 
-  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
-    if (!curNode) return
-
-    if (curNode.children && curNode.children.length > 0) {
-      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
-    }
-
-    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-    // 为每个节点创建一个独立的ref用于显示原始内容
-    const nodeRawContentRef = ref('')
-    parallelChildren.value.push(nodeRawContentRef)
-
-    const task = generateNodeContentUtil(
-      curNode,
-      treeData.value,
-      userPrompt.value,
-      undefined, // signal
-      docFormat,
-      nodeRawContentRef // 传入ref，用于实时显示原始内容
-    )
-      .then((content) => {
-        curNode.text = content || ''
-        eventBus.emit(
-          'show-success',
-          t('outline.generateContentSuccessWithTitle', { title: curNode.title })
-        )
-      })
-      .catch((err) => {
-        logger.warn(`节点 ${curNode.title} 任务失败或取消：`, err)
-        curNode.text = ''
-      })
-
-    taskPromises.push(task)
+  // 构建增强的用户提示词
+  let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
+  const kwStr = getKeywordsPromptString()
+  if (kwStr) enhancedPrompt += `\n关键词：${kwStr}`
+  if (aiConfig.wordCount) {
+    enhancedPrompt += `\n目标字数：约${aiConfig.wordCount}字`
   }
 
-  await traverseAndGenerate(rootNode) // 启动任务遍历
+  try {
+    // 使用公共工具函数
+    await generateChildrenContentUtil(
+      rootNode,
+      treeData.value,
+      enhancedPrompt,
+      (activeDocument.value?.format ?? 'md') as 'md' | 'tex',
+      undefined, // signal
+      (curNode, nodeRawContentRef) => {
+        // 为每个节点创建一个独立的ref用于显示原始内容
+        parallelChildren.value.push(nodeRawContentRef);
+      },
+      undefined, // onUpdate
+      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined, // 传递温度参数
+      aiConfig.wordCount !== undefined ? aiConfig.wordCount : undefined // 传递字数参数
+    );
 
-  await Promise.all(taskPromises) // 等待所有任务完成
-
-  generating.value = false
-  generateChildrenContentLoading.value = false
-  generated.value = true
-  // 恢复同步并统一提交一次
-  suppressDocumentSync = prevSync
-  commitOutline()
-  workspace.unlockUI?.()
-}
+    generating.value = false;
+    generateChildrenContentLoading.value = false;
+    generated.value = true;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger.error('批量生成内容失败:', e);
+    eventBus.emit('show-error', t('outline.generateContentFail', { error: message }));
+  } finally {
+    // 恢复同步并统一提交一次
+    suppressDocumentSync = prevSync;
+    commitOutline();
+    workspace.unlockUI?.();
+  }
+};
 
 const generateContent = async () => {
   workspace.lockUI?.()
@@ -807,16 +796,26 @@ const generateContent = async () => {
     return
   }
   const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-  rawstring.value = '' // 清空之前的内容
+  rawstring.value = ''; // 清空之前的内容
+  
+  // 构建增强的用户提示词（包含关键词）
+    let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
+    const kwStr = getKeywordsPromptString()
+    if (kwStr) enhancedPrompt += `\n关键词：${kwStr}`
+  // 注意：wordCount通过函数参数传递，而不是添加到提示词中（函数内部会处理）
+  
   try {
     const content = await generateNodeContentUtil(
       curNode,
       treeData.value,
-      userPrompt.value,
+      enhancedPrompt,
       undefined, // signal
       docFormat,
-      rawstring // 传入rawstring ref，用于实时显示原始内容
-    )
+      rawstring, // 传入rawstring ref，用于实时显示原始内容
+      undefined, // onUpdate
+      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined, // 传递温度参数
+      aiConfig.wordCount !== undefined ? aiConfig.wordCount : undefined // 传递字数参数
+    );
     // rawstring.value 已经通过ref实时更新了，这里只需要设置处理后的内容
     curNode.text = content || ''
   } catch (err) {
@@ -1773,9 +1772,199 @@ const handleWheelZoom = (event: WheelEvent) => {
   }
 }
 
-const nodeMenuToggle = ref(false) //false为普通节点，true为AI辅助节点
+const nodeMenuToggle = ref(false);//false为普通节点，true为AI辅助节点
+
+// AI工具选择状态
+const selectedAiTool = ref<'pointer' | 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent'>('pointer')
+
+// 节点展开状态
+const expandedNodes = ref<Record<string, boolean>>({})
+
+// AI配置对话框
+const aiConfigDialogVisible = ref(false)
+const aiConfig = reactive({
+  temperature: 1.0,
+  keywords: [] as string[],
+  wordCount: undefined as number | undefined,
+  userPrompt: ''
+})
+
+/** 用于生成提示词的关键词字符串（数组转空格分隔） */
+function getKeywordsPromptString(): string {
+  const kw = aiConfig.keywords
+  if (Array.isArray(kw) && kw.length) return kw.join(' ')
+  return ''
+}
+
+// 预设提示词
+const presetPrompts = ref([
+  { label: t('outline.aiConfig.preset.combineStructure'), value: '请结合文章结构，帮我完善这一段的内容' },
+  { label: t('outline.aiConfig.preset.expand'), value: '帮我扩写' },
+  { label: t('outline.aiConfig.preset.abridge'), value: '帮我精简内容，保留核心观点' },
+  { label: t('outline.aiConfig.preset.polish'), value: '帮我润色，提升表达质量' },
+  { label: t('outline.aiConfig.preset.detailed'), value: '生成详细内容，包含具体案例和数据支撑' },
+  { label: t('outline.aiConfig.preset.professional'), value: '使用专业、准确的学术写作风格' },
+  { label: t('outline.aiConfig.preset.concise'), value: '内容简洁精炼，突出重点' },
+  { label: t('outline.aiConfig.preset.examples'), value: '添加具体案例和实际应用场景' },
+  { label: t('outline.aiConfig.preset.theory'), value: '补充理论基础和背景知识' },
+  { label: t('outline.aiConfig.preset.summary'), value: '生成总结性内容，概括要点' },
+  { label: t('outline.aiConfig.preset.analysis'), value: '进行深入分析，提供多角度观点' },
+  { label: t('outline.aiConfig.preset.comparison'), value: '添加对比分析，突出差异和特点' },
+  { label: t('outline.aiConfig.preset.trends'), value: '分析发展趋势和未来展望' },
+  { label: t('outline.aiConfig.preset.practice'), value: '提供实践建议和操作指南' },
+  { label: t('outline.aiConfig.preset.custom'), value: '' }
+])
+
+const selectedPresetPrompt = ref('')
+
+// 温度刻度：0 严谨 / 1 平衡 / 2 创意（默认 1 为平衡）
+const temperatureMarks = computed(() => ({
+  0: { label: t('outline.aiConfig.temperatureStrict') },
+  1: { label: t('outline.aiConfig.temperatureBalance') },
+  2: { label: t('outline.aiConfig.temperatureCreative') }
+}))
+
+// 目标字数：用普通输入框绑定字符串，同步到 aiConfig.wordCount
+const wordCountInput = ref('')
+function onWordCountInput(val: string) {
+  const digits = val.replace(/\D/g, '')
+  wordCountInput.value = digits
+  const n = digits === '' ? undefined : parseInt(digits, 10)
+  aiConfig.wordCount = n === undefined || isNaN(n) ? undefined : Math.min(999999, Math.max(0, n))
+}
+
+// AI 推荐关键词（根据当前节点标题与大纲生成）
+const recommendedKeywords = ref<string[]>([])
+const recommendedKeywordsLoading = ref(false)
+const recommendedKeywordsOutputRef = ref('')
+
+function onAiConfigDialogOpened() {
+  recommendedKeywords.value = []
+  wordCountInput.value = aiConfig.wordCount == null ? '' : String(aiConfig.wordCount)
+  const node = selectedNode.value
+  if (!node) return
+  recommendedKeywordsLoading.value = true
+  const outlineMarkdown = generateMarkdownFromOutlineTree(treeData.value)
+  const prompt = generateOutlineSectionKeywordsPrompt(node.title || '', outlineMarkdown)
+  generateWithSchema(
+    OUTLINE_SECTION_KEYWORDS_SCHEMA,
+    prompt,
+    recommendedKeywordsOutputRef,
+    { taskName: t('outline.aiConfig.recommendedKeywords') }
+  )
+    .then((result) => {
+      recommendedKeywords.value = result.keywords || []
+    })
+    .catch(() => {
+      recommendedKeywords.value = []
+    })
+    .finally(() => {
+      recommendedKeywordsLoading.value = false
+    })
+}
+
+function addRecommendedKeyword(keyword: string) {
+  const kw = keyword.trim()
+  if (!kw) return
+  if (!aiConfig.keywords.includes(kw)) {
+    aiConfig.keywords = [...aiConfig.keywords, kw]
+  }
+}
+
+// 最后展开的节点 path，用于将该详细面板置于最上层
+const lastExpandedNodePath = ref<string | null>(null)
+
+// 切换节点展开/折叠
+const toggleNodeExpand = (nodePath: string) => {
+  expandedNodes.value[nodePath] = !expandedNodes.value[nodePath]
+  if (expandedNodes.value[nodePath]) {
+    lastExpandedNodePath.value = nodePath
+  } else if (lastExpandedNodePath.value === nodePath) {
+    lastExpandedNodePath.value = null
+  }
+}
+
+// 获取AI工具提示词
+const getAiToolTip = (tool: string): string => {
+  const toolTips: Record<string, string> = {
+    'generateChildren': t('outline.generateChildChapter'),
+    'generateContent': t('outline.generateContent'),
+    'generateChildrenChildren': t('outline.generateChildrenChildren'),
+    'generateChildrenContent': t('outline.generateChildrenContent')
+  }
+  return toolTips[tool] || ''
+}
+
+// 处理预设提示词选择
+const handlePresetPromptChange = (value: string) => {
+  const preset = presetPrompts.value.find(p => p.value === value)
+  if (preset && preset.value) {
+    aiConfig.userPrompt = preset.value
+  }
+}
+
+// 处理AI配置确认
+const handleAiConfigConfirm = () => {
+  // 根据选择的工具执行相应操作
+  if (selectedAiTool.value === 'pointer') {
+    aiConfigDialogVisible.value = false
+    return
+  }
+
+  const node = selectedNode.value
+  if (!node) {
+    aiConfigDialogVisible.value = false
+    return
+  }
+
+  // 更新userPrompt
+  userPrompt.value = aiConfig.userPrompt
+
+  // 执行相应的AI操作
+  if (selectedAiTool.value === 'generateChildren') {
+    generateChildChapter()
+  } else if (selectedAiTool.value === 'generateContent') {
+    generateContent()
+  } else if (selectedAiTool.value === 'generateChildrenChildren') {
+    generateChildrenChildren()
+  } else if (selectedAiTool.value === 'generateChildrenContent') {
+    generateChildrenContent()
+  }
+
+  aiConfigDialogVisible.value = false
+}
+
+// 处理节点内容更新
+const handleNodeContentUpdate = (nodePath: string, content: string) => {
+  const node = searchNode(nodePath, treeData.value)
+  if (node) {
+    node.text = content
+    commitOutline()
+  }
+}
+
+// 处理节点内容取消
+const handleNodeContentCancel = (nodePath: string) => {
+  // 可以在这里添加取消逻辑
+}
+
 const handleNodeButtonClick = (node: DocumentOutlineNode) => {
-  selectedNode.value = node
+  selectedNode.value = node;
+  
+  // 如果选择的是AI工具，打开配置对话框
+  if (selectedAiTool.value !== 'pointer') {
+    // 恢复默认配置
+    aiConfig.temperature = 1.0
+    aiConfig.keywords = []
+    aiConfig.wordCount = undefined
+    wordCountInput.value = ''
+    aiConfig.userPrompt = userPrompt.value || ''
+    selectedPresetPrompt.value = ''
+    aiConfigDialogVisible.value = true
+    return
+  }
+
+  // 普通模式：显示/隐藏操作框
   if (dialogVisible.value[node.path] != null) {
     dialogVisible.value[node.path] = !dialogVisible.value[node.path]
   } else {
@@ -1867,17 +2056,26 @@ const generateChildChapter = async () => {
     if (!currentNode) throw new Error('节点不存在')
 
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-    rawstring.value = '' // 清空之前的内容
-    try {
-      const newChildren = await generateChildNodesUtil(
+    rawstring.value = ''; // 清空之前的内容
+    
+    // 构建增强的用户提示词
+  let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
+  const kwStr = getKeywordsPromptString()
+  if (kwStr) enhancedPrompt += `\n关键词：${kwStr}`
+
+  try {
+    const newChildren = await generateChildNodesUtil(
         currentNode,
         treeData.value,
-        userPrompt.value,
+        enhancedPrompt,
         undefined, // signal
         docFormat,
-        rawstring // 传入rawstring ref，用于实时显示原始内容
-      )
-
+        rawstring, // 传入rawstring ref，用于实时显示原始内容
+        undefined, // onUpdate
+        true, // enableFallback
+        aiConfig.temperature !== undefined ? aiConfig.temperature : undefined // 传递温度参数
+      );
+      
       // rawstring.value 已经通过ref实时更新了，这里只在最终显示格式化后的JSON
       if (!rawstring.value) {
         rawstring.value = JSON.stringify(newChildren, null, 2)
@@ -2070,10 +2268,21 @@ onUnmounted(() => {
   position: absolute;
   max-width: 500px;
   width: 500px;
-  max-height: 500px;
-  opacity: 0.9;
+  max-height: 70vh;
+  opacity: 0.95;
   z-index: 10000;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.generate-preview-scrollbar {
+  flex: 1;
+  min-height: 0;
+}
+
+.generate-preview-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 
 .node-edit-box {
@@ -2122,7 +2331,9 @@ onUnmounted(() => {
 .tree-node {
   margin-bottom: 12px;
   /* 增加底部间距 */
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border-radius: 12px;
   /* 增加圆角 */
   padding: 8px 16px;
@@ -2143,6 +2354,39 @@ onUnmounted(() => {
   contain: layout style paint;
   /* 创建新的层叠上下文 */
   isolation: isolate;
+}
+
+/* 节点展开按钮：小尺寸、扁平、不凸起 */
+.tree-node-expand-btn {
+  flex-shrink: 0;
+  margin-left: 4px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(128, 128, 128, 0.15);
+  color: v-bind('themeState.currentTheme.textColor');
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.tree-node-expand-btn:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.28);
+}
+
+.tree-node-expand-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tree-node-expand-btn .el-icon {
+  font-size: 12px;
 }
 
 /* 拖拽时禁用所有过渡和动画，减少重绘 */
@@ -2204,8 +2448,10 @@ onUnmounted(() => {
   /* 设置默认字体大小 */
   color: v-bind('themeState.currentTheme.textColor');
   /* 设置文本颜色 - 使用主题文字颜色 */
-  width: 100%;
-  /* 占满父容器宽度 */
+  flex: 1;
+  /* 占据剩余空间 */
+  min-width: 0;
+  /* 允许收缩 */
   overflow: hidden;
   /* 隐藏溢出内容 */
   text-overflow: ellipsis;
@@ -2250,6 +2496,216 @@ onUnmounted(() => {
     transform: translateX(-50%) !important;
   }
 }
+
+/* 左上角AI工具工具栏：容器不随展开撑开，展开的按钮向右溢出 */
+.ai-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 1000;
+  padding: 8px;
+  border-radius: 12px;
+  box-sizing: border-box;
+  width: 36px;
+  min-width: 36px;
+  overflow: visible;
+}
+
+.ai-toolbar-btn {
+  width: 36px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 8px !important;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.ai-toolbar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.ai-toolbar-btn--selected,
+.ai-toolbar-btn:active {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.ai-toolbar .el-button {
+  width: 36px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 8px !important;
+}
+
+/* 选中非指针工具时：按钮浮起并向右溢出显示名称 */
+.ai-toolbar .el-button.ai-toolbar-btn--expanded {
+  width: auto;
+  min-width: 36px;
+  padding: 0 12px 0 8px;
+  flex-shrink: 0;
+}
+.ai-toolbar-btn--expanded {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.ai-toolbar-btn__label {
+  margin-left: 6px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+/* vue3-tree-chart 的 .node-slot 是每个节点的容器；含详细面板的 slot 必须最上层且不裁剪 */
+.outline-tree-container :deep(.node-slot:has(> .detailed-node-wrapper)) {
+  z-index: 10000;
+  position: relative;
+  overflow: visible;
+}
+
+.outline-tree-container :deep(.node-slot:has(> .detailed-node-wrapper.detailed-node-wrapper--top)) {
+  z-index: 10001;
+}
+
+/* 树节点层级压低 */
+.outline-tree-container :deep(.tree-node) {
+  position: relative;
+  z-index: 1;
+}
+
+/* 详细节点面板外层：参与排版、替代 tree-node 的同一 slot */
+.detailed-node-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.detailed-node-wrapper--top {
+  z-index: 2;
+}
+
+/* 详细节点面板（内联显示） */
+.detailed-node-inline,
+.outline-tree-container :deep(.detailed-outline-node) {
+  position: relative;
+  z-index: 1;
+}
+
+.detailed-node-inline {
+  width: 100%;
+  max-width: 600px;
+  margin: 0;
+}
+
+.generate-preview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.generate-preview-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 8px 0;
+}
+
+/* 配置提示文字 */
+/* AI 配置对话框：Tailwind 风格、科技感 */
+.ai-config-dialog :deep(.el-dialog__body) {
+  padding: 16px 20px;
+}
+.ai-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ai-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-config-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ai-config-temperature-slider {
+  margin: 0;
+}
+.ai-config-temperature-slider :deep(.el-slider__marks-text) {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.ai-config-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+.ai-config-keywords-input {
+  width: 100%;
+}
+.ai-config-keywords-input :deep(.keyword-input) {
+  width: 100%;
+}
+.ai-config-recommended {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.ai-config-recommended-title {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+.ai-config-recommended-text {
+  color: var(--el-text-color-secondary);
+}
+.ai-config-recommended-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ai-config-recommended-tag {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-config-recommended-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.ai-config-tag-add {
+  margin-left: 2px;
+  font-size: 10px;
+  vertical-align: middle;
+}
+.ai-config-word-count-input {
+  width: 100%;
+  max-width: 200px;
+}
+.ai-config-user-prompt {
+  width: 100%;
+}
+
+.config-hint {
+  font-size: 12px;
+  color: rgba(145, 145, 145, 0.8);
+  margin-top: 4px;
+}
+
 </style>
 
 <!-- 全局样式：拖拽时优化性能，防止影响其他组件 -->

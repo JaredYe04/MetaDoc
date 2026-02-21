@@ -65,27 +65,41 @@
                       :show-file-list="false"
                     >
                       <template #trigger>
-                        <el-button :icon="UploadFilled">
+                        <Button>
+                          <UploadFilled class="mr-1 h-4 w-4" />
                           {{ t('ocr.uploadHint') }}
-                        </el-button>
+                        </Button>
                       </template>
                     </el-upload>
 
-                    <el-button @click="handlePasteFromClipboard">
+                    <Button variant="outline" @click="handlePasteFromClipboard">
                       {{ t('ocr.pasteFromClipboard') }}
-                    </el-button>
+                    </Button>
                   </div>
 
                   <div class="toolbar-right">
                     <!-- 操作按钮 -->
-                    <el-button
-                      v-if="ocrResults.length > 0"
-                      type="primary"
-                      :loading="processing"
-                      @click="handleOcr"
-                    >
-                      {{ t('ocr.startOcr') }}
-                    </el-button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          :disabled="aiFixing.get(index)"
+                          @click="handleAiFix(index)"
+                        >
+                          <img
+                            :src="(themeState.currentTheme as any).AiLogo"
+                            alt="AI"
+                            class="ai-logo-icon-small"
+                          />
+                          {{ t('ocr.aiFix') }}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          :disabled="recognizingIndex.has(index)"
+                          @click="handleReRecognizeSingle(index)"
+                        >
+                          {{ t('ocr.reRecognize') }}
+                        </Button>
                   </div>
                 </div>
               </el-scrollbar>
@@ -107,13 +121,14 @@
                       @mouseleave="handleTabLeave"
                     >
                       {{ t('ocr.image') }} {{ index + 1 }}
-                      <el-button
-                        :icon="Delete"
-                        link
-                        size="small"
-                        class="tab-delete-btn"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="tab-delete-btn h-6 w-6 p-0"
                         @click.stop="handleDeleteImage(index)"
-                      />
+                      >
+                        <Delete class="h-3 w-3" />
+                      </Button>
                     </span>
                   </template>
                   <div class="ocr-result-item">
@@ -131,12 +146,12 @@
                           <div class="panel-title">{{ t('ocr.imagePreprocessing') }}</div>
                         </div>
                         <div class="panel-actions">
-                          <el-button size="small" @click="resetPreprocessingParams(index)">
+                          <Button size="sm" variant="outline" @click="resetPreprocessingParams(index)">
                             {{ t('ocr.resetParams') }}
-                          </el-button>
-                          <el-button size="small" @click="applyDefaultPreprocessingParams(index)">
+                          </Button>
+                          <Button size="sm" variant="outline" @click="applyDefaultPreprocessingParams(index)">
                             {{ t('ocr.defaultParams') }}
-                          </el-button>
+                          </Button>
                         </div>
                         <div class="params-list">
                           <div class="param-item">
@@ -227,10 +242,10 @@
                           @command="(cmd: string) => handleCopyCommand(cmd, index)"
                           trigger="click"
                         >
-                          <el-button size="small">
+                          <Button size="sm" variant="outline">
                             {{ t('ocr.copyText') }}
-                            <el-icon class="el-icon--right"><arrow-down /></el-icon>
-                          </el-button>
+                            <ArrowDown class="ml-1 h-3 w-3" />
+                          </Button>
                           <template #dropdown>
                             <el-dropdown-menu>
                               <el-dropdown-item command="original">
@@ -242,11 +257,12 @@
                             </el-dropdown-menu>
                           </template>
                         </el-dropdown>
-                        <el-button v-else size="small" @click="handleCopyText(result.text)">
+                        <Button v-else size="sm" variant="outline" @click="handleCopyText(result.text)">
                           {{ t('ocr.copyText') }}
-                        </el-button>
-                        <el-button
-                          size="small"
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           :loading="aiFixing.get(index)"
                           @click="handleAiFix(index)"
                         >
@@ -256,18 +272,19 @@
                             class="ai-logo-icon-small"
                           />
                           {{ t('ocr.aiFix') }}
-                        </el-button>
-                        <el-button
-                          size="small"
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           :loading="recognizingIndex.has(index)"
                           @click="handleReRecognizeSingle(index)"
                         >
                           {{ t('ocr.reRecognize') }}
-                        </el-button>
+                        </Button>
                       </div>
                       <div class="image-actions" v-else>
-                        <el-button
-                          size="small"
+                        <Button
+                          size="sm"
                           type="primary"
                           :loading="recognizingIndex.has(index)"
                           @click="handleRecognizeSingle(index)"
@@ -277,7 +294,7 @@
                               ? t('ocr.recognizing')
                               : t('ocr.startRecognize')
                           }}
-                        </el-button>
+                        </Button>
                       </div>
                     </div>
                     <div class="text-result">
@@ -374,6 +391,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
+import { Button } from '../components/ui/button'
 import SessionList from '../components/common/SessionList.vue'
 import ImagePreviewDialog, {
   type ImagePreprocessingParams

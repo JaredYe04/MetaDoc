@@ -50,12 +50,12 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="selectDocumentDialogVisible = false">{{
+          <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
             t('common.cancel')
-          }}</el-button>
-          <el-button type="primary" @click="confirmSelectDocument" :disabled="!selectedTabId">
+          }}</Button>
+          <Button @click="confirmSelectDocument" :disabled="!selectedTabId">
             {{ t('common.confirm') }}
-          </el-button>
+          </Button>
         </div>
       </template>
     </el-dialog>
@@ -102,99 +102,81 @@
                         :show-file-list="false"
                         :accept="acceptedFileTypes"
                       >
-                        <template #trigger>
-                          <el-button :icon="UploadFilled">
-                            {{ t('aigc.uploadFile') }}
-                          </el-button>
-                        </template>
+                      <template #trigger>
+                        <Button>
+                          <UploadFilled class="w-4 h-4 mr-2" />
+                          {{ t('aigc.uploadFile') }}
+                        </Button>
+                      </template>
                       </el-upload>
-                      <el-button
-                        :icon="Document"
+                      <Button
                         :disabled="!hasActiveDocument"
                         @click="handleSelectFromDocument"
                       >
+                        <Document class="w-4 h-4 mr-2" />
                         {{ t('aigc.selectFromDocument') }}
-                      </el-button>
+                      </Button>
                     </template>
-                    <el-button
+                    <Button
                       :disabled="!articleContent || !paragraphs.length || analyzing"
                       @click="handleSplitAtCursor"
                     >
                       {{ t('aigc.splitAtCursor') }}
-                    </el-button>
-                    <el-button
+                    </Button>
+                    <Button
                       :disabled="!articleContent || !canMergeWithNext || analyzing"
                       @click="handleMergeWithNext"
                     >
                       {{ t('aigc.mergeWithNext') }}
-                    </el-button>
-                    <el-button
+                    </Button>
+                    <Button
                       :disabled="!articleContent || !articleContent.trim() || analyzing"
                       @click="handleRePreprocess"
                     >
                       {{ t('aigc.rePreprocess') }}
-                    </el-button>
-                    <el-button
+                    </Button>
+                    <Button
                       v-if="overallAnalysis"
                       :disabled="!articleContent || analyzing"
                       :loading="paraphrasing"
                       @click="handleParaphraseAll"
                     >
                       {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
-                    </el-button>
+                    </Button>
                   </div>
 
                   <div class="toolbar-right">
-                    <el-button
+                    <Button
                       v-if="articleContent"
-                      type="primary"
                       :loading="analyzing"
                       @click="handleAnalyze"
                     >
                       {{ overallAnalysis ? t('aigc.reAnalyze') : t('aigc.startAnalysis') }}
-                    </el-button>
-                    <el-dropdown
+                    </Button>
+                    <DropdownMenu
                       v-if="overallAnalysis && paragraphAnalyses.length > 0 && reportMarkdown"
-                      trigger="click"
-                      popper-class="aigc-export-dropdown-menu"
-                      @command="handleExportCommand"
                     >
-                      <el-button>
-                        {{ t('aigc.export', '导出') }}
-                        <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                      </el-button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="report">{{
-                            t('aigc.exportReport')
-                          }}</el-dropdown-item>
-                          <el-dropdown-item v-if="hasAnyParaphrase" divided @click.prevent.stop>
-                            <el-dropdown
-                              trigger="hover"
-                              placement="right-start"
-                              popper-class="aigc-export-dropdown-menu"
-                              @command="handleExportParaphrasedCommand"
-                              style="width: 100%"
-                            >
-                              <span class="aigc-export-submenu-trigger">
-                                {{ t('aigc.exportParaphrased', '导出改写后的文章') }}
-                                <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-                              </span>
-                              <template #dropdown>
-                                <el-dropdown-menu>
-                                  <el-dropdown-item command="doc">{{
-                                    t('aigc.exportAsNewDoc', '作为新文档')
-                                  }}</el-dropdown-item>
-                                  <el-dropdown-item command="session">{{
-                                    t('aigc.exportAndDetect', '进行AIGC率检测')
-                                  }}</el-dropdown-item>
-                                </el-dropdown-menu>
-                              </template>
-                            </el-dropdown>
-                          </el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
+                      <DropdownMenuTrigger as-child>
+                        <Button>
+                          {{ t('aigc.export', '导出') }}
+                          <ArrowDown class="w-4 h-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent class="aigc-export-dropdown-menu">
+                        <DropdownMenuItem @click="handleExportCommand('report')">
+                          {{ t('aigc.exportReport') }}
+                        </DropdownMenuItem>
+                        <template v-if="hasAnyParaphrase">
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem @click="handleExportParaphrasedCommand('doc')">
+                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} - {{ t('aigc.exportAsNewDoc', '作为新文档') }}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem @click="handleExportParaphrasedCommand('session')">
+                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} - {{ t('aigc.exportAndDetect', '进行AIGC率检测') }}
+                          </DropdownMenuItem>
+                        </template>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </el-scrollbar>
@@ -233,9 +215,9 @@
                   <div ref="reportSectionRef" class="report-section">
                     <div class="report-header">
                       <span>{{ t('aigc.analysisReport') }}</span>
-                      <el-button v-if="reportMarkdown" size="small" text @click="scrollReportToTop">
+                      <Button v-if="reportMarkdown" variant="ghost" size="sm" @click="scrollReportToTop">
                         {{ t('aigc.backToTop', '回到顶端') }}
-                      </el-button>
+                      </Button>
                     </div>
                     <el-scrollbar
                       class="report-scrollbar"
@@ -270,6 +252,8 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, Document, Folder, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@renderer/components/ui/dropdown-menu'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { aigcDetectionSessionsDb, type AigcDetectionSession } from '../utils/db/tool-sessions-db'

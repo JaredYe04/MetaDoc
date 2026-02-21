@@ -62,27 +62,31 @@
 
         <!-- 操作按钮 -->
         <div class="theme-card__actions" @click.stop>
-          <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, theme)">
-            <el-button text circle :icon="More" size="small" />
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="duplicate" :icon="CopyDocument">
-                  {{ t('setting.duplicate') }}
-                </el-dropdown-item>
-                <el-dropdown-item v-if="!theme.isDefault" command="edit" :icon="Edit">
-                  {{ t('setting.edit') }}
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="!theme.isDefault"
-                  command="delete"
-                  :icon="Delete"
-                  class="danger"
-                >
-                  {{ t('setting.delete') }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button type="text" circle size="small">
+                <el-icon><More /></el-icon>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem @click="handleAction('duplicate', theme)">
+                <el-icon class="mr-2"><CopyDocument /></el-icon>
+                {{ t('setting.duplicate') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem v-if="!theme.isDefault" @click="handleAction('edit', theme)">
+                <el-icon class="mr-2"><Edit /></el-icon>
+                {{ t('setting.edit') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                v-if="!theme.isDefault"
+                @click="handleAction('delete', theme)"
+                class="text-red-600 focus:text-red-600"
+              >
+                <el-icon class="mr-2"><Delete /></el-icon>
+                {{ t('setting.delete') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <!-- 选中标记 -->
@@ -167,8 +171,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreateDialog = false">{{ t('setting.cancel') }}</el-button>
-        <el-button type="primary" @click="saveTheme">{{ t('setting.save') }}</el-button>
+        <Button variant="ghost" @click="showCreateDialog = false">{{ t('setting.cancel') }}</Button>
+        <Button @click="saveTheme">{{ t('setting.save') }}</Button>
       </template>
     </el-dialog>
   </div>
@@ -179,6 +183,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { More, Plus, Check, CopyDocument, Edit, Delete } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import {
@@ -982,9 +993,7 @@ onMounted(async () => {
   max-width: 100%;
 }
 
-:deep(.el-dropdown-menu__item.danger) {
-  color: var(--el-color-danger);
-}
+/* shadcn DropdownMenu danger item style - handled via Tailwind classes */
 
 @media (max-width: 768px) {
   .theme-cards-container {

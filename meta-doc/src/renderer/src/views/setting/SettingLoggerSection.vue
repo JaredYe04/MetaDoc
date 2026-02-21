@@ -61,18 +61,18 @@
       <el-form-item :label="t('setting.logFilePath')">
         <div class="log-path">
           <el-input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly />
-          <el-button type="primary" plain :disabled="!logFilePath" @click="openLogFile">
+          <Button type="primary" plain :disabled="!logFilePath" @click="openLogFile">
             {{ t('setting.openLogFile') }}
-          </el-button>
+          </Button>
         </div>
       </el-form-item>
 
       <el-form-item :label="t('setting.logDirectory')">
         <div class="log-path">
           <el-input :model-value="logDirectory || t('setting.logFileUnavailable')" readonly />
-          <el-button type="primary" plain :disabled="!logDirectory" @click="openLogDirectory">
+          <Button type="primary" plain :disabled="!logDirectory" @click="openLogDirectory">
             {{ t('setting.openLogDirectory') }}
-          </el-button>
+          </Button>
         </div>
       </el-form-item>
 
@@ -96,6 +96,7 @@ import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.
 import type { LoggerHistoryEntry } from '../../utils/logger.ts'
 import messageBridge from '../../bridge/message-bridge'
 import ConsoleOutput from '../../components/ConsoleOutput.vue'
+import { Button } from '@renderer/components/ui/button'
 
 const { t } = useI18n()
 

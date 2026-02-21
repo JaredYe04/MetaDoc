@@ -4,18 +4,18 @@
       <div class="proofread-header">
         <h2>{{ $t('proofread.title', '文章校对') }}</h2>
         <div class="header-actions">
-          <el-button type="primary" :loading="proofreading" @click="handleProofread">
+          <Button type="primary" :loading="proofreading" @click="handleProofread">
             {{ $t('proofread.startProofread', '开始校对') }}
-          </el-button>
-          <el-button v-if="displayErrors.length > 0" @click="handleFixAll">
+          </Button>
+          <Button v-if="displayErrors.length > 0" @click="handleFixAll">
             {{ $t('proofread.fixAll', '一键修复全部') }}
-          </el-button>
-          <el-button v-if="displayErrors.length > 0" @click="handleIgnoreAll">
+          </Button>
+          <Button v-if="displayErrors.length > 0" @click="handleIgnoreAll">
             {{ $t('proofread.ignoreAll', '一键忽略全部') }}
-          </el-button>
-          <el-button v-if="fixedErrorsCount > 0" @click="handleClearFixed">
+          </Button>
+          <Button v-if="fixedErrorsCount > 0" @click="handleClearFixed">
             {{ $t('proofread.clearFixed', '清空已修复') }}
-          </el-button>
+          </Button>
         </div>
       </div>
 
@@ -125,20 +125,20 @@
                     </div>
                   </div>
                   <div class="error-actions">
-                    <el-button
+                    <Button
                       size="small"
                       type="primary"
                       :disabled="error.fixed"
                       @click="handleFixError(index)"
                     >
                       {{ $t('proofread.fix', '修复') }}
-                    </el-button>
-                    <el-button size="small" type="success" @click="handleAddToDictionary(index)">
+                    </Button>
+                    <Button size="small" type="success" @click="handleAddToDictionary(index)">
                       {{ $t('proofread.addToDictionary', '添加到词典') }}
-                    </el-button>
-                    <el-button size="small" @click="handleIgnoreError(index)">
+                    </Button>
+                    <Button size="small" @click="handleIgnoreError(index)">
                       {{ $t('proofread.ignore', '忽略') }}
-                    </el-button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -170,6 +170,7 @@ import {
 } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'

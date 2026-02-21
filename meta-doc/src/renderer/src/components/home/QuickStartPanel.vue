@@ -66,32 +66,35 @@
 
       <div v-else class="panel-body">
         <div class="panel-body__left">
-          <el-scrollbar class="markdown-preview">
+          <ScrollArea class="w-full h-full">
             <MarkdownItEditor :source="generatedText" @mousedown.stop class="markdown-editor" />
-          </el-scrollbar>
+          </ScrollArea>
         </div>
         <div class="panel-divider" />
         <div class="panel-body__right">
           <div class="tab-switch">
-            <el-segmented v-model="activeTab" :options="tabOptions" />
+            <ToggleGroup v-model="activeTab" type="single" class="quickstart-tab-toggle">
+              <ToggleGroupItem v-for="option in tabOptions" :key="option" :value="option" class="quickstart-tab-item">
+                {{ option }}
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
           <div v-if="activeTab === documentTabLabel" class="document-info aero-div">
             <label class="section-title interactive-text">{{ $t('home.documentInfoLabel') }}</label>
             <div class="form-row">
               <label>{{ $t('home.label.title') }}</label>
-              <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+              <Input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
             </div>
             <div class="form-row">
               <label>{{ $t('home.label.author') }}</label>
-              <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
+              <Input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
             </div>
             <div class="form-row">
               <label>{{ $t('home.label.abstract') }}</label>
-              <el-input
+              <Textarea
                 v-model="metaDescription"
-                type="textarea"
-                :autosize="{ minRows: 2, maxRows: 3 }"
                 :placeholder="$t('home.placeholder.abstract')"
+                class="min-h-[60px]"
               />
             </div>
             <div class="form-actions">
@@ -116,25 +119,19 @@
               />
             </el-tooltip>
             <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
-              <el-select
-                v-model="mood"
-                multiple
-                filterable
-                allow-create
-                size="small"
-                :disabled="generated || generating"
-              >
-                <el-option
-                  v-for="option in moodOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                >
-                  <template #prefix>
-                    <el-icon :size="12"><component :is="option.icon" /></el-icon>
-                  </template>
-                </el-option>
-              </el-select>
+              <Select v-model="mood" multiple :disabled="generated || generating">
+                <SelectTrigger class="h-8 text-sm">
+                  <SelectValue :placeholder="$t('home.tooltip.selectMood')" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="option in moodOptions" :key="option.value" :value="option.value">
+                    <div class="flex items-center gap-2">
+                      <el-icon :size="12"><component :is="option.icon" /></el-icon>
+                      <span>{{ option.label }}</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </el-tooltip>
             <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
               <el-autocomplete
@@ -220,6 +217,17 @@ import {
   Close
 } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
+import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Textarea } from '@renderer/components/ui/textarea'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'
@@ -784,6 +792,27 @@ watch(
   justify-content: center;
 }
 
+.quickstart-tab-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: v-bind('themeState.currentTheme.background || "#f5f5f5"');
+  border-radius: 8px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+}
+
+.quickstart-tab-item {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.quickstart-tab-item[data-state='on'] {
+  background: v-bind('themeState.currentTheme.primary || "#409eff"');
+  color: white;
+}
+
 .document-info,
 .ai-assistant {
   display: flex;
@@ -819,11 +848,6 @@ watch(
 .form-actions {
   display: flex;
   justify-content: center;
-}
-
-.markdown-preview {
-  width: 100%;
-  height: 100%;
 }
 
 .markdown-editor {

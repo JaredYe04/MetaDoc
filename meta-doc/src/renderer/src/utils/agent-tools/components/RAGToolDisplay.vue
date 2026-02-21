@@ -22,7 +22,7 @@
       </div>
 
       <div v-if="displayData.results && displayData.results.length > 0" class="results-container">
-        <el-scrollbar max-height="400px">
+        <ScrollArea class="max-h-[400px]">
           <el-card
             v-for="(result, index) in displayData.results"
             :key="index"
@@ -34,7 +34,7 @@
               <pre class="result-text" :style="resultTextStyle">{{ result }}</pre>
             </div>
           </el-card>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <div v-else class="no-results">
@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

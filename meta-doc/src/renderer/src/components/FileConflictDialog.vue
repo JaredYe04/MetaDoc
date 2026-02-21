@@ -43,7 +43,7 @@
         </div>
 
         <!-- 统一视图 -->
-        <el-scrollbar v-if="viewMode === 'unified'" max-height="400px" class="diff-scrollbar">
+        <ScrollArea v-if="viewMode === 'unified'" class="h-[400px]">
           <div class="diff-content">
             <!-- 显示冲突区域 -->
             <template v-if="hasConflicts && conflictRanges.length > 0">
@@ -147,7 +147,7 @@
               {{ t('agent.display.diff.noData', '无差异数据') }}
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
 
         <!-- 分列视图 -->
         <div v-else class="split-view-container">
@@ -181,7 +181,7 @@
                   })
                 "
               >
-                <el-scrollbar max-height="200px" class="conflicts-scrollbar">
+                <ScrollArea class="h-[200px]">
                   <div class="conflicts-list">
                     <div
                       v-for="(conflict, conflictIndex) in conflictRanges"
@@ -232,7 +232,7 @@
                       </div>
                     </div>
                   </div>
-                </el-scrollbar>
+                </ScrollArea>
               </el-collapse-item>
             </el-collapse>
           </div>
@@ -273,6 +273,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
@@ -876,10 +877,6 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.diff-scrollbar {
-  max-height: 400px;
-}
-
 .diff-content {
   padding: 12px;
 }
@@ -991,10 +988,6 @@ onBeforeUnmount(() => {
 .conflicts-collapse :deep(.el-collapse-item__content) {
   padding: 0;
   background-color: v-bind('themeState.currentTheme.background');
-}
-
-.conflicts-scrollbar {
-  max-height: 200px;
 }
 
 .conflicts-list {

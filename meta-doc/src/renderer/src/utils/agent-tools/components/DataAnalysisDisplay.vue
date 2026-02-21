@@ -75,10 +75,16 @@
         </div>
       </div>
 
-      <el-tabs v-model="activeTab" type="border-card" class="analysis-tabs">
+      <Tabs v-model="activeTab" class="analysis-tabs border-card">
+        <TabsList>
+          <TabsTrigger value="fields">{{ $t('agent.display.dataAnalysis.fields') }}</TabsTrigger>
+          <TabsTrigger value="stats">{{ $t('agent.display.dataAnalysis.statsLabel') }}</TabsTrigger>
+          <TabsTrigger v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0" value="aggregations">{{ $t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger>
+          <TabsTrigger v-if="displayData.result.summary" value="summary">{{ $t('agent.display.dataAnalysis.summary') }}</TabsTrigger>
+        </TabsList>
         <!-- 字段信息 -->
-        <el-tab-pane :label="$t('agent.display.dataAnalysis.fields')" name="fields">
-          <el-scrollbar max-height="400px">
+        <TabsContent value="fields">
+          <ScrollArea class="h-[400px]">
             <div class="fields-list">
               <div v-for="field in displayData.result.fields" :key="field.name" class="field-item">
                 <div class="field-header">
@@ -115,12 +121,12 @@
                 </div>
               </div>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 描述统计 -->
-        <el-tab-pane :label="$t('agent.display.dataAnalysis.statsLabel')" name="stats">
-          <el-scrollbar max-height="400px">
+        <TabsContent value="stats">
+          <ScrollArea class="h-[400px]">
             <el-tree
               :data="statsTreeData"
               :props="{ children: 'children', label: 'label' }"
@@ -136,16 +142,12 @@
                 </div>
               </template>
             </el-tree>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 聚合分析 -->
-        <el-tab-pane
-          v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0"
-          :label="$t('agent.display.dataAnalysis.aggregations')"
-          name="aggregations"
-        >
-          <el-scrollbar max-height="400px">
+        <TabsContent v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0" value="aggregations">
+          <ScrollArea class="h-[400px]">
             <div
               v-for="(agg, index) in displayData.result.aggregations"
               :key="index"
@@ -182,16 +184,12 @@
                 </template>
               </el-tree>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 分析摘要 -->
-        <el-tab-pane
-          v-if="displayData.result.summary"
-          :label="$t('agent.display.dataAnalysis.summary')"
-          name="summary"
-        >
-          <el-scrollbar max-height="400px">
+        <TabsContent v-if="displayData.result.summary" value="summary">
+          <ScrollArea class="h-[400px]">
             <div class="summary-content">
               <div
                 ref="summaryContainerRef"
@@ -201,9 +199,9 @@
                 }"
               ></div>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
-      </el-tabs>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
 
     <div v-else class="error-state">
@@ -222,6 +220,8 @@ import { Loading, Connection, ArrowRight, ArrowDown } from '@element-plus/icons-
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../../themes'
 import { renderMarkdownPreview } from '../../md-utils'
 

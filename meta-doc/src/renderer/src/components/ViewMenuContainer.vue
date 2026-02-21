@@ -23,11 +23,8 @@
         <div class="view-menu-container-sidebar">
           <!-- Tab 切换 -->
           <div class="sidebar-tabs" v-if="hasMultipleTabs">
-            <el-tooltip
-              v-if="showWorkspaceExplorer"
-              :content="$t('viewMenuContainer.workspace')"
-              placement="top"
-            >
+          <Tooltip v-if="showWorkspaceExplorer">
+            <TooltipTrigger as-child>
               <div
                 class="sidebar-tab"
                 :class="{ active: activeTab === 'workspace' }"
@@ -41,12 +38,13 @@
                   />
                 </div>
               </div>
-            </el-tooltip>
-            <el-tooltip
-              v-if="showMetaInfoTab"
-              :content="$t('viewMenuContainer.metaInfo')"
-              placement="top"
-            >
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('viewMenuContainer.workspace') }}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip v-if="showMetaInfoTab">
+            <TooltipTrigger as-child>
               <div
                 class="sidebar-tab"
                 :class="{ active: activeTab === 'meta' }"
@@ -60,7 +58,11 @@
                   />
                 </div>
               </div>
-            </el-tooltip>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('viewMenuContainer.metaInfo') }}</p>
+            </TooltipContent>
+          </Tooltip>
           </div>
 
           <!-- Tab 内容 -->
@@ -99,6 +101,11 @@ import { getSetting, setSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 const workspace = useWorkspace()

@@ -1,7 +1,7 @@
 <template>
   <div class="outline-page" :data-direction="direction" :class="{ 'is-dragging': isDraggingNode }">
     <div class="container">
-      <el-scrollbar
+      <ScrollArea
         class="aero-div generate-preview"
         v-if="generating || pendingAccept"
         :style="{
@@ -22,9 +22,7 @@
                 style="font-size: 12px; padding: 2px 6px"
                 @click.stop="cancelAllAiTasks"
               >
-                <el-icon style="font-size: 14px">
-                  <CloseBold />
-                </el-icon>
+                <X class="w-4 h-4" />
               </Button>
             </el-tooltip>
           </h2>
@@ -50,9 +48,7 @@
               style="font-size: 12px; padding: 2px 6px"
               @click.stop="acceptChange"
             >
-              <el-icon style="font-size: 14px">
-                <Check />
-              </el-icon>
+              <Check class="w-4 h-4" />
             </Button>
             <Button
               variant="destructive"
@@ -62,16 +58,14 @@
               @click.stop="discardChange"
               :loading="generateChildChapterLoading"
             >
-              <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                <Close />
-              </el-icon>
+              <X class="w-4 h-4" v-if="!generateChildChapterLoading" />
             </Button>
           </h2>
           <div>
             {{ rawstring }}
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
 
       <vue-tree
         ref="treeRef"
@@ -123,9 +117,7 @@
               v-if="node.path !== 'dummy'"
               :disabled="pendingAccept || generating"
             >
-              <el-icon>
-                <More />
-              </el-icon>
+              <MoreVertical class="w-4 h-4" />
             </Button>
           </el-tooltip>
           <div
@@ -151,10 +143,8 @@
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="move2Left"
                   >
-                    <el-icon style="font-size: 14px">
-                      <ArrowLeftBold v-if="direction === 'vertical'" />
-                      <ArrowUpBold v-else />
-                    </el-icon>
+                    <ArrowLeft class="w-4 h-4" v-if="direction === 'vertical'" />
+                    <ArrowUp class="w-4 h-4" v-else />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.addChild')" placement="top">
@@ -165,9 +155,7 @@
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="addChildNode"
                   >
-                    <el-icon style="font-size: 14px">
-                      <Plus />
-                    </el-icon>
+                    <Plus class="w-4 h-4" />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.editContent')" placement="top">
@@ -178,9 +166,7 @@
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="editNode"
                   >
-                    <el-icon style="font-size: 14px">
-                      <Edit />
-                    </el-icon>
+                    <Pencil class="w-4 h-4" />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.delete')" placement="top">
@@ -191,9 +177,7 @@
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="deleteNode"
                   >
-                    <el-icon style="font-size: 14px">
-                      <Delete />
-                    </el-icon>
+                    <Trash2 class="w-4 h-4" />
                   </Button>
                 </el-tooltip>
 
@@ -210,10 +194,8 @@
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="move2Right"
                   >
-                    <el-icon style="font-size: 14px">
-                      <ArrowRightBold v-if="direction === 'vertical'" />
-                      <ArrowDownBold v-else />
-                    </el-icon>
+                    <ArrowRight class="w-4 h-4" v-if="direction === 'vertical'" />
+                    <ArrowDown class="w-4 h-4" v-else />
                   </Button>
                 </el-tooltip>
               </div>
@@ -228,9 +210,7 @@
                     @click.stop="generateContent"
                     :disabled="generating"
                   >
-                    <el-icon style="font-size: 14px" v-if="!generateContentLoading">
-                      <EditPen />
-                    </el-icon>
+                    <FileEdit class="w-4 h-4" v-if="!generateContentLoading" />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
@@ -243,9 +223,7 @@
                     :loading="generateChildChapterLoading"
                     :disabled="generating"
                   >
-                    <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                      <Finished />
-                    </el-icon>
+                    <CircleCheck class="w-4 h-4" v-if="!generateChildChapterLoading" />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
@@ -258,9 +236,7 @@
                     :loading="generateChildrenContentLoading"
                     :disabled="generating"
                   >
-                    <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
-                      <Download />
-                    </el-icon>
+                    <Download class="w-4 h-4" v-if="!generateChildrenContentLoading" />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
@@ -273,9 +249,7 @@
                     :loading="generateChildrenChildrenLoading"
                     :disabled="generating"
                   >
-                    <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
-                      <Rank />
-                    </el-icon>
+                    <GitBranch class="w-4 h-4" v-if="!generateChildrenChildrenLoading" />
                   </Button>
                 </el-tooltip>
               </div>
@@ -298,9 +272,7 @@
                     style="font-size: 12px; padding: 2px 6px"
                     @click.stop="acceptChange"
                   >
-                    <el-icon style="font-size: 14px">
-                      <Check />
-                    </el-icon>
+                    <Check class="w-4 h-4" />
                   </Button>
                 </el-tooltip>
                 <el-tooltip :content="$t('outline.reject')" placement="top">
@@ -312,9 +284,7 @@
                     @click.stop="discardChange"
                     :loading="generateChildChapterLoading"
                   >
-                    <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                      <Close />
-                    </el-icon>
+                    <X class="w-4 h-4" v-if="!generateChildChapterLoading" />
                   </Button>
                 </el-tooltip>
               </div>
@@ -323,70 +293,70 @@
           </div>
         </template>
       </vue-tree>
-      <el-dialog
-        v-model="formatTitleDialogVisible"
-        :title="$t('outline.formatTitleWizard')"
-        width="30%"
-      >
-        <el-form label-width="200px" class="demo-ruleForm">
-          <el-form-item :label="$t('outline.adjustMarkdown')" prop="adjustMarkdown">
-            <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.adjustMarkdown"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item
-            v-if="formatTitleConfig.adjustMarkdown"
-            :label="$t('outline.firstMarkdownTitleLevel')"
-            prop="firstMarkdownTitleLevel"
-          >
-            <el-input-number
-              v-model="formatTitleConfig.firstMarkdownTitleLevel"
-              :min="1"
-              :max="6"
-              :step="1"
-              class="inline-input"
-            />
-          </el-form-item>
-          <el-form-item :label="$t('outline.adjustTitle')" prop="adjustTitle">
-            <el-tooltip :content="$t('outline.adjustTitleTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.adjustTitle"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item
-            v-if="formatTitleConfig.adjustTitle"
-            :label="$t('outline.coverOriginalNumber')"
-            prop="append"
-          >
-            <el-tooltip :content="$t('outline.coverTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.cover"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <el-form-item
-            v-if="formatTitleConfig.adjustTitle"
-            :label="$t('outline.level1Chinese')"
-            prop="level1TitleChinese"
-          >
-            <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
-              <el-switch
-                v-model="formatTitleConfig.level1TitleChinese"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-              />
-            </el-tooltip>
-          </el-form-item>
-          <div style="display: flex; justify-content: space-between; margin-top: 20px">
+      <Dialog v-model:open="formatTitleDialogVisible">
+        <DialogContent class="sm:max-w-[30%]">
+          <DialogHeader>
+            <DialogTitle>{{ $t('outline.formatTitleWizard') }}</DialogTitle>
+          </DialogHeader>
+          <div class="grid gap-4 py-4">
+            <div class="flex items-center justify-between">
+              <span>{{ $t('outline.adjustMarkdown') }}</span>
+              <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
+                <el-switch
+                  v-model="formatTitleConfig.adjustMarkdown"
+                  active-color="#13ce66"
+                  inactive-color="#ff4949"
+                />
+              </el-tooltip>
+            </div>
+            <div v-if="formatTitleConfig.adjustMarkdown" class="flex items-center justify-between">
+              <span>{{ $t('outline.firstMarkdownTitleLevel') }}</span>
+              <NumberField
+                v-model="formatTitleConfig.firstMarkdownTitleLevel"
+                :min="1"
+                :max="6"
+                :step="1"
+                class="inline-input"
+              >
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>{{ $t('outline.adjustTitle') }}</span>
+              <el-tooltip :content="$t('outline.adjustTitleTip')" placement="right">
+                <el-switch
+                  v-model="formatTitleConfig.adjustTitle"
+                  active-color="#13ce66"
+                  inactive-color="#ff4949"
+                />
+              </el-tooltip>
+            </div>
+            <div v-if="formatTitleConfig.adjustTitle" class="flex items-center justify-between">
+              <span>{{ $t('outline.coverOriginalNumber') }}</span>
+              <el-tooltip :content="$t('outline.coverTip')" placement="right">
+                <el-switch
+                  v-model="formatTitleConfig.cover"
+                  active-color="#13ce66"
+                  inactive-color="#ff4949"
+                />
+              </el-tooltip>
+            </div>
+            <div v-if="formatTitleConfig.adjustTitle" class="flex items-center justify-between">
+              <span>{{ $t('outline.level1Chinese') }}</span>
+              <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
+                <el-switch
+                  v-model="formatTitleConfig.level1TitleChinese"
+                  active-color="#13ce66"
+                  inactive-color="#ff4949"
+                />
+              </el-tooltip>
+            </div>
+          </div>
+          <DialogFooter class="flex justify-between">
             <Button variant="outline" @click="formatTitleDialogVisible = false">{{
               $t('outline.cancel')
             }}</Button>
@@ -394,36 +364,41 @@
               <Button variant="destructive" @click="handleRemovePrefixes">{{
                 $t('outline.removePrefixes')
               }}</Button>
-              <Button variant="default" @click="executeFormatTitle">{{
+              <Button @click="executeFormatTitle">{{
                 $t('outline.confirm')
               }}</Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog v-model:open="editValueDialogVisible">
+        <DialogContent class="sm:max-w-[40%]">
+          <DialogHeader>
+            <DialogTitle>{{ $t('outline.editChapterTitle') }}</DialogTitle>
+          </DialogHeader>
+          <div class="grid gap-4 py-4">
+            <div class="grid gap-2">
+              <label class="text-sm font-medium">{{ $t('outline.chapterName') }}</label>
+              <Input v-model="currentChapterValue" class="aero-input" />
+            </div>
+            <div class="grid gap-2">
+              <label class="text-sm font-medium">{{ $t('outline.chapterContent') }}</label>
+              <md-editor
+                v-model="currentChapterContent"
+                show-code-row-number
+                preview-theme="github"
+                code-style-reverse
+                style="text-align: left"
+                :auto-fold-threshold="300"
+                :theme="editorTheme"
+              />
+            </div>
           </div>
-        </el-form>
-      </el-dialog>
-      <el-dialog
-        v-model="editValueDialogVisible"
-        :title="$t('outline.editChapterTitle')"
-        width="40%"
-      >
-        <el-form>
-          <el-form-item :label="$t('outline.chapterName')">
-            <el-input v-model="currentChapterValue" autocomplete="off" class="aero-input" />
-          </el-form-item>
-          <el-form-item :label="$t('outline.chapterContent')">
-            <md-editor
-              v-model="currentChapterContent"
-              show-code-row-number
-              preview-theme="github"
-              code-style-reverse
-              style="text-align: left"
-              :auto-fold-threshold="300"
-              :theme="editorTheme"
-            />
-          </el-form-item>
-        </el-form>
-        <Button variant="default" @click="changeNodeValue">{{ $t('outline.confirm') }}</Button>
-      </el-dialog>
+          <DialogFooter>
+            <Button @click="changeNodeValue">{{ $t('outline.confirm') }}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div class="bottom-menu aero-div">
         <el-tooltip
           :content="
@@ -434,35 +409,27 @@
           placement="top"
         >
           <Button variant="outline" size="icon" @click="toggleLayout">
-            <el-icon>
-              <Sort />
-            </el-icon>
+            <ArrowUpDown class="w-4 h-4" />
           </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.zoomIn')" placement="top">
           <Button variant="default" size="icon" @click="zoomIn">
-            <el-icon>
-              <Plus />
-            </el-icon>
+            <Plus class="w-4 h-4" />
           </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.zoomOut')" placement="top">
           <Button variant="secondary" size="icon" @click="zoomOut">
-            <el-icon>
-              <Minus />
-            </el-icon>
+            <Minus class="w-4 h-4" />
           </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.reset')" placement="top">
           <Button variant="outline" size="icon" @click="resetScale">
-            <el-icon>
-              <Refresh />
-            </el-icon>
+            <RefreshCw class="w-4 h-4" />
           </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.formatTitle')" placement="top">
           <Button variant="secondary" size="icon" @click="formatTitle">
-            <el-icon style="width: 1em; height: 1em"> T </el-icon>
+            <span class="text-xs font-bold">T</span>
           </Button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
@@ -472,7 +439,7 @@
             @click="nodeMenuToggle = !nodeMenuToggle"
             :disabled="generating || pendingAccept"
           >
-            <el-icon style="width: 1em; height: 1em"> AI </el-icon>
+            <span class="text-xs font-bold">AI</span>
           </Button>
         </el-tooltip>
       </div>
@@ -494,6 +461,14 @@ import {
 } from 'vue'
 import { ElDialog, ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue'
 import { tabs, useWorkspace, type DocumentView } from '../stores/workspace'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
@@ -503,24 +478,24 @@ import '../assets/aero-input.css'
 import { MdEditor, type Themes } from 'md-editor-v3'
 import {
   Plus,
-  Edit,
-  Delete,
-  More,
+  Pencil,
+  Trash2,
+  MoreVertical,
   Minus,
-  ArrowLeftBold,
-  ArrowRightBold,
-  ArrowUpBold,
-  ArrowDownBold,
-  Finished,
-  EditPen,
-  Checked,
-  Close,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  CircleCheck,
+  FileEdit,
+  CheckCircle2,
+  X,
   Check,
   Download,
-  Rank,
-  CloseBold,
-  Sort
-} from '@element-plus/icons-vue'
+  GitBranch,
+  ArrowUpDown,
+  RefreshCw
+} from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
 import { searchNode, searchParentNode } from '../utils/outline-helpers'
@@ -552,6 +527,14 @@ import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
 import { getSetting, setSetting } from '../utils/settings.js'
 import { createRendererLogger } from '../utils/logger.ts'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
 
 const { t } = useI18n()
 const logger = createRendererLogger('Outline', {

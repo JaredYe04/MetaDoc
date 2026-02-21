@@ -6,15 +6,15 @@
         <el-tag size="small" :type="statusTagType">{{ statusLabel }}</el-tag>
       </div>
       <div class="header-actions">
-        <el-button
-          text
-          size="small"
-          :icon="Download"
+        <Button
+          type="ghost"
+          size="sm"
           @click="exportSnapshot"
           :title="t('agent.tool.exportSnapshot')"
         >
+          <Download />
           {{ t('agent.tool.exportSnapshot') }}
-        </el-button>
+        </Button>
         <small class="timestamp">{{ formatTimestamp(message.timestamp) }}</small>
       </div>
     </header>
@@ -144,6 +144,7 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../utils/monaco-worker-config'
 import { createRendererLogger } from '../../utils/logger'
 import messageBridge from '../../bridge/message-bridge'
+import { Button } from '@renderer/components/ui/button'
 
 const props = defineProps<{
   message: ToolAgentMessage

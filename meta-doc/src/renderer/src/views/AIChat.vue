@@ -20,7 +20,7 @@
             {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
           </Button>
         </div>
-        <el-scrollbar height="400px" class="document-list-scrollbar">
+        <ScrollArea class="h-[400px] document-list-scrollbar">
           <div class="document-list">
             <div
               v-for="tab in documentTabs"
@@ -37,11 +37,11 @@
               </div>
               <div class="document-card-content">
                 <div class="document-card-header">
-                  <el-icon class="document-icon"><Document /></el-icon>
+                  <FileText class="w-5 h-5 text-primary" />
                   <span class="document-title">{{ tab.displayName }}</span>
                 </div>
                 <div v-if="tab.path" class="document-path">
-                  <el-icon class="path-icon"><Folder /></el-icon>
+                  <Folder class="w-4 h-4" />
                   <span>{{ tab.path }}</span>
                 </div>
               </div>
@@ -50,7 +50,8 @@
               <el-empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
             </div>
           </div>
-        </el-scrollbar>
+          <ScrollBar />
+        </ScrollArea>
       </div>
       <template #footer>
         <div class="dialog-footer">
@@ -95,23 +96,25 @@
           <header class="conversation-header">
             <h1 class="title">{{ title }}</h1>
             <div class="conversation-stats">
-              <el-tooltip
-                :content="t('agent.conversation.referencesTooltip', '点击管理引用')"
-                placement="top"
-              >
-                <el-tag
-                  size="small"
-                  effect="plain"
-                  style="cursor: pointer"
-                  @click="handleOpenReferenceDialog"
-                >
-                  {{ t('agent.conversation.references', { count: referenceStore.length }) }}
-                </el-tag>
-              </el-tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <el-tag
+                    size="small"
+                    effect="plain"
+                    style="cursor: pointer"
+                    @click="handleOpenReferenceDialog"
+                  >
+                    {{ t('agent.conversation.references', { count: referenceStore.length }) }}
+                  </el-tag>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </header>
           <div class="dialog-container">
-            <el-scrollbar class="conversation-scroll">
+            <ScrollArea class="conversation-scroll">
               <MessageBubble
                 v-for="(message, index) in messages.filter((item) => item.role !== 'system')"
                 :key="index"
@@ -126,7 +129,8 @@
                 class="conversation-bottom-spacer"
                 :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
               />
-            </el-scrollbar>
+            <ScrollBar />
+            </ScrollArea>
             <div class="composer-wrapper">
               <ReferenceDisplay
                 v-if="referenceStore.length > 0"
@@ -207,9 +211,15 @@ import {
 } from 'vue'
 import MessageBubble from '../components/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
-import { Document, Folder } from '@element-plus/icons-vue'
+import { FileText, Folder } from 'lucide-vue-next'
 import SessionList from '../components/common/SessionList.vue'
 import { Button } from '@renderer/components/ui/button'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'
@@ -1296,12 +1306,7 @@ const handleSessionDelete = (item: SessionListItem) => {
   padding-right: 4px;
 }
 
-.conversation-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.conversation-scroll :deep(.el-scrollbar__view) {
-  width: 100%;
+.conversation-scroll :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

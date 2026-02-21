@@ -5,79 +5,76 @@
         t('userProfile.title')
       }}</span>
       <el-tooltip :content="t('userProfile.closeMenu')" placement="top">
-        <Button variant="destructive" size="sm" @click="closeDialog" class="aero-btn rounded-full">
-          <el-icon><Close /></el-icon>
+          <Button variant="destructive" size="sm" @click="closeDialog" class="aero-btn rounded-full">
+          <X class="w-4 h-4" />
         </Button>
       </el-tooltip>
     </div>
 
-    <el-tabs v-model="activeName" class="tabs" v-if="!loggedIn" @mousedown.stop>
-      <el-tab-pane :label="t('userProfile.loginTab')" name="Login">
-        <el-form :model="loginForm" label-width="80px" ref="loginFormRef" :rules="loginRules">
-          <el-form-item :label="t('userProfile.account')" prop="username">
-            <el-input
+    <Tabs v-model="activeName" class="tabs" v-if="!loggedIn" @mousedown.stop>
+      <TabsList class="grid w-full grid-cols-2">
+        <TabsTrigger value="Login">{{ t('userProfile.loginTab') }}</TabsTrigger>
+        <TabsTrigger value="Register">{{ t('userProfile.registerTab') }}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="Login">
+        <Form ref="loginFormRef" class="space-y-4">
+          <FormField :label="t('userProfile.account')" name="username" :rules="loginRules.username">
+            <Input
               v-model="loginForm.username"
               :placeholder="t('userProfile.accountPlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.password')" prop="password">
-            <el-input
+            />
+          </FormField>
+          <FormField :label="t('userProfile.password')" name="password" :rules="loginRules.password">
+            <Input
               v-model="loginForm.password"
-              :show-password="true"
+              type="password"
               :placeholder="t('userProfile.passwordPlaceholder')"
-              suffix-icon="el-icon-view"
-              @click-suffix="togglePasswordVisibility"
-            ></el-input>
-          </el-form-item>
-          <div slot="footer" class="dialog-footer">
+            />
+          </FormField>
+          <div class="dialog-footer">
             <Button variant="default" @click="submitLogin">{{
               t('userProfile.loginBtn')
             }}</Button>
           </div>
-        </el-form>
-      </el-tab-pane>
+        </Form>
+      </TabsContent>
 
-      <el-tab-pane :label="t('userProfile.registerTab')" name="Register">
-        <el-form
-          :model="registerForm"
-          label-width="80px"
-          ref="registerFormRef"
-          :rules="registerRules"
-        >
-          <el-form-item :label="t('userProfile.username')" prop="username">
-            <el-input
+      <TabsContent value="Register">
+        <Form ref="registerFormRef" class="space-y-4">
+          <FormField :label="t('userProfile.username')" name="username" :rules="registerRules.username">
+            <Input
               v-model="registerForm.username"
               :placeholder="t('userProfile.usernamePlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.phone')" prop="phone">
-            <el-input
+            />
+          </FormField>
+          <FormField :label="t('userProfile.phone')" name="phone" :rules="registerRules.phone">
+            <Input
               v-model="registerForm.phone"
               :placeholder="t('userProfile.phonePlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.email')" prop="email">
-            <el-input
+            />
+          </FormField>
+          <FormField :label="t('userProfile.email')" name="email" :rules="registerRules.email">
+            <Input
               v-model="registerForm.email"
               :placeholder="t('userProfile.emailPlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.password')" prop="password">
-            <el-input
+            />
+          </FormField>
+          <FormField :label="t('userProfile.password')" name="password" :rules="registerRules.password">
+            <Input
               v-model="registerForm.password"
               type="password"
-              :show-password="true"
               :placeholder="t('userProfile.passwordPlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <div slot="footer" class="dialog-footer">
+            />
+          </FormField>
+          <div class="dialog-footer">
             <Button variant="default" @click="submitRegister">{{
               t('userProfile.registerBtn')
             }}</Button>
           </div>
-        </el-form>
-      </el-tab-pane>
-    </el-tabs>
+        </Form>
+      </TabsContent>
+    </Tabs>
 
     <div v-else>
       <div style="display: flex; align-items: center">
@@ -106,69 +103,61 @@
               background-color: rgba(0, 0, 0, 0.05);
             "
           >
-            <el-icon :size="64" style="color: #909399">
-              <User />
-            </el-icon>
+            <User class="w-16 h-16" style="color: #909399" />
           </div>
         </el-tooltip>
 
         <div style="margin-left: 40px">
-          <div style="height: 200px">
-            <el-form
+            <div style="height: 200px">
+            <Form
               v-if="editing"
-              :model="user"
-              label-width="80px"
               ref="userFormRef"
-              :rules="registerRules"
+              class="space-y-2"
               style="height: 180px"
             >
               <h3>{{ t('userProfile.editProfileTitle') }}</h3>
-              <el-form-item :label="t('userProfile.username')" prop="username">
-                <el-input
+              <FormField :label="t('userProfile.username')" name="username" :rules="registerRules.username">
+                <Input
                   v-model="user.username"
                   :placeholder="t('userProfile.usernamePlaceholder')"
-                ></el-input>
-              </el-form-item>
-              <el-form-item :label="t('userProfile.phone')" prop="phone">
-                <el-input
+                />
+              </FormField>
+              <FormField :label="t('userProfile.phone')" name="phone" :rules="registerRules.phone">
+                <Input
                   v-model="user.phone"
                   :placeholder="t('userProfile.phonePlaceholder')"
-                ></el-input>
-              </el-form-item>
-              <el-form-item :label="t('userProfile.email')" prop="email">
-                <el-input
+                />
+              </FormField>
+              <FormField :label="t('userProfile.email')" name="email" :rules="registerRules.email">
+                <Input
                   v-model="user.email"
                   :placeholder="t('userProfile.emailPlaceholder')"
-                ></el-input>
-              </el-form-item>
-            </el-form>
+                />
+              </FormField>
+            </Form>
 
-            <el-form
+            <Form
               v-if="editingPwd"
-              :model="editPwdForm"
-              label-width="80px"
               ref="pwdFormRef"
-              :rules="editPwdRules"
+              class="space-y-2"
               style="height: 180px"
             >
               <h3>{{ t('userProfile.changePasswordTitle') }}</h3>
-              <el-form-item :label="t('userProfile.oldPassword')" prop="oldPwd">
-                <el-input
+              <FormField :label="t('userProfile.oldPassword')" name="oldPwd" :rules="editPwdRules.oldPassword">
+                <Input
                   v-model="editPwdForm.oldPwd"
+                  type="password"
                   :placeholder="t('userProfile.oldPasswordPlaceholder')"
-                  type="password"
-                  :show-password="true"
-                ></el-input>
-              </el-form-item>
-              <el-form-item :label="t('userProfile.newPassword')" prop="newPwd">
-                <el-input
+                />
+              </FormField>
+              <FormField :label="t('userProfile.newPassword')" name="newPwd" :rules="editPwdRules.newPassword">
+                <Input
                   v-model="editPwdForm.newPwd"
-                  :placeholder="t('userProfile.newPasswordPlaceholder')"
                   type="password"
-                  :show-password="true"
-                ></el-input>
-              </el-form-item>
-            </el-form>
+                  :placeholder="t('userProfile.newPasswordPlaceholder')"
+                />
+              </FormField>
+            </Form>
 
             <div v-if="!editing && !editingPwd" style="height: 180px">
               <el-tooltip :content="t('userProfile.username')" placement="left">
@@ -207,7 +196,7 @@
               placement="bottom"
             >
               <Button variant="destructive" @click="logout" class="rounded-full w-9 h-9 p-0">
-                <el-icon><SwitchButton /></el-icon>
+                <Power class="w-4 h-4" />
               </Button>
             </el-tooltip>
 
@@ -217,7 +206,7 @@
               placement="bottom"
             >
               <Button variant="default" @click="cancelEdit" class="rounded-full w-9 h-9 p-0">
-                <el-icon><RefreshLeft /></el-icon>
+                <Undo2 class="w-4 h-4" />
               </Button>
             </el-tooltip>
 
@@ -231,7 +220,8 @@
                 :class="['rounded-full w-9 h-9 p-0', editing ? 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700' : '']"
                 @click="toggleEdit"
               >
-                <el-icon><component :is="editing ? Check : Edit" /></el-icon>
+                <Check v-if="editing" class="w-4 h-4" />
+                <Pencil v-else class="w-4 h-4" />
               </Button>
             </el-tooltip>
 
@@ -245,7 +235,8 @@
                 :class="['rounded-full w-9 h-9 p-0', editingPwd ? 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700' : '']"
                 @click="toggleEditPwd"
               >
-                <el-icon><component :is="editingPwd ? Check : Lock" /></el-icon>
+                <Check v-if="editingPwd" class="w-4 h-4" />
+                <Lock v-else class="w-4 h-4" />
               </Button>
             </el-tooltip>
           </div>
@@ -258,16 +249,14 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import {
-  ElCard,
   ElTooltip,
   ElAvatar,
-  ElDialog,
-  ElForm,
-  ElFormItem,
-  ElInput,
-  ElCheckbox
+  ElDialog
 } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Form, FormField } from '@renderer/components/ui/form'
 import { useLocalStorage } from '@vueuse/core'
 import { themeState } from '../utils/themes'
 import eventBus from '../utils/event-bus.js'
@@ -441,7 +430,7 @@ import {
   updateUserInfo,
   verifyToken
 } from '../utils/web-utils.ts'
-import { Check, Edit, Lock, RefreshLeft, SwitchButton, User } from '@element-plus/icons-vue'
+import { Check, Pencil, Lock, Undo2, Power, User, X } from 'lucide-vue-next'
 
 // 头像加载错误处理
 const avatarLoadError = ref(false)

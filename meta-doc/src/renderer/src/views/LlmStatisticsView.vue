@@ -3,27 +3,26 @@
     <div class="view-header">
       <h2 class="view-title">{{ $t('llmStatistics.title') }}</h2>
       <div class="view-actions">
-        <el-button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
+        <Button variant="outline" @click="handleExport">
           {{ $t('llmStatistics.export') }}
-        </el-button>
-        <el-button
-          @click="handleClear"
-          type="danger"
-          :style="{ color: themeState.currentTheme.textColor }"
-        >
+        </Button>
+        <Button variant="destructive" @click="handleClear">
           {{ $t('llmStatistics.clear') }}
-        </el-button>
+        </Button>
       </div>
     </div>
-    <el-scrollbar class="view-content">
+    <ScrollArea class="view-content">
       <LlmStatisticsContent ref="contentRef" />
-    </el-scrollbar>
+      <ScrollBar />
+    </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
 import LlmStatisticsContent from '../components/LlmStatisticsContent.vue'
 

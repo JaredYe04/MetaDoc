@@ -30,7 +30,7 @@
         }}</el-tag>
       </div>
 
-      <el-scrollbar max-height="500px">
+      <ScrollArea class="h-[500px]">
         <el-tree
           :data="treeData"
           :props="{ children: 'children', label: 'label' }"
@@ -66,7 +66,7 @@
             </div>
           </template>
         </el-tree>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
 
     <div v-else class="error-state">
@@ -83,6 +83,7 @@
 import { computed } from 'vue'
 import { Loading, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'

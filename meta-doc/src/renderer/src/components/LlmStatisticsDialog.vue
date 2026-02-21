@@ -15,19 +15,19 @@
     <LlmStatisticsContent ref="contentRef" />
 
     <template #footer>
-      <el-button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
+      <Button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
         {{ $t('llmStatistics.export') }}
-      </el-button>
-      <el-button
+      </Button>
+      <Button
         @click="handleClear"
         type="danger"
         :style="{ color: themeState.currentTheme.textColor }"
       >
         {{ $t('llmStatistics.clear') }}
-      </el-button>
-      <el-button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
+      </Button>
+      <Button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
         {{ $t('llmStatistics.close') }}
-      </el-button>
+      </Button>
     </template>
   </el-dialog>
 </template>
@@ -37,6 +37,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
 import LlmStatisticsContent from './LlmStatisticsContent.vue'
+import { Button } from '@renderer/components/ui/button'
 
 const { t } = useI18n()
 
@@ -116,15 +117,5 @@ function handleClose() {
 :deep(.el-dialog__headerbtn:hover) {
   color: v-bind('themeState.currentTheme.textColor');
   opacity: 0.7;
-}
-
-:deep(.el-button) {
-  background-color: transparent;
-  border-color: v-bind('themeState.currentTheme.textColor + "66"');
-}
-
-:deep(.el-button:hover) {
-  background-color: v-bind('themeState.currentTheme.textColor + "11"');
-  border-color: v-bind('themeState.currentTheme.textColor + "99"');
 }
 </style>

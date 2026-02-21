@@ -1,5 +1,5 @@
 <template>
-  <el-scrollbar class="new-document-scroll">
+  <ScrollArea class="new-document-scroll">
     <div class="new-document">
       <div class="new-document__header">
         <h1>{{ t('newDocument.title') }}</h1>
@@ -7,11 +7,19 @@
       </div>
 
       <div class="new-document__formats">
-        <el-radio-group v-model="selectedFormatId" class="format-group">
-          <el-radio-button v-for="format in formats" :key="format.id" :label="format.id">
-            {{ formatLabel(format) }}
-          </el-radio-button>
-        </el-radio-group>
+        <RadioGroup v-model="selectedFormatId" class="flex format-group">
+          <div class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+            <div v-for="format in formats" :key="format.id" class="flex items-center">
+              <RadioGroupItem :value="format.id" :id="'format-' + format.id" class="sr-only peer" />
+              <label
+                :for="'format-' + format.id"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+              >
+                {{ formatLabel(format) }}
+              </label>
+            </div>
+          </div>
+        </RadioGroup>
         <p class="format-description">
           {{ formatDescription(currentFormat) }}
         </p>
@@ -19,7 +27,7 @@
 
       <div class="new-document__templates">
         <h2>{{ t('newDocument.templateTitle') }}</h2>
-        <el-scrollbar class="template-grid-scroll">
+        <ScrollArea class="template-grid-scroll">
           <div class="template-grid-wrapper" ref="templateGridWrapperRef">
             <div class="template-grid" :style="{ gridTemplateColumns: gridTemplateColumns }">
               <div
@@ -41,22 +49,22 @@
                   <p>{{ templateDescription(template) }}</p>
                 </div>
                 <div class="template-card__actions">
-                  <el-button
-                    type="primary"
-                    round
-                    size="small"
-                    @click.stop="confirmTemplate(template.id)"
-                  >
-                    {{ t('newDocument.useTemplate') }}
-                  </el-button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  class="rounded-full"
+                  @click.stop="confirmTemplate(template.id)"
+                >
+                  {{ t('newDocument.useTemplate') }}
+                </Button>
                 </div>
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
     </div>
-  </el-scrollbar>
+  </ScrollArea>
 </template>
 
 <script setup lang="ts">
@@ -66,6 +74,9 @@ import type { WorkspaceTabFormat } from '../stores/workspace'
 import type { SupportedFormat, DocumentTemplate } from '../types/formats'
 import { useI18n } from 'vue-i18n'
 import { Document } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
 
 const props = defineProps<{

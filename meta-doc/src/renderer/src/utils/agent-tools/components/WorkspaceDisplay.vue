@@ -24,7 +24,7 @@
           {{ displayData.workspaceFolder }}</el-tag
         >
       </div>
-      <el-scrollbar height="500px">
+      <ScrollArea class="h-[500px]">
         <div class="tree-content">
           <div
             v-for="(entry, index) in displayData.tree"
@@ -42,7 +42,7 @@
             <span class="entry-path" :style="entryPathStyle">{{ entry.path }}</span>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
 
     <!-- 文件内容显示 -->
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <el-scrollbar height="600px">
+      <ScrollArea class="h-[600px]">
         <div class="files-content">
           <div
             v-for="(file, index) in displayData.result.files"
@@ -113,10 +113,10 @@
             >
               <div class="content-header" :style="contentHeaderStyle">
                 <strong>{{ $t('agent.display.workspace.content') }}</strong>
-                <el-button
+                <Button
                   v-if="file.summarized && file.summary"
-                  size="small"
-                  :type="displayFullContentMap.get(index) ? 'default' : 'primary'"
+                  size="sm"
+                  :variant="displayFullContentMap.get(index) ? 'outline' : 'default'"
                   @click="toggleFullContent(index)"
                 >
                   {{
@@ -124,13 +124,13 @@
                       ? $t('agent.display.workspace.hideContent')
                       : $t('agent.display.workspace.showContent')
                   }}
-                </el-button>
+                </Button>
               </div>
               <pre class="content-text" :style="contentTextStyle">{{ file.content }}</pre>
             </div>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
 
     <div v-else-if="displayData.stage === 'error'" class="error-state">
@@ -146,6 +146,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Loading, Folder, Document } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

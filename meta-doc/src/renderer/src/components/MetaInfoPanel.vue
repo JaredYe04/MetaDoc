@@ -145,14 +145,14 @@
         />
 
         <el-dialog v-model="metaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
-          <el-form>
-            <el-form-item :label="$t('article.title')">
-              <el-input v-model="formState.title" autocomplete="off" class="aero-input" />
-            </el-form-item>
-            <el-form-item :label="$t('article.author')">
-              <el-input v-model="formState.author" autocomplete="off" class="aero-input" />
-            </el-form-item>
-            <el-form-item :label="$t('article.description')" class="meta-dialog__description-item">
+          <Form>
+            <FormField :label="$t('article.title')" name="title">
+              <Input v-model="formState.title" class="aero-input" />
+            </FormField>
+            <FormField :label="$t('article.author')" name="author">
+              <Input v-model="formState.author" class="aero-input" />
+            </FormField>
+            <FormField :label="$t('article.description')" name="description" class="meta-dialog__description-item">
               <AutoResizeTextarea
                 v-model="formState.description"
                 :autosize="{ minRows: 20 }"
@@ -161,8 +161,8 @@
                 :placeholder="$t('article.description_placeholder')"
                 class="meta-dialog__description-textarea"
               />
-            </el-form-item>
-          </el-form>
+            </FormField>
+          </Form>
           <template #footer>
             <Button
               variant="secondary"
@@ -189,7 +189,9 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loader2, Edit } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import { themeState, mixColors } from '../utils/themes'
+import { Form, FormField } from '@renderer/components/ui/form'
 import {
   generateDescriptionPrompt,
   generateKeywordsPrompt,

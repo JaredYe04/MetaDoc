@@ -41,11 +41,9 @@
           <View class="w-4 h-4 mr-1" />
           {{ t('agent.reference.builtInDocument.preview', '预览') }}
         </Button>
-        <el-switch
-          v-model="enableBuiltInDocRef"
-          @change="handleToggleBuiltInDocRef"
-          :active-text="t('agent.reference.builtInDocument.enabled', '已启用')"
-          :inactive-text="t('agent.reference.builtInDocument.disabled', '已禁用')"
+        <Switch
+          :checked="enableBuiltInDocRef"
+          @update:checked="handleToggleBuiltInDocRef"
         />
       </div>
     </div>
@@ -210,32 +208,43 @@
           </div>
         </div>
 
-        <el-form :model="formData" label-width="100px" :disabled="parsing">
-          <el-form-item :label="t('agent.reference.name')" required>
-            <el-input v-model="formData.name" />
-          </el-form-item>
-          <el-form-item :label="t('agent.reference.inputType')" required>
-            <el-radio-group v-model="formData.inputType" :disabled="parsing">
-              <el-radio value="file">{{ t('agent.reference.type.file') }}</el-radio>
-              <el-radio value="url">{{ t('agent.reference.type.url') }}</el-radio>
-              <el-radio value="text">{{ t('agent.reference.type.custom') }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item
-            :label="t('agent.reference.url')"
-            required
+        <Form class="space-y-4" :class="{ 'pointer-events-none opacity-50': parsing }">
+          <FormField :label="t('agent.reference.name')" name="name" required>
+            <Input v-model="formData.name" />
+          </FormField>
+          <FormField :label="t('agent.reference.inputType')" name="inputType" required>
+            <RadioGroup v-model="formData.inputType" :disabled="parsing" class="flex flex-row gap-4">
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="file" id="input-file" />
+                <label for="input-file" class="text-sm cursor-pointer">{{ t('agent.reference.type.file') }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="url" id="input-url" />
+                <label for="input-url" class="text-sm cursor-pointer">{{ t('agent.reference.type.url') }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="text" id="input-text" />
+                <label for="input-text" class="text-sm cursor-pointer">{{ t('agent.reference.type.custom') }}</label>
+              </div>
+            </RadioGroup>
+          </FormField>
+          <FormField
             v-if="formData.inputType === 'url'"
+            :label="t('agent.reference.url')"
+            name="url"
+            required
           >
-            <el-input
+            <Input
               v-model="formData.url"
               :placeholder="t('agent.reference.urlPlaceholder')"
               @blur="handleUrlBlur"
             />
-          </el-form-item>
-          <el-form-item
-            :label="t('agent.reference.file')"
-            required
+          </FormField>
+          <FormField
             v-if="formData.inputType === 'file'"
+            :label="t('agent.reference.file')"
+            name="file"
+            required
           >
             <Button :disabled="parsing" @click="handleSelectFile">
               {{ t('agent.reference.selectFile') }}
@@ -249,23 +258,24 @@
             >
               ✓ {{ t('agent.reference.parseSuccess') }}
             </div>
-          </el-form-item>
-          <el-form-item
-            :label="t('agent.reference.text')"
-            required
+          </FormField>
+          <FormField
             v-if="formData.inputType === 'text'"
+            :label="t('agent.reference.text')"
+            name="text"
+            required
           >
-            <el-input
+            <Textarea
               v-model="formData.text"
-              type="textarea"
               :rows="5"
               :placeholder="t('agent.reference.textPlaceholder')"
+              class="w-full"
             />
-          </el-form-item>
-          <el-form-item :label="t('agent.reference.description')">
-            <el-input v-model="formData.description" type="textarea" :rows="3" />
-          </el-form-item>
-        </el-form>
+          </FormField>
+          <FormField :label="t('agent.reference.description')" name="description">
+            <Textarea v-model="formData.description" :rows="3" class="w-full" />
+          </FormField>
+        </Form>
       </div>
       <template #footer>
         <Button variant="secondary" @click="handleDialogClose" :disabled="parsing">{{
@@ -303,6 +313,11 @@ import messageBridge from '../../bridge/message-bridge'
 import { createRendererLogger } from '../../utils/logger'
 import { useWorkspace } from '../../stores/workspace'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null

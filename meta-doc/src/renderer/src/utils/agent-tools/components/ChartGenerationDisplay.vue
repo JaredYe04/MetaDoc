@@ -45,9 +45,10 @@
           <span class="chart-name" :style="chartNameStyle">{{ displayData.chartName }}</span>
         </div>
         <div class="header-actions">
-          <el-button type="primary" size="small" :icon="Download" @click="downloadChart">
+          <Button type="primary" size="sm" @click="downloadChart">
+            <Download class="w-4 h-4 mr-1" />
             {{ $t('agent.display.chartGeneration.download') }}
-          </el-button>
+          </Button>
         </div>
       </div>
 
@@ -122,6 +123,7 @@
 import { computed } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

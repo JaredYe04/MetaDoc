@@ -2,21 +2,22 @@
   <div class="llm-statistics-content">
     <!-- 日期范围选择 -->
     <div class="date-range-section">
-      <el-select
+      <Select
         v-model="quickSelect"
-        :placeholder="$t('llmStatistics.quickSelect')"
-        @change="handleQuickSelect"
-        :style="{
-          '--el-select-text-color': themeState.currentTheme.textColor,
-          width: '150px'
-        }"
+        @update:model-value="handleQuickSelect"
+        :style="{ width: '150px' }"
       >
-        <el-option :label="$t('llmStatistics.today')" value="today" />
-        <el-option :label="$t('llmStatistics.thisWeek')" value="thisWeek" />
-        <el-option :label="$t('llmStatistics.thisMonth')" value="thisMonth" />
-        <el-option :label="$t('llmStatistics.thisYear')" value="thisYear" />
-        <el-option :label="$t('llmStatistics.custom')" value="custom" />
-      </el-select>
+        <SelectTrigger>
+          <SelectValue :placeholder="$t('llmStatistics.quickSelect')" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="today">{{ $t('llmStatistics.today') }}</SelectItem>
+          <SelectItem value="thisWeek">{{ $t('llmStatistics.thisWeek') }}</SelectItem>
+          <SelectItem value="thisMonth">{{ $t('llmStatistics.thisMonth') }}</SelectItem>
+          <SelectItem value="thisYear">{{ $t('llmStatistics.thisYear') }}</SelectItem>
+          <SelectItem value="custom">{{ $t('llmStatistics.custom') }}</SelectItem>
+        </SelectContent>
+      </Select>
       <el-date-picker
         v-model="dateRange"
         type="datetimerange"
@@ -30,9 +31,9 @@
           '--el-date-picker-text-color': themeState.currentTheme.textColor
         }"
       />
-      <el-button @click="loadAllStatistics" :style="{ color: themeState.currentTheme.textColor }">
+      <Button @click="loadAllStatistics" :style="{ color: themeState.currentTheme.textColor }">
         {{ $t('llmStatistics.loadAll') }}
-      </el-button>
+      </Button>
     </div>
 
     <!-- 统计摘要 -->
@@ -83,6 +84,14 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { createRendererLogger } from '../utils/logger'
 import * as XLSX from 'xlsx'
 import messageBridge from '../bridge/message-bridge'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
 
 const { t } = useI18n()
 const logger = createRendererLogger('LlmStatisticsContent')

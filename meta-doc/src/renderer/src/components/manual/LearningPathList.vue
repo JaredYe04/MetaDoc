@@ -3,7 +3,7 @@
     <div class="list-header">
       <span class="list-title">{{ $t('userManual.sidebar.recommendedList') }}</span>
     </div>
-    <el-scrollbar class="list-scrollbar">
+    <ScrollArea class="list-scrollbar">
       <div class="path-items">
         <div
           v-for="(articleId, index) in learningPath"
@@ -25,7 +25,7 @@
           </el-icon>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
@@ -34,6 +34,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
 import { Check } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 const { locale } = useI18n()
 const {

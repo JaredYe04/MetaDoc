@@ -68,7 +68,7 @@
         </div>
       </div>
       <!-- 其他格式：使用滚动条 -->
-      <el-scrollbar v-else class="home-panel-scrollbar">
+      <ScrollArea v-else class="home-panel-scrollbar">
         <div class="home-panel-content">
           <!-- 文档元信息区域 -->
           <div class="document-meta-section">
@@ -115,7 +115,7 @@
             ></div>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
   </div>
 </template>
@@ -137,6 +137,7 @@ import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '.
 import { formatRegistry } from '../utils/format-registry'
 import { getMonacoLanguage } from '../utils/format-initializer'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()

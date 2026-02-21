@@ -81,7 +81,7 @@
           </UISubMenuItem>
         </UISubMenu>
 
-        <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
+        <UISubMenuItem :icon="X" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.closeFile') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -108,23 +108,23 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="ChatDotRound" @click="emitMenu('ai-chat')">
+        <UISubMenuItem :icon="MessageCircle" @click="emitMenu('ai-chat')">
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="emitMenu('fomula-recognition')">
+        <UISubMenuItem :icon="BookOpen" @click="emitMenu('fomula-recognition')">
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Picture" @click="emitMenu('smart-drawing-assistant')">
+        <UISubMenuItem :icon="Image" @click="emitMenu('smart-drawing-assistant')">
           {{ $t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('data-analysis')">
+        <UISubMenuItem :icon="BarChart3" @click="emitMenu('data-analysis')">
           {{ $t('leftMenu.dataAnalysis') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="View" @click="emitMenu('ocr')">
+        <UISubMenuItem :icon="Eye" @click="emitMenu('ocr')">
           {{ $t('leftMenu.ocr') }}
         </UISubMenuItem>
 
@@ -149,7 +149,7 @@
         v-if="menuId === 'settings' && isMenuItemVisible('settings')"
         :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
-        :icon-image="(themeState.currentTheme as any).SettingIcon"
+        :icon-image="(themeState.currentTheme as any).SettingsIcon"
         @click="emitMenu('setting')"
       />
 
@@ -165,18 +165,14 @@
         @open="refreshRecentDocs"
       >
         <template #title>
-          <el-icon class="recent-files-icon">
-            <Clock />
-          </el-icon>
+          <Clock class="recent-files-icon w-5 h-5" />
           <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Clock />
-            </el-icon>
+            <Clock class="w-4 h-4" />
           </template>
           {{ $t('leftMenu.recentFilesTooltip') }}
         </UISubMenuItem>
@@ -261,7 +257,7 @@
         v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
         :label="$t('bottomMenu.llmStatistics', 'LLM统计')"
         :tooltip="$t('bottomMenu.llmStatistics', 'LLM统计')"
-        :icon="DataAnalysis"
+        :icon="BarChart3"
         @click="openLlmStatistics"
       />
 
@@ -270,7 +266,7 @@
         v-if="menuId === 'user-manual' && isMenuItemVisible('user-manual')"
         :label="$t('leftMenu.userManual', '用户手册')"
         :tooltip="$t('leftMenu.userManual', '用户手册')"
-        :icon="Reading"
+        :icon="BookOpen"
         @click="openUserManual"
       />
 
@@ -282,9 +278,7 @@
       >
         <template #icon>
           <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
-          <el-icon v-else>
-            <UserFilled />
-          </el-icon>
+          <UserCircle v-else class="w-6 h-6" />
         </template>
       </UIMenuItem>
 
@@ -330,7 +324,7 @@
         <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('llm-statistics')"
-          :icon="DataAnalysis"
+          :icon="BarChart3"
           @click="openLlmStatistics"
         >
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
@@ -348,7 +342,7 @@
         <!-- 用户手册：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('user-manual')"
-          :icon="Reading"
+          :icon="BookOpen"
           @click="openUserManual"
         >
           {{ $t('leftMenu.userManual', '用户手册') }}
@@ -373,14 +367,14 @@
         v-if="menuId === 'exit' && isMenuItemVisible('exit')"
         :title="$t('leftMenu.exit')"
         :tooltip="$t('leftMenu.exit')"
-        :icon="SwitchButton"
+        :icon="Power"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
           <el-icon>
-            <SwitchButton />
+            <Power />
           </el-icon>
           <span>{{ $t('leftMenu.exit') }}</span>
         </template>
@@ -389,21 +383,21 @@
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
             <el-icon>
-              <SwitchButton />
+              <Power />
             </el-icon>
           </template>
           {{ $t('leftMenu.exitTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAndQuit">
           {{ $t('leftMenu.saveAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAllAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAllAndQuit">
           {{ $t('leftMenu.saveAllAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="quitWithoutSave">
+        <UISubMenuItem :icon="Power" @click="quitWithoutSave">
           {{ $t('leftMenu.exitWithoutSaving') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -499,7 +493,7 @@
           </UISubMenuItem>
         </UISubMenu>
 
-        <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
+        <UISubMenuItem :icon="X" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.closeFile') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -527,23 +521,23 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="ChatDotRound" @click="emitMenu('ai-chat')">
+        <UISubMenuItem :icon="MessageCircle" @click="emitMenu('ai-chat')">
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="emitMenu('fomula-recognition')">
+        <UISubMenuItem :icon="BookOpen" @click="emitMenu('fomula-recognition')">
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Picture" @click="emitMenu('smart-drawing-assistant')">
+        <UISubMenuItem :icon="Image" @click="emitMenu('smart-drawing-assistant')">
           {{ $t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('data-analysis')">
+        <UISubMenuItem :icon="BarChart3" @click="emitMenu('data-analysis')">
           {{ $t('leftMenu.dataAnalysis') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="View" @click="emitMenu('ocr')">
+        <UISubMenuItem :icon="Eye" @click="emitMenu('ocr')">
           {{ $t('leftMenu.ocr') }}
         </UISubMenuItem>
 
@@ -551,7 +545,7 @@
           {{ $t('leftMenu.attachment') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('aigc-detection')">
+        <UISubMenuItem :icon="BarChart3" @click="emitMenu('aigc-detection')">
           {{ $t('leftMenu.aigcDetection') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -561,7 +555,7 @@
         v-if="menuId === 'settings' && isMenuItemVisible('settings')"
         :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
-        :icon="Setting"
+        :icon="Settings"
         class="bottom-menu"
         @click="emitMenu('setting')"
       />
@@ -681,7 +675,7 @@
         v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
         :label="$t('bottomMenu.llmStatistics', 'LLM统计')"
         :tooltip="$t('bottomMenu.llmStatistics', 'LLM统计')"
-        :icon="DataAnalysis"
+        :icon="BarChart3"
         class="bottom-menu"
         @click="openLlmStatistics"
       />
@@ -691,7 +685,7 @@
         v-if="menuId === 'user-manual' && isMenuItemVisible('user-manual')"
         :label="$t('leftMenu.userManual', '用户手册')"
         :tooltip="$t('leftMenu.userManual', '用户手册')"
-        :icon="Reading"
+        :icon="BookOpen"
         class="bottom-menu"
         @click="openUserManual"
       />
@@ -704,9 +698,7 @@
       >
         <template #icon>
           <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
-          <el-icon v-else>
-            <UserFilled />
-          </el-icon>
+          <UserCircle v-else class="w-6 h-6" />
         </template>
       </UIMenuItem>
 
@@ -754,7 +746,7 @@
         <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('llm-statistics')"
-          :icon="DataAnalysis"
+          :icon="BarChart3"
           @click="openLlmStatistics"
         >
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
@@ -772,7 +764,7 @@
         <!-- 用户手册：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('user-manual')"
-          :icon="Reading"
+          :icon="BookOpen"
           @click="openUserManual"
         >
           {{ $t('leftMenu.userManual', '用户手册') }}
@@ -788,14 +780,14 @@
         v-if="menuId === 'exit' && isMenuItemVisible('exit')"
         :title="$t('leftMenu.exit')"
         :tooltip="$t('leftMenu.exit')"
-        :icon="SwitchButton"
+        :icon="Power"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
           <el-icon>
-            <SwitchButton />
+            <Power />
           </el-icon>
           <span>{{ $t('leftMenu.exit') }}</span>
         </template>
@@ -804,21 +796,21 @@
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
             <el-icon>
-              <SwitchButton />
+              <Power />
             </el-icon>
           </template>
           {{ $t('leftMenu.exitTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAndQuit">
           {{ $t('leftMenu.saveAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAllAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAllAndQuit">
           {{ $t('leftMenu.saveAllAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="quitWithoutSave">
+        <UISubMenuItem :icon="Power" @click="quitWithoutSave">
           {{ $t('leftMenu.exitWithoutSaving') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -843,41 +835,34 @@
 </template>
 
 <script lang="ts" setup>
-import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings'
+import { updateRecentDocs, getRecentDocs, getSettings, setSettings } from '../utils/settings'
 import { computed, onMounted, ref, provide, watch } from 'vue'
 import UIMenu from './ui/UIMenu.vue'
 import UIMenuItem from './ui/UIMenuItem.vue'
 import UISubMenu from './ui/UISubMenu.vue'
 import UISubMenuItem from './ui/UISubMenuItem.vue'
 import {
-  Document,
-  FirstAidKit,
-  Menu as IconMenu,
-  Location,
-  Setting,
-  ChatDotRound,
-  EditPen,
-  UserFilled,
+  FilePlus,
+  FolderOpen,
+  FolderCheck,
+  FolderPlus,
   User,
-  DataAnalysis,
-  DocumentAdd,
-  FolderOpened,
-  FolderChecked,
-  FolderAdd,
-  CircleClose,
+  BarChart3,
+  FileX,
   Clock,
-  SwitchButton,
-  Picture,
-  ZoomIn,
-  Connection,
-  House,
-  Collection,
-  Tools,
-  Grid,
-  Reading,
-  View,
-  Paperclip
-} from '@element-plus/icons-vue'
+  Power,
+  Image,
+  Home,
+  LayoutGrid,
+  BookOpen,
+  Eye,
+  Paperclip,
+  Plus,
+  Settingss,
+  MessageCircle,
+  Pencil,
+  UserCircle
+} from 'lucide-vue-next'
 import eventBus from '../utils/event-bus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { themeState, mixColors } from '../utils/themes'
@@ -938,7 +923,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'settings',
       label: t('leftMenu.settings'),
-      iconImage: (themeState.currentTheme as any).SettingIcon,
+      iconImage: (themeState.currentTheme as any).SettingsIcon,
       visible: true,
       isCore: true,
       position: 'top'
@@ -994,7 +979,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'llm-statistics',
       label: t('bottomMenu.llmStatistics', 'LLM统计'),
-      icon: DataAnalysis,
+      icon: BarChart3,
       visible: false,
       isCore: false,
       position: 'top'
@@ -1010,7 +995,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'user-manual',
       label: t('leftMenu.userManual', '用户手册'),
-      icon: Reading,
+      icon: BookOpen,
       visible: false,
       isCore: false,
       position: 'top'
@@ -1026,7 +1011,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'user-profile',
       label: t('leftMenu.userProfileTooltip', '用户资料'),
-      icon: UserFilled,
+      icon: UserCircle,
       visible: true,
       isCore: true,
       position: 'bottom'
@@ -1034,7 +1019,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'exit',
       label: t('leftMenu.exit'),
-      icon: SwitchButton,
+      icon: Power,
       visible: true,
       isCore: true,
       position: 'bottom'
@@ -1057,7 +1042,7 @@ const menuConfigState = ref<{
 // 加载菜单配置
 const loadMenuConfig = async () => {
   try {
-    const config = await getSetting('leftMenuConfig')
+    const config = await getSettings('leftMenuConfig')
     if (config && Array.isArray(config) && config.length > 0) {
       // 合并保存的配置和当前定义的配置
       const configMap = new Map(config.map((item: any) => [item.id, item]))

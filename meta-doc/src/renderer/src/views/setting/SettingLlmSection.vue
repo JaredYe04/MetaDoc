@@ -3,17 +3,17 @@
     <!-- 全局设置（不依赖配置） -->
     <div class="global-settings-section">
       <h3 class="section-title">{{ t('setting.llmSettings') }}</h3>
-      <el-form label-width="200px" class="settings-form">
-        <el-form-item :label="t('setting.enableLlm')">
-          <el-switch
-            v-model="settings.llmEnabled"
-            class="mb-2"
-            :active-text="t('setting.enabled')"
-            :inactive-text="t('setting.disabled')"
-            @change="handleLlmToggle"
-          />
-        </el-form-item>
-        <el-form-item :label="t('setting.llmTemperature')">
+      <Form class="settings-form space-y-6">
+        <FormField name="llmEnabled" :label="t('setting.enableLlm')">
+          <div class="flex items-center gap-2">
+            <Switch
+              :checked="settings.llmEnabled"
+              @update:checked="handleLlmToggle"
+            />
+            <span class="text-sm text-muted-foreground">{{ settings.llmEnabled ? t('setting.enabled') : t('setting.disabled') }}</span>
+          </div>
+        </FormField>
+        <FormField name="llmTemperature" :label="t('setting.llmTemperature')">
           <el-tooltip :content="t('setting.llmTemperatureHint')" placement="top">
             <NumberField
               v-model="settings.llmTemperature"
@@ -36,17 +36,17 @@
               </NumberFieldIncrement>
             </NumberField>
           </el-tooltip>
-        </el-form-item>
-        <el-form-item :label="t('setting.removeThinkTag')">
-          <el-switch
-            v-model="settings.autoRemoveThinkTag"
-            class="mb-2"
-            :active-text="t('setting.enabled')"
-            :inactive-text="t('setting.disabled')"
-            @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)"
-          />
-        </el-form-item>
-      </el-form>
+        </FormField>
+        <FormField name="autoRemoveThinkTag" :label="t('setting.removeThinkTag')">
+          <div class="flex items-center gap-2">
+            <Switch
+              :checked="settings.autoRemoveThinkTag"
+              @update:checked="(val: boolean) => { settings.autoRemoveThinkTag = val; saveSetting('autoRemoveThinkTag', val) }"
+            />
+            <span class="text-sm text-muted-foreground">{{ settings.autoRemoveThinkTag ? t('setting.enabled') : t('setting.disabled') }}</span>
+          </div>
+        </FormField>
+      </Form>
     </div>
 
     <div v-if="settings.llmEnabled" class="llm-settings__content">
@@ -79,21 +79,20 @@
                 <Button size="icon" variant="outline" @click="handleExportAllConfigs">
                   <Download class="h-4 w-4" />
                 </Button>
-              </el-tooltip>
-            </div>
-          </header>
-          <el-scrollbar class="config-scroll">
-            <el-radio-group
+          </el-tooltip>
+        </div>
+      </header>
+      <ScrollArea class="flex-1">
+        <RadioGroup
               v-model="currentConfigId"
               class="config-list"
-              @change="handleConfigSwitch"
+              @update:modelValue="handleConfigSwitch"
               @dragover.prevent="handleListDragOver"
               @drop.prevent="handleListDrop"
             >
-              <el-radio
+              <div
                 v-for="config in llmConfigs"
                 :key="config.id"
-                :value="config.id"
                 class="config-item"
                 :class="{
                   dragging: draggingConfigId === config.id,
@@ -105,9 +104,11 @@
                 @dragover.prevent="handleDragOver(config.id, $event)"
                 @drop.prevent="handleDrop(config.id, $event)"
               >
-                <template #default>
-                  <div
-                    class="config-item-wrapper"
+                <div class="flex items-center gap-2 w-full">
+                  <RadioGroupItem :value="config.id" :id="'config-' + config.id" class="sr-only peer" />
+                  <label
+                    :for="'config-' + config.id"
+                    class="config-item-wrapper flex-1 cursor-pointer"
                     draggable="true"
                     @dragstart.stop="handleDragStart(config.id, $event)"
                     @dragover.prevent="handleDragOver(config.id, $event)"
@@ -164,11 +165,11 @@
                         </div>
                       </transition>
                     </div>
-                  </div>
-                </template>
-              </el-radio>
-            </el-radio-group>
-          </el-scrollbar>
+                  </label>
+                </div>
+              </div>
+             </RadioGroup>
+          </ScrollArea>
         </section>
 
         <!-- 右侧：配置项表单 -->
@@ -194,69 +195,61 @@
               </Button>
             </div>
           </div>
-          <el-scrollbar class="config-form-scroll">
+          <ScrollArea class="flex-1">
             <el-form label-width="160px" class="settings-form">
               <el-form-item :label="t('setting.llmType')">
-                <el-select
-                  v-model="settings.selectedLlm"
-                  :placeholder="t('setting.chooseLlm')"
-                  @change="handleLlmTypeChange"
-                >
-                  <el-tooltip :content="t('setting.metadocHint')" placement="left">
-                    <el-option :label="t('setting.metadoc')" value="metadoc" />
-                  </el-tooltip>
-                  <el-tooltip :content="t('setting.ollamaHint')" placement="left">
-                    <el-option :label="t('setting.ollama')" value="ollama" />
-                  </el-tooltip>
-                  <el-tooltip :content="t('setting.openaiHint')" placement="left">
-                    <el-option :label="t('setting.openai')" value="openai" />
-                  </el-tooltip>
-                  <el-tooltip :content="t('setting.openaiOfficialHint')" placement="left">
-                    <el-option :label="t('setting.openaiOfficial')" value="openai-official" />
-                  </el-tooltip>
-                  <el-tooltip :content="t('setting.deepseekHint')" placement="left">
-                    <el-option :label="t('setting.deepseek')" value="deepseek" />
-                  </el-tooltip>
-                  <el-tooltip :content="t('setting.geminiHint')" placement="left">
-                    <el-option :label="t('setting.gemini')" value="gemini" />
-                  </el-tooltip>
-                  <el-tooltip v-if="isDev" :content="t('setting.manualHint')" placement="left">
-                    <el-option :label="t('setting.manual')" value="manual" />
-                  </el-tooltip>
-                </el-select>
+                <Select v-model="settings.selectedLlm" @update:model-value="handleLlmTypeChange">
+                  <SelectTrigger class="w-[200px]">
+                    <SelectValue :placeholder="t('setting.chooseLlm')" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="metadoc">{{ t('setting.metadoc') }}</SelectItem>
+                    <SelectItem value="ollama">{{ t('setting.ollama') }}</SelectItem>
+                    <SelectItem value="openai">{{ t('setting.openai') }}</SelectItem>
+                    <SelectItem value="openai-official">{{ t('setting.openaiOfficial') }}</SelectItem>
+                    <SelectItem value="deepseek">{{ t('setting.deepseek') }}</SelectItem>
+                    <SelectItem value="gemini">{{ t('setting.gemini') }}</SelectItem>
+                    <SelectItem v-if="isDev" value="manual">{{ t('setting.manual') }}</SelectItem>
+                  </SelectContent>
+                </Select>
               </el-form-item>
 
               <template v-if="settings.selectedLlm === 'ollama'">
                 <el-form-item :label="t('setting.apiBaseUrl')">
-                  <el-input
+                  <Input
                     v-model="settings.ollama.apiUrl"
                     :placeholder="t('setting.ollamaApiUrl')"
                     @change="handleFieldChange"
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.chooseModel')">
-                  <el-select
+                  <Select
                     v-model="settings.ollama.selectedModel"
-                    :placeholder="t('setting.chooseModel')"
-                    @click="fetchOllamaModels"
-                    @change="handleFieldChange"
+                    @update:model-value="handleFieldChange"
                   >
-                    <el-option
-                      v-for="model in ollamaModels"
-                      :key="model.model"
-                      :label="model.name"
-                      :value="model.model"
-                    />
-                  </el-select>
+                    <SelectTrigger class="w-[240px]">
+                      <SelectValue :placeholder="t('setting.chooseModel')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="model in ollamaModels"
+                        :key="model.model"
+                        :value="model.model"
+                        @select="fetchOllamaModels"
+                      >
+                        {{ model.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </el-form-item>
                 <el-form-item :label="t('setting.enableMaxTokens')">
-                  <el-switch
-                    v-model="settings.ollama.enableMaxTokens"
-                    class="mb-2"
-                    :active-text="t('setting.enabled')"
-                    :inactive-text="t('setting.disabled')"
-                    @change="handleFieldChange"
-                  />
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="settings.ollama.enableMaxTokens"
+                      @update:checked="(val: boolean) => { settings.ollama.enableMaxTokens = val; handleFieldChange() }"
+                    />
+                    <span class="text-sm text-muted-foreground">{{ settings.ollama.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}</span>
+                  </div>
                 </el-form-item>
                 <el-form-item
                   v-if="settings.ollama.enableMaxTokens"
@@ -281,14 +274,14 @@
 
               <template v-else-if="settings.selectedLlm === 'openai'">
                 <el-form-item :label="t('setting.apiBaseUrl')">
-                  <el-input
+                  <Input
                     v-model="settings.openai.apiUrl"
                     :placeholder="t('setting.openaiApiUrl')"
                     @change="handleFieldChange"
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.apiKey')">
-                  <el-input
+                  <Input
                     v-model="settings.openai.apiKey"
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
@@ -296,41 +289,46 @@
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.chooseModel')">
-                  <el-select
+                  <Select
                     v-model="settings.openai.selectedModel"
-                    :placeholder="t('setting.chooseModel')"
-                    @click="fetchOpenAIModels"
-                    @change="handleFieldChange"
+                    @update:model-value="handleFieldChange"
                   >
-                    <el-option
-                      v-for="model in openaiModels"
-                      :key="model.id"
-                      :label="model.id"
-                      :value="model.id"
-                    />
-                  </el-select>
+                    <SelectTrigger class="w-[240px]">
+                      <SelectValue :placeholder="t('setting.chooseModel')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="model in openaiModels"
+                        :key="model.id"
+                        :value="model.id"
+                        @select="fetchOpenAIModels"
+                      >
+                        {{ model.id }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </el-form-item>
                 <el-form-item>
-                  <el-input
+                  <Input
                     v-model="settings.openai.completionSuffix"
                     :placeholder="t('setting.completionSuffix')"
                     @change="handleFieldChange"
                   />
                   <div style="height: 40px"></div>
-                  <el-input
+                  <Input
                     v-model="settings.openai.chatSuffix"
                     :placeholder="t('setting.chatSuffix')"
                     @change="handleFieldChange"
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.enableMaxTokens')">
-                  <el-switch
-                    v-model="settings.openai.enableMaxTokens"
-                    class="mb-2"
-                    :active-text="t('setting.enabled')"
-                    :inactive-text="t('setting.disabled')"
-                    @change="handleFieldChange"
-                  />
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="settings.openai.enableMaxTokens"
+                      @update:checked="(val: boolean) => { settings.openai.enableMaxTokens = val; handleFieldChange() }"
+                    />
+                    <span class="text-sm text-muted-foreground">{{ settings.openai.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}</span>
+                  </div>
                 </el-form-item>
                 <el-form-item
                   v-if="settings.openai.enableMaxTokens"
@@ -353,7 +351,7 @@
 
               <template v-else-if="settings.selectedLlm === 'openai-official'">
                 <el-form-item :label="t('setting.apiKey')">
-                  <el-input
+                  <Input
                     v-model="settings['openai-official'].apiKey"
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
@@ -361,28 +359,33 @@
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.chooseModel')">
-                  <el-select
+                  <Select
                     v-model="settings['openai-official'].selectedModel"
-                    :placeholder="t('setting.chooseModel')"
-                    @click="fetchOpenAIOfficialModels"
-                    @change="handleFieldChange"
+                    @update:model-value="handleFieldChange"
                   >
-                    <el-option
-                      v-for="model in openaiOfficialModels"
-                      :key="model.id"
-                      :label="model.id"
-                      :value="model.id"
-                    />
-                  </el-select>
+                    <SelectTrigger class="w-[240px]">
+                      <SelectValue :placeholder="t('setting.chooseModel')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="model in openaiOfficialModels"
+                        :key="model.id"
+                        :value="model.id"
+                        @select="fetchOpenAIOfficialModels"
+                      >
+                        {{ model.id }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </el-form-item>
                 <el-form-item :label="t('setting.enableMaxTokens')">
-                  <el-switch
-                    v-model="settings['openai-official'].enableMaxTokens"
-                    class="mb-2"
-                    :active-text="t('setting.enabled')"
-                    :inactive-text="t('setting.disabled')"
-                    @change="handleFieldChange"
-                  />
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="settings['openai-official'].enableMaxTokens"
+                      @update:checked="(val: boolean) => { settings['openai-official'].enableMaxTokens = val; handleFieldChange() }"
+                    />
+                    <span class="text-sm text-muted-foreground">{{ settings['openai-official'].enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}</span>
+                  </div>
                 </el-form-item>
                 <el-form-item
                   v-if="settings['openai-official'].enableMaxTokens"
@@ -405,7 +408,7 @@
 
               <template v-else-if="settings.selectedLlm === 'deepseek'">
                 <el-form-item :label="t('setting.apiKey')">
-                  <el-input
+                  <Input
                     v-model="settings.deepseek.apiKey"
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
@@ -413,23 +416,24 @@
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.chooseModel')">
-                  <el-select
-                    v-model="settings.deepseek.selectedModel"
-                    :placeholder="t('setting.chooseModel')"
-                    @change="handleFieldChange"
-                  >
-                    <el-option label="deepseek-chat" value="deepseek-chat" />
-                    <el-option label="deepseek-reasoner" value="deepseek-reasoner" />
-                  </el-select>
+                  <Select v-model="settings.deepseek.selectedModel" @update:model-value="handleFieldChange">
+                    <SelectTrigger class="w-[200px]">
+                      <SelectValue :placeholder="t('setting.chooseModel')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="deepseek-chat">deepseek-chat</SelectItem>
+                      <SelectItem value="deepseek-reasoner">deepseek-reasoner</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </el-form-item>
                 <el-form-item :label="t('setting.enableMaxTokens')">
-                  <el-switch
-                    v-model="settings.deepseek.enableMaxTokens"
-                    class="mb-2"
-                    :active-text="t('setting.enabled')"
-                    :inactive-text="t('setting.disabled')"
-                    @change="handleFieldChange"
-                  />
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="settings.deepseek.enableMaxTokens"
+                      @update:checked="(val: boolean) => { settings.deepseek.enableMaxTokens = val; handleFieldChange() }"
+                    />
+                    <span class="text-sm text-muted-foreground">{{ settings.deepseek.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}</span>
+                  </div>
                 </el-form-item>
                 <el-form-item
                   v-if="settings.deepseek.enableMaxTokens"
@@ -452,7 +456,7 @@
 
               <template v-else-if="settings.selectedLlm === 'gemini'">
                 <el-form-item :label="t('setting.apiKey')">
-                  <el-input
+                  <Input
                     v-model="settings.gemini.apiKey"
                     type="password"
                     :placeholder="t('setting.geminiApiKeyPlaceholder')"
@@ -460,28 +464,30 @@
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.chooseModel')">
-                  <el-select
-                    v-model="settings.gemini.selectedModel"
-                    :placeholder="t('setting.chooseModel')"
-                    @click="fetchGeminiModels"
-                    @change="handleFieldChange"
-                  >
-                    <el-option
-                      v-for="model in geminiModels"
-                      :key="model.name"
-                      :label="model.displayName || model.name"
-                      :value="model.name"
-                    />
-                  </el-select>
+                  <Select v-model="settings.gemini.selectedModel" @update:model-value="handleFieldChange">
+                    <SelectTrigger class="w-[240px]">
+                      <SelectValue :placeholder="t('setting.chooseModel')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="model in geminiModels"
+                        :key="model.name"
+                        :value="model.name"
+                        @select="fetchGeminiModels"
+                      >
+                        {{ model.displayName || model.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </el-form-item>
                 <el-form-item :label="t('setting.enableMaxTokens')">
-                  <el-switch
-                    v-model="settings.gemini.enableMaxTokens"
-                    class="mb-2"
-                    :active-text="t('setting.enabled')"
-                    :inactive-text="t('setting.disabled')"
-                    @change="handleFieldChange"
-                  />
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="settings.gemini.enableMaxTokens"
+                      @update:checked="(val: boolean) => { settings.gemini.enableMaxTokens = val; handleFieldChange() }"
+                    />
+                    <span class="text-sm text-muted-foreground">{{ settings.gemini.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}</span>
+                  </div>
                 </el-form-item>
                 <el-form-item
                   v-if="settings.gemini.enableMaxTokens"
@@ -504,28 +510,30 @@
 
               <template v-else-if="settings.selectedLlm === 'metadoc'">
                 <el-form-item :label="t('setting.chooseModel')">
-                  <el-select
-                    v-model="settings.metadoc.selectedModel"
-                    :placeholder="t('setting.chooseModel')"
-                    @click="fetchMetaDocModels"
-                    @change="handleFieldChange"
-                  >
-                    <el-option
-                      v-for="model in metadocModels"
-                      :key="model.label"
-                      :label="model.label"
-                      :value="model.label"
-                    />
-                  </el-select>
+                  <Select v-model="settings.metadoc.selectedModel" @update:model-value="handleFieldChange">
+                    <SelectTrigger class="w-[240px]">
+                      <SelectValue :placeholder="t('setting.chooseModel')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="model in metadocModels"
+                        :key="model.label"
+                        :value="model.label"
+                        @select="fetchMetaDocModels"
+                      >
+                        {{ model.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </el-form-item>
                 <el-form-item :label="t('setting.enableMaxTokens')">
-                  <el-switch
-                    v-model="settings.metadoc.enableMaxTokens"
-                    class="mb-2"
-                    :active-text="t('setting.enabled')"
-                    :inactive-text="t('setting.disabled')"
-                    @change="handleFieldChange"
-                  />
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="settings.metadoc.enableMaxTokens"
+                      @update:checked="(val: boolean) => { settings.metadoc.enableMaxTokens = val; handleFieldChange() }"
+                    />
+                    <span class="text-sm text-muted-foreground">{{ settings.metadoc.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}</span>
+                  </div>
                 </el-form-item>
                 <el-form-item
                   v-if="settings.metadoc.enableMaxTokens"
@@ -556,11 +564,10 @@
                   />
                 </el-form-item>
                 <el-form-item :label="t('setting.manualTokenInput')">
-                  <el-input
+                  <Textarea
                     v-model="manualTokenInput"
-                    type="textarea"
-                    :rows="8"
                     :placeholder="t('setting.manualTokenInputPlaceholder')"
+                    rows="8"
                     @input="saveManualTokenToCache"
                   />
                   <div style="margin-top: 8px; display: flex; gap: 8px">
@@ -588,28 +595,28 @@
               </template>
 
               <el-form-item :label="t('setting.autoCompletion')">
-                <el-switch
-                  v-model="settings.autoCompletion"
-                  class="mb-2"
-                  :active-text="t('setting.enabled')"
-                  :inactive-text="t('setting.disabled')"
-                  @change="saveSetting('autoCompletion', settings.autoCompletion)"
-                />
+                <div class="flex items-center gap-2">
+                  <Switch
+                    :checked="settings.autoCompletion"
+                    @update:checked="(val: boolean) => { settings.autoCompletion = val; saveSetting('autoCompletion', val) }"
+                  />
+                  <span class="text-sm text-muted-foreground">{{ settings.autoCompletion ? t('setting.enabled') : t('setting.disabled') }}</span>
+                </div>
               </el-form-item>
 
               <el-form-item v-if="settings.autoCompletion" :label="t('setting.autoCompletionMode')">
-                <el-select
+                <Select
                   v-model="settings.autoCompletionMode"
-                  :placeholder="t('setting.chooseAutoCompletionMode')"
-                  @change="saveSetting('autoCompletionMode', settings.autoCompletionMode)"
+                  @update:model-value="saveSetting('autoCompletionMode', settings.autoCompletionMode)"
                 >
-                  <el-tooltip :content="t('setting.autoCompletionFullModeHint')" placement="left">
-                    <el-option :label="t('setting.autoCompletionFullMode')" value="full" />
-                  </el-tooltip>
-                  <el-tooltip :content="t('setting.autoCompletionStreamModeHint')" placement="left">
-                    <el-option :label="t('setting.autoCompletionStreamMode')" value="stream" />
-                  </el-tooltip>
-                </el-select>
+                  <SelectTrigger class="w-[200px]">
+                    <SelectValue :placeholder="t('setting.chooseAutoCompletionMode')" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">{{ t('setting.autoCompletionFullMode') }}</SelectItem>
+                    <SelectItem value="stream">{{ t('setting.autoCompletionStreamMode') }}</SelectItem>
+                  </SelectContent>
+                </Select>
               </el-form-item>
 
               <el-form-item
@@ -646,16 +653,28 @@
 
               <!-- 测试场景选择 -->
               <el-form-item :label="t('setting.testScenario')">
-                <el-radio-group v-model="testScenario">
-                  <el-radio value="completion-stream">{{
-                    t('setting.testCompletionStream')
-                  }}</el-radio>
-                  <el-radio value="completion-nonstream">{{
-                    t('setting.testCompletionNonStream')
-                  }}</el-radio>
-                  <el-radio value="chat-stream">{{ t('setting.testChatStream') }}</el-radio>
-                  <el-radio value="chat-nonstream">{{ t('setting.testChatNonStream') }}</el-radio>
-                </el-radio-group>
+                <RadioGroup v-model="testScenario" class="flex flex-row gap-4 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <RadioGroupItem value="completion-stream" id="test-completion-stream" />
+                    <label for="test-completion-stream" class="text-sm cursor-pointer">{{
+                      t('setting.testCompletionStream')
+                    }}</label>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <RadioGroupItem value="completion-nonstream" id="test-completion-nonstream" />
+                    <label for="test-completion-nonstream" class="text-sm cursor-pointer">{{
+                      t('setting.testCompletionNonStream')
+                    }}</label>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <RadioGroupItem value="chat-stream" id="test-chat-stream" />
+                    <label for="test-chat-stream" class="text-sm cursor-pointer">{{ t('setting.testChatStream') }}</label>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <RadioGroupItem value="chat-nonstream" id="test-chat-nonstream" />
+                    <label for="test-chat-nonstream" class="text-sm cursor-pointer">{{ t('setting.testChatNonStream') }}</label>
+                  </div>
+                </RadioGroup>
               </el-form-item>
 
               <el-form-item>
@@ -670,16 +689,15 @@
               </el-form-item>
 
               <el-form-item :label="t('setting.testResult')">
-                <el-input
+                <Textarea
                   v-model="testResult"
-                  type="textarea"
                   readonly
                   :placeholder="t('setting.resultPlaceholder')"
-                  :autosize="{ minRows: 5, maxRows: 15 }"
+                  class="min-h-[120px]"
                 />
               </el-form-item>
             </el-form>
-          </el-scrollbar>
+          </ScrollArea>
         </section>
       </div>
     </div>
@@ -688,11 +706,10 @@
     <el-dialog v-model="importDialogVisible" :title="t('setting.importConfig')" width="600px">
       <el-form label-width="120px">
         <el-form-item :label="t('setting.importConfigJson')">
-          <el-input
+          <Textarea
             v-model="importJsonText"
-            type="textarea"
-            :rows="10"
             :placeholder="t('setting.importConfigJsonPlaceholder')"
+            rows="10"
           />
         </el-form-item>
       </el-form>
@@ -712,30 +729,30 @@
     >
       <div class="manual-llm-interface">
         <el-form label-width="120px">
-          <el-form-item :label="t('setting.pendingRequests')">
-            <el-select
-              v-model="selectedRequestId"
-              :placeholder="t('setting.selectPendingRequest')"
-              style="width: 100%"
-              @change="selectPendingRequest"
-            >
-              <el-option
-                v-for="req in pendingRequests"
-                :key="req.requestId"
-                :label="`${req.requestId} (${req.type}, ${req.stream ? 'stream' : 'non-stream'})`"
-                :value="req.requestId"
-              />
-            </el-select>
+            <el-form-item :label="t('setting.pendingRequests')">
+              <Select v-model="selectedRequestId" @update:model-value="selectPendingRequest">
+                <SelectTrigger class="w-[240px]">
+                  <SelectValue :placeholder="t('setting.selectPendingRequest')" />
+                </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="req in pendingRequests"
+                  :key="req.requestId"
+                  :value="req.requestId"
+                >
+                  {{ req.requestId }} ({{ req.type }}, {{ req.stream ? 'stream' : 'non-stream' }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <Button size="sm" variant="outline" style="margin-top: 8px" @click="fetchPendingRequests">
               {{ t('setting.refreshRequests') }}
             </Button>
           </el-form-item>
           <el-form-item :label="t('setting.manualTokenInput')">
-            <el-input
+            <Textarea
               v-model="manualTokenInput"
-              type="textarea"
-              :rows="10"
               :placeholder="t('setting.manualTokenInputPlaceholder')"
+              rows="10"
             />
           </el-form-item>
           <el-form-item>
@@ -795,6 +812,18 @@ import {
   NumberFieldDecrement
 } from '@renderer/components/ui/number-field'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Switch } from '@renderer/components/ui/switch'
 
 interface OllamaModel {
   name: string
@@ -2198,7 +2227,6 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-  width: 0; /* 配合 flex: 1 使用，确保能够正确收缩 */
 }
 
 .workspace-toolbar {

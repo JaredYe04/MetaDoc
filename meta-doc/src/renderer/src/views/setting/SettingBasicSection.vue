@@ -1,48 +1,52 @@
 <template>
   <div class="basic-settings">
     <h3 class="section-title">{{ t('setting.basic') }}</h3>
-    <el-form label-width="200px" class="settings-form">
-      <el-form-item :label="t('setting.startupOption')">
-        <el-select
+    <Form class="settings-form">
+      <FormField :label="t('setting.startupOption')" name="startupOption">
+        <Select
           v-model="settings.startupOption"
-          @change="saveSetting('startupOption', settings.startupOption)"
+          @update:model-value="saveSetting('startupOption', settings.startupOption)"
         >
-          <el-option :label="t('setting.openNewFile')" value="newFile" />
-          <el-option :label="t('setting.openLastFile')" value="lastFile" />
-        </el-select>
-      </el-form-item>
+          <SelectTrigger class="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="min-w-[280px]">
+            <SelectItem value="newFile">{{ t('setting.openNewFile') }}</SelectItem>
+            <SelectItem value="lastFile">{{ t('setting.openLastFile') }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
-      <el-form-item :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')">
-        <el-switch
-          v-model="settings.autoOpenHomeOnStartup"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="saveSetting('autoOpenHomeOnStartup', settings.autoOpenHomeOnStartup)"
-        />
-      </el-form-item>
+      <FormField :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')" name="autoOpenHomeOnStartup">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
+          <Switch
+            v-model:checked="settings.autoOpenHomeOnStartup"
+            @update:checked="saveSetting('autoOpenHomeOnStartup', settings.autoOpenHomeOnStartup)"
+          />
+          <span class="text-sm text-muted-foreground">{{ t('setting.enabled', '启用') }}</span>
+        </div>
+      </FormField>
 
-      <el-form-item>
-        <template #label>
-          <span>{{ t('setting.defaultEditorMode') }}</span>
-          <el-tooltip :content="t('setting.defaultEditorModeHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </template>
-        <el-select
-          v-model="settings.vditorMode"
-          @change="saveSetting('vditorMode', settings.vditorMode)"
-          class="editor-mode-select"
+      <FormField :label="t('setting.defaultEditorMode')" name="defaultEditorMode">
+        <Select
+          v-model="settings.metadataSaveMode"
+          @update:model-value="saveSetting('metadataSaveMode', settings.metadataSaveMode)"
         >
-          <el-option :label="t('setting.editorModeWysiwyg')" value="wysiwyg" />
-          <el-option :label="t('setting.editorModeIr')" value="ir" />
-          <el-option :label="t('setting.editorModeSv')" value="sv" />
-        </el-select>
+          <SelectTrigger class="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="min-w-[280px]">
+            <SelectItem value="sidecar">{{ t('setting.metadataSaveModeSidecar') }}</SelectItem>
+            <SelectItem value="embed">{{ t('setting.metadataSaveModeEmbed') }}</SelectItem>
+            <SelectItem value="none">{{ t('setting.metadataSaveModeNone') }}</SelectItem>
+          </SelectContent>
+        </Select>
         <div class="editor-mode-current-hint">{{ currentEditorModeHint }}</div>
-      </el-form-item>
+      </FormField>
 
       <!-- 粒子效果相关代码已注释，以备后用 -->
-      <!-- <el-form-item>
+      <!-- <FormField name="particleEffect">
         <template #label>
           <span>{{ t('setting.particleEffect') }}</span>
           <el-tooltip :content="t('setting.particleEffectHint')" placement="top">
@@ -56,115 +60,80 @@
           :inactive-text="t('setting.disabled')"
           @change="handleParticleToggle"
         />
-      </el-form-item> -->
+      </FormField> -->
 
-      <el-form-item :label="t('setting.autoSave')">
-        <el-select v-model="settings.autoSave" @change="saveSetting('autoSave', settings.autoSave)">
-          <el-option :label="t('setting.off')" value="never" />
-          <el-option :label="t('setting.minute1')" value="1" />
-          <el-option :label="t('setting.minute5')" value="5" />
-          <el-option :label="t('setting.minute10')" value="10" />
-          <el-option :label="t('setting.minute30')" value="30" />
-          <el-option :label="t('setting.minute60')" value="60" />
-        </el-select>
-      </el-form-item>
+      <FormField :label="t('setting.autoSave')" name="autoSave">
+        <Select v-model="settings.autoSave" @update:model-value="saveSetting('autoSave', settings.autoSave)">
+          <SelectTrigger class="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="min-w-[280px]">
+            <SelectItem value="never">{{ t('setting.off') }}</SelectItem>
+            <SelectItem value="1">{{ t('setting.minute1') }}</SelectItem>
+            <SelectItem value="5">{{ t('setting.minute5') }}</SelectItem>
+            <SelectItem value="10">{{ t('setting.minute10') }}</SelectItem>
+            <SelectItem value="30">{{ t('setting.minute30') }}</SelectItem>
+            <SelectItem value="60">{{ t('setting.minute60') }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
-      <!-- <el-form-item :label="t('setting.microphoneTest')">
+      <!-- <FormField :label="t('setting.microphoneTest')" name="">
       <el-tooltip :content="t('setting.microphoneHint')" placement="bottom">
         <MicrophoneTest />
       </el-tooltip>
-    </el-form-item> -->
+    </FormField> -->
 
-      <el-form-item>
-        <template #label>
-          <span>{{ t('setting.excludeCodeBlocks') }}</span>
-          <el-tooltip :content="t('setting.excludeCodeHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </template>
-        <el-switch
-          v-model="settings.bypassCodeBlock"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock)"
-        />
-      </el-form-item>
+      <FormField :label="t('setting.excludeCodeBlocks')" name="excludeCodeBlocks">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
+          <Switch
+            v-model:checked="settings.bypassCodeBlock"
+            @update:checked="saveSetting('bypassCodeBlock', settings.bypassCodeBlock)"
+          />
+          <span class="text-sm text-muted-foreground">{{ t('setting.enabled', '启用') }}</span>
+        </div>
+      </FormField>
 
-      <el-form-item>
-        <template #label>
-          <span>{{ t('setting.parseEmbeddedImages') }}</span>
-          <el-tooltip :content="t('setting.parseEmbeddedImagesHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </template>
-        <el-switch
-          v-model="settings.parseEmbeddedImages"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="saveSetting('parseEmbeddedImages', settings.parseEmbeddedImages)"
-        />
-      </el-form-item>
+      <FormField :label="t('setting.parseEmbeddedImages')" name="parseEmbeddedImages">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
+          <Switch
+            v-model:checked="settings.parseEmbeddedImages"
+            @update:checked="saveSetting('parseEmbeddedImages', settings.parseEmbeddedImages)"
+          />
+          <span class="text-sm text-muted-foreground">{{ t('setting.enabled', '启用') }}</span>
+        </div>
+      </FormField>
 
-      <el-form-item>
-        <template #label>
-          <span>{{ t('setting.mathInlineDigit') }}</span>
-          <el-tooltip :content="t('setting.mathInlineDigitHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </template>
-        <el-switch
-          v-model="settings.mathInlineDigit"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="saveSetting('mathInlineDigit', settings.mathInlineDigit)"
-        />
-      </el-form-item>
+      <FormField :label="t('setting.mathInlineDigit')" name="mathInlineDigit">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
+          <Switch
+            v-model:checked="settings.mathInlineDigit"
+            @update:checked="saveSetting('mathInlineDigit', settings.mathInlineDigit)"
+          />
+          <span class="text-sm text-muted-foreground">{{ t('setting.enabled', '启用') }}</span>
+        </div>
+      </FormField>
 
-      <el-form-item>
-        <template #label>
-          <span>{{ t('setting.metadataSaveMode') }}</span>
-          <el-tooltip :content="t('setting.metadataInfoHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </template>
-        <el-select
+      <FormField :label="t('setting.metadataSaveMode')" name="metadataSaveMode">
+        <Select
           v-model="settings.metadataSaveMode"
-          @change="saveSetting('metadataSaveMode', settings.metadataSaveMode)"
+          @update:model-value="saveSetting('metadataSaveMode', settings.metadataSaveMode)"
         >
-          <el-option value="sidecar">
-            <el-tooltip
-              :content="t('setting.metadataSaveModeSidecarHint')"
-              placement="right"
-              :show-after="300"
-            >
-              <span>{{ t('setting.metadataSaveModeSidecar') }}</span>
-            </el-tooltip>
-          </el-option>
-          <el-option value="embed">
-            <el-tooltip
-              :content="t('setting.metadataSaveModeEmbedHint')"
-              placement="right"
-              :show-after="300"
-            >
-              <span>{{ t('setting.metadataSaveModeEmbed') }}</span>
-            </el-tooltip>
-          </el-option>
-          <el-option value="none">
-            <el-tooltip
-              :content="t('setting.metadataSaveModeNoneHint')"
-              placement="right"
-              :show-after="300"
-            >
-              <span>{{ t('setting.metadataSaveModeNone') }}</span>
-            </el-tooltip>
-          </el-option>
-        </el-select>
-      </el-form-item>
+          <SelectTrigger class="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="min-w-[280px]">
+            <SelectItem value="sidecar">{{ t('setting.metadataSaveModeSidecar') }}</SelectItem>
+            <SelectItem value="embed">{{ t('setting.metadataSaveModeEmbed') }}</SelectItem>
+            <SelectItem value="none">{{ t('setting.metadataSaveModeNone') }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
-      <el-form-item :label="t('setting.referenceDirManagement', '引用文件目录管理')">
+      <FormField :label="t('setting.referenceDirManagement', '引用文件目录管理')" name="referenceDirManagement">
         <div class="reference-dir-management">
           <div class="reference-dir-info">
             <span class="reference-dir-size-label"
@@ -184,8 +153,8 @@
             </Button>
           </div>
         </div>
-      </el-form-item>
-    </el-form>
+      </FormField>
+    </Form>
   </div>
 </template>
 
@@ -198,6 +167,15 @@ import MicrophoneTest from '../../components/MicrophoneTest.vue'
 import { settings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus'
 import Button from '../../components/ui/button/Button.vue'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n()
@@ -305,7 +283,9 @@ onMounted(() => {
 <style scoped>
 .basic-settings {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px;
   box-sizing: border-box;
 }
 

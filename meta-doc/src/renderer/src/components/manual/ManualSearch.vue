@@ -1,17 +1,16 @@
 <template>
   <div class="manual-search">
-    <el-input
-      v-model="query"
-      :placeholder="$t('userManual.searchPlaceholder') || '搜索文档...'"
-      clearable
-      @input="handleSearch"
-      @keydown.enter="handleEnter"
-      @keydown.esc="clearSearch"
-    >
-      <template #prefix>
-        <el-icon><Search /></el-icon>
-      </template>
-    </el-input>
+    <div class="relative">
+      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        v-model="query"
+        :placeholder="$t('userManual.searchPlaceholder') || '搜索文档...'"
+        class="pl-10"
+        @input="handleSearch"
+        @keydown.enter="handleEnter"
+        @keydown.esc="clearSearch"
+      />
+    </div>
 
     <div v-if="showResults && results.length > 0" class="search-results">
       <div
@@ -51,7 +50,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useUserManual } from '../../stores/userManual'
-import { Search, Document, DocumentCopy } from '@element-plus/icons-vue'
+import { Document, DocumentCopy } from '@element-plus/icons-vue'
+import { Search } from 'lucide-vue-next'
+import { Input } from '@renderer/components/ui/input'
 import type { SearchResult } from '../../manuals/types'
 
 const { searchQuery, searchResults, performSearch, setCurrentArticle } = useUserManual()

@@ -3,14 +3,15 @@
     <div class="manager-header">
       <h2>{{ t('agent.manage.workflow.title') }}</h2>
       <div>
-        <el-button @click="handleImport">{{ t('agent.manage.import') }}</el-button>
-        <el-button type="primary" :icon="Plus" @click="handleCreate">
+        <Button @click="handleImport">{{ t('agent.manage.import') }}</Button>
+        <Button type="primary" @click="handleCreate">
+          <Plus class="h-4 w-4 mr-1" />
           {{ t('agent.manage.workflow.create') }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
-    <el-scrollbar class="workflow-list-scroll">
+    <ScrollArea class="workflow-list-scroll flex-1 min-h-0">
       <div class="workflow-grid" v-loading="loading">
         <div
           v-for="workflow in workflows"
@@ -59,37 +60,35 @@
             </div>
           </div>
           <div class="workflow-card__actions" @click.stop>
-            <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, workflow)">
-              <el-button text circle :icon="More" size="small" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit" :disabled="workflow.isBuiltIn">
-                    {{ t('agent.manage.edit') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="validate">
-                    {{ t('agent.manage.workflow.validate') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="duplicate">
-                    {{ t('agent.sessions.duplicate') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export">
-                    {{ t('agent.manage.export') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    divided
-                    command="delete"
-                    :disabled="workflow.isBuiltIn"
-                    class="danger"
-                  >
-                    {{ t('agent.manage.delete') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" circle size="sm">
+                  <More class="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem :disabled="workflow.isBuiltIn" @click="handleAction('edit', workflow)">
+                  {{ t('agent.manage.edit') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleAction('validate', workflow)">
+                  {{ t('agent.manage.workflow.validate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleAction('duplicate', workflow)">
+                  {{ t('agent.sessions.duplicate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleAction('export', workflow)">
+                  {{ t('agent.manage.export') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem :disabled="workflow.isBuiltIn" @click="handleAction('delete', workflow)">
+                  {{ t('agent.manage.delete') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
 
     <!-- 工作流画布对话框 -->
     <el-dialog
@@ -122,6 +121,15 @@ import { workflowManager } from '../../../utils/agent-framework'
 import type { Workflow } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { getWorkflowThumbnail } from '../../../utils/agent-framework/workflow-thumbnail'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 // @ts-ignore - Vue组件类型声明
 import WorkflowCanvas from '../workflow/WorkflowCanvas.vue'
 

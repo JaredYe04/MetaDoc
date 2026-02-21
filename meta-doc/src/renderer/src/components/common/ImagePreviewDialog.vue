@@ -28,26 +28,30 @@
     </div>
     <template #footer>
       <div class="preview-actions">
-        <el-button circle @click="zoomOut" :disabled="imageScale <= 0.1">
+        <Button circle @click="zoomOut" :disabled="imageScale <= 0.1">
           <el-icon><ZoomOut /></el-icon>
-        </el-button>
-        <el-input-number
+        </Button>
+        <NumberField
           v-model="imageScalePercent"
           :min="10"
           :max="500"
           :step="10"
-          :precision="0"
-          controls-position="right"
           style="width: 120px"
-          @change="handleScaleChange"
-        />
+          @update:model-value="handleScaleChange"
+        >
+          <NumberFieldContent>
+            <NumberFieldDecrement />
+            <NumberFieldInput />
+            <NumberFieldIncrement />
+          </NumberFieldContent>
+        </NumberField>
         <span class="scale-unit">%</span>
-        <el-button circle @click="zoomIn" :disabled="imageScale >= 5">
+        <Button circle @click="zoomIn" :disabled="imageScale >= 5">
           <el-icon><ZoomIn /></el-icon>
-        </el-button>
-        <el-button @click="resetZoom">
+        </Button>
+        <Button @click="resetZoom">
           {{ t('ocr.resetZoom') }}
-        </el-button>
+        </Button>
       </div>
     </template>
   </el-dialog>
@@ -58,6 +62,14 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import { themeState } from '../../utils/themes'
+import { Button } from '@renderer/components/ui/button'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
 
 const { t } = useI18n()
 

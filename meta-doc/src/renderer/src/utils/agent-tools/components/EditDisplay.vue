@@ -31,22 +31,22 @@
             >{{ $t('agent.display.edit.totalOperations') }}:
             {{ resultData.operations.length }}</el-tag
           >
-          <el-button-group v-if="hasFullContent" class="mode-switch">
-            <el-button
-              :type="viewMode === 'unified' ? 'primary' : 'default'"
-              size="small"
+          <div v-if="hasFullContent" class="mode-switch flex gap-1">
+            <Button
+              :variant="viewMode === 'unified' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.edit.unifiedView') }}
-            </el-button>
-            <el-button
-              :type="viewMode === 'split' ? 'primary' : 'default'"
-              size="small"
+            </Button>
+            <Button
+              :variant="viewMode === 'split' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'split'"
             >
               {{ $t('agent.display.edit.splitView') }}
-            </el-button>
-          </el-button-group>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -90,7 +90,7 @@
 
       <!-- Unified Diff 视图（如果有 hunks） -->
       <div v-if="resultData && hasHunks && viewMode === 'unified'" class="diff-view">
-        <el-scrollbar max-height="500px">
+        <ScrollArea class="h-[500px]">
           <div class="diff-content">
             <div
               v-for="(hunk, hunkIndex) in hunks"
@@ -154,12 +154,12 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <!-- 统一视图（操作列表） -->
       <div v-else-if="resultData && hasFullContent && viewMode === 'unified'">
-        <el-scrollbar max-height="500px">
+        <ScrollArea class="h-[500px]">
           <div class="operations-list">
             <div
               v-for="(operation, index) in resultData.operations"
@@ -199,7 +199,7 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <!-- 分列视图（Monaco 编辑器对比） -->
@@ -212,7 +212,7 @@
                 $t('agent.display.edit.operations') || '操作列表'
               }}</span>
             </div>
-            <el-scrollbar class="operations-scroll">
+            <ScrollArea class="flex-1 min-h-0">
               <div class="operations-list-compact">
                 <div
                   v-for="(operation, index) in resultData.operations"
@@ -237,7 +237,7 @@
                   </div>
                 </div>
               </div>
-            </el-scrollbar>
+            </ScrollArea>
           </div>
 
           <!-- 分割线（固定30/70比例，不可调整） -->
@@ -285,7 +285,9 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'

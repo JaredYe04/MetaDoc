@@ -4,7 +4,9 @@
       <!-- 头部 -->
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartTitle') }} · Markdown</h2>
-        <el-button @click="emitClose" class="close-button" circle size="small" :icon="Close" />
+        <Button @click="emitClose" class="close-button" circle size="sm">
+          <el-icon><Close /></el-icon>
+        </Button>
       </div>
 
       <!-- 主内容区域 -->
@@ -14,11 +16,11 @@
           <div class="preview-header">
             <span class="section-label">预览</span>
           </div>
-          <el-scrollbar class="preview-container">
+          <ScrollArea class="preview-container h-full">
             <div class="preview-content">
               <MarkdownItEditor :source="generatedText" @mousedown.stop style="box-shadow: none" />
             </div>
-          </el-scrollbar>
+          </ScrollArea>
         </div>
 
         <!-- 分隔线 -->
@@ -27,30 +29,33 @@
         <!-- 右侧：控制面板 -->
         <div class="control-section">
           <div class="tab-switch-wrapper">
-            <el-segmented v-model="tab" :options="segmentOptions" class="tab-switch" />
+            <ToggleGroup v-model="tab" type="single" class="tab-switch">
+              <ToggleGroupItem v-for="option in segmentOptions" :key="option" :value="option" class="quickstart-tab-item">
+                {{ option }}
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           <!-- 文档信息面板 -->
           <div class="control-panel" v-if="tab === segmentOptions[1]">
-            <el-scrollbar class="panel-scrollbar">
-              <div class="panel-section">
+            <ScrollArea class="panel-scrollbar h-full">
+              <div class="panel-section p-6">
                 <h3 class="section-title">{{ $t('home.documentInfoLabel') }}</h3>
                 <div class="form-fields">
                   <div class="form-field">
                     <label class="field-label">{{ $t('home.label.title') }}</label>
-                    <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+                    <Input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
                   </div>
                   <div class="form-field">
                     <label class="field-label">{{ $t('home.label.author') }}</label>
-                    <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
+                    <Input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
                   </div>
                   <div class="form-field">
                     <label class="field-label">{{ $t('home.label.abstract') }}</label>
-                    <el-input
+                    <Textarea
                       v-model="metaDescription"
-                      type="textarea"
                       :placeholder="$t('home.placeholder.abstract')"
-                      :autosize="{ minRows: 3, maxRows: 4 }"
+                      class="min-h-[80px]"
                     />
                   </div>
                   <div class="form-field">
@@ -63,19 +68,20 @@
                 </div>
                 <div class="panel-actions">
                   <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
-                    <el-button type="success" @click="allSet" :icon="Check">
+                    <Button type="success" @click="allSet">
+                      <el-icon><Check /></el-icon>
                       {{ $t('home.tooltip.ready') }}
-                    </el-button>
+                    </Button>
                   </el-tooltip>
                 </div>
               </div>
-            </el-scrollbar>
+            </ScrollArea>
           </div>
 
           <!-- AI 助手面板 -->
           <div class="control-panel" v-if="tab === segmentOptions[0]">
-            <el-scrollbar class="panel-scrollbar">
-              <div class="panel-section">
+            <ScrollArea class="panel-scrollbar h-full">
+              <div class="panel-section p-6">
                 <h3 class="section-title">{{ $t('home.aiAssistantLabel') }}</h3>
                 <!-- 温度滑块 -->
                 <div class="control-item">
@@ -97,28 +103,26 @@
                   <div class="control-item-header">
                     <span class="control-label">{{ $t('home.tooltip.selectMood') }}</span>
                   </div>
-                  <el-select
+                  <Select
                     v-model="mood"
                     multiple
-                    filterable
-                    allow-create
-                    :placeholder="$t('home.tooltip.selectMood')"
                     :disabled="generating || generated"
                     class="mood-select"
                   >
-                    <el-option
-                      v-for="option in moodOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    >
-                      <template #prefix>
-                        <el-icon :size="14">
-                          <component :is="option.icon" />
-                        </el-icon>
-                      </template>
-                    </el-option>
-                  </el-select>
+                    <SelectTrigger>
+                      <SelectValue :placeholder="$t('home.tooltip.selectMood')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="option in moodOptions" :key="option.value" :value="option.value">
+                        <div class="flex items-center gap-2">
+                          <el-icon :size="14">
+                            <component :is="option.icon" />
+                          </el-icon>
+                          <span>{{ option.label }}</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <!-- 提示词输入 -->
@@ -151,29 +155,31 @@
                 <!-- 操作按钮 -->
                 <div class="panel-actions" @mousedown.stop>
                   <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                    <el-button
+                    <Button
                       type="primary"
                       :disabled="generating || userPrompt.length === 0"
                       @click="generate"
-                      :icon="Promotion"
                       :loading="generating"
                     >
+                      <el-icon v-if="!generating"><Promotion /></el-icon>
                       {{ $t('home.tooltip.generateArticle') }}
-                    </el-button>
+                    </Button>
                   </el-tooltip>
                   <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                    <el-button v-if="generated" @click="reset" :icon="RefreshLeft">
+                    <Button v-if="generated" @click="reset">
+                      <el-icon><RefreshLeft /></el-icon>
                       {{ $t('home.tooltip.reset') }}
-                    </el-button>
+                    </Button>
                   </el-tooltip>
                   <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                    <el-button v-if="generated" type="success" @click="accept" :icon="Check">
+                    <Button v-if="generated" type="success" @click="accept">
+                      <el-icon><Check /></el-icon>
                       {{ $t('home.tooltip.accept') }}
-                    </el-button>
+                    </Button>
                   </el-tooltip>
                 </div>
               </div>
-            </el-scrollbar>
+            </ScrollArea>
           </div>
         </div>
       </div>
@@ -188,6 +194,18 @@ import VoiceInput from '../VoiceInput.vue'
 // @ts-expect-error: No type definitions for vue3-markdown-it
 import MarkdownItEditor from 'vue3-markdown-it'
 import { Check, Promotion, Refresh, RefreshLeft, Close } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
 import {
   DataAnalysis,
   Drizzling,
@@ -682,6 +700,26 @@ onBeforeUnmount(() => {
 
 .tab-switch {
   width: 100%;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: v-bind('themeState.currentTheme.background || "#f5f5f5"');
+  border-radius: 8px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+}
+
+.quickstart-tab-item {
+  flex: 1;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.quickstart-tab-item[data-state='on'] {
+  background: v-bind('themeState.currentTheme.primary || "#409eff"');
+  color: white;
 }
 
 .control-panel {
@@ -777,12 +815,5 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-/* 滚动条样式 */
-.panel-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
 
-.preview-container :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
 </style>

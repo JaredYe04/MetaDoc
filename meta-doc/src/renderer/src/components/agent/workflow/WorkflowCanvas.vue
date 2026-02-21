@@ -19,7 +19,7 @@
             @click="toolMode = 'select'"
             :title="t('agent.workflow.toolbar.select')"
           >
-            <Select />
+            <SelectIcon />
           </Button>
           <Button
             size="sm"
@@ -51,57 +51,57 @@
 
         <!-- 节点创建按钮（支持拖拽） -->
         <div v-if="!props.readOnly" class="node-toolbar">
-          <el-dropdown @command="handleDragNodeCreate" trigger="contextmenu">
-            <div class="flex items-center gap-0">
-              <Button
-                size="sm"
-                draggable="true"
-                @dragstart="(e) => handleNodeDragStart(e, 'tool')"
-                @dragend="handleNodeDragEnd"
-                @click="handleAddArtifactNode('tool')"
-              >
-                {{ t('agent.workflow.addTool') }}
-              </Button>
-              <Button
-                size="sm"
-                draggable="true"
-                @dragstart="(e) => handleNodeDragStart(e, 'llm-decision')"
-                @dragend="handleNodeDragEnd"
-                @click="handleAddArtifactNode('llm-decision')"
-              >
-                {{ t('agent.workflow.addLLM') }}
-              </Button>
-              <Button
-                size="sm"
-                draggable="true"
-                @dragstart="(e) => handleNodeDragStart(e, 'workflow')"
-                @dragend="handleNodeDragEnd"
-                @click="handleAddArtifactNode('workflow')"
-              >
-                {{ t('agent.workflow.addWorkflow') }}
-              </Button>
-              <Button
-                size="sm"
-                draggable="true"
-                @dragstart="(e) => handleNodeDragStart(e, 'agent-config')"
-                @dragend="handleNodeDragEnd"
-                @click="handleAddArtifactNode('agent-config')"
-              >
-                {{ t('agent.workflow.addAgent') }}
-              </Button>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item
-                  v-for="tool in availableTools"
-                  :key="tool.config.id"
-                  :command="tool.config.id"
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <div class="flex items-center gap-0">
+                <Button
+                  size="sm"
+                  draggable="true"
+                  @dragstart="(e) => handleNodeDragStart(e, 'tool')"
+                  @dragend="handleNodeDragEnd"
+                  @click="handleAddArtifactNode('tool')"
                 >
-                  {{ agentToolManager.getLocalizedText(tool.config.name) }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+                  {{ t('agent.workflow.addTool') }}
+                </Button>
+                <Button
+                  size="sm"
+                  draggable="true"
+                  @dragstart="(e) => handleNodeDragStart(e, 'llm-decision')"
+                  @dragend="handleNodeDragEnd"
+                  @click="handleAddArtifactNode('llm-decision')"
+                >
+                  {{ t('agent.workflow.addLLM') }}
+                </Button>
+                <Button
+                  size="sm"
+                  draggable="true"
+                  @dragstart="(e) => handleNodeDragStart(e, 'workflow')"
+                  @dragend="handleNodeDragEnd"
+                  @click="handleAddArtifactNode('workflow')"
+                >
+                  {{ t('agent.workflow.addWorkflow') }}
+                </Button>
+                <Button
+                  size="sm"
+                  draggable="true"
+                  @dragstart="(e) => handleNodeDragStart(e, 'agent-config')"
+                  @dragend="handleNodeDragEnd"
+                  @click="handleAddArtifactNode('agent-config')"
+                >
+                  {{ t('agent.workflow.addAgent') }}
+                </Button>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                v-for="tool in availableTools"
+                :key="tool.config.id"
+                @click="handleDragNodeCreate(tool.config.id)"
+              >
+                {{ agentToolManager.getLocalizedText(tool.config.name) }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div class="flex items-center gap-0" style="margin-left: 8px">
             <Button
@@ -164,10 +164,22 @@
 
       <div class="toolbar-center">
         <!-- 视图切换 -->
-        <el-radio-group v-model="viewMode" size="small">
-          <el-radio-button value="graph">{{ t('agent.workflow.viewMode.graph') }}</el-radio-button>
-          <el-radio-button value="code">{{ t('agent.workflow.viewMode.code') }}</el-radio-button>
-        </el-radio-group>
+        <RadioGroup v-model="viewMode" class="flex">
+          <div class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+            <div class="flex items-center">
+              <RadioGroupItem value="graph" id="view-graph" class="sr-only peer" />
+              <label for="view-graph" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+                {{ t('agent.workflow.viewMode.graph') }}
+              </label>
+            </div>
+            <div class="flex items-center">
+              <RadioGroupItem value="code" id="view-code" class="sr-only peer" />
+              <label for="view-code" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+                {{ t('agent.workflow.viewMode.code') }}
+              </label>
+            </div>
+          </div>
+        </RadioGroup>
       </div>
 
       <div class="toolbar-right">
@@ -278,54 +290,61 @@
     <!-- 属性面板 -->
     <div class="canvas-properties" v-if="selectedNode && viewMode === 'graph'">
       <h3>{{ t('agent.workflow.nodeProperties') }}</h3>
-      <el-form :model="selectedNodeForm" label-width="100px" size="small">
-        <el-form-item label="ID">
-          <el-input :model-value="selectedNode.id" disabled />
-        </el-form-item>
-        <el-form-item :label="t('agent.workflow.nodeLabel')">
-          <el-input v-model="selectedNodeForm.label" @change="handleNodeLabelChange" />
-        </el-form-item>
-        <el-form-item v-if="isArtifactNode(selectedNode)" :label="t('agent.workflow.artifactId')">
-          <el-select
+      <Form class="space-y-3">
+        <FormField label="ID" name="nodeId">
+          <Input :model-value="selectedNode.id" disabled class="w-full" />
+        </FormField>
+        <FormField :label="t('agent.workflow.nodeLabel')" name="nodeLabel">
+          <Input v-model="selectedNodeForm.label" @change="handleNodeLabelChange" class="w-full" />
+        </FormField>
+        <FormField v-if="isArtifactNode(selectedNode)" :label="t('agent.workflow.artifactId')" name="artifactId">
+          <Select
             v-if="selectedNode.type === 'tool'"
             v-model="selectedNodeForm.artifactId"
-            filterable
-            style="width: 100%"
-            :placeholder="t('agent.workflow.selectToolPlaceholder')"
-            @change="handleNodeArtifactIdChange"
+            @update:model-value="handleNodeArtifactIdChange"
           >
-            <el-option
-              v-for="tool in availableTools"
-              :key="tool.config.id"
-              :label="agentToolManager.getLocalizedText(tool.config.name)"
-              :value="tool.config.id"
-            />
-          </el-select>
-          <el-select
+            <SelectTrigger style="width: 100%">
+              <SelectValue :placeholder="t('agent.workflow.selectToolPlaceholder')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="tool in availableTools"
+                :key="tool.config.id"
+                :value="tool.config.id"
+              >
+                {{ agentToolManager.getLocalizedText(tool.config.name) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
             v-else-if="selectedNode.type === 'workflow'"
             v-model="selectedNodeForm.artifactId"
-            filterable
-            style="width: 100%"
-            :placeholder="t('agent.workflow.selectWorkflowPlaceholder')"
-            @change="handleNodeArtifactIdChange"
+            @update:model-value="handleNodeArtifactIdChange"
           >
-            <el-option
-              v-for="wf in availableWorkflows"
-              :key="wf.id"
-              :label="getLocalizedText(wf.name)"
-              :value="wf.id"
-            />
-          </el-select>
-          <el-input
+            <SelectTrigger style="width: 100%">
+              <SelectValue :placeholder="t('agent.workflow.selectWorkflowPlaceholder')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="wf in availableWorkflows"
+                :key="wf.id"
+                :value="wf.id"
+              >
+                {{ getLocalizedText(wf.name) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
             v-else
             v-model="selectedNodeForm.artifactId"
             @change="handleNodeArtifactIdChange"
+            class="w-full"
           />
-        </el-form-item>
-        <el-form-item v-if="!isArtifactNode(selectedNode)" label="类型">
+        </FormField>
+        <FormField v-if="!isArtifactNode(selectedNode)" label="类型" name="nodeType">
           <el-tag size="small">{{ (selectedNode as ControlFlowNode).type }}</el-tag>
-        </el-form-item>
-      </el-form>
+        </FormField>
+      </Form>
     </div>
   </div>
 </template>
@@ -345,8 +364,24 @@ import {
   ZoomOut,
   FullScreen
 } from '@element-plus/icons-vue'
-import { Select } from '@element-plus/icons-vue'
+import { Select as SelectIcon } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@renderer/components/ui/dropdown-menu'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { themeState } from '../../../utils/themes'
 import { workflowManager, agentConfigManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'

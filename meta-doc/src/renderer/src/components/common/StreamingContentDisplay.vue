@@ -1,10 +1,10 @@
 <template>
   <div v-if="shouldDisplay" class="streaming-content-display" :style="containerStyle">
-    <el-scrollbar class="streaming-content-scrollbar">
+    <ScrollArea class="h-full">
       <div class="streaming-content-container">
         <pre class="streaming-content-text">{{ content }}</pre>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
@@ -12,6 +12,7 @@
 import { ref, computed, watch } from 'vue'
 import type { Ref } from 'vue'
 import { themeState } from '../../utils/themes'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 interface Props {
   /** 流式输出的ref，实时更新 */
@@ -97,16 +98,6 @@ const containerStyle = computed(() => ({
   min-height: 100px;
   display: flex;
   flex-direction: column;
-}
-
-.streaming-content-scrollbar {
-  flex: 1;
-  min-height: 100px;
-  max-height: 100%;
-}
-
-.streaming-content-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
 }
 
 .streaming-content-container {

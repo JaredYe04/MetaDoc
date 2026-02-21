@@ -1,80 +1,91 @@
 <template>
   <div class="logger-settings">
     <h3 class="section-title">{{ t('setting.loggingSettings') }}</h3>
-    <el-form label-width="160px" class="settings-form">
-      <el-form-item :label="t('setting.loggingEnabled')">
-        <el-switch
-          v-model="settings.loggingEnabled"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="handleEnabledChange"
-        />
-      </el-form-item>
+    <Form class="settings-form">
+      <FormField :label="t('setting.loggingEnabled')" name="">
+        <div class="flex items-center gap-2">
+          <Switch
+            :checked="settings.loggingEnabled"
+            @update:checked="(val: boolean) => { settings.loggingEnabled = val; handleEnabledChange() }"
+          />
+          <span class="text-sm text-muted-foreground">{{ settings.loggingEnabled ? t('setting.enabled') : t('setting.disabled') }}</span>
+        </div>
+      </FormField>
 
-      <el-form-item :label="t('setting.loggingLevel')">
-        <el-select
+      <FormField :label="t('setting.loggingLevel')" name="">
+        <Select
           v-model="settings.loggingLevel"
           :disabled="!settings.loggingEnabled"
-          @change="handleLevelChange"
+          @update:model-value="handleLevelChange"
         >
-          <el-option
-            v-for="option in levelOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
+          <SelectTrigger class="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="option in levelOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.loggingFilter')" name="">
+        <div class="relative w-full">
+          <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            v-model="settings.loggingFilter"
+            :placeholder="t('setting.loggingFilterPlaceholder')"
+            :disabled="!settings.loggingEnabled"
+            class="pl-8"
+            @change="handleFilterChange"
           />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('setting.loggingFilter')">
-        <el-input
-          v-model="settings.loggingFilter"
-          :placeholder="t('setting.loggingFilterPlaceholder')"
-          :disabled="!settings.loggingEnabled"
-          clearable
-          @change="handleFilterChange"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+        </div>
         <div class="filter-hint">{{ t('setting.loggingFilterHint') }}</div>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item :label="t('setting.logRetentionPeriod')">
-        <el-select
+      <FormField :label="t('setting.logRetentionPeriod')" name="">
+        <Select
           v-model="settings.logRetentionPeriod"
           :disabled="!settings.loggingEnabled"
-          @change="handleRetentionPeriodChange"
+          @update:model-value="handleRetentionPeriodChange"
         >
-          <el-option
-            v-for="option in retentionPeriodOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-          />
-        </el-select>
+          <SelectTrigger class="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="option in retentionPeriodOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <div class="filter-hint">{{ t('setting.logRetentionPeriodHint') }}</div>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item :label="t('setting.logFilePath')">
+      <FormField :label="t('setting.logFilePath')" name="">
         <div class="log-path">
-          <el-input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly />
-          <Button type="primary" plain :disabled="!logFilePath" @click="openLogFile">
+          <Input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly class="flex-1" />
+          <Button variant="outline" :disabled="!logFilePath" @click="openLogFile">
             {{ t('setting.openLogFile') }}
           </Button>
         </div>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item :label="t('setting.logDirectory')">
+      <FormField :label="t('setting.logDirectory')" name="">
         <div class="log-path">
-          <el-input :model-value="logDirectory || t('setting.logFileUnavailable')" readonly />
-          <Button type="primary" plain :disabled="!logDirectory" @click="openLogDirectory">
+          <Input :model-value="logDirectory || t('setting.logFileUnavailable')" readonly class="flex-1" />
+          <Button variant="outline" :disabled="!logDirectory" @click="openLogDirectory">
             {{ t('setting.openLogDirectory') }}
           </Button>
         </div>
-      </el-form-item>
+      </FormField>
 
       <el-divider />
 
@@ -82,7 +93,7 @@
         <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
         <ConsoleOutput console-key="logger" :history="logHistory" :show-ai-analysis="false" />
       </div>
-    </el-form>
+    </Form>
   </div>
 </template>
 
@@ -97,6 +108,16 @@ import type { LoggerHistoryEntry } from '../../utils/logger.ts'
 import messageBridge from '../../bridge/message-bridge'
 import ConsoleOutput from '../../components/ConsoleOutput.vue'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
 
 const { t } = useI18n()
 
@@ -196,7 +217,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .logger-settings {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 

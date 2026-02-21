@@ -6,7 +6,7 @@
     <!-- 极简网格装饰 -->
     <div class="grid-decoration"></div>
 
-    <el-scrollbar class="center-content">
+    <ScrollArea class="center-content">
       <div class="center-content-wrapper">
         <!-- METADOC 扭曲文字 Banner -->
         <div v-if="showWelcome" class="hero-section">
@@ -22,47 +22,35 @@
         <div v-if="showWelcome" class="action-section">
           <div class="action-card" @click="openQuickStart">
             <div class="action-icon">
-              <el-icon :size="22">
-                <InfoFilled />
-              </el-icon>
+              <Info class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.quickStart') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.quickStart') || '快速开始使用' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
 
           <div class="action-card" @click="openNewDoc">
             <div class="action-icon">
-              <el-icon :size="22">
-                <DocumentAdd />
-              </el-icon>
+              <FilePlus class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.newDoc') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.newDoc') || '创建一篇新文档' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
 
           <div class="action-card" @click="openFile">
             <div class="action-icon">
-              <el-icon :size="22">
-                <FolderOpened />
-              </el-icon>
+              <FolderOpen class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.openFile') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.openFile') || '打开现有文档' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
 
           <div 
@@ -71,17 +59,13 @@
             @click="openUserManual"
           >
             <div class="action-icon">
-              <el-icon :size="22">
-                <Reading />
-              </el-icon>
+              <BookOpen class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.userManual') || '用户手册' }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
         </div>
 
@@ -89,7 +73,7 @@
         <div v-if="showWelcome && recentDocs.length > 0" class="recent-section">
           <div class="recent-header">
             <h3 class="recent-title">
-              <el-icon class="recent-title-icon"><Document /></el-icon>
+              <FileText class="w-4 h-4" />
               {{ $t('home.recentDocuments') || '最近文档' }}
             </h3>
           </div>
@@ -106,20 +90,21 @@
                 <span class="doc-card-name">
                   {{ getFileName(docPath) }}
                 </span>
-                <el-button
-                  class="doc-card-delete-btn"
-                  circle
-                  size="small"
-                  :icon="Close"
-                  text
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="doc-card-delete-btn h-6 w-6 rounded-full"
                   @click.stop="removeRecentDoc(docPath)"
-                />
+                >
+                  <Close class="h-3 w-3" />
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </el-scrollbar>
+      <ScrollBar />
+    </ScrollArea>
 
     <QuickStartPanel v-if="quickStartStage !== 'inactive'" @close="handleQuickStartClose" />
     <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
@@ -129,12 +114,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, onActivated } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
 import QuickStartPanel from '../components/home/QuickStartPanel.vue'
 import DistortionBanner from '../components/home/DistortionBanner.vue'
 import DynamicBackgroundAnimation from '../components/home/DynamicBackgroundAnimation.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 // 粒子效果相关代码已注释，以备后用
@@ -145,14 +132,14 @@ import { themeState, mixColors } from '../utils/themes'
 // import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
 import {
-  Document,
-  InfoFilled,
-  FolderOpened,
+  FileText,
+  Info,
+  FolderOpen,
   ArrowRight,
-  Close,
-  DocumentAdd,
-  Reading
-} from '@element-plus/icons-vue'
+  X,
+  FilePlus,
+  BookOpen
+} from 'lucide-vue-next'
 import { basename, extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { hasCompletedProfile } from '../utils/user-profile'
@@ -512,7 +499,7 @@ onBeforeUnmount(() => {
   z-index: 2;
 }
 
-.center-content :deep(.el-scrollbar__wrap) {
+.center-content :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
   overflow-y: auto;
 }

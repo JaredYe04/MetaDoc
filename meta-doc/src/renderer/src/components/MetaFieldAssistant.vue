@@ -12,11 +12,10 @@
   >
     <el-scrollbar class="meta-assistant__input-scroll" max-height="300px">
       <div class="meta-assistant__input-wrapper">
-        <el-input
-          type="textarea"
+        <Textarea
           v-model="aiResponse"
-          class="meta-assistant__input"
-          :autosize="{ minRows: defaultInputSize }"
+          :rows="defaultInputSize"
+          class="meta-assistant__input w-full"
           :style="{ color: themeState.currentTheme.textColor }"
           :placeholder="$t('llmDialog.inputPlaceholder')"
         />
@@ -25,21 +24,27 @@
 
     <template #footer>
       <div class="meta-assistant__footer">
-        <el-tooltip
-          v-if="prompt && allowGenerate"
-          :content="$t('llmDialog.generateAITooltip')"
-          placement="left"
-        >
-          <el-button type="info" @click="handleGenerate" :loading="loading" circle>
-            <el-icon v-if="!loading"><Refresh /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <Tooltip v-if="prompt && allowGenerate">
+          <TooltipTrigger as-child>
+            <Button type="info" @click="handleGenerate" :loading="loading" circle>
+              <el-icon v-if="!loading"><Refresh /></el-icon>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>{{ $t('llmDialog.generateAITooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
 
-        <el-tooltip :content="$t('llmDialog.acceptTooltip')" placement="left">
-          <el-button type="success" @click="handleAccept" :disabled="loading" circle>
-            <el-icon><Check /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button type="success" @click="handleAccept" :disabled="loading" circle>
+              <el-icon><Check /></el-icon>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>{{ $t('llmDialog.acceptTooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </template>
   </el-dialog>
@@ -49,7 +54,14 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Check } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
 import { themeState } from '../utils/themes'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
 import type { AIDialogMessage } from '../../../types'

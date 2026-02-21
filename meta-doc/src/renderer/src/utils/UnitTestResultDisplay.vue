@@ -24,19 +24,25 @@
     <el-divider />
 
     <div class="test-actions">
-      <el-button type="primary" :icon="Document" @click="copyMarkdown">
+      <Button type="primary" @click="copyMarkdown">
+        <Document />
         {{ $t('setting.debug.unitTest.copyMarkdown') }}
-      </el-button>
-      <el-button :icon="Download" @click="downloadMarkdown">
+      </Button>
+      <Button @click="downloadMarkdown">
+        <Download />
         {{ $t('setting.debug.unitTest.downloadMarkdown') }}
-      </el-button>
+      </Button>
     </div>
 
     <el-divider />
 
-    <el-tabs v-model="activeTab" type="border-card" tab-position="top">
-      <el-tab-pane :label="$t('setting.debug.unitTest.testResults')" name="results">
-        <el-scrollbar style="height: 100%">
+    <Tabs v-model="activeTab" class="border-card">
+      <TabsList>
+        <TabsTrigger value="results">{{ $t('setting.debug.unitTest.testResults') }}</TabsTrigger>
+        <TabsTrigger value="markdown">{{ $t('setting.debug.unitTest.markdownSummary') }}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="results">
+        <ScrollArea class="h-full">
           <div class="test-results-list">
             <div
               v-for="(result, index) in testResults"
@@ -105,11 +111,11 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
+        </ScrollArea>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('setting.debug.unitTest.markdownSummary')" name="markdown">
-        <el-scrollbar style="height: 100%">
+      <TabsContent value="markdown">
+        <ScrollArea class="h-full">
           <div class="markdown-content" :style="markdownContentStyle">
             <div
               ref="markdownContainerRef"
@@ -119,9 +125,9 @@
               }"
             ></div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
-    </el-tabs>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
 
@@ -133,6 +139,9 @@ import { Document, Download, Check, Close } from '@element-plus/icons-vue'
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview } from './md-utils'
 import { createRendererLogger } from './logger'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 
 const { t } = useI18n()
 
@@ -332,12 +341,6 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.unit-test-result-display :deep(.el-scrollbar) {
-  height: 100%;
-  flex: 1;
   overflow: hidden;
 }
 

@@ -65,7 +65,7 @@
       </div>
 
       <div class="todolist-items">
-        <el-scrollbar max-height="500px">
+        <ScrollArea class="h-[500px]">
           <div
             v-for="item in displayData.todoList.items"
             :key="item.id"
@@ -174,7 +174,7 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
     </div>
 
@@ -192,6 +192,7 @@
 import { computed } from 'vue'
 import { Loading, Calendar, Clock, User, Connection } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import type { TodoList } from '../todolist-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

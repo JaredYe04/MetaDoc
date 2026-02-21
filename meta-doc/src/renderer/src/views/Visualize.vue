@@ -16,14 +16,15 @@
         <div class="left-section">
           <div class="outline-section panel-item">
             <h3>{{ $t('visualize.articleOutline') }}</h3>
-            <el-scrollbar class="outline-scrollbar">
+            <ScrollArea class="outline-scrollbar">
               <div
                 id="outline-graph"
                 :style="{
                   color: themeState.currentTheme.textColor
                 }"
               ></div>
-            </el-scrollbar>
+              <ScrollBar />
+            </ScrollArea>
           </div>
 
           <div class="word-count-section panel-item">
@@ -97,6 +98,7 @@ import type { DocumentOutlineNode } from '../../../types'
 import * as echarts from 'echarts'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import WordCloudDetail from '../components/WordCloudDetail.vue'
 import { getSetting } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
@@ -622,7 +624,7 @@ const generateWordCloud = async () => {
   min-height: 0;
 }
 
-.outline-section :deep(.el-scrollbar) {
+.outline-section :deep([data-radix-scroll-area-viewport]) {
   flex: 1;
   min-height: 0;
 }

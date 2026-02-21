@@ -42,53 +42,54 @@
       >
         <template #sidebar-footer>
           <div class="sidebar-footer-content">
-            <el-dropdown @command="handleManageCommand" style="flex-shrink: 0">
-              <Button size="small" type="info" class="[&_svg]:size-4">
-                <Setting class="h-4 w-4" />
-              </Button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="tool-collection">{{
-                    t('agent.manage.toolCollection.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="workflow">{{
-                    t('agent.manage.workflow.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="agent-config">{{
-                    t('agent.manage.agentConfig.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="agent-engine">{{
-                    t('agent.manage.agentEngine.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item divided command="import-session">{{
-                    t('agent.sessions.import')
-                  }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <el-select
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button size="small" type="info" class="[&_svg]:size-4">
+                  <Setting class="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem @click="handleManageCommand('tool-collection')">
+                  {{ t('agent.manage.toolCollection.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleManageCommand('workflow')">
+                  {{ t('agent.manage.workflow.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleManageCommand('agent-config')">
+                  {{ t('agent.manage.agentConfig.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleManageCommand('agent-engine')">
+                  {{ t('agent.manage.agentEngine.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleManageCommand('import-session')">
+                  {{ t('agent.sessions.import') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Select
               v-model="selectedEngineId"
-              :placeholder="t('agent.sessions.selectEngine')"
-              size="small"
-              filterable
-              style="flex: 1; min-width: 0"
               :disabled="isGenerating || workspace.uiLocked?.value"
-              @change="handleEngineChange"
+              @update:model-value="handleEngineChange"
             >
-              <el-option
-                v-for="engine in availableEngines"
-                :key="engine.id"
-                :label="getEngineLabel(engine)"
-                :value="engine.id"
-              >
-                <div style="display: flex; align-items: center; justify-content: space-between">
-                  <span>{{ getEngineLabel(engine) }}</span>
-                  <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
-                    {{ t('agent.manage.agentEngine.builtIn') }}
-                  </el-tag>
-                </div>
-              </el-option>
-            </el-select>
+              <SelectTrigger class="h-8 text-sm flex-1 min-w-0">
+                <SelectValue :placeholder="t('agent.sessions.selectEngine')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="engine in availableEngines"
+                  :key="engine.id"
+                  :value="engine.id"
+                >
+                  <div class="flex items-center justify-between w-full gap-4">
+                    <span>{{ getEngineLabel(engine) }}</span>
+                    <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
+                      {{ t('agent.manage.agentEngine.builtIn') }}
+                    </el-tag>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </template>
         <div class="agent-content">
@@ -104,56 +105,56 @@
                 <el-tag size="small" effect="plain">
                   {{ t('agent.conversation.messages', { count: messageCount }) }}
                 </el-tag>
-                <el-tooltip
-                  :content="
-                    showToolPane
-                      ? t('agent.conversation.hideTools', '点击隐藏工具面板')
-                      : t('agent.conversation.showTools', '点击显示工具面板')
-                  "
-                  placement="top"
-                >
-                  <el-tag
-                    size="small"
-                    effect="plain"
-                    style="cursor: pointer"
-                    @click="toggleToolPane"
-                  >
-                    {{ t('agent.conversation.tools', { count: activeToolCount }) }}
-                  </el-tag>
-                </el-tooltip>
-                <el-tooltip
-                  :content="t('agent.conversation.referencesTooltip', '点击管理引用')"
-                  placement="top"
-                >
-                  <el-tag
-                    size="small"
-                    effect="plain"
-                    style="cursor: pointer"
-                    @click="handleOpenReferenceDialog"
-                  >
-                    {{ t('agent.conversation.references', { count: referenceCount }) }}
-                  </el-tag>
-                </el-tooltip>
-                <el-dropdown @command="handleSessionAction" size="small">
-                  <Button type="text" size="small" class="[&_svg]:size-4">
-                    <More class="h-4 w-4" />
-                  </Button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="retry">{{
-                        t('agent.sessions.retry')
-                      }}</el-dropdown-item>
-                      <el-dropdown-item command="export">{{
-                        t('agent.sessions.export')
-                      }}</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <el-tag
+                      size="small"
+                      effect="plain"
+                      style="cursor: pointer"
+                      @click="toggleToolPane"
+                    >
+                      {{ t('agent.conversation.tools', { count: activeToolCount }) }}
+                    </el-tag>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{{ showToolPane ? t('agent.conversation.hideTools', '点击隐藏工具面板') : t('agent.conversation.showTools', '点击显示工具面板') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <el-tag
+                      size="small"
+                      effect="plain"
+                      style="cursor: pointer"
+                      @click="handleOpenReferenceDialog"
+                    >
+                      {{ t('agent.conversation.references', { count: referenceCount }) }}
+                    </el-tag>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button type="text" size="small" class="[&_svg]:size-4">
+                      <More class="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem @click="handleSessionAction('retry')">
+                      {{ t('agent.sessions.retry') }}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="handleSessionAction('export')">
+                      {{ t('agent.sessions.export') }}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </header>
 
             <div v-if="activeSession" class="conversation-content">
-              <el-scrollbar class="conversation-scroll">
+              <ScrollArea class="conversation-scroll">
                 <AgentMessageRenderer
                   v-for="(message, index) in activeSession.messages"
                   :key="message.id"
@@ -176,7 +177,7 @@
                       activeSession.referenceStore.length > 0
                   }"
                 />
-              </el-scrollbar>
+              </ScrollArea>
               <div class="composer-wrapper">
                 <ReferenceDisplay
                   v-if="activeSession"
@@ -234,10 +235,8 @@
                 :style="panelStyle"
                 :body-style="{ padding: '0', height: '100%', overflow: 'hidden' }"
               >
-                <el-scrollbar
+                <ScrollArea
                   class="tool-list-scroll"
-                  :wrap-style="{ overflowX: 'hidden' }"
-                  :view-style="{ width: '100%' }"
                 >
                   <el-table
                     :data="tools"
@@ -278,9 +277,9 @@
                       </template>
                     </el-table-column>
                   </el-table>
-                </el-scrollbar>
+                </ScrollArea>
               </el-card>
-              <el-scrollbar class="tool-detail-scroll" :wrap-style="{ overflowX: 'hidden' }">
+              <ScrollArea class="tool-detail-scroll">
                 <div v-if="activeTool" class="tool-detail" :style="detailStyle">
                   <h3>{{ activeTool.name }}</h3>
                   <el-descriptions :column="1" size="small" border>
@@ -315,7 +314,7 @@
                 <div v-else class="tool-detail placeholder" :style="detailStyle">
                   <el-empty :description="t('agent.tools.detail.placeholder')" />
                 </div>
-              </el-scrollbar>
+              </ScrollArea>
             </div>
           </section>
         </div>
@@ -323,131 +322,127 @@
     </div>
 
     <!-- 创建会话对话框 -->
-    <el-dialog
-      v-model="showCreateSessionDialog"
-      :title="t('agent.sessions.new')"
-      width="80%"
-      :style="dialogStyle"
-    >
-      <div style="height: 60vh; display: flex; flex-direction: column">
-        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 500; flex-shrink: 0">
-          {{ t('agent.sessions.selectAgentConfig') }}
-        </h3>
-        <div style="flex: 1; min-height: 0">
-          <CardGrid
-            :items="availableAgentConfigs"
-            :loading="false"
-            :show-thumbnail="false"
-            :show-actions="false"
-            :get-item-id="(item) => item.id || ''"
-            :get-item-title="
-              (item) =>
-                typeof item.name === 'string'
-                  ? item.name
-                  : item.name['zh_cn']?.name || item.id || ''
-            "
-            :get-item-description="
-              (item) =>
-                typeof item.description === 'string'
-                  ? item.description
-                  : item.description['zh_cn']?.description || ''
-            "
-            :get-item-meta="
-              (item) => [
-                t('agent.manage.agentConfig.toolCount') +
-                  ': ' +
-                  agentConfigManager.getAvailableToolIds(item.id || '').length,
-                item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
-              ]
-            "
-            :get-badge="
-              (item) =>
-                item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null
-            "
-            :is-selected="(item) => item.id === selectedAgentConfigId"
-            :is-disabled="() => false"
-            @item-click="handleSelectAgentConfig"
-            @item-double-click="handleDoubleClickAgentConfig"
-          />
+    <Dialog v-model:open="showCreateSessionDialog">
+      <DialogContent class="sm:max-w-[80%]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.sessions.new') }}</DialogTitle>
+          <DialogDescription>
+            {{ t('agent.sessions.selectAgentConfig') }}
+          </DialogDescription>
+        </DialogHeader>
+        <div style="height: 60vh; display: flex; flex-direction: column">
+          <div style="flex: 1; min-height: 0">
+            <CardGrid
+              :items="availableAgentConfigs"
+              :loading="false"
+              :show-thumbnail="false"
+              :show-actions="false"
+              :get-item-id="(item) => item.id || ''"
+              :get-item-title="
+                (item) =>
+                  typeof item.name === 'string'
+                    ? item.name
+                    : item.name['zh_cn']?.name || item.id || ''
+              "
+              :get-item-description="
+                (item) =>
+                  typeof item.description === 'string'
+                    ? item.description
+                    : item.description['zh_cn']?.description || ''
+              "
+              :get-item-meta="
+                (item) => [
+                  t('agent.manage.agentConfig.toolCount') +
+                    ': ' +
+                    agentConfigManager.getAvailableToolIds(item.id || '').length,
+                  item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+                ]
+              "
+              :get-badge="
+                (item) =>
+                  item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null
+              "
+              :is-selected="(item) => item.id === selectedAgentConfigId"
+              :is-disabled="() => false"
+              @item-click="handleSelectAgentConfig"
+              @item-double-click="handleDoubleClickAgentConfig"
+            />
+          </div>
         </div>
-      </div>
-      <template #footer>
-        <Button @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</Button>
-        <Button
-          type="primary"
-          @click="createSession(selectedAgentConfigId)"
-          :disabled="!selectedAgentConfigId"
-        >
-          {{ t('common.create') }}
-        </Button>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button variant="ghost" @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</Button>
+          <Button
+            @click="createSession(selectedAgentConfigId)"
+            :disabled="!selectedAgentConfigId"
+          >
+            {{ t('common.create') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 管理界面对话框 -->
-    <el-dialog
-      v-model="showManageDialog"
-      :title="
-        manageDialogType === 'tool-collection'
-          ? t('agent.manage.toolCollection.title')
-          : manageDialogType === 'workflow'
-            ? t('agent.manage.workflow.title')
-            : manageDialogType === 'agent-engine'
-              ? t('agent.manage.agentEngine.title')
-              : t('agent.manage.agentConfig.title')
-      "
-      width="90%"
-      :close-on-click-modal="false"
-    >
-      <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
-      <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
-      <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
-      <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
-      <template #footer>
-        <Button @click="showManageDialog = false">{{ t('common.close') }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showManageDialog">
+      <DialogContent class="sm:max-w-[90%]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>
+            {{ manageDialogType === 'tool-collection'
+              ? t('agent.manage.toolCollection.title')
+              : manageDialogType === 'workflow'
+                ? t('agent.manage.workflow.title')
+                : manageDialogType === 'agent-engine'
+                  ? t('agent.manage.agentEngine.title')
+                  : t('agent.manage.agentConfig.title')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
+        <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
+        <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
+        <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
+        <DialogFooter>
+          <Button variant="ghost" @click="showManageDialog = false">{{ t('common.close') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 引用素材管理对话框 -->
-    <el-dialog
-      v-model="showReferenceDialog"
-      :title="t('agent.reference.title')"
-      width="800px"
-      v-if="referenceSession"
-      :body-style="{
-        flex: '1',
-        minHeight: '0',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        padding: '0'
-      }"
-      style="height: 80vh; display: flex; flex-direction: column"
-    >
-      <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
-      <template #footer>
-        <Button @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showReferenceDialog" v-if="referenceSession">
+      <DialogContent class="sm:max-w-[800px]" style="height: 80vh; display: flex; flex-direction: column">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
+        </DialogHeader>
+        <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0">
+          <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 消息编辑对话框 -->
-    <el-dialog
-      v-model="showEditMessageDialog"
-      :title="t('agent.message.editMessage')"
-      width="600px"
-    >
-      <el-input
-        v-model="editingMessageContent"
-        type="textarea"
-        :rows="10"
-        :placeholder="t('agent.message.editPlaceholder')"
-      />
-      <template #footer>
-        <Button @click="showEditMessageDialog = false">{{ t('common.cancel') }}</Button>
-        <Button type="primary" @click="handleConfirmEditMessage">{{
-          t('common.confirm')
-        }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showEditMessageDialog">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.message.editMessage') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <Textarea
+            v-model="editingMessageContent"
+            :rows="10"
+            :placeholder="t('agent.message.editPlaceholder')"
+            class="w-full"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showEditMessageDialog = false">{{ t('common.cancel') }}</Button>
+          <Button @click="handleConfirmEditMessage">{{
+            t('common.confirm')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -459,6 +454,26 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 import { themeState, mixColors } from '../utils/themes'
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
@@ -503,6 +518,15 @@ import ResizableDivider from '../components/base/ResizableDivider.vue'
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus from '../utils/event-bus'
 import type { Reference } from '../types/agent-framework'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
 dayjs.extend(relativeTime)
 
 const { t } = useI18n()

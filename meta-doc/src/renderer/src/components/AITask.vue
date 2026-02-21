@@ -31,7 +31,7 @@
           </span>
         </div>
         <div style="display: flex; gap: 6px">
-          <el-button
+          <Button
             size="small"
             type="success"
             v-if="taskStatus === ai_task_status.READY"
@@ -39,10 +39,10 @@
             @click="$emit('start')"
           >
             <el-icon><PlayIcon /></el-icon>
-          </el-button>
-          <el-button size="small" type="danger" circle @click="$emit('cancel')">
+          </Button>
+          <Button size="small" type="danger" circle @click="$emit('cancel')">
             <el-icon><Close /></el-icon>
-          </el-button>
+          </Button>
         </div>
       </div>
       <!-- 显示错误信息 -->
@@ -70,6 +70,7 @@ import { PlayIcon } from 'tdesign-icons-vue-next'
 import { ai_task_status } from '../utils/consts'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
+import { Button } from '@renderer/components/ui/button'
 const { t } = useI18n()
 
 const props = defineProps({

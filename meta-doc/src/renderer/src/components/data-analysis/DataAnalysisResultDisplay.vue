@@ -24,9 +24,14 @@
         </div>
       </div>
 
-      <el-tabs v-model="activeTab" type="border-card" class="analysis-tabs">
+      <Tabs v-model="activeTab" class="analysis-tabs border-card">
+        <TabsList>
+          <TabsTrigger value="fields">{{ t('agent.display.dataAnalysis.fields') }}</TabsTrigger>
+          <TabsTrigger value="stats">{{ t('agent.display.dataAnalysis.statsLabel') }}</TabsTrigger>
+          <TabsTrigger v-if="result.aggregations && result.aggregations.length > 0" value="aggregations">{{ t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger>
+        </TabsList>
         <!-- 字段信息 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.fields')" name="fields">
+        <TabsContent value="fields">
           <el-scrollbar max-height="400px">
             <div class="fields-list">
               <div
@@ -71,10 +76,10 @@
               </div>
             </div>
           </el-scrollbar>
-        </el-tab-pane>
+        </TabsContent>
 
         <!-- 描述统计 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.statsLabel')" name="stats">
+        <TabsContent value="stats">
           <el-scrollbar max-height="400px">
             <el-tree
               :data="statsTreeData"
@@ -95,10 +100,10 @@
               </template>
             </el-tree>
           </el-scrollbar>
-        </el-tab-pane>
+        </TabsContent>
 
         <!-- 聚合分析 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.aggregations')" name="aggregations">
+        <TabsContent value="aggregations">
           <el-scrollbar max-height="400px">
             <div v-if="result.aggregations && result.aggregations.length > 0">
               <div
@@ -148,8 +153,8 @@
               {{ t('agent.display.dataAnalysis.noAggregations', '暂无聚合分析数据') }}
             </div>
           </el-scrollbar>
-        </el-tab-pane>
-      </el-tabs>
+        </TabsContent>
+      </Tabs>
     </div>
   </div>
 </template>
@@ -158,6 +163,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Connection, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
 import { themeState } from '../../utils/themes'
 
 interface DataAnalysisResult {

@@ -23,11 +23,10 @@
           <h3>{{ t('aiTaskQueue.title') }}</h3>
         </el-tooltip>
         <div class="header-actions">
-          <el-switch
-            v-model="settings.autoCompletion"
-            :active-text="$t('setting.autoCompletion')"
+          <Switch
+            :checked="settings.autoCompletion"
             class="auto-switch"
-            @change="setSetting('autoCompletion', settings.autoCompletion)"
+            @update:checked="(val) => { settings.autoCompletion = val; setSetting('autoCompletion', val) }"
           />
         </div>
       </div>
@@ -43,7 +42,7 @@
           </span>
         </div>
         <div class="delay-actions">
-          <el-button
+          <Button
             v-if="remainingDelay > 0"
             size="small"
             type="danger"
@@ -51,21 +50,14 @@
             class="delay-button"
           >
             {{ t('aiTaskQueue.cancelDelay') }}
-          </el-button>
-          <el-button size="small" type="primary" @click="delayCompletion(5)" class="delay-button">
+          </Button>
+          <Button size="small" type="primary" @click="delayCompletion(5)" class="delay-button">
             {{ t('aiTaskQueue.delayButton', { minutes: 5 }) }}
-          </el-button>
+          </Button>
         </div>
       </div>
 
-      <el-scrollbar
-        :style="{
-          maxWidth: '100%',
-          flex: 1,
-          overflow: 'auto'
-        }"
-        min-size="5"
-      >
+      <ScrollArea class="flex-1 max-w-full">
         <AITask
           v-for="task in tasks"
           :key="task.handle"
@@ -77,7 +69,7 @@
         <div v-if="tasks.length === 0" class="empty-state">
           {{ t('aiTaskQueue.empty') }}
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
   </ResizablePanel>
 </template>
@@ -93,6 +85,9 @@ import { useI18n } from 'vue-i18n'
 import { setSetting, settings } from '../utils/settings'
 import { createRendererLogger } from '../utils/logger.ts'
 import { aiCompletionService } from '../utils/ai-completion-service'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Switch } from '@renderer/components/ui/switch'
 
 const { t } = useI18n()
 const logger = createRendererLogger('AITaskQueue', {

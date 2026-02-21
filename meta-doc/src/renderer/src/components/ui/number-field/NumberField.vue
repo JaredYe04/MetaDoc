@@ -1,8 +1,8 @@
 <script setup>
 import { reactiveOmit } from "@vueuse/core";
-import { computed } from "vue";
 import { NumberFieldRoot, useForwardPropsEmits } from "reka-ui";
 import { cn } from '@renderer/lib/utils';
+import { computed } from 'vue';
 
 const props = defineProps({
   defaultValue: { type: Number, required: false },
@@ -24,7 +24,7 @@ const props = defineProps({
   name: { type: String, required: false },
   required: { type: Boolean, required: false },
   class: { type: null, required: false },
-  // Element UI compatible props
+  // Element UI compatible prop
   precision: { type: Number, required: false },
 });
 const emits = defineEmits(["update:modelValue"]);
@@ -40,7 +40,7 @@ const computedFormatOptions = computed(() => {
   return props.formatOptions;
 });
 
-const delegatedProps = reactiveOmit(props, "class", "precision");
+const delegatedProps = reactiveOmit(props, "class", "precision", "formatOptions");
 
 const forwardedProps = computed(() => ({
   ...delegatedProps,

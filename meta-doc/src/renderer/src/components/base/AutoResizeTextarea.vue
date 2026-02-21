@@ -1,21 +1,69 @@
 <template>
-  <el-scrollbar class="auto-resize-textarea-scrollbar" :style="scrollbarStyle">
-    <textarea
-      ref="textareaRef"
-      :value="modelValue"
-      @input="handleInput"
-      class="auto-resize-textarea-input"
-      :disabled="disabled"
-      :placeholder="placeholder"
-      :rows="minRows"
-      :style="inputStyle"
-    />
-  </el-scrollbar>
+  <div class="auto-resize-textarea-wrapper" :style="wrapperStyle">
+    <el-scrollbar 
+      class="auto-resize-textarea-scrollbar"
+      :style="scrollbarStyle">
+      <textarea
+        ref="textareaRef"
+        :value="modelValue"
+        @input="handleInput"
+        @focus="handleFocus"
+        @blur="handleBlur"
+        class="auto-resize-textarea-input"
+        :disabled="disabled"
+        :placeholder="placeholder"
+        :rows="minRows"
+        :style="inputStyle"
+      />
+    </el-scrollbar>
+    <!-- 预设提示词下拉菜单：以按钮为 reference，使 popover 定位在按钮旁 -->
+    <el-popover
+      v-if="presetOptions && presetOptions.length > 0"
+      v-model:visible="showPresetDropdown"
+      placement="bottom-end"
+      :width="300"
+      trigger="manual"
+      popper-class="preset-popover"
+    >
+      <template #reference>
+        <el-button
+          type="text"
+          size="small"
+          class="preset-dropdown-trigger"
+          @click.stop="togglePresetDropdown"
+        >
+          <el-icon>
+            <ArrowDown />
+          </el-icon>
+        </el-button>
+      </template>
+      <div class="preset-list">
+        <div
+          v-for="preset in presetOptions"
+          :key="preset.value"
+          class="preset-item"
+          @click="handlePresetClick(preset)"
+        >
+          {{ preset.label }}
+        </div>
+      </div>
+    </el-popover>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { themeState, colorWithOpacity } from '../../utils/themes'
+import { useI18n } from 'vue-i18n'
+import { ElButton, ElIcon } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
+
+interface PresetOption {
+  label: string
+  value: string
+}
 
 interface Props {
   modelValue?: string
@@ -24,6 +72,7 @@ interface Props {
   autosize?: { minRows?: number; maxRows?: number } | boolean
   maxHeight?: string
   height?: string
+  presetOptions?: PresetOption[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -31,7 +80,8 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   autosize: () => ({ minRows: 3 }),
   maxHeight: '10vh',
-  height: '10vh'
+  height: '10vh',
+  presetOptions: () => []
 })
 
 const emit = defineEmits<{
@@ -39,6 +89,8 @@ const emit = defineEmits<{
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const triggerButtonRef = ref<HTMLElement | null>(null)
+const showPresetDropdown = ref(false)
 
 const handleInput = (event: Event) => {
   const target = event.target as HTMLTextAreaElement
@@ -97,13 +149,79 @@ const inputStyle = computed(() => {
     '--textarea-placeholder-color': colorWithOpacity(textColor, 0.6)
   } as Record<string, string>
 })
+
+const wrapperStyle = computed(() => ({
+  width: '100%',
+  position: 'relative'
+}))
+
+// 计算下拉菜单位置
+const dropdownMenuStyle = computed(() => {
+  if (!textareaRef.value || !triggerButtonRef.value) {
+    return {}
+  }
+  const textareaRect = textareaRef.value.getBoundingClientRect()
+  const buttonRect = triggerButtonRef.value.getBoundingClientRect()
+  return {
+    position: 'fixed',
+    top: `${buttonRect.bottom + 4}px`,
+    left: `${textareaRect.left}px`,
+    width: `${Math.max(textareaRect.width, 300)}px`,
+    zIndex: 2000
+  }
+})
+
+// 切换预设下拉菜单
+const togglePresetDropdown = (event: MouseEvent) => {
+  event.stopPropagation()
+  showPresetDropdown.value = !showPresetDropdown.value
+}
+
+// 处理焦点事件
+const handleFocus = () => {
+  // 焦点时不做任何操作
+}
+
+// 处理失焦事件
+const handleBlur = () => {
+  // 延迟隐藏，以便点击预设选项时不会立即关闭
+  setTimeout(() => {
+    if (!showPresetDropdown.value) {
+      return
+    }
+    // 检查是否点击了预设选项
+    const clickedElement = document.activeElement
+    if (clickedElement && clickedElement.closest('.preset-dropdown-menu')) {
+      return
+    }
+    showPresetDropdown.value = false
+  }, 200)
+}
+
+// 处理预设点击
+const handlePresetClick = (preset: PresetOption) => {
+  if (preset.value) {
+    emit('update:modelValue', preset.value)
+  }
+  showPresetDropdown.value = false
+  // 聚焦回textarea
+  nextTick(() => {
+    textareaRef.value?.focus()
+  })
+}
 </script>
 
 <style scoped lang="less">
+.auto-resize-textarea-wrapper {
+  width: 100%;
+  position: relative;
+}
+
 .auto-resize-textarea-scrollbar {
   border: 1px solid rgba(145, 145, 145, 0.5);
   border-radius: 8px;
   padding: 4px;
+  width: 100%;
 }
 
 /* 确保 el-scrollbar 内部可以滚动 */
@@ -156,5 +274,54 @@ const inputStyle = computed(() => {
 .auto-resize-textarea-input:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.preset-dropdown-trigger {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  padding: 4px;
+  min-height: auto;
+  height: auto;
+  width: 24px;
+  height: 24px;
+}
+
+.preset-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1999;
+  background: transparent;
+}
+
+.preset-dropdown-menu {
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  border: 1px solid rgba(145, 145, 145, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.preset-list {
+  padding: 4px;
+}
+
+.preset-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.preset-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 </style>

@@ -200,6 +200,34 @@ ${outlineText}
   )
 }
 
+/**
+ * 根据本节标题与整体大纲生成推荐关键词的提示词（用于大纲 AI 配置）
+ */
+export const generateOutlineSectionKeywordsPrompt = (
+  sectionTitle: string,
+  outlineMarkdown: string
+): string => {
+  const template = getPromptTemplate('generateOutlineSectionKeywordsPrompt', {
+    sectionTitle: sectionTitle || '（未命名章节）',
+    outlineMarkdown: outlineMarkdown || '（暂无大纲）'
+  })
+  return (
+    template ||
+    `你是一个专业的文档编辑助手。当前需要为大纲中的某一节生成「推荐关键词」，用于指导 AI 撰写该节内容。
+
+**本节标题：** ${sectionTitle || '（未命名章节）'}
+
+**整体大纲（Markdown）：**
+${outlineMarkdown || '（暂无大纲）'}
+
+请根据本节标题与整体大纲的语境，生成 5-8 个推荐关键词。例如：
+- 若标题偏向技术/算法（如「xxx算法介绍」），可推荐：严谨、学术风、计算机、逻辑清晰 等；
+- 若标题偏向文学/赏析（如「xxx文学赏析」），可推荐：抒情、发散、创意、文采 等。
+
+**输出要求：** 请严格输出符合给定 JSON Schema 的结果，仅包含 keywords 数组，不要添加解释。`
+  )
+}
+
 export const sectionChangePrompt = (
   tree: string,
   section: string,

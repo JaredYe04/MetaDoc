@@ -1580,7 +1580,7 @@ const bindTitleMenu = async () => {
       titleElements,
       outlineTree
     )
-    logger.debug('标题索引建立完成', { count: titleIndex.value.getAllEntries().length })
+    //logger.debug('标题索引建立完成', { count: titleIndex.value.getAllEntries().length })
   } catch (error) {
     logger.warn('建立标题索引失败', error)
     titleIndex.value = null

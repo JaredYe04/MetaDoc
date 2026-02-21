@@ -5,7 +5,6 @@
     :class="{ 'is-locked': isLockedEffective }"
     @dblclick="handleDoubleClick"
     @dragover.prevent="handleWrapperDragOver"
-    @wheel.prevent="handleTabWheel"
     @auxclick="handleWrapperAuxClick"
   >
     <!-- macOS 平台：左边预留空间给原生按钮 -->
@@ -13,7 +12,7 @@
 
     <!-- Tab 区域：包含可滚动的 tab 列表 + 固定的新建按钮 -->
     <div class="tab-region">
-      <div ref="tabsViewportRef" class="tabs-viewport">
+      <div ref="tabsViewportRef" class="tabs-viewport" @wheel.prevent="handleTabWheel">
         <div ref="tabsListRef" class="tabs-list">
           <div
             v-for="tab in allTabs"
@@ -247,6 +246,7 @@ import {
   setTabBarElement,
   prefetchDragThumbnail
 } from '../composables/useTabDrag'
+import { useTabAnimation } from '../composables/useTabAnimation'
 
 // 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
 const windowControlIcons = computed(() => {
@@ -672,6 +672,9 @@ const allTabs = computed(() => {
 
 // 计算Tab数量，用于CSS变量
 const tabCount = computed(() => allTabs.value.length)
+
+// 使用标签页动画 composable - 必须在 allTabs 定义之后
+const { triggerNewTabAnimation } = useTabAnimation(tabsListRef, allTabs)
 
 const currentActiveId = computed({
   get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
@@ -1340,6 +1343,19 @@ onMounted(async () => {
     }
   )
 
+  // 监听新标签页的添加，触发动画
+  watch(
+    () => allTabs.value.filter((t) => t._isNewTab).map((t) => t.id),
+    async (newTabIds, oldTabIds) => {
+      // 找出新添加的标签页
+      const addedTabIds = newTabIds.filter((id) => !oldTabIds?.includes(id))
+      for (const tabId of addedTabIds) {
+        await triggerNewTabAnimation(tabId)
+      }
+    },
+    { flush: 'post' }
+  )
+
   // 监听来自主进程的Tab添加请求
   if (messageBridge.getIpc()) {
     handlerAddTabFromDrag = async (_event: any, data: any) => {
@@ -1997,5 +2013,14 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Tab 入场动画 - 粗野主义，原生感 */
+.tab-item {
+  will-change: transform;
+}
+
+.tab-item[data-animating='true'] {
+  pointer-events: none;
 }
 </style>

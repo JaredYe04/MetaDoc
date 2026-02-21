@@ -931,13 +931,17 @@ function attachShortcutHandler(win: BrowserWindow): void {
     const isCycleShortcut = channel === 'next-tab-triggered' || channel === 'prev-tab-triggered'
 
     if (!isCycleShortcut && input.isAutoRepeat) return
-    if (!isCycleShortcut && isShortcutPressed) return
+    if (!isCycleShortcut && isShortcutPressed) {
+      logger.debug('快捷键防抖：忽略重复按键', channel)
+      return
+    }
 
     if (!isCycleShortcut) {
       isShortcutPressed = true
+      // 缩短防抖时间到 200ms，防止快速双击但仍保持响应性
       setTimeout(() => {
         isShortcutPressed = false
-      }, 1000)
+      }, 200)
     }
 
     event.preventDefault()

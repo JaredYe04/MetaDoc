@@ -556,6 +556,17 @@ function applyThemeClasses(themeType) {
     document.documentElement.classList.add('dark')
     document.documentElement.classList.remove('light')
   }
+
+  // Ensure OPPO Sans font variables are set
+  const root = document.documentElement
+  root.style.setProperty(
+    '--font-family-base',
+    "'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+  )
+  root.style.setProperty(
+    '--font-family-chinese',
+    "'OPPO Sans 4.0', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif"
+  )
 }
 
 /**

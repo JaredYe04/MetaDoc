@@ -332,9 +332,6 @@ export function hasDocumentContent(doc: {
   return false
 }
 
-// 最大未命名文档标签页数量
-const MAX_NEW_DOC_TABS = 5
-
 function ensureInitialTab(isFromDrag: boolean = false): void {
   // 如果是从拖拽创建的窗口，不自动创建占位标签页
   if (isFromDrag) return
@@ -1411,13 +1408,6 @@ function initializeDocumentFromTemplate(
 }
 
 function openNewDocumentTab(): WorkspaceTab {
-  const newDocTabs = tabs.filter((t) => t.kind === 'new' && !t.dirty)
-
-  if (newDocTabs.length >= MAX_NEW_DOC_TABS) {
-    activateTab(newDocTabs[0].id)
-    return newDocTabs[0]
-  }
-
   const tab = createNewDocumentTabInternal()
   activateTab(tab.id)
   return tab

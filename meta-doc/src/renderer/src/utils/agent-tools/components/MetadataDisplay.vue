@@ -18,7 +18,7 @@
       class="completed-state"
       :style="completedStateStyle"
     >
-      <el-result icon="success" :title="$t('agent.display.metadata.completed')" />
+      <Result icon="success" :title="$t('agent.display.metadata.completed')" />
       <div class="metadata-info" :style="metadataInfoStyle">
         <div class="metadata-item" v-if="displayData.metadata.title">
           <strong>{{ $t('agent.display.metadata.title') }}:</strong>
@@ -66,6 +66,7 @@ import { Loading } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '../../../components/ui/badge'
+import { Result } from '@renderer/components/ui/result'
 import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

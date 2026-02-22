@@ -79,7 +79,7 @@
 
       <!-- 如果没有resultData，显示成功消息 -->
       <div v-else-if="!resultData" class="no-data-message" :style="noDataMessageStyle">
-        <el-result
+        <Result
           icon="success"
           :title="$t('agent.display.edit.completed') || '编辑完成'"
           :sub-title="$t('agent.display.edit.noDetails') || '编辑操作已成功完成'"
@@ -288,6 +288,7 @@ import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/aler
 import { Info, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Result } from '@renderer/components/ui/result'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'

@@ -18,7 +18,7 @@
       class="completed-state"
       :style="completedStateStyle"
     >
-      <el-result icon="success" :title="$t('agent.display.outlineOptimize.completed')" />
+      <Result icon="success" :title="$t('agent.display.outlineOptimize.completed')" />
       <div class="result-info" :style="resultInfoStyle">
         <p>
           <strong>{{ $t('agent.display.outlineOptimize.operationLabel') }}:</strong>
@@ -128,6 +128,7 @@ import { Loading, Document } from '@element-plus/icons-vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
+import { Result } from '@renderer/components/ui/result'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

@@ -841,15 +841,45 @@ a {
   z-index: 9999 !important;
 }
 
-/* Sonner 关闭按钮 - 移到右上角 */
+/* Sonner 关闭按钮 - shadcn 风格，在内容区域内，尊重全局主题 */
 [data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
   left: auto !important;
-  right: 6px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: var(--radius) !important;
+  /* 使用透明背景，悬停时显示 muted 背景 */
+  background-color: transparent !important;
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 0 !important;
+  transition: all 150ms ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
 }
 
-/* 调整 Toast 内容padding，避免被关闭按钮遮挡 */
-[data-sonner-toast] > div {
-  padding-right: 40px !important;
+[data-sonner-toast]:hover [data-close-button] {
+  opacity: 1 !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background-color: hsl(var(--muted) / 0.4) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-sonner-toast] [data-close-button] svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* 调整 Toast 内容区域，为关闭按钮留出空间 */
+[data-sonner-toast] [data-content] {
+  padding-right: 32px !important;
 }
 
 /* ============================================

@@ -383,7 +383,7 @@ const svCursorStyle = computed(() => {
               :step="1"
               class="absolute inset-0"
               @update:model-value="handleAlphaChange"
-              @update:model-value="handleAlphaCommit"
+              @value-commit="handleAlphaCommit"
             />
           </div>
         </div>

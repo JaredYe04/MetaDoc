@@ -1112,6 +1112,7 @@
     "abridge": "略写",
     "polish": "润色",
     "aiTool": {
+      "title": "AI工具",
       "pointer": "指针工具（不进行选择）",
       "generateChildren": "生成子章节",
       "generateContent": "生成内容",

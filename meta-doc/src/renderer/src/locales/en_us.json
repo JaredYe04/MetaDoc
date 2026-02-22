@@ -595,6 +595,7 @@
     "abridge": "Abridge",
     "polish": "Polish",
     "aiTool": {
+      "title": "AI Tools",
       "pointer": "Pointer tool (no selection)",
       "generateChildren": "Generate sub-chapters",
       "generateContent": "Generate content",

@@ -1,60 +1,53 @@
 <template>
   <div class="outline-page" :data-direction="direction" :class="{ 'is-dragging': isDraggingNode }">
   <div class="container">
-    <!-- 左上角AI工具工具栏：指针保持图标；选中其他工具时该按钮浮起并向右溢出显示名称 -->
+    <!-- 左上角AI工具工具栏：标题 + 工具按钮（选中时按钮与文字向右溢出带动画）+ 底部格式化标题；无指针工具，再次点击已选工具则取消选择 -->
     <div class="ai-toolbar aero-div">
-      <el-tooltip :content="$t('outline.aiTool.pointer')" placement="right">
+      <div class="ai-toolbar__title">{{ $t('outline.aiTool.title') }}</div>
+      <el-button
+        :class="['ai-toolbar-btn', 'ai-toolbar-btn--expandable', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildren', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildren' }]"
+        :type="selectedAiTool === 'generateChildren' ? 'primary' : 'default'"
+        size="small"
+        @click="toggleAiTool('generateChildren')"
+      >
+        <el-icon><Finished /></el-icon>
+        <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildren') }}</span>
+      </el-button>
+      <el-button
+        :class="['ai-toolbar-btn', 'ai-toolbar-btn--expandable', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateContent', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateContent' }]"
+        :type="selectedAiTool === 'generateContent' ? 'primary' : 'default'"
+        size="small"
+        @click="toggleAiTool('generateContent')"
+      >
+        <el-icon><EditPen /></el-icon>
+        <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateContent') }}</span>
+      </el-button>
+      <el-button
+        :class="['ai-toolbar-btn', 'ai-toolbar-btn--expandable', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildrenChildren', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildrenChildren' }]"
+        :type="selectedAiTool === 'generateChildrenChildren' ? 'primary' : 'default'"
+        size="small"
+        @click="toggleAiTool('generateChildrenChildren')"
+      >
+        <el-icon><Rank /></el-icon>
+        <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenChildren') }}</span>
+      </el-button>
+      <el-button
+        :class="['ai-toolbar-btn', 'ai-toolbar-btn--expandable', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildrenContent', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildrenContent' }]"
+        :type="selectedAiTool === 'generateChildrenContent' ? 'primary' : 'default'"
+        size="small"
+        @click="toggleAiTool('generateChildrenContent')"
+      >
+        <el-icon><Download /></el-icon>
+        <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenContent') }}</span>
+      </el-button>
+      <el-tooltip :content="$t('outline.formatTitle')" placement="right">
         <el-button
-          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'pointer' }]"
-          :type="selectedAiTool === 'pointer' ? 'primary' : 'default'"
+          type="warning"
           size="small"
-          @click="selectedAiTool = 'pointer'"
+          class="ai-toolbar-btn ai-toolbar-btn--action"
+          @click="formatTitle"
         >
-          <el-icon><Pointer /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="$t('outline.aiTool.generateChildren')" placement="right">
-        <el-button
-          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildren', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildren' }]"
-          :type="selectedAiTool === 'generateChildren' ? 'primary' : 'default'"
-          size="small"
-          @click="selectedAiTool = 'generateChildren'"
-        >
-          <el-icon><Finished /></el-icon>
-          <span v-if="selectedAiTool === 'generateChildren'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildren') }}</span>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="$t('outline.aiTool.generateContent')" placement="right">
-        <el-button
-          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateContent', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateContent' }]"
-          :type="selectedAiTool === 'generateContent' ? 'primary' : 'default'"
-          size="small"
-          @click="selectedAiTool = 'generateContent'"
-        >
-          <el-icon><EditPen /></el-icon>
-          <span v-if="selectedAiTool === 'generateContent'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateContent') }}</span>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="$t('outline.aiTool.generateChildrenChildren')" placement="right">
-        <el-button
-          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildrenChildren', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildrenChildren' }]"
-          :type="selectedAiTool === 'generateChildrenChildren' ? 'primary' : 'default'"
-          size="small"
-          @click="selectedAiTool = 'generateChildrenChildren'"
-        >
-          <el-icon><Rank /></el-icon>
-          <span v-if="selectedAiTool === 'generateChildrenChildren'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenChildren') }}</span>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="$t('outline.aiTool.generateChildrenContent')" placement="right">
-        <el-button
-          :class="['ai-toolbar-btn', { 'ai-toolbar-btn--selected': selectedAiTool === 'generateChildrenContent', 'ai-toolbar-btn--expanded': selectedAiTool === 'generateChildrenContent' }]"
-          :type="selectedAiTool === 'generateChildrenContent' ? 'primary' : 'default'"
-          size="small"
-          @click="selectedAiTool = 'generateChildrenContent'"
-        >
-          <el-icon><Download /></el-icon>
-          <span v-if="selectedAiTool === 'generateChildrenContent'" class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenContent') }}</span>
+          <el-icon style="width: 1em; height: 1em;">T</el-icon>
         </el-button>
       </el-tooltip>
     </div>
@@ -69,7 +62,7 @@
             <h2>
               {{ $t('outline.generating') }}
               <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
-                <el-button type="danger" plain circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="danger" plain class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="cancelAllAiTasks">
                   <el-icon style="font-size: 14px">
                     <Check />
@@ -77,7 +70,6 @@
                 </el-button>
                 <el-button
                   type="danger"
-                  circle
                   class="aero-btn"
                   style="font-size: 12px; padding: 2px 6px"
                   @click.stop="discardChange"
@@ -96,13 +88,13 @@
             <div class="generate-preview-content">{{ rawstring }}</div>
             <div class="generate-preview-actions">
               <el-tooltip :content="$t('outline.accept')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="success" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="acceptChange">
                   <el-icon style="font-size: 14px"><Check /></el-icon>
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.reject')" placement="top">
-                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="danger" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="discardChange" :loading="generateChildChapterLoading">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading"><Close /></el-icon>
                 </el-button>
@@ -115,9 +107,10 @@
 
       <vue-tree
       ref="treeRef"
+      :key="outlineTreeKey"
       class="outline-tree-container"
       :class="{ 'is-dragging': isDraggingNode }"
-      style="width: 100%; height: 100%; border-radius: 12px;"
+      style="width: 100%; height: 100%; border-radius: 18px;"
       :style="{ backgroundColor: themeState.currentTheme.background }"
       :dataset="treeData"
       :config="treeConfig"
@@ -191,18 +184,17 @@
               </el-tooltip>
             </div>
           </el-tooltip>
-          <!-- 节点操作按钮（根据选择的工具切换图标） -->
-          <el-tooltip :content="selectedAiTool === 'pointer' ? $t('outline.editNode') : getAiToolTip(selectedAiTool)" placement="top">
+          <!-- 节点操作按钮（未选 AI 工具时为编辑；选中 AI 工具时显示对应图标并高亮） -->
+          <el-tooltip :content="!selectedAiTool ? $t('outline.editNode') : getAiToolTip(selectedAiTool)" placement="top">
             <el-button
               size="small"
-              type="text"
-              class="aero-btn"
-              circle
+              :type="!selectedAiTool ? 'text' : 'primary'"
+              :class="['aero-btn', 'node-action-btn', { 'node-action-btn--ai-selected': !!selectedAiTool }]"
               @click.stop="handleNodeButtonClick(node)"
               v-if="node.path !== 'dummy'"
               :disabled="pendingAccept || generating"
             >
-              <el-icon v-if="selectedAiTool === 'pointer'">
+              <el-icon v-if="!selectedAiTool">
                 <More />
               </el-icon>
               <el-icon v-else-if="selectedAiTool === 'generateChildren'">
@@ -225,7 +217,7 @@
           <div>
             <div class="button-group" v-if="!nodeMenuToggle">
               <el-tooltip :content="direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')" placement="top">
-                <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="info" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="move2Left">
                   <el-icon style="font-size: 14px">
                     <ArrowLeftBold v-if="direction === 'vertical'" />
@@ -234,7 +226,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.addChild')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="success" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="addChildNode">
                   <el-icon style="font-size: 14px">
                     <Plus />
@@ -242,7 +234,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.editContent')" placement="top">
-                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="primary" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="editNode">
                   <el-icon style="font-size: 14px">
                     <Edit />
@@ -250,7 +242,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.delete')" placement="top">
-                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="danger" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="deleteNode">
                   <el-icon style="font-size: 14px">
                     <Delete />
@@ -259,7 +251,7 @@
               </el-tooltip>
 
               <el-tooltip :content="direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown')" placement="top">
-                <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="info" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="move2Right">
                   <el-icon style="font-size: 14px">
                     <ArrowRightBold v-if="direction === 'vertical'" />
@@ -271,7 +263,7 @@
             </div>
             <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
               <el-tooltip :content="$t('outline.generateContent')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="success" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   :loading="generateContentLoading" @click.stop="generateContent" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateContentLoading">
                     <EditPen />
@@ -279,7 +271,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
-                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="primary" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildChapter" :loading="generateChildChapterLoading" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
                     <Finished />
@@ -287,7 +279,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="success" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildrenContent" :loading="generateChildrenContentLoading"
                   :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
@@ -296,7 +288,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
-                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="primary" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildrenChildren" :loading="generateChildrenChildrenLoading"
                   :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
@@ -317,7 +309,7 @@
 
             <div class="button-group" v-if="pendingAccept">
               <el-tooltip :content="$t('outline.accept')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="success" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="acceptChange">
                   <el-icon style="font-size: 14px">
                     <Check />
@@ -325,7 +317,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('outline.reject')" placement="top">
-                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                <el-button type="danger" class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="discardChange" :loading="generateChildChapterLoading">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
                     <Close />
@@ -341,7 +333,7 @@
       </template>
 
     </vue-tree>
-    <el-dialog v-model="formatTitleDialogVisible" :title="$t('outline.formatTitleWizard')" width="30%">
+    <el-dialog v-model="formatTitleDialogVisible" :title="$t('outline.formatTitleWizard')" width="480px" class="format-title-dialog">
       <el-form label-width="200px" class="demo-ruleForm">
         <el-form-item :label="$t('outline.adjustMarkdown')" prop="adjustMarkdown">
           <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
@@ -399,10 +391,10 @@
       <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
     </el-dialog>
 
-    <!-- AI配置对话框：Tailwind 风格、温度标尺、关键词控件、AI 推荐关键词 -->
+    <!-- AI 配置对话框：标题随所选工具变化，如「生成子章节」「生成内容」 -->
     <el-dialog
       v-model="aiConfigDialogVisible"
-      :title="$t('outline.aiConfig.title')"
+      :title="aiConfigDialogTitle"
       width="560px"
       class="ai-config-dialog"
       @opened="onAiConfigDialogOpened"
@@ -486,42 +478,35 @@
     </el-dialog>
     <div class="bottom-menu aero-div">
       <el-tooltip :content="direction === 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal')" placement="top">
-        <el-button type="info" circle @click="toggleLayout">
+        <el-button type="info" @click="toggleLayout">
           <el-icon>
             <Sort />
           </el-icon>
         </el-button>
       </el-tooltip>
       <el-tooltip :content="$t('outline.zoomIn')" placement="top">
-        <el-button type="success" circle @click="zoomIn">
+        <el-button type="success" @click="zoomIn">
           <el-icon>
             <Plus />
           </el-icon>
         </el-button>
       </el-tooltip>
       <el-tooltip :content="$t('outline.zoomOut')" placement="top">
-        <el-button type="warning" circle @click="zoomOut">
+        <el-button type="warning" @click="zoomOut">
           <el-icon>
             <Minus />
           </el-icon>
         </el-button>
       </el-tooltip>
       <el-tooltip :content="$t('outline.reset')" placement="top">
-        <el-button type="info" circle @click="resetScale">
+        <el-button type="info" @click="resetScale">
           <el-icon>
             <Refresh />
           </el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="$t('outline.formatTitle')" placement="top">
-        <el-button type="warning" circle @click="formatTitle">
-          <el-icon style="width: 1em; height: 1em;">
-            T
-          </el-icon>
-        </el-button>
-      </el-tooltip>
       <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
-        <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" circle @click="nodeMenuToggle = !nodeMenuToggle"
+        <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" @click="nodeMenuToggle = !nodeMenuToggle"
           :disabled="generating || pendingAccept">
           <el-icon style="width: 1em; height: 1em;">
             AI
@@ -543,7 +528,7 @@ import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
 import { MdEditor, type Themes } from 'md-editor-v3';
-import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, ArrowUpBold, ArrowDownBold, Finished, EditPen, Checked, Close, Check, Download, Rank, CloseBold, Sort, Pointer, ArrowDown, ArrowUp, Loading } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, ArrowUpBold, ArrowDownBold, Finished, EditPen, Checked, Close, Check, Download, Rank, CloseBold, Sort, ArrowDown, ArrowUp, Loading } from '@element-plus/icons-vue';
 import type { DocumentOutlineNode } from '../../../types';
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document';
 import { searchNode, searchParentNode } from '../utils/outline-helpers';
@@ -1774,8 +1759,16 @@ const handleWheelZoom = (event: WheelEvent) => {
 
 const nodeMenuToggle = ref(false);//false为普通节点，true为AI辅助节点
 
-// AI工具选择状态
-const selectedAiTool = ref<'pointer' | 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent'>('pointer')
+// AI工具选择状态（null 表示未选择；再次点击已选工具会取消选择）
+const selectedAiTool = ref<'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent' | null>(null)
+
+// 切换 AI 工具：已选中则取消，否则选中
+function toggleAiTool(tool: 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent') {
+  selectedAiTool.value = selectedAiTool.value === tool ? null : tool
+}
+
+// 大纲树稳定 key：仅随文档与布局变化，避免切换 AI 工具时整树刷新导致回到初始位置
+const outlineTreeKey = computed(() => `${activeDocument.value?.path ?? ''}-${direction.value}`)
 
 // 节点展开状态
 const expandedNodes = ref<Record<string, boolean>>({})
@@ -1895,6 +1888,12 @@ const getAiToolTip = (tool: string): string => {
   return toolTips[tool] || ''
 }
 
+// 对话框标题：随所选 AI 工具显示，如「生成子章节」「生成内容」
+const aiConfigDialogTitle = computed(() => {
+  if (!selectedAiTool.value) return t('outline.aiConfig.title')
+  return t('outline.aiTool.' + selectedAiTool.value)
+})
+
 // 处理预设提示词选择
 const handlePresetPromptChange = (value: string) => {
   const preset = presetPrompts.value.find(p => p.value === value)
@@ -1905,8 +1904,7 @@ const handlePresetPromptChange = (value: string) => {
 
 // 处理AI配置确认
 const handleAiConfigConfirm = () => {
-  // 根据选择的工具执行相应操作
-  if (selectedAiTool.value === 'pointer') {
+  if (!selectedAiTool.value) {
     aiConfigDialogVisible.value = false
     return
   }
@@ -1950,9 +1948,9 @@ const handleNodeContentCancel = (nodePath: string) => {
 
 const handleNodeButtonClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node;
-  
-  // 如果选择的是AI工具，打开配置对话框
-  if (selectedAiTool.value !== 'pointer') {
+
+  // 若已选 AI 工具，点击节点按钮则打开配置对话框
+  if (selectedAiTool.value) {
     // 恢复默认配置
     aiConfig.temperature = 1.0
     aiConfig.keywords = []
@@ -2219,6 +2217,12 @@ onUnmounted(() => {
   contain: strict layout style paint;
 }
 
+/* 标题格式化对话框：固定宽度 480px，窗口变窄时限制最大宽度不溢出 */
+.format-title-dialog {
+  width: 480px !important;
+  max-width: calc(100vw - 24px) !important;
+}
+
 .outline-page > .container {
   flex: 1;
   position: relative;
@@ -2288,7 +2292,6 @@ onUnmounted(() => {
 .node-edit-box {
   display: flex;
   flex-direction: column;
-  /* 垂直布局 */
   align-items: center;
   position: fixed;
   margin-top: 100%;
@@ -2297,17 +2300,65 @@ onUnmounted(() => {
     width 0.8s ease,
     all 0.3s ease;
   z-index: 10;
-  /* 确保覆盖其他元素 */
+  border-radius: 18px !important;
+}
+.node-edit-box.aero-div {
+  border-radius: 18px !important;
+}
+/* node-edit-box 内按钮：圆角矩形且长宽相等（正方形），稍大以便操作 */
+.node-edit-box :deep(.el-button),
+.node-edit-box :deep(.aero-btn) {
+  border-radius: 10px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.node-edit-box :deep(.el-button.is-circle),
+.node-edit-box :deep(.aero-btn.is-circle) {
+  border-radius: 50% !important;
 }
 
 .button-group {
   display: flex;
-  /* 水平布局 */
   justify-content: space-around;
-  /* 按钮间隔均匀 */
   width: fit-content;
   transition: all 0.3s;
-  /* 满宽布局 */
+  border-radius: 18px;
+}
+
+/* 大纲页内按钮：圆角矩形（约 10px），圆形按钮保持 50% */
+.outline-page .aero-btn:not(.is-circle) {
+  border-radius: 10px !important;
+}
+.outline-page .aero-btn.is-circle {
+  border-radius: 50% !important;
+}
+/* bottom-menu 按钮：与 AI 工具按钮一致 44×38，圆角矩形 */
+.outline-page .bottom-menu .el-button {
+  border-radius: 10px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.outline-page .generate-preview .el-button {
+  border-radius: 10px !important;
+}
+.outline-page .generate-preview .el-button.is-circle {
+  border-radius: 50% !important;
+}
+.outline-tree-container :deep(.el-button) {
+  border-radius: 10px !important;
+}
+.outline-tree-container :deep(.el-button.is-circle) {
+  border-radius: 50% !important;
 }
 
 .action-buttons {
@@ -2330,33 +2381,32 @@ onUnmounted(() => {
 
 .tree-node {
   margin-bottom: 12px;
-  /* 增加底部间距 */
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border-radius: 12px;
-  /* 增加圆角 */
+  border-radius: 18px !important;
   padding: 8px 16px;
-  /* 增加内边距，使节点更大，更易点击 */
   margin: 10px;
   cursor: pointer;
-  transition: background-color 0.3s;
-  /* 添加过渡效果 */
+  transition: background-color 0.3s, filter 0.15s ease;
   max-width: 200px;
-  /* 限制最大宽度 */
   max-height: 60px;
-  /* 限制最大高度，允许2-3行 */
   overflow: hidden;
-  /* 隐藏溢出内容 */
   box-sizing: border-box;
-  /* 包含 padding 在宽度计算中 */
-  /* 使用 containment 限制重绘范围 */
   contain: layout style paint;
-  /* 创建新的层叠上下文 */
   isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 节点展开按钮：小尺寸、扁平、不凸起 */
+/* mousedown 时颜色变化减弱，仅轻微变暗 */
+.tree-node:active {
+  filter: brightness(0.97);
+}
+.outline-tree-container :deep(.tree-node:active) {
+  filter: brightness(0.97);
+}
+
+/* 节点展开按钮：小尺寸、扁平、圆角更大 */
 .tree-node-expand-btn {
   flex-shrink: 0;
   margin-left: 4px;
@@ -2366,7 +2416,7 @@ onUnmounted(() => {
   min-height: 22px;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   background: rgba(128, 128, 128, 0.15);
   color: v-bind('themeState.currentTheme.textColor');
   cursor: pointer;
@@ -2413,14 +2463,13 @@ onUnmounted(() => {
 }
 .tree-node.drop-inside {
   outline: 2px dashed rgba(103, 194, 58, 0.6);
-  border-radius: 10px;
-  /* outline 不会触发重排，性能较好 */
+  border-radius: 18px;
   transform: translateZ(0);
   will-change: outline;
 }
 .tree-node.drop-parent {
   box-shadow: inset 0 4px 0 #e6a23c;
-  border-radius: 10px;
+  border-radius: 18px;
   transform: translateZ(0);
   will-change: box-shadow;
 }
@@ -2434,11 +2483,11 @@ onUnmounted(() => {
 }
 .outline-page[data-direction='horizontal'] :deep(.tree-node.drop-inside) {
   outline: 2px dashed rgba(103, 194, 58, 0.6);
-  border-radius: 10px;
+  border-radius: 18px;
 }
 .outline-page[data-direction='horizontal'] :deep(.tree-node.drop-parent) {
   box-shadow: inset 4px 0 0 #e6a23c;
-  border-radius: 10px;
+  border-radius: 18px;
 }
 
 .tree-node-text {
@@ -2473,6 +2522,8 @@ onUnmounted(() => {
   margin-top: 10px;
 }
 
+/* 底部菜单：覆盖 aero-div 圆角，使用更大圆角 */
+.outline-page .bottom-menu.aero-div,
 .bottom-menu {
   position: absolute;
   bottom: 16px;
@@ -2483,49 +2534,75 @@ onUnmounted(() => {
   gap: 10px;
   z-index: 1000;
   padding: 6px 10px;
-  border-radius: 12px;
+  border-radius: 18px !important;
   box-sizing: border-box;
   width: fit-content;
-  /* 覆盖 aero-div 的 transform transition，防止 hover 时偏移 */
   transition:
     backdrop-filter 0.3s ease,
     box-shadow 0.3s ease !important;
 
-  // 确保hover时transform不变
   &:hover {
     transform: translateX(-50%) !important;
   }
 }
 
-/* 左上角AI工具工具栏：容器不随展开撑开，展开的按钮向右溢出 */
+/* 左上角AI工具工具栏：标题与按钮左对齐，容器固定宽度，仅选中按钮向右溢出且按钮宽度随内容展开 */
+/* 覆盖 aero-div 的 padding，保证标题和按钮在 44px 宽列内左对齐，仅选中按钮向右溢出 */
+.ai-toolbar.aero-div {
+  padding: 10px 0 !important;
+}
 .ai-toolbar {
   position: absolute;
   top: 16px;
   left: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   z-index: 1000;
-  padding: 8px;
-  border-radius: 12px;
+  padding: 10px 0;
+  border-radius: 18px;
   box-sizing: border-box;
-  width: 36px;
-  min-width: 36px;
+  width: 44px;
+  min-width: 44px;
   overflow: visible;
 }
 
+.ai-toolbar__title {
+  width: 44px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+  line-height: 1.2;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+/* tooltip 触发器不限制宽度（仅格式化标题等仍用 tooltip 的按钮） */
+.ai-toolbar :deep(.el-tooltip__trigger) {
+  display: block;
+  width: fit-content;
+}
+
 .ai-toolbar-btn {
-  width: 36px;
-  height: 32px;
+  width: 44px;
+  height: 38px;
   margin: 0;
   padding: 0;
   flex-shrink: 0;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   transition:
     background-color 0.2s ease,
     color 0.2s ease,
     box-shadow 0.2s ease,
-    transform 0.15s ease;
+    transform 0.2s ease,
+    max-width 0.45s ease,
+    min-width 0.45s ease,
+    width 0.45s ease,
+    padding 0.45s ease;
 }
 
 .ai-toolbar-btn:hover {
@@ -2538,30 +2615,119 @@ onUnmounted(() => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-.ai-toolbar .el-button {
-  width: 36px;
-  height: 32px;
-  margin: 0;
-  padding: 0;
-  flex-shrink: 0;
-  border-radius: 8px !important;
+/* 按下时圆角与选中态一致，避免视觉跳动 */
+.ai-toolbar :deep(.el-button:active) {
+  border-radius: 10px !important;
 }
 
-/* 选中非指针工具时：按钮浮起并向右溢出显示名称 */
-.ai-toolbar .el-button.ai-toolbar-btn--expanded {
-  width: auto;
-  min-width: 36px;
-  padding: 0 12px 0 8px;
-  flex-shrink: 0;
+/* 未选中的 AI 工具按钮：黑白灰配色，浅色主题用浅灰、深色主题用深灰 */
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expandable:not(.ai-toolbar-btn--selected)) {
+  background-color: var(--el-fill-color-light) !important;
+  border-color: var(--el-border-color-lighter) !important;
+  color: var(--el-text-color-regular) !important;
 }
-.ai-toolbar-btn--expanded {
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expandable:not(.ai-toolbar-btn--selected):hover) {
+  background-color: var(--el-fill-color) !important;
+  border-color: var(--el-border-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+/* 收起态：带过渡时长，这样从收起→展开时会有动画（过渡由“变化前”的规则决定） */
+.ai-toolbar :deep(.el-button) {
+  width: 44px !important;
+  height: 38px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  margin: 0 !important;
+  padding: 0 0 0 0 !important;
+  flex-shrink: 0;
+  border-radius: 10px !important;
+  overflow: hidden;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    max-width 0.45s ease,
+    min-width 0.45s ease,
+    width 0.45s ease,
+    padding 0.45s ease;
+}
+
+/* 展开态：与收起态使用相同的 transition 时长，展开时才有动画（若这里写 0s 会覆盖掉过渡导致完全没动画） */
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expanded),
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expandable:hover) {
+  width: auto !important;
+  min-width: 44px !important;
+  max-width: 220px !important;
+  padding: 0 12px 0 10px !important;
+  flex-shrink: 0;
+  justify-content: flex-start !important;
+  gap: 8px;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    max-width 0.45s ease,
+    min-width 0.45s ease,
+    width 0.45s ease,
+    padding 0.45s ease;
+}
+.ai-toolbar :deep(.el-button .el-icon) {
+  flex-shrink: 0;
+  margin: 0;
+}
+.ai-toolbar-btn--expanded,
+.ai-toolbar-btn--expandable:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-.ai-toolbar-btn__label {
-  margin-left: 6px;
+
+/* 未选中且未 hover 时：只显示图标，文字不占位、不显示（无过渡，避免 icon/文字 从左向右滑动） */
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expandable:not(:hover):not(.ai-toolbar-btn--expanded) .ai-toolbar-btn__label) {
+  max-width: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  transition: none !important;
+}
+/* 选中或 hover 时：文字直接显示，无滑动过渡 */
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expanded .ai-toolbar-btn__label),
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--expandable:hover .ai-toolbar-btn__label) {
+  max-width: 200px !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+.ai-toolbar :deep(.ai-toolbar-btn__label) {
+  margin-left: 0;
   white-space: nowrap;
   font-size: 13px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 底部直接操作按钮（如格式化标题）：与 AI 工具按钮同尺寸 44×38，不参与选中，顶边自动撑满到底部 */
+.ai-toolbar-btn--action {
+  margin-top: auto;
+}
+.ai-toolbar :deep(.el-button.ai-toolbar-btn--action) {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 38px !important;
+  max-width: 44px !important;
+}
+
+/* 节点操作按钮：选中 AI 工具时更醒目，示意可点击执行 */
+
+/* 节点操作按钮：选中 AI 工具时更醒目，示意可点击执行 */
+.outline-tree-container :deep(.node-action-btn--ai-selected) {
+  box-shadow: 0 0 0 1px var(--el-button-border-color), 0 2px 8px rgba(64, 158, 255, 0.35);
+}
+.outline-tree-container :deep(.node-action-btn--ai-selected:hover) {
+  box-shadow: 0 0 0 1px var(--el-button-border-color), 0 2px 12px rgba(64, 158, 255, 0.45);
 }
 
 /* vue3-tree-chart 的 .node-slot 是每个节点的容器；含详细面板的 slot 必须最上层且不裁剪 */
@@ -2575,10 +2741,11 @@ onUnmounted(() => {
   z-index: 10001;
 }
 
-/* 树节点层级压低 */
+/* 树节点层级压低，圆角与 .tree-node 一致 */
 .outline-tree-container :deep(.tree-node) {
   position: relative;
   z-index: 1;
+  border-radius: 18px !important;
 }
 
 /* 详细节点面板外层：参与排版、替代 tree-node 的同一 slot */

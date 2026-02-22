@@ -3,7 +3,7 @@
     <ManualBreadcrumb />
     <el-scrollbar ref="scrollbarRef" class="content-scrollbar" @scroll="onContentScroll">
       <div class="content-wrapper">
-        <div v-if="processedContent && processedContent.trim()" class="markdown-wrapper">
+        <div v-show="processedContent && processedContent.trim()" class="markdown-wrapper">
           <VditorPreview
             :markdown="processedContent"
             :key="`content-${currentArticleId}-${locale}`"
@@ -11,7 +11,7 @@
             @rendered="handleRendered"
           />
         </div>
-        <div v-else class="empty-content">
+        <div v-show="!processedContent || !processedContent.trim()" class="empty-content">
           <Empty :description="$t('userManual.emptyContent') || '暂无内容'" />
         </div>
       </div>

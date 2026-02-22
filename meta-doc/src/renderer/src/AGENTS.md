@@ -454,8 +454,51 @@ const DEFAULT_DURATION = 4000  // 4 seconds
 - **Max Items**: 100
 
 #### Position
-- **Toast**: Top-right (below MainTabs)
+- **Toast**: Bottom-right (Sonner default)
 - **Queue**: Bottom-right (above status bar)
+
+### UI Implementation Details
+
+#### NotificationQueue Component
+- **Framework**: Pure shadcn-vue (no Element Plus)
+- **Components used**: Card, Button, Badge, ScrollArea, Tooltip
+- **Icons**: lucide-vue-next (Bell, CheckCircle2, XCircle, AlertCircle, Info, X, Trash2, Inbox)
+
+#### Sonner-Style Notification Items
+Each notification item in the queue matches Sonner Toast styling:
+```
+┌─────────────────────────────────────┐
+│  ✓  Title                    ✕ │  ← Icon + Title + Close button
+│  Description                        │
+│  2 minutes ago                      │
+└─────────────────────────────────────┘
+   ↑
+   Left border color indicates type (green/red/amber/blue)
+```
+
+**Styling features**:
+- White/dark background (`bg-white dark:bg-zinc-900`)
+- Left border color-coded by type (`border-l-4`)
+- Icon matches border color
+- Close button appears on hover (top-right, X icon)
+- Unread indicator dot (colored, near close button)
+- Time displayed in muted text
+- No "Mark as Read" button (click item or rely on close)
+
+#### Migration to Pure shadcn-vue
+**Removed all Element Plus components from notification system**:
+- ✅ Replaced `el-icon` with lucide-vue-next icons
+- ✅ Replaced Element Plus colors with Tailwind classes
+- ✅ Replaced `status-dot` with CSS-based indicators
+- ✅ Unified styling between Sonner Toast and NotificationQueue items
+
+#### Color Scheme
+| Type | Border | Icon | Dot |
+|------|--------|------|-----|
+| Success | `border-l-green-500` | `text-green-500` | `bg-green-500` |
+| Error | `border-l-red-500` | `text-red-500` | `bg-red-500` |
+| Warning | `border-l-amber-500` | `text-amber-500` | `bg-amber-500` |
+| Info | `border-l-blue-500` | `text-blue-500` | `bg-blue-500` |
 
 ### Migration Checklist (for future reference)
 

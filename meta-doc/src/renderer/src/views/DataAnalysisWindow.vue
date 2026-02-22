@@ -318,7 +318,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -426,7 +427,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 

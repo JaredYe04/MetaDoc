@@ -68,9 +68,9 @@
                 <span class="chunk-info">
                   {{ chunk.oldStart }}-{{ chunk.oldEnd }} → {{ chunk.newStart }}-{{ chunk.newEnd }}
                 </span>
-                <el-tag :type="getChunkTagType(chunk.type)" size="small">
+                <Badge :type="getChunkTagType(chunk.type)" size="small">
                   {{ getTypeLabel(chunk.type) }}
-                </el-tag>
+                </Badge>
               </div>
               <!-- 显示旧文本（删除） -->
               <div v-if="chunk.oldLines && chunk.oldLines.length > 0" class="diff-lines old-lines">

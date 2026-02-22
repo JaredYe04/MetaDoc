@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -444,7 +444,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -475,7 +475,7 @@ const handleCreateSession = async () => {
     detectedType.value = null
     detectedSpecialPrompt.value = ''
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -544,7 +544,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }, 300)
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -558,7 +558,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     manuallyRenamedSessions.value.add(item.id)
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -580,9 +580,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+    notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -597,16 +597,16 @@ const handleDeleteSession = async (item: SessionListItem) => {
       currentPrompt.value = ''
       lastGeneratedChartCode.value = null
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
 // 生成图表
 const handleGenerate = async () => {
   if (!activeSessionId.value || !currentPrompt.value.trim()) {
-    ElMessage.warning(t('graph.noPrompt', '请输入绘图需求'))
+    notifyWarning(t('graph.noPrompt', '请输入绘图需求'))
     return
   }
 
@@ -616,7 +616,7 @@ const handleGenerate = async () => {
   try {
     const userPrompt = currentPrompt.value.trim()
     if (!userPrompt) {
-      ElMessage.warning(t('graph.noPrompt', '请输入绘图需求'))
+      notifyWarning(t('graph.noPrompt', '请输入绘图需求'))
       return
     }
 
@@ -828,7 +828,7 @@ const handleGenerate = async () => {
       })
     })
 
-    ElMessage.success(t('graph.generateSuccess', '生成成功'))
+    notifySuccess(t('graph.generateSuccess', '生成成功'))
 
     // 生成标题（如果会话未被手动重命名）
     if (activeSessionId.value && !manuallyRenamedSessions.value.has(activeSessionId.value)) {
@@ -845,7 +845,7 @@ const handleGenerate = async () => {
     ) {
       messages.value.pop()
     }
-    ElMessage.error('生成失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('生成失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     generating.value = false
     analyzingIntent.value = false
@@ -868,7 +868,7 @@ const handleCancel = () => {
       messages.value.pop()
     }
   }
-  ElMessage.info(t('aiChat.generationCancelled', '生成已取消'))
+    notifyInfo(t('aiChat.generationCancelled', '生成已取消'))
 }
 
 // 消息操作：删除
@@ -882,7 +882,7 @@ const onMsgDelete = (index: number) => {
   if (actualIndex < 0) return
 
   messages.value.splice(actualIndex, 1)
-  ElMessage.success(t('common.deleteSuccess', '删除成功'))
+  notifySuccess(t('common.deleteSuccess', '删除成功'))
   saveSession()
 }
 
@@ -959,7 +959,7 @@ const saveSession = async () => {
 const handleExport = async (chartMarkdown?: string) => {
   const chartCode = chartMarkdown || lastGeneratedChartCode.value
   if (!chartCode) {
-    ElMessage.warning(t('graph.noChart', '没有可导出的图表'))
+    notifyWarning(t('graph.noChart', '没有可导出的图表'))
     return
   }
 
@@ -1077,7 +1077,7 @@ const handleExport = async (chartMarkdown?: string) => {
         content: svgContent,
         encoding: 'utf8'
       })
-      ElMessage.success(t('graph.exportSuccess', '导出成功'))
+      notifySuccess(t('graph.exportSuccess', '导出成功'))
     } else if (ext === 'png') {
       // PNG：直接写入文件（已经弹出对话框，不需要再弹出）
       // 获取 PNG 的 base64 内容
@@ -1129,7 +1129,7 @@ const handleExport = async (chartMarkdown?: string) => {
         content: base64Data,
         encoding: 'base64'
       })
-      ElMessage.success(t('graph.exportSuccess', '导出成功'))
+      notifySuccess(t('graph.exportSuccess', '导出成功'))
     } else if (ext === 'pdf') {
       // PDF：先渲染为 SVG，然后转换为 PDF（参考 chart-generation-tool.ts 和 FomulaRecognition.vue）
       const svgImageUrl = await renderChart({
@@ -1215,12 +1215,12 @@ const handleExport = async (chartMarkdown?: string) => {
         content: fileData.data,
         encoding: 'base64'
       })
-      ElMessage.success(t('graph.exportSuccess', '导出成功'))
+      notifySuccess(t('graph.exportSuccess', '导出成功'))
     } else {
       throw new Error(`不支持的格式: ${ext}`)
     }
   } catch (error) {
-    ElMessage.error('导出失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('导出失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 

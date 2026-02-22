@@ -221,7 +221,7 @@
 
                   <!-- 更新状态显示 -->
                   <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px">
-                    <el-divider style="margin-top: 0">更新状态</el-divider>
+                    <Divider :style="{ marginTop: 0 }">更新状态</Divider>
                     <Alert
                       v-if="updateTestStatus.updateAvailable"
                       variant="default"
@@ -299,7 +299,7 @@
                     class="update-test-history"
                     style="margin-top: 20px"
                   >
-                    <el-divider>测试历史</el-divider>
+                    <Divider>测试历史</Divider>
                     <ScrollArea class="h-[200px]">
                       <div
                         v-for="(entry, index) in updateTestHistory"
@@ -501,7 +501,7 @@
                     </FormField>
 
                     <!-- 参数编辑区域 -->
-                    <el-divider>参数配置</el-divider>
+                    <Divider>参数配置</Divider>
                     <FormField name="toolInstruction" label="工具说明">
                       <Textarea
                         :model-value="currentToolInstruction"
@@ -561,7 +561,7 @@
                       marginTop: '20px'
                     }"
                   >
-                    <el-divider style="margin-top: 0">执行结果</el-divider>
+                    <Divider :style="{ marginTop: 0 }">执行结果</Divider>
                     <ScrollArea class="flex-1">
                       <div
                         v-for="(entry, index) in toolTestHistory"
@@ -659,7 +659,7 @@
                           v-if="entry.displayComponent && entry.outputs && entry.outputs.length > 0"
                           class="test-display-component"
                         >
-                          <el-divider>渲染结果</el-divider>
+                          <Divider>渲染结果</Divider>
                           <div class="space-y-2">
                             <Collapsible
                               v-for="(output, idx) in entry.outputs"
@@ -705,7 +705,7 @@
                           class="test-result-data"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <el-divider>原始结果</el-divider>
+                          <Divider>原始结果</Divider>
                           <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
                         </div>
                       </div>
@@ -780,9 +780,9 @@
                     class="imported-snapshot-display"
                     style="margin-top: 20px"
                   >
-                    <el-divider style="margin-top: 0">{{
+                    <Divider :style="{ marginTop: 0 }">{{
                       $t('setting.debug.importSuccess')
-                    }}</el-divider>
+                    }}</Divider>
                     <div class="test-history-item" :style="testHistoryItemStyle">
                       <div class="test-history-header">
                         <span class="test-name">{{ importedSnapshot.toolName }}</span>
@@ -852,7 +852,7 @@
                         "
                         class="test-display-component"
                       >
-                        <el-divider>{{ $t('setting.debug.renderResult') }}</el-divider>
+                        <Divider>{{ $t('setting.debug.renderResult') }}</Divider>
                         <div class="space-y-2">
                           <Collapsible
                             v-for="(output, idx) in importedSnapshot.outputs"
@@ -912,7 +912,7 @@
                         class="test-result-data"
                         :style="{ color: themeState.currentTheme.textColor }"
                       >
-                        <el-divider>{{ $t('setting.debug.rawResult') }}</el-divider>
+                        <Divider>{{ $t('setting.debug.rawResult') }}</Divider>
                         <pre :style="codeBlockStyle">{{
                           formatResult(importedSnapshot.result)
                         }}</pre>
@@ -1000,7 +1000,7 @@
                     class="auto-test-results"
                     style="margin-top: 20px"
                   >
-                    <el-divider style="margin-top: 0">测试结果</el-divider>
+                    <Divider :style="{ marginTop: 0 }">测试结果</Divider>
                     <AutoTestResultDisplay
                       v-if="autoTestResults.length > 0"
                       :test-results="autoTestResults"
@@ -1071,7 +1071,7 @@
                             selectedTest && selectedTest.params && selectedTest.params.length > 0
                           "
                         >
-                          <el-divider>{{ $t('setting.debug.parameters') }}</el-divider>
+                          <Divider>{{ $t('setting.debug.parameters') }}</Divider>
                           <FormField
                             v-for="param in selectedTest.params"
                             :key="param.name"
@@ -1133,7 +1133,7 @@
                       </Form>
 
                       <!-- 测试结果 -->
-                      <el-divider>{{ $t('setting.debug.testResult') }}</el-divider>
+                      <Divider>{{ $t('setting.debug.testResult') }}</Divider>
                       <div class="test-result">
                         <ScrollArea class="h-[300px]">
                           <div
@@ -1248,7 +1248,7 @@
                         class="unit-test-batch-results"
                         style="margin-top: 20px"
                       >
-                        <el-divider style="margin-top: 0">测试结果</el-divider>
+<Divider :style="{ marginTop: 0 }">测试结果</Divider>
                         <UnitTestResultDisplay
                           v-if="unitTestBatchResults.length > 0"
                           :test-results="unitTestBatchResults"
@@ -1911,6 +1911,7 @@ import {
 } from '@renderer/components/ui/number-field'
 import { Switch } from '@renderer/components/ui/switch'
 import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
+import { Divider } from '@renderer/components/ui/separator'
 import {
   Plus,
   Delete,

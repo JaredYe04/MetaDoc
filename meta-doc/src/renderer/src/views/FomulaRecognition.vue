@@ -326,7 +326,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
-import { ElNotification, ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -554,7 +554,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -590,7 +590,7 @@ const handleCreateSession = async () => {
     resetCanvas()
     latexResult.value = ''
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -637,7 +637,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       brushSize.value = session.brush_size || 2
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -649,7 +649,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await formulaRecognitionSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -670,9 +670,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+    notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -686,9 +686,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
       resetCanvas()
       latexResult.value = ''
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1006,11 +1006,7 @@ function pushState() {
 function undo() {
   if (!canvasContext) return
   if (undoStack.length <= 1) {
-    ElNotification({
-      title: t('formulaRecognition.notification.title_info'),
-      message: t('formulaRecognition.notification.undo_fail'),
-      type: 'warning'
-    })
+    notifyWarning(t('formulaRecognition.notification.undo_fail'))
     return
   }
   const currentState = undoStack.pop()
@@ -1027,11 +1023,7 @@ function undo() {
 function redo() {
   if (!canvasContext || redoStack.length === 0) {
     if (redoStack.length === 0) {
-      ElNotification({
-        title: t('formulaRecognition.notification.title_info'),
-        message: t('formulaRecognition.notification.redo_fail'),
-        type: 'warning'
-      })
+      notifyWarning(t('formulaRecognition.notification.redo_fail'))
     }
     return
   }
@@ -1040,11 +1032,7 @@ function redo() {
     undoStack.push(state)
     canvasContext.putImageData(state, 0, 0)
   } else {
-    ElNotification({
-      title: t('formulaRecognition.notification.title_info'),
-      message: t('formulaRecognition.notification.redo_fail'),
-      type: 'warning'
-    })
+    notifyWarning(t('formulaRecognition.notification.redo_fail'))
   }
 }
 
@@ -1115,11 +1103,7 @@ async function copyImage() {
   if (navigator.clipboard) {
     navigator.clipboard.write([clipboardItemInput])
   }
-  ElNotification({
-    title: t('formulaRecognition.notification.title_success'),
-    message: t('formulaRecognition.notification.copy_image_success'),
-    type: 'success'
-  })
+  notifySuccess(t('formulaRecognition.notification.copy_image_success'))
 }
 // 处理剪切板粘贴的图片
 function handlePaste(e: ClipboardEvent, items_?: DataTransferItemList | null) {
@@ -1201,11 +1185,7 @@ async function recognizeFormula() {
     }
   } catch (error) {
     logger.error('公式识别失败:', error)
-    ElNotification({
-      title: t('formulaRecognition.notification.title_error'),
-      message: error instanceof Error ? error.message : String(error),
-      type: 'error'
-    })
+    notifyError(error instanceof Error ? error.message : String(error))
   } finally {
     processing.value = false
   }
@@ -1221,18 +1201,10 @@ function copyResult() {
   navigator.clipboard
     .writeText(latexResult.value)
     .then(() => {
-      ElNotification({
-        title: t('formulaRecognition.notification.title_success'),
-        message: t('formulaRecognition.notification.copy_formula_success'),
-        type: 'success'
-      })
+      notifySuccess(t('formulaRecognition.notification.copy_formula_success'))
     })
     .catch(() => {
-      ElNotification({
-        title: t('formulaRecognition.notification.title_error'),
-        message: t('formulaRecognition.notification.copy_formula_fail'),
-        type: 'error'
-      })
+      notifyError(t('formulaRecognition.notification.copy_formula_fail'))
     })
 }
 
@@ -1267,11 +1239,7 @@ async function confirmExport() {
   exportDialogVisible.value = false
   const tex = normalizeTex(latexResult.value)
   if (!tex) {
-    ElNotification({
-      title: t('formulaRecognition.notification.title_error'),
-      message: t('aigraph.error.no_code_to_export') || '无可导出的公式',
-      type: 'error'
-    })
+    notifyError(t('aigraph.error.no_code_to_export') || '无可导出的公式')
     return
   }
   try {
@@ -1375,15 +1343,11 @@ async function confirmExport() {
       )) as { success: boolean; error?: string }
       if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
     }
-    ElNotification({ title: t('aigraph.success.export_succeeded'), message: '', type: 'success' })
+    notifySuccess(t('aigraph.success.export_succeeded'))
   } catch (error) {
     logger.error('导出公式失败:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
-    ElNotification({
-      title: t('aigraph.error.export_failed'),
-      message: errorMessage,
-      type: 'error'
-    })
+    notifyError(errorMessage)
   }
 }
 

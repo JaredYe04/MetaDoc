@@ -230,44 +230,44 @@
               <Card class="tool-panel tool-list-panel" :style="panelStyle">
                 <CardContent class="p-0 h-full overflow-hidden">
                   <ScrollArea class="tool-list-scroll">
-                    <el-table
-                      :data="tools"
-                      border
-                      height="100%"
-                      row-key="id"
-                      @row-click="selectTool"
-                      :highlight-current-row="true"
-                      :current-row-key="activeTool?.id"
-                      :row-class-name="getToolRowClassName"
-                      style="width: 100%; table-layout: fixed"
-                    >
-                      <el-table-column
-                        :label="t('agent.tools.name')"
-                        prop="name"
-                        min-width="140"
-                        show-overflow-tooltip
-                      />
-                      <el-table-column :label="t('agent.tools.state')" width="110">
-                        <template #default="{ row }">
-                          <Badge v-if="row.running" variant="warning">
-                            {{ t('agent.tool.status.running') }}
-                          </Badge>
-                          <Badge
-                            v-else-if="
-                              activeSession?.activeToolIds &&
-                              activeSession.activeToolIds.length > 0 &&
-                              activeSession.activeToolIds.includes(row.id)
-                            "
-                            variant="default"
-                          >
-                            {{ t('agent.tools.enabled') }}
-                          </Badge>
-                          <Badge v-else variant="secondary">
-                            {{ t('agent.tools.available') }}
-                          </Badge>
-                        </template>
-                      </el-table-column>
-                    </el-table>
+                    <Table class="tool-table">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead class="w-[140px]">{{ t('agent.tools.name') }}</TableHead>
+                          <TableHead class="w-[110px]">{{ t('agent.tools.state') }}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow
+                          v-for="tool in tools"
+                          :key="tool.id"
+                          :data-state="activeTool?.id === tool.id ? 'selected' : undefined"
+                          :class="getToolRowClass(tool)"
+                          class="cursor-pointer"
+                          @click="selectTool(tool)"
+                        >
+                          <TableCell class="truncate max-w-[140px]">{{ tool.name }}</TableCell>
+                          <TableCell>
+                            <Badge v-if="tool.running" variant="warning">
+                              {{ t('agent.tool.status.running') }}
+                            </Badge>
+                            <Badge
+                              v-else-if="
+                                activeSession?.activeToolIds &&
+                                activeSession.activeToolIds.length > 0 &&
+                                activeSession.activeToolIds.includes(tool.id)
+                              "
+                              variant="default"
+                            >
+                              {{ t('agent.tools.enabled') }}
+                            </Badge>
+                            <Badge v-else variant="secondary">
+                              {{ t('agent.tools.available') }}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                   </ScrollArea>
                 </CardContent>
               </Card>
@@ -512,6 +512,14 @@ import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus from '../utils/event-bus'
 import type { Reference } from '../types/agent-framework'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@renderer/components/ui/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -1186,11 +1194,11 @@ const selectTool = (tool: AgentTool) => {
 
 // 获取工具行的CSS类名（用于高亮活跃工具）
 // 只有在意图识别器选中工具后才高亮（activeToolIds 不为空且包含该工具）
-const getToolRowClassName = ({ row }: { row: AgentTool }) => {
+const getToolRowClass = (tool: AgentTool) => {
   if (
     activeSession.value?.activeToolIds &&
     activeSession.value.activeToolIds.length > 0 &&
-    activeSession.value.activeToolIds.includes(row.id)
+    activeSession.value.activeToolIds.includes(tool.id)
   ) {
     return 'active-tool-row'
   }
@@ -2962,43 +2970,34 @@ onBeforeUnmount(() => {
   overflow-x: hidden;
 }
 
-.tool-list-panel :deep(.el-table) {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
+.tool-table {
+  width: 100%;
   table-layout: fixed;
-  box-sizing: border-box;
 }
 
-.tool-list-panel :deep(.el-table__inner-wrapper) {
+.tool-table :deep(table) {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box;
-  overflow-x: auto;
-}
-
-.tool-list-panel :deep(.el-table__body-wrapper) {
-  overflow-x: auto;
-  overflow-y: auto;
 }
 
 /* 高亮活跃工具行 */
-.tool-list-panel :deep(.el-table__row.active-tool-row) {
+.tool-table :deep(tr.active-tool-row) {
   background-color: rgba(64, 158, 255, 0.1) !important;
 }
 
-.tool-list-panel :deep(.el-table__row.active-tool-row:hover) {
+.tool-table :deep(tr.active-tool-row:hover) {
   background-color: rgba(64, 158, 255, 0.15) !important;
 }
 
 /* 暗色主题下的高亮样式 */
 @media (prefers-color-scheme: dark) {
-  .tool-list-panel :deep(.el-table__row.active-tool-row) {
+  .tool-table :deep(tr.active-tool-row) {
     background-color: rgba(64, 158, 255, 0.2) !important;
   }
 
-  .tool-list-panel :deep(.el-table__row.active-tool-row:hover) {
+  .tool-table :deep(tr.active-tool-row:hover) {
     background-color: rgba(64, 158, 255, 0.25) !important;
   }
 }

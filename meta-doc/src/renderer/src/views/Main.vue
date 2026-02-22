@@ -133,7 +133,7 @@ const logger = createRendererLogger('Main', {
 })
 const workspace = useWorkspace()
 const tabSwitcher = useTabSwitcher()
-const { closeTab } = useCloseTab()
+const { checkCanCloseTab, doRemoveTab } = useCloseTab()
 
 // ============================================================================
 // 计算属性和状态
@@ -639,12 +639,18 @@ function initMainEventListeners() {
   const handleTabClose = async () => {
     const tabId = activeTabId.value
     if (!tabId) return
-    
+
+    // 先检查是否可以关闭
+    const canClose = await checkCanCloseTab(tabId)
+    if (!canClose) return
+
     // 🚨 关键修复：立即清除 activeTabId，防止 await 期间重复关闭同一个
     // 让 removeTab 自己处理切换到下一个 tab
-    workspace.activeTabId.value = ''  // 临时设为无选中
-    
-    await closeTab(tabId)
+    workspace.activeTabId.value = '' // 临时设为无选中
+
+    // 发送事件通知 MainTabs 执行关闭动画
+    // MainTabs 会处理动画，动画完成后调用 doRemoveTab
+    eventBus.emit('tab-close-with-animation', tabId)
   }
   eventBus.on('tab-close', handleTabClose)
 
@@ -751,17 +757,17 @@ function initMainEventListeners() {
     if (!tabId) return
     const tab = workspaceTabs.find((t) => t.id === tabId)
     if (!tab || tab.kind !== 'file') return
-    
+
     // 检查是否是PDF格式的tab（无论是预览模式还是正式打开）
     const path = tab.path || ensureDocument(tabId).path || ''
     const format = tab.format || ensureDocument(tabId).format || ''
     const isPdfTab = path.toLowerCase().endsWith('.pdf') && format.toLowerCase() === 'pdf'
-    
+
     if (!isPdfTab) return
-    
+
     // 保存路径
     const pdfPath = path
-    
+
     // 先释放文件占用（如果是预览tab），然后移除tab
     // 注意：正式打开的PDF tab在转换时也会释放占用（见上面的修复）
     if (tab.preview && pdfPath) {
@@ -773,11 +779,16 @@ function initMainEventListeners() {
         logger.warn('释放PDF文件占用失败:', error)
       }
     }
-    
+
     removeTab(tabId)
-    
+
     // 按「双击」流程转 PDF→MD 并新建正式 tab
-    eventBus.emit('workspace-open-document', { path: pdfPath, format: 'pdf', content: '', preview: false })
+    eventBus.emit('workspace-open-document', {
+      path: pdfPath,
+      format: 'pdf',
+      content: '',
+      preview: false
+    })
   }
   eventBus.on('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd)
 

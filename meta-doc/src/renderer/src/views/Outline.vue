@@ -592,7 +592,7 @@ import {
   type Ref,
   type ComponentPublicInstance
 } from 'vue'
-import { ElDialog, ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
+import { ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import {

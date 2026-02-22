@@ -1,28 +1,47 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="$t('userManual.profile.title')"
-    width="900px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    append-to-body
-    class="profile-dialog"
-  >
-    <div class="profile-container">
-      <!-- 步骤条 -->
-      <el-steps
-        :active="currentStep"
-        finish-status="success"
-        align-center
-        class="profile-steps"
-      >
-        <el-step :title="$t('userManual.profile.steps.scenario')" />
-        <el-step :title="$t('userManual.profile.steps.markdown')" />
-        <el-step v-if="shouldShowMarkdownEditorQuestions" :title="$t('userManual.profile.steps.markdownEditor')" />
-        <el-step :title="$t('userManual.profile.steps.latex')" />
-        <el-step v-if="shouldShowLatexEditorQuestions" :title="$t('userManual.profile.steps.latexEditor')" />
-        <el-step :title="$t('userManual.profile.steps.agent')" />
-      </el-steps>
+  <Dialog v-model:open="visible" :modal="true" class="profile-dialog-wrapper">
+    <DialogContent
+      class="max-w-[900px] w-[90vw]"
+      :close-on-escape="false"
+      :close-on-interact-outside="false"
+      @interact-outside="(e) => e.preventDefault()"
+    >
+      <DialogHeader>
+        <DialogTitle>{{ $t('userManual.profile.title') }}</DialogTitle>
+      </DialogHeader>
+
+      <div class="profile-container">
+        <!-- 自定义步骤条 -->
+        <div class="profile-steps">
+          <div class="stepper">
+            <div
+              v-for="(step, index) in visibleSteps"
+              :key="step.key"
+              class="stepper-item"
+              :class="{
+                'stepper-item--active': currentStep === step.index,
+                'stepper-item--completed': currentStep > step.index
+              }"
+            >
+              <div class="stepper-indicator">
+                <div class="stepper-circle">
+                  <template v-if="currentStep > step.index">
+                    <Check class="h-4 w-4" />
+                  </template>
+                  <template v-else>
+                    {{ index + 1 }}
+                  </template>
+                </div>
+              </div>
+              <div class="stepper-title">{{ step.title }}</div>
+              <div
+                v-if="index < visibleSteps.length - 1"
+                class="stepper-connector"
+                :class="{ 'stepper-connector--completed': currentStep > step.index }"
+              />
+            </div>
+          </div>
+        </div>
 
       <!-- 表单内容区域 -->
       <div class="form-content-wrapper">
@@ -329,8 +348,7 @@
       </div>
     </div>
 
-    <template #footer>
-      <div class="dialog-footer">
+      <DialogFooter class="dialog-footer">
         <Button variant="ghost" @click="handleCancel">{{ $t('userManual.profile.skip') }}</Button>
         <div class="footer-actions">
           <Button v-if="currentStep > 0" variant="outline" @click="prevStep">上一步</Button>
@@ -349,16 +367,18 @@
             {{ $t('userManual.profile.submit') }}
           </Button>
         </div>
-      </div>
-    </template>
-  </el-dialog>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Check } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@renderer/components/ui/dialog'
 import { saveUserProfile } from '../../utils/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
@@ -420,6 +440,32 @@ const getStepIndex = (stepName: string): number => {
 // 计算最大步骤数
 const maxStep = computed(() => {
   return getStepIndex('agent')
+})
+
+// 可见步骤列表（用于步骤条显示）
+const visibleSteps = computed(() => {
+  const steps: { key: string; title: string; index: number }[] = [
+    { key: 'scenario', title: t('userManual.profile.steps.scenario'), index: 0 },
+    { key: 'markdown', title: t('userManual.profile.steps.markdown'), index: 1 }
+  ]
+
+  let index = 2
+  if (shouldShowMarkdownEditorQuestions.value) {
+    steps.push({ key: 'markdownEditor', title: t('userManual.profile.steps.markdownEditor'), index })
+    index++
+  }
+
+  steps.push({ key: 'latex', title: t('userManual.profile.steps.latex'), index })
+  index++
+
+  if (shouldShowLatexEditorQuestions.value) {
+    steps.push({ key: 'latexEditor', title: t('userManual.profile.steps.latexEditor'), index })
+    index++
+  }
+
+  steps.push({ key: 'agent', title: t('userManual.profile.steps.agent'), index })
+
+  return steps
 })
 
 // 是否可以进入下一步
@@ -532,16 +578,97 @@ defineExpose({
 </script>
 
 <style scoped>
-.profile-dialog :deep(.el-dialog__body) {
-  padding: 32px 40px;
-}
-
 .profile-container {
   min-height: 400px;
+  padding: 8px 0;
 }
 
+/* 自定义步骤条样式 */
 .profile-steps {
   margin-bottom: 40px;
+  padding: 0 16px;
+}
+
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+}
+
+.stepper-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 160px;
+  position: relative;
+}
+
+.stepper-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.stepper-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: v-bind('themeState.currentTheme.background2nd');
+  border: 2px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.15)"');
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.stepper-item--active .stepper-circle {
+  background: v-bind('themeState.currentTheme.textColor');
+  border-color: v-bind('themeState.currentTheme.textColor');
+  color: v-bind('themeState.currentTheme.background');
+  transform: scale(1.1);
+}
+
+.stepper-item--completed .stepper-circle {
+  background: v-bind('themeState.currentTheme.textColor');
+  border-color: v-bind('themeState.currentTheme.textColor');
+  color: v-bind('themeState.currentTheme.background');
+}
+
+.stepper-title {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
+  text-align: center;
+  line-height: 1.4;
+  transition: all 0.3s ease;
+}
+
+.stepper-item--active .stepper-title {
+  color: v-bind('themeState.currentTheme.textColor');
+  font-weight: 600;
+}
+
+.stepper-item--completed .stepper-title {
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.stepper-connector {
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 20px);
+  width: calc(100% - 40px);
+  height: 2px;
+  background: v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
+  transition: all 0.3s ease;
+}
+
+.stepper-connector--completed {
+  background: v-bind('themeState.currentTheme.textColor');
 }
 
 .form-content-wrapper {

@@ -101,7 +101,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '../components/ui/button'
+import { Button } from '@renderer/components/ui/button'
 import {
   ChevronDown,
   ChevronRight,
@@ -111,7 +111,7 @@ import {
   Minus,
   RefreshCw
 } from 'lucide-vue-next'
-import { themeState } from '../utils/themes'
+import { themeState } from '@renderer/utils/themes'
 
 const { t } = useI18n()
 

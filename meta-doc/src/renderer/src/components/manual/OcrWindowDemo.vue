@@ -142,15 +142,15 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '../components/ui/button'
-import { Slider } from '../components/ui/slider'
+import { Button } from '@renderer/components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem
-} from '../components/ui/select'
+} from '@renderer/components/ui/select'
 import {
   Plus,
   Upload,
@@ -162,7 +162,7 @@ import {
   Copy,
   Edit3
 } from 'lucide-vue-next'
-import { themeState } from '../utils/themes'
+import { themeState } from '@renderer/utils/themes'
 
 const { t } = useI18n()
 

@@ -132,7 +132,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@renderer/components/ui/tooltip'
-import { ElDialog } from 'element-plus' // 引入 Element Plus 弹框组件
+
 import MarkdownItEditor from 'vue3-markdown-it'
 import { computed, onMounted, ref, watch } from 'vue'
 import { sectionChangePrompt } from '../utils/prompts'

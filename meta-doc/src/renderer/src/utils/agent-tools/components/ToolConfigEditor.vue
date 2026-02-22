@@ -1,11 +1,10 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="isEdit ? '编辑Tool配置' : '新建Tool配置'"
-    width="800px"
-    :before-close="handleClose"
-  >
-    <Form ref="formRef">
+  <Dialog :open="visible" @update:open="(val) => !val && handleClose()">
+    <DialogContent class="sm:max-w-[800px]">
+      <DialogHeader>
+        <DialogTitle>{{ isEdit ? '编辑Tool配置' : '新建Tool配置' }}</DialogTitle>
+      </DialogHeader>
+      <Form ref="formRef">
       <FormField label="Tool ID" name="id" :rules="rules.id">
         <Input
           v-model="formData.id"
@@ -87,12 +86,13 @@
       </FormField>
     </Form>
 
-    <template #footer>
-      <Button variant="outline" @click="handleClose">取消</Button>
-      <Button @click="handleSave">保存</Button>
-      <Button v-if="isEdit" variant="secondary" @click="handleExport">导出</Button>
-    </template>
-  </el-dialog>
+      <DialogFooter>
+        <Button variant="outline" @click="handleClose">取消</Button>
+        <Button @click="handleSave">保存</Button>
+        <Button v-if="isEdit" variant="secondary" @click="handleExport">导出</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -111,6 +111,13 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import type { AgentToolConfig, MCPToolConfig } from '../../../types/agent-tool'
 import { toolPluginManager } from '../../../utils/agent-tools/plugin-manager'
 import { agentToolManager } from '../../../utils/agent-tool-manager'

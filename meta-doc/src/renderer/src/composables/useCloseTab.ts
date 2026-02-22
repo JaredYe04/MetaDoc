@@ -25,31 +25,28 @@ export const useCloseTab = () => {
   const isLocked = computed(() => workspace.uiLocked?.value === true)
 
   /**
-   * 关闭指定的 Tab
+   * 检查 Tab 是否可以关闭（显示确认对话框等）
    * @param tabId Tab ID
-   * @returns Promise<boolean> 是否成功关闭（false 表示用户取消或失败）
+   * @returns Promise<boolean> 是否可以关闭（用户是否确认）
    */
-  const closeTab = async (tabId: string): Promise<boolean> => {
+  const checkCanCloseTab = async (tabId: string): Promise<boolean> => {
     if (isLocked.value) return false
 
-    // 防止重复关闭同一个 Tab（快速双击 Ctrl+W 保护）
+    // 防止重复关闭同一个 Tab
     if (closingTabIds.has(tabId)) {
       getLogger().debug('Tab已在关闭中，忽略重复请求', tabId)
       return false
     }
-    closingTabIds.add(tabId)
 
-    try {
-      // 再次检查，因为在 await 之前可能有其他操作
-      const tab = workspace.tabs.find((t) => t.id === tabId)
-      if (!tab) {
-        getLogger().debug('Tab已不存在，跳过关闭', tabId)
-        return false
-      }
+    const tab = workspace.tabs.find((t) => t.id === tabId)
+    if (!tab) {
+      getLogger().debug('Tab已不存在，跳过关闭', tabId)
+      return false
+    }
 
-      if (!workspace.canRemoveTab(tabId)) {
-        return false
-      }
+    if (!workspace.canRemoveTab(tabId)) {
+      return false
+    }
 
     // 如果是文档Tab且有未保存内容，需要确认
     if (tab.kind === 'file' || tab.kind === 'new') {
@@ -67,7 +64,7 @@ export const useCloseTab = () => {
               }
             )
           } catch {
-            return false // 用户取消
+            return false
           }
         } else {
           try {
@@ -109,16 +106,39 @@ export const useCloseTab = () => {
       }
     }
 
+    return true
+  }
+
+  /**
+   * 真正移除 Tab（在动画完成后调用）
+   * @param tabId Tab ID
+   */
+  const doRemoveTab = (tabId: string): void => {
+    closingTabIds.add(tabId)
+    try {
       workspace.removeTab(tabId)
-      return true
     } finally {
-      // 确保清理正在关闭的标记
       closingTabIds.delete(tabId)
     }
   }
 
+  /**
+   * 关闭指定的 Tab（完整流程，立即关闭）
+   * @param tabId Tab ID
+   * @returns Promise<boolean> 是否成功关闭
+   */
+  const closeTab = async (tabId: string): Promise<boolean> => {
+    const canClose = await checkCanCloseTab(tabId)
+    if (!canClose) return false
+
+    doRemoveTab(tabId)
+    return true
+  }
+
   return {
     closeTab,
+    checkCanCloseTab,
+    doRemoveTab,
     isLocked
   }
 }

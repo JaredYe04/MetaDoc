@@ -57,48 +57,47 @@
                   />
                 </div>
               </div>
-              <el-scrollbar class="kb-list-scroll">
-                <el-table
-                  :data="items"
-                  stripe
-                  row-key="id"
-                  :highlight-current-row="true"
-                  @current-change="onSelect"
-                  :current-row-key="selectedId"
-                  style="width: 100%"
-                  size="small"
-                >
-                  <el-table-column prop="name" :label="t('knowledgeBase.name')" min-width="200">
-                    <template #default="{ row }">
-                      <div class="list-item" @click="selectRow(row)">
-                        <span class="status-dot" :class="row.enabled ? 'on' : 'off'"></span>
-                        <span class="item-name">{{ row.name }}</span>
-                      </div>
-                    </template>
-                  </el-table-column>
-
-                  <el-table-column :label="t('knowledgeBase.size_chunks')" width="140">
-                    <template #default="{ row }">
-                      <div>
+              <ScrollArea class="kb-list-scroll">
+                <Table class="kb-table">
+                  <TableHeader>
+                    <TableRow class="kb-table-header-row">
+                      <TableHead class="w-[200px]">{{ t('knowledgeBase.name') }}</TableHead>
+                      <TableHead class="w-[140px]">{{ t('knowledgeBase.size_chunks') }}</TableHead>
+                      <TableHead class="w-[90px]">{{ t('knowledgeBase.enabled') }}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow
+                      v-for="row in items"
+                      :key="row.id"
+                      class="kb-table-row"
+                      :data-selected="selectedId === row.id"
+                      @click="selectRow(row)"
+                    >
+                      <TableCell>
+                        <div class="list-item">
+                          <span class="status-dot" :class="row.enabled ? 'on' : 'off'"></span>
+                          <span class="item-name">{{ row.name }}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div v-if="row.info">
                           {{ row.info.sizeText || '-' }} / {{ row.info.chunks || '-' }}
                           {{ t('knowledgeBase.chunks_unit') }}
                         </div>
                         <div v-else>-</div>
-                      </div>
-                    </template>
-                  </el-table-column>
-
-                  <el-table-column :label="t('knowledgeBase.enabled')" width="90">
-                    <template #default="{ row }">
-                      <Switch
-                        :checked="row.info.enabled"
-                        @update:checked="(val: boolean) => toggleEnable(row, val)"
-                      />
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-scrollbar>
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          :checked="row.info.enabled"
+                          @update:checked="(val: boolean) => toggleEnable(row, val)"
+                          @click.stop
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             </CardContent>
             </Card>
           </div>
@@ -372,6 +371,15 @@ import {
   NumberFieldInput
 } from '@renderer/components/ui/number-field'
 import { Switch } from '@renderer/components/ui/switch'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@renderer/components/ui/ui/table'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
@@ -1190,6 +1198,32 @@ onBeforeUnmount(() => {
 
 .aero-btn {
   margin-left: 4px;
+}
+
+/* shadcn-vue Table styles */
+.kb-table {
+  font-size: 13px;
+}
+
+.kb-table-header-row {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+}
+
+.kb-table-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.kb-table-row:nth-child(even) {
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.kb-table-row[data-selected="true"] {
+  background-color: v-bind('themeState.currentTheme.SideBackgroundColor') !important;
+}
+
+.kb-table-row:hover {
+  background-color: v-bind('themeState.currentTheme.SideBackgroundColor');
 }
 
 /* 美化描述列表 */

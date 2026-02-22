@@ -87,15 +87,18 @@ function debounce<T extends (...args: any[]) => any>(
   }
 }
 
-// 组件挂载状态
-let isMounted = true
+// 组件挂载状态 - 必须在 setup 内定义，确保每个实例独立
+const isMounted = ref(true)
 onBeforeUnmount(() => {
-  isMounted = false
+  isMounted.value = false
 })
 
 const renderMarkdown = async () => {
   // 检查组件是否仍然挂载
-  if (!isMounted) return
+  if (!isMounted.value) {
+    isRendering.value = false
+    return
+  }
 
   if (!props.markdown || !props.markdown.trim()) {
     isRendering.value = false
@@ -143,7 +146,7 @@ const renderMarkdown = async () => {
     const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
 
     // 检查组件是否仍然挂载（快速切换文章时的正常情况）
-    if (!isMounted || !containerRef.value) {
+    if (!isMounted.value || !containerRef.value) {
       isRendering.value = false
       return
     }
@@ -152,7 +155,7 @@ const renderMarkdown = async () => {
     await nextTick()
 
     // 检查组件是否仍然挂载（快速切换文章时的正常情况）
-    if (!isMounted || !containerRef.value) {
+    if (!isMounted.value || !containerRef.value) {
       isRendering.value = false
       return
     }
@@ -160,14 +163,14 @@ const renderMarkdown = async () => {
     await new Promise((resolve) => requestAnimationFrame(resolve))
 
     // 检查组件是否仍然挂载（快速切换文章时的正常情况）
-    if (!isMounted || !containerRef.value) {
+    if (!isMounted.value || !containerRef.value) {
       isRendering.value = false
       return
     }
 
     await nextTick()
 
-    if (!isMounted || !containerRef.value) {
+    if (!isMounted.value || !containerRef.value) {
       isRendering.value = false
       return
     }

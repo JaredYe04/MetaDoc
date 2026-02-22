@@ -72,14 +72,17 @@ components/ui/
 
 ## CUSTOM COMPONENTS & MODIFICATIONS
 
-### color-picker/ (Element Plus Wrapper)
+### color-picker/ (Project Custom - shadcn-vue based)
 
-Uses Element Plus `ElColorPicker` - **NOT from shadcn-vue**.
+Custom color picker component built using shadcn-vue primitives - **NOT from shadcn-vue CLI**.
 
-- Component: `ElColorPicker` from `element-plus`
-- Wrapper provides API compatible with Element Plus color-picker props/events
-- Supports `v-model`, `predefine`, `size`, `showAlpha`, `colorFormat` props
-- Emits: `update:modelValue`, `change`, `active-change`, `visible-change`
+- **Popover-based**: Uses shadcn `Popover` for dropdown panel (no z-index issues)
+- **Built on reka-ui**: Uses `Popover`, `Slider` from shadcn-vue
+- **Color manipulation**: Uses `tinycolor2` for HSV/HEX/RGB conversion
+- **Features**: Saturation-Value canvas, Hue slider, Alpha slider, predefined colors, hex input
+- **API**: Compatible with Element Plus color-picker props/events
+  - Props: `v-model`, `predefine`, `size`, `showAlpha`, `colorFormat`
+  - Emits: `update:modelValue`, `change`, `active-change`, `visible-change`
 
 ### slider/ (Modified for Element Plus Compatibility)
 

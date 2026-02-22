@@ -113,7 +113,7 @@ export function useTabAnimation(
     const animation = tabEl.animate(
       [
         { transform: 'translateX(0)', opacity: 1 },
-        { transform: 'translateX(40px)', opacity: 0 }
+        { transform: 'translateX(-40px)', opacity: 0 }
       ],
       {
         duration: ANIMATION_DURATION,

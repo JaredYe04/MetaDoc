@@ -17,9 +17,11 @@
             <template v-for="field in getFieldsForTab(tab.name)" :key="field.key">
               <!-- 对象类型字段（如margins） -->
               <template v-if="field.type === 'object' && field.fields">
-                <el-divider>
-                  <span>{{ getFieldLabel(field) }}</span>
-                </el-divider>
+                <div class="flex items-center gap-2 my-4">
+                  <Separator class="flex-1" />
+                  <span class="text-sm font-medium text-foreground">{{ getFieldLabel(field) }}</span>
+                  <Separator class="flex-1" />
+                </div>
                 <template v-for="subField in field.fields" :key="subField.key">
                   <FormField
                     v-if="
@@ -172,9 +174,11 @@
       <template v-for="field in visibleFields" :key="field.key">
         <!-- 对象类型字段（如margins） -->
         <template v-if="field.type === 'object' && field.fields">
-          <el-divider>
-            <span>{{ getFieldLabel(field) }}</span>
-          </el-divider>
+          <div class="flex items-center gap-2 my-4">
+            <Separator class="flex-1" />
+            <span class="text-sm font-medium text-foreground">{{ getFieldLabel(field) }}</span>
+            <Separator class="flex-1" />
+          </div>
           <template v-for="subField in field.fields" :key="subField.key">
             <FormField
               v-if="
@@ -338,9 +342,9 @@ import { Form, FormField, FormLabel, FormControl, FormDescription } from '@rende
 import {
   ElInput,
   ElInputNumber,
-  ElSwitch,
-  ElDivider
+  ElSwitch
 } from 'element-plus'
+import { Separator } from '@renderer/components/ui/separator'
 import {
   Dialog,
   DialogContent,
@@ -684,11 +688,5 @@ defineExpose({
 
 .export-options-form {
   padding-right: 10px;
-}
-
-.export-options-form :deep(.el-divider__text) {
-  font-size: 14px;
-  font-weight: 500;
-  color: hsl(var(--foreground));
 }
 </style>

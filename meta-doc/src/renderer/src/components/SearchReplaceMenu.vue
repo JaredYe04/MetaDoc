@@ -223,7 +223,7 @@
         </TooltipContent>
       </Tooltip>
       <template v-if="!collapsed">
-        <el-divider direction="vertical" border-style="dashed"></el-divider>
+        <Separator orientation="vertical" class="h-7 border-dashed" />
         <Tooltip>
           <TooltipTrigger as-child>
             <span>
@@ -295,6 +295,7 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Separator } from '@renderer/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
@@ -371,7 +372,7 @@ const form = reactive({
 
 const searchState = ref<EditorSearchState | null>(null)
 const regexError = ref<string | null>(null)
-const findInputRef = ref<InstanceType<typeof ElInput>>()
+const findInputRef = ref<HTMLTextAreaElement>()
 
 const panelStyles = computed(() => {
   const theme = themeState.currentTheme

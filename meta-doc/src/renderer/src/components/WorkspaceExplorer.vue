@@ -39,18 +39,17 @@
       </div>
     </div>
     <div v-if="workspaceFolders.length === 0" class="workspace-explorer-empty">
-      <el-empty :description="$t('workspaceExplorer.noWorkspaceFolder')" :image-size="80">
-        <template #image>
-          <div class="logo-container" :class="{ shake: isShaking }" @click="handleLogoClick">
-            <div class="logo-animation-wrapper">
-              <img :src="logoPath" alt="Logo" class="logo-image" />
-            </div>
+      <div class="custom-empty-state">
+        <div class="logo-container" :class="{ shake: isShaking }" @click="handleLogoClick">
+          <div class="logo-animation-wrapper">
+            <img :src="logoPath" alt="Logo" class="logo-image" />
           </div>
-        </template>
+        </div>
+        <p class="custom-empty-description">{{ $t('workspaceExplorer.noWorkspaceFolder') }}</p>
         <Button variant="default" @click="addWorkspaceFolder">
           {{ $t('workspaceExplorer.addFolder') }}
         </Button>
-      </el-empty>
+      </div>
     </div>
     <div v-else class="workspace-explorer-main">
       <ScrollArea
@@ -211,7 +210,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loading, Warning, Close } from '@element-plus/icons-vue'
-import { ElEmpty, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Input } from '@renderer/components/ui/input'
@@ -2558,6 +2557,21 @@ const handleSelectAll = async () => {
   align-items: center;
   justify-content: center;
   padding: 20px;
+}
+
+.custom-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.custom-empty-description {
+  margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 
 .workspace-explorer-main {

@@ -3126,6 +3126,18 @@
         "label": "打印背景",
         "description": "是否在PDF中包含背景颜色和图片"
       },
+      "tabs": {
+        "basic": "基本设置",
+        "style": "样式设置"
+      },
+      "chineseFont": {
+        "label": "中文字体",
+        "description": "PDF导出时使用的中文字体"
+      },
+      "westernFont": {
+        "label": "西文字体",
+        "description": "PDF导出时使用的西文字体"
+      },
       "colorMode": {
         "label": "颜色模式",
         "description": "PDF的颜色模式（彩色或灰度）",

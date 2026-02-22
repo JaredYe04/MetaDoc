@@ -1861,7 +1861,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
 import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
@@ -2308,7 +2309,7 @@ const testCases = testCasesData as Record<
 // 发送 EventBus 事件
 const sendEventBusEvent = () => {
   if (!eventBusForm.eventName.trim()) {
-    ElMessage.warning(t('setting.debug.eventNameRequired'))
+    notifyWarning(t('setting.debug.eventNameRequired'))
     return
   }
 
@@ -2318,16 +2319,16 @@ const sendEventBusEvent = () => {
       data = JSON.parse(eventBusForm.eventData)
     }
     eventBus.emit(eventBusForm.eventName, data)
-    ElMessage.success(t('setting.debug.eventSent'))
+    notifySuccess(t('setting.debug.eventSent'))
   } catch (error) {
-    ElMessage.error(t('setting.debug.invalidJson'))
+    notifyError(t('setting.debug.invalidJson'))
   }
 }
 
 // 发送广播事件
 const sendBroadcastEvent = () => {
   if (!broadcastForm.eventName.trim()) {
-    ElMessage.warning(t('setting.debug.eventNameRequired'))
+    notifyWarning(t('setting.debug.eventNameRequired'))
     return
   }
 
@@ -2339,9 +2340,9 @@ const sendBroadcastEvent = () => {
     // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
     // 注意：这是调试工具，保留sendBroadcast调用以便测试，但实际会直接使用eventBus
     eventBus.emit(broadcastForm.eventName, data)
-    ElMessage.success(t('setting.debug.broadcastSent'))
+    notifySuccess(t('setting.debug.broadcastSent'))
   } catch (error) {
-    ElMessage.error(t('setting.debug.invalidJson'))
+    notifyError(t('setting.debug.invalidJson'))
   }
 }
 
@@ -2377,7 +2378,7 @@ const handleTestChange = () => {
 // 执行测试
 const executeTest = async () => {
   if (!testForm.testId) {
-    ElMessage.warning(t('setting.debug.selectTestFunctionFirst'))
+    notifyWarning(t('setting.debug.selectTestFunctionFirst'))
     return
   }
 
@@ -2395,11 +2396,11 @@ const executeTest = async () => {
     }
 
     const result = await testFramework.execute(testForm.testId, params)
-    ElMessage.success(t('setting.debug.testExecuted'))
+    notifySuccess(t('setting.debug.testExecuted'))
     refreshTestHistory()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    ElMessage.error(`${t('setting.debug.testFailed')}: ${errorMessage}`)
+    notifyError(`${t('setting.debug.testFailed')}: ${errorMessage}`)
     refreshTestHistory()
   } finally {
     testExecuting.value = false
@@ -2587,7 +2588,7 @@ const saveSavedConfigs = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedConfigs.value))
   } catch (error) {
     logger.error('保存配置失败:', error)
-    ElMessage.error('保存配置失败')
+    notifyError('保存配置失败')
   }
 }
 
@@ -2597,18 +2598,18 @@ const loadSavedConfig = (configId: string) => {
   if (config) {
     toolTestForm.toolId = config.toolId
     toolTestForm.paramsJson = config.paramsJson
-    ElMessage.success('配置已加载')
+    notifySuccess('配置已加载')
   }
 }
 
 const saveCurrentConfig = async () => {
   if (!toolTestForm.toolId) {
-    ElMessage.warning('请先选择Tool')
+    notifyWarning('请先选择Tool')
     return
   }
 
   if (!saveConfigName.value.trim()) {
-    ElMessage.warning('请输入配置名称')
+    notifyWarning('请输入配置名称')
     return
   }
 
@@ -2616,7 +2617,7 @@ const saveCurrentConfig = async () => {
   try {
     JSON.parse(toolTestForm.paramsJson || '{}')
   } catch {
-    ElMessage.error('参数JSON格式错误')
+    notifyError('参数JSON格式错误')
     return
   }
 
@@ -2659,16 +2660,16 @@ const saveCurrentConfig = async () => {
     const index = savedConfigs.value.findIndex((c) => c.id === selectedConfigId.value)
     if (index !== -1) {
       savedConfigs.value[index] = config
-      ElMessage.success('配置已更新')
+      notifySuccess('配置已更新')
     } else {
       // 如果找不到，作为新配置添加
       savedConfigs.value.push(config)
-      ElMessage.success('配置已保存')
+      notifySuccess('配置已保存')
     }
   } else {
     // 添加新配置
     savedConfigs.value.push(config)
-    ElMessage.success('配置已保存')
+    notifySuccess('配置已保存')
   }
 
   saveSavedConfigs()
@@ -2693,7 +2694,7 @@ const deleteSavedConfig = async () => {
     selectedConfigId.value = ''
     toolTestForm.toolId = ''
     toolTestForm.paramsJson = '{}'
-    ElMessage.success('配置已删除')
+    notifySuccess('配置已删除')
   } catch {
     // 用户取消
   }
@@ -2718,7 +2719,7 @@ const handleToolChange = () => {
 // 通过ID加载测试用例
 const loadTestCaseById = () => {
   if (!testCaseIdInput.value.trim()) {
-    ElMessage.warning('请输入测试用例ID')
+    notifyWarning('请输入测试用例ID')
     return
   }
 
@@ -2740,12 +2741,12 @@ const loadTestCaseById = () => {
       // 清空保存的配置选择
       selectedConfigId.value = ''
 
-      ElMessage.success(`测试用例已加载: ${testCase.name}`)
+      notifySuccess(`测试用例已加载: ${testCase.name}`)
       return
     }
   }
 
-  ElMessage.warning(`找不到ID为 "${testCaseId}" 的测试用例`)
+  notifyWarning(`找不到ID为 "${testCaseId}" 的测试用例`)
 }
 
 // 加载测试用例
@@ -2761,13 +2762,13 @@ const loadTestCase = (testCaseValue: string) => {
 
   const toolTestCases = availableTestCases.value[toolId]
   if (!toolTestCases) {
-    ElMessage.warning('找不到该工具的测试用例')
+    notifyWarning('找不到该工具的测试用例')
     return
   }
 
   const testCase = toolTestCases.testCases.find((tc) => tc.name === testCaseName)
   if (!testCase) {
-    ElMessage.warning('找不到该测试用例')
+    notifyWarning('找不到该测试用例')
     return
   }
 
@@ -2785,12 +2786,12 @@ const loadTestCase = (testCaseValue: string) => {
   // 清空保存的配置选择
   selectedConfigId.value = ''
 
-  ElMessage.success('测试用例已加载')
+  notifySuccess('测试用例已加载')
 }
 
 const handleSaveConfigClick = () => {
   if (!toolTestForm.toolId) {
-    ElMessage.warning('请先选择Tool')
+    notifyWarning('请先选择Tool')
     return
   }
 
@@ -2819,7 +2820,7 @@ const handleSaveConfigClick = () => {
 // 编辑配置（更新现有配置）
 const handleEditConfigClick = () => {
   if (!selectedConfigId.value) {
-    ElMessage.warning('请先选择一个配置')
+    notifyWarning('请先选择一个配置')
     return
   }
 
@@ -2832,7 +2833,7 @@ const handleEditConfigClick = () => {
 
 const executeToolTest = async () => {
   if (!toolTestForm.toolId) {
-    ElMessage.warning('请先选择Tool')
+    notifyWarning('请先选择Tool')
     return
   }
 
@@ -2852,7 +2853,7 @@ const executeToolTest = async () => {
     try {
       params = JSON.parse(toolTestForm.paramsJson || '{}')
     } catch (error) {
-      ElMessage.error('参数JSON格式错误')
+      notifyError('参数JSON格式错误')
       throw error // 抛出错误而不是return，确保finally块执行
     }
 
@@ -2861,13 +2862,13 @@ const executeToolTest = async () => {
       // 检查tab是否存在
       const contextTab = workspace.tabs.find((tab) => tab.id === toolTestForm.contextTabId)
       if (!contextTab) {
-        ElMessage.error(`指定的上下文Tab不存在: ${toolTestForm.contextTabId}`)
+        notifyError(`指定的上下文Tab不存在: ${toolTestForm.contextTabId}`)
         throw new Error(`指定的上下文Tab不存在: ${toolTestForm.contextTabId}`)
       }
 
       // 如果tab不是文档类型，提示错误
       if (contextTab.kind === 'tool' || contextTab.kind === 'system') {
-        ElMessage.error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
+        notifyError('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
         throw new Error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
       }
 
@@ -3292,13 +3293,13 @@ const executeToolTest = async () => {
     }
 
     if (result.status === 'succeeded') {
-      ElMessage.success('Tool执行成功')
+      notifySuccess('Tool执行成功')
     } else {
-      ElMessage.error(`Tool执行失败: ${result.error || '未知错误'}`)
+      notifyError(`Tool执行失败: ${result.error || '未知错误'}`)
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    ElMessage.error(`执行失败: ${errorMessage}`)
+    notifyError(`执行失败: ${errorMessage}`)
 
     // 更新当前项为失败状态
     const errorIndex = toolTestHistory.value.findIndex(
@@ -3806,12 +3807,12 @@ const runAutoTests = async () => {
   if (autoTestForm.contextTabId) {
     const contextTab = workspace.tabs.find((tab) => tab.id === autoTestForm.contextTabId)
     if (!contextTab) {
-      ElMessage.error(`指定的上下文Tab不存在: ${autoTestForm.contextTabId}`)
+      notifyError(`指定的上下文Tab不存在: ${autoTestForm.contextTabId}`)
       return
     }
 
     if (contextTab.kind === 'tool' || contextTab.kind === 'system') {
-      ElMessage.error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
+      notifyError('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
       return
     }
 
@@ -3864,7 +3865,7 @@ const runAutoTests = async () => {
     }
 
     if (allTestCases.length === 0) {
-      ElMessage.warning('没有找到可执行的测试用例')
+      notifyWarning('没有找到可执行的测试用例')
       return
     }
 
@@ -3880,12 +3881,12 @@ const runAutoTests = async () => {
     // 显示测试结果摘要
     const summary = autoTestSummary.value
     if (summary.failed > 0) {
-      ElMessage.warning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`)
+      notifyWarning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`)
     } else {
-      ElMessage.success(`所有测试通过! (${summary.passed}/${summary.total})`)
+      notifySuccess(`所有测试通过! (${summary.passed}/${summary.total})`)
     }
   } catch (error) {
-    ElMessage.error(`自动测试失败: ${error instanceof Error ? error.message : String(error)}`)
+    notifyError(`自动测试失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     // 恢复原始活动Tab（如果之前临时激活了上下文Tab）
     if (shouldRestoreTab && originalActiveTabId) {
@@ -3906,7 +3907,7 @@ const stopAutoTests = () => {
     autoTestAbortController.value.abort()
     autoTestRunning.value = false
     autoTestCurrentTest.value = '测试已停止'
-    ElMessage.info('测试已停止')
+    notifyInfo('测试已停止')
   }
 }
 
@@ -4161,12 +4162,12 @@ const runUnitTestBatch = async () => {
   if (unitTestBatchForm.contextTabId) {
     const contextTab = workspace.tabs.find((tab) => tab.id === unitTestBatchForm.contextTabId)
     if (!contextTab) {
-      ElMessage.error(`指定的上下文Tab不存在: ${unitTestBatchForm.contextTabId}`)
+      notifyError(`指定的上下文Tab不存在: ${unitTestBatchForm.contextTabId}`)
       return
     }
 
     if (contextTab.kind === 'tool' || contextTab.kind === 'system') {
-      ElMessage.error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
+      notifyError('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab')
       return
     }
 
@@ -4203,7 +4204,7 @@ const runUnitTestBatch = async () => {
     }
 
     if (allTestItems.length === 0) {
-      ElMessage.warning('没有找到可执行的测试用例')
+      notifyWarning('没有找到可执行的测试用例')
       return
     }
 
@@ -4219,12 +4220,12 @@ const runUnitTestBatch = async () => {
     // 显示测试结果摘要
     const summary = unitTestBatchSummary.value
     if (summary.failed > 0) {
-      ElMessage.warning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`)
+      notifyWarning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`)
     } else {
-      ElMessage.success(`所有测试通过! (${summary.passed}/${summary.total})`)
+      notifySuccess(`所有测试通过! (${summary.passed}/${summary.total})`)
     }
   } catch (error) {
-    ElMessage.error(`批量测试失败: ${error instanceof Error ? error.message : String(error)}`)
+    notifyError(`批量测试失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     // 恢复原始活动Tab（如果之前临时激活了上下文Tab）
     if (shouldRestoreTab && originalActiveTabId) {
@@ -4245,7 +4246,7 @@ const stopUnitTestBatch = () => {
     unitTestBatchAbortController.value.abort()
     unitTestBatchRunning.value = false
     unitTestBatchCurrentTest.value = '测试已停止'
-    ElMessage.info('测试已停止')
+    notifyInfo('测试已停止')
   }
 }
 
@@ -4254,7 +4255,7 @@ const exportEntrySnapshot = async (entry: any) => {
   try {
     const tool = agentToolManager.getTool(entry.toolId)
     if (!tool) {
-      ElMessage.error('找不到工具配置')
+      notifyError('找不到工具配置')
       return
     }
 
@@ -4318,7 +4319,7 @@ const exportEntrySnapshot = async (entry: any) => {
 
     if (result.success) {
       logger.debug('[导出快照] 文件保存成功，路径:', result.path)
-      ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+      notifySuccess(t('agent.tool.exportSnapshotSuccess'))
     } else {
       // 用户取消对话框，不显示错误
       if (result.canceled) {
@@ -4332,7 +4333,7 @@ const exportEntrySnapshot = async (entry: any) => {
   } catch (error) {
     const logger = createRendererLogger('SettingDebugSection')
     logger.error('导出快照失败:', error)
-    ElMessage.error(
+    notifyError(
       `${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -4360,7 +4361,7 @@ const handleFileSelect = (event: Event) => {
 // 导入快照
 const importSnapshot = async () => {
   if (!importSnapshotForm.snapshotContent.trim()) {
-    ElMessage.warning(t('setting.debug.snapshotFilePlaceholder'))
+    notifyWarning(t('setting.debug.snapshotFilePlaceholder'))
     return
   }
 
@@ -4372,7 +4373,7 @@ const importSnapshot = async () => {
     // 获取工具配置
     const tool = agentToolManager.getTool(snapshot.toolId)
     if (!tool) {
-      ElMessage.warning(`工具 ${snapshot.toolId} 不存在，将使用快照中的配置`)
+      notifyWarning(`工具 ${snapshot.toolId} 不存在，将使用快照中的配置`)
     }
 
     // 转换为entry格式用于显示
@@ -4469,11 +4470,11 @@ const importSnapshot = async () => {
       invocationId: snapshot.invocationId
     }
 
-    ElMessage.success(t('setting.debug.importSuccess'))
+    notifySuccess(t('setting.debug.importSuccess'))
   } catch (error) {
     const logger = createRendererLogger('SettingDebugSection')
     logger.error('导入快照失败:', error)
-    ElMessage.error(
+    notifyError(
       `${t('setting.debug.importFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   } finally {
@@ -4609,7 +4610,7 @@ const handleMockInstallUpdate = async () => {
       timestamp: Date.now(),
       result: { success: true }
     })
-    ElMessage.success('模拟安装完成（实际环境中会重启应用）')
+    notifySuccess('模拟安装完成（实际环境中会重启应用）')
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     updateTestHistory.value.unshift({
@@ -4617,7 +4618,7 @@ const handleMockInstallUpdate = async () => {
       timestamp: Date.now(),
       error: errorMessage
     })
-    ElMessage.error(`安装失败: ${errorMessage}`)
+    notifyError(`安装失败: ${errorMessage}`)
   }
 }
 
@@ -4629,7 +4630,7 @@ const handleMockReset = () => {
   updateTestDownloadProgress.value = 0
   updateTestDownloadError.value = null
   updateTestHistory.value = []
-  ElMessage.success('状态已重置')
+  notifySuccess('状态已重置')
 }
 
 // Agent会话调试相关函数
@@ -4641,7 +4642,7 @@ const handleSessionDebugSessionChange = () => {
   // 会话切换时，刷新会话数据
   nextTick(() => {
     if (selectedSession.value) {
-      ElMessage.success('会话已加载')
+      notifySuccess('会话已加载')
     }
   })
 }
@@ -4649,7 +4650,7 @@ const handleSessionDebugSessionChange = () => {
 // 导入会话JSON
 const handleImportSessionJson = () => {
   if (!agentSessionDebugForm.tabId) {
-    ElMessage.warning('请先选择文档')
+    notifyWarning('请先选择文档')
     return
   }
 
@@ -4737,9 +4738,9 @@ const handleImportSessionJson = () => {
       // 自动选择导入的会话
       agentSessionDebugForm.sessionId = legacySession.id
 
-      ElMessage.success('会话导入成功')
+      notifySuccess('会话导入成功')
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
   input.click()
@@ -4748,7 +4749,7 @@ const handleImportSessionJson = () => {
 // 回溯到指定节点
 const handleRevertToNode = async (nodeId: string) => {
   if (!selectedSession.value || !agentSessionDebugForm.tabId) {
-    ElMessage.warning('请先选择会话')
+    notifyWarning('请先选择会话')
     return
   }
 
@@ -4810,10 +4811,10 @@ const handleRevertToNode = async (nodeId: string) => {
       }
     }
 
-    ElMessage.success('已回溯到指定节点')
+    notifySuccess('已回溯到指定节点')
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -4821,7 +4822,7 @@ const handleRevertToNode = async (nodeId: string) => {
 // 重新执行消息（真正触发Agent执行）
 const handleReplayMessage = async (messageId: string) => {
   if (!selectedSession.value || !agentSessionDebugForm.tabId) {
-    ElMessage.warning('请先选择会话')
+    notifyWarning('请先选择会话')
     return
   }
 
@@ -4857,7 +4858,7 @@ const handleReplayMessage = async (messageId: string) => {
     // 找到用户消息内容
     const userMessage = newFormatSession.messages.find((m: any) => m.id === messageId)
     if (!userMessage || userMessage.role !== 'user' || userMessage.type !== 'chat') {
-      ElMessage.error('无法找到用户消息')
+      notifyError('无法找到用户消息')
       return
     }
 
@@ -4867,13 +4868,13 @@ const handleReplayMessage = async (messageId: string) => {
     const defaultEngineId = agentEngineManager.getDefaultEngine()?.id || 'default-autogpt-engine'
     const engine = agentEngineManager.getEngine(defaultEngineId)
     if (!engine) {
-      ElMessage.error('未找到Agent引擎')
+      notifyError('未找到Agent引擎')
       return
     }
 
     const agentConfig = agentConfigManager.getConfig(newFormatSession.agentConfigId)
     if (!agentConfig) {
-      ElMessage.error('未找到Agent配置')
+      notifyError('未找到Agent配置')
       return
     }
 
@@ -4886,7 +4887,7 @@ const handleReplayMessage = async (messageId: string) => {
       }
     })
 
-    ElMessage.info('开始重新执行Agent...')
+    notifyInfo('开始重新执行Agent...')
     await executor.execute(messageContent)
 
     // 更新文档中的会话
@@ -4916,10 +4917,10 @@ const handleReplayMessage = async (messageId: string) => {
       }
     }
 
-    ElMessage.success('Agent执行完成')
+    notifySuccess('Agent执行完成')
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -4927,14 +4928,14 @@ const handleReplayMessage = async (messageId: string) => {
 // 重新执行工具调用（从节点）
 const handleReplayToolCall = async (nodeId: string) => {
   if (!selectedSession.value || !agentSessionDebugForm.tabId) {
-    ElMessage.warning('请先选择会话')
+    notifyWarning('请先选择会话')
     return
   }
 
   const session = selectedSession.value
   const node = session.executionNodes?.find((n) => n.id === nodeId)
   if (!node || node.type !== 'tool-call') {
-    ElMessage.warning('节点类型错误，无法重新执行')
+    notifyWarning('节点类型错误，无法重新执行')
     return
   }
 
@@ -4949,14 +4950,14 @@ const handleReplayToolCall = async (nodeId: string) => {
     const data = node.data as any
     const toolCallId = data?.tool_call_id || data?.id
     if (!toolCallId) {
-      ElMessage.error('无法找到工具调用ID')
+      notifyError('无法找到工具调用ID')
       return
     }
 
     await handleReplayToolCallFromMessage(toolCallId)
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -4964,7 +4965,7 @@ const handleReplayToolCall = async (nodeId: string) => {
 // 重新执行工具调用（从消息）
 const handleReplayToolCallFromMessage = async (toolCallIdOrMessageId: string) => {
   if (!selectedSession.value || !agentSessionDebugForm.tabId) {
-    ElMessage.warning('请先选择会话')
+    notifyWarning('请先选择会话')
     return
   }
 
@@ -5014,9 +5015,9 @@ const handleReplayToolCallFromMessage = async (toolCallIdOrMessageId: string) =>
           undefined, // signal
           newFormatSession // session
         )
-        ElMessage.success(`工具 ${toolCallData.tool_id} 已重新执行`)
+        notifySuccess(`工具 ${toolCallData.tool_id} 已重新执行`)
       } catch (error) {
-        ElMessage.error(`工具执行失败: ${error instanceof Error ? error.message : String(error)}`)
+        notifyError(`工具执行失败: ${error instanceof Error ? error.message : String(error)}`)
         throw error
       }
     })
@@ -5048,10 +5049,10 @@ const handleReplayToolCallFromMessage = async (toolCallIdOrMessageId: string) =>
       }
     }
 
-    ElMessage.success('工具调用已重新执行')
+    notifySuccess('工具调用已重新执行')
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -5245,9 +5246,9 @@ const handleImportSessionForReplay = () => {
       replayCurrentIndex.value = -1
       replayStartIndex.value = 0
 
-      ElMessage.success('会话导入成功，可以开始回放')
+      notifySuccess('会话导入成功，可以开始回放')
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
   input.click()
@@ -5264,13 +5265,13 @@ const handleClearReplaySession = () => {
   isReplaying.value = false
   replayCurrentIndex.value = -1
   replayStartIndex.value = 0
-  ElMessage.info('已清除回放会话')
+  notifyInfo('已清除回放会话')
 }
 
 // 开始回放
 const handleStartReplay = async () => {
   if (!replaySession.value || replayDisplayMessages.value.length === 0) {
-    ElMessage.warning('请先导入会话')
+    notifyWarning('请先导入会话')
     return
   }
 
@@ -5396,10 +5397,10 @@ const handleStartReplay = async () => {
       replayCurrentIndex.value = replayDisplayMessages.value.length - 1
     }
 
-    ElMessage.success('回放完成')
+    notifySuccess('回放完成')
   } catch (error) {
     if (error !== 'cancel' && !(error instanceof Error && error.name === 'AbortError')) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   } finally {
     isReplaying.value = false
@@ -5427,13 +5428,13 @@ const handleStopReplay = () => {
     }
   })
 
-  ElMessage.info('回放已停止')
+  notifyInfo('回放已停止')
 }
 
 // 重置回放到开头
 const handleResetReplay = () => {
   if (isReplaying.value) {
-    ElMessage.warning('请先停止回放')
+    notifyWarning('请先停止回放')
     return
   }
 
@@ -5447,13 +5448,13 @@ const handleResetReplay = () => {
   replayCurrentIndex.value = -1
   replayStartIndex.value = 0
 
-  ElMessage.info('已重置到开头')
+  notifyInfo('已重置到开头')
 }
 
 // 后退一步
 const handleReplayStepBack = () => {
   if (isReplaying.value) {
-    ElMessage.warning('请先停止回放')
+    notifyWarning('请先停止回放')
     return
   }
 
@@ -5482,7 +5483,7 @@ const handleReplayStepBack = () => {
 // 前进一步
 const handleReplayStepForward = async () => {
   if (isReplaying.value) {
-    ElMessage.warning('请先停止回放')
+    notifyWarning('请先停止回放')
     return
   }
 

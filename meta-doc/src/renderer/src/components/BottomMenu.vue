@@ -20,15 +20,22 @@
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <!-- <span class="status-divider">|</span>
-      <el-tooltip :content="$t('llmStatistics.tooltip')" placement="top">
-        <span
-          class="status-item status-llm-statistics"
-          @click="showLlmStatisticsDialog = true"
-        >
-          {{ $t('bottomMenu.llmStatistics') }}
-        </span>
-      </el-tooltip> -->
+      <span class="status-divider">|</span>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span
+              class="status-item status-llm-statistics"
+              @click="showLlmStatisticsDialog = true"
+            >
+              {{ $t('bottomMenu.llmStatistics') }}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ $t('llmStatistics.tooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <span class="status-divider">|</span>
       <TooltipProvider>
         <Tooltip>

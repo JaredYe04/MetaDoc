@@ -75,7 +75,11 @@
                       <Badge :variant="getErrorTypeBadgeVariant(error.type)">
                         {{ getErrorTypeLabel(error.type) }}
                       </Badge>
-                      <Badge v-if="error.fixed" variant="default" class="bg-green-600 hover:bg-green-700">
+                      <Badge
+                        v-if="error.fixed"
+                        variant="default"
+                        class="bg-green-600 hover:bg-green-700"
+                      >
                         {{ $t('proofread.autoFixed', '已修复') }}
                       </Badge>
                     </div>
@@ -100,7 +104,11 @@
                         <Badge
                           v-for="(suggestion, sugIndex) in error.suggestions || [error.suggestion]"
                           :key="sugIndex"
-                          :variant="(error.selectedSuggestion || error.suggestion) === suggestion ? 'default' : 'outline'"
+                          :variant="
+                            (error.selectedSuggestion || error.suggestion) === suggestion
+                              ? 'default'
+                              : 'outline'
+                          "
                           class="suggestion-tag cursor-pointer"
                           :class="{
                             'suggestion-selected':
@@ -163,6 +171,15 @@ import {
 } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle } from '@renderer/components/ui/alert'
@@ -221,6 +238,18 @@ const documentContent = computed(() => {
 
 // 从文档元数据加载校对结果
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    originalText.value = '这是一个示例文档内容。本文档详细介绍了 MetaDoc 的各项功能特性。'
+    proofreadResult.value = {
+      errors: [
+        { type: 'grammar', message: '语法建议', start: 0, end: 5, suggestion: '建议修改' },
+        { type: 'style', message: '风格优化', start: 10, end: 15, suggestion: '优化表达' }
+      ]
+    }
+    isProofread.value = true
+    return
+  }
   loadProofreadResult()
   nextTick(() => {
     initMonacoEditor()
@@ -1051,7 +1080,9 @@ const handleErrorItemClick = (error: ProofreadError) => {
 }
 
 // 获取错误类型标签
-const getErrorTypeBadgeVariant = (type: string): 'default' | 'outline' | 'destructive' | 'secondary' => {
+const getErrorTypeBadgeVariant = (
+  type: string
+): 'default' | 'outline' | 'destructive' | 'secondary' => {
   const typeMap: Record<string, 'default' | 'outline' | 'destructive' | 'secondary'> = {
     grammar: 'default',
     spelling: 'outline',
@@ -1067,7 +1098,9 @@ const getErrorTypeLabel = (type: string) => {
 }
 
 // 获取严重程度标签
-const getSeverityBadgeVariant = (severity: string): 'default' | 'outline' | 'destructive' | 'secondary' => {
+const getSeverityBadgeVariant = (
+  severity: string
+): 'default' | 'outline' | 'destructive' | 'secondary' => {
   if (severity === 'error') return 'destructive'
   if (severity === 'warning') return 'outline'
   return 'secondary'

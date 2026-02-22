@@ -15,7 +15,7 @@ components/ui/
 ├── card/               # Content containers (shadcn)
 ├── checkbox/           # Form checkbox (shadcn)
 ├── collapsible/        # Expandable content (shadcn)
-├── color-picker/       # Color picker - **CUSTOM PROJECT COMPONENT** (not from shadcn-vue)
+├── color-picker/       # Color picker - uses @vuelor/picker (NOT from shadcn-vue)
 ├── descriptions/       # Key-value descriptions (shadcn)
 ├── dialog/             # Modal dialogs (shadcn)
 ├── dropdown-menu/      # Context menus (shadcn)
@@ -72,13 +72,14 @@ components/ui/
 
 ## CUSTOM COMPONENTS & MODIFICATIONS
 
-### color-picker/ (Project Custom)
+### color-picker/ (External Library)
 
-Custom color picker component built for theme settings, NOT installed from shadcn-vue. Uses reka-ui Popover primitives directly.
+Uses `@vuelor/picker` - **NOT from shadcn-vue**.
 
-- Built on: reka-ui `PopoverRoot`, `PopoverContent`, `PopoverTrigger`
-- Features: Saturation/Value panel, Hue slider, Alpha slider, predefined colors, hex input
-- Uses `tinycolor2` for color manipulation
+- Package: `npm i @vuelor/picker`
+- Components used: `ColorPickerRoot`, `ColorPickerCanvas`, `ColorPickerSliderHue`, `ColorPickerSliderAlpha`, `ColorPickerInputHex`
+- Styling: Vanilla CSS mode with CSS variables mapped to shadcn theme tokens
+- API compatible with Element Plus color-picker props/events
 
 ### slider/ (Modified for Element Plus Compatibility)
 
@@ -89,7 +90,7 @@ Originally installed from shadcn-vue but enhanced with Element Plus compatible p
 
 ### popover/ (Standard shadcn)
 
-Standard shadcn-vue popover. Note: ColorPicker uses reka-ui primitives directly, not this wrapper.
+Standard shadcn-vue popover.
 
 ## NOTES
 

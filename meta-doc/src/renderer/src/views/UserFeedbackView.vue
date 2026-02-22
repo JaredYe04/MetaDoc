@@ -42,18 +42,17 @@
 
         <FormField :label="$t('userFeedback.attachments')" name="attachments">
           <div class="attachments-area">
-            <el-upload
+            <Upload
               ref="uploadRef"
               :auto-upload="false"
               :limit="5"
               multiple
               :show-file-list="false"
               :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
-              :on-change="handleFileChange"
-              :on-exceed="handleExceed"
-              :on-remove="handleRemove"
-              :file-list="fileList"
-              accept="*/*"
+              @change="handleFileChange"
+              @exceed="handleExceed"
+              @remove="handleRemove"
+              v-model:file-list="fileList"
             >
               <Button
                 type="primary"
@@ -61,7 +60,7 @@
                 :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
                 >{{ $t('userFeedback.addAttachment') }}</Button
               >
-            </el-upload>
+            </Upload>
             <div v-if="attachmentBase64List.length > 0" class="attachment-list">
               <div
                 v-for="(att, index) in attachmentBase64List"
@@ -179,7 +178,8 @@ const attachmentBase64List = ref<Array<{ filename: string; mime: string; content
   []
 )
 const attachmentsError = ref('')
-const uploadRef = ref<UploadInstance>()
+const uploadRef = ref<any>()
+
 const bodyFromEditor = ref('')
 const showImagePreview = ref(false)
 const previewImageUrl = ref('')

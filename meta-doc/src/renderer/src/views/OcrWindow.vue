@@ -53,23 +53,21 @@
                     </div>
 
                     <!-- 上传和粘贴按钮 -->
-                    <el-upload
+                    <Upload
                       ref="uploadRef"
-                      :file-list="imageList"
+                      v-model:file-list="imageList"
                       :auto-upload="false"
-                      :on-change="(file: any, fileList: any[]) => handleImageChange(file, fileList)"
-                      :on-remove="handleImageRemove"
+                      @change="(file: any, fileList: any[]) => handleImageChange(file, fileList)"
+                      @remove="handleImageRemove"
                       accept="image/*"
                       multiple
                       :show-file-list="false"
                     >
-                      <template #trigger>
-                        <Button>
-                          <UploadFilled class="mr-1 h-4 w-4" />
-                          {{ t('ocr.uploadHint') }}
-                        </Button>
-                      </template>
-                    </el-upload>
+                      <Button>
+                        <UploadFilled class="mr-1 h-4 w-4" />
+                        {{ t('ocr.uploadHint') }}
+                      </Button>
+                    </Upload>
 
                     <Button variant="outline" @click="handlePasteFromClipboard">
                       {{ t('ocr.pasteFromClipboard') }}
@@ -438,6 +436,7 @@ const isDemo = computed(() => props.mode === 'demo')
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
+import { Upload } from '@renderer/components/ui/upload'
 import { Slider } from '@renderer/components/ui/slider'
 import { Checkbox } from '@renderer/components/ui/checkbox'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'

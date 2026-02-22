@@ -2,24 +2,28 @@
   <div
     ref="containerRef"
     class="toast-stack-container"
-    :class="{
-      'is-expanded': isExpanded,
-      'is-animating': isAnimating
+    :class="{ 
+      'is-visible': isVisible,
+      'is-expanded': isExpanded 
     }"
   >
     <!-- 3D 堆叠的通知 -->
-    <div class="toast-stack" :class="{ 'is-expanded': isExpanded }">
+    <div 
+      class="toast-stack"
+      @mouseenter="handleStackMouseEnter"
+      @mouseleave="handleStackMouseLeave"
+    >
       <div
         v-for="(toast, index) in notifications"
         :key="toast.id"
         class="stack-toast"
         :class="[
           `toast-${toast.type}`,
-          { 'is-read': toast.read },
-          getStackClass(index)
+          { 'is-read': toast.read }
         ]"
-        :style="getToastTransform(index)"
+        :style="getToastStyle(index)"
         @click="handleToastClick(toast)"
+        @mouseenter="handleToastMouseEnter(index)"
       >
         <button class="toast-close" @click.stop="removeToast(toast.id)">
           <X class="h-3 w-3" />
@@ -41,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, type Component } from 'vue'
+import { ref, onMounted, onBeforeUnmount, type Component } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '../stores/notification'
 import eventBus from '../utils/event-bus'
@@ -58,67 +62,19 @@ const store = useNotificationStore()
 const { notifications } = storeToRefs(store)
 
 const containerRef = ref<HTMLElement | null>(null)
+
+// 两个独立的状态
+const isVisible = ref(true)
 const isExpanded = ref(false)
-const isAnimating = ref(false)
-const animationFrame = ref<number | null>(null)
-const currentProgress = ref(0)
-const targetProgress = ref(0)
+
+// 动画进度
+const visibilityProgress = ref(1)
+const expandProgress = ref(0)
+let visibilityRaf: number | null = null
+let expandRaf: number | null = null
 
 const toastHeight = 76
 const expandedGap = 8
-
-function getStackClass(index: number): string {
-  return `stack-index-${Math.min(index, 9)}`
-}
-
-function getToastTransform(index: number) {
-  const total = notifications.value.length
-  if (total === 0) return {}
-
-  const progress = currentProgress.value
-
-  if (progress <= 0) {
-    // 完全收起 - 所有 toast 在屏幕外底部
-    return {
-      transform: `translate3d(0, ${100 + index * 20}px, ${-index * 50}px) scale(${1 - index * 0.05})`,
-      opacity: Math.max(0, 0.3 - index * 0.1),
-      zIndex: 10 - index
-    }
-  }
-
-  if (progress >= 1) {
-    // 完全展开 - 列表形式
-    const yOffset = -index * (toastHeight + expandedGap)
-    return {
-      transform: `translate3d(0, ${yOffset}px, 0) scale(1)`,
-      opacity: 1,
-      zIndex: 100 - index
-    }
-  }
-
-  // 动画过渡中 - 插值计算
-  const collapsedY = 100 + index * 20
-  const expandedY = -index * (toastHeight + expandedGap)
-  const currentY = collapsedY + (expandedY - collapsedY) * progress
-
-  const collapsedScale = 1 - index * 0.05
-  const expandedScale = 1
-  const currentScale = collapsedScale + (expandedScale - collapsedScale) * progress
-
-  const collapsedZ = -index * 50
-  const expandedZ = 0
-  const currentZ = collapsedZ + (expandedZ - collapsedZ) * progress
-
-  const collapsedOpacity = Math.max(0, 0.3 - index * 0.1)
-  const expandedOpacity = 1
-  const currentOpacity = collapsedOpacity + (expandedOpacity - collapsedOpacity) * progress
-
-  return {
-    transform: `translate3d(0, ${currentY}px, ${currentZ}px) scale(${currentScale})`,
-    opacity: currentOpacity,
-    zIndex: Math.round(10 + 90 * progress - index)
-  }
-}
 
 function getIconForType(type: NotificationType | undefined): Component {
   const icons: Record<string, Component> = {
@@ -130,75 +86,115 @@ function getIconForType(type: NotificationType | undefined): Component {
   return icons[type || 'info']
 }
 
-// 动画循环
-function animate() {
-  const speed = 0.08
-  const diff = targetProgress.value - currentProgress.value
+function getToastStyle(index: number) {
+  const total = notifications.value.length
+  if (total === 0) return {}
 
-  if (Math.abs(diff) < 0.01) {
-    currentProgress.value = targetProgress.value
-    isAnimating.value = false
-    isExpanded.value = targetProgress.value > 0.5
-    return
+  const vProgress = visibilityProgress.value
+  const eProgress = expandProgress.value
+
+  // 3D堆叠收起时的参数
+  const stackYOffset = index * 12
+  const stackScale = Math.max(0.85, 1 - index * 0.03)
+  const stackZ = -index * 30
+
+  // 展开列表时的参数
+  const expandedYOffset = -index * (toastHeight + expandedGap)
+
+  // 插值计算当前Y偏移
+  const currentYOffset = stackYOffset + (expandedYOffset - stackYOffset) * eProgress
+
+  // 屏幕内外偏移
+  const offscreenY = 150 + index * 30
+  const onscreenY = currentYOffset
+  const finalY = offscreenY + (onscreenY - offscreenY) * vProgress
+
+  const finalScale = stackScale + (1 - stackScale) * eProgress
+  const finalZ = stackZ * (1 - eProgress)
+
+  const stackOpacity = Math.max(0.4, 1 - index * 0.15)
+  const expandedOpacity = 1
+  const currentOpacity = stackOpacity + (expandedOpacity - stackOpacity) * eProgress
+  const finalOpacity = currentOpacity * vProgress
+
+  return {
+    transform: `translate3d(0, ${finalY}px, ${finalZ}px) scale(${finalScale})`,
+    opacity: finalOpacity,
+    zIndex: Math.round((10 + 90 * eProgress - index) * vProgress),
+    pointerEvents: vProgress > 0.5 ? 'auto' : 'none'
   }
-
-  currentProgress.value += diff * speed
-  isAnimating.value = true
-  animationFrame.value = requestAnimationFrame(animate)
 }
 
-// 切换展开/收起
-function toggleExpand() {
-  targetProgress.value = targetProgress.value > 0.5 ? 0 : 1
+function animateVisibility(target: number) {
+  if (visibilityRaf) cancelAnimationFrame(visibilityRaf)
 
-  if (animationFrame.value) {
-    cancelAnimationFrame(animationFrame.value)
+  const step = () => {
+    const diff = target - visibilityProgress.value
+    if (Math.abs(diff) < 0.02) {
+      visibilityProgress.value = target
+      return
+    }
+    visibilityProgress.value += diff * 0.1
+    visibilityRaf = requestAnimationFrame(step)
   }
-  animate()
+  visibilityRaf = requestAnimationFrame(step)
 }
 
-// 快速收起（可打断）
-function collapseQuickly() {
-  targetProgress.value = 0
-  if (animationFrame.value) {
-    cancelAnimationFrame(animationFrame.value)
+function animateExpand(target: number) {
+  if (expandRaf) cancelAnimationFrame(expandRaf)
+
+  const step = () => {
+    const diff = target - expandProgress.value
+    if (Math.abs(diff) < 0.02) {
+      expandProgress.value = target
+      return
+    }
+    expandProgress.value += diff * 0.15
+    expandRaf = requestAnimationFrame(step)
   }
-  animate()
+  expandRaf = requestAnimationFrame(step)
 }
 
-// 点击 toast
+function toggleVisibility() {
+  isVisible.value = !isVisible.value
+  animateVisibility(isVisible.value ? 1 : 0)
+}
+
+function handleStackMouseEnter() {
+  if (isVisible.value) {
+    isExpanded.value = true
+    animateExpand(1)
+  }
+}
+
+function handleStackMouseLeave() {
+  isExpanded.value = false
+  animateExpand(0)
+}
+
+function handleToastMouseEnter(index: number) {
+}
+
 function handleToastClick(toast: NotificationItem) {
   if (!toast.read) {
     store.markAsRead(toast.id)
   }
 }
 
-// 移除 toast
 function removeToast(id: string) {
   store.remove(id)
 }
 
-// 监听新通知
 onMounted(() => {
-  eventBus.on('toggle-notification-queue', toggleExpand)
-  eventBus.on('close-notification-stack', collapseQuickly)
-
-  // 点击外部收起
-  document.addEventListener('click', (e) => {
-    if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
-      if (targetProgress.value > 0.5) {
-        collapseQuickly()
-      }
-    }
-  })
+  eventBus.on('toggle-notification-queue', toggleVisibility)
+  visibilityProgress.value = 1
+  expandProgress.value = 0
 })
 
 onBeforeUnmount(() => {
-  eventBus.off('toggle-notification-queue', toggleExpand)
-  eventBus.off('close-notification-stack', collapseQuickly)
-  if (animationFrame.value) {
-    cancelAnimationFrame(animationFrame.value)
-  }
+  eventBus.off('toggle-notification-queue', toggleVisibility)
+  if (visibilityRaf) cancelAnimationFrame(visibilityRaf)
+  if (expandRaf) cancelAnimationFrame(expandRaf)
 })
 </script>
 
@@ -208,13 +204,13 @@ onBeforeUnmount(() => {
   bottom: 48px;
   right: 16px;
   width: 356px;
-  height: 600px;
+  height: 500px;
   pointer-events: none;
   z-index: 9999;
   perspective: 1200px;
 }
 
-.toast-stack-container.is-expanded {
+.toast-stack-container.is-visible {
   pointer-events: auto;
 }
 
@@ -225,7 +221,6 @@ onBeforeUnmount(() => {
   transform-style: preserve-3d;
 }
 
-/* Toast 项 */
 .stack-toast {
   position: absolute;
   bottom: 0;
@@ -240,23 +235,19 @@ onBeforeUnmount(() => {
   background: hsl(var(--background) / 0.98);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  pointer-events: auto;
   will-change: transform, opacity;
   backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 .stack-toast:hover {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
 }
 
-/* 类型样式 */
 .stack-toast.toast-success { border-left: 4px solid hsl(var(--success)); }
 .stack-toast.toast-error { border-left: 4px solid hsl(var(--destructive)); }
 .stack-toast.toast-warning { border-left: 4px solid hsl(38 92% 50%); }
 .stack-toast.toast-info { border-left: 4px solid hsl(var(--primary)); }
 
-/* 关闭按钮 */
 .toast-close {
   position: absolute;
   top: 8px;
@@ -271,7 +262,7 @@ onBeforeUnmount(() => {
   color: hsl(var(--muted-foreground));
   cursor: pointer;
   opacity: 0;
-  transition: all 150ms ease;
+  transition: opacity 150ms ease;
   border: none;
 }
 
@@ -284,7 +275,6 @@ onBeforeUnmount(() => {
   color: hsl(var(--foreground));
 }
 
-/* 图标 */
 .toast-icon {
   flex-shrink: 0;
   margin-top: 2px;
@@ -295,7 +285,6 @@ onBeforeUnmount(() => {
 .stack-toast.toast-warning .toast-icon { color: hsl(38 92% 50%); }
 .stack-toast.toast-info .toast-icon { color: hsl(var(--primary)); }
 
-/* 内容 */
 .toast-content {
   flex: 1;
   min-width: 0;
@@ -315,7 +304,6 @@ onBeforeUnmount(() => {
   color: hsl(var(--muted-foreground));
 }
 
-/* 未读标记 */
 .toast-unread {
   position: absolute;
   top: 8px;
@@ -330,13 +318,7 @@ onBeforeUnmount(() => {
 .toast-unread.type-warning { background: hsl(38 92% 50%); }
 .toast-unread.type-info { background: hsl(var(--primary)); }
 
-/* 已读状态 */
 .stack-toast.is-read {
   opacity: 0.7;
-}
-
-/* 确保动画流畅 */
-.stack-toast {
-  transition: box-shadow 0.2s ease;
 }
 </style>

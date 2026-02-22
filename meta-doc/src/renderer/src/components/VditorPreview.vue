@@ -1,8 +1,12 @@
 <template>
   <div class="vditor-preview-wrapper">
-    <Skeleton :loading="isRendering" :rows="15" animated class="vditor-preview-skeleton">
-      <div ref="containerRef" class="vditor-preview-container"></div>
-    </Skeleton>
+    <!-- 容器始终存在 -->
+    <div ref="containerRef" class="vditor-preview-container"></div>
+    
+    <!-- Loading 遮罩 -->
+    <div v-if="isRendering" class="loading-overlay">
+      <Skeleton :rows="15" animated />
+    </div>
   </div>
 </template>
 
@@ -28,12 +32,7 @@ const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
 let linkClickHandler: ((e: MouseEvent) => void) | null = null
 
-// 渲染锁 - 防止并发渲染
-let isRenderLocked = false
-
-/**
- * 设置链接点击事件处理器
- */
+// 设置链接点击事件处理器
 const setupLinkClickHandler = (container: HTMLElement | null) => {
   if (!container) return
 
@@ -63,121 +62,103 @@ const setupLinkClickHandler = (container: HTMLElement | null) => {
 }
 
 const renderMarkdown = async () => {
-  if (isRenderLocked) {
-    console.log('[VditorPreview] Render locked, skipping')
-    return
-  }
+  console.log('[VditorPreview] renderMarkdown called', {
+    hasMarkdown: !!props.markdown,
+    markdownLength: props.markdown?.length,
+    hasContainer: !!containerRef.value
+  })
 
   if (!props.markdown || !props.markdown.trim()) {
-    isRendering.value = false
-    await nextTick()
+    console.log('[VditorPreview] Empty markdown, clearing container')
     if (containerRef.value) {
-      if (linkClickHandler) {
-        containerRef.value.removeEventListener('click', linkClickHandler)
-        linkClickHandler = null
-      }
       containerRef.value.innerHTML = ''
     }
+    isRendering.value = false
     return
   }
 
   // 等待容器挂载
   let retries = 0
-  while (!containerRef.value && retries < 20) {
+  while (!containerRef.value && retries < 30) {
     await nextTick()
     await new Promise((resolve) => requestAnimationFrame(resolve))
     retries++
   }
 
   if (!containerRef.value) {
-    console.warn('[VditorPreview] Container not found')
+    console.error('[VditorPreview] Container not found after retries')
+    isRendering.value = false
     return
   }
 
-  isRenderLocked = true
   console.log('[VditorPreview] Starting render')
+  isRendering.value = true
 
   try {
-    isRendering.value = true
-
-    if (containerRef.value && themeState.currentTheme) {
+    // 设置主题颜色
+    if (themeState.currentTheme) {
       containerRef.value.style.color = themeState.currentTheme.textColor || '#000000'
     }
 
+    // 处理 markdown
+    console.log('[VditorPreview] Processing markdown...')
     const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
+    console.log('[VditorPreview] Markdown processed, length:', processedMarkdown.length)
 
+    // 再次检查容器
     if (!containerRef.value) {
-      console.log('[VditorPreview] Container lost after local2fileProtocol')
+      console.error('[VditorPreview] Container lost during processing')
       return
     }
 
-    await nextTick()
-    await new Promise((resolve) => requestAnimationFrame(resolve))
-    await nextTick()
+    // 清空并渲染
+    containerRef.value.innerHTML = ''
+    
+    console.log('[VditorPreview] Rendering to container...')
+    await renderMarkdownPreview(
+      containerRef.value as HTMLDivElement,
+      processedMarkdown,
+      {
+        applyMermaidTheme: true,
+        linkBase: '',
+        renderCode: true,
+        renderMath: true
+      }
+    )
+    console.log('[VditorPreview] Render complete, content length:', containerRef.value.innerHTML.length)
 
-    if (!containerRef.value) {
-      console.log('[VditorPreview] Container lost after waiting')
-      return
-    }
-
-    const isManualContext = containerRef.value?.closest('.manual-content') !== null
-    console.log('[VditorPreview] Calling renderMarkdownPreview...', {
-      containerExists: !!containerRef.value,
-      containerHTML: containerRef.value?.innerHTML?.slice(0, 100),
-      markdownLength: processedMarkdown.length,
-      isManualContext
-    })
-
-    // 清空容器内容
-    if (containerRef.value) {
-      containerRef.value.innerHTML = ''
-    }
-
-    await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown, {
-      applyMermaidTheme: isManualContext,
-      linkBase: '',
-      renderCode: true,
-      renderMath: true
-    })
-
-    console.log('[VditorPreview] renderMarkdownPreview done', {
-      containerHTMLAfter: containerRef.value?.innerHTML?.slice(0, 200),
-      containerChildCount: containerRef.value?.childNodes.length
-    })
-
+    // 设置链接处理器
     setupLinkClickHandler(containerRef.value)
-    const container = containerRef.value
-    if (container) {
-      emit('rendered', container)
-    }
+    
+    // 触发渲染完成事件
+    emit('rendered', containerRef.value)
   } catch (error) {
     console.error('[VditorPreview] Render failed:', error)
     if (containerRef.value) {
-      containerRef.value.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
+      containerRef.value.innerHTML = `<p style="color: red; padding: 20px;">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
     }
   } finally {
+    console.log('[VditorPreview] Setting isRendering to false')
     isRendering.value = false
-    isRenderLocked = false
-    console.log('[VditorPreview] Render complete')
   }
 }
 
-// 监听 Markdown 内容变化
+// 监听 markdown 变化
 watch(
   () => props.markdown,
   (newMarkdown, oldMarkdown) => {
-    if (newMarkdown !== oldMarkdown) {
-      renderMarkdown()
-    }
+    console.log('[VditorPreview] Markdown changed:', { 
+      newLength: newMarkdown?.length, 
+      oldLength: oldMarkdown?.length 
+    })
+    renderMarkdown()
   },
   { immediate: false }
 )
 
 onMounted(() => {
-  console.log('[VditorPreview] onMounted')
-  if (props.markdown && props.markdown.trim()) {
-    renderMarkdown()
-  }
+  console.log('[VditorPreview] onMounted, hasMarkdown:', !!props.markdown)
+  renderMarkdown()
 })
 
 onBeforeUnmount(() => {
@@ -193,35 +174,24 @@ onBeforeUnmount(() => {
 .vditor-preview-wrapper {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
   min-height: 100px;
+  position: relative;
 }
 
 .vditor-preview-container {
   width: 100%;
   min-height: 100px;
   padding: 16px;
-  flex: 1;
 }
 
-.vditor-preview-skeleton {
-  flex: 1;
-  width: 100%;
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: hsl(var(--background));
   padding: 16px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
-.vditor-preview-skeleton :deep(.bg-muted) {
-  height: 20px;
-  margin-bottom: 16px;
-  border-radius: 4px;
-}
-
-.vditor-preview-skeleton :deep(.bg-muted:last-child) {
-  width: 60%;
+  z-index: 10;
 }
 </style>

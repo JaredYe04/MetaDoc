@@ -1196,21 +1196,21 @@ const convertSelectedRowsToCsv = (): string | null => {
 // 执行分析
 const handleAnalyze = async () => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('dataAnalysis.noSession', '请先选择或创建会话'))
+    notifyWarning(t('dataAnalysis.noSession', '请先选择或创建会话'))
     return
   }
 
   if (!activeSessionData.value) {
     const session = await dataAnalysisSessionsDb.getById(activeSessionId.value)
     if (!session) {
-      ElMessage.warning(t('dataAnalysis.noSession', '会话不存在'))
+      notifyWarning(t('dataAnalysis.noSession', '会话不存在'))
       return
     }
     activeSessionData.value = session
   }
 
   if (!activeSessionData.value.data_file_path) {
-    ElMessage.warning(t('dataAnalysis.noFile', '请先上传数据文件'))
+    notifyWarning(t('dataAnalysis.noFile', '请先上传数据文件'))
     return
   }
 
@@ -1334,17 +1334,17 @@ const handleAnalyze = async () => {
         activeSessionData.value.report_markdown = analysisResultData.reportMarkdown || undefined
       }
 
-      ElMessage.success(t('dataAnalysis.analyzeSuccess', '分析完成'))
+      notifySuccess(t('dataAnalysis.analyzeSuccess', '分析完成'))
     } else {
       // 清理流式显示
       reportStreamingDonePromise.value = null
-      ElMessage.error(result.error || t('dataAnalysis.analyzeFailed', '分析失败'))
+      notifyError(result.error || t('dataAnalysis.analyzeFailed', '分析失败'))
       analysisStage.value = ''
     }
   } catch (error) {
     // 清理流式显示
     reportStreamingDonePromise.value = null
-    ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
     analysisStage.value = ''
   } finally {
     analyzing.value = false

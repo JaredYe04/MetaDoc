@@ -378,7 +378,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@renderer/components/ui/ui/table'
+} from '@renderer/components/ui/table'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'

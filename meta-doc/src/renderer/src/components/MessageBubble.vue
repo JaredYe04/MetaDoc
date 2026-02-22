@@ -41,6 +41,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@renderer/components/ui/dialog'
+import {
+  Avatar,
+  AvatarFallback,
+} from '@renderer/components/ui/avatar'
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[]
@@ -393,7 +397,9 @@ onBeforeMount(() => {
       />
       <!-- <markdown-it :source="content" /> -->
     </div>
-    <el-avatar class="avatar-fallback" v-if="role === 'user'"><User class="w-6 h-6" /></el-avatar>
+    <Avatar v-if="role === 'user'" class="avatar-fallback">
+      <AvatarFallback><User class="w-6 h-6" /></AvatarFallback>
+    </Avatar>
   </div>
   <!-- AI消息的操作按钮（平铺在消息下方，始终显示） -->
   <div v-if="role !== 'user'" class="ai-message-actions">

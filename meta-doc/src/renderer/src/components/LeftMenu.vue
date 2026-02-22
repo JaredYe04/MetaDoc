@@ -188,7 +188,7 @@
         <UISubMenuItem
           v-for="item in recentDocs.slice(0, 10)"
           :key="item"
-          :icon="Document"
+          :icon="FileText"
           @click="
             askSave(() => {
               emitMenu('open-doc', item)
@@ -597,7 +597,7 @@
         <UISubMenuItem
           v-for="item in recentDocs.slice(0, 10)"
           :key="item"
-          :icon="Document"
+          :icon="FileText"
           @click="
             askSave(() => {
               emitMenu('open-doc', item)
@@ -860,7 +860,8 @@ import {
   MessageCircle,
   Pencil,
   UserCircle,
-  Download
+  Download,
+  FileText
 } from 'lucide-vue-next'
 import eventBus from '../utils/event-bus'
 import { ElMessage, ElMessageBox } from 'element-plus'

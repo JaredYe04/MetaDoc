@@ -180,7 +180,11 @@
         class="agent-message__avatar agent-message__avatar--right"
       >
         <el-tooltip :content="userName" placement="left" :disabled="!userName">
-          <el-avatar :icon="User" class="avatar-fallback" />
+          <Avatar class="avatar-fallback">
+            <AvatarFallback>
+              <User />
+            </AvatarFallback>
+          </Avatar>
         </el-tooltip>
       </div>
     </div>
@@ -227,7 +231,6 @@ import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
 import {
-  Avatar,
   User,
   Edit,
   More,
@@ -238,6 +241,7 @@ import {
   Delete
 } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuTrigger,

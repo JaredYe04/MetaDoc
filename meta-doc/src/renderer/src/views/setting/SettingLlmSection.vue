@@ -301,7 +301,7 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.ollama.enableMaxTokens" :label="t('setting.maxTokens')">
+                <FormField v-if="settings.ollama.enableMaxTokens" name="ollamaMaxTokens" :label="t('setting.maxTokens')">
                   <NumberField
                     v-model="settings.ollama.maxTokens"
                     :min="1"
@@ -395,7 +395,7 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.openai.enableMaxTokens" :label="t('setting.maxTokens')">
+                <FormField v-if="settings.openai.enableMaxTokens" name="openaiMaxTokens" :label="t('setting.maxTokens')">
                   <NumberField
                     v-model="settings.openai.maxTokens"
                     :min="1"
@@ -467,6 +467,7 @@
 
                 <FormField
                   v-if="settings['openai-official'].enableMaxTokens"
+                  name="openaiOfficialMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
                   <NumberField
@@ -532,7 +533,7 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.deepseek.enableMaxTokens" :label="t('setting.maxTokens')">
+                <FormField v-if="settings.deepseek.enableMaxTokens" name="deepseekMaxTokens" :label="t('setting.maxTokens')">
                   <NumberField
                     v-model="settings.deepseek.maxTokens"
                     :min="1"
@@ -602,7 +603,7 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.gemini.enableMaxTokens" :label="t('setting.maxTokens')">
+                <FormField v-if="settings.gemini.enableMaxTokens" name="geminiMaxTokens" :label="t('setting.maxTokens')">
                   <NumberField
                     v-model="settings.gemini.maxTokens"
                     :min="1"
@@ -662,7 +663,7 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.metadoc.enableMaxTokens" :label="t('setting.maxTokens')">
+                <FormField v-if="settings.metadoc.enableMaxTokens" name="metadocMaxTokens" :label="t('setting.maxTokens')">
                   <NumberField
                     v-model="settings.metadoc.maxTokens"
                     :min="1"

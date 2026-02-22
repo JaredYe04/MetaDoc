@@ -68,15 +68,6 @@
                 { 'sonner-unread': !item.read }
               ]"
             >
-              <!-- Close button (top-left like Sonner) -->
-              <button
-                class="sonner-close-btn"
-                aria-label="Close notification"
-                @click.stop="handleRemove(item.id)"
-              >
-                <X class="h-3 w-3" />
-              </button>
-
               <!-- Icon -->
               <div data-icon class="sonner-icon">
                 <component :is="getIconForType(item.type)" class="h-5 w-5" />
@@ -89,7 +80,16 @@
                 <div data-timestamp class="sonner-timestamp">{{ formatTime(item.timestamp) }}</div>
               </div>
 
-              <!-- Unread indicator -->
+              <!-- Close button (top-right, consistent with Sonner toast) -->
+              <button
+                class="sonner-close-btn"
+                aria-label="Close notification"
+                @click.stop="handleRemove(item.id)"
+              >
+                <X class="h-3 w-3" />
+              </button>
+
+              <!-- Unread indicator (top-left, opposite of close button) -->
               <div v-if="!item.read" class="sonner-unread-dot" :class="getSonnerDotClass(item.type)" />
             </div>
           </div>
@@ -303,11 +303,11 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
-/* Close button (top-left like Sonner) */
+/* Close button (top-right, consistent with Sonner toast) */
 .sonner-close-btn {
   position: absolute;
   top: 10px;
-  left: 10px;
+  right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,11 +401,11 @@ onBeforeUnmount(() => {
   color: var(--notification-color);
 }
 
-/* Unread indicator dot */
+/* Unread indicator dot (top-left, opposite of close button) */
 .sonner-unread-dot {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   width: 6px;
   height: 6px;
   border-radius: 50%;

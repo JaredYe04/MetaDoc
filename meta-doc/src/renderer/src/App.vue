@@ -17,10 +17,11 @@
       <Toaster
         position="bottom-right"
         :expand="true"
-        :rich-colors="true"
+        :rich-colors="false"
         :close-button="true"
         :duration="4000"
-        theme="system"
+        :toast-options="toastOptions"
+        @update:open="handleToastOpenChange"
       />
     </div>
   </TooltipProvider>
@@ -62,6 +63,29 @@ const { locale, t } = useI18n()
 const logger = createRendererLogger('App', {
   windowTypeProvider: () => getWindowType()
 })
+
+// Toast 样式配置 - 使用全局主题
+const toastOptions = computed(() => ({
+  style: {
+    background: themeState.currentTheme.background,
+    color: themeState.currentTheme.textColor,
+    border: `1px solid ${themeState.currentTheme.borderColor || '#e5e5e5'}`
+  },
+  className: 'metadoc-toast'
+}))
+
+// 处理 Toast 打开/关闭状态变化 - 点击 Toast 空白区域时关闭（自动标记已读）
+const lastToastId = ref<string | null>(null)
+function handleToastOpenChange(isOpen: boolean, toastId: string) {
+  if (!isOpen && lastToastId.value === toastId) {
+    // Toast 被关闭（可能是点击空白区域或关闭按钮），标记为已读
+    const store = useNotificationStore()
+    store.markAsRead(toastId)
+  }
+  if (isOpen) {
+    lastToastId.value = toastId
+  }
+}
 
 // 获取当前路由信息
 

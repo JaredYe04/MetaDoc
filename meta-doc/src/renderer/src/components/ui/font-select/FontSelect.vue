@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import {
   Select,
   SelectContent,
@@ -31,6 +31,8 @@ const emit = defineEmits<{
 const fonts = ref<FontOption[]>([])
 const loading = ref(false)
 const error = ref('')
+const hasLoaded = ref(false)
+const isOpen = ref(false)
 
 // 默认字体列表（作为后备）
 const defaultFonts: FontOption[] = [
@@ -58,6 +60,8 @@ const defaultFonts: FontOption[] = [
 
 // 加载系统字体
 const loadFonts = async () => {
+  if (hasLoaded.value) return
+  
   loading.value = true
   error.value = ''
   try {
@@ -80,10 +84,12 @@ const loadFonts = async () => {
     } else {
       fonts.value = defaultFonts
     }
+    hasLoaded.value = true
   } catch (err) {
     console.error('加载字体失败:', err)
     error.value = '加载字体列表失败，使用默认字体'
     fonts.value = defaultFonts
+    hasLoaded.value = true
   } finally {
     loading.value = false
   }
@@ -92,7 +98,19 @@ const loadFonts = async () => {
 // 刷新字体列表
 const refreshFonts = async () => {
   clearFontCache()
+  hasLoaded.value = false
   await loadFonts()
+}
+
+// 处理 Select 打开事件
+const handleOpenChange = (open: boolean) => {
+  isOpen.value = open
+  if (open && !hasLoaded.value) {
+    // 使用 nextTick 确保下拉框已渲染再加载字体
+    nextTick(() => {
+      loadFonts()
+    })
+  }
 }
 
 // 获取字体的预览样式
@@ -106,18 +124,13 @@ const selectedFont = computed({
   set: (value) => emit('update:modelValue', value)
 })
 
-// 组件挂载时加载字体
-onMounted(() => {
-  loadFonts()
-})
-
 // 预览文本
 const previewTextValue = computed(() => props.previewText || 'AaBbCc 你好世界')
 </script>
 
 <template>
   <div :class="cn('relative', props.class)">
-    <Select v-model="selectedFont">
+    <Select v-model="selectedFont" @update:open="handleOpenChange">
       <SelectTrigger class="w-[280px]">
         <SelectValue :placeholder="placeholder || '选择字体'">
           <span :style="getFontStyle(selectedFont)">{{ selectedFont }}</span>

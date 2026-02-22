@@ -94,13 +94,23 @@ onBeforeUnmount(() => {
 })
 
 const renderMarkdown = async () => {
+  console.log('[VditorPreview] renderMarkdown called', {
+    isMounted: isMounted.value,
+    hasMarkdown: !!props.markdown,
+    markdownLength: props.markdown?.length,
+    hasContainer: !!containerRef.value,
+    docPath: props.docPath
+  })
+
   // 检查组件是否仍然挂载
   if (!isMounted.value) {
+    console.log('[VditorPreview] Early return: isMounted is false')
     isRendering.value = false
     return
   }
 
   if (!props.markdown || !props.markdown.trim()) {
+    console.log('[VditorPreview] Early return: markdown is empty')
     isRendering.value = false
     // 清空容器并移除事件监听器
     await nextTick()
@@ -117,6 +127,7 @@ const renderMarkdown = async () => {
 
   // 等待容器挂载，多次尝试确保容器已准备好
   let retries = 0
+  console.log('[VditorPreview] Waiting for container...')
   while (!containerRef.value && retries < 20) {
     await nextTick()
     await new Promise((resolve) => requestAnimationFrame(resolve))
@@ -124,13 +135,16 @@ const renderMarkdown = async () => {
   }
 
   if (!containerRef.value) {
-    console.warn('VditorPreview: 容器元素未找到，重试次数:', retries)
+    console.warn('[VditorPreview] 容器元素未找到，重试次数:', retries)
     isRendering.value = false
     return
   }
 
+  console.log('[VditorPreview] Container found, starting render...')
+
   try {
     isRendering.value = true
+    console.log('[VditorPreview] isRendering set to true')
 
     // 设置容器文字颜色
     if (containerRef.value && themeState.currentTheme) {
@@ -143,10 +157,15 @@ const renderMarkdown = async () => {
     // - 绝对路径
     // - HTTP URL（会保持原样，但预览时可能无法加载，建议先转本地路径）
     // 注意：如果输入包含 HTTP URL（如预渲染的图表），可能需要先转换为本地路径
+    console.log('[VditorPreview] Calling local2fileProtocol...')
     const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
+    console.log('[VditorPreview] local2fileProtocol done', {
+      processedLength: processedMarkdown?.length
+    })
 
     // 检查组件是否仍然挂载（快速切换文章时的正常情况）
     if (!isMounted.value || !containerRef.value) {
+      console.log('[VditorPreview] Early return after local2fileProtocol: unmounted')
       isRendering.value = false
       return
     }
@@ -156,6 +175,7 @@ const renderMarkdown = async () => {
 
     // 检查组件是否仍然挂载（快速切换文章时的正常情况）
     if (!isMounted.value || !containerRef.value) {
+      console.log('[VditorPreview] Early return after nextTick: unmounted')
       isRendering.value = false
       return
     }
@@ -164,6 +184,7 @@ const renderMarkdown = async () => {
 
     // 检查组件是否仍然挂载（快速切换文章时的正常情况）
     if (!isMounted.value || !containerRef.value) {
+      console.log('[VditorPreview] Early return after requestAnimationFrame: unmounted')
       isRendering.value = false
       return
     }
@@ -171,6 +192,7 @@ const renderMarkdown = async () => {
     await nextTick()
 
     if (!isMounted.value || !containerRef.value) {
+      console.log('[VditorPreview] Early return after second nextTick: unmounted')
       isRendering.value = false
       return
     }
@@ -178,24 +200,30 @@ const renderMarkdown = async () => {
     // 使用统一的 Markdown 预览渲染函数
     // 用户手册需要应用 Mermaid 主题适配，其他场景不需要
     const isManualContext = containerRef.value?.closest('.manual-content') !== null
+    console.log('[VditorPreview] Calling renderMarkdownPreview...', { isManualContext })
     await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown, {
       applyMermaidTheme: isManualContext,
       linkBase: '',
       renderCode: true,
       renderMath: true
     })
+    console.log('[VditorPreview] renderMarkdownPreview done')
 
     // 添加链接点击事件监听器，使外部链接在系统浏览器中打开
     setupLinkClickHandler(containerRef.value)
     const container = containerRef.value
-    if (container) emit('rendered', container)
+    if (container) {
+      console.log('[VditorPreview] Emitting rendered event')
+      emit('rendered', container)
+    }
   } catch (error) {
-    console.error('渲染 Markdown 失败:', error)
+    console.error('[VditorPreview] 渲染 Markdown 失败:', error)
     if (containerRef.value) {
       containerRef.value.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
     }
   } finally {
     isRendering.value = false
+    console.log('[VditorPreview] isRendering set to false')
   }
 }
 
@@ -205,8 +233,16 @@ const debouncedRenderMarkdown = debounce(renderMarkdown, 100)
 // 监听 Markdown 内容变化和主题变化
 watch(
   [() => props.markdown, () => themeState.currentTheme?.type],
-  async () => {
+  async ([newMarkdown, newThemeType], [oldMarkdown, oldThemeType]) => {
+    console.log('[VditorPreview] Watch triggered', {
+      markdownChanged: newMarkdown !== oldMarkdown,
+      themeChanged: newThemeType !== oldThemeType,
+      hasMarkdown: !!newMarkdown,
+      markdownLength: newMarkdown?.length,
+      isMounted: isMounted.value
+    })
     if (!props.markdown || !props.markdown.trim()) {
+      console.log('[VditorPreview] Watch: markdown is empty, clearing')
       isRendering.value = false
       if (containerRef.value) {
         // 移除事件监听器
@@ -219,21 +255,32 @@ watch(
       return
     }
     // 等待DOM更新完成
+    console.log('[VditorPreview] Watch: waiting for DOM updates...')
     await nextTick()
     await new Promise((resolve) => requestAnimationFrame(resolve))
     await nextTick()
+    console.log('[VditorPreview] Watch: calling debouncedRenderMarkdown')
     debouncedRenderMarkdown()
   },
   { immediate: false }
 )
 
 onMounted(async () => {
+  console.log('[VditorPreview] onMounted', {
+    isMounted: isMounted.value,
+    hasMarkdown: !!props.markdown,
+    markdownLength: props.markdown?.length
+  })
   // 等待DOM完全挂载
   await nextTick()
   await new Promise((resolve) => requestAnimationFrame(resolve))
   await nextTick()
+  console.log('[VditorPreview] onMounted: DOM ready, hasContainer:', !!containerRef.value)
   if (props.markdown && props.markdown.trim()) {
+    console.log('[VditorPreview] onMounted: calling debouncedRenderMarkdown')
     debouncedRenderMarkdown()
+  } else {
+    console.log('[VditorPreview] onMounted: no markdown to render')
   }
 })
 

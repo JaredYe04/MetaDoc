@@ -1,18 +1,16 @@
-<script lang="ts" setup>
-import { ref, computed } from 'vue'
-import { useForwardPropsEmits } from 'reka-ui'
+<script setup lang="ts">
+import { computed } from 'vue'
 import {
   ColorPickerRoot,
   ColorPickerCanvas,
   ColorPickerSliderHue,
   ColorPickerSliderAlpha,
-  ColorPickerInputHex,
-  type ColorPickerRootProps,
-  type ColorPickerRootEmits
+  ColorPickerInputHex
 } from '@vuelor/picker'
 import '@vuelor/picker/style.css'
 
-interface Props extends Omit<ColorPickerRootProps, 'styling' | 'ui'> {
+interface Props {
+  modelValue?: string
   predefine?: string[]
   size?: 'large' | 'default' | 'small'
   showAlpha?: boolean
@@ -25,20 +23,28 @@ const props = withDefaults(defineProps<Props>(), {
   showAlpha: false
 })
 
-const emits = defineEmits<ColorPickerRootEmits>()
+const emits = defineEmits<{
+  'update:modelValue': [value: string]
+  change: [value: string]
+}>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+// 使用 computed 处理 v-model
+const colorValue = computed({
+  get: () => props.modelValue,
+  set: (val) => {
+    emits('update:modelValue', val)
+    emits('change', val)
+  }
+})
 
-// Handle predefined color click
+// 处理预定义颜色点击
 const handlePredefineClick = (color: string) => {
-  // Update the model value directly
-  emits('update:modelValue', color)
-  emits('change', color)
+  colorValue.value = color
 }
 </script>
 
 <template>
-  <ColorPickerRoot v-bind="forwarded" styling="vanillacss" :ui="{ input: { label: 'hidden' } }">
+  <ColorPickerRoot v-model="colorValue" styling="vanillacss" :ui="{ input: { label: 'hidden' } }">
     <div class="flex flex-col gap-3">
       <ColorPickerCanvas class="w-[200px] h-[150px] rounded-md" />
 
@@ -49,7 +55,7 @@ const handlePredefineClick = (color: string) => {
 
       <ColorPickerInputHex class="w-full" />
 
-      <!-- Predefined Colors -->
+      <!-- 预定义颜色 -->
       <div v-if="predefine.length > 0" class="flex flex-col gap-2">
         <div class="h-px bg-border" />
         <div class="flex flex-wrap gap-1.5">
@@ -68,7 +74,7 @@ const handlePredefineClick = (color: string) => {
 </template>
 
 <style scoped>
-/* Override vuelor picker styles to match shadcn theme */
+/* Override vuelor picker styles */
 :deep([data-vuelor]) {
   --vuelor-primary: hsl(var(--primary));
   --vuelor-surface: hsl(var(--background));

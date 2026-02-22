@@ -88,3 +88,137 @@ renderer/src/
 - `workspace.ts` (1847 lines) — oversized Pinia store; avoid adding more actions without discussion
 - `utils/` has 93 files at one level — flat structure makes discovery hard; prefer subfolders
 - Many utils are JS (`md-utils.js`, `llm-api.js`, `event-bus.js`) — new code should be TypeScript
+
+---
+
+## Notification System
+
+### Overview
+
+Unified notification system based on **shadcn-vue Sonner** + **Pinia** + **localStorage**.
+
+**Design principle**: All notifications display as top-right Toast AND enter history queue.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Notification Architecture                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Business Code                                                          │
+│        │                                                                 │
+│        ├─► notify.success('message') ──────┐                            │
+│        ├─► notifyError('message') ─────────┤                            │
+│        ├─► store.success('message') ───────┼────►┌─────────────────┐     │
+│        └─► eventBus.emit('show-success') ──┘    │  Pinia Store      │     │
+│                                                   │  stores/notify    │     │
+│                                                   │                   │     │
+│                                                   │  • notifications[]│     │
+│                                                   │  • localStorage   │     │
+│                                                   └─────────┬─────────┘     │
+│                                                             │               │
+│                                    ┌────────────────────────┼───────────┐   │
+│                                    ▼                        ▼           ▼   │
+│                             ┌─────────────┐        ┌──────────────┐  ┌──────┐│
+│                             │ Sonner      │        │ Notification │  │Event ││
+│                             │ (top-right) │        │ Queue        │  │Bus   ││
+│                             │ Toast       │        │ (bottom panel)│  │compat││
+│                             └─────────────┘        └──────────────┘  └──────┘│
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Quick Reference
+
+```typescript
+// Component usage
+import { notify, notifySuccess, notifyError, notifyWarning, notifyInfo } from '@/utils/notify'
+import { useNotificationStore } from '@/stores/notification'
+
+// Quick notify (top-right toast + history queue)
+notifySuccess('Saved successfully')
+notifyError('Save failed', { duration: 5000 })
+notifyWarning('Please check input')
+notifyInfo('Background task started')
+
+// Full options
+notify({
+  message: 'File exported',
+  type: 'success',
+  title: 'Export',
+  duration: 4000,
+  showToast: true,
+  addToQueue: true,
+  action: {
+    label: 'Open',
+    onClick: () => openFile(path)
+  }
+})
+
+// Store access (for history queue)
+const store = useNotificationStore()
+store.notifications      // All notifications
+store.unreadCount        // Unread count
+store.markAllAsRead()    // Mark all as read
+store.remove(id)         // Remove notification
+```
+
+### File Locations
+
+| Module | Location | Purpose |
+|--------|----------|---------|
+| Types | `types/notification.ts` | TypeScript interfaces |
+| Store | `stores/notification.ts` | Pinia store + localStorage |
+| API | `utils/notify.ts` | Unified notify functions |
+| Legacy | `utils/notifications-legacy.ts` | EventBus compatibility layer |
+| UI | `components/NotificationQueue.vue` | History panel |
+| Toast | `App.vue` | Global Toaster component |
+
+### Migration from Old System
+
+**Old (ElMessage)**:
+```typescript
+import { ElMessage } from 'element-plus'
+ElMessage.success(t('setting.saveSuccess'))
+```
+
+**New (notify)**:
+```typescript
+import { notifySuccess } from '@/utils/notify'
+notifySuccess(t('setting.saveSuccess'))
+```
+
+**Old (EventBus)**:
+```typescript
+eventBus.emit('show-success', { message: 'Done' })
+```
+
+**New**: EventBus still works (compatibility layer auto-forwards to new system)
+
+### Architecture Decisions
+
+1. **Single source of truth**: All notifications go through Pinia store
+2. **Dual display**: Every notification shows as Toast + enters history
+3. **Persistent history**: 7-day retention in localStorage
+4. **Backward compatible**: EventBus events auto-forward to new system
+5. **Theme adaptive**: Sonner uses CSS variables from theme system
+
+### Priority Files for Migration
+
+```
+P0 (Critical):
+  - Main.vue (ElNotification handlers)
+  - Setting*.vue (10 files)
+
+P1 (High):
+  - Editor.vue
+  - MarkdownEditor.vue
+  - LaTeXEditor.vue
+  - PlainTextEditor.vue
+
+P2 (Medium):
+  - AgentView.vue
+  - ReferenceManager.vue
+  - WorkflowManager.vue
+
+P3 (Low):
+  - Other 40+ views
+```

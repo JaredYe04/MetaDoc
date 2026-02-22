@@ -86,14 +86,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import {
-  useNotificationStack,
-  markAllNotificationsRead,
-  markNotificationRead,
-  removeNotification,
-  clearNotifications,
-  initializeNotificationListeners
-} from '../utils/notifications'
+import { useNotificationStore } from '../stores/notification'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
@@ -104,11 +97,11 @@ import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from '../utils/logger.ts'
 
 const { t } = useI18n()
-initializeNotificationListeners(t)
+const notificationStore = useNotificationStore()
+const { notifications, unreadCount } = notificationStore
 
 const visible = ref(false)
 const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
-const { notifications, unreadCount } = useNotificationStack()
 const logger = createRendererLogger('NotificationQueue', {
   windowTypeProvider: () => getWindowType()
 })
@@ -177,19 +170,19 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 function handleMarkAllRead() {
-  markAllNotificationsRead()
+  notificationStore.markAllAsRead()
 }
 
 function handleClear() {
-  clearNotifications()
+  notificationStore.removeAll()
 }
 
 function handleRead(id: string) {
-  markNotificationRead(id)
+  notificationStore.markAsRead(id)
 }
 
 function handleRemove(id: string) {
-  removeNotification(id)
+  notificationStore.remove(id)
 }
 
 function formatTimestamp(timestamp: number): string {

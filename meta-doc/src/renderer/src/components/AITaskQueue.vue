@@ -19,9 +19,9 @@
   >
     <div class="queue-wrapper" :style="wrapperStyle">
       <div class="queue-header">
-        <el-tooltip :content="t('aiTaskQueue.switchWarning')" placement="right">
+        <Tooltip :content="t('aiTaskQueue.switchWarning')" placement="right">
           <h3>{{ t('aiTaskQueue.title') }}</h3>
-        </el-tooltip>
+        </Tooltip>
         <div class="header-actions">
           <Switch
             :checked="settings.autoCompletion"
@@ -88,6 +88,7 @@ import { aiCompletionService } from '../utils/ai-completion-service'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Switch } from '@renderer/components/ui/switch'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 const logger = createRendererLogger('AITaskQueue', {

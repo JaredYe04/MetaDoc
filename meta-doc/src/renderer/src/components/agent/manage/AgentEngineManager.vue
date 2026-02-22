@@ -166,7 +166,7 @@
           </FormField>
         </template>
         <template v-if="formData.engineType === 'autogpt'">
-          <el-divider />
+          <Divider />
           <FormField :label="t('agent.manage.agentEngine.maxIterations')" name="maxIterations">
             <NumberField
               v-model="formData.engineConfig.maxIterations"
@@ -197,7 +197,7 @@
           </FormField>
         </template>
         <template v-if="formData.engineType === 'react'">
-          <el-divider />
+          <Divider />
           <FormField :label="t('agent.manage.agentEngine.thinkingDepth')" name="thinkingDepth">
             <NumberField
               v-model="formData.engineConfig.thinkingDepth"
@@ -258,6 +258,7 @@ import {
   NumberFieldDecrement,
   NumberFieldContent
 } from '@renderer/components/ui/number-field'
+import { Divider } from '@renderer/components/ui/separator'
 
 const { t } = useI18n()
 

@@ -32,25 +32,10 @@
         <!-- 主题信息 -->
         <div class="theme-card__info">
           <div class="theme-card__name">{{ theme.name }}</div>
-          <div v-if="theme.type === 'custom' && !theme.isDefault" class="theme-card__color-wrapper">
-            <div class="theme-card__color" :style="{ color: getEditingColor(theme) }">
-              {{ getEditingColor(theme) }}
+          <div v-if="theme.type === 'custom'" class="theme-card__color-wrapper">
+            <div class="theme-card__color" :style="{ color: theme.themeColor }">
+              {{ theme.themeColor }}
             </div>
-            <!-- 颜色选择器（仅用户自定义主题，不包括预设主题） -->
-            <ColorPicker
-              v-model="editingColorMap[theme.id]"
-              :predefine="predefineColors"
-              size="small"
-              @change="(val: string) => handleColorPickerChange(theme, val)"
-              @visible-change="(visible: boolean) => handleColorPickerVisibleChange(theme, visible)"
-            />
-          </div>
-          <div
-            v-else-if="theme.type === 'custom' && theme.isDefault"
-            class="theme-card__color"
-            :style="{ color: theme.themeColor }"
-          >
-            {{ theme.themeColor }}
           </div>
           <div
             v-else-if="theme.type === 'sync-color'"

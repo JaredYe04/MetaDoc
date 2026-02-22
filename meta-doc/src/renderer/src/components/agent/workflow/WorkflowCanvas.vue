@@ -47,7 +47,7 @@
           </Button>
         </div>
 
-        <el-divider v-if="!props.readOnly" direction="vertical" style="margin: 0 8px" />
+        <Divider v-if="!props.readOnly" orientation="vertical" class="mx-2" />
 
         <!-- 节点创建按钮（支持拖拽） -->
         <div v-if="!props.readOnly" class="node-toolbar">
@@ -211,7 +211,7 @@
           </Button>
         </div>
 
-        <el-divider direction="vertical" style="margin: 0 8px" />
+        <Divider orientation="vertical" class="mx-2" />
 
         <!-- 缩放控制 -->
         <div class="flex items-center gap-0">
@@ -238,7 +238,7 @@
           </Button>
         </div>
 
-        <el-divider direction="vertical" style="margin: 0 8px" />
+        <Divider orientation="vertical" class="mx-2" />
 
         <Button size="sm" @click="handleValidate">{{
           t('agent.workflow.validate')
@@ -383,6 +383,7 @@ import {
 } from '@renderer/components/ui/dropdown-menu'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { Badge } from '@renderer/components/ui/badge'
+import { Divider } from '@renderer/components/ui/separator'
 import { themeState } from '../../../utils/themes'
 import { workflowManager, agentConfigManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'

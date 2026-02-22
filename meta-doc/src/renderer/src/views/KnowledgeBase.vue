@@ -124,7 +124,7 @@
             >
               <CardContent class="kb-card-content">
                 <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
-                <el-form-item :label="$t('setting.knowledgeBaseScoreThreshold')">
+                <FormItem :label="$t('setting.knowledgeBaseScoreThreshold')">
                   <div class="flex items-center gap-4" style="margin-bottom: 5px">
                     <Slider
                       :model-value="settings.knowledgeBaseScoreThreshold"
@@ -165,7 +165,7 @@
                     <span class="text-primary">{{ $t('setting.recommended') }} (0.5)</span>
                     <span>{{ $t('setting.highPrecision') }} (0.8)</span>
                   </div>
-                </el-form-item>
+                </FormItem>
                 <Input
                   v-model="searchQuery"
                   :placeholder="t('knowledgeBase.searchTest.placeholder')"
@@ -412,6 +412,7 @@ import {
 } from '@renderer/components/ui/table'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
+import { FormItem } from '@renderer/components/ui/form'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'

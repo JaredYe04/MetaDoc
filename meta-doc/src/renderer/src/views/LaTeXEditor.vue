@@ -153,7 +153,7 @@
                     </TooltipContent>
                   </Tooltip>
 
-                  <el-divider direction="vertical"></el-divider>
+                  <Divider direction="vertical" />
 
                   <Tooltip>
                     <TooltipTrigger as-child>
@@ -262,6 +262,7 @@ import {
 import { ElButton, ElLoading, ElScrollbar } from 'element-plus'
 import { Icon } from 'tdesign-icons-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Divider } from '@renderer/components/ui/separator'
 
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'

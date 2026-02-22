@@ -52,7 +52,7 @@
 
       <!-- 正常状态：显示操作按钮 -->
       <template v-else>
-        <el-tooltip :content="$t('outline.expandContent')" placement="top">
+        <Tooltip :content="$t('outline.expandContent')" placement="top">
           <Button
             type="primary"
             size="small"
@@ -64,8 +64,8 @@
               <EditPen />
             </el-icon>
           </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.abridge')" placement="top">
+        </Tooltip>
+        <Tooltip :content="$t('outline.abridge')" placement="top">
           <Button
             type="warning"
             size="small"
@@ -77,14 +77,14 @@
               <Minus />
             </el-icon>
           </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.polish')" placement="top">
+        </Tooltip>
+        <Tooltip :content="$t('outline.polish')" placement="top">
           <Button type="info" size="small" circle @click="handlePolish" :disabled="isGenerating">
             <el-icon>
               <Star />
             </el-icon>
           </Button>
-        </el-tooltip>
+        </Tooltip>
       </template>
     </div>
   </div>
@@ -93,7 +93,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElTooltip, ElIcon } from 'element-plus'
+import { ElIcon } from 'element-plus'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { CloseBold, Check, Close, EditPen, Minus, Star } from '@element-plus/icons-vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Button } from '@renderer/components/ui/button'

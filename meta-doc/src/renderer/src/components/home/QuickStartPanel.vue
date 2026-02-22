@@ -99,18 +99,18 @@
               />
             </div>
             <div class="form-actions">
-              <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
+              <Tooltip :content="$t('home.tooltip.ready')" placement="top">
                 <Button circle type="success" @click="confirmDocument"
                   >
                   <Check class="w-4 h-4" />
                 ></Button>
-              </el-tooltip>
+              </Tooltip>
             </div>
           </div>
 
           <div v-else class="ai-assistant aero-div">
             <label class="section-title interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
+            <Tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
               <Slider
                 v-model="temperature"
                 :min="0"
@@ -118,8 +118,8 @@
                 :disabled="generated || generating"
                 class="temperature-slider-wrapper"
               />
-            </el-tooltip>
-            <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
+            </Tooltip>
+            <Tooltip :content="$t('home.tooltip.selectMood')" placement="left">
               <Select v-model="mood" multiple :disabled="generated || generating">
                 <SelectTrigger class="h-8 text-sm">
                   <SelectValue :placeholder="$t('home.tooltip.selectMood')" />
@@ -133,8 +133,8 @@
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </el-tooltip>
-            <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
+            </Tooltip>
+            <Tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
               <Autocomplete
                 v-model="userPrompt"
                 :fetch-suggestions="querySearch"
@@ -143,7 +143,7 @@
                 :placeholder="$t('home.tooltip.inputPrompt')"
                 :disabled="generated || generating"
               />
-            </el-tooltip>
+            </Tooltip>
             <div class="suggestion-container aero-div">
               <label class="section-title interactive-text">{{ $t('home.suggestionLabel') }}</label>
               <div class="suggestion-grid">
@@ -170,24 +170,24 @@
               </Button>
             </div>
             <div class="action-buttons" @mousedown.stop>
-              <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
+              <Tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
                 <Button circle type="primary" @click="generate" :disabled="disableGenerate"
                   >
                   <Send class="w-4 h-4" />
                 ></Button>
-              </el-tooltip>
-              <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
+              </Tooltip>
+              <Tooltip :content="$t('home.tooltip.reset')" placement="top">
                 <Button circle type="info" @click="reset" v-if="generated"
                   >
                   <Undo2 class="w-4 h-4" />
                 ></Button>
-              </el-tooltip>
-              <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
+              </Tooltip>
+              <Tooltip :content="$t('home.tooltip.accept')" placement="top">
                 <Button circle type="success" @click="accept" v-if="generated"
                   >
                   <Check class="w-4 h-4" />
                 ></Button>
-              </el-tooltip>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -237,6 +237,7 @@ import {
   CardContent,
 } from '@renderer/components/ui/card'
 import { Autocomplete } from '@renderer/components/ui/autocomplete'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'

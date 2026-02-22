@@ -44,7 +44,7 @@
     >
       <div class="result-header" :style="headerStyle">
         <div class="header-info">
-          <el-tag type="success" size="small">{{ displayData.chartType }}</el-tag>
+          <Badge type="success" size="small">{{ displayData.chartType }}</Badge>
           <span class="chart-name" :style="chartNameStyle">{{ displayData.chartName }}</span>
         </div>
         <div class="header-actions">
@@ -70,9 +70,9 @@
         </div>
         <!-- PDF 格式提示 -->
         <div v-if="displayData.svgUrl" class="pdf-format-hint">
-          <el-tag type="info" size="small">
+          <Badge type="info" size="small">
             {{ $t('agent.display.chartGeneration.pdfFormatHint', 'PDF 格式，显示对应的 SVG 预览') }}
-          </el-tag>
+          </Badge>
         </div>
       </div>
 
@@ -95,9 +95,9 @@
             {{ displayData.chartType }}
           </DescriptionsItem>
           <DescriptionsItem :label="$t('agent.display.chartGeneration.url')">
-            <el-link :href="displayData.url" target="_blank" type="primary">
+            <Link :href="displayData.url" target="_blank" type="primary">
               {{ displayData.url }}
-            </el-link>
+            </Link>
           </DescriptionsItem>
           <DescriptionsItem :label="$t('agent.display.chartGeneration.localPath')">
             {{ displayData.localPath }}
@@ -135,6 +135,8 @@ import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { Progress } from '@renderer/components/ui/progress'
 import { Empty } from '@renderer/components/ui/empty'
+import { Badge } from '@renderer/components/ui/badge'
+import { Link } from '@renderer/components/ui/link'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import {
   Collapsible,

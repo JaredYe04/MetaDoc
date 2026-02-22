@@ -87,7 +87,7 @@
         </div>
       </FormField>
 
-      <el-divider />
+      <Divider />
 
       <div class="logger-console">
         <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
@@ -118,6 +118,7 @@ import {
   SelectContent,
   SelectItem
 } from '@renderer/components/ui/select'
+import { Divider } from '@renderer/components/ui/separator'
 
 const { t } = useI18n()
 

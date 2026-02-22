@@ -55,13 +55,7 @@
               <div v-else class="file-list-item" :style="fileListItemStyle">
                 <el-icon class="file-icon"><Document /></el-icon>
                 <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
-                <Button
-                  type="danger"
-                  circle
-                  plain
-                  size="small"
-                  @click="handleFileRemove"
-                >
+                <Button type="danger" circle plain size="small" @click="handleFileRemove">
                   <el-icon><Delete /></el-icon>
                 </Button>
               </div>
@@ -89,7 +83,10 @@
                     <!-- 左侧70%：参数设置 -->
                     <div class="params-left-panel">
                       <Form class="centered-form">
-                        <FormField :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')" name="">
+                        <FormField
+                          :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')"
+                          name=""
+                        >
                           <NumberField
                             v-model="headerRowIndex"
                             :min="0"
@@ -115,14 +112,24 @@
                         </FormField>
 
                         <FormField :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')" name="">
-                          <Switch :checked="analysisParams.autoGroupBy" @update:checked="analysisParams.autoGroupBy = $event" />
+                          <Switch
+                            :checked="analysisParams.autoGroupBy"
+                            @update:checked="analysisParams.autoGroupBy = $event"
+                          />
                         </FormField>
 
                         <FormField :label="t('dataAnalysis.generateReport', '生成AI报告')" name="">
-                          <Switch :checked="analysisParams.generateReport" @update:checked="analysisParams.generateReport = $event" />
+                          <Switch
+                            :checked="analysisParams.generateReport"
+                            @update:checked="analysisParams.generateReport = $event"
+                          />
                         </FormField>
 
-                        <FormField v-if="analysisParams.generateReport" :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')" name="">
+                        <FormField
+                          v-if="analysisParams.generateReport"
+                          :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')"
+                          name=""
+                        >
                           <Textarea
                             v-model="analysisParams.analysisRequest"
                             :rows="2"
@@ -140,12 +147,9 @@
                       <div class="header-preview-title" :style="headerPreviewTitleStyle">
                         {{ t('dataAnalysis.currentHeader', '当前表头') }}
                       </div>
-                      <ScrollArea
-                        class="header-preview-scrollbar"
-                        v-if="headerPreview.length > 0"
-                      >
+                      <ScrollArea class="header-preview-scrollbar" v-if="headerPreview.length > 0">
                         <div class="header-preview-content">
-                          <el-tag
+                          <Badge
                             v-for="(header, index) in headerPreview"
                             :key="index"
                             size="small"
@@ -154,7 +158,7 @@
                             :style="headerTagStyle"
                           >
                             {{ header || `列${index + 1}` }}
-                          </el-tag>
+                          </Badge>
                         </div>
                       </ScrollArea>
                       <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
@@ -315,6 +319,15 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import { UploadFilled, Delete, Document, Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Form, FormField } from '@renderer/components/ui/form'
@@ -343,6 +356,7 @@ import { useWorkspace } from '../stores/workspace'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Switch } from '@renderer/components/ui/switch'
 import { Upload } from '@renderer/components/ui/upload'
+import { Badge } from '@renderer/components/ui/badge'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -1703,6 +1717,15 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    sessions.value = [
+      { id: 'demo-1', title: '销售数据分析', updatedAt: Date.now() },
+      { id: 'demo-2', title: '用户行为分析', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   loadSessions()
 
   if (activeTab.value === 'result' && reportMarkdown.value) {
@@ -1815,11 +1838,11 @@ onUnmounted(() => {
 }
 
 /* shadcn-vue Tabs styling */
-.main-tabs :deep([role="tablist"]) {
+.main-tabs :deep([role='tablist']) {
   flex-shrink: 0;
 }
 
-.main-tabs :deep([role="tabpanel"]) {
+.main-tabs :deep([role='tabpanel']) {
   flex: 1;
   overflow: hidden;
   display: flex;
@@ -1827,7 +1850,7 @@ onUnmounted(() => {
   min-height: 0;
 }
 
-.main-tabs :deep([role="tabpanel"][data-state="active"]) {
+.main-tabs :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
 }
 

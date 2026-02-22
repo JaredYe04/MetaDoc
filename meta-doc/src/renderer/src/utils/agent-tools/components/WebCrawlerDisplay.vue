@@ -33,9 +33,9 @@
           </div>
         </div>
         <div class="header-url" :style="urlStyle">
-          <el-link :href="resultData.url" target="_blank" type="primary">{{
+          <Link :href="resultData.url" target="_blank" type="primary">{{
             resultData.url
-          }}</el-link>
+          }}</Link>
         </div>
       </div>
 
@@ -165,6 +165,7 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
 import { XCircle } from 'lucide-vue-next'
+import { Link } from '@renderer/components/ui/link'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'

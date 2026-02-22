@@ -16,17 +16,11 @@
       <!-- Sonner Toast 全局组件 -->
       <Toaster
         position="bottom-right"
-        :expand="false"
+        :expand="true"
         :rich-colors="true"
         :close-button="true"
         :duration="4000"
-        :toast-options="{
-          style: {
-            background: themeState.currentTheme.background,
-            color: themeState.currentTheme.textColor,
-            border: `1px solid ${themeState.currentTheme.borderColor || '#e0e0e0'}`
-          }
-        }"
+        theme="system"
       />
     </div>
   </TooltipProvider>
@@ -823,4 +817,20 @@ a {
   z-index: 9999 !important;
 }
 
+/* ============================================
+   Dialog Overlay 修复 - 确保关闭后不拦截事件
+   ============================================ */
+
+/* 关闭状态的 Dialog overlay 不拦截事件 */
+.dialog-overlay[data-state='closed'],
+[data-radix-dialog-overlay][data-state='closed'] {
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* 确保 Dialog Portal 不会残留 */
+[data-radix-portal]:has(.dialog-overlay[data-state='closed']) {
+  display: none !important;
+}
 </style>

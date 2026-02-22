@@ -4,13 +4,14 @@
     <!-- AI 工具栏与格式化标题：通过子组件 + inject 使用 selectedAiTool，避免 Outline 因 selectedAiTool 变化而 re-render 导致树图位置重置 -->
     <OutlineAiToolbar />
 
-    <div class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
+    <div class="aero-div generate-preview" v-if="generating || pendingAccept || pendingBatchAccept" :style="{
       backgroundColor: themeState.currentTheme.background2nd, top: position.top + 'px',
       left: position.left + 'px',
     }" @mousedown.stop="startDrag">
-      <el-scrollbar class="generate-preview-scrollbar" :wrap-style="{ maxHeight: pendingAccept ? '60vh' : '70vh' }">
+      <el-scrollbar class="generate-preview-scrollbar" :wrap-style="{ maxHeight: (pendingAccept || pendingBatchAccept) ? '60vh' : '70vh' }">
         <div class="noselect-display">
-          <template v-if="generating">
+          <!-- 单任务：生成中 -->
+          <template v-if="generating && !parallelChildren.length">
             <h2>
               {{ $t('outline.generating') }}
               <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
@@ -30,13 +31,49 @@
             </h2>
             <div class="generate-preview-content">{{ rawstring }}</div>
           </template>
+          <!-- 批量任务：生成中，多块流式输出 -->
+          <template v-else-if="generating && parallelChildren.length">
+            <h2>
+              {{ $t('outline.generating') }}
+              <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
+                <el-button type="danger" plain class="aero-btn generate-preview-btn-square" @click.stop="cancelAllAiTasks">
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </h2>
+            <div class="batch-panels">
+              <div v-for="item in batchDisplayItems" :key="item.nodePath" class="batch-panel">
+                <div class="batch-panel-title">{{ item.nodeTitle }}</div>
+                <div class="generate-preview-content">{{ item.content }}</div>
+              </div>
+            </div>
+          </template>
+          <!-- 单任务：待接受/拒绝 -->
           <template v-else-if="pendingAccept">
             <h2>{{ $t('outline.previewResult') }}</h2>
             <div class="generate-preview-content">{{ rawstring }}</div>
           </template>
+          <!-- 批量任务：待接受/拒绝 -->
+          <template v-else-if="pendingBatchAccept">
+            <h2>{{ $t('outline.previewResult') }}</h2>
+            <div class="batch-panels">
+              <div v-for="(displayItem, idx) in batchPendingDisplayItems" :key="displayItem.nodePath" class="batch-panel" :class="{ 'batch-panel--rejected': displayItem.rejected }">
+                <div class="batch-panel-head">
+                  <span class="batch-panel-title">{{ displayItem.nodeTitle }}</span>
+                  <el-tooltip v-if="!displayItem.rejected" :content="$t('outline.reject')" placement="top">
+                    <el-button type="danger" size="small" class="aero-btn generate-preview-btn-square" @click.stop="pendingBatchAccept && batchRejectItem(pendingBatchAccept.items[idx])">
+                      <el-icon><Close /></el-icon>
+                    </el-button>
+                  </el-tooltip>
+                  <span v-else class="batch-panel-rejected-tag">{{ $t('outline.reject') }}</span>
+                </div>
+                <div class="generate-preview-content">{{ displayItem.content }}</div>
+              </div>
+            </div>
+          </template>
         </div>
       </el-scrollbar>
-      <!-- 接受/拒绝固定在弹窗底部，与取消按钮一致为圆角正方形 -->
+      <!-- 单任务：接受/拒绝 -->
       <div v-if="pendingAccept" class="generate-preview-actions">
         <el-tooltip :content="$t('outline.accept')" placement="top">
           <el-button type="success" class="aero-btn generate-preview-btn-square" @click.stop="acceptChange">
@@ -49,6 +86,17 @@
             <el-icon v-if="!generateChildChapterLoading"><Close /></el-icon>
           </el-button>
         </el-tooltip>
+      </div>
+      <!-- 批量任务：接受全部 / 拒绝全部 -->
+      <div v-if="pendingBatchAccept" class="generate-preview-actions generate-preview-actions--batch">
+        <el-button type="success" class="aero-btn generate-preview-btn-with-label" @click.stop="batchAcceptAll">
+          <el-icon><Check /></el-icon>
+          <span>{{ $t('outline.acceptAll') }}</span>
+        </el-button>
+        <el-button type="danger" class="aero-btn generate-preview-btn-with-label" @click.stop="batchRejectAll">
+          <el-icon><Close /></el-icon>
+          <span>{{ $t('outline.rejectAll') }}</span>
+        </el-button>
       </div>
     </div>
 
@@ -380,6 +428,22 @@ import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
 import { getSetting, setSetting } from '../utils/settings.js'
 import { createRendererLogger } from '../utils/logger.ts'
 
+/** 批量生成时单个任务的结果项，用于接受/拒绝 */
+interface BatchAcceptItem {
+  nodePath: string
+  nodeTitle: string
+  rawContentRef: Ref<string>
+  backupChildren?: DocumentOutlineNode[]
+  backupText?: string
+  rejected?: boolean
+}
+/** 批量生成待确认状态 */
+interface BatchAcceptState {
+  type: 'children' | 'content'
+  rootPath: string
+  items: BatchAcceptItem[]
+}
+
 const { t } = useI18n()
 const logger = createRendererLogger('Outline', {
   windowTypeProvider: () => getWindowType()
@@ -486,16 +550,43 @@ const generateContentLoading = ref(false)
 const generateChildrenContentLoading = ref(false)
 const generateChildrenChildrenLoading = ref(false)
 const parallelChildren = ref<Array<Ref<string>>>([]) // 用于存储并行生成的子节点
+const batchItemsRef = ref<BatchAcceptItem[]>([]) // 批量任务项（含 backup、rawContentRef），用于接受/拒绝
 const userPrompt = ref('') // 用户输入的提示词
-//const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
+
+const batchDisplayItems = computed(() =>
+  batchItemsRef.value.map((item) => ({ ...item, content: item.rawContentRef?.value ?? '' }))
+)
+const batchPendingDisplayItems = computed(() =>
+  pendingBatchAccept.value?.items.map((item) => ({ ...item, content: item.rawContentRef?.value ?? '' })) ?? []
+)
+
+function collectLeaves(node: DocumentOutlineNode, out: DocumentOutlineNode[]): void {
+  if (!node) return
+  if (!node.children?.length) {
+    if (node.path !== 'dummy') out.push(node)
+    return
+  }
+  for (const c of node.children) collectLeaves(c, out)
+}
+
+function collectAllNodes(node: DocumentOutlineNode, out: DocumentOutlineNode[]): void {
+  if (!node || node.path === 'dummy') {
+    if (node?.children) for (const c of node.children) collectAllNodes(c, out)
+    return
+  }
+  out.push(node)
+  if (node.children) for (const c of node.children) collectAllNodes(c, out)
+}
+
 const generateChildrenChildren = async () => {
-  // 暂停文档同步，避免并发写入时 treeData 被替换导致后续引用失效
   workspace.lockUI?.()
   const prevSync = suppressDocumentSync
   suppressDocumentSync = true
   const node = selectedNode.value
   generating.value = true
   generateChildrenChildrenLoading.value = true
+  parallelChildren.value = []
+  batchItemsRef.value = []
 
   const rootNode = node ? searchNode(node.path, treeData.value) : null
   if (!rootNode) {
@@ -505,51 +596,64 @@ const generateChildrenChildren = async () => {
     workspace.unlockUI?.()
     return
   }
-  parallelChildren.value = [];
 
-  // 构建增强的用户提示词
+  const leaves: DocumentOutlineNode[] = []
+  collectLeaves(rootNode, leaves)
+  const backupMap = new Map<string, { backupChildren: DocumentOutlineNode[] }>()
+  for (const leaf of leaves) {
+    backupMap.set(leaf.path, { backupChildren: cloneOutline(leaf).children || [] })
+  }
+
   let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
   const kwStr = getKeywordsPromptString()
   if (kwStr) enhancedPrompt += `\n关键词：${kwStr}`
 
   try {
-    // 使用公共工具函数
     await generateChildrenChildrenUtil(
       rootNode,
       treeData.value,
       enhancedPrompt,
       (activeDocument.value?.format ?? 'md') as 'md' | 'tex',
-      undefined, // signal
+      undefined,
       (curNode, nodeRawContentRef) => {
-        // 为每个节点创建一个独立的ref用于显示原始内容
-        parallelChildren.value.push(nodeRawContentRef);
+        parallelChildren.value.push(nodeRawContentRef)
+        batchItemsRef.value.push({
+          nodePath: curNode.path,
+          nodeTitle: curNode.title || curNode.path,
+          rawContentRef: nodeRawContentRef,
+          backupChildren: backupMap.get(curNode.path)?.backupChildren ?? []
+        })
       },
-      undefined, // onUpdate
-      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined // 传递温度参数
-    );
-    
-    eventBus.emit('show-success', t('outline.generateChildSuccess'));
+      undefined,
+      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined
+    )
+    if (commitOutlineTimer) {
+      clearTimeout(commitOutlineTimer)
+      commitOutlineTimer = null
+    }
+    pendingBatchAccept.value = { type: 'children', rootPath: rootNode.path, items: [...batchItemsRef.value] }
+    eventBus.emit('show-success', t('outline.generateChildSuccess'))
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     eventBus.emit('show-error', t('outline.generateChildFail', { error: message }))
   } finally {
     generateChildrenChildrenLoading.value = false
     generating.value = false
-    // 恢复同步并统一提交一次，确保所有并发结果都写入
     suppressDocumentSync = prevSync
-    commitOutline()
+    if (!pendingBatchAccept.value) commitOutline()
     workspace.unlockUI?.()
   }
 }
 
 const generateChildrenContent = async () => {
-  // 暂停文档同步，避免并发写入期间 treeData 被替换
   workspace.lockUI?.()
   const prevSync = suppressDocumentSync
   suppressDocumentSync = true
   const node = selectedNode.value
   generating.value = true
   generateChildrenContentLoading.value = true
+  parallelChildren.value = []
+  batchItemsRef.value = []
 
   const rootNode = node ? searchNode(node.path, treeData.value) : null
   if (!rootNode) {
@@ -559,47 +663,57 @@ const generateChildrenContent = async () => {
     workspace.unlockUI?.()
     return
   }
-  parallelChildren.value = []; // 清空并行生成列表
 
-  // 构建增强的用户提示词
+  const nodes: DocumentOutlineNode[] = []
+  collectAllNodes(rootNode, nodes)
+  const backupMap = new Map<string, { backupText: string }>()
+  for (const n of nodes) {
+    backupMap.set(n.path, { backupText: n.text ?? '' })
+  }
+
   let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
   const kwStr = getKeywordsPromptString()
   if (kwStr) enhancedPrompt += `\n关键词：${kwStr}`
-  if (aiConfig.wordCount) {
-    enhancedPrompt += `\n目标字数：约${aiConfig.wordCount}字`
-  }
+  if (aiConfig.wordCount) enhancedPrompt += `\n目标字数：约${aiConfig.wordCount}字`
 
   try {
-    // 使用公共工具函数
     await generateChildrenContentUtil(
       rootNode,
       treeData.value,
       enhancedPrompt,
       (activeDocument.value?.format ?? 'md') as 'md' | 'tex',
-      undefined, // signal
+      undefined,
       (curNode, nodeRawContentRef) => {
-        // 为每个节点创建一个独立的ref用于显示原始内容
-        parallelChildren.value.push(nodeRawContentRef);
+        parallelChildren.value.push(nodeRawContentRef)
+        batchItemsRef.value.push({
+          nodePath: curNode.path,
+          nodeTitle: curNode.title || curNode.path,
+          rawContentRef: nodeRawContentRef,
+          backupText: backupMap.get(curNode.path)?.backupText ?? ''
+        })
       },
-      undefined, // onUpdate
-      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined, // 传递温度参数
-      aiConfig.wordCount !== undefined ? aiConfig.wordCount : undefined // 传递字数参数
-    );
-
-    generating.value = false;
-    generateChildrenContentLoading.value = false;
-    generated.value = true;
+      undefined,
+      aiConfig.temperature !== undefined ? aiConfig.temperature : undefined,
+      aiConfig.wordCount !== undefined ? aiConfig.wordCount : undefined
+    )
+    if (commitOutlineTimer) {
+      clearTimeout(commitOutlineTimer)
+      commitOutlineTimer = null
+    }
+    pendingBatchAccept.value = { type: 'content', rootPath: rootNode.path, items: [...batchItemsRef.value] }
+    generated.value = true
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error('批量生成内容失败:', e);
-    eventBus.emit('show-error', t('outline.generateContentFail', { error: message }));
+    const message = e instanceof Error ? e.message : String(e)
+    logger.error('批量生成内容失败:', e)
+    eventBus.emit('show-error', t('outline.generateContentFail', { error: message }))
   } finally {
-    // 恢复同步并统一提交一次
-    suppressDocumentSync = prevSync;
-    commitOutline();
-    workspace.unlockUI?.();
+    generating.value = false
+    generateChildrenContentLoading.value = false
+    suppressDocumentSync = prevSync
+    if (!pendingBatchAccept.value) commitOutline()
+    workspace.unlockUI?.()
   }
-};
+}
 
 const generateContent = async () => {
   workspace.lockUI?.()
@@ -651,6 +765,10 @@ const generateContent = async () => {
       curNode.children = []
     }
   } finally {
+    if (commitOutlineTimer) {
+      clearTimeout(commitOutlineTimer)
+      commitOutlineTimer = null
+    }
     pendingAccept.value = true
     generateContentLoading.value = false
     generating.value = false
@@ -1345,6 +1463,8 @@ watch(
   treeData,
   () => {
     if (suppressDocumentSync) return
+    // 等待用户接受/拒绝时不要自动提交，避免“点拒绝后内容仍被应用”
+    if (pendingAccept.value || pendingBatchAccept.value) return
     // 清除之前的定时器
     if (commitOutlineTimer) {
       clearTimeout(commitOutlineTimer)
@@ -1904,6 +2024,7 @@ const deleteNode = () => {
 }
 const generateChildChapterLoading = ref(false)
 const pendingAccept = ref(false)
+const pendingBatchAccept = ref<BatchAcceptState | null>(null)
 const backupChildren = ref<DocumentOutlineNode[] | null>(null)
 const backupContent = ref<string>('')
 const generateChildChapter = async () => {
@@ -1987,6 +2108,7 @@ const acceptChange = () => {
   backupContent.value = ''
   rawstring.value = ''
   pendingAccept.value = false
+  commitOutline()
 }
 const discardChange = () => {
   const node = selectedNode.value
@@ -2000,8 +2122,58 @@ const discardChange = () => {
   if (backupContent.value) {
     curNode.text = backupContent.value
     backupContent.value = ''
+    syncChildrenFromNodeText(curNode)
   }
   pendingAccept.value = false
+  commitOutline()
+}
+
+function batchAcceptAll() {
+  if (!pendingBatchAccept.value) return
+  pendingBatchAccept.value = null
+  batchItemsRef.value = []
+  parallelChildren.value = []
+  commitOutline()
+}
+
+function batchRejectAll() {
+  const state = pendingBatchAccept.value
+  if (!state) return
+  for (const item of state.items) {
+    if (item.rejected) continue
+    const curNode = searchNode(item.nodePath, treeData.value)
+    if (!curNode) continue
+    if (state.type === 'children' && Array.isArray(item.backupChildren)) {
+      curNode.children = [...item.backupChildren]
+      const parent = searchParentNode(item.nodePath, treeData.value)
+      if (parent) reindexChildrenPaths(parent)
+    }
+    if (state.type === 'content' && item.backupText !== undefined) {
+      curNode.text = item.backupText
+      syncChildrenFromNodeText(curNode)
+    }
+  }
+  pendingBatchAccept.value = null
+  batchItemsRef.value = []
+  parallelChildren.value = []
+  commitOutline()
+}
+
+function batchRejectItem(item: BatchAcceptItem) {
+  const state = pendingBatchAccept.value
+  if (!state) return
+  const curNode = searchNode(item.nodePath, treeData.value)
+  if (!curNode) return
+  if (state.type === 'children' && Array.isArray(item.backupChildren)) {
+    curNode.children = [...item.backupChildren]
+    const parent = searchParentNode(item.nodePath, treeData.value)
+    if (parent) reindexChildrenPaths(parent)
+  }
+  if (state.type === 'content' && item.backupText !== undefined) {
+    curNode.text = item.backupText
+    syncChildrenFromNodeText(curNode)
+  }
+  item.rejected = true
 }
 
 // 处理窗口大小改变，重新检查文本截断状态
@@ -2664,6 +2836,69 @@ onUnmounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   padding: 8px 0;
+}
+
+.batch-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.batch-panel {
+  border-radius: 10px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.batch-panel--rejected {
+  opacity: 0.6;
+  border-color: rgba(245, 108, 108, 0.4);
+}
+
+.batch-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.batch-panel-title {
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-panel-rejected-tag {
+  font-size: 12px;
+  color: var(--el-color-danger);
+}
+
+.batch-panel .generate-preview-content {
+  padding: 4px 0;
+  font-size: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.generate-preview-actions--batch {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.generate-preview-actions--batch .generate-preview-btn-with-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  height: auto;
+  min-width: auto;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 /* 配置提示文字 */

@@ -2,106 +2,156 @@
   <ResizablePanel
     ref="panelRef"
     :visible="visible"
-    :initial-width="360"
-    :initial-height="320"
-    :min-width="260"
-    :min-height="220"
+    :initial-width="380"
+    :initial-height="400"
+    :min-width="320"
+    :min-height="300"
     :max-width="maxWidth"
     :max-height="maxHeight"
-    :background-color="themeState.currentTheme.background"
     position="fixed"
-    :bottom="30"
+    :bottom="70"
     :right="16"
     :enable-top-resize="true"
     :enable-left-resize="true"
-    :content-padding="10"
+    :content-padding="0"
     @resize="onResize"
   >
-    <div class="queue-wrapper" :style="wrapperStyle">
-      <div class="queue-header">
-        <h3>{{ t('notificationQueue.title') }}</h3>
-        <div class="header-actions">
-          <!-- <Button
-          size="small"
-          type="primary"
-          variant="ghost"
-          @click="handleMarkAllRead"
-          :disabled="unreadCount === 0"
-        >
-          {{ t('notificationQueue.markAllRead') }}
-        </Button> -->
+    <Card class="h-full flex flex-col border shadow-lg">
+      <!-- Header -->
+      <CardHeader class="flex flex-row items-center justify-between py-3 px-4 border-b">
+        <CardTitle class="text-base font-semibold flex items-center gap-2">
+          <Bell class="h-4 w-4" />
+          {{ t('notificationQueue.title') }}
+          <Badge v-if="unreadCount > 0" variant="secondary" class="ml-1">
+            {{ unreadCount }}
+          </Badge>
+        </CardTitle>
+        <div class="flex items-center gap-1">
+          <Button
+            v-if="unreadCount > 0"
+            variant="ghost"
+            size="sm"
+            class="h-8 px-2 text-xs"
+            @click="handleMarkAllRead"
+          >
+            <Check class="h-3.5 w-3.5 mr-1" />
+            {{ t('notificationQueue.markAllRead') }}
+          </Button>
           <Tooltip>
             <TooltipTrigger as-child>
-              <Button size="small" type="danger" circle plain @click="handleClear">
-                <el-icon><Minus /></el-icon>
+              <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleClear">
+                <Trash2 class="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">
+            <TooltipContent>
               <p>{{ t('notificationQueue.clear') }}</p>
             </TooltipContent>
           </Tooltip>
         </div>
-      </div>
+      </CardHeader>
 
-      <ScrollArea class="flex-1 w-full overflow-auto">
-        <div v-if="notifications.length === 0" class="empty-state">
-          {{ t('notificationQueue.empty') }}
-        </div>
-        <div
-          v-for="item in notifications"
-          :key="item.id"
-          class="notification-item"
-          :class="['type-' + (item.type || 'info'), { unread: !item.read }]"
-        >
-          <div class="item-header">
-            <div class="item-header-left">
-              <span class="status-dot" :class="'type-' + (item.type || 'info')" />
-              <span class="item-title">{{ item.title }}</span>
-            </div>
-            <span class="item-time">{{ formatTimestamp(item.timestamp) }}</span>
+      <!-- Content -->
+      <CardContent class="flex-1 p-0 overflow-hidden">
+        <ScrollArea class="h-full">
+          <div v-if="notifications.length === 0" class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Inbox class="h-12 w-12 mb-3 opacity-40" />
+            <p class="text-sm">{{ t('notificationQueue.empty') }}</p>
           </div>
-          <div class="item-message">
-            {{ item.message }}
-          </div>
-          <div class="item-actions">
-            <Button
-              v-if="!item.read"
-              size="small"
-              variant="ghost"
-              type="primary"
-              @click.stop="handleRead(item.id)"
+          
+          <div class="p-2 space-y-2">
+            <div
+              v-for="item in notifications"
+              :key="item.id"
+              class="group relative flex gap-3 p-3 rounded-lg border transition-all duration-200"
+              :class="[
+                getNotificationStyles(item.type),
+                item.read ? 'opacity-70' : 'opacity-100'
+              ]"
             >
-              {{ t('notificationQueue.markRead') }}
-            </Button>
-            <Tooltip>
-              <TooltipTrigger as-child>
-                <Button size="small" circle plain type="danger" @click.stop="handleRemove(item.id)">
-                  <el-icon><Minus /></el-icon>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>{{ t('notificationQueue.remove') }}</p>
-              </TooltipContent>
-            </Tooltip>
+              <!-- Icon -->
+              <div class="flex-shrink-0 mt-0.5">
+                <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center"
+                  :class="getIconBackgroundClass(item.type)"
+                >
+                  <component
+                    :is="getIconForType(item.type)"
+                    class="h-4 w-4"
+                    :class="getIconClass(item.type)"
+                  />
+                </div>
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <p class="text-sm font-semibold leading-tight">{{ item.title }}</p>
+                  <span class="text-xs text-muted-foreground flex-shrink-0">{{ formatTime(item.timestamp) }}</span>
+                </div>
+                <p class="text-sm text-muted-foreground mt-1 leading-relaxed">{{ item.message }}</p>
+                
+                <!-- Actions -->
+                <div class="flex items-center gap-2 mt-2">
+                  <Button
+                    v-if="!item.read"
+                    variant="ghost"
+                    size="sm"
+                    class="h-7 px-2 text-xs"
+                    @click.stop="handleRead(item.id)"
+                  >
+                    <Check class="h-3 w-3 mr-1" />
+                    {{ t('notificationQueue.markRead') }}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                    @click.stop="handleRemove(item.id)"
+                  >
+                    <X class="h-3 w-3 mr-1" />
+                    {{ t('notificationQueue.remove') }}
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Unread Indicator -->
+              <div
+                v-if="!item.read"
+                class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"
+              />
+            </div>
           </div>
-        </div>
-      </ScrollArea>
-    </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   </ResizablePanel>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, type Component } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '../stores/notification'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
-import { themeState } from '../utils/themes'
+import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from '../utils/logger.ts'
+import type { NotificationType } from '../types/notification'
+import {
+  Bell,
+  Check,
+  Trash2,
+  X,
+  Inbox,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Info
+} from 'lucide-vue-next'
 
 const { t } = useI18n()
 const notificationStore = useNotificationStore()
@@ -113,20 +163,74 @@ const logger = createRendererLogger('NotificationQueue', {
   windowTypeProvider: () => getWindowType()
 })
 
-const maxWidth = computed(() => Math.floor(window.innerWidth * 0.3))
-const maxHeight = computed(() => Math.floor(window.innerHeight * 0.7))
+const maxWidth = computed(() => Math.floor(window.innerWidth * 0.4))
+const maxHeight = computed(() => Math.floor(window.innerHeight * 0.8))
 
-const wrapperStyle = computed(() => {
-  const isDark = themeState.currentTheme?.type === 'dark'
-  return {
-    color: themeState.currentTheme.textColor,
-    '--queue-border-color': isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)',
-    '--queue-item-bg': isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.02)',
-    '--queue-item-hover-bg': isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.05)',
-    '--queue-empty-opacity': isDark ? 0.6 : 0.4,
-    '--queue-time-opacity': isDark ? 0.7 : 0.45
+function getNotificationStyles(type: NotificationType | undefined): string {
+  const styles: Record<string, string> = {
+    success: 'border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20',
+    error: 'border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20',
+    warning: 'border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20',
+    info: 'border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
   }
-})
+  return styles[type || 'info']
+}
+
+function getIconForType(type: NotificationType | undefined): Component {
+  const icons: Record<string, Component> = {
+    success: CheckCircle2,
+    error: XCircle,
+    warning: AlertCircle,
+    info: Info
+  }
+  return icons[type || 'info']
+}
+
+function getIconClass(type: NotificationType | undefined): string {
+  const classes: Record<string, string> = {
+    success: 'text-green-600 dark:text-green-400',
+    error: 'text-red-600 dark:text-red-400',
+    warning: 'text-amber-600 dark:text-amber-400',
+    info: 'text-blue-600 dark:text-blue-400'
+  }
+  return classes[type || 'info']
+}
+
+function getIconBackgroundClass(type: NotificationType | undefined): string {
+  const classes: Record<string, string> = {
+    success: 'bg-green-100 dark:bg-green-900/30',
+    error: 'bg-red-100 dark:bg-red-900/30',
+    warning: 'bg-amber-100 dark:bg-amber-900/30',
+    info: 'bg-blue-100 dark:bg-blue-900/30'
+  }
+  return classes[type || 'info']
+}
+
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  
+  // Less than 1 minute
+  if (diff < 60000) {
+    return t('notificationQueue.justNow')
+  }
+  // Less than 1 hour
+  if (diff < 3600000) {
+    return t('notificationQueue.minutesAgo', { count: Math.floor(diff / 60000) })
+  }
+  // Less than 24 hours
+  if (diff < 86400000) {
+    return t('notificationQueue.hoursAgo', { count: Math.floor(diff / 3600000) })
+  }
+  
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 function onResize(width: number, height: number) {
   logger.debug('通知队列尺寸调整', { width, height })
@@ -149,30 +253,24 @@ function closePanel() {
   visible.value = false
 }
 
-// 处理点击外部区域关闭面板
 function handleClickOutside(event: MouseEvent) {
   if (!visible.value) return
 
   const target = event.target as HTMLElement
-
-  // 获取面板DOM元素
   const panelElement = panelRef.value?.$el as HTMLElement | undefined
 
-  // 如果点击的是面板内部，不关闭
   if (panelElement && panelElement.contains(target)) {
     return
   }
 
-  // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
   const bottomMenu = target.closest('.bottom-menu')
   if (bottomMenu) {
     const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu')
     if (isToggleButton) {
-      return // 让toggle事件处理
+      return
     }
   }
 
-  // 点击外部区域，关闭面板
   closePanel()
 }
 
@@ -192,19 +290,6 @@ function handleRemove(id: string) {
   notificationStore.remove(id)
 }
 
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp)
-  return date.toLocaleString('zh-CN', {
-    hour12: false,
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-
-// 监听visible变化，添加/移除点击外部区域监听器
 watch(visible, (isVisible) => {
   if (isVisible) {
     nextTick(() => {
@@ -234,132 +319,3 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside, true)
 })
 </script>
-
-<style scoped>
-.queue-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  color: inherit;
-}
-
-.queue-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  user-select: none;
-  border-bottom: 1px solid var(--queue-border-color);
-  padding-bottom: 6px;
-}
-
-.queue-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.header-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 16px 8px;
-  opacity: var(--queue-empty-opacity);
-  color: inherit;
-}
-
-.notification-item {
-  border-radius: 8px;
-  border: 1px solid var(--queue-border-color);
-  padding: 8px 10px;
-  margin-bottom: 8px;
-  transition: background-color 0.2s ease;
-  background-color: var(--queue-item-bg);
-}
-
-.notification-item.unread {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.notification-item:last-of-type {
-  margin-bottom: 0;
-}
-
-.notification-item.type-success {
-  border-left: 4px solid var(--el-color-success, #67c23a);
-}
-
-.notification-item.type-info {
-  border-left: 4px solid var(--el-color-primary, #409eff);
-}
-
-.notification-item.type-warning {
-  border-left: 4px solid var(--el-color-warning, #e6a23c);
-}
-
-.notification-item.type-error {
-  border-left: 4px solid var(--el-color-danger, #f56c6c);
-}
-
-.notification-item:hover {
-  background-color: var(--queue-item-hover-bg);
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.item-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--el-color-info, #909399);
-  flex: 0 0 auto;
-}
-
-.status-dot.type-success {
-  background-color: var(--el-color-success, #67c23a);
-}
-
-.status-dot.type-warning {
-  background-color: var(--el-color-warning, #e6a23c);
-}
-
-.status-dot.type-error {
-  background-color: var(--el-color-danger, #f56c6c);
-}
-
-.status-dot.type-info {
-  background-color: #909399;
-}
-
-.item-time {
-  opacity: var(--queue-time-opacity);
-  font-weight: normal;
-}
-
-.item-message {
-  font-size: 13px;
-  line-height: 1.4;
-  margin-bottom: 6px;
-}
-
-.item-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-}
-</style>

@@ -181,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
@@ -716,7 +716,11 @@ const saveTheme = async () => {
   showCreateDialog.value = false
   editingTheme.value = null
   nameManuallyEdited.value = false
-  themeForm.value = { name: '', themeColor: '#ffffff' }
+
+  // 延迟重置表单，避免 ColorPicker 销毁时出现 readonly 警告
+  nextTick(() => {
+    themeForm.value = { name: '', themeColor: '#ffffff' }
+  })
 
   notifySuccess(t('setting.saveSuccess'))
 }

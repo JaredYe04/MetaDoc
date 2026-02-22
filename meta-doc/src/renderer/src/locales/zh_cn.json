@@ -1224,6 +1224,8 @@
     "customThemeColor": "自定义主题颜色",
     "newTheme": "新建主题",
     "editTheme": "编辑主题",
+    "newThemeDescription": "创建一个新的自定义主题",
+    "editThemeDescription": "编辑当前主题的设置",
     "themeColor": "主题颜色",
     "presetThemeCoralRed": "珊瑚红",
     "presetThemeGoldenOrange": "金橙色",
@@ -1645,6 +1647,9 @@
     "clear": "清空全部",
     "markRead": "标记为已读",
     "remove": "移除",
+    "justNow": "刚刚",
+    "minutesAgo": "{count} 分钟前",
+    "hoursAgo": "{count} 小时前",
     "type": {
       "success": "成功通知",
       "info": "信息通知",

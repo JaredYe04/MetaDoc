@@ -15,7 +15,7 @@
       <InputContextMenu />
       <!-- Sonner Toast 全局组件 -->
       <Toaster
-        position="top-right"
+        position="bottom-right"
         :expand="false"
         :rich-colors="true"
         :close-button="true"

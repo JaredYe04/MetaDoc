@@ -67,9 +67,17 @@ const scrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar>
 const hasMarkedReadForArticle = ref<string | null>(null)
 
 // 先占位符替换再交给 Vditor，不破坏 Mermaid 等渲染；渲染完成后再把占位 div 替换成 Vue 组件
-const processedContent = computed(() =>
-  preprocessMarkdownWithDemoPlaceholders(currentArticleContent.value ?? '')
-)
+const processedContent = computed(() => {
+  const rawContent = currentArticleContent.value ?? ''
+  const processed = preprocessMarkdownWithDemoPlaceholders(rawContent)
+  console.log('[ManualContent] processedContent computed:', {
+    currentArticleId: currentArticleId.value,
+    rawLength: rawContent.length,
+    processedLength: processed.length,
+    hasContent: !!processed.trim()
+  })
+  return processed
+})
 
 const BOTTOM_THRESHOLD = 80
 // 最小内容高度阈值：只有内容高度小于此值时才自动标记为已读（避免误判长文章）
@@ -174,16 +182,20 @@ function ensureDemoComponentsLoaded(): Promise<void> {
 // Vditor 渲染完成后：先处理内部链接，再把占位 div 替换为 Vue 组件（不破坏 Mermaid 等）
 // 必须在同步阶段捕获 appContext，否则在 setTimeout/async 回调中 getCurrentInstance() 为 null
 const handleRendered = (container?: HTMLElement | null) => {
+  console.log('[ManualContent] handleRendered called', { hasContainer: !!container })
   if (processTimer) clearTimeout(processTimer)
   const targetContainer = container ?? document.querySelector('.vditor-preview-container')
+  console.log('[ManualContent] targetContainer found:', !!targetContainer)
   processTimer = setTimeout(() => {
     nextTick(async () => {
+      console.log('[ManualContent] Processing rendered content...')
       // 确保滚动位置在顶部（避免切换文章时保留滚动位置）
       resetScrollPosition()
       processInternalLinks()
       await injectDemoComponents(capturedAppContext, targetContainer as HTMLElement | null)
       // 设置高度监听器，在内容高度稳定后检查是否需要自动标记
       setupHeightObserver()
+      console.log('[ManualContent] Rendered content processing complete')
     })
   }, 100)
 }
@@ -252,33 +264,43 @@ function resetScrollPosition() {
 }
 
 // 监听内容变化，延迟处理内部链接（等待渲染完成）
-watch([processedContent, currentArticleId], () => {
-  hasMarkedReadForArticle.value = null
-  lastHeight = 0 // 重置高度记录
-
-  // 重置滚动位置到顶部，避免切换文章时保留上一个文章的滚动位置
-  resetScrollPosition()
-
-  // 清理旧的监听器
-  if (resizeObserver) {
-    resizeObserver.disconnect()
-    resizeObserver = null
-  }
-  if (heightCheckTimer) {
-    clearTimeout(heightCheckTimer)
-    heightCheckTimer = null
-  }
-
-  if (processTimer) {
-    clearTimeout(processTimer)
-  }
-  processTimer = setTimeout(() => {
-    nextTick(() => {
-      processInternalLinks()
-      // 高度监听器会在 handleRendered 中设置
+watch(
+  [processedContent, currentArticleId],
+  ([newContent, newArticleId], [oldContent, oldArticleId]) => {
+    console.log('[ManualContent] Watch triggered', {
+      articleIdChanged: newArticleId !== oldArticleId,
+      newArticleId: newArticleId,
+      contentChanged: newContent !== oldContent,
+      contentLength: newContent?.length
     })
-  }, 200)
-})
+    hasMarkedReadForArticle.value = null
+    lastHeight = 0 // 重置高度记录
+
+    // 重置滚动位置到顶部，避免切换文章时保留上一个文章的滚动位置
+    resetScrollPosition()
+
+    // 清理旧的监听器
+    if (resizeObserver) {
+      resizeObserver.disconnect()
+      resizeObserver = null
+    }
+    if (heightCheckTimer) {
+      clearTimeout(heightCheckTimer)
+      heightCheckTimer = null
+    }
+
+    if (processTimer) {
+      clearTimeout(processTimer)
+    }
+    processTimer = setTimeout(() => {
+      nextTick(() => {
+        console.log('[ManualContent] Watch timer: processing internal links')
+        processInternalLinks()
+        // 高度监听器会在 handleRendered 中设置
+      })
+    }, 200)
+  }
+)
 
 onBeforeUnmount(() => {
   if (processTimer) {

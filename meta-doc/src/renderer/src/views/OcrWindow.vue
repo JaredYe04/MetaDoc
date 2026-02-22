@@ -1095,7 +1095,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     await loadSessions()
     notifySuccess(t('common.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1547,7 +1547,7 @@ const handleReRecognizeSingle = async (index: number) => {
 // 执行OCR（批量识别所有未识别的图片）
 const handleOcr = async () => {
   if (!activeSessionId.value || ocrResults.value.length === 0) {
-    ElMessage.warning(t('ocr.noImages'))
+    notifyWarning(t('ocr.noImages'))
     return
   }
 
@@ -1643,7 +1643,7 @@ const handleOcr = async () => {
         console.log(`图片 ${index + 1} OCR 成功`)
       } catch (error) {
         console.error(`图片 ${index + 1} OCR 失败:`, error)
-        ElMessage.warning(
+        notifyWarning(
           `图片 ${index + 1} OCR 识别失败: ${error instanceof Error ? error.message : String(error)}`
         )
       } finally {
@@ -1657,9 +1657,9 @@ const handleOcr = async () => {
       ocr_languages: JSON.stringify(selectedLanguages.value)
     })
 
-    ElMessage.success(t('ocr.ocrSuccess'))
+    notifySuccess(t('ocr.ocrSuccess'))
   } catch (error) {
-    ElMessage.error('OCR识别失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('OCR识别失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     processing.value = false
   }
@@ -1731,14 +1731,14 @@ const handleDeleteImage = async (index: number) => {
       })
     }
 
-    ElMessage.success(t('ocr.deleteSuccess'))
+    notifySuccess(t('ocr.deleteSuccess'))
   } catch (error) {
     // 用户取消删除
     if (error === 'cancel' || (error as any)?.action === 'cancel') {
       return
     }
     console.error('删除图片失败:', error)
-    ElMessage.error('删除图片失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除图片失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1746,9 +1746,9 @@ const handleDeleteImage = async (index: number) => {
 const handleCopyText = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success(t('ocr.copySuccess'))
+    notifySuccess(t('ocr.copySuccess'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1830,7 +1830,7 @@ const handleImageClick = async (imageUrl: string, index: number) => {
     imagePreviewVisible.value = true
   } catch (error) {
     console.error('打开图片预览失败:', error)
-    ElMessage.error('打开图片预览失败')
+    notifyError('打开图片预览失败')
   }
 }
 
@@ -2140,7 +2140,7 @@ const applyDefaultPreprocessingParams = async (index: number) => {
     }
   } catch (error) {
     console.error('生成推荐参数失败:', error)
-    ElMessage.warning('分析图片特征失败，使用默认参数')
+    notifyWarning('分析图片特征失败，使用默认参数')
 
     // 使用保守的默认参数
     const defaultParams: ImagePreprocessingParams = {
@@ -2391,7 +2391,7 @@ watch(
 const handleAiFix = async (index: number) => {
   const result = ocrResults.value[index]
   if (!result || !result.text) {
-    ElMessage.warning(t('ocr.noImages'))
+    notifyWarning(t('ocr.noImages'))
     return
   }
 
@@ -2460,10 +2460,10 @@ const handleAiFix = async (index: number) => {
     await nextTick()
     initDiffEditors(index)
 
-    ElMessage.success(t('ocr.aiFixSuccess'))
+    notifySuccess(t('ocr.aiFixSuccess'))
   } catch (error) {
     console.error('AI修复失败:', error)
-    ElMessage.error(
+    notifyError(
       t('ocr.aiFixFailed') + ': ' + (error instanceof Error ? error.message : String(error))
     )
   } finally {

@@ -473,7 +473,7 @@ const handleCreateSession = async () => {
       analysisRequest: ''
     }
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -578,7 +578,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -590,7 +590,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await dataAnalysisSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -616,9 +616,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+    notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -641,9 +641,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
         analysisRequest: ''
       }
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1136,7 +1136,7 @@ const handleFileChange = async (file: any) => {
       await loadPreviewData()
     }
   } catch (error) {
-    ElMessage.error('保存文件信息失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('保存文件信息失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 

@@ -8,8 +8,10 @@ export const linkVariants = cva(
     variants: {
       type: {
         primary: 'text-primary hover:text-primary/80',
-        success: 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-500 dark:hover:text-emerald-400',
-        warning: 'text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400',
+        success:
+          'text-emerald-600 hover:text-emerald-700 dark:text-emerald-500 dark:hover:text-emerald-400',
+        warning:
+          'text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400',
         danger: 'text-destructive hover:text-destructive/80',
         info: 'text-sky-600 hover:text-sky-700 dark:text-sky-500 dark:hover:text-sky-400'
       },

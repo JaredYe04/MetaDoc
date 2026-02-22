@@ -91,7 +91,7 @@ graph LR
 
 智能绘图助手支持多会话管理，自动选择图表引擎，生成可视化图表：
 
-<GraphWindowDemo />
+<GraphWindow mode="demo" />
 
 ### 使用方法
 

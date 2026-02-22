@@ -23,9 +23,9 @@
         </div>
 
       <div class="trust-mode-section" :style="trustModeSectionStyle">
-        <el-checkbox v-model="trustMode" @change="handleTrustModeChange">
+        <Checkbox v-model:checked="trustMode" @update:checked="handleTrustModeChange">
           {{ $t('agent.display.terminalExecution.trustMode') }}
-        </el-checkbox>
+        </Checkbox>
         <Button
           v-if="trustMode"
           variant="ghost"
@@ -215,6 +215,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import { AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../types/agent-tool'

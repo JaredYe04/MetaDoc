@@ -1100,7 +1100,7 @@
                                   <NumberFieldIncrement />
                                 </NumberFieldContent>
                               </NumberField>
-                              <el-switch
+                              <Switch
                                 v-else-if="param.type === 'boolean'"
                                 v-model="testForm.params[param.name]"
                               />
@@ -1907,6 +1907,7 @@ import {
   NumberFieldDecrement,
   NumberFieldContent
 } from '@renderer/components/ui/number-field'
+import { Switch } from '@renderer/components/ui/switch'
 import {
   Plus,
   Delete,

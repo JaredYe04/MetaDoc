@@ -79,11 +79,10 @@
           >
             <div class="todo-item-main">
               <div class="todo-checkbox-wrapper">
-                <el-checkbox
-                  :model-value="item.status === 'completed'"
-                  :disabled="true"
+                <Checkbox
+                  :checked="item.status === 'completed'"
+                  disabled
                   class="todo-checkbox"
-                  size="large"
                 />
                 <div class="status-indicator" :class="`status-${item.status}`"></div>
               </div>
@@ -193,6 +192,7 @@ import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import type { TodoList } from '../todolist-tool'

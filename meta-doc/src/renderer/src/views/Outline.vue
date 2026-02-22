@@ -379,11 +379,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <el-switch
-                      v-model="formatTitleConfig.adjustMarkdown"
-                      active-color="#13ce66"
-                      inactive-color="#ff4949"
-                    />
+                    <Switch v-model="formatTitleConfig.adjustMarkdown" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.adjustMarkdownTip') }}</p>
@@ -412,11 +408,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <el-switch
-                      v-model="formatTitleConfig.adjustTitle"
-                      active-color="#13ce66"
-                      inactive-color="#ff4949"
-                    />
+                    <Switch v-model="formatTitleConfig.adjustTitle" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.adjustTitleTip') }}</p>
@@ -429,11 +421,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <el-switch
-                      v-model="formatTitleConfig.cover"
-                      active-color="#13ce66"
-                      inactive-color="#ff4949"
-                    />
+                    <Switch v-model="formatTitleConfig.cover" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.coverTip') }}</p>
@@ -446,11 +434,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <el-switch
-                      v-model="formatTitleConfig.level1TitleChinese"
-                      active-color="#13ce66"
-                      inactive-color="#ff4949"
-                    />
+                    <Switch v-model="formatTitleConfig.level1TitleChinese" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.level1ChineseTip') }}</p>
@@ -674,6 +658,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip'
+import { Switch } from '@renderer/components/ui/switch'
 
 const { t } = useI18n()
 const logger = createRendererLogger('Outline', {

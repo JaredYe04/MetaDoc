@@ -56,13 +56,14 @@
             <TooltipContent side="top">{{ t('setting.particleEffectHint') }}</TooltipContent>
           </Tooltip>
         </template>
-        <el-switch
-          v-model="settings.particleEffect"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="handleParticleToggle"
-        />
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
+          <Switch
+            v-model:checked="settings.particleEffect"
+            @update:checked="handleParticleToggle"
+          />
+          <span class="text-sm text-muted-foreground">{{ t('setting.enabled', '启用') }}</span>
+        </div>
       </FormField> -->
 
       <FormField :label="t('setting.autoSave')" name="autoSave">

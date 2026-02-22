@@ -99,8 +99,14 @@
                     <span class="param-value">0</span>
                   </div>
                   <div class="param-row">
-                    <el-checkbox disabled>{{ t('ocr.grayscale', '灰度') }}</el-checkbox>
-                    <el-checkbox disabled>{{ t('ocr.normalize', '归一化') }}</el-checkbox>
+                    <div class="flex items-center space-x-2">
+                      <Checkbox id="grayscale-demo" disabled />
+                      <label for="grayscale-demo" class="text-sm cursor-not-allowed opacity-50">{{ t('ocr.grayscale', '灰度') }}</label>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <Checkbox id="normalize-demo" disabled />
+                      <label for="normalize-demo" class="text-sm cursor-not-allowed opacity-50">{{ t('ocr.normalize', '归一化') }}</label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -151,6 +157,7 @@ import {
   SelectContent,
   SelectItem
 } from '@renderer/components/ui/select'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import {
   Plus,
   Upload,

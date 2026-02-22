@@ -42,36 +42,38 @@
 
       <!-- 网络图片自动下载 -->
       <FormField name="keepNetworkImageUrl">
-        <el-checkbox
-          v-model="settings.imageUpload.keepNetworkImageUrl"
-          @change="
-            saveImageSetting('keepNetworkImageUrl', settings.imageUpload.keepNetworkImageUrl)
-          "
-        >
-          {{ t('setting.image.keepNetworkImageUrl') }}
+        <label class="flex items-center gap-2 cursor-pointer">
+          <Checkbox
+            v-model="settings.imageUpload.keepNetworkImageUrl"
+            @update:model-value="
+              saveImageSetting('keepNetworkImageUrl', settings.imageUpload.keepNetworkImageUrl)
+            "
+          />
+          <span>{{ t('setting.image.keepNetworkImageUrl') }}</span>
           <Tooltip>
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
             </TooltipTrigger>
             <TooltipContent side="top">{{ t('setting.image.keepNetworkImageUrlHint') }}</TooltipContent>
           </Tooltip>
-        </el-checkbox>
+        </label>
       </FormField>
 
       <!-- 自动转义图片URL（仅在保留网络图片URL时显示） -->
       <FormField v-if="settings.imageUpload.keepNetworkImageUrl" name="autoEscapeImageUrl">
-        <el-checkbox
-          v-model="settings.imageUpload.autoEscapeImageUrl"
-          @change="saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)"
-        >
-          {{ t('setting.image.autoEscapeImageUrl') }}
+        <label class="flex items-center gap-2 cursor-pointer">
+          <Checkbox
+            v-model="settings.imageUpload.autoEscapeImageUrl"
+            @update:model-value="saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)"
+          />
+          <span>{{ t('setting.image.autoEscapeImageUrl') }}</span>
           <Tooltip>
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
             </TooltipTrigger>
             <TooltipContent side="top">{{ t('setting.image.autoEscapeImageUrlHint') }}</TooltipContent>
           </Tooltip>
-        </el-checkbox>
+        </label>
       </FormField>
 
       <!-- 上传服务设定（仅在"上传图片"时显示） -->
@@ -173,6 +175,7 @@ import { ElMessage } from 'element-plus'
 import { HelpCircle } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
  import { Input } from '@renderer/components/ui/input'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import { settings, setSetting, getImagePath } from '../../utils/settings.js'
 import messageBridge from '../../bridge/message-bridge'
 import {

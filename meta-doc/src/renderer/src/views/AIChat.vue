@@ -29,9 +29,9 @@
                 @click="toggleTabSelection(tab.id)"
               >
                 <div class="document-card-checkbox">
-                  <el-checkbox
-                    :model-value="selectedTabIds.includes(tab.id)"
-                    @click.stop="toggleTabSelection(tab.id)"
+                  <Checkbox
+                    :checked="selectedTabIds.includes(tab.id)"
+                    @update:checked="toggleTabSelection(tab.id)"
                   />
                 </div>
                 <div class="document-card-content">
@@ -218,6 +218,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'

@@ -114,9 +114,9 @@
                 <NumberFieldIncrement />
               </NumberFieldContent>
             </NumberField>
-            <el-checkbox v-model="formData.unlimitedToolCalls">
+            <Checkbox v-model:checked="formData.unlimitedToolCalls">
               {{ t('agent.manage.agentConfig.unlimited') }}
-            </el-checkbox>
+            </Checkbox>
           </div>
         </FormField>
         <FormField :label="t('agent.manage.agentConfig.systemPrompt')" name="systemPrompt">
@@ -132,12 +132,12 @@
           </div>
         </FormField>
         <FormField :label="t('agent.manage.agentConfig.injectTimestamp')" name="injectTimestamp">
-          <el-checkbox
-            v-model="formData.injectTimestamp"
+          <Checkbox
+            v-model:checked="formData.injectTimestamp"
             :disabled="editingConfig?.id === 'default-agent-config'"
           >
             {{ t('agent.manage.agentConfig.injectTimestampLabel') }}
-          </el-checkbox>
+          </Checkbox>
           <div class="form-hint">
             {{ t('agent.manage.agentConfig.injectTimestampHint') }}
           </div>
@@ -192,6 +192,7 @@ import {
   NumberFieldDecrement,
   NumberFieldContent
 } from '@renderer/components/ui/number-field'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 
 const { t } = useI18n()
 

@@ -126,7 +126,7 @@
         <!-- 描述统计 -->
         <TabsContent value="stats">
           <ScrollArea class="h-[400px]">
-            <el-tree
+            <Tree
               :data="statsTreeData"
               :props="{ children: 'children', label: 'label' }"
               default-expand-all
@@ -140,7 +140,7 @@
                   }}</span>
                 </div>
               </template>
-            </el-tree>
+            </Tree>
           </ScrollArea>
         </TabsContent>
 
@@ -222,6 +222,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '../../../components/ui/badge'
+import { Tree } from '@renderer/components/ui/tree'
 import { XCircle } from 'lucide-vue-next'
 import { themeState } from '../../themes'
 import { renderMarkdownPreview } from '../../md-utils'

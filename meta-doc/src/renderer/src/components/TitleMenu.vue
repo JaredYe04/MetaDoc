@@ -32,13 +32,11 @@
       @mousedown.stop
     />
 
-    <el-autocomplete
+    <Autocomplete
       v-model="userPrompt"
       :fetch-suggestions="querySearch"
       clearable
-      class="inline-input"
-      resize="none"
-      style="color: black; opacity: 1"
+      input-class="inline-input"
       :placeholder="t('titleMenu.inputPlaceholder')"
       @mousedown.stop
     />
@@ -143,6 +141,7 @@ import { themeState } from '../utils/themes'
 import { Plus, Send, Undo2, MessageCircle, Check } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
+import { Autocomplete } from '@renderer/components/ui/autocomplete'
 import { getSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'

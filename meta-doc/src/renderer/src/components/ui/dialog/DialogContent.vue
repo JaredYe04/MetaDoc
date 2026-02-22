@@ -4,22 +4,33 @@ import {
   DialogOverlay,
   DialogPortal,
   DialogClose,
-  type DialogContentProps,
+  useForwardPropsEmits,
+  type DialogContentProps
 } from 'radix-vue'
 import { X } from 'lucide-vue-next'
 import { cn } from '@renderer/lib/utils'
 
 const props = defineProps<DialogContentProps & { class?: string }>()
+const emits = defineEmits([
+  'openAutoFocus',
+  'closeAutoFocus',
+  'escapeKeyDown',
+  'pointerDownOutside',
+  'focusOutside',
+  'interactOutside'
+])
+
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>
   <DialogPortal>
     <DialogOverlay
       class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay"
-      style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
+      style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)"
     />
     <DialogContent
-      v-bind="props"
+      v-bind="forwarded"
       :class="
         cn(
           'fixed left-[50%] top-[50%] z-[10000] grid w-[calc(100%-2rem)] max-w-lg max-h-[calc(100vh-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-xl overflow-hidden rounded-lg dialog-content',

@@ -1547,43 +1547,43 @@
 
                           <!-- 会话元数据 -->
                           <TabsContent value="metadata" class="debug-tabs-content">
-                            <el-descriptions :column="1" border>
-                              <el-descriptions-item label="会话ID">{{
+                            <Descriptions :column="1" border>
+                              <DescriptionsItem label="会话ID">{{
                                 selectedSession.id
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="标题">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="标题">{{
                                 selectedSession.title
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="描述">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="描述">{{
                                 selectedSession.description || '无'
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="Agent配置ID">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="Agent配置ID">{{
                                 selectedSession.agentConfigId || '无'
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="状态">
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="状态">
                                 <Badge :variant="getSessionStatusTagType(selectedSession.status)">
                                   {{ selectedSession.status || 'idle' }}
                                 </Badge>
-                              </el-descriptions-item>
-                              <el-descriptions-item label="当前执行节点">{{
+                              </DescriptionsItem>
+                              <DescriptionsItem label="当前执行节点">{{
                                 selectedSession.currentExecutionNodeId || '无'
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="消息数量">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="消息数量">{{
                                 selectedSession.messages?.length || 0
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="执行节点数量">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="执行节点数量">{{
                                 selectedSession.executionNodes?.length || 0
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="引用数量">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="引用数量">{{
                                 selectedSession.referenceStore?.length || 0
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="创建时间">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="创建时间">{{
                                 formatTime(selectedSession.createdAt)
-                              }}</el-descriptions-item>
-                              <el-descriptions-item label="更新时间">{{
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="更新时间">{{
                                 formatTime(selectedSession.updatedAt)
-                              }}</el-descriptions-item>
-                            </el-descriptions>
+                              }}</DescriptionsItem>
+                            </Descriptions>
                           </TabsContent>
                         </Tabs>
                       </div>
@@ -1613,17 +1613,17 @@
                         </FormField>
 
                         <FormField name="sessionInfo" label="会话信息" v-if="replaySession">
-                          <el-descriptions :column="1" border size="small">
-                            <el-descriptions-item label="标题">{{
+                          <Descriptions :column="1" border size="small">
+                            <DescriptionsItem label="标题">{{
                               replaySession.title
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="消息数量">{{
+                            }}</DescriptionsItem>
+                            <DescriptionsItem label="消息数量">{{
                               replaySession.messages?.length || 0
-                            }}</el-descriptions-item>
-                            <el-descriptions-item label="执行节点数量">{{
+                            }}</DescriptionsItem>
+                            <DescriptionsItem label="执行节点数量">{{
                               replaySession.executionNodes?.length || 0
-                            }}</el-descriptions-item>
-                          </el-descriptions>
+                            }}</DescriptionsItem>
+                          </Descriptions>
                         </FormField>
 
                         <FormField name="replayControls" label="回放控制" v-if="replaySession">
@@ -1908,6 +1908,7 @@ import {
   NumberFieldContent
 } from '@renderer/components/ui/number-field'
 import { Switch } from '@renderer/components/ui/switch'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
 import {
   Plus,
   Delete,

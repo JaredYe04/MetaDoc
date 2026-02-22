@@ -27,9 +27,9 @@
         <header class="conversation-header">
           <h1 class="title">{{ demoSessions[0]?.title || t('aiChat.defaultTitle', '新对话') }}</h1>
           <div class="conversation-stats">
-            <el-tag size="small" effect="plain" style="cursor: pointer">
+            <Badge variant="outline" class="cursor-pointer">
               {{ t('agent.conversation.references', { count: 2 }) }}
-            </el-tag>
+            </Badge>
           </div>
         </header>
 
@@ -92,6 +92,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
 import { Plus, Paperclip, Database, Send } from 'lucide-vue-next'
 import { themeState } from '@renderer/utils/themes'
 import { marked } from 'marked'

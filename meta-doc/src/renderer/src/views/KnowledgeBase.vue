@@ -230,23 +230,23 @@
 
             <el-scrollbar class="config-scroll">
               <div v-if="selectedItem" class="config-content">
-                <el-descriptions
-                  column="1"
+                <Descriptions
+                  :column="1"
                   size="small"
                   border
                   :style="{
                     background: themeState.currentTheme.background2nd,
-                    '--el-descriptions-item-bordered-label-background':
+                    '--descriptions-item-bordered-label-background':
                       themeState.currentTheme.SideBackgroundColor,
-                    '--el-descriptions-item-bordered-label-color':
+                    '--descriptions-item-bordered-label-color':
                       themeState.currentTheme.SideTextColor,
-                    '--el-descriptions-item-bordered-content-background':
+                    '--descriptions-item-bordered-content-background':
                       themeState.currentTheme.background2nd,
-                    '--el-descriptions-item-bordered-content-color':
+                    '--descriptions-item-bordered-content-color':
                       themeState.currentTheme.textColor
                   }"
                 >
-                  <el-descriptions-item :label="t('knowledgeBase.filename')">
+                  <DescriptionsItem :label="t('knowledgeBase.filename')">
                     <template v-if="isEditing">
                       <Input
                         v-model="editFilename"
@@ -289,35 +289,35 @@
                         </el-icon>
                       </Button>
                     </template>
-                  </el-descriptions-item>
-                  <el-descriptions-item :label="t('knowledgeBase.path')">
+                  </DescriptionsItem>
+                  <DescriptionsItem :label="t('knowledgeBase.path')">
                     <span class="config-value">{{ truncateEnd(info.path, 50) }}</span>
-                  </el-descriptions-item>
+                  </DescriptionsItem>
 
-                  <el-descriptions-item :label="t('knowledgeBase.chunks')">
+                  <DescriptionsItem :label="t('knowledgeBase.chunks')">
                     <span class="config-value">{{ truncateEnd(info.chunks, 50) }}</span>
-                  </el-descriptions-item>
+                  </DescriptionsItem>
 
-                  <el-descriptions-item :label="t('knowledgeBase.vector_dim')">
+                  <DescriptionsItem :label="t('knowledgeBase.vector_dim')">
                     <span class="config-value">{{ truncateEnd(info.vector_dim, 50) }}</span>
-                  </el-descriptions-item>
+                  </DescriptionsItem>
 
-                  <el-descriptions-item :label="t('knowledgeBase.vector_count')">
+                  <DescriptionsItem :label="t('knowledgeBase.vector_count')">
                     <span class="config-value">{{ truncateEnd(info.vector_count, 50) }}</span>
-                  </el-descriptions-item>
+                  </DescriptionsItem>
 
-                  <el-descriptions-item :label="t('knowledgeBase.size')">
+                  <DescriptionsItem :label="t('knowledgeBase.size')">
                     <span class="config-value">{{ truncateEnd(info.sizeText || '-', 50) }}</span>
-                  </el-descriptions-item>
+                  </DescriptionsItem>
 
-                  <el-descriptions-item :label="t('knowledgeBase.enabled_state')">
+                  <DescriptionsItem :label="t('knowledgeBase.enabled_state')">
                     <Switch
                       v-if="selectedItem && selectedItem.info"
                       :checked="selectedItem.info.enabled"
                       @update:checked="(val: boolean) => selectedItem && toggleEnable(selectedItem, val)"
                     />
-                  </el-descriptions-item>
-                </el-descriptions>
+                  </DescriptionsItem>
+                </Descriptions>
 
                 <div class="config-actions">
                   <Button variant="secondary" size="sm" @click="rebuildVectors" :loading="isRebuilding">
@@ -380,6 +380,7 @@ import {
   TableRow
 } from '@renderer/components/ui/table'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
@@ -1227,28 +1228,28 @@ onBeforeUnmount(() => {
 }
 
 /* 美化描述列表 */
-:deep(.el-descriptions) {
+:deep(.descriptions) {
   border-radius: 8px;
   overflow: hidden;
 }
 
-:deep(.el-descriptions__label) {
+:deep(.descriptions__cell--label) {
   font-weight: 500;
   background-color: v-bind('themeState.currentTheme.SideBackgroundColor') !important;
   color: v-bind('themeState.currentTheme.SideTextColor') !important;
 }
 
-:deep(.el-descriptions__content) {
+:deep(.descriptions__cell--content) {
   background-color: v-bind('themeState.currentTheme.background2nd') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
-:deep(.el-descriptions__table) {
+:deep(.descriptions__table) {
   border-collapse: separate;
   border-spacing: 0;
 }
 
-:deep(.el-descriptions__table td) {
+:deep(.descriptions__table td) {
   border-color: v-bind('themeState.currentTheme.borderColor') !important;
 }
 

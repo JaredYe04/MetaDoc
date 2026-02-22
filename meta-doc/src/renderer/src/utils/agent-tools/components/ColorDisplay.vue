@@ -168,48 +168,30 @@
               <span class="color-value" :style="colorValueStyle">{{ displayData.result.hex }}</span>
             </div>
           </div>
-          <el-descriptions :column="2" border class="color-details">
-            <el-descriptions-item :label="$t('agent.display.color.hex')">
+          <Descriptions :column="2" border class="color-details">
+            <DescriptionsItem :label="$t('agent.display.color.hex')">
               <code :style="codeStyle">{{ displayData.result.hex }}</code>
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.rgb')">
-              <code :style="codeStyle"
-                >rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }},
-                {{ displayData.result.rgb.b }})</code
-              >
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.hsl')">
-              <code :style="codeStyle"
-                >hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%,
-                {{ displayData.result.hsl.l }}%)</code
-              >
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.alpha')">
-              {{
-                displayData.result.alpha !== undefined
-                  ? displayData.result.alpha.toFixed(2)
-                  : '1.00'
-              }}
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.isDark')">
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.rgb')">
+              <code :style="codeStyle">rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }}, {{ displayData.result.rgb.b }})</code>
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.hsl')">
+              <code :style="codeStyle">hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%, {{ displayData.result.hsl.l }}%)</code>
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.alpha')">
+              {{ displayData.result.alpha !== undefined ? displayData.result.alpha.toFixed(2) : '1.00' }}
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.isDark')">
               <Badge :variant="displayData.result.isDark ? 'default' : 'outline'">
-                {{
-                  displayData.result.isDark
-                    ? $t('agent.display.color.yes')
-                    : $t('agent.display.color.no')
-                }}
+                {{ displayData.result.isDark ? $t('agent.display.color.yes') : $t('agent.display.color.no') }}
               </Badge>
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.isLight')">
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.isLight')">
               <Badge :variant="displayData.result.isLight ? 'outline' : 'default'">
-                {{
-                  displayData.result.isLight
-                    ? $t('agent.display.color.yes')
-                    : $t('agent.display.color.no')
-                }}
+                {{ displayData.result.isLight ? $t('agent.display.color.yes') : $t('agent.display.color.no') }}
               </Badge>
-            </el-descriptions-item>
-          </el-descriptions>
+            </DescriptionsItem>
+          </Descriptions>
         </div>
 
         <!-- 其他操作（通用显示） -->
@@ -242,6 +224,7 @@ import { Loading, Plus, ArrowRight, Edit, RefreshRight, Switch } from '@element-
 import { useI18n } from 'vue-i18n'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
 import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

@@ -1,12 +1,12 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-02-16
-**Commit:** 68a4599
-**Branch:** fix/multi-window-tab-issues
+**Generated:** 2026-02-22
+**Commit:** HEAD
+**Branch:** main
 
 ## OVERVIEW
 
-MetaDoc — LLM Agent-powered intelligent document processing desktop app. Electron (main: TypeScript) + Vue 3 (renderer: mixed TS/JS) + Pinia + Element Plus. Supports Markdown & LaTeX editing with AI agent framework, multi-format export, knowledge base (RAG), and OCR. Also targets Android via Capacitor (same repo).
+MetaDoc — LLM Agent-powered intelligent document processing desktop app. Electron (main: TypeScript) + Vue 3 (renderer: mixed TS/JS) + Pinia + shadcn-vue + Element Plus. Supports Markdown & LaTeX editing with AI agent framework, multi-format export, knowledge base (RAG), and OCR. Also targets Android via Capacitor (same repo).
 
 ## STRUCTURE
 

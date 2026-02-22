@@ -240,7 +240,7 @@ import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'
 
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import eventBus from '../utils/event-bus.js'
 import { themeState } from '../utils/themes.js'
 import { answerQuestion } from '../utils/llm-api.js'
@@ -443,7 +443,7 @@ const deleteDialog = (index: number) => {
 
   // 如果删除后没有对话了，不允许删除（需要至少保留一个）
   if (dialogs.value.length <= 1) {
-    ElMessage.warning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'))
+    notifyWarning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'))
     return
   }
 
@@ -501,7 +501,7 @@ const handleRequestInsertToDocument = (payload: unknown) => {
     eventBus.emit('ai-chat-export-to-document', {
       content: data.content
     })
-    ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+    notifySuccess(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
     return
   }
 
@@ -548,15 +548,11 @@ const confirmInsertToDocument = () => {
       content: content,
       tabId: tabIds[0]
     })
-    ElMessage.success(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
+    notifySuccess(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
   } else {
     // 多个文档，依次插入（使用延迟确保每个插入都能被处理）
     // 先显示一个加载提示
-    const loadingMessage = ElMessage({
-      message: `正在插入到 ${tabIds.length} 个文档...`,
-      type: 'info',
-      duration: 0 // 不自动关闭
-    })
+    const loadingMessage = notifyInfo(`正在插入到 ${tabIds.length} 个文档...`)
 
     let completedCount = 0
     tabIds.forEach((tabId, index) => {
@@ -569,8 +565,7 @@ const confirmInsertToDocument = () => {
 
         // 所有插入完成后显示成功消息
         if (completedCount === tabIds.length) {
-          loadingMessage.close()
-          ElMessage.success(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
+          notifySuccess(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
         }
       }, index * 200) // 每个插入间隔200ms，确保前一个完成
     })
@@ -603,7 +598,7 @@ const duplicateDialog = (index: number) => {
   activeDialogIndex.value = 0
   loadDialog(0)
   persistDialogsToStorage()
-  ElMessage.success(t('aiChat.duplicateSuccess', '对话已复制'))
+  notifySuccess(t('aiChat.duplicateSuccess', '对话已复制'))
 }
 
 const title = ref(defaultTitle)
@@ -635,7 +630,7 @@ const handleCancel = () => {
       }
     }
   }
-  ElMessage.info(t('aiChat.generationCancelled'))
+      notifyInfo(t('aiChat.generationCancelled'))
 }
 
 // 引用管理（临时存储，不持久化）
@@ -691,7 +686,7 @@ const handleAttach = async (fileOrFiles?: File | File[]) => {
       promptInput.value = '' // 清空输入框
 
       referenceStore.value.push(reference)
-      ElMessage.success(t('agent.reference.addSuccess'))
+      notifySuccess(t('agent.reference.addSuccess'))
       // 同步更新对话持久化
       updateCurrentDialog()
     } else if (files.length > 0) {
@@ -735,14 +730,14 @@ const handleAttach = async (fileOrFiles?: File | File[]) => {
 
           // 显示成功消息
           if (failCount === 0) {
-            ElMessage.success(
+            notifySuccess(
               files.length > 1 ? `成功添加 ${successCount} 个引用` : t('agent.reference.addSuccess')
             )
           } else {
-            ElMessage.warning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
+            notifyWarning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
           }
         } else {
-          ElMessage.error('所有文件处理失败')
+          notifyError('所有文件处理失败')
         }
       } finally {
         loading.close()
@@ -752,7 +747,7 @@ const handleAttach = async (fileOrFiles?: File | File[]) => {
       return
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1150,10 +1145,7 @@ const onMsgDelete = (index: number) => {
   if (targetIndex < 0 || targetIndex >= messages.value.length) return
   messages.value.splice(targetIndex, 1)
   //bindCode(false);
-  ElMessage({
-    type: 'success',
-    message: t('common.deleteSuccess')
-  })
+  notifySuccess(t('common.deleteSuccess'))
   updateCurrentDialog()
 }
 const regenerate = async (index: number) => {

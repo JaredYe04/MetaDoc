@@ -178,7 +178,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { MoreVertical, Plus, Check, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -515,7 +516,7 @@ const confirmColorEdit = async (theme: ThemeConfig, color: string | null) => {
   delete colorPickerVisibleMap.value[theme.id]
   delete colorConfirmedMap.value[theme.id]
 
-  ElMessage.success(t('setting.saveSuccess'))
+  notifySuccess(t('setting.saveSuccess'))
 }
 
 // 取消颜色编辑（用户点击了颜色选择器的取消按钮或关闭了选择器）
@@ -643,7 +644,7 @@ const handleAction = async (command: string, theme: ThemeConfig) => {
         }
       }
 
-      ElMessage.success(t('setting.deleteSuccess'))
+      notifySuccess(t('setting.deleteSuccess'))
     } catch {
       // 用户取消
     }
@@ -711,7 +712,7 @@ const saveTheme = async () => {
   nameManuallyEdited.value = false
   themeForm.value = { name: '', themeColor: '#ffffff' }
 
-  ElMessage.success(t('setting.saveSuccess'))
+  notifySuccess(t('setting.saveSuccess'))
 }
 
 // 保存设置

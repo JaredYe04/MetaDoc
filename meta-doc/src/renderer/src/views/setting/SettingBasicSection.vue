@@ -230,6 +230,8 @@
         </div>
       </FormField>
     </Form>
+
+    <FontDebugPanel />
   </div>
 </template>
 
@@ -254,6 +256,7 @@ import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { FontSelect } from '@renderer/components/ui/font-select'
+import FontDebugPanel from '@renderer/components/FontDebugPanel.vue'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n()

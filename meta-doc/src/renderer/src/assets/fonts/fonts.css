@@ -38,6 +38,9 @@
     Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
     monospace;
+  --font-family-editor: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-preview: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-ui: 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 html.dark {
@@ -46,10 +49,10 @@ html.dark {
 }
 
 /* ============================================
-   EDITOR EXCLUSION RULES
+   EDITOR FONT RULES
    ============================================ */
 
-/* Monaco Editor - 等宽字体 */
+/* Monaco Editor - 使用配置的编辑器字体 */
 .monaco-editor,
 .monaco-editor *,
 .monaco-editor .view-lines,
@@ -62,10 +65,10 @@ html.dark {
 .monaco-editor .margin *,
 .monaco-editor .monaco-scrollable-element,
 .monaco-editor .monaco-scrollable-element * {
-  font-family: var(--font-family-mono) !important;
+  font-family: var(--font-family-editor) !important;
 }
 
-/* Vditor 编辑区 - 等宽字体 */
+/* Vditor 编辑区 - 使用配置的编辑器字体 */
 .vditor-ir,
 .vditor-ir *,
 .vditor-wysiwyg,
@@ -76,7 +79,13 @@ html.dark {
 .vditor-toolbar *,
 .vditor-outline,
 .vditor-outline * {
-  font-family: var(--font-family-mono) !important;
+  font-family: var(--font-family-editor) !important;
+}
+
+/* Vditor 预览区 - 使用配置的预览字体 */
+.vditor-preview,
+.vditor-preview * {
+  font-family: var(--font-family-preview) !important;
 }
 
 /* 代码元素 - 等宽字体 */

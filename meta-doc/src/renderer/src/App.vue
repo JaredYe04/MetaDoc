@@ -841,6 +841,17 @@ a {
   z-index: 9999 !important;
 }
 
+/* Sonner 关闭按钮 - 移到右上角 */
+[data-sonner-toast] [data-close-button] {
+  left: auto !important;
+  right: 6px !important;
+}
+
+/* 调整 Toast 内容padding，避免被关闭按钮遮挡 */
+[data-sonner-toast] > div {
+  padding-right: 40px !important;
+}
+
 /* ============================================
    Dialog Overlay 修复 - 确保关闭后不拦截事件
    ============================================ */

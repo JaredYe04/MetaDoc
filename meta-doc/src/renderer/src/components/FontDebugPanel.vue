@@ -1,20 +1,20 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { 
   getAppliedFontVariables, 
   getConfiguredFonts, 
   verifyFontApplication,
-  refreshFontSettings,
-  diagnoseFonts
+  refreshFontSettings
 } from '@renderer/utils/font-verification.js'
+import { RefreshCw } from 'lucide-vue-next'
 
 const fontVars = ref({})
 const configured = ref({})
 const verification = ref(null)
 const loading = ref(false)
+const expanded = ref(false)
 
 async function loadFontStatus() {
   loading.value = true
@@ -22,8 +22,6 @@ async function loadFontStatus() {
     fontVars.value = getAppliedFontVariables()
     configured.value = await getConfiguredFonts()
     verification.value = await verifyFontApplication()
-  } catch (error) {
-    console.error('加载字体状态失败:', error)
   } finally {
     loading.value = false
   }
@@ -34,135 +32,77 @@ async function handleRefresh() {
   await loadFontStatus()
 }
 
-function handleDiagnose() {
-  diagnoseFonts()
-}
-
 onMounted(() => {
   loadFontStatus()
 })
 </script>
 
 <template>
-  <Card class="font-debug-panel">
-    <CardHeader>
-      <CardTitle class="flex items-center justify-between">
-        字体状态
-        <div class="flex gap-2">
-          <Button size="sm" variant="outline" @click="handleDiagnose" :disabled="loading">
-            控制台诊断
-          </Button>
-          <Button size="sm" @click="handleRefresh" :disabled="loading">
-            {{ loading ? '刷新中...' : '刷新' }}
-          </Button>
-        </div>
-      </CardTitle>
-    </CardHeader>
-    <CardContent class="space-y-4">
-      <div v-if="verification" class="status-summary">
-        <Badge :variant="verification.success ? 'success' : 'destructive'">
-          {{ verification.success ? '所有字体正常' : '字体配置异常' }}
+  <div class="font-debug-panel border rounded-lg p-3 bg-muted/30">
+    <div class="flex items-center justify-between cursor-pointer" @click="expanded = !expanded">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium">字体预览</span>
+        <Badge v-if="verification" size="sm" :variant="verification.success ? 'default' : 'destructive'">
+          {{ verification.success ? '正常' : '异常' }}
         </Badge>
       </div>
+      <div class="flex items-center gap-2">
+        <Button size="icon" variant="ghost" class="h-6 w-6" @click.stop="handleRefresh" :disabled="loading">
+          <RefreshCw class="h-3 w-3" :class="{ 'animate-spin': loading }" />
+        </Button>
+        <span class="text-xs text-muted-foreground">{{ expanded ? '收起' : '展开' }}</span>
+      </div>
+    </div>
 
-      <div class="font-sections space-y-4">
-        <div class="font-section">
-          <h4 class="font-medium mb-2">UI字体</h4>
-          <div class="text-sm space-y-1">
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">配置:</span>
-              <span>{{ configured.ui }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">应用:</span>
-              <span class="font-mono text-xs truncate max-w-[200px]">{{ fontVars.uiFont }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">状态:</span>
-              <Badge v-if="verification" size="sm" :variant="verification.checks?.uiFont ? 'success' : 'destructive'">
-                {{ verification.checks?.uiFont ? '正常' : '异常' }}
+    <div v-show="expanded" class="mt-3 space-y-3">
+      <div class="grid grid-cols-1 gap-2">
+        <div class="font-preview-item p-2 bg-background rounded border">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs text-muted-foreground">UI字体</span>
+            <Badge v-if="verification" size="sm" :variant="verification.checks?.uiFont ? 'default' : 'destructive'">
+              {{ configured.ui }}
+            </Badge>
+          </div>
+          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">
+            AaBbCc 你好世界
+          </div>
+        </div>
+
+        <div class="font-preview-item p-2 bg-background rounded border">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs text-muted-foreground">编辑器字体</span>
+            <div v-if="verification" class="flex gap-1">
+              <Badge size="sm" :variant="verification.checks?.editorChinese ? 'default' : 'destructive'">
+                {{ configured.editorChinese }}
+              </Badge>
+              <Badge size="sm" :variant="verification.checks?.editorWestern ? 'default' : 'destructive'">
+                {{ configured.editorWestern }}
               </Badge>
             </div>
           </div>
-        </div>
-
-        <div class="font-section">
-          <h4 class="font-medium mb-2">编辑器字体</h4>
-          <div class="text-sm space-y-1">
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">中文配置:</span>
-              <span>{{ configured.editorChinese }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">西文配置:</span>
-              <span>{{ configured.editorWestern }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">应用:</span>
-              <span class="font-mono text-xs truncate max-w-[200px]" :title="fontVars.editorFont">
-                {{ fontVars.editorFont }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">状态:</span>
-              <div v-if="verification" class="flex gap-1">
-                <Badge size="sm" :variant="verification.checks?.editorChinese ? 'success' : 'destructive'">
-                  中文{{ verification.checks?.editorChinese ? '✓' : '✗' }}
-                </Badge>
-                <Badge size="sm" :variant="verification.checks?.editorWestern ? 'success' : 'destructive'">
-                  西文{{ verification.checks?.editorWestern ? '✓' : '✗' }}
-                </Badge>
-              </div>
-            </div>
+          <div class="text-lg font-mono" :style="{ fontFamily: fontVars.editorFont }">
+            function hello() { return "你好世界"; }
           </div>
         </div>
 
-        <div class="font-section">
-          <h4 class="font-medium mb-2">预览字体</h4>
-          <div class="text-sm space-y-1">
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">中文配置:</span>
-              <span>{{ configured.previewChinese }}</span>
+        <div class="font-preview-item p-2 bg-background rounded border">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs text-muted-foreground">预览字体</span>
+            <div v-if="verification" class="flex gap-1">
+              <Badge size="sm" :variant="verification.checks?.previewChinese ? 'default' : 'destructive'">
+                {{ configured.previewChinese }}
+              </Badge>
+              <Badge size="sm" :variant="verification.checks?.previewWestern ? 'default' : 'destructive'">
+                {{ configured.previewWestern }}</Badge>
             </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">西文配置:</span>
-              <span>{{ configured.previewWestern }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">应用:</span>
-              <span class="font-mono text-xs truncate max-w-[200px]" :title="fontVars.previewFont">
-                {{ fontVars.previewFont }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted-foreground">状态:</span>
-              <div v-if="verification" class="flex gap-1">
-                <Badge size="sm" :variant="verification.checks?.previewChinese ? 'success' : 'destructive'">
-                  中文{{ verification.checks?.previewChinese ? '✓' : '✗' }}
-                </Badge>
-                <Badge size="sm" :variant="verification.checks?.previewWestern ? 'success' : 'destructive'">
-                  西文{{ verification.checks?.previewWestern ? '✓' : '✗' }}
-                </Badge>
-              </div>
-            </div>
+          </div>
+          <div class="text-base" :style="{ fontFamily: fontVars.previewFont }">
+            This is a **Markdown** preview 这是预览文本
           </div>
         </div>
       </div>
-
-      <div v-if="verification?.loaded" class="font-loading-status pt-4 border-t">
-        <h4 class="font-medium mb-2">字体加载状态</h4>
-        <div class="grid grid-cols-2 gap-2 text-sm">
-          <div v-for="(loaded, name) in verification.loaded.details" :key="name" 
-               class="flex items-center justify-between p-2 bg-muted rounded">
-            <span class="capitalize">{{ name }}</span>
-            <Badge size="sm" :variant="loaded ? 'success' : 'warning'">
-              {{ loaded ? '已加载' : '未加载' }}
-            </Badge>
-          </div>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -170,19 +110,15 @@ onMounted(() => {
   margin-top: 1rem;
 }
 
-.font-section {
-  padding: 0.75rem;
-  background-color: hsl(var(--muted) / 0.5);
-  border-radius: var(--radius);
+.font-preview-item {
+  transition: all 0.2s ease;
+}
+
+.font-preview-item:hover {
+  border-color: hsl(var(--border) / 0.8);
 }
 
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 </style>

@@ -200,7 +200,7 @@ function formatTimestamp(timestamp: number): string {
 // 监听visible变化，添加/移除点击外部区域监听器，并标记所有通知为已读
 watch(visible, (isVisible) => {
   if (isVisible) {
-    markAllNotificationsRead()
+    notificationStore.markAllAsRead()
     // 使用nextTick确保DOM已更新
     nextTick(() => {
       document.addEventListener('click', handleClickOutside, true)

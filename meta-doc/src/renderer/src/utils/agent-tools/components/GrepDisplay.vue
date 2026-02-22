@@ -162,7 +162,7 @@
       class="no-results"
       :style="noResultsStyle"
     >
-      <el-empty :description="$t('agent.display.grep.noMatches')" />
+      <Empty :description="$t('agent.display.grep.noMatches')" />
     </div>
 
     <div v-else class="error-state">
@@ -181,6 +181,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Empty } from '@renderer/components/ui/empty'
 import { Info, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

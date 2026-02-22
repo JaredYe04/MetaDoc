@@ -167,7 +167,7 @@
                   $t('agent.display.dataAnalysis.groupBy', { field: agg.groupBy })
                 }}</span>
               </div>
-              <el-tree
+              <Tree
                 v-show="aggregationExpanded[index]"
                 :data="buildAggregationTree(agg)"
                 :props="{ children: 'children', label: 'label' }"
@@ -181,7 +181,7 @@
                     }}</span>
                   </div>
                 </template>
-              </el-tree>
+              </Tree>
             </div>
           </ScrollArea>
         </TabsContent>

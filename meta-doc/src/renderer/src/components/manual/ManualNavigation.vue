@@ -1,7 +1,7 @@
 <template>
   <div class="manual-navigation">
     <ScrollArea class="navigation-scrollbar">
-      <el-tree
+      <Tree
         :data="treeData"
         :props="{ children: 'children', label: 'title' }"
         :default-expand-all="false"
@@ -22,7 +22,7 @@
             />
           </div>
         </template>
-      </el-tree>
+      </Tree>
     </ScrollArea>
   </div>
 </template>
@@ -32,6 +32,7 @@ import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import { Folder, FileText, Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Tree } from '@renderer/components/ui/tree'
 
 const { navigationTree, currentArticleId, articleProgress, setCurrentArticle } = useUserManual()
 

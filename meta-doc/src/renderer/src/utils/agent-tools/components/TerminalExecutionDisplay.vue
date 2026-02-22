@@ -193,17 +193,21 @@
     </div>
 
     <!-- 进度条 -->
-    <el-progress
+    <div
       v-if="
         effectiveProgress &&
         effectiveProgress.percentage > 0 &&
         (effectiveData as any)?.stage !== 'completed'
       "
-      :percentage="effectiveProgress.percentage"
-      :status="progressStatus"
-      :stroke-width="6"
       style="margin-top: 12px"
-    />
+    >
+      <Progress
+        :percentage="effectiveProgress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      />
+    </div>
   </div>
 </template>
 
@@ -216,6 +220,7 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Checkbox } from '@renderer/components/ui/checkbox'
+import { Progress } from '@renderer/components/ui/progress'
 import { AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../types/agent-tool'

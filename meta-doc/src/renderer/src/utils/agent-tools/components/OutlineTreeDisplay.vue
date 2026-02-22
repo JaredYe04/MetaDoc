@@ -31,13 +31,13 @@
       </div>
 
       <ScrollArea class="h-[500px]">
-        <el-tree
+        <Tree
           :data="treeData"
           :props="{ children: 'children', label: 'label' }"
           default-expand-all
           class="outline-tree"
         >
-          <template #default="{ node, data }">
+          <template #default="{ data }">
             <div class="tree-node" :style="treeNodeStyle">
               <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
               <div class="node-info">
@@ -65,7 +65,7 @@
               </div>
             </div>
           </template>
-        </el-tree>
+        </Tree>
       </ScrollArea>
     </div>
 
@@ -85,6 +85,7 @@ import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
+import { Tree } from '@renderer/components/ui/tree'
 import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

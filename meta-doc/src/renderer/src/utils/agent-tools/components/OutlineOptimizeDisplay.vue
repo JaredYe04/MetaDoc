@@ -71,7 +71,7 @@
           <span>{{ $t('agent.display.outlineOptimize.outlineTree') }}</span>
         </div>
         <ScrollArea class="max-h-[400px]">
-          <el-tree
+          <Tree
             :data="outlineTreeData"
             :props="{ children: 'children', label: 'label' }"
             default-expand-all
@@ -108,7 +108,7 @@
                 </div>
               </div>
             </template>
-          </el-tree>
+          </Tree>
         </ScrollArea>
       </div>
     </div>
@@ -129,6 +129,7 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
 import { Result } from '@renderer/components/ui/result'
+import { Tree } from '@renderer/components/ui/tree'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

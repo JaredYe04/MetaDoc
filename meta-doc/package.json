@@ -81,6 +81,7 @@
     "@types/d3": "^7.4.3",
     "@types/jsdom": "^27.0.0",
     "@vee-validate/zod": "^4.15.1",
+    "@vuelor/picker": "^0.4.0",
     "@vueuse/core": "^14.2.1",
     "@xmldom/xmldom": "^0.8.11",
     "ag-grid-community": "^33.3.2",

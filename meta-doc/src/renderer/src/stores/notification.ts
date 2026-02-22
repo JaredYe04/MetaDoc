@@ -64,6 +64,7 @@ export const useNotificationStore = defineStore('notification', () => {
     duration: number,
     action?: { label: string; callback: () => void }
   ): void {
+    console.log('[Notification] Showing Sonner toast:', item.type, item.title)
     const options: any = {
       description: item.message,
       duration

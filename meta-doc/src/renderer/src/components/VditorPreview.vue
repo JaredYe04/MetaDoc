@@ -121,14 +121,29 @@ const renderMarkdown = async () => {
     }
 
     const isManualContext = containerRef.value?.closest('.manual-content') !== null
-    console.log('[VditorPreview] Calling renderMarkdownPreview...')
+    console.log('[VditorPreview] Calling renderMarkdownPreview...', {
+      containerExists: !!containerRef.value,
+      containerHTML: containerRef.value?.innerHTML?.slice(0, 100),
+      markdownLength: processedMarkdown.length,
+      isManualContext
+    })
+
+    // 清空容器内容
+    if (containerRef.value) {
+      containerRef.value.innerHTML = ''
+    }
+
     await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown, {
       applyMermaidTheme: isManualContext,
       linkBase: '',
       renderCode: true,
       renderMath: true
     })
-    console.log('[VditorPreview] renderMarkdownPreview done')
+
+    console.log('[VditorPreview] renderMarkdownPreview done', {
+      containerHTMLAfter: containerRef.value?.innerHTML?.slice(0, 200),
+      containerChildCount: containerRef.value?.childNodes.length
+    })
 
     setupLinkClickHandler(containerRef.value)
     const container = containerRef.value

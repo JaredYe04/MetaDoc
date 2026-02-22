@@ -13,16 +13,8 @@
       <router-view v-else />
       <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
       <InputContextMenu />
-      <!-- Sonner Toast 全局组件 -->
-      <Toaster
-        position="bottom-right"
-        :expand="true"
-        :rich-colors="false"
-        :close-button="true"
-        :duration="4000"
-        :toast-options="toastOptions"
-        @update:open="handleToastOpenChange"
-      />
+      <!-- 自定义 Toast 堆叠系统 - 接管 Sonner -->
+      <NotificationStack />
     </div>
   </TooltipProvider>
 </template>
@@ -52,8 +44,7 @@ import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
-import 'vue-sonner/style.css'
-import { Toaster } from 'vue-sonner'
+import NotificationStack from './components/NotificationStack.vue'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'
 import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
@@ -64,28 +55,7 @@ const logger = createRendererLogger('App', {
   windowTypeProvider: () => getWindowType()
 })
 
-// Toast 样式配置 - 使用全局主题
-const toastOptions = computed(() => ({
-  style: {
-    background: themeState.currentTheme.background,
-    color: themeState.currentTheme.textColor,
-    border: `1px solid ${themeState.currentTheme.borderColor || '#e5e5e5'}`
-  },
-  className: 'metadoc-toast'
-}))
 
-// 处理 Toast 打开/关闭状态变化 - 点击 Toast 空白区域时关闭（自动标记已读）
-const lastToastId = ref<string | null>(null)
-function handleToastOpenChange(isOpen: boolean, toastId: string) {
-  if (!isOpen && lastToastId.value === toastId) {
-    // Toast 被关闭（可能是点击空白区域或关闭按钮），标记为已读
-    const store = useNotificationStore()
-    store.markAsRead(toastId)
-  }
-  if (isOpen) {
-    lastToastId.value = toastId
-  }
-}
 
 // 获取当前路由信息
 

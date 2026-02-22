@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <el-result icon="success" :title="$t('agent.display.titleFormat.completed')" />
+      <Result icon="success" :title="$t('agent.display.titleFormat.completed')" />
 
       <div
         v-if="displayData.operations && displayData.operations.length > 0"
@@ -61,6 +61,7 @@ import { computed } from 'vue'
 import { Loading, Edit } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Result } from '@renderer/components/ui/result'
 import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

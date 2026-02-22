@@ -981,6 +981,15 @@ const handleKnowledgeBaseToggle = (payload: unknown) => {
 }
 
 onMounted(async () => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    knowledgeBaseEnabled.value = true
+    knowledgeItems.value = [
+      { id: '1', name: '示例文档.md', size: '12.5 KB', created_at: Date.now() },
+      { id: '2', name: 'README.md', size: '8.2 KB', created_at: Date.now() - 3600000 }
+    ]
+    return
+  }
   // 初始化运行时服务器地址
   baseUrl.value = (await getRuntimeServerBaseUrl()) + '/api/knowledge'
   // 初始化知识库状态

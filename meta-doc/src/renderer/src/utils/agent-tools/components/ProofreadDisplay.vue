@@ -156,7 +156,7 @@
       class="no-errors"
       :style="noErrorsStyle"
     >
-      <el-result icon="success" :title="$t('agent.display.proofread.noErrors')" />
+      <Result icon="success" :title="$t('agent.display.proofread.noErrors')" />
     </div>
 
     <div v-else class="error-state">
@@ -175,6 +175,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Result } from '@renderer/components/ui/result'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

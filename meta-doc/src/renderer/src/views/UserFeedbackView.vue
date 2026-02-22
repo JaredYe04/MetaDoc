@@ -130,7 +130,6 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import type { UploadFile, UploadInstance } from 'element-plus'
 import { Eye, XCircle, Check } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -142,6 +141,7 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Form, FormField } from '@renderer/components/ui/form'
+import { Upload, type UploadFile } from '@renderer/components/ui/upload'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'

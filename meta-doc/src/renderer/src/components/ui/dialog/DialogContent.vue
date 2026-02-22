@@ -47,22 +47,22 @@ const props = defineProps<DialogContentProps & { class?: string }>()
 @keyframes dialog-enter {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.95);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 }
 
 @keyframes dialog-exit {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.95);
+    transform: scale(0.95);
   }
 }
 
@@ -85,6 +85,10 @@ const props = defineProps<DialogContentProps & { class?: string }>()
 }
 
 /* 使用 cubic-bezier 非线性缓动 */
+.dialog-content {
+  transform-origin: center center;
+}
+
 .dialog-content[data-state='open'] {
   animation: dialog-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

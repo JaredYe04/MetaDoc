@@ -32,7 +32,7 @@ const props = defineProps({
   validateEvent: { type: Boolean, required: false, default: true }
 })
 
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'value-commit'])
 
 // 计算当前值，确保是数组格式（reka-ui 需要）
 const computedModelValue = computed(() => {

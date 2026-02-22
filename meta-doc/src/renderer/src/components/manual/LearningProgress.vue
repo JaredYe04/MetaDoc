@@ -4,7 +4,7 @@
       <span class="progress-label">{{ $t('userManual.progress.label') || '学习进度' }}</span>
       <span class="progress-percentage">{{ learningProgress }}%</span>
     </div>
-    <el-progress
+    <Progress
       :percentage="learningProgress"
       :stroke-width="8"
       :show-text="false"
@@ -35,6 +35,7 @@
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import { Switch } from '@renderer/components/ui/switch'
+import { Progress } from '@renderer/components/ui/progress'
 import {
   Tooltip,
   TooltipContent,

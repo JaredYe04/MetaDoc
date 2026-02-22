@@ -52,9 +52,11 @@
       <!-- 执行进度 -->
       <div class="workflow-progress" v-if="progress">
         <div class="progress-title">{{ t('agent.workflow.display.progress') }}</div>
-        <el-progress
+        <Progress
           :percentage="progress.percentage"
           :status="progress.percentage === 100 ? 'success' : undefined"
+          :stroke-width="6"
+          :show-text="true"
         />
         <div class="progress-message" v-if="progress.message">{{ progress.message }}</div>
       </div>
@@ -83,6 +85,7 @@ import { useI18n } from 'vue-i18n'
 import { Check, Loading, Clock, InfoFilled } from '@element-plus/icons-vue'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
+import { Progress } from '@renderer/components/ui/progress'
 import { XCircle } from 'lucide-vue-next'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

@@ -12,7 +12,7 @@
           />
         </div>
         <div v-else class="empty-content">
-          <el-empty :description="$t('userManual.emptyContent') || '暂无内容'" />
+          <Empty :description="$t('userManual.emptyContent') || '暂无内容'" />
         </div>
       </div>
     </el-scrollbar>
@@ -30,6 +30,7 @@ import { themeState } from '../../utils/themes'
 import { mixColors } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'
 import ManualBreadcrumb from './ManualBreadcrumb.vue'
+import { Empty } from '@renderer/components/ui/empty'
 
 const { locale } = useI18n()
 const { currentArticleContent, currentArticleId, setCurrentArticle, markArticleAsRead } = useUserManual()

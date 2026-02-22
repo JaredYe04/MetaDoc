@@ -39,7 +39,7 @@
     </div>
 
     <div v-else-if="showResults && query && results.length === 0" class="search-empty">
-      <el-empty
+      <Empty
         :description="$t('userManual.search.noResults') || '未找到相关文档'"
         :image-size="80"
       />
@@ -54,6 +54,7 @@ import { Document, DocumentCopy } from '@element-plus/icons-vue'
 import { Search } from 'lucide-vue-next'
 import { Input } from '@renderer/components/ui/input'
 import { Badge } from '@renderer/components/ui/badge'
+import { Empty } from '@renderer/components/ui/empty'
 import type { SearchResult } from '../../manuals/types'
 
 const { searchQuery, searchResults, performSearch, setCurrentArticle } = useUserManual()

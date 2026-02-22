@@ -66,7 +66,7 @@
           @error="handleImageError"
         />
         <div v-else class="no-preview">
-          <el-empty :description="$t('agent.display.chartGeneration.noPreview')" :image-size="80" />
+          <Empty :description="$t('agent.display.chartGeneration.noPreview')" :image-size="80" />
         </div>
         <!-- PDF 格式提示 -->
         <div v-if="displayData.svgUrl" class="pdf-format-hint">
@@ -134,6 +134,7 @@ import { Loading, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { Progress } from '@renderer/components/ui/progress'
+import { Empty } from '@renderer/components/ui/empty'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import {
   Collapsible,

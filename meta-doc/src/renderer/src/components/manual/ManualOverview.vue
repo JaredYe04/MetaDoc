@@ -30,7 +30,7 @@
               <span class="progress-label">{{ $t('userManual.progress.label') || '学习进度' }}</span>
               <span class="progress-percentage">{{ learningProgress }}%</span>
             </div>
-            <el-progress
+            <Progress
               :percentage="learningProgress"
               :stroke-width="12"
               :show-text="false"
@@ -178,6 +178,7 @@ import {
 } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
+import { Progress } from '@renderer/components/ui/progress'
 import { themeState } from '../../utils/themes'
 
 const { t, locale } = useI18n()

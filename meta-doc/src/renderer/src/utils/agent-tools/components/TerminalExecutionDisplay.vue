@@ -129,13 +129,13 @@
       :style="completedStateStyle"
     >
       <div class="result-header" :style="resultHeaderStyle">
-        <el-tag
+        <Badge
           :type="((effectiveData as any)?.exitCode || 0) === 0 ? 'success' : 'danger'"
           size="small"
         >
           {{ $t('agent.display.terminalExecution.exitCode') }}:
           {{ (effectiveData as any)?.exitCode || 0 }}
-        </el-tag>
+        </Badge>
         <span class="command-text" :style="commandTextStyle">{{
           (effectiveData as any)?.command || ''
         }}</span>
@@ -164,7 +164,7 @@
       </div>
 
       <div v-if="(effectiveData as any)?.summary" class="summary-section">
-        <el-divider>{{ $t('agent.display.terminalExecution.aiSummary') }}</el-divider>
+        <Divider>{{ $t('agent.display.terminalExecution.aiSummary') }}</Divider>
         <div class="summary-text" :style="summaryTextStyle">
           {{ (effectiveData as any).summary }}
         </div>
@@ -221,6 +221,8 @@ import { Textarea } from '@renderer/components/ui/textarea'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Checkbox } from '@renderer/components/ui/checkbox'
 import { Progress } from '@renderer/components/ui/progress'
+import { Badge } from '@renderer/components/ui/badge'
+import { Divider } from '@renderer/components/ui/separator'
 import { AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../types/agent-tool'

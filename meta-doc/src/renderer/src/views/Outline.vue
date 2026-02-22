@@ -590,7 +590,8 @@ import {
   type Ref,
   type ComponentPublicInstance
 } from 'vue'
-import { ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
+import { ElMessageBox } from 'element-plus' // 引入 Element Plus 组件
+import { notifyError, notifyInfo } from '@renderer/utils/notify'
 
 // Demo mode support
 const props = defineProps<{
@@ -1958,22 +1959,14 @@ const deleteNode = () => {
       const cur_node = searchNode(node.path, treeData.value)
       if (!cur_node) return
       if (parent === null) {
-        ElNotification({
-          title: t('outline.error'),
-          message: t('outline.cannotDeleteRoot'),
-          type: 'error'
-        })
+        notifyError(t('outline.cannotDeleteRoot'))
         return
       }
       if (parent) {
         removeNode(parent, cur_node)
       }
       dialogVisible.value[node.path] = false
-      ElNotification({
-        title: t('outline.message'),
-        message: t('outline.deleteSuccess'),
-        type: 'info'
-      })
+      notifyInfo(t('outline.deleteSuccess'))
     })
     .catch(() => {})
 }

@@ -433,7 +433,8 @@ const props = defineProps({
   }
 })
 const isDemo = computed(() => props.mode === 'demo')
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
 import { Upload } from '@renderer/components/ui/upload'
@@ -884,7 +885,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -915,7 +916,7 @@ const handleCreateSession = async () => {
     recognizingIndex.value.clear()
     processedImageCache.value.clear()
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1059,7 +1060,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -1071,7 +1072,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await ocrSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1092,7 +1093,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess'))
+    notifySuccess(t('common.duplicateSuccess'))
   } catch (error) {
     ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
@@ -1108,9 +1109,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
       imageList.value = []
       ocrResults.value = []
     }
-    ElMessage.success(t('common.deleteSuccess'))
+    notifySuccess(t('common.deleteSuccess'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1212,7 +1213,7 @@ const handleImageChange = async (file: any, fileList: any[]) => {
       })
     }
   } catch (error) {
-    ElMessage.error('保存图片失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('保存图片失败: ' + (error instanceof Error ? error.message : String(error)))
     // 如果保存失败，从fileList中移除这个文件
     imageList.value = fileList
       .filter((f) => f.uid !== file.uid)
@@ -1254,7 +1255,7 @@ const handlePasteFromClipboard = async () => {
 
     const clipboardImage = (await messageBridge.invoke('read-clipboard-image')) as string | null
     if (!clipboardImage) {
-      ElMessage.warning(t('ocr.noClipboardImage'))
+      notifyWarning(t('ocr.noClipboardImage'))
       return
     }
 
@@ -1324,27 +1325,27 @@ const handlePasteFromClipboard = async () => {
     const addedImage = imageList.value.find((img) => img.uid === timestamp)
     if (!addedImage) {
       console.error('图片添加失败，未在列表中找到')
-      ElMessage.error('图片添加失败，请重试')
+      notifyError('图片添加失败，请重试')
       return
     }
 
     console.log('粘贴图片成功，当前图片列表长度:', imageList.value.length, '图片:', addedImage)
-    ElMessage.success(t('ocr.pasteSuccess'))
+    notifySuccess(t('ocr.pasteSuccess'))
   } catch (error) {
     console.error('粘贴失败:', error)
-    ElMessage.error('粘贴失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('粘贴失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
 // 识别单张图片
 const handleRecognizeSingle = async (index: number) => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('ocr.noSession'))
+    notifyWarning(t('ocr.noSession'))
     return
   }
 
   if (selectedLanguages.value.length === 0) {
-    ElMessage.warning(t('ocr.noLanguages'))
+    notifyWarning(t('ocr.noLanguages'))
     return
   }
 
@@ -1425,10 +1426,10 @@ const handleRecognizeSingle = async (index: number) => {
     await nextTick()
     updateEditorContent(index)
 
-    ElMessage.success(t('ocr.recognizeSuccess'))
+    notifySuccess(t('ocr.recognizeSuccess'))
   } catch (error) {
     console.error(`图片 ${index + 1} OCR 失败:`, error)
-    ElMessage.error(`识别失败: ${error instanceof Error ? error.message : String(error)}`)
+    notifyError(`识别失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     recognizingIndex.value.delete(index)
   }
@@ -1437,12 +1438,12 @@ const handleRecognizeSingle = async (index: number) => {
 // 重新识别单张图片（不会覆盖AI修复后的内容）
 const handleReRecognizeSingle = async (index: number) => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('ocr.noSession'))
+    notifyWarning(t('ocr.noSession'))
     return
   }
 
   if (selectedLanguages.value.length === 0) {
-    ElMessage.warning(t('ocr.noLanguages'))
+    notifyWarning(t('ocr.noLanguages'))
     return
   }
 
@@ -1534,10 +1535,10 @@ const handleReRecognizeSingle = async (index: number) => {
       }
     }
 
-    ElMessage.success(t('ocr.reRecognizeSuccess'))
+    notifySuccess(t('ocr.reRecognizeSuccess'))
   } catch (error) {
     console.error(`图片 ${index + 1} 重新识别失败:`, error)
-    ElMessage.error(`重新识别失败: ${error instanceof Error ? error.message : String(error)}`)
+    notifyError(`重新识别失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     recognizingIndex.value.delete(index)
   }
@@ -1551,7 +1552,7 @@ const handleOcr = async () => {
   }
 
   if (selectedLanguages.value.length === 0) {
-    ElMessage.warning(t('ocr.noLanguages'))
+    notifyWarning(t('ocr.noLanguages'))
     return
   }
 
@@ -1561,7 +1562,7 @@ const handleOcr = async () => {
     .filter((i) => i !== -1)
 
   if (unrecognizedIndices.length === 0) {
-    ElMessage.info(t('ocr.allRecognized'))
+    notifyInfo(t('ocr.allRecognized'))
     return
   }
 

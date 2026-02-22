@@ -21,7 +21,7 @@
       </Statistic>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <div class="test-actions">
       <Button @click="copyMarkdown">
@@ -34,7 +34,7 @@
       </Button>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <Tabs v-model="activeTab" class="auto-test-tabs">
       <TabsList class="w-full grid grid-cols-2">
@@ -64,23 +64,24 @@
                   <span class="test-name" :style="testNameStyle"
                     >{{ result.toolName }} - {{ result.testCaseName }}</span
                   >
-                  <el-tooltip
-                    v-if="result.testCaseId"
-                    :content="$t('agent.display.autoTest.clickToCopy')"
-                    placement="top"
-                  >
-                    <el-tag
-                      :icon="CopyDocument"
-                      size="small"
-                      type="info"
-                      effect="plain"
-                      class="test-case-id-tag"
-                      @click.stop="copyTestCaseId(result.testCaseId)"
-                      style="cursor: pointer; margin-left: 8px; user-select: none"
-                    >
-                      {{ result.testCaseId }}
-                    </el-tag>
-                  </el-tooltip>
+                  <TooltipProvider v-if="result.testCaseId">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Badge
+                          variant="outline"
+                          class="test-case-id-tag"
+                          @click.stop="copyTestCaseId(result.testCaseId)"
+                          style="cursor: pointer; margin-left: 8px; user-select: none"
+                        >
+                          <CopyDocument class="w-3 h-3 mr-1" />
+                          {{ result.testCaseId }}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{{ $t('agent.display.autoTest.clickToCopy') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <div class="test-result-actions">
                   <Button
@@ -673,7 +674,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.auto-test-result-display :deep(.el-divider) {
+.auto-test-result-display :deep([data-slot="separator"]) {
   margin: 16px 0;
   flex-shrink: 0;
 }

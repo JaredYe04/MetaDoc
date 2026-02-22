@@ -2119,9 +2119,9 @@ const handleParaphraseAll = async () => {
     }
     await nextTick()
     onReportRendered()
-    ElMessage.success(t('aigc.paraphraseSuccess'))
+    notifySuccess(t('aigc.paraphraseSuccess'))
   } catch (error) {
-    ElMessage.error('改写失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('改写失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     paraphrasing.value = false
   }
@@ -2135,9 +2135,9 @@ const handleParaphraseOne = async (index: number) => {
     await paraphraseOneSegment(index)
     await nextTick()
     onReportRendered()
-    ElMessage.success(t('aigc.paraphraseSuccess'))
+    notifySuccess(t('aigc.paraphraseSuccess'))
   } catch (error) {
-    ElMessage.error('改写失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('改写失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     paraphrasingOneIndex.value = null
   }

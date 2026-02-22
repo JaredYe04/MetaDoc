@@ -841,7 +841,7 @@ async function applyFontSettings(getSetting) {
   try {
     const fontUi = await getSetting('fontUi') || 'OPPO Sans 4.0'
     const fontEditorChinese = await getSetting('fontEditorChinese') || 'OPPO Sans 4.0'
-    const fontEditorWestern = await getSetting('fontEditorWestern') || 'New York'
+    const fontEditorWestern = await getSetting('fontEditorWestern') || 'Fira Code'
     const fontPreviewChinese = await getSetting('fontPreviewChinese') || 'OPPO Sans 4.0'
     const fontPreviewWestern = await getSetting('fontPreviewWestern') || 'New York'
 

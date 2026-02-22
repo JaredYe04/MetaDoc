@@ -138,8 +138,8 @@ export const settings = reactive({
   externalFileOpenMode: 'newWindow', // 外部打开文件模式：'newWindow'（新窗口）或 'newTab'（当前窗口新标签页）
   // 字体配置（导出字体在导出对话框中单独配置，默认使用编辑器字体）
   fontUi: 'OPPO Sans 4.0', // UI界面字体
-  fontEditorChinese: 'OPPO Sans 4.0', // 编辑器中文字体
-  fontEditorWestern: 'New York', // 编辑器西文字体
+  fontEditorChinese: 'OPPO Sans 4.0',
+  fontEditorWestern: 'Fira Code',
   fontPreviewChinese: 'OPPO Sans 4.0', // 渲染预览中文字体
   fontPreviewWestern: 'New York' // 渲染预览西文字体
 })

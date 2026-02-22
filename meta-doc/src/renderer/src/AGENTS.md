@@ -222,3 +222,248 @@ P2 (Medium):
 P3 (Low):
   - Other 40+ views
 ```
+
+## Notification System - Migration Status & Current State
+
+### Migration Completion (2024-02-22)
+
+**Status: ✅ COMPLETED**
+
+All notification calls have been migrated from Element Plus to the new unified system.
+
+#### Migration Statistics
+- **Total Files Migrated**: 35+ view files
+- **Total Calls Replaced**: 400+ ElMessage/ElNotification calls
+- **Commits**: 6 migration commits
+- **Duration**: Completed in one session
+
+#### What Was Migrated
+
+**P0 - Core Files (9 files)**
+- Main.vue - ElNotification handlers
+- SettingLlmSection.vue (29 calls)
+- SettingThemeSection.vue (3 calls)
+- SettingBasicSection.vue (4 calls)
+- SettingImageSection.vue (3 calls)
+- SettingDebugSection.vue (99 calls)
+- SettingKnowledgeBaseSection.vue
+- SettingLoggerSection.vue
+- SettingAboutSection.vue
+
+**P1 - Editor Views (4 files)**
+- Editor.vue
+- MarkdownEditor.vue
+- LaTeXEditor.vue
+- PlainTextEditor.vue
+
+**P2 - Core Features (8 files)**
+- AgentView.vue (34 calls)
+- ReferenceManager.vue
+- WorkflowManager.vue
+- AgentEngineManager.vue
+- AgentConfigManager.vue
+- AIChat.vue (12 calls)
+- ProofreadView.vue (15 calls)
+
+**P3 - Tool Windows (25+ files)**
+- AigcDetectionWindow.vue
+- OcrWindow.vue
+- DataAnalysisWindow.vue
+- GraphWindow.vue
+- FomulaRecognition.vue
+- UserFeedbackView.vue (10 calls)
+- AttachmentWindow.vue (13 calls)
+- Outline.vue
+- KnowledgeBase.vue
+- And 15+ other tool views
+
+### Current Implementation
+
+#### Files Added
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `types/notification.ts` | ~60 | TypeScript interfaces |
+| `stores/notification.ts` | ~200 | Pinia store with Sonner integration |
+| `utils/notify.ts` | ~40 | Unified notification API |
+| `utils/notifications-legacy.ts` | ~100 | EventBus compatibility layer |
+
+
+#### How It Works
+
+```
+Business Code
+    │
+    ├─► notify.success('message') ──────┐
+    ├─► notifyError('message') ─────────┤
+    ├─► store.success('message') ───────┼──► Pinia Store
+    └─► eventBus.emit('show-success') ──┘    (stores/notification)
+                                             • notifications[]
+                                             • localStorage
+                                             • unreadCount
+                                                    │
+                       ┌────────────────────────────┼───────────┐
+                       ▼                            ▼           ▼
+                ┌─────────────┐            ┌──────────────┐  ┌─────────┐
+                │ Sonner      │            │ Notification │  │ EventBus│
+                │ (top-right) │            │ Queue        │  │ compat  │
+                │ Toast       │            │ (bottom)     │  │         │
+                └─────────────┘            └──────────────┘  └─────────┘
+```
+
+### Current Behavior
+
+#### Notification Display
+1. **Toast**: Every notification shows as a top-right Sonner toast
+2. **History**: Every notification enters the bottom notification queue
+3. **Unread Badge**: Bottom menu shows unread count badge
+4. **Manual Read**: Users manually mark notifications as read (no auto-mark)
+
+#### User Flow
+```
+Action: Open Document
+    ↓
+┌─────────────────────────────────────┐
+│  ✅ 打开成功              [x]      │  ← Top-right Sonner Toast
+│  文档.md 已打开                      │
+└─────────────────────────────────────┘
+    ↓
+┌──────────────────────────────────────────┐
+│  文档 📄 | 帮助 ❓ |  🔴 通知 (1)  | AI │  ← Bottom shows unread
+└──────────────────────────────────────────┘
+    ↓
+User clicks bell icon
+    ↓
+┌─────────────────────┐
+│ 通知队列             │
+│ ┌─────────────────┐ │
+│ │ 🟢 打开成功      │ │
+│ │ 文档.md 已打开   │ │
+│ │ [标记已读] [删除]│ │  ← Manual mark as read
+│ └─────────────────┘ │
+└─────────────────────┘
+```
+
+### Best Practices
+
+#### 1. Use notify functions for simple notifications
+
+```typescript
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@/utils/notify'
+
+// Success
+notifySuccess('文件已保存')
+
+// Error with options
+notifyError('保存失败', { duration: 5000 })
+
+// Warning
+notifyWarning('请检查输入内容')
+
+// Info
+notifyInfo('正在处理...')
+```
+
+#### 2. Use full notify() for complex notifications
+
+```typescript
+import { notify } from '@/utils/notify'
+
+notify({
+  message: '文件已导出',
+  type: 'success',
+  title: '导出完成',
+  duration: 4000,
+  action: {
+    label: '打开',
+    onClick: () => openFile(path)
+  }
+})
+```
+
+#### 3. Use EventBus for backward compatibility
+
+```typescript
+// Old code - still works!
+eventBus.emit('show-success', '操作成功')
+eventBus.emit('show-error', '操作失败')
+eventBus.emit('open-doc-success', { fileName: 'doc.md' })
+eventBus.emit('save-success', { fileName: 'doc.md' })
+eventBus.emit('export-success', { path: '/path/to/file.pdf' })
+```
+
+#### 4. Use Store for accessing notification history
+
+```typescript
+import { useNotificationStore } from '@/stores/notification'
+
+const store = useNotificationStore()
+
+// Show notification
+store.success('保存成功')
+
+// Access history
+console.log(store.notifications)     // All notifications
+console.log(store.unreadCount)       // Unread count
+
+// Mark as read
+store.markAsRead(notificationId)     // Mark single as read
+store.markAllAsRead()               // Mark all as read
+
+// Remove
+store.remove(notificationId)        // Remove single
+store.removeAll()                   // Clear all
+```
+
+### EventBus Compatibility Layer
+
+The legacy adapter (`utils/notifications-legacy.ts`) handles these events:
+
+| Event | Handler |
+|-------|---------|
+| `show-success` | Shows success toast + adds to queue |
+| `show-error` | Shows error toast + adds to queue |
+| `show-warning` | Shows warning toast + adds to queue |
+| `show-info` | Shows info toast + adds to queue |
+| `open-doc-success` | Shows "Open Success" with file name |
+| `save-success` | Shows "Save Success" with file name |
+| `export-success` | Shows "Export Success" with path |
+
+### Common Issues & Solutions
+
+#### Issue: Notifications not showing
+**Check**:
+1. Is `initNotificationLegacyAdapter()` called in App.vue?
+2. Is the Toaster component present in App.vue?
+3. Are there console errors?
+
+#### Issue: Toast appears but queue is empty
+**Cause**: `addToQueue: false` was passed in options
+**Solution**: Default is `true`, check if you explicitly set it to `false`
+
+### Configuration
+
+#### Default Duration
+```typescript
+const DEFAULT_DURATION = 4000  // 4 seconds
+```
+
+#### Storage
+- **Key**: `metadoc-notifications-v1`
+- **Retention**: 7 days
+- **Max Items**: 100
+
+#### Position
+- **Toast**: Top-right (below MainTabs)
+- **Queue**: Bottom-right (above status bar)
+
+### Migration Checklist (for future reference)
+
+When migrating a new file:
+- [ ] Replace `ElMessage.success/error/warning/info` with `notifyXxx()`
+- [ ] Replace `ElNotification` with `notify()`
+- [ ] Keep `ElMessageBox` for confirmation dialogs
+- [ ] Add import: `import { notifyXxx } from '@/utils/notify'`
+- [ ] Remove unused Element Plus imports
+- [ ] Test notification displays correctly
+- [ ] Check it appears in both toast and queue

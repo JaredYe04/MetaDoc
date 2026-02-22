@@ -1,8 +1,24 @@
 import eventBus from './event-bus'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from './notify'
-import { getTranslator } from './i18n-helper'
+import { i18n } from '../i18n'
 
 let initialized = false
+
+type Translator = (key: string, params?: any) => string
+
+function fallbackTranslator(key: string, params?: any): string {
+  if (params && typeof params === 'object') {
+    return Object.keys(params).reduce((acc, paramKey) => {
+      const value = String((params as Record<string, any>)[paramKey] ?? '')
+      return acc.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), value)
+    }, key)
+  }
+  return key
+}
+
+function getTranslator(): Translator {
+  return i18n?.global?.t || fallbackTranslator
+}
 
 function extractMessage(payload: unknown): string {
   if (typeof payload === 'string') return payload

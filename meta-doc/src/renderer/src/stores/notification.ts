@@ -67,7 +67,10 @@ export const useNotificationStore = defineStore('notification', () => {
     console.log('[Notification] Showing Sonner toast:', item.type, item.title)
     const options: any = {
       description: item.message,
-      duration
+      duration,
+      onClick: () => {
+        markAsRead(item.id)
+      }
     }
 
     if (action) {

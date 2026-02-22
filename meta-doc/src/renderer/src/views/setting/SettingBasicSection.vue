@@ -17,7 +17,10 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')" name="autoOpenHomeOnStartup">
+      <FormField
+        :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')"
+        name="autoOpenHomeOnStartup"
+      >
         <div class="flex items-center gap-2">
           <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
           <Switch
@@ -67,7 +70,10 @@
       </FormField> -->
 
       <FormField :label="t('setting.autoSave')" name="autoSave">
-        <Select v-model="settings.autoSave" @update:model-value="saveSetting('autoSave', settings.autoSave)">
+        <Select
+          v-model="settings.autoSave"
+          @update:model-value="saveSetting('autoSave', settings.autoSave)"
+        >
           <SelectTrigger class="w-[280px]">
             <SelectValue />
           </SelectTrigger>
@@ -140,7 +146,10 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.externalFileOpenMode', '外部文件打开方式')" name="externalFileOpenMode">
+      <FormField
+        :label="t('setting.externalFileOpenMode', '外部文件打开方式')"
+        name="externalFileOpenMode"
+      >
         <Select
           v-model="settings.externalFileOpenMode"
           @update:model-value="saveSetting('externalFileOpenMode', settings.externalFileOpenMode)"
@@ -149,8 +158,12 @@
             <SelectValue />
           </SelectTrigger>
           <SelectContent class="min-w-[280px]">
-            <SelectItem value="newWindow">{{ t('setting.openInNewWindow', '在新窗口中打开') }}</SelectItem>
-            <SelectItem value="newTab">{{ t('setting.openInNewTab', '在当前窗口新标签页中打开') }}</SelectItem>
+            <SelectItem value="newWindow">{{
+              t('setting.openInNewWindow', '在新窗口中打开')
+            }}</SelectItem>
+            <SelectItem value="newTab">{{
+              t('setting.openInNewTab', '在当前窗口新标签页中打开')
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </FormField>
@@ -163,14 +176,22 @@
             v-model="settings.fontUi"
             :placeholder="t('setting.selectFont', '选择字体')"
             preview-text="AaBbCc 你好世界"
-            @update:model-value="saveSetting('fontUi', settings.fontUi); applyFontSettings()"
+            @update:model-value="
+              (val) => {
+                saveSetting('fontUi', val)
+                applyFontSettings()
+              }
+            "
           />
         </FormField>
       </div>
 
       <div class="font-settings-group">
         <h4 class="font-group-title">{{ t('setting.fontEditor', '编辑器字体') }}</h4>
-        <FormField :label="t('setting.fontEditorChinese', '编辑器中文字体')" name="fontEditorChinese">
+        <FormField
+          :label="t('setting.fontEditorChinese', '编辑器中文字体')"
+          name="fontEditorChinese"
+        >
           <FontSelect
             v-model="settings.fontEditorChinese"
             :placeholder="t('setting.selectChineseFont', '选择中文字体')"
@@ -178,7 +199,10 @@
             @update:model-value="saveSetting('fontEditorChinese', settings.fontEditorChinese)"
           />
         </FormField>
-        <FormField :label="t('setting.fontEditorWestern', '编辑器西文字体')" name="fontEditorWestern">
+        <FormField
+          :label="t('setting.fontEditorWestern', '编辑器西文字体')"
+          name="fontEditorWestern"
+        >
           <FontSelect
             v-model="settings.fontEditorWestern"
             :placeholder="t('setting.selectWesternFont', '选择西文字体')"
@@ -190,7 +214,10 @@
 
       <div class="font-settings-group">
         <h4 class="font-group-title">{{ t('setting.fontPreview', '渲染预览字体') }}</h4>
-        <FormField :label="t('setting.fontPreviewChinese', '预览中文字体')" name="fontPreviewChinese">
+        <FormField
+          :label="t('setting.fontPreviewChinese', '预览中文字体')"
+          name="fontPreviewChinese"
+        >
           <FontSelect
             v-model="settings.fontPreviewChinese"
             :placeholder="t('setting.selectChineseFont', '选择中文字体')"
@@ -198,7 +225,10 @@
             @update:model-value="saveSetting('fontPreviewChinese', settings.fontPreviewChinese)"
           />
         </FormField>
-        <FormField :label="t('setting.fontPreviewWestern', '预览西文字体')" name="fontPreviewWestern">
+        <FormField
+          :label="t('setting.fontPreviewWestern', '预览西文字体')"
+          name="fontPreviewWestern"
+        >
           <FontSelect
             v-model="settings.fontPreviewWestern"
             :placeholder="t('setting.selectWesternFont', '选择西文字体')"
@@ -208,7 +238,10 @@
         </FormField>
       </div>
 
-      <FormField :label="t('setting.referenceDirManagement', '引用文件目录管理')" name="referenceDirManagement">
+      <FormField
+        :label="t('setting.referenceDirManagement', '引用文件目录管理')"
+        name="referenceDirManagement"
+      >
         <div class="reference-dir-management">
           <div class="reference-dir-info">
             <span class="reference-dir-size-label"
@@ -258,6 +291,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { FontSelect } from '@renderer/components/ui/font-select'
 import FontDebugPanel from '@renderer/components/FontDebugPanel.vue'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
+
+// Demo mode support
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
 
@@ -358,7 +397,36 @@ const clearReferenceDir = async () => {
   }
 }
 
+// Demo mock data
+const loadDemoData = () => {
+  // 启动选项设置
+  settings.startupOption = 'lastFile'
+  // 自动保存设置
+  settings.autoSave = '5'
+  // 元数据保存模式
+  settings.metadataSaveMode = 'sidecar'
+  // 引用目录大小 (15MB = 15 * 1024 * 1024 bytes)
+  referenceDirSize.value = 15 * 1024 * 1024
+  // 其他演示设置
+  settings.autoOpenHomeOnStartup = true
+  settings.bypassCodeBlock = false
+  settings.parseEmbeddedImages = true
+  settings.mathInlineDigit = true
+  settings.externalFileOpenMode = 'newTab'
+  settings.fontUi = 'OPPO Sans 4.0'
+  settings.fontEditorChinese = 'Noto Sans SC'
+  settings.fontEditorWestern = 'JetBrains Mono'
+  settings.fontPreviewChinese = 'Noto Sans SC'
+  settings.fontPreviewWestern = 'Georgia'
+}
+
 onMounted(() => {
+  // Demo mode: skip all API calls and load mock data
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   // 粒子效果相关代码已注释，强制关闭粒子效果设置
   // 确保粒子效果设置永远关闭
   if (settings.particleEffect !== false) {

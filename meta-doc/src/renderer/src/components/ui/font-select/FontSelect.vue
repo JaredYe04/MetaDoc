@@ -34,8 +34,9 @@ const error = ref('')
 const hasLoaded = ref(false)
 const isOpen = ref(false)
 
-// 默认字体列表（作为后备）
 const defaultFonts: FontOption[] = [
+  { name: 'Fira Code', family: 'Fira Code' },
+  { name: 'JetBrains Mono', family: 'JetBrains Mono' },
   { name: 'OPPO Sans 4.0', family: 'OPPO Sans 4.0' },
   { name: 'New York', family: 'New York' },
   { name: 'Microsoft YaHei', family: 'Microsoft YaHei' },

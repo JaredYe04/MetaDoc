@@ -1,5 +1,7 @@
 /* Font Configuration - 西文: New York, 中文: OPPO Sans */
 
+@import '@fontsource/fira-code/400.css';
+
 /* New York - 西文字体 (Latin, Greek, Cyrillic) */
 @font-face {
   font-family: 'New York';

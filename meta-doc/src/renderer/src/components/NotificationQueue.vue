@@ -64,12 +64,18 @@
             {{ item.message }}
           </div>
           <div class="item-actions">
-            <!-- <Button size="small" variant="ghost" type="primary"  @click="handleRead(item.id)" :disabled="item.read">
-            {{ t('notificationQueue.markRead') }}
-          </Button> -->
+            <Button
+              v-if="!item.read"
+              size="small"
+              variant="ghost"
+              type="primary"
+              @click.stop="handleRead(item.id)"
+            >
+              {{ t('notificationQueue.markRead') }}
+            </Button>
             <Tooltip>
               <TooltipTrigger as-child>
-                <Button size="small" circle plain type="danger" @click="handleRemove(item.id)">
+                <Button size="small" circle plain type="danger" @click.stop="handleRemove(item.id)">
                   <el-icon><Minus /></el-icon>
                 </Button>
               </TooltipTrigger>
@@ -197,11 +203,9 @@ function formatTimestamp(timestamp: number): string {
   })
 }
 
-// 监听visible变化，添加/移除点击外部区域监听器，并标记所有通知为已读
+// 监听visible变化，添加/移除点击外部区域监听器
 watch(visible, (isVisible) => {
   if (isVisible) {
-    notificationStore.markAllAsRead()
-    // 使用nextTick确保DOM已更新
     nextTick(() => {
       document.addEventListener('click', handleClickOutside, true)
     })

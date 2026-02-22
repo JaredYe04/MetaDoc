@@ -1,20 +1,17 @@
+<script setup>
+import { DropdownMenuTrigger, useForwardProps } from "reka-ui";
+
+const props = defineProps({
+  disabled: { type: Boolean, required: false },
+  asChild: { type: Boolean, required: false },
+  as: { type: null, required: false },
+});
+
+const forwardedProps = useForwardProps(props);
+</script>
+
 <template>
-  <DropdownMenuTrigger v-bind="forwarded" :class="$attrs.class">
+  <DropdownMenuTrigger class="outline-none" v-bind="forwardedProps">
     <slot />
   </DropdownMenuTrigger>
 </template>
-
-<script setup>
-import { DropdownMenuTrigger, useForwardProps } from 'radix-vue'
-
-defineOptions({
-  inheritAttrs: false
-})
-
-const props = defineProps({
-  disabled: Boolean,
-  asChild: Boolean
-})
-
-const forwarded = useForwardProps(props)
-</script>

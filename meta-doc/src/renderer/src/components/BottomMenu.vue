@@ -124,11 +124,12 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { BellFilled, Document } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
-import { useNotificationStack, initializeNotificationListeners } from '../utils/notifications'
+import { useNotificationStore } from '../stores/notification'
 import { useWorkspace } from '../stores/workspace'
 import { useAiTasks } from '../utils/ai_tasks'
 import { getAppVersion } from '../utils/version'
@@ -146,7 +147,6 @@ import {
 const workspace = useWorkspace()
 const { t } = useI18n()
 
-initializeNotificationListeners(t)
 const tasks = useAiTasks()
 
 const activeDocument = computed(() => workspace.activeDocument.value)
@@ -196,7 +196,8 @@ const documentFormat = computed(() => {
   return doc.format
 })
 
-const { latestNotification, unreadCount } = useNotificationStack()
+const notificationStore = useNotificationStore()
+const { latestNotification, unreadCount } = storeToRefs(notificationStore)
 const notificationType = computed(() => latestNotification.value?.type ?? null)
 
 // 检查是否有AI任务（简化：只要任务队列里有任务就旋转）

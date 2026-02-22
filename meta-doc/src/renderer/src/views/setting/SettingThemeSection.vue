@@ -54,17 +54,17 @@
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem @select="handleAction('duplicate', theme)">
+              <DropdownMenuItem @click="handleAction('duplicate', theme)">
                 <Copy class="w-4 h-4 mr-2" />
                 {{ t('setting.duplicate') }}
               </DropdownMenuItem>
-              <DropdownMenuItem v-if="!theme.isDefault" @select="handleAction('edit', theme)">
+              <DropdownMenuItem v-if="!theme.isDefault" @click="handleAction('edit', theme)">
                 <Pencil class="w-4 h-4 mr-2" />
                 {{ t('setting.edit') }}
               </DropdownMenuItem>
               <DropdownMenuItem
                 v-if="!theme.isDefault"
-                @select="handleAction('delete', theme)"
+                @click="handleAction('delete', theme)"
                 class="text-red-600 focus:text-red-600"
               >
                 <Trash2 class="w-4 h-4 mr-2" />
@@ -146,6 +146,11 @@
           <DialogTitle>{{
             editingTheme ? t('setting.editTheme') : t('setting.newTheme')
           }}</DialogTitle>
+          <DialogDescription>
+            {{
+              editingTheme ? t('setting.editThemeDescription') : t('setting.newThemeDescription')
+            }}
+          </DialogDescription>
         </DialogHeader>
         <Form class="space-y-4">
           <FormField :label="t('setting.themeName')" name="themeName">
@@ -201,6 +206,7 @@ import { Switch } from '@renderer/components/ui/switch'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle

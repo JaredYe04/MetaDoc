@@ -15,7 +15,7 @@ components/ui/
 ├── card/               # Content containers (shadcn)
 ├── checkbox/           # Form checkbox (shadcn)
 ├── collapsible/        # Expandable content (shadcn)
-├── color-picker/       # Color picker - uses @vuelor/picker (NOT from shadcn-vue)
+├── color-picker/       # Color picker - uses Element Plus (NOT from shadcn-vue)
 ├── descriptions/       # Key-value descriptions (shadcn)
 ├── dialog/             # Modal dialogs (shadcn)
 ├── dropdown-menu/      # Context menus (shadcn)
@@ -72,14 +72,14 @@ components/ui/
 
 ## CUSTOM COMPONENTS & MODIFICATIONS
 
-### color-picker/ (External Library)
+### color-picker/ (Element Plus Wrapper)
 
-Uses `@vuelor/picker` - **NOT from shadcn-vue**.
+Uses Element Plus `ElColorPicker` - **NOT from shadcn-vue**.
 
-- Package: `npm i @vuelor/picker`
-- Components used: `ColorPickerRoot`, `ColorPickerCanvas`, `ColorPickerSliderHue`, `ColorPickerSliderAlpha`, `ColorPickerInputHex`
-- Styling: Vanilla CSS mode with CSS variables mapped to shadcn theme tokens
-- API compatible with Element Plus color-picker props/events
+- Component: `ElColorPicker` from `element-plus`
+- Wrapper provides API compatible with Element Plus color-picker props/events
+- Supports `v-model`, `predefine`, `size`, `showAlpha`, `colorFormat` props
+- Emits: `update:modelValue`, `change`, `active-change`, `visible-change`
 
 ### slider/ (Modified for Element Plus Compatibility)
 

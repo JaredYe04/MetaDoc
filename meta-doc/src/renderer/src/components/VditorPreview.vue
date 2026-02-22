@@ -1,11 +1,6 @@
 <template>
   <div class="vditor-preview-wrapper">
-    <Skeleton
-      :loading="isRendering"
-      :rows="15"
-      animated
-      class="vditor-preview-skeleton"
-    >
+    <Skeleton :loading="isRendering" :rows="15" animated class="vditor-preview-skeleton">
       <div ref="containerRef" class="vditor-preview-container"></div>
     </Skeleton>
   </div>
@@ -42,43 +37,66 @@ const setupLinkClickHandler = (container: HTMLElement | null) => {
     console.warn('VditorPreview: setupLinkClickHandler called with null container')
     return
   }
-  
+
   // 移除之前的事件监听器（如果存在）
   if (linkClickHandler) {
     container.removeEventListener('click', linkClickHandler)
   }
-  
+
   // 创建新的事件处理器
   linkClickHandler = (e: MouseEvent) => {
     const target = e.target as HTMLElement
     // 查找最近的 <a> 标签
     const link = target.closest('a')
-    
+
     if (link && link.href) {
       // 跳过内部链接（manual-internal-link）
       if (link.classList.contains('manual-internal-link')) {
         return // 让内部链接的事件处理器处理
       }
-      
+
       const url = link.href
-      
+
       // 判断是否为外部链接（http/https）
       if (url.startsWith('http://') || url.startsWith('https://')) {
         e.preventDefault()
         e.stopPropagation()
-        
+
         // 使用 eventBus 在系统浏览器中打开链接
         eventBus.emit('open-link', url)
       }
       // 对于其他类型的链接（如锚点链接、file:// 协议等），保持默认行为
     }
   }
-  
+
   // 添加事件监听器
   container.addEventListener('click', linkClickHandler)
 }
 
+// 防抖函数
+function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  return function (this: any, ...args: Parameters<T>) {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+    }, delay)
+  }
+}
+
+// 组件挂载状态
+let isMounted = true
+onBeforeUnmount(() => {
+  isMounted = false
+})
+
 const renderMarkdown = async () => {
+  // 检查组件是否仍然挂载
+  if (!isMounted) return
+
   if (!props.markdown || !props.markdown.trim()) {
     isRendering.value = false
     // 清空容器并移除事件监听器
@@ -98,7 +116,7 @@ const renderMarkdown = async () => {
   let retries = 0
   while (!containerRef.value && retries < 20) {
     await nextTick()
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
     retries++
   }
 
@@ -124,13 +142,32 @@ const renderMarkdown = async () => {
     // 注意：如果输入包含 HTTP URL（如预渲染的图表），可能需要先转换为本地路径
     const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
 
+    // 检查组件是否仍然挂载（快速切换文章时的正常情况）
+    if (!isMounted || !containerRef.value) {
+      isRendering.value = false
+      return
+    }
+
     // 再次检查容器是否存在（防止异步过程中被销毁）
     await nextTick()
-    await new Promise(resolve => requestAnimationFrame(resolve))
+
+    // 检查组件是否仍然挂载（快速切换文章时的正常情况）
+    if (!isMounted || !containerRef.value) {
+      isRendering.value = false
+      return
+    }
+
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+
+    // 检查组件是否仍然挂载（快速切换文章时的正常情况）
+    if (!isMounted || !containerRef.value) {
+      isRendering.value = false
+      return
+    }
+
     await nextTick()
-    
-    if (!containerRef.value) {
-      console.warn('VditorPreview: 容器元素在渲染过程中被销毁')
+
+    if (!isMounted || !containerRef.value) {
       isRendering.value = false
       return
     }
@@ -144,7 +181,7 @@ const renderMarkdown = async () => {
       renderCode: true,
       renderMath: true
     })
-    
+
     // 添加链接点击事件监听器，使外部链接在系统浏览器中打开
     setupLinkClickHandler(containerRef.value)
     const container = containerRef.value
@@ -158,6 +195,9 @@ const renderMarkdown = async () => {
     isRendering.value = false
   }
 }
+
+// 防抖的 renderMarkdown
+const debouncedRenderMarkdown = debounce(renderMarkdown, 100)
 
 // 监听 Markdown 内容变化和主题变化
 watch(
@@ -177,9 +217,9 @@ watch(
     }
     // 等待DOM更新完成
     await nextTick()
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
     await nextTick()
-    renderMarkdown()
+    debouncedRenderMarkdown()
   },
   { immediate: false }
 )
@@ -187,10 +227,10 @@ watch(
 onMounted(async () => {
   // 等待DOM完全挂载
   await nextTick()
-  await new Promise(resolve => requestAnimationFrame(resolve))
+  await new Promise((resolve) => requestAnimationFrame(resolve))
   await nextTick()
   if (props.markdown && props.markdown.trim()) {
-    renderMarkdown()
+    debouncedRenderMarkdown()
   }
 })
 

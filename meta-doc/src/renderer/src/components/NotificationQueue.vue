@@ -92,6 +92,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '../stores/notification'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
@@ -104,7 +105,7 @@ import { createRendererLogger } from '../utils/logger.ts'
 
 const { t } = useI18n()
 const notificationStore = useNotificationStore()
-const { notifications, unreadCount } = notificationStore
+const { notifications, unreadCount } = storeToRefs(notificationStore)
 
 const visible = ref(false)
 const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)

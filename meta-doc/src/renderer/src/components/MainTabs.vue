@@ -1623,6 +1623,12 @@ onUnmounted(() => {
   opacity: 0.6;
 }
 
+/* 正在关闭的 tab：降低 z-index 让它滑到左边 tab 下面 */
+.tab-item.is-closing {
+  z-index: 1 !important;
+  pointer-events: none;
+}
+
 /* macOS 平台：左边预留空间给原生交通灯按钮 */
 .macos-traffic-lights-spacer {
   width: 78px; /* macOS 原生按钮区域宽度 */

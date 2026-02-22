@@ -259,7 +259,7 @@ import {
   onUnmounted,
   shallowRef
 } from 'vue'
-import { ElButton, ElLoading, ElScrollbar, ElSelect, ElOption } from 'element-plus'
+import { ElButton, ElLoading, ElScrollbar } from 'element-plus'
 import { Icon } from 'tdesign-icons-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 

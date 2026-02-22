@@ -1,6 +1,7 @@
 import { BaseExportAdapter } from './base-adapter'
 import type { DocxExportOptions, ExportOptionField } from './types'
 import type { DocumentFormat, ExportFormat } from '../../../../types'
+import { settings } from '../../utils/settings.js'
 
 /**
  * Markdown -> DOCX 导出适配器
@@ -15,31 +16,37 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
   descriptionKey = 'export.adapters.mdToDocx.description'
 
   getDefaultOptions(): DocxExportOptions {
+    // 从编辑器字体设置获取默认值
+    const editorChineseFont = settings.fontEditorChinese || 'OPPO Sans 4.0'
+    const editorWesternFont = settings.fontEditorWestern || 'New York'
+    // 组合字体：西文优先，中文后备
+    const defaultFontFamily = `${editorWesternFont}, ${editorChineseFont}`
+
     return {
       enableStyleMapping: true,
       styleMapping: {
         normal: {
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: defaultFontFamily,
           fontSize: 10.5, // pt
           lineHeight: 1.15
         },
         heading1: {
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: defaultFontFamily,
           fontSize: 18, // pt
           lineHeight: 1.2
         },
         heading2: {
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: defaultFontFamily,
           fontSize: 16, // pt
           lineHeight: 1.2
         },
         heading3: {
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: defaultFontFamily,
           fontSize: 14, // pt
           lineHeight: 1.2
         },
         heading4: {
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: defaultFontFamily,
           fontSize: 12, // pt
           lineHeight: 1.2
         }
@@ -51,7 +58,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
       showHeader: false,
       autoNumberImages: false,
       imageLabelFontSize: 10.5, // pt
-      imageLabelFontFamily: 'SimHei' // 默认黑体（中文）或 Arial Bold（英文）
+      imageLabelFontFamily: editorChineseFont // 默认使用编辑器中文字体
     }
   }
 

@@ -953,7 +953,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'

@@ -58,66 +58,44 @@
             <p class="text-sm">{{ t('notificationQueue.empty') }}</p>
           </div>
           
-          <div class="p-2 space-y-2">
+          <div class="p-3 space-y-3">
             <div
               v-for="item in notifications"
               :key="item.id"
-              class="group relative flex gap-3 p-3 rounded-lg border transition-all duration-200"
-              :class="[
-                getNotificationStyles(item.type),
-                item.read ? 'opacity-70' : 'opacity-100'
-              ]"
+              class="group relative flex items-start gap-3 p-4 rounded-xl shadow-sm border bg-white dark:bg-zinc-900 transition-all duration-200 hover:shadow-md"
+              :class="getSonnerBorderClass(item.type)"
             >
-              <!-- Icon -->
-              <div class="flex-shrink-0 mt-0.5">
-                <div
-                  class="w-8 h-8 rounded-full flex items-center justify-center"
-                  :class="getIconBackgroundClass(item.type)"
-                >
-                  <component
-                    :is="getIconForType(item.type)"
-                    class="h-4 w-4"
-                    :class="getIconClass(item.type)"
-                  />
-                </div>
+              <!-- Icon (Sonner style) -->
+              <div class="flex-shrink-0">
+                <component
+                  :is="getIconForType(item.type)"
+                  class="h-5 w-5 mt-0.5"
+                  :class="getSonnerIconClass(item.type)"
+                />
               </div>
 
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-start justify-between gap-2">
-                  <p class="text-sm font-semibold leading-tight">{{ item.title }}</p>
-                  <span class="text-xs text-muted-foreground flex-shrink-0">{{ formatTime(item.timestamp) }}</span>
-                </div>
-                <p class="text-sm text-muted-foreground mt-1 leading-relaxed">{{ item.message }}</p>
-                
-                <!-- Actions -->
-                <div class="flex items-center gap-2 mt-2">
-                  <Button
-                    v-if="!item.read"
-                    variant="ghost"
-                    size="sm"
-                    class="h-7 px-2 text-xs"
-                    @click.stop="handleRead(item.id)"
-                  >
-                    <Check class="h-3 w-3 mr-1" />
-                    {{ t('notificationQueue.markRead') }}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                    @click.stop="handleRemove(item.id)"
-                  >
-                    <X class="h-3 w-3 mr-1" />
-                    {{ t('notificationQueue.remove') }}
-                  </Button>
-                </div>
+              <!-- Content (Sonner style) -->
+              <div class="flex-1 min-w-0 pr-6">
+                <h4 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ item.title }}</h4>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">{{ item.message }}</p>
+                <p class="text-xs text-zinc-400 dark:text-zinc-600 mt-1.5">{{ formatTime(item.timestamp) }}</p>
               </div>
 
-              <!-- Unread Indicator -->
+              <!-- Close button (Sonner style - top right) -->
+              <Button
+                variant="ghost"
+                size="icon"
+                class="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                @click.stop="handleRemove(item.id)"
+              >
+                <X class="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+              </Button>
+
+              <!-- Unread dot -->
               <div
                 v-if="!item.read"
-                class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary"
+                class="absolute top-2 right-8 w-1.5 h-1.5 rounded-full"
+                :class="getSonnerDotClass(item.type)"
               />
             </div>
           </div>
@@ -143,7 +121,6 @@ import { createRendererLogger } from '../utils/logger.ts'
 import type { NotificationType } from '../types/notification'
 import {
   Bell,
-  Check,
   Trash2,
   X,
   Inbox,
@@ -166,14 +143,35 @@ const logger = createRendererLogger('NotificationQueue', {
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.4))
 const maxHeight = computed(() => Math.floor(window.innerHeight * 0.8))
 
-function getNotificationStyles(type: NotificationType | undefined): string {
-  const styles: Record<string, string> = {
-    success: 'border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20',
-    error: 'border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20',
-    warning: 'border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20',
-    info: 'border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+// Sonner-style styling functions
+function getSonnerBorderClass(type: NotificationType | undefined): string {
+  const classes: Record<string, string> = {
+    success: 'border-l-4 border-l-green-500',
+    error: 'border-l-4 border-l-red-500',
+    warning: 'border-l-4 border-l-amber-500',
+    info: 'border-l-4 border-l-blue-500'
   }
-  return styles[type || 'info']
+  return classes[type || 'info']
+}
+
+function getSonnerIconClass(type: NotificationType | undefined): string {
+  const classes: Record<string, string> = {
+    success: 'text-green-500',
+    error: 'text-red-500',
+    warning: 'text-amber-500',
+    info: 'text-blue-500'
+  }
+  return classes[type || 'info']
+}
+
+function getSonnerDotClass(type: NotificationType | undefined): string {
+  const classes: Record<string, string> = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    warning: 'bg-amber-500',
+    info: 'bg-blue-500'
+  }
+  return classes[type || 'info']
 }
 
 function getIconForType(type: NotificationType | undefined): Component {
@@ -184,26 +182,6 @@ function getIconForType(type: NotificationType | undefined): Component {
     info: Info
   }
   return icons[type || 'info']
-}
-
-function getIconClass(type: NotificationType | undefined): string {
-  const classes: Record<string, string> = {
-    success: 'text-green-600 dark:text-green-400',
-    error: 'text-red-600 dark:text-red-400',
-    warning: 'text-amber-600 dark:text-amber-400',
-    info: 'text-blue-600 dark:text-blue-400'
-  }
-  return classes[type || 'info']
-}
-
-function getIconBackgroundClass(type: NotificationType | undefined): string {
-  const classes: Record<string, string> = {
-    success: 'bg-green-100 dark:bg-green-900/30',
-    error: 'bg-red-100 dark:bg-red-900/30',
-    warning: 'bg-amber-100 dark:bg-amber-900/30',
-    info: 'bg-blue-100 dark:bg-blue-900/30'
-  }
-  return classes[type || 'info']
 }
 
 function formatTime(timestamp: number): string {

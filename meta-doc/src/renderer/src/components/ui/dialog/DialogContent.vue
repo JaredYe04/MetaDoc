@@ -10,6 +10,11 @@ import {
 import { X } from 'lucide-vue-next'
 import { cn } from '@renderer/lib/utils'
 
+// 防止事件监听器自动继承到 DialogPortal（DialogPortal 渲染 fragment，无法继承）
+defineOptions({
+  inheritAttrs: false
+})
+
 const props = defineProps<DialogContentProps & { class?: string }>()
 const emits = defineEmits([
   'openAutoFocus',

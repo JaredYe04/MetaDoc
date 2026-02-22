@@ -72,17 +72,21 @@ components/ui/
 
 ## CUSTOM COMPONENTS & MODIFICATIONS
 
-### color-picker/ (Project Custom - shadcn-vue based)
+### color-picker/ (External Library - @vuelor/picker)
 
-Custom color picker component built using shadcn-vue primitives - **NOT from shadcn-vue CLI**.
+Uses `@vuelor/picker` - **NOT from shadcn-vue**.
 
-- **Popover-based**: Uses shadcn `Popover` for dropdown panel (no z-index issues)
-- **Built on reka-ui**: Uses `Popover`, `Slider` from shadcn-vue
-- **Color manipulation**: Uses `tinycolor2` for HSV/HEX/RGB conversion
-- **Features**: Saturation-Value canvas, Hue slider, Alpha slider, predefined colors, hex input
-- **API**: Compatible with Element Plus color-picker props/events
-  - Props: `v-model`, `predefine`, `size`, `showAlpha`, `colorFormat`
-  - Emits: `update:modelValue`, `change`, `active-change`, `visible-change`
+- **Package**: `npm i @vuelor/picker`
+- **Based on reka-ui**: Uses `useForwardPropsEmits` from reka-ui for proper v-model binding
+- **Styling**: Vanilla CSS mode with shadcn theme variable overrides
+- **Features**: Canvas, Hue/Alpha sliders, Hex input, predefined colors
+- **Components used**:
+  - `ColorPickerRoot`, `ColorPickerCanvas`
+  - `ColorPickerSliderHue`, `ColorPickerSliderAlpha`
+  - `ColorPickerInputHex`
+- **API**: Compatible with standard v-model pattern
+  - Props: `v-model`, `predefine`, `showAlpha`
+  - Emits: `update:modelValue`, `change`
 
 ### slider/ (Modified for Element Plus Compatibility)
 

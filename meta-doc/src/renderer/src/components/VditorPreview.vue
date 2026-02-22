@@ -133,8 +133,8 @@ const renderMarkdown = async () => {
     isRendering.value = true
 
     // 设置容器文字颜色
-    if (containerRef.value) {
-      containerRef.value.style.color = themeState.currentTheme.textColor
+    if (containerRef.value && themeState.currentTheme) {
+      containerRef.value.style.color = themeState.currentTheme.textColor || '#000000'
     }
 
     // 预览组件需要 file:// 协议，以便浏览器能够加载本地图片
@@ -204,7 +204,7 @@ const debouncedRenderMarkdown = debounce(renderMarkdown, 100)
 
 // 监听 Markdown 内容变化和主题变化
 watch(
-  [() => props.markdown, () => themeState.currentTheme.type],
+  [() => props.markdown, () => themeState.currentTheme?.type],
   async () => {
     if (!props.markdown || !props.markdown.trim()) {
       isRendering.value = false

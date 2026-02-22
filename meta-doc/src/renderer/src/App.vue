@@ -14,8 +14,12 @@
       <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
       <InputContextMenu />
       <!-- Sonner Toast 全局组件 -->
-      <Toaster 
+      <Toaster
         position="top-right"
+        :expand="false"
+        :rich-colors="true"
+        :close-button="true"
+        :duration="4000"
         :toast-options="{
           style: {
             background: themeState.currentTheme.background,
@@ -801,6 +805,21 @@ a {
   outline-offset: -2px !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
   transform: none !important;
+}
+
+/* ============================================
+   Sonner Toast 样式 - 确保显示在最上层
+   ============================================ */
+
+/* Toast 容器 */
+[data-sonner-toaster] {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* Toast 项 */
+[data-sonner-toast] {
+  z-index: 9999 !important;
 }
 
 </style>

@@ -204,11 +204,7 @@ import {
   SelectContent,
   SelectItem
 } from '@renderer/components/ui/select'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 
@@ -355,7 +351,9 @@ async function scrollToPage(pageNumber: number) {
   const scrollbar = pdfScrollbarRef.value
   if (!pageElement || !scrollbar) return
   const scrollbarEl = (scrollbar as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const pageRect = pageElement.getBoundingClientRect()
@@ -416,7 +414,9 @@ function handlePdfError(_err: any, _pageNum: number) {
 function handleHandModeMouseDown(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !pdfScrollbarRef.value || e.button !== 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   isDragging = true
   dragStartX = e.clientX
@@ -438,7 +438,9 @@ function handleHandModeMouseMove(e: MouseEvent) {
 function handleHandModeMouseMoveGlobal(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !isDragging || !pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   scrollbarWrap.scrollLeft = scrollStartX + (dragStartX - e.clientX)
   scrollbarWrap.scrollTop = scrollStartY + (dragStartY - e.clientY)
@@ -485,7 +487,9 @@ function handlePdfWheel(event: WheelEvent) {
 function detectCurrentPage() {
   if (!pdfScrollbarRef.value || !pdfPagesContainer.value || totalPdfPages.value === 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const viewportCenterX = containerRect.left + containerRect.width / 2
@@ -529,7 +533,9 @@ const handleScrollDebounced = debounce(detectCurrentPage, 100)
 function setupScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (scrollbarWrap)
     scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true })
 }
@@ -537,7 +543,9 @@ function setupScrollListener() {
 function removeScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (scrollbarWrap) scrollbarWrap.removeEventListener('scroll', handleScrollDebounced)
 }
 
@@ -706,7 +714,7 @@ defineExpose({
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: fit-content;
   margin: 0;
@@ -718,10 +726,10 @@ defineExpose({
 .pdf-page-wrapper :deep(.vue-pdf-main),
 .pdf-page-wrapper :deep(.vue-pdf),
 .pdf-page-wrapper :deep(.vue-pdf__wrapper) {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 .pdf-page-wrapper :deep(canvas) {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   image-rendering: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

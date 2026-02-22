@@ -12,7 +12,7 @@
   font-size: 16px; /* 字体大小 */
   border: none; /* 去除默认边框 */
   outline: none; /* 去掉聚焦的默认样式 */
-  caret-color: #000; /* 光标颜色 */
+  caret-color: var(--el-text-color-primary, #000);
 }
 
 /* 禁用状态的样式 */

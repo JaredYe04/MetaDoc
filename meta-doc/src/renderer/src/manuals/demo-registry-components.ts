@@ -18,7 +18,7 @@ import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import ConsoleTerminal from '../components/ConsoleTerminal.vue'
 import MetaInfoPanel from '../components/MetaInfoPanel.vue'
-import AIChatDemo from '../components/manual/AIChatDemo.vue'
+import AIChat from '../views/AIChat.vue'
 import OcrWindowDemo from '../components/manual/OcrWindowDemo.vue'
 import GraphWindowDemo from '../components/manual/GraphWindowDemo.vue'
 import OutlineDemo from '../components/manual/OutlineDemo.vue'
@@ -42,7 +42,7 @@ registerDemoComponent('SearchReplaceMenu', SearchReplaceMenu)
 registerDemoComponent('PdfPreviewPanel', PdfPreviewPanel)
 registerDemoComponent('ConsoleTerminal', ConsoleTerminal)
 registerDemoComponent('MetaInfoPanel', MetaInfoPanel)
-registerDemoComponent('AIChatDemo', AIChatDemo)
+registerDemoComponent('AIChat', AIChat)
 registerDemoComponent('OcrWindowDemo', OcrWindowDemo)
 registerDemoComponent('GraphWindowDemo', GraphWindowDemo)
 registerDemoComponent('OutlineDemo', OutlineDemo)

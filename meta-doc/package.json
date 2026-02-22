@@ -167,6 +167,7 @@
     "vue-i18n": "^11.1.5",
     "vue-pdf": "^4.3.0",
     "vue-router": "^4.4.5",
+    "vue-sonner": "^2.0.9",
     "vue3-markdown-it": "^1.0.10",
     "vue3-pdfjs": "^0.1.6",
     "word-extractor": "^1.0.4",

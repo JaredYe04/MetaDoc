@@ -353,15 +353,62 @@
 
 **ProofreadViewDemo** - AI 校对界面
 
-基于代码实现 (`components/manual/ProofreadViewDemo.vue`)：
+**ProofreadView** - AI 校对界面
 
-- **Props**：无（纯展示组件）
+基于代码实现 (`views/ProofreadView.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
 - **功能**：展示 AI 校对界面，包括原文输入、校对结果和错误统计
 
 **使用示例**：
 
 ```markdown
-<ProofreadViewDemo />
+<ProofreadView mode="demo" />
+```
+
+##### 10. 其他 AI 工具组件（真实视图组件）
+
+**AigcDetectionWindow** - AIGC 检测界面
+
+基于代码实现 (`views/AigcDetectionWindow.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示 AIGC 检测界面
+
+**使用示例**：
+
+```markdown
+<AigcDetectionWindow mode="demo" />
+```
+
+**DataAnalysisWindow** - 数据分析界面
+
+基于代码实现 (`views/DataAnalysisWindow.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示数据分析界面
+
+**使用示例**：
+
+```markdown
+<DataAnalysisWindow mode="demo" />
+```
+
+**FormulaRecognition** - 公式识别界面
+
+基于代码实现 (`views/FomulaRecognition.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示手写公式识别界面
+
+**使用示例**：
+
+```markdown
+<FormulaRecognition mode="demo" />
 ```
 
 ##### 11. 其他组件

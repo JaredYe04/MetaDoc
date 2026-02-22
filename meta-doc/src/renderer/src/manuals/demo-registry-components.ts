@@ -23,6 +23,10 @@ import OcrWindow from '../views/OcrWindow.vue'
 import GraphWindow from '../views/GraphWindow.vue'
 import Outline from '../views/Outline.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
+import ProofreadView from '../views/ProofreadView.vue'
+import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
+import DataAnalysisWindow from '../views/DataAnalysisWindow.vue'
+import FormulaRecognition from '../views/FomulaRecognition.vue'
 import { registerDemoComponent } from './demo-registry'
 
 registerDemoComponent('LeftMenu', LeftMenu)
@@ -45,3 +49,7 @@ registerDemoComponent('OcrWindow', OcrWindow)
 registerDemoComponent('GraphWindow', GraphWindow)
 registerDemoComponent('Outline', Outline)
 registerDemoComponent('KnowledgeBase', KnowledgeBase)
+registerDemoComponent('ProofreadView', ProofreadView)
+registerDemoComponent('AigcDetectionWindow', AigcDetectionWindow)
+registerDemoComponent('DataAnalysisWindow', DataAnalysisWindow)
+registerDemoComponent('FormulaRecognition', FormulaRecognition)

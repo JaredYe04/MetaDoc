@@ -13,6 +13,17 @@
       <router-view v-else />
       <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
       <InputContextMenu />
+      <!-- Sonner Toast 全局组件 -->
+      <Toaster 
+        position="top-right"
+        :toast-options="{
+          style: {
+            background: themeState.currentTheme.background,
+            color: themeState.currentTheme.textColor,
+            border: `1px solid ${themeState.currentTheme.borderColor || '#e0e0e0'}`
+          }
+        }"
+      />
     </div>
   </TooltipProvider>
 </template>
@@ -42,6 +53,10 @@ import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
+import { Toaster } from 'vue-sonner'
+import { useNotificationStore } from './stores/notification'
+import { setNotificationStore } from './utils/notify'
+import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
 
 const route = useRoute()
 const { locale, t } = useI18n()
@@ -249,6 +264,12 @@ const autoOpenDoc = async () => {
 onMounted(async () => {
   // 初始化 shadcn-vue 主题桥接（同步 themes.js 到 CSS 变量）
   useShadcnTheme()
+
+  // 初始化通知系统
+  const notificationStore = useNotificationStore()
+  notificationStore.loadFromStorage()
+  setNotificationStore(notificationStore)
+  initNotificationLegacyAdapter()
 
   // 初始化运行时服务器地址缓存（供 getRuntimeServerBaseUrlSync 等使用）
   await getRuntimeServerBaseUrl()

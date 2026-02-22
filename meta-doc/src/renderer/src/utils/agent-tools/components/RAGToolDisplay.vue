@@ -52,13 +52,17 @@
     </div>
 
     <!-- 进度条 -->
-    <el-progress
+    <div
       v-if="effectiveProgress && effectiveProgress.percentage > 0"
-      :percentage="effectiveProgress.percentage"
-      :status="progressStatus"
-      :stroke-width="6"
       style="margin-top: 12px"
-    />
+    >
+      <Progress
+        :percentage="effectiveProgress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      />
+    </div>
   </div>
 </template>
 
@@ -68,6 +72,7 @@ import { Loading } from '@element-plus/icons-vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
+import { Progress } from '@renderer/components/ui/progress'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import {

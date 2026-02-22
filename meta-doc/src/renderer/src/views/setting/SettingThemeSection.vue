@@ -69,17 +69,17 @@
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem @click="handleAction('duplicate', theme)">
+              <DropdownMenuItem @select="handleAction('duplicate', theme)">
                 <Copy class="w-4 h-4 mr-2" />
                 {{ t('setting.duplicate') }}
               </DropdownMenuItem>
-              <DropdownMenuItem v-if="!theme.isDefault" @click="handleAction('edit', theme)">
+              <DropdownMenuItem v-if="!theme.isDefault" @select="handleAction('edit', theme)">
                 <Pencil class="w-4 h-4 mr-2" />
                 {{ t('setting.edit') }}
               </DropdownMenuItem>
               <DropdownMenuItem
                 v-if="!theme.isDefault"
-                @click="handleAction('delete', theme)"
+                @select="handleAction('delete', theme)"
                 class="text-red-600 focus:text-red-600"
               >
                 <Trash2 class="w-4 h-4 mr-2" />
@@ -140,9 +140,16 @@
         <div class="flex items-center gap-2">
           <Switch
             :checked="settings.lineNumber"
-            @update:checked="(val: boolean) => { settings.lineNumber = val; saveSetting('lineNumber', val) }"
+            @update:checked="
+              (val: boolean) => {
+                settings.lineNumber = val
+                saveSetting('lineNumber', val)
+              }
+            "
           />
-          <span class="text-sm text-muted-foreground">{{ settings.lineNumber ? t('setting.enabled') : t('setting.disabled') }}</span>
+          <span class="text-sm text-muted-foreground">{{
+            settings.lineNumber ? t('setting.enabled') : t('setting.disabled')
+          }}</span>
         </div>
       </FormField>
     </Form>
@@ -151,7 +158,9 @@
     <Dialog v-model:open="showCreateDialog">
       <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{{ editingTheme ? t('setting.editTheme') : t('setting.newTheme') }}</DialogTitle>
+          <DialogTitle>{{
+            editingTheme ? t('setting.editTheme') : t('setting.newTheme')
+          }}</DialogTitle>
         </DialogHeader>
         <Form class="space-y-4">
           <FormField :label="t('setting.themeName')" name="themeName">
@@ -171,7 +180,9 @@
           </FormField>
         </Form>
         <DialogFooter>
-          <Button variant="ghost" @click="showCreateDialog = false">{{ t('setting.cancel') }}</Button>
+          <Button variant="ghost" @click="showCreateDialog = false">{{
+            t('setting.cancel')
+          }}</Button>
           <Button @click="saveTheme">{{ t('setting.save') }}</Button>
         </DialogFooter>
       </DialogContent>
@@ -261,9 +272,9 @@ const fetchOsThemeInfo = async () => {
     }
 
     const result = (await messageBridge.invoke('get-os-theme-info')) as {
-        mode: 'dark' | 'light'
-        accentColor?: string
-      }
+      mode: 'dark' | 'light'
+      accentColor?: string
+    }
     // 创建新对象以确保响应式更新
     osThemeInfo.value = { ...result }
   } catch (e) {

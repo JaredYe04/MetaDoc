@@ -275,88 +275,78 @@
 <MetaInfoPanel mode="demo" :meta='{"title": "示例", "author": "作者", "description": "描述", "keywords": ["关键词1"]}' :outlineJson='""' />
 ```
 
-##### 7. AI 助手组件
+##### 7. AI 助手组件（真实视图组件）
 
-**AIChatDemo** - AI 对话界面
+**AIChat** - AI 对话界面
 
-基于代码实现 (`components/manual/AIChatDemo.vue`)：
+基于代码实现 (`views/AIChat.vue`)，支持 `mode="demo"`：
 
-- **Props**：无（纯展示组件）
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
 - **功能**：展示 AI 对话界面，包括会话列表、消息气泡、输入框和引用管理
 
 **使用示例**：
 
 ```markdown
-<AIChatDemo />
+<AIChat mode="demo" />
 ```
 
-**OcrWindowDemo** - OCR 文字识别界面
+**OcrWindow** - OCR 文字识别界面
 
-基于代码实现 (`components/manual/OcrWindowDemo.vue`)：
+基于代码实现 (`views/OcrWindow.vue`)，支持 `mode="demo"`：
 
-- **Props**：无（纯展示组件）
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
 - **功能**：展示 OCR 识别窗口，包括图片上传、预处理参数和识别结果
 
 **使用示例**：
 
 ```markdown
-<OcrWindowDemo />
+<OcrWindow mode="demo" />
 ```
 
-**GraphWindowDemo** - 智能绘图助手界面
+**GraphWindow** - 智能绘图助手界面
 
-基于代码实现 (`components/manual/GraphWindowDemo.vue`)：
+基于代码实现 (`views/GraphWindow.vue`)，支持 `mode="demo"`：
 
-- **Props**：无（纯展示组件）
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
 - **功能**：展示绘图助手界面，支持图表生成和代码预览
 
 **使用示例**：
 
 ```markdown
-<GraphWindowDemo />
+<GraphWindow mode="demo" />
 ```
 
-##### 8. 大纲和 Agent 组件
+##### 8. 大纲和知识库组件（真实视图组件）
 
-**OutlineDemo** - 大纲视图
+**Outline** - 大纲视图
 
-基于代码实现 (`components/manual/OutlineDemo.vue`)：
+基于代码实现 (`views/Outline.vue`)，支持 `mode="demo"`：
 
-- **Props**：无（纯展示组件）
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
 - **功能**：展示文档大纲树形结构，支持层级展示和节点操作
 
 **使用示例**：
 
 ```markdown
-<OutlineDemo />
+<Outline mode="demo" />
 ```
 
-**AgentViewDemo** - Agent 框架界面
+**KnowledgeBase** - 知识库管理界面
 
-基于代码实现 (`components/manual/AgentViewDemo.vue`)：
+基于代码实现 (`views/KnowledgeBase.vue`)，支持 `mode="demo"`：
 
-- **Props**：无（纯展示组件）
-- **功能**：展示 AI Agent 界面，包括工具列表、对话区域和工具调用展示
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示知识库管理界面，包括文件列表和统计信息
 
 **使用示例**：
 
 ```markdown
-<AgentViewDemo />
-```
-
-##### 9. 知识库组件
-
-**KnowledgeBaseDemo** - 知识库管理界面
-
-基于代码实现 (`components/manual/KnowledgeBaseDemo.vue`)：
-
-- **Props**：无（纯展示组件）
-- **功能**：展示知识库管理界面，包括分类列表、文档列表和统计信息
-
-**使用示例**：
-
-```markdown
-<KnowledgeBaseDemo />
+<KnowledgeBase mode="demo" />
 ```
 
 ##### 10. AI 校对组件

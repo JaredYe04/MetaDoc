@@ -58,45 +58,39 @@
             <p class="text-sm">{{ t('notificationQueue.empty') }}</p>
           </div>
           
-          <div class="p-3 space-y-3">
+          <div class="p-4 space-y-3" data-sonner-wrapper>
             <div
               v-for="item in notifications"
               :key="item.id"
-              class="group relative flex items-start gap-3 p-4 rounded-xl shadow-sm border bg-white dark:bg-zinc-900 transition-all duration-200 hover:shadow-md"
-              :class="getSonnerBorderClass(item.type)"
+              class="sonner-notification"
+              :class="[
+                getSonnerTypeClass(item.type),
+                { 'sonner-unread': !item.read }
+              ]"
             >
-              <!-- Icon (Sonner style) -->
-              <div class="flex-shrink-0">
-                <component
-                  :is="getIconForType(item.type)"
-                  class="h-5 w-5 mt-0.5"
-                  :class="getSonnerIconClass(item.type)"
-                />
-              </div>
-
-              <!-- Content (Sonner style) -->
-              <div class="flex-1 min-w-0 pr-6">
-                <h4 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ item.title }}</h4>
-                <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">{{ item.message }}</p>
-                <p class="text-xs text-zinc-400 dark:text-zinc-600 mt-1.5">{{ formatTime(item.timestamp) }}</p>
-              </div>
-
-              <!-- Close button (Sonner style - top right) -->
-              <Button
-                variant="ghost"
-                size="icon"
-                class="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              <!-- Close button (top-left like Sonner) -->
+              <button
+                class="sonner-close-btn"
+                aria-label="Close notification"
                 @click.stop="handleRemove(item.id)"
               >
-                <X class="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
-              </Button>
+                <X class="h-3 w-3" />
+              </button>
 
-              <!-- Unread dot -->
-              <div
-                v-if="!item.read"
-                class="absolute top-2 right-8 w-1.5 h-1.5 rounded-full"
-                :class="getSonnerDotClass(item.type)"
-              />
+              <!-- Icon -->
+              <div data-icon class="sonner-icon">
+                <component :is="getIconForType(item.type)" class="h-5 w-5" />
+              </div>
+
+              <!-- Content -->
+              <div data-content class="sonner-content">
+                <div data-title class="sonner-title">{{ item.title }}</div>
+                <div data-description class="sonner-description">{{ item.message }}</div>
+                <div data-timestamp class="sonner-timestamp">{{ formatTime(item.timestamp) }}</div>
+              </div>
+
+              <!-- Unread indicator -->
+              <div v-if="!item.read" class="sonner-unread-dot" :class="getSonnerDotClass(item.type)" />
             </div>
           </div>
         </ScrollArea>
@@ -143,23 +137,12 @@ const logger = createRendererLogger('NotificationQueue', {
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.4))
 const maxHeight = computed(() => Math.floor(window.innerHeight * 0.8))
 
-// Sonner-style styling functions
-function getSonnerBorderClass(type: NotificationType | undefined): string {
+function getSonnerTypeClass(type: NotificationType | undefined): string {
   const classes: Record<string, string> = {
-    success: 'border-l-4 border-l-green-500',
-    error: 'border-l-4 border-l-red-500',
-    warning: 'border-l-4 border-l-amber-500',
-    info: 'border-l-4 border-l-blue-500'
-  }
-  return classes[type || 'info']
-}
-
-function getSonnerIconClass(type: NotificationType | undefined): string {
-  const classes: Record<string, string> = {
-    success: 'text-green-500',
-    error: 'text-red-500',
-    warning: 'text-amber-500',
-    info: 'text-blue-500'
+    success: 'sonner-success',
+    error: 'sonner-error',
+    warning: 'sonner-warning',
+    info: 'sonner-info'
   }
   return classes[type || 'info']
 }
@@ -297,3 +280,140 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside, true)
 })
 </script>
+
+<style scoped>
+/* Sonner-style notification item */
+.sonner-notification {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 200ms ease;
+}
+
+.sonner-notification:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Close button (top-left like Sonner) */
+.sonner-close-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  opacity: 0;
+  transition: all 200ms ease;
+}
+
+.sonner-notification:hover .sonner-close-btn {
+  opacity: 1;
+}
+
+.sonner-close-btn:hover {
+  background: hsl(var(--muted) / 0.4);
+  color: hsl(var(--foreground));
+}
+
+/* Icon styling */
+.sonner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.sonner-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Content area */
+.sonner-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sonner-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: hsl(var(--foreground));
+}
+
+.sonner-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: hsl(var(--muted-foreground));
+}
+
+.sonner-timestamp {
+  font-size: 12px;
+  line-height: 1.4;
+  color: hsl(var(--muted-foreground) / 0.8);
+  margin-top: 4px;
+}
+
+/* Type-specific styling */
+.sonner-success {
+  --notification-color: hsl(var(--success));
+}
+
+.sonner-error {
+  --notification-color: hsl(var(--destructive));
+}
+
+.sonner-warning {
+  --notification-color: hsl(38 92% 50%);
+}
+
+.sonner-info {
+  --notification-color: hsl(var(--primary));
+}
+
+.sonner-success .sonner-icon,
+.sonner-error .sonner-icon,
+.sonner-warning .sonner-icon,
+.sonner-info .sonner-icon {
+  color: var(--notification-color);
+}
+
+/* Unread indicator dot */
+.sonner-unread-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--notification-color);
+}
+
+/* Unread state */
+.sonner-unread {
+  background: hsl(var(--background));
+}
+</style>

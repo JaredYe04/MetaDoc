@@ -465,25 +465,39 @@ const DEFAULT_DURATION = 4000  // 4 seconds
 - **Icons**: lucide-vue-next (Bell, CheckCircle2, XCircle, AlertCircle, Info, X, Trash2, Inbox)
 
 #### Sonner-Style Notification Items
-Each notification item in the queue matches Sonner Toast styling:
-```
-┌─────────────────────────────────────┐
-│  ✓  Title                    ✕ │  ← Icon + Title + Close button
-│  Description                        │
-│  2 minutes ago                      │
-└─────────────────────────────────────┘
-   ↑
-   Left border color indicates type (green/red/amber/blue)
+Each notification item in the queue **exactly matches** Sonner Toast DOM structure and styling:
+
+```html
+<div class="sonner-notification sonner-success">
+  <button class="sonner-close-btn">✕</button>  <!-- Top-left, hover to show -->
+  <div data-icon class="sonner-icon">
+    <svg><!-- Type icon --></svg>
+  </div>
+  <div data-content class="sonner-content">
+    <div data-title>Title</div>
+    <div data-description>Description message</div>
+    <div data-timestamp>2 minutes ago</div>
+  </div>
+  <div class="sonner-unread-dot"></div>  <!-- Unread indicator -->
+</div>
 ```
 
-**Styling features**:
-- White/dark background (`bg-white dark:bg-zinc-900`)
-- Left border color-coded by type (`border-l-4`)
-- Icon matches border color
-- Close button appears on hover (top-right, X icon)
-- Unread indicator dot (colored, near close button)
-- Time displayed in muted text
-- No "Mark as Read" button (click item or rely on close)
+**Styling features** (dynamic with shadcn theme):
+- **Background**: `hsl(var(--background))` - follows shadcn theme
+- **Foreground**: `hsl(var(--foreground))` - follows shadcn theme
+- **Border**: `hsl(var(--border))` - follows shadcn theme
+- **Close button**: Top-left position (same as Sonner), hover to show
+- **Icon**: Left side, color matches notification type (success=green, error=red, etc.)
+- **Shadow**: `0 4px 12px rgba(0, 0, 0, 0.08)` with hover elevation
+- **Border radius**: `12px` (rounded-xl)
+- **Unread dot**: Top-right, colored by type
+
+**No hardcoded colors** - all colors use CSS variables:
+```css
+background: hsl(var(--background));
+color: hsl(var(--foreground));
+border: 1px solid hsl(var(--border));
+```
 
 #### Migration to Pure shadcn-vue
 **Removed all Element Plus components from notification system**:
@@ -492,13 +506,21 @@ Each notification item in the queue matches Sonner Toast styling:
 - ✅ Replaced `status-dot` with CSS-based indicators
 - ✅ Unified styling between Sonner Toast and NotificationQueue items
 
-#### Color Scheme
-| Type | Border | Icon | Dot |
-|------|--------|------|-----|
-| Success | `border-l-green-500` | `text-green-500` | `bg-green-500` |
-| Error | `border-l-red-500` | `text-red-500` | `bg-red-500` |
-| Warning | `border-l-amber-500` | `text-amber-500` | `bg-amber-500` |
-| Info | `border-l-blue-500` | `text-blue-500` | `bg-blue-500` |
+#### CSS Classes
+| Class | Purpose |
+|-------|---------|
+| `.sonner-notification` | Base notification container |
+| `.sonner-success` | Success type styling |
+| `.sonner-error` | Error type styling |
+| `.sonner-warning` | Warning type styling |
+| `.sonner-info` | Info type styling |
+| `.sonner-close-btn` | Close button (top-left) |
+| `.sonner-icon` | Icon container (left side) |
+| `.sonner-content` | Content wrapper |
+| `.sonner-title` | Title text |
+| `.sonner-description` | Description text |
+| `.sonner-timestamp` | Time display |
+| `.sonner-unread-dot` | Unread indicator (top-right) |
 
 ### Migration Checklist (for future reference)
 

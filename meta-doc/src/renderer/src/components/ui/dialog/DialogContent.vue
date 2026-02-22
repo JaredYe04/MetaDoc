@@ -9,6 +9,7 @@ import {
 } from 'radix-vue'
 import { X } from 'lucide-vue-next'
 import { cn } from '@renderer/lib/utils'
+import { ref, watch, onUnmounted } from 'vue'
 
 // 防止事件监听器自动继承到 DialogPortal（DialogPortal 渲染 fragment，无法继承）
 defineOptions({
@@ -26,12 +27,36 @@ const emits = defineEmits([
 ])
 
 const forwarded = useForwardPropsEmits(props, emits)
+
+// 跟踪 Dialog 打开状态
+const isOpen = ref(false)
+
+// 监听 forwarded 中的 open 属性变化
+watch(
+  () => (forwarded.value as any)?.open,
+  (newVal) => {
+    isOpen.value = !!newVal
+  },
+  { immediate: true }
+)
+
+// 组件卸载时清理可能残留的遮罩
+onUnmounted(() => {
+  // 延迟清理，确保动画完成
+  setTimeout(() => {
+    const overlays = document.querySelectorAll('.dialog-overlay[data-state="closed"]')
+    overlays.forEach((el) => {
+      ;(el as HTMLElement).style.display = 'none'
+      el.remove()
+    })
+  }, 200)
+})
 </script>
 
 <template>
   <DialogPortal>
     <DialogOverlay
-      class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay"
+      class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay pointer-events-auto"
       style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)"
     />
     <DialogContent
@@ -111,6 +136,7 @@ const forwarded = useForwardPropsEmits(props, emits)
 
 .dialog-content[data-state='closed'] {
   animation: dialog-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none !important;
 }
 
 .dialog-overlay[data-state='open'] {
@@ -119,5 +145,7 @@ const forwarded = useForwardPropsEmits(props, emits)
 
 .dialog-overlay[data-state='closed'] {
   animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none !important;
+  opacity: 0 !important;
 }
 </style>

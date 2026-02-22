@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { DialogRoot, useForwardPropsEmits, type DialogRootProps } from 'radix-vue'
 
-const props = defineProps<DialogRootProps>()
+const props = withDefaults(defineProps<DialogRootProps>(), {
+  modal: true
+})
 const emit = defineEmits<{
   'update:open': [value: boolean]
 }>()

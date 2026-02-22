@@ -20,7 +20,8 @@ meta-doc/
 │   │   ├── export/        # Server-side export (docx-processor, export-manager)
 │   │   └── utils/         # Services: RAG, OCR, spell-check, file-conversion, LaTeX, update
 │   ├── renderer/src/      # Vue 3 SPA renderer
-│   │   ├── components/    # 53 Vue components (PascalCase .vue)
+│   │   ├── components/    # 53 Vue components + 93 shadcn-vue UI components
+│   │   │   └── ui/        # shadcn-vue: button, card, dialog, select, table, etc.
 │   │   ├── views/         # 28 route views
 │   │   ├── stores/        # Pinia stores (document, user, workspace)
 │   │   ├── services/      # Document load/save/serialize, export-adapters
@@ -60,6 +61,8 @@ meta-doc/
 | Database / knowledge base       | `src/main/database/`                                                       | better-sqlite3 + sqlite-vec for RAG vectors            |
 | Shared types                    | `src/types/index.ts`                                                       | DocumentOutlineNode, LLMConfig, AppSettings, etc.      |
 | Build & release                 | `scripts/`                                                                 | version-manager, release-dev/prod, copy-env, icons     |
+| shadcn-vue components           | `src/renderer/src/components/ui/`                                          | 93 Vue components (button, card, dialog, select, etc.) |
+| Custom UI components            | `src/renderer/src/components/ui/UIMenu.vue`                                | Custom menu components alongside shadcn                |
 
 ## CONVENTIONS
 

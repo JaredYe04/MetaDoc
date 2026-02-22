@@ -37,11 +37,11 @@
               {{ getEditingColor(theme) }}
             </div>
             <!-- 颜色选择器（仅用户自定义主题，不包括预设主题） -->
-            <el-color-picker
+            <ColorPicker
               v-model="editingColorMap[theme.id]"
               :predefine="predefineColors"
               size="small"
-              @change="(val: string | null) => handleColorPickerChange(theme, val)"
+              @change="(val: string) => handleColorPickerChange(theme, val)"
               @visible-change="(visible: boolean) => handleColorPickerVisibleChange(theme, visible)"
             />
           </div>
@@ -162,7 +162,7 @@
             />
           </FormField>
           <FormField :label="t('setting.themeColor')" name="themeColor">
-            <el-color-picker
+            <ColorPicker
               v-model="themeForm.themeColor"
               :predefine="predefineColors"
               show-alpha

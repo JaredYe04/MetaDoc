@@ -99,21 +99,19 @@
                 <div class="toolbar-content">
                   <div class="toolbar-left">
                     <template v-if="!articleContent">
-                      <el-upload
+                      <FileUpload
                         ref="uploadRef"
                         :file-list="[]"
                         :auto-upload="false"
-                        :on-change="handleFileChange"
                         :show-file-list="false"
                         :accept="acceptedFileTypes"
+                        @change="handleFileChange"
                       >
-                      <template #trigger>
                         <Button>
                           <Upload class="w-4 h-4 mr-2" />
                           {{ t('aigc.uploadFile') }}
                         </Button>
-                      </template>
-                      </el-upload>
+                      </FileUpload>
                       <Button
                         :disabled="!hasActiveDocument"
                         @click="handleSelectFromDocument"

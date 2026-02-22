@@ -22,7 +22,7 @@
 
 知识库管理界面提供分类管理、文档列表和统计信息：
 
-<KnowledgeBaseDemo />
+<KnowledgeBase mode="demo" />
 
 启用知识库后，AI功能（如AI对话、AI补全）会自动使用知识库中的信息来增强回答质量。
 

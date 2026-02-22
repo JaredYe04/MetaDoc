@@ -419,8 +419,8 @@ const handleNewTheme = () => {
 // 注意：已移除 active-change 处理，只在 change 时应用主题以避免卡顿
 
 // 处理颜色选择器确定（change 事件在用户点击确定按钮时触发）
-const handleColorPickerChange = async (theme: ThemeConfig, color: string | null) => {
-  if (!color || theme.type !== 'custom' || theme.isDefault) return // 预设主题不能编辑
+const handleColorPickerChange = async (theme: ThemeConfig, color: string) => {
+  if (theme.type !== 'custom' || theme.isDefault) return // 预设主题不能编辑
 
   // 立即标记已确认，防止 visible-change 的取消逻辑执行
   colorConfirmedMap.value[theme.id] = true
@@ -960,12 +960,7 @@ onMounted(async () => {
   flex: 1;
 }
 
-.theme-card__color-wrapper :deep(.el-color-picker) {
-  width: 24px;
-  height: 24px;
-}
-
-.theme-card__color-wrapper :deep(.el-color-picker__trigger) {
+.theme-card__color-wrapper :deep(button) {
   width: 24px;
   height: 24px;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');

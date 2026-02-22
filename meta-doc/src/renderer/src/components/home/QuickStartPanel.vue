@@ -135,14 +135,13 @@
               </Select>
             </el-tooltip>
             <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
-              <el-autocomplete
+              <Autocomplete
                 v-model="userPrompt"
                 :fetch-suggestions="querySearch"
                 clearable
-                class="inline-input aero-input"
+                input-class="inline-input aero-input"
                 :placeholder="$t('home.tooltip.inputPrompt')"
                 :disabled="generated || generating"
-                :autosize="{ minRows: 3, maxRows: 3 }"
               />
             </el-tooltip>
             <div class="suggestion-container aero-div">
@@ -237,6 +236,7 @@ import {
   Card,
   CardContent,
 } from '@renderer/components/ui/card'
+import { Autocomplete } from '@renderer/components/ui/autocomplete'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'

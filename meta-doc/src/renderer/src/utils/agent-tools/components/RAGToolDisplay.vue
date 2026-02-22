@@ -37,7 +37,7 @@
       </div>
 
       <div v-else class="no-results">
-        <el-empty :description="$t('agent.display.ragTool.noResults')" :image-size="80" />
+        <Empty :description="$t('agent.display.ragTool.noResults')" :image-size="80" />
         <p class="hint" :style="hintStyle">
           {{ $t('agent.display.ragTool.hint') }}
         </p>
@@ -73,6 +73,7 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
 import { Progress } from '@renderer/components/ui/progress'
+import { Empty } from '@renderer/components/ui/empty'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import {

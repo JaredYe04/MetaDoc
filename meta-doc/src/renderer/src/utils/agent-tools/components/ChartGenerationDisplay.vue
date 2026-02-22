@@ -114,13 +114,17 @@
     </div>
 
     <!-- 进度条 -->
-    <el-progress
+    <div
       v-if="effectiveProgress && effectiveProgress.percentage > 0"
-      :percentage="effectiveProgress.percentage"
-      :status="progressStatus"
-      :stroke-width="6"
       style="margin-top: 12px"
-    />
+    >
+      <Progress
+        :percentage="effectiveProgress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      />
+    </div>
   </div>
 </template>
 
@@ -129,6 +133,7 @@ import { computed } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Progress } from '@renderer/components/ui/progress'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import {
   Collapsible,

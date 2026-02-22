@@ -78,7 +78,7 @@
           {{ $t('latexEditor.toolbar.zoomReset') }}
         </TooltipContent>
       </Tooltip>
-      <el-divider direction="vertical" />
+      <Divider direction="vertical" />
       <span class="pdf-toolbar__pages-per-row">
         <span class="pdf-toolbar__pages-per-row-label"
           >{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span
@@ -89,11 +89,11 @@
           </SelectTrigger>
           <SelectContent>
             <SelectItem v-for="num in 10" :key="num" :value="num">{{ String(num) }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </span>
-      <el-divider direction="vertical" />
-      <Tooltip>
+        </SelectContent>
+      </Select>
+    </span>
+    <Divider direction="vertical" />
+    <Tooltip>
         <TooltipTrigger as-child>
           <div
             class="pdf-toolbar-icon"
@@ -205,6 +205,7 @@ import {
   SelectItem
 } from '@renderer/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Divider } from '@renderer/components/ui/separator'
 
 const { t } = useI18n()
 

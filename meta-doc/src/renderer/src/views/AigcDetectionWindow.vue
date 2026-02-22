@@ -112,10 +112,7 @@
                           {{ t('aigc.uploadFile') }}
                         </Button>
                       </FileUpload>
-                      <Button
-                        :disabled="!hasActiveDocument"
-                        @click="handleSelectFromDocument"
-                      >
+                      <Button :disabled="!hasActiveDocument" @click="handleSelectFromDocument">
                         <Document class="w-4 h-4 mr-2" />
                         {{ t('aigc.selectFromDocument') }}
                       </Button>
@@ -149,11 +146,7 @@
                   </div>
 
                   <div class="toolbar-right">
-                    <Button
-                      v-if="articleContent"
-                      :loading="analyzing"
-                      @click="handleAnalyze"
-                    >
+                    <Button v-if="articleContent" :loading="analyzing" @click="handleAnalyze">
                       {{ overallAnalysis ? t('aigc.reAnalyze') : t('aigc.startAnalysis') }}
                     </Button>
                     <DropdownMenu
@@ -172,10 +165,12 @@
                         <template v-if="hasAnyParaphrase">
                           <DropdownMenuSeparator />
                           <DropdownMenuItem @click="handleExportParaphrasedCommand('doc')">
-                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} - {{ t('aigc.exportAsNewDoc', '作为新文档') }}
+                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} -
+                            {{ t('aigc.exportAsNewDoc', '作为新文档') }}
                           </DropdownMenuItem>
                           <DropdownMenuItem @click="handleExportParaphrasedCommand('session')">
-                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} - {{ t('aigc.exportAndDetect', '进行AIGC率检测') }}
+                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} -
+                            {{ t('aigc.exportAndDetect', '进行AIGC率检测') }}
                           </DropdownMenuItem>
                         </template>
                       </DropdownMenuContent>
@@ -218,7 +213,12 @@
                   <div ref="reportSectionRef" class="report-section">
                     <div class="report-header">
                       <span>{{ t('aigc.analysisReport') }}</span>
-                      <Button v-if="reportMarkdown" variant="ghost" size="sm" @click="scrollReportToTop">
+                      <Button
+                        v-if="reportMarkdown"
+                        variant="ghost"
+                        size="sm"
+                        @click="scrollReportToTop"
+                      >
                         {{ t('aigc.backToTop', '回到顶端') }}
                       </Button>
                     </div>
@@ -254,10 +254,25 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import { FileText, FolderOpen, Upload, ArrowDown, FileX } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Upload as FileUpload } from '@renderer/components/ui/upload'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@renderer/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import {
@@ -265,7 +280,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from '@renderer/components/ui/dialog'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
@@ -2220,6 +2235,15 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    sessions.value = [
+      { id: 'demo-1', title: '示例文档检测', updatedAt: Date.now() },
+      { id: 'demo-2', title: '论文检测', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   loadSessions()
 })
 </script>
@@ -2598,7 +2622,7 @@ onMounted(() => {
 }
 
 /* 选择文档对话框样式 */
-.select-document-dialog [data-slot=dialog-content] {
+.select-document-dialog [data-slot='dialog-content'] {
   padding: 0;
 }
 

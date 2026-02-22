@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <!-- 使用标签页组织更新设置、开源许可证和第三方资产 -->
     <Tabs v-model="activeTab" class="about-tabs">
@@ -166,6 +166,7 @@ import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
 import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
+import { Divider } from '@renderer/components/ui/separator'
 const { t } = useI18n()
 const workspace = useWorkspace()
 

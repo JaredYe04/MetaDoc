@@ -30,11 +30,11 @@
             @mouseenter="handleActionsMouseEnter"
             @mouseleave="handleActionsMouseLeave"
           >
-            <el-tooltip :content="t('agent.message.edit')" placement="top">
+            <Tooltip :content="t('agent.message.edit')" placement="top">
               <Button circle size="small" @click.stop="handleEdit">
                 <el-icon><Edit /></el-icon>
               </Button>
-            </el-tooltip>
+            </Tooltip>
             <DropdownMenu
               @click.stop
               @update:open="handleDropdownVisibleChange"
@@ -179,19 +179,19 @@
         v-if="message.role === 'user'"
         class="agent-message__avatar agent-message__avatar--right"
       >
-        <el-tooltip :content="userName" placement="left" :disabled="!userName">
+        <Tooltip :content="userName" placement="left" :disabled="!userName">
           <Avatar class="avatar-fallback">
             <AvatarFallback>
               <User />
             </AvatarFallback>
           </Avatar>
-        </el-tooltip>
+        </Tooltip>
       </div>
     </div>
 
     <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
     <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
-      <el-tooltip :content="t('agent.message.regenerate')" placement="bottom">
+      <Tooltip :content="t('agent.message.regenerate')" placement="bottom">
         <Button
           variant="ghost"
           size="small"
@@ -200,12 +200,12 @@
         >
           <el-icon><Refresh /></el-icon>
         </Button>
-      </el-tooltip>
-      <el-tooltip :content="t('agent.message.delete')" placement="bottom">
+      </Tooltip>
+      <Tooltip :content="t('agent.message.delete')" placement="bottom">
         <Button variant="ghost" size="small" class="ai-action-btn" @click.stop="emit('delete', message)">
           <el-icon><Delete /></el-icon>
         </Button>
-      </el-tooltip>
+      </Tooltip>
     </div>
 
     <!-- 引用显示（只读模式，只显示用户消息的引用，放在气泡外面） -->
@@ -255,6 +255,7 @@ import {
   CollapsibleContent
 } from '@renderer/components/ui/collapsible'
 import { Badge } from '@renderer/components/ui/badge'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import type {
   AgentMessage,
   ChatAgentMessage,

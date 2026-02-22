@@ -1,10 +1,8 @@
 <template>
-  <el-tooltip
+  <Tooltip
     v-if="isCollapsed && !isDisabled"
     :content="label"
     placement="right"
-    :show-after="0"
-    :hide-after="0"
   >
     <div
       class="view-menu-item"
@@ -22,7 +20,7 @@
         <span v-if="!isCollapsed" class="view-menu-item__label">{{ label }}</span>
       </div>
     </div>
-  </el-tooltip>
+  </Tooltip>
   <div
     v-else
     class="view-menu-item"
@@ -44,6 +42,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { themeState, mixColors } from '../utils/themes'
 
 // 计算与 HeadMenu 一致的 active 背景色

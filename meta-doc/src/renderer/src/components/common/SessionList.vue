@@ -29,7 +29,7 @@
           <header class="pane-header">
             <h2 v-if="!isCollapsed" class="pane-title">{{ title }}</h2>
             <div class="actions">
-              <el-tooltip :content="createButtonTooltip">
+              <Tooltip :content="createButtonTooltip">
                 <Button
                   size="small"
                   type="info"
@@ -39,7 +39,7 @@
                 >
                   <AddIcon />
                 </Button>
-              </el-tooltip>
+              </Tooltip>
             </div>
           </header>
           <ScrollArea class="flex-1 overflow-hidden">
@@ -182,6 +182,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 

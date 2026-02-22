@@ -6,7 +6,7 @@
       </DialogHeader>
       <div class="menu-config-content">
         <div class="config-description">
-          <el-text>{{ $t('leftMenu.menuConfig.description') }}</el-text>
+          <Text>{{ $t('leftMenu.menuConfig.description') }}</Text>
         </div>
 
         <!-- 菜单项列表 -->
@@ -103,6 +103,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import { Text } from '@renderer/components/ui/text'
 
 const sortableContainer = ref<HTMLElement | null>(null)
 

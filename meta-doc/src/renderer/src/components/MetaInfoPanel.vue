@@ -81,7 +81,7 @@
         </div>
 
         <div class="meta-panel__item meta-panel__item--keywords">
-          <el-tooltip :content="$t('article.generate_keywords')" placement="bottom">
+          <Tooltip :content="$t('article.generate_keywords')" placement="bottom">
             <span
               class="meta-panel__label meta-panel__label--keywords meta-panel__label--clickable"
               :style="{ color: themeState.currentTheme.textColor }"
@@ -95,7 +95,7 @@
               {{ $t('article.keywords') }}：
               <Loader2 v-if="keywordsGenerating" class="meta-keywords__icon h-3.5 w-3.5 animate-spin" />
             </span>
-          </el-tooltip>
+          </Tooltip>
           <div class="meta-panel__value meta-panel__value--keywords">
             <KeywordInput
               :model-value="meta.keywords || []"
@@ -214,6 +214,7 @@ import type { ArticleMetaData, AIDialogMessage } from '../../../types'
 import MetaFieldAssistant from './MetaFieldAssistant.vue'
 import KeywordInput from './KeywordInput.vue'
 import AutoResizeTextarea from './base/AutoResizeTextarea.vue'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { getSetting } from '../utils/settings'
 import { extractOuterJsonString } from '../utils/regex-utils'

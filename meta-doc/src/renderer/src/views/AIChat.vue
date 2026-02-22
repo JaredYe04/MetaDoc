@@ -100,14 +100,14 @@
             <div class="conversation-stats">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <el-tag
+                  <Badge
                     size="small"
                     effect="plain"
-                    style="cursor: pointer"
+                    class="cursor-pointer"
                     @click="handleOpenReferenceDialog"
                   >
                     {{ t('agent.conversation.references', { count: referenceStore.length }) }}
-                  </el-tag>
+                  </Badge>
                 </TooltipTrigger>
                 <TooltipContent side="top">
                   <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
@@ -235,6 +235,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Checkbox } from '@renderer/components/ui/checkbox'
 import { Empty } from '@renderer/components/ui/empty'
+import { Badge } from '@renderer/components/ui/badge'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'

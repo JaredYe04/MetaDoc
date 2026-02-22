@@ -14,6 +14,7 @@
 用户手册支持在 Markdown 中**直接嵌入项目内真实 Vue 组件**，使用 `mode="demo"` 在沙箱中展示。**原则：文档中提到了哪些界面控件，就展示哪些组件**，让用户边看文档边对照真实 UI 操作。
 
 **技术实现状态（2026-02-20）**：
+
 - ✅ 占位符预处理：`manuals/demo-mode.ts` 将组件标签替换为占位符 div
 - ✅ 后渲染注入：Vditor 渲染完成后，`ManualContent.vue` 将占位符替换为真实组件
 - ✅ 样式适配：组件容器自适应大小并居中显示，样式在手册层统一处理
@@ -99,6 +100,7 @@
 **MenuItemsDemo** - 顶部菜单项展示组件
 
 基于代码实现 (`components/manual/MenuItemsDemo.vue`)：
+
 - **Props**：
   - `items`: `Array<{id: string, items?: string[]}>` - 菜单项配置数组
     - `id`: 菜单标识，支持 `'file'`, `'ai-assistant'`, `'settings'`
@@ -107,6 +109,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
 <MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat", "proofread"]}]' />
@@ -116,12 +119,14 @@
 **ViewMenuItemsDemo** - 侧边栏视图菜单项展示组件
 
 基于代码实现 (`components/manual/ViewMenuItemsDemo.vue`)：
+
 - **Props**：
   - `items`: `string[]` - 视图项数组，支持 `'home'`, `'editor'`, `'outline'`, `'agent'`
   - `collapsed`: `boolean` - 是否折叠，默认为 `false`
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 <ViewMenuItemsDemo mode="demo" :items='["home", "agent"]' />
@@ -135,6 +140,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <MainTabs mode="demo" />
 ```
@@ -144,10 +150,12 @@
 **QuickStartPanel** - 快速开始格式选择面板
 
 基于代码实现 (`components/home/QuickStartPanel.vue`)：
+
 - **Props**：
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <QuickStartPanel mode="demo" />
 ```
@@ -155,10 +163,12 @@
 **QuickStartMarkdown** - Markdown快速开始向导
 
 基于代码实现 (`components/home/QuickStartMarkdown.vue`)：
+
 - **Props**：
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <QuickStartMarkdown mode="demo" />
 ```
@@ -166,10 +176,12 @@
 **QuickStartLatex** - LaTeX快速开始向导
 
 基于代码实现 (`components/home/QuickStartLatex.vue`)：
+
 - **Props**：
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <QuickStartLatex mode="demo" />
 ```
@@ -184,6 +196,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 ```
@@ -198,6 +211,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <TitleMenu mode="demo" title="示例标题" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />
 ```
@@ -214,6 +228,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <SectionOptimizer mode="demo" title="示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
 ```
@@ -227,6 +242,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <PdfPreviewPanel mode="demo" pdfUrl="" />
 ```
@@ -239,6 +255,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译完成", "type": "out"}]' />
 ```
@@ -253,11 +270,111 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <MetaInfoPanel mode="demo" :meta='{"title": "示例", "author": "作者", "description": "描述", "keywords": ["关键词1"]}' :outlineJson='""' />
 ```
 
-##### 7. 其他组件
+##### 7. AI 助手组件
+
+**AIChatDemo** - AI 对话界面
+
+基于代码实现 (`components/manual/AIChatDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示 AI 对话界面，包括会话列表、消息气泡、输入框和引用管理
+
+**使用示例**：
+
+```markdown
+<AIChatDemo />
+```
+
+**OcrWindowDemo** - OCR 文字识别界面
+
+基于代码实现 (`components/manual/OcrWindowDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示 OCR 识别窗口，包括图片上传、预处理参数和识别结果
+
+**使用示例**：
+
+```markdown
+<OcrWindowDemo />
+```
+
+**GraphWindowDemo** - 智能绘图助手界面
+
+基于代码实现 (`components/manual/GraphWindowDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示绘图助手界面，支持图表生成和代码预览
+
+**使用示例**：
+
+```markdown
+<GraphWindowDemo />
+```
+
+##### 8. 大纲和 Agent 组件
+
+**OutlineDemo** - 大纲视图
+
+基于代码实现 (`components/manual/OutlineDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示文档大纲树形结构，支持层级展示和节点操作
+
+**使用示例**：
+
+```markdown
+<OutlineDemo />
+```
+
+**AgentViewDemo** - Agent 框架界面
+
+基于代码实现 (`components/manual/AgentViewDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示 AI Agent 界面，包括工具列表、对话区域和工具调用展示
+
+**使用示例**：
+
+```markdown
+<AgentViewDemo />
+```
+
+##### 9. 知识库组件
+
+**KnowledgeBaseDemo** - 知识库管理界面
+
+基于代码实现 (`components/manual/KnowledgeBaseDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示知识库管理界面，包括分类列表、文档列表和统计信息
+
+**使用示例**：
+
+```markdown
+<KnowledgeBaseDemo />
+```
+
+##### 10. AI 校对组件
+
+**ProofreadViewDemo** - AI 校对界面
+
+基于代码实现 (`components/manual/ProofreadViewDemo.vue`)：
+
+- **Props**：无（纯展示组件）
+- **功能**：展示 AI 校对界面，包括原文输入、校对结果和错误统计
+
+**使用示例**：
+
+```markdown
+<ProofreadViewDemo />
+```
+
+##### 11. 其他组件
 
 **ResizableDivider** - 可调整大小的分隔条
 
@@ -265,6 +382,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <ResizableDivider mode="demo" />
 ```
@@ -321,7 +439,7 @@
 
 **示例**：
 
-```markdown
+````markdown
 ## 打开设置
 
 打开设置的流程如下：
@@ -331,6 +449,7 @@ graph LR
     A[点击菜单] --> B[选择设置]
     B --> C[打开设置页面]
 ```
+````
 
 您可以通过顶部菜单栏访问设置：
 
@@ -375,7 +494,7 @@ manuals/
 ### Markdown格式要求
 
 1. **使用标准Markdown语法**
-2. **代码块必须指定语言**：```` ```typescript ````
+2. **代码块必须指定语言**：` ```typescript `
 3. **使用相对路径引用图片**：`![描述](./images/image.png)`
 4. **使用标题层级**：一级标题（#）作为文档标题，二级标题（##）作为主要章节
 
@@ -405,6 +524,7 @@ estimatedTime: 10
 [[文档ID|显示文本]]
 
 例如：
+
 - [[markdown.basics|Markdown语法教程]]
 - [[latex.editor|LaTeX编辑器]]
 - [[core.file-operations|文件操作]]
@@ -547,6 +667,7 @@ estimatedTime: 10
   - 完善内容结构和功能说明
 
 **当前进度（2026-02-21更新）**：
+
 - ✅ **已完善文档**：64篇（包含图表和Demo组件）
 - ✅ **新增组件**：MenuItemsDemo、ViewMenuItemsDemo、SearchReplaceMenu、SectionOptimizer、TitleMenu、PdfPreviewPanel、ConsoleTerminal、MetaInfoPanel
 - ✅ **新增文档**：agent/references.md、agent/engine.md
@@ -585,52 +706,53 @@ estimatedTime: 10
 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构统计：**
 
-| 类别 | 总数 | 已完成 | 进度 |
-|------|------|--------|------|
-| 一、快速开始 | 1 | 1 | 100% ✅ |
-| 二、编辑器 | 12 | 12 | 100% ✅ |
-| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 4 | 100% ✅ |
-| &nbsp;&nbsp;2.2 LaTeX编辑器 | 5 | 5 | 100% ✅ |
-| &nbsp;&nbsp;2.3 纯文本编辑器 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;2.4 编辑器通用功能 | 2 | 2 | 100% ✅ |
-| 三、文件操作 | 3 | 3 | 100% ✅ |
-| 四、AI功能 | 11 | 11 | 100% ✅ |
-| &nbsp;&nbsp;4.1 AI对话 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.2 AI校对 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.3 AI补全 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.4 AI助手功能 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.5 Agent工具 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.6 Agent框架 | 5 | 5 | 100% ✅ |
-| 五、大纲视图 | 2 | 2 | 100% ✅ |
-| 六、系统设置 | 12 | 12 | 100% ✅ |
-| &nbsp;&nbsp;6.1 基础设置 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;6.2 LLM设置 | 3 | 3 | 100% ✅ |
-| &nbsp;&nbsp;6.3 知识库设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.4 主题设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.5 图片设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.6 日志设置 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;6.7 关于 | 1 | 1 | 100% ✅ |
-| 七、知识库 | 3 | 3 | 100% ✅ |
-| 八、工作目录 | 1 | 1 | 100% ✅ |
-| 九、快捷键 | 2 | 2 | 100% ✅ |
-| 十、视图切换 | 1 | 1 | 100% ✅ |
-| 十一、多标签页管理 | 1 | 1 | 100% ✅ |
-| 十二、语言设置 | 1 | 1 | 100% ✅ |
-| 十三、用户功能 | 2 | 2 | 100% ✅ |
-| 十四、统计和监控 | 2 | 2 | 100% ✅ |
-| 十五、段落优化 | 1 | 1 | 100% ✅ |
-| 十六、PDF预览 | 1 | 1 | 100% ✅ |
-| 十七、控制台输出 | 1 | 1 | 100% ✅ |
-| 十八、菜单配置 | 1 | 1 | 100% ✅ |
-| 十九、调试工具 | 1 | 1 | 100% ✅ |
-| 二十、多窗口管理 | 1 | 1 | 100% ✅ |
-| 二十一、文档格式 | 1 | 1 | 100% ✅ |
-| 二十二、AI任务队列 | 1 | 1 | 100% ✅ |
-| 二十三、主页功能 | 1 | 1 | 100% ✅ |
-| 二十四、图表功能 | 4 | 4 | 100% ✅ |
-| **总计** | **60+** | **60** | **100%** ✅ |
+| 类别                           | 总数    | 已完成 | 进度        |
+| ------------------------------ | ------- | ------ | ----------- |
+| 一、快速开始                   | 1       | 1      | 100% ✅     |
+| 二、编辑器                     | 12      | 12     | 100% ✅     |
+| &nbsp;&nbsp;2.1 Markdown编辑器 | 4       | 4      | 100% ✅     |
+| &nbsp;&nbsp;2.2 LaTeX编辑器    | 5       | 5      | 100% ✅     |
+| &nbsp;&nbsp;2.3 纯文本编辑器   | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;2.4 编辑器通用功能 | 2       | 2      | 100% ✅     |
+| 三、文件操作                   | 3       | 3      | 100% ✅     |
+| 四、AI功能                     | 11      | 11     | 100% ✅     |
+| &nbsp;&nbsp;4.1 AI对话         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.2 AI校对         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.3 AI补全         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.4 AI助手功能     | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.5 Agent工具      | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.6 Agent框架      | 5       | 5      | 100% ✅     |
+| 五、大纲视图                   | 2       | 2      | 100% ✅     |
+| 六、系统设置                   | 12      | 12     | 100% ✅     |
+| &nbsp;&nbsp;6.1 基础设置       | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;6.2 LLM设置        | 3       | 3      | 100% ✅     |
+| &nbsp;&nbsp;6.3 知识库设置     | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.4 主题设置       | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.5 图片设置       | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.6 日志设置       | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;6.7 关于           | 1       | 1      | 100% ✅     |
+| 七、知识库                     | 3       | 3      | 100% ✅     |
+| 八、工作目录                   | 1       | 1      | 100% ✅     |
+| 九、快捷键                     | 2       | 2      | 100% ✅     |
+| 十、视图切换                   | 1       | 1      | 100% ✅     |
+| 十一、多标签页管理             | 1       | 1      | 100% ✅     |
+| 十二、语言设置                 | 1       | 1      | 100% ✅     |
+| 十三、用户功能                 | 2       | 2      | 100% ✅     |
+| 十四、统计和监控               | 2       | 2      | 100% ✅     |
+| 十五、段落优化                 | 1       | 1      | 100% ✅     |
+| 十六、PDF预览                  | 1       | 1      | 100% ✅     |
+| 十七、控制台输出               | 1       | 1      | 100% ✅     |
+| 十八、菜单配置                 | 1       | 1      | 100% ✅     |
+| 十九、调试工具                 | 1       | 1      | 100% ✅     |
+| 二十、多窗口管理               | 1       | 1      | 100% ✅     |
+| 二十一、文档格式               | 1       | 1      | 100% ✅     |
+| 二十二、AI任务队列             | 1       | 1      | 100% ✅     |
+| 二十三、主页功能               | 1       | 1      | 100% ✅     |
+| 二十四、图表功能               | 4       | 4      | 100% ✅     |
+| **总计**                       | **60+** | **60** | **100%** ✅ |
 
 **已完成文档**（按新规范完善，包含图表和Demo组件）：
+
 - ✅ `quick-start/guide.md` - 快速开始指南
 - ✅ `core/file-operations.md` - 文件操作
 - ✅ `core/editor-basics.md` - 编辑器基础操作
@@ -697,6 +819,7 @@ estimatedTime: 10
 **所有文档已完成编写并完善！** ✅
 
 **重要提醒**：
+
 - 所有文档必须严格按照 `USER_MANUAL_INDEX.md` 的结构和内容要求编写
 - 不得随意更改或简化文档结构
 - 每个文档必须包含索引中列出的所有功能点
@@ -764,7 +887,7 @@ estimatedTime: 10
 
 - 使用清晰的截图说明界面操作
 - **图表使用**：可以适度使用PlantUML和Mermaid图表辅助说明
-  - 使用对应的代码块格式：```` ```plantuml ```` 或 ```` ```mermaid ````
+  - 使用对应的代码块格式：` ```plantuml ` 或 ` ```mermaid `
   - 图表要求：
     - 使用正交连接线（orthogonal lines）
     - 保持极简风格：黑白灰色调，Tailwind风格
@@ -793,13 +916,15 @@ graph LR
 - 包含必要的注释
 - 说明预期结果
 
-```markdown
+````markdown
 ```typescript
 // 示例代码
-const example = "Hello, World!"
+const example = 'Hello, World!'
 console.log(example)
 ```
-```
+````
+
+````
 
 ### 4. 常见问题
 
@@ -813,7 +938,7 @@ A: 可以通过...来解决。
 
 ### Q: 为什么...？
 A: 这是因为...
-```
+````
 
 ---
 

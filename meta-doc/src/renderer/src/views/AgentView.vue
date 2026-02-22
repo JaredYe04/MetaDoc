@@ -519,7 +519,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@renderer/components/ui/ui/table'
+} from '@renderer/components/ui/table'
 import {
   Dialog,
   DialogContent,

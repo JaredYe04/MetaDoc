@@ -26,6 +26,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from '@renderer/components/ui/avatar'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { MdEditor, MdPreview } from 'md-editor-v3'
@@ -348,11 +353,10 @@ onBeforeUnmount(() => {
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
-    <el-avatar
-      class="avatar-with-mask"
-      v-if="role !== 'user'"
-      :src="(themeState.currentTheme as any).AiLogo"
-    ></el-avatar>
+    <Avatar class="avatar-with-mask" v-if="role !== 'user'">
+      <AvatarImage :src="(themeState.currentTheme as any).AiLogo" />
+      <AvatarFallback>AI</AvatarFallback>
+    </Avatar>
     <!-- 用户消息的操作按钮（在左侧） -->
     <transition name="fade">
       <DropdownMenu
@@ -493,7 +497,9 @@ onBeforeUnmount(() => {
         </DropdownMenuContent>
       </DropdownMenu>
     </transition>
-    <el-avatar class="avatar-fallback" v-if="role === 'user'"><User class="w-6 h-6" /></el-avatar>
+    <Avatar class="avatar-fallback" v-if="role === 'user'">
+      <AvatarFallback><User class="w-6 h-6" /></AvatarFallback>
+    </Avatar>
   </div>
   <Dialog v-model:open="editDialogVisible">
     <DialogContent class="sm:max-w-[80%]">

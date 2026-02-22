@@ -22,6 +22,9 @@ import AIChatDemo from '../components/manual/AIChatDemo.vue'
 import OcrWindowDemo from '../components/manual/OcrWindowDemo.vue'
 import GraphWindowDemo from '../components/manual/GraphWindowDemo.vue'
 import OutlineDemo from '../components/manual/OutlineDemo.vue'
+import AgentViewDemo from '../components/manual/AgentViewDemo.vue'
+import KnowledgeBaseDemo from '../components/manual/KnowledgeBaseDemo.vue'
+import ProofreadViewDemo from '../components/manual/ProofreadViewDemo.vue'
 import { registerDemoComponent } from './demo-registry'
 
 registerDemoComponent('LeftMenu', LeftMenu)
@@ -43,3 +46,6 @@ registerDemoComponent('AIChatDemo', AIChatDemo)
 registerDemoComponent('OcrWindowDemo', OcrWindowDemo)
 registerDemoComponent('GraphWindowDemo', GraphWindowDemo)
 registerDemoComponent('OutlineDemo', OutlineDemo)
+registerDemoComponent('AgentViewDemo', AgentViewDemo)
+registerDemoComponent('KnowledgeBaseDemo', KnowledgeBaseDemo)
+registerDemoComponent('ProofreadViewDemo', ProofreadViewDemo)

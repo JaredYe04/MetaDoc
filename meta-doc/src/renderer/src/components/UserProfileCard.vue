@@ -94,16 +94,15 @@
       <div style="display: flex; align-items: center">
         <Tooltip>
           <TooltipTrigger as-child>
-            <el-avatar
+            <Avatar
               v-if="avatar && !avatarLoadError"
-              :src="avatar"
-              :size="128"
-              style="width: 128px; height: 128px; padding: 0; cursor: pointer; object-fit: cover"
+              class="cursor-pointer"
+              style="width: 128px; height: 128px"
               @click="changeAvatar"
-              @error="handleAvatarError"
             >
-              {{ avatar ? '' : user.username }}
-            </el-avatar>
+              <AvatarImage :src="avatar" :alt="user.username" @error="handleAvatarError" class="object-cover" />
+              <AvatarFallback>{{ user.username?.charAt(0)?.toUpperCase() || '?' }}</AvatarFallback>
+            </Avatar>
             <div
               v-else
               style="
@@ -302,8 +301,8 @@
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
-import { ElAvatar } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@renderer/components/ui/avatar'
 import { Input } from '@renderer/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Form, FormField } from '@renderer/components/ui/form'

@@ -1,6 +1,6 @@
 <template>
   <Dialog v-model:open="visible">
-    <DialogContent class="max-w-[600px]">
+    <DialogContent class="max-w-[800px]">
       <DialogHeader>
         <DialogTitle>{{ dialogTitle }}</DialogTitle>
       </DialogHeader>
@@ -96,11 +96,36 @@
                 </template>
               </template>
 
-              <!-- Select字段、Font字段和FontSize字段 -->
+              <!-- FontSelect字段 -->
+              <FormField
+                v-else-if="shouldShowField(field) && field.type === 'font'"
+                :name="field.key"
+              >
+                <div class="flex items-start gap-4">
+                  <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(field) }}</FormLabel>
+                  <div class="flex-1">
+                    <FontSelect
+                      :model-value="getNestedValue(formData, field.key)"
+                      @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
+                      :placeholder="getFieldLabel(field)"
+                      :preview-text="field.previewText || 'AaBbCc 你好世界'"
+                      class="w-full"
+                    />
+                    <FormDescription
+                      v-if="hasFieldHelperText(field)"
+                      class="mt-1"
+                    >
+                      {{ getFieldHelperText(field) }}
+                    </FormDescription>
+                  </div>
+                </div>
+              </FormField>
+
+              <!-- Select字段和FontSize字段 -->
               <FormField
                 v-else-if="
                   shouldShowField(field) &&
-                  (field.type === 'select' || field.type === 'font' || field.type === 'fontSize')
+                  (field.type === 'select' || field.type === 'fontSize')
                 "
                 :name="field.key"
               >
@@ -111,7 +136,6 @@
                       <Select
                         :model-value="getNestedValue(formData, field.key)"
                         @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
-                        :disabled="field.type === 'font' && fontsLoading"
                       >
                         <SelectTrigger class="w-full">
                           <SelectValue :placeholder="getFieldLabel(field)" />
@@ -380,6 +404,8 @@ import {
   getFontSizeOptions,
   type FontSizeOption
 } from '../utils/font-size-localization'
+import { FontSelect } from '@renderer/components/ui/font-select'
+import { settings } from '../utils/settings.js'
 
 const { t } = useI18n()
 

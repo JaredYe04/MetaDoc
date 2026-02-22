@@ -208,26 +208,6 @@
         </FormField>
       </div>
 
-      <div class="font-settings-group">
-        <h4 class="font-group-title">{{ t('setting.fontExport', 'PDF导出字体') }}</h4>
-        <FormField :label="t('setting.fontExportChinese', '导出中文字体')" name="fontExportChinese">
-          <FontSelect
-            v-model="settings.fontExportChinese"
-            :placeholder="t('setting.selectChineseFont', '选择中文字体')"
-            preview-text="你好世界"
-            @update:model-value="saveSetting('fontExportChinese', settings.fontExportChinese)"
-          />
-        </FormField>
-        <FormField :label="t('setting.fontExportWestern', '导出西文字体')" name="fontExportWestern">
-          <FontSelect
-            v-model="settings.fontExportWestern"
-            :placeholder="t('setting.selectWesternFont', '选择西文字体')"
-            preview-text="AaBbCc"
-            @update:model-value="saveSetting('fontExportWestern', settings.fontExportWestern)"
-          />
-        </FormField>
-      </div>
-
       <FormField :label="t('setting.referenceDirManagement', '引用文件目录管理')" name="referenceDirManagement">
         <div class="reference-dir-management">
           <div class="reference-dir-info">

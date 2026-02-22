@@ -844,9 +844,7 @@ async function applyFontSettings(getSetting) {
     const fontEditorWestern = await getSetting('fontEditorWestern') || 'New York'
     const fontPreviewChinese = await getSetting('fontPreviewChinese') || 'OPPO Sans 4.0'
     const fontPreviewWestern = await getSetting('fontPreviewWestern') || 'New York'
-    const fontExportChinese = await getSetting('fontExportChinese') || 'SimSun'
-    const fontExportWestern = await getSetting('fontExportWestern') || 'Times New Roman'
-    
+
     const root = document.documentElement
     
     // UI字体
@@ -857,10 +855,6 @@ async function applyFontSettings(getSetting) {
     
     // 渲染预览字体组合
     root.style.setProperty('--font-family-preview', `${fontPreviewWestern}, ${fontPreviewChinese}, -apple-system, BlinkMacSystemFont, sans-serif`)
-    
-    // PDF导出字体（存储在CSS变量中供导出时使用）
-    root.style.setProperty('--font-family-export-chinese', fontExportChinese)
-    root.style.setProperty('--font-family-export-western', fontExportWestern)
     
     // 更新基础字体
     root.style.setProperty(

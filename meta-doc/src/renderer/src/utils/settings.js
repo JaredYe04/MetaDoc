@@ -136,14 +136,12 @@ export const settings = reactive({
   metadataSaveMode: 'sidecar', // 元信息保存模式：'sidecar'（隐藏伴生文件，默认）、'embed'（嵌入注释）、'none'（不保存）
   mathInlineDigit: true, // 内联数学公式起始 $ 后是否允许数字，默认 true
   externalFileOpenMode: 'newWindow', // 外部打开文件模式：'newWindow'（新窗口）或 'newTab'（当前窗口新标签页）
-  // 字体配置
+  // 字体配置（导出字体在导出对话框中单独配置，默认使用编辑器字体）
   fontUi: 'OPPO Sans 4.0', // UI界面字体
   fontEditorChinese: 'OPPO Sans 4.0', // 编辑器中文字体
   fontEditorWestern: 'New York', // 编辑器西文字体
   fontPreviewChinese: 'OPPO Sans 4.0', // 渲染预览中文字体
-  fontPreviewWestern: 'New York', // 渲染预览西文字体
-  fontExportChinese: 'SimSun', // PDF导出中文字体
-  fontExportWestern: 'Times New Roman' // PDF导出西文字体
+  fontPreviewWestern: 'New York' // 渲染预览西文字体
 })
 
 // 关键设置列表：需要在窗口显示前加载的设置（影响UI渲染）

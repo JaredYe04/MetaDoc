@@ -131,7 +131,7 @@ import {
   shallowRef
 } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { notifySuccess, notifyInfo } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Button } from '@renderer/components/ui/button'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import Vditor from 'vditor'

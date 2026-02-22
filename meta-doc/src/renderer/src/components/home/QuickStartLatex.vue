@@ -65,12 +65,12 @@
                   </div>
                 </div>
                 <div class="panel-actions">
-                  <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
+                  <Tooltip :content="$t('home.tooltip.ready')" placement="top">
                     <Button type="success" @click="allSet">
                       <el-icon><Check /></el-icon>
                       {{ $t('home.tooltip.ready') }}
                     </Button>
-                  </el-tooltip>
+                  </Tooltip>
                 </div>
               </div>
             </ScrollArea>
@@ -151,7 +151,7 @@
 
                 <!-- 操作按钮 -->
                 <div class="panel-actions" @mousedown.stop>
-                  <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
+                  <Tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
                     <Button
                       type="primary"
                       :disabled="generating || userPrompt.length === 0"
@@ -161,19 +161,19 @@
                       <el-icon v-if="!generating"><Promotion /></el-icon>
                       {{ $t('home.tooltip.generateArticle') }}
                     </Button>
-                  </el-tooltip>
-                  <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
+                  </Tooltip>
+                  <Tooltip :content="$t('home.tooltip.reset')" placement="top">
                     <Button v-if="generated" @click="reset">
                       <el-icon><RefreshLeft /></el-icon>
                       {{ $t('home.tooltip.reset') }}
                     </Button>
-                  </el-tooltip>
-                  <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
+                  </Tooltip>
+                  <Tooltip :content="$t('home.tooltip.accept')" placement="top">
                     <Button v-if="generated" type="success" @click="accept">
                       <el-icon><Check /></el-icon>
                       {{ $t('home.tooltip.accept') }}
                     </Button>
-                  </el-tooltip>
+                  </Tooltip>
                 </div>
               </div>
             </ScrollArea>
@@ -236,6 +236,7 @@ import {
 } from '../../utils/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
 import { ElMessage } from 'element-plus'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 
 const emit = defineEmits(['close'])
 

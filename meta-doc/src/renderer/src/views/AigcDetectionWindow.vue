@@ -253,7 +253,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -896,10 +897,10 @@ function onReportAreaClick(e: MouseEvent) {
   navigator.clipboard
     .writeText(contentDiv.textContent.trim())
     .then(() => {
-      ElMessage.success(t('aigc.copySuccess', '已复制'))
+      notifySuccess(t('aigc.copySuccess', '已复制'))
     })
     .catch(() => {
-      ElMessage.error(t('aigc.copyFailed', '复制失败'))
+      notifyError(t('aigc.copyFailed', '复制失败'))
     })
 }
 
@@ -1055,7 +1056,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1095,7 +1096,7 @@ const handleCreateSession = async () => {
     overallReportBlock.value = ''
     modifiedParagraphIndices.value = new Set()
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1191,7 +1192,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       updateEditorDecorations()
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -1203,7 +1204,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await aigcDetectionSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1231,9 +1232,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess'))
+    notifySuccess(t('common.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1255,9 +1256,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
       overallReportBlock.value = ''
       modifiedParagraphIndices.value = new Set()
     }
-    ElMessage.success(t('common.deleteSuccess'))
+    notifySuccess(t('common.deleteSuccess'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1299,7 +1300,7 @@ const handleFileChange = async (file: any) => {
       if (!filePath) throw new Error('保存文件失败')
       const adapter = referenceAdapterManager.getAdapter(fileExt)
       if (!adapter) {
-        ElMessage.error(t('aigc.unsupportedFileType'))
+        notifyError(t('aigc.unsupportedFileType'))
         return
       }
       parsedContent = await adapter.parse(filePath, fileExt)
@@ -1330,9 +1331,9 @@ const handleFileChange = async (file: any) => {
     updateEditorContent()
     updateEditorDecorations()
 
-    ElMessage.success(t('aigc.fileUploaded'))
+    notifySuccess(t('aigc.fileUploaded'))
   } catch (error) {
-    ElMessage.error('上传文件失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('上传文件失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1344,7 +1345,7 @@ const handleSelectFromDocument = async () => {
 
   // 检查是否有可用的文档
   if (documentTabs.value.length === 0) {
-    ElMessage.warning(t('aigc.noActiveDocument'))
+    notifyWarning(t('aigc.noActiveDocument'))
     return
   }
 
@@ -1368,20 +1369,20 @@ function getDisplayNameFromTab(tab: { title?: string; path?: string }): string {
 // 确认选择文档
 const confirmSelectDocument = async () => {
   if (!selectedTabId.value) {
-    ElMessage.warning(t('aigc.pleaseSelectDocument'))
+    notifyWarning(t('aigc.pleaseSelectDocument'))
     return
   }
 
   try {
     const tab = workspace.tabs.find((t) => String(t.id) === selectedTabId.value)
     if (!tab) {
-      ElMessage.error(t('aigc.documentNotFound'))
+      notifyError(t('aigc.documentNotFound'))
       return
     }
 
     const doc = workspace.ensureDocument(tab.id)
     if (!doc || (doc.format !== 'md' && doc.format !== 'tex')) {
-      ElMessage.error(t('aigc.unsupportedFormat'))
+      notifyError(t('aigc.unsupportedFormat'))
       return
     }
 
@@ -1394,7 +1395,7 @@ const confirmSelectDocument = async () => {
     }
 
     if (!content.trim()) {
-      ElMessage.warning(t('aigc.documentEmpty'))
+      notifyWarning(t('aigc.documentEmpty'))
       return
     }
 
@@ -1428,9 +1429,9 @@ const confirmSelectDocument = async () => {
     updateEditorContent()
     updateEditorDecorations()
 
-    ElMessage.success(t('aigc.contentSelected'))
+    notifySuccess(t('aigc.contentSelected'))
   } catch (error) {
-    ElMessage.error('选择内容失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('选择内容失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1515,12 +1516,12 @@ function saveParagraphTexts() {
 // 开始分析：以当前划分好的段落为单位，并行执行，每个子任务完成后立即追加到报告
 const handleAnalyze = async () => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   const list = paragraphs.value.filter((p) => p.trim())
   if (list.length === 0) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
 
@@ -1575,9 +1576,9 @@ const handleAnalyze = async () => {
     }
     await nextTick()
     updateEditorDecorations()
-    ElMessage.success(t('aigc.analysisComplete'))
+    notifySuccess(t('aigc.analysisComplete'))
   } catch (error) {
-    ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     analyzing.value = false
   }
@@ -1872,13 +1873,13 @@ function buildOverallReportBlock(overall: AigcAnalysisResult): string {
 // 导出报告到新文档
 const handleExportReport = () => {
   if (!reportMarkdown.value) {
-    ElMessage.warning(t('aigc.noAnalysisData'))
+    notifyWarning(t('aigc.noAnalysisData'))
     return
   }
   eventBus.emit('ai-chat-export-to-document', {
     content: reportMarkdown.value
   })
-  ElMessage.success(t('aigc.exportReportSuccess', '已导出到新文档'))
+  notifySuccess(t('aigc.exportReportSuccess', '已导出到新文档'))
 }
 
 /** 导出下拉菜单：report=导出报告；二级菜单由 handleExportParaphrasedCommand 处理 */
@@ -1895,7 +1896,7 @@ const handleExportParaphrasedCommand = (command: string) => {
 /** 导出改写后的文章到新文档（与拼成新文章相同的拼文逻辑，不创建新会话） */
 const handleExportParaphrasedArticle = () => {
   if (!paragraphs.value.length) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   const newParagraphs = paragraphs.value.map((p, i) => {
@@ -1906,13 +1907,13 @@ const handleExportParaphrasedArticle = () => {
   eventBus.emit('ai-chat-export-to-document', {
     content: newContent
   })
-  ElMessage.success(t('aigc.exportParaphrasedSuccess', '已导出改写后的文章到新文档'))
+  notifySuccess(t('aigc.exportParaphrasedSuccess', '已导出改写后的文章到新文档'))
 }
 
 /** 将改写后的内容拼成新文章并在新会话中打开（已改写段落用改写文，未改写的保留原文） */
 const handleAssembleAsNewArticle = async () => {
   if (!paragraphs.value.length) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   const newParagraphs = paragraphs.value.map((p, i) => {
@@ -1947,9 +1948,9 @@ const handleAssembleAsNewArticle = async () => {
     } else {
       activeSessionId.value = id
     }
-    ElMessage.success(t('aigc.assembleSuccess', '已拼成新文章并打开'))
+    notifySuccess(t('aigc.assembleSuccess', '已拼成新文章并打开'))
   } catch (error) {
-    ElMessage.error('拼成新文章失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('拼成新文章失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -2103,7 +2104,7 @@ async function paraphraseOneSegment(index: number, skipDbSave = false): Promise<
 /** 改写全部：并发对各段做同义转述（与开始分析类似，同时改写各段），每完成一段即更新报告 */
 const handleParaphraseAll = async () => {
   if (!paragraphAnalyses.value.length || !paragraphs.value.length) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   paraphrasing.value = true

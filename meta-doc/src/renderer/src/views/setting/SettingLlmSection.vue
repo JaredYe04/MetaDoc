@@ -1020,7 +1020,8 @@ import {
 import { Separator } from '@renderer/components/ui/separator'
 
 // Element Plus 消息组件
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 
 interface OllamaModel {
   name: string
@@ -1381,13 +1382,13 @@ const handleConfigSwitch = async (id: string) => {
     loadManualTokenFromCache()
     fetchPendingRequests()
   }
-  ElMessage.success(t('setting.configSwitched'))
+  notifySuccess(t('setting.configSwitched'))
 }
 
 const handleCreateConfig = async () => {
   try {
     if (settings.selectedLlm === 'manual') {
-      ElMessage.warning(t('setting.cannotCreateManualConfig'))
+      notifyWarning(t('setting.cannotCreateManualConfig'))
       return
     }
 
@@ -1407,11 +1408,11 @@ const handleCreateConfig = async () => {
     currentConfigId.value = newConfig.id
     await fetchLlmSettings()
     loadConfigs()
-    ElMessage.success(t('setting.configCreated'))
+    notifySuccess(t('setting.configCreated'))
   } catch (error) {
     if (error !== 'cancel') {
       logger.error('创建配置失败', error)
-      ElMessage.error(t('setting.configCreateFailed') || '创建配置失败')
+      notifyError(t('setting.configCreateFailed') || '创建配置失败')
     }
   }
 }
@@ -1447,14 +1448,14 @@ const loadManualTokenFromCache = () => {
 
 const submitManualResponse = async () => {
   if (!manualTokenInput.value.trim() || !pendingManualRequestId.value) {
-    ElMessage.warning(t('setting.noPendingRequest'))
+    notifyWarning(t('setting.noPendingRequest'))
     return
   }
 
   try {
     const request = pendingRequests.value.find((r) => r.requestId === pendingManualRequestId.value)
     if (!request) {
-      ElMessage.warning(t('setting.requestNotFound'))
+      notifyWarning(t('setting.requestNotFound'))
       await fetchPendingRequests()
       return
     }
@@ -1508,17 +1509,17 @@ const submitManualResponse = async () => {
 
     const result = await response.json()
     if (result.success) {
-      ElMessage.success(t('setting.manualResponseSubmitted'))
+      notifySuccess(t('setting.manualResponseSubmitted'))
       manualTokenInput.value = ''
       pendingManualRequestId.value = ''
       selectedRequestId.value = ''
       await fetchPendingRequests()
     } else {
-      ElMessage.error(result.message || t('setting.submitFailed'))
+      notifyError(result.message || t('setting.submitFailed'))
     }
   } catch (error) {
     logger.error('提交手动响应失败', error)
-    ElMessage.error(t('setting.submitFailed'))
+    notifyError(t('setting.submitFailed'))
   }
 }
 
@@ -1558,7 +1559,7 @@ const handleDeleteConfig = async (configId?: string) => {
 
   const config = llmConfigs.value.find((c) => c.id === targetId)
   if (config?.isDefault) {
-    ElMessage.warning(t('setting.cannotDeleteDefaultConfig'))
+    notifyWarning(t('setting.cannotDeleteDefaultConfig'))
     return
   }
 
@@ -1571,10 +1572,10 @@ const handleDeleteConfig = async (configId?: string) => {
 
     await deleteConfig(targetId)
     loadConfigs()
-    ElMessage.success(t('setting.configDeleted'))
+    notifySuccess(t('setting.configDeleted'))
   } catch (error) {
     if (error instanceof Error && error.message === '不能删除默认配置') {
-      ElMessage.warning(t('setting.cannotDeleteDefaultConfig'))
+      notifyWarning(t('setting.cannotDeleteDefaultConfig'))
     }
   }
 }
@@ -1591,9 +1592,9 @@ const handleResetConfig = async (configId: string) => {
     if (success) {
       await fetchLlmSettings()
       loadConfigs()
-      ElMessage.success(t('setting.configReset'))
+      notifySuccess(t('setting.configReset'))
     } else {
-      ElMessage.error(t('setting.resetFailed') || '重置失败')
+      notifyError(t('setting.resetFailed') || '重置失败')
     }
   } catch {
     // 用户取消
@@ -1717,13 +1718,13 @@ const handleSaveChanges = async () => {
       hasUnsavedChanges.value = false
       await fetchLlmSettings()
       loadConfigs()
-      ElMessage.success(t('setting.changesSaved'))
+      notifySuccess(t('setting.changesSaved'))
     } else {
-      ElMessage.error(t('setting.saveFailed') || '保存失败')
+      notifyError(t('setting.saveFailed') || '保存失败')
     }
   } catch (error) {
     logger.error('保存配置失败', error)
-    ElMessage.error(t('setting.saveFailed') || '保存失败')
+    notifyError(t('setting.saveFailed') || '保存失败')
   }
 }
 
@@ -1754,9 +1755,9 @@ const handleDiscardChanges = async () => {
       } else if (settings.selectedLlm === 'gemini' && settings.gemini.apiKey) {
         fetchGeminiModels()
       }
-      ElMessage.success(t('setting.changesDiscarded'))
+      notifySuccess(t('setting.changesDiscarded'))
     } else {
-      ElMessage.error(t('setting.discardFailed') || '放弃失败')
+      notifyError(t('setting.discardFailed') || '放弃失败')
     }
   } catch {
     // 用户取消
@@ -1767,7 +1768,7 @@ const handleExportConfig = async (configId: string) => {
   try {
     const jsonString = exportConfig(configId)
     if (!jsonString) {
-      ElMessage.error(t('setting.exportFailed') || '导出失败')
+      notifyError(t('setting.exportFailed') || '导出失败')
       return
     }
 
@@ -1783,17 +1784,17 @@ const handleExportConfig = async (configId: string) => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
 
-    ElMessage.success(t('setting.exportSuccess') || '导出成功')
+    notifySuccess(t('setting.exportSuccess') || '导出成功')
   } catch (error) {
     logger.error('导出配置失败', error)
-    ElMessage.error(t('setting.exportFailed') || '导出失败')
+    notifyError(t('setting.exportFailed') || '导出失败')
   }
 }
 
 const handleImportConfig = async () => {
   try {
     if (!importJsonText.value.trim()) {
-      ElMessage.warning(t('setting.importConfigJsonRequired') || '请输入配置JSON')
+      notifyWarning(t('setting.importConfigJsonRequired') || '请输入配置JSON')
       return
     }
 
@@ -1802,19 +1803,19 @@ const handleImportConfig = async () => {
       loadConfigs()
       importDialogVisible.value = false
       importJsonText.value = ''
-      ElMessage.success(
+      notifySuccess(
         t('setting.importSuccess', { count: result.imported }) ||
           `成功导入 ${result.imported} 个配置`
       )
       if (result.errors.length > 0) {
-        ElMessage.warning(result.errors.join('; '))
+        notifyWarning(result.errors.join('; '))
       }
     } else {
-      ElMessage.error(result.errors.join('; ') || t('setting.importFailed') || '导入失败')
+      notifyError(result.errors.join('; ') || t('setting.importFailed') || '导入失败')
     }
   } catch (error) {
     logger.error('导入配置失败', error)
-    ElMessage.error(t('setting.importFailed') || '导入失败')
+    notifyError(t('setting.importFailed') || '导入失败')
   }
 }
 
@@ -1833,10 +1834,10 @@ const handleExportAllConfigs = async () => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
 
-    ElMessage.success(t('setting.exportSuccess') || '导出成功')
+    notifySuccess(t('setting.exportSuccess') || '导出成功')
   } catch (error) {
     logger.error('导出所有配置失败', error)
-    ElMessage.error(t('setting.exportFailed') || '导出失败')
+    notifyError(t('setting.exportFailed') || '导出失败')
   }
 }
 

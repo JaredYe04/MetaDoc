@@ -94,7 +94,8 @@ import TabContentRenderer from '../components/TabContentRenderer.vue'
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElNotification, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { getSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
@@ -918,21 +919,13 @@ function initMainEventListeners() {
 
   // 显示错误通知
   const handleShowError = (message: unknown) => {
-    ElNotification({
-      title: t('main.notification.error.title'),
-      message: message as string,
-      type: 'error'
-    })
+    notifyError(message as string, { title: t('main.notification.error.title') })
   }
   eventBus.on('show-error', handleShowError)
 
   // 显示警告通知
   const handleShowWarning = (message: unknown) => {
-    ElNotification({
-      title: t('main.notification.warning.title'),
-      message: message as string,
-      type: 'warning'
-    })
+    notifyWarning(message as string, { title: t('main.notification.warning.title') })
   }
   eventBus.on('show-warning', handleShowWarning)
 
@@ -975,10 +968,8 @@ function initMainEventListeners() {
       const newTab = workspace.openNewDocumentTab()
       workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
       workspace.updateDocumentMarkdown(newTab.id, data.content)
-      ElNotification({
-        title: t('main.notification.success.title'),
-        message: t('aiChat.insertSuccess', '内容已插入到文档'),
-        type: 'success'
+      notifySuccess(t('aiChat.insertSuccess', '内容已插入到文档'), {
+        title: t('main.notification.success.title')
       })
       return
     }
@@ -1071,20 +1062,16 @@ function initMainEventListeners() {
               workspace.updateDocumentTex(targetTabId, newTex)
             }
 
-            ElNotification({
-              title: t('main.notification.success.title'),
-              message: t('aiChat.insertSuccess', '内容已插入到文档'),
-              type: 'success'
+            notifySuccess(t('aiChat.insertSuccess', '内容已插入到文档'), {
+              title: t('main.notification.success.title')
             })
           }
         }
       }
     } catch (error) {
       logger.error('插入内容到文档失败:', error)
-      ElNotification({
-        title: t('main.notification.error.title'),
-        message: error instanceof Error ? error.message : String(error),
-        type: 'error'
+      notifyError(error instanceof Error ? error.message : String(error), {
+        title: t('main.notification.error.title')
       })
     }
   }
@@ -1103,17 +1090,13 @@ function initMainEventListeners() {
       // 设置内容
       workspace.updateDocumentMarkdown(newTab.id, data.content)
 
-      ElNotification({
-        title: t('main.notification.success.title'),
-        message: t('aiChat.exportSuccess', '已导出到新文档'),
-        type: 'success'
+      notifySuccess(t('aiChat.exportSuccess', '已导出到新文档'), {
+        title: t('main.notification.success.title')
       })
     } catch (error) {
       logger.error('导出到新文档失败:', error)
-      ElNotification({
-        title: t('main.notification.error.title'),
-        message: error instanceof Error ? error.message : String(error),
-        type: 'error'
+      notifyError(error instanceof Error ? error.message : String(error), {
+        title: t('main.notification.error.title')
       })
     }
   }

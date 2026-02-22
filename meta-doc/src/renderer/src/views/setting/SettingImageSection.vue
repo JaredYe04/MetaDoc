@@ -171,7 +171,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Form, FormField } from '@renderer/components/ui/form'
-import { ElMessage } from 'element-plus'
+import { notifyError, notifyWarning } from '@renderer/utils/notify'
 import { HelpCircle } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
  import { Input } from '@renderer/components/ui/input'
@@ -210,7 +210,7 @@ const selectImageDirectory = async () => {
       await saveImageSetting('localImageDir', result.filePaths[0])
     }
   } catch (error) {
-    ElMessage.error('选择目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('选择目录失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -227,10 +227,10 @@ const openImageDirectory = async () => {
       // 使用 shell-open 打开目录
       messageBridge.send('shell-open', dirPath)
     } else {
-      ElMessage.warning(t('setting.image.noImageDirSet', '未设置图片目录'))
+      notifyWarning(t('setting.image.noImageDirSet', '未设置图片目录'))
     }
   } catch (error) {
-    ElMessage.error('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 </script>

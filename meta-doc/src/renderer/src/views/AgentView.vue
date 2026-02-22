@@ -441,7 +441,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { ElMessageBox, ElLoading } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '../utils/notify'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
@@ -1108,7 +1109,7 @@ const createSession = (agentConfigId?: string) => {
     showCreateSessionDialog.value = false
     selectedAgentConfigId.value = ''
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1118,7 +1119,7 @@ const deleteSession = async (session?: AgentSession) => {
 
   // 如果删除后没有会话了，不允许删除（需要至少保留一个）
   if (sessionsState.value.length <= 1) {
-    ElMessage.warning(t('agent.sessions.atLeastOneRequired'))
+    notifyWarning(t('agent.sessions.atLeastOneRequired'))
     return
   }
 
@@ -1131,7 +1132,7 @@ const deleteSession = async (session?: AgentSession) => {
     sessionsState.value = sessionsState.value.filter((item) => item.id !== target.id)
     ensureActiveSessionId()
     persistSessions()
-    ElMessage.success(t('agent.sessions.deleteSuccess'))
+    notifySuccess(t('agent.sessions.deleteSuccess'))
 
     // 如果删除后没有会话了，创建一个默认会话
     if (sessionsState.value.length === 0) {
@@ -1173,7 +1174,7 @@ const createDefaultSession = () => {
     // 创建默认会话时不触发dirty状态
     applySessionsToDocument([legacySession], true)
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1189,7 +1190,7 @@ const renameSession = async (session: AgentSession) => {
   session.title = value.trim()
   touchSession(session)
   persistSessions()
-  ElMessage.success(t('agent.sessions.renameSuccess'))
+  notifySuccess(t('agent.sessions.renameSuccess'))
 }
 
 // 工具选择功能已移除，工具列表现在为只读模式（显示当前会话可用的工具）
@@ -1350,7 +1351,7 @@ const handleComposerSubmit = async () => {
     }
   } catch (error) {
     logger.error('[handleComposerSubmit] 执行失败:', error)
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1371,7 +1372,7 @@ const executeAgentEngine = async (
   // 使用传入的actualSession，如果没有则使用computed的session
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
-    ElMessage.warning(t('agent.sessions.noAgentConfig'))
+    notifyWarning(t('agent.sessions.noAgentConfig'))
     // 确保状态正确，即使早期返回
     isGenerating.value = false
     workspace.unlockUI?.()
@@ -1381,7 +1382,7 @@ const executeAgentEngine = async (
   const engineId = selectedEngineId.value || 'default-autogpt-engine'
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
-    ElMessage.error(t('agent.sessions.engineNotFound'))
+    notifyError(t('agent.sessions.engineNotFound'))
     // 确保状态正确，即使早期返回
     isGenerating.value = false
     workspace.unlockUI?.()
@@ -1390,7 +1391,7 @@ const executeAgentEngine = async (
 
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
-    ElMessage.error(t('agent.sessions.agentConfigNotFound'))
+    notifyError(t('agent.sessions.agentConfigNotFound'))
     // 确保状态正确，即使早期返回
     isGenerating.value = false
     workspace.unlockUI?.()
@@ -1853,7 +1854,7 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
         status: activeSession.value.status || 'idle'
       }
       agentSessionManager.addReferenceObject(newFormatSession, reference)
-      ElMessage.success(t('agent.reference.addSuccess'))
+      notifySuccess(t('agent.reference.addSuccess'))
       persistSessions()
     } else if (files.length > 0) {
       // 批量处理文件上传
@@ -1916,14 +1917,14 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
 
           // 显示成功消息
           if (failCount === 0) {
-            ElMessage.success(
+            notifySuccess(
               files.length > 1 ? `成功添加 ${successCount} 个引用` : t('agent.reference.addSuccess')
             )
           } else {
-            ElMessage.warning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
+            notifyWarning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
           }
         } else {
-          ElMessage.error('所有文件处理失败')
+          notifyError('所有文件处理失败')
         }
       } finally {
         loading.close()
@@ -1933,7 +1934,7 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
       return
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2030,7 +2031,7 @@ const handleRetrySession = async (session: AgentSession) => {
     session.executionNodes &&
     session.executionNodes.length > 0
   ) {
-    ElMessage.warning(t('agent.sessions.noExecutionNode'))
+    notifyWarning(t('agent.sessions.noExecutionNode'))
     return
   }
 
@@ -2067,13 +2068,13 @@ const handleRetrySession = async (session: AgentSession) => {
           updatedAt: new Date(newFormatSession.updatedAt).toISOString()
         }
         persistSessions()
-        ElMessage.success(t('agent.sessions.retrySuccess'))
+        notifySuccess(t('agent.sessions.retrySuccess'))
       }
     } else {
-      ElMessage.warning(t('agent.sessions.noExecutionNode'))
+      notifyWarning(t('agent.sessions.noExecutionNode'))
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2126,9 +2127,9 @@ const handleDuplicateSession = async (session: AgentSession) => {
     ensureActiveSessionId()
     activeSessionId.value = duplicated.id
     persistSessions()
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2162,9 +2163,9 @@ const handleExportSession = async (session: AgentSession) => {
     a.download = `agent-session-${session.id}.json`
     a.click()
     URL.revokeObjectURL(url)
-    ElMessage.success(t('agent.sessions.exportSuccess'))
+    notifySuccess(t('agent.sessions.exportSuccess'))
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2206,9 +2207,9 @@ const handleImportSession = () => {
       ensureActiveSessionId()
       activeSessionId.value = session.id
       persistSessions()
-      ElMessage.success(t('agent.sessions.importSuccess'))
+      notifySuccess(t('agent.sessions.importSuccess'))
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
   input.click()
@@ -2272,7 +2273,7 @@ const getEngineLabel = (engine: any) => {
 
 const handleEngineChange = () => {
   // 引擎切换逻辑，后续在Agent执行时使用
-  ElMessage.success(
+  notifySuccess(
     t('agent.sessions.engineChanged', {
       engine: getEngineLabel(agentEngineManager.getEngine(selectedEngineId.value)!)
     })
@@ -2302,7 +2303,7 @@ const handleSessionListRename = (item: SessionListItem, newTitle: string) => {
     session.title = newTitle
     touchSession(session)
     persistSessions()
-    ElMessage.success(t('agent.sessions.renameSuccess'))
+    notifySuccess(t('agent.sessions.renameSuccess'))
   }
 }
 
@@ -2319,14 +2320,14 @@ const handleSessionListDelete = (item: SessionListItem) => {
   if (!session) return
 
   if (sessionsState.value.length <= 1) {
-    ElMessage.warning(t('agent.sessions.atLeastOneRequired'))
+    notifyWarning(t('agent.sessions.atLeastOneRequired'))
     return
   }
 
   sessionsState.value = sessionsState.value.filter((s) => s.id !== session.id)
   ensureActiveSessionId()
   persistSessions()
-  ElMessage.success(t('agent.sessions.deleteSuccess'))
+  notifySuccess(t('agent.sessions.deleteSuccess'))
 
   if (sessionsState.value.length === 0) {
     createDefaultSession()
@@ -2406,7 +2407,7 @@ const handleConfirmEditMessage = async () => {
 
   const content = editingMessageContent.value.trim()
   if (!content) {
-    ElMessage.warning(t('agent.message.editPlaceholder'))
+    notifyWarning(t('agent.message.editPlaceholder'))
     return
   }
 
@@ -2473,7 +2474,7 @@ const handleConfirmEditMessage = async () => {
 
     touchSession(session)
     persistSessions()
-    ElMessage.success(t('agent.message.editSuccess'))
+    notifySuccess(t('agent.message.editSuccess'))
     showEditMessageDialog.value = false
     editingMessage.value = null
     editingMessageContent.value = ''
@@ -2681,9 +2682,9 @@ const handleMessageDuplicate = async (message: AgentMessage) => {
     ensureActiveSessionId()
     activeSessionId.value = duplicated.id
     persistSessions()
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2704,7 +2705,7 @@ const handleMessageDelete = async (message: AgentMessage) => {
       session.messages = session.messages.slice(0, messageIndex)
       touchSession(session)
       persistSessions()
-      ElMessage.success(t('agent.message.deleteSuccess'))
+      notifySuccess(t('agent.message.deleteSuccess'))
     }
   } catch {
     // canceled

@@ -170,7 +170,7 @@ import {
   type WatchStopHandle
 } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -431,7 +431,7 @@ const handleProofread = async () => {
 
   if (!activeDocument.value) {
     console.warn('[ProofreadView] 没有活动的文档')
-    ElMessage.warning(t('proofread.noDocument', '没有活动的文档'))
+    notifyWarning(t('proofread.noDocument', '没有活动的文档'))
     return
   }
 
@@ -468,7 +468,7 @@ const handleProofread = async () => {
 
     if (!content || !content.trim()) {
       console.warn('[ProofreadView] 文档内容为空')
-      ElMessage.warning(t('proofread.noContent', '文档内容为空'))
+      notifyWarning(t('proofread.noContent', '文档内容为空'))
       return
     }
 
@@ -594,7 +594,7 @@ const handleProofread = async () => {
 
       if (!proofreadData) {
         console.error('[ProofreadView] ❌ 无法从返回结果中提取校对数据')
-        ElMessage.error('校对结果格式错误')
+        notifyError('校对结果格式错误')
         return
       }
 
@@ -655,14 +655,14 @@ const handleProofread = async () => {
         highlightErrors()
       })
 
-      ElMessage.success(t('proofread.proofreadSuccess', '校对完成'))
+      notifySuccess(t('proofread.proofreadSuccess', '校对完成'))
     } else {
       console.error('[ProofreadView] 校对失败:', result.error)
-      ElMessage.error(result.error || t('proofread.proofreadFailed', '校对失败'))
+      notifyError(result.error || t('proofread.proofreadFailed', '校对失败'))
     }
   } catch (error) {
     console.error('[ProofreadView] 校对异常:', error)
-    ElMessage.error('校对失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('校对失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     proofreading.value = false
     console.log('[ProofreadView] handleProofread 结束')
@@ -746,7 +746,7 @@ const handleFixError = (index: number) => {
         console.warn(
           `[ProofreadView] 错误位置不匹配，跳过修复: 期望 "${error.text}"，实际 "${actualText}"`
         )
-        ElMessage.warning(t('proofread.fixFailed', '修复失败：错误位置不匹配'))
+        notifyWarning(t('proofread.fixFailed', '修复失败：错误位置不匹配'))
         return
       }
 
@@ -792,7 +792,7 @@ const handleFixError = (index: number) => {
         highlightErrors()
       })
 
-      ElMessage.success(t('proofread.fixSuccess', '修复成功'))
+      notifySuccess(t('proofread.fixSuccess', '修复成功'))
     }
   }
 }
@@ -852,7 +852,7 @@ const handleAddToDictionary = async (index: number) => {
       highlightErrors()
     })
 
-    ElMessage.success(
+    notifySuccess(
       t(
         'proofread.addToDictionarySuccess',
         `已将 "${error.text}" 添加到词典，已忽略 ${sameTextErrors.length} 个相同错误`
@@ -860,7 +860,7 @@ const handleAddToDictionary = async (index: number) => {
     )
   } catch (error) {
     console.error('[ProofreadView] 添加到词典失败:', error)
-    ElMessage.error(t('proofread.addToDictionaryFailed', '添加到词典失败'))
+    notifyError(t('proofread.addToDictionaryFailed', '添加到词典失败'))
   }
 }
 
@@ -905,7 +905,7 @@ const handleIgnoreError = (index: number) => {
       highlightErrors()
     })
 
-    ElMessage.info(t('proofread.ignoreSuccess', '已忽略'))
+    notifyInfo(t('proofread.ignoreSuccess', '已忽略'))
   }
 }
 
@@ -982,7 +982,7 @@ const handleFixAll = () => {
     highlightErrors()
   })
 
-  ElMessage.success(t('proofread.fixAllSuccess', `已修复 ${fixedCount} 个错误`))
+  notifySuccess(t('proofread.fixAllSuccess', `已修复 ${fixedCount} 个错误`))
 }
 
 // 一键忽略所有错误
@@ -1016,7 +1016,7 @@ const handleIgnoreAll = () => {
     highlightErrors()
   })
 
-  ElMessage.success(t('proofread.ignoreAllSuccess', `已忽略 ${beforeCount} 个错误`))
+  notifySuccess(t('proofread.ignoreAllSuccess', `已忽略 ${beforeCount} 个错误`))
 }
 
 // 清空已修复的错误
@@ -1057,7 +1057,7 @@ const handleClearFixed = () => {
     highlightErrors()
   })
 
-  ElMessage.success(t('proofread.clearFixedSuccess', `已清空 ${removedCount} 个已修复的错误`))
+  notifySuccess(t('proofread.clearFixedSuccess', `已清空 ${removedCount} 个已修复的错误`))
 }
 
 // 点击错误项，跳转到Monaco编辑器对应位置

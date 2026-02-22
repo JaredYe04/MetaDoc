@@ -168,7 +168,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { HelpCircle } from 'lucide-vue-next'
 import MicrophoneTest from '../../components/MicrophoneTest.vue'
 import { settings, setSetting } from '../../utils/settings.js'
@@ -229,7 +230,7 @@ const refreshReferenceDirSize = async () => {
     const size = (await messageBridge.invoke('get-reference-dir-size')) as number
     referenceDirSize.value = size
   } catch (error) {
-    ElMessage.error('获取目录大小失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('获取目录大小失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -243,7 +244,7 @@ const openReferenceDir = async () => {
 
     await messageBridge.invoke('open-reference-dir')
   } catch (error) {
-    ElMessage.error('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -270,10 +271,10 @@ const clearReferenceDir = async () => {
 
     await messageBridge.invoke('clear-reference-dir')
     await refreshReferenceDirSize()
-    ElMessage.success(t('setting.clearReferenceDirSuccess', '目录已清空'))
+    notifySuccess(t('setting.clearReferenceDirSuccess', '目录已清空'))
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('清空目录失败: ' + (error instanceof Error ? error.message : String(error)))
+      notifyError('清空目录失败: ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 }

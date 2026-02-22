@@ -97,12 +97,7 @@
 
       <!-- 主编辑器区域：加载时显示 skeleton 覆盖层，与 VditorPreview 一致，不阻塞其他区域 -->
       <div class="editor-area">
-        <el-skeleton
-          v-if="isVditorLoading"
-          :rows="15"
-          animated
-          class="markdown-editor-skeleton"
-        />
+        <el-skeleton v-if="isVditorLoading" :rows="15" animated class="markdown-editor-skeleton" />
         <div
           :id="props.editorDomId"
           ref="vditorEl"
@@ -145,7 +140,11 @@ import '../assets/aero-input.css'
 import '../assets/title-menu.css'
 import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger.ts'
-import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree, convertLatexDelimiters } from '../utils/md-utils'
+import {
+  extractOutlineTreeFromMarkdown,
+  generateMarkdownFromOutlineTree,
+  convertLatexDelimiters
+} from '../utils/md-utils'
 import { wholeArticleContextPrompt } from '../utils/prompts.ts'
 import TitleMenu from '../components/TitleMenu.vue'
 import SectionOptimizer from '../components/SectionOptimizer.vue'
@@ -359,7 +358,11 @@ function syncMarkdownFromOutline() {
 /**
  * 同步大纲 wrapper 的折叠/展开状态（用宽度折叠，不用 display:none，避免再次展开时失效）
  */
-function setOutlineWrapperCollapsed(wrapper: HTMLElement, outlineEl: HTMLElement, collapsed: boolean) {
+function setOutlineWrapperCollapsed(
+  wrapper: HTMLElement,
+  outlineEl: HTMLElement,
+  collapsed: boolean
+) {
   if (collapsed) {
     wrapper.style.width = '0'
     wrapper.style.minWidth = '0'
@@ -1076,7 +1079,10 @@ const handleInsertGraph = async () => {
 // 处理 LaTeX 公式格式转换
 const handleConvertLatexFormulas = async () => {
   if (!vditor.value || !props.tabId) {
-    eventBus.emit('show-warning', t('article.toolbar.convert_latex_formulas_no_editor', '编辑器未就绪'))
+    eventBus.emit(
+      'show-warning',
+      t('article.toolbar.convert_latex_formulas_no_editor', '编辑器未就绪')
+    )
     return
   }
 
@@ -1094,11 +1100,11 @@ const handleConvertLatexFormulas = async () => {
 
     // 获取当前文档内容
     const currentContent = vditor.value.getValue()
-    
+
     // 检查是否有需要转换的内容
     const hasInlineFormula = /\\\([\s\S]*?\\\)/.test(currentContent)
     const hasBlockFormula = /\\\[[\s\S]*?\\\]/.test(currentContent)
-    
+
     if (!hasInlineFormula && !hasBlockFormula) {
       ElMessage.info(t('article.toolbar.convert_latex_formulas_no_match'))
       return
@@ -1106,10 +1112,10 @@ const handleConvertLatexFormulas = async () => {
 
     // 执行转换
     const convertedContent = convertLatexDelimiters(currentContent)
-    
+
     // 更新编辑器内容
     scheduleSetValue(convertedContent, { clearHistory: false, timeoutMs: 0 })
-    
+
     // 显示成功消息
     ElMessage.success(t('article.toolbar.convert_latex_formulas_success'))
   } catch (error) {
@@ -1884,7 +1890,9 @@ onMounted(async () => {
         : imageUploadConfig.action
     const uploadService = imageUploadConfig?.uploadService || 'local'
 
-    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+    const baseUrl = await import('../config/runtime-server').then((m) =>
+      m.getRuntimeServerBaseUrl()
+    )
 
     // 根据配置决定上传 URL
     // 如果 action === 'upload'，使用配置的上传服务
@@ -1965,7 +1973,9 @@ onMounted(async () => {
         const svgMatch = svgText.match(/<svg[\s\S]*?<\/svg>/i)
         if (svgMatch) {
           // 调整 SVG 尺寸以适应工具栏
-          return svgMatch[0].replace(/width="[^"]*"/i, 'width="20"').replace(/height="[^"]*"/i, 'height="20"')
+          return svgMatch[0]
+            .replace(/width="[^"]*"/i, 'width="20"')
+            .replace(/height="[^"]*"/i, 'height="20"')
         }
         return svgText
       } catch (error) {
@@ -2382,7 +2392,9 @@ onMounted(async () => {
                     // 确保 wrapper 折叠状态与大纲可见性一致（用宽度折叠，不用 display）
                     const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement
                     if (outlineEl) {
-                      const wrapper = outlineEl.parentElement?.classList.contains('outline-resize-wrapper')
+                      const wrapper = outlineEl.parentElement?.classList.contains(
+                        'outline-resize-wrapper'
+                      )
                         ? (outlineEl.parentElement as HTMLElement)
                         : null
                       if (wrapper) {
@@ -2796,8 +2808,8 @@ watch(
   display: flex;
   justify-content: center;
   align-items: center;
-  border-top: 1px solid #ddd;
-  background-color: #fff;
+  border-top: 1px solid var(--el-border-color, #ddd);
+  background-color: var(--el-bg-color, #fff);
 }
 
 /* 上下两部分 */
@@ -2940,9 +2952,9 @@ watch(
 
 /* 右边的元信息样式 */
 .meta-info {
-  color: black;
+  color: var(--el-text-color-primary, black);
   flex: 0 0 auto;
-  background-color: #f9f9f9;
+  background-color: var(--el-fill-color-light, #f9f9f9);
   overflow: auto;
   box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
   padding: 5px;
@@ -2954,8 +2966,8 @@ watch(
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  border-top: 1px solid #ddd;
-  background-color: #fff;
+  border-top: 1px solid var(--el-border-color, #ddd);
+  background-color: var(--el-bg-color, #fff);
 }
 
 .context-menu {
@@ -3100,7 +3112,9 @@ watch(
 
 .editor-mode-card.selected {
   border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 1px var(--el-color-primary), 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 0 1px var(--el-color-primary),
+    0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 .editor-mode-card-icon {

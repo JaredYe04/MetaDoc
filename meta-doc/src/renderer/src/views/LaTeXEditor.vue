@@ -4519,7 +4519,7 @@ function onCancelSuggestion() {
   display: flex;
   justify-content: flex-start; /* 左对齐，不要居中 */
   align-items: flex-start;
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   /* 容器大小自动匹配内容，不设置固定宽度 */
   width: fit-content;
@@ -4537,20 +4537,20 @@ function onCancelSuggestion() {
 
 /* 确保PDF页面本身有白色背景，避免暗色模式下的闪烁 */
 .pdf-page-wrapper .vue-pdf-main {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 
 .pdf-page-wrapper .vue-pdf {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 
 .pdf-page-wrapper .vue-pdf__wrapper {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 
 /* PDF页面canvas应该有白色背景，并优化渲染质量 */
 .pdf-page-wrapper canvas {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   /* 优化缩放时的渲染质量 */
   /* 注意：不要在这里设置 transform，因为缩放是在 .pdf-page-wrapper 上应用的 */
   image-rendering: auto; /* 使用默认渲染，避免crisp-edges导致的锯齿 */

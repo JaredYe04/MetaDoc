@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-Vue 3 SPA running in Electron's renderer process. Element Plus UI, Pinia state management, Monaco + Vditor dual editors, AI agent framework with 20+ tools, multi-format document export.
+Vue 3 SPA running in Electron's renderer process. shadcn-vue + Element Plus hybrid UI, Pinia state management, Monaco + Vditor dual editors, AI agent framework with 20+ tools, multi-format document export.
 
 ## STRUCTURE
 
@@ -15,12 +15,13 @@ renderer/src/
 │   ├── workspace.ts      # Tabs, documents, workspace tree (1847 lines — core store)
 │   ├── document.ts       # Document metadata & operations
 │   └── user.ts           # User preferences
-├── components/           # 53 Vue components
+├── components/           # 53 Vue components + 93 shadcn-vue UI components
 │   ├── agent/            # Agent UI (workflow canvas, managers)
 │   ├── chat/             # Chat UI components
 │   ├── common/           # Reusable UI (CardGrid, SessionList)
 │   ├── home/             # Home/quick-start panels
 │   ├── outline/          # Document outline tree components
+│   ├── ui/               # shadcn-vue components (button, card, dialog, select, etc.)
 │   ├── workspace/        # Workspace tabs, explorer
 │   ├── TabSwitcherOverlay.vue  # Ctrl+Tab 标签页切换浮层
 │   └── [40+ top-level]   # Feature-specific components
@@ -67,6 +68,8 @@ renderer/src/
 | Modify AI behavior      | `utils/prompts.ts` + `locale_prompts/`                                | Prompt templates are first-class config                      |
 | Add workspace FS op     | `utils/workspace/`                                                    | Uses planner→executor pattern                                |
 | Theme/styling           | `utils/themes.js` + `assets/`                                         | `themeState` provided globally                               |
+| Add shadcn component    | `components/ui/`                                                      | Use `npx shadcn-vue@latest add <component>`                  |
+| Use shadcn component    | Import from `components/ui/<name>`                                    | Components based on reka-ui with Tailwind styling            |
 
 ## CONVENTIONS
 
@@ -77,6 +80,8 @@ renderer/src/
 - **i18n**: `vue-i18n` with JSON locale files; Python script `i18n_check.py` validates completeness
 - **Event bus**: `utils/event-bus.js` (mitt-based) for cross-component communication
 - **Format system**: `format-registry.ts` + `format-initializer.ts` — register document format handlers at startup
+- **shadcn-vue**: Use `npx shadcn-vue@latest add <component>` to install new components; components use reka-ui primitives + Tailwind CSS
+- **UI hybrid**: shadcn-vue for new UI, Element Plus for legacy; both can coexist in same views
 
 ## ANTI-PATTERNS
 

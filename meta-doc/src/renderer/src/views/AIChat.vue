@@ -15,7 +15,12 @@
                   : '请选择要插入的文档'
               }}
             </span>
-            <Button variant="ghost" size="sm" @click="toggleSelectAll" v-if="documentTabs.length > 0">
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="toggleSelectAll"
+              v-if="documentTabs.length > 0"
+            >
               {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
             </Button>
           </div>
@@ -46,7 +51,10 @@
                 </div>
               </div>
               <div v-if="documentTabs.length === 0" class="empty-state">
-                <el-empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
+                <el-empty
+                  :description="t('aiChat.noDocuments', '没有打开的文档')"
+                  :image-size="80"
+                />
               </div>
             </div>
             <ScrollBar />
@@ -56,10 +64,7 @@
           <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
             t('common.cancel')
           }}</Button>
-          <Button
-            @click="confirmInsertToDocument"
-            :disabled="selectedTabIds.length === 0"
-          >
+          <Button @click="confirmInsertToDocument" :disabled="selectedTabIds.length === 0">
             {{ t('common.confirm') }} ({{ selectedTabIds.length }})
           </Button>
         </DialogFooter>
@@ -126,7 +131,7 @@
                 class="conversation-bottom-spacer"
                 :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
               />
-            <ScrollBar />
+              <ScrollBar />
             </ScrollArea>
             <div class="composer-wrapper">
               <ReferenceDisplay
@@ -157,11 +162,23 @@
 
     <!-- 引用管理对话框 -->
     <Dialog v-model:open="showReferenceDialog">
-      <DialogContent class="sm:max-w-[800px]" style="height: 80vh; display: flex; flex-direction: column">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        style="height: 80vh; display: flex; flex-direction: column"
+      >
         <DialogHeader>
           <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
         </DialogHeader>
-        <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0">
+        <div
+          style="
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+          "
+        >
           <ReferenceManager
             :session="{
               id: `ai-chat-${activeDialogIndex}`,
@@ -182,7 +199,9 @@
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
+          <Button variant="outline" @click="showReferenceDialog = false">{{
+            t('common.close')
+          }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -206,17 +225,13 @@ import { FileText, Folder } from 'lucide-vue-next'
 import SessionList from '../components/common/SessionList.vue'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Checkbox } from '@renderer/components/ui/checkbox'
 import type { SessionListItem } from '../components/common/SessionList.vue'
@@ -265,8 +280,14 @@ import { createRendererLogger } from '../utils/logger.ts'
 const logger = createRendererLogger('AIChat')
 
 const props = defineProps({
-  id: String
+  id: String,
+  mode: {
+    type: String,
+    default: 'normal'
+  }
 })
+
+const isDemo = computed(() => props.mode === 'demo')
 
 const cloneDeep = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 
@@ -1093,6 +1114,10 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only, no real initialization
+    return
+  }
   initCurrentDialog()
   eventBus.on('ai-dialogs-loaded', initCurrentDialog)
   eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate)
@@ -1106,12 +1131,14 @@ onBeforeUnmount(() => {
 })
 
 watch([messages], () => {
+  if (isDemo.value) return
   //bindCode(false);
   // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
   updateCurrentDialog()
 })
 
 watch([title], () => {
+  if (isDemo.value) return
   // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
   updateCurrentDialog()
 })

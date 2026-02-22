@@ -1,24 +1,24 @@
 <template>
   <div class="unit-test-result-display" :style="containerStyle">
     <div class="test-summary">
-      <el-statistic :title="$t('setting.debug.unitTest.totalTests')" :value="summary.total" />
-      <el-statistic :title="$t('setting.debug.unitTest.passed')" :value="summary.passed">
+      <Statistic :title="$t('setting.debug.unitTest.totalTests')" :value="summary.total" />
+      <Statistic :title="$t('setting.debug.unitTest.passed')" :value="summary.passed">
         <template #suffix>
           <Badge style="margin-left: 8px">
             {{ summary.passedRate }}%
           </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('setting.debug.unitTest.failed')" :value="summary.failed">
+      </Statistic>
+      <Statistic :title="$t('setting.debug.unitTest.failed')" :value="summary.failed">
         <template #suffix>
           <Badge variant="destructive" style="margin-left: 8px">
             {{ summary.failedRate }}%
           </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('setting.debug.unitTest.duration')" :value="summary.duration">
+      </Statistic>
+      <Statistic :title="$t('setting.debug.unitTest.duration')" :value="summary.duration">
         <template #suffix>ms</template>
-      </el-statistic>
+      </Statistic>
     </div>
 
     <el-divider />
@@ -143,6 +143,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge'
+import { Statistic } from '@renderer/components/ui/statistic'
 
 const { t } = useI18n()
 

@@ -1,12 +1,13 @@
 <template>
   <div class="vditor-preview-wrapper">
-    <el-skeleton
-      v-if="isRendering"
+    <Skeleton
+      :loading="isRendering"
       :rows="15"
       animated
       class="vditor-preview-skeleton"
-    />
-    <div v-show="!isRendering" ref="containerRef" class="vditor-preview-container"></div>
+    >
+      <div ref="containerRef" class="vditor-preview-container"></div>
+    </Skeleton>
   </div>
 </template>
 
@@ -15,6 +16,7 @@ import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview, local2fileProtocol } from '../utils/md-utils'
 import eventBus from '../utils/event-bus'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 
 const props = withDefaults(
   defineProps<{
@@ -227,13 +229,13 @@ onBeforeUnmount(() => {
   justify-content: flex-start;
 }
 
-.vditor-preview-skeleton :deep(.el-skeleton__item) {
+.vditor-preview-skeleton :deep(.bg-muted) {
   height: 20px;
   margin-bottom: 16px;
   border-radius: 4px;
 }
 
-.vditor-preview-skeleton :deep(.el-skeleton__item:last-child) {
+.vditor-preview-skeleton :deep(.bg-muted:last-child) {
   width: 60%;
 }
 </style>

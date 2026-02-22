@@ -51,7 +51,7 @@
                 </div>
               </div>
               <div v-if="documentTabs.length === 0" class="empty-state">
-                <el-empty
+                <Empty
                   :description="t('aiChat.noDocuments', '没有打开的文档')"
                   :image-size="80"
                 />
@@ -234,6 +234,7 @@ import {
   DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Checkbox } from '@renderer/components/ui/checkbox'
+import { Empty } from '@renderer/components/ui/empty'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'

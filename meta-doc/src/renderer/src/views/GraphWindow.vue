@@ -75,6 +75,15 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
@@ -977,7 +986,9 @@ const handleExport = async (chartMarkdown?: string) => {
       throw new Error('IPC渲染器不可用')
     }
 
-    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+    const baseUrl = await import('../config/runtime-server').then((m) =>
+      m.getRuntimeServerBaseUrl()
+    )
 
     // 打开保存对话框，让用户选择格式
     const result = await messageBridge.invoke('save-file-dialog', {
@@ -1041,10 +1052,7 @@ const handleExport = async (chartMarkdown?: string) => {
         // blob URL -> 文本内容
         const response = await fetch(imageUrl)
         svgContent = await response.text()
-      } else if (
-        imageUrl.startsWith(baseUrl + '/images/') ||
-        imageUrl.startsWith('http://')
-      ) {
+      } else if (imageUrl.startsWith(baseUrl + '/images/') || imageUrl.startsWith('http://')) {
         // HTTP URL -> 文本内容
         const response = await fetch(imageUrl)
         if (!response.ok) {
@@ -1090,10 +1098,7 @@ const handleExport = async (chartMarkdown?: string) => {
         })
         const commaIdx = dataUrl.indexOf(',')
         base64Data = dataUrl.substring(commaIdx + 1)
-      } else if (
-        imageUrl.startsWith(baseUrl + '/images/') ||
-        imageUrl.startsWith('http://')
-      ) {
+      } else if (imageUrl.startsWith(baseUrl + '/images/') || imageUrl.startsWith('http://')) {
         // HTTP URL -> fetch 获取内容 -> base64
         const response = await fetch(imageUrl)
         if (!response.ok) {
@@ -1139,10 +1144,7 @@ const handleExport = async (chartMarkdown?: string) => {
 
       // 如果 SVG URL 是 HTTP URL，需要先转换为本地路径（参考 FomulaRecognition.vue）
       let svgPath: string
-      if (
-        svgImageUrl.startsWith(baseUrl + '/images/') ||
-        svgImageUrl.startsWith('http://')
-      ) {
+      if (svgImageUrl.startsWith(baseUrl + '/images/') || svgImageUrl.startsWith('http://')) {
         // HTTP URL -> 本地路径
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${svgImageUrl})`
@@ -1437,6 +1439,15 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    sessions.value = [
+      { id: 'demo-1', title: '流程图示例', updatedAt: Date.now() },
+      { id: 'demo-2', title: '数据可视化', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   loadSessions()
 })
 </script>

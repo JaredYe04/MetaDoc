@@ -99,11 +99,7 @@ import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from '../utils/logger.ts'
 
@@ -294,19 +290,19 @@ onBeforeUnmount(() => {
 }
 
 .notification-item.type-success {
-  border-left: 4px solid #67c23a;
+  border-left: 4px solid var(--el-color-success, #67c23a);
 }
 
 .notification-item.type-info {
-  border-left: 4px solid #409eff;
+  border-left: 4px solid var(--el-color-primary, #409eff);
 }
 
 .notification-item.type-warning {
-  border-left: 4px solid #e6a23c;
+  border-left: 4px solid var(--el-color-warning, #e6a23c);
 }
 
 .notification-item.type-error {
-  border-left: 4px solid #f56c6c;
+  border-left: 4px solid var(--el-color-danger, #f56c6c);
 }
 
 .notification-item:hover {
@@ -332,20 +328,20 @@ onBeforeUnmount(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #909399;
+  background-color: var(--el-color-info, #909399);
   flex: 0 0 auto;
 }
 
 .status-dot.type-success {
-  background-color: #67c23a;
+  background-color: var(--el-color-success, #67c23a);
 }
 
 .status-dot.type-warning {
-  background-color: #e6a23c;
+  background-color: var(--el-color-warning, #e6a23c);
 }
 
 .status-dot.type-error {
-  background-color: #f56c6c;
+  background-color: var(--el-color-danger, #f56c6c);
 }
 
 .status-dot.type-info {

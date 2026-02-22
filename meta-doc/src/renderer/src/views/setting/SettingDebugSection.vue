@@ -609,10 +609,10 @@
                           v-if="entry.progress && entry.progress.percentage > 0"
                           class="test-progress"
                         >
-                          <el-progress
+                          <Progress
                             :percentage="entry.progress.percentage"
                             :status="entry.status === 'failed' ? 'exception' : undefined"
-                            :stroke-width="6"
+                            :strokeWidth="6"
                           >
                             <template #default="{ percentage }">
                               <span class="progress-text">{{ percentage }}%</span>
@@ -620,7 +620,7 @@
                                 {{ entry.progress.message }}
                               </span>
                             </template>
-                          </el-progress>
+                          </Progress>
                         </div>
 
                         <div
@@ -1008,7 +1008,7 @@
                       :markdown-summary="autoTestMarkdown"
                     />
                     <div v-else-if="autoTestRunning" class="test-progress-info">
-                      <el-progress
+                      <Progress
                         :percentage="autoTestProgress"
                         :status="autoTestRunning ? undefined : 'success'"
                       >
@@ -1016,7 +1016,7 @@
                           <span>{{ autoTestCurrentTest }}</span>
                           <span style="margin-left: 8px">{{ percentage }}%</span>
                         </template>
-                      </el-progress>
+                      </Progress>
                     </div>
                   </div>
                 </div>
@@ -1256,7 +1256,7 @@
                           :markdown-summary="unitTestBatchMarkdown"
                         />
                         <div v-else-if="unitTestBatchRunning" class="test-progress-info">
-                          <el-progress
+                          <Progress
                             :percentage="unitTestBatchProgress"
                             :status="unitTestBatchRunning ? undefined : 'success'"
                           >
@@ -1264,7 +1264,7 @@
                               <span>{{ unitTestBatchCurrentTest }}</span>
                               <span style="margin-left: 8px">{{ percentage }}%</span>
                             </template>
-                          </el-progress>
+                          </Progress>
                         </div>
                       </div>
                     </div>
@@ -1866,6 +1866,7 @@ import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/ale
 import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Slider } from '@renderer/components/ui/slider'
+import { Progress } from '@renderer/components/ui/progress'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'

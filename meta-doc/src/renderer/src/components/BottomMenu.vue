@@ -140,7 +140,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 
 const workspace = useWorkspace()
@@ -207,13 +207,13 @@ const hasRunningCompletionTask = computed(() => {
 const badgeColor = computed(() => {
   switch (notificationType.value) {
     case 'success':
-      return '#67c23a'
+      return 'var(--el-color-success, #67c23a)'
     case 'warning':
-      return '#e6a23c'
+      return 'var(--el-color-warning, #e6a23c)'
     case 'error':
-      return '#f56c6c'
+      return 'var(--el-color-danger, #f56c6c)'
     default:
-      return '#909399'
+      return 'var(--el-color-info, #909399)'
   }
 })
 

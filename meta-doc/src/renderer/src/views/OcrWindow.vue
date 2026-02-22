@@ -78,27 +78,27 @@
 
                   <div class="toolbar-right">
                     <!-- 操作按钮 -->
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          :disabled="aiFixing.get(index)"
-                          @click="handleAiFix(index)"
-                        >
-                          <img
-                            :src="(themeState.currentTheme as any).AiLogo"
-                            alt="AI"
-                            class="ai-logo-icon-small"
-                          />
-                          {{ t('ocr.aiFix') }}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          :disabled="recognizingIndex.has(index)"
-                          @click="handleReRecognizeSingle(index)"
-                        >
-                          {{ t('ocr.reRecognize') }}
-                        </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      :disabled="aiFixing.get(index)"
+                      @click="handleAiFix(index)"
+                    >
+                      <img
+                        :src="(themeState.currentTheme as any).AiLogo"
+                        alt="AI"
+                        class="ai-logo-icon-small"
+                      />
+                      {{ t('ocr.aiFix') }}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      :disabled="recognizingIndex.has(index)"
+                      @click="handleReRecognizeSingle(index)"
+                    >
+                      {{ t('ocr.reRecognize') }}
+                    </Button>
                   </div>
                 </div>
               </el-scrollbar>
@@ -150,10 +150,18 @@
                           <div class="panel-title">{{ t('ocr.imagePreprocessing') }}</div>
                         </div>
                         <div class="panel-actions">
-                          <Button size="sm" variant="outline" @click="resetPreprocessingParams(index)">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            @click="resetPreprocessingParams(index)"
+                          >
                             {{ t('ocr.resetParams') }}
                           </Button>
-                          <Button size="sm" variant="outline" @click="applyDefaultPreprocessingParams(index)">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            @click="applyDefaultPreprocessingParams(index)"
+                          >
                             {{ t('ocr.defaultParams') }}
                           </Button>
                         </div>
@@ -255,7 +263,12 @@
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <Button v-else size="sm" variant="outline" @click="handleCopyText(result.text)">
+                        <Button
+                          v-else
+                          size="sm"
+                          variant="outline"
+                          @click="handleCopyText(result.text)"
+                        >
                           {{ t('ocr.copyText') }}
                         </Button>
                         <Button
@@ -305,16 +318,32 @@
                           "
                           class="flex"
                         >
-                          <div class="inline-flex h-8 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+                          <div
+                            class="inline-flex h-8 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground"
+                          >
                             <div class="flex items-center">
-                              <RadioGroupItem value="single" :id="'view-single-' + index" class="sr-only peer" />
-                              <label :for="'view-single-' + index" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+                              <RadioGroupItem
+                                value="single"
+                                :id="'view-single-' + index"
+                                class="sr-only peer"
+                              />
+                              <label
+                                :for="'view-single-' + index"
+                                class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+                              >
                                 {{ t('ocr.singleView') }}
                               </label>
                             </div>
                             <div class="flex items-center">
-                              <RadioGroupItem value="diff" :id="'view-diff-' + index" class="sr-only peer" />
-                              <label :for="'view-diff-' + index" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+                              <RadioGroupItem
+                                value="diff"
+                                :id="'view-diff-' + index"
+                                class="sr-only peer"
+                              />
+                              <label
+                                :for="'view-diff-' + index"
+                                class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+                              >
                                 {{ t('ocr.diffView') }}
                               </label>
                             </div>
@@ -397,6 +426,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
@@ -807,6 +845,15 @@ watch(
 
 // 初始化默认语言（eng + 当前语言）
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    sessions.value = [
+      { id: 'demo-1', title: '示例文档识别', updatedAt: Date.now() },
+      { id: 'demo-2', title: '书籍扫描', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   const locale = (i18n.global.locale as any).value || 'zh_CN'
   const localeMap: Record<string, string> = {
     zh_CN: 'chi_sim',
@@ -2913,11 +2960,11 @@ const preStyle = computed(() => ({
 }
 
 /* shadcn-vue Tabs styling */
-.ocr-tabs :deep([role="tab"]) {
+.ocr-tabs :deep([role='tab']) {
   position: relative;
 }
 
-.ocr-tabs :deep([role="tab"]:hover) {
+.ocr-tabs :deep([role='tab']:hover) {
   position: relative;
 }
 
@@ -2945,7 +2992,7 @@ const preStyle = computed(() => ({
   object-fit: contain;
 }
 
-.ocr-tabs :deep([role="tab"]:hover) .tab-thumbnail {
+.ocr-tabs :deep([role='tab']:hover) .tab-thumbnail {
   opacity: 1;
 }
 
@@ -2967,17 +3014,17 @@ const preStyle = computed(() => ({
 }
 
 /* shadcn-vue Tabs layout */
-.ocr-tabs :deep([role="tablist"]) {
+.ocr-tabs :deep([role='tablist']) {
   flex-shrink: 0;
 }
 
-.ocr-tabs :deep([role="tabpanel"]) {
+.ocr-tabs :deep([role='tabpanel']) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.ocr-tabs :deep([role="tabpanel"][data-state="active"]) {
+.ocr-tabs :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
 }
 

@@ -97,7 +97,7 @@
 
       <!-- 主编辑器区域：加载时显示 skeleton 覆盖层，与 VditorPreview 一致，不阻塞其他区域 -->
       <div class="editor-area">
-        <el-skeleton v-if="isVditorLoading" :rows="15" animated class="markdown-editor-skeleton" />
+        <Skeleton v-if="isVditorLoading" :rows="15" animated class="markdown-editor-skeleton" />
         <div
           :id="props.editorDomId"
           ref="vditorEl"
@@ -132,6 +132,7 @@ import {
 } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import '../assets/aero-div.css'
@@ -2842,13 +2843,13 @@ watch(
   background: transparent;
 }
 
-.markdown-editor-skeleton :deep(.el-skeleton__item) {
+.markdown-editor-skeleton :deep(> div) {
   height: 20px;
   margin-bottom: 16px;
   border-radius: 4px;
 }
 
-.markdown-editor-skeleton :deep(.el-skeleton__item:last-child) {
+.markdown-editor-skeleton :deep(> div:last-child) {
   width: 60%;
 }
 

@@ -1,5 +1,5 @@
 import { watch } from 'vue'
-import { themeState } from './themes.js'
+import { themeState, applyElementPlusTheme } from './themes.js'
 
 /**
  * 将 HEX 颜色转换为 HSL 格式
@@ -85,6 +85,8 @@ function applyShadcnTheme() {
       }
     }
   })
+
+  applyElementPlusTheme()
 }
 
 /**

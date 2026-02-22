@@ -570,6 +570,69 @@ function applyThemeClasses(themeType) {
 }
 
 /**
+ * 将 themeState 的颜色值同步到 Element Plus CSS 变量
+ * 这样组件使用 var(--el-*) 时就能获取到 themes.js 计算的颜色
+ */
+export function applyElementPlusTheme() {
+  const root = document.documentElement
+  const theme = themeState.currentTheme
+
+  if (!theme) return
+
+  // 映射 themeState 颜色到 Element Plus CSS 变量
+  const colorMappings = [
+    // 背景色
+    { source: 'background', target: '--el-bg-color' },
+    { source: 'background2nd', target: '--el-bg-color-page' },
+    { source: 'sidebarBackground', target: '--el-fill-color' },
+    { source: 'sidebarBackground2', target: '--el-fill-color-light' },
+
+    // 文字色
+    { source: 'textColor', target: '--el-text-color-primary' },
+    { source: 'textColor2', target: '--el-text-color-regular' },
+    { source: 'SideTextColor2', target: '--el-text-color-secondary' },
+
+    // 边框色
+    { source: 'borderColor', target: '--el-border-color' },
+
+    // 主题色
+    { source: 'primaryColor', target: '--el-color-primary' },
+    { source: 'SideActiveTextColor', target: '--el-color-primary-light-3' }
+  ]
+
+  colorMappings.forEach(({ source, target }) => {
+    const colorValue = theme[source]
+    if (colorValue && typeof colorValue === 'string') {
+      root.style.setProperty(target, colorValue)
+    }
+  })
+
+  // 生成主题色的变体（light/dark）
+  if (theme.primaryColor) {
+    root.style.setProperty(
+      '--el-color-primary-light-3',
+      mixColors(theme.primaryColor, '#ffffff', 0.3)
+    )
+    root.style.setProperty(
+      '--el-color-primary-light-5',
+      mixColors(theme.primaryColor, '#ffffff', 0.5)
+    )
+    root.style.setProperty(
+      '--el-color-primary-light-7',
+      mixColors(theme.primaryColor, '#ffffff', 0.7)
+    )
+    root.style.setProperty(
+      '--el-color-primary-light-9',
+      mixColors(theme.primaryColor, '#ffffff', 0.9)
+    )
+    root.style.setProperty(
+      '--el-color-primary-dark-2',
+      mixColors(theme.primaryColor, '#000000', 0.2)
+    )
+  }
+}
+
+/**
  * 应用主题（从设置中加载并应用主题）
  * @param {Function} getSetting - 获取设置的函数，如果未提供则从 settings.js 导入
  * @param {Object} _ipcRendererInstance - 已废弃，保留参数仅为兼容；IPC 通过 messageBridge 获取
@@ -628,10 +691,13 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
       themeState.currentTheme = lightTheme
       applyThemeClasses('light')
     }
+
+    applyElementPlusTheme()
   } catch (error) {
     console.error('应用主题失败，使用默认亮色主题:', error)
     // 出错时回退到 light
     themeState.currentTheme = lightTheme
     applyThemeClasses('light')
+    applyElementPlusTheme()
   }
 }

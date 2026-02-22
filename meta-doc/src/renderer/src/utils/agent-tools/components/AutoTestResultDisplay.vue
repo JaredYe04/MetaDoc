@@ -1,24 +1,24 @@
 <template>
   <div class="auto-test-result-display" :style="containerStyle">
     <div class="test-summary">
-      <el-statistic :title="$t('agent.display.autoTest.totalTests')" :value="summary.total" />
-      <el-statistic :title="$t('agent.display.autoTest.passed')" :value="summary.passed">
+      <Statistic :title="$t('agent.display.autoTest.totalTests')" :value="summary.total" />
+      <Statistic :title="$t('agent.display.autoTest.passed')" :value="summary.passed">
         <template #suffix>
           <Badge class="ml-2">
             {{ summary.passedRate }}%
           </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('agent.display.autoTest.failed')" :value="summary.failed">
+      </Statistic>
+      <Statistic :title="$t('agent.display.autoTest.failed')" :value="summary.failed">
         <template #suffix>
           <Badge variant="destructive" class="ml-2">
             {{ summary.failedRate }}%
           </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('agent.display.autoTest.duration')" :value="summary.duration">
+      </Statistic>
+      <Statistic :title="$t('agent.display.autoTest.duration')" :value="summary.duration">
         <template #suffix>ms</template>
-      </el-statistic>
+      </Statistic>
     </div>
 
     <el-divider />
@@ -176,6 +176,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Statistic } from '@renderer/components/ui/statistic'
 import { useI18n } from 'vue-i18n'
 import { Document, Download, Check, Close, CopyDocument } from '@element-plus/icons-vue'
 import {

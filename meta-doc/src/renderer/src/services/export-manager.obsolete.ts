@@ -202,20 +202,25 @@ const prepareMarkdownExports = async (
   // 只收集那些不在原始图片列表中的 URL，即预渲染生成的图片
   const imageUrls: string[] = []
   if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-    const { getRuntimeServerBaseUrlSync } = await import('../config/runtime-server')
-    const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
-    const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const imageRegex = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)]+)\\)', 'g')
-    let match
-    while ((match = imageRegex.exec(markdown)) !== null) {
-      const imageUrl = imagesPrefix + (match[1] || '')
-      // 只收集预渲染生成的图片（不在原始图片列表中的）
-      if (!originalImageUrls.has(imageUrl)) {
-        imageUrls.push(imageUrl)
-        logger.debug(`收集预渲染生成的图片: ${imageUrl}`)
-      } else {
-        logger.debug(`跳过用户原本引用的图片: ${imageUrl}`)
+    try {
+      const { getRuntimeServerBaseUrlSync } = await import('../config/runtime-server')
+      const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
+      const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // 使用 [^)\\] 避免 [^)] 在某些环境下被解析为“未闭合分组”；路径中不含 ) 与 \
+      const imageRegex = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)\\]+)\\\\)', 'g')
+      let match
+      while ((match = imageRegex.exec(markdown)) !== null) {
+        const imageUrl = imagesPrefix + (match[1] || '')
+        // 只收集预渲染生成的图片（不在原始图片列表中的）
+        if (!originalImageUrls.has(imageUrl)) {
+          imageUrls.push(imageUrl)
+          logger.debug(`收集预渲染生成的图片: ${imageUrl}`)
+        } else {
+          logger.debug(`跳过用户原本引用的图片: ${imageUrl}`)
+        }
       }
+    } catch (err) {
+      logger.warn('收集预渲染图片 URL 时出错，继续导出，不影响结果:', err)
     }
   }
 

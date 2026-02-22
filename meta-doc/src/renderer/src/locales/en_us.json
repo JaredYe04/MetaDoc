@@ -540,6 +540,7 @@
   },
   "outline": {
     "generating": "AI is working...",
+    "previewResult": "Generation result",
     "generatingFor": "Generating",
     "generationDone": "Generation completed, accept changes?",
     "editNode": "Edit node",

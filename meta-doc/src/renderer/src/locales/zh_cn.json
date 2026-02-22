@@ -1056,6 +1056,7 @@
   },
   "outline": {
     "generating": "AI正在工作中...",
+    "previewResult": "生成结果",
     "cancelTasks": "取消任务",
     "generatingFor": "正在生成",
     "generationDone": "生成已完成，选择是否接受更改",
@@ -1108,6 +1109,7 @@
     "generateChapterSuccess": "AI生成章节内容成功！",
     "generateContentFail": "AI生成内容失败: {error}",
     "expand": "展开",
+    "expandContent": "扩写",
     "collapse": "折叠",
     "abridge": "略写",
     "polish": "润色",

@@ -187,7 +187,7 @@
           :icon="Document"
           @click="
             askSave(() => {
-              emitMenu('open-doc', item)
+              openRecentDoc(item)
             })
           "
         >
@@ -604,7 +604,7 @@
           :icon="Document"
           @click="
             askSave(() => {
-              emitMenu('open-doc', item)
+              openRecentDoc(item)
             })
           "
         >
@@ -844,6 +844,8 @@
 
 <script lang="ts" setup>
 import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings'
+import { extname } from '../utils/path-utils'
+import { formatRegistry } from '../utils/format-registry'
 import { computed, onMounted, ref, provide, watch } from 'vue'
 import UIMenu from './ui/UIMenu.vue'
 import UIMenuItem from './ui/UIMenuItem.vue'
@@ -1272,6 +1274,18 @@ onMounted(async () => {
 })
 const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()
+}
+
+// 打开最近文档：与 GlobalHome / 工作区树一致，使用 workspace-open-document，关闭后再从最近文档打开可正常打开
+const openRecentDoc = (filePath: string) => {
+  const fileExt = extname(filePath)
+  const formatId = formatRegistry.getFormatByExtension(fileExt) || 'txt'
+  eventBus.emit('workspace-open-document', {
+    path: filePath,
+    format: formatId,
+    content: '',
+    preview: false
+  })
 }
 
 const askSave = async (callBack: any) => {

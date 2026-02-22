@@ -37,16 +37,18 @@
           </el-icon>
         </el-button>
       </template>
-      <div class="preset-list">
-        <div
-          v-for="preset in presetOptions"
-          :key="preset.value"
-          class="preset-item"
-          @click="handlePresetClick(preset)"
-        >
-          {{ preset.label }}
+      <el-scrollbar class="preset-list-scrollbar" max-height="280px">
+        <div class="preset-list">
+          <div
+            v-for="preset in presetOptions"
+            :key="preset.value"
+            class="preset-item"
+            @click="handlePresetClick(preset)"
+          >
+            {{ preset.label }}
+          </div>
         </div>
-      </div>
+      </el-scrollbar>
     </el-popover>
   </div>
 </template>
@@ -182,16 +184,21 @@ const handleFocus = () => {
   // 焦点时不做任何操作
 }
 
-// 处理失焦事件
-const handleBlur = () => {
-  // 延迟隐藏，以便点击预设选项时不会立即关闭
+// 处理失焦事件：若焦点移到预设按钮或 popover 内则不关闭，避免“先 focus 输入框再点展开按钮”时展开后立刻被关掉
+const handleBlur = (event: FocusEvent) => {
+  const relatedTarget = event.relatedTarget as Node | null
+  if (relatedTarget && typeof (relatedTarget as HTMLElement).closest === 'function') {
+    const el = relatedTarget as HTMLElement
+    if (el.closest('.preset-dropdown-trigger') || el.closest('.preset-popover') || el.closest('.preset-dropdown-menu')) {
+      return
+    }
+  }
   setTimeout(() => {
     if (!showPresetDropdown.value) {
       return
     }
-    // 检查是否点击了预设选项
-    const clickedElement = document.activeElement
-    if (clickedElement && clickedElement.closest('.preset-dropdown-menu')) {
+    const activeEl = document.activeElement
+    if (activeEl && (activeEl as HTMLElement).closest?.('.preset-popover')) {
       return
     }
     showPresetDropdown.value = false
@@ -309,6 +316,12 @@ const handlePresetClick = (preset: PresetOption) => {
   overflow-y: auto;
 }
 
+.preset-list-scrollbar {
+  width: 100%;
+}
+.preset-list-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+}
 .preset-list {
   padding: 4px;
 }

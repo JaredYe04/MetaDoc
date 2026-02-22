@@ -345,16 +345,23 @@ const collectOriginalImageUrls = (markdown: string): Set<string> => {
  * 收集预渲染生成的图片URL（排除原始图片）
  */
 const collectRenderedImageUrls = (markdown: string, originalImageUrls: Set<string>): string[] => {
-  const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
-  const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const imageUrls: string[] = []
-  const imageRegex = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)]+)\\)', 'g')
-  let match
-  const baseUrl = imagesPrefix
-  while ((match = imageRegex.exec(markdown)) !== null) {
-    const imageUrl = baseUrl + (match[1] || '')
-    if (!originalImageUrls.has(imageUrl)) {
-      imageUrls.push(imageUrl)
+  try {
+    const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
+    const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // 使用 [^)\\] 避免 [^)] 导致 "Unterminated group"
+    const imageRegex = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)\\]+)\\\\)', 'g')
+    let match
+    const baseUrl = imagesPrefix
+    while ((match = imageRegex.exec(markdown)) !== null) {
+      const imageUrl = baseUrl + (match[1] || '')
+      if (!originalImageUrls.has(imageUrl)) {
+        imageUrls.push(imageUrl)
+      }
+    }
+  } catch (err) {
+    if (typeof console !== 'undefined') {
+      console.warn('[export-manager] 收集预渲染图片 URL 时出错，继续导出:', err)
     }
   }
   return imageUrls

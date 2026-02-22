@@ -162,7 +162,11 @@
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <p>{{ direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp') }}</p>
+                      <p>
+                        {{
+                          direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')
+                        }}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -231,7 +235,13 @@
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <p>{{ direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown') }}</p>
+                      <p>
+                        {{
+                          direction === 'vertical'
+                            ? $t('outline.moveRight')
+                            : $t('outline.moveDown')
+                        }}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -451,9 +461,7 @@
               <Button variant="destructive" @click="handleRemovePrefixes">{{
                 $t('outline.removePrefixes')
               }}</Button>
-              <Button @click="executeFormatTitle">{{
-                $t('outline.confirm')
-              }}</Button>
+              <Button @click="executeFormatTitle">{{ $t('outline.confirm') }}</Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -495,7 +503,13 @@
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{{ direction === 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal') }}</p>
+              <p>
+                {{
+                  direction === 'horizontal'
+                    ? $t('outline.switchToVertical')
+                    : $t('outline.switchToHorizontal')
+                }}
+              </p>
             </TooltipContent>
           </Tooltip>
 
@@ -577,6 +591,12 @@ import {
   type ComponentPublicInstance
 } from 'vue'
 import { ElMessageBox, ElNotification } from 'element-plus' // 引入 Element Plus 组件
+
+// Demo mode support
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import {
@@ -650,13 +670,13 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import { Switch } from '@renderer/components/ui/switch'
 
@@ -2062,6 +2082,27 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    treeData.value = [
+      {
+        path: '1',
+        text: '第一章 概述',
+        level: 1,
+        children: [
+          { path: '1.1', text: '1.1 项目背景', level: 2, children: [] },
+          { path: '1.2', text: '1.2 功能特点', level: 2, children: [] }
+        ]
+      },
+      {
+        path: '2',
+        text: '第二章 快速开始',
+        level: 1,
+        children: [{ path: '2.1', text: '2.1 安装配置', level: 2, children: [] }]
+      }
+    ]
+    return
+  }
   // 首先加载布局方向设置，确保在渲染vue-tree之前方向已确定
   await loadLayoutDirection()
 

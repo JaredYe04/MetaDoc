@@ -63,7 +63,7 @@
 
     <!-- 进度条 -->
     <div v-if="message.progress && message.progress.percentage > 0" class="progress-container">
-      <el-progress
+      <Progress
         :percentage="message.progress.percentage"
         :status="progressStatus"
         :stroke-width="6"
@@ -75,7 +75,7 @@
             {{ message.progress.message }}
           </span>
         </template>
-      </el-progress>
+      </Progress>
     </div>
 
     <div class="outputs">
@@ -157,6 +157,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@renderer/components/ui/collapsible'
+import { Progress } from '@renderer/components/ui/progress'
 
 const props = defineProps<{
   message: ToolAgentMessage

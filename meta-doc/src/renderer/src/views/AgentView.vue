@@ -200,7 +200,7 @@
               </div>
             </div>
             <div v-else class="empty-placeholder">
-              <el-empty :description="t('agent.conversation.none')" />
+              <Empty :description="t('agent.conversation.none')" />
             </div>
           </section>
 
@@ -304,7 +304,7 @@
                   </Descriptions>
                 </div>
                 <div v-else class="tool-detail placeholder" :style="detailStyle">
-                  <el-empty :description="t('agent.tools.detail.placeholder')" />
+                  <Empty :description="t('agent.tools.detail.placeholder')" />
                 </div>
               </ScrollArea>
             </div>
@@ -536,6 +536,7 @@ import {
   Descriptions,
   DescriptionsItem
 } from '@renderer/components/ui/descriptions'
+import { Empty } from '@renderer/components/ui/empty'
 dayjs.extend(relativeTime)
 
 const { t } = useI18n()

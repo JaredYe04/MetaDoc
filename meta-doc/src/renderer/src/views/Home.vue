@@ -53,7 +53,7 @@
           <div class="document-content-section">
             <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
             <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
-            <el-skeleton
+            <Skeleton
               v-show="isRendering"
               :rows="15"
               animated
@@ -100,7 +100,7 @@
           <div class="document-content-section">
             <!-- 其他格式：使用Markdown预览 -->
             <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
-            <el-skeleton
+            <Skeleton
               v-show="isRendering"
               :rows="15"
               animated
@@ -138,6 +138,7 @@ import { formatRegistry } from '../utils/format-registry'
 import { getMonacoLanguage } from '../utils/format-initializer'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()
@@ -1157,13 +1158,13 @@ onBeforeUnmount(() => {
   justify-content: flex-start;
 }
 
-.content-preview-skeleton :deep(.el-skeleton__item) {
+.content-preview-skeleton :deep(> div) {
   height: 20px;
   margin-bottom: 16px;
   border-radius: 4px;
 }
 
-.content-preview-skeleton :deep(.el-skeleton__item:last-child) {
+.content-preview-skeleton :deep(> div:last-child) {
   width: 60%;
 }
 

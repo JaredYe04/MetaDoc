@@ -13,19 +13,13 @@
       >
         <template #default="{ node, data }">
           <div class="tree-node">
-            <el-icon v-if="data.children && data.children.length > 0" class="node-icon">
-              <Folder />
-            </el-icon>
-            <el-icon v-else class="node-icon">
-              <Document />
-            </el-icon>
+            <Folder v-if="data.children && data.children.length > 0" class="w-4 h-4" />
+            <FileText v-else class="w-4 h-4" />
             <span class="node-label">{{ data.title }}</span>
-            <el-icon
+            <Check
               v-if="!data.children && isArticleRead(data.id)"
-              class="read-icon"
-            >
-              <Check />
-            </el-icon>
+              class="w-4 h-4"
+            />
           </div>
         </template>
       </el-tree>
@@ -36,7 +30,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
-import { Folder, Document, Check } from '@element-plus/icons-vue'
+import { Folder, FileText, Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 const { navigationTree, currentArticleId, articleProgress, setCurrentArticle } = useUserManual()

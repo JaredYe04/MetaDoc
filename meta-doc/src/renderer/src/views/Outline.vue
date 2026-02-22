@@ -14,17 +14,24 @@
         <div class="noselect-display">
           <h2 v-if="generating">
             {{ $t('outline.generating') }}
-            <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
-              <Button
-                variant="destructive"
-                size="sm"
-                class="aero-btn"
-                style="font-size: 12px; padding: 2px 6px"
-                @click.stop="cancelAllAiTasks"
-              >
-                <X class="w-4 h-4" />
-              </Button>
-            </el-tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    class="aero-btn"
+                    style="font-size: 12px; padding: 2px 6px"
+                    @click.stop="cancelAllAiTasks"
+                  >
+                    <X class="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{{ $t('outline.cancelTasks') }}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </h2>
           <!-- <h3 v-if="generateChildrenContentLoading">{{ $t('outline.generatingFor') }}:{{ nodeBeingProcessed }}</h3> -->
           <div v-if="generateChildrenContentLoading">
@@ -85,41 +92,51 @@
           #node="{ node, collapsed }"
           :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
         >
-          <el-tooltip
-            :content="node.title || ''"
-            placement="top"
-            :disabled="!node.title || !isNodeTextTruncated(node.path)"
-          >
-            <div
-              class="tree-node"
-              :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-              :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
-              draggable="true"
-              @dragstart.stop="onNodeDragStart(node)"
-              @dragover.prevent="onNodeDragOver($event, node)"
-              @dragleave="onNodeDragLeave(node)"
-              @drop.stop="onNodeDrop(node, $event)"
-              @dragend.stop="onNodeDragEnd"
-              @mousedown.stop
-              @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-            >
-              <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{
-                node.title
-              }}</span>
-            </div>
-          </el-tooltip>
-          <el-tooltip :content="$t('outline.editNode')" placement="top">
-            <Button
-              size="sm"
-              variant="ghost"
-              class="aero-btn"
-              @click.stop="handleNodeButtonClick(node)"
-              v-if="node.path !== 'dummy'"
-              :disabled="pendingAccept || generating"
-            >
-              <MoreVertical class="w-4 h-4" />
-            </Button>
-          </el-tooltip>
+          <TooltipProvider>
+            <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+              <TooltipTrigger as-child>
+                <div
+                  class="tree-node"
+                  :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                  :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
+                  draggable="true"
+                  @dragstart.stop="onNodeDragStart(node)"
+                  @dragover.prevent="onNodeDragOver($event, node)"
+                  @dragleave="onNodeDragLeave(node)"
+                  @drop.stop="onNodeDrop(node, $event)"
+                  @dragend.stop="onNodeDragEnd"
+                  @mousedown.stop
+                  @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                >
+                  <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{
+                    node.title
+                  }}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
+                <p>{{ node.title }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  class="aero-btn"
+                  @click.stop="handleNodeButtonClick(node)"
+                  v-if="node.path !== 'dummy'"
+                  :disabled="pendingAccept || generating"
+                >
+                  <MoreVertical class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{{ $t('outline.editNode') }}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div
             v-if="dialogVisible[node.path]"
             class="aero-div node-edit-box"
@@ -130,128 +147,173 @@
           >
             <div>
               <div class="button-group" v-if="!nodeMenuToggle">
-                <el-tooltip
-                  :content="
-                    direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')
-                  "
-                  placement="top"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="move2Left"
-                  >
-                    <ArrowLeft class="w-4 h-4" v-if="direction === 'vertical'" />
-                    <ArrowUp class="w-4 h-4" v-else />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.addChild')" placement="top">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="addChildNode"
-                  >
-                    <Plus class="w-4 h-4" />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.editContent')" placement="top">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="editNode"
-                  >
-                    <Pencil class="w-4 h-4" />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.delete')" placement="top">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="deleteNode"
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </Button>
-                </el-tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="move2Left"
+                      >
+                        <ArrowLeft class="w-4 h-4" v-if="direction === 'vertical'" />
+                        <ArrowUp class="w-4 h-4" v-else />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-                <el-tooltip
-                  :content="
-                    direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown')
-                  "
-                  placement="top"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="move2Right"
-                  >
-                    <ArrowRight class="w-4 h-4" v-if="direction === 'vertical'" />
-                    <ArrowDown class="w-4 h-4" v-else />
-                  </Button>
-                </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="addChildNode"
+                      >
+                        <Plus class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.addChild') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="editNode"
+                      >
+                        <Pencil class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.editContent') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="deleteNode"
+                      >
+                        <Trash2 class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.delete') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="move2Right"
+                      >
+                        <ArrowRight class="w-4 h-4" v-if="direction === 'vertical'" />
+                        <ArrowDown class="w-4 h-4" v-else />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
-                <el-tooltip :content="$t('outline.generateContent')" placement="top">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    :loading="generateContentLoading"
-                    @click.stop="generateContent"
-                    :disabled="generating"
-                  >
-                    <FileEdit class="w-4 h-4" v-if="!generateContentLoading" />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="generateChildChapter"
-                    :loading="generateChildChapterLoading"
-                    :disabled="generating"
-                  >
-                    <CircleCheck class="w-4 h-4" v-if="!generateChildChapterLoading" />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="generateChildrenContent"
-                    :loading="generateChildrenContentLoading"
-                    :disabled="generating"
-                  >
-                    <Download class="w-4 h-4" v-if="!generateChildrenContentLoading" />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="generateChildrenChildren"
-                    :loading="generateChildrenChildrenLoading"
-                    :disabled="generating"
-                  >
-                    <GitBranch class="w-4 h-4" v-if="!generateChildrenChildrenLoading" />
-                  </Button>
-                </el-tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        :loading="generateContentLoading"
+                        @click.stop="generateContent"
+                        :disabled="generating"
+                      >
+                        <FileEdit class="w-4 h-4" v-if="!generateContentLoading" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.generateContent') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="generateChildChapter"
+                        :loading="generateChildChapterLoading"
+                        :disabled="generating"
+                      >
+                        <CircleCheck class="w-4 h-4" v-if="!generateChildChapterLoading" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.generateChildChapter') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="generateChildrenContent"
+                        :loading="generateChildrenContentLoading"
+                        :disabled="generating"
+                      >
+                        <Download class="w-4 h-4" v-if="!generateChildrenContentLoading" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.generateChildrenContent') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="generateChildrenChildren"
+                        :loading="generateChildrenChildrenLoading"
+                        :disabled="generating"
+                      >
+                        <GitBranch class="w-4 h-4" v-if="!generateChildrenChildrenLoading" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.generateChildrenChildren') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <AutoResizeTextarea
                 v-if="nodeMenuToggle && !pendingAccept"
@@ -264,29 +326,42 @@
               />
 
               <div class="button-group" v-if="pendingAccept">
-                <el-tooltip :content="$t('outline.accept')" placement="top">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="acceptChange"
-                  >
-                    <Check class="w-4 h-4" />
-                  </Button>
-                </el-tooltip>
-                <el-tooltip :content="$t('outline.reject')" placement="top">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    class="aero-btn"
-                    style="font-size: 12px; padding: 2px 6px"
-                    @click.stop="discardChange"
-                    :loading="generateChildChapterLoading"
-                  >
-                    <X class="w-4 h-4" v-if="!generateChildChapterLoading" />
-                  </Button>
-                </el-tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="acceptChange"
+                      >
+                        <Check class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.accept') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        class="aero-btn"
+                        style="font-size: 12px; padding: 2px 6px"
+                        @click.stop="discardChange"
+                        :loading="generateChildChapterLoading"
+                      >
+                        <X class="w-4 h-4" v-if="!generateChildChapterLoading" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{{ $t('outline.reject') }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <!-- 普通菜单按钮 -->
             </div>
@@ -301,13 +376,20 @@
           <div class="grid gap-4 py-4">
             <div class="flex items-center justify-between">
               <span>{{ $t('outline.adjustMarkdown') }}</span>
-              <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
-                <el-switch
-                  v-model="formatTitleConfig.adjustMarkdown"
-                  active-color="#13ce66"
-                  inactive-color="#ff4949"
-                />
-              </el-tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <el-switch
+                      v-model="formatTitleConfig.adjustMarkdown"
+                      active-color="#13ce66"
+                      inactive-color="#ff4949"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{{ $t('outline.adjustMarkdownTip') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div v-if="formatTitleConfig.adjustMarkdown" class="flex items-center justify-between">
               <span>{{ $t('outline.firstMarkdownTitleLevel') }}</span>
@@ -327,33 +409,54 @@
             </div>
             <div class="flex items-center justify-between">
               <span>{{ $t('outline.adjustTitle') }}</span>
-              <el-tooltip :content="$t('outline.adjustTitleTip')" placement="right">
-                <el-switch
-                  v-model="formatTitleConfig.adjustTitle"
-                  active-color="#13ce66"
-                  inactive-color="#ff4949"
-                />
-              </el-tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <el-switch
+                      v-model="formatTitleConfig.adjustTitle"
+                      active-color="#13ce66"
+                      inactive-color="#ff4949"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{{ $t('outline.adjustTitleTip') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div v-if="formatTitleConfig.adjustTitle" class="flex items-center justify-between">
               <span>{{ $t('outline.coverOriginalNumber') }}</span>
-              <el-tooltip :content="$t('outline.coverTip')" placement="right">
-                <el-switch
-                  v-model="formatTitleConfig.cover"
-                  active-color="#13ce66"
-                  inactive-color="#ff4949"
-                />
-              </el-tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <el-switch
+                      v-model="formatTitleConfig.cover"
+                      active-color="#13ce66"
+                      inactive-color="#ff4949"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{{ $t('outline.coverTip') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div v-if="formatTitleConfig.adjustTitle" class="flex items-center justify-between">
               <span>{{ $t('outline.level1Chinese') }}</span>
-              <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
-                <el-switch
-                  v-model="formatTitleConfig.level1TitleChinese"
-                  active-color="#13ce66"
-                  inactive-color="#ff4949"
-                />
-              </el-tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <el-switch
+                      v-model="formatTitleConfig.level1TitleChinese"
+                      active-color="#13ce66"
+                      inactive-color="#ff4949"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{{ $t('outline.level1ChineseTip') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
           <DialogFooter class="flex justify-between">
@@ -400,48 +503,78 @@
         </DialogContent>
       </Dialog>
       <div class="bottom-menu aero-div">
-        <el-tooltip
-          :content="
-            direction === 'horizontal'
-              ? $t('outline.switchToVertical')
-              : $t('outline.switchToHorizontal')
-          "
-          placement="top"
-        >
-          <Button variant="outline" size="icon" @click="toggleLayout">
-            <ArrowUpDown class="w-4 h-4" />
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.zoomIn')" placement="top">
-          <Button variant="default" size="icon" @click="zoomIn">
-            <Plus class="w-4 h-4" />
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.zoomOut')" placement="top">
-          <Button variant="secondary" size="icon" @click="zoomOut">
-            <Minus class="w-4 h-4" />
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.reset')" placement="top">
-          <Button variant="outline" size="icon" @click="resetScale">
-            <RefreshCw class="w-4 h-4" />
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.formatTitle')" placement="top">
-          <Button variant="secondary" size="icon" @click="formatTitle">
-            <span class="text-xs font-bold">T</span>
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
-          <Button
-            :variant="nodeMenuToggle ? 'default' : 'destructive'"
-            size="icon"
-            @click="nodeMenuToggle = !nodeMenuToggle"
-            :disabled="generating || pendingAccept"
-          >
-            <span class="text-xs font-bold">AI</span>
-          </Button>
-        </el-tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="outline" size="icon" @click="toggleLayout">
+                <ArrowUpDown class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ direction === 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal') }}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="default" size="icon" @click="zoomIn">
+                <Plus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('outline.zoomIn') }}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="secondary" size="icon" @click="zoomOut">
+                <Minus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('outline.zoomOut') }}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="outline" size="icon" @click="resetScale">
+                <RefreshCw class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('outline.reset') }}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button variant="secondary" size="icon" @click="formatTitle">
+                <span class="text-xs font-bold">T</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('outline.formatTitle') }}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                :variant="nodeMenuToggle ? 'default' : 'destructive'"
+                size="icon"
+                @click="nodeMenuToggle = !nodeMenuToggle"
+                :disabled="generating || pendingAccept"
+              >
+                <span class="text-xs font-bold">AI</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('outline.openAiAssistant') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   </div>
@@ -535,6 +668,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 const logger = createRendererLogger('Outline', {

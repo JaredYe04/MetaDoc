@@ -11,15 +11,14 @@
       </TooltipContent>
     </Tooltip>
     <!-- 关于对话框 -->
-    <el-dialog
-      v-model="aboutDialogVisible"
-      :title="$t('setting.about.appName')"
-      width="600px"
-      :close-on-click-modal="true"
-      :close-on-press-escape="true"
-    >
-      <SettingAboutSection />
-    </el-dialog>
+    <Dialog v-model:open="aboutDialogVisible" modal>
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('setting.about.appName') }}</DialogTitle>
+        </DialogHeader>
+        <SettingAboutSection />
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -29,11 +28,8 @@ import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 import { mixColors, themeState } from '../utils/themes'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 
 const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')
@@ -81,8 +77,6 @@ const handleLogoClick = () => {
   min-width: 64px;
   flex-shrink: 0;
   position: relative;
-  /* 必须高于 .top-header (z-index:100)，否则 LogoTab 内打开的 About 对话框会被 MainTabs 盖住 */
-  z-index: 101;
   -webkit-app-region: no-drag;
   background-color: v-bind('logoTabBackgroundColor');
 }

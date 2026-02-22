@@ -21,6 +21,7 @@
             :class="{
               'is-active': currentActiveId === tab.id,
               'is-pinned': tab.pinned,
+              'is-closing': tab._isClosing,
               'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
               'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after'
             }"
@@ -48,7 +49,7 @@
               <span v-else class="main-tab-label__text">{{ getTabLabel(tab) }}</span>
               <span v-if="tab.dirty && !tab.pinned" class="main-tab-label__dot" />
               <span
-                v-if="canCloseTab(tab) && !tab.pinned"
+                v-if="canCloseTab(tab) && !tab.pinned && !tab._isClosing"
                 class="main-tab-label__close"
                 :class="{ 'main-tab-label__close--active': currentActiveId === tab.id }"
                 @click.stop="handleCloseTab(tab.id)"
@@ -685,7 +686,7 @@ const allTabs = computed(() => {
 const tabCount = computed(() => allTabs.value.length)
 
 // 使用标签页动画 composable - 必须在 allTabs 定义之后
-const { triggerNewTabAnimation } = useTabAnimation(tabsListRef, allTabs)
+const { triggerNewTabAnimation, triggerCloseTabAnimation } = useTabAnimation(tabsListRef, allTabs)
 
 const currentActiveId = computed({
   get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
@@ -742,6 +743,7 @@ const canDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
 // 处理 Tab 点击激活 - 通过 click 事件而非 mousedown
 const handleTabClickActivate = (tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab._isClosing) return
   if (tab.id === workspace.activeTabId.value) return
 
   workspace.activateTab(tab.id)
@@ -756,6 +758,7 @@ const handleTabClickActivate = (tab: WorkspaceTab) => {
 // 在 mousedown 时预加载拖拽缩略图，但不切换 tab（避免拖拽时切换）
 const handleTabMouseDown = async (event: MouseEvent, tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab._isClosing) return
   // 如果点在关闭按钮上，不处理（让关闭按钮处理）
   const target = event.target as HTMLElement
   if (target.closest('.main-tab-label__close')) return
@@ -783,9 +786,26 @@ const handleTabItemAuxClick = (event: MouseEvent, tab: WorkspaceTab) => {
   handleCloseTab(tab.id)
 }
 
-// 自定义关闭Tab处理函数 - 使用公共的 closeTab composable
+// 正在关闭中的标签页ID集合（防止重复关闭）
+const closingTabIds = new Set<string>()
+
+// 自定义关闭Tab处理函数 - 先播放动画，再真正移除
 const handleCloseTab = async (tabId: string) => {
-  await closeTab(tabId)
+  // 防止重复关闭
+  if (closingTabIds.has(tabId)) return
+
+  const tab = allTabs.value.find((t) => t.id === tabId)
+  if (!tab) return
+
+  closingTabIds.add(tabId)
+  tab._isClosing = true
+
+  try {
+    await triggerCloseTabAnimation(tabId)
+    await closeTab(tabId)
+  } finally {
+    closingTabIds.delete(tabId)
+  }
 }
 
 const handleTabLabelDblclick = (tab: WorkspaceTab) => {
@@ -1047,7 +1067,7 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
       if (existingFileTab && document?.dirty && document.markdown) {
         // 如果已有相同文件的Tab，且被拖拽的Tab有未保存内容，提示用户选择
         logger.info('检测到相同文件的Tab，合并未保存内容:', tab.path)
-        
+
         try {
           const targetDoc = workspace.ensureDocument(existingFileTab.id)
           if (targetDoc) {
@@ -1064,7 +1084,7 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
             targetDoc.savedMarkdown = baseContent
             existingFileTab.dirty = true
             logger.info('已合并未保存内容到已有Tab:', existingFileTab.id)
-            
+
             // 激活已有Tab并通知转移完成（不添加新Tab，因为内容已合并）
             workspace.activateTab(existingFileTab.id)
             transferSuccess = true
@@ -1458,7 +1478,10 @@ onMounted(async () => {
           messageBridge.send('drag:renderer-response', {
             _requestId,
             _error: error instanceof Error ? error.message : '添加 Tab 失败',
-            result: { success: false, error: error instanceof Error ? error.message : '添加 Tab 失败' }
+            result: {
+              success: false,
+              error: error instanceof Error ? error.message : '添加 Tab 失败'
+            }
           })
         }
       }

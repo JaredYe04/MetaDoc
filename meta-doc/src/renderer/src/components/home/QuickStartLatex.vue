@@ -86,9 +86,8 @@
                   <div class="control-item-header">
                     <span class="control-label">{{ $t('home.tooltip.selectTemperature') }}</span>
                   </div>
-                  <el-slider
+                  <Slider
                     v-model="temperature"
-                    :marks="marks"
                     :min="0"
                     :max="100"
                     :disabled="generating || generated"
@@ -192,6 +191,7 @@ import VoiceInput from '../VoiceInput.vue'
 import * as monaco from 'monaco-editor'
 import { Check, Promotion, Refresh, RefreshLeft, Close } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
 import { Input } from '@renderer/components/ui/input'
@@ -269,16 +269,6 @@ const metaKeywords = ref<string[]>([])
 const buttons = ref<{ label: string; prompt: string }[]>([])
 const tab = ref<string>('')
 const temperature = ref(50)
-const marks = ref({
-  0: t('home.temperatureMarks.rigorous'),
-  100: t('home.temperatureMarks.creative'),
-  50: {
-    style: {
-      color: '#1989FA'
-    },
-    label: t('home.temperatureMarks.balanced')
-  }
-})
 const mood = ref<string[]>([t('home.mood.peaceful')])
 const moodOptions = [
   { label: t('home.mood.happy'), value: 'happy', icon: Sugar },

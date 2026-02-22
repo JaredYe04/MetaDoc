@@ -1,6 +1,6 @@
 import { watch } from 'vue'
 import tinycolor from 'tinycolor2'
-import { themeState } from '../utils/themes.js'
+import { themeState, mixColors } from '../utils/themes.js'
 
 /**
  * Convert hex color to HSL string for CSS variables
@@ -32,6 +32,9 @@ function getForegroundColor(backgroundColor) {
 function mapThemeToCSSVariables(theme) {
   const isDark = theme.type === 'dark'
 
+  // 计算 accent 颜色：混合 background2nd 和 textColor，与 activeBackgroundColor 逻辑一致
+  const accentColor = mixColors(theme.background2nd || theme.background, theme.textColor, 0.3)
+
   return {
     // Background and foreground
     '--background': hexToHSL(theme.background),
@@ -57,9 +60,9 @@ function mapThemeToCSSVariables(theme) {
     '--muted': hexToHSL(theme.sidebarBackground2 || theme.background2nd || theme.background),
     '--muted-foreground': hexToHSL(theme.textColor2 || theme.textColor),
 
-    // Accent - use reference active background or primary
-    '--accent': hexToHSL(theme.referenceActiveBg || theme.primaryColor),
-    '--accent-foreground': hexToHSL(theme.referenceActiveText || (isDark ? '#ffffff' : '#000000')),
+    // Accent - 基于主题计算，与 activeBackgroundColor 逻辑一致
+    '--accent': hexToHSL(accentColor),
+    '--accent-foreground': getForegroundColor(accentColor),
 
     // Destructive - red tones
     '--destructive': isDark ? '0 62.8% 30.6%' : '0 84.2% 60.2%',

@@ -83,9 +83,9 @@
                 >
                   <div class="flex items-center justify-between w-full gap-4">
                     <span>{{ getEngineLabel(engine) }}</span>
-                    <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
+                    <Badge v-if="engine.isBuiltIn" variant="outline">
                       {{ t('agent.manage.agentEngine.builtIn') }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -102,19 +102,18 @@
                 </p>
               </div>
               <div class="conversation-stats" v-if="activeSession">
-                <el-tag size="small" effect="plain">
+                <Badge variant="outline">
                   {{ t('agent.conversation.messages', { count: messageCount }) }}
-                </el-tag>
+                </Badge>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <el-tag
-                      size="small"
-                      effect="plain"
-                      style="cursor: pointer"
+                    <Badge
+                      variant="outline"
+                      class="cursor-pointer"
                       @click="toggleToolPane"
                     >
                       {{ t('agent.conversation.tools', { count: activeToolCount }) }}
-                    </el-tag>
+                    </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top">
                     <p>{{ showToolPane ? t('agent.conversation.hideTools', '点击隐藏工具面板') : t('agent.conversation.showTools', '点击显示工具面板') }}</p>
@@ -122,14 +121,13 @@
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <el-tag
-                      size="small"
-                      effect="plain"
-                      style="cursor: pointer"
+                    <Badge
+                      variant="outline"
+                      class="cursor-pointer"
                       @click="handleOpenReferenceDialog"
                     >
                       {{ t('agent.conversation.references', { count: referenceCount }) }}
-                    </el-tag>
+                    </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top">
                     <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
@@ -224,61 +222,55 @@
                 <h2>{{ t('agent.tools.title') }}</h2>
               </div>
               <!-- <div class="tool-legend">
-            <el-tag size="small" type="info">{{ t('agent.tools.legend.available') }}</el-tag>
-            <el-tag size="small" type="warning">{{ t('agent.tools.legend.running') }}</el-tag>
+            <Badge variant="secondary">{{ t('agent.tools.legend.available') }}</Badge>
+            <Badge variant="warning">{{ t('agent.tools.legend.running') }}</Badge>
           </div> -->
             </header>
             <div class="tool-content">
-              <el-card
-                class="tool-panel tool-list-panel"
-                shadow="never"
-                :style="panelStyle"
-                :body-style="{ padding: '0', height: '100%', overflow: 'hidden' }"
-              >
-                <ScrollArea
-                  class="tool-list-scroll"
-                >
-                  <el-table
-                    :data="tools"
-                    border
-                    height="100%"
-                    row-key="id"
-                    @row-click="selectTool"
-                    :highlight-current-row="true"
-                    :current-row-key="activeTool?.id"
-                    :row-class-name="getToolRowClassName"
-                    style="width: 100%; table-layout: fixed"
-                  >
-                    <el-table-column
-                      :label="t('agent.tools.name')"
-                      prop="name"
-                      min-width="140"
-                      show-overflow-tooltip
-                    />
-                    <el-table-column :label="t('agent.tools.state')" width="110">
-                      <template #default="{ row }">
-                        <el-tag v-if="row.running" type="warning" size="small">
-                          {{ t('agent.tool.status.running') }}
-                        </el-tag>
-                        <el-tag
-                          v-else-if="
-                            activeSession?.activeToolIds &&
-                            activeSession.activeToolIds.length > 0 &&
-                            activeSession.activeToolIds.includes(row.id)
-                          "
-                          type="success"
-                          size="small"
-                        >
-                          {{ t('agent.tools.enabled') }}
-                        </el-tag>
-                        <el-tag v-else size="small" type="info">
-                          {{ t('agent.tools.available') }}
-                        </el-tag>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </ScrollArea>
-              </el-card>
+              <Card class="tool-panel tool-list-panel" :style="panelStyle">
+                <CardContent class="p-0 h-full overflow-hidden">
+                  <ScrollArea class="tool-list-scroll">
+                    <el-table
+                      :data="tools"
+                      border
+                      height="100%"
+                      row-key="id"
+                      @row-click="selectTool"
+                      :highlight-current-row="true"
+                      :current-row-key="activeTool?.id"
+                      :row-class-name="getToolRowClassName"
+                      style="width: 100%; table-layout: fixed"
+                    >
+                      <el-table-column
+                        :label="t('agent.tools.name')"
+                        prop="name"
+                        min-width="140"
+                        show-overflow-tooltip
+                      />
+                      <el-table-column :label="t('agent.tools.state')" width="110">
+                        <template #default="{ row }">
+                          <Badge v-if="row.running" variant="warning">
+                            {{ t('agent.tool.status.running') }}
+                          </Badge>
+                          <Badge
+                            v-else-if="
+                              activeSession?.activeToolIds &&
+                              activeSession.activeToolIds.length > 0 &&
+                              activeSession.activeToolIds.includes(row.id)
+                            "
+                            variant="default"
+                          >
+                            {{ t('agent.tools.enabled') }}
+                          </Badge>
+                          <Badge v-else variant="secondary">
+                            {{ t('agent.tools.available') }}
+                          </Badge>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
               <ScrollArea class="tool-detail-scroll">
                 <div v-if="activeTool" class="tool-detail" :style="detailStyle">
                   <h3>{{ activeTool.name }}</h3>
@@ -290,23 +282,23 @@
                       <p>{{ activeTool.description }}</p>
                     </el-descriptions-item>
                     <el-descriptions-item :label="t('agent.tools.detail.origin')">
-                      <el-tag size="small">{{
+                      <Badge>{{
                         originLabel(activeTool.origin as ToolOrigin)
-                      }}</el-tag>
+                      }}</Badge>
                     </el-descriptions-item>
                     <el-descriptions-item
                       :label="t('agent.tools.detail.tags')"
                       v-if="activeTool.tags?.length"
                     >
                       <div class="tag-group">
-                        <el-tag
+                        <Badge
                           v-for="tag in activeTool.tags"
                           :key="tag"
-                          size="small"
-                          effect="dark"
+                          variant="default"
+                          class="mr-1"
                         >
                           {{ tag }}
-                        </el-tag>
+                        </Badge>
                       </div>
                     </el-descriptions-item>
                   </el-descriptions>
@@ -454,6 +446,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
 import { Textarea } from '@renderer/components/ui/textarea'
 import {
   Tooltip,
@@ -527,6 +520,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import {
+  Card,
+  CardContent,
+} from '@renderer/components/ui/card'
 dayjs.extend(relativeTime)
 
 const { t } = useI18n()
@@ -2942,7 +2939,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.tool-panel :deep(.el-card__body) {
+.tool-panel :deep(> div) {
   display: flex;
   flex: 1;
   flex-direction: column;

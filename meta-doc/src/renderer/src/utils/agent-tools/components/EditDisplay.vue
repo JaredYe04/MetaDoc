@@ -18,19 +18,19 @@
       class="completed-state"
       :style="completedStateStyle"
     >
-      <div v-if="resultData" class="edit-header" :style="headerStyle">
-        <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
-        <div class="edit-stats" :style="statsStyle">
-          <el-tag type="success" size="small"
-            >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</el-tag
-          >
-          <el-tag v-if="resultData.failedEdits > 0" type="danger" size="small"
-            >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</el-tag
-          >
-          <el-tag type="info" size="small"
-            >{{ $t('agent.display.edit.totalOperations') }}:
-            {{ resultData.operations.length }}</el-tag
-          >
+        <div v-if="resultData" class="edit-header" :style="headerStyle">
+          <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
+          <div class="edit-stats" :style="statsStyle">
+            <Badge variant="default"
+              >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</Badge
+            >
+            <Badge v-if="resultData.failedEdits > 0" variant="destructive"
+              >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</Badge
+            >
+            <Badge variant="secondary"
+              >{{ $t('agent.display.edit.totalOperations') }}:
+              {{ resultData.operations.length }}</Badge
+            >
           <div v-if="hasFullContent" class="mode-switch flex gap-1">
             <Button
               :variant="viewMode === 'unified' ? 'default' : 'outline'"
@@ -52,12 +52,10 @@
 
       <!-- 如果没有完整内容（verbose模式），只显示概要 -->
       <div v-if="resultData && !hasFullContent" class="summary-view" :style="summaryViewStyle">
-        <el-alert
-          type="info"
-          :closable="false"
-          :title="$t('agent.display.edit.summaryMode') || '概要模式'"
-        >
-          <template #default>
+        <Alert variant="default">
+          <Info class="h-4 w-4" />
+          <AlertTitle>{{ $t('agent.display.edit.summaryMode') || '概要模式' }}</AlertTitle>
+          <AlertDescription>
             <div class="summary-content">
               <p>
                 {{
@@ -75,8 +73,8 @@
                 </li>
               </ul>
             </div>
-          </template>
-        </el-alert>
+          </AlertDescription>
+        </Alert>
       </div>
 
       <!-- 如果没有resultData，显示成功消息 -->
@@ -105,9 +103,9 @@
                   }}
                   @@
                 </span>
-                <el-tag :type="getHunkTypeTag(hunk)" size="small">
+                <Badge :variant="getHunkTypeTag(hunk)">
                   {{ getHunkTypeLabel(hunk) }}
-                </el-tag>
+                </Badge>
               </div>
               <!-- 显示删除的行 -->
               <div v-if="hunk.oldLines && hunk.oldLines.length > 0" class="diff-lines old-lines">
@@ -168,9 +166,9 @@
               :style="operationItemStyle"
             >
               <div class="operation-header" :style="operationHeaderStyle">
-                <el-tag :type="getOperationTypeTag(operation.type)" size="small">
+                <Badge :variant="getOperationTypeTag(operation.type)">
                   {{ getOperationTypeLabel(operation.type) }}
-                </el-tag>
+                </Badge>
                 <span class="operation-range" :style="rangeStyle">
                   {{ formatRange(operation.range) }}
                 </span>
@@ -223,9 +221,9 @@
                   @click="selectOperation(index)"
                 >
                   <div class="operation-header-compact" :style="operationHeaderStyle">
-                    <el-tag :type="getOperationTypeTag(operation.type)" size="small">
+                    <Badge :variant="getOperationTypeTag(operation.type)">
                       {{ getOperationTypeLabel(operation.type) }}
-                    </el-tag>
+                    </Badge>
                     <span class="operation-range" :style="rangeStyle">
                       {{ formatRange(operation.range) }}
                     </span>
@@ -273,11 +271,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.edit.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.edit.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -286,6 +283,9 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Info, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
@@ -454,11 +454,11 @@ const getOldContent = (operation: EditOperation) => {
 
 const getOperationTypeTag = (type: string) => {
   const map: Record<string, string> = {
-    insert: 'success',
+    insert: 'default',
     replace: 'warning',
-    delete: 'danger'
+    delete: 'destructive'
   }
-  return map[type] || 'info'
+  return map[type] || 'secondary'
 }
 
 const getOperationTypeLabel = (type: string) => {
@@ -473,9 +473,9 @@ const getOperationTypeLabel = (type: string) => {
 // Diff hunk 相关函数
 const getHunkTypeTag = (hunk: UnifiedDiffHunk) => {
   if (hunk.oldLines.length === 0 && hunk.newLines.length > 0) {
-    return 'success' // 插入
+    return 'default' // 插入
   } else if (hunk.oldLines.length > 0 && hunk.newLines.length === 0) {
-    return 'danger' // 删除
+    return 'destructive' // 删除
   } else {
     return 'warning' // 替换
   }

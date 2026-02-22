@@ -10,7 +10,7 @@
   >
     <div
       class="ui-menu-item"
-      :class="{ 'is-collapsed': collapse, 'is-disabled': disabled }"
+      :class="{ 'is-collapsed': collapse, 'is-disabled': disabled, 'is-active': active }"
       @click="handleClick"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
@@ -31,7 +31,7 @@
   <div
     v-else
     class="ui-menu-item"
-    :class="{ 'is-collapsed': collapse, 'is-disabled': disabled }"
+    :class="{ 'is-collapsed': collapse, 'is-disabled': disabled, 'is-active': active }"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -67,11 +67,13 @@ const props = withDefaults(
     icon?: any
     iconImage?: string
     disabled?: boolean
+    active?: boolean
   }>(),
   {
     label: '',
     tooltip: '',
-    disabled: false
+    disabled: false,
+    active: false
   }
 )
 
@@ -104,14 +106,14 @@ const handleMouseLeave = () => {
 
 <style scoped>
 .ui-menu-item {
-  height: 40px;
-  line-height: 40px;
-  margin: 4px 8px;
+  height: 36px;
+  line-height: 36px;
+  margin: 2px 6px;
   border-radius: 4px;
   border: 1px solid transparent;
-  transition: none !important;
+  transition: all 0.15s ease;
   position: relative;
-  padding-left: 12px;
+  padding-left: 10px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -120,11 +122,12 @@ const handleMouseLeave = () => {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: pointer;
-  color: var(--el-text-color-primary);
+  color: var(--sidebar-text, var(--el-text-color-primary));
+  font-size: 13px;
 }
 
 .ui-menu-item:hover:not(.is-disabled) {
-  background-color: v-bind('activeBackgroundColor');
+  background-color: var(--sidebar-hover-bg, v-bind('activeBackgroundColor'));
   border-radius: 4px;
 }
 
@@ -141,6 +144,13 @@ const handleMouseLeave = () => {
 .ui-menu-item:active:not(.is-disabled) .ui-menu-item__icon,
 .ui-menu-item:active:not(.is-disabled) .ui-menu-item__icon-image {
   color: var(--el-color-primary) !important;
+}
+
+/* VSCode 风格 - 激活状态 */
+.ui-menu-item.is-active {
+  background-color: var(--sidebar-active-bg, v-bind('activeBackgroundColor'));
+  color: var(--sidebar-text-active, var(--el-text-color-primary));
+  font-weight: 500;
 }
 
 .ui-menu-item.is-disabled {

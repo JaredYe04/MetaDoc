@@ -73,16 +73,15 @@
             >
               <div class="intent-tools-label">{{ t('agent.message.selectedTools') }}</div>
               <div class="intent-tools-list">
-                <el-tag
+                <Badge
                   v-for="toolId in (message as IntentRecognitionAgentMessage).toolIds"
                   :key="toolId"
                   size="small"
-                  type="info"
-                  effect="plain"
+                  variant="secondary"
                   class="intent-tool-tag"
                 >
                   {{ getToolName(toolId) }}
-                </el-tag>
+                </Badge>
               </div>
             </div>
             <div v-else class="intent-no-tools">
@@ -102,32 +101,35 @@
 
         <!-- Tool结果 -->
         <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
-          <el-collapse v-model="toolMessageCollapseActive" class="tool-message-collapse">
-            <el-collapse-item :name="message.id">
-              <template #title>
-                <div class="tool-message-header-preview">
-                  <span class="tool-message-title">{{
-                    (message as ToolAgentMessage).tool.name
-                  }}</span>
-                  <el-tag
-                    size="small"
-                    :type="getToolStatusTagType((message as ToolAgentMessage).status)"
-                  >
-                    {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
-                  </el-tag>
-                  <small class="tool-message-timestamp">{{
-                    formatTimestamp((message as ToolAgentMessage).timestamp)
-                  }}</small>
-                </div>
-              </template>
+          <Collapsible
+            v-model:open="isToolMessageOpen"
+            class="tool-message-collapsible"
+          >
+            <CollapsibleTrigger class="tool-message-trigger">
+              <div class="tool-message-header-preview">
+                <span class="tool-message-title">{{
+                  (message as ToolAgentMessage).tool.name
+                }}</span>
+                <Badge
+                  size="small"
+                  :type="getToolStatusTagType((message as ToolAgentMessage).status)"
+                >
+                  {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
+                </Badge>
+                <small class="tool-message-timestamp">{{
+                  formatTimestamp((message as ToolAgentMessage).timestamp)
+                }}</small>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent class="tool-message-content">
               <component
                 :is="AgentToolResultCard"
                 :message="message as ToolAgentMessage"
                 :messages="messages"
                 :message-index="messageIndex"
               />
-            </el-collapse-item>
-          </el-collapse>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <!-- 文本内容 -->
@@ -243,6 +245,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from '@renderer/components/ui/collapsible'
+import { Badge } from '@renderer/components/ui/badge'
 import type {
   AgentMessage,
   ChatAgentMessage,
@@ -277,8 +285,8 @@ const { t } = useI18n()
 const showTimestamp = ref(false)
 const showActions = ref(false)
 
-// Tool消息折叠状态
-const toolMessageCollapseActive = ref<string[]>([])
+// Tool消息折叠状态 - shadcn-vue Collapsible uses boolean
+const isToolMessageOpen = ref(true)
 
 // 判断当前tool消息是否是最新的tool调用
 const isLatestToolMessage = computed(() => {
@@ -304,10 +312,10 @@ const initToolMessageCollapse = () => {
   if (props.message.type === 'tool' && !collapseInitialized.value) {
     // 如果不是最新的tool消息，默认折叠
     if (!isLatestToolMessage.value) {
-      toolMessageCollapseActive.value = []
+      isToolMessageOpen.value = false
     } else {
       // 如果是最新的，默认展开
-      toolMessageCollapseActive.value = [props.message.id]
+      isToolMessageOpen.value = true
     }
     collapseInitialized.value = true
   }
@@ -337,7 +345,7 @@ watch(
 
       // 如果有新的tool消息在当前消息之后，折叠当前消息（强制折叠，因为这是自动行为）
       if (hasNewToolAfter) {
-        toolMessageCollapseActive.value = []
+        isToolMessageOpen.value = false
       }
     }
 
@@ -355,7 +363,7 @@ watch(
   (isLatest) => {
     if (props.message.type === 'tool' && collapseInitialized.value && !isLatest) {
       // 如果当前消息不再是最新的tool消息，折叠它
-      toolMessageCollapseActive.value = []
+      isToolMessageOpen.value = false
     }
   },
   { immediate: false }
@@ -1120,48 +1128,45 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.tool-message-collapse {
+.tool-message-collapsible {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  border: none !important;
 }
 
-.tool-message-collapse :deep(.el-collapse-item) {
-  margin-bottom: 0;
-}
-
-.tool-message-collapse :deep(.el-collapse-item__wrap) {
-  border: none;
-}
-
-/* 折叠头部：紧凑、带内边距 */
-.tool-message-collapse :deep(.el-collapse-item__header) {
+/* Collapsible触发区域样式 */
+.tool-message-trigger {
   background-color: transparent;
   color: v-bind('themeState.currentTheme.textColor');
   border-bottom: 1px solid
     v-bind(
       'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"'
     );
-  height: 32px;
-  line-height: 32px;
-  padding: 0 12px;
+  padding: 0;
   font-size: 13px;
 }
 
+.tool-message-trigger:hover {
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)"'
+  ) !important;
+}
+
 /* 折叠内容区域 */
-.tool-message-collapse :deep(.el-collapse-item__content) {
+.tool-message-content :deep([data-state]) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.tool-message-content :deep(.pb-4) {
+  padding: 6px 12px 8px 12px;
   overflow-x: auto;
   background-color: transparent;
-  padding: 6px 12px 8px 12px;
-  border-bottom: none;
 }
 
 /* 确保 AgentToolResultCard 不会超出父容器 */
-.tool-message-collapse :deep(.tool-result-card) {
+.tool-message-content :deep(.tool-result-card) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;

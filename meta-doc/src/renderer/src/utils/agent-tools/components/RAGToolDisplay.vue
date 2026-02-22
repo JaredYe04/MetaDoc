@@ -15,25 +15,24 @@
       :style="completedStateStyle"
     >
       <div class="result-header" :style="resultHeaderStyle">
-        <el-tag type="success" size="small">
+        <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
           {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
-        </el-tag>
+        </Badge>
         <span class="question-text" :style="questionTextStyle">{{ displayData.question }}</span>
       </div>
 
       <div v-if="displayData.results && displayData.results.length > 0" class="results-container">
         <ScrollArea class="max-h-[400px]">
-          <el-card
+          <Card
             v-for="(result, index) in displayData.results"
             :key="index"
             class="result-card"
-            shadow="hover"
             :style="cardStyle"
           >
-            <div class="result-content">
+            <CardContent class="result-content">
               <pre class="result-text" :style="resultTextStyle">{{ result }}</pre>
-            </div>
-          </el-card>
+            </CardContent>
+          </Card>
         </ScrollArea>
       </div>
 
@@ -46,11 +45,10 @@
     </div>
 
     <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.ragTool.searchFailed')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.ragTool.searchFailed') }}</AlertTitle>
+      </Alert>
     </div>
 
     <!-- 进度条 -->
@@ -68,7 +66,14 @@
 import { computed } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import {
+  Card,
+  CardContent,
+} from '@renderer/components/ui/card'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

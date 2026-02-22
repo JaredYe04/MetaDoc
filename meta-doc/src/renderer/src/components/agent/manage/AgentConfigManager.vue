@@ -44,19 +44,23 @@
     />
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="
-        editingConfig
-          ? editingConfig.id === 'default-agent-config'
-            ? t('agent.manage.agentConfig.view')
-            : t('agent.manage.agentConfig.edit')
-          : t('agent.manage.agentConfig.create')
-      "
-      width="700px"
-      :style="dialogStyle"
-    >
-      <Form class="space-y-4">
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent
+        class="max-w-[700px]"
+        :style="dialogStyle"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {{
+              editingConfig
+                ? editingConfig.id === 'default-agent-config'
+                  ? t('agent.manage.agentConfig.view')
+                  : t('agent.manage.agentConfig.edit')
+                : t('agent.manage.agentConfig.create')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <Form class="space-y-4">
         <FormField :label="t('agent.manage.agentConfig.name')" name="name" required>
           <Input
             v-model="formData.name"
@@ -139,21 +143,22 @@
           </div>
         </FormField>
       </Form>
-      <template #footer>
-        <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
-        <Button
-          type="primary"
-          @click="handleSave"
-          :disabled="editingConfig?.id === 'default-agent-config'"
-        >
-          {{
-            editingConfig?.id === 'default-agent-config'
-              ? t('agent.manage.agentConfig.viewOnly')
-              : t('common.save')
-          }}
-        </Button>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
+          <Button
+            type="primary"
+            @click="handleSave"
+            :disabled="editingConfig?.id === 'default-agent-config'"
+          >
+            {{
+              editingConfig?.id === 'default-agent-config'
+                ? t('agent.manage.agentConfig.viewOnly')
+                : t('common.save')
+            }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -167,6 +172,7 @@ import { agentConfigManager, toolCollectionManager } from '../../../utils/agent-
 import type { AgentConfig } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { Button } from '@renderer/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
 import {

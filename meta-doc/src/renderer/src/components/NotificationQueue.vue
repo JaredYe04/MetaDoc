@@ -21,15 +21,15 @@
       <div class="queue-header">
         <h3>{{ t('notificationQueue.title') }}</h3>
         <div class="header-actions">
-          <!-- <el-button
+          <!-- <Button
           size="small"
           type="primary"
-          text
+          variant="ghost"
           @click="handleMarkAllRead"
           :disabled="unreadCount === 0"
         >
           {{ t('notificationQueue.markAllRead') }}
-        </el-button> -->
+        </Button> -->
           <Tooltip>
             <TooltipTrigger as-child>
               <Button size="small" type="danger" circle plain @click="handleClear">
@@ -64,9 +64,9 @@
             {{ item.message }}
           </div>
           <div class="item-actions">
-            <!-- <el-button size="small" text type="primary"  @click="handleRead(item.id)" :disabled="item.read">
+            <!-- <Button size="small" variant="ghost" type="primary"  @click="handleRead(item.id)" :disabled="item.read">
             {{ t('notificationQueue.markRead') }}
-          </el-button> -->
+          </Button> -->
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button size="small" circle plain type="danger" @click="handleRemove(item.id)">

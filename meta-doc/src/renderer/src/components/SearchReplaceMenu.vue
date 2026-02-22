@@ -18,9 +18,7 @@
         <span v-if="matchSummary.total" class="match-counter">
           {{ matchSummary.current }}/{{ matchSummary.total }}
         </span>
-        <el-icon v-if="isSearching" class="search-loading-icon" :class="'is-loading'">
-          <Loading />
-        </el-icon>
+        <Loader2 v-if="isSearching" class="search-loading-icon w-4 h-4 animate-spin" />
       </div>
       <ScrollArea class="textarea-scroll">
         <Textarea
@@ -32,46 +30,66 @@
         />
       </ScrollArea>
       <div class="toggle-row">
-        <el-tooltip :content="t('searchReplace.matchCase')" placement="top">
-          <Button
-            :variant="form.matchCase ? 'default' : 'secondary'"
-            size="sm"
-            class="toggle-btn h-7 px-2"
-            @click="toggleFlag('matchCase')"
-          >
-            Aa
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="t('searchReplace.matchWholeWord')" placement="top">
-          <Button
-            :variant="form.wholeWord ? 'default' : 'secondary'"
-            size="sm"
-            class="toggle-btn h-7 px-2"
-            @click="toggleFlag('wholeWord')"
-          >
-            W
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="t('searchReplace.useRegex')" placement="top">
-          <Button
-            :variant="form.useRegex ? 'default' : 'secondary'"
-            size="sm"
-            class="toggle-btn h-7 px-2"
-            @click="toggleFlag('useRegex')"
-          >
-            .*
-          </Button>
-        </el-tooltip>
-        <el-tooltip :content="t('searchReplace.preserveCase')" placement="top">
-          <Button
-            :variant="form.preserveCase ? 'default' : 'secondary'"
-            size="sm"
-            class="toggle-btn h-7 px-2"
-            @click="toggleFlag('preserveCase')"
-          >
-            ↔
-          </Button>
-        </el-tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              :variant="form.matchCase ? 'default' : 'secondary'"
+              size="sm"
+              class="toggle-btn h-7 px-2"
+              @click="toggleFlag('matchCase')"
+            >
+              Aa
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('searchReplace.matchCase') }}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              :variant="form.wholeWord ? 'default' : 'secondary'"
+              size="sm"
+              class="toggle-btn h-7 px-2"
+              @click="toggleFlag('wholeWord')"
+            >
+              W
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('searchReplace.matchWholeWord') }}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              :variant="form.useRegex ? 'default' : 'secondary'"
+              size="sm"
+              class="toggle-btn h-7 px-2"
+              @click="toggleFlag('useRegex')"
+            >
+              .*
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('searchReplace.useRegex') }}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              :variant="form.preserveCase ? 'default' : 'secondary'"
+              size="sm"
+              class="toggle-btn h-7 px-2"
+              @click="toggleFlag('preserveCase')"
+            >
+              ↔
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('searchReplace.preserveCase') }}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </section>
 
@@ -103,113 +121,145 @@
         </div>
         <ScrollArea class="matches-scrollbar" :style="matchesScrollbarStyle">
           <div class="matches-list">
-            <el-tooltip
+            <Tooltip
               v-for="(match, index) in searchState.matches"
               :key="index"
-              :content="getMatchLineText(match)"
-              placement="bottom"
-              :show-after="700"
-              :hide-after="0"
+              :delay-duration="700"
             >
-              <div
-                class="match-item"
-                :class="{ 'match-item-active': searchState.currentIndex === index }"
-                :style="getMatchItemStyle(index)"
-                @click="selectMatch(index)"
-              >
-                <span class="match-location">
-                  {{ t('searchReplace.line') }} {{ match.range.start.line }},
-                  {{ t('searchReplace.column') }} {{ match.range.start.column }}
-                </span>
-                <div class="match-context" v-html="getMatchContextHtml(match, index)"></div>
-              </div>
-            </el-tooltip>
+              <TooltipTrigger as-child>
+                <div
+                  class="match-item"
+                  :class="{ 'match-item-active': searchState.currentIndex === index }"
+                  :style="getMatchItemStyle(index)"
+                  @click="selectMatch(index)"
+                >
+                  <span class="match-location">
+                    {{ t('searchReplace.line') }} {{ match.range.start.line }},
+                    {{ t('searchReplace.column') }} {{ match.range.start.column }}
+                  </span>
+                  <div class="match-context" v-html="getMatchContextHtml(match, index)"></div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ getMatchLineText(match) }}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </ScrollArea>
       </div>
     </section>
 
     <footer class="panel-actions" @mousedown.stop>
-      <el-tooltip :content="t('searchReplace.findFromStartBtn')" placement="top">
-        <span>
-          <Button
-            variant="secondary"
-            size="icon"
-            class="h-7 w-7"
-            :disabled="!canSearch"
-            @click="handleFindFromStart"
-          >
-            <RefreshLeft class="h-4 w-4" />
-          </Button>
-        </span>
-      </el-tooltip>
-      <el-tooltip :content="t('searchReplace.findPrevBtn')" placement="top">
-        <span>
-          <Button
-            variant="secondary"
-            size="icon"
-            class="h-7 w-7"
-            :disabled="!canSearch"
-            @click="handleFind('previous')"
-          >
-            <Top class="h-4 w-4" />
-          </Button>
-        </span>
-      </el-tooltip>
-      <el-tooltip :content="t('searchReplace.findNextBtn')" placement="top">
-        <span>
-          <Button
-            variant="secondary"
-            size="icon"
-            class="h-7 w-7"
-            :disabled="!canSearch"
-            @click="handleFind('next')"
-          >
-            <Bottom class="h-4 w-4" />
-          </Button>
-        </span>
-      </el-tooltip>
-      <el-tooltip :content="t('searchReplace.findAllBtn')" placement="top">
-        <span>
-          <Button
-            variant="secondary"
-            size="icon"
-            class="h-7 w-7"
-            :disabled="!canSearch"
-            @click="handleFindAll"
-          >
-            <View class="h-4 w-4" />
-          </Button>
-        </span>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <span>
+            <Button
+              variant="secondary"
+              size="icon"
+              class="h-7 w-7"
+              :disabled="!canSearch"
+              @click="handleFindFromStart"
+            >
+              <Undo2 class="h-4 w-4" />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('searchReplace.findFromStartBtn') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <span>
+            <Button
+              variant="secondary"
+              size="icon"
+              class="h-7 w-7"
+              :disabled="!canSearch"
+              @click="handleFind('previous')"
+            >
+              <ArrowUp class="h-4 w-4" />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('searchReplace.findPrevBtn') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <span>
+            <Button
+              variant="secondary"
+              size="icon"
+              class="h-7 w-7"
+              :disabled="!canSearch"
+              @click="handleFind('next')"
+            >
+              <ArrowDown class="h-4 w-4" />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('searchReplace.findNextBtn') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <span>
+            <Button
+              variant="secondary"
+              size="icon"
+              class="h-7 w-7"
+              :disabled="!canSearch"
+              @click="handleFindAll"
+            >
+              <Eye class="h-4 w-4" />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('searchReplace.findAllBtn') }}
+        </TooltipContent>
+      </Tooltip>
       <template v-if="!collapsed">
         <el-divider direction="vertical" border-style="dashed"></el-divider>
-        <el-tooltip :content="t('searchReplace.replaceBtn')" placement="top">
-          <span>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="h-7 w-7"
-              :disabled="!canReplace"
-              @click="handleReplace"
-            >
-              <EditPen class="h-4 w-4" />
-            </Button>
-          </span>
-        </el-tooltip>
-        <el-tooltip :content="t('searchReplace.replaceAllBtn')" placement="top">
-          <span>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="h-7 w-7"
-              :disabled="!canReplace"
-              @click="handleReplaceAll"
-            >
-              <RefreshRight class="h-4 w-4" />
-            </Button>
-          </span>
-        </el-tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span>
+              <Button
+                variant="secondary"
+                size="icon"
+                class="h-7 w-7"
+                :disabled="!canReplace"
+                @click="handleReplace"
+              >
+                <Pencil class="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('searchReplace.replaceBtn') }}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span>
+              <Button
+                variant="secondary"
+                size="icon"
+                class="h-7 w-7"
+                :disabled="!canReplace"
+                @click="handleReplaceAll"
+              >
+                <RotateCw class="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('searchReplace.replaceAllBtn') }}
+          </TooltipContent>
+        </Tooltip>
       </template>
 
       <Button
@@ -241,10 +291,15 @@ import {
   watch,
   watchEffect
 } from 'vue'
-import { ElTooltip, ElIcon } from 'element-plus'
+
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { themeState, mixColors } from '../utils/themes'
@@ -254,14 +309,14 @@ import { createRendererLogger } from '../utils/logger'
 import {
   ArrowDown,
   ArrowUp,
-  Top,
-  Bottom,
-  EditPen,
-  RefreshRight,
-  RefreshLeft,
-  View,
-  Loading
-} from '@element-plus/icons-vue'
+  ArrowUp as Top,
+  ArrowDown as Bottom,
+  Pencil,
+  RotateCw,
+  Undo2,
+  Eye,
+  Loader2
+} from 'lucide-vue-next'
 import { generateMatchContext } from '../utils/match-context'
 
 const logger = createRendererLogger('SearchReplaceMenu')

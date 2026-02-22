@@ -1,7 +1,7 @@
 <script setup>
-import { reactiveOmit } from "@vueuse/core";
-import { RadioGroupRoot, useForwardPropsEmits } from "reka-ui";
-import { cn } from '@renderer/lib/utils';
+import { reactiveOmit } from '@vueuse/core'
+import { RadioGroupRoot, useForwardPropsEmits } from 'reka-ui'
+import { cn } from '@renderer/lib/utils'
 
 const props = defineProps({
   modelValue: { type: null, required: false },
@@ -14,13 +14,13 @@ const props = defineProps({
   as: { type: null, required: false },
   name: { type: String, required: false },
   required: { type: Boolean, required: false },
-  class: { type: null, required: false },
-});
-const emits = defineEmits(["update:modelValue"]);
+  class: { type: null, required: false }
+})
+const emits = defineEmits(['update:modelValue'])
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, 'class')
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>

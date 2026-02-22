@@ -1,17 +1,15 @@
 <template>
-  <el-dialog
-    :model-value="visible"
-    @update:model-value="(val: boolean) => emit('update:visible', val)"
-    :title="t('main.dialogs.fileConflictTitle', { defaultValue: '文件冲突' })"
-    width="90%"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :show-close="false"
-    class="file-conflict-dialog"
-  >
+  <Dialog :open="visible" @update:open="(val: boolean) => emit('update:visible', val)">
+    <DialogContent class="w-[90vw] max-w-[90vw]">
+      <DialogHeader>
+        <DialogTitle>{{ t('main.dialogs.fileConflictTitle', { defaultValue: '文件冲突' }) }}</DialogTitle>
+      </DialogHeader>
     <div class="conflict-content">
       <div class="conflict-message">
-        <el-alert :title="conflictMessage" type="warning" :closable="false" show-icon />
+        <Alert variant="warning">
+          <AlertTriangle class="h-4 w-4" />
+          <AlertTitle>{{ conflictMessage }}</AlertTitle>
+        </Alert>
       </div>
 
       <div class="diff-container">
@@ -33,12 +31,12 @@
             </Button>
           </div>
           <div class="diff-stats">
-            <el-tag type="success" size="small">
+            <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
               {{ t('agent.display.diff.insertions', { count: insertionsCount }) }}
-            </el-tag>
-            <el-tag type="danger" size="small">
+            </Badge>
+            <Badge variant="destructive">
               {{ t('agent.display.diff.deletions', { count: deletionsCount }) }}
-            </el-tag>
+            </Badge>
           </div>
         </div>
 
@@ -111,9 +109,9 @@
                       chunk.newEnd
                     }}
                   </span>
-                  <el-tag :type="getChunkTagType(chunk.type)" size="small">
+                  <Badge :variant="getChunkBadgeVariant(chunk.type)" :class="getChunkBadgeClass(chunk.type)">
                     {{ getTypeLabel(chunk.type) }}
-                  </el-tag>
+                  </Badge>
                 </div>
                 <div
                   v-if="chunk.oldLines && chunk.oldLines.length > 0"
@@ -171,16 +169,16 @@
           </div>
           <!-- 如果有冲突，在底部显示冲突列表（可折叠） -->
           <div v-if="hasConflicts && conflictRanges.length > 0" class="conflicts-panel">
-            <el-collapse v-model="activeConflicts" class="conflicts-collapse">
-              <el-collapse-item
-                name="conflicts"
-                :title="
+            <Collapsible v-model:open="isConflictsOpen" class="conflicts-collapsible">
+              <CollapsibleTrigger class="conflicts-trigger">
+                {{
                   t('main.dialogs.conflictsList', {
                     count: conflictRanges.length,
                     defaultValue: `冲突列表 (${conflictRanges.length})`
                   })
-                "
-              >
+                }}
+              </CollapsibleTrigger>
+              <CollapsibleContent>
                 <ScrollArea class="h-[200px]">
                   <div class="conflicts-list">
                     <div
@@ -233,14 +231,14 @@
                     </div>
                   </div>
                 </ScrollArea>
-              </el-collapse-item>
-            </el-collapse>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </div>
       </div>
     </div>
 
-    <template #footer>
+    <DialogFooter>
       <div class="dialog-footer">
         <div class="footer-left">
           <Button variant="secondary" @click="handleCancel">
@@ -265,8 +263,9 @@
           </Button>
         </div>
       </div>
-    </template>
-  </el-dialog>
+    </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -274,6 +273,21 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle } from '@renderer/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { AlertTriangle } from 'lucide-vue-next'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
 import { themeState } from '../utils/themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
@@ -316,7 +330,7 @@ const emit = defineEmits<{
 const viewMode = ref<'unified' | 'split'>('unified')
 const oldEditorId = ref(`conflict-old-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 const newEditorId = ref(`conflict-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
-const activeConflicts = ref<string[]>([]) // 默认折叠冲突列表
+const isConflictsOpen = ref(false) // 默认折叠冲突列表
 
 // 冲突选择状态：记录每个冲突区域选择使用哪个版本 ('current' | 'external' | null)
 const conflictChoices = ref<Map<number, 'current' | 'external'>>(new Map())
@@ -360,14 +374,24 @@ const deletionsCount = computed(() => {
   return diffResult.value.summary?.deletions || 0
 })
 
-const getChunkTagType = (type: string) => {
-  const map: Record<string, string> = {
-    insert: 'success',
-    delete: 'danger',
-    replace: 'warning',
-    equal: 'info'
+const getChunkBadgeVariant = (type: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    insert: 'default',
+    delete: 'destructive',
+    replace: 'secondary',
+    equal: 'outline'
   }
-  return map[type] || 'info'
+  return map[type] || 'outline'
+}
+
+const getChunkBadgeClass = (type: string): string => {
+  const map: Record<string, string> = {
+    insert: 'bg-green-600 hover:bg-green-700 text-white',
+    delete: '',
+    replace: 'bg-amber-500 hover:bg-amber-600 text-white',
+    equal: ''
+  }
+  return map[type] || ''
 }
 
 const getTypeLabel = (type: string) => {
@@ -971,22 +995,45 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.conflicts-collapse {
+.conflicts-collapsible {
   border: none;
   background-color: transparent;
 }
 
-.conflicts-collapse :deep(.el-collapse-item__header) {
+.conflicts-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   padding: 8px 16px;
   background-color: v-bind('themeState.currentTheme.background2nd');
   color: v-bind('themeState.currentTheme.textColor');
   border-bottom: 1px solid var(--el-border-color);
   font-weight: 600;
   font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.conflicts-collapse :deep(.el-collapse-item__content) {
-  padding: 0;
+.conflicts-trigger:hover {
+  background-color: v-bind('themeState.currentTheme.hoverBackground');
+}
+
+.conflicts-trigger::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid v-bind('themeState.currentTheme.textColor2');
+  transition: transform 0.2s;
+}
+
+.conflicts-trigger[data-state='open']::after {
+  transform: rotate(180deg);
+}
+
+.conflicts-collapsible [data-state='open'] {
   background-color: v-bind('themeState.currentTheme.background');
 }
 

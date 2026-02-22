@@ -34,6 +34,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@renderer/components/ui/dialog'
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[]
@@ -460,24 +467,26 @@ onBeforeMount(() => {
       readonly
     />
   </div>
-  <el-dialog v-model="editDialogVisible" :title="$t('messageBubble.editTitle')" width="80%">
-    <md-editor
-      v-model="editingText"
-      showCodeRowNumber
-      previewTheme="github"
-      codeStyleReverse
-      style="text-align: left"
-      :autoFoldThreshold="300"
-      :theme="themeState.currentTheme.vditorTheme as any"
-    />
-
-    <template #footer>
-      <div class="dialog-footer">
+  <Dialog v-model:open="editDialogVisible">
+    <DialogContent class="sm:max-w-[80vw]">
+      <DialogHeader>
+        <DialogTitle>{{ $t('messageBubble.editTitle') }}</DialogTitle>
+      </DialogHeader>
+      <md-editor
+        v-model="editingText"
+        showCodeRowNumber
+        previewTheme="github"
+        codeStyleReverse
+        style="text-align: left"
+        :autoFoldThreshold="300"
+        :theme="themeState.currentTheme.vditorTheme as any"
+      />
+      <DialogFooter>
         <Button variant="secondary" @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
         <Button @click="saveEdit">{{ $t('common.save') }}</Button>
-      </div>
-    </template>
-  </el-dialog>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>

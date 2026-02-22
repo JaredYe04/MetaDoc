@@ -10,7 +10,7 @@
           size="small"
           variant="ghost"
         >
-          <el-icon><Close /></el-icon>
+          <X class="w-4 h-4" />
         </Button>
       </div>
       <div class="format-options-container">
@@ -51,16 +51,17 @@
       <div v-if="stage === 'select'" class="format-selector">
         <h2 class="selector-title">{{ $t('home.quickStartFormatTitle') }}</h2>
         <div class="format-grid">
-          <el-card
+          <Card
             v-for="option in formatOptions"
             :key="option.id"
-            class="format-card"
-            shadow="hover"
+            class="format-card cursor-pointer transition-transform hover:-translate-y-1"
             @click="selectQuickStartFormat(option.id as 'md' | 'tex')"
           >
-            <h3>{{ option.title }}</h3>
-            <p>{{ option.description }}</p>
-          </el-card>
+            <CardContent class="text-center">
+              <h3>{{ option.title }}</h3>
+              <p>{{ option.description }}</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -100,7 +101,8 @@
             <div class="form-actions">
               <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
                 <Button circle type="success" @click="confirmDocument"
-                  ><el-icon><Check /></el-icon
+                  >
+                  <Check class="w-4 h-4" />
                 ></Button>
               </el-tooltip>
             </div>
@@ -109,9 +111,8 @@
           <div v-else class="ai-assistant aero-div">
             <label class="section-title interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
             <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
-              <el-slider
+              <Slider
                 v-model="temperature"
-                :marks="marks"
                 :min="0"
                 :max="100"
                 :disabled="generated || generating"
@@ -126,7 +127,7 @@
                 <SelectContent>
                   <SelectItem v-for="option in moodOptions" :key="option.value" :value="option.value">
                     <div class="flex items-center gap-2">
-                      <el-icon :size="12"><component :is="option.icon" /></el-icon>
+                      <component :is="option.icon" class="w-3 h-3" />
                       <span>{{ option.label }}</span>
                     </div>
                   </SelectItem>
@@ -165,24 +166,27 @@
                 class="aero-btn refresh-btn"
                 @click="refreshButtons"
               >
-                <el-icon><Refresh /></el-icon>
+                <RefreshCw class="w-4 h-4" />
                 {{ $t('home.button.refresh') }}
               </Button>
             </div>
             <div class="action-buttons" @mousedown.stop>
               <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
                 <Button circle type="primary" @click="generate" :disabled="disableGenerate"
-                  ><el-icon><Promotion /></el-icon
+                  >
+                  <Send class="w-4 h-4" />
                 ></Button>
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
                 <Button circle type="info" @click="reset" v-if="generated"
-                  ><el-icon><RefreshLeft /></el-icon
+                  >
+                  <Undo2 class="w-4 h-4" />
                 ></Button>
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
                 <Button circle type="success" @click="accept" v-if="generated"
-                  ><el-icon><Check /></el-icon
+                  >
+                  <Check class="w-4 h-4" />
                 ></Button>
               </el-tooltip>
             </div>
@@ -202,21 +206,22 @@ import VoiceInput from '../VoiceInput.vue'
 // @ts-expect-error: Missing types for vue3-markdown-it
 import MarkdownItEditor from 'vue3-markdown-it'
 import {
-  DataAnalysis,
-  Drizzling,
-  Lightning,
-  MoonNight,
-  Mug,
-  Sugar,
-  SuitcaseLine,
-  Warning,
+  BarChart3,
+  CloudRain,
+  Zap,
+  Moon,
+  Coffee,
+  Candy,
+  Briefcase,
+  AlertTriangle,
   Check,
-  Promotion,
-  Refresh,
-  RefreshLeft,
-  Close
-} from '@element-plus/icons-vue'
+  Send,
+  RefreshCw,
+  Undo2,
+  X
+} from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
 import { Input } from '@renderer/components/ui/input'
@@ -228,6 +233,10 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Card,
+  CardContent,
+} from '@renderer/components/ui/card'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'
@@ -302,30 +311,19 @@ const generating = ref(false)
 const defaultText = ref('')
 const generatedText = ref('')
 
-const marks = computed(() => ({
-  0: t('home.temperatureMarks.rigorous'),
-  100: t('home.temperatureMarks.creative'),
-  50: {
-    style: {
-      color: '#1989FA'
-    },
-    label: t('home.temperatureMarks.balanced')
-  }
-}))
-
 const moodOptions = computed(() => [
-  { label: t('home.mood.happy'), value: 'happy', icon: Sugar },
-  { label: t('home.mood.lyrical'), value: 'lyrical', icon: MoonNight },
-  { label: t('home.mood.peaceful'), value: 'peaceful', icon: Mug },
-  { label: t('home.mood.academic'), value: 'academic', icon: DataAnalysis },
-  { label: t('home.mood.business'), value: 'business', icon: SuitcaseLine },
-  { label: t('home.mood.sad'), value: 'sad', icon: Drizzling },
-  { label: t('home.mood.warning'), value: 'warning', icon: Warning },
-  { label: t('home.mood.exciting'), value: 'exciting', icon: Lightning },
-  { label: t('home.mood.angry'), value: 'angry', icon: Lightning },
-  { label: t('home.mood.surprised'), value: 'surprised', icon: Lightning },
-  { label: t('home.mood.fearful'), value: 'fearful', icon: Lightning },
-  { label: t('home.mood.disgusted'), value: 'disgusted', icon: Lightning }
+  { label: t('home.mood.happy'), value: 'happy', icon: Candy },
+  { label: t('home.mood.lyrical'), value: 'lyrical', icon: Moon },
+  { label: t('home.mood.peaceful'), value: 'peaceful', icon: Coffee },
+  { label: t('home.mood.academic'), value: 'academic', icon: BarChart3 },
+  { label: t('home.mood.business'), value: 'business', icon: Briefcase },
+  { label: t('home.mood.sad'), value: 'sad', icon: CloudRain },
+  { label: t('home.mood.warning'), value: 'warning', icon: AlertTriangle },
+  { label: t('home.mood.exciting'), value: 'exciting', icon: Zap },
+  { label: t('home.mood.angry'), value: 'angry', icon: Zap },
+  { label: t('home.mood.surprised'), value: 'surprised', icon: Zap },
+  { label: t('home.mood.fearful'), value: 'fearful', icon: Zap },
+  { label: t('home.mood.disgusted'), value: 'disgusted', icon: Zap }
 ])
 
 const logger = createRendererLogger('QuickStartPanel', {

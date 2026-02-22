@@ -24,18 +24,17 @@
           {{ $t('agent.display.proofread.title') }}
         </h3>
         <div class="error-stats" :style="statsStyle">
-          <el-tag type="danger" size="small">{{
+          <Badge variant="destructive">{{
             $t('agent.display.proofread.totalErrors', { count: resultData.totalErrors || 0 })
-          }}</el-tag>
-          <el-tag
+          }}</Badge>
+          <Badge
             v-for="(count, type) in resultData.errorCounts"
             :key="type"
-            :type="getErrorTypeTag(type)"
-            size="small"
+            :variant="getBadgeVariantForType(type)"
             v-if="count > 0"
           >
             {{ getErrorTypeLabel(type) }}: {{ count }}
-          </el-tag>
+          </Badge>
           <div class="mode-switch flex gap-1">
             <Button
               :variant="viewMode === 'unified' ? 'default' : 'outline'"
@@ -74,15 +73,15 @@
               :style="errorItemStyle"
             >
               <div class="error-header">
-                <el-tag :type="getSeverityType(error.severity)" size="small">{{
+                <Badge :variant="getBadgeVariantForSeverity(error.severity)">{{
                   getSeverityLabel(error.severity)
-                }}</el-tag>
-                <el-tag :type="getErrorTypeTag(error.type)" size="small">{{
+                }}</Badge>
+                <Badge :variant="getBadgeVariantForType(error.type)">{{
                   getErrorTypeLabel(error.type)
-                }}</el-tag>
-                <el-tag v-if="error.fixed" type="success" size="small">{{
+                }}</Badge>
+                <Badge v-if="error.fixed" variant="default" class="bg-green-600 hover:bg-green-700">{{
                   $t('agent.display.proofread.autoFixed')
-                }}</el-tag>
+                }}</Badge>
                 <span class="error-location" :style="locationStyle">
                   {{
                     $t('agent.display.proofread.location', {
@@ -102,16 +101,14 @@
                     >{{ $t('agent.display.proofread.suggestions', '修改建议') }}:</span
                   >
                   <div class="suggestions-list">
-                    <el-tag
+                    <Badge
                       v-for="(suggestion, sugIndex) in error.suggestions || [error.suggestion]"
                       :key="sugIndex"
-                      type="info"
+                      variant="secondary"
                       class="suggestion-tag"
-                      size="small"
-                      effect="plain"
                     >
                       {{ suggestion }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </div>
                 <div v-if="error.message" class="error-message" :style="messageStyle">
@@ -163,11 +160,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.proofread.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.proofread.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -177,6 +173,9 @@ import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Badge } from '@renderer/components/ui/badge'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -325,6 +324,25 @@ const getSeverityType = (severity: string) => {
   if (severity === 'error') return 'danger'
   if (severity === 'warning') return 'warning'
   return 'info'
+}
+
+// Map severity to Badge variant
+const getBadgeVariantForSeverity = (severity: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  if (severity === 'error') return 'destructive'
+  if (severity === 'warning') return 'default'
+  return 'secondary'
+}
+
+// Map error type to Badge variant
+const getBadgeVariantForType = (type: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const typeMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    grammar: 'default',
+    spelling: 'default',
+    latex: 'destructive',
+    style: 'secondary',
+    other: 'secondary'
+  }
+  return typeMap[type] || 'secondary'
 }
 
 const getSeverityLabel = (severity: string) => {

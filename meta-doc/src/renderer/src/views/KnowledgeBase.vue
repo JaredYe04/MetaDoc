@@ -28,9 +28,9 @@
           <div class="kb-list-wrapper">
             <Card
               class="kb-panel"
-              v-loading="isUploading"
-              :style="{ background: themeState.currentTheme.background2nd, height: '100%' }"
+              :style="{ background: themeState.currentTheme.background2nd, height: '100%', position: 'relative' }"
             >
+              <LoadingOverlay :show="isUploading" :message="t('knowledgeBase.uploading', '上传中...')" />
               <CardContent class="kb-card-content">
                 <div class="kb-panel-header">
                 <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
@@ -117,37 +117,40 @@
               <CardContent class="kb-card-content">
               <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
               <el-form-item :label="$t('setting.knowledgeBaseScoreThreshold')">
-                <el-slider
-                  v-model="settings.knowledgeBaseScoreThreshold"
-                  show-input
-                  :min="0.01"
-                  :max="0.99"
-                  :step="0.01"
-                  @change="
-                    setSetting('knowledgeBaseScoreThreshold', settings.knowledgeBaseScoreThreshold)
-                  "
-                  :marks="{
-                    0.3: {
-                      style: {
-                        color: '#1989FA'
-                      },
-                      label: $t('setting.lowPrecision')
-                    },
-                    0.5: {
-                      style: {
-                        color: '#1989FA'
-                      },
-                      label: $t('setting.recommended')
-                    },
-                    0.8: {
-                      style: {
-                        color: '#1989FA'
-                      },
-                      label: $t('setting.highPrecision')
-                    }
-                  }"
-                  style="margin-bottom: 5px"
-                />
+                <div class="flex items-center gap-4" style="margin-bottom: 5px">
+                  <Slider
+                    :model-value="settings.knowledgeBaseScoreThreshold"
+                    :min="0.01"
+                    :max="0.99"
+                    :step="0.01"
+                    @update:model-value="
+                      (val) => { settings.knowledgeBaseScoreThreshold = val; setSetting('knowledgeBaseScoreThreshold', val) }
+                    "
+                    class="flex-1"
+                  />
+                  <NumberField
+                    :model-value="settings.knowledgeBaseScoreThreshold"
+                    :min="0.01"
+                    :max="0.99"
+                    :step="0.01"
+                    :precision="2"
+                    @update:model-value="
+                      (val) => { settings.knowledgeBaseScoreThreshold = val; setSetting('knowledgeBaseScoreThreshold', val) }
+                    "
+                    class="w-28"
+                  >
+                    <NumberFieldContent>
+                      <NumberFieldDecrement />
+                      <NumberFieldInput />
+                      <NumberFieldIncrement />
+                    </NumberFieldContent>
+                  </NumberField>
+                </div>
+                <div class="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>{{ $t('setting.lowPrecision') }} (0.3)</span>
+                  <span class="text-primary">{{ $t('setting.recommended') }} (0.5)</span>
+                  <span>{{ $t('setting.highPrecision') }} (0.8)</span>
+                </div>
               </el-form-item>
               <Input
                 v-model="searchQuery"
@@ -192,9 +195,9 @@
           <!-- 上：preview -->
           <Card
             class="kb-panel kb-preview"
-            v-loading="!previewLoaded"
-            :style="{ background: themeState.currentTheme.background2nd }"
+            :style="{ background: themeState.currentTheme.background2nd, position: 'relative' }"
           >
+            <LoadingOverlay :show="!previewLoaded" :message="t('common.loading', '加载中...')" />
             <CardContent class="kb-card-content">
             <div class="kb-panel-header">
               <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
@@ -357,8 +360,17 @@ import { themeState } from '../utils/themes'
 import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
 import { Card, CardContent } from '../components/ui/card'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { Slider } from '@renderer/components/ui/slider'
+import {
+  NumberField,
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput
+} from '@renderer/components/ui/number-field'
 import { Switch } from '@renderer/components/ui/switch'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'

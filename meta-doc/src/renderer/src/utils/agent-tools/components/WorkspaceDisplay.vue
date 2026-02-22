@@ -19,9 +19,9 @@
         <h3 class="tree-title" :style="titleStyle">
           {{ $t('agent.display.workspace.directoryTree') }}
         </h3>
-        <el-tag type="info" size="small"
+        <Badge variant="secondary"
           >{{ $t('agent.display.workspace.workspaceFolder') }}:
-          {{ displayData.workspaceFolder }}</el-tag
+          {{ displayData.workspaceFolder }}</Badge
         >
       </div>
       <ScrollArea class="h-[500px]">
@@ -58,12 +58,12 @@
           {{ $t('agent.display.workspace.filesTitle') }}
         </h3>
         <div class="header-tags" :style="headerTagsStyle">
-          <el-tag type="info" size="small">{{
+          <Badge variant="secondary">{{
             $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles })
-          }}</el-tag>
-          <el-tag v-if="displayData.result.summarized" type="success" size="small">
+          }}</Badge>
+          <Badge v-if="displayData.result.summarized">
             {{ $t('agent.display.workspace.summarized') }}
-          </el-tag>
+          </Badge>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
             :style="getFileItemStyle(index)"
           >
             <div class="file-header" :style="fileHeaderStyle">
-              <el-tag type="primary" size="small">{{ file.path }}</el-tag>
+              <Badge variant="default">{{ file.path }}</Badge>
               <div class="file-meta" :style="fileMetaStyle">
                 <span v-if="file.startLine !== undefined && file.endLine !== undefined">
                   {{
@@ -134,11 +134,10 @@
     </div>
 
     <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.workspace.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.workspace.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -147,7 +146,10 @@
 import { computed, ref } from 'vue'
 import { Loading, Folder, Document } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Alert, AlertTitle } from '@renderer/components/ui/alert'
+import { XCircle } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Badge } from '@renderer/components/ui/badge'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

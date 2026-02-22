@@ -91,7 +91,7 @@
                 <div class="todo-item-header">
                   <span class="todo-title">{{ item.title }}</span>
                   <div class="todo-badges">
-                    <el-tag
+                    <Badge
                       v-if="item.priority"
                       :type="getPriorityType(item.priority)"
                       size="small"
@@ -99,17 +99,16 @@
                       class="priority-tag"
                     >
                       {{ getPriorityLabel(item.priority) }}
-                    </el-tag>
-                    <el-tag
+                    </Badge>
+                    <Badge
                       v-if="item.tags && item.tags.length === 0"
                       size="small"
                       effect="plain"
                       class="todo-tag"
-                      disabled
                     >
                       {{ $t('agent.display.todoList.noTags') }}
-                    </el-tag>
-                    <el-tag
+                    </Badge>
+                    <Badge
                       v-for="tag in item.tags"
                       :key="tag"
                       size="small"
@@ -117,7 +116,7 @@
                       class="todo-tag"
                     >
                       {{ tag }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </div>
 
@@ -179,11 +178,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.todoList.generationFailed')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.todoList.generationFailed') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -193,6 +191,9 @@ import { computed } from 'vue'
 import { Loading, Calendar, Clock, User, Connection } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import type { TodoList } from '../todolist-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -244,11 +245,11 @@ const pendingCount = computed(() => {
 const getPriorityType = (priority: string) => {
   const map: Record<string, string> = {
     low: 'info',
-    medium: '',
+    medium: 'success',
     high: 'warning',
     urgent: 'danger'
   }
-  return map[priority] || ''
+  return map[priority] || 'success'
 }
 
 const getPriorityLabel = (priority: string) => {

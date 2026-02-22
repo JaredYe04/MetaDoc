@@ -5,24 +5,34 @@
       class="pdf-toolbar"
       :style="{ backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor }"
     >
-      <el-tooltip :content="$t('latexEditor.prevPage')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ disabled: currentPdfPage <= 1 }"
-          @click="currentPdfPage > 1 && goPrevPage()"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.nextPage')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ disabled: currentPdfPage >= totalPdfPages }"
-          @click="currentPdfPage < totalPdfPages && goNextPage()"
-        >
-          <el-icon><ArrowRight /></el-icon>
-        </div>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ disabled: currentPdfPage <= 1 }"
+            @click="currentPdfPage > 1 && goPrevPage()"
+          >
+            <ArrowLeft />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.prevPage') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ disabled: currentPdfPage >= totalPdfPages }"
+            @click="currentPdfPage < totalPdfPages && goNextPage()"
+          >
+            <ArrowRight />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.nextPage') }}
+        </TooltipContent>
+      </Tooltip>
       <span
         class="pdf-toolbar__page"
         :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`"
@@ -38,21 +48,36 @@
           >/ {{ totalPdfPages }} {{ $t('latexEditor.pages') }}</span
         >
       </span>
-      <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-        <div class="pdf-toolbar-icon" @click="pdfZoomIn">
-          <el-icon><ZoomIn /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-        <div class="pdf-toolbar-icon" @click="pdfZoomOut">
-          <el-icon><ZoomOut /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.toolbar.zoomReset')" placement="bottom">
-        <div class="pdf-toolbar-icon" @click="pdfZoomReset">
-          <el-icon><Refresh /></el-icon>
-        </div>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div class="pdf-toolbar-icon" @click="pdfZoomIn">
+            <ZoomIn />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.zoomIn') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div class="pdf-toolbar-icon" @click="pdfZoomOut">
+            <ZoomOut />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.zoomOut') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div class="pdf-toolbar-icon" @click="pdfZoomReset">
+            <Refresh />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.zoomReset') }}
+        </TooltipContent>
+      </Tooltip>
       <el-divider direction="vertical" />
       <span class="pdf-toolbar__pages-per-row">
         <span class="pdf-toolbar__pages-per-row-label"
@@ -68,32 +93,42 @@
         </Select>
       </span>
       <el-divider direction="vertical" />
-      <el-tooltip :content="$t('latexEditor.toolbar.pointerMode')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ active: pdfViewMode === 'pointer' }"
-          @click="setPdfViewMode('pointer')"
-        >
-          <img
-            :src="(themeState.currentTheme as any).CursorIcon"
-            alt="pointer"
-            class="pdf-toolbar-mode-icon"
-          />
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.toolbar.handMode')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ active: pdfViewMode === 'hand' }"
-          @click="setPdfViewMode('hand')"
-        >
-          <img
-            :src="(themeState.currentTheme as any).HandIcon"
-            alt="hand"
-            class="pdf-toolbar-mode-icon"
-          />
-        </div>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ active: pdfViewMode === 'pointer' }"
+            @click="setPdfViewMode('pointer')"
+          >
+            <img
+              :src="(themeState.currentTheme as any).CursorIcon"
+              alt="pointer"
+              class="pdf-toolbar-mode-icon"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.pointerMode') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ active: pdfViewMode === 'hand' }"
+            @click="setPdfViewMode('hand')"
+          >
+            <img
+              :src="(themeState.currentTheme as any).HandIcon"
+              alt="hand"
+              class="pdf-toolbar-mode-icon"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.handMode') }}
+        </TooltipContent>
+      </Tooltip>
     </div>
     <ScrollArea
       v-if="isValidPdfUrl"
@@ -169,6 +204,11 @@ import {
   SelectContent,
   SelectItem
 } from '@renderer/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 

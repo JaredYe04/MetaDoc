@@ -13,7 +13,7 @@
         <!-- 使用定位（用户画像） -->
         <div v-if="userProfile" class="profile-section">
           <h2 class="section-title">
-            <el-icon><User /></el-icon>
+            <User class="w-4 h-4" />
             {{ $t('userManual.overview.profileSummary') || '您的使用定位' }}
           </h2>
           <UserProfileVisualization :profile="userProfile" @reanalyze="openProfileDialog" />
@@ -22,7 +22,7 @@
         <!-- 学习进度 -->
         <div v-if="learningPath.length > 0" class="progress-section">
           <h2 class="section-title">
-            <el-icon><DataAnalysis /></el-icon>
+            <BarChart3 class="w-4 h-4" />
             {{ $t('userManual.overview.progress') || '学习进度' }}
           </h2>
           <div class="progress-card">
@@ -45,7 +45,7 @@
         <!-- 推荐学习路径 -->
         <div v-if="learningPath.length > 0" class="path-section">
           <h2 class="section-title">
-            <el-icon><Guide /></el-icon>
+            <BookOpen class="w-4 h-4" />
             {{ $t('userManual.overview.recommendedPath') || '推荐学习路径' }}
           </h2>
           <div class="path-card">
@@ -76,20 +76,18 @@
                 <div class="step-content">
                   <div class="step-title">{{ getArticleTitle(articleId) }}</div>
                   <div class="step-meta">
-                    <el-tag v-if="isArticleCompleted(articleId)" size="small" type="success">
+                    <Badge v-if="isArticleCompleted(articleId)" variant="default">
                       {{ $t('userManual.overview.completed') || '已完成' }}
-                    </el-tag>
-                    <el-tag v-else-if="articleId === currentArticleId" size="small" type="primary">
+                    </Badge>
+                    <Badge v-else-if="articleId === currentArticleId" variant="default">
                       {{ $t('userManual.overview.current') || '当前' }}
-                    </el-tag>
-                    <el-tag v-else size="small" type="info">
+                    </Badge>
+                    <Badge v-else variant="secondary">
                       {{ $t('userManual.overview.pending') || '待学习' }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </div>
-                <el-icon v-if="isArticleCompleted(articleId)" class="step-check">
-                  <Check />
-                </el-icon>
+                <Check class="w-4 h-4" />
               </div>
             </div>
             <div class="path-actions">
@@ -97,7 +95,7 @@
               :disabled="!selectedNodeId"
               @click="startSelectedLearning"
             >
-              <Document class="mr-2 h-4 w-4" />
+              <FileText class="mr-2 h-4 w-4" />
               {{ $t('userManual.overview.startLearning') || '开始学习' }}
             </Button>
             <Button
@@ -114,7 +112,7 @@
         <!-- 快速开始 -->
         <div v-else class="quick-start-section">
           <h2 class="section-title">
-            <el-icon><Lightning /></el-icon>
+            <Zap class="w-4 h-4" />
             {{ $t('userManual.overview.quickStart') || '快速开始' }}
           </h2>
           <div class="quick-start-card">
@@ -131,7 +129,7 @@
         <!-- 快速链接 -->
         <div class="quick-links-section">
           <h2 class="section-title">
-            <el-icon><Link /></el-icon>
+            <Link class="w-4 h-4" />
             {{ $t('userManual.overview.quickLinks') || '快速链接' }}
           </h2>
           <div class="quick-links-grid">
@@ -171,14 +169,15 @@ import UserProfileVisualization from './UserProfileVisualization.vue'
 import LearningGraph from './LearningGraph.vue'
 import {
   User,
-  DataAnalysis,
-  Guide,
+  BarChart3,
+  BookOpen,
   Check,
-  Document,
-  Lightning,
+  FileText,
+  Zap,
   Link
-} from '@element-plus/icons-vue'
+} from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Badge } from '@renderer/components/ui/badge'
 import { themeState } from '../../utils/themes'
 
 const { t, locale } = useI18n()

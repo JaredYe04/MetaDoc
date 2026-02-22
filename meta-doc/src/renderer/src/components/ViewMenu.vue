@@ -81,10 +81,8 @@
 
     <!-- 折叠按钮 -->
     <div class="collapse-button" @click="toggleCollapse">
-      <el-icon>
-        <ArrowLeft v-if="!isCollapsed" />
-        <ArrowRight v-else />
-      </el-icon>
+      <ArrowLeft v-if="!isCollapsed" class="w-4 h-4" />
+      <ArrowRight v-else class="w-4 h-4" />
     </div>
   </div>
 </template>
@@ -95,7 +93,7 @@ import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace, type DocumentView } from '../stores/workspace'
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import ViewMenuItem from './ViewMenuItem.vue'
 

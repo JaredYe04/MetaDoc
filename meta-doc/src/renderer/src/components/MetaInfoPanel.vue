@@ -144,7 +144,11 @@
           @update:visible="descriptionAssistantVisible = $event"
         />
 
-        <el-dialog v-model="metaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
+        <Dialog v-model:open="metaDialogVisible">
+          <DialogContent class="w-[30%] min-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>{{ $t('article.edit_meta_info') }}</DialogTitle>
+            </DialogHeader>
           <Form>
             <FormField :label="$t('article.title')" name="title">
               <Input v-model="formState.title" class="aero-input" />
@@ -163,7 +167,7 @@
               />
             </FormField>
           </Form>
-          <template #footer>
+          <DialogFooter>
             <Button
               variant="secondary"
               @click="metaDialogVisible = false"
@@ -176,8 +180,9 @@
               :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('common.confirm') }}</Button
             >
-          </template>
-        </el-dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </el-scrollbar>
   </div>
@@ -192,6 +197,13 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { themeState, mixColors } from '../utils/themes'
 import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import {
   generateDescriptionPrompt,
   generateKeywordsPrompt,

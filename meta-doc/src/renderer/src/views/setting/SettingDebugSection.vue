@@ -65,22 +65,20 @@
 
       <!-- 内容区域 -->
       <div class="debug-content">
-        <el-card class="debug-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="card-title">{{ getCurrentTabTitle() }}</span>
-            </div>
-          </template>
-
-          <transition name="fade" mode="out-in">
-            <div :key="activeTab" class="tab-content-wrapper">
-              <!-- EventBus 事件 -->
-              <div v-if="activeTab === 'eventbus'" class="tab-content">
-                <Tabs v-model="eventBusActiveTab" class="debug-tabs">
-                  <TabsList class="debug-tabs-list">
-                    <TabsTrigger value="eventbus">{{ $t('setting.debug.eventBus') }}</TabsTrigger>
-                    <TabsTrigger value="broadcast">{{ $t('setting.debug.broadcast') }}</TabsTrigger>
-                  </TabsList>
+        <Card class="debug-card">
+          <CardHeader>
+            <CardTitle class="card-title">{{ getCurrentTabTitle() }}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <transition name="fade" mode="out-in">
+              <div :key="activeTab" class="tab-content-wrapper">
+                <!-- EventBus 事件 -->
+                <div v-if="activeTab === 'eventbus'" class="tab-content">
+                  <Tabs v-model="eventBusActiveTab" class="debug-tabs">
+                    <TabsList class="debug-tabs-list">
+                      <TabsTrigger value="eventbus">{{ $t('setting.debug.eventBus') }}</TabsTrigger>
+                      <TabsTrigger value="broadcast">{{ $t('setting.debug.broadcast') }}</TabsTrigger>
+                    </TabsList>
 
                   <!-- EventBus 事件测试 -->
                   <TabsContent value="eventbus" class="debug-tabs-content">
@@ -224,33 +222,37 @@
                   <!-- 更新状态显示 -->
                   <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px">
                     <el-divider style="margin-top: 0">更新状态</el-divider>
-                    <el-alert
+                    <Alert
                       v-if="updateTestStatus.updateAvailable"
-                      type="success"
-                      :title="`发现新版本: ${updateTestStatus.updateInfo?.version || ''}`"
-                      :description="updateTestStatus.updateInfo?.releaseNotes || ''"
-                      show-icon
-                      :closable="false"
-                      style="margin-bottom: 16px"
-                    />
-                    <el-alert
+                      variant="default"
+                      class="mb-4"
+                    >
+                      <CheckCircle2 class="h-4 w-4" />
+                      <AlertTitle>发现新版本: {{ updateTestStatus.updateInfo?.version || '' }}</AlertTitle>
+                      <AlertDescription v-if="updateTestStatus.updateInfo?.releaseNotes">
+                        {{ updateTestStatus.updateInfo.releaseNotes }}
+                      </AlertDescription>
+                    </Alert>
+                    <Alert
                       v-else-if="updateTestStatus.updateNotAvailable"
-                      type="info"
-                      title="已是最新版本"
-                      :description="`当前版本: ${updateTestStatus.updateInfo?.version || ''}`"
-                      show-icon
-                      :closable="false"
-                      style="margin-bottom: 16px"
-                    />
-                    <el-alert
+                      variant="default"
+                      class="mb-4"
+                    >
+                      <Info class="h-4 w-4" />
+                      <AlertTitle>已是最新版本</AlertTitle>
+                      <AlertDescription v-if="updateTestStatus.updateInfo?.version">
+                        当前版本: {{ updateTestStatus.updateInfo.version }}
+                      </AlertDescription>
+                    </Alert>
+                    <Alert
                       v-else-if="updateTestStatus.error"
-                      type="error"
-                      title="检查更新失败"
-                      :description="updateTestStatus.error"
-                      show-icon
-                      :closable="false"
-                      style="margin-bottom: 16px"
-                    />
+                      variant="destructive"
+                      class="mb-4"
+                    >
+                      <XCircle class="h-4 w-4" />
+                      <AlertTitle>检查更新失败</AlertTitle>
+                      <AlertDescription>{{ updateTestStatus.error }}</AlertDescription>
+                    </Alert>
 
                     <!-- 下载和安装按钮 -->
                     <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
@@ -280,15 +282,14 @@
                       <Button v-if="updateTestDownloading" variant="outline" @click="handleMockCancelDownload">
                         取消下载
                       </Button>
-                      <el-alert
+                      <Alert
                         v-if="updateTestDownloadError"
-                        type="error"
-                        :title="updateTestDownloadError"
-                        show-icon
-                        :closable="true"
-                        @close="updateTestDownloadError = null"
-                        style="margin-top: 16px"
-                      />
+                        variant="destructive"
+                        class="mt-4"
+                      >
+                        <XCircle class="h-4 w-4" />
+                        <AlertTitle>{{ updateTestDownloadError }}</AlertTitle>
+                      </Alert>
                     </div>
                   </div>
 
@@ -368,7 +369,6 @@
                             <SelectValue placeholder="从test-cases.json选择测试用例" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">清除选择</SelectItem>
                             <SelectGroup
                               v-for="(testCases, toolId) in availableTestCases"
                               :key="toolId"
@@ -431,7 +431,6 @@
                             <SelectValue placeholder="选择已保存的配置" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">清除选择</SelectItem>
                             <SelectItem
                               v-for="config in savedConfigs"
                               :key="config.id"
@@ -477,7 +476,7 @@
                           <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">（不指定，使用当前活动Tab）</SelectItem>
+                          <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
                           <SelectItem
                             v-for="tab in documentTabs"
                             :key="tab.id"
@@ -583,28 +582,24 @@
                               <Download class="mr-1 h-4 w-4" />
                               {{ $t('agent.tool.exportSnapshot') }}
                             </Button>
-                            <el-tag
+                            <Badge
                               v-if="entry.status === 'running'"
-                              type="warning"
-                              size="small"
-                              effect="dark"
+                              variant="warning"
                             >
                               执行中
-                            </el-tag>
-                            <el-tag
+                            </Badge>
+                            <Badge
                               v-else-if="entry.status === 'succeeded'"
-                              type="success"
-                              size="small"
+                              variant="default"
                             >
                               成功
-                            </el-tag>
-                            <el-tag
+                            </Badge>
+                            <Badge
                               v-else-if="entry.status === 'failed'"
-                              type="danger"
-                              size="small"
+                              variant="destructive"
                             >
                               失败
-                            </el-tag>
+                            </Badge>
                             <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
                           </div>
                         </div>
@@ -665,41 +660,43 @@
                           class="test-display-component"
                         >
                           <el-divider>渲染结果</el-divider>
-                          <el-collapse :model-value="getActivePanels(entry)" accordion>
-                            <el-collapse-item
-                              v-for="output in entry.outputs"
+                          <div class="space-y-2">
+                            <Collapsible
+                              v-for="(output, idx) in entry.outputs"
                               :key="output.id"
-                              :name="output.id"
+                              v-model:open="output._isOpen"
                             >
-                              <template #title>
+                              <CollapsibleTrigger class="bg-muted/50">
                                 <div style="display: flex; align-items: center; gap: 8px">
                                   <span>{{ output.label }}</span>
-                                  <el-tag size="small" effect="light">{{ output.format }}</el-tag>
+                                  <Badge variant="secondary">{{ output.format }}</Badge>
                                 </div>
-                              </template>
-                              <div class="output-body">
-                                <!-- 如果有渲染组件，使用组件渲染 -->
-                                <component
-                                  v-if="
-                                    getDisplayComponent(output.renderer || entry.displayComponent)
-                                  "
-                                  :is="
-                                    getDisplayComponent(output.renderer || entry.displayComponent)
-                                  "
-                                  :data="output.data"
-                                  :status="entry.error ? 'failed' : entry.status || 'succeeded'"
-                                  :progress="entry.progress"
-                                  :error="entry.error"
-                                  :tool-config="entry.toolConfig"
-                                  :invocation-id="entry.invocationId"
-                                />
-                                <!-- 否则使用纯文本渲染 -->
-                                <pre v-else class="raw-text" :style="codeBlockStyle">{{
-                                  formatResult(output.data)
-                                }}</pre>
-                              </div>
-                            </el-collapse-item>
-                          </el-collapse>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div class="output-body pt-2">
+                                  <!-- 如果有渲染组件，使用组件渲染 -->
+                                  <component
+                                    v-if="
+                                      getDisplayComponent(output.renderer || entry.displayComponent)
+                                    "
+                                    :is="
+                                      getDisplayComponent(output.renderer || entry.displayComponent)
+                                    "
+                                    :data="output.data"
+                                    :status="entry.error ? 'failed' : entry.status || 'succeeded'"
+                                    :progress="entry.progress"
+                                    :error="entry.error"
+                                    :tool-config="entry.toolConfig"
+                                    :invocation-id="entry.invocationId"
+                                  />
+                                  <!-- 否则使用纯文本渲染 -->
+                                  <pre v-else class="raw-text" :style="codeBlockStyle">{{
+                                    formatResult(output.data)
+                                  }}</pre>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          </div>
                         </div>
 
                         <!-- 原始结果数据 -->
@@ -790,28 +787,24 @@
                       <div class="test-history-header">
                         <span class="test-name">{{ importedSnapshot.toolName }}</span>
                         <div class="test-header-right">
-                          <el-tag
+                          <Badge
                             v-if="importedSnapshot.status === 'running'"
-                            type="warning"
-                            size="small"
-                            effect="dark"
+                            variant="warning"
                           >
                             {{ $t('agent.tool.status.running') }}
-                          </el-tag>
-                          <el-tag
+                          </Badge>
+                          <Badge
                             v-else-if="importedSnapshot.status === 'succeeded'"
-                            type="success"
-                            size="small"
+                            variant="default"
                           >
                             {{ $t('agent.tool.status.success') }}
-                          </el-tag>
-                          <el-tag
+                          </Badge>
+                          <Badge
                             v-else-if="importedSnapshot.status === 'failed'"
-                            type="danger"
-                            size="small"
+                            variant="destructive"
                           >
                             {{ $t('agent.tool.status.failed') }}
-                          </el-tag>
+                          </Badge>
                           <span class="test-time">{{
                             formatTime(importedSnapshot.timestamp)
                           }}</span>
@@ -860,55 +853,57 @@
                         class="test-display-component"
                       >
                         <el-divider>{{ $t('setting.debug.renderResult') }}</el-divider>
-                        <el-collapse :model-value="getActivePanels(importedSnapshot)" accordion>
-                          <el-collapse-item
-                            v-for="output in importedSnapshot.outputs"
+                        <div class="space-y-2">
+                          <Collapsible
+                            v-for="(output, idx) in importedSnapshot.outputs"
                             :key="output.id"
-                            :name="output.id"
+                            v-model:open="output._isOpen"
                           >
-                            <template #title>
+                            <CollapsibleTrigger class="bg-muted/50">
                               <div style="display: flex; align-items: center; gap: 8px">
                                 <span>{{ output.label }}</span>
-                                <el-tag size="small" effect="light">{{ output.format }}</el-tag>
+                                <Badge variant="secondary">{{ output.format }}</Badge>
                               </div>
-                            </template>
-                            <div class="output-body">
-                              <!-- 如果有渲染组件，使用组件渲染 -->
-                              <component
-                                v-if="
-                                  getDisplayComponent(
-                                    output.renderer || importedSnapshot.displayComponent
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div class="output-body pt-2">
+                                <!-- 如果有渲染组件，使用组件渲染 -->
+                                <component
+                                  v-if="
+                                    getDisplayComponent(
+                                      output.renderer || importedSnapshot.displayComponent
+                                    )
+                                  "
+                                  :is="
+                                    getDisplayComponent(
+                                      output.renderer || importedSnapshot.displayComponent
+                                    )
+                                  "
+                                  :data="output.data"
+                                  :status="
+                                    importedSnapshot.error
+                                      ? 'failed'
+                                      : importedSnapshot.status || 'succeeded'
+                                  "
+                                  :progress="importedSnapshot.progress"
+                                  :error="importedSnapshot.error"
+                                  :tool-config="importedSnapshot.toolConfig"
+                                  :invocation-id="importedSnapshot.invocationId"
+                                />
+                                <!-- 否则使用纯文本渲染 -->
+                                <pre v-else class="raw-text" :style="codeBlockStyle">{{
+                                  formatResult(
+                                    output.data &&
+                                      typeof output.data === 'object' &&
+                                      'content' in output.data
+                                      ? output.data.content
+                                      : output.data
                                   )
-                                "
-                                :is="
-                                  getDisplayComponent(
-                                    output.renderer || importedSnapshot.displayComponent
-                                  )
-                                "
-                                :data="output.data"
-                                :status="
-                                  importedSnapshot.error
-                                    ? 'failed'
-                                    : importedSnapshot.status || 'succeeded'
-                                "
-                                :progress="importedSnapshot.progress"
-                                :error="importedSnapshot.error"
-                                :tool-config="importedSnapshot.toolConfig"
-                                :invocation-id="importedSnapshot.invocationId"
-                              />
-                              <!-- 否则使用纯文本渲染 -->
-                              <pre v-else class="raw-text" :style="codeBlockStyle">{{
-                                formatResult(
-                                  output.data &&
-                                    typeof output.data === 'object' &&
-                                    'content' in output.data
-                                    ? output.data.content
-                                    : output.data
-                                )
-                              }}</pre>
-                            </div>
-                          </el-collapse-item>
-                        </el-collapse>
+                                }}</pre>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </div>
                       </div>
 
                       <!-- 原始结果数据 -->
@@ -953,7 +948,7 @@
                           <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">（不指定，使用当前活动Tab）</SelectItem>
+                          <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
                           <SelectItem
                             v-for="tab in documentTabs"
                             :key="tab.id"
@@ -1197,19 +1192,19 @@
                         <!-- 上下文Tab选择 -->
                         <FormField name="contextTabId" label="上下文Tab">
                           <Select v-model="unitTestBatchForm.contextTabId" style="width: 100%">
-                            <SelectTrigger class="w-[240px]">
-                              <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">（不指定，使用当前活动Tab）</SelectItem>
-                              <SelectItem
-                                v-for="tab in documentTabs"
-                                :key="tab.id"
-                                :value="tab.id"
-                              >
-                                {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
-                              </SelectItem>
-                            </SelectContent>
+                        <SelectTrigger class="w-[240px]">
+                          <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
+                          <SelectItem
+                            v-for="tab in documentTabs"
+                            :key="tab.id"
+                            :value="tab.id"
+                          >
+                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                          </SelectItem>
+                        </SelectContent>
                           </Select>
                           <div
                             style="
@@ -1380,9 +1375,9 @@
                                 >
                                   <div class="node-header">
                                     <div class="node-info">
-                                      <el-tag size="small" :type="getNodeTypeTagType(node.type)">
+                                      <Badge :variant="getNodeTypeTagType(node.type)">
                                         {{ getNodeTypeLabel(node.type) }}
-                                      </el-tag>
+                                      </Badge>
                                       <span class="node-id">{{ node.id.substring(0, 16) }}...</span>
                                       <span class="node-time">{{
                                         formatTime(node.timestamp)
@@ -1407,37 +1402,42 @@
                                     </div>
                                   </div>
                                   <div class="node-status">
-                                    <el-tag size="small" :type="getNodeStatusTagType(node.status)">
+                                    <Badge :variant="getNodeStatusTagType(node.status)">
                                       {{ getNodeStatusLabel(node.status) }}
-                                    </el-tag>
+                                    </Badge>
                                   </div>
-                                  <div class="node-data">
-                                    <el-collapse>
-                                      <el-collapse-item title="节点数据" :name="node.id">
+                                  <div class="node-data space-y-2">
+                                    <Collapsible>
+                                      <CollapsibleTrigger class="bg-muted/50">
+                                        节点数据
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
                                         <pre :style="messageContentStyle">{{
                                           formatResult(node.data)
                                         }}</pre>
-                                      </el-collapse-item>
-                                      <el-collapse-item
-                                        v-if="node.result"
-                                        title="执行结果"
-                                        :name="`${node.id}-result`"
-                                      >
+                                      </CollapsibleContent>
+                                    </Collapsible>
+                                    <Collapsible v-if="node.result">
+                                      <CollapsibleTrigger class="bg-muted/50">
+                                        执行结果
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
                                         <pre :style="messageContentStyle">{{
                                           formatResult(node.result)
                                         }}</pre>
-                                      </el-collapse-item>
-                                      <el-collapse-item
-                                        v-if="node.error"
-                                        title="错误信息"
-                                        :name="`${node.id}-error`"
-                                      >
+                                      </CollapsibleContent>
+                                    </Collapsible>
+                                    <Collapsible v-if="node.error">
+                                      <CollapsibleTrigger class="bg-muted/50">
+                                        错误信息
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
                                         <pre
                                           :style="{ ...messageContentStyle, color: '#f56c6c' }"
                                           >{{ node.error }}</pre
                                         >
-                                      </el-collapse-item>
-                                    </el-collapse>
+                                      </CollapsibleContent>
+                                    </Collapsible>
                                   </div>
                                 </div>
                               </div>
@@ -1466,12 +1466,9 @@
                                 >
                                   <div class="message-header">
                                     <div class="message-info">
-                                      <el-tag
-                                        size="small"
-                                        :type="getMessageRoleTagType(message.role)"
-                                      >
+                                      <Badge :variant="getMessageRoleTagType(message.role)">
                                         {{ getMessageRoleLabel(message.role) }}
-                                      </el-tag>
+                                      </Badge>
                                       <span class="message-type">{{ message.type }}</span>
                                       <span class="message-id"
                                         >{{ message.id.substring(0, 16) }}...</span
@@ -1499,9 +1496,12 @@
                                       </Button>
                                     </div>
                                   </div>
-                                  <div class="message-content">
-                                    <el-collapse>
-                                      <el-collapse-item title="消息内容" :name="message.id">
+                                  <div class="message-content space-y-2">
+                                    <Collapsible>
+                                      <CollapsibleTrigger class="bg-muted/50">
+                                        消息内容
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
                                         <div v-if="message.type === 'chat'">
                                           <pre :style="messageContentStyle">{{
                                             (message as any).markdown ||
@@ -1526,17 +1526,18 @@
                                             formatResult(message)
                                           }}</pre>
                                         </div>
-                                      </el-collapse-item>
-                                      <el-collapse-item
-                                        v-if="(message as any).tool_calls"
-                                        title="工具调用"
-                                        :name="`${message.id}-tool-calls`"
-                                      >
+                                      </CollapsibleContent>
+                                    </Collapsible>
+                                    <Collapsible v-if="(message as any).tool_calls">
+                                      <CollapsibleTrigger class="bg-muted/50">
+                                        工具调用
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent>
                                         <pre :style="messageContentStyle">{{
                                           formatResult((message as any).tool_calls)
                                         }}</pre>
-                                      </el-collapse-item>
-                                    </el-collapse>
+                                      </CollapsibleContent>
+                                    </Collapsible>
                                   </div>
                                 </div>
                               </div>
@@ -1560,9 +1561,9 @@
                                 selectedSession.agentConfigId || '无'
                               }}</el-descriptions-item>
                               <el-descriptions-item label="状态">
-                                <el-tag :type="getSessionStatusTagType(selectedSession.status)">
+                                <Badge :variant="getSessionStatusTagType(selectedSession.status)">
                                   {{ selectedSession.status || 'idle' }}
-                                </el-tag>
+                                </Badge>
                               </el-descriptions-item>
                               <el-descriptions-item label="当前执行节点">{{
                                 selectedSession.currentExecutionNodeId || '无'
@@ -1667,13 +1668,12 @@
                               >
                                 前进
                               </Button>
-                              <el-slider
+                              <Slider
                                 v-model="replaySpeed"
                                 :min="0.1"
                                 :max="5"
                                 :step="0.1"
                                 style="width: 200px; margin: 0 16px"
-                                :format-tooltip="(val: number) => `${val}x`"
                               />
                               <span style="min-width: 60px">{{ replaySpeed }}x</span>
                             </div>
@@ -1729,32 +1729,28 @@
                             :style="getReplayMessageItemStyle(index)"
                           >
                             <div class="replay-message-header">
-                              <el-tag size="small" :type="getMessageRoleTagType(message.role)">
+                              <Badge :variant="getMessageRoleTagType(message.role)">
                                 {{ getMessageRoleLabel(message.role) }}
-                              </el-tag>
+                              </Badge>
                               <span class="replay-message-time">{{
                                 formatTime(message.timestamp)
                               }}</span>
-                              <el-tag
+                              <Badge
                                 v-if="message.isReplaying"
-                                size="small"
-                                type="warning"
-                                effect="dark"
+                                variant="warning"
                               >
                                 回放中
-                              </el-tag>
-                              <el-tag v-if="message.isReplayed" size="small" type="success">
+                              </Badge>
+                              <Badge v-if="message.isReplayed" variant="default">
                                 已回放
-                              </el-tag>
+                              </Badge>
                               <!-- 显示解析出的工具调用 -->
                               <template v-if="getParsedToolCalls(message).length > 0">
-                                <el-tag
+                                <Badge
                                   v-for="(toolCall, idx) in getParsedToolCalls(message)"
                                   :key="idx"
-                                  size="small"
-                                  :type="toolCall.isValid ? 'info' : 'danger'"
-                                  effect="plain"
-                                  style="margin-left: 8px"
+                                  :variant="toolCall.isValid ? 'secondary' : 'destructive'"
+                                  class="ml-2"
                                   :title="
                                     toolCall.isValid
                                       ? `工具ID: ${toolCall.tool_id}`
@@ -1762,16 +1758,14 @@
                                   "
                                 >
                                   {{ toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误` }}
-                                </el-tag>
-                                <el-tag
+                                </Badge>
+                                <Badge
                                   v-if="getParsedToolCalls(message).length > 1"
-                                  size="small"
-                                  type="info"
-                                  effect="plain"
-                                  style="margin-left: 8px"
+                                  variant="outline"
+                                  class="ml-2"
                                 >
                                   共 {{ getParsedToolCalls(message).length }} 个工具调用
-                                </el-tag>
+                                </Badge>
                               </template>
                             </div>
                             <div class="replay-message-content">
@@ -1815,7 +1809,8 @@
               </div>
             </div>
           </transition>
-        </el-card>
+        </CardContent>
+        </Card>
       </div>
     </div>
 
@@ -1867,7 +1862,10 @@
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
+import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Slider } from '@renderer/components/ui/slider'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -1875,12 +1873,23 @@ import { Badge } from '@renderer/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@renderer/components/ui/collapsible'
+import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@renderer/components/ui/card'
 import { Form, FormField } from '@renderer/components/ui/form'
 import {
   Select,
@@ -5660,7 +5669,7 @@ onMounted(async () => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-.debug-card :deep(.el-card__body) {
+.debug-card :deep(> div:last-child) {
   flex: 1;
   overflow: hidden;
   display: flex;

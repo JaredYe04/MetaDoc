@@ -22,7 +22,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('ocr.noSessionSelected') }}</p>
           </div>
@@ -159,7 +160,7 @@
                         <div class="params-list">
                           <div class="param-item">
                             <label>{{ t('ocr.brightness') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).brightness"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'brightness', val)
@@ -174,7 +175,7 @@
                           </div>
                           <div class="param-item">
                             <label>{{ t('ocr.contrast') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).contrast"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'contrast', val)
@@ -189,7 +190,7 @@
                           </div>
                           <div class="param-item">
                             <label>{{ t('ocr.saturation') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).saturation"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'saturation', val)
@@ -204,7 +205,7 @@
                           </div>
                           <div class="param-item">
                             <label>{{ t('ocr.sharpness') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).sharpness"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'sharpness', val)
@@ -401,6 +402,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import {
   Select,
@@ -2904,13 +2907,18 @@ const preStyle = computed(() => ({
 /* Tab 缩略图样式 */
 .ocr-tabs {
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-:deep(.el-tabs__item) {
+/* shadcn-vue Tabs styling */
+.ocr-tabs :deep([role="tab"]) {
   position: relative;
 }
 
-:deep(.el-tabs__item:hover) {
+.ocr-tabs :deep([role="tab"]:hover) {
   position: relative;
 }
 
@@ -2938,7 +2946,7 @@ const preStyle = computed(() => ({
   object-fit: contain;
 }
 
-:deep(.el-tabs__item:hover) .tab-thumbnail {
+.ocr-tabs :deep([role="tab"]:hover) .tab-thumbnail {
   opacity: 1;
 }
 
@@ -2959,24 +2967,19 @@ const preStyle = computed(() => ({
   margin-top: 0;
 }
 
-/* 确保 el-tabs 占满容器 */
-:deep(.el-tabs) {
-  display: flex;
-  flex-direction: column;
+/* shadcn-vue Tabs layout */
+.ocr-tabs :deep([role="tablist"]) {
+  flex-shrink: 0;
+}
+
+.ocr-tabs :deep([role="tabpanel"]) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-:deep(.el-tabs__content) {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-:deep(.el-tab-pane) {
+.ocr-tabs :deep([role="tabpanel"][data-state="active"]) {
   height: 100%;
-  overflow: hidden;
 }
 
 .ocr-result-item {

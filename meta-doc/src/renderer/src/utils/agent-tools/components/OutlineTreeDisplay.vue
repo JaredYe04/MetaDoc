@@ -25,9 +25,9 @@
             {{ $t('agent.display.outlineTree.title') }}
           </h3>
         </div>
-        <el-tag type="info" size="small">{{
+        <Badge type="info" size="small">{{
           $t('agent.display.outlineTree.nodeCount', { count: nodeCount })
-        }}</el-tag>
+        }}</Badge>
       </div>
 
       <ScrollArea class="h-[500px]">
@@ -41,27 +41,27 @@
             <div class="tree-node" :style="treeNodeStyle">
               <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
               <div class="node-info">
-                <el-tag v-if="data.path" size="small" type="info" :style="nodeTagStyle">
+                <Badge v-if="data.path" size="small" type="info" :class="nodeTagClass">
                   {{ $t('agent.display.outlineTree.path') }}: {{ data.path }}
-                </el-tag>
-                <el-tag
+                </Badge>
+                <Badge
                   v-if="data.titleLevel !== undefined"
                   size="small"
                   type="warning"
-                  :style="nodeTagStyle"
+                  :class="nodeTagClass"
                 >
                   {{ $t('agent.display.outlineTree.level') }}: {{ data.titleLevel }}
-                </el-tag>
-                <el-tag v-if="data.hasContent" size="small" type="success" :style="nodeTagStyle">
+                </Badge>
+                <Badge v-if="data.hasContent" size="small" type="success" :class="nodeTagClass">
                   {{ $t('agent.display.outlineTree.hasContent') }}
-                </el-tag>
-                <el-tag
+                </Badge>
+                <Badge
                   v-if="data.childrenCount !== undefined && data.childrenCount > 0"
                   size="small"
-                  :style="nodeTagStyle"
+                  :class="nodeTagClass"
                 >
                   {{ $t('agent.display.outlineTree.childrenCount', { count: data.childrenCount }) }}
-                </el-tag>
+                </Badge>
               </div>
             </div>
           </template>
@@ -70,11 +70,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.outlineTree.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.outlineTree.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -84,6 +83,9 @@ import { computed } from 'vue'
 import { Loading, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
@@ -254,10 +256,7 @@ const nodeLabelStyle = computed(() => ({
   flexShrink: 0
 }))
 
-const nodeTagStyle = computed(() => ({
-  margin: 0,
-  flexShrink: 0
-}))
+const nodeTagClass = 'shrink-0'
 </script>
 
 <style scoped>
@@ -307,7 +306,7 @@ const nodeTagStyle = computed(() => ({
   width: 100%;
 }
 
-.node-info .el-tag {
+.node-info :deep(.badge) {
   margin: 0;
   flex-shrink: 0;
 }

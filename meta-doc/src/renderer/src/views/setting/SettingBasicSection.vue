@@ -49,9 +49,12 @@
       <!-- <FormField name="particleEffect">
         <template #label>
           <span>{{ t('setting.particleEffect') }}</span>
-          <el-tooltip :content="t('setting.particleEffectHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{ t('setting.particleEffectHint') }}</TooltipContent>
+          </Tooltip>
         </template>
         <el-switch
           v-model="settings.particleEffect"
@@ -79,9 +82,12 @@
       </FormField>
 
       <!-- <FormField :label="t('setting.microphoneTest')" name="">
-      <el-tooltip :content="t('setting.microphoneHint')" placement="bottom">
-        <MicrophoneTest />
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <MicrophoneTest />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">{{ t('setting.microphoneHint') }}</TooltipContent>
+      </Tooltip>
     </FormField> -->
 
       <FormField :label="t('setting.excludeCodeBlocks')" name="excludeCodeBlocks">
@@ -162,7 +168,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
+import { HelpCircle } from 'lucide-vue-next'
 import MicrophoneTest from '../../components/MicrophoneTest.vue'
 import { settings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus'
@@ -176,6 +182,7 @@ import {
 } from '@renderer/components/ui/select'
 import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n()

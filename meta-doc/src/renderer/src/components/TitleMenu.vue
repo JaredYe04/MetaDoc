@@ -6,9 +6,9 @@
         plain
         size="small"
         type="danger"
-        @click="props.mode === 'demo' ? undefined : $emit('close')"
         class="aero-btn"
         style="float: inline-start"
+        @click="props.mode === 'demo' ? undefined : $emit('close')"
         @mousedown.prevent
       >
       </Button>
@@ -19,17 +19,17 @@
     </p>
 
     <MarkdownItEditor
-      class="md-container"
       v-if="!generated && !generating"
-      @mousedown.stop
+      class="md-container"
       :source="articleContent"
+      @mousedown.stop
     />
 
     <MarkdownItEditor
-      class="md-container"
       v-if="generated || generating"
-      @mousedown.stop
+      class="md-container"
       :source="generatedText"
+      @mousedown.stop
     />
 
     <el-autocomplete
@@ -43,70 +43,95 @@
       @mousedown.stop
     />
 
-    <div @mousedown.stop style="align-items: center; margin-top: 20px">
-      <el-slider
-        v-model="context_mode"
-        :step="1"
-        :min="0"
-        :max="2"
-        style="
-          width: 60%;
-          display: inline-block;
-          align-self: center;
-          margin-left: 20%;
-          margin-right: 20%;
-        "
-        show-stops
-        :marks="{
-          0: t('titleMenu.contextMarks.none'),
-          1: t('titleMenu.contextMarks.chapter'),
-          2: t('titleMenu.contextMarks.full')
-        }"
-        :format-tooltip="formatTooltip"
-      />
+    <div style="align-items: center; margin-top: 20px" @mousedown.stop>
+      <div
+        class="flex flex-col items-center"
+        style="width: 60%; margin-left: 20%; margin-right: 20%"
+      >
+        <Slider v-model="context_mode" :step="1" :min="0" :max="2" class="w-full" />
+        <div class="flex justify-between w-full text-xs text-muted-foreground mt-2">
+          <span>{{ t('titleMenu.contextMarks.none') }}</span>
+          <span>{{ t('titleMenu.contextMarks.chapter') }}</span>
+          <span>{{ t('titleMenu.contextMarks.full') }}</span>
+        </div>
+      </div>
     </div>
 
     <div @mousedown.stop>
-      <el-tooltip :content="t('titleMenu.tooltips.generate')" placement="top">
-        <Button
-          circle
-          type="primary"
-          @click="generate"
-          :disabled="generating || generated || userPrompt.length === 0"
-        >
-          <el-icon><Promotion /></el-icon>
-        </Button>
-      </el-tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              circle
+              type="primary"
+              :disabled="generating || generated || userPrompt.length === 0"
+              @click="generate"
+            >
+              <Send class="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ t('titleMenu.tooltips.generate') }}</p>
+          </TooltipContent>
+        </Tooltip>
 
-      <el-tooltip :content="t('titleMenu.tooltips.reset')" placement="top" v-if="generated">
-        <Button circle type="info" @click="reset">
-          <el-icon><RefreshLeft /></el-icon>
-        </Button>
-      </el-tooltip>
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button circle type="info" @click="reset">
+              <Undo2 class="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ t('titleMenu.tooltips.reset') }}</p>
+          </TooltipContent>
+        </Tooltip>
 
-      <el-tooltip :content="t('titleMenu.tooltips.chat')" placement="top" v-if="generated">
-        <Button circle type="info" @click="chat">
-          <el-icon><ChatLineRound /></el-icon>
-        </Button>
-      </el-tooltip>
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button circle type="info" @click="chat">
+              <MessageCircle class="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ t('titleMenu.tooltips.chat') }}</p>
+          </TooltipContent>
+        </Tooltip>
 
-      <el-tooltip :content="t('titleMenu.tooltips.acceptReplace')" placement="top" v-if="generated">
-        <Button circle type="success" @click="accept(false)">
-          <el-icon><Check /></el-icon>
-        </Button>
-      </el-tooltip>
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button circle type="success" @click="accept(false)">
+              <Check class="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ t('titleMenu.tooltips.acceptReplace') }}</p>
+          </TooltipContent>
+        </Tooltip>
 
-      <el-tooltip :content="t('titleMenu.tooltips.acceptAppend')" placement="top" v-if="generated">
-        <Button circle type="success" @click="accept(true)">
-          <el-icon><Plus /></el-icon>
-        </Button>
-      </el-tooltip>
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button circle type="success" @click="accept(true)">
+              <Plus class="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ t('titleMenu.tooltips.acceptAppend') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   </div>
 </template>
 
 <script setup>
 import { Button } from '@renderer/components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 import { ElDialog } from 'element-plus' // 引入 Element Plus 弹框组件
 import MarkdownItEditor from 'vue3-markdown-it'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -115,7 +140,7 @@ import { sectionChangePrompt } from '../utils/prompts'
 import eventBus from '../utils/event-bus'
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils'
 import { themeState } from '../utils/themes'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Send, Undo2, MessageCircle, Check } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
 import { getSetting } from '../utils/settings'
@@ -133,17 +158,6 @@ const { activeDocument } = useActiveDocument()
 const currentOutline = computed(() => props.tree ?? activeDocument.value?.outline ?? null)
 const currentMarkdown = computed(() => activeDocument.value?.markdown ?? '')
 
-function formatTooltip(val) {
-  if (val === 0) {
-    return t('titleMenu.contextTooltips.none')
-  }
-  if (val === 1) {
-    return t('titleMenu.contextTooltips.chapter')
-  }
-  if (val === 2) {
-    return t('titleMenu.contextTooltips.full')
-  }
-}
 const props = defineProps({
   title: {
     type: String,

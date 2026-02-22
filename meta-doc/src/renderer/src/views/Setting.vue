@@ -141,15 +141,17 @@ onMounted(async () => {
 
 .settings-aside {
   height: 100%;
-  width: 120px;
+  width: auto;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .settings-menu {
   height: 100%;
   display: flex;
   flex-direction: column;
-  width: 120px;
+  width: 180px;
 }
 
 /* 菜单项基础样式 */
@@ -190,7 +192,7 @@ onMounted(async () => {
 .setting-section {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   padding: 32px 24px 64px;
   box-sizing: border-box;
   height: 100%;

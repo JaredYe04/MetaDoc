@@ -1,15 +1,15 @@
 <template>
   <Button
     :type="isRecording ? 'danger' : 'primary'"
-    @click="toggleRecording"
     circle
     :size="props.size ? props.size : 'medium'"
     :disabled="props.disabled"
+    @click="toggleRecording"
   >
     <el-icon v-if="!isRecording"><Microphone /></el-icon>
     <el-icon v-if="isRecording"><Select /></el-icon>
   </Button>
-  <audio ref="audioPlayer" :src="audioUrl" controls v-if="false" class="audio-player" />
+  <audio v-if="false" ref="audioPlayer" :src="audioUrl" controls class="audio-player" />
 </template>
 
 <script setup>

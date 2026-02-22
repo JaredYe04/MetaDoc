@@ -33,30 +33,30 @@
           {{ displayData.nodeTitle }}
         </p>
         <div v-if="displayData.childrenCount !== undefined" class="result-stat">
-          <el-tag type="success">{{
+          <Badge class="bg-green-500 hover:bg-green-600 text-white">{{
             $t('agent.display.outlineOptimize.generatedChildrenCount', {
               count: displayData.childrenCount
             })
-          }}</el-tag>
+          }}</Badge>
         </div>
         <div v-if="displayData.totalChildrenCount !== undefined" class="result-stat">
-          <el-tag type="success">{{
+          <Badge class="bg-green-500 hover:bg-green-600 text-white">{{
             $t('agent.display.outlineOptimize.totalChildrenCount', {
               count: displayData.totalChildrenCount
             })
-          }}</el-tag>
+          }}</Badge>
         </div>
         <div v-if="displayData.contentLength !== undefined" class="result-stat">
-          <el-tag type="info">{{
+          <Badge variant="secondary">{{
             $t('agent.display.outlineOptimize.contentLength', { length: displayData.contentLength })
-          }}</el-tag>
+          }}</Badge>
         </div>
         <div v-if="displayData.totalContentCount !== undefined" class="result-stat">
-          <el-tag type="info">{{
+          <Badge variant="secondary">{{
             $t('agent.display.outlineOptimize.totalContentCount', {
               count: displayData.totalContentCount
             })
-          }}</el-tag>
+          }}</Badge>
         </div>
       </div>
 
@@ -81,23 +81,22 @@
               <div class="tree-node" :style="treeNodeStyle">
                 <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
                 <div class="node-info">
-                  <el-tag v-if="data.path" size="small" type="info" :style="nodeTagStyle">
+                  <Badge v-if="data.path" variant="secondary" class="text-xs" :style="nodeTagStyle">
                     {{ $t('agent.display.outlineOptimize.path') }}: {{ data.path }}
-                  </el-tag>
-                  <el-tag
+                  </Badge>
+                  <Badge
                     v-if="data.titleLevel !== undefined"
-                    size="small"
-                    type="warning"
+                    class="bg-amber-500 hover:bg-amber-600 text-white text-xs"
                     :style="nodeTagStyle"
                   >
                     {{ $t('agent.display.outlineOptimize.level') }}: {{ data.titleLevel }}
-                  </el-tag>
-                  <el-tag v-if="data.hasContent" size="small" type="success" :style="nodeTagStyle">
+                  </Badge>
+                  <Badge v-if="data.hasContent" class="bg-green-500 hover:bg-green-600 text-white text-xs" :style="nodeTagStyle">
                     {{ $t('agent.display.outlineOptimize.hasContent') }}
-                  </el-tag>
-                  <el-tag
+                  </Badge>
+                  <Badge
                     v-if="data.childrenCount !== undefined"
-                    size="small"
+                    class="text-xs"
                     :style="nodeTagStyle"
                   >
                     {{
@@ -105,7 +104,7 @@
                         count: data.childrenCount
                       })
                     }}
-                  </el-tag>
+                  </Badge>
                 </div>
               </div>
             </template>
@@ -115,11 +114,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.outlineOptimize.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.outlineOptimize.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -128,6 +126,9 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { Loading, Document } from '@element-plus/icons-vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -433,7 +434,7 @@ onMounted(() => {
   width: 100%;
 }
 
-.node-info .el-tag {
+.node-info :deep(.badge) {
   margin: 0;
   flex-shrink: 0;
 }

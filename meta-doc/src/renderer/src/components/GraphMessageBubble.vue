@@ -19,6 +19,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { MdEditor, MdPreview } from 'md-editor-v3'
@@ -488,24 +495,28 @@ onBeforeUnmount(() => {
     </transition>
     <el-avatar class="avatar-fallback" v-if="role === 'user'"><User class="w-6 h-6" /></el-avatar>
   </div>
-  <el-dialog v-model="editDialogVisible" :title="$t('messageBubble.editTitle')" width="80%">
-    <md-editor
-      v-model="editingText"
-      showCodeRowNumber
-      previewTheme="github"
-      codeStyleReverse
-      style="text-align: left"
-      :autoFoldThreshold="300"
-      :theme="themeState.currentTheme.vditorTheme as any"
-    />
-
-    <template #footer>
-      <div class="dialog-footer">
-        <Button @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
-        <Button type="primary" @click="saveEdit">{{ $t('common.save') }}</Button>
+  <Dialog v-model:open="editDialogVisible">
+    <DialogContent class="sm:max-w-[80%]">
+      <DialogHeader>
+        <DialogTitle>{{ $t('messageBubble.editTitle') }}</DialogTitle>
+      </DialogHeader>
+      <div class="grid gap-4 py-4">
+        <md-editor
+          v-model="editingText"
+          showCodeRowNumber
+          previewTheme="github"
+          codeStyleReverse
+          style="text-align: left"
+          :autoFoldThreshold="300"
+          :theme="themeState.currentTheme.vditorTheme as any"
+        />
       </div>
-    </template>
-  </el-dialog>
+      <DialogFooter>
+        <Button variant="ghost" @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
+        <Button @click="saveEdit">{{ $t('common.save') }}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>

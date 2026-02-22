@@ -1,9 +1,9 @@
 <script setup>
-import { cn } from '@renderer/lib/utils';
+import { cn } from '@renderer/lib/utils'
 
 const props = defineProps({
-  class: { type: null, required: false },
-});
+  class: { type: null, required: false }
+})
 </script>
 
 <template>
@@ -11,7 +11,7 @@ const props = defineProps({
     :class="
       cn(
         'relative [&>[data-slot=input]]:has-[[data-slot=increment]]:pr-5 [&>[data-slot=input]]:has-[[data-slot=decrement]]:pl-5',
-        props.class,
+        props.class
       )
     "
   >

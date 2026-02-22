@@ -20,9 +20,7 @@
           <div class="item-content">
             <span class="item-title">{{ getTitle(articleId) }}</span>
           </div>
-          <el-icon v-if="isCompleted(articleId)" class="item-check">
-            <Check />
-          </el-icon>
+          <Check v-if="isCompleted(articleId)" class="w-4 h-4" />
         </div>
       </div>
     </ScrollArea>
@@ -33,7 +31,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
-import { Check } from '@element-plus/icons-vue'
+import { Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 const { locale } = useI18n()

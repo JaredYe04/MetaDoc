@@ -22,7 +22,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('dataAnalysis.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
           </div>
@@ -327,6 +328,7 @@ import {
 } from '@renderer/components/ui/number-field'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
 import DataTable from '../components/common/DataTable.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
@@ -1812,38 +1814,21 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.main-tabs :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
+/* shadcn-vue Tabs styling */
+.main-tabs :deep([role="tablist"]) {
+  flex-shrink: 0;
 }
 
-.main-tabs :deep(.el-tabs__header.is-top) {
-  order: -999 !important;
-}
-
-.main-tabs :deep(.el-tabs__header.is-bottom) {
-  order: 999 !important;
-}
-
-.main-tabs :deep(.el-tabs__content) {
-  order: 0 !important;
+.main-tabs :deep([role="tabpanel"]) {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
-  padding: 0 !important;
 }
 
-.main-tabs :deep(.el-tab-pane) {
+.main-tabs :deep([role="tabpanel"][data-state="active"]) {
   height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .preview-tab-content {

@@ -11,8 +11,9 @@
       </div>
     </div>
 
-    <ScrollArea class="workflow-list-scroll flex-1 min-h-0">
-      <div class="workflow-grid" v-loading="loading">
+    <ScrollArea class="workflow-list-scroll flex-1 min-h-0" style="position: relative">
+      <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
+      <div class="workflow-grid">
         <div
           v-for="workflow in workflows"
           :key="workflow.id"
@@ -32,31 +33,29 @@
               <el-icon><Document /></el-icon>
             </div>
             <div v-if="workflow.isBuiltIn" class="workflow-card__badge">
-              <el-tag size="small" type="info">{{ t('agent.manage.workflow.builtIn') }}</el-tag>
+              <Badge variant="secondary">{{ t('agent.manage.workflow.builtIn') }}</Badge>
             </div>
           </div>
           <div class="workflow-card__body">
             <h3>{{ getLocalizedText(workflow.name) }}</h3>
             <p>{{ getLocalizedText(workflow.description) }}</p>
             <div class="workflow-card__meta">
-              <el-tag size="small" effect="plain">
+              <Badge variant="outline">
                 {{ workflow.version }}
-              </el-tag>
-              <el-tag size="small" effect="plain">
+              </Badge>
+              <Badge variant="outline">
                 {{ workflow.artifactNodes.length + workflow.controlFlowNodes.length }}
                 {{ t('agent.manage.workflow.nodes') }}
-              </el-tag>
-              <el-tag
-                size="small"
-                :type="workflow.enabled !== false ? 'success' : 'info'"
-                effect="plain"
+              </Badge>
+              <Badge
+                :variant="workflow.enabled !== false ? 'default' : 'secondary'"
               >
                 {{
                   workflow.enabled !== false
                     ? t('agent.manage.enabled')
                     : t('agent.manage.disabled')
                 }}
-              </el-tag>
+              </Badge>
             </div>
           </div>
           <div class="workflow-card__actions" @click.stop>
@@ -91,23 +90,28 @@
     </ScrollArea>
 
     <!-- 工作流画布对话框 -->
-    <el-dialog
-      v-model="canvasVisible"
-      :title="editingWorkflow ? t('agent.manage.workflow.edit') : t('agent.manage.workflow.create')"
-      width="90%"
-      :style="dialogStyle"
-      :close-on-click-modal="false"
-    >
-      <div class="workflow-canvas-container">
-        <WorkflowCanvas
-          v-if="canvasVisible"
-          :workflow="editingWorkflow"
-          :read-only="editingWorkflow?.isBuiltIn || false"
-          @save="handleCanvasSave"
-          @cancel="canvasVisible = false"
-        />
-      </div>
-    </el-dialog>
+    <Dialog v-model:open="canvasVisible">
+      <DialogContent
+        class="max-w-[90%]"
+        :style="dialogStyle"
+        :close-on-click-modal="false"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {{ editingWorkflow ? t('agent.manage.workflow.edit') : t('agent.manage.workflow.create') }}
+          </DialogTitle>
+        </DialogHeader>
+        <div class="workflow-canvas-container">
+          <WorkflowCanvas
+            v-if="canvasVisible"
+            :workflow="editingWorkflow"
+            :read-only="editingWorkflow?.isBuiltIn || false"
+            @save="handleCanvasSave"
+            @cancel="canvasVisible = false"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -122,7 +126,10 @@ import type { Workflow } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { getWorkflowThumbnail } from '../../../utils/agent-framework/workflow-thumbnail'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import {
   DropdownMenu,
   DropdownMenuTrigger,

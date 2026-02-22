@@ -26,24 +26,22 @@
       <div v-else class="proofread-content">
         <!-- 错误统计 -->
         <div v-if="proofreadResult" class="error-stats">
-          <el-alert
-            v-if="displayErrors.length === 0"
-            :title="$t('proofread.noErrors', '未发现错误')"
-            type="success"
-            :closable="false"
-          />
-          <el-alert
-            v-else
-            :title="
-              $t(
-                'proofread.errorsFound',
-                { count: displayErrors.length },
-                `发现 ${displayErrors.length} 个错误`
-              )
-            "
-            type="warning"
-            :closable="false"
-          />
+          <Alert v-if="displayErrors.length === 0" variant="default" class="mb-2">
+            <CheckCircle2 class="h-4 w-4" />
+            <AlertTitle>{{ $t('proofread.noErrors', '未发现错误') }}</AlertTitle>
+          </Alert>
+          <Alert v-else variant="warning" class="mb-2">
+            <AlertTriangle class="h-4 w-4" />
+            <AlertTitle>
+              {{
+                $t(
+                  'proofread.errorsFound',
+                  { count: displayErrors.length },
+                  `发现 ${displayErrors.length} 个错误`
+                )
+              }}
+            </AlertTitle>
+          </Alert>
         </div>
 
         <!-- 左右分栏布局 -->
@@ -52,9 +50,9 @@
           <div class="errors-panel">
             <div class="errors-panel-header">
               <span class="panel-title">{{ $t('proofread.errorsList', '错误列表') }}</span>
-              <el-tag v-if="displayErrors.length > 0" type="danger" size="small">
+              <Badge v-if="displayErrors.length > 0" variant="destructive">
                 {{ displayErrors.length }}
-              </el-tag>
+              </Badge>
             </div>
             <ScrollArea class="errors-scrollbar">
               <div v-if="displayErrors.length === 0" class="no-errors-message">
@@ -71,15 +69,15 @@
                 >
                   <div class="error-header">
                     <div class="error-tags">
-                      <el-tag :type="getSeverityType(error.severity)" size="small">
+                      <Badge :variant="getSeverityBadgeVariant(error.severity)">
                         {{ getSeverityLabel(error.severity) }}
-                      </el-tag>
-                      <el-tag :type="getErrorTypeTag(error.type)" size="small">
+                      </Badge>
+                      <Badge :variant="getErrorTypeBadgeVariant(error.type)">
                         {{ getErrorTypeLabel(error.type) }}
-                      </el-tag>
-                      <el-tag v-if="error.fixed" type="success" size="small">
+                      </Badge>
+                      <Badge v-if="error.fixed" variant="default" class="bg-green-600 hover:bg-green-700">
                         {{ $t('proofread.autoFixed', '已修复') }}
-                      </el-tag>
+                      </Badge>
                     </div>
                     <span class="error-location" :style="locationStyle">
                       {{
@@ -99,25 +97,19 @@
                     <div class="error-suggestions">
                       <span class="label">{{ $t('proofread.suggestions', '修改建议') }}:</span>
                       <div class="suggestions-list">
-                        <el-tag
+                        <Badge
                           v-for="(suggestion, sugIndex) in error.suggestions || [error.suggestion]"
                           :key="sugIndex"
-                          :type="
-                            (error.selectedSuggestion || error.suggestion) === suggestion
-                              ? 'primary'
-                              : 'info'
-                          "
-                          class="suggestion-tag"
+                          :variant="(error.selectedSuggestion || error.suggestion) === suggestion ? 'default' : 'outline'"
+                          class="suggestion-tag cursor-pointer"
                           :class="{
                             'suggestion-selected':
                               (error.selectedSuggestion || error.suggestion) === suggestion
                           }"
-                          size="small"
-                          effect="plain"
                           @click="handleSelectSuggestion(index, suggestion)"
                         >
                           {{ suggestion }}
-                        </el-tag>
+                        </Badge>
                       </div>
                     </div>
                     <div v-if="error.message" class="error-message" :style="messageStyle">
@@ -173,6 +165,9 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle } from '@renderer/components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'
@@ -1056,15 +1051,15 @@ const handleErrorItemClick = (error: ProofreadError) => {
 }
 
 // 获取错误类型标签
-const getErrorTypeTag = (type: string) => {
-  const typeMap: Record<string, string> = {
-    grammar: 'primary',
-    spelling: 'warning',
-    latex: 'danger',
-    style: 'info',
-    other: 'info'
+const getErrorTypeBadgeVariant = (type: string): 'default' | 'outline' | 'destructive' | 'secondary' => {
+  const typeMap: Record<string, 'default' | 'outline' | 'destructive' | 'secondary'> = {
+    grammar: 'default',
+    spelling: 'outline',
+    latex: 'destructive',
+    style: 'secondary',
+    other: 'secondary'
   }
-  return typeMap[type] || 'info'
+  return typeMap[type] || 'secondary'
 }
 
 const getErrorTypeLabel = (type: string) => {
@@ -1072,10 +1067,10 @@ const getErrorTypeLabel = (type: string) => {
 }
 
 // 获取严重程度标签
-const getSeverityType = (severity: string) => {
-  if (severity === 'error') return 'danger'
-  if (severity === 'warning') return 'warning'
-  return 'info'
+const getSeverityBadgeVariant = (severity: string): 'default' | 'outline' | 'destructive' | 'secondary' => {
+  if (severity === 'error') return 'destructive'
+  if (severity === 'warning') return 'outline'
+  return 'secondary'
 }
 
 const getSeverityLabel = (severity: string) => {

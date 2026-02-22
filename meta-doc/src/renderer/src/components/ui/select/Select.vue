@@ -1,5 +1,5 @@
 <script setup>
-import { SelectRoot, useForwardPropsEmits } from "reka-ui";
+import { SelectRoot, useForwardPropsEmits } from 'reka-ui'
 
 const props = defineProps({
   open: { type: Boolean, required: false },
@@ -12,11 +12,11 @@ const props = defineProps({
   autocomplete: { type: String, required: false },
   disabled: { type: Boolean, required: false },
   name: { type: String, required: false },
-  required: { type: Boolean, required: false },
-});
-const emits = defineEmits(["update:modelValue", "update:open"]);
+  required: { type: Boolean, required: false }
+})
+const emits = defineEmits(['update:modelValue', 'update:open'])
 
-const forwarded = useForwardPropsEmits(props, emits);
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>

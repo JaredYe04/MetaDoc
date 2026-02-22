@@ -85,65 +85,107 @@
                     backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
                   }"
                 >
-                  <el-tooltip :content="$t('latexEditor.toolbar.undo')" placement="bottom">
-                    <div class="toolbar-icon" @click="undo">
-                      <ArrowLeft class="w-4 h-4" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="undo">
+                        <ArrowLeft class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.undo') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.redo')" placement="bottom">
-                    <div class="toolbar-icon" @click="redo">
-                      <ArrowRight class="w-4 h-4" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="redo">
+                        <ArrowRight class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.redo') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-                    <div class="toolbar-icon" @click="zoomIn">
-                      <ZoomIn class="w-4 h-4" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="zoomIn">
+                        <ZoomIn class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.zoomIn') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-                    <div class="toolbar-icon" @click="zoomOut">
-                      <ZoomOut class="w-4 h-4" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="zoomOut">
+                        <ZoomOut class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.zoomOut') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip
-                    :content="$t('latexEditor.toolbar.toggleLineNumbers')"
-                    placement="bottom"
-                  >
-                    <div class="toolbar-icon" @click="toggleRowNumber">
-                      <icon name="numbers-1" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="toggleRowNumber">
+                        <icon name="numbers-1" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.toggleLineNumbers') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.togglePreview')" placement="bottom">
-                    <div class="toolbar-icon" @click="toggleMinimap">
-                      <el-icon>
-                        <Memo />
-                      </el-icon>
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="toggleMinimap">
+                        <el-icon>
+                          <Memo />
+                        </el-icon>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.togglePreview') }}
+                    </TooltipContent>
+                  </Tooltip>
 
                   <el-divider direction="vertical"></el-divider>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
-                    <div class="toolbar-icon" @click="togglePdf">
-                      <icon name="terminal" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="togglePdf">
+                        <icon name="terminal" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.showPdf') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.showConsole')" placement="bottom">
-                    <div class="toolbar-icon" @click="toggleConsole">
-                      <icon name="terminal-rectangle" />
-                    </div>
-                  </el-tooltip>
-                  <el-tooltip :content="$t('latexEditor.toolbar.compile')" placement="bottom">
-                    <div class="toolbar-icon" @click="compile">
-                      <icon name="code" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="toggleConsole">
+                        <icon name="terminal-rectangle" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.showConsole') }}
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="compile">
+                        <icon name="code" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.compile') }}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div class="editor-console-container" ref="editorConsoleContainerRef">
                   <div class="editor-wrapper" :class="{ 'console-visible': showConsole }">
@@ -219,6 +261,7 @@ import {
 } from 'vue'
 import { ElButton, ElDialog, ElLoading, ElScrollbar, ElSelect, ElOption } from 'element-plus'
 import { Icon } from 'tdesign-icons-vue-next'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'

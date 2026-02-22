@@ -107,26 +107,35 @@
         >
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-tooltip :content="t('agent.reference.viewContent')" placement="top">
-                <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleViewContent(row)">
-                  <Document class="w-4 h-4" />
-                </Button>
-              </el-tooltip>
-              <el-tooltip :content="t('common.edit')" placement="top">
-                <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
-                  <Edit class="w-4 h-4" />
-                </Button>
-              </el-tooltip>
-              <el-tooltip :content="t('common.delete')" placement="top">
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  class="h-8 w-8"
-                  @click="handleDelete(row)"
-                >
-                  <Delete class="w-4 h-4" />
-                </Button>
-              </el-tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleViewContent(row)">
+                    <Document class="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{{ t('agent.reference.viewContent') }}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
+                    <Edit class="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{{ t('common.edit') }}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    class="h-8 w-8"
+                    @click="handleDelete(row)"
+                  >
+                    <Delete class="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{{ t('common.delete') }}</TooltipContent>
+              </Tooltip>
             </div>
           </template>
         </el-table-column>
@@ -335,6 +344,12 @@ import {
   DialogTitle,
 } from '@renderer/components/ui/dialog'
 import { Badge } from '@renderer/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null

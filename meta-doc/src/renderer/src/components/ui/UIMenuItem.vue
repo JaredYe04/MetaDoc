@@ -1,33 +1,33 @@
 <template>
-  <el-tooltip
+  <Tooltip
     v-if="tooltip && collapse"
-    :content="tooltip"
-    placement="right"
     :disabled="hasOpenSubMenu"
-    transition=""
-    :show-after="0"
-    :hide-after="0"
   >
-    <div
-      class="ui-menu-item"
-      :class="{ 'is-collapsed': collapse, 'is-disabled': disabled, 'is-active': active }"
-      @click="handleClick"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
-    >
-      <div class="ui-menu-item__content">
-        <slot name="icon">
-          <el-icon v-if="icon" class="ui-menu-item__icon">
-            <component :is="icon" />
-          </el-icon>
-          <img v-else-if="iconImage" :src="iconImage" class="ui-menu-item__icon-image" />
-        </slot>
-        <span v-if="!collapse" class="ui-menu-item__label">
-          <slot>{{ label }}</slot>
-        </span>
+    <TooltipTrigger as-child>
+      <div
+        class="ui-menu-item"
+        :class="{ 'is-collapsed': collapse, 'is-disabled': disabled, 'is-active': active }"
+        @click="handleClick"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
+      >
+        <div class="ui-menu-item__content">
+          <slot name="icon">
+            <el-icon v-if="icon" class="ui-menu-item__icon">
+              <component :is="icon" />
+            </el-icon>
+            <img v-else-if="iconImage" :src="iconImage" class="ui-menu-item__icon-image" />
+          </slot>
+          <span v-if="!collapse" class="ui-menu-item__label">
+            <slot>{{ label }}</slot>
+          </span>
+        </div>
       </div>
-    </div>
-  </el-tooltip>
+    </TooltipTrigger>
+    <TooltipContent side="right">
+      {{ tooltip }}
+    </TooltipContent>
+  </Tooltip>
   <div
     v-else
     class="ui-menu-item"
@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { inject, computed, type ComputedRef } from 'vue'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { themeState, mixColors } from '../../utils/themes'
 
 // 计算与 HeadMenu 一致的 active 背景色

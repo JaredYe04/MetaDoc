@@ -22,7 +22,7 @@ const props = defineProps<DialogContentProps & { class?: string }>()
       v-bind="props"
       :class="
         cn(
-          'fixed z-[10000] grid w-full max-w-lg max-h-[calc(100vh-2rem)] gap-4 border bg-background p-6 shadow-xl overflow-hidden rounded-lg dialog-content',
+          'fixed left-[50%] top-[50%] z-[10000] grid w-full max-w-lg max-h-[calc(100vh-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-xl overflow-hidden rounded-lg dialog-content',
           props.class
         )
       "
@@ -43,19 +43,15 @@ const props = defineProps<DialogContentProps & { class?: string }>()
 </template>
 
 <style scoped>
-/* 从左上角 LogoTab 位置展开的动画 - 结束在屏幕正中央 */
+/* 简单的淡入淡出 + 缩放动画，无位移 */
 @keyframes dialog-enter {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.1);
-    left: 32px;
-    top: 20px;
+    transform: translate(-50%, -50%) scale(0.95);
   }
   to {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
-    left: 50%;
-    top: 50%;
   }
 }
 
@@ -63,14 +59,10 @@ const props = defineProps<DialogContentProps & { class?: string }>()
   from {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
-    left: 50%;
-    top: 50%;
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.1);
-    left: 32px;
-    top: 20px;
+    transform: translate(-50%, -50%) scale(0.95);
   }
 }
 
@@ -94,18 +86,18 @@ const props = defineProps<DialogContentProps & { class?: string }>()
 
 /* 使用 cubic-bezier 非线性缓动 */
 .dialog-content[data-state='open'] {
-  animation: dialog-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialog-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-content[data-state='closed'] {
-  animation: dialog-exit 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: dialog-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .dialog-overlay[data-state='open'] {
-  animation: overlay-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: overlay-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-overlay[data-state='closed'] {
-  animation: overlay-exit 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 </style>

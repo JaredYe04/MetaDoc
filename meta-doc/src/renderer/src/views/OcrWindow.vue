@@ -218,25 +218,23 @@
                               getPreprocessingParams(index).sharpness
                             }}</span>
                           </div>
-                          <div class="param-item">
-                            <el-checkbox
+                          <div class="param-item flex items-center gap-2">
+                            <Checkbox
                               :model-value="getPreprocessingParams(index).grayscale"
                               @update:model-value="
                                 (val: boolean) => updatePreprocessingParam(index, 'grayscale', val)
                               "
-                            >
-                              {{ t('ocr.grayscale') }}
-                            </el-checkbox>
+                            />
+                            <label class="text-sm">{{ t('ocr.grayscale') }}</label>
                           </div>
-                          <div class="param-item">
-                            <el-checkbox
+                          <div class="param-item flex items-center gap-2">
+                            <Checkbox
                               :model-value="getPreprocessingParams(index).normalize"
                               @update:model-value="
                                 (val: boolean) => updatePreprocessingParam(index, 'normalize', val)
                               "
-                            >
-                              {{ t('ocr.normalize') }}
-                            </el-checkbox>
+                            />
+                            <label class="text-sm">{{ t('ocr.normalize') }}</label>
                           </div>
                         </div>
                       </div>
@@ -403,6 +401,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
 import { Slider } from '@renderer/components/ui/slider'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import {

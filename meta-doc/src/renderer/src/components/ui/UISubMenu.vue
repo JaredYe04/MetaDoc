@@ -1,44 +1,42 @@
 <template>
   <div class="ui-sub-menu" ref="subMenuRef">
     <!-- 菜单标题 -->
-    <el-tooltip
+    <Tooltip
       v-if="tooltip && collapse && trigger === 'click'"
-      :content="tooltip"
-      placement="right"
       :disabled="isOpen || hasOpenSubMenu"
-      transition=""
-      :show-after="0"
-      :hide-after="0"
     >
-      <div
-        class="ui-sub-menu__title"
-        :class="{
-          'is-collapsed': collapse && props.level === 1,
-          'is-open': isOpen,
-          'is-nested': props.level > 1
-        }"
-        @click.stop="handleTitleClick"
-        @mouseenter="handleTitleMouseEnter"
-        @mouseleave="handleTitleMouseLeave"
-      >
-        <div class="ui-sub-menu__title-content">
-          <slot name="icon">
-            <el-icon v-if="icon" class="ui-sub-menu__icon">
-              <component :is="icon" />
-            </el-icon>
-            <img v-else-if="iconImage" :src="iconImage" class="ui-sub-menu__icon-image" />
-          </slot>
-          <template v-if="shouldShowTitle">
-            <slot name="title">
-              <span class="ui-sub-menu__label">{{ title }}</span>
+      <TooltipTrigger as-child>
+        <div
+          class="ui-sub-menu__title"
+          :class="{
+            'is-collapsed': collapse && props.level === 1,
+            'is-open': isOpen,
+            'is-nested': props.level > 1
+          }"
+          @click.stop="handleTitleClick"
+          @mouseenter="handleTitleMouseEnter"
+          @mouseleave="handleTitleMouseLeave"
+        >
+          <div class="ui-sub-menu__title-content">
+            <slot name="icon">
+              <el-icon v-if="icon" class="ui-sub-menu__icon">
+                <component :is="icon" />
+              </el-icon>
+              <img v-else-if="iconImage" :src="iconImage" class="ui-sub-menu__icon-image" />
             </slot>
-            <el-icon class="ui-sub-menu__arrow">
-              <ArrowRight />
-            </el-icon>
-          </template>
+            <template v-if="shouldShowTitle">
+              <slot name="title">
+                <span class="ui-sub-menu__label">{{ title }}</span>
+              </slot>
+              <el-icon class="ui-sub-menu__arrow">
+                <ArrowRight />
+              </el-icon>
+            </template>
+          </div>
         </div>
-      </div>
-    </el-tooltip>
+      </TooltipTrigger>
+      <TooltipContent side="right">{{ tooltip }}</TooltipContent>
+    </Tooltip>
     <div
       v-else
       class="ui-sub-menu__title"
@@ -102,6 +100,7 @@ import {
   type ComputedRef
 } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { themeState, mixColors } from '../../utils/themes'
 
 // 计算与 HeadMenu 一致的 active 背景色
@@ -564,32 +563,6 @@ onBeforeUnmount(() => {
 .ui-sub-menu__title.is-open .ui-sub-menu__arrow {
   transform: rotate(90deg);
   color: var(--el-color-primary);
-}
-
-/* 覆盖 el-tooltip__trigger 的默认样式 */
-.ui-sub-menu__title.el-tooltip__trigger {
-  border-radius: 4px !important;
-  transition: none !important;
-  border: 1px solid transparent !important;
-  color: var(--el-text-color-primary) !important;
-}
-
-.ui-sub-menu__title.el-tooltip__trigger:hover {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border: 1px solid var(--el-border-color) !important;
-  color: var(--el-text-color-primary) !important;
-}
-
-.ui-sub-menu__title.el-tooltip__trigger.is-open {
-  background-color: var(--el-color-primary-light-9) !important;
-  border: 1px solid var(--el-color-primary) !important;
-  color: var(--el-color-primary) !important;
-}
-
-.ui-sub-menu__title.el-tooltip__trigger.is-open:hover {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border: 1px solid var(--el-border-color) !important;
-  color: var(--el-text-color-primary) !important;
 }
 
 .ui-sub-menu__popup {

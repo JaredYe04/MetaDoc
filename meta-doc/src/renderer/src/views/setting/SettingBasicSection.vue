@@ -155,23 +155,78 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.chineseFont', '中文字体')" name="chineseFont">
-        <FontSelect
-          v-model="settings.chineseFont"
-          :placeholder="t('setting.selectChineseFont', '选择中文字体')"
-          preview-text="你好世界"
-          @update:model-value="saveSetting('chineseFont', settings.chineseFont)"
-        />
-      </FormField>
+      <!-- 字体设置分组 -->
+      <div class="font-settings-group">
+        <h4 class="font-group-title">{{ t('setting.fontUi', '界面字体') }}</h4>
+        <FormField :label="t('setting.fontUiLabel', 'UI字体')" name="fontUi">
+          <FontSelect
+            v-model="settings.fontUi"
+            :placeholder="t('setting.selectFont', '选择字体')"
+            preview-text="AaBbCc 你好世界"
+            @update:model-value="saveSetting('fontUi', settings.fontUi); applyFontSettings()"
+          />
+        </FormField>
+      </div>
 
-      <FormField :label="t('setting.westernFont', '西文字体')" name="westernFont">
-        <FontSelect
-          v-model="settings.westernFont"
-          :placeholder="t('setting.selectWesternFont', '选择西文字体')"
-          preview-text="AaBbCc"
-          @update:model-value="saveSetting('westernFont', settings.westernFont)"
-        />
-      </FormField>
+      <div class="font-settings-group">
+        <h4 class="font-group-title">{{ t('setting.fontEditor', '编辑器字体') }}</h4>
+        <FormField :label="t('setting.fontEditorChinese', '编辑器中文字体')" name="fontEditorChinese">
+          <FontSelect
+            v-model="settings.fontEditorChinese"
+            :placeholder="t('setting.selectChineseFont', '选择中文字体')"
+            preview-text="你好世界"
+            @update:model-value="saveSetting('fontEditorChinese', settings.fontEditorChinese)"
+          />
+        </FormField>
+        <FormField :label="t('setting.fontEditorWestern', '编辑器西文字体')" name="fontEditorWestern">
+          <FontSelect
+            v-model="settings.fontEditorWestern"
+            :placeholder="t('setting.selectWesternFont', '选择西文字体')"
+            preview-text="AaBbCc"
+            @update:model-value="saveSetting('fontEditorWestern', settings.fontEditorWestern)"
+          />
+        </FormField>
+      </div>
+
+      <div class="font-settings-group">
+        <h4 class="font-group-title">{{ t('setting.fontPreview', '渲染预览字体') }}</h4>
+        <FormField :label="t('setting.fontPreviewChinese', '预览中文字体')" name="fontPreviewChinese">
+          <FontSelect
+            v-model="settings.fontPreviewChinese"
+            :placeholder="t('setting.selectChineseFont', '选择中文字体')"
+            preview-text="你好世界"
+            @update:model-value="saveSetting('fontPreviewChinese', settings.fontPreviewChinese)"
+          />
+        </FormField>
+        <FormField :label="t('setting.fontPreviewWestern', '预览西文字体')" name="fontPreviewWestern">
+          <FontSelect
+            v-model="settings.fontPreviewWestern"
+            :placeholder="t('setting.selectWesternFont', '选择西文字体')"
+            preview-text="AaBbCc"
+            @update:model-value="saveSetting('fontPreviewWestern', settings.fontPreviewWestern)"
+          />
+        </FormField>
+      </div>
+
+      <div class="font-settings-group">
+        <h4 class="font-group-title">{{ t('setting.fontExport', 'PDF导出字体') }}</h4>
+        <FormField :label="t('setting.fontExportChinese', '导出中文字体')" name="fontExportChinese">
+          <FontSelect
+            v-model="settings.fontExportChinese"
+            :placeholder="t('setting.selectChineseFont', '选择中文字体')"
+            preview-text="你好世界"
+            @update:model-value="saveSetting('fontExportChinese', settings.fontExportChinese)"
+          />
+        </FormField>
+        <FormField :label="t('setting.fontExportWestern', '导出西文字体')" name="fontExportWestern">
+          <FontSelect
+            v-model="settings.fontExportWestern"
+            :placeholder="t('setting.selectWesternFont', '选择西文字体')"
+            preview-text="AaBbCc"
+            @update:model-value="saveSetting('fontExportWestern', settings.fontExportWestern)"
+          />
+        </FormField>
+      </div>
 
       <FormField :label="t('setting.referenceDirManagement', '引用文件目录管理')" name="referenceDirManagement">
         <div class="reference-dir-management">
@@ -235,6 +290,13 @@ const currentEditorModeHint = computed(() => {
 
 const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value)
+}
+
+// 应用UI字体设置
+const applyFontSettings = () => {
+  const fontFamily = settings.fontUi || 'OPPO Sans 4.0'
+  document.documentElement.style.setProperty('--font-family-ui', fontFamily)
+  eventBus.emit('font-settings-changed', { type: 'ui', font: fontFamily })
 }
 
 // 粒子效果相关代码已注释，以备后用
@@ -396,5 +458,31 @@ onMounted(() => {
   font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-secondary);
+}
+
+/* 字体设置分组样式 */
+.font-settings-group {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background-color: var(--el-fill-color-light);
+}
+
+.font-group-title {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.font-settings-group :deep(.form-field) {
+  margin-bottom: 16px;
+}
+
+.font-settings-group :deep(.form-field:last-child) {
+  margin-bottom: 0;
 }
 </style>

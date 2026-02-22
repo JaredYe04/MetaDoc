@@ -557,16 +557,6 @@ function applyThemeClasses(themeType) {
     document.documentElement.classList.remove('light')
   }
 
-  // Ensure OPPO Sans font variables are set
-  const root = document.documentElement
-  root.style.setProperty(
-    '--font-family-base',
-    "'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-  )
-  root.style.setProperty(
-    '--font-family-chinese',
-    "'OPPO Sans 4.0', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif"
-  )
 }
 
 // 辅助函数：HEX转HSL
@@ -830,6 +820,9 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
 
     applyElementPlusTheme()
     applyShadcnTheme()
+    
+    // 应用字体设置
+    await applyFontSettings(getSetting)
   } catch (error) {
     console.error('应用主题失败，使用默认亮色主题:', error)
     // 出错时回退到 light
@@ -837,5 +830,48 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
     applyThemeClasses('light')
     applyElementPlusTheme()
     applyShadcnTheme()
+  }
+}
+
+/**
+ * 应用字体设置
+ * @param {Function} getSetting - 获取设置的函数
+ */
+async function applyFontSettings(getSetting) {
+  try {
+    const fontUi = await getSetting('fontUi') || 'OPPO Sans 4.0'
+    const fontEditorChinese = await getSetting('fontEditorChinese') || 'OPPO Sans 4.0'
+    const fontEditorWestern = await getSetting('fontEditorWestern') || 'New York'
+    const fontPreviewChinese = await getSetting('fontPreviewChinese') || 'OPPO Sans 4.0'
+    const fontPreviewWestern = await getSetting('fontPreviewWestern') || 'New York'
+    const fontExportChinese = await getSetting('fontExportChinese') || 'SimSun'
+    const fontExportWestern = await getSetting('fontExportWestern') || 'Times New Roman'
+    
+    const root = document.documentElement
+    
+    // UI字体
+    root.style.setProperty('--font-family-ui', fontUi)
+    
+    // 编辑器字体组合
+    root.style.setProperty('--font-family-editor', `${fontEditorWestern}, ${fontEditorChinese}, -apple-system, BlinkMacSystemFont, sans-serif`)
+    
+    // 渲染预览字体组合
+    root.style.setProperty('--font-family-preview', `${fontPreviewWestern}, ${fontPreviewChinese}, -apple-system, BlinkMacSystemFont, sans-serif`)
+    
+    // PDF导出字体（存储在CSS变量中供导出时使用）
+    root.style.setProperty('--font-family-export-chinese', fontExportChinese)
+    root.style.setProperty('--font-family-export-western', fontExportWestern)
+    
+    // 更新基础字体
+    root.style.setProperty(
+      '--font-family-base',
+      `${fontUi}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
+    )
+    root.style.setProperty(
+      '--font-family-chinese',
+      `${fontUi}, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif`
+    )
+  } catch (error) {
+    console.error('应用字体设置失败:', error)
   }
 }

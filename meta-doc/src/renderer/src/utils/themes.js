@@ -569,6 +569,142 @@ function applyThemeClasses(themeType) {
   )
 }
 
+// 辅助函数：HEX转HSL
+function hexToHsl(hex) {
+  const { r, g, b } = hexToRgb(hex)
+  const rNorm = r / 255
+  const gNorm = g / 255
+  const bNorm = b / 255
+
+  const max = Math.max(rNorm, gNorm, bNorm)
+  const min = Math.min(rNorm, gNorm, bNorm)
+  let h, s, l = (max + min) / 2
+
+  if (max === min) {
+    h = s = 0
+  } else {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break
+      case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break
+      case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break
+    }
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100)
+  }
+}
+
+// 辅助函数：将颜色转换为HSL CSS变量格式
+function colorToHslString(color) {
+  if (!color) return null
+  // 如果是 hex 颜色
+  if (color.startsWith('#')) {
+    const hsl = hexToHsl(color)
+    return `${hsl.h} ${hsl.s}% ${hsl.l}%`
+  }
+  // 如果是 rgb/rgba 颜色，先转成 hex
+  if (color.startsWith('rgb')) {
+    const match = color.match(/(\d+),\s*(\d+),\s*(\d+)/)
+    if (match) {
+      const [, r, g, b] = match
+      const hex = rgbToHex(parseInt(r), parseInt(g), parseInt(b))
+      const hsl = hexToHsl(hex)
+      return `${hsl.h} ${hsl.s}% ${hsl.l}%`
+    }
+  }
+  return null
+}
+
+/**
+ * 将 themeState 的颜色值同步到 shadcn CSS 变量
+ */
+export function applyShadcnTheme() {
+  const root = document.documentElement
+  const theme = themeState.currentTheme
+
+  if (!theme) return
+
+  const isDarkMode = theme.type === 'dark'
+
+  // 辅助函数：获取HSL值
+  const getHsl = (colorKey) => {
+    const colorValue = theme[colorKey]
+    if (colorValue && typeof colorValue === 'string') {
+      return colorToHslString(colorValue)
+    }
+    return null
+  }
+
+  // 基础颜色映射
+  const background = getHsl('background') || (isDarkMode ? '222.2 84% 4.9%' : '0 0% 100%')
+  const foreground = getHsl('textColor') || (isDarkMode ? '210 40% 98%' : '222.2 84% 4.9%')
+  const primary = getHsl('primaryColor') || (isDarkMode ? '210 40% 98%' : '222.2 47.4% 11.2%')
+  const secondary = getHsl('secondaryColor') || (isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%')
+  const muted = getHsl('background2nd') || (isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%')
+  const border = getHsl('borderColor') || (isDarkMode ? '217.2 32.6% 17.5%' : '214.3 31.8% 91.4%')
+  const sidebarBg = getHsl('sidebarBackground') || (isDarkMode ? '240 5.9% 10%' : '0 0% 98%')
+
+  // 设置所有 shadcn CSS 变量
+  const shadcnVars = {
+    // 基础
+    '--background': background,
+    '--foreground': foreground,
+
+    // 卡片
+    '--card': background,
+    '--card-foreground': foreground,
+
+    // 弹出层
+    '--popover': background,
+    '--popover-foreground': foreground,
+
+    // 主题色
+    '--primary': primary,
+    '--primary-foreground': isDarkMode ? '222.2 47.4% 11.2%' : '210 40% 98%',
+
+    // 次要色
+    '--secondary': secondary,
+    '--secondary-foreground': foreground,
+
+    // 静音色
+    '--muted': muted,
+    '--muted-foreground': getHsl('textColor2') || (isDarkMode ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'),
+
+    // 强调色
+    '--accent': secondary,
+    '--accent-foreground': foreground,
+
+    // 错误色
+    '--destructive': '0 84.2% 60.2%',
+    '--destructive-foreground': '210 40% 98%',
+
+    // 边框和输入
+    '--border': border,
+    '--input': border,
+    '--ring': primary,
+
+    // 侧边栏
+    '--sidebar-background': sidebarBg,
+    '--sidebar-foreground': getHsl('SideTextColor') || (isDarkMode ? '240 4.8% 95.9%' : '240 5.3% 26.1%'),
+    '--sidebar-primary': primary,
+    '--sidebar-primary-foreground': isDarkMode ? '222.2 47.4% 11.2%' : '210 40% 98%',
+    '--sidebar-accent': secondary,
+    '--sidebar-accent-foreground': foreground,
+    '--sidebar-border': border,
+    '--sidebar-ring': primary
+  }
+
+  // 应用所有变量
+  Object.entries(shadcnVars).forEach(([key, value]) => {
+    root.style.setProperty(key, value)
+  })
+}
+
 /**
  * 将 themeState 的颜色值同步到 Element Plus CSS 变量
  * 这样组件使用 var(--el-*) 时就能获取到 themes.js 计算的颜色
@@ -693,11 +829,13 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
     }
 
     applyElementPlusTheme()
+    applyShadcnTheme()
   } catch (error) {
     console.error('应用主题失败，使用默认亮色主题:', error)
     // 出错时回退到 light
     themeState.currentTheme = lightTheme
     applyThemeClasses('light')
     applyElementPlusTheme()
+    applyShadcnTheme()
   }
 }

@@ -267,30 +267,30 @@ function confirmTemplate(templateId?: string) {
 .template-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(77, 77, 77, 0.5);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
-  background-color: var(--el-fill-color-blank);
+  background-color: v-bind('themeState.currentTheme.background');
 }
 
 .template-card:hover {
-  border-color: rgba(128, 128, 128, 0.5);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: v-bind('themeState.currentTheme.primaryColor + "80"');
+  box-shadow: 0 6px 18px v-bind('themeState.currentTheme.primaryColor + "15"');
 }
 
 .template-card.active {
-  border-color: rgba(128, 128, 128, 0.5);
-  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
+  border-color: v-bind('themeState.currentTheme.primaryColor');
+  box-shadow: 0 8px 24px v-bind('themeState.currentTheme.primaryColor + "25"');
 }
 
 .template-card__image {
   position: relative;
   padding-top: 60%;
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(64, 158, 255, 0.05));
+  background: linear-gradient(135deg, v-bind('themeState.currentTheme.primaryColor + "1A"'), v-bind('themeState.currentTheme.primaryColor + "0D"'));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,7 +306,7 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card__image.is-placeholder {
-  background: linear-gradient(135deg, rgba(144, 147, 153, 0.15), rgba(144, 147, 153, 0.05));
+  background: linear-gradient(135deg, v-bind('themeState.currentTheme.secondaryColor + "26"'), v-bind('themeState.currentTheme.secondaryColor + "0D"'));
 }
 
 .template-card__placeholder {
@@ -315,7 +315,7 @@ function confirmTemplate(templateId?: string) {
   align-items: center;
   justify-content: center;
   font-size: 28px;
-  color: rgba(144, 147, 153, 0.8);
+  color: v-bind('themeState.currentTheme.secondaryColor + "CC"');
 }
 
 .template-card__body {
@@ -334,7 +334,7 @@ function confirmTemplate(templateId?: string) {
 
 .template-card__body p {
   margin: 0;
-  color: var(--el-text-color-secondary);
+  color: v-bind('themeState.currentTheme.textColor2');
   font-size: 13px;
   line-height: 1.5;
 }

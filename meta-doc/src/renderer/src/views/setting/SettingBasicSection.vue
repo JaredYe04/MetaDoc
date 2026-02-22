@@ -140,6 +140,39 @@
         </Select>
       </FormField>
 
+      <FormField :label="t('setting.externalFileOpenMode', '外部文件打开方式')" name="externalFileOpenMode">
+        <Select
+          v-model="settings.externalFileOpenMode"
+          @update:model-value="saveSetting('externalFileOpenMode', settings.externalFileOpenMode)"
+        >
+          <SelectTrigger class="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="min-w-[280px]">
+            <SelectItem value="newWindow">{{ t('setting.openInNewWindow', '在新窗口中打开') }}</SelectItem>
+            <SelectItem value="newTab">{{ t('setting.openInNewTab', '在当前窗口新标签页中打开') }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.chineseFont', '中文字体')" name="chineseFont">
+        <FontSelect
+          v-model="settings.chineseFont"
+          :placeholder="t('setting.selectChineseFont', '选择中文字体')"
+          preview-text="你好世界"
+          @update:model-value="saveSetting('chineseFont', settings.chineseFont)"
+        />
+      </FormField>
+
+      <FormField :label="t('setting.westernFont', '西文字体')" name="westernFont">
+        <FontSelect
+          v-model="settings.westernFont"
+          :placeholder="t('setting.selectWesternFont', '选择西文字体')"
+          preview-text="AaBbCc"
+          @update:model-value="saveSetting('westernFont', settings.westernFont)"
+        />
+      </FormField>
+
       <FormField :label="t('setting.referenceDirManagement', '引用文件目录管理')" name="referenceDirManagement">
         <div class="reference-dir-management">
           <div class="reference-dir-info">
@@ -185,6 +218,7 @@ import {
 import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { FontSelect } from '@renderer/components/ui/font-select'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n()

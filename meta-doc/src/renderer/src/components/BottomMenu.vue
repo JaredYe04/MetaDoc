@@ -95,8 +95,9 @@
               <span
                 v-if="unreadCount > 0"
                 class="status-badge"
-                :style="{ backgroundColor: badgeColor }"
+                :style="badgeStyle"
               >
+                <span class="badge-icon">{{ badgeIcon }}</span>
                 {{ unreadCount }}
               </span>
             </span>
@@ -205,23 +206,96 @@ const documentFormat = computed(() => {
 
 const notificationStore = useNotificationStore()
 const { latestNotification, unreadCount } = storeToRefs(notificationStore)
-const notificationType = computed(() => latestNotification.value?.type ?? null)
+const notificationType = computed(() => latestNotification.value?.type ?? 'info')
 
 // 检查是否有AI任务（简化：只要任务队列里有任务就旋转）
 const hasRunningCompletionTask = computed(() => {
   return tasks.value.length > 0
 })
 
-const badgeColor = computed(() => {
+// 辅助函数：调整颜色色相
+function adjustHue(hexColor: string, hueShift: number): { bg: string; text: string } {
+  // 将 hex 转为 RGB
+  const r = parseInt(hexColor.slice(1, 3), 16) / 255
+  const g = parseInt(hexColor.slice(3, 5), 16) / 255
+  const b = parseInt(hexColor.slice(5, 7), 16) / 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let h = 0
+  let s = 0
+  const l = (max + min) / 2
+
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+        break
+      case g:
+        h = ((b - r) / d + 2) / 6
+        break
+      case b:
+        h = ((r - g) / d + 4) / 6
+        break
+    }
+  }
+
+  // 调整色相
+  h = (h * 360 + hueShift) % 360
+  if (h < 0) h += 360
+
+  // 保持较高的饱和度以保证颜色鲜艳
+  const bgColor = `hsl(${Math.round(h)} 75% 50%)`
+  
+  // 根据背景亮度决定文字颜色
+  // 计算原始颜色的亮度
+  const luminance = 0.299 * parseInt(hexColor.slice(1, 3), 16) + 0.587 * parseInt(hexColor.slice(3, 5), 16) + 0.114 * parseInt(hexColor.slice(5, 7), 16)
+  const textColor = luminance > 128 ? '#000000' : '#ffffff'
+  
+  return { bg: bgColor, text: textColor }
+}
+
+// badge 颜色跟随主题，不同类型用主题色的不同变体
+const badgeStyle = computed(() => {
+  const theme = themeState.currentTheme
+  const primaryColor = theme.primaryColor || '#000000'
+
+  // 基于主题色相进行偏移
+  switch (notificationType.value) {
+    case 'success': {
+      // 成功 - 偏向绿色 (hue + 40)
+      const colors = adjustHue(primaryColor, 40)
+      return { backgroundColor: colors.bg, color: colors.text }
+    }
+    case 'warning': {
+      // 警告 - 偏向黄色 (hue - 60)
+      const colors = adjustHue(primaryColor, -60)
+      return { backgroundColor: colors.bg, color: colors.text }
+    }
+    case 'error': {
+      // 错误 - 偏向红色 (hue - 120)
+      const colors = adjustHue(primaryColor, -120)
+      return { backgroundColor: colors.bg, color: colors.text }
+    }
+    default:
+      // info - 使用主题主色
+      return { backgroundColor: 'hsl(var(--primary))', color: '#ffffff' }
+  }
+})
+
+// 获取类型图标
+const badgeIcon = computed(() => {
   switch (notificationType.value) {
     case 'success':
-      return 'var(--el-color-success, #67c23a)'
+      return '✓'
     case 'warning':
-      return 'var(--el-color-warning, #e6a23c)'
+      return '!'
     case 'error':
-      return 'var(--el-color-danger, #f56c6c)'
+      return '✕'
     default:
-      return 'var(--el-color-info, #909399)'
+      return '•'
   }
 })
 
@@ -399,9 +473,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
   padding: 0 4px;
   box-sizing: border-box;
+  gap: 2px;
+}
+
+.badge-icon {
+  font-size: 8px;
+  font-weight: bold;
+  opacity: 0.9;
 }
 
 .actions-group {

@@ -179,7 +179,9 @@ const handleQuickStartClose = () => {
 }
 
 const openNewDoc = () => {
-  eventBus.emit('new-doc')
+  // 主页的新建文档按钮应该和 Ctrl+T 一样，在当前窗口新建标签页
+  // 而不是像 Ctrl+N 那样创建新窗口
+  workspace.openNewDocumentTab()
 }
 
 const openFile = () => {
@@ -737,15 +739,10 @@ onBeforeUnmount(() => {
   padding: 11px 16px;
   cursor: pointer;
   transition: all 0.05s ease;
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"'
-  );
+  background: v-bind('themeState.currentTheme.background2nd');
   user-select: none;
   animation: fadeIn 0.3s ease-out both;
-  border-bottom: 1px solid
-    v-bind(
-      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"'
-    );
+  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor + "40"');
 }
 
 .recent-doc-card:last-child {
@@ -753,15 +750,11 @@ onBeforeUnmount(() => {
 }
 
 .recent-doc-card:hover {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgb(50,50,52)" : "rgb(245,245,245)"'
-  );
+  background: v-bind('themeState.currentTheme.background');
 }
 
 .recent-doc-card:active {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgb(55,55,57)" : "rgb(238,238,238)"'
-  );
+  background: v-bind('themeState.currentTheme.background');
 }
 
 /* 文档卡片左侧小竖线指示器 */
@@ -770,16 +763,12 @@ onBeforeUnmount(() => {
   width: 3px;
   height: 16px;
   border-radius: 1.5px;
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"'
-  );
+  background: v-bind('themeState.currentTheme.primaryColor + "30"');
   transition: all 0.05s ease;
 }
 
 .recent-doc-card:hover .doc-card-indicator {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"'
-  );
+  background: v-bind('themeState.currentTheme.primaryColor');
   height: 20px;
 }
 

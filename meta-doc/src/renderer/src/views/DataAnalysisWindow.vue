@@ -31,27 +31,26 @@
           <div v-else class="session-content-panel" :style="panelStyle">
             <!-- 文件上传/显示区域（在最上方） -->
             <div class="file-section" :style="fileSectionStyle">
-              <el-upload
+              <Upload
                 v-if="!currentFile"
                 :file-list="[]"
                 :auto-upload="false"
-                :on-change="handleFileChange"
+                @change="handleFileChange"
                 :limit="1"
                 accept=".csv,.xlsx,.xls,.json"
                 class="compact-upload"
+                :show-file-list="false"
               >
-                <template #trigger>
-                  <Button type="primary">
-                    <el-icon><UploadFilled /></el-icon>
-                    {{ t('dataAnalysis.uploadFile', '上传文件') }}
-                  </Button>
-                </template>
+                <Button type="primary">
+                  <el-icon><UploadFilled /></el-icon>
+                  {{ t('dataAnalysis.uploadFile', '上传文件') }}
+                </Button>
                 <template #tip>
                   <div class="upload-tip" :style="tipStyle">
                     {{ t('dataAnalysis.uploadTip', '支持 CSV、Excel、JSON 格式') }}
                   </div>
                 </template>
-              </el-upload>
+              </Upload>
 
               <div v-else class="file-list-item" :style="fileListItemStyle">
                 <el-icon class="file-icon"><Document /></el-icon>
@@ -343,6 +342,7 @@ import type { Ref } from 'vue'
 import { useWorkspace } from '../stores/workspace'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Switch } from '@renderer/components/ui/switch'
+import { Upload } from '@renderer/components/ui/upload'
 
 const { t } = useI18n()
 const workspace = useWorkspace()

@@ -1,64 +1,56 @@
 <template>
-  <div
-    class="notification-history-container"
-    :class="{ 
-      'is-expanded': isExpanded, 
-      'is-hovering': isHovering,
-      'is-fading': isFading 
-    }"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
-  >
-    <!-- 堆叠的通知历史 -->
-    <div class="toast-stack" :class="{ 'is-visible': isExpanded || isHovering }">
+  <div class="toast-stack-container" :class="{ 'is-expanded': isExpanded, 'is-hovering': isHovering }">
+    <!-- 活跃的通知堆叠 -->
+    <TransitionGroup 
+      name="toast" 
+      tag="div" 
+      class="toast-wrapper"
+      :class="{ 'is-collapsed': !isExpanded && !isHovering }"
+    >
       <div
-        v-for="(item, index) in notifications.slice(0, maxVisible)"
-        :key="item.id"
-        class="history-toast"
+        v-for="(toast, index) in activeToasts"
+        :key="toast.id"
+        class="stack-toast"
         :class="[
-          `toast-${item.type}`,
-          { 'is-read': item.read },
-          getStackClass(index)
+          `toast-${toast.type}`,
+          { 'is-read': toast.read },
+          getPositionClass(index)
         ]"
         :style="getToastStyle(index)"
-        @click="handleToastClick(item)"
+        @click="handleToastClick(toast)"
+        @mouseenter="handleToastHover(index)"
       >
-        <!-- 关闭按钮 - 右上角 -->
-        <button
-          class="toast-close"
-          aria-label="Close"
-          @click.stop="removeNotification(item.id)"
-        >
+        <!-- 关闭按钮 -->
+        <button class="toast-close" @click.stop="dismissToast(toast.id)">
           <X class="h-3 w-3" />
         </button>
 
         <!-- 图标 -->
         <div class="toast-icon">
-          <component :is="getIconForType(item.type)" class="h-5 w-5" />
+          <component :is="getIconForType(toast.type)" class="h-5 w-5" />
         </div>
 
         <!-- 内容 -->
         <div class="toast-content">
-          <div class="toast-title">{{ item.title }}</div>
-          <div class="toast-description">{{ item.message }}</div>
+          <div class="toast-title">{{ toast.title }}</div>
+          <div class="toast-description">{{ toast.message }}</div>
         </div>
 
-        <!-- 未读标记 - 左上角 -->
-        <div v-if="!item.read" class="toast-unread" />
+        <!-- 未读标记 -->
+        <div v-if="!toast.read" class="toast-unread" :class="`type-${toast.type}`" />
       </div>
-    </div>
+    </TransitionGroup>
 
-    <!-- 触发器按钮 -->
+    <!-- 触发器 -->
     <button
+      v-if="allToasts.length > 0"
       class="stack-trigger"
       :class="{ 'has-unread': unreadCount > 0 }"
       @click="toggleExpanded"
     >
       <Bell class="h-4 w-4" />
-      <span v-if="notifications.length > 0" class="trigger-badge">
-        {{ notifications.length }}
-      </span>
-      <span v-if="unreadCount > 0" class="unread-dot" />
+      <span class="trigger-count">{{ allToasts.length }}</span>
+      <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
     </button>
   </div>
 </template>
@@ -78,46 +70,53 @@ import {
   Info
 } from 'lucide-vue-next'
 
-const notificationStore = useNotificationStore()
-const { notifications, unreadCount } = storeToRefs(notificationStore)
+const store = useNotificationStore()
+const { notifications: allToasts, unreadCount } = storeToRefs(store)
 
 const isExpanded = ref(false)
 const isHovering = ref(false)
-const isFading = ref(false)
-const fadeTimer = ref<number | null>(null)
+const hoveredIndex = ref(-1)
 const collapseTimer = ref<number | null>(null)
-const maxVisible = 8
 
-function getStackClass(index: number): string {
+// 活跃的通知（限制数量避免性能问题）
+const activeToasts = computed(() => {
+  return allToasts.value.slice(0, 10)
+})
+
+function getPositionClass(index: number): string {
   if (isExpanded.value || isHovering.value) {
     return 'position-expanded'
   }
-  return `position-${Math.min(index, 4)}`
+  if (hoveredIndex.value === index) {
+    return 'position-hovered'
+  }
+  return `position-stack-${Math.min(index, 4)}`
 }
 
 function getToastStyle(index: number) {
-  const baseTransition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+  const isExpandedState = isExpanded.value || isHovering.value
   
-  if (isExpanded.value || isHovering.value) {
+  if (isExpandedState) {
+    // 展开状态：列表形式，垂直排列
     return {
-      transform: `translateY(${-index * 76}px) scale(1)`,
+      transform: `translateY(${-index * 84}px)`,
       opacity: 1,
       zIndex: 100 - index,
-      transition: baseTransition
+      transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
     }
   }
 
-  const offsets = [0, -8, -14, -18, -20]
-  const scales = [1, 0.96, 0.93, 0.91, 0.9]
-  const opacities = isFading.value ? [0.3, 0.2, 0.15, 0.1, 0.05] : [1, 0.9, 0.8, 0.7, 0.6]
-  
+  // 堆叠收起状态
+  const baseOffset = 0
+  const stackOffset = index * 12
+  const scale = Math.max(0.85, 1 - index * 0.05)
+  const opacity = Math.max(0.4, 1 - index * 0.15)
+
   return {
-    transform: `translateY(${offsets[Math.min(index, 4)]}px) scale(${scales[Math.min(index, 4)]})`,
-    opacity: opacities[Math.min(index, 4)],
+    transform: `translateY(${-(baseOffset + stackOffset)}px) scale(${scale})`,
+    opacity: opacity,
     zIndex: 50 - index,
-    transition: isFading.value 
-      ? 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' 
-      : baseTransition
+    transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
   }
 }
 
@@ -131,93 +130,92 @@ function getIconForType(type: NotificationType | undefined): Component {
   return icons[type || 'info']
 }
 
+function handleToastClick(toast: NotificationItem) {
+  if (!toast.read) {
+    store.markAsRead(toast.id)
+  }
+}
+
+function handleToastHover(index: number) {
+  if (!isExpanded.value) {
+    hoveredIndex.value = index
+  }
+}
+
+function dismissToast(id: string) {
+  store.remove(id)
+}
+
+function toggleExpanded() {
+  isExpanded.value = !isExpanded.value
+  if (isExpanded.value) {
+    clearCollapseTimer()
+  } else {
+    startCollapseTimer()
+  }
+}
+
+function startCollapseTimer() {
+  clearCollapseTimer()
+  collapseTimer.value = window.setTimeout(() => {
+    if (!isHovering.value) {
+      isExpanded.value = false
+    }
+  }, 3000)
+}
+
+function clearCollapseTimer() {
+  if (collapseTimer.value) {
+    clearTimeout(collapseTimer.value)
+    collapseTimer.value = null
+  }
+}
+
+// 监听鼠标进入/离开容器
 function handleMouseEnter() {
   isHovering.value = true
-  isFading.value = false
-  clearTimers()
+  clearCollapseTimer()
 }
 
 function handleMouseLeave() {
   isHovering.value = false
+  hoveredIndex.value = -1
   if (isExpanded.value) {
     startCollapseTimer()
   }
 }
 
-function toggleExpanded() {
-  isExpanded.value = !isExpanded.value
-  isFading.value = false
-  
-  if (isExpanded.value) {
-    clearTimers()
-  } else {
-    startFadeTimer()
-  }
-}
-
-function handleToastClick(item: NotificationItem) {
-  if (!item.read) {
-    notificationStore.markAsRead(item.id)
-  }
-}
-
-function removeNotification(id: string) {
-  notificationStore.remove(id)
-}
-
-function startCollapseTimer() {
-  clearTimers()
-  collapseTimer.value = window.setTimeout(() => {
-    isExpanded.value = false
-    startFadeTimer()
-  }, 2000)
-}
-
-function startFadeTimer() {
-  clearTimers()
-  fadeTimer.value = window.setTimeout(() => {
-    isFading.value = true
-  }, 500)
-}
-
-function clearTimers() {
-  if (collapseTimer.value) {
-    clearTimeout(collapseTimer.value)
-    collapseTimer.value = null
-  }
-  if (fadeTimer.value) {
-    clearTimeout(fadeTimer.value)
-    fadeTimer.value = null
-  }
-}
-
-watch(() => notifications.value.length, (newVal, oldVal) => {
-  if (newVal > oldVal) {
+// 监听新通知自动展开
+watch(() => allToasts.value.length, (newVal, oldVal) => {
+  if (newVal > oldVal && !isExpanded.value) {
+    // 新通知到达，短暂展开
     isExpanded.value = true
-    isFading.value = false
-    clearTimers()
-    
+    clearCollapseTimer()
     setTimeout(() => {
       if (!isHovering.value) {
         isExpanded.value = false
-        startFadeTimer()
       }
-    }, 2000)
+    }, 1500)
   }
 })
 
 onMounted(() => {
   eventBus.on('toggle-notification-queue', toggleExpanded)
+  // 添加全局鼠标监听
+  document.addEventListener('mouseenter', handleMouseEnter, true)
+  document.addEventListener('mouseleave', handleMouseLeave, true)
 })
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-notification-queue', toggleExpanded)
-  clearTimers()
+  document.removeEventListener('mouseenter', handleMouseEnter, true)
+  document.removeEventListener('mouseleave', handleMouseLeave, true)
+  clearCollapseTimer()
 })
 </script>
 
 <style scoped>
-.notification-history-container {
+.toast-stack-container {
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -225,24 +223,23 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.notification-history-container.is-expanded,
-.notification-history-container.is-hovering {
+.toast-stack-container.is-expanded,
+.toast-stack-container.is-hovering {
   pointer-events: auto;
 }
 
-.toast-stack {
+/* Toast 包装器 */
+.toast-wrapper {
   position: absolute;
-  bottom: 56px;
+  bottom: 64px;
   right: 0;
   width: 356px;
-  height: 0;
-}
-
-.toast-stack.is-visible {
   height: auto;
+  perspective: 1000px;
 }
 
-.history-toast {
+/* 单个 Toast */
+.stack-toast {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -255,27 +252,37 @@ onBeforeUnmount(() => {
   border: 1px solid hsl(var(--border));
   background: hsl(var(--background));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform-origin: center bottom;
   cursor: pointer;
   pointer-events: auto;
+  transform-origin: center bottom;
 }
 
-.history-toast:hover {
+.stack-toast:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-.history-toast.position-expanded {
+/* 展开状态 */
+.stack-toast.position-expanded {
   position: relative;
   margin-bottom: 8px;
   transform: none !important;
   opacity: 1 !important;
 }
 
-.history-toast.toast-success { border-left: 4px solid hsl(var(--success)); }
-.history-toast.toast-error { border-left: 4px solid hsl(var(--destructive)); }
-.history-toast.toast-warning { border-left: 4px solid hsl(38 92% 50%); }
-.history-toast.toast-info { border-left: 4px solid hsl(var(--primary)); }
+/* 悬停展开单个 */
+.stack-toast.position-hovered {
+  transform: translateY(-20px) scale(1.02) !important;
+  z-index: 100 !important;
+  opacity: 1 !important;
+}
 
+/* 类型样式 */
+.stack-toast.toast-success { border-left: 4px solid hsl(var(--success)); }
+.stack-toast.toast-error { border-left: 4px solid hsl(var(--destructive)); }
+.stack-toast.toast-warning { border-left: 4px solid hsl(38 92% 50%); }
+.stack-toast.toast-info { border-left: 4px solid hsl(var(--primary)); }
+
+/* 关闭按钮 */
 .toast-close {
   position: absolute;
   top: 8px;
@@ -294,7 +301,7 @@ onBeforeUnmount(() => {
   border: none;
 }
 
-.history-toast:hover .toast-close {
+.stack-toast:hover .toast-close {
   opacity: 1;
 }
 
@@ -303,6 +310,7 @@ onBeforeUnmount(() => {
   color: hsl(var(--foreground));
 }
 
+/* 图标 */
 .toast-icon {
   flex-shrink: 0;
   margin-top: 2px;
@@ -313,6 +321,7 @@ onBeforeUnmount(() => {
 .toast-warning .toast-icon { color: hsl(38 92% 50%); }
 .toast-info .toast-icon { color: hsl(var(--primary)); }
 
+/* 内容 */
 .toast-content {
   flex: 1;
   min-width: 0;
@@ -332,6 +341,7 @@ onBeforeUnmount(() => {
   color: hsl(var(--muted-foreground));
 }
 
+/* 未读标记 */
 .toast-unread {
   position: absolute;
   top: 8px;
@@ -339,18 +349,19 @@ onBeforeUnmount(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: hsl(var(--primary));
 }
 
-.toast-success .toast-unread { background: hsl(var(--success)); }
-.toast-error .toast-unread { background: hsl(var(--destructive)); }
-.toast-warning .toast-unread { background: hsl(38 92% 50%); }
-.toast-info .toast-unread { background: hsl(var(--primary)); }
+.toast-unread.type-success { background: hsl(var(--success)); }
+.toast-unread.type-error { background: hsl(var(--destructive)); }
+.toast-unread.type-warning { background: hsl(38 92% 50%); }
+.toast-unread.type-info { background: hsl(var(--primary)); }
 
-.history-toast.is-read {
+/* 已读状态 */
+.stack-toast.is-read {
   opacity: 0.6;
 }
 
+/* 触发器 */
 .stack-trigger {
   position: fixed;
   bottom: 24px;
@@ -368,6 +379,7 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease;
   pointer-events: auto;
   color: hsl(var(--foreground));
+  z-index: 10000;
 }
 
 .stack-trigger:hover {
@@ -381,7 +393,7 @@ onBeforeUnmount(() => {
   border-color: hsl(var(--primary));
 }
 
-.trigger-badge {
+.trigger-count {
   position: absolute;
   top: -4px;
   right: -4px;
@@ -398,18 +410,34 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-.stack-trigger.has-unread .trigger-badge {
+.stack-trigger.has-unread .trigger-count {
   background: hsl(var(--primary-foreground));
   color: hsl(var(--primary));
 }
 
-.unread-dot {
+.unread-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 2px;
+  right: 2px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: hsl(var(--destructive));
+}
+
+/* Transition animations */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(50px) scale(0.9);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
 }
 </style>

@@ -18,18 +18,15 @@
           <SelectItem value="custom">{{ $t('llmStatistics.custom') }}</SelectItem>
         </SelectContent>
       </Select>
-      <el-date-picker
+      <DatePicker
         v-model="dateRange"
         type="datetimerange"
         :range-separator="$t('llmStatistics.to')"
         :start-placeholder="$t('llmStatistics.startDate')"
         :end-placeholder="$t('llmStatistics.endDate')"
-        :format="'YYYY-MM-DD HH:mm:ss'"
-        :value-format="'YYYY-MM-DD HH:mm:ss'"
+        format="YYYY-MM-DD HH:mm:ss"
+        value-format="YYYY-MM-DD HH:mm:ss"
         @change="handleDateRangeChange"
-        :style="{
-          '--el-date-picker-text-color': themeState.currentTheme.textColor
-        }"
       />
       <Button @click="loadAllStatistics" :style="{ color: themeState.currentTheme.textColor }">
         {{ $t('llmStatistics.loadAll') }}

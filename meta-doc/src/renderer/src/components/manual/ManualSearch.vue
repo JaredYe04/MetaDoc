@@ -72,14 +72,17 @@ watch(searchQuery, (newVal) => {
 
 const results = ref<SearchResult[]>([])
 
-const handleSearch = async (value: string) => {
-  if (!value.trim()) {
+const handleSearch = async (value: string | Event) => {
+  // 处理 @input 事件传递的 Event 对象
+  const searchValue = typeof value === 'string' ? value : query.value
+
+  if (!searchValue.trim()) {
     results.value = []
     showResults.value = false
     return
   }
 
-  const searchResults = await performSearch(value)
+  const searchResults = await performSearch(searchValue)
   results.value = searchResults
   showResults.value = true
 }
@@ -102,7 +105,7 @@ const handleResultClick = (result: SearchResult) => {
   showResults.value = false
   query.value = ''
   searchQuery.value = ''
-  
+
   // 如果是片段结果，可以滚动到对应位置（需要实现）
   if (result.type === 'fragment' && result.lineNumber) {
     // TODO: 实现滚动到指定行
@@ -142,7 +145,9 @@ const handleResultClick = (result: SearchResult) => {
 }
 
 .search-result-item:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .result-header {

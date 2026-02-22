@@ -107,7 +107,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '../components/ui/button'
+import { Button } from '@renderer/components/ui/button'
 import {
   Plus,
   Send,
@@ -119,7 +119,7 @@ import {
   BarChart3,
   Network
 } from 'lucide-vue-next'
-import { themeState } from '../utils/themes'
+import { themeState } from '@renderer/utils/themes'
 
 const { t } = useI18n()
 

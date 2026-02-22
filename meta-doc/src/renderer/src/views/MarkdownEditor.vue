@@ -135,7 +135,7 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { ElDialog, ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'

@@ -1,9 +1,7 @@
 <template>
   <CollapsibleContent
-v-bind="forwarded" :class="cn(
-    'overflow-hidden transition-all',
-    $attrs.class
-  )"
+    v-bind="forwarded"
+    :class="cn('overflow-hidden transition-all', $attrs.class)"
   >
     <div class="pb-4 pt-0">
       <slot />

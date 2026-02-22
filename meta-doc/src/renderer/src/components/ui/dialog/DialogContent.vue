@@ -63,10 +63,14 @@ const props = defineProps<DialogContentProps & { class?: string }>()
   from {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
+    left: 50%;
+    top: 50%;
   }
   to {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.1);
+    left: 32px;
+    top: 20px;
   }
 }
 

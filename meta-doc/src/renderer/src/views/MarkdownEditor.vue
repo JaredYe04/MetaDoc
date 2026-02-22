@@ -130,7 +130,8 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyInfo } from '@renderer/utils/notify'
 import { Button } from '@renderer/components/ui/button'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import Vditor from 'vditor'
@@ -1107,7 +1108,7 @@ const handleConvertLatexFormulas = async () => {
     const hasBlockFormula = /\\\[[\s\S]*?\\\]/.test(currentContent)
 
     if (!hasInlineFormula && !hasBlockFormula) {
-      ElMessage.info(t('article.toolbar.convert_latex_formulas_no_match'))
+      notifyInfo(t('article.toolbar.convert_latex_formulas_no_match'))
       return
     }
 
@@ -1118,7 +1119,7 @@ const handleConvertLatexFormulas = async () => {
     scheduleSetValue(convertedContent, { clearHistory: false, timeoutMs: 0 })
 
     // 显示成功消息
-    ElMessage.success(t('article.toolbar.convert_latex_formulas_success'))
+    notifySuccess(t('article.toolbar.convert_latex_formulas_success'))
   } catch (error) {
     // 用户取消操作
     if (error === 'cancel') {

@@ -128,7 +128,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { Eye, XCircle, Check } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -360,7 +360,7 @@ async function handleFileChange(uploadFile: UploadFile) {
   const raw = uploadFile.raw
   if (!raw) return
   if (raw.size > SINGLE_FILE_MAX_BYTES) {
-    ElMessage.warning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
+    notifyWarning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
     fileList.value = fileList.value.filter((f) => f.uid !== uploadFile.uid)
     return
   }
@@ -393,7 +393,7 @@ async function handleFileChange(uploadFile: UploadFile) {
 }
 
 function handleExceed() {
-  ElMessage.warning(t('userFeedback.errors.tooManyFiles', { max: MAX_ATTACHMENTS }))
+  notifyWarning(t('userFeedback.errors.tooManyFiles', { max: MAX_ATTACHMENTS }))
 }
 
 function handleRemove(uploadFile: UploadFile) {
@@ -418,9 +418,9 @@ function openImagePreview(att: { filename: string; mime: string; content_base64:
 async function copyToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success(t('userFeedback.copied'))
+    notifySuccess(t('userFeedback.copied'))
   } catch {
-    ElMessage.error(t('userFeedback.copyFailed'))
+    notifyError(t('userFeedback.copyFailed'))
   }
 }
 
@@ -434,11 +434,11 @@ async function handleSubmit() {
   const body = editor.getValue()
   form.value.body = body
   if (!form.value.title.trim()) {
-    ElMessage.warning(t('userFeedback.errors.titleRequired'))
+    notifyWarning(t('userFeedback.errors.titleRequired'))
     return
   }
   if (!body.trim()) {
-    ElMessage.warning(t('userFeedback.errors.bodyRequired'))
+    notifyWarning(t('userFeedback.errors.bodyRequired'))
     return
   }
   if (!validateAttachments()) {
@@ -449,7 +449,7 @@ async function handleSubmit() {
   try {
     const ipc = messageBridge.getIpc()
     if (!ipc?.invoke) {
-      ElMessage.error(t('userFeedback.errors.noIpc'))
+      notifyError(t('userFeedback.errors.noIpc'))
       return
     }
     const attachmentsJson = JSON.stringify(attachmentBase64List.value)
@@ -459,7 +459,7 @@ async function handleSubmit() {
       body,
       attachments: attachmentsJson
     })
-    ElMessage.success(t('userFeedback.submitSuccess'))
+    notifySuccess(t('userFeedback.submitSuccess'))
     form.value.title = ''
     form.value.body = ''
     const template = await buildBodyTemplate()
@@ -470,7 +470,7 @@ async function handleSubmit() {
     uploadRef.value?.clearFiles()
   } catch (err: any) {
     const msg = err?.message || String(err)
-    ElMessage.error(t('userFeedback.submitFailed') + ': ' + msg)
+    notifyError(t('userFeedback.submitFailed') + ': ' + msg)
   } finally {
     submitting.value = false
   }

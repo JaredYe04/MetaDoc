@@ -21,7 +21,7 @@
       </Statistic>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <div class="test-actions">
       <Button type="primary" @click="copyMarkdown">
@@ -34,7 +34,7 @@
       </Button>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <Tabs v-model="activeTab" class="border-card">
       <TabsList>
@@ -144,6 +144,7 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge'
 import { Statistic } from '@renderer/components/ui/statistic'
+import { Divider } from '@renderer/components/ui/separator'
 
 const { t } = useI18n()
 

@@ -260,6 +260,7 @@ import {
   shallowRef
 } from 'vue'
 import { ElButton, ElLoading, ElScrollbar } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Icon } from 'tdesign-icons-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { Divider } from '@renderer/components/ui/separator'
@@ -291,7 +292,7 @@ import { getArticleContextMenuItems } from '../components/contextMenus/ArticleCo
 import ContextMenu from '../components/ContextMenu.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import ConsoleOutput from '../components/ConsoleOutput.vue'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+
 import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
 import * as monaco from 'monaco-editor'

@@ -38,12 +38,12 @@
               <div class="node-type">{{ getNodeTypeLabel(node) }}</div>
             </div>
             <div class="node-result" v-if="executionState.nodeResults.has(node.id)">
-              <el-tooltip>
+              <Tooltip>
                 <template #content>
                   <pre>{{ JSON.stringify(executionState.nodeResults.get(node.id), null, 2) }}</pre>
                 </template>
                 <el-icon><InfoFilled /></el-icon>
-              </el-tooltip>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -86,6 +86,7 @@ import { Check, Loading, Clock, InfoFilled } from '@element-plus/icons-vue'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
 import { Progress } from '@renderer/components/ui/progress'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { XCircle } from 'lucide-vue-next'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

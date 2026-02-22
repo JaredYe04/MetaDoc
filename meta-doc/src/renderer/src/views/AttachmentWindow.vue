@@ -122,7 +122,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { Button } from '@renderer/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
@@ -331,7 +332,7 @@ const loadAttachments = async () => {
       updatedAt: a.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载附件列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载附件列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -375,9 +376,9 @@ const handleUploadAttachment = async () => {
         await handleSelectAttachment(newAttachment)
       }
     }
-    ElMessage.success(t('attachment.uploadSuccess', '附件上传成功'))
+    notifySuccess(t('attachment.uploadSuccess', '附件上传成功'))
   } catch (error) {
-    ElMessage.error('上传附件失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('上传附件失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -412,7 +413,7 @@ const handleSelectAttachment = async (item: SessionListItem) => {
       aiAnalysis.value = ''
     }
   } catch (error) {
-    ElMessage.error('加载附件失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载附件失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -424,7 +425,7 @@ const handleRenameAttachment = async (item: SessionListItem, newTitle: string) =
     await attachmentSessionsDb.update(item.id, { title: newTitle })
     await loadAttachments()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -438,9 +439,9 @@ const handleDeleteAttachment = async (item: SessionListItem) => {
       parsedContent.value = ''
       aiAnalysis.value = ''
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -490,9 +491,9 @@ const handleParse = async () => {
     await nextTick()
     activeTab.value = 'parsed'
 
-    ElMessage.success(t('attachment.parseSuccess', '解析完成'))
+    notifySuccess(t('attachment.parseSuccess', '解析完成'))
   } catch (error) {
-    ElMessage.error('解析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('解析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     processing.value = false
   }
@@ -501,7 +502,7 @@ const handleParse = async () => {
 // AI分析
 const handleAiAnalysis = async () => {
   if (!activeAttachmentId.value || !parsedContent.value) {
-    ElMessage.warning(t('attachment.noParsedContent', '请先解析附件'))
+    notifyWarning(t('attachment.noParsedContent', '请先解析附件'))
     return
   }
 
@@ -573,10 +574,10 @@ const handleAiAnalysis = async () => {
       })
 
       activeTab.value = 'analysis'
-      ElMessage.success(t('attachment.analysisSuccess', '分析完成'))
+      notifySuccess(t('attachment.analysisSuccess', '分析完成'))
     }
   } catch (error) {
-    ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     analyzing.value = false
   }

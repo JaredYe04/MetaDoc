@@ -80,7 +80,7 @@
         <!-- 描述统计 -->
         <TabsContent value="stats">
           <el-scrollbar max-height="400px">
-            <el-tree
+            <Tree
               :data="statsTreeData"
               :props="{ children: 'children', label: 'label' }"
               default-expand-all
@@ -97,7 +97,7 @@
                   >
                 </div>
               </template>
-            </el-tree>
+            </Tree>
           </el-scrollbar>
         </TabsContent>
 
@@ -128,7 +128,7 @@
                     t('agent.display.dataAnalysis.groupBy', { field: agg.groupBy })
                   }}</span>
                 </div>
-                <el-tree
+                <Tree
                   v-show="aggregationExpanded[index]"
                   :data="buildAggregationTree(agg)"
                   :props="{ children: 'children', label: 'label' }"
@@ -145,7 +145,7 @@
                       >
                     </div>
                   </template>
-                </el-tree>
+                </Tree>
               </div>
             </div>
             <div v-else class="empty-aggregations" :style="emptyAggregationsStyle">
@@ -164,6 +164,7 @@ import { useI18n } from 'vue-i18n'
 import { Connection, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
 import { Badge } from '../ui/badge'
+import { Tree } from '@renderer/components/ui/tree'
 import { themeState } from '../../utils/themes'
 
 interface DataAnalysisResult {

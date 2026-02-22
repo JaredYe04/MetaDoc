@@ -50,96 +50,77 @@
 
     <div class="table-container" style="position: relative">
       <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
-      <el-table
-        :data="references"
-        border
-        stripe
-        :style="tableStyle"
-        :table-layout="'auto'"
-        :row-style="{ height: 'auto' }"
-        height="100%"
-      >
-        <el-table-column :label="t('agent.reference.name')" min-width="150" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="table-cell-content">{{ row.name }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('agent.reference.format')" width="90" align="center">
-          <template #default="{ row }">
-            <Badge variant="outline">{{ row.format || 'txt' }}</Badge>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('agent.reference.origin')" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="table-cell-content">{{ row.origin }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="t('agent.reference.description')"
-          min-width="150"
-          show-overflow-tooltip
-        >
-          <template #default="{ row }">
-            <div class="table-cell-content">{{ row.description || '-' }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="t('agent.reference.content')"
-          min-width="200"
-          show-overflow-tooltip
-        >
-          <template #default="{ row }">
-            <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
-              {{
-                row.parsedContent.length > 100
-                  ? row.parsedContent.substring(0, 100) + '...'
-                  : row.parsedContent
-              }}
-            </div>
-            <div class="table-cell-content" v-else style="color: #999">-</div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="t('agent.reference.actions')"
-          width="120"
-          fixed="right"
-          align="center"
-        >
-          <template #default="{ row }">
-            <div class="action-buttons">
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleViewContent(row)">
-                    <Document class="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{{ t('agent.reference.viewContent') }}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
-                    <Edit class="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{{ t('common.edit') }}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button
-                    size="icon"
-                    variant="destructive"
-                    class="h-8 w-8"
-                    @click="handleDelete(row)"
-                  >
-                    <Delete class="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{{ t('common.delete') }}</TooltipContent>
-              </Tooltip>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead style="min-width: 150px">{{ t('agent.reference.name') }}</TableHead>
+            <TableHead style="width: 90px; text-align: center">{{ t('agent.reference.format') }}</TableHead>
+            <TableHead style="min-width: 200px">{{ t('agent.reference.origin') }}</TableHead>
+            <TableHead style="min-width: 150px">{{ t('agent.reference.description') }}</TableHead>
+            <TableHead style="min-width: 200px">{{ t('agent.reference.content') }}</TableHead>
+            <TableHead style="width: 120px; text-align: center">{{ t('agent.reference.actions') }}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in references" :key="row.id">
+            <TableCell>
+              <div class="table-cell-content">{{ row.name }}</div>
+            </TableCell>
+            <TableCell style="text-align: center">
+              <Badge variant="outline">{{ row.format || 'txt' }}</Badge>
+            </TableCell>
+            <TableCell>
+              <div class="table-cell-content">{{ row.origin }}</div>
+            </TableCell>
+            <TableCell>
+              <div class="table-cell-content">{{ row.description || '-' }}</div>
+            </TableCell>
+            <TableCell>
+              <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
+                {{
+                  row.parsedContent.length > 100
+                    ? row.parsedContent.substring(0, 100) + '...'
+                    : row.parsedContent
+                }}
+              </div>
+              <div class="table-cell-content" v-else style="color: #999">-</div>
+            </TableCell>
+            <TableCell style="text-align: center">
+              <div class="action-buttons">
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleViewContent(row)">
+                      <Document class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{{ t('agent.reference.viewContent') }}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
+                      <Edit class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{{ t('common.edit') }}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      class="h-8 w-8"
+                      @click="handleDelete(row)"
+                    >
+                      <Delete class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{{ t('common.delete') }}</TooltipContent>
+                </Tooltip>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
 
     <!-- 查看内容对话框 -->
@@ -350,6 +331,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHead,
+} from '@renderer/components/ui/table'
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -478,10 +467,6 @@ const containerStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   padding: '16px',
   minHeight: 0
-}))
-
-const tableStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd
 }))
 
 const dialogStyle = computed(() => ({

@@ -13,11 +13,7 @@
   >
     <table class="descriptions__table">
       <tbody>
-        <tr
-          v-for="(row, rowIndex) in computedRows"
-          :key="rowIndex"
-          class="descriptions__row"
-        >
+        <tr v-for="(row, rowIndex) in computedRows" :key="rowIndex" class="descriptions__row">
           <template v-for="(item, itemIndex) in row" :key="itemIndex">
             <td
               :class="
@@ -77,9 +73,18 @@ const props = defineProps({
 })
 
 // Provide props to child items
-provide('descriptionsBorder', computed(() => props.border))
-provide('descriptionsColumn', computed(() => props.column))
-provide('descriptionsSize', computed(() => props.size))
+provide(
+  'descriptionsBorder',
+  computed(() => props.border)
+)
+provide(
+  'descriptionsColumn',
+  computed(() => props.column)
+)
+provide(
+  'descriptionsSize',
+  computed(() => props.size)
+)
 
 // Reactive items list from registered DescriptionsItem components
 const items = ref([])
@@ -189,16 +194,28 @@ const computedRows = computed(() => {
 /* Bordered mode */
 .descriptions--border .descriptions__cell--label {
   padding: 12px 16px;
-  background-color: var(--descriptions-item-bordered-label-background, var(--sidebar-bg, var(--el-fill-color-light, #f5f7fa)));
-  color: var(--descriptions-item-bordered-label-color, var(--sidebar-text, var(--el-text-color-regular, #606266)));
+  background-color: var(
+    --descriptions-item-bordered-label-background,
+    var(--sidebar-bg, var(--el-fill-color-light, #f5f7fa))
+  );
+  color: var(
+    --descriptions-item-bordered-label-color,
+    var(--sidebar-text, var(--el-text-color-regular, #606266))
+  );
   border: 1px solid var(--el-border-color, #e5e7eb);
   border-right: none;
 }
 
 .descriptions--border .descriptions__cell--content {
   padding: 12px 16px;
-  background-color: var(--descriptions-item-bordered-content-background, var(--background2nd, var(--el-bg-color, #ffffff)));
-  color: var(--descriptions-item-bordered-content-color, var(--textColor, var(--el-text-color-primary, #303133)));
+  background-color: var(
+    --descriptions-item-bordered-content-background,
+    var(--background2nd, var(--el-bg-color, #ffffff))
+  );
+  color: var(
+    --descriptions-item-bordered-content-color,
+    var(--textColor, var(--el-text-color-primary, #303133))
+  );
   border: 1px solid var(--el-border-color, #e5e7eb);
 }
 

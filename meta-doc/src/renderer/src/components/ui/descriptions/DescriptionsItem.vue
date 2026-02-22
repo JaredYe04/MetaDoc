@@ -73,7 +73,7 @@ onUnmounted(() => {
 <template>
   <!-- This component doesn't render anything itself -->
   <!-- It registers itself with the parent Descriptions component -->
-  <div style="display: none;">
+  <div style="display: none">
     <slot />
   </div>
 </template>

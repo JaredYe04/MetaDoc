@@ -1,24 +1,27 @@
+<script setup>
+import { reactiveOmit } from "@vueuse/core";
+import { DropdownMenuLabel, useForwardProps } from "reka-ui";
+import { cn } from '@renderer/lib/utils';
+
+const props = defineProps({
+  asChild: { type: Boolean, required: false },
+  as: { type: null, required: false },
+  class: { type: null, required: false },
+  inset: { type: Boolean, required: false },
+});
+
+const delegatedProps = reactiveOmit(props, "class");
+
+const forwardedProps = useForwardProps(delegatedProps);
+</script>
+
 <template>
   <DropdownMenuLabel
-    v-bind="forwarded"
-    :class="cn('px-2 py-1.5 text-sm font-semibold', inset && 'pl-8', $attrs.class ?? '')"
+    v-bind="forwardedProps"
+    :class="
+      cn('px-2 py-1.5 text-sm font-semibold', inset && 'pl-8', props.class)
+    "
   >
     <slot />
   </DropdownMenuLabel>
 </template>
-
-<script setup>
-import { DropdownMenuLabel, useForwardProps } from 'radix-vue'
-import { cn } from '../../../lib/utils'
-
-defineOptions({
-  inheritAttrs: false
-})
-
-const props = defineProps({
-  asChild: Boolean,
-  inset: Boolean
-})
-
-const forwarded = useForwardProps(props)
-</script>

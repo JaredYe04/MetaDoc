@@ -1,11 +1,12 @@
 <template>
-  <Dialog v-model:open="visible" :modal="true" class="profile-dialog-wrapper">
-    <DialogContent
-      class="max-w-[900px] w-[90vw]"
-      :close-on-escape="false"
-      :close-on-interact-outside="false"
-      @interact-outside="(e) => e.preventDefault()"
-    >
+  <Dialog
+    v-model:open="visible"
+    :modal="true"
+    class="profile-dialog-wrapper"
+    :close-on-escape="false"
+    :close-on-interact-outside="false"
+  >
+    <DialogContent class="max-w-[900px] w-[90vw]" @interact-outside="(e) => e.preventDefault()">
       <DialogHeader>
         <DialogTitle>{{ $t('userManual.profile.title') }}</DialogTitle>
       </DialogHeader>
@@ -43,327 +44,427 @@
           </div>
         </div>
 
-      <!-- 表单内容区域 -->
-      <div class="form-content-wrapper">
-        <transition name="fade-slide" mode="out-in">
-          <!-- 步骤1: 使用场景 -->
-          <div v-if="currentStep === 0" key="step-0" class="step-content">
-            <div class="step-header">
-              <h3 class="step-title">{{ $t('userManual.profile.scenario') }}</h3>
-              <p class="step-description">
-                {{ $t('userManual.profile.scenarioHint') || '请选择您的主要使用场景，这将帮助我们为您推荐最适合的学习路径' }}
-              </p>
-            </div>
-            <RadioGroup v-model="form.scenario" class="radio-button-group flex-wrap">
-              <div class="flex items-center">
-                <RadioGroupItem value="student" id="scenario-student" class="sr-only peer" />
-                <label for="scenario-student" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.scenarios.student') }}</span>
-                  </div>
-                </label>
+        <!-- 表单内容区域 -->
+        <div class="form-content-wrapper">
+          <transition name="fade-slide" mode="out-in">
+            <!-- 步骤1: 使用场景 -->
+            <div v-if="currentStep === 0" key="step-0" class="step-content">
+              <div class="step-header">
+                <h3 class="step-title">{{ $t('userManual.profile.scenario') }}</h3>
+                <p class="step-description">
+                  {{
+                    $t('userManual.profile.scenarioHint') ||
+                    '请选择您的主要使用场景，这将帮助我们为您推荐最适合的学习路径'
+                  }}
+                </p>
               </div>
-              <div class="flex items-center">
-                <RadioGroupItem value="researcher" id="scenario-researcher" class="sr-only peer" />
-                <label for="scenario-researcher" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.scenarios.researcher') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem value="it" id="scenario-it" class="sr-only peer" />
-                <label for="scenario-it" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.scenarios.it') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem value="office" id="scenario-office" class="sr-only peer" />
-                <label for="scenario-office" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.scenarios.office') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem value="other" id="scenario-other" class="sr-only peer" />
-                <label for="scenario-other" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.scenarios.other') }}</span>
-                  </div>
-                </label>
-              </div>
-            </RadioGroup>
-            <transition name="fade">
-              <div v-if="form.scenario" class="scenario-hint">
-                {{ getScenarioHint(form.scenario) }}
-              </div>
-            </transition>
-          </div>
-
-          <!-- 步骤2: Markdown熟练度 -->
-          <div v-else-if="currentStep === 1" key="step-1" class="step-content">
-            <div class="step-header">
-              <h3 class="step-title">{{ $t('userManual.profile.markdownLevel') }}</h3>
-              <p class="step-description">
-                {{ $t('userManual.profile.markdownLevelHint') || '请评估您对Markdown语法的熟悉程度' }}
-              </p>
-            </div>
-            <RadioGroup v-model="form.markdownLevel" class="radio-button-group flex-wrap">
-              <div class="flex items-center">
-                <RadioGroupItem :value="0" id="md-level-0" class="sr-only peer" />
-                <label for="md-level-0" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.none') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="1" id="md-level-1" class="sr-only peer" />
-                <label for="md-level-1" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.basic') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="2" id="md-level-2" class="sr-only peer" />
-                <label for="md-level-2" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.intermediate') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="3" id="md-level-3" class="sr-only peer" />
-                <label for="md-level-3" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.advanced') }}</span>
-                  </div>
-                </label>
-              </div>
-            </RadioGroup>
-            <transition name="fade">
-              <div v-if="form.markdownLevel !== undefined" class="level-hint">
-                {{ getMarkdownLevelHint(form.markdownLevel) }}
-              </div>
-            </transition>
-          </div>
-
-          <!-- 步骤3: Markdown编辑器经验（仅在Markdown熟练度>0时显示） -->
-          <div v-else-if="currentStep === 2 && shouldShowMarkdownEditorQuestions" key="step-2" class="step-content">
-            <div class="step-header">
-              <h3 class="step-title">{{ $t('userManual.profile.steps.markdownEditor') }}</h3>
-              <p class="step-description">
-                {{ $t('userManual.profile.markdownEditorHint') || '请告诉我们您使用过的Markdown编辑器经验' }}
-              </p>
-            </div>
-            
-            <FormField :label="$t('userManual.profile.usedWysiwygMarkdown')" name="">
-              <div class="form-item-hint">
-                {{ $t('userManual.profile.usedWysiwygMarkdownHint') }}
-              </div>
-              <RadioGroup v-model="form.usedWysiwygMarkdown" class="radio-button-group flex-wrap">
+              <RadioGroup v-model="form.scenario" class="radio-button-group flex-wrap">
                 <div class="flex items-center">
-                  <RadioGroupItem :value="true" id="used-wysiwyg-yes" class="sr-only peer" />
-                  <label for="used-wysiwyg-yes" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
+                  <RadioGroupItem value="student" id="scenario-student" class="sr-only peer" />
+                  <label
+                    for="scenario-student"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
                     <div class="radio-content">
-                      <span>{{ $t('userManual.profile.yes') }}</span>
+                      <span>{{ $t('userManual.profile.scenarios.student') }}</span>
                     </div>
                   </label>
                 </div>
                 <div class="flex items-center">
-                  <RadioGroupItem :value="false" id="used-wysiwyg-no" class="sr-only peer" />
-                  <label for="used-wysiwyg-no" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
+                  <RadioGroupItem
+                    value="researcher"
+                    id="scenario-researcher"
+                    class="sr-only peer"
+                  />
+                  <label
+                    for="scenario-researcher"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
                     <div class="radio-content">
-                      <span>{{ $t('userManual.profile.no') }}</span>
+                      <span>{{ $t('userManual.profile.scenarios.researcher') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem value="it" id="scenario-it" class="sr-only peer" />
+                  <label
+                    for="scenario-it"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.scenarios.it') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem value="office" id="scenario-office" class="sr-only peer" />
+                  <label
+                    for="scenario-office"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.scenarios.office') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem value="other" id="scenario-other" class="sr-only peer" />
+                  <label
+                    for="scenario-other"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.scenarios.other') }}</span>
                     </div>
                   </label>
                 </div>
               </RadioGroup>
-            </FormField>
+              <transition name="fade">
+                <div v-if="form.scenario" class="scenario-hint">
+                  {{ getScenarioHint(form.scenario) }}
+                </div>
+              </transition>
+            </div>
 
-            <FormField :label="$t('userManual.profile.usedOtherMarkdownEditor')" name="">
-              <div class="form-item-hint">
-                {{ $t('userManual.profile.usedOtherMarkdownEditorHint') }}
+            <!-- 步骤2: Markdown熟练度 -->
+            <div v-else-if="currentStep === 1" key="step-1" class="step-content">
+              <div class="step-header">
+                <h3 class="step-title">{{ $t('userManual.profile.markdownLevel') }}</h3>
+                <p class="step-description">
+                  {{
+                    $t('userManual.profile.markdownLevelHint') || '请评估您对Markdown语法的熟悉程度'
+                  }}
+                </p>
               </div>
-              <RadioGroup v-model="form.usedOtherMarkdownEditor" class="radio-button-group flex-wrap">
+              <RadioGroup v-model="form.markdownLevel" class="radio-button-group flex-wrap">
                 <div class="flex items-center">
-                  <RadioGroupItem :value="true" id="used-other-md-yes" class="sr-only peer" />
-                  <label for="used-other-md-yes" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
+                  <RadioGroupItem :value="0" id="md-level-0" class="sr-only peer" />
+                  <label
+                    for="md-level-0"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
                     <div class="radio-content">
-                      <span>{{ $t('userManual.profile.yes') }}</span>
+                      <span>{{ $t('userManual.profile.levels.none') }}</span>
                     </div>
                   </label>
                 </div>
                 <div class="flex items-center">
-                  <RadioGroupItem :value="false" id="used-other-md-no" class="sr-only peer" />
-                  <label for="used-other-md-no" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
+                  <RadioGroupItem :value="1" id="md-level-1" class="sr-only peer" />
+                  <label
+                    for="md-level-1"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
                     <div class="radio-content">
-                      <span>{{ $t('userManual.profile.no') }}</span>
+                      <span>{{ $t('userManual.profile.levels.basic') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="2" id="md-level-2" class="sr-only peer" />
+                  <label
+                    for="md-level-2"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.levels.intermediate') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="3" id="md-level-3" class="sr-only peer" />
+                  <label
+                    for="md-level-3"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.levels.advanced') }}</span>
                     </div>
                   </label>
                 </div>
               </RadioGroup>
-            </FormField>
-          </div>
-
-          <!-- 步骤4: LaTeX熟练度 -->
-          <div v-else-if="getStepIndex('latex') === currentStep" key="step-latex" class="step-content">
-            <div class="step-header">
-              <h3 class="step-title">{{ $t('userManual.profile.latexLevel') }}</h3>
-              <p class="step-description">
-                {{ $t('userManual.profile.latexLevelHint') || '请评估您对LaTeX语法的熟悉程度' }}
-              </p>
+              <transition name="fade">
+                <div v-if="form.markdownLevel !== undefined" class="level-hint">
+                  {{ getMarkdownLevelHint(form.markdownLevel) }}
+                </div>
+              </transition>
             </div>
-            <RadioGroup v-model="form.latexLevel" class="radio-button-group flex-wrap">
-              <div class="flex items-center">
-                <RadioGroupItem :value="0" id="latex-level-0" class="sr-only peer" />
-                <label for="latex-level-0" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.none') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="1" id="latex-level-1" class="sr-only peer" />
-                <label for="latex-level-1" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.basic') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="2" id="latex-level-2" class="sr-only peer" />
-                <label for="latex-level-2" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.intermediate') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="3" id="latex-level-3" class="sr-only peer" />
-                <label for="latex-level-3" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.levels.advanced') }}</span>
-                  </div>
-                </label>
-              </div>
-            </RadioGroup>
-            <transition name="fade">
-              <div v-if="form.latexLevel !== undefined" class="level-hint">
-                {{ getLatexLevelHint(form.latexLevel) }}
-              </div>
-            </transition>
-          </div>
 
-          <!-- 步骤5: LaTeX编辑器经验（仅在LaTeX熟练度>0时显示） -->
-          <div v-else-if="currentStep === getStepIndex('latexEditor') && shouldShowLatexEditorQuestions" key="step-latex-editor" class="step-content">
-            <div class="step-header">
-              <h3 class="step-title">{{ $t('userManual.profile.steps.latexEditor') }}</h3>
-              <p class="step-description">
-                {{ $t('userManual.profile.latexEditorHint') || '请告诉我们您使用过的LaTeX编辑器经验' }}
-              </p>
-            </div>
-            
-            <FormField :label="$t('userManual.profile.usedLatexEditor')" name="">
-              <div class="form-item-hint">
-                {{ $t('userManual.profile.usedLatexEditorHint') }}
+            <!-- 步骤3: Markdown编辑器经验（仅在Markdown熟练度>0时显示） -->
+            <div
+              v-else-if="currentStep === 2 && shouldShowMarkdownEditorQuestions"
+              key="step-2"
+              class="step-content"
+            >
+              <div class="step-header">
+                <h3 class="step-title">{{ $t('userManual.profile.steps.markdownEditor') }}</h3>
+                <p class="step-description">
+                  {{
+                    $t('userManual.profile.markdownEditorHint') ||
+                    '请告诉我们您使用过的Markdown编辑器经验'
+                  }}
+                </p>
               </div>
-              <RadioGroup v-model="form.usedLatexEditor" class="radio-button-group flex-wrap">
+
+              <FormField :label="$t('userManual.profile.usedWysiwygMarkdown')" name="">
+                <div class="form-item-hint">
+                  {{ $t('userManual.profile.usedWysiwygMarkdownHint') }}
+                </div>
+                <RadioGroup v-model="form.usedWysiwygMarkdown" class="radio-button-group flex-wrap">
+                  <div class="flex items-center">
+                    <RadioGroupItem :value="true" id="used-wysiwyg-yes" class="sr-only peer" />
+                    <label
+                      for="used-wysiwyg-yes"
+                      class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <div class="radio-content">
+                        <span>{{ $t('userManual.profile.yes') }}</span>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="flex items-center">
+                    <RadioGroupItem :value="false" id="used-wysiwyg-no" class="sr-only peer" />
+                    <label
+                      for="used-wysiwyg-no"
+                      class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <div class="radio-content">
+                        <span>{{ $t('userManual.profile.no') }}</span>
+                      </div>
+                    </label>
+                  </div>
+                </RadioGroup>
+              </FormField>
+
+              <FormField :label="$t('userManual.profile.usedOtherMarkdownEditor')" name="">
+                <div class="form-item-hint">
+                  {{ $t('userManual.profile.usedOtherMarkdownEditorHint') }}
+                </div>
+                <RadioGroup
+                  v-model="form.usedOtherMarkdownEditor"
+                  class="radio-button-group flex-wrap"
+                >
+                  <div class="flex items-center">
+                    <RadioGroupItem :value="true" id="used-other-md-yes" class="sr-only peer" />
+                    <label
+                      for="used-other-md-yes"
+                      class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <div class="radio-content">
+                        <span>{{ $t('userManual.profile.yes') }}</span>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="flex items-center">
+                    <RadioGroupItem :value="false" id="used-other-md-no" class="sr-only peer" />
+                    <label
+                      for="used-other-md-no"
+                      class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <div class="radio-content">
+                        <span>{{ $t('userManual.profile.no') }}</span>
+                      </div>
+                    </label>
+                  </div>
+                </RadioGroup>
+              </FormField>
+            </div>
+
+            <!-- 步骤4: LaTeX熟练度 -->
+            <div
+              v-else-if="getStepIndex('latex') === currentStep"
+              key="step-latex"
+              class="step-content"
+            >
+              <div class="step-header">
+                <h3 class="step-title">{{ $t('userManual.profile.latexLevel') }}</h3>
+                <p class="step-description">
+                  {{ $t('userManual.profile.latexLevelHint') || '请评估您对LaTeX语法的熟悉程度' }}
+                </p>
+              </div>
+              <RadioGroup v-model="form.latexLevel" class="radio-button-group flex-wrap">
                 <div class="flex items-center">
-                  <RadioGroupItem :value="true" id="used-latex-yes" class="sr-only peer" />
-                  <label for="used-latex-yes" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
+                  <RadioGroupItem :value="0" id="latex-level-0" class="sr-only peer" />
+                  <label
+                    for="latex-level-0"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
                     <div class="radio-content">
-                      <span>{{ $t('userManual.profile.yes') }}</span>
+                      <span>{{ $t('userManual.profile.levels.none') }}</span>
                     </div>
                   </label>
                 </div>
                 <div class="flex items-center">
-                  <RadioGroupItem :value="false" id="used-latex-no" class="sr-only peer" />
-                  <label for="used-latex-no" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
+                  <RadioGroupItem :value="1" id="latex-level-1" class="sr-only peer" />
+                  <label
+                    for="latex-level-1"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
                     <div class="radio-content">
-                      <span>{{ $t('userManual.profile.no') }}</span>
+                      <span>{{ $t('userManual.profile.levels.basic') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="2" id="latex-level-2" class="sr-only peer" />
+                  <label
+                    for="latex-level-2"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.levels.intermediate') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="3" id="latex-level-3" class="sr-only peer" />
+                  <label
+                    for="latex-level-3"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.levels.advanced') }}</span>
                     </div>
                   </label>
                 </div>
               </RadioGroup>
-            </FormField>
-          </div>
-
-          <!-- 步骤6: Agent了解程度 -->
-          <div v-else-if="currentStep === getStepIndex('agent')" key="step-agent" class="step-content">
-            <div class="step-header">
-              <h3 class="step-title">{{ $t('userManual.profile.agentLevel') }}</h3>
-              <p class="step-description">
-                {{ $t('userManual.profile.agentLevelHint') || '请评估您对AI Agent的了解程度' }}
-              </p>
+              <transition name="fade">
+                <div v-if="form.latexLevel !== undefined" class="level-hint">
+                  {{ getLatexLevelHint(form.latexLevel) }}
+                </div>
+              </transition>
             </div>
-            <RadioGroup v-model="form.agentLevel" class="radio-button-group flex-wrap">
-              <div class="flex items-center">
-                <RadioGroupItem :value="0" id="agent-level-0" class="sr-only peer" />
-                <label for="agent-level-0" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.agentLevels.none') }}</span>
-                  </div>
-                </label>
+
+            <!-- 步骤5: LaTeX编辑器经验（仅在LaTeX熟练度>0时显示） -->
+            <div
+              v-else-if="
+                currentStep === getStepIndex('latexEditor') && shouldShowLatexEditorQuestions
+              "
+              key="step-latex-editor"
+              class="step-content"
+            >
+              <div class="step-header">
+                <h3 class="step-title">{{ $t('userManual.profile.steps.latexEditor') }}</h3>
+                <p class="step-description">
+                  {{
+                    $t('userManual.profile.latexEditorHint') ||
+                    '请告诉我们您使用过的LaTeX编辑器经验'
+                  }}
+                </p>
               </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="1" id="agent-level-1" class="sr-only peer" />
-                <label for="agent-level-1" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.agentLevels.heard') }}</span>
+
+              <FormField :label="$t('userManual.profile.usedLatexEditor')" name="">
+                <div class="form-item-hint">
+                  {{ $t('userManual.profile.usedLatexEditorHint') }}
+                </div>
+                <RadioGroup v-model="form.usedLatexEditor" class="radio-button-group flex-wrap">
+                  <div class="flex items-center">
+                    <RadioGroupItem :value="true" id="used-latex-yes" class="sr-only peer" />
+                    <label
+                      for="used-latex-yes"
+                      class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <div class="radio-content">
+                        <span>{{ $t('userManual.profile.yes') }}</span>
+                      </div>
+                    </label>
                   </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="2" id="agent-level-2" class="sr-only peer" />
-                <label for="agent-level-2" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.agentLevels.basic') }}</span>
+                  <div class="flex items-center">
+                    <RadioGroupItem :value="false" id="used-latex-no" class="sr-only peer" />
+                    <label
+                      for="used-latex-no"
+                      class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <div class="radio-content">
+                        <span>{{ $t('userManual.profile.no') }}</span>
+                      </div>
+                    </label>
                   </div>
-                </label>
+                </RadioGroup>
+              </FormField>
+            </div>
+
+            <!-- 步骤6: Agent了解程度 -->
+            <div
+              v-else-if="currentStep === getStepIndex('agent')"
+              key="step-agent"
+              class="step-content"
+            >
+              <div class="step-header">
+                <h3 class="step-title">{{ $t('userManual.profile.agentLevel') }}</h3>
+                <p class="step-description">
+                  {{ $t('userManual.profile.agentLevelHint') || '请评估您对AI Agent的了解程度' }}
+                </p>
               </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="3" id="agent-level-3" class="sr-only peer" />
-                <label for="agent-level-3" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.agentLevels.used') }}</span>
-                  </div>
-                </label>
-              </div>
-              <div class="flex items-center">
-                <RadioGroupItem :value="4" id="agent-level-4" class="sr-only peer" />
-                <label for="agent-level-4" class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
-                  <div class="radio-content">
-                    <span>{{ $t('userManual.profile.agentLevels.proficient') }}</span>
-                  </div>
-                </label>
-              </div>
-            </RadioGroup>
-          </div>
-        </transition>
+              <RadioGroup v-model="form.agentLevel" class="radio-button-group flex-wrap">
+                <div class="flex items-center">
+                  <RadioGroupItem :value="0" id="agent-level-0" class="sr-only peer" />
+                  <label
+                    for="agent-level-0"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.agentLevels.none') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="1" id="agent-level-1" class="sr-only peer" />
+                  <label
+                    for="agent-level-1"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.agentLevels.heard') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="2" id="agent-level-2" class="sr-only peer" />
+                  <label
+                    for="agent-level-2"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.agentLevels.basic') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="3" id="agent-level-3" class="sr-only peer" />
+                  <label
+                    for="agent-level-3"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.agentLevels.used') }}</span>
+                    </div>
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <RadioGroupItem :value="4" id="agent-level-4" class="sr-only peer" />
+                  <label
+                    for="agent-level-4"
+                    class="radio-option peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                  >
+                    <div class="radio-content">
+                      <span>{{ $t('userManual.profile.agentLevels.proficient') }}</span>
+                    </div>
+                  </label>
+                </div>
+              </RadioGroup>
+            </div>
+          </transition>
+        </div>
       </div>
-    </div>
 
       <DialogFooter class="dialog-footer">
         <Button variant="ghost" @click="handleCancel">{{ $t('userManual.profile.skip') }}</Button>
         <div class="footer-actions">
           <Button v-if="currentStep > 0" variant="outline" @click="prevStep">上一步</Button>
-          <Button
-            v-if="currentStep < maxStep"
-            :disabled="!canProceed"
-            @click="nextStep"
-          >
+          <Button v-if="currentStep < maxStep" :disabled="!canProceed" @click="nextStep">
             {{ $t('userManual.profile.next') || '下一步' }}
           </Button>
-          <Button
-            v-if="currentStep === maxStep"
-            :disabled="!canSubmit"
-            @click="handleSubmit"
-          >
+          <Button v-if="currentStep === maxStep" :disabled="!canSubmit" @click="handleSubmit">
             {{ $t('userManual.profile.submit') }}
           </Button>
         </div>
@@ -378,7 +479,13 @@ import { useI18n } from 'vue-i18n'
 import { Check } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@renderer/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 import { saveUserProfile } from '../../utils/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
@@ -451,7 +558,11 @@ const visibleSteps = computed(() => {
 
   let index = 2
   if (shouldShowMarkdownEditorQuestions.value) {
-    steps.push({ key: 'markdownEditor', title: t('userManual.profile.steps.markdownEditor'), index })
+    steps.push({
+      key: 'markdownEditor',
+      title: t('userManual.profile.steps.markdownEditor'),
+      index
+    })
     index++
   }
 
@@ -492,10 +603,18 @@ const canSubmit = computed(() => {
 
 const getScenarioHint = (scenario: string): string => {
   const hints: Record<string, string> = {
-    student: t('userManual.profile.scenarios.hint.student') || '学生：主要用于课程笔记、作业文档、学习资料整理等场景',
-    researcher: t('userManual.profile.scenarios.hint.researcher') || '科研人员：主要用于学术论文、研究报告、实验记录等场景',
-    it: t('userManual.profile.scenarios.hint.it') || 'IT人员：主要用于技术文档、代码注释、API文档、项目文档等场景',
-    office: t('userManual.profile.scenarios.hint.office') || '办公人员：主要用于会议纪要、工作报告、商务文档等场景',
+    student:
+      t('userManual.profile.scenarios.hint.student') ||
+      '学生：主要用于课程笔记、作业文档、学习资料整理等场景',
+    researcher:
+      t('userManual.profile.scenarios.hint.researcher') ||
+      '科研人员：主要用于学术论文、研究报告、实验记录等场景',
+    it:
+      t('userManual.profile.scenarios.hint.it') ||
+      'IT人员：主要用于技术文档、代码注释、API文档、项目文档等场景',
+    office:
+      t('userManual.profile.scenarios.hint.office') ||
+      '办公人员：主要用于会议纪要、工作报告、商务文档等场景',
     other: t('userManual.profile.scenarios.hint.other') || '其他：通用文档编辑场景'
   }
   return hints[scenario] || ''
@@ -503,20 +622,36 @@ const getScenarioHint = (scenario: string): string => {
 
 const getMarkdownLevelHint = (level: number): string => {
   const hints: Record<number, string> = {
-    0: t('userManual.profile.markdownLevelHints.none') || '完全不了解Markdown语法，需要从基础语法开始学习',
-    1: t('userManual.profile.markdownLevelHints.basic') || '了解基本语法（标题、列表、加粗等），可以编写简单的文档',
-    2: t('userManual.profile.markdownLevelHints.intermediate') || '熟练使用Markdown语法，了解表格、代码块、链接等高级功能',
-    3: t('userManual.profile.markdownLevelHints.advanced') || '精通Markdown，熟悉扩展语法、数学公式、图表等高级特性'
+    0:
+      t('userManual.profile.markdownLevelHints.none') ||
+      '完全不了解Markdown语法，需要从基础语法开始学习',
+    1:
+      t('userManual.profile.markdownLevelHints.basic') ||
+      '了解基本语法（标题、列表、加粗等），可以编写简单的文档',
+    2:
+      t('userManual.profile.markdownLevelHints.intermediate') ||
+      '熟练使用Markdown语法，了解表格、代码块、链接等高级功能',
+    3:
+      t('userManual.profile.markdownLevelHints.advanced') ||
+      '精通Markdown，熟悉扩展语法、数学公式、图表等高级特性'
   }
   return hints[level] || ''
 }
 
 const getLatexLevelHint = (level: number): string => {
   const hints: Record<number, string> = {
-    0: t('userManual.profile.latexLevelHints.none') || '完全不了解LaTeX，需要从基础语法和文档结构开始学习',
-    1: t('userManual.profile.latexLevelHints.basic') || '了解基本语法和文档结构，可以编写简单的LaTeX文档',
-    2: t('userManual.profile.latexLevelHints.intermediate') || '熟练使用LaTeX，了解数学公式、表格、图片插入等常用功能',
-    3: t('userManual.profile.latexLevelHints.advanced') || '精通LaTeX，熟悉宏包使用、自定义命令、参考文献管理等高级特性'
+    0:
+      t('userManual.profile.latexLevelHints.none') ||
+      '完全不了解LaTeX，需要从基础语法和文档结构开始学习',
+    1:
+      t('userManual.profile.latexLevelHints.basic') ||
+      '了解基本语法和文档结构，可以编写简单的LaTeX文档',
+    2:
+      t('userManual.profile.latexLevelHints.intermediate') ||
+      '熟练使用LaTeX，了解数学公式、表格、图片插入等常用功能',
+    3:
+      t('userManual.profile.latexLevelHints.advanced') ||
+      '精通LaTeX，熟悉宏包使用、自定义命令、参考文献管理等高级特性'
   }
   return hints[level] || ''
 }

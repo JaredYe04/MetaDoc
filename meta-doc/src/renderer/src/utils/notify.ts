@@ -1,5 +1,5 @@
-import { useNotificationStore } from '@renderer/stores/notification'
-import type { NotifyOptions } from '@/types/notification'
+import { useNotificationStore } from '../stores/notification'
+import type { NotifyOptions } from '../types/notification'
 
 let notificationStore: ReturnType<typeof useNotificationStore> | null = null
 

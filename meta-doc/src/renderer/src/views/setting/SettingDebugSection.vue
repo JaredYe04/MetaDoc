@@ -5964,8 +5964,8 @@ onMounted(async () => {
   flex-direction: column;
 }
 
-/* 确保 el-divider 不会影响布局 */
-.debug-section :deep(.el-divider) {
+/* 确保 Divider 不会影响布局 */
+.debug-section :deep([role="separator"]) {
   margin: 16px 0;
   flex-shrink: 0;
 }

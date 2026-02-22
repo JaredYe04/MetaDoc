@@ -90,19 +90,19 @@
 
       <!-- 结果信息 -->
       <div class="result-info">
-        <el-descriptions :column="1" size="small" border>
-          <el-descriptions-item :label="$t('agent.display.chartGeneration.chartType')">
+        <Descriptions :column="1" size="small" border>
+          <DescriptionsItem :label="$t('agent.display.chartGeneration.chartType')">
             {{ displayData.chartType }}
-          </el-descriptions-item>
-          <el-descriptions-item :label="$t('agent.display.chartGeneration.url')">
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('agent.display.chartGeneration.url')">
             <el-link :href="displayData.url" target="_blank" type="primary">
               {{ displayData.url }}
             </el-link>
-          </el-descriptions-item>
-          <el-descriptions-item :label="$t('agent.display.chartGeneration.localPath')">
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('agent.display.chartGeneration.localPath')">
             {{ displayData.localPath }}
-          </el-descriptions-item>
-        </el-descriptions>
+          </DescriptionsItem>
+        </Descriptions>
       </div>
     </div>
 
@@ -135,6 +135,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@renderer/components/ui/collapsible'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'

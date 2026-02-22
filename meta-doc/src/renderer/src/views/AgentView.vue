@@ -274,19 +274,19 @@
               <ScrollArea class="tool-detail-scroll">
                 <div v-if="activeTool" class="tool-detail" :style="detailStyle">
                   <h3>{{ activeTool.name }}</h3>
-                  <el-descriptions :column="1" size="small" border>
-                    <el-descriptions-item :label="t('agent.tools.detail.name')">
+                  <Descriptions :column="1" size="small" border>
+                    <DescriptionsItem :label="t('agent.tools.detail.name')">
                       {{ activeTool.name }}
-                    </el-descriptions-item>
-                    <el-descriptions-item :label="t('agent.tools.detail.description')">
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('agent.tools.detail.description')">
                       <p>{{ activeTool.description }}</p>
-                    </el-descriptions-item>
-                    <el-descriptions-item :label="t('agent.tools.detail.origin')">
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('agent.tools.detail.origin')">
                       <Badge>{{
                         originLabel(activeTool.origin as ToolOrigin)
                       }}</Badge>
-                    </el-descriptions-item>
-                    <el-descriptions-item
+                    </DescriptionsItem>
+                    <DescriptionsItem
                       :label="t('agent.tools.detail.tags')"
                       v-if="activeTool.tags?.length"
                     >
@@ -300,8 +300,8 @@
                           {{ tag }}
                         </Badge>
                       </div>
-                    </el-descriptions-item>
-                  </el-descriptions>
+                    </DescriptionsItem>
+                  </Descriptions>
                 </div>
                 <div v-else class="tool-detail placeholder" :style="detailStyle">
                   <el-empty :description="t('agent.tools.detail.placeholder')" />
@@ -532,6 +532,10 @@ import {
   Card,
   CardContent,
 } from '@renderer/components/ui/card'
+import {
+  Descriptions,
+  DescriptionsItem
+} from '@renderer/components/ui/descriptions'
 dayjs.extend(relativeTime)
 
 const { t } = useI18n()
@@ -3025,20 +3029,13 @@ onBeforeUnmount(() => {
     color 0.2s ease;
 }
 
-.tool-detail :deep(.el-descriptions__body) {
-  background-color: transparent;
+.tool-detail :deep(.descriptions) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-.tool-detail :deep(.el-descriptions) {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.tool-detail :deep(.el-descriptions__table) {
+.tool-detail :deep(.descriptions__table) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;

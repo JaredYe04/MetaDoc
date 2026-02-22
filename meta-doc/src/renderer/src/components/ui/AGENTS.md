@@ -8,34 +8,36 @@
 
 ```
 components/ui/
-├── alert/              # Alert/notification component
-├── avatar/             # User avatar with fallback
-├── badge/              # Status badges
-├── button/             # Primary action button
-├── card/               # Content containers
-├── checkbox/           # Form checkbox
-├── collapsible/        # Expandable content
-├── descriptions/       # Key-value descriptions
-├── dialog/             # Modal dialogs
-├── dropdown-menu/      # Context menus
-├── form/               # Form field wrapper
-├── input/              # Text input
-├── label/              # Form labels
-├── loading-overlay/    # Full-screen loading
-├── navigation-menu/    # Navigation component
-├── number-field/       # Numeric input with +/-
-├── progress/           # Progress bars
-├── radio-group/        # Radio button groups
-├── scroll-area/        # Custom scrollbar
-├── select/             # Dropdown select
-├── separator/          # Visual dividers
-├── slider/             # Range slider
-├── switch/             # Toggle switch
-├── table/              # Data tables
-├── tabs/               # Tab navigation
-├── textarea/           # Multi-line text input
-├── toggle-group/       # Button toggle groups
-├── tooltip/            # Hover tooltips
+├── alert/              # Alert/notification component (shadcn)
+├── avatar/             # User avatar with fallback (shadcn)
+├── badge/              # Status badges (shadcn)
+├── button/             # Primary action button (shadcn)
+├── card/               # Content containers (shadcn)
+├── checkbox/           # Form checkbox (shadcn)
+├── collapsible/        # Expandable content (shadcn)
+├── color-picker/       # Color picker - **CUSTOM PROJECT COMPONENT** (not from shadcn-vue)
+├── descriptions/       # Key-value descriptions (shadcn)
+├── dialog/             # Modal dialogs (shadcn)
+├── dropdown-menu/      # Context menus (shadcn)
+├── form/               # Form field wrapper (shadcn)
+├── input/              # Text input (shadcn)
+├── label/              # Form labels (shadcn)
+├── loading-overlay/    # Full-screen loading (shadcn)
+├── navigation-menu/    # Navigation component (shadcn)
+├── number-field/       # Numeric input with +/- (shadcn)
+├── popover/            # Popover with Element Plus compatible props (shadcn + custom)
+├── progress/           # Progress bars (shadcn)
+├── radio-group/        # Radio button groups (shadcn)
+├── scroll-area/        # Custom scrollbar (shadcn)
+├── select/             # Dropdown select (shadcn)
+├── separator/          # Visual dividers (shadcn)
+├── slider/             # Range slider with Element Plus compatible props (shadcn + custom)
+├── switch/             # Toggle switch (shadcn)
+├── table/              # Data tables (shadcn)
+├── tabs/               # Tab navigation (shadcn)
+├── textarea/           # Multi-line text input (shadcn)
+├── toggle-group/       # Button toggle groups (shadcn)
+├── tooltip/            # Hover tooltips (shadcn)
 ├── UIMenu.vue          # Custom menu component
 ├── UIMenuItem.vue      # Custom menu item
 ├── UISubMenu.vue       # Custom submenu
@@ -68,8 +70,30 @@ components/ui/
 - Avoid duplicating shadcn functionality with Element Plus equivalents in new code
 - Custom components (UIMenu, etc.) alongside shadcn are for project-specific patterns
 
+## CUSTOM COMPONENTS & MODIFICATIONS
+
+### color-picker/ (Project Custom)
+
+Custom color picker component built for theme settings, NOT installed from shadcn-vue. Uses reka-ui Popover primitives directly.
+
+- Built on: reka-ui `PopoverRoot`, `PopoverContent`, `PopoverTrigger`
+- Features: Saturation/Value panel, Hue slider, Alpha slider, predefined colors, hex input
+- Uses `tinycolor2` for color manipulation
+
+### slider/ (Modified for Element Plus Compatibility)
+
+Originally installed from shadcn-vue but enhanced with Element Plus compatible props:
+
+- `range`, `showInput`, `showStops`, `showTooltip`, `formatTooltip`, `debounce`, `tooltipClass`, `marks`, `validateEvent`
+- Events: `update:modelValue`, `value-commit`
+
+### popover/ (Standard shadcn)
+
+Standard shadcn-vue popover. Note: ColorPicker uses reka-ui primitives directly, not this wrapper.
+
 ## NOTES
 
-- Components are auto-installed with proper TypeScript types
+- Most components are installed via `npx shadcn-vue@latest add` with proper TypeScript types
 - Tailwind config extends shadcn's color system (`bg-primary`, `text-muted-foreground`, etc.)
 - Each component directory contains `index.ts` for clean barrel exports
+- Custom components (`color-picker/`, `UIMenu.vue`, etc.) are project-specific implementations

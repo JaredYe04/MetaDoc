@@ -56,6 +56,13 @@ const computedPlacement = computed(() => placementMap[props.placement] || placem
 
 // Compute tooltip open state based on disabled prop
 const isDisabled = computed(() => props.disabled)
+
+// Check if tooltip has content to display
+const hasContent = computed(() => {
+  // Check if content prop is provided and not empty
+  if (props.content && props.content.trim() !== '') return true
+  return false
+})
 </script>
 
 <template>
@@ -66,6 +73,7 @@ const isDisabled = computed(() => props.disabled)
       </TooltipTrigger>
       <TooltipPortal>
         <TooltipContent
+          v-if="hasContent"
           :side="computedPlacement.side"
           :align="computedPlacement.align"
           :side-offset="offset"

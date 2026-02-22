@@ -4,16 +4,16 @@
       <el-statistic :title="$t('agent.display.autoTest.totalTests')" :value="summary.total" />
       <el-statistic :title="$t('agent.display.autoTest.passed')" :value="summary.passed">
         <template #suffix>
-          <el-tag type="success" size="small" style="margin-left: 8px">
+          <Badge class="ml-2">
             {{ summary.passedRate }}%
-          </el-tag>
+          </Badge>
         </template>
       </el-statistic>
       <el-statistic :title="$t('agent.display.autoTest.failed')" :value="summary.failed">
         <template #suffix>
-          <el-tag type="danger" size="small" style="margin-left: 8px">
+          <Badge variant="destructive" class="ml-2">
             {{ summary.failedRate }}%
-          </el-tag>
+          </Badge>
         </template>
       </el-statistic>
       <el-statistic :title="$t('agent.display.autoTest.duration')" :value="summary.duration">
@@ -92,13 +92,13 @@
                     <Download class="w-4 h-4 mr-1" />
                     {{ $t('agent.tool.exportSnapshot') }}
                   </Button>
-                  <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
+                  <Badge :variant="result.passed ? 'default' : 'destructive'">
                     {{
                       result.passed
                         ? $t('agent.display.autoTest.passed')
                         : $t('agent.display.autoTest.failed')
                     }}
-                  </el-tag>
+                  </Badge>
                 </div>
               </div>
 
@@ -173,6 +173,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { useI18n } from 'vue-i18n'

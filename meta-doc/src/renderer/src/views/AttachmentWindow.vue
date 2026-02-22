@@ -22,7 +22,8 @@
         @delete="handleDeleteAttachment"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeAttachment" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('attachment.noAttachmentSelected', '请选择一个附件或上传新附件') }}</p>
           </div>
@@ -124,6 +125,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { attachmentSessionsDb, type AttachmentSession } from '../utils/db/tool-sessions-db'
@@ -767,16 +769,12 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 确保 el-tabs 占满父容器高度 */
-.parsed-section :deep(.el-tabs) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+/* shadcn-vue Tabs styling */
+.parsed-section :deep([role="tablist"]) {
+  flex-shrink: 0;
 }
 
-.parsed-section :deep(.el-tabs__content) {
+.parsed-section :deep([role="tabpanel"]) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -784,13 +782,8 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.parsed-section :deep(.el-tab-pane) {
+.parsed-section :deep([role="tabpanel"][data-state="active"]) {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .content-display {

@@ -1,55 +1,66 @@
 <script setup>
-import { Primitive } from "reka-ui";
-import { cn } from '@renderer/lib/utils';
-import { buttonVariants } from ".";
-import { computed } from 'vue';
+import { Primitive } from 'reka-ui'
+import { cn } from '@renderer/lib/utils'
+import { buttonVariants } from '.'
+import { computed } from 'vue'
 
 const props = defineProps({
   variant: { type: null, required: false },
   size: { type: null, required: false },
   class: { type: null, required: false },
   asChild: { type: Boolean, required: false },
-  as: { type: null, required: false, default: "button" },
+  as: { type: null, required: false, default: 'button' },
   // Element UI compatible props
   type: { type: String, required: false },
   loading: { type: Boolean, required: false, default: false },
   disabled: { type: Boolean, required: false, default: false },
   circle: { type: Boolean, required: false, default: false },
   round: { type: Boolean, required: false, default: false },
-  plain: { type: Boolean, required: false, default: false },
-});
+  plain: { type: Boolean, required: false, default: false }
+})
 
 // Map Element UI type to shadcn variant
 const computedVariant = computed(() => {
-  if (props.variant) return props.variant;
+  if (props.variant) return props.variant
   switch (props.type) {
-    case 'primary': return 'default';
-    case 'success': return 'secondary';
-    case 'warning': return 'secondary';
-    case 'danger': return 'destructive';
-    case 'info': return 'outline';
-    case 'text': return 'ghost';
-    default: return 'default';
+    case 'primary':
+      return 'default'
+    case 'success':
+      return 'secondary'
+    case 'warning':
+      return 'secondary'
+    case 'danger':
+      return 'destructive'
+    case 'info':
+      return 'outline'
+    case 'text':
+      return 'ghost'
+    default:
+      return 'default'
   }
-});
+})
 
 // Map Element UI size to shadcn size
 const computedSize = computed(() => {
-  if (props.size && ['sm', 'lg', 'icon', 'icon-sm', 'icon-lg'].includes(props.size)) return props.size;
+  if (props.size && ['sm', 'lg', 'icon', 'icon-sm', 'icon-lg'].includes(props.size))
+    return props.size
   switch (props.size) {
-    case 'small': return 'sm';
-    case 'large': return 'lg';
-    default: return 'default';
+    case 'small':
+      return 'sm'
+    case 'large':
+      return 'lg'
+    default:
+      return 'default'
   }
-});
+})
 
 // Compute additional classes
 const computedClass = computed(() => {
-  const classes = [props.class];
-  if (props.circle) classes.push('rounded-full aspect-square p-2');
-  else if (props.round) classes.push('rounded-full');
-  return classes.filter(Boolean).join(' ');
-});
+  const classes = [props.class]
+  if (props.circle) classes.push('rounded-full aspect-square p-2')
+  else if (props.round) classes.push('rounded-full')
+  return classes.filter(Boolean).join(' ')
+})
 </script>
 
 <template>

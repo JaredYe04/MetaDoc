@@ -148,33 +148,34 @@
     </Form>
 
     <!-- 新建/编辑主题对话框 -->
-    <el-dialog
-      v-model="showCreateDialog"
-      :title="editingTheme ? t('setting.editTheme') : t('setting.newTheme')"
-      width="500px"
-    >
-      <Form class="space-y-4">
-        <FormField :label="t('setting.themeName')" name="themeName">
-          <Input
-            v-model="themeForm.name"
-            :placeholder="t('setting.themeNamePlaceholder')"
-            @input="handleNameInput"
-          />
-        </FormField>
-        <FormField :label="t('setting.themeColor')" name="themeColor">
-          <el-color-picker
-            v-model="themeForm.themeColor"
-            :predefine="predefineColors"
-            show-alpha
-            @change="handleColorChange"
-          />
-        </FormField>
-      </Form>
-      <template #footer>
-        <Button variant="ghost" @click="showCreateDialog = false">{{ t('setting.cancel') }}</Button>
-        <Button @click="saveTheme">{{ t('setting.save') }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showCreateDialog">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{{ editingTheme ? t('setting.editTheme') : t('setting.newTheme') }}</DialogTitle>
+        </DialogHeader>
+        <Form class="space-y-4">
+          <FormField :label="t('setting.themeName')" name="themeName">
+            <Input
+              v-model="themeForm.name"
+              :placeholder="t('setting.themeNamePlaceholder')"
+              @input="handleNameInput"
+            />
+          </FormField>
+          <FormField :label="t('setting.themeColor')" name="themeColor">
+            <el-color-picker
+              v-model="themeForm.themeColor"
+              :predefine="predefineColors"
+              show-alpha
+              @change="handleColorChange"
+            />
+          </FormField>
+        </Form>
+        <DialogFooter>
+          <Button variant="ghost" @click="showCreateDialog = false">{{ t('setting.cancel') }}</Button>
+          <Button @click="saveTheme">{{ t('setting.save') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -807,7 +808,9 @@ onMounted(async () => {
 <style scoped>
 .theme-settings {
   width: 100%;
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -819,7 +822,7 @@ onMounted(async () => {
 
 .theme-cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
   max-height: 500px;

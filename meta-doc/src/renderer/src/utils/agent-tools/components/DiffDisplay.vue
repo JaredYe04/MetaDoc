@@ -26,15 +26,15 @@
       <div class="diff-header" :style="headerStyle">
         <h3 class="diff-title" :style="titleStyle">{{ $t('agent.display.diff.title') }}</h3>
         <div class="diff-stats" :style="statsStyle">
-          <el-tag type="success" size="small">{{
+          <Badge variant="default">{{
             $t('agent.display.diff.insertions', { count: insertionsCount })
-          }}</el-tag>
-          <el-tag type="danger" size="small">{{
+          }}</Badge>
+          <Badge variant="destructive">{{
             $t('agent.display.diff.deletions', { count: deletionsCount })
-          }}</el-tag>
-          <el-tag type="info" size="small">{{
+          }}</Badge>
+          <Badge variant="secondary">{{
             $t('agent.display.diff.equal', { count: equalCount })
-          }}</el-tag>
+          }}</Badge>
           <div class="mode-switch flex gap-1">
             <Button
               :variant="viewMode === 'unified' ? 'default' : 'outline'"
@@ -154,11 +154,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.diff.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.diff.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -167,7 +166,10 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

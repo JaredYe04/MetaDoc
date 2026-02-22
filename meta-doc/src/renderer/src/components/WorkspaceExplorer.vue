@@ -130,74 +130,80 @@
       @close="contextMenuVisible = false"
     />
     <!-- 重命名对话框 -->
-    <el-dialog
-      v-model="renameDialogVisible"
-      :title="$t('workspaceExplorer.renameDialog.title')"
-      width="400px"
-      @close="handleRenameDialogClose"
-    >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.renameDialog.name')">
-          <Input
-            v-model="renameName"
-            :placeholder="$t('workspaceExplorer.renameDialog.placeholder')"
-            @keyup.enter="handleRenameConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <Button variant="secondary" @click="handleRenameDialogClose">{{ $t('common.cancel') }}</Button>
-        <Button variant="default" @click="handleRenameConfirm">{{
-          $t('common.confirm')
-        }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="renameDialogVisible" @update:open="(open) => !open && handleRenameDialogClose()">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('workspaceExplorer.renameDialog.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <Label class="text-right">{{ $t('workspaceExplorer.renameDialog.name') }}</Label>
+            <Input
+              v-model="renameName"
+              :placeholder="$t('workspaceExplorer.renameDialog.placeholder')"
+              @keyup.enter="handleRenameConfirm"
+              class="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleRenameDialogClose">{{ $t('common.cancel') }}</Button>
+          <Button variant="default" @click="handleRenameConfirm">{{
+            $t('common.confirm')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <!-- 新建文件对话框 -->
-    <el-dialog
-      v-model="newFileDialogVisible"
-      :title="$t('workspaceExplorer.newFileDialog.title')"
-      width="400px"
-      @close="handleNewFileDialogClose"
-    >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.newFileDialog.name')">
-          <Input
-            v-model="newFileName"
-            :placeholder="$t('workspaceExplorer.newFileDialog.placeholder')"
-            @keyup.enter="handleNewFileConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <Button variant="secondary" @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</Button>
-        <Button variant="default" @click="handleNewFileConfirm">{{
-          $t('common.confirm')
-        }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="newFileDialogVisible" @update:open="(open) => !open && handleNewFileDialogClose()">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('workspaceExplorer.newFileDialog.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <Label class="text-right">{{ $t('workspaceExplorer.newFileDialog.name') }}</Label>
+            <Input
+              v-model="newFileName"
+              :placeholder="$t('workspaceExplorer.newFileDialog.placeholder')"
+              @keyup.enter="handleNewFileConfirm"
+              class="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</Button>
+          <Button variant="default" @click="handleNewFileConfirm">{{
+            $t('common.confirm')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <!-- 新建文件夹对话框 -->
-    <el-dialog
-      v-model="newFolderDialogVisible"
-      :title="$t('workspaceExplorer.newFolderDialog.title')"
-      width="400px"
-      @close="handleNewFolderDialogClose"
-    >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.newFolderDialog.name')">
-          <Input
-            v-model="newFolderName"
-            :placeholder="$t('workspaceExplorer.newFolderDialog.placeholder')"
-            @keyup.enter="handleNewFolderConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <Button variant="secondary" @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</Button>
-        <Button variant="default" @click="handleNewFolderConfirm">{{
-          $t('common.confirm')
-        }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="newFolderDialogVisible" @update:open="(open) => !open && handleNewFolderDialogClose()">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('workspaceExplorer.newFolderDialog.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <Label class="text-right">{{ $t('workspaceExplorer.newFolderDialog.name') }}</Label>
+            <Input
+              v-model="newFolderName"
+              :placeholder="$t('workspaceExplorer.newFolderDialog.placeholder')"
+              @keyup.enter="handleNewFolderConfirm"
+              class="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</Button>
+          <Button variant="default" @click="handleNewFolderConfirm">{{
+            $t('common.confirm')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -209,6 +215,14 @@ import { ElEmpty, ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Input } from '@renderer/components/ui/input'
+import { Label } from '@renderer/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@renderer/components/ui/dialog'
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'

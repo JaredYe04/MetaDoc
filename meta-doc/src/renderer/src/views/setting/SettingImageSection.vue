@@ -2,21 +2,24 @@
   <div class="image-settings">
     <h3 class="section-title">
       {{ t('setting.image.title') }}
-      <el-tooltip
-        :content="t('setting.image.titleHint', '图片上传设置，重新打开文件后生效')"
-        placement="top"
-      >
-        <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+        </TooltipTrigger>
+        <TooltipContent side="top">{{ t('setting.image.titleHint', '图片上传设置，重新打开文件后生效') }}</TooltipContent>
+      </Tooltip>
     </h3>
     <Form class="settings-form">
       <!-- 插入图片时的操作 -->
-      <FormField>
+      <FormField name="imageUploadAction">
         <template #label>
           <span>{{ t('setting.image.insertAction') }}</span>
-          <el-tooltip :content="t('setting.image.insertActionHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{ t('setting.image.insertActionHint') }}</TooltipContent>
+          </Tooltip>
         </template>
         <Select
           v-model="settings.imageUpload.action"
@@ -38,7 +41,7 @@
       </FormField>
 
       <!-- 网络图片自动下载 -->
-      <FormField>
+      <FormField name="keepNetworkImageUrl">
         <el-checkbox
           v-model="settings.imageUpload.keepNetworkImageUrl"
           @change="
@@ -46,34 +49,40 @@
           "
         >
           {{ t('setting.image.keepNetworkImageUrl') }}
-          <el-tooltip :content="t('setting.image.keepNetworkImageUrlHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{ t('setting.image.keepNetworkImageUrlHint') }}</TooltipContent>
+          </Tooltip>
         </el-checkbox>
       </FormField>
 
       <!-- 自动转义图片URL（仅在保留网络图片URL时显示） -->
-      <FormField v-if="settings.imageUpload.keepNetworkImageUrl">
+      <FormField v-if="settings.imageUpload.keepNetworkImageUrl" name="autoEscapeImageUrl">
         <el-checkbox
           v-model="settings.imageUpload.autoEscapeImageUrl"
           @change="saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)"
         >
           {{ t('setting.image.autoEscapeImageUrl') }}
-          <el-tooltip :content="t('setting.image.autoEscapeImageUrlHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{ t('setting.image.autoEscapeImageUrlHint') }}</TooltipContent>
+          </Tooltip>
         </el-checkbox>
       </FormField>
 
       <!-- 上传服务设定（仅在"上传图片"时显示） -->
       <template v-if="settings.imageUpload.action === 'upload'">
-        <FormField>
+        <FormField name="uploadServiceSettings">
           <template #label>
             <span>{{ t('setting.image.uploadServiceSettings') }}</span>
           </template>
         </FormField>
 
-        <FormField :label="t('setting.image.uploadService')" name="">
+        <FormField :label="t('setting.image.uploadService')" name="uploadService">
           <Select
             v-model="settings.imageUpload.uploadService"
             @update:model-value="handleUploadServiceChange"
@@ -90,7 +99,7 @@
 
         <!-- 本地服务配置 -->
         <template v-if="settings.imageUpload.uploadService === 'local'">
-          <FormField :label="t('setting.image.localImageDir')" name="">
+          <FormField :label="t('setting.image.localImageDir')" name="localImageDir">
             <div class="image-dir-selector flex gap-2">
               <Button @click="selectImageDirectory" size="default">{{
                 t('setting.image.browse')
@@ -111,7 +120,7 @@
 
       <!-- 自定义API配置 -->
       <template v-if="settings.imageUpload.uploadService === 'custom'">
-        <FormField :label="t('setting.image.customUploadApiUrl')" name="">
+        <FormField :label="t('setting.image.customUploadApiUrl')" name="customUploadApiUrl">
           <Input
             v-model="settings.imageUpload.customUploadApiUrl"
             :placeholder="t('setting.image.customUploadApiUrlPlaceholder')"
@@ -121,7 +130,7 @@
           />
         </FormField>
 
-        <FormField :label="t('setting.image.customUploadApiMethod')" name="">
+        <FormField :label="t('setting.image.customUploadApiMethod')" name="customUploadApiMethod">
           <Select
             v-model="settings.imageUpload.customUploadApiMethod"
             @update:model-value="
@@ -138,7 +147,7 @@
           </Select>
         </FormField>
 
-        <FormField :label="t('setting.image.customUploadApiFieldName')" name="">
+        <FormField :label="t('setting.image.customUploadApiFieldName')" name="customUploadApiFieldName">
           <Input
             v-model="settings.imageUpload.customUploadApiFieldName"
             :placeholder="t('setting.image.customUploadApiFieldNamePlaceholder')"
@@ -160,9 +169,9 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Form, FormField } from '@renderer/components/ui/form'
- import { ElMessage } from 'element-plus'
- import { QuestionFilled } from '@element-plus/icons-vue'
- import { Button } from '@renderer/components/ui/button'
+import { ElMessage } from 'element-plus'
+import { HelpCircle } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
  import { Input } from '@renderer/components/ui/input'
 import { settings, setSetting, getImagePath } from '../../utils/settings.js'
 import messageBridge from '../../bridge/message-bridge'
@@ -173,6 +182,7 @@ import {
   SelectContent,
   SelectItem
 } from '@renderer/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 

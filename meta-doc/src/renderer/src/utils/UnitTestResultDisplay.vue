@@ -4,16 +4,16 @@
       <el-statistic :title="$t('setting.debug.unitTest.totalTests')" :value="summary.total" />
       <el-statistic :title="$t('setting.debug.unitTest.passed')" :value="summary.passed">
         <template #suffix>
-          <el-tag type="success" size="small" style="margin-left: 8px">
+          <Badge style="margin-left: 8px">
             {{ summary.passedRate }}%
-          </el-tag>
+          </Badge>
         </template>
       </el-statistic>
       <el-statistic :title="$t('setting.debug.unitTest.failed')" :value="summary.failed">
         <template #suffix>
-          <el-tag type="danger" size="small" style="margin-left: 8px">
+          <Badge variant="destructive" style="margin-left: 8px">
             {{ summary.failedRate }}%
-          </el-tag>
+          </Badge>
         </template>
       </el-statistic>
       <el-statistic :title="$t('setting.debug.unitTest.duration')" :value="summary.duration">
@@ -65,13 +65,13 @@
                   </span>
                 </div>
                 <div class="test-result-actions">
-                  <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
+                  <Badge :variant="result.passed ? 'default' : 'destructive'">
                     {{
                       result.passed
                         ? $t('setting.debug.unitTest.passed')
                         : $t('setting.debug.unitTest.failed')
                     }}
-                  </el-tag>
+                  </Badge>
                 </div>
               </div>
 
@@ -142,6 +142,7 @@ import { createRendererLogger } from './logger'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { Badge } from '../components/ui/badge'
 
 const { t } = useI18n()
 
@@ -311,37 +312,21 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.unit-test-result-display :deep(.el-tabs) {
-  display: flex;
-  flex-direction: column !important;
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
+/* shadcn-vue Tabs styling */
+.unit-test-result-display :deep([role="tablist"]) {
+  flex-shrink: 0;
 }
 
-.unit-test-result-display :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
-}
-
-.unit-test-result-display :deep(.el-tabs__content) {
-  order: 0 !important;
+.unit-test-result-display :deep([role="tabpanel"]) {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
 }
 
-.unit-test-result-display :deep(.el-tab-pane) {
+.unit-test-result-display :deep([role="tabpanel"][data-state="active"]) {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .test-summary {

@@ -2,7 +2,7 @@
   <div class="workflow-display" :style="containerStyle">
     <div class="workflow-header">
       <h3>{{ workflowName }}</h3>
-      <el-tag :type="getStatusType(status)" size="small">{{ getStatusText(status) }}</el-tag>
+      <Badge :type="getStatusType(status)" size="small">{{ getStatusText(status) }}</Badge>
     </div>
 
     <div class="workflow-content">
@@ -61,7 +61,11 @@
 
       <!-- 错误信息 -->
       <div class="workflow-error" v-if="error">
-        <el-alert type="error" :title="t('agent.workflow.display.error')" :description="error" />
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ t('agent.workflow.display.error') }}</AlertTitle>
+          <AlertDescription>{{ error }}</AlertDescription>
+        </Alert>
       </div>
 
       <!-- 执行结果 -->
@@ -77,6 +81,9 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, Loading, Clock, InfoFilled } from '@element-plus/icons-vue'
+import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import type { WorkflowExecutionState } from '../../../types/agent-framework'

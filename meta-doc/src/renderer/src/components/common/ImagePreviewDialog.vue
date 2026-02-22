@@ -1,60 +1,57 @@
 <template>
-  <el-dialog
-    :model-value="modelValue"
-    @update:model-value="handleUpdateModelValue"
-    :title="t('ocr.imagePreview')"
-    width="90%"
-    :close-on-click-modal="true"
-    :close-on-press-escape="true"
-    class="image-preview-dialog"
-  >
-    <div
-      class="preview-image-container"
-      v-if="imageUrl"
-      @mousedown="handleContainerMouseDown"
-      @mousemove="handleContainerMouseMove"
-      @mouseup="handleContainerMouseUp"
-      @mouseleave="handleContainerMouseUp"
-      @wheel="handleWheelZoom"
-    >
-      <img
-        :src="imageUrl"
-        :alt="t('ocr.previewImage')"
-        class="preview-image"
-        :style="previewImageStyle"
-        @error="handlePreviewImageError"
-        draggable="false"
-      />
-    </div>
-    <template #footer>
-      <div class="preview-actions">
-        <Button circle @click="zoomOut" :disabled="imageScale <= 0.1">
-          <el-icon><ZoomOut /></el-icon>
-        </Button>
-        <NumberField
-          v-model="imageScalePercent"
-          :min="10"
-          :max="500"
-          :step="10"
-          style="width: 120px"
-          @update:model-value="handleScaleChange"
-        >
-          <NumberFieldContent>
-            <NumberFieldDecrement />
-            <NumberFieldInput />
-            <NumberFieldIncrement />
-          </NumberFieldContent>
-        </NumberField>
-        <span class="scale-unit">%</span>
-        <Button circle @click="zoomIn" :disabled="imageScale >= 5">
-          <el-icon><ZoomIn /></el-icon>
-        </Button>
-        <Button @click="resetZoom">
-          {{ t('ocr.resetZoom') }}
-        </Button>
+  <Dialog :open="modelValue" @update:open="handleUpdateModelValue">
+    <DialogContent class="sm:max-w-[90%]" class-name="image-preview-dialog">
+      <DialogHeader>
+        <DialogTitle>{{ t('ocr.imagePreview') }}</DialogTitle>
+      </DialogHeader>
+      <div
+        class="preview-image-container"
+        v-if="imageUrl"
+        @mousedown="handleContainerMouseDown"
+        @mousemove="handleContainerMouseMove"
+        @mouseup="handleContainerMouseUp"
+        @mouseleave="handleContainerMouseUp"
+        @wheel="handleWheelZoom"
+      >
+        <img
+          :src="imageUrl"
+          :alt="t('ocr.previewImage')"
+          class="preview-image"
+          :style="previewImageStyle"
+          @error="handlePreviewImageError"
+          draggable="false"
+        />
       </div>
-    </template>
-  </el-dialog>
+      <DialogFooter>
+        <div class="preview-actions">
+          <Button size="icon" @click="zoomOut" :disabled="imageScale <= 0.1">
+            <ZoomOut class="h-4 w-4" />
+          </Button>
+          <NumberField
+            v-model="imageScalePercent"
+            :min="10"
+            :max="500"
+            :step="10"
+            style="width: 120px"
+            @update:model-value="handleScaleChange"
+          >
+            <NumberFieldContent>
+              <NumberFieldDecrement />
+              <NumberFieldInput />
+              <NumberFieldIncrement />
+            </NumberFieldContent>
+          </NumberField>
+          <span class="scale-unit">%</span>
+          <Button size="icon" @click="zoomIn" :disabled="imageScale >= 5">
+            <ZoomIn class="h-4 w-4" />
+          </Button>
+          <Button @click="resetZoom">
+            {{ t('ocr.resetZoom') }}
+          </Button>
+        </div>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -70,6 +67,13 @@ import {
   NumberFieldDecrement,
   NumberFieldContent
 } from '@renderer/components/ui/number-field'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
 
 const { t } = useI18n()
 

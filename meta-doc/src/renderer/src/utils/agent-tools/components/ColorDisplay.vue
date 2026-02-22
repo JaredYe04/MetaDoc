@@ -16,7 +16,7 @@
     >
       <div class="color-header" :style="headerStyle">
         <h3 class="color-title" :style="titleStyle">{{ $t('agent.display.color.title') }}</h3>
-        <el-tag type="info" size="small">{{ getOperationLabel(displayData.operation) }}</el-tag>
+        <Badge variant="secondary">{{ getOperationLabel(displayData.operation) }}</Badge>
       </div>
 
       <div class="color-content" :style="contentStyle">
@@ -192,22 +192,22 @@
               }}
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.isDark')">
-              <el-tag :type="displayData.result.isDark ? 'dark' : 'light'" size="small">
+              <Badge :variant="displayData.result.isDark ? 'default' : 'outline'">
                 {{
                   displayData.result.isDark
                     ? $t('agent.display.color.yes')
                     : $t('agent.display.color.no')
                 }}
-              </el-tag>
+              </Badge>
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.isLight')">
-              <el-tag :type="displayData.result.isLight ? 'light' : 'dark'" size="small">
+              <Badge :variant="displayData.result.isLight ? 'outline' : 'default'">
                 {{
                   displayData.result.isLight
                     ? $t('agent.display.color.yes')
                     : $t('agent.display.color.no')
                 }}
-              </el-tag>
+              </Badge>
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -228,11 +228,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.color.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.color.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -241,6 +240,9 @@
 import { computed } from 'vue'
 import { Loading, Plus, ArrowRight, Edit, RefreshRight, Switch } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'

@@ -342,7 +342,7 @@
           />
         </FormField>
         <FormField v-if="!isArtifactNode(selectedNode)" label="类型" name="nodeType">
-          <el-tag size="small">{{ (selectedNode as ControlFlowNode).type }}</el-tag>
+          <Badge variant="outline">{{ (selectedNode as ControlFlowNode).type }}</Badge>
         </FormField>
       </Form>
     </div>
@@ -382,6 +382,7 @@ import {
   DropdownMenuItem
 } from '@renderer/components/ui/dropdown-menu'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Badge } from '@renderer/components/ui/badge'
 import { themeState } from '../../../utils/themes'
 import { workflowManager, agentConfigManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'

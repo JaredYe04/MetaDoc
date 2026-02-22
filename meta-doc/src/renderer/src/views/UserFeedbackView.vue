@@ -77,22 +77,20 @@
                   :alt="att.filename"
                 />
                 <span v-else class="attachment-name">{{ att.filename }}</span>
-                <el-icon
+                <Check
                   v-if="uploadedAttachmentIndices.includes(index)"
-                  class="attachment-uploaded-check"
+                  class="w-4 h-4"
                   title="已上传到 Gist"
-                  ><Check
-                /></el-icon>
-                <el-icon v-if="isImageMime(att.mime)" class="attachment-preview-hint"
-                  ><View
-                /></el-icon>
-                <el-icon
+                />
+                <Eye
+                  v-if="isImageMime(att.mime)"
+                  class="w-4 h-4"
+                />
+                <XCircle
                   v-show="!submitting"
-                  class="attachment-remove"
+                  class="w-4 h-4"
                   @click.stop="removeAttachment(att.filename)"
-                >
-                  <CircleClose />
-                </el-icon>
+                />
               </div>
             </div>
             <div class="attachment-hint">
@@ -133,7 +131,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadInstance } from 'element-plus'
-import { View, CircleClose, Check } from '@element-plus/icons-vue'
+import { Eye, XCircle, Check } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import {

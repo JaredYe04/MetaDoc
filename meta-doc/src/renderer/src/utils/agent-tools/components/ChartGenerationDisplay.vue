@@ -17,11 +17,14 @@
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.chartGeneration.rendering') }}</span>
       <div v-if="displayData.chartCode" class="code-preview">
-        <el-collapse>
-          <el-collapse-item :title="$t('agent.display.chartGeneration.viewCode')" name="code">
+        <Collapsible class="code-collapsible">
+          <CollapsibleTrigger class="code-collapsible-trigger">
+            {{ $t('agent.display.chartGeneration.viewCode') }}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
             <pre class="code-content" :style="codeContentStyle">{{ displayData.chartCode }}</pre>
-          </el-collapse-item>
-        </el-collapse>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
 
@@ -75,11 +78,14 @@
 
       <!-- 代码预览 -->
       <div v-if="displayData.chartCode" class="code-section">
-        <el-collapse>
-          <el-collapse-item :title="$t('agent.display.chartGeneration.viewCode')" name="code">
+        <Collapsible class="code-collapsible">
+          <CollapsibleTrigger class="code-collapsible-trigger">
+            {{ $t('agent.display.chartGeneration.viewCode') }}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
             <pre class="code-content" :style="codeContentStyle">{{ displayData.chartCode }}</pre>
-          </el-collapse-item>
-        </el-collapse>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       <!-- 结果信息 -->
@@ -101,11 +107,10 @@
     </div>
 
     <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.chartGeneration.generationFailed')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.chartGeneration.generationFailed') }}</AlertTitle>
+      </Alert>
     </div>
 
     <!-- 进度条 -->
@@ -124,6 +129,13 @@ import { computed } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -336,6 +348,46 @@ const handleImageError = () => {
 
 .code-preview {
   margin-top: 12px;
+}
+
+.code-collapsible {
+  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"');
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.code-collapsible-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background-color 0.2s ease;
+}
+
+.code-collapsible-trigger:hover {
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)"');
+}
+
+.code-collapsible-trigger::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid currentColor;
+  transition: transform 0.2s ease;
+}
+
+.code-collapsible-trigger[data-state='open']::after {
+  transform: rotate(180deg);
 }
 
 .code-content {

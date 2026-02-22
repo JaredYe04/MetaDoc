@@ -1,65 +1,68 @@
 <template>
   <div class="aigc-detection-window">
     <!-- 选择文档对话框 -->
-    <el-dialog
-      v-model="selectDocumentDialogVisible"
-      :title="t('aigc.selectDocumentTitle')"
-      width="600"
-      class="select-document-dialog"
-    >
-      <div class="select-document-content">
-        <div class="select-document-header">
-          <span class="selected-count">
-            {{
-              selectedTabId
-                ? t('aigc.selectedOneDocument', '已选择 1 个文档')
-                : t('aigc.pleaseSelectDocument')
-            }}
-          </span>
-        </div>
-        <ScrollArea class="h-[400px] document-list-scrollbar">
-          <div class="document-list">
-            <div
-              v-for="tab in documentTabs"
-              :key="tab.id"
-              class="document-card"
-              :class="{ selected: selectedTabId === tab.id }"
-              @click="selectedTabId = tab.id"
-            >
-              <div class="document-card-content">
-                <div class="document-card-header">
-                  <el-icon class="document-icon"><Document /></el-icon>
-                  <span class="document-title">{{ tab.displayName }}</span>
+    <Dialog v-model:open="selectDocumentDialogVisible">
+      <DialogContent class="sm:max-w-[600px] select-document-dialog">
+        <DialogHeader>
+          <DialogTitle>{{ t('aigc.selectDocumentTitle') }}</DialogTitle>
+        </DialogHeader>
+        <div class="select-document-content">
+          <div class="select-document-header">
+            <span class="selected-count">
+              {{
+                selectedTabId
+                  ? t('aigc.selectedOneDocument', '已选择 1 个文档')
+                  : t('aigc.pleaseSelectDocument')
+              }}
+            </span>
+          </div>
+          <ScrollArea class="h-[400px] document-list-scrollbar">
+            <div class="document-list">
+              <div
+                v-for="tab in documentTabs"
+                :key="tab.id"
+                class="document-card"
+                :class="{ selected: selectedTabId === tab.id }"
+                @click="selectedTabId = tab.id"
+              >
+                <div class="document-card-content">
+                  <div class="document-card-header">
+                    <FileText class="document-icon" />
+                    <span class="document-title">{{ tab.displayName }}</span>
+                  </div>
+                  <div v-if="tab.path" class="document-path">
+                    <FolderOpen class="path-icon" />
+                    <span>{{ tab.path }}</span>
+                  </div>
+                  <div class="document-format">
+                    <Badge :variant="tab.format === 'md' ? 'default' : 'secondary'">
+                      {{ tab.format === 'md' ? 'Markdown' : 'LaTeX' }}
+                    </Badge>
+                  </div>
                 </div>
-                <div v-if="tab.path" class="document-path">
-                  <el-icon class="path-icon"><Folder /></el-icon>
-                  <span>{{ tab.path }}</span>
-                </div>
-                <div class="document-format">
-                  <el-tag size="small" :type="tab.format === 'md' ? 'primary' : 'success'">
-                    {{ tab.format === 'md' ? 'Markdown' : 'LaTeX' }}
-                  </el-tag>
+              </div>
+              <div v-if="documentTabs.length === 0" class="empty-state">
+                <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <FileX class="w-16 h-16 mb-4 opacity-50" />
+                  <p>{{ t('aigc.noDocuments') }}</p>
                 </div>
               </div>
             </div>
-            <div v-if="documentTabs.length === 0" class="empty-state">
-              <el-empty :description="t('aigc.noDocuments')" :image-size="80" />
-            </div>
-          </div>
-          <ScrollBar />
-        </ScrollArea>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
-            t('common.cancel')
-          }}</Button>
-          <Button @click="confirmSelectDocument" :disabled="!selectedTabId">
-            {{ t('common.confirm') }}
-          </Button>
+            <ScrollBar />
+          </ScrollArea>
         </div>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <div class="dialog-footer">
+            <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
+              t('common.cancel')
+            }}</Button>
+            <Button @click="confirmSelectDocument" :disabled="!selectedTabId">
+              {{ t('common.confirm') }}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <div class="main-container">
       <!-- 左侧会话列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
@@ -83,7 +86,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('aigc.noSessionSelected') }}</p>
           </div>
@@ -105,7 +109,7 @@
                       >
                       <template #trigger>
                         <Button>
-                          <UploadFilled class="w-4 h-4 mr-2" />
+                          <Upload class="w-4 h-4 mr-2" />
                           {{ t('aigc.uploadFile') }}
                         </Button>
                       </template>
@@ -252,10 +256,19 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UploadFilled, Document, Folder, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { FileText, FolderOpen, Upload, ArrowDown, FileX } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@renderer/components/ui/dropdown-menu'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@renderer/components/ui/dialog'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { aigcDetectionSessionsDb, type AigcDetectionSession } from '../utils/db/tool-sessions-db'
@@ -2586,10 +2599,8 @@ onMounted(() => {
 }
 
 /* 选择文档对话框样式 */
-.select-document-dialog {
-  .el-dialog__body {
-    padding: 0;
-  }
+.select-document-dialog [data-slot=dialog-content] {
+  padding: 0;
 }
 
 .select-document-content {

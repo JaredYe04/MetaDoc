@@ -10,7 +10,7 @@
               <div class="brand">MetaDoc</div>
               <h1 class="title">{{ t('celebration.title') || "You're all set." }}</h1>
               <p class="subtitle">{{ t('celebration.subtitle') || "You've completed the full MetaDoc guide." }}</p>
-              <ElButton type="primary" size="large" class="action-btn" @click="handleContinue">{{ t('celebration.continue') || 'Start Using MetaDoc →' }}</ElButton>
+              <Button type="primary" size="large" class="action-btn" @click="handleContinue">{{ t('celebration.continue') || 'Start Using MetaDoc →' }}</Button>
             </div>
             <div class="card-glow"></div>
           </div>
@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElButton } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 
 const { t } = useI18n()
 

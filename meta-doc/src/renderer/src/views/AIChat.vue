@@ -1,73 +1,70 @@
 <template>
   <div class="ai-chat-container" :style="containerStyle">
     <!-- 选择文档对话框 -->
-    <el-dialog
-      v-model="selectDocumentDialogVisible"
-      :title="t('aiChat.selectDocumentTitle', '选择要插入的文档')"
-      width="600"
-      class="select-document-dialog"
-    >
-      <div class="select-document-content">
-        <div class="select-document-header">
-          <span class="selected-count">
-            {{
-              selectedTabIds.length > 0
-                ? `已选择 ${selectedTabIds.length} 个文档`
-                : '请选择要插入的文档'
-            }}
-          </span>
-          <Button variant="ghost" size="sm" @click="toggleSelectAll" v-if="documentTabs.length > 0">
-            {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
-          </Button>
-        </div>
-        <ScrollArea class="h-[400px] document-list-scrollbar">
-          <div class="document-list">
-            <div
-              v-for="tab in documentTabs"
-              :key="tab.id"
-              class="document-card"
-              :class="{ selected: selectedTabIds.includes(tab.id) }"
-              @click="toggleTabSelection(tab.id)"
-            >
-              <div class="document-card-checkbox">
-                <el-checkbox
-                  :model-value="selectedTabIds.includes(tab.id)"
-                  @click.stop="toggleTabSelection(tab.id)"
-                />
-              </div>
-              <div class="document-card-content">
-                <div class="document-card-header">
-                  <FileText class="w-5 h-5 text-primary" />
-                  <span class="document-title">{{ tab.displayName }}</span>
-                </div>
-                <div v-if="tab.path" class="document-path">
-                  <Folder class="w-4 h-4" />
-                  <span>{{ tab.path }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="documentTabs.length === 0" class="empty-state">
-              <el-empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
-            </div>
+    <Dialog v-model:open="selectDocumentDialogVisible">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('aiChat.selectDocumentTitle', '选择要插入的文档') }}</DialogTitle>
+        </DialogHeader>
+        <div class="select-document-content">
+          <div class="select-document-header">
+            <span class="selected-count">
+              {{
+                selectedTabIds.length > 0
+                  ? `已选择 ${selectedTabIds.length} 个文档`
+                  : '请选择要插入的文档'
+              }}
+            </span>
+            <Button variant="ghost" size="sm" @click="toggleSelectAll" v-if="documentTabs.length > 0">
+              {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
+            </Button>
           </div>
-          <ScrollBar />
-        </ScrollArea>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
+          <ScrollArea class="h-[400px] document-list-scrollbar">
+            <div class="document-list">
+              <div
+                v-for="tab in documentTabs"
+                :key="tab.id"
+                class="document-card"
+                :class="{ selected: selectedTabIds.includes(tab.id) }"
+                @click="toggleTabSelection(tab.id)"
+              >
+                <div class="document-card-checkbox">
+                  <el-checkbox
+                    :model-value="selectedTabIds.includes(tab.id)"
+                    @click.stop="toggleTabSelection(tab.id)"
+                  />
+                </div>
+                <div class="document-card-content">
+                  <div class="document-card-header">
+                    <FileText class="w-5 h-5 text-primary" />
+                    <span class="document-title">{{ tab.displayName }}</span>
+                  </div>
+                  <div v-if="tab.path" class="document-path">
+                    <Folder class="w-4 h-4" />
+                    <span>{{ tab.path }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="documentTabs.length === 0" class="empty-state">
+                <el-empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
+              </div>
+            </div>
+            <ScrollBar />
+          </ScrollArea>
+        </div>
+        <DialogFooter>
           <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
             t('common.cancel')
           }}</Button>
           <Button
-            type="primary"
             @click="confirmInsertToDocument"
             :disabled="selectedTabIds.length === 0"
           >
             {{ t('common.confirm') }} ({{ selectedTabIds.length }})
           </Button>
-        </div>
-      </template>
-    </el-dialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <div class="main-container">
       <SessionList
@@ -159,42 +156,36 @@
     </div>
 
     <!-- 引用管理对话框 -->
-    <el-dialog
-      v-model="showReferenceDialog"
-      :title="t('agent.reference.title')"
-      width="800px"
-      :body-style="{
-        flex: '1',
-        minHeight: '0',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        padding: '0'
-      }"
-      style="height: 80vh; display: flex; flex-direction: column"
-    >
-      <ReferenceManager
-        :session="{
-          id: `ai-chat-${activeDialogIndex}`,
-          title: title,
-          description: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          messages: [],
-          activeToolIds: [],
-          agentConfigId: '',
-          messageQueue: [],
-          referenceStore: referenceStore,
-          publicContext: {},
-          executionNodes: [],
-          status: 'idle'
-        }"
-        @update="handleReferenceUpdate"
-      />
-      <template #footer>
-        <Button variant="outline" @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showReferenceDialog">
+      <DialogContent class="sm:max-w-[800px]" style="height: 80vh; display: flex; flex-direction: column">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
+        </DialogHeader>
+        <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0">
+          <ReferenceManager
+            :session="{
+              id: `ai-chat-${activeDialogIndex}`,
+              title: title,
+              description: '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+              activeToolIds: [],
+              agentConfigId: '',
+              messageQueue: [],
+              referenceStore: referenceStore,
+              publicContext: {},
+              executionNodes: [],
+              status: 'idle'
+            }"
+            @update="handleReferenceUpdate"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -220,6 +211,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'

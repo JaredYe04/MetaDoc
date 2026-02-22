@@ -35,7 +35,7 @@
             @click.stop="handleRemove(tab.id)"
             @mousedown.stop
           >
-            <el-icon><Close /></el-icon>
+            <X class="w-4 h-4" />
           </button>
         </TabsTrigger>
 
@@ -48,7 +48,7 @@
               @click="handleAddClick"
             >
               <div class="workspace-tab-label workspace-tab-label--plus">
-                <Plus />
+                <Plus class="w-4 h-4" />
               </div>
             </TabsTrigger>
           </TooltipTrigger>
@@ -61,40 +61,35 @@
   </div>
 
     <TooltipProvider>
-    <el-dialog
-    v-model="addDialogVisible"
-    :title="t('home.tabActions.title')"
-    width="360px"
-    append-to-body
-    :close-on-click-modal="false"
-  >
-    <div class="workspace-tabs__dialog-actions">
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <el-button circle size="large" @click="handleAddSelect('new')">
-            <el-icon>
-              <DocumentAdd />
-            </el-icon>
-          </el-button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p>{{ t('home.tabActions.new') }}</p>
-        </TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <el-button circle size="large" @click="handleAddSelect('open')">
-            <el-icon>
-              <FolderAdd />
-            </el-icon>
-          </el-button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p>{{ t('home.tabActions.open') }}</p>
-        </TooltipContent>
-      </Tooltip>
-    </div>
-  </el-dialog>
+    <Dialog v-model:open="addDialogVisible">
+      <DialogContent class="sm:max-w-[360px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('home.tabActions.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="workspace-tabs__dialog-actions">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button circle size="large" @click="handleAddSelect('new')">
+                <FilePlus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{{ t('home.tabActions.new') }}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button circle size="large" @click="handleAddSelect('open')">
+                <FolderPlus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{{ t('home.tabActions.open') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </DialogContent>
+    </Dialog>
   </TooltipProvider>
 </template>
 
@@ -104,7 +99,7 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace, type WorkspaceTab } from '../../stores/workspace'
 import eventBus from '../../utils/event-bus'
-import { Plus, DocumentAdd, FolderAdd, Close } from '@element-plus/icons-vue'
+import { Plus, FilePlus, FolderPlus, X } from 'lucide-vue-next'
 import { createRendererLogger } from '../../utils/logger'
 import messageBridge from '../../bridge/message-bridge'
 import { Tabs, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
@@ -114,6 +109,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@renderer/components/ui/tooltip'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog'
 
 const logger = createRendererLogger('WorkspaceTabs')
 const props = defineProps({

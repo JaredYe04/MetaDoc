@@ -25,9 +25,9 @@
             <DocumentCopy v-else />
           </el-icon>
           <span class="result-title">{{ result.title }}</span>
-          <el-tag v-if="result.type === 'fragment'" size="small" type="info">
+          <Badge v-if="result.type === 'fragment'" variant="secondary">
             {{ $t('userManual.search.fragment') || '片段' }}
-          </el-tag>
+          </Badge>
         </div>
         <div v-if="result.fragment" class="result-fragment">
           {{ result.fragment }}
@@ -53,6 +53,7 @@ import { useUserManual } from '../../stores/userManual'
 import { Document, DocumentCopy } from '@element-plus/icons-vue'
 import { Search } from 'lucide-vue-next'
 import { Input } from '@renderer/components/ui/input'
+import { Badge } from '@renderer/components/ui/badge'
 import type { SearchResult } from '../../manuals/types'
 
 const { searchQuery, searchResults, performSearch, setCurrentArticle } = useUserManual()

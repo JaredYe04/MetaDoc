@@ -2,7 +2,7 @@
   <div class="logger-settings">
     <h3 class="section-title">{{ t('setting.loggingSettings') }}</h3>
     <Form class="settings-form">
-      <FormField :label="t('setting.loggingEnabled')" name="">
+      <FormField :label="t('setting.loggingEnabled')" name="loggingEnabled">
         <div class="flex items-center gap-2">
           <Switch
             :checked="settings.loggingEnabled"
@@ -12,7 +12,7 @@
         </div>
       </FormField>
 
-      <FormField :label="t('setting.loggingLevel')" name="">
+      <FormField :label="t('setting.loggingLevel')" name="loggingLevel">
         <Select
           v-model="settings.loggingLevel"
           :disabled="!settings.loggingEnabled"
@@ -33,7 +33,7 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.loggingFilter')" name="">
+      <FormField :label="t('setting.loggingFilter')" name="loggingFilter">
         <div class="relative w-full">
           <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -47,7 +47,7 @@
         <div class="filter-hint">{{ t('setting.loggingFilterHint') }}</div>
       </FormField>
 
-      <FormField :label="t('setting.logRetentionPeriod')" name="">
+      <FormField :label="t('setting.logRetentionPeriod')" name="logRetentionPeriod">
         <Select
           v-model="settings.logRetentionPeriod"
           :disabled="!settings.loggingEnabled"
@@ -69,7 +69,7 @@
         <div class="filter-hint">{{ t('setting.logRetentionPeriodHint') }}</div>
       </FormField>
 
-      <FormField :label="t('setting.logFilePath')" name="">
+      <FormField :label="t('setting.logFilePath')" name="logFilePath">
         <div class="log-path">
           <Input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly class="flex-1" />
           <Button variant="outline" :disabled="!logFilePath" @click="openLogFile">
@@ -78,7 +78,7 @@
         </div>
       </FormField>
 
-      <FormField :label="t('setting.logDirectory')" name="">
+      <FormField :label="t('setting.logDirectory')" name="logDirectory">
         <div class="log-path">
           <Input :model-value="logDirectory || t('setting.logFileUnavailable')" readonly class="flex-1" />
           <Button variant="outline" :disabled="!logDirectory" @click="openLogDirectory">

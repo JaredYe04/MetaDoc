@@ -17,33 +17,33 @@
       <div class="grep-header" :style="headerStyle">
         <h3 class="grep-title" :style="titleStyle">{{ $t('agent.display.grep.title') }}</h3>
         <div class="header-tags" :style="headerTagsStyle">
-          <el-tag type="info" size="small">{{
+          <Badge variant="secondary">{{
             $t('agent.display.grep.matchesCount', { count: resultData.totalMatches })
-          }}</el-tag>
-          <el-tag type="primary" size="small"
-            >{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</el-tag
+          }}</Badge>
+          <Badge variant="default"
+            >{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</Badge
           >
-          <el-tag
+          <Badge
             v-if="resultData.replacedCount && resultData.replacedCount > 0"
-            type="success"
-            size="small"
+            class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
           >
             {{ $t('agent.display.grep.replacedCount', { count: resultData.replacedCount }) }}
-          </el-tag>
-          <el-tag v-if="resultData.replacementText" type="warning" size="small">
+          </Badge>
+          <Badge
+            v-if="resultData.replacementText"
+            class="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+          >
             {{ $t('agent.display.grep.replacementText') }}: {{ resultData.replacementText }}
-          </el-tag>
+          </Badge>
         </div>
       </div>
 
       <!-- 如果没有完整内容（verbose模式），只显示概要 -->
       <div v-if="!hasFullContent" class="summary-view" :style="summaryViewStyle">
-        <el-alert
-          type="info"
-          :closable="false"
-          :title="$t('agent.display.grep.summaryMode') || '概要模式'"
-        >
-          <template #default>
+        <Alert variant="default">
+          <Info class="h-4 w-4" />
+          <AlertTitle>{{ $t('agent.display.grep.summaryMode') || '概要模式' }}</AlertTitle>
+          <AlertDescription>
             <div class="summary-content">
               <p>
                 {{
@@ -60,8 +60,8 @@
                 </li>
               </ul>
             </div>
-          </template>
-        </el-alert>
+          </AlertDescription>
+        </Alert>
       </div>
 
       <!-- 匹配列表（始终显示） -->
@@ -78,9 +78,9 @@
               :style="getMatchItemStyle(index)"
             >
               <div class="match-header">
-                <el-tag :type="getMatchScopeTag(match)" size="small">
+                <Badge :class="getMatchScopeBadgeClass(match)">
                   {{ getMatchScopeLabel(match) }}
-                </el-tag>
+                </Badge>
                 <span class="match-location" :style="locationStyle">
                   {{ $t('agent.display.grep.line') }} {{ match.line }},
                   {{ $t('agent.display.grep.column') }} {{ match.column }}
@@ -116,9 +116,9 @@
                 @click="selectMatch(index)"
               >
                 <div class="match-header">
-                  <el-tag :type="getMatchScopeTag(match)" size="small">
+                  <Badge :class="getMatchScopeBadgeClass(match)">
                     {{ getMatchScopeLabel(match) }}
-                  </el-tag>
+                  </Badge>
                   <span class="match-location" :style="locationStyle">
                     {{ $t('agent.display.grep.line') }} {{ match.line }},
                     {{ $t('agent.display.grep.column') }} {{ match.column }}
@@ -166,11 +166,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.grep.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.grep.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -180,6 +179,9 @@ import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Badge } from '@renderer/components/ui/badge'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Info, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -304,12 +306,12 @@ const effectiveStatus = computed(() => {
   return realtimeStatus.value !== 'running' ? realtimeStatus.value : props.status
 })
 
-const getMatchScopeTag = (match: GrepMatch) => {
+const getMatchScopeBadgeClass = (match: GrepMatch) => {
   // 检查 match.match 是否包含 metadata 标识
   if (match.match && match.match.startsWith('[metadata.')) {
-    return 'warning'
+    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
   }
-  return 'primary'
+  return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
 }
 
 const getMatchScopeLabel = (match: GrepMatch) => {

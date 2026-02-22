@@ -61,6 +61,8 @@ export interface WorkspaceTab {
   pinned?: boolean
   /** 标记为新创建的标签页，用于入场动画 */
   _isNewTab?: boolean
+  /** 标记为正在关闭的标签页，用于退场动画 */
+  _isClosing?: boolean
 }
 
 export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread'
@@ -483,68 +485,68 @@ function removeTab(id: string): void {
       return // 不可删除的Tab，直接返回
     }
 
-  const doc = documents[id]
+    const doc = documents[id]
 
-  // 保存到最近关闭的标签页栈（排除系统Tab和dummy Tab）
-  if (tab.kind !== 'system' || tab.route !== '/dummy') {
-    const closedEntry = {
-      tab: { ...tab },
-      document: doc
-        ? { ...doc, markdown: doc.markdown, path: doc.path, format: doc.format, dirty: doc.dirty }
-        : undefined,
-      closedAt: Date.now()
-    }
-    recentlyClosedTabs.value.unshift(closedEntry)
-    // 限制栈大小
-    if (recentlyClosedTabs.value.length > MAX_RECENTLY_CLOSED) {
-      recentlyClosedTabs.value = recentlyClosedTabs.value.slice(0, MAX_RECENTLY_CLOSED)
-    }
-  }
-  const wasActive = activeTabId.value === id
-
-  // 停止文件监听（如果文件路径存在）
-  if (doc && doc.path) {
-    // 异步停止文件监听（避免阻塞）
-    ;(async () => {
-      try {
-        const messageBridge = (await import('../bridge/message-bridge')).default
-        const ipc = messageBridge.getIpc()
-        if (ipc) {
-          messageBridge.send('unwatch-file', doc.path)
-          if (ipc.invoke) {
-            await messageBridge.invoke('mark-file-closing', doc.path)
-            if (tab.preview) {
-              await messageBridge.invoke('release-file-claim', doc.path)
-            }
-          }
-          const logger = createRendererLogger('Workspace')
-          logger.debug('停止文件监听', { filePath: doc.path, tabId: id, isPreview: tab.preview })
-        }
-      } catch (error) {
-        const logger = createRendererLogger('Workspace')
-        logger.warn('停止文件监听失败', { filePath: doc.path, tabId: id, error })
+    // 保存到最近关闭的标签页栈（排除系统Tab和dummy Tab）
+    if (tab.kind !== 'system' || tab.route !== '/dummy') {
+      const closedEntry = {
+        tab: { ...tab },
+        document: doc
+          ? { ...doc, markdown: doc.markdown, path: doc.path, format: doc.format, dirty: doc.dirty }
+          : undefined,
+        closedAt: Date.now()
       }
-    })()
-  }
-
-  tabs.splice(index, 1)
-  delete documents[id]
-  delete tabToolState[id]
-
-  // 如果关闭后没有Tab了，创建一个系统Tab显示Dummy组件
-  if (!tabs.length) {
-    const dummyTab = openSystemTab('/dummy', '空白')
-    activeTabId.value = dummyTab.id
-    return
-  }
-
-  // 如果关闭的是活跃Tab，或者已经没有活跃Tab，选择下一个
-  if (wasActive || !activeTabId.value) {
-    const fallback = tabs[index] || tabs[index - 1] || tabs[0]
-    if (fallback) {
-      activateTab(fallback.id)
+      recentlyClosedTabs.value.unshift(closedEntry)
+      // 限制栈大小
+      if (recentlyClosedTabs.value.length > MAX_RECENTLY_CLOSED) {
+        recentlyClosedTabs.value = recentlyClosedTabs.value.slice(0, MAX_RECENTLY_CLOSED)
+      }
     }
-  }
+    const wasActive = activeTabId.value === id
+
+    // 停止文件监听（如果文件路径存在）
+    if (doc && doc.path) {
+      // 异步停止文件监听（避免阻塞）
+      ;(async () => {
+        try {
+          const messageBridge = (await import('../bridge/message-bridge')).default
+          const ipc = messageBridge.getIpc()
+          if (ipc) {
+            messageBridge.send('unwatch-file', doc.path)
+            if (ipc.invoke) {
+              await messageBridge.invoke('mark-file-closing', doc.path)
+              if (tab.preview) {
+                await messageBridge.invoke('release-file-claim', doc.path)
+              }
+            }
+            const logger = createRendererLogger('Workspace')
+            logger.debug('停止文件监听', { filePath: doc.path, tabId: id, isPreview: tab.preview })
+          }
+        } catch (error) {
+          const logger = createRendererLogger('Workspace')
+          logger.warn('停止文件监听失败', { filePath: doc.path, tabId: id, error })
+        }
+      })()
+    }
+
+    tabs.splice(index, 1)
+    delete documents[id]
+    delete tabToolState[id]
+
+    // 如果关闭后没有Tab了，创建一个系统Tab显示Dummy组件
+    if (!tabs.length) {
+      const dummyTab = openSystemTab('/dummy', '空白')
+      activeTabId.value = dummyTab.id
+      return
+    }
+
+    // 如果关闭的是活跃Tab，或者已经没有活跃Tab，选择下一个
+    if (wasActive || !activeTabId.value) {
+      const fallback = tabs[index] || tabs[index - 1] || tabs[0]
+      if (fallback) {
+        activateTab(fallback.id)
+      }
+    }
   } finally {
     // 确保清理正在删除的标记
     removingTabIds.delete(id)

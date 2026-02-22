@@ -39,19 +39,23 @@
     />
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="
-        editingEngine
-          ? editingEngine.isBuiltIn
-            ? t('agent.manage.agentEngine.view')
-            : t('agent.manage.agentEngine.edit')
-          : t('agent.manage.agentEngine.create')
-      "
-      width="800px"
-      :style="dialogStyle"
-    >
-      <Form class="space-y-4">
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent
+        class="max-w-[800px]"
+        :style="dialogStyle"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {{
+              editingEngine
+                ? editingEngine.isBuiltIn
+                  ? t('agent.manage.agentEngine.view')
+                  : t('agent.manage.agentEngine.edit')
+                : t('agent.manage.agentEngine.create')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <Form class="space-y-4">
         <FormField :label="t('agent.manage.agentEngine.name')" name="name" required>
           <Input v-model="formData.name" :disabled="editingEngine?.isBuiltIn" class="w-full" />
         </FormField>
@@ -210,13 +214,14 @@
           </FormField>
         </template>
       </Form>
-      <template #footer>
-        <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
-        <Button type="primary" @click="handleSave" :disabled="editingEngine?.isBuiltIn">
-          {{ editingEngine?.isBuiltIn ? t('agent.manage.agentEngine.viewOnly') : t('common.save') }}
-        </Button>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
+          <Button type="primary" @click="handleSave" :disabled="editingEngine?.isBuiltIn">
+            {{ editingEngine?.isBuiltIn ? t('agent.manage.agentEngine.viewOnly') : t('common.save') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -230,6 +235,7 @@ import { agentEngineManager } from '../../../utils/agent-framework'
 import type { AgentEngine, EngineType, LlmConfigMode } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { Button } from '@renderer/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'

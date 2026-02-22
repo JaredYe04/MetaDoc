@@ -7,12 +7,19 @@
     }"
   >
     <div class="status-group">
-      <el-tooltip :content="$t('bottomMenu.versionTooltip')" placement="top">
-        <span class="status-item status-version" @click.prevent="toggleVersionInfoPanel">
-          <!-- {{ $t('bottomMenu.versionLabel') }}  -->
-          {{ currentVersion }}
-        </span>
-      </el-tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span class="status-item status-version" @click.prevent="toggleVersionInfoPanel">
+              <!-- {{ $t('bottomMenu.versionLabel') }}  -->
+              {{ currentVersion }}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ $t('bottomMenu.versionTooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <!-- <span class="status-divider">|</span>
       <el-tooltip :content="$t('llmStatistics.tooltip')" placement="top">
         <span
@@ -23,11 +30,18 @@
         </span>
       </el-tooltip> -->
       <span class="status-divider">|</span>
-      <el-tooltip :content="$t('wordCountDialog.tooltip')" placement="top">
-        <span class="status-item status-word-count" @click="showWordCountDialog = true">
-          {{ $t('bottomMenu.wordCount') }} {{ wordCount }}
-        </span>
-      </el-tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span class="status-item status-word-count" @click="showWordCountDialog = true">
+              {{ $t('bottomMenu.wordCount') }} {{ wordCount }}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ $t('wordCountDialog.tooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <span class="status-divider">|</span>
       <span class="status-item status-file">
         {{ $t('bottomMenu.currentFile')
@@ -43,46 +57,67 @@
     <VersionInfoPanel />
     <GlobalProgressBar />
     <div class="actions-group">
-      <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
-        <span class="status-item status-logger" @click.prevent="toggleLoggerConsole">
-          <el-icon class="status-icon" size="14">
-            <Document />
-          </el-icon>
-          <span class="status-text">{{ $t('bottomMenu.logConsoleLabel') }}</span>
-        </span>
-      </el-tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span class="status-item status-logger" @click.prevent="toggleLoggerConsole">
+              <el-icon class="status-icon" size="14">
+                <Document />
+              </el-icon>
+              <span class="status-text">{{ $t('bottomMenu.logConsoleLabel') }}</span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ $t('bottomMenu.logConsoleTooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <span class="status-divider">|</span>
-      <el-tooltip :content="notificationTooltip" placement="top">
-        <span
-          class="status-item status-notification"
-          :class="{ 'is-shaking': isShaking }"
-          @click.prevent="toggleNotificationQueue"
-        >
-          <el-icon class="status-icon" size="14">
-            <BellFilled />
-          </el-icon>
-          <span class="status-text">{{ notificationSummary }}</span>
-          <span
-            v-if="unreadCount > 0"
-            class="status-badge"
-            :style="{ backgroundColor: badgeColor }"
-          >
-            {{ unreadCount }}
-          </span>
-        </span>
-      </el-tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span
+              class="status-item status-notification"
+              :class="{ 'is-shaking': isShaking }"
+              @click.prevent="toggleNotificationQueue"
+            >
+              <el-icon class="status-icon" size="14">
+                <BellFilled />
+              </el-icon>
+              <span class="status-text">{{ notificationSummary }}</span>
+              <span
+                v-if="unreadCount > 0"
+                class="status-badge"
+                :style="{ backgroundColor: badgeColor }"
+              >
+                {{ unreadCount }}
+              </span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ notificationTooltip }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <span class="status-divider">|</span>
-      <el-tooltip :content="$t('bottomMenu.aiTaskQueueTooltip')" placement="top">
-        <span class="ai-task-menu" @click.prevent="eventBus.emit('toggle-ai-task-queue')">
-          <img
-            :src="themeState.currentTheme.AiLogo"
-            alt="AI"
-            :class="{ 'ai-logo-rotating': hasRunningCompletionTask }"
-          />
-          <span class="ai-task-label">{{ $t('bottomMenu.aiTaskQueueLabel') }}</span>
-          <span v-if="tasks.length > 0" class="ai-task-count">{{ tasks.length }}</span>
-        </span>
-      </el-tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <span class="ai-task-menu" @click.prevent="eventBus.emit('toggle-ai-task-queue')">
+              <img
+                :src="themeState.currentTheme.AiLogo"
+                alt="AI"
+                :class="{ 'ai-logo-rotating': hasRunningCompletionTask }"
+              />
+              <span class="ai-task-label">{{ $t('bottomMenu.aiTaskQueueLabel') }}</span>
+              <span v-if="tasks.length > 0" class="ai-task-count">{{ tasks.length }}</span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{{ $t('bottomMenu.aiTaskQueueTooltip') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   </div>
 </template>
@@ -101,6 +136,12 @@ import WordCountDialog from './WordCountDialog.vue'
 import LlmStatisticsDialog from './LlmStatisticsDialog.vue'
 import VersionInfoPanel from './VersionInfoPanel.vue'
 import GlobalProgressBar from './GlobalProgressBar.vue'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@renderer/components/ui/tooltip'
 
 const workspace = useWorkspace()
 const { t } = useI18n()

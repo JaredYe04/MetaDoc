@@ -1,17 +1,9 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="dialogTitle"
-    width="600px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="true"
-    :style="{
-      '--el-dialog-bg-color': themeState.currentTheme.background,
-      '--el-text-color-primary': themeState.currentTheme.textColor,
-      '--el-border-color': themeState.currentTheme.textColor + '33'
-    }"
-    class="export-options-dialog"
-  >
+  <Dialog v-model:open="visible">
+    <DialogContent class="max-w-[600px]">
+      <DialogHeader>
+        <DialogTitle>{{ dialogTitle }}</DialogTitle>
+      </DialogHeader>
     <ScrollArea class="h-[500px]">
       <Tabs v-model="activeTab" v-if="hasTabs" class="export-options-tabs">
         <TabsList class="w-full grid" :style="{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }">
@@ -290,18 +282,19 @@
     </el-form>
     </ScrollArea>
 
-    <template #footer>
+    <DialogFooter>
       <Button @click="handleCancel">
         {{ t('common.cancel') }}
       </Button>
-      <Button type="primary" @click="handleConfirm">
+      <Button @click="handleConfirm">
         {{ t('common.confirm') }}
       </Button>
-      <Button @click="handleReset">
+      <Button @click="handleReset" variant="outline">
         {{ t('common.reset') }}
       </Button>
-    </template>
-  </el-dialog>
+    </DialogFooter>
+  </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -309,7 +302,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Form, FormField } from '@renderer/components/ui/form'
 import {
-  ElDialog,
   ElForm,
   ElFormItem,
   ElInput,
@@ -317,6 +309,13 @@ import {
   ElSwitch,
   ElDivider
 } from 'element-plus'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@renderer/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
@@ -647,7 +646,7 @@ defineExpose({
 </script>
 
 <style scoped>
-.export-options-dialog :deep(.el-dialog__body) {
+:deep(.dialog-content) {
   padding: 20px;
 }
 

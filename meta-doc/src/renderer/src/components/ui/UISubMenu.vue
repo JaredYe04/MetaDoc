@@ -374,14 +374,14 @@ onBeforeUnmount(() => {
 }
 
 .ui-sub-menu__title {
-  height: 40px;
-  line-height: 40px;
-  margin: 4px 8px;
+  height: 36px;
+  line-height: 36px;
+  margin: 2px 6px;
   border-radius: 4px;
   border: 1px solid transparent;
-  transition: none !important;
+  transition: all 0.15s ease;
   position: relative;
-  padding-left: 12px;
+  padding-left: 10px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -390,22 +390,23 @@ onBeforeUnmount(() => {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: pointer;
-  color: var(--el-text-color-primary);
+  color: var(--sidebar-text, var(--el-text-color-primary));
+  font-size: 13px;
 }
 
-/* 粗野主义悬停效果 - 统一灰色背景 */
+/* VSCode 风格悬停效果 */
 .ui-sub-menu__title:hover {
-  background-color: v-bind('activeBackgroundColor');
+  background-color: var(--sidebar-hover-bg, v-bind('activeBackgroundColor'));
   border: 1px solid var(--el-border-color);
   border-radius: 4px;
-  color: var(--el-text-color-primary);
+  color: var(--sidebar-text-active, var(--el-text-color-primary));
 }
 
-/* 打开的菜单 - 使用浅色边框，与 :active 区分开 */
+/* VSCode 风格 - 打开的菜单 */
 .ui-sub-menu__title.is-open {
   border: 1px solid var(--el-border-color) !important;
-  background-color: v-bind('activeBackgroundColor') !important;
-  color: var(--el-text-color-primary) !important;
+  background-color: var(--sidebar-active-bg, v-bind('activeBackgroundColor')) !important;
+  color: var(--sidebar-text-active, var(--el-text-color-primary)) !important;
   border-radius: 4px !important;
   box-shadow: none !important;
 }

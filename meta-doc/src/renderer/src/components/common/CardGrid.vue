@@ -1,7 +1,8 @@
 <template>
-  <div class="card-grid" :style="containerStyle">
+  <div class="card-grid" :style="containerStyle" style="position: relative">
+    <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
     <ScrollArea class="flex-1 min-h-0">
-      <div class="card-grid-container" v-loading="loading">
+      <div class="card-grid-container">
         <div
           v-for="item in items"
           :key="getItemId(item)"
@@ -25,9 +26,9 @@
               <el-icon><Document /></el-icon>
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{
+              <Badge size="small" :type="getBadgeType(item) || 'info'">{{
                 getBadge(item)
-              }}</el-tag>
+              }}</Badge>
             </div>
           </div>
 
@@ -37,9 +38,9 @@
               {{ getItemTitle(item) }}
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{
+              <Badge size="small" :type="getBadgeType(item) || 'info'">{{
                 getBadge(item)
-              }}</el-tag>
+              }}</Badge>
             </div>
           </div>
 
@@ -48,14 +49,14 @@
             <h3>{{ getItemTitle(item) || '' }}</h3>
             <p v-if="getItemDescription(item)">{{ getItemDescription(item) }}</p>
             <div v-if="getItemMeta(item) && getItemMeta(item).length > 0" class="card-item__meta">
-              <el-tag
+              <Badge
                 v-for="(meta, index) in getItemMeta(item)"
                 :key="index"
                 size="small"
                 effect="plain"
               >
                 {{ meta }}
-              </el-tag>
+              </Badge>
             </div>
           </div>
 
@@ -88,15 +89,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Document, More } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+
+const { t } = useI18n()
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem
 } from '@renderer/components/ui/dropdown-menu'
+import { Badge } from '@renderer/components/ui/badge'
 
 export interface CardGridAction {
   command: string

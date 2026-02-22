@@ -1,8 +1,8 @@
 <script setup>
-import { reactiveOmit } from "@vueuse/core";
-import { NumberFieldRoot, useForwardPropsEmits } from "reka-ui";
-import { cn } from '@renderer/lib/utils';
-import { computed } from 'vue';
+import { reactiveOmit } from '@vueuse/core'
+import { NumberFieldRoot, useForwardPropsEmits } from 'reka-ui'
+import { cn } from '@renderer/lib/utils'
+import { computed } from 'vue'
 
 const props = defineProps({
   defaultValue: { type: Number, required: false },
@@ -25,33 +25,33 @@ const props = defineProps({
   required: { type: Boolean, required: false },
   class: { type: null, required: false },
   // Element UI compatible prop
-  precision: { type: Number, required: false },
-});
-const emits = defineEmits(["update:modelValue"]);
+  precision: { type: Number, required: false }
+})
+const emits = defineEmits(['update:modelValue'])
 
 // Map Element UI precision to formatOptions
 const computedFormatOptions = computed(() => {
   if (props.precision !== undefined) {
     return {
       minimumFractionDigits: props.precision,
-      maximumFractionDigits: props.precision,
-    };
+      maximumFractionDigits: props.precision
+    }
   }
-  return props.formatOptions;
-});
+  return props.formatOptions
+})
 
-const delegatedProps = reactiveOmit(props, "class", "precision", "formatOptions");
+const delegatedProps = reactiveOmit(props, 'class', 'precision', 'formatOptions')
 
 const forwardedProps = computed(() => ({
   ...delegatedProps,
-  formatOptions: computedFormatOptions.value,
-}));
+  formatOptions: computedFormatOptions.value
+}))
 
-const forwarded = useForwardPropsEmits(forwardedProps, emits);
+const forwarded = useForwardPropsEmits(forwardedProps, emits)
 </script>
 
 <template>
-  <NumberFieldRoot v-bind="forwarded" :class="cn('grid gap-1.5', props.class)">
+  <NumberFieldRoot v-bind="forwarded" :class="cn('grid gap-1.5 relative', props.class)">
     <slot />
   </NumberFieldRoot>
 </template>

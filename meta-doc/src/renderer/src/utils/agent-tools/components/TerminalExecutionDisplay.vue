@@ -172,27 +172,24 @@
     </div>
 
     <div v-else-if="(effectiveData as any)?.stage === 'rejected'" class="rejected-state">
-      <el-alert
-        :title="$t('agent.display.terminalExecution.rejected')"
-        type="warning"
-        :closable="false"
-      >
-        <template #default>
+      <Alert variant="warning">
+        <AlertTriangle class="h-4 w-4" />
+        <AlertTitle>{{ $t('agent.display.terminalExecution.rejected') }}</AlertTitle>
+        <AlertDescription>
           <div class="command-text" :style="commandTextStyle">
             {{ (effectiveData as any)?.command || '' }}
           </div>
-        </template>
-      </el-alert>
+        </AlertDescription>
+      </Alert>
     </div>
 
     <div v-else-if="(effectiveData as any)?.stage === 'error'" class="error-state">
-      <el-alert
-        :title="
-          (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed')
-        "
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>
+          {{ (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed') }}
+        </AlertTitle>
+      </Alert>
     </div>
 
     <!-- 进度条 -->
@@ -217,6 +214,8 @@ import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Textarea } from '@renderer/components/ui/textarea'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../types/agent-tool'
 import eventBus from '../../../utils/event-bus.js'

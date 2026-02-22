@@ -39,36 +39,32 @@
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
-            <el-alert
+            <Alert
               v-if="updateStatus.updateAvailable"
-              type="success"
-              :title="$t('versionInfoPanel.updateAvailable')"
-              :description="
-                updateStatus.updateInfo
-                  ? $t('versionInfoPanel.updateAvailableDesc', {
-                      version: updateStatus.updateInfo.version
-                    })
-                  : ''
-              "
-              show-icon
-              :closable="false"
-            />
-            <el-alert
+              variant="default"
+            >
+              <CheckCircle2 class="h-4 w-4" />
+              <AlertTitle>{{ $t('versionInfoPanel.updateAvailable') }}</AlertTitle>
+              <AlertDescription v-if="updateStatus.updateInfo">
+                {{ $t('versionInfoPanel.updateAvailableDesc', { version: updateStatus.updateInfo.version }) }}
+              </AlertDescription>
+            </Alert>
+            <Alert
               v-else-if="updateStatus.updateNotAvailable"
-              type="info"
-              :title="$t('versionInfoPanel.noUpdate')"
-              :description="$t('versionInfoPanel.noUpdateDesc')"
-              show-icon
-              :closable="false"
-            />
-            <el-alert
+              variant="default"
+            >
+              <Info class="h-4 w-4" />
+              <AlertTitle>{{ $t('versionInfoPanel.noUpdate') }}</AlertTitle>
+              <AlertDescription>{{ $t('versionInfoPanel.noUpdateDesc') }}</AlertDescription>
+            </Alert>
+            <Alert
               v-else-if="updateStatus.error"
-              type="error"
-              :title="$t('versionInfoPanel.checkUpdateError')"
-              :description="updateStatus.error"
-              show-icon
-              :closable="false"
-            />
+              variant="destructive"
+            >
+              <XCircle class="h-4 w-4" />
+              <AlertTitle>{{ $t('versionInfoPanel.checkUpdateError') }}</AlertTitle>
+              <AlertDescription>{{ updateStatus.error }}</AlertDescription>
+            </Alert>
           </div>
         </div>
       </ScrollArea>
@@ -104,16 +100,15 @@
         >
           {{ $t('versionInfoPanel.installAndRestart') }}
         </Button>
-        <el-alert
+        <Alert
           v-if="downloadError"
-          type="error"
-          :title="$t('versionInfoPanel.downloadError')"
-          :description="downloadError"
-          show-icon
-          :closable="true"
-          @close="downloadError = null"
-          style="margin-top: 12px"
-        />
+          variant="destructive"
+          class="mt-3"
+        >
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ $t('versionInfoPanel.downloadError') }}</AlertTitle>
+          <AlertDescription>{{ downloadError }}</AlertDescription>
+        </Alert>
       </div>
     </div>
   </ResizablePanel>
@@ -124,6 +119,8 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
+import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'

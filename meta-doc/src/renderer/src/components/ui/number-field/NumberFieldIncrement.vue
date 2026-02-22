@@ -1,19 +1,19 @@
 <script setup>
-import { reactiveOmit } from "@vueuse/core";
-import { Plus } from "lucide-vue-next";
-import { NumberFieldIncrement, useForwardProps } from "reka-ui";
-import { cn } from '@renderer/lib/utils';
+import { reactiveOmit } from '@vueuse/core'
+import { Plus } from 'lucide-vue-next'
+import { NumberFieldIncrement, useForwardProps } from 'reka-ui'
+import { cn } from '@renderer/lib/utils'
 
 const props = defineProps({
   disabled: { type: Boolean, required: false },
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
-  class: { type: null, required: false },
-});
+  class: { type: null, required: false }
+})
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, 'class')
 
-const forwarded = useForwardProps(delegatedProps);
+const forwarded = useForwardProps(delegatedProps)
 </script>
 
 <template>
@@ -23,7 +23,7 @@ const forwarded = useForwardProps(delegatedProps);
     :class="
       cn(
         'absolute top-1/2 -translate-y-1/2 right-0 disabled:cursor-not-allowed disabled:opacity-20 p-3',
-        props.class,
+        props.class
       )
     "
   >

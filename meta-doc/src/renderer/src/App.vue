@@ -1,23 +1,26 @@
 <!-- App.vue -->
 <template>
-  <div
-    :style="{
-      backgroundColor: themeState.currentTheme.background,
-      color: themeState.currentTheme.textColor
-    }"
-  >
-    <!-- 布局仅在需要时显示 -->
-    <Main v-if="requiresLayout" />
-    <!-- 如果不需要布局，则直接渲染路由页面 -->
-    <router-view v-else />
-    <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
-    <InputContextMenu />
-  </div>
+  <TooltipProvider>
+    <div
+      :style="{
+        backgroundColor: themeState.currentTheme.background,
+        color: themeState.currentTheme.textColor
+      }"
+    >
+      <!-- 布局仅在需要时显示 -->
+      <Main v-if="requiresLayout" />
+      <!-- 如果不需要布局，则直接渲染路由页面 -->
+      <router-view v-else />
+      <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
+      <InputContextMenu />
+    </div>
+  </TooltipProvider>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { TooltipProvider } from './components/ui/tooltip'
 import Main from './views/Main.vue'
 import InputContextMenu from './components/common/InputContextMenu.vue'
 
@@ -379,10 +382,6 @@ onUnmounted(() => {
 .el-sub-menu__title,
 .el-button,
 .el-tag,
-.el-card,
-.el-card__header,
-.el-card__body,
-.el-card__footer,
 .el-tabs,
 .el-tabs__item,
 .el-tabs__header,

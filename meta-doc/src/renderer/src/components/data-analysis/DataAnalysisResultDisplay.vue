@@ -42,12 +42,12 @@
               >
                 <div class="field-header">
                   <span class="field-name" :style="fieldNameStyle">{{ field.name }}</span>
-                  <el-tag :type="getTypeTagType(field.type)" size="small">
+                  <Badge :variant="getBadgeVariant(field.type)">
                     {{ field.type }}
-                  </el-tag>
-                  <el-tag v-if="field.nullable" type="warning" size="small">{{
-                    t('agent.display.dataAnalysis.nullable')
-                  }}</el-tag>
+                  </Badge>
+                  <Badge v-if="field.nullable" variant="warning" class="warning-badge">
+                    {{ t('agent.display.dataAnalysis.nullable') }}
+                  </Badge>
                   <span class="field-unique" :style="fieldUniqueStyle"
                     >{{ t('agent.display.dataAnalysis.uniqueValues') }}:
                     {{ field.uniqueCount }}</span
@@ -62,15 +62,14 @@
                     >{{ t('agent.display.dataAnalysis.sampleValues') }}:</span
                   >
                   <div class="samples-list">
-                    <el-tag
+                    <Badge
                       v-for="(value, index) in field.sampleValues"
                       :key="index"
-                      size="small"
-                      effect="plain"
-                      class="sample-tag"
+                      variant="outline"
+                      class="sample-badge"
                     >
                       {{ formatValue(value) }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -164,6 +163,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Connection, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
+import { Badge } from '../ui/badge'
 import { themeState } from '../../utils/themes'
 
 interface DataAnalysisResult {
@@ -228,15 +228,15 @@ const statsTreeData = computed(() => {
   }))
 })
 
-const getTypeTagType = (type: string) => {
-  const map: Record<string, string> = {
-    number: 'success',
-    string: 'primary',
-    boolean: 'warning',
-    date: 'info',
-    null: 'danger'
+const getBadgeVariant = (type: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    number: 'default',
+    string: 'secondary',
+    boolean: 'outline',
+    date: 'secondary',
+    null: 'destructive'
   }
-  return map[type] || ''
+  return map[type] || 'secondary'
 }
 
 const getStatLabel = (key: string) => {
@@ -631,8 +631,13 @@ const emptyAggregationsStyle = computed(() => ({
   flex-wrap: wrap;
 }
 
-.sample-tag {
+.sample-badge {
   margin: 0;
+}
+
+.warning-badge {
+  background-color: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
 }
 
 .stats-tree,

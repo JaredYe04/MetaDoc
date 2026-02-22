@@ -22,7 +22,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="panelStyle" v-loading="loadingSession">
+        <div class="content-area" :style="panelStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('graph.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
           </div>
@@ -77,6 +78,7 @@ import { ElMessage } from 'element-plus'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { graphSessionsDb } from '../utils/db/tool-sessions-db'
 import { createAiTask, cancelAiTask } from '../utils/ai_tasks'
 import { ref as vueRef } from 'vue'

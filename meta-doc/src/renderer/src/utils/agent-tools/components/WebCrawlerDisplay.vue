@@ -20,17 +20,16 @@
             {{ $t('agent.display.webCrawler.title') }}
           </h3>
           <div class="result-meta" :style="metaStyle">
-            <el-tag
-              :type="resultData.status >= 200 && resultData.status < 300 ? 'success' : 'danger'"
-              size="small"
+            <Badge
+              :variant="resultData.status >= 200 && resultData.status < 300 ? 'default' : 'destructive'"
             >
               HTTP {{ resultData.status }} {{ resultData.statusText }}
-            </el-tag>
-            <el-tag type="info" size="small"
+            </Badge>
+            <Badge variant="secondary"
               >{{ $t('agent.display.webCrawler.size') }}:
-              {{ formatSize(resultData.size || 0) }}</el-tag
+              {{ formatSize(resultData.size || 0) }}</Badge
             >
-            <el-tag type="info" size="small">{{ resultData.contentType }}</el-tag>
+            <Badge variant="outline">{{ resultData.contentType }}</Badge>
           </div>
         </div>
         <div class="header-url" :style="urlStyle">
@@ -114,23 +113,19 @@
       v-else-if="displayData.stage === 'error' || (props.status === 'failed' && !resultData)"
       class="error-state"
     >
-      <el-alert
-        :title="displayData.error || props.error || $t('agent.display.webCrawler.error')"
-        type="error"
-        :closable="false"
-      >
-        <template #default>
-          <div>
-            <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
-            <p
-              v-if="displayData.message"
-              style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
-            >
-              {{ displayData.message }}
-            </p>
-          </div>
-        </template>
-      </el-alert>
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</AlertTitle>
+        <AlertDescription>
+          <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
+          <p
+            v-if="displayData.message"
+            style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
+          >
+            {{ displayData.message }}
+          </p>
+        </AlertDescription>
+      </Alert>
     </div>
 
     <!-- 调试：显示原始数据（仅在开发环境） -->
@@ -167,6 +162,9 @@ import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'

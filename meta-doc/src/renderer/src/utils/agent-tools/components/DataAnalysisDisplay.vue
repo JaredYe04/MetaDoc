@@ -89,12 +89,12 @@
               <div v-for="field in displayData.result.fields" :key="field.name" class="field-item">
                 <div class="field-header">
                   <span class="field-name">{{ field.name }}</span>
-                  <el-tag :type="getTypeTagType(field.type)" size="small">
+                  <Badge :variant="getTypeBadgeVariant(field.type)" class="text-xs">
                     {{ field.type }}
-                  </el-tag>
-                  <el-tag v-if="field.nullable" type="warning" size="small">{{
+                  </Badge>
+                  <Badge v-if="field.nullable" variant="destructive" class="text-xs">{{
                     $t('agent.display.dataAnalysis.nullable')
-                  }}</el-tag>
+                  }}</Badge>
                   <span class="field-unique"
                     >{{ $t('agent.display.dataAnalysis.uniqueValues') }}:
                     {{ field.uniqueCount }}</span
@@ -108,15 +108,14 @@
                     >{{ $t('agent.display.dataAnalysis.sampleValues') }}:</span
                   >
                   <div class="samples-list">
-                    <el-tag
+                    <Badge
                       v-for="(value, index) in field.sampleValues"
                       :key="index"
-                      size="small"
-                      effect="plain"
-                      class="sample-tag"
+                      variant="outline"
+                      class="sample-tag text-xs"
                     >
                       {{ formatValue(value) }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -205,11 +204,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.dataAnalysis.analysisFailed')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.dataAnalysis.analysisFailed') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -222,6 +220,9 @@ import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '../../../components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
 import { themeState } from '../../themes'
 import { renderMarkdownPreview } from '../../md-utils'
 
@@ -329,15 +330,15 @@ const statsTreeData = computed(() => {
   }))
 })
 
-const getTypeTagType = (type: string) => {
-  const map: Record<string, string> = {
-    number: 'success',
-    string: 'primary',
-    boolean: 'warning',
-    date: 'info',
-    null: 'danger'
+const getTypeBadgeVariant = (type: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    number: 'default',
+    string: 'secondary',
+    boolean: 'outline',
+    date: 'secondary',
+    null: 'destructive'
   }
-  return map[type] || ''
+  return map[type] || 'secondary'
 }
 
 const getStatLabel = (key: string) => {

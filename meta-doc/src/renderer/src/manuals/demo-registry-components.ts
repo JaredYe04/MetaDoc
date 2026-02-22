@@ -27,6 +27,7 @@ import ProofreadView from '../views/ProofreadView.vue'
 import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
 import DataAnalysisWindow from '../views/DataAnalysisWindow.vue'
 import FormulaRecognition from '../views/FomulaRecognition.vue'
+import SettingLlmSection from '../views/setting/SettingLlmSection.vue'
 import { registerDemoComponent } from './demo-registry'
 
 registerDemoComponent('LeftMenu', LeftMenu)
@@ -53,3 +54,4 @@ registerDemoComponent('ProofreadView', ProofreadView)
 registerDemoComponent('AigcDetectionWindow', AigcDetectionWindow)
 registerDemoComponent('DataAnalysisWindow', DataAnalysisWindow)
 registerDemoComponent('FormulaRecognition', FormulaRecognition)
+registerDemoComponent('SettingLlmSection', SettingLlmSection)

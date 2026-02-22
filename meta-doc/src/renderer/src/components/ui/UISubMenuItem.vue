@@ -24,9 +24,9 @@
 import { inject, computed } from 'vue'
 import { themeState, mixColors } from '../../utils/themes'
 
-// 计算与 HeadMenu 一致的 active 背景色
+// 使用主题色作为 active 状态
 const activeBackgroundColor = computed(() =>
-  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+  mixColors(themeState.currentTheme.background, themeState.currentTheme.primaryColor, 0.2)
 )
 
 const props = withDefaults(

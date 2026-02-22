@@ -301,7 +301,11 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.ollama.enableMaxTokens" name="ollamaMaxTokens" :label="t('setting.maxTokens')">
+                <FormField
+                  v-if="settings.ollama.enableMaxTokens"
+                  name="ollamaMaxTokens"
+                  :label="t('setting.maxTokens')"
+                >
                   <NumberField
                     v-model="settings.ollama.maxTokens"
                     :min="1"
@@ -395,7 +399,11 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.openai.enableMaxTokens" name="openaiMaxTokens" :label="t('setting.maxTokens')">
+                <FormField
+                  v-if="settings.openai.enableMaxTokens"
+                  name="openaiMaxTokens"
+                  :label="t('setting.maxTokens')"
+                >
                   <NumberField
                     v-model="settings.openai.maxTokens"
                     :min="1"
@@ -533,7 +541,11 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.deepseek.enableMaxTokens" name="deepseekMaxTokens" :label="t('setting.maxTokens')">
+                <FormField
+                  v-if="settings.deepseek.enableMaxTokens"
+                  name="deepseekMaxTokens"
+                  :label="t('setting.maxTokens')"
+                >
                   <NumberField
                     v-model="settings.deepseek.maxTokens"
                     :min="1"
@@ -603,7 +615,11 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.gemini.enableMaxTokens" name="geminiMaxTokens" :label="t('setting.maxTokens')">
+                <FormField
+                  v-if="settings.gemini.enableMaxTokens"
+                  name="geminiMaxTokens"
+                  :label="t('setting.maxTokens')"
+                >
                   <NumberField
                     v-model="settings.gemini.maxTokens"
                     :min="1"
@@ -663,7 +679,11 @@
                   </div>
                 </FormField>
 
-                <FormField v-if="settings.metadoc.enableMaxTokens" name="metadocMaxTokens" :label="t('setting.maxTokens')">
+                <FormField
+                  v-if="settings.metadoc.enableMaxTokens"
+                  name="metadocMaxTokens"
+                  :label="t('setting.maxTokens')"
+                >
                   <NumberField
                     v-model="settings.metadoc.maxTokens"
                     :min="1"
@@ -757,7 +777,10 @@
                   </Select>
                 </FormField>
 
-                <FormField name="autoCompletionMaxTokens" :label="t('setting.autoCompletionMaxTokens')">
+                <FormField
+                  name="autoCompletionMaxTokens"
+                  :label="t('setting.autoCompletionMaxTokens')"
+                >
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="flex items-center gap-2">
@@ -1035,6 +1058,12 @@ interface OpenAIModel {
 interface MetaDocModel {
   label: string
 }
+
+// Demo mode support
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
 const logger = createRendererLogger('SettingLlm')
@@ -1900,7 +1929,59 @@ const testLlmApi = async () => {
   }
 }
 
+// Demo mock data
+const loadDemoData = () => {
+  // Mock LLM configs
+  llmConfigs.value = [
+    { id: 'demo-1', name: 'OpenAI GPT-4', type: 'openai', isDefault: false },
+    { id: 'demo-2', name: 'Ollama Llama2', type: 'ollama', isDefault: false },
+    { id: 'demo-3', name: 'Gemini Pro', type: 'gemini', isDefault: false },
+    { id: 'default-openai', name: '默认 OpenAI', type: 'openai', isDefault: true }
+  ]
+
+  // Mock settings
+  settings.llmEnabled = true
+  settings.llmTemperature = 0.7
+  settings.autoRemoveThinkTag = true
+  settings.selectedLlm = 'openai'
+  settings.openai = {
+    apiUrl: 'https://api.openai.com/v1',
+    apiKey: 'sk-demo-***',
+    selectedModel: 'gpt-4',
+    completionSuffix: '/v1/completions',
+    chatSuffix: '/v1/chat/completions',
+    enableMaxTokens: true,
+    maxTokens: 2048
+  }
+  settings.ollama = {
+    apiUrl: 'http://localhost:11434/api',
+    selectedModel: 'llama2:latest',
+    enableMaxTokens: false,
+    maxTokens: 4096
+  }
+
+  // Mock models
+  openaiModels.value = [{ id: 'gpt-4' }, { id: 'gpt-3.5-turbo' }]
+  ollamaModels.value = [
+    { name: 'llama2', model: 'llama2:latest' },
+    { name: 'mistral', model: 'mistral:latest' }
+  ]
+  geminiModels.value = [{ name: 'gemini-pro', displayName: 'Gemini Pro' }]
+
+  // Demo state
+  currentConfigId.value = 'demo-1'
+  hasUnsavedChanges.value = true
+  testResult.value =
+    '这是一个演示模式的 LLM 测试结果。在实际使用中，这里会显示真实的 LLM 响应内容。'
+}
+
 onMounted(async () => {
+  // Demo mode: skip all API calls and load mock data
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   isDev.value = await isDevEnvironment()
   await loadLlmConfigs()
   loadConfigs()

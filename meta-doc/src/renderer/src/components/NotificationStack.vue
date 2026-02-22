@@ -38,7 +38,7 @@
           <div class="toast-description">{{ toast.message }}</div>
         </div>
 
-        <div v-if="!toast.read" class="toast-unread" :class="`type-${toast.type}`" />
+        <div v-if="!toast.read" class="toast-unread" />
       </div>
     </div>
   </div>
@@ -311,12 +311,8 @@ onBeforeUnmount(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: hsl(var(--primary));
 }
-
-.toast-unread.type-success { background: hsl(var(--success)); }
-.toast-unread.type-error { background: hsl(var(--destructive)); }
-.toast-unread.type-warning { background: hsl(38 92% 50%); }
-.toast-unread.type-info { background: hsl(var(--primary)); }
 
 .stack-toast.is-read {
   opacity: 0.7;

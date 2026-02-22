@@ -37,6 +37,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
 
   getOptionFields(): ExportOptionField[] {
     return [
+      // 基本设置 tab
       {
         key: 'pageSize',
         label: '纸张大小',
@@ -45,6 +46,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         default: 'A4',
         description: '选择PDF的纸张大小',
         descriptionKey: 'export.options.pageSize.description',
+        tab: 'basic',
         options: [
           { label: 'A4', value: 'A4', labelKey: 'export.options.pageSize.a4' },
           { label: 'A3', value: 'A3', labelKey: 'export.options.pageSize.a3' },
@@ -62,6 +64,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         default: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
         description: 'PDF页边距设置',
         descriptionKey: 'export.options.margins.description',
+        tab: 'basic',
         fields: [
           {
             key: 'margins.top',
@@ -120,7 +123,8 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         type: 'boolean',
         default: true,
         description: '是否在PDF中包含背景颜色和图片',
-        descriptionKey: 'export.options.printBackground.description'
+        descriptionKey: 'export.options.printBackground.description',
+        tab: 'basic'
       },
       // 字体设置（放在单独的 tab）
       {

@@ -91,8 +91,8 @@ const { t } = useI18n()
 const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learningProgress } = useUserManual()
 
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
-/** 仅显示推荐学习列表（否则显示完整目录） */
-const onlyRecommended = ref(true)
+/** 仅显示推荐学习列表（否则显示完整目录）；学完 100% 后默认显示普通手册 */
+const onlyRecommended = ref(learningProgress.value < 100)
 /** 是否显示庆祝动画 */
 const showCelebration = ref(false)
 
@@ -136,7 +136,7 @@ const goToOverview = () => {
   setCurrentArticle('', 'navigation')
 }
 
-// 学习进度达到 100% 时显示庆祝动画
+// 学习进度达到 100% 时显示庆祝动画，并切换为普通手册
 watch(
   () => learningProgress.value,
   (newProgress, oldProgress) => {
@@ -144,6 +144,7 @@ watch(
     if (newProgress >= 100 && oldProgress < 100 && learningPath.value.length > 0) {
       console.log('[UserManual] Progress reached 100%, triggering celebration!')
       showCelebration.value = true
+      onlyRecommended.value = false // 学完后默认显示普通手册
     }
   }
 )

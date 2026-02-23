@@ -3,7 +3,7 @@
  * 用于验证UI字体、编辑器字体、预览字体是否正确应用
  */
 
-import { settings } from './settings.js'
+import { getSetting } from './settings.js'
 
 /**
  * 获取当前应用的CSS字体变量
@@ -80,11 +80,11 @@ export async function verifyAllFontsLoaded() {
  */
 export async function getConfiguredFonts() {
   return {
-    ui: await settings.getSetting('fontUi'),
-    editorChinese: await settings.getSetting('fontEditorChinese'),
-    editorWestern: await settings.getSetting('fontEditorWestern'),
-    previewChinese: await settings.getSetting('fontPreviewChinese'),
-    previewWestern: await settings.getSetting('fontPreviewWestern')
+    ui: await getSetting('fontUi'),
+    editorChinese: await getSetting('fontEditorChinese'),
+    editorWestern: await getSetting('fontEditorWestern'),
+    previewChinese: await getSetting('fontPreviewChinese'),
+    previewWestern: await getSetting('fontPreviewWestern')
   }
 }
 

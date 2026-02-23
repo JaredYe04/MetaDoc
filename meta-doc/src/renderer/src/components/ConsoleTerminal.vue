@@ -1,5 +1,9 @@
 <template>
-  <div class="console-container" :style="consoleStyle">
+  <div
+    class="console-container"
+    :class="{ 'demo-mode': props.mode === 'demo' }"
+    :style="consoleStyle"
+  >
     <div
       class="console-header"
       :style="{
@@ -1506,6 +1510,12 @@ onBeforeUnmount(() => {
   color: var(--console-text);
   font-size: 13px;
   overflow: hidden;
+}
+
+/* Demo 模式：在手册中展示时需要最小高度以显示工具栏和内容 */
+.console-container.demo-mode {
+  min-height: 300px;
+  height: 300px;
 }
 
 .console-header {

@@ -38,6 +38,33 @@ export const DOCUMENT_TITLE_SCHEMA: SchemaDefinition<DocumentTitleSchemaResult> 
   example: '{"title":"周报需求讨论","keywords":["周报","需求"]}'
 }
 
+/** 大纲章节推荐关键词（根据本节标题与整体大纲生成，用于指导 AI 撰写） */
+export interface OutlineSectionKeywordsResult {
+  keywords: string[]
+}
+
+export const OUTLINE_SECTION_KEYWORDS_SCHEMA: SchemaDefinition<OutlineSectionKeywordsResult> = {
+  name: 'outline_section_keywords_schema_v1',
+  description: '根据本节标题与整体大纲生成推荐关键词列表',
+  schema: {
+    type: 'object',
+    required: ['keywords'],
+    properties: {
+      keywords: {
+        type: 'array',
+        description: '推荐关键词，用于指导本节内容风格与重点，如：严谨、学术风、抒情、创意、计算机等',
+        items: {
+          type: 'string',
+          maxLength: 12
+        },
+        minItems: 3,
+        maxItems: 10
+      }
+    }
+  },
+  example: '{"keywords":["严谨","学术风","计算机"]}'
+}
+
 export function buildSchemaPrompt<T>(schema: SchemaDefinition<T>, instruction: string): string {
   const schemaText = JSON.stringify(schema.schema, null, 2)
   const exampleSection = schema.example ? `示例输出：\n${schema.example}\n` : ''

@@ -540,6 +540,7 @@
   },
   "outline": {
     "generating": "AI is working...",
+    "previewResult": "Generation result",
     "generatingFor": "Generating",
     "generationDone": "Generation completed, accept changes?",
     "editNode": "Edit node",
@@ -555,7 +556,9 @@
     "generateChildrenContent": "AI generate content for all sub-chapters",
     "generateChildrenChildren": "AI generate sub-chapters for all chapters",
     "accept": "Accept",
+    "acceptAll": "Accept all",
     "reject": "Reject",
+    "rejectAll": "Reject all",
     "formatTitleWizard": "Format Title Wizard",
     "adjustMarkdown": "Auto adjust heading levels",
     "adjustMarkdownTip": "If enabled, Markdown heading levels will be auto-adjusted without skipping levels (e.g., H1 to H3)",
@@ -595,6 +598,7 @@
     "abridge": "Abridge",
     "polish": "Polish",
     "aiTool": {
+      "title": "AI Tools",
       "pointer": "Pointer tool (no selection)",
       "generateChildren": "Generate sub-chapters",
       "generateContent": "Generate content",

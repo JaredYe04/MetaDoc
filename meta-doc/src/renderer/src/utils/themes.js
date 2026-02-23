@@ -79,6 +79,17 @@ import ClearIconBlack from '../assets/icons/clear-black.svg'
 import ClearIconWhite from '../assets/icons/clear-white.svg'
 import MathIconBlack from '../assets/icons/math-black.svg'
 import MathIconWhite from '../assets/icons/math-white.svg'
+// AI 工具按钮图标（写作/分支）
+import WriteIconBlack from '../assets/icons/write-black.svg'
+import WriteIconWhite from '../assets/icons/write-white.svg'
+import MultiWriteIconBlack from '../assets/icons/multi-write-black.svg'
+import MultiWriteIconWhite from '../assets/icons/multi-write-white.svg'
+import BranchIconBlack from '../assets/icons/branch-black.svg'
+import BranchIconWhite from '../assets/icons/branch-white.svg'
+import MultiBranchIconBlack from '../assets/icons/multi-branch-black.svg'
+import MultiBranchIconWhite from '../assets/icons/multi-branch-white.svg'
+import FormatIconBlack from '../assets/icons/format-black.svg'
+import FormatIconWhite from '../assets/icons/format-white.svg'
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -296,7 +307,18 @@ const generateThemeIcons = (isDarkMode) => {
       dark: MaximizeIconWhite
     }),
     RestoreIcon: selectIconByTheme(isDarkMode, { light: RestoreIconBlack, dark: RestoreIconWhite }),
-    MathIcon: selectIconByTheme(isDarkMode, { light: MathIconBlack, dark: MathIconWhite })
+    MathIcon: selectIconByTheme(isDarkMode, { light: MathIconBlack, dark: MathIconWhite }),
+    WriteIcon: selectIconByTheme(isDarkMode, { light: WriteIconBlack, dark: WriteIconWhite }),
+    MultiWriteIcon: selectIconByTheme(isDarkMode, {
+      light: MultiWriteIconBlack,
+      dark: MultiWriteIconWhite
+    }),
+    BranchIcon: selectIconByTheme(isDarkMode, { light: BranchIconBlack, dark: BranchIconWhite }),
+    MultiBranchIcon: selectIconByTheme(isDarkMode, {
+      light: MultiBranchIconBlack,
+      dark: MultiBranchIconWhite
+    }),
+    FormatIcon: selectIconByTheme(isDarkMode, { light: FormatIconBlack, dark: FormatIconWhite })
   }
 }
 

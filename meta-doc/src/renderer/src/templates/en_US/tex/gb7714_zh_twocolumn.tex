@@ -52,6 +52,31 @@
 \subsection{具体实现}
 在此处描述方法的具体实现细节。
 
+\subsection{格式与交叉引用示例}
+行内公式 $E=mc^2$；带编号公式 \eqref{eq:gb2}。图~\ref{fig:gb2}、表~\ref{tab:gb2} 为占位。引用\cite{ref1}，脚注\footnote{脚注。}
+\begin{equation}
+  \label{eq:gb2}
+  \nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}.
+\end{equation}
+\begin{figure}[htbp]
+  \centering
+  \rule{3cm}{1.8cm}
+  \caption{示例图。}
+  \label{fig:gb2}
+\end{figure}
+\begin{table}[htbp]
+  \centering
+  \caption{示例表。}
+  \label{tab:gb2}
+  \begin{tabular}{lc}
+    \toprule
+    项目 & 值 \\
+    \midrule
+    示例 & 1.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \section{实验结果与分析}
 实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。
 

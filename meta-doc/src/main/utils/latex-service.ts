@@ -146,13 +146,23 @@ class LaTeXServiceImpl implements LaTeXService {
 
       // 转换结果格式以匹配我们的接口
       if (result.status === 'success' && result.pdfPath) {
-        // node-latex-compiler 可能生成的文件名与预期不同，需要重命名
+        // node-latex-compiler 可能生成的文件名与预期不同，需要移动/重命名
         if (result.pdfPath !== outputFile && fs.existsSync(result.pdfPath)) {
-          // 如果生成的 PDF 文件名不同，重命名
           if (fs.existsSync(outputFile)) {
             fs.unlinkSync(outputFile) // 删除旧文件
           }
-          fs.renameSync(result.pdfPath, outputFile)
+          try {
+            fs.renameSync(result.pdfPath, outputFile)
+          } catch (err: unknown) {
+            const code = err && typeof err === 'object' && 'code' in err ? (err as NodeJS.ErrnoException).code : undefined
+            if (code === 'EXDEV') {
+              // Windows 等系统上跨盘符（如 D: -> C:）时 rename 会报 EXDEV，改为复制后删除
+              fs.copyFileSync(result.pdfPath, outputFile)
+              fs.unlinkSync(result.pdfPath)
+            } else {
+              throw err
+            }
+          }
         }
         return {
           status: 'success',

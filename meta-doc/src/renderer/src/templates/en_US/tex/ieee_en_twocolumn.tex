@@ -54,6 +54,31 @@ Describe the overall approach and framework.
 \subsection{Implementation Details}
 Provide specific implementation details.
 
+\subsection{Format examples}
+Inline $E=mc^2$; numbered \eqref{eq:ieee2}. Fig.~\ref{fig:ieee2}, Table~\ref{tab:ieee2}. \cite{b1}. Footnote\footnote{Text.}
+\begin{equation}
+  \label{eq:ieee2}
+  \sum_{k=1}^n k = \frac{n(n+1)}{2}.
+\end{equation}
+\begin{figure}[htbp]
+  \centering
+  \rule{3cm}{1.8cm}
+  \caption{Example.}
+  \label{fig:ieee2}
+\end{figure}
+\begin{table}[htbp]
+  \centering
+  \caption{Example.}
+  \label{tab:ieee2}
+  \begin{tabular}{lc}
+    \hline
+    Item & Val \\
+    \hline
+    A    & 1.0 \\
+    \hline
+  \end{tabular}
+\end{table}
+
 \section{Experimental Results}
 This section should present and analyze the experimental results.
 

@@ -6,7 +6,9 @@
         <TooltipTrigger as-child>
           <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
         </TooltipTrigger>
-        <TooltipContent side="top">{{ t('setting.image.titleHint', '图片上传设置，重新打开文件后生效') }}</TooltipContent>
+        <TooltipContent side="top">{{
+          t('setting.image.titleHint', '图片上传设置，重新打开文件后生效')
+        }}</TooltipContent>
       </Tooltip>
     </h3>
     <Form class="settings-form">
@@ -54,7 +56,9 @@
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
             </TooltipTrigger>
-            <TooltipContent side="top">{{ t('setting.image.keepNetworkImageUrlHint') }}</TooltipContent>
+            <TooltipContent side="top">{{
+              t('setting.image.keepNetworkImageUrlHint')
+            }}</TooltipContent>
           </Tooltip>
         </label>
       </FormField>
@@ -64,14 +68,18 @@
         <label class="flex items-center gap-2 cursor-pointer">
           <Checkbox
             v-model="settings.imageUpload.autoEscapeImageUrl"
-            @update:model-value="saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)"
+            @update:model-value="
+              saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)
+            "
           />
           <span>{{ t('setting.image.autoEscapeImageUrl') }}</span>
           <Tooltip>
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
             </TooltipTrigger>
-            <TooltipContent side="top">{{ t('setting.image.autoEscapeImageUrlHint') }}</TooltipContent>
+            <TooltipContent side="top">{{
+              t('setting.image.autoEscapeImageUrlHint')
+            }}</TooltipContent>
           </Tooltip>
         </label>
       </FormField>
@@ -149,7 +157,10 @@
           </Select>
         </FormField>
 
-        <FormField :label="t('setting.image.customUploadApiFieldName')" name="customUploadApiFieldName">
+        <FormField
+          :label="t('setting.image.customUploadApiFieldName')"
+          name="customUploadApiFieldName"
+        >
           <Input
             v-model="settings.imageUpload.customUploadApiFieldName"
             :placeholder="t('setting.image.customUploadApiFieldNamePlaceholder')"
@@ -168,13 +179,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Form, FormField } from '@renderer/components/ui/form'
 import { notifyError, notifyWarning } from '@renderer/utils/notify'
 import { HelpCircle } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
- import { Input } from '@renderer/components/ui/input'
+import { Input } from '@renderer/components/ui/input'
 import { Checkbox } from '@renderer/components/ui/checkbox'
 import { settings, setSetting, getImagePath } from '../../utils/settings.js'
 import messageBridge from '../../bridge/message-bridge'
@@ -187,7 +198,34 @@ import {
 } from '@renderer/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
+// Demo mode support
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
+
+// Load demo data for image settings
+const loadDemoData = () => {
+  // Mock image settings data
+  settings.imageUpload = {
+    action: 'upload',
+    uploadService: 'local',
+    localImageDir: '/Users/demo/Documents/MetaDoc Images',
+    customUploadApiUrl: '',
+    customUploadApiMethod: 'POST',
+    customUploadApiFieldName: 'file',
+    keepNetworkImageUrl: false,
+    autoEscapeImageUrl: true
+  }
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+  }
+})
 
 const saveImageSetting = async (key: string, value: unknown) => {
   const imageUpload = { ...settings.imageUpload, [key]: value }

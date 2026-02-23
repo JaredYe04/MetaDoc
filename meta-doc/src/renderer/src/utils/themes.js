@@ -556,7 +556,6 @@ function applyThemeClasses(themeType) {
     document.documentElement.classList.add('dark')
     document.documentElement.classList.remove('light')
   }
-
 }
 
 // 辅助函数：HEX转HSL
@@ -568,7 +567,9 @@ function hexToHsl(hex) {
 
   const max = Math.max(rNorm, gNorm, bNorm)
   const min = Math.min(rNorm, gNorm, bNorm)
-  let h, s, l = (max + min) / 2
+  let h,
+    s,
+    l = (max + min) / 2
 
   if (max === min) {
     h = s = 0
@@ -576,9 +577,15 @@ function hexToHsl(hex) {
     const d = max - min
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
     switch (max) {
-      case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break
-      case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break
-      case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break
+      case rNorm:
+        h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6
+        break
+      case gNorm:
+        h = ((bNorm - rNorm) / d + 2) / 6
+        break
+      case bNorm:
+        h = ((rNorm - gNorm) / d + 4) / 6
+        break
     }
   }
 
@@ -663,7 +670,8 @@ export function applyShadcnTheme() {
 
     // 静音色
     '--muted': muted,
-    '--muted-foreground': getHsl('textColor2') || (isDarkMode ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'),
+    '--muted-foreground':
+      getHsl('textColor2') || (isDarkMode ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'),
 
     // 强调色
     '--accent': secondary,
@@ -680,7 +688,8 @@ export function applyShadcnTheme() {
 
     // 侧边栏
     '--sidebar-background': sidebarBg,
-    '--sidebar-foreground': getHsl('SideTextColor') || (isDarkMode ? '240 4.8% 95.9%' : '240 5.3% 26.1%'),
+    '--sidebar-foreground':
+      getHsl('SideTextColor') || (isDarkMode ? '240 4.8% 95.9%' : '240 5.3% 26.1%'),
     '--sidebar-primary': primary,
     '--sidebar-primary-foreground': isDarkMode ? '222.2 47.4% 11.2%' : '210 40% 98%',
     '--sidebar-accent': secondary,
@@ -820,7 +829,7 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
 
     applyElementPlusTheme()
     applyShadcnTheme()
-    
+
     // 应用字体设置
     await applyFontSettings(getSetting)
   } catch (error) {
@@ -839,23 +848,29 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
  */
 async function applyFontSettings(getSetting) {
   try {
-    const fontUi = await getSetting('fontUi') || 'OPPO Sans 4.0'
-    const fontEditorChinese = await getSetting('fontEditorChinese') || 'OPPO Sans 4.0'
-    const fontEditorWestern = await getSetting('fontEditorWestern') || 'Fira Code'
-    const fontPreviewChinese = await getSetting('fontPreviewChinese') || 'OPPO Sans 4.0'
-    const fontPreviewWestern = await getSetting('fontPreviewWestern') || 'New York'
+    const fontUi = (await getSetting('fontUi')) || 'OPPO Sans 4.0'
+    const fontEditorChinese = (await getSetting('fontEditorChinese')) || 'OPPO Sans 4.0'
+    const fontEditorWestern = (await getSetting('fontEditorWestern')) || 'Fira Code'
+    const fontPreviewChinese = (await getSetting('fontPreviewChinese')) || 'OPPO Sans 4.0'
+    const fontPreviewWestern = (await getSetting('fontPreviewWestern')) || 'New York'
 
     const root = document.documentElement
-    
+
     // UI字体
     root.style.setProperty('--font-family-ui', fontUi)
-    
+
     // 编辑器字体组合
-    root.style.setProperty('--font-family-editor', `${fontEditorWestern}, ${fontEditorChinese}, -apple-system, BlinkMacSystemFont, sans-serif`)
-    
+    root.style.setProperty(
+      '--font-family-editor',
+      `${fontEditorWestern}, ${fontEditorChinese}, -apple-system, BlinkMacSystemFont, sans-serif`
+    )
+
     // 渲染预览字体组合
-    root.style.setProperty('--font-family-preview', `${fontPreviewWestern}, ${fontPreviewChinese}, -apple-system, BlinkMacSystemFont, sans-serif`)
-    
+    root.style.setProperty(
+      '--font-family-preview',
+      `${fontPreviewWestern}, ${fontPreviewChinese}, -apple-system, BlinkMacSystemFont, sans-serif`
+    )
+
     // 更新基础字体
     root.style.setProperty(
       '--font-family-base',

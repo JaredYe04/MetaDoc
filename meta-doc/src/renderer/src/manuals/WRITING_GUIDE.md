@@ -426,6 +426,174 @@
 
 **注意**：如需使用其他组件，需要先修改组件代码支持 `mode="demo"`，然后在 `demo-registry-components.ts` 中注册。
 
+---
+
+### 为组件添加 Demo 模式支持
+
+#### 添加 Demo 模式的最佳实践
+
+为组件添加 `mode="demo"` 支持时，遵循以下范式：
+
+**1. 组件改造模式**
+
+在组件的 `<script setup>` 中添加：
+
+```typescript
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo mode: use local reactive settings; Normal mode: use global settings
+const demoSettings = reactive({
+  // ... mock settings data
+})
+const settings = isDemo.value ? demoSettings : globalSettings
+```
+
+**2. Mock 数据加载模式**
+
+在 `onMounted` 中添加 demo 数据加载：
+
+```typescript
+// Demo数据加载
+const loadDemoData = () => {
+  // 设置 mock 数据
+  data.value = [...mockData]
+  config.value = { ...mockConfig }
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return // 跳过真实 API 调用
+  }
+
+  // 正常的初始化逻辑...
+  await fetchRealData()
+})
+```
+
+**3. 副作用隔离原则**
+
+所有副作用（API 调用、事件监听、状态修改）必须包裹在 `!isDemo.value` 条件下：
+
+```typescript
+// ✅ 正确：在 demo 模式下跳过副作用
+const handleAction = () => {
+  if (isDemo.value) {
+    // Demo 模式下只更新本地状态
+    localState.value = newValue
+    return
+  }
+
+  // 真实模式下执行副作用
+  await apiCall()
+  eventBus.emit('real-event')
+}
+
+// ✅ 正确：监听器的条件注册
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
+  // 只在真实模式下注册监听器
+  eventBus.on('event', handler)
+  messageBridge.on('channel', listener)
+})
+
+onBeforeUnmount(() => {
+  if (isDemo.value) return
+
+  // 只在真实模式下清理监听器
+  eventBus.off('event', handler)
+  messageBridge.removeListener('channel', listener)
+})
+```
+
+**4. 全局状态隔离**
+
+对于使用全局状态（如 Pinia stores）的组件：
+
+```typescript
+// ✅ 正确：Demo 模式使用本地状态，不修改全局状态
+const localSettings = reactive({ ...mockSettings })
+
+const saveSetting = (key: string, value: unknown) => {
+  if (isDemo.value) {
+    // Demo 模式只更新本地状态
+    localSettings[key] = value
+    return
+  }
+
+  // 真实模式更新全局设置
+  setSetting(key, value)
+}
+```
+
+#### Setting 组件 Demo 模式示例
+
+Setting 系列组件的完整改造示例：
+
+```vue
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
+import { settings as globalSettings, setSetting } from '../../utils/settings.js'
+
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
+const { t } = useI18n()
+
+// Demo mode: use local reactive settings; Normal mode: use global settings
+const demoSettings = reactive({
+  setting1: 'value1',
+  setting2: true,
+  setting3: 42
+})
+const settings = isDemo.value ? demoSettings : globalSettings
+
+// Demo数据加载
+const loadDemoData = () => {
+  demoSettings.setting1 = 'mock-value1'
+  demoSettings.setting2 = false
+  demoSettings.setting3 = 100
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
+  // 真实的初始化逻辑...
+})
+</script>
+```
+
+#### 已完成的 Setting 组件
+
+以下 Setting 组件已完成 Demo 模式改造：
+
+- ✅ `SettingLlmSection` - LLM 配置
+- ✅ `SettingThemeSection` - 主题配置
+- ✅ `SettingKnowledgeBaseSection` - 知识库设置
+- ✅ `SettingBasicSection` - 基础设置
+- ✅ `SettingImageSection` - 图片上传设置
+- ✅ `SettingDebugSection` - 调试工具
+- ✅ `SettingAboutSection` - 关于信息
+- ✅ `SettingLoggerSection` - 日志配置
+
+---
+
 ### 示例（正确）
 
 ```markdown

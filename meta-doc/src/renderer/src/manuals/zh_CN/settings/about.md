@@ -4,6 +4,8 @@
 
 关于页面提供了MetaDoc的版本信息、更新设置、开源许可证和第三方资产信息。您可以通过此页面了解应用信息、检查更新、提交反馈等。
 
+<Demo component="SettingAboutSection" mode="demo" />
+
 ## 版本信息
 
 ### 查看版本

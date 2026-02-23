@@ -10,14 +10,20 @@
                 :checked="settings.enableKnowledgeBase"
                 @update:checked="handleKnowledgeBaseToggleChange"
               />
-              <span class="text-sm text-muted-foreground">{{ settings.enableKnowledgeBase ? t('setting.enabled') : t('setting.disabled') }}</span>
+              <span class="text-sm text-muted-foreground">{{
+                settings.enableKnowledgeBase ? t('setting.enabled') : t('setting.disabled')
+              }}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom">{{ t('setting.knowledgeBaseTooltip') }}</TooltipContent>
         </Tooltip>
       </FormField>
 
-      <FormField v-if="settings.enableKnowledgeBase" :label="t('setting.embeddingMode')" name="embeddingMode">
+      <FormField
+        v-if="settings.enableKnowledgeBase"
+        :label="t('setting.embeddingMode')"
+        name="embeddingMode"
+      >
         <Tooltip>
           <TooltipTrigger as-child>
             <Select
@@ -29,7 +35,9 @@
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="api">{{ t('setting.embeddingModeApi') }}</SelectItem>
-                <SelectItem value="local" disabled>{{ t('setting.embeddingModeLocal') }}</SelectItem>
+                <SelectItem value="local" disabled>{{
+                  t('setting.embeddingModeLocal')
+                }}</SelectItem>
               </SelectContent>
             </Select>
           </TooltipTrigger>
@@ -37,7 +45,11 @@
         </Tooltip>
       </FormField>
 
-      <FormField v-if="settings.enableKnowledgeBase" :label="t('setting.knowledgeBaseScoreThreshold')" name="knowledgeBaseScoreThreshold">
+      <FormField
+        v-if="settings.enableKnowledgeBase"
+        :label="t('setting.knowledgeBaseScoreThreshold')"
+        name="knowledgeBaseScoreThreshold"
+      >
         <Tooltip>
           <TooltipTrigger as-child>
             <div class="flex items-center gap-4" style="margin-bottom: 10px; width: 400px">
@@ -46,7 +58,12 @@
                 :min="0.01"
                 :max="0.99"
                 :step="0.01"
-                @update:model-value="(val) => { settings.knowledgeBaseScoreThreshold = val; handleKnowledgeBaseThresholdChange() }"
+                @update:model-value="
+                  (val) => {
+                    settings.knowledgeBaseScoreThreshold = val
+                    handleKnowledgeBaseThresholdChange()
+                  }
+                "
                 class="flex-1"
               />
               <NumberField
@@ -55,7 +72,12 @@
                 :max="0.99"
                 :step="0.01"
                 :precision="2"
-                @update:model-value="(val) => { settings.knowledgeBaseScoreThreshold = val; handleKnowledgeBaseThresholdChange() }"
+                @update:model-value="
+                  (val) => {
+                    settings.knowledgeBaseScoreThreshold = val
+                    handleKnowledgeBaseThresholdChange()
+                  }
+                "
                 class="w-28"
               >
                 <NumberFieldContent>
@@ -66,7 +88,9 @@
               </NumberField>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top">{{ t('setting.knowledgeBaseScoreThresholdTooltip') }}</TooltipContent>
+          <TooltipContent side="top">{{
+            t('setting.knowledgeBaseScoreThresholdTooltip')
+          }}</TooltipContent>
         </Tooltip>
       </FormField>
     </Form>
@@ -74,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting } from '../../utils/settings.js'
 import { Form, FormField } from '@renderer/components/ui/form'
@@ -99,6 +123,12 @@ import {
 } from '@renderer/components/ui/number-field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
+const props = defineProps<{
+  mode?: 'normal' | 'demo'
+}>()
+
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
 
 // 监听知识库开关事件（从其他组件同步状态）
@@ -117,14 +147,30 @@ const handleKnowledgeBaseToggleChange = (val: boolean) => {
   eventBus.emit('knowledge-base-toggle', { enabled: val })
 }
 
+// Demo 模式：加载 mock 数据
+const loadDemoData = () => {
+  settings.enableKnowledgeBase = true
+  settings.embeddingMode = 'cloud'
+  settings.knowledgeBaseScoreThreshold = 0.7
+  settings.maxResults = 5
+}
+
 onMounted(() => {
-  // 监听知识库开关事件，同步状态
-  eventBus.on('knowledge-base-toggle', handleKnowledgeBaseToggle)
+  if (isDemo.value) {
+    // Demo 模式：加载 mock 数据，跳过真实配置加载
+    loadDemoData()
+  } else {
+    // 监听知识库开关事件，同步状态
+    eventBus.on('knowledge-base-toggle', handleKnowledgeBaseToggle)
+  }
 })
 
 onBeforeUnmount(() => {
-  // 清理事件监听器
-  eventBus.off('knowledge-base-toggle', handleKnowledgeBaseToggle)
+  // Demo 模式下没有注册事件监听器，无需清理
+  if (!isDemo.value) {
+    // 清理事件监听器
+    eventBus.off('knowledge-base-toggle', handleKnowledgeBaseToggle)
+  }
 })
 
 const handleKnowledgeBaseThresholdChange = () => {

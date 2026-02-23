@@ -28,6 +28,13 @@ import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
 import DataAnalysisWindow from '../views/DataAnalysisWindow.vue'
 import FormulaRecognition from '../views/FomulaRecognition.vue'
 import SettingLlmSection from '../views/setting/SettingLlmSection.vue'
+import SettingThemeSection from '../views/setting/SettingThemeSection.vue'
+import SettingKnowledgeBaseSection from '../views/setting/SettingKnowledgeBaseSection.vue'
+import SettingBasicSection from '../views/setting/SettingBasicSection.vue'
+import SettingImageSection from '../views/setting/SettingImageSection.vue'
+import SettingDebugSection from '../views/setting/SettingDebugSection.vue'
+import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
+import SettingLoggerSection from '../views/setting/SettingLoggerSection.vue'
 import { registerDemoComponent } from './demo-registry'
 
 registerDemoComponent('LeftMenu', LeftMenu)
@@ -55,3 +62,14 @@ registerDemoComponent('AigcDetectionWindow', AigcDetectionWindow)
 registerDemoComponent('DataAnalysisWindow', DataAnalysisWindow)
 registerDemoComponent('FormulaRecognition', FormulaRecognition)
 registerDemoComponent('SettingLlmSection', SettingLlmSection)
+registerDemoComponent('SettingThemeSection', SettingThemeSection)
+registerDemoComponent('SettingKnowledgeBaseSection', SettingKnowledgeBaseSection)
+registerDemoComponent('SettingBasicSection', SettingBasicSection)
+registerDemoComponent('SettingImageSection', SettingImageSection)
+registerDemoComponent('SettingDebugSection', SettingDebugSection)
+registerDemoComponent('SettingAboutSection', SettingAboutSection)
+registerDemoComponent('SettingLoggerSection', SettingLoggerSection)
+
+// Dialog Demo Components
+import DialogDemoWrapper from '../components/manual/DialogDemoWrapper.vue'
+registerDemoComponent('DialogDemo', DialogDemoWrapper)

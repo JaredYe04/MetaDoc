@@ -1306,9 +1306,8 @@ const askSave = async (callBack: any) => {
   callBack()
 }
 const newDoc = () => {
-  askSave(() => {
-    emitMenu('new-doc')
-  })
+  // 在当前窗口新建标签页（与 Ctrl+T 行为一致）
+  workspace.openNewDocumentTab()
 }
 
 const openDoc = () => {

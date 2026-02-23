@@ -1,28 +1,40 @@
 <template>
-  <el-tooltip :content="!selectedAiTool ? $t('outline.editNode') : getAiToolTip(selectedAiTool)" placement="top">
-    <el-button
-      size="small"
-      type="text"
-      :class="['aero-btn', 'node-action-btn']"
-      @click.stop="onClick"
-      v-if="node.path !== 'dummy'"
-      :disabled="pendingAccept || generating"
-    >
-      <el-icon v-if="!selectedAiTool">
-        <More />
-      </el-icon>
-      <img v-else-if="selectedAiTool === 'generateChildren'" :src="themeState.currentTheme.BranchIcon" class="node-action-btn__icon" alt="" />
-      <img v-else-if="selectedAiTool === 'generateContent'" :src="themeState.currentTheme.WriteIcon" class="node-action-btn__icon" alt="" />
-      <img v-else-if="selectedAiTool === 'generateChildrenChildren'" :src="themeState.currentTheme.MultiBranchIcon" class="node-action-btn__icon" alt="" />
-      <img v-else-if="selectedAiTool === 'generateChildrenContent'" :src="themeState.currentTheme.MultiWriteIcon" class="node-action-btn__icon" alt="" />
-    </el-button>
-  </el-tooltip>
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <Button
+          size="sm"
+          variant="ghost"
+          :class="['aero-btn', 'node-action-btn']"
+          @click.stop="onClick"
+          v-if="node.path !== 'dummy'"
+          :disabled="pendingAccept || generating"
+        >
+          <MoreHorizontal v-if="!selectedAiTool" class="w-4 h-4" />
+          <img v-else-if="selectedAiTool === 'generateChildren'" :src="themeState.currentTheme.BranchIcon" class="node-action-btn__icon" alt="" />
+          <img v-else-if="selectedAiTool === 'generateContent'" :src="themeState.currentTheme.WriteIcon" class="node-action-btn__icon" alt="" />
+          <img v-else-if="selectedAiTool === 'generateChildrenChildren'" :src="themeState.currentTheme.MultiBranchIcon" class="node-action-btn__icon" alt="" />
+          <img v-else-if="selectedAiTool === 'generateChildrenContent'" :src="themeState.currentTheme.MultiWriteIcon" class="node-action-btn__icon" alt="" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <p>{{ !selectedAiTool ? $t('outline.editNode') : getAiToolTip(selectedAiTool) }}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
 </template>
 
 <script setup lang="ts">
 import { inject, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { More } from '@element-plus/icons-vue'
+import { MoreHorizontal } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 import { themeState } from '../../utils/themes'
 import type { DocumentOutlineNode } from '../../../../types'
 

@@ -220,7 +220,11 @@ async function injectDemoComponents(appContext: AppContext | null, container: HT
     const placeholder = el as HTMLElement
     render(null, placeholder)
     const wrapper = document.createElement('div')
-    wrapper.className = 'manual-demo-inline'
+    // 添加组件特定的 CSS 类名，用于在样式中针对性设置最小高度
+    const minHeightClass = DEMO_MIN_HEIGHT_MAP[componentName]
+      ? `demo-min-height-${componentName}`
+      : ''
+    wrapper.className = `manual-demo-inline ${minHeightClass}`.trim()
     placeholder.appendChild(wrapper)
     blockDemoEvents(wrapper)
     const vnode = createVNode(Component, props)
@@ -500,8 +504,8 @@ function processInternalLinks() {
   height: auto !important;
   /* 移除 padding，让内部容器居中显示 */
   padding: 0 !important;
-  /* 确保内部容器能完整显示 */
-  min-height: 600px;
+  /* 根据内容自适应高度，不设置固定最小高度 */
+  min-height: fit-content;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -524,7 +528,8 @@ function processInternalLinks() {
   /* 保持原始尺寸：width: 70vw, height: 90vh，在手册内改为固定尺寸 */
   width: 100% !important;
   height: auto !important;
-  min-height: 500px;
+  /* 根据内容自适应高度，不设置固定最小高度 */
+  min-height: fit-content;
 }
 
 /* ViewMenu: 保持原始宽度（120px/64px）和高度（100%），只改定位 */
@@ -533,7 +538,8 @@ function processInternalLinks() {
   /* 保持原始宽度和高度，不强制 100% */
   width: auto !important;
   height: auto !important;
-  min-height: 200px;
+  /* 根据内容自适应高度 */
+  min-height: fit-content;
 }
 
 /* ViewMenu: 修复活跃状态的样式，确保背景覆盖整个菜单项 */
@@ -590,7 +596,8 @@ function processInternalLinks() {
   /* 保持原始宽度（通常由组件内部样式控制），高度自适应 */
   width: auto !important;
   height: auto !important;
-  min-height: 300px;
+  /* 根据内容自适应高度 */
+  min-height: fit-content;
 }
 
 /* SearchReplaceMenu: 在手册中改为相对定位，防止被挤出容器 */
@@ -648,7 +655,8 @@ function processInternalLinks() {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
-  min-height: 200px !important;
+  /* 根据内容自适应高度，移除固定最小高度 */
+  min-height: fit-content !important;
   max-height: 400px !important;
   margin: 0 auto !important;
 }
@@ -659,6 +667,38 @@ function processInternalLinks() {
   width: 100% !important;
   max-width: 480px !important;
   margin: 0 auto !important;
+}
+
+/* ==================== Demo 组件特定最小高度配置 ====================
+ * 这些样式与 DEMO_MIN_HEIGHT_MAP 配置对应
+ * 用于确保手册中展示的 Demo 组件有足够空间显示内容
+ * 如需添加新的组件最小高度配置，请同时修改：
+ * 1. DEMO_MIN_HEIGHT_MAP 对象（在 <script setup> 中）
+ * 2. 对应的 CSS 样式（下方）
+ */
+
+/* ConsoleTerminal: 控制台终端需要最小高度以显示工具栏和日志内容 */
+.markdown-preview :deep(.demo-min-height-ConsoleTerminal) {
+  min-height: 300px !important;
+}
+.markdown-preview :deep(.demo-min-height-ConsoleTerminal .console-terminal) {
+  min-height: 300px !important;
+}
+
+/* ConsoleOutput: 控制台输出面板需要最小高度 */
+.markdown-preview :deep(.demo-min-height-ConsoleOutput) {
+  min-height: 250px !important;
+}
+.markdown-preview :deep(.demo-min-height-ConsoleOutput .console-output) {
+  min-height: 250px !important;
+}
+
+/* LoggerConsolePanel: 日志控制台面板需要最小高度 */
+.markdown-preview :deep(.demo-min-height-LoggerConsolePanel) {
+  min-height: 300px !important;
+}
+.markdown-preview :deep(.demo-min-height-LoggerConsolePanel .logger-console-panel) {
+  min-height: 300px !important;
 }
 
 .empty-content {

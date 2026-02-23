@@ -45,32 +45,36 @@
           <Form class="settings-form">
             <FormField :label="$t('setting.about.autoCheckUpdates')" name="autoCheckUpdates">
               <div class="flex items-center gap-2">
-                <Switch
-                  :checked="autoCheckUpdates"
-                  @update:checked="handleAutoCheckChange"
-                />
-                <span class="text-sm text-muted-foreground">{{ autoCheckUpdates ? $t('setting.enabled') : $t('setting.disabled') }}</span>
+                <Switch :checked="autoCheckUpdates" @update:checked="handleAutoCheckChange" />
+                <span class="text-sm text-muted-foreground">{{
+                  autoCheckUpdates ? $t('setting.enabled') : $t('setting.disabled')
+                }}</span>
               </div>
             </FormField>
 
             <FormField :label="$t('setting.about.updateChannel')" name="updateChannel">
-              <RadioGroup v-model="updateChannel" @update:modelValue="handleChannelChange" class="flex flex-row gap-4">
+              <RadioGroup
+                v-model="updateChannel"
+                @update:modelValue="handleChannelChange"
+                class="flex flex-row gap-4"
+              >
                 <div class="flex items-center gap-2">
                   <RadioGroupItem value="release" id="update-release" />
-                  <label for="update-release" class="text-sm cursor-pointer">{{ $t('setting.about.channelRelease') }}</label>
+                  <label for="update-release" class="text-sm cursor-pointer">{{
+                    $t('setting.about.channelRelease')
+                  }}</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <RadioGroupItem value="dev" id="update-dev" />
-                  <label for="update-dev" class="text-sm cursor-pointer">{{ $t('setting.about.channelDev') }}</label>
+                  <label for="update-dev" class="text-sm cursor-pointer">{{
+                    $t('setting.about.channelDev')
+                  }}</label>
                 </div>
               </RadioGroup>
             </FormField>
 
             <FormField name="checkUpdate">
-              <Button
-                @click="handleCheckUpdate"
-                :disabled="checking"
-              >
+              <Button @click="handleCheckUpdate" :disabled="checking">
                 {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
               </Button>
             </FormField>
@@ -78,31 +82,23 @@
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
-            <Alert
-              v-if="updateStatus.updateAvailable"
-              variant="default"
-              class="mb-4"
-            >
+            <Alert v-if="updateStatus.updateAvailable" variant="default" class="mb-4">
               <CheckCircle2 class="h-4 w-4" />
               <AlertTitle>{{ $t('setting.about.updateAvailable') }}</AlertTitle>
               <AlertDescription v-if="updateStatus.updateInfo">
-                {{ $t('setting.about.updateAvailableDesc', { version: updateStatus.updateInfo.version }) }}
+                {{
+                  $t('setting.about.updateAvailableDesc', {
+                    version: updateStatus.updateInfo.version
+                  })
+                }}
               </AlertDescription>
             </Alert>
-            <Alert
-              v-else-if="updateStatus.updateNotAvailable"
-              variant="default"
-              class="mb-4"
-            >
+            <Alert v-else-if="updateStatus.updateNotAvailable" variant="default" class="mb-4">
               <Info class="h-4 w-4" />
               <AlertTitle>{{ $t('setting.about.noUpdate') }}</AlertTitle>
               <AlertDescription>{{ $t('setting.about.noUpdateDesc') }}</AlertDescription>
             </Alert>
-            <Alert
-              v-else-if="updateStatus.error"
-              variant="destructive"
-              class="mb-4"
-            >
+            <Alert v-else-if="updateStatus.error" variant="destructive" class="mb-4">
               <XCircle class="h-4 w-4" />
               <AlertTitle>{{ $t('setting.about.checkUpdateError') }}</AlertTitle>
               <AlertDescription>{{ updateStatus.error }}</AlertDescription>
@@ -111,23 +107,20 @@
 
           <!-- 下载和安装按钮 -->
           <div v-if="updateStatus?.updateAvailable" class="update-actions">
-            <Button
-              v-if="!downloaded && !downloading"
-              @click="handleDownloadUpdate"
-            >
+            <Button v-if="!downloaded && !downloading" @click="handleDownloadUpdate">
               {{ $t('setting.about.downloadUpdate') }}
             </Button>
             <Button v-if="downloading" :disabled="true">
               {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
             </Button>
-            <Button v-if="downloaded" @click="handleInstallUpdate" class="bg-green-600 hover:bg-green-700 text-white">
+            <Button
+              v-if="downloaded"
+              @click="handleInstallUpdate"
+              class="bg-green-600 hover:bg-green-700 text-white"
+            >
               {{ $t('setting.about.installAndRestart') }}
             </Button>
-            <Alert
-              v-if="downloadError"
-              variant="destructive"
-              class="mt-4"
-            >
+            <Alert v-if="downloadError" variant="destructive" class="mt-4">
               <XCircle class="h-4 w-4" />
               <AlertTitle>{{ $t('setting.about.downloadError') }}</AlertTitle>
               <AlertDescription>{{ downloadError }}</AlertDescription>
@@ -148,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
@@ -167,6 +160,14 @@ import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
 import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
 import { Divider } from '@renderer/components/ui/separator'
+
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
 const workspace = useWorkspace()
 
@@ -356,7 +357,30 @@ const loadLicenseAndAssets = async () => {
   }
 }
 
+// Demo数据加载
+const loadDemoData = () => {
+  // 版本信息
+  version.value = '0.17.11'
+  releaseDate.value = '2025-02-20'
+  buildEnvironment.value = t('setting.about.buildEnvironmentRelease')
+
+  // 更新设置
+  autoCheckUpdates.value = true
+  updateChannel.value = 'release'
+
+  // 许可证和资产信息 (使用文本片段)
+  openSourceLicenses.value =
+    openSourceLicensesText.substring(0, 800) + '\n\n[... 许可证内容已截断 ...]'
+  thirdPartyAssets.value =
+    thirdPartyAssetsText.substring(0, 500) + '\n\n[... 第三方资产列表已截断 ...]'
+}
+
 onMounted(async () => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   await Promise.all([loadVersionInfo(), loadSettings(), loadLicenseAndAssets()])
 
   // 监听自动下载完成事件
@@ -503,8 +527,6 @@ onUnmounted(() => {
 .update-actions {
   margin-top: 24px;
 }
-
-
 
 .license-content,
 .assets-content {

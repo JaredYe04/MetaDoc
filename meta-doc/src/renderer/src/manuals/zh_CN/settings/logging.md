@@ -4,6 +4,8 @@
 
 日志配置允许您管理MetaDoc的日志记录功能。通过配置日志，您可以记录应用的运行状态，便于问题排查和性能分析。
 
+<Demo component="SettingLoggerSection" mode="demo" />
+
 ## 启用日志
 
 ### 开启日志功能
@@ -19,6 +21,7 @@
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
 启用日志后，系统会记录应用的运行信息，包括：
+
 - 操作记录
 - 错误信息
 - 警告信息
@@ -45,6 +48,7 @@ graph TB
 ```
 
 **注意事项**：
+
 - 日志会占用一定的磁盘空间
 - 建议在需要排查问题时启用
 - 生产环境可以关闭以减少资源占用
@@ -69,6 +73,7 @@ DEBUG < INFO < WARN < ERROR
 ```
 
 选择某个级别后，会记录该级别及更高级别的日志。例如：
+
 - 选择INFO：记录INFO、WARN、ERROR
 - 选择WARN：只记录WARN、ERROR
 - 选择ERROR：只记录ERROR
@@ -107,16 +112,19 @@ DEBUG < INFO < WARN < ERROR
 ### 过滤示例
 
 **示例1：只记录AI相关日志**
+
 ```
 过滤条件：ai-
 ```
 
 **示例2：只记录工作流日志**
+
 ```
 过滤条件：workflow
 ```
 
 **示例3：只记录特定工具的日志**
+
 ```
 过滤条件：[ai-graph][WorkflowTool]
 ```

@@ -225,6 +225,14 @@ import {
 } from '../../utils/themes.js'
 import { themeState } from '../../utils/themes.js'
 
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
 
 // 主题配置类型
@@ -742,8 +750,59 @@ const handleCodeThemeChange = () => {
   eventBus.emit('sync-editor-theme', {})
 }
 
+// Demo mock data
+const loadDemoData = () => {
+  // Mock OS theme info
+  osThemeInfo.value = { mode: 'light', accentColor: '#409EFF' }
+
+  // Mock custom themes
+  settings.themeConfigs = [
+    {
+      id: 'custom-demo-1',
+      name: 'My Blue Theme',
+      type: 'custom',
+      themeColor: '#409EFF',
+      isDefault: false
+    },
+    {
+      id: 'custom-demo-2',
+      name: 'My Purple Theme',
+      type: 'custom',
+      themeColor: '#9C27B0',
+      isDefault: false
+    }
+  ]
+
+  // Mock selected theme ID
+  selectedThemeId.value = 'preset-0'
+
+  // Mock preset theme colors
+  presetThemes.forEach((preset, index) => {
+    const presetId = `preset-${index}`
+    editingColorMap.value[presetId] = colorToHex(preset.color)
+  })
+
+  // Mock custom theme colors
+  settings.themeConfigs.forEach((theme: ThemeConfig) => {
+    if (theme.type === 'custom' && theme.themeColor) {
+      editingColorMap.value[theme.id] = colorToHex(theme.themeColor)
+    }
+  })
+
+  // Mock other settings
+  settings.contentTheme = 'auto'
+  settings.codeTheme = 'auto'
+  settings.lineNumber = true
+}
+
 // 初始化
 onMounted(async () => {
+  // Demo mode: skip all API calls and load mock data
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   await fetchOsThemeInfo()
 
   // 确保 themeConfigs 已初始化

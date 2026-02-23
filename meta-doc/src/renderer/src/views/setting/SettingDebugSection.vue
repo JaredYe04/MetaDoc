@@ -77,570 +77,750 @@
                   <Tabs v-model="eventBusActiveTab" class="debug-tabs">
                     <TabsList class="debug-tabs-list">
                       <TabsTrigger value="eventbus">{{ $t('setting.debug.eventBus') }}</TabsTrigger>
-                      <TabsTrigger value="broadcast">{{ $t('setting.debug.broadcast') }}</TabsTrigger>
+                      <TabsTrigger value="broadcast">{{
+                        $t('setting.debug.broadcast')
+                      }}</TabsTrigger>
                     </TabsList>
 
-                  <!-- EventBus 事件测试 -->
-                  <TabsContent value="eventbus" class="debug-tabs-content">
-                    <div class="test-panel" :style="testPanelStyle">
-                      <Form class="space-y-4">
-                        <FormField :label="$t('setting.debug.eventName')" name="eventName">
-                          <Input
-                            v-model="eventBusForm.eventName"
-                            :placeholder="$t('setting.debug.eventNamePlaceholder')"
-                          />
-                        </FormField>
-                        <FormField :label="$t('setting.debug.eventData')" name="eventData">
-                          <Textarea
-                            v-model="eventBusForm.eventData"
-                            :placeholder="$t('setting.debug.eventDataPlaceholder')"
-                            rows="6"
-                          />
-                        </FormField>
-                        <FormField name="actions">
-                          <Button variant="default" @click="sendEventBusEvent">
-                            {{ $t('setting.debug.sendEvent') }}
-                          </Button>
-                        </FormField>
-                      </Form>
-                    </div>
-                  </TabsContent>
-
-                  <!-- 广播事件测试 -->
-                  <TabsContent value="broadcast" class="debug-tabs-content">
-                    <div class="test-panel" :style="testPanelStyle">
-                      <Form class="space-y-4">
-                        <FormField :label="$t('setting.debug.targetWindow')" name="targetWindow">
-                          <Select v-model="broadcastForm.to">
-                            <SelectTrigger class="w-[200px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">{{ $t('setting.debug.targetAll') }}</SelectItem>
-                              <SelectItem
-                                v-for="windowType in availableWindowTypes"
-                                :key="windowType"
-                                :value="windowType"
-                              >
-                                {{ getWindowTypeLabel(windowType) }}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormField>
-                        <FormField :label="$t('setting.debug.eventName')" name="eventName">
-                          <Input
-                            v-model="broadcastForm.eventName"
-                            :placeholder="$t('setting.debug.eventNamePlaceholder')"
-                          />
-                        </FormField>
-                        <FormField :label="$t('setting.debug.eventData')" name="eventData">
-                          <Textarea
-                            v-model="broadcastForm.eventData"
-                            :placeholder="$t('setting.debug.eventDataPlaceholder')"
-                            rows="6"
-                          />
-                        </FormField>
-                        <FormField name="actions">
-                          <Button variant="default" @click="sendBroadcastEvent">
-                            {{ $t('setting.debug.sendBroadcast') }}
-                          </Button>
-                        </FormField>
-                      </Form>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-              <div v-else-if="activeTab === 'updatetest'" class="tab-content">
-                <div class="test-panel" :style="testPanelStyle">
-                  <Form class="space-y-4">
-                    <FormField name="currentVersion" label="当前版本">
-                      <Input
-                        v-model="updateTestForm.currentVersion"
-                        placeholder="例如: 0.13.4"
-                        class="w-[200px]"
-                      />
-                    </FormField>
-
-                    <FormField name="mockUpdateVersion" label="模拟更新版本">
-                      <Input
-                        v-model="updateTestForm.mockUpdateVersion"
-                        placeholder="例如: 0.14.0"
-                        class="w-[200px]"
-                      />
-                    </FormField>
-
-                    <FormField name="channel" label="更新渠道">
-                      <RadioGroup v-model="updateTestForm.channel" class="flex flex-row gap-4">
-                        <div class="flex items-center gap-2">
-                          <RadioGroupItem value="release" id="channel-release" />
-                          <label for="channel-release" class="text-sm cursor-pointer">正式版</label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <RadioGroupItem value="dev" id="channel-dev" />
-                          <label for="channel-dev" class="text-sm cursor-pointer">内测版</label>
-                        </div>
-                      </RadioGroup>
-                    </FormField>
-
-                    <FormField name="scenario" label="测试场景">
-                      <RadioGroup v-model="updateTestForm.scenario" class="flex flex-row gap-4 flex-wrap">
-                        <div class="flex items-center gap-2">
-                          <RadioGroupItem value="hasUpdate" id="scenario-has-update" />
-                          <label for="scenario-has-update" class="text-sm cursor-pointer">有更新可用</label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <RadioGroupItem value="noUpdate" id="scenario-no-update" />
-                          <label for="scenario-no-update" class="text-sm cursor-pointer">已是最新版本</label>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <RadioGroupItem value="error" id="scenario-error" />
-                          <label for="scenario-error" class="text-sm cursor-pointer">模拟网络错误</label>
-                        </div>
-                      </RadioGroup>
-                    </FormField>
-
-                    <FormField name="actions">
-                      <div class="flex gap-2">
-                        <Button
-                          variant="default"
-                          :disabled="updateTestChecking"
-                          @click="handleMockCheckUpdate"
-                        >
-                          <template v-if="updateTestChecking">
-                            <Loading class="mr-2 h-4 w-4 animate-spin" />
-                            检查中...
-                          </template>
-                          <template v-else>
-                            检查更新
-                          </template>
-                        </Button>
-                        <Button variant="outline" @click="handleMockReset"> 重置状态 </Button>
+                    <!-- EventBus 事件测试 -->
+                    <TabsContent value="eventbus" class="debug-tabs-content">
+                      <div class="test-panel" :style="testPanelStyle">
+                        <Form class="space-y-4">
+                          <FormField :label="$t('setting.debug.eventName')" name="eventName">
+                            <Input
+                              v-model="eventBusForm.eventName"
+                              :placeholder="$t('setting.debug.eventNamePlaceholder')"
+                            />
+                          </FormField>
+                          <FormField :label="$t('setting.debug.eventData')" name="eventData">
+                            <Textarea
+                              v-model="eventBusForm.eventData"
+                              :placeholder="$t('setting.debug.eventDataPlaceholder')"
+                              rows="6"
+                            />
+                          </FormField>
+                          <FormField name="actions">
+                            <Button variant="default" @click="sendEventBusEvent">
+                              {{ $t('setting.debug.sendEvent') }}
+                            </Button>
+                          </FormField>
+                        </Form>
                       </div>
-                    </FormField>
-                  </Form>
+                    </TabsContent>
 
-                  <!-- 更新状态显示 -->
-                  <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px">
-                    <Divider :style="{ marginTop: 0 }">更新状态</Divider>
-                    <Alert
-                      v-if="updateTestStatus.updateAvailable"
-                      variant="default"
-                      class="mb-4"
-                    >
-                      <CheckCircle2 class="h-4 w-4" />
-                      <AlertTitle>发现新版本: {{ updateTestStatus.updateInfo?.version || '' }}</AlertTitle>
-                      <AlertDescription v-if="updateTestStatus.updateInfo?.releaseNotes">
-                        {{ updateTestStatus.updateInfo.releaseNotes }}
-                      </AlertDescription>
-                    </Alert>
-                    <Alert
-                      v-else-if="updateTestStatus.updateNotAvailable"
-                      variant="default"
-                      class="mb-4"
-                    >
-                      <Info class="h-4 w-4" />
-                      <AlertTitle>已是最新版本</AlertTitle>
-                      <AlertDescription v-if="updateTestStatus.updateInfo?.version">
-                        当前版本: {{ updateTestStatus.updateInfo.version }}
-                      </AlertDescription>
-                    </Alert>
-                    <Alert
-                      v-else-if="updateTestStatus.error"
-                      variant="destructive"
-                      class="mb-4"
-                    >
-                      <XCircle class="h-4 w-4" />
-                      <AlertTitle>检查更新失败</AlertTitle>
-                      <AlertDescription>{{ updateTestStatus.error }}</AlertDescription>
-                    </Alert>
+                    <!-- 广播事件测试 -->
+                    <TabsContent value="broadcast" class="debug-tabs-content">
+                      <div class="test-panel" :style="testPanelStyle">
+                        <Form class="space-y-4">
+                          <FormField :label="$t('setting.debug.targetWindow')" name="targetWindow">
+                            <Select v-model="broadcastForm.to">
+                              <SelectTrigger class="w-[200px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">{{
+                                  $t('setting.debug.targetAll')
+                                }}</SelectItem>
+                                <SelectItem
+                                  v-for="windowType in availableWindowTypes"
+                                  :key="windowType"
+                                  :value="windowType"
+                                >
+                                  {{ getWindowTypeLabel(windowType) }}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormField>
+                          <FormField :label="$t('setting.debug.eventName')" name="eventName">
+                            <Input
+                              v-model="broadcastForm.eventName"
+                              :placeholder="$t('setting.debug.eventNamePlaceholder')"
+                            />
+                          </FormField>
+                          <FormField :label="$t('setting.debug.eventData')" name="eventData">
+                            <Textarea
+                              v-model="broadcastForm.eventData"
+                              :placeholder="$t('setting.debug.eventDataPlaceholder')"
+                              rows="6"
+                            />
+                          </FormField>
+                          <FormField name="actions">
+                            <Button variant="default" @click="sendBroadcastEvent">
+                              {{ $t('setting.debug.sendBroadcast') }}
+                            </Button>
+                          </FormField>
+                        </Form>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+                <div v-else-if="activeTab === 'updatetest'" class="tab-content">
+                  <div class="test-panel" :style="testPanelStyle">
+                    <Form class="space-y-4">
+                      <FormField name="currentVersion" label="当前版本">
+                        <Input
+                          v-model="updateTestForm.currentVersion"
+                          placeholder="例如: 0.13.4"
+                          class="w-[200px]"
+                        />
+                      </FormField>
 
-                    <!-- 下载和安装按钮 -->
-                    <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
-                      <Button
-                        v-if="!updateTestDownloaded && !updateTestDownloading"
-                        variant="default"
-                        @click="handleMockDownloadUpdate"
-                      >
-                        下载更新
-                      </Button>
-                      <Button
-                        v-if="updateTestDownloading"
-                        variant="default"
-                        disabled
-                      >
-                        <Loading class="mr-2 h-4 w-4 animate-spin" />
-                        正在下载 ({{ updateTestDownloadProgress }}%)
-                      </Button>
-                      <Button
-                        v-if="updateTestDownloaded"
-                        variant="outline"
-                        class="bg-green-600 hover:bg-green-700 text-white"
-                        @click="handleMockInstallUpdate"
-                      >
-                        安装并重启
-                      </Button>
-                      <Button v-if="updateTestDownloading" variant="outline" @click="handleMockCancelDownload">
-                        取消下载
-                      </Button>
-                      <Alert
-                        v-if="updateTestDownloadError"
-                        variant="destructive"
-                        class="mt-4"
-                      >
-                        <XCircle class="h-4 w-4" />
-                        <AlertTitle>{{ updateTestDownloadError }}</AlertTitle>
-                      </Alert>
-                    </div>
-                  </div>
+                      <FormField name="mockUpdateVersion" label="模拟更新版本">
+                        <Input
+                          v-model="updateTestForm.mockUpdateVersion"
+                          placeholder="例如: 0.14.0"
+                          class="w-[200px]"
+                        />
+                      </FormField>
 
-                  <!-- 测试历史 -->
-                  <div
-                    v-if="updateTestHistory.length > 0"
-                    class="update-test-history"
-                    style="margin-top: 20px"
-                  >
-                    <Divider>测试历史</Divider>
-                    <ScrollArea class="h-[200px]">
-                      <div
-                        v-for="(entry, index) in updateTestHistory"
-                        :key="index"
-                        class="test-history-item"
-                        :style="testHistoryItemStyle"
-                      >
-                        <div class="test-history-header">
-                          <span class="test-name">{{ entry.action }}</span>
-                          <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
-                        </div>
-                        <div
-                          v-if="entry.result"
-                          class="test-result-data"
-                          :style="{ color: themeState.currentTheme.textColor }"
+                      <FormField name="channel" label="更新渠道">
+                        <RadioGroup v-model="updateTestForm.channel" class="flex flex-row gap-4">
+                          <div class="flex items-center gap-2">
+                            <RadioGroupItem value="release" id="channel-release" />
+                            <label for="channel-release" class="text-sm cursor-pointer"
+                              >正式版</label
+                            >
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <RadioGroupItem value="dev" id="channel-dev" />
+                            <label for="channel-dev" class="text-sm cursor-pointer">内测版</label>
+                          </div>
+                        </RadioGroup>
+                      </FormField>
+
+                      <FormField name="scenario" label="测试场景">
+                        <RadioGroup
+                          v-model="updateTestForm.scenario"
+                          class="flex flex-row gap-4 flex-wrap"
                         >
-                          <pre :style="codeBlockStyle">{{
-                            JSON.stringify(entry.result, null, 2)
-                          }}</pre>
-                        </div>
-                        <div
-                          v-if="entry.error"
-                          class="test-error-message"
-                          :style="{ color: themeState.currentTheme.textColor }"
-                        >
-                          <strong>错误:</strong>
-                          <pre
-                            :style="{
-                              ...codeBlockStyle,
-                              backgroundColor:
-                                themeState.currentTheme.type === 'dark'
-                                  ? 'rgba(245, 108, 108, 0.15)'
-                                  : '#fef0f0',
-                              color: '#f56c6c'
-                            }"
-                            >{{ entry.error }}</pre
+                          <div class="flex items-center gap-2">
+                            <RadioGroupItem value="hasUpdate" id="scenario-has-update" />
+                            <label for="scenario-has-update" class="text-sm cursor-pointer"
+                              >有更新可用</label
+                            >
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <RadioGroupItem value="noUpdate" id="scenario-no-update" />
+                            <label for="scenario-no-update" class="text-sm cursor-pointer"
+                              >已是最新版本</label
+                            >
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <RadioGroupItem value="error" id="scenario-error" />
+                            <label for="scenario-error" class="text-sm cursor-pointer"
+                              >模拟网络错误</label
+                            >
+                          </div>
+                        </RadioGroup>
+                      </FormField>
+
+                      <FormField name="actions">
+                        <div class="flex gap-2">
+                          <Button
+                            variant="default"
+                            :disabled="updateTestChecking"
+                            @click="handleMockCheckUpdate"
                           >
+                            <template v-if="updateTestChecking">
+                              <Loading class="mr-2 h-4 w-4 animate-spin" />
+                              检查中...
+                            </template>
+                            <template v-else> 检查更新 </template>
+                          </Button>
+                          <Button variant="outline" @click="handleMockReset"> 重置状态 </Button>
                         </div>
+                      </FormField>
+                    </Form>
+
+                    <!-- 更新状态显示 -->
+                    <div
+                      v-if="updateTestStatus"
+                      class="update-test-status"
+                      style="margin-top: 20px"
+                    >
+                      <Divider :style="{ marginTop: 0 }">更新状态</Divider>
+                      <Alert v-if="updateTestStatus.updateAvailable" variant="default" class="mb-4">
+                        <CheckCircle2 class="h-4 w-4" />
+                        <AlertTitle
+                          >发现新版本: {{ updateTestStatus.updateInfo?.version || '' }}</AlertTitle
+                        >
+                        <AlertDescription v-if="updateTestStatus.updateInfo?.releaseNotes">
+                          {{ updateTestStatus.updateInfo.releaseNotes }}
+                        </AlertDescription>
+                      </Alert>
+                      <Alert
+                        v-else-if="updateTestStatus.updateNotAvailable"
+                        variant="default"
+                        class="mb-4"
+                      >
+                        <Info class="h-4 w-4" />
+                        <AlertTitle>已是最新版本</AlertTitle>
+                        <AlertDescription v-if="updateTestStatus.updateInfo?.version">
+                          当前版本: {{ updateTestStatus.updateInfo.version }}
+                        </AlertDescription>
+                      </Alert>
+                      <Alert v-else-if="updateTestStatus.error" variant="destructive" class="mb-4">
+                        <XCircle class="h-4 w-4" />
+                        <AlertTitle>检查更新失败</AlertTitle>
+                        <AlertDescription>{{ updateTestStatus.error }}</AlertDescription>
+                      </Alert>
+
+                      <!-- 下载和安装按钮 -->
+                      <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
+                        <Button
+                          v-if="!updateTestDownloaded && !updateTestDownloading"
+                          variant="default"
+                          @click="handleMockDownloadUpdate"
+                        >
+                          下载更新
+                        </Button>
+                        <Button v-if="updateTestDownloading" variant="default" disabled>
+                          <Loading class="mr-2 h-4 w-4 animate-spin" />
+                          正在下载 ({{ updateTestDownloadProgress }}%)
+                        </Button>
+                        <Button
+                          v-if="updateTestDownloaded"
+                          variant="outline"
+                          class="bg-green-600 hover:bg-green-700 text-white"
+                          @click="handleMockInstallUpdate"
+                        >
+                          安装并重启
+                        </Button>
+                        <Button
+                          v-if="updateTestDownloading"
+                          variant="outline"
+                          @click="handleMockCancelDownload"
+                        >
+                          取消下载
+                        </Button>
+                        <Alert v-if="updateTestDownloadError" variant="destructive" class="mt-4">
+                          <XCircle class="h-4 w-4" />
+                          <AlertTitle>{{ updateTestDownloadError }}</AlertTitle>
+                        </Alert>
                       </div>
-                    </ScrollArea>
+                    </div>
+
+                    <!-- 测试历史 -->
+                    <div
+                      v-if="updateTestHistory.length > 0"
+                      class="update-test-history"
+                      style="margin-top: 20px"
+                    >
+                      <Divider>测试历史</Divider>
+                      <ScrollArea class="h-[200px]">
+                        <div
+                          v-for="(entry, index) in updateTestHistory"
+                          :key="index"
+                          class="test-history-item"
+                          :style="testHistoryItemStyle"
+                        >
+                          <div class="test-history-header">
+                            <span class="test-name">{{ entry.action }}</span>
+                            <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                          </div>
+                          <div
+                            v-if="entry.result"
+                            class="test-result-data"
+                            :style="{ color: themeState.currentTheme.textColor }"
+                          >
+                            <pre :style="codeBlockStyle">{{
+                              JSON.stringify(entry.result, null, 2)
+                            }}</pre>
+                          </div>
+                          <div
+                            v-if="entry.error"
+                            class="test-error-message"
+                            :style="{ color: themeState.currentTheme.textColor }"
+                          >
+                            <strong>错误:</strong>
+                            <pre
+                              :style="{
+                                ...codeBlockStyle,
+                                backgroundColor:
+                                  themeState.currentTheme.type === 'dark'
+                                    ? 'rgba(245, 108, 108, 0.15)'
+                                    : '#fef0f0',
+                                color: '#f56c6c'
+                              }"
+                              >{{ entry.error }}</pre
+                            >
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div v-else-if="activeTab === 'agenttool'" class="tab-content">
-                <div class="test-panel" :style="testPanelStyle">
-                  <Form class="space-y-4">
-                    <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
-                    <FormField name="testCase" label="测试用例">
-                      <div style="display: flex; gap: 8px; flex-direction: column">
-                        <div style="display: flex; gap: 8px">
-                          <Input
-                            v-model="testCaseIdInput"
-                            placeholder="输入测试用例ID（如：color-processing::mix-001）"
-                            class="flex-1"
-                            @keyup.enter="loadTestCaseById"
-                          />
-                          <Button variant="outline" size="sm" @click="loadTestCaseById">
-                            <Search class="mr-1 h-4 w-4" />
-                            加载
-                          </Button>
+                <div v-else-if="activeTab === 'agenttool'" class="tab-content">
+                  <div class="test-panel" :style="testPanelStyle">
+                    <Form class="space-y-4">
+                      <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
+                      <FormField name="testCase" label="测试用例">
+                        <div style="display: flex; gap: 8px; flex-direction: column">
+                          <div style="display: flex; gap: 8px">
+                            <Input
+                              v-model="testCaseIdInput"
+                              placeholder="输入测试用例ID（如：color-processing::mix-001）"
+                              class="flex-1"
+                              @keyup.enter="loadTestCaseById"
+                            />
+                            <Button variant="outline" size="sm" @click="loadTestCaseById">
+                              <Search class="mr-1 h-4 w-4" />
+                              加载
+                            </Button>
+                          </div>
+                          <Select v-model="selectedTestCase" @update:model-value="loadTestCase">
+                            <SelectTrigger class="w-[240px]">
+                              <SelectValue placeholder="从test-cases.json选择测试用例" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup
+                                v-for="(testCases, toolId) in availableTestCases"
+                                :key="toolId"
+                              >
+                                <SelectLabel>
+                                  {{
+                                    getToolDisplayName(
+                                      agentToolManager.getTool(toolId)?.config || { id: toolId }
+                                    )
+                                  }}
+                                </SelectLabel>
+                                <SelectItem
+                                  v-for="testCase in testCases.testCases"
+                                  :key="`${toolId}-${testCase.name}`"
+                                  :value="`${toolId}::${testCase.name}`"
+                                >
+                                  <div class="flex items-center justify-between w-full">
+                                    <span>{{ testCase.name }}</span>
+                                    <span
+                                      v-if="testCase.id"
+                                      class="text-xs text-muted-foreground ml-2"
+                                    >
+                                      (ID: {{ testCase.id }})
+                                    </span>
+                                    <span v-else class="text-xs text-muted-foreground ml-2">
+                                      ({{ toolId }})
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
                         </div>
+                      </FormField>
+
+                      <FormField name="toolId" label="选择Tool">
                         <Select
-                          v-model="selectedTestCase"
-                          @update:model-value="loadTestCase"
+                          v-model="toolTestForm.toolId"
+                          @update:model-value="handleToolChange"
                         >
                           <SelectTrigger class="w-[240px]">
-                            <SelectValue placeholder="从test-cases.json选择测试用例" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup
-                              v-for="(testCases, toolId) in availableTestCases"
-                              :key="toolId"
-                            >
-                              <SelectLabel>
-                                {{ getToolDisplayName(agentToolManager.getTool(toolId)?.config || { id: toolId }) }}
-                              </SelectLabel>
-                              <SelectItem
-                                v-for="testCase in testCases.testCases"
-                                :key="`${toolId}-${testCase.name}`"
-                                :value="`${toolId}::${testCase.name}`"
-                              >
-                                <div class="flex items-center justify-between w-full">
-                                  <span>{{ testCase.name }}</span>
-                                  <span
-                                    v-if="testCase.id"
-                                    class="text-xs text-muted-foreground ml-2"
-                                  >
-                                    (ID: {{ testCase.id }})
-                                  </span>
-                                  <span
-                                    v-else
-                                    class="text-xs text-muted-foreground ml-2"
-                                  >
-                                    ({{ toolId }})
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </FormField>
-
-                    <FormField name="toolId" label="选择Tool">
-                      <Select
-                        v-model="toolTestForm.toolId"
-                        @update:model-value="handleToolChange"
-                      >
-                        <SelectTrigger class="w-[240px]">
-                          <SelectValue placeholder="选择要测试的Tool" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem
-                            v-for="tool in availableTools"
-                            :key="tool.config.id"
-                            :value="tool?.config?.id || ''"
-                          >
-                            {{ getToolDisplayName(tool?.config || { id: tool?.config?.id || '' }) }}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormField>
-
-                    <!-- 保存的配置列表 -->
-                    <FormField name="savedConfig" label="保存的配置">
-                      <div style="display: flex; gap: 8px; margin-bottom: 8px">
-                        <Select v-model="selectedConfigId" @update:model-value="loadSavedConfig">
-                          <SelectTrigger class="w-[200px]">
-                            <SelectValue placeholder="选择已保存的配置" />
+                            <SelectValue placeholder="选择要测试的Tool" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem
-                              v-for="config in savedConfigs"
-                              :key="config.id"
-                              :value="config.id"
+                              v-for="tool in availableTools"
+                              :key="tool.config.id"
+                              :value="tool?.config?.id || ''"
                             >
-                              {{ config.name }}
+                              {{
+                                getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })
+                              }}
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          @click="handleSaveConfigClick"
-                        >
-                          <Plus class="mr-1 h-4 w-4" />
-                          新建配置
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          :disabled="!selectedConfigId"
-                          @click="handleEditConfigClick"
-                        >
-                          <Edit class="mr-1 h-4 w-4" />
-                          编辑
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          :disabled="!selectedConfigId"
-                          @click="deleteSavedConfig"
-                        >
-                          <Delete class="mr-1 h-4 w-4" />
-                          删除
-                        </Button>
-                      </div>
-                    </FormField>
+                      </FormField>
 
-                    <!-- 上下文Tab选择 -->
-                    <FormField name="contextTabId" label="上下文Tab">
-                      <Select v-model="toolTestForm.contextTabId">
-                        <SelectTrigger class="w-[240px]">
-                          <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
-                          <SelectItem
-                            v-for="tab in documentTabs"
-                            :key="tab.id"
-                            :value="tab.id"
+                      <!-- 保存的配置列表 -->
+                      <FormField name="savedConfig" label="保存的配置">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px">
+                          <Select v-model="selectedConfigId" @update:model-value="loadSavedConfig">
+                            <SelectTrigger class="w-[200px]">
+                              <SelectValue placeholder="选择已保存的配置" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                v-for="config in savedConfigs"
+                                :key="config.id"
+                                :value="config.id"
+                              >
+                                {{ config.name }}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="sm" @click="handleSaveConfigClick">
+                            <Plus class="mr-1 h-4 w-4" />
+                            新建配置
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            :disabled="!selectedConfigId"
+                            @click="handleEditConfigClick"
                           >
-                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div
-                        style="
-                          margin-top: 4px;
-                          font-size: 12px;
-                          color: var(--el-text-color-secondary);
-                        "
-                      >
-                        <el-icon><InfoFilled /></el-icon>
-                        <span
-                          >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
+                            <Edit class="mr-1 h-4 w-4" />
+                            编辑
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            :disabled="!selectedConfigId"
+                            @click="deleteSavedConfig"
+                          >
+                            <Delete class="mr-1 h-4 w-4" />
+                            删除
+                          </Button>
+                        </div>
+                      </FormField>
+
+                      <!-- 上下文Tab选择 -->
+                      <FormField name="contextTabId" label="上下文Tab">
+                        <Select v-model="toolTestForm.contextTabId">
+                          <SelectTrigger class="w-[240px]">
+                            <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
+                            <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
+                              {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div
+                          style="
+                            margin-top: 4px;
+                            font-size: 12px;
+                            color: var(--el-text-color-secondary);
+                          "
                         >
-                      </div>
-                    </FormField>
+                          <el-icon><InfoFilled /></el-icon>
+                          <span
+                            >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
+                          >
+                        </div>
+                      </FormField>
 
-                    <!-- 参数编辑区域 -->
-                    <Divider>参数配置</Divider>
-                    <FormField name="toolInstruction" label="工具说明">
-                      <Textarea
-                        :model-value="currentToolInstruction"
-                        readonly
-                        placeholder="请先选择一个Tool查看说明"
-                        rows="6"
-                        class="font-mono text-xs"
-                      />
-                      <div
-                        style="
-                          margin-top: 4px;
-                          font-size: 12px;
-                          color: var(--el-text-color-secondary);
-                        "
-                      >
-                        <el-icon><InfoFilled /></el-icon>
-                        <span>这是工具的详细说明，包含参数格式、使用场景等信息</span>
-                      </div>
-                    </FormField>
-                    <FormField name="paramsJson" label="参数JSON">
-                      <Textarea
-                        v-model="toolTestForm.paramsJson"
-                        rows="8"
-                        placeholder='请输入JSON格式的参数，例如: {"prompt": "生成一个流程图", "chartType": "mermaid"}'
-                      />
-                    </FormField>
-
-                    <FormField name="actions">
-                      <div class="flex gap-2">
-                        <Button
-                          variant="default"
-                          @click="executeToolTest"
-                          :disabled="toolTestExecuting"
+                      <!-- 参数编辑区域 -->
+                      <Divider>参数配置</Divider>
+                      <FormField name="toolInstruction" label="工具说明">
+                        <Textarea
+                          :model-value="currentToolInstruction"
+                          readonly
+                          placeholder="请先选择一个Tool查看说明"
+                          rows="6"
+                          class="font-mono text-xs"
+                        />
+                        <div
+                          style="
+                            margin-top: 4px;
+                            font-size: 12px;
+                            color: var(--el-text-color-secondary);
+                          "
                         >
-                          <template v-if="toolTestExecuting">
-                            <Loading class="mr-2 h-4 w-4 animate-spin" />
-                            执行中...
-                          </template>
-                          <template v-else>
-                            执行Tool
-                          </template>
-                        </Button>
-                        <Button variant="outline" @click="clearToolTestHistory"> 清空历史 </Button>
-                      </div>
-                    </FormField>
-                  </Form>
+                          <el-icon><InfoFilled /></el-icon>
+                          <span>这是工具的详细说明，包含参数格式、使用场景等信息</span>
+                        </div>
+                      </FormField>
+                      <FormField name="paramsJson" label="参数JSON">
+                        <Textarea
+                          v-model="toolTestForm.paramsJson"
+                          rows="8"
+                          placeholder='请输入JSON格式的参数，例如: {"prompt": "生成一个流程图", "chartType": "mermaid"}'
+                        />
+                      </FormField>
 
-                  <!-- 测试结果 -->
-                  <div
-                    class="test-result"
-                    :style="{
-                      ...testResultStyle,
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      overflow: 'hidden',
-                      marginTop: '20px'
-                    }"
-                  >
-                    <Divider :style="{ marginTop: 0 }">执行结果</Divider>
-                    <ScrollArea class="flex-1">
-                      <div
-                        v-for="(entry, index) in toolTestHistory"
-                        :key="index"
-                        class="test-history-item"
-                        :class="{ 'test-error': entry.error }"
-                        :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
-                      >
+                      <FormField name="actions">
+                        <div class="flex gap-2">
+                          <Button
+                            variant="default"
+                            @click="executeToolTest"
+                            :disabled="toolTestExecuting"
+                          >
+                            <template v-if="toolTestExecuting">
+                              <Loading class="mr-2 h-4 w-4 animate-spin" />
+                              执行中...
+                            </template>
+                            <template v-else> 执行Tool </template>
+                          </Button>
+                          <Button variant="outline" @click="clearToolTestHistory">
+                            清空历史
+                          </Button>
+                        </div>
+                      </FormField>
+                    </Form>
+
+                    <!-- 测试结果 -->
+                    <div
+                      class="test-result"
+                      :style="{
+                        ...testResultStyle,
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        marginTop: '20px'
+                      }"
+                    >
+                      <Divider :style="{ marginTop: 0 }">执行结果</Divider>
+                      <ScrollArea class="flex-1">
+                        <div
+                          v-for="(entry, index) in toolTestHistory"
+                          :key="index"
+                          class="test-history-item"
+                          :class="{ 'test-error': entry.error }"
+                          :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
+                        >
+                          <div class="test-history-header">
+                            <span class="test-name">{{ entry.toolName }}</span>
+                            <div class="test-header-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                @click="exportEntrySnapshot(entry)"
+                                :title="$t('agent.tool.exportSnapshot')"
+                              >
+                                <Download class="mr-1 h-4 w-4" />
+                                {{ $t('agent.tool.exportSnapshot') }}
+                              </Button>
+                              <Badge v-if="entry.status === 'running'" variant="warning">
+                                执行中
+                              </Badge>
+                              <Badge v-else-if="entry.status === 'succeeded'" variant="default">
+                                成功
+                              </Badge>
+                              <Badge v-else-if="entry.status === 'failed'" variant="destructive">
+                                失败
+                              </Badge>
+                              <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                            </div>
+                          </div>
+
+                          <!-- 进度条 -->
+                          <div
+                            v-if="entry.progress && entry.progress.percentage > 0"
+                            class="test-progress"
+                          >
+                            <Progress
+                              :percentage="entry.progress.percentage"
+                              :status="entry.status === 'failed' ? 'exception' : undefined"
+                              :strokeWidth="6"
+                            >
+                              <template #default="{ percentage }">
+                                <span class="progress-text">{{ percentage }}%</span>
+                                <span v-if="entry.progress?.message" class="progress-message">
+                                  {{ entry.progress.message }}
+                                </span>
+                              </template>
+                            </Progress>
+                          </div>
+
+                          <div
+                            v-if="entry.params"
+                            class="test-params"
+                            :style="{ color: themeState.currentTheme.textColor }"
+                          >
+                            <strong>参数:</strong>
+                            <pre :style="codeBlockStyle">{{
+                              typeof entry.params === 'string'
+                                ? entry.params
+                                : JSON.stringify(entry.params, null, 2)
+                            }}</pre>
+                          </div>
+                          <div
+                            v-if="entry.error"
+                            class="test-error-message"
+                            :style="{ color: themeState.currentTheme.textColor }"
+                          >
+                            <strong>错误:</strong>
+                            <pre
+                              :style="{
+                                ...codeBlockStyle,
+                                backgroundColor:
+                                  themeState.currentTheme.type === 'dark'
+                                    ? 'rgba(245, 108, 108, 0.15)'
+                                    : '#fef0f0',
+                                color: '#f56c6c'
+                              }"
+                              >{{ entry.error }}</pre
+                            >
+                          </div>
+
+                          <!-- 如果有显示组件，展示渲染卡片 -->
+                          <div
+                            v-if="
+                              entry.displayComponent && entry.outputs && entry.outputs.length > 0
+                            "
+                            class="test-display-component"
+                          >
+                            <Divider>渲染结果</Divider>
+                            <div class="space-y-2">
+                              <Collapsible
+                                v-for="(output, idx) in entry.outputs"
+                                :key="output.id"
+                                v-model:open="output._isOpen"
+                              >
+                                <CollapsibleTrigger class="bg-muted/50">
+                                  <div style="display: flex; align-items: center; gap: 8px">
+                                    <span>{{ output.label }}</span>
+                                    <Badge variant="secondary">{{ output.format }}</Badge>
+                                  </div>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div class="output-body pt-2">
+                                    <!-- 如果有渲染组件，使用组件渲染 -->
+                                    <component
+                                      v-if="
+                                        getDisplayComponent(
+                                          output.renderer || entry.displayComponent
+                                        )
+                                      "
+                                      :is="
+                                        getDisplayComponent(
+                                          output.renderer || entry.displayComponent
+                                        )
+                                      "
+                                      :data="output.data"
+                                      :status="entry.error ? 'failed' : entry.status || 'succeeded'"
+                                      :progress="entry.progress"
+                                      :error="entry.error"
+                                      :tool-config="entry.toolConfig"
+                                      :invocation-id="entry.invocationId"
+                                    />
+                                    <!-- 否则使用纯文本渲染 -->
+                                    <pre v-else class="raw-text" :style="codeBlockStyle">{{
+                                      formatResult(output.data)
+                                    }}</pre>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            </div>
+                          </div>
+
+                          <!-- 原始结果数据 -->
+                          <div
+                            v-if="entry.result !== undefined"
+                            class="test-result-data"
+                            :style="{ color: themeState.currentTheme.textColor }"
+                          >
+                            <Divider>原始结果</Divider>
+                            <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
+                          </div>
+                        </div>
+                        <div
+                          v-if="toolTestHistory.length === 0"
+                          class="test-empty"
+                          :style="testEmptyStyle"
+                        >
+                          暂无测试历史
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="activeTab === 'importsnapshot'" class="tab-content">
+                  <div class="test-panel" :style="testPanelStyle">
+                    <Form class="space-y-4">
+                      <FormField name="importSnapshotTitle">
+                        <p
+                          style="color: var(--el-text-color-secondary); font-size: 13px; margin: 0"
+                        >
+                          {{ $t('setting.debug.importSnapshotDescription') }}
+                        </p>
+                      </FormField>
+                      <FormField name="snapshotFile" :label="$t('setting.debug.snapshotFile')">
+                        <Textarea
+                          v-model="importSnapshotForm.snapshotContent"
+                          rows="12"
+                          :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
+                        />
+                        <div style="margin-top: 8px">
+                          <Button variant="default" size="sm" @click="selectSnapshotFile">
+                            <Upload class="mr-1 h-4 w-4" />
+                            {{ $t('setting.debug.selectSnapshotFile') }}
+                          </Button>
+                          <input
+                            ref="fileInputRef"
+                            type="file"
+                            accept=".json"
+                            style="display: none"
+                            @change="handleFileSelect"
+                          />
+                        </div>
+                      </FormField>
+                      <FormField name="actions">
+                        <div class="flex gap-2">
+                          <Button
+                            variant="default"
+                            @click="importSnapshot"
+                            :disabled="importSnapshotLoading"
+                          >
+                            <template v-if="importSnapshotLoading">
+                              <Loading class="mr-2 h-4 w-4 animate-spin" />
+                              {{ $t('setting.debug.importing') }}
+                            </template>
+                            <template v-else>
+                              {{ $t('setting.debug.importButton') }}
+                            </template>
+                          </Button>
+                          <Button variant="outline" @click="clearImportForm">
+                            {{ $t('common.cancel') }}
+                          </Button>
+                        </div>
+                      </FormField>
+                    </Form>
+
+                    <!-- 导入后的渲染结果 -->
+                    <div
+                      v-if="importedSnapshot"
+                      class="imported-snapshot-display"
+                      style="margin-top: 20px"
+                    >
+                      <Divider :style="{ marginTop: 0 }">{{
+                        $t('setting.debug.importSuccess')
+                      }}</Divider>
+                      <div class="test-history-item" :style="testHistoryItemStyle">
                         <div class="test-history-header">
-                          <span class="test-name">{{ entry.toolName }}</span>
+                          <span class="test-name">{{ importedSnapshot.toolName }}</span>
                           <div class="test-header-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              @click="exportEntrySnapshot(entry)"
-                              :title="$t('agent.tool.exportSnapshot')"
-                            >
-                              <Download class="mr-1 h-4 w-4" />
-                              {{ $t('agent.tool.exportSnapshot') }}
-                            </Button>
-                            <Badge
-                              v-if="entry.status === 'running'"
-                              variant="warning"
-                            >
-                              执行中
+                            <Badge v-if="importedSnapshot.status === 'running'" variant="warning">
+                              {{ $t('agent.tool.status.running') }}
                             </Badge>
                             <Badge
-                              v-else-if="entry.status === 'succeeded'"
+                              v-else-if="importedSnapshot.status === 'succeeded'"
                               variant="default"
                             >
-                              成功
+                              {{ $t('agent.tool.status.success') }}
                             </Badge>
                             <Badge
-                              v-else-if="entry.status === 'failed'"
+                              v-else-if="importedSnapshot.status === 'failed'"
                               variant="destructive"
                             >
-                              失败
+                              {{ $t('agent.tool.status.failed') }}
                             </Badge>
-                            <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                            <span class="test-time">{{
+                              formatTime(importedSnapshot.timestamp)
+                            }}</span>
                           </div>
                         </div>
 
-                        <!-- 进度条 -->
                         <div
-                          v-if="entry.progress && entry.progress.percentage > 0"
-                          class="test-progress"
-                        >
-                          <Progress
-                            :percentage="entry.progress.percentage"
-                            :status="entry.status === 'failed' ? 'exception' : undefined"
-                            :strokeWidth="6"
-                          >
-                            <template #default="{ percentage }">
-                              <span class="progress-text">{{ percentage }}%</span>
-                              <span v-if="entry.progress?.message" class="progress-message">
-                                {{ entry.progress.message }}
-                              </span>
-                            </template>
-                          </Progress>
-                        </div>
-
-                        <div
-                          v-if="entry.params"
+                          v-if="importedSnapshot.params"
                           class="test-params"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <strong>参数:</strong>
+                          <strong>{{ $t('setting.debug.parameters') }}:</strong>
                           <pre :style="codeBlockStyle">{{
-                            typeof entry.params === 'string'
-                              ? entry.params
-                              : JSON.stringify(entry.params, null, 2)
+                            typeof importedSnapshot.params === 'string'
+                              ? importedSnapshot.params
+                              : JSON.stringify(importedSnapshot.params, null, 2)
                           }}</pre>
                         </div>
+
                         <div
-                          v-if="entry.error"
+                          v-if="importedSnapshot.error"
                           class="test-error-message"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <strong>错误:</strong>
+                          <strong>{{ $t('setting.debug.error') }}:</strong>
                           <pre
                             :style="{
                               ...codeBlockStyle,
@@ -650,19 +830,23 @@
                                   : '#fef0f0',
                               color: '#f56c6c'
                             }"
-                            >{{ entry.error }}</pre
+                            >{{ importedSnapshot.error }}</pre
                           >
                         </div>
 
                         <!-- 如果有显示组件，展示渲染卡片 -->
                         <div
-                          v-if="entry.displayComponent && entry.outputs && entry.outputs.length > 0"
+                          v-if="
+                            importedSnapshot.displayComponent &&
+                            importedSnapshot.outputs &&
+                            importedSnapshot.outputs.length > 0
+                          "
                           class="test-display-component"
                         >
-                          <Divider>渲染结果</Divider>
+                          <Divider>{{ $t('setting.debug.renderResult') }}</Divider>
                           <div class="space-y-2">
                             <Collapsible
-                              v-for="(output, idx) in entry.outputs"
+                              v-for="(output, idx) in importedSnapshot.outputs"
                               :key="output.id"
                               v-model:open="output._isOpen"
                             >
@@ -677,21 +861,35 @@
                                   <!-- 如果有渲染组件，使用组件渲染 -->
                                   <component
                                     v-if="
-                                      getDisplayComponent(output.renderer || entry.displayComponent)
+                                      getDisplayComponent(
+                                        output.renderer || importedSnapshot.displayComponent
+                                      )
                                     "
                                     :is="
-                                      getDisplayComponent(output.renderer || entry.displayComponent)
+                                      getDisplayComponent(
+                                        output.renderer || importedSnapshot.displayComponent
+                                      )
                                     "
                                     :data="output.data"
-                                    :status="entry.error ? 'failed' : entry.status || 'succeeded'"
-                                    :progress="entry.progress"
-                                    :error="entry.error"
-                                    :tool-config="entry.toolConfig"
-                                    :invocation-id="entry.invocationId"
+                                    :status="
+                                      importedSnapshot.error
+                                        ? 'failed'
+                                        : importedSnapshot.status || 'succeeded'
+                                    "
+                                    :progress="importedSnapshot.progress"
+                                    :error="importedSnapshot.error"
+                                    :tool-config="importedSnapshot.toolConfig"
+                                    :invocation-id="importedSnapshot.invocationId"
                                   />
                                   <!-- 否则使用纯文本渲染 -->
                                   <pre v-else class="raw-text" :style="codeBlockStyle">{{
-                                    formatResult(output.data)
+                                    formatResult(
+                                      output.data &&
+                                        typeof output.data === 'object' &&
+                                        'content' in output.data
+                                        ? output.data.content
+                                        : output.data
+                                    )
                                   }}</pre>
                                 </div>
                               </CollapsibleContent>
@@ -701,1115 +899,944 @@
 
                         <!-- 原始结果数据 -->
                         <div
-                          v-if="entry.result !== undefined"
+                          v-if="importedSnapshot.result !== undefined"
                           class="test-result-data"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <Divider>原始结果</Divider>
-                          <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
+                          <Divider>{{ $t('setting.debug.rawResult') }}</Divider>
+                          <pre :style="codeBlockStyle">{{
+                            formatResult(importedSnapshot.result)
+                          }}</pre>
                         </div>
-                      </div>
-                      <div
-                        v-if="toolTestHistory.length === 0"
-                        class="test-empty"
-                        :style="testEmptyStyle"
-                      >
-                        暂无测试历史
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </div>
-              </div>
-              <div v-else-if="activeTab === 'importsnapshot'" class="tab-content">
-                <div class="test-panel" :style="testPanelStyle">
-                  <Form class="space-y-4">
-                    <FormField name="importSnapshotTitle">
-                      <p style="color: var(--el-text-color-secondary); font-size: 13px; margin: 0">
-                        {{ $t('setting.debug.importSnapshotDescription') }}
-                      </p>
-                    </FormField>
-                    <FormField name="snapshotFile" :label="$t('setting.debug.snapshotFile')">
-                      <Textarea
-                        v-model="importSnapshotForm.snapshotContent"
-                        rows="12"
-                        :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
-                      />
-                      <div style="margin-top: 8px">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          @click="selectSnapshotFile"
-                        >
-                          <Upload class="mr-1 h-4 w-4" />
-                          {{ $t('setting.debug.selectSnapshotFile') }}
-                        </Button>
-                        <input
-                          ref="fileInputRef"
-                          type="file"
-                          accept=".json"
-                          style="display: none"
-                          @change="handleFileSelect"
-                        />
-                      </div>
-                    </FormField>
-                    <FormField name="actions">
-                      <div class="flex gap-2">
-                        <Button
-                          variant="default"
-                          @click="importSnapshot"
-                          :disabled="importSnapshotLoading"
-                        >
-                          <template v-if="importSnapshotLoading">
-                            <Loading class="mr-2 h-4 w-4 animate-spin" />
-                            {{ $t('setting.debug.importing') }}
-                          </template>
-                          <template v-else>
-                            {{ $t('setting.debug.importButton') }}
-                          </template>
-                        </Button>
-                        <Button variant="outline" @click="clearImportForm">
-                          {{ $t('common.cancel') }}
-                        </Button>
-                      </div>
-                    </FormField>
-                  </Form>
-
-                  <!-- 导入后的渲染结果 -->
-                  <div
-                    v-if="importedSnapshot"
-                    class="imported-snapshot-display"
-                    style="margin-top: 20px"
-                  >
-                    <Divider :style="{ marginTop: 0 }">{{
-                      $t('setting.debug.importSuccess')
-                    }}</Divider>
-                    <div class="test-history-item" :style="testHistoryItemStyle">
-                      <div class="test-history-header">
-                        <span class="test-name">{{ importedSnapshot.toolName }}</span>
-                        <div class="test-header-right">
-                          <Badge
-                            v-if="importedSnapshot.status === 'running'"
-                            variant="warning"
-                          >
-                            {{ $t('agent.tool.status.running') }}
-                          </Badge>
-                          <Badge
-                            v-else-if="importedSnapshot.status === 'succeeded'"
-                            variant="default"
-                          >
-                            {{ $t('agent.tool.status.success') }}
-                          </Badge>
-                          <Badge
-                            v-else-if="importedSnapshot.status === 'failed'"
-                            variant="destructive"
-                          >
-                            {{ $t('agent.tool.status.failed') }}
-                          </Badge>
-                          <span class="test-time">{{
-                            formatTime(importedSnapshot.timestamp)
-                          }}</span>
-                        </div>
-                      </div>
-
-                      <div
-                        v-if="importedSnapshot.params"
-                        class="test-params"
-                        :style="{ color: themeState.currentTheme.textColor }"
-                      >
-                        <strong>{{ $t('setting.debug.parameters') }}:</strong>
-                        <pre :style="codeBlockStyle">{{
-                          typeof importedSnapshot.params === 'string'
-                            ? importedSnapshot.params
-                            : JSON.stringify(importedSnapshot.params, null, 2)
-                        }}</pre>
-                      </div>
-
-                      <div
-                        v-if="importedSnapshot.error"
-                        class="test-error-message"
-                        :style="{ color: themeState.currentTheme.textColor }"
-                      >
-                        <strong>{{ $t('setting.debug.error') }}:</strong>
-                        <pre
-                          :style="{
-                            ...codeBlockStyle,
-                            backgroundColor:
-                              themeState.currentTheme.type === 'dark'
-                                ? 'rgba(245, 108, 108, 0.15)'
-                                : '#fef0f0',
-                            color: '#f56c6c'
-                          }"
-                          >{{ importedSnapshot.error }}</pre
-                        >
-                      </div>
-
-                      <!-- 如果有显示组件，展示渲染卡片 -->
-                      <div
-                        v-if="
-                          importedSnapshot.displayComponent &&
-                          importedSnapshot.outputs &&
-                          importedSnapshot.outputs.length > 0
-                        "
-                        class="test-display-component"
-                      >
-                        <Divider>{{ $t('setting.debug.renderResult') }}</Divider>
-                        <div class="space-y-2">
-                          <Collapsible
-                            v-for="(output, idx) in importedSnapshot.outputs"
-                            :key="output.id"
-                            v-model:open="output._isOpen"
-                          >
-                            <CollapsibleTrigger class="bg-muted/50">
-                              <div style="display: flex; align-items: center; gap: 8px">
-                                <span>{{ output.label }}</span>
-                                <Badge variant="secondary">{{ output.format }}</Badge>
-                              </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div class="output-body pt-2">
-                                <!-- 如果有渲染组件，使用组件渲染 -->
-                                <component
-                                  v-if="
-                                    getDisplayComponent(
-                                      output.renderer || importedSnapshot.displayComponent
-                                    )
-                                  "
-                                  :is="
-                                    getDisplayComponent(
-                                      output.renderer || importedSnapshot.displayComponent
-                                    )
-                                  "
-                                  :data="output.data"
-                                  :status="
-                                    importedSnapshot.error
-                                      ? 'failed'
-                                      : importedSnapshot.status || 'succeeded'
-                                  "
-                                  :progress="importedSnapshot.progress"
-                                  :error="importedSnapshot.error"
-                                  :tool-config="importedSnapshot.toolConfig"
-                                  :invocation-id="importedSnapshot.invocationId"
-                                />
-                                <!-- 否则使用纯文本渲染 -->
-                                <pre v-else class="raw-text" :style="codeBlockStyle">{{
-                                  formatResult(
-                                    output.data &&
-                                      typeof output.data === 'object' &&
-                                      'content' in output.data
-                                      ? output.data.content
-                                      : output.data
-                                  )
-                                }}</pre>
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        </div>
-                      </div>
-
-                      <!-- 原始结果数据 -->
-                      <div
-                        v-if="importedSnapshot.result !== undefined"
-                        class="test-result-data"
-                        :style="{ color: themeState.currentTheme.textColor }"
-                      >
-                        <Divider>{{ $t('setting.debug.rawResult') }}</Divider>
-                        <pre :style="codeBlockStyle">{{
-                          formatResult(importedSnapshot.result)
-                        }}</pre>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div v-else-if="activeTab === 'autotest'" class="tab-content">
-                <div class="test-panel" :style="testPanelStyle">
-                  <Form class="space-y-4">
-                    <FormField name="selectedTools" label="选择要测试的Tool">
-                      <Select v-model="autoTestForm.selectedTools" multiple>
-                        <SelectTrigger class="w-[240px]">
-                          <SelectValue placeholder="选择要测试的Tool（留空则测试所有）" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem
-                            v-for="tool in availableTools"
-                            :key="tool.config.id"
-                            :value="tool?.config?.id || ''"
-                          >
-                            {{ getToolDisplayName(tool?.config || { id: tool?.config?.id || '' }) }}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormField>
+                <div v-else-if="activeTab === 'autotest'" class="tab-content">
+                  <div class="test-panel" :style="testPanelStyle">
+                    <Form class="space-y-4">
+                      <FormField name="selectedTools" label="选择要测试的Tool">
+                        <Select v-model="autoTestForm.selectedTools" multiple>
+                          <SelectTrigger class="w-[240px]">
+                            <SelectValue placeholder="选择要测试的Tool（留空则测试所有）" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem
+                              v-for="tool in availableTools"
+                              :key="tool.config.id"
+                              :value="tool?.config?.id || ''"
+                            >
+                              {{
+                                getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })
+                              }}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormField>
 
-                    <!-- 上下文Tab选择 -->
-                    <FormField name="contextTabId" label="上下文Tab">
-                      <Select v-model="autoTestForm.contextTabId" style="width: 100%">
-                        <SelectTrigger class="w-[240px]">
-                          <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
-                          <SelectItem
-                            v-for="tab in documentTabs"
-                            :key="tab.id"
-                            :value="tab.id"
-                          >
-                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div
-                        style="
-                          margin-top: 4px;
-                          font-size: 12px;
-                          color: var(--el-text-color-secondary);
-                        "
-                      >
-                        <el-icon><InfoFilled /></el-icon>
-                        <span
-                          >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
-                        >
-                      </div>
-                    </FormField>
-
-                    <FormField name="actions">
-                      <div class="flex gap-2">
-                        <Button
-                          variant="default"
-                          @click="runAutoTests"
-                          :disabled="autoTestRunning"
-                        >
-                          <template v-if="autoTestRunning">
-                            <Loading class="mr-2 h-4 w-4 animate-spin" />
-                            测试中...
-                          </template>
-                          <template v-else>
-                            开始自动测试
-                          </template>
-                        </Button>
-                        <Button variant="outline" @click="stopAutoTests" :disabled="!autoTestRunning">
-                          停止测试
-                        </Button>
-                      </div>
-                    </FormField>
-                  </Form>
-
-                  <!-- 测试结果 -->
-                  <div
-                    v-if="autoTestResults.length > 0 || autoTestRunning"
-                    class="auto-test-results"
-                    style="margin-top: 20px"
-                  >
-                    <Divider :style="{ marginTop: 0 }">测试结果</Divider>
-                    <AutoTestResultDisplay
-                      v-if="autoTestResults.length > 0"
-                      :test-results="autoTestResults"
-                      :summary="autoTestSummary"
-                      :markdown-summary="autoTestMarkdown"
-                    />
-                    <div v-else-if="autoTestRunning" class="test-progress-info">
-                      <Progress
-                        :percentage="autoTestProgress"
-                        :status="autoTestRunning ? undefined : 'success'"
-                      >
-                        <template #default="{ percentage }">
-                          <span>{{ autoTestCurrentTest }}</span>
-                          <span style="margin-left: 8px">{{ percentage }}%</span>
-                        </template>
-                      </Progress>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-else-if="activeTab === 'unittest'" class="tab-content">
-                <Tabs v-model="unitTestActiveTab" class="debug-tabs">
-                  <TabsList class="debug-tabs-list">
-                    <TabsTrigger value="single">{{ $t('setting.debug.unitTest.singleTest') }}</TabsTrigger>
-                    <TabsTrigger value="batch">{{ $t('setting.debug.unitTest.batchTest') }}</TabsTrigger>
-                  </TabsList>
-
-                  <!-- 单个测试 -->
-                  <TabsContent value="single" class="debug-tabs-content">
-                    <div class="test-panel" :style="testPanelStyle">
-                      <Form class="space-y-4">
-                        <FormField name="module" :label="$t('setting.debug.module')">
-                          <Select v-model="testForm.module" @update:model-value="handleModuleChange">
-                            <SelectTrigger class="w-[200px]">
-                              <SelectValue :placeholder="$t('setting.debug.selectModule')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem
-                                v-for="module in modules"
-                                :key="module"
-                                :value="module"
-                              >
-                                {{ module }}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormField>
-                        <FormField name="testId" :label="$t('setting.debug.testFunction')">
-                          <Select v-model="testForm.testId" @update:model-value="handleTestChange">
-                            <SelectTrigger class="w-[280px]">
-                              <SelectValue :placeholder="$t('setting.debug.selectTestFunction')" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem
-                                v-for="test in availableTests"
-                                :key="test.id"
-                                :value="test.id"
-                              >
-                                {{ test.name }}{{ test.description ? ' - ' + test.description : '' }}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormField>
-
-                        <!-- 参数编辑区域 -->
-                        <template
-                          v-if="
-                            selectedTest && selectedTest.params && selectedTest.params.length > 0
+                      <!-- 上下文Tab选择 -->
+                      <FormField name="contextTabId" label="上下文Tab">
+                        <Select v-model="autoTestForm.contextTabId" style="width: 100%">
+                          <SelectTrigger class="w-[240px]">
+                            <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
+                            <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
+                              {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div
+                          style="
+                            margin-top: 4px;
+                            font-size: 12px;
+                            color: var(--el-text-color-secondary);
                           "
                         >
-                          <Divider>{{ $t('setting.debug.parameters') }}</Divider>
-                          <FormField
-                            v-for="param in selectedTest.params"
-                            :key="param.name"
-                            :name="`param_${param.name}`"
-                            :label="`${param.name} (${param.type})`"
+                          <el-icon><InfoFilled /></el-icon>
+                          <span
+                            >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
                           >
-                            <template
-                              v-if="
-                                param.type === 'string' ||
-                                param.type === 'number' ||
-                                param.type === 'boolean'
-                              "
-                            >
-                              <Input
-                                v-if="param.type === 'string'"
-                                v-model="testForm.params[param.name]"
-                                :placeholder="param.description || param.name"
-                              />
-                              <NumberField
-                                v-else-if="param.type === 'number'"
-                                v-model="testForm.params[param.name]"
-                              >
-                                <NumberFieldContent>
-                                  <NumberFieldDecrement />
-                                  <NumberFieldInput class="w-[120px]" />
-                                  <NumberFieldIncrement />
-                                </NumberFieldContent>
-                              </NumberField>
-                              <Switch
-                                v-else-if="param.type === 'boolean'"
-                                v-model="testForm.params[param.name]"
-                              />
-                            </template>
-                            <Textarea
-                              v-else
-                              v-model="testForm.params[param.name]"
-                              rows="4"
-                              :placeholder="$t('setting.debug.jsonPlaceholder')"
-                            />
-                          </FormField>
-                        </template>
+                        </div>
+                      </FormField>
 
-                        <FormField name="actions">
-                          <div class="flex gap-2">
-                          <Button variant="default" @click="executeTest" :disabled="testExecuting">
-                            <template v-if="testExecuting">
-                              <Loading class="mr-2 h-4 w-4 animate-spin" />
-                              {{ $t('setting.debug.executing') }}
-                            </template>
-                            <template v-else>
-                              {{ $t('setting.debug.executeTest') }}
-                            </template>
-                          </Button>
-                          <Button variant="outline" @click="clearTestHistory">
-                            {{ $t('setting.debug.clearHistory') }}
-                          </Button>
-                          </div>
-                        </FormField>
-                      </Form>
-
-                      <!-- 测试结果 -->
-                      <Divider>{{ $t('setting.debug.testResult') }}</Divider>
-                      <div class="test-result">
-                        <ScrollArea class="h-[300px]">
-                          <div
-                            v-for="(entry, index) in testHistory"
-                            :key="index"
-                            class="test-history-item"
-                            :class="{ 'test-error': entry.error }"
-                            :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
-                          >
-                            <div class="test-history-header">
-                              <span class="test-name">{{ entry.name }}</span>
-                              <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
-                            </div>
-                            <div v-if="entry.params && entry.params.length > 0" class="test-params">
-                              <strong>{{ $t('setting.debug.parameters') }}:</strong>
-                              <pre>{{ JSON.stringify(entry.params, null, 2) }}</pre>
-                            </div>
-                            <div v-if="entry.error" class="test-error-message">
-                              <strong>{{ $t('setting.debug.error') }}:</strong>
-                              <pre>{{ entry.error }}</pre>
-                            </div>
-                            <div v-else-if="entry.result !== undefined" class="test-result-data">
-                              <strong>{{ $t('setting.debug.result') }}:</strong>
-                              <pre>{{ formatResult(entry.result) }}</pre>
-                            </div>
-                          </div>
-                          <div v-if="testHistory.length === 0" class="test-empty">
-                            {{ $t('setting.debug.noHistory') }}
-                          </div>
-                        </ScrollArea>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <!-- 批量测试 -->
-                  <TabsContent value="batch" class="debug-tabs-content">
-                    <div class="test-panel" :style="testPanelStyle">
-                      <Form class="space-y-4">
-                        <FormField name="selectedModules" :label="$t('setting.debug.unitTest.selectModules')">
-                          <Select v-model="unitTestBatchForm.selectedModules" multiple>
-                            <SelectTrigger class="w-[240px]">
-                              <SelectValue placeholder="选择要测试的模块（留空则测试所有）" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem
-                                v-for="module in modules"
-                                :key="module"
-                                :value="module"
-                              >
-                                {{ module }}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormField>
-
-                        <!-- 上下文Tab选择 -->
-                        <FormField name="contextTabId" label="上下文Tab">
-                          <Select v-model="unitTestBatchForm.contextTabId" style="width: 100%">
-                        <SelectTrigger class="w-[240px]">
-                          <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
-                          <SelectItem
-                            v-for="tab in documentTabs"
-                            :key="tab.id"
-                            :value="tab.id"
-                          >
-                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
-                          </SelectItem>
-                        </SelectContent>
-                          </Select>
-                          <div
-                            style="
-                              margin-top: 4px;
-                              font-size: 12px;
-                              color: var(--el-text-color-secondary);
-                            "
-                          >
-                            <el-icon><InfoFilled /></el-icon>
-                            <span
-                              >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
-                            >
-                          </div>
-                        </FormField>
-
-                        <FormField name="actions">
-                          <div class="flex gap-2">
+                      <FormField name="actions">
+                        <div class="flex gap-2">
                           <Button
                             variant="default"
-                            @click="runUnitTestBatch"
-                            :disabled="unitTestBatchRunning"
+                            @click="runAutoTests"
+                            :disabled="autoTestRunning"
                           >
-                            <template v-if="unitTestBatchRunning">
+                            <template v-if="autoTestRunning">
                               <Loading class="mr-2 h-4 w-4 animate-spin" />
                               测试中...
                             </template>
-                            <template v-else>
-                              开始批量测试
-                            </template>
+                            <template v-else> 开始自动测试 </template>
                           </Button>
-                          <Button variant="outline" @click="stopUnitTestBatch" :disabled="!unitTestBatchRunning">
+                          <Button
+                            variant="outline"
+                            @click="stopAutoTests"
+                            :disabled="!autoTestRunning"
+                          >
                             停止测试
                           </Button>
-                          </div>
-                        </FormField>
-                      </Form>
-
-                      <!-- 测试结果 -->
-                      <div
-                        v-if="unitTestBatchResults.length > 0 || unitTestBatchRunning"
-                        class="unit-test-batch-results"
-                        style="margin-top: 20px"
-                      >
-<Divider :style="{ marginTop: 0 }">测试结果</Divider>
-                        <UnitTestResultDisplay
-                          v-if="unitTestBatchResults.length > 0"
-                          :test-results="unitTestBatchResults"
-                          :summary="unitTestBatchSummary"
-                          :markdown-summary="unitTestBatchMarkdown"
-                        />
-                        <div v-else-if="unitTestBatchRunning" class="test-progress-info">
-                          <Progress
-                            :percentage="unitTestBatchProgress"
-                            :status="unitTestBatchRunning ? undefined : 'success'"
-                          >
-                            <template #default="{ percentage }">
-                              <span>{{ unitTestBatchCurrentTest }}</span>
-                              <span style="margin-left: 8px">{{ percentage }}%</span>
-                            </template>
-                          </Progress>
                         </div>
+                      </FormField>
+                    </Form>
+
+                    <!-- 测试结果 -->
+                    <div
+                      v-if="autoTestResults.length > 0 || autoTestRunning"
+                      class="auto-test-results"
+                      style="margin-top: 20px"
+                    >
+                      <Divider :style="{ marginTop: 0 }">测试结果</Divider>
+                      <AutoTestResultDisplay
+                        v-if="autoTestResults.length > 0"
+                        :test-results="autoTestResults"
+                        :summary="autoTestSummary"
+                        :markdown-summary="autoTestMarkdown"
+                      />
+                      <div v-else-if="autoTestRunning" class="test-progress-info">
+                        <Progress
+                          :percentage="autoTestProgress"
+                          :status="autoTestRunning ? undefined : 'success'"
+                        >
+                          <template #default="{ percentage }">
+                            <span>{{ autoTestCurrentTest }}</span>
+                            <span style="margin-left: 8px">{{ percentage }}%</span>
+                          </template>
+                        </Progress>
                       </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-              <div v-else-if="activeTab === 'agentsessiondebug'" class="tab-content">
-                <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
-                  <TabsList class="debug-tabs-list">
-                    <TabsTrigger value="debug">会话调试</TabsTrigger>
-                    <TabsTrigger value="replay">会话回放</TabsTrigger>
-                  </TabsList>
+                  </div>
+                </div>
+                <div v-else-if="activeTab === 'unittest'" class="tab-content">
+                  <Tabs v-model="unitTestActiveTab" class="debug-tabs">
+                    <TabsList class="debug-tabs-list">
+                      <TabsTrigger value="single">{{
+                        $t('setting.debug.unitTest.singleTest')
+                      }}</TabsTrigger>
+                      <TabsTrigger value="batch">{{
+                        $t('setting.debug.unitTest.batchTest')
+                      }}</TabsTrigger>
+                    </TabsList>
 
-                  <!-- 会话调试 -->
-                  <TabsContent value="debug" class="debug-tabs-content">
-                    <div class="test-panel" :style="testPanelStyle">
-                      <Form class="space-y-4">
-                        <FormField name="tabId" label="选择文档">
-                          <Select
-                            v-model="agentSessionDebugForm.tabId"
-                            @update:model-value="handleSessionDebugTabChange"
-                          >
-                            <SelectTrigger class="w-[240px]">
-                              <SelectValue placeholder="选择要调试的文档" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem
-                                v-for="tab in workspaceTabs"
-                                :key="tab.id"
-                                :value="tab.id"
-                              >
-                                {{ tab.title || tab.path || '未命名文档' }}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormField>
-
-                        <FormField name="sessionId" label="选择会话" v-if="agentSessionDebugForm.tabId">
-                          <div style="display: flex; gap: 8px">
+                    <!-- 单个测试 -->
+                    <TabsContent value="single" class="debug-tabs-content">
+                      <div class="test-panel" :style="testPanelStyle">
+                        <Form class="space-y-4">
+                          <FormField name="module" :label="$t('setting.debug.module')">
                             <Select
-                              v-model="agentSessionDebugForm.sessionId"
-                              @update:model-value="handleSessionDebugSessionChange"
-                              style="flex: 1"
+                              v-model="testForm.module"
+                              @update:model-value="handleModuleChange"
                             >
-                              <SelectTrigger class="w-[240px]">
-                                <SelectValue placeholder="选择要调试的会话" />
+                              <SelectTrigger class="w-[200px]">
+                                <SelectValue :placeholder="$t('setting.debug.selectModule')" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem
-                                  v-for="session in availableSessions"
-                                  :key="session.id"
-                                  :value="session.id"
-                                >
-                                  <div
-                                    class="flex justify-between items-center w-full"
-                                  >
-                                    <span>{{ session.title || session.id }}</span>
-                                    <Badge variant="outline" size="sm">
-                                      {{ session.messages?.length || 0 }} 条消息
-                                    </Badge>
-                                  </div>
+                                <SelectItem v-for="module in modules" :key="module" :value="module">
+                                  {{ module }}
                                 </SelectItem>
                               </SelectContent>
                             </Select>
-                            <Button
-                              variant="default"
-                              @click="handleImportSessionJson"
-                              :disabled="!agentSessionDebugForm.tabId"
+                          </FormField>
+                          <FormField name="testId" :label="$t('setting.debug.testFunction')">
+                            <Select
+                              v-model="testForm.testId"
+                              @update:model-value="handleTestChange"
                             >
-                              <Upload class="mr-1 h-4 w-4" />
-                              导入会话
-                            </Button>
-                          </div>
-                        </FormField>
-                      </Form>
+                              <SelectTrigger class="w-[280px]">
+                                <SelectValue
+                                  :placeholder="$t('setting.debug.selectTestFunction')"
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  v-for="test in availableTests"
+                                  :key="test.id"
+                                  :value="test.id"
+                                >
+                                  {{ test.name
+                                  }}{{ test.description ? ' - ' + test.description : '' }}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormField>
 
-                      <!-- 会话详情 -->
-                      <div
-                        v-if="selectedSession"
-                        class="session-debug-details"
-                        style="margin-top: 20px"
-                      >
-                        <Tabs v-model="sessionDebugActiveTab" class="debug-tabs">
-                          <TabsList class="debug-tabs-list">
-                            <TabsTrigger value="nodes">执行节点</TabsTrigger>
-                            <TabsTrigger value="messages">消息列表</TabsTrigger>
-                            <TabsTrigger value="metadata">会话信息</TabsTrigger>
-                          </TabsList>
-
-                          <!-- 执行节点列表 -->
-                          <TabsContent value="nodes" class="debug-tabs-content">
-                            <ScrollArea class="h-[400px]">
-                              <div
+                          <!-- 参数编辑区域 -->
+                          <template
+                            v-if="
+                              selectedTest && selectedTest.params && selectedTest.params.length > 0
+                            "
+                          >
+                            <Divider>{{ $t('setting.debug.parameters') }}</Divider>
+                            <FormField
+                              v-for="param in selectedTest.params"
+                              :key="param.name"
+                              :name="`param_${param.name}`"
+                              :label="`${param.name} (${param.type})`"
+                            >
+                              <template
                                 v-if="
-                                  selectedSession.executionNodes &&
-                                  selectedSession.executionNodes.length > 0
+                                  param.type === 'string' ||
+                                  param.type === 'number' ||
+                                  param.type === 'boolean'
                                 "
                               >
-                                <div
-                                  v-for="(node, index) in selectedSession.executionNodes"
-                                  :key="node.id"
-                                  class="execution-node-item"
-                                  :class="{
-                                    'current-node':
-                                      node.id === selectedSession.currentExecutionNodeId
-                                  }"
-                                  :style="executionNodeItemStyle"
+                                <Input
+                                  v-if="param.type === 'string'"
+                                  v-model="testForm.params[param.name]"
+                                  :placeholder="param.description || param.name"
+                                />
+                                <NumberField
+                                  v-else-if="param.type === 'number'"
+                                  v-model="testForm.params[param.name]"
                                 >
-                                  <div class="node-header">
-                                    <div class="node-info">
-                                      <Badge :variant="getNodeTypeTagType(node.type)">
-                                        {{ getNodeTypeLabel(node.type) }}
-                                      </Badge>
-                                      <span class="node-id">{{ node.id.substring(0, 16) }}...</span>
-                                      <span class="node-time">{{
-                                        formatTime(node.timestamp)
-                                      }}</span>
-                                    </div>
-                                    <div class="node-actions">
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        @click="handleRevertToNode(node.id)"
-                                      >
-                                        回溯到此节点
-                                      </Button>
-                                      <Button
-                                        v-if="node.type === 'tool-call'"
-                                        size="sm"
-                                        variant="outline"
-                                        @click="handleReplayToolCall(node.id)"
-                                      >
-                                        重新执行工具
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div class="node-status">
-                                    <Badge :variant="getNodeStatusTagType(node.status)">
-                                      {{ getNodeStatusLabel(node.status) }}
-                                    </Badge>
-                                  </div>
-                                  <div class="node-data space-y-2">
-                                    <Collapsible>
-                                      <CollapsibleTrigger class="bg-muted/50">
-                                        节点数据
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent>
-                                        <pre :style="messageContentStyle">{{
-                                          formatResult(node.data)
-                                        }}</pre>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                    <Collapsible v-if="node.result">
-                                      <CollapsibleTrigger class="bg-muted/50">
-                                        执行结果
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent>
-                                        <pre :style="messageContentStyle">{{
-                                          formatResult(node.result)
-                                        }}</pre>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                    <Collapsible v-if="node.error">
-                                      <CollapsibleTrigger class="bg-muted/50">
-                                        错误信息
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent>
-                                        <pre
-                                          :style="{ ...messageContentStyle, color: '#f56c6c' }"
-                                          >{{ node.error }}</pre
-                                        >
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                  </div>
-                                </div>
-                              </div>
-                              <div v-else class="test-empty">暂无执行节点</div>
-                            </ScrollArea>
-                          </TabsContent>
+                                  <NumberFieldContent>
+                                    <NumberFieldDecrement />
+                                    <NumberFieldInput class="w-[120px]" />
+                                    <NumberFieldIncrement />
+                                  </NumberFieldContent>
+                                </NumberField>
+                                <Switch
+                                  v-else-if="param.type === 'boolean'"
+                                  v-model="testForm.params[param.name]"
+                                />
+                              </template>
+                              <Textarea
+                                v-else
+                                v-model="testForm.params[param.name]"
+                                rows="4"
+                                :placeholder="$t('setting.debug.jsonPlaceholder')"
+                              />
+                            </FormField>
+                          </template>
 
-                          <!-- 消息列表 -->
-                          <TabsContent value="messages" class="debug-tabs-content">
-                            <ScrollArea class="h-[400px]">
-                              <div
-                                v-if="
-                                  selectedSession.messages && selectedSession.messages.length > 0
-                                "
-                              >
-                                <div
-                                  v-for="(message, index) in selectedSession.messages"
-                                  :key="message.id"
-                                  class="message-item"
-                                  :class="{
-                                    'user-message': message.role === 'user',
-                                    'assistant-message': message.role === 'assistant',
-                                    'tool-message': message.role === 'tool'
-                                  }"
-                                  :style="messageItemStyle"
-                                >
-                                  <div class="message-header">
-                                    <div class="message-info">
-                                      <Badge :variant="getMessageRoleTagType(message.role)">
-                                        {{ getMessageRoleLabel(message.role) }}
-                                      </Badge>
-                                      <span class="message-type">{{ message.type }}</span>
-                                      <span class="message-id"
-                                        >{{ message.id.substring(0, 16) }}...</span
-                                      >
-                                      <span class="message-time">{{
-                                        formatTime(message.timestamp)
-                                      }}</span>
-                                    </div>
-                                    <div class="message-actions">
-                                      <Button
-                                        v-if="message.role === 'user' && message.type === 'chat'"
-                                        size="sm"
-                                        variant="default"
-                                        @click="handleReplayMessage(message.id)"
-                                      >
-                                        重新执行消息
-                                      </Button>
-                                      <Button
-                                        v-if="message.role === 'tool' && message.type === 'tool'"
-                                        size="sm"
-                                        variant="outline"
-                                        @click="handleReplayToolCallFromMessage(message.id)"
-                                      >
-                                        重新执行工具
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div class="message-content space-y-2">
-                                    <Collapsible>
-                                      <CollapsibleTrigger class="bg-muted/50">
-                                        消息内容
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent>
-                                        <div v-if="message.type === 'chat'">
-                                          <pre :style="messageContentStyle">{{
-                                            (message as any).markdown ||
-                                            (message as any).content ||
-                                            ''
-                                          }}</pre>
-                                        </div>
-                                        <div
-                                          v-else-if="
-                                            message.type === 'tool' && message.role === 'tool'
-                                          "
-                                        >
-                                          <!-- 使用 AgentToolResultCard 显示工具消息 -->
-                                          <AgentToolResultCard
-                                            :message="message as ToolAgentMessage"
-                                            :messages="selectedSession.messages"
-                                            :message-index="index"
-                                          />
-                                        </div>
-                                        <div v-else>
-                                          <pre :style="messageContentStyle">{{
-                                            formatResult(message)
-                                          }}</pre>
-                                        </div>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                    <Collapsible v-if="(message as any).tool_calls">
-                                      <CollapsibleTrigger class="bg-muted/50">
-                                        工具调用
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent>
-                                        <pre :style="messageContentStyle">{{
-                                          formatResult((message as any).tool_calls)
-                                        }}</pre>
-                                      </CollapsibleContent>
-                                    </Collapsible>
-                                  </div>
-                                </div>
-                              </div>
-                              <div v-else class="test-empty">暂无消息</div>
-                            </ScrollArea>
-                          </TabsContent>
-
-                          <!-- 会话元数据 -->
-                          <TabsContent value="metadata" class="debug-tabs-content">
-                            <Descriptions :column="1" border>
-                              <DescriptionsItem label="会话ID">{{
-                                selectedSession.id
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="标题">{{
-                                selectedSession.title
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="描述">{{
-                                selectedSession.description || '无'
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="Agent配置ID">{{
-                                selectedSession.agentConfigId || '无'
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="状态">
-                                <Badge :variant="getSessionStatusTagType(selectedSession.status)">
-                                  {{ selectedSession.status || 'idle' }}
-                                </Badge>
-                              </DescriptionsItem>
-                              <DescriptionsItem label="当前执行节点">{{
-                                selectedSession.currentExecutionNodeId || '无'
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="消息数量">{{
-                                selectedSession.messages?.length || 0
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="执行节点数量">{{
-                                selectedSession.executionNodes?.length || 0
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="引用数量">{{
-                                selectedSession.referenceStore?.length || 0
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="创建时间">{{
-                                formatTime(selectedSession.createdAt)
-                              }}</DescriptionsItem>
-                              <DescriptionsItem label="更新时间">{{
-                                formatTime(selectedSession.updatedAt)
-                              }}</DescriptionsItem>
-                            </Descriptions>
-                          </TabsContent>
-                        </Tabs>
-                      </div>
-                      <div v-else class="test-empty" style="margin-top: 20px">
-                        请先选择文档和会话
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <!-- 会话回放 -->
-                  <TabsContent value="replay" class="debug-tabs-content">
-                    <div class="test-panel" :style="testPanelStyle">
-                      <Form class="space-y-4">
-                        <FormField name="importSession" label="导入会话">
-                          <div style="display: flex; gap: 8px">
-                            <Button
-                              variant="default"
-                              @click="handleImportSessionForReplay"
-                            >
-                              <Upload class="mr-1 h-4 w-4" />
-                              导入会话JSON
-                            </Button>
-                            <Button v-if="replaySession" variant="outline" @click="handleClearReplaySession">
-                              清除会话
-                            </Button>
-                          </div>
-                        </FormField>
-
-                        <FormField name="sessionInfo" label="会话信息" v-if="replaySession">
-                          <Descriptions :column="1" border size="small">
-                            <DescriptionsItem label="标题">{{
-                              replaySession.title
-                            }}</DescriptionsItem>
-                            <DescriptionsItem label="消息数量">{{
-                              replaySession.messages?.length || 0
-                            }}</DescriptionsItem>
-                            <DescriptionsItem label="执行节点数量">{{
-                              replaySession.executionNodes?.length || 0
-                            }}</DescriptionsItem>
-                          </Descriptions>
-                        </FormField>
-
-                        <FormField name="replayControls" label="回放控制" v-if="replaySession">
-                          <div style="display: flex; flex-direction: column; gap: 12px">
-                            <!-- 第一行：主要控制按钮 -->
-                            <div style="display: flex; gap: 8px; align-items: center">
+                          <FormField name="actions">
+                            <div class="flex gap-2">
                               <Button
                                 variant="default"
-                                @click="handleStartReplay"
-                                :disabled="isReplaying"
+                                @click="executeTest"
+                                :disabled="testExecuting"
                               >
-                                <template v-if="isReplaying">
+                                <template v-if="testExecuting">
                                   <Loading class="mr-2 h-4 w-4 animate-spin" />
-                                  回放中...
+                                  {{ $t('setting.debug.executing') }}
                                 </template>
                                 <template v-else>
-                                  开始回放
+                                  {{ $t('setting.debug.executeTest') }}
                                 </template>
                               </Button>
-                              <Button variant="outline" @click="handleStopReplay" :disabled="!isReplaying">
-                                停止回放
+                              <Button variant="outline" @click="clearTestHistory">
+                                {{ $t('setting.debug.clearHistory') }}
                               </Button>
-                              <Button variant="outline" @click="handleResetReplay" :disabled="isReplaying">
-                                重置到开头
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                @click="handleReplayStepBack"
-                                :disabled="isReplaying || replayCurrentIndex < 0"
-                              >
-                                后退
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                @click="handleReplayStepForward"
-                                :disabled="
-                                  isReplaying ||
-                                  replayCurrentIndex >= replayDisplayMessages.length - 1
-                                "
-                              >
-                                前进
-                              </Button>
-                              <Slider
-                                v-model="replaySpeed"
-                                :min="0.1"
-                                :max="5"
-                                :step="0.1"
-                                style="width: 200px; margin: 0 16px"
-                              />
-                              <span style="min-width: 60px">{{ replaySpeed }}x</span>
                             </div>
-                            <!-- 第二行：起始节点选择 -->
-                            <div style="display: flex; gap: 8px; align-items: center">
-                              <span style="min-width: 80px">起始节点:</span>
-                              <Select v-model="replayStartIndex" :disabled="isReplaying" style="flex: 1">
+                          </FormField>
+                        </Form>
+
+                        <!-- 测试结果 -->
+                        <Divider>{{ $t('setting.debug.testResult') }}</Divider>
+                        <div class="test-result">
+                          <ScrollArea class="h-[300px]">
+                            <div
+                              v-for="(entry, index) in testHistory"
+                              :key="index"
+                              class="test-history-item"
+                              :class="{ 'test-error': entry.error }"
+                              :style="
+                                entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle
+                              "
+                            >
+                              <div class="test-history-header">
+                                <span class="test-name">{{ entry.name }}</span>
+                                <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                              </div>
+                              <div
+                                v-if="entry.params && entry.params.length > 0"
+                                class="test-params"
+                              >
+                                <strong>{{ $t('setting.debug.parameters') }}:</strong>
+                                <pre>{{ JSON.stringify(entry.params, null, 2) }}</pre>
+                              </div>
+                              <div v-if="entry.error" class="test-error-message">
+                                <strong>{{ $t('setting.debug.error') }}:</strong>
+                                <pre>{{ entry.error }}</pre>
+                              </div>
+                              <div v-else-if="entry.result !== undefined" class="test-result-data">
+                                <strong>{{ $t('setting.debug.result') }}:</strong>
+                                <pre>{{ formatResult(entry.result) }}</pre>
+                              </div>
+                            </div>
+                            <div v-if="testHistory.length === 0" class="test-empty">
+                              {{ $t('setting.debug.noHistory') }}
+                            </div>
+                          </ScrollArea>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <!-- 批量测试 -->
+                    <TabsContent value="batch" class="debug-tabs-content">
+                      <div class="test-panel" :style="testPanelStyle">
+                        <Form class="space-y-4">
+                          <FormField
+                            name="selectedModules"
+                            :label="$t('setting.debug.unitTest.selectModules')"
+                          >
+                            <Select v-model="unitTestBatchForm.selectedModules" multiple>
+                              <SelectTrigger class="w-[240px]">
+                                <SelectValue placeholder="选择要测试的模块（留空则测试所有）" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem v-for="module in modules" :key="module" :value="module">
+                                  {{ module }}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormField>
+
+                          <!-- 上下文Tab选择 -->
+                          <FormField name="contextTabId" label="上下文Tab">
+                            <Select v-model="unitTestBatchForm.contextTabId" style="width: 100%">
+                              <SelectTrigger class="w-[240px]">
+                                <SelectValue
+                                  placeholder="选择上下文Tab（用于模拟文档环境，可选）"
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__"
+                                  >（不指定，使用当前活动Tab）</SelectItem
+                                >
+                                <SelectItem
+                                  v-for="tab in documentTabs"
+                                  :key="tab.id"
+                                  :value="tab.id"
+                                >
+                                  {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div
+                              style="
+                                margin-top: 4px;
+                                font-size: 12px;
+                                color: var(--el-text-color-secondary);
+                              "
+                            >
+                              <el-icon><InfoFilled /></el-icon>
+                              <span
+                                >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
+                              >
+                            </div>
+                          </FormField>
+
+                          <FormField name="actions">
+                            <div class="flex gap-2">
+                              <Button
+                                variant="default"
+                                @click="runUnitTestBatch"
+                                :disabled="unitTestBatchRunning"
+                              >
+                                <template v-if="unitTestBatchRunning">
+                                  <Loading class="mr-2 h-4 w-4 animate-spin" />
+                                  测试中...
+                                </template>
+                                <template v-else> 开始批量测试 </template>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                @click="stopUnitTestBatch"
+                                :disabled="!unitTestBatchRunning"
+                              >
+                                停止测试
+                              </Button>
+                            </div>
+                          </FormField>
+                        </Form>
+
+                        <!-- 测试结果 -->
+                        <div
+                          v-if="unitTestBatchResults.length > 0 || unitTestBatchRunning"
+                          class="unit-test-batch-results"
+                          style="margin-top: 20px"
+                        >
+                          <Divider :style="{ marginTop: 0 }">测试结果</Divider>
+                          <UnitTestResultDisplay
+                            v-if="unitTestBatchResults.length > 0"
+                            :test-results="unitTestBatchResults"
+                            :summary="unitTestBatchSummary"
+                            :markdown-summary="unitTestBatchMarkdown"
+                          />
+                          <div v-else-if="unitTestBatchRunning" class="test-progress-info">
+                            <Progress
+                              :percentage="unitTestBatchProgress"
+                              :status="unitTestBatchRunning ? undefined : 'success'"
+                            >
+                              <template #default="{ percentage }">
+                                <span>{{ unitTestBatchCurrentTest }}</span>
+                                <span style="margin-left: 8px">{{ percentage }}%</span>
+                              </template>
+                            </Progress>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+                <div v-else-if="activeTab === 'agentsessiondebug'" class="tab-content">
+                  <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
+                    <TabsList class="debug-tabs-list">
+                      <TabsTrigger value="debug">会话调试</TabsTrigger>
+                      <TabsTrigger value="replay">会话回放</TabsTrigger>
+                    </TabsList>
+
+                    <!-- 会话调试 -->
+                    <TabsContent value="debug" class="debug-tabs-content">
+                      <div class="test-panel" :style="testPanelStyle">
+                        <Form class="space-y-4">
+                          <FormField name="tabId" label="选择文档">
+                            <Select
+                              v-model="agentSessionDebugForm.tabId"
+                              @update:model-value="handleSessionDebugTabChange"
+                            >
+                              <SelectTrigger class="w-[240px]">
+                                <SelectValue placeholder="选择要调试的文档" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  v-for="tab in workspaceTabs"
+                                  :key="tab.id"
+                                  :value="tab.id"
+                                >
+                                  {{ tab.title || tab.path || '未命名文档' }}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormField>
+
+                          <FormField
+                            name="sessionId"
+                            label="选择会话"
+                            v-if="agentSessionDebugForm.tabId"
+                          >
+                            <div style="display: flex; gap: 8px">
+                              <Select
+                                v-model="agentSessionDebugForm.sessionId"
+                                @update:model-value="handleSessionDebugSessionChange"
+                                style="flex: 1"
+                              >
                                 <SelectTrigger class="w-[240px]">
-                                  <SelectValue placeholder="选择回放起始节点" />
+                                  <SelectValue placeholder="选择要调试的会话" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem :value="0">从头开始 (0)</SelectItem>
                                   <SelectItem
-                                    v-for="(msg, index) in replayDisplayMessages"
-                                    :key="msg.id"
-                                    :value="index + 1"
+                                    v-for="session in availableSessions"
+                                    :key="session.id"
+                                    :value="session.id"
                                   >
-                                    消息 {{ index + 1 }}: {{ getMessageRoleLabel(msg.role) }} - {{ msg.type }}
+                                    <div class="flex justify-between items-center w-full">
+                                      <span>{{ session.title || session.id }}</span>
+                                      <Badge variant="outline" size="sm">
+                                        {{ session.messages?.length || 0 }} 条消息
+                                      </Badge>
+                                    </div>
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
-                              <span
-                                style="
-                                  min-width: 120px;
-                                  font-size: 12px;
-                                  color: var(--el-text-color-secondary);
-                                "
+                              <Button
+                                variant="default"
+                                @click="handleImportSessionJson"
+                                :disabled="!agentSessionDebugForm.tabId"
                               >
-                                当前: {{ replayCurrentIndex + 1 }} /
-                                {{ replayDisplayMessages.length }}
-                              </span>
+                                <Upload class="mr-1 h-4 w-4" />
+                                导入会话
+                              </Button>
                             </div>
-                          </div>
-                        </FormField>
-                      </Form>
+                          </FormField>
+                        </Form>
 
-                      <!-- 回放显示区域 -->
-                      <div v-if="replaySession" class="replay-display" style="margin-top: 20px">
-                        <ScrollArea class="h-[500px]">
-                          <div
-                            v-for="(message, index) in replayDisplayMessages"
-                            :key="message.id"
-                            :data-replay-message-id="message.id"
-                            class="replay-message-item"
-                            :class="{
-                              'replay-message-user': message.role === 'user',
-                              'replay-message-assistant': message.role === 'assistant',
-                              'replay-message-tool': message.role === 'tool',
-                              'replay-message-replaying': message.isReplaying,
-                              'replay-message-replayed': message.isReplayed,
-                              'replay-message-pending': index > replayCurrentIndex
-                            }"
-                            :style="getReplayMessageItemStyle(index)"
-                          >
-                            <div class="replay-message-header">
-                              <Badge :variant="getMessageRoleTagType(message.role)">
-                                {{ getMessageRoleLabel(message.role) }}
-                              </Badge>
-                              <span class="replay-message-time">{{
-                                formatTime(message.timestamp)
-                              }}</span>
-                              <Badge
-                                v-if="message.isReplaying"
-                                variant="warning"
-                              >
-                                回放中
-                              </Badge>
-                              <Badge v-if="message.isReplayed" variant="default">
-                                已回放
-                              </Badge>
-                              <!-- 显示解析出的工具调用 -->
-                              <template v-if="getParsedToolCalls(message).length > 0">
-                                <Badge
-                                  v-for="(toolCall, idx) in getParsedToolCalls(message)"
-                                  :key="idx"
-                                  :variant="toolCall.isValid ? 'secondary' : 'destructive'"
-                                  class="ml-2"
-                                  :title="
-                                    toolCall.isValid
-                                      ? `工具ID: ${toolCall.tool_id}`
-                                      : `错误: ${toolCall.error || '未知错误'}`
+                        <!-- 会话详情 -->
+                        <div
+                          v-if="selectedSession"
+                          class="session-debug-details"
+                          style="margin-top: 20px"
+                        >
+                          <Tabs v-model="sessionDebugActiveTab" class="debug-tabs">
+                            <TabsList class="debug-tabs-list">
+                              <TabsTrigger value="nodes">执行节点</TabsTrigger>
+                              <TabsTrigger value="messages">消息列表</TabsTrigger>
+                              <TabsTrigger value="metadata">会话信息</TabsTrigger>
+                            </TabsList>
+
+                            <!-- 执行节点列表 -->
+                            <TabsContent value="nodes" class="debug-tabs-content">
+                              <ScrollArea class="h-[400px]">
+                                <div
+                                  v-if="
+                                    selectedSession.executionNodes &&
+                                    selectedSession.executionNodes.length > 0
                                   "
                                 >
-                                  {{ toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误` }}
-                                </Badge>
-                                <Badge
-                                  v-if="getParsedToolCalls(message).length > 1"
-                                  variant="outline"
-                                  class="ml-2"
+                                  <div
+                                    v-for="(node, index) in selectedSession.executionNodes"
+                                    :key="node.id"
+                                    class="execution-node-item"
+                                    :class="{
+                                      'current-node':
+                                        node.id === selectedSession.currentExecutionNodeId
+                                    }"
+                                    :style="executionNodeItemStyle"
+                                  >
+                                    <div class="node-header">
+                                      <div class="node-info">
+                                        <Badge :variant="getNodeTypeTagType(node.type)">
+                                          {{ getNodeTypeLabel(node.type) }}
+                                        </Badge>
+                                        <span class="node-id"
+                                          >{{ node.id.substring(0, 16) }}...</span
+                                        >
+                                        <span class="node-time">{{
+                                          formatTime(node.timestamp)
+                                        }}</span>
+                                      </div>
+                                      <div class="node-actions">
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          @click="handleRevertToNode(node.id)"
+                                        >
+                                          回溯到此节点
+                                        </Button>
+                                        <Button
+                                          v-if="node.type === 'tool-call'"
+                                          size="sm"
+                                          variant="outline"
+                                          @click="handleReplayToolCall(node.id)"
+                                        >
+                                          重新执行工具
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div class="node-status">
+                                      <Badge :variant="getNodeStatusTagType(node.status)">
+                                        {{ getNodeStatusLabel(node.status) }}
+                                      </Badge>
+                                    </div>
+                                    <div class="node-data space-y-2">
+                                      <Collapsible>
+                                        <CollapsibleTrigger class="bg-muted/50">
+                                          节点数据
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <pre :style="messageContentStyle">{{
+                                            formatResult(node.data)
+                                          }}</pre>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                      <Collapsible v-if="node.result">
+                                        <CollapsibleTrigger class="bg-muted/50">
+                                          执行结果
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <pre :style="messageContentStyle">{{
+                                            formatResult(node.result)
+                                          }}</pre>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                      <Collapsible v-if="node.error">
+                                        <CollapsibleTrigger class="bg-muted/50">
+                                          错误信息
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <pre
+                                            :style="{ ...messageContentStyle, color: '#f56c6c' }"
+                                            >{{ node.error }}</pre
+                                          >
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div v-else class="test-empty">暂无执行节点</div>
+                              </ScrollArea>
+                            </TabsContent>
+
+                            <!-- 消息列表 -->
+                            <TabsContent value="messages" class="debug-tabs-content">
+                              <ScrollArea class="h-[400px]">
+                                <div
+                                  v-if="
+                                    selectedSession.messages && selectedSession.messages.length > 0
+                                  "
                                 >
-                                  共 {{ getParsedToolCalls(message).length }} 个工具调用
-                                </Badge>
-                              </template>
+                                  <div
+                                    v-for="(message, index) in selectedSession.messages"
+                                    :key="message.id"
+                                    class="message-item"
+                                    :class="{
+                                      'user-message': message.role === 'user',
+                                      'assistant-message': message.role === 'assistant',
+                                      'tool-message': message.role === 'tool'
+                                    }"
+                                    :style="messageItemStyle"
+                                  >
+                                    <div class="message-header">
+                                      <div class="message-info">
+                                        <Badge :variant="getMessageRoleTagType(message.role)">
+                                          {{ getMessageRoleLabel(message.role) }}
+                                        </Badge>
+                                        <span class="message-type">{{ message.type }}</span>
+                                        <span class="message-id"
+                                          >{{ message.id.substring(0, 16) }}...</span
+                                        >
+                                        <span class="message-time">{{
+                                          formatTime(message.timestamp)
+                                        }}</span>
+                                      </div>
+                                      <div class="message-actions">
+                                        <Button
+                                          v-if="message.role === 'user' && message.type === 'chat'"
+                                          size="sm"
+                                          variant="default"
+                                          @click="handleReplayMessage(message.id)"
+                                        >
+                                          重新执行消息
+                                        </Button>
+                                        <Button
+                                          v-if="message.role === 'tool' && message.type === 'tool'"
+                                          size="sm"
+                                          variant="outline"
+                                          @click="handleReplayToolCallFromMessage(message.id)"
+                                        >
+                                          重新执行工具
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div class="message-content space-y-2">
+                                      <Collapsible>
+                                        <CollapsibleTrigger class="bg-muted/50">
+                                          消息内容
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <div v-if="message.type === 'chat'">
+                                            <pre :style="messageContentStyle">{{
+                                              (message as any).markdown ||
+                                              (message as any).content ||
+                                              ''
+                                            }}</pre>
+                                          </div>
+                                          <div
+                                            v-else-if="
+                                              message.type === 'tool' && message.role === 'tool'
+                                            "
+                                          >
+                                            <!-- 使用 AgentToolResultCard 显示工具消息 -->
+                                            <AgentToolResultCard
+                                              :message="message as ToolAgentMessage"
+                                              :messages="selectedSession.messages"
+                                              :message-index="index"
+                                            />
+                                          </div>
+                                          <div v-else>
+                                            <pre :style="messageContentStyle">{{
+                                              formatResult(message)
+                                            }}</pre>
+                                          </div>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                      <Collapsible v-if="(message as any).tool_calls">
+                                        <CollapsibleTrigger class="bg-muted/50">
+                                          工具调用
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <pre :style="messageContentStyle">{{
+                                            formatResult((message as any).tool_calls)
+                                          }}</pre>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div v-else class="test-empty">暂无消息</div>
+                              </ScrollArea>
+                            </TabsContent>
+
+                            <!-- 会话元数据 -->
+                            <TabsContent value="metadata" class="debug-tabs-content">
+                              <Descriptions :column="1" border>
+                                <DescriptionsItem label="会话ID">{{
+                                  selectedSession.id
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="标题">{{
+                                  selectedSession.title
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="描述">{{
+                                  selectedSession.description || '无'
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="Agent配置ID">{{
+                                  selectedSession.agentConfigId || '无'
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="状态">
+                                  <Badge :variant="getSessionStatusTagType(selectedSession.status)">
+                                    {{ selectedSession.status || 'idle' }}
+                                  </Badge>
+                                </DescriptionsItem>
+                                <DescriptionsItem label="当前执行节点">{{
+                                  selectedSession.currentExecutionNodeId || '无'
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="消息数量">{{
+                                  selectedSession.messages?.length || 0
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="执行节点数量">{{
+                                  selectedSession.executionNodes?.length || 0
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="引用数量">{{
+                                  selectedSession.referenceStore?.length || 0
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="创建时间">{{
+                                  formatTime(selectedSession.createdAt)
+                                }}</DescriptionsItem>
+                                <DescriptionsItem label="更新时间">{{
+                                  formatTime(selectedSession.updatedAt)
+                                }}</DescriptionsItem>
+                              </Descriptions>
+                            </TabsContent>
+                          </Tabs>
+                        </div>
+                        <div v-else class="test-empty" style="margin-top: 20px">
+                          请先选择文档和会话
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <!-- 会话回放 -->
+                    <TabsContent value="replay" class="debug-tabs-content">
+                      <div class="test-panel" :style="testPanelStyle">
+                        <Form class="space-y-4">
+                          <FormField name="importSession" label="导入会话">
+                            <div style="display: flex; gap: 8px">
+                              <Button variant="default" @click="handleImportSessionForReplay">
+                                <Upload class="mr-1 h-4 w-4" />
+                                导入会话JSON
+                              </Button>
+                              <Button
+                                v-if="replaySession"
+                                variant="outline"
+                                @click="handleClearReplaySession"
+                              >
+                                清除会话
+                              </Button>
                             </div>
-                            <div class="replay-message-content">
-                              <div v-if="message.type === 'chat' && message.role === 'assistant'">
-                                <!-- 回放中显示流式内容，已回放显示完整内容 -->
-                                <pre :style="messageContentStyle">{{
-                                  message.isReplaying
-                                    ? message.displayContent || ''
-                                    : message.markdown || ''
-                                }}</pre>
-                              </div>
-                              <div v-else-if="message.type === 'chat' && message.role === 'user'">
-                                <pre :style="messageContentStyle">{{
-                                  (message as any).markdown || ''
-                                }}</pre>
-                              </div>
-                              <div v-else-if="message.type === 'tool' && message.role === 'tool'">
-                                <!-- 使用 AgentToolResultCard 显示工具消息 -->
-                                <AgentToolResultCard
-                                  :message="message as ToolAgentMessage"
-                                  :messages="replayDisplayMessages as any"
-                                  :message-index="index"
+                          </FormField>
+
+                          <FormField name="sessionInfo" label="会话信息" v-if="replaySession">
+                            <Descriptions :column="1" border size="small">
+                              <DescriptionsItem label="标题">{{
+                                replaySession.title
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="消息数量">{{
+                                replaySession.messages?.length || 0
+                              }}</DescriptionsItem>
+                              <DescriptionsItem label="执行节点数量">{{
+                                replaySession.executionNodes?.length || 0
+                              }}</DescriptionsItem>
+                            </Descriptions>
+                          </FormField>
+
+                          <FormField name="replayControls" label="回放控制" v-if="replaySession">
+                            <div style="display: flex; flex-direction: column; gap: 12px">
+                              <!-- 第一行：主要控制按钮 -->
+                              <div style="display: flex; gap: 8px; align-items: center">
+                                <Button
+                                  variant="default"
+                                  @click="handleStartReplay"
+                                  :disabled="isReplaying"
+                                >
+                                  <template v-if="isReplaying">
+                                    <Loading class="mr-2 h-4 w-4 animate-spin" />
+                                    回放中...
+                                  </template>
+                                  <template v-else> 开始回放 </template>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  @click="handleStopReplay"
+                                  :disabled="!isReplaying"
+                                >
+                                  停止回放
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  @click="handleResetReplay"
+                                  :disabled="isReplaying"
+                                >
+                                  重置到开头
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  @click="handleReplayStepBack"
+                                  :disabled="isReplaying || replayCurrentIndex < 0"
+                                >
+                                  后退
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  @click="handleReplayStepForward"
+                                  :disabled="
+                                    isReplaying ||
+                                    replayCurrentIndex >= replayDisplayMessages.length - 1
+                                  "
+                                >
+                                  前进
+                                </Button>
+                                <Slider
+                                  v-model="replaySpeed"
+                                  :min="0.1"
+                                  :max="5"
+                                  :step="0.1"
+                                  style="width: 200px; margin: 0 16px"
                                 />
+                                <span style="min-width: 60px">{{ replaySpeed }}x</span>
                               </div>
-                              <div v-else>
-                                <pre :style="messageContentStyle">{{ formatResult(message) }}</pre>
+                              <!-- 第二行：起始节点选择 -->
+                              <div style="display: flex; gap: 8px; align-items: center">
+                                <span style="min-width: 80px">起始节点:</span>
+                                <Select
+                                  v-model="replayStartIndex"
+                                  :disabled="isReplaying"
+                                  style="flex: 1"
+                                >
+                                  <SelectTrigger class="w-[240px]">
+                                    <SelectValue placeholder="选择回放起始节点" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem :value="0">从头开始 (0)</SelectItem>
+                                    <SelectItem
+                                      v-for="(msg, index) in replayDisplayMessages"
+                                      :key="msg.id"
+                                      :value="index + 1"
+                                    >
+                                      消息 {{ index + 1 }}: {{ getMessageRoleLabel(msg.role) }} -
+                                      {{ msg.type }}
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <span
+                                  style="
+                                    min-width: 120px;
+                                    font-size: 12px;
+                                    color: var(--el-text-color-secondary);
+                                  "
+                                >
+                                  当前: {{ replayCurrentIndex + 1 }} /
+                                  {{ replayDisplayMessages.length }}
+                                </span>
                               </div>
                             </div>
-                          </div>
-                          <div v-if="replayDisplayMessages.length === 0" class="test-empty">
-                            暂无消息
-                          </div>
-                        </ScrollArea>
+                          </FormField>
+                        </Form>
+
+                        <!-- 回放显示区域 -->
+                        <div v-if="replaySession" class="replay-display" style="margin-top: 20px">
+                          <ScrollArea class="h-[500px]">
+                            <div
+                              v-for="(message, index) in replayDisplayMessages"
+                              :key="message.id"
+                              :data-replay-message-id="message.id"
+                              class="replay-message-item"
+                              :class="{
+                                'replay-message-user': message.role === 'user',
+                                'replay-message-assistant': message.role === 'assistant',
+                                'replay-message-tool': message.role === 'tool',
+                                'replay-message-replaying': message.isReplaying,
+                                'replay-message-replayed': message.isReplayed,
+                                'replay-message-pending': index > replayCurrentIndex
+                              }"
+                              :style="getReplayMessageItemStyle(index)"
+                            >
+                              <div class="replay-message-header">
+                                <Badge :variant="getMessageRoleTagType(message.role)">
+                                  {{ getMessageRoleLabel(message.role) }}
+                                </Badge>
+                                <span class="replay-message-time">{{
+                                  formatTime(message.timestamp)
+                                }}</span>
+                                <Badge v-if="message.isReplaying" variant="warning"> 回放中 </Badge>
+                                <Badge v-if="message.isReplayed" variant="default"> 已回放 </Badge>
+                                <!-- 显示解析出的工具调用 -->
+                                <template v-if="getParsedToolCalls(message).length > 0">
+                                  <Badge
+                                    v-for="(toolCall, idx) in getParsedToolCalls(message)"
+                                    :key="idx"
+                                    :variant="toolCall.isValid ? 'secondary' : 'destructive'"
+                                    class="ml-2"
+                                    :title="
+                                      toolCall.isValid
+                                        ? `工具ID: ${toolCall.tool_id}`
+                                        : `错误: ${toolCall.error || '未知错误'}`
+                                    "
+                                  >
+                                    {{
+                                      toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误`
+                                    }}
+                                  </Badge>
+                                  <Badge
+                                    v-if="getParsedToolCalls(message).length > 1"
+                                    variant="outline"
+                                    class="ml-2"
+                                  >
+                                    共 {{ getParsedToolCalls(message).length }} 个工具调用
+                                  </Badge>
+                                </template>
+                              </div>
+                              <div class="replay-message-content">
+                                <div v-if="message.type === 'chat' && message.role === 'assistant'">
+                                  <!-- 回放中显示流式内容，已回放显示完整内容 -->
+                                  <pre :style="messageContentStyle">{{
+                                    message.isReplaying
+                                      ? message.displayContent || ''
+                                      : message.markdown || ''
+                                  }}</pre>
+                                </div>
+                                <div v-else-if="message.type === 'chat' && message.role === 'user'">
+                                  <pre :style="messageContentStyle">{{
+                                    (message as any).markdown || ''
+                                  }}</pre>
+                                </div>
+                                <div v-else-if="message.type === 'tool' && message.role === 'tool'">
+                                  <!-- 使用 AgentToolResultCard 显示工具消息 -->
+                                  <AgentToolResultCard
+                                    :message="message as ToolAgentMessage"
+                                    :messages="replayDisplayMessages as any"
+                                    :message-index="index"
+                                  />
+                                </div>
+                                <div v-else>
+                                  <pre :style="messageContentStyle">{{
+                                    formatResult(message)
+                                  }}</pre>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-if="replayDisplayMessages.length === 0" class="test-empty">
+                              暂无消息
+                            </div>
+                          </ScrollArea>
+                        </div>
+                        <div v-else class="test-empty" style="margin-top: 20px">
+                          请先导入会话JSON文件
+                        </div>
                       </div>
-                      <div v-else class="test-empty" style="margin-top: 20px">
-                        请先导入会话JSON文件
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
-            </div>
-          </transition>
-        </CardContent>
+            </transition>
+          </CardContent>
         </Card>
       </div>
     </div>
@@ -1861,6 +1888,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+
+// Demo mode support
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 import { ElMessageBox } from 'element-plus'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
@@ -1877,21 +1910,16 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Collapsible,
   CollapsibleTrigger,
-  CollapsibleContent,
+  CollapsibleContent
 } from '@renderer/components/ui/collapsible'
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '@renderer/components/ui/card'
+import { Card, CardHeader, CardTitle, CardContent } from '@renderer/components/ui/card'
 import { Form, FormField } from '@renderer/components/ui/form'
 import {
   Select,
@@ -2038,6 +2066,44 @@ const getDisplayComponent = (componentName: string | undefined) => {
 
 const { t } = useI18n()
 
+// Load demo data for debug settings
+const loadDemoData = () => {
+  // Mock debug settings data
+  eventBusForm.eventName = 'demo-test-event'
+  eventBusForm.eventData = '{"message": "Hello from demo mode!"}'
+  broadcastForm.eventName = 'demo-broadcast-event'
+  broadcastForm.eventData = '{"type": "demo", "data": "test"}'
+  updateTestForm.currentVersion = '0.13.4'
+  updateTestForm.mockUpdateVersion = '0.14.0'
+  updateTestForm.channel = 'release'
+  updateTestForm.scenario = 'hasUpdate'
+
+  // Mock test history
+  testHistory.value = [
+    {
+      id: 'test-001',
+      name: 'Demo Test Function',
+      timestamp: Date.now(),
+      params: ['param1', 'param2'],
+      result: { status: 'success', data: 'Demo test result' }
+    }
+  ]
+
+  // Mock modules
+  modules.value = ['DemoModule', 'TestModule', 'MockModule']
+
+  // Mock tool test history
+  toolTestHistory.value = [
+    {
+      toolId: 'demo-tool',
+      toolName: 'Demo Tool',
+      timestamp: Date.now(),
+      status: 'succeeded',
+      params: { input: 'demo input' },
+      result: { output: 'demo output' }
+    }
+  ]
+}
 
 const activeTab = ref('eventbus')
 
@@ -5576,6 +5642,12 @@ const getParsedToolCalls = (message: any): ParsedToolCall[] => {
 }
 
 onMounted(async () => {
+  // Check if in demo mode
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   modules.value = testFramework.getModules()
   refreshTestHistory()
   await fetchWindowTypes()
@@ -5965,7 +6037,7 @@ onMounted(async () => {
 }
 
 /* 确保 Divider 不会影响布局 */
-.debug-section :deep([role="separator"]) {
+.debug-section :deep([role='separator']) {
   margin: 16px 0;
   flex-shrink: 0;
 }

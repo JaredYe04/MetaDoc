@@ -6,7 +6,7 @@
       </DialogHeader>
     <ScrollArea class="h-[500px]">
       <Tabs v-model="activeTab" v-if="hasTabs" class="export-options-tabs">
-        <TabsList class="w-full grid" :style="{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }">
+        <TabsList class="w-full inline-flex justify-start gap-1 bg-muted p-1 rounded-lg">
           <TabsTrigger v-for="tab in tabs" :key="tab.name" :value="tab.name">
             {{ tab.label }}
           </TabsTrigger>
@@ -714,5 +714,16 @@ defineExpose({
 
 .export-options-form {
   padding-right: 10px;
+}
+
+:deep(.export-options-tabs [data-state="active"]) {
+  background-color: hsl(var(--background));
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+:deep(.export-options-tabs button) {
+  flex-shrink: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 </style>

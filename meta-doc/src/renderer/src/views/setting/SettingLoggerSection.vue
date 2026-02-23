@@ -6,9 +6,16 @@
         <div class="flex items-center gap-2">
           <Switch
             :checked="settings.loggingEnabled"
-            @update:checked="(val: boolean) => { settings.loggingEnabled = val; handleEnabledChange() }"
+            @update:checked="
+              (val: boolean) => {
+                settings.loggingEnabled = val
+                handleEnabledChange()
+              }
+            "
           />
-          <span class="text-sm text-muted-foreground">{{ settings.loggingEnabled ? t('setting.enabled') : t('setting.disabled') }}</span>
+          <span class="text-sm text-muted-foreground">{{
+            settings.loggingEnabled ? t('setting.enabled') : t('setting.disabled')
+          }}</span>
         </div>
       </FormField>
 
@@ -22,11 +29,7 @@
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem
-              v-for="option in levelOptions"
-              :key="option.value"
-              :value="option.value"
-            >
+            <SelectItem v-for="option in levelOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </SelectItem>
           </SelectContent>
@@ -71,7 +74,11 @@
 
       <FormField :label="t('setting.logFilePath')" name="logFilePath">
         <div class="log-path">
-          <Input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly class="flex-1" />
+          <Input
+            :model-value="logFilePath || t('setting.logFileUnavailable')"
+            readonly
+            class="flex-1"
+          />
           <Button variant="outline" :disabled="!logFilePath" @click="openLogFile">
             {{ t('setting.openLogFile') }}
           </Button>
@@ -80,7 +87,11 @@
 
       <FormField :label="t('setting.logDirectory')" name="logDirectory">
         <div class="log-path">
-          <Input :model-value="logDirectory || t('setting.logFileUnavailable')" readonly class="flex-1" />
+          <Input
+            :model-value="logDirectory || t('setting.logFileUnavailable')"
+            readonly
+            class="flex-1"
+          />
           <Button variant="outline" :disabled="!logDirectory" @click="openLogDirectory">
             {{ t('setting.openLogDirectory') }}
           </Button>
@@ -98,10 +109,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search } from '@element-plus/icons-vue'
-import { settings, setSetting } from '../../utils/settings.js'
+import { settings as globalSettings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.ts'
 import type { LoggerHistoryEntry } from '../../utils/logger.ts'
@@ -120,7 +131,23 @@ import {
 } from '@renderer/components/ui/select'
 import { Divider } from '@renderer/components/ui/separator'
 
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
+
+// Demo mode: use local reactive settings; Normal mode: use global settings
+const demoSettings = reactive({
+  loggingEnabled: true,
+  loggingLevel: 'info',
+  loggingFilter: '',
+  logRetentionPeriod: '7days'
+})
+const settings = isDemo.value ? demoSettings : globalSettings
 
 const logFilePath = ref('')
 const logDirectory = ref('')
@@ -200,7 +227,36 @@ const configListener = (_event: unknown, config: { logFilePath: string; logDirec
   applyLoggerConfig(config)
 }
 
+// Demo数据加载
+const loadDemoData = () => {
+  // 日志配置
+  logFilePath.value = '/Users/demo/.metadoc/logs/metadoc-2025-02-20.log'
+  logDirectory.value = '/Users/demo/.metadoc/logs'
+
+  // 示例日志历史
+  logHistory.value = [
+    { timestamp: Date.now() - 3600000, level: 'info', message: '应用启动成功', source: 'main' },
+    { timestamp: Date.now() - 3500000, level: 'info', message: '加载配置文件', source: 'config' },
+    {
+      timestamp: Date.now() - 3000000,
+      level: 'warn',
+      message: '未找到历史会话',
+      source: 'session'
+    },
+    { timestamp: Date.now() - 2400000, level: 'info', message: '创建新文档', source: 'document' },
+    { timestamp: Date.now() - 1800000, level: 'debug', message: '初始化编辑器', source: 'editor' },
+    { timestamp: Date.now() - 1200000, level: 'info', message: 'LLM 服务就绪', source: 'llm' },
+    { timestamp: Date.now() - 600000, level: 'error', message: '网络连接超时', source: 'network' },
+    { timestamp: Date.now() - 300000, level: 'info', message: '自动保存成功', source: 'auto-save' }
+  ]
+}
+
 onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   refreshLoggerConfig()
   refreshLoggerHistory()
   if (messageBridge.getIpc()?.on) {

@@ -69,7 +69,7 @@ export async function verifyAllFontsLoaded() {
   results.previewChinese = await isFontLoaded(previewFonts[1] || previewFonts[0])
 
   return {
-    success: Object.values(results).every(r => r),
+    success: Object.values(results).every((r) => r),
     details: results,
     variables: fontVars
   }
@@ -106,7 +106,7 @@ export async function verifyFontApplication() {
   }
 
   return {
-    success: Object.values(checks).every(c => c) && loaded.success,
+    success: Object.values(checks).every((c) => c) && loaded.success,
     configured,
     applied,
     loaded,

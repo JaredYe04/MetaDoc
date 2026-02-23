@@ -582,7 +582,6 @@ import {
   watch,
   computed,
   onMounted,
-  onBeforeMount,
   onUnmounted,
   nextTick,
   provide,
@@ -627,7 +626,6 @@ import {
   X,
   ArrowUpDown,
   RefreshCw,
-  ArrowDown as ArrowDownIcon,
   Loader2
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'

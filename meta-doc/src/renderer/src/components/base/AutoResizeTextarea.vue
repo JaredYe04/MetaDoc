@@ -90,7 +90,6 @@ const emit = defineEmits<{
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const triggerButtonRef = ref<HTMLElement | null>(null)
 const showPresetDropdown = ref(false)
 
 const handleInput = (event: Event) => {

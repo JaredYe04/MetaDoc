@@ -30,6 +30,16 @@
                 @click="selectTemplate(template.id)"
                 @dblclick="confirmTemplate(template.id)"
               >
+                <el-button
+                  v-if="template.isUserTemplate && template.userTemplateId"
+                  class="template-card-delete-btn"
+                  circle
+                  size="small"
+                  :icon="Close"
+                  text
+                  :aria-label="t('common.delete') || '删除'"
+                  @click.stop="deleteUserTemplate(template.userTemplateId!, templateLabel(template))"
+                />
                 <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
                   <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />
                   <div v-else class="template-card__placeholder">
@@ -65,8 +75,10 @@ import { useWorkspace } from '../stores/workspace'
 import type { WorkspaceTabFormat } from '../stores/workspace'
 import type { SupportedFormat, DocumentTemplate } from '../types/formats'
 import { useI18n } from 'vue-i18n'
-import { Document } from '@element-plus/icons-vue'
+import { Document, Close } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import { themeState } from '../utils/themes'
+import { removeUserTemplate } from '../stores/user-templates'
 
 const props = defineProps<{
   tabId: string
@@ -76,7 +88,9 @@ const props = defineProps<{
 const workspace = useWorkspace()
 const { t } = useI18n()
 
-const formats = computed<SupportedFormat[]>(() => workspace.supportedFormats)
+const formats = computed<SupportedFormat[]>(
+  () => (workspace.supportedFormats as { value: SupportedFormat[] }).value ?? []
+)
 const selectedFormatId = ref<string>('')
 const selectedTemplateId = ref<string>('')
 
@@ -171,6 +185,28 @@ function selectTemplate(templateId: string) {
   selectedTemplateId.value = templateId
 }
 
+async function deleteUserTemplate(userTemplateId: string, templateName?: string) {
+  try {
+    await ElMessageBox.confirm(
+      t('newDocument.removeTemplateConfirm', { name: templateName ?? '' }),
+      t('newDocument.removeTemplateTitle'),
+      {
+        confirmButtonText: t('messageBox.confirm'),
+        cancelButtonText: t('messageBox.cancel'),
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+  removeUserTemplate(userTemplateId)
+  if (selectedTemplateId.value === userTemplateId) {
+    const format = currentFormat.value
+    const rest = format?.templates.filter((t) => t.userTemplateId !== userTemplateId) ?? []
+    selectedTemplateId.value = rest[0]?.id ?? format?.defaultTemplateId ?? ''
+  }
+}
+
 function confirmTemplate(templateId?: string) {
   const formatId = selectedFormatId.value
   const template = templateId ?? selectedTemplateId.value
@@ -254,6 +290,7 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(77, 77, 77, 0.5);
@@ -264,6 +301,22 @@ function confirmTemplate(templateId?: string) {
     border-color 0.2s ease,
     box-shadow 0.2s ease;
   background-color: var(--el-fill-color-blank);
+}
+
+.template-card-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.05s ease;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.3)"') !important;
+}
+.template-card:hover .template-card-delete-btn {
+  opacity: 0.5;
+}
+.template-card-delete-btn:hover {
+  opacity: 1 !important;
 }
 
 .template-card:hover {

@@ -49,15 +49,15 @@
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" @click="emitMenu('save')">
+        <UISubMenuItem :icon="FolderChecked" :disabled="!isDocumentTab" @click="emitMenu('save')">
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderAdd" @click="emitMenu('save-as')">
+        <UISubMenuItem :icon="FolderAdd" :disabled="!isDocumentTab" @click="emitMenu('save-as')">
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
-        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2">
+        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2" :disabled="!isDocumentTab">
           <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
@@ -81,8 +81,16 @@
           </UISubMenuItem>
         </UISubMenu>
 
+        <UISubMenuItem
+          :icon="DocumentAdd"
+          :disabled="!canExportAsTemplate"
+          @click="openExportAsTemplateDialog"
+        >
+          {{ $t('leftMenu.exportAsTemplate') }}
+        </UISubMenuItem>
+
         <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
-          {{ $t('leftMenu.closeFile') }}
+          {{ $t('leftMenu.close') }}
         </UISubMenuItem>
       </UISubMenu>
 
@@ -467,15 +475,15 @@
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" @click="emitMenu('save')">
+        <UISubMenuItem :icon="FolderChecked" :disabled="!isDocumentTab" @click="emitMenu('save')">
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderAdd" @click="emitMenu('save-as')">
+        <UISubMenuItem :icon="FolderAdd" :disabled="!isDocumentTab" @click="emitMenu('save-as')">
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
-        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2">
+        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2" :disabled="!isDocumentTab">
           <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
@@ -499,8 +507,16 @@
           </UISubMenuItem>
         </UISubMenu>
 
+        <UISubMenuItem
+          :icon="DocumentAdd"
+          :disabled="!canExportAsTemplate"
+          @click="openExportAsTemplateDialog"
+        >
+          {{ $t('leftMenu.exportAsTemplate') }}
+        </UISubMenuItem>
+
         <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
-          {{ $t('leftMenu.closeFile') }}
+          {{ $t('leftMenu.close') }}
         </UISubMenuItem>
       </UISubMenu>
 
@@ -834,6 +850,47 @@
     @confirm="handleExportOptionsConfirm"
   />
 
+  <!-- 导出为模板对话框 -->
+  <el-dialog
+    v-model="showExportAsTemplateDialog"
+    :title="t('leftMenu.exportAsTemplate')"
+    width="480px"
+    destroy-on-close
+    @open="fillExportAsTemplateDefaults"
+    @closed="resetExportAsTemplateForm"
+  >
+    <el-form label-width="auto" label-position="top">
+      <el-form-item :label="t('leftMenu.exportAsTemplateTitleLabel')">
+        <div class="export-as-template-field">
+          <el-input v-model="exportAsTemplateTitle" :placeholder="t('leftMenu.exportAsTemplateTitleLabel')" />
+          <el-tooltip :content="t('leftMenu.exportAsTemplateAiGenerate')" placement="top">
+            <el-button
+              type="primary"
+              :loading="exportAsTemplateAiLoading"
+              circle
+              class="export-as-template-ai-btn"
+              @click="generateTemplateTitleDescriptionByAi"
+            >
+              <el-icon v-if="!exportAsTemplateAiLoading"><MagicStick /></el-icon>
+            </el-button>
+          </el-tooltip>
+        </div>
+      </el-form-item>
+      <el-form-item :label="t('leftMenu.exportAsTemplateDescLabel')">
+        <el-input
+          v-model="exportAsTemplateDescription"
+          type="textarea"
+          :rows="3"
+          :placeholder="t('leftMenu.exportAsTemplateDescLabel')"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="showExportAsTemplateDialog = false">{{ t('messageBox.cancel') }}</el-button>
+      <el-button type="primary" @click="confirmExportAsTemplate">{{ t('messageBox.confirm') }}</el-button>
+    </template>
+  </el-dialog>
+
   <!-- 菜单配置对话框 -->
   <MenuConfigDialog
     v-model="showMenuConfigDialog"
@@ -878,7 +935,8 @@ import {
   Grid,
   Reading,
   View,
-  Paperclip
+  Paperclip,
+  MagicStick
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -892,6 +950,8 @@ import { exportAdapterRegistry } from '../services/export-adapters'
 import ExportOptionsDialog from './ExportOptionsDialog.vue'
 import type { ExportOptions } from '../services/export-adapters/types'
 import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
+import { createAiTask, ai_types } from '../utils/ai_tasks'
+import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
 
 const props = withDefaults(
   defineProps<{ mode?: 'normal' | 'demo' }>(),
@@ -907,6 +967,10 @@ const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
 const showMenuConfigDialog = ref(false)
+const showExportAsTemplateDialog = ref(false)
+const exportAsTemplateTitle = ref('')
+const exportAsTemplateDescription = ref('')
+const exportAsTemplateAiLoading = ref(false)
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import { convertMarkdownToLatex } from '../utils/latex-utils'
@@ -1191,7 +1255,16 @@ const toggleUserProfile = () => {
   emitMenu('toggle-user-profile')
 }
 
-const { activeDocument } = useActiveDocument()
+const { activeDocument, activeTab } = useActiveDocument()
+
+// 当前 tab 是否为文档 tab（md/tex 等），用于控制保存/另存为/导出/导出为模板 的可用性
+const isDocumentTab = computed(() => activeTab.value?.kind === 'file')
+const canExportAsTemplate = computed(
+  () =>
+    isDocumentTab.value &&
+    (activeDocument.value?.format === 'md' || activeDocument.value?.format === 'tex')
+)
+
 const exportTitle = computed(() => {
   const title = activeDocument.value?.meta?.title?.trim()
   if (title && title.length > 0) {
@@ -1359,12 +1432,102 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   currentExportFormat.value = null
   currentExportAdapter.value = null
 }
+
+function fillExportAsTemplateDefaults() {
+  const doc = activeDocument.value
+  const meta = doc?.meta
+  exportAsTemplateTitle.value = meta?.title?.trim() || exportTitle.value || ''
+  exportAsTemplateDescription.value = meta?.description?.trim() || ''
+}
+
+function resetExportAsTemplateForm() {
+  exportAsTemplateTitle.value = ''
+  exportAsTemplateDescription.value = ''
+}
+
+function openExportAsTemplateDialog() {
+  if (!canExportAsTemplate.value) return
+  showExportAsTemplateDialog.value = true
+}
+
+const exportAsTemplateAiResultRef = ref('')
+
+function parseTemplateTitleDescriptionFromAi(text: string): { title: string; description: string } {
+  const raw = (text || '').trim()
+  const titleMatch = raw.match(/(?:标题|Title)[：:]\s*([^\n]+)/i)
+  const descMatch = raw.match(/(?:描述|Description)[：:]\s*([\s\S]*)/i)
+  return {
+    title: titleMatch ? titleMatch[1].trim() : '',
+    description: descMatch ? descMatch[1].trim() : ''
+  }
+}
+
+async function generateTemplateTitleDescriptionByAi() {
+  const doc = activeDocument.value
+  if (!doc || (doc.format !== 'md' && doc.format !== 'tex')) return
+  const content = doc.format === 'md' ? doc.markdown : doc.tex
+  const excerpt = content.slice(0, 2000)
+  const meta = doc.meta
+  const prompt = generateTemplateTitleDescriptionPrompt(
+    excerpt,
+    meta?.title ?? '',
+    meta?.description ?? ''
+  )
+  exportAsTemplateAiLoading.value = true
+  exportAsTemplateAiResultRef.value = ''
+  try {
+    const messages = [{ role: 'user' as const, content: prompt }]
+    await createAiTask(
+      t('leftMenu.exportAsTemplate'),
+      messages,
+      exportAsTemplateAiResultRef,
+      ai_types.chat,
+      'export-as-template-ai',
+      { stream: true }
+    ).done
+    const { title, description } = parseTemplateTitleDescriptionFromAi(exportAsTemplateAiResultRef.value)
+    if (title) exportAsTemplateTitle.value = title
+    if (description) exportAsTemplateDescription.value = description
+  } catch (e) {
+    ElMessage.error(t('llmDialog.generateFailedError'))
+  } finally {
+    exportAsTemplateAiLoading.value = false
+  }
+}
+
+function confirmExportAsTemplate() {
+  const doc = activeDocument.value
+  if (!doc || (doc.format !== 'md' && doc.format !== 'tex')) return
+  const content = doc.format === 'md' ? doc.markdown : doc.tex
+  const loc = locale?.value ?? 'zh_CN'
+  emitMenu('export-as-template', {
+    title: exportAsTemplateTitle.value.trim() || exportTitle.value,
+    description: exportAsTemplateDescription.value.trim(),
+    format: doc.format,
+    content,
+    locale: String(loc).replace('-', '_')
+  })
+  showExportAsTemplateDialog.value = false
+}
 </script>
 
 <style scoped>
 /* 底部菜单项 */
 .bottom-menu {
   margin-top: auto;
+}
+
+.export-as-template-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.export-as-template-field .el-input {
+  flex: 1;
+}
+.export-as-template-ai-btn {
+  flex-shrink: 0;
 }
 
 /* AI Logo 图标样式 */

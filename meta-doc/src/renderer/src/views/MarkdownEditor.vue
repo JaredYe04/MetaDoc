@@ -2486,6 +2486,15 @@ onMounted(async () => {
 
             // 监听键盘事件
             const handleKeyDown = (e: KeyboardEvent) => {
+              // 不拦截 Shift+方向键，保留原生选区扩展行为（否则 cancelCurrentCompletion 会触发
+              // cancelVditorGhostText 移除 DOM 节点，导致选区错乱：左边界不动、右边界向左移动）
+              if (
+                e.shiftKey &&
+                ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)
+              ) {
+                return
+              }
+
               // 手动触发（Shift+Tab）
               if (e.shiftKey && e.key === 'Tab') {
                 e.preventDefault()

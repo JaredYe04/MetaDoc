@@ -1036,6 +1036,30 @@
         "article": {
           "label": "文章模板",
           "description": "包含摘要、正文、结论等章节结构。"
+        },
+        "technicalDoc": {
+          "label": "技术文档",
+          "description": "API/架构/部署等技术文档结构，含接口说明与配置。"
+        },
+        "labReport": {
+          "label": "实验报告",
+          "description": "目的、原理、步骤、数据与结论的完整实验报告。"
+        },
+        "courseReport": {
+          "label": "课程报告",
+          "description": "读书报告、专题报告、调研报告等课程作业。"
+        },
+        "letter": {
+          "label": "书信",
+          "description": "正式或非正式书信格式，含称呼、正文与署名。"
+        },
+        "blogPost": {
+          "label": "博客/推文",
+          "description": "博客文章或社交媒体推文，适合短文与标签。"
+        },
+        "lectureNotes": {
+          "label": "课堂笔记",
+          "description": "按讲次与要点整理的课堂笔记结构。"
         }
       },
       "latex": {

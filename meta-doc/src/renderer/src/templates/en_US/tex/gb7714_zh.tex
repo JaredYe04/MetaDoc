@@ -56,6 +56,32 @@
 \subsection{具体实现}
 在此处描述方法的具体实现细节。
 
+\subsection{格式与交叉引用示例}
+以下为行内公式、带编号公式、插图、表格、文献引用与脚注的示例。行内公式如 $E=mc^2$；带编号公式：
+\begin{equation}
+  \label{eq:gb}
+  \nabla \cdot \mathbf{E} = \frac{\rho}{\varepsilon_0}.
+\end{equation}
+可引用式~\ref{eq:gb}。图~\ref{fig:gb} 与表~\ref{tab:gb} 为占位示例；文中引用文献见\cite{ref1}，脚注示例\footnote{脚注内容。}。
+\begin{figure}[htbp]
+  \centering
+  \rule{3.5cm}{2cm}
+  \caption{示例图。}
+  \label{fig:gb}
+\end{figure}
+\begin{table}[htbp]
+  \centering
+  \caption{示例表。}
+  \label{tab:gb}
+  \begin{tabular}{lc}
+    \toprule
+    项目 & 数值 \\
+    \midrule
+    示例 & 1.0  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \section{实验结果与分析}
 实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。
 

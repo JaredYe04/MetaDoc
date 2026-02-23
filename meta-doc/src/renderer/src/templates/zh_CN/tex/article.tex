@@ -10,6 +10,8 @@
 \usepackage{color}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
+\usepackage{booktabs}
+\usepackage{caption}
 
 % 英文正文字体
 \setmainfont{Times New Roman}
@@ -34,7 +36,52 @@
 \section{主体}
 请在此处撰写主体内容。
 
+\section{格式示例与交叉引用}
+本小节展示行内公式、带编号公式、图表、文献引用与脚注的用法，可根据需要修改或删除。
+
+\subsection{公式}
+行内公式示例：爱因斯坦质能关系 $E=mc^2$，勾股定理 \( a^2 + b^2 = c^2 \)。带编号的块级公式示例：
+\begin{equation}
+  \label{eq:example}
+  \int_{-\infty}^{+\infty} e^{-x^2} \, dx = \sqrt{\pi}.
+\end{equation}
+文中可引用公式“见式~\eqref{eq:example}”或“式~\ref{eq:example}”。
+
+\subsection{插图}
+将图片放在 \texttt{figures} 目录下，用 \texttt{includegraphics} 插入。图~\ref{fig:example} 为占位示意。
+\begin{figure}[htbp]
+  \centering
+  \rule{4cm}{2.5cm}  % 占位，替换为 \includegraphics[width=4cm]{figures/example.pdf}
+  \caption{示例图标题。}
+  \label{fig:example}
+\end{figure}
+
+\subsection{表格}
+表~\ref{tab:example} 为表格示例，可用 \texttt{booktabs} 绘制三线表。
+\begin{table}[htbp]
+  \centering
+  \caption{示例表标题。}
+  \label{tab:example}
+  \begin{tabular}{lcc}
+    \toprule
+    项目 & 数值一 & 数值二 \\
+    \midrule
+    A    & 1.0   & 2.0   \\
+    B    & 3.0   & 4.0   \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{文献引用与脚注}
+参考文献在文末 \texttt{thebibliography} 中列出，文中用 \cite{ref1}、\cite{ref2} 引用。脚注示例：这是一段正文\footnote{这是脚注内容，用于补充说明。}，可有多处脚注。
+
 \section{结论}
 请在此处撰写结论内容。
+
+% 参考文献（可按需增删 \bibitem）
+\begin{thebibliography}{99}
+\bibitem{ref1} 作者. 题名[J]. 刊名, 年, 卷(期): 页码.
+\bibitem{ref2} 作者. 书名[M]. 出版地: 出版社, 年.
+\end{thebibliography}
 
 \end{document}

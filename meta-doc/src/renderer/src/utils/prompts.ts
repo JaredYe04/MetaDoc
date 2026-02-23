@@ -412,6 +412,35 @@ export const wholeArticleContextPrompt = (content: string): string => {
   )
 }
 
+/**
+ * 导出为模板时，根据文档内容与元信息生成模板标题与描述（用于「AI生成」按钮）
+ * 输出格式要求：第一行「标题：xxx」，第二行起「描述：xxx」
+ */
+export const generateTemplateTitleDescriptionPrompt = (
+  contentExcerpt: string,
+  metaTitle: string,
+  metaDescription: string
+): string => {
+  const template = getPromptTemplate('generateTemplateTitleDescriptionPrompt', {
+    contentExcerpt: contentExcerpt || '（无正文）',
+    metaTitle: metaTitle || '（无）',
+    metaDescription: metaDescription || '（无）'
+  })
+  if (template) return template
+  return `你是一个文档编辑助手。用户要将当前文档导出为「文档模板」，需要你根据文档内容和现有元信息，生成简洁的「模板标题」和「模板描述」。
+
+**现有元信息：**
+- 标题：${metaTitle || '（无）'}
+- 描述/摘要：${metaDescription || '（无）'}
+
+**文档内容摘要（前文）：**
+${contentExcerpt || '（无正文）'}
+
+**输出要求（必须严格按以下格式，仅输出两行）：**
+标题：（一行，15字以内，概括文档用途或类型）
+描述：（一行或数行，50字以内，说明该模板的适用场景）`
+}
+
 export interface SuggestionPreset {
   label: string
   prompt: string

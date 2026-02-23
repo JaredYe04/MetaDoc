@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 import InputContextMenu from './components/common/InputContextMenu.vue'
@@ -77,6 +77,11 @@ function initGlobalEventListeners() {
     const langStr = typeof lang === 'string' ? lang : 'zh-CN'
     locale.value = langStr
     localStorage.setItem('lang', langStr)
+  })
+
+  // 用户模板增删后刷新新建文档模板列表
+  eventBus.on('refresh-template-formats', () => {
+    loadTemplateFormats()
   })
 
   // 监听主题同步事件（全局）
@@ -141,6 +146,7 @@ function initGlobalEventListeners() {
     () => eventBus.off('cancel-suggestion'),
     () => eventBus.off('lang-changed'),
     () => eventBus.off('sync-theme'),
+    () => eventBus.off('refresh-template-formats'),
     () => window.removeEventListener('keydown', handleGlobalKeyDown, true)
   )
 }
@@ -242,12 +248,22 @@ const autoOpenDoc = async () => {
   }
 }
 
+// 按当前语言加载文档模板（md/tex），供新建文档使用
+async function loadTemplateFormats() {
+  const ws = useWorkspace()
+  const normalizedLocale = (locale.value || 'zh_CN').replace('-', '_')
+  await ws.initTemplateFormats(normalizedLocale, t)
+}
+
 onMounted(async () => {
   // 初始化运行时服务器地址缓存（供 getRuntimeServerBaseUrlSync 等使用）
   await getRuntimeServerBaseUrl()
 
   // 初始化全局事件监听器（必须在其他初始化之前）
   initGlobalEventListeners()
+
+  // 按当前语言加载文档模板
+  await loadTemplateFormats()
 
   // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
   initMonacoEnvironment()
@@ -351,6 +367,11 @@ onMounted(async () => {
 
   // 异步加载非关键设置（不阻塞窗口显示）
   initNonCriticalSettings()
+})
+
+// 语言切换时重新加载当前语言的文档模板
+watch(locale, () => {
+  loadTemplateFormats()
 })
 
 // 组件卸载时清理全局事件监听器

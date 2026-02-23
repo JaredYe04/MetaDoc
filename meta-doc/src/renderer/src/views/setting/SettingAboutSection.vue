@@ -130,7 +130,7 @@
 
       <el-tab-pane :label="$t('setting.about.openSourceLicenses')" name="licenses">
         <div class="licenses-section">
-          <el-scrollbar class="content-scrollbar">
+          <el-scrollbar class="content-scrollbar" height="400px">
             <div class="content-container">
               <pre class="license-content">{{ openSourceLicenses }}</pre>
             </div>
@@ -140,7 +140,7 @@
 
       <el-tab-pane :label="$t('setting.about.thirdPartyAssets')" name="assets">
         <div class="assets-section">
-          <el-scrollbar class="content-scrollbar">
+          <el-scrollbar class="content-scrollbar" height="400px">
             <div class="content-container">
               <pre class="assets-content">{{ thirdPartyAssets }}</pre>
             </div>
@@ -505,19 +505,24 @@ onUnmounted(() => {
 .assets-section {
   margin-top: 0;
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
 .content-scrollbar {
-  flex: 1;
-  height: 100%;
+  flex-shrink: 0;
 }
 
 .content-scrollbar :deep(.el-scrollbar__wrap) {
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   background-color: var(--el-bg-color-page);
+  overflow-x: hidden;
+}
+
+.content-scrollbar :deep(.el-scrollbar__view) {
+  display: block;
 }
 
 .content-container {

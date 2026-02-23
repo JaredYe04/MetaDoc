@@ -254,8 +254,12 @@ const {
   createDocumentSnapshotFromTemplate
 } = workspace
 
+const formatList = computed(() => {
+  const v = (supportedFormats as { value?: unknown[] })?.value
+  return Array.isArray(v) ? v : []
+})
 const formatOptions = computed(() =>
-  supportedFormats.map((format) => ({
+  formatList.value.map((format: { id: string; labelKey?: string; descriptionKey?: string }) => ({
     id: format.id,
     title: t(format.labelKey ?? ''),
     description: t(format.descriptionKey ?? '')

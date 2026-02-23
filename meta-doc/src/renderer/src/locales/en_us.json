@@ -46,6 +46,12 @@
     "exportHtml": "Export HTML",
     "exportLatex": "Export LaTeX",
     "closeFile": "Close File",
+    "close": "Close",
+    "exportAsTemplate": "Export as template",
+    "exportAsTemplateTitleLabel": "Template title",
+    "exportAsTemplateDescLabel": "Template description",
+    "exportAsTemplateAiGenerate": "AI generate title and description",
+    "exportAsTemplateSuccess": "Added as template; you can select it when creating a new document",
     "aiToolTooltip": "AI Tools",
     "aiAssistant": "AI Assistant",
     "chatWithAI": "Chat with AI",
@@ -89,6 +95,10 @@
   },
   "microphoneTest": {
     "cannotAccessMic": "Cannot access microphone, please check permission settings"
+  },
+  "messageBox": {
+    "confirm": "OK",
+    "cancel": "Cancel"
   },
   "common": {
     "confirm": "Confirm",
@@ -1410,7 +1420,9 @@
       }
     },
     "title": "New Document",
-    "useTemplate": "Use this template"
+    "useTemplate": "Use this template",
+    "removeTemplateTitle": "Remove template",
+    "removeTemplateConfirm": "Remove template \"{name}\"? This cannot be undone."
   },
   "agent": {
     "roles": {

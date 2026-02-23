@@ -73,6 +73,12 @@
     "exportHtml": "导出HTML",
     "exportLatex": "导出LaTeX",
     "closeFile": "关闭文件",
+    "close": "关闭",
+    "exportAsTemplate": "导出为模板",
+    "exportAsTemplateTitleLabel": "模板标题",
+    "exportAsTemplateDescLabel": "模板描述",
+    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
+    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
     "aiToolTooltip": "AI工具",
     "aiAssistant": "AI助手",
     "chatWithAI": "与AI对话",
@@ -679,6 +685,10 @@
       "info": "提示"
     }
   },
+  "messageBox": {
+    "confirm": "确定",
+    "cancel": "取消"
+  },
   "common": {
     "confirm": "确认",
     "cancel": "取消",
@@ -1001,6 +1011,8 @@
     "formatTitle": "选择格式",
     "templateTitle": "选择模板",
     "useTemplate": "使用此模板",
+    "removeTemplateTitle": "移除模板",
+    "removeTemplateConfirm": "确定要移除模板「{name}」吗？移除后无法恢复。",
     "formats": {
       "markdown": {
         "label": "Markdown",

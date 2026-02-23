@@ -15,7 +15,8 @@
         :class="{
           'is-collapsed': collapse && props.level === 1,
           'is-open': isOpen,
-          'is-nested': props.level > 1
+          'is-nested': props.level > 1,
+          'is-disabled': props.disabled
         }"
         @click.stop="handleTitleClick"
         @mouseenter="handleTitleMouseEnter"
@@ -118,12 +119,14 @@ const props = withDefaults(
     iconImage?: string
     trigger?: 'click' | 'hover'
     level?: number
+    disabled?: boolean
   }>(),
   {
     title: '',
     tooltip: '',
     trigger: 'click',
-    level: 1
+    level: 1,
+    disabled: false
   }
 )
 
@@ -265,6 +268,7 @@ const closePopup = () => {
 }
 
 const handleTitleClick = () => {
+  if (props.disabled) return
   if (props.trigger === 'click') {
     if (isOpen.value) {
       closePopup()
@@ -275,6 +279,7 @@ const handleTitleClick = () => {
 }
 
 const handleTitleMouseEnter = () => {
+  if (props.disabled) return
   if (props.trigger === 'hover') {
     // hover 触发的菜单不影响 click 触发的菜单
     openPopup()
@@ -415,6 +420,12 @@ onBeforeUnmount(() => {
 .ui-sub-menu__title.is-open .ui-sub-menu__label,
 .ui-sub-menu__title.is-open .ui-sub-menu__arrow {
   color: var(--el-text-color-primary) !important;
+}
+
+.ui-sub-menu__title.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* is-open 状态下 hover 保持 */

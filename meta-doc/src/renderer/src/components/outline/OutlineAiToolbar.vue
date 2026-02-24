@@ -11,7 +11,7 @@
       ]"
       :variant="selectedAiTool === 'generateChildren' ? 'default' : 'outline'"
       size="sm"
-      @click="toggleAiTool('generateChildren')"
+      @click="handleToggleAiTool('generateChildren')"
     >
       <img :src="themeState.currentTheme.BranchIcon" class="ai-toolbar-btn__icon" alt="" />
       <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildren') }}</span>
@@ -94,6 +94,11 @@ import {
   TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import { themeState } from '../../utils/themes'
+import { notifyInfo } from '../../utils/notify'
+
+// Demo mode support
+const props = defineProps<{ mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
 
 type AiTool =
   | 'generateChildren'
@@ -107,6 +112,24 @@ const selectedAiToolRef = inject<{ value: AiTool }>('outlineSelectedAiTool')!
 const selectedAiTool = computed(() => selectedAiToolRef.value)
 const toggleAiTool = inject<ToggleAiToolFn>('outlineToggleAiTool')!
 const formatTitle = inject<() => void>('outlineFormatTitle')!
+
+// Demo mode handler for AI tools
+const handleToggleAiTool = (tool: Exclude<AiTool, null>) => {
+  if (isDemo.value) {
+    notifyInfo('Demo mode: AI ' + tool + ' is simulated')
+    return
+  }
+  toggleAiTool(tool)
+}
+
+// Demo mode handler for format title
+const handleFormatTitle = () => {
+  if (isDemo.value) {
+    notifyInfo('Demo mode: Format title is simulated')
+    return
+  }
+  formatTitle()
+}
 </script>
 
 <style scoped>

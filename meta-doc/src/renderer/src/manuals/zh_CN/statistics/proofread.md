@@ -6,6 +6,10 @@
 
 <ProofreadView mode="demo" />
 
+<ProofreadDisplay mode="demo" />
+
+<DataAnalysisDisplay mode="demo" />
+
 ## 校对统计介绍
 
 ### 什么是校对统计
@@ -41,6 +45,10 @@ graph TB
 ```
 
 ## 错误统计
+
+<DataAnalysisDisplay mode="demo" />
+
+<ChartGenerationDisplay mode="demo" />
 
 ### 错误分类
 
@@ -98,6 +106,8 @@ graph TB
 - **统计分析**：对历史数据进行统计分析
 
 ## 统计视图
+
+<ProofreadView mode="demo" />
 
 ### 统一视图
 

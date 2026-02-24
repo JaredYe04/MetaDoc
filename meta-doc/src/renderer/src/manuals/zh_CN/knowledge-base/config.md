@@ -16,7 +16,7 @@
 
 您可以通过顶部菜单栏访问知识库管理：
 
-<Demo component="KnowledgeBase" mode="demo" />
+<KnowledgeBase mode="demo" />
 
 上图展示了知识库管理界面的主要功能区域：
 
@@ -80,9 +80,13 @@ graph TB
     style F fill:#fce7f3,stroke:#ec4899
 ```
 
+<SettingKnowledgeBaseSection mode="demo" />
+
 ## 理解知识库的工作原理
 
 ### 文档是如何被"学习"的
+
+<RAGToolDisplay mode="demo" />
 
 当您将文档添加到知识库时，MetaDoc会执行以下步骤：
 
@@ -116,6 +120,8 @@ flowchart LR
     style C fill:#fef3c7,stroke:#f59e0b
     style F fill:#d1fae5,stroke:#10b981
 ```
+
+<KnowledgeBase mode="demo" />
 
 ## 支持的文档类型
 
@@ -177,6 +183,8 @@ graph TB
     style G fill:#d1fae5,stroke:#10b981
 ```
 
+<RAGToolDisplay mode="demo" />
+
 ## 智能检索机制
 
 ### 知识库如何找到相关内容
@@ -214,6 +222,8 @@ graph LR
     style G fill:#d1fae5,stroke:#10b981
 ```
 
+<KnowledgeBase mode="demo" />
+
 ## 分块处理说明
 
 ### 为什么需要分块
@@ -245,6 +255,8 @@ graph LR
 - 块3：更多中间内容 + 结尾段落
 
 这样即使问题只涉及"中间内容"，也能准确找到相关部分。
+
+<SettingKnowledgeBaseSection mode="demo" />
 
 ## 配置建议
 
@@ -297,6 +309,8 @@ graph LR
 - 机密文档谨慎上传
 - 了解数据的处理方式
 - 选择适合的处理方式
+
+<RAGToolDisplay mode="demo" />
 
 ## 注意事项
 

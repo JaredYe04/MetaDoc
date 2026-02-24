@@ -8,6 +8,8 @@ ECharts是一个强大的数据可视化图表库，支持多种图表类型。M
 
 ## ECharts语法
 
+<ChartGenerationDisplay mode="demo" />
+
 ### 基本语法
 
 ECharts使用JSON配置格式：
@@ -64,6 +66,8 @@ graph TB
 
 ## 支持的图表类型
 
+<DataAnalysisDisplay mode="demo" />
+
 ### 折线图
 
 创建折线图：
@@ -88,6 +92,8 @@ graph TB
 
 ### 柱状图
 
+<ChartGenerationDisplay mode="demo" />
+
 创建柱状图：
 
 ````markdown
@@ -110,6 +116,8 @@ graph TB
 
 ### 饼图
 
+<DataAnalysisDisplay mode="demo" />
+
 创建饼图：
 
 ````markdown
@@ -128,6 +136,8 @@ graph TB
 ````
 
 ### 散点图
+
+<ChartGenerationDisplay mode="demo" />
 
 创建散点图：
 
@@ -149,6 +159,8 @@ graph TB
 ````
 
 ### 雷达图
+
+<OutlineTreeDisplay mode="demo" />
 
 创建雷达图：
 
@@ -173,6 +185,8 @@ graph TB
 
 ### 热力图
 
+<DataAnalysisDisplay mode="demo" />
+
 创建热力图：
 
 ````markdown
@@ -195,6 +209,8 @@ graph TB
 ````
 
 ## 图表配置
+
+<OutlineTreeDisplay mode="demo" />
 
 ### 标题配置
 
@@ -266,6 +282,8 @@ graph TB
 ```
 
 ## 高级功能
+
+<ChartGenerationDisplay mode="demo" />
 
 ### 多系列图表
 

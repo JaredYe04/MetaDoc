@@ -10,7 +10,13 @@ MetaDoc支持将文档导出为多种格式，包括PDF、HTML、DOCX、LaTeX、
 
 <MetaInfoPanel mode="demo" :meta='{"title": "导出示例", "author": "作者", "description": "文档描述", "keywords": ["导出", "PDF"]}' :outlineJson='""' />
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
+<MetaInfoPanel mode="demo" :meta='{"title": "导出格式", "author": "MetaDoc", "description": "支持的导出格式介绍", "keywords": ["导出", "格式"]}' :outlineJson='""' />
+
 ## 导出格式支持
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
 
 ### Markdown文档导出
 
@@ -22,6 +28,8 @@ Markdown文档（`.md`）可以导出为以下格式：
 - **LaTeX**：适合学术论文
 - **JSON**：适合程序处理
 
+<MetaInfoPanel mode="demo" :meta='{"title": "LaTeX导出", "author": "系统", "description": "LaTeX文档导出选项", "keywords": ["LaTeX", "导出"]}' :outlineJson='""' /
+
 ### LaTeX文档导出
 
 LaTeX文档（`.tex`）可以导出为以下格式：
@@ -30,6 +38,8 @@ LaTeX文档（`.tex`）可以导出为以下格式：
 - **Markdown**：转换为Markdown格式
 - **HTML**：转换为HTML格式
 - **DOCX**：转换为Word格式
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' /
 
 ### JSON文档导出
 
@@ -93,6 +103,8 @@ graph TB
 
 ## Markdown导出详解
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
 ### 导出为PDF
 
 PDF导出会将Markdown转换为PDF格式：
@@ -110,6 +122,8 @@ PDF导出会将Markdown转换为PDF格式：
 
 ### 导出为HTML
 
+<MetaInfoPanel mode="demo" :meta='{"title": "HTML导出", "author": "系统", "description": "HTML导出设置和选项", "keywords": ["HTML", "导出"]}' :outlineJson='""' />
+
 HTML导出会将Markdown转换为网页格式：
 
 - **包含内容**：文档正文、图片、表格、数学公式
@@ -124,6 +138,8 @@ HTML导出会将Markdown转换为网页格式：
 - 分享给他人
 
 ### 导出为DOCX
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
 
 DOCX导出会将Markdown转换为Word格式：
 
@@ -140,6 +156,8 @@ DOCX导出会将Markdown转换为Word格式：
 
 ### 导出为LaTeX
 
+<MetaInfoPanel mode="demo" :meta='{"title": "LaTeX导出", "author": "学术", "description": "Markdown转LaTeX导出", "keywords": ["LaTeX", "学术"]}' :outlineJson='""' />
+
 LaTeX导出会将Markdown转换为LaTeX格式：
 
 - **包含内容**：文档正文、图片、表格、数学公式
@@ -155,6 +173,8 @@ LaTeX导出会将Markdown转换为LaTeX格式：
 
 ### 导出为JSON
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
 JSON导出会将文档保存为JSON格式：
 
 - **包含内容**：文档的所有数据（内容、元信息、大纲等）
@@ -162,6 +182,8 @@ JSON导出会将文档保存为JSON格式：
 - **用途**：程序处理、数据备份
 
 ## LaTeX导出详解
+
+<MetaInfoPanel mode="demo" :meta='{"title": "LaTeX导出详解", "author": "系统", "description": "LaTeX文档导出详细说明", "keywords": ["LaTeX", "PDF", "导出"]}' :outlineJson='""' />
 
 ### 导出为PDF
 

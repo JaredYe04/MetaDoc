@@ -39,6 +39,8 @@
 - **使用说明**：先按 `Ctrl+K`（或 `Cmd+K`），然后按 `S`
 - **使用场景**：一次性保存所有文档
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["save-all"]}]' />
+
 ### 关闭文件
 
 - **快捷键**：`Ctrl+W`（Windows/Linux）或 `Cmd+W`（macOS）
@@ -66,6 +68,10 @@ graph LR
 
 标签页栏显示所有打开的文档，支持新建、切换、关闭等操作：
 
+<MainTabs mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
 ### 新建标签页
 
 - **快捷键**：`Ctrl+T`（Windows/Linux）或 `Cmd+T`（macOS）
@@ -81,6 +87,8 @@ graph LR
 - **使用说明**：按住 `Ctrl+Tab` 会显示标签页切换浮层，可以继续按Tab键选择或直接点击
 - **使用场景**：快速在多个文档间切换
 
+<TabSwitcherOverlay mode="demo" />
+
 #### 上一个标签页
 
 - **快捷键**：`Ctrl+Shift+Tab`（Windows/Linux）或 `Cmd+Shift+Tab`（macOS）
@@ -94,6 +102,8 @@ graph LR
 - **使用说明**：可以连续使用，依次恢复最近关闭的标签页（最多恢复20个）
 - **使用场景**：误关闭标签页后快速恢复
 
+<MainTabs mode="demo" />
+
 ## 其他快捷键
 
 ### 打开用户手册
@@ -101,6 +111,8 @@ graph LR
 - **快捷键**：`F1`
 - **功能**：打开用户手册页面
 - **使用场景**：需要查看帮助文档时
+
+<MenuItemsDemo mode="demo" :items='[{"id": "help"}]' />
 
 ## 快捷键列表
 
@@ -180,3 +192,11 @@ graph LR
 - [[shortcuts.editor|编辑器快捷键]]
 - [[core.file-operations|文件操作]]
 - [[core.multi-tab|多标签页管理]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MainTabs mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
+
+<QuickStartPanel mode="demo" />

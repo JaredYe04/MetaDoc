@@ -217,3 +217,13 @@ graph TB
 - [[core.multi-tab|多标签页管理]]
 
 <MainTabs mode="demo" />
+
+<LeftMenu mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+<DialogDemo mode="demo" dialogType="menu-config" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />
+
+<DialogDemo mode="demo" dialogType="confirm-reset" />

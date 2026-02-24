@@ -203,3 +203,5 @@ graph TB
 - [[core.document-metadata|文档元信息]]
 - [[settings.theme|主题设置]]
 - [[settings.image|图片设置]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["basic"]}]' />

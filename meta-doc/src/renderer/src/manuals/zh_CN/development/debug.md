@@ -8,6 +8,10 @@
 
 ## 调试工具介绍
 
+<SettingDebugSection mode="demo" />
+
+<ConsoleTerminal mode="demo" consoleKey="debug" :history='[]' />
+
 ### 访问调试工具
 
 调试工具仅在开发环境中可用：

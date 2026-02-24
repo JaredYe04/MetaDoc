@@ -43,6 +43,8 @@ graph TB
 
 创建会话时，系统会自动：
 
+<AgentSessionManager mode="demo" />
+
 - **创建会话ID**：生成唯一的会话标识符
 - **关联AgentConfig**：绑定到指定的AgentConfig
 - **初始化消息队列**：创建空的消息队列
@@ -71,7 +73,7 @@ graph TB
 
 删除不需要的会话：
 
-<AgentView mode="demo" />
+<AgentSessionManager mode="demo" />
 
 1. **右键菜单**：右键点击会话，选择"删除"
 2. **确认删除**：在弹出的确认对话框中确认删除
@@ -114,6 +116,8 @@ graph TB
 
 ### 导出会话
 
+<AgentView mode="demo" />
+
 导出会话为JSON文件：
 
 <AgentView mode="demo" />
@@ -147,6 +151,8 @@ graph LR
 
 ### 导入会话
 
+<AgentSessionManager mode="demo" />
+
 从JSON文件导入会话：
 
 1. **打开导入**：在Agent视图中找到导入功能
@@ -176,8 +182,6 @@ sequenceDiagram
 
 重试会话允许您重新执行失败的Agent任务：
 
-<AgentView mode="demo" />
-
 1. **查看执行节点**：在会话中查看执行节点列表
 2. **选择节点**：选择要重试的执行节点
 3. **重试执行**：点击"重试"按钮重新执行
@@ -201,8 +205,6 @@ sequenceDiagram
 
 对会话消息可以进行以下操作：
 
-<AgentView mode="demo" />
-
 - **编辑消息**：编辑用户消息，重新发送
 - **重新生成**：重新生成AI回复
 - **复制消息**：复制消息内容
@@ -210,9 +212,9 @@ sequenceDiagram
 
 ### 消息队列
 
-消息队列允许在Agent执行过程中插入消息：
-
 <AgentView mode="demo" />
+
+消息队列允许在Agent执行过程中插入消息：
 
 1. **插入时机**：当Agent正在生成回复或调用工具时，消息会暂存到队列
 2. **处理时机**：当前任务执行完成后，在执行下一步之前，会先处理队列中的消息
@@ -224,9 +226,9 @@ sequenceDiagram
 
 ### 添加引用
 
-为会话添加引用素材：
+<ReferenceManager mode="demo" />
 
-<AgentView mode="demo" />
+为会话添加引用素材：
 
 1. **打开引用管理**：点击会话中的"引用"标签
 2. **添加引用**：点击"添加引用"按钮
@@ -245,9 +247,9 @@ sequenceDiagram
 - **知识库引用**：引用知识库中的内容
 - **内置引用**：动态获取当前文档内容（默认启用）
 
-<AgentView mode="demo" />
-
 ### 激活引用
+
+<ReferenceManager mode="demo" />
 
 引用素材可以激活或停用：
 
@@ -278,11 +280,11 @@ Agent可以感知引用素材的内容，并基于它们进行推理和操作。
 
 ## 会话状态
 
+<AgentSessionManager mode="demo" />
+
 ### 状态类型
 
 会话有以下状态：
-
-<AgentView mode="demo" />
 
 - **idle**：空闲状态，等待用户输入
 - **thinking**：Agent正在思考
@@ -316,9 +318,9 @@ graph LR
 
 ## 使用技巧
 
-### 会话组织
-
 <AgentView mode="demo" />
+
+### 会话组织
 
 1. **分类管理**：为不同主题创建不同会话
 2. **命名规范**：使用清晰的会话名称
@@ -337,6 +339,8 @@ graph LR
 3. **调整配置**：如果频繁失败，考虑调整AgentConfig或工具集
 
 ## 常见问题
+
+<AgentView mode="demo" />
 
 ### Q: 如何创建新会话？
 

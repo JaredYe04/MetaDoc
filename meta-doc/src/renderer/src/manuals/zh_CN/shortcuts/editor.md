@@ -4,6 +4,10 @@
 
 编辑器快捷键是在编辑器界面中使用的快捷键，包括文本编辑、查找替换、格式化等功能。熟练掌握这些快捷键可以提升编辑效率。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
 **说明**：查找/替换（Ctrl+F、Ctrl+H）由应用全局实现；加粗/斜体/链接/代码块等由底层编辑器（Markdown 使用 Vditor，LaTeX 使用 Monaco）提供，若无效请以实际编辑器行为为准。
 
 ## 查找替换
@@ -53,7 +57,11 @@ graph LR
 
 <SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 
+<SearchReplaceMenu mode="demo" :position='{"top": 150, "left": 200}' :adapter='null' />
+
 ## 文本格式化
+
+<TextFormatToolbar mode="demo" />
 
 ### 加粗
 
@@ -76,6 +84,10 @@ graph LR
 **注意事项**：此快捷键可能与保存全部（Ctrl+K S）冲突，需要先按Ctrl+K，然后按K，而不是同时按。
 
 ## AI补全
+
+<AISuggestionGhost mode="demo" />
+
+<CompletionSettingsPanel mode="demo" />
 
 ### 手动触发补全
 
@@ -210,6 +222,8 @@ AI补全还可以通过以下按键自动触发：
 
 ## Markdown编辑器特有快捷键
 
+<LaTeXEditorDemo mode="demo" />
+
 ### Vditor快捷键
 
 Markdown编辑器基于Vditor，支持以下快捷键：
@@ -221,6 +235,8 @@ Markdown编辑器基于Vditor，支持以下快捷键：
 
 ## LaTeX编辑器特有快捷键
 
+<LaTeXEditorDemo mode="demo" />
+
 ### Monaco编辑器快捷键
 
 LaTeX编辑器基于Monaco Editor，支持以下快捷键：
@@ -231,6 +247,10 @@ LaTeX编辑器基于Monaco Editor，支持以下快捷键：
 - **多光标编辑**：`Alt+Click` 添加光标
 
 ## 快捷键使用技巧
+
+<LaTeXEditorDemo mode="demo" />
+
+<Outline mode="demo" />
 
 ### 组合使用
 
@@ -247,6 +267,8 @@ LaTeX编辑器基于Monaco Editor，支持以下快捷键：
 - **折叠**：`[` 和 `]` 对应折叠和展开
 
 ## 最佳实践
+
+<MainTabs mode="demo" />
 
 1. **熟练使用**：熟练掌握常用编辑快捷键
 2. **组合操作**：结合多个快捷键完成复杂编辑
@@ -273,10 +295,8 @@ LaTeX编辑器基于Monaco Editor，支持以下快捷键：
 
 <ViewMenuItemsDemo mode="demo" :items='["editor"]' />
 
-<Outline mode="demo" />
+<AISuggestionGhost mode="demo" />
+
+<CompletionSettingsPanel mode="demo" />
 
 <LaTeXEditorDemo mode="demo" />
-
-<SettingBasicSection mode="demo" />
-
-<SettingThemeSection mode="demo" />

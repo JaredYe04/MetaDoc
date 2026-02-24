@@ -26,6 +26,14 @@ MetaDoc支持以下全局主题类型：
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+### 浅色主题预览
+
+<SettingThemeSection mode="demo" theme="light" />
+
+### 深色主题预览
+
+<SettingThemeSection mode="demo" theme="dark" />
+
 ### 主题设置界面
 
 下图展示了主题设置页面的完整界面：
@@ -67,6 +75,8 @@ graph LR
 
 ## 内容主题
 
+<SettingThemeSection mode="demo" />
+
 ### 设置内容主题
 
 内容主题控制文档编辑区域的显示主题：
@@ -82,6 +92,8 @@ graph LR
 - **自动模式**：内容主题自动跟随全局主题
 
 ## 代码主题
+
+<SettingThemeSection mode="demo" />
 
 ### 设置代码主题
 
@@ -105,6 +117,8 @@ MetaDoc支持多种代码主题，包括：
 
 ## 行号显示
 
+<SettingThemeSection mode="demo" />
+
 ### 显示行号
 
 启用"代码框显示行号"后，代码块会显示行号：
@@ -119,6 +133,10 @@ MetaDoc支持多种代码主题，包括：
 - **代码阅读**：行号有助于理解代码结构
 
 ## 主题切换
+
+<SettingThemeSection mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 
 ### 实时切换
 
@@ -135,6 +153,8 @@ MetaDoc支持多种代码主题，包括：
 - **下次启动**：下次启动时会使用上次选择的主题
 
 ## 预设主题
+
+<SettingThemeSection mode="demo" />
 
 ### 内置主题
 

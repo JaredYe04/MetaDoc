@@ -186,3 +186,11 @@ graph TB
 - [[settings.image-upload|上传服务设置]]
 - [[settings.basic|基础设置]]
 - [[core.file-operations|文件操作]]
+
+<SettingImageSection mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["image"]}]' />
+
+<DialogDemo mode="demo" dialogType="image-upload" />
+
+<DialogDemo mode="demo" dialogType="file-save" />

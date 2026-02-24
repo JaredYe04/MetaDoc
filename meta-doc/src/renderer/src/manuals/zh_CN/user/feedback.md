@@ -169,8 +169,6 @@ graph TB
 - **复制群号**：可以复制QQ群号
 - **加入群组**：加入群组后可以实时反馈
 
-<SettingBasicSection mode="demo" />
-
 ## 反馈处理
 
 ### 反馈流程

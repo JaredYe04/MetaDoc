@@ -311,3 +311,19 @@ A: 尝试启用知识库集成，调整补全最大Token数，或使用手动触
 - [[ai.completion|AI自动补全]]
 - [[knowledge-base.usage|知识库使用]]
 - [[core.editor-basics|编辑器基础操作]]
+
+<LaTeXEditorDemo mode="demo" />
+
+<Outline mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+
+<TitleMenu mode="demo" title="Markdown编辑器功能示例" path="1" :tree='{}' />
+
+<SearchReplaceMenu mode="demo" :adapter='null' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
+
+<QuickStartMarkdown mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

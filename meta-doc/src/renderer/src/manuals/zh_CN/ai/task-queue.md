@@ -4,9 +4,9 @@
 
 AI任务队列用于管理和监控所有正在执行的AI任务。通过任务队列，您可以查看任务状态、取消任务、查看任务进度，确保AI功能的高效运行。
 
-<AIChat mode="demo" />
-
 ## 任务队列介绍
+
+<AITaskQueue mode="demo" />
 
 ### 什么是任务队列
 
@@ -53,6 +53,8 @@ graph TB
 
 ### 任务队列面板
 
+<AITaskQueue mode="demo" />
+
 任务队列通常显示为侧边面板：
 
 - **任务列表**：显示所有任务
@@ -60,6 +62,8 @@ graph TB
 - **控制按钮**：提供任务控制功能
 
 ## 任务查看
+
+<AITaskQueue mode="demo" />
 
 ### 任务列表
 
@@ -92,6 +96,8 @@ graph TB
 
 ## 任务控制
 
+<AITaskQueue mode="demo" />
+
 ### 取消任务
 
 可以取消正在执行的任务：
@@ -101,7 +107,7 @@ graph TB
 3. **确认取消**：确认取消操作
 4. **任务取消**：任务会被取消并移除
 
-<AIChat mode="demo" />
+<AITaskQueue mode="demo" />
 
 ### 清空任务
 
@@ -122,6 +128,8 @@ graph TB
 
 ## 任务进度显示
 
+<AITaskQueue mode="demo" />
+
 ### 进度条
 
 任务进度通过进度条显示：
@@ -139,9 +147,11 @@ graph TB
 - **总步骤数**：显示总步骤数
 - **预计时间**：显示预计完成时间
 
-<AIChat mode="demo" />
+<AITaskQueue mode="demo" />
 
 ## 任务延迟
+
+<AITaskQueue mode="demo" />
 
 ### 延迟补全
 
@@ -162,6 +172,8 @@ graph TB
 
 ## 任务历史
 
+<AITaskQueue mode="demo" />
+
 ### 历史记录
 
 任务队列可能保存任务历史：
@@ -178,9 +190,9 @@ graph TB
 - **任务详情**：查看历史任务的详细信息
 - **结果查看**：查看任务的结果
 
-<AIChat mode="demo" />
-
 ## 最佳实践
+
+<AITaskQueue mode="demo" />
 
 1. **定期查看**：定期查看任务队列，了解任务执行情况
 2. **及时取消**：不需要的任务及时取消，释放资源

@@ -11,12 +11,11 @@ import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils.js'
 import { convertLatexToMarkdown } from '../utils/latex-utils.js'
-import {
-  findFormatById,
-  findFormatTemplate,
-  getSupportedFormats
-} from '../constants/supported-formats'
-import type { SupportedFormat } from '../types/formats'
+import { getSupportedFormats } from '../constants/supported-formats'
+import type { DocumentTemplate, SupportedFormat } from '../types/formats'
+import { getSupportedFormatsFromTemplates } from '../templates/template-registry'
+import type { TranslateFn } from '../templates/template-registry'
+import { getUserTemplatesForLocaleFormat } from './user-templates'
 import { formatRegistry } from '../utils/format-registry'
 import { saveWorkspaceDocument } from '../services/document-save'
 import {
@@ -116,6 +115,27 @@ const recentlyClosedTabs = ref<
 const removingTabIds = new Set<string>()
 
 const documents = reactive<Record<string, WorkspaceDocument>>({})
+
+// 当前语言的文档模板列表（由模板目录按语言加载），用于新建文档与初始化
+const supportedFormatsRef = ref<SupportedFormat[]>(getSupportedFormats())
+
+function findFormatById(id: string): SupportedFormat | undefined {
+  return supportedFormatsRef.value.find((format) => format.id === id)
+}
+
+function findFormatTemplate(
+  formatId: string,
+  templateId?: string
+): DocumentTemplate | undefined {
+  const format = findFormatById(formatId)
+  if (!format) return undefined
+  if (!templateId) {
+    return (
+      format.templates.find((tpl) => tpl.id === format.defaultTemplateId) ?? format.templates[0]
+    )
+  }
+  return format.templates.find((tpl) => tpl.id === templateId)
+}
 
 /** 工具 Tab 的 UI 状态（当前选中的会话/对话索引），用于窗口迁移时恢复 */
 const tabToolState = reactive<Record<string, TabToolState>>({})
@@ -1968,7 +1988,21 @@ export function useWorkspace() {
     moveTab,
     saveDocument,
     saveAllDocuments,
-    supportedFormats: getSupportedFormats(),
+    supportedFormats: computed(() => supportedFormatsRef.value),
+    setSupportedFormats(formats: SupportedFormat[]) {
+      supportedFormatsRef.value = formats
+    },
+    async initTemplateFormats(locale: string, t: TranslateFn) {
+      const formats = await getSupportedFormatsFromTemplates(locale, t)
+      const normalizedLocale = locale.replace('-', '_')
+      supportedFormatsRef.value = formats.map((f) => {
+        const userTemplatesList = getUserTemplatesForLocaleFormat(normalizedLocale, f.id)
+        return {
+          ...f,
+          templates: [...f.templates, ...userTemplatesList]
+        }
+      })
+    },
     withAutoOutlineSyncSuppressed,
     handleExternalFileChange,
     handleExternalFileDeleted,

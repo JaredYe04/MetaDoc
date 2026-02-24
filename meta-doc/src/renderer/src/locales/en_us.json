@@ -46,6 +46,12 @@
     "exportHtml": "Export HTML",
     "exportLatex": "Export LaTeX",
     "closeFile": "Close File",
+    "close": "Close",
+    "exportAsTemplate": "Export as template",
+    "exportAsTemplateTitleLabel": "Template title",
+    "exportAsTemplateDescLabel": "Template description",
+    "exportAsTemplateAiGenerate": "AI generate title and description",
+    "exportAsTemplateSuccess": "Added as template; you can select it when creating a new document",
     "aiToolTooltip": "AI Tools",
     "aiAssistant": "AI Assistant",
     "chatWithAI": "Chat with AI",
@@ -89,6 +95,10 @@
   },
   "microphoneTest": {
     "cannotAccessMic": "Cannot access microphone, please check permission settings"
+  },
+  "messageBox": {
+    "confirm": "OK",
+    "cancel": "Cancel"
   },
   "common": {
     "confirm": "Confirm",
@@ -1403,6 +1413,30 @@
           "description": "Contains the structure of the chapters, such as summaries, body, conclusions, etc.",
           "label": "Article Template"
         },
+        "technicalDoc": {
+          "label": "Technical document",
+          "description": "API, architecture, or deployment docs with interface and config sections."
+        },
+        "labReport": {
+          "label": "Lab report",
+          "description": "Structured lab report with objective, procedure, data, and conclusions."
+        },
+        "courseReport": {
+          "label": "Course report",
+          "description": "Reading report, topic report, or survey report for courses."
+        },
+        "letter": {
+          "label": "Letter",
+          "description": "Formal or informal letter with salutation, body, and signature."
+        },
+        "blogPost": {
+          "label": "Blog / post",
+          "description": "Blog post or social media post with short sections and tags."
+        },
+        "lectureNotes": {
+          "label": "Lecture notes",
+          "description": "Structured lecture notes by session and key points."
+        },
         "blank": {
           "description": "Create from a completely blank page.",
           "label": "Empty Document"
@@ -1410,7 +1444,9 @@
       }
     },
     "title": "New Document",
-    "useTemplate": "Use this template"
+    "useTemplate": "Use this template",
+    "removeTemplateTitle": "Remove template",
+    "removeTemplateConfirm": "Remove template \"{name}\"? This cannot be undone."
   },
   "agent": {
     "roles": {

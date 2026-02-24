@@ -85,6 +85,7 @@
                     backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
                   }"
                 >
+
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="undo">
@@ -178,8 +179,14 @@
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger as-child>
-                      <div class="toolbar-icon" @click="compile">
-                        <icon name="code" />
+                      <div 
+                        class="toolbar-icon" 
+                        :class="{ 'is-compiling': isCompiling }"
+                        :aria-disabled="isCompiling"
+                        @click="!isCompiling && compile()"
+                      >
+                        <RefreshCw v-if="isCompiling" class="w-4 h-4 animate-spin" />
+                        <icon v-else name="code" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -213,7 +220,11 @@
                         background: themeState.currentTheme.background
                       }"
                     >
-                      <ConsoleOutput console-key="latex" />
+                      <ConsoleOutput
+                        console-key="latex"
+                        :enable-ai-analysis="enableAiAnalysis"
+                        @update:enable-ai-analysis="enableAiAnalysis = $event"
+                      />
                     </div>
                   </div>
                 </div>
@@ -301,6 +312,7 @@ import { useWorkspace } from '../stores/workspace'
 
 import 'monaco-latex'
 import { ArrowLeft, ArrowRight, RefreshCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { Loading } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
 import messageBridge from '../bridge/message-bridge'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
@@ -704,6 +716,7 @@ let lastOutputLength = 0 // 用于增量输出
 let errorAnalysisWatchStop: (() => void) | null = null
 let currentAiTaskHandle: string | null = null // 当前AI任务的handle
 const enableAiAnalysis = ref(false) // AI分析开关（默认关闭）
+const isCompiling = ref(false) // 编译中状态，防止重复点击
 
 // 收集编译过程中的 console 输出
 let compileConsoleOutput: { stdout: string; stderr: string } = { stdout: '', stderr: '' }
@@ -2270,7 +2283,8 @@ function togglePdf() {
 }
 
 const compile = async () => {
-  if (!editor.value || !messageBridge.getIpc()) return
+  if (!editor.value || !messageBridge.getIpc() || isCompiling.value) return
+  isCompiling.value = true
   // 自动打开终端输出界面
   showConsole.value = true
   eventBus.emit('clear-console', { key: 'latex' })
@@ -2283,6 +2297,7 @@ const compile = async () => {
   }
 
   if (!currentPath.value || !currentPath.value.toLowerCase().endsWith('.tex')) {
+    isCompiling.value = false
     eventBus.emit('show-warning', t('latexEditor.notification.pleaseSaveFirst'))
     eventBus.emit('save')
     return
@@ -2395,6 +2410,8 @@ const compile = async () => {
     })
 
     logger.error('编译过程出错', error)
+  } finally {
+    isCompiling.value = false
   }
   //logger.log("编译 LaTeX");
 }
@@ -4318,6 +4335,12 @@ function onCancelSuggestion() {
 
 .toolbar-icon:hover {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-icon.is-compiling {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.8;
 }
 
 .editor-console-container {

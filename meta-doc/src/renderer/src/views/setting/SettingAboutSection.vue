@@ -130,11 +130,19 @@
       </TabsContent>
 
       <TabsContent value="licenses" class="about-tabs-content">
-        <pre class="license-content">{{ openSourceLicenses }}</pre>
+        <div class="licenses-section">
+          <ScrollArea class="h-[400px]">
+            <pre class="license-content">{{ openSourceLicenses }}</pre>
+          </ScrollArea>
+        </div>
       </TabsContent>
 
       <TabsContent value="assets" class="about-tabs-content">
-        <pre class="assets-content">{{ thirdPartyAssets }}</pre>
+        <div class="assets-section">
+          <ScrollArea class="h-[400px]">
+            <pre class="assets-content">{{ thirdPartyAssets }}</pre>
+          </ScrollArea>
+        </div>
       </TabsContent>
     </Tabs>
   </div>
@@ -158,7 +166,7 @@ import logo from '../../assets/logo.svg'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
 import { Form, FormField } from '@renderer/components/ui/form'
-import { Switch } from '@renderer/components/ui/switch'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Divider } from '@renderer/components/ui/separator'
 
 // ==================== Demo Mode Support ====================
@@ -526,6 +534,14 @@ onUnmounted(() => {
 
 .update-actions {
   margin-top: 24px;
+}
+
+.licenses-section,
+.assets-section {
+  margin-top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .license-content,

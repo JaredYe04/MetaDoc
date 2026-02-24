@@ -1,0 +1,82 @@
+\documentclass{report}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{ulem}
+\usepackage{geometry}
+\usepackage{color}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{booktabs}
+\usepackage{caption}
+
+% 英文正文字体
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Consolas}
+
+% 中文字体
+\setCJKmainfont{SimSun}
+\setCJKsansfont{Microsoft YaHei}
+\setCJKmonofont{FangSong}
+
+\title{报告标题}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\chapter{引言}
+请在此处撰写引言内容。
+
+\chapter{内容}
+请在此处撰写正文内容。
+
+\chapter{格式示例与交叉引用}
+本小节展示公式、图表、文献引用与脚注的用法。
+
+\section{公式}
+行内公式 $E=mc^2$；带编号公式：
+\begin{equation}
+  \label{eq:rep}
+  \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}.
+\end{equation}
+引用式~\ref{eq:rep}。
+
+\section{插图与表格}
+图~\ref{fig:rep} 与表~\ref{tab:rep} 为占位示例。
+\begin{figure}[htbp]
+  \centering
+  \rule{4cm}{2.5cm}
+  \caption{示例图。}
+  \label{fig:rep}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \caption{示例表。}
+  \label{tab:rep}
+  \begin{tabular}{lc}
+    \toprule
+    项目 & 数值 \\
+    \midrule
+    A    & 1.0  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{引用与脚注}
+参见\cite{ref1}。脚注示例\footnote{脚注内容。}。
+
+\chapter{结论}
+请在此处撰写结论内容。
+
+\begin{thebibliography}{99}
+\bibitem{ref1} 作者. 题名[J]. 刊名, 年, 卷(期): 页码.
+\end{thebibliography}
+
+\end{document}

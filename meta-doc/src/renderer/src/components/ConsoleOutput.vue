@@ -14,7 +14,7 @@
       <div class="console-actions">
         <Switch
           v-if="showAiAnalysis"
-          :checked="enableAiAnalysis"
+          :checked="enableAiAnalysisModel"
           @update:checked="handleAiAnalysisToggle"
           style="margin-right: 8px"
         />
@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { Switch } from '@renderer/components/ui/switch'
@@ -85,8 +85,17 @@ const props = defineProps({
     type: String,
     default: 'normal',
     validator: (value: string) => ['normal', 'demo'].includes(value)
+  },
+  /** 由父组件（如 LaTeXEditor）控制的 AI 分析开关，传入时与父组件保持同步 */
+  parentEnableAiAnalysis: {
+    type: Boolean as PropType<boolean | undefined>,
+    default: undefined
   }
 })
+
+const emit = defineEmits<{
+  (e: 'update:enableAiAnalysis', value: boolean): void
+}>()
 
 const consoleStyle = ref({
   '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
@@ -129,14 +138,30 @@ const detectTypeFromContent = (content: string): ConsoleLineType | null => {
 
 const lines = ref<ConsoleLine[]>([])
 
-const enableAiAnalysis = ref(true)
+const internalEnableAiAnalysis = ref(true)
 
-const handleAiAnalysisToggle = (value: boolean) => {
-  eventBus.emit('console-ai-analysis-toggle', {
-    key: props.consoleKey,
-    enabled: value
-  })
-}
+const enableAiAnalysisModel = computed({
+  get: () => (props.enableAiAnalysis !== undefined ? props.enableAiAnalysis : internalEnableAiAnalysis.value),
+  set: (value: boolean) => {
+    if (props.enableAiAnalysis !== undefined) {
+      emit('update:enableAiAnalysis', value)
+    } else {
+      internalEnableAiAnalysis.value = value
+      eventBus.emit('console-ai-analysis-toggle', {
+        key: props.consoleKey,
+        enabled: value
+      })
+    }
+  }
+})
+
+watch(
+  () => props.enableAiAnalysis,
+  (v) => {
+    if (v !== undefined) internalEnableAiAnalysis.value = v
+  },
+  { immediate: true }
+)
 
 const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
   if (!editorId) return null

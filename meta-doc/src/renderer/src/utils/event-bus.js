@@ -9,6 +9,7 @@ import { ConvertMarkdownToHtmlManually } from './md-utils.js'
 import { webMainCalls } from './web-adapter/web-main-calls.js'
 import messageBridge from '../bridge/message-bridge'
 import { useWorkspace } from '../stores/workspace'
+import { addUserTemplate } from '../stores/user-templates'
 import { serializeDocument } from '../services/document-serializer'
 import { convertLatexToMarkdown } from './latex-utils'
 import { NotImplementedExportError, prepareExportPayload } from '../services/export-manager.ts'
@@ -650,6 +651,25 @@ eventBus.on('save-as', async (args) => {
 
 eventBus.on('close-doc', () => {
   eventBus.emit('close-active-tab')
+})
+
+eventBus.on('export-as-template', (payload) => {
+  const { title, description, format, content, locale: localeFromPayload } = payload || {}
+  if (!content || (format !== 'md' && format !== 'tex')) return
+  const locale = (localeFromPayload || i18n?.global?.locale?.value || 'zh_CN').replace('-', '_')
+  try {
+    addUserTemplate({
+      formatId: format,
+      locale,
+      title: title || '未命名模板',
+      description: description || '',
+      content
+    })
+    ElMessage.success(i18n?.global?.t?.('leftMenu.exportAsTemplateSuccess', '已添加为模板，可在新建文档时选择') ?? '已添加为模板')
+  } catch (e) {
+    getLogger().error('export-as-template failed', e)
+    ElMessage.error(i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败')
+  }
 })
 
 eventBus.on('export', async ({ format, filename, options }) => {

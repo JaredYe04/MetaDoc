@@ -55,8 +55,6 @@ const logger = createRendererLogger('App', {
   windowTypeProvider: () => getWindowType()
 })
 
-
-
 // 获取当前路由信息
 
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单

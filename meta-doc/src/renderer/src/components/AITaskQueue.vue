@@ -26,7 +26,12 @@
           <Switch
             :checked="settings.autoCompletion"
             class="auto-switch"
-            @update:checked="(val) => { settings.autoCompletion = val; setSetting('autoCompletion', val) }"
+            @update:checked="
+              (val) => {
+                settings.autoCompletion = val
+                setSetting('autoCompletion', val)
+              }
+            "
           />
         </div>
       </div>

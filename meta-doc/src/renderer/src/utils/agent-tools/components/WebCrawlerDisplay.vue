@@ -21,7 +21,9 @@
           </h3>
           <div class="result-meta" :style="metaStyle">
             <Badge
-              :variant="resultData.status >= 200 && resultData.status < 300 ? 'default' : 'destructive'"
+              :variant="
+                resultData.status >= 200 && resultData.status < 300 ? 'default' : 'destructive'
+              "
             >
               HTTP {{ resultData.status }} {{ resultData.statusText }}
             </Badge>
@@ -33,9 +35,7 @@
           </div>
         </div>
         <div class="header-url" :style="urlStyle">
-          <Link :href="resultData.url" target="_blank" type="primary">{{
-            resultData.url
-          }}</Link>
+          <Link :href="resultData.url" target="_blank" type="primary">{{ resultData.url }}</Link>
         </div>
       </div>
 
@@ -115,7 +115,9 @@
     >
       <Alert variant="destructive">
         <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</AlertTitle>
+        <AlertTitle>{{
+          displayData.error || props.error || $t('agent.display.webCrawler.error')
+        }}</AlertTitle>
         <AlertDescription>
           <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
           <p

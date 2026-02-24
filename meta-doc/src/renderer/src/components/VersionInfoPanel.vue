@@ -39,28 +39,23 @@
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
-            <Alert
-              v-if="updateStatus.updateAvailable"
-              variant="default"
-            >
+            <Alert v-if="updateStatus.updateAvailable" variant="default">
               <CheckCircle2 class="h-4 w-4" />
               <AlertTitle>{{ $t('versionInfoPanel.updateAvailable') }}</AlertTitle>
               <AlertDescription v-if="updateStatus.updateInfo">
-                {{ $t('versionInfoPanel.updateAvailableDesc', { version: updateStatus.updateInfo.version }) }}
+                {{
+                  $t('versionInfoPanel.updateAvailableDesc', {
+                    version: updateStatus.updateInfo.version
+                  })
+                }}
               </AlertDescription>
             </Alert>
-            <Alert
-              v-else-if="updateStatus.updateNotAvailable"
-              variant="default"
-            >
+            <Alert v-else-if="updateStatus.updateNotAvailable" variant="default">
               <Info class="h-4 w-4" />
               <AlertTitle>{{ $t('versionInfoPanel.noUpdate') }}</AlertTitle>
               <AlertDescription>{{ $t('versionInfoPanel.noUpdateDesc') }}</AlertDescription>
             </Alert>
-            <Alert
-              v-else-if="updateStatus.error"
-              variant="destructive"
-            >
+            <Alert v-else-if="updateStatus.error" variant="destructive">
               <XCircle class="h-4 w-4" />
               <AlertTitle>{{ $t('versionInfoPanel.checkUpdateError') }}</AlertTitle>
               <AlertDescription>{{ updateStatus.error }}</AlertDescription>
@@ -92,19 +87,10 @@
         <Button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
           {{ $t('versionInfoPanel.downloadProgress', { progress: downloadProgress }) }}
         </Button>
-        <Button
-          v-if="downloaded"
-          type="success"
-          @click="handleInstallUpdate"
-          style="width: 100%"
-        >
+        <Button v-if="downloaded" type="success" @click="handleInstallUpdate" style="width: 100%">
           {{ $t('versionInfoPanel.installAndRestart') }}
         </Button>
-        <Alert
-          v-if="downloadError"
-          variant="destructive"
-          class="mt-3"
-        >
+        <Alert v-if="downloadError" variant="destructive" class="mt-3">
           <XCircle class="h-4 w-4" />
           <AlertTitle>{{ $t('versionInfoPanel.downloadError') }}</AlertTitle>
           <AlertDescription>{{ downloadError }}</AlertDescription>

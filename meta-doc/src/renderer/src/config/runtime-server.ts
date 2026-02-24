@@ -17,7 +17,8 @@ export async function getRuntimeServerBaseUrl(): Promise<string> {
     return cachedBaseUrl
   } catch (e) {
     const fallback = 'http://127.0.0.1:52521'
-    if (typeof console !== 'undefined') console.warn('[runtime-server] 获取 baseUrl 失败，使用默认:', fallback, e)
+    if (typeof console !== 'undefined')
+      console.warn('[runtime-server] 获取 baseUrl 失败，使用默认:', fallback, e)
     return fallback
   }
 }

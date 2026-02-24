@@ -89,11 +89,11 @@
           </SelectTrigger>
           <SelectContent>
             <SelectItem v-for="num in 10" :key="num" :value="num">{{ String(num) }}</SelectItem>
-        </SelectContent>
-      </Select>
-    </span>
-    <Divider direction="vertical" />
-    <Tooltip>
+          </SelectContent>
+        </Select>
+      </span>
+      <Divider direction="vertical" />
+      <Tooltip>
         <TooltipTrigger as-child>
           <div
             class="pdf-toolbar-icon"

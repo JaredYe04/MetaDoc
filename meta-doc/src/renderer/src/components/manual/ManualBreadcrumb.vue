@@ -23,7 +23,10 @@
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import type { BreadcrumbItem } from '../../manuals/types'
-import { Breadcrumb, BreadcrumbItem as BreadcrumbItemComponent } from '@renderer/components/ui/breadcrumb'
+import {
+  Breadcrumb,
+  BreadcrumbItem as BreadcrumbItemComponent
+} from '@renderer/components/ui/breadcrumb'
 
 const { breadcrumbHistory, setCurrentArticle } = useUserManual()
 

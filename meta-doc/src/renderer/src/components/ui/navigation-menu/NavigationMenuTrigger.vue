@@ -1,8 +1,5 @@
 <template>
-  <NavigationMenuTrigger
-    v-bind="forwarded"
-    class="navigation-menu-trigger"
-  >
+  <NavigationMenuTrigger v-bind="forwarded" class="navigation-menu-trigger">
     <slot />
   </NavigationMenuTrigger>
 </template>

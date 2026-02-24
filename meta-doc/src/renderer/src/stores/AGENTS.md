@@ -16,13 +16,13 @@ stores/
 
 ## WHERE TO LOOK
 
-| Task                    | File               | Notes                                                  |
-| ----------------------- | ------------------ | ------------------------------------------------------ |
-| Modify tab state        | `workspace.ts`     | 1847-line monolith; discuss before adding actions      |
-| Add document metadata   | `document.ts`      | Document properties, format detection                  |
-| Change user settings    | `user.ts`          | Preferences persistence                                |
-| Show notification       | `notification.ts`  | Sonner toast + history queue                           |
-| Cross-window sync       | `workspace.ts`     | Uses initializeWorkspaceBroadcastListeners()           |
+| Task                  | File              | Notes                                             |
+| --------------------- | ----------------- | ------------------------------------------------- |
+| Modify tab state      | `workspace.ts`    | 1847-line monolith; discuss before adding actions |
+| Add document metadata | `document.ts`     | Document properties, format detection             |
+| Change user settings  | `user.ts`         | Preferences persistence                           |
+| Show notification     | `notification.ts` | Sonner toast + history queue                      |
+| Cross-window sync     | `workspace.ts`    | Uses initializeWorkspaceBroadcastListeners()      |
 
 ## CONVENTIONS
 

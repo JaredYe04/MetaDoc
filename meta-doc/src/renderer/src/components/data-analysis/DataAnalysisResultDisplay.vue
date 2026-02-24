@@ -28,7 +28,11 @@
         <TabsList>
           <TabsTrigger value="fields">{{ t('agent.display.dataAnalysis.fields') }}</TabsTrigger>
           <TabsTrigger value="stats">{{ t('agent.display.dataAnalysis.statsLabel') }}</TabsTrigger>
-          <TabsTrigger v-if="result.aggregations && result.aggregations.length > 0" value="aggregations">{{ t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger>
+          <TabsTrigger
+            v-if="result.aggregations && result.aggregations.length > 0"
+            value="aggregations"
+            >{{ t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger
+          >
         </TabsList>
         <!-- 字段信息 -->
         <TabsContent value="fields">
@@ -86,7 +90,7 @@
               default-expand-all
               class="stats-tree"
             >
-              <template #default="{ node, data }">
+              <template #default="{ data }">
                 <div class="tree-node">
                   <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
                   <span
@@ -134,7 +138,7 @@
                   :props="{ children: 'children', label: 'label' }"
                   class="aggregation-tree"
                 >
-                  <template #default="{ node, data }">
+                  <template #default="{ data }">
                     <div class="tree-node">
                       <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
                       <span

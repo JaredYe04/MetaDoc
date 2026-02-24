@@ -1,8 +1,5 @@
 <template>
-  <NavigationMenuContent
-    v-bind="forwarded"
-    class="navigation-menu-content"
-  >
+  <NavigationMenuContent v-bind="forwarded" class="navigation-menu-content">
     <slot />
   </NavigationMenuContent>
 </template>

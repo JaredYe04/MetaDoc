@@ -93,7 +93,10 @@
               @keydown.space.prevent="handleKeywordsGenerate"
             >
               {{ $t('article.keywords') }}：
-              <Loader2 v-if="keywordsGenerating" class="meta-keywords__icon h-3.5 w-3.5 animate-spin" />
+              <Loader2
+                v-if="keywordsGenerating"
+                class="meta-keywords__icon h-3.5 w-3.5 animate-spin"
+              />
             </span>
           </Tooltip>
           <div class="meta-panel__value meta-panel__value--keywords">
@@ -149,40 +152,44 @@
             <DialogHeader>
               <DialogTitle>{{ $t('article.edit_meta_info') }}</DialogTitle>
             </DialogHeader>
-          <Form>
-            <FormField :label="$t('article.title')" name="title">
-              <Input v-model="formState.title" class="aero-input" />
-            </FormField>
-            <FormField :label="$t('article.author')" name="author">
-              <Input v-model="formState.author" class="aero-input" />
-            </FormField>
-            <FormField :label="$t('article.description')" name="description" class="meta-dialog__description-item">
-              <AutoResizeTextarea
-                v-model="formState.description"
-                :autosize="{ minRows: 20 }"
-                max-height="400px"
-                height="400px"
-                :placeholder="$t('article.description_placeholder')"
-                class="meta-dialog__description-textarea"
-              />
-            </FormField>
-          </Form>
-          <DialogFooter>
-            <Button
-              variant="secondary"
-              @click="metaDialogVisible = false"
-              :style="{ color: themeState.currentTheme.textColor }"
-              >{{ $t('common.cancel') }}</Button
-            >
-            <Button
-              variant="default"
-              @click="commitForm"
-              :style="{ color: themeState.currentTheme.textColor }"
-              >{{ $t('common.confirm') }}</Button
-            >
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Form>
+              <FormField :label="$t('article.title')" name="title">
+                <Input v-model="formState.title" class="aero-input" />
+              </FormField>
+              <FormField :label="$t('article.author')" name="author">
+                <Input v-model="formState.author" class="aero-input" />
+              </FormField>
+              <FormField
+                :label="$t('article.description')"
+                name="description"
+                class="meta-dialog__description-item"
+              >
+                <AutoResizeTextarea
+                  v-model="formState.description"
+                  :autosize="{ minRows: 20 }"
+                  max-height="400px"
+                  height="400px"
+                  :placeholder="$t('article.description_placeholder')"
+                  class="meta-dialog__description-textarea"
+                />
+              </FormField>
+            </Form>
+            <DialogFooter>
+              <Button
+                variant="secondary"
+                @click="metaDialogVisible = false"
+                :style="{ color: themeState.currentTheme.textColor }"
+                >{{ $t('common.cancel') }}</Button
+              >
+              <Button
+                variant="default"
+                @click="commitForm"
+                :style="{ color: themeState.currentTheme.textColor }"
+                >{{ $t('common.confirm') }}</Button
+              >
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </el-scrollbar>
   </div>

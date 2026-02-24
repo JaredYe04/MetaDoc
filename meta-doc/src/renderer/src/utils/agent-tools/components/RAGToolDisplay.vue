@@ -52,10 +52,7 @@
     </div>
 
     <!-- 进度条 -->
-    <div
-      v-if="effectiveProgress && effectiveProgress.percentage > 0"
-      style="margin-top: 12px"
-    >
+    <div v-if="effectiveProgress && effectiveProgress.percentage > 0" style="margin-top: 12px">
       <Progress
         :percentage="effectiveProgress.percentage"
         :status="progressStatus"
@@ -76,10 +73,7 @@ import { Progress } from '@renderer/components/ui/progress'
 import { Empty } from '@renderer/components/ui/empty'
 import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import {
-  Card,
-  CardContent,
-} from '@renderer/components/ui/card'
+import { Card, CardContent } from '@renderer/components/ui/card'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'

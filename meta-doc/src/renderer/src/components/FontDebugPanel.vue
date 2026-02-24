@@ -2,9 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
-import { 
-  getAppliedFontVariables, 
-  getConfiguredFonts, 
+import {
+  getAppliedFontVariables,
+  getConfiguredFonts,
   verifyFontApplication,
   refreshFontSettings
 } from '@renderer/utils/font-verification.js'
@@ -42,12 +42,22 @@ onMounted(() => {
     <div class="flex items-center justify-between cursor-pointer" @click="expanded = !expanded">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">字体预览</span>
-        <Badge v-if="verification" size="sm" :variant="verification.success ? 'default' : 'destructive'">
+        <Badge
+          v-if="verification"
+          size="sm"
+          :variant="verification.success ? 'default' : 'destructive'"
+        >
           {{ verification.success ? '正常' : '异常' }}
         </Badge>
       </div>
       <div class="flex items-center gap-2">
-        <Button size="icon" variant="ghost" class="h-6 w-6" @click.stop="handleRefresh" :disabled="loading">
+        <Button
+          size="icon"
+          variant="ghost"
+          class="h-6 w-6"
+          @click.stop="handleRefresh"
+          :disabled="loading"
+        >
           <RefreshCw class="h-3 w-3" :class="{ 'animate-spin': loading }" />
         </Button>
         <span class="text-xs text-muted-foreground">{{ expanded ? '收起' : '展开' }}</span>
@@ -59,23 +69,31 @@ onMounted(() => {
         <div class="font-preview-item p-2 bg-background rounded border">
           <div class="flex justify-between items-center mb-1">
             <span class="text-xs text-muted-foreground">UI字体</span>
-            <Badge v-if="verification" size="sm" :variant="verification.checks?.uiFont ? 'default' : 'destructive'">
+            <Badge
+              v-if="verification"
+              size="sm"
+              :variant="verification.checks?.uiFont ? 'default' : 'destructive'"
+            >
               {{ configured.ui }}
             </Badge>
           </div>
-          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">
-            AaBbCc 你好世界
-          </div>
+          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">AaBbCc 你好世界</div>
         </div>
 
         <div class="font-preview-item p-2 bg-background rounded border">
           <div class="flex justify-between items-center mb-1">
             <span class="text-xs text-muted-foreground">编辑器字体</span>
             <div v-if="verification" class="flex gap-1">
-              <Badge size="sm" :variant="verification.checks?.editorChinese ? 'default' : 'destructive'">
+              <Badge
+                size="sm"
+                :variant="verification.checks?.editorChinese ? 'default' : 'destructive'"
+              >
                 {{ configured.editorChinese }}
               </Badge>
-              <Badge size="sm" :variant="verification.checks?.editorWestern ? 'default' : 'destructive'">
+              <Badge
+                size="sm"
+                :variant="verification.checks?.editorWestern ? 'default' : 'destructive'"
+              >
                 {{ configured.editorWestern }}
               </Badge>
             </div>
@@ -89,11 +107,18 @@ onMounted(() => {
           <div class="flex justify-between items-center mb-1">
             <span class="text-xs text-muted-foreground">预览字体</span>
             <div v-if="verification" class="flex gap-1">
-              <Badge size="sm" :variant="verification.checks?.previewChinese ? 'default' : 'destructive'">
+              <Badge
+                size="sm"
+                :variant="verification.checks?.previewChinese ? 'default' : 'destructive'"
+              >
                 {{ configured.previewChinese }}
               </Badge>
-              <Badge size="sm" :variant="verification.checks?.previewWestern ? 'default' : 'destructive'">
-                {{ configured.previewWestern }}</Badge>
+              <Badge
+                size="sm"
+                :variant="verification.checks?.previewWestern ? 'default' : 'destructive'"
+              >
+                {{ configured.previewWestern }}</Badge
+              >
             </div>
           </div>
           <div class="text-base" :style="{ fontFamily: fontVars.previewFont }">

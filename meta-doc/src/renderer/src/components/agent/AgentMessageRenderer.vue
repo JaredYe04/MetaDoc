@@ -35,16 +35,21 @@
                 <el-icon><Edit /></el-icon>
               </Button>
             </Tooltip>
-            <DropdownMenu
-              @click.stop
-              @update:open="handleDropdownVisibleChange"
-            >
+            <DropdownMenu @click.stop @update:open="handleDropdownVisibleChange">
               <DropdownMenuTrigger as-child>
-                <Button circle size="small" @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
+                <Button
+                  circle
+                  size="small"
+                  @mouseenter="handleDropdownMouseEnter"
+                  @mouseleave="handleDropdownMouseLeave"
+                >
                   <el-icon><More /></el-icon>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
+              <DropdownMenuContent
+                @mouseenter="handleDropdownMouseEnter"
+                @mouseleave="handleDropdownMouseLeave"
+              >
                 <DropdownMenuItem @click="handleActionCommand('regenerate')">
                   {{ t('agent.message.regenerate') }}
                 </DropdownMenuItem>
@@ -101,10 +106,7 @@
 
         <!-- Tool结果 -->
         <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
-          <Collapsible
-            v-model:open="isToolMessageOpen"
-            class="tool-message-collapsible"
-          >
+          <Collapsible v-model:open="isToolMessageOpen" class="tool-message-collapsible">
             <CollapsibleTrigger class="tool-message-trigger">
               <div class="tool-message-header-preview">
                 <span class="tool-message-title">{{
@@ -202,7 +204,12 @@
         </Button>
       </Tooltip>
       <Tooltip :content="t('agent.message.delete')" placement="bottom">
-        <Button variant="ghost" size="small" class="ai-action-btn" @click.stop="emit('delete', message)">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          @click.stop="emit('delete', message)"
+        >
           <el-icon><Delete /></el-icon>
         </Button>
       </Tooltip>
@@ -230,16 +237,7 @@
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
-import {
-  User,
-  Edit,
-  More,
-  Loading,
-  Check,
-  Search,
-  Refresh,
-  Delete
-} from '@element-plus/icons-vue'
+import { User, Edit, More, Loading, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import {

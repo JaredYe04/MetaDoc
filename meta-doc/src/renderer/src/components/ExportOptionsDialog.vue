@@ -4,39 +4,43 @@
       <DialogHeader>
         <DialogTitle>{{ dialogTitle }}</DialogTitle>
       </DialogHeader>
-    <ScrollArea class="h-[500px]">
-      <Tabs v-model="activeTab" v-if="hasTabs" class="export-options-tabs">
-        <TabsList class="w-full inline-flex justify-start gap-1 bg-muted p-1 rounded-lg">
-          <TabsTrigger v-for="tab in tabs" :key="tab.name" :value="tab.name">
-            {{ tab.label }}
-          </TabsTrigger>
-        </TabsList>
+      <ScrollArea class="h-[500px]">
+        <Tabs v-model="activeTab" v-if="hasTabs" class="export-options-tabs">
+          <TabsList class="w-full inline-flex justify-start gap-1 bg-muted p-1 rounded-lg">
+            <TabsTrigger v-for="tab in tabs" :key="tab.name" :value="tab.name">
+              {{ tab.label }}
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent v-for="tab in tabs" :key="tab.name" :value="tab.name">
-          <form class="export-options-form space-y-4">
-            <template v-for="field in getFieldsForTab(tab.name)" :key="field.key">
-              <!-- 对象类型字段（如margins） -->
-              <template v-if="field.type === 'object' && field.fields">
-                <div class="flex items-center gap-2 my-4">
-                  <Separator class="flex-1" />
-                  <span class="text-sm font-medium text-foreground">{{ getFieldLabel(field) }}</span>
-                  <Separator class="flex-1" />
-                </div>
-                <template v-for="subField in field.fields" :key="subField.key">
-                  <FormField
-                    v-if="
-                      shouldShowField(subField) &&
-                      (subField.type === 'select' ||
-                        subField.type === 'font' ||
-                        subField.type === 'fontSize')
-                    "
-                    :name="subField.key"
-                  >
-                    <div class="flex items-start gap-4">
-                      <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(subField) }}</FormLabel>
-                      <div class="flex-1">
-                        <FormControl>
-                          <Select
+          <TabsContent v-for="tab in tabs" :key="tab.name" :value="tab.name">
+            <form class="export-options-form space-y-4">
+              <template v-for="field in getFieldsForTab(tab.name)" :key="field.key">
+                <!-- 对象类型字段（如margins） -->
+                <template v-if="field.type === 'object' && field.fields">
+                  <div class="flex items-center gap-2 my-4">
+                    <Separator class="flex-1" />
+                    <span class="text-sm font-medium text-foreground">{{
+                      getFieldLabel(field)
+                    }}</span>
+                    <Separator class="flex-1" />
+                  </div>
+                  <template v-for="subField in field.fields" :key="subField.key">
+                    <FormField
+                      v-if="
+                        shouldShowField(subField) &&
+                        (subField.type === 'select' ||
+                          subField.type === 'font' ||
+                          subField.type === 'fontSize')
+                      "
+                      :name="subField.key"
+                    >
+                      <div class="flex items-start gap-4">
+                        <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                          getFieldLabel(subField)
+                        }}</FormLabel>
+                        <div class="flex-1">
+                          <FormControl>
+                            <Select
                               :model-value="getNestedValue(formData, subField.key)"
                               @update:model-value="
                                 (val: any) => setNestedValue(formData, subField.key, val)
@@ -54,26 +58,24 @@
                                 >
                                   {{ option.labelKey ? t(option.labelKey) : option.label }}
                                 </SelectItem>
-</SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormDescription
-                          v-if="subField.description || subField.descriptionKey"
-                          class="mt-1"
-                        >
-                          {{ getFieldDescription(subField) }}
-                        </FormDescription>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormDescription
+                            v-if="subField.description || subField.descriptionKey"
+                            class="mt-1"
+                          >
+                            {{ getFieldDescription(subField) }}
+                          </FormDescription>
+                        </div>
                       </div>
-                    </div>
-                  </FormField>
-                  <FormField
-                    v-else-if="shouldShowField(subField)"
-                    :name="subField.key"
-                  >
-                    <div class="flex items-start gap-4">
-                      <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(subField) }}</FormLabel>
-                      <div class="flex-1">
-                        
+                    </FormField>
+                    <FormField v-else-if="shouldShowField(subField)" :name="subField.key">
+                      <div class="flex items-start gap-4">
+                        <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                          getFieldLabel(subField)
+                        }}</FormLabel>
+                        <div class="flex-1">
                           <component
                             :is="getFieldComponent(subField)"
                             :model-value="getNestedValue(formData, subField.key)"
@@ -83,56 +85,55 @@
                             v-bind="getFieldProps(subField)"
                             class="w-full"
                           />
-                        
-                        <FormDescription
-                          v-if="subField.description || subField.descriptionKey"
-                          class="mt-1"
-                        >
-                          {{ getFieldDescription(subField) }}
-                        </FormDescription>
+
+                          <FormDescription
+                            v-if="subField.description || subField.descriptionKey"
+                            class="mt-1"
+                          >
+                            {{ getFieldDescription(subField) }}
+                          </FormDescription>
+                        </div>
                       </div>
-                    </div>
-                  </FormField>
+                    </FormField>
+                  </template>
                 </template>
-              </template>
 
-              <!-- FontSelect字段 -->
-              <FormField
-                v-else-if="shouldShowField(field) && field.type === 'font'"
-                :name="field.key"
-              >
-                <div class="flex items-start gap-4">
-                  <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(field) }}</FormLabel>
-                  <div class="flex-1">
-                    <FontSelect
-                      :model-value="getNestedValue(formData, field.key)"
-                      @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
-                      :placeholder="getFieldLabel(field)"
-                      :preview-text="field.previewText || 'AaBbCc 你好世界'"
-                      class="w-full"
-                    />
-                    <FormDescription
-                      v-if="hasFieldHelperText(field)"
-                      class="mt-1"
-                    >
-                      {{ getFieldHelperText(field) }}
-                    </FormDescription>
+                <!-- FontSelect字段 -->
+                <FormField
+                  v-else-if="shouldShowField(field) && field.type === 'font'"
+                  :name="field.key"
+                >
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(field)
+                    }}</FormLabel>
+                    <div class="flex-1">
+                      <FontSelect
+                        :model-value="getNestedValue(formData, field.key)"
+                        @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
+                        :placeholder="getFieldLabel(field)"
+                        :preview-text="field.previewText || 'AaBbCc 你好世界'"
+                        class="w-full"
+                      />
+                      <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                        {{ getFieldHelperText(field) }}
+                      </FormDescription>
+                    </div>
                   </div>
-                </div>
-              </FormField>
+                </FormField>
 
-              <!-- Select字段和FontSize字段 -->
-              <FormField
-                v-else-if="
-                  shouldShowField(field) &&
-                  (field.type === 'select' || field.type === 'fontSize')
-                "
-                :name="field.key"
-              >
-                <div class="flex items-start gap-4">
-                  <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(field) }}</FormLabel>
-                  <div class="flex-1">
-                    
+                <!-- Select字段和FontSize字段 -->
+                <FormField
+                  v-else-if="
+                    shouldShowField(field) && (field.type === 'select' || field.type === 'fontSize')
+                  "
+                  :name="field.key"
+                >
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(field)
+                    }}</FormLabel>
+                    <div class="flex-1">
                       <Select
                         :model-value="getNestedValue(formData, field.key)"
                         @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
@@ -150,26 +151,21 @@
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                    
-                    <FormDescription
-                      v-if="hasFieldHelperText(field)"
-                      class="mt-1"
-                    >
-                      {{ getFieldHelperText(field) }}
-                    </FormDescription>
-                  </div>
-                </div>
-              </FormField>
 
-              <!-- 普通字段 -->
-              <FormField
-                v-else-if="shouldShowField(field)"
-                :name="field.key"
-              >
-                <div class="flex items-start gap-4">
-                  <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(field) }}</FormLabel>
-                  <div class="flex-1">
-                    
+                      <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                        {{ getFieldHelperText(field) }}
+                      </FormDescription>
+                    </div>
+                  </div>
+                </FormField>
+
+                <!-- 普通字段 -->
+                <FormField v-else-if="shouldShowField(field)" :name="field.key">
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(field)
+                    }}</FormLabel>
+                    <div class="flex-1">
                       <component
                         :is="getFieldComponent(field)"
                         :model-value="getNestedValue(formData, field.key)"
@@ -177,204 +173,196 @@
                         v-bind="getFieldProps(field)"
                         class="w-full"
                       />
-                    
-                    <FormDescription
-                      v-if="hasFieldHelperText(field)"
-                      class="mt-1"
-                    >
-                      {{ getFieldHelperText(field) }}
-                    </FormDescription>
+
+                      <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                        {{ getFieldHelperText(field) }}
+                      </FormDescription>
+                    </div>
                   </div>
-                </div>
-              </FormField>
+                </FormField>
+              </template>
+            </form>
+          </TabsContent>
+        </Tabs>
+        <form v-else class="export-options-form space-y-4">
+          <template v-for="field in visibleFields" :key="field.key">
+            <!-- 对象类型字段（如margins） -->
+            <template v-if="field.type === 'object' && field.fields">
+              <div class="flex items-center gap-2 my-4">
+                <Separator class="flex-1" />
+                <span class="text-sm font-medium text-foreground">{{ getFieldLabel(field) }}</span>
+                <Separator class="flex-1" />
+              </div>
+              <template v-for="subField in field.fields" :key="subField.key">
+                <FormField
+                  v-if="
+                    shouldShowField(subField) &&
+                    (subField.type === 'select' ||
+                      subField.type === 'font' ||
+                      subField.type === 'fontSize')
+                  "
+                  :name="subField.key"
+                >
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(subField)
+                    }}</FormLabel>
+                    <div class="flex-1">
+                      <Select
+                        :model-value="getNestedValue(formData, subField.key)"
+                        @update:model-value="
+                          (val: any) => setNestedValue(formData, subField.key, val)
+                        "
+                        :disabled="subField.type === 'font' && fontsLoading"
+                      >
+                        <SelectTrigger class="w-full">
+                          <SelectValue :placeholder="getFieldLabel(subField)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="option in getFieldOptions(subField)"
+                            :key="option.value"
+                            :value="option.value"
+                          >
+                            {{ option.labelKey ? t(option.labelKey) : option.label }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <FormDescription
+                        v-if="subField.description || subField.descriptionKey"
+                        class="mt-1"
+                      >
+                        {{ getFieldDescription(subField) }}
+                      </FormDescription>
+                    </div>
+                  </div>
+                </FormField>
+                <FormField v-else-if="shouldShowField(subField)" :name="subField.key">
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(subField)
+                    }}</FormLabel>
+                    <div class="flex-1">
+                      <component
+                        :is="getFieldComponent(subField)"
+                        :model-value="getNestedValue(formData, subField.key)"
+                        @update:model-value="
+                          (val: any) => setNestedValue(formData, subField.key, val)
+                        "
+                        v-bind="getFieldProps(subField)"
+                        class="w-full"
+                      />
+
+                      <FormDescription
+                        v-if="subField.description || subField.descriptionKey"
+                        class="mt-1"
+                      >
+                        {{ getFieldDescription(subField) }}
+                      </FormDescription>
+                    </div>
+                  </div>
+                </FormField>
+              </template>
             </template>
-          </form>
-        </TabsContent>
-    </Tabs>
-    <form
-      v-else
-      class="export-options-form space-y-4"
-    >
-      <template v-for="field in visibleFields" :key="field.key">
-        <!-- 对象类型字段（如margins） -->
-        <template v-if="field.type === 'object' && field.fields">
-          <div class="flex items-center gap-2 my-4">
-            <Separator class="flex-1" />
-            <span class="text-sm font-medium text-foreground">{{ getFieldLabel(field) }}</span>
-            <Separator class="flex-1" />
-          </div>
-          <template v-for="subField in field.fields" :key="subField.key">
+
+            <!-- Select字段、Font字段和FontSize字段 -->
             <FormField
-              v-if="
-                shouldShowField(subField) &&
-                (subField.type === 'select' ||
-                  subField.type === 'font' ||
-                  subField.type === 'fontSize')
+              v-else-if="
+                shouldShowField(field) &&
+                (field.type === 'select' || field.type === 'font' || field.type === 'fontSize')
               "
-              :name="subField.key"
+              :name="field.key"
             >
               <div class="flex items-start gap-4">
-                <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(subField) }}</FormLabel>
+                <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                  getFieldLabel(field)
+                }}</FormLabel>
                 <div class="flex-1">
-                  
-                    <Select
-                      :model-value="getNestedValue(formData, subField.key)"
-                      @update:model-value="(val: any) => setNestedValue(formData, subField.key, val)"
-                      :disabled="subField.type === 'font' && fontsLoading"
-                    >
-                      <SelectTrigger class="w-full">
-                        <SelectValue :placeholder="getFieldLabel(subField)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem
-                          v-for="option in getFieldOptions(subField)"
-                          :key="option.value"
-                          :value="option.value"
-                        >
-                          {{ option.labelKey ? t(option.labelKey) : option.label }}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  
-                  <FormDescription
-                    v-if="subField.description || subField.descriptionKey"
-                    class="mt-1"
+                  <Select
+                    :model-value="getNestedValue(formData, field.key)"
+                    @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
+                    :disabled="field.type === 'font' && fontsLoading"
                   >
-                    {{ getFieldDescription(subField) }}
+                    <SelectTrigger class="w-full">
+                      <SelectValue :placeholder="getFieldLabel(field)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="option in getFieldOptions(field)"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.labelKey ? t(option.labelKey) : option.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                    {{ getFieldHelperText(field) }}
                   </FormDescription>
                 </div>
               </div>
             </FormField>
-            <FormField
-              v-else-if="shouldShowField(subField)"
-              :name="subField.key"
-            >
+
+            <!-- 普通字段 -->
+            <FormField v-else-if="shouldShowField(field)" :name="field.key">
               <div class="flex items-start gap-4">
-                <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(subField) }}</FormLabel>
+                <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                  getFieldLabel(field)
+                }}</FormLabel>
                 <div class="flex-1">
-                  
-                    <component
-                      :is="getFieldComponent(subField)"
-                      :model-value="getNestedValue(formData, subField.key)"
-                      @update:model-value="(val: any) => setNestedValue(formData, subField.key, val)"
-                      v-bind="getFieldProps(subField)"
-                      class="w-full"
-                    />
-                  
-                  <FormDescription
-                    v-if="subField.description || subField.descriptionKey"
-                    class="mt-1"
-                  >
-                    {{ getFieldDescription(subField) }}
+                  <component
+                    :is="getFieldComponent(field)"
+                    :model-value="getNestedValue(formData, field.key)"
+                    @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
+                    v-bind="getFieldProps(field)"
+                    class="w-full"
+                  />
+
+                  <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                    {{ getFieldHelperText(field) }}
                   </FormDescription>
                 </div>
               </div>
             </FormField>
           </template>
-        </template>
+        </form>
+      </ScrollArea>
 
-        <!-- Select字段、Font字段和FontSize字段 -->
-        <FormField
-          v-else-if="
-            shouldShowField(field) &&
-            (field.type === 'select' || field.type === 'font' || field.type === 'fontSize')
-          "
-          :name="field.key"
-        >
-          <div class="flex items-start gap-4">
-            <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(field) }}</FormLabel>
-            <div class="flex-1">
-              
-                <Select
-                  :model-value="getNestedValue(formData, field.key)"
-                  @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
-                  :disabled="field.type === 'font' && fontsLoading"
-                >
-                  <SelectTrigger class="w-full">
-                    <SelectValue :placeholder="getFieldLabel(field)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      v-for="option in getFieldOptions(field)"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.labelKey ? t(option.labelKey) : option.label }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              
-              <FormDescription
-                v-if="hasFieldHelperText(field)"
-                class="mt-1"
-              >
-                {{ getFieldHelperText(field) }}
-              </FormDescription>
-            </div>
-          </div>
-        </FormField>
-
-        <!-- 普通字段 -->
-        <FormField
-          v-else-if="shouldShowField(field)"
-          :name="field.key"
-        >
-          <div class="flex items-start gap-4">
-            <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{ getFieldLabel(field) }}</FormLabel>
-            <div class="flex-1">
-              
-                <component
-                  :is="getFieldComponent(field)"
-                  :model-value="getNestedValue(formData, field.key)"
-                  @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
-                  v-bind="getFieldProps(field)"
-                  class="w-full"
-                />
-              
-              <FormDescription
-                v-if="hasFieldHelperText(field)"
-                class="mt-1"
-              >
-                {{ getFieldHelperText(field) }}
-              </FormDescription>
-            </div>
-          </div>
-        </FormField>
-      </template>
-    </form>
-    </ScrollArea>
-
-    <DialogFooter>
-      <Button @click="handleCancel">
-        {{ t('common.cancel') }}
-      </Button>
-      <Button @click="handleConfirm">
-        {{ t('common.confirm') }}
-      </Button>
-      <Button @click="handleReset" variant="outline">
-        {{ t('common.reset') }}
-      </Button>
-    </DialogFooter>
-  </DialogContent>
+      <DialogFooter>
+        <Button @click="handleCancel">
+          {{ t('common.cancel') }}
+        </Button>
+        <Button @click="handleConfirm">
+          {{ t('common.confirm') }}
+        </Button>
+        <Button @click="handleReset" variant="outline">
+          {{ t('common.reset') }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Form, FormField, FormLabel, FormControl, FormDescription } from '@renderer/components/ui/form'
 import {
-  ElInput,
-  ElInputNumber,
-  ElSwitch
-} from 'element-plus'
+  Form,
+  FormField,
+  FormLabel,
+  FormControl,
+  FormDescription
+} from '@renderer/components/ui/form'
+import { ElInput, ElInputNumber, ElSwitch } from 'element-plus'
 import { Separator } from '@renderer/components/ui/separator'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from '@renderer/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
@@ -716,7 +704,7 @@ defineExpose({
   padding-right: 10px;
 }
 
-:deep(.export-options-tabs [data-state="active"]) {
+:deep(.export-options-tabs [data-state='active']) {
   background-color: hsl(var(--background));
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }

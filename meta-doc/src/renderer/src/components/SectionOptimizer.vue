@@ -119,14 +119,11 @@
     </div>
 
     <div @mousedown.stop style="align-items: center; margin-top: 20px">
-      <div class="flex flex-col items-center" style="width: 60%; margin-left: 20%; margin-right: 20%">
-        <Slider
-          v-model="context_mode"
-          :step="1"
-          :min="0"
-          :max="2"
-          class="w-full"
-        />
+      <div
+        class="flex flex-col items-center"
+        style="width: 60%; margin-left: 20%; margin-right: 20%"
+      >
+        <Slider v-model="context_mode" :step="1" :min="0" :max="2" class="w-full" />
         <div class="flex justify-between w-full text-xs text-muted-foreground mt-2">
           <span>{{ t('sectionOptimizer.contextMarks.none') }}</span>
           <span>{{ t('sectionOptimizer.contextMarks.chapter') }}</span>
@@ -227,11 +224,7 @@ import { Send, Undo2, MessageCircle, Check } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { Slider } from '@renderer/components/ui/slider'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { themeState } from '../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
 import type { SectionOptimizerAdapter, SectionInfo } from './section-optimizer/types'

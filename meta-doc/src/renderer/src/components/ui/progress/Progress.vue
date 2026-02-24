@@ -158,10 +158,7 @@ const containerStyle = computed(() => {
           {{ displayText }}
         </span>
 
-        <span
-          v-else
-          :class="cn('text-sm font-medium min-w-[3rem] text-right', statusTextClass)"
-        >
+        <span v-else :class="cn('text-sm font-medium min-w-[3rem] text-right', statusTextClass)">
           <slot :percentage="computedPercentage" />
         </span>
       </template>

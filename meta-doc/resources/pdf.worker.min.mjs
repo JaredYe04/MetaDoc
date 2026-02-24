@@ -3698,7 +3698,7 @@ __webpack_require__.d = (e, t) => {
       Object.defineProperty(e, r, { enumerable: !0, get: t[r] })
 }
 __webpack_require__.o = (e, t) => Object.prototype.hasOwnProperty.call(e, t)
-;(__webpack_require__(4114),
+__webpack_require__(4114),
   __webpack_require__(6573),
   __webpack_require__(8100),
   __webpack_require__(7936),
@@ -3725,7 +3725,7 @@ __webpack_require__.o = (e, t) => Object.prototype.hasOwnProperty.call(e, t)
   __webpack_require__(4235),
   __webpack_require__(9432),
   __webpack_require__(4979),
-  __webpack_require__(5781))
+  __webpack_require__(5781)
 const r = !(
     'object' != typeof process ||
     process + '' != '[object process]' ||
@@ -5115,7 +5115,7 @@ function getRotationMatrix(e, t, r) {
 function getSizeInBytes(e) {
   return Math.ceil(Math.ceil(Math.log2(1 + e)) / 8)
 }
-;(__webpack_require__(4603), __webpack_require__(7566), __webpack_require__(8721))
+__webpack_require__(4603), __webpack_require__(7566), __webpack_require__(8721)
 class QCMS {
   static #r = null
   static _memory = null
@@ -9204,7 +9204,7 @@ class OperatorList {
     this.optimizer.reset()
   }
 }
-;(__webpack_require__(116), __webpack_require__(9479), __webpack_require__(7588))
+__webpack_require__(116), __webpack_require__(9479), __webpack_require__(7588)
 function hexToInt(e, t) {
   let r = 0
   for (let a = 0; a <= t; a++) r = (r << 8) | e[a]
@@ -29456,7 +29456,7 @@ class Type1Parser {
           case 'FamilyBlues':
           case 'FamilyOtherBlues':
             const e = this.readNumberArray()
-            ;(e.length > 0 && e.length, 0)
+            e.length > 0 && e.length, 0
             break
           case 'StemSnapH':
           case 'StemSnapV':

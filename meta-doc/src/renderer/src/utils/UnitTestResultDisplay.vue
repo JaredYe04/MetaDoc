@@ -4,16 +4,12 @@
       <Statistic :title="$t('setting.debug.unitTest.totalTests')" :value="summary.total" />
       <Statistic :title="$t('setting.debug.unitTest.passed')" :value="summary.passed">
         <template #suffix>
-          <Badge style="margin-left: 8px">
-            {{ summary.passedRate }}%
-          </Badge>
+          <Badge style="margin-left: 8px"> {{ summary.passedRate }}% </Badge>
         </template>
       </Statistic>
       <Statistic :title="$t('setting.debug.unitTest.failed')" :value="summary.failed">
         <template #suffix>
-          <Badge variant="destructive" style="margin-left: 8px">
-            {{ summary.failedRate }}%
-          </Badge>
+          <Badge variant="destructive" style="margin-left: 8px"> {{ summary.failedRate }}% </Badge>
         </template>
       </Statistic>
       <Statistic :title="$t('setting.debug.unitTest.duration')" :value="summary.duration">
@@ -39,7 +35,9 @@
     <Tabs v-model="activeTab" class="border-card">
       <TabsList>
         <TabsTrigger value="results">{{ $t('setting.debug.unitTest.testResults') }}</TabsTrigger>
-        <TabsTrigger value="markdown">{{ $t('setting.debug.unitTest.markdownSummary') }}</TabsTrigger>
+        <TabsTrigger value="markdown">{{
+          $t('setting.debug.unitTest.markdownSummary')
+        }}</TabsTrigger>
       </TabsList>
       <TabsContent value="results">
         <ScrollArea class="h-full">
@@ -315,11 +313,11 @@ onMounted(() => {
 }
 
 /* shadcn-vue Tabs styling */
-.unit-test-result-display :deep([role="tablist"]) {
+.unit-test-result-display :deep([role='tablist']) {
   flex-shrink: 0;
 }
 
-.unit-test-result-display :deep([role="tabpanel"]) {
+.unit-test-result-display :deep([role='tabpanel']) {
   flex: 1;
   overflow: hidden;
   display: flex;
@@ -327,7 +325,7 @@ onMounted(() => {
   min-height: 0;
 }
 
-.unit-test-result-display :deep([role="tabpanel"][data-state="active"]) {
+.unit-test-result-display :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
 }
 

@@ -11,7 +11,10 @@
       :color="progressColor"
     />
     <div class="progress-info">
-      <span>{{ completedCount }} / {{ totalCount }} {{ $t('userManual.progress.completed') || '已完成' }}</span>
+      <span
+        >{{ completedCount }} / {{ totalCount }}
+        {{ $t('userManual.progress.completed') || '已完成' }}</span
+      >
       <Tooltip v-if="showListSwitch">
         <TooltipTrigger as-child>
           <div class="progress-info-switch">
@@ -36,21 +39,20 @@ import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import { Switch } from '@renderer/components/ui/switch'
 import { Progress } from '@renderer/components/ui/progress'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
-const props = withDefaults(defineProps<{
-  /** 是否只显示推荐列表（否则显示完整目录） */
-  onlyRecommended?: boolean
-  /** 是否显示「只显示推荐路径」开关（侧栏内为 true） */
-  showListSwitch?: boolean
-}>(), {
-  onlyRecommended: true,
-  showListSwitch: false
-})
+const props = withDefaults(
+  defineProps<{
+    /** 是否只显示推荐列表（否则显示完整目录） */
+    onlyRecommended?: boolean
+    /** 是否显示「只显示推荐路径」开关（侧栏内为 true） */
+    showListSwitch?: boolean
+  }>(),
+  {
+    onlyRecommended: true,
+    showListSwitch: false
+  }
+)
 
 const emit = defineEmits<{
   'update:onlyRecommended': [value: boolean]
@@ -59,7 +61,7 @@ const emit = defineEmits<{
 const { learningPath, articleProgress, learningProgress } = useUserManual()
 
 const completedCount = computed(() => {
-  return learningPath.value.filter(id => {
+  return learningPath.value.filter((id) => {
     const progress = articleProgress.value.get(id)
     return progress?.read === true
   }).length

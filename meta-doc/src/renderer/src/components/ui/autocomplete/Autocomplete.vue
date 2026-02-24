@@ -38,7 +38,7 @@ const props = defineProps({
   /** Custom class for the input */
   inputClass: { type: String, default: '' },
   /** Whether the autocomplete is in loading state */
-  loading: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false }
 })
 
 const emit = defineEmits<{
@@ -81,7 +81,7 @@ const fetchSuggestionsInternal = async (queryString: string) => {
   if (!props.fetchSuggestions) return
 
   isLoading.value = true
-  
+
   try {
     await new Promise<void>((resolve) => {
       props.fetchSuggestions(queryString, (results: AutocompleteSuggestion[]) => {
@@ -103,7 +103,7 @@ const debouncedFetch = (queryString: string) => {
   if (debounceTimer.value) {
     clearTimeout(debounceTimer.value)
   }
-  
+
   debounceTimer.value = setTimeout(() => {
     fetchSuggestionsInternal(queryString)
   }, props.debounce)
@@ -111,20 +111,20 @@ const debouncedFetch = (queryString: string) => {
 
 const handleInput = () => {
   const value = inputValue.value
-  
+
   if (value === '') {
     suggestions.value = []
     isOpen.value = false
     return
   }
-  
+
   debouncedFetch(value)
 }
 
 const handleFocus = (event: FocusEvent) => {
   isFocused.value = true
   emit('focus', event)
-  
+
   if (props.triggerOnFocus) {
     const value = inputValue.value
     debouncedFetch(value)
@@ -169,7 +169,7 @@ const highlightItem = (index: number) => {
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (!isOpen.value) return
-  
+
   switch (event.key) {
     case 'ArrowDown':
       event.preventDefault()
@@ -195,7 +195,7 @@ const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   const dropdown = dropdownRef.value
   const input = inputRef.value
-  
+
   if (dropdown && !dropdown.contains(target) && input && !input.contains(target)) {
     isOpen.value = false
   }
@@ -214,12 +214,15 @@ onUnmounted(() => {
 })
 
 // Watch for external value changes
-watch(() => props.modelValue, (newValue) => {
-  if (!isFocused.value && newValue === '') {
-    suggestions.value = []
-    isOpen.value = false
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (!isFocused.value && newValue === '') {
+      suggestions.value = []
+      isOpen.value = false
+    }
   }
-})
+)
 </script>
 
 <template>
@@ -244,13 +247,16 @@ watch(() => props.modelValue, (newValue) => {
             $slots.prefix && 'pl-10',
             ($slots.suffix || clearable) && 'pr-10',
             inputClass
-          ),
+          )
         }"
         :handlers="{
-          'update:modelValue': (val: string) => { inputValue = val; handleInput() },
+          'update:modelValue': (val: string) => {
+            inputValue = val
+            handleInput()
+          },
           focus: handleFocus,
           blur: handleBlur,
-          keydown: handleKeydown,
+          keydown: handleKeydown
         }"
       >
         <Input
@@ -258,12 +264,14 @@ watch(() => props.modelValue, (newValue) => {
           v-model="inputValue"
           :placeholder="placeholder"
           :disabled="disabled"
-          :class="cn(
-            'w-full transition-all duration-200',
-            $slots.prefix && 'pl-10',
-            ($slots.suffix || clearable) && 'pr-10',
-            inputClass
-          )"
+          :class="
+            cn(
+              'w-full transition-all duration-200',
+              $slots.prefix && 'pl-10',
+              ($slots.suffix || clearable) && 'pr-10',
+              inputClass
+            )
+          "
           @input="handleInput"
           @focus="handleFocus"
           @blur="handleBlur"
@@ -272,8 +280,8 @@ watch(() => props.modelValue, (newValue) => {
       </slot>
 
       <!-- Suffix slot -->
-      <div 
-        v-if="$slots.suffix || clearable" 
+      <div
+        v-if="$slots.suffix || clearable"
         class="absolute right-3 flex items-center gap-1"
         :class="{ 'pointer-events-none': !$slots.suffix && !clearable }"
       >
@@ -319,7 +327,10 @@ watch(() => props.modelValue, (newValue) => {
       >
         <ScrollArea class="max-h-[300px]">
           <!-- Loading state -->
-          <div v-if="isLoading || loading" class="px-4 py-3 text-sm text-muted-foreground text-center">
+          <div
+            v-if="isLoading || loading"
+            class="px-4 py-3 text-sm text-muted-foreground text-center"
+          >
             <svg
               class="animate-spin inline-block w-4 h-4 mr-2"
               xmlns="http://www.w3.org/2000/svg"
@@ -344,7 +355,10 @@ watch(() => props.modelValue, (newValue) => {
           </div>
 
           <!-- Empty state -->
-          <div v-else-if="!hasSuggestions" class="px-4 py-3 text-sm text-muted-foreground text-center">
+          <div
+            v-else-if="!hasSuggestions"
+            class="px-4 py-3 text-sm text-muted-foreground text-center"
+          >
             无匹配数据
           </div>
 
@@ -353,12 +367,14 @@ watch(() => props.modelValue, (newValue) => {
             <li
               v-for="(item, index) in suggestions"
               :key="index"
-              :class="cn(
-                'px-4 py-2 text-sm cursor-pointer transition-colors',
-                highlightedIndex === index
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-popover-foreground hover:bg-accent hover:text-accent-foreground'
-              )"
+              :class="
+                cn(
+                  'px-4 py-2 text-sm cursor-pointer transition-colors',
+                  highlightedIndex === index
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-popover-foreground hover:bg-accent hover:text-accent-foreground'
+                )
+              "
               @mousedown.prevent
               @click="handleSelect(item)"
               @mouseenter="highlightedIndex = index"

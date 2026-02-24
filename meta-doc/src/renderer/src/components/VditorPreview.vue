@@ -2,7 +2,7 @@
   <div class="vditor-preview-wrapper">
     <!-- 容器始终存在 -->
     <div ref="containerRef" class="vditor-preview-container"></div>
-    
+
     <!-- Loading 遮罩 -->
     <div v-if="isRendering" class="loading-overlay">
       <Skeleton :rows="15" animated />
@@ -113,23 +113,22 @@ const renderMarkdown = async () => {
 
     // 清空并渲染
     containerRef.value.innerHTML = ''
-    
+
     console.log('[VditorPreview] Rendering to container...')
-    await renderMarkdownPreview(
-      containerRef.value as HTMLDivElement,
-      processedMarkdown,
-      {
-        applyMermaidTheme: true,
-        linkBase: '',
-        renderCode: true,
-        renderMath: true
-      }
+    await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown, {
+      applyMermaidTheme: true,
+      linkBase: '',
+      renderCode: true,
+      renderMath: true
+    })
+    console.log(
+      '[VditorPreview] Render complete, content length:',
+      containerRef.value.innerHTML.length
     )
-    console.log('[VditorPreview] Render complete, content length:', containerRef.value.innerHTML.length)
 
     // 设置链接处理器
     setupLinkClickHandler(containerRef.value)
-    
+
     // 触发渲染完成事件
     emit('rendered', containerRef.value)
   } catch (error) {
@@ -147,9 +146,9 @@ const renderMarkdown = async () => {
 watch(
   () => props.markdown,
   (newMarkdown, oldMarkdown) => {
-    console.log('[VditorPreview] Markdown changed:', { 
-      newLength: newMarkdown?.length, 
-      oldLength: oldMarkdown?.length 
+    console.log('[VditorPreview] Markdown changed:', {
+      newLength: newMarkdown?.length,
+      oldLength: oldMarkdown?.length
     })
     renderMarkdown()
   },

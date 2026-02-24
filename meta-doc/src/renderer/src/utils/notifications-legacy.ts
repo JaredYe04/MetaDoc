@@ -101,7 +101,7 @@ export function initNotificationLegacyAdapter(): void {
     notifySuccess(t('main.notification.export.message', { path: outputPath }), {
       title: t('main.notification.export.title')
     })
-    
+
     // 同时触发系统级通知
     eventBus.emit('system-notification', {
       title: t('main.notification.export.title'),

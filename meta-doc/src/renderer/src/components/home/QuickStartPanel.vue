@@ -3,13 +3,7 @@
     <div class="quick-start-panel-container" :style="formatContainerStyle">
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartFormatTitle') }}</h2>
-        <Button
-          class="close-button"
-          @click="closeQuickStart"
-          circle
-          size="small"
-          variant="ghost"
-        >
+        <Button class="close-button" @click="closeQuickStart" circle size="small" variant="ghost">
           <X class="w-4 h-4" />
         </Button>
       </div>
@@ -75,7 +69,12 @@
         <div class="panel-body__right">
           <div class="tab-switch">
             <ToggleGroup v-model="activeTab" type="single" class="quickstart-tab-toggle">
-              <ToggleGroupItem v-for="option in tabOptions" :key="option" :value="option" class="quickstart-tab-item">
+              <ToggleGroupItem
+                v-for="option in tabOptions"
+                :key="option"
+                :value="option"
+                class="quickstart-tab-item"
+              >
                 {{ option }}
               </ToggleGroupItem>
             </ToggleGroup>
@@ -100,10 +99,10 @@
             </div>
             <div class="form-actions">
               <Tooltip :content="$t('home.tooltip.ready')" placement="top">
-                <Button circle type="success" @click="confirmDocument"
-                  >
+                <Button circle type="success" @click="confirmDocument">
                   <Check class="w-4 h-4" />
-                ></Button>
+                  ></Button
+                >
               </Tooltip>
             </div>
           </div>
@@ -125,7 +124,11 @@
                   <SelectValue :placeholder="$t('home.tooltip.selectMood')" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="option in moodOptions" :key="option.value" :value="option.value">
+                  <SelectItem
+                    v-for="option in moodOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
                     <div class="flex items-center gap-2">
                       <component :is="option.icon" class="w-3 h-3" />
                       <span>{{ option.label }}</span>
@@ -171,22 +174,22 @@
             </div>
             <div class="action-buttons" @mousedown.stop>
               <Tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                <Button circle type="primary" @click="generate" :disabled="disableGenerate"
-                  >
+                <Button circle type="primary" @click="generate" :disabled="disableGenerate">
                   <Send class="w-4 h-4" />
-                ></Button>
+                  ></Button
+                >
               </Tooltip>
               <Tooltip :content="$t('home.tooltip.reset')" placement="top">
-                <Button circle type="info" @click="reset" v-if="generated"
-                  >
+                <Button circle type="info" @click="reset" v-if="generated">
                   <Undo2 class="w-4 h-4" />
-                ></Button>
+                  ></Button
+                >
               </Tooltip>
               <Tooltip :content="$t('home.tooltip.accept')" placement="top">
-                <Button circle type="success" @click="accept" v-if="generated"
-                  >
+                <Button circle type="success" @click="accept" v-if="generated">
                   <Check class="w-4 h-4" />
-                ></Button>
+                  ></Button
+                >
               </Tooltip>
             </div>
           </div>
@@ -232,10 +235,7 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Textarea } from '@renderer/components/ui/textarea'
-import {
-  Card,
-  CardContent,
-} from '@renderer/components/ui/card'
+import { Card, CardContent } from '@renderer/components/ui/card'
 import { Autocomplete } from '@renderer/components/ui/autocomplete'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'

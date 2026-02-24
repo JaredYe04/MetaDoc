@@ -79,7 +79,12 @@
           <template v-else-if="pendingBatchAccept">
             <h2>{{ $t('outline.previewResult') }}</h2>
             <div class="batch-panels">
-              <div v-for="(displayItem, idx) in batchPendingDisplayItems" :key="displayItem.nodePath" class="batch-panel" :class="{ 'batch-panel--rejected': displayItem.rejected }">
+              <div
+                v-for="(displayItem, idx) in batchPendingDisplayItems"
+                :key="displayItem.nodePath"
+                class="batch-panel"
+                :class="{ 'batch-panel--rejected': displayItem.rejected }"
+              >
                 <div class="batch-panel-head">
                   <span class="batch-panel-title">{{ displayItem.nodeTitle }}</span>
                   <TooltipProvider v-if="!displayItem.rejected">
@@ -90,7 +95,9 @@
                           size="sm"
                           class="aero-btn"
                           style="font-size: 12px; padding: 2px 6px"
-                          @click.stop="pendingBatchAccept && batchRejectItem(pendingBatchAccept.items[idx])"
+                          @click.stop="
+                            pendingBatchAccept && batchRejectItem(pendingBatchAccept.items[idx])
+                          "
                         >
                           <X class="w-4 h-4" />
                         </Button>
@@ -148,22 +155,15 @@
           </TooltipProvider>
         </div>
         <!-- 批量任务：接受全部 / 拒绝全部 -->
-        <div v-if="pendingBatchAccept" class="generate-preview-actions generate-preview-actions--batch">
-          <Button
-            variant="default"
-            size="sm"
-            class="aero-btn"
-            @click.stop="batchAcceptAll"
-          >
+        <div
+          v-if="pendingBatchAccept"
+          class="generate-preview-actions generate-preview-actions--batch"
+        >
+          <Button variant="default" size="sm" class="aero-btn" @click.stop="batchAcceptAll">
             <Check class="w-4 h-4" />
             <span>{{ $t('outline.acceptAll') }}</span>
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            class="aero-btn"
-            @click.stop="batchRejectAll"
-          >
+          <Button variant="destructive" size="sm" class="aero-btn" @click.stop="batchRejectAll">
             <X class="w-4 h-4" />
             <span>{{ $t('outline.rejectAll') }}</span>
           </Button>
@@ -175,7 +175,7 @@
         :key="outlineTreeKey"
         class="outline-tree-container"
         :class="{ 'is-dragging': isDraggingNode }"
-        style="width: 100%; height: 100%; border-radius: 18px;"
+        style="width: 100%; height: 100%; border-radius: 18px"
         :style="{ backgroundColor: themeState.currentTheme.background }"
         :dataset="treeData"
         :config="treeConfig"
@@ -185,7 +185,10 @@
         @drag-node-end="handleNodeDrag"
         @wheel="handleWheelZoom"
       >
-        <template #node="{ node, collapsed }" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
+        <template
+          #node="{ node, collapsed }"
+          :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+        >
           <!-- 如果节点展开，显示详细节点面板 -->
           <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
             <div
@@ -230,7 +233,9 @@
                     @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
                     @contextmenu.prevent="openNodeContextMenu($event, node)"
                   >
-                    <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{ node.title }}</span>
+                    <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{
+                      node.title
+                    }}</span>
                     <!-- 展开按钮：小尺寸、扁平，不凸起 -->
                     <TooltipProvider>
                       <Tooltip>
@@ -278,25 +283,55 @@
             :style="{ ...nodeContextMenuStyle, ...nodeContextMenuPositionStyle }"
             @click.stop
           >
-            <button type="button" class="outline-node-context-menu__item item-menu__item" @click="onNodeContextAction('moveLeft')">
-              <ArrowLeft class="outline-node-context-menu__icon w-4 h-4" v-if="direction === 'vertical'" />
+            <button
+              type="button"
+              class="outline-node-context-menu__item item-menu__item"
+              @click="onNodeContextAction('moveLeft')"
+            >
+              <ArrowLeft
+                class="outline-node-context-menu__icon w-4 h-4"
+                v-if="direction === 'vertical'"
+              />
               <ArrowUp class="outline-node-context-menu__icon w-4 h-4" v-else />
-              <span>{{ direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp') }}</span>
+              <span>{{
+                direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')
+              }}</span>
             </button>
-            <button type="button" class="outline-node-context-menu__item item-menu__item" @click="onNodeContextAction('moveRight')">
-              <ArrowRight class="outline-node-context-menu__icon w-4 h-4" v-if="direction === 'vertical'" />
+            <button
+              type="button"
+              class="outline-node-context-menu__item item-menu__item"
+              @click="onNodeContextAction('moveRight')"
+            >
+              <ArrowRight
+                class="outline-node-context-menu__icon w-4 h-4"
+                v-if="direction === 'vertical'"
+              />
               <ArrowDown class="outline-node-context-menu__icon w-4 h-4" v-else />
-              <span>{{ direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown') }}</span>
+              <span>{{
+                direction === 'vertical' ? $t('outline.moveRight') : $t('outline.moveDown')
+              }}</span>
             </button>
-            <button type="button" class="outline-node-context-menu__item item-menu__item" @click="onNodeContextAction('addChild')">
+            <button
+              type="button"
+              class="outline-node-context-menu__item item-menu__item"
+              @click="onNodeContextAction('addChild')"
+            >
               <Plus class="outline-node-context-menu__icon w-4 h-4" />
               <span>{{ $t('outline.addChild') }}</span>
             </button>
-            <button type="button" class="outline-node-context-menu__item item-menu__item" @click="onNodeContextAction('edit')">
+            <button
+              type="button"
+              class="outline-node-context-menu__item item-menu__item"
+              @click="onNodeContextAction('edit')"
+            >
               <Pencil class="outline-node-context-menu__icon w-4 h-4" />
               <span>{{ $t('outline.editContent') }}</span>
             </button>
-            <button type="button" class="outline-node-context-menu__item item-menu__item danger" @click="onNodeContextAction('delete')">
+            <button
+              type="button"
+              class="outline-node-context-menu__item item-menu__item danger"
+              @click="onNodeContextAction('delete')"
+            >
               <Trash2 class="outline-node-context-menu__icon w-4 h-4" />
               <span>{{ $t('outline.delete') }}</span>
             </button>
@@ -380,9 +415,13 @@
             </div>
           </div>
           <DialogFooter class="flex justify-between">
-            <Button variant="outline" @click="formatTitleDialogVisible = false">{{ $t('outline.cancel') }}</Button>
+            <Button variant="outline" @click="formatTitleDialogVisible = false">{{
+              $t('outline.cancel')
+            }}</Button>
             <div style="display: flex; gap: 10px">
-              <Button variant="destructive" @click="handleRemovePrefixes">{{ $t('outline.removePrefixes') }}</Button>
+              <Button variant="destructive" @click="handleRemovePrefixes">{{
+                $t('outline.removePrefixes')
+              }}</Button>
               <Button @click="executeFormatTitle">{{ $t('outline.confirm') }}</Button>
             </div>
           </DialogFooter>
@@ -450,10 +489,14 @@
                 class="ai-config-keywords-input"
               />
               <div class="ai-config-recommended">
-                <span class="ai-config-recommended-title">{{ $t('outline.aiConfig.recommendedKeywords') }}：</span>
+                <span class="ai-config-recommended-title"
+                  >{{ $t('outline.aiConfig.recommendedKeywords') }}：</span
+                >
                 <template v-if="recommendedKeywordsLoading">
                   <Loader2 class="w-4 h-4 animate-spin" />
-                  <span class="ai-config-recommended-text">{{ $t('outline.aiConfig.generatingKeywords') }}</span>
+                  <span class="ai-config-recommended-text">{{
+                    $t('outline.aiConfig.generatingKeywords')
+                  }}</span>
                 </template>
                 <template v-else-if="recommendedKeywords.length">
                   <div class="ai-config-recommended-tags">
@@ -501,7 +544,9 @@
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" @click="aiConfigDialogVisible = false">{{ $t('outline.cancel') }}</Button>
+            <Button variant="outline" @click="aiConfigDialogVisible = false">{{
+              $t('outline.cancel')
+            }}</Button>
             <Button @click="handleAiConfigConfirm">{{ $t('outline.confirm') }}</Button>
           </DialogFooter>
         </DialogContent>
@@ -739,7 +784,8 @@ const nodeContextMenuPosition = ref<{ x: number; y: number } | null>(null)
 const nodeContextMenuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
-  borderColor: themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 const nodeContextMenuPositionStyle = computed(() => {
   if (!nodeContextMenuPosition.value) return {}
@@ -812,8 +858,12 @@ const userPrompt = ref('') // 用户输入的提示词
 const batchDisplayItems = computed(() =>
   batchItemsRef.value.map((item) => ({ ...item, content: item.rawContentRef?.value ?? '' }))
 )
-const batchPendingDisplayItems = computed(() =>
-  pendingBatchAccept.value?.items.map((item) => ({ ...item, content: item.rawContentRef?.value ?? '' })) ?? []
+const batchPendingDisplayItems = computed(
+  () =>
+    pendingBatchAccept.value?.items.map((item) => ({
+      ...item,
+      content: item.rawContentRef?.value ?? ''
+    })) ?? []
 )
 
 function collectLeaves(node: DocumentOutlineNode, out: DocumentOutlineNode[]): void {
@@ -856,7 +906,7 @@ onMounted(async () => {
   const savedDirection = await getSetting('outline.direction', 'horizontal')
   direction.value = savedDirection as 'horizontal' | 'vertical'
   updateTreeConfig(direction.value)
-  
+
   // 加载 AI 配置默认值
   const savedAiConfig = await getSetting('outline.aiConfig', null)
   if (savedAiConfig) {
@@ -990,9 +1040,18 @@ const aiConfigDialogTitleForDisplay = computed(() => {
 })
 
 const presetPrompts = computed(() => [
-  { label: t('outline.aiConfig.presets.detailed'), value: t('outline.aiConfig.presets.detailedValue') },
-  { label: t('outline.aiConfig.presets.concise'), value: t('outline.aiConfig.presets.conciseValue') },
-  { label: t('outline.aiConfig.presets.academic'), value: t('outline.aiConfig.presets.academicValue') }
+  {
+    label: t('outline.aiConfig.presets.detailed'),
+    value: t('outline.aiConfig.presets.detailedValue')
+  },
+  {
+    label: t('outline.aiConfig.presets.concise'),
+    value: t('outline.aiConfig.presets.conciseValue')
+  },
+  {
+    label: t('outline.aiConfig.presets.academic'),
+    value: t('outline.aiConfig.presets.academicValue')
+  }
 ])
 
 const addRecommendedKeyword = (keyword: string) => {
@@ -1170,8 +1229,8 @@ const generateChildChapter = async () => {
     if (!currentNode) throw new Error('节点不存在')
 
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-    rawstring.value = ''; // 清空之前的内容
-    
+    rawstring.value = '' // 清空之前的内容
+
     // 构建增强的用户提示词
     let enhancedPrompt = aiConfig.userPrompt || userPrompt.value || ''
     const kwStr = getKeywordsPromptString()
@@ -1188,8 +1247,8 @@ const generateChildChapter = async () => {
         undefined, // onUpdate
         true, // enableFallback
         aiConfig.temperature !== undefined ? aiConfig.temperature : undefined // 传递温度参数
-      );
-      
+      )
+
       // rawstring.value 已经通过ref实时更新了，这里只在最终显示格式化后的JSON
       if (!rawstring.value) {
         rawstring.value = JSON.stringify(newChildren, null, 2)
@@ -1310,19 +1369,31 @@ const cancelAllAiTasks = () => {
 }
 
 // 其他辅助函数占位符（实际应从原文件保留完整实现）
-const moveNodeLeft = (node: DocumentOutlineNode, tree: DocumentOutlineNode): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
+const moveNodeLeft = (
+  node: DocumentOutlineNode,
+  tree: DocumentOutlineNode
+): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
   // 实现从原文件保留
   return null
 }
-const moveNodeRight = (node: DocumentOutlineNode, tree: DocumentOutlineNode): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
+const moveNodeRight = (
+  node: DocumentOutlineNode,
+  tree: DocumentOutlineNode
+): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
   // 实现从原文件保留
   return null
 }
-const addChild = (node: DocumentOutlineNode, tree: DocumentOutlineNode): { tree: DocumentOutlineNode; newNode: DocumentOutlineNode } | null => {
+const addChild = (
+  node: DocumentOutlineNode,
+  tree: DocumentOutlineNode
+): { tree: DocumentOutlineNode; newNode: DocumentOutlineNode } | null => {
   // 实现从原文件保留
   return null
 }
-const removeNodeAndReindex = (node: DocumentOutlineNode, tree: DocumentOutlineNode): DocumentOutlineNode | null => {
+const removeNodeAndReindex = (
+  node: DocumentOutlineNode,
+  tree: DocumentOutlineNode
+): DocumentOutlineNode | null => {
   // 实现从原文件保留
   return null
 }
@@ -1348,7 +1419,10 @@ const onNodeDragEnd = () => {
   // 实现从原文件保留
 }
 const isDraggingNode = ref(false)
-const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({ targetPath: null, mode: null })
+const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({
+  targetPath: null,
+  mode: null
+})
 const textElementRefs = ref<Record<string, HTMLElement>>({})
 const isNodeTextTruncated = (path: string): boolean => {
   const el = textElementRefs.value[path]

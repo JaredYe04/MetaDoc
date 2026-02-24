@@ -207,7 +207,10 @@ export class LlmAdapter {
           // 手动API类型：使用Express服务器的模拟接口
           // manual 类型不使用 max_tokens 配置
           config = {
-            apiUrl: (await import('../../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())) + '/api/llm',
+            apiUrl:
+              (await import('../../config/runtime-server').then((m) =>
+                m.getRuntimeServerBaseUrl()
+              )) + '/api/llm',
             apiKey: undefined,
             model: 'manual-model',
             type: 'manual',

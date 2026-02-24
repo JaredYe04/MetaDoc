@@ -41,10 +41,7 @@
           <View class="w-4 h-4 mr-1" />
           {{ t('agent.reference.builtInDocument.preview', '预览') }}
         </Button>
-        <Switch
-          :checked="enableBuiltInDocRef"
-          @update:checked="handleToggleBuiltInDocRef"
-        />
+        <Switch :checked="enableBuiltInDocRef" @update:checked="handleToggleBuiltInDocRef" />
       </div>
     </div>
 
@@ -54,11 +51,15 @@
         <TableHeader>
           <TableRow>
             <TableHead style="min-width: 150px">{{ t('agent.reference.name') }}</TableHead>
-            <TableHead style="width: 90px; text-align: center">{{ t('agent.reference.format') }}</TableHead>
+            <TableHead style="width: 90px; text-align: center">{{
+              t('agent.reference.format')
+            }}</TableHead>
             <TableHead style="min-width: 200px">{{ t('agent.reference.origin') }}</TableHead>
             <TableHead style="min-width: 150px">{{ t('agent.reference.description') }}</TableHead>
             <TableHead style="min-width: 200px">{{ t('agent.reference.content') }}</TableHead>
-            <TableHead style="width: 120px; text-align: center">{{ t('agent.reference.actions') }}</TableHead>
+            <TableHead style="width: 120px; text-align: center">{{
+              t('agent.reference.actions')
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,7 +90,12 @@
               <div class="action-buttons">
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleViewContent(row)">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      class="h-8 w-8"
+                      @click="handleViewContent(row)"
+                    >
                       <Document class="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
@@ -129,7 +135,11 @@
         <DialogHeader>
           <DialogTitle>{{ t('agent.reference.viewContent') }}</DialogTitle>
         </DialogHeader>
-        <div v-if="viewingReference" class="grid gap-4 py-4" style="max-height: 500px; overflow: auto">
+        <div
+          v-if="viewingReference"
+          class="grid gap-4 py-4"
+          style="max-height: 500px; overflow: auto"
+        >
           <div class="grid gap-2">
             <div class="flex justify-between py-2 border-b">
               <span class="font-medium">{{ t('agent.reference.name') }}</span>
@@ -166,7 +176,9 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" @click="contentDialogVisible = false">{{ t('common.close') }}</Button>
+          <Button variant="secondary" @click="contentDialogVisible = false">{{
+            t('common.close')
+          }}</Button>
           <Button @click="handleCopyContent" v-if="viewingReference?.parsedContent">
             {{ t('common.copy') }}
           </Button>
@@ -180,8 +192,16 @@
         class="sm:max-w-[800px]"
         :style="dialogStyle"
         :class="{ 'pointer-events-none': parsing }"
-        @escape-key-down="(e) => { if (parsing) e.preventDefault() }"
-        @interact-outside="(e) => { if (parsing) e.preventDefault() }"
+        @escape-key-down="
+          (e) => {
+            if (parsing) e.preventDefault()
+          }
+        "
+        @interact-outside="
+          (e) => {
+            if (parsing) e.preventDefault()
+          }
+        "
       >
         <DialogHeader>
           <DialogTitle>
@@ -210,18 +230,28 @@
               <Input v-model="formData.name" />
             </FormField>
             <FormField :label="t('agent.reference.inputType')" name="inputType" required>
-              <RadioGroup v-model="formData.inputType" :disabled="parsing" class="flex flex-row gap-4">
+              <RadioGroup
+                v-model="formData.inputType"
+                :disabled="parsing"
+                class="flex flex-row gap-4"
+              >
                 <div class="flex items-center gap-2">
                   <RadioGroupItem value="file" id="input-file" />
-                  <label for="input-file" class="text-sm cursor-pointer">{{ t('agent.reference.type.file') }}</label>
+                  <label for="input-file" class="text-sm cursor-pointer">{{
+                    t('agent.reference.type.file')
+                  }}</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <RadioGroupItem value="url" id="input-url" />
-                  <label for="input-url" class="text-sm cursor-pointer">{{ t('agent.reference.type.url') }}</label>
+                  <label for="input-url" class="text-sm cursor-pointer">{{
+                    t('agent.reference.type.url')
+                  }}</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <RadioGroupItem value="text" id="input-text" />
-                  <label for="input-text" class="text-sm cursor-pointer">{{ t('agent.reference.type.custom') }}</label>
+                  <label for="input-text" class="text-sm cursor-pointer">{{
+                    t('agent.reference.type.custom')
+                  }}</label>
                 </div>
               </RadioGroup>
             </FormField>
@@ -322,14 +352,14 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Badge } from '@renderer/components/ui/badge'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import {
   Table,
@@ -337,7 +367,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  TableHead,
+  TableHead
 } from '@renderer/components/ui/table'
 
 // 懒加载logger

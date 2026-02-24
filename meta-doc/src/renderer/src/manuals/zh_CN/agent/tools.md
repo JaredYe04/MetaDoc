@@ -113,6 +113,7 @@ graph TB
 3. **确认删除**：在弹出的确认对话框中确认删除
 
 **注意**：
+
 - 默认工具集（`default-tool-set`）不可删除
 - 删除工具集不会影响已创建的AgentConfig，但关联该工具集的AgentConfig将无法使用该工具集
 - 如果工具集正在被AgentConfig使用，删除前会提示

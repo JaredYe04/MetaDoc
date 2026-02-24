@@ -36,7 +36,7 @@ graph TB
     B --> F[documentclass命令]
     C --> G[usepackage命令]
     D --> H[title/author/date]
-    E --> I[begin{document}...end{document}]
+    E --> I["begin{document}...end{document}"]
     style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
     style B fill:#e5e7eb,stroke:#6b7280
     style C fill:#e5e7eb,stroke:#6b7280

@@ -97,10 +97,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import ViewMenuItem from './ViewMenuItem.vue'
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
+const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
 const { t } = useI18n()
 const { activeDocument } = useActiveDocument()

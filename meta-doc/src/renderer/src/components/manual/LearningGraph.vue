@@ -2,12 +2,13 @@
   <div class="learning-graph">
     <div v-if="!defaultExpanded" class="graph-header">
       <h3>{{ $t('userManual.graph.title') || '学习路径图' }}</h3>
-      <Button
-        variant="ghost"
-        @click="toggleExpanded"
-      >
+      <Button variant="ghost" @click="toggleExpanded">
         <component :is="isExpanded ? ArrowUp : ArrowDown" class="mr-2 h-4 w-4" />
-        {{ isExpanded ? ($t('userManual.graph.collapse') || '收起') : ($t('userManual.graph.expand') || '展开') }}
+        {{
+          isExpanded
+            ? $t('userManual.graph.collapse') || '收起'
+            : $t('userManual.graph.expand') || '展开'
+        }}
       </Button>
     </div>
 
@@ -55,20 +56,24 @@ import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import * as d3 from 'd3'
 
-const props = withDefaults(defineProps<{
-  defaultExpanded?: boolean
-  selectedId?: string | null
-}>(), {
-  defaultExpanded: false,
-  selectedId: null
-})
+const props = withDefaults(
+  defineProps<{
+    defaultExpanded?: boolean
+    selectedId?: string | null
+  }>(),
+  {
+    defaultExpanded: false,
+    selectedId: null
+  }
+)
 
 const emit = defineEmits<{
   'update:selectedId': [articleId: string | null]
   nodeSelected: [articleId: string | null]
 }>()
 
-const { learningPath, articleProgress, currentArticleId, learningGraph, setCurrentArticle } = useUserManual()
+const { learningPath, articleProgress, currentArticleId, learningGraph, setCurrentArticle } =
+  useUserManual()
 const { t } = useI18n()
 
 const isExpanded = ref(props.defaultExpanded)
@@ -88,9 +93,13 @@ let nodesWithPos: Array<{ id: string; label: string; x: number; y: number; order
 const MIN_ZOOM = 0.15
 const MAX_ZOOM = 4
 
-watch(() => props.selectedId, (id) => {
-  selectedNodeId.value = id ?? null
-}, { immediate: true })
+watch(
+  () => props.selectedId,
+  (id) => {
+    selectedNodeId.value = id ?? null
+  },
+  { immediate: true }
+)
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
@@ -101,14 +110,14 @@ const toggleExpanded = () => {
 
 // 拓扑序
 function computeTopologicalOrder(nodes: any[], edges: any[]): string[] {
-  const nodeIds = nodes.map(n => n.id)
+  const nodeIds = nodes.map((n) => n.id)
   const inDegree = new Map<string, number>()
   const adjList = new Map<string, string[]>()
-  nodeIds.forEach(id => {
+  nodeIds.forEach((id) => {
     inDegree.set(id, 0)
     adjList.set(id, [])
   })
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     if (edge.type === 'prerequisite') {
       const target = edge.target?.id ?? edge.target
       const source = edge.source?.id ?? edge.source
@@ -118,24 +127,34 @@ function computeTopologicalOrder(nodes: any[], edges: any[]): string[] {
   })
   const queue: string[] = []
   const result: string[] = []
-  inDegree.forEach((degree, id) => { if (degree === 0) queue.push(id) })
+  inDegree.forEach((degree, id) => {
+    if (degree === 0) queue.push(id)
+  })
   while (queue.length > 0) {
     const current = queue.shift()!
     result.push(current)
-    ;(adjList.get(current) || []).forEach(neighbor => {
+    ;(adjList.get(current) || []).forEach((neighbor) => {
       const d = inDegree.get(neighbor) || 0
       inDegree.set(neighbor, d - 1)
       if (inDegree.get(neighbor) === 0) queue.push(neighbor)
     })
   }
-  nodeIds.forEach(id => { if (!result.includes(id)) result.push(id) })
+  nodeIds.forEach((id) => {
+    if (!result.includes(id)) result.push(id)
+  })
   return result
 }
 
 // 正交折线：从 source 底中 到 target 顶中
 function orthogonalPath(
-  sx: number, sy: number, sw: number, sh: number,
-  tx: number, ty: number, tw: number, th: number
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+  tx: number,
+  ty: number,
+  tw: number,
+  th: number
 ): string {
   const fromX = sx + sw / 2
   const fromY = sy + sh
@@ -202,7 +221,7 @@ const renderGraph = async () => {
   containerHeight = graphContainer.value.clientHeight || 320
 
   // 与底部列表一致：按 learningPath 顺序排布节点，不再使用拓扑序
-  const pathOrder = learningPath.value.filter(id => graph.nodes.some((n: any) => n.id === id))
+  const pathOrder = learningPath.value.filter((id) => graph.nodes.some((n: any) => n.id === id))
   const order = pathOrder.length > 0 ? pathOrder : graph.nodes.map((n: any) => n.id)
   const n = order.length
   const cols = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(n))))
@@ -224,22 +243,21 @@ const renderGraph = async () => {
     }
   })
 
-  const scaleToFit = Math.min(
-    containerWidth / graphWidth,
-    containerHeight / graphHeight
-  ) * 0.92
+  const scaleToFit = Math.min(containerWidth / graphWidth, containerHeight / graphHeight) * 0.92
   zoomK.value = scaleToFit
   panX.value = (containerWidth - graphWidth * scaleToFit) / 2
   panY.value = (containerHeight - graphHeight * scaleToFit) / 2
 
-  const svg = d3.select(graphContainer.value)
+  const svg = d3
+    .select(graphContainer.value)
     .append('svg')
     .attr('width', '100%')
     .attr('height', '100%')
     .attr('viewBox', `0 0 ${containerWidth} ${containerHeight}`)
 
   const defs = svg.append('defs')
-  defs.append('marker')
+  defs
+    .append('marker')
     .attr('id', 'arrowhead')
     .attr('viewBox', '0 -5 10 10')
     .attr('refX', 8)
@@ -254,7 +272,7 @@ const renderGraph = async () => {
   zoomPanGroup = svg.append('g').attr('class', 'zoom-pan-group')
   applyZoomPan()
 
-  const posMap = new Map(nodesWithPos.map(n => [n.id, n]))
+  const posMap = new Map(nodesWithPos.map((n) => [n.id, n]))
 
   // 边：正交
   const linkData = graph.edges
@@ -265,22 +283,34 @@ const renderGraph = async () => {
     }))
     .filter((l: any) => l.source && l.target)
 
-  zoomPanGroup.append('g').attr('class', 'links')
+  zoomPanGroup
+    .append('g')
+    .attr('class', 'links')
     .selectAll('path')
     .data(linkData)
     .enter()
     .append('path')
-    .attr('d', (d: any) => orthogonalPath(
-      d.source.x, d.source.y, NODE_WIDTH, NODE_HEIGHT,
-      d.target.x, d.target.y, NODE_WIDTH, NODE_HEIGHT
-    ))
+    .attr('d', (d: any) =>
+      orthogonalPath(
+        d.source.x,
+        d.source.y,
+        NODE_WIDTH,
+        NODE_HEIGHT,
+        d.target.x,
+        d.target.y,
+        NODE_WIDTH,
+        NODE_HEIGHT
+      )
+    )
     .attr('fill', 'none')
     .attr('stroke', '#409eff')
     .attr('stroke-width', 2)
     .attr('stroke-opacity', 0.7)
     .attr('marker-end', 'url(#arrowhead)')
 
-  const nodeG = zoomPanGroup.append('g').attr('class', 'nodes')
+  const nodeG = zoomPanGroup
+    .append('g')
+    .attr('class', 'nodes')
     .selectAll('g')
     .data(nodesWithPos)
     .enter()
@@ -319,7 +349,8 @@ const renderGraph = async () => {
     return d.id === selectedNodeId.value ? 3 : 1.5
   }
 
-  nodeG.append('rect')
+  nodeG
+    .append('rect')
     .attr('class', 'node-rect')
     .attr('width', NODE_WIDTH)
     .attr('height', NODE_HEIGHT)
@@ -329,7 +360,8 @@ const renderGraph = async () => {
     .attr('stroke', nodeStroke)
     .attr('stroke-width', nodeStrokeWidth)
 
-  nodeG.append('text')
+  nodeG
+    .append('text')
     .attr('class', 'node-order')
     .attr('x', NODE_WIDTH / 2)
     .attr('y', 18)
@@ -340,7 +372,8 @@ const renderGraph = async () => {
     .attr('fill', '#fff')
     .text((d: any) => String(d.order))
 
-  nodeG.append('text')
+  nodeG
+    .append('text')
     .attr('class', 'node-label')
     .attr('x', NODE_WIDTH / 2)
     .attr('y', NODE_HEIGHT - 10)
@@ -354,7 +387,8 @@ const renderGraph = async () => {
     })
 
   function updateNodeStyles() {
-    nodeG.selectAll('.node-rect')
+    nodeG
+      .selectAll('.node-rect')
       .attr('fill', nodeColor)
       .attr('stroke', nodeStroke)
       .attr('stroke-width', nodeStrokeWidth)
@@ -365,8 +399,10 @@ watch([learningPath, currentArticleId, articleProgress, selectedNodeId], () => {
   if (!(isExpanded.value || props.defaultExpanded) || !graphContainer.value) return
   const g = graphContainer.value.querySelector('.node-g')
   if (g) {
-    d3.select(graphContainer.value).selectAll('.node-g').select('.node-rect')
-      .attr('fill', function() {
+    d3.select(graphContainer.value)
+      .selectAll('.node-g')
+      .select('.node-rect')
+      .attr('fill', function () {
         const d = d3.select(this.parentNode as Element).datum() as any
         if (!d) return '#909399'
         const progress = articleProgress.value.get(d.id)
@@ -375,11 +411,11 @@ watch([learningPath, currentArticleId, articleProgress, selectedNodeId], () => {
         if (d.id === currentArticleId.value) return '#409eff'
         return '#909399'
       })
-      .attr('stroke', function() {
+      .attr('stroke', function () {
         const d = d3.select(this.parentNode as Element).datum() as any
         return d?.id === selectedNodeId.value ? '#e6a23c' : 'rgba(255,255,255,0.8)'
       })
-      .attr('stroke-width', function() {
+      .attr('stroke-width', function () {
         const d = d3.select(this.parentNode as Element).datum() as any
         return d?.id === selectedNodeId.value ? 3 : 1.5
       })
@@ -521,13 +557,21 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border-radius: 4px;
-  border: 1.5px solid rgba(255,255,255,0.8);
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
 }
 
-.legend-node.completed { background-color: #67c23a; }
-.legend-node.current { background-color: #409eff; }
-.legend-node.pending { background-color: #909399; }
-.legend-node.selected { background-color: #e6a23c; }
+.legend-node.completed {
+  background-color: #67c23a;
+}
+.legend-node.current {
+  background-color: #409eff;
+}
+.legend-node.pending {
+  background-color: #909399;
+}
+.legend-node.selected {
+  background-color: #e6a23c;
+}
 </style>
 
 <script lang="ts">

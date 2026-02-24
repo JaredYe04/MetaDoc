@@ -26,9 +26,7 @@
               <el-icon><Document /></el-icon>
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <Badge size="small" :type="getBadgeType(item) || 'info'">{{
-                getBadge(item)
-              }}</Badge>
+              <Badge size="small" :type="getBadgeType(item) || 'info'">{{ getBadge(item) }}</Badge>
             </div>
           </div>
 
@@ -38,9 +36,7 @@
               {{ getItemTitle(item) }}
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <Badge size="small" :type="getBadgeType(item) || 'info'">{{
-                getBadge(item)
-              }}</Badge>
+              <Badge size="small" :type="getBadgeType(item) || 'info'">{{ getBadge(item) }}</Badge>
             </div>
           </div>
 

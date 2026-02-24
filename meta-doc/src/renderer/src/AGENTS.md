@@ -155,38 +155,41 @@ notify({
 
 // Store access (for history queue)
 const store = useNotificationStore()
-store.notifications      // All notifications
-store.unreadCount        // Unread count
-store.markAllAsRead()    // Mark all as read
-store.remove(id)         // Remove notification
+store.notifications // All notifications
+store.unreadCount // Unread count
+store.markAllAsRead() // Mark all as read
+store.remove(id) // Remove notification
 ```
 
 ### File Locations
 
-| Module | Location | Purpose |
-|--------|----------|---------|
-| Types | `types/notification.ts` | TypeScript interfaces |
-| Store | `stores/notification.ts` | Pinia store + localStorage |
-| API | `utils/notify.ts` | Unified notify functions |
-| Legacy | `utils/notifications-legacy.ts` | EventBus compatibility layer |
-| UI | `components/NotificationQueue.vue` | History panel |
-| Toast | `App.vue` | Global Toaster component |
+| Module | Location                           | Purpose                      |
+| ------ | ---------------------------------- | ---------------------------- |
+| Types  | `types/notification.ts`            | TypeScript interfaces        |
+| Store  | `stores/notification.ts`           | Pinia store + localStorage   |
+| API    | `utils/notify.ts`                  | Unified notify functions     |
+| Legacy | `utils/notifications-legacy.ts`    | EventBus compatibility layer |
+| UI     | `components/NotificationQueue.vue` | History panel                |
+| Toast  | `App.vue`                          | Global Toaster component     |
 
 ### Migration from Old System
 
 **Old (ElMessage)**:
+
 ```typescript
 import { ElMessage } from 'element-plus'
 ElMessage.success(t('setting.saveSuccess'))
 ```
 
 **New (notify)**:
+
 ```typescript
 import { notifySuccess } from '@/utils/notify'
 notifySuccess(t('setting.saveSuccess'))
 ```
 
 **Old (EventBus)**:
+
 ```typescript
 eventBus.emit('show-success', { message: 'Done' })
 ```
@@ -232,6 +235,7 @@ P3 (Low):
 All notification calls have been migrated from Element Plus to the new unified system.
 
 #### Migration Statistics
+
 - **Total Files Migrated**: 35+ view files
 - **Total Calls Replaced**: 400+ ElMessage/ElNotification calls
 - **Commits**: 6 migration commits
@@ -240,6 +244,7 @@ All notification calls have been migrated from Element Plus to the new unified s
 #### What Was Migrated
 
 **P0 - Core Files (9 files)**
+
 - Main.vue - ElNotification handlers
 - SettingLlmSection.vue (29 calls)
 - SettingThemeSection.vue (3 calls)
@@ -251,12 +256,14 @@ All notification calls have been migrated from Element Plus to the new unified s
 - SettingAboutSection.vue
 
 **P1 - Editor Views (4 files)**
+
 - Editor.vue
 - MarkdownEditor.vue
 - LaTeXEditor.vue
 - PlainTextEditor.vue
 
 **P2 - Core Features (8 files)**
+
 - AgentView.vue (34 calls)
 - ReferenceManager.vue
 - WorkflowManager.vue
@@ -266,6 +273,7 @@ All notification calls have been migrated from Element Plus to the new unified s
 - ProofreadView.vue (15 calls)
 
 **P3 - Tool Windows (25+ files)**
+
 - AigcDetectionWindow.vue
 - OcrWindow.vue
 - DataAnalysisWindow.vue
@@ -281,13 +289,12 @@ All notification calls have been migrated from Element Plus to the new unified s
 
 #### Files Added
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `types/notification.ts` | ~60 | TypeScript interfaces |
-| `stores/notification.ts` | ~200 | Pinia store with Sonner integration |
-| `utils/notify.ts` | ~40 | Unified notification API |
-| `utils/notifications-legacy.ts` | ~100 | EventBus compatibility layer |
-
+| File                            | Lines | Purpose                             |
+| ------------------------------- | ----- | ----------------------------------- |
+| `types/notification.ts`         | ~60   | TypeScript interfaces               |
+| `stores/notification.ts`        | ~200  | Pinia store with Sonner integration |
+| `utils/notify.ts`               | ~40   | Unified notification API            |
+| `utils/notifications-legacy.ts` | ~100  | EventBus compatibility layer        |
 
 #### How It Works
 
@@ -314,12 +321,14 @@ Business Code
 ### Current Behavior
 
 #### Notification Display
+
 1. **Toast**: Every notification shows as a top-right Sonner toast
 2. **History**: Every notification enters the bottom notification queue
 3. **Unread Badge**: Bottom menu shows unread count badge
 4. **Manual Read**: Users manually mark notifications as read (no auto-mark)
 
 #### User Flow
+
 ```
 Action: Open Document
     ↓
@@ -403,73 +412,82 @@ const store = useNotificationStore()
 store.success('保存成功')
 
 // Access history
-console.log(store.notifications)     // All notifications
-console.log(store.unreadCount)       // Unread count
+console.log(store.notifications) // All notifications
+console.log(store.unreadCount) // Unread count
 
 // Mark as read
-store.markAsRead(notificationId)     // Mark single as read
-store.markAllAsRead()               // Mark all as read
+store.markAsRead(notificationId) // Mark single as read
+store.markAllAsRead() // Mark all as read
 
 // Remove
-store.remove(notificationId)        // Remove single
-store.removeAll()                   // Clear all
+store.remove(notificationId) // Remove single
+store.removeAll() // Clear all
 ```
 
 ### EventBus Compatibility Layer
 
 The legacy adapter (`utils/notifications-legacy.ts`) handles these events:
 
-| Event | Handler |
-|-------|---------|
-| `show-success` | Shows success toast + adds to queue |
-| `show-error` | Shows error toast + adds to queue |
-| `show-warning` | Shows warning toast + adds to queue |
-| `show-info` | Shows info toast + adds to queue |
+| Event              | Handler                             |
+| ------------------ | ----------------------------------- |
+| `show-success`     | Shows success toast + adds to queue |
+| `show-error`       | Shows error toast + adds to queue   |
+| `show-warning`     | Shows warning toast + adds to queue |
+| `show-info`        | Shows info toast + adds to queue    |
 | `open-doc-success` | Shows "Open Success" with file name |
-| `save-success` | Shows "Save Success" with file name |
-| `export-success` | Shows "Export Success" with path |
+| `save-success`     | Shows "Save Success" with file name |
+| `export-success`   | Shows "Export Success" with path    |
 
 ### Common Issues & Solutions
 
 #### Issue: Notifications not showing
+
 **Check**:
+
 1. Is `initNotificationLegacyAdapter()` called in App.vue?
 2. Is the Toaster component present in App.vue?
 3. Are there console errors?
 
 #### Issue: Toast appears but queue is empty
+
 **Cause**: `addToQueue: false` was passed in options
 **Solution**: Default is `true`, check if you explicitly set it to `false`
 
 ### Configuration
 
 #### Default Duration
+
 ```typescript
-const DEFAULT_DURATION = 4000  // 4 seconds
+const DEFAULT_DURATION = 4000 // 4 seconds
 ```
 
 #### Storage
+
 - **Key**: `metadoc-notifications-v1`
 - **Retention**: 7 days
 - **Max Items**: 100
 
 #### Position
+
 - **Toast**: Bottom-right (Sonner default)
 - **Queue**: Bottom-right (above status bar)
 
 ### UI Implementation Details
 
 #### NotificationQueue Component
+
 - **Framework**: Pure shadcn-vue (no Element Plus)
 - **Components used**: Card, Button, Badge, ScrollArea, Tooltip
 - **Icons**: lucide-vue-next (Bell, CheckCircle2, XCircle, AlertCircle, Info, X, Trash2, Inbox)
 
 #### Sonner-Style Notification Items
+
 Each notification item in the queue **exactly matches** Sonner Toast DOM structure and styling:
 
 ```html
 <div class="sonner-notification sonner-success">
-  <button class="sonner-close-btn">✕</button>  <!-- Top-left, hover to show -->
+  <button class="sonner-close-btn">✕</button>
+  <!-- Top-left, hover to show -->
   <div data-icon class="sonner-icon">
     <svg><!-- Type icon --></svg>
   </div>
@@ -478,11 +496,13 @@ Each notification item in the queue **exactly matches** Sonner Toast DOM structu
     <div data-description>Description message</div>
     <div data-timestamp>2 minutes ago</div>
   </div>
-  <div class="sonner-unread-dot"></div>  <!-- Unread indicator -->
+  <div class="sonner-unread-dot"></div>
+  <!-- Unread indicator -->
 </div>
 ```
 
 **Styling features** (dynamic with shadcn theme):
+
 - **Background**: `hsl(var(--background))` - follows shadcn theme
 - **Foreground**: `hsl(var(--foreground))` - follows shadcn theme
 - **Border**: `hsl(var(--border))` - follows shadcn theme
@@ -493,6 +513,7 @@ Each notification item in the queue **exactly matches** Sonner Toast DOM structu
 - **Unread dot**: Top-right, colored by type
 
 **No hardcoded colors** - all colors use CSS variables:
+
 ```css
 background: hsl(var(--background));
 color: hsl(var(--foreground));
@@ -500,31 +521,35 @@ border: 1px solid hsl(var(--border));
 ```
 
 #### Migration to Pure shadcn-vue
+
 **Removed all Element Plus components from notification system**:
+
 - ✅ Replaced `el-icon` with lucide-vue-next icons
 - ✅ Replaced Element Plus colors with Tailwind classes
 - ✅ Replaced `status-dot` with CSS-based indicators
 - ✅ Unified styling between Sonner Toast and NotificationQueue items
 
 #### CSS Classes
-| Class | Purpose |
-|-------|---------|
-| `.sonner-notification` | Base notification container |
-| `.sonner-success` | Success type styling |
-| `.sonner-error` | Error type styling |
-| `.sonner-warning` | Warning type styling |
-| `.sonner-info` | Info type styling |
-| `.sonner-close-btn` | Close button (top-left) |
-| `.sonner-icon` | Icon container (left side) |
-| `.sonner-content` | Content wrapper |
-| `.sonner-title` | Title text |
-| `.sonner-description` | Description text |
-| `.sonner-timestamp` | Time display |
-| `.sonner-unread-dot` | Unread indicator (top-right) |
+
+| Class                  | Purpose                      |
+| ---------------------- | ---------------------------- |
+| `.sonner-notification` | Base notification container  |
+| `.sonner-success`      | Success type styling         |
+| `.sonner-error`        | Error type styling           |
+| `.sonner-warning`      | Warning type styling         |
+| `.sonner-info`         | Info type styling            |
+| `.sonner-close-btn`    | Close button (top-left)      |
+| `.sonner-icon`         | Icon container (left side)   |
+| `.sonner-content`      | Content wrapper              |
+| `.sonner-title`        | Title text                   |
+| `.sonner-description`  | Description text             |
+| `.sonner-timestamp`    | Time display                 |
+| `.sonner-unread-dot`   | Unread indicator (top-right) |
 
 ### Migration Checklist (for future reference)
 
 When migrating a new file:
+
 - [ ] Replace `ElMessage.success/error/warning/info` with `notifyXxx()`
 - [ ] Replace `ElNotification` with `notify()`
 - [ ] Keep `ElMessageBox` for confirmation dialogs

@@ -52,7 +52,8 @@ export const OUTLINE_SECTION_KEYWORDS_SCHEMA: SchemaDefinition<OutlineSectionKey
     properties: {
       keywords: {
         type: 'array',
-        description: '推荐关键词，用于指导本节内容风格与重点，如：严谨、学术风、抒情、创意、计算机等',
+        description:
+          '推荐关键词，用于指导本节内容风格与重点，如：严谨、学术风、抒情、创意、计算机等',
         items: {
           type: 'string',
           maxLength: 12

@@ -64,17 +64,21 @@ const startThrottle = () => {
   }
 }
 
-watch(() => props.loading, (newVal) => {
-  if (newVal) {
-    startThrottle()
-  } else {
-    if (throttleTimer) {
-      clearTimeout(throttleTimer)
-      throttleTimer = null
+watch(
+  () => props.loading,
+  (newVal) => {
+    if (newVal) {
+      startThrottle()
+    } else {
+      if (throttleTimer) {
+        clearTimeout(throttleTimer)
+        throttleTimer = null
+      }
+      isVisible.value = false
     }
-    isVisible.value = false
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 
 onUnmounted(() => {
   if (throttleTimer) {
@@ -103,18 +107,15 @@ const skeletonVariants = cva('bg-muted', {
 
 // Compute container classes
 const containerClasses = computed(() => {
-  return cn(
-    'flex flex-col gap-2',
-    props.class
-  )
+  return cn('flex flex-col gap-2', props.class)
 })
 
 // Compute skeleton item classes
 const itemClasses = computed(() => {
   return cn(
-    skeletonVariants({ 
-      variant: props.variant, 
-      animated: props.animated 
+    skeletonVariants({
+      variant: props.variant,
+      animated: props.animated
     }),
     // Text variant specific sizing
     props.variant === 'text' && 'h-4 w-full',
@@ -141,10 +142,7 @@ const rowArray = computed(() => {
 // Last row styling (80% width for text variant to simulate paragraph end)
 const getRowClasses = (index: number) => {
   const isLastRow = index === props.rows - 1 && props.variant === 'text'
-  return cn(
-    itemClasses.value,
-    isLastRow && !props.width && 'w-[80%]'
-  )
+  return cn(itemClasses.value, isLastRow && !props.width && 'w-[80%]')
 }
 </script>
 
@@ -159,20 +157,10 @@ const getRowClasses = (index: number) => {
       />
     </template>
     <template v-else-if="variant === 'avatar'">
-      <div
-        v-for="index in rowArray"
-        :key="index"
-        :class="itemClasses"
-        :style="itemStyles"
-      />
+      <div v-for="index in rowArray" :key="index" :class="itemClasses" :style="itemStyles" />
     </template>
     <template v-else-if="variant === 'image'">
-      <div
-        v-for="index in rowArray"
-        :key="index"
-        :class="itemClasses"
-        :style="itemStyles"
-      />
+      <div v-for="index in rowArray" :key="index" :class="itemClasses" :style="itemStyles" />
     </template>
   </div>
   <slot v-else />

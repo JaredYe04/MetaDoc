@@ -18,6 +18,7 @@
 #### 主进程（Main Process）
 
 - **`src/main/runtime-server-config.ts`**：运行时服务器配置
+
   - `getRuntimeServerPort()`：获取端口（默认 52521，可通过 `RUNTIME_SERVER_PORT` 环境变量覆盖）
   - `getRuntimeServerHost()`：获取主机（默认 127.0.0.1，可通过 `RUNTIME_SERVER_HOST` 环境变量覆盖）
   - `getRuntimeServerBaseUrl()`：获取完整 base URL（如 `http://127.0.0.1:52521`）
@@ -31,6 +32,7 @@
 #### 渲染进程（Renderer Process）
 
 - **`src/renderer/src/config/runtime-server.ts`**：运行时服务器地址获取
+
   - `getRuntimeServerBaseUrl()`：异步获取 base URL（通过 IPC，带缓存）
   - `getRuntimeServerBaseUrlSync()`：同步获取已缓存的 base URL（需先调用过异步版本）
   - `setRuntimeServerBaseUrl(url)`：手动设置缓存（用于测试）
@@ -50,6 +52,7 @@
 ### 2.1 Phase 1：运行时服务器地址统一 ✅
 
 **主进程：**
+
 - ✅ 创建 `runtime-server-config.ts`
 - ✅ `express-server.ts` 使用配置
 - ✅ `index.ts` 使用配置
@@ -57,6 +60,7 @@
 - ✅ `main-calls.ts`、`utils/svg-to-pdf.ts`、`utils/image-export-service.ts`、`export/export-manager.ts` 中所有硬编码的 `localhost:52521` 已替换
 
 **渲染进程：**
+
 - ✅ 创建 `config/runtime-server.ts`
 - ✅ `App.vue` 在 `onMounted` 中初始化缓存
 - ✅ 以下文件已迁移：
@@ -82,6 +86,7 @@
 ### 2.2 Phase 2：渲染进程 IPC 消息桥 ✅
 
 **已迁移的文件：**
+
 - ✅ `utils/event-bus.js`：所有 `ipcRenderer.send/on/invoke/removeListener` → `messageBridge.send/on/invoke/removeListener`
 - ✅ `utils/settings.js`：所有 `ipcRenderer.invoke` → `messageBridge.invoke`
 - ✅ `config/runtime-server.ts`：通过 `messageBridge.invoke` 获取 baseUrl
@@ -92,6 +97,7 @@
 ### 2.3 Phase 3：主进程 IPC 桥 ✅
 
 **已迁移的文件：**
+
 - ✅ `main/main-calls.ts`：所有 `ipcMain.handle/on/once/removeListener` → `ipcBridge.registerHandle/registerOn/registerOnce/removeListener`
 - ✅ `main/index.ts`：所有 `ipcMain.on/once/removeListener` → `ipcBridge.registerOn/registerOnce/removeListener`
 - ✅ `main/drag-manager.ts`：所有 `ipcMain.handle/on` → `ipcBridge.registerHandle/registerOn`
@@ -111,12 +117,14 @@
 #### 模式 1：异步上下文（推荐）
 
 **原代码：**
+
 ```javascript
 const uploadUrl = 'http://localhost:52521/api/image/upload'
 const response = await fetch(uploadUrl, { ... })
 ```
 
 **迁移后：**
+
 ```javascript
 const baseUrl = await import('../config/runtime-server').then(m => m.getRuntimeServerBaseUrl())
 const uploadUrl = `${baseUrl}/api/image/upload`
@@ -124,6 +132,7 @@ const response = await fetch(uploadUrl, { ... })
 ```
 
 **或使用动态导入（更简洁）：**
+
 ```javascript
 const baseUrl = await import('../config/runtime-server').then(m => m.getRuntimeServerBaseUrl())
 const response = await fetch(`${baseUrl}/api/image/upload`, { ... })
@@ -132,12 +141,14 @@ const response = await fetch(`${baseUrl}/api/image/upload`, { ... })
 #### 模式 2：同步上下文（需确保缓存已初始化）
 
 **原代码：**
+
 ```javascript
 const imageUrl = `http://localhost:52521/images/${fileName}`
 if (url.startsWith('http://localhost:52521/images/')) { ... }
 ```
 
 **迁移后：**
+
 ```javascript
 import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
@@ -150,12 +161,14 @@ if (url.startsWith(imagesPrefix)) { ... }
 #### 模式 3：字符串替换与正则
 
 **原代码：**
+
 ```javascript
 const fileName = url.replace('http://localhost:52521/images/', '')
 markdown.replace(/http:\/\/localhost:52521\/images\/([^\s\)]+)/g, ...)
 ```
 
 **迁移后：**
+
 ```javascript
 import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
@@ -169,6 +182,7 @@ markdown.replace(new RegExp(imagesPrefixEscaped + '([^\\s\\)]+)', 'g'), ...)
 #### 模式 1：直接替换（最简单）
 
 **原代码：**
+
 ```javascript
 let ipcRenderer = null
 if (window && window.electron) {
@@ -182,6 +196,7 @@ ipcRenderer.on('some-channel', handler)
 ```
 
 **迁移后：**
+
 ```javascript
 import messageBridge from '../bridge/message-bridge'
 await messageBridge.invoke('some-channel', arg)
@@ -192,6 +207,7 @@ messageBridge.on('some-channel', handler)
 #### 模式 2：需要 IPC 实例的场景
 
 **原代码：**
+
 ```javascript
 const getIpcRenderer = () => {
   if (window && window.electron) {
@@ -204,6 +220,7 @@ if (ipcRenderer?.invoke) { ... }
 ```
 
 **迁移后：**
+
 ```javascript
 import messageBridge from '../bridge/message-bridge'
 const getIpcRenderer = () => messageBridge.getIpc()
@@ -214,6 +231,7 @@ if (ipcRenderer?.invoke) { ... }
 #### 模式 3：异步获取 IPC
 
 **原代码：**
+
 ```javascript
 async function someFunction() {
   let ipcRenderer = null
@@ -228,6 +246,7 @@ async function someFunction() {
 ```
 
 **迁移后：**
+
 ```javascript
 import messageBridge from '../bridge/message-bridge'
 async function someFunction() {
@@ -238,12 +257,14 @@ async function someFunction() {
 #### 模式 4：移除监听器
 
 **原代码：**
+
 ```javascript
 ipcRenderer.removeListener('channel', handler)
 ipcRenderer.removeAllListeners('channel')
 ```
 
 **迁移后：**
+
 ```javascript
 import messageBridge from '../bridge/message-bridge'
 messageBridge.removeListener('channel', handler)
@@ -255,6 +276,7 @@ messageBridge.removeListener('channel', handler)
 #### 场景 1：Vue 组件中的 IPC 调用
 
 **原代码：**
+
 ```vue
 <script setup>
 let ipcRenderer = null
@@ -271,6 +293,7 @@ const handleSave = async () => {
 ```
 
 **迁移后：**
+
 ```vue
 <script setup>
 import messageBridge from '../bridge/message-bridge'
@@ -284,6 +307,7 @@ const handleSave = async () => {
 #### 场景 2：工具函数中的 IPC
 
 **原代码：**
+
 ```javascript
 export async function getFileContent(path) {
   const ipcRenderer = window.electron?.ipcRenderer || localIpcRenderer
@@ -292,6 +316,7 @@ export async function getFileContent(path) {
 ```
 
 **迁移后：**
+
 ```javascript
 import messageBridge from '../bridge/message-bridge'
 
@@ -303,14 +328,15 @@ export async function getFileContent(path) {
 #### 场景 3：类方法中的 IPC
 
 **原代码：**
+
 ```typescript
 class SomeService {
   private ipcRenderer: any
-  
+
   constructor() {
     this.ipcRenderer = window.electron?.ipcRenderer || localIpcRenderer
   }
-  
+
   async doSomething() {
     return await this.ipcRenderer.invoke('channel', arg)
   }
@@ -318,6 +344,7 @@ class SomeService {
 ```
 
 **迁移后：**
+
 ```typescript
 import messageBridge from '../bridge/message-bridge'
 
@@ -424,17 +451,21 @@ grep -r "window\.electron" src/renderer --include="*.ts" --include="*.js" --incl
 ### 8.1 运行时服务器地址
 
 **主进程：**
+
 - 修改 `src/main/runtime-server-config.ts` 中的 `getRuntimeServerBaseUrl()`，返回远程 API 地址（如 `https://api.example.com`）
 
 **渲染进程：**
+
 - 修改 `src/renderer/src/config/runtime-server.ts` 中的 `getRuntimeServerBaseUrl()`，改为从配置或环境变量读取远程地址
 
 ### 8.2 IPC 消息桥
 
 **主进程：**
+
 - 修改 `src/main/bridge/ipc-bridge.ts`，将 `registerHandle/registerOn` 改为注册 HTTP 路由或 WebSocket 处理器
 
 **渲染进程：**
+
 - 修改 `src/renderer/src/bridge/message-bridge.ts`，将 `invoke/send/on` 改为使用 `fetch` 或 WebSocket
 
 所有业务代码无需修改，只需替换桥的实现即可。
@@ -467,14 +498,17 @@ A: 检查导入路径、确保异步函数使用 `await`、检查控制台错误
 ## 十、进度跟踪
 
 ### 已完成 ✅
+
 - Phase 1：运行时服务器地址统一（主进程 + 渲染进程核心文件）
 - Phase 2：渲染进程 IPC 桥（核心工具函数）
 - Phase 3：主进程 IPC 桥
 
 ### 进行中 🚧
+
 - 渲染进程 IPC 迁移（约 1000+ 处，按文件逐个迁移）
 
 ### 待开始 ⏳
+
 - 全面测试与验证
 - 文档更新
 

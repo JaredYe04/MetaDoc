@@ -5,7 +5,7 @@
         'form-item group/form-item space-y-2',
         isError && 'form-item--error',
         isRequired && 'form-item--required',
-        props.class,
+        props.class
       )
     "
   >
@@ -17,7 +17,7 @@
           'form-item__label-wrapper flex items-center gap-1',
           labelPosition === 'top' && 'flex-col items-start gap-1',
           labelPosition === 'left' && 'flex-row gap-3',
-          labelPosition === 'right' && 'flex-row-reverse gap-3 justify-end',
+          labelPosition === 'right' && 'flex-row-reverse gap-3 justify-end'
         )
       "
     >
@@ -27,7 +27,7 @@
         :class="
           cn(
             'form-item__label text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
-            labelClass,
+            labelClass
           )
         "
       >
@@ -49,7 +49,7 @@
       :class="
         cn(
           'form-item__error text-sm text-destructive animate-in fade-in slide-in-from-top-1 duration-200',
-          errorClass,
+          errorClass
         )
       "
     >
@@ -99,7 +99,7 @@ const slots = defineSlots<{
 const fieldContext = computed(() => ({
   name: props.prop,
   required: props.required,
-  hasError: isError.value,
+  hasError: isError.value
 }))
 provide('formItemContext', fieldContext)
 
@@ -165,7 +165,7 @@ watch(
       formContext.registerField(fieldName.value, newRules || [])
     }
   },
-  { deep: true },
+  { deep: true }
 )
 
 // Watch for external error prop changes
@@ -175,7 +175,7 @@ watch(
     if (formContext && fieldName.value) {
       formContext.setFieldError(fieldName.value, newError || null)
     }
-  },
+  }
 )
 
 // Expose field methods and state for template ref access
@@ -200,7 +200,7 @@ defineExpose({
     if (formContext && fieldName.value) {
       formContext.setFieldError(fieldName.value, null)
     }
-  },
+  }
 })
 </script>
 

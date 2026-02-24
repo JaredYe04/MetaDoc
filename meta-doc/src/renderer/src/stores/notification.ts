@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
-import type { NotificationItem, NotificationType, NotifyOptions } from '@renderer/types/notification'
+import type {
+  NotificationItem,
+  NotificationType,
+  NotifyOptions
+} from '@renderer/types/notification'
 
 const STORAGE_KEY = 'metadoc-notifications-v1'
 const MAX_HISTORY = 100
@@ -32,9 +36,9 @@ function getDefaultTitle(type: NotificationType, t?: (key: string) => string): s
 
 export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<NotificationItem[]>([])
-  const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
+  const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
   const latestNotification = computed(() => notifications.value[0] ?? null)
-  const readCount = computed(() => notifications.value.filter(n => n.read).length)
+  const readCount = computed(() => notifications.value.filter((n) => n.read).length)
 
   function loadFromStorage(): void {
     try {
@@ -145,7 +149,7 @@ export const useNotificationStore = defineStore('notification', () => {
     notify({ message, type: 'info', ...opts })
 
   function markAsRead(id: string): void {
-    const notification = notifications.value.find(n => n.id === id)
+    const notification = notifications.value.find((n) => n.id === id)
     if (notification && !notification.read) {
       notification.read = true
       saveToStorage()
@@ -154,7 +158,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   function markAllAsRead(): void {
     let hasUnread = false
-    notifications.value.forEach(n => {
+    notifications.value.forEach((n) => {
       if (!n.read) {
         n.read = true
         hasUnread = true
@@ -166,7 +170,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   function remove(id: string): void {
-    const index = notifications.value.findIndex(n => n.id === id)
+    const index = notifications.value.findIndex((n) => n.id === id)
     if (index > -1) {
       notifications.value.splice(index, 1)
       saveToStorage()
@@ -181,7 +185,7 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   function removeRead(): void {
-    const unreadItems = notifications.value.filter(n => !n.read)
+    const unreadItems = notifications.value.filter((n) => !n.read)
     if (unreadItems.length !== notifications.value.length) {
       notifications.value = unreadItems
       saveToStorage()
@@ -189,11 +193,11 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   function getById(id: string): NotificationItem | undefined {
-    return notifications.value.find(n => n.id === id)
+    return notifications.value.find((n) => n.id === id)
   }
 
   function getUnread(): NotificationItem[] {
-    return notifications.value.filter(n => !n.read)
+    return notifications.value.filter((n) => !n.read)
   }
 
   return {

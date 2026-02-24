@@ -129,7 +129,10 @@
       @close="contextMenuVisible = false"
     />
     <!-- 重命名对话框 -->
-    <Dialog v-model:open="renameDialogVisible" @update:open="(open) => !open && handleRenameDialogClose()">
+    <Dialog
+      v-model:open="renameDialogVisible"
+      @update:open="(open) => !open && handleRenameDialogClose()"
+    >
       <DialogContent class="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>{{ $t('workspaceExplorer.renameDialog.title') }}</DialogTitle>
@@ -146,15 +149,18 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" @click="handleRenameDialogClose">{{ $t('common.cancel') }}</Button>
-          <Button variant="default" @click="handleRenameConfirm">{{
-            $t('common.confirm')
+          <Button variant="secondary" @click="handleRenameDialogClose">{{
+            $t('common.cancel')
           }}</Button>
+          <Button variant="default" @click="handleRenameConfirm">{{ $t('common.confirm') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
     <!-- 新建文件对话框 -->
-    <Dialog v-model:open="newFileDialogVisible" @update:open="(open) => !open && handleNewFileDialogClose()">
+    <Dialog
+      v-model:open="newFileDialogVisible"
+      @update:open="(open) => !open && handleNewFileDialogClose()"
+    >
       <DialogContent class="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>{{ $t('workspaceExplorer.newFileDialog.title') }}</DialogTitle>
@@ -171,7 +177,9 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</Button>
+          <Button variant="secondary" @click="handleNewFileDialogClose">{{
+            $t('common.cancel')
+          }}</Button>
           <Button variant="default" @click="handleNewFileConfirm">{{
             $t('common.confirm')
           }}</Button>
@@ -179,7 +187,10 @@
       </DialogContent>
     </Dialog>
     <!-- 新建文件夹对话框 -->
-    <Dialog v-model:open="newFolderDialogVisible" @update:open="(open) => !open && handleNewFolderDialogClose()">
+    <Dialog
+      v-model:open="newFolderDialogVisible"
+      @update:open="(open) => !open && handleNewFolderDialogClose()"
+    >
       <DialogContent class="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>{{ $t('workspaceExplorer.newFolderDialog.title') }}</DialogTitle>
@@ -196,7 +207,9 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</Button>
+          <Button variant="secondary" @click="handleNewFolderDialogClose">{{
+            $t('common.cancel')
+          }}</Button>
           <Button variant="default" @click="handleNewFolderConfirm">{{
             $t('common.confirm')
           }}</Button>
@@ -220,7 +233,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from '@renderer/components/ui/dialog'
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
@@ -239,7 +252,6 @@ import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
 import logoPath from '../assets/logo.svg'
 import messageBridge from '../bridge/message-bridge'
-
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
@@ -940,7 +952,9 @@ const restoreScrollPosition = (position: { scrollTop: number; scrollLeft: number
   try {
     // 使用 nextTick 确保 DOM 已更新
     setTimeout(() => {
-      const viewport = treeScrollbarRef.value?.$el?.querySelector('[data-radix-scroll-area-viewport]')
+      const viewport = treeScrollbarRef.value?.$el?.querySelector(
+        '[data-radix-scroll-area-viewport]'
+      )
       if (viewport) {
         viewport.scrollTop = position.scrollTop
         viewport.scrollLeft = position.scrollLeft

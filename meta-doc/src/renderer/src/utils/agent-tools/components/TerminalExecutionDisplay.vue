@@ -10,17 +10,17 @@
         <h4 :style="headerTitleStyle">{{ $t('agent.display.terminalExecution.approvalTitle') }}</h4>
       </div>
 
-        <div class="command-display">
-          <div class="command-label" :style="labelStyle">
-            {{ $t('agent.display.terminalExecution.commandToExecute') }}
-          </div>
-          <Textarea
-            :model-value="(effectiveData as any)?.command || ''"
-            :rows="3"
-            readonly
-            class="command-input w-full"
-          />
+      <div class="command-display">
+        <div class="command-label" :style="labelStyle">
+          {{ $t('agent.display.terminalExecution.commandToExecute') }}
         </div>
+        <Textarea
+          :model-value="(effectiveData as any)?.command || ''"
+          :rows="3"
+          readonly
+          class="command-input w-full"
+        />
+      </div>
 
       <div class="trust-mode-section" :style="trustModeSectionStyle">
         <Checkbox v-model:checked="trustMode" @update:checked="handleTrustModeChange">
@@ -187,7 +187,9 @@
       <Alert variant="destructive">
         <XCircle class="h-4 w-4" />
         <AlertTitle>
-          {{ (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed') }}
+          {{
+            (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed')
+          }}
         </AlertTitle>
       </Alert>
     </div>

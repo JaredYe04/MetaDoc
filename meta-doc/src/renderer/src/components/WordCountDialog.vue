@@ -76,7 +76,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from '@renderer/components/ui/dialog'
 
 const { t } = useI18n()
@@ -182,7 +182,7 @@ function handleClose() {
   border-color: v-bind('themeState.currentTheme.textColor + "33"');
 }
 
-  .checkbox-label {
+.checkbox-label {
   color: v-bind('themeState.currentTheme.textColor');
   font-size: 14px;
   cursor: pointer;

@@ -21,16 +21,16 @@ utils/
 
 ## WHERE TO LOOK
 
-| Task                    | File                        | Notes                                      |
-| ----------------------- | --------------------------- | ------------------------------------------ |
-| RAG/knowledge base      | `rag-service.ts`            | Embeddings, sqlite-vec, reranking          |
-| OCR image → text        | `ocr-service.ts`            | Tesseract.js wrapper                       |
-| Spell checking          | `spell-check-service.ts`    | cspell-lib integration                     |
-| File format conversion  | `file-conversion-service.ts`| PDF/DOCX/PPTX text extraction              |
-| LaTeX compilation       | `latex-service.ts`          | tectonic PDF generation                    |
-| Auto-updater            | `update-service.ts`         | electron-updater config                    |
-| Cross-platform paths    | `path-service.ts`           | User data, temp paths                      |
-| Add new service         | Create file → `index.ts`    | Singleton pattern, scoped logger           |
+| Task                   | File                         | Notes                             |
+| ---------------------- | ---------------------------- | --------------------------------- |
+| RAG/knowledge base     | `rag-service.ts`             | Embeddings, sqlite-vec, reranking |
+| OCR image → text       | `ocr-service.ts`             | Tesseract.js wrapper              |
+| Spell checking         | `spell-check-service.ts`     | cspell-lib integration            |
+| File format conversion | `file-conversion-service.ts` | PDF/DOCX/PPTX text extraction     |
+| LaTeX compilation      | `latex-service.ts`           | tectonic PDF generation           |
+| Auto-updater           | `update-service.ts`          | electron-updater config           |
+| Cross-platform paths   | `path-service.ts`            | User data, temp paths             |
+| Add new service        | Create file → `index.ts`     | Singleton pattern, scoped logger  |
 
 ## CONVENTIONS
 

@@ -79,9 +79,12 @@
                 <Badge :variant="getBadgeVariantForType(error.type)">{{
                   getErrorTypeLabel(error.type)
                 }}</Badge>
-                <Badge v-if="error.fixed" variant="default" class="bg-green-600 hover:bg-green-700">{{
-                  $t('agent.display.proofread.autoFixed')
-                }}</Badge>
+                <Badge
+                  v-if="error.fixed"
+                  variant="default"
+                  class="bg-green-600 hover:bg-green-700"
+                  >{{ $t('agent.display.proofread.autoFixed') }}</Badge
+                >
                 <span class="error-location" :style="locationStyle">
                   {{
                     $t('agent.display.proofread.location', {
@@ -328,14 +331,18 @@ const getSeverityType = (severity: string) => {
 }
 
 // Map severity to Badge variant
-const getBadgeVariantForSeverity = (severity: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+const getBadgeVariantForSeverity = (
+  severity: string
+): 'default' | 'secondary' | 'destructive' | 'outline' => {
   if (severity === 'error') return 'destructive'
   if (severity === 'warning') return 'default'
   return 'secondary'
 }
 
 // Map error type to Badge variant
-const getBadgeVariantForType = (type: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+const getBadgeVariantForType = (
+  type: string
+): 'default' | 'secondary' | 'destructive' | 'outline' => {
   const typeMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     grammar: 'default',
     spelling: 'default',

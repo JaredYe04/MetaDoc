@@ -4,16 +4,12 @@
       <Statistic :title="$t('agent.display.autoTest.totalTests')" :value="summary.total" />
       <Statistic :title="$t('agent.display.autoTest.passed')" :value="summary.passed">
         <template #suffix>
-          <Badge class="ml-2">
-            {{ summary.passedRate }}%
-          </Badge>
+          <Badge class="ml-2"> {{ summary.passedRate }}% </Badge>
         </template>
       </Statistic>
       <Statistic :title="$t('agent.display.autoTest.failed')" :value="summary.failed">
         <template #suffix>
-          <Badge variant="destructive" class="ml-2">
-            {{ summary.failedRate }}%
-          </Badge>
+          <Badge variant="destructive" class="ml-2"> {{ summary.failedRate }}% </Badge>
         </template>
       </Statistic>
       <Statistic :title="$t('agent.display.autoTest.duration')" :value="summary.duration">
@@ -39,7 +35,9 @@
     <Tabs v-model="activeTab" class="auto-test-tabs">
       <TabsList class="w-full grid grid-cols-2">
         <TabsTrigger value="results">{{ $t('agent.display.autoTest.testResults') }}</TabsTrigger>
-        <TabsTrigger value="markdown">{{ $t('agent.display.autoTest.markdownSummary') }}</TabsTrigger>
+        <TabsTrigger value="markdown">{{
+          $t('agent.display.autoTest.markdownSummary')
+        }}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="results" class="auto-test-tabs-content">
@@ -176,7 +174,12 @@ import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Divider } from '@renderer/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Statistic } from '@renderer/components/ui/statistic'
@@ -636,7 +639,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.auto-test-tabs :deep([data-state="active"]) {
+.auto-test-tabs :deep([data-state='active']) {
   flex: 1;
 }
 
@@ -674,7 +677,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.auto-test-result-display :deep([data-slot="separator"]) {
+.auto-test-result-display :deep([data-slot='separator']) {
   margin: 16px 0;
   flex-shrink: 0;
 }

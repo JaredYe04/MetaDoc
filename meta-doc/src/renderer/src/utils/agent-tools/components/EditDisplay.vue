@@ -18,19 +18,19 @@
       class="completed-state"
       :style="completedStateStyle"
     >
-        <div v-if="resultData" class="edit-header" :style="headerStyle">
-          <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
-          <div class="edit-stats" :style="statsStyle">
-            <Badge variant="default"
-              >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</Badge
-            >
-            <Badge v-if="resultData.failedEdits > 0" variant="destructive"
-              >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</Badge
-            >
-            <Badge variant="secondary"
-              >{{ $t('agent.display.edit.totalOperations') }}:
-              {{ resultData.operations.length }}</Badge
-            >
+      <div v-if="resultData" class="edit-header" :style="headerStyle">
+        <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
+        <div class="edit-stats" :style="statsStyle">
+          <Badge variant="default"
+            >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</Badge
+          >
+          <Badge v-if="resultData.failedEdits > 0" variant="destructive"
+            >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</Badge
+          >
+          <Badge variant="secondary"
+            >{{ $t('agent.display.edit.totalOperations') }}:
+            {{ resultData.operations.length }}</Badge
+          >
           <div v-if="hasFullContent" class="mode-switch flex gap-1">
             <Button
               :variant="viewMode === 'unified' ? 'default' : 'outline'"

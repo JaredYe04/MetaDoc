@@ -1,48 +1,54 @@
 <template>
   <div
-    :class="cn(
-      'el-tree-node',
-      'select-none',
-      isExpanded && 'is-expanded',
-      isCurrent && highlightCurrent && 'is-current',
-      isDisabled && 'is-disabled'
-    )"
+    :class="
+      cn(
+        'el-tree-node',
+        'select-none',
+        isExpanded && 'is-expanded',
+        isCurrent && highlightCurrent && 'is-current',
+        isDisabled && 'is-disabled'
+      )
+    "
     role="treeitem"
     :aria-expanded="hasChildren ? isExpanded : undefined"
     :aria-selected="isCurrent"
   >
     <!-- Node content -->
     <div
-      :class="cn(
-        'el-tree-node__content',
-        'flex items-center',
-        'py-1.5 px-2',
-        'cursor-pointer',
-        'transition-colors duration-200',
-        'hover:bg-accent hover:text-accent-foreground',
-        isCurrent && highlightCurrent && 'bg-accent/60 font-medium',
-        isDisabled && 'opacity-50 cursor-not-allowed',
-        'rounded-md'
-      )"
+      :class="
+        cn(
+          'el-tree-node__content',
+          'flex items-center',
+          'py-1.5 px-2',
+          'cursor-pointer',
+          'transition-colors duration-200',
+          'hover:bg-accent hover:text-accent-foreground',
+          isCurrent && highlightCurrent && 'bg-accent/60 font-medium',
+          isDisabled && 'opacity-50 cursor-not-allowed',
+          'rounded-md'
+        )
+      "
       :style="{ paddingLeft: `${level * 16 + 8}px` }"
       @click="handleClick"
     >
       <!-- Expand/collapse icon -->
       <span
         v-if="(hasChildren || (lazy && !isLeaf)) && !isFilteredHidden"
-        :class="cn(
-          'el-tree-node__expand-icon',
-          'mr-1 flex items-center justify-center',
-          'w-4 h-4',
-          'transition-transform duration-200',
-          isExpanded && 'is-expanded rotate-90'
-        )"
+        :class="
+          cn(
+            'el-tree-node__expand-icon',
+            'mr-1 flex items-center justify-center',
+            'w-4 h-4',
+            'transition-transform duration-200',
+            isExpanded && 'is-expanded rotate-90'
+          )
+        "
         @click.stop="handleExpandClick"
       >
         <ChevronRight v-if="!isLoading" class="w-4 h-4" />
         <Loader2 v-else class="w-4 h-4 animate-spin" />
       </span>
-      
+
       <span v-else class="w-4 h-4 mr-1 el-tree-node__expand-icon-placeholder" />
 
       <!-- Node label slot -->
@@ -96,25 +102,28 @@ import { cn } from '../../../lib/utils'
 import type { TreeNode, TreeProps } from './Tree.vue'
 
 // Props
-const props = withDefaults(defineProps<{
-  node: TreeNode
-  nodeKey: string | number
-  level: number
-  props: TreeProps
-  expandedKeys: Set<string | number>
-  currentKey: string | number | null
-  highlightCurrent: boolean
-  expandOnClickNode: boolean
-  filterNodeMethod?: (value: string, data: TreeNode, node: TreeNode) => boolean
-  filterValue: string
-  lazy: boolean
-  load?: (node: TreeNode, resolve: (data: TreeNode[]) => void) => void
-  loadedKeys: Set<string | number>
-  loadingKeys: Set<string | number>
-}>(), {
-  level: 0,
-  filterValue: ''
-})
+const props = withDefaults(
+  defineProps<{
+    node: TreeNode
+    nodeKey: string | number
+    level: number
+    props: TreeProps
+    expandedKeys: Set<string | number>
+    currentKey: string | number | null
+    highlightCurrent: boolean
+    expandOnClickNode: boolean
+    filterNodeMethod?: (value: string, data: TreeNode, node: TreeNode) => boolean
+    filterValue: string
+    lazy: boolean
+    load?: (node: TreeNode, resolve: (data: TreeNode[]) => void) => void
+    loadedKeys: Set<string | number>
+    loadingKeys: Set<string | number>
+  }>(),
+  {
+    level: 0,
+    filterValue: ''
+  }
+)
 
 // Emits
 const emit = defineEmits<{
@@ -170,14 +179,17 @@ const isFilteredHidden = computed(() => {
 })
 
 const visibleChildren = computed(() => {
-  const allChildren = [...(Array.isArray(children.value) ? children.value : []), ...lazyChildren.value]
-  
+  const allChildren = [
+    ...(Array.isArray(children.value) ? children.value : []),
+    ...lazyChildren.value
+  ]
+
   if (!props.filterValue || !props.filterNodeMethod) {
     return allChildren
   }
-  
+
   // When filtering, show children that match or have matching children
-  return allChildren.filter(child => {
+  return allChildren.filter((child) => {
     return props.filterNodeMethod!(props.filterValue, child, child) || hasVisibleChildren(child)
   })
 })
@@ -187,7 +199,7 @@ const hasVisibleChildren = (node: TreeNode): boolean => {
   if (!props.filterValue || !props.filterNodeMethod) return false
   const childNodes = node[props.props.children!]
   if (!Array.isArray(childNodes)) return false
-  return childNodes.some(child => {
+  return childNodes.some((child) => {
     return props.filterNodeMethod!(props.filterValue, child, child) || hasVisibleChildren(child)
   })
 }
@@ -207,10 +219,10 @@ const loadChildren = () => {
   if (!props.lazy || !props.load || props.loadedKeys.has(props.nodeKey)) {
     return
   }
-  
+
   // Add to loading keys
   // Note: This would need to be managed at parent level for proper reactivity
-  
+
   props.load(props.node, (data) => {
     lazyChildren.value = data
     emit('lazy-load', props.nodeKey, data)
@@ -220,9 +232,9 @@ const loadChildren = () => {
 // Handle click
 const handleClick = () => {
   if (isDisabled.value) return
-  
+
   emit('node-click', props.node, props.node, null)
-  
+
   if (props.expandOnClickNode) {
     toggleExpand()
   }
@@ -250,11 +262,20 @@ const toggleExpand = () => {
 }
 
 // Watch for lazy loading trigger
-watch(() => props.expandedKeys, (newKeys) => {
-  if (newKeys.has(props.nodeKey) && props.lazy && !props.loadedKeys.has(props.nodeKey) && !isLeaf.value) {
-    loadChildren()
-  }
-}, { deep: true })
+watch(
+  () => props.expandedKeys,
+  (newKeys) => {
+    if (
+      newKeys.has(props.nodeKey) &&
+      props.lazy &&
+      !props.loadedKeys.has(props.nodeKey) &&
+      !isLeaf.value
+    ) {
+      loadChildren()
+    }
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>

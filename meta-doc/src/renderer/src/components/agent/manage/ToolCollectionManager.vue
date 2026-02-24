@@ -30,10 +30,7 @@
 
     <!-- 创建/编辑对话框 -->
     <Dialog v-model:open="dialogVisible">
-      <DialogContent
-        class="max-w-[600px]"
-        :style="dialogStyle"
-      >
+      <DialogContent class="max-w-[600px]" :style="dialogStyle">
         <DialogHeader>
           <DialogTitle>
             {{
@@ -44,32 +41,25 @@
           </DialogTitle>
         </DialogHeader>
         <Form class="space-y-4">
-        <FormField :label="t('agent.manage.toolCollection.name')" name="name" required>
-          <Input v-model="formData.name" class="w-full" />
-        </FormField>
-        <FormField :label="t('agent.manage.toolCollection.description')" name="description">
-          <Textarea v-model="formData.description" :rows="3" class="w-full" />
-        </FormField>
-        <FormField :label="t('agent.manage.toolCollection.tools')" name="tools">
-          <Select
-            v-model="formData.toolIds"
-            multiple
-          >
-            <SelectTrigger style="width: 100%">
-              <SelectValue :placeholder="t('agent.manage.toolCollection.selectTools')" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="tool in availableTools"
-                :key="tool.id"
-                :value="tool.id"
-              >
-                {{ tool.name }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
-      </Form>
+          <FormField :label="t('agent.manage.toolCollection.name')" name="name" required>
+            <Input v-model="formData.name" class="w-full" />
+          </FormField>
+          <FormField :label="t('agent.manage.toolCollection.description')" name="description">
+            <Textarea v-model="formData.description" :rows="3" class="w-full" />
+          </FormField>
+          <FormField :label="t('agent.manage.toolCollection.tools')" name="tools">
+            <Select v-model="formData.toolIds" multiple>
+              <SelectTrigger style="width: 100%">
+                <SelectValue :placeholder="t('agent.manage.toolCollection.selectTools')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="tool in availableTools" :key="tool.id" :value="tool.id">
+                  {{ tool.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+        </Form>
         <DialogFooter>
           <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
           <Button type="primary" @click="handleSave" :disabled="editingCollection?.isBuiltIn">{{
@@ -92,7 +82,13 @@ import { agentToolManager } from '../../../utils/agent-tool-manager'
 import type { ToolCollection } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { Button } from '@renderer/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@renderer/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
 import {

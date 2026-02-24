@@ -75,7 +75,9 @@ provide('hasOpenSubMenu', hasOpenSubMenu)
 .ui-menu {
   width: 64px;
   height: 100%;
-  transition: width 0.2s ease, background-color 0.2s ease;
+  transition:
+    width 0.2s ease,
+    background-color 0.2s ease;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;

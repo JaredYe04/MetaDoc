@@ -19,13 +19,14 @@ const props = defineProps<Props>()
 
 const variantClasses = {
   default: 'bg-background text-foreground',
-  destructive: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive'
+  destructive:
+    'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive'
 }
 
 // Map Element Plus type to shadcn variant
 const mappedVariant = computed(() => {
   if (props.variant) return props.variant
-  
+
   switch (props.type) {
     case 'success':
     case 'info':

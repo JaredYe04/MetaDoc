@@ -59,12 +59,12 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits matching Element Plus el-upload events
 const emit = defineEmits<{
   'update:fileList': [files: UploadFile[]]
-  'success': [response: any, file: UploadFile, fileList: UploadFile[]]
-  'error': [error: any, file: UploadFile, fileList: UploadFile[]]
-  'progress': [evt: ProgressEvent, file: UploadFile, fileList: UploadFile[]]
-  'remove': [file: UploadFile, fileList: UploadFile[]]
-  'exceed': [files: File[], fileList: UploadFile[]]
-  'change': [file: UploadFile, fileList: UploadFile[]]
+  success: [response: any, file: UploadFile, fileList: UploadFile[]]
+  error: [error: any, file: UploadFile, fileList: UploadFile[]]
+  progress: [evt: ProgressEvent, file: UploadFile, fileList: UploadFile[]]
+  remove: [file: UploadFile, fileList: UploadFile[]]
+  exceed: [files: File[], fileList: UploadFile[]]
+  change: [file: UploadFile, fileList: UploadFile[]]
 }>()
 
 const slots = useSlots()
@@ -75,15 +75,23 @@ const isDragging = ref(false)
 const uploadFiles = ref<UploadFile[]>([...props.fileList])
 
 // Sync with v-model:fileList
-watch(() => props.fileList, (newVal) => {
-  if (newVal !== uploadFiles.value) {
-    uploadFiles.value = [...newVal]
-  }
-}, { deep: true })
+watch(
+  () => props.fileList,
+  (newVal) => {
+    if (newVal !== uploadFiles.value) {
+      uploadFiles.value = [...newVal]
+    }
+  },
+  { deep: true }
+)
 
-watch(uploadFiles, (newVal) => {
-  emit('update:fileList', newVal)
-}, { deep: true })
+watch(
+  uploadFiles,
+  (newVal) => {
+    emit('update:fileList', newVal)
+  },
+  { deep: true }
+)
 
 // Generate unique ID for files
 let uid = 1
@@ -111,7 +119,7 @@ const handleFiles = (files: File[]) => {
     return
   }
 
-  files.forEach(rawFile => {
+  files.forEach((rawFile) => {
     const file: UploadFile = {
       name: rawFile.name,
       size: rawFile.size,
@@ -277,7 +285,7 @@ const triggerUpload = () => {
 
 // Submit upload (for manual upload mode)
 const submit = () => {
-  uploadFiles.value.forEach(file => {
+  uploadFiles.value.forEach((file) => {
     if (file.status === 'ready') {
       upload(file)
     }
@@ -293,7 +301,9 @@ const clearFiles = () => {
 defineExpose({
   submit,
   clearFiles,
-  abort: () => { /* XMLHttpRequest abort can be implemented if needed */ }
+  abort: () => {
+    /* XMLHttpRequest abort can be implemented if needed */
+  }
 })
 
 // Get file icon based on status
@@ -326,12 +336,14 @@ const attrs = useSlots().default ? {} : {}
   <div :class="cn('upload-component', props.class)">
     <!-- Upload Trigger Area -->
     <div
-      :class="cn(
-        'upload-trigger relative',
-        drag && 'upload-trigger-drag',
-        isDragging && 'upload-trigger-dragging',
-        disabled && 'upload-trigger-disabled opacity-50 cursor-not-allowed'
-      )"
+      :class="
+        cn(
+          'upload-trigger relative',
+          drag && 'upload-trigger-drag',
+          isDragging && 'upload-trigger-dragging',
+          disabled && 'upload-trigger-disabled opacity-50 cursor-not-allowed'
+        )
+      "
       @click="triggerUpload"
       @dragover="handleDragOver"
       @dragleave="handleDragLeave"
@@ -345,19 +357,21 @@ const attrs = useSlots().default ? {} : {}
         :accept="accept"
         class="hidden"
         @change="handleFileChange"
-      >
+      />
 
       <!-- Default Slot / Trigger Content -->
       <slot>
         <!-- Default drag area if drag mode enabled -->
         <div
           v-if="drag"
-          :class="cn(
-            'border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200',
-            'hover:border-primary hover:bg-primary/5',
-            isDragging && 'border-primary bg-primary/10',
-            'border-border bg-muted/30'
-          )"
+          :class="
+            cn(
+              'border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200',
+              'hover:border-primary hover:bg-primary/5',
+              isDragging && 'border-primary bg-primary/10',
+              'border-border bg-muted/30'
+            )
+          "
         >
           <UploadCloud class="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <p class="text-sm text-muted-foreground">
@@ -369,12 +383,7 @@ const attrs = useSlots().default ? {} : {}
         </div>
 
         <!-- Default button trigger -->
-        <Button
-          v-else
-          type="button"
-          variant="outline"
-          :disabled="disabled"
-        >
+        <Button v-else type="button" variant="outline" :disabled="disabled">
           <UploadCloud class="mr-2 h-4 w-4" />
           Click to upload
         </Button>
@@ -391,21 +400,25 @@ const attrs = useSlots().default ? {} : {}
       <div
         v-for="file in uploadFiles"
         :key="file.uid"
-        :class="cn(
-          'upload-file-item flex items-center gap-3 p-3 rounded-md border bg-card',
-          file.status === 'error' && 'border-destructive bg-destructive/5',
-          file.status === 'success' && 'border-success bg-success/5'
-        )"
+        :class="
+          cn(
+            'upload-file-item flex items-center gap-3 p-3 rounded-md border bg-card',
+            file.status === 'error' && 'border-destructive bg-destructive/5',
+            file.status === 'success' && 'border-success bg-success/5'
+          )
+        "
       >
         <!-- File Icon -->
         <component
           :is="getFileStatusIcon(file)"
-          :class="cn(
-            'h-5 w-5 shrink-0',
-            file.status === 'success' && 'text-success',
-            file.status === 'error' && 'text-destructive',
-            file.status === 'uploading' && 'text-primary'
-          )"
+          :class="
+            cn(
+              'h-5 w-5 shrink-0',
+              file.status === 'success' && 'text-success',
+              file.status === 'error' && 'text-destructive',
+              file.status === 'uploading' && 'text-primary'
+            )
+          "
         />
 
         <!-- File Info -->
@@ -413,9 +426,7 @@ const attrs = useSlots().default ? {} : {}
           <p class="text-sm font-medium truncate">{{ file.name }}</p>
           <p class="text-xs text-muted-foreground">
             {{ formatFileSize(file.size) }}
-            <span v-if="file.status === 'uploading'" class="ml-2">
-              {{ file.percentage }}%
-            </span>
+            <span v-if="file.status === 'uploading'" class="ml-2"> {{ file.percentage }}% </span>
           </p>
 
           <!-- Progress Bar -->
@@ -427,16 +438,10 @@ const attrs = useSlots().default ? {} : {}
         </div>
 
         <!-- Status Badge -->
-        <span
-          v-if="file.status === 'success'"
-          class="text-xs text-success font-medium"
-        >
+        <span v-if="file.status === 'success'" class="text-xs text-success font-medium">
           Done
         </span>
-        <span
-          v-else-if="file.status === 'error'"
-          class="text-xs text-destructive font-medium"
-        >
+        <span v-else-if="file.status === 'error'" class="text-xs text-destructive font-medium">
           Failed
         </span>
 
@@ -468,7 +473,8 @@ const attrs = useSlots().default ? {} : {}
 }
 
 @keyframes pulse-border {
-  0%, 100% {
+  0%,
+  100% {
     border-color: hsl(var(--primary) / 0.5);
   }
   50% {

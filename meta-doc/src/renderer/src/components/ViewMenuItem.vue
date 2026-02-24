@@ -1,9 +1,5 @@
 <template>
-  <Tooltip
-    v-if="isCollapsed && !isDisabled"
-    :content="label"
-    placement="right"
-  >
+  <Tooltip v-if="isCollapsed && !isDisabled" :content="label" placement="right">
     <div
       class="view-menu-item"
       :class="{

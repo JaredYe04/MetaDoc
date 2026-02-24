@@ -115,6 +115,7 @@ graph TB
 ### API配置示例
 
 **示例1：标准图床API**
+
 ```
 API URL: https://api.example.com/upload
 方法: POST
@@ -122,6 +123,7 @@ API URL: https://api.example.com/upload
 ```
 
 **示例2：自定义字段名API**
+
 ```
 API URL: https://api.example.com/image
 方法: POST
@@ -129,6 +131,7 @@ API URL: https://api.example.com/image
 ```
 
 **示例3：PUT方法API**
+
 ```
 API URL: https://api.example.com/upload
 方法: PUT
@@ -177,16 +180,19 @@ API URL: https://api.example.com/upload
 ### 常见问题
 
 **连接失败**：
+
 - 检查API URL是否正确
 - 检查网络连接
 - 检查API服务是否正常运行
 
 **上传失败**：
+
 - 检查API方法是否正确
 - 检查字段名是否正确
 - 检查API响应格式是否符合要求
 
 **权限问题**：
+
 - 检查API是否需要认证
 - 检查API Key或Token是否正确
 

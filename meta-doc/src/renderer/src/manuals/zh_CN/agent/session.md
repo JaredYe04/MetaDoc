@@ -160,9 +160,6 @@ sequenceDiagram
     S->>S: 解析会话数据
     S->>UI: 创建新会话
     UI->>U: 显示导入成功
-    style U fill:#f3f4f6,stroke:#374151
-    style UI fill:#f3f4f6,stroke:#374151
-    style S fill:#f3f4f6,stroke:#374151
 ```
 
 ## 重试会话

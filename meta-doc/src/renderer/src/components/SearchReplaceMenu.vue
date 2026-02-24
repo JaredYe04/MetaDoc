@@ -7,7 +7,13 @@
   >
     <header class="panel-header">
       <h3>{{ t('searchReplace.title') }}</h3>
-      <Button variant="ghost" size="icon" class="close-btn h-7 w-7" @click="handleClose" @mousedown.stop>
+      <Button
+        variant="ghost"
+        size="icon"
+        class="close-btn h-7 w-7"
+        @click="handleClose"
+        @mousedown.stop
+      >
         ✕
       </Button>
     </header>
@@ -296,11 +302,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Separator } from '@renderer/components/ui/separator'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { themeState, mixColors } from '../utils/themes'

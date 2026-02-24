@@ -165,16 +165,24 @@
       <div class="toolbar-center">
         <!-- 视图切换 -->
         <RadioGroup v-model="viewMode" class="flex">
-          <div class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+          <div
+            class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground"
+          >
             <div class="flex items-center">
               <RadioGroupItem value="graph" id="view-graph" class="sr-only peer" />
-              <label for="view-graph" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+              <label
+                for="view-graph"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+              >
                 {{ t('agent.workflow.viewMode.graph') }}
               </label>
             </div>
             <div class="flex items-center">
               <RadioGroupItem value="code" id="view-code" class="sr-only peer" />
-              <label for="view-code" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow">
+              <label
+                for="view-code"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+              >
                 {{ t('agent.workflow.viewMode.code') }}
               </label>
             </div>
@@ -215,34 +223,20 @@
 
         <!-- 缩放控制 -->
         <div class="flex items-center gap-0">
-          <Button
-            size="sm"
-            @click="handleZoomOut"
-            :title="t('agent.workflow.toolbar.zoomOut')"
-          >
+          <Button size="sm" @click="handleZoomOut" :title="t('agent.workflow.toolbar.zoomOut')">
             <ZoomOut />
           </Button>
-          <Button
-            size="sm"
-            @click="handleZoomIn"
-            :title="t('agent.workflow.toolbar.zoomIn')"
-          >
+          <Button size="sm" @click="handleZoomIn" :title="t('agent.workflow.toolbar.zoomIn')">
             <ZoomIn />
           </Button>
-          <Button
-            size="sm"
-            @click="handleZoomFit"
-            :title="t('agent.workflow.toolbar.zoomFit')"
-          >
+          <Button size="sm" @click="handleZoomFit" :title="t('agent.workflow.toolbar.zoomFit')">
             <FullScreen />
           </Button>
         </div>
 
         <Divider orientation="vertical" class="mx-2" />
 
-        <Button size="sm" @click="handleValidate">{{
-          t('agent.workflow.validate')
-        }}</Button>
+        <Button size="sm" @click="handleValidate">{{ t('agent.workflow.validate') }}</Button>
         <Button size="sm" type="primary" @click="handleSave" :disabled="props.readOnly">{{
           t('common.save')
         }}</Button>
@@ -297,7 +291,11 @@
         <FormField :label="t('agent.workflow.nodeLabel')" name="nodeLabel">
           <Input v-model="selectedNodeForm.label" @change="handleNodeLabelChange" class="w-full" />
         </FormField>
-        <FormField v-if="isArtifactNode(selectedNode)" :label="t('agent.workflow.artifactId')" name="artifactId">
+        <FormField
+          v-if="isArtifactNode(selectedNode)"
+          :label="t('agent.workflow.artifactId')"
+          name="artifactId"
+        >
           <Select
             v-if="selectedNode.type === 'tool'"
             v-model="selectedNodeForm.artifactId"
@@ -325,11 +323,7 @@
               <SelectValue :placeholder="t('agent.workflow.selectWorkflowPlaceholder')" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="wf in availableWorkflows"
-                :key="wf.id"
-                :value="wf.id"
-              >
+              <SelectItem v-for="wf in availableWorkflows" :key="wf.id" :value="wf.id">
                 {{ getLocalizedText(wf.name) }}
               </SelectItem>
             </SelectContent>

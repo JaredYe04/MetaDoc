@@ -89,13 +89,7 @@
       <!-- 正常状态：显示操作按钮 -->
       <template v-else>
         <Tooltip :content="$t('outline.expandContent')" placement="top">
-          <Button
-            type="primary"
-            size="small"
-            circle
-            @click="handleExpand"
-            :disabled="isGenerating"
-          >
+          <Button type="primary" size="small" circle @click="handleExpand" :disabled="isGenerating">
             <el-icon>
               <EditPen />
             </el-icon>

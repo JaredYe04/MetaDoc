@@ -4,6 +4,65 @@
 **Commit:** HEAD
 **Branch:** main
 
+---
+
+## ⚠️ SYSTEM ALERT - BUILD RESPONSIBILITY PROTOCOL
+
+> **CRITICAL NOTICE FOR ALL AGENTS AND PROCESSES**
+>
+> **ANY** agent or process that initiates `npm run build` **MUST** take **FULL RESPONSIBILITY** for resolving **ALL** reported errors:
+>
+> - ✅ **Prettier formatting errors** — Run `npm run format` to fix
+> - ✅ **ESLint linting errors** — Fix code style and syntax issues
+> - ✅ **Manual document errors** — Fix markdown syntax, Mermaid/PlantUML charts, broken internal links
+> - ✅ **TypeScript compilation errors** — Fix type errors and imports
+>
+> **DO NOT** leave the build process with unresolved errors. The build pipeline is gated by these checks for code quality assurance.
+>
+> **THIS IS A HARD REQUIREMENT** — Not a suggestion.
+
+---
+
+## 🧠 代码质量理念：维护 "San 值"
+
+> **"San 值"（Sanity Value）= 代码的可维护性和健康度**
+
+### 核心原则
+
+**Linting 不是为了阻止你提交代码，而是为了维护代码的 "san 值"。**
+
+| 做法         | 结果                       | 评价            |
+| ------------ | -------------------------- | --------------- |
+| **禁用检查** | 问题依然存在，只是你看不到 | ❌ 掩耳盗铃     |
+| **绕过检查** | 技术债务累积，后期成本更高 | ❌ 饮鸩止渴     |
+| **修复问题** | 代码保持健康，团队效率提升 | ✅ 负责任的做法 |
+
+### 规则层级
+
+1. **error（致命）**：会导致运行时错误或逻辑错误
+
+   - 例如：`no-undef`（使用未定义变量 → ReferenceError）
+   - 例如：`no-dupe-else-if`（重复条件 → 逻辑错误）
+   - **必须立即修复**
+
+2. **warn（警告）**：代码质量问题
+
+   - 例如：`no-unused-vars`（未使用变量 → 死代码）
+   - 例如：`no-case-declarations`（case 块中声明变量 → 作用域陷阱）
+   - **应该逐步修复**
+
+3. **off（暂缓）**：风格问题或数量太多暂时关闭
+   - **有计划地逐步恢复**
+
+### 我们的承诺
+
+- ✅ 不禁用检查来掩盖问题
+- ✅ 不删除测试来让构建通过
+- ✅ 修复问题的根本原因
+- ✅ 将修复代码视为与编写代码同等重要的工作
+
+---
+
 ## OVERVIEW
 
 MetaDoc — LLM Agent-powered intelligent document processing desktop app. Electron (main: TypeScript) + Vue 3 (renderer: mixed TS/JS) + Pinia + shadcn-vue + Element Plus. Supports Markdown & LaTeX editing with AI agent framework, multi-format export, knowledge base (RAG), and OCR. Also targets Android via Capacitor (same repo).

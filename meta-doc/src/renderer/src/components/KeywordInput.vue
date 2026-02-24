@@ -8,11 +8,7 @@
         class="keyword-badge"
       >
         {{ keyword }}
-        <button
-          type="button"
-          class="keyword-remove"
-          @click="removeKeyword(index)"
-        >
+        <button type="button" class="keyword-remove" @click="removeKeyword(index)">
           <X class="h-3 w-3" />
         </button>
       </Badge>
@@ -73,7 +69,7 @@ const sanitizeKeywords = (value: string[]): string[] => {
 const addKeyword = () => {
   const value = inputValue.value.trim()
   if (!value) return
-  
+
   const newKeywords = [...internalValue.value, value]
   const nextValue = sanitizeKeywords(newKeywords)
   internalValue.value = nextValue

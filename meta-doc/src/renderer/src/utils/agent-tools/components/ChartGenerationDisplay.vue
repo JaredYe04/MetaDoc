@@ -109,15 +109,14 @@
     <div v-else-if="displayData.stage === 'error'" class="error-state">
       <Alert variant="destructive">
         <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.chartGeneration.generationFailed') }}</AlertTitle>
+        <AlertTitle>{{
+          displayData.error || $t('agent.display.chartGeneration.generationFailed')
+        }}</AlertTitle>
       </Alert>
     </div>
 
     <!-- 进度条 -->
-    <div
-      v-if="effectiveProgress && effectiveProgress.percentage > 0"
-      style="margin-top: 12px"
-    >
+    <div v-if="effectiveProgress && effectiveProgress.percentage > 0" style="margin-top: 12px">
       <Progress
         :percentage="effectiveProgress.percentage"
         :status="progressStatus"
@@ -360,7 +359,10 @@ const handleImageError = () => {
 }
 
 .code-collapsible {
-  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"');
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"'
+    );
   border-radius: 4px;
   overflow: hidden;
 }
@@ -382,7 +384,9 @@ const handleImageError = () => {
 }
 
 .code-collapsible-trigger:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)"'
+  );
 }
 
 .code-collapsible-trigger::after {

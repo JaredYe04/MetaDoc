@@ -79,11 +79,7 @@
           >
             <div class="todo-item-main">
               <div class="todo-checkbox-wrapper">
-                <Checkbox
-                  :checked="item.status === 'completed'"
-                  disabled
-                  class="todo-checkbox"
-                />
+                <Checkbox :checked="item.status === 'completed'" disabled class="todo-checkbox" />
                 <div class="status-indicator" :class="`status-${item.status}`"></div>
               </div>
               <div class="todo-content">
@@ -179,7 +175,9 @@
     <div v-else class="error-state">
       <Alert variant="destructive">
         <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.todoList.generationFailed') }}</AlertTitle>
+        <AlertTitle>{{
+          displayData.error || $t('agent.display.todoList.generationFailed')
+        }}</AlertTitle>
       </Alert>
     </div>
   </div>

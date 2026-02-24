@@ -173,22 +173,40 @@
               <code :style="codeStyle">{{ displayData.result.hex }}</code>
             </DescriptionsItem>
             <DescriptionsItem :label="$t('agent.display.color.rgb')">
-              <code :style="codeStyle">rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }}, {{ displayData.result.rgb.b }})</code>
+              <code :style="codeStyle"
+                >rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }},
+                {{ displayData.result.rgb.b }})</code
+              >
             </DescriptionsItem>
             <DescriptionsItem :label="$t('agent.display.color.hsl')">
-              <code :style="codeStyle">hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%, {{ displayData.result.hsl.l }}%)</code>
+              <code :style="codeStyle"
+                >hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%,
+                {{ displayData.result.hsl.l }}%)</code
+              >
             </DescriptionsItem>
             <DescriptionsItem :label="$t('agent.display.color.alpha')">
-              {{ displayData.result.alpha !== undefined ? displayData.result.alpha.toFixed(2) : '1.00' }}
+              {{
+                displayData.result.alpha !== undefined
+                  ? displayData.result.alpha.toFixed(2)
+                  : '1.00'
+              }}
             </DescriptionsItem>
             <DescriptionsItem :label="$t('agent.display.color.isDark')">
               <Badge :variant="displayData.result.isDark ? 'default' : 'outline'">
-                {{ displayData.result.isDark ? $t('agent.display.color.yes') : $t('agent.display.color.no') }}
+                {{
+                  displayData.result.isDark
+                    ? $t('agent.display.color.yes')
+                    : $t('agent.display.color.no')
+                }}
               </Badge>
             </DescriptionsItem>
             <DescriptionsItem :label="$t('agent.display.color.isLight')">
               <Badge :variant="displayData.result.isLight ? 'outline' : 'default'">
-                {{ displayData.result.isLight ? $t('agent.display.color.yes') : $t('agent.display.color.no') }}
+                {{
+                  displayData.result.isLight
+                    ? $t('agent.display.color.yes')
+                    : $t('agent.display.color.no')
+                }}
               </Badge>
             </DescriptionsItem>
           </Descriptions>
@@ -410,8 +428,8 @@ const resultCodeStyle = computed(() => ({
 
 <style scoped>
 .color-display {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
 .color-header {

@@ -47,9 +47,9 @@ const isTimePickerVisible = ref(false)
 // Parse initial value
 function parseValue(val: typeof props.modelValue): { start: Date | null; end: Date | null } {
   if (!val) return { start: null, end: null }
-  
+
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
-  
+
   if (isRange) {
     if (Array.isArray(val)) {
       return {
@@ -94,15 +94,19 @@ function initTimeFromDates() {
 initTimeFromDates()
 
 // Watch for external value changes
-watch(() => props.modelValue, (newVal) => {
-  const parsed = parseValue(newVal)
-  selectedStartDate.value = parsed.start
-  selectedEndDate.value = parsed.end
-  initTimeFromDates()
-  if (parsed.start) {
-    currentMonth.value = new Date(parsed.start)
-  }
-}, { deep: true })
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    const parsed = parseValue(newVal)
+    selectedStartDate.value = parsed.start
+    selectedEndDate.value = parsed.end
+    initTimeFromDates()
+    if (parsed.start) {
+      currentMonth.value = new Date(parsed.start)
+    }
+  },
+  { deep: true }
+)
 
 // Calendar computations
 const daysInMonth = computed(() => {
@@ -114,7 +118,7 @@ const daysInMonth = computed(() => {
   const startingDayOfWeek = firstDay.getDay() // 0 = Sunday
 
   const days: Array<{ date: Date | null; isCurrentMonth: boolean; isToday: boolean }> = []
-  
+
   // Previous month padding
   const prevMonthLastDay = new Date(year, month, 0).getDate()
   for (let i = startingDayOfWeek - 1; i >= 0; i--) {
@@ -124,7 +128,7 @@ const daysInMonth = computed(() => {
       isToday: false
     })
   }
-  
+
   // Current month days
   const today = new Date()
   for (let i = 1; i <= daysInMonth; i++) {
@@ -135,7 +139,7 @@ const daysInMonth = computed(() => {
       isToday: date.toDateString() === today.toDateString()
     })
   }
-  
+
   // Next month padding to fill 6 rows (42 cells)
   const remainingCells = 42 - days.length
   for (let i = 1; i <= remainingCells; i++) {
@@ -145,7 +149,7 @@ const daysInMonth = computed(() => {
       isToday: false
     })
   }
-  
+
   return days
 })
 
@@ -159,14 +163,14 @@ const monthYearLabel = computed(() => {
 // Date formatting utilities
 function formatDate(date: Date | null, fmt: string): string {
   if (!date || isNaN(date.getTime())) return ''
-  
+
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   const seconds = String(date.getSeconds()).padStart(2, '0')
-  
+
   return fmt
     .replace('YYYY', String(year))
     .replace('MM', month)
@@ -178,7 +182,7 @@ function formatDate(date: Date | null, fmt: string): string {
 
 function parseDate(str: string, fmt: string): Date | null {
   if (!str) return null
-  
+
   // Simple parser for standard formats
   const patterns: Record<string, RegExp> = {
     'YYYY-MM-DD': /(\d{4})-(\d{2})-(\d{2})/,
@@ -186,10 +190,10 @@ function parseDate(str: string, fmt: string): Date | null {
     'YYYY-MM-DD HH:mm:ss': /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/,
     'YYYY/MM/DD HH:mm:ss': /(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/
   }
-  
+
   const pattern = patterns[fmt] || patterns['YYYY-MM-DD']
   const match = str.match(pattern)
-  
+
   if (match) {
     if (fmt.includes('HH')) {
       return new Date(
@@ -203,13 +207,16 @@ function parseDate(str: string, fmt: string): Date | null {
     }
     return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
   }
-  
+
   const parsed = new Date(str)
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
 // Apply time to date
-function applyTime(date: Date | null, time: { hours: number; minutes: number; seconds: number }): Date | null {
+function applyTime(
+  date: Date | null,
+  time: { hours: number; minutes: number; seconds: number }
+): Date | null {
   if (!date) return null
   const result = new Date(date)
   result.setHours(time.hours, time.minutes, time.seconds)
@@ -220,7 +227,7 @@ function applyTime(date: Date | null, time: { hours: number; minutes: number; se
 const displayValue = computed(() => {
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
   const fmt = props.format
-  
+
   if (isRange) {
     if (!selectedStartDate.value && !selectedEndDate.value) return ''
     const start = formatDate(selectedStartDate.value, fmt)
@@ -235,17 +242,17 @@ const displayValue = computed(() => {
 function getBindingValue(): Date | [Date | null, Date | null] | string | [string, string] | null {
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
   const useFormat = props.valueFormat || props.format
-  
+
   if (isRange) {
     // Apply time for datetime types
     let start = selectedStartDate.value
     let end = selectedEndDate.value
-    
+
     if (props.type === 'datetimerange') {
       start = applyTime(start, startTime.value)
       end = applyTime(end, endTime.value)
     }
-    
+
     if (props.valueFormat) {
       return [formatDate(start, useFormat), formatDate(end, useFormat)]
     }
@@ -256,7 +263,7 @@ function getBindingValue(): Date | [Date | null, Date | null] | string | [string
     if (props.type === 'datetime') {
       date = applyTime(date, startTime.value)
     }
-    
+
     if (props.valueFormat) {
       return formatDate(date, useFormat)
     }
@@ -266,27 +273,43 @@ function getBindingValue(): Date | [Date | null, Date | null] | string | [string
 
 // Navigation
 function prevMonth() {
-  currentMonth.value = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth() - 1, 1)
+  currentMonth.value = new Date(
+    currentMonth.value.getFullYear(),
+    currentMonth.value.getMonth() - 1,
+    1
+  )
 }
 
 function nextMonth() {
-  currentMonth.value = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth() + 1, 1)
+  currentMonth.value = new Date(
+    currentMonth.value.getFullYear(),
+    currentMonth.value.getMonth() + 1,
+    1
+  )
 }
 
 function prevYear() {
-  currentMonth.value = new Date(currentMonth.value.getFullYear() - 1, currentMonth.value.getMonth(), 1)
+  currentMonth.value = new Date(
+    currentMonth.value.getFullYear() - 1,
+    currentMonth.value.getMonth(),
+    1
+  )
 }
 
 function nextYear() {
-  currentMonth.value = new Date(currentMonth.value.getFullYear() + 1, currentMonth.value.getMonth(), 1)
+  currentMonth.value = new Date(
+    currentMonth.value.getFullYear() + 1,
+    currentMonth.value.getMonth(),
+    1
+  )
 }
 
 // Date selection logic
 function selectDate(date: Date) {
   if (props.disabledDate?.(date)) return
-  
+
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
-  
+
   if (isRange) {
     if (!selectedStartDate.value || (selectedStartDate.value && selectedEndDate.value)) {
       // Start new selection
@@ -302,7 +325,7 @@ function selectDate(date: Date) {
         selectedEndDate.value = date
       }
       endTime.value = { hours: 23, minutes: 59, seconds: 59 }
-      
+
       if (props.type === 'daterange') {
         // Close on complete for daterange, stay open for datetimerange
         open.value = false
@@ -344,9 +367,9 @@ function clear() {
 // Date cell state helpers
 function isSelected(date: Date): boolean {
   if (!date) return false
-  
+
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
-  
+
   if (isRange) {
     if (selectedStartDate.value && date.toDateString() === selectedStartDate.value.toDateString()) {
       return true
@@ -356,17 +379,17 @@ function isSelected(date: Date): boolean {
     }
     return false
   }
-  
+
   return selectedStartDate.value?.toDateString() === date.toDateString()
 }
 
 function isInRange(date: Date): boolean {
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
   if (!isRange) return false
-  
+
   const start = selectedStartDate.value
   const end = selectedEndDate.value || hoverDate.value
-  
+
   if (!start || !end) return false
   if (start > end) return date >= end && date <= start
   return date > start && date < end
@@ -388,26 +411,30 @@ const seconds = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
 function adjustTime(type: 'hours' | 'minutes' | 'seconds', delta: number, isStart: boolean) {
   const target = isStart ? startTime.value : endTime.value
   let newValue = target[type] + delta
-  
+
   if (type === 'hours') {
     newValue = (newValue + 24) % 24
   } else {
     newValue = (newValue + 60) % 60
   }
-  
+
   target[type] = newValue
 }
 
 // Handle manual input
 const inputValue = ref('')
-watch(displayValue, (val) => {
-  inputValue.value = val
-}, { immediate: true })
+watch(
+  displayValue,
+  (val) => {
+    inputValue.value = val
+  },
+  { immediate: true }
+)
 
 function handleInputBlur() {
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
   const fmt = props.format
-  
+
   if (isRange) {
     const parts = inputValue.value.split(props.rangeSeparator)
     if (parts.length === 2) {
@@ -433,27 +460,33 @@ function handleInputBlur() {
   <PopoverRoot v-model:open="open">
     <PopoverTrigger as-child>
       <div
-        :class="cn(
-          'relative flex items-center gap-2 w-full min-w-[200px] h-9 px-3 py-2 text-sm border border-input bg-background rounded-md shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring cursor-pointer',
-          props.disabled && 'opacity-50 cursor-not-allowed',
-          props.class
-        )"
+        :class="
+          cn(
+            'relative flex items-center gap-2 w-full min-w-[200px] h-9 px-3 py-2 text-sm border border-input bg-background rounded-md shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring cursor-pointer',
+            props.disabled && 'opacity-50 cursor-not-allowed',
+            props.class
+          )
+        "
         :style="props.style"
       >
         <CalendarIcon class="w-4 h-4 text-muted-foreground shrink-0" />
-        
+
         <!-- Range input display -->
         <template v-if="type === 'daterange' || type === 'datetimerange'">
           <span v-if="!selectedStartDate && !selectedEndDate" class="text-muted-foreground">
             {{ placeholder }}
           </span>
           <span v-else class="flex items-center gap-1">
-            <span class="text-foreground">{{ formatDate(selectedStartDate, format) || startPlaceholder }}</span>
+            <span class="text-foreground">{{
+              formatDate(selectedStartDate, format) || startPlaceholder
+            }}</span>
             <span class="text-muted-foreground">{{ rangeSeparator }}</span>
-            <span class="text-foreground">{{ formatDate(selectedEndDate, format) || endPlaceholder }}</span>
+            <span class="text-foreground">{{
+              formatDate(selectedEndDate, format) || endPlaceholder
+            }}</span>
           </span>
         </template>
-        
+
         <!-- Single date input display -->
         <template v-else>
           <span v-if="!selectedStartDate" class="text-muted-foreground">
@@ -461,7 +494,7 @@ function handleInputBlur() {
           </span>
           <span v-else class="text-foreground">{{ displayValue }}</span>
         </template>
-        
+
         <!-- Clear button -->
         <button
           v-if="clearable && (selectedStartDate || selectedEndDate)"
@@ -473,7 +506,7 @@ function handleInputBlur() {
         </button>
       </div>
     </PopoverTrigger>
-    
+
     <PopoverPortal>
       <PopoverContent
         align="start"
@@ -502,7 +535,7 @@ function handleInputBlur() {
               </Button>
             </div>
           </div>
-          
+
           <!-- Weekday Headers -->
           <div class="grid grid-cols-7 mb-2">
             <div
@@ -513,7 +546,7 @@ function handleInputBlur() {
               {{ day }}
             </div>
           </div>
-          
+
           <!-- Calendar Grid -->
           <div class="grid grid-cols-7 gap-0">
             <button
@@ -521,18 +554,23 @@ function handleInputBlur() {
               :key="index"
               type="button"
               :disabled="day.date ? disabledDate?.(day.date) : false"
-              :class="cn(
-                'h-8 w-8 flex items-center justify-center text-sm rounded-md transition-colors relative',
-                !day.isCurrentMonth && 'text-muted-foreground/50',
-                day.isCurrentMonth && 'text-foreground',
-                day.isToday && !isSelected(day.date!) && 'bg-accent/50 font-medium',
-                day.date && disabledDate?.(day.date) && 'opacity-30 cursor-not-allowed',
-                isSelected(day.date!) && 'bg-primary text-primary-foreground hover:bg-primary/90',
-                isInRange(day.date!) && !isSelected(day.date!) && 'bg-primary/10',
-                isRangeStart(day.date!) && 'rounded-r-none',
-                isRangeEnd(day.date!) && 'rounded-l-none',
-                !isSelected(day.date!) && !isInRange(day.date!) && !disabledDate?.(day.date!) && 'hover:bg-accent hover:text-accent-foreground'
-              )"
+              :class="
+                cn(
+                  'h-8 w-8 flex items-center justify-center text-sm rounded-md transition-colors relative',
+                  !day.isCurrentMonth && 'text-muted-foreground/50',
+                  day.isCurrentMonth && 'text-foreground',
+                  day.isToday && !isSelected(day.date!) && 'bg-accent/50 font-medium',
+                  day.date && disabledDate?.(day.date) && 'opacity-30 cursor-not-allowed',
+                  isSelected(day.date!) && 'bg-primary text-primary-foreground hover:bg-primary/90',
+                  isInRange(day.date!) && !isSelected(day.date!) && 'bg-primary/10',
+                  isRangeStart(day.date!) && 'rounded-r-none',
+                  isRangeEnd(day.date!) && 'rounded-l-none',
+                  !isSelected(day.date!) &&
+                    !isInRange(day.date!) &&
+                    !disabledDate?.(day.date!) &&
+                    'hover:bg-accent hover:text-accent-foreground'
+                )
+              "
               @click="day.date && selectDate(day.date)"
               @mouseenter="day.date && (hoverDate = day.date)"
               @mouseleave="hoverDate = null"
@@ -540,33 +578,78 @@ function handleInputBlur() {
               {{ day.date?.getDate() }}
             </button>
           </div>
-          
+
           <!-- Time Picker for datetime types -->
-          <div v-if="type === 'datetime' || type === 'datetimerange'" class="mt-4 pt-4 border-t border-border">
+          <div
+            v-if="type === 'datetime' || type === 'datetimerange'"
+            class="mt-4 pt-4 border-t border-border"
+          >
             <!-- Single datetime -->
             <div v-if="type === 'datetime'" class="flex items-center gap-4">
               <span class="text-sm text-muted-foreground">时间:</span>
               <div class="flex items-center gap-1">
                 <div class="flex flex-col items-center">
-                  <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('hours', 1, true)">▲</button>
-                  <span class="text-sm font-mono w-6 text-center">{{ String(startTime.hours).padStart(2, '0') }}</span>
-                  <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('hours', -1, true)">▼</button>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-accent rounded"
+                    @click="adjustTime('hours', 1, true)"
+                  >
+                    ▲
+                  </button>
+                  <span class="text-sm font-mono w-6 text-center">{{
+                    String(startTime.hours).padStart(2, '0')
+                  }}</span>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-accent rounded"
+                    @click="adjustTime('hours', -1, true)"
+                  >
+                    ▼
+                  </button>
                 </div>
                 <span class="text-lg font-medium -mt-1">:</span>
                 <div class="flex flex-col items-center">
-                  <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('minutes', 1, true)">▲</button>
-                  <span class="text-sm font-mono w-6 text-center">{{ String(startTime.minutes).padStart(2, '0') }}</span>
-                  <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('minutes', -1, true)">▼</button>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-accent rounded"
+                    @click="adjustTime('minutes', 1, true)"
+                  >
+                    ▲
+                  </button>
+                  <span class="text-sm font-mono w-6 text-center">{{
+                    String(startTime.minutes).padStart(2, '0')
+                  }}</span>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-accent rounded"
+                    @click="adjustTime('minutes', -1, true)"
+                  >
+                    ▼
+                  </button>
                 </div>
                 <span class="text-lg font-medium -mt-1">:</span>
                 <div class="flex flex-col items-center">
-                  <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('seconds', 1, true)">▲</button>
-                  <span class="text-sm font-mono w-6 text-center">{{ String(startTime.seconds).padStart(2, '0') }}</span>
-                  <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('seconds', -1, true)">▼</button>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-accent rounded"
+                    @click="adjustTime('seconds', 1, true)"
+                  >
+                    ▲
+                  </button>
+                  <span class="text-sm font-mono w-6 text-center">{{
+                    String(startTime.seconds).padStart(2, '0')
+                  }}</span>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-accent rounded"
+                    @click="adjustTime('seconds', -1, true)"
+                  >
+                    ▼
+                  </button>
                 </div>
               </div>
             </div>
-            
+
             <!-- Datetime range -->
             <div v-else class="space-y-3">
               <!-- Start time -->
@@ -574,21 +657,63 @@ function handleInputBlur() {
                 <span class="text-sm text-muted-foreground w-12">开始:</span>
                 <div class="flex items-center gap-1">
                   <div class="flex flex-col items-center">
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('hours', 1, true)">▲</button>
-                    <span class="text-sm font-mono w-6 text-center">{{ String(startTime.hours).padStart(2, '0') }}</span>
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('hours', -1, true)">▼</button>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('hours', 1, true)"
+                    >
+                      ▲
+                    </button>
+                    <span class="text-sm font-mono w-6 text-center">{{
+                      String(startTime.hours).padStart(2, '0')
+                    }}</span>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('hours', -1, true)"
+                    >
+                      ▼
+                    </button>
                   </div>
                   <span class="text-lg font-medium -mt-1">:</span>
                   <div class="flex flex-col items-center">
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('minutes', 1, true)">▲</button>
-                    <span class="text-sm font-mono w-6 text-center">{{ String(startTime.minutes).padStart(2, '0') }}</span>
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('minutes', -1, true)">▼</button>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('minutes', 1, true)"
+                    >
+                      ▲
+                    </button>
+                    <span class="text-sm font-mono w-6 text-center">{{
+                      String(startTime.minutes).padStart(2, '0')
+                    }}</span>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('minutes', -1, true)"
+                    >
+                      ▼
+                    </button>
                   </div>
                   <span class="text-lg font-medium -mt-1">:</span>
                   <div class="flex flex-col items-center">
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('seconds', 1, true)">▲</button>
-                    <span class="text-sm font-mono w-6 text-center">{{ String(startTime.seconds).padStart(2, '0') }}</span>
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('seconds', -1, true)">▼</button>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('seconds', 1, true)"
+                    >
+                      ▲
+                    </button>
+                    <span class="text-sm font-mono w-6 text-center">{{
+                      String(startTime.seconds).padStart(2, '0')
+                    }}</span>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('seconds', -1, true)"
+                    >
+                      ▼
+                    </button>
                   </div>
                 </div>
               </div>
@@ -597,26 +722,68 @@ function handleInputBlur() {
                 <span class="text-sm text-muted-foreground w-12">结束:</span>
                 <div class="flex items-center gap-1">
                   <div class="flex flex-col items-center">
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('hours', 1, false)">▲</button>
-                    <span class="text-sm font-mono w-6 text-center">{{ String(endTime.hours).padStart(2, '0') }}</span>
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('hours', -1, false)">▼</button>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('hours', 1, false)"
+                    >
+                      ▲
+                    </button>
+                    <span class="text-sm font-mono w-6 text-center">{{
+                      String(endTime.hours).padStart(2, '0')
+                    }}</span>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('hours', -1, false)"
+                    >
+                      ▼
+                    </button>
                   </div>
                   <span class="text-lg font-medium -mt-1">:</span>
                   <div class="flex flex-col items-center">
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('minutes', 1, false)">▲</button>
-                    <span class="text-sm font-mono w-6 text-center">{{ String(endTime.minutes).padStart(2, '0') }}</span>
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('minutes', -1, false)">▼</button>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('minutes', 1, false)"
+                    >
+                      ▲
+                    </button>
+                    <span class="text-sm font-mono w-6 text-center">{{
+                      String(endTime.minutes).padStart(2, '0')
+                    }}</span>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('minutes', -1, false)"
+                    >
+                      ▼
+                    </button>
                   </div>
                   <span class="text-lg font-medium -mt-1">:</span>
                   <div class="flex flex-col items-center">
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('seconds', 1, false)">▲</button>
-                    <span class="text-sm font-mono w-6 text-center">{{ String(endTime.seconds).padStart(2, '0') }}</span>
-                    <button type="button" class="p-0.5 hover:bg-accent rounded" @click="adjustTime('seconds', -1, false)">▼</button>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('seconds', 1, false)"
+                    >
+                      ▲
+                    </button>
+                    <span class="text-sm font-mono w-6 text-center">{{
+                      String(endTime.seconds).padStart(2, '0')
+                    }}</span>
+                    <button
+                      type="button"
+                      class="p-0.5 hover:bg-accent rounded"
+                      @click="adjustTime('seconds', -1, false)"
+                    >
+                      ▼
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div class="mt-4 flex justify-end gap-2">
               <Button variant="outline" size="sm" @click="open = false">取消</Button>
               <Button size="sm" @click="confirmDateTime">确定</Button>

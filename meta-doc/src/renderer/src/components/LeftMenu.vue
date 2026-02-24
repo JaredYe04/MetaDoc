@@ -878,10 +878,7 @@ import ExportOptionsDialog from './ExportOptionsDialog.vue'
 import type { ExportOptions } from '../services/export-adapters/types'
 import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
+const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 const emitMenu = (name: string, ...args: any[]) => {
   if (props.mode === 'demo') return
   // mitt 的 emit 只接受两个参数，将多个参数合并为一个对象
@@ -1153,20 +1150,26 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
 }
 
 // VSCode 风格侧边栏主题颜色配置
-const sidebarBackground = computed(() =>
-  themeState.currentTheme.SideBackgroundColor || themeState.currentTheme.sidebarBackground || themeState.currentTheme.background2nd
+const sidebarBackground = computed(
+  () =>
+    themeState.currentTheme.SideBackgroundColor ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background2nd
 )
-const sidebarTextColor = computed(() =>
-  themeState.currentTheme.SideTextColor || themeState.currentTheme.textColor
+const sidebarTextColor = computed(
+  () => themeState.currentTheme.SideTextColor || themeState.currentTheme.textColor
 )
-const sidebarActiveTextColor = computed(() =>
-  themeState.currentTheme.SideActiveTextColor || themeState.currentTheme.textColor
+const sidebarActiveTextColor = computed(
+  () => themeState.currentTheme.SideActiveTextColor || themeState.currentTheme.textColor
 )
-const sidebarSubMenuBg = computed(() =>
-  themeState.currentTheme.sidebarBackground2 || themeState.currentTheme.sidebarBackground || themeState.currentTheme.background2nd
+const sidebarSubMenuBg = computed(
+  () =>
+    themeState.currentTheme.sidebarBackground2 ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background2nd
 )
-const sidebarBorderColor = computed(() =>
-  themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
+const sidebarBorderColor = computed(
+  () => themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
 )
 // VSCode 风格：悬停颜色使用半透明的主色调叠加
 const sidebarHoverColor = computed(() => {
@@ -1283,7 +1286,15 @@ const syncSidebarCssVariables = () => {
 
 // 监听所有侧边栏颜色变化，同步 CSS 变量
 watch(
-  [sidebarBackground, sidebarTextColor, sidebarActiveTextColor, sidebarHoverColor, sidebarActiveColor, sidebarSubMenuBg, sidebarBorderColor],
+  [
+    sidebarBackground,
+    sidebarTextColor,
+    sidebarActiveTextColor,
+    sidebarHoverColor,
+    sidebarActiveColor,
+    sidebarSubMenuBg,
+    sidebarBorderColor
+  ],
   () => {
     syncSidebarCssVariables()
   },

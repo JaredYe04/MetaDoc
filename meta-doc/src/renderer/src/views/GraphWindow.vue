@@ -868,7 +868,7 @@ const handleCancel = () => {
       messages.value.pop()
     }
   }
-    notifyInfo(t('aiChat.generationCancelled', '生成已取消'))
+  notifyInfo(t('aiChat.generationCancelled', '生成已取消'))
 }
 
 // 消息操作：删除

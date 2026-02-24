@@ -76,11 +76,7 @@
                 <SelectValue :placeholder="t('agent.sessions.selectEngine')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem
-                  v-for="engine in availableEngines"
-                  :key="engine.id"
-                  :value="engine.id"
-                >
+                <SelectItem v-for="engine in availableEngines" :key="engine.id" :value="engine.id">
                   <div class="flex items-center justify-between w-full gap-4">
                     <span>{{ getEngineLabel(engine) }}</span>
                     <Badge v-if="engine.isBuiltIn" variant="outline">
@@ -107,16 +103,18 @@
                 </Badge>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Badge
-                      variant="outline"
-                      class="cursor-pointer"
-                      @click="toggleToolPane"
-                    >
+                    <Badge variant="outline" class="cursor-pointer" @click="toggleToolPane">
                       {{ t('agent.conversation.tools', { count: activeToolCount }) }}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p>{{ showToolPane ? t('agent.conversation.hideTools', '点击隐藏工具面板') : t('agent.conversation.showTools', '点击显示工具面板') }}</p>
+                    <p>
+                      {{
+                        showToolPane
+                          ? t('agent.conversation.hideTools', '点击隐藏工具面板')
+                          : t('agent.conversation.showTools', '点击显示工具面板')
+                      }}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -282,9 +280,7 @@
                       <p>{{ activeTool.description }}</p>
                     </DescriptionsItem>
                     <DescriptionsItem :label="t('agent.tools.detail.origin')">
-                      <Badge>{{
-                        originLabel(activeTool.origin as ToolOrigin)
-                      }}</Badge>
+                      <Badge>{{ originLabel(activeTool.origin as ToolOrigin) }}</Badge>
                     </DescriptionsItem>
                     <DescriptionsItem
                       :label="t('agent.tools.detail.tags')"
@@ -362,11 +358,10 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</Button>
-          <Button
-            @click="createSession(selectedAgentConfigId)"
-            :disabled="!selectedAgentConfigId"
-          >
+          <Button variant="ghost" @click="showCreateSessionDialog = false">{{
+            t('common.cancel')
+          }}</Button>
+          <Button @click="createSession(selectedAgentConfigId)" :disabled="!selectedAgentConfigId">
             {{ t('common.create') }}
           </Button>
         </DialogFooter>
@@ -378,13 +373,14 @@
       <DialogContent class="sm:max-w-[90%]" :style="dialogStyle">
         <DialogHeader>
           <DialogTitle>
-            {{ manageDialogType === 'tool-collection'
-              ? t('agent.manage.toolCollection.title')
-              : manageDialogType === 'workflow'
-                ? t('agent.manage.workflow.title')
-                : manageDialogType === 'agent-engine'
-                  ? t('agent.manage.agentEngine.title')
-                  : t('agent.manage.agentConfig.title')
+            {{
+              manageDialogType === 'tool-collection'
+                ? t('agent.manage.toolCollection.title')
+                : manageDialogType === 'workflow'
+                  ? t('agent.manage.workflow.title')
+                  : manageDialogType === 'agent-engine'
+                    ? t('agent.manage.agentEngine.title')
+                    : t('agent.manage.agentConfig.title')
             }}
           </DialogTitle>
         </DialogHeader>
@@ -400,15 +396,29 @@
 
     <!-- 引用素材管理对话框 -->
     <Dialog v-model:open="showReferenceDialog" v-if="referenceSession">
-      <DialogContent class="sm:max-w-[800px]" style="height: 80vh; display: flex; flex-direction: column">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        style="height: 80vh; display: flex; flex-direction: column"
+      >
         <DialogHeader>
           <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
         </DialogHeader>
-        <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0">
+        <div
+          style="
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+          "
+        >
           <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
         </div>
         <DialogFooter>
-          <Button variant="ghost" @click="showReferenceDialog = false">{{ t('common.close') }}</Button>
+          <Button variant="ghost" @click="showReferenceDialog = false">{{
+            t('common.close')
+          }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -428,10 +438,10 @@
           />
         </div>
         <DialogFooter>
-          <Button variant="ghost" @click="showEditMessageDialog = false">{{ t('common.cancel') }}</Button>
-          <Button @click="handleConfirmEditMessage">{{
-            t('common.confirm')
+          <Button variant="ghost" @click="showEditMessageDialog = false">{{
+            t('common.cancel')
           }}</Button>
+          <Button @click="handleConfirmEditMessage">{{ t('common.confirm') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -449,11 +459,7 @@ import { Plus, More, Setting } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Textarea } from '@renderer/components/ui/textarea'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Select,
   SelectTrigger,
@@ -527,16 +533,10 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
-import {
-  Card,
-  CardContent,
-} from '@renderer/components/ui/card'
-import {
-  Descriptions,
-  DescriptionsItem
-} from '@renderer/components/ui/descriptions'
+import { Card, CardContent } from '@renderer/components/ui/card'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
 import { Empty } from '@renderer/components/ui/empty'
 dayjs.extend(relativeTime)
 

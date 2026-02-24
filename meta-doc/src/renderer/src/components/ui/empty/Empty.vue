@@ -34,29 +34,12 @@ const defaultImageSvg = `<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2
 </script>
 
 <template>
-  <div
-    :class="cn(
-      'flex flex-col items-center justify-center py-12 px-4 text-center',
-      props.class
-    )"
-  >
+  <div :class="cn('flex flex-col items-center justify-center py-12 px-4 text-center', props.class)">
     <!-- Image Slot -->
-    <div
-      class="flex items-center justify-center mb-4 text-muted-foreground"
-      :style="imageStyle"
-    >
+    <div class="flex items-center justify-center mb-4 text-muted-foreground" :style="imageStyle">
       <slot name="image">
-        <img
-          v-if="image"
-          :src="image"
-          alt="empty"
-          class="w-full h-full object-contain"
-        />
-        <div
-          v-else
-          class="w-24 h-24 opacity-50"
-          v-html="defaultImageSvg"
-        />
+        <img v-if="image" :src="image" alt="empty" class="w-full h-full object-contain" />
+        <div v-else class="w-24 h-24 opacity-50" v-html="defaultImageSvg" />
       </slot>
     </div>
 

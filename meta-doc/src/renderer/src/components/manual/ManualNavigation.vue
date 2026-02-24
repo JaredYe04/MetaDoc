@@ -11,15 +11,12 @@
         @node-click="handleNodeClick"
         class="navigation-tree"
       >
-        <template #default="{ node, data }">
+        <template #default="{ data }">
           <div class="tree-node">
             <Folder v-if="data.children && data.children.length > 0" class="w-4 h-4" />
             <FileText v-else class="w-4 h-4" />
             <span class="node-label">{{ data.title }}</span>
-            <Check
-              v-if="!data.children && isArticleRead(data.id)"
-              class="w-4 h-4"
-            />
+            <Check v-if="!data.children && isArticleRead(data.id)" class="w-4 h-4" />
           </div>
         </template>
       </Tree>
@@ -88,11 +85,15 @@ const handleNodeClick = (data: any) => {
 }
 
 .navigation-tree :deep(.el-tree-node__content:hover) {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .navigation-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"'
+  );
   font-weight: 500;
 }
 

@@ -5,7 +5,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@renderer/components/ui/select'
 import { getSystemFonts, clearFontCache } from '@renderer/services/font-service'
 import { Loader2, RefreshCw } from 'lucide-vue-next'
@@ -56,32 +56,37 @@ const defaultFonts: FontOption[] = [
   { name: 'Consolas', family: 'Consolas' },
   { name: 'SF Pro Display', family: '-apple-system, BlinkMacSystemFont' },
   { name: 'Segoe UI', family: 'Segoe UI' },
-  { name: 'Roboto', family: 'Roboto' },
+  { name: 'Roboto', family: 'Roboto' }
 ]
 
 // 加载系统字体
 const loadFonts = async () => {
   if (hasLoaded.value) return
-  
+
   loading.value = true
   error.value = ''
   try {
     const systemFonts = await getSystemFonts()
     if (systemFonts.length > 0) {
       // 合并系统字体和默认字体，去重
-      const combined = [...systemFonts.map(f => ({
-        name: f.displayName || f.name,
-        family: f.family
-      })), ...defaultFonts]
-      
+      const combined = [
+        ...systemFonts.map((f) => ({
+          name: f.displayName || f.name,
+          family: f.family
+        })),
+        ...defaultFonts
+      ]
+
       // 去重
       const seen = new Set<string>()
-      fonts.value = combined.filter(font => {
-        const key = font.family.toLowerCase()
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
-      }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+      fonts.value = combined
+        .filter((font) => {
+          const key = font.family.toLowerCase()
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
     } else {
       fonts.value = defaultFonts
     }
@@ -138,25 +143,21 @@ const previewTextValue = computed(() => props.previewText || 'AaBbCc 你好世�
         </SelectValue>
       </SelectTrigger>
       <SelectContent class="min-w-[280px] max-h-[300px]">
-        <div v-if="loading" class="flex items-center justify-center py-4 text-sm text-muted-foreground">
+        <div
+          v-if="loading"
+          class="flex items-center justify-center py-4 text-sm text-muted-foreground"
+        >
           <Loader2 class="mr-2 h-4 w-4 animate-spin" />
           加载字体中...
         </div>
         <div v-else-if="error" class="px-2 py-2 text-sm text-destructive">
           {{ error }}
-          <button 
-            class="ml-2 text-xs underline hover:no-underline" 
-            @click="refreshFonts"
-          >
+          <button class="ml-2 text-xs underline hover:no-underline" @click="refreshFonts">
             重试
           </button>
         </div>
         <template v-else>
-          <SelectItem
-            v-for="font in fonts"
-            :key="font.family"
-            :value="font.family"
-          >
+          <SelectItem v-for="font in fonts" :key="font.family" :value="font.family">
             <span :style="getFontStyle(font.family)">{{ font.name }}</span>
             <span class="ml-2 text-xs text-muted-foreground">{{ previewTextValue }}</span>
           </SelectItem>

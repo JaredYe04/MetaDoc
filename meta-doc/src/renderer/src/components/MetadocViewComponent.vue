@@ -57,17 +57,21 @@ const isViewVisible = (viewType: DocumentView): boolean => {
 // 跟踪已经挂载过的视图
 const mountedViews = ref<Set<DocumentView>>(new Set())
 
-watch(currentView, (view) => {
-  if (view) {
-    mountedViews.value.add(view)
-  }
-}, { immediate: true })
+watch(
+  currentView,
+  (view) => {
+    if (view) {
+      mountedViews.value.add(view)
+    }
+  },
+  { immediate: true }
+)
 
 // 处理视图切换
 function handleViewChange(view: string) {
   const doc = workspace.ensureDocument(props.tabId)
   doc.lastView = view as DocumentView
-  
+
   // 同步到 workspace 的活动 Tab
   if (workspace.activeTabId.value === props.tabId) {
     workspace.refreshActiveTabMetadata?.()
@@ -91,7 +95,7 @@ const showSubViewMenu = computed(() => {
           <div v-if="showSubViewMenu" class="document-view-menu">
             <ViewMenu />
           </div>
-          
+
           <!-- 内容区域 -->
           <div class="document-content-area">
             <Home
@@ -129,7 +133,7 @@ const showSubViewMenu = computed(() => {
         </div>
       </ViewMenuContainer>
     </template>
-    
+
     <!-- 系统Tab和工具Tab -->
     <template v-else-if="tab.kind === 'system' || tab.kind === 'tool'">
       <component

@@ -352,8 +352,15 @@ const props = defineProps({
   editorDomId: {
     type: String,
     default: 'latex-editor'
+  },
+  mode: {
+    type: String,
+    default: ''
   }
 })
+
+// Demo mode support
+const isDemo = computed(() => props.mode === 'demo')
 const isActive = computed(() => props.active)
 
 const workspace = useWorkspace()

@@ -1025,6 +1025,31 @@ const aiConfig = reactive({
 const recommendedKeywords = ref<string[]>([])
 const recommendedKeywordsLoading = ref(false)
 const selectedAiTool = ref<string | null>(null)
+
+// 切换 AI 工具：已选中则取消，否则选中；选中时折叠已展开的编辑节点面板
+function toggleAiTool(tool: 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent') {
+  const wasSelected = selectedAiTool.value === tool
+  selectedAiTool.value = wasSelected ? null : tool
+  if (!wasSelected && selectedAiTool.value) {
+    // 折叠已展开的编辑节点面板
+    editingNodePath.value = null
+  }
+}
+
+// 处理节点按钮点击
+const handleNodeButtonClick = (node: DocumentOutlineNode) => {
+  selectedNode.value = node
+  if (selectedAiTool.value) {
+    aiConfig.temperature = 1.0
+    aiConfig.keywords = []
+    aiConfig.wordCount = undefined
+    wordCountInput.value = ''
+    aiConfig.userPrompt = userPrompt.value || ''
+    selectedPresetPrompt.value = ''
+    aiConfigDialogVisible.value = true
+  }
+}
+
 const pendingAiAction = ref<(() => void) | null>(null)
 
 const temperatureMarks = computed(() => ({
@@ -1461,6 +1486,12 @@ const generateChildrenContent = () => {
 const generateChildrenChildren = () => {
   // 实现从原文件保留
 }
+
+// Provide AI toolbar dependencies to child components
+provide('outlineSelectedAiTool', selectedAiTool)
+provide('outlineToggleAiTool', toggleAiTool)
+provide('outlineFormatTitle', formatTitle)
+provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 </script>
 
 <style scoped>

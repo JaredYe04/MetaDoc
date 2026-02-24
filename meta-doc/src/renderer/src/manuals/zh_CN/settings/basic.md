@@ -25,6 +25,8 @@
 
 <SettingBasicSection mode="demo" />
 
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 基础设置界面包含以下主要配置区域：
 
 - **启动选项**：设置应用启动时的默认行为（打开新文件/上次编辑的文件）
@@ -51,6 +53,8 @@ graph LR
 ```
 
 ## 自动保存
+
+<SettingBasicSection mode="demo" />
 
 ### 配置自动保存
 
@@ -90,6 +94,8 @@ graph LR
 
 ## 文档统计设置
 
+<SettingBasicSection mode="demo" />
+
 ### 排除代码块统计
 
 启用此选项后，在统计文档字数、词频等信息时，会排除代码块中的内容。这对于技术文档特别有用，因为代码块中的内容通常不应该计入文档的文本统计。
@@ -101,6 +107,8 @@ graph LR
 - 避免代码影响词频分析结果
 
 ## 图片处理设置
+
+<SettingBasicSection mode="demo" />
 
 ### 解析嵌入图片（OCR功能）
 
@@ -122,6 +130,8 @@ graph LR
 启用此选项后，数学公式中的数字会以行内模式显示，而不是块级模式。这可以让公式更好地融入文本流，适合在段落中插入简单的数学表达式。
 
 ## 元信息保存模式
+
+<SettingBasicSection mode="demo" />
 
 ### 设置保存方式
 
@@ -156,6 +166,8 @@ graph TB
 ```
 
 ## 引用文件目录管理
+
+<SettingBasicSection mode="demo" />
 
 ### 查看目录信息
 

@@ -497,6 +497,24 @@ const handleToggleBuiltInDocRef = (value: boolean) => {
 
 const handlePreviewBuiltInDocument = () => {
   try {
+    // Demo mode: show demo built-in document
+    if (isDemo.value) {
+      const builtInRef: Reference = {
+        id: 'built-in-document-reference-0',
+        name: t('agent.reference.builtInDocument.title'),
+        origin: '/demo/current-document.md',
+        format: 'md',
+        parsedContent:
+          '# Demo Current Document\n\nThis is a demonstration of the built-in document reference feature. In real mode, this would show the content of the currently active document.',
+        description: t('agent.reference.builtInDocument.description') + '（Markdown格式）',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      viewingReference.value = builtInRef
+      contentDialogVisible.value = true
+      return
+    }
+
     const activeDoc = workspace.activeDocument.value
 
     if (!activeDoc) {
@@ -588,6 +606,18 @@ async function pathToFile(filePath: string): Promise<File> {
 
 const handleSelectFile = async () => {
   if (parsing.value) return
+
+  // Demo mode: simulate file selection
+  if (isDemo.value) {
+    const demoFileName = 'demo-document.pdf'
+    const demoFile = new File(['demo content'], demoFileName, { type: 'application/pdf' })
+    selectedFile.value = demoFile
+    if (!formData.value.name.trim()) {
+      formData.value.name = demoFileName
+    }
+    ElMessage.info('Demo mode: File selection simulated')
+    return
+  }
 
   try {
     // 使用主进程文件选择服务（使用 'all' 类别，对话框内部会显示所有分组）
@@ -816,7 +846,12 @@ const handleSave = async () => {
     return
   }
 
-  if (formData.value.inputType === 'file' && !selectedFile.value && !editingReference.value) {
+  if (
+    formData.value.inputType === 'file' &&
+    !selectedFile.value &&
+    !editingReference.value &&
+    !isDemo.value
+  ) {
     ElMessage.warning(t('agent.reference.fileRequired'))
     return
   }
@@ -828,6 +863,54 @@ const handleSave = async () => {
 
   if (formData.value.inputType === 'text' && !formData.value.text.trim()) {
     ElMessage.warning(t('agent.reference.textRequired'))
+    return
+  }
+
+  // Demo mode: simulate save
+  if (isDemo.value) {
+    try {
+      if (editingReference.value) {
+        // Edit mode: update in demo list
+        const index = demoReferences.value.findIndex((r) => r.id === editingReference.value!.id)
+        if (index !== -1) {
+          demoReferences.value[index] = {
+            ...demoReferences.value[index],
+            name: formData.value.name,
+            description: formData.value.description
+          }
+        }
+        ElMessage.success(t('agent.reference.updateSuccess'))
+      } else {
+        // Add mode: create new demo reference
+        const newRef: Reference = {
+          id: `demo-ref-${Date.now()}`,
+          name: formData.value.name,
+          origin:
+            formData.value.inputType === 'url'
+              ? formData.value.url
+              : formData.value.inputType === 'file'
+                ? `/demo/${formData.value.name}`
+                : 'manual-input',
+          format:
+            formData.value.inputType === 'file'
+              ? 'pdf'
+              : formData.value.inputType === 'url'
+                ? 'md'
+                : 'txt',
+          parsedContent: formData.value.text || `Demo content for ${formData.value.name}`,
+          description: formData.value.description,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+        demoReferences.value.push(newRef)
+        ElMessage.success(t('agent.reference.addSuccess'))
+      }
+      dialogVisible.value = false
+      selectedFile.value = null
+      parsedReference.value = null
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : String(error))
+    }
     return
   }
 
@@ -915,6 +998,13 @@ const handleDelete = async (reference: Reference) => {
       { type: 'warning' }
     )
 
+    // Demo mode: remove from demo list
+    if (isDemo.value) {
+      demoReferences.value = demoReferences.value.filter((r) => r.id !== reference.id)
+      ElMessage.success(t('agent.reference.deleteSuccess'))
+      return
+    }
+
     // 转换为新的AgentSession格式
     const newFormatSession: any = {
       ...props.session,
@@ -953,6 +1043,13 @@ const handleClearAll = async () => {
         type: 'warning'
       }
     )
+
+    // Demo mode: clear demo list
+    if (isDemo.value) {
+      demoReferences.value = []
+      ElMessage.success(t('agent.reference.clearAllSuccess'))
+      return
+    }
 
     // 转换为新的AgentSession格式
     const newFormatSession: any = {

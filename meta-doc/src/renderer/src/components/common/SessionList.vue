@@ -30,13 +30,7 @@
             <h2 v-if="!isCollapsed" class="pane-title">{{ title }}</h2>
             <div class="actions">
               <Tooltip :content="createButtonTooltip">
-                <Button
-                  size="small"
-                  type="info"
-                  circle
-                  @click="handleCreate"
-                  :disabled="disabled"
-                >
+                <Button size="small" type="info" circle @click="handleCreate" :disabled="disabled">
                   <AddIcon />
                 </Button>
               </Tooltip>
@@ -78,10 +72,7 @@
             <!-- 展开态：shadcn-vue 列表 -->
             <div v-else class="side-menu">
               <template v-for="group in groupedItems" :key="group.label">
-                <div
-                  class="group-header"
-                  :class="{ 'is-ui-locked': disabled }"
-                >
+                <div class="group-header" :class="{ 'is-ui-locked': disabled }">
                   <span class="group-label">{{ group.label }}</span>
                 </div>
                 <Button
@@ -180,7 +171,7 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 

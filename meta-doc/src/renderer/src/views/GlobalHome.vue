@@ -2,7 +2,7 @@
   <div id="particle-bg" class="homepage">
     <!-- 动态背景动画 -->
     <DynamicBackgroundAnimation />
-    
+
     <!-- 极简网格装饰 -->
     <div class="grid-decoration"></div>
 
@@ -53,8 +53,8 @@
             <ChevronRight class="w-4 h-4" />
           </div>
 
-          <div 
-            class="action-card manual-card" 
+          <div
+            class="action-card manual-card"
             :class="{ 'highlight-pulse': showManualHighlight }"
             @click="openUserManual"
           >
@@ -63,7 +63,9 @@
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.userManual') || '用户手册' }}</h3>
-              <p class="action-desc">{{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}</p>
+              <p class="action-desc">
+                {{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}
+              </p>
             </div>
             <ChevronRight class="w-4 h-4" />
           </div>
@@ -131,15 +133,7 @@ import { themeState, mixColors } from '../utils/themes'
 // import { ParticleEffect } from '../utils/particle-effect'
 // import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
-import {
-  FileText,
-  Info,
-  FolderOpen,
-  ArrowRight,
-  X,
-  FilePlus,
-  BookOpen
-} from 'lucide-vue-next'
+import { FileText, Info, FolderOpen, ArrowRight, X, FilePlus, BookOpen } from 'lucide-vue-next'
 import { basename, extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { hasCompletedProfile } from '../utils/user-profile'
@@ -437,8 +431,7 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image:
-    linear-gradient(
+  background-image: linear-gradient(
       v-bind(
           'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"'
         )
@@ -823,7 +816,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes highlightPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
     box-shadow: 0 0 20px rgba(64, 158, 255, 0.4);
   }

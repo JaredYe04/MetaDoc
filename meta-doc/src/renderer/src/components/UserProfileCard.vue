@@ -100,7 +100,12 @@
               style="width: 128px; height: 128px"
               @click="changeAvatar"
             >
-              <AvatarImage :src="avatar" :alt="user.username" @error="handleAvatarError" class="object-cover" />
+              <AvatarImage
+                :src="avatar"
+                :alt="user.username"
+                @error="handleAvatarError"
+                class="object-cover"
+              />
               <AvatarFallback>{{ user.username?.charAt(0)?.toUpperCase() || '?' }}</AvatarFallback>
             </Avatar>
             <div

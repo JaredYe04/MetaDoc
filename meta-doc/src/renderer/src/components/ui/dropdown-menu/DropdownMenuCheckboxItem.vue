@@ -1,12 +1,8 @@
 <script setup>
-import { reactiveOmit } from "@vueuse/core";
-import { Check } from "lucide-vue-next";
-import {
-  DropdownMenuCheckboxItem,
-  DropdownMenuItemIndicator,
-  useForwardPropsEmits,
-} from "reka-ui";
-import { cn } from '@renderer/lib/utils';
+import { reactiveOmit } from '@vueuse/core'
+import { Check } from 'lucide-vue-next'
+import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator, useForwardPropsEmits } from 'reka-ui'
+import { cn } from '@renderer/lib/utils'
 
 const props = defineProps({
   modelValue: { type: [Boolean, String], required: false },
@@ -14,13 +10,13 @@ const props = defineProps({
   textValue: { type: String, required: false },
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
-  class: { type: null, required: false },
-});
-const emits = defineEmits(["select", "update:modelValue"]);
+  class: { type: null, required: false }
+})
+const emits = defineEmits(['select', 'update:modelValue'])
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, 'class')
 
-const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
@@ -29,7 +25,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     :class="
       cn(
         'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        props.class,
+        props.class
       )
     "
   >

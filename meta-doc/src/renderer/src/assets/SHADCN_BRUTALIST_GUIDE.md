@@ -27,7 +27,7 @@ assets/
 ```javascript
 // main.js
 import './assets/element-plus-theme-override.css'
-import './assets/shadcn-brutalist-theme.css'  // 新增
+import './assets/shadcn-brutalist-theme.css' // 新增
 ```
 
 ### 2. 组件使用方式（无需修改）
@@ -79,24 +79,29 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 ### 1. Dropdown 下拉菜单
 
 **设计变化：**
+
 - 移除箭头指向（`display: none`）
 - 2px 圆角，硬边阴影
 - 动画：fade + 轻微 scale，100ms，无弹性
 - 菜单项：8px 12px padding，2px 间距
 
 **CSS 关键规则：**
+
 ```css
 .el-dropdown__popper.el-popper {
   border-radius: 2px;
-  box-shadow: 0 0 0 1px var(--el-border-color), 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow:
+    0 0 0 1px var(--el-border-color),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .el-dropdown__popper .el-popper__arrow {
-  display: none;  /* 去掉箭头 */
+  display: none; /* 去掉箭头 */
 }
 ```
 
 **动画规格：**
+
 - 进入：100ms, `cubic-bezier(0.25, 0.1, 0.25, 1)`
 - 离开：80ms, `cubic-bezier(0.4, 0, 1, 1)`
 
@@ -105,16 +110,20 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 ### 2. Popover 气泡卡片
 
 **设计变化：**
+
 - 移除箭头指向
 - 硬边直角，1px outline 边框感
 - 标题带底部边框分隔
 - 动画：fade + translateY，120ms
 
 **CSS 关键规则：**
+
 ```css
 .el-popover.el-popper {
   border-radius: 2px;
-  box-shadow: 0 0 0 1px var(--el-border-color), 0 4px 16px rgba(0,0,0,0.08);
+  box-shadow:
+    0 0 0 1px var(--el-border-color),
+    0 4px 16px rgba(0, 0, 0, 0.08);
   padding: 12px;
 }
 
@@ -129,12 +138,14 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 ### 3. Select 选择器下拉
 
 **设计变化：**
+
 - 移除箭头指向
 - 选项紧凑排列（8px 12px padding）
 - 选中状态：主色背景 + 粗体字
 - 分组标题：小字、大写、字母间距
 
 **CSS 关键规则：**
+
 ```css
 .el-select__popper.el-popper .el-popper__arrow {
   display: none;
@@ -157,12 +168,14 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 ### 4. Menu 菜单展开
 
 **设计变化：**
+
 - 子菜单弹出层移除箭头
 - 菜单项高度 36px，紧凑布局
 - 箭头旋转 90° 无过渡动画
 - 展开/收起：无动画（instant）
 
 **CSS 关键规则：**
+
 ```css
 .el-sub-menu__popper.el-popper {
   border-radius: 2px;
@@ -183,11 +196,13 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 ### 5. Tooltip 文字提示
 
 **设计变化：**
+
 - 默认保留小箭头（与 shadcn 略有不同）
 - 如需去掉箭头，取消注释 CSS 中的代码块
 - 极简设计：小字、小 padding、淡动画
 
 **去掉箭头的 CSS：**
+
 ```css
 .el-tooltip__popper.el-popper .el-popper__arrow {
   display: none !important;
@@ -198,18 +213,19 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 
 ## 动画规格总览
 
-| 动画类型 | 时长 | 缓动函数 | 说明 |
-|---------|------|---------|------|
-| 按钮按压 | 50-80ms | linear | 即时反馈 |
+| 动画类型     | 时长      | 缓动函数                           | 说明     |
+| ------------ | --------- | ---------------------------------- | -------- |
+| 按钮按压     | 50-80ms   | linear                             | 即时反馈 |
 | 下拉菜单出现 | 100-120ms | `cubic-bezier(0.25, 0.1, 0.25, 1)` | 自然减速 |
-| 下拉菜单消失 | 80ms | `cubic-bezier(0.4, 0, 1, 1)` | 加速消失 |
-| Popover 出现 | 120ms | `cubic-bezier(0.25, 0.1, 0.25, 1)` | 自然减速 |
-| Tooltip 出现 | 80ms | ease-out | 极淡 |
-| 菜单项滑入 | 100ms | linear | 简洁直接 |
+| 下拉菜单消失 | 80ms      | `cubic-bezier(0.4, 0, 1, 1)`       | 加速消失 |
+| Popover 出现 | 120ms     | `cubic-bezier(0.25, 0.1, 0.25, 1)` | 自然减速 |
+| Tooltip 出现 | 80ms      | ease-out                           | 极淡     |
+| 菜单项滑入   | 100ms     | linear                             | 简洁直接 |
 
 ### 避免的动画
 
 ❌ **不要使用：**
+
 - `ease-in-out-back` - 回弹效果，过于花哨
 - `spring` 动画 - 弹性感，不够直接
 - 超过 200ms 的过渡 - 感觉迟缓
@@ -221,42 +237,42 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 
 ### 圆角
 
-| 元素 | 圆角值 | 说明 |
-|-----|-------|------|
-| 按钮 | 2px | 极小圆角 |
-| 输入框 | 2px | 统一风格 |
-| 卡片 | 2px | 硬边感 |
-| 对话框 | 2px | 简洁 |
-| 弹出层 | 2px | 一致 |
-| 菜单项 | 2px | 轻微圆角 |
+| 元素   | 圆角值 | 说明     |
+| ------ | ------ | -------- |
+| 按钮   | 2px    | 极小圆角 |
+| 输入框 | 2px    | 统一风格 |
+| 卡片   | 2px    | 硬边感   |
+| 对话框 | 2px    | 简洁     |
+| 弹出层 | 2px    | 一致     |
+| 菜单项 | 2px    | 轻微圆角 |
 
 ### 阴影层级
 
-| 层级 | 阴影值 | 用途 |
-|-----|-------|------|
-| 层级 1 | `1px 1px 0 0 rgba(0,0,0,0.05)` | hover 状态 |
-| 层级 2 | `0 0 0 1px border-color, 0 4px 12px rgba(0,0,0,0.08)` | 下拉菜单 |
-| 层级 3 | `0 0 0 1px border-color, 0 8px 24px rgba(0,0,0,0.08)` | 对话框 |
+| 层级   | 阴影值                                                | 用途       |
+| ------ | ----------------------------------------------------- | ---------- |
+| 层级 1 | `1px 1px 0 0 rgba(0,0,0,0.05)`                        | hover 状态 |
+| 层级 2 | `0 0 0 1px border-color, 0 4px 12px rgba(0,0,0,0.08)` | 下拉菜单   |
+| 层级 3 | `0 0 0 1px border-color, 0 8px 24px rgba(0,0,0,0.08)` | 对话框     |
 
 **特点：** 使用 `0 0 0 1px` outline 创造粗野主义边框感
 
 ### 间距
 
-| 元素 | 值 | 说明 |
-|-----|---|------|
-| 菜单项内边距 | 8px 12px | 紧凑舒适 |
-| 菜单项间距 | 2px 0 | 微小分隔 |
-| 菜单容器内边距 | 4px | 整体边距 |
-| 弹出层边距 | 4px | 与触发元素距离 |
+| 元素           | 值       | 说明           |
+| -------------- | -------- | -------------- |
+| 菜单项内边距   | 8px 12px | 紧凑舒适       |
+| 菜单项间距     | 2px 0    | 微小分隔       |
+| 菜单容器内边距 | 4px      | 整体边距       |
+| 弹出层边距     | 4px      | 与触发元素距离 |
 
 ### 颜色
 
-| 状态 | 值 | 说明 |
-|-----|---|------|
-| 默认文字 | `var(--el-text-color-regular)` | 中性灰 |
-| 悬停背景 | `var(--el-fill-color-light)` | 浅灰 |
+| 状态         | 值                                  | 说明     |
+| ------------ | ----------------------------------- | -------- |
+| 默认文字     | `var(--el-text-color-regular)`      | 中性灰   |
+| 悬停背景     | `var(--el-fill-color-light)`        | 浅灰     |
 | 激活 outline | `2px solid var(--el-color-primary)` | 主色硬边 |
-| 选中背景 | `var(--el-color-primary-light-9)` | 主色浅色 |
+| 选中背景     | `var(--el-color-primary-light-9)`   | 主色浅色 |
 
 ---
 
@@ -266,7 +282,7 @@ import './assets/shadcn-brutalist-theme.css'  // 新增
 
 ```css
 html.dark .el-dropdown__popper.el-popper {
-  box-shadow: 
+  box-shadow:
     0 0 0 1px var(--el-border-color-darker),
     0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -301,7 +317,7 @@ html.dark .el-dropdown__popper.el-popper {
 ```css
 /* 在 shadcn-brutalist-theme.css 中搜索替换 */
 :root {
-  --brutalist-radius: 0px;  /* 改为 0 完全直角 */
+  --brutalist-radius: 0px; /* 改为 0 完全直角 */
 }
 ```
 

@@ -79,8 +79,14 @@
         <TabsList>
           <TabsTrigger value="fields">{{ $t('agent.display.dataAnalysis.fields') }}</TabsTrigger>
           <TabsTrigger value="stats">{{ $t('agent.display.dataAnalysis.statsLabel') }}</TabsTrigger>
-          <TabsTrigger v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0" value="aggregations">{{ $t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger>
-          <TabsTrigger v-if="displayData.result.summary" value="summary">{{ $t('agent.display.dataAnalysis.summary') }}</TabsTrigger>
+          <TabsTrigger
+            v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0"
+            value="aggregations"
+            >{{ $t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger
+          >
+          <TabsTrigger v-if="displayData.result.summary" value="summary">{{
+            $t('agent.display.dataAnalysis.summary')
+          }}</TabsTrigger>
         </TabsList>
         <!-- 字段信息 -->
         <TabsContent value="fields">
@@ -145,7 +151,10 @@
         </TabsContent>
 
         <!-- 聚合分析 -->
-        <TabsContent v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0" value="aggregations">
+        <TabsContent
+          v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0"
+          value="aggregations"
+        >
           <ScrollArea class="h-[400px]">
             <div
               v-for="(agg, index) in displayData.result.aggregations"
@@ -206,7 +215,9 @@
     <div v-else class="error-state">
       <Alert variant="destructive">
         <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.dataAnalysis.analysisFailed') }}</AlertTitle>
+        <AlertTitle>{{
+          displayData.error || $t('agent.display.dataAnalysis.analysisFailed')
+        }}</AlertTitle>
       </Alert>
     </div>
   </div>

@@ -3,7 +3,7 @@
 **Date:** 2026-02-23  
 **Merge Status:** ✅ VERIFIED SUCCESSFUL  
 **Merge Commit:** `bfb8425`  
-**Document Version:** 1.0  
+**Document Version:** 1.0
 
 ---
 
@@ -20,6 +20,7 @@ This document details all post-merge issues requiring immediate attention follow
 ## Context
 
 ### Merge Overview
+
 - **Source Branch:** origin/main (Element Plus UI)
 - **Target Branch:** shadcn-exp (shadcn-vue UI)
 - **Conflicts Resolved:** 3 files
@@ -31,7 +32,9 @@ This document details all post-merge issues requiring immediate attention follow
   - OutlineNodeActionButton.vue
 
 ### Hybrid UI State
+
 The merge resulted in an intentional hybrid UI architecture:
+
 - **3 hybrid files** using both Element Plus and shadcn-vue
 - **52 files** still using pure Element Plus
 - **4 files** using pure shadcn-vue
@@ -40,12 +43,12 @@ The merge resulted in an intentional hybrid UI architecture:
 
 ## Priority Classification
 
-| Priority | Definition | Fix Timeline | Count |
-|----------|------------|--------------|-------|
-| **Critical** | Breaking functionality, console errors, or type safety issues | Immediate (Day 1) | 3 |
-| **High** | Component inconsistencies causing UI drift or UX degradation | Week 1 | 3 |
-| **Medium** | Hybrid patterns reducing maintainability | Week 2 | 3 |
-| **Low** | Cleanup and optimization | Backlog | 2 |
+| Priority     | Definition                                                    | Fix Timeline      | Count |
+| ------------ | ------------------------------------------------------------- | ----------------- | ----- |
+| **Critical** | Breaking functionality, console errors, or type safety issues | Immediate (Day 1) | 3     |
+| **High**     | Component inconsistencies causing UI drift or UX degradation  | Week 1            | 3     |
+| **Medium**   | Hybrid patterns reducing maintainability                      | Week 2            | 3     |
+| **Low**      | Cleanup and optimization                                      | Backlog           | 2     |
 
 ---
 
@@ -57,6 +60,7 @@ The merge resulted in an intentional hybrid UI architecture:
 **Line:** 585
 
 **Current Code:**
+
 ```typescript
 import {
   ref,
@@ -64,7 +68,7 @@ import {
   watch,
   computed,
   onMounted,
-  onBeforeMount,  // ← UNUSED
+  onBeforeMount, // ← UNUSED
   onUnmounted,
   nextTick,
   provide,
@@ -85,6 +89,7 @@ import {
 **Line:** 630
 
 **Current Code:**
+
 ```typescript
 import {
   Plus,
@@ -94,7 +99,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  ArrowDown as ArrowDownIcon,  // ← UNUSED (ArrowDown used directly)
+  ArrowDown as ArrowDownIcon, // ← UNUSED (ArrowDown used directly)
   Loader2
 } from 'lucide-vue-next'
 ```
@@ -111,9 +116,10 @@ import {
 **Line:** 93
 
 **Current Code:**
+
 ```typescript
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const triggerButtonRef = ref<HTMLElement | null>(null)  // ← UNBOUND
+const triggerButtonRef = ref<HTMLElement | null>(null) // ← UNBOUND
 const showPresetDropdown = ref(false)
 ```
 
@@ -134,29 +140,37 @@ const showPresetDropdown = ref(false)
 
 **Migration Mapping:**
 
-| From (Element Plus) | To (shadcn-vue) |
-|---------------------|-----------------|
-| `el-button type="primary"` | `Button variant="default"` |
-| `el-button type="default"` | `Button variant="outline"` |
-| `el-button size="small"` | `Button size="sm"` |
+| From (Element Plus)        | To (shadcn-vue)                                                     |
+| -------------------------- | ------------------------------------------------------------------- |
+| `el-button type="primary"` | `Button variant="default"`                                          |
+| `el-button type="default"` | `Button variant="outline"`                                          |
+| `el-button size="small"`   | `Button size="sm"`                                                  |
 | `el-tooltip content="..."` | `TooltipProvider` + `Tooltip` + `TooltipTrigger` + `TooltipContent` |
-| `el-icon` | Direct Lucide icon import |
+| `el-icon`                  | Direct Lucide icon import                                           |
 
 **Add Imports:**
+
 ```typescript
 import { Button } from '@renderer/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { LucideIcon } from 'lucide-vue-next'  // Replace specific icons
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
+import { LucideIcon } from 'lucide-vue-next' // Replace specific icons
 ```
 
 **Remove Imports:**
+
 ```typescript
 // Remove:
 import { ElButton, ElTooltip, ElIcon } from 'element-plus'
-import { /* icons */ } from '@element-plus/icons-vue'
+import {} from /* icons */ '@element-plus/icons-vue'
 ```
 
 **Template Changes:**
+
 ```vue
 <!-- Before -->
 <el-tooltip :content="tooltipText">
@@ -181,6 +195,7 @@ import { /* icons */ } from '@element-plus/icons-vue'
 ```
 
 **Verification:**
+
 - [ ] Component renders without errors
 - [ ] All buttons clickable
 - [ ] Tooltips display on hover
@@ -199,13 +214,14 @@ import { /* icons */ } from '@element-plus/icons-vue'
 
 **Migration Mapping:**
 
-| From (Element Plus) | To (shadcn-vue) |
-|---------------------|-----------------|
-| `el-button type="text"` | `Button variant="ghost"` |
-| `el-icon` with `More` | `MoreHorizontal` from lucide-vue-next |
-| `el-tooltip` | `Tooltip` |
+| From (Element Plus)     | To (shadcn-vue)                       |
+| ----------------------- | ------------------------------------- |
+| `el-button type="text"` | `Button variant="ghost"`              |
+| `el-icon` with `More`   | `MoreHorizontal` from lucide-vue-next |
+| `el-tooltip`            | `Tooltip`                             |
 
 **Change Imports:**
+
 ```typescript
 // Remove:
 import { More } from '@element-plus/icons-vue'
@@ -214,10 +230,16 @@ import { ElButton, ElTooltip, ElIcon } from 'element-plus'
 // Add:
 import { MoreHorizontal } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 ```
 
 **Template Changes:**
+
 ```vue
 <!-- Before -->
 <el-tooltip :content="$t('outline.moreActions')">
@@ -242,6 +264,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@rende
 ```
 
 **Verification:**
+
 - [ ] Button renders correctly
 - [ ] Tooltip displays on hover
 - [ ] Icon displays correctly
@@ -258,6 +281,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@rende
 **Lines:** 14-25
 
 **Current Code:**
+
 ```vue
 <el-tooltip :content="$t('outline.collapse')" placement="top">
   <button class="detailed-node__collapse-btn" @click="emit('collapse')">
@@ -267,6 +291,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@rende
 ```
 
 **Expected Fix:**
+
 ```vue
 <TooltipProvider>
   <Tooltip>
@@ -302,16 +327,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@rende
 
 **Migration Table:**
 
-| Element Plus | shadcn-vue |
-|--------------|------------|
-| `el-popover` | `Popover` + `PopoverTrigger` + `PopoverContent` |
-| `v-model:visible` | `v-model:open` |
-| `placement="bottom-end"` | `side="bottom" align="end"` |
-| `el-button type="text"` | `Button variant="ghost"` |
-| `el-icon` | Direct Lucide icon (`ChevronDown`) |
-| `el-scrollbar` | `ScrollArea` (already using) |
+| Element Plus             | shadcn-vue                                      |
+| ------------------------ | ----------------------------------------------- |
+| `el-popover`             | `Popover` + `PopoverTrigger` + `PopoverContent` |
+| `v-model:visible`        | `v-model:open`                                  |
+| `placement="bottom-end"` | `side="bottom" align="end"`                     |
+| `el-button type="text"`  | `Button variant="ghost"`                        |
+| `el-icon`                | Direct Lucide icon (`ChevronDown`)              |
+| `el-scrollbar`           | `ScrollArea` (already using)                    |
 
 **Add Imports:**
+
 ```typescript
 import { Button } from '@renderer/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from '@renderer/components/ui/popover'
@@ -319,6 +345,7 @@ import { ChevronDown } from 'lucide-vue-next'
 ```
 
 **Remove Imports:**
+
 ```typescript
 // Remove:
 import { ElButton, ElIcon, ElPopover, ElScrollbar } from 'element-plus'
@@ -326,9 +353,15 @@ import { ArrowDown } from '@element-plus/icons-vue'
 ```
 
 **Template Changes:**
+
 ```vue
 <!-- Before -->
-<el-popover v-model:visible="showPresetDropdown" placement="bottom-end" :width="300" trigger="manual">
+<el-popover
+  v-model:visible="showPresetDropdown"
+  placement="bottom-end"
+  :width="300"
+  trigger="manual"
+>
   <template #reference>
     <el-button type="text" size="small" @click.stop="togglePresetDropdown">
       <el-icon><ArrowDown /></el-icon>
@@ -362,6 +395,7 @@ import { ArrowDown } from '@element-plus/icons-vue'
 ### MED-002: Standardize Import Patterns
 
 **Standard Import Order Convention:**
+
 ```typescript
 // 1. Vue imports
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
@@ -372,18 +406,33 @@ import { VNodeRef } from 'vue'
 
 // 3. shadcn-vue component imports
 import { Button } from '@renderer/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@renderer/components/ui/popover'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Input } from '@renderer/components/ui/input'
 import { Switch } from '@renderer/components/ui/switch'
 
 // 4. Icon imports (lucide-vue-next only)
-import { 
-  Plus, Pencil, Trash2, Minus, 
-  ArrowLeft, ArrowRight, ArrowUp, ArrowDown,
-  MoreHorizontal, ChevronDown, Check, X,
-  Loader2, RefreshCw 
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Minus,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  MoreHorizontal,
+  ChevronDown,
+  Check,
+  X,
+  Loader2,
+  RefreshCw
 } from 'lucide-vue-next'
 
 // 5. Local utility imports
@@ -396,6 +445,7 @@ import type { DocumentOutlineNode } from '../../types/outline'
 ```
 
 **Files to Update:**
+
 - [ ] OutlineAiToolbar.vue
 - [ ] OutlineNodeActionButton.vue
 - [ ] DetailedOutlineNode.vue
@@ -408,10 +458,12 @@ import type { DocumentOutlineNode } from '../../types/outline'
 ### MED-003: Document Theme Bridge Architecture
 
 **Files to Document:**
+
 - `meta-doc/src/renderer/src/utils/shadcn-theme-bridge.js`
 - `meta-doc/src/renderer/src/assets/element-plus-theme-override.css`
 
 **Documentation Content:**
+
 1. Purpose of theme bridge
 2. How CSS variables are synchronized
 3. Override rules and their rationale
@@ -428,6 +480,7 @@ import type { DocumentOutlineNode } from '../../types/outline'
 **Task:** Search for remaining Element Plus components in outline-related files
 
 **Commands:**
+
 ```bash
 grep -n "el-" meta-doc/src/renderer/src/views/Outline.vue
 grep -n "El" meta-doc/src/renderer/src/components/outline/*.vue
@@ -444,6 +497,7 @@ grep -n "from 'element-plus'" meta-doc/src/renderer/src/components/outline/*.vue
 ### LOW-002: Verify CSS Variable Consistency
 
 **Checklist:**
+
 - [ ] All buttons use `--primary`, `--primary-foreground`
 - [ ] All tooltips use `--popover`, `--popover-foreground`
 - [ ] Border colors use `--border`
@@ -452,6 +506,7 @@ grep -n "from 'element-plus'" meta-doc/src/renderer/src/components/outline/*.vue
 - [ ] Focus rings use Tailwind `ring-2 ring-primary`
 
 **Verification Method:**
+
 1. Open Outline view in app
 2. Inspect each component with browser dev tools
 3. Verify CSS variables match design system
@@ -463,21 +518,25 @@ grep -n "from 'element-plus'" meta-doc/src/renderer/src/components/outline/*.vue
 ## Execution Order
 
 ### Phase 1: Critical Fixes (Day 1) - 30 minutes
+
 1. ✅ **CRIT-001**: Remove unused onBeforeMount (Outline.vue:585)
 2. ✅ **CRIT-002**: Remove unused ArrowDownIcon (Outline.vue:630)
 3. ✅ **CRIT-003**: Remove unbound triggerButtonRef (AutoResizeTextarea.vue:93)
 
 ### Phase 2: High Priority (Week 1) - 5-6 hours
+
 1. ✅ **HIGH-001**: Migrate OutlineAiToolbar.vue
 2. ✅ **HIGH-002**: Migrate OutlineNodeActionButton.vue
 3. ✅ **HIGH-003**: Migrate DetailedOutlineNode.vue tooltip
 
 ### Phase 3: Medium Priority (Week 2) - 4-5 hours
+
 1. ✅ **MED-001**: Migrate AutoResizeTextarea.vue
 2. ✅ **MED-002**: Standardize import patterns
 3. ✅ **MED-003**: Document theme bridge
 
 ### Phase 4: Low Priority (Backlog)
+
 1. **LOW-001**: Audit remaining Element Plus
 2. **LOW-002**: Verify CSS variables
 
@@ -486,22 +545,26 @@ grep -n "from 'element-plus'" meta-doc/src/renderer/src/components/outline/*.vue
 ## Success Criteria
 
 ### Code Quality
+
 - ✅ ESLint passes with zero warnings
 - ✅ TypeScript compilation: Zero errors
 - ✅ `lsp_diagnostics` clean on all modified files
 
 ### Functionality
+
 - ✅ Build: Successful (`npm run build` or equivalent)
 - ✅ Runtime: No console errors
 - ✅ All outline features work (expand, collapse, generate, edit)
 
 ### UI Consistency
+
 - ✅ Visual parity with original Element Plus implementation
 - ✅ All buttons use consistent shadcn-vue styling
 - ✅ All tooltips display correctly
 - ✅ Icons display at correct size (w-4 h-4 default)
 
 ### Maintainability
+
 - ✅ All outline components use consistent shadcn-vue patterns
 - ✅ No hybrid UI patterns remaining in outline module
 - ✅ Import patterns standardized across files
@@ -518,9 +581,9 @@ grep -n "from 'element-plus'" meta-doc/src/renderer/src/components/outline/*.vue
 
 ## Changelog
 
-| Date | Version | Changes |
-|------|---------|---------|
-| 2026-02-23 | 1.0 | Initial document creation post-merge |
+| Date       | Version | Changes                              |
+| ---------- | ------- | ------------------------------------ |
+| 2026-02-23 | 1.0     | Initial document creation post-merge |
 
 ---
 

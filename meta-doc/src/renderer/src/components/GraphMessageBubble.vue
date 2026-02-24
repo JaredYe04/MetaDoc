@@ -24,13 +24,9 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from '@renderer/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@renderer/components/ui/avatar'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { MdEditor, MdPreview } from 'md-editor-v3'
@@ -518,7 +514,9 @@ onBeforeUnmount(() => {
         />
       </div>
       <DialogFooter>
-        <Button variant="ghost" @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
+        <Button variant="ghost" @click="editDialogVisible = false">{{
+          $t('common.cancel')
+        }}</Button>
         <Button @click="saveEdit">{{ $t('common.save') }}</Button>
       </DialogFooter>
     </DialogContent>
@@ -557,8 +555,7 @@ onBeforeUnmount(() => {
   max-width: 61.8%;
   flex-grow: 1;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol';
   font-size: inherit;
@@ -626,8 +623,7 @@ onBeforeUnmount(() => {
 .text-content pre {
   margin: 0;
   padding: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol';
   white-space: pre-wrap;

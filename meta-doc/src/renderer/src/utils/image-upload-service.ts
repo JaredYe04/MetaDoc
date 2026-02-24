@@ -198,7 +198,9 @@ async function uploadToLocalService(
       formData.append('file[]', options.file, fileName)
 
       // 如果指定了目标目录，通过查询参数传递
-      const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+      const baseUrl = await import('../config/runtime-server').then((m) =>
+        m.getRuntimeServerBaseUrl()
+      )
       const uploadUrl = targetDir
         ? `${baseUrl}/api/image/upload?targetDir=${encodeURIComponent(targetDir)}`
         : `${baseUrl}/api/image/upload`
@@ -226,7 +228,9 @@ async function uploadToLocalService(
         requestBody.targetDir = targetDir
       }
 
-      const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+      const baseUrl = await import('../config/runtime-server').then((m) =>
+        m.getRuntimeServerBaseUrl()
+      )
       const response = await fetch(`${baseUrl}/api/image/url-upload`, {
         method: 'POST',
         headers: {

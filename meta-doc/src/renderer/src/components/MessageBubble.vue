@@ -29,22 +29,15 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from '@renderer/components/ui/dialog'
-import {
-  Avatar,
-  AvatarFallback,
-} from '@renderer/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[]
@@ -415,7 +408,12 @@ onBeforeMount(() => {
     </Tooltip>
     <Tooltip>
       <TooltipTrigger as-child>
-        <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="requestInsertToDocument">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="ai-action-btn"
+          @click.stop="requestInsertToDocument"
+        >
           <FilePlus class="h-4 w-4" />
         </Button>
       </TooltipTrigger>
@@ -488,7 +486,9 @@ onBeforeMount(() => {
         :theme="themeState.currentTheme.vditorTheme as any"
       />
       <DialogFooter>
-        <Button variant="secondary" @click="editDialogVisible = false">{{ $t('common.cancel') }}</Button>
+        <Button variant="secondary" @click="editDialogVisible = false">{{
+          $t('common.cancel')
+        }}</Button>
         <Button @click="saveEdit">{{ $t('common.save') }}</Button>
       </DialogFooter>
     </DialogContent>

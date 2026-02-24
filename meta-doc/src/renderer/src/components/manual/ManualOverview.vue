@@ -4,9 +4,14 @@
       <div class="overview-content">
         <!-- 欢迎区域 -->
         <div class="welcome-section">
-          <h1 class="welcome-title">{{ $t('userManual.overview.welcome') || '欢迎使用用户手册' }}</h1>
+          <h1 class="welcome-title">
+            {{ $t('userManual.overview.welcome') || '欢迎使用用户手册' }}
+          </h1>
           <p class="welcome-description">
-            {{ $t('userManual.overview.description') || '根据您的使用偏好，我们为您推荐了最适合的学习路径' }}
+            {{
+              $t('userManual.overview.description') ||
+              '根据您的使用偏好，我们为您推荐了最适合的学习路径'
+            }}
           </p>
         </div>
 
@@ -27,7 +32,9 @@
           </h2>
           <div class="progress-card">
             <div class="progress-header">
-              <span class="progress-label">{{ $t('userManual.progress.label') || '学习进度' }}</span>
+              <span class="progress-label">{{
+                $t('userManual.progress.label') || '学习进度'
+              }}</span>
               <span class="progress-percentage">{{ learningProgress }}%</span>
             </div>
             <Progress
@@ -37,7 +44,10 @@
               :color="progressColor"
             />
             <div class="progress-info">
-              <span>{{ completedCount }} / {{ totalCount }} {{ $t('userManual.progress.completed') || '已完成' }}</span>
+              <span
+                >{{ completedCount }} / {{ totalCount }}
+                {{ $t('userManual.progress.completed') || '已完成' }}</span
+              >
             </div>
           </div>
         </div>
@@ -54,10 +64,7 @@
             </div>
             <!-- 有向图展示：点击节点仅选中，与下方列表双向联动 -->
             <div class="path-graph-container">
-              <LearningGraph
-                v-model:selected-id="selectedNodeId"
-                :default-expanded="true"
-              />
+              <LearningGraph v-model:selected-id="selectedNodeId" :default-expanded="true" />
             </div>
             <div class="path-steps">
               <div
@@ -91,20 +98,13 @@
               </div>
             </div>
             <div class="path-actions">
-            <Button
-              :disabled="!selectedNodeId"
-              @click="startSelectedLearning"
-            >
-              <FileText class="mr-2 h-4 w-4" />
-              {{ $t('userManual.overview.startLearning') || '开始学习' }}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              @click="handleClearProgress"
-            >
-              {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
-            </Button>
+              <Button :disabled="!selectedNodeId" @click="startSelectedLearning">
+                <FileText class="mr-2 h-4 w-4" />
+                {{ $t('userManual.overview.startLearning') || '开始学习' }}
+              </Button>
+              <Button variant="ghost" size="sm" @click="handleClearProgress">
+                {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
+              </Button>
             </div>
           </div>
         </div>
@@ -116,10 +116,13 @@
             {{ $t('userManual.overview.quickStart') || '快速开始' }}
           </h2>
           <div class="quick-start-card">
-            <p>{{ $t('userManual.overview.noProfile') || '还没有设置用户画像？让我们先了解一下您的使用偏好，以便为您推荐最适合的学习路径。' }}</p>
-            <Button
-              @click="openProfileDialog"
-            >
+            <p>
+              {{
+                $t('userManual.overview.noProfile') ||
+                '还没有设置用户画像？让我们先了解一下您的使用偏好，以便为您推荐最适合的学习路径。'
+              }}
+            </p>
+            <Button @click="openProfileDialog">
               <User class="mr-2 h-4 w-4" />
               {{ $t('userManual.profile.buttonText') || '完善我的使用偏好' }}
             </Button>
@@ -149,7 +152,9 @@
                 <span v-else class="link-icon-emoji">{{ category.icon }}</span>
               </div>
               <div class="link-title">{{ category.title }}</div>
-              <div class="link-count">{{ category.count }} {{ $t('userManual.overview.articles') || '篇文章' }}</div>
+              <div class="link-count">
+                {{ category.count }} {{ $t('userManual.overview.articles') || '篇文章' }}
+              </div>
             </div>
           </div>
         </div>
@@ -167,15 +172,7 @@ import { useUserManual } from '../../stores/userManual'
 import type { UserProfile, ManualCategory } from '../../stores/userManual'
 import UserProfileVisualization from './UserProfileVisualization.vue'
 import LearningGraph from './LearningGraph.vue'
-import {
-  User,
-  BarChart3,
-  BookOpen,
-  Check,
-  FileText,
-  Zap,
-  Link
-} from 'lucide-vue-next'
+import { User, BarChart3, BookOpen, Check, FileText, Zap, Link } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import { Progress } from '@renderer/components/ui/progress'
@@ -203,14 +200,14 @@ const loadArticleTitles = async () => {
   if (learningPath.value.length > 0) {
     const titles = new Map<string, string>()
     const currentLocale = locale.value || 'zh_CN'
-    
+
     for (const articleId of learningPath.value) {
       const article = await getArticleById(articleId)
       if (article) {
         titles.set(articleId, article.title[currentLocale] || article.title.en_US || articleId)
       }
     }
-    
+
     articleTitles.value = titles
   }
 }
@@ -230,7 +227,7 @@ const emit = defineEmits<{
 }>()
 
 const completedCount = computed(() => {
-  return learningPath.value.filter(id => {
+  return learningPath.value.filter((id) => {
     const progress = articleProgress.value.get(id)
     return progress?.read === true
   }).length
@@ -249,11 +246,11 @@ const progressColor = computed(() => {
 
 const pathDescription = computed(() => {
   if (!userProfile.value || !manualIndex.value) return ''
-  
+
   const scenario = userProfile.value.scenario || 'other'
   const path = manualIndex.value.learningPaths[scenario]
   if (!path) return ''
-  
+
   const currentLocale = locale.value || 'zh_CN'
   return path.description[currentLocale] || path.description.en_US || ''
 })
@@ -268,11 +265,11 @@ const getArticleTitle = (articleId: string) => {
   if (articleTitles.value.has(articleId)) {
     return articleTitles.value.get(articleId) || articleId
   }
-  
+
   // 如果缓存中没有，从索引中查找
   if (manualIndex.value) {
     for (const category of manualIndex.value.categories) {
-      const article = category.articles.find(a => a.id === articleId)
+      const article = category.articles.find((a) => a.id === articleId)
       if (article) {
         const currentLocale = locale.value || 'zh_CN'
         const title = article.title[currentLocale] || article.title.en_US || articleId
@@ -281,7 +278,7 @@ const getArticleTitle = (articleId: string) => {
       }
     }
   }
-  
+
   return articleId
 }
 
@@ -340,14 +337,14 @@ const openProfileDialog = () => {
 // 图标映射：将category.id映射到themeState中的SVG图标路径
 const categoryIconMap: Record<string, string> = {
   'quick-start': 'HomeIcon',
-  'core': 'FileIcon',
-  'markdown': 'MdDocIcon',
-  'latex': 'TexDocIcon',
-  'ai': 'AiLogo',
-  'agent': 'AiLogo',
+  core: 'FileIcon',
+  markdown: 'MdDocIcon',
+  latex: 'TexDocIcon',
+  ai: 'AiLogo',
+  agent: 'AiLogo',
   'knowledge-base': 'KnowledgeIcon',
-  'settings': 'SettingIcon',
-  'charts': 'VisualIcon'
+  settings: 'SettingIcon',
+  charts: 'VisualIcon'
 }
 
 // 获取类别图标路径
@@ -361,9 +358,9 @@ const getCategoryIconPath = (categoryId: string) => {
 
 const quickLinks = computed(() => {
   if (!manualIndex.value) return []
-  
+
   const currentLocale = locale.value || 'zh_CN'
-  return manualIndex.value.categories.map(category => ({
+  return manualIndex.value.categories.map((category) => ({
     id: category.id,
     title: category.title[currentLocale] || category.title.en_US || category.id,
     icon: category.icon, // 保留emoji作为fallback
@@ -374,8 +371,8 @@ const quickLinks = computed(() => {
 
 const navigateToCategory = async (categoryId: string) => {
   if (!manualIndex.value) return
-  
-  const category = manualIndex.value.categories.find(c => c.id === categoryId)
+
+  const category = manualIndex.value.categories.find((c) => c.id === categoryId)
   if (category && category.articles.length > 0) {
     await setCurrentArticle(category.articles[0].id, 'navigation')
   }
@@ -533,7 +530,9 @@ const navigateToCategory = async (categoryId: string) => {
 }
 
 .path-step:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
   border-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
 }
 
@@ -543,12 +542,16 @@ const navigateToCategory = async (categoryId: string) => {
 
 .path-step.is-current {
   border-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.1)" : "rgba(64, 158, 255, 0.05)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.1)" : "rgba(64, 158, 255, 0.05)"'
+  );
 }
 
 .path-step.is-selected {
   border-color: #e6a23c;
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(230, 162, 60, 0.12)" : "rgba(230, 162, 60, 0.08)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(230, 162, 60, 0.12)" : "rgba(230, 162, 60, 0.08)"'
+  );
 }
 
 .step-number {
@@ -666,4 +669,3 @@ const navigateToCategory = async (categoryId: string) => {
   color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
 }
 </style>
-

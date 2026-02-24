@@ -182,7 +182,9 @@ async function ensureMathJax() {
               .catch(reject)
             return
           }
-        } catch {}
+        } catch {
+          // MathJax not ready yet, will retry
+        }
         setTimeout(check, 50)
       }
       check()
@@ -328,7 +330,9 @@ export async function renderMarkdownMathToImages(markdown, output = 'png') {
       const maxWidth = display ? 500 : 300
       try {
         pngBlob = await downscalePngBlobIfNeeded(pngBlob, maxWidth)
-      } catch {}
+      } catch {
+        // Downscaling failed, use original blob
+      }
       const url = await uploadBlob(`${base}_math.png`, pngBlob)
       return url
     } else {

@@ -91,7 +91,11 @@
                   >
                     {{ $t('agent.display.outlineOptimize.level') }}: {{ data.titleLevel }}
                   </Badge>
-                  <Badge v-if="data.hasContent" class="bg-green-500 hover:bg-green-600 text-white text-xs" :style="nodeTagStyle">
+                  <Badge
+                    v-if="data.hasContent"
+                    class="bg-green-500 hover:bg-green-600 text-white text-xs"
+                    :style="nodeTagStyle"
+                  >
                     {{ $t('agent.display.outlineOptimize.hasContent') }}
                   </Badge>
                   <Badge
@@ -116,7 +120,9 @@
     <div v-else class="error-state">
       <Alert variant="destructive">
         <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.outlineOptimize.error') }}</AlertTitle>
+        <AlertTitle>{{
+          displayData.error || $t('agent.display.outlineOptimize.error')
+        }}</AlertTitle>
       </Alert>
     </div>
   </div>

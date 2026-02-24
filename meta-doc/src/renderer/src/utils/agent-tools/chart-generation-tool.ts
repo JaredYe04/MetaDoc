@@ -154,27 +154,6 @@ function extractMermaidCode(text: string): string {
 
       if (hasMermaidSyntax || codeLines.length > 0) {
         codeLines.push(line)
-      } else if (codeLines.length > 0) {
-        // 如果已经在代码中，但当前行看起来不像代码，检查后续几行
-        let hasMoreCode = false
-        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
-          const nextLine = lines[j]
-          if (
-            nextLine.match(/[\[\]{}()|:-><]/) ||
-            nextLine
-              .trim()
-              .match(
-                /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitgraph|journey|mindmap|timeline|zenuml|sankey|block|packet|kanban|architecture|radar|treemap)/i
-              )
-          ) {
-            hasMoreCode = true
-            break
-          }
-        }
-        if (!hasMoreCode) {
-          break
-        }
-        codeLines.push(line)
       }
     }
 
@@ -1387,11 +1366,11 @@ ${currentCode}
 function getChartGenerationToolLocales(): ToolLocales {
   const baseUrl = getRuntimeServerBaseUrlSync()
   return {
-  zh_cn: {
-    name: '图表生成',
-    description:
-      '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
-    instruction: `# 图表生成工具
+    zh_cn: {
+      name: '图表生成',
+      description:
+        '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
+      instruction: `# 图表生成工具
 
 ## 功能描述
 根据用户提供的提示词，自动生成各种类型的图表代码，并渲染为图片。支持多种图表类型和导出格式。
@@ -1552,12 +1531,12 @@ function getChartGenerationToolLocales(): ToolLocales {
 - 这是唯一的图表生成工具
 - 支持多种图表类型和格式
 - 可以调用LLM辅助生成代码`
-  },
-  en_us: {
-    name: 'Chart Generation',
-    description:
-      'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
-    instruction: `# Chart Generation Tool
+    },
+    en_us: {
+      name: 'Chart Generation',
+      description:
+        'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
+      instruction: `# Chart Generation Tool
 
 ## Description
 Automatically generates various types of chart code based on user-provided prompts and renders them as images. Supports multiple chart types and export formats.
@@ -1718,27 +1697,27 @@ Or use full path:
 - This is the only chart generation tool
 - Supports multiple chart types and formats
 - Can call LLM to assist in generating code`
-  },
-  de_DE: {
-    name: 'Diagramm-Generierung',
-    description:
-      'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
-  },
-  fr_FR: {
-    name: 'Génération de graphiques',
-    description:
-      "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l'export en SVG, PNG ou PDF"
-  },
-  ja_JP: {
-    name: 'チャート生成',
-    description:
-      'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
-  },
-  ko_KR: {
-    name: '차트 생성',
-    description:
-      '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
-  }
+    },
+    de_DE: {
+      name: 'Diagramm-Generierung',
+      description:
+        'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
+    },
+    fr_FR: {
+      name: 'Génération de graphiques',
+      description:
+        "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l'export en SVG, PNG ou PDF"
+    },
+    ja_JP: {
+      name: 'チャート生成',
+      description:
+        'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
+    },
+    ko_KR: {
+      name: '차트 생성',
+      description:
+        '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
+    }
   }
 }
 

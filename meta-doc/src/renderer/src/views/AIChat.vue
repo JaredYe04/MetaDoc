@@ -51,10 +51,7 @@
                 </div>
               </div>
               <div v-if="documentTabs.length === 0" class="empty-state">
-                <Empty
-                  :description="t('aiChat.noDocuments', '没有打开的文档')"
-                  :image-size="80"
-                />
+                <Empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
               </div>
             </div>
             <ScrollBar />
@@ -630,7 +627,7 @@ const handleCancel = () => {
       }
     }
   }
-      notifyInfo(t('aiChat.generationCancelled'))
+  notifyInfo(t('aiChat.generationCancelled'))
 }
 
 // 引用管理（临时存储，不持久化）

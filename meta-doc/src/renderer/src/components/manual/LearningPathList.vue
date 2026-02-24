@@ -35,13 +35,8 @@ import { Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 const { locale } = useI18n()
-const {
-  learningPath,
-  articleProgress,
-  currentArticleId,
-  setCurrentArticle,
-  getArticleById
-} = useUserManual()
+const { learningPath, articleProgress, currentArticleId, setCurrentArticle, getArticleById } =
+  useUserManual()
 
 const articleTitles = ref<Map<string, string>>(new Map())
 
@@ -121,11 +116,15 @@ function openItem(articleId: string) {
 }
 
 .path-item:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .path-item.is-current {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.12)" : "rgba(64, 158, 255, 0.08)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.12)" : "rgba(64, 158, 255, 0.08)"'
+  );
   color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
 }
 

@@ -1,10 +1,7 @@
 <template>
   <div class="ui-sub-menu" ref="subMenuRef">
     <!-- 菜单标题 -->
-    <Tooltip
-      v-if="tooltip && collapse && trigger === 'click'"
-      :disabled="isOpen || hasOpenSubMenu"
-    >
+    <Tooltip v-if="tooltip && collapse && trigger === 'click'" :disabled="isOpen || hasOpenSubMenu">
       <TooltipTrigger as-child>
         <div
           class="ui-sub-menu__title"
@@ -589,11 +586,15 @@ onBeforeUnmount(() => {
 
 /* 粗野主义动画 - fade + slide，无弹性 */
 .sub-menu-fade-enter-active {
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
 }
 
 .sub-menu-fade-leave-active {
-  transition: opacity 0.1s ease-in, transform 0.1s ease-in;
+  transition:
+    opacity 0.1s ease-in,
+    transform 0.1s ease-in;
 }
 
 .sub-menu-fade-enter-from {

@@ -5,86 +5,86 @@
         <DialogTitle>{{ isEdit ? '编辑Tool配置' : '新建Tool配置' }}</DialogTitle>
       </DialogHeader>
       <Form ref="formRef">
-      <FormField label="Tool ID" name="id" :rules="rules.id">
-        <Input
-          v-model="formData.id"
-          :disabled="isEdit"
-          placeholder="唯一标识符，如: my-custom-tool"
-          class="w-full"
-        />
-      </FormField>
-
-      <FormField label="Tool名称" name="name" :rules="rules.name">
-        <Input v-model="formData.name" placeholder="Tool显示名称" class="w-full" />
-      </FormField>
-
-      <FormField label="描述" name="description" :rules="rules.description">
-        <Textarea
-          v-model="formData.description"
-          :rows="3"
-          placeholder="Tool功能描述"
-          class="w-full"
-        />
-      </FormField>
-
-      <FormField label="来源" name="origin" :rules="rules.origin">
-        <Select v-model="formData.origin">
-          <SelectTrigger>
-            <SelectValue placeholder="选择Tool来源" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="external">外部Tool</SelectItem>
-            <SelectItem value="mcp">MCP服务</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-
-      <FormField v-if="formData.origin === 'mcp'" label="MCP配置" name="mcpConfig">
-        <div class="space-y-4 p-4 border rounded-md" v-if="formData.mcpConfig">
-          <FormField label="服务器名称" name="mcpServerName">
-            <Input v-model="formData.mcpConfig.serverName" class="w-full" />
-          </FormField>
-          <FormField label="Tool名称" name="mcpToolName">
-            <Input v-model="formData.mcpConfig.toolName" class="w-full" />
-          </FormField>
-          <FormField label="服务器URL" name="mcpServerUrl">
-            <Input v-model="formData.mcpConfig.serverUrl" class="w-full" />
-          </FormField>
-        </div>
-      </FormField>
-
-      <FormField label="详细说明" name="instruction" :rules="rules.instruction">
-        <Textarea
-          v-model="instructionText"
-          :rows="10"
-          placeholder="Markdown格式的Tool使用说明，包括功能、使用场景、输入输出格式等"
-          class="w-full"
-        />
-      </FormField>
-
-      <FormField label="标签" name="tags">
-        <div class="tags-input-container">
-          <Badge
-            v-for="(tag, index) in formData.tags"
-            :key="tag + index"
-            variant="secondary"
-            class="tag-badge"
-          >
-            {{ tag }}
-            <button type="button" class="tag-remove" @click="removeTag(index)">
-              <X class="h-3 w-3" />
-            </button>
-          </Badge>
+        <FormField label="Tool ID" name="id" :rules="rules.id">
           <Input
-            v-model="tagInputValue"
-            placeholder="添加标签"
-            class="tag-input-field"
-            @keydown.enter.prevent="addTag"
-            @keydown.backspace="handleTagBackspace"
+            v-model="formData.id"
+            :disabled="isEdit"
+            placeholder="唯一标识符，如: my-custom-tool"
+            class="w-full"
           />
-        </div>
-      </FormField>
-    </Form>
+        </FormField>
+
+        <FormField label="Tool名称" name="name" :rules="rules.name">
+          <Input v-model="formData.name" placeholder="Tool显示名称" class="w-full" />
+        </FormField>
+
+        <FormField label="描述" name="description" :rules="rules.description">
+          <Textarea
+            v-model="formData.description"
+            :rows="3"
+            placeholder="Tool功能描述"
+            class="w-full"
+          />
+        </FormField>
+
+        <FormField label="来源" name="origin" :rules="rules.origin">
+          <Select v-model="formData.origin">
+            <SelectTrigger>
+              <SelectValue placeholder="选择Tool来源" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="external">外部Tool</SelectItem>
+              <SelectItem value="mcp">MCP服务</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        <FormField v-if="formData.origin === 'mcp'" label="MCP配置" name="mcpConfig">
+          <div class="space-y-4 p-4 border rounded-md" v-if="formData.mcpConfig">
+            <FormField label="服务器名称" name="mcpServerName">
+              <Input v-model="formData.mcpConfig.serverName" class="w-full" />
+            </FormField>
+            <FormField label="Tool名称" name="mcpToolName">
+              <Input v-model="formData.mcpConfig.toolName" class="w-full" />
+            </FormField>
+            <FormField label="服务器URL" name="mcpServerUrl">
+              <Input v-model="formData.mcpConfig.serverUrl" class="w-full" />
+            </FormField>
+          </div>
+        </FormField>
+
+        <FormField label="详细说明" name="instruction" :rules="rules.instruction">
+          <Textarea
+            v-model="instructionText"
+            :rows="10"
+            placeholder="Markdown格式的Tool使用说明，包括功能、使用场景、输入输出格式等"
+            class="w-full"
+          />
+        </FormField>
+
+        <FormField label="标签" name="tags">
+          <div class="tags-input-container">
+            <Badge
+              v-for="(tag, index) in formData.tags"
+              :key="tag + index"
+              variant="secondary"
+              class="tag-badge"
+            >
+              {{ tag }}
+              <button type="button" class="tag-remove" @click="removeTag(index)">
+                <X class="h-3 w-3" />
+              </button>
+            </Badge>
+            <Input
+              v-model="tagInputValue"
+              placeholder="添加标签"
+              class="tag-input-field"
+              @keydown.enter.prevent="addTag"
+              @keydown.backspace="handleTagBackspace"
+            />
+          </div>
+        </FormField>
+      </Form>
 
       <DialogFooter>
         <Button variant="outline" @click="handleClose">取消</Button>

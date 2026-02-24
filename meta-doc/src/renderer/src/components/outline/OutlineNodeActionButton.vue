@@ -11,10 +11,30 @@
           :disabled="pendingAccept || generating"
         >
           <MoreHorizontal v-if="!selectedAiTool" class="w-4 h-4" />
-          <img v-else-if="selectedAiTool === 'generateChildren'" :src="themeState.currentTheme.BranchIcon" class="node-action-btn__icon" alt="" />
-          <img v-else-if="selectedAiTool === 'generateContent'" :src="themeState.currentTheme.WriteIcon" class="node-action-btn__icon" alt="" />
-          <img v-else-if="selectedAiTool === 'generateChildrenChildren'" :src="themeState.currentTheme.MultiBranchIcon" class="node-action-btn__icon" alt="" />
-          <img v-else-if="selectedAiTool === 'generateChildrenContent'" :src="themeState.currentTheme.MultiWriteIcon" class="node-action-btn__icon" alt="" />
+          <img
+            v-else-if="selectedAiTool === 'generateChildren'"
+            :src="themeState.currentTheme.BranchIcon"
+            class="node-action-btn__icon"
+            alt=""
+          />
+          <img
+            v-else-if="selectedAiTool === 'generateContent'"
+            :src="themeState.currentTheme.WriteIcon"
+            class="node-action-btn__icon"
+            alt=""
+          />
+          <img
+            v-else-if="selectedAiTool === 'generateChildrenChildren'"
+            :src="themeState.currentTheme.MultiBranchIcon"
+            class="node-action-btn__icon"
+            alt=""
+          />
+          <img
+            v-else-if="selectedAiTool === 'generateChildrenContent'"
+            :src="themeState.currentTheme.MultiWriteIcon"
+            class="node-action-btn__icon"
+            alt=""
+          />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="top">
@@ -38,7 +58,12 @@ import {
 import { themeState } from '../../utils/themes'
 import type { DocumentOutlineNode } from '../../../../types'
 
-type AiTool = 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent' | null
+type AiTool =
+  | 'generateChildren'
+  | 'generateContent'
+  | 'generateChildrenChildren'
+  | 'generateChildrenContent'
+  | null
 
 const props = defineProps<{
   node: DocumentOutlineNode
@@ -49,14 +74,16 @@ const props = defineProps<{
 const { t } = useI18n()
 const selectedAiToolRef = inject<{ value: AiTool }>('outlineSelectedAiTool')!
 const selectedAiTool = computed(() => selectedAiToolRef.value)
-const handleNodeButtonClick = inject<(node: DocumentOutlineNode) => void>('outlineHandleNodeButtonClick')!
+const handleNodeButtonClick = inject<(node: DocumentOutlineNode) => void>(
+  'outlineHandleNodeButtonClick'
+)!
 
 const getAiToolTip = (tool: string): string => {
   const toolTips: Record<string, string> = {
-    'generateChildren': t('outline.generateChildChapter'),
-    'generateContent': t('outline.generateContent'),
-    'generateChildrenChildren': t('outline.generateChildrenChildren'),
-    'generateChildrenContent': t('outline.generateChildrenContent')
+    generateChildren: t('outline.generateChildChapter'),
+    generateContent: t('outline.generateContent'),
+    generateChildrenChildren: t('outline.generateChildrenChildren'),
+    generateChildrenContent: t('outline.generateChildrenContent')
   }
   return toolTips[tool] || ''
 }

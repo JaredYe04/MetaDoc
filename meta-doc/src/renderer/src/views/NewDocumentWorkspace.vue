@@ -8,7 +8,9 @@
 
       <div class="new-document__formats">
         <RadioGroup v-model="selectedFormatId" class="flex format-group">
-          <div class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+          <div
+            class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground"
+          >
             <div v-for="format in formats" :key="format.id" class="flex items-center">
               <RadioGroupItem :value="format.id" :id="'format-' + format.id" class="sr-only peer" />
               <label
@@ -49,14 +51,14 @@
                   <p>{{ templateDescription(template) }}</p>
                 </div>
                 <div class="template-card__actions">
-                <Button
-                  variant="default"
-                  size="sm"
-                  class="rounded-full"
-                  @click.stop="confirmTemplate(template.id)"
-                >
-                  {{ t('newDocument.useTemplate') }}
-                </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    class="rounded-full"
+                    @click.stop="confirmTemplate(template.id)"
+                  >
+                    {{ t('newDocument.useTemplate') }}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -290,7 +292,11 @@ function confirmTemplate(templateId?: string) {
 .template-card__image {
   position: relative;
   padding-top: 60%;
-  background: linear-gradient(135deg, v-bind('themeState.currentTheme.primaryColor + "1A"'), v-bind('themeState.currentTheme.primaryColor + "0D"'));
+  background: linear-gradient(
+    135deg,
+    v-bind('themeState.currentTheme.primaryColor + "1A"'),
+    v-bind('themeState.currentTheme.primaryColor + "0D"')
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,7 +312,11 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card__image.is-placeholder {
-  background: linear-gradient(135deg, v-bind('themeState.currentTheme.secondaryColor + "26"'), v-bind('themeState.currentTheme.secondaryColor + "0D"'));
+  background: linear-gradient(
+    135deg,
+    v-bind('themeState.currentTheme.secondaryColor + "26"'),
+    v-bind('themeState.currentTheme.secondaryColor + "0D"')
+  );
 }
 
 .template-card__placeholder {

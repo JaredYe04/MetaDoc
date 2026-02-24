@@ -1,8 +1,5 @@
 <template>
-  <Tooltip
-    v-if="tooltip && collapse"
-    :disabled="hasOpenSubMenu"
-  >
+  <Tooltip v-if="tooltip && collapse" :disabled="hasOpenSubMenu">
     <TooltipTrigger as-child>
       <div
         class="ui-menu-item"

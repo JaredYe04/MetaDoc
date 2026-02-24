@@ -208,34 +208,34 @@ Monaco编辑器支持多光标同时编辑：
 
 ### 编辑快捷键
 
-| 操作 | Windows/Linux | macOS |
-|------|---------------|-------|
-| 撤销 | `Ctrl+Z` | `Cmd+Z` |
-| 重做 | `Ctrl+Y` | `Cmd+Y` |
-| 复制 | `Ctrl+C` | `Cmd+C` |
-| 粘贴 | `Ctrl+V` | `Cmd+V` |
-| 全选 | `Ctrl+A` | `Cmd+A` |
-| 查找 | `Ctrl+F` | `Cmd+F` |
-| 替换 | `Ctrl+H` | `Cmd+H` |
+| 操作 | Windows/Linux | macOS   |
+| ---- | ------------- | ------- |
+| 撤销 | `Ctrl+Z`      | `Cmd+Z` |
+| 重做 | `Ctrl+Y`      | `Cmd+Y` |
+| 复制 | `Ctrl+C`      | `Cmd+C` |
+| 粘贴 | `Ctrl+V`      | `Cmd+V` |
+| 全选 | `Ctrl+A`      | `Cmd+A` |
+| 查找 | `Ctrl+F`      | `Cmd+F` |
+| 替换 | `Ctrl+H`      | `Cmd+H` |
 
 ### 代码折叠快捷键
 
-| 操作 | Windows/Linux | macOS |
-|------|---------------|-------|
-| 折叠 | `Ctrl+Shift+[` | `Cmd+Option+[` |
-| 展开 | `Ctrl+Shift+]` | `Cmd+Option+]` |
-| 折叠所有 | `Ctrl+K Ctrl+0` | `Cmd+K Cmd+0` |
-| 展开所有 | `Ctrl+K Ctrl+J` | `Cmd+K Cmd+J` |
+| 操作     | Windows/Linux   | macOS          |
+| -------- | --------------- | -------------- |
+| 折叠     | `Ctrl+Shift+[`  | `Cmd+Option+[` |
+| 展开     | `Ctrl+Shift+]`  | `Cmd+Option+]` |
+| 折叠所有 | `Ctrl+K Ctrl+0` | `Cmd+K Cmd+0`  |
+| 展开所有 | `Ctrl+K Ctrl+J` | `Cmd+K Cmd+J`  |
 
 ### 多光标快捷键
 
-| 操作 | Windows/Linux | macOS |
-|------|---------------|-------|
-| 添加光标 | `Alt+点击` | `Option+点击` |
-| 添加上方光标 | `Ctrl+Alt+↑` | `Cmd+Option+↑` |
-| 添加下方光标 | `Ctrl+Alt+↓` | `Cmd+Option+↓` |
-| 选中下一个相同单词 | `Ctrl+D` | `Cmd+D` |
-| 选中所有相同单词 | `Ctrl+Shift+L` | `Cmd+Shift+L` |
+| 操作               | Windows/Linux  | macOS          |
+| ------------------ | -------------- | -------------- |
+| 添加光标           | `Alt+点击`     | `Option+点击`  |
+| 添加上方光标       | `Ctrl+Alt+↑`   | `Cmd+Option+↑` |
+| 添加下方光标       | `Ctrl+Alt+↓`   | `Cmd+Option+↓` |
+| 选中下一个相同单词 | `Ctrl+D`       | `Cmd+D`        |
+| 选中所有相同单词   | `Ctrl+Shift+L` | `Cmd+Shift+L`  |
 
 ## 使用技巧
 

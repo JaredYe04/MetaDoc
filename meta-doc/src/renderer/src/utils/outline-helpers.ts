@@ -24,9 +24,7 @@ export function syncChildrenFromNodeText(node: DocumentOutlineNode): void {
         const newNode: DocumentOutlineNode = {
           ...child,
           path,
-          children: child.children?.length
-            ? reindex(child.children, path)
-            : []
+          children: child.children?.length ? reindex(child.children, path) : []
         }
         return newNode
       })

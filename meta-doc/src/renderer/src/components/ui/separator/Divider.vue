@@ -6,7 +6,16 @@ interface DividerProps {
   /** Direction of the divider - 'horizontal' | 'vertical' */
   direction?: 'horizontal' | 'vertical'
   /** Border style - CSS border-style value */
-  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'groove' | 'ridge' | 'inset' | 'outset' | string
+  borderStyle?:
+    | 'solid'
+    | 'dashed'
+    | 'dotted'
+    | 'double'
+    | 'groove'
+    | 'ridge'
+    | 'inset'
+    | 'outset'
+    | string
   /** Content position for horizontal divider with content - 'left' | 'center' | 'right' */
   contentPosition?: 'left' | 'center' | 'right'
   /** Additional CSS classes */
@@ -58,12 +67,9 @@ const borderStyleValue = computed(() => {
 
 const dividerClasses = computed(() => {
   if (hasContent.value) {
-    return cn(
-      'relative flex items-center w-full my-4',
-      props.class
-    )
+    return cn('relative flex items-center w-full my-4', props.class)
   }
-  
+
   return cn(
     'relative flex items-center shrink-0 bg-border',
     props.direction === 'horizontal' ? 'h-px w-full my-4' : 'w-px h-full mx-4',
@@ -88,53 +94,45 @@ const lineStyle = computed(() => {
 })
 
 const contentClasses = computed(() => {
-  return cn(
-    'px-4 text-sm text-muted-foreground whitespace-nowrap',
-    {
-      'order-first pr-4 pl-0': props.contentPosition === 'left',
-      'px-4': props.contentPosition === 'center',
-      'order-last pl-4 pr-0': props.contentPosition === 'right'
-    }
-  )
+  return cn('px-4 text-sm text-muted-foreground whitespace-nowrap', {
+    'order-first pr-4 pl-0': props.contentPosition === 'left',
+    'px-4': props.contentPosition === 'center',
+    'order-last pl-4 pr-0': props.contentPosition === 'right'
+  })
 })
 </script>
 
 <template>
-  <div 
-    :class="dividerClasses" 
+  <div
+    :class="dividerClasses"
     role="separator"
     :style="hasContent && borderStyleValue ? { borderStyle: 'none' } : undefined"
   >
     <!-- Divider with content (horizontal only) -->
     <template v-if="hasContent">
-      <div 
-        :class="lineClasses" 
-        :style="lineStyle"
-      />
+      <div :class="lineClasses" :style="lineStyle" />
       <div :class="contentClasses">
         <slot />
       </div>
-      <div 
-        :class="lineClasses"
-        :style="lineStyle"
-      />
+      <div :class="lineClasses" :style="lineStyle" />
     </template>
-    
+
     <!-- Simple divider (no content) - uses background for cleaner rendering -->
     <template v-else>
-      <div 
+      <div
         class="w-full h-full"
-        :class="[
-          props.direction === 'horizontal' ? 'h-px' : 'w-px',
-          borderStyleClass
-        ]"
+        :class="[props.direction === 'horizontal' ? 'h-px' : 'w-px', borderStyleClass]"
         :style="[
-          borderStyleValue ? { 
-            backgroundColor: 'transparent',
-            [props.direction === 'horizontal' ? 'borderTopStyle' : 'borderLeftStyle']: borderStyleValue,
-            [props.direction === 'horizontal' ? 'borderTopWidth' : 'borderLeftWidth']: '1px',
-            [props.direction === 'horizontal' ? 'borderTopColor' : 'borderLeftColor']: 'hsl(var(--border))'
-          } : undefined
+          borderStyleValue
+            ? {
+                backgroundColor: 'transparent',
+                [props.direction === 'horizontal' ? 'borderTopStyle' : 'borderLeftStyle']:
+                  borderStyleValue,
+                [props.direction === 'horizontal' ? 'borderTopWidth' : 'borderLeftWidth']: '1px',
+                [props.direction === 'horizontal' ? 'borderTopColor' : 'borderLeftColor']:
+                  'hsl(var(--border))'
+              }
+            : undefined
         ]"
       />
     </template>

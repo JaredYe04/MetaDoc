@@ -2,13 +2,13 @@
   <div
     ref="containerRef"
     class="toast-stack-container"
-    :class="{ 
+    :class="{
       'is-visible': isVisible,
-      'is-expanded': isExpanded 
+      'is-expanded': isExpanded
     }"
   >
     <!-- 3D 堆叠的通知 -->
-    <div 
+    <div
       class="toast-stack"
       @mouseenter="handleStackMouseEnter"
       @mouseleave="handleStackMouseLeave"
@@ -17,10 +17,7 @@
         v-for="(toast, index) in notifications"
         :key="toast.id"
         class="stack-toast"
-        :class="[
-          `toast-${toast.type}`,
-          { 'is-read': toast.read }
-        ]"
+        :class="[`toast-${toast.type}`, { 'is-read': toast.read }]"
         :style="getToastStyle(index)"
         @click="handleToastClick(toast)"
         @mouseenter="handleToastMouseEnter(index)"
@@ -50,13 +47,7 @@ import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '../stores/notification'
 import eventBus from '../utils/event-bus'
 import type { NotificationType, NotificationItem } from '../types/notification'
-import {
-  X,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Info
-} from 'lucide-vue-next'
+import { X, CheckCircle2, XCircle, AlertCircle, Info } from 'lucide-vue-next'
 
 const store = useNotificationStore()
 const { notifications } = storeToRefs(store)
@@ -172,8 +163,7 @@ function handleStackMouseLeave() {
   animateExpand(0)
 }
 
-function handleToastMouseEnter(index: number) {
-}
+function handleToastMouseEnter(index: number) {}
 
 function handleToastClick(toast: NotificationItem) {
   if (!toast.read) {
@@ -243,10 +233,18 @@ onBeforeUnmount(() => {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
 }
 
-.stack-toast.toast-success { border-left: 4px solid hsl(var(--success)); }
-.stack-toast.toast-error { border-left: 4px solid hsl(var(--destructive)); }
-.stack-toast.toast-warning { border-left: 4px solid hsl(38 92% 50%); }
-.stack-toast.toast-info { border-left: 4px solid hsl(var(--primary)); }
+.stack-toast.toast-success {
+  border-left: 4px solid hsl(var(--success));
+}
+.stack-toast.toast-error {
+  border-left: 4px solid hsl(var(--destructive));
+}
+.stack-toast.toast-warning {
+  border-left: 4px solid hsl(38 92% 50%);
+}
+.stack-toast.toast-info {
+  border-left: 4px solid hsl(var(--primary));
+}
 
 .toast-close {
   position: absolute;
@@ -280,10 +278,18 @@ onBeforeUnmount(() => {
   margin-top: 2px;
 }
 
-.stack-toast.toast-success .toast-icon { color: hsl(var(--success)); }
-.stack-toast.toast-error .toast-icon { color: hsl(var(--destructive)); }
-.stack-toast.toast-warning .toast-icon { color: hsl(38 92% 50%); }
-.stack-toast.toast-info .toast-icon { color: hsl(var(--primary)); }
+.stack-toast.toast-success .toast-icon {
+  color: hsl(var(--success));
+}
+.stack-toast.toast-error .toast-icon {
+  color: hsl(var(--destructive));
+}
+.stack-toast.toast-warning .toast-icon {
+  color: hsl(38 92% 50%);
+}
+.stack-toast.toast-info .toast-icon {
+  color: hsl(var(--primary));
+}
 
 .toast-content {
   flex: 1;

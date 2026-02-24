@@ -72,7 +72,7 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
 
 const { t } = useI18n()

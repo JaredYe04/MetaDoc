@@ -10,10 +10,12 @@
     >
       <div
         v-if="show"
-        :class="cn(
-          'absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm',
-          props.class
-        )"
+        :class="
+          cn(
+            'absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm',
+            props.class
+          )
+        "
       >
         <div class="flex flex-col items-center gap-2">
           <Loader2 class="h-8 w-8 animate-spin text-primary" />

@@ -35,12 +35,7 @@ const iconColorClasses = {
 </script>
 
 <template>
-  <div
-    :class="cn(
-      'flex flex-col items-center justify-center py-12 px-4 text-center',
-      props.class
-    )"
-  >
+  <div :class="cn('flex flex-col items-center justify-center py-12 px-4 text-center', props.class)">
     <!-- Icon Section -->
     <div class="mb-6">
       <slot name="icon">
@@ -54,12 +49,7 @@ const iconColorClasses = {
     </div>
 
     <!-- Title Section -->
-    <div
-      v-if="title || $slots.title"
-      :class="cn(
-        'text-2xl font-semibold text-foreground mb-2'
-      )"
-    >
+    <div v-if="title || $slots.title" :class="cn('text-2xl font-semibold text-foreground mb-2')">
       <slot name="title">
         {{ title }}
       </slot>
@@ -68,9 +58,7 @@ const iconColorClasses = {
     <!-- Sub-title Section -->
     <div
       v-if="subtitleText || $slots['sub-title'] || $slots.subTitle"
-      :class="cn(
-        'text-sm text-muted-foreground mb-6'
-      )"
+      :class="cn('text-sm text-muted-foreground mb-6')"
     >
       <slot name="sub-title">
         <slot name="subTitle">
@@ -80,10 +68,7 @@ const iconColorClasses = {
     </div>
 
     <!-- Extra Section (Action Buttons) -->
-    <div
-      v-if="$slots.extra"
-      class="flex items-center gap-3"
-    >
+    <div v-if="$slots.extra" class="flex items-center gap-3">
       <slot name="extra" />
     </div>
   </div>

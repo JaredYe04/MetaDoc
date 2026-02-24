@@ -191,7 +191,11 @@ const handleBlur = (event: FocusEvent) => {
   const relatedTarget = event.relatedTarget as Node | null
   if (relatedTarget && typeof (relatedTarget as HTMLElement).closest === 'function') {
     const el = relatedTarget as HTMLElement
-    if (el.closest('.preset-dropdown-trigger') || el.closest('.preset-popover') || el.closest('.preset-dropdown-menu')) {
+    if (
+      el.closest('.preset-dropdown-trigger') ||
+      el.closest('.preset-popover') ||
+      el.closest('.preset-dropdown-menu')
+    ) {
       return
     }
   }

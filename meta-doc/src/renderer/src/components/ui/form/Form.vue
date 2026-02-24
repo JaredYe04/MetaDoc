@@ -62,7 +62,10 @@ const validateField = async (name: string, value: any): Promise<boolean> => {
 const validateRule = async (rule: any, value: any, fieldName: string): Promise<string | null> => {
   // Required check
   if (rule.required) {
-    const isEmpty = value === undefined || value === null || value === '' || 
+    const isEmpty =
+      value === undefined ||
+      value === null ||
+      value === '' ||
       (Array.isArray(value) && value.length === 0)
     if (isEmpty) {
       return rule.message || `${fieldName} is required`
@@ -110,9 +113,11 @@ const validateRule = async (rule: any, value: any, fieldName: string): Promise<s
 }
 
 // Validate all fields
-const validate = async (callback?: (valid: boolean, errors?: FormValidationError[]) => void): Promise<boolean> => {
+const validate = async (
+  callback?: (valid: boolean, errors?: FormValidationError[]) => void
+): Promise<boolean> => {
   const validationErrors: FormValidationError[] = []
-  
+
   for (const [name, fieldRules] of rules.value.entries()) {
     const value = fields.value.get(name)
     for (const rule of fieldRules) {
@@ -126,11 +131,11 @@ const validate = async (callback?: (valid: boolean, errors?: FormValidationError
   }
 
   const isValid = validationErrors.length === 0
-  
+
   if (callback) {
     callback(isValid, validationErrors.length > 0 ? validationErrors : undefined)
   }
-  
+
   return isValid
 }
 

@@ -60,7 +60,7 @@
     </Tabs>
   </div>
 
-    <TooltipProvider>
+  <TooltipProvider>
     <Dialog v-model:open="addDialogVisible">
       <DialogContent class="sm:max-w-[360px]">
         <DialogHeader>
@@ -107,15 +107,10 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import { Button } from '@renderer/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@renderer/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 
 const logger = createRendererLogger('WorkspaceTabs')
 const props = defineProps({
@@ -309,7 +304,7 @@ const updateDropPreviewClasses = () => {
           item.classList.remove('drop-before', 'drop-after')
         }
       })
-      
+
       if (dropPreview.targetId && dropPreview.mode) {
         for (let i = 0; i < allItems.length; i++) {
           const item = allItems[i]
@@ -324,7 +319,7 @@ const updateDropPreviewClasses = () => {
       }
       return
     }
-    
+
     const allItems = tabsListEl.querySelectorAll('.workspace-tabs-trigger')
     allItems.forEach((item) => {
       if (item instanceof HTMLElement) {
@@ -559,8 +554,6 @@ const handleAddClick = () => {
   if (isLocked.value) return
   addDialogVisible.value = true
 }
-
-
 
 const handleAddSelect = (action: 'new' | 'open') => {
   addDialogVisible.value = false

@@ -40,10 +40,7 @@
 
     <!-- 创建/编辑对话框 -->
     <Dialog v-model:open="dialogVisible">
-      <DialogContent
-        class="max-w-[800px]"
-        :style="dialogStyle"
-      >
+      <DialogContent class="max-w-[800px]" :style="dialogStyle">
         <DialogHeader>
           <DialogTitle>
             {{
@@ -56,168 +53,182 @@
           </DialogTitle>
         </DialogHeader>
         <Form class="space-y-4">
-        <FormField :label="t('agent.manage.agentEngine.name')" name="name" required>
-          <Input v-model="formData.name" :disabled="editingEngine?.isBuiltIn" class="w-full" />
-        </FormField>
-        <FormField :label="t('agent.manage.agentEngine.description')" name="description">
-          <Textarea
-            v-model="formData.description"
-            :rows="3"
-            :disabled="editingEngine?.isBuiltIn"
-            class="w-full"
-          />
-        </FormField>
-        <FormField :label="t('agent.manage.agentEngine.engineType')" name="engineType" required>
-          <Select
-            v-model="formData.engineType"
-            :disabled="!!editingEngine"
+          <FormField :label="t('agent.manage.agentEngine.name')" name="name" required>
+            <Input v-model="formData.name" :disabled="editingEngine?.isBuiltIn" class="w-full" />
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.description')" name="description">
+            <Textarea
+              v-model="formData.description"
+              :rows="3"
+              :disabled="editingEngine?.isBuiltIn"
+              class="w-full"
+            />
+          </FormField>
+          <FormField :label="t('agent.manage.agentEngine.engineType')" name="engineType" required>
+            <Select v-model="formData.engineType" :disabled="!!editingEngine">
+              <SelectTrigger style="width: 100%">
+                <SelectValue :placeholder="t('agent.manage.agentEngine.selectEngineType')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="autogpt">
+                  {{ t('agent.manage.agentEngine.engineTypes.autogpt') }}
+                </SelectItem>
+                <SelectItem value="react">
+                  {{ t('agent.manage.agentEngine.engineTypes.react') }}
+                </SelectItem>
+                <SelectItem value="plan-execute">
+                  {{ t('agent.manage.agentEngine.engineTypes.planExecute') }}
+                </SelectItem>
+                <SelectItem value="simple-chat">
+                  {{ t('agent.manage.agentEngine.engineTypes.simpleChat') }}
+                </SelectItem>
+                <SelectItem value="workflow">
+                  {{ t('agent.manage.agentEngine.engineTypes.workflow') }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField
+            :label="t('agent.manage.agentEngine.llmConfigMode')"
+            name="llmConfigMode"
+            required
           >
-            <SelectTrigger style="width: 100%">
-              <SelectValue :placeholder="t('agent.manage.agentEngine.selectEngineType')" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="autogpt">
-                {{ t('agent.manage.agentEngine.engineTypes.autogpt') }}
-              </SelectItem>
-              <SelectItem value="react">
-                {{ t('agent.manage.agentEngine.engineTypes.react') }}
-              </SelectItem>
-              <SelectItem value="plan-execute">
-                {{ t('agent.manage.agentEngine.engineTypes.planExecute') }}
-              </SelectItem>
-              <SelectItem value="simple-chat">
-                {{ t('agent.manage.agentEngine.engineTypes.simpleChat') }}
-              </SelectItem>
-              <SelectItem value="workflow">
-                {{ t('agent.manage.agentEngine.engineTypes.workflow') }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
-        <FormField :label="t('agent.manage.agentEngine.llmConfigMode')" name="llmConfigMode" required>
-          <RadioGroup v-model="formData.llmConfigMode" :disabled="editingEngine?.isBuiltIn" class="flex flex-row gap-4">
-            <div class="flex items-center gap-2">
-              <RadioGroupItem value="global" id="llm-global" />
-              <label for="llm-global" class="text-sm cursor-pointer">{{ t('agent.manage.agentEngine.useGlobalLLM') }}</label>
+            <RadioGroup
+              v-model="formData.llmConfigMode"
+              :disabled="editingEngine?.isBuiltIn"
+              class="flex flex-row gap-4"
+            >
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="global" id="llm-global" />
+                <label for="llm-global" class="text-sm cursor-pointer">{{
+                  t('agent.manage.agentEngine.useGlobalLLM')
+                }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="custom" id="llm-custom" />
+                <label for="llm-custom" class="text-sm cursor-pointer">{{
+                  t('agent.manage.agentEngine.useCustomLLM')
+                }}</label>
+              </div>
+            </RadioGroup>
+            <div class="form-hint">
+              {{ t('agent.manage.agentEngine.llmConfigModeHint') }}
             </div>
-            <div class="flex items-center gap-2">
-              <RadioGroupItem value="custom" id="llm-custom" />
-              <label for="llm-custom" class="text-sm cursor-pointer">{{ t('agent.manage.agentEngine.useCustomLLM') }}</label>
-            </div>
-          </RadioGroup>
-          <div class="form-hint">
-            {{ t('agent.manage.agentEngine.llmConfigModeHint') }}
-          </div>
-        </FormField>
-        <template v-if="formData.llmConfigMode === 'custom'">
-          <FormField :label="t('agent.manage.agentEngine.apiBaseUrl')" name="apiBaseUrl" required>
-            <Input
-              v-model="formData.customLlmConfig.baseUrl"
-              :placeholder="t('agent.manage.agentEngine.apiBaseUrlPlaceholder')"
-              :disabled="editingEngine?.isBuiltIn"
-              class="w-full"
-            />
           </FormField>
-          <FormField :label="t('agent.manage.agentEngine.apiKey')" name="apiKey" required>
-            <Input
-              v-model="formData.customLlmConfig.apiKey"
-              type="password"
-              :placeholder="t('agent.manage.agentEngine.apiKeyPlaceholder')"
-              :disabled="editingEngine?.isBuiltIn"
-              class="w-full"
-            />
-          </FormField>
-          <FormField :label="t('agent.manage.agentEngine.model')" name="model" required>
-            <Input
-              v-model="formData.customLlmConfig.model"
-              :placeholder="t('agent.manage.agentEngine.modelPlaceholder')"
-              :disabled="editingEngine?.isBuiltIn"
-              class="w-full"
-            />
-          </FormField>
-          <FormField :label="t('agent.manage.agentEngine.temperature')" name="temperature">
-            <NumberField
-              v-model="formData.customLlmConfig.temperature"
-              :min="0"
-              :max="2"
-              :step="0.1"
-              :disabled="editingEngine?.isBuiltIn"
+          <template v-if="formData.llmConfigMode === 'custom'">
+            <FormField :label="t('agent.manage.agentEngine.apiBaseUrl')" name="apiBaseUrl" required>
+              <Input
+                v-model="formData.customLlmConfig.baseUrl"
+                :placeholder="t('agent.manage.agentEngine.apiBaseUrlPlaceholder')"
+                :disabled="editingEngine?.isBuiltIn"
+                class="w-full"
+              />
+            </FormField>
+            <FormField :label="t('agent.manage.agentEngine.apiKey')" name="apiKey" required>
+              <Input
+                v-model="formData.customLlmConfig.apiKey"
+                type="password"
+                :placeholder="t('agent.manage.agentEngine.apiKeyPlaceholder')"
+                :disabled="editingEngine?.isBuiltIn"
+                class="w-full"
+              />
+            </FormField>
+            <FormField :label="t('agent.manage.agentEngine.model')" name="model" required>
+              <Input
+                v-model="formData.customLlmConfig.model"
+                :placeholder="t('agent.manage.agentEngine.modelPlaceholder')"
+                :disabled="editingEngine?.isBuiltIn"
+                class="w-full"
+              />
+            </FormField>
+            <FormField :label="t('agent.manage.agentEngine.temperature')" name="temperature">
+              <NumberField
+                v-model="formData.customLlmConfig.temperature"
+                :min="0"
+                :max="2"
+                :step="0.1"
+                :disabled="editingEngine?.isBuiltIn"
+              >
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput class="w-[120px]" />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+            </FormField>
+            <FormField :label="t('agent.manage.agentEngine.maxTokens')" name="maxTokens">
+              <NumberField
+                v-model="formData.customLlmConfig.maxTokens"
+                :min="1"
+                :max="100000"
+                :disabled="editingEngine?.isBuiltIn"
+              >
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput class="w-[120px]" />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+            </FormField>
+          </template>
+          <template v-if="formData.engineType === 'autogpt'">
+            <Divider />
+            <FormField :label="t('agent.manage.agentEngine.maxIterations')" name="maxIterations">
+              <NumberField
+                v-model="formData.engineConfig.maxIterations"
+                :min="1"
+                :max="100"
+                :disabled="editingEngine?.isBuiltIn"
+              >
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput class="w-[120px]" />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+            </FormField>
+            <FormField
+              :label="t('agent.manage.agentEngine.enableReflection')"
+              name="enableReflection"
             >
-              <NumberFieldContent>
-                <NumberFieldDecrement />
-                <NumberFieldInput class="w-[120px]" />
-                <NumberFieldIncrement />
-              </NumberFieldContent>
-            </NumberField>
-          </FormField>
-          <FormField :label="t('agent.manage.agentEngine.maxTokens')" name="maxTokens">
-            <NumberField
-              v-model="formData.customLlmConfig.maxTokens"
-              :min="1"
-              :max="100000"
-              :disabled="editingEngine?.isBuiltIn"
-            >
-              <NumberFieldContent>
-                <NumberFieldDecrement />
-                <NumberFieldInput class="w-[120px]" />
-                <NumberFieldIncrement />
-              </NumberFieldContent>
-            </NumberField>
-          </FormField>
-        </template>
-        <template v-if="formData.engineType === 'autogpt'">
-          <Divider />
-          <FormField :label="t('agent.manage.agentEngine.maxIterations')" name="maxIterations">
-            <NumberField
-              v-model="formData.engineConfig.maxIterations"
-              :min="1"
-              :max="100"
-              :disabled="editingEngine?.isBuiltIn"
-            >
-              <NumberFieldContent>
-                <NumberFieldDecrement />
-                <NumberFieldInput class="w-[120px]" />
-                <NumberFieldIncrement />
-              </NumberFieldContent>
-            </NumberField>
-          </FormField>
-          <FormField :label="t('agent.manage.agentEngine.enableReflection')" name="enableReflection">
-            <Switch
-              :checked="formData.engineConfig.enableReflection"
-              :disabled="editingEngine?.isBuiltIn"
-              @update:checked="(val) => formData.engineConfig.enableReflection = val"
-            />
-          </FormField>
-          <FormField :label="t('agent.manage.agentEngine.enablePlanning')" name="enablePlanning">
-            <Switch
-              :checked="formData.engineConfig.enablePlanning"
-              :disabled="editingEngine?.isBuiltIn"
-              @update:checked="(val) => formData.engineConfig.enablePlanning = val"
-            />
-          </FormField>
-        </template>
-        <template v-if="formData.engineType === 'react'">
-          <Divider />
-          <FormField :label="t('agent.manage.agentEngine.thinkingDepth')" name="thinkingDepth">
-            <NumberField
-              v-model="formData.engineConfig.thinkingDepth"
-              :min="1"
-              :max="20"
-              :disabled="editingEngine?.isBuiltIn"
-            >
-              <NumberFieldContent>
-                <NumberFieldDecrement />
-                <NumberFieldInput class="w-[120px]" />
-                <NumberFieldIncrement />
-              </NumberFieldContent>
-            </NumberField>
-          </FormField>
-        </template>
-      </Form>
+              <Switch
+                :checked="formData.engineConfig.enableReflection"
+                :disabled="editingEngine?.isBuiltIn"
+                @update:checked="(val) => (formData.engineConfig.enableReflection = val)"
+              />
+            </FormField>
+            <FormField :label="t('agent.manage.agentEngine.enablePlanning')" name="enablePlanning">
+              <Switch
+                :checked="formData.engineConfig.enablePlanning"
+                :disabled="editingEngine?.isBuiltIn"
+                @update:checked="(val) => (formData.engineConfig.enablePlanning = val)"
+              />
+            </FormField>
+          </template>
+          <template v-if="formData.engineType === 'react'">
+            <Divider />
+            <FormField :label="t('agent.manage.agentEngine.thinkingDepth')" name="thinkingDepth">
+              <NumberField
+                v-model="formData.engineConfig.thinkingDepth"
+                :min="1"
+                :max="20"
+                :disabled="editingEngine?.isBuiltIn"
+              >
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput class="w-[120px]" />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+            </FormField>
+          </template>
+        </Form>
         <DialogFooter>
           <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
           <Button type="primary" @click="handleSave" :disabled="editingEngine?.isBuiltIn">
-            {{ editingEngine?.isBuiltIn ? t('agent.manage.agentEngine.viewOnly') : t('common.save') }}
+            {{
+              editingEngine?.isBuiltIn ? t('agent.manage.agentEngine.viewOnly') : t('common.save')
+            }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -235,7 +246,13 @@ import { agentEngineManager } from '../../../utils/agent-framework'
 import type { AgentEngine, EngineType, LlmConfigMode } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { Button } from '@renderer/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@renderer/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'

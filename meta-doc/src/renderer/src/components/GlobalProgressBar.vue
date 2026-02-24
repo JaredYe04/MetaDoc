@@ -8,7 +8,9 @@
         </div>
         <div class="progress-bar-container">
           <Progress :model-value="percentage" :class="progressClass" class="h-1" />
-          <span v-if="showPercentage" class="progress-percentage">{{ Math.round(percentage) }}%</span>
+          <span v-if="showPercentage" class="progress-percentage"
+            >{{ Math.round(percentage) }}%</span
+          >
         </div>
       </div>
     </div>

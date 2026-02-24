@@ -23,46 +23,46 @@
         <div class="view-menu-container-sidebar">
           <!-- Tab 切换 -->
           <div class="sidebar-tabs" v-if="hasMultipleTabs">
-          <Tooltip v-if="showWorkspaceExplorer">
-            <TooltipTrigger as-child>
-              <div
-                class="sidebar-tab"
-                :class="{ active: activeTab === 'workspace' }"
-                @click="activeTab = 'workspace'"
-              >
-                <div class="icon-wrapper">
-                  <img
-                    :src="(themeState.currentTheme as any).FolderIcon"
-                    class="menu-icon"
-                    alt="workspace"
-                  />
+            <Tooltip v-if="showWorkspaceExplorer">
+              <TooltipTrigger as-child>
+                <div
+                  class="sidebar-tab"
+                  :class="{ active: activeTab === 'workspace' }"
+                  @click="activeTab = 'workspace'"
+                >
+                  <div class="icon-wrapper">
+                    <img
+                      :src="(themeState.currentTheme as any).FolderIcon"
+                      class="menu-icon"
+                      alt="workspace"
+                    />
+                  </div>
                 </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>{{ $t('viewMenuContainer.workspace') }}</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip v-if="showMetaInfoTab">
-            <TooltipTrigger as-child>
-              <div
-                class="sidebar-tab"
-                :class="{ active: activeTab === 'meta' }"
-                @click="activeTab = 'meta'"
-              >
-                <div class="icon-wrapper">
-                  <img
-                    :src="(themeState.currentTheme as any).MetaIcon"
-                    class="menu-icon"
-                    alt="meta"
-                  />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{{ $t('viewMenuContainer.workspace') }}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip v-if="showMetaInfoTab">
+              <TooltipTrigger as-child>
+                <div
+                  class="sidebar-tab"
+                  :class="{ active: activeTab === 'meta' }"
+                  @click="activeTab = 'meta'"
+                >
+                  <div class="icon-wrapper">
+                    <img
+                      :src="(themeState.currentTheme as any).MetaIcon"
+                      class="menu-icon"
+                      alt="meta"
+                    />
+                  </div>
                 </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>{{ $t('viewMenuContainer.metaInfo') }}</p>
-            </TooltipContent>
-          </Tooltip>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{{ $t('viewMenuContainer.metaInfo') }}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <!-- Tab 内容 -->
@@ -101,11 +101,7 @@ import { getSetting, setSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@renderer/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 const workspace = useWorkspace()

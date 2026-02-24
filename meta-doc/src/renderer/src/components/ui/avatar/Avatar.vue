@@ -1,13 +1,13 @@
 <script setup>
-import { AvatarRoot } from "reka-ui";
-import { cn } from '@renderer/lib/utils';
-import { avatarVariant } from ".";
+import { AvatarRoot } from 'reka-ui'
+import { cn } from '@renderer/lib/utils'
+import { avatarVariant } from '.'
 
 const props = defineProps({
   class: { type: null, required: false },
-  size: { type: null, required: false, default: "sm" },
-  shape: { type: null, required: false, default: "circle" },
-});
+  size: { type: null, required: false, default: 'sm' },
+  shape: { type: null, required: false, default: 'circle' }
+})
 </script>
 
 <template>

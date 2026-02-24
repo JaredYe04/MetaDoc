@@ -890,7 +890,9 @@ const exportSnapshot = async () => {
 }
 
 .collapsible-trigger:hover {
-  background-color: v-bind('themeState.currentTheme.background2ndHover || themeState.currentTheme.background2nd');
+  background-color: v-bind(
+    'themeState.currentTheme.background2ndHover || themeState.currentTheme.background2nd'
+  );
 }
 
 .output-title {

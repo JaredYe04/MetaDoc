@@ -18,7 +18,10 @@
             v-for="item in menuItems"
             :key="item.key"
             :label="$t(item.label)"
-            :class="['menu-item', { 'is-active': activeMenu === item.key, 'menu-logs-item': item.key === 'logs' }]"
+            :class="[
+              'menu-item',
+              { 'is-active': activeMenu === item.key, 'menu-logs-item': item.key === 'logs' }
+            ]"
             @click="handleMenuSelect(item.key)"
           />
         </UIMenu>

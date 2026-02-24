@@ -23,11 +23,7 @@
         </Button>
       </div>
 
-      <div
-        ref="scrollContainerRef"
-        class="composer-scroll"
-        :style="scrollContainerStyle"
-      >
+      <div ref="scrollContainerRef" class="composer-scroll" :style="scrollContainerStyle">
         <textarea
           ref="textareaRef"
           :value="modelValue"

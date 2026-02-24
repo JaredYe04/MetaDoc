@@ -126,6 +126,5 @@ export const exportPng = async (svgElement, filename = 'diagram') => {
 
   img.onerror = () => {
     console.error('无法加载 SVG 图像')
-    URL.revokeObjectURL(url)
   }
 }

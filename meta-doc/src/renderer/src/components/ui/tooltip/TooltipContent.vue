@@ -3,7 +3,7 @@ import { TooltipContent, type TooltipContentProps } from 'radix-vue'
 import { cn } from '@renderer/lib/utils'
 
 const props = withDefaults(defineProps<TooltipContentProps & { class?: string }>(), {
-  sideOffset: 4,
+  sideOffset: 4
 })
 </script>
 

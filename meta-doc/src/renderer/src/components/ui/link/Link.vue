@@ -51,11 +51,13 @@ const handleClick = (event) => {
     :is="isAnchor ? 'a' : 'span'"
     :href="isAnchor ? href : undefined"
     :target="isAnchor && target ? target : undefined"
-    :class="cn(
-      linkVariants({ type, underline }),
-      disabled && 'cursor-not-allowed opacity-50 pointer-events-none',
-      props.class
-    )"
+    :class="
+      cn(
+        linkVariants({ type, underline }),
+        disabled && 'cursor-not-allowed opacity-50 pointer-events-none',
+        props.class
+      )
+    "
     @click="handleClick"
   >
     <slot />

@@ -771,11 +771,11 @@ onMounted(() => {
 }
 
 /* shadcn-vue Tabs styling */
-.parsed-section :deep([role="tablist"]) {
+.parsed-section :deep([role='tablist']) {
   flex-shrink: 0;
 }
 
-.parsed-section :deep([role="tabpanel"]) {
+.parsed-section :deep([role='tabpanel']) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -783,7 +783,7 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.parsed-section :deep([role="tabpanel"][data-state="active"]) {
+.parsed-section :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
 }
 

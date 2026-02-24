@@ -6,25 +6,19 @@
       <span v-if="required" class="text-destructive ml-1">*</span>
       <slot name="label-extra" />
     </Label>
-    
+
     <!-- Content slot -->
     <div class="space-y-1">
       <slot />
     </div>
-    
+
     <!-- Error message -->
-    <p 
-      v-if="errorMessage" 
-      class="text-sm text-destructive"
-    >
+    <p v-if="errorMessage" class="text-sm text-destructive">
       {{ errorMessage }}
     </p>
-    
+
     <!-- Description -->
-    <p 
-      v-else-if="description" 
-      class="text-sm text-muted-foreground"
-    >
+    <p v-else-if="description" class="text-sm text-muted-foreground">
       {{ description }}
     </p>
   </div>
@@ -69,11 +63,15 @@ onUnmounted(() => {
 })
 
 // Watch for rule changes
-watch(() => props.rules, (newRules) => {
-  if (formContext) {
-    formContext.registerField(props.name, newRules || [])
-  }
-}, { deep: true })
+watch(
+  () => props.rules,
+  (newRules) => {
+    if (formContext) {
+      formContext.registerField(props.name, newRules || [])
+    }
+  },
+  { deep: true }
+)
 
 // Expose field methods
 defineExpose({

@@ -15,13 +15,13 @@ editor/
 
 ## WHERE TO LOOK
 
-| Task                    | File                   | Notes                                                  |
-| ----------------------- | ---------------------- | ------------------------------------------------------ |
-| Add LaTeX feature       | `monaco-adapter.ts`    | Monaco Editor with tectonic compilation                |
-| Add Markdown feature    | `vditor-adapter.ts`    | Vditor with custom toolbar & preview                   |
-| Change editor interface | `text-editor-types.ts` | Shared adapter contract                                |
-| Outline navigation      | Both adapters          | Skip graph elements: .katex-display, .mermaid, etc.    |
-| Document switching      | Adapter factory        | Chooses adapter by document.format                     |
+| Task                    | File                   | Notes                                               |
+| ----------------------- | ---------------------- | --------------------------------------------------- |
+| Add LaTeX feature       | `monaco-adapter.ts`    | Monaco Editor with tectonic compilation             |
+| Add Markdown feature    | `vditor-adapter.ts`    | Vditor with custom toolbar & preview                |
+| Change editor interface | `text-editor-types.ts` | Shared adapter contract                             |
+| Outline navigation      | Both adapters          | Skip graph elements: .katex-display, .mermaid, etc. |
+| Document switching      | Adapter factory        | Chooses adapter by document.format                  |
 
 ## CONVENTIONS
 

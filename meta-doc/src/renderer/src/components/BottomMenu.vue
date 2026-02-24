@@ -24,10 +24,7 @@
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger as-child>
-            <span
-              class="status-item status-llm-statistics"
-              @click="showLlmStatisticsDialog = true"
-            >
+            <span class="status-item status-llm-statistics" @click="showLlmStatisticsDialog = true">
               {{ $t('bottomMenu.llmStatistics') }}
             </span>
           </TooltipTrigger>
@@ -92,11 +89,7 @@
                 <BellFilled />
               </el-icon>
               <span class="status-text">{{ notificationSummary }}</span>
-              <span
-                v-if="unreadCount > 0"
-                class="status-badge"
-                :style="badgeStyle"
-              >
+              <span v-if="unreadCount > 0" class="status-badge" :style="badgeStyle">
                 <span class="badge-icon">{{ badgeIcon }}</span>
                 {{ unreadCount }}
               </span>
@@ -248,12 +241,15 @@ function adjustHue(hexColor: string, hueShift: number): { bg: string; text: stri
 
   // 保持较高的饱和度以保证颜色鲜艳
   const bgColor = `hsl(${Math.round(h)} 75% 50%)`
-  
+
   // 根据背景亮度决定文字颜色
   // 计算原始颜色的亮度
-  const luminance = 0.299 * parseInt(hexColor.slice(1, 3), 16) + 0.587 * parseInt(hexColor.slice(3, 5), 16) + 0.114 * parseInt(hexColor.slice(5, 7), 16)
+  const luminance =
+    0.299 * parseInt(hexColor.slice(1, 3), 16) +
+    0.587 * parseInt(hexColor.slice(3, 5), 16) +
+    0.114 * parseInt(hexColor.slice(5, 7), 16)
   const textColor = luminance > 128 ? '#000000' : '#ffffff'
-  
+
   return { bg: bgColor, text: textColor }
 }
 

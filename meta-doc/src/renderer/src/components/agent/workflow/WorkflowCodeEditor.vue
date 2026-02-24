@@ -6,18 +6,12 @@
       </div>
       <div class="header-right" v-if="!props.readOnly">
         <Button size="sm" @click="handleFormat">{{ t('common.format') }}</Button>
-        <Button size="sm" type="primary" @click="handleApply">{{
-          t('common.apply')
-        }}</Button>
+        <Button size="sm" type="primary" @click="handleApply">{{ t('common.apply') }}</Button>
       </div>
     </div>
     <div ref="editorContainer" class="code-editor-content"></div>
     <div v-if="parseErrors.length > 0" class="code-errors">
-      <Alert
-        v-for="(error, index) in parseErrors"
-        :key="index"
-        variant="destructive"
-      >
+      <Alert v-for="(error, index) in parseErrors" :key="index" variant="destructive">
         <XCircle class="h-4 w-4" />
         <AlertTitle>{{ error }}</AlertTitle>
       </Alert>

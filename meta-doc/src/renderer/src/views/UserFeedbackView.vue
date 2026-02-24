@@ -7,19 +7,12 @@
     <div class="feedback-form-scroll">
       <Form class="feedback-form space-y-4">
         <FormField :label="$t('userFeedback.feedbackType')" name="type" required>
-          <Select
-            v-model="form.type"
-            :disabled="submitting"
-          >
+          <Select v-model="form.type" :disabled="submitting">
             <SelectTrigger :style="{ color: themeState.currentTheme.textColor, width: '100%' }">
               <SelectValue :placeholder="$t('userFeedback.selectType')" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="opt in feedbackTypeOptions"
-                :key="opt.value"
-                :value="opt.value"
-              >
+              <SelectItem v-for="opt in feedbackTypeOptions" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </SelectItem>
             </SelectContent>
@@ -81,10 +74,7 @@
                   class="w-4 h-4"
                   title="已上传到 Gist"
                 />
-                <Eye
-                  v-if="isImageMime(att.mime)"
-                  class="w-4 h-4"
-                />
+                <Eye v-if="isImageMime(att.mime)" class="w-4 h-4" />
                 <XCircle
                   v-show="!submitting"
                   class="w-4 h-4"

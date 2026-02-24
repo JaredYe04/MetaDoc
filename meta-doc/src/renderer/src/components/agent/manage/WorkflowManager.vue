@@ -47,9 +47,7 @@
                 {{ workflow.artifactNodes.length + workflow.controlFlowNodes.length }}
                 {{ t('agent.manage.workflow.nodes') }}
               </Badge>
-              <Badge
-                :variant="workflow.enabled !== false ? 'default' : 'secondary'"
-              >
+              <Badge :variant="workflow.enabled !== false ? 'default' : 'secondary'">
                 {{
                   workflow.enabled !== false
                     ? t('agent.manage.enabled')
@@ -66,7 +64,10 @@
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem :disabled="workflow.isBuiltIn" @click="handleAction('edit', workflow)">
+                <DropdownMenuItem
+                  :disabled="workflow.isBuiltIn"
+                  @click="handleAction('edit', workflow)"
+                >
                   {{ t('agent.manage.edit') }}
                 </DropdownMenuItem>
                 <DropdownMenuItem @click="handleAction('validate', workflow)">
@@ -79,7 +80,10 @@
                   {{ t('agent.manage.export') }}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem :disabled="workflow.isBuiltIn" @click="handleAction('delete', workflow)">
+                <DropdownMenuItem
+                  :disabled="workflow.isBuiltIn"
+                  @click="handleAction('delete', workflow)"
+                >
                   {{ t('agent.manage.delete') }}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -91,14 +95,12 @@
 
     <!-- 工作流画布对话框 -->
     <Dialog v-model:open="canvasVisible">
-      <DialogContent
-        class="max-w-[90%]"
-        :style="dialogStyle"
-        :close-on-click-modal="false"
-      >
+      <DialogContent class="max-w-[90%]" :style="dialogStyle" :close-on-click-modal="false">
         <DialogHeader>
           <DialogTitle>
-            {{ editingWorkflow ? t('agent.manage.workflow.edit') : t('agent.manage.workflow.create') }}
+            {{
+              editingWorkflow ? t('agent.manage.workflow.edit') : t('agent.manage.workflow.create')
+            }}
           </DialogTitle>
         </DialogHeader>
         <div class="workflow-canvas-container">

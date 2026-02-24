@@ -30,7 +30,12 @@
         <div class="control-section">
           <div class="tab-switch-wrapper">
             <ToggleGroup v-model="tab" type="single" class="tab-switch">
-              <ToggleGroupItem v-for="option in segmentOptions" :key="option" :value="option" class="quickstart-tab-item">
+              <ToggleGroupItem
+                v-for="option in segmentOptions"
+                :key="option"
+                :value="option"
+                class="quickstart-tab-item"
+              >
                 {{ option }}
               </ToggleGroupItem>
             </ToggleGroup>
@@ -112,7 +117,11 @@
                       <SelectValue :placeholder="$t('home.tooltip.selectMood')" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem v-for="option in moodOptions" :key="option.value" :value="option.value">
+                      <SelectItem
+                        v-for="option in moodOptions"
+                        :key="option.value"
+                        :value="option.value"
+                      >
                         <div class="flex items-center gap-2">
                           <el-icon :size="14">
                             <component :is="option.icon" />
@@ -241,10 +250,7 @@ import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['close'])
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
+const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -805,6 +811,4 @@ onBeforeUnmount(() => {
   margin-top: auto;
   flex-shrink: 0;
 }
-
-
 </style>

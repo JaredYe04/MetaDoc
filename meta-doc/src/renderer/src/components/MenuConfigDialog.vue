@@ -66,7 +66,12 @@
                   <div class="menu-item-actions" v-if="!item.isCore">
                     <Switch
                       :checked="item.visible"
-                      @update:checked="(val) => { item.visible = val; handleVisibilityChange() }"
+                      @update:checked="
+                        (val) => {
+                          item.visible = val
+                          handleVisibilityChange()
+                        }
+                      "
                     />
                   </div>
                 </div>
@@ -78,9 +83,7 @@
 
       <DialogFooter>
         <Button variant="ghost" @click="handleReset">{{ $t('leftMenu.menuConfig.reset') }}</Button>
-        <Button @click="handleSave">{{
-          $t('leftMenu.menuConfig.save')
-        }}</Button>
+        <Button @click="handleSave">{{ $t('leftMenu.menuConfig.save') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -101,7 +104,7 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Text } from '@renderer/components/ui/text'
 

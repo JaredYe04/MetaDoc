@@ -220,11 +220,7 @@ async function injectDemoComponents(appContext: AppContext | null, container: HT
     const placeholder = el as HTMLElement
     render(null, placeholder)
     const wrapper = document.createElement('div')
-    // 添加组件特定的 CSS 类名，用于在样式中针对性设置最小高度
-    const minHeightClass = DEMO_MIN_HEIGHT_MAP[componentName]
-      ? `demo-min-height-${componentName}`
-      : ''
-    wrapper.className = `manual-demo-inline ${minHeightClass}`.trim()
+    wrapper.className = 'manual-demo-inline'
     placeholder.appendChild(wrapper)
     blockDemoEvents(wrapper)
     const vnode = createVNode(Component, props)
@@ -667,38 +663,6 @@ function processInternalLinks() {
   width: 100% !important;
   max-width: 480px !important;
   margin: 0 auto !important;
-}
-
-/* ==================== Demo 组件特定最小高度配置 ====================
- * 这些样式与 DEMO_MIN_HEIGHT_MAP 配置对应
- * 用于确保手册中展示的 Demo 组件有足够空间显示内容
- * 如需添加新的组件最小高度配置，请同时修改：
- * 1. DEMO_MIN_HEIGHT_MAP 对象（在 <script setup> 中）
- * 2. 对应的 CSS 样式（下方）
- */
-
-/* ConsoleTerminal: 控制台终端需要最小高度以显示工具栏和日志内容 */
-.markdown-preview :deep(.demo-min-height-ConsoleTerminal) {
-  min-height: 300px !important;
-}
-.markdown-preview :deep(.demo-min-height-ConsoleTerminal .console-terminal) {
-  min-height: 300px !important;
-}
-
-/* ConsoleOutput: 控制台输出面板需要最小高度 */
-.markdown-preview :deep(.demo-min-height-ConsoleOutput) {
-  min-height: 250px !important;
-}
-.markdown-preview :deep(.demo-min-height-ConsoleOutput .console-output) {
-  min-height: 250px !important;
-}
-
-/* LoggerConsolePanel: 日志控制台面板需要最小高度 */
-.markdown-preview :deep(.demo-min-height-LoggerConsolePanel) {
-  min-height: 300px !important;
-}
-.markdown-preview :deep(.demo-min-height-LoggerConsolePanel .logger-console-panel) {
-  min-height: 300px !important;
 }
 
 .empty-content {

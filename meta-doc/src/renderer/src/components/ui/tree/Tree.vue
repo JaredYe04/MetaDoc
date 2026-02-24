@@ -51,44 +51,47 @@ export interface TreeProps {
 }
 
 // Props definition - Element Plus el-tree compatible
-const props = withDefaults(defineProps<{
-  // Core data
-  data?: TreeNode[]
-  // Node mapping props
-  props?: TreeProps
-  // Unique key for each node
-  nodeKey?: string
-  // Whether to expand all nodes by default
-  defaultExpandAll?: boolean
-  // Whether to expand/collapse node on click
-  expandOnClickNode?: boolean
-  // Whether to highlight current node
-  highlightCurrent?: boolean
-  // Current node key
-  currentNodeKey?: string | number
-  // Filter function
-  filterNodeMethod?: (value: string, data: TreeNode, node: TreeNode) => boolean
-  // Lazy loading
-  lazy?: boolean
-  // Load function for lazy loading
-  load?: (node: TreeNode, resolve: (data: TreeNode[]) => void) => void
-}>(), {
-  data: () => [],
-  props: () => ({
-    label: 'label',
-    children: 'children',
-    disabled: 'disabled',
-    isLeaf: 'isLeaf'
-  }),
-  nodeKey: 'id',
-  defaultExpandAll: false,
-  expandOnClickNode: true,
-  highlightCurrent: false,
-  currentNodeKey: undefined,
-  filterNodeMethod: undefined,
-  lazy: false,
-  load: undefined
-})
+const props = withDefaults(
+  defineProps<{
+    // Core data
+    data?: TreeNode[]
+    // Node mapping props
+    props?: TreeProps
+    // Unique key for each node
+    nodeKey?: string
+    // Whether to expand all nodes by default
+    defaultExpandAll?: boolean
+    // Whether to expand/collapse node on click
+    expandOnClickNode?: boolean
+    // Whether to highlight current node
+    highlightCurrent?: boolean
+    // Current node key
+    currentNodeKey?: string | number
+    // Filter function
+    filterNodeMethod?: (value: string, data: TreeNode, node: TreeNode) => boolean
+    // Lazy loading
+    lazy?: boolean
+    // Load function for lazy loading
+    load?: (node: TreeNode, resolve: (data: TreeNode[]) => void) => void
+  }>(),
+  {
+    data: () => [],
+    props: () => ({
+      label: 'label',
+      children: 'children',
+      disabled: 'disabled',
+      isLeaf: 'isLeaf'
+    }),
+    nodeKey: 'id',
+    defaultExpandAll: false,
+    expandOnClickNode: true,
+    highlightCurrent: false,
+    currentNodeKey: undefined,
+    filterNodeMethod: undefined,
+    lazy: false,
+    load: undefined
+  }
+)
 
 // Emits - Element Plus el-tree compatible
 const emit = defineEmits<{
@@ -142,7 +145,7 @@ const hasVisibleChildren = (node: TreeNode): boolean => {
   if (!filterValue.value || !props.filterNodeMethod) return false
   const children = node[mergedProps.value.children!]
   if (!Array.isArray(children)) return false
-  return children.some(child => isNodeVisible(child) || hasVisibleChildren(child))
+  return children.some((child) => isNodeVisible(child) || hasVisibleChildren(child))
 }
 
 // Get visible data based on filter
@@ -151,7 +154,7 @@ const visibleData = computed(() => {
     return props.data
   }
   // When filtering, show all nodes that match or have matching children
-  return props.data.filter(node => isNodeVisible(node) || hasVisibleChildren(node))
+  return props.data.filter((node) => isNodeVisible(node) || hasVisibleChildren(node))
 })
 
 // Initialize expanded state
@@ -159,7 +162,7 @@ const initializeExpanded = () => {
   if (props.defaultExpandAll) {
     const keys = new Set<string | number>()
     const collectKeys = (nodes: TreeNode[]) => {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         const key = getNodeKey(node, 0)
         keys.add(key)
         const children = node[mergedProps.value.children!]
@@ -175,15 +178,13 @@ const initializeExpanded = () => {
 
 // Handle node click
 const handleNodeClick = (data: TreeNode, node: TreeNode, component: any) => {
-  const oldData = currentKey.value !== null 
-    ? findNodeByKey(currentKey.value) 
-    : null
-  
+  const oldData = currentKey.value !== null ? findNodeByKey(currentKey.value) : null
+
   // Update current key
   if (props.nodeKey && data[props.nodeKey] !== undefined) {
     currentKey.value = data[props.nodeKey]
   }
-  
+
   emit('node-click', data, node, component)
   emit('current-change', data, oldData)
 }
@@ -237,16 +238,16 @@ const setCurrentKey = (key: string | number | null) => {
     currentKey.value = null
     return
   }
-  
+
   currentKey.value = key
-  
+
   // Expand parent nodes if necessary
   const expandParents = (nodes: TreeNode[], parentChain: TreeNode[] = []): boolean => {
     for (const node of nodes) {
       const nodeKey = getNodeKey(node, 0)
       if (nodeKey === key) {
         // Found the node, expand all parents
-        parentChain.forEach(parent => {
+        parentChain.forEach((parent) => {
           expandedKeys.value.add(getNodeKey(parent, 0))
         })
         return true
@@ -260,18 +261,18 @@ const setCurrentKey = (key: string | number | null) => {
     }
     return false
   }
-  
+
   expandParents(props.data)
 }
 
 const filter = (value: string) => {
   filterValue.value = value
-  
+
   // When filtering, expand all nodes to show matching children
   if (value && props.filterNodeMethod) {
     const keys = new Set<string | number>()
     const collectKeys = (nodes: TreeNode[]) => {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         const key = getNodeKey(node, 0)
         if (isNodeVisible(node) || hasVisibleChildren(node)) {
           keys.add(key)
@@ -288,18 +289,26 @@ const filter = (value: string) => {
 }
 
 // Watch for currentNodeKey changes
-watch(() => props.currentNodeKey, (newKey) => {
-  if (newKey !== undefined) {
-    currentKey.value = newKey
-  }
-}, { immediate: true })
+watch(
+  () => props.currentNodeKey,
+  (newKey) => {
+    if (newKey !== undefined) {
+      currentKey.value = newKey
+    }
+  },
+  { immediate: true }
+)
 
 // Watch for data changes to initialize expanded state
-watch(() => props.data, (newData) => {
-  if (newData && newData.length > 0) {
-    initializeExpanded()
-  }
-}, { immediate: true })
+watch(
+  () => props.data,
+  (newData) => {
+    if (newData && newData.length > 0) {
+      initializeExpanded()
+    }
+  },
+  { immediate: true }
+)
 
 // Expose methods
 defineExpose({

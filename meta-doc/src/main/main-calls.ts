@@ -457,12 +457,20 @@ export function mainCalls(): void {
 function bindBasicHandlers(): void {
   ipcBridge.registerOn('quit', quit)
   ipcBridge.registerOn('save', async (event: IpcMainEvent, data: SaveData) => {
-    await save(data, false)
-    is_need_save = false
+    try {
+      await save(data, false)
+      is_need_save = false
+    } catch (error) {
+      logger.error('保存文件失败:', error)
+    }
   })
 
   ipcBridge.registerOn('save-as', async (event: IpcMainEvent, data: SaveData) => {
-    await save(data, true)
+    try {
+      await save(data, true)
+    } catch (error) {
+      logger.error('另存为文件失败:', error)
+    }
   })
 
   ipcBridge.registerHandle(
@@ -4215,17 +4223,17 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
 
     // 确定目标窗口（仅从已显示的窗口中选择，不选池中备用窗口）
     let targetWin: BrowserWindow | null = null
-    
+
     // 检查用户设置：外部文件打开方式
     // 如果没有指定目标窗口，根据设置决定是在新窗口还是当前窗口打开
     const externalFileOpenMode = getSetting('externalFileOpenMode') || 'newWindow'
     const shouldCreateNewWindow = !targetWindowId && externalFileOpenMode === 'newWindow'
-    
+
     if (targetWindowId) {
       const byId = getWindowById(targetWindowId)
       targetWin = byId && byId.isVisible() ? byId : null
     }
-    
+
     // 如果需要在新窗口中打开，创建新窗口
     if (shouldCreateNewWindow && !targetWin) {
       try {
@@ -4238,7 +4246,7 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
         // 继续执行，使用现有窗口
       }
     }
-    
+
     if (!targetWin) {
       const focusedWindow = BrowserWindow.getFocusedWindow()
       if (focusedWindow && !focusedWindow.isDestroyed() && focusedWindow.isVisible()) {

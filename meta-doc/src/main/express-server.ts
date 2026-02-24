@@ -34,10 +34,7 @@ import { updateServiceStatus } from './service-status'
 import { MainProgressHandle } from './utils/progress-handle'
 import type { BrowserWindow } from 'electron'
 import { LEGACY_CONFIG_FILES } from './utils/express-server-legacy'
-import {
-  getRuntimeServerPort,
-  getRuntimeServerBaseUrl
-} from './runtime-server-config'
+import { getRuntimeServerPort, getRuntimeServerBaseUrl } from './runtime-server-config'
 
 // ============ 接口定义 ============
 

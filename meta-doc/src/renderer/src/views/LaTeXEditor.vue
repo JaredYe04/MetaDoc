@@ -2289,7 +2289,32 @@ function togglePdf() {
 }
 
 const compile = async () => {
-  if (!editor.value || !messageBridge.getIpc() || isCompiling.value) return
+  if (!editor.value || isCompiling.value) return
+
+  // Demo mode: simulate compilation
+  if (isDemo.value) {
+    isCompiling.value = true
+    showConsole.value = true
+    eventBus.emit('clear-console', { key: 'latex' })
+    // Simulate compilation output
+    eventBus.emit('console-out', {
+      key: 'latex',
+      content: 'Demo mode: Compiling LaTeX document...\n',
+      type: 'out'
+    })
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    eventBus.emit('console-out', {
+      key: 'latex',
+      content: 'This is a demo compilation. PDF generation is simulated.\n',
+      type: 'out'
+    })
+    eventBus.emit('show-success', 'Demo mode: Compilation simulated successfully')
+    showPdfPanel.value = true
+    isCompiling.value = false
+    return
+  }
+
+  if (!messageBridge.getIpc()) return
   isCompiling.value = true
   // 自动打开终端输出界面
   showConsole.value = true
@@ -3060,6 +3085,11 @@ async function locateToCodeFromPdfCenter() {
 
 // 打开PDF所在目录
 async function openPdfDirectory() {
+  if (isDemo.value) {
+    eventBus.emit('show-info', 'Demo mode: Directory opening is simulated')
+    return
+  }
+
   if (!pdfUrl.value || pdfUrl.value === 'file:///') {
     eventBus.emit('show-warning', t('latexEditor.notification.pdfNotAvailable'))
     return
@@ -3782,6 +3812,47 @@ const refreshContextMenu = async () => {
 
 let contentChangeListener: monaco.IDisposable | null = null
 const editorId = ref<string | null>(null)
+// Demo LaTeX content
+const demoLatexContent = `\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath}
+\\usepackage{graphicx}
+
+\\title{Demo LaTeX Document}
+\\author{MetaDoc Demo}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\section{Introduction}
+
+This is a demo LaTeX document for demonstration purposes. It shows the basic structure of a LaTeX document and how the editor works.
+
+\\section{Mathematical Expressions}
+
+Here is a sample equation:
+\\begin{equation}
+    E = mc^2
+\\end{equation}
+
+And here is an inline math expression: $a^2 + b^2 = c^2$
+
+\\section{Lists}
+
+\\begin{itemize}
+    \\item First item
+    \\item Second item
+    \\item Third item
+\\end{itemize}
+
+\\section{Conclusion}
+
+This demo document demonstrates the LaTeX editing capabilities of MetaDoc.
+
+\\end{document}`
+
 const initEditor = () => {
   // 使用统一的 Monaco Worker 配置
   setupMonacoWorker()
@@ -3790,8 +3861,12 @@ const initEditor = () => {
 
   //logger.debug("LaTeXEditor initEditor")
   if (!editorEl.value) return
+
+  // Demo mode: use demo content if editor is empty
+  const editorValue = isDemo.value ? currentTex.value || demoLatexContent : currentTex.value
+
   editor.value = monaco.editor.create(editorEl.value, {
-    value: currentTex.value,
+    value: editorValue,
     language: 'latex', // 语言模式
     theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs', // 主题 (vs, vs-dark, hc-black)
     mouseWheelZoom: true,

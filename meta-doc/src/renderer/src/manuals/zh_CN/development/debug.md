@@ -4,6 +4,8 @@
 
 调试工具是MetaDoc提供的开发环境功能，用于测试和调试应用功能。这些工具仅在开发环境中可用，帮助开发者快速测试和调试代码。
 
+<SettingDebugSection mode="demo" />
+
 ## 调试工具介绍
 
 ### 访问调试工具
@@ -30,6 +32,8 @@
 - **Agent会话调试**：调试Agent会话
 - **快照导入**：导入文档快照
 - **更新测试**：测试更新功能
+
+<SettingDebugSection mode="demo" />
 
 ```mermaid
 graph TB
@@ -61,6 +65,8 @@ graph TB
 3. **发送事件**：点击"发送事件"按钮
 4. **查看结果**：查看事件发送结果
 
+<ConsoleTerminal mode="demo" consoleKey="debug" :history='[]' />
+
 ### 事件监听
 
 可以监听EventBus事件：
@@ -80,6 +86,8 @@ graph TB
 3. **事件数据**：可选，输入JSON格式的事件数据
 4. **发送广播**：点击"发送广播"按钮
 5. **查看结果**：查看广播发送结果
+
+<ConsoleTerminal mode="demo" consoleKey="debug" :history='[]' />
 
 ### 广播监听
 
@@ -121,6 +129,8 @@ graph TB
 4. **执行测试**：点击"执行测试"按钮
 5. **查看结果**：查看测试结果
 
+<ConsoleTerminal mode="demo" consoleKey="debug" :history='[]' />
+
 ### 批量测试
 
 可以批量运行单元测试：
@@ -151,6 +161,8 @@ graph TB
 3. **发送消息**：发送测试消息
 4. **查看响应**：查看Agent的响应
 
+<ConsoleTerminal mode="demo" consoleKey="debug" :history='[]' />
+
 ### 调试信息
 
 可以查看调试信息：
@@ -169,6 +181,8 @@ graph TB
 2. **导入快照**：点击"导入快照"按钮
 3. **查看结果**：查看导入结果
 
+<ConsoleTerminal mode="demo" consoleKey="debug" :history='[]' />
+
 ### 快照格式
 
 快照文件格式：
@@ -186,6 +200,8 @@ graph TB
 1. **选择更新通道**：选择更新通道（release/dev）
 2. **检查更新**：点击"检查更新"按钮
 3. **查看结果**：查看更新检查结果
+
+<SettingDebugSection mode="demo" />
 
 ## 最佳实践
 

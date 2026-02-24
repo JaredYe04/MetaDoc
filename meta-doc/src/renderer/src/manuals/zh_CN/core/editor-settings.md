@@ -6,6 +6,24 @@
 
 编辑器设置分为全局设置和编辑器特定设置。全局设置会影响所有编辑器，而某些设置可能只适用于特定类型的编辑器（如Markdown编辑器或LaTeX编辑器）。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+<MainTabs mode="demo" />
+
+<AIChat mode="demo" />
+
+<KnowledgeBase mode="demo" />
+
+<ProofreadView mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<AgentView mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+<Outline mode="demo" />
+
 ## 编辑器主题
 
 ### 主题类型

@@ -26,6 +26,8 @@
 
 <ViewMenuItemsDemo mode="demo" :items='["agent"]' />
 
+<ReferenceManager mode="demo" />
+
 ## 添加引用
 
 ### 添加文件引用
@@ -46,6 +48,8 @@
 - 纯文本文件（.txt）
 - 图片文件（.png, .jpg）
 
+<ReferenceManager mode="demo" />
+
 ### 添加URL引用
 
 引用网页内容：
@@ -56,6 +60,8 @@
 4. 点击确认
 
 MetaDoc会自动抓取网页内容并添加到引用中。
+
+<ReferenceManager mode="demo" />
 
 ### 添加知识库引用
 
@@ -178,6 +184,8 @@ AI：根据网页内容，主要报道了...
 - **右键添加**：在文件或网页上右键选择"添加到引用"
 - **快捷键**：使用快捷键快速打开引用面板
 
+<ReferenceManager mode="demo" />
+
 ### 引用组合
 
 可以同时添加多个不同类型的引用：
@@ -187,6 +195,8 @@ AI：根据网页内容，主要报道了...
 - 本地文件 + 内置文档引用
 
 AI会综合分析所有启用的引用内容。
+
+<ReferenceManager mode="demo" />
 
 ### 临时禁用
 

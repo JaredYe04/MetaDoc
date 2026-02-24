@@ -29,7 +29,7 @@ AI校对界面包含以下部分：
 - **错误统计**：顶部显示错误统计信息
 - **操作按钮**：顶部提供操作按钮
 
-<ProofreadViewDemo />
+<ProofreadView mode="demo" />
 
 ```mermaid
 graph TB
@@ -65,6 +65,8 @@ graph TB
 
 校对全文会自动检查文档中的所有内容。
 
+<ProofreadView mode="demo" />
+
 ### 校对特定章节
 
 校对文档的特定章节：
@@ -76,6 +78,8 @@ graph TB
 
 校对特定章节只检查选定章节及其子章节的内容。
 
+<ProofreadView mode="demo" />
+
 ### 校对指定文本
 
 校对指定的文本内容：
@@ -84,6 +88,8 @@ graph TB
 2. **打开校对**：打开AI校对面板
 3. **粘贴文本**：将文本粘贴到校对输入框
 4. **开始校对**：点击"开始校对"按钮
+
+<ProofreadView mode="demo" />
 
 ## 错误类型
 
@@ -123,6 +129,8 @@ graph TB
 - **语序问题**：检查语序问题
 - **其他语法**：检查其他语法问题
 
+<ProofreadView mode="demo" />
+
 ### 拼写错误
 
 检查文档中的拼写错误：
@@ -139,6 +147,8 @@ graph TB
 - **环境错误**：检查LaTeX环境错误
 - **括号匹配**：检查括号匹配问题
 - **其他语法**：检查其他LaTeX语法问题
+
+<ProofreadView mode="demo" />
 
 ### 风格问题
 
@@ -168,6 +178,8 @@ graph TB
 - **警告（Warning）**：建议修复的问题
 - **信息（Info）**：仅供参考的信息
 
+<ProofreadView mode="demo" />
+
 ### 错误定位
 
 快速定位错误位置：
@@ -195,6 +207,8 @@ graph TB
 3. **确认修复**：确认后应用修复
 
 修复后，错误会被标记为"已修复"。
+
+<ProofreadView mode="demo" />
 
 ```mermaid
 sequenceDiagram
@@ -233,6 +247,8 @@ sequenceDiagram
 
 忽略的错误会从错误列表中移除。
 
+<ProofreadView mode="demo" />
+
 ### 添加到词典
 
 将单词添加到词典：
@@ -251,6 +267,8 @@ sequenceDiagram
 2. **确认清空**：确认后清空已修复的错误
 
 清空已修复的错误可以让错误列表更清晰。
+
+<ProofreadView mode="demo" />
 
 ## 使用技巧
 
@@ -271,6 +289,8 @@ sequenceDiagram
 1. **添加专业术语**：将专业术语添加到词典
 2. **定期更新**：定期更新词典内容
 3. **导出词典**：导出词典备份
+
+<ProofreadView mode="demo" />
 
 ## 常见问题
 

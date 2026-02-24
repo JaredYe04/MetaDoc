@@ -6,6 +6,26 @@
 
 MetaDoc的编辑器支持标准的文本编辑操作，包括撤销、重做、复制、粘贴、剪切、全选和查找替换等功能。
 
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
+
+<MainTabs mode="demo" />
+
+<AIChat mode="demo" />
+
+<KnowledgeBase mode="demo" />
+
+<ProofreadView mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<AgentView mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+<Outline mode="demo" />
+
 ## 撤销和重做
 
 ### 撤销操作

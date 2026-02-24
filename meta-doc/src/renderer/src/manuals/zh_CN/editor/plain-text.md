@@ -6,6 +6,30 @@
 
 纯文本编辑器支持多种文件格式，包括代码文件（`.js`、`.py`、`.java`等）和配置文件（`.json`、`.yaml`、`.ini`等），根据文件扩展名自动识别语言并应用相应的语法高亮。
 
+<MainTabs mode="demo" />
+
+<AIChat mode="demo" />
+
+<KnowledgeBase mode="demo" />
+
+<ProofreadView mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<GraphWindow mode="demo" />
+
+<OcrWindow mode="demo" />
+
+<DataAnalysisWindow mode="demo" />
+
+<AgentView mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+<ResizableDivider mode="demo" />
+
 ## Monaco编辑器功能
 
 ### 编辑器介绍

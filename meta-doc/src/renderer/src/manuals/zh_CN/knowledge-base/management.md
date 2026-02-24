@@ -264,6 +264,20 @@ graph LR
 - 清空前建议先备份重要文件
 - 清空后需要重新添加文件
 
+<AIChat mode="demo" />
+
+<ProofreadView mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<AgentView mode="demo" />
+
+<GraphWindow mode="demo" />
+
+<OcrWindow mode="demo" />
+
+<DataAnalysisWindow mode="demo" />
+
 ## 最佳实践
 
 1. **文件组织**：按主题或项目组织文件，便于管理

@@ -6,6 +6,32 @@ MetaDoc支持将文档导出为多种格式，包括PDF、HTML、DOCX、LaTeX、
 
 导出功能会自动包含文档元信息（标题、作者、描述、关键词），并在导出过程中处理图片、表格、数学公式等元素。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
+<MetaInfoPanel mode="demo" :meta='{"title": "导出示例", "author": "作者", "description": "文档描述", "keywords": ["导出", "PDF"]}' :outlineJson='""' />
+
+<MainTabs mode="demo" />
+
+<AIChat mode="demo" />
+
+<KnowledgeBase mode="demo" />
+
+<ProofreadView mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<GraphWindow mode="demo" />
+
+<OcrWindow mode="demo" />
+
+<AgentView mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+<Outline mode="demo" />
+
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
 ## 导出格式支持
 
 ### Markdown文档导出

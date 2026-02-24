@@ -54,6 +54,8 @@ graph LR
 - **开发版本**：开发环境构建的版本，可能包含调试信息
 - **发布版本**：正式发布的版本，经过测试和优化
 
+<SettingAboutSection mode="demo" />
+
 ## 用户反馈
 
 ### 提交反馈
@@ -81,6 +83,8 @@ graph LR
 - **版本信息**：包含版本号和构建环境信息
 - **复现步骤**：提供清晰的复现步骤
 
+<UserFeedbackView mode="demo" />
+
 ## 官方QQ群
 
 ### 加入QQ群
@@ -103,6 +107,9 @@ QQ群提供以下资源：
 - **更新通知**：第一时间获取更新信息
 - **功能建议**：参与功能讨论和建议
 
+<ViewMenuItemsDemo mode="demo" :items='["home", "editor", "agent"]'
+/>
+
 ## 更新设置
 
 ### 自动检查更新
@@ -118,6 +125,8 @@ QQ群提供以下资源：
 
 - **正式版**：使用正式发布的版本（推荐）
 - **开发版**：使用开发版本（可能不稳定）
+
+<MainTabs mode="demo" />
 
 ### 手动检查更新
 
@@ -159,6 +168,8 @@ graph LR
     style F fill:#f3f4f6,stroke:#374151
 ```
 
+<QuickStartPanel mode="demo" />
+
 ## 开源许可证
 
 ### 查看许可证
@@ -175,6 +186,9 @@ MetaDoc遵循开源许可证，您可以：
 - 查看许可证内容
 - 了解使用条款
 - 了解权利和义务
+
+<ViewMenuItemsDemo mode="demo" :items='["home"]'
+/>
 
 ## 第三方资产
 
@@ -210,8 +224,12 @@ MetaDoc遵循开源许可证，您可以：
 4. **反馈信息**：提交反馈时注意保护隐私信息
 5. **许可证遵守**：使用MetaDoc时请遵守开源许可证
 
+<ResizableDivider mode="demo" />
+
 ## 相关文档
 
 - [[settings.basic|基础设置]]
 - [[settings.logging|日志配置]]
 - [[quick-start.guide|快速开始指南]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />

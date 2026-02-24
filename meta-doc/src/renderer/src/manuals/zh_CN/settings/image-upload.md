@@ -43,6 +43,8 @@ graph TB
 - **缺点**：需要配置本地目录
 - **适用场景**：本地使用、数据隐私要求高
 
+<SettingImageSection mode="demo" />
+
 ### 自定义服务
 
 自定义服务使用外部API上传图片：
@@ -50,6 +52,8 @@ graph TB
 - **优点**：可以上传到云存储、图床等
 - **缺点**：需要配置API接口
 - **适用场景**：需要云存储、图片CDN等
+
+<MainTabs mode="demo" />
 
 ## 本地图片目录配置
 
@@ -77,6 +81,8 @@ graph TB
 - **Windows**：`%APPDATA%/MetaDoc/images`
 - **macOS**：`~/Library/Application Support/MetaDoc/images`
 - **Linux**：`~/.config/MetaDoc/images`
+
+<QuickStartPanel mode="demo" />
 
 ### 目录管理
 
@@ -138,6 +144,9 @@ API URL: https://api.example.com/upload
 字段名: file
 ```
 
+<ViewMenuItemsDemo mode="demo" :items='["home", "editor"]'
+/>
+
 ## API响应格式
 
 ### 响应要求
@@ -166,6 +175,8 @@ API URL: https://api.example.com/upload
   "message": "错误信息"
 }
 ```
+
+<DialogDemo mode="demo" dialogType="api-config" />
 
 ## 配置验证
 
@@ -196,6 +207,8 @@ API URL: https://api.example.com/upload
 - 检查API是否需要认证
 - 检查API Key或Token是否正确
 
+<SettingBasicSection mode="demo" />
+
 ## 本地服务配置
 
 ### 目录权限
@@ -213,6 +226,8 @@ API URL: https://api.example.com/upload
 - **文件格式**：保持原始格式
 - **目录结构**：所有图片保存在同一目录
 
+<OcrWindow mode="demo" />
+
 ### 图片访问
 
 本地服务的图片可以通过以下方式访问：
@@ -228,6 +243,8 @@ API URL: https://api.example.com/upload
 4. **API测试**：配置自定义API后先测试
 5. **备份策略**：重要图片建议同时备份
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+
 ## 注意事项
 
 1. **配置生效**：配置更改后，新插入的图片才会使用新配置
@@ -241,3 +258,5 @@ API URL: https://api.example.com/upload
 - [[settings.image|图片上传配置]]
 - [[settings.basic|基础设置]]
 - [[core.file-operations|文件操作]]
+
+<ResizableDivider mode="demo" />

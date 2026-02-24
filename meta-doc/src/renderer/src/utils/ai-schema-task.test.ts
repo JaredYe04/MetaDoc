@@ -79,8 +79,7 @@ describe('AI Schema Task', () => {
         description: '测试',
         schema: { type: 'object', properties: { title: { type: 'string' } } }
       }
-      const text =
-        '根据您的要求，我生成了以下结果：{"title":"测试标题"} 希望这符合您的需求。'
+      const text = '根据您的要求，我生成了以下结果：{"title":"测试标题"} 希望这符合您的需求。'
       const result = parseSchemaJson(text, schema)
       expect(result).toEqual({ title: '测试标题' })
     })

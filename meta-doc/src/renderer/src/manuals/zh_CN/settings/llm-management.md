@@ -269,3 +269,5 @@ graph TB
 - [[agent.config|Agent配置管理]]
 
 <QuickStartPanel mode="demo" />
+
+<MainTabs mode="demo" />

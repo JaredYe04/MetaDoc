@@ -4,6 +4,8 @@
 
 ECharts是一个强大的数据可视化图表库，支持多种图表类型。MetaDoc支持ECharts图表，可以在Markdown文档中使用ECharts配置创建各种数据可视化图表。
 
+<DataAnalysisWindow mode="demo" />
+
 ## ECharts语法
 
 ### 基本语法
@@ -62,6 +64,8 @@ graph TB
 
 ## 支持的图表类型
 
+<DataAnalysisWindow mode="demo" />
+
 ### 折线图
 
 创建折线图：
@@ -83,6 +87,8 @@ graph TB
 }
 ```
 ````
+
+<DataAnalysisWindow mode="demo" />
 
 ### 柱状图
 
@@ -106,6 +112,8 @@ graph TB
 ```
 ````
 
+<DataAnalysisWindow mode="demo" />
+
 ### 饼图
 
 创建饼图：
@@ -124,6 +132,8 @@ graph TB
 }
 ```
 ````
+
+<DataAnalysisWindow mode="demo" />
 
 ### 散点图
 
@@ -145,6 +155,8 @@ graph TB
 }
 ```
 ````
+
+<DataAnalysisWindow mode="demo" />
 
 ### 雷达图
 
@@ -168,6 +180,8 @@ graph TB
 }
 ```
 ````
+
+<DataAnalysisWindow mode="demo" />
 
 ### 热力图
 
@@ -194,6 +208,8 @@ graph TB
 
 ## 图表配置
 
+<DataAnalysisWindow mode="demo" />
+
 ### 标题配置
 
 设置图表标题：
@@ -206,6 +222,8 @@ graph TB
   }
 }
 ```
+
+<DataAnalysisWindow mode="demo" />
 
 ### 坐标轴配置
 
@@ -222,6 +240,8 @@ graph TB
   }
 }
 ```
+
+<DataAnalysisWindow mode="demo" />
 
 ### 系列配置
 

@@ -4,6 +4,8 @@
 
 Mermaid是一个流行的图表绘制工具，适合快速绘制流程图、序列图、类图、甘特图等。MetaDoc支持Mermaid图表，可以在Markdown文档中直接使用Mermaid语法创建各种图表。
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ## Mermaid语法
 
 ### 基本语法
@@ -56,6 +58,8 @@ graph TB
 
 ## 流程图
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 基本流程图
 
 创建基本流程图：
@@ -94,6 +98,8 @@ graph TD
 
 ## 序列图
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 基本序列图
 
 创建序列图：
@@ -117,6 +123,8 @@ sequenceDiagram
 - **实线**：`->` 同步消息（不返回）
 - **虚线**：`-->` 异步消息（不返回）
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 激活框
 
 可以添加激活框表示对象活动：
@@ -137,6 +145,8 @@ sequenceDiagram
 
 ## 类图
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 基本类图
 
 创建类图：
@@ -155,6 +165,8 @@ classDiagram
     Animal <|-- Dog
 ```
 ````
+
+<GraphWindow mode="demo" initialTool="mermaid" />
 
 ### 类关系
 
@@ -176,6 +188,8 @@ classDiagram
 
 ## 甘特图
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 基本甘特图
 
 创建甘特图：
@@ -190,6 +204,8 @@ gantt
     任务2 :a2, after a1, 20d
 ```
 ````
+
+<GraphWindow mode="demo" initialTool="mermaid" />
 
 ### 日期格式
 
@@ -208,6 +224,8 @@ gantt
 
 ## 饼图
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 基本饼图
 
 创建饼图：
@@ -223,6 +241,8 @@ pie title 数据分布
 
 ## 状态图
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ### 基本状态图
 
 创建状态图：
@@ -237,6 +257,8 @@ stateDiagram-v2
 ````
 
 ## 思维导图
+
+<GraphWindow mode="demo" initialTool="mermaid" />
 
 ### 基本思维导图
 

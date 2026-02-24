@@ -211,6 +211,8 @@ MetaDoc会根据主题色自动生成配色方案：
 
 <QuickStartPanel mode="demo" />
 
+<SettingBasicSection mode="demo" />
+
 ## 相关文档
 
 - [[settings.theme|主题配置]]

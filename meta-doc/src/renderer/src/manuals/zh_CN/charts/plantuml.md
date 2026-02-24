@@ -4,6 +4,8 @@
 
 PlantUML是一个专业的UML建模工具，支持多种UML图表类型。MetaDoc支持PlantUML图表，可以在Markdown文档中使用PlantUML语法创建专业的UML图表。
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ## PlantUML语法
 
 ### 基本语法
@@ -50,6 +52,8 @@ graph TB
 
 ## 支持的图表类型
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ### 序列图
 
 创建序列图：
@@ -63,6 +67,8 @@ Bob --> Alice: 响应
 ```
 ````
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ### 用例图
 
 创建用例图：
@@ -75,6 +81,8 @@ Bob --> Alice: 响应
 @enduml
 ```
 ````
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 类图
 
@@ -95,6 +103,8 @@ Animal <|-- Dog
 ```
 ````
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ### 活动图
 
 创建活动图：
@@ -110,6 +120,8 @@ stop
 ```
 ````
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ### 组件图
 
 创建组件图：
@@ -121,6 +133,8 @@ stop
 @enduml
 ```
 ````
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 部署图
 
@@ -135,6 +149,8 @@ node "服务器" {
 @enduml
 ```
 ````
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 状态图
 
@@ -151,6 +167,8 @@ node "服务器" {
 ````
 
 ## 序列图详解
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 参与者
 
@@ -175,6 +193,8 @@ User -> System: 请求
 - **返回消息**：`<-` 或 `<--`
 - **自调用**：`->` 指向自己
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ### 激活框
 
 添加激活框：
@@ -191,6 +211,8 @@ deactivate Bob
 ````
 
 ## 类图详解
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 类定义
 
@@ -238,6 +260,8 @@ abstract class AbstractClass {
 ````
 
 ## 活动图详解
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 基本活动
 
@@ -289,6 +313,8 @@ stop
 ````
 
 ## 样式和主题
+
+<GraphWindow mode="demo" initialTool="plantuml" />
 
 ### 主题设置
 

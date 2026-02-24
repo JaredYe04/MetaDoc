@@ -142,11 +142,11 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { notifySuccess, notifyInfo } from '../utils/notify'
-import { Form, FormField } from '../../components/ui/form'
-import { Switch } from '../../components/ui/switch'
-import { Input } from '../../components/ui/input'
-import { InputNumber } from '../../components/ui/input-number'
-import { Slider } from '../../components/ui/slider'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
+import { Input } from '@renderer/components/ui/input'
+import { InputNumber } from '@renderer/components/ui/input-number'
+import { Slider } from '@renderer/components/ui/slider'
 
 // Props definition
 const props = defineProps<{

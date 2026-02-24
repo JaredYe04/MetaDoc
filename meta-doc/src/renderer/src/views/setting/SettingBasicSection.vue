@@ -277,7 +277,7 @@ import { HelpCircle } from 'lucide-vue-next'
 import MicrophoneTest from '../../components/MicrophoneTest.vue'
 import { settings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus'
-import Button from '../../components/ui/button/Button.vue'
+import Button from '@renderer/components/ui/button/Button.vue'
 import {
   Select,
   SelectTrigger,

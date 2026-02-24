@@ -4,17 +4,7 @@
 
 Markdown是一种轻量级标记语言，允许您使用易读易写的纯文本格式编写文档。MetaDoc提供了完整的Markdown编辑和预览支持。
 
-<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "insert"}]' />
-
 <ViewMenuItemsDemo mode="demo" :items='["outline", "preview"]' />
-
-<SearchReplaceMenu mode="demo" />
 
 ## 基本语法
 

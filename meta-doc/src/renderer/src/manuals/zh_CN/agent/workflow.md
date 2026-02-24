@@ -32,8 +32,6 @@ graph LR
 
 您可以通过侧边栏访问Agent视图：
 
-<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
-
 <AgentView mode="demo" />
 
 ## 创建工作流

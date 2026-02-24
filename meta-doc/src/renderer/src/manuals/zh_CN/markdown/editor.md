@@ -12,16 +12,6 @@ MetaDoc 的 Markdown 编辑器为您提供了一个专业而优雅的写作环�
 
 <QuickStartMarkdown mode="demo" />
 
-<MainTabs mode="demo" />
-
-<AIChat mode="demo" />
-
-<KnowledgeBase mode="demo" />
-
-<ProofreadView mode="demo" />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat", "proofread"]}]' />
-
 ## 三种编辑模式
 
 MetaDoc 理解不同用户有不同的编辑习惯，因此提供了三种编辑模式供您选择：

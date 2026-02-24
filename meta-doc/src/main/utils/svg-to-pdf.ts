@@ -136,6 +136,122 @@ export async function convertSvgToPdf(svgPath: string): Promise<string> {
 }
 
 /**
+ * 使用 resvg 将 SVG 字符串渲染为 PDF 文件，并保存到本地图片目录
+ * 返回本地 HTTP URL（运行时服务器 /images/xxx.pdf）
+ * @param scale - 缩放因子，用于生成高分辨率位图。默认 2.0（相当于 192 DPI），与矢量图清晰度相当
+ */
+export async function convertSvgStringToPdfFile(
+  svgContent: string,
+  scale: number = 2.0
+): Promise<string> {
+  try {
+    const crypto = require('crypto')
+    // 在哈希中包含 scale，确保不同分辨率有不同的缓存文件
+    const hash = crypto
+      .createHash('sha256')
+      .update(String(svgContent) + ':pdf_scale:' + scale)
+      .digest('hex')
+      .slice(0, 16)
+    const fileName = `${hash}_mermaid.pdf`
+    const filePath = path.join(imageUploadDir, fileName)
+    if (fs.existsSync(filePath)) {
+      return `${getRuntimeServerBaseUrl()}/images/${fileName}`
+    }
+
+    // 规范化 SVG
+    const normalized = normalizeSvgForResvg(svgContent)
+
+    // 动态导入 resvg
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Resvg } = require('@resvg/resvg-js')
+
+    // 推断尺寸
+    const widthHeight = (() => {
+      const viewBoxMatch = normalized.match(
+        /viewBox="\s*[\d.-]+\s+[\d.-]+\s+([\d.-]+)\s+([\d.-]+)\s*"/i
+      )
+      const widthMatch = normalized.match(/width="([\d.-]+)"/i)
+      const heightMatch = normalized.match(/height="([\d.-]+)"/i)
+      const width = widthMatch
+        ? parseFloat(widthMatch[1])
+        : viewBoxMatch
+          ? parseFloat(viewBoxMatch[1])
+          : 1920
+      const height = heightMatch
+        ? parseFloat(heightMatch[1])
+        : viewBoxMatch
+          ? parseFloat(viewBoxMatch[2])
+          : 1080
+      return { width: Math.max(1, width), height: Math.max(1, height) }
+    })()
+
+    // 收集可能存在的系统字体文件（Windows 常见字体，存在才加入）
+    const candidateFontFiles = [
+      'C:/Windows/Fonts/arial.ttf',
+      'C:/Windows/Fonts/arialuni.ttf',
+      'C:/Windows/Fonts/msyh.ttc',
+      'C:/Windows/Fonts/simhei.ttf',
+      'C:/Windows/Fonts/simsun.ttc',
+      'C:/Windows/Fonts/segoeui.ttf',
+      'C:/Windows/Fonts/calibri.ttf',
+      'C:/Windows/Fonts/trebuc.ttf',
+      'C:/Windows/Fonts/tahoma.ttf',
+      'C:/Windows/Fonts/verdana.ttf'
+    ].filter((p) => {
+      try {
+        return fs.existsSync(p)
+      } catch {
+        return false
+      }
+    })
+
+    // 使用 scale 倍缩放生成高分辨率位图，确保 PDF 中图表清晰度与矢量图相当
+    const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale))
+
+    const resvg = new Resvg(normalized, {
+      fitTo: {
+        mode: 'width',
+        value: targetWidth
+      },
+      font: {
+        loadSystemFonts: true,
+        fontFiles: candidateFontFiles,
+        sansSerifFamily: 'Arial',
+        serifFamily: 'Times New Roman',
+        monospaceFamily: 'Consolas',
+        cursiveFamily: 'Arial',
+        fantasyFamily: 'Arial',
+        defaultFontFamily: 'Arial'
+      },
+      logLevel: 'off'
+    })
+
+    const pngData = resvg.render()
+    const renderedPngBuffer = Buffer.from(pngData.asPng())
+    logger.debug(`高分辨率 PNG 已生成用于 PDF（缩放因子: ${scale}x）`)
+
+    // 创建 PDF 并嵌入 PNG
+    const pdfDoc = await PDFDocument.create()
+    const pngImage = await pdfDoc.embedPng(renderedPngBuffer)
+    const page = pdfDoc.addPage([pngImage.width, pngImage.height])
+    page.drawImage(pngImage, {
+      x: 0,
+      y: 0,
+      width: pngImage.width,
+      height: pngImage.height
+    })
+
+    const pdfBytes = await pdfDoc.save()
+    fs.writeFileSync(filePath, pdfBytes)
+    logger.debug(`SVG 字符串已转换为 PDF: ${filePath}`)
+    return `${getRuntimeServerBaseUrl()}/images/${fileName}`
+  } catch (error) {
+    logger.error('SVG 字符串转 PDF 失败:', error)
+    throw error
+  }
+}
+
+/**
  * 使用 resvg 将 SVG 字符串渲染为 PNG 文件，并保存到本地图片目录
  * 返回本地 HTTP URL（运行时服务器 /images/xxx.png）
  * @param scale - 缩放因子，用于生成高分辨率位图。默认 2.0（相当于 192 DPI），与矢量图清晰度相当

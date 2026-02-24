@@ -197,17 +197,7 @@ Token数越大，补全的内容越多，但生成时间也会更长。
 
 <SectionOptimizer mode="demo" title="段落优化示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<MainTabs mode="demo" />
-
-<AIChat mode="demo" />
-
-<KnowledgeBase mode="demo" />
-
-<ProofreadView mode="demo" />
-
 <QuickStartMarkdown mode="demo" />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -271,12 +261,6 @@ Token数越大，补全的内容越多，但生成时间也会更长。
 1. 使用AI分析了解文档内容
 2. 使用段落优化改进特定段落
 3. 根据AI分析的建议进行优化
-
-<GraphWindow mode="demo" />
-
-<OcrWindow mode="demo" />
-
-<DataAnalysisWindow mode="demo" />
 
 ## 使用技巧
 

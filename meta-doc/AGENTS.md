@@ -1,6 +1,6 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-02-22
+**Generated:** 2026-02-24
 **Commit:** HEAD
 **Branch:** main
 
@@ -183,7 +183,8 @@ meta-doc/
 ├── docs/                  # Internal docs (export flow, refactor guides, test cases)
 ├── android/               # Capacitor Android target
 ├── out/                   # Build output (electron-vite)
-└── build/                 # Electron-builder assets (icons, installers)
+├── build/                 # Electron-builder assets (icons, installers)
+└── tests/                 # Vitest tests (unit tests for utils, composables)
 ```
 
 ## WHERE TO LOOK
@@ -238,19 +239,48 @@ meta-doc/
 ## COMMANDS
 
 ```bash
+# Development
 npm run dev              # Start dev (electron-vite + vite concurrently)
 npm run build            # Production build (prebuild + electron-vite build)
 npm run build:sequential # CI-friendly build (lower memory, sequential targets)
+
+# Packaging
 npm run build:win        # Package for Windows
 npm run build:mac        # Package for macOS
 npm run build:linux      # Package for Linux
+
+# Code Quality
 npm run lint             # ESLint with auto-fix
 npm run format           # Prettier format all
+npm run lint:manuals     # Lint user manual documents (Demo Mode coverage)
+
+# Testing
+npm run test             # Run Vitest unit tests
+npm run test:ui          # Run tests with UI
+npm run test:app         # Run in-app test framework
+npm run test:coverage    # Run tests with coverage
+
+# Native Dependencies
 npm run rebuild-native   # Rebuild better-sqlite3 for Electron ABI
+
+# Release
 npm run audit            # Run code audit script
 npm run release:dev      # Dev release flow
 npm run release:prod     # Production release flow
 ```
+
+## TESTING
+
+```bash
+npm run test             # Run Vitest unit tests
+npm run test:ui          # Run tests with UI
+npm run test:app         # Run in-app test framework
+npm run test:coverage    # Run tests with coverage
+```
+
+**Dual test system**:
+- **Vitest**: Standard unit tests for utilities, composables, services
+- **In-app test framework**: Custom test runner within Electron environment for integration tests; located in `src/renderer/src/test-app/`
 
 ## NOTES
 
@@ -261,3 +291,5 @@ npm run release:prod     # Production release flow
 - **.env required**: prebuild copies `.env` from root to `resources/`; must exist before build
 - **Java env for PlantUML**: main process sets `JAVA_OPTS=-Dfile.encoding=UTF-8` at startup for PlantUML UTF-8 support
 - **GPU auto-detection**: `shouldDisableGPU()` in main/index.ts disables GPU for CI/WSL/headless Linux
+- **Android target**: Capacitor 7 integration in `android/` directory — shares most code with desktop via conditional compilation
+- **Hybrid UI migration**: Ongoing Element Plus → shadcn-vue transition; new code should use shadcn-vue exclusively

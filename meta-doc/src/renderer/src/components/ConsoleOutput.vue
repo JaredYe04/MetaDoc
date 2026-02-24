@@ -84,7 +84,7 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal',
-    validator: (value: string) => ['normal', 'demo'].includes(value)
+    validator: (value) => ['normal', 'demo'].includes(value)
   },
   /** 由父组件（如 LaTeXEditor）控制的 AI 分析开关，传入时与父组件保持同步 */
   parentEnableAiAnalysis: {

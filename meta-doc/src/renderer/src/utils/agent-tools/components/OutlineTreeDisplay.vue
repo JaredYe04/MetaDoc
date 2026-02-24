@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Loading, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
@@ -93,7 +93,102 @@ import { themeState } from '../../themes'
 import type { DocumentOutlineNode } from '@/types'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  outlineTree: {
+    id: 'root',
+    title: '文档大纲',
+    title_level: 0,
+    children: [
+      {
+        id: '1',
+        title: '引言',
+        title_level: 1,
+        path: 'doc.intro',
+        text: '这是文档的引言部分，介绍背景和目的。',
+        children: [
+          {
+            id: '1-1',
+            title: '研究背景',
+            title_level: 2,
+            path: 'doc.intro.background',
+            text: '详细描述研究背景信息。'
+          },
+          {
+            id: '1-2',
+            title: '研究目的',
+            title_level: 2,
+            path: 'doc.intro.purpose',
+            text: '明确说明研究目标和预期成果。'
+          }
+        ]
+      },
+      {
+        id: '2',
+        title: '方法',
+        title_level: 1,
+        path: 'doc.methods',
+        text: '本文采用的研究方法论。',
+        children: [
+          {
+            id: '2-1',
+            title: '数据收集',
+            title_level: 2,
+            path: 'doc.methods.data',
+            text: '数据来源和收集方法说明。'
+          },
+          {
+            id: '2-2',
+            title: '分析方法',
+            title_level: 2,
+            path: 'doc.methods.analysis',
+            text: '使用的统计分析方法。'
+          }
+        ]
+      },
+      {
+        id: '3',
+        title: '结果',
+        title_level: 1,
+        path: 'doc.results',
+        text: '研究发现和数据分析结果。',
+        children: [
+          {
+            id: '3-1',
+            title: '主要发现',
+            title_level: 2,
+            path: 'doc.results.main',
+            text: '核心研究结果展示。'
+          }
+        ]
+      },
+      {
+        id: '4',
+        title: '结论',
+        title_level: 1,
+        path: 'doc.conclusion',
+        text: '总结全文并提出未来研究方向。',
+        children: []
+      }
+    ]
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues below
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -103,6 +198,11 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 )
 
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
 

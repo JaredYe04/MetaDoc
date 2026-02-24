@@ -163,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
@@ -178,7 +178,90 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  diffResult: {
+    chunks: [
+      {
+        type: 'equal',
+        oldStart: 1,
+        oldEnd: 3,
+        newStart: 1,
+        newEnd: 3,
+        oldLines: ['function calculateSum(a, b) {', '  // 计算两个数的和', '  return a + b;'],
+        newLines: ['function calculateSum(a, b) {', '  // 计算两个数的和', '  return a + b;']
+      },
+      {
+        type: 'replace',
+        oldStart: 4,
+        oldEnd: 6,
+        newStart: 4,
+        newEnd: 8,
+        oldLines: ['function oldName(x) {', '  return x * 2;', '}'],
+        newLines: [
+          'function multiplyByTwo(x) {',
+          '  // 将数字乘以2',
+          '  const result = x * 2;',
+          '  return result;',
+          '}'
+        ]
+      },
+      {
+        type: 'insert',
+        oldStart: 7,
+        oldEnd: 6,
+        newStart: 9,
+        newEnd: 11,
+        oldLines: [],
+        newLines: [
+          '// 新增辅助函数',
+          'function helper() {',
+          '  console.log("Helper function");',
+          '}'
+        ]
+      }
+    ],
+    summary: {
+      insertions: 5,
+      deletions: 3,
+      replacements: 1
+    },
+    oldText: `function calculateSum(a, b) {
+  // 计算两个数的和
+  return a + b;
+function oldName(x) {
+  return x * 2;
+}`,
+    newText: `function calculateSum(a, b) {
+  // 计算两个数的和
+  return a + b;
+function multiplyByTwo(x) {
+  // 将数字乘以2
+  const result = x * 2;
+  return result;
+}
+// 新增辅助函数
+function helper() {
+  console.log("Helper function");
+}`
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues in lifecycle hooks below
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -192,6 +275,11 @@ const oldEditorId = ref(`diff-old-${Date.now()}-${Math.random().toString(36).sub
 const newEditorId = ref(`diff-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
 

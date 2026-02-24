@@ -128,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
@@ -151,8 +151,44 @@ import { themeState } from '../../themes'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
 const logger = createRendererLogger('ChartGenerationDisplay')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  chartType: 'bar',
+  chartName: 'demo-chart',
+  url: 'https://example.com/demo-chart.png',
+  localPath: '/tmp/demo-chart.png',
+  chartCode: `// ECharts 配置
+option = {
+  title: { text: '月度销售数据' },
+  xAxis: {
+    type: 'category',
+    data: ['一月', '二月', '三月', '四月', '五月']
+  },
+  yAxis: { type: 'value' },
+  series: [{
+    data: [120, 200, 150, 80, 70],
+    type: 'bar'
+  }]
+};`
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+  logger.debug('[ChartGenerationDisplay] Demo data loaded')
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues below
+})
 
 logger.debug(
   `[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`,
@@ -176,6 +212,11 @@ logger.debug(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, {
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
 
@@ -213,6 +254,11 @@ const progressStatus = computed(() => {
 
 // 下载图表
 const downloadChart = async () => {
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.chartGeneration.demoMode', '演示模式：下载功能已禁用'))
+    return
+  }
+
   // 优先使用 url（可能是 PDF），如果没有则使用 svgUrl
   const downloadUrl = displayData.value.url || displayData.value.svgUrl
   if (!downloadUrl) {

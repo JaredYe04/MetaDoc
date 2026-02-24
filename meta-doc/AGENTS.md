@@ -63,6 +63,85 @@
 
 ---
 
+## 📚 文档质量要求：Demo Mode Coverage（不可绕过）
+
+### 规则定义
+
+**所有用户手册文档**（`src/renderer/src/manuals/**/*.md`）**必须**满足 Demo Mode 覆盖率要求：
+
+```
+Required Demo Modes = MAX(CEIL((H1 + H2 + H3) / 3), 2)
+```
+
+**计算公式**：
+
+1. 统计文档中 H1、H2、H3 标题数量
+2. 计算 `(标题数 / 3)` 向上取整
+3. **最小值为 2**（即使只有 1-2 个标题，也至少需要 2 个 Demo）
+
+**示例**：
+
+- 6 个标题 → ceil(6/3) = **2 个 Demo**
+- 3 个标题 → ceil(3/3) = 1 → max(1, 2) = **2 个 Demo**
+- 9 个标题 → ceil(9/3) = **3 个 Demo**
+
+### 为什么这是硬性要求？
+
+1. **文档即交互**：MetaDoc 的手册不是静态文本，而是可交互的实机演示
+2. **零认知负担**：用户不需要切换窗口就能理解功能
+3. **沉浸式学习**：边看文档边操作真实组件
+4. **质量标准**：标题数量反映内容复杂度，Demo 数量必须与之匹配
+
+### 实现方式
+
+在 Markdown 中嵌入 Vue 组件：
+
+```markdown
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+<MainTabs mode="demo" />
+<Outline mode="demo" />
+```
+
+### ⚠️ 不可绕过的限制
+
+**禁止**以下行为：
+
+- ❌ 使用 `<!-- eslint-disable -->` 或类似注释跳过检查
+- ❌ 修改 `scripts/lint-manuals.js` 降低要求或删除检查
+- ❌ 使用 `--no-verify` 提交
+- ❌ 将规则从 error 降级为 warn
+- ❌ 在 AGENTS.md 中删除或修改此规则说明
+
+**违规后果**：
+
+- 构建会被阻塞（`npm run build` 会失败）
+- 代码无法合并到主分支
+- 需要立即修复
+
+### 如何修复
+
+如果 lint 报错：
+
+```
+Demo模式覆盖不足: 需要 3 个 (H1-H3共8个标题), 实际只有 1 个
+```
+
+**修复步骤**：
+
+1. 在文档中提到的每个界面控件旁添加对应 Demo 组件
+2. 参考 `src/renderer/src/manuals/zh_CN/quick-start/guide.md` 作为标杆
+3. 查看 `src/renderer/src/manuals/WRITING_GUIDE.md` 了解可用组件
+4. 重新运行 `npm run lint:manuals` 验证
+
+### 相关文件
+
+- **Lint 脚本**: `scripts/lint-manuals.js` - `checkDemoModeCoverage()` 函数
+- **规则文档**: `docs/DEMO_MODE_COVERAGE_LINTING.md`
+- **组件使用**: `src/renderer/src/manuals/WRITING_GUIDE.md`
+- **组件注册**: `src/renderer/src/manuals/demo-registry-components.ts`
+
+---
+
 ## OVERVIEW
 
 MetaDoc — LLM Agent-powered intelligent document processing desktop app. Electron (main: TypeScript) + Vue 3 (renderer: mixed TS/JS) + Pinia + shadcn-vue + Element Plus. Supports Markdown & LaTeX editing with AI agent framework, multi-format export, knowledge base (RAG), and OCR. Also targets Android via Capacitor (same repo).

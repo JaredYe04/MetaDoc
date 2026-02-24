@@ -16,6 +16,7 @@
     "lint:code": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "lint:manuals": "node scripts/lint-manuals.js",
     "lint:manuals:check": "node scripts/lint-manuals.js",
+    "lint:demos": "node scripts/lint-demo-coverage.js",
     "start": "electron-vite preview",
     "dev": "concurrently \"electron-vite dev\" \"vite\"",
     "open-test": "concurrently \"electron-vite dev -- c:\\Users\\tange\\Documents\\软件工程概述和流程.md\" \"vite\"",

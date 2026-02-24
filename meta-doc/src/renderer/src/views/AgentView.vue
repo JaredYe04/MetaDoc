@@ -451,8 +451,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+
+// === Demo Mode Props ===
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 import { ElMessageBox, ElLoading } from 'element-plus'
-import { notifySuccess, notifyError, notifyWarning } from '../utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notify'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
@@ -739,6 +745,119 @@ const availableEngines = ref(agentEngineManager.getEnabledEngines())
 const currentAiTaskHandle = ref<string | null>(null)
 const aiTaskHandles = ref<Set<string>>(new Set()) // 保存所有AI任务的handle
 const isGenerating = ref(false)
+
+// === Demo Mode Data ===
+const loadDemoData = () => {
+  // 创建演示会话
+  const demoSessions: AgentSession[] = [
+    {
+      id: 'demo-session-1',
+      title: '代码审查会话',
+      description: '审查 Vue 组件代码',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: [
+        {
+          id: 'demo-msg-1',
+          role: 'user',
+          type: 'chat',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          markdown: '请帮我审查这个 Vue 组件的代码质量'
+        },
+        {
+          id: 'demo-msg-2',
+          role: 'assistant',
+          type: 'chat',
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+          markdown:
+            '我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范'
+        }
+      ],
+      activeToolIds: ['code-executor'],
+      agentConfigId: 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {
+        document: {
+          id: 'demo-doc-1',
+          path: '',
+          format: 'md'
+        }
+      },
+      executionNodes: [],
+      status: 'idle'
+    },
+    {
+      id: 'demo-session-2',
+      title: '文档翻译助手',
+      description: '翻译技术文档',
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000).toISOString(),
+      messages: [
+        {
+          id: 'demo-msg-3',
+          role: 'user',
+          type: 'chat',
+          timestamp: new Date(Date.now() - 90000000).toISOString(),
+          markdown: '将这段文档翻译成中文'
+        }
+      ],
+      activeToolIds: [],
+      agentConfigId: 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {},
+      executionNodes: [],
+      status: 'idle'
+    },
+    {
+      id: 'demo-session-3',
+      title: 'Bug 分析',
+      description: '分析错误日志',
+      createdAt: new Date(Date.now() - 259200000).toISOString(),
+      updatedAt: new Date(Date.now() - 172800000).toISOString(),
+      messages: [],
+      activeToolIds: [],
+      agentConfigId: 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {},
+      executionNodes: [],
+      status: 'idle'
+    }
+  ]
+
+  sessionsState.value = demoSessions
+  activeSessionId.value = demoSessions[0].id
+
+  // 演示引擎列表
+  availableEngines.value = [
+    {
+      id: 'default-autogpt-engine',
+      name: 'AutoGPT 引擎',
+      engineType: 'autogpt',
+      enabled: true,
+      isBuiltIn: true
+    },
+    {
+      id: 'simple-chat-engine',
+      name: '简单对话引擎',
+      engineType: 'simple-chat',
+      enabled: true,
+      isBuiltIn: false
+    }
+  ]
+  selectedEngineId.value = 'default-autogpt-engine'
+}
+
+// === Demo Mode Guards ===
+const guardDemoAction = (actionName: string): boolean => {
+  if (isDemo.value) {
+    notifyInfo(t('agent.demo.modeHint', `演示模式: ${actionName} 操作仅用于展示`))
+    return true
+  }
+  return false
+}
 const showEditMessageDialog = ref(false)
 const editingMessage = ref<ChatAgentMessage | null>(null)
 const editingMessageContent = ref('')
@@ -836,6 +955,11 @@ const persistSessions = () => {
 watch(
   () => activeDocument.value?.agentSessions,
   (sessions) => {
+    // 演示模式：跳过文档会话同步
+    if (isDemo.value) {
+      return
+    }
+
     const doc = activeDocument.value
     if (!doc) {
       sessionsState.value = []
@@ -1059,6 +1183,29 @@ const referenceCount = computed(() => activeSession.value?.referenceStore?.lengt
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow()
 
 const createSession = (agentConfigId?: string) => {
+  // 演示模式：直接创建演示会话
+  if (isDemo.value) {
+    const demoSession: AgentSession = {
+      id: `demo-session-${Date.now()}`,
+      title: `演示会话 ${sessionsState.value.length + 1}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: [],
+      activeToolIds: [],
+      agentConfigId: agentConfigId || 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {},
+      executionNodes: [],
+      status: 'idle'
+    }
+    sessionsState.value.unshift(demoSession)
+    activeSessionId.value = demoSession.id
+    showCreateSessionDialog.value = false
+    notifySuccess(t('agent.sessions.createSuccess', '会话创建成功'))
+    return
+  }
+
   if (!agentConfigId) {
     showCreateSessionDialog.value = true
     return
@@ -1120,6 +1267,16 @@ const deleteSession = async (session?: AgentSession) => {
   // 如果删除后没有会话了，不允许删除（需要至少保留一个）
   if (sessionsState.value.length <= 1) {
     notifyWarning(t('agent.sessions.atLeastOneRequired'))
+    return
+  }
+
+  // 演示模式：直接删除不确认
+  if (isDemo.value) {
+    sessionsState.value = sessionsState.value.filter((item) => item.id !== target.id)
+    ensureActiveSessionId()
+    if (sessionsState.value.length === 0) {
+      loadDemoData()
+    }
     return
   }
 
@@ -1225,6 +1382,28 @@ const createChatMessage = (
 })
 
 const handleComposerSubmit = async () => {
+  // 演示模式：显示提示并返回
+  if (guardDemoAction('发送消息')) {
+    // 演示模式下添加模拟消息
+    const session = activeSession.value
+    if (session) {
+      const message = createChatMessage('user', composerInput.value.trim() || '演示消息')
+      session.messages.push(message)
+      touchSession(session)
+      composerInput.value = ''
+      // 模拟AI回复
+      setTimeout(() => {
+        const reply = createChatMessage(
+          'assistant',
+          '这是演示模式下的模拟回复。在实际使用中，AI会根据您的消息生成智能回复。'
+        )
+        session.messages.push(reply)
+        touchSession(session)
+      }, 1000)
+    }
+    return
+  }
+
   const logger = createRendererLogger('AgentView')
   logger.debug('[handleComposerSubmit] 开始处理用户消息提交')
 
@@ -1817,6 +1996,12 @@ const handleToggleReference = (referenceId: string) => {
 
 const handleAttachFile = async (fileOrFiles?: File | File[]) => {
   if (!activeSession.value) {
+    return
+  }
+
+  // 演示模式：显示提示
+  if (isDemo.value) {
+    notifyInfo(t('agent.demo.attachHint', '演示模式：附件功能仅用于展示'))
     return
   }
 
@@ -2714,6 +2899,12 @@ const handleMessageDelete = async (message: AgentMessage) => {
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
+
+  // 演示模式：加载演示数据
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
 
   // 初始化引擎选择器
   const defaultEngine = agentEngineManager.getDefaultEngine()

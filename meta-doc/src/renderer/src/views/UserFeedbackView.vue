@@ -5,60 +5,55 @@
     </div>
 
     <div class="feedback-form-scroll">
-      <el-form :model="form" label-position="top" class="feedback-form">
-        <el-form-item :label="$t('userFeedback.feedbackType')" required>
-          <el-select
-            v-model="form.type"
-            :placeholder="$t('userFeedback.selectType')"
-            style="width: 100%"
-            :style="{ color: themeState.currentTheme.textColor }"
-            :disabled="submitting"
-          >
-            <el-option
-              v-for="opt in feedbackTypeOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
-        </el-form-item>
+      <Form class="feedback-form space-y-4">
+        <FormField :label="$t('userFeedback.feedbackType')" name="type" required>
+          <Select v-model="form.type" :disabled="submitting">
+            <SelectTrigger :style="{ color: themeState.currentTheme.textColor, width: '100%' }">
+              <SelectValue :placeholder="$t('userFeedback.selectType')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="opt in feedbackTypeOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
 
-        <el-form-item :label="$t('userFeedback.titleLabel')" required>
-          <el-input
+        <FormField :label="$t('userFeedback.titleLabel')" name="title" required>
+          <Input
             v-model="form.title"
             :placeholder="$t('userFeedback.titlePlaceholder')"
             maxlength="200"
-            show-word-limit
             :disabled="submitting"
           />
-        </el-form-item>
+          <div class="text-xs text-muted-foreground mt-1">{{ form.title.length }}/200</div>
+        </FormField>
 
-        <el-form-item :label="$t('userFeedback.bodyLabel')" required>
+        <FormField :label="$t('userFeedback.bodyLabel')" name="body" required>
           <div ref="editorContainer" class="monaco-editor-container"></div>
-        </el-form-item>
+        </FormField>
 
-        <el-form-item :label="$t('userFeedback.attachments')">
+        <FormField :label="$t('userFeedback.attachments')" name="attachments">
           <div class="attachments-area">
-            <el-upload
+            <Upload
               ref="uploadRef"
               :auto-upload="false"
               :limit="5"
               multiple
               :show-file-list="false"
               :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
-              :on-change="handleFileChange"
-              :on-exceed="handleExceed"
-              :on-remove="handleRemove"
-              :file-list="fileList"
-              accept="*/*"
+              @change="handleFileChange"
+              @exceed="handleExceed"
+              @remove="handleRemove"
+              v-model:file-list="fileList"
             >
-              <el-button
+              <Button
                 type="primary"
                 plain
                 :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
-                >{{ $t('userFeedback.addAttachment') }}</el-button
+                >{{ $t('userFeedback.addAttachment') }}</Button
               >
-            </el-upload>
+            </Upload>
             <div v-if="attachmentBase64List.length > 0" class="attachment-list">
               <div
                 v-for="(att, index) in attachmentBase64List"
@@ -74,22 +69,17 @@
                   :alt="att.filename"
                 />
                 <span v-else class="attachment-name">{{ att.filename }}</span>
-                <el-icon
+                <Check
                   v-if="uploadedAttachmentIndices.includes(index)"
-                  class="attachment-uploaded-check"
+                  class="w-4 h-4"
                   title="已上传到 Gist"
-                  ><Check
-                /></el-icon>
-                <el-icon v-if="isImageMime(att.mime)" class="attachment-preview-hint"
-                  ><View
-                /></el-icon>
-                <el-icon
+                />
+                <Eye v-if="isImageMime(att.mime)" class="w-4 h-4" />
+                <XCircle
                   v-show="!submitting"
-                  class="attachment-remove"
+                  class="w-4 h-4"
                   @click.stop="removeAttachment(att.filename)"
-                >
-                  <CircleClose />
-                </el-icon>
+                />
               </div>
             </div>
             <div class="attachment-hint">
@@ -97,7 +87,7 @@
             </div>
             <div v-if="attachmentsError" class="attachment-error">{{ attachmentsError }}</div>
           </div>
-        </el-form-item>
+        </FormField>
 
         <div class="feedback-footer">
           <div class="footer-hint">{{ $t('userFeedback.footerHint') }}</div>
@@ -112,13 +102,13 @@
             <span class="footer-copy" @click="copyToClipboard('1079841705')">1079841705</span>
           </div>
         </div>
-      </el-form>
+      </Form>
     </div>
 
     <div class="feedback-submit-bar">
-      <el-button type="primary" :loading="submitting" :disabled="!canSubmit" @click="handleSubmit">
+      <Button type="primary" :loading="submitting" :disabled="!canSubmit" @click="handleSubmit">
         {{ submitting ? $t('userFeedback.submitting') : $t('userFeedback.submit') }}
-      </el-button>
+      </Button>
     </div>
 
     <ImagePreviewDialog v-model="showImagePreview" :image-url="previewImageUrl" />
@@ -128,9 +118,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-import type { UploadFile, UploadInstance } from 'element-plus'
-import { View, CircleClose, Check } from '@element-plus/icons-vue'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps<{ mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+import { Eye, XCircle, Check } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Upload, type UploadFile } from '@renderer/components/ui/upload'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'
@@ -168,7 +172,8 @@ const attachmentBase64List = ref<Array<{ filename: string; mime: string; content
   []
 )
 const attachmentsError = ref('')
-const uploadRef = ref<UploadInstance>()
+const uploadRef = ref<any>()
+
 const bodyFromEditor = ref('')
 const showImagePreview = ref(false)
 const previewImageUrl = ref('')
@@ -348,8 +353,20 @@ function getMime(filename: string): string {
 async function handleFileChange(uploadFile: UploadFile) {
   const raw = uploadFile.raw
   if (!raw) return
+
+  // Demo mode: simulate file upload without reading
+  if (isDemo.value) {
+    notifyInfo(`Demo mode: File "${raw.name}" attached (simulated)`)
+    attachmentBase64List.value.push({
+      filename: raw.name,
+      mime: getMime(raw.name),
+      content_base64: 'demo-base64-content'
+    })
+    return
+  }
+
   if (raw.size > SINGLE_FILE_MAX_BYTES) {
-    ElMessage.warning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
+    notifyWarning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
     fileList.value = fileList.value.filter((f) => f.uid !== uploadFile.uid)
     return
   }
@@ -382,7 +399,7 @@ async function handleFileChange(uploadFile: UploadFile) {
 }
 
 function handleExceed() {
-  ElMessage.warning(t('userFeedback.errors.tooManyFiles', { max: MAX_ATTACHMENTS }))
+  notifyWarning(t('userFeedback.errors.tooManyFiles', { max: MAX_ATTACHMENTS }))
 }
 
 function handleRemove(uploadFile: UploadFile) {
@@ -407,9 +424,9 @@ function openImagePreview(att: { filename: string; mime: string; content_base64:
 async function copyToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success(t('userFeedback.copied'))
+    notifySuccess(t('userFeedback.copied'))
   } catch {
-    ElMessage.error(t('userFeedback.copyFailed'))
+    notifyError(t('userFeedback.copyFailed'))
   }
 }
 
@@ -423,22 +440,38 @@ async function handleSubmit() {
   const body = editor.getValue()
   form.value.body = body
   if (!form.value.title.trim()) {
-    ElMessage.warning(t('userFeedback.errors.titleRequired'))
+    notifyWarning(t('userFeedback.errors.titleRequired'))
     return
   }
   if (!body.trim()) {
-    ElMessage.warning(t('userFeedback.errors.bodyRequired'))
+    notifyWarning(t('userFeedback.errors.bodyRequired'))
     return
   }
   if (!validateAttachments()) {
     return
   }
+
+  // Demo mode: disable real submission
+  if (isDemo.value) {
+    notifyInfo('Demo mode: Feedback submission is simulated')
+    form.value.title = ''
+    form.value.body = ''
+    fileList.value = []
+    attachmentBase64List.value = []
+    uploadRef.value?.clearFiles()
+    if (editor) {
+      const template = await buildBodyTemplate()
+      editor.setValue(template)
+    }
+    return
+  }
+
   submitting.value = true
   uploadedAttachmentIndices.value = []
   try {
     const ipc = messageBridge.getIpc()
     if (!ipc?.invoke) {
-      ElMessage.error(t('userFeedback.errors.noIpc'))
+      notifyError(t('userFeedback.errors.noIpc'))
       return
     }
     const attachmentsJson = JSON.stringify(attachmentBase64List.value)
@@ -448,7 +481,7 @@ async function handleSubmit() {
       body,
       attachments: attachmentsJson
     })
-    ElMessage.success(t('userFeedback.submitSuccess'))
+    notifySuccess(t('userFeedback.submitSuccess'))
     form.value.title = ''
     form.value.body = ''
     const template = await buildBodyTemplate()
@@ -459,7 +492,7 @@ async function handleSubmit() {
     uploadRef.value?.clearFiles()
   } catch (err: any) {
     const msg = err?.message || String(err)
-    ElMessage.error(t('userFeedback.submitFailed') + ': ' + msg)
+    notifyError(t('userFeedback.submitFailed') + ': ' + msg)
   } finally {
     submitting.value = false
   }
@@ -467,7 +500,65 @@ async function handleSubmit() {
 
 let feedbackAttachmentUploadedHandler: ((_e: any, index: number) => void) | null = null
 
+// Load demo data for demo mode
+const loadDemoData = () => {
+  form.value.type = 'feature'
+  form.value.title = 'Demo Feature Request'
+  // Demo body content
+  const demoBody = `### System Info
+
+- OS: Demo OS
+- CPU: Demo CPU
+- GPU: Demo GPU
+- RAM: 16 GB
+- MetaDoc Version: 1.0.0
+
+### Describe the Problem
+
+This is a demo feedback form showing how users can submit feature requests or bug reports.
+
+### Expected Result
+
+The demo mode displays a fully functional UI without actually submitting data.
+
+### Other Information
+
+Demo mode is useful for documentation and tutorials.
+
+### Contact (Optional)
+
+\u003c!-- Leave your contact if needed --\u003e`
+  if (editor) {
+    editor.setValue(demoBody)
+  }
+}
+
 onMounted(async () => {
+  // Demo mode: skip real IPC setup
+  if (isDemo.value) {
+    setupMonacoWorker()
+    if (!editorContainer.value) return
+    const isDark = themeState.currentTheme.type === 'dark'
+    editor = monaco.editor.create(editorContainer.value, {
+      value: '',
+      language: 'markdown',
+      theme: isDark ? 'vs-dark' : 'vs',
+      automaticLayout: true,
+      minimap: { enabled: true },
+      scrollBeyondLastLine: false,
+      fontSize: 14,
+      lineNumbers: 'on',
+      wordWrap: 'on',
+      readOnly: false
+    })
+    bodyFromEditor.value = editor.getValue()
+    editor.onDidChangeModelContent(() => {
+      bodyFromEditor.value = editor?.getModel()?.getValue() ?? ''
+    })
+    loadDemoData()
+    return
+  }
+
   feedbackAttachmentUploadedHandler = (_e: any, index: number) => {
     uploadedAttachmentIndices.value = [...uploadedAttachmentIndices.value, index]
   }

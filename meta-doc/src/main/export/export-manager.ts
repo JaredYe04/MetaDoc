@@ -3065,7 +3065,8 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         }
         // 检查是否是网络图片（http(s)但不是运行时服务器）
         else if (
-          (imagePath.startsWith('http://') && !imagePath.startsWith(getRuntimeServerBaseUrl() + '/')) ||
+          (imagePath.startsWith('http://') &&
+            !imagePath.startsWith(getRuntimeServerBaseUrl() + '/')) ||
           imagePath.startsWith('https://')
         ) {
           // 如果还有网络图片，尝试在 main 进程中下载并上传

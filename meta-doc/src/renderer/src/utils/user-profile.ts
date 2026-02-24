@@ -63,7 +63,12 @@ export function getRecommendedPath(profile: UserProfile | null): string[] {
       paths.push('core.fileOperations', 'latex.basic', 'charts.mermaid', 'agent.introduction')
       break
     case 'it':
-      paths.push('core.fileOperations', 'markdown.advanced', 'charts.plantuml', 'agent.capabilities')
+      paths.push(
+        'core.fileOperations',
+        'markdown.advanced',
+        'charts.plantuml',
+        'agent.capabilities'
+      )
       break
     case 'office':
       paths.push('core.fileOperations', 'markdown.basic', 'ai.tools', 'core.export')

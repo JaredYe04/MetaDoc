@@ -484,7 +484,7 @@ async function answerQuestionNonStream(
 
     const completionParams = adapter.buildCompletionPayload(prompt, {
       ...meta,
-      max_tokens: maxTokens
+      max_tokens: effectiveMaxTokens
     })
 
     const completion = await openai.completions.create(completionParams, {

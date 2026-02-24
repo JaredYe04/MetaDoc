@@ -2,7 +2,13 @@
  * 用户手册工具函数
  */
 
-import type { ManualIndex, ManualArticle, UserProfile, LearningPath, ArticleProgress } from './types'
+import type {
+  ManualIndex,
+  ManualArticle,
+  UserProfile,
+  LearningPath,
+  ArticleProgress
+} from './types'
 
 let manualIndexCache: ManualIndex | null = null
 
@@ -30,7 +36,7 @@ export async function loadManualIndex(): Promise<ManualIndex> {
  */
 export async function getAllArticles(): Promise<ManualArticle[]> {
   const index = await loadManualIndex()
-  return index.categories.flatMap(category => category.articles)
+  return index.categories.flatMap((category) => category.articles)
 }
 
 /**
@@ -38,7 +44,7 @@ export async function getAllArticles(): Promise<ManualArticle[]> {
  */
 export async function getArticleById(articleId: string): Promise<ManualArticle | null> {
   const articles = await getAllArticles()
-  return articles.find(article => article.id === articleId) || null
+  return articles.find((article) => article.id === articleId) || null
 }
 
 /**
@@ -179,7 +185,7 @@ function calculateArticleScore(article: ManualArticle, profile: UserProfile): nu
 export async function generateLearningPath(profile: UserProfile): Promise<string[]> {
   const index = await loadManualIndex()
   const allArticles = await getAllArticles()
-  
+
   // 如果没有场景信息，返回默认路径
   if (!profile.scenario || profile.scenario === 'other') {
     return index.learningPaths.student?.articles || []
@@ -193,10 +199,10 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
 
   // 从基础路径开始
   let path = [...basePath.articles]
-  const articleMap = new Map(allArticles.map(a => [a.id, a]))
+  const articleMap = new Map(allArticles.map((a) => [a.id, a]))
 
   // 过滤不适合的文档
-  path = path.filter(id => {
+  path = path.filter((id) => {
     const article = articleMap.get(id)
     if (!article) return false
     return isArticleSuitableForProfile(article, profile)
@@ -205,12 +211,14 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
   // 根据熟练度调整路径
   // 如果Markdown熟练度 >= 2，跳过基础教程
   if (profile.markdownLevel !== undefined && profile.markdownLevel >= 2) {
-    path = path.filter(id => {
+    path = path.filter((id) => {
       const article = articleMap.get(id)
       if (!article) return true
       // 跳过基础Markdown教程
-      if (id.startsWith('markdown.basics') || 
-          (article.requiredExperience?.markdown === 0 && id.startsWith('markdown.'))) {
+      if (
+        id.startsWith('markdown.basics') ||
+        (article.requiredExperience?.markdown === 0 && id.startsWith('markdown.'))
+      ) {
         return false
       }
       return true
@@ -219,12 +227,14 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
 
   // 如果LaTeX熟练度 >= 2，跳过基础教程
   if (profile.latexLevel !== undefined && profile.latexLevel >= 2) {
-    path = path.filter(id => {
+    path = path.filter((id) => {
       const article = articleMap.get(id)
       if (!article) return true
       // 跳过基础LaTeX教程
-      if (id.startsWith('latex.basics') || 
-          (article.requiredExperience?.latex === 0 && id.startsWith('latex.'))) {
+      if (
+        id.startsWith('latex.basics') ||
+        (article.requiredExperience?.latex === 0 && id.startsWith('latex.'))
+      ) {
         return false
       }
       return true
@@ -233,11 +243,14 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
 
   // 如果Agent了解程度 < 2，移除高级Agent文档
   if (profile.agentLevel !== undefined && profile.agentLevel < 2) {
-    path = path.filter(id => {
+    path = path.filter((id) => {
       const article = articleMap.get(id)
       if (!article) return true
       // 移除需要Agent经验的文档
-      if (article.requiredExperience?.agent !== undefined && article.requiredExperience.agent >= 2) {
+      if (
+        article.requiredExperience?.agent !== undefined &&
+        article.requiredExperience.agent >= 2
+      ) {
         return false
       }
       return true
@@ -249,37 +262,39 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
 
   // 如果使用过WYSIWYG Markdown编辑器，推荐WYSIWYG模式相关文档
   if (profile.usedWysiwygMarkdown) {
-    const wysiwygArticles = allArticles.filter(a => 
-      a.recommendedFor?.wysiwygMarkdown && !path.includes(a.id)
+    const wysiwygArticles = allArticles.filter(
+      (a) => a.recommendedFor?.wysiwygMarkdown && !path.includes(a.id)
     )
-    additionalArticles.push(...wysiwygArticles.map(a => a.id))
+    additionalArticles.push(...wysiwygArticles.map((a) => a.id))
   }
 
   // 如果使用过LaTeX编辑器，推荐LaTeX相关文档
   if (profile.usedLatexEditor && (profile.latexLevel ?? 0) > 0) {
-    const latexArticles = allArticles.filter(a => 
-      a.recommendedFor?.latexEditor && !path.includes(a.id) && a.id.startsWith('latex.')
+    const latexArticles = allArticles.filter(
+      (a) => a.recommendedFor?.latexEditor && !path.includes(a.id) && a.id.startsWith('latex.')
     )
-    additionalArticles.push(...latexArticles.map(a => a.id))
+    additionalArticles.push(...latexArticles.map((a) => a.id))
   }
 
   // 如果使用过其他Markdown编辑器，推荐相关功能文档
   if (profile.usedOtherMarkdownEditor) {
-    const otherEditorArticles = allArticles.filter(a => 
-      a.recommendedFor?.otherMarkdownEditor && !path.includes(a.id)
+    const otherEditorArticles = allArticles.filter(
+      (a) => a.recommendedFor?.otherMarkdownEditor && !path.includes(a.id)
     )
-    additionalArticles.push(...otherEditorArticles.map(a => a.id))
+    additionalArticles.push(...otherEditorArticles.map((a) => a.id))
   }
 
   // 添加额外推荐的文档（按分数排序）
-  const scoredArticles = additionalArticles.map(id => {
-    const article = articleMap.get(id)
-    return {
-      id,
-      score: article ? calculateArticleScore(article, profile) : 0,
-      article
-    }
-  }).filter(item => item.article && isArticleSuitableForProfile(item.article, profile))
+  const scoredArticles = additionalArticles
+    .map((id) => {
+      const article = articleMap.get(id)
+      return {
+        id,
+        score: article ? calculateArticleScore(article, profile) : 0,
+        article
+      }
+    })
+    .filter((item) => item.article && isArticleSuitableForProfile(item.article, profile))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5) // 最多添加5个额外文档
 
@@ -312,8 +327,10 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
   for (const id of path) {
     const article = articleMap.get(id)
     if (!article) continue
-    if (article.prerequisites.length === 0 || 
-        article.prerequisites.every(prereq => added.has(prereq) || !path.includes(prereq))) {
+    if (
+      article.prerequisites.length === 0 ||
+      article.prerequisites.every((prereq) => added.has(prereq) || !path.includes(prereq))
+    ) {
       sortedPath.push(id)
       added.add(id)
     }
@@ -327,11 +344,11 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
       if (added.has(id)) continue
       const article = articleMap.get(id)
       if (!article) continue
-      
-      const allPrereqsMet = article.prerequisites.every(prereq => 
-        !path.includes(prereq) || added.has(prereq)
+
+      const allPrereqsMet = article.prerequisites.every(
+        (prereq) => !path.includes(prereq) || added.has(prereq)
       )
-      
+
       if (allPrereqsMet) {
         sortedPath.push(id)
         added.add(id)
@@ -358,10 +375,10 @@ export async function buildLearningGraph(articleIds: string[]): Promise<{
   edges: Array<{ source: string; target: string; type: 'prerequisite' | 'related' }>
 }> {
   const articles = await getAllArticles()
-  const articleMap = new Map(articles.map(a => [a.id, a]))
-  
+  const articleMap = new Map(articles.map((a) => [a.id, a]))
+
   const nodes = articleIds
-    .map(id => {
+    .map((id) => {
       const article = articleMap.get(id)
       if (!article) return null
       return {
@@ -373,7 +390,7 @@ export async function buildLearningGraph(articleIds: string[]): Promise<{
     .filter((n): n is NonNullable<typeof n> => n !== null)
 
   const edges: Array<{ source: string; target: string; type: 'prerequisite' | 'related' }> = []
-  
+
   for (const articleId of articleIds) {
     const article = articleMap.get(articleId)
     if (!article) continue
@@ -391,7 +408,10 @@ export async function buildLearningGraph(articleIds: string[]): Promise<{
 
     // 添加相关文档边（仅添加在路径中的）
     for (const relatedId of article.relatedArticles) {
-      if (articleIds.includes(relatedId) && !edges.some(e => e.source === relatedId && e.target === articleId)) {
+      if (
+        articleIds.includes(relatedId) &&
+        !edges.some((e) => e.source === relatedId && e.target === articleId)
+      ) {
         edges.push({
           source: articleId,
           target: relatedId,
@@ -412,8 +432,8 @@ export function calculateProgress(
   progressMap: Map<string, ArticleProgress>
 ): number {
   if (articleIds.length === 0) return 0
-  
-  const completed = articleIds.filter(id => {
+
+  const completed = articleIds.filter((id) => {
     const progress = progressMap.get(id)
     return progress?.read === true
   }).length

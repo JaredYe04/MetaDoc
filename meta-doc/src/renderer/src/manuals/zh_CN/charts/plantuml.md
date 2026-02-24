@@ -33,7 +33,7 @@ graph TB
     A --> E[活动图]
     A --> F[组件图]
     A --> G[其他UML图]
-    B --> H[@startuml<br/>@enduml]
+    B --> H["@startuml /@enduml"]
     C --> H
     D --> H
     E --> H

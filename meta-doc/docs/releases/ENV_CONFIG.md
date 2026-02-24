@@ -102,6 +102,7 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 **A:**
 
 - **`UPDATE_GITHUB_TOKEN`**：
+
   - 用于应用程序运行时检查更新
   - **不应**写在 `.env` 文件中（会被打包，用户可以看到）
   - 如果 Releases 仓库是公开的，不需要 Token
@@ -134,6 +135,7 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 **A:**
 
 1. **验证 `.env` 配置**：
+
    - 运行应用程序
    - 打开设置 → 关于
    - 点击"检查更新"

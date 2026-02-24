@@ -13,10 +13,12 @@ import type {
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { useWorkspace } from '../stores/workspace'
+import { useDocumentStore } from '../stores/document'
 import { DEFAULT_ARTICLE_META, DEFAULT_OUTLINE_TREE } from '../constants/document'
 
 const logger = createRendererLogger('DocumentService')
 const workspace = useWorkspace()
+const documentStore = useDocumentStore()
 
 /** 文档数据接口 */
 export interface DocumentData {
@@ -115,7 +117,7 @@ export class DocumentService {
   static async exportDocument(options: ExportOptions): Promise<void> {
     try {
       // 同步数据
-      sync()
+      documentStore.syncDocument()
 
       // 发送导出事件
       eventBus.emit('export', options)

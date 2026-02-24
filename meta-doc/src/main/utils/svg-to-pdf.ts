@@ -260,7 +260,9 @@ function normalizeSvgForResvg(input: string): string {
         }
       }
     }
-  } catch {}
+  } catch {
+    // SVG 解析失败，使用原始内容继续处理
+  }
 
   // 2) 在根级 style/属性上增强字体回退（避免缺字）
   if (!/--mermaid-font-family/i.test(svg)) {

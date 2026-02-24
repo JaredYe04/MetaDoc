@@ -3,15 +3,17 @@
     <div class="manager-header">
       <h2>{{ t('agent.manage.workflow.title') }}</h2>
       <div>
-        <el-button @click="handleImport">{{ t('agent.manage.import') }}</el-button>
-        <el-button type="primary" :icon="Plus" @click="handleCreate">
+        <Button @click="handleImport">{{ t('agent.manage.import') }}</Button>
+        <Button type="primary" @click="handleCreate">
+          <Plus class="h-4 w-4 mr-1" />
           {{ t('agent.manage.workflow.create') }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
-    <el-scrollbar class="workflow-list-scroll">
-      <div class="workflow-grid" v-loading="loading">
+    <ScrollArea class="workflow-list-scroll flex-1 min-h-0" style="position: relative">
+      <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
+      <div class="workflow-grid">
         <div
           v-for="workflow in workflows"
           :key="workflow.id"
@@ -31,84 +33,87 @@
               <el-icon><Document /></el-icon>
             </div>
             <div v-if="workflow.isBuiltIn" class="workflow-card__badge">
-              <el-tag size="small" type="info">{{ t('agent.manage.workflow.builtIn') }}</el-tag>
+              <Badge variant="secondary">{{ t('agent.manage.workflow.builtIn') }}</Badge>
             </div>
           </div>
           <div class="workflow-card__body">
             <h3>{{ getLocalizedText(workflow.name) }}</h3>
             <p>{{ getLocalizedText(workflow.description) }}</p>
             <div class="workflow-card__meta">
-              <el-tag size="small" effect="plain">
+              <Badge variant="outline">
                 {{ workflow.version }}
-              </el-tag>
-              <el-tag size="small" effect="plain">
+              </Badge>
+              <Badge variant="outline">
                 {{ workflow.artifactNodes.length + workflow.controlFlowNodes.length }}
                 {{ t('agent.manage.workflow.nodes') }}
-              </el-tag>
-              <el-tag
-                size="small"
-                :type="workflow.enabled !== false ? 'success' : 'info'"
-                effect="plain"
-              >
+              </Badge>
+              <Badge :variant="workflow.enabled !== false ? 'default' : 'secondary'">
                 {{
                   workflow.enabled !== false
                     ? t('agent.manage.enabled')
                     : t('agent.manage.disabled')
                 }}
-              </el-tag>
+              </Badge>
             </div>
           </div>
           <div class="workflow-card__actions" @click.stop>
-            <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, workflow)">
-              <el-button text circle :icon="More" size="small" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit" :disabled="workflow.isBuiltIn">
-                    {{ t('agent.manage.edit') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="validate">
-                    {{ t('agent.manage.workflow.validate') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="duplicate">
-                    {{ t('agent.sessions.duplicate') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export">
-                    {{ t('agent.manage.export') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    divided
-                    command="delete"
-                    :disabled="workflow.isBuiltIn"
-                    class="danger"
-                  >
-                    {{ t('agent.manage.delete') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" circle size="sm">
+                  <More class="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  :disabled="workflow.isBuiltIn"
+                  @click="handleAction('edit', workflow)"
+                >
+                  {{ t('agent.manage.edit') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleAction('validate', workflow)">
+                  {{ t('agent.manage.workflow.validate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleAction('duplicate', workflow)">
+                  {{ t('agent.sessions.duplicate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleAction('export', workflow)">
+                  {{ t('agent.manage.export') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  :disabled="workflow.isBuiltIn"
+                  @click="handleAction('delete', workflow)"
+                >
+                  {{ t('agent.manage.delete') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
 
     <!-- 工作流画布对话框 -->
-    <el-dialog
-      v-model="canvasVisible"
-      :title="editingWorkflow ? t('agent.manage.workflow.edit') : t('agent.manage.workflow.create')"
-      width="90%"
-      :style="dialogStyle"
-      :close-on-click-modal="false"
-    >
-      <div class="workflow-canvas-container">
-        <WorkflowCanvas
-          v-if="canvasVisible"
-          :workflow="editingWorkflow"
-          :read-only="editingWorkflow?.isBuiltIn || false"
-          @save="handleCanvasSave"
-          @cancel="canvasVisible = false"
-        />
-      </div>
-    </el-dialog>
+    <Dialog v-model:open="canvasVisible">
+      <DialogContent class="max-w-[90%]" :style="dialogStyle" :close-on-click-modal="false">
+        <DialogHeader>
+          <DialogTitle>
+            {{
+              editingWorkflow ? t('agent.manage.workflow.edit') : t('agent.manage.workflow.create')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <div class="workflow-canvas-container">
+          <WorkflowCanvas
+            v-if="canvasVisible"
+            :workflow="editingWorkflow"
+            :read-only="editingWorkflow?.isBuiltIn || false"
+            @save="handleCanvasSave"
+            @cancel="canvasVisible = false"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -122,8 +127,24 @@ import { workflowManager } from '../../../utils/agent-framework'
 import type { Workflow } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
 import { getWorkflowThumbnail } from '../../../utils/agent-framework/workflow-thumbnail'
+import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 // @ts-ignore - Vue组件类型声明
 import WorkflowCanvas from '../workflow/WorkflowCanvas.vue'
+
+// Demo mode support
+const props = defineProps<{ mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
 
@@ -155,12 +176,107 @@ const getLocalizedText = (text: LocalizedText): string => {
   return text['zh_cn']?.name || text['en_us']?.name || ''
 }
 
+// Demo workflows data
+const loadDemoWorkflows = (): Workflow[] => {
+  return [
+    {
+      id: 'demo-workflow-1',
+      name: 'Demo Document Processing',
+      description: 'A sample workflow for processing documents with AI',
+      entryNodeId: 'start-node',
+      exitNodeIds: ['end-node'],
+      artifactNodes: [
+        { id: 'start-node', type: 'start', name: 'Start', x: 100, y: 100 },
+        { id: 'ai-node', type: 'ai', name: 'AI Analysis', x: 300, y: 100 },
+        { id: 'end-node', type: 'end', name: 'End', x: 500, y: 100 }
+      ],
+      controlFlowNodes: [],
+      edges: [
+        { id: 'edge-1', source: 'start-node', target: 'ai-node' },
+        { id: 'edge-2', source: 'ai-node', target: 'end-node' }
+      ],
+      variables: [],
+      config: {},
+      enabled: true,
+      version: '1.0.0',
+      tags: ['demo', 'document'],
+      isBuiltIn: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    {
+      id: 'demo-workflow-2',
+      name: 'Demo Code Review',
+      description: 'Automated code review workflow',
+      entryNodeId: 'start-node',
+      exitNodeIds: ['end-node'],
+      artifactNodes: [
+        { id: 'start-node', type: 'start', name: 'Start', x: 100, y: 100 },
+        { id: 'parse-node', type: 'function', name: 'Parse Code', x: 250, y: 100 },
+        { id: 'review-node', type: 'ai', name: 'AI Review', x: 400, y: 100 },
+        { id: 'report-node', type: 'function', name: 'Generate Report', x: 550, y: 100 },
+        { id: 'end-node', type: 'end', name: 'End', x: 700, y: 100 }
+      ],
+      controlFlowNodes: [],
+      edges: [
+        { id: 'edge-1', source: 'start-node', target: 'parse-node' },
+        { id: 'edge-2', source: 'parse-node', target: 'review-node' },
+        { id: 'edge-3', source: 'review-node', target: 'report-node' },
+        { id: 'edge-4', source: 'report-node', target: 'end-node' }
+      ],
+      variables: [],
+      config: {},
+      enabled: true,
+      version: '1.0.0',
+      tags: ['demo', 'code'],
+      isBuiltIn: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    {
+      id: 'demo-workflow-3',
+      name: 'Custom Data Analysis',
+      description: 'User created workflow for data analysis',
+      entryNodeId: 'start-node',
+      exitNodeIds: ['end-node'],
+      artifactNodes: [
+        { id: 'start-node', type: 'start', name: 'Start', x: 100, y: 100 },
+        { id: 'data-node', type: 'function', name: 'Load Data', x: 300, y: 100 },
+        { id: 'ai-node', type: 'ai', name: 'AI Analysis', x: 500, y: 100 },
+        { id: 'end-node', type: 'end', name: 'End', x: 700, y: 100 }
+      ],
+      controlFlowNodes: [],
+      edges: [
+        { id: 'edge-1', source: 'start-node', target: 'data-node' },
+        { id: 'edge-2', source: 'data-node', target: 'ai-node' },
+        { id: 'edge-3', source: 'ai-node', target: 'end-node' }
+      ],
+      variables: [],
+      config: {},
+      enabled: false,
+      version: '0.5.0',
+      tags: ['demo', 'data'],
+      isBuiltIn: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+  ]
+}
+
 const loadWorkflows = () => {
   loading.value = true
   try {
-    workflows.value = workflowManager.getAllWorkflows()
-    // 加载缩略图
-    loadThumbnails()
+    if (isDemo.value) {
+      workflows.value = loadDemoWorkflows()
+      // Demo thumbnails (placeholder)
+      workflows.value.forEach((w) => {
+        workflowThumbnails.value[w.id] = ''
+      })
+    } else {
+      workflows.value = workflowManager.getAllWorkflows()
+      // 加载缩略图
+      loadThumbnails()
+    }
   } finally {
     loading.value = false
   }
@@ -207,6 +323,19 @@ const handleAction = async (action: string, workflow: Workflow) => {
 }
 
 const handleCanvasSave = async (workflow: Workflow) => {
+  // Demo mode: simulate save
+  if (isDemo.value) {
+    ElMessage.success(
+      editingWorkflow.value
+        ? t('agent.manage.workflow.updateSuccess')
+        : t('agent.manage.workflow.createSuccess')
+    )
+    canvasVisible.value = false
+    // In demo mode, reload demo data to simulate persistence
+    loadWorkflows()
+    return
+  }
+
   try {
     if (editingWorkflow.value) {
       await workflowManager.updateWorkflow(editingWorkflow.value.id, workflow)
@@ -236,6 +365,23 @@ const handleDelete = async (workflow: Workflow) => {
     return
   }
 
+  // Demo mode: simulate delete
+  if (isDemo.value) {
+    try {
+      await ElMessageBox.confirm(
+        t('agent.manage.workflow.confirmDelete', { name: getLocalizedText(workflow.name) }),
+        t('common.confirm'),
+        { type: 'warning' }
+      )
+      ElMessage.success(t('agent.manage.workflow.deleteSuccess'))
+      // Remove from demo list
+      workflows.value = workflows.value.filter((w) => w.id !== workflow.id)
+    } catch (error) {
+      // User cancelled
+    }
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
       t('agent.manage.workflow.confirmDelete', { name: getLocalizedText(workflow.name) }),
@@ -253,6 +399,12 @@ const handleDelete = async (workflow: Workflow) => {
 }
 
 const handleValidate = (workflow: Workflow) => {
+  // Demo mode: simulate validation
+  if (isDemo.value) {
+    ElMessage.success(t('agent.manage.workflow.validationSuccess'))
+    return
+  }
+
   const validation = workflowManager.validateWorkflow(workflow)
   if (validation.valid) {
     ElMessage.success(t('agent.manage.workflow.validationSuccess'))
@@ -264,6 +416,12 @@ const handleValidate = (workflow: Workflow) => {
 }
 
 const handleExport = (workflow: Workflow) => {
+  // Demo mode: simulate export
+  if (isDemo.value) {
+    ElMessage.success(t('agent.manage.exportSuccess'))
+    return
+  }
+
   try {
     const entity = workflowManager.exportWorkflow(workflow.id, true)
     if (entity) {
@@ -283,6 +441,22 @@ const handleExport = (workflow: Workflow) => {
 }
 
 const handleDuplicate = async (workflow: Workflow) => {
+  // Demo mode: simulate duplicate
+  if (isDemo.value) {
+    const baseName = getLocalizedText(workflow.name) || workflow.id
+    const newWorkflow = {
+      ...workflow,
+      id: `demo-${Date.now()}`,
+      name: typeof workflow.name === 'string' ? `${baseName} - Copy` : baseName,
+      isBuiltIn: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+    workflows.value.push(newWorkflow)
+    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    return
+  }
+
   try {
     const baseName = getLocalizedText(workflow.name) || workflow.id
     const newNameZh = `${baseName} - ${t('agent.sessions.duplicate')}`
@@ -335,6 +509,12 @@ const handleImport = () => {
   input.onchange = async (e) => {
     const file = (e.target as HTMLInputElement).files?.[0]
     if (!file) return
+
+    // Demo mode: simulate import
+    if (isDemo.value) {
+      ElMessage.success(t('agent.manage.importSuccess'))
+      return
+    }
 
     try {
       const text = await file.text()

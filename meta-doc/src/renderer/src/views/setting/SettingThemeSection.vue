@@ -32,25 +32,10 @@
         <!-- 主题信息 -->
         <div class="theme-card__info">
           <div class="theme-card__name">{{ theme.name }}</div>
-          <div v-if="theme.type === 'custom' && !theme.isDefault" class="theme-card__color-wrapper">
-            <div class="theme-card__color" :style="{ color: getEditingColor(theme) }">
-              {{ getEditingColor(theme) }}
+          <div v-if="theme.type === 'custom'" class="theme-card__color-wrapper">
+            <div class="theme-card__color" :style="{ color: theme.themeColor }">
+              {{ theme.themeColor }}
             </div>
-            <!-- 颜色选择器（仅用户自定义主题，不包括预设主题） -->
-            <el-color-picker
-              v-model="editingColorMap[theme.id]"
-              :predefine="predefineColors"
-              size="small"
-              @change="(val: string | null) => handleColorPickerChange(theme, val)"
-              @visible-change="(visible: boolean) => handleColorPickerVisibleChange(theme, visible)"
-            />
-          </div>
-          <div
-            v-else-if="theme.type === 'custom' && theme.isDefault"
-            class="theme-card__color"
-            :style="{ color: theme.themeColor }"
-          >
-            {{ theme.themeColor }}
           </div>
           <div
             v-else-if="theme.type === 'sync-color'"
@@ -62,39 +47,43 @@
 
         <!-- 操作按钮 -->
         <div class="theme-card__actions" @click.stop>
-          <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, theme)">
-            <el-button text circle :icon="More" size="small" />
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="duplicate" :icon="CopyDocument">
-                  {{ t('setting.duplicate') }}
-                </el-dropdown-item>
-                <el-dropdown-item v-if="!theme.isDefault" command="edit" :icon="Edit">
-                  {{ t('setting.edit') }}
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="!theme.isDefault"
-                  command="delete"
-                  :icon="Delete"
-                  class="danger"
-                >
-                  {{ t('setting.delete') }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button type="text" circle size="small">
+                <MoreVertical class="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem @click="handleAction('duplicate', theme)">
+                <Copy class="w-4 h-4 mr-2" />
+                {{ t('setting.duplicate') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem v-if="!theme.isDefault" @click="handleAction('edit', theme)">
+                <Pencil class="w-4 h-4 mr-2" />
+                {{ t('setting.edit') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                v-if="!theme.isDefault"
+                @click="handleAction('delete', theme)"
+                class="text-red-600 focus:text-red-600"
+              >
+                <Trash2 class="w-4 h-4 mr-2" />
+                {{ t('setting.delete') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <!-- 选中标记 -->
         <div v-if="theme.id === selectedThemeId" class="theme-card__check">
-          <el-icon><Check /></el-icon>
+          <Check class="w-5 h-5" />
         </div>
       </div>
 
       <!-- 新建主题卡片 -->
       <div class="theme-card theme-card--new" @click="handleNewTheme">
         <div class="theme-card__preview theme-card__preview--new">
-          <el-icon><Plus /></el-icon>
+          <Plus class="w-6 h-6" />
         </div>
         <div class="theme-card__info">
           <div class="theme-card__name">{{ t('setting.newTheme') }}</div>
@@ -103,82 +92,126 @@
     </div>
 
     <!-- 其他设置 -->
-    <el-form label-width="160px" class="settings-form">
-      <el-form-item :label="t('setting.contentTheme')">
-        <el-select
-          v-model="settings.contentTheme"
-          :placeholder="t('setting.selectContentTheme')"
-          @change="handleContentThemeChange"
-        >
-          <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-          <el-option
-            v-for="item in contentThemes"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+    <Form class="settings-form space-y-6">
+      <FormField :label="t('setting.contentTheme')" name="contentTheme">
+        <Select v-model="settings.contentTheme" @update:model-value="handleContentThemeChange">
+          <SelectTrigger class="w-[180px]">
+            <SelectValue :placeholder="t('setting.selectContentTheme')" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">{{ t('setting.auto') }}</SelectItem>
+            <SelectItem v-for="item in contentThemes" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.codeTheme')" name="codeTheme">
+        <Select v-model="settings.codeTheme" @update:model-value="handleCodeThemeChange">
+          <SelectTrigger class="w-[180px]">
+            <SelectValue :placeholder="t('setting.selectCodeTheme')" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">{{ t('setting.auto') }}</SelectItem>
+            <SelectItem v-for="item in codeThemes" :key="item" :value="item">
+              {{ item }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.lineNumber')" name="lineNumber">
+        <div class="flex items-center gap-2">
+          <Switch
+            :checked="settings.lineNumber"
+            @update:checked="
+              (val: boolean) => {
+                settings.lineNumber = val
+                saveSetting('lineNumber', val)
+              }
+            "
           />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('setting.codeTheme')">
-        <el-select
-          v-model="settings.codeTheme"
-          filterable
-          :placeholder="t('setting.selectCodeTheme')"
-          @change="handleCodeThemeChange"
-        >
-          <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-          <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('setting.lineNumber')">
-        <el-switch
-          v-model="settings.lineNumber"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="saveSetting('lineNumber', settings.lineNumber)"
-        />
-      </el-form-item>
-    </el-form>
+          <span class="text-sm text-muted-foreground">{{
+            settings.lineNumber ? t('setting.enabled') : t('setting.disabled')
+          }}</span>
+        </div>
+      </FormField>
+    </Form>
 
     <!-- 新建/编辑主题对话框 -->
-    <el-dialog
-      v-model="showCreateDialog"
-      :title="editingTheme ? t('setting.editTheme') : t('setting.newTheme')"
-      width="500px"
-    >
-      <el-form :model="themeForm" label-width="100px">
-        <el-form-item :label="t('setting.themeName')">
-          <el-input
-            v-model="themeForm.name"
-            :placeholder="t('setting.themeNamePlaceholder')"
-            @input="handleNameInput"
-          />
-        </el-form-item>
-        <el-form-item :label="t('setting.themeColor')">
-          <el-color-picker
-            v-model="themeForm.themeColor"
-            :predefine="predefineColors"
-            show-alpha
-            @change="handleColorChange"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showCreateDialog = false">{{ t('setting.cancel') }}</el-button>
-        <el-button type="primary" @click="saveTheme">{{ t('setting.save') }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showCreateDialog">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{{
+            editingTheme ? t('setting.editTheme') : t('setting.newTheme')
+          }}</DialogTitle>
+          <DialogDescription>
+            {{
+              editingTheme ? t('setting.editThemeDescription') : t('setting.newThemeDescription')
+            }}
+          </DialogDescription>
+        </DialogHeader>
+        <Form class="space-y-4">
+          <FormField :label="t('setting.themeName')" name="themeName">
+            <Input
+              v-model="themeForm.name"
+              :placeholder="t('setting.themeNamePlaceholder')"
+              @input="handleNameInput"
+            />
+          </FormField>
+          <FormField :label="t('setting.themeColor')" name="themeColor">
+            <ColorPicker
+              v-model="themeForm.themeColor"
+              :predefine="predefineColors"
+              show-alpha
+              @change="handleColorChange"
+            />
+          </FormField>
+        </Form>
+        <DialogFooter>
+          <Button variant="ghost" @click="showCreateDialog = false">{{
+            t('setting.cancel')
+          }}</Button>
+          <Button @click="saveTheme">{{ t('setting.save') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { More, Plus, Check, CopyDocument, Edit, Delete } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { MoreVertical, Plus, Check, Copy, Pencil, Trash2 } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { ColorPicker } from '@renderer/components/ui/color-picker'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import {
@@ -191,6 +224,14 @@ import {
   darkTheme
 } from '../../utils/themes.js'
 import { themeState } from '../../utils/themes.js'
+
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
 
@@ -231,9 +272,9 @@ const fetchOsThemeInfo = async () => {
     }
 
     const result = (await messageBridge.invoke('get-os-theme-info')) as {
-        mode: 'dark' | 'light'
-        accentColor?: string
-      }
+      mode: 'dark' | 'light'
+      accentColor?: string
+    }
     // 创建新对象以确保响应式更新
     osThemeInfo.value = { ...result }
   } catch (e) {
@@ -389,8 +430,8 @@ const handleNewTheme = () => {
 // 注意：已移除 active-change 处理，只在 change 时应用主题以避免卡顿
 
 // 处理颜色选择器确定（change 事件在用户点击确定按钮时触发）
-const handleColorPickerChange = async (theme: ThemeConfig, color: string | null) => {
-  if (!color || theme.type !== 'custom' || theme.isDefault) return // 预设主题不能编辑
+const handleColorPickerChange = async (theme: ThemeConfig, color: string) => {
+  if (theme.type !== 'custom' || theme.isDefault) return // 预设主题不能编辑
 
   // 立即标记已确认，防止 visible-change 的取消逻辑执行
   colorConfirmedMap.value[theme.id] = true
@@ -489,7 +530,7 @@ const confirmColorEdit = async (theme: ThemeConfig, color: string | null) => {
   delete colorPickerVisibleMap.value[theme.id]
   delete colorConfirmedMap.value[theme.id]
 
-  ElMessage.success(t('setting.saveSuccess'))
+  notifySuccess(t('setting.saveSuccess'))
 }
 
 // 取消颜色编辑（用户点击了颜色选择器的取消按钮或关闭了选择器）
@@ -617,7 +658,7 @@ const handleAction = async (command: string, theme: ThemeConfig) => {
         }
       }
 
-      ElMessage.success(t('setting.deleteSuccess'))
+      notifySuccess(t('setting.deleteSuccess'))
     } catch {
       // 用户取消
     }
@@ -683,9 +724,13 @@ const saveTheme = async () => {
   showCreateDialog.value = false
   editingTheme.value = null
   nameManuallyEdited.value = false
-  themeForm.value = { name: '', themeColor: '#ffffff' }
 
-  ElMessage.success(t('setting.saveSuccess'))
+  // 延迟重置表单，避免 ColorPicker 销毁时出现 readonly 警告
+  nextTick(() => {
+    themeForm.value = { name: '', themeColor: '#ffffff' }
+  })
+
+  notifySuccess(t('setting.saveSuccess'))
 }
 
 // 保存设置
@@ -705,8 +750,59 @@ const handleCodeThemeChange = () => {
   eventBus.emit('sync-editor-theme', {})
 }
 
+// Demo mock data
+const loadDemoData = () => {
+  // Mock OS theme info
+  osThemeInfo.value = { mode: 'light', accentColor: '#409EFF' }
+
+  // Mock custom themes
+  settings.themeConfigs = [
+    {
+      id: 'custom-demo-1',
+      name: 'My Blue Theme',
+      type: 'custom',
+      themeColor: '#409EFF',
+      isDefault: false
+    },
+    {
+      id: 'custom-demo-2',
+      name: 'My Purple Theme',
+      type: 'custom',
+      themeColor: '#9C27B0',
+      isDefault: false
+    }
+  ]
+
+  // Mock selected theme ID
+  selectedThemeId.value = 'preset-0'
+
+  // Mock preset theme colors
+  presetThemes.forEach((preset, index) => {
+    const presetId = `preset-${index}`
+    editingColorMap.value[presetId] = colorToHex(preset.color)
+  })
+
+  // Mock custom theme colors
+  settings.themeConfigs.forEach((theme: ThemeConfig) => {
+    if (theme.type === 'custom' && theme.themeColor) {
+      editingColorMap.value[theme.id] = colorToHex(theme.themeColor)
+    }
+  })
+
+  // Mock other settings
+  settings.contentTheme = 'auto'
+  settings.codeTheme = 'auto'
+  settings.lineNumber = true
+}
+
 // 初始化
 onMounted(async () => {
+  // Demo mode: skip all API calls and load mock data
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   await fetchOsThemeInfo()
 
   // 确保 themeConfigs 已初始化
@@ -786,6 +882,9 @@ onMounted(async () => {
 <style scoped>
 .theme-settings {
   width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -797,7 +896,7 @@ onMounted(async () => {
 
 .theme-cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
   max-height: 500px;
@@ -927,12 +1026,7 @@ onMounted(async () => {
   flex: 1;
 }
 
-.theme-card__color-wrapper :deep(.el-color-picker) {
-  width: 24px;
-  height: 24px;
-}
-
-.theme-card__color-wrapper :deep(.el-color-picker__trigger) {
+.theme-card__color-wrapper :deep(button) {
   width: 24px;
   height: 24px;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
@@ -982,14 +1076,12 @@ onMounted(async () => {
   max-width: 100%;
 }
 
-:deep(.el-dropdown-menu__item.danger) {
-  color: var(--el-color-danger);
-}
+/* shadcn DropdownMenu danger item style - handled via Tailwind classes */
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .theme-cards-container {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 </style>

@@ -25,6 +25,10 @@ export interface PdfExportOptions extends BaseExportOptions {
   printBackground: boolean
   // 是否彩色（对于LaTeX编译的PDF）
   colorMode?: 'color' | 'grayscale'
+  // 中文字体
+  chineseFont?: string
+  // 西文字体
+  westernFont?: string
 }
 
 /**
@@ -160,6 +164,8 @@ export interface ExportOptionField {
   showWhen?: (options: any) => boolean
   // 所属的 tab 分组（用于UI分组显示）
   tab?: string
+  // 对于 font 类型，预览文本
+  previewText?: string
 }
 
 /**

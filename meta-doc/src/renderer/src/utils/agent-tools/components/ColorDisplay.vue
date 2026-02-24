@@ -16,7 +16,7 @@
     >
       <div class="color-header" :style="headerStyle">
         <h3 class="color-title" :style="titleStyle">{{ $t('agent.display.color.title') }}</h3>
-        <el-tag type="info" size="small">{{ getOperationLabel(displayData.operation) }}</el-tag>
+        <Badge variant="secondary">{{ getOperationLabel(displayData.operation) }}</Badge>
       </div>
 
       <div class="color-content" :style="contentStyle">
@@ -168,48 +168,48 @@
               <span class="color-value" :style="colorValueStyle">{{ displayData.result.hex }}</span>
             </div>
           </div>
-          <el-descriptions :column="2" border class="color-details">
-            <el-descriptions-item :label="$t('agent.display.color.hex')">
+          <Descriptions :column="2" border class="color-details">
+            <DescriptionsItem :label="$t('agent.display.color.hex')">
               <code :style="codeStyle">{{ displayData.result.hex }}</code>
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.rgb')">
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.rgb')">
               <code :style="codeStyle"
                 >rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }},
                 {{ displayData.result.rgb.b }})</code
               >
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.hsl')">
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.hsl')">
               <code :style="codeStyle"
                 >hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%,
                 {{ displayData.result.hsl.l }}%)</code
               >
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.alpha')">
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.alpha')">
               {{
                 displayData.result.alpha !== undefined
                   ? displayData.result.alpha.toFixed(2)
                   : '1.00'
               }}
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.isDark')">
-              <el-tag :type="displayData.result.isDark ? 'dark' : 'light'" size="small">
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.isDark')">
+              <Badge :variant="displayData.result.isDark ? 'default' : 'outline'">
                 {{
                   displayData.result.isDark
                     ? $t('agent.display.color.yes')
                     : $t('agent.display.color.no')
                 }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('agent.display.color.isLight')">
-              <el-tag :type="displayData.result.isLight ? 'light' : 'dark'" size="small">
+              </Badge>
+            </DescriptionsItem>
+            <DescriptionsItem :label="$t('agent.display.color.isLight')">
+              <Badge :variant="displayData.result.isLight ? 'outline' : 'default'">
                 {{
                   displayData.result.isLight
                     ? $t('agent.display.color.yes')
                     : $t('agent.display.color.no')
                 }}
-              </el-tag>
-            </el-descriptions-item>
-          </el-descriptions>
+              </Badge>
+            </DescriptionsItem>
+          </Descriptions>
         </div>
 
         <!-- 其他操作（通用显示） -->
@@ -228,11 +228,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.color.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.color.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -241,6 +240,10 @@
 import { computed } from 'vue'
 import { Loading, Plus, ArrowRight, Edit, RefreshRight, Switch } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
+import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
@@ -425,8 +428,8 @@ const resultCodeStyle = computed(() => ({
 
 <style scoped>
 .color-display {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
 .color-header {

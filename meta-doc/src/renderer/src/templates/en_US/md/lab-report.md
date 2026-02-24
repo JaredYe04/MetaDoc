@@ -22,7 +22,7 @@ Brief description of the theory, formulas, or principles related to the experime
 ### 3.1 Equipment
 
 | Item | Spec/Model | Qty |
-|------|------------|-----|
+| ---- | ---------- | --- |
 | —    | —          | —   |
 
 ### 3.2 Procedure

@@ -1,6 +1,6 @@
 <template>
   <div class="dummy-view">
-    <el-empty :description="t('dummyView.emptyDescription')">
+    <Empty :description="t('dummyView.emptyDescription')">
       <template #image>
         <div class="logo-container" :class="{ shake: isShaking }" @click="handleClick">
           <div class="logo-animation-wrapper">
@@ -8,13 +8,14 @@
           </div>
         </div>
       </template>
-    </el-empty>
+    </Empty>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Empty } from '@renderer/components/ui/empty'
 import logoPath from '../assets/logo.svg'
 
 const { t } = useI18n()

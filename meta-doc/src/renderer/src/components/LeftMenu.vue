@@ -1,9 +1,19 @@
 <template>
   <UIMenu
     :collapse="isCollapse"
-    :background-color="themeState.currentTheme.background2nd"
-    :text-color="themeState.currentTheme.SideTextColor"
-    :style="{ '--sub-menu-hover': activeBackgroundColor }"
+    :background-color="sidebarBackground"
+    :text-color="sidebarTextColor"
+    :style="{
+      '--sub-menu-hover': sidebarHoverColor,
+      '--sub-menu-active': sidebarActiveColor,
+      '--sub-menu-bg': sidebarSubMenuBg,
+      '--sidebar-border': sidebarBorderColor,
+      '--sidebar-bg': sidebarBackground,
+      '--sidebar-text': sidebarTextColor,
+      '--sidebar-text-active': sidebarActiveTextColor,
+      '--sidebar-hover-bg': sidebarHoverColor,
+      '--sidebar-active-bg': sidebarActiveColor
+    }"
   >
     <!-- 顶部菜单项 -->
     <template v-for="menuId in getMenuOrder().top" :key="menuId">
@@ -37,19 +47,19 @@
           {{ $t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DocumentAdd" @click="newDoc">
+        <UISubMenuItem :icon="FilePlus" @click="newDoc">
           {{ $t('leftMenu.new') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderOpened" @click="openDoc">
+        <UISubMenuItem :icon="FolderOpen" @click="openDoc">
           {{ $t('leftMenu.open') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" @click="saveAll">
+        <UISubMenuItem :icon="FolderCheck" @click="saveAll">
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" :disabled="!isDocumentTab" @click="emitMenu('save')">
+        <UISubMenuItem :icon="FolderCheck" :disabled="!isDocumentTab" @click="emitMenu('save')">
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
@@ -57,7 +67,13 @@
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
-        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2" :disabled="!isDocumentTab">
+        <UISubMenu
+          :icon="Download"
+          :title="$t('leftMenu.export')"
+          trigger="hover"
+          :level="2"
+          :disabled="!isDocumentTab"
+        >
           <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
@@ -65,9 +81,7 @@
           <!-- 标题项 -->
           <UISubMenuItem :is-title="true" :disabled="true">
             <template #icon>
-              <el-icon>
-                <FirstAidKit />
-              </el-icon>
+              <Download class="w-4 h-4" />
             </template>
             {{ $t('leftMenu.export') }}
           </UISubMenuItem>
@@ -82,14 +96,14 @@
         </UISubMenu>
 
         <UISubMenuItem
-          :icon="DocumentAdd"
+          :icon="FilePlus"
           :disabled="!canExportAsTemplate"
           @click="openExportAsTemplateDialog"
         >
           {{ $t('leftMenu.exportAsTemplate') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
+        <UISubMenuItem :icon="X" :disabled="!isDocumentTab" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.close') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -116,23 +130,23 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="ChatDotRound" @click="emitMenu('ai-chat')">
+        <UISubMenuItem :icon="MessageCircle" @click="emitMenu('ai-chat')">
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="emitMenu('fomula-recognition')">
+        <UISubMenuItem :icon="BookOpen" @click="emitMenu('fomula-recognition')">
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Picture" @click="emitMenu('smart-drawing-assistant')">
+        <UISubMenuItem :icon="Image" @click="emitMenu('smart-drawing-assistant')">
           {{ $t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('data-analysis')">
+        <UISubMenuItem :icon="BarChart3" @click="emitMenu('data-analysis')">
           {{ $t('leftMenu.dataAnalysis') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="View" @click="emitMenu('ocr')">
+        <UISubMenuItem :icon="Eye" @click="emitMenu('ocr')">
           {{ $t('leftMenu.ocr') }}
         </UISubMenuItem>
 
@@ -173,18 +187,14 @@
         @open="refreshRecentDocs"
       >
         <template #title>
-          <el-icon class="recent-files-icon">
-            <Clock />
-          </el-icon>
+          <Clock class="recent-files-icon w-5 h-5" />
           <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Clock />
-            </el-icon>
+            <Clock class="w-4 h-4" />
           </template>
           {{ $t('leftMenu.recentFilesTooltip') }}
         </UISubMenuItem>
@@ -192,7 +202,7 @@
         <UISubMenuItem
           v-for="item in recentDocs.slice(0, 10)"
           :key="item"
-          :icon="Document"
+          :icon="FileText"
           @click="
             askSave(() => {
               openRecentDoc(item)
@@ -269,7 +279,7 @@
         v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
         :label="$t('bottomMenu.llmStatistics', 'LLM统计')"
         :tooltip="$t('bottomMenu.llmStatistics', 'LLM统计')"
-        :icon="DataAnalysis"
+        :icon="BarChart3"
         @click="openLlmStatistics"
       />
 
@@ -278,7 +288,7 @@
         v-if="menuId === 'user-manual' && isMenuItemVisible('user-manual')"
         :label="$t('leftMenu.userManual', '用户手册')"
         :tooltip="$t('leftMenu.userManual', '用户手册')"
-        :icon="Reading"
+        :icon="BookOpen"
         @click="openUserManual"
       />
 
@@ -290,9 +300,7 @@
       >
         <template #icon>
           <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
-          <el-icon v-else>
-            <UserFilled />
-          </el-icon>
+          <UserCircle v-else class="w-6 h-6" />
         </template>
       </UIMenuItem>
 
@@ -338,7 +346,7 @@
         <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('llm-statistics')"
-          :icon="DataAnalysis"
+          :icon="BarChart3"
           @click="openLlmStatistics"
         >
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
@@ -356,7 +364,7 @@
         <!-- 用户手册：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('user-manual')"
-          :icon="Reading"
+          :icon="BookOpen"
           @click="openUserManual"
         >
           {{ $t('leftMenu.userManual', '用户手册') }}
@@ -371,7 +379,7 @@
         v-if="menuId === 'home' && isMenuItemVisible('home')"
         :label="$t('leftMenu.home', '主页')"
         :tooltip="$t('leftMenu.home', '主页')"
-        :icon="House"
+        :icon="Home"
         class="bottom-menu"
         @click="openGlobalHome"
       />
@@ -381,37 +389,33 @@
         v-if="menuId === 'exit' && isMenuItemVisible('exit')"
         :title="$t('leftMenu.exit')"
         :tooltip="$t('leftMenu.exit')"
-        :icon="SwitchButton"
+        :icon="Power"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
+          <Power class="w-5 h-5" />
           <span>{{ $t('leftMenu.exit') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <SwitchButton />
-            </el-icon>
+            <Power class="w-5 h-5" />
           </template>
           {{ $t('leftMenu.exitTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAndQuit">
           {{ $t('leftMenu.saveAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAllAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAllAndQuit">
           {{ $t('leftMenu.saveAllAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="quitWithoutSave">
+        <UISubMenuItem :icon="Power" @click="quitWithoutSave">
           {{ $t('leftMenu.exitWithoutSaving') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -427,7 +431,7 @@
         v-if="menuId === 'home' && isMenuItemVisible('home')"
         :label="$t('leftMenu.home', '主页')"
         :tooltip="$t('leftMenu.home', '主页')"
-        :icon="House"
+        :icon="Home"
         class="bottom-menu"
         @click="openGlobalHome"
       />
@@ -463,19 +467,19 @@
           {{ $t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DocumentAdd" @click="newDoc">
+        <UISubMenuItem :icon="FilePlus" @click="newDoc">
           {{ $t('leftMenu.new') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderOpened" @click="openDoc">
+        <UISubMenuItem :icon="FolderOpen" @click="openDoc">
           {{ $t('leftMenu.open') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" @click="saveAll">
+        <UISubMenuItem :icon="FolderCheck" @click="saveAll">
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderChecked" :disabled="!isDocumentTab" @click="emitMenu('save')">
+        <UISubMenuItem :icon="FolderCheck" :disabled="!isDocumentTab" @click="emitMenu('save')">
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
@@ -483,7 +487,13 @@
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
-        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2" :disabled="!isDocumentTab">
+        <UISubMenu
+          :icon="Download"
+          :title="$t('leftMenu.export')"
+          trigger="hover"
+          :level="2"
+          :disabled="!isDocumentTab"
+        >
           <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
@@ -491,9 +501,7 @@
           <!-- 标题项 -->
           <UISubMenuItem :is-title="true" :disabled="true">
             <template #icon>
-              <el-icon>
-                <FirstAidKit />
-              </el-icon>
+              <Download class="w-4 h-4" />
             </template>
             {{ $t('leftMenu.export') }}
           </UISubMenuItem>
@@ -508,14 +516,14 @@
         </UISubMenu>
 
         <UISubMenuItem
-          :icon="DocumentAdd"
+          :icon="FilePlus"
           :disabled="!canExportAsTemplate"
           @click="openExportAsTemplateDialog"
         >
           {{ $t('leftMenu.exportAsTemplate') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="CircleClose" @click="emitMenu('close-active-tab')">
+        <UISubMenuItem :icon="X" :disabled="!isDocumentTab" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.close') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -543,23 +551,23 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="ChatDotRound" @click="emitMenu('ai-chat')">
+        <UISubMenuItem :icon="MessageCircle" @click="emitMenu('ai-chat')">
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Reading" @click="emitMenu('fomula-recognition')">
+        <UISubMenuItem :icon="BookOpen" @click="emitMenu('fomula-recognition')">
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="Picture" @click="emitMenu('smart-drawing-assistant')">
+        <UISubMenuItem :icon="Image" @click="emitMenu('smart-drawing-assistant')">
           {{ $t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('data-analysis')">
+        <UISubMenuItem :icon="BarChart3" @click="emitMenu('data-analysis')">
           {{ $t('leftMenu.dataAnalysis') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="View" @click="emitMenu('ocr')">
+        <UISubMenuItem :icon="Eye" @click="emitMenu('ocr')">
           {{ $t('leftMenu.ocr') }}
         </UISubMenuItem>
 
@@ -567,7 +575,7 @@
           {{ $t('leftMenu.attachment') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="DataAnalysis" @click="emitMenu('aigc-detection')">
+        <UISubMenuItem :icon="BarChart3" @click="emitMenu('aigc-detection')">
           {{ $t('leftMenu.aigcDetection') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -577,7 +585,7 @@
         v-if="menuId === 'settings' && isMenuItemVisible('settings')"
         :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
-        :icon="Setting"
+        :icon="Settings"
         class="bottom-menu"
         @click="emitMenu('setting')"
       />
@@ -617,7 +625,7 @@
         <UISubMenuItem
           v-for="item in recentDocs.slice(0, 10)"
           :key="item"
-          :icon="Document"
+          :icon="FileText"
           @click="
             askSave(() => {
               openRecentDoc(item)
@@ -697,7 +705,7 @@
         v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
         :label="$t('bottomMenu.llmStatistics', 'LLM统计')"
         :tooltip="$t('bottomMenu.llmStatistics', 'LLM统计')"
-        :icon="DataAnalysis"
+        :icon="BarChart3"
         class="bottom-menu"
         @click="openLlmStatistics"
       />
@@ -707,7 +715,7 @@
         v-if="menuId === 'user-manual' && isMenuItemVisible('user-manual')"
         :label="$t('leftMenu.userManual', '用户手册')"
         :tooltip="$t('leftMenu.userManual', '用户手册')"
-        :icon="Reading"
+        :icon="BookOpen"
         class="bottom-menu"
         @click="openUserManual"
       />
@@ -720,9 +728,7 @@
       >
         <template #icon>
           <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
-          <el-icon v-else>
-            <UserFilled />
-          </el-icon>
+          <UserCircle v-else class="w-6 h-6" />
         </template>
       </UIMenuItem>
 
@@ -770,7 +776,7 @@
         <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('llm-statistics')"
-          :icon="DataAnalysis"
+          :icon="BarChart3"
           @click="openLlmStatistics"
         >
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
@@ -788,7 +794,7 @@
         <!-- 用户手册：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('user-manual')"
-          :icon="Reading"
+          :icon="BookOpen"
           @click="openUserManual"
         >
           {{ $t('leftMenu.userManual', '用户手册') }}
@@ -804,37 +810,33 @@
         v-if="menuId === 'exit' && isMenuItemVisible('exit')"
         :title="$t('leftMenu.exit')"
         :tooltip="$t('leftMenu.exit')"
-        :icon="SwitchButton"
+        :icon="Power"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
+          <Power class="w-5 h-5" />
           <span>{{ $t('leftMenu.exit') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <SwitchButton />
-            </el-icon>
+            <Power class="w-5 h-5" />
           </template>
           {{ $t('leftMenu.exitTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAndQuit">
           {{ $t('leftMenu.saveAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="saveAllAndQuit">
+        <UISubMenuItem :icon="Power" @click="saveAllAndQuit">
           {{ $t('leftMenu.saveAllAndExit') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="SwitchButton" @click="quitWithoutSave">
+        <UISubMenuItem :icon="Power" @click="quitWithoutSave">
           {{ $t('leftMenu.exitWithoutSaving') }}
         </UISubMenuItem>
       </UISubMenu>
@@ -862,7 +864,10 @@
     <el-form label-width="auto" label-position="top">
       <el-form-item :label="t('leftMenu.exportAsTemplateTitleLabel')">
         <div class="export-as-template-field">
-          <el-input v-model="exportAsTemplateTitle" :placeholder="t('leftMenu.exportAsTemplateTitleLabel')" />
+          <el-input
+            v-model="exportAsTemplateTitle"
+            :placeholder="t('leftMenu.exportAsTemplateTitleLabel')"
+          />
           <el-tooltip :content="t('leftMenu.exportAsTemplateAiGenerate')" placement="top">
             <el-button
               type="primary"
@@ -886,8 +891,12 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="showExportAsTemplateDialog = false">{{ t('messageBox.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmExportAsTemplate">{{ t('messageBox.confirm') }}</el-button>
+      <el-button @click="showExportAsTemplateDialog = false">{{
+        t('messageBox.cancel')
+      }}</el-button>
+      <el-button type="primary" @click="confirmExportAsTemplate">{{
+        t('messageBox.confirm')
+      }}</el-button>
     </template>
   </el-dialog>
 
@@ -909,35 +918,33 @@ import UIMenuItem from './ui/UIMenuItem.vue'
 import UISubMenu from './ui/UISubMenu.vue'
 import UISubMenuItem from './ui/UISubMenuItem.vue'
 import {
-  Document,
-  FirstAidKit,
-  Menu as IconMenu,
-  Location,
-  Setting,
-  ChatDotRound,
-  EditPen,
-  UserFilled,
+  FilePlus,
+  FolderOpen,
+  FolderCheck,
+  FolderPlus,
   User,
-  DataAnalysis,
-  DocumentAdd,
-  FolderOpened,
-  FolderChecked,
-  FolderAdd,
-  CircleClose,
+  BarChart3,
+  FileX,
   Clock,
-  SwitchButton,
-  Picture,
-  ZoomIn,
-  Connection,
-  House,
-  Collection,
-  Tools,
-  Grid,
-  Reading,
-  View,
+  Power,
+  Image,
+  Home,
+  LayoutGrid,
+  BookOpen,
+  Eye,
   Paperclip,
-  MagicStick
-} from '@element-plus/icons-vue'
+  Plus,
+  Settings,
+  MessageCircle,
+  Pencil,
+  UserCircle,
+  Download,
+  FileText,
+  X,
+  FolderPlus as FolderAdd,
+  Wand2 as MagicStick
+} from 'lucide-vue-next'
+
 import eventBus from '../utils/event-bus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { themeState, mixColors } from '../utils/themes'
@@ -953,10 +960,7 @@ import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
 import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
+const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 const emitMenu = (name: string, ...args: any[]) => {
   if (props.mode === 'demo') return
   // mitt 的 emit 只接受两个参数，将多个参数合并为一个对象
@@ -1060,7 +1064,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'llm-statistics',
       label: t('bottomMenu.llmStatistics', 'LLM统计'),
-      icon: DataAnalysis,
+      icon: BarChart3,
       visible: false,
       isCore: false,
       position: 'top'
@@ -1076,7 +1080,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'user-manual',
       label: t('leftMenu.userManual', '用户手册'),
-      icon: Reading,
+      icon: BookOpen,
       visible: false,
       isCore: false,
       position: 'top'
@@ -1084,7 +1088,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'home',
       label: t('leftMenu.home', '主页'),
-      icon: House,
+      icon: Home,
       visible: true,
       isCore: true,
       position: 'bottom'
@@ -1092,7 +1096,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'user-profile',
       label: t('leftMenu.userProfileTooltip', '用户资料'),
-      icon: UserFilled,
+      icon: UserCircle,
       visible: true,
       isCore: true,
       position: 'bottom'
@@ -1100,7 +1104,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'exit',
       label: t('leftMenu.exit'),
-      icon: SwitchButton,
+      icon: Power,
       visible: true,
       isCore: true,
       position: 'bottom'
@@ -1231,14 +1235,48 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
   logger.info('菜单配置已更新', menuConfigState.value)
 }
 
-// 计算弹出菜单的背景色和悬停颜色（与 HeadMenu 保持一致）
-const subMenuBackgroundColor = computed(() => themeState.currentTheme.background2nd)
-// 使用与 HeadMenu 相同的 active 背景色作为 hover 和 active 颜色
-const activeBackgroundColor = computed(() =>
-  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+// VSCode 风格侧边栏主题颜色配置
+const sidebarBackground = computed(
+  () =>
+    themeState.currentTheme.SideBackgroundColor ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background2nd
 )
-const activeTextColor = computed(() => themeState.currentTheme.textColor)
-const subMenuHoverColor = computed(() => activeBackgroundColor.value)
+const sidebarTextColor = computed(
+  () => themeState.currentTheme.SideTextColor || themeState.currentTheme.textColor
+)
+const sidebarActiveTextColor = computed(
+  () => themeState.currentTheme.SideActiveTextColor || themeState.currentTheme.textColor
+)
+const sidebarSubMenuBg = computed(
+  () =>
+    themeState.currentTheme.sidebarBackground2 ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background2nd
+)
+const sidebarBorderColor = computed(
+  () => themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
+)
+// VSCode 风格：悬停颜色使用半透明的主色调叠加
+const sidebarHoverColor = computed(() => {
+  const baseColor = sidebarBackground.value
+  const textColor = sidebarTextColor.value
+  // 混合背景色和文字色，透明度较低以获得更微妙的悬停效果
+  return mixColors(baseColor, textColor, 0.15)
+})
+// VSCode 风格：激活状态使用更明显的主色调
+const sidebarActiveColor = computed(() => {
+  const baseColor = sidebarBackground.value
+  const textColor = sidebarTextColor.value
+  // 激活状态更明显
+  return mixColors(baseColor, textColor, 0.25)
+})
+
+// 保持向后兼容
+const subMenuBackgroundColor = sidebarSubMenuBg
+const activeBackgroundColor = sidebarActiveColor
+const activeTextColor = sidebarActiveTextColor
+const subMenuHoverColor = sidebarHoverColor
 
 // 提供 collapse 状态给子组件
 provide('menuCollapse', isCollapse)
@@ -1327,11 +1365,33 @@ const openUserManual = () => {
   workspace.openSystemTab('/user-manual', t('leftMenu.userManual', '用户手册'))
 }
 
-// 更新全局 CSS 变量以匹配 active 背景色
+// 同步所有 VSCode 风格侧边栏 CSS 变量到 document
+const syncSidebarCssVariables = () => {
+  const root = document.documentElement
+  root.style.setProperty('--sidebar-bg', sidebarBackground.value)
+  root.style.setProperty('--sidebar-text', sidebarTextColor.value)
+  root.style.setProperty('--sidebar-text-active', sidebarActiveTextColor.value)
+  root.style.setProperty('--sidebar-hover-bg', sidebarHoverColor.value)
+  root.style.setProperty('--sidebar-active-bg', sidebarActiveColor.value)
+  root.style.setProperty('--sub-menu-bg', sidebarSubMenuBg.value)
+  root.style.setProperty('--sub-menu-hover', sidebarHoverColor.value)
+  root.style.setProperty('--sub-menu-active', sidebarActiveColor.value)
+  root.style.setProperty('--sidebar-border', sidebarBorderColor.value)
+}
+
+// 监听所有侧边栏颜色变化，同步 CSS 变量
 watch(
-  activeBackgroundColor,
-  (newColor) => {
-    document.documentElement.style.setProperty('--sub-menu-hover', newColor)
+  [
+    sidebarBackground,
+    sidebarTextColor,
+    sidebarActiveTextColor,
+    sidebarHoverColor,
+    sidebarActiveColor,
+    sidebarSubMenuBg,
+    sidebarBorderColor
+  ],
+  () => {
+    syncSidebarCssVariables()
   },
   { immediate: true }
 )
@@ -1342,8 +1402,8 @@ onMounted(async () => {
   isDev.value = await isDevEnvironment()
   // 加载菜单配置
   await loadMenuConfig()
-  // 初始化全局 CSS 变量
-  document.documentElement.style.setProperty('--sub-menu-hover', activeBackgroundColor.value)
+  // 初始化所有侧边栏 CSS 变量
+  syncSidebarCssVariables()
 })
 const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()
@@ -1366,9 +1426,8 @@ const askSave = async (callBack: any) => {
   callBack()
 }
 const newDoc = () => {
-  askSave(() => {
-    emitMenu('new-doc')
-  })
+  // 在当前窗口新建标签页（与 Ctrl+T 行为一致）
+  workspace.openNewDocumentTab()
 }
 
 const openDoc = () => {
@@ -1485,7 +1544,9 @@ async function generateTemplateTitleDescriptionByAi() {
       'export-as-template-ai',
       { stream: true }
     ).done
-    const { title, description } = parseTemplateTitleDescriptionFromAi(exportAsTemplateAiResultRef.value)
+    const { title, description } = parseTemplateTitleDescriptionFromAi(
+      exportAsTemplateAiResultRef.value
+    )
     if (title) exportAsTemplateTitle.value = title
     if (description) exportAsTemplateDescription.value = description
   } catch (e) {
@@ -1546,63 +1607,8 @@ function confirmExportAsTemplate() {
   margin: 0;
 }
 
-.modern-sidebar-menu:not(.el-menu--collapse) {
-  width: 180px;
-  min-height: 400px;
-}
-
-/* 菜单项基础样式 */
-.modern-sidebar-menu :deep(.el-menu-item),
-.modern-sidebar-menu :deep(.el-sub-menu__title) {
-  height: 40px;
-  line-height: 40px;
-  margin: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  position: relative;
-  padding-left: 12px !important;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  cursor: pointer;
-}
-
-/* 图标左对齐 */
-.modern-sidebar-menu :deep(.el-menu-item .el-icon),
-.modern-sidebar-menu :deep(.el-sub-menu__title .el-icon) {
-  margin-right: 8px;
-  font-size: 18px;
-  width: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-shrink: 0;
-}
-
-/* 最近文件菜单特殊样式：图标左对齐，文本居中 */
-.modern-sidebar-menu :deep(.recent-files-menu .el-sub-menu__title) {
-  position: relative;
-  justify-content: flex-start;
-}
-
-.modern-sidebar-menu :deep(.recent-files-menu .recent-files-icon) {
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.modern-sidebar-menu :deep(.recent-files-menu .recent-files-text) {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto;
-}
-
 /* AI Logo 图标居中 */
-.modern-sidebar-menu .ai-logo-icon {
+.ai-logo-icon {
   width: 18px;
   height: 18px;
   margin-right: 8px;
@@ -1611,235 +1617,15 @@ function confirmExportAsTemplate() {
   justify-content: center;
 }
 
-/* 悬停效果 - 圆角背景框（与 HeadMenu 保持一致） */
-.modern-sidebar-menu :deep(.el-menu-item:hover),
-.modern-sidebar-menu :deep(.el-sub-menu__title:hover) {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border-radius: 6px;
-}
-
-/* 激活状态（与 HeadMenu 保持一致） */
-.modern-sidebar-menu :deep(.el-menu-item.is-active) {
-  background-color: v-bind('activeBackgroundColor') !important;
-  color: v-bind('activeTextColor') !important;
-  border-radius: 6px;
-}
-
-/* 打开的 submenu 标题应该显示 active 颜色 */
-.modern-sidebar-menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
-  background-color: v-bind('activeBackgroundColor') !important;
-  color: v-bind('activeTextColor') !important;
-  border-radius: 6px;
-}
-
-/* 子菜单弹出框样式 - Windows 11 / QQ NT 风格圆角 */
-/* 使用全局样式覆盖 Element Plus 的弹出菜单 */
-.modern-sidebar-menu :deep(.el-popper[data-popper-placement^='right']),
-.modern-sidebar-menu :deep(.el-popper.is-pure),
-.modern-sidebar-menu :deep(.el-sub-menu__popper) {
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
-  border: 1px solid var(--el-border-color-light, rgba(0, 0, 0, 0.08)) !important;
-  overflow: visible !important;
-  padding: 0 !important;
-  margin-left: 14px !important;
-}
-
-/* 移除外层容器的 padding 和背景 */
-.modern-sidebar-menu :deep(.el-popper .el-menu--popup-container),
-.modern-sidebar-menu :deep(.el-sub-menu__popper .el-menu--popup-container) {
-  padding: 0 !important;
-  background-color: transparent !important;
-  border-radius: 10px !important;
-  overflow: visible !important;
-}
-
-/* 弹出菜单内部的 el-menu */
-.modern-sidebar-menu :deep(.el-popper .el-menu),
-.modern-sidebar-menu :deep(.el-sub-menu__popper .el-menu) {
-  border-radius: 10px !important;
-  background-color: v-bind('subMenuBackgroundColor') !important;
-  border: none !important;
-  padding: 4px !important;
-  min-width: 180px !important;
-  overflow: visible !important;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* 子菜单项样式 - 减小间距 */
-.modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-menu-item),
-.modern-sidebar-menu :deep(.el-popper .el-menu .el-menu-item) {
-  margin: 1px 4px !important;
-  border-radius: 6px !important;
-  height: 34px !important;
-  line-height: 34px !important;
-  padding: 0 12px !important;
-  background-color: transparent !important;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* 嵌套子菜单项样式 */
-.modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-sub-menu),
-.modern-sidebar-menu :deep(.el-popper .el-menu .el-sub-menu) {
-  margin: 1px 4px !important;
-}
-
-.modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-menu-item:hover),
-.modern-sidebar-menu :deep(.el-popper .el-menu .el-menu-item:hover) {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border-radius: 6px !important;
-}
-
-/* 嵌套子菜单的标题样式 */
-.modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-sub-menu .el-sub-menu__title),
-.modern-sidebar-menu :deep(.el-popper .el-menu .el-sub-menu .el-sub-menu__title) {
-  margin: 1px 4px !important;
-  border-radius: 6px !important;
-  height: 34px !important;
-  line-height: 34px !important;
-  padding: 0 12px !important;
-  background-color: transparent !important;
-}
-
-.modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-sub-menu .el-sub-menu__title:hover),
-.modern-sidebar-menu :deep(.el-popper .el-menu .el-sub-menu .el-sub-menu__title:hover) {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border-radius: 6px !important;
-}
-
-/* 子菜单项图标样式 */
-.modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-menu-item .el-icon) {
-  margin-right: 8px;
-  font-size: 16px;
-  width: 16px;
-}
-
-/* 禁止滚动条 */
-.modern-sidebar-menu {
-  overflow: hidden !important;
-}
-
-.modern-sidebar-menu :deep(.el-menu) {
-  overflow: hidden !important;
-  overflow-y: hidden !important;
-  overflow-x: hidden !important;
-}
-
-/* 折叠状态下的样式 */
-.modern-sidebar-menu.el-menu--collapse {
-  width: 64px;
-}
-
-.modern-sidebar-menu.el-menu--collapse :deep(.el-menu-item),
-.modern-sidebar-menu.el-menu--collapse :deep(.el-sub-menu__title) {
-  padding: 0 !important;
-  justify-content: center;
-  display: flex;
-  align-items: center;
-}
-
-.modern-sidebar-menu.el-menu--collapse :deep(.el-menu-item .el-icon),
-.modern-sidebar-menu.el-menu--collapse :deep(.el-sub-menu__title .el-icon),
-.modern-sidebar-menu.el-menu--collapse :deep(.ai-logo-icon) {
-  margin: 0 auto !important;
-}
-
-/* 非折叠状态下，确保所有菜单项和图标左对齐 */
-.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-menu-item),
-.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title) {
-  justify-content: flex-start !important;
-}
-
-.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-menu-item .el-icon),
-.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title .el-icon) {
-  margin-right: 8px !important;
-  margin-left: 0 !important;
-}
-
 /* 底部菜单项 */
 .bottom-menu {
   margin-top: auto;
-}
-
-/* 移除默认的边框和分隔线 */
-.modern-sidebar-menu :deep(.el-menu) {
-  border-right: none;
-}
-
-/* 菜单标题项样式 - 居中显示，不可点击 */
-.modern-sidebar-menu :deep(.menu-title-item) {
-  cursor: default !important;
-  opacity: 1 !important;
-  margin: 4px 4px 8px 4px !important;
-  height: 34px !important;
-  line-height: 34px !important;
-  padding: 0 12px !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 0 !important;
-}
-
-.modern-sidebar-menu :deep(.menu-title-item:hover) {
-  background-color: transparent !important;
-}
-
-.modern-sidebar-menu :deep(.menu-title-item.is-disabled) {
-  opacity: 1 !important;
-  cursor: default !important;
-  color: inherit !important;
-}
-
-.menu-title-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: row;
-  gap: 8px;
-  width: 100%;
-}
-
-.menu-title-content .el-icon {
-  font-size: 16px;
-  margin: 0;
-  width: 16px;
-  height: 16px;
-}
-
-.menu-title-content .menu-title-icon {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-}
-
-.menu-title-content span {
-  font-size: 12px;
-  font-weight: 500;
-  text-align: center;
-  opacity: 0.8;
 }
 
 /* 顶部和底部菜单之间的分隔符 */
 .menu-spacer {
   flex: 1;
   min-height: 0;
-}
-
-/* 子菜单箭头图标 */
-.modern-sidebar-menu :deep(.el-sub-menu__icon-arrow) {
-  margin-top: -1px;
-  font-size: 12px;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .modern-sidebar-menu:not(.el-menu--collapse) {
-    width: 160px;
-  }
 }
 </style>
 
@@ -2326,13 +2112,8 @@ body
   border-radius: 6px !important;
 }
 
-/* 打开的 submenu 标题显示 active 颜色 */
-.modern-sidebar-menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title),
-body
-  > .el-popper[data-popper-placement^='right']:has(.el-menu)
-  .el-sub-menu.is-opened
-  > .el-sub-menu__title {
-  background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
-  border-radius: 6px !important;
+/* VSCode 风格 - 整体容器样式 */
+.ui-menu {
+  border-right: 1px solid var(--sidebar-border, rgba(0, 0, 0, 0.08)) !important;
 }
 </style>

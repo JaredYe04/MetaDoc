@@ -23,137 +23,140 @@
           <span class="qq-value">1079841705</span>
         </div>
         <div class="feedback-entry">
-          <el-button type="primary" plain @click="openFeedbackTab">
+          <Button variant="outline" @click="openFeedbackTab">
             {{ $t('setting.about.feedback') }}
-          </el-button>
+          </Button>
         </div>
       </div>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <!-- 使用标签页组织更新设置、开源许可证和第三方资产 -->
-    <el-tabs v-model="activeTab" class="about-tabs">
-      <el-tab-pane :label="$t('setting.about.updateSettings')" name="updates">
+    <Tabs v-model="activeTab" class="about-tabs">
+      <TabsList class="about-tabs-list">
+        <TabsTrigger value="updates">{{ $t('setting.about.updateSettings') }}</TabsTrigger>
+        <TabsTrigger value="licenses">{{ $t('setting.about.openSourceLicenses') }}</TabsTrigger>
+        <TabsTrigger value="assets">{{ $t('setting.about.thirdPartyAssets') }}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="updates" class="about-tabs-content">
         <div class="update-settings">
-          <el-form label-width="200px" class="settings-form">
-            <el-form-item :label="$t('setting.about.autoCheckUpdates')">
-              <el-switch
-                v-model="autoCheckUpdates"
-                :active-text="$t('setting.enabled')"
-                :inactive-text="$t('setting.disabled')"
-                @change="handleAutoCheckChange"
-              />
-            </el-form-item>
+          <Form class="settings-form">
+            <FormField :label="$t('setting.about.autoCheckUpdates')" name="autoCheckUpdates">
+              <div class="flex items-center gap-2">
+                <Switch :checked="autoCheckUpdates" @update:checked="handleAutoCheckChange" />
+                <span class="text-sm text-muted-foreground">{{
+                  autoCheckUpdates ? $t('setting.enabled') : $t('setting.disabled')
+                }}</span>
+              </div>
+            </FormField>
 
-            <el-form-item :label="$t('setting.about.updateChannel')">
-              <el-radio-group v-model="updateChannel" @change="handleChannelChange">
-                <el-radio value="release">{{ $t('setting.about.channelRelease') }}</el-radio>
-                <el-radio value="dev">{{ $t('setting.about.channelDev') }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item>
-              <el-button
-                type="primary"
-                :loading="checking"
-                :disabled="checking"
-                @click="handleCheckUpdate"
+            <FormField :label="$t('setting.about.updateChannel')" name="updateChannel">
+              <RadioGroup
+                v-model="updateChannel"
+                @update:modelValue="handleChannelChange"
+                class="flex flex-row gap-4"
               >
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="release" id="update-release" />
+                  <label for="update-release" class="text-sm cursor-pointer">{{
+                    $t('setting.about.channelRelease')
+                  }}</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="dev" id="update-dev" />
+                  <label for="update-dev" class="text-sm cursor-pointer">{{
+                    $t('setting.about.channelDev')
+                  }}</label>
+                </div>
+              </RadioGroup>
+            </FormField>
+
+            <FormField name="checkUpdate">
+              <Button @click="handleCheckUpdate" :disabled="checking">
                 {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </Button>
+            </FormField>
+          </Form>
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
-            <el-alert
-              v-if="updateStatus.updateAvailable"
-              type="success"
-              :title="$t('setting.about.updateAvailable')"
-              :description="
-                updateStatus.updateInfo
-                  ? $t('setting.about.updateAvailableDesc', {
-                      version: updateStatus.updateInfo.version
-                    })
-                  : ''
-              "
-              show-icon
-              :closable="false"
-            />
-            <el-alert
-              v-else-if="updateStatus.updateNotAvailable"
-              type="info"
-              :title="$t('setting.about.noUpdate')"
-              :description="$t('setting.about.noUpdateDesc')"
-              show-icon
-              :closable="false"
-            />
-            <el-alert
-              v-else-if="updateStatus.error"
-              type="error"
-              :title="$t('setting.about.checkUpdateError')"
-              :description="updateStatus.error"
-              show-icon
-              :closable="false"
-            />
+            <Alert v-if="updateStatus.updateAvailable" variant="default" class="mb-4">
+              <CheckCircle2 class="h-4 w-4" />
+              <AlertTitle>{{ $t('setting.about.updateAvailable') }}</AlertTitle>
+              <AlertDescription v-if="updateStatus.updateInfo">
+                {{
+                  $t('setting.about.updateAvailableDesc', {
+                    version: updateStatus.updateInfo.version
+                  })
+                }}
+              </AlertDescription>
+            </Alert>
+            <Alert v-else-if="updateStatus.updateNotAvailable" variant="default" class="mb-4">
+              <Info class="h-4 w-4" />
+              <AlertTitle>{{ $t('setting.about.noUpdate') }}</AlertTitle>
+              <AlertDescription>{{ $t('setting.about.noUpdateDesc') }}</AlertDescription>
+            </Alert>
+            <Alert v-else-if="updateStatus.error" variant="destructive" class="mb-4">
+              <XCircle class="h-4 w-4" />
+              <AlertTitle>{{ $t('setting.about.checkUpdateError') }}</AlertTitle>
+              <AlertDescription>{{ updateStatus.error }}</AlertDescription>
+            </Alert>
           </div>
 
           <!-- 下载和安装按钮 -->
           <div v-if="updateStatus?.updateAvailable" class="update-actions">
-            <el-button
-              v-if="!downloaded && !downloading"
-              type="primary"
-              @click="handleDownloadUpdate"
-            >
+            <Button v-if="!downloaded && !downloading" @click="handleDownloadUpdate">
               {{ $t('setting.about.downloadUpdate') }}
-            </el-button>
-            <el-button v-if="downloading" type="primary" :loading="true" disabled>
+            </Button>
+            <Button v-if="downloading" :disabled="true">
               {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
-            </el-button>
-            <el-button v-if="downloaded" type="success" @click="handleInstallUpdate">
+            </Button>
+            <Button
+              v-if="downloaded"
+              @click="handleInstallUpdate"
+              class="bg-green-600 hover:bg-green-700 text-white"
+            >
               {{ $t('setting.about.installAndRestart') }}
-            </el-button>
-            <el-alert
-              v-if="downloadError"
-              type="error"
-              :title="$t('setting.about.downloadError')"
-              :description="downloadError"
-              show-icon
-              :closable="true"
-              @close="downloadError = null"
-              style="margin-top: 16px"
-            />
+            </Button>
+            <Alert v-if="downloadError" variant="destructive" class="mt-4">
+              <XCircle class="h-4 w-4" />
+              <AlertTitle>{{ $t('setting.about.downloadError') }}</AlertTitle>
+              <AlertDescription>{{ downloadError }}</AlertDescription>
+            </Alert>
           </div>
         </div>
-      </el-tab-pane>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('setting.about.openSourceLicenses')" name="licenses">
+      <TabsContent value="licenses" class="about-tabs-content">
         <div class="licenses-section">
-          <el-scrollbar class="content-scrollbar" height="400px">
-            <div class="content-container">
-              <pre class="license-content">{{ openSourceLicenses }}</pre>
-            </div>
-          </el-scrollbar>
+          <ScrollArea class="h-[400px]">
+            <pre class="license-content">{{ openSourceLicenses }}</pre>
+          </ScrollArea>
         </div>
-      </el-tab-pane>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('setting.about.thirdPartyAssets')" name="assets">
+      <TabsContent value="assets" class="about-tabs-content">
         <div class="assets-section">
-          <el-scrollbar class="content-scrollbar" height="400px">
-            <div class="content-container">
-              <pre class="assets-content">{{ thirdPartyAssets }}</pre>
-            </div>
-          </el-scrollbar>
+          <ScrollArea class="h-[400px]">
+            <pre class="assets-content">{{ thirdPartyAssets }}</pre>
+          </ScrollArea>
         </div>
-      </el-tab-pane>
-    </el-tabs>
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Button } from '@renderer/components/ui/button'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+
+import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
+import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
 import { getAppVersion } from '../../utils/version'
 import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
@@ -162,6 +165,17 @@ import { isDevEnvironment } from '../../utils/dev-env'
 import logo from '../../assets/logo.svg'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Divider } from '@renderer/components/ui/separator'
+
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
 const workspace = useWorkspace()
 
@@ -351,7 +365,30 @@ const loadLicenseAndAssets = async () => {
   }
 }
 
+// Demo数据加载
+const loadDemoData = () => {
+  // 版本信息
+  version.value = '0.17.11'
+  releaseDate.value = '2025-02-20'
+  buildEnvironment.value = t('setting.about.buildEnvironmentRelease')
+
+  // 更新设置
+  autoCheckUpdates.value = true
+  updateChannel.value = 'release'
+
+  // 许可证和资产信息 (使用文本片段)
+  openSourceLicenses.value =
+    openSourceLicensesText.substring(0, 800) + '\n\n[... 许可证内容已截断 ...]'
+  thirdPartyAssets.value =
+    thirdPartyAssetsText.substring(0, 500) + '\n\n[... 第三方资产列表已截断 ...]'
+}
+
 onMounted(async () => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   await Promise.all([loadVersionInfo(), loadSettings(), loadLicenseAndAssets()])
 
   // 监听自动下载完成事件
@@ -380,7 +417,8 @@ onUnmounted(() => {
 <style scoped>
 .about-section {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   box-sizing: border-box;
   user-select: none;
 }
@@ -450,22 +488,19 @@ onUnmounted(() => {
 
 .about-tabs {
   margin-top: 32px;
-  height: calc(100% - 32px);
-  display: flex;
-  flex-direction: column;
 }
 
-.about-tabs :deep(.el-tabs__content) {
-  flex: 1;
+.about-tabs-list {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  gap: 4px;
+  padding: 4px;
+  background-color: hsl(var(--muted));
+  border-radius: 6px;
+  margin-bottom: 16px;
 }
 
-.about-tabs :deep(.el-tab-pane) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.about-tabs-content {
+  padding-top: 8px;
 }
 
 .update-settings {
@@ -505,28 +540,8 @@ onUnmounted(() => {
 .assets-section {
   margin-top: 0;
   height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.content-scrollbar {
-  flex-shrink: 0;
-}
-
-.content-scrollbar :deep(.el-scrollbar__wrap) {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  background-color: var(--el-bg-color-page);
-  overflow-x: hidden;
-}
-
-.content-scrollbar :deep(.el-scrollbar__view) {
-  display: block;
-}
-
-.content-container {
-  padding: 16px;
 }
 
 .license-content,
@@ -539,5 +554,8 @@ onUnmounted(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
   user-select: text;
+  background-color: hsl(var(--muted) / 0.3);
+  padding: 16px;
+  border-radius: 6px;
 }
 </style>

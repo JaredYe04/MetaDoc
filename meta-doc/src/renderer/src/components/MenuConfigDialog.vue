@@ -1,95 +1,92 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="$t('leftMenu.menuConfig.title')"
-    width="600px"
-    :close-on-click-modal="true"
-    :close-on-press-escape="true"
-  >
-    <div class="menu-config-content">
-      <div class="config-description">
-        <el-text>{{ $t('leftMenu.menuConfig.description') }}</el-text>
-      </div>
+  <Dialog v-model:open="visible">
+    <DialogContent class="sm:max-w-[600px]">
+      <DialogHeader>
+        <DialogTitle>{{ $t('leftMenu.menuConfig.title') }}</DialogTitle>
+      </DialogHeader>
+      <div class="menu-config-content">
+        <div class="config-description">
+          <Text>{{ $t('leftMenu.menuConfig.description') }}</Text>
+        </div>
 
-      <!-- 菜单项列表 -->
-      <div class="menu-items-list">
-        <el-scrollbar height="400px">
-          <div class="menu-items-container" ref="sortableContainer">
-            <template
-              v-for="(item, index) in sortedMenuItems"
-              :key="
-                'type' in item && item.type === 'divider'
-                  ? item.key
-                  : 'id' in item
-                    ? item.id
-                    : index
-              "
-            >
-              <!-- 分割线 -->
-              <div v-if="'type' in item && item.type === 'divider'" class="menu-divider">
-                <div class="divider-line"></div>
-                <span class="divider-label">{{
-                  $t('leftMenu.menuConfig.bottomMenuDivider', '下侧菜单')
-                }}</span>
-                <div class="divider-line"></div>
-              </div>
-              <!-- 菜单项 -->
-              <div
-                v-else-if="'id' in item"
-                class="menu-item-row"
-                :class="{ 'is-hidden': !item.visible }"
-                :data-item-id="item.id"
+        <!-- 菜单项列表 -->
+        <div class="menu-items-list">
+          <ScrollArea class="h-[400px]">
+            <div class="menu-items-container" ref="sortableContainer">
+              <template
+                v-for="(item, index) in sortedMenuItems"
+                :key="
+                  'type' in item && item.type === 'divider'
+                    ? item.key
+                    : 'id' in item
+                      ? item.id
+                      : index
+                "
               >
-                <div class="menu-item-handle">
-                  <el-icon class="drag-handle">
-                    <Rank />
-                  </el-icon>
+                <!-- 分割线 -->
+                <div v-if="'type' in item && item.type === 'divider'" class="menu-divider">
+                  <div class="divider-line"></div>
+                  <span class="divider-label">{{
+                    $t('leftMenu.menuConfig.bottomMenuDivider', '下侧菜单')
+                  }}</span>
+                  <div class="divider-line"></div>
                 </div>
-                <div class="menu-item-content">
-                  <el-icon
-                    v-if="item.icon && !item.iconImage && typeof item.icon !== 'string'"
-                    class="menu-item-icon"
-                  >
-                    <component :is="item.icon" />
-                  </el-icon>
-                  <span
-                    v-else-if="item.icon && typeof item.icon === 'string'"
-                    class="menu-item-icon-text"
-                    >{{ item.icon }}</span
-                  >
-                  <img
-                    v-if="item.iconImage"
-                    :src="item.iconImage"
-                    alt=""
-                    class="menu-item-icon-image"
-                  />
-                  <span class="menu-item-label">{{ item.label }}</span>
+                <!-- 菜单项 -->
+                <div
+                  v-else-if="'id' in item"
+                  class="menu-item-row"
+                  :class="{ 'is-hidden': !item.visible }"
+                  :data-item-id="item.id"
+                >
+                  <div class="menu-item-handle">
+                    <el-icon class="drag-handle">
+                      <Rank />
+                    </el-icon>
+                  </div>
+                  <div class="menu-item-content">
+                    <el-icon
+                      v-if="item.icon && !item.iconImage && typeof item.icon !== 'string'"
+                      class="menu-item-icon"
+                    >
+                      <component :is="item.icon" />
+                    </el-icon>
+                    <span
+                      v-else-if="item.icon && typeof item.icon === 'string'"
+                      class="menu-item-icon-text"
+                      >{{ item.icon }}</span
+                    >
+                    <img
+                      v-if="item.iconImage"
+                      :src="item.iconImage"
+                      alt=""
+                      class="menu-item-icon-image"
+                    />
+                    <span class="menu-item-label">{{ item.label }}</span>
+                  </div>
+                  <div class="menu-item-actions" v-if="!item.isCore">
+                    <Switch
+                      :checked="item.visible"
+                      @update:checked="
+                        (val) => {
+                          item.visible = val
+                          handleVisibilityChange()
+                        }
+                      "
+                    />
+                  </div>
                 </div>
-                <div class="menu-item-actions" v-if="!item.isCore">
-                  <el-switch
-                    v-model="item.visible"
-                    :active-text="$t('leftMenu.menuConfig.visible')"
-                    :inactive-text="$t('leftMenu.menuConfig.hidden')"
-                    inline-prompt
-                    @change="handleVisibilityChange"
-                  />
-                </div>
-              </div>
-            </template>
-          </div>
-        </el-scrollbar>
+              </template>
+            </div>
+          </ScrollArea>
+        </div>
       </div>
-    </div>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="handleReset">{{ $t('leftMenu.menuConfig.reset') }}</el-button>
-        <el-button type="primary" @click="handleSave">{{
-          $t('leftMenu.menuConfig.save')
-        }}</el-button>
-      </div>
-    </template>
-  </el-dialog>
+      <DialogFooter>
+        <Button variant="ghost" @click="handleReset">{{ $t('leftMenu.menuConfig.reset') }}</Button>
+        <Button @click="handleSave">{{ $t('leftMenu.menuConfig.save') }}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -99,6 +96,17 @@ import { Rank } from '@element-plus/icons-vue'
 import { getSetting, setSetting } from '../utils/settings'
 import { createRendererLogger } from '../utils/logger'
 import Sortable from 'sortablejs'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Text } from '@renderer/components/ui/text'
 
 const sortableContainer = ref<HTMLElement | null>(null)
 

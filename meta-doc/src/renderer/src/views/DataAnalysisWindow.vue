@@ -22,7 +22,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('dataAnalysis.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
           </div>
@@ -30,45 +31,48 @@
           <div v-else class="session-content-panel" :style="panelStyle">
             <!-- 文件上传/显示区域（在最上方） -->
             <div class="file-section" :style="fileSectionStyle">
-              <el-upload
+              <Upload
                 v-if="!currentFile"
                 :file-list="[]"
                 :auto-upload="false"
-                :on-change="handleFileChange"
+                @change="handleFileChange"
                 :limit="1"
                 accept=".csv,.xlsx,.xls,.json"
                 class="compact-upload"
+                :show-file-list="false"
               >
-                <template #trigger>
-                  <el-button type="primary" :icon="UploadFilled">
-                    {{ t('dataAnalysis.uploadFile', '上传文件') }}
-                  </el-button>
-                </template>
+                <Button type="primary">
+                  <el-icon><UploadFilled /></el-icon>
+                  {{ t('dataAnalysis.uploadFile', '上传文件') }}
+                </Button>
                 <template #tip>
                   <div class="upload-tip" :style="tipStyle">
                     {{ t('dataAnalysis.uploadTip', '支持 CSV、Excel、JSON 格式') }}
                   </div>
                 </template>
-              </el-upload>
+              </Upload>
 
               <div v-else class="file-list-item" :style="fileListItemStyle">
                 <el-icon class="file-icon"><Document /></el-icon>
                 <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
-                <el-button
-                  type="danger"
-                  :icon="Delete"
-                  circle
-                  plain
-                  size="small"
-                  @click="handleFileRemove"
-                />
+                <Button type="danger" circle plain size="small" @click="handleFileRemove">
+                  <el-icon><Delete /></el-icon>
+                </Button>
               </div>
             </div>
 
             <!-- Tab 内容 -->
-            <el-tabs v-model="activeTab" type="border-card" class="main-tabs" :style="tabsStyle">
+            <Tabs v-model="activeTab" class="main-tabs border-card" :style="tabsStyle">
+              <TabsList>
+                <TabsTrigger value="preview">
+                  {{ t('dataAnalysis.tabs.preview', '数据预览') }}
+                </TabsTrigger>
+                <TabsTrigger value="result">
+                  {{ t('dataAnalysis.tabs.result', '分析结果') }}
+                </TabsTrigger>
+              </TabsList>
               <!-- Tab 1: 数据预览与参数设置 -->
-              <el-tab-pane :label="t('dataAnalysis.tabs.preview', '数据预览')" name="preview">
+              <TabsContent value="preview">
                 <div class="preview-tab-content">
                   <!-- 参数设置区域 - 拆分为左右两个panel -->
                   <div
@@ -78,25 +82,25 @@
                   >
                     <!-- 左侧70%：参数设置 -->
                     <div class="params-left-panel">
-                      <el-form
-                        :model="analysisParams"
-                        label-width="200px"
-                        size="default"
-                        class="centered-form"
-                      >
-                        <el-form-item
+                      <Form class="centered-form">
+                        <FormField
                           :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')"
+                          name=""
                         >
-                          <el-input-number
+                          <NumberField
                             v-model="headerRowIndex"
                             :min="0"
                             :max="20"
                             :step="1"
-                            :precision="0"
-                            controls-position="right"
                             style="width: 200px"
-                            @change="handleHeaderRowIndexChange"
-                          />
+                            @update:model-value="handleHeaderRowIndexChange"
+                          >
+                            <NumberFieldContent>
+                              <NumberFieldDecrement />
+                              <NumberFieldInput />
+                              <NumberFieldIncrement />
+                            </NumberFieldContent>
+                          </NumberField>
                           <div class="header-row-hint" :style="hintStyle">
                             {{
                               t(
@@ -105,30 +109,37 @@
                               )
                             }}
                           </div>
-                        </el-form-item>
+                        </FormField>
 
-                        <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
-                          <el-switch v-model="analysisParams.autoGroupBy" />
-                        </el-form-item>
+                        <FormField :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')" name="">
+                          <Switch
+                            :checked="analysisParams.autoGroupBy"
+                            @update:checked="analysisParams.autoGroupBy = $event"
+                          />
+                        </FormField>
 
-                        <el-form-item :label="t('dataAnalysis.generateReport', '生成AI报告')">
-                          <el-switch v-model="analysisParams.generateReport" />
-                        </el-form-item>
+                        <FormField :label="t('dataAnalysis.generateReport', '生成AI报告')" name="">
+                          <Switch
+                            :checked="analysisParams.generateReport"
+                            @update:checked="analysisParams.generateReport = $event"
+                          />
+                        </FormField>
 
-                        <el-form-item
+                        <FormField
                           v-if="analysisParams.generateReport"
                           :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')"
+                          name=""
                         >
-                          <el-input
+                          <Textarea
                             v-model="analysisParams.analysisRequest"
-                            type="textarea"
                             :rows="2"
                             :placeholder="
                               t('dataAnalysis.analysisRequestPlaceholder', '描述您的分析需求...')
                             "
+                            class="w-full"
                           />
-                        </el-form-item>
-                      </el-form>
+                        </FormField>
+                      </Form>
                     </div>
 
                     <!-- 右侧30%：当前表头显示 -->
@@ -136,12 +147,9 @@
                       <div class="header-preview-title" :style="headerPreviewTitleStyle">
                         {{ t('dataAnalysis.currentHeader', '当前表头') }}
                       </div>
-                      <el-scrollbar
-                        class="header-preview-scrollbar"
-                        v-if="headerPreview.length > 0"
-                      >
+                      <ScrollArea class="header-preview-scrollbar" v-if="headerPreview.length > 0">
                         <div class="header-preview-content">
-                          <el-tag
+                          <Badge
                             v-for="(header, index) in headerPreview"
                             :key="index"
                             size="small"
@@ -150,9 +158,9 @@
                             :style="headerTagStyle"
                           >
                             {{ header || `列${index + 1}` }}
-                          </el-tag>
+                          </Badge>
                         </div>
-                      </el-scrollbar>
+                      </ScrollArea>
                       <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
                         {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
                       </div>
@@ -194,7 +202,7 @@
                     :style="analyzeButtonContainerStyle"
                   >
                     <div class="analyze-button-row">
-                      <el-button
+                      <Button
                         type="primary"
                         size="large"
                         :loading="analyzing"
@@ -206,7 +214,7 @@
                             ? t('dataAnalysis.analyzing', '分析中...')
                             : t('dataAnalysis.analyze', '开始分析')
                         }}
-                      </el-button>
+                      </Button>
                       <span
                         v-if="selectedRowCount > 0"
                         class="selection-hint"
@@ -235,11 +243,11 @@
                     </div>
                   </div>
                 </div>
-              </el-tab-pane>
+              </TabsContent>
 
               <!-- Tab 2: 分析结果 -->
-              <el-tab-pane :label="t('dataAnalysis.tabs.result', '分析结果')" name="result">
-                <el-scrollbar class="result-tab-scrollbar">
+              <TabsContent value="result">
+                <ScrollArea class="result-tab-scrollbar">
                   <div class="result-tab-content" :style="resultTabContentStyle">
                     <!-- 分析状态显示（仅在非报告流式生成阶段显示） -->
                     <div
@@ -297,9 +305,9 @@
                       }}
                     </div>
                   </div>
-                </el-scrollbar>
-              </el-tab-pane>
-            </el-tabs>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </SessionList>
@@ -310,8 +318,30 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import { UploadFilled, Delete, Document, Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
 import DataTable from '../components/common/DataTable.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
@@ -324,6 +354,10 @@ import { parseCSV } from '../utils/agent-tools/data-analysis-tool'
 import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 import type { Ref } from 'vue'
 import { useWorkspace } from '../stores/workspace'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Switch } from '@renderer/components/ui/switch'
+import { Upload } from '@renderer/components/ui/upload'
+import { Badge } from '@renderer/components/ui/badge'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -393,7 +427,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -439,7 +473,7 @@ const handleCreateSession = async () => {
       analysisRequest: ''
     }
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -544,7 +578,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -556,7 +590,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await dataAnalysisSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -582,9 +616,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+    notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -607,9 +641,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
         analysisRequest: ''
       }
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1102,7 +1136,7 @@ const handleFileChange = async (file: any) => {
       await loadPreviewData()
     }
   } catch (error) {
-    ElMessage.error('保存文件信息失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('保存文件信息失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1162,21 +1196,21 @@ const convertSelectedRowsToCsv = (): string | null => {
 // 执行分析
 const handleAnalyze = async () => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('dataAnalysis.noSession', '请先选择或创建会话'))
+    notifyWarning(t('dataAnalysis.noSession', '请先选择或创建会话'))
     return
   }
 
   if (!activeSessionData.value) {
     const session = await dataAnalysisSessionsDb.getById(activeSessionId.value)
     if (!session) {
-      ElMessage.warning(t('dataAnalysis.noSession', '会话不存在'))
+      notifyWarning(t('dataAnalysis.noSession', '会话不存在'))
       return
     }
     activeSessionData.value = session
   }
 
   if (!activeSessionData.value.data_file_path) {
-    ElMessage.warning(t('dataAnalysis.noFile', '请先上传数据文件'))
+    notifyWarning(t('dataAnalysis.noFile', '请先上传数据文件'))
     return
   }
 
@@ -1300,17 +1334,17 @@ const handleAnalyze = async () => {
         activeSessionData.value.report_markdown = analysisResultData.reportMarkdown || undefined
       }
 
-      ElMessage.success(t('dataAnalysis.analyzeSuccess', '分析完成'))
+      notifySuccess(t('dataAnalysis.analyzeSuccess', '分析完成'))
     } else {
       // 清理流式显示
       reportStreamingDonePromise.value = null
-      ElMessage.error(result.error || t('dataAnalysis.analyzeFailed', '分析失败'))
+      notifyError(result.error || t('dataAnalysis.analyzeFailed', '分析失败'))
       analysisStage.value = ''
     }
   } catch (error) {
     // 清理流式显示
     reportStreamingDonePromise.value = null
-    ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
     analysisStage.value = ''
   } finally {
     analyzing.value = false
@@ -1684,6 +1718,15 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    sessions.value = [
+      { id: 'demo-1', title: '销售数据分析', updatedAt: Date.now() },
+      { id: 'demo-2', title: '用户行为分析', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   loadSessions()
 
   if (activeTab.value === 'result' && reportMarkdown.value) {
@@ -1795,38 +1838,21 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.main-tabs :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
+/* shadcn-vue Tabs styling */
+.main-tabs :deep([role='tablist']) {
+  flex-shrink: 0;
 }
 
-.main-tabs :deep(.el-tabs__header.is-top) {
-  order: -999 !important;
-}
-
-.main-tabs :deep(.el-tabs__header.is-bottom) {
-  order: 999 !important;
-}
-
-.main-tabs :deep(.el-tabs__content) {
-  order: 0 !important;
+.main-tabs :deep([role='tabpanel']) {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
-  padding: 0 !important;
 }
 
-.main-tabs :deep(.el-tab-pane) {
+.main-tabs :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .preview-tab-content {

@@ -53,7 +53,9 @@ async function ensureTrainedData(langList: string[], tessdataPath: string) {
       if (fs.existsSync(target)) {
         try {
           fs.unlinkSync(target)
-        } catch {}
+        } catch {
+          // 忽略删除失败，文件可能已被清理
+        }
       }
       throw error
     }

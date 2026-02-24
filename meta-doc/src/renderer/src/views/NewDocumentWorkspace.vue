@@ -1,5 +1,5 @@
 <template>
-  <el-scrollbar class="new-document-scroll">
+  <ScrollArea class="new-document-scroll">
     <div class="new-document">
       <div class="new-document__header">
         <h1>{{ t('newDocument.title') }}</h1>
@@ -7,11 +7,21 @@
       </div>
 
       <div class="new-document__formats">
-        <el-radio-group v-model="selectedFormatId" class="format-group">
-          <el-radio-button v-for="format in formats" :key="format.id" :label="format.id">
-            {{ formatLabel(format) }}
-          </el-radio-button>
-        </el-radio-group>
+        <RadioGroup v-model="selectedFormatId" class="flex format-group">
+          <div
+            class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground"
+          >
+            <div v-for="format in formats" :key="format.id" class="flex items-center">
+              <RadioGroupItem :value="format.id" :id="'format-' + format.id" class="sr-only peer" />
+              <label
+                :for="'format-' + format.id"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+              >
+                {{ formatLabel(format) }}
+              </label>
+            </div>
+          </div>
+        </RadioGroup>
         <p class="format-description">
           {{ formatDescription(currentFormat) }}
         </p>
@@ -19,7 +29,7 @@
 
       <div class="new-document__templates">
         <h2>{{ t('newDocument.templateTitle') }}</h2>
-        <el-scrollbar class="template-grid-scroll">
+        <ScrollArea class="template-grid-scroll">
           <div class="template-grid-wrapper" ref="templateGridWrapperRef">
             <div class="template-grid" :style="{ gridTemplateColumns: gridTemplateColumns }">
               <div
@@ -38,7 +48,9 @@
                   :icon="Close"
                   text
                   :aria-label="t('common.delete') || '删除'"
-                  @click.stop="deleteUserTemplate(template.userTemplateId!, templateLabel(template))"
+                  @click.stop="
+                    deleteUserTemplate(template.userTemplateId!, templateLabel(template))
+                  "
                 />
                 <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
                   <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />
@@ -51,22 +63,22 @@
                   <p>{{ templateDescription(template) }}</p>
                 </div>
                 <div class="template-card__actions">
-                  <el-button
-                    type="primary"
-                    round
-                    size="small"
+                  <Button
+                    variant="default"
+                    size="sm"
+                    class="rounded-full"
                     @click.stop="confirmTemplate(template.id)"
                   >
                     {{ t('newDocument.useTemplate') }}
-                  </el-button>
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
     </div>
-  </el-scrollbar>
+  </ScrollArea>
 </template>
 
 <script setup lang="ts">
@@ -77,6 +89,9 @@ import type { SupportedFormat, DocumentTemplate } from '../types/formats'
 import { useI18n } from 'vue-i18n'
 import { Document, Close } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
 import { removeUserTemplate } from '../stores/user-templates'
 
@@ -293,14 +308,14 @@ function confirmTemplate(templateId?: string) {
   position: relative;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(77, 77, 77, 0.5);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
-  background-color: var(--el-fill-color-blank);
+  background-color: v-bind('themeState.currentTheme.background');
 }
 
 .template-card-delete-btn {
@@ -320,19 +335,23 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card:hover {
-  border-color: rgba(128, 128, 128, 0.5);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: v-bind('themeState.currentTheme.primaryColor + "80"');
+  box-shadow: 0 6px 18px v-bind('themeState.currentTheme.primaryColor + "15"');
 }
 
 .template-card.active {
-  border-color: rgba(128, 128, 128, 0.5);
-  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
+  border-color: v-bind('themeState.currentTheme.primaryColor');
+  box-shadow: 0 8px 24px v-bind('themeState.currentTheme.primaryColor + "25"');
 }
 
 .template-card__image {
   position: relative;
   padding-top: 60%;
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(64, 158, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    v-bind('themeState.currentTheme.primaryColor + "1A"'),
+    v-bind('themeState.currentTheme.primaryColor + "0D"')
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -348,7 +367,11 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card__image.is-placeholder {
-  background: linear-gradient(135deg, rgba(144, 147, 153, 0.15), rgba(144, 147, 153, 0.05));
+  background: linear-gradient(
+    135deg,
+    v-bind('themeState.currentTheme.secondaryColor + "26"'),
+    v-bind('themeState.currentTheme.secondaryColor + "0D"')
+  );
 }
 
 .template-card__placeholder {
@@ -357,7 +380,7 @@ function confirmTemplate(templateId?: string) {
   align-items: center;
   justify-content: center;
   font-size: 28px;
-  color: rgba(144, 147, 153, 0.8);
+  color: v-bind('themeState.currentTheme.secondaryColor + "CC"');
 }
 
 .template-card__body {
@@ -376,7 +399,7 @@ function confirmTemplate(templateId?: string) {
 
 .template-card__body p {
   margin: 0;
-  color: var(--el-text-color-secondary);
+  color: v-bind('themeState.currentTheme.textColor2');
   font-size: 13px;
   line-height: 1.5;
 }

@@ -2,16 +2,16 @@
   <div class="suggestion-tags-container">
     <div class="suggestion-tags-header">
       <span class="suggestion-tags-title">{{ title }}</span>
-      <el-button
-        size="small"
-        text
+      <Button
+        size="sm"
+        variant="ghost"
         circle
         :disabled="disabled"
         @click="handleRefresh"
         class="refresh-button"
-        :icon="Refresh"
       >
-      </el-button>
+        <el-icon><Refresh /></el-icon>
+      </Button>
     </div>
     <div class="suggestion-tags-wrapper">
       <transition-group name="tag-fade" tag="div" class="suggestion-tags-list">
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { Refresh } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../../utils/themes'
 
 interface SuggestionTag {

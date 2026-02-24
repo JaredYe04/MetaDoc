@@ -3,14 +3,9 @@
     <div class="quick-start-panel-container" :style="formatContainerStyle">
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartFormatTitle') }}</h2>
-        <el-button
-          class="close-button"
-          @click="closeQuickStart"
-          circle
-          size="small"
-          :icon="Close"
-          text
-        />
+        <Button class="close-button" @click="closeQuickStart" circle size="small" variant="ghost">
+          <X class="w-4 h-4" />
+        </Button>
       </div>
       <div class="format-options-container">
         <div
@@ -44,112 +39,118 @@
   <div v-else class="quick-start-overlay" :style="overlayStyle">
     <div class="quick-start-panel aero-div">
       <div class="panel-header">
-        <el-button @click="handleClose" class="aero-btn" plain round type="danger" size="small" />
+        <Button @click="handleClose" class="aero-btn" plain round type="danger" size="small" />
       </div>
 
       <div v-if="stage === 'select'" class="format-selector">
         <h2 class="selector-title">{{ $t('home.quickStartFormatTitle') }}</h2>
         <div class="format-grid">
-          <el-card
+          <Card
             v-for="option in formatOptions"
             :key="option.id"
-            class="format-card"
-            shadow="hover"
+            class="format-card cursor-pointer transition-transform hover:-translate-y-1"
             @click="selectQuickStartFormat(option.id as 'md' | 'tex')"
           >
-            <h3>{{ option.title }}</h3>
-            <p>{{ option.description }}</p>
-          </el-card>
+            <CardContent class="text-center">
+              <h3>{{ option.title }}</h3>
+              <p>{{ option.description }}</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       <div v-else class="panel-body">
         <div class="panel-body__left">
-          <el-scrollbar class="markdown-preview">
+          <ScrollArea class="w-full h-full">
             <MarkdownItEditor :source="generatedText" @mousedown.stop class="markdown-editor" />
-          </el-scrollbar>
+          </ScrollArea>
         </div>
         <div class="panel-divider" />
         <div class="panel-body__right">
           <div class="tab-switch">
-            <el-segmented v-model="activeTab" :options="tabOptions" />
+            <ToggleGroup v-model="activeTab" type="single" class="quickstart-tab-toggle">
+              <ToggleGroupItem
+                v-for="option in tabOptions"
+                :key="option"
+                :value="option"
+                class="quickstart-tab-item"
+              >
+                {{ option }}
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
           <div v-if="activeTab === documentTabLabel" class="document-info aero-div">
             <label class="section-title interactive-text">{{ $t('home.documentInfoLabel') }}</label>
             <div class="form-row">
               <label>{{ $t('home.label.title') }}</label>
-              <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+              <Input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
             </div>
             <div class="form-row">
               <label>{{ $t('home.label.author') }}</label>
-              <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
+              <Input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
             </div>
             <div class="form-row">
               <label>{{ $t('home.label.abstract') }}</label>
-              <el-input
+              <Textarea
                 v-model="metaDescription"
-                type="textarea"
-                :autosize="{ minRows: 2, maxRows: 3 }"
                 :placeholder="$t('home.placeholder.abstract')"
+                class="min-h-[60px]"
               />
             </div>
             <div class="form-actions">
-              <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
-                <el-button circle type="success" @click="confirmDocument"
-                  ><el-icon><Check /></el-icon
-                ></el-button>
-              </el-tooltip>
+              <Tooltip :content="$t('home.tooltip.ready')" placement="top">
+                <Button circle type="success" @click="confirmDocument">
+                  <Check class="w-4 h-4" />
+                  ></Button
+                >
+              </Tooltip>
             </div>
           </div>
 
           <div v-else class="ai-assistant aero-div">
             <label class="section-title interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
-              <el-slider
+            <Tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
+              <Slider
                 v-model="temperature"
-                :marks="marks"
                 :min="0"
                 :max="100"
                 :disabled="generated || generating"
                 class="temperature-slider-wrapper"
               />
-            </el-tooltip>
-            <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
-              <el-select
-                v-model="mood"
-                multiple
-                filterable
-                allow-create
-                size="small"
-                :disabled="generated || generating"
-              >
-                <el-option
-                  v-for="option in moodOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                >
-                  <template #prefix>
-                    <el-icon :size="12"><component :is="option.icon" /></el-icon>
-                  </template>
-                </el-option>
-              </el-select>
-            </el-tooltip>
-            <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
-              <el-autocomplete
+            </Tooltip>
+            <Tooltip :content="$t('home.tooltip.selectMood')" placement="left">
+              <Select v-model="mood" multiple :disabled="generated || generating">
+                <SelectTrigger class="h-8 text-sm">
+                  <SelectValue :placeholder="$t('home.tooltip.selectMood')" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="option in moodOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    <div class="flex items-center gap-2">
+                      <component :is="option.icon" class="w-3 h-3" />
+                      <span>{{ option.label }}</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </Tooltip>
+            <Tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
+              <Autocomplete
                 v-model="userPrompt"
                 :fetch-suggestions="querySearch"
                 clearable
-                class="inline-input aero-input"
+                input-class="inline-input aero-input"
                 :placeholder="$t('home.tooltip.inputPrompt')"
                 :disabled="generated || generating"
-                :autosize="{ minRows: 3, maxRows: 3 }"
               />
-            </el-tooltip>
+            </Tooltip>
             <div class="suggestion-container aero-div">
               <label class="section-title interactive-text">{{ $t('home.suggestionLabel') }}</label>
               <div class="suggestion-grid">
-                <el-button
+                <Button
                   v-for="(button, index) in buttons"
                   :key="index"
                   size="small"
@@ -158,35 +159,38 @@
                   :disabled="generating || generated"
                 >
                   {{ button.label }}
-                </el-button>
+                </Button>
               </div>
-              <el-button
+              <Button
                 size="small"
                 type="primary"
                 :disabled="generating || generated"
                 class="aero-btn refresh-btn"
                 @click="refreshButtons"
               >
-                <el-icon><Refresh /></el-icon>
+                <RefreshCw class="w-4 h-4" />
                 {{ $t('home.button.refresh') }}
-              </el-button>
+              </Button>
             </div>
             <div class="action-buttons" @mousedown.stop>
-              <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                <el-button circle type="primary" @click="generate" :disabled="disableGenerate"
-                  ><el-icon><Promotion /></el-icon
-                ></el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                <el-button circle type="info" @click="reset" v-if="generated"
-                  ><el-icon><RefreshLeft /></el-icon
-                ></el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                <el-button circle type="success" @click="accept" v-if="generated"
-                  ><el-icon><Check /></el-icon
-                ></el-button>
-              </el-tooltip>
+              <Tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
+                <Button circle type="primary" @click="generate" :disabled="disableGenerate">
+                  <Send class="w-4 h-4" />
+                  ></Button
+                >
+              </Tooltip>
+              <Tooltip :content="$t('home.tooltip.reset')" placement="top">
+                <Button circle type="info" @click="reset" v-if="generated">
+                  <Undo2 class="w-4 h-4" />
+                  ></Button
+                >
+              </Tooltip>
+              <Tooltip :content="$t('home.tooltip.accept')" placement="top">
+                <Button circle type="success" @click="accept" v-if="generated">
+                  <Check class="w-4 h-4" />
+                  ></Button
+                >
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -204,20 +208,36 @@ import VoiceInput from '../VoiceInput.vue'
 // @ts-expect-error: Missing types for vue3-markdown-it
 import MarkdownItEditor from 'vue3-markdown-it'
 import {
-  DataAnalysis,
-  Drizzling,
-  Lightning,
-  MoonNight,
-  Mug,
-  Sugar,
-  SuitcaseLine,
-  Warning,
+  BarChart3,
+  CloudRain,
+  Zap,
+  Moon,
+  Coffee,
+  Candy,
+  Briefcase,
+  AlertTriangle,
   Check,
-  Promotion,
-  Refresh,
-  RefreshLeft,
-  Close
-} from '@element-plus/icons-vue'
+  Send,
+  RefreshCw,
+  Undo2,
+  X
+} from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
+import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Card, CardContent } from '@renderer/components/ui/card'
+import { Autocomplete } from '@renderer/components/ui/autocomplete'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'
@@ -296,30 +316,19 @@ const generating = ref(false)
 const defaultText = ref('')
 const generatedText = ref('')
 
-const marks = computed(() => ({
-  0: t('home.temperatureMarks.rigorous'),
-  100: t('home.temperatureMarks.creative'),
-  50: {
-    style: {
-      color: '#1989FA'
-    },
-    label: t('home.temperatureMarks.balanced')
-  }
-}))
-
 const moodOptions = computed(() => [
-  { label: t('home.mood.happy'), value: 'happy', icon: Sugar },
-  { label: t('home.mood.lyrical'), value: 'lyrical', icon: MoonNight },
-  { label: t('home.mood.peaceful'), value: 'peaceful', icon: Mug },
-  { label: t('home.mood.academic'), value: 'academic', icon: DataAnalysis },
-  { label: t('home.mood.business'), value: 'business', icon: SuitcaseLine },
-  { label: t('home.mood.sad'), value: 'sad', icon: Drizzling },
-  { label: t('home.mood.warning'), value: 'warning', icon: Warning },
-  { label: t('home.mood.exciting'), value: 'exciting', icon: Lightning },
-  { label: t('home.mood.angry'), value: 'angry', icon: Lightning },
-  { label: t('home.mood.surprised'), value: 'surprised', icon: Lightning },
-  { label: t('home.mood.fearful'), value: 'fearful', icon: Lightning },
-  { label: t('home.mood.disgusted'), value: 'disgusted', icon: Lightning }
+  { label: t('home.mood.happy'), value: 'happy', icon: Candy },
+  { label: t('home.mood.lyrical'), value: 'lyrical', icon: Moon },
+  { label: t('home.mood.peaceful'), value: 'peaceful', icon: Coffee },
+  { label: t('home.mood.academic'), value: 'academic', icon: BarChart3 },
+  { label: t('home.mood.business'), value: 'business', icon: Briefcase },
+  { label: t('home.mood.sad'), value: 'sad', icon: CloudRain },
+  { label: t('home.mood.warning'), value: 'warning', icon: AlertTriangle },
+  { label: t('home.mood.exciting'), value: 'exciting', icon: Zap },
+  { label: t('home.mood.angry'), value: 'angry', icon: Zap },
+  { label: t('home.mood.surprised'), value: 'surprised', icon: Zap },
+  { label: t('home.mood.fearful'), value: 'fearful', icon: Zap },
+  { label: t('home.mood.disgusted'), value: 'disgusted', icon: Zap }
 ])
 
 const logger = createRendererLogger('QuickStartPanel', {
@@ -786,6 +795,27 @@ watch(
   justify-content: center;
 }
 
+.quickstart-tab-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: v-bind('themeState.currentTheme.background || "#f5f5f5"');
+  border-radius: 8px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+}
+
+.quickstart-tab-item {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.quickstart-tab-item[data-state='on'] {
+  background: v-bind('themeState.currentTheme.primary || "#409eff"');
+  color: white;
+}
+
 .document-info,
 .ai-assistant {
   display: flex;
@@ -821,11 +851,6 @@ watch(
 .form-actions {
   display: flex;
   justify-content: center;
-}
-
-.markdown-preview {
-  width: 100%;
-  height: 100%;
 }
 
 .markdown-editor {

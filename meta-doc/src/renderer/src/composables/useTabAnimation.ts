@@ -82,10 +82,7 @@ export function useTabAnimation(
 
       if (Math.abs(deltaX) > 0.5) {
         const animation = el.animate(
-          [
-            { transform: `translateX(${deltaX}px)` },
-            { transform: 'translateX(0)' }
-          ],
+          [{ transform: `translateX(${deltaX}px)` }, { transform: 'translateX(0)' }],
           {
             duration: 180,
             easing: 'ease-out',
@@ -109,7 +106,34 @@ export function useTabAnimation(
     await animateTabEnter(newTabId)
   }
 
+  const animateTabExit = async (tabId: string): Promise<void> => {
+    const tabEl = getTabElement(tabId)
+    if (!tabEl) return
+
+    const animation = tabEl.animate(
+      [
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: 'translateX(-40px)', opacity: 0 }
+      ],
+      {
+        duration: ANIMATION_DURATION,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        fill: 'forwards'
+      }
+    )
+
+    await animation.finished
+  }
+
+  const triggerCloseTabAnimation = async (tabId: string): Promise<void> => {
+    const prevPositions = recordPositions()
+    await animateTabExit(tabId)
+    await nextTick()
+    animateSiblings(prevPositions)
+  }
+
   return {
-    triggerNewTabAnimation
+    triggerNewTabAnimation,
+    triggerCloseTabAnimation
   }
 }

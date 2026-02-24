@@ -229,11 +229,13 @@ graph TB
 
 ```json
 {
-  "series": [{
-    "name": "系列名称",
-    "type": "bar",
-    "data": [10, 20, 30]
-  }]
+  "series": [
+    {
+      "name": "系列名称",
+      "type": "bar",
+      "data": [10, 20, 30]
+    }
+  ]
 }
 ```
 
@@ -299,11 +301,13 @@ graph TB
 
 ```json
 {
-  "dataZoom": [{
-    "type": "slider",
-    "start": 0,
-    "end": 100
-  }]
+  "dataZoom": [
+    {
+      "type": "slider",
+      "start": 0,
+      "end": 100
+    }
+  ]
 }
 ```
 

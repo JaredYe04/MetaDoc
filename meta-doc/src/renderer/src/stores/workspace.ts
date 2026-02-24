@@ -60,6 +60,8 @@ export interface WorkspaceTab {
   pinned?: boolean
   /** 标记为新创建的标签页，用于入场动画 */
   _isNewTab?: boolean
+  /** 标记为正在关闭的标签页，用于退场动画 */
+  _isClosing?: boolean
 }
 
 export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread'
@@ -121,10 +123,7 @@ function findFormatById(id: string): SupportedFormat | undefined {
   return supportedFormatsRef.value.find((format) => format.id === id)
 }
 
-function findFormatTemplate(
-  formatId: string,
-  templateId?: string
-): DocumentTemplate | undefined {
+function findFormatTemplate(formatId: string, templateId?: string): DocumentTemplate | undefined {
   const format = findFormatById(formatId)
   if (!format) return undefined
   if (!templateId) {
@@ -503,68 +502,68 @@ function removeTab(id: string): void {
       return // 不可删除的Tab，直接返回
     }
 
-  const doc = documents[id]
+    const doc = documents[id]
 
-  // 保存到最近关闭的标签页栈（排除系统Tab和dummy Tab）
-  if (tab.kind !== 'system' || tab.route !== '/dummy') {
-    const closedEntry = {
-      tab: { ...tab },
-      document: doc
-        ? { ...doc, markdown: doc.markdown, path: doc.path, format: doc.format, dirty: doc.dirty }
-        : undefined,
-      closedAt: Date.now()
-    }
-    recentlyClosedTabs.value.unshift(closedEntry)
-    // 限制栈大小
-    if (recentlyClosedTabs.value.length > MAX_RECENTLY_CLOSED) {
-      recentlyClosedTabs.value = recentlyClosedTabs.value.slice(0, MAX_RECENTLY_CLOSED)
-    }
-  }
-  const wasActive = activeTabId.value === id
-
-  // 停止文件监听（如果文件路径存在）
-  if (doc && doc.path) {
-    // 异步停止文件监听（避免阻塞）
-    ;(async () => {
-      try {
-        const messageBridge = (await import('../bridge/message-bridge')).default
-        const ipc = messageBridge.getIpc()
-        if (ipc) {
-          messageBridge.send('unwatch-file', doc.path)
-          if (ipc.invoke) {
-            await messageBridge.invoke('mark-file-closing', doc.path)
-            if (tab.preview) {
-              await messageBridge.invoke('release-file-claim', doc.path)
-            }
-          }
-          const logger = createRendererLogger('Workspace')
-          logger.debug('停止文件监听', { filePath: doc.path, tabId: id, isPreview: tab.preview })
-        }
-      } catch (error) {
-        const logger = createRendererLogger('Workspace')
-        logger.warn('停止文件监听失败', { filePath: doc.path, tabId: id, error })
+    // 保存到最近关闭的标签页栈（排除系统Tab和dummy Tab）
+    if (tab.kind !== 'system' || tab.route !== '/dummy') {
+      const closedEntry = {
+        tab: { ...tab },
+        document: doc
+          ? { ...doc, markdown: doc.markdown, path: doc.path, format: doc.format, dirty: doc.dirty }
+          : undefined,
+        closedAt: Date.now()
       }
-    })()
-  }
-
-  tabs.splice(index, 1)
-  delete documents[id]
-  delete tabToolState[id]
-
-  // 如果关闭后没有Tab了，创建一个系统Tab显示Dummy组件
-  if (!tabs.length) {
-    const dummyTab = openSystemTab('/dummy', '空白')
-    activeTabId.value = dummyTab.id
-    return
-  }
-
-  // 如果关闭的是活跃Tab，或者已经没有活跃Tab，选择下一个
-  if (wasActive || !activeTabId.value) {
-    const fallback = tabs[index] || tabs[index - 1] || tabs[0]
-    if (fallback) {
-      activateTab(fallback.id)
+      recentlyClosedTabs.value.unshift(closedEntry)
+      // 限制栈大小
+      if (recentlyClosedTabs.value.length > MAX_RECENTLY_CLOSED) {
+        recentlyClosedTabs.value = recentlyClosedTabs.value.slice(0, MAX_RECENTLY_CLOSED)
+      }
     }
-  }
+    const wasActive = activeTabId.value === id
+
+    // 停止文件监听（如果文件路径存在）
+    if (doc && doc.path) {
+      // 异步停止文件监听（避免阻塞）
+      ;(async () => {
+        try {
+          const messageBridge = (await import('../bridge/message-bridge')).default
+          const ipc = messageBridge.getIpc()
+          if (ipc) {
+            messageBridge.send('unwatch-file', doc.path)
+            if (ipc.invoke) {
+              await messageBridge.invoke('mark-file-closing', doc.path)
+              if (tab.preview) {
+                await messageBridge.invoke('release-file-claim', doc.path)
+              }
+            }
+            const logger = createRendererLogger('Workspace')
+            logger.debug('停止文件监听', { filePath: doc.path, tabId: id, isPreview: tab.preview })
+          }
+        } catch (error) {
+          const logger = createRendererLogger('Workspace')
+          logger.warn('停止文件监听失败', { filePath: doc.path, tabId: id, error })
+        }
+      })()
+    }
+
+    tabs.splice(index, 1)
+    delete documents[id]
+    delete tabToolState[id]
+
+    // 如果关闭后没有Tab了，创建一个系统Tab显示Dummy组件
+    if (!tabs.length) {
+      const dummyTab = openSystemTab('/dummy', '空白')
+      activeTabId.value = dummyTab.id
+      return
+    }
+
+    // 如果关闭的是活跃Tab，或者已经没有活跃Tab，选择下一个
+    if (wasActive || !activeTabId.value) {
+      const fallback = tabs[index] || tabs[index - 1] || tabs[0]
+      if (fallback) {
+        activateTab(fallback.id)
+      }
+    }
   } finally {
     // 确保清理正在删除的标记
     removingTabIds.delete(id)
@@ -737,25 +736,19 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     }
 
     // 自动同步大纲树（从Markdown内容提取）
-    // 只在编辑器视图时才自动同步，避免在outline视图时触发编辑器刷新
-    // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
+    // 注意：双向同步模式下，只要内容变化就重新提取大纲
+    // suppressAutoOutlineSync 标志用于防止从大纲生成文本时的循环
     if (!suppressAutoOutlineSync && doc.format === 'md' && normalized.trim().length > 0) {
-      // 检查当前视图：只有在编辑器视图时才自动同步大纲树
-      // 在outline视图时，大纲树是数据源，不应该从编辑器内容反向同步
-      const currentView = doc.lastView ?? 'editor'
-      // 兼容旧的'article'值（已被'editor'替代）
-      if (currentView === 'editor' || (currentView as string) === 'article') {
-        try {
-          const newOutline = extractOutlineTreeFromMarkdown(normalized)
-          if (newOutline && newOutline.children && newOutline.children.length >= 0) {
-            // 只有当提取到有效大纲时才更新（允许空大纲）
-            updateDocumentOutline(tabId, newOutline)
-          }
-        } catch (error) {
-          // 提取大纲失败时，不更新大纲树，避免破坏现有结构
-          const logger = createRendererLogger('Workspace')
-          logger.warn('自动同步大纲树失败:', error)
+      try {
+        const newOutline = extractOutlineTreeFromMarkdown(normalized)
+        if (newOutline && newOutline.children && newOutline.children.length >= 0) {
+          // 只有当提取到有效大纲时才更新（允许空大纲）
+          updateDocumentOutline(tabId, newOutline)
         }
+      } catch (error) {
+        // 提取大纲失败时，不更新大纲树，避免破坏现有结构
+        const logger = createRendererLogger('Workspace')
+        logger.warn('自动同步大纲树失败:', error)
       }
     }
 
@@ -847,27 +840,20 @@ function updateDocumentTex(tabId: string, tex: string): void {
     }
 
     // 自动同步大纲树（LaTeX需要先转换为Markdown再提取）
-    // 只在编辑器视图时才自动同步，避免在outline视图时触发编辑器刷新
-    // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
+    // 注意：双向同步模式下，只要内容变化就重新提取大纲
     if (!suppressAutoOutlineSync && doc.format === 'tex' && normalized.trim().length > 0) {
-      // 检查当前视图：只有在编辑器视图时才自动同步大纲树
-      // 在outline视图时，大纲树是数据源，不应该从编辑器内容反向同步
-      const currentView = doc.lastView ?? 'editor'
-      // 兼容旧的'article'值（已被'editor'替代）
-      if (currentView === 'editor' || (currentView as string) === 'article') {
-        try {
-          // 将LaTeX转换为Markdown，然后提取大纲树
-          const markdown = convertLatexToMarkdown(normalized)
-          const newOutline = extractOutlineTreeFromMarkdown(markdown)
-          if (newOutline && newOutline.children && newOutline.children.length >= 0) {
-            // 只有当提取到有效大纲时才更新（允许空大纲）
-            updateDocumentOutline(tabId, newOutline)
-          }
-        } catch (error) {
-          // 提取大纲失败时，不更新大纲树，避免破坏现有结构
-          const logger = createRendererLogger('Workspace')
-          logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
+      try {
+        // 将LaTeX转换为Markdown，然后提取大纲树
+        const markdown = convertLatexToMarkdown(normalized)
+        const newOutline = extractOutlineTreeFromMarkdown(markdown)
+        if (newOutline && newOutline.children && newOutline.children.length >= 0) {
+          // 只有当提取到有效大纲时才更新（允许空大纲）
+          updateDocumentOutline(tabId, newOutline)
         }
+      } catch (error) {
+        // 提取大纲失败时，不更新大纲树，避免破坏现有结构
+        const logger = createRendererLogger('Workspace')
+        logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
       }
     }
 

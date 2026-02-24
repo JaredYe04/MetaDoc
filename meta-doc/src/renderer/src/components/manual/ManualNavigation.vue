@@ -1,7 +1,7 @@
 <template>
   <div class="manual-navigation">
-    <el-scrollbar class="navigation-scrollbar">
-      <el-tree
+    <ScrollArea class="navigation-scrollbar">
+      <Tree
         :data="treeData"
         :props="{ children: 'children', label: 'title' }"
         :default-expand-all="false"
@@ -11,32 +11,25 @@
         @node-click="handleNodeClick"
         class="navigation-tree"
       >
-        <template #default="{ node, data }">
+        <template #default="{ data }">
           <div class="tree-node">
-            <el-icon v-if="data.children && data.children.length > 0" class="node-icon">
-              <Folder />
-            </el-icon>
-            <el-icon v-else class="node-icon">
-              <Document />
-            </el-icon>
+            <Folder v-if="data.children && data.children.length > 0" class="w-4 h-4" />
+            <FileText v-else class="w-4 h-4" />
             <span class="node-label">{{ data.title }}</span>
-            <el-icon
-              v-if="!data.children && isArticleRead(data.id)"
-              class="read-icon"
-            >
-              <Check />
-            </el-icon>
+            <Check v-if="!data.children && isArticleRead(data.id)" class="w-4 h-4" />
           </div>
         </template>
-      </el-tree>
-    </el-scrollbar>
+      </Tree>
+    </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
-import { Folder, Document, Check } from '@element-plus/icons-vue'
+import { Folder, FileText, Check } from 'lucide-vue-next'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Tree } from '@renderer/components/ui/tree'
 
 const { navigationTree, currentArticleId, articleProgress, setCurrentArticle } = useUserManual()
 
@@ -92,11 +85,15 @@ const handleNodeClick = (data: any) => {
 }
 
 .navigation-tree :deep(.el-tree-node__content:hover) {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .navigation-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"'
+  );
   font-weight: 500;
 }
 

@@ -4,6 +4,18 @@
 
 Markdown是一种轻量级标记语言，允许您使用易读易写的纯文本格式编写文档。MetaDoc提供了完整的Markdown编辑和预览支持。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "insert"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["outline", "preview"]' />
+
+<SearchReplaceMenu mode="demo" />
+
 ## 基本语法
 
 ### 标题
@@ -12,7 +24,9 @@ Markdown是一种轻量级标记语言，允许您使用易读易写的纯文本
 
 ```markdown
 # 一级标题
+
 ## 二级标题
+
 ### 三级标题
 ```
 
@@ -96,14 +110,14 @@ function hello() {
 **图片**：
 
 ```markdown
-![图片描述](./images/example.png)
+`![图片描述](./images/example.png)`（示例代码，引用时请确保图片文件存在）
 ```
 
 ### 表格
 
 ```markdown
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
+| 列1   | 列2   | 列3   |
+| ----- | ----- | ----- |
 | 数据1 | 数据2 | 数据3 |
 ```
 
@@ -147,3 +161,5 @@ MetaDoc支持多种图表格式：
 - [[markdown.advanced|Markdown高级功能]]
 - [[markdown.features|Markdown编辑器功能]]
 - [[core.editor-basics|编辑器基础操作]]
+
+<ViewMenuItemsDemo mode="demo" :items='["outline"]' />

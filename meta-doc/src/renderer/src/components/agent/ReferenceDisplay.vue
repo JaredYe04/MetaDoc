@@ -1,7 +1,7 @@
 <template>
-  <el-scrollbar
+  <ScrollArea
     v-if="references.length > 0"
-    class="reference-display-wrapper"
+    class="reference-display-wrapper w-full max-w-full"
     :style="wrapperStyle"
   >
     <div class="reference-display" :style="containerStyle">
@@ -19,11 +19,12 @@
         <span class="reference-tag__name">{{ ref.name }}</span>
       </div>
     </div>
-  </el-scrollbar>
+  </ScrollArea>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 
@@ -155,26 +156,12 @@ const handleToggle = (ref: ReferenceDisplayItem) => {
 
 <style scoped>
 .reference-display-wrapper {
-  width: 100%;
-  max-width: 100%;
   pointer-events: auto;
 }
 
-.reference-display-wrapper :deep(.el-scrollbar__wrap) {
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.reference-display-wrapper :deep(.el-scrollbar__bar) {
-  opacity: 0.3;
-}
-
-.reference-display-wrapper :deep(.el-scrollbar__bar.is-horizontal) {
-  height: 6px;
-}
-
-.reference-display-wrapper :deep(.el-scrollbar__bar.is-horizontal:hover) {
-  opacity: 0.6;
+.reference-display-wrapper :deep([data-radix-scroll-area-viewport]) {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
 }
 
 .reference-display {

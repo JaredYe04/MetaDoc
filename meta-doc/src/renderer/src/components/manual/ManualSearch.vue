@@ -1,17 +1,16 @@
 <template>
   <div class="manual-search">
-    <el-input
-      v-model="query"
-      :placeholder="$t('userManual.searchPlaceholder') || '搜索文档...'"
-      clearable
-      @input="handleSearch"
-      @keydown.enter="handleEnter"
-      @keydown.esc="clearSearch"
-    >
-      <template #prefix>
-        <el-icon><Search /></el-icon>
-      </template>
-    </el-input>
+    <div class="relative">
+      <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        v-model="query"
+        :placeholder="$t('userManual.searchPlaceholder') || '搜索文档...'"
+        class="pl-10"
+        @input="handleSearch"
+        @keydown.enter="handleEnter"
+        @keydown.esc="clearSearch"
+      />
+    </div>
 
     <div v-if="showResults && results.length > 0" class="search-results">
       <div
@@ -26,9 +25,9 @@
             <DocumentCopy v-else />
           </el-icon>
           <span class="result-title">{{ result.title }}</span>
-          <el-tag v-if="result.type === 'fragment'" size="small" type="info">
+          <Badge v-if="result.type === 'fragment'" variant="secondary">
             {{ $t('userManual.search.fragment') || '片段' }}
-          </el-tag>
+          </Badge>
         </div>
         <div v-if="result.fragment" class="result-fragment">
           {{ result.fragment }}
@@ -40,7 +39,7 @@
     </div>
 
     <div v-else-if="showResults && query && results.length === 0" class="search-empty">
-      <el-empty
+      <Empty
         :description="$t('userManual.search.noResults') || '未找到相关文档'"
         :image-size="80"
       />
@@ -51,7 +50,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useUserManual } from '../../stores/userManual'
-import { Search, Document, DocumentCopy } from '@element-plus/icons-vue'
+import { Document, DocumentCopy } from '@element-plus/icons-vue'
+import { Search } from 'lucide-vue-next'
+import { Input } from '@renderer/components/ui/input'
+import { Badge } from '@renderer/components/ui/badge'
+import { Empty } from '@renderer/components/ui/empty'
 import type { SearchResult } from '../../manuals/types'
 
 const { searchQuery, searchResults, performSearch, setCurrentArticle } = useUserManual()
@@ -70,14 +73,17 @@ watch(searchQuery, (newVal) => {
 
 const results = ref<SearchResult[]>([])
 
-const handleSearch = async (value: string) => {
-  if (!value.trim()) {
+const handleSearch = async (value: string | Event) => {
+  // 处理 @input 事件传递的 Event 对象
+  const searchValue = typeof value === 'string' ? value : query.value
+
+  if (!searchValue.trim()) {
     results.value = []
     showResults.value = false
     return
   }
 
-  const searchResults = await performSearch(value)
+  const searchResults = await performSearch(searchValue)
   results.value = searchResults
   showResults.value = true
 }
@@ -100,7 +106,7 @@ const handleResultClick = (result: SearchResult) => {
   showResults.value = false
   query.value = ''
   searchQuery.value = ''
-  
+
   // 如果是片段结果，可以滚动到对应位置（需要实现）
   if (result.type === 'fragment' && result.lineNumber) {
     // TODO: 实现滚动到指定行
@@ -140,7 +146,9 @@ const handleResultClick = (result: SearchResult) => {
 }
 
 .search-result-item:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .result-header {

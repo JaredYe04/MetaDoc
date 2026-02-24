@@ -23,14 +23,17 @@
 ### 特殊规则
 
 1. **BREAKING CHANGE**:
+
    - 在 commit message 中包含 `BREAKING CHANGE:` 或使用 `feat!:` 格式
    - 在 0.x 版本时，默认当作 MINOR 升级（可配置）
 
 2. **Key Feat**:
+
    - commit message 中包含 "key" 或 "关键" 关键词的 feat
    - 算作两个 feat，会额外升级一次 MINOR
 
 3. **优先级**:
+
    - 如果有多个 commits，取最高升级级别
    - 优先级：MAJOR > MINOR > PATCH
 

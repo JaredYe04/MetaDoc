@@ -3,17 +3,18 @@
     <div class="manager-header">
       <h3>{{ t('agent.reference.title') }}</h3>
       <div class="header-actions">
-        <el-button
-          type="danger"
-          size="small"
+        <Button
+          variant="destructive"
+          size="sm"
           :disabled="references.length === 0"
           @click="handleClearAll"
         >
           {{ t('agent.reference.clearAll') }}
-        </el-button>
-        <el-button type="primary" size="small" :icon="Plus" @click="handleAdd">
+        </Button>
+        <Button size="sm" @click="handleAdd">
+          <Plus class="w-4 h-4 mr-1" />
           {{ t('agent.reference.add') }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -36,245 +37,288 @@
         </div>
       </div>
       <div class="built-in-reference-actions">
-        <el-button size="small" :icon="View" @click="handlePreviewBuiltInDocument">
+        <Button size="sm" variant="secondary" @click="handlePreviewBuiltInDocument">
+          <View class="w-4 h-4 mr-1" />
           {{ t('agent.reference.builtInDocument.preview', '预览') }}
-        </el-button>
-        <el-switch
-          v-model="enableBuiltInDocRef"
-          @change="handleToggleBuiltInDocRef"
-          :active-text="t('agent.reference.builtInDocument.enabled', '已启用')"
-          :inactive-text="t('agent.reference.builtInDocument.disabled', '已禁用')"
-        />
+        </Button>
+        <Switch :checked="enableBuiltInDocRef" @update:checked="handleToggleBuiltInDocRef" />
       </div>
     </div>
 
-    <div class="table-container">
-      <el-table
-        :data="references"
-        border
-        stripe
-        :style="tableStyle"
-        v-loading="loading"
-        :table-layout="'auto'"
-        :row-style="{ height: 'auto' }"
-        height="100%"
-      >
-        <el-table-column :label="t('agent.reference.name')" min-width="150" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="table-cell-content">{{ row.name }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('agent.reference.format')" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag size="small">{{ row.format || 'txt' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('agent.reference.origin')" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="table-cell-content">{{ row.origin }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="t('agent.reference.description')"
-          min-width="150"
-          show-overflow-tooltip
-        >
-          <template #default="{ row }">
-            <div class="table-cell-content">{{ row.description || '-' }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="t('agent.reference.content')"
-          min-width="200"
-          show-overflow-tooltip
-        >
-          <template #default="{ row }">
-            <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
-              {{
-                row.parsedContent.length > 100
-                  ? row.parsedContent.substring(0, 100) + '...'
-                  : row.parsedContent
-              }}
-            </div>
-            <div class="table-cell-content" v-else style="color: #999">-</div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="t('agent.reference.actions')"
-          width="120"
-          fixed="right"
-          align="center"
-        >
-          <template #default="{ row }">
-            <div class="action-buttons">
-              <el-tooltip :content="t('agent.reference.viewContent')" placement="top">
-                <el-button size="small" circle :icon="Document" @click="handleViewContent(row)" />
-              </el-tooltip>
-              <el-tooltip :content="t('common.edit')" placement="top">
-                <el-button size="small" circle :icon="Edit" @click="handleEdit(row)" />
-              </el-tooltip>
-              <el-tooltip :content="t('common.delete')" placement="top">
-                <el-button
-                  size="small"
-                  circle
-                  type="danger"
-                  :icon="Delete"
-                  @click="handleDelete(row)"
-                />
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+    <div class="table-container" style="position: relative">
+      <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead style="min-width: 150px">{{ t('agent.reference.name') }}</TableHead>
+            <TableHead style="width: 90px; text-align: center">{{
+              t('agent.reference.format')
+            }}</TableHead>
+            <TableHead style="min-width: 200px">{{ t('agent.reference.origin') }}</TableHead>
+            <TableHead style="min-width: 150px">{{ t('agent.reference.description') }}</TableHead>
+            <TableHead style="min-width: 200px">{{ t('agent.reference.content') }}</TableHead>
+            <TableHead style="width: 120px; text-align: center">{{
+              t('agent.reference.actions')
+            }}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in references" :key="row.id">
+            <TableCell>
+              <div class="table-cell-content">{{ row.name }}</div>
+            </TableCell>
+            <TableCell style="text-align: center">
+              <Badge variant="outline">{{ row.format || 'txt' }}</Badge>
+            </TableCell>
+            <TableCell>
+              <div class="table-cell-content">{{ row.origin }}</div>
+            </TableCell>
+            <TableCell>
+              <div class="table-cell-content">{{ row.description || '-' }}</div>
+            </TableCell>
+            <TableCell>
+              <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
+                {{
+                  row.parsedContent.length > 100
+                    ? row.parsedContent.substring(0, 100) + '...'
+                    : row.parsedContent
+                }}
+              </div>
+              <div class="table-cell-content" v-else style="color: #999">-</div>
+            </TableCell>
+            <TableCell style="text-align: center">
+              <div class="action-buttons">
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      class="h-8 w-8"
+                      @click="handleViewContent(row)"
+                    >
+                      <Document class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{{ t('agent.reference.viewContent') }}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
+                      <Edit class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{{ t('common.edit') }}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      class="h-8 w-8"
+                      @click="handleDelete(row)"
+                    >
+                      <Delete class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{{ t('common.delete') }}</TooltipContent>
+                </Tooltip>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
 
     <!-- 查看内容对话框 -->
-    <el-dialog
-      v-model="contentDialogVisible"
-      :title="t('agent.reference.viewContent')"
-      width="1000px"
-      :style="dialogStyle"
-    >
-      <el-scrollbar v-if="viewingReference" height="500px">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item :label="t('agent.reference.name')">
-            {{ viewingReference.name }}
-          </el-descriptions-item>
-          <el-descriptions-item :label="t('agent.reference.format')">
-            <el-tag size="small">{{ viewingReference.format || 'txt' }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item :label="t('agent.reference.origin')">
-            {{ viewingReference.origin }}
-          </el-descriptions-item>
-          <el-descriptions-item :label="t('agent.reference.description')">
-            {{ viewingReference.description || '-' }}
-          </el-descriptions-item>
-          <el-descriptions-item :label="t('agent.reference.content')">
-            <el-scrollbar height="400px">
-              <div
-                style="
-                  white-space: pre-wrap;
-                  word-break: break-word;
-                  padding: 8px;
-                  background: rgba(0, 0, 0, 0.05);
-                  border-radius: 4px;
-                "
-              >
-                {{ viewingReference.parsedContent || '-' }}
-              </div>
-            </el-scrollbar>
-          </el-descriptions-item>
-        </el-descriptions>
-      </el-scrollbar>
-      <template #footer>
-        <el-button @click="contentDialogVisible = false">{{ t('common.close') }}</el-button>
-        <el-button type="primary" @click="handleCopyContent" v-if="viewingReference?.parsedContent">
-          {{ t('common.copy') }}
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="editingReference ? t('agent.reference.edit') : t('agent.reference.add')"
-      width="800px"
-      :style="dialogStyle"
-      :close-on-click-modal="!parsing"
-      :close-on-press-escape="!parsing"
-      :show-close="!parsing"
-      @close="handleDialogClose"
-      class="reference-dialog"
-    >
-      <div style="position: relative">
-        <!-- 解析加载遮罩 -->
-        <div v-if="parsing" class="parsing-overlay">
-          <div class="parsing-content">
-            <el-icon class="is-loading" style="font-size: 32px; margin-bottom: 16px">
-              <Loading />
-            </el-icon>
-            <div style="font-size: 14px; margin-bottom: 8px">{{ parsingMessage }}</div>
-            <div v-if="parsingProgress" style="font-size: 12px; color: #999">
-              {{ parsingProgress }}
+    <Dialog v-model:open="contentDialogVisible">
+      <DialogContent class="sm:max-w-[1000px]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.reference.viewContent') }}</DialogTitle>
+        </DialogHeader>
+        <div
+          v-if="viewingReference"
+          class="grid gap-4 py-4"
+          style="max-height: 500px; overflow: auto"
+        >
+          <div class="grid gap-2">
+            <div class="flex justify-between py-2 border-b">
+              <span class="font-medium">{{ t('agent.reference.name') }}</span>
+              <span>{{ viewingReference.name }}</span>
             </div>
-            <el-button size="small" style="margin-top: 16px" @click="handleCancelParsing">
-              {{ t('common.cancel') }}
-            </el-button>
+            <div class="flex justify-between py-2 border-b">
+              <span class="font-medium">{{ t('agent.reference.format') }}</span>
+              <Badge variant="outline">{{ viewingReference.format || 'txt' }}</Badge>
+            </div>
+            <div class="flex justify-between py-2 border-b">
+              <span class="font-medium">{{ t('agent.reference.origin') }}</span>
+              <span>{{ viewingReference.origin }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b">
+              <span class="font-medium">{{ t('agent.reference.description') }}</span>
+              <span>{{ viewingReference.description || '-' }}</span>
+            </div>
+            <div class="grid gap-2">
+              <span class="font-medium">{{ t('agent.reference.content') }}</span>
+              <div style="max-height: 400px; overflow: auto">
+                <div
+                  style="
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                    padding: 8px;
+                    background: rgba(0, 0, 0, 0.05);
+                    border-radius: 4px;
+                  "
+                >
+                  {{ viewingReference.parsedContent || '-' }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="contentDialogVisible = false">{{
+            t('common.close')
+          }}</Button>
+          <Button @click="handleCopyContent" v-if="viewingReference?.parsedContent">
+            {{ t('common.copy') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-        <el-form :model="formData" label-width="100px" :disabled="parsing">
-          <el-form-item :label="t('agent.reference.name')" required>
-            <el-input v-model="formData.name" />
-          </el-form-item>
-          <el-form-item :label="t('agent.reference.inputType')" required>
-            <el-radio-group v-model="formData.inputType" :disabled="parsing">
-              <el-radio value="file">{{ t('agent.reference.type.file') }}</el-radio>
-              <el-radio value="url">{{ t('agent.reference.type.url') }}</el-radio>
-              <el-radio value="text">{{ t('agent.reference.type.custom') }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item
-            :label="t('agent.reference.url')"
-            required
-            v-if="formData.inputType === 'url'"
-          >
-            <el-input
-              v-model="formData.url"
-              :placeholder="t('agent.reference.urlPlaceholder')"
-              @blur="handleUrlBlur"
-            />
-          </el-form-item>
-          <el-form-item
-            :label="t('agent.reference.file')"
-            required
-            v-if="formData.inputType === 'file'"
-          >
-            <el-button type="primary" :disabled="parsing" @click="handleSelectFile">
-              {{ t('agent.reference.selectFile') }}
-            </el-button>
-            <div v-if="selectedFile" style="margin-top: 8px; color: #666; font-size: 12px">
-              {{ selectedFile.name }}
+    <!-- 添加/编辑对话框 -->
+    <Dialog v-model:open="dialogVisible" @update:open="(val) => !val && handleDialogClose()">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        :style="dialogStyle"
+        :class="{ 'pointer-events-none': parsing }"
+        @escape-key-down="
+          (e) => {
+            if (parsing) e.preventDefault()
+          }
+        "
+        @interact-outside="
+          (e) => {
+            if (parsing) e.preventDefault()
+          }
+        "
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {{ editingReference ? t('agent.reference.edit') : t('agent.reference.add') }}
+          </DialogTitle>
+        </DialogHeader>
+        <div style="position: relative">
+          <!-- 解析加载遮罩 -->
+          <div v-if="parsing" class="parsing-overlay">
+            <div class="parsing-content">
+              <el-icon class="is-loading" style="font-size: 32px; margin-bottom: 16px">
+                <Loading />
+              </el-icon>
+              <div style="font-size: 14px; margin-bottom: 8px">{{ parsingMessage }}</div>
+              <div v-if="parsingProgress" style="font-size: 12px; color: #999">
+                {{ parsingProgress }}
+              </div>
+              <Button size="sm" variant="secondary" class="mt-4" @click="handleCancelParsing">
+                {{ t('common.cancel') }}
+              </Button>
             </div>
-            <div
-              v-if="parsedReference && formData.inputType === 'file'"
-              style="margin-top: 8px; color: #67c23a; font-size: 12px"
+          </div>
+
+          <Form class="space-y-4" :class="{ 'pointer-events-none opacity-50': parsing }">
+            <FormField :label="t('agent.reference.name')" name="name" required>
+              <Input v-model="formData.name" />
+            </FormField>
+            <FormField :label="t('agent.reference.inputType')" name="inputType" required>
+              <RadioGroup
+                v-model="formData.inputType"
+                :disabled="parsing"
+                class="flex flex-row gap-4"
+              >
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="file" id="input-file" />
+                  <label for="input-file" class="text-sm cursor-pointer">{{
+                    t('agent.reference.type.file')
+                  }}</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="url" id="input-url" />
+                  <label for="input-url" class="text-sm cursor-pointer">{{
+                    t('agent.reference.type.url')
+                  }}</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem value="text" id="input-text" />
+                  <label for="input-text" class="text-sm cursor-pointer">{{
+                    t('agent.reference.type.custom')
+                  }}</label>
+                </div>
+              </RadioGroup>
+            </FormField>
+            <FormField
+              v-if="formData.inputType === 'url'"
+              :label="t('agent.reference.url')"
+              name="url"
+              required
             >
-              ✓ {{ t('agent.reference.parseSuccess') }}
-            </div>
-          </el-form-item>
-          <el-form-item
-            :label="t('agent.reference.text')"
-            required
-            v-if="formData.inputType === 'text'"
+              <Input
+                v-model="formData.url"
+                :placeholder="t('agent.reference.urlPlaceholder')"
+                @blur="handleUrlBlur"
+              />
+            </FormField>
+            <FormField
+              v-if="formData.inputType === 'file'"
+              :label="t('agent.reference.file')"
+              name="file"
+              required
+            >
+              <Button :disabled="parsing" @click="handleSelectFile">
+                {{ t('agent.reference.selectFile') }}
+              </Button>
+              <div v-if="selectedFile" style="margin-top: 8px; color: #666; font-size: 12px">
+                {{ selectedFile.name }}
+              </div>
+              <div
+                v-if="parsedReference && formData.inputType === 'file'"
+                style="margin-top: 8px; color: #67c23a; font-size: 12px"
+              >
+                ✓ {{ t('agent.reference.parseSuccess') }}
+              </div>
+            </FormField>
+            <FormField
+              v-if="formData.inputType === 'text'"
+              :label="t('agent.reference.text')"
+              name="text"
+              required
+            >
+              <Textarea
+                v-model="formData.text"
+                :rows="5"
+                :placeholder="t('agent.reference.textPlaceholder')"
+                class="w-full"
+              />
+            </FormField>
+            <FormField :label="t('agent.reference.description')" name="description">
+              <Textarea v-model="formData.description" :rows="3" class="w-full" />
+            </FormField>
+          </Form>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleDialogClose" :disabled="parsing">{{
+            t('common.cancel')
+          }}</Button>
+          <Button
+            @click="handleSave"
+            :disabled="
+              parsing || (formData.inputType === 'file' && !parsedReference && !editingReference)
+            "
           >
-            <el-input
-              v-model="formData.text"
-              type="textarea"
-              :rows="5"
-              :placeholder="t('agent.reference.textPlaceholder')"
-            />
-          </el-form-item>
-          <el-form-item :label="t('agent.reference.description')">
-            <el-input v-model="formData.description" type="textarea" :rows="3" />
-          </el-form-item>
-        </el-form>
-      </div>
-      <template #footer>
-        <el-button @click="handleDialogClose" :disabled="parsing">{{
-          t('common.cancel')
-        }}</el-button>
-        <el-button
-          type="primary"
-          @click="handleSave"
-          :disabled="
-            parsing || (formData.inputType === 'file' && !parsedReference && !editingReference)
-          "
-        >
-          {{ t('common.save') }}
-        </el-button>
-      </template>
-    </el-dialog>
+            {{ t('common.save') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -296,6 +340,35 @@ import {
 import messageBridge from '../../bridge/message-bridge'
 import { createRendererLogger } from '../../utils/logger'
 import { useWorkspace } from '../../stores/workspace'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHead
+} from '@renderer/components/ui/table'
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -308,12 +381,16 @@ function getLogger() {
 
 const props = defineProps<{
   session: AgentSession
+  mode?: string
 }>()
 
 const emit = defineEmits<{
   update: []
   'update-built-in-doc-ref': [value: boolean]
 }>()
+
+// Demo mode support
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -339,7 +416,47 @@ const formData = ref({
   description: ''
 })
 
+// Demo references data
+const demoReferences = ref<Reference[]>([
+  {
+    id: 'demo-ref-1',
+    name: 'Sample Document.pdf',
+    origin: '/demo/documents/sample.pdf',
+    format: 'pdf',
+    parsedContent:
+      'This is a demo PDF document content. It demonstrates how references are displayed in the reference manager. The content would normally be extracted from the actual file.',
+    description: 'A sample PDF document for demonstration',
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 86400000
+  },
+  {
+    id: 'demo-ref-2',
+    name: 'Research Paper.md',
+    origin: 'https://example.com/research-paper.md',
+    format: 'md',
+    parsedContent:
+      '# Research Paper Demo\n\nThis is a demo markdown research paper. It shows how URL-based references work.\n\n## Abstract\n\nThis demonstrates the reference management system.',
+    description: 'Online research paper reference',
+    createdAt: Date.now() - 172800000,
+    updatedAt: Date.now() - 172800000
+  },
+  {
+    id: 'demo-ref-3',
+    name: 'Notes.txt',
+    origin: 'manual-input',
+    format: 'txt',
+    parsedContent:
+      'These are some demo notes entered manually. This shows how text-based references work in the system.',
+    description: 'Manually entered text notes',
+    createdAt: Date.now() - 259200000,
+    updatedAt: Date.now() - 259200000
+  }
+])
+
 const references = computed(() => {
+  if (isDemo.value) {
+    return demoReferences.value
+  }
   return props.session.referenceStore || []
 })
 
@@ -380,6 +497,24 @@ const handleToggleBuiltInDocRef = (value: boolean) => {
 
 const handlePreviewBuiltInDocument = () => {
   try {
+    // Demo mode: show demo built-in document
+    if (isDemo.value) {
+      const builtInRef: Reference = {
+        id: 'built-in-document-reference-0',
+        name: t('agent.reference.builtInDocument.title'),
+        origin: '/demo/current-document.md',
+        format: 'md',
+        parsedContent:
+          '# Demo Current Document\n\nThis is a demonstration of the built-in document reference feature. In real mode, this would show the content of the currently active document.',
+        description: t('agent.reference.builtInDocument.description') + '（Markdown格式）',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      viewingReference.value = builtInRef
+      contentDialogVisible.value = true
+      return
+    }
+
     const activeDoc = workspace.activeDocument.value
 
     if (!activeDoc) {
@@ -424,10 +559,6 @@ const containerStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   padding: '16px',
   minHeight: 0
-}))
-
-const tableStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd
 }))
 
 const dialogStyle = computed(() => ({
@@ -475,6 +606,18 @@ async function pathToFile(filePath: string): Promise<File> {
 
 const handleSelectFile = async () => {
   if (parsing.value) return
+
+  // Demo mode: simulate file selection
+  if (isDemo.value) {
+    const demoFileName = 'demo-document.pdf'
+    const demoFile = new File(['demo content'], demoFileName, { type: 'application/pdf' })
+    selectedFile.value = demoFile
+    if (!formData.value.name.trim()) {
+      formData.value.name = demoFileName
+    }
+    ElMessage.info('Demo mode: File selection simulated')
+    return
+  }
 
   try {
     // 使用主进程文件选择服务（使用 'all' 类别，对话框内部会显示所有分组）
@@ -672,7 +815,9 @@ const handleViewContent = (reference: Reference) => {
 const handleCopyContent = async () => {
   if (viewingReference.value?.parsedContent) {
     try {
-      await navigator.clipboard.writeText(viewingReference.value.parsedContent)
+      if (!isDemo.value) {
+        await navigator.clipboard.writeText(viewingReference.value.parsedContent)
+      }
       ElMessage.success(t('common.copySuccess'))
     } catch (error) {
       ElMessage.error(t('common.copyFailed'))
@@ -701,7 +846,12 @@ const handleSave = async () => {
     return
   }
 
-  if (formData.value.inputType === 'file' && !selectedFile.value && !editingReference.value) {
+  if (
+    formData.value.inputType === 'file' &&
+    !selectedFile.value &&
+    !editingReference.value &&
+    !isDemo.value
+  ) {
     ElMessage.warning(t('agent.reference.fileRequired'))
     return
   }
@@ -713,6 +863,54 @@ const handleSave = async () => {
 
   if (formData.value.inputType === 'text' && !formData.value.text.trim()) {
     ElMessage.warning(t('agent.reference.textRequired'))
+    return
+  }
+
+  // Demo mode: simulate save
+  if (isDemo.value) {
+    try {
+      if (editingReference.value) {
+        // Edit mode: update in demo list
+        const index = demoReferences.value.findIndex((r) => r.id === editingReference.value!.id)
+        if (index !== -1) {
+          demoReferences.value[index] = {
+            ...demoReferences.value[index],
+            name: formData.value.name,
+            description: formData.value.description
+          }
+        }
+        ElMessage.success(t('agent.reference.updateSuccess'))
+      } else {
+        // Add mode: create new demo reference
+        const newRef: Reference = {
+          id: `demo-ref-${Date.now()}`,
+          name: formData.value.name,
+          origin:
+            formData.value.inputType === 'url'
+              ? formData.value.url
+              : formData.value.inputType === 'file'
+                ? `/demo/${formData.value.name}`
+                : 'manual-input',
+          format:
+            formData.value.inputType === 'file'
+              ? 'pdf'
+              : formData.value.inputType === 'url'
+                ? 'md'
+                : 'txt',
+          parsedContent: formData.value.text || `Demo content for ${formData.value.name}`,
+          description: formData.value.description,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+        demoReferences.value.push(newRef)
+        ElMessage.success(t('agent.reference.addSuccess'))
+      }
+      dialogVisible.value = false
+      selectedFile.value = null
+      parsedReference.value = null
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : String(error))
+    }
     return
   }
 
@@ -800,6 +998,13 @@ const handleDelete = async (reference: Reference) => {
       { type: 'warning' }
     )
 
+    // Demo mode: remove from demo list
+    if (isDemo.value) {
+      demoReferences.value = demoReferences.value.filter((r) => r.id !== reference.id)
+      ElMessage.success(t('agent.reference.deleteSuccess'))
+      return
+    }
+
     // 转换为新的AgentSession格式
     const newFormatSession: any = {
       ...props.session,
@@ -838,6 +1043,13 @@ const handleClearAll = async () => {
         type: 'warning'
       }
     )
+
+    // Demo mode: clear demo list
+    if (isDemo.value) {
+      demoReferences.value = []
+      ElMessage.success(t('agent.reference.clearAllSuccess'))
+      return
+    }
 
     // 转换为新的AgentSession格式
     const newFormatSession: any = {

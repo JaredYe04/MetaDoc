@@ -1,23 +1,28 @@
 <!-- App.vue -->
 <template>
-  <div
-    :style="{
-      backgroundColor: themeState.currentTheme.background,
-      color: themeState.currentTheme.textColor
-    }"
-  >
-    <!-- 布局仅在需要时显示 -->
-    <Main v-if="requiresLayout" />
-    <!-- 如果不需要布局，则直接渲染路由页面 -->
-    <router-view v-else />
-    <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
-    <InputContextMenu />
-  </div>
+  <TooltipProvider>
+    <div
+      :style="{
+        backgroundColor: themeState.currentTheme.background,
+        color: themeState.currentTheme.textColor
+      }"
+    >
+      <!-- 布局仅在需要时显示 -->
+      <Main v-if="requiresLayout" />
+      <!-- 如果不需要布局，则直接渲染路由页面 -->
+      <router-view v-else />
+      <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
+      <InputContextMenu />
+      <!-- 自定义 Toast 堆叠系统 - 接管 Sonner -->
+      <NotificationStack />
+    </div>
+  </TooltipProvider>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { TooltipProvider } from './components/ui/tooltip'
 import Main from './views/Main.vue'
 import InputContextMenu from './components/common/InputContextMenu.vue'
 
@@ -37,7 +42,12 @@ import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { aiCompletionService } from './utils/ai-completion-service'
 import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
+import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
+import NotificationStack from './components/NotificationStack.vue'
+import { useNotificationStore } from './stores/notification'
+import { setNotificationStore } from './utils/notify'
+import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
 
 const route = useRoute()
 const { locale, t } = useI18n()
@@ -256,6 +266,15 @@ async function loadTemplateFormats() {
 }
 
 onMounted(async () => {
+  // 初始化 shadcn-vue 主题桥接（同步 themes.js 到 CSS 变量）
+  useShadcnTheme()
+
+  // 初始化通知系统
+  const notificationStore = useNotificationStore()
+  notificationStore.loadFromStorage()
+  setNotificationStore(notificationStore)
+  initNotificationLegacyAdapter()
+
   // 初始化运行时服务器地址缓存（供 getRuntimeServerBaseUrlSync 等使用）
   await getRuntimeServerBaseUrl()
 
@@ -396,10 +415,6 @@ onUnmounted(() => {
 .el-sub-menu__title,
 .el-button,
 .el-tag,
-.el-card,
-.el-card__header,
-.el-card__body,
-.el-card__footer,
 .el-tabs,
 .el-tabs__item,
 .el-tabs__header,
@@ -800,4 +815,76 @@ a {
   transform: none !important;
 }
 
+/* ============================================
+   Sonner Toast 样式 - 确保显示在最上层
+   ============================================ */
+
+/* Toast 容器 */
+[data-sonner-toaster] {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* Toast 项 */
+[data-sonner-toast] {
+  z-index: 9999 !important;
+}
+
+/* Sonner 关闭按钮 - shadcn 风格，在内容区域内，尊重全局主题 */
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: var(--radius) !important;
+  /* 使用透明背景，悬停时显示 muted 背景 */
+  background-color: transparent !important;
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 0 !important;
+  transition: all 150ms ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+}
+
+[data-sonner-toast]:hover [data-close-button] {
+  opacity: 1 !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background-color: hsl(var(--muted) / 0.4) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-sonner-toast] [data-close-button] svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* 调整 Toast 内容区域，为关闭按钮留出空间 */
+[data-sonner-toast] [data-content] {
+  padding-right: 32px !important;
+}
+
+/* ============================================
+   Dialog Overlay 修复 - 确保关闭后不拦截事件
+   ============================================ */
+
+/* 关闭状态的 Dialog overlay 不拦截事件 */
+.dialog-overlay[data-state='closed'],
+[data-radix-dialog-overlay][data-state='closed'] {
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* 确保 Dialog Portal 不会残留 */
+[data-radix-portal]:has(.dialog-overlay[data-state='closed']) {
+  display: none !important;
+}
 </style>

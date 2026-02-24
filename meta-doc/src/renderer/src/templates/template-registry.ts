@@ -20,13 +20,26 @@ function getTemplateContent(locale: string, formatId: string, file: string): str
 }
 
 // 缩略图（可选）：仅当模板索引中指定 thumbnail 时加载
-const templateImageModules = import.meta.glob<string>('./**/*.png', { eager: true, query: '?url', import: 'default' })
+const templateImageModules = import.meta.glob<string>('./**/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default'
+})
 
-function getThumbnailUrl(locale: string, formatId: string, thumbnailPath: string): string | undefined {
+function getThumbnailUrl(
+  locale: string,
+  formatId: string,
+  thumbnailPath: string
+): string | undefined {
   const key = `./${locale}/${formatId}/${thumbnailPath}`
   const mod = templateImageModules[key as keyof typeof templateImageModules]
   if (typeof mod === 'string') return mod
-  if (mod && typeof mod === 'object' && 'default' in mod && typeof (mod as { default: string }).default === 'string') {
+  if (
+    mod &&
+    typeof mod === 'object' &&
+    'default' in mod &&
+    typeof (mod as { default: string }).default === 'string'
+  ) {
     return (mod as { default: string }).default
   }
   return undefined
@@ -39,18 +52,19 @@ export async function loadTemplateIndex(): Promise<TemplateIndex> {
   return indexCache
 }
 
-const FORMAT_META: Record<string, { labelKey: string; descriptionKey: string; extension: string }> = {
-  md: {
-    labelKey: 'newDocument.formats.markdown.label',
-    descriptionKey: 'newDocument.formats.markdown.description',
-    extension: '.md'
-  },
-  tex: {
-    labelKey: 'newDocument.formats.latex.label',
-    descriptionKey: 'newDocument.formats.latex.description',
-    extension: '.tex'
+const FORMAT_META: Record<string, { labelKey: string; descriptionKey: string; extension: string }> =
+  {
+    md: {
+      labelKey: 'newDocument.formats.markdown.label',
+      descriptionKey: 'newDocument.formats.markdown.description',
+      extension: '.md'
+    },
+    tex: {
+      labelKey: 'newDocument.formats.latex.label',
+      descriptionKey: 'newDocument.formats.latex.description',
+      extension: '.tex'
+    }
   }
-}
 
 export type TranslateFn = (key: string, fallback?: string) => string
 
@@ -130,9 +144,7 @@ export function findFormatTemplateFromList(
   const format = formats.find((f) => f.id === formatId)
   if (!format) return undefined
   if (!templateId) {
-    return (
-      format.templates.find((t) => t.id === format.defaultTemplateId) ?? format.templates[0]
-    )
+    return format.templates.find((t) => t.id === format.defaultTemplateId) ?? format.templates[0]
   }
   return format.templates.find((t) => t.id === templateId)
 }

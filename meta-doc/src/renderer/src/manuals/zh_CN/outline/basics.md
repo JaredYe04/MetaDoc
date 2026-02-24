@@ -73,6 +73,8 @@ graph TB
 
 新节点会添加到文档的对应位置，并自动更新文档内容。
 
+<AIChat mode="demo" />
+
 ### 编辑节点
 
 编辑大纲节点的标题：
@@ -84,6 +86,8 @@ graph TB
 
 编辑节点标题会自动更新文档中对应的标题。
 
+<TitleMenu mode="demo" title="示例标题" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />
+
 ### 删除节点
 
 删除大纲节点：
@@ -94,6 +98,8 @@ graph TB
 
 删除节点会同时删除文档中对应的标题和内容（如果配置了）。
 
+<SectionOptimizer mode="demo" title="大纲节点优化示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
+
 ### 移动节点
 
 移动大纲节点的位置：
@@ -103,6 +109,8 @@ graph TB
 - **拖拽移动**：直接拖拽节点到目标位置
 
 移动节点会自动更新文档结构。
+
+<MainTabs mode="demo" />
 
 ## 大纲节点拖拽
 
@@ -149,6 +157,8 @@ graph LR
 - **自包含**：不能将节点拖拽到自己的子节点中（避免循环）
 - **层级限制**：某些操作可能受到层级限制
 
+<KnowledgeBase mode="demo" />
+
 ## 大纲展开/折叠
 
 ### 展开节点
@@ -193,6 +203,8 @@ graph LR
 - **最大宽度**：不能大于最大宽度（通常为屏幕宽度的50%）
 - **自动适应**：宽度会根据内容自动调整
 
+<ResizableDivider mode="demo" />
+
 ## 快速跳转
 
 ### 点击跳转
@@ -232,6 +244,8 @@ graph LR
 
 操作按钮在鼠标悬停或选中节点时显示。
 
+<ProofreadView mode="demo" />
+
 ## 使用技巧
 
 ### 组织文档结构
@@ -251,6 +265,8 @@ graph LR
 1. **拖拽排序**：使用拖拽快速调整文档结构
 2. **批量编辑**：在大纲中批量编辑多个标题
 3. **结构预览**：使用大纲预览整个文档结构
+
+<OcrWindow mode="demo" />
 
 ## 常见问题
 
@@ -274,9 +290,17 @@ A: 检查文档中的标题格式是否正确。Markdown使用`#`，LaTeX使用`
 
 A: 大纲会自动从文档中提取。如果需要重置，可以重新打开文档或手动编辑文档结构。
 
+<QuickStartPanel mode="demo" />
+
 ## 相关文档
 
 - [[outline.ai-features|大纲AI功能]]
 - [[markdown.editor|Markdown编辑器使用指南]]
 - [[latex.editor|LaTeX编辑器使用指南]]
 - [[core.editor-basics|编辑器基础操作]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat", "proofread"]}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["home", "agent"]' />
+
+<GraphWindow mode="demo" />

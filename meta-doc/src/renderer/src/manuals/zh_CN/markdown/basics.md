@@ -110,7 +110,7 @@ function hello() {
 **图片**：
 
 ```markdown
-`![图片描述](./images/example.png)`（示例代码，引用时请确保图片文件存在）
+![图片描述](https://via.placeholder.com/400x200)
 ```
 
 ### 表格

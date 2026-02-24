@@ -38,14 +38,21 @@
                 </Tooltip>
               </TooltipProvider>
             </h2>
-            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+            <div
+              class="generate-preview-body"
+              :class="{ 'is-node': singleGenerateType === 'children' }"
+            >
               <template v-if="singleGenerateType === 'content'">
-                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                <div class="generate-preview-content generate-preview-content--text">
+                  {{ rawstring }}
+                </div>
               </template>
               <template v-else>
                 <div class="generate-preview-json-wrap">
                   <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
-                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                  <div v-else class="generate-preview-content generate-preview-content--text">
+                    {{ rawstring }}
+                  </div>
                 </div>
               </template>
             </div>
@@ -79,7 +86,9 @@
                 <div class="generate-preview-body batch-panel-body">
                   <div class="generate-preview-json-wrap">
                     <StreamingJsonTree v-if="item.content" :raw="item.content" />
-                    <div v-else class="generate-preview-content generate-preview-content--text">{{ item.content }}</div>
+                    <div v-else class="generate-preview-content generate-preview-content--text">
+                      {{ item.content }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -88,14 +97,21 @@
           <!-- 单任务：待接受/拒绝 -->
           <template v-else-if="pendingAccept">
             <h2>{{ $t('outline.previewResult') }}</h2>
-            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+            <div
+              class="generate-preview-body"
+              :class="{ 'is-node': singleGenerateType === 'children' }"
+            >
               <template v-if="singleGenerateType === 'content'">
-                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                <div class="generate-preview-content generate-preview-content--text">
+                  {{ rawstring }}
+                </div>
               </template>
               <template v-else>
                 <div class="generate-preview-json-wrap">
                   <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
-                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                  <div v-else class="generate-preview-content generate-preview-content--text">
+                    {{ rawstring }}
+                  </div>
                 </div>
               </template>
             </div>
@@ -137,7 +153,9 @@
                 <div class="generate-preview-body batch-panel-body">
                   <div class="generate-preview-json-wrap">
                     <StreamingJsonTree v-if="displayItem.content" :raw="displayItem.content" />
-                    <div v-else class="generate-preview-content generate-preview-content--text">{{ displayItem.content }}</div>
+                    <div v-else class="generate-preview-content generate-preview-content--text">
+                      {{ displayItem.content }}
+                    </div>
                   </div>
                 </div>
               </div>

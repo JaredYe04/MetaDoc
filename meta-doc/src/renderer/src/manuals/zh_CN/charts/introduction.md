@@ -4,6 +4,8 @@
 
 MetaDoc支持多种图表绘制引擎，可以在Markdown文档中插入和渲染各种类型的图表。图表功能让您能够创建流程图、UML图、数据可视化图表等，丰富文档内容。
 
+<GraphWindow mode="demo" />
+
 ## 支持的图表引擎
 
 ### 图表类型
@@ -20,6 +22,8 @@ MetaDoc支持以下图表引擎：
 - **SMILES**：化学结构式
 - **ABC**：音乐乐谱
 
+<GraphWindow mode="demo" />
+
 ### 引擎对比
 
 | 引擎      | 适用场景                       | 渲染方式   |
@@ -33,6 +37,8 @@ MetaDoc支持以下图表引擎：
 
 ## 插入图表
 
+<GraphWindow mode="demo" />
+
 ### 代码块语法
 
 在Markdown文档中使用代码块插入图表：
@@ -44,6 +50,8 @@ graph TD
     B --> C[结束]
 ```
 ````
+
+<GraphWindow mode="demo" />
 
 ### 图表类型标识
 
@@ -66,6 +74,8 @@ graph TD
 
 ## 图表渲染
 
+<GraphWindow mode="demo" />
+
 ### 实时渲染
 
 图表会在编辑器中实时渲染：
@@ -73,6 +83,8 @@ graph TD
 - **自动渲染**：输入图表代码后自动渲染
 - **实时预览**：在预览窗口中实时显示图表
 - **错误提示**：语法错误时会显示错误提示
+
+<GraphWindow mode="demo" />
 
 ### 渲染方式
 
@@ -90,6 +102,8 @@ graph TD
 - **PNG**：位图格式（可转换）
 
 ## 图表导出
+
+<DataAnalysisWindow mode="demo" />
 
 ### 导出支持
 
@@ -109,6 +123,8 @@ graph TD
 
 ## 图表编辑
 
+<DataAnalysisWindow mode="demo" />
+
 ### 代码编辑
 
 可以直接编辑图表代码：
@@ -126,6 +142,8 @@ graph TD
 - **渲染状态**：显示图表的渲染状态
 
 ## 多语言支持
+
+<DataAnalysisWindow mode="demo" />
 
 ### 图表代码多语言
 

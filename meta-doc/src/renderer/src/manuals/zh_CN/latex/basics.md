@@ -4,6 +4,14 @@
 
 LaTeX是一种基于TeX的排版系统，广泛用于学术论文和科技文档的编写。MetaDoc提供了完整的LaTeX编辑、编译和预览支持。
 
+<LaTeXEditorDemo mode="demo" />
+
+<PdfPreviewPanel mode="demo" />
+
+<LaTeXCompilerPanel mode="demo" />
+
+<LaTeXConsole mode="demo" />
+
 ## 基本语法
 
 ### 文档结构

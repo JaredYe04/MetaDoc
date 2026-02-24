@@ -28,6 +28,10 @@
 
 <ViewMenuItemsDemo mode="demo" :items='["outline"]' />
 
+<ViewMenuItemsDemo mode="demo" :items='["chat"]' />
+
+<AIChat mode="demo" />
+
 段落优化器界面如下：
 
 <SectionOptimizer mode="demo" title="示例章节" :position='{"top": 100, "left": 200}' path="1" :tree='{"text": "示例章节", "children": []}' language="markdown" :adapter='null' />
@@ -180,3 +184,11 @@ graph LR
 - [[outline.basics|大纲视图功能]]
 - [[ai.chat|AI对话功能]]
 - [[ai.completion|AI自动补全]]
+
+<Outline mode="demo" />
+
+<CompletionSettingsPanel mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "ai"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["chat"]' />

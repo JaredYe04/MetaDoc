@@ -317,3 +317,29 @@ graph TB
 - [[knowledge-base.config|知识库配置]]
 - [[settings.llm|LLM配置]]
 - [[ai.chat|AI对话功能]]
+
+<KnowledgeBase mode="demo" />
+
+<RAGToolDisplay mode="demo" />
+
+<AIChat mode="demo" />
+
+<SettingKnowledgeBaseSection mode="demo" />
+
+<AgentView mode="demo" />
+
+<Outline mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["knowledge"]' />
+
+<MainTabs mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<SettingLlmSection mode="demo" />
+
+<CompletionSettingsPanel mode="demo" />
+
+<DataAnalysisDisplay mode="demo" />

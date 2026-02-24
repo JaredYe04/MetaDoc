@@ -38,7 +38,17 @@
                 </Tooltip>
               </TooltipProvider>
             </h2>
-            <div class="generate-preview-content">{{ rawstring }}</div>
+            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+              <template v-if="singleGenerateType === 'content'">
+                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+              </template>
+              <template v-else>
+                <div class="generate-preview-json-wrap">
+                  <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                </div>
+              </template>
+            </div>
           </template>
           <!-- 批量任务：生成中，多块流式输出 -->
           <template v-else-if="generating && parallelChildren.length">
@@ -66,14 +76,29 @@
             <div class="batch-panels">
               <div v-for="item in batchDisplayItems" :key="item.nodePath" class="batch-panel">
                 <div class="batch-panel-title">{{ item.nodeTitle }}</div>
-                <div class="generate-preview-content">{{ item.content }}</div>
+                <div class="generate-preview-body batch-panel-body">
+                  <div class="generate-preview-json-wrap">
+                    <StreamingJsonTree v-if="item.content" :raw="item.content" />
+                    <div v-else class="generate-preview-content generate-preview-content--text">{{ item.content }}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
           <!-- 单任务：待接受/拒绝 -->
           <template v-else-if="pendingAccept">
             <h2>{{ $t('outline.previewResult') }}</h2>
-            <div class="generate-preview-content">{{ rawstring }}</div>
+            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+              <template v-if="singleGenerateType === 'content'">
+                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+              </template>
+              <template v-else>
+                <div class="generate-preview-json-wrap">
+                  <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                </div>
+              </template>
+            </div>
           </template>
           <!-- 批量任务：待接受/拒绝 -->
           <template v-else-if="pendingBatchAccept">
@@ -109,7 +134,12 @@
                   </TooltipProvider>
                   <span v-else class="batch-panel-rejected-tag">{{ $t('outline.reject') }}</span>
                 </div>
-                <div class="generate-preview-content">{{ displayItem.content }}</div>
+                <div class="generate-preview-body batch-panel-body">
+                  <div class="generate-preview-json-wrap">
+                    <StreamingJsonTree v-if="displayItem.content" :raw="displayItem.content" />
+                    <div v-else class="generate-preview-content generate-preview-content--text">{{ displayItem.content }}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
@@ -704,6 +734,7 @@ import {
 import DetailedOutlineNode from '../components/outline/DetailedOutlineNode.vue'
 import OutlineAiToolbar from '../components/outline/OutlineAiToolbar.vue'
 import OutlineNodeActionButton from '../components/outline/OutlineNodeActionButton.vue'
+import StreamingJsonTree from '../components/outline/StreamingJsonTree.vue'
 import KeywordInput from '../components/KeywordInput.vue'
 import '../assets/noselect-display.css'
 import { generateWithSchema } from '../utils/ai-schema-task'

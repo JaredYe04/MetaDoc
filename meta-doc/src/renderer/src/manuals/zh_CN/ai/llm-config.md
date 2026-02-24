@@ -40,6 +40,8 @@ LLM（大语言模型）是 MetaDoc 中 AI 对话、校对、补全、助手与 
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+<MenuItemsDemo mode="demo" :items='[{"id": "ai"}]' />
+
 ### 配置具体服务
 
 在 **LLM 配置管理** 中选择或新建一条配置，并按服务类型填写：
@@ -80,3 +82,5 @@ graph TB
 - [[settings.llm-management|LLM配置管理]]
 - [[ai.chat|AI对话功能]]
 - [[agent.introduction|Agent框架概述]]
+
+<AIChat mode="demo" />

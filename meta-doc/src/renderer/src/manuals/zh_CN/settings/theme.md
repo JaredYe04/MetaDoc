@@ -38,7 +38,9 @@ MetaDoc支持以下全局主题类型：
 
 下图展示了主题设置页面的完整界面：
 
-<Demo component="SettingThemeSection" mode="demo" />
+<SettingThemeSection mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 
 主题设置界面包含以下主要功能区域：
 

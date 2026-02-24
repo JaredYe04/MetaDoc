@@ -228,4 +228,6 @@ graph TB
 - [[user.feedback|用户反馈]]
 - [[quick-start.guide|快速开始指南]]
 
+<KnowledgeBase mode="demo" />
+
 <SettingThemeSection mode="demo" />

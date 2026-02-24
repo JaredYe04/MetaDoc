@@ -268,3 +268,29 @@ LaTeX编辑器基于Monaco Editor，支持以下快捷键：
 - [[core.editor-basics|编辑器基础操作]]
 - [[markdown.features|Markdown编辑器功能]]
 - [[ai.completion|AI自动补全]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor"]' />
+
+<AIChat mode="demo" />
+
+<CompletionSettingsPanel mode="demo" />
+
+<SettingLlmSection mode="demo" />
+
+<MainTabs mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<Outline mode="demo" />
+
+<AgentView mode="demo" />
+
+<LaTeXEditorDemo mode="demo" />
+
+<SettingBasicSection mode="demo" />
+
+<SettingThemeSection mode="demo" />
+
+<KnowledgeBase mode="demo" />

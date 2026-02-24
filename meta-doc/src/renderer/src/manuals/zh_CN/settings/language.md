@@ -29,6 +29,8 @@ MetaDoc目前支持以下语言：
 
 <SettingBasicSection mode="demo" />
 
+<SettingLlmSection mode="demo" />
+
 ```mermaid
 graph LR
     A[语言切换] --> B[打开语言选择器]
@@ -52,7 +54,7 @@ graph LR
 - **下次启动**：下次启动应用时会使用上次选择的语言
 - **多窗口同步**：所有窗口会自动同步语言设置
 
-<QuickStartPanel mode="demo" />
+<SettingThemeSection mode="demo" />
 
 ## 界面本地化
 

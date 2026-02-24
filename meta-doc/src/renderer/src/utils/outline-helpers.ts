@@ -1,16 +1,43 @@
 import type { DocumentOutlineNode } from '../../../types'
 import { extractOutlineTreeFromMarkdown } from './document/outline'
+import { convertLatexToMarkdown } from './latex-utils'
+import {
+  normalizeMarkdownHeadingLevelsInContent as normalizeMd,
+  normalizeLatexHeadingLevelsInContent as normalizeLatex,
+  hasLatexHeadings
+} from './outline-normalize'
+
+export { normalizeMarkdownHeadingLevelsInContent, normalizeLatexHeadingLevelsInContent } from './outline-normalize'
 
 /**
- * 从节点的 text（Markdown 片段）中解析子标题，更新 node.children。
- * 用于 AI 生成内容或用户编辑后，将内容中的 ### 等标题同步为大纲子节点。
+ * 从节点的 text 中解析子标题，更新 node.children。
+ * 用于 AI 生成内容或用户编辑后，将内容中的标题同步为大纲子节点。
+ * 会先将内容中的标题层级规格化（最高层级比母节点低一级），再解析，避免同级标题破坏母树。
+ *
+ * 与 Markdown / LaTeX 一致：
+ * - 若内容含 LaTeX 标题（\\section、\\subsection、\\subsubsection）：先做 LaTeX 层级规格化，
+ *   再转为 Markdown 后解析，并将 node.text 存为 MD，以便后续生成与全文档一致。
+ * - 否则按 Markdown（# ## ###）规格化并解析。
  */
 export function syncChildrenFromNodeText(node: DocumentOutlineNode): void {
-  const text = node.text?.trim() ?? ''
+  let text = node.text?.trim() ?? ''
   if (!text) {
     node.children = []
     return
   }
+  const parentLevel = node.title_level ?? 0
+  if (hasLatexHeadings(text)) {
+    text = normalizeLatex(text, parentLevel)
+    try {
+      text = convertLatexToMarkdown(text)
+    } catch {
+      node.children = []
+      return
+    }
+  } else {
+    text = normalizeMd(text, parentLevel)
+  }
+  node.text = text
   try {
     const extracted = extractOutlineTreeFromMarkdown(text, false)
     if (!extracted?.children?.length) {

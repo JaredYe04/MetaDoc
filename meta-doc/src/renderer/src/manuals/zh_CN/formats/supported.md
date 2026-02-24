@@ -4,6 +4,22 @@
 
 MetaDoc支持多种文档格式，包括Markdown、LaTeX和纯文本格式。系统会自动检测文件格式，也支持手动选择格式。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["home", "outline", "chat"]' />
+
+<MainTabs mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<QuickStartMarkdown mode="demo" />
+
+<QuickStartLatex mode="demo" />
+
 ## 支持的格式
 
 ### Markdown格式

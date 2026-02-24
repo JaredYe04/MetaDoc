@@ -169,3 +169,17 @@ graph LR
 
 - [[core.multi-tab|多标签页管理]]
 - [[core.file-operations|文件操作]]
+
+<ViewMenuItemsDemo mode="demo" :items='["home", "outline"]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["chat", "agent"]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
+<QuickStartPanel mode="demo" />
+
+<LeftMenu mode="demo" />

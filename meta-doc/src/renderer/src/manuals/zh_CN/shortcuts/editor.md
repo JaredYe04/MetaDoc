@@ -273,24 +273,10 @@ LaTeX编辑器基于Monaco Editor，支持以下快捷键：
 
 <ViewMenuItemsDemo mode="demo" :items='["editor"]' />
 
-<AIChat mode="demo" />
-
-<CompletionSettingsPanel mode="demo" />
-
-<SettingLlmSection mode="demo" />
-
-<MainTabs mode="demo" />
-
-<QuickStartPanel mode="demo" />
-
 <Outline mode="demo" />
-
-<AgentView mode="demo" />
 
 <LaTeXEditorDemo mode="demo" />
 
 <SettingBasicSection mode="demo" />
 
 <SettingThemeSection mode="demo" />
-
-<KnowledgeBase mode="demo" />

@@ -66,8 +66,6 @@ graph LR
 
 标签页栏显示所有打开的文档，支持新建、切换、关闭等操作：
 
-<MainTabs mode="demo" />
-
 ### 新建标签页
 
 - **快捷键**：`Ctrl+T`（Windows/Linux）或 `Cmd+T`（macOS）

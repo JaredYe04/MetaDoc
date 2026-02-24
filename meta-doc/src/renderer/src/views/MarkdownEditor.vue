@@ -329,13 +329,9 @@ let suppressOutlineSync = false
 const syncOutlineFromMarkdown = debounce(() => {
   if (suppressOutlineSync) return
 
-  // 只在编辑器视图时才同步大纲，避免在outline视图时触发不必要的同步
-  const currentView = documentRef.value.lastView ?? 'editor'
-  // 兼容旧的'article'值（已被'editor'替代）
-  if (currentView !== 'editor' && (currentView as string) !== 'article') {
-    return
-  }
-
+  // 双向同步：从 Markdown 内容提取大纲
+  // 注意：这里不应该检查 lastView，因为我们需要确保大纲始终与内容同步
+  // 当在大纲视图编辑时，suppressOutlineSync 会被设置为 true，防止循环
   const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value)
   currentOutline.value = outline
 }, 200)

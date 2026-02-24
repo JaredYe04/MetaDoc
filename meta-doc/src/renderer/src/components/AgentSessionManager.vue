@@ -118,10 +118,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { notifySuccess, notifyInfo, notifyWarning } from '../utils/notify'
-import { Card, CardContent } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
-import { Input } from '../../components/ui/input'
+import { Card, CardContent } from '@renderer/components/ui/card'
+import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { Input } from '@renderer/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -129,14 +129,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '../../components/ui/dialog'
+} from '@renderer/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger
-} from '../../components/ui/dropdown-menu'
+} from '@renderer/components/ui/dropdown-menu'
 import {
   Plus,
   MoreHorizontal,

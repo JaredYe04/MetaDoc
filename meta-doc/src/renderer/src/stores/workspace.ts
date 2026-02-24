@@ -736,25 +736,19 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     }
 
     // 自动同步大纲树（从Markdown内容提取）
-    // 只在编辑器视图时才自动同步，避免在outline视图时触发编辑器刷新
-    // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
+    // 注意：双向同步模式下，只要内容变化就重新提取大纲
+    // suppressAutoOutlineSync 标志用于防止从大纲生成文本时的循环
     if (!suppressAutoOutlineSync && doc.format === 'md' && normalized.trim().length > 0) {
-      // 检查当前视图：只有在编辑器视图时才自动同步大纲树
-      // 在outline视图时，大纲树是数据源，不应该从编辑器内容反向同步
-      const currentView = doc.lastView ?? 'editor'
-      // 兼容旧的'article'值（已被'editor'替代）
-      if (currentView === 'editor' || (currentView as string) === 'article') {
-        try {
-          const newOutline = extractOutlineTreeFromMarkdown(normalized)
-          if (newOutline && newOutline.children && newOutline.children.length >= 0) {
-            // 只有当提取到有效大纲时才更新（允许空大纲）
-            updateDocumentOutline(tabId, newOutline)
-          }
-        } catch (error) {
-          // 提取大纲失败时，不更新大纲树，避免破坏现有结构
-          const logger = createRendererLogger('Workspace')
-          logger.warn('自动同步大纲树失败:', error)
+      try {
+        const newOutline = extractOutlineTreeFromMarkdown(normalized)
+        if (newOutline && newOutline.children && newOutline.children.length >= 0) {
+          // 只有当提取到有效大纲时才更新（允许空大纲）
+          updateDocumentOutline(tabId, newOutline)
         }
+      } catch (error) {
+        // 提取大纲失败时，不更新大纲树，避免破坏现有结构
+        const logger = createRendererLogger('Workspace')
+        logger.warn('自动同步大纲树失败:', error)
       }
     }
 
@@ -846,27 +840,20 @@ function updateDocumentTex(tabId: string, tex: string): void {
     }
 
     // 自动同步大纲树（LaTeX需要先转换为Markdown再提取）
-    // 只在编辑器视图时才自动同步，避免在outline视图时触发编辑器刷新
-    // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
+    // 注意：双向同步模式下，只要内容变化就重新提取大纲
     if (!suppressAutoOutlineSync && doc.format === 'tex' && normalized.trim().length > 0) {
-      // 检查当前视图：只有在编辑器视图时才自动同步大纲树
-      // 在outline视图时，大纲树是数据源，不应该从编辑器内容反向同步
-      const currentView = doc.lastView ?? 'editor'
-      // 兼容旧的'article'值（已被'editor'替代）
-      if (currentView === 'editor' || (currentView as string) === 'article') {
-        try {
-          // 将LaTeX转换为Markdown，然后提取大纲树
-          const markdown = convertLatexToMarkdown(normalized)
-          const newOutline = extractOutlineTreeFromMarkdown(markdown)
-          if (newOutline && newOutline.children && newOutline.children.length >= 0) {
-            // 只有当提取到有效大纲时才更新（允许空大纲）
-            updateDocumentOutline(tabId, newOutline)
-          }
-        } catch (error) {
-          // 提取大纲失败时，不更新大纲树，避免破坏现有结构
-          const logger = createRendererLogger('Workspace')
-          logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
+      try {
+        // 将LaTeX转换为Markdown，然后提取大纲树
+        const markdown = convertLatexToMarkdown(normalized)
+        const newOutline = extractOutlineTreeFromMarkdown(markdown)
+        if (newOutline && newOutline.children && newOutline.children.length >= 0) {
+          // 只有当提取到有效大纲时才更新（允许空大纲）
+          updateDocumentOutline(tabId, newOutline)
         }
+      } catch (error) {
+        // 提取大纲失败时，不更新大纲树，避免破坏现有结构
+        const logger = createRendererLogger('Workspace')
+        logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
       }
     }
 

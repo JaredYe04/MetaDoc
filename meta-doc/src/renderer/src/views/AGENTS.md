@@ -47,15 +47,15 @@ views/
 
 ## WHERE TO LOOK
 
-| Task | View | Notes |
-|------|------|-------|
-| Editor feature | `MarkdownEditor.vue`, `LaTeXEditor.vue` | Monaco (LaTeX) + Vditor (MD) |
-| AI agent UI | `AgentView.vue` | Workflow canvas, agent config |
-| Chat interface | `AIChat.vue` | AI conversation UI |
-| Document outline | `Outline.vue` | Hierarchical outline tree |
-| Settings | `Setting.vue`, `setting/*Section.vue` | 8 setting sections |
-| Knowledge base | `KnowledgeBase.vue` | RAG management |
-| Add new view | Create `.vue` + register in `router/router.js` | Add to `pages` map for aux windows |
+| Task             | View                                           | Notes                              |
+| ---------------- | ---------------------------------------------- | ---------------------------------- |
+| Editor feature   | `MarkdownEditor.vue`, `LaTeXEditor.vue`        | Monaco (LaTeX) + Vditor (MD)       |
+| AI agent UI      | `AgentView.vue`                                | Workflow canvas, agent config      |
+| Chat interface   | `AIChat.vue`                                   | AI conversation UI                 |
+| Document outline | `Outline.vue`                                  | Hierarchical outline tree          |
+| Settings         | `Setting.vue`, `setting/*Section.vue`          | 8 setting sections                 |
+| Knowledge base   | `KnowledgeBase.vue`                            | RAG management                     |
+| Add new view     | Create `.vue` + register in `router/router.js` | Add to `pages` map for aux windows |
 
 ## CONVENTIONS
 

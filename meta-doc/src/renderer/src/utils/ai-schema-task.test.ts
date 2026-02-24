@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('./regex-utils', () => ({
   extractOuterJsonString: (s: string) => {
-    const startIdx = s.search(/[\[{]/)
+    const startIdx = s.search(/[[{]/)
     if (startIdx === -1) return null
     const openChar = s[startIdx]
     const closeChar = openChar === '{' ? '}' : ']'

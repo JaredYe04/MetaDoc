@@ -36,14 +36,14 @@ agent-framework/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add new engine type | `agent-engine-executor.ts` | Extend `BaseEngineExecutor`, register in `AgentEngineExecutorFactory` |
-| Modify tool-call parsing | `tool-call-parsers.ts` | Handles XML/JSON/markdown formats |
-| Change context building | `ai-context-manager.ts` | Controls LLM prompt content |
-| Add workflow node type | `workflow-executor.ts` | Execution logic for graph nodes |
-| Modify session lifecycle | `agent-session-manager.ts` | Create/run/pause/resume/cancel |
-| Change LLM communication | `llm-adapter.ts` | Streaming, retries, token management |
+| Task                     | File                       | Notes                                                                 |
+| ------------------------ | -------------------------- | --------------------------------------------------------------------- |
+| Add new engine type      | `agent-engine-executor.ts` | Extend `BaseEngineExecutor`, register in `AgentEngineExecutorFactory` |
+| Modify tool-call parsing | `tool-call-parsers.ts`     | Handles XML/JSON/markdown formats                                     |
+| Change context building  | `ai-context-manager.ts`    | Controls LLM prompt content                                           |
+| Add workflow node type   | `workflow-executor.ts`     | Execution logic for graph nodes                                       |
+| Modify session lifecycle | `agent-session-manager.ts` | Create/run/pause/resume/cancel                                        |
+| Change LLM communication | `llm-adapter.ts`           | Streaming, retries, token management                                  |
 
 ## CONVENTIONS
 
@@ -61,17 +61,18 @@ agent-framework/
 
 ## ENGINE TYPES
 
-| Engine | Description |
-|--------|-------------|
-| **AutoGPT** | Autonomous goal-driven execution |
-| **ReAct** | Reasoning + Acting loop |
-| **PlanExecute** | Plan then execute approach |
-| **SimpleChat** | Basic chat without tools |
-| **Workflow** | Visual graph-based execution |
+| Engine          | Description                      |
+| --------------- | -------------------------------- |
+| **AutoGPT**     | Autonomous goal-driven execution |
+| **ReAct**       | Reasoning + Acting loop          |
+| **PlanExecute** | Plan then execute approach       |
+| **SimpleChat**  | Basic chat without tools         |
+| **Workflow**    | Visual graph-based execution     |
 
 ## WORKFLOW SYSTEM
 
 Workflows are directed graphs with control flow nodes:
+
 - **Action nodes**: Execute tools
 - **Condition nodes**: Branching logic
 - **Loop nodes**: Iteration

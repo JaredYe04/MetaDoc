@@ -115,6 +115,10 @@
 - **占位符处理**：`manuals/demo-mode.ts`
 - **样式适配**：`components/manual/ManualContent.vue`
 
+通过菜单可以快速访问相关资源：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />
+
 ---
 
 **最后更新**：2026-02-20  

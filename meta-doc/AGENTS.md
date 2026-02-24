@@ -11,6 +11,7 @@
 > **CRITICAL: Build initiators MUST resolve ALL errors**
 >
 > Running `npm run build` requires taking responsibility for:
+>
 > - ✅ Prettier errors → run `npm run format`
 > - ✅ ESLint errors → fix code style issues
 > - ✅ Manual doc errors → fix markdown, Mermaid/PlantUML, broken links
@@ -24,13 +25,14 @@
 
 > **"San 值" = Code maintainability and health**
 
-| Approach | Result | Verdict |
-|----------|--------|---------|
-| Disable checks | Problems hidden | ❌ Denial |
-| Bypass checks | Tech debt accumulates | ❌ Toxic |
-| Fix problems | Code stays healthy | ✅ Responsible |
+| Approach       | Result                | Verdict        |
+| -------------- | --------------------- | -------------- |
+| Disable checks | Problems hidden       | ❌ Denial      |
+| Bypass checks  | Tech debt accumulates | ❌ Toxic       |
+| Fix problems   | Code stays healthy    | ✅ Responsible |
 
 **Rule Levels:**
+
 1. **error** - Runtime/logic errors → Fix immediately
 2. **warn** - Quality issues → Fix progressively
 3. **off** - Style issues → Restore gradually
@@ -44,12 +46,14 @@
 - 6 headings → 2 demos | 3 headings → 2 demos | 9 headings → 3 demos
 
 **Implementation:**
+
 ```markdown
 <MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
 <Outline mode="demo" />
 ```
 
 **FORBIDDEN:**
+
 - ❌ `eslint-disable` comments to skip checks
 - ❌ Modifying `lint-manuals.js` requirements
 - ❌ `--no-verify` commits
@@ -92,19 +96,19 @@ meta-doc/
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| IPC handlers | `src/main/main-calls.ts` | 6119-line monolith |
-| Window management | `src/main/window-manager.ts` | Multi-window system |
-| Tab drag (main) | `src/main/drag-manager.ts` | Cross-window coordination |
-| Tab operations | `src/renderer/src/composables/` | useTabDrag, useTabOperations, useTabSwitcher |
-| Agent framework | `src/renderer/src/utils/agent-framework/` | Engines, workflows |
-| AI tools | `src/renderer/src/utils/agent-tools/` | 20+ tools |
-| Document state | `src/renderer/src/stores/workspace.ts` | 2009 lines |
-| Export adapters | `src/renderer/src/services/export-adapters/` | Strategy pattern |
-| LLM adapters | `src/renderer/src/utils/llm-adapters/` | OpenAI, Ollama, Gemini |
-| Database | `src/main/database/` | better-sqlite3 |
-| shadcn-vue UI | `src/renderer/src/components/ui/` | 93 components |
+| Task              | Location                                     | Notes                                        |
+| ----------------- | -------------------------------------------- | -------------------------------------------- |
+| IPC handlers      | `src/main/main-calls.ts`                     | 6119-line monolith                           |
+| Window management | `src/main/window-manager.ts`                 | Multi-window system                          |
+| Tab drag (main)   | `src/main/drag-manager.ts`                   | Cross-window coordination                    |
+| Tab operations    | `src/renderer/src/composables/`              | useTabDrag, useTabOperations, useTabSwitcher |
+| Agent framework   | `src/renderer/src/utils/agent-framework/`    | Engines, workflows                           |
+| AI tools          | `src/renderer/src/utils/agent-tools/`        | 20+ tools                                    |
+| Document state    | `src/renderer/src/stores/workspace.ts`       | 2009 lines                                   |
+| Export adapters   | `src/renderer/src/services/export-adapters/` | Strategy pattern                             |
+| LLM adapters      | `src/renderer/src/utils/llm-adapters/`       | OpenAI, Ollama, Gemini                       |
+| Database          | `src/main/database/`                         | better-sqlite3                               |
+| shadcn-vue UI     | `src/renderer/src/components/ui/`            | 93 components                                |
 
 ## CONVENTIONS
 
@@ -122,15 +126,15 @@ meta-doc/
 
 **Format:** `<type>: <中文描述>`
 
-| Type | Use | Example |
-|------|-----|---------|
-| feat | New feature | `feat: 添加大纲拖拽功能` |
-| fix | Bug fix | `fix: 修复标签页切换问题` |
-| docs | Documentation | `docs: 更新 AGENTS.md` |
-| style | Formatting | `style: 统一缩进` |
-| refactor | Refactoring | `refactor: 重构标签页逻辑` |
-| test | Tests | `test: 添加单元测试` |
-| chore | Build/tools | `chore: 升级 Electron` |
+| Type     | Use           | Example                    |
+| -------- | ------------- | -------------------------- |
+| feat     | New feature   | `feat: 添加大纲拖拽功能`   |
+| fix      | Bug fix       | `fix: 修复标签页切换问题`  |
+| docs     | Documentation | `docs: 更新 AGENTS.md`     |
+| style    | Formatting    | `style: 统一缩进`          |
+| refactor | Refactoring   | `refactor: 重构标签页逻辑` |
+| test     | Tests         | `test: 添加单元测试`       |
+| chore    | Build/tools   | `chore: 升级 Electron`     |
 
 ## ANTI-PATTERNS
 

@@ -33,13 +33,13 @@ services/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add export format | `export-adapters/` | Extend `base-adapter.ts`, register in `index.ts` |
-| Modify document loading | `document-loader.ts` | Format detection + outline tree construction |
-| Modify document saving | `document-save.ts` | Serialization + file write |
-| Change serialization | `document-serializer.ts` | ⚠️ META-INFO lines must not be modified |
-| Export format rules | `src/common/export-rules.ts` | Defines allowed source→target conversions |
+| Task                    | File                         | Notes                                            |
+| ----------------------- | ---------------------------- | ------------------------------------------------ |
+| Add export format       | `export-adapters/`           | Extend `base-adapter.ts`, register in `index.ts` |
+| Modify document loading | `document-loader.ts`         | Format detection + outline tree construction     |
+| Modify document saving  | `document-save.ts`           | Serialization + file write                       |
+| Change serialization    | `document-serializer.ts`     | ⚠️ META-INFO lines must not be modified          |
+| Export format rules     | `src/common/export-rules.ts` | Defines allowed source→target conversions        |
 
 ## CONVENTIONS
 
@@ -61,7 +61,7 @@ services/
 export class MyAdapter extends BaseExportAdapter {
   readonly sourceFormat = 'md'
   readonly targetFormat = 'myformat'
-  
+
   async export(context: ExportContext): Promise<ExportResult> {
     // Transform document.content to target format
     // Call context.onProgress() for progress updates

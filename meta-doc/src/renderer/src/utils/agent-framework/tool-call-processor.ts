@@ -279,7 +279,7 @@ function tryFixJsonFormat(toolCallContent: string): ParsedToolCall | null {
     // 如果提取失败，尝试更激进的修复
     if (!jsonStr) {
       // 尝试找到第一个 { 或 [，然后手动匹配到对应的结束符
-      const startIdx = fixedContent.search(/[\[{]/)
+      const startIdx = fixedContent.search(/[{[]/)
       if (startIdx !== -1) {
         const openChar = fixedContent[startIdx]
         const closeChar = openChar === '{' ? '}' : ']'
@@ -401,9 +401,9 @@ export function cleanToolCallMarkers(content: string, hasToolCalls: boolean = fa
 
     // 清理旧的标记格式（兼容性，保留向后兼容）
     cleaned = cleaned
-      .replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '')
+      .replace(/<\|redacted_tool_calls_begin\|>[\s\S]*?<\|redacted_tool_calls_end\|>/gi, '')
       .trim()
-    cleaned = cleaned.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
+    cleaned = cleaned.replace(/<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
 
     return cleaned
   }
@@ -425,9 +425,7 @@ export function hasToolCallMarkers(content: string): boolean {
   }
 
   // 检查旧的标记格式（兼容性）
-  return (
-    /\<\|redacted_tool_calls_begin\|>/i.test(content) || /\<｜tools▁call▁begin｜>/i.test(content)
-  )
+  return /<\|redacted_tool_calls_begin\|>/i.test(content) || /<｜tools▁call▁begin｜>/i.test(content)
 }
 
 /**

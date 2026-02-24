@@ -183,7 +183,6 @@ export async function migrateAIChatSessions(): Promise<{
  * 在应用启动时自动执行迁移
  */
 export async function autoMigrateAIChatSessions(): Promise<void> {
-  return //decrypt by 2025-12-18
   try {
     // 检查应用版本，如果版本 >= 1.0.0，则不需要执行迁移
     const appVersion = await getAppVersion()

@@ -42,14 +42,14 @@ agent-tools/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add new tool | Create `*-tool.ts`, register in `index.ts` | Export `*ToolConfig` object |
-| Modify tool UI | `components/` | Vue components rendering tool results |
-| Change tool registration | `index.ts` | `agentToolManager.registerTool(config)` |
-| Plugin system | `plugin-manager.ts` | External tool loading |
-| Shared tool services | `agent-tool-services.ts` | Document access, workspace helpers |
-| Tool utilities | `tool-utils.ts` | JSON parsing, retry logic |
+| Task                     | File                                       | Notes                                   |
+| ------------------------ | ------------------------------------------ | --------------------------------------- |
+| Add new tool             | Create `*-tool.ts`, register in `index.ts` | Export `*ToolConfig` object             |
+| Modify tool UI           | `components/`                              | Vue components rendering tool results   |
+| Change tool registration | `index.ts`                                 | `agentToolManager.registerTool(config)` |
+| Plugin system            | `plugin-manager.ts`                        | External tool loading                   |
+| Shared tool services     | `agent-tool-services.ts`                   | Document access, workspace helpers      |
+| Tool utilities           | `tool-utils.ts`                            | JSON parsing, retry logic               |
 
 ## CONVENTIONS
 

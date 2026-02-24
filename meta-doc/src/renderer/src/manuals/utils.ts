@@ -452,7 +452,7 @@ export function parseInternalLinks(content: string): Array<{
   startIndex: number
   endIndex: number
 }> {
-  const linkRegex = /\[\[([^\|]+)\|([^\]]+)\]\]/g
+  const linkRegex = /\[\[([^|]+)\|([^\]]+)\]\]/g
   const links: Array<{
     fullMatch: string
     articleId: string

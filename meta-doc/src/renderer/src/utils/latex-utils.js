@@ -401,7 +401,7 @@ async function convertBlockToLatex(tokens) {
       case 'footnote_close':
         if (stack.pop() === 'footnote') latex += '}\n'
         break
-      case 'inline':
+      case 'inline': {
         // 检查 inline 中是否只有图片（块级图片的情况）
         const inlineChildren = token.children || []
         const hasOnlyImage = inlineChildren.length === 1 && inlineChildren[0].type === 'image'
@@ -463,6 +463,7 @@ async function convertBlockToLatex(tokens) {
           latex += await convertTokensToLatex(inlineChildren)
         }
         break
+      }
 
       case 'emoji':
         latex += convertEmojiToLatex(token.markup)
@@ -668,7 +669,7 @@ function convertMarkdownTableTokensToLatex(tokens, startIndex) {
         break
       }
 
-      case 'table_close':
+      case 'table_close': {
         // 渲染表格
         const columnCount = Math.max(...rows.map((r) => r.cells.length))
         if (columnCount === 0) return { latex: '', offset: i }
@@ -682,6 +683,7 @@ function convertMarkdownTableTokensToLatex(tokens, startIndex) {
 
         latex += '\\end{tabular}\n\n'
         return { latex, offset: i }
+      }
     }
 
     i++

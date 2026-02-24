@@ -15,13 +15,13 @@ editor/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add LaTeX feature | `monaco-adapter.ts` | Monaco Editor with tectonic compilation |
-| Add Markdown feature | `vditor-adapter.ts` | Vditor with custom toolbar & preview |
-| Change editor interface | `text-editor-types.ts` | Shared adapter contract |
-| Outline navigation | Both adapters | Skip graph elements: .katex-display, .mermaid, etc. |
-| Document switching | Adapter factory | Chooses adapter by document.format |
+| Task                    | File                   | Notes                                               |
+| ----------------------- | ---------------------- | --------------------------------------------------- |
+| Add LaTeX feature       | `monaco-adapter.ts`    | Monaco Editor with tectonic compilation             |
+| Add Markdown feature    | `vditor-adapter.ts`    | Vditor with custom toolbar & preview                |
+| Change editor interface | `text-editor-types.ts` | Shared adapter contract                             |
+| Outline navigation      | Both adapters          | Skip graph elements: .katex-display, .mermaid, etc. |
+| Document switching      | Adapter factory        | Chooses adapter by document.format                  |
 
 ## CONVENTIONS
 
@@ -44,18 +44,18 @@ interface EditorAdapter {
   // Lifecycle
   mount(container: HTMLElement): void
   unmount(): void
-  
+
   // Content
   getContent(): string
   setContent(content: string): void
-  
+
   // Selection
   getSelection(): { start: number; end: number }
   setSelection(start: number, end: number): void
-  
+
   // Outline
   getOutline(): DocumentOutlineNode[]
-  
+
   // Events
   onContentChange(callback: () => void): void
   onSelectionChange(callback: () => void): void
@@ -80,6 +80,7 @@ interface EditorAdapter {
 ## USAGE
 
 The editor is chosen based on document format:
+
 ```typescript
 if (document.format === 'tex') {
   adapter = createMonacoAdapter()

@@ -290,17 +290,9 @@ A: 检查文档中的标题格式是否正确。Markdown使用`#`，LaTeX使用`
 
 A: 大纲会自动从文档中提取。如果需要重置，可以重新打开文档或手动编辑文档结构。
 
-<QuickStartPanel mode="demo" />
-
 ## 相关文档
 
 - [[outline.ai-features|大纲AI功能]]
 - [[markdown.editor|Markdown编辑器使用指南]]
 - [[latex.editor|LaTeX编辑器使用指南]]
 - [[core.editor-basics|编辑器基础操作]]
-
-<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat", "proofread"]}]' />
-
-<ViewMenuItemsDemo mode="demo" :items='["home", "agent"]' />
-
-<GraphWindow mode="demo" />

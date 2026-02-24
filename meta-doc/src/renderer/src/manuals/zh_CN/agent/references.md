@@ -24,8 +24,6 @@
 
 您可以通过侧边栏访问Agent视图：
 
-<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
-
 <ReferenceManager mode="demo" />
 
 ## 添加引用

@@ -22,8 +22,6 @@ MetaDoc支持以下图表引擎：
 - **SMILES**：化学结构式
 - **ABC**：音乐乐谱
 
-<GraphWindow mode="demo" />
-
 ### 引擎对比
 
 | 引擎      | 适用场景                       | 渲染方式   |
@@ -35,9 +33,17 @@ MetaDoc支持以下图表引擎：
 | Graphviz  | 图形可视化                     | Vditor渲染 |
 | Mindmap   | 思维导图                       | Vditor渲染 |
 
-## 插入图表
+### 引擎对比图表
 
-<GraphWindow mode="demo" />
+```mermaid
+graph LR
+    A[图表引擎] --> B[Mermaid]
+    A --> C[PlantUML]
+    A --> D[ECharts]
+    style A fill:#f3f4f6,stroke:#374151
+```
+
+## 插入图表
 
 ### 代码块语法
 
@@ -51,8 +57,6 @@ graph TD
 ```
 ````
 
-<GraphWindow mode="demo" />
-
 ### 图表类型标识
 
 不同的图表类型使用不同的代码块标识：
@@ -64,17 +68,7 @@ graph TD
 - **Graphviz**：` ```graphviz `
 - **Mindmap**：` ```mindmap `
 
-### 图表代码
-
-在代码块中编写图表代码：
-
-- **语法正确**：确保图表代码语法正确
-- **格式规范**：遵循各图表引擎的格式规范
-- **代码完整**：确保代码块完整，包含必要的标记
-
 ## 图表渲染
-
-<GraphWindow mode="demo" />
 
 ### 实时渲染
 
@@ -83,8 +77,6 @@ graph TD
 - **自动渲染**：输入图表代码后自动渲染
 - **实时预览**：在预览窗口中实时显示图表
 - **错误提示**：语法错误时会显示错误提示
-
-<GraphWindow mode="demo" />
 
 ### 渲染方式
 
@@ -102,8 +94,6 @@ graph TD
 - **PNG**：位图格式（可转换）
 
 ## 图表导出
-
-<DataAnalysisWindow mode="demo" />
 
 ### 导出支持
 
@@ -123,8 +113,6 @@ graph TD
 
 ## 图表编辑
 
-<DataAnalysisWindow mode="demo" />
-
 ### 代码编辑
 
 可以直接编辑图表代码：
@@ -142,8 +130,6 @@ graph TD
 - **渲染状态**：显示图表的渲染状态
 
 ## 多语言支持
-
-<DataAnalysisWindow mode="demo" />
 
 ### 图表代码多语言
 

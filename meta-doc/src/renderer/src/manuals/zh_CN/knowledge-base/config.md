@@ -25,22 +25,6 @@
 - **右侧详情**：选中文档的详细信息和处理状态
 - **底部工具栏**：添加文档、开始处理、删除等操作按钮
 
-<AIChat mode="demo" />
-
-<ProofreadView mode="demo" />
-
-<QuickStartPanel mode="demo" />
-
-<AgentView mode="demo" />
-
-<GraphWindow mode="demo" />
-
-<OcrWindow mode="demo" />
-
-<DataAnalysisWindow mode="demo" />
-
-<MainTabs mode="demo" />
-
 ## 选择处理方式
 
 ### 两种方式简介

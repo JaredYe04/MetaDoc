@@ -9,6 +9,7 @@ import { PDFDocument } from 'pdf-lib'
 import { createMainLogger } from '../logger'
 import { imageUploadDir } from '../express-server'
 import { getRuntimeServerBaseUrl } from '../runtime-server-config'
+import { getSystemFontFiles } from './font-service'
 // 仅保留 resvg-js 渲染链路，不再引入 BrowserWindow 或 sharp 回退
 
 const logger = createMainLogger('SvgToPdf')
@@ -46,25 +47,8 @@ export async function convertSvgToPdf(svgPath: string): Promise<string> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Resvg } = require('@resvg/resvg-js')
 
-    // 收集可能存在的系统字体文件（Windows 常见字体，存在才加入）
-    const candidateFontFiles = [
-      'C:/Windows/Fonts/arial.ttf',
-      'C:/Windows/Fonts/arialuni.ttf',
-      'C:/Windows/Fonts/msyh.ttc', // 微软雅黑
-      'C:/Windows/Fonts/simhei.ttf', // 黑体
-      'C:/Windows/Fonts/simsun.ttc', // 宋体
-      'C:/Windows/Fonts/segoeui.ttf', // Segoe UI
-      'C:/Windows/Fonts/calibri.ttf',
-      'C:/Windows/Fonts/trebuc.ttf', // Trebuchet MS
-      'C:/Windows/Fonts/tahoma.ttf',
-      'C:/Windows/Fonts/verdana.ttf'
-    ].filter((p) => {
-      try {
-        return fs.existsSync(p)
-      } catch {
-        return false
-      }
-    })
+    // 收集可能存在的系统字体文件（跨平台支持）
+    const candidateFontFiles = getSystemFontFiles()
 
     // 推断尺寸
     const widthHeight = (() => {
@@ -185,25 +169,8 @@ export async function convertSvgStringToPdfFile(
       return { width: Math.max(1, width), height: Math.max(1, height) }
     })()
 
-    // 收集可能存在的系统字体文件（Windows 常见字体，存在才加入）
-    const candidateFontFiles = [
-      'C:/Windows/Fonts/arial.ttf',
-      'C:/Windows/Fonts/arialuni.ttf',
-      'C:/Windows/Fonts/msyh.ttc',
-      'C:/Windows/Fonts/simhei.ttf',
-      'C:/Windows/Fonts/simsun.ttc',
-      'C:/Windows/Fonts/segoeui.ttf',
-      'C:/Windows/Fonts/calibri.ttf',
-      'C:/Windows/Fonts/trebuc.ttf',
-      'C:/Windows/Fonts/tahoma.ttf',
-      'C:/Windows/Fonts/verdana.ttf'
-    ].filter((p) => {
-      try {
-        return fs.existsSync(p)
-      } catch {
-        return false
-      }
-    })
+    // 收集可能存在的系统字体文件（跨平台支持）
+    const candidateFontFiles = getSystemFontFiles()
 
     // 使用 scale 倍缩放生成高分辨率位图，确保 PDF 中图表清晰度与矢量图相当
     const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale))
@@ -301,25 +268,8 @@ export async function convertSvgStringToPngFile(
       return { width: Math.max(1, width), height: Math.max(1, height) }
     })()
 
-    // 收集可能存在的系统字体文件（Windows 常见字体，存在才加入）
-    const candidateFontFiles = [
-      'C:/Windows/Fonts/arial.ttf',
-      'C:/Windows/Fonts/arialuni.ttf',
-      'C:/Windows/Fonts/msyh.ttc',
-      'C:/Windows/Fonts/simhei.ttf',
-      'C:/Windows/Fonts/simsun.ttc',
-      'C:/Windows/Fonts/segoeui.ttf',
-      'C:/Windows/Fonts/calibri.ttf',
-      'C:/Windows/Fonts/trebuc.ttf',
-      'C:/Windows/Fonts/tahoma.ttf',
-      'C:/Windows/Fonts/verdana.ttf'
-    ].filter((p) => {
-      try {
-        return fs.existsSync(p)
-      } catch {
-        return false
-      }
-    })
+    // 收集可能存在的系统字体文件（跨平台支持）
+    const candidateFontFiles = getSystemFontFiles()
 
     // 使用 scale 倍缩放生成高分辨率位图，确保 PDF 中图表清晰度与矢量图相当
     const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale))

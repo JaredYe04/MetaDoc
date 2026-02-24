@@ -69,7 +69,7 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal',
-    validator: (value: string) => ['normal', 'demo'].includes(value)
+    validator: (value) => ['normal', 'demo'].includes(value)
   }
 })
 

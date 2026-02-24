@@ -206,6 +206,9 @@ meta-doc/
 npm run dev              # Start dev
 npm run build            # Production build
 
+# Wayland (Linux)
+ELECTRON_OZONE_PLATFORM_HINT=wayland OZONE_PLATFORM=wayland npm run dev
+
 # Package
 npm run build:win        # Windows
 npm run build:linux      # Linux

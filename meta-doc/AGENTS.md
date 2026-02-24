@@ -64,6 +64,59 @@ See: `src/renderer/src/manuals/DEMO_COVERAGE_POLICY.md`
 
 ---
 
+## 📚 Demo 添加方法论（禁止 Demo Hacking）
+
+### 核心原则
+
+**严禁为了凑数而添加无关的 Demo**。每个 Demo 必须真实反映文档内容，具有教学价值。
+
+### 正确流程
+
+当文档需要添加 Demo 但缺乏合适的组件时：
+
+1. **分析文档主题** → 确定需要展示的核心功能
+2. **搜索相关组件** → 使用 explore agent 查找与主题相关的现有组件
+3. **实现 Demo 模式** → 如果组件没有 demo 模式，为其添加 `mode="demo"` 支持
+4. **注册到 Demo Registry** → 在 `demo-registry-components.ts` 中注册
+5. **插入相关 Demo** → 将真正相关的 Demo 添加到用户指南文章中
+
+### 禁止行为（Demo Hacking）
+
+❌ **Universal Demo Cluster 反模式**：
+
+```markdown
+<!-- 错误：为了凑数而添加的无关组件 --
+<AIChat mode="demo" />
+<KnowledgeBase mode="demo" />
+<ProofreadView mode="demo" />
+<QuickStartPanel mode="demo" />
+```
+
+❌ **复制粘贴 Demo**：
+
+- 不思考文档主题，直接复制其他文件的 Demo
+- 在完全不相关的文档中添加 AIChat、KnowledgeBase 等通用组件
+
+### 组件-主题映射指南
+
+| 文档主题             | 正确组件                | 错误示例               |
+| -------------------- | ----------------------- | ---------------------- |
+| Statistics/Analytics | `*StatisticsView`       | `SettingLlmSection` ❌ |
+| Settings/Config      | `Setting*Section`       | `MainTabs` ❌          |
+| AI Features          | 对应的 AI 组件          | 通用组件充数 ❌        |
+| Shortcuts            | `MenuItemsDemo`、键盘表 | `AIChat` ❌            |
+
+### 实施检查清单
+
+添加 Demo 前自问：
+
+- [ ] 这个 Demo 是否直接说明了当前章节的内容？
+- [ ] 用户能从这个 Demo 中学到什么？
+- [ ] 组件类型是否适合本文档主题？
+- [ ] 是否查阅了 `TOPIC_COMPONENT_MAPPING.md`？
+
+---
+
 ## OVERVIEW
 
 MetaDoc — LLM Agent-powered document processing desktop app. Electron (main: TypeScript) + Vue 3 (mixed TS/JS) + Pinia + shadcn-vue + Element Plus. Markdown/LaTeX editing, AI agent framework, multi-format export, RAG knowledge base, OCR. Capacitor Android target included.

@@ -51,7 +51,7 @@
       <!-- 最大 Token 数 -->
       <FormField :label="t('ai.completion.maxTokens', '最大 Token 数')" name="maxTokens">
         <div class="tokens-input">
-          <InputNumber
+          <NumberField
             v-model="settings.maxTokens"
             :min="50"
             :max="500"
@@ -86,7 +86,7 @@
       <!-- 显示行数 -->
       <FormField :label="t('ai.completion.maxLines', '最大显示行数')" name="maxLines">
         <div class="lines-input">
-          <InputNumber
+          <NumberField
             v-model="settings.maxLines"
             :min="1"
             :max="10"
@@ -101,7 +101,7 @@
       <!-- 上下文行数 -->
       <FormField :label="t('ai.completion.contextLines', '上下文行数')" name="contextLines">
         <div class="context-input">
-          <InputNumber
+          <NumberField
             v-model="settings.contextLines"
             :min="3"
             :max="50"
@@ -145,7 +145,7 @@ import { notifySuccess, notifyInfo } from '../utils/notify'
 import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
 import { Input } from '@renderer/components/ui/input'
-import { InputNumber } from '@renderer/components/ui/input-number'
+import { NumberField } from '@renderer/components/ui/number-field'
 import { Slider } from '@renderer/components/ui/slider'
 
 // Props definition

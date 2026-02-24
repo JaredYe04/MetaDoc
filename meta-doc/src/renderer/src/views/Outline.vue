@@ -350,7 +350,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Switch v-model="formatTitleConfig.adjustMarkdown" />
+                    <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.adjustMarkdownTip') }}</p>
@@ -379,7 +379,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Switch v-model="formatTitleConfig.adjustTitle" />
+                    <Switch v-model:checked="formatTitleConfig.adjustTitle" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.adjustTitleTip') }}</p>
@@ -392,7 +392,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Switch v-model="formatTitleConfig.cover" />
+                    <Switch v-model:checked="formatTitleConfig.cover" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.coverTip') }}</p>
@@ -405,7 +405,7 @@
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Switch v-model="formatTitleConfig.level1TitleChinese" />
+                    <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>{{ $t('outline.level1ChineseTip') }}</p>

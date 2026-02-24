@@ -3118,6 +3118,11 @@ async function openPdfDirectory() {
 
 // 保存PDF（复制并保存对话框）
 async function savePdf() {
+  if (isDemo.value) {
+    eventBus.emit('show-info', 'Demo mode: PDF save is simulated')
+    return
+  }
+
   if (!pdfUrl.value || pdfUrl.value === 'file:///') {
     eventBus.emit('show-warning', t('latexEditor.notification.pdfNotAvailable'))
     return
@@ -3160,6 +3165,15 @@ const insertText = (text: string) => {
 // 处理粘贴图片（用于LaTeX编辑器）
 const handlePasteImage = async () => {
   try {
+    // Demo mode: simulate image paste
+    if (isDemo.value) {
+      eventBus.emit('show-info', 'Demo mode: Image paste is simulated')
+      // Insert a demo image reference
+      const latexCode = `\\includegraphics[width=0.8\\textwidth]{demo-image.png}`
+      insertText(latexCode)
+      return true
+    }
+
     if (!messageBridge.getIpc()) {
       logger.warn('IPC渲染器不可用，无法读取剪切板图片')
       return false

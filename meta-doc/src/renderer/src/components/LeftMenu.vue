@@ -67,9 +67,13 @@
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
-
-        <UISubMenu :icon="Download" :title="$t('leftMenu.export')" trigger="hover" :level="2" :disabled="!isDocumentTab">
-
+        <UISubMenu
+          :icon="Download"
+          :title="$t('leftMenu.export')"
+          trigger="hover"
+          :level="2"
+          :disabled="!isDocumentTab"
+        >
           <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
@@ -483,9 +487,13 @@
           {{ $t('leftMenu.saveAs') }}
         </UISubMenuItem>
 
-
-        <UISubMenu :icon="Download" :title="$t('leftMenu.export')" trigger="hover" :level="2" :disabled="!isDocumentTab">
-
+        <UISubMenu
+          :icon="Download"
+          :title="$t('leftMenu.export')"
+          trigger="hover"
+          :level="2"
+          :disabled="!isDocumentTab"
+        >
           <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
@@ -856,7 +864,10 @@
     <el-form label-width="auto" label-position="top">
       <el-form-item :label="t('leftMenu.exportAsTemplateTitleLabel')">
         <div class="export-as-template-field">
-          <el-input v-model="exportAsTemplateTitle" :placeholder="t('leftMenu.exportAsTemplateTitleLabel')" />
+          <el-input
+            v-model="exportAsTemplateTitle"
+            :placeholder="t('leftMenu.exportAsTemplateTitleLabel')"
+          />
           <el-tooltip :content="t('leftMenu.exportAsTemplateAiGenerate')" placement="top">
             <el-button
               type="primary"
@@ -880,8 +891,12 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="showExportAsTemplateDialog = false">{{ t('messageBox.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmExportAsTemplate">{{ t('messageBox.confirm') }}</el-button>
+      <el-button @click="showExportAsTemplateDialog = false">{{
+        t('messageBox.cancel')
+      }}</el-button>
+      <el-button type="primary" @click="confirmExportAsTemplate">{{
+        t('messageBox.confirm')
+      }}</el-button>
     </template>
   </el-dialog>
 
@@ -911,7 +926,6 @@ import {
   BarChart3,
   FileX,
   Clock,
-
   Power,
   Image,
   Home,
@@ -927,7 +941,7 @@ import {
   Download,
   FileText,
   X,
-  FolderAdd,
+  FolderPlus as FolderAdd,
   Wand2 as MagicStick
 } from 'lucide-vue-next'
 
@@ -1530,7 +1544,9 @@ async function generateTemplateTitleDescriptionByAi() {
       'export-as-template-ai',
       { stream: true }
     ).done
-    const { title, description } = parseTemplateTitleDescriptionFromAi(exportAsTemplateAiResultRef.value)
+    const { title, description } = parseTemplateTitleDescriptionFromAi(
+      exportAsTemplateAiResultRef.value
+    )
     if (title) exportAsTemplateTitle.value = title
     if (description) exportAsTemplateDescription.value = description
   } catch (e) {

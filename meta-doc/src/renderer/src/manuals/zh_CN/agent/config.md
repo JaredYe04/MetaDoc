@@ -47,7 +47,7 @@ AgentConfig包含以下主要部分：
 
 这种机制让您可以精确控制Agent的能力范围。
 
-<AgentView mode="demo" />
+<AgentConfigManager mode="demo" />
 
 ## 创建AgentConfig
 
@@ -89,7 +89,7 @@ AgentConfig包含以下主要部分：
 
 **注意**：默认配置（`default-agent-config`）不允许编辑，但可以复制后编辑。
 
-<AgentView mode="demo" />
+<AgentConfigManager mode="demo" />
 
 ## 删除AgentConfig
 
@@ -100,6 +100,8 @@ AgentConfig包含以下主要部分：
 1. **打开管理界面**：在Agent配置管理界面找到要删除的配置
 2. **点击删除**：点击配置卡片上的"删除"按钮
 3. **确认删除**：在弹出的确认对话框中确认删除
+
+<AgentConfigManager mode="demo" />
 
 **注意**：
 
@@ -135,6 +137,8 @@ AgentConfig包含以下主要部分：
 
 导出的JSON文件包含配置的所有信息，可以用于备份或分享。
 
+<AgentConfigManager mode="demo" />
+
 ### 导入配置
 
 从JSON文件导入AgentConfig：
@@ -146,8 +150,6 @@ AgentConfig包含以下主要部分：
 5. **导入配置**：导入成功后创建新配置
 
 导入的配置会创建新的ID，不会覆盖现有配置（除非使用覆盖模式）。
-
-<AgentView mode="demo" />
 
 ## LLM配置
 
@@ -169,7 +171,7 @@ AgentConfig可以覆盖全局LLM配置：
 
 **注意**：如果AgentConfig未设置LLM参数，将使用全局LLM配置。
 
-<AgentView mode="demo" />
+<AgentConfigManager mode="demo" />
 
 ## 行为配置
 
@@ -189,6 +191,8 @@ AgentConfig可以控制工具调用行为：
 - **有限工具场景**：限制工具调用次数，避免过度调用
 - **全功能场景**：允许所有工具调用，无限制
 
+<AgentConfigManager mode="demo" />
+
 ## 场景类型
 
 AgentConfig可以设置场景类型，用于分类和管理：
@@ -201,8 +205,6 @@ AgentConfig可以设置场景类型，用于分类和管理：
 
 场景类型主要用于分类，不影响Agent的实际行为。
 
-<AgentView mode="demo" />
-
 ## 使用技巧
 
 ### 配置组织
@@ -211,19 +213,21 @@ AgentConfig可以设置场景类型，用于分类和管理：
 2. **场景分类**：使用场景类型进行分类管理
 3. **工具集选择**：根据任务需求选择合适的工具集组合
 
+<AgentConfigManager mode="demo" />
+
 ### 工具集交集
 
 1. **精确控制**：使用多个工具集的交集，精确控制Agent的能力
 2. **工具集设计**：设计专门的工具集，然后通过交集组合使用
 3. **测试验证**：创建配置后，测试工具集交集是否正确
 
+<AgentConfigManager mode="demo" />
+
 ### LLM配置
 
 1. **系统提示词**：为不同场景编写专门的系统提示词
 2. **参数调优**：根据任务特点调整温度和最大Token数
 3. **时间戳注入**：对于需要时间感知的任务，启用时间戳注入
-
-<AgentView mode="demo" />
 
 ## 常见问题
 

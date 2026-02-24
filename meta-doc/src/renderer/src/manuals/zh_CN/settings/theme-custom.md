@@ -210,3 +210,13 @@ MetaDoc会根据主题色自动生成配色方案：
 - [[core.editor-settings|编辑器设置]]
 
 <ResizableDivider mode="demo" />
+
+<SettingThemeSection mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["theme"]}]' />
+
+<DialogDemo mode="demo" dialogType="color-picker" />
+
+<DialogDemo mode="demo" dialogType="theme-edit" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />

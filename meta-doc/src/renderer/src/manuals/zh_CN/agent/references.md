@@ -25,6 +25,7 @@
 您可以通过侧边栏访问Agent视图：
 
 <ReferenceManager mode="demo" />
+<ReferenceDisplay mode="demo" />
 
 ## 添加引用
 
@@ -60,6 +61,7 @@
 MetaDoc会自动抓取网页内容并添加到引用中。
 
 <ReferenceManager mode="demo" />
+<ReferenceDisplay mode="demo" />
 
 ### 添加知识库引用
 
@@ -69,6 +71,8 @@ MetaDoc会自动抓取网页内容并添加到引用中。
 2. 选择"知识库"类型
 3. 从知识库列表中选择要引用的文档
 4. 确认添加
+
+<ReferenceDisplay mode="demo" />
 
 ### 内置文档引用
 
@@ -104,6 +108,8 @@ graph TB
 
 点击引用素材旁的开关即可切换启用状态。
 
+<ReferenceDisplay mode="demo" />
+
 ### 预览引用内容
 
 点击引用素材可以预览其内容：
@@ -122,6 +128,8 @@ graph TB
 3. 确认删除
 
 **注意**：删除引用只会移除引用关系，不会影响原始文件。
+
+<ReferenceManager mode="demo" />
 
 ## 引用在对话中的作用
 
@@ -194,7 +202,7 @@ AI：根据网页内容，主要报道了...
 
 AI会综合分析所有启用的引用内容。
 
-<ReferenceManager mode="demo" />
+<ReferenceDisplay mode="demo" />
 
 ### 临时禁用
 

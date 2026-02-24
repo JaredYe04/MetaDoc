@@ -48,6 +48,7 @@ graph TB
 - **自主决策**：Agent自主决定下一步行动
 
 <AgentView mode="demo" />
+<AgentEngineManager mode="demo" />
 
 **适用场景**：
 
@@ -71,6 +72,7 @@ Agent：[自动分解为：1.收集资料 2.整理大纲 3.撰写内容 4.润色
 - **透明可控**：用户可以看到Agent的思考逻辑
 
 <AgentView mode="demo" />
+<AgentEngineManager mode="demo" />
 
 **适用场景**：
 
@@ -96,6 +98,7 @@ Agent：[自动分解为：1.收集资料 2.整理大纲 3.撰写内容 4.润色
 - **结构化输出**：输出格式规范，易于理解
 
 <AgentView mode="demo" />
+<AgentEngineManager mode="demo" />
 
 **适用场景**：
 
@@ -130,6 +133,8 @@ Agent：[自动分解为：1.收集资料 2.整理大纲 3.撰写内容 4.润色
 - 简单对话
 
 **注意**：此引擎不调用工具，因此无法执行文件操作、数据分析等功能。
+
+<AgentEngineManager mode="demo" />
 
 ### Workflow引擎
 

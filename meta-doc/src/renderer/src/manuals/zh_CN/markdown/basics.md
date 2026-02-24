@@ -152,4 +152,14 @@ MetaDoc支持多种图表格式：
 - [[markdown.features|Markdown编辑器功能]]
 - [[core.editor-basics|编辑器基础操作]]
 
+<LaTeXEditorDemo mode="demo" />
+
+<Outline mode="demo" />
+
 <ViewMenuItemsDemo mode="demo" :items='["outline"]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+
+<TitleMenu mode="demo" title="Markdown文档示例" path="1" :tree='{}' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "preview"]' />

@@ -10,6 +10,8 @@
 
 ## 编辑器主题
 
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 ### 主题类型
 
 MetaDoc支持多种主题模式：
@@ -37,6 +39,8 @@ graph TB
 
 ### 设置主题
 
+<SettingThemeSection mode="demo" />
+
 1. 打开设置页面（点击菜单"设置"或使用快捷键）
 2. 进入"主题设置"部分
 3. 选择您喜欢的主题
@@ -50,6 +54,8 @@ graph TB
 主题设置会立即生效，无需重启应用。
 
 ### 自定义主题
+
+<SettingThemeSection mode="demo" />
 
 您可以创建和编辑自定义主题：
 
@@ -65,6 +71,8 @@ graph TB
 
 ## 内容主题
 
+<SettingThemeSection mode="demo" />
+
 内容主题控制文档预览区域的显示样式：
 
 - **自动**：根据全局主题自动选择
@@ -74,6 +82,8 @@ graph TB
 内容主题主要影响Markdown预览和PDF预览的显示效果。
 
 ## 代码主题
+
+<SettingThemeSection mode="demo" />
 
 代码主题控制代码块的语法高亮样式：
 
@@ -87,6 +97,8 @@ graph TB
 - 控制台输出的显示样式
 
 ## 字体设置
+
+<SettingBasicSection mode="demo" />
 
 ### 编辑器字体
 
@@ -106,6 +118,8 @@ graph TB
 字体大小调整会立即生效，但不会保存到设置中。
 
 ## 行号显示
+
+<SettingBasicSection mode="demo" />
 
 ### 显示/隐藏行号
 

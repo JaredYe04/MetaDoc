@@ -54,6 +54,8 @@ graph TB
 
 ## 自动触发
 
+<AISuggestionGhost mode="demo" />
+
 ### 触发条件
 
 AI自动补全会在以下情况自动触发：
@@ -103,6 +105,8 @@ graph TB
 
 ## 手动触发
 
+<AISuggestionGhost mode="demo" />
+
 ### 触发方式
 
 手动触发补全的方式：
@@ -123,6 +127,8 @@ graph TB
 - **特定位置**：在特定位置需要补全
 
 ## 补全内容
+
+<AISuggestionGhost mode="demo" />
 
 ### 上下文理解
 
@@ -157,6 +163,8 @@ Token数越大，补全的内容越多，但生成时间也会更长。
 <CompletionSettingsPanel mode="demo" />
 
 ## 接受补全
+
+<AISuggestionGhost mode="demo" />
 
 ### 接受方式
 
@@ -210,8 +218,6 @@ graph LR
 
 详见[[knowledge-base.config|知识库配置]]。
 
-<KnowledgeBase mode="demo" />
-
 ### 上下文检索
 
 知识库检索功能：
@@ -227,8 +233,6 @@ graph LR
 - **置信度阈值**：设置检索的置信度阈值
 - **检索数量**：设置检索结果的数量
 - **检索范围**：设置检索的范围
-
-<KnowledgeBase mode="demo" />
 
 ## 补全设置
 

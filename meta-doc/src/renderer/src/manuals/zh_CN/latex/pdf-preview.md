@@ -6,6 +6,8 @@ PDF预览功能允许您在编辑LaTeX文档时实时查看编译后的PDF效果
 
 PDF预览会在LaTeX编译成功后自动显示，支持与代码编辑器的双向定位，方便您在PDF和代码之间快速切换。
 
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
 ## PDF预览介绍
 
 ### 预览面板
@@ -20,6 +22,8 @@ PDF预览面板界面如下：
 
 <PdfPreviewPanel mode="demo" pdfUrl="" />
 
+<LaTeXCompilerPanel mode="demo" />
+
 ### 自动显示
 
 PDF预览会在以下情况自动显示：
@@ -27,6 +31,8 @@ PDF预览会在以下情况自动显示：
 - **编译成功**：LaTeX编译成功后自动显示PDF预览
 - **打开文档**：打开已有PDF的LaTeX文档时自动显示预览
 - **手动打开**：点击工具栏的"预览"按钮手动打开预览
+
+<PdfPreviewPanel mode="demo" pdfUrl="" />
 
 ## PDF缩放
 
@@ -39,6 +45,8 @@ PDF预览会在以下情况自动显示：
 - **快捷键**：`Ctrl+=`（如果配置了）
 
 每次放大增加10%的缩放比例。
+
+<LaTeXEditorDemo mode="demo" />
 
 ### 缩小PDF
 
@@ -84,6 +92,8 @@ PDF缩放支持的范围：
 
 缩放比例会自动限制在有效范围内。
 
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
 ## PDF刷新
 
 ### 手动刷新
@@ -110,6 +120,8 @@ PDF预览会在以下情况自动刷新：
 - **预览异常**：PDF预览显示异常或内容不正确时
 - **长时间编辑**：长时间编辑后需要查看最新效果时
 
+<LaTeXEditorDemo mode="demo" />
+
 ## PDF定位到代码
 
 ### 从PDF定位到代码
@@ -121,6 +133,8 @@ PDF预览会在以下情况自动刷新：
 3. **高亮显示**：对应的代码行会高亮显示
 
 这个功能让您能够快速从PDF效果定位到源代码，方便调试和修改。
+
+<PdfPreviewPanel mode="demo" pdfUrl="" />
 
 ### 从代码定位到PDF
 
@@ -137,6 +151,8 @@ PDF和代码之间的双向定位功能：
 - **PDF → 代码**：点击PDF位置跳转到代码
 - **代码 → PDF**：选中代码跳转到PDF位置
 - **同步滚动**：支持PDF和代码的同步滚动
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "PDF页面导航...", "type": "out"}]' />
 
 ## PDF页面导航
 
@@ -165,6 +181,8 @@ PDF预览支持多页显示模式：
 
 多页模式适合快速浏览整个文档。
 
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
 ## PDF保存
 
 ### 保存PDF
@@ -185,6 +203,8 @@ PDF预览支持多页显示模式：
 - **菜单**：点击"文件" → "打开PDF目录"
 
 打开目录后，您可以在文件管理器中查看和管理PDF文件。
+
+<LaTeXEditorDemo mode="demo" />
 
 ## PDF交互模式
 

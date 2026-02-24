@@ -31,6 +31,8 @@ AI校对界面包含以下部分：
 
 <ProofreadView mode="demo" />
 
+<ProofreadDisplay mode="demo" />
+
 ```mermaid
 graph TB
     A[打开AI校对] --> B[选择校对范围]
@@ -67,6 +69,8 @@ graph TB
 
 <ProofreadView mode="demo" />
 
+<ProofreadDisplay mode="demo" />
+
 ### 校对特定章节
 
 校对文档的特定章节：
@@ -80,6 +84,8 @@ graph TB
 
 <ProofreadView mode="demo" />
 
+<ProofreadDisplay mode="demo" />
+
 ### 校对指定文本
 
 校对指定的文本内容：
@@ -88,6 +94,8 @@ graph TB
 2. **打开校对**：打开AI校对面板
 3. **粘贴文本**：将文本粘贴到校对输入框
 4. **开始校对**：点击"开始校对"按钮
+
+<ProofreadDisplay mode="demo" />
 
 ## 错误类型
 
@@ -121,6 +129,8 @@ graph TB
 ### 语法错误
 
 检查文档中的语法错误：
+
+<ProofreadDisplay mode="demo" />
 
 - **主谓一致**：检查主谓一致问题
 - **时态一致**：检查时态一致问题
@@ -158,6 +168,8 @@ graph TB
 
 错误信息包含以下内容：
 
+<ProofreadDisplay mode="demo" />
+
 - **错误类型**：显示错误类型（语法、拼写、LaTeX等）
 - **错误位置**：显示错误所在的行号和列号
 - **错误文本**：显示错误的文本内容
@@ -186,6 +198,8 @@ graph TB
 
 查看AI提供的修改建议：
 
+<ProofreadDisplay mode="demo" />
+
 - **单个建议**：如果只有一个建议，直接显示
 - **多个建议**：如果有多个建议，以标签形式显示
 - **选择建议**：点击建议标签选择建议
@@ -193,6 +207,8 @@ graph TB
 ### 应用修复
 
 应用修改建议：
+
+<ProofreadDisplay mode="demo" />
 
 1. **选择建议**：点击建议标签选择建议
 2. **点击修复**：点击"修复"按钮
@@ -257,6 +273,8 @@ sequenceDiagram
 清空已修复的错误可以让错误列表更清晰。
 
 ## 使用技巧
+
+<ProofreadView mode="demo" />
 
 ### 高效校对
 

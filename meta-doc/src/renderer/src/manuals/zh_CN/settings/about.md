@@ -4,8 +4,6 @@
 
 关于页面提供了MetaDoc的版本信息、更新设置、开源许可证和第三方资产信息。您可以通过此页面了解应用信息、检查更新、提交反馈等。
 
-<Demo component="SettingAboutSection" mode="demo" />
-
 ## 版本信息
 
 ### 查看版本
@@ -225,3 +223,11 @@ MetaDoc遵循开源许可证，您可以：
 - [[settings.basic|基础设置]]
 - [[settings.logging|日志配置]]
 - [[quick-start.guide|快速开始指南]]
+
+<SettingAboutSection mode="demo" />
+
+<UserFeedbackView mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["about"]}]' />
+
+<MainTabs mode="demo" />

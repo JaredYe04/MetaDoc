@@ -8,6 +8,8 @@ LaTeX文档需要编译才能生成PDF。MetaDoc使用Tectonic编译器，支持
 
 ## 编译LaTeX文档
 
+<LaTeXCompilerPanel mode="demo" />
+
 ### 自动编译
 
 MetaDoc支持自动编译功能：
@@ -40,6 +42,8 @@ graph LR
 
 ### 编译过程
 
+<LaTeXConsole mode="demo" />
+
 编译过程包括以下步骤：
 
 1. **准备编译环境**：检查Tectonic编译器是否可用
@@ -50,6 +54,8 @@ graph LR
 
 ### 编译选项
 
+<LaTeXEditorDemo mode="demo" />
+
 编译支持以下选项：
 
 - **编译器**：使用Tectonic编译器（默认）
@@ -57,6 +63,8 @@ graph LR
 - **输出目录**：PDF文件保存在文档同目录下
 
 ### 编译时间
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "Tectonic编译器启动...", "type": "out"}, {"content": "解析文档结构", "type": "out"}]' />
 
 编译时间取决于：
 
@@ -68,6 +76,8 @@ graph LR
 
 ## PDF预览
 
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
 ### 自动更新
 
 PDF预览会在编译成功后自动更新：
@@ -77,6 +87,8 @@ PDF预览会在编译成功后自动更新：
 - **同步滚动**：支持PDF和代码的同步定位
 
 ### 预览功能
+
+<LaTeXCompilerPanel mode="demo" />
 
 PDF预览面板提供以下功能：
 
@@ -93,6 +105,8 @@ PDF预览面板界面如下：
 
 ## 控制台输出
 
+<LaTeXConsole mode="demo" />
+
 ### 编译日志
 
 编译过程中的日志会显示在控制台输出面板中：
@@ -106,6 +120,8 @@ PDF预览面板界面如下：
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译开始...", "type": "out"}, {"content": "正在下载宏包: amsmath", "type": "out"}, {"content": "警告: 未定义的引用", "type": "warn"}, {"content": "编译完成", "type": "out"}]' />
 
 ### 错误信息
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "错误: 未定义的命令", "type": "error"}, {"content": "警告: 超文本引用未找到", "type": "warn"}]' />
 
 编译错误会以不同颜色显示：
 
@@ -125,6 +141,8 @@ PDF预览面板界面如下：
 
 ## 定位到PDF
 
+<LaTeXEditorDemo mode="demo" />
+
 ### 从代码定位到PDF
 
 在LaTeX编辑器中，您可以：
@@ -143,6 +161,8 @@ PDF预览面板界面如下：
 这个功能让您能够快速在PDF和代码之间切换，方便调试和编辑。
 
 ## 编译错误处理
+
+<LaTeXConsole mode="demo" />
 
 ### 常见错误类型
 
@@ -183,6 +203,8 @@ graph TB
 
 ## Tectonic编译器
 
+<LaTeXCompilerPanel mode="demo" />
+
 ### 编译器介绍
 
 MetaDoc使用Tectonic编译器，具有以下特点：
@@ -203,6 +225,8 @@ Tectonic会自动管理LaTeX宏包：
 您无需手动下载或配置任何宏包，只需在文档中使用`\usepackage{}`命令即可。
 
 ## 使用技巧
+
+<LaTeXEditorDemo mode="demo" />
 
 ### 提高编译速度
 

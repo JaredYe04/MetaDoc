@@ -151,4 +151,4 @@ graph LR
 - [[settings.basic|基础设置]]
 - [[quick-start.guide|快速开始指南]]
 
-<AIChat mode="demo" />
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />

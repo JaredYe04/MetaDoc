@@ -196,8 +196,6 @@ graph TB
 2. 修改各项设置
 3. 保存更改
 
-<SettingBasicSection mode="demo" />
-
 ### 资料同步
 
 用户资料会：
@@ -228,6 +226,8 @@ graph TB
 - [[user.feedback|用户反馈]]
 - [[quick-start.guide|快速开始指南]]
 
-<KnowledgeBase mode="demo" />
+<QuickStartPanel mode="demo" />
 
-<SettingThemeSection mode="demo" />
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+<MainTabs mode="demo" />

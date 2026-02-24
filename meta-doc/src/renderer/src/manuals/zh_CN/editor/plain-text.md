@@ -8,6 +8,10 @@
 
 ## Monaco编辑器功能
 
+<LaTeXEditorDemo mode="demo" />
+
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
+
 ### 编辑器介绍
 
 纯文本编辑器使用Monaco Editor，具有以下特点：
@@ -121,6 +125,12 @@ graph LR
 <MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+<MainTabs mode="demo" />
+
+<AISuggestionGhost mode="demo" />
+
+<LaTeXEditorDemo mode="demo" />
 
 ## 文件预览和统计信息
 

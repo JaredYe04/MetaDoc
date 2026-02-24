@@ -15,7 +15,7 @@ components/ui/
 ├── card/               # Content containers (shadcn)
 ├── checkbox/           # Form checkbox (shadcn)
 ├── collapsible/        # Expandable content (shadcn)
-├── color-picker/       # Color picker - uses Element Plus (NOT from shadcn-vue)
+├── color-picker/       # Color picker - uses @vuelor/picker (NOT shadcn)
 ├── descriptions/       # Key-value descriptions (shadcn)
 ├── dialog/             # Modal dialogs (shadcn)
 ├── dropdown-menu/      # Context menus (shadcn)
@@ -25,13 +25,13 @@ components/ui/
 ├── loading-overlay/    # Full-screen loading (shadcn)
 ├── navigation-menu/    # Navigation component (shadcn)
 ├── number-field/       # Numeric input with +/- (shadcn)
-├── popover/            # Popover with Element Plus compatible props (shadcn + custom)
+├── popover/            # Popover (shadcn)
 ├── progress/           # Progress bars (shadcn)
 ├── radio-group/        # Radio button groups (shadcn)
 ├── scroll-area/        # Custom scrollbar (shadcn)
 ├── select/             # Dropdown select (shadcn)
 ├── separator/          # Visual dividers (shadcn)
-├── slider/             # Range slider with Element Plus compatible props (shadcn + custom)
+├── slider/             # Range slider (modified for Element Plus compat)
 ├── switch/             # Toggle switch (shadcn)
 ├── table/              # Data tables (shadcn)
 ├── tabs/               # Tab navigation (shadcn)
@@ -46,13 +46,13 @@ components/ui/
 
 ## WHERE TO LOOK
 
-| Task                  | Location                                                  | Notes                                     |
-| --------------------- | --------------------------------------------------------- | ----------------------------------------- |
-| Install new component | Run `npx shadcn-vue@latest add <name>`                    | Installs to `components/ui/<name>/`       |
-| Use component         | `import { Button } from '@renderer/components/ui/button'` | Named exports from each component dir     |
-| Customize styling     | Component `.vue` files use Tailwind                       | Modify `cn()` calls with Tailwind classes |
-| Form integration      | `form/` directory                                         | FormField, FormControl, FormLabel, etc.   |
-| Dialog system         | `dialog/` directory                                       | Dialog, DialogContent, DialogHeader, etc. |
+| Task | Location | Notes |
+|------|----------|-------|
+| Install new component | Run `npx shadcn-vue@latest add <name>` | Installs to `components/ui/<name>/` |
+| Use component | `import { Button } from '@renderer/components/ui/button'` | Named exports from each component dir |
+| Customize styling | Component `.vue` files use Tailwind | Modify `cn()` calls with Tailwind classes |
+| Form integration | `form/` directory | FormField, FormControl, FormLabel, etc. |
+| Dialog system | `dialog/` directory | Dialog, DialogContent, DialogHeader, etc. |
 
 ## CONVENTIONS
 
@@ -70,38 +70,23 @@ components/ui/
 - Avoid duplicating shadcn functionality with Element Plus equivalents in new code
 - Custom components (UIMenu, etc.) alongside shadcn are for project-specific patterns
 
-## CUSTOM COMPONENTS & MODIFICATIONS
+## CUSTOM COMPONENTS
 
-### color-picker/ (External Library - @vuelor/picker)
+### color-picker/ (External - @vuelor/picker)
 
 Uses `@vuelor/picker` - **NOT from shadcn-vue**.
 
 - **Package**: `npm i @vuelor/picker`
-- **Based on reka-ui**: Uses `useForwardPropsEmits` from reka-ui for proper v-model binding
-- **Styling**: Vanilla CSS mode with shadcn theme variable overrides
-- **Features**: Canvas, Hue/Alpha sliders, Hex input, predefined colors
-- **Components used**:
-  - `ColorPickerRoot`, `ColorPickerCanvas`
-  - `ColorPickerSliderHue`, `ColorPickerSliderAlpha`
-  - `ColorPickerInputHex`
+- **Based on reka-ui**: Uses `useForwardPropsEmits` from reka-ui
+- **Styling**: Vanilla CSS with shadcn theme variable overrides
 - **API**: Compatible with standard v-model pattern
-  - Props: `v-model`, `predefine`, `showAlpha`
-  - Emits: `update:modelValue`, `change`
 
-### slider/ (Modified for Element Plus Compatibility)
+### slider/ (Modified)
 
-Originally installed from shadcn-vue but enhanced with Element Plus compatible props:
-
-- `range`, `showInput`, `showStops`, `showTooltip`, `formatTooltip`, `debounce`, `tooltipClass`, `marks`, `validateEvent`
-- Events: `update:modelValue`, `value-commit`
-
-### popover/ (Standard shadcn)
-
-Standard shadcn-vue popover.
+Enhanced with Element Plus compatible props: `range`, `showInput`, `showStops`, `showTooltip`, `formatTooltip`, etc.
 
 ## NOTES
 
-- Most components are installed via `npx shadcn-vue@latest add` with proper TypeScript types
-- Tailwind config extends shadcn's color system (`bg-primary`, `text-muted-foreground`, etc.)
 - Each component directory contains `index.ts` for clean barrel exports
-- Custom components (`color-picker/`, `UIMenu.vue`, etc.) are project-specific implementations
+- Tailwind config extends shadcn's color system
+- Custom components alongside shadcn are for project-specific patterns

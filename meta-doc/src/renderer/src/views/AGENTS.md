@@ -9,24 +9,24 @@
 ```
 views/
 ├── Editor.vue                    # Generic editor wrapper
-├── MarkdownEditor.vue            # Markdown editing (114K lines)
-├── LaTeXEditor.vue               # LaTeX editing with Monaco (156K lines)
+├── MarkdownEditor.vue            # Markdown editing (3165 lines)
+├── LaTeXEditor.vue               # LaTeX editing with Monaco (4719 lines)
 ├── PlainTextEditor.vue           # Plain text editing
-├── Main.vue                      # Main window layout (49K lines)
-├── GlobalHome.vue                # Global workspace view (23K lines)
-├── Home.vue                      # Home/quick start (39K lines)
-├── AgentView.vue                 # AI agent orchestration (111K lines)
-├── AIChat.vue                    # Chat interface (46K lines)
-├── Outline.vue                   # Document outline (55K lines)
-├── KnowledgeBase.vue             # RAG knowledge base (40K lines)
-├── ProofreadView.vue             # AI proofreading (42K lines)
-├── GraphWindow.vue               # Chart/diagram tools (50K lines)
-├── DataAnalysisWindow.vue        # Data analysis tools (63K lines)
-├── OcrWindow.vue                 # OCR interface (102K lines)
-├── FomulaRecognition.vue         # Formula OCR (54K lines)
-├── AigcDetectionWindow.vue       # AI content detection (95K lines)
-├── AttachmentWindow.vue          # File attachments (24K lines)
-├── UserFeedbackView.vue          # User feedback form (22K lines)
+├── Main.vue                      # Main window layout
+├── GlobalHome.vue                # Global workspace view
+├── Home.vue                      # Home/quick start
+├── AgentView.vue                 # AI agent orchestration (3268 lines)
+├── AIChat.vue                    # Chat interface
+├── Outline.vue                   # Document outline tree
+├── KnowledgeBase.vue             # RAG knowledge base
+├── ProofreadView.vue             # AI proofreading
+├── GraphWindow.vue               # Chart/diagram tools
+├── DataAnalysisWindow.vue        # Data analysis tools
+├── OcrWindow.vue                 # OCR interface (3290 lines)
+├── FomulaRecognition.vue         # Formula OCR
+├── AigcDetectionWindow.vue       # AI content detection
+├── AttachmentWindow.vue          # File attachments
+├── UserFeedbackView.vue          # User feedback form
 ├── UserManual.vue                # Interactive user manual
 ├── LlmStatisticsView.vue         # LLM usage statistics
 ├── NewDocumentWorkspace.vue      # Create new document/workspace
@@ -34,13 +34,13 @@ views/
 ├── About.vue                     # About page
 ├── DebugView.vue                 # Debug/developer view
 ├── DummyView.vue                 # Placeholder/empty view
-└── setting/                      # Settings sections subdirectory
+└── setting/                      # Settings sections (8 files)
     ├── SettingBasicSection.vue
     ├── SettingThemeSection.vue
     ├── SettingLlmSection.vue
     ├── SettingKnowledgeBaseSection.vue
     ├── SettingImageSection.vue
-    ├── SettingDebugSection.vue
+    ├── SettingDebugSection.vue   # 6297 lines — LARGEST
     ├── SettingLoggerSection.vue
     └── SettingAboutSection.vue
 ```
@@ -50,25 +50,25 @@ views/
 | Task | View | Notes |
 |------|------|-------|
 | Editor feature | `MarkdownEditor.vue`, `LaTeXEditor.vue` | Monaco (LaTeX) + Vditor (MD) |
-| AI agent UI | `AgentView.vue` | Workflow canvas, agent config, execution |
+| AI agent UI | `AgentView.vue` | Workflow canvas, agent config |
 | Chat interface | `AIChat.vue` | AI conversation UI |
-| Document outline | `Outline.vue` | Hierarchical outline tree, AI tools |
+| Document outline | `Outline.vue` | Hierarchical outline tree |
 | Settings | `Setting.vue`, `setting/*Section.vue` | 8 setting sections |
-| Knowledge base | `KnowledgeBase.vue` | RAG management, document upload |
-| Add new view | Create `.vue` + register in `router/router.js` | Also add to `pages` map for aux windows |
+| Knowledge base | `KnowledgeBase.vue` | RAG management |
+| Add new view | Create `.vue` + register in `router/router.js` | Add to `pages` map for aux windows |
 
 ## CONVENTIONS
 
 - **Route registration**: All views registered in `router/router.js` with `meta.requiresLayout` for main routes
 - **Auxiliary windows**: `pages` map in router defines which views can open in separate windows
-- **View size**: Views are large (20K-156K lines) — be cautious when editing; prefer composition with components
-- **Editor views**: `MarkdownEditor.vue` and `LaTeXEditor.vue` are the largest; contain complex editor integration logic
-- **Settings pattern**: `Setting.vue` is shell; sections in `setting/` subdirectory via dynamic components
+- **View size**: Views are large (20K-156K lines) — be cautious when editing
+- **Editor views**: `MarkdownEditor.vue` and `LaTeXEditor.vue` are largest; complex editor integration
+- **Settings pattern**: `Setting.vue` is shell; sections in `setting/` subdirectory
 - **Naming**: PascalCase `.vue` files matching route name
 
 ## ANTI-PATTERNS
 
-- **Massive view files**: Several views exceed 50K lines (`LaTeXEditor.vue` 156K, `MarkdownEditor.vue` 114K, `AgentView.vue` 111K) — avoid adding more logic; extract to composables/components
+- **Massive view files**: Several views exceed 3000 lines (`LaTeXEditor.vue` 4719, `MarkdownEditor.vue` 3165, `AgentView.vue` 3268, `SettingDebugSection.vue` 6297)
 - **Direct store mutations in views** — use composables from `composables/` directory
 - **Mixing Element Plus and shadcn-vue** — new UI should use shadcn-vue exclusively
 - **Duplicating editor logic** — editor-specific logic should stay in `editor/` adapters

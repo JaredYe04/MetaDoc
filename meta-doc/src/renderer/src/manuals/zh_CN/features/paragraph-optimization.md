@@ -34,7 +34,7 @@
 
 段落优化器界面如下：
 
-<SectionOptimizer mode="demo" title="示例章节" :position='{"top": 100, "left": 200}' path="1" :tree='{"text": "示例章节", "children": []}' language="markdown" :adapter='null' />
+<SectionOptimizer mode="demo" title="示例章节" path="1" :tree='{"text": "示例章节", "children": []}' language="markdown" :adapter='null' />
 
 ### 自动识别章节
 

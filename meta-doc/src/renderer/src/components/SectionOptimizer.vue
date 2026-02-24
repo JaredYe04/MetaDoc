@@ -1,12 +1,15 @@
 <template>
   <div class="section-optimizer" :style="menuStyles" @mousedown.prevent="onMouseDown">
-    <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px">
+    <div
+      v-if="props.mode !== 'demo'"
+      style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px"
+    >
       <Button
         variant="destructive"
         size="icon"
         class="aero-btn h-8 w-8"
         style="float: inline-start"
-        @click="props.mode === 'demo' ? undefined : $emit('close')"
+        @click="$emit('close')"
         @mousedown.prevent
       >
       </Button>
@@ -248,7 +251,7 @@ const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     title: string
-    position: { top: number; left: number }
+    position?: { top: number; left: number }
     path: string
     tree: any
     adapter: SectionOptimizerAdapter
@@ -256,7 +259,7 @@ const props = withDefaults(
     sectionInfo?: SectionInfo // 可选的初始sectionInfo
     mode?: 'normal' | 'demo'
   }>(),
-  { mode: 'normal' }
+  { mode: 'normal', position: () => ({ top: 100, left: 200 }) }
 )
 
 const emit = defineEmits<{
@@ -569,23 +572,43 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 }
 
-const menuStyles = computed(() => ({
-  position: 'fixed' as const,
-  top: `${menuPosition.value.top}px`,
-  left: `${menuPosition.value.left}px`,
-  transform: 'translate(-50%, -50%)', // 使用 transform 实现真正的居中
-  border: '1px solid #ccc',
-  padding: '10px',
-  boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
-  minWidth: '500px',
-  maxWidth: '800px',
-  maxHeight: '90vh',
-  overflow: 'auto',
-  zIndex: 1000,
-  color: themeState.currentTheme.textColor2,
-  backdropFilter: 'blur(5px)',
-  background: themeState.currentTheme.titleMenuBackground
-}))
+const menuStyles = computed(() => {
+  if (props.mode === 'demo') {
+    // Demo 模式：嵌入文档流，不悬浮
+    return {
+      position: 'relative' as const,
+      border: '1px solid #ccc',
+      padding: '10px',
+      boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
+      minWidth: '500px',
+      maxWidth: '800px',
+      maxHeight: '600px',
+      overflow: 'auto',
+      color: themeState.currentTheme.textColor2,
+      backdropFilter: 'blur(5px)',
+      background: themeState.currentTheme.titleMenuBackground,
+      margin: '20px auto'
+    }
+  }
+  // 正常模式：固定定位，可拖拽
+  return {
+    position: 'fixed' as const,
+    top: `${menuPosition.value.top}px`,
+    left: `${menuPosition.value.left}px`,
+    transform: 'translate(-50%, -50%)',
+    border: '1px solid #ccc',
+    padding: '10px',
+    boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
+    minWidth: '500px',
+    maxWidth: '800px',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    zIndex: 1000,
+    color: themeState.currentTheme.textColor2,
+    backdropFilter: 'blur(5px)',
+    background: themeState.currentTheme.titleMenuBackground
+  }
+})
 
 const refreshContent = async () => {
   // 优先使用传入的 sectionInfo 的内容
@@ -650,6 +673,7 @@ const menuPosition = ref({ top: props.position.top, left: props.position.left })
 const isDragging = ref(false)
 const dragStart = ref({ x: 0, y: 0 })
 const onMouseDown = (event: MouseEvent) => {
+  if (props.mode === 'demo') return
   isDragging.value = true
   dragStart.value = {
     x: event.clientX - menuPosition.value.left,

@@ -12,6 +12,10 @@
 
 <SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
 ### 编辑器介绍
 
 纯文本编辑器使用Monaco Editor，具有以下特点：
@@ -259,6 +263,10 @@ flowchart LR
 多光标编辑可以同时修改多个位置，提高编辑效率。
 
 ## 使用技巧
+
+<LaTeXEditorDemo mode="demo" />
+
+<ConsoleTerminal mode="demo" consoleKey="plaintext" :history='[]' />
 
 ### 高效编辑
 

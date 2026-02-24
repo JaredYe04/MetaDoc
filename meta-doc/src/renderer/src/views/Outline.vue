@@ -9,65 +9,100 @@
       left: position.left + 'px',
     }" @mousedown.stop="startDrag">
       <el-scrollbar class="generate-preview-scrollbar" :wrap-style="{ maxHeight: (pendingAccept || pendingBatchAccept) ? '60vh' : '70vh' }">
-        <div class="noselect-display">
+        <div class="noselect-display generate-preview-inner">
           <!-- 单任务：生成中 -->
           <template v-if="generating && !parallelChildren.length">
-            <h2>
-              {{ $t('outline.generating') }}
+            <div class="generate-preview-header">
+              <span class="generate-preview-title">{{ $t('outline.generating') }}</span>
               <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
-                <el-button type="danger" plain class="aero-btn generate-preview-btn-square"
-                  @click.stop="cancelAllAiTasks">
+                <el-button type="danger" size="small" text class="generate-preview-cancel-btn" @click.stop="cancelAllAiTasks">
                   <el-icon><Close /></el-icon>
                 </el-button>
-                <el-button
-                  type="danger"
-                  class="aero-btn generate-preview-btn-square"
-                  @click.stop="discardChange"
-                  :loading="generateChildChapterLoading"
-                >
-                  <el-icon v-if="!generateChildChapterLoading"><Close /></el-icon>
-                </el-button>
               </el-tooltip>
-            </h2>
-            <div class="generate-preview-content">{{ rawstring }}</div>
+            </div>
+            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+              <template v-if="singleGenerateType === 'content'">
+                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+              </template>
+              <template v-else>
+                <div class="generate-preview-json-wrap">
+                  <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                </div>
+              </template>
+            </div>
           </template>
-          <!-- 批量任务：生成中，多块流式输出 -->
+          <!-- 批量任务：生成中（直接绑定 rawContentRef 以支持流式更新） -->
           <template v-else-if="generating && parallelChildren.length">
-            <h2>
-              {{ $t('outline.generating') }}
+            <div class="generate-preview-header">
+              <span class="generate-preview-title">{{ $t('outline.generating') }}</span>
               <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
-                <el-button type="danger" plain class="aero-btn generate-preview-btn-square" @click.stop="cancelAllAiTasks">
+                <el-button type="danger" size="small" text class="generate-preview-cancel-btn" @click.stop="cancelAllAiTasks">
                   <el-icon><Close /></el-icon>
                 </el-button>
               </el-tooltip>
-            </h2>
+            </div>
             <div class="batch-panels">
-              <div v-for="item in batchDisplayItems" :key="item.nodePath" class="batch-panel">
+              <div v-for="item in batchItemsRef" :key="item.nodePath" class="batch-panel">
                 <div class="batch-panel-title">{{ item.nodeTitle }}</div>
-                <div class="generate-preview-content">{{ item.content }}</div>
+                <div class="generate-preview-body batch-panel-body" :class="{ 'is-node': generatingBatchType === 'children' }">
+                  <template v-if="generatingBatchType === 'content'">
+                    <div class="generate-preview-content generate-preview-content--text">{{ item.rawContentRef?.value ?? '' }}</div>
+                  </template>
+                  <template v-else>
+                    <div class="generate-preview-json-wrap">
+                      <StreamingJsonTree v-if="item.rawContentRef?.value" :raw="item.rawContentRef.value" />
+                      <div v-else class="generate-preview-content generate-preview-content--text">{{ item.rawContentRef?.value ?? '' }}</div>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
           </template>
           <!-- 单任务：待接受/拒绝 -->
           <template v-else-if="pendingAccept">
-            <h2>{{ $t('outline.previewResult') }}</h2>
-            <div class="generate-preview-content">{{ rawstring }}</div>
+            <div class="generate-preview-header">
+              <span class="generate-preview-title">{{ $t('outline.previewResult') }}</span>
+            </div>
+            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+              <template v-if="singleGenerateType === 'content'">
+                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+              </template>
+              <template v-else>
+                <div class="generate-preview-json-wrap">
+                  <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                </div>
+              </template>
+            </div>
           </template>
           <!-- 批量任务：待接受/拒绝 -->
           <template v-else-if="pendingBatchAccept">
-            <h2>{{ $t('outline.previewResult') }}</h2>
+            <div class="generate-preview-header">
+              <span class="generate-preview-title">{{ $t('outline.previewResult') }}</span>
+            </div>
             <div class="batch-panels">
               <div v-for="(displayItem, idx) in batchPendingDisplayItems" :key="displayItem.nodePath" class="batch-panel" :class="{ 'batch-panel--rejected': displayItem.rejected }">
                 <div class="batch-panel-head">
                   <span class="batch-panel-title">{{ displayItem.nodeTitle }}</span>
                   <el-tooltip v-if="!displayItem.rejected" :content="$t('outline.reject')" placement="top">
-                    <el-button type="danger" size="small" class="aero-btn generate-preview-btn-square" @click.stop="pendingBatchAccept && batchRejectItem(pendingBatchAccept.items[idx])">
+                    <el-button type="danger" size="small" text class="generate-preview-cancel-btn" @click.stop="pendingBatchAccept && batchRejectItem(pendingBatchAccept.items[idx])">
                       <el-icon><Close /></el-icon>
                     </el-button>
                   </el-tooltip>
                   <span v-else class="batch-panel-rejected-tag">{{ $t('outline.reject') }}</span>
                 </div>
-                <div class="generate-preview-content">{{ displayItem.content }}</div>
+                <div class="generate-preview-body batch-panel-body" :class="{ 'is-node': pendingBatchAccept?.type === 'children' }">
+                  <template v-if="pendingBatchAccept?.type === 'content'">
+                    <div class="generate-preview-content generate-preview-content--text">{{ displayItem.rawContentRef?.value ?? '' }}</div>
+                  </template>
+                  <template v-else>
+                    <div class="generate-preview-json-wrap">
+                      <StreamingJsonTree v-if="displayItem.rawContentRef?.value" :raw="displayItem.rawContentRef.value" />
+                      <div v-else class="generate-preview-content generate-preview-content--text">{{ displayItem.rawContentRef?.value ?? '' }}</div>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
           </template>
@@ -100,11 +135,13 @@
       </div>
     </div>
 
+      <!-- 包装层承载 is-dragging；v-memo 在仅拖动/选择 AI 工具等变化时跳过子树渲染，避免 vue-tree 重渲染导致位置/缩放被 initialTransformStyle 重置 -->
+      <div class="outline-tree-wrapper" :class="{ 'is-dragging': isDraggingNode }">
+      <div class="outline-tree-memo" v-memo="outlineTreeMemoDeps">
       <vue-tree
       ref="treeRef"
       :key="outlineTreeKey"
       class="outline-tree-container"
-      :class="{ 'is-dragging': isDraggingNode }"
       style="width: 100%; height: 100%; border-radius: 18px;"
       :style="{ backgroundColor: themeState.currentTheme.background }"
       :dataset="treeData"
@@ -152,7 +189,6 @@
             <div
               class="tree-node"
               :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-              :class="dropPreview.targetPath === node.path ? ('drop-' + dropPreview.mode) : ''"
               draggable="true"
               @dragstart.stop="onNodeDragStart(node)"
               @dragover.prevent="onNodeDragOver($event, node)"
@@ -160,16 +196,25 @@
               @drop.stop="onNodeDrop(node, $event)"
               @dragend.stop="onNodeDragEnd"
               @mousedown.stop
-              @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
               @contextmenu.prevent="openNodeContextMenu($event, node)"
             >
               <span class="tree-node-text" :ref="el => setTextElementRef(el, node.path)">{{ node.title }}</span>
-              <!-- 展开按钮：小尺寸、扁平，不凸起 -->
-              <el-tooltip :content="$t('outline.expand')" placement="top">
+              <!-- 选中 AI 工具时显示 AI 按钮，否则显示展开按钮；阻止 mousedown/pointerdown 冒泡，避免整节点显示按下样式 -->
+              <span v-if="selectedAiTool && node.path !== 'dummy'" @mousedown.stop @pointerdown.stop>
+                <OutlineNodeActionButton
+                  :node="node"
+                  :pending-accept="pendingAccept"
+                  :generating="generating"
+                  class="tree-node-expand-btn"
+                />
+              </span>
+              <el-tooltip v-else :content="$t('outline.expand')" placement="top">
                 <button
                   type="button"
                   class="tree-node-expand-btn"
                   @click.stop="toggleNodeExpand(node.path)"
+                  @mousedown.stop
+                  @pointerdown.stop
                   v-if="node.path !== 'dummy'"
                   :disabled="pendingAccept || generating"
                   aria-label="Expand"
@@ -181,17 +226,12 @@
               </el-tooltip>
             </div>
           </el-tooltip>
-          <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
-          <OutlineNodeActionButton
-            v-if="selectedAiTool"
-            :node="node"
-            :pending-accept="pendingAccept"
-            :generating="generating"
-          />
         </template>
       </template>
 
     </vue-tree>
+      </div>
+      </div>
     <!-- 节点右键菜单：Teleport 到 body，避免父级 transform 导致 fixed 定位偏移 -->
     <Teleport to="body">
       <transition name="fade">
@@ -418,6 +458,7 @@ import {
 import DetailedOutlineNode from '../components/outline/DetailedOutlineNode.vue';
 import OutlineAiToolbar from '../components/outline/OutlineAiToolbar.vue';
 import OutlineNodeActionButton from '../components/outline/OutlineNodeActionButton.vue';
+import StreamingJsonTree from '../components/outline/StreamingJsonTree.vue';
 import KeywordInput from '../components/KeywordInput.vue';
 import '../assets/noselect-display.css';
 import { generateWithSchema } from '../utils/ai-schema-task';
@@ -553,6 +594,11 @@ const parallelChildren = ref<Array<Ref<string>>>([]) // 用于存储并行生成
 const batchItemsRef = ref<BatchAcceptItem[]>([]) // 批量任务项（含 backup、rawContentRef），用于接受/拒绝
 const userPrompt = ref('') // 用户输入的提示词
 
+/** 单任务生成类型：节点结构(children) 或 正文内容(content)，用于区分展示方式 */
+const singleGenerateType = ref<'children' | 'content' | null>(null)
+/** 批量任务生成类型，用于生成中时区分展示方式 */
+const generatingBatchType = ref<'children' | 'content' | null>(null)
+
 const batchDisplayItems = computed(() =>
   batchItemsRef.value.map((item) => ({ ...item, content: item.rawContentRef?.value ?? '' }))
 )
@@ -585,6 +631,7 @@ const generateChildrenChildren = async () => {
   const node = selectedNode.value
   generating.value = true
   generateChildrenChildrenLoading.value = true
+  generatingBatchType.value = 'children'
   parallelChildren.value = []
   batchItemsRef.value = []
 
@@ -592,6 +639,7 @@ const generateChildrenChildren = async () => {
   if (!rootNode) {
     generateChildrenChildrenLoading.value = false
     generating.value = false
+    generatingBatchType.value = null
     suppressDocumentSync = prevSync
     workspace.unlockUI?.()
     return
@@ -639,6 +687,7 @@ const generateChildrenChildren = async () => {
   } finally {
     generateChildrenChildrenLoading.value = false
     generating.value = false
+    generatingBatchType.value = null
     suppressDocumentSync = prevSync
     if (!pendingBatchAccept.value) commitOutline()
     workspace.unlockUI?.()
@@ -652,6 +701,7 @@ const generateChildrenContent = async () => {
   const node = selectedNode.value
   generating.value = true
   generateChildrenContentLoading.value = true
+  generatingBatchType.value = 'content'
   parallelChildren.value = []
   batchItemsRef.value = []
 
@@ -659,6 +709,7 @@ const generateChildrenContent = async () => {
   if (!rootNode) {
     generateChildrenContentLoading.value = false
     generating.value = false
+    generatingBatchType.value = null
     suppressDocumentSync = prevSync
     workspace.unlockUI?.()
     return
@@ -709,6 +760,7 @@ const generateChildrenContent = async () => {
   } finally {
     generating.value = false
     generateChildrenContentLoading.value = false
+    generatingBatchType.value = null
     suppressDocumentSync = prevSync
     if (!pendingBatchAccept.value) commitOutline()
     workspace.unlockUI?.()
@@ -719,6 +771,7 @@ const generateContent = async () => {
   workspace.lockUI?.()
   const node = selectedNode.value
   generating.value = true
+  singleGenerateType.value = 'content'
   if (node) {
     backupContent.value = node.text
   }
@@ -944,9 +997,26 @@ const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
 
 const draggingNodePath = ref<string | null>(null)
 const isDraggingNode = ref(false)
+
+/** 当前高亮为 drop 目标的节点元素，用于通过 DOM 设置/清除 data-drop-mode，避免 slot 依赖 dropPreview 导致树重渲染 */
+let lastDropTargetEl: HTMLElement | null = null
+
+function clearDropTargetDataAttr() {
+  if (lastDropTargetEl) {
+    lastDropTargetEl.removeAttribute('data-drop-mode')
+    lastDropTargetEl = null
+  }
+}
+
+function stopMousemovePropagation(e: MouseEvent) {
+  e.stopPropagation()
+}
+
 function onNodeDragStart(node: DocumentOutlineNode) {
   draggingNodePath.value = node.path
   isDraggingNode.value = true
+  clearDropTargetDataAttr()
+  document.addEventListener('mousemove', stopMousemovePropagation, true)
   // 拖动开始时暂停文档同步，防止频繁重新渲染
   suppressDocumentSync = true
   // 清除可能存在的 commitOutline 定时器，避免在拖拽过程中触发提交
@@ -1006,17 +1076,23 @@ function onNodeDragOver(e: DragEvent, node: DocumentOutlineNode) {
   if (!el) return
   const mode = computeDropMode(e, el)
 
-  // 保存待更新的值
+  // 保存待更新的值（供 onNodeDrop 等使用）
   pendingDropPreviewUpdate = { targetPath: node.path, mode }
 
-  // 如果定时器不存在，立即更新并设置定时器
+  // 通过 DOM 设置 drop 高亮，不触发 vue 重渲染
+  if (lastDropTargetEl !== el) {
+    clearDropTargetDataAttr()
+    lastDropTargetEl = el
+    el.setAttribute('data-drop-mode', mode)
+  } else {
+    lastDropTargetEl.setAttribute('data-drop-mode', mode)
+  }
+
   if (!dropPreviewThrottleTimer) {
     dropPreview.targetPath = node.path
     dropPreview.mode = mode
-    // 使用节流，每 50ms 最多更新一次，减少重新渲染频率
     dropPreviewThrottleTimer = setTimeout(() => {
       dropPreviewThrottleTimer = null
-      // 应用最后一次待更新的值
       if (pendingDropPreviewUpdate) {
         dropPreview.targetPath = pendingDropPreviewUpdate.targetPath
         dropPreview.mode = pendingDropPreviewUpdate.mode
@@ -1027,7 +1103,7 @@ function onNodeDragOver(e: DragEvent, node: DocumentOutlineNode) {
 }
 
 function onNodeDragLeave(_node: DocumentOutlineNode) {
-  // 清除节流定时器
+  clearDropTargetDataAttr()
   if (dropPreviewThrottleTimer) {
     clearTimeout(dropPreviewThrottleTimer)
     dropPreviewThrottleTimer = null
@@ -1039,7 +1115,7 @@ function onNodeDragLeave(_node: DocumentOutlineNode) {
 
 function onNodeDrop(targetNode: DocumentOutlineNode, e: DragEvent) {
   try {
-    // 清除节流定时器
+    clearDropTargetDataAttr()
     if (dropPreviewThrottleTimer) {
       clearTimeout(dropPreviewThrottleTimer)
       dropPreviewThrottleTimer = null
@@ -1242,7 +1318,8 @@ function onNodeDrop(targetNode: DocumentOutlineNode, e: DragEvent) {
   }
 }
 function onNodeDragEnd() {
-  // 清除节流定时器
+  document.removeEventListener('mousemove', stopMousemovePropagation, true)
+  clearDropTargetDataAttr()
   if (dropPreviewThrottleTimer) {
     clearTimeout(dropPreviewThrottleTimer)
     dropPreviewThrottleTimer = null
@@ -1252,9 +1329,7 @@ function onNodeDragEnd() {
   dropPreview.targetPath = null
   dropPreview.mode = null
   isDraggingNode.value = false
-  // 移除 body 上的 class
   document.body.classList.remove('outline-dragging')
-  // 拖动结束时恢复同步并提交更改
   if (suppressDocumentSync) {
     suppressDocumentSync = false
     commitOutline()
@@ -1495,6 +1570,8 @@ const cancelAllAiTasks = () => {
       ref.value = ''
     })
 
+    singleGenerateType.value = null
+    generatingBatchType.value = null
     generateContentLoading.value = false
     generateChildrenContentLoading.value = false
     generateChildrenChildrenLoading.value = false
@@ -1730,6 +1807,21 @@ function toggleAiTool(tool: 'generateChildren' | 'generateContent' | 'generateCh
 
 // 大纲树稳定 key：仅随文档与布局变化，避免切换 AI 工具时整树刷新导致回到初始位置
 const outlineTreeKey = computed(() => `${activeDocument.value?.path ?? ''}-${direction.value}`)
+
+/** v-memo 依赖：含 selectedAiTool，切换 AI 工具时在展开按钮与 AI 按钮间切换 */
+const outlineTreeMemoDeps = computed(() => [
+  outlineTreeKey.value,
+  treeData.value,
+  treeConfig,
+  direction.value,
+  selectedAiTool.value,
+  JSON.stringify(expandedNodes.value),
+  lastExpandedNodePath.value,
+  pendingAccept.value,
+  generating.value,
+  themeState.currentTheme,
+  activeDocument.value?.path
+])
 
 // 节点展开状态
 const expandedNodes = ref<Record<string, boolean>>({})
@@ -2031,6 +2123,7 @@ const generateChildChapter = async () => {
   workspace.lockUI?.()
   generateChildChapterLoading.value = true
   generating.value = true
+  singleGenerateType.value = 'children'
   rawstring.value = ''
   try {
     const node = selectedNode.value
@@ -2107,6 +2200,7 @@ const acceptChange = () => {
   backupChildren.value = null
   backupContent.value = ''
   rawstring.value = ''
+  singleGenerateType.value = null
   pendingAccept.value = false
   commitOutline()
 }
@@ -2124,6 +2218,7 @@ const discardChange = () => {
     backupContent.value = ''
     syncChildrenFromNodeText(curNode)
   }
+  singleGenerateType.value = null
   pendingAccept.value = false
   commitOutline()
 }
@@ -2269,6 +2364,32 @@ onUnmounted(() => {
   isolation: isolate;
 }
 
+/* 包装层承载 is-dragging，避免 vue-tree 根节点 class 变化导致其重渲染并重置位置 */
+.outline-tree-wrapper {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.outline-tree-wrapper.is-dragging .outline-tree-container {
+  --transition-disabled: none;
+  will-change: scroll-position, transform;
+  contain: strict layout style paint;
+}
+
+/* v-memo 容器须填满 wrapper，否则树高度为 0 */
+.outline-tree-memo {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 .outline-tree-container {
   position: relative;
   width: 100%;
@@ -2277,23 +2398,10 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  /* 使用严格的 CSS containment，限制重绘和重排范围，防止影响其他组件 */
   contain: strict;
-  /* 创建新的层叠上下文，隔离渲染 */
   isolation: isolate;
-  /* 使用 GPU 加速 */
   transform: translateZ(0);
   will-change: scroll-position;
-}
-
-/* 拖拽时进一步优化性能 */
-.outline-tree-container.is-dragging {
-  /* 拖拽时禁用所有过渡效果 */
-  --transition-disabled: none;
-  /* 提示浏览器优化滚动和重绘 */
-  will-change: scroll-position, transform;
-  /* 使用更激进的 containment */
-  contain: strict layout style paint;
 }
 
 .el-scrollbar__wrap {
@@ -2302,8 +2410,8 @@ onUnmounted(() => {
 
 .generate-preview {
   position: absolute;
-  max-width: 500px;
-  width: 500px;
+  max-width: 420px;
+  width: 420px;
   max-height: 70vh;
   opacity: 0.95;
   z-index: 10000;
@@ -2319,6 +2427,60 @@ onUnmounted(() => {
 
 .generate-preview-scrollbar :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
+}
+
+/* 弹窗内紧凑布局 */
+.generate-preview-inner {
+  padding: 10px 12px;
+}
+
+.generate-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  min-height: 28px;
+}
+
+.generate-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.generate-preview-header-actions {
+  flex-shrink: 0;
+}
+
+.generate-preview-cancel-btn {
+  padding: 4px !important;
+  min-width: 24px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 6px !important;
+  color: var(--el-color-danger) !important;
+}
+
+.generate-preview-cancel-btn:hover {
+  background: rgba(245, 108, 108, 0.12) !important;
+}
+
+.generate-preview-body {
+  margin-top: 0;
+}
+
+.generate-preview-json-wrap {
+  font-size: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.generate-preview-body.batch-panel-body .generate-preview-json-wrap,
+.generate-preview-body.batch-panel-body .generate-preview-content--text {
+  max-height: 100px;
 }
 
 .node-edit-box {
@@ -2481,33 +2643,31 @@ onUnmounted(() => {
 
 /* 拖拽时禁用所有过渡和动画，减少重绘 */
 .outline-page.is-dragging .tree-node,
-.outline-tree-container.is-dragging .tree-node {
+.outline-tree-wrapper.is-dragging .tree-node {
   transition: none !important;
   animation: none !important;
-  /* 使用 GPU 加速 */
   transform: translateZ(0);
   will-change: transform;
 }
 
-/* 纵向布局的拖拽高亮样式 */
-.tree-node.drop-before {
+/* 纵向布局的拖拽高亮样式（通过 data-drop-mode 避免 slot 依赖 dropPreview 导致树重渲染） */
+.tree-node[data-drop-mode='before'] {
   box-shadow: inset 4px 0 0 #409eff;
-  /* 使用 GPU 加速 */
   transform: translateZ(0);
   will-change: box-shadow;
 }
-.tree-node.drop-after {
+.tree-node[data-drop-mode='after'] {
   box-shadow: inset -4px 0 0 #67c23a;
   transform: translateZ(0);
   will-change: box-shadow;
 }
-.tree-node.drop-inside {
+.tree-node[data-drop-mode='inside'] {
   outline: 2px dashed rgba(103, 194, 58, 0.6);
   border-radius: 18px;
   transform: translateZ(0);
   will-change: outline;
 }
-.tree-node.drop-parent {
+.tree-node[data-drop-mode='parent'] {
   box-shadow: inset 0 4px 0 #e6a23c;
   border-radius: 18px;
   transform: translateZ(0);
@@ -2515,17 +2675,17 @@ onUnmounted(() => {
 }
 
 /* 横向布局的拖拽高亮样式 */
-.outline-page[data-direction='horizontal'] :deep(.tree-node.drop-before) {
+.outline-page[data-direction='horizontal'] :deep(.tree-node[data-drop-mode='before']) {
   box-shadow: inset 0 4px 0 #409eff;
 }
-.outline-page[data-direction='horizontal'] :deep(.tree-node.drop-after) {
+.outline-page[data-direction='horizontal'] :deep(.tree-node[data-drop-mode='after']) {
   box-shadow: inset 0 -4px 0 #67c23a;
 }
-.outline-page[data-direction='horizontal'] :deep(.tree-node.drop-inside) {
+.outline-page[data-direction='horizontal'] :deep(.tree-node[data-drop-mode='inside']) {
   outline: 2px dashed rgba(103, 194, 58, 0.6);
   border-radius: 18px;
 }
-.outline-page[data-direction='horizontal'] :deep(.tree-node.drop-parent) {
+.outline-page[data-direction='horizontal'] :deep(.tree-node[data-drop-mode='parent']) {
   box-shadow: inset 4px 0 0 #e6a23c;
   border-radius: 18px;
 }
@@ -2825,31 +2985,38 @@ onUnmounted(() => {
 
 .generate-preview-actions {
   display: flex;
-  gap: 8px;
-  padding: 12px 0 0;
-  margin-top: 8px;
-  border-top: 1px solid rgba(128, 128, 128, 0.2);
+  gap: 6px;
+  padding: 8px 12px 10px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(128, 128, 128, 0.18);
   flex-shrink: 0;
 }
 
 .generate-preview-content {
   white-space: pre-wrap;
   word-break: break-word;
-  padding: 8px 0;
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.generate-preview-content--text {
+  max-height: 280px;
+  overflow-y: auto;
 }
 
 .batch-panels {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .batch-panel {
-  border-radius: 10px;
-  border: 1px solid rgba(128, 128, 128, 0.25);
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .batch-panel--rejected {
@@ -2861,13 +3028,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
 .batch-panel-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2879,9 +3046,9 @@ onUnmounted(() => {
 }
 
 .batch-panel .generate-preview-content {
-  padding: 4px 0;
+  padding: 2px 0;
   font-size: 12px;
-  max-height: 120px;
+  max-height: 100px;
   overflow-y: auto;
 }
 

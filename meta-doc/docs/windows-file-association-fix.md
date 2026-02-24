@@ -86,6 +86,7 @@ nsis:
    ```
 
 2. **方法二：删除图标缓存文件**
+
    - 按 `Win + R`，输入 `%localappdata%\IconCache.db`
    - 删除该文件
    - 重启资源管理器或重启电脑

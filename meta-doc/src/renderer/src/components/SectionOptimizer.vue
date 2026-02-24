@@ -1,17 +1,15 @@
 <template>
   <div class="section-optimizer" :style="menuStyles" @mousedown.prevent="onMouseDown">
     <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px">
-      <el-button
-        circle
-        plain
-        size="small"
-        type="danger"
-        @click="props.mode === 'demo' ? undefined : $emit('close')"
-        class="aero-btn"
+      <Button
+        variant="destructive"
+        size="icon"
+        class="aero-btn h-8 w-8"
         style="float: inline-start"
+        @click="props.mode === 'demo' ? undefined : $emit('close')"
         @mousedown.prevent
       >
-      </el-button>
+      </Button>
     </div>
 
     <p style="font-weight: bold" @mousedown.stop>
@@ -51,20 +49,22 @@
         }"
       >
         <div class="composer-leading">
-          <el-tooltip
-            v-if="showPresetButton"
-            :content="t('sectionOptimizer.showPresets')"
-            placement="top"
-          >
-            <el-button
-              circle
-              class="composer-btn"
-              :disabled="disabled"
-              @click.prevent="showPresets = !showPresets"
-            >
-              <Plus />
-            </el-button>
-          </el-tooltip>
+          <Tooltip v-if="showPresetButton">
+            <TooltipTrigger as-child>
+              <Button
+                variant="secondary"
+                size="icon"
+                class="composer-btn h-9 w-9"
+                :disabled="disabled"
+                @click.prevent="showPresets = !showPresets"
+              >
+                <Plus class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.showPresets') }}
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <el-scrollbar
@@ -86,16 +86,22 @@
         </el-scrollbar>
 
         <div class="composer-actions">
-          <el-tooltip :content="t('sectionOptimizer.clear')" placement="top">
-            <el-button
-              circle
-              class="composer-btn"
-              :disabled="disabled || !userPrompt.trim().length"
-              @click.prevent="userPrompt = ''"
-            >
-              <Refresh />
-            </el-button>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                variant="secondary"
+                size="icon"
+                class="composer-btn h-9 w-9"
+                :disabled="disabled || !userPrompt.trim().length"
+                @click.prevent="userPrompt = ''"
+              >
+                <RefreshCw class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.clear') }}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -113,80 +119,112 @@
     </div>
 
     <div @mousedown.stop style="align-items: center; margin-top: 20px">
-      <el-slider
-        v-model="context_mode"
-        :step="1"
-        :min="0"
-        :max="2"
-        style="
-          width: 60%;
-          display: inline-block;
-          align-self: center;
-          margin-left: 20%;
-          margin-right: 20%;
-        "
-        show-stops
-        :marks="{
-          0: t('sectionOptimizer.contextMarks.none'),
-          1: t('sectionOptimizer.contextMarks.chapter'),
-          2: t('sectionOptimizer.contextMarks.full')
-        }"
-        :format-tooltip="formatTooltip"
-      />
+      <div
+        class="flex flex-col items-center"
+        style="width: 60%; margin-left: 20%; margin-right: 20%"
+      >
+        <Slider v-model="context_mode" :step="1" :min="0" :max="2" class="w-full" />
+        <div class="flex justify-between w-full text-xs text-muted-foreground mt-2">
+          <span>{{ t('sectionOptimizer.contextMarks.none') }}</span>
+          <span>{{ t('sectionOptimizer.contextMarks.chapter') }}</span>
+          <span>{{ t('sectionOptimizer.contextMarks.full') }}</span>
+        </div>
+      </div>
     </div>
 
     <div @mousedown.stop class="action-buttons">
-      <el-tooltip :content="t('sectionOptimizer.tooltips.generate')" placement="top">
-        <el-button
-          circle
-          type="primary"
-          @click.prevent="generate"
-          :disabled="generating || generated || userPrompt.length === 0"
-        >
-          <el-icon><Promotion /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <Button
+            variant="default"
+            size="icon"
+            class="h-9 w-9"
+            @click.prevent="generate"
+            :disabled="generating || generated || userPrompt.length === 0"
+          >
+            <Send class="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('sectionOptimizer.tooltips.generate') }}
+        </TooltipContent>
+      </Tooltip>
 
-      <el-tooltip :content="t('sectionOptimizer.tooltips.reset')" placement="top" v-if="generated">
-        <el-button circle type="info" @click.prevent="reset">
-          <el-icon><RefreshLeft /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <Tooltip v-if="generated">
+        <TooltipTrigger as-child>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+            @click.prevent="reset"
+          >
+            <Undo2 class="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('sectionOptimizer.tooltips.reset') }}
+        </TooltipContent>
+      </Tooltip>
 
-      <el-tooltip :content="t('sectionOptimizer.tooltips.chat')" placement="top" v-if="generated">
-        <el-button circle type="info" @click.prevent="chat">
-          <el-icon><ChatLineRound /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <Tooltip v-if="generated">
+        <TooltipTrigger as-child>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+            @click.prevent="chat"
+          >
+            <MessageCircle class="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('sectionOptimizer.tooltips.chat') }}
+        </TooltipContent>
+      </Tooltip>
 
-      <el-tooltip
-        :content="t('sectionOptimizer.tooltips.acceptReplace')"
-        placement="top"
-        v-if="generated"
-      >
-        <el-button circle type="success" @click.prevent="accept(false)">
-          <el-icon><Check /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <Tooltip v-if="generated">
+        <TooltipTrigger as-child>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+            @click.prevent="accept(false)"
+          >
+            <Check class="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('sectionOptimizer.tooltips.acceptReplace') }}
+        </TooltipContent>
+      </Tooltip>
 
-      <el-tooltip
-        :content="t('sectionOptimizer.tooltips.acceptAppend')"
-        placement="top"
-        v-if="generated"
-      >
-        <el-button circle type="success" @click.prevent="accept(true)">
-          <el-icon><Plus /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <Tooltip v-if="generated">
+        <TooltipTrigger as-child>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+            @click.prevent="accept(true)"
+          >
+            <Plus class="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('sectionOptimizer.tooltips.acceptAppend') }}
+        </TooltipContent>
+      </Tooltip>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Plus, Refresh } from '@element-plus/icons-vue'
-import { Promotion, RefreshLeft, ChatLineRound, Check } from '@element-plus/icons-vue'
+import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Send, Undo2, MessageCircle, Check } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { Slider } from '@renderer/components/ui/slider'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { themeState } from '../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
 import type { SectionOptimizerAdapter, SectionInfo } from './section-optimizer/types'
@@ -233,18 +271,6 @@ const { activeDocument } = useActiveDocument()
 const currentOutline = computed(() => props.tree ?? activeDocument.value?.outline ?? null)
 const currentMarkdown = computed(() => activeDocument.value?.markdown ?? '')
 const currentTex = computed(() => activeDocument.value?.tex ?? '')
-
-function formatTooltip(val: number) {
-  if (val === 0) {
-    return t('sectionOptimizer.contextTooltips.none')
-  }
-  if (val === 1) {
-    return t('sectionOptimizer.contextTooltips.chapter')
-  }
-  if (val === 2) {
-    return t('sectionOptimizer.contextTooltips.full')
-  }
-}
 
 const context_mode = ref(1)
 const presetPrompts = computed(() => {

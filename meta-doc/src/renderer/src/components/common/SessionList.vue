@@ -29,19 +29,14 @@
           <header class="pane-header">
             <h2 v-if="!isCollapsed" class="pane-title">{{ title }}</h2>
             <div class="actions">
-              <el-tooltip :content="createButtonTooltip">
-                <el-button
-                  size="small"
-                  type="info"
-                  :icon="AddIcon"
-                  circle
-                  @click="handleCreate"
-                  :disabled="disabled"
-                />
-              </el-tooltip>
+              <Tooltip :content="createButtonTooltip">
+                <Button size="small" type="info" circle @click="handleCreate" :disabled="disabled">
+                  <AddIcon />
+                </Button>
+              </Tooltip>
             </div>
           </header>
-          <el-scrollbar class="menu-scrollbar">
+          <ScrollArea class="flex-1 overflow-hidden">
             <!-- 折叠态：圆角小方块，hover 展开显示标题 -->
             <template v-if="isCollapsed">
               <div class="collapsed-list">
@@ -74,28 +69,33 @@
                 </div>
               </transition>
             </template>
-            <!-- 展开态：原有列表 -->
-            <el-menu v-else class="side-menu" :default-active="activeIndex?.toString()">
+            <!-- 展开态：shadcn-vue 列表 -->
+            <div v-else class="side-menu">
               <template v-for="group in groupedItems" :key="group.label">
-                <el-menu-item disabled class="group-header" :class="{ 'is-ui-locked': disabled }">
+                <div class="group-header" :class="{ 'is-ui-locked': disabled }">
                   <span class="group-label">{{ group.label }}</span>
-                </el-menu-item>
-                <el-menu-item
+                </div>
+                <Button
                   v-for="item in group.items"
                   :key="item.id"
-                  :index="item.id"
+                  variant="ghost"
+                  class="session-list-item"
+                  :class="{
+                    'is-active': activeIndex?.toString() === item.id,
+                    'menu-item-open': openMenuId === item.id,
+                    'is-disabled': disabled
+                  }"
+                  :disabled="disabled"
                   @click="handleSelect(item)"
                   @contextmenu.prevent="openContextMenu($event, item)"
-                  :disabled="disabled"
-                  :class="{ 'menu-item-open': openMenuId === item.id }"
                 >
                   <div class="menu-item-wrapper">
                     <span class="item-title">{{ item.title }}</span>
                   </div>
-                </el-menu-item>
+                </Button>
               </template>
-            </el-menu>
-          </el-scrollbar>
+            </div>
+          </ScrollArea>
           <slot name="sidebar-footer"></slot>
           <!-- 右键菜单（固定定位，展开/折叠态共用） -->
           <transition name="fade">
@@ -137,17 +137,22 @@
     </ResizableContainer>
 
     <!-- 重命名对话框 -->
-    <el-dialog v-model="renameDialogVisible" :title="renameDialogTitle" width="500">
-      <el-input v-model="editingTitle" style="width: 100%" :placeholder="renamePlaceholder" />
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="renameDialogVisible = false">{{ cancelLabel }}</el-button>
-          <el-button type="primary" @click="finishRename">
-            {{ confirmLabel }}
-          </el-button>
+    <Dialog v-model:open="renameDialogVisible">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{{ renameDialogTitle }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <Input v-model="editingTitle" :placeholder="renamePlaceholder" />
         </div>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button variant="ghost" @click="renameDialogVisible = false">{{ cancelLabel }}</Button>
+          <Button @click="finishRename">
+            {{ confirmLabel }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -158,6 +163,17 @@ import { ElMessageBox } from 'element-plus'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { themeState, mixColors } from '../../utils/themes'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 
 const { t } = useI18n()
 
@@ -553,52 +569,63 @@ const finishRename = () => {
   max-width: 280px;
 }
 
-.menu-scrollbar {
-  flex: 1;
-  overflow: hidden;
-}
-
+/* shadcn-vue 风格侧边栏菜单 */
 .side-menu {
-  border: none;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
   background: transparent;
 }
 
-.side-menu :deep(.el-menu-item) {
-  height: auto;
-  line-height: 1.5;
+/* 分组标题样式 */
+.group-header {
   padding: 8px 16px;
-  margin: 2px 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.side-menu :deep(.el-menu-item:hover),
-.side-menu :deep(.el-menu-item.is-active) {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.side-menu :deep(.el-menu-item.menu-item-open) {
-  background-color: rgba(0, 0, 0, 0.08);
-}
-
-/* group-header正常情况下的样式 */
-.side-menu :deep(.group-header) {
-  padding: 8px 16px !important;
-  height: auto !important;
-  opacity: 0.6 !important;
+  height: auto;
+  opacity: 0.6;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.025em;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* UI锁启用时，group-header应该和disabled的item一样 */
-.side-menu :deep(.group-header.is-ui-locked) {
-  opacity: 0.5 !important;
+.group-header.is-ui-locked {
+  opacity: 0.5;
 }
 
-/* disabled的item样式（排除group-header） */
-.side-menu :deep(.el-menu-item.is-disabled:not(.group-header)) {
-  opacity: 0.5 !important;
+/* 会话列表项样式 - 使用 shadcn Button variant="ghost" */
+.session-list-item {
+  display: flex;
+  width: calc(100% - 16px);
+  margin: 1px 8px;
+  padding: 8px 12px;
+  height: auto;
+  min-height: 40px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  justify-content: flex-start;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.session-list-item:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.session-list-item.is-active {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.session-list-item.menu-item-open {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.session-list-item.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .menu-item-wrapper {
@@ -665,5 +692,12 @@ const finishRename = () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 对话框底部按钮布局 */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

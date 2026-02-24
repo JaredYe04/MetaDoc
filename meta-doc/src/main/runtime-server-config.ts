@@ -4,10 +4,7 @@
  */
 
 const RUNTIME_SERVER_HOST = process.env.RUNTIME_SERVER_HOST ?? '127.0.0.1'
-const RUNTIME_SERVER_PORT = parseInt(
-  process.env.RUNTIME_SERVER_PORT ?? '52521',
-  10
-)
+const RUNTIME_SERVER_PORT = parseInt(process.env.RUNTIME_SERVER_PORT ?? '52521', 10)
 
 /** 运行时服务端口（用于 listen 等） */
 export const getRuntimeServerPort = (): number => RUNTIME_SERVER_PORT

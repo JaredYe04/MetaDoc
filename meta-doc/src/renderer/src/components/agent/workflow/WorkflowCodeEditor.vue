@@ -5,22 +5,16 @@
         <h3>{{ t('agent.workflow.pseudoCode.title') }}</h3>
       </div>
       <div class="header-right" v-if="!props.readOnly">
-        <el-button size="small" @click="handleFormat">{{ t('common.format') }}</el-button>
-        <el-button size="small" type="primary" @click="handleApply">{{
-          t('common.apply')
-        }}</el-button>
+        <Button size="sm" @click="handleFormat">{{ t('common.format') }}</Button>
+        <Button size="sm" type="primary" @click="handleApply">{{ t('common.apply') }}</Button>
       </div>
     </div>
     <div ref="editorContainer" class="code-editor-content"></div>
     <div v-if="parseErrors.length > 0" class="code-errors">
-      <el-alert
-        v-for="(error, index) in parseErrors"
-        :key="index"
-        :title="error"
-        type="error"
-        :closable="false"
-        show-icon
-      />
+      <Alert v-for="(error, index) in parseErrors" :key="index" variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ error }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -36,6 +30,7 @@ import {
   workflowToPseudoCode,
   pseudoCodeToWorkflow
 } from '../../../utils/agent-framework/workflow-pseudo-code'
+import { Button } from '@renderer/components/ui/button'
 
 const props = defineProps<{
   workflow: Workflow

@@ -22,13 +22,14 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="panelStyle" v-loading="loadingSession">
+        <div class="content-area" :style="panelStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('graph.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
           </div>
 
           <div v-else class="dialog-container">
-            <el-scrollbar class="conversation-scroll">
+            <ScrollArea class="conversation-scroll">
               <GraphMessageBubble
                 v-for="(msg, index) in messages.filter((item) => item.role !== 'system')"
                 :key="index"
@@ -46,7 +47,8 @@
                 @export="handleExport"
               />
               <div class="conversation-bottom-spacer" />
-            </el-scrollbar>
+              <ScrollBar />
+            </ScrollArea>
             <div class="composer-wrapper">
               <ChatComposer
                 v-model="currentPrompt"
@@ -72,9 +74,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { graphSessionsDb } from '../utils/db/tool-sessions-db'
 import { createAiTask, cancelAiTask } from '../utils/ai_tasks'
 import { ref as vueRef } from 'vue'
@@ -431,7 +444,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -462,7 +475,7 @@ const handleCreateSession = async () => {
     detectedType.value = null
     detectedSpecialPrompt.value = ''
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -531,7 +544,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }, 300)
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -545,7 +558,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     manuallyRenamedSessions.value.add(item.id)
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -567,9 +580,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+    notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -584,16 +597,16 @@ const handleDeleteSession = async (item: SessionListItem) => {
       currentPrompt.value = ''
       lastGeneratedChartCode.value = null
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
 // 生成图表
 const handleGenerate = async () => {
   if (!activeSessionId.value || !currentPrompt.value.trim()) {
-    ElMessage.warning(t('graph.noPrompt', '请输入绘图需求'))
+    notifyWarning(t('graph.noPrompt', '请输入绘图需求'))
     return
   }
 
@@ -603,7 +616,7 @@ const handleGenerate = async () => {
   try {
     const userPrompt = currentPrompt.value.trim()
     if (!userPrompt) {
-      ElMessage.warning(t('graph.noPrompt', '请输入绘图需求'))
+      notifyWarning(t('graph.noPrompt', '请输入绘图需求'))
       return
     }
 
@@ -815,7 +828,7 @@ const handleGenerate = async () => {
       })
     })
 
-    ElMessage.success(t('graph.generateSuccess', '生成成功'))
+    notifySuccess(t('graph.generateSuccess', '生成成功'))
 
     // 生成标题（如果会话未被手动重命名）
     if (activeSessionId.value && !manuallyRenamedSessions.value.has(activeSessionId.value)) {
@@ -832,7 +845,7 @@ const handleGenerate = async () => {
     ) {
       messages.value.pop()
     }
-    ElMessage.error('生成失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('生成失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     generating.value = false
     analyzingIntent.value = false
@@ -855,7 +868,7 @@ const handleCancel = () => {
       messages.value.pop()
     }
   }
-  ElMessage.info(t('aiChat.generationCancelled', '生成已取消'))
+  notifyInfo(t('aiChat.generationCancelled', '生成已取消'))
 }
 
 // 消息操作：删除
@@ -869,7 +882,7 @@ const onMsgDelete = (index: number) => {
   if (actualIndex < 0) return
 
   messages.value.splice(actualIndex, 1)
-  ElMessage.success(t('common.deleteSuccess', '删除成功'))
+  notifySuccess(t('common.deleteSuccess', '删除成功'))
   saveSession()
 }
 
@@ -946,7 +959,7 @@ const saveSession = async () => {
 const handleExport = async (chartMarkdown?: string) => {
   const chartCode = chartMarkdown || lastGeneratedChartCode.value
   if (!chartCode) {
-    ElMessage.warning(t('graph.noChart', '没有可导出的图表'))
+    notifyWarning(t('graph.noChart', '没有可导出的图表'))
     return
   }
 
@@ -973,7 +986,9 @@ const handleExport = async (chartMarkdown?: string) => {
       throw new Error('IPC渲染器不可用')
     }
 
-    const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+    const baseUrl = await import('../config/runtime-server').then((m) =>
+      m.getRuntimeServerBaseUrl()
+    )
 
     // 打开保存对话框，让用户选择格式
     const result = await messageBridge.invoke('save-file-dialog', {
@@ -1037,10 +1052,7 @@ const handleExport = async (chartMarkdown?: string) => {
         // blob URL -> 文本内容
         const response = await fetch(imageUrl)
         svgContent = await response.text()
-      } else if (
-        imageUrl.startsWith(baseUrl + '/images/') ||
-        imageUrl.startsWith('http://')
-      ) {
+      } else if (imageUrl.startsWith(baseUrl + '/images/') || imageUrl.startsWith('http://')) {
         // HTTP URL -> 文本内容
         const response = await fetch(imageUrl)
         if (!response.ok) {
@@ -1065,7 +1077,7 @@ const handleExport = async (chartMarkdown?: string) => {
         content: svgContent,
         encoding: 'utf8'
       })
-      ElMessage.success(t('graph.exportSuccess', '导出成功'))
+      notifySuccess(t('graph.exportSuccess', '导出成功'))
     } else if (ext === 'png') {
       // PNG：直接写入文件（已经弹出对话框，不需要再弹出）
       // 获取 PNG 的 base64 内容
@@ -1086,10 +1098,7 @@ const handleExport = async (chartMarkdown?: string) => {
         })
         const commaIdx = dataUrl.indexOf(',')
         base64Data = dataUrl.substring(commaIdx + 1)
-      } else if (
-        imageUrl.startsWith(baseUrl + '/images/') ||
-        imageUrl.startsWith('http://')
-      ) {
+      } else if (imageUrl.startsWith(baseUrl + '/images/') || imageUrl.startsWith('http://')) {
         // HTTP URL -> fetch 获取内容 -> base64
         const response = await fetch(imageUrl)
         if (!response.ok) {
@@ -1120,7 +1129,7 @@ const handleExport = async (chartMarkdown?: string) => {
         content: base64Data,
         encoding: 'base64'
       })
-      ElMessage.success(t('graph.exportSuccess', '导出成功'))
+      notifySuccess(t('graph.exportSuccess', '导出成功'))
     } else if (ext === 'pdf') {
       // PDF：先渲染为 SVG，然后转换为 PDF（参考 chart-generation-tool.ts 和 FomulaRecognition.vue）
       const svgImageUrl = await renderChart({
@@ -1135,10 +1144,7 @@ const handleExport = async (chartMarkdown?: string) => {
 
       // 如果 SVG URL 是 HTTP URL，需要先转换为本地路径（参考 FomulaRecognition.vue）
       let svgPath: string
-      if (
-        svgImageUrl.startsWith(baseUrl + '/images/') ||
-        svgImageUrl.startsWith('http://')
-      ) {
+      if (svgImageUrl.startsWith(baseUrl + '/images/') || svgImageUrl.startsWith('http://')) {
         // HTTP URL -> 本地路径
         const { image2local } = await import('../utils/md-utils.js')
         const mdTmp = `![x](${svgImageUrl})`
@@ -1209,12 +1215,12 @@ const handleExport = async (chartMarkdown?: string) => {
         content: fileData.data,
         encoding: 'base64'
       })
-      ElMessage.success(t('graph.exportSuccess', '导出成功'))
+      notifySuccess(t('graph.exportSuccess', '导出成功'))
     } else {
       throw new Error(`不支持的格式: ${ext}`)
     }
   } catch (error) {
-    ElMessage.error('导出失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('导出失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1433,6 +1439,15 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    sessions.value = [
+      { id: 'demo-1', title: '流程图示例', updatedAt: Date.now() },
+      { id: 'demo-2', title: '数据可视化', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   loadSessions()
 })
 </script>
@@ -1492,12 +1507,7 @@ onMounted(() => {
   padding-right: 4px;
 }
 
-.conversation-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.conversation-scroll :deep(.el-scrollbar__view) {
-  width: 100%;
+.conversation-scroll :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

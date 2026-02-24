@@ -457,7 +457,9 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                     css = css.replace(/animation\s*:[^;]+;?/gi, '')
                     css = css.replace(/transition\s*:[^;]+;?/gi, '')
                     tag.textContent = css
-                  } catch (_) {}
+                  } catch (err) {
+                    console.error('清理 SVG style 标签失败:', err)
+                  }
                 })
 
                 // 添加覆盖样式
@@ -545,7 +547,7 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                   .then(resolve)
                   .catch((error) => {
                     // 如果 fetch 失败，使用 dataURL 直接转换为 Blob
-                    logger.warn('Fetch dataURL 失败，使用备用方法:', error)
+                    console.warn('Fetch dataURL 失败，使用备用方法:', error)
                     try {
                       const base64Data = dataURL.split(',')[1]
                       const byteCharacters = atob(base64Data)
@@ -565,7 +567,7 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                   })
               } catch (error) {
                 // 如果 toDataURL 失败，尝试通过 SVG 转换
-                logger.warn('Canvas toDataURL 失败，尝试通过 SVG 转换:', error)
+                console.warn('Canvas toDataURL 失败，尝试通过 SVG 转换:', error)
                 const svg = convertCanvasToSvg(canvasElement)
                 const serializer = new XMLSerializer()
                 const svgContent = serializer.serializeToString(svg)
@@ -698,7 +700,9 @@ function cleanSvgForExport(svgContent) {
       css = css.replace(/animation\s*:[^;]+;?/gi, '')
       css = css.replace(/transition\s*:[^;]+;?/gi, '')
       tag.textContent = css
-    } catch (_) {}
+    } catch (err) {
+      console.error('清理 SVG style 标签失败:', err)
+    }
   })
 
   // 覆盖样式层面的动画与过渡（ECharts 常通过 @keyframes + class 触发）
@@ -830,7 +834,9 @@ export async function convertSvgToPng(svgContent, scale = 2.0) {
       // 避免跨域资源污染画布
       try {
         img.crossOrigin = 'anonymous'
-      } catch (_) {}
+      } catch (err) {
+        console.warn('设置 crossOrigin 失败:', err)
+      }
 
       const timeout = setTimeout(() => {
         URL.revokeObjectURL(objectUrl)
@@ -843,7 +849,9 @@ export async function convertSvgToPng(svgContent, scale = 2.0) {
           if (img.decode) {
             try {
               await img.decode()
-            } catch (_) {}
+            } catch (err) {
+              console.warn('SVG 图片解码失败:', err)
+            }
           }
           let width = img.naturalWidth || img.width
           let height = img.naturalHeight || img.height

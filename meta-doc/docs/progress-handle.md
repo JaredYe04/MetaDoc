@@ -9,6 +9,7 @@
 ## 核心模块
 
 - 渲染进程：`src/renderer/src/utils/progress-handle.ts`
+
   - `createProgressHandle(options)` 返回 `ProgressHandle`，自动监听 `cancel-progress` 事件。
   - 提供 API：
     - `setSegment(targetPercent)` / `updateSegmentProgress(done, total)`：在区间内自动换算百分比。

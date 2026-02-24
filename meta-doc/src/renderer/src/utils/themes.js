@@ -381,9 +381,9 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         textColor: mixColors(themeColor, '#222222', 0.8),
         textColor2: mixColors(themeColor, '#444444', 0.7),
         headerBackground: mixColors(themeColor, '#f5f5f5', 0.4),
-        sidebarBackground: mixColors(themeColor, '#f0f0f0', 0.05),
-        sidebarBackground2: mixColors(themeColor, '#e8e8e8', 0.12),
-        SideBackgroundColor: adjustSaturation(mixColors(themeColor, '#f5f5f5', 0.6), 0.8),
+        sidebarBackground: mixColors(themeColor, '#e8e8e8', 0.15),
+        sidebarBackground2: mixColors(themeColor, '#f0f0f0', 0.25),
+        SideBackgroundColor: mixColors(themeColor, '#f5f5f5', 0.5),
         SideTextColor: mixColors(themeColor, '#333333', 0.9),
         SideActiveTextColor: mixColors(themeColor, '#333333', 0.95),
         SideTextColor2: mixColors(themeColor, '#555555', 0.8),
@@ -578,17 +578,215 @@ function applyThemeClasses(themeType) {
     document.documentElement.classList.add('dark')
     document.documentElement.classList.remove('light')
   }
+}
 
-  // Ensure OPPO Sans font variables are set
+// 辅助函数：HEX转HSL
+function hexToHsl(hex) {
+  const { r, g, b } = hexToRgb(hex)
+  const rNorm = r / 255
+  const gNorm = g / 255
+  const bNorm = b / 255
+
+  const max = Math.max(rNorm, gNorm, bNorm)
+  const min = Math.min(rNorm, gNorm, bNorm)
+  let h,
+    s,
+    l = (max + min) / 2
+
+  if (max === min) {
+    h = s = 0
+  } else {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case rNorm:
+        h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6
+        break
+      case gNorm:
+        h = ((bNorm - rNorm) / d + 2) / 6
+        break
+      case bNorm:
+        h = ((rNorm - gNorm) / d + 4) / 6
+        break
+    }
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100)
+  }
+}
+
+// 辅助函数：将颜色转换为HSL CSS变量格式
+function colorToHslString(color) {
+  if (!color) return null
+  // 如果是 hex 颜色
+  if (color.startsWith('#')) {
+    const hsl = hexToHsl(color)
+    return `${hsl.h} ${hsl.s}% ${hsl.l}%`
+  }
+  // 如果是 rgb/rgba 颜色，先转成 hex
+  if (color.startsWith('rgb')) {
+    const match = color.match(/(\d+),\s*(\d+),\s*(\d+)/)
+    if (match) {
+      const [, r, g, b] = match
+      const hex = rgbToHex(parseInt(r), parseInt(g), parseInt(b))
+      const hsl = hexToHsl(hex)
+      return `${hsl.h} ${hsl.s}% ${hsl.l}%`
+    }
+  }
+  return null
+}
+
+/**
+ * 将 themeState 的颜色值同步到 shadcn CSS 变量
+ */
+export function applyShadcnTheme() {
   const root = document.documentElement
-  root.style.setProperty(
-    '--font-family-base',
-    "'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-  )
-  root.style.setProperty(
-    '--font-family-chinese',
-    "'OPPO Sans 4.0', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif"
-  )
+  const theme = themeState.currentTheme
+
+  if (!theme) return
+
+  const isDarkMode = theme.type === 'dark'
+
+  // 辅助函数：获取HSL值
+  const getHsl = (colorKey) => {
+    const colorValue = theme[colorKey]
+    if (colorValue && typeof colorValue === 'string') {
+      return colorToHslString(colorValue)
+    }
+    return null
+  }
+
+  // 基础颜色映射
+  const background = getHsl('background') || (isDarkMode ? '222.2 84% 4.9%' : '0 0% 100%')
+  const foreground = getHsl('textColor') || (isDarkMode ? '210 40% 98%' : '222.2 84% 4.9%')
+  const primary = getHsl('primaryColor') || (isDarkMode ? '210 40% 98%' : '222.2 47.4% 11.2%')
+  const secondary = getHsl('secondaryColor') || (isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%')
+  const muted = getHsl('background2nd') || (isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%')
+  const border = getHsl('borderColor') || (isDarkMode ? '217.2 32.6% 17.5%' : '214.3 31.8% 91.4%')
+  const sidebarBg = getHsl('sidebarBackground') || (isDarkMode ? '240 5.9% 10%' : '0 0% 98%')
+
+  // 设置所有 shadcn CSS 变量
+  const shadcnVars = {
+    // 基础
+    '--background': background,
+    '--foreground': foreground,
+
+    // 卡片
+    '--card': background,
+    '--card-foreground': foreground,
+
+    // 弹出层
+    '--popover': background,
+    '--popover-foreground': foreground,
+
+    // 主题色
+    '--primary': primary,
+    '--primary-foreground': isDarkMode ? '222.2 47.4% 11.2%' : '210 40% 98%',
+
+    // 次要色
+    '--secondary': secondary,
+    '--secondary-foreground': foreground,
+
+    // 静音色
+    '--muted': muted,
+    '--muted-foreground':
+      getHsl('textColor2') || (isDarkMode ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'),
+
+    // 强调色
+    '--accent': secondary,
+    '--accent-foreground': foreground,
+
+    // 错误色
+    '--destructive': '0 84.2% 60.2%',
+    '--destructive-foreground': '210 40% 98%',
+
+    // 边框和输入
+    '--border': border,
+    '--input': border,
+    '--ring': primary,
+
+    // 侧边栏
+    '--sidebar-background': sidebarBg,
+    '--sidebar-foreground':
+      getHsl('SideTextColor') || (isDarkMode ? '240 4.8% 95.9%' : '240 5.3% 26.1%'),
+    '--sidebar-primary': primary,
+    '--sidebar-primary-foreground': isDarkMode ? '222.2 47.4% 11.2%' : '210 40% 98%',
+    '--sidebar-accent': secondary,
+    '--sidebar-accent-foreground': foreground,
+    '--sidebar-border': border,
+    '--sidebar-ring': primary
+  }
+
+  // 应用所有变量
+  Object.entries(shadcnVars).forEach(([key, value]) => {
+    root.style.setProperty(key, value)
+  })
+}
+
+/**
+ * 将 themeState 的颜色值同步到 Element Plus CSS 变量
+ * 这样组件使用 var(--el-*) 时就能获取到 themes.js 计算的颜色
+ */
+export function applyElementPlusTheme() {
+  const root = document.documentElement
+  const theme = themeState.currentTheme
+
+  if (!theme) return
+
+  // 映射 themeState 颜色到 Element Plus CSS 变量
+  const colorMappings = [
+    // 背景色
+    { source: 'background', target: '--el-bg-color' },
+    { source: 'background2nd', target: '--el-bg-color-page' },
+    { source: 'sidebarBackground', target: '--el-fill-color' },
+    { source: 'sidebarBackground2', target: '--el-fill-color-light' },
+
+    // 文字色
+    { source: 'textColor', target: '--el-text-color-primary' },
+    { source: 'textColor2', target: '--el-text-color-regular' },
+    { source: 'SideTextColor2', target: '--el-text-color-secondary' },
+
+    // 边框色
+    { source: 'borderColor', target: '--el-border-color' },
+
+    // 主题色
+    { source: 'primaryColor', target: '--el-color-primary' },
+    { source: 'SideActiveTextColor', target: '--el-color-primary-light-3' }
+  ]
+
+  colorMappings.forEach(({ source, target }) => {
+    const colorValue = theme[source]
+    if (colorValue && typeof colorValue === 'string') {
+      root.style.setProperty(target, colorValue)
+    }
+  })
+
+  // 生成主题色的变体（light/dark）
+  if (theme.primaryColor) {
+    root.style.setProperty(
+      '--el-color-primary-light-3',
+      mixColors(theme.primaryColor, '#ffffff', 0.3)
+    )
+    root.style.setProperty(
+      '--el-color-primary-light-5',
+      mixColors(theme.primaryColor, '#ffffff', 0.5)
+    )
+    root.style.setProperty(
+      '--el-color-primary-light-7',
+      mixColors(theme.primaryColor, '#ffffff', 0.7)
+    )
+    root.style.setProperty(
+      '--el-color-primary-light-9',
+      mixColors(theme.primaryColor, '#ffffff', 0.9)
+    )
+    root.style.setProperty(
+      '--el-color-primary-dark-2',
+      mixColors(theme.primaryColor, '#000000', 0.2)
+    )
+  }
 }
 
 /**
@@ -650,10 +848,61 @@ export async function applyTheme(getSettingFn = null, _ipcRendererInstance = nul
       themeState.currentTheme = lightTheme
       applyThemeClasses('light')
     }
+
+    applyElementPlusTheme()
+    applyShadcnTheme()
+
+    // 应用字体设置
+    await applyFontSettings(getSetting)
   } catch (error) {
     console.error('应用主题失败，使用默认亮色主题:', error)
     // 出错时回退到 light
     themeState.currentTheme = lightTheme
     applyThemeClasses('light')
+    applyElementPlusTheme()
+    applyShadcnTheme()
+  }
+}
+
+/**
+ * 应用字体设置
+ * @param {Function} getSetting - 获取设置的函数
+ */
+async function applyFontSettings(getSetting) {
+  try {
+    const fontUi = (await getSetting('fontUi')) || 'OPPO Sans 4.0'
+    const fontEditorChinese = (await getSetting('fontEditorChinese')) || 'OPPO Sans 4.0'
+    const fontEditorWestern = (await getSetting('fontEditorWestern')) || 'Fira Code'
+    const fontPreviewChinese = (await getSetting('fontPreviewChinese')) || 'OPPO Sans 4.0'
+    const fontPreviewWestern = (await getSetting('fontPreviewWestern')) || 'New York'
+
+    const root = document.documentElement
+
+    // UI字体
+    root.style.setProperty('--font-family-ui', fontUi)
+
+    // 编辑器字体组合
+    root.style.setProperty(
+      '--font-family-editor',
+      `${fontEditorWestern}, ${fontEditorChinese}, -apple-system, BlinkMacSystemFont, sans-serif`
+    )
+
+    // 渲染预览字体组合
+    root.style.setProperty(
+      '--font-family-preview',
+      `${fontPreviewWestern}, ${fontPreviewChinese}, -apple-system, BlinkMacSystemFont, sans-serif`
+    )
+
+    // 更新基础字体
+    root.style.setProperty(
+      '--font-family-base',
+      `${fontUi}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
+    )
+    root.style.setProperty(
+      '--font-family-chinese',
+      `${fontUi}, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif`
+    )
+  } catch (error) {
+    console.error('应用字体设置失败:', error)
   }
 }

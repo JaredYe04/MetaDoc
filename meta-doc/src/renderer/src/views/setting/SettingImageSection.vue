@@ -2,138 +2,166 @@
   <div class="image-settings">
     <h3 class="section-title">
       {{ t('setting.image.title') }}
-      <el-tooltip
-        :content="t('setting.image.titleHint', '图片上传设置，重新打开文件后生效')"
-        placement="top"
-      >
-        <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+        </TooltipTrigger>
+        <TooltipContent side="top">{{
+          t('setting.image.titleHint', '图片上传设置，重新打开文件后生效')
+        }}</TooltipContent>
+      </Tooltip>
     </h3>
-    <el-form label-width="200px" class="settings-form">
+    <Form class="settings-form">
       <!-- 插入图片时的操作 -->
-      <el-form-item>
+      <FormField name="imageUploadAction">
         <template #label>
           <span>{{ t('setting.image.insertAction') }}</span>
-          <el-tooltip :content="t('setting.image.insertActionHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{ t('setting.image.insertActionHint') }}</TooltipContent>
+          </Tooltip>
         </template>
-        <el-select
+        <Select
           v-model="settings.imageUpload.action"
-          @change="saveImageSetting('action', settings.imageUpload.action)"
-          style="width: 100%"
+          @update:model-value="saveImageSetting('action', settings.imageUpload.action)"
         >
-          <el-option :label="t('setting.image.insertActionUpload')" value="upload" />
-          <el-option
-            :label="t('setting.image.insertActionSaveToDocumentDir')"
-            value="saveToDocumentDir"
-          />
-          <el-option
-            :label="t('setting.image.insertActionSaveToAssetsDir')"
-            value="saveToAssetsDir"
-          />
-        </el-select>
-      </el-form-item>
+          <SelectTrigger class="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="upload">{{ t('setting.image.insertActionUpload') }}</SelectItem>
+            <SelectItem value="saveToDocumentDir">
+              {{ t('setting.image.insertActionSaveToDocumentDir') }}
+            </SelectItem>
+            <SelectItem value="saveToAssetsDir">
+              {{ t('setting.image.insertActionSaveToAssetsDir') }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
       <!-- 网络图片自动下载 -->
-      <el-form-item>
-        <el-checkbox
-          v-model="settings.imageUpload.keepNetworkImageUrl"
-          @change="
-            saveImageSetting('keepNetworkImageUrl', settings.imageUpload.keepNetworkImageUrl)
-          "
-        >
-          {{ t('setting.image.keepNetworkImageUrl') }}
-          <el-tooltip :content="t('setting.image.keepNetworkImageUrlHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </el-checkbox>
-      </el-form-item>
+      <FormField name="keepNetworkImageUrl">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <Checkbox
+            v-model="settings.imageUpload.keepNetworkImageUrl"
+            @update:model-value="
+              saveImageSetting('keepNetworkImageUrl', settings.imageUpload.keepNetworkImageUrl)
+            "
+          />
+          <span>{{ t('setting.image.keepNetworkImageUrl') }}</span>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{
+              t('setting.image.keepNetworkImageUrlHint')
+            }}</TooltipContent>
+          </Tooltip>
+        </label>
+      </FormField>
 
       <!-- 自动转义图片URL（仅在保留网络图片URL时显示） -->
-      <el-form-item v-if="settings.imageUpload.keepNetworkImageUrl">
-        <el-checkbox
-          v-model="settings.imageUpload.autoEscapeImageUrl"
-          @change="saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)"
-        >
-          {{ t('setting.image.autoEscapeImageUrl') }}
-          <el-tooltip :content="t('setting.image.autoEscapeImageUrlHint')" placement="top">
-            <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
-          </el-tooltip>
-        </el-checkbox>
-      </el-form-item>
+      <FormField v-if="settings.imageUpload.keepNetworkImageUrl" name="autoEscapeImageUrl">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <Checkbox
+            v-model="settings.imageUpload.autoEscapeImageUrl"
+            @update:model-value="
+              saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)
+            "
+          />
+          <span>{{ t('setting.image.autoEscapeImageUrl') }}</span>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{
+              t('setting.image.autoEscapeImageUrlHint')
+            }}</TooltipContent>
+          </Tooltip>
+        </label>
+      </FormField>
 
       <!-- 上传服务设定（仅在"上传图片"时显示） -->
       <template v-if="settings.imageUpload.action === 'upload'">
-        <el-form-item>
+        <FormField name="uploadServiceSettings">
           <template #label>
             <span>{{ t('setting.image.uploadServiceSettings') }}</span>
           </template>
-        </el-form-item>
+        </FormField>
 
-        <el-form-item :label="t('setting.image.uploadService')">
-          <el-select
+        <FormField :label="t('setting.image.uploadService')" name="uploadService">
+          <Select
             v-model="settings.imageUpload.uploadService"
-            @change="handleUploadServiceChange"
-            style="width: 100%"
+            @update:model-value="handleUploadServiceChange"
           >
-            <el-option :label="t('setting.image.uploadServiceLocal')" value="local" />
-            <el-option :label="t('setting.image.uploadServiceCustom')" value="custom" />
-          </el-select>
-        </el-form-item>
+            <SelectTrigger class="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="local">{{ t('setting.image.uploadServiceLocal') }}</SelectItem>
+              <SelectItem value="custom">{{ t('setting.image.uploadServiceCustom') }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
 
         <!-- 本地服务配置 -->
         <template v-if="settings.imageUpload.uploadService === 'local'">
-          <el-form-item :label="t('setting.image.localImageDir')">
-            <div class="image-dir-selector">
-              <el-input
+          <FormField :label="t('setting.image.localImageDir')" name="localImageDir">
+            <div class="image-dir-selector flex gap-2">
+              <Button @click="selectImageDirectory" size="default">{{
+                t('setting.image.browse')
+              }}</Button>
+              <Input
                 v-model="settings.imageUpload.localImageDir"
                 :placeholder="t('setting.image.localImageDirPlaceholder')"
+                class="flex-1"
                 @change="saveImageSetting('localImageDir', settings.imageUpload.localImageDir)"
-              >
-                <template #append>
-                  <el-button @click="openImageDirectory" size="small" type="primary">{{
-                    t('setting.image.open')
-                  }}</el-button>
-                </template>
-                <template #prepend>
-                  <el-button @click="selectImageDirectory" size="default">{{
-                    t('setting.image.browse')
-                  }}</el-button>
-                </template>
-              </el-input>
+              />
+              <Button @click="openImageDirectory" size="sm" variant="default">{{
+                t('setting.image.open')
+              }}</Button>
             </div>
-          </el-form-item>
+          </FormField>
         </template>
       </template>
 
       <!-- 自定义API配置 -->
       <template v-if="settings.imageUpload.uploadService === 'custom'">
-        <el-form-item :label="t('setting.image.customUploadApiUrl')">
-          <el-input
+        <FormField :label="t('setting.image.customUploadApiUrl')" name="customUploadApiUrl">
+          <Input
             v-model="settings.imageUpload.customUploadApiUrl"
             :placeholder="t('setting.image.customUploadApiUrlPlaceholder')"
             @change="
               saveImageSetting('customUploadApiUrl', settings.imageUpload.customUploadApiUrl)
             "
           />
-        </el-form-item>
+        </FormField>
 
-        <el-form-item :label="t('setting.image.customUploadApiMethod')">
-          <el-select
+        <FormField :label="t('setting.image.customUploadApiMethod')" name="customUploadApiMethod">
+          <Select
             v-model="settings.imageUpload.customUploadApiMethod"
-            @change="
+            @update:model-value="
               saveImageSetting('customUploadApiMethod', settings.imageUpload.customUploadApiMethod)
             "
-            style="width: 100%"
           >
-            <el-option label="POST" value="POST" />
-            <el-option label="PUT" value="PUT" />
-          </el-select>
-        </el-form-item>
+            <SelectTrigger class="w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="POST">POST</SelectItem>
+              <SelectItem value="PUT">PUT</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
 
-        <el-form-item :label="t('setting.image.customUploadApiFieldName')">
-          <el-input
+        <FormField
+          :label="t('setting.image.customUploadApiFieldName')"
+          name="customUploadApiFieldName"
+        >
+          <Input
             v-model="settings.imageUpload.customUploadApiFieldName"
             :placeholder="t('setting.image.customUploadApiFieldNamePlaceholder')"
             @change="
@@ -144,21 +172,60 @@
             "
           />
           <div class="setting-hint">{{ t('setting.image.customUploadApiFieldNameHint') }}</div>
-        </el-form-item>
+        </FormField>
       </template>
-    </el-form>
+    </Form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { notifyError, notifyWarning } from '@renderer/utils/notify'
+import { HelpCircle } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 import { settings, setSetting, getImagePath } from '../../utils/settings.js'
 import messageBridge from '../../bridge/message-bridge'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+
+// Demo mode support
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
+
+// Load demo data for image settings
+const loadDemoData = () => {
+  // Mock image settings data
+  settings.imageUpload = {
+    action: 'upload',
+    uploadService: 'local',
+    localImageDir: '/Users/demo/Documents/MetaDoc Images',
+    customUploadApiUrl: '',
+    customUploadApiMethod: 'POST',
+    customUploadApiFieldName: 'file',
+    keepNetworkImageUrl: false,
+    autoEscapeImageUrl: true
+  }
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+  }
+})
 
 const saveImageSetting = async (key: string, value: unknown) => {
   const imageUpload = { ...settings.imageUpload, [key]: value }
@@ -181,7 +248,7 @@ const selectImageDirectory = async () => {
       await saveImageSetting('localImageDir', result.filePaths[0])
     }
   } catch (error) {
-    ElMessage.error('选择目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('选择目录失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -198,10 +265,10 @@ const openImageDirectory = async () => {
       // 使用 shell-open 打开目录
       messageBridge.send('shell-open', dirPath)
     } else {
-      ElMessage.warning(t('setting.image.noImageDirSet', '未设置图片目录'))
+      notifyWarning(t('setting.image.noImageDirSet', '未设置图片目录'))
     }
   } catch (error) {
-    ElMessage.error('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 </script>
@@ -209,7 +276,8 @@ const openImageDirectory = async () => {
 <style scoped>
 .image-settings {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 

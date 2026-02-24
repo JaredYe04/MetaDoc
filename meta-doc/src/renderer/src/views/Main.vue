@@ -49,7 +49,7 @@
     <!-- 固定底部菜单 -->
     <!-- 固定的底部状态栏 -->
 
-    <NotificationQueue />
+    <NotificationStack />
     <AITaskQueue />
     <LoggerConsolePanel />
     <TabSwitcherOverlay />
@@ -83,7 +83,7 @@ import ViewMenuContainer from '../components/ViewMenuContainer.vue'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
-import NotificationQueue from '../components/NotificationQueue.vue'
+import NotificationStack from '../components/NotificationStack.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
 import TabContentRenderer from '../components/TabContentRenderer.vue'
@@ -94,7 +94,8 @@ import TabContentRenderer from '../components/TabContentRenderer.vue'
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElNotification, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { getSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
@@ -133,7 +134,7 @@ const logger = createRendererLogger('Main', {
 })
 const workspace = useWorkspace()
 const tabSwitcher = useTabSwitcher()
-const { closeTab } = useCloseTab()
+const { checkCanCloseTab, doRemoveTab } = useCloseTab()
 
 // ============================================================================
 // 计算属性和状态
@@ -639,12 +640,18 @@ function initMainEventListeners() {
   const handleTabClose = async () => {
     const tabId = activeTabId.value
     if (!tabId) return
-    
+
+    // 先检查是否可以关闭
+    const canClose = await checkCanCloseTab(tabId)
+    if (!canClose) return
+
     // 🚨 关键修复：立即清除 activeTabId，防止 await 期间重复关闭同一个
     // 让 removeTab 自己处理切换到下一个 tab
-    workspace.activeTabId.value = ''  // 临时设为无选中
-    
-    await closeTab(tabId)
+    workspace.activeTabId.value = '' // 临时设为无选中
+
+    // 发送事件通知 MainTabs 执行关闭动画
+    // MainTabs 会处理动画，动画完成后调用 doRemoveTab
+    eventBus.emit('tab-close-with-animation', tabId)
   }
   eventBus.on('tab-close', handleTabClose)
 
@@ -751,17 +758,17 @@ function initMainEventListeners() {
     if (!tabId) return
     const tab = workspaceTabs.find((t) => t.id === tabId)
     if (!tab || tab.kind !== 'file') return
-    
+
     // 检查是否是PDF格式的tab（无论是预览模式还是正式打开）
     const path = tab.path || ensureDocument(tabId).path || ''
     const format = tab.format || ensureDocument(tabId).format || ''
     const isPdfTab = path.toLowerCase().endsWith('.pdf') && format.toLowerCase() === 'pdf'
-    
+
     if (!isPdfTab) return
-    
+
     // 保存路径
     const pdfPath = path
-    
+
     // 先释放文件占用（如果是预览tab），然后移除tab
     // 注意：正式打开的PDF tab在转换时也会释放占用（见上面的修复）
     if (tab.preview && pdfPath) {
@@ -773,11 +780,16 @@ function initMainEventListeners() {
         logger.warn('释放PDF文件占用失败:', error)
       }
     }
-    
+
     removeTab(tabId)
-    
+
     // 按「双击」流程转 PDF→MD 并新建正式 tab
-    eventBus.emit('workspace-open-document', { path: pdfPath, format: 'pdf', content: '', preview: false })
+    eventBus.emit('workspace-open-document', {
+      path: pdfPath,
+      format: 'pdf',
+      content: '',
+      preview: false
+    })
   }
   eventBus.on('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd)
 
@@ -907,21 +919,13 @@ function initMainEventListeners() {
 
   // 显示错误通知
   const handleShowError = (message: unknown) => {
-    ElNotification({
-      title: t('main.notification.error.title'),
-      message: message as string,
-      type: 'error'
-    })
+    notifyError(message as string, { title: t('main.notification.error.title') })
   }
   eventBus.on('show-error', handleShowError)
 
   // 显示警告通知
   const handleShowWarning = (message: unknown) => {
-    ElNotification({
-      title: t('main.notification.warning.title'),
-      message: message as string,
-      type: 'warning'
-    })
+    notifyWarning(message as string, { title: t('main.notification.warning.title') })
   }
   eventBus.on('show-warning', handleShowWarning)
 
@@ -964,10 +968,8 @@ function initMainEventListeners() {
       const newTab = workspace.openNewDocumentTab()
       workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
       workspace.updateDocumentMarkdown(newTab.id, data.content)
-      ElNotification({
-        title: t('main.notification.success.title'),
-        message: t('aiChat.insertSuccess', '内容已插入到文档'),
-        type: 'success'
+      notifySuccess(t('aiChat.insertSuccess', '内容已插入到文档'), {
+        title: t('main.notification.success.title')
       })
       return
     }
@@ -1060,20 +1062,16 @@ function initMainEventListeners() {
               workspace.updateDocumentTex(targetTabId, newTex)
             }
 
-            ElNotification({
-              title: t('main.notification.success.title'),
-              message: t('aiChat.insertSuccess', '内容已插入到文档'),
-              type: 'success'
+            notifySuccess(t('aiChat.insertSuccess', '内容已插入到文档'), {
+              title: t('main.notification.success.title')
             })
           }
         }
       }
     } catch (error) {
       logger.error('插入内容到文档失败:', error)
-      ElNotification({
-        title: t('main.notification.error.title'),
-        message: error instanceof Error ? error.message : String(error),
-        type: 'error'
+      notifyError(error instanceof Error ? error.message : String(error), {
+        title: t('main.notification.error.title')
       })
     }
   }
@@ -1092,17 +1090,13 @@ function initMainEventListeners() {
       // 设置内容
       workspace.updateDocumentMarkdown(newTab.id, data.content)
 
-      ElNotification({
-        title: t('main.notification.success.title'),
-        message: t('aiChat.exportSuccess', '已导出到新文档'),
-        type: 'success'
+      notifySuccess(t('aiChat.exportSuccess', '已导出到新文档'), {
+        title: t('main.notification.success.title')
       })
     } catch (error) {
       logger.error('导出到新文档失败:', error)
-      ElNotification({
-        title: t('main.notification.error.title'),
-        message: error instanceof Error ? error.message : String(error),
-        type: 'error'
+      notifyError(error instanceof Error ? error.message : String(error), {
+        title: t('main.notification.error.title')
       })
     }
   }

@@ -2,11 +2,11 @@
   <div id="particle-bg" class="homepage">
     <!-- 动态背景动画 -->
     <DynamicBackgroundAnimation />
-    
+
     <!-- 极简网格装饰 -->
     <div class="grid-decoration"></div>
 
-    <el-scrollbar class="center-content">
+    <ScrollArea class="center-content">
       <div class="center-content-wrapper">
         <!-- METADOC 扭曲文字 Banner -->
         <div v-if="showWelcome" class="hero-section">
@@ -22,66 +22,52 @@
         <div v-if="showWelcome" class="action-section">
           <div class="action-card" @click="openQuickStart">
             <div class="action-icon">
-              <el-icon :size="22">
-                <InfoFilled />
-              </el-icon>
+              <Info class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.quickStart') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.quickStart') || '快速开始使用' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
 
           <div class="action-card" @click="openNewDoc">
             <div class="action-icon">
-              <el-icon :size="22">
-                <DocumentAdd />
-              </el-icon>
+              <FilePlus class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.newDoc') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.newDoc') || '创建一篇新文档' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
 
           <div class="action-card" @click="openFile">
             <div class="action-icon">
-              <el-icon :size="22">
-                <FolderOpened />
-              </el-icon>
+              <FolderOpen class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.openFile') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.openFile') || '打开现有文档' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
 
-          <div 
-            class="action-card manual-card" 
+          <div
+            class="action-card manual-card"
             :class="{ 'highlight-pulse': showManualHighlight }"
             @click="openUserManual"
           >
             <div class="action-icon">
-              <el-icon :size="22">
-                <Reading />
-              </el-icon>
+              <BookOpen class="w-5 h-5" />
             </div>
             <div class="action-content">
               <h3 class="action-title">{{ $t('home.button.userManual') || '用户手册' }}</h3>
-              <p class="action-desc">{{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}</p>
+              <p class="action-desc">
+                {{ $t('home.tooltip.userManual') || '学习如何使用MetaDoc' }}
+              </p>
             </div>
-            <el-icon class="action-arrow" :size="16">
-              <ArrowRight />
-            </el-icon>
+            <ChevronRight class="w-4 h-4" />
           </div>
         </div>
 
@@ -89,7 +75,7 @@
         <div v-if="showWelcome && recentDocs.length > 0" class="recent-section">
           <div class="recent-header">
             <h3 class="recent-title">
-              <el-icon class="recent-title-icon"><Document /></el-icon>
+              <FileText class="w-4 h-4" />
               {{ $t('home.recentDocuments') || '最近文档' }}
             </h3>
           </div>
@@ -106,20 +92,21 @@
                 <span class="doc-card-name">
                   {{ getFileName(docPath) }}
                 </span>
-                <el-button
-                  class="doc-card-delete-btn"
-                  circle
-                  size="small"
-                  :icon="Close"
-                  text
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="doc-card-delete-btn h-6 w-6 rounded-full"
                   @click.stop="removeRecentDoc(docPath)"
-                />
+                >
+                  <Close class="h-3 w-3" />
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </el-scrollbar>
+      <ScrollBar />
+    </ScrollArea>
 
     <QuickStartPanel v-if="quickStartStage !== 'inactive'" @close="handleQuickStartClose" />
     <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
@@ -129,12 +116,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, onActivated } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
 import QuickStartPanel from '../components/home/QuickStartPanel.vue'
 import DistortionBanner from '../components/home/DistortionBanner.vue'
 import DynamicBackgroundAnimation from '../components/home/DynamicBackgroundAnimation.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 // 粒子效果相关代码已注释，以备后用
@@ -144,15 +133,7 @@ import { themeState, mixColors } from '../utils/themes'
 // import { ParticleEffect } from '../utils/particle-effect'
 // import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
-import {
-  Document,
-  InfoFilled,
-  FolderOpened,
-  ArrowRight,
-  Close,
-  DocumentAdd,
-  Reading
-} from '@element-plus/icons-vue'
+import { FileText, Info, FolderOpen, ArrowRight, X, FilePlus, BookOpen } from 'lucide-vue-next'
 import { basename, extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { hasCompletedProfile } from '../utils/user-profile'
@@ -192,7 +173,9 @@ const handleQuickStartClose = () => {
 }
 
 const openNewDoc = () => {
-  eventBus.emit('new-doc')
+  // 主页的新建文档按钮应该和 Ctrl+T 一样，在当前窗口新建标签页
+  // 而不是像 Ctrl+N 那样创建新窗口
+  workspace.openNewDocumentTab()
 }
 
 const openFile = () => {
@@ -448,8 +431,7 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image:
-    linear-gradient(
+  background-image: linear-gradient(
       v-bind(
           'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"'
         )
@@ -512,7 +494,7 @@ onBeforeUnmount(() => {
   z-index: 2;
 }
 
-.center-content :deep(.el-scrollbar__wrap) {
+.center-content :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -750,15 +732,10 @@ onBeforeUnmount(() => {
   padding: 11px 16px;
   cursor: pointer;
   transition: all 0.05s ease;
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"'
-  );
+  background: v-bind('themeState.currentTheme.background2nd');
   user-select: none;
   animation: fadeIn 0.3s ease-out both;
-  border-bottom: 1px solid
-    v-bind(
-      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"'
-    );
+  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor + "40"');
 }
 
 .recent-doc-card:last-child {
@@ -766,15 +743,11 @@ onBeforeUnmount(() => {
 }
 
 .recent-doc-card:hover {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgb(50,50,52)" : "rgb(245,245,245)"'
-  );
+  background: v-bind('themeState.currentTheme.background');
 }
 
 .recent-doc-card:active {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgb(55,55,57)" : "rgb(238,238,238)"'
-  );
+  background: v-bind('themeState.currentTheme.background');
 }
 
 /* 文档卡片左侧小竖线指示器 */
@@ -783,16 +756,12 @@ onBeforeUnmount(() => {
   width: 3px;
   height: 16px;
   border-radius: 1.5px;
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"'
-  );
+  background: v-bind('themeState.currentTheme.primaryColor + "30"');
   transition: all 0.05s ease;
 }
 
 .recent-doc-card:hover .doc-card-indicator {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"'
-  );
+  background: v-bind('themeState.currentTheme.primaryColor');
   height: 20px;
 }
 
@@ -847,7 +816,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes highlightPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
     box-shadow: 0 0 20px rgba(64, 158, 255, 0.4);
   }

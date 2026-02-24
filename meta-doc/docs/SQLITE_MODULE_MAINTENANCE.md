@@ -311,6 +311,7 @@ ALTER TABLE data_chunks ADD COLUMN embedding_model TEXT DEFAULT 'bce-embedding-b
 ### 迁移最佳实践
 
 1. **幂等性**：确保迁移可以安全地多次执行
+
    - 使用 `CREATE TABLE IF NOT EXISTS`
    - 使用 `CREATE INDEX IF NOT EXISTS`
    - 对于 `ADD COLUMN`，迁移系统会自动处理
@@ -466,9 +467,11 @@ getDatabase()
 1. **数据库锁定**：多个进程同时访问数据库
    - 解决：使用 WAL 模式（已启用）
 2. **磁盘空间不足**：数据库文件无法写入
+
    - 解决：检查磁盘空间，清理不必要的数据
 
 3. **权限错误**：无法创建或写入数据库文件
+
    - 解决：检查文件权限，确保应用有写入权限
 
 4. **扩展加载失败**：sqlite-vec 无法加载

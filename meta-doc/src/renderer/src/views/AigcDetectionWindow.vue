@@ -1,64 +1,68 @@
 <template>
   <div class="aigc-detection-window">
     <!-- 选择文档对话框 -->
-    <el-dialog
-      v-model="selectDocumentDialogVisible"
-      :title="t('aigc.selectDocumentTitle')"
-      width="600"
-      class="select-document-dialog"
-    >
-      <div class="select-document-content">
-        <div class="select-document-header">
-          <span class="selected-count">
-            {{
-              selectedTabId
-                ? t('aigc.selectedOneDocument', '已选择 1 个文档')
-                : t('aigc.pleaseSelectDocument')
-            }}
-          </span>
-        </div>
-        <el-scrollbar height="400px" class="document-list-scrollbar">
-          <div class="document-list">
-            <div
-              v-for="tab in documentTabs"
-              :key="tab.id"
-              class="document-card"
-              :class="{ selected: selectedTabId === tab.id }"
-              @click="selectedTabId = tab.id"
-            >
-              <div class="document-card-content">
-                <div class="document-card-header">
-                  <el-icon class="document-icon"><Document /></el-icon>
-                  <span class="document-title">{{ tab.displayName }}</span>
+    <Dialog v-model:open="selectDocumentDialogVisible">
+      <DialogContent class="sm:max-w-[600px] select-document-dialog">
+        <DialogHeader>
+          <DialogTitle>{{ t('aigc.selectDocumentTitle') }}</DialogTitle>
+        </DialogHeader>
+        <div class="select-document-content">
+          <div class="select-document-header">
+            <span class="selected-count">
+              {{
+                selectedTabId
+                  ? t('aigc.selectedOneDocument', '已选择 1 个文档')
+                  : t('aigc.pleaseSelectDocument')
+              }}
+            </span>
+          </div>
+          <ScrollArea class="h-[400px] document-list-scrollbar">
+            <div class="document-list">
+              <div
+                v-for="tab in documentTabs"
+                :key="tab.id"
+                class="document-card"
+                :class="{ selected: selectedTabId === tab.id }"
+                @click="selectedTabId = tab.id"
+              >
+                <div class="document-card-content">
+                  <div class="document-card-header">
+                    <FileText class="document-icon" />
+                    <span class="document-title">{{ tab.displayName }}</span>
+                  </div>
+                  <div v-if="tab.path" class="document-path">
+                    <FolderOpen class="path-icon" />
+                    <span>{{ tab.path }}</span>
+                  </div>
+                  <div class="document-format">
+                    <Badge :variant="tab.format === 'md' ? 'default' : 'secondary'">
+                      {{ tab.format === 'md' ? 'Markdown' : 'LaTeX' }}
+                    </Badge>
+                  </div>
                 </div>
-                <div v-if="tab.path" class="document-path">
-                  <el-icon class="path-icon"><Folder /></el-icon>
-                  <span>{{ tab.path }}</span>
-                </div>
-                <div class="document-format">
-                  <el-tag size="small" :type="tab.format === 'md' ? 'primary' : 'success'">
-                    {{ tab.format === 'md' ? 'Markdown' : 'LaTeX' }}
-                  </el-tag>
+              </div>
+              <div v-if="documentTabs.length === 0" class="empty-state">
+                <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <FileX class="w-16 h-16 mb-4 opacity-50" />
+                  <p>{{ t('aigc.noDocuments') }}</p>
                 </div>
               </div>
             </div>
-            <div v-if="documentTabs.length === 0" class="empty-state">
-              <el-empty :description="t('aigc.noDocuments')" :image-size="80" />
-            </div>
-          </div>
-        </el-scrollbar>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="selectDocumentDialogVisible = false">{{
-            t('common.cancel')
-          }}</el-button>
-          <el-button type="primary" @click="confirmSelectDocument" :disabled="!selectedTabId">
-            {{ t('common.confirm') }}
-          </el-button>
+            <ScrollBar />
+          </ScrollArea>
         </div>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <div class="dialog-footer">
+            <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
+              t('common.cancel')
+            }}</Button>
+            <Button @click="confirmSelectDocument" :disabled="!selectedTabId">
+              {{ t('common.confirm') }}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <div class="main-container">
       <!-- 左侧会话列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
@@ -82,7 +86,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('aigc.noSessionSelected') }}</p>
           </div>
@@ -90,114 +95,89 @@
           <div v-else class="session-content-panel" :style="panelStyle">
             <!-- 顶部工具栏 -->
             <div class="toolbar-section">
-              <el-scrollbar class="toolbar-scrollbar" always>
+              <ScrollArea class="toolbar-scrollbar">
                 <div class="toolbar-content">
                   <div class="toolbar-left">
                     <template v-if="!articleContent">
-                      <el-upload
+                      <FileUpload
                         ref="uploadRef"
                         :file-list="[]"
                         :auto-upload="false"
-                        :on-change="handleFileChange"
                         :show-file-list="false"
                         :accept="acceptedFileTypes"
+                        @change="handleFileChange"
                       >
-                        <template #trigger>
-                          <el-button :icon="UploadFilled">
-                            {{ t('aigc.uploadFile') }}
-                          </el-button>
-                        </template>
-                      </el-upload>
-                      <el-button
-                        :icon="Document"
-                        :disabled="!hasActiveDocument"
-                        @click="handleSelectFromDocument"
-                      >
+                        <Button>
+                          <Upload class="w-4 h-4 mr-2" />
+                          {{ t('aigc.uploadFile') }}
+                        </Button>
+                      </FileUpload>
+                      <Button :disabled="!hasActiveDocument" @click="handleSelectFromDocument">
+                        <Document class="w-4 h-4 mr-2" />
                         {{ t('aigc.selectFromDocument') }}
-                      </el-button>
+                      </Button>
                     </template>
-                    <el-button
+                    <Button
                       :disabled="!articleContent || !paragraphs.length || analyzing"
                       @click="handleSplitAtCursor"
                     >
                       {{ t('aigc.splitAtCursor') }}
-                    </el-button>
-                    <el-button
+                    </Button>
+                    <Button
                       :disabled="!articleContent || !canMergeWithNext || analyzing"
                       @click="handleMergeWithNext"
                     >
                       {{ t('aigc.mergeWithNext') }}
-                    </el-button>
-                    <el-button
+                    </Button>
+                    <Button
                       :disabled="!articleContent || !articleContent.trim() || analyzing"
                       @click="handleRePreprocess"
                     >
                       {{ t('aigc.rePreprocess') }}
-                    </el-button>
-                    <el-button
+                    </Button>
+                    <Button
                       v-if="overallAnalysis"
                       :disabled="!articleContent || analyzing"
                       :loading="paraphrasing"
                       @click="handleParaphraseAll"
                     >
                       {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
-                    </el-button>
+                    </Button>
                   </div>
 
                   <div class="toolbar-right">
-                    <el-button
-                      v-if="articleContent"
-                      type="primary"
-                      :loading="analyzing"
-                      @click="handleAnalyze"
-                    >
+                    <Button v-if="articleContent" :loading="analyzing" @click="handleAnalyze">
                       {{ overallAnalysis ? t('aigc.reAnalyze') : t('aigc.startAnalysis') }}
-                    </el-button>
-                    <el-dropdown
+                    </Button>
+                    <DropdownMenu
                       v-if="overallAnalysis && paragraphAnalyses.length > 0 && reportMarkdown"
-                      trigger="click"
-                      popper-class="aigc-export-dropdown-menu"
-                      @command="handleExportCommand"
                     >
-                      <el-button>
-                        {{ t('aigc.export', '导出') }}
-                        <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                      </el-button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="report">{{
-                            t('aigc.exportReport')
-                          }}</el-dropdown-item>
-                          <el-dropdown-item v-if="hasAnyParaphrase" divided @click.prevent.stop>
-                            <el-dropdown
-                              trigger="hover"
-                              placement="right-start"
-                              popper-class="aigc-export-dropdown-menu"
-                              @command="handleExportParaphrasedCommand"
-                              style="width: 100%"
-                            >
-                              <span class="aigc-export-submenu-trigger">
-                                {{ t('aigc.exportParaphrased', '导出改写后的文章') }}
-                                <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-                              </span>
-                              <template #dropdown>
-                                <el-dropdown-menu>
-                                  <el-dropdown-item command="doc">{{
-                                    t('aigc.exportAsNewDoc', '作为新文档')
-                                  }}</el-dropdown-item>
-                                  <el-dropdown-item command="session">{{
-                                    t('aigc.exportAndDetect', '进行AIGC率检测')
-                                  }}</el-dropdown-item>
-                                </el-dropdown-menu>
-                              </template>
-                            </el-dropdown>
-                          </el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
+                      <DropdownMenuTrigger as-child>
+                        <Button>
+                          {{ t('aigc.export', '导出') }}
+                          <ArrowDown class="w-4 h-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent class="aigc-export-dropdown-menu">
+                        <DropdownMenuItem @click="handleExportCommand('report')">
+                          {{ t('aigc.exportReport') }}
+                        </DropdownMenuItem>
+                        <template v-if="hasAnyParaphrase">
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem @click="handleExportParaphrasedCommand('doc')">
+                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} -
+                            {{ t('aigc.exportAsNewDoc', '作为新文档') }}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem @click="handleExportParaphrasedCommand('session')">
+                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} -
+                            {{ t('aigc.exportAndDetect', '进行AIGC率检测') }}
+                          </DropdownMenuItem>
+                        </template>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-              </el-scrollbar>
+              </ScrollArea>
             </div>
 
             <!-- 主内容区域：无报告时 Monaco 70% / 报告 30%，有报告时 Monaco 30% / 报告 70% -->
@@ -233,18 +213,23 @@
                   <div ref="reportSectionRef" class="report-section">
                     <div class="report-header">
                       <span>{{ t('aigc.analysisReport') }}</span>
-                      <el-button v-if="reportMarkdown" size="small" text @click="scrollReportToTop">
+                      <Button
+                        v-if="reportMarkdown"
+                        variant="ghost"
+                        size="sm"
+                        @click="scrollReportToTop"
+                      >
                         {{ t('aigc.backToTop', '回到顶端') }}
-                      </el-button>
+                      </Button>
                     </div>
-                    <el-scrollbar
-                      class="report-scrollbar"
+                    <ScrollArea
                       v-if="reportMarkdown"
-                      always
+                      class="report-scrollbar"
                       @click="onReportAreaClick"
                     >
                       <VditorPreview :markdown="reportMarkdown" @rendered="onReportRendered" />
-                    </el-scrollbar>
+                      <ScrollBar />
+                    </ScrollArea>
                     <div v-else class="report-placeholder">
                       <p v-if="!overallAnalysis">{{ t('aigc.noAnalysisYet') }}</p>
                       <p v-else>{{ t('aigc.analyzing') }}</p>
@@ -268,8 +253,37 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { UploadFilled, Document, Folder, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
+import { FileText, FolderOpen, Upload, ArrowDown, FileX } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Upload as FileUpload } from '@renderer/components/ui/upload'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { aigcDetectionSessionsDb, type AigcDetectionSession } from '../utils/db/tool-sessions-db'
@@ -883,10 +897,10 @@ function onReportAreaClick(e: MouseEvent) {
   navigator.clipboard
     .writeText(contentDiv.textContent.trim())
     .then(() => {
-      ElMessage.success(t('aigc.copySuccess', '已复制'))
+      notifySuccess(t('aigc.copySuccess', '已复制'))
     })
     .catch(() => {
-      ElMessage.error(t('aigc.copyFailed', '复制失败'))
+      notifyError(t('aigc.copyFailed', '复制失败'))
     })
 }
 
@@ -978,7 +992,7 @@ function applyReportParagraphCollapse(container: HTMLElement) {
 /** 报告区回到顶端 */
 function scrollReportToTop() {
   const wrap = reportSectionRef.value?.querySelector(
-    '.report-scrollbar .el-scrollbar__wrap'
+    '.report-scrollbar [data-radix-scroll-area-viewport]'
   ) as HTMLElement | null
   if (wrap) wrap.scrollTop = 0
 }
@@ -1042,7 +1056,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1082,7 +1096,7 @@ const handleCreateSession = async () => {
     overallReportBlock.value = ''
     modifiedParagraphIndices.value = new Set()
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1178,7 +1192,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       updateEditorDecorations()
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -1190,7 +1204,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await aigcDetectionSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1218,9 +1232,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess'))
+    notifySuccess(t('common.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1242,9 +1256,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
       overallReportBlock.value = ''
       modifiedParagraphIndices.value = new Set()
     }
-    ElMessage.success(t('common.deleteSuccess'))
+    notifySuccess(t('common.deleteSuccess'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1286,7 +1300,7 @@ const handleFileChange = async (file: any) => {
       if (!filePath) throw new Error('保存文件失败')
       const adapter = referenceAdapterManager.getAdapter(fileExt)
       if (!adapter) {
-        ElMessage.error(t('aigc.unsupportedFileType'))
+        notifyError(t('aigc.unsupportedFileType'))
         return
       }
       parsedContent = await adapter.parse(filePath, fileExt)
@@ -1317,9 +1331,9 @@ const handleFileChange = async (file: any) => {
     updateEditorContent()
     updateEditorDecorations()
 
-    ElMessage.success(t('aigc.fileUploaded'))
+    notifySuccess(t('aigc.fileUploaded'))
   } catch (error) {
-    ElMessage.error('上传文件失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('上传文件失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1331,7 +1345,7 @@ const handleSelectFromDocument = async () => {
 
   // 检查是否有可用的文档
   if (documentTabs.value.length === 0) {
-    ElMessage.warning(t('aigc.noActiveDocument'))
+    notifyWarning(t('aigc.noActiveDocument'))
     return
   }
 
@@ -1355,20 +1369,20 @@ function getDisplayNameFromTab(tab: { title?: string; path?: string }): string {
 // 确认选择文档
 const confirmSelectDocument = async () => {
   if (!selectedTabId.value) {
-    ElMessage.warning(t('aigc.pleaseSelectDocument'))
+    notifyWarning(t('aigc.pleaseSelectDocument'))
     return
   }
 
   try {
     const tab = workspace.tabs.find((t) => String(t.id) === selectedTabId.value)
     if (!tab) {
-      ElMessage.error(t('aigc.documentNotFound'))
+      notifyError(t('aigc.documentNotFound'))
       return
     }
 
     const doc = workspace.ensureDocument(tab.id)
     if (!doc || (doc.format !== 'md' && doc.format !== 'tex')) {
-      ElMessage.error(t('aigc.unsupportedFormat'))
+      notifyError(t('aigc.unsupportedFormat'))
       return
     }
 
@@ -1381,7 +1395,7 @@ const confirmSelectDocument = async () => {
     }
 
     if (!content.trim()) {
-      ElMessage.warning(t('aigc.documentEmpty'))
+      notifyWarning(t('aigc.documentEmpty'))
       return
     }
 
@@ -1415,9 +1429,9 @@ const confirmSelectDocument = async () => {
     updateEditorContent()
     updateEditorDecorations()
 
-    ElMessage.success(t('aigc.contentSelected'))
+    notifySuccess(t('aigc.contentSelected'))
   } catch (error) {
-    ElMessage.error('选择内容失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('选择内容失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1502,12 +1516,12 @@ function saveParagraphTexts() {
 // 开始分析：以当前划分好的段落为单位，并行执行，每个子任务完成后立即追加到报告
 const handleAnalyze = async () => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   const list = paragraphs.value.filter((p) => p.trim())
   if (list.length === 0) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
 
@@ -1562,9 +1576,9 @@ const handleAnalyze = async () => {
     }
     await nextTick()
     updateEditorDecorations()
-    ElMessage.success(t('aigc.analysisComplete'))
+    notifySuccess(t('aigc.analysisComplete'))
   } catch (error) {
-    ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     analyzing.value = false
   }
@@ -1859,13 +1873,13 @@ function buildOverallReportBlock(overall: AigcAnalysisResult): string {
 // 导出报告到新文档
 const handleExportReport = () => {
   if (!reportMarkdown.value) {
-    ElMessage.warning(t('aigc.noAnalysisData'))
+    notifyWarning(t('aigc.noAnalysisData'))
     return
   }
   eventBus.emit('ai-chat-export-to-document', {
     content: reportMarkdown.value
   })
-  ElMessage.success(t('aigc.exportReportSuccess', '已导出到新文档'))
+  notifySuccess(t('aigc.exportReportSuccess', '已导出到新文档'))
 }
 
 /** 导出下拉菜单：report=导出报告；二级菜单由 handleExportParaphrasedCommand 处理 */
@@ -1882,7 +1896,7 @@ const handleExportParaphrasedCommand = (command: string) => {
 /** 导出改写后的文章到新文档（与拼成新文章相同的拼文逻辑，不创建新会话） */
 const handleExportParaphrasedArticle = () => {
   if (!paragraphs.value.length) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   const newParagraphs = paragraphs.value.map((p, i) => {
@@ -1893,13 +1907,13 @@ const handleExportParaphrasedArticle = () => {
   eventBus.emit('ai-chat-export-to-document', {
     content: newContent
   })
-  ElMessage.success(t('aigc.exportParaphrasedSuccess', '已导出改写后的文章到新文档'))
+  notifySuccess(t('aigc.exportParaphrasedSuccess', '已导出改写后的文章到新文档'))
 }
 
 /** 将改写后的内容拼成新文章并在新会话中打开（已改写段落用改写文，未改写的保留原文） */
 const handleAssembleAsNewArticle = async () => {
   if (!paragraphs.value.length) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   const newParagraphs = paragraphs.value.map((p, i) => {
@@ -1934,9 +1948,9 @@ const handleAssembleAsNewArticle = async () => {
     } else {
       activeSessionId.value = id
     }
-    ElMessage.success(t('aigc.assembleSuccess', '已拼成新文章并打开'))
+    notifySuccess(t('aigc.assembleSuccess', '已拼成新文章并打开'))
   } catch (error) {
-    ElMessage.error('拼成新文章失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('拼成新文章失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -2090,7 +2104,7 @@ async function paraphraseOneSegment(index: number, skipDbSave = false): Promise<
 /** 改写全部：并发对各段做同义转述（与开始分析类似，同时改写各段），每完成一段即更新报告 */
 const handleParaphraseAll = async () => {
   if (!paragraphAnalyses.value.length || !paragraphs.value.length) {
-    ElMessage.warning(t('aigc.noContent'))
+    notifyWarning(t('aigc.noContent'))
     return
   }
   paraphrasing.value = true
@@ -2105,9 +2119,9 @@ const handleParaphraseAll = async () => {
     }
     await nextTick()
     onReportRendered()
-    ElMessage.success(t('aigc.paraphraseSuccess'))
+    notifySuccess(t('aigc.paraphraseSuccess'))
   } catch (error) {
-    ElMessage.error('改写失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('改写失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     paraphrasing.value = false
   }
@@ -2121,9 +2135,9 @@ const handleParaphraseOne = async (index: number) => {
     await paraphraseOneSegment(index)
     await nextTick()
     onReportRendered()
-    ElMessage.success(t('aigc.paraphraseSuccess'))
+    notifySuccess(t('aigc.paraphraseSuccess'))
   } catch (error) {
-    ElMessage.error('改写失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('改写失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     paraphrasingOneIndex.value = null
   }
@@ -2222,6 +2236,15 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    sessions.value = [
+      { id: 'demo-1', title: '示例文档检测', updatedAt: Date.now() },
+      { id: 'demo-2', title: '论文检测', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   loadSessions()
 })
 </script>
@@ -2297,7 +2320,7 @@ onMounted(() => {
   width: 100%;
 }
 
-.toolbar-scrollbar :deep(.el-scrollbar__wrap) {
+.toolbar-scrollbar :deep([data-radix-scroll-area-viewport]) {
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -2397,11 +2420,13 @@ onMounted(() => {
   overflow: hidden;
   height: 100%;
 }
-.report-scrollbar :deep(.el-scrollbar__wrap) {
+.report-scrollbar :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+}
+
+.report-scrollbar :deep([data-radix-scroll-area-viewport])::-webkit-scrollbar {
+  width: 6px;
 }
 .report-scrollbar :deep(.el-scrollbar__wrap)::-webkit-scrollbar {
   display: none;
@@ -2598,10 +2623,8 @@ onMounted(() => {
 }
 
 /* 选择文档对话框样式 */
-.select-document-dialog {
-  .el-dialog__body {
-    padding: 0;
-  }
+.select-document-dialog [data-slot='dialog-content'] {
+  padding: 0;
 }
 
 .select-document-content {

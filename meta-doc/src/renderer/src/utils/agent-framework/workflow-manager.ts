@@ -5,6 +5,7 @@
 
 import type {
   Workflow,
+  WorkflowEdge,
   SerializedEntity,
   WorkflowExecutionState
 } from '../../types/agent-framework'

@@ -50,6 +50,7 @@
    ```
 
 2. **修改 `prepareExportPayload` 函数**
+
    - 使用适配器来准备导出数据
    - 根据源格式和目标格式获取适配器
    - 调用适配器的 `prepareExportData` 方法
@@ -64,14 +65,17 @@
 需要修改 `meta-doc/src/main/export/export-manager.ts`：
 
 1. **修改导出处理器**
+
    - 接收导出选项参数
    - 根据选项调整导出行为（如PDF边距、DOCX样式等）
 
 2. **PDF导出选项应用**
+
    - 在 `convertHtmlToPdfBuffer` 中使用选项中的边距和纸张大小
    - 应用 `printBackground` 选项
 
 3. **DOCX导出选项应用**
+
    - 在 `convertMarkdownToDocxBuffer` 中应用样式映射选项
    - 根据 `enableStyleMapping` 决定是否应用样式
    - 使用选项中的字体、字号、行距等
@@ -163,14 +167,17 @@ function handleOptionsConfirm(options: ExportOptions) {
 ## 注意事项
 
 1. **默认值保持兼容**
+
    - 所有适配器的默认值与现有代码中的硬编码值保持一致
    - 确保不传入选项时，行为与原来相同
 
 2. **向后兼容**
+
    - 如果适配器不存在，应该回退到原有的导出逻辑
    - 选项验证失败时，应该使用默认值
 
 3. **错误处理**
+
    - 适配器方法应该包含适当的错误处理
    - UI组件应该显示验证错误信息
 

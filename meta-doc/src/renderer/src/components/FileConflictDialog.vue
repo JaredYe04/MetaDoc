@@ -1,276 +1,304 @@
 <template>
-  <el-dialog
-    :model-value="visible"
-    @update:model-value="(val: boolean) => emit('update:visible', val)"
-    :title="t('main.dialogs.fileConflictTitle', { defaultValue: '文件冲突' })"
-    width="90%"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :show-close="false"
-    class="file-conflict-dialog"
-  >
-    <div class="conflict-content">
-      <div class="conflict-message">
-        <el-alert :title="conflictMessage" type="warning" :closable="false" show-icon />
-      </div>
-
-      <div class="diff-container">
-        <div class="diff-header">
-          <div class="diff-tabs">
-            <el-button
-              :type="viewMode === 'unified' ? 'primary' : 'default'"
-              size="small"
-              @click="viewMode = 'unified'"
-            >
-              {{ t('agent.display.diff.unifiedView', '统一视图') }}
-            </el-button>
-            <el-button
-              :type="viewMode === 'split' ? 'primary' : 'default'"
-              size="small"
-              @click="viewMode = 'split'"
-            >
-              {{ t('agent.display.diff.splitView', '分列视图') }}
-            </el-button>
-          </div>
-          <div class="diff-stats">
-            <el-tag type="success" size="small">
-              {{ t('agent.display.diff.insertions', { count: insertionsCount }) }}
-            </el-tag>
-            <el-tag type="danger" size="small">
-              {{ t('agent.display.diff.deletions', { count: deletionsCount }) }}
-            </el-tag>
-          </div>
+  <Dialog :open="visible" @update:open="(val: boolean) => emit('update:visible', val)">
+    <DialogContent class="w-[90vw] max-w-[90vw]">
+      <DialogHeader>
+        <DialogTitle>{{
+          t('main.dialogs.fileConflictTitle', { defaultValue: '文件冲突' })
+        }}</DialogTitle>
+      </DialogHeader>
+      <div class="conflict-content">
+        <div class="conflict-message">
+          <Alert variant="warning">
+            <AlertTriangle class="h-4 w-4" />
+            <AlertTitle>{{ conflictMessage }}</AlertTitle>
+          </Alert>
         </div>
 
-        <!-- 统一视图 -->
-        <el-scrollbar v-if="viewMode === 'unified'" max-height="400px" class="diff-scrollbar">
-          <div class="diff-content">
-            <!-- 显示冲突区域 -->
-            <template v-if="hasConflicts && conflictRanges.length > 0">
-              <div
-                v-for="(conflict, conflictIndex) in conflictRanges"
-                :key="`conflict-${conflictIndex}`"
-                class="conflict-block"
-                :class="{ 'conflict-resolved': isConflictResolved(conflictIndex) }"
+        <div class="diff-container">
+          <div class="diff-header">
+            <div class="diff-tabs">
+              <Button
+                :variant="viewMode === 'unified' ? 'default' : 'secondary'"
+                size="sm"
+                @click="viewMode = 'unified'"
               >
-                <div class="conflict-header">
-                  <span class="conflict-label">
-                    {{
-                      t('main.dialogs.conflictBlock', {
-                        index: conflictIndex + 1,
-                        defaultValue: `冲突 ${conflictIndex + 1}`
-                      })
-                    }}
-                    ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
-                  </span>
-                  <div class="conflict-actions">
-                    <el-button
-                      :type="getConflictChoice(conflictIndex) === 'current' ? 'primary' : 'default'"
-                      size="small"
-                      @click="chooseConflictVersion(conflictIndex, 'current')"
-                    >
-                      {{ t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' }) }}
-                    </el-button>
-                    <el-button
-                      :type="
-                        getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'
-                      "
-                      size="small"
-                      @click="chooseConflictVersion(conflictIndex, 'external')"
-                    >
-                      {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用磁盘' }) }}
-                    </el-button>
-                  </div>
-                </div>
-                <div class="conflict-content-split">
-                  <div class="conflict-version current-version">
-                    <div class="version-label">
-                      {{ t('main.dialogs.currentVersion', '当前版本（MetaDoc）') }}
-                    </div>
-                    <pre class="conflict-text">{{ conflict.currentText }}</pre>
-                  </div>
-                  <div class="conflict-version external-version">
-                    <div class="version-label">
-                      {{ t('main.dialogs.externalVersion', '外部版本（磁盘）') }}
-                    </div>
-                    <pre class="conflict-text">{{ conflict.externalText }}</pre>
-                  </div>
-                </div>
-              </div>
-            </template>
-            <!-- 显示普通差异 -->
-            <template v-else-if="diffChunks && diffChunks.length > 0">
-              <div
-                v-for="(chunk, chunkIndex) in diffChunks"
-                :key="`chunk-${chunkIndex}`"
-                class="diff-chunk"
+                {{ t('agent.display.diff.unifiedView', '统一视图') }}
+              </Button>
+              <Button
+                :variant="viewMode === 'split' ? 'default' : 'secondary'"
+                size="sm"
+                @click="viewMode = 'split'"
               >
-                <div class="chunk-header">
-                  <span class="chunk-info">
-                    {{ chunk.oldStart }}-{{ chunk.oldEnd }} → {{ chunk.newStart }}-{{
-                      chunk.newEnd
-                    }}
-                  </span>
-                  <el-tag :type="getChunkTagType(chunk.type)" size="small">
-                    {{ getTypeLabel(chunk.type) }}
-                  </el-tag>
-                </div>
-                <div
-                  v-if="chunk.oldLines && chunk.oldLines.length > 0"
-                  class="diff-lines old-lines"
-                >
-                  <div
-                    v-for="(line, lineIndex) in chunk.oldLines"
-                    :key="`old-${chunkIndex}-${lineIndex}`"
-                    class="diff-line diff-delete"
-                  >
-                    <span class="line-number">{{ chunk.oldStart + lineIndex }}</span>
-                    <span class="line-content">- {{ line }}</span>
-                  </div>
-                </div>
-                <div
-                  v-if="chunk.newLines && chunk.newLines.length > 0"
-                  class="diff-lines new-lines"
-                >
-                  <div
-                    v-for="(line, lineIndex) in chunk.newLines"
-                    :key="`new-${chunkIndex}-${lineIndex}`"
-                    class="diff-line diff-insert"
-                  >
-                    <span class="line-number">{{ chunk.newStart + lineIndex }}</span>
-                    <span class="line-content">+ {{ line }}</span>
-                  </div>
-                </div>
-              </div>
-            </template>
-            <div v-else class="no-diff-data">
-              {{ t('agent.display.diff.noData', '无差异数据') }}
+                {{ t('agent.display.diff.splitView', '分列视图') }}
+              </Button>
+            </div>
+            <div class="diff-stats">
+              <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
+                {{ t('agent.display.diff.insertions', { count: insertionsCount }) }}
+              </Badge>
+              <Badge variant="destructive">
+                {{ t('agent.display.diff.deletions', { count: deletionsCount }) }}
+              </Badge>
             </div>
           </div>
-        </el-scrollbar>
 
-        <!-- 分列视图 -->
-        <div v-else class="split-view-container">
-          <div class="split-editors">
-            <div class="editor-panel old-panel">
-              <div class="editor-header">
-                <span class="editor-label">{{
-                  t('main.dialogs.currentVersion', '当前版本（MetaDoc）')
-                }}</span>
-              </div>
-              <div :id="oldEditorId" class="monaco-editor-container"></div>
-            </div>
-            <div class="editor-panel new-panel">
-              <div class="editor-header">
-                <span class="editor-label">{{
-                  t('main.dialogs.externalVersion', '外部版本（磁盘）')
-                }}</span>
-              </div>
-              <div :id="newEditorId" class="monaco-editor-container"></div>
-            </div>
-          </div>
-          <!-- 如果有冲突，在底部显示冲突列表（可折叠） -->
-          <div v-if="hasConflicts && conflictRanges.length > 0" class="conflicts-panel">
-            <el-collapse v-model="activeConflicts" class="conflicts-collapse">
-              <el-collapse-item
-                name="conflicts"
-                :title="
-                  t('main.dialogs.conflictsList', {
-                    count: conflictRanges.length,
-                    defaultValue: `冲突列表 (${conflictRanges.length})`
-                  })
-                "
-              >
-                <el-scrollbar max-height="200px" class="conflicts-scrollbar">
-                  <div class="conflicts-list">
+          <!-- 统一视图 -->
+          <ScrollArea v-if="viewMode === 'unified'" class="h-[400px]">
+            <div class="diff-content">
+              <!-- 显示冲突区域 -->
+              <template v-if="hasConflicts && conflictRanges.length > 0">
+                <div
+                  v-for="(conflict, conflictIndex) in conflictRanges"
+                  :key="`conflict-${conflictIndex}`"
+                  class="conflict-block"
+                  :class="{ 'conflict-resolved': isConflictResolved(conflictIndex) }"
+                >
+                  <div class="conflict-header">
+                    <span class="conflict-label">
+                      {{
+                        t('main.dialogs.conflictBlock', {
+                          index: conflictIndex + 1,
+                          defaultValue: `冲突 ${conflictIndex + 1}`
+                        })
+                      }}
+                      ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
+                    </span>
+                    <div class="conflict-actions">
+                      <Button
+                        :variant="
+                          getConflictChoice(conflictIndex) === 'current' ? 'default' : 'secondary'
+                        "
+                        size="sm"
+                        @click="chooseConflictVersion(conflictIndex, 'current')"
+                      >
+                        {{ t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' }) }}
+                      </Button>
+                      <Button
+                        :variant="
+                          getConflictChoice(conflictIndex) === 'external' ? 'default' : 'secondary'
+                        "
+                        size="sm"
+                        @click="chooseConflictVersion(conflictIndex, 'external')"
+                      >
+                        {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用磁盘' }) }}
+                      </Button>
+                    </div>
+                  </div>
+                  <div class="conflict-content-split">
+                    <div class="conflict-version current-version">
+                      <div class="version-label">
+                        {{ t('main.dialogs.currentVersion', '当前版本（MetaDoc）') }}
+                      </div>
+                      <pre class="conflict-text">{{ conflict.currentText }}</pre>
+                    </div>
+                    <div class="conflict-version external-version">
+                      <div class="version-label">
+                        {{ t('main.dialogs.externalVersion', '外部版本（磁盘）') }}
+                      </div>
+                      <pre class="conflict-text">{{ conflict.externalText }}</pre>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <!-- 显示普通差异 -->
+              <template v-else-if="diffChunks && diffChunks.length > 0">
+                <div
+                  v-for="(chunk, chunkIndex) in diffChunks"
+                  :key="`chunk-${chunkIndex}`"
+                  class="diff-chunk"
+                >
+                  <div class="chunk-header">
+                    <span class="chunk-info">
+                      {{ chunk.oldStart }}-{{ chunk.oldEnd }} → {{ chunk.newStart }}-{{
+                        chunk.newEnd
+                      }}
+                    </span>
+                    <Badge
+                      :variant="getChunkBadgeVariant(chunk.type)"
+                      :class="getChunkBadgeClass(chunk.type)"
+                    >
+                      {{ getTypeLabel(chunk.type) }}
+                    </Badge>
+                  </div>
+                  <div
+                    v-if="chunk.oldLines && chunk.oldLines.length > 0"
+                    class="diff-lines old-lines"
+                  >
                     <div
-                      v-for="(conflict, conflictIndex) in conflictRanges"
-                      :key="`conflict-${conflictIndex}`"
-                      class="conflict-item"
-                      :class="{ 'conflict-resolved': isConflictResolved(conflictIndex) }"
-                      :style="{
-                        borderColor: isConflictResolved(conflictIndex)
-                          ? conflictColors.resolved.border
-                          : conflictColors.unresolved.border,
-                        backgroundColor: isConflictResolved(conflictIndex)
-                          ? conflictColors.resolved.background
-                          : conflictColors.unresolved.background
-                      }"
+                      v-for="(line, lineIndex) in chunk.oldLines"
+                      :key="`old-${chunkIndex}-${lineIndex}`"
+                      class="diff-line diff-delete"
                     >
-                      <div class="conflict-item-header">
-                        <span class="conflict-item-label">
-                          {{
-                            t('main.dialogs.conflictBlock', {
-                              index: conflictIndex + 1,
-                              defaultValue: `冲突 ${conflictIndex + 1}`
-                            })
-                          }}
-                          ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
-                        </span>
-                      </div>
-                      <div class="conflict-item-actions">
-                        <el-button
-                          :type="
-                            getConflictChoice(conflictIndex) === 'current' ? 'primary' : 'default'
-                          "
-                          size="small"
-                          @click="chooseConflictVersion(conflictIndex, 'current')"
-                        >
-                          {{
-                            t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' })
-                          }}
-                        </el-button>
-                        <el-button
-                          :type="
-                            getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'
-                          "
-                          size="small"
-                          @click="chooseConflictVersion(conflictIndex, 'external')"
-                        >
-                          {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用磁盘' }) }}
-                        </el-button>
-                      </div>
+                      <span class="line-number">{{ chunk.oldStart + lineIndex }}</span>
+                      <span class="line-content">- {{ line }}</span>
                     </div>
                   </div>
-                </el-scrollbar>
-              </el-collapse-item>
-            </el-collapse>
+                  <div
+                    v-if="chunk.newLines && chunk.newLines.length > 0"
+                    class="diff-lines new-lines"
+                  >
+                    <div
+                      v-for="(line, lineIndex) in chunk.newLines"
+                      :key="`new-${chunkIndex}-${lineIndex}`"
+                      class="diff-line diff-insert"
+                    >
+                      <span class="line-number">{{ chunk.newStart + lineIndex }}</span>
+                      <span class="line-content">+ {{ line }}</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div v-else class="no-diff-data">
+                {{ t('agent.display.diff.noData', '无差异数据') }}
+              </div>
+            </div>
+          </ScrollArea>
+
+          <!-- 分列视图 -->
+          <div v-else class="split-view-container">
+            <div class="split-editors">
+              <div class="editor-panel old-panel">
+                <div class="editor-header">
+                  <span class="editor-label">{{
+                    t('main.dialogs.currentVersion', '当前版本（MetaDoc）')
+                  }}</span>
+                </div>
+                <div :id="oldEditorId" class="monaco-editor-container"></div>
+              </div>
+              <div class="editor-panel new-panel">
+                <div class="editor-header">
+                  <span class="editor-label">{{
+                    t('main.dialogs.externalVersion', '外部版本（磁盘）')
+                  }}</span>
+                </div>
+                <div :id="newEditorId" class="monaco-editor-container"></div>
+              </div>
+            </div>
+            <!-- 如果有冲突，在底部显示冲突列表（可折叠） -->
+            <div v-if="hasConflicts && conflictRanges.length > 0" class="conflicts-panel">
+              <Collapsible v-model:open="isConflictsOpen" class="conflicts-collapsible">
+                <CollapsibleTrigger class="conflicts-trigger">
+                  {{
+                    t('main.dialogs.conflictsList', {
+                      count: conflictRanges.length,
+                      defaultValue: `冲突列表 (${conflictRanges.length})`
+                    })
+                  }}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <ScrollArea class="h-[200px]">
+                    <div class="conflicts-list">
+                      <div
+                        v-for="(conflict, conflictIndex) in conflictRanges"
+                        :key="`conflict-${conflictIndex}`"
+                        class="conflict-item"
+                        :class="{ 'conflict-resolved': isConflictResolved(conflictIndex) }"
+                        :style="{
+                          borderColor: isConflictResolved(conflictIndex)
+                            ? conflictColors.resolved.border
+                            : conflictColors.unresolved.border,
+                          backgroundColor: isConflictResolved(conflictIndex)
+                            ? conflictColors.resolved.background
+                            : conflictColors.unresolved.background
+                        }"
+                      >
+                        <div class="conflict-item-header">
+                          <span class="conflict-item-label">
+                            {{
+                              t('main.dialogs.conflictBlock', {
+                                index: conflictIndex + 1,
+                                defaultValue: `冲突 ${conflictIndex + 1}`
+                              })
+                            }}
+                            ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
+                          </span>
+                        </div>
+                        <div class="conflict-item-actions">
+                          <Button
+                            :variant="
+                              getConflictChoice(conflictIndex) === 'current'
+                                ? 'default'
+                                : 'secondary'
+                            "
+                            size="sm"
+                            @click="chooseConflictVersion(conflictIndex, 'current')"
+                          >
+                            {{
+                              t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' })
+                            }}
+                          </Button>
+                          <Button
+                            :variant="
+                              getConflictChoice(conflictIndex) === 'external'
+                                ? 'default'
+                                : 'secondary'
+                            "
+                            size="sm"
+                            @click="chooseConflictVersion(conflictIndex, 'external')"
+                          >
+                            {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用磁盘' }) }}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <div class="footer-left">
-          <el-button @click="handleCancel">
-            {{ t('main.dialogs.keepCurrentVersion', { defaultValue: '保留当前版本' }) }}
-          </el-button>
-          <el-button @click="handleUseExternal">
-            {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用外部版本' }) }}
-          </el-button>
+      <DialogFooter>
+        <div class="dialog-footer">
+          <div class="footer-left">
+            <Button variant="secondary" @click="handleCancel">
+              {{ t('main.dialogs.keepCurrentVersion', { defaultValue: '保留当前版本' }) }}
+            </Button>
+            <Button variant="secondary" @click="handleUseExternal">
+              {{ t('main.dialogs.useExternalVersion', { defaultValue: '使用外部版本' }) }}
+            </Button>
+          </div>
+          <div class="footer-right">
+            <Button
+              v-if="hasConflicts"
+              variant="outline"
+              class="bg-green-600 text-white hover:bg-green-700 border-green-600"
+              :disabled="!allConflictsResolved"
+              @click="handleMerge"
+            >
+              {{ t('main.dialogs.mergeConflicts', { defaultValue: '合并' }) }}
+              <template v-if="!allConflictsResolved">
+                ({{ conflictRanges.length - conflictChoices.size }}/{{ conflictRanges.length }})
+              </template>
+            </Button>
+          </div>
         </div>
-        <div class="footer-right">
-          <el-button
-            v-if="hasConflicts"
-            type="success"
-            :disabled="!allConflictsResolved"
-            @click="handleMerge"
-          >
-            {{ t('main.dialogs.mergeConflicts', { defaultValue: '合并' }) }}
-            <template v-if="!allConflictsResolved">
-              ({{ conflictRanges.length - conflictChoices.size }}/{{ conflictRanges.length }})
-            </template>
-          </el-button>
-        </div>
-      </div>
-    </template>
-  </el-dialog>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle } from '@renderer/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { AlertTriangle } from 'lucide-vue-next'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
 import { themeState } from '../utils/themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
@@ -313,7 +341,7 @@ const emit = defineEmits<{
 const viewMode = ref<'unified' | 'split'>('unified')
 const oldEditorId = ref(`conflict-old-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 const newEditorId = ref(`conflict-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
-const activeConflicts = ref<string[]>([]) // 默认折叠冲突列表
+const isConflictsOpen = ref(false) // 默认折叠冲突列表
 
 // 冲突选择状态：记录每个冲突区域选择使用哪个版本 ('current' | 'external' | null)
 const conflictChoices = ref<Map<number, 'current' | 'external'>>(new Map())
@@ -357,14 +385,26 @@ const deletionsCount = computed(() => {
   return diffResult.value.summary?.deletions || 0
 })
 
-const getChunkTagType = (type: string) => {
-  const map: Record<string, string> = {
-    insert: 'success',
-    delete: 'danger',
-    replace: 'warning',
-    equal: 'info'
+const getChunkBadgeVariant = (
+  type: string
+): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    insert: 'default',
+    delete: 'destructive',
+    replace: 'secondary',
+    equal: 'outline'
   }
-  return map[type] || 'info'
+  return map[type] || 'outline'
+}
+
+const getChunkBadgeClass = (type: string): string => {
+  const map: Record<string, string> = {
+    insert: 'bg-green-600 hover:bg-green-700 text-white',
+    delete: '',
+    replace: 'bg-amber-500 hover:bg-amber-600 text-white',
+    equal: ''
+  }
+  return map[type] || ''
 }
 
 const getTypeLabel = (type: string) => {
@@ -874,10 +914,6 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.diff-scrollbar {
-  max-height: 400px;
-}
-
 .diff-content {
   padding: 12px;
 }
@@ -972,27 +1008,46 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.conflicts-collapse {
+.conflicts-collapsible {
   border: none;
   background-color: transparent;
 }
 
-.conflicts-collapse :deep(.el-collapse-item__header) {
+.conflicts-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   padding: 8px 16px;
   background-color: v-bind('themeState.currentTheme.background2nd');
   color: v-bind('themeState.currentTheme.textColor');
   border-bottom: 1px solid var(--el-border-color);
   font-weight: 600;
   font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.conflicts-collapse :deep(.el-collapse-item__content) {
-  padding: 0;
+.conflicts-trigger:hover {
+  background-color: v-bind('themeState.currentTheme.hoverBackground');
+}
+
+.conflicts-trigger::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid v-bind('themeState.currentTheme.textColor2');
+  transition: transform 0.2s;
+}
+
+.conflicts-trigger[data-state='open']::after {
+  transform: rotate(180deg);
+}
+
+.conflicts-collapsible [data-state='open'] {
   background-color: v-bind('themeState.currentTheme.background');
-}
-
-.conflicts-scrollbar {
-  max-height: 200px;
 }
 
 .conflicts-list {

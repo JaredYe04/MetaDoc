@@ -1,7 +1,7 @@
 <template>
   <div class="manual-breadcrumb">
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item
+    <Breadcrumb separator="/">
+      <BreadcrumbItemComponent
         v-for="(item, index) in breadcrumbHistory"
         :key="item.articleId"
         :class="{ 'is-current': index === breadcrumbHistory.length - 1 }"
@@ -14,8 +14,8 @@
           {{ item.title }}
         </span>
         <span v-else>{{ item.title }}</span>
-      </el-breadcrumb-item>
-    </el-breadcrumb>
+      </BreadcrumbItemComponent>
+    </Breadcrumb>
   </div>
 </template>
 
@@ -23,6 +23,10 @@
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import type { BreadcrumbItem } from '../../manuals/types'
+import {
+  Breadcrumb,
+  BreadcrumbItem as BreadcrumbItemComponent
+} from '@renderer/components/ui/breadcrumb'
 
 const { breadcrumbHistory, setCurrentArticle } = useUserManual()
 
@@ -38,11 +42,11 @@ const handleClick = (articleId: string) => {
   background-color: v-bind('themeState.currentTheme.background2nd');
 }
 
-.manual-breadcrumb :deep(.el-breadcrumb__item) {
+.manual-breadcrumb :deep(li) {
   font-size: 14px;
 }
 
-.manual-breadcrumb :deep(.el-breadcrumb__item.is-current) {
+.manual-breadcrumb :deep(li.is-current) {
   color: v-bind('themeState.currentTheme.textColor');
   font-weight: 500;
 }

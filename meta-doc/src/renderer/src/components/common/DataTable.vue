@@ -1,6 +1,6 @@
 <template>
   <div ref="containerRef" class="data-table-container" :class="tableClass" :style="containerStyle">
-    <el-scrollbar class="data-table-scrollbar">
+    <ScrollArea class="h-full">
       <div class="data-table-grid-wrapper" :style="gridWrapperStyle">
         <ag-grid-vue
           ref="gridRef"
@@ -15,7 +15,7 @@
           @selection-changed="handleSelectionChanged"
         />
       </div>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
@@ -30,6 +30,7 @@ import {
   colorSchemeLight
 } from 'ag-grid-community'
 import { themeState } from '../../utils/themes'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import type {
   GridApi,
   GridReadyEvent,
@@ -476,18 +477,6 @@ onMounted(() => {
   min-height: 200px;
   overflow: hidden;
 }
-
-/* el-scrollbar 占满容器，提供垂直和水平滚动 */
-.data-table-scrollbar {
-  height: 100%;
-}
-
-/* el-scrollbar 内部 wrap 必须限制高度才能产生滚动 */
-.data-table-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow: scroll;
-}
-
-/* view 不能设 height:100%，要让内容自然撑高才能溢出触发滚动 */
 
 /* grid wrapper：自然宽高，由 AG Grid autoHeight 决定高度 */
 .data-table-grid-wrapper {

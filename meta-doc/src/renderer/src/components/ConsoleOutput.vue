@@ -1,5 +1,9 @@
 <template>
-  <div class="console-container" :style="consoleStyle">
+  <div
+    class="console-container"
+    :class="{ 'demo-mode': props.mode === 'demo' }"
+    :style="consoleStyle"
+  >
     <div
       class="console-header"
       :style="{
@@ -8,16 +12,15 @@
     >
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
-        <el-switch
+        <Switch
           v-if="showAiAnalysis"
-          v-model="enableAiAnalysisModel"
-          :active-text="$t('console.enableAiAnalysis')"
-          size="small"
+          :checked="enableAiAnalysisModel"
+          @update:checked="handleAiAnalysisToggle"
           style="margin-right: 8px"
         />
-        <el-button size="small" @click="clearConsole">{{ $t('console.clear') }}</el-button>
-        <el-button size="small" @click="copyConsole">{{ $t('console.copy') }}</el-button>
-        <el-button size="small" @click="saveConsole">{{ $t('console.saveLog') }}</el-button>
+        <Button size="sm" @click="clearConsole">{{ $t('console.clear') }}</Button>
+        <Button size="sm" @click="copyConsole">{{ $t('console.copy') }}</Button>
+        <Button size="sm" @click="saveConsole">{{ $t('console.saveLog') }}</Button>
       </div>
     </div>
     <div class="console-editor" ref="editorContainer"></div>
@@ -27,6 +30,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { Switch } from '@renderer/components/ui/switch'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import messageBridge from '../bridge/message-bridge'
@@ -76,8 +81,13 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  mode: {
+    type: String,
+    default: 'normal',
+    validator: (value: string) => ['normal', 'demo'].includes(value)
+  },
   /** 由父组件（如 LaTeXEditor）控制的 AI 分析开关，传入时与父组件保持同步 */
-  enableAiAnalysis: {
+  parentEnableAiAnalysis: {
     type: Boolean as PropType<boolean | undefined>,
     default: undefined
   }
@@ -131,7 +141,8 @@ const lines = ref<ConsoleLine[]>([])
 const internalEnableAiAnalysis = ref(true)
 
 const enableAiAnalysisModel = computed({
-  get: () => (props.enableAiAnalysis !== undefined ? props.enableAiAnalysis : internalEnableAiAnalysis.value),
+  get: () =>
+    props.enableAiAnalysis !== undefined ? props.enableAiAnalysis : internalEnableAiAnalysis.value,
   set: (value: boolean) => {
     if (props.enableAiAnalysis !== undefined) {
       emit('update:enableAiAnalysis', value)
@@ -634,6 +645,12 @@ onBeforeUnmount(() => {
   color: var(--console-text);
   font-size: 13px;
   overflow: hidden;
+}
+
+/* Demo 模式：在手册中展示时需要最小高度以显示工具栏和内容 */
+.console-container.demo-mode {
+  min-height: 250px;
+  height: 250px;
 }
 
 .console-header {

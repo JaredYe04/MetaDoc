@@ -11,12 +11,14 @@
 工作流是一个有向图，由以下部分组成：
 
 - **工件节点（ArtifactNode）**：执行实际操作的节点
+
   - `tool`：调用工具
   - `llm-decision`：LLM决策节点
   - `workflow`：嵌套工作流
   - `agent-config`：子Agent（Sub Agent）
 
 - **控制流节点（ControlFlowNode）**：控制执行流程的节点
+
   - `condition`：条件判断
   - `loop`：循环
   - `parallel`：并行执行
@@ -169,19 +171,23 @@ const result = await workflowExecutor.executeWorkflow('workflow-id', {
 ## 最佳实践
 
 1. **节点设计**：
+
    - 保持节点职责单一
    - 明确输入输出格式
    - 使用有意义的节点标签
 
 2. **变量使用**：
+
    - 使用变量传递复杂数据
    - 避免在节点间直接传递大量数据
 
 3. **错误处理**：
+
    - 在关键节点添加错误处理逻辑
    - 使用条件节点处理异常情况
 
 4. **性能优化**：
+
    - 对于可以并行的操作，使用并行节点
    - 合理设置超时时间
 

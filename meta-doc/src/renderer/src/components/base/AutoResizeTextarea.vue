@@ -1,8 +1,6 @@
 <template>
   <div class="auto-resize-textarea-wrapper" :style="wrapperStyle">
-    <el-scrollbar 
-      class="auto-resize-textarea-scrollbar"
-      :style="scrollbarStyle">
+    <ScrollArea :class="scrollAreaClasses" :style="scrollbarStyle">
       <textarea
         ref="textareaRef"
         :value="modelValue"
@@ -15,7 +13,7 @@
         :rows="minRows"
         :style="inputStyle"
       />
-    </el-scrollbar>
+    </ScrollArea>
     <!-- 预设提示词下拉菜单：以按钮为 reference，使 popover 定位在按钮旁 -->
     <el-popover
       v-if="presetOptions && presetOptions.length > 0"
@@ -56,6 +54,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { themeState, colorWithOpacity } from '../../utils/themes'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { useI18n } from 'vue-i18n'
 import { ElButton, ElIcon } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
@@ -91,7 +90,6 @@ const emit = defineEmits<{
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const triggerButtonRef = ref<HTMLElement | null>(null)
 const showPresetDropdown = ref(false)
 
 const handleInput = (event: Event) => {
@@ -144,6 +142,10 @@ const scrollbarStyle = computed(() => {
   }
 })
 
+const scrollAreaClasses = computed(() => {
+  return 'auto-resize-textarea-scrollarea border border-[rgba(145,145,145,0.5)] rounded-[8px] p-1'
+})
+
 const inputStyle = computed(() => {
   const textColor = themeState.currentTheme.textColor
   return {
@@ -189,7 +191,11 @@ const handleBlur = (event: FocusEvent) => {
   const relatedTarget = event.relatedTarget as Node | null
   if (relatedTarget && typeof (relatedTarget as HTMLElement).closest === 'function') {
     const el = relatedTarget as HTMLElement
-    if (el.closest('.preset-dropdown-trigger') || el.closest('.preset-popover') || el.closest('.preset-dropdown-menu')) {
+    if (
+      el.closest('.preset-dropdown-trigger') ||
+      el.closest('.preset-popover') ||
+      el.closest('.preset-dropdown-menu')
+    ) {
       return
     }
   }
@@ -224,21 +230,10 @@ const handlePresetClick = (preset: PresetOption) => {
   position: relative;
 }
 
-.auto-resize-textarea-scrollbar {
+.auto-resize-textarea-scrollarea {
   border: 1px solid rgba(145, 145, 145, 0.5);
   border-radius: 8px;
   padding: 4px;
-  width: 100%;
-}
-
-/* 确保 el-scrollbar 内部可以滚动 */
-.auto-resize-textarea-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-.auto-resize-textarea-scrollbar :deep(.el-scrollbar__view) {
   width: 100%;
 }
 

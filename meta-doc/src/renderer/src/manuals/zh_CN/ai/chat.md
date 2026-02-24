@@ -24,10 +24,16 @@ AI对话支持多会话管理、引用素材、知识库集成等功能，让您
 
 AI对话界面包含以下部分：
 
+<AIChat mode="demo" />
+
+AI对话界面包含以下部分：
+
 - **会话列表**：左侧显示所有会话列表
 - **对话区域**：中间显示对话消息
 - **输入框**：底部输入消息
 - **引用管理**：管理引用素材
+
+<AIChat mode="demo" />
 
 ```mermaid
 graph TB
@@ -49,6 +55,10 @@ graph TB
 ```
 
 ## 会话管理
+
+AI对话支持多会话管理，您可以创建、重命名、删除和复制会话。
+
+<AIChat mode="demo" />
 
 ### 创建会话
 
@@ -116,7 +126,13 @@ graph LR
 
 导出/导入功能方便您备份和分享对话内容。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["save", "open"]}]' />
+
 ## 发送消息
+
+AI对话提供丰富的消息发送功能。
+
+<AIChat mode="demo" />
 
 ### 输入消息
 
@@ -143,6 +159,10 @@ graph LR
 - **Ctrl+Enter**：发送消息（某些配置下）
 
 ## AI回复
+
+AI回复功能提供流式输出和消息操作功能。
+
+<AIChat mode="demo" />
 
 ### 流式输出
 
@@ -184,7 +204,13 @@ sequenceDiagram
 
 编辑消息会删除该消息之后的所有消息，重新开始对话。
 
+<AIChat mode="demo" />
+
 ## 引用素材
+
+您可以为AI对话添加引用素材，帮助AI更好地理解上下文。
+
+<AIChat mode="demo" />
 
 ### 添加引用
 
@@ -233,6 +259,8 @@ graph TB
 
 激活引用后，AI会参考引用内容生成回复。
 
+<AIChat mode="demo" />
+
 ### 引用预览
 
 预览引用内容：
@@ -242,6 +270,10 @@ graph TB
 - **编辑引用**：编辑或删除引用
 
 ## 知识库集成
+
+AI对话可以与知识库集成，自动检索相关知识。
+
+<KnowledgeBase mode="demo" />
 
 ### 启用知识库
 
@@ -267,9 +299,15 @@ graph TB
 - **检索数量**：设置检索结果的数量
 - **检索范围**：设置检索的范围
 
+<KnowledgeBase mode="demo" />
+
 详见[[knowledge-base.config|知识库配置]]。
 
 ## 消息管理
+
+管理AI对话中的消息。
+
+<AIChat mode="demo" />
 
 ### 消息操作
 
@@ -297,7 +335,13 @@ graph TB
 - **数学公式**：支持LaTeX数学公式
 - **表格**：支持表格显示
 
+<AIChat mode="demo" />
+
 ## 使用技巧
+
+通过以下技巧可以更高效地使用AI对话功能。
+
+<AIChat mode="demo" />
 
 ### 高效对话
 

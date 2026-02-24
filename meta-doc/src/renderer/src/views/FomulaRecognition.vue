@@ -22,7 +22,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('formulaRecognition.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
           </div>
@@ -31,62 +32,96 @@
             <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
             <div class="toolbar-group" :style="toolbarGroupStyle">
               <div class="flex flex-col items-start tool-group">
-                <el-segmented v-model="tool" :options="toolOptions" size="default">
-                  <template #default="scope">
-                    <div :class="['flex', 'items-center', 'gap-2', 'flex-col']">
-                      <img :src="scope.item.icon" alt="" class="formula-tool-icon" />
-                      <div>{{ $t(scope.item.label) }}</div>
+                <ToggleGroup v-model="tool" type="single" class="formula-tool-toggle-group">
+                  <ToggleGroupItem
+                    v-for="option in toolOptions"
+                    :key="option.value"
+                    :value="option.value"
+                    class="formula-tool-item"
+                  >
+                    <div class="flex items-center gap-2 flex-col">
+                      <img :src="option.icon" alt="" class="formula-tool-icon" />
+                      <div>{{ $t(option.label) }}</div>
                     </div>
-                  </template>
-                </el-segmented>
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               <div class="undo-redo-group tool-group">
-                <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
-                  <el-button size="large" @click="undo" circle>
-                    <img
-                      :src="(themeState.currentTheme as unknown as Record<string, string>).UndoIcon"
-                      alt=""
-                      class="formula-toolbar-icon"
-                    />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('formulaRecognition.redo')" placement="top">
-                  <el-button size="large" circle @click="redo">
-                    <img
-                      :src="(themeState.currentTheme as unknown as Record<string, string>).RedoIcon"
-                      alt=""
-                      class="formula-toolbar-icon"
-                    />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('formulaRecognition.reset')" placement="top">
-                  <el-button size="large" circle @click="resetCanvas">
-                    <img
-                      :src="
-                        (themeState.currentTheme as unknown as Record<string, string>).ClearIcon
-                      "
-                      alt=""
-                      class="formula-toolbar-icon"
-                    />
-                  </el-button>
-                </el-tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button size="large" @click="undo" circle>
+                      <img
+                        :src="
+                          (themeState.currentTheme as unknown as Record<string, string>).UndoIcon
+                        "
+                        alt=""
+                        class="formula-toolbar-icon"
+                      />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('formulaRecognition.undo') }}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button size="large" circle @click="redo">
+                      <img
+                        :src="
+                          (themeState.currentTheme as unknown as Record<string, string>).RedoIcon
+                        "
+                        alt=""
+                        class="formula-toolbar-icon"
+                      />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('formulaRecognition.redo') }}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button size="large" circle @click="resetCanvas">
+                      <img
+                        :src="
+                          (themeState.currentTheme as unknown as Record<string, string>).ClearIcon
+                        "
+                        alt=""
+                        class="formula-toolbar-icon"
+                      />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('formulaRecognition.reset') }}
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               <div class="tool-group">
-                <el-tooltip :content="$t('formulaRecognition.import_image')" placement="top">
-                  <el-button @click="triggerImport">
-                    <el-icon><Upload /></el-icon>
-                  </el-button>
-                </el-tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button @click="triggerImport">
+                      <el-icon><Upload /></el-icon>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('formulaRecognition.import_image') }}
+                  </TooltipContent>
+                </Tooltip>
                 <el-icon size="large" style="padding: 10px">
                   <Picture />
                 </el-icon>
-                <el-tooltip :content="$t('formulaRecognition.copy_image')" placement="top">
-                  <el-button @click="copyImage">
-                    <el-icon><CopyDocument /></el-icon>
-                  </el-button>
-                </el-tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button @click="copyImage">
+                      <el-icon><CopyDocument /></el-icon>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('formulaRecognition.copy_image') }}
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               <!-- 隐藏的文件上传 -->
@@ -101,14 +136,7 @@
               <!-- 笔刷粗细调节 -->
               <div class="brush-size tool-group" style="width: 240px">
                 <span>{{ $t('formulaRecognition.brush_size') }}</span>
-                <el-slider
-                  v-model="brushSize"
-                  :min="1"
-                  :max="20"
-                  :step="1"
-                  show-tooltip
-                  style="width: 120px"
-                />
+                <Slider v-model="brushSize" :min="1" :max="20" :step="1" style="width: 120px" />
                 <div
                   class="brush-preview"
                   :style="{
@@ -124,9 +152,9 @@
 
               <!-- 公式识别按钮（在笔刷粗细右侧） -->
               <div class="tool-group">
-                <el-button type="primary" @click="recognizeFormula" :loading="processing">
+                <Button type="primary" @click="recognizeFormula" :loading="processing">
                   {{ $t('formulaRecognition.recognize_formula') }}
-                </el-button>
+                </Button>
               </div>
             </div>
 
@@ -134,7 +162,7 @@
             <div class="content content-vertical">
               <!-- 上方：画布区域 70% -->
               <div class="content-top display-panel" id="canvasContainer" ref="canvasContainerRef">
-                <el-scrollbar>
+                <ScrollArea>
                   <div class="canvas-wrapper" :style="canvasWrapperStyle">
                     <canvas
                       ref="drawingCanvas"
@@ -169,7 +197,8 @@
                       @mousedown.prevent="startCanvasResize"
                     ></div>
                   </div>
-                </el-scrollbar>
+                  <ScrollBar />
+                </ScrollArea>
               </div>
 
               <!-- 下方：公式面板 30% -->
@@ -179,15 +208,30 @@
                     $t('formulaRecognition.resultTitle', '识别结果')
                   }}</span>
                   <div class="fomula-toolbar">
-                    <el-tooltip :content="$t('formulaRecognition.edit_formula')" placement="top">
-                      <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
-                    </el-tooltip>
-                    <el-tooltip :content="$t('formulaRecognition.copy_formula')" placement="top">
-                      <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
-                    </el-tooltip>
-                    <el-tooltip :content="$t('aigraph.exportImage')" placement="top">
-                      <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
-                    </el-tooltip>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Button type="primary" :icon="Edit" circle @click="openEditDialog" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {{ $t('formulaRecognition.edit_formula') }}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {{ $t('formulaRecognition.copy_formula') }}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Button type="primary" :icon="Picture" circle @click="openExportDialog" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {{ $t('aigraph.exportImage') }}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
                 <div class="formula-panel-body">
@@ -206,72 +250,116 @@
             </div>
 
             <!-- SimpleTex 说明提示：同一会话第二次识别后才显示 -->
-            <el-alert
-              v-if="showSimpletexHint"
-              type="info"
-              :closable="false"
-              show-icon
-              class="simpletex-hint"
-            >
-              <span>{{ t('formulaRecognition.simpletexHint') }} </span>
-              <a :href="SIMPLETEX_OCR_URL" target="_blank" rel="noopener noreferrer">{{
-                t('formulaRecognition.simpletexLinkText')
-              }}</a>
-            </el-alert>
+            <Alert v-if="showSimpletexHint" variant="default" class="simpletex-hint">
+              <Info class="h-4 w-4" />
+              <AlertDescription>
+                <span>{{ t('formulaRecognition.simpletexHint') }} </span>
+                <a :href="SIMPLETEX_OCR_URL" target="_blank" rel="noopener noreferrer">{{
+                  t('formulaRecognition.simpletexLinkText')
+                }}</a>
+              </AlertDescription>
+            </Alert>
           </div>
         </div>
       </SessionList>
     </div>
 
     <!-- 编辑公式对话框 -->
-    <el-dialog
-      :title="$t('formulaRecognition.edit_formula_dialog_title')"
-      v-model="editDialogVisible"
-    >
-      <el-input type="textarea" v-model="latexResult" rows="4" />
-      <template #footer>
-        <el-button @click="editDialogVisible = false">{{
-          $t('formulaRecognition.cancel')
-        }}</el-button>
-        <el-button type="primary" @click="editDialogVisible = false">{{
-          $t('formulaRecognition.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="editDialogVisible">
+      <DialogContent class="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('formulaRecognition.edit_formula_dialog_title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="py-4">
+          <Textarea v-model="latexResult" rows="4" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="editDialogVisible = false">{{
+            $t('formulaRecognition.cancel')
+          }}</Button>
+          <Button @click="editDialogVisible = false">{{ $t('formulaRecognition.confirm') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 导出格式对话框 -->
-    <el-dialog v-model="exportDialogVisible" :title="$t('aigraph.exportImage')" width="400">
-      <div>
-        <el-form label-width="100px">
-          <el-form-item :label="$t('aigraph.exportFormat')">
-            <el-radio-group v-model="exportFormat">
-              <el-radio value="svg">{{ $t('aigraph.vectorImage') }}</el-radio>
-              <el-radio value="png">{{ $t('aigraph.bitmapImage') }}</el-radio>
-              <el-radio value="pdf">{{ $t('aigraph.pdfDocument') }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-form>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="exportDialogVisible = false">{{ $t('common.cancel') }}</el-button>
-          <el-button type="primary" @click="confirmExport">{{ $t('common.confirm') }}</el-button>
+    <Dialog v-model:open="exportDialogVisible">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('aigraph.exportImage') }}</DialogTitle>
+        </DialogHeader>
+        <div class="py-4">
+          <div class="space-y-4">
+            <div class="text-sm font-medium">{{ $t('aigraph.exportFormat') }}</div>
+            <RadioGroup v-model="exportFormat" class="flex flex-row gap-4">
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="svg" id="export-svg" />
+                <label for="export-svg" class="text-sm cursor-pointer">{{
+                  $t('aigraph.vectorImage')
+                }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="png" id="export-png" />
+                <label for="export-png" class="text-sm cursor-pointer">{{
+                  $t('aigraph.bitmapImage')
+                }}</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioGroupItem value="pdf" id="export-pdf" />
+                <label for="export-pdf" class="text-sm cursor-pointer">{{
+                  $t('aigraph.pdfDocument')
+                }}</label>
+              </div>
+            </RadioGroup>
+          </div>
         </div>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button variant="outline" @click="exportDialogVisible = false">{{
+            $t('common.cancel')
+          }}</Button>
+          <Button @click="confirmExport">{{ $t('common.confirm') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
-import { ElNotification, ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import { CopyDocument, DocumentCopy, Edit, Picture, Upload } from '@element-plus/icons-vue'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Alert, AlertDescription } from '@renderer/components/ui/alert'
+import { Info } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 import { convertBase64ToBlob, toBase64 } from '../utils/image-utils'
 import { simpletexOcr } from '../utils/simpletex-utils'
 import { themeState } from '../utils/themes'
 import { MdPreview } from 'md-editor-v3'
 import '../assets/tool-group.css'
 import { useI18n } from 'vue-i18n'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { Slider } from '@renderer/components/ui/slider'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { createRendererLogger } from '../utils/logger.ts'
 import { exportSingleFormula } from '../utils/math-renderer.js'
 import SessionList from '../components/common/SessionList.vue'
@@ -466,7 +554,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -502,7 +590,7 @@ const handleCreateSession = async () => {
     resetCanvas()
     latexResult.value = ''
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -549,7 +637,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       brushSize.value = session.brush_size || 2
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -561,7 +649,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await formulaRecognitionSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -582,9 +670,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+    notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -598,9 +686,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
       resetCanvas()
       latexResult.value = ''
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -739,6 +827,15 @@ watch(
 )
 
 onMounted(async () => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    sessions.value = [
+      { id: 'demo-1', title: '公式识别示例', updatedAt: Date.now() },
+      { id: 'demo-2', title: '数学公式', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   await loadSessions()
   // 等待 DOM 完全渲染后再初始化画布
   await nextTick()
@@ -909,11 +1006,7 @@ function pushState() {
 function undo() {
   if (!canvasContext) return
   if (undoStack.length <= 1) {
-    ElNotification({
-      title: t('formulaRecognition.notification.title_info'),
-      message: t('formulaRecognition.notification.undo_fail'),
-      type: 'warning'
-    })
+    notifyWarning(t('formulaRecognition.notification.undo_fail'))
     return
   }
   const currentState = undoStack.pop()
@@ -930,11 +1023,7 @@ function undo() {
 function redo() {
   if (!canvasContext || redoStack.length === 0) {
     if (redoStack.length === 0) {
-      ElNotification({
-        title: t('formulaRecognition.notification.title_info'),
-        message: t('formulaRecognition.notification.redo_fail'),
-        type: 'warning'
-      })
+      notifyWarning(t('formulaRecognition.notification.redo_fail'))
     }
     return
   }
@@ -943,11 +1032,7 @@ function redo() {
     undoStack.push(state)
     canvasContext.putImageData(state, 0, 0)
   } else {
-    ElNotification({
-      title: t('formulaRecognition.notification.title_info'),
-      message: t('formulaRecognition.notification.redo_fail'),
-      type: 'warning'
-    })
+    notifyWarning(t('formulaRecognition.notification.redo_fail'))
   }
 }
 
@@ -1018,11 +1103,7 @@ async function copyImage() {
   if (navigator.clipboard) {
     navigator.clipboard.write([clipboardItemInput])
   }
-  ElNotification({
-    title: t('formulaRecognition.notification.title_success'),
-    message: t('formulaRecognition.notification.copy_image_success'),
-    type: 'success'
-  })
+  notifySuccess(t('formulaRecognition.notification.copy_image_success'))
 }
 // 处理剪切板粘贴的图片
 function handlePaste(e: ClipboardEvent, items_?: DataTransferItemList | null) {
@@ -1104,11 +1185,7 @@ async function recognizeFormula() {
     }
   } catch (error) {
     logger.error('公式识别失败:', error)
-    ElNotification({
-      title: t('formulaRecognition.notification.title_error'),
-      message: error instanceof Error ? error.message : String(error),
-      type: 'error'
-    })
+    notifyError(error instanceof Error ? error.message : String(error))
   } finally {
     processing.value = false
   }
@@ -1124,18 +1201,10 @@ function copyResult() {
   navigator.clipboard
     .writeText(latexResult.value)
     .then(() => {
-      ElNotification({
-        title: t('formulaRecognition.notification.title_success'),
-        message: t('formulaRecognition.notification.copy_formula_success'),
-        type: 'success'
-      })
+      notifySuccess(t('formulaRecognition.notification.copy_formula_success'))
     })
     .catch(() => {
-      ElNotification({
-        title: t('formulaRecognition.notification.title_error'),
-        message: t('formulaRecognition.notification.copy_formula_fail'),
-        type: 'error'
-      })
+      notifyError(t('formulaRecognition.notification.copy_formula_fail'))
     })
 }
 
@@ -1170,11 +1239,7 @@ async function confirmExport() {
   exportDialogVisible.value = false
   const tex = normalizeTex(latexResult.value)
   if (!tex) {
-    ElNotification({
-      title: t('formulaRecognition.notification.title_error'),
-      message: t('aigraph.error.no_code_to_export') || '无可导出的公式',
-      type: 'error'
-    })
+    notifyError(t('aigraph.error.no_code_to_export') || '无可导出的公式')
     return
   }
   try {
@@ -1193,7 +1258,9 @@ async function confirmExport() {
       const formData = new FormData()
       const file = new File([blob], fileName, { type: 'image/svg+xml' })
       formData.append('file[]', file, fileName)
-      const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+      const baseUrl = await import('../config/runtime-server').then((m) =>
+        m.getRuntimeServerBaseUrl()
+      )
       const resp = await fetch(`${baseUrl}/api/image/upload?keepName=1`, {
         method: 'POST',
         body: formData
@@ -1203,7 +1270,11 @@ async function confirmExport() {
       const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
       const imageUrl = `${baseUrl}/images/${uploaded}`
 
-      const saveResult = (await messageBridge.invoke('save-image-file', imageUrl, 'formula.svg')) as {
+      const saveResult = (await messageBridge.invoke(
+        'save-image-file',
+        imageUrl,
+        'formula.svg'
+      )) as {
         success: boolean
         error?: string
       }
@@ -1238,7 +1309,9 @@ async function confirmExport() {
       const formData = new FormData()
       const file = new File([blob], fileName, { type: 'image/svg+xml' })
       formData.append('file[]', file, fileName)
-      const baseUrl = await import('../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())
+      const baseUrl = await import('../config/runtime-server').then((m) =>
+        m.getRuntimeServerBaseUrl()
+      )
       const resp = await fetch(`${baseUrl}/api/image/upload?keepName=1`, {
         method: 'POST',
         body: formData
@@ -1270,15 +1343,11 @@ async function confirmExport() {
       )) as { success: boolean; error?: string }
       if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
     }
-    ElNotification({ title: t('aigraph.success.export_succeeded'), message: '', type: 'success' })
+    notifySuccess(t('aigraph.success.export_succeeded'))
   } catch (error) {
     logger.error('导出公式失败:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
-    ElNotification({
-      title: t('aigraph.error.export_failed'),
-      message: errorMessage,
-      type: 'error'
-    })
+    notifyError(errorMessage)
   }
 }
 
@@ -1392,6 +1461,27 @@ const toolbarGroupStyle = computed(() => ({
   object-fit: contain;
 }
 
+.formula-tool-toggle-group {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: v-bind('themeState.currentTheme.background2nd || "#f5f5f5"');
+  border-radius: 8px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+}
+
+.formula-tool-item {
+  min-width: 60px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.formula-tool-item[data-state='on'] {
+  background: v-bind('themeState.currentTheme.primary || "#409eff"');
+  color: white;
+}
+
 .formula-toolbar-icon {
   width: 18px;
   height: 18px;
@@ -1432,12 +1522,9 @@ const toolbarGroupStyle = computed(() => ({
   width: 100%;
 }
 
-.content-top .el-scrollbar {
+.content-top [data-radix-scroll-area-viewport] {
   flex: 1;
   min-height: 0;
-}
-
-.content-top .el-scrollbar__wrap {
   overflow-x: auto;
   overflow-y: auto;
 }

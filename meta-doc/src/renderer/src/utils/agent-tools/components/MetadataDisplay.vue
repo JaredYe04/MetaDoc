@@ -18,7 +18,7 @@
       class="completed-state"
       :style="completedStateStyle"
     >
-      <el-result icon="success" :title="$t('agent.display.metadata.completed')" />
+      <Result icon="success" :title="$t('agent.display.metadata.completed')" />
       <div class="metadata-info" :style="metadataInfoStyle">
         <div class="metadata-item" v-if="displayData.metadata.title">
           <strong>{{ $t('agent.display.metadata.title') }}:</strong>
@@ -38,25 +38,24 @@
         >
           <strong>{{ $t('agent.display.metadata.keywords') }}:</strong>
           <div class="keywords-list">
-            <el-tag
+            <Badge
               v-for="(keyword, index) in displayData.metadata.keywords"
               :key="index"
-              size="small"
-              style="margin-right: 4px"
+              variant="secondary"
+              class="keyword-badge"
             >
               {{ keyword }}
-            </el-tag>
+            </Badge>
           </div>
         </div>
       </div>
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.metadata.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.metadata.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -65,6 +64,10 @@
 import { computed } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '../../../components/ui/badge'
+import { Result } from '@renderer/components/ui/result'
+import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
@@ -185,6 +188,10 @@ const metadataItemStyle = computed(() => ({
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.keyword-badge {
+  font-size: 12px;
 }
 
 .is-loading {

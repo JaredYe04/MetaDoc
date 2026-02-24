@@ -54,27 +54,32 @@
 ### 修改的文件
 
 1. **`meta-doc/src/renderer/src/utils/ai_tasks.ts`**
+
    - 添加了 `CustomLlmConfigForTask` 接口
    - 扩展了 `LLMApiMeta` 接口支持自定义配置
    - 修改了 `startAiTask` 传递自定义配置
 
 2. **`meta-doc/src/renderer/src/utils/llm-api.js`**
+
    - 添加了 `getCustomLlmConfigObject` 函数
    - 修改了所有LLM调用函数支持自定义配置
    - 添加了对 `openai-compatible` 类型的支持
 
 3. **`meta-doc/src/renderer/src/views/AgentView.vue`**
+
    - 添加了流式输出和UI锁支持
    - 实现了消息编辑和操作功能
    - 修复了工具列表显示逻辑
    - 添加了取消生成功能
 
 4. **`meta-doc/src/renderer/src/components/chat/ChatComposer.vue`**
+
    - 添加了 `showCancel` prop
    - 添加了 `cancel` 事件
    - 添加了取消按钮UI
 
 5. **`meta-doc/src/renderer/src/components/agent/AgentMessageRenderer.vue`**
+
    - 添加了编辑按钮和菜单按钮
    - 实现了hover显示操作按钮
    - 添加了事件发射器

@@ -4,18 +4,18 @@
       <div class="proofread-header">
         <h2>{{ $t('proofread.title', '文章校对') }}</h2>
         <div class="header-actions">
-          <el-button type="primary" :loading="proofreading" @click="handleProofread">
+          <Button type="primary" :loading="proofreading" @click="handleProofread">
             {{ $t('proofread.startProofread', '开始校对') }}
-          </el-button>
-          <el-button v-if="displayErrors.length > 0" @click="handleFixAll">
+          </Button>
+          <Button v-if="displayErrors.length > 0" @click="handleFixAll">
             {{ $t('proofread.fixAll', '一键修复全部') }}
-          </el-button>
-          <el-button v-if="displayErrors.length > 0" @click="handleIgnoreAll">
+          </Button>
+          <Button v-if="displayErrors.length > 0" @click="handleIgnoreAll">
             {{ $t('proofread.ignoreAll', '一键忽略全部') }}
-          </el-button>
-          <el-button v-if="fixedErrorsCount > 0" @click="handleClearFixed">
+          </Button>
+          <Button v-if="fixedErrorsCount > 0" @click="handleClearFixed">
             {{ $t('proofread.clearFixed', '清空已修复') }}
-          </el-button>
+          </Button>
         </div>
       </div>
 
@@ -26,24 +26,22 @@
       <div v-else class="proofread-content">
         <!-- 错误统计 -->
         <div v-if="proofreadResult" class="error-stats">
-          <el-alert
-            v-if="displayErrors.length === 0"
-            :title="$t('proofread.noErrors', '未发现错误')"
-            type="success"
-            :closable="false"
-          />
-          <el-alert
-            v-else
-            :title="
-              $t(
-                'proofread.errorsFound',
-                { count: displayErrors.length },
-                `发现 ${displayErrors.length} 个错误`
-              )
-            "
-            type="warning"
-            :closable="false"
-          />
+          <Alert v-if="displayErrors.length === 0" variant="default" class="mb-2">
+            <CheckCircle2 class="h-4 w-4" />
+            <AlertTitle>{{ $t('proofread.noErrors', '未发现错误') }}</AlertTitle>
+          </Alert>
+          <Alert v-else variant="warning" class="mb-2">
+            <AlertTriangle class="h-4 w-4" />
+            <AlertTitle>
+              {{
+                $t(
+                  'proofread.errorsFound',
+                  { count: displayErrors.length },
+                  `发现 ${displayErrors.length} 个错误`
+                )
+              }}
+            </AlertTitle>
+          </Alert>
         </div>
 
         <!-- 左右分栏布局 -->
@@ -52,11 +50,11 @@
           <div class="errors-panel">
             <div class="errors-panel-header">
               <span class="panel-title">{{ $t('proofread.errorsList', '错误列表') }}</span>
-              <el-tag v-if="displayErrors.length > 0" type="danger" size="small">
+              <Badge v-if="displayErrors.length > 0" variant="destructive">
                 {{ displayErrors.length }}
-              </el-tag>
+              </Badge>
             </div>
-            <el-scrollbar class="errors-scrollbar">
+            <ScrollArea class="errors-scrollbar">
               <div v-if="displayErrors.length === 0" class="no-errors-message">
                 <p>{{ $t('proofread.noErrorsFound', '未发现错误') }}</p>
               </div>
@@ -71,15 +69,19 @@
                 >
                   <div class="error-header">
                     <div class="error-tags">
-                      <el-tag :type="getSeverityType(error.severity)" size="small">
+                      <Badge :variant="getSeverityBadgeVariant(error.severity)">
                         {{ getSeverityLabel(error.severity) }}
-                      </el-tag>
-                      <el-tag :type="getErrorTypeTag(error.type)" size="small">
+                      </Badge>
+                      <Badge :variant="getErrorTypeBadgeVariant(error.type)">
                         {{ getErrorTypeLabel(error.type) }}
-                      </el-tag>
-                      <el-tag v-if="error.fixed" type="success" size="small">
+                      </Badge>
+                      <Badge
+                        v-if="error.fixed"
+                        variant="default"
+                        class="bg-green-600 hover:bg-green-700"
+                      >
                         {{ $t('proofread.autoFixed', '已修复') }}
-                      </el-tag>
+                      </Badge>
                     </div>
                     <span class="error-location" :style="locationStyle">
                       {{
@@ -99,25 +101,23 @@
                     <div class="error-suggestions">
                       <span class="label">{{ $t('proofread.suggestions', '修改建议') }}:</span>
                       <div class="suggestions-list">
-                        <el-tag
+                        <Badge
                           v-for="(suggestion, sugIndex) in error.suggestions || [error.suggestion]"
                           :key="sugIndex"
-                          :type="
+                          :variant="
                             (error.selectedSuggestion || error.suggestion) === suggestion
-                              ? 'primary'
-                              : 'info'
+                              ? 'default'
+                              : 'outline'
                           "
-                          class="suggestion-tag"
+                          class="suggestion-tag cursor-pointer"
                           :class="{
                             'suggestion-selected':
                               (error.selectedSuggestion || error.suggestion) === suggestion
                           }"
-                          size="small"
-                          effect="plain"
                           @click="handleSelectSuggestion(index, suggestion)"
                         >
                           {{ suggestion }}
-                        </el-tag>
+                        </Badge>
                       </div>
                     </div>
                     <div v-if="error.message" class="error-message" :style="messageStyle">
@@ -125,24 +125,25 @@
                     </div>
                   </div>
                   <div class="error-actions">
-                    <el-button
+                    <Button
                       size="small"
                       type="primary"
                       :disabled="error.fixed"
                       @click="handleFixError(index)"
                     >
                       {{ $t('proofread.fix', '修复') }}
-                    </el-button>
-                    <el-button size="small" type="success" @click="handleAddToDictionary(index)">
+                    </Button>
+                    <Button size="small" type="success" @click="handleAddToDictionary(index)">
                       {{ $t('proofread.addToDictionary', '添加到词典') }}
-                    </el-button>
-                    <el-button size="small" @click="handleIgnoreError(index)">
+                    </Button>
+                    <Button size="small" @click="handleIgnoreError(index)">
                       {{ $t('proofread.ignore', '忽略') }}
-                    </el-button>
+                    </Button>
                   </div>
                 </div>
               </div>
-            </el-scrollbar>
+              <ScrollBar />
+            </ScrollArea>
           </div>
 
           <!-- 右侧：Monaco 编辑器 -->
@@ -169,7 +170,21 @@ import {
   type WatchStopHandle
 } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle } from '@renderer/components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { CheckCircle2, AlertTriangle } from 'lucide-vue-next'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'
@@ -223,6 +238,18 @@ const documentContent = computed(() => {
 
 // 从文档元数据加载校对结果
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data
+    originalText.value = '这是一个示例文档内容。本文档详细介绍了 MetaDoc 的各项功能特性。'
+    proofreadResult.value = {
+      errors: [
+        { type: 'grammar', message: '语法建议', start: 0, end: 5, suggestion: '建议修改' },
+        { type: 'style', message: '风格优化', start: 10, end: 15, suggestion: '优化表达' }
+      ]
+    }
+    isProofread.value = true
+    return
+  }
   loadProofreadResult()
   nextTick(() => {
     initMonacoEditor()
@@ -404,7 +431,7 @@ const handleProofread = async () => {
 
   if (!activeDocument.value) {
     console.warn('[ProofreadView] 没有活动的文档')
-    ElMessage.warning(t('proofread.noDocument', '没有活动的文档'))
+    notifyWarning(t('proofread.noDocument', '没有活动的文档'))
     return
   }
 
@@ -441,7 +468,7 @@ const handleProofread = async () => {
 
     if (!content || !content.trim()) {
       console.warn('[ProofreadView] 文档内容为空')
-      ElMessage.warning(t('proofread.noContent', '文档内容为空'))
+      notifyWarning(t('proofread.noContent', '文档内容为空'))
       return
     }
 
@@ -567,7 +594,7 @@ const handleProofread = async () => {
 
       if (!proofreadData) {
         console.error('[ProofreadView] ❌ 无法从返回结果中提取校对数据')
-        ElMessage.error('校对结果格式错误')
+        notifyError('校对结果格式错误')
         return
       }
 
@@ -628,14 +655,14 @@ const handleProofread = async () => {
         highlightErrors()
       })
 
-      ElMessage.success(t('proofread.proofreadSuccess', '校对完成'))
+      notifySuccess(t('proofread.proofreadSuccess', '校对完成'))
     } else {
       console.error('[ProofreadView] 校对失败:', result.error)
-      ElMessage.error(result.error || t('proofread.proofreadFailed', '校对失败'))
+      notifyError(result.error || t('proofread.proofreadFailed', '校对失败'))
     }
   } catch (error) {
     console.error('[ProofreadView] 校对异常:', error)
-    ElMessage.error('校对失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('校对失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     proofreading.value = false
     console.log('[ProofreadView] handleProofread 结束')
@@ -719,7 +746,7 @@ const handleFixError = (index: number) => {
         console.warn(
           `[ProofreadView] 错误位置不匹配，跳过修复: 期望 "${error.text}"，实际 "${actualText}"`
         )
-        ElMessage.warning(t('proofread.fixFailed', '修复失败：错误位置不匹配'))
+        notifyWarning(t('proofread.fixFailed', '修复失败：错误位置不匹配'))
         return
       }
 
@@ -765,7 +792,7 @@ const handleFixError = (index: number) => {
         highlightErrors()
       })
 
-      ElMessage.success(t('proofread.fixSuccess', '修复成功'))
+      notifySuccess(t('proofread.fixSuccess', '修复成功'))
     }
   }
 }
@@ -825,7 +852,7 @@ const handleAddToDictionary = async (index: number) => {
       highlightErrors()
     })
 
-    ElMessage.success(
+    notifySuccess(
       t(
         'proofread.addToDictionarySuccess',
         `已将 "${error.text}" 添加到词典，已忽略 ${sameTextErrors.length} 个相同错误`
@@ -833,7 +860,7 @@ const handleAddToDictionary = async (index: number) => {
     )
   } catch (error) {
     console.error('[ProofreadView] 添加到词典失败:', error)
-    ElMessage.error(t('proofread.addToDictionaryFailed', '添加到词典失败'))
+    notifyError(t('proofread.addToDictionaryFailed', '添加到词典失败'))
   }
 }
 
@@ -878,7 +905,7 @@ const handleIgnoreError = (index: number) => {
       highlightErrors()
     })
 
-    ElMessage.info(t('proofread.ignoreSuccess', '已忽略'))
+    notifyInfo(t('proofread.ignoreSuccess', '已忽略'))
   }
 }
 
@@ -955,7 +982,7 @@ const handleFixAll = () => {
     highlightErrors()
   })
 
-  ElMessage.success(t('proofread.fixAllSuccess', `已修复 ${fixedCount} 个错误`))
+  notifySuccess(t('proofread.fixAllSuccess', `已修复 ${fixedCount} 个错误`))
 }
 
 // 一键忽略所有错误
@@ -989,7 +1016,7 @@ const handleIgnoreAll = () => {
     highlightErrors()
   })
 
-  ElMessage.success(t('proofread.ignoreAllSuccess', `已忽略 ${beforeCount} 个错误`))
+  notifySuccess(t('proofread.ignoreAllSuccess', `已忽略 ${beforeCount} 个错误`))
 }
 
 // 清空已修复的错误
@@ -1030,7 +1057,7 @@ const handleClearFixed = () => {
     highlightErrors()
   })
 
-  ElMessage.success(t('proofread.clearFixedSuccess', `已清空 ${removedCount} 个已修复的错误`))
+  notifySuccess(t('proofread.clearFixedSuccess', `已清空 ${removedCount} 个已修复的错误`))
 }
 
 // 点击错误项，跳转到Monaco编辑器对应位置
@@ -1053,15 +1080,17 @@ const handleErrorItemClick = (error: ProofreadError) => {
 }
 
 // 获取错误类型标签
-const getErrorTypeTag = (type: string) => {
-  const typeMap: Record<string, string> = {
-    grammar: 'primary',
-    spelling: 'warning',
-    latex: 'danger',
-    style: 'info',
-    other: 'info'
+const getErrorTypeBadgeVariant = (
+  type: string
+): 'default' | 'outline' | 'destructive' | 'secondary' => {
+  const typeMap: Record<string, 'default' | 'outline' | 'destructive' | 'secondary'> = {
+    grammar: 'default',
+    spelling: 'outline',
+    latex: 'destructive',
+    style: 'secondary',
+    other: 'secondary'
   }
-  return typeMap[type] || 'info'
+  return typeMap[type] || 'secondary'
 }
 
 const getErrorTypeLabel = (type: string) => {
@@ -1069,10 +1098,12 @@ const getErrorTypeLabel = (type: string) => {
 }
 
 // 获取严重程度标签
-const getSeverityType = (severity: string) => {
-  if (severity === 'error') return 'danger'
-  if (severity === 'warning') return 'warning'
-  return 'info'
+const getSeverityBadgeVariant = (
+  severity: string
+): 'default' | 'outline' | 'destructive' | 'secondary' => {
+  if (severity === 'error') return 'destructive'
+  if (severity === 'warning') return 'outline'
+  return 'secondary'
 }
 
 const getSeverityLabel = (severity: string) => {
@@ -1223,7 +1254,7 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.errors-scrollbar :deep(.el-scrollbar__wrap) {
+.errors-scrollbar :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

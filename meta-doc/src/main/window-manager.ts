@@ -6,6 +6,8 @@ import { dispatchLanguageToWindow, t } from './i18n'
 import { createMainLogger } from './logger'
 import { globalTabRegistry } from './main-calls'
 
+const logger = createMainLogger('window-manager')
+
 type AuxWindowId =
   | 'setting'
   | 'aiChat'

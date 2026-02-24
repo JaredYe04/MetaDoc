@@ -3,16 +3,10 @@
     <div class="profile-card">
       <div class="card-header">
         <h3 class="card-title">{{ $t('userManual.overview.profileSummary') || '您的使用定位' }}</h3>
-        <el-button
-          type="primary"
-          plain
-          size="small"
-          :icon="Refresh"
-          @click="handleReanalyze"
-          class="reanalyze-btn"
-        >
+        <Button variant="outline" size="sm" @click="handleReanalyze" class="reanalyze-btn">
+          <Refresh class="mr-1 h-3 w-3" />
           {{ $t('userManual.profile.reanalyze') || '重新分析' }}
-        </el-button>
+        </Button>
       </div>
 
       <div class="profile-content">
@@ -45,11 +39,15 @@
 
         <!-- 使用过的工具（若有） -->
         <div v-if="hasEditorExperience" class="tools-used">
-          <span class="tools-label">{{ $t('userManual.profile.experienceTitle') || '使用过的工具' }}</span>
+          <span class="tools-label">{{
+            $t('userManual.profile.experienceTitle') || '使用过的工具'
+          }}</span>
           <div class="tools-tags">
             <span v-if="profile.usedWysiwygMarkdown" class="tool-tag">WYSIWYG Markdown</span>
             <span v-if="profile.usedLatexEditor" class="tool-tag">LaTeX 编辑器</span>
-            <span v-if="profile.usedOtherMarkdownEditor" class="tool-tag">其他 Markdown 编辑器</span>
+            <span v-if="profile.usedOtherMarkdownEditor" class="tool-tag"
+              >其他 Markdown 编辑器</span
+            >
           </div>
         </div>
       </div>
@@ -63,6 +61,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
 import type { UserProfile } from '../../stores/userManual'
 import { Refresh } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
 
 const props = defineProps<{
   profile: UserProfile
@@ -77,7 +76,8 @@ const { t } = useI18n()
 const handleReanalyze = async () => {
   try {
     await ElMessageBox.confirm(
-      t('userManual.profile.reanalyzeConfirmMessage') || '重置用户画像将清空当前学习进度，是否继续？',
+      t('userManual.profile.reanalyzeConfirmMessage') ||
+        '重置用户画像将清空当前学习进度，是否继续？',
       t('userManual.profile.reanalyzeConfirmTitle') || '重置用户画像',
       {
         confirmButtonText: '确定',
@@ -136,18 +136,23 @@ const summarySentence = computed(() => {
   const md = getLevelLabel(props.profile.markdownLevel ?? 0)
   const tex = getLevelLabel(props.profile.latexLevel ?? 0)
   const agent = getAgentLevelLabel(props.profile.agentLevel ?? 0)
-  return t('userManual.overview.profileSummarySentence', {
-    scenario,
-    markdown: md,
-    latex: tex,
-    agent
-  }) || `您主要面向「${scenario}」场景；当前对 Markdown 为 ${md}、LaTeX 为 ${tex}、AI Agent 为 ${agent}。`
+  return (
+    t('userManual.overview.profileSummarySentence', {
+      scenario,
+      markdown: md,
+      latex: tex,
+      agent
+    }) ||
+    `您主要面向「${scenario}」场景；当前对 Markdown 为 ${md}、LaTeX 为 ${tex}、AI Agent 为 ${agent}。`
+  )
 })
 
 const hasEditorExperience = computed(() => {
-  return props.profile.usedWysiwygMarkdown ||
+  return (
+    props.profile.usedWysiwygMarkdown ||
     props.profile.usedLatexEditor ||
     props.profile.usedOtherMarkdownEditor
+  )
 })
 </script>
 
@@ -221,17 +226,23 @@ const hasEditorExperience = computed(() => {
 }
 
 .dimension-badge.level-low {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(156,163,175,0.2)" : "rgba(156,163,175,0.15)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(156,163,175,0.2)" : "rgba(156,163,175,0.15)"'
+  );
   color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
 }
 
 .dimension-badge.level-mid {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.12)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.12)"'
+  );
   color: #3b82f6;
 }
 
 .dimension-badge.level-high {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(34,197,94,0.2)" : "rgba(34,197,94,0.12)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(34,197,94,0.2)" : "rgba(34,197,94,0.12)"'
+  );
   color: #22c55e;
 }
 

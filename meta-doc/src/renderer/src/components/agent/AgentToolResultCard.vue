@@ -3,67 +3,67 @@
     <header class="tool-result-header">
       <div class="title-block">
         <span class="tool-name">{{ message.tool.name }}</span>
-        <el-tag size="small" :type="statusTagType">{{ statusLabel }}</el-tag>
+        <Badge size="small" :type="statusTagType">{{ statusLabel }}</Badge>
       </div>
       <div class="header-actions">
-        <el-button
-          text
-          size="small"
-          :icon="Download"
+        <Button
+          type="ghost"
+          size="sm"
           @click="exportSnapshot"
           :title="t('agent.tool.exportSnapshot')"
         >
+          <Download />
           {{ t('agent.tool.exportSnapshot') }}
-        </el-button>
+        </Button>
         <small class="timestamp">{{ formatTimestamp(message.timestamp) }}</small>
       </div>
     </header>
 
     <!-- 工具调用参数（默认折叠，仅在存在参数时显示） -->
-    <el-collapse
+    <Collapsible
       v-if="toolCallParams !== null"
-      v-model="paramsCollapseActive"
+      v-model:open="paramsCollapseOpen"
       class="params-collapse"
     >
-      <el-collapse-item name="params">
-        <template #title>
-          <div class="params-title">
-            <span>{{ t('agent.tool.params', '调用参数') }}</span>
-            <el-tag size="small" effect="light">JSON</el-tag>
-          </div>
-        </template>
+      <CollapsibleTrigger class="collapsible-trigger">
+        <div class="params-title">
+          <span>{{ t('agent.tool.params', '调用参数') }}</span>
+          <Badge size="small" variant="secondary">JSON</Badge>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
         <div
           :id="paramsEditorId"
           class="params-editor-container"
           :style="paramsEditorContainerStyle"
         ></div>
-      </el-collapse-item>
-    </el-collapse>
+      </CollapsibleContent>
+    </Collapsible>
 
     <!-- 原始结果（JSON，默认折叠） -->
-    <el-collapse
+    <Collapsible
       v-if="rawResultJson !== null"
-      v-model="rawResultCollapseActive"
+      v-model:open="rawResultCollapseOpen"
       class="raw-result-collapse"
     >
-      <el-collapse-item name="rawResult">
-        <template #title>
-          <div class="raw-result-title">
-            <span>{{ t('agent.tool.rawResult', '原始结果') }}</span>
-            <el-tag size="small" effect="light">JSON</el-tag>
-          </div>
-        </template>
+      <CollapsibleTrigger class="collapsible-trigger">
+        <div class="raw-result-title">
+          <span>{{ t('agent.tool.rawResult', '原始结果') }}</span>
+          <Badge size="small" variant="secondary">JSON</Badge>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
         <div
           :id="rawResultEditorId"
           class="raw-result-editor-container"
           :style="rawResultEditorContainerStyle"
         ></div>
-      </el-collapse-item>
-    </el-collapse>
+      </CollapsibleContent>
+    </Collapsible>
 
     <!-- 进度条 -->
     <div v-if="message.progress && message.progress.percentage > 0" class="progress-container">
-      <el-progress
+      <Progress
         :percentage="message.progress.percentage"
         :status="progressStatus"
         :stroke-width="6"
@@ -75,18 +75,23 @@
             {{ message.progress.message }}
           </span>
         </template>
-      </el-progress>
+      </Progress>
     </div>
 
     <div class="outputs">
-      <el-collapse v-model="activePanels" accordion>
-        <el-collapse-item v-for="output in message.outputs" :key="output.id" :name="output.id">
-          <template #title>
-            <div class="output-title">
-              <span>{{ output.label }}</span>
-              <el-tag size="small" effect="light">{{ output.format }}</el-tag>
-            </div>
-          </template>
+      <Collapsible
+        v-for="output in message.outputs"
+        :key="output.id"
+        v-model:open="outputCollapseState[output.id]"
+        class="output-collapsible"
+      >
+        <CollapsibleTrigger class="collapsible-trigger">
+          <div class="output-title">
+            <span>{{ output.label }}</span>
+            <Badge size="small" variant="secondary">{{ output.format }}</Badge>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
           <div class="output-body" :style="outputBodyStyle">
             <!-- 如果有显示组件，使用组件渲染 -->
             <component
@@ -103,8 +108,8 @@
             <!-- 否则使用纯文本渲染 -->
             <pre v-else class="raw-text">{{ formatOutput(output) }}</pre>
           </div>
-        </el-collapse-item>
-      </el-collapse>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
 
     <div v-if="message.error" class="error-block">
@@ -118,6 +123,7 @@
 import {
   computed,
   ref,
+  reactive,
   watch,
   defineAsyncComponent,
   h,
@@ -144,6 +150,14 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../utils/monaco-worker-config'
 import { createRendererLogger } from '../../utils/logger'
 import messageBridge from '../../bridge/message-bridge'
+import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
+import { Progress } from '@renderer/components/ui/progress'
 
 const props = defineProps<{
   message: ToolAgentMessage
@@ -205,25 +219,31 @@ const statusTagType = computed(() => {
   }
 })
 
-const activePanels = ref<string[]>([])
+// 输出折叠状态管理（accordion-like behavior: 只有一个可以展开）
+const outputCollapseState = reactive<Record<string, boolean>>({})
 
+// 初始化所有输出为展开状态
 watch(
   () => props.message.outputs,
   () => {
-    activePanels.value = props.message.outputs.map((output) => output.id)
+    props.message.outputs.forEach((output) => {
+      if (!(output.id in outputCollapseState)) {
+        outputCollapseState[output.id] = true
+      }
+    })
   },
   { immediate: true }
 )
 
 // 参数编辑器相关
-const paramsCollapseActive = ref<string[]>([]) // 默认折叠（空数组）
+const paramsCollapseOpen = ref(false) // 默认折叠（false）
 const paramsEditorId = ref(
   `tool-params-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 )
 let paramsMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 原始结果编辑器相关
-const rawResultCollapseActive = ref<string[]>([]) // 默认折叠（空数组）
+const rawResultCollapseOpen = ref(false) // 默认折叠（false）
 const rawResultEditorId = ref(
   `tool-raw-result-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 )
@@ -471,8 +491,8 @@ const disposeRawResultEditor = () => {
 }
 
 // 监听参数折叠状态变化
-watch(paramsCollapseActive, async (newValue) => {
-  if (newValue.includes('params')) {
+watch(paramsCollapseOpen, async (newValue) => {
+  if (newValue) {
     // 展开时才初始化编辑器
     await nextTick()
     initParamsEditor()
@@ -483,8 +503,8 @@ watch(paramsCollapseActive, async (newValue) => {
 })
 
 // 监听原始结果折叠状态变化
-watch(rawResultCollapseActive, async (newValue) => {
-  if (newValue.includes('rawResult')) {
+watch(rawResultCollapseOpen, async (newValue) => {
+  if (newValue) {
     // 展开时才初始化编辑器
     await nextTick()
     initRawResultEditor()
@@ -500,7 +520,7 @@ watch(
   async (newValue) => {
     if (paramsMonacoEditor && newValue) {
       paramsMonacoEditor.setValue(newValue)
-    } else if (paramsCollapseActive.value.includes('params')) {
+    } else if (paramsCollapseOpen.value) {
       // 如果编辑器已经展开，重新初始化
       await nextTick()
       initParamsEditor()
@@ -514,7 +534,7 @@ watch(
   async (newValue) => {
     if (rawResultMonacoEditor && newValue) {
       rawResultMonacoEditor.setValue(newValue || '{}')
-    } else if (rawResultCollapseActive.value.includes('rawResult')) {
+    } else if (rawResultCollapseOpen.value) {
       // 如果编辑器已经展开，重新初始化
       await nextTick()
       initRawResultEditor()
@@ -852,14 +872,27 @@ const exportSnapshot = async () => {
   box-sizing: border-box;
 }
 
-.outputs :deep(.el-collapse-item__header) {
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  color: v-bind('themeState.currentTheme.textColor');
+.output-collapsible {
+  margin-bottom: 8px;
 }
 
-.outputs :deep(.el-collapse-item__content) {
+.collapsible-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
   background-color: v-bind('themeState.currentTheme.background2nd');
-  padding: 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.collapsible-trigger:hover {
+  background-color: v-bind(
+    'themeState.currentTheme.background2ndHover || themeState.currentTheme.background2nd'
+  );
 }
 
 .output-title {
@@ -1001,16 +1034,6 @@ const exportSnapshot = async () => {
   margin-bottom: 12px;
 }
 
-.params-collapse :deep(.el-collapse-item__header) {
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  color: v-bind('themeState.currentTheme.textColor');
-}
-
-.params-collapse :deep(.el-collapse-item__content) {
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  padding: 0;
-}
-
 .params-title {
   display: flex;
   align-items: center;
@@ -1027,16 +1050,6 @@ const exportSnapshot = async () => {
 
 .raw-result-collapse {
   margin-bottom: 12px;
-}
-
-.raw-result-collapse :deep(.el-collapse-item__header) {
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  color: v-bind('themeState.currentTheme.textColor');
-}
-
-.raw-result-collapse :deep(.el-collapse-item__content) {
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  padding: 0;
 }
 
 .raw-result-title {

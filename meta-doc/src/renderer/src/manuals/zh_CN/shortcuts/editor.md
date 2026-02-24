@@ -168,45 +168,45 @@ AI补全还可以通过以下按键自动触发：
 
 ### Windows/Linux快捷键
 
-| 功能 | 快捷键 |
-|------|--------|
-| 查找 | `Ctrl+F` |
-| 查找替换 | `Ctrl+H` |
-| 加粗 | `Ctrl+B` |
-| 斜体 | `Ctrl+I` |
-| 插入链接 | `Ctrl+K` |
-| 插入代码块 | `Ctrl+Shift+K` |
-| 折叠 | `Ctrl+Shift+[` |
-| 展开 | `Ctrl+Shift+]` |
-| 选中所有相同单词 | `Ctrl+Shift+L` |
-| 撤销 | `Ctrl+Z` |
-| 重做 | `Ctrl+Y` 或 `Ctrl+Shift+Z` |
-| 全选 | `Ctrl+A` |
-| 复制 | `Ctrl+C` |
-| 粘贴 | `Ctrl+V` |
-| 剪切 | `Ctrl+X` |
-| AI补全 | `Shift+Tab` |
+| 功能             | 快捷键                     |
+| ---------------- | -------------------------- |
+| 查找             | `Ctrl+F`                   |
+| 查找替换         | `Ctrl+H`                   |
+| 加粗             | `Ctrl+B`                   |
+| 斜体             | `Ctrl+I`                   |
+| 插入链接         | `Ctrl+K`                   |
+| 插入代码块       | `Ctrl+Shift+K`             |
+| 折叠             | `Ctrl+Shift+[`             |
+| 展开             | `Ctrl+Shift+]`             |
+| 选中所有相同单词 | `Ctrl+Shift+L`             |
+| 撤销             | `Ctrl+Z`                   |
+| 重做             | `Ctrl+Y` 或 `Ctrl+Shift+Z` |
+| 全选             | `Ctrl+A`                   |
+| 复制             | `Ctrl+C`                   |
+| 粘贴             | `Ctrl+V`                   |
+| 剪切             | `Ctrl+X`                   |
+| AI补全           | `Shift+Tab`                |
 
 ### macOS快捷键
 
-| 功能 | 快捷键 |
-|------|--------|
-| 查找 | `Cmd+F` |
-| 查找替换 | `Cmd+H` |
-| 加粗 | `Cmd+B` |
-| 斜体 | `Cmd+I` |
-| 插入链接 | `Cmd+K` |
-| 插入代码块 | `Cmd+Shift+K` |
-| 折叠 | `Cmd+Option+[` |
-| 展开 | `Cmd+Option+]` |
-| 选中所有相同单词 | `Cmd+Shift+L` |
-| 撤销 | `Cmd+Z` |
-| 重做 | `Cmd+Shift+Z` |
-| 全选 | `Cmd+A` |
-| 复制 | `Cmd+C` |
-| 粘贴 | `Cmd+V` |
-| 剪切 | `Cmd+X` |
-| AI补全 | `Shift+Tab` |
+| 功能             | 快捷键         |
+| ---------------- | -------------- |
+| 查找             | `Cmd+F`        |
+| 查找替换         | `Cmd+H`        |
+| 加粗             | `Cmd+B`        |
+| 斜体             | `Cmd+I`        |
+| 插入链接         | `Cmd+K`        |
+| 插入代码块       | `Cmd+Shift+K`  |
+| 折叠             | `Cmd+Option+[` |
+| 展开             | `Cmd+Option+]` |
+| 选中所有相同单词 | `Cmd+Shift+L`  |
+| 撤销             | `Cmd+Z`        |
+| 重做             | `Cmd+Shift+Z`  |
+| 全选             | `Cmd+A`        |
+| 复制             | `Cmd+C`        |
+| 粘贴             | `Cmd+V`        |
+| 剪切             | `Cmd+X`        |
+| AI补全           | `Shift+Tab`    |
 
 ## Markdown编辑器特有快捷键
 
@@ -268,3 +268,29 @@ LaTeX编辑器基于Monaco Editor，支持以下快捷键：
 - [[core.editor-basics|编辑器基础操作]]
 - [[markdown.features|Markdown编辑器功能]]
 - [[ai.completion|AI自动补全]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor"]' />
+
+<AIChat mode="demo" />
+
+<CompletionSettingsPanel mode="demo" />
+
+<SettingLlmSection mode="demo" />
+
+<MainTabs mode="demo" />
+
+<QuickStartPanel mode="demo" />
+
+<Outline mode="demo" />
+
+<AgentView mode="demo" />
+
+<LaTeXEditorDemo mode="demo" />
+
+<SettingBasicSection mode="demo" />
+
+<SettingThemeSection mode="demo" />
+
+<KnowledgeBase mode="demo" />

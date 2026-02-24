@@ -1,6 +1,7 @@
 import { BaseExportAdapter } from './base-adapter'
 import type { PdfExportOptions, ExportOptionField } from './types'
 import type { DocumentFormat, ExportFormat } from '../../../../types'
+import { settings } from '../../utils/settings.js'
 
 /**
  * Markdown -> PDF 导出适配器
@@ -15,20 +16,28 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
   descriptionKey = 'export.adapters.mdToPdf.description'
 
   getDefaultOptions(): PdfExportOptions {
+    // 从编辑器字体设置获取默认值
+    const editorChineseFont = settings.fontEditorChinese || 'OPPO Sans 4.0'
+    const editorWesternFont = settings.fontEditorWestern || 'New York'
+
     return {
       margins: {
-        top: 0.5, // 0.5 英寸 (1.27cm)
-        bottom: 0.5, // 0.5 英寸 (1.27cm)
-        left: 0.5, // 0.5 英寸 (1.27cm)
-        right: 0.5 // 0.5 英寸 (1.27cm)
+        top: 0.5,
+        bottom: 0.5,
+        left: 0.5,
+        right: 0.5
       },
       pageSize: 'A4',
-      printBackground: true
+      printBackground: true,
+      // 字体设置
+      chineseFont: editorChineseFont,
+      westernFont: editorWesternFont
     }
   }
 
   getOptionFields(): ExportOptionField[] {
     return [
+      // 基本设置 tab
       {
         key: 'pageSize',
         label: '纸张大小',
@@ -37,6 +46,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         default: 'A4',
         description: '选择PDF的纸张大小',
         descriptionKey: 'export.options.pageSize.description',
+        tab: 'basic',
         options: [
           { label: 'A4', value: 'A4', labelKey: 'export.options.pageSize.a4' },
           { label: 'A3', value: 'A3', labelKey: 'export.options.pageSize.a3' },
@@ -54,6 +64,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         default: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
         description: 'PDF页边距设置',
         descriptionKey: 'export.options.margins.description',
+        tab: 'basic',
         fields: [
           {
             key: 'margins.top',
@@ -112,7 +123,31 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         type: 'boolean',
         default: true,
         description: '是否在PDF中包含背景颜色和图片',
-        descriptionKey: 'export.options.printBackground.description'
+        descriptionKey: 'export.options.printBackground.description',
+        tab: 'basic'
+      },
+      // 字体设置（放在单独的 tab）
+      {
+        key: 'chineseFont',
+        label: '中文字体',
+        labelKey: 'export.options.chineseFont.label',
+        type: 'font',
+        default: settings.fontEditorChinese || 'OPPO Sans 4.0',
+        description: 'PDF中文字体',
+        descriptionKey: 'export.options.chineseFont.description',
+        previewText: '你好世界',
+        tab: 'style'
+      },
+      {
+        key: 'westernFont',
+        label: '西文字体',
+        labelKey: 'export.options.westernFont.label',
+        type: 'font',
+        default: settings.fontEditorWestern || 'New York',
+        description: 'PDF西文字体',
+        descriptionKey: 'export.options.westernFont.description',
+        previewText: 'AaBbCc',
+        tab: 'style'
       }
     ]
   }

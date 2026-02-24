@@ -5,24 +5,34 @@
       class="pdf-toolbar"
       :style="{ backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor }"
     >
-      <el-tooltip :content="$t('latexEditor.prevPage')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ disabled: currentPdfPage <= 1 }"
-          @click="currentPdfPage > 1 && goPrevPage()"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.nextPage')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ disabled: currentPdfPage >= totalPdfPages }"
-          @click="currentPdfPage < totalPdfPages && goNextPage()"
-        >
-          <el-icon><ArrowRight /></el-icon>
-        </div>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ disabled: currentPdfPage <= 1 }"
+            @click="currentPdfPage > 1 && goPrevPage()"
+          >
+            <ArrowLeft />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.prevPage') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ disabled: currentPdfPage >= totalPdfPages }"
+            @click="currentPdfPage < totalPdfPages && goNextPage()"
+          >
+            <ArrowRight />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.nextPage') }}
+        </TooltipContent>
+      </Tooltip>
       <span
         class="pdf-toolbar__page"
         :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`"
@@ -38,67 +48,92 @@
           >/ {{ totalPdfPages }} {{ $t('latexEditor.pages') }}</span
         >
       </span>
-      <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-        <div class="pdf-toolbar-icon" @click="pdfZoomIn">
-          <el-icon><ZoomIn /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-        <div class="pdf-toolbar-icon" @click="pdfZoomOut">
-          <el-icon><ZoomOut /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.toolbar.zoomReset')" placement="bottom">
-        <div class="pdf-toolbar-icon" @click="pdfZoomReset">
-          <el-icon><Refresh /></el-icon>
-        </div>
-      </el-tooltip>
-      <el-divider direction="vertical" />
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div class="pdf-toolbar-icon" @click="pdfZoomIn">
+            <ZoomIn />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.zoomIn') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div class="pdf-toolbar-icon" @click="pdfZoomOut">
+            <ZoomOut />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.zoomOut') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div class="pdf-toolbar-icon" @click="pdfZoomReset">
+            <Refresh />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.zoomReset') }}
+        </TooltipContent>
+      </Tooltip>
+      <Divider direction="vertical" />
       <span class="pdf-toolbar__pages-per-row">
         <span class="pdf-toolbar__pages-per-row-label"
           >{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span
         >
-        <el-select
-          v-model="pagesPerRow"
-          size="small"
-          style="width: 80px"
-          @change="handlePagesPerRowChange"
-        >
-          <el-option v-for="num in 10" :key="num" :label="String(num)" :value="num" />
-        </el-select>
+        <Select v-model="pagesPerRow" @update:model-value="handlePagesPerRowChange">
+          <SelectTrigger class="w-[80px] h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="num in 10" :key="num" :value="num">{{ String(num) }}</SelectItem>
+          </SelectContent>
+        </Select>
       </span>
-      <el-divider direction="vertical" />
-      <el-tooltip :content="$t('latexEditor.toolbar.pointerMode')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ active: pdfViewMode === 'pointer' }"
-          @click="setPdfViewMode('pointer')"
-        >
-          <img
-            :src="(themeState.currentTheme as any).CursorIcon"
-            alt="pointer"
-            class="pdf-toolbar-mode-icon"
-          />
-        </div>
-      </el-tooltip>
-      <el-tooltip :content="$t('latexEditor.toolbar.handMode')" placement="bottom">
-        <div
-          class="pdf-toolbar-icon"
-          :class="{ active: pdfViewMode === 'hand' }"
-          @click="setPdfViewMode('hand')"
-        >
-          <img
-            :src="(themeState.currentTheme as any).HandIcon"
-            alt="hand"
-            class="pdf-toolbar-mode-icon"
-          />
-        </div>
-      </el-tooltip>
+      <Divider direction="vertical" />
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ active: pdfViewMode === 'pointer' }"
+            @click="setPdfViewMode('pointer')"
+          >
+            <img
+              :src="(themeState.currentTheme as any).CursorIcon"
+              alt="pointer"
+              class="pdf-toolbar-mode-icon"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.pointerMode') }}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <div
+            class="pdf-toolbar-icon"
+            :class="{ active: pdfViewMode === 'hand' }"
+            @click="setPdfViewMode('hand')"
+          >
+            <img
+              :src="(themeState.currentTheme as any).HandIcon"
+              alt="hand"
+              class="pdf-toolbar-mode-icon"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {{ $t('latexEditor.toolbar.handMode') }}
+        </TooltipContent>
+      </Tooltip>
     </div>
-    <el-scrollbar
+    <ScrollArea
       v-if="isValidPdfUrl"
       ref="pdfScrollbarRef"
-      class="pdf-preview-container"
+      class="pdf-preview-container h-full"
       :class="{ 'hand-mode': pdfViewMode === 'hand', 'pointer-mode': pdfViewMode === 'pointer' }"
       :style="{ background: themeState.currentTheme.background }"
     >
@@ -143,7 +178,7 @@
           </div>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
     <div
       v-else
       class="pdf-preview-container pdf-empty"
@@ -161,6 +196,16 @@ import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, Refresh } from '@element-plus/i
 import { VuePdf } from 'vue3-pdfjs'
 import { themeState } from '../utils/themes'
 import { debounce } from 'lodash'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Divider } from '@renderer/components/ui/separator'
 
 const { t } = useI18n()
 
@@ -175,7 +220,7 @@ const props = withDefaults(
 )
 
 const PDF_RENDER_SCALE = 2.5
-const pdfScrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
+const pdfScrollbarRef = ref<InstanceType<typeof ScrollArea> | null>(null)
 const pdfPagesContainer = ref<HTMLElement | null>(null)
 const pdfPagesWrapper = ref<HTMLElement | null>(null)
 const pageRefs = new Map<number, HTMLElement>()
@@ -307,7 +352,9 @@ async function scrollToPage(pageNumber: number) {
   const scrollbar = pdfScrollbarRef.value
   if (!pageElement || !scrollbar) return
   const scrollbarEl = (scrollbar as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const pageRect = pageElement.getBoundingClientRect()
@@ -368,7 +415,9 @@ function handlePdfError(_err: any, _pageNum: number) {
 function handleHandModeMouseDown(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !pdfScrollbarRef.value || e.button !== 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   isDragging = true
   dragStartX = e.clientX
@@ -390,7 +439,9 @@ function handleHandModeMouseMove(e: MouseEvent) {
 function handleHandModeMouseMoveGlobal(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !isDragging || !pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   scrollbarWrap.scrollLeft = scrollStartX + (dragStartX - e.clientX)
   scrollbarWrap.scrollTop = scrollStartY + (dragStartY - e.clientY)
@@ -437,7 +488,9 @@ function handlePdfWheel(event: WheelEvent) {
 function detectCurrentPage() {
   if (!pdfScrollbarRef.value || !pdfPagesContainer.value || totalPdfPages.value === 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const viewportCenterX = containerRect.left + containerRect.width / 2
@@ -481,7 +534,9 @@ const handleScrollDebounced = debounce(detectCurrentPage, 100)
 function setupScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (scrollbarWrap)
     scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true })
 }
@@ -489,7 +544,9 @@ function setupScrollListener() {
 function removeScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+  const scrollbarWrap = scrollbarEl?.querySelector(
+    '[data-radix-scroll-area-viewport]'
+  ) as HTMLElement | null
   if (scrollbarWrap) scrollbarWrap.removeEventListener('scroll', handleScrollDebounced)
 }
 
@@ -621,15 +678,15 @@ defineExpose({
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
 }
-.pdf-preview-container :deep(.el-scrollbar__wrap) {
-  overflow-x: auto;
-  overflow-y: auto;
+.pdf-preview-container :deep([data-radix-scroll-area-viewport]) {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
-.pdf-preview-container.hand-mode :deep(.el-scrollbar__wrap) {
-  overflow: hidden;
+.pdf-preview-container.hand-mode :deep([data-radix-scroll-area-viewport]) {
+  overflow: hidden !important;
 }
-.pdf-preview-container.hand-mode :deep(.el-scrollbar__bar) {
-  display: none;
+.pdf-preview-container.hand-mode :deep([data-radix-scroll-area-scrollbar]) {
+  display: none !important;
 }
 .pdf-preview-container.hand-mode .pdf-pages-wrapper {
   cursor: grab;
@@ -658,7 +715,7 @@ defineExpose({
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: fit-content;
   margin: 0;
@@ -670,10 +727,10 @@ defineExpose({
 .pdf-page-wrapper :deep(.vue-pdf-main),
 .pdf-page-wrapper :deep(.vue-pdf),
 .pdf-page-wrapper :deep(.vue-pdf__wrapper) {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 .pdf-page-wrapper :deep(canvas) {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   image-rendering: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

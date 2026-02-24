@@ -33,14 +33,17 @@
 执行实际操作的节点，包括：
 
 - **`tool`**：调用工具
+
   - 需要在`artifactId`字段指定工具ID
   - 例如：`rag-tool`、`chart-generation`、`edit-tool`
 
 - **`llm-decision`**：LLM决策节点
+
   - 使用LLM进行决策判断
   - 需要在`config.prompt`中定义决策提示词
 
 - **`workflow`**：嵌套工作流
+
   - 可以在工作流中调用其他工作流
   - 需要在`artifactId`字段指定工作流ID
 
@@ -53,22 +56,27 @@
 控制执行流程的节点，包括：
 
 - **`condition`**：条件判断
+
   - 根据条件表达式决定执行路径
   - 条件表达式在`config.condition`中定义
 
 - **`loop`**：循环
+
   - 循环执行某个节点或节点序列
   - `config.loopCondition`：循环条件
   - `config.maxIterations`：最大迭代次数
 
 - **`parallel`**：并行执行
+
   - 并行执行多个节点
   - `config.parallelCount`：并行数量
 
 - **`merge`**：合并
+
   - 合并多个并行执行的路径
 
 - **`async`**：异步执行
+
   - 异步执行某个节点，不阻塞后续执行
 
 - **`aggregate`**：汇总

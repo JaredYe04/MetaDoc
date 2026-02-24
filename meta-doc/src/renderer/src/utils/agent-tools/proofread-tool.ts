@@ -187,7 +187,7 @@ function validateError(error: ProofreadError, originalText: string): ProofreadEr
       `[validateError] 列号 ${error.column} 超出范围 [1, ${line.length}]，行 ${error.line}，跳过错误:`,
       JSON.stringify(error)
     )
-    return null
+    return null // Intentionally returning null - validation failed
   }
 
   // 验证错误文本是否匹配

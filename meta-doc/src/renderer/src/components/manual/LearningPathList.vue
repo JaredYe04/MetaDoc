@@ -3,7 +3,7 @@
     <div class="list-header">
       <span class="list-title">{{ $t('userManual.sidebar.recommendedList') }}</span>
     </div>
-    <el-scrollbar class="list-scrollbar">
+    <ScrollArea class="list-scrollbar">
       <div class="path-items">
         <div
           v-for="(articleId, index) in learningPath"
@@ -20,12 +20,10 @@
           <div class="item-content">
             <span class="item-title">{{ getTitle(articleId) }}</span>
           </div>
-          <el-icon v-if="isCompleted(articleId)" class="item-check">
-            <Check />
-          </el-icon>
+          <Check v-if="isCompleted(articleId)" class="w-4 h-4" />
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
@@ -33,16 +31,12 @@
 import { ref, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
-import { Check } from '@element-plus/icons-vue'
+import { Check } from 'lucide-vue-next'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 
 const { locale } = useI18n()
-const {
-  learningPath,
-  articleProgress,
-  currentArticleId,
-  setCurrentArticle,
-  getArticleById
-} = useUserManual()
+const { learningPath, articleProgress, currentArticleId, setCurrentArticle, getArticleById } =
+  useUserManual()
 
 const articleTitles = ref<Map<string, string>>(new Map())
 
@@ -122,11 +116,15 @@ function openItem(articleId: string) {
 }
 
 .path-item:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .path-item.is-current {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.12)" : "rgba(64, 158, 255, 0.08)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.12)" : "rgba(64, 158, 255, 0.08)"'
+  );
   color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
 }
 

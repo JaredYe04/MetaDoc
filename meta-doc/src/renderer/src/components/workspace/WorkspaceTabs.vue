@@ -1,81 +1,96 @@
 <template>
   <div class="workspace-tabs-wrapper" :class="{ 'is-locked': isLocked }">
-    <el-tabs
+    <Tabs
       ref="tabsRef"
       :key="tabsKey"
       v-model="currentActiveId"
-      type="card"
       class="workspace-tabs"
-      @tab-remove="handleRemove"
-      :before-leave="handleBeforeLeave"
+      @update:model-value="handleTabChange"
     >
-      <el-tab-pane
-        v-for="tab in workspace.tabs"
-        :key="tab.id"
-        :name="tab.id"
-        :closable="closable && !tab.readonly"
-      >
-        <template #label>
-          <div
-            class="workspace-tab-label"
-            :title="tooltipLabel(tab)"
+      <TabsList class="workspace-tabs-list" ref="tabsListRef">
+        <TabsTrigger
+          v-for="tab in workspace.tabs"
+          :key="tab.id"
+          :value="tab.id"
+          :data-value="tab.id"
+          :disabled="isLocked"
+          class="workspace-tabs-trigger"
+          :class="{ 'is-dirty': tab.dirty, 'is-readonly': tab.readonly }"
+          :title="tooltipLabel(tab)"
+          draggable="true"
+          @mousedown.stop
+          @dragstart.stop="handleDragStart(tab.id, $event)"
+          @dragover.prevent="handleDragOver(tab.id, $event)"
+          @dragleave="handleDragLeave"
+          @drop.stop="handleDrop(tab.id, $event)"
+          @dragend.stop="handleDragEnd"
+        >
+          <span class="workspace-tab-label__primary">
+            {{ primaryLabel(tab) }}
+          </span>
+          <span v-if="tab.dirty" class="workspace-tab-label__dot" />
+          <button
+            v-if="closable && !tab.readonly"
+            class="workspace-tab-close"
+            @click.stop="handleRemove(tab.id)"
             @mousedown.stop
-            draggable="true"
-            @dragstart.stop="handleDragStart(tab.id, $event)"
-            @dragover.prevent="handleDragOver(tab.id, $event)"
-            @dragleave="handleDragLeave"
-            @drop.stop="handleDrop(tab.id, $event)"
-            @dragend.stop="handleDragEnd"
           >
-            <span class="workspace-tab-label__primary">
-              {{ primaryLabel(tab) }}
-            </span>
-            <span v-if="tab.dirty" class="workspace-tab-label__dot" />
-          </div>
-        </template>
-      </el-tab-pane>
+            <X class="w-4 h-4" />
+          </button>
+        </TabsTrigger>
 
-      <el-tab-pane
-        :key="ADD_TAB_ID"
-        :name="ADD_TAB_ID"
-        :closable="false"
-        class="workspace-tab-pane workspace-tab-pane--add"
-      >
-        <template #label>
-          <el-tooltip :content="t('home.tabActions.title')" placement="bottom">
-            <div class="workspace-tab-label workspace-tab-label--plus">
-              <Plus />
-            </div>
-          </el-tooltip>
-        </template>
-      </el-tab-pane>
-    </el-tabs>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <TabsTrigger
+              :value="ADD_TAB_ID"
+              :disabled="isLocked"
+              class="workspace-tabs-trigger workspace-tabs-trigger--add"
+              @click="handleAddClick"
+            >
+              <div class="workspace-tab-label workspace-tab-label--plus">
+                <Plus class="w-4 h-4" />
+              </div>
+            </TabsTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('home.tabActions.title') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TabsList>
+    </Tabs>
   </div>
 
-  <el-dialog
-    v-model="addDialogVisible"
-    :title="t('home.tabActions.title')"
-    width="360px"
-    append-to-body
-    :close-on-click-modal="false"
-  >
-    <div class="workspace-tabs__dialog-actions">
-      <el-tooltip :content="t('home.tabActions.new')" placement="bottom">
-        <el-button circle size="large" @click="handleAddSelect('new')">
-          <el-icon>
-            <DocumentAdd />
-          </el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="t('home.tabActions.open')" placement="bottom">
-        <el-button circle size="large" @click="handleAddSelect('open')">
-          <el-icon>
-            <FolderAdd />
-          </el-icon>
-        </el-button>
-      </el-tooltip>
-    </div>
-  </el-dialog>
+  <TooltipProvider>
+    <Dialog v-model:open="addDialogVisible">
+      <DialogContent class="sm:max-w-[360px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('home.tabActions.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="workspace-tabs__dialog-actions">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button circle size="large" @click="handleAddSelect('new')">
+                <FilePlus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{{ t('home.tabActions.new') }}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button circle size="large" @click="handleAddSelect('open')">
+                <FolderPlus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{{ t('home.tabActions.open') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </TooltipProvider>
 </template>
 
 <script setup lang="ts">
@@ -84,9 +99,18 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace, type WorkspaceTab } from '../../stores/workspace'
 import eventBus from '../../utils/event-bus'
-import { Plus, DocumentAdd, FolderAdd } from '@element-plus/icons-vue'
+import { Plus, FilePlus, FolderPlus, X } from 'lucide-vue-next'
 import { createRendererLogger } from '../../utils/logger'
 import messageBridge from '../../bridge/message-bridge'
+import { Tabs, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
+import { Button } from '@renderer/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 
 const logger = createRendererLogger('WorkspaceTabs')
 const props = defineProps({
@@ -129,12 +153,31 @@ const currentActiveId = computed({
   get: () => workspace.activeTabId.value,
   set: (value: string) => {
     if (isLocked.value) return
+    if (value === ADD_TAB_ID) {
+      // Don't activate the add tab, just show the dialog
+      handleAddClick()
+      return
+    }
     if (value !== workspace.activeTabId.value) {
       workspace.activateTab(value)
       emit('update:activeId', value)
     }
   }
 })
+
+const handleTabChange = async (value: string) => {
+  if (isLocked.value) return
+  if (value === ADD_TAB_ID) {
+    handleAddClick()
+    // Revert to current tab since add tab isn't a real tab
+    nextTick(() => {
+      if (workspace.activeTabId.value) {
+        currentActiveId.value = workspace.activeTabId.value
+      }
+    })
+    return
+  }
+}
 
 const handleRemove = async (id: string | number) => {
   if (isLocked.value) return
@@ -221,10 +264,10 @@ const computeDropMode = (e: DragEvent, tabItemEl: HTMLElement): DropMode => {
 }
 
 const findTabItemElement = (labelElement: HTMLElement): HTMLElement | null => {
-  // 从 label div 向上查找对应的 .el-tabs__item
+  // 从 element 向上查找对应的 TabsTrigger
   let current: HTMLElement | null = labelElement
   while (current) {
-    if (current.classList.contains('el-tabs__item')) {
+    if (current.classList.contains('workspace-tabs-trigger')) {
       return current
     }
     current = current.parentElement
@@ -245,12 +288,39 @@ const handleDragStart = (id: string, event: DragEvent) => {
   }
 }
 
+const tabsListRef = ref<any>(null)
+
 const updateDropPreviewClasses = () => {
   nextTick(() => {
-    // tabsRef.value 是 el-tabs 组件实例，需要通过 $el 访问 DOM
-    const tabsEl = tabsRef.value?.$el || tabsRef.value
-    if (!tabsEl || !(tabsEl instanceof HTMLElement)) return
-    const allItems = tabsEl.querySelectorAll('.el-tabs__item')
+    // Find all tab triggers in the TabsList
+    const tabsListEl = tabsListRef.value?.$el || tabsListRef.value
+    if (!tabsListEl || !(tabsListEl instanceof HTMLElement)) {
+      // Fallback to tabsRef if tabsListRef not available
+      const tabsEl = tabsRef.value?.$el || tabsRef.value
+      if (!tabsEl || !(tabsEl instanceof HTMLElement)) return
+      const allItems = tabsEl.querySelectorAll('.workspace-tabs-trigger')
+      allItems.forEach((item) => {
+        if (item instanceof HTMLElement) {
+          item.classList.remove('drop-before', 'drop-after')
+        }
+      })
+
+      if (dropPreview.targetId && dropPreview.mode) {
+        for (let i = 0; i < allItems.length; i++) {
+          const item = allItems[i]
+          if (!(item instanceof HTMLElement)) continue
+          // Get the tab id from the data-value attribute or value prop
+          const tabId = item.getAttribute('data-value') || item.getAttribute('data-state')
+          if (tabId === dropPreview.targetId) {
+            item.classList.add(`drop-${dropPreview.mode}`)
+            break
+          }
+        }
+      }
+      return
+    }
+
+    const allItems = tabsListEl.querySelectorAll('.workspace-tabs-trigger')
     allItems.forEach((item) => {
       if (item instanceof HTMLElement) {
         item.classList.remove('drop-before', 'drop-after')
@@ -258,20 +328,15 @@ const updateDropPreviewClasses = () => {
     })
 
     if (dropPreview.targetId && dropPreview.mode) {
-      // 通过 tab.id 查找对应的 DOM 元素
-      // Element Plus tabs 中，每个 tab item 的 aria-controls 指向对应的 pane
-      // pane 的 id 格式是 'pane-{name}'，其中 name 就是 tab.id
+      // Find the trigger by looking for the one with matching data-value
       for (let i = 0; i < allItems.length; i++) {
         const item = allItems[i]
         if (!(item instanceof HTMLElement)) continue
-        const ariaControls = item.getAttribute('aria-controls')
-        if (ariaControls) {
-          // 移除 'pane-' 前缀，得到 tab.id
-          const paneId = ariaControls.replace(/^pane-/, '')
-          if (paneId === dropPreview.targetId) {
-            item.classList.add(`drop-${dropPreview.mode}`)
-            break
-          }
+        // Try to find the tab id - check data-value attribute or the value prop
+        const tabId = item.getAttribute('data-value')
+        if (tabId === dropPreview.targetId) {
+          item.classList.add(`drop-${dropPreview.mode}`)
+          break
         }
       }
     }
@@ -490,15 +555,6 @@ const handleAddClick = () => {
   addDialogVisible.value = true
 }
 
-const handleBeforeLeave = (nextName?: string, _currentName?: string) => {
-  if (isLocked.value) return false
-  if (nextName === ADD_TAB_ID) {
-    handleAddClick()
-    return false
-  }
-  return true
-}
-
 const handleAddSelect = (action: 'new' | 'open') => {
   addDialogVisible.value = false
   if (action === 'new') {
@@ -513,19 +569,16 @@ const handleNativeDrop = (event: DragEvent) => {
   logger.debug('[Drag] native drop', event.target)
   if (isLocked.value) return
 
-  // 找到最近的 .el-tabs__item
+  // 找到最近的 TabsTrigger
   let target = event.target as HTMLElement | null
-  while (target && !target.classList.contains('el-tabs__item')) {
+  while (target && !target.classList.contains('workspace-tabs-trigger')) {
     target = target.parentElement
   }
 
   if (!target) return
 
-  // 从 aria-controls 获取 tab id
-  const ariaControls = target.getAttribute('aria-controls')
-  if (!ariaControls) return
-
-  const tabId = ariaControls.replace(/^pane-/, '')
+  // 从 data-value 获取 tab id
+  const tabId = target.getAttribute('data-value') || target.getAttribute('value')
   if (!tabId || tabId === ADD_TAB_ID) return
 
   logger.debug('[Drag] native drop: calling handleDrop', tabId)
@@ -574,44 +627,68 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.workspace-tabs-wrapper.is-locked {
-  cursor: not-allowed;
-  opacity: 0.9;
-}
-.workspace-tabs-wrapper.is-locked :deep(.el-tabs__item) {
-  pointer-events: none;
-  cursor: not-allowed !important;
-  opacity: 0.6;
-}
-.workspace-tabs-wrapper.is-locked :deep(.el-tabs__nav-wrap .el-icon-close) {
-  pointer-events: none;
-  opacity: 0.4;
-}
-.workspace-tabs-wrapper.is-locked :deep(.workspace-tab-label) {
-  cursor: not-allowed;
-}
-
-.workspace-tab-label {
+.workspace-tabs-list {
   display: flex;
   align-items: center;
   gap: 4px;
-  line-height: 1.2;
-  max-width: 180px;
-  white-space: nowrap;
+  padding: 4px;
+  background: transparent;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 0;
+  height: auto;
+}
+
+.workspace-tabs-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  height: 32px;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
   user-select: none;
-  cursor: grab;
-  min-width: 0; /* 允许flex子元素收缩 */
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  position: relative;
+  max-width: 180px;
+}
+
+.workspace-tabs-trigger:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.workspace-tabs-trigger[data-state='active'] {
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.workspace-tabs-trigger--add {
+  padding: 6px 10px;
+  min-width: 32px;
+  justify-content: center;
+}
+
+.workspace-tabs-trigger--add[data-state='active'] {
+  background-color: transparent;
+  color: var(--el-color-primary);
 }
 
 .workspace-tab-label__primary {
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: inherit;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
-  min-width: 0; /* 关键：允许文本省略号生效 */
+  min-width: 0;
 }
 
 .workspace-tab-label__dot {
@@ -619,51 +696,29 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   background-color: var(--el-color-danger);
-  flex-shrink: 0; /* 确保红点不会被压缩 */
-  margin-left: auto; /* 确保红点始终在右侧可见 */
+  flex-shrink: 0;
+  margin-left: 4px;
 }
 
-.workspace-tabs :deep(.el-tabs__header.is-top) {
-  margin: 0;
-}
-
-.workspace-tabs :deep(.el-tabs__item) {
-  padding: 0 12px !important;
-  height: 32px;
-  line-height: 32px;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.workspace-tabs :deep(.el-tabs__nav-wrap) {
-  margin-bottom: 0;
-}
-
-.workspace-tabs :deep(.el-tabs__item.is-active) {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  border-radius: 6px 6px 0 0;
-  font-weight: 600;
-}
-
-.workspace-tabs :deep(.el-tabs__item:not(.is-active):hover) {
-  background-color: var(--el-fill-color-light);
-}
-
-.workspace-tabs__add {
-  min-width: 32px;
-  height: 32px;
+.workspace-tab-close {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.15s ease;
 }
 
-.workspace-tabs__dialog-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
+.workspace-tab-close:hover {
+  background-color: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
 }
 
 .workspace-tab-label--plus {
@@ -673,25 +728,34 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--el-text-color-primary);
-  gap: 0;
+  color: inherit;
 }
 
 .workspace-tab-label--plus:hover {
   color: var(--el-color-primary);
 }
 
-.workspace-tabs :deep(.workspace-tab-pane--add .el-tabs__item .el-icon-close),
-.workspace-tabs :deep(.workspace-tab-pane--add .el-icon-close) {
-  display: none !important;
+.workspace-tabs-wrapper.is-locked {
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+
+.workspace-tabs-wrapper.is-locked .workspace-tabs-trigger {
+  pointer-events: none;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+.workspace-tabs-wrapper.is-locked .workspace-tab-close {
+  display: none;
 }
 
 /* 拖拽高亮样式 */
-.workspace-tabs :deep(.el-tabs__item.drop-before) {
+.workspace-tabs-trigger.drop-before {
   position: relative;
 }
 
-.workspace-tabs :deep(.el-tabs__item.drop-before::before) {
+.workspace-tabs-trigger.drop-before::before {
   content: '';
   position: absolute;
   left: 0;
@@ -703,11 +767,11 @@ onUnmounted(() => {
   border-radius: 0 2px 2px 0;
 }
 
-.workspace-tabs :deep(.el-tabs__item.drop-after) {
+.workspace-tabs-trigger.drop-after {
   position: relative;
 }
 
-.workspace-tabs :deep(.el-tabs__item.drop-after::after) {
+.workspace-tabs-trigger.drop-after::after {
   content: '';
   position: absolute;
   right: 0;
@@ -717,5 +781,12 @@ onUnmounted(() => {
   background-color: var(--el-color-primary);
   z-index: 10;
   border-radius: 2px 0 0 2px;
+}
+
+.workspace-tabs__dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
 }
 </style>

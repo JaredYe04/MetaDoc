@@ -19,7 +19,7 @@
 
 您可以通过顶部菜单栏访问关于页面：
 
-<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["about"]}]' />
 
 ```mermaid
 graph LR
@@ -107,9 +107,6 @@ QQ群提供以下资源：
 - **更新通知**：第一时间获取更新信息
 - **功能建议**：参与功能讨论和建议
 
-<ViewMenuItemsDemo mode="demo" :items='["home", "editor", "agent"]'
-/>
-
 ## 更新设置
 
 ### 自动检查更新
@@ -187,9 +184,6 @@ MetaDoc遵循开源许可证，您可以：
 - 了解使用条款
 - 了解权利和义务
 
-<ViewMenuItemsDemo mode="demo" :items='["home"]'
-/>
-
 ## 第三方资产
 
 ### 查看第三方资产
@@ -231,5 +225,3 @@ MetaDoc遵循开源许可证，您可以：
 - [[settings.basic|基础设置]]
 - [[settings.logging|日志配置]]
 - [[quick-start.guide|快速开始指南]]
-
-<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />

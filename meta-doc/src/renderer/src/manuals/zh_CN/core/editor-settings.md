@@ -8,22 +8,6 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<MainTabs mode="demo" />
-
-<AIChat mode="demo" />
-
-<KnowledgeBase mode="demo" />
-
-<ProofreadView mode="demo" />
-
-<QuickStartPanel mode="demo" />
-
-<AgentView mode="demo" />
-
-<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
-
-<Outline mode="demo" />
-
 ## 编辑器主题
 
 ### 主题类型

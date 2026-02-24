@@ -10,28 +10,6 @@ MetaDoc支持将文档导出为多种格式，包括PDF、HTML、DOCX、LaTeX、
 
 <MetaInfoPanel mode="demo" :meta='{"title": "导出示例", "author": "作者", "description": "文档描述", "keywords": ["导出", "PDF"]}' :outlineJson='""' />
 
-<MainTabs mode="demo" />
-
-<AIChat mode="demo" />
-
-<KnowledgeBase mode="demo" />
-
-<ProofreadView mode="demo" />
-
-<QuickStartPanel mode="demo" />
-
-<GraphWindow mode="demo" />
-
-<OcrWindow mode="demo" />
-
-<AgentView mode="demo" />
-
-<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
-
-<Outline mode="demo" />
-
-<PdfPreviewPanel mode="demo" pdfUrl="" />
-
 ## 导出格式支持
 
 ### Markdown文档导出

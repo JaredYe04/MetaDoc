@@ -18,10 +18,6 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
-
 ### 图片设置界面
 
 下图展示了图片设置页面的完整界面：
@@ -190,7 +186,3 @@ graph TB
 - [[settings.image-upload|上传服务设置]]
 - [[settings.basic|基础设置]]
 - [[core.file-operations|文件操作]]
-
-<SettingImageSection mode="demo" />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "insert"}]' />

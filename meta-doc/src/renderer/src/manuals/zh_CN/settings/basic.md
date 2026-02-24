@@ -25,8 +25,6 @@
 
 <SettingBasicSection mode="demo" />
 
-<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
-
 基础设置界面包含以下主要配置区域：
 
 - **启动选项**：设置应用启动时的默认行为（打开新文件/上次编辑的文件）

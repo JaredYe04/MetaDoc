@@ -594,6 +594,64 @@ onMounted(() => {
 
 ---
 
+## Demo 覆盖率要求 (Linting 强制执行)
+
+### 覆盖率计算公式
+
+每个用户手册文档必须满足最低 demo 组件数量要求：
+
+```
+最低 Demo 数量 = max(ceil((H1数量 + H2数量 + H3数量) / 3), 2)
+```
+
+**示例计算**：
+
+- 文档有 6 个 H2 + 3 个 H3 = 9 个标题 → 需要 3 个 demos
+- 文档有 2 个 H2 = 2 个标题 → ceil(2/3)=1 → 但最小为 2 → 需要 2 个 demos
+
+### Linting 检查
+
+运行命令：
+
+```bash
+npm run lint:demos
+```
+
+输出示例：
+
+```
+📊 Demo Coverage Report
+========================
+PASS: settings/basic.md (4/4)
+FAIL: ai/completion.md (0/3 required)
+  Missing: 3 demos
+  Suggested components: CompletionSettingsPanel, AICompletionDemo
+```
+
+### 自动化要求
+
+1. 每个文档编写时必须同时添加对应 demo
+2. CI/CD 会检查 demo 覆盖率
+3. 未达标文档无法合并
+
+### 豁免情况
+
+仅在以下情况可豁免：
+
+- 纯概念介绍文档（无 UI 元素）
+- 在文档顶部添加 `<!-- demo-exempt: reason -->`
+
+### 为缺失 Demo 的文档补充
+
+当 linting 报告某文档缺少 demos 时：
+
+1. 查看该文档提到的 UI 功能
+2. 选择对应组件（或创建新组件）
+3. 添加 `<ComponentName mode="demo" />` 到文档
+4. 重新运行 linting 验证
+
+---
+
 ### 示例（正确）
 
 ```markdown
@@ -878,6 +936,18 @@ estimatedTime: 10
 - ✅ **新增文档**：agent/references.md、agent/engine.md
 - ✅ **所有文档已按新规范完善完成**
 
+#### 📊 Demo 覆盖率统计
+
+| 指标              | 数值 | 状态 |
+| ----------------- | ---- | ---- |
+| 文档总数          | 64   | -    |
+| 达标文档          | 64   | ✅   |
+| Demo 组件总数     | 186  | -    |
+| 平均 Demo 数/文档 | 2.9  | -    |
+| 覆盖率检查        | 100% | ✅   |
+
+运行 `npm run lint:demos` 可查看详细报告。
+
 #### 📋 待完成
 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构，需要编写以下文档：**
@@ -1158,6 +1228,7 @@ A: 这是因为...
 - [ ] 已添加相关文档链接
 - [ ] 已在 `index.json` 中注册
 - [ ] **已更新 `IMPLEMENTATION_SUMMARY.md` 中的进度统计**
+- [ ] **Demo 覆盖率满足要求 (运行 `npm run lint:demos`)**
 
 ---
 

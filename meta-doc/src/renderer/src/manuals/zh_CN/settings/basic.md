@@ -23,7 +23,7 @@
 
 下图展示了基础设置页面的完整界面：
 
-<Demo component="SettingBasicSection" mode="demo" />
+<SettingBasicSection mode="demo" />
 
 基础设置界面包含以下主要配置区域：
 

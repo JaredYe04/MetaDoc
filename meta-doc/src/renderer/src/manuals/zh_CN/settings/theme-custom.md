@@ -33,6 +33,8 @@
 - **自定义名称**：输入有意义的名称，便于识别和管理
 - **命名建议**：使用描述性的名称，如"工作主题"、"夜间模式"等
 
+<SettingThemeSection mode="demo" />
+
 ```mermaid
 graph LR
     A[点击新建主题] --> B[输入主题名称]
@@ -55,6 +57,8 @@ graph LR
 3. 选择"编辑"
 4. 在对话框中修改主题名称或颜色
 5. 点击"保存"按钮
+
+<DialogDemo mode="demo" dialogType="theme-edit" />
 
 ### 快速编辑颜色
 
@@ -112,6 +116,8 @@ graph LR
 - **颜色值输入**：直接输入HEX、RGB、HSL等格式
 - **透明度调整**：调整颜色的透明度
 
+<DialogDemo mode="demo" dialogType="color-picker" />
+
 ### 预设颜色
 
 MetaDoc提供了多种预设颜色：
@@ -164,6 +170,8 @@ MetaDoc会根据主题色自动生成配色方案：
 - **自定义主题**：用户创建的主题
 - **当前主题**：显示选中标记
 
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 ### 主题排序
 
 主题按以下顺序显示：
@@ -181,6 +189,8 @@ MetaDoc会根据主题色自动生成配色方案：
 - **颜色值**：显示颜色的HEX值
 - **选中标记**：当前使用的主题
 
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />
+
 ## 最佳实践
 
 1. **主题命名**：使用有意义的名称，便于识别
@@ -188,6 +198,8 @@ MetaDoc会根据主题色自动生成配色方案：
 3. **主题备份**：重要主题建议复制备份
 4. **定期清理**：删除不再使用的主题，保持列表整洁
 5. **测试效果**：创建主题后测试实际效果，根据使用体验调整
+
+<MainTabs mode="demo" />
 
 ## 注意事项
 
@@ -197,8 +209,12 @@ MetaDoc会根据主题色自动生成配色方案：
 4. **主题数量**：建议不要创建过多主题，保持列表简洁
 5. **主题同步**：主题更改会在所有窗口间同步
 
+<QuickStartPanel mode="demo" />
+
 ## 相关文档
 
 - [[settings.theme|主题配置]]
 - [[settings.basic|基础设置]]
 - [[core.editor-settings|编辑器设置]]
+
+<ResizableDivider mode="demo" />

@@ -154,7 +154,10 @@ class LaTeXServiceImpl implements LaTeXService {
           try {
             fs.renameSync(result.pdfPath, outputFile)
           } catch (err: unknown) {
-            const code = err && typeof err === 'object' && 'code' in err ? (err as NodeJS.ErrnoException).code : undefined
+            const code =
+              err && typeof err === 'object' && 'code' in err
+                ? (err as NodeJS.ErrnoException).code
+                : undefined
             if (code === 'EXDEV') {
               // Windows 等系统上跨盘符（如 D: -> C:）时 rename 会报 EXDEV，改为复制后删除
               fs.copyFileSync(result.pdfPath, outputFile)

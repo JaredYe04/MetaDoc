@@ -123,10 +123,7 @@ function findFormatById(id: string): SupportedFormat | undefined {
   return supportedFormatsRef.value.find((format) => format.id === id)
 }
 
-function findFormatTemplate(
-  formatId: string,
-  templateId?: string
-): DocumentTemplate | undefined {
+function findFormatTemplate(formatId: string, templateId?: string): DocumentTemplate | undefined {
   const format = findFormatById(formatId)
   if (!format) return undefined
   if (!templateId) {

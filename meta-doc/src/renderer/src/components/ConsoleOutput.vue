@@ -141,7 +141,8 @@ const lines = ref<ConsoleLine[]>([])
 const internalEnableAiAnalysis = ref(true)
 
 const enableAiAnalysisModel = computed({
-  get: () => (props.enableAiAnalysis !== undefined ? props.enableAiAnalysis : internalEnableAiAnalysis.value),
+  get: () =>
+    props.enableAiAnalysis !== undefined ? props.enableAiAnalysis : internalEnableAiAnalysis.value,
   set: (value: boolean) => {
     if (props.enableAiAnalysis !== undefined) {
       emit('update:enableAiAnalysis', value)

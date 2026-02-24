@@ -24,6 +24,8 @@
 - **风格问题**：风格检查发现的问题
 - **其他错误**：其他类型的错误
 
+<ProofreadView mode="demo" />
+
 ```mermaid
 graph TB
     A[校对统计] --> B[错误统计]
@@ -49,6 +51,8 @@ graph TB
 - **LaTeX错误**：LaTeX语法错误的数量
 - **风格问题**：写作风格问题的数量
 - **其他错误**：其他类型错误的数量
+
+<DiffDisplay mode="demo" />
 
 ### 错误计数
 
@@ -76,6 +80,8 @@ graph TB
 - **修复内容**：修复的具体内容
 - **修复方式**：修复的方式（手动/自动）
 
+<OutlineTreeDisplay mode="demo" />
+
 ## 校对历史
 
 ### 历史记录
@@ -95,6 +101,8 @@ graph TB
 - **详细信息**：查看每次校对的详细信息
 - **统计分析**：对历史数据进行统计分析
 
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />
+
 ## 统计视图
 
 ### 统一视图
@@ -104,6 +112,8 @@ graph TB
 - **错误列表**：按顺序显示所有错误
 - **错误详情**：显示每个错误的详细信息
 - **错误定位**：可以定位到错误位置
+
+<DataAnalysisDisplay mode="demo" />
 
 ### 分类视图
 
@@ -122,6 +132,8 @@ graph TB
 - **导出格式**：可能支持多种格式（JSON、CSV等）
 - **导出范围**：可以选择导出全部或筛选后的数据
 - **导出内容**：可以选择导出哪些统计信息
+
+<ChartGenerationDisplay mode="demo" />
 
 ## 最佳实践
 
@@ -143,3 +155,5 @@ graph TB
 
 - [[ai.proofread|AI校对功能]]
 - [[statistics.llm|LLM统计]]
+
+<QuickStartPanel mode="demo" />

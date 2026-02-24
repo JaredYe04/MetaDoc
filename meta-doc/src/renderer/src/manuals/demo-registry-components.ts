@@ -39,6 +39,7 @@ import SettingImageSection from '../views/setting/SettingImageSection.vue'
 import SettingDebugSection from '../views/setting/SettingDebugSection.vue'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 import SettingLoggerSection from '../views/setting/SettingLoggerSection.vue'
+import UserProfileView from '../views/UserProfileView.vue'
 
 // Agent-related components (Batch 1 - P0 Priority)
 import AgentView from '../views/AgentView.vue'
@@ -82,6 +83,7 @@ registerDemoComponent('SettingImageSection', SettingImageSection)
 registerDemoComponent('SettingDebugSection', SettingDebugSection)
 registerDemoComponent('SettingAboutSection', SettingAboutSection)
 registerDemoComponent('SettingLoggerSection', SettingLoggerSection)
+registerDemoComponent('UserProfileView', UserProfileView)
 
 // Agent-related components
 registerDemoComponent('AgentView', AgentView)

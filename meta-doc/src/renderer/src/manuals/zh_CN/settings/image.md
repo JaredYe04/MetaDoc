@@ -18,11 +18,13 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
 ### 图片设置界面
 
 下图展示了图片设置页面的完整界面：
 
-<Demo component="SettingImageSection" mode="demo" />
+<SettingImageSection mode="demo" />
 
 图片设置界面包含以下主要配置区域：
 
@@ -38,6 +40,8 @@
 - **缺点**：图片与文档分离，移动文档时需要同时移动图片
 - **适用场景**：多文档共享图片、图片资源集中管理
 
+<DialogDemo mode="demo" dialogType="image-upload" />
+
 ### 保存到文档目录
 
 将图片保存到文档所在的目录：
@@ -46,6 +50,8 @@
 - **缺点**：每个文档目录都有图片，可能重复
 - **适用场景**：单文档项目、文档需要独立打包
 
+<DialogDemo mode="demo" dialogType="file-save" />
+
 ### 保存到资源目录
 
 将图片保存到文档目录下的`assets`文件夹：
@@ -53,6 +59,8 @@
 - **优点**：图片统一存放在`assets`文件夹，结构清晰
 - **缺点**：需要创建`assets`文件夹
 - **适用场景**：需要清晰的文件结构、文档需要导出分享
+
+<DialogDemo mode="demo" dialogType="folder-select" />
 
 ```mermaid
 graph TB

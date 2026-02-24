@@ -1279,6 +1279,7 @@ const pendingAccept = ref(false)
 const pendingBatchAccept = ref<BatchAcceptState | null>(null)
 const backupChildren = ref<DocumentOutlineNode[] | null>(null)
 const backupContent = ref<string>('')
+const singleGenerateType = ref<'content' | 'children'>('children') // 单任务生成类型：内容或子节点
 
 const generateChildChapter = async () => {
   workspace.lockUI?.()

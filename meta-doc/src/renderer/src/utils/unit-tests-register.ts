@@ -1,3 +1,7 @@
+/**
+ * 应用内单元测试注册（供「设置 → 调试 → 单元测试」批量运行）。
+ * 相同用例已迁移至 Vitest：在项目根目录执行 npm run test 运行。
+ */
 import { registerToolCallParserTests } from './agent-framework/tool-call-parser-tests'
 import { registerDatabaseTests } from './database-tests'
 import { registerTitleFormatTests } from './title-format-tests'

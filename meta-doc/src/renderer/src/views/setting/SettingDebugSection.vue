@@ -1099,6 +1099,9 @@
                   <!-- 批量测试 -->
                   <el-tab-pane :label="$t('setting.debug.unitTest.batchTest')" name="batch">
                     <div class="test-panel" :style="testPanelStyle">
+                      <p class="unit-test-vitest-hint" style="margin-bottom: 12px; color: var(--el-text-color-secondary); font-size: 12px;">
+                        单元测试已迁移至 Vitest，可在项目根目录执行 <code>npm run test</code> 运行；下方仍可在应用内批量运行并查看结果。
+                      </p>
                       <el-form :model="unitTestBatchForm" label-width="140px">
                         <el-form-item :label="$t('setting.debug.unitTest.selectModules')">
                           <el-select

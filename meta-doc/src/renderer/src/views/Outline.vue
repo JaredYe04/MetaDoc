@@ -1024,6 +1024,7 @@ const aiConfig = reactive({
 })
 const recommendedKeywords = ref<string[]>([])
 const recommendedKeywordsLoading = ref(false)
+const editingNodePath = ref<string | null>(null)
 const selectedAiTool = ref<string | null>(null)
 
 // 切换 AI 工具：已选中则取消，否则选中；选中时折叠已展开的编辑节点面板

@@ -48,7 +48,9 @@
                   :icon="Close"
                   text
                   :aria-label="t('common.delete') || '删除'"
-                  @click.stop="deleteUserTemplate(template.userTemplateId!, templateLabel(template))"
+                  @click.stop="
+                    deleteUserTemplate(template.userTemplateId!, templateLabel(template))
+                  "
                 />
                 <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
                   <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />

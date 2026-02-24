@@ -91,6 +91,9 @@ import {
 } from '@renderer/components/ui/select'
 import { DatePicker } from '@renderer/components/ui/date-picker'
 
+// Demo mode support
+const props = defineProps<{ isDemo?: boolean }>()
+
 const { t } = useI18n()
 const logger = createRendererLogger('LlmStatisticsContent')
 
@@ -180,8 +183,54 @@ function getEChartsThemeConfig() {
   }
 }
 
+// Demo data generator
+const loadDemoData = () => {
+  const today = new Date()
+  const demoRequests = []
+  const models = ['gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'gemini-pro']
+  const types = ['chat', 'completion', 'embedding']
+
+  // Generate 30 days of demo data
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    const dateStr = date.toISOString().split('T')[0]
+    const dayRequests = Math.floor(Math.random() * 50) + 10
+
+    for (let j = 0; j < dayRequests; j++) {
+      const promptTokens = Math.floor(Math.random() * 2000) + 100
+      const completionTokens = Math.floor(Math.random() * 1000) + 50
+      demoRequests.push({
+        timestamp: `${dateStr}T${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}Z`,
+        date: dateStr,
+        model: models[Math.floor(Math.random() * models.length)],
+        type: types[Math.floor(Math.random() * types.length)],
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: promptTokens + completionTokens
+      })
+    }
+  }
+
+  statistics.value = {
+    requests: demoRequests,
+    totalRequests: demoRequests.length,
+    totalPromptTokens: demoRequests.reduce((sum, r) => sum + r.prompt_tokens, 0),
+    totalCompletionTokens: demoRequests.reduce((sum, r) => sum + r.completion_tokens, 0),
+    totalTokens: demoRequests.reduce((sum, r) => sum + r.total_tokens, 0)
+  }
+}
+
 // 加载统计数据
 async function loadStatistics() {
+  // Demo mode: use mock data
+  if (props.isDemo) {
+    loadDemoData()
+    await nextTick()
+    updateCharts()
+    return
+  }
+
   try {
     let startDate: Date | undefined = undefined
     let endDate: Date | undefined = undefined
@@ -581,6 +630,12 @@ function convertToXLSX(data: any): ArrayBuffer {
 
 // 导出统计（暴露给父组件使用）
 async function handleExport() {
+  // Demo mode: simulate export
+  if (props.isDemo) {
+    ElMessage.success('Demo mode: Statistics exported (simulated)')
+    return
+  }
+
   try {
     // 显示格式选择对话框
     const formatOptions = [
@@ -699,6 +754,22 @@ async function handleExport() {
 
 // 清空统计（暴露给父组件使用）
 async function handleClear() {
+  // Demo mode: simulate clear
+  if (props.isDemo) {
+    ElMessage.success('Demo mode: Statistics cleared (simulated)')
+    // Reset demo data
+    statistics.value = {
+      requests: [],
+      totalRequests: 0,
+      totalPromptTokens: 0,
+      totalCompletionTokens: 0,
+      totalTokens: 0
+    }
+    await nextTick()
+    updateCharts()
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
       t('llmStatistics.clearConfirm'),

@@ -381,12 +381,16 @@ function getLogger() {
 
 const props = defineProps<{
   session: AgentSession
+  mode?: string
 }>()
 
 const emit = defineEmits<{
   update: []
   'update-built-in-doc-ref': [value: boolean]
 }>()
+
+// Demo mode support
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -412,7 +416,47 @@ const formData = ref({
   description: ''
 })
 
+// Demo references data
+const demoReferences = ref<Reference[]>([
+  {
+    id: 'demo-ref-1',
+    name: 'Sample Document.pdf',
+    origin: '/demo/documents/sample.pdf',
+    format: 'pdf',
+    parsedContent:
+      'This is a demo PDF document content. It demonstrates how references are displayed in the reference manager. The content would normally be extracted from the actual file.',
+    description: 'A sample PDF document for demonstration',
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 86400000
+  },
+  {
+    id: 'demo-ref-2',
+    name: 'Research Paper.md',
+    origin: 'https://example.com/research-paper.md',
+    format: 'md',
+    parsedContent:
+      '# Research Paper Demo\n\nThis is a demo markdown research paper. It shows how URL-based references work.\n\n## Abstract\n\nThis demonstrates the reference management system.',
+    description: 'Online research paper reference',
+    createdAt: Date.now() - 172800000,
+    updatedAt: Date.now() - 172800000
+  },
+  {
+    id: 'demo-ref-3',
+    name: 'Notes.txt',
+    origin: 'manual-input',
+    format: 'txt',
+    parsedContent:
+      'These are some demo notes entered manually. This shows how text-based references work in the system.',
+    description: 'Manually entered text notes',
+    createdAt: Date.now() - 259200000,
+    updatedAt: Date.now() - 259200000
+  }
+])
+
 const references = computed(() => {
+  if (isDemo.value) {
+    return demoReferences.value
+  }
   return props.session.referenceStore || []
 })
 
@@ -741,7 +785,9 @@ const handleViewContent = (reference: Reference) => {
 const handleCopyContent = async () => {
   if (viewingReference.value?.parsedContent) {
     try {
-      await navigator.clipboard.writeText(viewingReference.value.parsedContent)
+      if (!isDemo.value) {
+        await navigator.clipboard.writeText(viewingReference.value.parsedContent)
+      }
       ElMessage.success(t('common.copySuccess'))
     } catch (error) {
       ElMessage.error(t('common.copyFailed'))

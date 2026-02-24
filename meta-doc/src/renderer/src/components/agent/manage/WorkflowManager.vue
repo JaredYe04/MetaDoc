@@ -142,6 +142,10 @@ import {
 // @ts-ignore - Vue组件类型声明
 import WorkflowCanvas from '../workflow/WorkflowCanvas.vue'
 
+// Demo mode support
+const props = defineProps<{ mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
 const { t } = useI18n()
 
 const workflows = ref<Workflow[]>([])
@@ -172,12 +176,107 @@ const getLocalizedText = (text: LocalizedText): string => {
   return text['zh_cn']?.name || text['en_us']?.name || ''
 }
 
+// Demo workflows data
+const loadDemoWorkflows = (): Workflow[] => {
+  return [
+    {
+      id: 'demo-workflow-1',
+      name: 'Demo Document Processing',
+      description: 'A sample workflow for processing documents with AI',
+      entryNodeId: 'start-node',
+      exitNodeIds: ['end-node'],
+      artifactNodes: [
+        { id: 'start-node', type: 'start', name: 'Start', x: 100, y: 100 },
+        { id: 'ai-node', type: 'ai', name: 'AI Analysis', x: 300, y: 100 },
+        { id: 'end-node', type: 'end', name: 'End', x: 500, y: 100 }
+      ],
+      controlFlowNodes: [],
+      edges: [
+        { id: 'edge-1', source: 'start-node', target: 'ai-node' },
+        { id: 'edge-2', source: 'ai-node', target: 'end-node' }
+      ],
+      variables: [],
+      config: {},
+      enabled: true,
+      version: '1.0.0',
+      tags: ['demo', 'document'],
+      isBuiltIn: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    {
+      id: 'demo-workflow-2',
+      name: 'Demo Code Review',
+      description: 'Automated code review workflow',
+      entryNodeId: 'start-node',
+      exitNodeIds: ['end-node'],
+      artifactNodes: [
+        { id: 'start-node', type: 'start', name: 'Start', x: 100, y: 100 },
+        { id: 'parse-node', type: 'function', name: 'Parse Code', x: 250, y: 100 },
+        { id: 'review-node', type: 'ai', name: 'AI Review', x: 400, y: 100 },
+        { id: 'report-node', type: 'function', name: 'Generate Report', x: 550, y: 100 },
+        { id: 'end-node', type: 'end', name: 'End', x: 700, y: 100 }
+      ],
+      controlFlowNodes: [],
+      edges: [
+        { id: 'edge-1', source: 'start-node', target: 'parse-node' },
+        { id: 'edge-2', source: 'parse-node', target: 'review-node' },
+        { id: 'edge-3', source: 'review-node', target: 'report-node' },
+        { id: 'edge-4', source: 'report-node', target: 'end-node' }
+      ],
+      variables: [],
+      config: {},
+      enabled: true,
+      version: '1.0.0',
+      tags: ['demo', 'code'],
+      isBuiltIn: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    {
+      id: 'demo-workflow-3',
+      name: 'Custom Data Analysis',
+      description: 'User created workflow for data analysis',
+      entryNodeId: 'start-node',
+      exitNodeIds: ['end-node'],
+      artifactNodes: [
+        { id: 'start-node', type: 'start', name: 'Start', x: 100, y: 100 },
+        { id: 'data-node', type: 'function', name: 'Load Data', x: 300, y: 100 },
+        { id: 'ai-node', type: 'ai', name: 'AI Analysis', x: 500, y: 100 },
+        { id: 'end-node', type: 'end', name: 'End', x: 700, y: 100 }
+      ],
+      controlFlowNodes: [],
+      edges: [
+        { id: 'edge-1', source: 'start-node', target: 'data-node' },
+        { id: 'edge-2', source: 'data-node', target: 'ai-node' },
+        { id: 'edge-3', source: 'ai-node', target: 'end-node' }
+      ],
+      variables: [],
+      config: {},
+      enabled: false,
+      version: '0.5.0',
+      tags: ['demo', 'data'],
+      isBuiltIn: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+  ]
+}
+
 const loadWorkflows = () => {
   loading.value = true
   try {
-    workflows.value = workflowManager.getAllWorkflows()
-    // 加载缩略图
-    loadThumbnails()
+    if (isDemo.value) {
+      workflows.value = loadDemoWorkflows()
+      // Demo thumbnails (placeholder)
+      workflows.value.forEach((w) => {
+        workflowThumbnails.value[w.id] = ''
+      })
+    } else {
+      workflows.value = workflowManager.getAllWorkflows()
+      // 加载缩略图
+      loadThumbnails()
+    }
   } finally {
     loading.value = false
   }
@@ -224,6 +323,19 @@ const handleAction = async (action: string, workflow: Workflow) => {
 }
 
 const handleCanvasSave = async (workflow: Workflow) => {
+  // Demo mode: simulate save
+  if (isDemo.value) {
+    ElMessage.success(
+      editingWorkflow.value
+        ? t('agent.manage.workflow.updateSuccess')
+        : t('agent.manage.workflow.createSuccess')
+    )
+    canvasVisible.value = false
+    // In demo mode, reload demo data to simulate persistence
+    loadWorkflows()
+    return
+  }
+
   try {
     if (editingWorkflow.value) {
       await workflowManager.updateWorkflow(editingWorkflow.value.id, workflow)
@@ -253,6 +365,23 @@ const handleDelete = async (workflow: Workflow) => {
     return
   }
 
+  // Demo mode: simulate delete
+  if (isDemo.value) {
+    try {
+      await ElMessageBox.confirm(
+        t('agent.manage.workflow.confirmDelete', { name: getLocalizedText(workflow.name) }),
+        t('common.confirm'),
+        { type: 'warning' }
+      )
+      ElMessage.success(t('agent.manage.workflow.deleteSuccess'))
+      // Remove from demo list
+      workflows.value = workflows.value.filter((w) => w.id !== workflow.id)
+    } catch (error) {
+      // User cancelled
+    }
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
       t('agent.manage.workflow.confirmDelete', { name: getLocalizedText(workflow.name) }),
@@ -270,6 +399,12 @@ const handleDelete = async (workflow: Workflow) => {
 }
 
 const handleValidate = (workflow: Workflow) => {
+  // Demo mode: simulate validation
+  if (isDemo.value) {
+    ElMessage.success(t('agent.manage.workflow.validationSuccess'))
+    return
+  }
+
   const validation = workflowManager.validateWorkflow(workflow)
   if (validation.valid) {
     ElMessage.success(t('agent.manage.workflow.validationSuccess'))
@@ -281,6 +416,12 @@ const handleValidate = (workflow: Workflow) => {
 }
 
 const handleExport = (workflow: Workflow) => {
+  // Demo mode: simulate export
+  if (isDemo.value) {
+    ElMessage.success(t('agent.manage.exportSuccess'))
+    return
+  }
+
   try {
     const entity = workflowManager.exportWorkflow(workflow.id, true)
     if (entity) {
@@ -300,6 +441,22 @@ const handleExport = (workflow: Workflow) => {
 }
 
 const handleDuplicate = async (workflow: Workflow) => {
+  // Demo mode: simulate duplicate
+  if (isDemo.value) {
+    const baseName = getLocalizedText(workflow.name) || workflow.id
+    const newWorkflow = {
+      ...workflow,
+      id: `demo-${Date.now()}`,
+      name: typeof workflow.name === 'string' ? `${baseName} - Copy` : baseName,
+      isBuiltIn: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+    workflows.value.push(newWorkflow)
+    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    return
+  }
+
   try {
     const baseName = getLocalizedText(workflow.name) || workflow.id
     const newNameZh = `${baseName} - ${t('agent.sessions.duplicate')}`
@@ -352,6 +509,12 @@ const handleImport = () => {
   input.onchange = async (e) => {
     const file = (e.target as HTMLInputElement).files?.[0]
     if (!file) return
+
+    // Demo mode: simulate import
+    if (isDemo.value) {
+      ElMessage.success(t('agent.manage.importSuccess'))
+      return
+    }
 
     try {
       const text = await file.text()

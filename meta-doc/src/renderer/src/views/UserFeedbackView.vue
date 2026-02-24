@@ -118,7 +118,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+
+// Demo mode support
+const props = defineProps<{ mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
 import { Eye, XCircle, Check } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -349,6 +353,18 @@ function getMime(filename: string): string {
 async function handleFileChange(uploadFile: UploadFile) {
   const raw = uploadFile.raw
   if (!raw) return
+
+  // Demo mode: simulate file upload without reading
+  if (isDemo.value) {
+    notifyInfo(`Demo mode: File "${raw.name}" attached (simulated)`)
+    attachmentBase64List.value.push({
+      filename: raw.name,
+      mime: getMime(raw.name),
+      content_base64: 'demo-base64-content'
+    })
+    return
+  }
+
   if (raw.size > SINGLE_FILE_MAX_BYTES) {
     notifyWarning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
     fileList.value = fileList.value.filter((f) => f.uid !== uploadFile.uid)
@@ -434,6 +450,22 @@ async function handleSubmit() {
   if (!validateAttachments()) {
     return
   }
+
+  // Demo mode: disable real submission
+  if (isDemo.value) {
+    notifyInfo('Demo mode: Feedback submission is simulated')
+    form.value.title = ''
+    form.value.body = ''
+    fileList.value = []
+    attachmentBase64List.value = []
+    uploadRef.value?.clearFiles()
+    if (editor) {
+      const template = await buildBodyTemplate()
+      editor.setValue(template)
+    }
+    return
+  }
+
   submitting.value = true
   uploadedAttachmentIndices.value = []
   try {
@@ -468,7 +500,65 @@ async function handleSubmit() {
 
 let feedbackAttachmentUploadedHandler: ((_e: any, index: number) => void) | null = null
 
+// Load demo data for demo mode
+const loadDemoData = () => {
+  form.value.type = 'feature'
+  form.value.title = 'Demo Feature Request'
+  // Demo body content
+  const demoBody = `### System Info
+
+- OS: Demo OS
+- CPU: Demo CPU
+- GPU: Demo GPU
+- RAM: 16 GB
+- MetaDoc Version: 1.0.0
+
+### Describe the Problem
+
+This is a demo feedback form showing how users can submit feature requests or bug reports.
+
+### Expected Result
+
+The demo mode displays a fully functional UI without actually submitting data.
+
+### Other Information
+
+Demo mode is useful for documentation and tutorials.
+
+### Contact (Optional)
+
+\u003c!-- Leave your contact if needed --\u003e`
+  if (editor) {
+    editor.setValue(demoBody)
+  }
+}
+
 onMounted(async () => {
+  // Demo mode: skip real IPC setup
+  if (isDemo.value) {
+    setupMonacoWorker()
+    if (!editorContainer.value) return
+    const isDark = themeState.currentTheme.type === 'dark'
+    editor = monaco.editor.create(editorContainer.value, {
+      value: '',
+      language: 'markdown',
+      theme: isDark ? 'vs-dark' : 'vs',
+      automaticLayout: true,
+      minimap: { enabled: true },
+      scrollBeyondLastLine: false,
+      fontSize: 14,
+      lineNumbers: 'on',
+      wordWrap: 'on',
+      readOnly: false
+    })
+    bodyFromEditor.value = editor.getValue()
+    editor.onDidChangeModelContent(() => {
+      bodyFromEditor.value = editor?.getModel()?.getValue() ?? ''
+    })
+    loadDemoData()
+    return
+  }
+
   feedbackAttachmentUploadedHandler = (_e: any, index: number) => {
     uploadedAttachmentIndices.value = [...uploadedAttachmentIndices.value, index]
   }

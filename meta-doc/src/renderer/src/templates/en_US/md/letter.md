@@ -1,12 +1,12 @@
 **From:**  
 Name / Organization  
-Contact  
+Contact
 
 **To:**  
 Name / Organization  
-Address  
+Address
 
-**Date:** Month Day, Year  
+**Date:** Month Day, Year
 
 **Subject:** Subject of the letter (optional)
 
@@ -24,6 +24,5 @@ Dear XXX,
 
 Sincerely,
 
-  
 Signature  
 Date

@@ -14,6 +14,14 @@
 - **用户手册**：在用户手册中可以访问用户资料设置
 - **菜单选项**：某些菜单中可能有用户资料选项
 
+<QuickStartPanel mode="demo" />
+
+### 用户资料界面
+
+用户资料界面包含以下主要部分：
+
+<UserProfileView mode="demo" />
+
 ### 资料设置向导
 
 用户资料设置采用分步向导形式：
@@ -77,6 +85,8 @@ graph TB
 - **中级**：熟悉常用语法和扩展功能
 - **高级**：精通Markdown，了解各种扩展语法
 
+<QuickStartLatex mode="demo" />
+
 ### LaTeX熟练度
 
 评估您对LaTeX语法的熟悉程度：
@@ -86,6 +96,8 @@ graph TB
 - **中级**：熟悉常用环境和命令
 - **高级**：精通LaTeX，能够编写复杂文档
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
 ### Agent使用经验
 
 评估您对Agent框架的使用经验：
@@ -94,6 +106,8 @@ graph TB
 - **基础**：了解基本概念，使用过简单功能
 - **中级**：熟悉工具集和工作流
 - **高级**：能够创建复杂的Agent配置和工作流
+
+<AgentView mode="demo" />
 
 ## 编辑器经验
 
@@ -121,6 +135,8 @@ graph TB
 - **预览方式**：偏好使用的预览方式
 - **自动保存**：自动保存偏好
 
+<MainTabs mode="demo" />
+
 ### 功能偏好
 
 可以设置功能相关的偏好：
@@ -128,6 +144,8 @@ graph TB
 - **常用功能**：标记常用的功能
 - **功能优先级**：设置功能的优先级
 - **界面布局**：偏好使用的界面布局
+
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />
 
 ## 用户画像设置
 
@@ -158,6 +176,8 @@ graph TB
 - **IT从业者路径**：适合IT从业者的学习路径
 - **办公用户路径**：适合办公用户的学习路径
 
+<AIChat mode="demo" />
+
 ### 路径内容
 
 学习路径包含：
@@ -175,6 +195,8 @@ graph TB
 1. 打开用户资料对话框
 2. 修改各项设置
 3. 保存更改
+
+<SettingBasicSection mode="demo" />
 
 ### 资料同步
 
@@ -205,3 +227,5 @@ graph TB
 - [[home.features|主页功能]]
 - [[user.feedback|用户反馈]]
 - [[quick-start.guide|快速开始指南]]
+
+<SettingThemeSection mode="demo" />

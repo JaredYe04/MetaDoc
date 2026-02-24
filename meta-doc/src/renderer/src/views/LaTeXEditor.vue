@@ -85,7 +85,6 @@
                     backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
                   }"
                 >
-
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="undo">
@@ -179,8 +178,8 @@
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger as-child>
-                      <div 
-                        class="toolbar-icon" 
+                      <div
+                        class="toolbar-icon"
                         :class="{ 'is-compiling': isCompiling }"
                         :aria-disabled="isCompiling"
                         @click="!isCompiling && compile()"

@@ -141,7 +141,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyInfo } from '../../utils/notify'
+import { notifySuccess, notifyInfo } from '../utils/notify'
 import { Form, FormField } from '../../components/ui/form'
 import { Switch } from '../../components/ui/switch'
 import { Input } from '../../components/ui/input'

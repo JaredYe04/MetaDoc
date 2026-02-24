@@ -665,7 +665,10 @@ eventBus.on('export-as-template', (payload) => {
       description: description || '',
       content
     })
-    ElMessage.success(i18n?.global?.t?.('leftMenu.exportAsTemplateSuccess', '已添加为模板，可在新建文档时选择') ?? '已添加为模板')
+    ElMessage.success(
+      i18n?.global?.t?.('leftMenu.exportAsTemplateSuccess', '已添加为模板，可在新建文档时选择') ??
+        '已添加为模板'
+    )
   } catch (e) {
     getLogger().error('export-as-template failed', e)
     ElMessage.error(i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败')

@@ -18,6 +18,12 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
 ```mermaid
 graph TB
     A[菜单配置] --> B[打开配置对话框]
@@ -46,6 +52,10 @@ graph TB
 - **可见性**：显示菜单项是否可见
 - **位置**：显示菜单项的位置（顶部/底部）
 - **核心标识**：标识核心菜单项（不可隐藏）
+
+<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "help"}]' />
 
 ### 菜单项类型
 
@@ -78,6 +88,8 @@ graph TB
 3. **切换可见性**：切换菜单项的可见性开关
 4. **保存配置**：点击"保存"按钮保存配置
 
+<DialogDemo mode="demo" dialogType="menu-config" />
+
 ### 显示菜单项
 
 可以显示已隐藏的菜单项：
@@ -86,6 +98,8 @@ graph TB
 2. **找到菜单项**：找到要显示的菜单项
 3. **切换可见性**：切换菜单项的可见性开关
 4. **保存配置**：点击"保存"按钮保存配置
+
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />
 
 ### 核心菜单项限制
 
@@ -105,6 +119,8 @@ graph TB
 2. **拖拽菜单项**：点击并拖拽菜单项的拖拽手柄
 3. **调整位置**：将菜单项拖到目标位置
 4. **保存配置**：点击"保存"按钮保存配置
+
+<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
 
 ### 排序规则
 
@@ -131,6 +147,8 @@ graph TB
 2. **拖拽到位置**：将菜单项拖拽到顶部或底部区域
 3. **自动调整**：系统会自动调整位置属性
 4. **保存配置**：点击"保存"按钮保存配置
+
+<LeftMenu mode="demo" />
 
 ### 位置分割线
 
@@ -171,6 +189,8 @@ graph TB
 - 重置操作不可恢复
 - 重置后核心菜单项仍然会保持显示
 
+<DialogDemo mode="demo" dialogType="confirm-reset" />
+
 ## 配置持久化
 
 ### 配置存储
@@ -209,3 +229,5 @@ graph TB
 
 - [[settings.basic|基础设置]]
 - [[core.multi-tab|多标签页管理]]
+
+<MainTabs mode="demo" />

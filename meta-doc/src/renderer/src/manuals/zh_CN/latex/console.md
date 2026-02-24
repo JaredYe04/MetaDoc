@@ -224,19 +224,3 @@ A: AI分析仅供参考，建议结合错误信息和代码上下文进行判断
 <LaTeXCompilerPanel mode="demo" />
 
 <LaTeXEditorDemo mode="demo" />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
-
-<ViewMenuItemsDemo mode="demo" :items='["latex"]' />
-
-<AIChat mode="demo" />
-
-<SettingBasicSection mode="demo" />
-
-<MainTabs mode="demo" />
-
-<Outline mode="demo" />
-
-<AgentView mode="demo" />
-
-<KnowledgeBase mode="demo" />

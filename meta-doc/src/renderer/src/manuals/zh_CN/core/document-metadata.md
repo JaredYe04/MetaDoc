@@ -194,28 +194,6 @@ AI生成元信息基于：
 
 生成的结果会根据文档内容自动调整，确保元信息准确反映文档内容。
 
-<AIChat mode="demo" />
-
-<KnowledgeBase mode="demo" />
-
-<ProofreadView mode="demo" />
-
-<QuickStartPanel mode="demo" />
-
-<AgentView mode="demo" />
-
-<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
-
-<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
-
-<Outline mode="demo" />
-
-<MainTabs mode="demo" />
-
-<GraphWindow mode="demo" />
-
-<OcrWindow mode="demo" />
-
 ## 元信息在导出中的应用
 
 导出的文档会自动包含元信息：

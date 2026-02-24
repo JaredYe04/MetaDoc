@@ -27,7 +27,7 @@
       ]"
       :variant="selectedAiTool === 'generateContent' ? 'default' : 'outline'"
       size="sm"
-      @click="toggleAiTool('generateContent')"
+      @click="handleToggleAiTool('generateContent')"
     >
       <img :src="themeState.currentTheme.WriteIcon" class="ai-toolbar-btn__icon" alt="" />
       <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateContent') }}</span>
@@ -43,7 +43,7 @@
       ]"
       :variant="selectedAiTool === 'generateChildrenChildren' ? 'default' : 'outline'"
       size="sm"
-      @click="toggleAiTool('generateChildrenChildren')"
+      @click="handleToggleAiTool('generateChildrenChildren')"
     >
       <img :src="themeState.currentTheme.MultiBranchIcon" class="ai-toolbar-btn__icon" alt="" />
       <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenChildren') }}</span>
@@ -59,7 +59,7 @@
       ]"
       :variant="selectedAiTool === 'generateChildrenContent' ? 'default' : 'outline'"
       size="sm"
-      @click="toggleAiTool('generateChildrenContent')"
+      @click="handleToggleAiTool('generateChildrenContent')"
     >
       <img :src="themeState.currentTheme.MultiWriteIcon" class="ai-toolbar-btn__icon" alt="" />
       <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenContent') }}</span>
@@ -71,7 +71,7 @@
             variant="outline"
             size="sm"
             class="ai-toolbar-btn ai-toolbar-btn--action"
-            @click="formatTitle"
+            @click="handleFormatTitle"
           >
             <img :src="themeState.currentTheme.FormatIcon" class="ai-toolbar-btn__icon" alt="" />
           </Button>

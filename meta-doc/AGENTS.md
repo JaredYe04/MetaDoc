@@ -226,6 +226,53 @@ meta-doc/
 - **Export adapters**: Strategy pattern via `base-adapter.ts` → concrete adapters registered in `index.ts`
 - **Agent tools**: Each tool exports a `*ToolConfig` object registered in `agent-tools/index.ts`
 
+## GIT COMMIT CONVENTIONS
+
+**Commit message 必须使用中文，并遵循 Conventional Commits 格式：**
+
+```
+<type>: <中文描述>
+
+[可选的详细描述]
+```
+
+### Type 说明
+
+| Type | 使用场景 | 示例 |
+|------|---------|------|
+| `feat` | 新功能 | `feat: 添加大纲树拖拽排序功能` |
+| `fix` | Bug 修复 | `fix: 修复标签页切换时内容不更新的问题` |
+| `docs` | 文档更新 | `docs: 更新 AGENTS.md 添加测试命令` |
+| `style` | 代码格式（不影响功能） | `style: 统一组件缩进格式` |
+| `refactor` | 重构（非 feat/fix） | `refactor: 重构标签页管理逻辑` |
+| `perf` | 性能优化 | `perf: 优化大纲树渲染性能` |
+| `test` | 测试相关 | `test: 添加 outline-helpers 单元测试` |
+| `chore` | 构建/工具/杂项 | `chore: 删除意外生成的空 EOF 文件` |
+
+### 规范要求
+
+- ✅ **标题使用中文** - 所有 commit message 标题必须使用中文描述
+- ✅ **type 小写** - `feat:` 而非 `Feat:`
+- ✅ **简洁明了** - 标题不超过 50 个字符
+- ✅ **详细描述可选** - 复杂变更在正文详细说明
+
+### 示例
+
+```bash
+# 好的示例
+git commit -m "feat: 添加文档大纲 AI 生成工具"
+git commit -m "fix: 修复跨窗口拖拽时标签页丢失的问题"
+git commit -m "docs: 更新 AGENTS.md 添加 Git 提交规范"
+git commit -m "chore: 升级 Electron 至 31.7.7"
+
+# 不好的示例
+git commit -m "update something"              # ❌ 英文 + 无 type
+git commit -m "feat 添加功能"                  # ❌ 缺少冒号
+git commit -m "FEAT: 添加功能"                 # ❌ type 大写
+git commit -m "修复 bug"                       # ❌ 缺少 type
+git commit -m "fix: fix bug"                   # ❌ 英文描述
+```
+
 ## ANTI-PATTERNS (THIS PROJECT)
 
 - **DO NOT modify META-INFO lines** in `document-serializer.ts` — breaks metadata parsing
@@ -279,6 +326,7 @@ npm run test:coverage    # Run tests with coverage
 ```
 
 **Dual test system**:
+
 - **Vitest**: Standard unit tests for utilities, composables, services
 - **In-app test framework**: Custom test runner within Electron environment for integration tests; located in `src/renderer/src/test-app/`
 

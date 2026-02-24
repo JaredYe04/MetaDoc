@@ -224,7 +224,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, nextTick } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { Loading, Connection, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
@@ -240,7 +240,142 @@ import { renderMarkdownPreview } from '../../md-utils'
 
 const { t } = useI18n()
 
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  result: {
+    rowCount: 1250,
+    columnCount: 8,
+    fields: [
+      {
+        name: 'id',
+        type: 'number',
+        nullable: false,
+        uniqueCount: 1250,
+        sampleValues: [1, 2, 3, 4, 5]
+      },
+      {
+        name: 'name',
+        type: 'string',
+        nullable: false,
+        uniqueCount: 1180,
+        sampleValues: ['Alice', 'Bob', 'Charlie', 'David', 'Eve']
+      },
+      {
+        name: 'age',
+        type: 'number',
+        nullable: true,
+        uniqueCount: 45,
+        sampleValues: [25, 30, 35, 40, 45]
+      },
+      {
+        name: 'city',
+        type: 'string',
+        nullable: false,
+        uniqueCount: 15,
+        sampleValues: ['北京', '上海', '广州', '深圳', '杭州']
+      },
+      {
+        name: 'salary',
+        type: 'number',
+        nullable: true,
+        uniqueCount: 320,
+        sampleValues: [5000, 8000, 12000, 15000, 20000]
+      }
+    ],
+    descriptiveStats: {
+      age: {
+        count: 1180,
+        mean: 32.5,
+        median: 31,
+        std: 8.2,
+        min: 18,
+        max: 65,
+        q25: 26,
+        q75: 38
+      },
+      salary: {
+        count: 1150,
+        mean: 12500,
+        median: 12000,
+        std: 4500,
+        min: 3000,
+        max: 50000,
+        q25: 8000,
+        q75: 16000
+      }
+    },
+    aggregations: [
+      {
+        groupBy: 'city',
+        aggregations: {
+          北京: {
+            count: 320,
+            numericFields: {
+              salary: { sum: 4480000, avg: 14000, count: 320, min: 5000, max: 35000 }
+            },
+            stringFields: {},
+            booleanFields: {},
+            dateFields: {}
+          },
+          上海: {
+            count: 280,
+            numericFields: {
+              salary: { sum: 4200000, avg: 15000, count: 280, min: 6000, max: 45000 }
+            },
+            stringFields: {},
+            booleanFields: {},
+            dateFields: {}
+          },
+          广州: {
+            count: 220,
+            numericFields: {
+              salary: { sum: 2640000, avg: 12000, count: 220, min: 4000, max: 30000 }
+            },
+            stringFields: {},
+            booleanFields: {},
+            dateFields: {}
+          },
+          深圳: {
+            count: 250,
+            numericFields: {
+              salary: { sum: 3500000, avg: 14000, count: 250, min: 5000, max: 38000 }
+            },
+            stringFields: {},
+            booleanFields: {},
+            dateFields: {}
+          },
+          杭州: {
+            count: 180,
+            numericFields: {
+              salary: { sum: 2340000, avg: 13000, count: 180, min: 4500, max: 32000 }
+            },
+            stringFields: {},
+            booleanFields: {},
+            dateFields: {}
+          }
+        }
+      }
+    ],
+    summary:
+      '## 数据分析摘要\n\n### 数据集概况\n- **总行数**: 1,250 行\n- **总列数**: 8 列\n- **数值字段**: 3 个 (id, age, salary)\n- **字符串字段**: 2 个 (name, city)\n\n### 关键发现\n1. **年龄分布**: 平均年龄 32.5 岁，中位数 31 岁\n2. **薪资水平**: 平均薪资 ¥12,500，中位数 ¥12,000\n3. **城市分布**: 北京人数最多 (320人)，其次是上海 (280人)\n4. **薪资差异**: 上海平均薪资最高 (¥15,000)，广州最低 (¥12,000)'
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues in lifecycle hooks below
+})
 
 const activeTab = ref('fields')
 const summaryContainerRef = ref<HTMLElement | null>(null)
@@ -278,6 +413,11 @@ const { realtimeData, realtimeStatus } = useToolDisplayRealtime(
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
 

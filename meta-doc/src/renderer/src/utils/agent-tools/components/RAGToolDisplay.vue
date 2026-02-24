@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
@@ -80,7 +80,33 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 
 const { t } = useI18n()
 
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  question: '什么是机器学习？',
+  resultCount: 3,
+  results: [
+    '机器学习是人工智能的一个分支，它使计算机系统能够通过经验自动改进。机器学习算法使用统计技术从数据中“学习”，而无需明确编程。',
+    '深度学习是机器学习的一个子集，使用多层神经网络来模拟人脑的工作方式。它在图像识别、自然语言处理等领域取得了突破性进展。',
+    '监督学习、无监督学习和强化学习是机器学习的三种主要类型。每种类型适用于不同的应用场景和数据特点。'
+  ],
+  scoreThreshold: 0.7
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues below
+})
 
 // 使用实时通信
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
@@ -92,6 +118,11 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
 

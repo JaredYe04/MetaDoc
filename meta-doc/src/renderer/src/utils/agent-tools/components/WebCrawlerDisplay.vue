@@ -173,7 +173,57 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  result: {
+    url: 'https://api.example.com/users',
+    status: 200,
+    statusText: 'OK',
+    headers: {
+      'content-type': 'application/json',
+      server: 'nginx/1.18.0',
+      date: new Date().toUTCString(),
+      'cache-control': 'max-age=3600'
+    },
+    content: JSON.stringify(
+      {
+        users: [
+          { id: 1, name: 'Alice', email: 'alice@example.com', role: 'admin' },
+          { id: 2, name: 'Bob', email: 'bob@example.com', role: 'user' },
+          { id: 3, name: 'Charlie', email: 'charlie@example.com', role: 'user' }
+        ],
+        total: 3,
+        page: 1
+      },
+      null,
+      2
+    ),
+    contentType: 'application/json',
+    size: 256
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    // Initialize demo editors after a short delay
+    setTimeout(() => {
+      if (isJsonContent.value && activeTab.value === 'render') {
+        initJsonMonacoEditor()
+      }
+    }, 100)
+    return
+  }
+  // Real initialization continues below
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -240,6 +290,11 @@ const displayData = computed(() => {
 })
 
 const resultData = computed((): WebCrawlerResult | null => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value.result
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
 

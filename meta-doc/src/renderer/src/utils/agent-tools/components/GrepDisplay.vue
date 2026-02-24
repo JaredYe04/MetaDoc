@@ -193,7 +193,82 @@ import { setupMonacoWorker } from '../../monaco-worker-config'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  result: {
+    matches: [
+      {
+        line: 12,
+        column: 5,
+        match: 'function',
+        context: '    function calculateSum(a, b) {',
+        scope: 'document'
+      },
+      {
+        line: 25,
+        column: 3,
+        match: 'function',
+        context: '  function multiply(x, y) {',
+        scope: 'document'
+      },
+      {
+        line: 38,
+        column: 1,
+        match: 'function',
+        context: 'function helper() {',
+        scope: 'document'
+      },
+      {
+        line: 52,
+        column: 10,
+        match: 'function',
+        context: '  const myFunction = function() {',
+        scope: 'document'
+      }
+    ],
+    totalMatches: 4,
+    searchPattern: 'function',
+    replacedCount: 0,
+    replacementText: '',
+    originalContent: `// 数学工具库
+function calculateSum(a, b) {
+  return a + b;
+}
+
+function calculateDiff(a, b) {
+  return a - b;
+}
+
+  function multiply(x, y) {
+    return x * y;
+  }
+
+function helper() {
+  console.log("Helper");
+}
+
+  const myFunction = function() {
+    return true;
+  };`,
+    language: 'javascript'
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues below
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -209,6 +284,11 @@ let monacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let currentDecorations: string[] = [] // 保存当前的高亮装饰ID，用于清除
 
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
 

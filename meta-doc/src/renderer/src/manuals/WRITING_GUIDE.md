@@ -596,6 +596,19 @@ onMounted(() => {
 
 ## Demo 覆盖率要求 (Linting 强制执行)
 
+### ⚠️ 强制执行政策
+
+**本文档定义的覆盖率要求是强制性政策。**
+
+详细政策说明请参阅 **[DEMO_COVERAGE_POLICY.md](./DEMO_COVERAGE_POLICY.md)**
+
+**核心要求**：
+
+- ✅ 所有文档必须通过 `npm run lint:demos` 检查
+- ❌ **禁止**通过修改 linting 脚本绕过检查
+- ❌ **禁止**使用 `--no-verify` 提交未达标文档
+- ❌ **禁止**将规则从 error 降级为 warn
+
 ### 覆盖率计算公式
 
 每个用户手册文档必须满足最低 demo 组件数量要求：
@@ -628,27 +641,49 @@ FAIL: ai/completion.md (0/3 required)
   Suggested components: CompletionSettingsPanel, AICompletionDemo
 ```
 
+**通过标准**：
+
+- 所有文档 PASS
+- 0 个文档 FAIL
+- Exit code 必须为 0
+
 ### 自动化要求
 
 1. 每个文档编写时必须同时添加对应 demo
 2. CI/CD 会检查 demo 覆盖率
-3. 未达标文档无法合并
+3. **未达标文档无法合并到主分支**
 
-### 豁免情况
+### 豁免情况 (严格限制)
 
 仅在以下情况可豁免：
 
-- 纯概念介绍文档（无 UI 元素）
-- 在文档顶部添加 `<!-- demo-exempt: reason -->`
+- 纯概念介绍文档（无任何 UI 元素描述）
+- 在文档**顶部**添加 `<!-- demo-exempt: 原因说明 -->`
+
+**不允许的豁免理由**：
+
+- ❌ "暂时没时间加"
+- ❌ "这个组件太难"
+- ❌ "以后再加"
+- ❌ 任何模糊的理由
 
 ### 为缺失 Demo 的文档补充
 
 当 linting 报告某文档缺少 demos 时：
 
 1. 查看该文档提到的 UI 功能
-2. 选择对应组件（或创建新组件）
+2. 选择对应组件（或创建新组件支持 `mode="demo"`）
 3. 添加 `<ComponentName mode="demo" />` 到文档
-4. 重新运行 linting 验证
+4. 确保组件已在 `demo-registry-components.ts` 注册
+5. 重新运行 linting 验证
+
+### 违规后果
+
+| 违规情况       | 后果          |
+| -------------- | ------------- |
+| Demo 数量不足  | PR 被拒绝合并 |
+| 绕过 linting   | 代码回滚      |
+| 虚假 demo 组件 | 重构要求      |
 
 ---
 
@@ -1229,6 +1264,7 @@ A: 这是因为...
 - [ ] 已在 `index.json` 中注册
 - [ ] **已更新 `IMPLEMENTATION_SUMMARY.md` 中的进度统计**
 - [ ] **Demo 覆盖率满足要求 (运行 `npm run lint:demos`)**
+- [ ] **已阅读并遵守 [DEMO_COVERAGE_POLICY.md](./DEMO_COVERAGE_POLICY.md)**
 
 ---
 

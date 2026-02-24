@@ -1,18 +1,18 @@
 <template>
   <div class="auto-test-result-display" :style="containerStyle">
     <div class="test-summary">
-      <Statistic :title="$t('agent.display.autoTest.totalTests')" :value="summary.total" />
-      <Statistic :title="$t('agent.display.autoTest.passed')" :value="summary.passed">
+      <Statistic :title="$t('agent.display.autoTest.totalTests')" :value="effectiveSummary.total" />
+      <Statistic :title="$t('agent.display.autoTest.passed')" :value="effectiveSummary.passed">
         <template #suffix>
-          <Badge class="ml-2"> {{ summary.passedRate }}% </Badge>
+          <Badge class="ml-2"> {{ effectiveSummary.passedRate }}% </Badge>
         </template>
       </Statistic>
-      <Statistic :title="$t('agent.display.autoTest.failed')" :value="summary.failed">
+      <Statistic :title="$t('agent.display.autoTest.failed')" :value="effectiveSummary.failed">
         <template #suffix>
-          <Badge variant="destructive" class="ml-2"> {{ summary.failedRate }}% </Badge>
+          <Badge variant="destructive" class="ml-2"> {{ effectiveSummary.failedRate }}% </Badge>
         </template>
       </Statistic>
-      <Statistic :title="$t('agent.display.autoTest.duration')" :value="summary.duration">
+      <Statistic :title="$t('agent.display.autoTest.duration')" :value="effectiveSummary.duration">
         <template #suffix>ms</template>
       </Statistic>
     </div>
@@ -44,7 +44,7 @@
         <ScrollArea class="h-full">
           <div class="test-results-list">
             <div
-              v-for="(result, index) in testResults"
+              v-for="(result, index) in effectiveTestResults"
               :key="index"
               class="test-result-item"
               :class="{
@@ -309,9 +309,116 @@ interface Props {
     duration: number
   }
   markdownSummary: string
+  mode?: string
 }
 
 const props = defineProps<Props>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoTestResults = ref<TestResult[]>([
+  {
+    toolId: 'chart-generation',
+    toolName: '图表生成工具',
+    testCaseName: '生成柱状图',
+    testCaseId: 'CHART-001',
+    params: { type: 'bar', data: [10, 20, 30] },
+    passed: true,
+    duration: 1200,
+    result: {
+      content: {
+        stage: 'completed',
+        chartType: 'bar',
+        chartName: 'demo-chart',
+        url: 'https://example.com/chart.png'
+      },
+      format: 'json'
+    }
+  },
+  {
+    toolId: 'diff-tool',
+    toolName: '文本对比工具',
+    testCaseName: '对比两段文本',
+    testCaseId: 'DIFF-001',
+    params: { text1: 'hello', text2: 'world' },
+    passed: true,
+    duration: 800,
+    result: {
+      content: {
+        stage: 'completed',
+        diffResult: {
+          chunks: [],
+          summary: { insertions: 1, deletions: 1, replacements: 0 }
+        }
+      },
+      format: 'json'
+    }
+  },
+  {
+    toolId: 'grep-tool',
+    toolName: '文本搜索工具',
+    testCaseName: '搜索关键词',
+    testCaseId: 'GREP-001',
+    params: { pattern: 'function', text: 'function test() {}' },
+    passed: false,
+    error: '搜索超时，未能在规定时间内完成',
+    duration: 5000
+  }
+])
+
+const demoSummary = ref({
+  total: 3,
+  passed: 2,
+  failed: 1,
+  passedRate: 66.67,
+  failedRate: 33.33,
+  duration: 7000
+})
+
+const demoMarkdownSummary = ref(`# 自动化测试报告
+
+## 测试概览
+- **总测试数**: 3
+- **通过**: 2 (66.67%)
+- **失败**: 1 (33.33%)
+- **总耗时**: 7000ms
+
+## 详细结果
+
+### 图表生成工具
+- ✅ CHART-001: 生成柱状图 (1200ms)
+
+### 文本对比工具
+- ✅ DIFF-001: 对比两段文本 (800ms)
+
+### 文本搜索工具
+- ❌ GREP-001: 搜索关键词 (5000ms)
+  - 错误: 搜索超时
+`)
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive refs above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+  }
+  // Real initialization continues below
+})
+
+// Computed properties for demo mode support
+const effectiveTestResults = computed(() => {
+  return isDemo.value ? demoTestResults.value : props.testResults
+})
+
+const effectiveSummary = computed(() => {
+  return isDemo.value ? demoSummary.value : props.summary
+})
+
+const effectiveMarkdownSummary = computed(() => {
+  return isDemo.value ? demoMarkdownSummary.value : props.markdownSummary
+})
 
 const activeTab = ref('results')
 const markdownContainerRef = ref<HTMLElement | null>(null)
@@ -402,8 +509,12 @@ const formatDataForDisplay = (result: any, status?: string) => {
 }
 
 const copyMarkdown = async () => {
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：复制功能已禁用'))
+    return
+  }
   try {
-    await navigator.clipboard.writeText(props.markdownSummary)
+    await navigator.clipboard.writeText(effectiveMarkdownSummary.value)
     ElMessage.success(t('agent.display.autoTest.copySuccess'))
   } catch (error) {
     ElMessage.error(
@@ -426,6 +537,10 @@ const copyTestCaseId = async (testCaseId: string) => {
 
 // 导出测试结果快照
 const exportResultSnapshot = async (result: TestResult) => {
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：导出功能已禁用'))
+    return
+  }
   try {
     const tool = agentToolManager.getTool(result.toolId)
     if (!tool) {
@@ -521,7 +636,11 @@ const exportResultSnapshot = async (result: TestResult) => {
 }
 
 const downloadMarkdown = () => {
-  const blob = new Blob([props.markdownSummary], { type: 'text/markdown;charset=utf-8' })
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：下载功能已禁用'))
+    return
+  }
+  const blob = new Blob([effectiveMarkdownSummary.value], { type: 'text/markdown;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -583,7 +702,7 @@ const renderMarkdown = async () => {
     return
   }
 
-  const markdownContent = props.markdownSummary
+  const markdownContent = effectiveMarkdownSummary.value
   if (!markdownContent) {
     markdownContainerRef.value.innerHTML = ''
     return
@@ -602,9 +721,9 @@ const renderMarkdown = async () => {
 
 // 监听 Markdown 内容变化和标签页切换
 watch(
-  [() => props.markdownSummary, activeTab, () => themeState.currentTheme.type],
+  [() => effectiveMarkdownSummary.value, activeTab, () => themeState.currentTheme.type],
   () => {
-    if (activeTab.value === 'markdown' && props.markdownSummary) {
+    if (activeTab.value === 'markdown' && effectiveMarkdownSummary.value) {
       nextTick(() => {
         renderMarkdown()
       })
@@ -614,7 +733,7 @@ watch(
 )
 
 onMounted(() => {
-  if (activeTab.value === 'markdown' && props.markdownSummary) {
+  if (activeTab.value === 'markdown' && effectiveMarkdownSummary.value) {
     nextTick(() => {
       renderMarkdown()
     })

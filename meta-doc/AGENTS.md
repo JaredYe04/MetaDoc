@@ -65,6 +65,11 @@
 
 ## 📚 文档质量要求：Demo Mode Coverage（不可绕过）
 
+> **⚠️ 重要：这是强制执行的政策**
+>
+> 完整的政策文档请参阅 **`src/renderer/src/manuals/DEMO_COVERAGE_POLICY.md`**
+> 所有规定在该文档中有详细说明。
+
 ### 规则定义
 
 **所有用户手册文档**（`src/renderer/src/manuals/**/*.md`）**必须**满足 Demo Mode 覆盖率要求：
@@ -111,6 +116,7 @@ Required Demo Modes = MAX(CEIL((H1 + H2 + H3) / 3), 2)
 - ❌ 使用 `--no-verify` 提交
 - ❌ 将规则从 error 降级为 warn
 - ❌ 在 AGENTS.md 中删除或修改此规则说明
+- ❌ 任何试图绕过 `DEMO_COVERAGE_POLICY.md` 的行为
 
 **违规后果**：
 
@@ -131,10 +137,12 @@ Demo模式覆盖不足: 需要 3 个 (H1-H3共8个标题), 实际只有 1 个
 1. 在文档中提到的每个界面控件旁添加对应 Demo 组件
 2. 参考 `src/renderer/src/manuals/zh_CN/quick-start/guide.md` 作为标杆
 3. 查看 `src/renderer/src/manuals/WRITING_GUIDE.md` 了解可用组件
-4. 重新运行 `npm run lint:manuals` 验证
+4. **阅读 `src/renderer/src/manuals/DEMO_COVERAGE_POLICY.md` 了解详细政策**
+5. 重新运行 `npm run lint:manuals` 验证
 
 ### 相关文件
 
+- **政策文档**: `src/renderer/src/manuals/DEMO_COVERAGE_POLICY.md` - **强制执行的政策**
 - **Lint 脚本**: `scripts/lint-manuals.js` - `checkDemoModeCoverage()` 函数
 - **规则文档**: `docs/DEMO_MODE_COVERAGE_LINTING.md`
 - **组件使用**: `src/renderer/src/manuals/WRITING_GUIDE.md`

@@ -6,6 +6,8 @@
 
 ## 工作目录介绍
 
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
 ### 什么是工作目录
 
 工作目录是MetaDoc中打开的一个文件夹，它允许您：
@@ -39,6 +41,8 @@ graph LR
 
 ## 打开工作目录
 
+<ViewMenuItemsDemo mode="demo" :items='["workspace", "editor"]' />
+
 ### 打开目录
 
 1. 点击左侧菜单的"工作目录"图标
@@ -49,6 +53,8 @@ graph LR
 您可以通过侧边栏访问工作目录视图：
 
 <ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "home"]' />
 
 ### 切换目录
 
@@ -68,6 +74,8 @@ graph LR
 3. 工作目录面板会隐藏
 
 ## 文件浏览
+
+<ViewMenuItemsDemo mode="demo" :items='["workspace", "editor", "outline"]' />
 
 ### 目录树结构
 
@@ -95,6 +103,10 @@ graph LR
 
 ## 文件操作
 
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />
+
 ### 打开文件
 
 有多种方式可以打开文件：
@@ -107,6 +119,8 @@ graph LR
 
 ### 预览文件
 
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
 可以预览文件而不打开：
 
 - **右键菜单**：右键点击文件，选择"预览"
@@ -114,6 +128,8 @@ graph LR
 - **切换编辑**：预览模式下可以切换到编辑模式
 
 ### 重命名文件
+
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
 
 1. 右键点击要重命名的文件
 2. 选择"重命名"
@@ -127,6 +143,8 @@ graph LR
 - 重命名后文件路径会改变
 
 ### 删除文件
+
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
 
 1. 右键点击要删除的文件
 2. 选择"删除"
@@ -149,12 +167,16 @@ graph LR
 
 ### 新建文件夹
 
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
 1. 右键点击文件夹或空白区域
 2. 选择"新建文件夹"
 3. 输入文件夹名称
 4. 按Enter确认
 
 ## 文件操作高级功能
+
+<ViewMenuItemsDemo mode="demo" :items='["workspace", "editor"]' />
 
 ### 复制文件
 
@@ -191,6 +213,8 @@ graph LR
 
 ## 文件搜索
 
+<ViewMenuItemsDemo mode="demo" :items='["workspace"]' />
+
 ### 搜索功能
 
 工作目录支持文件搜索：
@@ -208,6 +232,8 @@ graph LR
 - **文件名**：搜索文件名，不搜索文件内容
 
 ## 目录监听
+
+<ViewMenuItemsDemo mode="demo" :items='["workspace", "outline"]' />
 
 ### 自动刷新
 

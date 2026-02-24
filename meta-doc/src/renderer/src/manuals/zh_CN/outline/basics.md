@@ -86,7 +86,7 @@ graph TB
 
 编辑节点标题会自动更新文档中对应的标题。
 
-<TitleMenu mode="demo" title="示例标题" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />
+<TitleMenu mode="demo" title="示例标题" path="1" :tree='{}' />
 
 ### 删除节点
 
@@ -98,7 +98,7 @@ graph TB
 
 删除节点会同时删除文档中对应的标题和内容（如果配置了）。
 
-<SectionOptimizer mode="demo" title="大纲节点优化示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
+<SectionOptimizer mode="demo" title="大纲节点优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
 ### 移动节点
 

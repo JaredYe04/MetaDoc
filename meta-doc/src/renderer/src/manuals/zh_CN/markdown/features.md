@@ -31,7 +31,7 @@ Markdown编辑器提供了丰富的功能，包括搜索替换、右键菜单、
 
 搜索替换菜单界面如下：
 
-<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
+<SearchReplaceMenu mode="demo" :adapter='null' />
 
 ```mermaid
 graph LR
@@ -193,9 +193,9 @@ Token数越大，补全的内容越多，但生成时间也会更长。
 - **Esc键**：取消补全建议
 - **继续输入**：取消补全并继续输入
 
-<TitleMenu mode="demo" title="Markdown编辑器示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />
+<TitleMenu mode="demo" title="Markdown编辑器示例" path="1" :tree='{}' />
 
-<SectionOptimizer mode="demo" title="段落优化示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
+<SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
 <QuickStartMarkdown mode="demo" />
 

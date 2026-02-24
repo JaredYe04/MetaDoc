@@ -46,13 +46,13 @@ components/ui/
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Install new component | Run `npx shadcn-vue@latest add <name>` | Installs to `components/ui/<name>/` |
-| Use component | `import { Button } from '@renderer/components/ui/button'` | Named exports from each component dir |
-| Customize styling | Component `.vue` files use Tailwind | Modify `cn()` calls with Tailwind classes |
-| Form integration | `form/` directory | FormField, FormControl, FormLabel, etc. |
-| Dialog system | `dialog/` directory | Dialog, DialogContent, DialogHeader, etc. |
+| Task                  | Location                                                  | Notes                                     |
+| --------------------- | --------------------------------------------------------- | ----------------------------------------- |
+| Install new component | Run `npx shadcn-vue@latest add <name>`                    | Installs to `components/ui/<name>/`       |
+| Use component         | `import { Button } from '@renderer/components/ui/button'` | Named exports from each component dir     |
+| Customize styling     | Component `.vue` files use Tailwind                       | Modify `cn()` calls with Tailwind classes |
+| Form integration      | `form/` directory                                         | FormField, FormControl, FormLabel, etc.   |
+| Dialog system         | `dialog/` directory                                       | Dialog, DialogContent, DialogHeader, etc. |
 
 ## CONVENTIONS
 

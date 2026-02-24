@@ -166,7 +166,7 @@ function matrixOperation(
   switch (operation) {
     case 'transpose':
       return matrix1[0].map((_, colIndex) => matrix1.map((row) => row[colIndex]))
-    case 'multiply':
+    case 'multiply': {
       if (!matrix2) throw new Error('缺少第二个矩阵')
       // 简化的矩阵乘法实现
       const result: number[][] = []
@@ -180,6 +180,7 @@ function matrixOperation(
         }
       }
       return result
+    }
     default:
       throw new Error(`不支持的矩阵操作: ${operation}`)
   }

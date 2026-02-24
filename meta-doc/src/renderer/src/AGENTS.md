@@ -56,21 +56,21 @@ renderer/src/
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add view/page | `views/` + `router/router.js` | Register in `pages` map for aux windows |
-| Add component | `components/` | PascalCase .vue, single-word OK |
-| Modify document state | `stores/workspace.ts` | Core store — 2009 lines |
-| Tab drag & drop | `composables/useTabDrag.ts` | Cross-window drag with main process |
-| Tab operations | `composables/useTabOperations.ts` | Close, move, context menu |
-| Tab switcher | `composables/useTabSwitcher.ts` + `TabSwitcherOverlay.vue` | Ctrl+Tab |
-| Add LLM provider | `utils/llm-adapters/` | Extend `base-adapter.ts` |
-| Add editor feature | `editor/` | Both share `text-editor-types.ts` |
-| Modify AI behavior | `utils/prompts.ts` + `locale_prompts/` | Prompt templates are config |
-| Add workspace FS op | `utils/workspace/` | Planner→executor pattern |
-| Theme/styling | `utils/themes.js` + `assets/` | `themeState` global |
-| Add shadcn component | `components/ui/` | Use `npx shadcn-vue@latest add <component>` |
-| Use shadcn component | Import from `components/ui/<name>` | Based on reka-ui + Tailwind |
+| Task                  | Location                                                   | Notes                                       |
+| --------------------- | ---------------------------------------------------------- | ------------------------------------------- |
+| Add view/page         | `views/` + `router/router.js`                              | Register in `pages` map for aux windows     |
+| Add component         | `components/`                                              | PascalCase .vue, single-word OK             |
+| Modify document state | `stores/workspace.ts`                                      | Core store — 2009 lines                     |
+| Tab drag & drop       | `composables/useTabDrag.ts`                                | Cross-window drag with main process         |
+| Tab operations        | `composables/useTabOperations.ts`                          | Close, move, context menu                   |
+| Tab switcher          | `composables/useTabSwitcher.ts` + `TabSwitcherOverlay.vue` | Ctrl+Tab                                    |
+| Add LLM provider      | `utils/llm-adapters/`                                      | Extend `base-adapter.ts`                    |
+| Add editor feature    | `editor/`                                                  | Both share `text-editor-types.ts`           |
+| Modify AI behavior    | `utils/prompts.ts` + `locale_prompts/`                     | Prompt templates are config                 |
+| Add workspace FS op   | `utils/workspace/`                                         | Planner→executor pattern                    |
+| Theme/styling         | `utils/themes.js` + `assets/`                              | `themeState` global                         |
+| Add shadcn component  | `components/ui/`                                           | Use `npx shadcn-vue@latest add <component>` |
+| Use shadcn component  | Import from `components/ui/<name>`                         | Based on reka-ui + Tailwind                 |
 
 ## CONVENTIONS
 
@@ -102,6 +102,7 @@ notifyError('Save failed', { duration: 5000 })
 ```
 
 Files:
+
 - `stores/notification.ts` — Pinia store + persistence
 - `utils/notify.ts` — Unified API
 - `utils/notifications-legacy.ts` — EventBus compatibility

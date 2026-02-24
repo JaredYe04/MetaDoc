@@ -4,6 +4,8 @@
 
 校对工具统计功能用于跟踪和查看文档校对的使用情况，包括拼写检查、语法检查等统计信息。这些统计数据可以帮助您了解校对功能的使用情况，优化校对策略。
 
+<ProofreadView mode="demo" />
+
 ## 校对统计介绍
 
 ### 什么是校对统计
@@ -24,7 +26,7 @@
 - **风格问题**：风格检查发现的问题
 - **其他错误**：其他类型的错误
 
-<ProofreadView mode="demo" />
+<LlmStatisticsView mode="demo" />
 
 ```mermaid
 graph TB

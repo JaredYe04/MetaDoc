@@ -5,7 +5,7 @@ import { getSetting } from './settings'
 
 // 该方法用于提取json字符串，避免json字符串中包含其他字符导致解析错误，此外需要考虑最外层可能是数组或对象
 export function extractOuterJsonString(str) {
-  const startIdx = str.search(/[\[{]/) // 查找第一个 { 或 [
+  const startIdx = str.search(/[[{]/) // 查找第一个 { 或 [
   if (startIdx === -1) return null
 
   const openChar = str[startIdx]
@@ -128,10 +128,10 @@ export function removeTitleIndex(title) {
   //例如十二、1.2.3 xxx，去除十二、1.2.3
   // 匹配规则说明：
   // ^ 开头
-  // ([一二三四五六七八九十百千]+[\、\.]?)? 匹配中文数字+可选顿号/点号
+  // ([一二三四五六七八九十百千]+[、.]?)? 匹配中文数字+可选顿号/点号
   // (\d+(\.\d+)*[\.\、]?)? 匹配数字+点结构+可选点号/顿号
   // \s* 匹配可能存在的空格
-  const regex = /^((([一二三四五六七八九十百千]+[\、\.]?)|(\d+(\.\d+)*[\、\.]?))\s*)+/
+  const regex = /^((([一二三四五六七八九十百千]+[、.]?)|(\d+(\.\d+)*[、.]?))\s*)+/
   const cleanedContent = content.replace(regex, '')
 
   // 重新组合：开头标记 + 移除前缀后的内容 + 结尾标记

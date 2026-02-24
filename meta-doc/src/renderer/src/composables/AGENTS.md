@@ -18,14 +18,14 @@ composables/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Tab drag between windows | `useTabDrag.ts` | Coordinates with main process drag-manager |
-| Tab keyboard switching | `useTabSwitcher.ts` | Ctrl+Tab, overlay via TabSwitcherOverlay |
-| Move tab to new window | `useTabOperations.ts` | Uses ipcRenderer.invoke() |
-| Close tab with prompt | `useCloseTab.ts` | Handles unsaved changes |
-| Get active document | `useActiveDocument.ts` | Reactive current document |
-| Workspace FS operations | `useWorkspaceOperations.ts` | Planner→executor pattern |
+| Task                     | File                        | Notes                                      |
+| ------------------------ | --------------------------- | ------------------------------------------ |
+| Tab drag between windows | `useTabDrag.ts`             | Coordinates with main process drag-manager |
+| Tab keyboard switching   | `useTabSwitcher.ts`         | Ctrl+Tab, overlay via TabSwitcherOverlay   |
+| Move tab to new window   | `useTabOperations.ts`       | Uses ipcRenderer.invoke()                  |
+| Close tab with prompt    | `useCloseTab.ts`            | Handles unsaved changes                    |
+| Get active document      | `useActiveDocument.ts`      | Reactive current document                  |
+| Workspace FS operations  | `useWorkspaceOperations.ts` | Planner→executor pattern                   |
 
 ## CONVENTIONS
 

@@ -135,7 +135,7 @@ function extractMermaidCode(text: string): string {
       }
 
       // 如果一行中中文字符占比超过 50%，且不包含代码结构特征，可能是说明文字
-      const hasCodeStructure = /[\[\]{}()|:-><]/.test(line)
+      const hasCodeStructure = /[|[\]{}()<>:-]/.test(line)
       if (chineseRatio > 0.5 && !hasCodeStructure) {
         // 如果已经有代码内容，停止提取
         if (codeLines.length > 0) {
@@ -220,7 +220,7 @@ function extractMermaidCode(text: string): string {
     const totalCount = line.length
     const chineseRatio = totalCount > 0 ? chineseCount / totalCount : 0
 
-    if (chineseRatio > 0.7 && !line.match(/[\[\]{}()|:-><]/) && codeLines.length > 0) {
+    if (chineseRatio > 0.7 && !line.match(/[|{}()[\]<>:-]/) && codeLines.length > 0) {
       // 如果主要是中文且不包含代码特征，且已有代码内容，停止提取
       break
     }
@@ -401,7 +401,7 @@ function extractGenericChartCode(text: string, chartType: string): string {
 
         // 检查是否包含代码特征（箭头、等号、括号等）
         const hasCodeStructure =
-          /[=>{}()\[\]|]/.test(line) ||
+          /[=>{}()[\]]/.test(line) ||
           trimmedLine.match(/^(st|op|cond|e|start|end|digraph|graph|node|edge|subgraph)/i)
 
         if (chineseRatio > 0.5 && !hasCodeStructure) {
@@ -476,7 +476,7 @@ function cleanEChartsCode(code: string): string {
     cleaned = extractedJson
   } else {
     // 如果提取失败，尝试查找第一个 { 或 [，移除之前的所有内容
-    const jsonStartIndex = cleaned.search(/[\[{]/)
+    const jsonStartIndex = cleaned.search(/[{[]/)
     if (jsonStartIndex > 0) {
       cleaned = cleaned.substring(jsonStartIndex)
       // 查找最后一个 } 或 ]，移除之后的所有内容
@@ -1429,7 +1429,7 @@ function getChartGenerationToolLocales(): ToolLocales {
 {
   "tool": "chart-generation",
   "params": {
-    "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+    "code": "{"title": {"text": "销售趋势"}, "xAxis": {"type": "category", "data": ["1月", "2月", "3月"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
     "chartType": "echarts",
     "format": "svg"
   }
@@ -1595,7 +1595,7 @@ Reasons:
 {
   "tool": "chart-generation",
   "params": {
-    "code": "{\"title\": {\"text\": \"Sales Trends\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"Jan\", \"Feb\", \"Mar\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+    "code": "{"title": {"text": "Sales Trends"}, "xAxis": {"type": "category", "data": ["Jan", "Feb", "Mar"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
     "chartType": "echarts",
     "format": "svg"
   }

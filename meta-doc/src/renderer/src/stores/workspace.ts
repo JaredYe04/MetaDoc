@@ -166,8 +166,6 @@ let suppressAutoOutlineSync = false
  * 在抑制自动大纲同步的情况下执行函数
  * 用于在从大纲生成文本时，避免触发自动大纲提取导致的死循环
  */
-function withAutoOutlineSyncSuppressed<T>(fn: () => T): T
-function withAutoOutlineSyncSuppressed<T>(fn: () => Promise<T>): Promise<T>
 function withAutoOutlineSyncSuppressed<T>(fn: () => T | Promise<T>): T | Promise<T> {
   const prev = suppressAutoOutlineSync
   suppressAutoOutlineSync = true

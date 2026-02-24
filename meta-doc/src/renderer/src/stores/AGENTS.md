@@ -16,13 +16,13 @@ stores/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Modify tab state | `workspace.ts` | 2009-line monolith; discuss before adding actions |
-| Add document metadata | `document.ts` | Document properties, format detection |
-| Change user settings | `user.ts` | Preferences persistence |
-| Show notification | `notification.ts` | Sonner toast + history queue |
-| Cross-window sync | `workspace.ts` | Uses `initializeWorkspaceBroadcastListeners()` |
+| Task                  | File              | Notes                                             |
+| --------------------- | ----------------- | ------------------------------------------------- |
+| Modify tab state      | `workspace.ts`    | 2009-line monolith; discuss before adding actions |
+| Add document metadata | `document.ts`     | Document properties, format detection             |
+| Change user settings  | `user.ts`         | Preferences persistence                           |
+| Show notification     | `notification.ts` | Sonner toast + history queue                      |
+| Cross-window sync     | `workspace.ts`    | Uses `initializeWorkspaceBroadcastListeners()`    |
 
 ## CONVENTIONS
 
@@ -40,6 +40,7 @@ stores/
 ## WORKSPACE STORE
 
 The workspace store is the most complex, managing:
+
 - Tab state (active, order, history)
 - Document models (markdown, LaTeX, metadata)
 - Workspace tree (folders, files)
@@ -47,6 +48,7 @@ The workspace store is the most complex, managing:
 - Unsaved changes tracking
 
 Key exports (15 total):
+
 - `tabs` — Array of open tabs
 - `documents` — Map of document ID → document
 - `activeTabId` — Currently active tab
@@ -66,13 +68,14 @@ store.success('操作成功')
 store.error('操作失败', { duration: 5000 })
 
 // Access history
-store.notifications     // All notifications
-store.unreadCount       // Unread count
-store.markAllAsRead()   // Mark all read
-store.remove(id)        // Remove single notification
+store.notifications // All notifications
+store.unreadCount // Unread count
+store.markAllAsRead() // Mark all read
+store.remove(id) // Remove single notification
 ```
 
 **Features:**
+
 - 7-day retention in localStorage
 - Max 100 items
 - Manual mark-as-read (no auto-mark)

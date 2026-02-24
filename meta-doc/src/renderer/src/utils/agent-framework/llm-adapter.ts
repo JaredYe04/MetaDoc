@@ -593,7 +593,7 @@ export class LlmAdapter {
     let fullText = ''
     let buffer = ''
 
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read()
       if (done) break
 
@@ -957,7 +957,7 @@ export class LlmAdapter {
                   .trim()
 
                 // 检查JSON是否看起来完整（有开始和结束括号，且括号匹配）
-                const hasJsonStart = /[\[{]/.test(toolCallBlock)
+                const hasJsonStart = /[{[]/.test(toolCallBlock)
                 const openBraces = (toolCallBlock.match(/{/g) || []).length
                 const closeBraces = (toolCallBlock.match(/}/g) || []).length
                 const openBrackets = (toolCallBlock.match(/\[/g) || []).length

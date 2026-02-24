@@ -265,7 +265,7 @@ function extractChaptersFromText(
       // 3. 匹配编号列表：1. 标题、1) 标题、一、标题
       else {
         const numberedListMatch = trimmedLine.match(
-          /^[\d一二三四五六七八九十]+[\.、：：）)]\s*(.+)$/
+          /^[\d一二三四五六七八九十]+[.、：：）)]\s*(.+)$/
         )
         if (numberedListMatch) {
           title = numberedListMatch[1].trim()
@@ -689,12 +689,12 @@ export async function generateChildNodes(
     // 尝试修复：移除可能的说明文字，只保留JSON部分
     let cleaned = rawContent
       // 移除JSON前的说明文字
-      .replace(/^[^\[\{]*[\[\{]/, (match) => {
+      .replace(/^[^[{]*[[{]/, (match) => {
         const bracket = match[match.length - 1]
         return bracket === '[' ? '[' : '{'
       })
       // 移除JSON后的说明文字
-      .replace(/[\]\}][^\]\}]*$/, (match) => {
+      .replace(/[\]}][^\]}]*$/, (match) => {
         const bracket = match[0]
         return bracket === ']' ? ']' : '}'
       })

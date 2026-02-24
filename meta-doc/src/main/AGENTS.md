@@ -40,15 +40,15 @@ main/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add IPC handler | `main-calls.ts` | Add `ipcMain.handle('channel', ...)` — discuss extraction first |
-| Create window type | `window-manager.ts` | Follow `openAuxiliaryWindow` pattern |
-| Tab drag (main) | `drag-manager.ts` | Cross-window drag coordination |
-| File-window tracking | `file-registry.ts` | Track which window has which file open |
-| Add database table | `database/schemas.ts` → `migration.ts` | Add migration in `resources/migrations/` too |
-| Add service | `utils/` | Singleton pattern, export from `utils/index.ts` |
-| Modify export | `export/export-manager.ts` | Server-side orchestration |
+| Task                 | File                                   | Notes                                                           |
+| -------------------- | -------------------------------------- | --------------------------------------------------------------- |
+| Add IPC handler      | `main-calls.ts`                        | Add `ipcMain.handle('channel', ...)` — discuss extraction first |
+| Create window type   | `window-manager.ts`                    | Follow `openAuxiliaryWindow` pattern                            |
+| Tab drag (main)      | `drag-manager.ts`                      | Cross-window drag coordination                                  |
+| File-window tracking | `file-registry.ts`                     | Track which window has which file open                          |
+| Add database table   | `database/schemas.ts` → `migration.ts` | Add migration in `resources/migrations/` too                    |
+| Add service          | `utils/`                               | Singleton pattern, export from `utils/index.ts`                 |
+| Modify export        | `export/export-manager.ts`             | Server-side orchestration                                       |
 
 ## CONVENTIONS
 

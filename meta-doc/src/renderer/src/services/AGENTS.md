@@ -33,23 +33,58 @@ services/
 
 ## WHERE TO LOOK
 
-| Task                    | File                         | Notes                                                 |
-| ----------------------- | ---------------------------- | ----------------------------------------------------- |
-| Add export format       | `export-adapters/`           | Extend `base-adapter.ts`, register in `index.ts`      |
-| Modify document loading | `document-loader.ts`         | Format detection + outline tree construction          |
-| Modify document saving  | `document-save.ts`           | Serialization + file write                            |
-| Change serialization    | `document-serializer.ts`     | ⚠️ META-INFO lines must not be modified               |
-| Export format rules     | `src/common/export-rules.ts` | Defines which source→target conversions are available |
+| Task | File | Notes |
+|------|------|-------|
+| Add export format | `export-adapters/` | Extend `base-adapter.ts`, register in `index.ts` |
+| Modify document loading | `document-loader.ts` | Format detection + outline tree construction |
+| Modify document saving | `document-save.ts` | Serialization + file write |
+| Change serialization | `document-serializer.ts` | ⚠️ META-INFO lines must not be modified |
+| Export format rules | `src/common/export-rules.ts` | Defines allowed source→target conversions |
 
 ## CONVENTIONS
 
 - **Adapter pattern**: Each adapter extends `base-adapter.ts`, implements `export(context)` method, registered via `registerAllAdapters()` at startup
 - **Export context**: Adapters receive `ExportContext` with document data, options, and progress callbacks
 - **Format rules**: `src/common/export-rules.ts` defines allowed source→target format mappings shown in UI
-- **Dual export paths**: Renderer adapters handle format conversion; main process `export/export-manager.ts` handles server-side operations (DOCX assembly, PDF compilation)
+- **Dual export paths**: Renderer adapters handle format conversion; main process `export/export-manager.ts` handles server-side operations
 
 ## ANTI-PATTERNS
 
 - `document-serializer.ts` contains META-INFO sentinel lines — **DO NOT modify** or metadata parsing breaks
-- `export-manager.obsolete.ts` is `@deprecated` — exists for backward compat, do not add features to it
+- `export-manager.obsolete.ts` is `@deprecated` — exists for backward compat, do not add features
 - Export pipeline split between renderer (`services/export-adapters/`) and main (`src/main/export/`) — tracing full export flow requires checking both
+
+## EXPORT ADAPTER PATTERN
+
+```typescript
+// 1. Extend base adapter
+export class MyAdapter extends BaseExportAdapter {
+  readonly sourceFormat = 'md'
+  readonly targetFormat = 'myformat'
+  
+  async export(context: ExportContext): Promise<ExportResult> {
+    // Transform document.content to target format
+    // Call context.onProgress() for progress updates
+    // Return result with file path or content
+  }
+}
+
+// 2. Register in index.ts
+registerAllAdapters() {
+  adapterStorage.register(new MyAdapter())
+}
+```
+
+## DOCUMENT LIFECYCLE
+
+```
+Load:   File → document-loader.ts → DocumentService → workspace store
+Save:   workspace store → DocumentService → document-save.ts → File
+Export: Document → export-manager.ts → Adapter → Main process → File
+```
+
+## RELATED
+
+- Main process export: `src/main/export/`
+- Format rules: `src/common/export-rules.ts`
+- Workspace store: `src/renderer/src/stores/workspace.ts`

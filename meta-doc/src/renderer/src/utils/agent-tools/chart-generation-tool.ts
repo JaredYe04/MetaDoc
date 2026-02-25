@@ -135,7 +135,7 @@ function extractMermaidCode(text: string): string {
       }
 
       // 如果一行中中文字符占比超过 50%，且不包含代码结构特征，可能是说明文字
-      const hasCodeStructure = /[\[\]{}()|:-><]/.test(line)
+      const hasCodeStructure = /[|[\]{}()<>:-]/.test(line)
       if (chineseRatio > 0.5 && !hasCodeStructure) {
         // 如果已经有代码内容，停止提取
         if (codeLines.length > 0) {
@@ -153,27 +153,6 @@ function extractMermaidCode(text: string): string {
         )
 
       if (hasMermaidSyntax || codeLines.length > 0) {
-        codeLines.push(line)
-      } else if (codeLines.length > 0) {
-        // 如果已经在代码中，但当前行看起来不像代码，检查后续几行
-        let hasMoreCode = false
-        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
-          const nextLine = lines[j]
-          if (
-            nextLine.match(/[\[\]{}()|:-><]/) ||
-            nextLine
-              .trim()
-              .match(
-                /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitgraph|journey|mindmap|timeline|zenuml|sankey|block|packet|kanban|architecture|radar|treemap)/i
-              )
-          ) {
-            hasMoreCode = true
-            break
-          }
-        }
-        if (!hasMoreCode) {
-          break
-        }
         codeLines.push(line)
       }
     }
@@ -241,7 +220,7 @@ function extractMermaidCode(text: string): string {
     const totalCount = line.length
     const chineseRatio = totalCount > 0 ? chineseCount / totalCount : 0
 
-    if (chineseRatio > 0.7 && !line.match(/[\[\]{}()|:-><]/) && codeLines.length > 0) {
+    if (chineseRatio > 0.7 && !line.match(/[|{}()[\]<>:-]/) && codeLines.length > 0) {
       // 如果主要是中文且不包含代码特征，且已有代码内容，停止提取
       break
     }
@@ -422,7 +401,7 @@ function extractGenericChartCode(text: string, chartType: string): string {
 
         // 检查是否包含代码特征（箭头、等号、括号等）
         const hasCodeStructure =
-          /[=>{}()\[\]|]/.test(line) ||
+          /[=>{}()[\]]/.test(line) ||
           trimmedLine.match(/^(st|op|cond|e|start|end|digraph|graph|node|edge|subgraph)/i)
 
         if (chineseRatio > 0.5 && !hasCodeStructure) {
@@ -497,7 +476,7 @@ function cleanEChartsCode(code: string): string {
     cleaned = extractedJson
   } else {
     // 如果提取失败，尝试查找第一个 { 或 [，移除之前的所有内容
-    const jsonStartIndex = cleaned.search(/[\[{]/)
+    const jsonStartIndex = cleaned.search(/[{[]/)
     if (jsonStartIndex > 0) {
       cleaned = cleaned.substring(jsonStartIndex)
       // 查找最后一个 } 或 ]，移除之后的所有内容
@@ -1387,11 +1366,11 @@ ${currentCode}
 function getChartGenerationToolLocales(): ToolLocales {
   const baseUrl = getRuntimeServerBaseUrlSync()
   return {
-  zh_cn: {
-    name: '图表生成',
-    description:
-      '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
-    instruction: `# 图表生成工具
+    zh_cn: {
+      name: '图表生成',
+      description:
+        '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
+      instruction: `# 图表生成工具
 
 ## 功能描述
 根据用户提供的提示词，自动生成各种类型的图表代码，并渲染为图片。支持多种图表类型和导出格式。
@@ -1450,7 +1429,7 @@ function getChartGenerationToolLocales(): ToolLocales {
 {
   "tool": "chart-generation",
   "params": {
-    "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+    "code": "{"title": {"text": "销售趋势"}, "xAxis": {"type": "category", "data": ["1月", "2月", "3月"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
     "chartType": "echarts",
     "format": "svg"
   }
@@ -1552,12 +1531,12 @@ function getChartGenerationToolLocales(): ToolLocales {
 - 这是唯一的图表生成工具
 - 支持多种图表类型和格式
 - 可以调用LLM辅助生成代码`
-  },
-  en_us: {
-    name: 'Chart Generation',
-    description:
-      'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
-    instruction: `# Chart Generation Tool
+    },
+    en_us: {
+      name: 'Chart Generation',
+      description:
+        'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
+      instruction: `# Chart Generation Tool
 
 ## Description
 Automatically generates various types of chart code based on user-provided prompts and renders them as images. Supports multiple chart types and export formats.
@@ -1616,7 +1595,7 @@ Reasons:
 {
   "tool": "chart-generation",
   "params": {
-    "code": "{\"title\": {\"text\": \"Sales Trends\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"Jan\", \"Feb\", \"Mar\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+    "code": "{"title": {"text": "Sales Trends"}, "xAxis": {"type": "category", "data": ["Jan", "Feb", "Mar"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
     "chartType": "echarts",
     "format": "svg"
   }
@@ -1718,27 +1697,27 @@ Or use full path:
 - This is the only chart generation tool
 - Supports multiple chart types and formats
 - Can call LLM to assist in generating code`
-  },
-  de_DE: {
-    name: 'Diagramm-Generierung',
-    description:
-      'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
-  },
-  fr_FR: {
-    name: 'Génération de graphiques',
-    description:
-      "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l'export en SVG, PNG ou PDF"
-  },
-  ja_JP: {
-    name: 'チャート生成',
-    description:
-      'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
-  },
-  ko_KR: {
-    name: '차트 생성',
-    description:
-      '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
-  }
+    },
+    de_DE: {
+      name: 'Diagramm-Generierung',
+      description:
+        'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
+    },
+    fr_FR: {
+      name: 'Génération de graphiques',
+      description:
+        "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l'export en SVG, PNG ou PDF"
+    },
+    ja_JP: {
+      name: 'チャート生成',
+      description:
+        'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
+    },
+    ko_KR: {
+      name: '차트 생성',
+      description:
+        '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
+    }
   }
 }
 

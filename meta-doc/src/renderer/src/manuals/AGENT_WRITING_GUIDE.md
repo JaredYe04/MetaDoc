@@ -8,7 +8,9 @@
 ## 📚 必读文档（按优先级）
 
 ### 1. 详细编写规范
+
 **`WRITING_GUIDE.md`** - 完整的文档编写规范
+
 - 文档格式要求
 - Demo 组件嵌入规范
 - 图表使用规范
@@ -16,25 +18,33 @@
 - 文档结构要求
 
 ### 2. 实现总结与当前状态
+
 **`IMPLEMENTATION_SUMMARY.md`** - 实现总结和当前进度
+
 - Demo 模式实现状态（✅ 已完全实现）
 - 文档完善进度统计
 - 技术实现细节
 - 待完成工作清单
 
 ### 3. 文档索引结构
+
 **`docs/USER_MANUAL_INDEX.md`** - 完整的文档索引结构
+
 - 所有需要编写的文档列表
 - 文档分类和层级
 - 功能点要求
 
 ### 4. 待办事项清单
+
 **`docs/MIGRATION_TODO_LIST.md`** - 迁移和待办事项
+
 - 当前待完成的任务
 - 文档完善优先级
 
 ### 5. 标杆文档（必读）
+
 **`zh_CN/quick-start/guide.md`** - 快速开始指南
+
 - ✅ 已完善的标杆文档
 - ✅ 包含 Mermaid 流程图
 - ✅ 包含 Demo 组件嵌入示例
@@ -104,6 +114,10 @@
 - **组件注册**：`manuals/demo-registry-components.ts`
 - **占位符处理**：`manuals/demo-mode.ts`
 - **样式适配**：`components/manual/ManualContent.vue`
+
+通过菜单可以快速访问相关资源：
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />
 
 ---
 

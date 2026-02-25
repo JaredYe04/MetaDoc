@@ -20,30 +20,34 @@
             {{ $t('agent.display.webCrawler.title') }}
           </h3>
           <div class="result-meta" :style="metaStyle">
-            <el-tag
-              :type="resultData.status >= 200 && resultData.status < 300 ? 'success' : 'danger'"
-              size="small"
+            <Badge
+              :variant="
+                resultData.status >= 200 && resultData.status < 300 ? 'default' : 'destructive'
+              "
             >
               HTTP {{ resultData.status }} {{ resultData.statusText }}
-            </el-tag>
-            <el-tag type="info" size="small"
+            </Badge>
+            <Badge variant="secondary"
               >{{ $t('agent.display.webCrawler.size') }}:
-              {{ formatSize(resultData.size || 0) }}</el-tag
+              {{ formatSize(resultData.size || 0) }}</Badge
             >
-            <el-tag type="info" size="small">{{ resultData.contentType }}</el-tag>
+            <Badge variant="outline">{{ resultData.contentType }}</Badge>
           </div>
         </div>
         <div class="header-url" :style="urlStyle">
-          <el-link :href="resultData.url" target="_blank" type="primary">{{
-            resultData.url
-          }}</el-link>
+          <Link :href="resultData.url" target="_blank" type="primary">{{ resultData.url }}</Link>
         </div>
       </div>
 
-      <el-tabs v-model="activeTab" type="border-card" class="content-tabs">
+      <Tabs v-model="activeTab" class="content-tabs border-card">
+        <TabsList>
+          <TabsTrigger value="render">{{ $t('agent.display.webCrawler.renderView') }}</TabsTrigger>
+          <TabsTrigger value="raw">{{ $t('agent.display.webCrawler.rawContent') }}</TabsTrigger>
+          <TabsTrigger value="headers">{{ $t('agent.display.webCrawler.headers') }}</TabsTrigger>
+        </TabsList>
         <!-- 渲染视图 -->
-        <el-tab-pane :label="$t('agent.display.webCrawler.renderView')" name="render">
-          <el-scrollbar max-height="500px">
+        <TabsContent value="render">
+          <ScrollArea class="max-h-[500px]">
             <div class="render-container">
               <!-- JSON 渲染 - 使用 Monaco 编辑器 -->
               <div v-if="isJsonContent" class="monaco-renderer" :style="rendererStyle">
@@ -76,19 +80,19 @@
                 <pre class="text-content" :style="codeStyle">{{ resultData.content }}</pre>
               </div>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 原始内容 -->
-        <el-tab-pane :label="$t('agent.display.webCrawler.rawContent')" name="raw">
-          <el-scrollbar max-height="500px">
+        <TabsContent value="raw">
+          <ScrollArea class="max-h-[500px]">
             <pre class="raw-content" :style="codeStyle">{{ resultData.content }}</pre>
-          </el-scrollbar>
-        </el-tab-pane>
+          </ScrollArea>
+        </TabsContent>
 
         <!-- 响应头 -->
-        <el-tab-pane :label="$t('agent.display.webCrawler.headers')" name="headers">
-          <el-scrollbar max-height="500px">
+        <TabsContent value="headers">
+          <ScrollArea class="max-h-[500px]">
             <div class="headers-list" :style="headersStyle">
               <div
                 v-for="(value, key) in resultData.headers"
@@ -100,32 +104,30 @@
                 <span class="header-value" :style="valueStyle">{{ value }}</span>
               </div>
             </div>
-          </el-scrollbar>
-        </el-tab-pane>
-      </el-tabs>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
 
     <div
       v-else-if="displayData.stage === 'error' || (props.status === 'failed' && !resultData)"
       class="error-state"
     >
-      <el-alert
-        :title="displayData.error || props.error || $t('agent.display.webCrawler.error')"
-        type="error"
-        :closable="false"
-      >
-        <template #default>
-          <div>
-            <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
-            <p
-              v-if="displayData.message"
-              style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
-            >
-              {{ displayData.message }}
-            </p>
-          </div>
-        </template>
-      </el-alert>
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{
+          displayData.error || props.error || $t('agent.display.webCrawler.error')
+        }}</AlertTitle>
+        <AlertDescription>
+          <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
+          <p
+            v-if="displayData.message"
+            style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
+          >
+            {{ displayData.message }}
+          </p>
+        </AlertDescription>
+      </Alert>
     </div>
 
     <!-- 调试：显示原始数据（仅在开发环境） -->
@@ -160,12 +162,68 @@ import { Loading } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { XCircle } from 'lucide-vue-next'
+import { Link } from '@renderer/components/ui/link'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  result: {
+    url: 'https://api.example.com/users',
+    status: 200,
+    statusText: 'OK',
+    headers: {
+      'content-type': 'application/json',
+      server: 'nginx/1.18.0',
+      date: new Date().toUTCString(),
+      'cache-control': 'max-age=3600'
+    },
+    content: JSON.stringify(
+      {
+        users: [
+          { id: 1, name: 'Alice', email: 'alice@example.com', role: 'admin' },
+          { id: 2, name: 'Bob', email: 'bob@example.com', role: 'user' },
+          { id: 3, name: 'Charlie', email: 'charlie@example.com', role: 'user' }
+        ],
+        total: 3,
+        page: 1
+      },
+      null,
+      2
+    ),
+    contentType: 'application/json',
+    size: 256
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    // Initialize demo editors after a short delay
+    setTimeout(() => {
+      if (isJsonContent.value && activeTab.value === 'render') {
+        initJsonMonacoEditor()
+      }
+    }, 100)
+    return
+  }
+  // Real initialization continues below
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -232,6 +290,11 @@ const displayData = computed(() => {
 })
 
 const resultData = computed((): WebCrawlerResult | null => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value.result
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
 

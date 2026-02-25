@@ -7,13 +7,10 @@
           <span v-if="subMessage" class="progress-sub-message">{{ subMessage }}</span>
         </div>
         <div class="progress-bar-container">
-          <el-progress
-            :percentage="percentage"
-            :status="status"
-            :stroke-width="4"
-            :show-text="showPercentage"
-            :format="formatPercentage"
-          />
+          <Progress :model-value="percentage" :class="progressClass" class="h-1" />
+          <span v-if="showPercentage" class="progress-percentage"
+            >{{ Math.round(percentage) }}%</span
+          >
         </div>
       </div>
     </div>
@@ -21,8 +18,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { ElProgress, ElButton } from 'element-plus'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Progress } from '@renderer/components/ui/progress'
 import { Close } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
@@ -61,12 +58,19 @@ const progressBarStyle = computed(() => ({
   borderColor: themeState.currentTheme.borderColor || '#e4e7ed'
 }))
 
-const formatPercentage = (percentage: number): string => {
-  if (percentage >= 100) {
-    return '100%'
+// 根据状态计算进度条样式类
+const progressClass = computed(() => {
+  switch (status.value) {
+    case 'success':
+      return 'bg-green-500'
+    case 'exception':
+      return 'bg-red-500'
+    case 'warning':
+      return 'bg-yellow-500'
+    default:
+      return 'bg-primary'
   }
-  return `${Math.round(percentage)}%`
-}
+})
 
 // 跟踪UI锁状态，避免重复锁定/解锁
 const uiLocked = ref(false)
@@ -213,6 +217,16 @@ onUnmounted(() => {
 .progress-bar-container {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-percentage {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0.8;
 }
 
 .progress-actions {

@@ -41,8 +41,8 @@
 
 ## References
 
-1. Author. Title. *Journal*, Year, Volume(Issue): pages.
-2. Author. *Book Title*. Place: Publisher, Year.
+1. Author. Title. _Journal_, Year, Volume(Issue): pages.
+2. Author. _Book Title_. Place: Publisher, Year.
 
 ## Appendix (optional)
 

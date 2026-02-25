@@ -5,18 +5,26 @@
 
 /* ========== 亮色模式 ========== */
 :root {
-  --el-font-family: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --el-font-family: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
   --el-transition-duration: 0.12s;
   --el-transition-duration-fast: 0.08s;
   --el-transition-function-ease-in-out-bezier: cubic-bezier(0.4, 0, 0.2, 1);
   --el-transition-function-fast-bezier: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --el-transition-all: all var(--el-transition-duration) var(--el-transition-function-ease-in-out-bezier);
-  --el-transition-fade: opacity var(--el-transition-duration) var(--el-transition-function-fast-bezier);
-  --el-transition-md-fade: transform var(--el-transition-duration) var(--el-transition-function-fast-bezier), opacity var(--el-transition-duration) var(--el-transition-function-fast-bezier);
+  --el-transition-all: all var(--el-transition-duration)
+    var(--el-transition-function-ease-in-out-bezier);
+  --el-transition-fade: opacity var(--el-transition-duration)
+    var(--el-transition-function-fast-bezier);
+  --el-transition-md-fade: transform var(--el-transition-duration)
+      var(--el-transition-function-fast-bezier),
+    opacity var(--el-transition-duration) var(--el-transition-function-fast-bezier);
   --el-transition-fade-linear: opacity var(--el-transition-duration-fast) linear;
-  --el-transition-border: border-color var(--el-transition-duration-fast) var(--el-transition-function-ease-in-out-bezier);
-  --el-transition-box-shadow: box-shadow var(--el-transition-duration-fast) var(--el-transition-function-ease-in-out-bezier);
-  --el-transition-color: color var(--el-transition-duration-fast) var(--el-transition-function-ease-in-out-bezier);
+  --el-transition-border: border-color var(--el-transition-duration-fast)
+    var(--el-transition-function-ease-in-out-bezier);
+  --el-transition-box-shadow: box-shadow var(--el-transition-duration-fast)
+    var(--el-transition-function-ease-in-out-bezier);
+  --el-transition-color: color var(--el-transition-duration-fast)
+    var(--el-transition-function-ease-in-out-bezier);
 
   /* 主色：炭灰替代蓝色，极简克制 */
   --el-color-primary-rgb: 55, 65, 81;
@@ -95,7 +103,8 @@
 
 /* ========== 暗色模式 ========== */
 html.dark {
-  --el-font-family: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --el-font-family: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
   --el-color-primary-rgb: 156, 163, 175;
   --el-color-primary: #9ca3af;
   --el-color-primary-light-3: #6b7280;
@@ -299,7 +308,8 @@ html.dark {
   height: 16px;
   margin-left: auto;
   background-color: currentColor;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E") no-repeat center;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E")
+    no-repeat center;
   mask-size: contain;
 }
 
@@ -792,18 +802,18 @@ html.dark {
 .el-icon svg,
 .ui-sub-menu__icon svg,
 .ui-sub-menu-item__icon svg,
-img[class*="icon"],
-[class*="icon"] img {
+img[class*='icon'],
+[class*='icon'] img {
   -webkit-user-drag: none !important;
   user-drag: none !important;
   pointer-events: none !important;
 }
 
 /* Logo 图片禁止选中和拖拽 */
-img[src*="logo"],
-img[alt*="logo"],
-img[class*="logo"],
-[class*="logo"] img,
+img[src*='logo'],
+img[alt*='logo'],
+img[class*='logo'],
+[class*='logo'] img,
 .logo,
 .app-logo,
 .brand-logo {
@@ -826,4 +836,3 @@ img[class*="logo"],
   user-select: none !important;
   -webkit-user-select: none !important;
 }
-

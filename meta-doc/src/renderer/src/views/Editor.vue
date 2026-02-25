@@ -5,6 +5,7 @@ import eventBus from '../utils/event-bus'
 import WorkspaceTabPane from '../components/workspace/WorkspaceTabPane.vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
+import { Empty } from '@renderer/components/ui/empty'
 
 const props = defineProps<{
   tabId?: string
@@ -114,7 +115,7 @@ onBeforeUnmount(() => {
           :active="currentTab.id === activeTabId"
         />
       </KeepAlive>
-      <el-empty v-if="!currentTab" class="workspace-editor-empty" description="暂无打开的文档" />
+      <Empty v-if="!currentTab" class="workspace-editor-empty" description="暂无打开的文档" />
     </div>
   </div>
 </template>

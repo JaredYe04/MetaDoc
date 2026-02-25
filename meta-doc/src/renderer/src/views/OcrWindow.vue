@@ -22,7 +22,8 @@
         @delete="handleDeleteSession"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('ocr.noSessionSelected') }}</p>
           </div>
@@ -35,57 +36,67 @@
                   <div class="toolbar-left">
                     <!-- 语言包选择 -->
                     <div class="language-select-wrapper">
-                      <el-select
-                        v-model="selectedLanguages"
-                        multiple
-                        collapse-tags
-                        collapse-tags-tooltip
-                        :placeholder="t('ocr.selectLanguages')"
-                        size="default"
-                        style="width: 200px"
-                      >
-                        <el-option
-                          v-for="lang in availableLanguages"
-                          :key="lang.value"
-                          :label="lang.label"
-                          :value="lang.value"
-                        />
-                      </el-select>
+                      <Select v-model="selectedLanguages" multiple>
+                        <SelectTrigger class="w-[200px]">
+                          <SelectValue :placeholder="t('ocr.selectLanguages')" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="lang in availableLanguages"
+                            :key="lang.value"
+                            :value="lang.value"
+                          >
+                            {{ lang.label }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <!-- 上传和粘贴按钮 -->
-                    <el-upload
+                    <Upload
                       ref="uploadRef"
-                      :file-list="imageList"
+                      v-model:file-list="imageList"
                       :auto-upload="false"
-                      :on-change="(file: any, fileList: any[]) => handleImageChange(file, fileList)"
-                      :on-remove="handleImageRemove"
+                      @change="(file: any, fileList: any[]) => handleImageChange(file, fileList)"
+                      @remove="handleImageRemove"
                       accept="image/*"
                       multiple
                       :show-file-list="false"
                     >
-                      <template #trigger>
-                        <el-button :icon="UploadFilled">
-                          {{ t('ocr.uploadHint') }}
-                        </el-button>
-                      </template>
-                    </el-upload>
+                      <Button>
+                        <UploadFilled class="mr-1 h-4 w-4" />
+                        {{ t('ocr.uploadHint') }}
+                      </Button>
+                    </Upload>
 
-                    <el-button @click="handlePasteFromClipboard">
+                    <Button variant="outline" @click="handlePasteFromClipboard">
                       {{ t('ocr.pasteFromClipboard') }}
-                    </el-button>
+                    </Button>
                   </div>
 
                   <div class="toolbar-right">
                     <!-- 操作按钮 -->
-                    <el-button
-                      v-if="ocrResults.length > 0"
-                      type="primary"
-                      :loading="processing"
-                      @click="handleOcr"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      :disabled="aiFixing.get(index)"
+                      @click="handleAiFix(index)"
                     >
-                      {{ t('ocr.startOcr') }}
-                    </el-button>
+                      <img
+                        :src="(themeState.currentTheme as any).AiLogo"
+                        alt="AI"
+                        class="ai-logo-icon-small"
+                      />
+                      {{ t('ocr.aiFix') }}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      :disabled="recognizingIndex.has(index)"
+                      @click="handleReRecognizeSingle(index)"
+                    >
+                      {{ t('ocr.reRecognize') }}
+                    </Button>
                   </div>
                 </div>
               </el-scrollbar>
@@ -93,29 +104,35 @@
 
             <!-- OCR结果展示 -->
             <div v-if="ocrResults.length > 0" class="result-section">
-              <el-tabs v-model="activeTab" class="ocr-tabs">
-                <el-tab-pane
-                  v-for="(result, index) in ocrResults"
-                  :key="index"
-                  :name="`image-${index}`"
-                >
-                  <!-- Tab hover 时显示的缩略图 -->
-                  <template #label>
+              <Tabs v-model="activeTab" class="ocr-tabs">
+                <TabsList>
+                  <TabsTrigger
+                    v-for="(result, index) in ocrResults"
+                    :key="index"
+                    :value="`image-${index}`"
+                  >
                     <span
                       class="tab-label-wrapper"
                       @mouseenter="(e) => handleTabHover(e, index)"
                       @mouseleave="handleTabLeave"
                     >
                       {{ t('ocr.image') }} {{ index + 1 }}
-                      <el-button
-                        :icon="Delete"
-                        link
-                        size="small"
-                        class="tab-delete-btn"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="tab-delete-btn h-6 w-6 p-0"
                         @click.stop="handleDeleteImage(index)"
-                      />
+                      >
+                        <Delete class="h-3 w-3" />
+                      </Button>
                     </span>
-                  </template>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  v-for="(result, index) in ocrResults"
+                  :key="index"
+                  :value="`image-${index}`"
+                >
                   <div class="ocr-result-item">
                     <div class="image-section">
                       <div class="image-preview" @click="handleImageClick(result.imageUrl, index)">
@@ -131,17 +148,25 @@
                           <div class="panel-title">{{ t('ocr.imagePreprocessing') }}</div>
                         </div>
                         <div class="panel-actions">
-                          <el-button size="small" @click="resetPreprocessingParams(index)">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            @click="resetPreprocessingParams(index)"
+                          >
                             {{ t('ocr.resetParams') }}
-                          </el-button>
-                          <el-button size="small" @click="applyDefaultPreprocessingParams(index)">
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            @click="applyDefaultPreprocessingParams(index)"
+                          >
                             {{ t('ocr.defaultParams') }}
-                          </el-button>
+                          </Button>
                         </div>
                         <div class="params-list">
                           <div class="param-item">
                             <label>{{ t('ocr.brightness') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).brightness"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'brightness', val)
@@ -156,7 +181,7 @@
                           </div>
                           <div class="param-item">
                             <label>{{ t('ocr.contrast') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).contrast"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'contrast', val)
@@ -171,7 +196,7 @@
                           </div>
                           <div class="param-item">
                             <label>{{ t('ocr.saturation') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).saturation"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'saturation', val)
@@ -186,7 +211,7 @@
                           </div>
                           <div class="param-item">
                             <label>{{ t('ocr.sharpness') }}</label>
-                            <el-slider
+                            <Slider
                               :model-value="getPreprocessingParams(index).sharpness"
                               @update:model-value="
                                 (val: number) => updatePreprocessingParam(index, 'sharpness', val)
@@ -199,54 +224,54 @@
                               getPreprocessingParams(index).sharpness
                             }}</span>
                           </div>
-                          <div class="param-item">
-                            <el-checkbox
+                          <div class="param-item flex items-center gap-2">
+                            <Checkbox
                               :model-value="getPreprocessingParams(index).grayscale"
                               @update:model-value="
                                 (val: boolean) => updatePreprocessingParam(index, 'grayscale', val)
                               "
-                            >
-                              {{ t('ocr.grayscale') }}
-                            </el-checkbox>
+                            />
+                            <label class="text-sm">{{ t('ocr.grayscale') }}</label>
                           </div>
-                          <div class="param-item">
-                            <el-checkbox
+                          <div class="param-item flex items-center gap-2">
+                            <Checkbox
                               :model-value="getPreprocessingParams(index).normalize"
                               @update:model-value="
                                 (val: boolean) => updatePreprocessingParam(index, 'normalize', val)
                               "
-                            >
-                              {{ t('ocr.normalize') }}
-                            </el-checkbox>
+                            />
+                            <label class="text-sm">{{ t('ocr.normalize') }}</label>
                           </div>
                         </div>
                       </div>
                       <div class="image-actions" v-if="result.recognized">
-                        <el-dropdown
-                          v-if="aiFixedTexts.get(index)"
-                          @command="(cmd: string) => handleCopyCommand(cmd, index)"
-                          trigger="click"
+                        <DropdownMenu v-if="aiFixedTexts.get(index)">
+                          <DropdownMenuTrigger as-child>
+                            <Button size="sm" variant="outline">
+                              {{ t('ocr.copyText') }}
+                              <ArrowDown class="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem @click="handleCopyCommand('original', index)">
+                              {{ t('ocr.copyOriginalText') }}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem @click="handleCopyCommand('fixed', index)">
+                              {{ t('ocr.copyFixedText') }}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                          v-else
+                          size="sm"
+                          variant="outline"
+                          @click="handleCopyText(result.text)"
                         >
-                          <el-button size="small">
-                            {{ t('ocr.copyText') }}
-                            <el-icon class="el-icon--right"><arrow-down /></el-icon>
-                          </el-button>
-                          <template #dropdown>
-                            <el-dropdown-menu>
-                              <el-dropdown-item command="original">
-                                {{ t('ocr.copyOriginalText') }}
-                              </el-dropdown-item>
-                              <el-dropdown-item command="fixed">
-                                {{ t('ocr.copyFixedText') }}
-                              </el-dropdown-item>
-                            </el-dropdown-menu>
-                          </template>
-                        </el-dropdown>
-                        <el-button v-else size="small" @click="handleCopyText(result.text)">
                           {{ t('ocr.copyText') }}
-                        </el-button>
-                        <el-button
-                          size="small"
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           :loading="aiFixing.get(index)"
                           @click="handleAiFix(index)"
                         >
@@ -256,18 +281,19 @@
                             class="ai-logo-icon-small"
                           />
                           {{ t('ocr.aiFix') }}
-                        </el-button>
-                        <el-button
-                          size="small"
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           :loading="recognizingIndex.has(index)"
                           @click="handleReRecognizeSingle(index)"
                         >
                           {{ t('ocr.reRecognize') }}
-                        </el-button>
+                        </Button>
                       </div>
                       <div class="image-actions" v-else>
-                        <el-button
-                          size="small"
+                        <Button
+                          size="sm"
                           type="primary"
                           :loading="recognizingIndex.has(index)"
                           @click="handleRecognizeSingle(index)"
@@ -277,24 +303,50 @@
                               ? t('ocr.recognizing')
                               : t('ocr.startRecognize')
                           }}
-                        </el-button>
+                        </Button>
                       </div>
                     </div>
                     <div class="text-result">
                       <!-- 视图切换 -->
                       <div class="text-result-header" v-if="aiFixedTexts.get(index)">
-                        <el-radio-group
+                        <RadioGroup
                           :model-value="viewModes.get(index) || 'single'"
                           @update:model-value="
                             (val: 'single' | 'diff') => viewModes.set(index, val)
                           "
-                          size="small"
+                          class="flex"
                         >
-                          <el-radio-button :label="'single'">{{
-                            t('ocr.singleView')
-                          }}</el-radio-button>
-                          <el-radio-button :label="'diff'">{{ t('ocr.diffView') }}</el-radio-button>
-                        </el-radio-group>
+                          <div
+                            class="inline-flex h-8 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground"
+                          >
+                            <div class="flex items-center">
+                              <RadioGroupItem
+                                value="single"
+                                :id="'view-single-' + index"
+                                class="sr-only peer"
+                              />
+                              <label
+                                :for="'view-single-' + index"
+                                class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+                              >
+                                {{ t('ocr.singleView') }}
+                              </label>
+                            </div>
+                            <div class="flex items-center">
+                              <RadioGroupItem
+                                value="diff"
+                                :id="'view-diff-' + index"
+                                class="sr-only peer"
+                              />
+                              <label
+                                :for="'view-diff-' + index"
+                                class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all cursor-pointer peer-data-[state=checked]:bg-background peer-data-[state=checked]:text-foreground peer-data-[state=checked]:shadow"
+                              >
+                                {{ t('ocr.diffView') }}
+                              </label>
+                            </div>
+                          </div>
+                        </RadioGroup>
                       </div>
                       <!-- 未识别状态 -->
                       <div
@@ -344,8 +396,8 @@
                       </div>
                     </div>
                   </div>
-                </el-tab-pane>
-              </el-tabs>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -372,8 +424,38 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
+import { Button } from '../components/ui/button'
+import { Upload } from '@renderer/components/ui/upload'
+import { Slider } from '@renderer/components/ui/slider'
+import { Checkbox } from '@renderer/components/ui/checkbox'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '../components/ui/dropdown-menu'
 import SessionList from '../components/common/SessionList.vue'
 import ImagePreviewDialog, {
   type ImagePreprocessingParams
@@ -763,6 +845,15 @@ watch(
 
 // 初始化默认语言（eng + 当前语言）
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    sessions.value = [
+      { id: 'demo-1', title: '示例文档识别', updatedAt: Date.now() },
+      { id: 'demo-2', title: '书籍扫描', updatedAt: Date.now() - 3600000 }
+    ]
+    activeSessionId.value = 'demo-1'
+    return
+  }
   const locale = (i18n.global.locale as any).value || 'zh_CN'
   const localeMap: Record<string, string> = {
     zh_CN: 'chi_sim',
@@ -794,7 +885,7 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -825,7 +916,7 @@ const handleCreateSession = async () => {
     recognizingIndex.value.clear()
     processedImageCache.value.clear()
   } catch (error) {
-    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -969,7 +1060,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     }
   } catch (error) {
-    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -981,7 +1072,7 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await ocrSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1002,9 +1093,9 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     })
 
     await loadSessions()
-    ElMessage.success(t('common.duplicateSuccess'))
+    notifySuccess(t('common.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1018,9 +1109,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
       imageList.value = []
       ocrResults.value = []
     }
-    ElMessage.success(t('common.deleteSuccess'))
+    notifySuccess(t('common.deleteSuccess'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1122,7 +1213,7 @@ const handleImageChange = async (file: any, fileList: any[]) => {
       })
     }
   } catch (error) {
-    ElMessage.error('保存图片失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('保存图片失败: ' + (error instanceof Error ? error.message : String(error)))
     // 如果保存失败，从fileList中移除这个文件
     imageList.value = fileList
       .filter((f) => f.uid !== file.uid)
@@ -1164,7 +1255,7 @@ const handlePasteFromClipboard = async () => {
 
     const clipboardImage = (await messageBridge.invoke('read-clipboard-image')) as string | null
     if (!clipboardImage) {
-      ElMessage.warning(t('ocr.noClipboardImage'))
+      notifyWarning(t('ocr.noClipboardImage'))
       return
     }
 
@@ -1234,27 +1325,27 @@ const handlePasteFromClipboard = async () => {
     const addedImage = imageList.value.find((img) => img.uid === timestamp)
     if (!addedImage) {
       console.error('图片添加失败，未在列表中找到')
-      ElMessage.error('图片添加失败，请重试')
+      notifyError('图片添加失败，请重试')
       return
     }
 
     console.log('粘贴图片成功，当前图片列表长度:', imageList.value.length, '图片:', addedImage)
-    ElMessage.success(t('ocr.pasteSuccess'))
+    notifySuccess(t('ocr.pasteSuccess'))
   } catch (error) {
     console.error('粘贴失败:', error)
-    ElMessage.error('粘贴失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('粘贴失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
 // 识别单张图片
 const handleRecognizeSingle = async (index: number) => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('ocr.noSession'))
+    notifyWarning(t('ocr.noSession'))
     return
   }
 
   if (selectedLanguages.value.length === 0) {
-    ElMessage.warning(t('ocr.noLanguages'))
+    notifyWarning(t('ocr.noLanguages'))
     return
   }
 
@@ -1335,10 +1426,10 @@ const handleRecognizeSingle = async (index: number) => {
     await nextTick()
     updateEditorContent(index)
 
-    ElMessage.success(t('ocr.recognizeSuccess'))
+    notifySuccess(t('ocr.recognizeSuccess'))
   } catch (error) {
     console.error(`图片 ${index + 1} OCR 失败:`, error)
-    ElMessage.error(`识别失败: ${error instanceof Error ? error.message : String(error)}`)
+    notifyError(`识别失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     recognizingIndex.value.delete(index)
   }
@@ -1347,12 +1438,12 @@ const handleRecognizeSingle = async (index: number) => {
 // 重新识别单张图片（不会覆盖AI修复后的内容）
 const handleReRecognizeSingle = async (index: number) => {
   if (!activeSessionId.value) {
-    ElMessage.warning(t('ocr.noSession'))
+    notifyWarning(t('ocr.noSession'))
     return
   }
 
   if (selectedLanguages.value.length === 0) {
-    ElMessage.warning(t('ocr.noLanguages'))
+    notifyWarning(t('ocr.noLanguages'))
     return
   }
 
@@ -1444,10 +1535,10 @@ const handleReRecognizeSingle = async (index: number) => {
       }
     }
 
-    ElMessage.success(t('ocr.reRecognizeSuccess'))
+    notifySuccess(t('ocr.reRecognizeSuccess'))
   } catch (error) {
     console.error(`图片 ${index + 1} 重新识别失败:`, error)
-    ElMessage.error(`重新识别失败: ${error instanceof Error ? error.message : String(error)}`)
+    notifyError(`重新识别失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     recognizingIndex.value.delete(index)
   }
@@ -1456,12 +1547,12 @@ const handleReRecognizeSingle = async (index: number) => {
 // 执行OCR（批量识别所有未识别的图片）
 const handleOcr = async () => {
   if (!activeSessionId.value || ocrResults.value.length === 0) {
-    ElMessage.warning(t('ocr.noImages'))
+    notifyWarning(t('ocr.noImages'))
     return
   }
 
   if (selectedLanguages.value.length === 0) {
-    ElMessage.warning(t('ocr.noLanguages'))
+    notifyWarning(t('ocr.noLanguages'))
     return
   }
 
@@ -1471,7 +1562,7 @@ const handleOcr = async () => {
     .filter((i) => i !== -1)
 
   if (unrecognizedIndices.length === 0) {
-    ElMessage.info(t('ocr.allRecognized'))
+    notifyInfo(t('ocr.allRecognized'))
     return
   }
 
@@ -1552,7 +1643,7 @@ const handleOcr = async () => {
         console.log(`图片 ${index + 1} OCR 成功`)
       } catch (error) {
         console.error(`图片 ${index + 1} OCR 失败:`, error)
-        ElMessage.warning(
+        notifyWarning(
           `图片 ${index + 1} OCR 识别失败: ${error instanceof Error ? error.message : String(error)}`
         )
       } finally {
@@ -1566,9 +1657,9 @@ const handleOcr = async () => {
       ocr_languages: JSON.stringify(selectedLanguages.value)
     })
 
-    ElMessage.success(t('ocr.ocrSuccess'))
+    notifySuccess(t('ocr.ocrSuccess'))
   } catch (error) {
-    ElMessage.error('OCR识别失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('OCR识别失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     processing.value = false
   }
@@ -1640,14 +1731,14 @@ const handleDeleteImage = async (index: number) => {
       })
     }
 
-    ElMessage.success(t('ocr.deleteSuccess'))
+    notifySuccess(t('ocr.deleteSuccess'))
   } catch (error) {
     // 用户取消删除
     if (error === 'cancel' || (error as any)?.action === 'cancel') {
       return
     }
     console.error('删除图片失败:', error)
-    ElMessage.error('删除图片失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除图片失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1655,9 +1746,9 @@ const handleDeleteImage = async (index: number) => {
 const handleCopyText = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success(t('ocr.copySuccess'))
+    notifySuccess(t('ocr.copySuccess'))
   } catch (error) {
-    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('复制失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -1739,7 +1830,7 @@ const handleImageClick = async (imageUrl: string, index: number) => {
     imagePreviewVisible.value = true
   } catch (error) {
     console.error('打开图片预览失败:', error)
-    ElMessage.error('打开图片预览失败')
+    notifyError('打开图片预览失败')
   }
 }
 
@@ -2049,7 +2140,7 @@ const applyDefaultPreprocessingParams = async (index: number) => {
     }
   } catch (error) {
     console.error('生成推荐参数失败:', error)
-    ElMessage.warning('分析图片特征失败，使用默认参数')
+    notifyWarning('分析图片特征失败，使用默认参数')
 
     // 使用保守的默认参数
     const defaultParams: ImagePreprocessingParams = {
@@ -2300,7 +2391,7 @@ watch(
 const handleAiFix = async (index: number) => {
   const result = ocrResults.value[index]
   if (!result || !result.text) {
-    ElMessage.warning(t('ocr.noImages'))
+    notifyWarning(t('ocr.noImages'))
     return
   }
 
@@ -2369,10 +2460,10 @@ const handleAiFix = async (index: number) => {
     await nextTick()
     initDiffEditors(index)
 
-    ElMessage.success(t('ocr.aiFixSuccess'))
+    notifySuccess(t('ocr.aiFixSuccess'))
   } catch (error) {
     console.error('AI修复失败:', error)
-    ElMessage.error(
+    notifyError(
       t('ocr.aiFixFailed') + ': ' + (error instanceof Error ? error.message : String(error))
     )
   } finally {
@@ -2862,13 +2953,18 @@ const preStyle = computed(() => ({
 /* Tab 缩略图样式 */
 .ocr-tabs {
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-:deep(.el-tabs__item) {
+/* shadcn-vue Tabs styling */
+.ocr-tabs :deep([role='tab']) {
   position: relative;
 }
 
-:deep(.el-tabs__item:hover) {
+.ocr-tabs :deep([role='tab']:hover) {
   position: relative;
 }
 
@@ -2896,7 +2992,7 @@ const preStyle = computed(() => ({
   object-fit: contain;
 }
 
-:deep(.el-tabs__item:hover) .tab-thumbnail {
+.ocr-tabs :deep([role='tab']:hover) .tab-thumbnail {
   opacity: 1;
 }
 
@@ -2917,24 +3013,19 @@ const preStyle = computed(() => ({
   margin-top: 0;
 }
 
-/* 确保 el-tabs 占满容器 */
-:deep(.el-tabs) {
-  display: flex;
-  flex-direction: column;
+/* shadcn-vue Tabs layout */
+.ocr-tabs :deep([role='tablist']) {
+  flex-shrink: 0;
+}
+
+.ocr-tabs :deep([role='tabpanel']) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-:deep(.el-tabs__content) {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-:deep(.el-tab-pane) {
+.ocr-tabs :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
-  overflow: hidden;
 }
 
 .ocr-result-item {

@@ -7,7 +7,10 @@ import {
   hasLatexHeadings
 } from './outline-normalize'
 
-export { normalizeMarkdownHeadingLevelsInContent, normalizeLatexHeadingLevelsInContent } from './outline-normalize'
+export {
+  normalizeMarkdownHeadingLevelsInContent,
+  normalizeLatexHeadingLevelsInContent
+} from './outline-normalize'
 
 /**
  * 从节点的 text 中解析子标题，更新 node.children。
@@ -51,9 +54,7 @@ export function syncChildrenFromNodeText(node: DocumentOutlineNode): void {
         const newNode: DocumentOutlineNode = {
           ...child,
           path,
-          children: child.children?.length
-            ? reindex(child.children, path)
-            : []
+          children: child.children?.length ? reindex(child.children, path) : []
         }
         return newNode
       })

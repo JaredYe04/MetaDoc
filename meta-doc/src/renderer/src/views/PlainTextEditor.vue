@@ -35,62 +35,84 @@
               backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
             }"
           >
-            <el-tooltip :content="$t('plaintextEditor.toolbar.undo')" placement="bottom">
-              <div class="toolbar-icon" @click="undo">
-                <el-icon>
-                  <ArrowLeft />
-                </el-icon>
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="undo">
+                  <ArrowLeft class="w-4 h-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.undo') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip :content="$t('plaintextEditor.toolbar.redo')" placement="bottom">
-              <div class="toolbar-icon" @click="redo">
-                <el-icon>
-                  <ArrowRight />
-                </el-icon>
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="redo">
+                  <ArrowRight class="w-4 h-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.redo') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip :content="$t('plaintextEditor.toolbar.zoomIn')" placement="bottom">
-              <div class="toolbar-icon" @click="zoomIn">
-                <el-icon>
-                  <ZoomIn />
-                </el-icon>
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="zoomIn">
+                  <ZoomIn class="w-4 h-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.zoomIn') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip :content="$t('plaintextEditor.toolbar.zoomOut')" placement="bottom">
-              <div class="toolbar-icon" @click="zoomOut">
-                <el-icon>
-                  <ZoomOut />
-                </el-icon>
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="zoomOut">
+                  <ZoomOut class="w-4 h-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.zoomOut') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip
-              :content="$t('plaintextEditor.toolbar.toggleLineNumbers')"
-              placement="bottom"
-            >
-              <div class="toolbar-icon" @click="toggleRowNumber">
-                <icon name="numbers-1" />
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="toggleRowNumber">
+                  <icon name="numbers-1" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.toggleLineNumbers') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip :content="$t('plaintextEditor.toolbar.toggleMinimap')" placement="bottom">
-              <div class="toolbar-icon" @click="toggleMinimap">
-                <el-icon>
-                  <Memo />
-                </el-icon>
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="toggleMinimap">
+                  <FileText class="w-4 h-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.toggleMinimap') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-divider direction="vertical"></el-divider>
+            <Divider direction="vertical" />
 
-            <el-tooltip :content="$t('plaintextEditor.toolbar.showConsole')" placement="bottom">
-              <div class="toolbar-icon" @click="toggleConsole">
-                <icon name="terminal-rectangle" />
-              </div>
-            </el-tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <div class="toolbar-icon" @click="toggleConsole">
+                  <icon name="terminal-rectangle" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ $t('plaintextEditor.toolbar.showConsole') }}
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div class="editor-console-container" ref="editorConsoleContainerRef">
             <div class="editor-wrapper" :class="{ 'console-visible': showConsole }">
@@ -142,6 +164,8 @@ import {
 } from 'vue'
 import { ElButton, ElScrollbar } from 'element-plus'
 import { Icon } from 'tdesign-icons-vue-next'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Divider } from '@renderer/components/ui/separator'
 
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
@@ -158,12 +182,12 @@ import '../assets/ai-suggestion.css'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
 import ConsoleTerminal from '../components/ConsoleTerminal.vue'
-import { ElMessage, ElMessageBox, ElNotification, ElLoading } from 'element-plus'
+import { ElLoading } from 'element-plus'
 import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
 import * as monaco from 'monaco-editor'
 import { useWorkspace } from '../stores/workspace'
-import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, Memo } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, FileText } from 'lucide-vue-next'
 import { debounce } from 'lodash'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'

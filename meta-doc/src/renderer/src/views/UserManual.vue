@@ -2,26 +2,22 @@
   <div class="user-manual-page">
     <div class="manual-header">
       <div class="header-left">
-        <el-button
-          v-if="currentArticleId"
-          text
-          :icon="ArrowLeft"
-          @click="goToOverview"
-        >
+        <Button v-if="currentArticleId" variant="ghost" @click="goToOverview">
+          <ArrowLeft class="mr-2 h-4 w-4" />
           {{ $t('userManual.backToOverview') || '返回概览' }}
-        </el-button>
+        </Button>
         <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
       </div>
       <div class="header-actions">
-        <el-button
+        <Button
           v-if="learningProgress >= 100"
-          type="primary"
-          text
-          :icon="Promotion"
+          variant="ghost"
+          class="text-primary"
           @click="showCelebration = true"
         >
+          <Send class="mr-2 h-4 w-4" />
           {{ $t('userManual.replayCelebration') || '重新播放庆祝动画' }}
-        </el-button>
+        </Button>
         <ManualSearch />
       </div>
     </div>
@@ -33,14 +29,11 @@
           :class="{ 'is-active': !currentArticleId }"
           @click="goToOverview"
         >
-          <el-icon class="overview-icon"><DataBoard /></el-icon>
+          <LayoutDashboard class="w-4 h-4" />
           <span class="overview-label">{{ $t('userManual.overview.title') || '概览' }}</span>
         </div>
         <template v-if="learningPath.length > 0">
-          <LearningProgress
-            v-model:only-recommended="onlyRecommended"
-            :show-list-switch="true"
-          />
+          <LearningProgress v-model:only-recommended="onlyRecommended" :show-list-switch="true" />
           <LearningPathList v-if="onlyRecommended" />
         </template>
         <ManualNavigation v-if="!onlyRecommended || learningPath.length === 0" />
@@ -54,15 +47,12 @@
       />
       <!-- 右侧：概览或文档内容 -->
       <div class="manual-main">
-        <ManualOverview
-          v-if="!currentArticleId"
-          @open-profile="openProfileDialog"
-        />
+        <ManualOverview v-if="!currentArticleId" @open-profile="openProfileDialog" />
         <ManualContent v-else />
       </div>
     </div>
     <UserProfileDialog ref="profileDialogRef" @submitted="handleProfileSubmitted" />
-    
+
     <!-- Celebration Overlay -->
     <CelebrationOverlay
       :visible="showCelebration"
@@ -83,12 +73,14 @@ import LearningProgress from '../components/manual/LearningProgress.vue'
 import LearningPathList from '../components/manual/LearningPathList.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
-import { User, ArrowLeft, DataBoard, Promotion } from '@element-plus/icons-vue'
+import { User, ArrowLeft, LayoutDashboard, Send } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../stores/userManual'
 import CelebrationOverlay from '../components/CelebrationOverlay.vue'
 
 const { t } = useI18n()
-const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learningProgress } = useUserManual()
+const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learningProgress } =
+  useUserManual()
 
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
 /** 仅显示推荐学习列表（否则显示完整目录）；学完 100% 后默认显示普通手册 */
@@ -107,7 +99,9 @@ onMounted(() => {
 const SIDEBAR_MIN = 240
 const SIDEBAR_MAX = 520
 const sidebarWidth = ref(320)
-const sidebarWidthPx = computed(() => `${Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, sidebarWidth.value))}px`)
+const sidebarWidthPx = computed(
+  () => `${Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, sidebarWidth.value))}px`
+)
 
 const onSidebarResize = (delta: number) => {
   sidebarWidth.value = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, sidebarWidth.value + delta))
@@ -240,11 +234,15 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-overview-entry:hover {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
 }
 
 .sidebar-overview-entry.is-active {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"'
+  );
   font-weight: 500;
 }
 

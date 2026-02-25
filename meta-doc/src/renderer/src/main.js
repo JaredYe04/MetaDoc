@@ -4,6 +4,10 @@
 // 确保在导入任何 mxgraph 相关代码之前，全局变量已设置
 import './utils/mxgraph-init.js'
 
+// shadcn-vue CSS (Tailwind base + CSS variables)
+// Must be imported before component libraries to allow overriding
+import './styles/shadcn.css'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -21,6 +25,7 @@ import './assets/wordcloud-text.css'
 import './assets/editor-search.css'
 import { initInputContextMenuHandler } from './utils/input-context-menu-handler'
 import { themeState, applyTheme } from './utils/themes.js'
+import { syncShadcnTheme } from './utils/shadcn-theme-bridge.js'
 import { initServiceStatusWatcher } from './utils/service-status'
 import { i18n } from './i18n.js'
 import { initializeAgentTools } from './utils/agent-tools'
@@ -35,6 +40,7 @@ import './assets/element-plus-theme-override.css'
 
 // 在挂载 Vue app 之前初始化主题（从持久化存储加载）
 await applyTheme()
+syncShadcnTheme()
 
 // 尽早注册输入框右键菜单监听器，确保优先于其他 contextmenu 处理
 initInputContextMenuHandler()

@@ -1,37 +1,34 @@
 <template>
-  <el-tooltip
-    v-if="tooltip && collapse"
-    :content="tooltip"
-    placement="right"
-    :disabled="hasOpenSubMenu"
-    transition=""
-    :show-after="0"
-    :hide-after="0"
-  >
-    <div
-      class="ui-menu-item"
-      :class="{ 'is-collapsed': collapse, 'is-disabled': disabled }"
-      @click="handleClick"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
-    >
-      <div class="ui-menu-item__content">
-        <slot name="icon">
-          <el-icon v-if="icon" class="ui-menu-item__icon">
-            <component :is="icon" />
-          </el-icon>
-          <img v-else-if="iconImage" :src="iconImage" class="ui-menu-item__icon-image" />
-        </slot>
-        <span v-if="!collapse" class="ui-menu-item__label">
-          <slot>{{ label }}</slot>
-        </span>
+  <Tooltip v-if="tooltip && collapse" :disabled="hasOpenSubMenu">
+    <TooltipTrigger as-child>
+      <div
+        class="ui-menu-item"
+        :class="{ 'is-collapsed': collapse, 'is-disabled': disabled, 'is-active': active }"
+        @click="handleClick"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
+      >
+        <div class="ui-menu-item__content">
+          <slot name="icon">
+            <el-icon v-if="icon" class="ui-menu-item__icon">
+              <component :is="icon" />
+            </el-icon>
+            <img v-else-if="iconImage" :src="iconImage" class="ui-menu-item__icon-image" />
+          </slot>
+          <span v-if="!collapse" class="ui-menu-item__label">
+            <slot>{{ label }}</slot>
+          </span>
+        </div>
       </div>
-    </div>
-  </el-tooltip>
+    </TooltipTrigger>
+    <TooltipContent side="right">
+      {{ tooltip }}
+    </TooltipContent>
+  </Tooltip>
   <div
     v-else
     class="ui-menu-item"
-    :class="{ 'is-collapsed': collapse, 'is-disabled': disabled }"
+    :class="{ 'is-collapsed': collapse, 'is-disabled': disabled, 'is-active': active }"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -52,6 +49,7 @@
 
 <script setup lang="ts">
 import { inject, computed, type ComputedRef } from 'vue'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { themeState, mixColors } from '../../utils/themes'
 
 // 计算与 HeadMenu 一致的 active 背景色
@@ -67,11 +65,13 @@ const props = withDefaults(
     icon?: any
     iconImage?: string
     disabled?: boolean
+    active?: boolean
   }>(),
   {
     label: '',
     tooltip: '',
-    disabled: false
+    disabled: false,
+    active: false
   }
 )
 
@@ -104,14 +104,14 @@ const handleMouseLeave = () => {
 
 <style scoped>
 .ui-menu-item {
-  height: 40px;
-  line-height: 40px;
-  margin: 4px 8px;
+  height: 36px;
+  line-height: 36px;
+  margin: 2px 6px;
   border-radius: 4px;
   border: 1px solid transparent;
-  transition: none !important;
+  transition: all 0.15s ease;
   position: relative;
-  padding-left: 12px;
+  padding-left: 10px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -120,11 +120,12 @@ const handleMouseLeave = () => {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: pointer;
-  color: var(--el-text-color-primary);
+  color: var(--sidebar-text, var(--el-text-color-primary));
+  font-size: 13px;
 }
 
 .ui-menu-item:hover:not(.is-disabled) {
-  background-color: v-bind('activeBackgroundColor');
+  background-color: var(--sidebar-hover-bg, v-bind('activeBackgroundColor'));
   border-radius: 4px;
 }
 
@@ -141,6 +142,13 @@ const handleMouseLeave = () => {
 .ui-menu-item:active:not(.is-disabled) .ui-menu-item__icon,
 .ui-menu-item:active:not(.is-disabled) .ui-menu-item__icon-image {
   color: var(--el-color-primary) !important;
+}
+
+/* VSCode 风格 - 激活状态 */
+.ui-menu-item.is-active {
+  background-color: var(--sidebar-active-bg, v-bind('activeBackgroundColor'));
+  color: var(--sidebar-text-active, var(--el-text-color-primary));
+  font-weight: 500;
 }
 
 .ui-menu-item.is-disabled {

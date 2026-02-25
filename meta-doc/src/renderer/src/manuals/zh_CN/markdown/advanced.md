@@ -4,6 +4,16 @@
 
 在掌握[[markdown.basics|Markdown语法]]和[[markdown.features|Markdown编辑器功能]]后，您可以进一步使用扩展语法与高级特性，如图表、数学公式、HTML 与属性等，以丰富文档表现力。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "insert"}]' />
+
+<SearchReplaceMenu mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["outline", "preview"]' />
+
 ## 图表与公式
 
 ### 图表代码块

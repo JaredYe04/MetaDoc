@@ -2,84 +2,115 @@
 
 ## OVERVIEW
 
-Vue 3 SPA running in Electron's renderer process. Element Plus UI, Pinia state management, Monaco + Vditor dual editors, AI agent framework with 20+ tools, multi-format document export.
+Vue 3 SPA running in Electron's renderer process. shadcn-vue + Element Plus hybrid UI, Pinia state management, Monaco + Vditor dual editors, AI agent framework with 20+ tools, multi-format document export.
 
 ## STRUCTURE
 
 ```
 renderer/src/
-├── main.js               # Vue app bootstrap (JS — not TS)
+├── main.js               # Vue app bootstrap (JS — not TS, 80 lines)
 ├── App.vue               # Root component, global layout
 ├── router/router.js      # Vue Router (hash history, 20+ routes)
 ├── stores/               # Pinia stores
-│   ├── workspace.ts      # Tabs, documents, workspace tree (1847 lines — core store)
+│   ├── workspace.ts      # CORE: Tabs, documents (2009 lines, 15 exports)
 │   ├── document.ts       # Document metadata & operations
-│   └── user.ts           # User preferences
-├── components/           # 53 Vue components
+│   ├── user.ts           # User preferences
+│   └── notification.ts   # Sonner notification queue
+├── components/           # 53 Vue components + 93 shadcn-vue UI
 │   ├── agent/            # Agent UI (workflow canvas, managers)
 │   ├── chat/             # Chat UI components
 │   ├── common/           # Reusable UI (CardGrid, SessionList)
 │   ├── home/             # Home/quick-start panels
 │   ├── outline/          # Document outline tree components
+│   ├── ui/               # shadcn-vue components
 │   ├── workspace/        # Workspace tabs, explorer
-│   ├── TabSwitcherOverlay.vue  # Ctrl+Tab 标签页切换浮层
-│   └── [40+ top-level]   # Feature-specific components
-├── views/                # 28 route views (Home, Editor, AgentView, Setting, OCR, etc.)
-├── services/             # Document & export services (see services/AGENTS.md)
+│   └── TabSwitcherOverlay.vue  # Ctrl+Tab overlay
+├── views/                # 28 route views (28 files, 48k+ lines total)
+│   ├── Editor.vue
+│   ├── MarkdownEditor.vue        # 3165 lines
+│   ├── LaTeXEditor.vue           # 4719 lines
+│   ├── AgentView.vue             # 3268 lines
+│   ├── OcrWindow.vue             # 3290 lines
+│   └── setting/                  # 8 settings sections
+├── services/             # Document & export services
 ├── editor/               # Editor adapters
-│   ├── monaco-adapter.ts # Monaco editor integration (1465 lines)
-│   ├── vditor-adapter.ts # Vditor markdown editor integration (1495 lines)
-│   └── text-editor-types.ts  # Shared editor interface
+│   ├── monaco-adapter.ts # Monaco integration (LaTeX)
+│   ├── vditor-adapter.ts # Vditor integration (Markdown)
+│   └── text-editor-types.ts  # Shared interface
 ├── composables/          # Vue composables
-│   ├── useActiveDocument.ts    # 当前活跃文档获取
-│   ├── useCloseTab.ts          # 标签页关闭逻辑
-│   ├── useTabDrag.ts           # 标签页拖拽（跨窗口拖拽、排序、视觉反馈）
-│   ├── useTabOperations.ts     # 标签页操作（关闭、移动到新窗口、右键菜单）
-│   ├── useTabSwitcher.ts       # 键盘标签页切换（Ctrl+Tab 快捷键）
-│   └── useWorkspaceOperations.ts  # 工作目录操作
-├── utils/                # ~93 files (see agent-framework/ and agent-tools/ AGENTS.md)
-│   ├── agent-framework/  # AI engine core (has own AGENTS.md)
-│   ├── agent-tools/      # AI tool plugins (has own AGENTS.md)
-│   ├── llm-adapters/     # LLM provider adapters (OpenAI, Ollama, Gemini)
-│   ├── workspace/        # Workspace FS operations (planner/executor pattern)
-│   ├── locale_prompts/   # LLM prompt templates per locale
-│   ├── db/               # Renderer-side IndexedDB helpers
-│   └── [75+ files]       # AI tasks, chart rendering, themes, md-utils, etc.
-├── config/               # Runtime configs (tab-content, graph-engine)
-├── locales/              # i18n JSON files (6 languages)
-├── constants/            # Template constants
-├── types/                # Renderer-specific type definitions
-└── assets/               # Icons, CSS overrides, fonts
+│   ├── useActiveDocument.ts
+│   ├── useCloseTab.ts
+│   ├── useTabDrag.ts           # Cross-window drag
+│   ├── useTabOperations.ts     # Close, move to window
+│   ├── useTabSwitcher.ts       # Ctrl+Tab keyboard
+│   └── useWorkspaceOperations.ts
+└── utils/                # ~184 files total
+    ├── agent-framework/  # AI engine core
+    ├── agent-tools/      # AI tool plugins
+    ├── llm-adapters/     # LLM provider adapters
+    ├── workspace/        # Workspace FS operations
+    ├── locale_prompts/   # LLM prompt templates
+    ├── db/               # Renderer-side IndexedDB
+    └── [utilities]       # AI tasks, charts, themes, etc.
 ```
 
 ## WHERE TO LOOK
 
-| Task                    | Location                                                              | Notes                                                        |
-| ----------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Add new view/page       | `views/` + `router/router.js`                                         | Also register in `pages` map if auxiliary window             |
-| Add new component       | `components/`                                                         | PascalCase .vue, single-word names OK                        |
-| Modify document state   | `stores/workspace.ts`                                                 | Core store — 1847 lines, complex                             |
-| Tab drag & drop         | `composables/useTabDrag.ts`                                           | 跨窗口拖拽标签页、排序、视觉反馈、与主进程 drag-manager 配合 |
-| Tab operations          | `composables/useTabOperations.ts`                                     | 关闭标签页、移动到新窗口、右键菜单                           |
-| Tab switcher (Ctrl+Tab) | `composables/useTabSwitcher.ts` + `components/TabSwitcherOverlay.vue` | 键盘快捷切换标签页                                           |
-| Add LLM provider        | `utils/llm-adapters/`                                                 | Extend `base-adapter.ts`, register in `adapter-factory.ts`   |
-| Add editor feature      | `editor/`                                                             | Both adapters share `text-editor-types.ts` interface         |
-| Modify AI behavior      | `utils/prompts.ts` + `locale_prompts/`                                | Prompt templates are first-class config                      |
-| Add workspace FS op     | `utils/workspace/`                                                    | Uses planner→executor pattern                                |
-| Theme/styling           | `utils/themes.js` + `assets/`                                         | `themeState` provided globally                               |
+| Task                  | Location                                                   | Notes                                       |
+| --------------------- | ---------------------------------------------------------- | ------------------------------------------- |
+| Add view/page         | `views/` + `router/router.js`                              | Register in `pages` map for aux windows     |
+| Add component         | `components/`                                              | PascalCase .vue, single-word OK             |
+| Modify document state | `stores/workspace.ts`                                      | Core store — 2009 lines                     |
+| Tab drag & drop       | `composables/useTabDrag.ts`                                | Cross-window drag with main process         |
+| Tab operations        | `composables/useTabOperations.ts`                          | Close, move, context menu                   |
+| Tab switcher          | `composables/useTabSwitcher.ts` + `TabSwitcherOverlay.vue` | Ctrl+Tab                                    |
+| Add LLM provider      | `utils/llm-adapters/`                                      | Extend `base-adapter.ts`                    |
+| Add editor feature    | `editor/`                                                  | Both share `text-editor-types.ts`           |
+| Modify AI behavior    | `utils/prompts.ts` + `locale_prompts/`                     | Prompt templates are config                 |
+| Add workspace FS op   | `utils/workspace/`                                         | Planner→executor pattern                    |
+| Theme/styling         | `utils/themes.js` + `assets/`                              | `themeState` global                         |
+| Add shadcn component  | `components/ui/`                                           | Use `npx shadcn-vue@latest add <component>` |
+| Use shadcn component  | Import from `components/ui/<name>`                         | Based on reka-ui + Tailwind                 |
 
 ## CONVENTIONS
 
-- **Router**: `pages` map in `router.js` for auxiliary window types; `meta.requiresLayout` on main routes
-- **Stores**: Composition API Pinia stores; `workspace.ts` has cross-window broadcast via `initializeWorkspaceBroadcastListeners()`
-- **Editor adapters**: Both Monaco and Vditor implement same interface from `text-editor-types.ts`; adapter chosen per document type
-- **LLM adapters**: Factory pattern in `adapter-factory.ts` — register new providers there
-- **i18n**: `vue-i18n` with JSON locale files; Python script `i18n_check.py` validates completeness
+- **Router**: `pages` map in `router.js` for auxiliary window types
+- **Stores**: Composition API Pinia; `workspace.ts` cross-window broadcast via `initializeWorkspaceBroadcastListeners()`
+- **Editor adapters**: Both Monaco/Vditor implement same `EditorAdapter` interface
+- **LLM adapters**: Factory pattern in `adapter-factory.ts`
+- **i18n**: `vue-i18n` with JSON locale files; Python `i18n_check.py` validates
 - **Event bus**: `utils/event-bus.js` (mitt-based) for cross-component communication
-- **Format system**: `format-registry.ts` + `format-initializer.ts` — register document format handlers at startup
+- **shadcn-vue**: Use CLI installer; components use reka-ui + Tailwind
+- **UI hybrid**: shadcn-vue for new UI, Element Plus for legacy
 
 ## ANTI-PATTERNS
 
-- `workspace.ts` (1847 lines) — oversized Pinia store; avoid adding more actions without discussion
-- `utils/` has 93 files at one level — flat structure makes discovery hard; prefer subfolders
-- Many utils are JS (`md-utils.js`, `llm-api.js`, `event-bus.js`) — new code should be TypeScript
+- `workspace.ts` (2009 lines) — oversized Pinia store; discuss before adding actions
+- `utils/` has 184 files — flat structure; prefer subfolders
+- Many utils are JS (`md-utils.js`, `event-bus.js`, etc.) — new code should be TypeScript
+- `SettingDebugSection.vue` (6297 lines) — largest Vue file, needs decomposition
+
+## NOTIFICATION SYSTEM
+
+Unified Sonner + Pinia + localStorage system.
+
+```typescript
+import { notifySuccess, notifyError } from '@/utils/notify'
+
+notifySuccess('Saved successfully')
+notifyError('Save failed', { duration: 5000 })
+```
+
+Files:
+
+- `stores/notification.ts` — Pinia store + persistence
+- `utils/notify.ts` — Unified API
+- `utils/notifications-legacy.ts` — EventBus compatibility
+- `components/NotificationQueue.vue` — History panel
+
+## NOTES
+
+- **Notification migration**: COMPLETED (2024-02-22) — 35+ files, 400+ ElMessage calls replaced
+- **Theme bridge**: `utils/shadcn-theme-bridge.js` syncs shadcn + Element Plus themes
+- **Format system**: `format-registry.ts` + `format-initializer.ts` registers handlers at startup
+- **Demo mode**: UserManual.vue embeds interactive components from `manuals/`

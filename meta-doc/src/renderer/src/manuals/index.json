@@ -458,7 +458,11 @@
           "difficulty": 2,
           "estimatedTime": 20,
           "prerequisites": [],
-          "relatedArticles": ["knowledge-base.config", "knowledge-base.management", "ai.llm-config"],
+          "relatedArticles": [
+            "knowledge-base.config",
+            "knowledge-base.management",
+            "ai.llm-config"
+          ],
           "file": "knowledge-base/usage.md"
         },
         {
@@ -814,7 +818,11 @@
           "difficulty": 1,
           "estimatedTime": 15,
           "prerequisites": ["core.editor-basics"],
-          "relatedArticles": ["views.types", "outline.ai-features", "features.paragraph-optimization"],
+          "relatedArticles": [
+            "views.types",
+            "outline.ai-features",
+            "features.paragraph-optimization"
+          ],
           "file": "outline/basics.md"
         },
         {

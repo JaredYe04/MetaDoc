@@ -1,45 +1,50 @@
 <template>
   <div class="auto-test-result-display" :style="containerStyle">
     <div class="test-summary">
-      <el-statistic :title="$t('agent.display.autoTest.totalTests')" :value="summary.total" />
-      <el-statistic :title="$t('agent.display.autoTest.passed')" :value="summary.passed">
+      <Statistic :title="$t('agent.display.autoTest.totalTests')" :value="effectiveSummary.total" />
+      <Statistic :title="$t('agent.display.autoTest.passed')" :value="effectiveSummary.passed">
         <template #suffix>
-          <el-tag type="success" size="small" style="margin-left: 8px">
-            {{ summary.passedRate }}%
-          </el-tag>
+          <Badge class="ml-2"> {{ effectiveSummary.passedRate }}% </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('agent.display.autoTest.failed')" :value="summary.failed">
+      </Statistic>
+      <Statistic :title="$t('agent.display.autoTest.failed')" :value="effectiveSummary.failed">
         <template #suffix>
-          <el-tag type="danger" size="small" style="margin-left: 8px">
-            {{ summary.failedRate }}%
-          </el-tag>
+          <Badge variant="destructive" class="ml-2"> {{ effectiveSummary.failedRate }}% </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('agent.display.autoTest.duration')" :value="summary.duration">
+      </Statistic>
+      <Statistic :title="$t('agent.display.autoTest.duration')" :value="effectiveSummary.duration">
         <template #suffix>ms</template>
-      </el-statistic>
+      </Statistic>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <div class="test-actions">
-      <el-button type="primary" :icon="Document" @click="copyMarkdown">
+      <Button @click="copyMarkdown">
+        <Document class="w-4 h-4 mr-1" />
         {{ $t('agent.display.autoTest.copyMarkdown') }}
-      </el-button>
-      <el-button :icon="Download" @click="downloadMarkdown">
+      </Button>
+      <Button variant="outline" @click="downloadMarkdown">
+        <Download class="w-4 h-4 mr-1" />
         {{ $t('agent.display.autoTest.downloadMarkdown') }}
-      </el-button>
+      </Button>
     </div>
 
-    <el-divider />
+    <Divider />
 
-    <el-tabs v-model="activeTab" type="border-card" tab-position="top">
-      <el-tab-pane :label="$t('agent.display.autoTest.testResults')" name="results">
-        <el-scrollbar style="height: 100%">
+    <Tabs v-model="activeTab" class="auto-test-tabs">
+      <TabsList class="w-full grid grid-cols-2">
+        <TabsTrigger value="results">{{ $t('agent.display.autoTest.testResults') }}</TabsTrigger>
+        <TabsTrigger value="markdown">{{
+          $t('agent.display.autoTest.markdownSummary')
+        }}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="results" class="auto-test-tabs-content">
+        <ScrollArea class="h-full">
           <div class="test-results-list">
             <div
-              v-for="(result, index) in testResults"
+              v-for="(result, index) in effectiveTestResults"
               :key="index"
               class="test-result-item"
               :class="{
@@ -57,41 +62,42 @@
                   <span class="test-name" :style="testNameStyle"
                     >{{ result.toolName }} - {{ result.testCaseName }}</span
                   >
-                  <el-tooltip
-                    v-if="result.testCaseId"
-                    :content="$t('agent.display.autoTest.clickToCopy')"
-                    placement="top"
-                  >
-                    <el-tag
-                      :icon="CopyDocument"
-                      size="small"
-                      type="info"
-                      effect="plain"
-                      class="test-case-id-tag"
-                      @click.stop="copyTestCaseId(result.testCaseId)"
-                      style="cursor: pointer; margin-left: 8px; user-select: none"
-                    >
-                      {{ result.testCaseId }}
-                    </el-tag>
-                  </el-tooltip>
+                  <TooltipProvider v-if="result.testCaseId">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Badge
+                          variant="outline"
+                          class="test-case-id-tag"
+                          @click.stop="copyTestCaseId(result.testCaseId)"
+                          style="cursor: pointer; margin-left: 8px; user-select: none"
+                        >
+                          <CopyDocument class="w-3 h-3 mr-1" />
+                          {{ result.testCaseId }}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{{ $t('agent.display.autoTest.clickToCopy') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <div class="test-result-actions">
-                  <el-button
-                    text
-                    size="small"
-                    :icon="Download"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     @click="exportResultSnapshot(result)"
                     :title="$t('agent.tool.exportSnapshot')"
                   >
+                    <Download class="w-4 h-4 mr-1" />
                     {{ $t('agent.tool.exportSnapshot') }}
-                  </el-button>
-                  <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
+                  </Button>
+                  <Badge :variant="result.passed ? 'default' : 'destructive'">
                     {{
                       result.passed
                         ? $t('agent.display.autoTest.passed')
                         : $t('agent.display.autoTest.failed')
                     }}
-                  </el-tag>
+                  </Badge>
                 </div>
               </div>
 
@@ -142,11 +148,11 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
+        </ScrollArea>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('agent.display.autoTest.markdownSummary')" name="markdown">
-        <el-scrollbar style="height: 100%">
+      <TabsContent value="markdown" class="auto-test-tabs-content">
+        <ScrollArea class="h-full">
           <div class="markdown-content" :style="markdownContentStyle">
             <div
               ref="markdownContainerRef"
@@ -156,15 +162,27 @@
               }"
             ></div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
-    </el-tabs>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { Divider } from '@renderer/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Statistic } from '@renderer/components/ui/statistic'
 import { useI18n } from 'vue-i18n'
 import { Document, Download, Check, Close, CopyDocument } from '@element-plus/icons-vue'
 import {
@@ -291,9 +309,116 @@ interface Props {
     duration: number
   }
   markdownSummary: string
+  mode?: string
 }
 
 const props = defineProps<Props>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoTestResults = ref<TestResult[]>([
+  {
+    toolId: 'chart-generation',
+    toolName: '图表生成工具',
+    testCaseName: '生成柱状图',
+    testCaseId: 'CHART-001',
+    params: { type: 'bar', data: [10, 20, 30] },
+    passed: true,
+    duration: 1200,
+    result: {
+      content: {
+        stage: 'completed',
+        chartType: 'bar',
+        chartName: 'demo-chart',
+        url: 'https://example.com/chart.png'
+      },
+      format: 'json'
+    }
+  },
+  {
+    toolId: 'diff-tool',
+    toolName: '文本对比工具',
+    testCaseName: '对比两段文本',
+    testCaseId: 'DIFF-001',
+    params: { text1: 'hello', text2: 'world' },
+    passed: true,
+    duration: 800,
+    result: {
+      content: {
+        stage: 'completed',
+        diffResult: {
+          chunks: [],
+          summary: { insertions: 1, deletions: 1, replacements: 0 }
+        }
+      },
+      format: 'json'
+    }
+  },
+  {
+    toolId: 'grep-tool',
+    toolName: '文本搜索工具',
+    testCaseName: '搜索关键词',
+    testCaseId: 'GREP-001',
+    params: { pattern: 'function', text: 'function test() {}' },
+    passed: false,
+    error: '搜索超时，未能在规定时间内完成',
+    duration: 5000
+  }
+])
+
+const demoSummary = ref({
+  total: 3,
+  passed: 2,
+  failed: 1,
+  passedRate: 66.67,
+  failedRate: 33.33,
+  duration: 7000
+})
+
+const demoMarkdownSummary = ref(`# 自动化测试报告
+
+## 测试概览
+- **总测试数**: 3
+- **通过**: 2 (66.67%)
+- **失败**: 1 (33.33%)
+- **总耗时**: 7000ms
+
+## 详细结果
+
+### 图表生成工具
+- ✅ CHART-001: 生成柱状图 (1200ms)
+
+### 文本对比工具
+- ✅ DIFF-001: 对比两段文本 (800ms)
+
+### 文本搜索工具
+- ❌ GREP-001: 搜索关键词 (5000ms)
+  - 错误: 搜索超时
+`)
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive refs above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+  }
+  // Real initialization continues below
+})
+
+// Computed properties for demo mode support
+const effectiveTestResults = computed(() => {
+  return isDemo.value ? demoTestResults.value : props.testResults
+})
+
+const effectiveSummary = computed(() => {
+  return isDemo.value ? demoSummary.value : props.summary
+})
+
+const effectiveMarkdownSummary = computed(() => {
+  return isDemo.value ? demoMarkdownSummary.value : props.markdownSummary
+})
 
 const activeTab = ref('results')
 const markdownContainerRef = ref<HTMLElement | null>(null)
@@ -384,8 +509,12 @@ const formatDataForDisplay = (result: any, status?: string) => {
 }
 
 const copyMarkdown = async () => {
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：复制功能已禁用'))
+    return
+  }
   try {
-    await navigator.clipboard.writeText(props.markdownSummary)
+    await navigator.clipboard.writeText(effectiveMarkdownSummary.value)
     ElMessage.success(t('agent.display.autoTest.copySuccess'))
   } catch (error) {
     ElMessage.error(
@@ -408,6 +537,10 @@ const copyTestCaseId = async (testCaseId: string) => {
 
 // 导出测试结果快照
 const exportResultSnapshot = async (result: TestResult) => {
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：导出功能已禁用'))
+    return
+  }
   try {
     const tool = agentToolManager.getTool(result.toolId)
     if (!tool) {
@@ -503,7 +636,11 @@ const exportResultSnapshot = async (result: TestResult) => {
 }
 
 const downloadMarkdown = () => {
-  const blob = new Blob([props.markdownSummary], { type: 'text/markdown;charset=utf-8' })
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：下载功能已禁用'))
+    return
+  }
+  const blob = new Blob([effectiveMarkdownSummary.value], { type: 'text/markdown;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -565,7 +702,7 @@ const renderMarkdown = async () => {
     return
   }
 
-  const markdownContent = props.markdownSummary
+  const markdownContent = effectiveMarkdownSummary.value
   if (!markdownContent) {
     markdownContainerRef.value.innerHTML = ''
     return
@@ -584,9 +721,9 @@ const renderMarkdown = async () => {
 
 // 监听 Markdown 内容变化和标签页切换
 watch(
-  [() => props.markdownSummary, activeTab, () => themeState.currentTheme.type],
+  [() => effectiveMarkdownSummary.value, activeTab, () => themeState.currentTheme.type],
   () => {
-    if (activeTab.value === 'markdown' && props.markdownSummary) {
+    if (activeTab.value === 'markdown' && effectiveMarkdownSummary.value) {
       nextTick(() => {
         renderMarkdown()
       })
@@ -596,7 +733,7 @@ watch(
 )
 
 onMounted(() => {
-  if (activeTab.value === 'markdown' && props.markdownSummary) {
+  if (activeTab.value === 'markdown' && effectiveMarkdownSummary.value) {
     nextTick(() => {
       renderMarkdown()
     })
@@ -613,64 +750,34 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.auto-test-result-display :deep(.el-tabs) {
+.auto-test-tabs {
   display: flex;
-  flex-direction: column !important;
+  flex-direction: column;
   height: 100%;
   flex: 1;
   overflow: hidden;
 }
 
-.auto-test-result-display :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
+.auto-test-tabs :deep([data-state='active']) {
+  flex: 1;
 }
 
-.auto-test-result-display :deep(.el-tabs__header.is-top) {
-  order: -999 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__header.is-bottom) {
-  order: 999 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__nav-wrap) {
-  order: inherit !important;
-  flex-shrink: 0 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__nav) {
-  order: inherit !important;
-  flex-shrink: 0 !important;
-}
-
-.auto-test-result-display :deep(.el-tabs__content) {
-  order: 0 !important;
+.auto-test-tabs-content {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
+  margin-top: 0;
 }
 
-.auto-test-result-display :deep(.el-tab-pane) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.auto-test-result-display :deep(.el-scrollbar) {
+.auto-test-tabs-content :deep(.scroll-area) {
   height: 100%;
   flex: 1;
   overflow: hidden;
 }
 
-.auto-test-result-display :deep(.el-scrollbar__wrap) {
+.auto-test-tabs-content :deep([data-radix-scroll-area-viewport]) {
   height: 100%;
 }
 
@@ -689,7 +796,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.auto-test-result-display :deep(.el-divider) {
+.auto-test-result-display :deep([data-slot='separator']) {
   margin: 16px 0;
   flex-shrink: 0;
 }

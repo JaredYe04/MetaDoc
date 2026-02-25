@@ -27,6 +27,10 @@ MetaDoc目前支持以下语言：
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+<SettingBasicSection mode="demo" />
+
+<SettingLlmSection mode="demo" />
+
 ```mermaid
 graph LR
     A[语言切换] --> B[打开语言选择器]
@@ -50,6 +54,8 @@ graph LR
 - **下次启动**：下次启动应用时会使用上次选择的语言
 - **多窗口同步**：所有窗口会自动同步语言设置
 
+<SettingThemeSection mode="demo" />
+
 ## 界面本地化
 
 ### 本地化范围
@@ -69,6 +75,8 @@ graph LR
 - **文档内容**：文档内容保持原样
 - **文件路径**：文件路径保持原样
 - **用户输入**：用户输入的内容不受影响
+
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />
 
 ## 语言选择建议
 
@@ -93,6 +101,8 @@ graph LR
 - **界面更新**：所有界面元素立即更新
 - **无需重启**：不需要重启应用
 - **状态保持**：当前编辑状态不会丢失
+
+<MainTabs mode="demo" />
 
 ### 多窗口同步
 
@@ -140,3 +150,5 @@ graph LR
 
 - [[settings.basic|基础设置]]
 - [[quick-start.guide|快速开始指南]]
+
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />

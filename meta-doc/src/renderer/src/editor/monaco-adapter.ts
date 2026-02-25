@@ -1102,7 +1102,7 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
 
     // 移除 MAX_MATCHES 限制，允许查找所有匹配
     regex.lastIndex = 0
-    while (true) {
+    for (;;) {
       const match = regex.exec(searchText)
       if (!match) break
       const value = match[0]

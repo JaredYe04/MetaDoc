@@ -17,11 +17,14 @@
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.chartGeneration.rendering') }}</span>
       <div v-if="displayData.chartCode" class="code-preview">
-        <el-collapse>
-          <el-collapse-item :title="$t('agent.display.chartGeneration.viewCode')" name="code">
+        <Collapsible class="code-collapsible">
+          <CollapsibleTrigger class="code-collapsible-trigger">
+            {{ $t('agent.display.chartGeneration.viewCode') }}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
             <pre class="code-content" :style="codeContentStyle">{{ displayData.chartCode }}</pre>
-          </el-collapse-item>
-        </el-collapse>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
 
@@ -41,13 +44,14 @@
     >
       <div class="result-header" :style="headerStyle">
         <div class="header-info">
-          <el-tag type="success" size="small">{{ displayData.chartType }}</el-tag>
+          <Badge type="success" size="small">{{ displayData.chartType }}</Badge>
           <span class="chart-name" :style="chartNameStyle">{{ displayData.chartName }}</span>
         </div>
         <div class="header-actions">
-          <el-button type="primary" size="small" :icon="Download" @click="downloadChart">
+          <Button type="primary" size="sm" @click="downloadChart">
+            <Download class="w-4 h-4 mr-1" />
             {{ $t('agent.display.chartGeneration.download') }}
-          </el-button>
+          </Button>
         </div>
       </div>
 
@@ -62,66 +66,84 @@
           @error="handleImageError"
         />
         <div v-else class="no-preview">
-          <el-empty :description="$t('agent.display.chartGeneration.noPreview')" :image-size="80" />
+          <Empty :description="$t('agent.display.chartGeneration.noPreview')" :image-size="80" />
         </div>
         <!-- PDF 格式提示 -->
         <div v-if="displayData.svgUrl" class="pdf-format-hint">
-          <el-tag type="info" size="small">
+          <Badge type="info" size="small">
             {{ $t('agent.display.chartGeneration.pdfFormatHint', 'PDF 格式，显示对应的 SVG 预览') }}
-          </el-tag>
+          </Badge>
         </div>
       </div>
 
       <!-- 代码预览 -->
       <div v-if="displayData.chartCode" class="code-section">
-        <el-collapse>
-          <el-collapse-item :title="$t('agent.display.chartGeneration.viewCode')" name="code">
+        <Collapsible class="code-collapsible">
+          <CollapsibleTrigger class="code-collapsible-trigger">
+            {{ $t('agent.display.chartGeneration.viewCode') }}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
             <pre class="code-content" :style="codeContentStyle">{{ displayData.chartCode }}</pre>
-          </el-collapse-item>
-        </el-collapse>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       <!-- 结果信息 -->
       <div class="result-info">
-        <el-descriptions :column="1" size="small" border>
-          <el-descriptions-item :label="$t('agent.display.chartGeneration.chartType')">
+        <Descriptions :column="1" size="small" border>
+          <DescriptionsItem :label="$t('agent.display.chartGeneration.chartType')">
             {{ displayData.chartType }}
-          </el-descriptions-item>
-          <el-descriptions-item :label="$t('agent.display.chartGeneration.url')">
-            <el-link :href="displayData.url" target="_blank" type="primary">
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('agent.display.chartGeneration.url')">
+            <Link :href="displayData.url" target="_blank" type="primary">
               {{ displayData.url }}
-            </el-link>
-          </el-descriptions-item>
-          <el-descriptions-item :label="$t('agent.display.chartGeneration.localPath')">
+            </Link>
+          </DescriptionsItem>
+          <DescriptionsItem :label="$t('agent.display.chartGeneration.localPath')">
             {{ displayData.localPath }}
-          </el-descriptions-item>
-        </el-descriptions>
+          </DescriptionsItem>
+        </Descriptions>
       </div>
     </div>
 
     <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.chartGeneration.generationFailed')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{
+          displayData.error || $t('agent.display.chartGeneration.generationFailed')
+        }}</AlertTitle>
+      </Alert>
     </div>
 
     <!-- 进度条 -->
-    <el-progress
-      v-if="effectiveProgress && effectiveProgress.percentage > 0"
-      :percentage="effectiveProgress.percentage"
-      :status="progressStatus"
-      :stroke-width="6"
-      style="margin-top: 12px"
-    />
+    <div v-if="effectiveProgress && effectiveProgress.percentage > 0" style="margin-top: 12px">
+      <Progress
+        :percentage="effectiveProgress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { Progress } from '@renderer/components/ui/progress'
+import { Empty } from '@renderer/components/ui/empty'
+import { Badge } from '@renderer/components/ui/badge'
+import { Link } from '@renderer/components/ui/link'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -129,8 +151,44 @@ import { themeState } from '../../themes'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
 const logger = createRendererLogger('ChartGenerationDisplay')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  chartType: 'bar',
+  chartName: 'demo-chart',
+  url: 'https://example.com/demo-chart.png',
+  localPath: '/tmp/demo-chart.png',
+  chartCode: `// ECharts 配置
+option = {
+  title: { text: '月度销售数据' },
+  xAxis: {
+    type: 'category',
+    data: ['一月', '二月', '三月', '四月', '五月']
+  },
+  yAxis: { type: 'value' },
+  series: [{
+    data: [120, 200, 150, 80, 70],
+    type: 'bar'
+  }]
+};`
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+  logger.debug('[ChartGenerationDisplay] Demo data loaded')
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues below
+})
 
 logger.debug(
   `[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`,
@@ -154,6 +212,11 @@ logger.debug(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, {
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
 
@@ -191,6 +254,11 @@ const progressStatus = computed(() => {
 
 // 下载图表
 const downloadChart = async () => {
+  if (isDemo.value) {
+    ElMessage.info(t('agent.display.chartGeneration.demoMode', '演示模式：下载功能已禁用'))
+    return
+  }
+
   // 优先使用 url（可能是 PDF），如果没有则使用 svgUrl
   const downloadUrl = displayData.value.url || displayData.value.svgUrl
   if (!downloadUrl) {
@@ -334,6 +402,51 @@ const handleImageError = () => {
 
 .code-preview {
   margin-top: 12px;
+}
+
+.code-collapsible {
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"'
+    );
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.code-collapsible-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background-color 0.2s ease;
+}
+
+.code-collapsible-trigger:hover {
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)"'
+  );
+}
+
+.code-collapsible-trigger::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid currentColor;
+  transition: transform 0.2s ease;
+}
+
+.code-collapsible-trigger[data-state='open']::after {
+  transform: rotate(180deg);
 }
 
 .code-content {

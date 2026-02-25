@@ -10,7 +10,7 @@
 .main-content {
   flex-grow: 1;
   padding: 20px;
-  background-color: #fff;
+  background-color: var(--el-bg-color, #fff);
   min-height: 100vh;
 }
 </style>

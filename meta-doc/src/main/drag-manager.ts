@@ -193,15 +193,11 @@ async function executeTabTransfer(
   }
 
   try {
-    const canAccept = await invokeRenderer(
-      targetWindow,
-      'drag:can-accept-tab',
-      {
-        sourceWindowId,
-        tabData: tabData,
-        sessionId: session.sessionId
-      }
-    )
+    const canAccept = await invokeRenderer(targetWindow, 'drag:can-accept-tab', {
+      sourceWindowId,
+      tabData: tabData,
+      sessionId: session.sessionId
+    })
 
     if (!canAccept) {
       logger.warn('目标窗口拒绝接收 Tab:', { targetWindowId, reason: canAccept?.reason })
@@ -211,15 +207,11 @@ async function executeTabTransfer(
       }
     }
 
-    const addResult = await invokeRenderer(
-      targetWindow,
-      'drag:add-tab-to-window',
-      {
-        sessionId: session.sessionId,
-        tabData,
-        insertIndex
-      }
-    )
+    const addResult = await invokeRenderer(targetWindow, 'drag:add-tab-to-window', {
+      sessionId: session.sessionId,
+      tabData,
+      insertIndex
+    })
 
     if (!addResult || !addResult.success) {
       logger.error('目标窗口添加 Tab 失败:', { targetWindowId, error: addResult?.error })
@@ -234,7 +226,6 @@ async function executeTabTransfer(
 
     logger.info('Tab 跨窗口转移成功:', tabId, sourceWindowId, '->', targetWindowId)
     return { success: true }
-
   } catch (error) {
     logger.error('Tab 转移执行失败:', error)
     return {
@@ -372,11 +363,7 @@ export function registerDragManagerIPC(): void {
       if (isOverOtherWindow && targetWindowForMerge) {
         const targetWinId = getWindowId(targetWindowForMerge)
 
-        const result = await executeTabTransfer(
-          session,
-          targetWinId,
-          -1
-        )
+        const result = await executeTabTransfer(session, targetWinId, -1)
 
         if (result.success) {
           cleanupSession(payload.sessionId)
@@ -514,8 +501,14 @@ export function registerDragManagerIPC(): void {
 
   ipcBridge.registerHandle(
     'drag:get-all-sessions',
-    (): Array<{ sessionId: string; tabId: string; sourceWindowId: number; consumed: boolean; createdAt: number }> => {
-      return Array.from(activeSessions.values()).map(s => ({
+    (): Array<{
+      sessionId: string
+      tabId: string
+      sourceWindowId: number
+      consumed: boolean
+      createdAt: number
+    }> => {
+      return Array.from(activeSessions.values()).map((s) => ({
         sessionId: s.sessionId,
         tabId: s.tabId,
         sourceWindowId: s.sourceWindowId,

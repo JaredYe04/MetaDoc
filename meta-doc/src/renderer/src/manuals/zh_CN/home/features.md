@@ -187,3 +187,15 @@ graph LR
 - [[core.file-operations|文件操作]]
 - [[user.profile|用户资料]]
 - [[views.types|视图类型]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["home", "outline", "chat", "agent"]' />
+
+<MainTabs mode="demo" />
+
+<UserProfileView mode="demo" />

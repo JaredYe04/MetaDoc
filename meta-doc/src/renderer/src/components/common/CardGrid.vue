@@ -1,7 +1,8 @@
 <template>
-  <div class="card-grid" :style="containerStyle">
-    <el-scrollbar class="card-grid-scroll">
-      <div class="card-grid-container" v-loading="loading">
+  <div class="card-grid" :style="containerStyle" style="position: relative">
+    <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
+    <ScrollArea class="flex-1 min-h-0">
+      <div class="card-grid-container">
         <div
           v-for="item in items"
           :key="getItemId(item)"
@@ -25,9 +26,7 @@
               <el-icon><Document /></el-icon>
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{
-                getBadge(item)
-              }}</el-tag>
+              <Badge size="small" :type="getBadgeType(item) || 'info'">{{ getBadge(item) }}</Badge>
             </div>
           </div>
 
@@ -37,9 +36,7 @@
               {{ getItemTitle(item) }}
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{
-                getBadge(item)
-              }}</el-tag>
+              <Badge size="small" :type="getBadgeType(item) || 'info'">{{ getBadge(item) }}</Badge>
             </div>
           </div>
 
@@ -48,46 +45,60 @@
             <h3>{{ getItemTitle(item) || '' }}</h3>
             <p v-if="getItemDescription(item)">{{ getItemDescription(item) }}</p>
             <div v-if="getItemMeta(item) && getItemMeta(item).length > 0" class="card-item__meta">
-              <el-tag
+              <Badge
                 v-for="(meta, index) in getItemMeta(item)"
                 :key="index"
                 size="small"
                 effect="plain"
               >
                 {{ meta }}
-              </el-tag>
+              </Badge>
             </div>
           </div>
 
           <!-- 卡片操作按钮 -->
           <div v-if="showActions" class="card-item__actions" @click.stop>
-            <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, item)">
-              <el-button text circle :icon="More" size="small" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
-                    v-for="action in getActions(item)"
-                    :key="action.command"
-                    :command="action.command"
-                    :disabled="action.disabled"
-                    :class="{ danger: action.danger }"
-                  >
-                    {{ action.label }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button type="ghost" circle size="sm">
+                  <More />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  v-for="action in getActions(item)"
+                  :key="action.command"
+                  :disabled="action.disabled"
+                  @click="handleAction(action.command, item)"
+                >
+                  {{ action.label }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Document, More } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+
+const { t } = useI18n()
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@renderer/components/ui/dropdown-menu'
+import { Badge } from '@renderer/components/ui/badge'
 
 export interface CardGridAction {
   command: string
@@ -169,11 +180,6 @@ const handleAction = (command: string, item: CardGridItem) => {
   flex-direction: column;
   height: 100%;
   width: 100%;
-}
-
-.card-grid-scroll {
-  flex: 1;
-  min-height: 0;
 }
 
 .card-grid-container {

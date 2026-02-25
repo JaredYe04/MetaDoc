@@ -1,45 +1,40 @@
 <template>
   <div class="ui-sub-menu" ref="subMenuRef">
     <!-- 菜单标题 -->
-    <el-tooltip
-      v-if="tooltip && collapse && trigger === 'click'"
-      :content="tooltip"
-      placement="right"
-      :disabled="isOpen || hasOpenSubMenu"
-      transition=""
-      :show-after="0"
-      :hide-after="0"
-    >
-      <div
-        class="ui-sub-menu__title"
-        :class="{
-          'is-collapsed': collapse && props.level === 1,
-          'is-open': isOpen,
-          'is-nested': props.level > 1,
-          'is-disabled': props.disabled
-        }"
-        @click.stop="handleTitleClick"
-        @mouseenter="handleTitleMouseEnter"
-        @mouseleave="handleTitleMouseLeave"
-      >
-        <div class="ui-sub-menu__title-content">
-          <slot name="icon">
-            <el-icon v-if="icon" class="ui-sub-menu__icon">
-              <component :is="icon" />
-            </el-icon>
-            <img v-else-if="iconImage" :src="iconImage" class="ui-sub-menu__icon-image" />
-          </slot>
-          <template v-if="shouldShowTitle">
-            <slot name="title">
-              <span class="ui-sub-menu__label">{{ title }}</span>
+    <Tooltip v-if="tooltip && collapse && trigger === 'click'" :disabled="isOpen || hasOpenSubMenu">
+      <TooltipTrigger as-child>
+        <div
+          class="ui-sub-menu__title"
+          :class="{
+            'is-collapsed': collapse && props.level === 1,
+            'is-open': isOpen,
+            'is-nested': props.level > 1,
+            'is-disabled': props.disabled
+          }"
+          @click.stop="handleTitleClick"
+          @mouseenter="handleTitleMouseEnter"
+          @mouseleave="handleTitleMouseLeave"
+        >
+          <div class="ui-sub-menu__title-content">
+            <slot name="icon">
+              <el-icon v-if="icon" class="ui-sub-menu__icon">
+                <component :is="icon" />
+              </el-icon>
+              <img v-else-if="iconImage" :src="iconImage" class="ui-sub-menu__icon-image" />
             </slot>
-            <el-icon class="ui-sub-menu__arrow">
-              <ArrowRight />
-            </el-icon>
-          </template>
+            <template v-if="shouldShowTitle">
+              <slot name="title">
+                <span class="ui-sub-menu__label">{{ title }}</span>
+              </slot>
+              <el-icon class="ui-sub-menu__arrow">
+                <ArrowRight />
+              </el-icon>
+            </template>
+          </div>
         </div>
-      </div>
-    </el-tooltip>
+      </TooltipTrigger>
+      <TooltipContent side="right">{{ tooltip }}</TooltipContent>
+    </Tooltip>
     <div
       v-else
       class="ui-sub-menu__title"
@@ -103,13 +98,14 @@ import {
   type ComputedRef
 } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { themeState, mixColors } from '../../utils/themes'
 
-// 计算与 HeadMenu 一致的 active 背景色
+// 使用主题色作为 active 状态
 const activeBackgroundColor = computed(() =>
-  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+  mixColors(themeState.currentTheme.background, themeState.currentTheme.primaryColor, 0.2)
 )
-const activeTextColor = computed(() => themeState.currentTheme.textColor)
+const activeTextColor = computed(() => themeState.currentTheme.primaryColor)
 
 const props = withDefaults(
   defineProps<{
@@ -379,14 +375,14 @@ onBeforeUnmount(() => {
 }
 
 .ui-sub-menu__title {
-  height: 40px;
-  line-height: 40px;
-  margin: 4px 8px;
+  height: 36px;
+  line-height: 36px;
+  margin: 2px 6px;
   border-radius: 4px;
   border: 1px solid transparent;
-  transition: none !important;
+  transition: all 0.15s ease;
   position: relative;
-  padding-left: 12px;
+  padding-left: 10px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -395,22 +391,23 @@ onBeforeUnmount(() => {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: pointer;
-  color: var(--el-text-color-primary);
+  color: var(--sidebar-text, var(--el-text-color-primary));
+  font-size: 13px;
 }
 
-/* 粗野主义悬停效果 - 统一灰色背景 */
+/* VSCode 风格悬停效果 */
 .ui-sub-menu__title:hover {
-  background-color: v-bind('activeBackgroundColor');
+  background-color: var(--sidebar-hover-bg, v-bind('activeBackgroundColor'));
   border: 1px solid var(--el-border-color);
   border-radius: 4px;
-  color: var(--el-text-color-primary);
+  color: var(--sidebar-text-active, var(--el-text-color-primary));
 }
 
-/* 打开的菜单 - 使用浅色边框，与 :active 区分开 */
+/* VSCode 风格 - 打开的菜单 */
 .ui-sub-menu__title.is-open {
   border: 1px solid var(--el-border-color) !important;
-  background-color: v-bind('activeBackgroundColor') !important;
-  color: var(--el-text-color-primary) !important;
+  background-color: var(--sidebar-active-bg, v-bind('activeBackgroundColor')) !important;
+  color: var(--sidebar-text-active, var(--el-text-color-primary)) !important;
   border-radius: 4px !important;
   box-shadow: none !important;
 }
@@ -576,32 +573,6 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
 }
 
-/* 覆盖 el-tooltip__trigger 的默认样式 */
-.ui-sub-menu__title.el-tooltip__trigger {
-  border-radius: 4px !important;
-  transition: none !important;
-  border: 1px solid transparent !important;
-  color: var(--el-text-color-primary) !important;
-}
-
-.ui-sub-menu__title.el-tooltip__trigger:hover {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border: 1px solid var(--el-border-color) !important;
-  color: var(--el-text-color-primary) !important;
-}
-
-.ui-sub-menu__title.el-tooltip__trigger.is-open {
-  background-color: var(--el-color-primary-light-9) !important;
-  border: 1px solid var(--el-color-primary) !important;
-  color: var(--el-color-primary) !important;
-}
-
-.ui-sub-menu__title.el-tooltip__trigger.is-open:hover {
-  background-color: v-bind('activeBackgroundColor') !important;
-  border: 1px solid var(--el-border-color) !important;
-  color: var(--el-text-color-primary) !important;
-}
-
 .ui-sub-menu__popup {
   position: fixed;
   border-radius: 4px;
@@ -626,11 +597,15 @@ onBeforeUnmount(() => {
 
 /* 粗野主义动画 - fade + slide，无弹性 */
 .sub-menu-fade-enter-active {
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
 }
 
 .sub-menu-fade-leave-active {
-  transition: opacity 0.1s ease-in, transform 0.1s ease-in;
+  transition:
+    opacity 0.1s ease-in,
+    transform 0.1s ease-in;
 }
 
 .sub-menu-fade-enter-from {

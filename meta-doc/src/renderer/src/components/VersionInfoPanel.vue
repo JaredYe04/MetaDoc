@@ -22,14 +22,7 @@
         <h3>{{ $t('versionInfoPanel.title') }}</h3>
       </div>
 
-      <el-scrollbar
-        :style="{
-          maxWidth: '100%',
-          flex: 1,
-          overflow: 'auto'
-        }"
-        min-size="5"
-      >
+      <ScrollArea class="flex-1 w-full overflow-auto">
         <div class="version-content">
           <div class="version-info-item">
             <span class="info-label">{{ $t('versionInfoPanel.version') }}:</span>
@@ -46,43 +39,34 @@
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
-            <el-alert
-              v-if="updateStatus.updateAvailable"
-              type="success"
-              :title="$t('versionInfoPanel.updateAvailable')"
-              :description="
-                updateStatus.updateInfo
-                  ? $t('versionInfoPanel.updateAvailableDesc', {
-                      version: updateStatus.updateInfo.version
-                    })
-                  : ''
-              "
-              show-icon
-              :closable="false"
-            />
-            <el-alert
-              v-else-if="updateStatus.updateNotAvailable"
-              type="info"
-              :title="$t('versionInfoPanel.noUpdate')"
-              :description="$t('versionInfoPanel.noUpdateDesc')"
-              show-icon
-              :closable="false"
-            />
-            <el-alert
-              v-else-if="updateStatus.error"
-              type="error"
-              :title="$t('versionInfoPanel.checkUpdateError')"
-              :description="updateStatus.error"
-              show-icon
-              :closable="false"
-            />
+            <Alert v-if="updateStatus.updateAvailable" variant="default">
+              <CheckCircle2 class="h-4 w-4" />
+              <AlertTitle>{{ $t('versionInfoPanel.updateAvailable') }}</AlertTitle>
+              <AlertDescription v-if="updateStatus.updateInfo">
+                {{
+                  $t('versionInfoPanel.updateAvailableDesc', {
+                    version: updateStatus.updateInfo.version
+                  })
+                }}
+              </AlertDescription>
+            </Alert>
+            <Alert v-else-if="updateStatus.updateNotAvailable" variant="default">
+              <Info class="h-4 w-4" />
+              <AlertTitle>{{ $t('versionInfoPanel.noUpdate') }}</AlertTitle>
+              <AlertDescription>{{ $t('versionInfoPanel.noUpdateDesc') }}</AlertDescription>
+            </Alert>
+            <Alert v-else-if="updateStatus.error" variant="destructive">
+              <XCircle class="h-4 w-4" />
+              <AlertTitle>{{ $t('versionInfoPanel.checkUpdateError') }}</AlertTitle>
+              <AlertDescription>{{ updateStatus.error }}</AlertDescription>
+            </Alert>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
 
       <!-- 操作按钮 -->
       <div class="version-actions">
-        <el-button
+        <Button
           v-if="!updateStatus?.updateAvailable && !downloaded && !downloading"
           type="primary"
           :loading="checking"
@@ -91,36 +75,26 @@
           style="width: 100%"
         >
           {{ checking ? $t('versionInfoPanel.checking') : $t('versionInfoPanel.checkUpdate') }}
-        </el-button>
-        <el-button
+        </Button>
+        <Button
           v-if="updateStatus?.updateAvailable && !downloaded && !downloading"
           type="primary"
           @click="handleDownloadUpdate"
           style="width: 100%"
         >
           {{ $t('versionInfoPanel.downloadAndInstall') }}
-        </el-button>
-        <el-button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
+        </Button>
+        <Button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
           {{ $t('versionInfoPanel.downloadProgress', { progress: downloadProgress }) }}
-        </el-button>
-        <el-button
-          v-if="downloaded"
-          type="success"
-          @click="handleInstallUpdate"
-          style="width: 100%"
-        >
+        </Button>
+        <Button v-if="downloaded" type="success" @click="handleInstallUpdate" style="width: 100%">
           {{ $t('versionInfoPanel.installAndRestart') }}
-        </el-button>
-        <el-alert
-          v-if="downloadError"
-          type="error"
-          :title="$t('versionInfoPanel.downloadError')"
-          :description="downloadError"
-          show-icon
-          :closable="true"
-          @close="downloadError = null"
-          style="margin-top: 12px"
-        />
+        </Button>
+        <Alert v-if="downloadError" variant="destructive" class="mt-3">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ $t('versionInfoPanel.downloadError') }}</AlertTitle>
+          <AlertDescription>{{ downloadError }}</AlertDescription>
+        </Alert>
       </div>
     </div>
   </ResizablePanel>
@@ -129,6 +103,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
+import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'

@@ -33,6 +33,8 @@
 - **自定义名称**：输入有意义的名称，便于识别和管理
 - **命名建议**：使用描述性的名称，如"工作主题"、"夜间模式"等
 
+<SettingThemeSection mode="demo" />
+
 ```mermaid
 graph LR
     A[点击新建主题] --> B[输入主题名称]
@@ -56,6 +58,8 @@ graph LR
 4. 在对话框中修改主题名称或颜色
 5. 点击"保存"按钮
 
+<DialogDemo mode="demo" dialogType="theme-edit" />
+
 ### 快速编辑颜色
 
 您也可以直接在主题卡片上编辑颜色：
@@ -65,6 +69,7 @@ graph LR
 3. 颜色会立即应用
 
 **注意事项**：
+
 - 预设主题不能编辑
 - 只有自定义主题可以编辑
 - 编辑后需要保存才能永久生效
@@ -79,6 +84,7 @@ graph LR
 4. 确认删除操作
 
 **注意事项**：
+
 - 删除操作不可恢复
 - 如果删除的是当前使用的主题，系统会自动切换到默认主题
 - 预设主题不能删除
@@ -109,6 +115,8 @@ graph LR
 - **预设颜色**：快速选择常用颜色
 - **颜色值输入**：直接输入HEX、RGB、HSL等格式
 - **透明度调整**：调整颜色的透明度
+
+<DialogDemo mode="demo" dialogType="color-picker" />
 
 ### 预设颜色
 
@@ -200,3 +208,15 @@ MetaDoc会根据主题色自动生成配色方案：
 - [[settings.theme|主题配置]]
 - [[settings.basic|基础设置]]
 - [[core.editor-settings|编辑器设置]]
+
+<ResizableDivider mode="demo" />
+
+<SettingThemeSection mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["theme"]}]' />
+
+<DialogDemo mode="demo" dialogType="color-picker" />
+
+<DialogDemo mode="demo" dialogType="theme-edit" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />

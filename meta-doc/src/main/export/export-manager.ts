@@ -667,11 +667,11 @@ const stripMarkdownFromTitle = (title: string): string => {
   let text = title
 
   // 移除链接但保留文本 [text](url) -> text
-  text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
   text = text.replace(/\[([^\]]+)\]\[[^\]]+\]/g, '$1')
 
   // 移除图片 ![alt](url) -> alt
-  text = text.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1')
+  text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
 
   // 移除代码标记 `code` -> code
   text = text.replace(/`([^`]+)`/g, '$1')
@@ -721,12 +721,13 @@ const processCodeBlocksForWord = (html: string): string => {
     }
 
     // 恢复HTML实体
+    const ctrlChar = String.fromCharCode(1)
     text = text
-      .replace(/\u0001LT\u0001/g, '<')
-      .replace(/\u0001GT\u0001/g, '>')
-      .replace(/\u0001AMP\u0001/g, '&')
-      .replace(/\u0001QUOT\u0001/g, '"')
-      .replace(/\u0001APOS\u0001/g, "'")
+      .replace(new RegExp(`${ctrlChar}LT${ctrlChar}`, 'g'), '<')
+      .replace(new RegExp(`${ctrlChar}GT${ctrlChar}`, 'g'), '>')
+      .replace(new RegExp(`${ctrlChar}AMP${ctrlChar}`, 'g'), '&')
+      .replace(new RegExp(`${ctrlChar}QUOT${ctrlChar}`, 'g'), '"')
+      .replace(new RegExp(`${ctrlChar}APOS${ctrlChar}`, 'g'), "'")
 
     // 统一换行符（\r\n -> \n, \r -> \n）
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
@@ -2837,7 +2838,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         if (detokenizeMatch) {
           // 提取 \detokenize 内的路径用于解析
           imagePath = detokenizeMatch[1]
-          logger.debug(`提取 \detokenize 内的路径: ${imagePath}`)
+          logger.debug(`提取 \\detokenize 内的路径: ${imagePath}`)
         }
 
         // 还原 LaTeX 转义的字符（如 \_ -> _，\# -> # 等）
@@ -3065,7 +3066,8 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         }
         // 检查是否是网络图片（http(s)但不是运行时服务器）
         else if (
-          (imagePath.startsWith('http://') && !imagePath.startsWith(getRuntimeServerBaseUrl() + '/')) ||
+          (imagePath.startsWith('http://') &&
+            !imagePath.startsWith(getRuntimeServerBaseUrl() + '/')) ||
           imagePath.startsWith('https://')
         ) {
           // 如果还有网络图片，尝试在 main 进程中下载并上传

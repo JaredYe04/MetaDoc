@@ -207,7 +207,10 @@ const prepareMarkdownExports = async (
       const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
       const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       // 使用 [^)\\] 避免 [^)] 在某些环境下被解析为“未闭合分组”；路径中不含 ) 与 \
-      const imageRegex = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)\\]+)\\\\)', 'g')
+      const imageRegex = new RegExp(
+        '!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped + '([^)\\]+)\\\\)',
+        'g'
+      )
       let match
       while ((match = imageRegex.exec(markdown)) !== null) {
         const imageUrl = imagesPrefix + (match[1] || '')

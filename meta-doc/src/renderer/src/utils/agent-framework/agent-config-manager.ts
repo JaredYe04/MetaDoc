@@ -240,7 +240,7 @@ class AgentConfigManager {
        {
          "tool": "chart-generation",
          "params": {
-           "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+           "code": "{"title": {"text": "销售趋势"}, "xAxis": {"type": "category", "data": ["1月", "2月", "3月"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
            "chartType": "echarts",
            "format": "svg"
          }
@@ -465,7 +465,7 @@ class AgentConfigManager {
        {
          "tool": "chart-generation",
          "params": {
-           "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+           "code": "{"title": {"text": "销售趋势"}, "xAxis": {"type": "category", "data": ["1月", "2月", "3月"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
            "chartType": "echarts",
            "format": "svg"
          }

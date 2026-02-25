@@ -11,10 +11,10 @@
     <div class="workspace-explorer-header">
       <span class="workspace-explorer-title">{{ $t('workspaceExplorer.title') }}</span>
       <div class="workspace-explorer-actions">
-        <el-button
+        <Button
           v-if="workspaceFolders.length > 0"
-          text
-          size="small"
+          variant="ghost"
+          size="sm"
           @click="refreshAllWorkspaceFolders"
           :title="$t('workspaceExplorer.refresh')"
         >
@@ -23,10 +23,10 @@
             class="workspace-action-icon"
             alt="refresh"
           />
-        </el-button>
-        <el-button
-          text
-          size="small"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           @click="addWorkspaceFolder"
           :title="$t('workspaceExplorer.addFolder')"
         >
@@ -35,27 +35,31 @@
             class="workspace-action-icon"
             alt="add folder"
           />
-        </el-button>
+        </Button>
       </div>
     </div>
     <div v-if="workspaceFolders.length === 0" class="workspace-explorer-empty">
-      <el-empty :description="$t('workspaceExplorer.noWorkspaceFolder')" :image-size="80">
-        <template #image>
-          <div class="logo-container" :class="{ shake: isShaking }" @click="handleLogoClick">
-            <div class="logo-animation-wrapper">
-              <img :src="logoPath" alt="Logo" class="logo-image" />
-            </div>
+      <div class="custom-empty-state">
+        <div class="logo-container" :class="{ shake: isShaking }" @click="handleLogoClick">
+          <div class="logo-animation-wrapper">
+            <LogoIcon
+              :size="96"
+              :bg-color="bgColor"
+              :symbol-color="symbolColor"
+              class="logo-image"
+            />
           </div>
-        </template>
-        <el-button @click="addWorkspaceFolder">
+        </div>
+        <p class="custom-empty-description">{{ $t('workspaceExplorer.noWorkspaceFolder') }}</p>
+        <Button variant="default" @click="addWorkspaceFolder">
           {{ $t('workspaceExplorer.addFolder') }}
-        </el-button>
-      </el-empty>
+        </Button>
+      </div>
     </div>
     <div v-else class="workspace-explorer-main">
-      <el-scrollbar
+      <ScrollArea
         ref="treeScrollbarRef"
-        class="workspace-explorer-tree"
+        class="workspace-explorer-tree h-full"
         @contextmenu.prevent="handleContentContextMenu"
       >
         <div
@@ -90,14 +94,14 @@
             />
           </template>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
     <!-- 已打开文件列表（始终显示，如果有打开的文件） -->
     <div v-if="openedFiles.length > 0" class="workspace-explorer-opened-files">
       <div class="opened-files-header">
         <span class="opened-files-title">{{ $t('workspaceExplorer.openedFiles') }}</span>
       </div>
-      <el-scrollbar class="opened-files-scrollbar">
+      <ScrollArea class="opened-files-scrollbar h-full">
         <div class="opened-files-list">
           <div
             v-for="tab in openedFiles"
@@ -107,18 +111,18 @@
             @click="workspace.activateTab(tab.id)"
           >
             <span class="opened-file-name" :title="tab.path">{{ tab.subtitle || tab.title }}</span>
-            <el-button
-              text
-              size="small"
+            <Button
+              variant="ghost"
+              size="sm"
               class="opened-file-close"
               @click.stop="handleCloseFile(tab.id)"
               :title="$t('workspaceExplorer.closeFile')"
             >
-              <el-icon><Close /></el-icon>
-            </el-button>
+              <Close class="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
     <!-- 右键菜单 -->
     <ContextMenu
@@ -130,74 +134,93 @@
       @close="contextMenuVisible = false"
     />
     <!-- 重命名对话框 -->
-    <el-dialog
-      v-model="renameDialogVisible"
-      :title="$t('workspaceExplorer.renameDialog.title')"
-      width="400px"
-      @close="handleRenameDialogClose"
+    <Dialog
+      v-model:open="renameDialogVisible"
+      @update:open="(open) => !open && handleRenameDialogClose()"
     >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.renameDialog.name')">
-          <el-input
-            v-model="renameName"
-            :placeholder="$t('workspaceExplorer.renameDialog.placeholder')"
-            @keyup.enter="handleRenameConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleRenameDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleRenameConfirm">{{
-          $t('common.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('workspaceExplorer.renameDialog.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <Label class="text-right">{{ $t('workspaceExplorer.renameDialog.name') }}</Label>
+            <Input
+              v-model="renameName"
+              :placeholder="$t('workspaceExplorer.renameDialog.placeholder')"
+              @keyup.enter="handleRenameConfirm"
+              class="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleRenameDialogClose">{{
+            $t('common.cancel')
+          }}</Button>
+          <Button variant="default" @click="handleRenameConfirm">{{ $t('common.confirm') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <!-- 新建文件对话框 -->
-    <el-dialog
-      v-model="newFileDialogVisible"
-      :title="$t('workspaceExplorer.newFileDialog.title')"
-      width="400px"
-      @close="handleNewFileDialogClose"
+    <Dialog
+      v-model:open="newFileDialogVisible"
+      @update:open="(open) => !open && handleNewFileDialogClose()"
     >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.newFileDialog.name')">
-          <el-input
-            v-model="newFileName"
-            :placeholder="$t('workspaceExplorer.newFileDialog.placeholder')"
-            @keyup.enter="handleNewFileConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleNewFileConfirm">{{
-          $t('common.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('workspaceExplorer.newFileDialog.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <Label class="text-right">{{ $t('workspaceExplorer.newFileDialog.name') }}</Label>
+            <Input
+              v-model="newFileName"
+              :placeholder="$t('workspaceExplorer.newFileDialog.placeholder')"
+              @keyup.enter="handleNewFileConfirm"
+              class="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleNewFileDialogClose">{{
+            $t('common.cancel')
+          }}</Button>
+          <Button variant="default" @click="handleNewFileConfirm">{{
+            $t('common.confirm')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <!-- 新建文件夹对话框 -->
-    <el-dialog
-      v-model="newFolderDialogVisible"
-      :title="$t('workspaceExplorer.newFolderDialog.title')"
-      width="400px"
-      @close="handleNewFolderDialogClose"
+    <Dialog
+      v-model:open="newFolderDialogVisible"
+      @update:open="(open) => !open && handleNewFolderDialogClose()"
     >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.newFolderDialog.name')">
-          <el-input
-            v-model="newFolderName"
-            :placeholder="$t('workspaceExplorer.newFolderDialog.placeholder')"
-            @keyup.enter="handleNewFolderConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleNewFolderConfirm">{{
-          $t('common.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('workspaceExplorer.newFolderDialog.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid grid-cols-4 items-center gap-4">
+            <Label class="text-right">{{ $t('workspaceExplorer.newFolderDialog.name') }}</Label>
+            <Input
+              v-model="newFolderName"
+              :placeholder="$t('workspaceExplorer.newFolderDialog.placeholder')"
+              @keyup.enter="handleNewFolderConfirm"
+              class="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="handleNewFolderDialogClose">{{
+            $t('common.cancel')
+          }}</Button>
+          <Button variant="default" @click="handleNewFolderConfirm">{{
+            $t('common.confirm')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -205,12 +228,24 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loading, Warning, Close } from '@element-plus/icons-vue'
-import { ElButton, ElIcon, ElEmpty, ElScrollbar, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Input } from '@renderer/components/ui/input'
+import { Label } from '@renderer/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
-import { themeState, mixColors } from '../utils/themes'
+import { themeState, mixColors, generateLogoColors } from '../utils/themes'
 import WorkspaceTreeNode from './WorkspaceTreeNode.vue'
+import LogoIcon from './LogoIcon.vue'
 import ContextMenu from './ContextMenu.vue'
 import type { ContextMenuItem } from './contextMenus/types'
 import { dirname, basename, extname, join, relative } from '../utils/path-utils'
@@ -221,7 +256,6 @@ import type { DirectoryProcessorWorker } from '../utils/workers/directory-proces
 import { useWorkspaceOperations } from '../composables/useWorkspaceOperations'
 import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
-import logoPath from '../assets/logo.svg'
 import messageBridge from '../bridge/message-bridge'
 
 const { t } = useI18n()
@@ -238,6 +272,15 @@ const handleLogoClick = () => {
     isShaking.value = false
   }, 1500) // 动画持续时间
 }
+
+// Logo colors based on theme
+const isDark = computed(() => themeState.currentTheme.type === 'dark')
+const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
+
+// 使用HSL生成鲜艳的Logo颜色
+const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
+const bgColor = computed(() => logoColors.value.bgColor)
+const symbolColor = computed(() => logoColors.value.symbolColor)
 
 // 通过消息桥获取 IPC（统一入口，便于未来迁移）
 const getIpcRenderer = () => messageBridge.getIpc()
@@ -629,7 +672,7 @@ const newFolderParentPath = ref<string | null>(null)
 
 // 组件引用
 const workspaceExplorerRef = ref<HTMLElement | null>(null)
-const treeScrollbarRef = ref<any>(null) // el-scrollbar 组件引用
+const treeScrollbarRef = ref<InstanceType<typeof ScrollArea> | null>(null)
 
 // 处理容器点击，确保获得焦点，并清空 focus 和 selection
 const handleContainerClick = (event: MouseEvent) => {
@@ -904,12 +947,11 @@ const refreshWorkspaceFolder = async (folderPath: string) => {
 const saveScrollPosition = () => {
   if (!treeScrollbarRef.value) return null
   try {
-    const scrollbar = treeScrollbarRef.value
-    const wrap = scrollbar.wrapRef
-    if (wrap) {
+    const viewport = treeScrollbarRef.value.$el?.querySelector('[data-radix-scroll-area-viewport]')
+    if (viewport) {
       return {
-        scrollTop: wrap.scrollTop,
-        scrollLeft: wrap.scrollLeft
+        scrollTop: viewport.scrollTop,
+        scrollLeft: viewport.scrollLeft
       }
     }
   } catch (err) {
@@ -924,10 +966,12 @@ const restoreScrollPosition = (position: { scrollTop: number; scrollLeft: number
   try {
     // 使用 nextTick 确保 DOM 已更新
     setTimeout(() => {
-      const scrollbar = treeScrollbarRef.value
-      if (scrollbar && scrollbar.wrapRef) {
-        scrollbar.wrapRef.scrollTop = position.scrollTop
-        scrollbar.wrapRef.scrollLeft = position.scrollLeft
+      const viewport = treeScrollbarRef.value?.$el?.querySelector(
+        '[data-radix-scroll-area-viewport]'
+      )
+      if (viewport) {
+        viewport.scrollTop = position.scrollTop
+        viewport.scrollLeft = position.scrollLeft
       }
     }, 0)
   } catch (err) {
@@ -1352,7 +1396,8 @@ const handleContentContextMenu = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   const clickedNode = target.closest('.workspace-tree-node-item')
   const clickedOnScrollbar =
-    target.closest('.el-scrollbar__bar') || target.closest('.el-scrollbar__thumb')
+    target.closest('[data-radix-scroll-area-scrollbar]') ||
+    target.closest('[data-radix-scroll-area-thumb]')
 
   // 如果点击在节点上或滚动条上，不处理空白位置右键菜单
   if (clickedNode || clickedOnScrollbar) {
@@ -2540,6 +2585,21 @@ const handleSelectAll = async () => {
   align-items: center;
   justify-content: center;
   padding: 20px;
+}
+
+.custom-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.custom-empty-description {
+  margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 
 .workspace-explorer-main {

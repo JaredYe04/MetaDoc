@@ -8,6 +8,8 @@
 
 ## LaTeX编译输出
 
+<LaTeXConsole mode="demo" />
+
 ### 标准输出
 
 编译过程中的标准输出会显示在控制台中：
@@ -24,6 +26,8 @@
 
 ### 输出格式
 
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "标准输出信息", "type": "out"}, {"content": "警告信息", "type": "warn"}, {"content": "错误信息", "type": "error"}]' />
+
 控制台输出使用不同颜色区分不同类型的信息：
 
 - **标准输出**：灰色文本，显示正常的编译信息
@@ -32,6 +36,8 @@
 - **调试信息**：深灰色文本，显示调试信息
 
 ## 错误信息显示
+
+<LaTeXConsole mode="demo" />
 
 ### 错误格式
 
@@ -80,6 +86,8 @@ LaTeX编译可能遇到以下错误：
 
 ## 警告信息显示
 
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "警告: 未定义的引用", "type": "warn"}]' />
+
 ### 警告格式
 
 编译警告会以特定格式显示：
@@ -97,6 +105,8 @@ LaTeX编译可能遇到以下错误：
 - **忽略警告**：如果警告不影响效果，可以暂时忽略
 
 ## 日志过滤
+
+<LaTeXConsole mode="demo" />
 
 ### 过滤功能
 
@@ -124,6 +134,8 @@ LaTeX编译可能遇到以下错误：
 清除日志会删除所有已显示的日志信息。
 
 ## 日志操作
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译日志内容...", "type": "out"}]' />
 
 ### 复制日志
 
@@ -155,6 +167,8 @@ AI分析功能可以帮助您快速理解和修复编译错误。
 
 ## 控制台设置
 
+<LaTeXConsole mode="demo" />
+
 ### 显示选项
 
 控制台输出支持以下显示选项：
@@ -172,6 +186,8 @@ AI分析功能可以帮助您快速理解和修复编译错误。
 - **自动同步**：自动同步编辑器主题设置
 
 ## 使用技巧
+
+<ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "定位到错误位置...", "type": "out"}]' />
 
 ### 快速定位错误
 
@@ -192,6 +208,8 @@ AI分析功能可以帮助您快速理解和修复编译错误。
 3. **使用AI分析**：启用AI分析功能，获取修复建议
 
 ## 常见问题
+
+<LaTeXConsole mode="demo" />
 
 ### Q: 控制台输出不显示？
 
@@ -218,3 +236,9 @@ A: AI分析仅供参考，建议结合错误信息和代码上下文进行判断
 - [[latex.compilation|LaTeX编译与预览]]
 - [[latex.editor|LaTeX编辑器使用指南]]
 - [[latex.pdf-preview|PDF预览功能]]
+
+<PdfPreviewPanel mode="demo" pdfUrl="" />
+
+<LaTeXCompilerPanel mode="demo" />
+
+<LaTeXEditorDemo mode="demo" />

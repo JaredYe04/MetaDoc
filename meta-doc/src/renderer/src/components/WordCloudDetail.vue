@@ -1,7 +1,7 @@
 <template>
   <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
     <div style="width: 100%; height: fit-content; align-items: end">
-      <el-button
+      <Button
         circle
         plain
         size="small"
@@ -11,7 +11,7 @@
         style="float: inline-start"
         @mousedown.stop
       >
-      </el-button>
+      </Button>
       <p style="font-weight: bold" @mousedown.stop>
         {{ props.word ? props.word : t('wordCloudDetail.defaultWord') }}
       </p>
@@ -19,19 +19,19 @@
         {{ t('wordCloudDetail.frequency') }}: {{ props.frequency }}
       </p>
     </div>
-    <el-scrollbar
-      class="md-container"
+    <ScrollArea
+      class="md-container max-h-[20vh] p-[5px] m-0"
       v-if="generated || generating"
       @mousedown.stop
-      style="max-height: 20vh; padding: 5px; margin: 0"
     >
       <MarkdownItEditor :source="generatedText" />
-    </el-scrollbar>
+    </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Button } from '@renderer/components/ui/button'
 // @ts-ignore - vue3-markdown-it没有类型定义
 import MarkdownItEditor from 'vue3-markdown-it'
 import { computed, onMounted, ref, watch } from 'vue'

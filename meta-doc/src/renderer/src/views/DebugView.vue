@@ -6,17 +6,19 @@
       color: themeState.currentTheme.textColor
     }"
   >
-    <el-scrollbar class="debug-scrollbar" height="100%">
+    <ScrollArea class="debug-scrollbar h-full">
       <div class="debug-content-wrapper">
         <SettingDebugSection />
       </div>
-    </el-scrollbar>
+      <ScrollBar />
+    </ScrollArea>
   </div>
 </template>
 
 <script setup lang="ts">
 import { themeState } from '../utils/themes'
 import SettingDebugSection from './setting/SettingDebugSection.vue'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 </script>
 
 <style scoped>
@@ -33,16 +35,6 @@ import SettingDebugSection from './setting/SettingDebugSection.vue'
   height: 100%;
   width: 100%;
   min-height: 0;
-}
-
-.debug-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.debug-scrollbar :deep(.el-scrollbar__bar) {
-  right: 0;
-  bottom: 0;
 }
 
 .debug-content-wrapper {

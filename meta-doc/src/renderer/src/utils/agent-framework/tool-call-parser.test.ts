@@ -96,8 +96,7 @@ describe('工具调用解析器 parseToolCalls', () => {
     })
 
     it('tool', () => {
-      const input =
-        '<tool_call>{"tool": "edit", "arguments": {"action": "replace"}}</tool_call>'
+      const input = '<tool_call>{"tool": "edit", "arguments": {"action": "replace"}}</tool_call>'
       const result = norm(parseToolCalls(input))
       expect(result).toEqual([{ tool_id: 'edit', parameters: { action: 'replace' } }])
     })
@@ -155,7 +154,9 @@ describe('工具调用解析器 parseToolCalls', () => {
     })
 
     it('JSON 解析失败', () => {
-      const result = parseToolCalls('<tool_call>{"name": "grep", "arguments": {invalid json}}</tool_call>')
+      const result = parseToolCalls(
+        '<tool_call>{"name": "grep", "arguments": {invalid json}}</tool_call>'
+      )
       expect(result).not.toBeNull()
       expect(result![0].tool_id).toBe('dummy-tool')
     })

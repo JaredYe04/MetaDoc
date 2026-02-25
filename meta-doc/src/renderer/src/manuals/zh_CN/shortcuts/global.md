@@ -39,6 +39,8 @@
 - **使用说明**：先按 `Ctrl+K`（或 `Cmd+K`），然后按 `S`
 - **使用场景**：一次性保存所有文档
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["save-all"]}]' />
+
 ### 关闭文件
 
 - **快捷键**：`Ctrl+W`（Windows/Linux）或 `Cmd+W`（macOS）
@@ -68,6 +70,8 @@ graph LR
 
 <MainTabs mode="demo" />
 
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
 ### 新建标签页
 
 - **快捷键**：`Ctrl+T`（Windows/Linux）或 `Cmd+T`（macOS）
@@ -83,6 +87,8 @@ graph LR
 - **使用说明**：按住 `Ctrl+Tab` 会显示标签页切换浮层，可以继续按Tab键选择或直接点击
 - **使用场景**：快速在多个文档间切换
 
+<TabSwitcherOverlay mode="demo" />
+
 #### 上一个标签页
 
 - **快捷键**：`Ctrl+Shift+Tab`（Windows/Linux）或 `Cmd+Shift+Tab`（macOS）
@@ -96,6 +102,8 @@ graph LR
 - **使用说明**：可以连续使用，依次恢复最近关闭的标签页（最多恢复20个）
 - **使用场景**：误关闭标签页后快速恢复
 
+<MainTabs mode="demo" />
+
 ## 其他快捷键
 
 ### 打开用户手册
@@ -104,39 +112,41 @@ graph LR
 - **功能**：打开用户手册页面
 - **使用场景**：需要查看帮助文档时
 
+<MenuItemsDemo mode="demo" :items='[{"id": "help"}]' />
+
 ## 快捷键列表
 
 ### Windows/Linux快捷键
 
-| 功能 | 快捷键 |
-|------|--------|
-| 新建文档 | `Ctrl+N` |
-| 打开文档 | `Ctrl+O` |
-| 保存文档 | `Ctrl+S` |
-| 另存为 | `Ctrl+Shift+S` |
-| 保存全部 | `Ctrl+K S` |
-| 关闭标签页 | `Ctrl+W` |
-| 新建标签页 | `Ctrl+T` |
-| 下一个标签页 | `Ctrl+Tab` |
-| 上一个标签页 | `Ctrl+Shift+Tab` |
-| 重新打开已关闭 | `Ctrl+Shift+T` |
-| 打开用户手册 | `F1` |
+| 功能           | 快捷键           |
+| -------------- | ---------------- |
+| 新建文档       | `Ctrl+N`         |
+| 打开文档       | `Ctrl+O`         |
+| 保存文档       | `Ctrl+S`         |
+| 另存为         | `Ctrl+Shift+S`   |
+| 保存全部       | `Ctrl+K S`       |
+| 关闭标签页     | `Ctrl+W`         |
+| 新建标签页     | `Ctrl+T`         |
+| 下一个标签页   | `Ctrl+Tab`       |
+| 上一个标签页   | `Ctrl+Shift+Tab` |
+| 重新打开已关闭 | `Ctrl+Shift+T`   |
+| 打开用户手册   | `F1`             |
 
 ### macOS快捷键
 
-| 功能 | 快捷键 |
-|------|--------|
-| 新建文档 | `Cmd+N` |
-| 打开文档 | `Cmd+O` |
-| 保存文档 | `Cmd+S` |
-| 另存为 | `Cmd+Shift+S` |
-| 保存全部 | `Cmd+K S` |
-| 关闭标签页 | `Cmd+W` |
-| 新建标签页 | `Cmd+T` |
-| 下一个标签页 | `Cmd+Tab` |
-| 上一个标签页 | `Cmd+Shift+Tab` |
-| 重新打开已关闭 | `Cmd+Shift+T` |
-| 打开用户手册 | `F1` |
+| 功能           | 快捷键          |
+| -------------- | --------------- |
+| 新建文档       | `Cmd+N`         |
+| 打开文档       | `Cmd+O`         |
+| 保存文档       | `Cmd+S`         |
+| 另存为         | `Cmd+Shift+S`   |
+| 保存全部       | `Cmd+K S`       |
+| 关闭标签页     | `Cmd+W`         |
+| 新建标签页     | `Cmd+T`         |
+| 下一个标签页   | `Cmd+Tab`       |
+| 上一个标签页   | `Cmd+Shift+Tab` |
+| 重新打开已关闭 | `Cmd+Shift+T`   |
+| 打开用户手册   | `F1`            |
 
 ## 快捷键使用技巧
 
@@ -182,3 +192,11 @@ graph LR
 - [[shortcuts.editor|编辑器快捷键]]
 - [[core.file-operations|文件操作]]
 - [[core.multi-tab|多标签页管理]]
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MainTabs mode="demo" />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
+
+<QuickStartPanel mode="demo" />

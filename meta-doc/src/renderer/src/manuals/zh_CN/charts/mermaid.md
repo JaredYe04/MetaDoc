@@ -4,7 +4,11 @@
 
 Mermaid是一个流行的图表绘制工具，适合快速绘制流程图、序列图、类图、甘特图等。MetaDoc支持Mermaid图表，可以在Markdown文档中直接使用Mermaid语法创建各种图表。
 
+<GraphWindow mode="demo" initialTool="mermaid" />
+
 ## Mermaid语法
+
+<OutlineTreeDisplay mode="demo" />
 
 ### 基本语法
 
@@ -19,6 +23,8 @@ graph TD
 ````
 
 ### 图表类型
+
+<ChartGenerationDisplay mode="demo" />
 
 Mermaid支持多种图表类型：
 
@@ -55,6 +61,8 @@ graph TB
 ```
 
 ## 流程图
+
+<OutlineTreeDisplay mode="demo" />
 
 ### 基本流程图
 
@@ -93,6 +101,8 @@ graph TD
 - **倒梯形**：`[\文本/]`
 
 ## 序列图
+
+<DataAnalysisDisplay mode="demo" />
 
 ### 基本序列图
 
@@ -137,6 +147,8 @@ sequenceDiagram
 
 ## 类图
 
+<ChartGenerationDisplay mode="demo" />
+
 ### 基本类图
 
 创建类图：
@@ -176,6 +188,8 @@ classDiagram
 
 ## 甘特图
 
+<OutlineTreeDisplay mode="demo" />
+
 ### 基本甘特图
 
 创建甘特图：
@@ -208,6 +222,8 @@ gantt
 
 ## 饼图
 
+<DataAnalysisDisplay mode="demo" />
+
 ### 基本饼图
 
 创建饼图：
@@ -223,6 +239,8 @@ pie title 数据分布
 
 ## 状态图
 
+<ChartGenerationDisplay mode="demo" />
+
 ### 基本状态图
 
 创建状态图：
@@ -237,6 +255,8 @@ stateDiagram-v2
 ````
 
 ## 思维导图
+
+<OutlineTreeDisplay mode="demo" />
 
 ### 基本思维导图
 
@@ -255,6 +275,8 @@ mindmap
 ````
 
 ## 注意事项
+
+<DataAnalysisDisplay mode="demo" />
 
 ### 语法注意事项
 

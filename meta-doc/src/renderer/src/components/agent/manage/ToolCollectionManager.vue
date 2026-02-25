@@ -2,9 +2,10 @@
   <div class="tool-collection-manager" :style="containerStyle">
     <div class="manager-header">
       <h2>{{ t('agent.manage.toolCollection.title') }}</h2>
-      <el-button type="primary" :icon="Plus" @click="handleCreate">
+      <Button type="primary" @click="handleCreate">
+        <Plus class="h-4 w-4 mr-1" />
         {{ t('agent.manage.toolCollection.create') }}
-      </el-button>
+      </Button>
     </div>
 
     <CardGrid
@@ -28,47 +29,45 @@
     />
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="
-        editingCollection
-          ? t('agent.manage.toolCollection.edit')
-          : t('agent.manage.toolCollection.create')
-      "
-      width="600px"
-      :style="dialogStyle"
-    >
-      <el-form :model="formData" label-width="120px">
-        <el-form-item :label="t('agent.manage.toolCollection.name')" required>
-          <el-input v-model="formData.name" />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.toolCollection.description')">
-          <el-input v-model="formData.description" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.toolCollection.tools')">
-          <el-select
-            v-model="formData.toolIds"
-            multiple
-            filterable
-            style="width: 100%"
-            :placeholder="t('agent.manage.toolCollection.selectTools')"
-          >
-            <el-option
-              v-for="tool in availableTools"
-              :key="tool.id"
-              :label="tool.name"
-              :value="tool.id"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave" :disabled="editingCollection?.isBuiltIn">{{
-          t('common.save')
-        }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent class="max-w-[600px]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>
+            {{
+              editingCollection
+                ? t('agent.manage.toolCollection.edit')
+                : t('agent.manage.toolCollection.create')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <Form class="space-y-4">
+          <FormField :label="t('agent.manage.toolCollection.name')" name="name" required>
+            <Input v-model="formData.name" class="w-full" />
+          </FormField>
+          <FormField :label="t('agent.manage.toolCollection.description')" name="description">
+            <Textarea v-model="formData.description" :rows="3" class="w-full" />
+          </FormField>
+          <FormField :label="t('agent.manage.toolCollection.tools')" name="tools">
+            <Select v-model="formData.toolIds" multiple>
+              <SelectTrigger style="width: 100%">
+                <SelectValue :placeholder="t('agent.manage.toolCollection.selectTools')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="tool in availableTools" :key="tool.id" :value="tool.id">
+                  {{ tool.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+        </Form>
+        <DialogFooter>
+          <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
+          <Button type="primary" @click="handleSave" :disabled="editingCollection?.isBuiltIn">{{
+            t('common.save')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -82,6 +81,24 @@ import { toolCollectionManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'
 import type { ToolCollection } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
 import CardGrid from '../../common/CardGrid.vue'
 import type { CardGridAction } from '../../common/CardGrid.vue'
 

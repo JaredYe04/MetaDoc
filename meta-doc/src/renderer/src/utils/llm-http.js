@@ -70,7 +70,7 @@ export async function sendStreamRequest(
   let lastChunkWithUsage = null
 
   try {
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read()
       if (done) break
 

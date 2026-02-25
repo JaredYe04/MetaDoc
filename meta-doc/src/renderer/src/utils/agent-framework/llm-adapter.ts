@@ -207,7 +207,10 @@ export class LlmAdapter {
           // 手动API类型：使用Express服务器的模拟接口
           // manual 类型不使用 max_tokens 配置
           config = {
-            apiUrl: (await import('../../config/runtime-server').then((m) => m.getRuntimeServerBaseUrl())) + '/api/llm',
+            apiUrl:
+              (await import('../../config/runtime-server').then((m) =>
+                m.getRuntimeServerBaseUrl()
+              )) + '/api/llm',
             apiKey: undefined,
             model: 'manual-model',
             type: 'manual',
@@ -590,7 +593,7 @@ export class LlmAdapter {
     let fullText = ''
     let buffer = ''
 
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read()
       if (done) break
 
@@ -954,7 +957,7 @@ export class LlmAdapter {
                   .trim()
 
                 // 检查JSON是否看起来完整（有开始和结束括号，且括号匹配）
-                const hasJsonStart = /[\[{]/.test(toolCallBlock)
+                const hasJsonStart = /[{[]/.test(toolCallBlock)
                 const openBraces = (toolCallBlock.match(/{/g) || []).length
                 const closeBraces = (toolCallBlock.match(/}/g) || []).length
                 const openBrackets = (toolCallBlock.match(/\[/g) || []).length

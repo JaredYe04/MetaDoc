@@ -1,35 +1,29 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="$t('llmStatistics.title')"
-    width="900px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="true"
-    :style="{
-      '--el-dialog-bg-color': themeState.currentTheme.background,
-      '--el-text-color-primary': themeState.currentTheme.textColor,
-      '--el-border-color': themeState.currentTheme.textColor + '33'
-    }"
-    class="llm-statistics-dialog"
-  >
-    <LlmStatisticsContent ref="contentRef" />
+  <Dialog v-model:open="visible">
+    <DialogContent class="max-w-[900px]" :close-on-click-modal="false">
+      <DialogHeader>
+        <DialogTitle>{{ $t('llmStatistics.title') }}</DialogTitle>
+      </DialogHeader>
 
-    <template #footer>
-      <el-button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
-        {{ $t('llmStatistics.export') }}
-      </el-button>
-      <el-button
-        @click="handleClear"
-        type="danger"
-        :style="{ color: themeState.currentTheme.textColor }"
-      >
-        {{ $t('llmStatistics.clear') }}
-      </el-button>
-      <el-button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
-        {{ $t('llmStatistics.close') }}
-      </el-button>
-    </template>
-  </el-dialog>
+      <LlmStatisticsContent ref="contentRef" />
+
+      <DialogFooter>
+        <Button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
+          {{ $t('llmStatistics.export') }}
+        </Button>
+        <Button
+          @click="handleClear"
+          variant="destructive"
+          :style="{ color: themeState.currentTheme.textColor }"
+        >
+          {{ $t('llmStatistics.clear') }}
+        </Button>
+        <Button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
+          {{ $t('llmStatistics.close') }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -37,6 +31,14 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
 import LlmStatisticsContent from './LlmStatisticsContent.vue'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 
 const { t } = useI18n()
 
@@ -116,15 +118,5 @@ function handleClose() {
 :deep(.el-dialog__headerbtn:hover) {
   color: v-bind('themeState.currentTheme.textColor');
   opacity: 0.7;
-}
-
-:deep(.el-button) {
-  background-color: transparent;
-  border-color: v-bind('themeState.currentTheme.textColor + "66"');
-}
-
-:deep(.el-button:hover) {
-  background-color: v-bind('themeState.currentTheme.textColor + "11"');
-  border-color: v-bind('themeState.currentTheme.textColor + "99"');
 }
 </style>

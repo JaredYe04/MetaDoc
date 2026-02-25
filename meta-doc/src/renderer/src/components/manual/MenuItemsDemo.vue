@@ -38,38 +38,23 @@
             {{ $t('leftMenu.fileTooltip') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('new')"
-            :icon="DocumentAdd"
-          >
+          <UISubMenuItem v-if="item.items.includes('new')" :icon="DocumentAdd">
             {{ $t('leftMenu.new') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('open')"
-            :icon="FolderOpened"
-          >
+          <UISubMenuItem v-if="item.items.includes('open')" :icon="FolderOpened">
             {{ $t('leftMenu.open') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('save')"
-            :icon="FolderChecked"
-          >
+          <UISubMenuItem v-if="item.items.includes('save')" :icon="FolderChecked">
             {{ $t('leftMenu.save') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('save-as')"
-            :icon="FolderAdd"
-          >
+          <UISubMenuItem v-if="item.items.includes('save-as')" :icon="FolderAdd">
             {{ $t('leftMenu.saveAs') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('save-all')"
-            :icon="FolderChecked"
-          >
+          <UISubMenuItem v-if="item.items.includes('save-all')" :icon="FolderChecked">
             {{ $t('leftMenu.saveAll') }}
           </UISubMenuItem>
 
@@ -93,10 +78,7 @@
             </UISubMenuItem>
           </UISubMenu>
 
-          <UISubMenuItem
-            v-if="item.items.includes('close')"
-            :icon="CircleClose"
-          >
+          <UISubMenuItem v-if="item.items.includes('close')" :icon="CircleClose">
             {{ $t('leftMenu.closeFile') }}
           </UISubMenuItem>
         </UISubMenu>
@@ -122,24 +104,15 @@
             {{ $t('leftMenu.aiToolTooltip') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('ai-chat')"
-            :icon="ChatDotRound"
-          >
+          <UISubMenuItem v-if="item.items.includes('ai-chat')" :icon="ChatDotRound">
             {{ $t('leftMenu.chatWithAI') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('proofread')"
-            :icon="EditPen"
-          >
+          <UISubMenuItem v-if="item.items.includes('proofread')" :icon="EditPen">
             {{ $t('leftMenu.proofread') }}
           </UISubMenuItem>
 
-          <UISubMenuItem
-            v-if="item.items.includes('formula-recognition')"
-            :icon="Reading"
-          >
+          <UISubMenuItem v-if="item.items.includes('formula-recognition')" :icon="Reading">
             {{ $t('leftMenu.handwritingFormulaRecognition') }}
           </UISubMenuItem>
         </UISubMenu>
@@ -199,11 +172,7 @@ const { t } = useI18n()
 const menuItems = computed(() => props.items)
 
 const activeBackgroundColor = computed(() => {
-  return mixColors(
-    themeState.currentTheme.background2nd,
-    themeState.currentTheme.primary,
-    0.1
-  )
+  return mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primary, 0.1)
 })
 </script>
 

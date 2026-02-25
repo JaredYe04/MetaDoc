@@ -6,7 +6,17 @@ MetaDoc支持将文档导出为多种格式，包括PDF、HTML、DOCX、LaTeX、
 
 导出功能会自动包含文档元信息（标题、作者、描述、关键词），并在导出过程中处理图片、表格、数学公式等元素。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
+<MetaInfoPanel mode="demo" :meta='{"title": "导出示例", "author": "作者", "description": "文档描述", "keywords": ["导出", "PDF"]}' :outlineJson='""' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
+<MetaInfoPanel mode="demo" :meta='{"title": "导出格式", "author": "MetaDoc", "description": "支持的导出格式介绍", "keywords": ["导出", "格式"]}' :outlineJson='""' />
+
 ## 导出格式支持
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
 
 ### Markdown文档导出
 
@@ -18,6 +28,8 @@ Markdown文档（`.md`）可以导出为以下格式：
 - **LaTeX**：适合学术论文
 - **JSON**：适合程序处理
 
+<MetaInfoPanel mode="demo" :meta='{"title": "LaTeX导出", "author": "系统", "description": "LaTeX文档导出选项", "keywords": ["LaTeX", "导出"]}' :outlineJson='""' /
+
 ### LaTeX文档导出
 
 LaTeX文档（`.tex`）可以导出为以下格式：
@@ -26,6 +38,8 @@ LaTeX文档（`.tex`）可以导出为以下格式：
 - **Markdown**：转换为Markdown格式
 - **HTML**：转换为HTML格式
 - **DOCX**：转换为Word格式
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' /
 
 ### JSON文档导出
 
@@ -46,10 +60,12 @@ JSON文档（`.json`）可以导出为：
 <MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
 
 2. **选择导出格式**：
+
    - 在导出菜单中选择目标格式
    - 系统会根据当前文档格式显示可用的导出选项
 
 3. **选择保存位置**：
+
    - 在文件保存对话框中选择保存位置
    - 输入文件名（系统会自动添加正确的扩展名）
 
@@ -87,6 +103,8 @@ graph TB
 
 ## Markdown导出详解
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
+
 ### 导出为PDF
 
 PDF导出会将Markdown转换为PDF格式：
@@ -97,11 +115,14 @@ PDF导出会将Markdown转换为PDF格式：
 - **图片处理**：图片会自动调整大小以适应页面
 
 **使用场景**：
+
 - 打印文档
 - 分享文档给他人
 - 归档保存
 
 ### 导出为HTML
+
+<MetaInfoPanel mode="demo" :meta='{"title": "HTML导出", "author": "系统", "description": "HTML导出设置和选项", "keywords": ["HTML", "导出"]}' :outlineJson='""' />
 
 HTML导出会将Markdown转换为网页格式：
 
@@ -111,11 +132,14 @@ HTML导出会将Markdown转换为网页格式：
 - **图片处理**：可以选择保留原始URL、转换为base64或保存到文件夹
 
 **使用场景**：
+
 - 发布到网站
 - 在浏览器中查看
 - 分享给他人
 
 ### 导出为DOCX
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
 
 DOCX导出会将Markdown转换为Word格式：
 
@@ -125,11 +149,14 @@ DOCX导出会将Markdown转换为Word格式：
 - **图片处理**：图片会嵌入到Word文档中
 
 **使用场景**：
+
 - 在Word中进一步编辑
 - 与他人协作编辑
 - 提交文档
 
 ### 导出为LaTeX
+
+<MetaInfoPanel mode="demo" :meta='{"title": "LaTeX导出", "author": "学术", "description": "Markdown转LaTeX导出", "keywords": ["LaTeX", "学术"]}' :outlineJson='""' />
 
 LaTeX导出会将Markdown转换为LaTeX格式：
 
@@ -139,11 +166,14 @@ LaTeX导出会将Markdown转换为LaTeX格式：
 - **数学公式**：保持LaTeX数学公式格式
 
 **使用场景**：
+
 - 学术论文写作
 - 需要LaTeX格式的场景
 - 进一步编辑LaTeX文档
 
 ### 导出为JSON
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["export"]}]' />
 
 JSON导出会将文档保存为JSON格式：
 
@@ -152,6 +182,8 @@ JSON导出会将文档保存为JSON格式：
 - **用途**：程序处理、数据备份
 
 ## LaTeX导出详解
+
+<MetaInfoPanel mode="demo" :meta='{"title": "LaTeX导出详解", "author": "系统", "description": "LaTeX文档导出详细说明", "keywords": ["LaTeX", "PDF", "导出"]}' :outlineJson='""' />
 
 ### 导出为PDF
 
@@ -162,6 +194,7 @@ LaTeX文档导出为PDF需要通过LaTeX编译：
 3. **包含元信息**：PDF文档属性中包含元信息
 
 **注意事项**：
+
 - 需要安装LaTeX发行版（如TeX Live）
 - 编译可能需要一些时间
 - 如果编译失败，会显示错误信息

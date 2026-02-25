@@ -1,5 +1,9 @@
 <template>
-  <div class="console-container" :style="consoleStyle">
+  <div
+    class="console-container"
+    :class="{ 'demo-mode': props.mode === 'demo' }"
+    :style="consoleStyle"
+  >
     <div
       class="console-header"
       :style="{
@@ -8,55 +12,61 @@
     >
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
-        <el-switch
+        <Switch
           v-if="showAiAnalysis"
-          v-model="enableAiAnalysis"
-          :active-text="$t('console.enableAiAnalysis')"
-          size="small"
+          :checked="enableAiAnalysis"
+          @update:checked="handleAiAnalysisToggle"
           style="margin-right: 8px"
-          @change="handleAiAnalysisToggle"
         />
-        <el-select
-          v-model="terminalEncoding"
-          size="small"
-          style="width: 150px; margin-right: 8px"
-          @change="handleEncodingChange"
-        >
-          <el-option-group :label="$t('console.encoding.unicode')">
-            <el-option :label="$t('console.encoding.utf8')" value="utf8" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.chinese')">
-            <el-option :label="$t('console.encoding.gbk')" value="gbk" />
-            <el-option :label="$t('console.encoding.gb2312')" value="gb2312" />
-            <el-option :label="$t('console.encoding.big5')" value="big5" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.japanese')">
-            <el-option :label="$t('console.encoding.shiftJis')" value="shift_jis" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.korean')">
-            <el-option :label="$t('console.encoding.eucKr')" value="euc-kr" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.western')">
-            <el-option :label="$t('console.encoding.iso88591')" value="iso-8859-1" />
-            <el-option :label="$t('console.encoding.windows1252')" value="windows-1252" />
-            <el-option :label="$t('console.encoding.iso885915')" value="iso-8859-15" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.centralEastern')">
-            <el-option :label="$t('console.encoding.iso88592')" value="iso-8859-2" />
-            <el-option :label="$t('console.encoding.windows1250')" value="windows-1250" />
-            <el-option :label="$t('console.encoding.koi8r')" value="koi8-r" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.russian')">
-            <el-option :label="$t('console.encoding.windows1251')" value="windows-1251" />
-            <el-option :label="$t('console.encoding.iso88595')" value="iso-8859-5" />
-          </el-option-group>
-          <el-option-group :label="$t('console.encoding.greek')">
-            <el-option :label="$t('console.encoding.iso88597')" value="iso-8859-7" />
-          </el-option-group>
-        </el-select>
-        <el-button size="small" @click="clearConsole">{{ $t('console.clear') }}</el-button>
-        <el-button size="small" @click="copyConsole">{{ $t('console.copy') }}</el-button>
-        <el-button size="small" @click="saveConsole">{{ $t('console.saveLog') }}</el-button>
+        <Select v-model="terminalEncoding" @update:model-value="handleEncodingChange">
+          <SelectTrigger class="w-[150px] h-8 text-xs mr-2">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.unicode') }}</SelectLabel>
+              <SelectItem value="utf8">{{ $t('console.encoding.utf8') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.chinese') }}</SelectLabel>
+              <SelectItem value="gbk">{{ $t('console.encoding.gbk') }}</SelectItem>
+              <SelectItem value="gb2312">{{ $t('console.encoding.gb2312') }}</SelectItem>
+              <SelectItem value="big5">{{ $t('console.encoding.big5') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.japanese') }}</SelectLabel>
+              <SelectItem value="shift_jis">{{ $t('console.encoding.shiftJis') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.korean') }}</SelectLabel>
+              <SelectItem value="euc-kr">{{ $t('console.encoding.eucKr') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.western') }}</SelectLabel>
+              <SelectItem value="iso-8859-1">{{ $t('console.encoding.iso88591') }}</SelectItem>
+              <SelectItem value="windows-1252">{{ $t('console.encoding.windows1252') }}</SelectItem>
+              <SelectItem value="iso-8859-15">{{ $t('console.encoding.iso885915') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.centralEastern') }}</SelectLabel>
+              <SelectItem value="iso-8859-2">{{ $t('console.encoding.iso88592') }}</SelectItem>
+              <SelectItem value="windows-1250">{{ $t('console.encoding.windows1250') }}</SelectItem>
+              <SelectItem value="koi8-r">{{ $t('console.encoding.koi8r') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.russian') }}</SelectLabel>
+              <SelectItem value="windows-1251">{{ $t('console.encoding.windows1251') }}</SelectItem>
+              <SelectItem value="iso-8859-5">{{ $t('console.encoding.iso88595') }}</SelectItem>
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>{{ $t('console.encoding.greek') }}</SelectLabel>
+              <SelectItem value="iso-8859-7">{{ $t('console.encoding.iso88597') }}</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <Button size="sm" @click="clearConsole">{{ $t('console.clear') }}</Button>
+        <Button size="sm" @click="copyConsole">{{ $t('console.copy') }}</Button>
+        <Button size="sm" @click="saveConsole">{{ $t('console.saveLog') }}</Button>
       </div>
     </div>
     <div class="console-editor" ref="editorContainer"></div>
@@ -66,6 +76,17 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectGroup,
+  SelectLabel
+} from '@renderer/components/ui/select'
+import { Switch } from '@renderer/components/ui/switch'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import messageBridge from '../bridge/message-bridge'
@@ -123,7 +144,7 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal',
-    validator: (value: string) => ['normal', 'demo'].includes(value)
+    validator: (value) => ['normal', 'demo'].includes(value)
   }
 })
 
@@ -1489,6 +1510,12 @@ onBeforeUnmount(() => {
   color: var(--console-text);
   font-size: 13px;
   overflow: hidden;
+}
+
+/* Demo 模式：在手册中展示时需要最小高度以显示工具栏和内容 */
+.console-container.demo-mode {
+  min-height: 300px;
+  height: 300px;
 }
 
 .console-header {

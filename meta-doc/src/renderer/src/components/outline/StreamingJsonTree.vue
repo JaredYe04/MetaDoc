@@ -4,7 +4,11 @@
       <ul class="streaming-json-tree__list">
         <li v-for="(node, i) in parsed.nodes" :key="i" class="streaming-json-tree__item">
           <span class="streaming-json-tree__title">{{ node.title || '(无标题)' }}</span>
-          <StreamingJsonTree v-if="node.children?.length" :raw="jsonStringify(node.children)" class="streaming-json-tree__children" />
+          <StreamingJsonTree
+            v-if="node.children?.length"
+            :raw="jsonStringify(node.children)"
+            class="streaming-json-tree__children"
+          />
         </li>
       </ul>
     </template>
@@ -30,20 +34,35 @@ function tryParseStreamingOutlineJson(raw: string): { title: string; children?: 
     const c = trimmed[i]
     if (c === '[' || c === '{') stack.push(c === '[' ? '[' : '{')
     else if (c === ']' || c === '}') {
-      if (stack.length && ((c === ']' && stack[stack.length - 1] === '[') || (c === '}' && stack[stack.length - 1] === '{')))
+      if (
+        stack.length &&
+        ((c === ']' && stack[stack.length - 1] === '[') ||
+          (c === '}' && stack[stack.length - 1] === '{'))
+      )
         stack.pop()
     }
   }
-  const closers = stack.map((b) => (b === '[' ? ']' : '}')).reverse().join('')
+  const closers = stack
+    .map((b) => (b === '[' ? ']' : '}'))
+    .reverse()
+    .join('')
   const closed = trimmed + closers
 
   try {
     const parsed = JSON.parse(closed) as any
-    const arr = Array.isArray(parsed) ? parsed : parsed?.children ?? (parsed && typeof parsed === 'object' ? [parsed] : [])
+    const arr = Array.isArray(parsed)
+      ? parsed
+      : (parsed?.children ?? (parsed && typeof parsed === 'object' ? [parsed] : []))
     if (!Array.isArray(arr)) return null
     return arr.map((item: any) => ({
-      title: typeof item?.title === 'string' ? item.title : (typeof item?.name === 'string' ? item.name : ''),
-      children: Array.isArray(item?.children) && item.children.length > 0 ? item.children : undefined
+      title:
+        typeof item?.title === 'string'
+          ? item.title
+          : typeof item?.name === 'string'
+            ? item.name
+            : '',
+      children:
+        Array.isArray(item?.children) && item.children.length > 0 ? item.children : undefined
     }))
   } catch {
     return null

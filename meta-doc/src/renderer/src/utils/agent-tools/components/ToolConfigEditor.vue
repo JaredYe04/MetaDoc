@@ -1,81 +1,123 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="isEdit ? '编辑Tool配置' : '新建Tool配置'"
-    width="800px"
-    :before-close="handleClose"
-  >
-    <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px">
-      <el-form-item label="Tool ID" prop="id">
-        <el-input
-          v-model="formData.id"
-          :disabled="isEdit"
-          placeholder="唯一标识符，如: my-custom-tool"
-        />
-      </el-form-item>
+  <Dialog :open="visible" @update:open="(val) => !val && handleClose()">
+    <DialogContent class="sm:max-w-[800px]">
+      <DialogHeader>
+        <DialogTitle>{{ isEdit ? '编辑Tool配置' : '新建Tool配置' }}</DialogTitle>
+      </DialogHeader>
+      <Form ref="formRef">
+        <FormField label="Tool ID" name="id" :rules="rules.id">
+          <Input
+            v-model="formData.id"
+            :disabled="isEdit"
+            placeholder="唯一标识符，如: my-custom-tool"
+            class="w-full"
+          />
+        </FormField>
 
-      <el-form-item label="Tool名称" prop="name">
-        <el-input v-model="formData.name" placeholder="Tool显示名称" />
-      </el-form-item>
+        <FormField label="Tool名称" name="name" :rules="rules.name">
+          <Input v-model="formData.name" placeholder="Tool显示名称" class="w-full" />
+        </FormField>
 
-      <el-form-item label="描述" prop="description">
-        <el-input
-          v-model="formData.description"
-          type="textarea"
-          :rows="3"
-          placeholder="Tool功能描述"
-        />
-      </el-form-item>
+        <FormField label="描述" name="description" :rules="rules.description">
+          <Textarea
+            v-model="formData.description"
+            :rows="3"
+            placeholder="Tool功能描述"
+            class="w-full"
+          />
+        </FormField>
 
-      <el-form-item label="来源" prop="origin">
-        <el-select v-model="formData.origin" placeholder="选择Tool来源">
-          <el-option label="外部Tool" value="external" />
-          <el-option label="MCP服务" value="mcp" />
-        </el-select>
-      </el-form-item>
+        <FormField label="来源" name="origin" :rules="rules.origin">
+          <Select v-model="formData.origin">
+            <SelectTrigger>
+              <SelectValue placeholder="选择Tool来源" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="external">外部Tool</SelectItem>
+              <SelectItem value="mcp">MCP服务</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
 
-      <el-form-item v-if="formData.origin === 'mcp'" label="MCP配置" prop="mcpConfig">
-        <el-form :model="formData.mcpConfig" label-width="100px" v-if="formData.mcpConfig">
-          <el-form-item label="服务器名称" prop="serverName">
-            <el-input v-model="formData.mcpConfig.serverName" />
-          </el-form-item>
-          <el-form-item label="Tool名称" prop="toolName">
-            <el-input v-model="formData.mcpConfig.toolName" />
-          </el-form-item>
-          <el-form-item label="服务器URL" prop="serverUrl">
-            <el-input v-model="formData.mcpConfig.serverUrl" />
-          </el-form-item>
-        </el-form>
-      </el-form-item>
+        <FormField v-if="formData.origin === 'mcp'" label="MCP配置" name="mcpConfig">
+          <div class="space-y-4 p-4 border rounded-md" v-if="formData.mcpConfig">
+            <FormField label="服务器名称" name="mcpServerName">
+              <Input v-model="formData.mcpConfig.serverName" class="w-full" />
+            </FormField>
+            <FormField label="Tool名称" name="mcpToolName">
+              <Input v-model="formData.mcpConfig.toolName" class="w-full" />
+            </FormField>
+            <FormField label="服务器URL" name="mcpServerUrl">
+              <Input v-model="formData.mcpConfig.serverUrl" class="w-full" />
+            </FormField>
+          </div>
+        </FormField>
 
-      <el-form-item label="详细说明" prop="instruction">
-        <el-input
-          v-model="instructionText"
-          type="textarea"
-          :rows="10"
-          placeholder="Markdown格式的Tool使用说明，包括功能、使用场景、输入输出格式等"
-        />
-      </el-form-item>
+        <FormField label="详细说明" name="instruction" :rules="rules.instruction">
+          <Textarea
+            v-model="instructionText"
+            :rows="10"
+            placeholder="Markdown格式的Tool使用说明，包括功能、使用场景、输入输出格式等"
+            class="w-full"
+          />
+        </FormField>
 
-      <el-form-item label="标签">
-        <el-select v-model="formData.tags" multiple filterable allow-create placeholder="添加标签">
-          <el-option v-for="tag in commonTags" :key="tag" :label="tag" :value="tag" />
-        </el-select>
-      </el-form-item>
-    </el-form>
+        <FormField label="标签" name="tags">
+          <div class="tags-input-container">
+            <Badge
+              v-for="(tag, index) in formData.tags"
+              :key="tag + index"
+              variant="secondary"
+              class="tag-badge"
+            >
+              {{ tag }}
+              <button type="button" class="tag-remove" @click="removeTag(index)">
+                <X class="h-3 w-3" />
+              </button>
+            </Badge>
+            <Input
+              v-model="tagInputValue"
+              placeholder="添加标签"
+              class="tag-input-field"
+              @keydown.enter.prevent="addTag"
+              @keydown.backspace="handleTagBackspace"
+            />
+          </div>
+        </FormField>
+      </Form>
 
-    <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" @click="handleSave">保存</el-button>
-      <el-button v-if="isEdit" type="success" @click="handleExport">导出</el-button>
-    </template>
-  </el-dialog>
+      <DialogFooter>
+        <Button variant="outline" @click="handleClose">取消</Button>
+        <Button @click="handleSave">保存</Button>
+        <Button v-if="isEdit" variant="secondary" @click="handleExport">导出</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
+import { X } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Badge } from '@renderer/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import type { AgentToolConfig, MCPToolConfig } from '../../../types/agent-tool'
 import { toolPluginManager } from '../../../utils/agent-tools/plugin-manager'
 import { agentToolManager } from '../../../utils/agent-tool-manager'
@@ -91,7 +133,7 @@ const emit = defineEmits<{
   saved: [toolId: string]
 }>()
 
-const formRef = ref<FormInstance>()
+const formRef = ref()
 const visible = ref(props.modelValue)
 const isEdit = computed(() => !!props.toolId)
 
@@ -127,8 +169,30 @@ const instructionText = computed({
 })
 
 const commonTags = ['ai', 'utility', 'data', 'api', 'mcp']
+const tagInputValue = ref('')
 
-const rules: FormRules = {
+const addTag = () => {
+  const value = tagInputValue.value.trim()
+  if (!value) return
+  if (!formData.tags?.includes(value)) {
+    formData.tags = [...(formData.tags || []), value]
+  }
+  tagInputValue.value = ''
+}
+
+const removeTag = (index: number) => {
+  if (formData.tags) {
+    formData.tags.splice(index, 1)
+  }
+}
+
+const handleTagBackspace = () => {
+  if (tagInputValue.value === '' && formData.tags?.length > 0) {
+    removeTag(formData.tags.length - 1)
+  }
+}
+
+const rules = {
   id: [{ required: true, message: '请输入Tool ID', trigger: 'blur' }],
   name: [{ required: true, message: '请输入Tool名称', trigger: 'blur' }],
   description: [{ required: true, message: '请输入描述', trigger: 'blur' }],
@@ -212,28 +276,27 @@ const handleClose = () => {
 const handleSave = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      // 验证配置
-      const validation = toolPluginManager.validateToolConfig(formData as Partial<AgentToolConfig>)
-      if (!validation.valid) {
-        ElMessage.error(`配置验证失败: ${validation.errors.join(', ')}`)
-        return
-      }
-
-      // 保存配置
-      if (isEdit.value && props.toolId) {
-        agentToolManager.updateToolConfig(props.toolId, formData as Partial<AgentToolConfig>)
-        ElMessage.success('Tool配置已更新')
-      } else {
-        // 新建Tool需要提供callback
-        ElMessage.warning('新建Tool需要提供callback实现，请使用导入功能或联系开发者')
-      }
-
-      emit('saved', formData.id!)
-      handleClose()
+  const valid = await formRef.value.validate()
+  if (valid) {
+    // 验证配置
+    const validation = toolPluginManager.validateToolConfig(formData as Partial<AgentToolConfig>)
+    if (!validation.valid) {
+      ElMessage.error(`配置验证失败: ${validation.errors.join(', ')}`)
+      return
     }
-  })
+
+    // 保存配置
+    if (isEdit.value && props.toolId) {
+      agentToolManager.updateToolConfig(props.toolId, formData as Partial<AgentToolConfig>)
+      ElMessage.success('Tool配置已更新')
+    } else {
+      // 新建Tool需要提供callback
+      ElMessage.warning('新建Tool需要提供callback实现，请使用导入功能或联系开发者')
+    }
+
+    emit('saved', formData.id!)
+    handleClose()
+  }
 }
 
 const handleExport = () => {
@@ -255,5 +318,55 @@ const handleExport = () => {
 </script>
 
 <style scoped>
-/* 样式可以根据需要添加 */
+.tags-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--background);
+}
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+}
+
+.tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: currentColor;
+  opacity: 0.6;
+}
+
+.tag-remove:hover {
+  opacity: 1;
+}
+
+.tag-input-field {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+.tag-input-field:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
 </style>

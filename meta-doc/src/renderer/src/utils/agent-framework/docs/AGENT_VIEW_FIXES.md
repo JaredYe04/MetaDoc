@@ -14,6 +14,7 @@
 ### 2. ⏳ 实现流式AI生成和UI锁
 
 - **需求**：
+
   1. AI生成应该是流式的，使用 `createAiTask` 的逻辑
   2. AI生成时需要启动UI锁（`workspace.lockUI()`）
   3. 生成完成后关闭UI锁（`workspace.unlockUI()`）
@@ -21,6 +22,7 @@
   5. 终止按钮通过组件事件传递实现
 
 - **实现方案**：
+
   1. 在 `AgentView.vue` 中添加：
      - `currentAiTaskHandle` ref 来跟踪当前任务
      - `isGenerating` ref 来跟踪生成状态
@@ -36,6 +38,7 @@
 ### 3. ⏳ 添加消息编辑和操作功能
 
 - **需求**：
+
   1. 用户消息hover时显示编辑按钮
   2. 点击编辑可以修改消息内容
   3. 点击确定后重新在该节点触发AI消息
@@ -60,6 +63,7 @@
 
 - **问题**：右上角的工具管理界面显示为空
 - **检查点**：
+
   1. `agentConfigManager.getAvailableToolIds()` 是否正确返回工具ID
   2. `toolCollectionManager.getToolIdsFromCollections()` 是否正确实现
   3. `agentToolManager.getAllTools()` 是否正确返回工具

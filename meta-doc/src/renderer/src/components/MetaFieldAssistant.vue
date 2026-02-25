@@ -1,55 +1,64 @@
 <template>
-  <el-dialog
-    :model-value="visible"
-    @update:model-value="emit('update:visible', $event)"
-    :title="title || $t('llmDialog.aiAssistant')"
-    width="30%"
-    class="meta-assistant-dialog"
-    :style="{
-      '--el-dialog-bg-color': themeState.currentTheme.background2nd,
-      '--el-dialog-text-color': themeState.currentTheme.textColor
-    }"
-  >
-    <el-scrollbar class="meta-assistant__input-scroll" max-height="300px">
-      <div class="meta-assistant__input-wrapper">
-        <el-input
-          type="textarea"
-          v-model="aiResponse"
-          class="meta-assistant__input"
-          :autosize="{ minRows: defaultInputSize }"
-          :style="{ color: themeState.currentTheme.textColor }"
-          :placeholder="$t('llmDialog.inputPlaceholder')"
-        />
+  <Dialog :open="visible" @update:open="(val) => emit('update:visible', val)">
+    <DialogContent class="sm:max-w-[30%]" class-name="meta-assistant-dialog">
+      <DialogHeader>
+        <DialogTitle>{{ title || $t('llmDialog.aiAssistant') }}</DialogTitle>
+      </DialogHeader>
+      <div class="grid gap-4 py-4">
+        <div class="meta-assistant__input-wrapper">
+          <Textarea
+            v-model="aiResponse"
+            :rows="defaultInputSize"
+            class="meta-assistant__input w-full"
+            :style="{ color: themeState.currentTheme.textColor }"
+            :placeholder="$t('llmDialog.inputPlaceholder')"
+          />
+        </div>
       </div>
-    </el-scrollbar>
+      <DialogFooter>
+        <div class="meta-assistant__footer">
+          <Tooltip v-if="prompt && allowGenerate">
+            <TooltipTrigger as-child>
+              <Button type="info" @click="handleGenerate" :loading="loading" size="icon">
+                <Refresh v-if="!loading" class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>{{ $t('llmDialog.generateAITooltip') }}</p>
+            </TooltipContent>
+          </Tooltip>
 
-    <template #footer>
-      <div class="meta-assistant__footer">
-        <el-tooltip
-          v-if="prompt && allowGenerate"
-          :content="$t('llmDialog.generateAITooltip')"
-          placement="left"
-        >
-          <el-button type="info" @click="handleGenerate" :loading="loading" circle>
-            <el-icon v-if="!loading"><Refresh /></el-icon>
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip :content="$t('llmDialog.acceptTooltip')" placement="left">
-          <el-button type="success" @click="handleAccept" :disabled="loading" circle>
-            <el-icon><Check /></el-icon>
-          </el-button>
-        </el-tooltip>
-      </div>
-    </template>
-  </el-dialog>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button type="success" @click="handleAccept" :disabled="loading" size="icon">
+                <Check class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>{{ $t('llmDialog.acceptTooltip') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Check } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
 import { themeState } from '../utils/themes'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
 import type { AIDialogMessage } from '../../../types'

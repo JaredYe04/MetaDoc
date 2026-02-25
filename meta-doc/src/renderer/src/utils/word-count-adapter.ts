@@ -89,11 +89,11 @@ export class MarkdownWordCountAdapter implements WordCountAdapter {
     text = text.replace(/`[^`]+`/g, '')
 
     // 移除链接但保留文本
-    text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     text = text.replace(/\[([^\]]+)\]\[[^\]]+\]/g, '$1')
 
     // 移除图片
-    text = text.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '')
+    text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
 
     // 移除标题标记
     text = text.replace(/^#{1,6}\s+/gm, '')

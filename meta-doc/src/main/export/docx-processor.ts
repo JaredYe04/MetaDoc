@@ -1530,7 +1530,7 @@ export class OMMLInsertionProcessor implements DocxProcessor {
         const nodeValue = textNode.nodeValue || ''
         // 尝试多种可能的格式（方括号可能被转义）
         const escapedPlaceholder = placeholder.replace(/\[/g, '&#91;').replace(/\]/g, '&#93;')
-        const corePlaceholder = placeholder.replace(/[\[\]]/g, '') // 移除方括号，只保留核心部分
+        const corePlaceholder = placeholder.replace(/[[\]]/g, '') // 移除方括号，只保留核心部分
         if (
           nodeValue.includes(placeholder) ||
           nodeValue.includes(escapedPlaceholder) ||

@@ -160,7 +160,7 @@ function findAllMatches(
   const workingText = caseSensitive ? text : text.toLowerCase()
   const workingSearchText = caseSensitive ? searchText : searchText.toLowerCase()
 
-  while (true) {
+  for (;;) {
     const index = workingText.indexOf(workingSearchText, searchIndex)
     if (index === -1) {
       break
@@ -502,7 +502,7 @@ function findPositionByContext(
   const matches: number[] = []
   let searchIndex = 0
 
-  while (true) {
+  for (;;) {
     const index = text.indexOf(contextText, searchIndex)
     if (index === -1) {
       break

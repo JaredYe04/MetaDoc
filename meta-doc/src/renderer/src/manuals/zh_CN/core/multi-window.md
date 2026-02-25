@@ -37,6 +37,7 @@ MetaDoc支持两种类型的窗口：
 <MainTabs mode="demo" />
 
 **注意事项**：
+
 - 单标签页窗口不能通过拖拽创建新窗口
 - 拖拽时会自动从窗口池获取预加载窗口，实现快速显示
 
@@ -126,6 +127,7 @@ graph LR
 - **菜单选项**：通过菜单关闭窗口
 
 **注意事项**：
+
 - 关闭窗口前会提示保存未保存的文档
 - 辅助窗口关闭时会隐藏而非真正关闭
 
@@ -167,3 +169,17 @@ graph LR
 
 - [[core.multi-tab|多标签页管理]]
 - [[core.file-operations|文件操作]]
+
+<ViewMenuItemsDemo mode="demo" :items='["home", "outline"]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["chat", "agent"]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
+
+<QuickStartPanel mode="demo" />
+
+<LeftMenu mode="demo" />

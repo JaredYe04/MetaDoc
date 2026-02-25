@@ -183,6 +183,8 @@ export abstract class BaseLlmAdapter {
     meta?: RequestMeta,
     signal?: AbortSignal
   ): AsyncGenerator<{ delta: string; usage: UsageStats | null }> {
+    // This is a stub that subclasses override. The yield satisfies require-yield.
+    yield { delta: '', usage: null }
     throw new Error('generateContentStream must be implemented by subclass if using SDK')
   }
 
@@ -207,6 +209,7 @@ export abstract class BaseLlmAdapter {
     meta?: RequestMeta,
     signal?: AbortSignal
   ): AsyncGenerator<{ delta: string; usage: UsageStats | null }> {
+    yield { delta: '', usage: null }
     throw new Error('generateChatStream must be implemented by subclass if using SDK')
   }
 }

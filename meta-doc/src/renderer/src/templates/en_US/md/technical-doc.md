@@ -22,11 +22,11 @@ Brief description of the document purpose, scope, and intended audience.
 
 ### 2.2 Tech Stack
 
-| Layer | Technology | Notes |
-|-------|------------|-------|
-| Frontend | — | — |
-| Backend | — | — |
-| Storage | — | — |
+| Layer    | Technology | Notes |
+| -------- | ---------- | ----- |
+| Frontend | —          | —     |
+| Backend  | —          | —     |
+| Storage  | —          | —     |
 
 ---
 
@@ -48,11 +48,11 @@ Brief description of the document purpose, scope, and intended audience.
 
 ### 3.2 Error Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 4xx | Client error |
-| 5xx | Server error |
+| Code | Meaning      |
+| ---- | ------------ |
+| 0    | Success      |
+| 4xx  | Client error |
+| 5xx  | Server error |
 
 ---
 

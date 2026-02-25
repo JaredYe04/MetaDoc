@@ -7,9 +7,40 @@
 import eventBus from '../event-bus'
 import { useRouter } from 'vue-router'
 import localIpcMain from './local-ipc-main'
+import { rendererEmitter } from './local-ipc-renderer'
 import { calc_md5 } from '../md5'
 import router from '../../router/router'
-import { local } from 'd3'
+
+// Mock store for web environment (uses localStorage)
+const store = {
+  get: (key) => localStorage.getItem(key),
+  set: (key, value) => localStorage.setItem(key, value)
+}
+
+// Mock shell for web environment
+const shell = {
+  openExternal: (url) => window.open(url, '_blank')
+}
+
+// Web environment helper functions
+let is_need_save = false
+
+const quit = () => {
+  console.log('Web environment: quit called')
+  window.close()
+}
+
+const chooseSaveFile = async (data) => {
+  // In web environment, use a simple prompt for filename
+  const defaultName = data?.filename || 'document.md'
+  const fileName = prompt('Enter filename:', defaultName)
+  return fileName || ''
+}
+
+const exportFile = async (event, data) => {
+  console.log('Web environment: exportFile called', data)
+  // Web export implementation would go here
+}
 
 // const Vditor = require("vditor");
 
@@ -49,7 +80,7 @@ const updateRecentDocs = async (data) => {
   //如果没有recent-docs，初始化一个空数组
   let recentDocs = json ? JSON.parse(json) : []
   //模拟双向栈，最新打开的文档在最前面，如果超过50个，删除最后一个；最新的文档可能已经在最前面，需要删除后再插入
-  recentDocs = recentDocs.filter((item) => item != data.path)
+  recentDocs = recentDocs.filter((item) => item !== data.path)
   recentDocs.unshift(data.path)
   if (recentDocs.length > 50) {
     recentDocs.pop()

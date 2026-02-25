@@ -1,0 +1,15 @@
+{
+  "style": "default",
+  "typescript": false,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "src/renderer/src/styles/shadcn.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@renderer/components/ui",
+    "utils": "@renderer/lib/utils",
+    "lib": "@renderer/lib"
+  }
+}

@@ -30,33 +30,38 @@
             @mouseenter="handleActionsMouseEnter"
             @mouseleave="handleActionsMouseLeave"
           >
-            <el-tooltip :content="t('agent.message.edit')" placement="top">
-              <el-button circle size="small" :icon="Edit" @click.stop="handleEdit" />
-            </el-tooltip>
-            <el-dropdown
-              @command="handleActionCommand"
-              trigger="click"
-              @click.stop
-              @visible-change="handleDropdownVisibleChange"
-            >
-              <el-button circle size="small" :icon="More" />
-              <template #dropdown>
-                <el-dropdown-menu
+            <Tooltip :content="t('agent.message.edit')" placement="top">
+              <Button circle size="small" @click.stop="handleEdit">
+                <el-icon><Edit /></el-icon>
+              </Button>
+            </Tooltip>
+            <DropdownMenu @click.stop @update:open="handleDropdownVisibleChange">
+              <DropdownMenuTrigger as-child>
+                <Button
+                  circle
+                  size="small"
                   @mouseenter="handleDropdownMouseEnter"
                   @mouseleave="handleDropdownMouseLeave"
                 >
-                  <el-dropdown-item command="regenerate">{{
-                    t('agent.message.regenerate')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="duplicate">{{
-                    t('agent.message.duplicateSession')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>{{
-                    t('agent.message.delete')
-                  }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+                  <el-icon><More /></el-icon>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                @mouseenter="handleDropdownMouseEnter"
+                @mouseleave="handleDropdownMouseLeave"
+              >
+                <DropdownMenuItem @click="handleActionCommand('regenerate')">
+                  {{ t('agent.message.regenerate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleActionCommand('duplicate')">
+                  {{ t('agent.message.duplicateSession') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleActionCommand('delete')">
+                  {{ t('agent.message.delete') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </transition>
 
@@ -73,16 +78,15 @@
             >
               <div class="intent-tools-label">{{ t('agent.message.selectedTools') }}</div>
               <div class="intent-tools-list">
-                <el-tag
+                <Badge
                   v-for="toolId in (message as IntentRecognitionAgentMessage).toolIds"
                   :key="toolId"
                   size="small"
-                  type="info"
-                  effect="plain"
+                  variant="secondary"
                   class="intent-tool-tag"
                 >
                   {{ getToolName(toolId) }}
-                </el-tag>
+                </Badge>
               </div>
             </div>
             <div v-else class="intent-no-tools">
@@ -102,32 +106,32 @@
 
         <!-- Tool结果 -->
         <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
-          <el-collapse v-model="toolMessageCollapseActive" class="tool-message-collapse">
-            <el-collapse-item :name="message.id">
-              <template #title>
-                <div class="tool-message-header-preview">
-                  <span class="tool-message-title">{{
-                    (message as ToolAgentMessage).tool.name
-                  }}</span>
-                  <el-tag
-                    size="small"
-                    :type="getToolStatusTagType((message as ToolAgentMessage).status)"
-                  >
-                    {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
-                  </el-tag>
-                  <small class="tool-message-timestamp">{{
-                    formatTimestamp((message as ToolAgentMessage).timestamp)
-                  }}</small>
-                </div>
-              </template>
+          <Collapsible v-model:open="isToolMessageOpen" class="tool-message-collapsible">
+            <CollapsibleTrigger class="tool-message-trigger">
+              <div class="tool-message-header-preview">
+                <span class="tool-message-title">{{
+                  (message as ToolAgentMessage).tool.name
+                }}</span>
+                <Badge
+                  size="small"
+                  :type="getToolStatusTagType((message as ToolAgentMessage).status)"
+                >
+                  {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
+                </Badge>
+                <small class="tool-message-timestamp">{{
+                  formatTimestamp((message as ToolAgentMessage).timestamp)
+                }}</small>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent class="tool-message-content">
               <component
                 :is="AgentToolResultCard"
                 :message="message as ToolAgentMessage"
                 :messages="messages"
                 :message-index="messageIndex"
               />
-            </el-collapse-item>
-          </el-collapse>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <!-- 文本内容 -->
@@ -177,29 +181,38 @@
         v-if="message.role === 'user'"
         class="agent-message__avatar agent-message__avatar--right"
       >
-        <el-tooltip :content="userName" placement="left" :disabled="!userName">
-          <el-avatar :icon="User" class="avatar-fallback" />
-        </el-tooltip>
+        <Tooltip :content="userName" placement="left" :disabled="!userName">
+          <Avatar class="avatar-fallback">
+            <AvatarFallback>
+              <User />
+            </AvatarFallback>
+          </Avatar>
+        </Tooltip>
       </div>
     </div>
 
     <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
     <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
-      <el-tooltip :content="t('agent.message.regenerate')" placement="bottom">
-        <el-button
-          text
+      <Tooltip :content="t('agent.message.regenerate')" placement="bottom">
+        <Button
+          variant="ghost"
           size="small"
           class="ai-action-btn"
           @click.stop="emit('regenerate', message)"
         >
           <el-icon><Refresh /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="t('agent.message.delete')" placement="bottom">
-        <el-button text size="small" class="ai-action-btn" @click.stop="emit('delete', message)">
+        </Button>
+      </Tooltip>
+      <Tooltip :content="t('agent.message.delete')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          @click.stop="emit('delete', message)"
+        >
           <el-icon><Delete /></el-icon>
-        </el-button>
-      </el-tooltip>
+        </Button>
+      </Tooltip>
     </div>
 
     <!-- 引用显示（只读模式，只显示用户消息的引用，放在气泡外面） -->
@@ -224,17 +237,23 @@
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
+import { User, Edit, More, Loading, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import {
-  Avatar,
-  User,
-  Edit,
-  More,
-  Loading,
-  Check,
-  Search,
-  Refresh,
-  Delete
-} from '@element-plus/icons-vue'
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from '@renderer/components/ui/collapsible'
+import { Badge } from '@renderer/components/ui/badge'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import type {
   AgentMessage,
   ChatAgentMessage,
@@ -269,8 +288,8 @@ const { t } = useI18n()
 const showTimestamp = ref(false)
 const showActions = ref(false)
 
-// Tool消息折叠状态
-const toolMessageCollapseActive = ref<string[]>([])
+// Tool消息折叠状态 - shadcn-vue Collapsible uses boolean
+const isToolMessageOpen = ref(true)
 
 // 判断当前tool消息是否是最新的tool调用
 const isLatestToolMessage = computed(() => {
@@ -296,10 +315,10 @@ const initToolMessageCollapse = () => {
   if (props.message.type === 'tool' && !collapseInitialized.value) {
     // 如果不是最新的tool消息，默认折叠
     if (!isLatestToolMessage.value) {
-      toolMessageCollapseActive.value = []
+      isToolMessageOpen.value = false
     } else {
       // 如果是最新的，默认展开
-      toolMessageCollapseActive.value = [props.message.id]
+      isToolMessageOpen.value = true
     }
     collapseInitialized.value = true
   }
@@ -329,7 +348,7 @@ watch(
 
       // 如果有新的tool消息在当前消息之后，折叠当前消息（强制折叠，因为这是自动行为）
       if (hasNewToolAfter) {
-        toolMessageCollapseActive.value = []
+        isToolMessageOpen.value = false
       }
     }
 
@@ -347,7 +366,7 @@ watch(
   (isLatest) => {
     if (props.message.type === 'tool' && collapseInitialized.value && !isLatest) {
       // 如果当前消息不再是最新的tool消息，折叠它
-      toolMessageCollapseActive.value = []
+      isToolMessageOpen.value = false
     }
   },
   { immediate: false }
@@ -1112,48 +1131,45 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.tool-message-collapse {
+.tool-message-collapsible {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  border: none !important;
 }
 
-.tool-message-collapse :deep(.el-collapse-item) {
-  margin-bottom: 0;
-}
-
-.tool-message-collapse :deep(.el-collapse-item__wrap) {
-  border: none;
-}
-
-/* 折叠头部：紧凑、带内边距 */
-.tool-message-collapse :deep(.el-collapse-item__header) {
+/* Collapsible触发区域样式 */
+.tool-message-trigger {
   background-color: transparent;
   color: v-bind('themeState.currentTheme.textColor');
   border-bottom: 1px solid
     v-bind(
       'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"'
     );
-  height: 32px;
-  line-height: 32px;
-  padding: 0 12px;
+  padding: 0;
   font-size: 13px;
 }
 
+.tool-message-trigger:hover {
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)"'
+  ) !important;
+}
+
 /* 折叠内容区域 */
-.tool-message-collapse :deep(.el-collapse-item__content) {
+.tool-message-content :deep([data-state]) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.tool-message-content :deep(.pb-4) {
+  padding: 6px 12px 8px 12px;
   overflow-x: auto;
   background-color: transparent;
-  padding: 6px 12px 8px 12px;
-  border-bottom: none;
 }
 
 /* 确保 AgentToolResultCard 不会超出父容器 */
-.tool-message-collapse :deep(.tool-result-card) {
+.tool-message-content :deep(.tool-result-card) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;

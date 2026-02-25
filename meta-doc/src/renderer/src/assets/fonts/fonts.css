@@ -103,3 +103,53 @@ pre *,
 .syntax-highlighter * {
   font-family: var(--font-family-mono) !important;
 }
+
+/* Theme-aware Vditor toolbar icons */
+.vditor-toolbar svg {
+  filter: none;
+}
+
+html.dark .vditor-toolbar svg {
+  filter: brightness(0) invert(1);
+}
+
+/* ============================================
+   VDITOR THEME OVERRIDES - Toolbar hover/active colors
+   ============================================ */
+
+/* Override Vditor toolbar hover/active colors with theme primary */
+.vditor {
+  --toolbar-icon-hover-color: hsl(var(--primary));
+  --toolbar-icon-active-color: hsl(var(--primary));
+}
+
+/* Toolbar button hover state - use theme primary color */
+.vditor-toolbar__item:hover .vditor-tooltipped,
+.vditor-toolbar__item.vditor-menu--current .vditor-tooltipped {
+  color: hsl(var(--primary)) !important;
+}
+
+/* Toolbar button hover background */
+.vditor-toolbar__item:hover {
+  background-color: hsl(var(--primary) / 0.1) !important;
+  border-radius: 4px;
+}
+
+/* Active/selected button state */
+.vditor-toolbar__item.vditor-menu--current {
+  color: hsl(var(--primary)) !important;
+}
+
+/* Focus state */
+.vditor-toolbar__item .vditor-tooltipped:focus {
+  color: hsl(var(--primary)) !important;
+}
+
+/* Ensure the SVG icon inside button also gets theme color */
+.vditor-toolbar__item:hover svg {
+  filter: none !important;
+}
+
+html.dark .vditor-toolbar__item:hover svg {
+  filter: brightness(0) invert(1) !important;
+}

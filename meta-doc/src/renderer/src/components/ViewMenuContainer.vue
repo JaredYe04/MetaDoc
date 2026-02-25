@@ -249,6 +249,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid var(--el-border-color);
+  background-color: v-bind('themeState.currentTheme.background || "#ffffff"');
 }
 
 .sidebar-tabs {

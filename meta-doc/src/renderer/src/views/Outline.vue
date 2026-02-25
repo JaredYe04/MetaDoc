@@ -296,7 +296,10 @@
                             :disabled="pendingAccept || generating"
                             aria-label="Expand"
                           >
-                            <ArrowDown class="w-4 h-4" />
+                            <component
+                              :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
+                              class="w-4 h-4"
+                            />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="top">
@@ -719,7 +722,9 @@ import {
   X,
   ArrowUpDown,
   RefreshCw,
-  Loader2
+  Loader2,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
@@ -968,15 +973,15 @@ const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
     treeConfig.value = {
       nodeWidth: 140,
       nodeHeight: 50,
-      levelHeight: 100,
-      siblingSpacing: 30
+      levelHeight: 120,
+      siblingSpacing: 50
     }
   } else {
     treeConfig.value = {
       nodeWidth: 140,
       nodeHeight: 50,
-      levelHeight: 150,
-      siblingSpacing: 40
+      levelHeight: 180,
+      siblingSpacing: 60
     }
   }
 }
@@ -1643,8 +1648,8 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 }
 
 .tree-node {
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1733,7 +1738,8 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 .bottom-menu {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 8px;
   padding: 8px;

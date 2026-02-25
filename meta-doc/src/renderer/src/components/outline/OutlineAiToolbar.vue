@@ -1,5 +1,5 @@
 <template>
-  <div class="ai-toolbar aero-div">
+  <div class="ai-toolbar">
     <Button
       :class="[
         'ai-toolbar-btn',
@@ -10,7 +10,7 @@
         }
       ]"
       :variant="selectedAiTool === 'generateChildren' ? 'default' : 'outline'"
-      size="sm"
+      size="icon"
       @click="handleToggleAiTool('generateChildren')"
     >
       <img :src="themeState.currentTheme.BranchIcon" class="ai-toolbar-btn__icon" alt="" />
@@ -26,7 +26,7 @@
         }
       ]"
       :variant="selectedAiTool === 'generateContent' ? 'default' : 'outline'"
-      size="sm"
+      size="icon"
       @click="handleToggleAiTool('generateContent')"
     >
       <img :src="themeState.currentTheme.WriteIcon" class="ai-toolbar-btn__icon" alt="" />
@@ -42,7 +42,7 @@
         }
       ]"
       :variant="selectedAiTool === 'generateChildrenChildren' ? 'default' : 'outline'"
-      size="sm"
+      size="icon"
       @click="handleToggleAiTool('generateChildrenChildren')"
     >
       <img :src="themeState.currentTheme.MultiBranchIcon" class="ai-toolbar-btn__icon" alt="" />
@@ -58,29 +58,21 @@
         }
       ]"
       :variant="selectedAiTool === 'generateChildrenContent' ? 'default' : 'outline'"
-      size="sm"
+      size="icon"
       @click="handleToggleAiTool('generateChildrenContent')"
     >
       <img :src="themeState.currentTheme.MultiWriteIcon" class="ai-toolbar-btn__icon" alt="" />
       <span class="ai-toolbar-btn__label">{{ $t('outline.aiTool.generateChildrenContent') }}</span>
     </Button>
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <Button
-            variant="outline"
-            size="sm"
-            class="ai-toolbar-btn ai-toolbar-btn--action"
-            @click="handleFormatTitle"
-          >
-            <img :src="themeState.currentTheme.FormatIcon" class="ai-toolbar-btn__icon" alt="" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          <p>{{ $t('outline.formatTitle') }}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Button
+      variant="outline"
+      size="icon"
+      class="ai-toolbar-btn ai-toolbar-btn--action"
+      @click="handleFormatTitle"
+    >
+      <img :src="themeState.currentTheme.FormatIcon" class="ai-toolbar-btn__icon" alt="" />
+      <span class="ai-toolbar-btn__label">{{ $t('outline.formatTitle') }}</span>
+    </Button>
   </div>
 </template>
 
@@ -133,11 +125,77 @@ const handleFormatTitle = () => {
 </script>
 
 <style scoped>
+/* 工具栏容器 - 纵向排列，悬浮定位 */
+.ai-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 100;
+}
+
+/* 按钮基础样式 - 使用 size="icon" 默认尺寸 */
+.ai-toolbar-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+/* 收起时强制图标居中 */
+.ai-toolbar-btn:not(:hover):not(.ai-toolbar-btn--expanded) {
+  justify-content: center !important;
+}
+
+/* 收起时隐藏文字，确保不影响布局 */
+.ai-toolbar-btn:not(:hover):not(.ai-toolbar-btn--expanded) .ai-toolbar-btn__label {
+  display: none !important;
+  width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* 按钮 hover 时展开 - 固定宽度 160px */
+.ai-toolbar-btn:hover,
+.ai-toolbar-btn--expanded {
+  width: 160px;
+  padding: 0 12px !important;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/* 图标样式 - 在按钮内垂直水平居中 */
 .ai-toolbar-btn__icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  display: block;
-  object-fit: contain;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 文字标签 - 默认完全隐藏，不占空间 */
+.ai-toolbar-btn__label {
+  display: none;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  margin-left: 0;
+}
+
+/* hover 或展开时显示文字 */
+.ai-toolbar-btn:hover .ai-toolbar-btn__label,
+.ai-toolbar-btn--expanded .ai-toolbar-btn__label {
+  display: inline;
+  opacity: 1;
+  margin-left: 8px;
 }
 </style>

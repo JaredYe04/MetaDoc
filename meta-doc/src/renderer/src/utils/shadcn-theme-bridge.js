@@ -65,13 +65,17 @@ function applyShadcnTheme() {
 
   if (!theme) return
 
-  // 颜色映射: themeState → shadcn CSS 变量
   const colorMappings = [
     { source: 'primaryColor', target: '--primary' },
     { source: 'background', target: '--background' },
     { source: 'textColor', target: '--foreground' },
     { source: 'background2nd', target: '--muted' },
-    { source: 'borderColor', target: '--border' }
+    { source: 'borderColor', target: '--border' },
+    { source: 'secondaryColor', target: '--secondary' },
+    { source: 'textColor2', target: '--muted-foreground' },
+    { source: 'textColor', target: ['--primary-foreground', '--card-foreground', '--popover-foreground', '--secondary-foreground', '--accent-foreground'] },
+    { source: 'background', target: ['--card', '--popover'] },
+    { source: 'secondaryColor', target: '--accent' }
   ]
 
   colorMappings.forEach(({ source, target }) => {
@@ -79,7 +83,8 @@ function applyShadcnTheme() {
     if (colorValue && typeof colorValue === 'string' && colorValue.startsWith('#')) {
       try {
         const hslValue = hexToHsl(colorValue)
-        root.style.setProperty(target, hslValue)
+        const targets = Array.isArray(target) ? target : [target]
+        targets.forEach(t => { root.style.setProperty(t, hslValue) })
       } catch (error) {
         console.warn(`[shadcn-theme-bridge] 转换颜色失败: ${source} = ${colorValue}`, error)
       }

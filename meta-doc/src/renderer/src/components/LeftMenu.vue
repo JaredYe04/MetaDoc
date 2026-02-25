@@ -300,7 +300,7 @@
       >
         <template #icon>
           <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
-          <UserCircle v-else class="w-6 h-6" />
+          <User v-else class="w-[18px] h-[18px]" />
         </template>
       </UIMenuItem>
 
@@ -728,7 +728,7 @@
       >
         <template #icon>
           <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
-          <UserCircle v-else class="w-6 h-6" />
+          <User v-else class="w-[18px] h-[18px]" />
         </template>
       </UIMenuItem>
 
@@ -937,7 +937,6 @@ import {
   Settings,
   MessageCircle,
   Pencil,
-  UserCircle,
   Download,
   FileText,
   X,
@@ -1096,7 +1095,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     {
       id: 'user-profile',
       label: t('leftMenu.userProfileTooltip', '用户资料'),
-      icon: UserCircle,
+      icon: User,
       visible: true,
       isCore: true,
       position: 'bottom'

@@ -1663,7 +1663,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .generate-preview {
@@ -1832,7 +1832,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .bottom-menu {
   position: fixed;
-  bottom: 20px;
+  bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1867,10 +1867,12 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .outline-canvas-wrapper {
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   cursor: grab;
   user-select: none;
+  min-width: 0;
+  min-height: 0;
 }
 
 .outline-canvas-wrapper:active {

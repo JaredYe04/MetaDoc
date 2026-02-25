@@ -41,7 +41,10 @@ const props = defineProps({
   // Additional props for flexibility
   class: { type: String, required: false },
   contentClass: { type: String, required: false },
-  delayDuration: { type: Number, required: false, default: 0 }
+  delayDuration: { type: Number, required: false, default: 0 },
+  // Boundary collision avoidance props
+  avoidCollisions: { type: Boolean, required: false, default: true },
+  collisionPadding: { type: Number, required: false, default: 8 }
 })
 
 // Map Element Plus placement to Radix Vue side and align
@@ -85,6 +88,8 @@ const hasContent = computed(() => {
           :side="computedPlacement.side"
           :align="computedPlacement.align"
           :side-offset="offset"
+          :avoid-collisions="avoidCollisions"
+          :collision-padding="collisionPadding"
           :class="
             cn(
               'z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',

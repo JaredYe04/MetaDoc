@@ -2,7 +2,7 @@
   <div class="about-section">
     <div class="about-header">
       <div class="logo-container">
-        <img :src="logo" alt="MetaDoc Logo" class="app-logo" />
+        <LogoIcon :size="128" :bg-color="bgColor" :symbol-color="symbolColor" class="app-logo" />
       </div>
       <div class="app-info">
         <h2 class="app-name">{{ $t('setting.about.appName') }}</h2>
@@ -165,7 +165,7 @@ import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
 import messageBridge from '../../bridge/message-bridge'
 import { isDevEnvironment } from '../../utils/dev-env'
-import logo from '../../assets/logo.svg'
+import { themeState, generateLogoColors } from '../../utils/themes'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
 import { FormField } from '@renderer/components/ui/form'
@@ -173,6 +173,16 @@ import { Label } from '@renderer/components/ui/label'
 import { Switch } from '@renderer/components/ui/switch'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Divider } from '@renderer/components/ui/separator'
+import LogoIcon from '../../components/LogoIcon.vue'
+
+// 主题色
+const isDark = computed(() => themeState.currentTheme.type === 'dark')
+const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
+
+// 使用HSL生成鲜艳的Logo颜色
+const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
+const bgColor = computed(() => logoColors.value.bgColor)
+const symbolColor = computed(() => logoColors.value.symbolColor)
 
 // ==================== Demo Mode Support ====================
 

@@ -140,7 +140,7 @@ function openItem(articleId: string) {
   align-items: center;
   justify-content: center;
   background-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
-  color: #fff;
+  color: v-bind('themeState.currentTheme.textColor');
   border-radius: 50%;
   font-size: 12px;
   font-weight: 600;

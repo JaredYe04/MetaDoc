@@ -15,7 +15,7 @@
       <p style="font-weight: bold" @mousedown.stop>
         {{ props.word ? props.word : t('wordCloudDetail.defaultWord') }}
       </p>
-      <p style="font-size: 12px; color: #666666" @mousedown.stop>
+      <p :style="{ fontSize: '12px', color: themeState.currentTheme.textColor2 }" @mousedown.stop>
         {{ t('wordCloudDetail.frequency') }}: {{ props.frequency }}
       </p>
     </div>

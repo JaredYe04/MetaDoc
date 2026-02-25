@@ -122,7 +122,7 @@
               "
               @click="changeAvatar"
             >
-              <User class="w-16 h-16" style="color: #909399" />
+              <User class="w-16 h-16" :style="{ color: themeState.currentTheme.textColor2 }" />
             </div>
           </TooltipTrigger>
           <TooltipContent side="top">

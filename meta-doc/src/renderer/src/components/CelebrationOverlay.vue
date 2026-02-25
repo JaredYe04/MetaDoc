@@ -387,13 +387,14 @@ onBeforeUnmount(() => {
 .title {
   font-size: 32px;
   font-weight: 300;
-  color: #ffffff;
+  color: v-bind('themeState.currentTheme.textColor');
   margin: 0 0 16px 0;
   line-height: 1.3;
 }
 .subtitle {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.7;
   margin: 0 0 32px 0;
   line-height: 1.6;
 }

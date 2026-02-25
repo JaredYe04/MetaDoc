@@ -281,7 +281,7 @@ function showTooltip() {
   tooltipEl.style.position = 'absolute'
   tooltipEl.style.padding = '2px 6px'
   tooltipEl.style.background = 'rgba(0,0,0,0.7)'
-  tooltipEl.style.color = '#fff'
+  tooltipEl.style.color = themeState.currentTheme.textColor
   tooltipEl.style.borderRadius = '4px'
   tooltipEl.style.fontSize = '12px'
   tooltipEl.style.pointerEvents = 'none'

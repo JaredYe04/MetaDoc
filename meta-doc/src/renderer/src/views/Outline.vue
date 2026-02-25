@@ -230,7 +230,7 @@
           :key="outlineTreeKey"
           class="outline-tree-container"
           :class="{ 'is-dragging': isDraggingNode }"
-          style="width: 100%; height: 100%; border-radius: 18px"
+          style="border-radius: 18px; min-width: max-content; min-height: max-content"
           :style="{ backgroundColor: themeState.currentTheme.background }"
           :dataset="treeData"
           :config="treeConfig"
@@ -1738,8 +1738,9 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 }
 
 .outline-tree-container {
-  flex: 1;
-  overflow: auto;
+  flex: 0 0 auto;
+  min-width: max-content;
+  min-height: max-content;
 }
 
 .tree-node {

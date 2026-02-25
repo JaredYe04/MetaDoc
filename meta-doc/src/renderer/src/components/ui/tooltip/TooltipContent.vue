@@ -2,9 +2,20 @@
 import { TooltipContent, type TooltipContentProps } from 'radix-vue'
 import { cn } from '@renderer/lib/utils'
 
-const props = withDefaults(defineProps<TooltipContentProps & { class?: string }>(), {
-  sideOffset: 4
-})
+const props = withDefaults(
+  defineProps<
+    TooltipContentProps & {
+      class?: string
+      avoidCollisions?: boolean
+      collisionPadding?: number | Partial<Record<'top' | 'bottom' | 'left' | 'right', number>>
+    }
+  >(),
+  {
+    sideOffset: 4,
+    avoidCollisions: true,
+    collisionPadding: 8
+  }
+)
 </script>
 
 <template>

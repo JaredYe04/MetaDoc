@@ -48,7 +48,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       v-bind="{ ...forwarded, ...$attrs }"
       :class="
         cn(
-          'relative z-[10001] max-h-96 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md select-content-wrapper data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+          'relative z-[10001] max-h-96 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
           position === 'popper' &&
             'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
           props.class
@@ -58,7 +58,10 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       <SelectScrollUpButton />
       <SelectViewport
         :class="
-          cn('p-1 select-viewport', position === 'popper' && 'h-[--reka-select-trigger-height]')
+          cn(
+            'p-1',
+            position === 'popper' && 'h-[var(--reka-select-trigger-height)] w-full min-w-[var(--reka-select-trigger-width)]'
+          )
         "
       >
         <slot />
@@ -69,37 +72,10 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </template>
 
 <style scoped>
-/* 
+/*
  * SelectContent 宽度规范：
- * 1. 下拉菜单宽度必须与 trigger 宽度完全一致
- * 2. 最小宽度必须能容纳最长的选项元素
- * 
- * 实现原理：
- * - width: auto 允许内容决定宽度
- * - min-width: max(var(--reka-select-trigger-width), fit-content) 确保最小宽度同时满足：
- *   a) 至少与 trigger 等宽
- *   b) 至少能容纳最长的选项
- */
-.select-content-wrapper {
-  width: auto;
-  min-width: max(var(--reka-select-trigger-width), fit-content);
-  max-width: fit-content;
-}
-
-/* 
- * Viewport 宽度规范：
- * - width: fit-content 让 viewport 根据内容自动调整宽度
- * - min-width: 100% 确保至少填满父容器
- */
-.select-viewport {
-  width: fit-content;
-  min-width: 100%;
-}
-
-/* 
- * 选项元素规范：
- * - white-space: nowrap 防止文本折行，确保能正确计算最大宽度
- * - display: flex 确保布局正确
+ * 1. 下拉菜单最小宽度必须与 trigger 宽度一致 (通过 SelectViewport 的 min-w-[var(--reka-select-trigger-width)] 实现)
+ * 2. 选项文本不换行，确保能正确计算最大宽度
  */
 :deep([role='option']) {
   white-space: nowrap;
@@ -107,10 +83,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   align-items: center;
 }
 
-/* 
- * 选项文本规范：
- * - 防止文本溢出和折行
- */
 :deep([role='option'] .select-item-text),
 :deep([role='option'] span) {
   white-space: nowrap;

@@ -1,19 +1,14 @@
 <template>
   <div class="logo-tab-wrapper">
-    <Tooltip>
-      <TooltipTrigger as-child>
-        <div class="logo-tab" @click="handleLogoClick">
-          <LogoIcon
-            :size="24"
-            :bg-color="bgColor"
-            :symbol-color="symbolColor"
-            class="logo-tab__image"
-          />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        <p>{{ versionTooltip }}</p>
-      </TooltipContent>
+    <Tooltip :content="versionTooltip" side="bottom">
+      <div class="logo-tab" @click="handleLogoClick">
+        <LogoIcon
+          :size="24"
+          :bg-color="bgColor"
+          :symbol-color="symbolColor"
+          class="logo-tab__image"
+        />
+      </div>
     </Tooltip>
     <!-- 关于对话框 -->
     <Dialog v-model:open="aboutDialogVisible" modal>
@@ -33,7 +28,7 @@ import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 import { mixColors, themeState, generateLogoColors } from '../utils/themes'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import LogoIcon from './LogoIcon.vue'
 

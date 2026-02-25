@@ -24,9 +24,18 @@
         </div>
       </div>
 
-      <el-tabs v-model="activeTab" type="border-card" class="analysis-tabs">
+      <Tabs v-model="activeTab" class="analysis-tabs border-card">
+        <TabsList>
+          <TabsTrigger value="fields">{{ t('agent.display.dataAnalysis.fields') }}</TabsTrigger>
+          <TabsTrigger value="stats">{{ t('agent.display.dataAnalysis.statsLabel') }}</TabsTrigger>
+          <TabsTrigger
+            v-if="result.aggregations && result.aggregations.length > 0"
+            value="aggregations"
+            >{{ t('agent.display.dataAnalysis.aggregations') }}</TabsTrigger
+          >
+        </TabsList>
         <!-- 字段信息 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.fields')" name="fields">
+        <TabsContent value="fields">
           <el-scrollbar max-height="400px">
             <div class="fields-list">
               <div
@@ -37,12 +46,12 @@
               >
                 <div class="field-header">
                   <span class="field-name" :style="fieldNameStyle">{{ field.name }}</span>
-                  <el-tag :type="getTypeTagType(field.type)" size="small">
+                  <Badge :variant="getBadgeVariant(field.type)">
                     {{ field.type }}
-                  </el-tag>
-                  <el-tag v-if="field.nullable" type="warning" size="small">{{
-                    t('agent.display.dataAnalysis.nullable')
-                  }}</el-tag>
+                  </Badge>
+                  <Badge v-if="field.nullable" variant="warning" class="warning-badge">
+                    {{ t('agent.display.dataAnalysis.nullable') }}
+                  </Badge>
                   <span class="field-unique" :style="fieldUniqueStyle"
                     >{{ t('agent.display.dataAnalysis.uniqueValues') }}:
                     {{ field.uniqueCount }}</span
@@ -57,32 +66,31 @@
                     >{{ t('agent.display.dataAnalysis.sampleValues') }}:</span
                   >
                   <div class="samples-list">
-                    <el-tag
+                    <Badge
                       v-for="(value, index) in field.sampleValues"
                       :key="index"
-                      size="small"
-                      effect="plain"
-                      class="sample-tag"
+                      variant="outline"
+                      class="sample-badge"
                     >
                       {{ formatValue(value) }}
-                    </el-tag>
+                    </Badge>
                   </div>
                 </div>
               </div>
             </div>
           </el-scrollbar>
-        </el-tab-pane>
+        </TabsContent>
 
         <!-- 描述统计 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.statsLabel')" name="stats">
+        <TabsContent value="stats">
           <el-scrollbar max-height="400px">
-            <el-tree
+            <Tree
               :data="statsTreeData"
               :props="{ children: 'children', label: 'label' }"
               default-expand-all
               class="stats-tree"
             >
-              <template #default="{ node, data }">
+              <template #default="{ data }">
                 <div class="tree-node">
                   <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
                   <span
@@ -93,12 +101,12 @@
                   >
                 </div>
               </template>
-            </el-tree>
+            </Tree>
           </el-scrollbar>
-        </el-tab-pane>
+        </TabsContent>
 
         <!-- 聚合分析 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.aggregations')" name="aggregations">
+        <TabsContent value="aggregations">
           <el-scrollbar max-height="400px">
             <div v-if="result.aggregations && result.aggregations.length > 0">
               <div
@@ -124,13 +132,13 @@
                     t('agent.display.dataAnalysis.groupBy', { field: agg.groupBy })
                   }}</span>
                 </div>
-                <el-tree
+                <Tree
                   v-show="aggregationExpanded[index]"
                   :data="buildAggregationTree(agg)"
                   :props="{ children: 'children', label: 'label' }"
                   class="aggregation-tree"
                 >
-                  <template #default="{ node, data }">
+                  <template #default="{ data }">
                     <div class="tree-node">
                       <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
                       <span
@@ -141,15 +149,15 @@
                       >
                     </div>
                   </template>
-                </el-tree>
+                </Tree>
               </div>
             </div>
             <div v-else class="empty-aggregations" :style="emptyAggregationsStyle">
               {{ t('agent.display.dataAnalysis.noAggregations', '暂无聚合分析数据') }}
             </div>
           </el-scrollbar>
-        </el-tab-pane>
-      </el-tabs>
+        </TabsContent>
+      </Tabs>
     </div>
   </div>
 </template>
@@ -158,6 +166,9 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Connection, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
+import { Badge } from '../ui/badge'
+import { Tree } from '@renderer/components/ui/tree'
 import { themeState } from '../../utils/themes'
 
 interface DataAnalysisResult {
@@ -222,15 +233,15 @@ const statsTreeData = computed(() => {
   }))
 })
 
-const getTypeTagType = (type: string) => {
-  const map: Record<string, string> = {
-    number: 'success',
-    string: 'primary',
-    boolean: 'warning',
-    date: 'info',
-    null: 'danger'
+const getBadgeVariant = (type: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    number: 'default',
+    string: 'secondary',
+    boolean: 'outline',
+    date: 'secondary',
+    null: 'destructive'
   }
-  return map[type] || ''
+  return map[type] || 'secondary'
 }
 
 const getStatLabel = (key: string) => {
@@ -625,8 +636,13 @@ const emptyAggregationsStyle = computed(() => ({
   flex-wrap: wrap;
 }
 
-.sample-tag {
+.sample-badge {
   margin: 0;
+}
+
+.warning-badge {
+  background-color: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
 }
 
 .stats-tree,

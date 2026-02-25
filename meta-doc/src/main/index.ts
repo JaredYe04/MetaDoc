@@ -12,7 +12,13 @@ const icon = undefined // 暂时禁用icon导入
 import fs from 'fs'
 import http from 'http'
 import os from 'os'
-import { mainCalls, refreshMainWindowTitle, openDoc, findWindowWithToolTab, globalTabRegistry } from './main-calls'
+import {
+  mainCalls,
+  refreshMainWindowTitle,
+  openDoc,
+  findWindowWithToolTab,
+  globalTabRegistry
+} from './main-calls'
 import { registerDragManagerIPC } from './drag-manager'
 import { initWindowPool } from './window-pool'
 import { startFileRegistry, stopFileRegistry } from './file-registry'

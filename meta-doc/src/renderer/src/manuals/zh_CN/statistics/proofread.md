@@ -4,6 +4,12 @@
 
 校对工具统计功能用于跟踪和查看文档校对的使用情况，包括拼写检查、语法检查等统计信息。这些统计数据可以帮助您了解校对功能的使用情况，优化校对策略。
 
+<ProofreadView mode="demo" />
+
+<ProofreadDisplay mode="demo" />
+
+<DataAnalysisDisplay mode="demo" />
+
 ## 校对统计介绍
 
 ### 什么是校对统计
@@ -39,6 +45,10 @@ graph TB
 ```
 
 ## 错误统计
+
+<DataAnalysisDisplay mode="demo" />
+
+<ChartGenerationDisplay mode="demo" />
 
 ### 错误分类
 
@@ -97,6 +107,8 @@ graph TB
 
 ## 统计视图
 
+<ProofreadView mode="demo" />
+
 ### 统一视图
 
 统一视图显示所有错误：
@@ -104,6 +116,8 @@ graph TB
 - **错误列表**：按顺序显示所有错误
 - **错误详情**：显示每个错误的详细信息
 - **错误定位**：可以定位到错误位置
+
+<DataAnalysisDisplay mode="demo" />
 
 ### 分类视图
 
@@ -122,6 +136,8 @@ graph TB
 - **导出格式**：可能支持多种格式（JSON、CSV等）
 - **导出范围**：可以选择导出全部或筛选后的数据
 - **导出内容**：可以选择导出哪些统计信息
+
+<ChartGenerationDisplay mode="demo" />
 
 ## 最佳实践
 

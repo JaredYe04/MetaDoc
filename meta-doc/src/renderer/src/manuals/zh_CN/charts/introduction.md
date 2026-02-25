@@ -4,7 +4,11 @@
 
 MetaDoc支持多种图表绘制引擎，可以在Markdown文档中插入和渲染各种类型的图表。图表功能让您能够创建流程图、UML图、数据可视化图表等，丰富文档内容。
 
+<GraphWindow mode="demo" />
+
 ## 支持的图表引擎
+
+<ChartGenerationDisplay mode="demo" />
 
 ### 图表类型
 
@@ -22,16 +26,32 @@ MetaDoc支持以下图表引擎：
 
 ### 引擎对比
 
-| 引擎 | 适用场景 | 渲染方式 |
-|------|---------|---------|
-| Mermaid | 流程图、序列图、类图、甘特图 | 浏览器渲染 |
-| PlantUML | 专业UML建模 | 主进程渲染 |
-| ECharts | 数据可视化（折线图、柱状图等） | 主进程渲染 |
-| Flowchart | 基础流程图 | Vditor渲染 |
-| Graphviz | 图形可视化 | Vditor渲染 |
-| Mindmap | 思维导图 | Vditor渲染 |
+<DataAnalysisDisplay mode="demo" />
+
+| 引擎      | 适用场景                       | 渲染方式   |
+| --------- | ------------------------------ | ---------- |
+| Mermaid   | 流程图、序列图、类图、甘特图   | 浏览器渲染 |
+| PlantUML  | 专业UML建模                    | 主进程渲染 |
+| ECharts   | 数据可视化（折线图、柱状图等） | 主进程渲染 |
+| Flowchart | 基础流程图                     | Vditor渲染 |
+| Graphviz  | 图形可视化                     | Vditor渲染 |
+| Mindmap   | 思维导图                       | Vditor渲染 |
+
+### 引擎对比图表
+
+<OutlineTreeDisplay mode="demo" />
+
+```mermaid
+graph LR
+    A[图表引擎] --> B[Mermaid]
+    A --> C[PlantUML]
+    A --> D[ECharts]
+    style A fill:#f3f4f6,stroke:#374151
+```
 
 ## 插入图表
+
+<DataAnalysisWindow mode="demo" />
 
 ### 代码块语法
 
@@ -56,15 +76,9 @@ graph TD
 - **Graphviz**：` ```graphviz `
 - **Mindmap**：` ```mindmap `
 
-### 图表代码
-
-在代码块中编写图表代码：
-
-- **语法正确**：确保图表代码语法正确
-- **格式规范**：遵循各图表引擎的格式规范
-- **代码完整**：确保代码块完整，包含必要的标记
-
 ## 图表渲染
+
+<ChartGenerationDisplay mode="demo" />
 
 ### 实时渲染
 
@@ -91,6 +105,8 @@ graph TD
 
 ## 图表导出
 
+<OutlineTreeDisplay mode="demo" />
+
 ### 导出支持
 
 图表支持导出到多种格式：
@@ -109,6 +125,8 @@ graph TD
 
 ## 图表编辑
 
+<DataAnalysisDisplay mode="demo" />
+
 ### 代码编辑
 
 可以直接编辑图表代码：
@@ -126,6 +144,8 @@ graph TD
 - **渲染状态**：显示图表的渲染状态
 
 ## 多语言支持
+
+<DataAnalysisWindow mode="demo" />
 
 ### 图表代码多语言
 

@@ -1,42 +1,46 @@
 <template>
   <div class="unit-test-result-display" :style="containerStyle">
     <div class="test-summary">
-      <el-statistic :title="$t('setting.debug.unitTest.totalTests')" :value="summary.total" />
-      <el-statistic :title="$t('setting.debug.unitTest.passed')" :value="summary.passed">
+      <Statistic :title="$t('setting.debug.unitTest.totalTests')" :value="summary.total" />
+      <Statistic :title="$t('setting.debug.unitTest.passed')" :value="summary.passed">
         <template #suffix>
-          <el-tag type="success" size="small" style="margin-left: 8px">
-            {{ summary.passedRate }}%
-          </el-tag>
+          <Badge style="margin-left: 8px"> {{ summary.passedRate }}% </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('setting.debug.unitTest.failed')" :value="summary.failed">
+      </Statistic>
+      <Statistic :title="$t('setting.debug.unitTest.failed')" :value="summary.failed">
         <template #suffix>
-          <el-tag type="danger" size="small" style="margin-left: 8px">
-            {{ summary.failedRate }}%
-          </el-tag>
+          <Badge variant="destructive" style="margin-left: 8px"> {{ summary.failedRate }}% </Badge>
         </template>
-      </el-statistic>
-      <el-statistic :title="$t('setting.debug.unitTest.duration')" :value="summary.duration">
+      </Statistic>
+      <Statistic :title="$t('setting.debug.unitTest.duration')" :value="summary.duration">
         <template #suffix>ms</template>
-      </el-statistic>
+      </Statistic>
     </div>
 
-    <el-divider />
+    <Divider />
 
     <div class="test-actions">
-      <el-button type="primary" :icon="Document" @click="copyMarkdown">
+      <Button type="primary" @click="copyMarkdown">
+        <Document />
         {{ $t('setting.debug.unitTest.copyMarkdown') }}
-      </el-button>
-      <el-button :icon="Download" @click="downloadMarkdown">
+      </Button>
+      <Button @click="downloadMarkdown">
+        <Download />
         {{ $t('setting.debug.unitTest.downloadMarkdown') }}
-      </el-button>
+      </Button>
     </div>
 
-    <el-divider />
+    <Divider />
 
-    <el-tabs v-model="activeTab" type="border-card" tab-position="top">
-      <el-tab-pane :label="$t('setting.debug.unitTest.testResults')" name="results">
-        <el-scrollbar style="height: 100%">
+    <Tabs v-model="activeTab" class="border-card">
+      <TabsList>
+        <TabsTrigger value="results">{{ $t('setting.debug.unitTest.testResults') }}</TabsTrigger>
+        <TabsTrigger value="markdown">{{
+          $t('setting.debug.unitTest.markdownSummary')
+        }}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="results">
+        <ScrollArea class="h-full">
           <div class="test-results-list">
             <div
               v-for="(result, index) in testResults"
@@ -59,13 +63,13 @@
                   </span>
                 </div>
                 <div class="test-result-actions">
-                  <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
+                  <Badge :variant="result.passed ? 'default' : 'destructive'">
                     {{
                       result.passed
                         ? $t('setting.debug.unitTest.passed')
                         : $t('setting.debug.unitTest.failed')
                     }}
-                  </el-tag>
+                  </Badge>
                 </div>
               </div>
 
@@ -105,11 +109,11 @@
               </div>
             </div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
+        </ScrollArea>
+      </TabsContent>
 
-      <el-tab-pane :label="$t('setting.debug.unitTest.markdownSummary')" name="markdown">
-        <el-scrollbar style="height: 100%">
+      <TabsContent value="markdown">
+        <ScrollArea class="h-full">
           <div class="markdown-content" :style="markdownContentStyle">
             <div
               ref="markdownContainerRef"
@@ -119,9 +123,9 @@
               }"
             ></div>
           </div>
-        </el-scrollbar>
-      </el-tab-pane>
-    </el-tabs>
+        </ScrollArea>
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
 
@@ -133,6 +137,12 @@ import { Document, Download, Check, Close } from '@element-plus/icons-vue'
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview } from './md-utils'
 import { createRendererLogger } from './logger'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { Badge } from '../components/ui/badge'
+import { Statistic } from '@renderer/components/ui/statistic'
+import { Divider } from '@renderer/components/ui/separator'
 
 const { t } = useI18n()
 
@@ -302,43 +312,21 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.unit-test-result-display :deep(.el-tabs) {
-  display: flex;
-  flex-direction: column !important;
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
+/* shadcn-vue Tabs styling */
+.unit-test-result-display :deep([role='tablist']) {
+  flex-shrink: 0;
 }
 
-.unit-test-result-display :deep(.el-tabs__header) {
-  order: -999 !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
-}
-
-.unit-test-result-display :deep(.el-tabs__content) {
-  order: 0 !important;
+.unit-test-result-display :deep([role='tabpanel']) {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  position: relative !important;
 }
 
-.unit-test-result-display :deep(.el-tab-pane) {
+.unit-test-result-display :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.unit-test-result-display :deep(.el-scrollbar) {
-  height: 100%;
-  flex: 1;
-  overflow: hidden;
 }
 
 .test-summary {

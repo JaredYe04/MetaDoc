@@ -4,25 +4,32 @@
       <span class="progress-label">{{ $t('userManual.progress.label') || '学习进度' }}</span>
       <span class="progress-percentage">{{ learningProgress }}%</span>
     </div>
-    <el-progress
+    <Progress
       :percentage="learningProgress"
       :stroke-width="8"
       :show-text="false"
       :color="progressColor"
     />
     <div class="progress-info">
-      <span>{{ completedCount }} / {{ totalCount }} {{ $t('userManual.progress.completed') || '已完成' }}</span>
-      <el-tooltip v-if="showListSwitch" :content="$t('userManual.sidebar.onlyRecommendedTip')" placement="top">
-        <div class="progress-info-switch">
-          <span class="progress-info-label">{{ $t('userManual.sidebar.onlyRecommended') }}</span>
-          <el-switch
-            :model-value="onlyRecommended"
-            size="small"
-            class="progress-info-switch-control"
-            @update:model-value="emit('update:onlyRecommended', $event)"
-          />
-        </div>
-      </el-tooltip>
+      <span
+        >{{ completedCount }} / {{ totalCount }}
+        {{ $t('userManual.progress.completed') || '已完成' }}</span
+      >
+      <Tooltip v-if="showListSwitch">
+        <TooltipTrigger as-child>
+          <div class="progress-info-switch">
+            <span class="progress-info-label">{{ $t('userManual.sidebar.onlyRecommended') }}</span>
+            <Switch
+              :checked="onlyRecommended"
+              class="progress-info-switch-control"
+              @update:checked="emit('update:onlyRecommended', $event)"
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p>{{ $t('userManual.sidebar.onlyRecommendedTip') }}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   </div>
 </template>
@@ -30,16 +37,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useUserManual } from '../../stores/userManual'
+import { Switch } from '@renderer/components/ui/switch'
+import { Progress } from '@renderer/components/ui/progress'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
-const props = withDefaults(defineProps<{
-  /** 是否只显示推荐列表（否则显示完整目录） */
-  onlyRecommended?: boolean
-  /** 是否显示「只显示推荐路径」开关（侧栏内为 true） */
-  showListSwitch?: boolean
-}>(), {
-  onlyRecommended: true,
-  showListSwitch: false
-})
+const props = withDefaults(
+  defineProps<{
+    /** 是否只显示推荐列表（否则显示完整目录） */
+    onlyRecommended?: boolean
+    /** 是否显示「只显示推荐路径」开关（侧栏内为 true） */
+    showListSwitch?: boolean
+  }>(),
+  {
+    onlyRecommended: true,
+    showListSwitch: false
+  }
+)
 
 const emit = defineEmits<{
   'update:onlyRecommended': [value: boolean]
@@ -48,7 +61,7 @@ const emit = defineEmits<{
 const { learningPath, articleProgress, learningProgress } = useUserManual()
 
 const completedCount = computed(() => {
-  return learningPath.value.filter(id => {
+  return learningPath.value.filter((id) => {
     const progress = articleProgress.value.get(id)
     return progress?.read === true
   }).length
@@ -116,7 +129,7 @@ const progressColor = computed(() => {
 }
 
 .progress-info-switch-control {
-  --el-switch-height: 18px;
+  transform: scale(0.85);
 }
 </style>
 

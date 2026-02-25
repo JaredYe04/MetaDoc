@@ -1,20 +1,21 @@
 <template>
-  <el-button
+  <Button
     :type="isRecording ? 'danger' : 'primary'"
-    @click="toggleRecording"
     circle
     :size="props.size ? props.size : 'medium'"
     :disabled="props.disabled"
+    @click="toggleRecording"
   >
     <el-icon v-if="!isRecording"><Microphone /></el-icon>
     <el-icon v-if="isRecording"><Select /></el-icon>
-  </el-button>
-  <audio ref="audioPlayer" :src="audioUrl" controls v-if="false" class="audio-player" />
+  </Button>
+  <audio v-if="false" ref="audioPlayer" :src="audioUrl" controls class="audio-player" />
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { ElButton, ElIcon } from 'element-plus'
+import { ElIcon } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import axios from 'axios'
 import { convertWebMToWav } from '../utils/audio-convert'
 import { useI18n } from 'vue-i18n'

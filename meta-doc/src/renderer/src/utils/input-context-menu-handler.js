@@ -10,18 +10,27 @@ function getEditableElement(target) {
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
     return target
   }
-  const container = target.closest('.el-input, .el-textarea, .el-input-number')
+  // Support both Element Plus and shadcn/radix number fields
+  const container = target.closest(
+    '.el-input, .el-textarea, .el-input-number, [data-radix-number-field-input]'
+  )
   if (!container) return null
+  // For shadcn NumberField, the container itself is the input
+  if (container.hasAttribute('data-radix-number-field-input')) {
+    return container
+  }
   return container.querySelector('input, textarea')
 }
 
 function shouldShowInputMenu(target) {
   if (!target || typeof target.closest !== 'function') return false
   if (target.closest(EXCLUDE_SELECTORS)) return false
+  // Support both Element Plus and shadcn/radix components
   if (
     target.closest('.el-input') ||
     target.closest('.el-textarea') ||
-    target.closest('.el-input-number')
+    target.closest('.el-input-number') ||
+    target.closest('[data-radix-number-field-input]')
   )
     return true
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return true

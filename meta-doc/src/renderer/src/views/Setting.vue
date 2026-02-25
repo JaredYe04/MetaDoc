@@ -6,35 +6,36 @@
       color: themeState.currentTheme.textColor
     }"
   >
-    <el-container class="settings-layout">
-      <el-aside class="settings-aside" width="120px">
-        <el-menu
-          :default-active="activeMenu"
-          @select="handleMenuSelect"
+    <div class="settings-layout">
+      <aside class="settings-aside">
+        <UIMenu
+          :collapse="false"
           :background-color="themeState.currentTheme.background"
           :text-color="themeState.currentTheme.SideTextColor"
-          :active-text-color="themeState.currentTheme.SideActiveTextColor"
-          :class="['settings-menu', 'modern-side-menu']"
+          class="settings-menu modern-side-menu"
         >
-          <el-menu-item
+          <UIMenuItem
             v-for="item in menuItems"
             :key="item.key"
-            :index="item.key"
-            :class="{ 'menu-logs-item': item.key === 'logs' }"
-          >
-            {{ $t(item.label) }}
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
+            :label="$t(item.label)"
+            :class="[
+              'menu-item',
+              { 'is-active': activeMenu === item.key, 'menu-logs-item': item.key === 'logs' }
+            ]"
+            @click="handleMenuSelect(item.key)"
+          />
+        </UIMenu>
+      </aside>
 
-      <el-main class="settings-main" :style="{ color: themeState.currentTheme.textColor }">
-        <el-scrollbar class="settings-scroll">
+      <main class="settings-main" :style="{ color: themeState.currentTheme.textColor }">
+        <ScrollArea class="settings-scroll">
           <keep-alive>
             <component :is="currentComponent" :key="activeMenu" class="setting-section" />
           </keep-alive>
-        </el-scrollbar>
-      </el-main>
-    </el-container>
+          <ScrollBar />
+        </ScrollArea>
+      </main>
+    </div>
   </div>
 </template>
 
@@ -50,6 +51,9 @@ import SettingLoggerSection from './setting/SettingLoggerSection.vue'
 import SettingImageSection from './setting/SettingImageSection.vue'
 // import SettingDebugSection from './setting/SettingDebugSection.vue';
 import SettingAboutSection from './setting/SettingAboutSection.vue'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import UIMenu from '@renderer/components/ui/UIMenu.vue'
+import UIMenuItem from '@renderer/components/ui/UIMenuItem.vue'
 import { isDevEnvironment } from '../utils/dev-env'
 import '../assets/aero-btn.css'
 import '../assets/aero-div.css'
@@ -135,33 +139,44 @@ onMounted(async () => {
 .settings-layout {
   height: 100%;
   width: 100%;
+  display: flex;
 }
 
 .settings-aside {
   height: 100%;
+  width: auto;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .settings-menu {
   height: 100%;
   display: flex;
   flex-direction: column;
-  width: 120px; /* 与 HeadMenu 保持一致 */
+  width: 180px;
+}
+
+/* 菜单项基础样式 */
+.menu-item {
+  margin: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 /* 设置菜单激活状态的颜色绑定 */
-.settings-menu.modern-side-menu :deep(.el-menu-item.is-active) {
+.menu-item.is-active {
   background-color: v-bind('activeBackgroundColor') !important;
   color: v-bind('activeTextColor') !important;
-  border-radius: 6px !important;
 }
 
 /* 确保 hover 状态也有圆角 */
-.settings-menu.modern-side-menu :deep(.el-menu-item:hover) {
+.menu-item:hover {
   border-radius: 6px !important;
 }
 
 /* 确保所有菜单项都有圆角 */
-.settings-menu.modern-side-menu :deep(.el-menu-item) {
+.menu-item {
   border-radius: 6px !important;
 }
 
@@ -169,6 +184,7 @@ onMounted(async () => {
   height: 100%;
   padding: 0;
   overflow: hidden;
+  flex: 1;
 }
 
 .settings-scroll {
@@ -179,6 +195,7 @@ onMounted(async () => {
 .setting-section {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   padding: 32px 24px 64px;
   box-sizing: border-box;
   height: 100%;
@@ -191,7 +208,7 @@ onMounted(async () => {
   padding: 0;
 } */
 
-::deep(.menu-logs-item) {
+.menu-logs-item {
   margin-top: auto !important;
 }
 </style>

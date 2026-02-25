@@ -24,6 +24,8 @@ AI对话支持多会话管理、引用素材、知识库集成等功能，让您
 
 AI对话界面包含以下部分：
 
+<AIChat mode="demo" />
+
 - **会话列表**：左侧显示所有会话列表
 - **对话区域**：中间显示对话消息
 - **输入框**：底部输入消息
@@ -49,6 +51,10 @@ graph TB
 ```
 
 ## 会话管理
+
+AI对话支持多会话管理，您可以创建、重命名、删除和复制会话。
+
+<AIChat mode="demo" />
 
 ### 创建会话
 
@@ -116,7 +122,13 @@ graph LR
 
 导出/导入功能方便您备份和分享对话内容。
 
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["save", "open"]}]' />
+
 ## 发送消息
+
+AI对话提供丰富的消息发送功能。
+
+<AIChat mode="demo" />
 
 ### 输入消息
 
@@ -143,6 +155,12 @@ graph LR
 - **Ctrl+Enter**：发送消息（某些配置下）
 
 ## AI回复
+
+AI回复功能提供流式输出和消息操作功能。
+
+<AIChat mode="demo" />
+
+<AIChat mode="demo" />
 
 ### 流式输出
 
@@ -185,6 +203,10 @@ sequenceDiagram
 编辑消息会删除该消息之后的所有消息，重新开始对话。
 
 ## 引用素材
+
+您可以为AI对话添加引用素材，帮助AI更好地理解上下文。
+
+<AIChat mode="demo" />
 
 ### 添加引用
 
@@ -243,6 +265,12 @@ graph TB
 
 ## 知识库集成
 
+AI对话可以与知识库集成，自动检索相关知识。
+
+<KnowledgeBase mode="demo" />
+
+<AIChat mode="demo" />
+
 ### 启用知识库
 
 启用知识库查询：
@@ -271,6 +299,10 @@ graph TB
 
 ## 消息管理
 
+管理AI对话中的消息。
+
+<AIChat mode="demo" />
+
 ### 消息操作
 
 对消息可以进行以下操作：
@@ -292,12 +324,18 @@ graph TB
 
 消息支持以下格式：
 
+<AIChat mode="demo" />
+
 - **Markdown**：支持Markdown格式
 - **代码块**：支持代码块高亮
 - **数学公式**：支持LaTeX数学公式
 - **表格**：支持表格显示
 
 ## 使用技巧
+
+通过以下技巧可以更高效地使用AI对话功能。
+
+<AIChat mode="demo" />
 
 ### 高效对话
 
@@ -318,6 +356,10 @@ graph TB
 3. **调整设置**：根据需求调整检索设置
 
 ## 常见问题
+
+<AIChat mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant"}]' />
 
 ### Q: AI回复不准确？
 

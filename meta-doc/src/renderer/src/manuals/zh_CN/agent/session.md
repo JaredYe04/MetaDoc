@@ -4,6 +4,8 @@
 
 Agent会话是Agent框架的核心组件，代表一个独立的、有上下文的Agent执行环境。每个会话维护自己的消息历史、引用素材、公共上下文空间，并支持消息队列、重试、Duplicate等高级功能。
 
+<AgentView mode="demo" />
+
 Agent会话基于AgentConfig创建，继承了AgentConfig的工具集和能力范围，但每个会话都有独立的执行状态和历史记录。
 
 ```mermaid
@@ -29,19 +31,19 @@ graph TB
 
 创建Agent会话的步骤：
 
+<AgentView mode="demo" />
+
 1. **打开Agent视图**：点击菜单栏的"AI" → "Agent"打开Agent视图
 2. **选择AgentConfig**：在会话列表上方选择要使用的AgentConfig
 3. **创建会话**：点击"新建会话"按钮
 4. **输入标题**：可选输入会话标题（默认使用第一条消息作为标题）
 5. **开始对话**：输入第一条消息开始与Agent交互
 
-您可以通过侧边栏访问Agent视图：
-
-<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
-
 ### 会话初始化
 
 创建会话时，系统会自动：
+
+<AgentSessionManager mode="demo" />
 
 - **创建会话ID**：生成唯一的会话标识符
 - **关联AgentConfig**：绑定到指定的AgentConfig
@@ -57,6 +59,8 @@ graph TB
 
 重命名现有会话：
 
+<AgentView mode="demo" />
+
 1. **右键菜单**：右键点击会话，选择"重命名"
 2. **输入新名称**：在弹出的对话框中输入新的会话名称
 3. **确认保存**：点击确认保存新名称
@@ -68,6 +72,8 @@ graph TB
 ### 删除操作
 
 删除不需要的会话：
+
+<AgentSessionManager mode="demo" />
 
 1. **右键菜单**：右键点击会话，选择"删除"
 2. **确认删除**：在弹出的确认对话框中确认删除
@@ -83,6 +89,8 @@ graph TB
 ### 复制操作
 
 复制现有会话：
+
+<AgentView mode="demo" />
 
 1. **右键菜单**：右键点击会话，选择"复制"
 2. **创建副本**：系统会创建一个新的会话副本
@@ -108,7 +116,11 @@ graph TB
 
 ### 导出会话
 
+<AgentView mode="demo" />
+
 导出会话为JSON文件：
+
+<AgentView mode="demo" />
 
 1. **右键菜单**：右键点击会话，选择"导出"
 2. **选择位置**：选择保存位置和文件名
@@ -139,6 +151,8 @@ graph LR
 
 ### 导入会话
 
+<AgentSessionManager mode="demo" />
+
 从JSON文件导入会话：
 
 1. **打开导入**：在Agent视图中找到导入功能
@@ -160,9 +174,6 @@ sequenceDiagram
     S->>S: 解析会话数据
     S->>UI: 创建新会话
     UI->>U: 显示导入成功
-    style U fill:#f3f4f6,stroke:#374151
-    style UI fill:#f3f4f6,stroke:#374151
-    style S fill:#f3f4f6,stroke:#374151
 ```
 
 ## 重试会话
@@ -201,6 +212,8 @@ sequenceDiagram
 
 ### 消息队列
 
+<AgentView mode="demo" />
+
 消息队列允许在Agent执行过程中插入消息：
 
 1. **插入时机**：当Agent正在生成回复或调用工具时，消息会暂存到队列
@@ -212,6 +225,8 @@ sequenceDiagram
 ## 引用素材管理
 
 ### 添加引用
+
+<ReferenceManager mode="demo" />
 
 为会话添加引用素材：
 
@@ -234,6 +249,8 @@ sequenceDiagram
 
 ### 激活引用
 
+<ReferenceManager mode="demo" />
+
 引用素材可以激活或停用：
 
 - **激活引用**：激活的引用会在Agent执行时使用
@@ -246,6 +263,8 @@ Agent可以感知引用素材的内容，并基于它们进行推理和操作。
 ### 上下文空间
 
 公共上下文是会话级别的共享上下文空间，包含：
+
+<AgentView mode="demo" />
 
 - **当前时间**：自动更新的时间戳
 - **文档信息**：当前打开的文档信息（如果启用）
@@ -260,6 +279,8 @@ Agent可以感知引用素材的内容，并基于它们进行推理和操作。
 - **状态共享**：在工作流中共享状态信息
 
 ## 会话状态
+
+<AgentSessionManager mode="demo" />
 
 ### 状态类型
 
@@ -297,6 +318,8 @@ graph LR
 
 ## 使用技巧
 
+<AgentView mode="demo" />
+
 ### 会话组织
 
 1. **分类管理**：为不同主题创建不同会话
@@ -316,6 +339,8 @@ graph LR
 3. **调整配置**：如果频繁失败，考虑调整AgentConfig或工具集
 
 ## 常见问题
+
+<AgentView mode="demo" />
 
 ### Q: 如何创建新会话？
 

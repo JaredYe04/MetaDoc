@@ -53,12 +53,7 @@
           <div class="document-content-section">
             <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
             <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
-            <el-skeleton
-              v-show="isRendering"
-              :rows="15"
-              animated
-              class="content-preview-skeleton"
-            />
+            <Skeleton v-show="isRendering" :rows="15" animated class="content-preview-skeleton" />
             <div
               v-show="!isRendering"
               ref="monacoPreviewRef"
@@ -68,7 +63,7 @@
         </div>
       </div>
       <!-- 其他格式：使用滚动条 -->
-      <el-scrollbar v-else class="home-panel-scrollbar">
+      <ScrollArea v-else class="home-panel-scrollbar">
         <div class="home-panel-content">
           <!-- 文档元信息区域 -->
           <div class="document-meta-section">
@@ -100,12 +95,7 @@
           <div class="document-content-section">
             <!-- 其他格式：使用Markdown预览 -->
             <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
-            <el-skeleton
-              v-show="isRendering"
-              :rows="15"
-              animated
-              class="content-preview-skeleton"
-            />
+            <Skeleton v-show="isRendering" :rows="15" animated class="content-preview-skeleton" />
             <div
               v-show="!isRendering"
               ref="previewContainerRef"
@@ -115,7 +105,7 @@
             ></div>
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
   </div>
 </template>
@@ -137,6 +127,8 @@ import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '.
 import { formatRegistry } from '../utils/format-registry'
 import { getMonacoLanguage } from '../utils/format-initializer'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()
@@ -516,10 +508,10 @@ const renderPreview = async () => {
     logger.debug('renderPreview: showDocumentPreview 为 false，跳过渲染')
     return
   }
-  
+
   if (isPdfTab.value) return
   if (isPlainTextFormat.value) return
-  
+
   // 确保容器存在
   if (!previewContainerRef.value) {
     // 如果 showDocumentPreview 为 false，这是正常的（比如系统 tab），不需要警告
@@ -527,7 +519,7 @@ const renderPreview = async () => {
       logger.debug('renderPreview: showDocumentPreview 为 false，容器不存在是正常的')
       return
     }
-    
+
     logger.debug('预览容器不存在，等待 DOM 更新', {
       showDocumentPreview: showDocumentPreview.value,
       activeTab: activeTab.value?.kind,
@@ -536,13 +528,13 @@ const renderPreview = async () => {
     // 等待一下再重试
     await nextTick()
     await nextTick() // 再等待一次，确保 DOM 完全更新
-    
+
     // 再次检查条件
     if (!showDocumentPreview.value) {
       logger.debug('renderPreview: DOM 更新后 showDocumentPreview 变为 false，跳过渲染')
       return
     }
-    
+
     if (!previewContainerRef.value) {
       // 只有在 showDocumentPreview 为 true 但容器仍然不存在时才报错
       logger.error('预览容器仍然不存在，无法渲染', {
@@ -566,7 +558,7 @@ const renderPreview = async () => {
       return
     }
     const primaryColor = themeState.currentTheme.primaryColor || '#6366f1'
-    
+
     const emptyContentHtml = `
       <div style="
         display: flex;
@@ -647,7 +639,7 @@ const renderPreview = async () => {
 
   try {
     isRendering.value = true
-    
+
     // 获取最新的容器引用
     const initialContainer = previewContainerRef.value as HTMLDivElement | null
     logger.debug('开始渲染预览', {
@@ -655,12 +647,12 @@ const renderPreview = async () => {
       docPath: currentFilePath.value,
       containerExists: !!initialContainer
     })
-    
+
     if (!initialContainer) {
       logger.warn('容器不存在，无法渲染')
       return
     }
-    
+
     // 预览渲染需要 file:// 协议，以便浏览器能够加载本地图片
     // 转换策略：
     // 1. 先转换为 HTTP URL（统一格式，处理相对路径和预渲染的图表）
@@ -672,13 +664,13 @@ const renderPreview = async () => {
     const processedMarkdown = await local2fileProtocol(markdown, docPath)
 
     const linkBase = currentLinkBase.value
-    
+
     // 确保容器完全准备好（参考 VditorPreview.vue 的实现）
     // 注意：由于使用了 v-show，容器应该始终存在，但我们需要等待 DOM 更新
     await nextTick()
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
     await nextTick()
-    
+
     // 每次都从 ref 获取最新的容器引用，不要使用之前保存的引用
     // 使用 v-show 后，容器应该始终存在（除非组件被卸载）
     let container = previewContainerRef.value as HTMLDivElement | null
@@ -690,9 +682,9 @@ const renderPreview = async () => {
       })
       // 等待一下再重试
       await nextTick()
-      await new Promise(resolve => requestAnimationFrame(resolve))
+      await new Promise((resolve) => requestAnimationFrame(resolve))
       await nextTick()
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       container = previewContainerRef.value as HTMLDivElement | null
       if (!container) {
         logger.error('重试后容器仍然不存在', {
@@ -703,7 +695,7 @@ const renderPreview = async () => {
       }
       logger.debug('重试后容器已找到')
     }
-    
+
     // 记录渲染前的容器状态
     logger.debug('渲染前容器状态', {
       containerInnerHTML: container.innerHTML.substring(0, 100),
@@ -712,31 +704,31 @@ const renderPreview = async () => {
       isRendering: isRendering.value,
       containerVisible: window.getComputedStyle(container).display !== 'none'
     })
-    
+
     try {
       // 注意：启用代码和数学公式渲染，确保内容能正确显示
       await renderMarkdownPreview(container, processedMarkdown, {
         linkBase: linkBase,
-        renderCode: true,  // 启用代码渲染
-        renderMath: true   // 启用数学公式渲染
+        renderCode: true, // 启用代码渲染
+        renderMath: true // 启用数学公式渲染
       })
-      
+
       // 等待 DOM 更新和 Vditor 完成渲染（使用 requestAnimationFrame 确保渲染完成）
       await nextTick()
-      await new Promise(resolve => requestAnimationFrame(resolve))
+      await new Promise((resolve) => requestAnimationFrame(resolve))
       await nextTick()
-      await new Promise(resolve => setTimeout(resolve, 200)) // 给 Vditor 更多时间完成渲染
-      
+      await new Promise((resolve) => setTimeout(resolve, 200)) // 给 Vditor 更多时间完成渲染
+
       // 再次获取最新的容器引用（可能在等待过程中发生了变化）
       const currentContainer = previewContainerRef.value as HTMLDivElement | null
       if (!currentContainer) {
         logger.warn('容器在渲染后不存在')
         return
       }
-      
+
       // 如果容器引用发生了变化，使用新的容器
       const finalContainer = currentContainer === container ? container : currentContainer
-      
+
       // 记录渲染后的容器状态
       const afterRenderState = {
         containerInnerHTML: finalContainer.innerHTML.substring(0, 200),
@@ -749,19 +741,21 @@ const renderPreview = async () => {
         containerOpacity: window.getComputedStyle(finalContainer).opacity,
         containerHeight: finalContainer.offsetHeight,
         containerWidth: finalContainer.offsetWidth,
-        containerParentVisible: finalContainer.parentElement ? window.getComputedStyle(finalContainer.parentElement).display !== 'none' : false,
+        containerParentVisible: finalContainer.parentElement
+          ? window.getComputedStyle(finalContainer.parentElement).display !== 'none'
+          : false,
         containerChanged: finalContainer !== container
       }
-      
+
       logger.debug('渲染后容器状态', afterRenderState)
-      
+
       // 如果容器仍然是空的，记录警告并尝试重新渲染
       if (!finalContainer.innerHTML || finalContainer.innerHTML.trim() === '') {
         logger.warn('渲染后容器仍然为空！尝试重新渲染', {
           ...afterRenderState,
           markdownPreview: processedMarkdown.substring(0, 200)
         })
-        
+
         // 尝试再次渲染（可能是 Vditor.preview 没有正确执行）
         try {
           finalContainer.innerHTML = '<p>正在加载预览...</p>'
@@ -771,12 +765,12 @@ const renderPreview = async () => {
             renderMath: true
           })
           await nextTick()
-          await new Promise(resolve => setTimeout(resolve, 300))
-          
+          await new Promise((resolve) => setTimeout(resolve, 300))
+
           // 再次检查容器
           const retryContainer = previewContainerRef.value as HTMLDivElement | null
           const checkContainer = retryContainer || finalContainer
-          
+
           if (!checkContainer.innerHTML || checkContainer.innerHTML.trim() === '') {
             logger.error('重新渲染后容器仍然为空！')
             checkContainer.innerHTML = `<p style="color: var(--console-err, #fe8771);">预览渲染失败，请刷新页面重试</p>`
@@ -789,7 +783,7 @@ const renderPreview = async () => {
           }
         }
       }
-      
+
       logger.debug('预览渲染完成')
     } catch (renderError) {
       logger.error('renderMarkdownPreview 执行出错', renderError)
@@ -833,7 +827,7 @@ watch(
       })
       return
     }
-    
+
     // 只有在 showDocumentPreview 为 true 时才执行渲染
     nextTick(() => {
       // 确保 DOM 已经更新
@@ -843,7 +837,7 @@ watch(
           logger.debug('watch: DOM 更新后 showDocumentPreview 变为 false，跳过渲染')
           return
         }
-        
+
         // 确保容器存在（对于非纯文本格式）
         if (!isPlainTextFormat.value && !previewContainerRef.value) {
           logger.warn('watch: 预览容器不存在，跳过渲染', {
@@ -852,7 +846,7 @@ watch(
           })
           return
         }
-        
+
         if (isPlainTextFormat.value) {
           // 纯文本格式：使用Monaco预览
           if (monacoPreviewEditor) {
@@ -915,7 +909,7 @@ onMounted(() => {
         previewContainerRef: !!previewContainerRef.value,
         monacoPreviewRef: !!monacoPreviewRef.value
       })
-      
+
       if (showDocumentPreview.value) {
         if (isPlainTextFormat.value) {
           initMonacoPreview()
@@ -1156,13 +1150,13 @@ onBeforeUnmount(() => {
   justify-content: flex-start;
 }
 
-.content-preview-skeleton :deep(.el-skeleton__item) {
+.content-preview-skeleton :deep(> div) {
   height: 20px;
   margin-bottom: 16px;
   border-radius: 4px;
 }
 
-.content-preview-skeleton :deep(.el-skeleton__item:last-child) {
+.content-preview-skeleton :deep(> div:last-child) {
   width: 60%;
 }
 

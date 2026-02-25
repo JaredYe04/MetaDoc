@@ -1,20 +1,29 @@
 <template>
   <div class="logo-tab-wrapper">
-    <el-tooltip :content="versionTooltip" placement="bottom">
-      <div class="logo-tab" @click="handleLogoClick">
-        <img src="../assets/logo.svg" alt="MetaDoc" class="logo-tab__image" />
-      </div>
-    </el-tooltip>
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <div class="logo-tab" @click="handleLogoClick">
+          <LogoIcon
+            :size="24"
+            :bg-color="bgColor"
+            :symbol-color="symbolColor"
+            class="logo-tab__image"
+          />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{{ versionTooltip }}</p>
+      </TooltipContent>
+    </Tooltip>
     <!-- 关于对话框 -->
-    <el-dialog
-      v-model="aboutDialogVisible"
-      :title="$t('setting.about.appName')"
-      width="600px"
-      :close-on-click-modal="true"
-      :close-on-press-escape="true"
-    >
-      <SettingAboutSection />
-    </el-dialog>
+    <Dialog v-model:open="aboutDialogVisible" modal>
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ $t('setting.about.appName') }}</DialogTitle>
+        </DialogHeader>
+        <SettingAboutSection />
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -23,7 +32,10 @@ import { ref, computed, onMounted } from 'vue'
 import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
-import { mixColors, themeState } from '../utils/themes'
+import { mixColors, themeState, generateLogoColors } from '../utils/themes'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
+import LogoIcon from './LogoIcon.vue'
 
 const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')
@@ -38,6 +50,14 @@ const logoTabBackgroundColor = computed(() => {
     return '#e8e8e8'
   }
 })
+
+const isDark = computed(() => themeState.currentTheme.type === 'dark')
+const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
+
+// 使用HSL生成鲜艳的Logo颜色
+const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
+const bgColor = computed(() => logoColors.value.bgColor)
+const symbolColor = computed(() => logoColors.value.symbolColor)
 
 // 获取应用版本
 onMounted(async () => {
@@ -71,8 +91,6 @@ const handleLogoClick = () => {
   min-width: 64px;
   flex-shrink: 0;
   position: relative;
-  /* 必须高于 .top-header (z-index:100)，否则 LogoTab 内打开的 About 对话框会被 MainTabs 盖住 */
-  z-index: 101;
   -webkit-app-region: no-drag;
   background-color: v-bind('logoTabBackgroundColor');
 }
@@ -93,12 +111,10 @@ const handleLogoClick = () => {
 }
 
 .logo-tab:hover {
-  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+  background-color: rgba(128, 128, 128, 0.1);
 }
 
 .logo-tab__image {
-  width: 24px;
-  height: 24px;
   display: block;
 }
 </style>

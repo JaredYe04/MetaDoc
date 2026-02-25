@@ -85,79 +85,113 @@
                     backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
                   }"
                 >
-                  <el-tooltip :content="$t('latexEditor.toolbar.undo')" placement="bottom">
-                    <div class="toolbar-icon" @click="undo">
-                      <el-icon>
-                        <ArrowLeft />
-                      </el-icon>
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="undo">
+                        <ArrowLeft class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.undo') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.redo')" placement="bottom">
-                    <div class="toolbar-icon" @click="redo">
-                      <el-icon>
-                        <ArrowRight />
-                      </el-icon>
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="redo">
+                        <ArrowRight class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.redo') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-                    <div class="toolbar-icon" @click="zoomIn">
-                      <el-icon>
-                        <ZoomIn />
-                      </el-icon>
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="zoomIn">
+                        <ZoomIn class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.zoomIn') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-                    <div class="toolbar-icon" @click="zoomOut">
-                      <el-icon>
-                        <ZoomOut />
-                      </el-icon>
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="zoomOut">
+                        <ZoomOut class="w-4 h-4" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.zoomOut') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip
-                    :content="$t('latexEditor.toolbar.toggleLineNumbers')"
-                    placement="bottom"
-                  >
-                    <div class="toolbar-icon" @click="toggleRowNumber">
-                      <icon name="numbers-1" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="toggleRowNumber">
+                        <icon name="numbers-1" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.toggleLineNumbers') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.togglePreview')" placement="bottom">
-                    <div class="toolbar-icon" @click="toggleMinimap">
-                      <el-icon>
-                        <Memo />
-                      </el-icon>
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="toggleMinimap">
+                        <el-icon>
+                          <Memo />
+                        </el-icon>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.togglePreview') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-divider direction="vertical"></el-divider>
+                  <Divider direction="vertical" />
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
-                    <div class="toolbar-icon" @click="togglePdf">
-                      <icon name="terminal" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="togglePdf">
+                        <icon name="terminal" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.showPdf') }}
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <el-tooltip :content="$t('latexEditor.toolbar.showConsole')" placement="bottom">
-                    <div class="toolbar-icon" @click="toggleConsole">
-                      <icon name="terminal-rectangle" />
-                    </div>
-                  </el-tooltip>
-                  <el-tooltip :content="$t('latexEditor.toolbar.compile')" placement="bottom">
-                    <div
-                      class="toolbar-icon"
-                      :class="{ 'is-compiling': isCompiling }"
-                      :aria-disabled="isCompiling"
-                      @click="!isCompiling && compile()"
-                    >
-                      <el-icon v-if="isCompiling" class="is-loading"><Loading /></el-icon>
-                      <icon v-else name="code" />
-                    </div>
-                  </el-tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="toolbar-icon" @click="toggleConsole">
+                        <icon name="terminal-rectangle" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.showConsole') }}
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div
+                        class="toolbar-icon"
+                        :class="{ 'is-compiling': isCompiling }"
+                        :aria-disabled="isCompiling"
+                        @click="!isCompiling && compile()"
+                      >
+                        <RefreshCw v-if="isCompiling" class="w-4 h-4 animate-spin" />
+                        <icon v-else name="code" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {{ $t('latexEditor.toolbar.compile') }}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div class="editor-console-container" ref="editorConsoleContainerRef">
                   <div class="editor-wrapper" :class="{ 'console-visible': showConsole }">
@@ -235,8 +269,11 @@ import {
   onUnmounted,
   shallowRef
 } from 'vue'
-import { ElButton, ElDialog, ElLoading, ElScrollbar, ElSelect, ElOption } from 'element-plus'
+import { ElButton, ElLoading, ElScrollbar } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Icon } from 'tdesign-icons-vue-next'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Divider } from '@renderer/components/ui/separator'
 
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
@@ -265,7 +302,7 @@ import { getArticleContextMenuItems } from '../components/contextMenus/ArticleCo
 import ContextMenu from '../components/ContextMenu.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import ConsoleOutput from '../components/ConsoleOutput.vue'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+
 import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
 import * as monaco from 'monaco-editor'
@@ -273,7 +310,8 @@ import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import { useWorkspace } from '../stores/workspace'
 
 import 'monaco-latex'
-import { ArrowLeft, ArrowRight, Refresh, ZoomIn, ZoomOut, Loading } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, RefreshCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { Loading } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
 import messageBridge from '../bridge/message-bridge'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
@@ -314,8 +352,15 @@ const props = defineProps({
   editorDomId: {
     type: String,
     default: 'latex-editor'
+  },
+  mode: {
+    type: String,
+    default: ''
   }
 })
+
+// Demo mode support
+const isDemo = computed(() => props.mode === 'demo')
 const isActive = computed(() => props.active)
 
 const workspace = useWorkspace()
@@ -2244,7 +2289,32 @@ function togglePdf() {
 }
 
 const compile = async () => {
-  if (!editor.value || !messageBridge.getIpc() || isCompiling.value) return
+  if (!editor.value || isCompiling.value) return
+
+  // Demo mode: simulate compilation
+  if (isDemo.value) {
+    isCompiling.value = true
+    showConsole.value = true
+    eventBus.emit('clear-console', { key: 'latex' })
+    // Simulate compilation output
+    eventBus.emit('console-out', {
+      key: 'latex',
+      content: 'Demo mode: Compiling LaTeX document...\n',
+      type: 'out'
+    })
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    eventBus.emit('console-out', {
+      key: 'latex',
+      content: 'This is a demo compilation. PDF generation is simulated.\n',
+      type: 'out'
+    })
+    eventBus.emit('show-success', 'Demo mode: Compilation simulated successfully')
+    showPdfPanel.value = true
+    isCompiling.value = false
+    return
+  }
+
+  if (!messageBridge.getIpc()) return
   isCompiling.value = true
   // 自动打开终端输出界面
   showConsole.value = true
@@ -3015,6 +3085,11 @@ async function locateToCodeFromPdfCenter() {
 
 // 打开PDF所在目录
 async function openPdfDirectory() {
+  if (isDemo.value) {
+    eventBus.emit('show-info', 'Demo mode: Directory opening is simulated')
+    return
+  }
+
   if (!pdfUrl.value || pdfUrl.value === 'file:///') {
     eventBus.emit('show-warning', t('latexEditor.notification.pdfNotAvailable'))
     return
@@ -3043,6 +3118,11 @@ async function openPdfDirectory() {
 
 // 保存PDF（复制并保存对话框）
 async function savePdf() {
+  if (isDemo.value) {
+    eventBus.emit('show-info', 'Demo mode: PDF save is simulated')
+    return
+  }
+
   if (!pdfUrl.value || pdfUrl.value === 'file:///') {
     eventBus.emit('show-warning', t('latexEditor.notification.pdfNotAvailable'))
     return
@@ -3085,6 +3165,15 @@ const insertText = (text: string) => {
 // 处理粘贴图片（用于LaTeX编辑器）
 const handlePasteImage = async () => {
   try {
+    // Demo mode: simulate image paste
+    if (isDemo.value) {
+      eventBus.emit('show-info', 'Demo mode: Image paste is simulated')
+      // Insert a demo image reference
+      const latexCode = `\\includegraphics[width=0.8\\textwidth]{demo-image.png}`
+      insertText(latexCode)
+      return true
+    }
+
     if (!messageBridge.getIpc()) {
       logger.warn('IPC渲染器不可用，无法读取剪切板图片')
       return false
@@ -3737,6 +3826,47 @@ const refreshContextMenu = async () => {
 
 let contentChangeListener: monaco.IDisposable | null = null
 const editorId = ref<string | null>(null)
+// Demo LaTeX content
+const demoLatexContent = `\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath}
+\\usepackage{graphicx}
+
+\\title{Demo LaTeX Document}
+\\author{MetaDoc Demo}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\section{Introduction}
+
+This is a demo LaTeX document for demonstration purposes. It shows the basic structure of a LaTeX document and how the editor works.
+
+\\section{Mathematical Expressions}
+
+Here is a sample equation:
+\\begin{equation}
+    E = mc^2
+\\end{equation}
+
+And here is an inline math expression: $a^2 + b^2 = c^2$
+
+\\section{Lists}
+
+\\begin{itemize}
+    \\item First item
+    \\item Second item
+    \\item Third item
+\\end{itemize}
+
+\\section{Conclusion}
+
+This demo document demonstrates the LaTeX editing capabilities of MetaDoc.
+
+\\end{document}`
+
 const initEditor = () => {
   // 使用统一的 Monaco Worker 配置
   setupMonacoWorker()
@@ -3745,8 +3875,12 @@ const initEditor = () => {
 
   //logger.debug("LaTeXEditor initEditor")
   if (!editorEl.value) return
+
+  // Demo mode: use demo content if editor is empty
+  const editorValue = isDemo.value ? currentTex.value || demoLatexContent : currentTex.value
+
   editor.value = monaco.editor.create(editorEl.value, {
-    value: currentTex.value,
+    value: editorValue,
     language: 'latex', // 语言模式
     theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs', // 主题 (vs, vs-dark, hc-black)
     mouseWheelZoom: true,
@@ -4505,7 +4639,7 @@ function onCancelSuggestion() {
   display: flex;
   justify-content: flex-start; /* 左对齐，不要居中 */
   align-items: flex-start;
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   /* 容器大小自动匹配内容，不设置固定宽度 */
   width: fit-content;
@@ -4523,20 +4657,20 @@ function onCancelSuggestion() {
 
 /* 确保PDF页面本身有白色背景，避免暗色模式下的闪烁 */
 .pdf-page-wrapper .vue-pdf-main {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 
 .pdf-page-wrapper .vue-pdf {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 
 .pdf-page-wrapper .vue-pdf__wrapper {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
 }
 
 /* PDF页面canvas应该有白色背景，并优化渲染质量 */
 .pdf-page-wrapper canvas {
-  background-color: #ffffff;
+  background-color: var(--pdf-page-bg, #ffffff);
   /* 优化缩放时的渲染质量 */
   /* 注意：不要在这里设置 transform，因为缩放是在 .pdf-page-wrapper 上应用的 */
   image-rendering: auto; /* 使用默认渲染，避免crisp-edges导致的锯齿 */

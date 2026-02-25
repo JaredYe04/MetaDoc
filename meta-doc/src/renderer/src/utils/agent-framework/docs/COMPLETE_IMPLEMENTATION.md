@@ -5,6 +5,7 @@
 ### 1. 扩展 createAiTask 支持自定义LLM API
 
 - **文件修改**：
+
   - `meta-doc/src/renderer/src/utils/ai_tasks.ts`：添加 `CustomLlmConfigForTask` 接口和扩展 `LLMApiMeta`
   - `meta-doc/src/renderer/src/utils/llm-api.js`：添加 `getCustomLlmConfigObject` 函数，修改所有LLM调用函数支持自定义配置
 

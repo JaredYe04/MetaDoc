@@ -1,129 +1,88 @@
 <template>
   <div class="view-menu-container" :class="{ 'is-collapsed': isCollapsed }">
-    <el-menu
+    <div
       :class="[
-        'modern-side-menu',
+        'view-side-menu',
         'sub-view-menu',
         { 'is-locked': isLocked, 'is-collapsed': isCollapsed }
       ]"
-      mode="vertical"
-      :menu-trigger="isLocked ? 'manual' : 'hover'"
-      @select="handleSelect"
-      :default-active="activeMenuIndex"
-      :background-color="themeState.currentTheme.background"
-      :text-color="themeState.currentTheme.SideTextColor"
-      :active-text-color="themeState.currentTheme.SideTextColor"
+      :style="menuStyle"
     >
-      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.home')" placement="right">
-        <el-menu-item index="home">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!isCollapsed" index="home">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
-        </div>
-        <span>{{ $t('headMenu.home') }}</span>
-      </el-menu-item>
+      <!-- Home -->
+      <ViewMenuItem
+        index="home"
+        :label="$t('headMenu.home')"
+        :icon-image="themeState.currentTheme.HomeIcon"
+        :is-active="activeMenuIndex === 'home'"
+        :is-collapsed="isCollapsed"
+        :is-disabled="isLocked"
+        @select="handleSelect"
+      />
 
-      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.editor')" placement="right">
-        <el-menu-item index="editor">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!isCollapsed" index="editor">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
-        </div>
-        <span>{{ $t('headMenu.editor') }}</span>
-      </el-menu-item>
+      <!-- Editor -->
+      <ViewMenuItem
+        index="editor"
+        :label="$t('headMenu.editor')"
+        :icon-image="themeState.currentTheme.EditorIcon"
+        :is-active="activeMenuIndex === 'editor'"
+        :is-collapsed="isCollapsed"
+        :is-disabled="isLocked"
+        @select="handleSelect"
+      />
 
       <!-- 大纲树：纯文本格式不显示 -->
-      <el-tooltip
-        v-if="isCollapsed && !isPlainTextFormat"
-        :content="$t('headMenu.outline')"
-        placement="right"
-      >
-        <el-menu-item index="outline">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!isCollapsed && !isPlainTextFormat" index="outline">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
-        </div>
-        <span>{{ $t('headMenu.outline') }}</span>
-      </el-menu-item>
+      <ViewMenuItem
+        v-if="!isPlainTextFormat"
+        index="outline"
+        :label="$t('headMenu.outline')"
+        :icon-image="themeState.currentTheme.OutlineIcon"
+        :is-active="activeMenuIndex === 'outline'"
+        :is-collapsed="isCollapsed"
+        :is-disabled="isLocked"
+        @select="handleSelect"
+      />
 
       <!-- 可视化：纯文本格式不显示 -->
-      <el-tooltip
-        v-if="isCollapsed && !isPlainTextFormat"
-        :content="$t('headMenu.visualize')"
-        placement="right"
-      >
-        <el-menu-item index="visualize">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!isCollapsed && !isPlainTextFormat" index="visualize">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
-        </div>
-        <span>{{ $t('headMenu.visualize') }}</span>
-      </el-menu-item>
+      <ViewMenuItem
+        v-if="!isPlainTextFormat"
+        index="visualize"
+        :label="$t('headMenu.visualize')"
+        :icon-image="themeState.currentTheme.VisualIcon"
+        :is-active="activeMenuIndex === 'visualize'"
+        :is-collapsed="isCollapsed"
+        :is-disabled="isLocked"
+        @select="handleSelect"
+      />
 
       <!-- Agent：纯文本格式不显示 -->
-      <el-tooltip
-        v-if="isCollapsed && !isPlainTextFormat"
-        :content="$t('headMenu.agent')"
-        placement="right"
-      >
-        <el-menu-item index="agent">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!isCollapsed && !isPlainTextFormat" index="agent">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
-        </div>
-        <span>{{ $t('headMenu.agent') }}</span>
-      </el-menu-item>
+      <ViewMenuItem
+        v-if="!isPlainTextFormat"
+        index="agent"
+        :label="$t('headMenu.agent')"
+        :icon-image="themeState.currentTheme.AgentIcon"
+        :is-active="activeMenuIndex === 'agent'"
+        :is-collapsed="isCollapsed"
+        :is-disabled="isLocked"
+        @select="handleSelect"
+      />
 
-      <!-- 文章校对：纯文本格式不显示 -->
-      <el-tooltip
-        v-if="isCollapsed && activeDocument && !isPlainTextFormat"
-        :content="$t('headMenu.proofread')"
-        placement="right"
-      >
-        <el-menu-item index="proofread">
-          <div class="icon-wrapper">
-            <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
-          </div>
-        </el-menu-item>
-      </el-tooltip>
-      <el-menu-item v-if="!isCollapsed && activeDocument && !isPlainTextFormat" index="proofread">
-        <div class="icon-wrapper">
-          <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
-        </div>
-        <span>{{ $t('headMenu.proofread') }}</span>
-      </el-menu-item>
-    </el-menu>
+      <!-- 文章校对：纯文本格式不显示，需要活动文档 -->
+      <ViewMenuItem
+        v-if="activeDocument && !isPlainTextFormat"
+        index="proofread"
+        :label="$t('headMenu.proofread')"
+        :icon-image="themeState.currentTheme.ProofreadIcon"
+        :is-active="activeMenuIndex === 'proofread'"
+        :is-collapsed="isCollapsed"
+        :is-disabled="isLocked"
+        @select="handleSelect"
+      />
+    </div>
+
     <!-- 折叠按钮 -->
     <div class="collapse-button" @click="toggleCollapse">
-      <el-icon>
-        <ArrowLeft v-if="!isCollapsed" />
-        <ArrowRight v-else />
-      </el-icon>
+      <ArrowLeft v-if="!isCollapsed" class="w-4 h-4" />
+      <ArrowRight v-else class="w-4 h-4" />
     </div>
   </div>
 </template>
@@ -134,14 +93,11 @@ import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace, type DocumentView } from '../stores/workspace'
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
-import '../assets/modern-side-menu.css'
+import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import ViewMenuItem from './ViewMenuItem.vue'
 
-const props = withDefaults(
-  defineProps<{ mode?: 'normal' | 'demo' }>(),
-  { mode: 'normal' }
-)
+const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
 const { t } = useI18n()
 const { activeDocument } = useActiveDocument()
@@ -199,6 +155,16 @@ const activeBackgroundColor = computed(() =>
 )
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
+// 菜单样式
+const menuStyle = computed(() => ({
+  '--menu-bg': themeState.currentTheme.background,
+  '--menu-text': themeState.currentTheme.SideTextColor,
+  '--active-bg': activeBackgroundColor.value,
+  '--active-text': activeTextColor.value,
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.SideTextColor
+}))
+
 const handleSelect = (key: string): void => {
   if (isLocked.value) return
   if (props.mode === 'demo') return
@@ -211,7 +177,7 @@ const handleSelect = (key: string): void => {
     // 检查是否是新文档且尚未选择格式
     if (activeTab?.kind === 'new') {
       // 切换到 GlobalHome 标签页（如果不存在则创建）
-      workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
+      workspace.openSystemTab('/global-home', t('headMenu.home', '主页'))
       return
     }
   }
@@ -225,14 +191,14 @@ const handleSelect = (key: string): void => {
     const isPdfTab =
       path.endsWith('.pdf') &&
       (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
-    
+
     // 如果是PDF tab且切换到非Home视图，需要转换为MD
     if (isPdfTab && key !== 'home') {
       // PDF tab（临时或正式）：转为 PDF→MD 的正式新文件 tab
       eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId })
       return
     }
-    
+
     // 其他预览tab的处理
     if (activeTab.preview && key !== 'home') {
       workspace.pinTab(activeTabId)
@@ -266,32 +232,36 @@ onBeforeUnmount((): void => {
   position: relative;
 }
 
-.view-menu-container.is-collapsed .modern-side-menu {
+.view-menu-container.is-collapsed .view-side-menu {
   width: 64px;
 }
 
 /* 组件特定的菜单样式 */
-.modern-side-menu.sub-view-menu {
+.view-side-menu.sub-view-menu {
   width: 120px;
   height: 100%;
+  padding: 8px 4px;
   padding-bottom: 48px; /* 为折叠按钮留出空间 */
+  border-right: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
 }
 
-.modern-side-menu.sub-view-menu.is-collapsed {
+.view-side-menu.sub-view-menu.is-collapsed {
   width: 64px;
   padding-bottom: 48px;
 }
 
-/* 激活状态的颜色绑定（ViewMenu 特定） */
-.modern-side-menu :deep(.el-menu-item.is-active) {
-  background-color: v-bind('activeBackgroundColor') !important;
-  color: v-bind('activeTextColor') !important;
-  border-radius: 6px !important;
-}
-
-/* 确保 hover 状态也有圆角 */
-.modern-side-menu :deep(.el-menu-item:hover) {
-  border-radius: 6px !important;
+/* 锁定状态样式 */
+.view-side-menu.is-locked {
+  cursor: not-allowed;
+  opacity: 0.85;
 }
 
 /* 折叠按钮 */
@@ -325,29 +295,5 @@ onBeforeUnmount((): void => {
   pointer-events: none;
   cursor: not-allowed;
   opacity: 0.6;
-}
-
-/* 图标容器 - 固定尺寸的正方形 */
-.icon-wrapper {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* 图标样式 - 在容器内自适应 */
-.menu-icon {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-}
-
-/* 展开状态下，图标容器和文字之间的间距 */
-.modern-side-menu.sub-view-menu:not(.is-collapsed) .el-menu-item .icon-wrapper {
-  margin-right: 8px;
 }
 </style>

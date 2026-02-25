@@ -12,9 +12,9 @@
         "
       >
         <p>{{ t('agent.formatSelection.noTab', '请先创建一个新文档') }}</p>
-        <el-button type="primary" @click="workspace.openNewDocumentTab()">
+        <Button type="primary" @click="workspace.openNewDocumentTab()">
           {{ t('common.create') }}
-        </el-button>
+        </Button>
       </div>
     </div>
     <!-- 否则显示正常的AgentView内容 -->
@@ -42,51 +42,50 @@
       >
         <template #sidebar-footer>
           <div class="sidebar-footer-content">
-            <el-dropdown @command="handleManageCommand" style="flex-shrink: 0">
-              <el-button size="small" type="info" :icon="Setting" circle />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="tool-collection">{{
-                    t('agent.manage.toolCollection.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="workflow">{{
-                    t('agent.manage.workflow.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="agent-config">{{
-                    t('agent.manage.agentConfig.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item command="agent-engine">{{
-                    t('agent.manage.agentEngine.title')
-                  }}</el-dropdown-item>
-                  <el-dropdown-item divided command="import-session">{{
-                    t('agent.sessions.import')
-                  }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <el-select
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button size="small" type="info" class="[&_svg]:size-4">
+                  <Setting class="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem @click="handleManageCommand('tool-collection')">
+                  {{ t('agent.manage.toolCollection.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleManageCommand('workflow')">
+                  {{ t('agent.manage.workflow.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleManageCommand('agent-config')">
+                  {{ t('agent.manage.agentConfig.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleManageCommand('agent-engine')">
+                  {{ t('agent.manage.agentEngine.title') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleManageCommand('import-session')">
+                  {{ t('agent.sessions.import') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Select
               v-model="selectedEngineId"
-              :placeholder="t('agent.sessions.selectEngine')"
-              size="small"
-              filterable
-              style="flex: 1; min-width: 0"
               :disabled="isGenerating || workspace.uiLocked?.value"
-              @change="handleEngineChange"
+              @update:model-value="handleEngineChange"
             >
-              <el-option
-                v-for="engine in availableEngines"
-                :key="engine.id"
-                :label="getEngineLabel(engine)"
-                :value="engine.id"
-              >
-                <div style="display: flex; align-items: center; justify-content: space-between">
-                  <span>{{ getEngineLabel(engine) }}</span>
-                  <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
-                    {{ t('agent.manage.agentEngine.builtIn') }}
-                  </el-tag>
-                </div>
-              </el-option>
-            </el-select>
+              <SelectTrigger class="h-8 text-sm flex-1 min-w-0">
+                <SelectValue :placeholder="t('agent.sessions.selectEngine')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="engine in availableEngines" :key="engine.id" :value="engine.id">
+                  <div class="flex items-center justify-between w-full gap-4">
+                    <span>{{ getEngineLabel(engine) }}</span>
+                    <Badge v-if="engine.isBuiltIn" variant="outline">
+                      {{ t('agent.manage.agentEngine.builtIn') }}
+                    </Badge>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </template>
         <div class="agent-content">
@@ -99,57 +98,59 @@
                 </p>
               </div>
               <div class="conversation-stats" v-if="activeSession">
-                <el-tag size="small" effect="plain">
+                <Badge variant="outline">
                   {{ t('agent.conversation.messages', { count: messageCount }) }}
-                </el-tag>
-                <el-tooltip
-                  :content="
-                    showToolPane
-                      ? t('agent.conversation.hideTools', '点击隐藏工具面板')
-                      : t('agent.conversation.showTools', '点击显示工具面板')
-                  "
-                  placement="top"
-                >
-                  <el-tag
-                    size="small"
-                    effect="plain"
-                    style="cursor: pointer"
-                    @click="toggleToolPane"
-                  >
-                    {{ t('agent.conversation.tools', { count: activeToolCount }) }}
-                  </el-tag>
-                </el-tooltip>
-                <el-tooltip
-                  :content="t('agent.conversation.referencesTooltip', '点击管理引用')"
-                  placement="top"
-                >
-                  <el-tag
-                    size="small"
-                    effect="plain"
-                    style="cursor: pointer"
-                    @click="handleOpenReferenceDialog"
-                  >
-                    {{ t('agent.conversation.references', { count: referenceCount }) }}
-                  </el-tag>
-                </el-tooltip>
-                <el-dropdown @command="handleSessionAction" size="small">
-                  <el-button text size="small" :icon="More" circle />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="retry">{{
-                        t('agent.sessions.retry')
-                      }}</el-dropdown-item>
-                      <el-dropdown-item command="export">{{
-                        t('agent.sessions.export')
-                      }}</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                </Badge>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Badge variant="outline" class="cursor-pointer" @click="toggleToolPane">
+                      {{ t('agent.conversation.tools', { count: activeToolCount }) }}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>
+                      {{
+                        showToolPane
+                          ? t('agent.conversation.hideTools', '点击隐藏工具面板')
+                          : t('agent.conversation.showTools', '点击显示工具面板')
+                      }}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Badge
+                      variant="outline"
+                      class="cursor-pointer"
+                      @click="handleOpenReferenceDialog"
+                    >
+                      {{ t('agent.conversation.references', { count: referenceCount }) }}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button type="text" size="small" class="[&_svg]:size-4">
+                      <More class="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem @click="handleSessionAction('retry')">
+                      {{ t('agent.sessions.retry') }}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="handleSessionAction('export')">
+                      {{ t('agent.sessions.export') }}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </header>
 
             <div v-if="activeSession" class="conversation-content">
-              <el-scrollbar class="conversation-scroll">
+              <ScrollArea class="conversation-scroll">
                 <AgentMessageRenderer
                   v-for="(message, index) in activeSession.messages"
                   :key="message.id"
@@ -172,7 +173,7 @@
                       activeSession.referenceStore.length > 0
                   }"
                 />
-              </el-scrollbar>
+              </ScrollArea>
               <div class="composer-wrapper">
                 <ReferenceDisplay
                   v-if="activeSession"
@@ -197,7 +198,7 @@
               </div>
             </div>
             <div v-else class="empty-placeholder">
-              <el-empty :description="t('agent.conversation.none')" />
+              <Empty :description="t('agent.conversation.none')" />
             </div>
           </section>
 
@@ -219,99 +220,89 @@
                 <h2>{{ t('agent.tools.title') }}</h2>
               </div>
               <!-- <div class="tool-legend">
-            <el-tag size="small" type="info">{{ t('agent.tools.legend.available') }}</el-tag>
-            <el-tag size="small" type="warning">{{ t('agent.tools.legend.running') }}</el-tag>
+            <Badge variant="secondary">{{ t('agent.tools.legend.available') }}</Badge>
+            <Badge variant="warning">{{ t('agent.tools.legend.running') }}</Badge>
           </div> -->
             </header>
             <div class="tool-content">
-              <el-card
-                class="tool-panel tool-list-panel"
-                shadow="never"
-                :style="panelStyle"
-                :body-style="{ padding: '0', height: '100%', overflow: 'hidden' }"
-              >
-                <el-scrollbar
-                  class="tool-list-scroll"
-                  :wrap-style="{ overflowX: 'hidden' }"
-                  :view-style="{ width: '100%' }"
-                >
-                  <el-table
-                    :data="tools"
-                    border
-                    height="100%"
-                    row-key="id"
-                    @row-click="selectTool"
-                    :highlight-current-row="true"
-                    :current-row-key="activeTool?.id"
-                    :row-class-name="getToolRowClassName"
-                    style="width: 100%; table-layout: fixed"
-                  >
-                    <el-table-column
-                      :label="t('agent.tools.name')"
-                      prop="name"
-                      min-width="140"
-                      show-overflow-tooltip
-                    />
-                    <el-table-column :label="t('agent.tools.state')" width="110">
-                      <template #default="{ row }">
-                        <el-tag v-if="row.running" type="warning" size="small">
-                          {{ t('agent.tool.status.running') }}
-                        </el-tag>
-                        <el-tag
-                          v-else-if="
-                            activeSession?.activeToolIds &&
-                            activeSession.activeToolIds.length > 0 &&
-                            activeSession.activeToolIds.includes(row.id)
-                          "
-                          type="success"
-                          size="small"
+              <Card class="tool-panel tool-list-panel" :style="panelStyle">
+                <CardContent class="p-0 h-full overflow-hidden">
+                  <ScrollArea class="tool-list-scroll">
+                    <Table class="tool-table">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead class="w-[140px]">{{ t('agent.tools.name') }}</TableHead>
+                          <TableHead class="w-[110px]">{{ t('agent.tools.state') }}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow
+                          v-for="tool in tools"
+                          :key="tool.id"
+                          :data-state="activeTool?.id === tool.id ? 'selected' : undefined"
+                          :class="getToolRowClass(tool)"
+                          class="cursor-pointer"
+                          @click="selectTool(tool)"
                         >
-                          {{ t('agent.tools.enabled') }}
-                        </el-tag>
-                        <el-tag v-else size="small" type="info">
-                          {{ t('agent.tools.available') }}
-                        </el-tag>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </el-scrollbar>
-              </el-card>
-              <el-scrollbar class="tool-detail-scroll" :wrap-style="{ overflowX: 'hidden' }">
+                          <TableCell class="truncate max-w-[140px]">{{ tool.name }}</TableCell>
+                          <TableCell>
+                            <Badge v-if="tool.running" variant="warning">
+                              {{ t('agent.tool.status.running') }}
+                            </Badge>
+                            <Badge
+                              v-else-if="
+                                activeSession?.activeToolIds &&
+                                activeSession.activeToolIds.length > 0 &&
+                                activeSession.activeToolIds.includes(tool.id)
+                              "
+                              variant="default"
+                            >
+                              {{ t('agent.tools.enabled') }}
+                            </Badge>
+                            <Badge v-else variant="secondary">
+                              {{ t('agent.tools.available') }}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+              <ScrollArea class="tool-detail-scroll">
                 <div v-if="activeTool" class="tool-detail" :style="detailStyle">
                   <h3>{{ activeTool.name }}</h3>
-                  <el-descriptions :column="1" size="small" border>
-                    <el-descriptions-item :label="t('agent.tools.detail.name')">
+                  <Descriptions :column="1" size="small" border>
+                    <DescriptionsItem :label="t('agent.tools.detail.name')">
                       {{ activeTool.name }}
-                    </el-descriptions-item>
-                    <el-descriptions-item :label="t('agent.tools.detail.description')">
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('agent.tools.detail.description')">
                       <p>{{ activeTool.description }}</p>
-                    </el-descriptions-item>
-                    <el-descriptions-item :label="t('agent.tools.detail.origin')">
-                      <el-tag size="small">{{
-                        originLabel(activeTool.origin as ToolOrigin)
-                      }}</el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('agent.tools.detail.origin')">
+                      <Badge>{{ originLabel(activeTool.origin as ToolOrigin) }}</Badge>
+                    </DescriptionsItem>
+                    <DescriptionsItem
                       :label="t('agent.tools.detail.tags')"
                       v-if="activeTool.tags?.length"
                     >
                       <div class="tag-group">
-                        <el-tag
+                        <Badge
                           v-for="tag in activeTool.tags"
                           :key="tag"
-                          size="small"
-                          effect="dark"
+                          variant="default"
+                          class="mr-1"
                         >
                           {{ tag }}
-                        </el-tag>
+                        </Badge>
                       </div>
-                    </el-descriptions-item>
-                  </el-descriptions>
+                    </DescriptionsItem>
+                  </Descriptions>
                 </div>
                 <div v-else class="tool-detail placeholder" :style="detailStyle">
-                  <el-empty :description="t('agent.tools.detail.placeholder')" />
+                  <Empty :description="t('agent.tools.detail.placeholder')" />
                 </div>
-              </el-scrollbar>
+              </ScrollArea>
             </div>
           </section>
         </div>
@@ -319,141 +310,176 @@
     </div>
 
     <!-- 创建会话对话框 -->
-    <el-dialog
-      v-model="showCreateSessionDialog"
-      :title="t('agent.sessions.new')"
-      width="80%"
-      :style="dialogStyle"
-    >
-      <div style="height: 60vh; display: flex; flex-direction: column">
-        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 500; flex-shrink: 0">
-          {{ t('agent.sessions.selectAgentConfig') }}
-        </h3>
-        <div style="flex: 1; min-height: 0">
-          <CardGrid
-            :items="availableAgentConfigs"
-            :loading="false"
-            :show-thumbnail="false"
-            :show-actions="false"
-            :get-item-id="(item) => item.id || ''"
-            :get-item-title="
-              (item) =>
-                typeof item.name === 'string'
-                  ? item.name
-                  : item.name['zh_cn']?.name || item.id || ''
-            "
-            :get-item-description="
-              (item) =>
-                typeof item.description === 'string'
-                  ? item.description
-                  : item.description['zh_cn']?.description || ''
-            "
-            :get-item-meta="
-              (item) => [
-                t('agent.manage.agentConfig.toolCount') +
-                  ': ' +
-                  agentConfigManager.getAvailableToolIds(item.id || '').length,
-                item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
-              ]
-            "
-            :get-badge="
-              (item) =>
-                item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null
-            "
-            :is-selected="(item) => item.id === selectedAgentConfigId"
-            :is-disabled="() => false"
-            @item-click="handleSelectAgentConfig"
-            @item-double-click="handleDoubleClickAgentConfig"
-          />
+    <Dialog v-model:open="showCreateSessionDialog">
+      <DialogContent class="sm:max-w-[80%]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.sessions.new') }}</DialogTitle>
+          <DialogDescription>
+            {{ t('agent.sessions.selectAgentConfig') }}
+          </DialogDescription>
+        </DialogHeader>
+        <div style="height: 60vh; display: flex; flex-direction: column">
+          <div style="flex: 1; min-height: 0">
+            <CardGrid
+              :items="availableAgentConfigs"
+              :loading="false"
+              :show-thumbnail="false"
+              :show-actions="false"
+              :get-item-id="(item) => item.id || ''"
+              :get-item-title="
+                (item) =>
+                  typeof item.name === 'string'
+                    ? item.name
+                    : item.name['zh_cn']?.name || item.id || ''
+              "
+              :get-item-description="
+                (item) =>
+                  typeof item.description === 'string'
+                    ? item.description
+                    : item.description['zh_cn']?.description || ''
+              "
+              :get-item-meta="
+                (item) => [
+                  t('agent.manage.agentConfig.toolCount') +
+                    ': ' +
+                    agentConfigManager.getAvailableToolIds(item.id || '').length,
+                  item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+                ]
+              "
+              :get-badge="
+                (item) =>
+                  item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null
+              "
+              :is-selected="(item) => item.id === selectedAgentConfigId"
+              :is-disabled="() => false"
+              @item-click="handleSelectAgentConfig"
+              @item-double-click="handleDoubleClickAgentConfig"
+            />
+          </div>
         </div>
-      </div>
-      <template #footer>
-        <el-button @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button
-          type="primary"
-          @click="createSession(selectedAgentConfigId)"
-          :disabled="!selectedAgentConfigId"
-        >
-          {{ t('common.create') }}
-        </el-button>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button variant="ghost" @click="showCreateSessionDialog = false">{{
+            t('common.cancel')
+          }}</Button>
+          <Button @click="createSession(selectedAgentConfigId)" :disabled="!selectedAgentConfigId">
+            {{ t('common.create') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 管理界面对话框 -->
-    <el-dialog
-      v-model="showManageDialog"
-      :title="
-        manageDialogType === 'tool-collection'
-          ? t('agent.manage.toolCollection.title')
-          : manageDialogType === 'workflow'
-            ? t('agent.manage.workflow.title')
-            : manageDialogType === 'agent-engine'
-              ? t('agent.manage.agentEngine.title')
-              : t('agent.manage.agentConfig.title')
-      "
-      width="90%"
-      :close-on-click-modal="false"
-    >
-      <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
-      <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
-      <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
-      <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
-      <template #footer>
-        <el-button @click="showManageDialog = false">{{ t('common.close') }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showManageDialog">
+      <DialogContent class="sm:max-w-[90%]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>
+            {{
+              manageDialogType === 'tool-collection'
+                ? t('agent.manage.toolCollection.title')
+                : manageDialogType === 'workflow'
+                  ? t('agent.manage.workflow.title')
+                  : manageDialogType === 'agent-engine'
+                    ? t('agent.manage.agentEngine.title')
+                    : t('agent.manage.agentConfig.title')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
+        <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
+        <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
+        <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
+        <DialogFooter>
+          <Button variant="ghost" @click="showManageDialog = false">{{ t('common.close') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 引用素材管理对话框 -->
-    <el-dialog
-      v-model="showReferenceDialog"
-      :title="t('agent.reference.title')"
-      width="800px"
-      v-if="referenceSession"
-      :body-style="{
-        flex: '1',
-        minHeight: '0',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        padding: '0'
-      }"
-      style="height: 80vh; display: flex; flex-direction: column"
-    >
-      <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
-      <template #footer>
-        <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showReferenceDialog" v-if="referenceSession">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        style="height: 80vh; display: flex; flex-direction: column"
+      >
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
+        </DialogHeader>
+        <div
+          style="
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+          "
+        >
+          <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showReferenceDialog = false">{{
+            t('common.close')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 消息编辑对话框 -->
-    <el-dialog
-      v-model="showEditMessageDialog"
-      :title="t('agent.message.editMessage')"
-      width="600px"
-    >
-      <el-input
-        v-model="editingMessageContent"
-        type="textarea"
-        :rows="10"
-        :placeholder="t('agent.message.editPlaceholder')"
-      />
-      <template #footer>
-        <el-button @click="showEditMessageDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleConfirmEditMessage">{{
-          t('common.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showEditMessageDialog">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.message.editMessage') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <Textarea
+            v-model="editingMessageContent"
+            :rows="10"
+            :placeholder="t('agent.message.editPlaceholder')"
+            class="w-full"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showEditMessageDialog = false">{{
+            t('common.cancel')
+          }}</Button>
+          <Button @click="handleConfirmEditMessage">{{ t('common.confirm') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+
+// === Demo Mode Props ===
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+import { ElMessageBox, ElLoading } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notify'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@renderer/components/ui/dropdown-menu'
 import { themeState, mixColors } from '../utils/themes'
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
@@ -498,6 +524,26 @@ import ResizableDivider from '../components/base/ResizableDivider.vue'
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus from '../utils/event-bus'
 import type { Reference } from '../types/agent-framework'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@renderer/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Card, CardContent } from '@renderer/components/ui/card'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
+import { Empty } from '@renderer/components/ui/empty'
 dayjs.extend(relativeTime)
 
 const { t } = useI18n()
@@ -699,6 +745,119 @@ const availableEngines = ref(agentEngineManager.getEnabledEngines())
 const currentAiTaskHandle = ref<string | null>(null)
 const aiTaskHandles = ref<Set<string>>(new Set()) // 保存所有AI任务的handle
 const isGenerating = ref(false)
+
+// === Demo Mode Data ===
+const loadDemoData = () => {
+  // 创建演示会话
+  const demoSessions: AgentSession[] = [
+    {
+      id: 'demo-session-1',
+      title: '代码审查会话',
+      description: '审查 Vue 组件代码',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: [
+        {
+          id: 'demo-msg-1',
+          role: 'user',
+          type: 'chat',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          markdown: '请帮我审查这个 Vue 组件的代码质量'
+        },
+        {
+          id: 'demo-msg-2',
+          role: 'assistant',
+          type: 'chat',
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+          markdown:
+            '我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范'
+        }
+      ],
+      activeToolIds: ['code-executor'],
+      agentConfigId: 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {
+        document: {
+          id: 'demo-doc-1',
+          path: '',
+          format: 'md'
+        }
+      },
+      executionNodes: [],
+      status: 'idle'
+    },
+    {
+      id: 'demo-session-2',
+      title: '文档翻译助手',
+      description: '翻译技术文档',
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000).toISOString(),
+      messages: [
+        {
+          id: 'demo-msg-3',
+          role: 'user',
+          type: 'chat',
+          timestamp: new Date(Date.now() - 90000000).toISOString(),
+          markdown: '将这段文档翻译成中文'
+        }
+      ],
+      activeToolIds: [],
+      agentConfigId: 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {},
+      executionNodes: [],
+      status: 'idle'
+    },
+    {
+      id: 'demo-session-3',
+      title: 'Bug 分析',
+      description: '分析错误日志',
+      createdAt: new Date(Date.now() - 259200000).toISOString(),
+      updatedAt: new Date(Date.now() - 172800000).toISOString(),
+      messages: [],
+      activeToolIds: [],
+      agentConfigId: 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {},
+      executionNodes: [],
+      status: 'idle'
+    }
+  ]
+
+  sessionsState.value = demoSessions
+  activeSessionId.value = demoSessions[0].id
+
+  // 演示引擎列表
+  availableEngines.value = [
+    {
+      id: 'default-autogpt-engine',
+      name: 'AutoGPT 引擎',
+      engineType: 'autogpt',
+      enabled: true,
+      isBuiltIn: true
+    },
+    {
+      id: 'simple-chat-engine',
+      name: '简单对话引擎',
+      engineType: 'simple-chat',
+      enabled: true,
+      isBuiltIn: false
+    }
+  ]
+  selectedEngineId.value = 'default-autogpt-engine'
+}
+
+// === Demo Mode Guards ===
+const guardDemoAction = (actionName: string): boolean => {
+  if (isDemo.value) {
+    notifyInfo(t('agent.demo.modeHint', `演示模式: ${actionName} 操作仅用于展示`))
+    return true
+  }
+  return false
+}
 const showEditMessageDialog = ref(false)
 const editingMessage = ref<ChatAgentMessage | null>(null)
 const editingMessageContent = ref('')
@@ -796,6 +955,11 @@ const persistSessions = () => {
 watch(
   () => activeDocument.value?.agentSessions,
   (sessions) => {
+    // 演示模式：跳过文档会话同步
+    if (isDemo.value) {
+      return
+    }
+
     const doc = activeDocument.value
     if (!doc) {
       sessionsState.value = []
@@ -1019,6 +1183,29 @@ const referenceCount = computed(() => activeSession.value?.referenceStore?.lengt
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow()
 
 const createSession = (agentConfigId?: string) => {
+  // 演示模式：直接创建演示会话
+  if (isDemo.value) {
+    const demoSession: AgentSession = {
+      id: `demo-session-${Date.now()}`,
+      title: `演示会话 ${sessionsState.value.length + 1}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: [],
+      activeToolIds: [],
+      agentConfigId: agentConfigId || 'default-agent-config',
+      messageQueue: [],
+      referenceStore: [],
+      publicContext: {},
+      executionNodes: [],
+      status: 'idle'
+    }
+    sessionsState.value.unshift(demoSession)
+    activeSessionId.value = demoSession.id
+    showCreateSessionDialog.value = false
+    notifySuccess(t('agent.sessions.createSuccess', '会话创建成功'))
+    return
+  }
+
   if (!agentConfigId) {
     showCreateSessionDialog.value = true
     return
@@ -1069,7 +1256,7 @@ const createSession = (agentConfigId?: string) => {
     showCreateSessionDialog.value = false
     selectedAgentConfigId.value = ''
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1079,7 +1266,17 @@ const deleteSession = async (session?: AgentSession) => {
 
   // 如果删除后没有会话了，不允许删除（需要至少保留一个）
   if (sessionsState.value.length <= 1) {
-    ElMessage.warning(t('agent.sessions.atLeastOneRequired'))
+    notifyWarning(t('agent.sessions.atLeastOneRequired'))
+    return
+  }
+
+  // 演示模式：直接删除不确认
+  if (isDemo.value) {
+    sessionsState.value = sessionsState.value.filter((item) => item.id !== target.id)
+    ensureActiveSessionId()
+    if (sessionsState.value.length === 0) {
+      loadDemoData()
+    }
     return
   }
 
@@ -1092,7 +1289,7 @@ const deleteSession = async (session?: AgentSession) => {
     sessionsState.value = sessionsState.value.filter((item) => item.id !== target.id)
     ensureActiveSessionId()
     persistSessions()
-    ElMessage.success(t('agent.sessions.deleteSuccess'))
+    notifySuccess(t('agent.sessions.deleteSuccess'))
 
     // 如果删除后没有会话了，创建一个默认会话
     if (sessionsState.value.length === 0) {
@@ -1134,7 +1331,7 @@ const createDefaultSession = () => {
     // 创建默认会话时不触发dirty状态
     applySessionsToDocument([legacySession], true)
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1150,7 +1347,7 @@ const renameSession = async (session: AgentSession) => {
   session.title = value.trim()
   touchSession(session)
   persistSessions()
-  ElMessage.success(t('agent.sessions.renameSuccess'))
+  notifySuccess(t('agent.sessions.renameSuccess'))
 }
 
 // 工具选择功能已移除，工具列表现在为只读模式（显示当前会话可用的工具）
@@ -1160,11 +1357,11 @@ const selectTool = (tool: AgentTool) => {
 
 // 获取工具行的CSS类名（用于高亮活跃工具）
 // 只有在意图识别器选中工具后才高亮（activeToolIds 不为空且包含该工具）
-const getToolRowClassName = ({ row }: { row: AgentTool }) => {
+const getToolRowClass = (tool: AgentTool) => {
   if (
     activeSession.value?.activeToolIds &&
     activeSession.value.activeToolIds.length > 0 &&
-    activeSession.value.activeToolIds.includes(row.id)
+    activeSession.value.activeToolIds.includes(tool.id)
   ) {
     return 'active-tool-row'
   }
@@ -1185,6 +1382,28 @@ const createChatMessage = (
 })
 
 const handleComposerSubmit = async () => {
+  // 演示模式：显示提示并返回
+  if (guardDemoAction('发送消息')) {
+    // 演示模式下添加模拟消息
+    const session = activeSession.value
+    if (session) {
+      const message = createChatMessage('user', composerInput.value.trim() || '演示消息')
+      session.messages.push(message)
+      touchSession(session)
+      composerInput.value = ''
+      // 模拟AI回复
+      setTimeout(() => {
+        const reply = createChatMessage(
+          'assistant',
+          '这是演示模式下的模拟回复。在实际使用中，AI会根据您的消息生成智能回复。'
+        )
+        session.messages.push(reply)
+        touchSession(session)
+      }, 1000)
+    }
+    return
+  }
+
   const logger = createRendererLogger('AgentView')
   logger.debug('[handleComposerSubmit] 开始处理用户消息提交')
 
@@ -1311,7 +1530,7 @@ const handleComposerSubmit = async () => {
     }
   } catch (error) {
     logger.error('[handleComposerSubmit] 执行失败:', error)
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1332,7 +1551,7 @@ const executeAgentEngine = async (
   // 使用传入的actualSession，如果没有则使用computed的session
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
-    ElMessage.warning(t('agent.sessions.noAgentConfig'))
+    notifyWarning(t('agent.sessions.noAgentConfig'))
     // 确保状态正确，即使早期返回
     isGenerating.value = false
     workspace.unlockUI?.()
@@ -1342,7 +1561,7 @@ const executeAgentEngine = async (
   const engineId = selectedEngineId.value || 'default-autogpt-engine'
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
-    ElMessage.error(t('agent.sessions.engineNotFound'))
+    notifyError(t('agent.sessions.engineNotFound'))
     // 确保状态正确，即使早期返回
     isGenerating.value = false
     workspace.unlockUI?.()
@@ -1351,7 +1570,7 @@ const executeAgentEngine = async (
 
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
-    ElMessage.error(t('agent.sessions.agentConfigNotFound'))
+    notifyError(t('agent.sessions.agentConfigNotFound'))
     // 确保状态正确，即使早期返回
     isGenerating.value = false
     workspace.unlockUI?.()
@@ -1780,6 +1999,12 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
     return
   }
 
+  // 演示模式：显示提示
+  if (isDemo.value) {
+    notifyInfo(t('agent.demo.attachHint', '演示模式：附件功能仅用于展示'))
+    return
+  }
+
   try {
     const { processFileUpload, processUrlReference } = await import(
       '../utils/agent-framework/reference-processor'
@@ -1814,7 +2039,7 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
         status: activeSession.value.status || 'idle'
       }
       agentSessionManager.addReferenceObject(newFormatSession, reference)
-      ElMessage.success(t('agent.reference.addSuccess'))
+      notifySuccess(t('agent.reference.addSuccess'))
       persistSessions()
     } else if (files.length > 0) {
       // 批量处理文件上传
@@ -1877,14 +2102,14 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
 
           // 显示成功消息
           if (failCount === 0) {
-            ElMessage.success(
+            notifySuccess(
               files.length > 1 ? `成功添加 ${successCount} 个引用` : t('agent.reference.addSuccess')
             )
           } else {
-            ElMessage.warning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
+            notifyWarning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
           }
         } else {
-          ElMessage.error('所有文件处理失败')
+          notifyError('所有文件处理失败')
         }
       } finally {
         loading.close()
@@ -1894,7 +2119,7 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
       return
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1991,7 +2216,7 @@ const handleRetrySession = async (session: AgentSession) => {
     session.executionNodes &&
     session.executionNodes.length > 0
   ) {
-    ElMessage.warning(t('agent.sessions.noExecutionNode'))
+    notifyWarning(t('agent.sessions.noExecutionNode'))
     return
   }
 
@@ -2028,13 +2253,13 @@ const handleRetrySession = async (session: AgentSession) => {
           updatedAt: new Date(newFormatSession.updatedAt).toISOString()
         }
         persistSessions()
-        ElMessage.success(t('agent.sessions.retrySuccess'))
+        notifySuccess(t('agent.sessions.retrySuccess'))
       }
     } else {
-      ElMessage.warning(t('agent.sessions.noExecutionNode'))
+      notifyWarning(t('agent.sessions.noExecutionNode'))
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2087,9 +2312,9 @@ const handleDuplicateSession = async (session: AgentSession) => {
     ensureActiveSessionId()
     activeSessionId.value = duplicated.id
     persistSessions()
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2123,9 +2348,9 @@ const handleExportSession = async (session: AgentSession) => {
     a.download = `agent-session-${session.id}.json`
     a.click()
     URL.revokeObjectURL(url)
-    ElMessage.success(t('agent.sessions.exportSuccess'))
+    notifySuccess(t('agent.sessions.exportSuccess'))
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2167,9 +2392,9 @@ const handleImportSession = () => {
       ensureActiveSessionId()
       activeSessionId.value = session.id
       persistSessions()
-      ElMessage.success(t('agent.sessions.importSuccess'))
+      notifySuccess(t('agent.sessions.importSuccess'))
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      notifyError(error instanceof Error ? error.message : String(error))
     }
   }
   input.click()
@@ -2233,7 +2458,7 @@ const getEngineLabel = (engine: any) => {
 
 const handleEngineChange = () => {
   // 引擎切换逻辑，后续在Agent执行时使用
-  ElMessage.success(
+  notifySuccess(
     t('agent.sessions.engineChanged', {
       engine: getEngineLabel(agentEngineManager.getEngine(selectedEngineId.value)!)
     })
@@ -2263,7 +2488,7 @@ const handleSessionListRename = (item: SessionListItem, newTitle: string) => {
     session.title = newTitle
     touchSession(session)
     persistSessions()
-    ElMessage.success(t('agent.sessions.renameSuccess'))
+    notifySuccess(t('agent.sessions.renameSuccess'))
   }
 }
 
@@ -2280,14 +2505,14 @@ const handleSessionListDelete = (item: SessionListItem) => {
   if (!session) return
 
   if (sessionsState.value.length <= 1) {
-    ElMessage.warning(t('agent.sessions.atLeastOneRequired'))
+    notifyWarning(t('agent.sessions.atLeastOneRequired'))
     return
   }
 
   sessionsState.value = sessionsState.value.filter((s) => s.id !== session.id)
   ensureActiveSessionId()
   persistSessions()
-  ElMessage.success(t('agent.sessions.deleteSuccess'))
+  notifySuccess(t('agent.sessions.deleteSuccess'))
 
   if (sessionsState.value.length === 0) {
     createDefaultSession()
@@ -2367,7 +2592,7 @@ const handleConfirmEditMessage = async () => {
 
   const content = editingMessageContent.value.trim()
   if (!content) {
-    ElMessage.warning(t('agent.message.editPlaceholder'))
+    notifyWarning(t('agent.message.editPlaceholder'))
     return
   }
 
@@ -2434,7 +2659,7 @@ const handleConfirmEditMessage = async () => {
 
     touchSession(session)
     persistSessions()
-    ElMessage.success(t('agent.message.editSuccess'))
+    notifySuccess(t('agent.message.editSuccess'))
     showEditMessageDialog.value = false
     editingMessage.value = null
     editingMessageContent.value = ''
@@ -2642,9 +2867,9 @@ const handleMessageDuplicate = async (message: AgentMessage) => {
     ensureActiveSessionId()
     activeSessionId.value = duplicated.id
     persistSessions()
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -2665,7 +2890,7 @@ const handleMessageDelete = async (message: AgentMessage) => {
       session.messages = session.messages.slice(0, messageIndex)
       touchSession(session)
       persistSessions()
-      ElMessage.success(t('agent.message.deleteSuccess'))
+      notifySuccess(t('agent.message.deleteSuccess'))
     }
   } catch {
     // canceled
@@ -2674,6 +2899,12 @@ const handleMessageDelete = async (message: AgentMessage) => {
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
+
+  // 演示模式：加载演示数据
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
 
   // 初始化引擎选择器
   const defaultEngine = agentEngineManager.getDefaultEngine()
@@ -2913,7 +3144,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.tool-panel :deep(.el-card__body) {
+.tool-panel :deep(> div) {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -2936,43 +3167,34 @@ onBeforeUnmount(() => {
   overflow-x: hidden;
 }
 
-.tool-list-panel :deep(.el-table) {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
+.tool-table {
+  width: 100%;
   table-layout: fixed;
-  box-sizing: border-box;
 }
 
-.tool-list-panel :deep(.el-table__inner-wrapper) {
+.tool-table :deep(table) {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box;
-  overflow-x: auto;
-}
-
-.tool-list-panel :deep(.el-table__body-wrapper) {
-  overflow-x: auto;
-  overflow-y: auto;
 }
 
 /* 高亮活跃工具行 */
-.tool-list-panel :deep(.el-table__row.active-tool-row) {
+.tool-table :deep(tr.active-tool-row) {
   background-color: rgba(64, 158, 255, 0.1) !important;
 }
 
-.tool-list-panel :deep(.el-table__row.active-tool-row:hover) {
+.tool-table :deep(tr.active-tool-row:hover) {
   background-color: rgba(64, 158, 255, 0.15) !important;
 }
 
 /* 暗色主题下的高亮样式 */
 @media (prefers-color-scheme: dark) {
-  .tool-list-panel :deep(.el-table__row.active-tool-row) {
+  .tool-table :deep(tr.active-tool-row) {
     background-color: rgba(64, 158, 255, 0.2) !important;
   }
 
-  .tool-list-panel :deep(.el-table__row.active-tool-row:hover) {
+  .tool-table :deep(tr.active-tool-row:hover) {
     background-color: rgba(64, 158, 255, 0.25) !important;
   }
 }
@@ -3000,20 +3222,13 @@ onBeforeUnmount(() => {
     color 0.2s ease;
 }
 
-.tool-detail :deep(.el-descriptions__body) {
-  background-color: transparent;
+.tool-detail :deep(.descriptions) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-.tool-detail :deep(.el-descriptions) {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.tool-detail :deep(.el-descriptions__table) {
+.tool-detail :deep(.descriptions__table) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;

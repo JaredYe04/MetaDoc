@@ -26,36 +26,36 @@
       <div class="diff-header" :style="headerStyle">
         <h3 class="diff-title" :style="titleStyle">{{ $t('agent.display.diff.title') }}</h3>
         <div class="diff-stats" :style="statsStyle">
-          <el-tag type="success" size="small">{{
+          <Badge variant="default">{{
             $t('agent.display.diff.insertions', { count: insertionsCount })
-          }}</el-tag>
-          <el-tag type="danger" size="small">{{
+          }}</Badge>
+          <Badge variant="destructive">{{
             $t('agent.display.diff.deletions', { count: deletionsCount })
-          }}</el-tag>
-          <el-tag type="info" size="small">{{
+          }}</Badge>
+          <Badge variant="secondary">{{
             $t('agent.display.diff.equal', { count: equalCount })
-          }}</el-tag>
-          <el-button-group class="mode-switch">
-            <el-button
-              :type="viewMode === 'unified' ? 'primary' : 'default'"
-              size="small"
+          }}</Badge>
+          <div class="mode-switch flex gap-1">
+            <Button
+              :variant="viewMode === 'unified' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.diff.unifiedView', '统一视图') }}
-            </el-button>
-            <el-button
-              :type="viewMode === 'split' ? 'primary' : 'default'"
-              size="small"
+            </Button>
+            <Button
+              :variant="viewMode === 'split' ? 'default' : 'outline'"
+              size="sm"
               @click="viewMode = 'split'"
             >
               {{ $t('agent.display.diff.splitView', '分列视图') }}
-            </el-button>
-          </el-button-group>
+            </Button>
+          </div>
         </div>
       </div>
 
       <!-- 统一视图（单列） -->
-      <el-scrollbar v-if="viewMode === 'unified'" max-height="500px">
+      <ScrollArea v-if="viewMode === 'unified'" class="max-h-[500px]">
         <div class="diff-content">
           <!-- 如果diffResult是对象，遍历chunks -->
           <template v-if="diffChunks && diffChunks.length > 0">
@@ -68,9 +68,9 @@
                 <span class="chunk-info">
                   {{ chunk.oldStart }}-{{ chunk.oldEnd }} → {{ chunk.newStart }}-{{ chunk.newEnd }}
                 </span>
-                <el-tag :type="getChunkTagType(chunk.type)" size="small">
+                <Badge :type="getChunkTagType(chunk.type)" size="small">
                   {{ getTypeLabel(chunk.type) }}
-                </el-tag>
+                </Badge>
               </div>
               <!-- 显示旧文本（删除） -->
               <div v-if="chunk.oldLines && chunk.oldLines.length > 0" class="diff-lines old-lines">
@@ -124,7 +124,7 @@
             {{ $t('agent.display.diff.noData', '无差异数据') }}
           </div>
         </div>
-      </el-scrollbar>
+      </ScrollArea>
 
       <!-- 分列视图（双列 Monaco 编辑器） -->
       <div v-else class="split-view-container">
@@ -154,18 +154,22 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.diff.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.diff.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { Button } from '@renderer/components/ui/button'
+import { Badge } from '@renderer/components/ui/badge'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
@@ -174,7 +178,90 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  diffResult: {
+    chunks: [
+      {
+        type: 'equal',
+        oldStart: 1,
+        oldEnd: 3,
+        newStart: 1,
+        newEnd: 3,
+        oldLines: ['function calculateSum(a, b) {', '  // 计算两个数的和', '  return a + b;'],
+        newLines: ['function calculateSum(a, b) {', '  // 计算两个数的和', '  return a + b;']
+      },
+      {
+        type: 'replace',
+        oldStart: 4,
+        oldEnd: 6,
+        newStart: 4,
+        newEnd: 8,
+        oldLines: ['function oldName(x) {', '  return x * 2;', '}'],
+        newLines: [
+          'function multiplyByTwo(x) {',
+          '  // 将数字乘以2',
+          '  const result = x * 2;',
+          '  return result;',
+          '}'
+        ]
+      },
+      {
+        type: 'insert',
+        oldStart: 7,
+        oldEnd: 6,
+        newStart: 9,
+        newEnd: 11,
+        oldLines: [],
+        newLines: [
+          '// 新增辅助函数',
+          'function helper() {',
+          '  console.log("Helper function");',
+          '}'
+        ]
+      }
+    ],
+    summary: {
+      insertions: 5,
+      deletions: 3,
+      replacements: 1
+    },
+    oldText: `function calculateSum(a, b) {
+  // 计算两个数的和
+  return a + b;
+function oldName(x) {
+  return x * 2;
+}`,
+    newText: `function calculateSum(a, b) {
+  // 计算两个数的和
+  return a + b;
+function multiplyByTwo(x) {
+  // 将数字乘以2
+  const result = x * 2;
+  return result;
+}
+// 新增辅助函数
+function helper() {
+  console.log("Helper function");
+}`
+  }
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues in lifecycle hooks below
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -188,6 +275,11 @@ const oldEditorId = ref(`diff-old-${Date.now()}-${Math.random().toString(36).sub
 const newEditorId = ref(`diff-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
 

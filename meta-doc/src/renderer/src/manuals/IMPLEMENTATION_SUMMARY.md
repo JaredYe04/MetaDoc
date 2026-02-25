@@ -25,6 +25,7 @@
 **完善标准**：含图表、含 Demo 组件（若适用）、内容完整符合索引要求。参考 `quick-start/guide.md` 作为标杆。
 
 **当前进度（2026-02-21更新）**：
+
 - ✅ **已完善文档**：64篇（包含图表和Demo组件，已根据新规范更新组件使用）
   - 快速开始：quick-start/guide.md ✅
   - 核心操作文档：core/file-operations.md ✅, core/editor-basics.md ✅, core/editor-settings.md ✅, core/multi-tab.md ✅, core/multi-window.md ✅, core/export.md ✅, core/document-metadata.md ✅, editor/plain-text.md ✅
@@ -141,11 +142,13 @@ const contentModule = await import(/* @vite-ignore */ filePath)
 ```
 
 **问题**：Vite 的动态导入需要明确的路径，可能需要：
+
 - 使用 `import.meta.glob()` 预加载所有文档
 - 或者使用 HTTP 请求加载文档文件
 - 或者将文档编译为静态资源
 
 **建议解决方案**：
+
 ```typescript
 // 使用 import.meta.glob 预加载
 const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' })
@@ -154,12 +157,14 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 ### 2. D3.js 依赖
 
 `LearningGraph.vue` 组件使用了 D3.js，需要确保：
+
 - 安装 `d3` 包：`npm install d3 @types/d3`
 - 或者使用其他图表库（如 ECharts）
 
 ### 3. 搜索功能增强
 
 当前搜索只支持标题和标签搜索，内容搜索需要：
+
 - 预加载所有文档内容
 - 建立全文索引
 - 实现模糊匹配和片段提取
@@ -167,6 +172,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 ### 4. 进度持久化
 
 当前进度保存在 `localStorage`，可能需要：
+
 - 考虑数据迁移
 - 添加进度导出/导入功能
 - 同步到服务器（如果有多设备需求）
@@ -186,6 +192,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构完善文档**，需完善的文档包括（示例，非穷举）：
 
 #### 一、快速开始
+
 - [x] `quick-start/guide.md` - 快速开始指南（需完善：图表 + Demo 示例）
   - 首次使用向导
   - 界面介绍
@@ -195,6 +202,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 #### 二、编辑器
 
 ##### 2.1 Markdown编辑器
+
 - [x] `markdown/editor.md` - Markdown编辑器使用指南
   - Vditor编辑器介绍
   - 编辑模式切换（IR/WYSIWYG/SV）
@@ -214,6 +222,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 知识库集成（启用/关闭、上下文检索）
 
 ##### 2.2 LaTeX编辑器
+
 - [x] `latex/editor.md` - LaTeX编辑器使用指南
   - Monaco编辑器介绍
   - 代码高亮和语法提示
@@ -232,6 +241,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 定位到PDF（从代码定位到PDF位置）
 
 ##### 2.3 纯文本编辑器
+
 - [x] `editor/plain-text.md` - 纯文本编辑器
   - Monaco编辑器功能
   - 代码高亮
@@ -239,6 +249,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 文件预览和统计信息
 
 ##### 2.4 编辑器通用功能
+
 - [x] `core/editor-basics.md` - 编辑器基础操作
   - 撤销和重做
   - 复制、粘贴、剪切
@@ -251,6 +262,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 小地图显示
 
 #### 三、文件操作
+
 - [x] `core/file-operations.md` - 文件管理
   - 新建文档（快捷键Ctrl+N）
   - 打开文档（快捷键Ctrl+O）
@@ -274,6 +286,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 #### 四、AI功能
 
 ##### 4.1 AI对话
+
 - [x] `ai/chat.md` - AI对话功能 ✅
   - 与AI对话
   - 对话上下文管理
@@ -281,6 +294,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 消息编辑、重新生成、复制、删除
 
 ##### 4.2 AI校对
+
 - [x] `ai/proofread.md` - AI校对功能 ✅
   - 开始校对
   - 错误列表（显示错误类型、严重程度、位置）
@@ -290,6 +304,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 清除已修复错误
 
 ##### 4.3 AI补全
+
 - [x] `ai/completion.md` - AI自动补全 ✅
   - 自动补全启用/关闭
   - 手动触发补全（Shift+Tab）
@@ -298,6 +313,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 补全最大Token数设置
 
 ##### 4.4 AI助手功能
+
 - [x] `ai/assistants.md` - AI助手功能 ✅
   - 与AI对话（AI聊天窗口、支持上下文理解、可基于当前文档内容进行对话）
   - 手写公式识别（支持鼠标/触屏手写输入、支持图片导入、使用SimpleTex OCR API识别数学公式、自动转换为LaTeX格式）
@@ -308,6 +324,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - AIGC检测（检测文本是否为AI生成内容）
 
 ##### 4.5 Agent工具
+
 - [x] `agent/tools.md` - Agent工具
   - 文档编辑类工具（edit-tool、metadata-tool、title-format-tool）
   - 搜索检索类工具（rag-tool、grep-tool）
@@ -319,6 +336,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 辅助工具类工具（color-tool、timestamp-tool）
 
 ##### 4.6 Agent框架
+
 - [x] `agent/introduction.md` - Agent框架概述 ✅
 - [x] `agent/session.md` - Agent会话管理 ✅
 - [x] `agent/config.md` - Agent配置管理 ✅
@@ -368,6 +386,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 引擎启用/禁用
 
 #### 五、大纲视图
+
 - [x] `outline/basics.md` - 大纲视图功能
   - 大纲视图介绍
   - 大纲节点操作（添加子节点、编辑、删除、移动）
@@ -384,6 +403,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 #### 六、系统设置
 
 ##### 6.1 基础设置
+
 - [x] `settings/basic.md` - 基础设置
   - 启动选项（打开新文件/打开上次文件/启动时自动打开主页）
   - 自动保存（关闭/1分钟/5分钟/10分钟/30分钟/1小时）
@@ -394,6 +414,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 引用文件目录管理（查看大小、打开目录、清空目录）
 
 ##### 6.2 LLM设置
+
 - [x] `settings/llm.md` - LLM配置
   - LLM启用/关闭
   - LLM温度设置
@@ -411,6 +432,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 自定义LLM配置（API URL、API Key、模型、温度、最大Token数）
 
 ##### 6.3 知识库设置
+
 - [x] `knowledge-base/management.md` - 知识库管理
   - 知识库启用/关闭
   - 置信度阈值设置
@@ -425,6 +447,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 支持的文件格式（Markdown、LaTeX、PDF、Word、图片、纯文本）
 
 ##### 6.4 主题设置
+
 - [x] `settings/theme.md` - 主题配置
   - 全局主题（系统同步/浅色/深色/自定义）
   - 内容主题（自动/浅色/深色）
@@ -438,6 +461,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 主题颜色设置（颜色选择器）
 
 ##### 6.5 图片设置
+
 - [x] `settings/image.md` - 图片上传配置
   - 插入图片操作（上传/保存到文档目录/保存到资源目录）
   - 保留网络图片URL
@@ -448,6 +472,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 自定义上传API配置（API URL、请求方法、字段名）
 
 ##### 6.6 日志设置
+
 - [x] `settings/logging.md` - 日志配置
   - 日志启用/关闭
   - 日志级别（DEBUG/INFO/WARN/ERROR）
@@ -456,12 +481,14 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 日志文件路径（查看路径、打开日志文件）
 
 ##### 6.7 关于
+
 - [x] `settings/about.md` - 关于信息
   - 版本信息查看
   - 用户反馈提交
   - 官方QQ群
 
 #### 七、知识库
+
 - [x] `knowledge-base/usage.md` - 知识库使用
   - 知识库介绍
   - 添加文件到知识库
@@ -473,6 +500,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 清空知识库
 
 #### 八、工作目录
+
 - [x] `workspace/management.md` - 工作目录管理
   - 工作目录介绍
   - 打开工作目录
@@ -480,6 +508,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 文件操作（打开、删除、重命名）
 
 #### 九、快捷键
+
 - [x] `shortcuts/global.md` - 全局快捷键
   - 文件操作（Ctrl+N新建、Ctrl+O打开、Ctrl+S保存、Ctrl+Shift+S另存为、Ctrl+K S保存全部、Ctrl+W关闭）
   - 标签页操作（Ctrl+T新建、Ctrl+Shift+T重新打开、Ctrl+Tab下一个、Ctrl+Shift+Tab上一个）
@@ -490,6 +519,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - AI补全（Shift+Tab手动触发）
 
 #### 十、视图切换
+
 - [x] `views/types.md` - 视图类型
   - 主页视图（快速开始、最近文档）
   - 编辑器视图（Markdown/LaTeX/纯文本）
@@ -499,6 +529,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - PDF预览视图
 
 #### 十一、多标签页管理
+
 - [x] `core/multi-tab.md` - 标签页操作
   - 新建标签页（Ctrl+T）
   - 切换标签页（Ctrl+Tab、Ctrl+Shift+Tab）
@@ -508,12 +539,14 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 标签页移动到新窗口
 
 #### 十二、语言设置
+
 - [x] `settings/language.md` - 多语言支持 ✅
   - 支持的语言（中文简体、English、日本語、한국어、Français、Deutsch）
   - 语言切换
   - 界面本地化
 
 #### 十三、用户功能
+
 - [x] `user/profile.md` - 用户资料 ✅
   - 用户资料设置
   - 使用偏好设置
@@ -523,6 +556,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 反馈表单
 
 #### 十四、主页功能
+
 - [x] `home/features.md` - 主页功能 ✅
   - 快速开始向导
   - 新建文档
@@ -531,6 +565,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 最近文档列表
 
 #### 十四、统计和监控
+
 - [x] `statistics/llm.md` - LLM统计 ✅
   - LLM使用统计
   - Token统计
@@ -541,6 +576,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 校对历史
 
 #### 十六、段落优化
+
 - [x] `features/paragraph-optimization.md` - 段落优化功能 ✅
   - 段落优化介绍
   - 从右键菜单打开
@@ -549,6 +585,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 追加内容
 
 #### 十七、PDF预览
+
 - [x] `latex/pdf-preview.md` - PDF预览功能 ✅
   - PDF预览介绍
   - PDF缩放（放大、缩小）
@@ -558,6 +595,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - PDF打开目录
 
 #### 十八、控制台输出
+
 - [x] `latex/console.md` - 控制台功能 ✅
   - LaTeX编译输出
   - 错误信息显示
@@ -565,6 +603,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 日志过滤
 
 #### 十九、菜单配置
+
 - [x] `settings/menu.md` - 菜单配置功能 ✅
   - 菜单配置介绍
   - 菜单项显示/隐藏
@@ -572,11 +611,13 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 菜单项位置设置
 
 #### 二十、调试工具
+
 - [x] `development/debug.md` - 调试工具 ✅
   - 调试工具介绍
   - 开发环境功能
 
 #### 二十一、多窗口管理
+
 - [x] `core/multi-window.md` - 多窗口功能 ✅
   - 多窗口支持
   - 窗口间标签页拖拽
@@ -584,6 +625,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 窗口创建
 
 #### 二十二、文档格式
+
 - [x] `formats/supported.md` - 支持的格式 ✅
   - Markdown格式（.md）
   - LaTeX格式（.tex）
@@ -591,6 +633,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 文件格式检测（自动检测、手动选择）
 
 #### 二十三、AI任务队列
+
 - [x] `ai/task-queue.md` - 任务队列管理 ✅
   - AI任务队列介绍
   - 任务查看
@@ -598,6 +641,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 任务进度显示
 
 #### 二十四、主页功能
+
 - [x] `home/features.md` - 主页功能 ✅
   - 快速开始（格式选择、Markdown快速开始、LaTeX快速开始）
   - 新建文档
@@ -607,6 +651,7 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 用户资料对话框
 
 #### 图表功能（补充）
+
 - [x] `charts/introduction.md` - 图表功能介绍 ✅
 - [x] `charts/mermaid.md` - Mermaid图表 ✅
 - [x] `charts/plantuml.md` - PlantUML图表 ✅
@@ -645,11 +690,13 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 ### 开发环境设置
 
 1. **安装依赖**（如果需要 D3.js）：
+
 ```bash
 npm install d3 @types/d3
 ```
 
 2. **文档结构**：
+
 ```
 src/renderer/src/manuals/
 ├── index.json              # 文档索引
@@ -686,52 +733,53 @@ src/renderer/src/manuals/
 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构统计：**
 
-| 类别 | 总数 | 已完成 | 进度 |
-|------|------|--------|------|
-| 一、快速开始 | 1 | 1 | 100% ✅ |
-| 二、编辑器 | | | |
-| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 4 | 100% ✅ |
-| &nbsp;&nbsp;2.2 LaTeX编辑器 | 5 | 5 | 100% ✅ |
-| &nbsp;&nbsp;2.3 纯文本编辑器 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;2.4 编辑器通用功能 | 2 | 2 | 100% ✅ |
-| 三、文件操作 | 3 | 3 | 100% ✅ |
-| 四、AI功能 | | | |
-| &nbsp;&nbsp;4.1 AI对话 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.2 AI校对 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.3 AI补全 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.4 AI助手功能 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.5 Agent工具 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.6 Agent框架 | 6 | 5 | 83% |
-| 五、大纲视图 | 2 | 2 | 100% ✅ |
-| 六、系统设置 | | | |
-| &nbsp;&nbsp;6.1 基础设置 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;6.2 LLM设置 | 3 | 3 | 100% ✅ |
-| &nbsp;&nbsp;6.3 知识库设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.4 主题设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.5 图片设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.6 日志设置 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;6.7 关于 | 1 | 1 | 100% ✅ |
-| 七、知识库 | 3 | 3 | 100% ✅ |
-| 八、工作目录 | 1 | 1 | 100% ✅ |
-| 九、快捷键 | 2 | 2 | 100% ✅ |
-| 十、视图切换 | 1 | 1 | 100% ✅ |
-| 十一、多标签页管理 | 1 | 1 | 100% ✅ |
-| 十二、语言设置 | 1 | 1 | 100% ✅ |
-| 十三、用户功能 | 2 | 2 | 100% ✅ |
-| 十四、主页功能 | 1 | 1 | 100% ✅ |
-| 十五、统计和监控 | 2 | 2 | 100% ✅ |
-| 十六、段落优化 | 1 | 1 | 100% ✅ |
-| 十七、PDF预览 | 1 | 1 | 100% ✅ |
-| 十八、控制台输出 | 1 | 1 | 100% ✅ |
-| 十九、菜单配置 | 1 | 1 | 100% ✅ |
-| 二十、调试工具 | 1 | 1 | 100% ✅ |
-| 二十一、多窗口管理 | 1 | 1 | 100% ✅ |
-| 二十二、文档格式 | 1 | 1 | 100% ✅ |
-| 二十三、AI任务队列 | 1 | 1 | 100% ✅ |
-| 二十四、图表功能 | 4 | 4 | 100% ✅ |
-| **总计** | **60+** | **60** | **100%** ✅ |
+| 类别                           | 总数    | 已完成 | 进度        |
+| ------------------------------ | ------- | ------ | ----------- |
+| 一、快速开始                   | 1       | 1      | 100% ✅     |
+| 二、编辑器                     |         |        |             |
+| &nbsp;&nbsp;2.1 Markdown编辑器 | 4       | 4      | 100% ✅     |
+| &nbsp;&nbsp;2.2 LaTeX编辑器    | 5       | 5      | 100% ✅     |
+| &nbsp;&nbsp;2.3 纯文本编辑器   | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;2.4 编辑器通用功能 | 2       | 2      | 100% ✅     |
+| 三、文件操作                   | 3       | 3      | 100% ✅     |
+| 四、AI功能                     |         |        |             |
+| &nbsp;&nbsp;4.1 AI对话         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.2 AI校对         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.3 AI补全         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.4 AI助手功能     | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.5 Agent工具      | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.6 Agent框架      | 6       | 5      | 83%         |
+| 五、大纲视图                   | 2       | 2      | 100% ✅     |
+| 六、系统设置                   |         |        |             |
+| &nbsp;&nbsp;6.1 基础设置       | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;6.2 LLM设置        | 3       | 3      | 100% ✅     |
+| &nbsp;&nbsp;6.3 知识库设置     | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.4 主题设置       | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.5 图片设置       | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.6 日志设置       | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;6.7 关于           | 1       | 1      | 100% ✅     |
+| 七、知识库                     | 3       | 3      | 100% ✅     |
+| 八、工作目录                   | 1       | 1      | 100% ✅     |
+| 九、快捷键                     | 2       | 2      | 100% ✅     |
+| 十、视图切换                   | 1       | 1      | 100% ✅     |
+| 十一、多标签页管理             | 1       | 1      | 100% ✅     |
+| 十二、语言设置                 | 1       | 1      | 100% ✅     |
+| 十三、用户功能                 | 2       | 2      | 100% ✅     |
+| 十四、主页功能                 | 1       | 1      | 100% ✅     |
+| 十五、统计和监控               | 2       | 2      | 100% ✅     |
+| 十六、段落优化                 | 1       | 1      | 100% ✅     |
+| 十七、PDF预览                  | 1       | 1      | 100% ✅     |
+| 十八、控制台输出               | 1       | 1      | 100% ✅     |
+| 十九、菜单配置                 | 1       | 1      | 100% ✅     |
+| 二十、调试工具                 | 1       | 1      | 100% ✅     |
+| 二十一、多窗口管理             | 1       | 1      | 100% ✅     |
+| 二十二、文档格式               | 1       | 1      | 100% ✅     |
+| 二十三、AI任务队列             | 1       | 1      | 100% ✅     |
+| 二十四、图表功能               | 4       | 4      | 100% ✅     |
+| **总计**                       | **60+** | **60** | **100%** ✅ |
 
 **注意**：
+
 - 此统计基于 `USER_MANUAL_INDEX.md` 的完整结构
 - **已完成文档**（按新规范完善，包含图表和Demo组件）：
   - ✅ `quick-start/guide.md` - 快速开始指南（已完善：图表+Demo组件）

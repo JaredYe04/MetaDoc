@@ -22,7 +22,8 @@
         @delete="handleDeleteAttachment"
       >
         <!-- 右侧内容区域 -->
-        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div class="content-area" :style="contentAreaStyle" style="position: relative">
+          <LoadingOverlay :show="loadingSession" :message="t('common.loading', '加载中...')" />
           <div v-if="!activeAttachment" class="empty-state" :style="emptyStateStyle">
             <p>{{ t('attachment.noAttachmentSelected', '请选择一个附件或上传新附件') }}</p>
           </div>
@@ -38,7 +39,7 @@
                   </p>
                 </div>
                 <div class="attachment-actions">
-                  <el-button
+                  <Button
                     size="small"
                     :loading="processing"
                     @click="handleParse"
@@ -49,8 +50,8 @@
                         ? t('attachment.reparse', '重新解析')
                         : t('attachment.parse', '解析附件')
                     }}
-                  </el-button>
-                  <el-button
+                  </Button>
+                  <Button
                     type="primary"
                     size="small"
                     :loading="analyzing"
@@ -62,15 +63,23 @@
                         ? t('attachment.reanalyze', '重新AI分析')
                         : t('attachment.startAnalysis', '开始AI分析')
                     }}
-                  </el-button>
+                  </Button>
                 </div>
               </div>
             </div>
 
             <!-- 解析内容 -->
             <div v-if="activeAttachment" class="parsed-section">
-              <el-tabs v-model="activeTab">
-                <el-tab-pane :label="t('attachment.tabs.parsed', '解析内容')" name="parsed">
+              <Tabs v-model="activeTab">
+                <TabsList>
+                  <TabsTrigger value="parsed">
+                    {{ t('attachment.tabs.parsed', '解析内容') }}
+                  </TabsTrigger>
+                  <TabsTrigger value="analysis">
+                    {{ t('attachment.tabs.aiAnalysis', 'AI分析') }}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="parsed">
                   <div
                     v-if="parsedContent && parsedContent.trim()"
                     class="content-display"
@@ -84,8 +93,8 @@
                   <div v-else class="no-content" :style="noAnalysisStyle">
                     <p>{{ t('attachment.noParsedContent', '暂无解析内容') }}</p>
                   </div>
-                </el-tab-pane>
-                <el-tab-pane :label="t('attachment.tabs.aiAnalysis', 'AI分析')" name="analysis">
+                </TabsContent>
+                <TabsContent value="analysis">
                   <div class="analysis-display">
                     <!-- 流式输出显示 -->
                     <StreamingContentDisplay
@@ -93,15 +102,15 @@
                       :content-ref="aiAnalysisStreamingRefWrapper"
                       :done="aiAnalysisDoneValue"
                     />
-                    <el-scrollbar v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
+                    <ScrollArea v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
                       <div ref="aiAnalysisContainerRef" class="ai-analysis-container"></div>
-                    </el-scrollbar>
+                    </ScrollArea>
                     <div v-else class="no-analysis" :style="noAnalysisStyle">
                       <p>{{ t('attachment.noAnalysis', '暂无AI分析结果') }}</p>
                     </div>
                   </div>
-                </el-tab-pane>
-              </el-tabs>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -113,7 +122,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { Button } from '@renderer/components/ui/button'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { attachmentSessionsDb, type AttachmentSession } from '../utils/db/tool-sessions-db'
@@ -128,6 +141,7 @@ import { renderMarkdownPreview } from '../utils/md-utils'
 import * as monaco from 'monaco-editor'
 import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 import messageBridge from '../bridge/message-bridge'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 // 不导入 setupMonacoWorker，禁用 worker 避免卡死
 
 const { t } = useI18n()
@@ -318,7 +332,7 @@ const loadAttachments = async () => {
       updatedAt: a.updated_at
     }))
   } catch (error) {
-    ElMessage.error('加载附件列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载附件列表失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -362,9 +376,9 @@ const handleUploadAttachment = async () => {
         await handleSelectAttachment(newAttachment)
       }
     }
-    ElMessage.success(t('attachment.uploadSuccess', '附件上传成功'))
+    notifySuccess(t('attachment.uploadSuccess', '附件上传成功'))
   } catch (error) {
-    ElMessage.error('上传附件失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('上传附件失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -399,7 +413,7 @@ const handleSelectAttachment = async (item: SessionListItem) => {
       aiAnalysis.value = ''
     }
   } catch (error) {
-    ElMessage.error('加载附件失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('加载附件失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     loadingSession.value = false
   }
@@ -411,7 +425,7 @@ const handleRenameAttachment = async (item: SessionListItem, newTitle: string) =
     await attachmentSessionsDb.update(item.id, { title: newTitle })
     await loadAttachments()
   } catch (error) {
-    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -425,9 +439,9 @@ const handleDeleteAttachment = async (item: SessionListItem) => {
       parsedContent.value = ''
       aiAnalysis.value = ''
     }
-    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+    notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('删除失败: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -477,9 +491,9 @@ const handleParse = async () => {
     await nextTick()
     activeTab.value = 'parsed'
 
-    ElMessage.success(t('attachment.parseSuccess', '解析完成'))
+    notifySuccess(t('attachment.parseSuccess', '解析完成'))
   } catch (error) {
-    ElMessage.error('解析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('解析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     processing.value = false
   }
@@ -488,7 +502,7 @@ const handleParse = async () => {
 // AI分析
 const handleAiAnalysis = async () => {
   if (!activeAttachmentId.value || !parsedContent.value) {
-    ElMessage.warning(t('attachment.noParsedContent', '请先解析附件'))
+    notifyWarning(t('attachment.noParsedContent', '请先解析附件'))
     return
   }
 
@@ -560,10 +574,10 @@ const handleAiAnalysis = async () => {
       })
 
       activeTab.value = 'analysis'
-      ElMessage.success(t('attachment.analysisSuccess', '分析完成'))
+      notifySuccess(t('attachment.analysisSuccess', '分析完成'))
     }
   } catch (error) {
-    ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     analyzing.value = false
   }
@@ -756,16 +770,12 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 确保 el-tabs 占满父容器高度 */
-.parsed-section :deep(.el-tabs) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+/* shadcn-vue Tabs styling */
+.parsed-section :deep([role='tablist']) {
+  flex-shrink: 0;
 }
 
-.parsed-section :deep(.el-tabs__content) {
+.parsed-section :deep([role='tabpanel']) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -773,13 +783,8 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.parsed-section :deep(.el-tab-pane) {
+.parsed-section :deep([role='tabpanel'][data-state='active']) {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .content-display {

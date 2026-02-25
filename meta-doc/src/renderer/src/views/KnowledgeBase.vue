@@ -13,9 +13,9 @@
             '知识库功能当前已禁用。请在设置中启用知识库功能以使用此功能。'
           }}
         </p>
-        <el-button type="primary" @click="enableKnowledgeBase">
+        <Button variant="default" @click="enableKnowledgeBase">
           {{ t('knowledgeBase.enable') || '启用知识库' }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -26,87 +26,95 @@
         <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
           <!-- 上半部分: 知识库列表，占50%高度 -->
           <div class="kb-list-wrapper">
-            <el-card
+            <Card
               class="kb-panel"
-              shadow="hover"
-              v-loading="isUploading"
-              :style="{ background: themeState.currentTheme.background2nd, height: '100%' }"
+              :style="{
+                background: themeState.currentTheme.background2nd,
+                height: '100%',
+                position: 'relative'
+              }"
             >
-              <div class="kb-panel-header">
-                <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
-                <div class="kb-panel-actions">
-                  <el-button type="primary" size="small" @click="triggerUpload">{{
-                    t('knowledgeBase.add')
-                  }}</el-button>
-                  <el-button
-                    type="danger"
-                    size="small"
-                    :disabled="!selectedItem"
-                    @click="confirmDelete"
-                    >{{ t('knowledgeBase.delete') }}</el-button
-                  >
-                  <el-button size="small" @click="confirmClearAll">{{
-                    t('knowledgeBase.clear_all')
-                  }}</el-button>
-                  <input
-                    ref="fileInput"
-                    type="file"
-                    style="display: none"
-                    @change="onFileSelected"
-                    accept=".txt,.md,.pdf,.docx"
-                  />
+              <LoadingOverlay
+                :show="isUploading"
+                :message="t('knowledgeBase.uploading', '上传中...')"
+              />
+              <CardContent class="kb-card-content">
+                <div class="kb-panel-header">
+                  <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
+                  <div class="kb-panel-actions">
+                    <Button variant="default" size="sm" @click="triggerUpload">{{
+                      t('knowledgeBase.add')
+                    }}</Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      :disabled="!selectedItem"
+                      @click="confirmDelete"
+                      >{{ t('knowledgeBase.delete') }}</Button
+                    >
+                    <Button variant="secondary" size="sm" @click="confirmClearAll">{{
+                      t('knowledgeBase.clear_all')
+                    }}</Button>
+                    <input
+                      ref="fileInput"
+                      type="file"
+                      style="display: none"
+                      @change="onFileSelected"
+                      accept=".txt,.md,.pdf,.docx"
+                    />
+                  </div>
                 </div>
-              </div>
-              <el-scrollbar class="kb-list-scroll">
-                <el-table
-                  :data="items"
-                  stripe
-                  row-key="id"
-                  :highlight-current-row="true"
-                  @current-change="onSelect"
-                  :current-row-key="selectedId"
-                  style="width: 100%"
-                  size="small"
-                >
-                  <el-table-column prop="name" :label="t('knowledgeBase.name')" min-width="200">
-                    <template #default="{ row }">
-                      <div class="list-item" @click="selectRow(row)">
-                        <span class="status-dot" :class="row.enabled ? 'on' : 'off'"></span>
-                        <span class="item-name">{{ row.name }}</span>
-                      </div>
-                    </template>
-                  </el-table-column>
-
-                  <el-table-column :label="t('knowledgeBase.size_chunks')" width="140">
-                    <template #default="{ row }">
-                      <div>
-                        <div v-if="row.info">
-                          {{ row.info.sizeText || '-' }} / {{ row.info.chunks || '-' }}
-                          {{ t('knowledgeBase.chunks_unit') }}
-                        </div>
-                        <div v-else>-</div>
-                      </div>
-                    </template>
-                  </el-table-column>
-
-                  <el-table-column :label="t('knowledgeBase.enabled')" width="90">
-                    <template #default="{ row }">
-                      <el-switch
-                        v-model="row.info.enabled"
-                        @change="(val: boolean) => toggleEnable(row, val)"
-                      />
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-scrollbar>
-            </el-card>
+                <ScrollArea class="kb-list-scroll">
+                  <Table class="kb-table">
+                    <TableHeader>
+                      <TableRow class="kb-table-header-row">
+                        <TableHead class="w-[200px]">{{ t('knowledgeBase.name') }}</TableHead>
+                        <TableHead class="w-[140px]">{{
+                          t('knowledgeBase.size_chunks')
+                        }}</TableHead>
+                        <TableHead class="w-[90px]">{{ t('knowledgeBase.enabled') }}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow
+                        v-for="row in items"
+                        :key="row.id"
+                        class="kb-table-row"
+                        :data-selected="selectedId === row.id"
+                        @click="selectRow(row)"
+                      >
+                        <TableCell>
+                          <div class="list-item">
+                            <span class="status-dot" :class="row.enabled ? 'on' : 'off'"></span>
+                            <span class="item-name">{{ row.name }}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div v-if="row.info">
+                            {{ row.info.sizeText || '-' }} / {{ row.info.chunks || '-' }}
+                            {{ t('knowledgeBase.chunks_unit') }}
+                          </div>
+                          <div v-else>-</div>
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            :checked="row.info.enabled"
+                            @update:checked="(val: boolean) => toggleEnable(row, val)"
+                            @click.stop
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </div>
 
           <!-- 下半部分: 检索测试，占50%高度 -->
           <div class="kb-search-wrapper">
-            <el-card
+            <Card
               class="kb-panel"
-              shadow="hover"
               :style="{
                 background: themeState.currentTheme.background2nd,
                 height: '100%',
@@ -114,224 +122,241 @@
                 flexDirection: 'column'
               }"
             >
-              <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
-              <el-form-item :label="$t('setting.knowledgeBaseScoreThreshold')">
-                <el-slider
-                  v-model="settings.knowledgeBaseScoreThreshold"
-                  show-input
-                  :min="0.01"
-                  :max="0.99"
-                  :step="0.01"
-                  @change="
-                    setSetting('knowledgeBaseScoreThreshold', settings.knowledgeBaseScoreThreshold)
-                  "
-                  :marks="{
-                    0.3: {
-                      style: {
-                        color: '#1989FA'
-                      },
-                      label: $t('setting.lowPrecision')
-                    },
-                    0.5: {
-                      style: {
-                        color: '#1989FA'
-                      },
-                      label: $t('setting.recommended')
-                    },
-                    0.8: {
-                      style: {
-                        color: '#1989FA'
-                      },
-                      label: $t('setting.highPrecision')
-                    }
-                  }"
-                  style="margin-bottom: 5px"
+              <CardContent class="kb-card-content">
+                <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
+                <FormItem :label="$t('setting.knowledgeBaseScoreThreshold')">
+                  <div class="flex items-center gap-4" style="margin-bottom: 5px">
+                    <Slider
+                      :model-value="settings.knowledgeBaseScoreThreshold"
+                      :min="0.01"
+                      :max="0.99"
+                      :step="0.01"
+                      @update:model-value="
+                        (val) => {
+                          settings.knowledgeBaseScoreThreshold = val
+                          setSetting('knowledgeBaseScoreThreshold', val)
+                        }
+                      "
+                      class="flex-1"
+                    />
+                    <NumberField
+                      :model-value="settings.knowledgeBaseScoreThreshold"
+                      :min="0.01"
+                      :max="0.99"
+                      :step="0.01"
+                      :precision="2"
+                      @update:model-value="
+                        (val) => {
+                          settings.knowledgeBaseScoreThreshold = val
+                          setSetting('knowledgeBaseScoreThreshold', val)
+                        }
+                      "
+                      class="w-28"
+                    >
+                      <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput />
+                        <NumberFieldIncrement />
+                      </NumberFieldContent>
+                    </NumberField>
+                  </div>
+                  <div class="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>{{ $t('setting.lowPrecision') }} (0.3)</span>
+                    <span class="text-primary">{{ $t('setting.recommended') }} (0.5)</span>
+                    <span>{{ $t('setting.highPrecision') }} (0.8)</span>
+                  </div>
+                </FormItem>
+                <Input
+                  v-model="searchQuery"
+                  :placeholder="t('knowledgeBase.searchTest.placeholder')"
+                  @keyup.enter="doSearch"
+                  class="mb-2"
                 />
-              </el-form-item>
-              <el-input
-                v-model="searchQuery"
-                :placeholder="t('knowledgeBase.searchTest.placeholder')"
-                size="small"
-                clearable
-                @keyup.enter.native="doSearch"
-                style="margin-bottom: 10px"
-              />
-              <el-button type="primary" size="small" @click="doSearch" :loading="searching">{{
-                t('knowledgeBase.searchTest.searchBtn')
-              }}</el-button>
+                <Button variant="default" size="sm" @click="doSearch" :loading="searching">{{
+                  t('knowledgeBase.searchTest.searchBtn')
+                }}</Button>
 
-              <el-scrollbar style="flex-grow: 1; margin-top: 10px; min-height: 0">
-                <el-card
-                  class="kb-result-card"
-                  shadow="hover"
-                  v-for="(result, index) in searchResults"
-                  :key="index"
-                  :style="{
-                    background: themeState.currentTheme.SideBackgroundColor,
-                    marginBottom: '6px'
-                  }"
-                >
-                  <pre class="result-text">{{ result }}</pre>
-                </el-card>
+                <el-scrollbar style="flex-grow: 1; margin-top: 10px; min-height: 0">
+                  <Card
+                    class="kb-result-card"
+                    v-for="(result, index) in searchResults"
+                    :key="index"
+                    :style="{
+                      background: themeState.currentTheme.SideBackgroundColor,
+                      marginBottom: '6px'
+                    }"
+                  >
+                    <CardContent class="kb-result-card-content">
+                      <pre class="result-text">{{ result }}</pre>
+                    </CardContent>
+                  </Card>
 
-                <div
-                  v-if="searchResults.length === 0 && !searching"
-                  style="color: #999"
-                  class="placeholder"
-                >
-                  {{ t('knowledgeBase.searchTest.noResult') }}
-                </div>
-              </el-scrollbar>
-            </el-card>
+                  <div
+                    v-if="searchResults.length === 0 && !searching"
+                    style="color: #999"
+                    class="placeholder"
+                  >
+                    {{ t('knowledgeBase.searchTest.noResult') }}
+                  </div>
+                </el-scrollbar>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         <!-- 右边 -->
         <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
           <!-- 上：preview -->
-          <el-card
+          <Card
             class="kb-panel kb-preview"
-            shadow="hover"
-            v-loading="!previewLoaded"
-            :style="{ background: themeState.currentTheme.background2nd }"
+            :style="{ background: themeState.currentTheme.background2nd, position: 'relative' }"
           >
-            <div class="kb-panel-header">
-              <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
-              <div v-if="selectedItem" class="kb-panel-actions">
-                <el-button size="small" :disabled="!selectedItem" @click="openInEditor">
-                  {{ t('knowledgeBase.open_in_editor') }}
-                </el-button>
-              </div>
-            </div>
-
-            <div class="preview-container" v-if="previewText">
-              <div
-                :id="previewEditorId"
-                class="monaco-editor-container"
-                :key="previewEditorId"
-              ></div>
-            </div>
-            <div v-else class="placeholder">{{ t('knowledgeBase.select_placeholder') }}</div>
-          </el-card>
-
-          <!-- 下：config -->
-          <el-card
-            class="kb-panel kb-config"
-            shadow="hover"
-            :style="{ background: themeState.currentTheme.background2nd }"
-          >
-            <div class="kb-panel-header">
-              <h2 class="kb-panel-title">{{ t('knowledgeBase.config') }}</h2>
-            </div>
-
-            <el-scrollbar class="config-scroll">
-              <div v-if="selectedItem" class="config-content">
-                <el-descriptions
-                  column="1"
-                  size="small"
-                  border
-                  :style="{
-                    background: themeState.currentTheme.background2nd,
-                    '--el-descriptions-item-bordered-label-background':
-                      themeState.currentTheme.SideBackgroundColor,
-                    '--el-descriptions-item-bordered-label-color':
-                      themeState.currentTheme.SideTextColor,
-                    '--el-descriptions-item-bordered-content-background':
-                      themeState.currentTheme.background2nd,
-                    '--el-descriptions-item-bordered-content-color':
-                      themeState.currentTheme.textColor
-                  }"
-                >
-                  <el-descriptions-item :label="t('knowledgeBase.filename')">
-                    <template v-if="isEditing">
-                      <el-input
-                        v-model="editFilename"
-                        size="small"
-                        class="edit-filename-input"
-                        @keyup.enter.native="onConfirm"
-                      />
-                      <el-button
-                        size="small"
-                        @click="onConfirm"
-                        class="aero-btn"
-                        circle
-                        :loading="renaming"
-                      >
-                        <el-icon v-if="!renaming" style="font-size: 14px">
-                          <Check />
-                        </el-icon>
-                      </el-button>
-                      <el-button
-                        size="small"
-                        @click="onCancel"
-                        :disabled="renaming"
-                        class="aero-btn"
-                        circle
-                      >
-                        <el-icon style="font-size: 14px">
-                          <Close />
-                        </el-icon>
-                      </el-button>
-                    </template>
-                    <template v-else>
-                      <span class="text-ellipsis">{{ selectedItem.name }}</span>
-                      <el-button
-                        icon="el-icon-edit"
-                        @click="startEditing"
-                        circle
-                        class="aero-btn"
-                        size="small"
-                      >
-                        <el-icon style="font-size: 14px">
-                          <Edit />
-                        </el-icon>
-                      </el-button>
-                    </template>
-                  </el-descriptions-item>
-                  <el-descriptions-item :label="t('knowledgeBase.path')">
-                    <span class="config-value">{{ truncateEnd(info.path, 50) }}</span>
-                  </el-descriptions-item>
-
-                  <el-descriptions-item :label="t('knowledgeBase.chunks')">
-                    <span class="config-value">{{ truncateEnd(info.chunks, 50) }}</span>
-                  </el-descriptions-item>
-
-                  <el-descriptions-item :label="t('knowledgeBase.vector_dim')">
-                    <span class="config-value">{{ truncateEnd(info.vector_dim, 50) }}</span>
-                  </el-descriptions-item>
-
-                  <el-descriptions-item :label="t('knowledgeBase.vector_count')">
-                    <span class="config-value">{{ truncateEnd(info.vector_count, 50) }}</span>
-                  </el-descriptions-item>
-
-                  <el-descriptions-item :label="t('knowledgeBase.size')">
-                    <span class="config-value">{{ truncateEnd(info.sizeText || '-', 50) }}</span>
-                  </el-descriptions-item>
-
-                  <el-descriptions-item :label="t('knowledgeBase.enabled_state')">
-                    <el-switch
-                      v-if="selectedItem && selectedItem.info"
-                      v-model="selectedItem.info.enabled"
-                      @change="(val: boolean) => selectedItem && toggleEnable(selectedItem, val)"
-                    />
-                  </el-descriptions-item>
-                </el-descriptions>
-
-                <div class="config-actions">
-                  <el-button size="small" @click="rebuildVectors" :loading="isRebuilding">
-                    {{ t('knowledgeBase.rebuild') }}
-                  </el-button>
-                  <el-button size="small" @click="downloadFile">
-                    {{ t('knowledgeBase.download') }}
-                  </el-button>
-                  <el-button size="small" @click="openFolder">
-                    {{ t('knowledgeBase.open_folder') }}
-                  </el-button>
+            <LoadingOverlay :show="!previewLoaded" :message="t('common.loading', '加载中...')" />
+            <CardContent class="kb-card-content">
+              <div class="kb-panel-header">
+                <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
+                <div v-if="selectedItem" class="kb-panel-actions">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    :disabled="!selectedItem"
+                    @click="openInEditor"
+                  >
+                    {{ t('knowledgeBase.open_in_editor') }}
+                  </Button>
                 </div>
               </div>
-              <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
-            </el-scrollbar>
-          </el-card>
+
+              <div class="preview-container" v-if="previewText">
+                <div
+                  :id="previewEditorId"
+                  class="monaco-editor-container"
+                  :key="previewEditorId"
+                ></div>
+              </div>
+              <div v-else class="placeholder">{{ t('knowledgeBase.select_placeholder') }}</div>
+            </CardContent>
+          </Card>
+
+          <!-- 下：config -->
+          <Card
+            class="kb-panel kb-config"
+            :style="{ background: themeState.currentTheme.background2nd }"
+          >
+            <CardContent class="kb-card-content">
+              <div class="kb-panel-header">
+                <h2 class="kb-panel-title">{{ t('knowledgeBase.config') }}</h2>
+              </div>
+
+              <el-scrollbar class="config-scroll">
+                <div v-if="selectedItem" class="config-content">
+                  <Descriptions
+                    :column="1"
+                    size="small"
+                    border
+                    :style="{
+                      background: themeState.currentTheme.background2nd,
+                      '--descriptions-item-bordered-label-background':
+                        themeState.currentTheme.SideBackgroundColor,
+                      '--descriptions-item-bordered-label-color':
+                        themeState.currentTheme.SideTextColor,
+                      '--descriptions-item-bordered-content-background':
+                        themeState.currentTheme.background2nd,
+                      '--descriptions-item-bordered-content-color':
+                        themeState.currentTheme.textColor
+                    }"
+                  >
+                    <DescriptionsItem :label="t('knowledgeBase.filename')">
+                      <template v-if="isEditing">
+                        <Input
+                          v-model="editFilename"
+                          class="edit-filename-input"
+                          @keyup.enter="onConfirm"
+                        />
+                        <Button
+                          size="sm"
+                          @click="onConfirm"
+                          class="aero-btn"
+                          circle
+                          :loading="renaming"
+                        >
+                          <el-icon v-if="!renaming" style="font-size: 14px">
+                            <Check />
+                          </el-icon>
+                        </Button>
+                        <Button
+                          size="sm"
+                          @click="onCancel"
+                          :disabled="renaming"
+                          class="aero-btn"
+                          circle
+                        >
+                          <el-icon style="font-size: 14px">
+                            <Close />
+                          </el-icon>
+                        </Button>
+                      </template>
+                      <template v-else>
+                        <span class="text-ellipsis">{{ selectedItem.name }}</span>
+                        <Button @click="startEditing" circle class="aero-btn" size="sm">
+                          <el-icon style="font-size: 14px">
+                            <Edit />
+                          </el-icon>
+                        </Button>
+                      </template>
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('knowledgeBase.path')">
+                      <span class="config-value">{{ truncateEnd(info.path, 50) }}</span>
+                    </DescriptionsItem>
+
+                    <DescriptionsItem :label="t('knowledgeBase.chunks')">
+                      <span class="config-value">{{ truncateEnd(info.chunks, 50) }}</span>
+                    </DescriptionsItem>
+
+                    <DescriptionsItem :label="t('knowledgeBase.vector_dim')">
+                      <span class="config-value">{{ truncateEnd(info.vector_dim, 50) }}</span>
+                    </DescriptionsItem>
+
+                    <DescriptionsItem :label="t('knowledgeBase.vector_count')">
+                      <span class="config-value">{{ truncateEnd(info.vector_count, 50) }}</span>
+                    </DescriptionsItem>
+
+                    <DescriptionsItem :label="t('knowledgeBase.size')">
+                      <span class="config-value">{{ truncateEnd(info.sizeText || '-', 50) }}</span>
+                    </DescriptionsItem>
+
+                    <DescriptionsItem :label="t('knowledgeBase.enabled_state')">
+                      <Switch
+                        v-if="selectedItem && selectedItem.info"
+                        :checked="selectedItem.info.enabled"
+                        @update:checked="
+                          (val: boolean) => selectedItem && toggleEnable(selectedItem, val)
+                        "
+                      />
+                    </DescriptionsItem>
+                  </Descriptions>
+
+                  <div class="config-actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      @click="rebuildVectors"
+                      :loading="isRebuilding"
+                    >
+                      {{ t('knowledgeBase.rebuild') }}
+                    </Button>
+                    <Button variant="secondary" size="sm" @click="downloadFile">
+                      {{ t('knowledgeBase.download') }}
+                    </Button>
+                    <Button variant="secondary" size="sm" @click="openFolder">
+                      {{ t('knowledgeBase.open_folder') }}
+                    </Button>
+                  </div>
+                </div>
+                <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
+              </el-scrollbar>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -351,10 +376,43 @@ import {
 } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+
+// Demo mode support
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'normal'
+  }
+})
+const isDemo = computed(() => props.mode === 'demo')
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
+import { Card, CardContent } from '../components/ui/card'
+import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Slider } from '@renderer/components/ui/slider'
+import {
+  NumberField,
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput
+} from '@renderer/components/ui/number-field'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@renderer/components/ui/table'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
+import { FormItem } from '@renderer/components/ui/form'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
@@ -924,6 +982,15 @@ const handleKnowledgeBaseToggle = (payload: unknown) => {
 }
 
 onMounted(async () => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only
+    knowledgeBaseEnabled.value = true
+    knowledgeItems.value = [
+      { id: '1', name: '示例文档.md', size: '12.5 KB', created_at: Date.now() },
+      { id: '2', name: 'README.md', size: '8.2 KB', created_at: Date.now() - 3600000 }
+    ]
+    return
+  }
   // 初始化运行时服务器地址
   baseUrl.value = (await getRuntimeServerBaseUrl()) + '/api/knowledge'
   // 初始化知识库状态
@@ -973,18 +1040,22 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-/* 圆角样式 */
-:deep(.el-card) {
+/* shadcn Card styles */
+:deep(.kb-panel) {
   border-radius: 12px;
   overflow: hidden;
 }
 
-:deep(.el-card__body) {
+.kb-card-content {
   padding: 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+.kb-result-card-content {
+  padding: 12px;
 }
 
 .kb-container {
@@ -1071,10 +1142,6 @@ onBeforeUnmount(() => {
 .kb-result-card {
   border-radius: 8px;
   margin-bottom: 6px;
-}
-
-.kb-result-card :deep(.el-card__body) {
-  padding: 12px;
 }
 
 .result-text {
@@ -1175,29 +1242,55 @@ onBeforeUnmount(() => {
   margin-left: 4px;
 }
 
+/* shadcn-vue Table styles */
+.kb-table {
+  font-size: 13px;
+}
+
+.kb-table-header-row {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+}
+
+.kb-table-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.kb-table-row:nth-child(even) {
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.kb-table-row[data-selected='true'] {
+  background-color: v-bind('themeState.currentTheme.SideBackgroundColor') !important;
+}
+
+.kb-table-row:hover {
+  background-color: v-bind('themeState.currentTheme.SideBackgroundColor');
+}
+
 /* 美化描述列表 */
-:deep(.el-descriptions) {
+:deep(.descriptions) {
   border-radius: 8px;
   overflow: hidden;
 }
 
-:deep(.el-descriptions__label) {
+:deep(.descriptions__cell--label) {
   font-weight: 500;
   background-color: v-bind('themeState.currentTheme.SideBackgroundColor') !important;
   color: v-bind('themeState.currentTheme.SideTextColor') !important;
 }
 
-:deep(.el-descriptions__content) {
+:deep(.descriptions__cell--content) {
   background-color: v-bind('themeState.currentTheme.background2nd') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
-:deep(.el-descriptions__table) {
+:deep(.descriptions__table) {
   border-collapse: separate;
   border-spacing: 0;
 }
 
-:deep(.el-descriptions__table td) {
+:deep(.descriptions__table td) {
   border-color: v-bind('themeState.currentTheme.borderColor') !important;
 }
 

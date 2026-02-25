@@ -14,6 +14,8 @@
 - **菜单选项**：某些菜单中可能有用户反馈选项
 - **快捷键**：某些情况下可能有快捷键（未来可能支持）
 
+<SettingAboutSection mode="demo" />
+
 ## 反馈类型
 
 ### 反馈类型选择
@@ -24,6 +26,8 @@
 - **功能建议**：提出新功能或改进建议
 - **安全性反馈**：报告安全问题
 - **其他**：其他类型的反馈
+
+<DialogDemo mode="demo" dialogType="feedback" />
 
 ### 类型说明
 
@@ -61,6 +65,8 @@
 - **其他信息**：其他信息的区域
 - **联系方式**：可选的联系方式
 
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 ## 附件上传
 
 ### 附件支持
@@ -71,6 +77,8 @@
 - **文件大小**：单个文件不超过10MB
 - **总大小**：所有附件总大小不超过50MB
 - **文件数量**：最多上传5个附件
+
+<SettingImageSection mode="demo" />
 
 ### 附件用途
 
@@ -102,6 +110,8 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+<QuickStartPanel mode="demo" />
+
 ```mermaid
 graph TB
     A[用户反馈] --> B[选择反馈类型]
@@ -130,6 +140,8 @@ graph TB
 - **描述验证**：确保描述不为空
 - **附件验证**：确保附件符合规则
 
+<DialogDemo mode="demo" dialogType="submit-confirm" />
+
 ### 提交结果
 
 提交后会显示结果：
@@ -146,6 +158,8 @@ graph TB
 - **邮箱地址**：在反馈页面底部显示
 - **复制邮箱**：可以复制邮箱地址
 - **邮件主题**：建议使用明确的主题
+
+<ViewMenuItemsDemo mode="demo" :items='["settings"]' />
 
 ### QQ群
 
@@ -176,6 +190,8 @@ graph TB
 - **功能建议**：中等优先级
 - **其他反馈**：一般优先级
 
+<MainTabs mode="demo" />
+
 ## 最佳实践
 
 1. **详细描述**：尽可能详细地描述问题或建议
@@ -196,3 +212,5 @@ graph TB
 
 - [[settings.about|关于信息]]
 - [[user.profile|用户资料]]
+
+<AIChat mode="demo" />

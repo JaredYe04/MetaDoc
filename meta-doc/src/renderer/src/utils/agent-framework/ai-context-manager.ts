@@ -164,9 +164,9 @@ export class AIContextManager {
         // 如果 Electron process 不可用，尝试直接访问 process（如果 contextIsolation 允许）
         if (
           (platform === 'unknown' || arch === 'unknown') &&
-          typeof (globalThis as any).process !== 'undefined'
+          typeof (window as any).process !== 'undefined'
         ) {
-          const nodeProcess = (globalThis as any).process
+          const nodeProcess = (window as any).process
           if (nodeProcess.platform && platform === 'unknown') {
             platform = nodeProcess.platform
           }

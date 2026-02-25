@@ -18,6 +18,18 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
+### 图片设置界面
+
+下图展示了图片设置页面的完整界面：
+
+<SettingImageSection mode="demo" />
+
+图片设置界面包含以下主要配置区域：
+
+- **图片上传服务**：选择本地存储或第三方图床
+- **本地存储路径**：设置图片保存的本地目录
+- **网络图片处理**：配置是否保留原URL、是否自动转存等选项
+
 ### 上传模式
 
 上传模式会将图片保存到配置的本地图片目录：
@@ -25,6 +37,8 @@
 - **优点**：集中管理所有图片，便于备份和迁移
 - **缺点**：图片与文档分离，移动文档时需要同时移动图片
 - **适用场景**：多文档共享图片、图片资源集中管理
+
+<DialogDemo mode="demo" dialogType="image-upload" />
 
 ### 保存到文档目录
 
@@ -34,6 +48,8 @@
 - **缺点**：每个文档目录都有图片，可能重复
 - **适用场景**：单文档项目、文档需要独立打包
 
+<DialogDemo mode="demo" dialogType="file-save" />
+
 ### 保存到资源目录
 
 将图片保存到文档目录下的`assets`文件夹：
@@ -41,6 +57,8 @@
 - **优点**：图片统一存放在`assets`文件夹，结构清晰
 - **缺点**：需要创建`assets`文件夹
 - **适用场景**：需要清晰的文件结构、文档需要导出分享
+
+<DialogDemo mode="demo" dialogType="folder-select" />
 
 ```mermaid
 graph TB
@@ -72,6 +90,7 @@ graph TB
 ### 使用场景
 
 - **启用场景**：
+
   - 图片资源较大，不需要本地备份
   - 图片会定期更新，需要实时显示最新版本
   - 节省本地存储空间
@@ -167,3 +186,11 @@ graph TB
 - [[settings.image-upload|上传服务设置]]
 - [[settings.basic|基础设置]]
 - [[core.file-operations|文件操作]]
+
+<SettingImageSection mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings", "items": ["image"]}]' />
+
+<DialogDemo mode="demo" dialogType="image-upload" />
+
+<DialogDemo mode="demo" dialogType="file-save" />

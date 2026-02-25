@@ -15,30 +15,29 @@
       :style="completedStateStyle"
     >
       <div class="result-header" :style="resultHeaderStyle">
-        <el-tag type="success" size="small">
+        <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
           {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
-        </el-tag>
+        </Badge>
         <span class="question-text" :style="questionTextStyle">{{ displayData.question }}</span>
       </div>
 
       <div v-if="displayData.results && displayData.results.length > 0" class="results-container">
-        <el-scrollbar max-height="400px">
-          <el-card
+        <ScrollArea class="max-h-[400px]">
+          <Card
             v-for="(result, index) in displayData.results"
             :key="index"
             class="result-card"
-            shadow="hover"
             :style="cardStyle"
           >
-            <div class="result-content">
+            <CardContent class="result-content">
               <pre class="result-text" :style="resultTextStyle">{{ result }}</pre>
-            </div>
-          </el-card>
-        </el-scrollbar>
+            </CardContent>
+          </Card>
+        </ScrollArea>
       </div>
 
       <div v-else class="no-results">
-        <el-empty :description="$t('agent.display.ragTool.noResults')" :image-size="80" />
+        <Empty :description="$t('agent.display.ragTool.noResults')" :image-size="80" />
         <p class="hint" :style="hintStyle">
           {{ $t('agent.display.ragTool.hint') }}
         </p>
@@ -46,35 +45,68 @@
     </div>
 
     <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.ragTool.searchFailed')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.ragTool.searchFailed') }}</AlertTitle>
+      </Alert>
     </div>
 
     <!-- 进度条 -->
-    <el-progress
-      v-if="effectiveProgress && effectiveProgress.percentage > 0"
-      :percentage="effectiveProgress.percentage"
-      :status="progressStatus"
-      :stroke-width="6"
-      style="margin-top: 12px"
-    />
+    <div v-if="effectiveProgress && effectiveProgress.percentage > 0" style="margin-top: 12px">
+      <Progress
+        :percentage="effectiveProgress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Badge } from '@renderer/components/ui/badge'
+import { Progress } from '@renderer/components/ui/progress'
+import { Empty } from '@renderer/components/ui/empty'
+import { XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { Card, CardContent } from '@renderer/components/ui/card'
 import { themeState } from '../../../utils/themes'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 
 const { t } = useI18n()
 
-const props = defineProps<ToolDisplayComponentProps>()
+const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo data
+const demoData = ref({
+  stage: 'completed' as const,
+  question: '什么是机器学习？',
+  resultCount: 3,
+  results: [
+    '机器学习是人工智能的一个分支，它使计算机系统能够通过经验自动改进。机器学习算法使用统计技术从数据中“学习”，而无需明确编程。',
+    '深度学习是机器学习的一个子集，使用多层神经网络来模拟人脑的工作方式。它在图像识别、自然语言处理等领域取得了突破性进展。',
+    '监督学习、无监督学习和强化学习是机器学习的三种主要类型。每种类型适用于不同的应用场景和数据特点。'
+  ],
+  scoreThreshold: 0.7
+})
+
+const loadDemoData = () => {
+  // Demo data is set in the reactive ref above
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+  // Real initialization continues below
+})
 
 // 使用实时通信
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
@@ -86,6 +118,11 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
+  // Demo mode: return demo data
+  if (isDemo.value) {
+    return demoData.value
+  }
+
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
 

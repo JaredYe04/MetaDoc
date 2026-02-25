@@ -3,16 +3,9 @@
  * 对应原 unit-tests-register 中的 registerSearchReplaceTests
  */
 import { describe, it, expect } from 'vitest'
-import {
-  computeReplacementText,
-  type TextSearchMatch
-} from './text-search-utils'
+import { computeReplacementText, type TextSearchMatch } from './text-search-utils'
 
-function execRegex(
-  pattern: string,
-  text: string,
-  matchCase: boolean
-): TextSearchMatch | null {
+function execRegex(pattern: string, text: string, matchCase: boolean): TextSearchMatch | null {
   const flags = matchCase ? 'g' : 'gi'
   const re = new RegExp(pattern, flags)
   re.lastIndex = 0

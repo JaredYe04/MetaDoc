@@ -50,11 +50,13 @@ npm install @drawio/core
    ```
 
 2. **创建 mxgraph 封装组件**
+
    - 封装 mxGraph 实例
    - 实现节点拖拽、连接等功能
    - 将工作流节点映射为 mxgraph 图形
 
 3. **集成到 WorkflowCanvas.vue**
+
    - 替换现有的简化实现
    - 添加工具栏和属性面板
    - 实现工作流的图形编辑

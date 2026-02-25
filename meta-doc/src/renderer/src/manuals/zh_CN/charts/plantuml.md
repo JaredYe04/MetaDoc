@@ -4,7 +4,11 @@
 
 PlantUML是一个专业的UML建模工具，支持多种UML图表类型。MetaDoc支持PlantUML图表，可以在Markdown文档中使用PlantUML语法创建专业的UML图表。
 
+<GraphWindow mode="demo" initialTool="plantuml" />
+
 ## PlantUML语法
+
+<OutlineTreeDisplay mode="demo" />
 
 ### 基本语法
 
@@ -20,6 +24,8 @@ Alice -> Bob: 消息
 
 ### 必需标记
 
+<ChartGenerationDisplay mode="demo" />
+
 PlantUML图表必须包含：
 
 - **@startuml**：图表开始标记
@@ -33,7 +39,7 @@ graph TB
     A --> E[活动图]
     A --> F[组件图]
     A --> G[其他UML图]
-    B --> H[@startuml<br/>@enduml]
+    B --> H["@startuml /@enduml"]
     C --> H
     D --> H
     E --> H
@@ -50,6 +56,8 @@ graph TB
 
 ## 支持的图表类型
 
+<DataAnalysisDisplay mode="demo" />
+
 ### 序列图
 
 创建序列图：
@@ -65,6 +73,8 @@ Bob --> Alice: 响应
 
 ### 用例图
 
+<OutlineTreeDisplay mode="demo" />
+
 创建用例图：
 
 ````markdown
@@ -77,6 +87,8 @@ Bob --> Alice: 响应
 ````
 
 ### 类图
+
+<ChartGenerationDisplay mode="demo" />
 
 创建类图：
 
@@ -97,6 +109,8 @@ Animal <|-- Dog
 
 ### 活动图
 
+<DataAnalysisDisplay mode="demo" />
+
 创建活动图：
 
 ````markdown
@@ -112,6 +126,8 @@ stop
 
 ### 组件图
 
+<OutlineTreeDisplay mode="demo" />
+
 创建组件图：
 
 ````markdown
@@ -123,6 +139,8 @@ stop
 ````
 
 ### 部署图
+
+<ChartGenerationDisplay mode="demo" />
 
 创建部署图：
 
@@ -138,6 +156,8 @@ node "服务器" {
 
 ### 状态图
 
+<DataAnalysisDisplay mode="demo" />
+
 创建状态图：
 
 ````markdown
@@ -151,6 +171,8 @@ node "服务器" {
 ````
 
 ## 序列图详解
+
+<OutlineTreeDisplay mode="demo" />
 
 ### 参与者
 
@@ -191,6 +213,8 @@ deactivate Bob
 ````
 
 ## 类图详解
+
+<ChartGenerationDisplay mode="demo" />
 
 ### 类定义
 

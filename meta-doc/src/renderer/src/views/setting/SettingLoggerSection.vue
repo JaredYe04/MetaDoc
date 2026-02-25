@@ -1,103 +1,153 @@
 <template>
   <div class="logger-settings">
     <h3 class="section-title">{{ t('setting.loggingSettings') }}</h3>
-    <el-form label-width="160px" class="settings-form">
-      <el-form-item :label="t('setting.loggingEnabled')">
-        <el-switch
-          v-model="settings.loggingEnabled"
-          class="mb-2"
-          :active-text="t('setting.enabled')"
-          :inactive-text="t('setting.disabled')"
-          @change="handleEnabledChange"
-        />
-      </el-form-item>
+    <Form class="settings-form">
+      <FormField :label="t('setting.loggingEnabled')" name="loggingEnabled">
+        <div class="flex items-center gap-2">
+          <Switch
+            :checked="settings.loggingEnabled"
+            @update:checked="
+              (val: boolean) => {
+                settings.loggingEnabled = val
+                handleEnabledChange()
+              }
+            "
+          />
+          <span class="text-sm text-muted-foreground">{{
+            settings.loggingEnabled ? t('setting.enabled') : t('setting.disabled')
+          }}</span>
+        </div>
+      </FormField>
 
-      <el-form-item :label="t('setting.loggingLevel')">
-        <el-select
+      <FormField :label="t('setting.loggingLevel')" name="loggingLevel">
+        <Select
           v-model="settings.loggingLevel"
           :disabled="!settings.loggingEnabled"
-          @change="handleLevelChange"
+          @update:model-value="handleLevelChange"
         >
-          <el-option
-            v-for="option in levelOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
+          <SelectTrigger class="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in levelOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField :label="t('setting.loggingFilter')" name="loggingFilter">
+        <div class="relative w-full">
+          <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            v-model="settings.loggingFilter"
+            :placeholder="t('setting.loggingFilterPlaceholder')"
+            :disabled="!settings.loggingEnabled"
+            class="pl-8"
+            @change="handleFilterChange"
           />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('setting.loggingFilter')">
-        <el-input
-          v-model="settings.loggingFilter"
-          :placeholder="t('setting.loggingFilterPlaceholder')"
-          :disabled="!settings.loggingEnabled"
-          clearable
-          @change="handleFilterChange"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+        </div>
         <div class="filter-hint">{{ t('setting.loggingFilterHint') }}</div>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item :label="t('setting.logRetentionPeriod')">
-        <el-select
+      <FormField :label="t('setting.logRetentionPeriod')" name="logRetentionPeriod">
+        <Select
           v-model="settings.logRetentionPeriod"
           :disabled="!settings.loggingEnabled"
-          @change="handleRetentionPeriodChange"
+          @update:model-value="handleRetentionPeriodChange"
         >
-          <el-option
-            v-for="option in retentionPeriodOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-          />
-        </el-select>
+          <SelectTrigger class="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="option in retentionPeriodOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <div class="filter-hint">{{ t('setting.logRetentionPeriodHint') }}</div>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item :label="t('setting.logFilePath')">
+      <FormField :label="t('setting.logFilePath')" name="logFilePath">
         <div class="log-path">
-          <el-input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly />
-          <el-button type="primary" plain :disabled="!logFilePath" @click="openLogFile">
+          <Input
+            :model-value="logFilePath || t('setting.logFileUnavailable')"
+            readonly
+            class="flex-1"
+          />
+          <Button variant="outline" :disabled="!logFilePath" @click="openLogFile">
             {{ t('setting.openLogFile') }}
-          </el-button>
+          </Button>
         </div>
-      </el-form-item>
+      </FormField>
 
-      <el-form-item :label="t('setting.logDirectory')">
+      <FormField :label="t('setting.logDirectory')" name="logDirectory">
         <div class="log-path">
-          <el-input :model-value="logDirectory || t('setting.logFileUnavailable')" readonly />
-          <el-button type="primary" plain :disabled="!logDirectory" @click="openLogDirectory">
+          <Input
+            :model-value="logDirectory || t('setting.logFileUnavailable')"
+            readonly
+            class="flex-1"
+          />
+          <Button variant="outline" :disabled="!logDirectory" @click="openLogDirectory">
             {{ t('setting.openLogDirectory') }}
-          </el-button>
+          </Button>
         </div>
-      </el-form-item>
+      </FormField>
 
-      <el-divider />
+      <Divider />
 
       <div class="logger-console">
         <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
         <ConsoleOutput console-key="logger" :history="logHistory" :show-ai-analysis="false" />
       </div>
-    </el-form>
+    </Form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search } from '@element-plus/icons-vue'
-import { settings, setSetting } from '../../utils/settings.js'
+import { settings as globalSettings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.ts'
 import type { LoggerHistoryEntry } from '../../utils/logger.ts'
 import messageBridge from '../../bridge/message-bridge'
 import ConsoleOutput from '../../components/ConsoleOutput.vue'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Switch } from '@renderer/components/ui/switch'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@renderer/components/ui/select'
+import { Divider } from '@renderer/components/ui/separator'
+
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
+
+// Demo mode: use local reactive settings; Normal mode: use global settings
+const demoSettings = reactive({
+  loggingEnabled: true,
+  loggingLevel: 'info',
+  loggingFilter: '',
+  logRetentionPeriod: '7days'
+})
+const settings = isDemo.value ? demoSettings : globalSettings
 
 const logFilePath = ref('')
 const logDirectory = ref('')
@@ -177,7 +227,36 @@ const configListener = (_event: unknown, config: { logFilePath: string; logDirec
   applyLoggerConfig(config)
 }
 
+// Demo数据加载
+const loadDemoData = () => {
+  // 日志配置
+  logFilePath.value = '/Users/demo/.metadoc/logs/metadoc-2025-02-20.log'
+  logDirectory.value = '/Users/demo/.metadoc/logs'
+
+  // 示例日志历史
+  logHistory.value = [
+    { timestamp: Date.now() - 3600000, level: 'info', message: '应用启动成功', source: 'main' },
+    { timestamp: Date.now() - 3500000, level: 'info', message: '加载配置文件', source: 'config' },
+    {
+      timestamp: Date.now() - 3000000,
+      level: 'warn',
+      message: '未找到历史会话',
+      source: 'session'
+    },
+    { timestamp: Date.now() - 2400000, level: 'info', message: '创建新文档', source: 'document' },
+    { timestamp: Date.now() - 1800000, level: 'debug', message: '初始化编辑器', source: 'editor' },
+    { timestamp: Date.now() - 1200000, level: 'info', message: 'LLM 服务就绪', source: 'llm' },
+    { timestamp: Date.now() - 600000, level: 'error', message: '网络连接超时', source: 'network' },
+    { timestamp: Date.now() - 300000, level: 'info', message: '自动保存成功', source: 'auto-save' }
+  ]
+}
+
 onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
   refreshLoggerConfig()
   refreshLoggerHistory()
   if (messageBridge.getIpc()?.on) {
@@ -195,7 +274,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .logger-settings {
   width: 100%;
-  max-width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 

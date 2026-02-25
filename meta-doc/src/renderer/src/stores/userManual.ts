@@ -1,10 +1,10 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { 
-  ManualIndex, 
-  ManualArticle, 
-  ManualCategory, 
-  UserProfile, 
+import type {
+  ManualIndex,
+  ManualArticle,
+  ManualCategory,
+  UserProfile,
   ArticleProgress,
   BreadcrumbItem,
   SearchResult
@@ -64,17 +64,20 @@ async function initManualIndex() {
 /**
  * 构建导航树结构（基于索引）
  */
-function buildNavigationTree(index: ManualIndex, locale: string): Array<{
+function buildNavigationTree(
+  index: ManualIndex,
+  locale: string
+): Array<{
   id: string
   title: string
   icon?: string
   children?: Array<{ id: string; title: string }>
 }> {
-  return index.categories.map(category => ({
+  return index.categories.map((category) => ({
     id: category.id,
     title: category.title[locale] || category.title.en_US || category.id,
     icon: category.icon,
-    children: category.articles.map(article => ({
+    children: category.articles.map((article) => ({
       id: article.id,
       title: article.title[locale] || article.title.en_US || article.id
     }))
@@ -88,40 +91,53 @@ const manualModules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 
  * 加载文档内容
  */
 async function loadArticleContent(articleId: string, locale: string): Promise<string> {
+  console.log('[userManual store] loadArticleContent called:', { articleId, locale })
   const article = await getArticleById(articleId)
   if (!article) {
+    console.warn('[userManual store] Article not found:', articleId)
     return ''
   }
+
+  console.log('[userManual store] Article found:', { file: article.file, title: article.title })
 
   try {
     // 标准化locale格式
     const normalizedLocale = locale.replace('-', '_').toLowerCase()
     const localeMap: Record<string, string> = {
-      'zh_cn': 'zh_CN',
-      'en_us': 'en_US',
-      'ja_jp': 'ja_JP',
-      'ko_kr': 'ko_KR',
-      'fr_fr': 'fr_FR',
-      'de_de': 'de_DE'
+      zh_cn: 'zh_CN',
+      en_us: 'en_US',
+      ja_jp: 'ja_JP',
+      ko_kr: 'ko_KR',
+      fr_fr: 'fr_FR',
+      de_de: 'de_DE'
     }
     const targetLocale = localeMap[normalizedLocale] || 'zh_CN'
 
     // 构建文件路径
     const filePath = `../manuals/${targetLocale}/${article.file}`
-    
+    console.log('[userManual store] Looking for file:', filePath)
+    console.log(
+      '[userManual store] Available manual modules:',
+      Object.keys(manualModules).slice(0, 10)
+    )
+
     // 从预加载的模块中获取
-    const moduleKey = Object.keys(manualModules).find(key => 
+    const moduleKey = Object.keys(manualModules).find((key) =>
       key.includes(`manuals/${targetLocale}/${article.file}`)
     )
-    
+
     if (moduleKey && manualModules[moduleKey]) {
+      console.log('[userManual store] Found module:', moduleKey)
       return manualModules[moduleKey] as string
     }
-    
-    console.warn(`未找到文档: ${filePath}`)
+
+    console.warn(`[userManual store] 未找到文档: ${filePath}`, {
+      moduleKey,
+      hasModule: !!manualModules[moduleKey as string]
+    })
     return ''
   } catch (error) {
-    console.error(`加载文档失败: ${articleId}`, error)
+    console.error(`[userManual store] 加载文档失败: ${articleId}`, error)
     return ''
   }
 }
@@ -240,7 +256,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
     }
 
     // 搜索标签
-    if (article.tags.some(tag => tag.toLowerCase().includes(lowerQuery))) {
+    if (article.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))) {
       bestScore = Math.max(bestScore, 60)
     }
 
@@ -269,11 +285,11 @@ async function performSearch(query: string): Promise<SearchResult[]> {
 
 export function useUserManual() {
   const { locale } = useI18n()
-  
+
   // 初始化
   initManualIndex()
   loadProgressFromStorage()
-  
+
   // 加载用户画像
   loadUserProfile()
 
@@ -292,78 +308,102 @@ export function useUserManual() {
 
   // 当前文档内容
   const currentArticleContent = ref('')
-  
+
   // 加载当前文档内容
-  watch([currentArticleId, locale], async () => {
-    // 如果articleId为空，不加载内容（显示概览页面）
-    if (!currentArticleId.value) {
-      currentArticleContent.value = ''
-      return
-    }
-    
-    if (currentArticleId.value) {
-      // 先保存当前的导航来源，因为后面会重置
-      const source = navigationSource.value
-      
-      const content = await loadArticleContent(currentArticleId.value, locale.value || 'zh_CN')
-      currentArticleContent.value = content
-      
-      const article = await getArticleById(currentArticleId.value)
-      if (article) {
-        const currentLocale = locale.value || 'zh_CN'
-        const title = article.title[currentLocale] || article.title.en_US || article.id
-        
-        // 根据导航来源决定是否更新面包屑
-        if (source === 'link') {
-          // 从文档内链接跳转：添加到面包屑
-          // 移除重复项
-          breadcrumbHistory.value = breadcrumbHistory.value.filter(item => item.articleId !== currentArticleId.value)
-          
-          // 添加到历史
-          breadcrumbHistory.value.push({
-            articleId: currentArticleId.value,
-            title
-          })
-          
-          // 限制历史长度
-          if (breadcrumbHistory.value.length > 10) {
-            breadcrumbHistory.value = breadcrumbHistory.value.slice(-10)
-          }
-        } else if (source === 'navigation' || source === 'search') {
-          // 从导航或搜索切换：重置面包屑
-          breadcrumbHistory.value = [{
-            articleId: currentArticleId.value,
-            title
-          }]
-        } else if (source === 'breadcrumb') {
-          // 从面包屑点击：截取到当前位置
-          const currentIndex = breadcrumbHistory.value.findIndex(item => item.articleId === currentArticleId.value)
-          if (currentIndex >= 0) {
-            breadcrumbHistory.value = breadcrumbHistory.value.slice(0, currentIndex + 1)
-          } else {
-            breadcrumbHistory.value = [{
+  watch(
+    [currentArticleId, locale],
+    async ([newArticleId, newLocale], [oldArticleId, oldLocale]) => {
+      console.log('[userManual store] Watch triggered', {
+        articleIdChanged: newArticleId !== oldArticleId,
+        newArticleId: newArticleId,
+        oldArticleId: oldArticleId,
+        localeChanged: newLocale !== oldLocale,
+        newLocale: newLocale
+      })
+      // 如果articleId为空，不加载内容（显示概览页面）
+      if (!currentArticleId.value) {
+        console.log('[userManual store] No articleId, clearing content')
+        currentArticleContent.value = ''
+        return
+      }
+
+      if (currentArticleId.value) {
+        // 先保存当前的导航来源，因为后面会重置
+        const source = navigationSource.value
+
+        console.log('[userManual store] Loading article content:', currentArticleId.value)
+        const content = await loadArticleContent(currentArticleId.value, locale.value || 'zh_CN')
+        console.log('[userManual store] Article content loaded, length:', content?.length)
+        currentArticleContent.value = content
+
+        const article = await getArticleById(currentArticleId.value)
+        if (article) {
+          const currentLocale = locale.value || 'zh_CN'
+          const title = article.title[currentLocale] || article.title.en_US || article.id
+
+          // 根据导航来源决定是否更新面包屑
+          if (source === 'link') {
+            // 从文档内链接跳转：添加到面包屑
+            // 移除重复项
+            breadcrumbHistory.value = breadcrumbHistory.value.filter(
+              (item) => item.articleId !== currentArticleId.value
+            )
+
+            // 添加到历史
+            breadcrumbHistory.value.push({
               articleId: currentArticleId.value,
               title
-            }]
+            })
+
+            // 限制历史长度
+            if (breadcrumbHistory.value.length > 10) {
+              breadcrumbHistory.value = breadcrumbHistory.value.slice(-10)
+            }
+          } else if (source === 'navigation' || source === 'search') {
+            // 从导航或搜索切换：重置面包屑
+            breadcrumbHistory.value = [
+              {
+                articleId: currentArticleId.value,
+                title
+              }
+            ]
+          } else if (source === 'breadcrumb') {
+            // 从面包屑点击：截取到当前位置
+            const currentIndex = breadcrumbHistory.value.findIndex(
+              (item) => item.articleId === currentArticleId.value
+            )
+            if (currentIndex >= 0) {
+              breadcrumbHistory.value = breadcrumbHistory.value.slice(0, currentIndex + 1)
+            } else {
+              breadcrumbHistory.value = [
+                {
+                  articleId: currentArticleId.value,
+                  title
+                }
+              ]
+            }
+          } else {
+            // 默认情况：重置面包屑
+            breadcrumbHistory.value = [
+              {
+                articleId: currentArticleId.value,
+                title
+              }
+            ]
           }
-        } else {
-          // 默认情况：重置面包屑
-          breadcrumbHistory.value = [{
-            articleId: currentArticleId.value,
-            title
-          }]
+
+          // 重置导航来源为默认值（在下次切换时使用）
+          navigationSource.value = 'navigation'
         }
-        
-        // 重置导航来源为默认值（在下次切换时使用）
-        navigationSource.value = 'navigation'
+
+        // 更新访问时间
+        updateArticleProgress(currentArticleId.value, {
+          lastAccessed: Date.now()
+        })
       }
-      
-      // 更新访问时间
-      updateArticleProgress(currentArticleId.value, {
-        lastAccessed: Date.now()
-      })
-    }
-  }, { immediate: true })
+    },
+    { immediate: true }
+  )
 
   // 学习进度
   const learningProgress = computed(() => {
@@ -388,15 +428,18 @@ export function useUserManual() {
     searchQuery,
     searchResults,
     currentArticleContent,
-    
+
     // 计算属性
     navigationTree,
     currentArticle,
     learningProgress,
     learningGraph,
-    
+
     // 方法
-    setCurrentArticle: async (articleId: string, source: 'navigation' | 'link' | 'search' | 'breadcrumb' = 'navigation') => {
+    setCurrentArticle: async (
+      articleId: string,
+      source: 'navigation' | 'link' | 'search' | 'breadcrumb' = 'navigation'
+    ) => {
       navigationSource.value = source
       // 如果articleId为空字符串，表示返回概览页面
       currentArticleId.value = articleId || ''

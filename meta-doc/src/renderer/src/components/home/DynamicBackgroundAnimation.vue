@@ -40,17 +40,17 @@ const config = {
   // 随机连接距离
   connectionDistance: Math.floor(seededRandom() * 100) + 100, // 100-200
   // 随机节点数量
-  nodeCount: Math.floor(seededRandom() * 15) + 10, // 10-25
+  nodeCount: Math.floor(seededRandom() * 15) + 10 // 10-25
 }
 
 // 根据主题和随机配置获取颜色
 const getColor = (opacity: number, index: number = 0): string => {
   const isDark = themeState.currentTheme.type === 'dark'
-  
+
   // 根据随机颜色方案选择不同的颜色
   const colorSets = [
     // 蓝色系
-    isDark 
+    isDark
       ? ['rgba(59, 130, 246, ', 'rgba(96, 165, 250, ', 'rgba(147, 197, 253, '] // blue-500, blue-400, blue-300
       : ['rgba(37, 99, 235, ', 'rgba(59, 130, 246, ', 'rgba(96, 165, 250, '], // blue-600, blue-500, blue-400
     // 紫色系
@@ -60,9 +60,9 @@ const getColor = (opacity: number, index: number = 0): string => {
     // 青色系
     isDark
       ? ['rgba(20, 184, 166, ', 'rgba(45, 212, 191, ', 'rgba(94, 234, 212, '] // teal-500, teal-400, teal-300
-      : ['rgba(13, 148, 136, ', 'rgba(20, 184, 166, ', 'rgba(45, 212, 191, '], // teal-600, teal-500, teal-400
+      : ['rgba(13, 148, 136, ', 'rgba(20, 184, 166, ', 'rgba(45, 212, 191, '] // teal-600, teal-500, teal-400
   ]
-  
+
   const colors = colorSets[config.colorScheme]
   return colors[index % colors.length] + opacity + ')'
 }
@@ -96,14 +96,14 @@ class Particle {
   update() {
     this.x += this.vx
     this.y += this.vy
-    
+
     // 边界反弹
     if (this.x < 0 || this.x > (canvas?.width || 0)) this.vx *= -1
     if (this.y < 0 || this.y > (canvas?.height || 0)) this.vy *= -1
-    
+
     this.x = Math.max(0, Math.min(canvas?.width || 0, this.x))
     this.y = Math.max(0, Math.min(canvas?.height || 0, this.y))
-    
+
     this.pulsePhase += 0.03
   }
 
@@ -111,7 +111,7 @@ class Particle {
     if (!ctx) return
     const pulse = (Math.sin(this.pulsePhase) + 1) * 0.5
     const opacity = this.opacity * (0.5 + pulse * 0.3)
-    
+
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.size + pulse * 0.5, 0, Math.PI * 2)
     ctx.fillStyle = getColor(opacity, this.colorIndex)
@@ -144,13 +144,13 @@ class Node {
   update() {
     this.x += this.vx
     this.y += this.vy
-    
+
     if (this.x < 0 || this.x > (canvas?.width || 0)) this.vx *= -1
     if (this.y < 0 || this.y > (canvas?.height || 0)) this.vy *= -1
-    
+
     this.x = Math.max(0, Math.min(canvas?.width || 0, this.x))
     this.y = Math.max(0, Math.min(canvas?.height || 0, this.y))
-    
+
     this.pulsePhase += 0.03
   }
 
@@ -158,7 +158,7 @@ class Node {
     if (!ctx) return
     const pulse = (Math.sin(this.pulsePhase) + 1) * 0.5
     const opacity = (0.5 + pulse * 0.3) * 0.6
-    
+
     ctx.beginPath()
     ctx.arc(this.x, this.y, this.size + pulse * 0.5, 0, Math.PI * 2)
     ctx.fillStyle = getColor(opacity)
@@ -193,7 +193,7 @@ class GridLine {
   update() {
     this.x += Math.cos(this.angle) * this.speed
     this.y += Math.sin(this.angle) * this.speed
-    
+
     if (this.x < -this.length || this.x > (canvas?.width || 0) + this.length) {
       this.x = Math.random() * (canvas?.width || 0)
     }
@@ -253,7 +253,7 @@ const initElements = () => {
 const drawConnections = () => {
   if (!ctx) return
   const maxDistance = config.connectionDistance
-  
+
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
       const dx = nodes[i].x - nodes[j].x
@@ -278,23 +278,23 @@ const drawRotatingGrid = () => {
   if (!ctx) return
   const isDark = themeState.currentTheme.type === 'dark'
   const opacity = isDark ? 0.08 : 0.05
-  
+
   ctx.save()
   ctx.translate((canvas?.width || 0) / 2, (canvas?.height || 0) / 2)
   ctx.rotate(time * config.rotationSpeed)
-  
+
   ctx.strokeStyle = getColor(opacity)
   ctx.lineWidth = 1
-  
+
   const gridSize = config.gridSize
   const cols = Math.ceil((canvas?.width || 0) / gridSize) + 2
   const rows = Math.ceil((canvas?.height || 0) / gridSize) + 2
-  
+
   for (let i = -1; i <= cols; i++) {
     for (let j = -1; j <= rows; j++) {
       const x = i * gridSize - (canvas?.width || 0) / 2
       const y = j * gridSize - (canvas?.height || 0) / 2
-      
+
       ctx.beginPath()
       ctx.moveTo(x, y)
       ctx.lineTo(x + gridSize, y)
@@ -302,7 +302,7 @@ const drawRotatingGrid = () => {
       ctx.stroke()
     }
   }
-  
+
   ctx.restore()
 }
 
@@ -311,14 +311,14 @@ const drawWaveGrid = () => {
   if (!ctx) return
   const isDark = themeState.currentTheme.type === 'dark'
   const opacity = isDark ? 0.06 : 0.04
-  
+
   ctx.strokeStyle = getColor(opacity)
   ctx.lineWidth = 1
-  
+
   const gridSize = config.gridSize
   const cols = Math.ceil((canvas?.width || 0) / gridSize) + 1
   const rows = Math.ceil((canvas?.height || 0) / gridSize) + 1
-  
+
   for (let i = 0; i <= cols; i++) {
     ctx.beginPath()
     const x = i * gridSize
@@ -334,7 +334,7 @@ const drawWaveGrid = () => {
     }
     ctx.stroke()
   }
-  
+
   for (let j = 0; j <= rows; j++) {
     ctx.beginPath()
     const y = j * gridSize
@@ -357,14 +357,14 @@ const animate = () => {
   if (!canvas || !ctx) return
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  
+
   time += 0.01
 
   // 根据模式绘制不同的效果
   switch (config.mode) {
     case 0: // 粒子 + 波动网格
       drawWaveGrid()
-      particles.forEach(p => {
+      particles.forEach((p) => {
         p.update()
         p.draw()
       })
@@ -386,41 +386,41 @@ const animate = () => {
         }
       }
       break
-      
+
     case 1: // 粒子 + 网格线
-      particles.forEach(p => {
+      particles.forEach((p) => {
         p.update()
         p.draw()
       })
-      gridLines.forEach(line => {
+      gridLines.forEach((line) => {
         line.update()
         line.draw()
       })
       break
-      
+
     case 2: // 节点网络
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         node.update()
         node.draw()
       })
       drawConnections()
       break
-      
+
     case 3: // 节点网络 + 粒子
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         node.update()
         node.draw()
       })
       drawConnections()
-      particles.forEach(p => {
+      particles.forEach((p) => {
         p.update()
         p.draw()
       })
       break
-      
+
     case 4: // 旋转网格 + 网格线
       drawRotatingGrid()
-      gridLines.forEach(line => {
+      gridLines.forEach((line) => {
         line.update()
         line.draw()
       })
@@ -433,37 +433,40 @@ const animate = () => {
 // 调整画布大小
 const resizeCanvas = () => {
   if (!containerRef.value || !canvasRef.value) return
-  
+
   const rect = containerRef.value.getBoundingClientRect()
   if (canvas) {
     canvas.width = rect.width
     canvas.height = rect.height
   }
-  
+
   // 重新初始化元素位置
-  particles.forEach(p => p.reset())
-  nodes.forEach(n => n.reset())
-  gridLines.forEach(l => l.reset())
+  particles.forEach((p) => p.reset())
+  nodes.forEach((n) => n.reset())
+  gridLines.forEach((l) => l.reset())
 }
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, () => {
-  // 主题变化时重新初始化元素以应用新颜色
-  initElements()
-})
+watch(
+  () => themeState.currentTheme.type,
+  () => {
+    // 主题变化时重新初始化元素以应用新颜色
+    initElements()
+  }
+)
 
 onMounted(() => {
   if (!canvasRef.value) return
-  
+
   canvas = canvasRef.value
   ctx = canvas.getContext('2d')
-  
+
   if (!ctx) return
-  
+
   resizeCanvas()
   initElements()
   animate()
-  
+
   window.addEventListener('resize', resizeCanvas)
 })
 

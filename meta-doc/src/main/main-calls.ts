@@ -457,12 +457,20 @@ export function mainCalls(): void {
 function bindBasicHandlers(): void {
   ipcBridge.registerOn('quit', quit)
   ipcBridge.registerOn('save', async (event: IpcMainEvent, data: SaveData) => {
-    await save(data, false)
-    is_need_save = false
+    try {
+      await save(data, false)
+      is_need_save = false
+    } catch (error) {
+      logger.error('保存文件失败:', error)
+    }
   })
 
   ipcBridge.registerOn('save-as', async (event: IpcMainEvent, data: SaveData) => {
-    await save(data, true)
+    try {
+      await save(data, true)
+    } catch (error) {
+      logger.error('另存为文件失败:', error)
+    }
   })
 
   ipcBridge.registerHandle(
@@ -4077,6 +4085,95 @@ const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
 }
 
 /**
+ * 创建新窗口并加载指定文件
+ * @param fileData 文件数据
+ * @returns 创建的窗口实例
+ */
+async function createNewWindowWithFile(fileData: {
+  content: string
+  format: string
+  path: string
+  fileName: string
+}): Promise<BrowserWindow | null> {
+  const cursorPos = screen.getCursorScreenPoint()
+  const x = Math.max(10, cursorPos.x)
+  const y = Math.max(10, cursorPos.y)
+
+  const newWindow = new BrowserWindow({
+    width: 1366,
+    height: 768,
+    minWidth: 800,
+    minHeight: 600,
+    x,
+    y,
+    show: false,
+    autoHideMenuBar: true,
+    frame: false,
+    titleBarStyle: 'hidden',
+    ...(process.platform === 'linux' ? { icon: undefined } : {}),
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      nodeIntegration: true,
+      webSecurity: false
+    }
+  })
+
+  registerMainWindow(newWindow)
+
+  let url: string
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    url = process.env['ELECTRON_RENDERER_URL'] + '/#/home?windowType=home'
+  } else {
+    const indexPath = join(__dirname, '../renderer/index.html')
+    const fileURL = pathToFileURL(indexPath).toString()
+    url = `${fileURL}#/home?windowType=home`
+  }
+
+  await newWindow.loadURL(url)
+
+  newWindow.webContents.on('did-finish-load', () => {
+    newWindow.webContents.send('open-doc-success', fileData)
+    newWindow.webContents.send('update-current-path', fileData.path)
+  })
+
+  return newWindow
+}
+
+/**
+ * 为新文件创建新窗口
+ * @param filePath 要打开的文件路径
+ * @returns 创建成功返回 true，失败返回 false
+ */
+async function createNewWindowForFile(filePath: string): Promise<boolean> {
+  try {
+    const format = path.extname(filePath).slice(1).toLowerCase()
+    let content = ''
+
+    if (format !== 'pdf') {
+      content = fs.readFileSync(filePath, 'utf-8')
+    }
+
+    const newWindow = await createNewWindowWithFile({
+      content,
+      format,
+      path: filePath,
+      fileName: path.basename(filePath)
+    })
+
+    if (newWindow && !newWindow.isDestroyed()) {
+      newWindow.show()
+      newWindow.focus()
+      return true
+    }
+    return false
+  } catch (error) {
+    logger.error('创建新窗口打开文件失败:', error as Error)
+    return false
+  }
+}
+
+/**
  * 打开文档
  */
 export const openDoc = async (filePath?: string, targetWindowId?: number): Promise<void> => {
@@ -4126,10 +4223,30 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
 
     // 确定目标窗口（仅从已显示的窗口中选择，不选池中备用窗口）
     let targetWin: BrowserWindow | null = null
+
+    // 检查用户设置：外部文件打开方式
+    // 如果没有指定目标窗口，根据设置决定是在新窗口还是当前窗口打开
+    const externalFileOpenMode = getSetting('externalFileOpenMode') || 'newWindow'
+    const shouldCreateNewWindow = !targetWindowId && externalFileOpenMode === 'newWindow'
+
     if (targetWindowId) {
       const byId = getWindowById(targetWindowId)
       targetWin = byId && byId.isVisible() ? byId : null
     }
+
+    // 如果需要在新窗口中打开，创建新窗口
+    if (shouldCreateNewWindow && !targetWin) {
+      try {
+        const newWindowResult = await createNewWindowForFile(filePath)
+        if (newWindowResult) {
+          return // 新窗口会自行加载文件
+        }
+      } catch (error) {
+        logger.error('创建新窗口失败，回退到当前窗口:', error as Error)
+        // 继续执行，使用现有窗口
+      }
+    }
+
     if (!targetWin) {
       const focusedWindow = BrowserWindow.getFocusedWindow()
       if (focusedWindow && !focusedWindow.isDestroyed() && focusedWindow.isVisible()) {

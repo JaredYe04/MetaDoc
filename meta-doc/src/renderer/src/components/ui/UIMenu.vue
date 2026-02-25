@@ -75,15 +75,19 @@ provide('hasOpenSubMenu', hasOpenSubMenu)
 .ui-menu {
   width: 64px;
   height: 100%;
-  transition: width 0.2s ease;
+  transition:
+    width 0.2s ease,
+    background-color 0.2s ease;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   overflow: hidden;
-  border-right: none;
+  border-right: 1px solid var(--sidebar-border, rgba(0, 0, 0, 0.08));
   display: flex;
   flex-direction: column;
+  background-color: var(--menu-bg);
+  color: var(--menu-text);
 }
 
 .ui-menu:not(.is-collapsed) {

@@ -1,0 +1,12 @@
+/**
+ * Demo Coverage Configuration File
+ *
+ * Usage: Copy to .demo-coverage.config.js and customize
+ */
+
+module.exports = {
+  minDemos: 2,
+  manualsDir: 'src/renderer/src/manuals/zh_CN',
+  ignorePatterns: [],
+  overrides: {}
+}

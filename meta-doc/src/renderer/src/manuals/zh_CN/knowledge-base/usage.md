@@ -4,6 +4,8 @@
 
 知识库是MetaDoc的RAG（检索增强生成）系统，通过向量搜索为AI功能提供上下文信息。合理使用知识库可以显著提升AI回答的准确性和相关性。
 
+<KnowledgeBase mode="demo" />
+
 ## 知识库介绍
 
 ### 什么是知识库
@@ -15,6 +17,8 @@
 - **增强AI**：为AI对话提供上下文信息
 
 ### 工作原理
+
+<RAGToolDisplay mode="demo" />
 
 知识库使用向量嵌入技术：
 
@@ -38,6 +42,8 @@ graph LR
     style F fill:#f3f4f6,stroke:#374151
 ```
 
+<KnowledgeBase mode="demo" />
+
 ## 添加文件到知识库
 
 ### 添加文件
@@ -59,6 +65,8 @@ graph LR
 - **纯文本** (.txt)：纯文本文件
 
 ### 文件处理
+
+<RAGToolDisplay mode="demo" />
 
 添加文件后，系统会自动：
 
@@ -86,6 +94,8 @@ graph TB
     style G fill:#e5e7eb,stroke:#6b7280
 ```
 
+<KnowledgeBase mode="demo" />
+
 ## 知识库文件管理
 
 ### 文件列表
@@ -97,6 +107,8 @@ graph TB
 - **状态**：文件是否启用
 
 ### 文件操作
+
+<RAGToolDisplay mode="demo" />
 
 #### 启用/禁用文件
 
@@ -133,6 +145,8 @@ graph TB
 2. 点击"下载"按钮
 3. 选择保存位置
 
+<KnowledgeBase mode="demo" />
+
 ## 向量搜索
 
 ### 搜索原理
@@ -144,6 +158,8 @@ graph TB
 - **排序结果**：按相似度排序返回结果
 
 ### 搜索方式
+
+<RAGToolDisplay mode="demo" />
 
 知识库支持两种搜索方式：
 
@@ -166,6 +182,8 @@ graph TB
 - **低阈值（0.1-0.3）**：返回更多结果，但可能包含不相关内容
 - **中等阈值（0.4-0.6）**：平衡相关性和数量（推荐）
 - **高阈值（0.7-0.9）**：只返回高度相关的结果
+
+<KnowledgeBase mode="demo" />
 
 ## 混合检索
 
@@ -191,6 +209,8 @@ graph TB
 - **准确性**：向量搜索提供语义理解
 - **精确性**：关键词匹配提供精确匹配
 - **平衡性**：综合两种方法的优势
+
+<RAGToolDisplay mode="demo" />
 
 ## 搜索测试
 
@@ -264,9 +284,12 @@ graph TB
 - 操作不可恢复
 
 **注意事项**：
+
 - 清空操作不可恢复，请谨慎操作
 - 清空前建议先备份重要文件
 - 清空后需要重新添加文件
+
+<KnowledgeBase mode="demo" />
 
 ## 在AI功能中使用
 
@@ -316,3 +339,7 @@ graph TB
 - [[knowledge-base.config|知识库配置]]
 - [[settings.llm|LLM配置]]
 - [[ai.chat|AI对话功能]]
+
+<KnowledgeBase mode="demo" />
+
+<RAGToolDisplay mode="demo" />

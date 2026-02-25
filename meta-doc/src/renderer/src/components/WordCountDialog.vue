@@ -1,74 +1,67 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="$t('wordCountDialog.title')"
-    width="400px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="true"
-    :style="{
-      '--el-dialog-bg-color': themeState.currentTheme.background,
-      '--el-text-color-primary': themeState.currentTheme.textColor,
-      '--el-border-color': themeState.currentTheme.textColor + '33'
-    }"
-    class="word-count-dialog"
-  >
-    <div class="word-count-content">
-      <div class="statistics-section">
-        <div class="statistics-title">{{ $t('wordCountDialog.statistics') }}</div>
-        <div class="statistics-list">
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.pages') }}</span>
-            <span class="stat-value">{{ stats.pages }}</span>
+  <Dialog v-model:open="visible">
+    <DialogContent class="sm:max-w-[400px] word-count-dialog">
+      <DialogHeader>
+        <DialogTitle>{{ $t('wordCountDialog.title') }}</DialogTitle>
+      </DialogHeader>
+      <div class="word-count-content">
+        <div class="statistics-section">
+          <div class="statistics-title">{{ $t('wordCountDialog.statistics') }}</div>
+          <div class="statistics-list">
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.pages') }}</span>
+              <span class="stat-value">{{ stats.pages }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.words') }}</span>
+              <span class="stat-value">{{ stats.words }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.charactersNoSpaces') }}</span>
+              <span class="stat-value">{{ stats.charactersNoSpaces }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.charactersWithSpaces') }}</span>
+              <span class="stat-value">{{ stats.charactersWithSpaces }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.paragraphs') }}</span>
+              <span class="stat-value">{{ stats.paragraphs }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.lines') }}</span>
+              <span class="stat-value">{{ stats.lines }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.nonChineseWords') }}</span>
+              <span class="stat-value">{{ stats.nonChineseWords }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('wordCountDialog.chineseAndKoreanChars') }}</span>
+              <span class="stat-value">{{ stats.chineseAndKoreanChars }}</span>
+            </div>
           </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.words') }}</span>
-            <span class="stat-value">{{ stats.words }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.charactersNoSpaces') }}</span>
-            <span class="stat-value">{{ stats.charactersNoSpaces }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.charactersWithSpaces') }}</span>
-            <span class="stat-value">{{ stats.charactersWithSpaces }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.paragraphs') }}</span>
-            <span class="stat-value">{{ stats.paragraphs }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.lines') }}</span>
-            <span class="stat-value">{{ stats.lines }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.nonChineseWords') }}</span>
-            <span class="stat-value">{{ stats.nonChineseWords }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('wordCountDialog.chineseAndKoreanChars') }}</span>
-            <span class="stat-value">{{ stats.chineseAndKoreanChars }}</span>
+        </div>
+        <div class="options-section">
+          <div class="flex items-center gap-2">
+            <Checkbox
+              id="includeTextBoxes"
+              v-model:checked="includeTextBoxesFootnotesEndnotes"
+              @update:checked="handleCheckboxChange"
+            />
+            <label for="includeTextBoxes" class="checkbox-label">
+              {{ $t('wordCountDialog.includeTextBoxesFootnotesEndnotes') }}
+            </label>
           </div>
         </div>
       </div>
-      <div class="options-section">
-        <el-checkbox
-          v-model="includeTextBoxesFootnotesEndnotes"
-          @change="handleCheckboxChange"
-          :style="{
-            '--el-checkbox-text-color': themeState.currentTheme.textColor,
-            '--el-checkbox-checked-bg-color': themeState.currentTheme.textColor
-          }"
-        >
-          {{ $t('wordCountDialog.includeTextBoxesFootnotesEndnotes') }}
-        </el-checkbox>
-      </div>
-    </div>
-    <template #footer>
-      <el-button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
-        {{ $t('wordCountDialog.close') }}
-      </el-button>
-    </template>
-  </el-dialog>
+      <DialogFooter>
+        <Button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
+          {{ $t('wordCountDialog.close') }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -76,6 +69,15 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
 import { getWordCountAdapter, type WordCountStats } from '../utils/word-count-adapter'
+import { Button } from '@renderer/components/ui/button'
+import { Checkbox } from '@renderer/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 
 const { t } = useI18n()
 
@@ -180,55 +182,10 @@ function handleClose() {
   border-color: v-bind('themeState.currentTheme.textColor + "33"');
 }
 
-:deep(.el-checkbox__label) {
+.checkbox-label {
   color: v-bind('themeState.currentTheme.textColor');
-}
-
-:deep(.el-dialog__header) {
-  background-color: v-bind(
-    'themeState.currentTheme.background2nd || themeState.currentTheme.background'
-  );
-  border-bottom: 1px solid;
-  border-color: v-bind('themeState.currentTheme.textColor + "33"');
-  padding: 16px 20px;
-}
-
-:deep(.el-dialog__title) {
-  color: v-bind('themeState.currentTheme.textColor');
-  font-weight: 600;
-}
-
-:deep(.el-dialog__body) {
-  background-color: v-bind('themeState.currentTheme.background');
-  color: v-bind('themeState.currentTheme.textColor');
-  padding: 20px;
-}
-
-:deep(.el-dialog__footer) {
-  background-color: v-bind(
-    'themeState.currentTheme.background2nd || themeState.currentTheme.background'
-  );
-  border-top: 1px solid;
-  border-color: v-bind('themeState.currentTheme.textColor + "33"');
-  padding: 12px 20px;
-}
-
-:deep(.el-dialog__headerbtn) {
-  color: v-bind('themeState.currentTheme.textColor');
-}
-
-:deep(.el-dialog__headerbtn:hover) {
-  color: v-bind('themeState.currentTheme.textColor');
-  opacity: 0.7;
-}
-
-:deep(.el-button) {
-  background-color: transparent;
-  border-color: v-bind('themeState.currentTheme.textColor + "66"');
-}
-
-:deep(.el-button:hover) {
-  background-color: v-bind('themeState.currentTheme.textColor + "11"');
-  border-color: v-bind('themeState.currentTheme.textColor + "99"');
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
 }
 </style>

@@ -6,9 +6,9 @@
           <h1 class="meta-panel__title" :style="{ color: themeState.currentTheme.textColor }">
             {{ $t('article.meta_info') }}
           </h1>
-          <el-button circle plain size="small" @click="metaDialogVisible = true">
-            <el-icon><Edit /></el-icon>
-          </el-button>
+          <Button variant="outline" size="icon" class="h-7 w-7" @click="metaDialogVisible = true">
+            <Edit class="h-4 w-4" />
+          </Button>
         </div>
 
         <div class="meta-panel__item">
@@ -16,15 +16,14 @@
             <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('article.title') }}：</span
             >
-            <el-button
-              circle
-              plain
-              size="small"
-              class="meta-panel__edit-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="meta-panel__edit-btn h-6 w-6"
               @click="titleAssistantVisible = true"
             >
-              <el-icon><Edit /></el-icon>
-            </el-button>
+              <Edit class="h-3.5 w-3.5" />
+            </Button>
           </div>
           <div class="meta-panel__value-wrapper">
             <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{
@@ -38,15 +37,14 @@
             <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('article.author') }}：</span
             >
-            <el-button
-              circle
-              plain
-              size="small"
-              class="meta-panel__edit-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="meta-panel__edit-btn h-6 w-6"
               @click="authorAssistantVisible = true"
             >
-              <el-icon><Edit /></el-icon>
-            </el-button>
+              <Edit class="h-3.5 w-3.5" />
+            </Button>
           </div>
           <div class="meta-panel__value-wrapper">
             <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{
@@ -60,15 +58,14 @@
             <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }"
               >{{ $t('article.description') }}：</span
             >
-            <el-button
-              circle
-              plain
-              size="small"
-              class="meta-panel__edit-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="meta-panel__edit-btn h-6 w-6"
               @click="descriptionAssistantVisible = true"
             >
-              <el-icon><Edit /></el-icon>
-            </el-button>
+              <Edit class="h-3.5 w-3.5" />
+            </Button>
           </div>
           <div class="meta-panel__value-wrapper meta-panel__value-wrapper--description">
             <el-scrollbar class="meta-panel__description-scroll" max-height="200px">
@@ -84,7 +81,7 @@
         </div>
 
         <div class="meta-panel__item meta-panel__item--keywords">
-          <el-tooltip :content="$t('article.generate_keywords')" placement="bottom">
+          <Tooltip :content="$t('article.generate_keywords')" placement="bottom">
             <span
               class="meta-panel__label meta-panel__label--keywords meta-panel__label--clickable"
               :style="{ color: themeState.currentTheme.textColor }"
@@ -96,11 +93,12 @@
               @keydown.space.prevent="handleKeywordsGenerate"
             >
               {{ $t('article.keywords') }}：
-              <el-icon v-if="keywordsGenerating" class="meta-keywords__icon" :size="14">
-                <Loading />
-              </el-icon>
+              <Loader2
+                v-if="keywordsGenerating"
+                class="meta-keywords__icon h-3.5 w-3.5 animate-spin"
+              />
             </span>
-          </el-tooltip>
+          </Tooltip>
           <div class="meta-panel__value meta-panel__value--keywords">
             <KeywordInput
               :model-value="meta.keywords || []"
@@ -149,39 +147,49 @@
           @update:visible="descriptionAssistantVisible = $event"
         />
 
-        <el-dialog v-model="metaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
-          <el-form>
-            <el-form-item :label="$t('article.title')">
-              <el-input v-model="formState.title" autocomplete="off" class="aero-input" />
-            </el-form-item>
-            <el-form-item :label="$t('article.author')">
-              <el-input v-model="formState.author" autocomplete="off" class="aero-input" />
-            </el-form-item>
-            <el-form-item :label="$t('article.description')" class="meta-dialog__description-item">
-              <AutoResizeTextarea
-                v-model="formState.description"
-                :autosize="{ minRows: 20 }"
-                max-height="400px"
-                height="400px"
-                :placeholder="$t('article.description_placeholder')"
-                class="meta-dialog__description-textarea"
-              />
-            </el-form-item>
-          </el-form>
-          <template #footer>
-            <el-button
-              @click="metaDialogVisible = false"
-              :style="{ color: themeState.currentTheme.textColor }"
-              >{{ $t('common.cancel') }}</el-button
-            >
-            <el-button
-              type="primary"
-              @click="commitForm"
-              :style="{ color: themeState.currentTheme.textColor }"
-              >{{ $t('common.confirm') }}</el-button
-            >
-          </template>
-        </el-dialog>
+        <Dialog v-model:open="metaDialogVisible">
+          <DialogContent class="w-[30%] min-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>{{ $t('article.edit_meta_info') }}</DialogTitle>
+            </DialogHeader>
+            <Form>
+              <FormField :label="$t('article.title')" name="title">
+                <Input v-model="formState.title" class="aero-input" />
+              </FormField>
+              <FormField :label="$t('article.author')" name="author">
+                <Input v-model="formState.author" class="aero-input" />
+              </FormField>
+              <FormField
+                :label="$t('article.description')"
+                name="description"
+                class="meta-dialog__description-item"
+              >
+                <AutoResizeTextarea
+                  v-model="formState.description"
+                  :autosize="{ minRows: 20 }"
+                  max-height="400px"
+                  height="400px"
+                  :placeholder="$t('article.description_placeholder')"
+                  class="meta-dialog__description-textarea"
+                />
+              </FormField>
+            </Form>
+            <DialogFooter>
+              <Button
+                variant="secondary"
+                @click="metaDialogVisible = false"
+                :style="{ color: themeState.currentTheme.textColor }"
+                >{{ $t('common.cancel') }}</Button
+              >
+              <Button
+                variant="default"
+                @click="commitForm"
+                :style="{ color: themeState.currentTheme.textColor }"
+                >{{ $t('common.confirm') }}</Button
+              >
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </el-scrollbar>
   </div>
@@ -190,9 +198,19 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElMessage, ElMessageBox } from 'element-plus'
-import { Loading, Edit } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Loader2, Edit } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import { themeState, mixColors } from '../utils/themes'
+import { Form, FormField } from '@renderer/components/ui/form'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import {
   generateDescriptionPrompt,
   generateKeywordsPrompt,
@@ -203,6 +221,7 @@ import type { ArticleMetaData, AIDialogMessage } from '../../../types'
 import MetaFieldAssistant from './MetaFieldAssistant.vue'
 import KeywordInput from './KeywordInput.vue'
 import AutoResizeTextarea from './base/AutoResizeTextarea.vue'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { getSetting } from '../utils/settings'
 import { extractOuterJsonString } from '../utils/regex-utils'

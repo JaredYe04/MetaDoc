@@ -1,72 +1,72 @@
 <template>
   <div class="ai-chat-container" :style="containerStyle">
     <!-- 选择文档对话框 -->
-    <el-dialog
-      v-model="selectDocumentDialogVisible"
-      :title="t('aiChat.selectDocumentTitle', '选择要插入的文档')"
-      width="600"
-      class="select-document-dialog"
-    >
-      <div class="select-document-content">
-        <div class="select-document-header">
-          <span class="selected-count">
-            {{
-              selectedTabIds.length > 0
-                ? `已选择 ${selectedTabIds.length} 个文档`
-                : '请选择要插入的文档'
-            }}
-          </span>
-          <el-button text size="small" @click="toggleSelectAll" v-if="documentTabs.length > 0">
-            {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
-          </el-button>
-        </div>
-        <el-scrollbar height="400px" class="document-list-scrollbar">
-          <div class="document-list">
-            <div
-              v-for="tab in documentTabs"
-              :key="tab.id"
-              class="document-card"
-              :class="{ selected: selectedTabIds.includes(tab.id) }"
-              @click="toggleTabSelection(tab.id)"
+    <Dialog v-model:open="selectDocumentDialogVisible">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('aiChat.selectDocumentTitle', '选择要插入的文档') }}</DialogTitle>
+        </DialogHeader>
+        <div class="select-document-content">
+          <div class="select-document-header">
+            <span class="selected-count">
+              {{
+                selectedTabIds.length > 0
+                  ? `已选择 ${selectedTabIds.length} 个文档`
+                  : '请选择要插入的文档'
+              }}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="toggleSelectAll"
+              v-if="documentTabs.length > 0"
             >
-              <div class="document-card-checkbox">
-                <el-checkbox
-                  :model-value="selectedTabIds.includes(tab.id)"
-                  @click.stop="toggleTabSelection(tab.id)"
-                />
-              </div>
-              <div class="document-card-content">
-                <div class="document-card-header">
-                  <el-icon class="document-icon"><Document /></el-icon>
-                  <span class="document-title">{{ tab.displayName }}</span>
-                </div>
-                <div v-if="tab.path" class="document-path">
-                  <el-icon class="path-icon"><Folder /></el-icon>
-                  <span>{{ tab.path }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="documentTabs.length === 0" class="empty-state">
-              <el-empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
-            </div>
+              {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
+            </Button>
           </div>
-        </el-scrollbar>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="selectDocumentDialogVisible = false">{{
-            t('common.cancel')
-          }}</el-button>
-          <el-button
-            type="primary"
-            @click="confirmInsertToDocument"
-            :disabled="selectedTabIds.length === 0"
-          >
-            {{ t('common.confirm') }} ({{ selectedTabIds.length }})
-          </el-button>
+          <ScrollArea class="h-[400px] document-list-scrollbar">
+            <div class="document-list">
+              <div
+                v-for="tab in documentTabs"
+                :key="tab.id"
+                class="document-card"
+                :class="{ selected: selectedTabIds.includes(tab.id) }"
+                @click="toggleTabSelection(tab.id)"
+              >
+                <div class="document-card-checkbox">
+                  <Checkbox
+                    :checked="selectedTabIds.includes(tab.id)"
+                    @update:checked="toggleTabSelection(tab.id)"
+                  />
+                </div>
+                <div class="document-card-content">
+                  <div class="document-card-header">
+                    <FileText class="w-5 h-5 text-primary" />
+                    <span class="document-title">{{ tab.displayName }}</span>
+                  </div>
+                  <div v-if="tab.path" class="document-path">
+                    <Folder class="w-4 h-4" />
+                    <span>{{ tab.path }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="documentTabs.length === 0" class="empty-state">
+                <Empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
+              </div>
+            </div>
+            <ScrollBar />
+          </ScrollArea>
         </div>
-      </template>
-    </el-dialog>
+        <DialogFooter>
+          <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
+            t('common.cancel')
+          }}</Button>
+          <Button @click="confirmInsertToDocument" :disabled="selectedTabIds.length === 0">
+            {{ t('common.confirm') }} ({{ selectedTabIds.length }})
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <div class="main-container">
       <SessionList
@@ -95,23 +95,25 @@
           <header class="conversation-header">
             <h1 class="title">{{ title }}</h1>
             <div class="conversation-stats">
-              <el-tooltip
-                :content="t('agent.conversation.referencesTooltip', '点击管理引用')"
-                placement="top"
-              >
-                <el-tag
-                  size="small"
-                  effect="plain"
-                  style="cursor: pointer"
-                  @click="handleOpenReferenceDialog"
-                >
-                  {{ t('agent.conversation.references', { count: referenceStore.length }) }}
-                </el-tag>
-              </el-tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Badge
+                    size="small"
+                    effect="plain"
+                    class="cursor-pointer"
+                    @click="handleOpenReferenceDialog"
+                  >
+                    {{ t('agent.conversation.references', { count: referenceStore.length }) }}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </header>
           <div class="dialog-container">
-            <el-scrollbar class="conversation-scroll">
+            <ScrollArea class="conversation-scroll">
               <MessageBubble
                 v-for="(message, index) in messages.filter((item) => item.role !== 'system')"
                 :key="index"
@@ -126,7 +128,8 @@
                 class="conversation-bottom-spacer"
                 :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
               />
-            </el-scrollbar>
+              <ScrollBar />
+            </ScrollArea>
             <div class="composer-wrapper">
               <ReferenceDisplay
                 v-if="referenceStore.length > 0"
@@ -155,42 +158,50 @@
     </div>
 
     <!-- 引用管理对话框 -->
-    <el-dialog
-      v-model="showReferenceDialog"
-      :title="t('agent.reference.title')"
-      width="800px"
-      :body-style="{
-        flex: '1',
-        minHeight: '0',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        padding: '0'
-      }"
-      style="height: 80vh; display: flex; flex-direction: column"
-    >
-      <ReferenceManager
-        :session="{
-          id: `ai-chat-${activeDialogIndex}`,
-          title: title,
-          description: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          messages: [],
-          activeToolIds: [],
-          agentConfigId: '',
-          messageQueue: [],
-          referenceStore: referenceStore,
-          publicContext: {},
-          executionNodes: [],
-          status: 'idle'
-        }"
-        @update="handleReferenceUpdate"
-      />
-      <template #footer>
-        <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
-      </template>
-    </el-dialog>
+    <Dialog v-model:open="showReferenceDialog">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        style="height: 80vh; display: flex; flex-direction: column"
+      >
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
+        </DialogHeader>
+        <div
+          style="
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+          "
+        >
+          <ReferenceManager
+            :session="{
+              id: `ai-chat-${activeDialogIndex}`,
+              title: title,
+              description: '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+              activeToolIds: [],
+              agentConfigId: '',
+              messageQueue: [],
+              referenceStore: referenceStore,
+              publicContext: {},
+              executionNodes: [],
+              status: 'idle'
+            }"
+            @update="handleReferenceUpdate"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showReferenceDialog = false">{{
+            t('common.close')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -207,13 +218,26 @@ import {
 } from 'vue'
 import MessageBubble from '../components/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
-import { Document, Folder } from '@element-plus/icons-vue'
+import { FileText, Folder } from 'lucide-vue-next'
 import SessionList from '../components/common/SessionList.vue'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Checkbox } from '@renderer/components/ui/checkbox'
+import { Empty } from '@renderer/components/ui/empty'
+import { Badge } from '@renderer/components/ui/badge'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'
 
-import { ElMessage } from 'element-plus'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import eventBus from '../utils/event-bus.js'
 import { themeState } from '../utils/themes.js'
 import { answerQuestion } from '../utils/llm-api.js'
@@ -255,8 +279,14 @@ import { createRendererLogger } from '../utils/logger.ts'
 const logger = createRendererLogger('AIChat')
 
 const props = defineProps({
-  id: String
+  id: String,
+  mode: {
+    type: String,
+    default: 'normal'
+  }
 })
+
+const isDemo = computed(() => props.mode === 'demo')
 
 const cloneDeep = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 
@@ -410,7 +440,7 @@ const deleteDialog = (index: number) => {
 
   // 如果删除后没有对话了，不允许删除（需要至少保留一个）
   if (dialogs.value.length <= 1) {
-    ElMessage.warning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'))
+    notifyWarning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'))
     return
   }
 
@@ -468,7 +498,7 @@ const handleRequestInsertToDocument = (payload: unknown) => {
     eventBus.emit('ai-chat-export-to-document', {
       content: data.content
     })
-    ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+    notifySuccess(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
     return
   }
 
@@ -515,15 +545,11 @@ const confirmInsertToDocument = () => {
       content: content,
       tabId: tabIds[0]
     })
-    ElMessage.success(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
+    notifySuccess(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
   } else {
     // 多个文档，依次插入（使用延迟确保每个插入都能被处理）
     // 先显示一个加载提示
-    const loadingMessage = ElMessage({
-      message: `正在插入到 ${tabIds.length} 个文档...`,
-      type: 'info',
-      duration: 0 // 不自动关闭
-    })
+    const loadingMessage = notifyInfo(`正在插入到 ${tabIds.length} 个文档...`)
 
     let completedCount = 0
     tabIds.forEach((tabId, index) => {
@@ -536,8 +562,7 @@ const confirmInsertToDocument = () => {
 
         // 所有插入完成后显示成功消息
         if (completedCount === tabIds.length) {
-          loadingMessage.close()
-          ElMessage.success(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
+          notifySuccess(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
         }
       }, index * 200) // 每个插入间隔200ms，确保前一个完成
     })
@@ -570,7 +595,7 @@ const duplicateDialog = (index: number) => {
   activeDialogIndex.value = 0
   loadDialog(0)
   persistDialogsToStorage()
-  ElMessage.success(t('aiChat.duplicateSuccess', '对话已复制'))
+  notifySuccess(t('aiChat.duplicateSuccess', '对话已复制'))
 }
 
 const title = ref(defaultTitle)
@@ -602,7 +627,7 @@ const handleCancel = () => {
       }
     }
   }
-  ElMessage.info(t('aiChat.generationCancelled'))
+  notifyInfo(t('aiChat.generationCancelled'))
 }
 
 // 引用管理（临时存储，不持久化）
@@ -658,7 +683,7 @@ const handleAttach = async (fileOrFiles?: File | File[]) => {
       promptInput.value = '' // 清空输入框
 
       referenceStore.value.push(reference)
-      ElMessage.success(t('agent.reference.addSuccess'))
+      notifySuccess(t('agent.reference.addSuccess'))
       // 同步更新对话持久化
       updateCurrentDialog()
     } else if (files.length > 0) {
@@ -702,14 +727,14 @@ const handleAttach = async (fileOrFiles?: File | File[]) => {
 
           // 显示成功消息
           if (failCount === 0) {
-            ElMessage.success(
+            notifySuccess(
               files.length > 1 ? `成功添加 ${successCount} 个引用` : t('agent.reference.addSuccess')
             )
           } else {
-            ElMessage.warning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
+            notifyWarning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
           }
         } else {
-          ElMessage.error('所有文件处理失败')
+          notifyError('所有文件处理失败')
         }
       } finally {
         loading.close()
@@ -719,7 +744,7 @@ const handleAttach = async (fileOrFiles?: File | File[]) => {
       return
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1083,6 +1108,10 @@ watch(
 )
 
 onMounted(() => {
+  if (isDemo.value) {
+    // Demo mode: use mock data only, no real initialization
+    return
+  }
   initCurrentDialog()
   eventBus.on('ai-dialogs-loaded', initCurrentDialog)
   eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate)
@@ -1096,12 +1125,14 @@ onBeforeUnmount(() => {
 })
 
 watch([messages], () => {
+  if (isDemo.value) return
   //bindCode(false);
   // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
   updateCurrentDialog()
 })
 
 watch([title], () => {
+  if (isDemo.value) return
   // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
   updateCurrentDialog()
 })
@@ -1111,10 +1142,7 @@ const onMsgDelete = (index: number) => {
   if (targetIndex < 0 || targetIndex >= messages.value.length) return
   messages.value.splice(targetIndex, 1)
   //bindCode(false);
-  ElMessage({
-    type: 'success',
-    message: t('common.deleteSuccess')
-  })
+  notifySuccess(t('common.deleteSuccess'))
   updateCurrentDialog()
 }
 const regenerate = async (index: number) => {
@@ -1295,12 +1323,7 @@ const handleSessionDelete = (item: SessionListItem) => {
   padding-right: 4px;
 }
 
-.conversation-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.conversation-scroll :deep(.el-scrollbar__view) {
-  width: 100%;
+.conversation-scroll :deep([data-radix-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

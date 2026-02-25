@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <el-result icon="success" :title="$t('agent.display.titleFormat.completed')" />
+      <Result icon="success" :title="$t('agent.display.titleFormat.completed')" />
 
       <div
         v-if="displayData.operations && displayData.operations.length > 0"
@@ -48,11 +48,10 @@
     </div>
 
     <div v-else class="error-state">
-      <el-alert
-        :title="displayData.error || $t('agent.display.titleFormat.error')"
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>{{ displayData.error || $t('agent.display.titleFormat.error') }}</AlertTitle>
+      </Alert>
     </div>
   </div>
 </template>
@@ -61,6 +60,9 @@
 import { computed } from 'vue'
 import { Loading, Edit } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Result } from '@renderer/components/ui/result'
+import { XCircle } from 'lucide-vue-next'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'

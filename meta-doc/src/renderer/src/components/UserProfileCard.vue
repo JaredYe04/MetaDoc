@@ -4,248 +4,299 @@
       <span :style="{ color: themeState.currentTheme.textColor }">{{
         t('userProfile.title')
       }}</span>
-      <el-tooltip :content="t('userProfile.closeMenu')" placement="top">
-        <el-button circle plain size="small" @click="closeDialog" class="aero-btn" type="danger">
-          <el-icon><Close /></el-icon>
-        </el-button>
-      </el-tooltip>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <Button
+            variant="destructive"
+            size="sm"
+            class="aero-btn rounded-full"
+            @click="closeDialog"
+          >
+            <X class="w-4 h-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {{ t('userProfile.closeMenu') }}
+        </TooltipContent>
+      </Tooltip>
     </div>
 
-    <el-tabs v-model="activeName" class="tabs" v-if="!loggedIn" @mousedown.stop>
-      <el-tab-pane :label="t('userProfile.loginTab')" name="Login">
-        <el-form :model="loginForm" label-width="80px" ref="loginFormRef" :rules="loginRules">
-          <el-form-item :label="t('userProfile.account')" prop="username">
-            <el-input
+    <Tabs v-if="!loggedIn" v-model="activeName" class="tabs" @mousedown.stop>
+      <TabsList class="grid w-full grid-cols-2">
+        <TabsTrigger value="Login">{{ t('userProfile.loginTab') }}</TabsTrigger>
+        <TabsTrigger value="Register">{{ t('userProfile.registerTab') }}</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="Login">
+        <Form ref="loginFormRef" class="space-y-4">
+          <FormField :label="t('userProfile.account')" name="username" :rules="loginRules.username">
+            <Input
               v-model="loginForm.username"
               :placeholder="t('userProfile.accountPlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.password')" prop="password">
-            <el-input
+            />
+          </FormField>
+          <FormField
+            :label="t('userProfile.password')"
+            name="password"
+            :rules="loginRules.password"
+          >
+            <Input
               v-model="loginForm.password"
-              :show-password="true"
+              type="password"
               :placeholder="t('userProfile.passwordPlaceholder')"
-              suffix-icon="el-icon-view"
-              @click-suffix="togglePasswordVisibility"
-            ></el-input>
-          </el-form-item>
-          <div slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="submitLogin">{{
-              t('userProfile.loginBtn')
-            }}</el-button>
+            />
+          </FormField>
+          <div class="dialog-footer">
+            <Button variant="default" @click="submitLogin">{{ t('userProfile.loginBtn') }}</Button>
           </div>
-        </el-form>
-      </el-tab-pane>
+        </Form>
+      </TabsContent>
 
-      <el-tab-pane :label="t('userProfile.registerTab')" name="Register">
-        <el-form
-          :model="registerForm"
-          label-width="80px"
-          ref="registerFormRef"
-          :rules="registerRules"
-        >
-          <el-form-item :label="t('userProfile.username')" prop="username">
-            <el-input
+      <TabsContent value="Register">
+        <Form ref="registerFormRef" class="space-y-4">
+          <FormField
+            :label="t('userProfile.username')"
+            name="username"
+            :rules="registerRules.username"
+          >
+            <Input
               v-model="registerForm.username"
               :placeholder="t('userProfile.usernamePlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.phone')" prop="phone">
-            <el-input
-              v-model="registerForm.phone"
-              :placeholder="t('userProfile.phonePlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.email')" prop="email">
-            <el-input
-              v-model="registerForm.email"
-              :placeholder="t('userProfile.emailPlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <el-form-item :label="t('userProfile.password')" prop="password">
-            <el-input
+            />
+          </FormField>
+          <FormField :label="t('userProfile.phone')" name="phone" :rules="registerRules.phone">
+            <Input v-model="registerForm.phone" :placeholder="t('userProfile.phonePlaceholder')" />
+          </FormField>
+          <FormField :label="t('userProfile.email')" name="email" :rules="registerRules.email">
+            <Input v-model="registerForm.email" :placeholder="t('userProfile.emailPlaceholder')" />
+          </FormField>
+          <FormField
+            :label="t('userProfile.password')"
+            name="password"
+            :rules="registerRules.password"
+          >
+            <Input
               v-model="registerForm.password"
               type="password"
-              :show-password="true"
               :placeholder="t('userProfile.passwordPlaceholder')"
-            ></el-input>
-          </el-form-item>
-          <div slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="submitRegister">{{
+            />
+          </FormField>
+          <div class="dialog-footer">
+            <Button variant="default" @click="submitRegister">{{
               t('userProfile.registerBtn')
-            }}</el-button>
+            }}</Button>
           </div>
-        </el-form>
-      </el-tab-pane>
-    </el-tabs>
+        </Form>
+      </TabsContent>
+    </Tabs>
 
     <div v-else>
       <div style="display: flex; align-items: center">
-        <el-tooltip :content="t('userProfile.changeAvatar')" placement="top" effect="dark">
-          <el-avatar
-            v-if="avatar && !avatarLoadError"
-            :src="avatar"
-            :size="128"
-            style="width: 128px; height: 128px; padding: 0; cursor: pointer; object-fit: cover"
-            @click="changeAvatar"
-            @error="handleAvatarError"
-          >
-            {{ avatar ? '' : user.username }}
-          </el-avatar>
-          <div
-            v-else
-            @click="changeAvatar"
-            style="
-              width: 128px;
-              height: 128px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              cursor: pointer;
-              border-radius: 50%;
-              background-color: rgba(0, 0, 0, 0.05);
-            "
-          >
-            <el-icon :size="64" style="color: #909399">
-              <User />
-            </el-icon>
-          </div>
-        </el-tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Avatar
+              v-if="avatar && !avatarLoadError"
+              class="cursor-pointer"
+              style="width: 128px; height: 128px"
+              @click="changeAvatar"
+            >
+              <AvatarImage
+                :src="avatar"
+                :alt="user.username"
+                @error="handleAvatarError"
+                class="object-cover"
+              />
+              <AvatarFallback>{{ user.username?.charAt(0)?.toUpperCase() || '?' }}</AvatarFallback>
+            </Avatar>
+            <div
+              v-else
+              style="
+                width: 128px;
+                height: 128px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                border-radius: 50%;
+                background-color: rgba(0, 0, 0, 0.05);
+              "
+              @click="changeAvatar"
+            >
+              <User class="w-16 h-16" style="color: #909399" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('userProfile.changeAvatar') }}
+          </TooltipContent>
+        </Tooltip>
 
         <div style="margin-left: 40px">
           <div style="height: 200px">
-            <el-form
-              v-if="editing"
-              :model="user"
-              label-width="80px"
-              ref="userFormRef"
-              :rules="registerRules"
-              style="height: 180px"
-            >
+            <Form v-if="editing" ref="userFormRef" class="space-y-2" style="height: 180px">
               <h3>{{ t('userProfile.editProfileTitle') }}</h3>
-              <el-form-item :label="t('userProfile.username')" prop="username">
-                <el-input
+              <FormField
+                :label="t('userProfile.username')"
+                name="username"
+                :rules="registerRules.username"
+              >
+                <Input
                   v-model="user.username"
                   :placeholder="t('userProfile.usernamePlaceholder')"
-                ></el-input>
-              </el-form-item>
-              <el-form-item :label="t('userProfile.phone')" prop="phone">
-                <el-input
-                  v-model="user.phone"
-                  :placeholder="t('userProfile.phonePlaceholder')"
-                ></el-input>
-              </el-form-item>
-              <el-form-item :label="t('userProfile.email')" prop="email">
-                <el-input
-                  v-model="user.email"
-                  :placeholder="t('userProfile.emailPlaceholder')"
-                ></el-input>
-              </el-form-item>
-            </el-form>
+                />
+              </FormField>
+              <FormField :label="t('userProfile.phone')" name="phone" :rules="registerRules.phone">
+                <Input v-model="user.phone" :placeholder="t('userProfile.phonePlaceholder')" />
+              </FormField>
+              <FormField :label="t('userProfile.email')" name="email" :rules="registerRules.email">
+                <Input v-model="user.email" :placeholder="t('userProfile.emailPlaceholder')" />
+              </FormField>
+            </Form>
 
-            <el-form
-              v-if="editingPwd"
-              :model="editPwdForm"
-              label-width="80px"
-              ref="pwdFormRef"
-              :rules="editPwdRules"
-              style="height: 180px"
-            >
+            <Form v-if="editingPwd" ref="pwdFormRef" class="space-y-2" style="height: 180px">
               <h3>{{ t('userProfile.changePasswordTitle') }}</h3>
-              <el-form-item :label="t('userProfile.oldPassword')" prop="oldPwd">
-                <el-input
+              <FormField
+                :label="t('userProfile.oldPassword')"
+                name="oldPwd"
+                :rules="editPwdRules.oldPassword"
+              >
+                <Input
                   v-model="editPwdForm.oldPwd"
+                  type="password"
                   :placeholder="t('userProfile.oldPasswordPlaceholder')"
-                  type="password"
-                  :show-password="true"
-                ></el-input>
-              </el-form-item>
-              <el-form-item :label="t('userProfile.newPassword')" prop="newPwd">
-                <el-input
+                />
+              </FormField>
+              <FormField
+                :label="t('userProfile.newPassword')"
+                name="newPwd"
+                :rules="editPwdRules.newPassword"
+              >
+                <Input
                   v-model="editPwdForm.newPwd"
-                  :placeholder="t('userProfile.newPasswordPlaceholder')"
                   type="password"
-                  :show-password="true"
-                ></el-input>
-              </el-form-item>
-            </el-form>
+                  :placeholder="t('userProfile.newPasswordPlaceholder')"
+                />
+              </FormField>
+            </Form>
 
             <div v-if="!editing && !editingPwd" style="height: 180px">
-              <el-tooltip :content="t('userProfile.username')" placement="left">
-                <h3>{{ user.username }}</h3>
-              </el-tooltip>
-              <el-tooltip :content="t('userProfile.email')" placement="left">
-                <p>{{ user.email }}</p>
-              </el-tooltip>
-              <el-tooltip :content="t('userProfile.phone')" placement="left">
-                <p>{{ user.phone }}</p>
-              </el-tooltip>
-              <el-tooltip :content="t('userProfile.createdAt')" placement="left">
-                <p>
-                  {{
-                    new Date(user.createdAt).toLocaleDateString(locale, {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit'
-                    })
-                  }}
-                </p>
-              </el-tooltip>
-              <el-tooltip :content="t('userProfile.tokenBalance')" placement="left">
-                <p>Token: {{ user.tokens }} $</p>
-              </el-tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <h3>{{ user.username }}</h3>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  {{ t('userProfile.username') }}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <p>{{ user.email }}</p>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  {{ t('userProfile.email') }}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <p>{{ user.phone }}</p>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  {{ t('userProfile.phone') }}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <p>
+                    {{
+                      new Date(user.createdAt).toLocaleDateString(locale, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })
+                    }}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  {{ t('userProfile.createdAt') }}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <p>Token: {{ user.tokens }} $</p>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  {{ t('userProfile.tokenBalance') }}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
           <div>
-            <el-tooltip
-              v-if="!editing && !editingPwd"
-              :content="t('userProfile.logout')"
-              placement="bottom"
-            >
-              <el-button @click="logout" type="danger" circle>
-                <el-icon><SwitchButton /></el-icon>
-              </el-button>
-            </el-tooltip>
+            <Tooltip v-if="!editing && !editingPwd">
+              <TooltipTrigger as-child>
+                <Button variant="destructive" class="rounded-full w-9 h-9 p-0" @click="logout">
+                  <Power class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ t('userProfile.logout') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip
-              v-if="editing || editingPwd"
-              :content="t('userProfile.cancel')"
-              placement="bottom"
-            >
-              <el-button type="primary" circle @click="cancelEdit">
-                <el-icon><RefreshLeft /></el-icon>
-              </el-button>
-            </el-tooltip>
+            <Tooltip v-if="editing || editingPwd">
+              <TooltipTrigger as-child>
+                <Button variant="default" class="rounded-full w-9 h-9 p-0" @click="cancelEdit">
+                  <Undo2 class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ t('userProfile.cancel') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip
-              v-if="!editingPwd"
-              :content="editing ? t('userProfile.saveEdit') : t('userProfile.editProfile')"
-              placement="bottom"
-            >
-              <el-button
-                :type="editing ? 'success' : 'primary'"
-                :icon="editing ? Check : Edit"
-                circle
-                @click="toggleEdit"
-              />
-            </el-tooltip>
+            <Tooltip v-if="!editingPwd">
+              <TooltipTrigger as-child>
+                <Button
+                  :variant="editing ? 'outline' : 'default'"
+                  :class="[
+                    'rounded-full w-9 h-9 p-0',
+                    editing
+                      ? 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700'
+                      : ''
+                  ]"
+                  @click="toggleEdit"
+                >
+                  <Check v-if="editing" class="w-4 h-4" />
+                  <Pencil v-else class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ editing ? t('userProfile.saveEdit') : t('userProfile.editProfile') }}
+              </TooltipContent>
+            </Tooltip>
 
-            <el-tooltip
-              v-if="!editing"
-              :content="editingPwd ? t('userProfile.savePwd') : t('userProfile.changePwd')"
-              placement="bottom"
-            >
-              <el-button
-                :type="editingPwd ? 'success' : 'primary'"
-                :icon="editingPwd ? Check : Lock"
-                circle
-                @click="toggleEditPwd"
-              />
-            </el-tooltip>
+            <Tooltip v-if="!editing">
+              <TooltipTrigger as-child>
+                <Button
+                  :variant="editingPwd ? 'outline' : 'default'"
+                  :class="[
+                    'rounded-full w-9 h-9 p-0',
+                    editingPwd
+                      ? 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700'
+                      : ''
+                  ]"
+                  @click="toggleEditPwd"
+                >
+                  <Check v-if="editingPwd" class="w-4 h-4" />
+                  <Lock v-else class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {{ editingPwd ? t('userProfile.savePwd') : t('userProfile.changePwd') }}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -255,17 +306,12 @@
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
-import {
-  ElButton,
-  ElCard,
-  ElTooltip,
-  ElAvatar,
-  ElDialog,
-  ElForm,
-  ElFormItem,
-  ElInput,
-  ElCheckbox
-} from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@renderer/components/ui/avatar'
+import { Input } from '@renderer/components/ui/input'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
+import { Form, FormField } from '@renderer/components/ui/form'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useLocalStorage } from '@vueuse/core'
 import { themeState } from '../utils/themes'
 import eventBus from '../utils/event-bus.js'
@@ -439,7 +485,7 @@ import {
   updateUserInfo,
   verifyToken
 } from '../utils/web-utils.ts'
-import { Check, Edit, Lock, RefreshLeft, SwitchButton, User } from '@element-plus/icons-vue'
+import { Check, Pencil, Lock, Undo2, Power, User, X } from 'lucide-vue-next'
 
 // 头像加载错误处理
 const avatarLoadError = ref(false)

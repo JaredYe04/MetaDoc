@@ -265,3 +265,63 @@ export function clearFontCache(): void {
   cachedFonts = null
   logger.info('字体缓存已清除')
 }
+
+/**
+ * 获取系统字体文件路径列表（用于 resvg 等需要直接访问字体文件的场景）
+ * 跨平台支持：Windows、macOS、Linux
+ * 只返回实际存在的字体文件路径
+ */
+export function getSystemFontFiles(): string[] {
+  const osPlatform = detectRuntimePlatform()
+  let fontPaths: string[] = []
+
+  if (osPlatform === 'win32') {
+    fontPaths = [
+      'C:/Windows/Fonts/arial.ttf',
+      'C:/Windows/Fonts/arialuni.ttf',
+      'C:/Windows/Fonts/msyh.ttc', // 微软雅黑
+      'C:/Windows/Fonts/simhei.ttf', // 黑体
+      'C:/Windows/Fonts/simsun.ttc', // 宋体
+      'C:/Windows/Fonts/segoeui.ttf', // Segoe UI
+      'C:/Windows/Fonts/calibri.ttf',
+      'C:/Windows/Fonts/trebuc.ttf', // Trebuchet MS
+      'C:/Windows/Fonts/tahoma.ttf',
+      'C:/Windows/Fonts/verdana.ttf'
+    ]
+  } else if (osPlatform === 'darwin') {
+    // macOS 字体路径
+    fontPaths = [
+      '/System/Library/Fonts/Helvetica.ttc',
+      '/System/Library/Fonts/PingFang.ttc', // 苹方（中文）
+      '/System/Library/Fonts/STHeiti Light.ttc', // 黑体
+      '/System/Library/Fonts/STHeiti Medium.ttc',
+      '/System/Library/Fonts/Times.ttc',
+      '/System/Library/Fonts/Monaco.dfont',
+      '/Library/Fonts/Arial.ttf',
+      '/Library/Fonts/Microsoft/Microsoft YaHei.ttf' // 如果安装了 Office
+    ]
+  } else {
+    // Linux/WSL 字体路径
+    fontPaths = [
+      '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+      '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+      '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+      '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', // 文泉驿微米黑
+      '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc', // 文泉驿正黑
+      '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.otf',
+      '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
+    ]
+  }
+
+  // 过滤掉不存在的文件
+  const existingFonts = fontPaths.filter((p) => {
+    try {
+      return existsSync(p)
+    } catch {
+      return false
+    }
+  })
+
+  logger.debug(`找到 ${existingFonts.length} 个系统字体文件（共检查 ${fontPaths.length} 个）`)
+  return existingFonts
+}

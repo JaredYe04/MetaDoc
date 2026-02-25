@@ -31,15 +31,18 @@
       @drop="handleDrop"
       @dragend="handleDragEnd"
     >
-      <el-icon
-        v-if="node.type === 'directory' || node.type === 'workspaceRoot'"
+      <ChevronRight
+        v-if="(node.type === 'directory' || node.type === 'workspaceRoot') &amp;&amp; !isExpanded"
         class="workspace-tree-node-icon"
         :class="{ 'is-workspace-root': node.isWorkspaceRoot }"
         @click.stop="handleIconClick"
-      >
-        <ArrowRight v-if="!isExpanded" />
-        <ArrowDown v-else />
-      </el-icon>
+      />
+      <ChevronDown
+        v-else-if="(node.type === 'directory' || node.type === 'workspaceRoot') &amp;&amp; isExpanded"
+        class="workspace-tree-node-icon"
+        :class="{ 'is-workspace-root': node.isWorkspaceRoot }"
+        @click.stop="handleIconClick"
+      />
       <img
         v-else-if="node.type === 'file'"
         :src="getFileIcon(node.name)"
@@ -51,16 +54,16 @@
         :class="{ 'is-workspace-root': node.isWorkspaceRoot }"
         >{{ node.name }}</span
       >
-      <el-button
+      <Button
         v-if="node.isWorkspaceRoot"
-        text
-        size="small"
-        class="workspace-tree-node-close"
+        variant="ghost"
+        size="icon"
+        class="workspace-tree-node-close h-4 w-4"
         @click.stop="handleCloseWorkspace"
         :title="$t('workspaceExplorer.closeWorkspace')"
       >
-        <el-icon><Close /></el-icon>
-      </el-button>
+        <X class="h-3 w-3" />
+      </Button>
     </div>
     <div
       v-if="isExpanded && node.children"
@@ -98,8 +101,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ArrowRight, ArrowDown, Close } from '@element-plus/icons-vue'
-import { ElIcon, ElButton } from 'element-plus'
+import { ChevronRight, ChevronDown, X } from 'lucide-vue-next'
+import { ElIcon } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { themeState, mixColors } from '../utils/themes'
 import { formatRegistry } from '../utils/format-registry'

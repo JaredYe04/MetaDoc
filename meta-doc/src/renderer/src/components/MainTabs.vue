@@ -21,6 +21,7 @@
             :class="{
               'is-active': currentActiveId === tab.id,
               'is-pinned': tab.pinned,
+              'is-closing': tab._isClosing,
               'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
               'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after'
             }"
@@ -48,7 +49,7 @@
               <span v-else class="main-tab-label__text">{{ getTabLabel(tab) }}</span>
               <span v-if="tab.dirty && !tab.pinned" class="main-tab-label__dot" />
               <span
-                v-if="canCloseTab(tab) && !tab.pinned"
+                v-if="canCloseTab(tab) && !tab.pinned && !tab._isClosing"
                 class="main-tab-label__close"
                 :class="{ 'main-tab-label__close--active': currentActiveId === tab.id }"
                 @click.stop="handleCloseTab(tab.id)"
@@ -266,7 +267,7 @@ const tabsWrapperRef = ref<HTMLElement | null>(null)
 const tabsViewportRef = ref<HTMLElement | null>(null)
 const tabsListRef = ref<HTMLElement | null>(null)
 
-const { closeTab, isLocked } = useCloseTab()
+const { checkCanCloseTab, doRemoveTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
 
 const DEMO_TABS: WorkspaceTab[] = [
@@ -378,6 +379,7 @@ const canMoveToOtherWindow = (tab: WorkspaceTab | null): boolean => {
 
 const openTabContextMenu = async (e: MouseEvent, tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab._isClosing) return
   tabContextMenuVisible.value = true
   tabContextMenuPosition.value = { x: e.clientX, y: e.clientY }
   tabContextMenuTab.value = tab
@@ -685,7 +687,7 @@ const allTabs = computed(() => {
 const tabCount = computed(() => allTabs.value.length)
 
 // 使用标签页动画 composable - 必须在 allTabs 定义之后
-const { triggerNewTabAnimation } = useTabAnimation(tabsListRef, allTabs)
+const { triggerNewTabAnimation, triggerCloseTabAnimation } = useTabAnimation(tabsListRef, allTabs)
 
 const currentActiveId = computed({
   get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
@@ -731,7 +733,8 @@ const canCloseTab = (tab: WorkspaceTab): boolean => {
 const canDragTab = (tab: WorkspaceTab): boolean => {
   // 所有Tab都可以拖拽来改变顺序（在本窗口内）
   // 但系统Tab和工具Tab不允许拖拽到其他窗口
-  return !isLockedEffective.value
+  // 正在关闭的Tab不允许拖拽
+  return !isLockedEffective.value && !tab._isClosing
 }
 
 // 检查Tab是否可以拖拽到其他窗口（工具、系统 Tab 也可迁移）
@@ -742,6 +745,7 @@ const canDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
 // 处理 Tab 点击激活 - 通过 click 事件而非 mousedown
 const handleTabClickActivate = (tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab._isClosing) return
   if (tab.id === workspace.activeTabId.value) return
 
   workspace.activateTab(tab.id)
@@ -756,6 +760,7 @@ const handleTabClickActivate = (tab: WorkspaceTab) => {
 // 在 mousedown 时预加载拖拽缩略图，但不切换 tab（避免拖拽时切换）
 const handleTabMouseDown = async (event: MouseEvent, tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab._isClosing) return
   // 如果点在关闭按钮上，不处理（让关闭按钮处理）
   const target = event.target as HTMLElement
   if (target.closest('.main-tab-label__close')) return
@@ -780,12 +785,36 @@ const handleTabItemAuxClick = (event: MouseEvent, tab: WorkspaceTab) => {
   if (event.button !== 1) return
   event.preventDefault()
   if (isLockedEffective.value) return
+  if (tab._isClosing) return
   handleCloseTab(tab.id)
 }
 
-// 自定义关闭Tab处理函数 - 使用公共的 closeTab composable
+// 正在关闭中的标签页ID集合（防止重复关闭）
+const closingTabIds = new Set<string>()
+
+// 自定义关闭Tab处理函数 - 先检查确认，再播放动画，最后真正移除
 const handleCloseTab = async (tabId: string) => {
-  await closeTab(tabId)
+  // 防止重复关闭
+  if (closingTabIds.has(tabId)) return
+
+  const tab = allTabs.value.find((t) => t.id === tabId)
+  if (!tab) return
+
+  // 先检查是否可以关闭（显示确认对话框等）
+  const canClose = await checkCanCloseTab(tabId)
+  if (!canClose) return
+
+  closingTabIds.add(tabId)
+  tab._isClosing = true
+
+  try {
+    // 播放关闭动画
+    await triggerCloseTabAnimation(tabId)
+    // 动画完成后真正移除
+    doRemoveTab(tabId)
+  } finally {
+    closingTabIds.delete(tabId)
+  }
 }
 
 const handleTabLabelDblclick = (tab: WorkspaceTab) => {
@@ -874,7 +903,7 @@ const handleDragStart = async (id: string, event: DragEvent) => {
   }
 
   const tab = allTabs.value.find((t) => t.id === id)
-  if (!tab) {
+  if (!tab || tab._isClosing) {
     event.preventDefault()
     return
   }
@@ -1047,7 +1076,7 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
       if (existingFileTab && document?.dirty && document.markdown) {
         // 如果已有相同文件的Tab，且被拖拽的Tab有未保存内容，提示用户选择
         logger.info('检测到相同文件的Tab，合并未保存内容:', tab.path)
-        
+
         try {
           const targetDoc = workspace.ensureDocument(existingFileTab.id)
           if (targetDoc) {
@@ -1064,7 +1093,7 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
             targetDoc.savedMarkdown = baseContent
             existingFileTab.dirty = true
             logger.info('已合并未保存内容到已有Tab:', existingFileTab.id)
-            
+
             // 激活已有Tab并通知转移完成（不添加新Tab，因为内容已合并）
             workspace.activateTab(existingFileTab.id)
             transferSuccess = true
@@ -1309,7 +1338,10 @@ const handleWrapperAuxClick = (event: MouseEvent) => {
   const tabItem = target.closest('.tab-item') as HTMLElement | null
   if (!tabItem) return
   const tabId = tabItem.dataset.tabId
-  if (tabId) handleCloseTab(tabId)
+  if (!tabId) return
+  const tab = allTabs.value.find((t) => t.id === tabId)
+  if (tab?._isClosing) return
+  handleCloseTab(tabId)
 }
 
 // 在 Tab 项上添加拖拽事件监听（扩大拖拽区域）
@@ -1458,13 +1490,19 @@ onMounted(async () => {
           messageBridge.send('drag:renderer-response', {
             _requestId,
             _error: error instanceof Error ? error.message : '添加 Tab 失败',
-            result: { success: false, error: error instanceof Error ? error.message : '添加 Tab 失败' }
+            result: {
+              success: false,
+              error: error instanceof Error ? error.message : '添加 Tab 失败'
+            }
           })
         }
       }
     }
     messageBridge.on('drag:add-tab-to-window', handlerAddTabToWindow)
   }
+
+  // 监听来自 Main.vue 的关闭动画请求（用于 Ctrl+W 快捷键）
+  eventBus.on('tab-close-with-animation', handleCloseTab)
 })
 
 // 监听activeTabId变化，确保路由同步（用于首次打开系统Tab时）
@@ -1507,6 +1545,8 @@ watch(
 // 清理事件监听器
 onUnmounted(() => {
   document.removeEventListener('click', handleTabContextMenuClickOutside)
+
+  eventBus.off('tab-close-with-animation', handleCloseTab)
 
   if (moveToWindowLeaveTimer) {
     clearTimeout(moveToWindowLeaveTimer)
@@ -1581,6 +1621,12 @@ onUnmounted(() => {
   pointer-events: none;
   cursor: not-allowed !important;
   opacity: 0.6;
+}
+
+/* 正在关闭的 tab：降低 z-index 让它滑到左边 tab 下面 */
+.tab-item.is-closing {
+  z-index: 1 !important;
+  pointer-events: none;
 }
 
 /* macOS 平台：左边预留空间给原生交通灯按钮 */

@@ -10,24 +10,20 @@
       }"
     >
       <div class="composer-leading">
-        <el-tooltip v-if="showAttach" :content="t('aiChat.attachTooltip')" placement="top">
-          <el-button
-            circle
-            class="composer-btn"
-            :disabled="disabled"
-            @click.prevent="handleSelectFiles"
-          >
-            <el-icon><Paperclip /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <Button
+          v-if="showAttach"
+          :title="t('aiChat.attachTooltip')"
+          variant="ghost"
+          size="icon"
+          class="composer-btn"
+          :disabled="disabled"
+          @click.prevent="handleSelectFiles"
+        >
+          <Paperclip class="w-4 h-4" />
+        </Button>
       </div>
 
-      <el-scrollbar
-        ref="scrollbarRef"
-        class="composer-scroll"
-        :wrap-style="scrollbarWrapStyle"
-        :view-class="'composer-scroll-view'"
-      >
+      <div ref="scrollContainerRef" class="composer-scroll" :style="scrollContainerStyle">
         <textarea
           ref="textareaRef"
           :value="modelValue"
@@ -38,81 +34,70 @@
           @input="handleInput"
           @keydown="handleKeydown"
         />
-      </el-scrollbar>
+      </div>
 
       <div class="composer-actions">
         <div class="composer-send-switch">
-          <el-tooltip :content="t('aiChat.changeSendMode')" placement="top">
-            <el-button
-              class="composer-send-toggle"
-              size="small"
-              text
-              @click.prevent="toggleSendMode"
-            >
-              {{ sendModeLabel }}
-            </el-button>
-          </el-tooltip>
+          <Button
+            :title="t('aiChat.changeSendMode')"
+            variant="ghost"
+            size="sm"
+            class="composer-send-toggle"
+            @click.prevent="toggleSendMode"
+          >
+            {{ sendModeLabel }}
+          </Button>
         </div>
 
-        <el-tooltip v-if="showVoice" :content="t('aiChat.voiceTooltip')" placement="top">
-          <el-button
-            circle
-            class="composer-btn"
-            :disabled="disabled"
-            @click.prevent="emit('voice')"
-          >
-            <Microphone />
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip
-          :content="loading ? t('aiChat.cancelTooltip') : t('aiChat.sendTooltip')"
-          placement="top"
+        <Button
+          v-if="showVoice"
+          :title="t('aiChat.voiceTooltip')"
+          variant="ghost"
+          size="icon"
+          class="composer-btn"
+          :disabled="disabled"
+          @click.prevent="emit('voice')"
         >
-          <el-button
-            circle
-            class="composer-btn primary"
-            :type="loading ? 'danger' : 'primary'"
-            :loading="false"
-            :disabled="disabled || (loading ? false : !modelValue.trim().length)"
-            @click.prevent="loading ? emit('cancel') : handleSubmit()"
-          >
-            <el-icon v-if="!loading"><ArrowUp /></el-icon>
-            <el-icon v-else class="stop-icon">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-              </svg>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
+          <Mic class="w-4 h-4" />
+        </Button>
 
-        <el-tooltip
+        <Button
+          :title="loading ? t('aiChat.cancelTooltip') : t('aiChat.sendTooltip')"
+          :variant="loading ? 'destructive' : 'default'"
+          size="icon"
+          class="composer-btn"
+          :disabled="disabled || (loading ? false : !modelValue.trim().length)"
+          @click.prevent="loading ? emit('cancel') : handleSubmit()"
+        >
+          <ArrowUp v-if="!loading" class="w-4 h-4" />
+          <svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
+        </Button>
+
+        <Button
           v-if="showKnowledgeBase"
-          :content="t('aiChat.knowledgeBaseTooltip')"
-          placement="top"
+          :title="t('aiChat.knowledgeBaseTooltip')"
+          :variant="enableKnowledgeBaseQuery ? 'default' : 'ghost'"
+          size="icon"
+          class="composer-btn"
+          :class="{ 'composer-btn-knowledge-base-active': enableKnowledgeBaseQuery }"
+          :disabled="disabled || !knowledgeBaseEnabled"
+          @click.prevent="toggleKnowledgeBaseQuery"
         >
-          <el-button
-            circle
-            class="composer-btn"
-            :class="{ 'composer-btn-knowledge-base-active': enableKnowledgeBaseQuery }"
-            :disabled="disabled || !knowledgeBaseEnabled"
-            :type="enableKnowledgeBaseQuery ? 'primary' : 'default'"
-            @click.prevent="toggleKnowledgeBaseQuery"
-          >
-            <el-icon><Connection /></el-icon>
-          </el-button>
-        </el-tooltip>
+          <Link class="w-4 h-4" />
+        </Button>
 
-        <el-tooltip :content="t('aiChat.resetTooltip', '重置')" placement="top">
-          <el-button
-            circle
-            class="composer-btn"
-            :disabled="disabled"
-            @click.prevent="emit('reset')"
-          >
-            <el-icon><Refresh /></el-icon>
-          </el-button>
-        </el-tooltip>
+        <Button
+          :title="t('aiChat.resetTooltip', '重置')"
+          variant="ghost"
+          size="icon"
+          class="composer-btn"
+          :disabled="disabled"
+          @click.prevent="emit('reset')"
+        >
+          <RefreshCw class="w-4 h-4" />
+        </Button>
       </div>
     </div>
   </form>
@@ -120,10 +105,10 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Paperclip, Microphone, ArrowUp, Refresh, Close, Connection } from '@element-plus/icons-vue'
+import { Paperclip, Mic, ArrowUp, RefreshCw, Link } from 'lucide-vue-next'
+import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
-import type { ScrollbarInstance } from 'element-plus'
 import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
 
@@ -164,7 +149,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const scrollbarRef = ref<ScrollbarInstance | null>(null)
+const scrollContainerRef = ref<HTMLDivElement | null>(null)
 const maxScrollHeight = ref(0)
 const singleLineHeight = ref<number | null>(null)
 const isMultiline = ref(false)
@@ -177,7 +162,7 @@ const updateMaxScrollHeight = () => {
   maxScrollHeight.value = Math.max(180, Math.floor(window.innerHeight * 0.3))
 }
 
-const scrollbarWrapStyle = computed(() => ({
+const scrollContainerStyle = computed(() => ({
   maxHeight: `${maxScrollHeight.value}px`,
   overflowX: 'hidden',
   overflowY: 'auto'
@@ -212,7 +197,7 @@ const autoResize = () => {
       el.style.height = `${singleLineHeight.value}px`
     }
     nextTick(() => {
-      scrollbarRef.value?.update()
+      scrollToBottom()
     })
     return
   }
@@ -226,12 +211,15 @@ const autoResize = () => {
     isMultiline.value = false
   }
   nextTick(() => {
-    scrollbarRef.value?.update()
-    const wrap = scrollbarRef.value?.wrapRef
-    if (wrap && wrap.scrollHeight > wrap.clientHeight) {
-      wrap.scrollTop = wrap.scrollHeight
-    }
+    scrollToBottom()
   })
+}
+
+const scrollToBottom = () => {
+  const wrap = scrollContainerRef.value
+  if (wrap && wrap.scrollHeight > wrap.clientHeight) {
+    wrap.scrollTop = wrap.scrollHeight
+  }
 }
 
 const handleInput = (event: Event) => {
@@ -458,28 +446,30 @@ onBeforeUnmount(() => {
 .composer-scroll {
   width: 100%;
   min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.composer-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.composer-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.composer-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.composer-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .composer-shell.is-multiline .composer-scroll {
   width: 100%;
   padding-right: 0;
-}
-
-.composer-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-bottom: 0;
-}
-
-.composer-scroll :deep(.el-scrollbar__view) {
-  width: 100%;
-}
-
-.composer-scroll :deep(.el-scrollbar__bar.is-horizontal) {
-  display: none;
-}
-
-.composer-shell.is-multiline .composer-scroll :deep(.el-scrollbar__wrap) {
   padding-bottom: 28px;
   padding-left: 48px;
 }
@@ -529,6 +519,8 @@ onBeforeUnmount(() => {
   font-size: 12px;
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  height: auto;
+  background: transparent;
 }
 
 .composer-shell.is-multiline .composer-actions {
@@ -539,9 +531,6 @@ onBeforeUnmount(() => {
 }
 
 .composer-btn {
-  background: rgba(0, 0, 0, 0.04);
-  border: none;
-  color: inherit;
   transition:
     transform 0.15s ease,
     background 0.2s ease;
@@ -551,30 +540,17 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
-.composer-btn.primary {
-  background: var(--el-color-primary);
-  color: #fff;
-}
-
 .composer-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .composer-btn-knowledge-base-active {
-  background: var(--el-color-primary) !important;
-  color: #fff !important;
-  border-color: var(--el-color-primary) !important;
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 .composer-btn-knowledge-base-active:hover:not(:disabled) {
-  background: var(--el-color-primary-light-3) !important;
-  border-color: var(--el-color-primary-light-3) !important;
-}
-
-.stop-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: hsl(var(--primary) / 0.9) !important;
 }
 </style>

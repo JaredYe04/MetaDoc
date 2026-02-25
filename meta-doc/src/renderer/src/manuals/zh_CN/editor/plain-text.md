@@ -8,6 +8,14 @@
 
 ## Monaco编辑器功能
 
+<LaTeXEditorDemo mode="demo" />
+
+<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
 ### 编辑器介绍
 
 纯文本编辑器使用Monaco Editor，具有以下特点：
@@ -40,6 +48,7 @@ graph LR
 纯文本编辑器支持以下文件格式：
 
 **代码文件**：
+
 - JavaScript/TypeScript: `.js`, `.jsx`, `.ts`, `.tsx`
 - Python: `.py`
 - Java: `.java`
@@ -52,6 +61,7 @@ graph LR
 - 其他: `.php`, `.rb`, `.scala`, `.dart`, `.lua`等
 
 **配置文件**：
+
 - JSON: `.json`
 - YAML: `.yaml`, `.yml`
 - XML: `.xml`
@@ -60,6 +70,7 @@ graph LR
 - SQL: `.sql`
 
 **脚本文件**：
+
 - Shell: `.sh`, `.bash`, `.zsh`
 - PowerShell: `.ps1`
 - 其他: `.vim`, `.diff`, `.patch`, `.log`
@@ -114,6 +125,16 @@ graph LR
 3. 切换开关启用或禁用行号
 
 行号设置会影响所有Monaco编辑器（纯文本编辑器、LaTeX编辑器等）。
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
+
+<ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
+
+<MainTabs mode="demo" />
+
+<AISuggestionGhost mode="demo" />
+
+<LaTeXEditorDemo mode="demo" />
 
 ## 文件预览和统计信息
 
@@ -187,17 +208,20 @@ AI补全的设置与Markdown编辑器相同：
 编辑器支持强大的查找替换功能，帮助您在代码中快速定位和修改内容：
 
 **基本操作**：
+
 - **查找**：`Ctrl+F` 打开查找对话框，输入要查找的文本
 - **替换**：`Ctrl+H` 打开查找替换对话框，输入查找内容和替换内容
 - **逐个替换**：逐个确认后替换
 - **全部替换**：一次性替换所有匹配项
 
 **高级选项**：
+
 - **正则表达式**：使用正则表达式进行复杂模式匹配
 - **大小写匹配**：区分大小写查找
 - **全字匹配**：只匹配完整的单词
 
 **使用场景**：
+
 - 批量修改变量名
 - 查找特定函数调用
 - 替换代码中的字符串
@@ -239,6 +263,10 @@ flowchart LR
 多光标编辑可以同时修改多个位置，提高编辑效率。
 
 ## 使用技巧
+
+<LaTeXEditorDemo mode="demo" />
+
+<ConsoleTerminal mode="demo" consoleKey="plaintext" :history='[]' />
 
 ### 高效编辑
 

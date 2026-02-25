@@ -27,7 +27,7 @@
 
     <!-- 内容区域：可滚动，可拖动右下角改变大小 -->
     <div class="detailed-outline-node__content-wrapper">
-      <el-scrollbar class="detailed-outline-node__scrollbar">
+      <ScrollArea class="h-full w-full">
         <div class="detailed-outline-node__content">
           <!-- AI 执行中：直接绑定流式内容 ref，便于响应流式更新 -->
           <template v-if="isGenerating">
@@ -51,7 +51,7 @@
           <!-- 正常显示：当前节点正文 -->
           <VditorPreview v-else :markdown="node.text || ''" :docPath="docPath" />
         </div>
-      </el-scrollbar>
+      </ScrollArea>
     </div>
 
     <!-- 右下角拖拽：仅 mousedown 开始，mouseup 结束，用 capture 确保收到事件 -->
@@ -65,44 +65,38 @@
     <div class="detailed-outline-node__actions">
       <!-- AI执行中 -->
       <template v-if="isGenerating">
-        <el-button type="danger" size="small" circle @click="handleCancel" :loading="false">
+        <Button type="danger" size="small" circle @click="handleCancel">
           <el-icon>
             <CloseBold />
           </el-icon>
-        </el-button>
+        </Button>
       </template>
 
       <!-- AI执行完成，等待确认 -->
       <template v-else-if="pendingAccept">
-        <el-button type="success" size="small" circle @click="handleAccept">
+        <Button type="success" size="small" circle @click="handleAccept">
           <el-icon>
             <Check />
           </el-icon>
-        </el-button>
-        <el-button type="danger" size="small" circle @click="handleReject">
+        </Button>
+        <Button type="danger" size="small" circle @click="handleReject">
           <el-icon>
             <Close />
           </el-icon>
-        </el-button>
+        </Button>
       </template>
 
       <!-- 正常状态：显示操作按钮 -->
       <template v-else>
-        <el-tooltip :content="$t('outline.expandContent')" placement="top">
-          <el-button
-            type="primary"
-            size="small"
-            circle
-            @click="handleExpand"
-            :disabled="isGenerating"
-          >
+        <Tooltip :content="$t('outline.expandContent')" placement="top">
+          <Button type="primary" size="small" circle @click="handleExpand" :disabled="isGenerating">
             <el-icon>
               <EditPen />
             </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.abridge')" placement="top">
-          <el-button
+          </Button>
+        </Tooltip>
+        <Tooltip :content="$t('outline.abridge')" placement="top">
+          <Button
             type="warning"
             size="small"
             circle
@@ -112,15 +106,15 @@
             <el-icon>
               <Minus />
             </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('outline.polish')" placement="top">
-          <el-button type="info" size="small" circle @click="handlePolish" :disabled="isGenerating">
+          </Button>
+        </Tooltip>
+        <Tooltip :content="$t('outline.polish')" placement="top">
+          <Button type="info" size="small" circle @click="handlePolish" :disabled="isGenerating">
             <el-icon>
               <Star />
             </el-icon>
-          </el-button>
-        </el-tooltip>
+          </Button>
+        </Tooltip>
       </template>
     </div>
   </div>
@@ -129,8 +123,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElButton, ElTooltip, ElIcon, ElScrollbar } from 'element-plus'
+import { ElIcon } from 'element-plus'
+import { Tooltip } from '@renderer/components/ui/tooltip'
 import { CloseBold, Check, Close, EditPen, Minus, Star, ArrowUp } from '@element-plus/icons-vue'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Button } from '@renderer/components/ui/button'
 import type { DocumentOutlineNode } from '../../../types'
 import { themeState } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'
@@ -481,20 +478,6 @@ defineExpose({
   border: 1px solid rgba(145, 145, 145, 0.3);
   display: flex;
   flex-direction: column;
-}
-
-.detailed-outline-node__scrollbar {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-
-.detailed-outline-node__scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.detailed-outline-node__scrollbar :deep(.el-scrollbar__view) {
-  min-height: 100%;
 }
 
 .detailed-outline-node__content {

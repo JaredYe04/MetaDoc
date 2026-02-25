@@ -14,6 +14,7 @@
 用户手册支持在 Markdown 中**直接嵌入项目内真实 Vue 组件**，使用 `mode="demo"` 在沙箱中展示。**原则：文档中提到了哪些界面控件，就展示哪些组件**，让用户边看文档边对照真实 UI 操作。
 
 **技术实现状态（2026-02-20）**：
+
 - ✅ 占位符预处理：`manuals/demo-mode.ts` 将组件标签替换为占位符 div
 - ✅ 后渲染注入：Vditor 渲染完成后，`ManualContent.vue` 将占位符替换为真实组件
 - ✅ 样式适配：组件容器自适应大小并居中显示，样式在手册层统一处理
@@ -99,6 +100,7 @@
 **MenuItemsDemo** - 顶部菜单项展示组件
 
 基于代码实现 (`components/manual/MenuItemsDemo.vue`)：
+
 - **Props**：
   - `items`: `Array<{id: string, items?: string[]}>` - 菜单项配置数组
     - `id`: 菜单标识，支持 `'file'`, `'ai-assistant'`, `'settings'`
@@ -107,6 +109,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open", "save"]}]' />
 <MenuItemsDemo mode="demo" :items='[{"id": "ai-assistant", "items": ["ai-chat", "proofread"]}]' />
@@ -116,12 +119,14 @@
 **ViewMenuItemsDemo** - 侧边栏视图菜单项展示组件
 
 基于代码实现 (`components/manual/ViewMenuItemsDemo.vue`)：
+
 - **Props**：
   - `items`: `string[]` - 视图项数组，支持 `'home'`, `'editor'`, `'outline'`, `'agent'`
   - `collapsed`: `boolean` - 是否折叠，默认为 `false`
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 <ViewMenuItemsDemo mode="demo" :items='["home", "agent"]' />
@@ -135,6 +140,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <MainTabs mode="demo" />
 ```
@@ -144,10 +150,12 @@
 **QuickStartPanel** - 快速开始格式选择面板
 
 基于代码实现 (`components/home/QuickStartPanel.vue`)：
+
 - **Props**：
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <QuickStartPanel mode="demo" />
 ```
@@ -155,10 +163,12 @@
 **QuickStartMarkdown** - Markdown快速开始向导
 
 基于代码实现 (`components/home/QuickStartMarkdown.vue`)：
+
 - **Props**：
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <QuickStartMarkdown mode="demo" />
 ```
@@ -166,10 +176,12 @@
 **QuickStartLatex** - LaTeX快速开始向导
 
 基于代码实现 (`components/home/QuickStartLatex.vue`)：
+
 - **Props**：
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <QuickStartLatex mode="demo" />
 ```
@@ -184,6 +196,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />
 ```
@@ -198,6 +211,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <TitleMenu mode="demo" title="示例标题" :position='{"top": 100, "left": 200}' path="1" :tree='{}' />
 ```
@@ -214,6 +228,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <SectionOptimizer mode="demo" title="示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />
 ```
@@ -227,6 +242,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <PdfPreviewPanel mode="demo" pdfUrl="" />
 ```
@@ -239,6 +255,7 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译完成", "type": "out"}]' />
 ```
@@ -253,11 +270,148 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <MetaInfoPanel mode="demo" :meta='{"title": "示例", "author": "作者", "description": "描述", "keywords": ["关键词1"]}' :outlineJson='""' />
 ```
 
-##### 7. 其他组件
+##### 7. AI 助手组件（真实视图组件）
+
+**AIChat** - AI 对话界面
+
+基于代码实现 (`views/AIChat.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示 AI 对话界面，包括会话列表、消息气泡、输入框和引用管理
+
+**使用示例**：
+
+```markdown
+<AIChat mode="demo" />
+```
+
+**OcrWindow** - OCR 文字识别界面
+
+基于代码实现 (`views/OcrWindow.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示 OCR 识别窗口，包括图片上传、预处理参数和识别结果
+
+**使用示例**：
+
+```markdown
+<OcrWindow mode="demo" />
+```
+
+**GraphWindow** - 智能绘图助手界面
+
+基于代码实现 (`views/GraphWindow.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示绘图助手界面，支持图表生成和代码预览
+
+**使用示例**：
+
+```markdown
+<GraphWindow mode="demo" />
+```
+
+##### 8. 大纲和知识库组件（真实视图组件）
+
+**Outline** - 大纲视图
+
+基于代码实现 (`views/Outline.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示文档大纲树形结构，支持层级展示和节点操作
+
+**使用示例**：
+
+```markdown
+<Outline mode="demo" />
+```
+
+**KnowledgeBase** - 知识库管理界面
+
+基于代码实现 (`views/KnowledgeBase.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示知识库管理界面，包括文件列表和统计信息
+
+**使用示例**：
+
+```markdown
+<KnowledgeBase mode="demo" />
+```
+
+##### 10. AI 校对组件
+
+**ProofreadViewDemo** - AI 校对界面
+
+**ProofreadView** - AI 校对界面
+
+基于代码实现 (`views/ProofreadView.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示 AI 校对界面，包括原文输入、校对结果和错误统计
+
+**使用示例**：
+
+```markdown
+<ProofreadView mode="demo" />
+```
+
+##### 10. 其他 AI 工具组件（真实视图组件）
+
+**AigcDetectionWindow** - AIGC 检测界面
+
+基于代码实现 (`views/AigcDetectionWindow.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示 AIGC 检测界面
+
+**使用示例**：
+
+```markdown
+<AigcDetectionWindow mode="demo" />
+```
+
+**DataAnalysisWindow** - 数据分析界面
+
+基于代码实现 (`views/DataAnalysisWindow.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示数据分析界面
+
+**使用示例**：
+
+```markdown
+<DataAnalysisWindow mode="demo" />
+```
+
+**FormulaRecognition** - 公式识别界面
+
+基于代码实现 (`views/FomulaRecognition.vue`)，支持 `mode="demo"`：
+
+- **Props**：
+  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'normal'`
+- **功能**：展示手写公式识别界面
+
+**使用示例**：
+
+```markdown
+<FormulaRecognition mode="demo" />
+```
+
+##### 11. 其他组件
 
 **ResizableDivider** - 可调整大小的分隔条
 
@@ -265,11 +419,273 @@
   - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
 
 **使用示例**：
+
 ```markdown
 <ResizableDivider mode="demo" />
 ```
 
 **注意**：如需使用其他组件，需要先修改组件代码支持 `mode="demo"`，然后在 `demo-registry-components.ts` 中注册。
+
+---
+
+### 为组件添加 Demo 模式支持
+
+#### 添加 Demo 模式的最佳实践
+
+为组件添加 `mode="demo"` 支持时，遵循以下范式：
+
+**1. 组件改造模式**
+
+在组件的 `<script setup>` 中添加：
+
+```typescript
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
+// Demo mode: use local reactive settings; Normal mode: use global settings
+const demoSettings = reactive({
+  // ... mock settings data
+})
+const settings = isDemo.value ? demoSettings : globalSettings
+```
+
+**2. Mock 数据加载模式**
+
+在 `onMounted` 中添加 demo 数据加载：
+
+```typescript
+// Demo数据加载
+const loadDemoData = () => {
+  // 设置 mock 数据
+  data.value = [...mockData]
+  config.value = { ...mockConfig }
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return // 跳过真实 API 调用
+  }
+
+  // 正常的初始化逻辑...
+  await fetchRealData()
+})
+```
+
+**3. 副作用隔离原则**
+
+所有副作用（API 调用、事件监听、状态修改）必须包裹在 `!isDemo.value` 条件下：
+
+```typescript
+// ✅ 正确：在 demo 模式下跳过副作用
+const handleAction = () => {
+  if (isDemo.value) {
+    // Demo 模式下只更新本地状态
+    localState.value = newValue
+    return
+  }
+
+  // 真实模式下执行副作用
+  await apiCall()
+  eventBus.emit('real-event')
+}
+
+// ✅ 正确：监听器的条件注册
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
+  // 只在真实模式下注册监听器
+  eventBus.on('event', handler)
+  messageBridge.on('channel', listener)
+})
+
+onBeforeUnmount(() => {
+  if (isDemo.value) return
+
+  // 只在真实模式下清理监听器
+  eventBus.off('event', handler)
+  messageBridge.removeListener('channel', listener)
+})
+```
+
+**4. 全局状态隔离**
+
+对于使用全局状态（如 Pinia stores）的组件：
+
+```typescript
+// ✅ 正确：Demo 模式使用本地状态，不修改全局状态
+const localSettings = reactive({ ...mockSettings })
+
+const saveSetting = (key: string, value: unknown) => {
+  if (isDemo.value) {
+    // Demo 模式只更新本地状态
+    localSettings[key] = value
+    return
+  }
+
+  // 真实模式更新全局设置
+  setSetting(key, value)
+}
+```
+
+#### Setting 组件 Demo 模式示例
+
+Setting 系列组件的完整改造示例：
+
+```vue
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
+import { settings as globalSettings, setSetting } from '../../utils/settings.js'
+
+// ==================== Demo Mode Support ====================
+
+const props = defineProps<{
+  mode?: string
+}>()
+const isDemo = computed(() => props.mode === 'demo')
+
+const { t } = useI18n()
+
+// Demo mode: use local reactive settings; Normal mode: use global settings
+const demoSettings = reactive({
+  setting1: 'value1',
+  setting2: true,
+  setting3: 42
+})
+const settings = isDemo.value ? demoSettings : globalSettings
+
+// Demo数据加载
+const loadDemoData = () => {
+  demoSettings.setting1 = 'mock-value1'
+  demoSettings.setting2 = false
+  demoSettings.setting3 = 100
+}
+
+onMounted(() => {
+  if (isDemo.value) {
+    loadDemoData()
+    return
+  }
+
+  // 真实的初始化逻辑...
+})
+</script>
+```
+
+#### 已完成的 Setting 组件
+
+以下 Setting 组件已完成 Demo 模式改造：
+
+- ✅ `SettingLlmSection` - LLM 配置
+- ✅ `SettingThemeSection` - 主题配置
+- ✅ `SettingKnowledgeBaseSection` - 知识库设置
+- ✅ `SettingBasicSection` - 基础设置
+- ✅ `SettingImageSection` - 图片上传设置
+- ✅ `SettingDebugSection` - 调试工具
+- ✅ `SettingAboutSection` - 关于信息
+- ✅ `SettingLoggerSection` - 日志配置
+
+---
+
+## Demo 覆盖率要求 (Linting 强制执行)
+
+### ⚠️ 强制执行政策
+
+**本文档定义的覆盖率要求是强制性政策。**
+
+详细政策说明请参阅 **[DEMO_COVERAGE_POLICY.md](./DEMO_COVERAGE_POLICY.md)**
+
+**核心要求**：
+
+- ✅ 所有文档必须通过 `npm run lint:demos` 检查
+- ❌ **禁止**通过修改 linting 脚本绕过检查
+- ❌ **禁止**使用 `--no-verify` 提交未达标文档
+- ❌ **禁止**将规则从 error 降级为 warn
+
+### 覆盖率计算公式
+
+每个用户手册文档必须满足最低 demo 组件数量要求：
+
+```
+最低 Demo 数量 = max(ceil((H1数量 + H2数量 + H3数量) / 3), 2)
+```
+
+**示例计算**：
+
+- 文档有 6 个 H2 + 3 个 H3 = 9 个标题 → 需要 3 个 demos
+- 文档有 2 个 H2 = 2 个标题 → ceil(2/3)=1 → 但最小为 2 → 需要 2 个 demos
+
+### Linting 检查
+
+运行命令：
+
+```bash
+npm run lint:demos
+```
+
+输出示例：
+
+```
+📊 Demo Coverage Report
+========================
+PASS: settings/basic.md (4/4)
+FAIL: ai/completion.md (0/3 required)
+  Missing: 3 demos
+  Suggested components: CompletionSettingsPanel, AICompletionDemo
+```
+
+**通过标准**：
+
+- 所有文档 PASS
+- 0 个文档 FAIL
+- Exit code 必须为 0
+
+### 自动化要求
+
+1. 每个文档编写时必须同时添加对应 demo
+2. CI/CD 会检查 demo 覆盖率
+3. **未达标文档无法合并到主分支**
+
+### 豁免情况 (严格限制)
+
+仅在以下情况可豁免：
+
+- 纯概念介绍文档（无任何 UI 元素描述）
+- 在文档**顶部**添加 `<!-- demo-exempt: 原因说明 -->`
+
+**不允许的豁免理由**：
+
+- ❌ "暂时没时间加"
+- ❌ "这个组件太难"
+- ❌ "以后再加"
+- ❌ 任何模糊的理由
+
+### 为缺失 Demo 的文档补充
+
+当 linting 报告某文档缺少 demos 时：
+
+1. 查看该文档提到的 UI 功能
+2. 选择对应组件（或创建新组件支持 `mode="demo"`）
+3. 添加 `<ComponentName mode="demo" />` 到文档
+4. 确保组件已在 `demo-registry-components.ts` 注册
+5. 重新运行 linting 验证
+
+### 违规后果
+
+| 违规情况       | 后果          |
+| -------------- | ------------- |
+| Demo 数量不足  | PR 被拒绝合并 |
+| 绕过 linting   | 代码回滚      |
+| 虚假 demo 组件 | 重构要求      |
+
+---
 
 ### 示例（正确）
 
@@ -321,7 +737,7 @@
 
 **示例**：
 
-```markdown
+````markdown
 ## 打开设置
 
 打开设置的流程如下：
@@ -331,6 +747,7 @@ graph LR
     A[点击菜单] --> B[选择设置]
     B --> C[打开设置页面]
 ```
+````
 
 您可以通过顶部菜单栏访问设置：
 
@@ -375,8 +792,8 @@ manuals/
 ### Markdown格式要求
 
 1. **使用标准Markdown语法**
-2. **代码块必须指定语言**：```` ```typescript ````
-3. **使用相对路径引用图片**：`![描述](./images/image.png)`
+2. **代码块必须指定语言**：` ```typescript `
+3. **使用相对路径引用图片**：图片应放在文档同级目录的 `images` 文件夹中，例如：`![描述](./images/screenshot.png)`（确保引用的图片文件实际存在）
 4. **使用标题层级**：一级标题（#）作为文档标题，二级标题（##）作为主要章节
 
 ### 文档头部元信息
@@ -405,6 +822,7 @@ estimatedTime: 10
 [[文档ID|显示文本]]
 
 例如：
+
 - [[markdown.basics|Markdown语法教程]]
 - [[latex.editor|LaTeX编辑器]]
 - [[core.file-operations|文件操作]]
@@ -547,10 +965,23 @@ estimatedTime: 10
   - 完善内容结构和功能说明
 
 **当前进度（2026-02-21更新）**：
+
 - ✅ **已完善文档**：64篇（包含图表和Demo组件）
 - ✅ **新增组件**：MenuItemsDemo、ViewMenuItemsDemo、SearchReplaceMenu、SectionOptimizer、TitleMenu、PdfPreviewPanel、ConsoleTerminal、MetaInfoPanel
 - ✅ **新增文档**：agent/references.md、agent/engine.md
 - ✅ **所有文档已按新规范完善完成**
+
+#### 📊 Demo 覆盖率统计
+
+| 指标              | 数值 | 状态 |
+| ----------------- | ---- | ---- |
+| 文档总数          | 64   | -    |
+| 达标文档          | 64   | ✅   |
+| Demo 组件总数     | 186  | -    |
+| 平均 Demo 数/文档 | 2.9  | -    |
+| 覆盖率检查        | 100% | ✅   |
+
+运行 `npm run lint:demos` 可查看详细报告。
 
 #### 📋 待完成
 
@@ -585,52 +1016,53 @@ estimatedTime: 10
 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构统计：**
 
-| 类别 | 总数 | 已完成 | 进度 |
-|------|------|--------|------|
-| 一、快速开始 | 1 | 1 | 100% ✅ |
-| 二、编辑器 | 12 | 12 | 100% ✅ |
-| &nbsp;&nbsp;2.1 Markdown编辑器 | 4 | 4 | 100% ✅ |
-| &nbsp;&nbsp;2.2 LaTeX编辑器 | 5 | 5 | 100% ✅ |
-| &nbsp;&nbsp;2.3 纯文本编辑器 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;2.4 编辑器通用功能 | 2 | 2 | 100% ✅ |
-| 三、文件操作 | 3 | 3 | 100% ✅ |
-| 四、AI功能 | 11 | 11 | 100% ✅ |
-| &nbsp;&nbsp;4.1 AI对话 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.2 AI校对 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.3 AI补全 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.4 AI助手功能 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.5 Agent工具 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;4.6 Agent框架 | 5 | 5 | 100% ✅ |
-| 五、大纲视图 | 2 | 2 | 100% ✅ |
-| 六、系统设置 | 12 | 12 | 100% ✅ |
-| &nbsp;&nbsp;6.1 基础设置 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;6.2 LLM设置 | 3 | 3 | 100% ✅ |
-| &nbsp;&nbsp;6.3 知识库设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.4 主题设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.5 图片设置 | 2 | 2 | 100% ✅ |
-| &nbsp;&nbsp;6.6 日志设置 | 1 | 1 | 100% ✅ |
-| &nbsp;&nbsp;6.7 关于 | 1 | 1 | 100% ✅ |
-| 七、知识库 | 3 | 3 | 100% ✅ |
-| 八、工作目录 | 1 | 1 | 100% ✅ |
-| 九、快捷键 | 2 | 2 | 100% ✅ |
-| 十、视图切换 | 1 | 1 | 100% ✅ |
-| 十一、多标签页管理 | 1 | 1 | 100% ✅ |
-| 十二、语言设置 | 1 | 1 | 100% ✅ |
-| 十三、用户功能 | 2 | 2 | 100% ✅ |
-| 十四、统计和监控 | 2 | 2 | 100% ✅ |
-| 十五、段落优化 | 1 | 1 | 100% ✅ |
-| 十六、PDF预览 | 1 | 1 | 100% ✅ |
-| 十七、控制台输出 | 1 | 1 | 100% ✅ |
-| 十八、菜单配置 | 1 | 1 | 100% ✅ |
-| 十九、调试工具 | 1 | 1 | 100% ✅ |
-| 二十、多窗口管理 | 1 | 1 | 100% ✅ |
-| 二十一、文档格式 | 1 | 1 | 100% ✅ |
-| 二十二、AI任务队列 | 1 | 1 | 100% ✅ |
-| 二十三、主页功能 | 1 | 1 | 100% ✅ |
-| 二十四、图表功能 | 4 | 4 | 100% ✅ |
-| **总计** | **60+** | **60** | **100%** ✅ |
+| 类别                           | 总数    | 已完成 | 进度        |
+| ------------------------------ | ------- | ------ | ----------- |
+| 一、快速开始                   | 1       | 1      | 100% ✅     |
+| 二、编辑器                     | 12      | 12     | 100% ✅     |
+| &nbsp;&nbsp;2.1 Markdown编辑器 | 4       | 4      | 100% ✅     |
+| &nbsp;&nbsp;2.2 LaTeX编辑器    | 5       | 5      | 100% ✅     |
+| &nbsp;&nbsp;2.3 纯文本编辑器   | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;2.4 编辑器通用功能 | 2       | 2      | 100% ✅     |
+| 三、文件操作                   | 3       | 3      | 100% ✅     |
+| 四、AI功能                     | 11      | 11     | 100% ✅     |
+| &nbsp;&nbsp;4.1 AI对话         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.2 AI校对         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.3 AI补全         | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.4 AI助手功能     | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.5 Agent工具      | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;4.6 Agent框架      | 5       | 5      | 100% ✅     |
+| 五、大纲视图                   | 2       | 2      | 100% ✅     |
+| 六、系统设置                   | 12      | 12     | 100% ✅     |
+| &nbsp;&nbsp;6.1 基础设置       | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;6.2 LLM设置        | 3       | 3      | 100% ✅     |
+| &nbsp;&nbsp;6.3 知识库设置     | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.4 主题设置       | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.5 图片设置       | 2       | 2      | 100% ✅     |
+| &nbsp;&nbsp;6.6 日志设置       | 1       | 1      | 100% ✅     |
+| &nbsp;&nbsp;6.7 关于           | 1       | 1      | 100% ✅     |
+| 七、知识库                     | 3       | 3      | 100% ✅     |
+| 八、工作目录                   | 1       | 1      | 100% ✅     |
+| 九、快捷键                     | 2       | 2      | 100% ✅     |
+| 十、视图切换                   | 1       | 1      | 100% ✅     |
+| 十一、多标签页管理             | 1       | 1      | 100% ✅     |
+| 十二、语言设置                 | 1       | 1      | 100% ✅     |
+| 十三、用户功能                 | 2       | 2      | 100% ✅     |
+| 十四、统计和监控               | 2       | 2      | 100% ✅     |
+| 十五、段落优化                 | 1       | 1      | 100% ✅     |
+| 十六、PDF预览                  | 1       | 1      | 100% ✅     |
+| 十七、控制台输出               | 1       | 1      | 100% ✅     |
+| 十八、菜单配置                 | 1       | 1      | 100% ✅     |
+| 十九、调试工具                 | 1       | 1      | 100% ✅     |
+| 二十、多窗口管理               | 1       | 1      | 100% ✅     |
+| 二十一、文档格式               | 1       | 1      | 100% ✅     |
+| 二十二、AI任务队列             | 1       | 1      | 100% ✅     |
+| 二十三、主页功能               | 1       | 1      | 100% ✅     |
+| 二十四、图表功能               | 4       | 4      | 100% ✅     |
+| **总计**                       | **60+** | **60** | **100%** ✅ |
 
 **已完成文档**（按新规范完善，包含图表和Demo组件）：
+
 - ✅ `quick-start/guide.md` - 快速开始指南
 - ✅ `core/file-operations.md` - 文件操作
 - ✅ `core/editor-basics.md` - 编辑器基础操作
@@ -697,6 +1129,7 @@ estimatedTime: 10
 **所有文档已完成编写并完善！** ✅
 
 **重要提醒**：
+
 - 所有文档必须严格按照 `USER_MANUAL_INDEX.md` 的结构和内容要求编写
 - 不得随意更改或简化文档结构
 - 每个文档必须包含索引中列出的所有功能点
@@ -764,7 +1197,7 @@ estimatedTime: 10
 
 - 使用清晰的截图说明界面操作
 - **图表使用**：可以适度使用PlantUML和Mermaid图表辅助说明
-  - 使用对应的代码块格式：```` ```plantuml ```` 或 ```` ```mermaid ````
+  - 使用对应的代码块格式：` ```plantuml ` 或 ` ```mermaid `
   - 图表要求：
     - 使用正交连接线（orthogonal lines）
     - 保持极简风格：黑白灰色调，Tailwind风格
@@ -793,13 +1226,15 @@ graph LR
 - 包含必要的注释
 - 说明预期结果
 
-```markdown
+````markdown
 ```typescript
 // 示例代码
-const example = "Hello, World!"
+const example = 'Hello, World!'
 console.log(example)
 ```
-```
+````
+
+````
 
 ### 4. 常见问题
 
@@ -813,7 +1248,7 @@ A: 可以通过...来解决。
 
 ### Q: 为什么...？
 A: 这是因为...
-```
+````
 
 ---
 
@@ -828,6 +1263,8 @@ A: 这是因为...
 - [ ] 已添加相关文档链接
 - [ ] 已在 `index.json` 中注册
 - [ ] **已更新 `IMPLEMENTATION_SUMMARY.md` 中的进度统计**
+- [ ] **Demo 覆盖率满足要求 (运行 `npm run lint:demos`)**
+- [ ] **已阅读并遵守 [DEMO_COVERAGE_POLICY.md](./DEMO_COVERAGE_POLICY.md)**
 
 ---
 

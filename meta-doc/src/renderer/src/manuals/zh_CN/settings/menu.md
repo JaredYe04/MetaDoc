@@ -78,6 +78,8 @@ graph TB
 3. **切换可见性**：切换菜单项的可见性开关
 4. **保存配置**：点击"保存"按钮保存配置
 
+<DialogDemo mode="demo" dialogType="menu-config" />
+
 ### 显示菜单项
 
 可以显示已隐藏的菜单项：
@@ -132,6 +134,8 @@ graph TB
 3. **自动调整**：系统会自动调整位置属性
 4. **保存配置**：点击"保存"按钮保存配置
 
+<LeftMenu mode="demo" />
+
 ### 位置分割线
 
 顶部和底部之间会有分割线：
@@ -167,8 +171,11 @@ graph TB
 4. **恢复默认**：配置会恢复到默认状态
 
 **注意事项**：
+
 - 重置操作不可恢复
 - 重置后核心菜单项仍然会保持显示
+
+<DialogDemo mode="demo" dialogType="confirm-reset" />
 
 ## 配置持久化
 
@@ -208,3 +215,15 @@ graph TB
 
 - [[settings.basic|基础设置]]
 - [[core.multi-tab|多标签页管理]]
+
+<MainTabs mode="demo" />
+
+<LeftMenu mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+<DialogDemo mode="demo" dialogType="menu-config" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["new", "open"]}]' />
+
+<DialogDemo mode="demo" dialogType="confirm-reset" />

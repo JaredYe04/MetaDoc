@@ -3,10 +3,11 @@
     <div class="manager-header">
       <h2>{{ t('agent.manage.agentConfig.title') }}</h2>
       <div>
-        <el-button @click="handleImport">{{ t('agent.manage.import') }}</el-button>
-        <el-button type="primary" :icon="Plus" @click="handleCreate">
+        <Button @click="handleImport">{{ t('agent.manage.import') }}</Button>
+        <Button type="primary" @click="handleCreate">
+          <Plus class="h-4 w-4 mr-1" />
           {{ t('agent.manage.agentConfig.create') }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -43,105 +44,122 @@
     />
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="
-        editingConfig
-          ? editingConfig.id === 'default-agent-config'
-            ? t('agent.manage.agentConfig.view')
-            : t('agent.manage.agentConfig.edit')
-          : t('agent.manage.agentConfig.create')
-      "
-      width="700px"
-      :style="dialogStyle"
-    >
-      <el-form :model="formData" label-width="140px">
-        <el-form-item :label="t('agent.manage.agentConfig.name')" required>
-          <el-input
-            v-model="formData.name"
-            :disabled="editingConfig?.id === 'default-agent-config'"
-          />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.description')">
-          <el-input
-            v-model="formData.description"
-            type="textarea"
-            :rows="3"
-            :disabled="editingConfig?.id === 'default-agent-config'"
-          />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.toolCollections')" required>
-          <el-select
-            v-model="formData.toolCollectionIds"
-            multiple
-            filterable
-            style="width: 100%"
-            :placeholder="t('agent.manage.agentConfig.selectToolCollections')"
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent class="max-w-[700px]" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle>
+            {{
+              editingConfig
+                ? editingConfig.id === 'default-agent-config'
+                  ? t('agent.manage.agentConfig.view')
+                  : t('agent.manage.agentConfig.edit')
+                : t('agent.manage.agentConfig.create')
+            }}
+          </DialogTitle>
+        </DialogHeader>
+        <Form class="space-y-4">
+          <FormField :label="t('agent.manage.agentConfig.name')" name="name" required>
+            <Input
+              v-model="formData.name"
+              :disabled="editingConfig?.id === 'default-agent-config'"
+              class="w-full"
+            />
+          </FormField>
+          <FormField :label="t('agent.manage.agentConfig.description')" name="description">
+            <Textarea
+              v-model="formData.description"
+              :rows="3"
+              :disabled="editingConfig?.id === 'default-agent-config'"
+              class="w-full"
+            />
+          </FormField>
+          <FormField
+            :label="t('agent.manage.agentConfig.toolCollections')"
+            name="toolCollections"
+            required
+          >
+            <Select
+              v-model="formData.toolCollectionIds"
+              multiple
+              :disabled="editingConfig?.id === 'default-agent-config'"
+            >
+              <SelectTrigger style="width: 100%">
+                <SelectValue :placeholder="t('agent.manage.agentConfig.selectToolCollections')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="collection in availableCollections"
+                  :key="collection.id"
+                  :value="collection.id"
+                >
+                  {{ getLocalizedText(collection.name) }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div class="form-hint">
+              {{ t('agent.manage.agentConfig.toolCollectionHint') }}
+            </div>
+          </FormField>
+          <FormField :label="t('agent.manage.agentConfig.maxToolCalls')" name="maxToolCalls">
+            <div style="display: flex; align-items: center; gap: 12px">
+              <NumberField
+                v-model="formData.maxToolCalls"
+                :min="1"
+                :max="100"
+                :disabled="formData.unlimitedToolCalls"
+                style="width: 180px"
+              >
+                <NumberFieldContent>
+                  <NumberFieldDecrement />
+                  <NumberFieldInput />
+                  <NumberFieldIncrement />
+                </NumberFieldContent>
+              </NumberField>
+              <Checkbox v-model:checked="formData.unlimitedToolCalls">
+                {{ t('agent.manage.agentConfig.unlimited') }}
+              </Checkbox>
+            </div>
+          </FormField>
+          <FormField :label="t('agent.manage.agentConfig.systemPrompt')" name="systemPrompt">
+            <Textarea
+              v-model="formData.systemPrompt"
+              :rows="8"
+              :placeholder="t('agent.manage.agentConfig.systemPromptPlaceholder')"
+              :disabled="editingConfig?.id === 'default-agent-config'"
+              class="w-full"
+            />
+            <div class="form-hint">
+              {{ t('agent.manage.agentConfig.systemPromptHint') }}
+            </div>
+          </FormField>
+          <FormField :label="t('agent.manage.agentConfig.injectTimestamp')" name="injectTimestamp">
+            <Checkbox
+              v-model:checked="formData.injectTimestamp"
+              :disabled="editingConfig?.id === 'default-agent-config'"
+            >
+              {{ t('agent.manage.agentConfig.injectTimestampLabel') }}
+            </Checkbox>
+            <div class="form-hint">
+              {{ t('agent.manage.agentConfig.injectTimestampHint') }}
+            </div>
+          </FormField>
+        </Form>
+        <DialogFooter>
+          <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
+          <Button
+            type="primary"
+            @click="handleSave"
             :disabled="editingConfig?.id === 'default-agent-config'"
           >
-            <el-option
-              v-for="collection in availableCollections"
-              :key="collection.id"
-              :label="getLocalizedText(collection.name)"
-              :value="collection.id"
-            />
-          </el-select>
-          <div class="form-hint">
-            {{ t('agent.manage.agentConfig.toolCollectionHint') }}
-          </div>
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.maxToolCalls')">
-          <div style="display: flex; align-items: center; gap: 12px">
-            <el-input-number
-              v-model="formData.maxToolCalls"
-              :min="1"
-              :max="100"
-              :disabled="formData.unlimitedToolCalls"
-            />
-            <el-checkbox v-model="formData.unlimitedToolCalls">
-              {{ t('agent.manage.agentConfig.unlimited') }}
-            </el-checkbox>
-          </div>
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.systemPrompt')">
-          <el-input
-            v-model="formData.systemPrompt"
-            type="textarea"
-            :rows="8"
-            :placeholder="t('agent.manage.agentConfig.systemPromptPlaceholder')"
-            :disabled="editingConfig?.id === 'default-agent-config'"
-          />
-          <div class="form-hint">
-            {{ t('agent.manage.agentConfig.systemPromptHint') }}
-          </div>
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.injectTimestamp')">
-          <el-checkbox
-            v-model="formData.injectTimestamp"
-            :disabled="editingConfig?.id === 'default-agent-config'"
-          >
-            {{ t('agent.manage.agentConfig.injectTimestampLabel') }}
-          </el-checkbox>
-          <div class="form-hint">
-            {{ t('agent.manage.agentConfig.injectTimestampHint') }}
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button
-          type="primary"
-          @click="handleSave"
-          :disabled="editingConfig?.id === 'default-agent-config'"
-        >
-          {{
-            editingConfig?.id === 'default-agent-config'
-              ? t('agent.manage.agentConfig.viewOnly')
-              : t('common.save')
-          }}
-        </el-button>
-      </template>
-    </el-dialog>
+            {{
+              editingConfig?.id === 'default-agent-config'
+                ? t('agent.manage.agentConfig.viewOnly')
+                : t('common.save')
+            }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -154,8 +172,34 @@ import { themeState } from '../../../utils/themes'
 import { agentConfigManager, toolCollectionManager } from '../../../utils/agent-framework'
 import type { AgentConfig } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
+import { Input } from '@renderer/components/ui/input'
+import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Form, FormField } from '@renderer/components/ui/form'
 import CardGrid from '../../common/CardGrid.vue'
 import type { CardGridAction, CardGridItem } from '../../common/CardGrid.vue'
+import {
+  NumberField,
+  NumberFieldInput,
+  NumberFieldIncrement,
+  NumberFieldDecrement,
+  NumberFieldContent
+} from '@renderer/components/ui/number-field'
+import { Checkbox } from '@renderer/components/ui/checkbox'
 
 const { t } = useI18n()
 

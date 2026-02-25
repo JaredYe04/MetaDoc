@@ -4,6 +4,8 @@
 
 日志配置允许您管理MetaDoc的日志记录功能。通过配置日志，您可以记录应用的运行状态，便于问题排查和性能分析。
 
+<Demo component="SettingLoggerSection" mode="demo" />
+
 ## 启用日志
 
 ### 开启日志功能
@@ -19,6 +21,7 @@
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
 启用日志后，系统会记录应用的运行信息，包括：
+
 - 操作记录
 - 错误信息
 - 警告信息
@@ -45,6 +48,7 @@ graph TB
 ```
 
 **注意事项**：
+
 - 日志会占用一定的磁盘空间
 - 建议在需要排查问题时启用
 - 生产环境可以关闭以减少资源占用
@@ -54,6 +58,8 @@ graph TB
 ### 级别说明
 
 日志级别决定了记录哪些级别的日志：
+
+<ConsoleTerminal mode="demo" consoleKey="log-levels" :history='[{"content": "[INFO] 应用启动完成", "type": "out"}, {"content": "[DEBUG] 加载配置文件", "type": "out"}, {"content": "[WARN] 配置项缺失，使用默认值", "type": "warn"}, {"content": "[ERROR] 连接失败，正在重试...", "type": "error"}]' />
 
 - **DEBUG**：详细的调试信息，包括所有操作细节
 - **INFO**：一般信息，记录重要的操作和状态
@@ -69,6 +75,7 @@ DEBUG < INFO < WARN < ERROR
 ```
 
 选择某个级别后，会记录该级别及更高级别的日志。例如：
+
 - 选择INFO：记录INFO、WARN、ERROR
 - 选择WARN：只记录WARN、ERROR
 - 选择ERROR：只记录ERROR
@@ -79,6 +86,8 @@ DEBUG < INFO < WARN < ERROR
 - **日常使用**：使用INFO级别，记录重要操作
 - **问题排查**：使用WARN级别，关注警告和错误
 - **生产环境**：使用ERROR级别，只记录错误
+
+<SettingLoggerSection mode="demo" />
 
 ## 日志过滤
 
@@ -104,19 +113,24 @@ DEBUG < INFO < WARN < ERROR
 - **减少日志量**：过滤掉不关心的日志
 - **问题定位**：专注于特定功能的日志
 
+<SettingDebugSection mode="demo" />
+
 ### 过滤示例
 
 **示例1：只记录AI相关日志**
+
 ```
 过滤条件：ai-
 ```
 
 **示例2：只记录工作流日志**
+
 ```
 过滤条件：workflow
 ```
 
 **示例3：只记录特定工具的日志**
+
 ```
 过滤条件：[ai-graph][WorkflowTool]
 ```
@@ -144,6 +158,8 @@ DEBUG < INFO < WARN < ERROR
 - **清理时机**：更改保留期限时立即执行清理
 - **清理规则**：删除超过保留期限的日志文件
 - **清理范围**：只清理日志目录中的文件
+
+<ConsoleTerminal mode="demo" consoleKey="cleanup" :history='[{"content": "[INFO] 开始清理过期日志文件...", "type": "out"}, {"content": "[INFO] 删除: 2026-02-10 10-30-45.log (超过保留期限)", "type": "out"}, {"content": "[INFO] 删除: 2026-02-11 14-20-30.log (超过保留期限)", "type": "out"}, {"content": "[INFO] 清理完成，共删除 2 个文件", "type": "out"}]' />
 
 ### 选择建议
 
@@ -173,6 +189,9 @@ DEBUG < INFO < WARN < ERROR
 2. 点击"打开日志目录"按钮
 3. 系统会在文件管理器中打开日志目录
 
+<ViewMenuItemsDemo mode="demo" :items='["home", "editor"]'
+/>
+
 ## 日志控制台
 
 ### 实时查看日志
@@ -182,6 +201,8 @@ DEBUG < INFO < WARN < ERROR
 - **实时显示**：显示最新的日志条目
 - **历史记录**：显示最近的日志历史（最多500条）
 - **日志级别**：不同级别的日志用不同颜色显示
+
+<ConsoleTerminal mode="demo" consoleKey="realtime-logs" :history='[{"content": "[2026-02-24 10:30:15] [INFO] [main][App] 应用启动完成", "type": "out"}, {"content": "[2026-02-24 10:30:16] [DEBUG] [renderer][Editor] 编辑器初始化", "type": "out"}, {"content": "[2026-02-24 10:30:18] [INFO] [renderer][Workspace] 加载工作目录", "type": "out"}]' />
 
 ### 控制台功能
 
@@ -220,6 +241,8 @@ YYYY-MM-DD HH-mm-ss.log
 [2026-02-19 14:30:48] [ERROR] [renderer][LLM] API调用失败
 ```
 
+<ConsoleTerminal mode="demo" consoleKey="log-examples" :history='[{"content": "[2026-02-19 14:30:45] [INFO] [main][Logger] 日志配置更新: enabled=true, level=info", "type": "out"}, {"content": "[2026-02-19 14:30:46] [DEBUG] [renderer][Editor] 文档已保存", "type": "out"}, {"content": "[2026-02-19 14:30:47] [WARN] [main][RAG] 知识库文件未找到", "type": "warn"}, {"content": "[2026-02-19 14:30:48] [ERROR] [renderer][LLM] API调用失败", "type": "error"}]' />
+
 ## 最佳实践
 
 1. **合理设置级别**：根据使用场景选择合适的日志级别
@@ -227,6 +250,8 @@ YYYY-MM-DD HH-mm-ss.log
 3. **定期清理**：设置合理的保留期限，避免占用过多空间
 4. **问题排查**：遇到问题时，临时提高日志级别获取详细信息
 5. **日志备份**：重要日志建议备份保存
+
+<MainTabs mode="demo" />
 
 ## 注意事项
 
@@ -240,3 +265,7 @@ YYYY-MM-DD HH-mm-ss.log
 
 - [[settings.basic|基础设置]]
 - [[settings.about|关于信息]]
+
+<QuickStartPanel mode="demo" />
+
+<ResizableDivider mode="demo" />

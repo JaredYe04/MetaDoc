@@ -26,12 +26,12 @@ const SELF_CLOSING_TAG = /<([A-Z][a-zA-Z0-9]*)(\s+[^/>]*)?\s*\/>/g
 function parseAttrs(attrStr: string): Record<string, unknown> {
   const attrs: Record<string, unknown> = {}
   if (!attrStr || !attrStr.trim()) return attrs
-  
+
   // 先尝试匹配带冒号的属性（Vue绑定语法），如 :items='[...]'
   const vueBindRegex = /:(\w+)=(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/g
   let m: RegExpExecArray | null
   const processedKeys = new Set<string>()
-  
+
   while ((m = vueBindRegex.exec(attrStr)) !== null) {
     const key = m[1]
     const value = m[2] ?? m[3] ?? m[4] ?? ''
@@ -44,7 +44,7 @@ function parseAttrs(attrStr: string): Record<string, unknown> {
       attrs[key] = value
     }
   }
-  
+
   // 再匹配普通属性 key="value"、key='value'、key=value
   const regex = /(\w+)=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
   while ((m = regex.exec(attrStr)) !== null) {
@@ -54,7 +54,7 @@ function parseAttrs(attrStr: string): Record<string, unknown> {
     const value = m[2] ?? m[3] ?? m[4] ?? ''
     attrs[key] = value
   }
-  
+
   return attrs
 }
 
@@ -92,7 +92,10 @@ const NUMERIC_PROPS: Record<string, string[]> = {
   ResizableDivider: ['size', 'minValue', 'maxValue']
 }
 
-function normalizePropsForPlaceholder(componentName: string, attrs: Record<string, unknown>): Record<string, unknown> {
+function normalizePropsForPlaceholder(
+  componentName: string,
+  attrs: Record<string, unknown>
+): Record<string, unknown> {
   const numericKeys = NUMERIC_PROPS[componentName] ?? []
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(attrs)) {
@@ -107,7 +110,11 @@ function normalizePropsForPlaceholder(componentName: string, attrs: Record<strin
 }
 
 function escapeHtmlAttr(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 /**

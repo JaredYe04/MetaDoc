@@ -14,41 +14,40 @@
         <div class="command-label" :style="labelStyle">
           {{ $t('agent.display.terminalExecution.commandToExecute') }}
         </div>
-        <el-input
+        <Textarea
           :model-value="(effectiveData as any)?.command || ''"
-          type="textarea"
           :rows="3"
           readonly
-          class="command-input"
+          class="command-input w-full"
         />
       </div>
 
       <div class="trust-mode-section" :style="trustModeSectionStyle">
-        <el-checkbox v-model="trustMode" @change="handleTrustModeChange">
+        <Checkbox v-model:checked="trustMode" @update:checked="handleTrustModeChange">
           {{ $t('agent.display.terminalExecution.trustMode') }}
-        </el-checkbox>
-        <el-button
+        </Checkbox>
+        <Button
           v-if="trustMode"
-          type="text"
-          size="small"
+          variant="ghost"
+          size="sm"
           @click="resetTrustMode"
           style="margin-left: 8px"
         >
           {{ $t('agent.display.terminalExecution.resetTrust') }}
-        </el-button>
+        </Button>
       </div>
 
       <div class="approval-actions">
-        <el-button type="danger" @click="handleReject">
+        <Button variant="destructive" @click="handleReject">
           {{ $t('agent.display.terminalExecution.reject') }}
-        </el-button>
-        <el-button type="primary" @click="handleApprove">
+        </Button>
+        <Button variant="default" @click="handleApprove">
           {{
             trustMode
               ? $t('agent.display.terminalExecution.approveWithTrust')
               : $t('agent.display.terminalExecution.approve')
           }}
-        </el-button>
+        </Button>
       </div>
     </div>
 
@@ -130,13 +129,13 @@
       :style="completedStateStyle"
     >
       <div class="result-header" :style="resultHeaderStyle">
-        <el-tag
+        <Badge
           :type="((effectiveData as any)?.exitCode || 0) === 0 ? 'success' : 'danger'"
           size="small"
         >
           {{ $t('agent.display.terminalExecution.exitCode') }}:
           {{ (effectiveData as any)?.exitCode || 0 }}
-        </el-tag>
+        </Badge>
         <span class="command-text" :style="commandTextStyle">{{
           (effectiveData as any)?.command || ''
         }}</span>
@@ -146,26 +145,26 @@
         <div class="output-header" :style="outputHeaderStyle">
           <strong>{{ $t('agent.display.terminalExecution.stdout') }}</strong>
         </div>
-        <el-scrollbar max-height="300px">
+        <ScrollArea class="max-h-[300px]">
           <pre class="output-text" :style="outputTextStyle">{{
             (effectiveData as any).stdout
           }}</pre>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <div v-if="(effectiveData as any)?.stderr" class="output-section error-output">
         <div class="output-header" :style="outputHeaderStyle">
           <strong>{{ $t('agent.display.terminalExecution.stderr') }}</strong>
         </div>
-        <el-scrollbar max-height="200px">
+        <ScrollArea class="max-h-[200px]">
           <pre class="output-text error-text" :style="errorTextStyle">{{
             (effectiveData as any).stderr
           }}</pre>
-        </el-scrollbar>
+        </ScrollArea>
       </div>
 
       <div v-if="(effectiveData as any)?.summary" class="summary-section">
-        <el-divider>{{ $t('agent.display.terminalExecution.aiSummary') }}</el-divider>
+        <Divider>{{ $t('agent.display.terminalExecution.aiSummary') }}</Divider>
         <div class="summary-text" :style="summaryTextStyle">
           {{ (effectiveData as any).summary }}
         </div>
@@ -173,41 +172,44 @@
     </div>
 
     <div v-else-if="(effectiveData as any)?.stage === 'rejected'" class="rejected-state">
-      <el-alert
-        :title="$t('agent.display.terminalExecution.rejected')"
-        type="warning"
-        :closable="false"
-      >
-        <template #default>
+      <Alert variant="warning">
+        <AlertTriangle class="h-4 w-4" />
+        <AlertTitle>{{ $t('agent.display.terminalExecution.rejected') }}</AlertTitle>
+        <AlertDescription>
           <div class="command-text" :style="commandTextStyle">
             {{ (effectiveData as any)?.command || '' }}
           </div>
-        </template>
-      </el-alert>
+        </AlertDescription>
+      </Alert>
     </div>
 
     <div v-else-if="(effectiveData as any)?.stage === 'error'" class="error-state">
-      <el-alert
-        :title="
-          (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed')
-        "
-        type="error"
-        :closable="false"
-      />
+      <Alert variant="destructive">
+        <XCircle class="h-4 w-4" />
+        <AlertTitle>
+          {{
+            (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed')
+          }}
+        </AlertTitle>
+      </Alert>
     </div>
 
     <!-- 进度条 -->
-    <el-progress
+    <div
       v-if="
         effectiveProgress &&
         effectiveProgress.percentage > 0 &&
         (effectiveData as any)?.stage !== 'completed'
       "
-      :percentage="effectiveProgress.percentage"
-      :status="progressStatus"
-      :stroke-width="6"
       style="margin-top: 12px"
-    />
+    >
+      <Progress
+        :percentage="effectiveProgress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      />
+    </div>
   </div>
 </template>
 
@@ -215,6 +217,15 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading, WarningFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Textarea } from '@renderer/components/ui/textarea'
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
+import { Checkbox } from '@renderer/components/ui/checkbox'
+import { Progress } from '@renderer/components/ui/progress'
+import { Badge } from '@renderer/components/ui/badge'
+import { Divider } from '@renderer/components/ui/separator'
+import { AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../types/agent-tool'
 import eventBus from '../../../utils/event-bus.js'

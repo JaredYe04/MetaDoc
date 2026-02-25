@@ -30,7 +30,7 @@ declare global {
     electron?: {
       ipcRenderer?: unknown
     }
-    console: Console
+    console: typeof console
   }
 }
 

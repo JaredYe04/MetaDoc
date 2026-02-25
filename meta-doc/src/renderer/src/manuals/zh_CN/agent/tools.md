@@ -23,6 +23,8 @@ graph TB
 
 ### 工具集结构
 
+<AgentView mode="demo" />
+
 工具集包含以下主要部分：
 
 - **基本信息**：ID、名称、描述、版本号
@@ -32,6 +34,8 @@ graph TB
 - **内置标识**：是否为内置工具集（不可删除）
 
 ### 工具类型
+
+<GrepDisplay mode="demo" />
 
 工具集可以包含以下类型的工具：
 
@@ -44,6 +48,8 @@ graph TB
 系统提供一个默认工具集（`default-tool-set`），包含所有内置Agent工具，不可删除但可以复制。
 
 ## 创建工具集
+
+<AgentView mode="demo" />
 
 ### 创建新工具集
 
@@ -62,7 +68,11 @@ graph TB
 
 您可以通过侧边栏访问Agent视图：
 
-<ViewMenuItemsDemo mode="demo" :items='["agent"]' />
+### Agent工具集界面
+
+下图展示了工具集管理界面的主要功能：
+
+<AgentView mode="demo" />
 
 ### 工具选择
 
@@ -73,7 +83,11 @@ graph TB
 - **工具类型**：内部工具、外部工具或工作流工具
 - **工具描述**：工具的简要描述
 
+<DialogDemo mode="demo" dialogType="tool-select" />
+
 ## 编辑工具集
+
+<AgentView mode="demo" />
 
 ### 编辑操作
 
@@ -104,6 +118,8 @@ graph TB
 
 ## 删除工具集
 
+<AgentView mode="demo" />
+
 ### 删除操作
 
 删除不需要的工具集：
@@ -113,6 +129,7 @@ graph TB
 3. **确认删除**：在弹出的确认对话框中确认删除
 
 **注意**：
+
 - 默认工具集（`default-tool-set`）不可删除
 - 删除工具集不会影响已创建的AgentConfig，但关联该工具集的AgentConfig将无法使用该工具集
 - 如果工具集正在被AgentConfig使用，删除前会提示
@@ -120,6 +137,8 @@ graph TB
 ## 复制工具集
 
 ### 复制操作
+
+<OutlineTreeDisplay mode="demo" />
 
 复制现有工具集：
 
@@ -141,9 +160,13 @@ graph TB
 3. **选择位置**：选择保存位置和文件名
 4. **保存文件**：点击保存导出工具集
 
+<DialogDemo mode="demo" dialogType="export-config" />
+
 导出的JSON文件包含工具集的所有信息，可以用于备份或分享。
 
 ### 导入工具集
+
+<DataAnalysisDisplay mode="demo" />
 
 从JSON文件导入工具集：
 
@@ -152,6 +175,8 @@ graph TB
 3. **选择文件**：选择要导入的JSON文件
 4. **验证数据**：系统验证文件格式和内容
 5. **导入工具集**：导入成功后创建新工具集
+
+<DialogDemo mode="demo" dialogType="import-config" />
 
 导入的工具集会创建新的ID，不会覆盖现有工具集（除非使用覆盖模式）。
 
@@ -166,6 +191,8 @@ AgentConfig通过关联工具集来确定可用工具：
 3. **工具交集**：如果选择多个工具集，可用工具是所有工具集的交集
 
 ### 工具集交集
+
+<DiffDisplay mode="demo" />
 
 当AgentConfig关联多个工具集时：
 

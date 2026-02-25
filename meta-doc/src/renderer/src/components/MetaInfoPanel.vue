@@ -178,13 +178,11 @@
               <Button
                 variant="secondary"
                 @click="metaDialogVisible = false"
-                :style="{ color: themeState.currentTheme.textColor }"
                 >{{ $t('common.cancel') }}</Button
               >
               <Button
                 variant="default"
                 @click="commitForm"
-                :style="{ color: themeState.currentTheme.textColor }"
                 >{{ $t('common.confirm') }}</Button
               >
             </DialogFooter>

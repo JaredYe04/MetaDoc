@@ -1915,7 +1915,7 @@ onUnmounted(() => {
 .window-control-btn--close:hover {
   background-color: var(--el-color-danger);
   border: 1px solid var(--el-color-danger);
-  color: #ffffff;
+  color: var(--el-color-white);
 }
 
 .window-control-btn--close:active {

@@ -28,7 +28,7 @@
         value-format="YYYY-MM-DD HH:mm:ss"
         @change="handleDateRangeChange"
       />
-      <Button @click="loadAllStatistics" :style="{ color: themeState.currentTheme.textColor }">
+      <Button @click="loadAllStatistics">
         {{ $t('llmStatistics.loadAll') }}
       </Button>
     </div>

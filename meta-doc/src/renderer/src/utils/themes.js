@@ -90,6 +90,7 @@ import MultiBranchIconBlack from '../assets/icons/multi-branch-black.svg'
 import MultiBranchIconWhite from '../assets/icons/multi-branch-white.svg'
 import FormatIconBlack from '../assets/icons/format-black.svg'
 import FormatIconWhite from '../assets/icons/format-white.svg'
+// Logo icons
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -178,6 +179,55 @@ export const mixColors = (color1, color2, weight) => {
   const b = Math.round(c1.b * (1 - weight) + c2.b * weight)
 
   return rgbToHex(r, g, b)
+}
+
+// Helper: Generate logo colors using HSL for vibrant results
+// Preserves saturation while adjusting lightness for contrast
+export const generateLogoColors = (primaryColor, isDark) => {
+  const baseColor = tinycolor(primaryColor || '#000000')
+
+  if (!baseColor.isValid()) {
+    return {
+      bgColor: isDark ? '#1a1a1a' : '#f0f0f0',
+      symbolColor: isDark ? '#ffffff' : '#000000'
+    }
+  }
+
+  const hsl = baseColor.toHsl()
+
+  if (isDark) {
+    // Dark mode: Rich, saturated background with bright symbol
+    return {
+      // Background: Deep but saturated (keep hue/sat, lower lightness)
+      bgColor: tinycolor({
+        h: hsl.h,
+        s: Math.min(1, hsl.s * 1.2), // Slightly boost saturation
+        l: 0.15 // Deep but not black
+      }).toHexString(),
+      // Symbol: Vibrant but lighter for contrast
+      symbolColor: tinycolor({
+        h: hsl.h,
+        s: Math.min(1, hsl.s * 0.9),
+        l: 0.75 // Bright but not white
+      }).toHexString()
+    }
+  } else {
+    // Light mode: Soft tinted background with rich symbol
+    return {
+      // Background: Very light tint of the theme color
+      bgColor: tinycolor({
+        h: hsl.h,
+        s: Math.min(0.6, hsl.s * 0.4), // Low saturation for subtlety
+        l: 0.94 // Very light
+      }).toHexString(),
+      // Symbol: Full saturation theme color
+      symbolColor: tinycolor({
+        h: hsl.h,
+        s: Math.min(1, hsl.s * 1.1),
+        l: Math.max(0.25, Math.min(0.45, hsl.l)) // Rich but readable
+      }).toHexString()
+    }
+  }
 }
 
 // 辅助函数：计算颜色亮度（0-255）

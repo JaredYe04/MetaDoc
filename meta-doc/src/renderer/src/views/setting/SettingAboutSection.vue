@@ -42,13 +42,16 @@
 
       <TabsContent value="updates" class="about-tabs-content">
         <div class="update-settings">
-          <Form class="settings-form">
+          <div class="settings-form space-y-6">
             <FormField :label="$t('setting.about.autoCheckUpdates')" name="autoCheckUpdates">
-              <div class="flex items-center gap-2">
-                <Switch :checked="autoCheckUpdates" @update:checked="handleAutoCheckChange" />
-                <span class="text-sm text-muted-foreground">{{
-                  autoCheckUpdates ? $t('setting.enabled') : $t('setting.disabled')
-                }}</span>
+              <div class="flex items-center gap-3">
+                <Switch
+                  v-model:checked="autoCheckUpdates"
+                  @update:checked="handleAutoCheckChange"
+                />
+                <span class="text-sm text-muted-foreground">
+                  {{ autoCheckUpdates ? $t('setting.enabled') : $t('setting.disabled') }}
+                </span>
               </div>
             </FormField>
 
@@ -56,29 +59,29 @@
               <RadioGroup
                 v-model="updateChannel"
                 @update:modelValue="handleChannelChange"
-                class="flex flex-row gap-4"
+                class="flex flex-row gap-6"
               >
-                <div class="flex items-center gap-2">
+                <div class="flex items-center space-x-2">
                   <RadioGroupItem value="release" id="update-release" />
-                  <label for="update-release" class="text-sm cursor-pointer">{{
-                    $t('setting.about.channelRelease')
-                  }}</label>
+                  <Label for="update-release" class="text-sm font-normal cursor-pointer">
+                    {{ $t('setting.about.channelRelease') }}
+                  </Label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center space-x-2">
                   <RadioGroupItem value="dev" id="update-dev" />
-                  <label for="update-dev" class="text-sm cursor-pointer">{{
-                    $t('setting.about.channelDev')
-                  }}</label>
+                  <Label for="update-dev" class="text-sm font-normal cursor-pointer">
+                    {{ $t('setting.about.channelDev') }}
+                  </Label>
                 </div>
               </RadioGroup>
             </FormField>
 
-            <FormField name="checkUpdate">
+            <div class="pt-2">
               <Button @click="handleCheckUpdate" :disabled="checking">
                 {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
               </Button>
-            </FormField>
-          </Form>
+            </div>
+          </div>
 
           <!-- 更新状态提示 -->
           <div v-if="updateStatus" class="update-status">
@@ -165,7 +168,9 @@ import { isDevEnvironment } from '../../utils/dev-env'
 import logo from '../../assets/logo.svg'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
-import { Form, FormField } from '@renderer/components/ui/form'
+import { FormField } from '@renderer/components/ui/form'
+import { Label } from '@renderer/components/ui/label'
+import { Switch } from '@renderer/components/ui/switch'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Divider } from '@renderer/components/ui/separator'
 
@@ -452,7 +457,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 28px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: hsl(var(--foreground));
 }
 
 .version-info,
@@ -463,7 +468,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: var(--el-text-color-regular);
+  color: hsl(var(--muted-foreground));
   user-select: none;
 }
 
@@ -479,7 +484,7 @@ onUnmounted(() => {
 .env-value,
 .qq-value {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  color: var(--el-text-color-primary);
+  color: hsl(var(--foreground));
 }
 
 .feedback-entry {
@@ -507,11 +512,18 @@ onUnmounted(() => {
   margin-top: 0;
 }
 
+/* 防止异常大图标 */
+.update-settings svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
 .section-title {
   margin: 0 0 24px 0;
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: hsl(var(--foreground));
 }
 
 .settings-form {
@@ -520,16 +532,8 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.settings-form :deep(.el-form-item) {
-  margin-bottom: 24px;
-}
-
 .update-status {
   margin-top: 24px;
-}
-
-.update-status :deep(.el-alert) {
-  margin-bottom: 16px;
 }
 
 .update-actions {
@@ -550,7 +554,7 @@ onUnmounted(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--el-text-color-primary);
+  color: hsl(var(--foreground));
   white-space: pre-wrap;
   word-wrap: break-word;
   user-select: text;

@@ -49,7 +49,6 @@
     <!-- 固定底部菜单 -->
     <!-- 固定的底部状态栏 -->
 
-    <NotificationStack />
     <AITaskQueue />
     <LoggerConsolePanel />
     <TabSwitcherOverlay />
@@ -83,7 +82,6 @@ import ViewMenuContainer from '../components/ViewMenuContainer.vue'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
-import NotificationStack from '../components/NotificationStack.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
 import TabContentRenderer from '../components/TabContentRenderer.vue'

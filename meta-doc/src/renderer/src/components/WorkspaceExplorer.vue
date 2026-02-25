@@ -42,7 +42,12 @@
       <div class="custom-empty-state">
         <div class="logo-container" :class="{ shake: isShaking }" @click="handleLogoClick">
           <div class="logo-animation-wrapper">
-            <img :src="logoPath" alt="Logo" class="logo-image" />
+            <LogoIcon
+              :size="96"
+              :bg-color="bgColor"
+              :symbol-color="symbolColor"
+              class="logo-image"
+            />
           </div>
         </div>
         <p class="custom-empty-description">{{ $t('workspaceExplorer.noWorkspaceFolder') }}</p>
@@ -238,8 +243,9 @@ import {
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
-import { themeState, mixColors } from '../utils/themes'
+import { themeState, mixColors, generateLogoColors } from '../utils/themes'
 import WorkspaceTreeNode from './WorkspaceTreeNode.vue'
+import LogoIcon from './LogoIcon.vue'
 import ContextMenu from './ContextMenu.vue'
 import type { ContextMenuItem } from './contextMenus/types'
 import { dirname, basename, extname, join, relative } from '../utils/path-utils'
@@ -250,7 +256,6 @@ import type { DirectoryProcessorWorker } from '../utils/workers/directory-proces
 import { useWorkspaceOperations } from '../composables/useWorkspaceOperations'
 import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
-import logoPath from '../assets/logo.svg'
 import messageBridge from '../bridge/message-bridge'
 
 const { t } = useI18n()
@@ -267,6 +272,15 @@ const handleLogoClick = () => {
     isShaking.value = false
   }, 1500) // 动画持续时间
 }
+
+// Logo colors based on theme
+const isDark = computed(() => themeState.currentTheme.type === 'dark')
+const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
+
+// 使用HSL生成鲜艳的Logo颜色
+const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
+const bgColor = computed(() => logoColors.value.bgColor)
+const symbolColor = computed(() => logoColors.value.symbolColor)
 
 // 通过消息桥获取 IPC（统一入口，便于未来迁移）
 const getIpcRenderer = () => messageBridge.getIpc()

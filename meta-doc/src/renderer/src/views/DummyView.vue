@@ -4,7 +4,12 @@
       <template #image>
         <div class="logo-container" :class="{ shake: isShaking }" @click="handleClick">
           <div class="logo-animation-wrapper">
-            <img :src="logoPath" alt="Logo" class="logo-image" />
+            <LogoIcon
+              :size="128"
+              :bg-color="bgColor"
+              :symbol-color="primaryColor"
+              class="logo-image"
+            />
           </div>
         </div>
       </template>
@@ -13,14 +18,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Empty } from '@renderer/components/ui/empty'
-import logoPath from '../assets/logo.svg'
+import { themeState, generateLogoColors } from '../utils/themes'
+import LogoIcon from '../components/LogoIcon.vue'
 
 const { t } = useI18n()
 
 const isShaking = ref(false)
+
+// 主题色
+const isDark = computed(() => themeState.currentTheme.type === 'dark')
+const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
+
+// 使用HSL生成鲜艳的Logo颜色
+const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
+const bgColor = computed(() => logoColors.value.bgColor)
+const symbolColor = computed(() => logoColors.value.symbolColor)
 
 const handleClick = () => {
   isShaking.value = true
@@ -37,7 +52,7 @@ const handleClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--el-bg-color, #ffffff);
+  background-color: var(--background, #ffffff);
 }
 
 .logo-container {
@@ -50,7 +65,7 @@ const handleClick = () => {
   transform: scale(1.2);
 }
 
-/* 摇晃时也应用 scale(1.2)，transition 会平滑过渡 */
+/* 摇晃时也应用 scale(1.2) ，transition 会平滑过渡 */
 .logo-container.shake {
   transform: scale(1.2);
 }
@@ -64,8 +79,6 @@ const handleClick = () => {
 }
 
 .logo-image {
-  width: 128px;
-  height: 128px;
   display: block;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }

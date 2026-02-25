@@ -41,7 +41,12 @@
     "changelog": "node scripts/generate-changelog.js",
     "update:licenses": "node scripts/update-open-source-licenses.js",
     "test": "vitest run",
-    "test:outline": "vitest run src/renderer/src/utils/outline-tree.test.ts"
+    "test:outline": "vitest run src/renderer/src/utils/outline-tree.test.ts",
+    "test:e2e": "node e2e/run-electron.mjs",
+    "test:e2e:dev": "node e2e/run-electron.mjs --dev",
+    "test:e2e:latex": "node e2e/run-electron.mjs --latex",
+    "test:e2e:latex:dev": "node e2e/run-electron.mjs --dev --latex",
+    "test:e2e:build": "npm run build && node e2e/run-electron.mjs"
   },
   "fileAssociations": [
     {
@@ -203,6 +208,7 @@
     "vite-plugin-babel": "^1.3.1",
     "vite-plugin-html": "^3.2.2",
     "vitest": "^2.1.9",
+    "playwright": "^1.49.0",
     "vue": "^3.4.30",
     "vue-svg-loader": "^0.16.0"
   }

@@ -8,17 +8,17 @@
       <LlmStatisticsContent ref="contentRef" />
 
       <DialogFooter>
-        <Button @click="handleExport" :style="{ color: themeState.currentTheme.textColor }">
+        <Button @click="handleExport">
           {{ $t('llmStatistics.export') }}
         </Button>
         <Button
           @click="handleClear"
           variant="destructive"
-          :style="{ color: themeState.currentTheme.textColor }"
+
         >
           {{ $t('llmStatistics.clear') }}
         </Button>
-        <Button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
+        <Button @click="handleClose">
           {{ $t('llmStatistics.close') }}
         </Button>
       </DialogFooter>

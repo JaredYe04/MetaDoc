@@ -56,7 +56,7 @@
         </div>
       </div>
       <DialogFooter>
-        <Button @click="handleClose" :style="{ color: themeState.currentTheme.textColor }">
+        <Button @click="handleClose">
           {{ $t('wordCountDialog.close') }}
         </Button>
       </DialogFooter>

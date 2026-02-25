@@ -277,7 +277,7 @@ const badgeStyle = computed(() => {
     }
     default:
       // info - 使用主题主色
-      return { backgroundColor: 'hsl(var(--primary))', color: '#ffffff' }
+      return { backgroundColor: 'hsl(var(--primary))', color: themeState.currentTheme.textColor }
   }
 })
 

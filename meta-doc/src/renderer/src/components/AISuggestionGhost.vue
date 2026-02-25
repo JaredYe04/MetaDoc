@@ -275,7 +275,7 @@ function showTooltip(position: monaco.Position) {
   tooltipEl.style.padding = '4px 8px'
   tooltipEl.style.background =
     themeState.currentTheme.type === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)'
-  tooltipEl.style.color = '#fff'
+  tooltipEl.style.color = themeState.currentTheme.textColor
   tooltipEl.style.borderRadius = '4px'
   tooltipEl.style.fontSize = '12px'
   tooltipEl.style.pointerEvents = 'none'
@@ -945,7 +945,7 @@ function showVditorTooltip() {
   tooltipEl.style.padding = '4px 8px'
   tooltipEl.style.background =
     themeState.currentTheme.type === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)'
-  tooltipEl.style.color = '#fff'
+  tooltipEl.style.color = themeState.currentTheme.textColor
   tooltipEl.style.borderRadius = '4px'
   tooltipEl.style.fontSize = '12px'
   tooltipEl.style.pointerEvents = 'none'

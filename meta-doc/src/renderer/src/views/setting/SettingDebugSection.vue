@@ -5721,7 +5721,7 @@ onMounted(async () => {
 
 .debug-menu :deep(.el-menu-item.is-active) {
   background-color: v-bind('themeState.currentTheme.primaryColor');
-  color: #fff;
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .debug-content {

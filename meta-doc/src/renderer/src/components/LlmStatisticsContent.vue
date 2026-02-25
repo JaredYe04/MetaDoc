@@ -136,7 +136,7 @@ function getEChartsThemeConfig() {
       backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
       borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
       textStyle: {
-        color: isDark ? '#fff' : '#333'
+        color: textColor.value
       }
     },
     legend: {

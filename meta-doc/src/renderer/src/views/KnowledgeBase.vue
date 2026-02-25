@@ -193,7 +193,7 @@
 
                   <div
                     v-if="searchResults.length === 0 && !searching"
-                    style="color: #999"
+                    :style="{ color: themeState.currentTheme.textColor2 }"
                     class="placeholder"
                   >
                     {{ t('knowledgeBase.searchTest.noResult') }}

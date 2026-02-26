@@ -2,10 +2,8 @@
   <TooltipProvider>
     <Tooltip>
       <TooltipTrigger as-child>
-        <Button
-          size="sm"
-          variant="ghost"
-          :class="['aero-btn', 'node-action-btn']"
+        <button
+          :class="['ai-toolbar-btn']"
           @click.stop="onClick"
           v-if="node.path !== 'dummy'"
           :disabled="pendingAccept || generating"
@@ -14,28 +12,24 @@
           <img
             v-else-if="selectedAiTool === 'generateChildren'"
             :src="themeState.currentTheme.BranchIcon"
-            class="node-action-btn__icon"
             alt=""
           />
           <img
             v-else-if="selectedAiTool === 'generateContent'"
             :src="themeState.currentTheme.WriteIcon"
-            class="node-action-btn__icon"
             alt=""
           />
           <img
             v-else-if="selectedAiTool === 'generateChildrenChildren'"
             :src="themeState.currentTheme.MultiBranchIcon"
-            class="node-action-btn__icon"
             alt=""
           />
           <img
             v-else-if="selectedAiTool === 'generateChildrenContent'"
             :src="themeState.currentTheme.MultiWriteIcon"
-            class="node-action-btn__icon"
             alt=""
           />
-        </Button>
+        </button>
       </TooltipTrigger>
       <TooltipContent side="top">
         <p>{{ !selectedAiTool ? $t('outline.editNode') : getAiToolTip(selectedAiTool) }}</p>
@@ -94,7 +88,31 @@ const onClick = () => {
 </script>
 
 <style scoped>
-.node-action-btn__icon {
+/* 按钮样式 - 与 tree-node-expand-btn 保持一致 */
+.ai-toolbar-btn {
+  width: 40px;
+  height: auto;
+  padding: 8px;
+  border: none;
+  background-color: v-bind('themeState.currentTheme.outlineNode');
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  opacity: 0.8;
+  transition: all 0.2s;
+}
+
+/* hover 效果 - 与 tree-node-expand-btn 一致 */
+.ai-toolbar-btn:hover {
+  opacity: 1;
+  filter: brightness(1.1);
+}
+
+/* 图标样式 */
+.ai-toolbar-btn svg,
+.ai-toolbar-btn img {
   width: 16px;
   height: 16px;
   flex-shrink: 0;

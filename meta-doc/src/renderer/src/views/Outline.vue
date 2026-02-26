@@ -244,8 +244,69 @@
               #node="{ node, collapsed }"
               :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
             >
-              <!-- 如果节点展开，显示详细节点面板 -->
-              <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
+              <!-- 节点被折叠时显示正常节点，但在文字前显示子节点数量 badge -->
+              <template v-if="collapsed && node.children && node.children.length > 0">
+                <TooltipProvider>
+                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                    <TooltipTrigger as-child>
+                      <div
+                        class="tree-node"
+                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                        :class="
+                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
+                        "
+                        draggable="true"
+                        @dragstart.stop="onNodeDragStart(node)"
+                        @dragover.prevent="onNodeDragOver($event, node)"
+                        @dragleave="onNodeDragLeave(node)"
+                        @drop.stop="onNodeDrop(node, $event)"
+                        @dragend.stop="onNodeDragEnd"
+                        @mousedown.stop
+                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                        @contextmenu.prevent="openNodeContextMenu($event, node)"
+                      >
+                        <!-- 子节点数量 badge -->
+                        <span
+                          class="children-count-badge"
+                          :style="{ backgroundColor: themeState.currentTheme.primaryColor }"
+                        >
+                          {{ node.children.length }}
+                        </span>
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                        <!-- 展开按钮 -->
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <button
+                                type="button"
+                                class="tree-node-expand-btn"
+                                @click.stop="toggleNodeExpand(node.path)"
+                                v-if="node.path !== 'dummy'"
+                                :disabled="pendingAccept || generating"
+                                aria-label="Expand"
+                              >
+                                <ChevronRight class="w-4 h-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>{{ $t('outline.expand') }}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
+                      <p>{{ node.title }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </template>
+              <!-- 如果节点未折叠且展开编辑面板，显示详细节点面板 -->
+              <template v-else-if="expandedNodes[node.path] && node.path !== 'dummy'">
                 <div
                   class="detailed-node-wrapper"
                   :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
@@ -534,10 +595,9 @@
             <div class="ai-config-section">
               <label class="ai-config-label">{{ $t('outline.aiConfig.temperature') }}</label>
               <div class="flex items-center gap-4">
-                <span class="text-sm text-muted-foreground">{{ aiConfig.temperature }}</span>
-                <input
-                  type="range"
-                  v-model.number="aiConfig.temperature"
+                <span class="text-sm text-muted-foreground w-8">{{ aiConfig.temperature }}</span>
+                <Slider
+                  v-model="aiConfig.temperature"
                   :min="0"
                   :max="2"
                   :step="0.1"
@@ -591,22 +651,31 @@
               />
             </div>
 
-            <!-- 字数 -->
+            <!-- 字数：NumberField + Slider 组合 -->
             <div class="ai-config-section">
               <label class="ai-config-label">{{ $t('outline.aiConfig.wordCount') }}</label>
-              <NumberField
-                v-model="aiConfig.wordCount"
-                :min="100"
-                :max="10000"
-                :step="100"
-                class="inline-input"
-              >
-                <NumberFieldContent>
-                  <NumberFieldDecrement />
-                  <NumberFieldInput />
-                  <NumberFieldIncrement />
-                </NumberFieldContent>
-              </NumberField>
+              <div class="flex items-center gap-4">
+                <NumberField
+                  v-model="aiConfig.wordCount"
+                  :min="100"
+                  :max="10000"
+                  :step="100"
+                  class="w-32"
+                >
+                  <NumberFieldContent>
+                    <NumberFieldDecrement />
+                    <NumberFieldInput />
+                    <NumberFieldIncrement />
+                  </NumberFieldContent>
+                </NumberField>
+                <Slider
+                  v-model="aiConfig.wordCount"
+                  :min="100"
+                  :max="10000"
+                  :step="100"
+                  class="flex-1"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -740,7 +809,9 @@ import {
   ArrowUpDown,
   RefreshCw,
   Loader2,
-  Maximize
+  Maximize,
+  FolderOpen,
+  Folder
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
@@ -787,6 +858,7 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle
@@ -798,6 +870,7 @@ import {
   TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import { Switch } from '@renderer/components/ui/switch'
+import { Slider } from '@renderer/components/ui/slider'
 import {
   Select,
   SelectContent,
@@ -1355,8 +1428,10 @@ const fitToScreen = () => {
       // 注意：contentCenterX/Y 是在 FIT_TO_SCREEN_MEASURE_SCALE (2%) 下测量的 viewport 坐标
       // 需要先除以测量缩放得到原始 content 坐标，再乘以 targetScale
       // 解出：translate = viewportCenter - contentCenter * targetScale
-      const translateX = viewportCenterX - contentCenterX * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
-      const translateY = viewportCenterY - contentCenterY * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
+      const translateX =
+        viewportCenterX - contentCenterX * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
+      const translateY =
+        viewportCenterY - contentCenterY * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
 
       // 6. 启用平滑动画并应用新 transform
       enableSmoothTransition.value = true
@@ -1420,6 +1495,29 @@ const handleNodeContentCancel = (path: string) => {
   outlineTreeKey.value++
 }
 
+// 展开所有节点
+const expandAllNodes = () => {
+  const traverseAndExpand = (node: DocumentOutlineNode) => {
+    if (node.children && node.children.length > 0) {
+      expandedNodes.value[node.path] = true
+      for (const child of node.children) {
+        traverseAndExpand(child)
+      }
+    }
+  }
+  if (treeData.value) {
+    traverseAndExpand(treeData.value)
+  }
+  outlineTreeKey.value++
+}
+
+// 折叠所有节点
+const collapseAllNodes = () => {
+  expandedNodes.value = {}
+  lastExpandedNodePath.value = null
+  outlineTreeKey.value++
+}
+
 // AI 配置对话框相关
 const aiConfigDialogVisible = ref(false)
 const aiConfig = reactive({
@@ -1432,6 +1530,8 @@ const recommendedKeywords = ref<string[]>([])
 const recommendedKeywordsLoading = ref(false)
 const editingNodePath = ref<string | null>(null)
 const selectedAiTool = ref<string | null>(null)
+const wordCountInput = ref('')
+const selectedPresetPrompt = ref('')
 
 // 切换 AI 工具：已选中则取消，否则选中；选中时折叠已展开的编辑节点面板
 function toggleAiTool(
@@ -2851,6 +2951,22 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   filter: brightness(1.1);
 }
 
+/* 子节点数量 badge - 显示在节点文字前 */
+.children-count-badge {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 0 4px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
 .detailed-node-wrapper {
   position: absolute;
   z-index: 50;
@@ -2951,8 +3067,11 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
   font-size: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
+}
+
+/* 确保 Tooltip 永远在最高层级 */
+:global([data-reka-tooltip-content]) {
+  z-index: 99999 !important;
 }
 
 .ai-config-recommended-tag:hover {

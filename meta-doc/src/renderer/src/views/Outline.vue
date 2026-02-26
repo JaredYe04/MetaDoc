@@ -1006,10 +1006,10 @@ const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
     // The CSS constrains visual node width via max-width: 160px
     // With nodeWidth: 260, we get: 260 - 160 = 100px spacing between nodes
     treeConfig.value = {
-      nodeWidth: 260, // D3 spacing: visual width (160) + gap (100)
+      nodeWidth: 400, // D3 nodeSize: ensures sufficient horizontal spacing between sibling nodes
       nodeHeight: 50,
       levelHeight: 120,
-      siblingSpacing: 100 // Visual spacing achieved via nodeWidth calculation above
+      siblingSpacing: 100 // Kept for reference, though not used by the library
     }
   } else {
     treeConfig.value = {
@@ -2034,7 +2034,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   justify-content: space-between;
   gap: 8px;
   min-width: 120px;
-  max-width: 160px;
+  max-width: v-bind('`${treeConfig.nodeWidth}px`');
   box-sizing: border-box;
   transition: all 0.2s;
 }

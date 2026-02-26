@@ -1006,10 +1006,10 @@ const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
     // The CSS constrains visual node width via max-width: 160px
     // With nodeWidth: 260, we get: 260 - 160 = 100px spacing between nodes
     treeConfig.value = {
-      nodeWidth: 600, // Increased spacing to prevent nodes from appearing too close together
+      nodeWidth: 360, // D3 nodeSize: distance between node CENTERS
       nodeHeight: 50,
       levelHeight: 120,
-      siblingSpacing: 100 // Kept for reference, though not used by the library
+      siblingSpacing: 100 // Not used by library; gap = nodeWidth - slotWidth = 360 - 160 = 200px
     }
   } else {
     treeConfig.value = {
@@ -1924,6 +1924,13 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   stroke: v-bind('themeState.isDarkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)"') !important;
   stroke-width: 2px !important;
   opacity: 1 !important;
+}
+
+/* 关键修复：强制 .node-slot 宽度小于 D3 nodeSize，创造间隙
+   D3 nodeSize 控制节点中心间距，slot 宽度必须小于此值才能有间隙 */
+.outline-tree-inner :deep(.node-slot) {
+  width: 160px !important; /* 视觉宽度 */
+  max-width: 160px !important;
 }
 
 /* 缩放工具栏样式 */

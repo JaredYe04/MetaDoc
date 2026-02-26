@@ -1040,10 +1040,17 @@ const panStartY = ref(0)
 const panStartTranslateX = ref(0)
 const panStartTranslateY = ref(0)
 
+// 平滑动画控制
+const enableSmoothTransition = ref(false)
+const SMOOTH_DURATION = 300 // 动画持续时间 ms
+
 // 画布变换样式（应用到 canvas 层）
 const canvasTransformStyle = computed(() => ({
   transform: `translate(${canvasTranslateX.value}px, ${canvasTranslateY.value}px) scale(${canvasScale.value})`,
-  transformOrigin: '0 0'
+  transformOrigin: '0 0',
+  transition: enableSmoothTransition.value
+    ? `transform ${SMOOTH_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
+    : 'none'
 }))
 
 // 缩放控制
@@ -1063,20 +1070,41 @@ const selectedScale = computed({
   }
 })
 
+// 缩放操作时启用平滑动画
+const withSmoothTransition = (fn: () => void) => {
+  enableSmoothTransition.value = true
+  fn()
+  setTimeout(() => {
+    enableSmoothTransition.value = false
+  }, SMOOTH_DURATION)
+}
+
 const zoomIn = () => {
   if (canvasScale.value < MAX_SCALE) {
-    canvasScale.value = Math.min(MAX_SCALE, Math.round((canvasScale.value + SCALE_STEP) * 10) / 10)
+    withSmoothTransition(() => {
+      canvasScale.value = Math.min(
+        MAX_SCALE,
+        Math.round((canvasScale.value + SCALE_STEP) * 10) / 10
+      )
+    })
   }
 }
 
 const zoomOut = () => {
   if (canvasScale.value > MIN_SCALE) {
-    canvasScale.value = Math.max(MIN_SCALE, Math.round((canvasScale.value - SCALE_STEP) * 10) / 10)
+    withSmoothTransition(() => {
+      canvasScale.value = Math.max(
+        MIN_SCALE,
+        Math.round((canvasScale.value - SCALE_STEP) * 10) / 10
+      )
+    })
   }
 }
 
 const resetScale = () => {
-  canvasScale.value = 1
+  withSmoothTransition(() => {
+    canvasScale.value = 1
+  })
 }
 
 // 滚轮缩放（不需要 Ctrl，直接滚轮）
@@ -1101,6 +1129,8 @@ const handleViewportMouseDown = (e: MouseEvent) => {
   }
 
   isPanning.value = true
+  // 拖拽时禁用平滑动画，确保即时响应
+  enableSmoothTransition.value = false
   panStartX.value = e.clientX
   panStartY.value = e.clientY
   panStartTranslateX.value = canvasTranslateX.value
@@ -1154,14 +1184,23 @@ const centerViewportOnRootNode = () => {
   const viewportCenterX = viewportRect.width / 2
   const viewportCenterY = viewportRect.height / 2
 
+  // 启用平滑动画
+  enableSmoothTransition.value = true
+
   // 计算需要的 canvas 偏移量
   // 当前偏移 + (目标位置 - 当前位置) = 新偏移
   canvasTranslateX.value = canvasTranslateX.value + (viewportCenterX - rootInViewportX)
   canvasTranslateY.value = canvasTranslateY.value + (viewportCenterY - rootInViewportY)
+
+  // 动画结束后禁用平滑过渡
+  setTimeout(() => {
+    enableSmoothTransition.value = false
+  }, SMOOTH_DURATION)
 }
 
 // 适配屏幕（Fit to screen）
 // 计算所有节点的 bounding box，缩放并居中显示
+// 使用 Reset-Then-Measure 算法：先重置 transform，测量原始位置，再应用新 transform
 const fitToScreen = () => {
   const viewport = document.querySelector('.outline-viewport') as HTMLElement
   const canvas = document.querySelector('.outline-canvas') as HTMLElement
@@ -1170,85 +1209,105 @@ const fitToScreen = () => {
     return
   }
 
-  const nodeElements = canvas.querySelectorAll('.tree-node')
-  if (nodeElements.length === 0) {
-    console.log('[fitToScreen] no nodes found')
-    return
-  }
+  // 保存当前 transform（用于日志）
+  const prevScale = canvasScale.value
+  const prevTranslateX = canvasTranslateX.value
+  const prevTranslateY = canvasTranslateY.value
 
-  const viewportRect = viewport.getBoundingClientRect()
+  // 1. 重置 transform 为 identity（关键步骤！消除累积误差）
+  canvasScale.value = 1
+  canvasTranslateX.value = 0
+  canvasTranslateY.value = 0
 
-  // 获取当前所有节点的实际渲染位置（考虑现有的 transform）
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-
-  nodeElements.forEach((node, index) => {
-    const rect = node.getBoundingClientRect()
-    // 转换为相对于 viewport 的坐标
-    const left = rect.left - viewportRect.left
-    const right = rect.right - viewportRect.left
-    const top = rect.top - viewportRect.top
-    const bottom = rect.bottom - viewportRect.top
-
-    if (index < 3 || index >= nodeElements.length - 3) {
-      console.log(`[fitToScreen] node[${index}] actual:`, { left, right, top, bottom })
+  // 2. 等待 DOM 刷新后测量（此时测量的是原始渲染位置，不含 transform）
+  nextTick(() => {
+    const nodeElements = canvas.querySelectorAll('.tree-node')
+    if (nodeElements.length === 0) {
+      console.log('[fitToScreen] no nodes found')
+      return
     }
 
-    minX = Math.min(minX, left)
-    minY = Math.min(minY, top)
-    maxX = Math.max(maxX, right)
-    maxY = Math.max(maxY, bottom)
-  })
+    const viewportRect = viewport.getBoundingClientRect()
 
-  // 计算 bounding box 的尺寸
-  const contentWidth = maxX - minX
-  const contentHeight = maxY - minY
+    // 3. 计算原始 bounding box
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
 
-  console.log('[fitToScreen] actual bbox:', { minX, minY, maxX, maxY, contentWidth, contentHeight })
+    nodeElements.forEach((node, index) => {
+      const rect = node.getBoundingClientRect()
+      const left = rect.left - viewportRect.left
+      const right = rect.right - viewportRect.left
+      const top = rect.top - viewportRect.top
+      const bottom = rect.bottom - viewportRect.top
 
-  // 视口尺寸（留一些边距）
-  const padding = 40
-  const availableWidth = viewportRect.width - padding * 2
-  const availableHeight = viewportRect.height - padding * 2
+      if (index < 3 || index >= nodeElements.length - 3) {
+        console.log(`[fitToScreen] node[${index}] measured:`, { left, right, top, bottom })
+      }
 
-  // 计算需要的缩放比例
-  let targetScale = 1
-  if (contentWidth > 0 && contentHeight > 0) {
-    const scaleX = availableWidth / contentWidth
-    const scaleY = availableHeight / contentHeight
-    targetScale = Math.min(scaleX, scaleY)
-  }
+      minX = Math.min(minX, left)
+      minY = Math.min(minY, top)
+      maxX = Math.max(maxX, right)
+      maxY = Math.max(maxY, bottom)
+    })
 
-  // 限制缩放范围并取整
-  targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
-  targetScale = Math.round(targetScale * 10) / 10
+    const contentWidth = maxX - minX
+    const contentHeight = maxY - minY
 
-  console.log('[fitToScreen] target scale:', targetScale)
+    console.log('[fitToScreen] measured bbox (reset):', {
+      minX,
+      minY,
+      maxX,
+      maxY,
+      contentWidth,
+      contentHeight
+    })
 
-  // 计算当前 bbox 中心和目标中心的偏移
-  const currentCenterX = (minX + maxX) / 2
-  const currentCenterY = (minY + maxY) / 2
-  const targetCenterX = viewportRect.width / 2
-  const targetCenterY = viewportRect.height / 2
+    // 4. 计算缩放比例（带 padding）
+    const padding = 40
+    const availableWidth = viewportRect.width - padding * 2
+    const availableHeight = viewportRect.height - padding * 2
 
-  // 计算需要的调整量
-  // 新位置 = 旧位置 * scale + translate
-  // 我们希望 contentCenter * scale + translate = viewportCenter
-  // 所以 translate = viewportCenter - contentCenter * scale
-  const translateX = targetCenterX - currentCenterX * targetScale
-  const translateY = targetCenterY - currentCenterY * targetScale
+    let targetScale = 1
+    if (contentWidth > 0 && contentHeight > 0) {
+      const scaleX = availableWidth / contentWidth
+      const scaleY = availableHeight / contentHeight
+      targetScale = Math.min(scaleX, scaleY)
+    }
 
-  // 应用变换（直接替换，不是累加）
-  canvasScale.value = targetScale
-  canvasTranslateX.value = translateX
-  canvasTranslateY.value = translateY
+    targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
+    targetScale = Math.round(targetScale * 10) / 10
 
-  console.log('[fitToScreen] result:', {
-    currentCenter: { x: currentCenterX, y: currentCenterY },
-    targetCenter: { x: targetCenterX, y: targetCenterY },
-    transform: { scale: targetScale, translateX, translateY }
+    // 5. 计算居中偏移
+    const contentCenterX = (minX + maxX) / 2
+    const contentCenterY = (minY + maxY) / 2
+    const viewportCenterX = viewportRect.width / 2
+    const viewportCenterY = viewportRect.height / 2
+
+    // 关键公式：viewportCenter = contentCenter * scale + translate
+    // 解出：translate = viewportCenter - contentCenter * scale
+    const translateX = viewportCenterX - contentCenterX * targetScale
+    const translateY = viewportCenterY - contentCenterY * targetScale
+
+    // 6. 启用平滑动画并应用新 transform
+    enableSmoothTransition.value = true
+
+    canvasScale.value = targetScale
+    canvasTranslateX.value = translateX
+    canvasTranslateY.value = translateY
+
+    // 7. 动画结束后禁用平滑过渡（避免影响拖拽）
+    setTimeout(() => {
+      enableSmoothTransition.value = false
+    }, SMOOTH_DURATION)
+
+    console.log('[fitToScreen] applied:', {
+      prevTransform: { scale: prevScale, x: prevTranslateX, y: prevTranslateY },
+      measuredCenter: { x: contentCenterX, y: contentCenterY },
+      targetCenter: { x: viewportCenterX, y: viewportCenterY },
+      newTransform: { scale: targetScale, x: translateX, y: translateY }
+    })
   })
 }
 

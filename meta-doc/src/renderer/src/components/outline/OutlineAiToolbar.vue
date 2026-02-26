@@ -169,9 +169,7 @@ const handleFormatTitle = () => {
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
   ) !important;
-  border-color: v-bind(
-    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
-  ) !important;
+  border: 2px solid v-bind('themeState.currentTheme.textColor') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
@@ -180,9 +178,7 @@ const handleFormatTitle = () => {
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
   ) !important;
-  border-color: v-bind(
-    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
-  ) !important;
+  border: 2px solid v-bind('themeState.currentTheme.textColor') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
@@ -191,9 +187,7 @@ const handleFormatTitle = () => {
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
   ) !important;
-  border-color: v-bind(
-    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
-  ) !important;
+  border: 2px solid v-bind('themeState.currentTheme.textColor') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
   opacity: 0.9;
 }
@@ -227,11 +221,11 @@ const handleFormatTitle = () => {
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
-/* 图标在主题色背景上的颜色 - 亮色主题下反转，暗色主题下保持原样 */
+/* 图标在主题色背景上的颜色 - 保持原样，不反转 */
 .ai-toolbar-btn:hover .ai-toolbar-btn__icon,
 .ai-toolbar-btn--expanded .ai-toolbar-btn__icon,
 .ai-toolbar-btn--selected .ai-toolbar-btn__icon {
-  filter: v-bind('isDarkTheme ? "none" : "brightness(0) invert(1)"');
+  filter: none;
 }
 
 /* 格式化按钮的 hover 样式 - 使用 sidebar 背景色 */
@@ -239,13 +233,11 @@ const handleFormatTitle = () => {
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
   ) !important;
-  border-color: v-bind(
-    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
-  ) !important;
+  border: 2px solid v-bind('themeState.currentTheme.textColor') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
 .ai-toolbar-btn--action:hover .ai-toolbar-btn__icon {
-  filter: v-bind('isDarkTheme ? "none" : "brightness(0) invert(1)"');
+  filter: none;
 }
 </style>

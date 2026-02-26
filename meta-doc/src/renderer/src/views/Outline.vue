@@ -1000,16 +1000,13 @@ onMounted(async () => {
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
   if (dir === 'vertical') {
-    // Note: siblingSpacing is not used by vue3-tree-chart library.
-    // D3 tree layout uses nodeSize([nodeWidth, levelHeight]) where nodeWidth
-    // determines the horizontal spacing between sibling nodes (center-to-center).
-    // The CSS constrains visual node width via max-width: 160px
-    // With nodeWidth: 260, we get: 260 - 160 = 100px spacing between nodes
+    // 正确的间距控制方式：slot 宽 (nodeWidth) > 节点内容宽 (CSS max-width)
+    // 间隙 = (nodeWidth - max-width) / 2，示例：(240 - 140) / 2 = 50px 每侧
     treeConfig.value = {
-      nodeWidth: 360, // D3 nodeSize: distance between node CENTERS
+      nodeWidth: 240, // D3 节点中心间距 = slot 宽度
       nodeHeight: 50,
       levelHeight: 120,
-      siblingSpacing: 100 // Not used by library; gap = nodeWidth - slotWidth = 360 - 160 = 200px
+      siblingSpacing: 80 // 保留但不影响布局
     }
   } else {
     treeConfig.value = {
@@ -1926,13 +1923,6 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   opacity: 1 !important;
 }
 
-/* 关键修复：强制 .node-slot 宽度小于 D3 nodeSize，创造间隙
-   D3 nodeSize 控制节点中心间距，slot 宽度必须小于此值才能有间隙 */
-.outline-tree-inner :deep(.node-slot) {
-  width: 160px !important; /* 视觉宽度 */
-  max-width: 160px !important;
-}
-
 /* 缩放工具栏样式 */
 .zoom-toolbar-divider {
   width: 1px;
@@ -2048,8 +2038,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   justify-content: space-between;
   gap: 8px;
   min-width: 120px;
-  max-width: 100%; /* Constrain to parent slot width */
-  overflow: hidden; /* Prevent content from spilling out */
+  max-width: 140px; /* 节点内容宽度 < nodeWidth，产生居中间隙 */
   box-sizing: border-box;
   transition: all 0.2s;
 }

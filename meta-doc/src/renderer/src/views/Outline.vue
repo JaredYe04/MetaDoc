@@ -1001,10 +1001,10 @@ onMounted(async () => {
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
   if (dir === 'vertical') {
     treeConfig.value = {
-      nodeWidth: 140,
+      nodeWidth: 160,
       nodeHeight: 50,
       levelHeight: 120,
-      siblingSpacing: 50
+      siblingSpacing: 100 // 增加纵向布局的同级节点间距，避免节点拥挤
     }
   } else {
     treeConfig.value = {

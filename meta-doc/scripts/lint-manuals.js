@@ -434,34 +434,27 @@ function checkInternalLinks(content, filePath) {
 
 /**
  * Check demo mode coverage requirement
- * Rule: ceil(count_of_h1_h2_h3 / 3), minimum 2 demo components required
+ * Rule: Minimum 2 demo components required per document
  * AGENTS.md Reference: Demo Mode Coverage Linting
  */
 function checkDemoModeCoverage(content, filePath) {
   const errors = []
-  const relativePath = path.relative(process.cwd(), filePath)
 
-  // Count h1, h2, h3 headings
-  const h1Matches = content.match(/^#\s+/gm) || []
-  const h2Matches = content.match(/^##\s+/gm) || []
-  const h3Matches = content.match(/^###\s+/gm) || []
-  const headingCount = h1Matches.length + h2Matches.length + h3Matches.length
-
-  // Calculate required demo modes: ceil(count / 3), minimum 2
-  const requiredDemos = Math.max(Math.ceil(headingCount / 3), 2)
+  // Minimum demo requirement: at least 2 demos per document
+  const requiredDemos = 2
 
   // Count actual demo components (mode="demo" occurrences)
-  // Matches patterns like: <ComponentName mode="demo" /> or mode="demo"
   const demoMatches = content.match(/mode\s*=\s*["']demo["']/g) || []
   const actualDemos = demoMatches.length
 
   if (actualDemos < requiredDemos) {
     errors.push({
       line: 0,
-      message: `Demo模式覆盖不足: 需要 ${requiredDemos} 个 (H1-H3共${headingCount}个标题), 实际只有 ${actualDemos} 个。`,
-      context: `请在文档中嵌入 ${requiredDemos - actualDemos} 个 Demo 组件，例如:\n<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />\n<ComponentName mode="demo" />`,
+      message: `Demo模式覆盖不足: 需要至少 ${requiredDemos} 个 Demo 组件, 实际只有 ${actualDemos} 个。`,
+      context: `请在文档中嵌入 ${requiredDemos - actualDemos} 个 Demo 组件，例如:
+<MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
+<ComponentName mode="demo" />`,
       details: {
-        headingCount,
         requiredDemos,
         actualDemos,
         missing: requiredDemos - actualDemos

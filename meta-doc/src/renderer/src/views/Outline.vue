@@ -38,14 +38,21 @@
                 </Tooltip>
               </TooltipProvider>
             </h2>
-            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+            <div
+              class="generate-preview-body"
+              :class="{ 'is-node': singleGenerateType === 'children' }"
+            >
               <template v-if="singleGenerateType === 'content'">
-                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                <div class="generate-preview-content generate-preview-content--text">
+                  {{ rawstring }}
+                </div>
               </template>
               <template v-else>
                 <div class="generate-preview-json-wrap">
                   <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
-                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                  <div v-else class="generate-preview-content generate-preview-content--text">
+                    {{ rawstring }}
+                  </div>
                 </div>
               </template>
             </div>
@@ -79,7 +86,9 @@
                 <div class="generate-preview-body batch-panel-body">
                   <div class="generate-preview-json-wrap">
                     <StreamingJsonTree v-if="item.content" :raw="item.content" />
-                    <div v-else class="generate-preview-content generate-preview-content--text">{{ item.content }}</div>
+                    <div v-else class="generate-preview-content generate-preview-content--text">
+                      {{ item.content }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -88,14 +97,21 @@
           <!-- 单任务：待接受/拒绝 -->
           <template v-else-if="pendingAccept">
             <h2>{{ $t('outline.previewResult') }}</h2>
-            <div class="generate-preview-body" :class="{ 'is-node': singleGenerateType === 'children' }">
+            <div
+              class="generate-preview-body"
+              :class="{ 'is-node': singleGenerateType === 'children' }"
+            >
               <template v-if="singleGenerateType === 'content'">
-                <div class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                <div class="generate-preview-content generate-preview-content--text">
+                  {{ rawstring }}
+                </div>
               </template>
               <template v-else>
                 <div class="generate-preview-json-wrap">
                   <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
-                  <div v-else class="generate-preview-content generate-preview-content--text">{{ rawstring }}</div>
+                  <div v-else class="generate-preview-content generate-preview-content--text">
+                    {{ rawstring }}
+                  </div>
                 </div>
               </template>
             </div>
@@ -137,7 +153,9 @@
                 <div class="generate-preview-body batch-panel-body">
                   <div class="generate-preview-json-wrap">
                     <StreamingJsonTree v-if="displayItem.content" :raw="displayItem.content" />
-                    <div v-else class="generate-preview-content generate-preview-content--text">{{ displayItem.content }}</div>
+                    <div v-else class="generate-preview-content generate-preview-content--text">
+                      {{ displayItem.content }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -200,109 +218,124 @@
         </div>
       </ScrollArea>
 
-      <vue-tree
-        ref="treeRef"
-        :key="outlineTreeKey"
-        class="outline-tree-container"
-        :class="{ 'is-dragging': isDraggingNode }"
-        style="width: 100%; height: 100%; border-radius: 18px"
-        :style="{ backgroundColor: themeState.currentTheme.background }"
-        :dataset="treeData"
-        :config="treeConfig"
-        :direction="direction"
-        link-style="straight"
-        @node-click="handleNodeClick"
-        @drag-node-end="handleNodeDrag"
+      <!-- Viewport: 全屏固定视口，捕获事件 -->
+      <div
+        class="outline-viewport"
+        :class="{ 'is-dragging': isDraggingNode, 'is-panning': isPanning }"
+        @mousedown="handleViewportMouseDown"
         @wheel="handleWheelZoom"
       >
-        <template
-          #node="{ node, collapsed }"
-          :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-        >
-          <!-- 如果节点展开，显示详细节点面板 -->
-          <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
-            <div
-              class="detailed-node-wrapper"
-              :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
-              @mousedown.stop
-              @pointerdown.stop
-              @click.stop
-              @contextmenu.prevent="openNodeContextMenu($event, node)"
+        <!-- Canvas: 无限画布层，应用摄像头变换 -->
+        <div class="outline-canvas" :style="canvasTransformStyle">
+          <vue-tree
+            ref="treeRef"
+            :key="outlineTreeKey"
+            class="outline-tree-inner"
+            :class="{ 'is-dragging': isDraggingNode }"
+            :style="{ backgroundColor: themeState.currentTheme.background }"
+            :dataset="treeData"
+            :config="treeConfig"
+            :direction="direction"
+            link-style="straight"
+            @node-click="handleNodeClick"
+            @drag-node-end="handleNodeDrag"
+          >
+            <template
+              #node="{ node, collapsed }"
+              :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
             >
-              <DetailedOutlineNode
-                :node="node"
-                :outlineTree="treeData"
-                :docPath="activeDocument?.path || ''"
-                :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
-                :userPrompt="aiConfig.userPrompt || userPrompt"
-                :temperature="aiConfig.temperature"
-                :wordCount="aiConfig.wordCount"
-                @content-updated="(content: string) => handleNodeContentUpdate(node.path, content)"
-                @cancel="handleNodeContentCancel(node.path)"
-                @collapse="toggleNodeExpand(node.path)"
-                class="detailed-node-inline"
-              />
-            </div>
-          </template>
-          <!-- 如果节点未展开，显示正常节点 -->
-          <template v-else>
-            <TooltipProvider>
-              <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                <TooltipTrigger as-child>
-                  <div
-                    class="tree-node"
-                    :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                    :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
-                    draggable="true"
-                    @dragstart.stop="onNodeDragStart(node)"
-                    @dragover.prevent="onNodeDragOver($event, node)"
-                    @dragleave="onNodeDragLeave(node)"
-                    @drop.stop="onNodeDrop(node, $event)"
-                    @dragend.stop="onNodeDragEnd"
-                    @mousedown.stop
-                    @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                    @contextmenu.prevent="openNodeContextMenu($event, node)"
-                  >
-                    <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{
-                      node.title
-                    }}</span>
-                    <!-- 展开按钮：小尺寸、扁平，不凸起 -->
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger as-child>
-                          <button
-                            type="button"
-                            class="tree-node-expand-btn"
-                            @click.stop="toggleNodeExpand(node.path)"
-                            v-if="node.path !== 'dummy'"
-                            :disabled="pendingAccept || generating"
-                            aria-label="Expand"
-                          >
-                            <ArrowDown class="w-4 h-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>{{ $t('outline.expand') }}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                  <p>{{ node.title }}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
-            <OutlineNodeActionButton
-              v-if="selectedAiTool"
-              :node="node"
-              :pending-accept="pendingAccept"
-              :generating="generating"
-            />
-          </template>
-        </template>
-      </vue-tree>
+              <!-- 如果节点展开，显示详细节点面板 -->
+              <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
+                <div
+                  class="detailed-node-wrapper"
+                  :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
+                  @mousedown.stop
+                  @pointerdown.stop
+                  @click.stop
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <DetailedOutlineNode
+                    :node="node"
+                    :outlineTree="treeData"
+                    :docPath="activeDocument?.path || ''"
+                    :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
+                    :userPrompt="aiConfig.userPrompt || userPrompt"
+                    :temperature="aiConfig.temperature"
+                    :wordCount="aiConfig.wordCount"
+                    @content-updated="
+                      (content: string) => handleNodeContentUpdate(node.path, content)
+                    "
+                    @cancel="handleNodeContentCancel(node.path)"
+                    @collapse="toggleNodeExpand(node.path)"
+                    class="detailed-node-inline"
+                  />
+                </div>
+              </template>
+              <!-- 如果节点未展开，显示正常节点 -->
+              <template v-else>
+                <TooltipProvider>
+                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                    <TooltipTrigger as-child>
+                      <div
+                        class="tree-node"
+                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                        :class="
+                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
+                        "
+                        draggable="true"
+                        @dragstart.stop="onNodeDragStart(node)"
+                        @dragover.prevent="onNodeDragOver($event, node)"
+                        @dragleave="onNodeDragLeave(node)"
+                        @drop.stop="onNodeDrop(node, $event)"
+                        @dragend.stop="onNodeDragEnd"
+                        @mousedown.stop
+                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                        @contextmenu.prevent="openNodeContextMenu($event, node)"
+                      >
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                        <!-- 展开按钮：小尺寸、扁平，不凸起 -->
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <button
+                                type="button"
+                                class="tree-node-expand-btn"
+                                @click.stop="toggleNodeExpand(node.path)"
+                                v-if="node.path !== 'dummy'"
+                                :disabled="pendingAccept || generating"
+                                aria-label="Expand"
+                              >
+                                <ArrowDown class="w-4 h-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>{{ $t('outline.expand') }}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
+                      <p>{{ node.title }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
+                <OutlineNodeActionButton
+                  v-if="selectedAiTool"
+                  :node="node"
+                  :pending-accept="pendingAccept"
+                  :generating="generating"
+                />
+              </template>
+            </template>
+          </vue-tree>
+        </div>
+      </div>
 
       <!-- 节点右键菜单：Teleport 到 body，避免父级 transform 导致 fixed 定位偏移 -->
       <Teleport to="body">

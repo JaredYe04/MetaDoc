@@ -2039,6 +2039,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   gap: 8px;
   min-width: 120px;
   max-width: 140px; /* 节点内容宽度 < nodeWidth，产生居中间隙 */
+  margin: 0 20px; /* 水平外边距增加节点间距 */
   box-sizing: border-box;
   transition: all 0.2s;
 }

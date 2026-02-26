@@ -1000,15 +1000,20 @@ onMounted(async () => {
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
   if (dir === 'vertical') {
+    // Note: siblingSpacing is not used by vue3-tree-chart library.
+    // D3 tree layout uses nodeSize([nodeWidth, levelHeight]) where nodeWidth
+    // determines the horizontal spacing between sibling nodes (center-to-center).
+    // The CSS constrains visual node width via max-width: 160px
+    // With nodeWidth: 260, we get: 260 - 160 = 100px spacing between nodes
     treeConfig.value = {
-      nodeWidth: 160,
+      nodeWidth: 260, // D3 spacing: visual width (160) + gap (100)
       nodeHeight: 50,
       levelHeight: 120,
-      siblingSpacing: 100 // 增加纵向布局的同级节点间距，避免节点拥挤
+      siblingSpacing: 100 // Visual spacing achieved via nodeWidth calculation above
     }
   } else {
     treeConfig.value = {
-      nodeWidth: 140,
+      nodeWidth: 200, // 140 visual + 60 spacing
       nodeHeight: 50,
       levelHeight: 180,
       siblingSpacing: 60
@@ -2029,6 +2034,8 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   justify-content: space-between;
   gap: 8px;
   min-width: 120px;
+  max-width: 160px;
+  box-sizing: border-box;
   transition: all 0.2s;
 }
 

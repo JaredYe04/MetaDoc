@@ -1264,28 +1264,9 @@ const fitToScreen = () => {
   targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
   targetScale = Math.round(targetScale * 10) / 10
 
-  // 计算中心点
-  // 策略1：使用 bbox 的几何中心（当前问题所在）
-  // const contentCenterX = (minX + maxX) / 2
-  // const contentCenterY = (minY + maxY) / 2
-
-  // 策略2：使用根节点的位置作为锚点
-  // 对于树形结构，根节点通常是最左边的节点
-  const rootNode = nodeDataList[0]
-  let contentCenterX: number
-  let contentCenterY: number
-
-  if (direction.value === 'vertical') {
-    // 垂直布局：根节点在 (0,0)，树向右展开
-    // 使用根节点的 x 坐标作为水平锚点，bbox 中心作为垂直锚点
-    contentCenterX = rootNode.x
-    contentCenterY = (minY + maxY) / 2
-  } else {
-    // 水平布局：根节点在上方，树向下展开
-    // 使用根节点的 y 坐标作为垂直锚点，bbox 中心作为水平锚点
-    contentCenterX = (minX + maxX) / 2
-    contentCenterY = rootNode.y
-  }
+  // 计算 bbox 的几何中心
+  const contentCenterX = (minX + maxX) / 2
+  const contentCenterY = (minY + maxY) / 2
 
   // 计算 viewport 中心
   const viewportCenterX = viewportRect.width / 2
@@ -1304,6 +1285,31 @@ const fitToScreen = () => {
   canvasScale.value = targetScale
   canvasTranslateX.value = translateX
   canvasTranslateY.value = translateY
+
+  // 验证：计算缩放后的实际边界位置
+  nextTick(() => {
+    const canvas = document.querySelector('.outline-canvas') as HTMLElement
+    if (canvas) {
+      const firstNode = canvas.querySelector('.tree-node') as HTMLElement
+      const lastNode = canvas.querySelectorAll('.tree-node')[nodeDataList.length - 1] as HTMLElement
+      if (firstNode && lastNode) {
+        const firstRect = firstNode.getBoundingClientRect()
+        const lastRect = lastNode.getBoundingClientRect()
+        const viewportRect = viewport.getBoundingClientRect()
+        console.log('[fitToScreen] verification:', {
+          firstNode: {
+            left: firstRect.left - viewportRect.left,
+            right: firstRect.right - viewportRect.left
+          },
+          lastNode: {
+            left: lastRect.left - viewportRect.left,
+            right: lastRect.right - viewportRect.left
+          },
+          viewport: { width: viewportRect.width }
+        })
+      }
+    }
+  })
 
   console.log('[fitToScreen] result:', {
     bbox: { minX, minY, maxX, maxY, contentWidth, contentHeight },

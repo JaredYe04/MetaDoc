@@ -218,22 +218,20 @@
         </div>
       </ScrollArea>
 
-      <!-- Viewport: 全屏固定，应用 transform（摄像头） -->
+      <!-- Viewport: 全屏固定视口，捕获事件 -->
       <div
         class="outline-viewport"
-        :class="{ 'is-dragging': isDraggingNode }"
-        @mousedown="handleCanvasMouseDown"
+        :class="{ 'is-dragging': isDraggingNode, 'is-panning': isPanning }"
+        @mousedown="handleViewportMouseDown"
         @wheel="handleWheelZoom"
       >
-        <!-- Canvas: 内容层，被摄像头拍摄，应用 transform -->
-        <div class="outline-canvas" :style="canvasWrapperStyle">
+        <!-- Canvas: 无限画布层，应用摄像头变换 -->
+        <div class="outline-canvas" :style="canvasTransformStyle">
           <vue-tree
             ref="treeRef"
             :key="outlineTreeKey"
-            class="outline-tree-container"
+            class="outline-tree-inner"
             :class="{ 'is-dragging': isDraggingNode }"
-            style="width: 5000px; height: 5000px; border-radius: 18px"
-            :style="{ backgroundColor: themeState.currentTheme.background }"
             :dataset="treeData"
             :config="treeConfig"
             :direction="direction"
@@ -638,8 +636,6 @@
             </TooltipContent>
           </Tooltip>
 
-          <div class="zoom-toolbar-divider"></div>
-
           <Tooltip>
             <TooltipTrigger as-child>
               <Button variant="secondary" size="icon" @click="zoomOut">
@@ -651,9 +647,16 @@
             </TooltipContent>
           </Tooltip>
 
-          <div class="zoom-toolbar-scale">
-            <span class="zoom-toolbar-percent">{{ Math.round(scale * 100) }}%</span>
-          </div>
+          <Select v-model="selectedScale">
+            <SelectTrigger class="zoom-toolbar-select">
+              <span class="zoom-toolbar-percent">{{ Math.round(canvasScale * 100) }}%</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="scale in scaleOptions" :key="scale" :value="scale">
+                {{ scale }}%
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
           <Tooltip>
             <TooltipTrigger as-child>
@@ -729,13 +732,13 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowDown,
+  ChevronRight,
+  ChevronDown,
   Check,
   X,
   ArrowUpDown,
-  Maximize,
-  Loader2,
-  ChevronRight,
-  ChevronDown
+  RefreshCw,
+  Loader2
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
@@ -793,6 +796,13 @@ import {
   TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import { Switch } from '@renderer/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
 
 /** 批量生成时单个任务的结果项，用于接受/拒绝 */
 interface BatchAcceptItem {
@@ -966,18 +976,6 @@ watch(
   { deep: true }
 )
 
-// 监听当前文档变化，同步 treeData
-watch(
-  () => activeDocument.value?.outline,
-  (newOutline) => {
-    if (newOutline) {
-      treeData.value = cloneOutline(newOutline)
-      outlineTreeKey.value++ // 强制刷新树
-    }
-  },
-  { deep: true }
-)
-
 // 加载保存的方向设置
 onMounted(async () => {
   const savedDirection = await getSetting('outline.direction', 'horizontal')
@@ -990,10 +988,13 @@ onMounted(async () => {
     Object.assign(aiConfig, savedAiConfig)
   }
 
-  // 等待 vue-tree 渲染后，将摄像头对准根节点
-  setTimeout(() => {
-    centerViewportOnRootNode()
-  }, 100)
+  // 等待 vue-tree 渲染后，自动 fit to screen 显示所有节点
+  // 使用更长的延迟确保节点数据已准备好
+  nextTick(() => {
+    setTimeout(() => {
+      fitToScreen()
+    }, 800)
+  })
 })
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
@@ -1018,114 +1019,65 @@ const toggleLayout = async () => {
   direction.value = direction.value === 'horizontal' ? 'vertical' : 'horizontal'
   updateTreeConfig(direction.value)
   await setSetting('outline.direction', direction.value)
+
+  // 方向改变后，vue-tree 会重新计算节点位置，等待一下再 fit
+  nextTick(() => {
+    setTimeout(() => {
+      fitToScreen()
+    }, 300)
+  })
 }
 
-// 画布缩放和拖动相关
-const scale = ref(1)
-// 初始偏移：让根节点 (0,0) 显示在视口中心
-// 视口大约 800x600，所以初始偏移为视口中心的一半
-const VIEWPORT_CENTER_X = 400
-const VIEWPORT_CENTER_Y = 300
-const translateX = ref(VIEWPORT_CENTER_X)
-const translateY = ref(VIEWPORT_CENTER_Y)
-const isDraggingCanvas = ref(false)
-const dragStartX = ref(0)
-const dragStartY = ref(0)
-const dragStartTranslateX = ref(0)
-const dragStartTranslateY = ref(0)
+// 视口/画布变换系统 - 2D 摄像头模式
+const canvasScale = ref(1)
+const canvasTranslateX = ref(0)
+const canvasTranslateY = ref(0)
+const isPanning = ref(false)
+const panStartX = ref(0)
+const panStartY = ref(0)
+const panStartTranslateX = ref(0)
+const panStartTranslateY = ref(0)
 
-// 缩放范围：50% - 200%，每次增减 10%
+// 画布变换样式（应用到 canvas 层）
+const canvasTransformStyle = computed(() => ({
+  transform: `translate(${canvasTranslateX.value}px, ${canvasTranslateY.value}px) scale(${canvasScale.value})`,
+  transformOrigin: '0 0'
+}))
+
+// 缩放控制
 const MIN_SCALE = 0.5
 const MAX_SCALE = 2.0
 const SCALE_STEP = 0.1
+const scaleOptions = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
+
+// Select 绑定的缩放值
+const selectedScale = computed({
+  get: () => String(Math.round(canvasScale.value * 100)),
+  set: (val: string) => {
+    const num = parseInt(val, 10)
+    if (!isNaN(num)) {
+      canvasScale.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, num / 100))
+    }
+  }
+})
 
 const zoomIn = () => {
-  if (scale.value < MAX_SCALE) {
-    scale.value = Math.min(MAX_SCALE, scale.value + SCALE_STEP)
-    // 将缩放值取整到最接近的0.1
-    scale.value = Math.round(scale.value * 10) / 10
+  if (canvasScale.value < MAX_SCALE) {
+    canvasScale.value = Math.min(MAX_SCALE, Math.round((canvasScale.value + SCALE_STEP) * 10) / 10)
   }
 }
 
 const zoomOut = () => {
-  if (scale.value > MIN_SCALE) {
-    scale.value = Math.max(MIN_SCALE, scale.value - SCALE_STEP)
-    // 将缩放值取整到最接近的0.1
-    scale.value = Math.round(scale.value * 10) / 10
+  if (canvasScale.value > MIN_SCALE) {
+    canvasScale.value = Math.max(MIN_SCALE, Math.round((canvasScale.value - SCALE_STEP) * 10) / 10)
   }
 }
 
 const resetScale = () => {
-  scale.value = 1
-  // 重置到视口中心
-  translateX.value = VIEWPORT_CENTER_X
-  translateY.value = VIEWPORT_CENTER_Y
+  canvasScale.value = 1
 }
 
-// 将摄像头对准根节点（让根节点显示在视口中心）
-const centerViewportOnRootNode = () => {
-  const viewport = document.querySelector('.outline-viewport') as HTMLElement
-  const rootNode = document.querySelector('.tree-node') as HTMLElement
-
-  if (!viewport || !rootNode) return
-
-  const viewportRect = viewport.getBoundingClientRect()
-  const rootNodeRect = rootNode.getBoundingClientRect()
-
-  // 计算根节点相对于视口的位置
-  const rootNodeCenterX = rootNodeRect.left + rootNodeRect.width / 2
-  const rootNodeCenterY = rootNodeRect.top + rootNodeRect.height / 2
-  const viewportCenterX = viewportRect.left + viewportRect.width / 2
-  const viewportCenterY = viewportRect.top + viewportRect.height / 2
-
-  // 计算需要的偏移量（摄像头移动方向与节点位置相反）
-  const offsetX = viewportCenterX - rootNodeCenterX
-  const offsetY = viewportCenterY - rootNodeCenterY
-
-  // 应用偏移
-  translateX.value = offsetX / scale.value
-  translateY.value = offsetY / scale.value
-}
-
-const fitToScreen = () => {
-  const canvasWrapper = document.querySelector('.outline-canvas-wrapper') as HTMLElement
-  const treeContainer = document.querySelector('.outline-tree-container') as HTMLElement
-  if (!canvasWrapper || !treeContainer) return
-
-  // 获取容器和画布的实际尺寸
-  const containerRect = canvasWrapper.parentElement?.getBoundingClientRect()
-  const treeRect = treeContainer.getBoundingClientRect()
-
-  if (!containerRect) return
-
-  // 计算需要的缩放比例（留一些边距）
-  const padding = 40
-  const availableWidth = containerRect.width - padding * 2
-  const availableHeight = containerRect.height - padding * 2
-
-  const scaleX = availableWidth / treeRect.width
-  const scaleY = availableHeight / treeRect.height
-
-  // 使用较小的缩放比例以确保整个画布可见
-  let newScale = Math.min(scaleX, scaleY, 1)
-  // 确保缩放比例在允许范围内
-  newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale))
-  // 取整到最接近的0.1
-  newScale = Math.round(newScale * 10) / 10
-
-  scale.value = newScale
-  translateX.value = 0
-  translateY.value = 0
-}
-
-// 画布包装器样式
-const canvasWrapperStyle = computed(() => ({
-  transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
-  transformOrigin: '0 0', // 从左上角开始变换
-  cursor: isDraggingCanvas.value ? 'grabbing' : 'grab'
-}))
-
-// 鼠标滚轮缩放（不需要 Ctrl）
+// 滚轮缩放（不需要 Ctrl，直接滚轮）
 const handleWheelZoom = (e: WheelEvent) => {
   e.preventDefault()
   if (e.deltaY < 0) {
@@ -1135,43 +1087,199 @@ const handleWheelZoom = (e: WheelEvent) => {
   }
 }
 
-// 画布拖动功能
-const handleCanvasMouseDown = (e: MouseEvent) => {
-  // 只有左键点击且不是点击在节点上时才启动拖动
+// 画布平移（摄像头移动）- 传统拖拽：鼠标右拖，内容左移，摄像头右移
+const handleViewportMouseDown = (e: MouseEvent) => {
+  // 只有左键点击且不是点击在节点上时才启动平移
   if (e.button !== 0) return
 
-  // 检查是否点击在节点上
+  // 检查是否点击在节点或详情节点上
   const target = e.target as HTMLElement
   if (target.closest('.tree-node') || target.closest('.detailed-node-wrapper')) {
     return
   }
 
-  isDraggingCanvas.value = true
-  dragStartX.value = e.clientX
-  dragStartY.value = e.clientY
-  dragStartTranslateX.value = translateX.value
-  dragStartTranslateY.value = translateY.value
+  isPanning.value = true
+  panStartX.value = e.clientX
+  panStartY.value = e.clientY
+  panStartTranslateX.value = canvasTranslateX.value
+  panStartTranslateY.value = canvasTranslateY.value
 
   // 添加全局事件监听器
-  document.addEventListener('mousemove', handleCanvasMouseMove)
-  document.addEventListener('mouseup', handleCanvasMouseUp)
+  document.addEventListener('mousemove', handleViewportMouseMove)
+  document.addEventListener('mouseup', handleViewportMouseUp)
 }
 
-const handleCanvasMouseMove = (e: MouseEvent) => {
-  if (!isDraggingCanvas.value) return
+const handleViewportMouseMove = (e: MouseEvent) => {
+  if (!isPanning.value) return
 
-  const deltaX = e.clientX - dragStartX.value
-  const deltaY = e.clientY - dragStartY.value
+  const deltaX = e.clientX - panStartX.value
+  const deltaY = e.clientY - panStartY.value
 
-  // 鼠标向右拖，内容向右移动（直接跟随鼠标）
-  translateX.value = dragStartTranslateX.value + deltaX
-  translateY.value = dragStartTranslateY.value + deltaY
+  // 传统拖拽：鼠标向右拖，摄像头向右移（内容向左移）
+  // 所以 translateX = startX + deltaX
+  canvasTranslateX.value = panStartTranslateX.value + deltaX
+  canvasTranslateY.value = panStartTranslateY.value + deltaY
 }
 
-const handleCanvasMouseUp = () => {
-  isDraggingCanvas.value = false
-  document.removeEventListener('mousemove', handleCanvasMouseMove)
-  document.removeEventListener('mouseup', handleCanvasMouseUp)
+const handleViewportMouseUp = () => {
+  isPanning.value = false
+  document.removeEventListener('mousemove', handleViewportMouseMove)
+  document.removeEventListener('mouseup', handleViewportMouseUp)
+}
+
+// 将摄像头对准根节点（让根节点显示在视口中心）
+const centerViewportOnRootNode = () => {
+  const viewport = document.querySelector('.outline-viewport') as HTMLElement
+  const canvas = document.querySelector('.outline-canvas') as HTMLElement
+
+  if (!viewport || !canvas) return
+
+  const viewportRect = viewport.getBoundingClientRect()
+
+  // 获取第一个树节点的位置（根节点）
+  const rootNodeElement = canvas.querySelector('.tree-node') as HTMLElement
+  if (!rootNodeElement) return
+
+  // 获取根节点在 canvas 内的相对位置
+  // 注意：此时 canvas 可能已经应用了 transform，需要计算相对于 canvas 原点的位置
+  const rootRect = rootNodeElement.getBoundingClientRect()
+
+  // 计算根节点相对于视口原点的位置
+  const rootInViewportX = rootRect.left - viewportRect.left
+  const rootInViewportY = rootRect.top - viewportRect.top
+
+  // 视口中心
+  const viewportCenterX = viewportRect.width / 2
+  const viewportCenterY = viewportRect.height / 2
+
+  // 计算需要的 canvas 偏移量
+  // 当前偏移 + (目标位置 - 当前位置) = 新偏移
+  canvasTranslateX.value = canvasTranslateX.value + (viewportCenterX - rootInViewportX)
+  canvasTranslateY.value = canvasTranslateY.value + (viewportCenterY - rootInViewportY)
+}
+
+// 适配屏幕（Fit to screen）
+// 计算所有节点的 bounding box，缩放并居中显示
+const fitToScreen = () => {
+  const viewport = document.querySelector('.outline-viewport') as HTMLElement
+  if (!viewport) {
+    console.log('[fitToScreen] viewport not found')
+    return
+  }
+
+  // 从 vue-tree 获取节点数据
+  const vueTreeComponent = treeRef.value
+  if (!vueTreeComponent || !vueTreeComponent.nodeDataList) {
+    console.log('[fitToScreen] nodeDataList not ready', vueTreeComponent)
+    // 如果没有节点数据，重置
+    canvasScale.value = 1
+    canvasTranslateX.value = 0
+    canvasTranslateY.value = 0
+    return
+  }
+
+  const nodeDataList = vueTreeComponent.nodeDataList
+  if (!nodeDataList || nodeDataList.length === 0) {
+    console.log('[fitToScreen] nodeDataList empty')
+    canvasScale.value = 1
+    canvasTranslateX.value = 0
+    canvasTranslateY.value = 0
+    return
+  }
+
+  console.log('[fitToScreen] calculating bbox for', nodeDataList.length, 'nodes')
+
+  const viewportRect = viewport.getBoundingClientRect()
+
+  // 获取节点尺寸配置
+  const nodeWidth = treeConfig.value.nodeWidth
+  const nodeHeight = treeConfig.value.nodeHeight
+
+  // 计算所有节点的 bounding box（使用 D3 坐标）
+  // 注意：vue-tree 中节点位置是中心点，需要计算四个角
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+
+  nodeDataList.forEach((node: { x: number; y: number }) => {
+    // node.x, node.y 是 D3 计算的中心点坐标
+    const centerX = node.x
+    const centerY = node.y
+
+    // 计算节点的四个角（考虑方向）
+    let nodeLeft: number, nodeRight: number, nodeTop: number, nodeBottom: number
+
+    if (direction.value === 'vertical') {
+      // 垂直布局：x 是水平位置，y 是垂直位置
+      nodeLeft = centerX - nodeWidth / 2
+      nodeRight = centerX + nodeWidth / 2
+      nodeTop = centerY - nodeHeight / 2
+      nodeBottom = centerY + nodeHeight / 2
+    } else {
+      // 水平布局：D3 的 x/y 被 swap 了
+      // 在 vue-tree 中：left = direction === VERTICAL ? node.x : node.y
+      nodeLeft = centerY - nodeWidth / 2
+      nodeRight = centerY + nodeWidth / 2
+      nodeTop = centerX - nodeHeight / 2
+      nodeBottom = centerX + nodeHeight / 2
+    }
+
+    minX = Math.min(minX, nodeLeft)
+    minY = Math.min(minY, nodeTop)
+    maxX = Math.max(maxX, nodeRight)
+    maxY = Math.max(maxY, nodeBottom)
+  })
+
+  // 计算 bounding box 的尺寸
+  const contentWidth = maxX - minX
+  const contentHeight = maxY - minY
+
+  // 视口尺寸（留一些边距）
+  const padding = 40
+  const availableWidth = viewportRect.width - padding * 2
+  const availableHeight = viewportRect.height - padding * 2
+
+  // 计算需要的缩放比例
+  let targetScale = 1
+  if (contentWidth > 0 && contentHeight > 0) {
+    const scaleX = availableWidth / contentWidth
+    const scaleY = availableHeight / contentHeight
+    targetScale = Math.min(scaleX, scaleY)
+  }
+
+  // 限制缩放范围并取整
+  targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
+  targetScale = Math.round(targetScale * 10) / 10
+
+  // 计算 bounding box 中心（在 canvas 坐标系中）
+  const contentCenterX = (minX + maxX) / 2
+  const contentCenterY = (minY + maxY) / 2
+
+  // 计算 viewport 中心
+  const viewportCenterX = viewportRect.width / 2
+  const viewportCenterY = viewportRect.height / 2
+
+  // 计算偏移
+  // CSS transform: translate(tx, ty) scale(s)
+  // 最终位置 = (原始位置 + translate) * scale
+  // 我们希望 contentCenter 映射到 viewportCenter
+  // viewportCenter = (contentCenter + translate) * scale
+  // translate = viewportCenter / scale - contentCenter
+  const translateX = viewportCenterX / targetScale - contentCenterX
+  const translateY = viewportCenterY / targetScale - contentCenterY
+
+  // 应用变换
+  canvasScale.value = targetScale
+  canvasTranslateX.value = translateX
+  canvasTranslateY.value = translateY
+
+  console.log('[fitToScreen] result:', {
+    bbox: { minX, minY, maxX, maxY, contentWidth, contentHeight },
+    contentCenter: { x: contentCenterX, y: contentCenterY },
+    viewportCenter: { x: viewportCenterX, y: viewportCenterY },
+    transform: { scale: targetScale, translateX, translateY }
+  })
 }
 
 // 节点展开状态管理
@@ -1448,6 +1556,7 @@ const pendingAccept = ref(false)
 const pendingBatchAccept = ref<BatchAcceptState | null>(null)
 const backupChildren = ref<DocumentOutlineNode[] | null>(null)
 const backupContent = ref<string>('')
+const singleGenerateType = ref<'content' | 'children'>('children') // 单任务生成类型：内容或子节点
 
 const generateChildChapter = async () => {
   workspace.lockUI?.()
@@ -1508,7 +1617,9 @@ const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
   if (index !== -1) {
     parent.children.splice(index, 1)
   } else {
-    parent.children.forEach((child) => removeNode(child, node))
+    parent.children.forEach((child) => {
+      removeNode(child, node)
+    })
   }
 }
 
@@ -1714,7 +1825,106 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+}
+
+/* 无限画布视口系统 */
+.outline-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.outline-viewport.is-panning {
+  cursor: grabbing;
+}
+
+.outline-viewport.is-dragging {
+  cursor: default;
+}
+
+/* 画布层 - 尺寸由内容决定，vue-tree 内部会计算合适的初始 transform
+   我们只需要让 canvas 可以自由扩展即可 */
+.outline-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  min-height: 100%;
+  /* 变换由 JS 动态应用 */
+  will-change: transform;
+}
+
+.outline-tree-inner {
+  width: 100%;
+  height: 100%;
+  /* 覆盖 vue-tree 内部的 overflow 限制，防止内容被截断 */
+  overflow: visible !important;
+  /* 容器本身透明 */
+  background: transparent !important;
+}
+
+/* 覆盖 vue-tree 内部的 tree-container 样式 */
+.outline-tree-inner :deep(.tree-container) {
+  overflow: visible !important;
+  width: 100% !important;
+  height: 100% !important;
+  /* 容器本身透明 */
+  background: transparent !important;
+}
+
+/* 覆盖 vue-tree 内部的 dom-container 和 svg 尺寸限制 */
+.outline-tree-inner :deep(.dom-container),
+.outline-tree-inner :deep(.vue-tree) {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  transform-origin: 0 0 !important;
+  /* 容器本身透明 */
+  background: transparent !important;
+}
+
+/* 缩放工具栏样式 */
+.zoom-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  margin: 0 4px;
+}
+
+.zoom-toolbar-scale {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 0 8px;
+}
+
+.zoom-toolbar-percent {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+/* Select 触发器 - 应用主题色 */
+.zoom-toolbar-select {
+  min-width: 120px;
+  height: 36px;
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.zoom-toolbar-select:hover {
+  background-color: var(--accent) !important;
+}
+
+/* 底栏按钮统一为正方形 */
+.bottom-menu :deep(button) {
+  width: 36px;
+  height: 36px;
+  padding: 0;
 }
 
 .generate-preview {
@@ -1786,12 +1996,6 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .generate-preview-actions--batch {
   justify-content: space-between;
-}
-
-.outline-tree-container {
-  flex: 0 0 auto;
-  width: 5000px;
-  height: 5000px;
 }
 
 .tree-node {
@@ -1884,66 +2088,14 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .bottom-menu {
   position: fixed;
-  bottom: 32px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px;
   border-radius: 12px;
   z-index: 100;
-  align-items: center;
-}
-
-.zoom-toolbar-divider {
-  width: 1px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.1);
-  margin: 0 4px;
-}
-
-.zoom-toolbar-scale {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  padding: 0 8px;
-}
-
-.zoom-toolbar-percent {
-  font-size: 13px;
-  font-weight: 500;
-  color: inherit;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Viewport: 全屏固定视口（摄像头） */
-.outline-viewport {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  cursor: grab;
-  user-select: none;
-  min-width: 0;
-  min-height: 0;
-}
-
-.outline-viewport:active {
-  cursor: grabbing;
-}
-
-.outline-viewport.is-dragging {
-  cursor: grabbing;
-}
-
-/* Canvas: 内容层（被拍摄的世界），应用 transform */
-.outline-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 5000px;
-  height: 5000px;
-  transform-origin: 0 0;
 }
 
 .ai-config-body {

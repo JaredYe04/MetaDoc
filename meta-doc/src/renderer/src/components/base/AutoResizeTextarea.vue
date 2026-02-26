@@ -5,8 +5,6 @@
         ref="textareaRef"
         :value="modelValue"
         @input="handleInput"
-        @focus="handleFocus"
-        @blur="handleBlur"
         class="auto-resize-textarea-input"
         :disabled="disabled"
         :placeholder="placeholder"
@@ -15,39 +13,27 @@
       />
     </ScrollArea>
     <!-- 预设提示词下拉菜单：以按钮为 reference，使 popover 定位在按钮旁 -->
-    <el-popover
-      v-if="presetOptions && presetOptions.length > 0"
-      v-model:visible="showPresetDropdown"
-      placement="bottom-end"
-      :width="300"
-      trigger="manual"
-      popper-class="preset-popover"
-    >
-      <template #reference>
-        <el-button
-          type="text"
-          size="small"
-          class="preset-dropdown-trigger"
-          @click.stop="togglePresetDropdown"
-        >
-          <el-icon>
-            <ArrowDown />
-          </el-icon>
-        </el-button>
-      </template>
-      <el-scrollbar class="preset-list-scrollbar" max-height="280px">
-        <div class="preset-list">
-          <div
-            v-for="preset in presetOptions"
-            :key="preset.value"
-            class="preset-item"
-            @click="handlePresetClick(preset)"
-          >
-            {{ preset.label }}
+    <Popover v-if="presetOptions && presetOptions.length > 0" v-model:open="showPresetDropdown">
+      <PopoverTrigger as-child>
+        <Button variant="link" size="sm" class="preset-dropdown-trigger">
+          <ChevronDown class="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent class="w-[300px] p-0" align="end">
+        <ScrollArea class="h-[280px]">
+          <div class="preset-list">
+            <div
+              v-for="preset in presetOptions"
+              :key="preset.value"
+              class="preset-item"
+              @click="handlePresetClick(preset)"
+            >
+              {{ preset.label }}
+            </div>
           </div>
-        </div>
-      </el-scrollbar>
-    </el-popover>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   </div>
 </template>
 
@@ -55,9 +41,10 @@
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { themeState, colorWithOpacity } from '../../utils/themes'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { Button } from '@renderer/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@renderer/components/ui/popover'
+import { ChevronDown } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
-import { ElButton, ElIcon } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 
@@ -174,42 +161,6 @@ const dropdownMenuStyle = computed(() => {
     zIndex: 2000
   }
 })
-
-// 切换预设下拉菜单
-const togglePresetDropdown = (event: MouseEvent) => {
-  event.stopPropagation()
-  showPresetDropdown.value = !showPresetDropdown.value
-}
-
-// 处理焦点事件
-const handleFocus = () => {
-  // 焦点时不做任何操作
-}
-
-// 处理失焦事件：若焦点移到预设按钮或 popover 内则不关闭，避免“先 focus 输入框再点展开按钮”时展开后立刻被关掉
-const handleBlur = (event: FocusEvent) => {
-  const relatedTarget = event.relatedTarget as Node | null
-  if (relatedTarget && typeof (relatedTarget as HTMLElement).closest === 'function') {
-    const el = relatedTarget as HTMLElement
-    if (
-      el.closest('.preset-dropdown-trigger') ||
-      el.closest('.preset-popover') ||
-      el.closest('.preset-dropdown-menu')
-    ) {
-      return
-    }
-  }
-  setTimeout(() => {
-    if (!showPresetDropdown.value) {
-      return
-    }
-    const activeEl = document.activeElement
-    if (activeEl && (activeEl as HTMLElement).closest?.('.preset-popover')) {
-      return
-    }
-    showPresetDropdown.value = false
-  }, 200)
-}
 
 // 处理预设点击
 const handlePresetClick = (preset: PresetOption) => {

@@ -79,7 +79,7 @@
 <script setup lang="ts">
 import { inject, computed } from 'vue'
 import { Button } from '@renderer/components/ui/button'
-import { themeState } from '../../utils/themes'
+import { themeState, colorWithOpacity } from '../../utils/themes'
 import { notifyInfo } from '../../utils/notify'
 
 // Demo mode support
@@ -98,6 +98,9 @@ const selectedAiToolRef = inject<{ value: AiTool }>('outlineSelectedAiTool')!
 const selectedAiTool = computed(() => selectedAiToolRef.value)
 const toggleAiTool = inject<ToggleAiToolFn>('outlineToggleAiTool')!
 const formatTitle = inject<() => void>('outlineFormatTitle')!
+
+// 判断当前是否为暗色主题
+const isDarkTheme = computed(() => themeState.currentTheme.type === 'dark')
 
 // Demo mode handler for AI tools
 const handleToggleAiTool = (tool: Exclude<AiTool, null>) => {
@@ -156,13 +159,43 @@ const handleFormatTitle = () => {
   padding: 0;
 }
 
-/* 按钮 hover 时展开 - 固定宽度 160px */
+/* 按钮 hover 时展开 - 固定宽度 160px，使用 sidebar 背景色 */
 .ai-toolbar-btn:hover,
 .ai-toolbar-btn--expanded {
   width: 160px;
   padding: 0 12px !important;
   justify-content: flex-start;
   align-items: center;
+  background-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  border-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  color: v-bind('themeState.currentTheme.textColor') !important;
+}
+
+/* 选中状态的按钮样式 - 使用 sidebar 背景色 */
+.ai-toolbar-btn--selected {
+  background-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  border-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  color: v-bind('themeState.currentTheme.textColor') !important;
+}
+
+/* 确保选中状态下hover保持 */
+.ai-toolbar-btn--selected:hover {
+  background-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  border-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  color: v-bind('themeState.currentTheme.textColor') !important;
+  opacity: 0.9;
 }
 
 /* 图标样式 - 在按钮内垂直水平居中 */
@@ -185,11 +218,34 @@ const handleFormatTitle = () => {
   margin-left: 0;
 }
 
-/* hover 或展开时显示文字 */
+/* hover 或展开时显示文字 - 使用主题文字颜色确保对比度 */
 .ai-toolbar-btn:hover .ai-toolbar-btn__label,
 .ai-toolbar-btn--expanded .ai-toolbar-btn__label {
   display: inline;
   opacity: 1;
   margin-left: 8px;
+  color: v-bind('themeState.currentTheme.textColor') !important;
+}
+
+/* 图标在主题色背景上的颜色 - 亮色主题下反转，暗色主题下保持原样 */
+.ai-toolbar-btn:hover .ai-toolbar-btn__icon,
+.ai-toolbar-btn--expanded .ai-toolbar-btn__icon,
+.ai-toolbar-btn--selected .ai-toolbar-btn__icon {
+  filter: v-bind('isDarkTheme ? "none" : "brightness(0) invert(1)"');
+}
+
+/* 格式化按钮的 hover 样式 - 使用 sidebar 背景色 */
+.ai-toolbar-btn--action:hover {
+  background-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  border-color: v-bind(
+    'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
+  ) !important;
+  color: v-bind('themeState.currentTheme.textColor') !important;
+}
+
+.ai-toolbar-btn--action:hover .ai-toolbar-btn__icon {
+  filter: v-bind('isDarkTheme ? "none" : "brightness(0) invert(1)"');
 }
 </style>

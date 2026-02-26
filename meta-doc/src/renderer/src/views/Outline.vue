@@ -220,13 +220,14 @@
 
       <!-- Viewport: 全屏固定视口，捕获事件 -->
       <div
+        ref="viewportRef"
         class="outline-viewport"
         :class="{ 'is-dragging': isDraggingNode, 'is-panning': isPanning }"
         @mousedown="handleViewportMouseDown"
         @wheel="handleWheelZoom"
       >
         <!-- Canvas: 无限画布层，应用摄像头变换 -->
-        <div class="outline-canvas" :style="canvasTransformStyle">
+        <div ref="canvasRef" class="outline-canvas" :style="canvasTransformStyle">
           <vue-tree
             ref="treeRef"
             :key="outlineTreeKey"
@@ -1055,11 +1056,20 @@ const canvasTransformStyle = computed(() => ({
     : 'none'
 }))
 
-// 缩放控制
-const MIN_SCALE = 0.5
-const MAX_SCALE = 2.0
-const SCALE_STEP = 0.1
-const scaleOptions = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
+// 缩放控制：范围 0.001% ~ 5000%，使用倍数序列
+const MIN_SCALE = 0.00001  // 0.001%
+const MAX_SCALE = 50       // 5000%
+const FIT_TO_SCREEN_MEASURE_SCALE = 0.02  // fitToScreen 测量时使用的缩放值（2%）
+// 倍数序列：每个级别约为上一个的 1.5 倍（近似）
+const scaleOptions = [
+  0.001, 0.002, 0.003, 0.005, 0.008,  // 0.001% - 0.008%
+  0.01, 0.015, 0.02, 0.03, 0.05, 0.08, // 0.01% - 0.08%
+  0.1, 0.15, 0.2, 0.3, 0.5, 0.8,       // 0.1% - 0.8%
+  1, 1.5, 2, 3, 5, 8,                  // 1% - 8%
+  10, 15, 20, 30, 50, 80,              // 10% - 80%
+  100, 150, 200, 300, 500, 800,        // 100% - 800%
+  1000, 1500, 2000, 3000, 5000         // 1000% - 5000%
+]
 
 // Select 绑定的缩放值
 const selectedScale = computed({
@@ -1081,24 +1091,26 @@ const withSmoothTransition = (fn: () => void) => {
   }, SMOOTH_DURATION)
 }
 
+// 查找当前缩放值在序列中的位置，并跳到下一个更大的级别
 const zoomIn = () => {
-  if (canvasScale.value < MAX_SCALE) {
+  const currentPercent = canvasScale.value * 100
+  // 找到第一个比当前值大的级别
+  const nextLevel = scaleOptions.find((level) => level > currentPercent)
+  if (nextLevel) {
     withSmoothTransition(() => {
-      canvasScale.value = Math.min(
-        MAX_SCALE,
-        Math.round((canvasScale.value + SCALE_STEP) * 10) / 10
-      )
+      canvasScale.value = Math.min(MAX_SCALE, nextLevel / 100)
     })
   }
 }
 
+// 查找当前缩放值在序列中的位置，并跳到下一个更小的级别
 const zoomOut = () => {
-  if (canvasScale.value > MIN_SCALE) {
+  const currentPercent = canvasScale.value * 100
+  // 找到最后一个比当前值小的级别
+  const prevLevel = [...scaleOptions].reverse().find((level) => level < currentPercent)
+  if (prevLevel) {
     withSmoothTransition(() => {
-      canvasScale.value = Math.max(
-        MIN_SCALE,
-        Math.round((canvasScale.value - SCALE_STEP) * 10) / 10
-      )
+      canvasScale.value = Math.max(MIN_SCALE, prevLevel / 100)
     })
   }
 }
@@ -1204,26 +1216,44 @@ const centerViewportOnRootNode = () => {
 // 计算所有节点的 bounding box，缩放并居中显示
 // 使用 Reset-Then-Measure 算法：先重置 transform，测量原始位置，再应用新 transform
 const fitToScreen = () => {
-  const viewport = document.querySelector('.outline-viewport') as HTMLElement
-  const canvas = document.querySelector('.outline-canvas') as HTMLElement
+  // 使用 ref 获取当前组件内的元素，而不是全局查询（避免跨 tab 问题）
+  const viewport = viewportRef.value
+  const canvas = canvasRef.value
   if (!viewport || !canvas) {
     console.log('[fitToScreen] viewport or canvas not found')
     return
   }
+
+  // 诊断日志：检查跨 tab 状态
+  console.log('[fitToScreen] activeTab:', activeTabId.value)
+  console.log('[fitToScreen] treeData root:', treeData.value?.path, 'children:', treeData.value?.children?.length)
+  console.log('[fitToScreen] canvas ref:', canvas)
+  console.log('[fitToScreen] canvas node count:', canvas.querySelectorAll('.tree-node').length)
+  console.log('[fitToScreen] current canvasScale:', canvasScale.value)
 
   // 保存当前 transform（用于日志）
   const prevScale = canvasScale.value
   const prevTranslateX = canvasTranslateX.value
   const prevTranslateY = canvasTranslateY.value
 
-  // 1. 重置 transform 为 identity（关键步骤！消除累积误差）
-  canvasScale.value = 1
+  // 1. 重置 transform 为很小的值，确保所有节点都在视口内渲染
+  // 禁用 transition 避免动画延迟，确保立即生效
+  enableSmoothTransition.value = false
+  canvasScale.value = FIT_TO_SCREEN_MEASURE_SCALE
   canvasTranslateX.value = 0
   canvasTranslateY.value = 0
 
-  // 2. 等待 DOM 刷新后测量（此时测量的是原始渲染位置，不含 transform）
+  // 2. 等待 DOM 刷新并给 D3 布局计算时间后再测量
+  // nextTick 只等待 Vue 渲染，D3 布局是异步的，需要额外延迟
   nextTick(() => {
-    const nodeElements = canvas.querySelectorAll('.tree-node')
+    requestAnimationFrame(() => {
+      // 使用 ref 获取当前组件内的 canvas（避免跨 tab 查询到错误的元素）
+      const freshCanvas = canvasRef.value
+      if (!freshCanvas) {
+        console.log('[fitToScreen] fresh canvas not found')
+        return
+      }
+      const nodeElements = freshCanvas.querySelectorAll('.tree-node')
     if (nodeElements.length === 0) {
       console.log('[fitToScreen] no nodes found')
       return
@@ -1267,19 +1297,28 @@ const fitToScreen = () => {
     })
 
     // 4. 计算缩放比例（带 padding）
+    // 注意：测量时 canvas 缩放到 FIT_TO_SCREEN_MEASURE_SCALE，所以 contentWidth/Height 是基于该缩放的
+    // 需要除以该值换算回原始尺寸，再计算目标缩放
     const padding = 40
     const availableWidth = viewportRect.width - padding * 2
     const availableHeight = viewportRect.height - padding * 2
 
     let targetScale = 1
     if (contentWidth > 0 && contentHeight > 0) {
-      const scaleX = availableWidth / contentWidth
-      const scaleY = availableHeight / contentHeight
+      const originalContentWidth = contentWidth / FIT_TO_SCREEN_MEASURE_SCALE
+      const originalContentHeight = contentHeight / FIT_TO_SCREEN_MEASURE_SCALE
+      const scaleX = availableWidth / originalContentWidth
+      const scaleY = availableHeight / originalContentHeight
       targetScale = Math.min(scaleX, scaleY)
     }
 
     targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
-    targetScale = Math.round(targetScale * 10) / 10
+    // 将计算出的缩放值对齐到最近的 scaleOptions 等级
+    const targetPercent = targetScale * 100
+    const closestLevel = scaleOptions.reduce((prev, curr) =>
+      Math.abs(curr - targetPercent) < Math.abs(prev - targetPercent) ? curr : prev
+    )
+    targetScale = closestLevel / 100
 
     // 5. 计算居中偏移
     const contentCenterX = (minX + maxX) / 2
@@ -1309,6 +1348,7 @@ const fitToScreen = () => {
       measuredCenter: { x: contentCenterX, y: contentCenterY },
       targetCenter: { x: viewportCenterX, y: viewportCenterY },
       newTransform: { scale: targetScale, x: translateX, y: translateY }
+    })
     })
   })
 }
@@ -1813,6 +1853,8 @@ const startDrag = (e: MouseEvent) => {
   // 实现从原文件保留
 }
 const treeRef = ref<any>(null)
+const canvasRef = ref<HTMLElement | null>(null)
+const viewportRef = ref<HTMLElement | null>(null)
 const editNodeValue = ref('')
 const currentChapterValue = ref('')
 const currentChapterContent = ref('')

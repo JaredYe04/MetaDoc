@@ -962,10 +962,10 @@ function collectAllNodes(node: DocumentOutlineNode, out: DocumentOutlineNode[]):
 
 const direction = ref<'horizontal' | 'vertical'>('horizontal')
 const treeConfig = ref({
-  nodeWidth: 140,
-  nodeHeight: 50,
-  levelHeight: 150,
-  siblingSpacing: 40
+  nodeWidth: 250,
+  nodeHeight: 160,
+  levelHeight: 200,
+  siblingSpacing: 500
 })
 
 // 监听主题变化
@@ -1000,13 +1000,13 @@ onMounted(async () => {
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
   if (dir === 'vertical') {
-    // 正确的间距控制方式：slot 宽 (nodeWidth) > 节点内容宽 (CSS max-width)
-    // 间隙 = (nodeWidth - max-width) / 2，示例：(240 - 140) / 2 = 50px 每侧
+    // nodeWidth 控制 D3 节点中心间距（即 slot 宽度）
+    // siblingSpacing 不被库使用，间距完全由 nodeWidth 控制
     treeConfig.value = {
-      nodeWidth: 240, // D3 节点中心间距 = slot 宽度
-      nodeHeight: 50,
-      levelHeight: 120,
-      siblingSpacing: 80 // 保留但不影响布局
+      nodeWidth: 250, // 控制节点水平间距（中心到中心）
+      nodeHeight: 160,
+      levelHeight: 200,
+      siblingSpacing: 500 // 不被库使用，仅作参考
     }
   } else {
     treeConfig.value = {

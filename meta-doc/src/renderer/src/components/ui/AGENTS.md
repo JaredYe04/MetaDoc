@@ -67,8 +67,43 @@ components/ui/
 
 - Do NOT manually create shadcn components — always use the CLI installer
 - Do NOT modify core reka-ui behavior in component files — use wrapper components instead
-- Avoid duplicating shadcn functionality with Element Plus equivalents in new code
+- **NEVER use Element Plus in new code** — shadcn-vue is the ONLY choice for new UI
 - Custom components (UIMenu, etc.) alongside shadcn are for project-specific patterns
+
+## DEVELOPMENT POLICY (CRITICAL)
+
+### shadcn-vue ONLY for New Development
+
+**Status**: Element Plus → shadcn-vue migration is **ongoing**.
+
+| Development Type          | UI Framework        | Action                                            |
+| ------------------------- | ------------------- | ------------------------------------------------- |
+| New features              | **shadcn-vue ONLY** | Install with CLI, use `lucide-vue-next` for icons |
+| Bug fixes with UI changes | **shadcn-vue ONLY** | Replace Element Plus components during fix        |
+| Refactoring existing UI   | **shadcn-vue**      | Gradually replace Element Plus                    |
+| Maintenance on legacy     | Element Plus        | Keep as-is unless fixing bugs                     |
+
+### Installation Checklist
+
+Before using a component:
+
+1. Check if it exists in `components/ui/`
+2. If missing, run `npx shadcn-vue@latest add <component>`
+3. Import from `@renderer/components/ui/<component>`
+4. Use `lucide-vue-next` for icons (NOT `@element-plus/icons-vue`)
+
+### Migration Pattern
+
+```vue
+<!-- Before (Element Plus) -->
+<el-button type="primary" size="small" :icon="Plus">Add</el-button>
+
+<!-- After (shadcn-vue) -->
+<Button size="sm">
+  <Plus :size="16" />
+  Add
+</Button>
+```
 
 ## CUSTOM COMPONENTS
 

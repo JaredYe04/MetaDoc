@@ -198,6 +198,7 @@ meta-doc/
 - **Don't use deprecated paths** — express-server.ts legacy, export-manager.obsolete.ts, legacy-exports.js
 - **New code = TypeScript** — renderer bootstrap and utils are JS legacy
 - **Prompt changes need review** — `locale_prompts/*.json`, `prompts.ts`
+- **New UI MUST use shadcn-vue** — See "UI Component Priority" below
 
 ## COMMANDS
 
@@ -234,6 +235,74 @@ npm run rebuild-native   # Rebuild better-sqlite3
 - `.env` required at root, copied to `resources/` at build
 - Capacitor 7 in `android/` — shares code via conditional compilation
 - **Element Plus → shadcn-vue migration ongoing** — new UI uses shadcn only
+
+---
+
+## UI Component Priority (CRITICAL)
+
+### Rule: New UI MUST use shadcn-vue
+
+**Migration Status**: Element Plus → shadcn-vue is **ongoing**. All **new** development and **bug fixes** MUST use shadcn-vue components.
+
+### Priority Matrix
+
+| Scenario                    | Priority        | Action                                      |
+| --------------------------- | --------------- | ------------------------------------------- |
+| New feature UI              | **shadcn ONLY** | Import from `@renderer/components/ui/*`     |
+| Bug fix requiring UI change | **shadcn ONLY** | Replace Element Plus with shadcn equivalent |
+| Existing Element Plus code  | Keep as-is      | Don't refactor unless fixing bugs           |
+| Missing shadcn component    | Install new     | `npx shadcn-vue@latest add <component>`     |
+
+### shadcn-vue Usage Pattern
+
+```vue
+<!-- ✅ CORRECT: Use shadcn-vue -->
+<script setup>
+import { Button } from '@renderer/components/ui/button'
+import { X } from 'lucide-vue-next'
+</script>
+<template>
+  <Button variant="default" size="sm">
+    <X :size="14" />
+    Close
+  </Button>
+</template>
+```
+
+```vue
+<!-- ❌ FORBIDDEN: Adding new Element Plus code -->
+<template>
+  <el-button size="small" :icon="Close">Close</el-button>
+</template>
+```
+
+### Icon System
+
+- **Use**: `lucide-vue-next` (shadcn standard)
+- **Don't use**: `@element-plus/icons-vue`
+
+```typescript
+// ✅ CORRECT
+import { X, FileText, Plus } from 'lucide-vue-next'
+
+// ❌ FORBIDDEN for new code
+import { Close, Document, Plus } from '@element-plus/icons-vue'
+```
+
+### When to Use Element Plus (Legacy Only)
+
+1. **Existing code**: Don't refactor working code just for migration
+2. **ElMessageBox/ElMessage**: Notification system still uses Element Plus (migration pending)
+3. **Complex legacy components**: Gradual migration planned
+
+### Verification Checklist
+
+Before committing UI changes:
+
+- [ ] No new `el-` prefixed components added
+- [ ] Icons imported from `lucide-vue-next`
+- [ ] shadcn components imported from `@renderer/components/ui/*`
+- [ ] If shadcn component missing, install via CLI instead of using Element Plus
 
 ---
 

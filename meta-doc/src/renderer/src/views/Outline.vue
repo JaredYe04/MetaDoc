@@ -476,10 +476,12 @@
               <span>{{ $t('outline.adjustMarkdown') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.adjustMarkdownTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -505,10 +507,12 @@
               <span>{{ $t('outline.adjustTitle') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.adjustTitle" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.adjustTitle" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.adjustTitleTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -518,10 +522,12 @@
               <span>{{ $t('outline.coverOriginalNumber') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.cover" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.cover" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.coverTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -531,10 +537,12 @@
               <span>{{ $t('outline.level1Chinese') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.level1ChineseTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -554,6 +562,29 @@
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <!-- 移除前缀确认对话框 -->
+      <AlertDialog v-model:open="removePrefixesDialogVisible">
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{{ $t('outline.warning') }}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {{ $t('outline.removePrefixesConfirm') }}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel @click="removePrefixesDialogVisible = false">
+              {{ $t('outline.cancel') }}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              @click="executeRemovePrefixes"
+              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {{ $t('outline.confirm') }}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog v-model:open="editValueDialogVisible">
         <DialogContent class="sm:max-w-[40%]">
@@ -864,6 +895,16 @@ import {
   DialogTitle
 } from '@renderer/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@renderer/components/ui/alert-dialog-shadcn'
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -951,6 +992,7 @@ const rawstring = ref('')
 const generatedText = ref('')
 
 let suppressDocumentSync = false
+let commitOutlineTimer: NodeJS.Timeout | null = null
 
 const commitOutline = async (outline?: DocumentOutlineNode) => {
   const tabId = activeTabId.value
@@ -986,6 +1028,7 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
 }
 
 const formatTitleDialogVisible = ref(false)
+const removePrefixesDialogVisible = ref(false)
 const formatTitle = () => {
   formatTitleDialogVisible.value = true
 }
@@ -2452,39 +2495,34 @@ const changeNodeValue = () => {
   curNode.text = currentChapterContent.value
   editValueDialogVisible.value = false
 }
+// 执行移除前缀操作
+const executeRemovePrefixes = async () => {
+  backupOutlineTree.value = cloneOutline(treeData.value)
+
+  // 暂停文档同步，避免触发 watch 导致循环
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+
+  try {
+    let modifiedTree = cloneOutline(treeData.value)
+    modifiedTree = removeAllTitlePrefixes(modifiedTree)
+
+    // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+    treeData.value = modifiedTree
+
+    // 手动提交更改
+    await commitOutline(modifiedTree)
+
+    formatTitleDialogVisible.value = false
+    eventBus.emit('show-success', t('outline.removePrefixesSuccess'))
+  } finally {
+    // 恢复同步状态
+    suppressDocumentSync = prevSync
+  }
+}
+
 const handleRemovePrefixes = () => {
-  ElMessageBox.confirm(t('outline.removePrefixesConfirm'), t('outline.warning'), {
-    confirmButtonText: t('outline.confirm'),
-    cancelButtonText: t('outline.cancel'),
-    type: 'warning'
-  })
-    .then(async () => {
-      backupOutlineTree.value = cloneOutline(treeData.value)
-
-      // 暂停文档同步，避免触发 watch 导致循环
-      const prevSync = suppressDocumentSync
-      suppressDocumentSync = true
-
-      try {
-        let modifiedTree = cloneOutline(treeData.value)
-        modifiedTree = removeAllTitlePrefixes(modifiedTree)
-
-        // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
-        treeData.value = modifiedTree
-
-        // 手动提交更改
-        await commitOutline(modifiedTree)
-
-        formatTitleDialogVisible.value = false
-        eventBus.emit('show-success', t('outline.removePrefixesSuccess'))
-      } finally {
-        // 恢复同步状态
-        suppressDocumentSync = prevSync
-      }
-    })
-    .catch(() => {
-      // 用户取消，不做任何操作
-    })
+  removePrefixesDialogVisible.value = true
 }
 const executeFormatTitle = async () => {
   backupOutlineTree.value = cloneOutline(treeData.value)

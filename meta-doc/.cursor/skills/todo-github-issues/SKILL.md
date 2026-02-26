@@ -265,7 +265,35 @@ flowchart TD
 
 ````
 
-### 3.3 创建命令
+### 3.3 Agent 身份披露（强制）
+
+**所有通过 `gh` 命令创建的 Issues、评论和关闭操作，必须在正文末尾添加以下免责声明：**
+
+```
+（本条消息由 Agent 发布，也许是幻觉请仔细甄别）
+```
+
+**获取当前登录用户：**
+```bash
+gh api user -q '.login'
+```
+
+**示例（创建 Issue）：**
+```bash
+gh issue create \
+  --repo <owner>/<repo> \
+  --title "[类型] 描述 - 文件路径:行号" \
+  --body $'正文内容\n\n（本条消息由 Agent 发布，也许是幻觉请仔细甄别）' \
+  --label "enhancement"
+```
+
+**示例（添加评论）：**
+```bash
+gh issue comment <number> --repo <owner>/<repo> \
+  --body $'评论内容\n\n（本条消息由 Agent 发布，也许是幻觉请仔细甄别）'
+```
+
+### 3.4 创建命令
 
 ```bash
 gh issue create \
@@ -343,8 +371,10 @@ gh issue create \
 
 - [ ] 准备 Issue 标题（遵循仓库规范）
 - [ ] 准备 Issue 正文（包含代码位置、描述、实现思路）
+- [ ] **在正文末尾添加 Agent 免责声明**：`（本条消息由 Agent 发布，也许是幻觉请仔细甄别）`
+- [ ] 获取当前 GitHub 用户：`gh api user -q '.login'`
 - [ ] 选择合适的标签
-- [ ] 执行 `gh issue create` 命令
+- [ ] 执行 `gh issue create` 命令（确保包含免责声明）
 - [ ] 验证创建成功（获取 Issue URL）
 
 ### Phase 4: 报告
@@ -363,6 +393,7 @@ gh issue create \
 2. **遵循现有规范** - Issue 标题和标签要符合仓库风格
 3. **包含完整上下文** - Issue 正文要有足够信息供开发者理解
 4. **保护敏感信息** - 如果 TODO 包含敏感内容，脱敏后创建 Issue
+5. **Agent 身份披露** - 所有创建的 Issues 和评论必须包含免责声明：`（本条消息由 Agent 发布，也许是幻觉请仔细甄别）`
 
 ### 常见错误
 

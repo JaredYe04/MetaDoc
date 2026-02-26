@@ -79,12 +79,6 @@
 <script setup lang="ts">
 import { inject, computed } from 'vue'
 import { Button } from '@renderer/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@renderer/components/ui/tooltip'
 import { themeState } from '../../utils/themes'
 import { notifyInfo } from '../../utils/notify'
 

@@ -11,11 +11,7 @@
         <Button @click="handleExport">
           {{ $t('llmStatistics.export') }}
         </Button>
-        <Button
-          @click="handleClear"
-          variant="destructive"
-
-        >
+        <Button @click="handleClear" variant="destructive">
           {{ $t('llmStatistics.clear') }}
         </Button>
         <Button @click="handleClose">

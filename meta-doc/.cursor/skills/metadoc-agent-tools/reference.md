@@ -12,17 +12,17 @@
 
 ### AgentToolConfig 关键字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | string | 唯一标识 |
-| name | LocalizedText | 名称，支持 ToolLocales |
-| description | LocalizedText | 描述，支持 ToolLocales |
-| instruction | string \| ToolLocales | 详细说明，支持 i18n |
-| spec | ToolSpec? | brief + fullSpec，可选 |
-| callback | ToolCallback | 执行函数 |
-| displayComponent | Component \| string? | Display 组件 |
-| inputSchema / outputSchema | object? | JSON Schema |
-| locales | ToolLocales? | i18n 映射 |
+| 字段                       | 类型                  | 说明                   |
+| -------------------------- | --------------------- | ---------------------- |
+| id                         | string                | 唯一标识               |
+| name                       | LocalizedText         | 名称，支持 ToolLocales |
+| description                | LocalizedText         | 描述，支持 ToolLocales |
+| instruction                | string \| ToolLocales | 详细说明，支持 i18n    |
+| spec                       | ToolSpec?             | brief + fullSpec，可选 |
+| callback                   | ToolCallback          | 执行函数               |
+| displayComponent           | Component \| string?  | Display 组件           |
+| inputSchema / outputSchema | object?               | JSON Schema            |
+| locales                    | ToolLocales?          | i18n 映射              |
 
 ### ToolCallbackData（onUpdate 数据）
 
@@ -98,11 +98,11 @@
 
 ## 相关文件速查
 
-| 用途 | 路径 |
-|------|------|
-| 类型定义 | `src/renderer/src/types/agent-tool.ts` |
-| Tool↔Display 通信 | `src/renderer/src/utils/agent-tools/tool-display-communication.ts` |
-| Display 实时状态 | `src/renderer/src/utils/agent-tools/composables/useToolDisplayRealtime.ts` |
-| i18n 辅助 | `src/renderer/src/utils/agent-tools/i18n-helper.ts` |
-| 工具函数/错误 | `src/renderer/src/utils/agent-tools/tool-utils.ts` |
-| 详细步骤与示例 | `src/renderer/src/utils/agent-tools/README.md`、`AGENTS.md` |
+| 用途               | 路径                                                                       |
+| ------------------ | -------------------------------------------------------------------------- |
+| 类型定义           | `src/renderer/src/types/agent-tool.ts`                                     |
+| Tool↔Display 通信 | `src/renderer/src/utils/agent-tools/tool-display-communication.ts`         |
+| Display 实时状态   | `src/renderer/src/utils/agent-tools/composables/useToolDisplayRealtime.ts` |
+| i18n 辅助          | `src/renderer/src/utils/agent-tools/i18n-helper.ts`                        |
+| 工具函数/错误      | `src/renderer/src/utils/agent-tools/tool-utils.ts`                         |
+| 详细步骤与示例     | `src/renderer/src/utils/agent-tools/README.md`、`AGENTS.md`                |

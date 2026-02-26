@@ -521,6 +521,7 @@
     "zoomIn": "확대",
     "zoomOut": "축소",
     "reset": "초기화",
+    "fitToScreen": "화면에 맞춤",
     "formatTitle": "제목 포맷",
     "openAiAssistant": "AI 어시스턴트 열기",
     "generateChildSuccessWithTitle": "AI가 노드 {title}의 자식 챕터를 생성했습니다!",

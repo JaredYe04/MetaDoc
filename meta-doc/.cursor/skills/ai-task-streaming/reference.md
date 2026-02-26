@@ -5,6 +5,7 @@
 **File**: `src/renderer/src/utils/ai_tasks.ts`
 
 - **Parameters**:
+
   - `name`: Shown in the task queue; often `t('some.key')`.
   - `prompt`: Single string (answer-style) or `AIDialogMessage[]` (chat-style). For chat, use `[{ role: 'user', content: prompt }]`.
   - `target`: `Ref<string>`. The task runner writes streamed chunks (or final text) into `target.value`. Must be a Vue ref.
@@ -44,13 +45,13 @@
 
 ## Example reference locations
 
-| Pattern | Where to look |
-|--------|----------------|
-| createAiTask only (no in-page streaming) | SectionOptimizer.vue `generate()`, TitleMenu.vue |
-| createAiTask + StreamingContentDisplay (same view) | AttachmentWindow.vue `handleAiAnalysis`, streaming refs and template |
+| Pattern                                                    | Where to look                                                                                                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| createAiTask only (no in-page streaming)                   | SectionOptimizer.vue `generate()`, TitleMenu.vue                                                                                                |
+| createAiTask + StreamingContentDisplay (same view)         | AttachmentWindow.vue `handleAiAnalysis`, streaming refs and template                                                                            |
 | createAiTask in a tool, view wires StreamingContentDisplay | data-analysis-tool.ts `createAiTask` and return `{ targetRef, donePromise }`; DataAnalysisWindow.vue `onProgress` and `StreamingContentDisplay` |
-| Prompts + i18n | prompts.ts (e.g. `generateTitlePrompt`, `sectionChangePrompt`); locale_prompts/zh_CN.json `prompts` |
-| Cancel task | `cancelAiTask(handle)` from `ai_tasks.ts`; use the `handle` returned by `createAiTask` |
+| Prompts + i18n                                             | prompts.ts (e.g. `generateTitlePrompt`, `sectionChangePrompt`); locale_prompts/zh_CN.json `prompts`                                             |
+| Cancel task                                                | `cancelAiTask(handle)` from `ai_tasks.ts`; use the `handle` returned by `createAiTask`                                                          |
 
 ## Cross-window behavior
 

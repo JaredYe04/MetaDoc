@@ -218,124 +218,127 @@
         </div>
       </ScrollArea>
 
+      <!-- Viewport: 全屏固定，应用 transform（摄像头） -->
       <div
-        class="outline-canvas-wrapper"
+        class="outline-viewport"
         :class="{ 'is-dragging': isDraggingNode }"
-        :style="canvasWrapperStyle"
         @mousedown="handleCanvasMouseDown"
         @wheel="handleWheelZoom"
       >
-        <vue-tree
-          ref="treeRef"
-          :key="outlineTreeKey"
-          class="outline-tree-container"
-          :class="{ 'is-dragging': isDraggingNode }"
-          style="width: 5000px; height: 5000px; border-radius: 18px"
-          :style="{ backgroundColor: themeState.currentTheme.background }"
-          :dataset="treeData"
-          :config="treeConfig"
-          :direction="direction"
-          link-style="straight"
-          @node-click="handleNodeClick"
-          @drag-node-end="handleNodeDrag"
-        >
-          <template
-            #node="{ node, collapsed }"
-            :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+        <!-- Canvas: 内容层，被摄像头拍摄，应用 transform -->
+        <div class="outline-canvas" :style="canvasWrapperStyle">
+          <vue-tree
+            ref="treeRef"
+            :key="outlineTreeKey"
+            class="outline-tree-container"
+            :class="{ 'is-dragging': isDraggingNode }"
+            style="width: 5000px; height: 5000px; border-radius: 18px"
+            :style="{ backgroundColor: themeState.currentTheme.background }"
+            :dataset="treeData"
+            :config="treeConfig"
+            :direction="direction"
+            link-style="straight"
+            @node-click="handleNodeClick"
+            @drag-node-end="handleNodeDrag"
           >
-            <!-- 如果节点展开，显示详细节点面板 -->
-            <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
-              <div
-                class="detailed-node-wrapper"
-                :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
-                @mousedown.stop
-                @pointerdown.stop
-                @click.stop
-                @contextmenu.prevent="openNodeContextMenu($event, node)"
-              >
-                <DetailedOutlineNode
-                  :node="node"
-                  :outlineTree="treeData"
-                  :docPath="activeDocument?.path || ''"
-                  :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
-                  :userPrompt="aiConfig.userPrompt || userPrompt"
-                  :temperature="aiConfig.temperature"
-                  :wordCount="aiConfig.wordCount"
-                  @content-updated="
-                    (content: string) => handleNodeContentUpdate(node.path, content)
-                  "
-                  @cancel="handleNodeContentCancel(node.path)"
-                  @collapse="toggleNodeExpand(node.path)"
-                  class="detailed-node-inline"
-                />
-              </div>
-            </template>
-            <!-- 如果节点未展开，显示正常节点 -->
-            <template v-else>
-              <TooltipProvider>
-                <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                  <TooltipTrigger as-child>
-                    <div
-                      class="tree-node"
-                      :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                      :class="
-                        dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
-                      "
-                      draggable="true"
-                      @dragstart.stop="onNodeDragStart(node)"
-                      @dragover.prevent="onNodeDragOver($event, node)"
-                      @dragleave="onNodeDragLeave(node)"
-                      @drop.stop="onNodeDrop(node, $event)"
-                      @dragend.stop="onNodeDragEnd"
-                      @mousedown.stop
-                      @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                      @contextmenu.prevent="openNodeContextMenu($event, node)"
-                    >
-                      <span
-                        class="tree-node-text"
-                        :ref="(el) => setTextElementRef(el, node.path)"
-                        >{{ node.title }}</span
+            <template
+              #node="{ node, collapsed }"
+              :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+            >
+              <!-- 如果节点展开，显示详细节点面板 -->
+              <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
+                <div
+                  class="detailed-node-wrapper"
+                  :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
+                  @mousedown.stop
+                  @pointerdown.stop
+                  @click.stop
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <DetailedOutlineNode
+                    :node="node"
+                    :outlineTree="treeData"
+                    :docPath="activeDocument?.path || ''"
+                    :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
+                    :userPrompt="aiConfig.userPrompt || userPrompt"
+                    :temperature="aiConfig.temperature"
+                    :wordCount="aiConfig.wordCount"
+                    @content-updated="
+                      (content: string) => handleNodeContentUpdate(node.path, content)
+                    "
+                    @cancel="handleNodeContentCancel(node.path)"
+                    @collapse="toggleNodeExpand(node.path)"
+                    class="detailed-node-inline"
+                  />
+                </div>
+              </template>
+              <!-- 如果节点未展开，显示正常节点 -->
+              <template v-else>
+                <TooltipProvider>
+                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                    <TooltipTrigger as-child>
+                      <div
+                        class="tree-node"
+                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                        :class="
+                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
+                        "
+                        draggable="true"
+                        @dragstart.stop="onNodeDragStart(node)"
+                        @dragover.prevent="onNodeDragOver($event, node)"
+                        @dragleave="onNodeDragLeave(node)"
+                        @drop.stop="onNodeDrop(node, $event)"
+                        @dragend.stop="onNodeDragEnd"
+                        @mousedown.stop
+                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                        @contextmenu.prevent="openNodeContextMenu($event, node)"
                       >
-                      <!-- 展开按钮：小尺寸、扁平，不凸起 -->
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger as-child>
-                            <button
-                              type="button"
-                              class="tree-node-expand-btn"
-                              @click.stop="toggleNodeExpand(node.path)"
-                              v-if="node.path !== 'dummy'"
-                              :disabled="pendingAccept || generating"
-                              aria-label="Expand"
-                            >
-                              <component
-                                :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
-                                class="w-4 h-4"
-                              />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p>{{ $t('outline.expand') }}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                    <p>{{ node.title }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
-              <OutlineNodeActionButton
-                v-if="selectedAiTool"
-                :node="node"
-                :pending-accept="pendingAccept"
-                :generating="generating"
-              />
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                        <!-- 展开按钮：小尺寸、扁平，不凸起 -->
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <button
+                                type="button"
+                                class="tree-node-expand-btn"
+                                @click.stop="toggleNodeExpand(node.path)"
+                                v-if="node.path !== 'dummy'"
+                                :disabled="pendingAccept || generating"
+                                aria-label="Expand"
+                              >
+                                <component
+                                  :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
+                                  class="w-4 h-4"
+                                />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>{{ $t('outline.expand') }}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
+                      <p>{{ node.title }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
+                <OutlineNodeActionButton
+                  v-if="selectedAiTool"
+                  :node="node"
+                  :pending-accept="pendingAccept"
+                  :generating="generating"
+                />
+              </template>
             </template>
-          </template>
-        </vue-tree>
+          </vue-tree>
+        </div>
       </div>
 
       <!-- 节点右键菜单：Teleport 到 body，避免父级 transform 导致 fixed 定位偏移 -->
@@ -963,6 +966,18 @@ watch(
   { deep: true }
 )
 
+// 监听当前文档变化，同步 treeData
+watch(
+  () => activeDocument.value?.outline,
+  (newOutline) => {
+    if (newOutline) {
+      treeData.value = cloneOutline(newOutline)
+      outlineTreeKey.value++ // 强制刷新树
+    }
+  },
+  { deep: true }
+)
+
 // 加载保存的方向设置
 onMounted(async () => {
   const savedDirection = await getSetting('outline.direction', 'horizontal')
@@ -974,6 +989,11 @@ onMounted(async () => {
   if (savedAiConfig) {
     Object.assign(aiConfig, savedAiConfig)
   }
+
+  // 等待 vue-tree 渲染后，将摄像头对准根节点
+  setTimeout(() => {
+    centerViewportOnRootNode()
+  }, 100)
 })
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
@@ -1002,8 +1022,12 @@ const toggleLayout = async () => {
 
 // 画布缩放和拖动相关
 const scale = ref(1)
-const translateX = ref(0)
-const translateY = ref(0)
+// 初始偏移：让根节点 (0,0) 显示在视口中心
+// 视口大约 800x600，所以初始偏移为视口中心的一半
+const VIEWPORT_CENTER_X = 400
+const VIEWPORT_CENTER_Y = 300
+const translateX = ref(VIEWPORT_CENTER_X)
+const translateY = ref(VIEWPORT_CENTER_Y)
 const isDraggingCanvas = ref(false)
 const dragStartX = ref(0)
 const dragStartY = ref(0)
@@ -1033,8 +1057,34 @@ const zoomOut = () => {
 
 const resetScale = () => {
   scale.value = 1
-  translateX.value = 0
-  translateY.value = 0
+  // 重置到视口中心
+  translateX.value = VIEWPORT_CENTER_X
+  translateY.value = VIEWPORT_CENTER_Y
+}
+
+// 将摄像头对准根节点（让根节点显示在视口中心）
+const centerViewportOnRootNode = () => {
+  const viewport = document.querySelector('.outline-viewport') as HTMLElement
+  const rootNode = document.querySelector('.tree-node') as HTMLElement
+
+  if (!viewport || !rootNode) return
+
+  const viewportRect = viewport.getBoundingClientRect()
+  const rootNodeRect = rootNode.getBoundingClientRect()
+
+  // 计算根节点相对于视口的位置
+  const rootNodeCenterX = rootNodeRect.left + rootNodeRect.width / 2
+  const rootNodeCenterY = rootNodeRect.top + rootNodeRect.height / 2
+  const viewportCenterX = viewportRect.left + viewportRect.width / 2
+  const viewportCenterY = viewportRect.top + viewportRect.height / 2
+
+  // 计算需要的偏移量（摄像头移动方向与节点位置相反）
+  const offsetX = viewportCenterX - rootNodeCenterX
+  const offsetY = viewportCenterY - rootNodeCenterY
+
+  // 应用偏移
+  translateX.value = offsetX / scale.value
+  translateY.value = offsetY / scale.value
 }
 
 const fitToScreen = () => {
@@ -1071,7 +1121,7 @@ const fitToScreen = () => {
 // 画布包装器样式
 const canvasWrapperStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
-  transformOrigin: 'center center',
+  transformOrigin: '0 0', // 从左上角开始变换
   cursor: isDraggingCanvas.value ? 'grabbing' : 'grab'
 }))
 
@@ -1113,6 +1163,7 @@ const handleCanvasMouseMove = (e: MouseEvent) => {
   const deltaX = e.clientX - dragStartX.value
   const deltaY = e.clientY - dragStartY.value
 
+  // 鼠标向右拖，内容向右移动（直接跟随鼠标）
   translateX.value = dragStartTranslateX.value + deltaX
   translateY.value = dragStartTranslateY.value + deltaY
 }
@@ -1866,9 +1917,10 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   font-variant-numeric: tabular-nums;
 }
 
-.outline-canvas-wrapper {
+/* Viewport: 全屏固定视口（摄像头） */
+.outline-viewport {
   flex: 1;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   cursor: grab;
   user-select: none;
@@ -1876,12 +1928,22 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   min-height: 0;
 }
 
-.outline-canvas-wrapper:active {
+.outline-viewport:active {
   cursor: grabbing;
 }
 
-.outline-canvas-wrapper.is-dragging {
+.outline-viewport.is-dragging {
   cursor: grabbing;
+}
+
+/* Canvas: 内容层（被拍摄的世界），应用 transform */
+.outline-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5000px;
+  height: 5000px;
+  transform-origin: 0 0;
 }
 
 .ai-config-body {

@@ -41,9 +41,9 @@
 
 ## 📚 Demo Mode Coverage (MANDATORY)
 
-**Formula:** `Required Demos = MAX(CEIL((H1 + H2 + H3) / 3), 2)`
+**Rule:** Every manual document must have **at least 2 demo components**
 
-- 6 headings → 2 demos | 3 headings → 2 demos | 9 headings → 3 demos
+**Simple:** ≥ 2 demos per document, regardless of length or complexity
 
 **Implementation:**
 
@@ -60,7 +60,7 @@
 - ❌ Downgrading rules from error to warn
 - ❌ Bypassing `DEMO_COVERAGE_POLICY.md`
 
-See: `src/renderer/src/manuals/DEMO_COVERAGE_POLICY.md`
+See: `docs/DEMO_MODE_COVERAGE_LINTING.md`
 
 ---
 

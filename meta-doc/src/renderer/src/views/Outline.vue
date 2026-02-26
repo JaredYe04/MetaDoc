@@ -1189,12 +1189,15 @@ const fitToScreen = () => {
   }
 
   console.log('[fitToScreen] calculating bbox for', nodeDataList.length, 'nodes')
+  console.log('[fitToScreen] direction:', direction.value)
 
   const viewportRect = viewport.getBoundingClientRect()
 
   // 获取节点尺寸配置
   const nodeWidth = treeConfig.value.nodeWidth
   const nodeHeight = treeConfig.value.nodeHeight
+
+  console.log('[fitToScreen] node size:', { nodeWidth, nodeHeight })
 
   // 计算所有节点的 bounding box（使用 D3 坐标）
   // 注意：vue-tree 中节点位置是中心点，需要计算四个角
@@ -1203,7 +1206,7 @@ const fitToScreen = () => {
   let maxX = -Infinity
   let maxY = -Infinity
 
-  nodeDataList.forEach((node: { x: number; y: number }) => {
+  nodeDataList.forEach((node: { x: number; y: number }, index: number) => {
     // node.x, node.y 是 D3 计算的中心点坐标
     const centerX = node.x
     const centerY = node.y
@@ -1224,6 +1227,14 @@ const fitToScreen = () => {
       nodeRight = centerY + nodeWidth / 2
       nodeTop = centerX - nodeHeight / 2
       nodeBottom = centerX + nodeHeight / 2
+    }
+
+    // 打印前3个节点和后3个节点的详细信息
+    if (index < 3 || index >= nodeDataList.length - 3) {
+      console.log(`[fitToScreen] node[${index}]:`, {
+        center: { x: centerX, y: centerY },
+        bounds: { left: nodeLeft, right: nodeRight, top: nodeTop, bottom: nodeBottom }
+      })
     }
 
     minX = Math.min(minX, nodeLeft)
@@ -1278,8 +1289,15 @@ const fitToScreen = () => {
   console.log('[fitToScreen] result:', {
     bbox: { minX, minY, maxX, maxY, contentWidth, contentHeight },
     contentCenter: { x: contentCenterX, y: contentCenterY },
+    viewport: { width: viewportRect.width, height: viewportRect.height },
     viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-    transform: { scale: targetScale, translateX, translateY }
+    available: { width: availableWidth, height: availableHeight },
+    scale: {
+      scaleX: availableWidth / contentWidth,
+      scaleY: availableHeight / contentHeight,
+      targetScale
+    },
+    transform: { translateX, translateY }
   })
 }
 

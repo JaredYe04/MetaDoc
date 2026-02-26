@@ -1006,7 +1006,7 @@ const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
     // The CSS constrains visual node width via max-width: 160px
     // With nodeWidth: 260, we get: 260 - 160 = 100px spacing between nodes
     treeConfig.value = {
-      nodeWidth: 400, // D3 nodeSize: ensures sufficient horizontal spacing between sibling nodes
+      nodeWidth: 600, // Increased spacing to prevent nodes from appearing too close together
       nodeHeight: 50,
       levelHeight: 120,
       siblingSpacing: 100 // Kept for reference, though not used by the library
@@ -1917,6 +1917,13 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   transform-origin: 0 0 !important;
   /* 容器本身透明 */
   background: transparent !important;
+}
+
+/* 确保连接线可见并添加对比度 */
+.outline-tree-inner :deep(.link) {
+  stroke: v-bind('themeState.isDarkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)"') !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
 }
 
 /* 缩放工具栏样式 */

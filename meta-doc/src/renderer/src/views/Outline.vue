@@ -1056,28 +1056,43 @@ const canvasTransformStyle = computed(() => ({
     : 'none'
 }))
 
-// 缩放控制：范围 0.001% ~ 5000%，使用倍数序列
-const MIN_SCALE = 0.00001  // 0.001%
-const MAX_SCALE = 50       // 5000%
-const FIT_TO_SCREEN_MEASURE_SCALE = 0.02  // fitToScreen 测量时使用的缩放值（2%）
-// 倍数序列：每个级别约为上一个的 1.5 倍（近似）
+// 缩放控制：范围 1% ~ 5000%，使用倍数序列
+const MIN_SCALE = 0.01 // 1%
+const MAX_SCALE = 50 // 5000%
+const FIT_TO_SCREEN_MEASURE_SCALE = 0.02 // fitToScreen 测量时使用的缩放值（2%）
+// 倍数序列：每个级别约为上一个的 1.5 倍（近似），最低 1%
 const scaleOptions = [
-  0.001, 0.002, 0.003, 0.005, 0.008,  // 0.001% - 0.008%
-  0.01, 0.015, 0.02, 0.03, 0.05, 0.08, // 0.01% - 0.08%
-  0.1, 0.15, 0.2, 0.3, 0.5, 0.8,       // 0.1% - 0.8%
-  1, 1.5, 2, 3, 5, 8,                  // 1% - 8%
-  10, 15, 20, 30, 50, 80,              // 10% - 80%
-  100, 150, 200, 300, 500, 800,        // 100% - 800%
-  1000, 1500, 2000, 3000, 5000         // 1000% - 5000%
+  1,
+  1.5,
+  2,
+  3,
+  5,
+  8, // 1% - 8%
+  10,
+  15,
+  20,
+  30,
+  50,
+  80, // 10% - 80%
+  100,
+  150,
+  200,
+  300,
+  500,
+  800, // 100% - 800%
+  1000,
+  1500,
+  2000,
+  3000,
+  5000 // 1000% - 5000%
 ]
 
-// Select 绑定的缩放值
+// Select 绑定的缩放值（数字类型，与 scaleOptions 匹配）
 const selectedScale = computed({
-  get: () => String(Math.round(canvasScale.value * 100)),
-  set: (val: string) => {
-    const num = parseInt(val, 10)
-    if (!isNaN(num)) {
-      canvasScale.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, num / 100))
+  get: () => Math.round(canvasScale.value * 100),
+  set: (val: number) => {
+    if (!isNaN(val)) {
+      canvasScale.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, val / 100))
     }
   }
 })
@@ -1226,7 +1241,12 @@ const fitToScreen = () => {
 
   // 诊断日志：检查跨 tab 状态
   console.log('[fitToScreen] activeTab:', activeTabId.value)
-  console.log('[fitToScreen] treeData root:', treeData.value?.path, 'children:', treeData.value?.children?.length)
+  console.log(
+    '[fitToScreen] treeData root:',
+    treeData.value?.path,
+    'children:',
+    treeData.value?.children?.length
+  )
   console.log('[fitToScreen] canvas ref:', canvas)
   console.log('[fitToScreen] canvas node count:', canvas.querySelectorAll('.tree-node').length)
   console.log('[fitToScreen] current canvasScale:', canvasScale.value)
@@ -1254,101 +1274,108 @@ const fitToScreen = () => {
         return
       }
       const nodeElements = freshCanvas.querySelectorAll('.tree-node')
-    if (nodeElements.length === 0) {
-      console.log('[fitToScreen] no nodes found')
-      return
-    }
-
-    const viewportRect = viewport.getBoundingClientRect()
-
-    // 3. 计算原始 bounding box
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-
-    nodeElements.forEach((node, index) => {
-      const rect = node.getBoundingClientRect()
-      const left = rect.left - viewportRect.left
-      const right = rect.right - viewportRect.left
-      const top = rect.top - viewportRect.top
-      const bottom = rect.bottom - viewportRect.top
-
-      if (index < 3 || index >= nodeElements.length - 3) {
-        console.log(`[fitToScreen] node[${index}] measured:`, { left, right, top, bottom })
+      if (nodeElements.length === 0) {
+        console.log('[fitToScreen] no nodes found')
+        return
       }
 
-      minX = Math.min(minX, left)
-      minY = Math.min(minY, top)
-      maxX = Math.max(maxX, right)
-      maxY = Math.max(maxY, bottom)
-    })
+      const viewportRect = viewport.getBoundingClientRect()
 
-    const contentWidth = maxX - minX
-    const contentHeight = maxY - minY
+      // 3. 计算原始 bounding box
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
 
-    console.log('[fitToScreen] measured bbox (reset):', {
-      minX,
-      minY,
-      maxX,
-      maxY,
-      contentWidth,
-      contentHeight
-    })
+      nodeElements.forEach((node, index) => {
+        const rect = node.getBoundingClientRect()
+        const left = rect.left - viewportRect.left
+        const right = rect.right - viewportRect.left
+        const top = rect.top - viewportRect.top
+        const bottom = rect.bottom - viewportRect.top
 
-    // 4. 计算缩放比例（带 padding）
-    // 注意：测量时 canvas 缩放到 FIT_TO_SCREEN_MEASURE_SCALE，所以 contentWidth/Height 是基于该缩放的
-    // 需要除以该值换算回原始尺寸，再计算目标缩放
-    const padding = 40
-    const availableWidth = viewportRect.width - padding * 2
-    const availableHeight = viewportRect.height - padding * 2
+        if (index < 3 || index >= nodeElements.length - 3) {
+          console.log(`[fitToScreen] node[${index}] measured:`, { left, right, top, bottom })
+        }
 
-    let targetScale = 1
-    if (contentWidth > 0 && contentHeight > 0) {
-      const originalContentWidth = contentWidth / FIT_TO_SCREEN_MEASURE_SCALE
-      const originalContentHeight = contentHeight / FIT_TO_SCREEN_MEASURE_SCALE
-      const scaleX = availableWidth / originalContentWidth
-      const scaleY = availableHeight / originalContentHeight
-      targetScale = Math.min(scaleX, scaleY)
-    }
+        minX = Math.min(minX, left)
+        minY = Math.min(minY, top)
+        maxX = Math.max(maxX, right)
+        maxY = Math.max(maxY, bottom)
+      })
 
-    targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
-    // 将计算出的缩放值对齐到最近的 scaleOptions 等级
-    const targetPercent = targetScale * 100
-    const closestLevel = scaleOptions.reduce((prev, curr) =>
-      Math.abs(curr - targetPercent) < Math.abs(prev - targetPercent) ? curr : prev
-    )
-    targetScale = closestLevel / 100
+      const contentWidth = maxX - minX
+      const contentHeight = maxY - minY
 
-    // 5. 计算居中偏移
-    const contentCenterX = (minX + maxX) / 2
-    const contentCenterY = (minY + maxY) / 2
-    const viewportCenterX = viewportRect.width / 2
-    const viewportCenterY = viewportRect.height / 2
+      console.log('[fitToScreen] measured bbox (reset):', {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        contentWidth,
+        contentHeight
+      })
 
-    // 关键公式：viewportCenter = contentCenter * scale + translate
-    // 解出：translate = viewportCenter - contentCenter * scale
-    const translateX = viewportCenterX - contentCenterX * targetScale
-    const translateY = viewportCenterY - contentCenterY * targetScale
+      // 4. 计算缩放比例（带 padding）
+      // 注意：测量时 canvas 缩放到 FIT_TO_SCREEN_MEASURE_SCALE，所以 contentWidth/Height 是基于该缩放的
+      // 需要除以该值换算回原始尺寸，再计算目标缩放
+      const padding = 40
+      const availableWidth = viewportRect.width - padding * 2
+      const availableHeight = viewportRect.height - padding * 2
 
-    // 6. 启用平滑动画并应用新 transform
-    enableSmoothTransition.value = true
+      let targetScale = 1
+      if (contentWidth > 0 && contentHeight > 0) {
+        const originalContentWidth = contentWidth / FIT_TO_SCREEN_MEASURE_SCALE
+        const originalContentHeight = contentHeight / FIT_TO_SCREEN_MEASURE_SCALE
+        const scaleX = availableWidth / originalContentWidth
+        const scaleY = availableHeight / originalContentHeight
+        targetScale = Math.min(scaleX, scaleY)
+      }
 
-    canvasScale.value = targetScale
-    canvasTranslateX.value = translateX
-    canvasTranslateY.value = translateY
+      targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
 
-    // 7. 动画结束后禁用平滑过渡（避免影响拖拽）
-    setTimeout(() => {
-      enableSmoothTransition.value = false
-    }, SMOOTH_DURATION)
+      // 将计算出的缩放值对齐到最近的 scaleOptions 等级（向下对齐，确保内容能完整显示）
+      const targetPercent = targetScale * 100
+      // 找到不大于 targetPercent 的最大 scaleOption
+      const floorLevel = scaleOptions
+        .slice()
+        .reverse()
+        .find((level) => level <= targetPercent)
+      if (floorLevel !== undefined) {
+        targetScale = floorLevel / 100
+      }
 
-    console.log('[fitToScreen] applied:', {
-      prevTransform: { scale: prevScale, x: prevTranslateX, y: prevTranslateY },
-      measuredCenter: { x: contentCenterX, y: contentCenterY },
-      targetCenter: { x: viewportCenterX, y: viewportCenterY },
-      newTransform: { scale: targetScale, x: translateX, y: translateY }
-    })
+      // 5. 计算居中偏移
+      const contentCenterX = (minX + maxX) / 2
+      const contentCenterY = (minY + maxY) / 2
+      const viewportCenterX = viewportRect.width / 2
+      const viewportCenterY = viewportRect.height / 2
+
+      // 关键公式：viewportCenter = contentCenter * scale + translate
+      // 注意：contentCenterX/Y 是在 FIT_TO_SCREEN_MEASURE_SCALE (2%) 下测量的 viewport 坐标
+      // 需要先除以测量缩放得到原始 content 坐标，再乘以 targetScale
+      // 解出：translate = viewportCenter - contentCenter * targetScale
+      const translateX = viewportCenterX - contentCenterX * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
+      const translateY = viewportCenterY - contentCenterY * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
+
+      // 6. 启用平滑动画并应用新 transform
+      enableSmoothTransition.value = true
+
+      canvasScale.value = targetScale
+      canvasTranslateX.value = translateX
+      canvasTranslateY.value = translateY
+
+      // 7. 动画结束后禁用平滑过渡（避免影响拖拽）
+      setTimeout(() => {
+        enableSmoothTransition.value = false
+      }, SMOOTH_DURATION)
+
+      console.log('[fitToScreen] applied:', {
+        prevTransform: { scale: prevScale, x: prevTranslateX, y: prevTranslateY },
+        measuredCenter: { x: contentCenterX, y: contentCenterY },
+        targetCenter: { x: viewportCenterX, y: viewportCenterY },
+        newTransform: { scale: targetScale, x: translateX, y: translateY }
+      })
     })
   })
 }
@@ -1707,6 +1734,34 @@ function reindexChildrenPaths(parent: DocumentOutlineNode) {
     }
   }
 }
+
+/**
+ * 移除大纲树中所有节点的标题前缀
+ */
+function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
+  const node = cloneOutline(outlineTree)
+
+  function dfs(n: DocumentOutlineNode): void {
+    if (n.title) {
+      n.title = removeTitleIndex(n.title)
+    }
+
+    for (const child of n.children) {
+      dfs(child)
+    }
+  }
+
+  if (node.path === 'dummy') {
+    for (const child of node.children) {
+      dfs(child)
+    }
+  } else {
+    dfs(node)
+  }
+
+  return node
+}
+
 const acceptChange = () => {
   backupChildren.value = null
   backupContent.value = ''
@@ -1787,52 +1842,465 @@ const moveNodeLeft = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
-  // 实现从原文件保留
-  return null
+  const parent = searchParentNode(node.path, tree)
+  if (!parent) return null
+
+  const index = parent.children.findIndex((c) => c.path === node.path)
+  if (index <= 0) return null
+
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedParent = searchParentNode(node.path, clonedTree)
+  if (!clonedParent) return null
+
+  const clonedNode = clonedParent.children[index]
+  // 移除节点
+  clonedParent.children.splice(index, 1)
+  // 在目标位置前插入
+  clonedParent.children.splice(index - 1, 0, clonedNode)
+  // 重新索引
+  reindexChildrenPaths(clonedParent)
+
+  // 找到移动后的节点
+  const movedNode = searchNode(clonedNode.path, clonedTree)
+  if (!movedNode) return null
+
+  return { tree: clonedTree, movedNode }
 }
 const moveNodeRight = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
-  // 实现从原文件保留
-  return null
+  const parent = searchParentNode(node.path, tree)
+  if (!parent) return null
+
+  const index = parent.children.findIndex((c) => c.path === node.path)
+  if (index < 0 || index >= parent.children.length - 1) return null
+
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedParent = searchParentNode(node.path, clonedTree)
+  if (!clonedParent) return null
+
+  const clonedNode = clonedParent.children[index]
+  // 移除节点
+  clonedParent.children.splice(index, 1)
+  // 在目标位置后插入
+  clonedParent.children.splice(index + 1, 0, clonedNode)
+  // 重新索引
+  reindexChildrenPaths(clonedParent)
+
+  // 找到移动后的节点
+  const movedNode = searchNode(clonedNode.path, clonedTree)
+  if (!movedNode) return null
+
+  return { tree: clonedTree, movedNode }
 }
 const addChild = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): { tree: DocumentOutlineNode; newNode: DocumentOutlineNode } | null => {
-  // 实现从原文件保留
-  return null
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedNode = searchNode(node.path, clonedTree)
+  if (!clonedNode) return null
+
+  if (!clonedNode.children) {
+    clonedNode.children = []
+  }
+
+  const newNode: DocumentOutlineNode = {
+    title: t('outline.newNode'),
+    text: '',
+    title_level: clonedNode.title_level + 1,
+    path: clonedNode.path + '.' + (clonedNode.children.length + 1),
+    children: []
+  }
+
+  clonedNode.children.push(newNode)
+
+  return { tree: clonedTree, newNode }
 }
 const removeNodeAndReindex = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): DocumentOutlineNode | null => {
-  // 实现从原文件保留
-  return null
+  const parent = searchParentNode(node.path, tree)
+  if (!parent) return null
+
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedParent = searchParentNode(node.path, clonedTree)
+  if (!clonedParent) return null
+
+  // 查找并移除节点
+  const index = clonedParent.children.findIndex((c) => c.path === node.path)
+  if (index === -1) return null
+
+  clonedParent.children.splice(index, 1)
+  reindexChildrenPaths(clonedParent)
+
+  return clonedTree
 }
 const handleNodeClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node
 }
-const handleNodeDrag = (event: any) => {
-  // 实现从原文件保留
+const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
+  // 尝试将拖拽节点移动为目标节点的最后一个子节点
+  try {
+    if (!_dragNode || !_targetNode) return
+    const drag = searchNode(_dragNode.path, treeData.value)
+    if (!drag) return
+    const originParent = searchParentNode(_dragNode.path, treeData.value)
+    // 如果拖动的是根节点，则不允许
+    if (!originParent) return
+
+    // 暂停同步，防止频繁重新渲染
+    const wasSuppressed = suppressDocumentSync
+    suppressDocumentSync = true
+
+    // 从原父节点移除
+    removeNode(originParent, drag)
+    // 确定目标插入位置（目标节点作为父）
+    const target = searchNode(_targetNode.path, treeData.value)
+    const targetParent = searchParentNode(_targetNode.path, treeData.value)
+    if (target) {
+      target.children = target.children || []
+      target.children.push(drag)
+      // 重新计算路径
+      reindexChildrenPaths(target)
+    } else if (targetParent) {
+      // 退化为与目标同级追加
+      targetParent.children = targetParent.children || []
+      targetParent.children.push(drag)
+      reindexChildrenPaths(targetParent)
+    }
+
+    // 恢复同步并提交更改
+    suppressDocumentSync = wasSuppressed
+    if (!wasSuppressed) {
+      commitOutline()
+    }
+  } catch (err) {
+    logger.warn('节点拖拽失败', err)
+    // 即使出错也要恢复同步状态
+    if (!suppressDocumentSync) {
+      suppressDocumentSync = false
+    }
+  }
 }
+const draggingNodePath = ref<string | null>(null)
+const isDraggingNode = ref(false)
 const onNodeDragStart = (node: DocumentOutlineNode) => {
-  // 实现从原文件保留
+  draggingNodePath.value = node.path
+  isDraggingNode.value = true
+  // 拖动开始时暂停文档同步，防止频繁重新渲染
+  suppressDocumentSync = true
+  // 清除可能存在的 commitOutline 定时器，避免在拖拽过程中触发提交
+  if (commitOutlineTimer) {
+    clearTimeout(commitOutlineTimer)
+    commitOutlineTimer = null
+  }
+  // 在拖拽时给 body 添加 class，防止其他组件受影响
+  document.body.classList.add('outline-dragging')
 }
-const onNodeDragOver = (event: DragEvent, node: DocumentOutlineNode) => {
-  // 实现从原文件保留
+type DropMode = 'before' | 'after' | 'inside' | 'parent'
+
+// 节流定时器，用于减少拖拽过程中的 dropPreview 更新频率
+let dropPreviewThrottleTimer: NodeJS.Timeout | null = null
+let pendingDropPreviewUpdate: { targetPath: string; mode: DropMode } | null = null
+
+function computeDropMode(e: DragEvent, el: HTMLElement): DropMode {
+  const rect = el.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const w = rect.width
+  const h = rect.height
+
+  if (direction.value === 'vertical') {
+    // 纵向布局：左右调整平级顺序，上下调整父子关系
+    const leftZone = w * 0.25
+    const rightZone = w * 0.75
+    const topZone = h * 0.25
+    const bottomZone = h * 0.75
+    if (x <= leftZone) return 'before'
+    if (x >= rightZone) return 'after'
+    if (y >= bottomZone) return 'inside'
+    if (y <= topZone) return 'parent'
+    // 默认作为 inside
+    return 'inside'
+  } else {
+    // 横向布局：上下调整平级顺序，左右调整父子关系
+    const topZone = h * 0.25
+    const bottomZone = h * 0.75
+    const leftZone = w * 0.25
+    const rightZone = w * 0.75
+    if (y <= topZone) return 'before'
+    if (y >= bottomZone) return 'after'
+    if (x >= rightZone) return 'inside'
+    if (x <= leftZone) return 'parent'
+    // 默认作为 inside
+    return 'inside'
+  }
 }
-const onNodeDragLeave = (node: DocumentOutlineNode) => {
-  // 实现从原文件保留
+
+const onNodeDragOver = (e: DragEvent, node: DocumentOutlineNode) => {
+  const el = e.currentTarget as HTMLElement | null
+  if (!el) return
+  const mode = computeDropMode(e, el)
+
+  // 保存待更新的值
+  pendingDropPreviewUpdate = { targetPath: node.path, mode }
+
+  // 如果定时器不存在，立即更新并设置定时器
+  if (!dropPreviewThrottleTimer) {
+    dropPreview.targetPath = node.path
+    dropPreview.mode = mode
+    // 使用节流，每 50ms 最多更新一次，减少重新渲染频率
+    dropPreviewThrottleTimer = setTimeout(() => {
+      dropPreviewThrottleTimer = null
+      // 应用最后一次待更新的值
+      if (pendingDropPreviewUpdate) {
+        dropPreview.targetPath = pendingDropPreviewUpdate.targetPath
+        dropPreview.mode = pendingDropPreviewUpdate.mode
+        pendingDropPreviewUpdate = null
+      }
+    }, 50)
+  }
 }
-const onNodeDrop = (node: DocumentOutlineNode, event: DragEvent) => {
-  // 实现从原文件保留
+const onNodeDragLeave = (_node: DocumentOutlineNode) => {
+  // 清除节流定时器
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer)
+    dropPreviewThrottleTimer = null
+  }
+  pendingDropPreviewUpdate = null
+  dropPreview.targetPath = null
+  dropPreview.mode = null
+}
+const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
+  try {
+    // 清除节流定时器
+    if (dropPreviewThrottleTimer) {
+      clearTimeout(dropPreviewThrottleTimer)
+      dropPreviewThrottleTimer = null
+    }
+    pendingDropPreviewUpdate = null
+
+    const fromPath = draggingNodePath.value
+    draggingNodePath.value = null
+    const mode = dropPreview.mode
+    dropPreview.targetPath = null
+    dropPreview.mode = null
+    isDraggingNode.value = false
+    if (!fromPath) return
+    if (fromPath === targetNode.path || !mode) return
+    const drag = searchNode(fromPath, treeData.value)
+    if (!drag) return
+    const originParent = searchParentNode(fromPath, treeData.value)
+    if (!originParent) return
+    // 工具：判断是否为后代（防止自包含导致的子树丢失）
+    const isDescendant = (candidatePath: string, ancestorPath: string): boolean => {
+      if (!ancestorPath) return false
+      return candidatePath === ancestorPath || candidatePath.startsWith(ancestorPath + '.')
+    }
+    // 工具：创建只包含标题与正文的浅拷贝（不带子节点）
+    const createShallowCopy = (node: DocumentOutlineNode): DocumentOutlineNode => {
+      return {
+        title: node.title,
+        text: node.text,
+        title_level: node.title_level,
+        path: '',
+        children: []
+      }
+    }
+
+    const target = searchNode(targetNode.path, treeData.value)
+    if (!target) return
+
+    if (mode === 'inside') {
+      // 插入为子节点；如果目标是拖拽节点的后代，分两类：
+      // 1) 目标是拖拽节点的"直接子节点"：将该直接子节点及其同级（即拖拽节点的所有直接子）上移到原父级；再把拖拽节点作为该目标的子节点
+      // 2) 目标是更深层后代：避免形成环，仅复制"当前节点内容"插入
+      target.children = target.children || []
+      if (isDescendant(target.path, drag.path)) {
+        const targetParent = searchParentNode(target.path, treeData.value)
+        const isDirectChild = targetParent && targetParent.path === drag.path
+        if (isDirectChild) {
+          const hostParent = originParent ?? treeData.value
+          hostParent.children = hostParent.children || []
+          const indexOfA = hostParent.children.indexOf(drag)
+          const oldChildren = drag.children && drag.children.length ? [...drag.children] : []
+          // 1) 在祖父层用 A 的子列表替换 A，自然保持原排序位置
+          if (indexOfA >= 0) {
+            hostParent.children.splice(indexOfA, 1, ...oldChildren)
+          } else {
+            // 找不到 A 的极端情况，退化为末尾插入
+            hostParent.children.push(...oldChildren)
+            removeNode(originParent ?? treeData.value, drag)
+          }
+          // 2) 清空 A 的子列表
+          drag.children = []
+          // 3) 把 A 作为 B 的子节点
+          target.children.push(drag)
+          // 4) 重新索引
+          reindexChildrenPaths(hostParent)
+          reindexChildrenPaths(target)
+          reindexChildrenPaths(treeData.value)
+        } else {
+          // 更深层后代：仅复制"当前节点内容"，避免环
+          const shallow = createShallowCopy(drag)
+          target.children.push(shallow)
+          reindexChildrenPaths(target)
+        }
+      } else {
+        // 正常移动：先从原父移除再插入
+        removeNode(originParent, drag)
+        target.children.push(drag)
+        reindexChildrenPaths(target)
+      }
+      return
+    }
+
+    if (mode === 'before' || mode === 'after') {
+      const parent = searchParentNode(target.path, treeData.value)
+      if (!parent || !parent.children) return
+      const targetIdx = parent.children.findIndex((c) => c.path === target.path)
+      if (targetIdx === -1) return
+
+      // 插入到目标同级；如果该"同级父节点"是拖拽节点的后代，同样只复制"当前节点内容"
+      if (isDescendant(parent.path, drag.path)) {
+        const insertIndex = mode === 'before' ? targetIdx : targetIdx + 1
+        const shallow = createShallowCopy(drag)
+        parent.children.splice(insertIndex, 0, shallow)
+        reindexChildrenPaths(parent)
+        return
+      }
+
+      // 检查拖拽节点和目标节点是否在同一父节点（同层级）
+      const isSameParent = originParent === parent
+      let dragIdx = -1
+      if (isSameParent) {
+        dragIdx = parent.children.findIndex((c) => c.path === drag.path)
+      }
+
+      // 计算插入位置（基于移除前的索引）
+      let insertIndex: number
+      if (mode === 'before') {
+        insertIndex = targetIdx
+      } else {
+        insertIndex = targetIdx + 1
+      }
+
+      // 如果同层级移动，需要调整插入索引
+      if (isSameParent && dragIdx !== -1) {
+        // 如果拖拽节点已经在目标位置（before模式：dragIdx === targetIdx，after模式：dragIdx === targetIdx + 1），保持顺序不变
+        if (
+          (mode === 'before' && dragIdx === targetIdx) ||
+          (mode === 'after' && dragIdx === targetIdx + 1)
+        ) {
+          // 已经在目标位置，不需要移动
+          reindexChildrenPaths(parent)
+          return
+        }
+
+        // 先移除拖拽节点
+        parent.children.splice(dragIdx, 1)
+
+        // 移除后，如果拖拽节点在目标节点之前，目标节点的索引会-1
+        if (dragIdx < targetIdx) {
+          // 目标节点索引变成 targetIdx - 1
+          if (mode === 'before') {
+            // 插入到目标前面，现在目标在 targetIdx - 1，所以插入位置也是 targetIdx - 1
+            insertIndex = targetIdx - 1
+          } else {
+            // 插入到目标后面，现在目标在 targetIdx - 1，后面是 targetIdx
+            insertIndex = targetIdx
+          }
+        } else {
+          // 拖拽节点在目标节点之后（dragIdx > targetIdx），目标节点索引不变
+          // 需要调整插入位置：如果 dragIdx < insertIndex，移除后 insertIndex 需要-1
+          if (dragIdx < insertIndex) {
+            insertIndex--
+          }
+        }
+      } else {
+        // 不同层级，直接移除
+        removeNode(originParent, drag)
+      }
+
+      // 插入节点
+      parent.children.splice(insertIndex, 0, drag)
+      reindexChildrenPaths(parent)
+      return
+    }
+
+    if (mode === 'parent') {
+      const targetParent = searchParentNode(target.path, treeData.value)
+      if (!targetParent) {
+        // 目标无父节点（根），放不到更上层，回退为 before
+        const parent = searchParentNode(target.path, treeData.value)
+        if (!parent || !parent.children) return
+        const idx = parent.children.findIndex((c) => c.path === target.path)
+        if (idx === -1) return
+        if (isDescendant(parent.path, drag.path)) {
+          const shallow = createShallowCopy(drag)
+          parent.children.splice(idx, 0, shallow)
+        } else {
+          removeNode(originParent, drag)
+          parent.children.splice(idx, 0, drag)
+        }
+        reindexChildrenPaths(parent)
+        return
+      }
+      const grandParent = searchParentNode(targetParent.path, treeData.value)
+      if (!grandParent || !grandParent.children) return
+      const idxParent = grandParent.children.findIndex((c) => c.path === targetParent.path)
+      // 将拖拽节点插入到"父节点"的后面，等价于提升一层（作为父节点的同级）
+      const insertIndex = idxParent + 1
+      if (isDescendant(grandParent.path, drag.path)) {
+        const shallow = createShallowCopy(drag)
+        grandParent.children.splice(insertIndex, 0, shallow)
+      } else {
+        removeNode(originParent, drag)
+        grandParent.children.splice(insertIndex, 0, drag)
+      }
+      reindexChildrenPaths(grandParent)
+      return
+    }
+
+    // 拖动操作完成后恢复同步并提交更改
+    if (suppressDocumentSync) {
+      suppressDocumentSync = false
+      commitOutline()
+    }
+  } catch (err) {
+    logger.warn('HTML5 拖拽节点失败', err)
+    // 即使出错也要恢复同步状态
+    if (suppressDocumentSync) {
+      suppressDocumentSync = false
+    }
+  }
 }
 const onNodeDragEnd = () => {
-  // 实现从原文件保留
+  // 清除节流定时器
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer)
+    dropPreviewThrottleTimer = null
+  }
+  pendingDropPreviewUpdate = null
+  draggingNodePath.value = null
+  dropPreview.targetPath = null
+  dropPreview.mode = null
+  isDraggingNode.value = false
+  // 移除 body 上的 class
+  document.body.classList.remove('outline-dragging')
+  // 拖动结束时恢复同步并提交更改
+  if (suppressDocumentSync) {
+    suppressDocumentSync = false
+    commitOutline()
+  }
 }
-const isDraggingNode = ref(false)
 const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({
   targetPath: null,
   mode: null
@@ -1849,8 +2317,24 @@ const setTextElementRef = (el: any, path: string) => {
   }
 }
 const position = ref({ top: 100, left: 100 })
+let isDragging = false
+let offset: { x: number; y: number } = { x: 0, y: 0 }
 const startDrag = (e: MouseEvent) => {
-  // 实现从原文件保留
+  isDragging = true
+  offset.x = e.clientX - position.value.left
+  offset.y = e.clientY - position.value.top
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+}
+function onDrag(e: MouseEvent) {
+  if (!isDragging) return
+  position.value.left = e.clientX - offset.x
+  position.value.top = e.clientY - offset.y
+}
+function stopDrag() {
+  isDragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
 }
 const treeRef = ref<any>(null)
 const canvasRef = ref<HTMLElement | null>(null)
@@ -1860,22 +2344,268 @@ const currentChapterValue = ref('')
 const currentChapterContent = ref('')
 const editValueDialogVisible = ref(false)
 const changeNodeValue = () => {
-  // 实现从原文件保留
+  const selected = selectedNode.value
+  if (!selected) return
+  const curNode = searchNode(selected.path, treeData.value)
+  if (!curNode) return
+  curNode.title = currentChapterValue.value
+  curNode.text = currentChapterContent.value
+  editValueDialogVisible.value = false
 }
 const handleRemovePrefixes = () => {
-  // 实现从原文件保留
+  ElMessageBox.confirm(t('outline.removePrefixesConfirm'), t('outline.warning'), {
+    confirmButtonText: t('outline.confirm'),
+    cancelButtonText: t('outline.cancel'),
+    type: 'warning'
+  })
+    .then(async () => {
+      backupOutlineTree.value = cloneOutline(treeData.value)
+
+      // 暂停文档同步，避免触发 watch 导致循环
+      const prevSync = suppressDocumentSync
+      suppressDocumentSync = true
+
+      try {
+        let modifiedTree = cloneOutline(treeData.value)
+        modifiedTree = removeAllTitlePrefixes(modifiedTree)
+
+        // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+        treeData.value = modifiedTree
+
+        // 手动提交更改
+        await commitOutline(modifiedTree)
+
+        formatTitleDialogVisible.value = false
+        eventBus.emit('show-success', t('outline.removePrefixesSuccess'))
+      } finally {
+        // 恢复同步状态
+        suppressDocumentSync = prevSync
+      }
+    })
+    .catch(() => {
+      // 用户取消，不做任何操作
+    })
 }
-const executeFormatTitle = () => {
-  // 实现从原文件保留
+const executeFormatTitle = async () => {
+  backupOutlineTree.value = cloneOutline(treeData.value)
+
+  // 暂停文档同步，避免触发 watch 导致循环
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+
+  try {
+    let modifiedTree = cloneOutline(treeData.value)
+
+    // 调整Markdown标题层级（如果指定）
+    if (formatTitleConfig.adjustMarkdown) {
+      const firstLevel = formatTitleConfig.firstMarkdownTitleLevel
+      modifiedTree = cloneOutline(adjustTitleLevel(modifiedTree, firstLevel))
+    }
+
+    // 3. 调整章节编号（如果指定）
+    if (formatTitleConfig.adjustTitle) {
+      const cover = formatTitleConfig.cover
+      const level1TitleChinese = formatTitleConfig.level1TitleChinese
+      modifiedTree = cloneOutline(adjustTitleIndex(modifiedTree, cover, level1TitleChinese))
+    }
+
+    // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+    treeData.value = modifiedTree
+
+    // 手动提交更改
+    await commitOutline(modifiedTree)
+
+    formatTitleDialogVisible.value = false
+    eventBus.emit('show-success', t('outline.formatSuccess'))
+  } finally {
+    // 恢复同步状态
+    suppressDocumentSync = prevSync
+  }
 }
-const generateContent = () => {
-  // 实现从原文件保留
+const generateContent = async () => {
+  workspace.lockUI?.()
+  const node = selectedNode.value
+  generating.value = true
+  if (node) {
+    backupContent.value = node.text
+  }
+  generateContentLoading.value = true
+  const curNode = node ? searchNode(node.path, treeData.value) : null
+  if (!curNode) {
+    generateContentLoading.value = false
+    generating.value = false
+    workspace.unlockUI?.()
+    return
+  }
+  const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+  rawstring.value = '' // 清空之前的内容
+  try {
+    const content = await generateNodeContentUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      rawstring // 传入rawstring ref，用于实时显示原始内容
+    )
+    // rawstring.value 已经通过ref实时更新了，这里只需要设置处理后的内容
+    curNode.text = content || ''
+  } catch (err) {
+    logger.warn('任务失败或取消：', err)
+    const rawContent = rawstring.value?.trim() || ''
+    if (rawContent) {
+      curNode.text = rawContent
+    } else {
+      curNode.text = ''
+    }
+  } finally {
+    pendingAccept.value = true
+    generateContentLoading.value = false
+    generating.value = false
+    workspace.unlockUI?.()
+  }
+  eventBus.emit('show-success', t('outline.generateChapterSuccess'))
 }
-const generateChildrenContent = () => {
-  // 实现从原文件保留
+const generateChildrenContent = async () => {
+  // 暂停文档同步，避免并发写入期间 treeData 被替换
+  workspace.lockUI?.()
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+  const node = selectedNode.value
+  generating.value = true
+  generateChildrenContentLoading.value = true
+
+  const rootNode = node ? searchNode(node.path, treeData.value) : null
+  if (!rootNode) {
+    generateChildrenContentLoading.value = false
+    generating.value = false
+    suppressDocumentSync = prevSync
+    workspace.unlockUI?.()
+    return
+  }
+  parallelChildren.value = [] // 清空并行生成列表
+  const taskPromises: Promise<unknown>[] = [] // 用于收集所有任务的done promise
+
+  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
+    if (!curNode) return
+
+    if (curNode.children && curNode.children.length > 0) {
+      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
+    }
+
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    // 为每个节点创建一个独立的ref用于显示原始内容
+    const nodeRawContentRef = ref('')
+    parallelChildren.value.push(nodeRawContentRef)
+
+    const task = generateNodeContentUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      nodeRawContentRef // 传入ref，用于实时显示原始内容
+    )
+      .then((content) => {
+        curNode.text = content || ''
+        eventBus.emit(
+          'show-success',
+          t('outline.generateContentSuccessWithTitle', { title: curNode.title })
+        )
+      })
+      .catch((err) => {
+        logger.warn(`节点 ${curNode.title} 任务失败或取消：`, err)
+        curNode.text = ''
+      })
+
+    taskPromises.push(task)
+  }
+
+  await traverseAndGenerate(rootNode) // 启动任务遍历
+
+  await Promise.all(taskPromises) // 等待所有任务完成
+
+  generating.value = false
+  generateChildrenContentLoading.value = false
+  generated.value = true
+  // 恢复同步并统一提交一次
+  suppressDocumentSync = prevSync
+  commitOutline()
+  workspace.unlockUI?.()
 }
-const generateChildrenChildren = () => {
-  // 实现从原文件保留
+const generateChildrenChildren = async () => {
+  // 暂停文档同步，避免并发写入时 treeData 被替换导致后续引用失效
+  workspace.lockUI?.()
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+  const node = selectedNode.value
+  generating.value = true
+  generateChildrenChildrenLoading.value = true
+
+  const rootNode = node ? searchNode(node.path, treeData.value) : null
+  if (!rootNode) {
+    generateChildrenChildrenLoading.value = false
+    generating.value = false
+    suppressDocumentSync = prevSync
+    workspace.unlockUI?.()
+    return
+  }
+  parallelChildren.value = []
+  const taskPromises: Promise<void>[] = []
+
+  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
+    if (!curNode) return
+
+    if (curNode.children && curNode.children.length > 0) {
+      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
+      return
+    }
+
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    // 为每个节点创建一个独立的ref用于显示原始内容
+    const nodeRawContentRef = ref('')
+    parallelChildren.value.push(nodeRawContentRef)
+
+    const task = generateChildNodesUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      nodeRawContentRef // 传入ref，用于实时显示原始内容
+    )
+      .then((newChildren) => {
+        if (!curNode.children) {
+          curNode.children = []
+        }
+        curNode.children.push(...newChildren)
+        eventBus.emit(
+          'show-success',
+          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+        )
+      })
+      .catch((err) => {
+        logger.warn(`节点 ${curNode.title} 生成子节点失败`, err)
+      })
+
+    taskPromises.push(task)
+  }
+
+  try {
+    await traverseAndGenerate(rootNode)
+    await Promise.all(taskPromises)
+    eventBus.emit('show-success', t('outline.generateChildSuccess'))
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    eventBus.emit('show-error', t('outline.generateChildFail', { error: message }))
+  } finally {
+    generateChildrenChildrenLoading.value = false
+    generating.value = false
+    // 恢复同步并统一提交一次，确保所有并发结果都写入
+    suppressDocumentSync = prevSync
+    commitOutline()
+    workspace.unlockUI?.()
+  }
 }
 
 // Provide AI toolbar dependencies to child components

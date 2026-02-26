@@ -67,7 +67,9 @@ async function runMarkdownFlow(electronApp, window) {
   await window.waitForLoadState('domcontentloaded').catch(() => {})
   await window.waitForTimeout(2000)
 
-  const newDocBtn = window.locator('.new-tab-button[title="新建文档"], .new-tab-button[title="New Document"]')
+  const newDocBtn = window.locator(
+    '.new-tab-button[title="新建文档"], .new-tab-button[title="New Document"]'
+  )
   await newDocBtn.first().click({ timeout: STEP_TIMEOUT })
   console.log('已点击「新建文档」')
 
@@ -80,7 +82,9 @@ async function runMarkdownFlow(electronApp, window) {
   }
 
   await window.waitForTimeout(1000)
-  const editorOrPreview = window.locator('.vditor, .markdown-body, [class*="editor"], [class*="Editor"]').first()
+  const editorOrPreview = window
+    .locator('.vditor, .markdown-body, [class*="editor"], [class*="Editor"]')
+    .first()
   await editorOrPreview.waitFor({ state: 'visible', timeout: STEP_TIMEOUT }).catch(() => {})
   console.log('新建 Markdown 文档流程完成')
 }
@@ -99,26 +103,37 @@ async function runLatexFlow(electronApp, window) {
   const saveFilePath = texPath
 
   // 主进程： mock 另存为对话框，固定到 e2e/out/e2e-latex.tex
-  await electronApp.evaluate(
-    async ({ dialog }, targetPath) => {
-      dialog.showSaveDialog = async () => ({ canceled: false, filePath: targetPath })
-      return 'patched'
-    },
-    saveFilePath
-  )
+  await electronApp.evaluate(async ({ dialog }, targetPath) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: targetPath })
+    return 'patched'
+  }, saveFilePath)
 
   await window.waitForLoadState('domcontentloaded').catch(() => {})
   await window.waitForTimeout(6000)
 
   // 若当前在“预览”等视图，先切到“编辑器”视图（ViewMenu 里“编辑”/“编辑器”）
-  const editorViewBtn = window.getByRole('button', { name: /编辑|编辑器|Editor/i }).or(window.locator('[class*="view-menu"]').getByText(/编辑|Editor/i))
-  if (await editorViewBtn.first().isVisible().catch(() => false)) {
-    await editorViewBtn.first().click().catch(() => {})
+  const editorViewBtn = window
+    .getByRole('button', { name: /编辑|编辑器|Editor/i })
+    .or(window.locator('[class*="view-menu"]').getByText(/编辑|Editor/i))
+  if (
+    await editorViewBtn
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
+    await editorViewBtn
+      .first()
+      .click()
+      .catch(() => {})
     await window.waitForTimeout(2000)
   }
 
   // 等待 LaTeX 工具栏或编辑器区域
-  await window.locator('.editor-console-container, .toolbar-icon, [class*="latex-column"], [id*="latex"]').first().waitFor({ state: 'visible', timeout: 25000 }).catch(() => {})
+  await window
+    .locator('.editor-console-container, .toolbar-icon, [class*="latex-column"], [id*="latex"]')
+    .first()
+    .waitFor({ state: 'visible', timeout: 25000 })
+    .catch(() => {})
 
   // 另存为
   await window.keyboard.press('Control+Shift+S')
@@ -129,19 +144,28 @@ async function runLatexFlow(electronApp, window) {
 
   // 1) 找到“编译”按钮：LaTeX 工具栏中最后一个 .toolbar-icon（顺序：行号、预览、PDF、控制台、编译）
   const compileByTitle = window.getByTitle(/编译|Compile/i).first()
-  const compileByIcon = window.locator('.toolbar-icon').filter({ has: window.locator('icon[name="code"], [name="code"]') }).first()
+  const compileByIcon = window
+    .locator('.toolbar-icon')
+    .filter({ has: window.locator('icon[name="code"], [name="code"]') })
+    .first()
   const compileAsLast = window.locator('.resizable-container .toolbar-icon').last()
   let compileBtn = compileByTitle
   if (!(await compileByTitle.isVisible().catch(() => false))) {
-    compileBtn = (await compileByIcon.isVisible().catch(() => false)) ? compileByIcon : compileAsLast
+    compileBtn = (await compileByIcon.isVisible().catch(() => false))
+      ? compileByIcon
+      : compileAsLast
   }
   await compileBtn.waitFor({ state: 'visible', timeout: 15000 })
   await compileBtn.scrollIntoViewIfNeeded()
   await window.waitForTimeout(500)
-  await window.screenshot({ path: path.join(screenshotDir, 'latex-before-compile-click.png') }).catch(() => {})
+  await window
+    .screenshot({ path: path.join(screenshotDir, 'latex-before-compile-click.png') })
+    .catch(() => {})
   await compileBtn.click({ timeout: 15000 })
   console.log('已点击编译按钮')
-  await window.screenshot({ path: path.join(screenshotDir, 'latex-after-compile-click.png') }).catch(() => {})
+  await window
+    .screenshot({ path: path.join(screenshotDir, 'latex-after-compile-click.png') })
+    .catch(() => {})
 
   // 2) 等待编译完成：先等 PDF 文件出现在磁盘上（轮询，最多 60s）
   const pdfPath = path.join(projectRoot, 'e2e', 'out', 'e2e-latex.pdf')
@@ -175,14 +199,20 @@ async function runLatexFlow(electronApp, window) {
       pdfCanvas.waitFor({ state: 'visible', timeout: 15000 })
     ]).catch(() => {})
   }
-  const hasPdfUi = await pdfToolbar.isVisible().catch(() => false) || await pdfCanvas.isVisible().catch(() => false)
+  const hasPdfUi =
+    (await pdfToolbar.isVisible().catch(() => false)) ||
+    (await pdfCanvas.isVisible().catch(() => false))
   if (!hasPdfUi) {
-    await window.screenshot({ path: path.join(screenshotDir, 'latex-pdf-check-failed.png') }).catch(() => {})
+    await window
+      .screenshot({ path: path.join(screenshotDir, 'latex-pdf-check-failed.png') })
+      .catch(() => {})
     throw new Error('编译后 PDF 预览未正确显示（未看到 PDF 工具栏或画布）')
   }
   console.log('LaTeX 编译成功，PDF 预览已显示')
 
-  await window.screenshot({ path: path.join(screenshotDir, `latex-after-compile-${Date.now()}.png`) }).catch(() => {})
+  await window
+    .screenshot({ path: path.join(screenshotDir, `latex-after-compile-${Date.now()}.png`) })
+    .catch(() => {})
 }
 
 ;(async () => {
@@ -232,7 +262,9 @@ async function runLatexFlow(electronApp, window) {
       await runMarkdownFlow(electronApp, window)
       const screenshotDir = path.join(projectRoot, 'e2e', 'screenshots')
       if (!fs.existsSync(screenshotDir)) fs.mkdirSync(screenshotDir, { recursive: true })
-      await window.screenshot({ path: path.join(screenshotDir, `electron-new-doc-${Date.now()}.png`) }).catch(() => {})
+      await window
+        .screenshot({ path: path.join(screenshotDir, `electron-new-doc-${Date.now()}.png`) })
+        .catch(() => {})
     }
 
     await electronApp.close()

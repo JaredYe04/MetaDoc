@@ -591,6 +591,7 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "reset": "Reset zoom",
+    "fitToScreen": "Fit to Screen",
     "formatTitle": "Format Title",
     "toggleLayout": "Toggle layout direction",
     "switchToVertical": "Switch to vertical layout",

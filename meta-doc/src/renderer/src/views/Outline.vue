@@ -738,7 +738,8 @@ import {
   X,
   ArrowUpDown,
   RefreshCw,
-  Loader2
+  Loader2,
+  Maximize
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
@@ -1905,19 +1906,12 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   font-size: 14px;
   font-weight: 500;
   color: var(--foreground);
+  margin-left: 8px;
 }
 
-/* Select 触发器 - 应用主题色 */
+/* Select 触发器 - 仅设置最小宽度，其他样式由 shadcn Select 组件处理 */
 .zoom-toolbar-select {
   min-width: 120px;
-  height: 36px;
-  background-color: var(--background) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--foreground) !important;
-}
-
-.zoom-toolbar-select:hover {
-  background-color: var(--accent) !important;
 }
 
 /* 底栏按钮统一为正方形 */
@@ -2088,7 +2082,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .bottom-menu {
   position: fixed;
-  bottom: 20px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;

@@ -2030,48 +2030,53 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 }
 
 .tree-node {
-  padding: 8px 16px;
-  border-radius: 12px;
+  padding: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
-  min-width: 120px;
-  max-width: 140px; /* 节点内容宽度 < nodeWidth，产生居中间隙 */
-  margin: 0 20px; /* 水平外边距增加节点间距 */
+  min-width: auto;
+  max-width: none;
+  margin: 0;
+  background: transparent !important;
   box-sizing: border-box;
   transition: all 0.2s;
 }
 
 .tree-node:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.05);
 }
 
 .tree-node-text {
-  flex: 1;
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background-color: v-bind('themeState.currentTheme.outlineNode');
+  max-width: 140px;
 }
 
 .tree-node-expand-btn {
-  width: 20px;
-  height: 20px;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
   border: none;
-  background: transparent;
+  background-color: v-bind('themeState.currentTheme.outlineNode');
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  border-radius: 9999px;
+  opacity: 0.8;
+  transition: all 0.2s;
 }
 
 .tree-node-expand-btn:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.1);
+  filter: brightness(1.1);
 }
 
 .detailed-node-wrapper {

@@ -2041,7 +2041,8 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   justify-content: space-between;
   gap: 8px;
   min-width: 120px;
-  max-width: v-bind('`${treeConfig.nodeWidth}px`');
+  max-width: 100%; /* Constrain to parent slot width */
+  overflow: hidden; /* Prevent content from spilling out */
   box-sizing: border-box;
   transition: all 0.2s;
 }

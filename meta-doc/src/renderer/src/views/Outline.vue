@@ -1021,11 +1021,12 @@ const toggleLayout = async () => {
   updateTreeConfig(direction.value)
   await setSetting('outline.direction', direction.value)
 
-  // 方向改变后，vue-tree 会重新计算节点位置，等待一下再 fit
+  // 方向改变后，vue-tree 会重新计算节点位置
+  // 需要等待过渡动画完成（约 600-800ms）后再 fit
   nextTick(() => {
     setTimeout(() => {
       fitToScreen()
-    }, 300)
+    }, 800)
   })
 }
 
@@ -1163,89 +1164,49 @@ const centerViewportOnRootNode = () => {
 // 计算所有节点的 bounding box，缩放并居中显示
 const fitToScreen = () => {
   const viewport = document.querySelector('.outline-viewport') as HTMLElement
-  if (!viewport) {
-    console.log('[fitToScreen] viewport not found')
+  const canvas = document.querySelector('.outline-canvas') as HTMLElement
+  if (!viewport || !canvas) {
+    console.log('[fitToScreen] viewport or canvas not found')
     return
   }
 
-  // 从 vue-tree 获取节点数据
-  const vueTreeComponent = treeRef.value
-  if (!vueTreeComponent || !vueTreeComponent.nodeDataList) {
-    console.log('[fitToScreen] nodeDataList not ready', vueTreeComponent)
-    // 如果没有节点数据，重置
-    canvasScale.value = 1
-    canvasTranslateX.value = 0
-    canvasTranslateY.value = 0
+  const nodeElements = canvas.querySelectorAll('.tree-node')
+  if (nodeElements.length === 0) {
+    console.log('[fitToScreen] no nodes found')
     return
   }
-
-  const nodeDataList = vueTreeComponent.nodeDataList
-  if (!nodeDataList || nodeDataList.length === 0) {
-    console.log('[fitToScreen] nodeDataList empty')
-    canvasScale.value = 1
-    canvasTranslateX.value = 0
-    canvasTranslateY.value = 0
-    return
-  }
-
-  console.log('[fitToScreen] calculating bbox for', nodeDataList.length, 'nodes')
-  console.log('[fitToScreen] direction:', direction.value)
 
   const viewportRect = viewport.getBoundingClientRect()
 
-  // 获取节点尺寸配置
-  const nodeWidth = treeConfig.value.nodeWidth
-  const nodeHeight = treeConfig.value.nodeHeight
-
-  console.log('[fitToScreen] node size:', { nodeWidth, nodeHeight })
-
-  // 计算所有节点的 bounding box（使用 D3 坐标）
-  // 注意：vue-tree 中节点位置是中心点，需要计算四个角
+  // 获取当前所有节点的实际渲染位置（考虑现有的 transform）
   let minX = Infinity
   let minY = Infinity
   let maxX = -Infinity
   let maxY = -Infinity
 
-  nodeDataList.forEach((node: { x: number; y: number }, index: number) => {
-    // node.x, node.y 是 D3 计算的中心点坐标
-    const centerX = node.x
-    const centerY = node.y
+  nodeElements.forEach((node, index) => {
+    const rect = node.getBoundingClientRect()
+    // 转换为相对于 viewport 的坐标
+    const left = rect.left - viewportRect.left
+    const right = rect.right - viewportRect.left
+    const top = rect.top - viewportRect.top
+    const bottom = rect.bottom - viewportRect.top
 
-    // 计算节点的四个角（考虑方向）
-    let nodeLeft: number, nodeRight: number, nodeTop: number, nodeBottom: number
-
-    if (direction.value === 'vertical') {
-      // 垂直布局：x 是水平位置，y 是垂直位置
-      nodeLeft = centerX - nodeWidth / 2
-      nodeRight = centerX + nodeWidth / 2
-      nodeTop = centerY - nodeHeight / 2
-      nodeBottom = centerY + nodeHeight / 2
-    } else {
-      // 水平布局：D3 的 x/y 被 swap 了
-      // 在 vue-tree 中：left = direction === VERTICAL ? node.x : node.y
-      nodeLeft = centerY - nodeWidth / 2
-      nodeRight = centerY + nodeWidth / 2
-      nodeTop = centerX - nodeHeight / 2
-      nodeBottom = centerX + nodeHeight / 2
+    if (index < 3 || index >= nodeElements.length - 3) {
+      console.log(`[fitToScreen] node[${index}] actual:`, { left, right, top, bottom })
     }
 
-    // 打印前3个节点和后3个节点的详细信息
-    if (index < 3 || index >= nodeDataList.length - 3) {
-      console.log(`[fitToScreen] node[${index}]:`, {
-        center: { x: centerX, y: centerY },
-        bounds: { left: nodeLeft, right: nodeRight, top: nodeTop, bottom: nodeBottom }
-      })
-    }
-
-    minX = Math.min(minX, nodeLeft)
-    minY = Math.min(minY, nodeTop)
-    maxX = Math.max(maxX, nodeRight)
-    maxY = Math.max(maxY, nodeBottom)
+    minX = Math.min(minX, left)
+    minY = Math.min(minY, top)
+    maxX = Math.max(maxX, right)
+    maxY = Math.max(maxY, bottom)
   })
 
   // 计算 bounding box 的尺寸
   const contentWidth = maxX - minX
   const contentHeight = maxY - minY
+
+  console.log('[fitToScreen] actual bbox:', { minX, minY, maxX, maxY, contentWidth, contentHeight })
 
   // 视口尺寸（留一些边距）
   const padding = 40
@@ -1264,66 +1225,30 @@ const fitToScreen = () => {
   targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
   targetScale = Math.round(targetScale * 10) / 10
 
-  // 计算 bbox 的几何中心
-  const contentCenterX = (minX + maxX) / 2
-  const contentCenterY = (minY + maxY) / 2
+  console.log('[fitToScreen] target scale:', targetScale)
 
-  // 计算 viewport 中心
-  const viewportCenterX = viewportRect.width / 2
-  const viewportCenterY = viewportRect.height / 2
+  // 计算当前 bbox 中心和目标中心的偏移
+  const currentCenterX = (minX + maxX) / 2
+  const currentCenterY = (minY + maxY) / 2
+  const targetCenterX = viewportRect.width / 2
+  const targetCenterY = viewportRect.height / 2
 
-  // 计算偏移
-  // CSS transform: translate(tx, ty) scale(s)
-  // 最终位置 = (原始位置 + translate) * scale
-  // 我们希望 contentCenter 映射到 viewportCenter
-  // viewportCenter = (contentCenter + translate) * scale
-  // translate = viewportCenter / scale - contentCenter
-  const translateX = viewportCenterX / targetScale - contentCenterX
-  const translateY = viewportCenterY / targetScale - contentCenterY
+  // 计算需要的调整量
+  // 新位置 = 旧位置 * scale + translate
+  // 我们希望 contentCenter * scale + translate = viewportCenter
+  // 所以 translate = viewportCenter - contentCenter * scale
+  const translateX = targetCenterX - currentCenterX * targetScale
+  const translateY = targetCenterY - currentCenterY * targetScale
 
-  // 应用变换
+  // 应用变换（直接替换，不是累加）
   canvasScale.value = targetScale
   canvasTranslateX.value = translateX
   canvasTranslateY.value = translateY
 
-  // 验证：计算缩放后的实际边界位置
-  nextTick(() => {
-    const canvas = document.querySelector('.outline-canvas') as HTMLElement
-    if (canvas) {
-      const firstNode = canvas.querySelector('.tree-node') as HTMLElement
-      const lastNode = canvas.querySelectorAll('.tree-node')[nodeDataList.length - 1] as HTMLElement
-      if (firstNode && lastNode) {
-        const firstRect = firstNode.getBoundingClientRect()
-        const lastRect = lastNode.getBoundingClientRect()
-        const viewportRect = viewport.getBoundingClientRect()
-        console.log('[fitToScreen] verification:', {
-          firstNode: {
-            left: firstRect.left - viewportRect.left,
-            right: firstRect.right - viewportRect.left
-          },
-          lastNode: {
-            left: lastRect.left - viewportRect.left,
-            right: lastRect.right - viewportRect.left
-          },
-          viewport: { width: viewportRect.width }
-        })
-      }
-    }
-  })
-
   console.log('[fitToScreen] result:', {
-    bbox: { minX, minY, maxX, maxY, contentWidth, contentHeight },
-    rootNode: { x: rootNode.x, y: rootNode.y },
-    contentCenter: { x: contentCenterX, y: contentCenterY },
-    viewport: { width: viewportRect.width, height: viewportRect.height },
-    viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-    available: { width: availableWidth, height: availableHeight },
-    scale: {
-      scaleX: availableWidth / contentWidth,
-      scaleY: availableHeight / contentHeight,
-      targetScale
-    },
-    transform: { translateX, translateY }
+    currentCenter: { x: currentCenterX, y: currentCenterY },
+    targetCenter: { x: targetCenterX, y: targetCenterY },
+    transform: { scale: targetScale, translateX, translateY }
   })
 }
 

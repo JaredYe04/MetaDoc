@@ -49,6 +49,16 @@
             <span class="text-primary">{{ t('setting.recommended') }}</span>
             <span>{{ t('setting.highPrecision') }}</span>
           </div>
+          <!-- Temperature Hint -->
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <div class="flex items-center gap-1 text-xs text-muted-foreground mt-1 cursor-help">
+                <HelpCircle class="h-3 w-3" />
+                <span>{{ t('setting.llmTemperatureHint') }}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{{ t('setting.llmTemperatureHint') }}</TooltipContent>
+          </Tooltip>
         </div>
 
         <Separator />
@@ -991,7 +1001,8 @@ import {
   Plus as PlusIcon,
   Info,
   GripVertical,
-  MoreVertical
+  MoreVertical,
+  HelpCircle
 } from 'lucide-vue-next'
 
 // shadcn-vue 组件

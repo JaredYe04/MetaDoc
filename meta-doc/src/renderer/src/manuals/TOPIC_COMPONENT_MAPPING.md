@@ -136,7 +136,7 @@
 | `agent/introduction.md` | `AgentView`                             | -        | -           |
 | `agent/config.md`       | `AgentView` + `AgentSessionManager`     | -        | -           |
 | `agent/session.md`      | `AgentSessionManager`                   | -        | `AgentView` |
-| `agent/workflow.md`     | `WorkflowManager` / `WorkflowDisplay`   | -        | -           |
+| `agent/workflow.md`     | -（工作流已移除）                       | -        | -           |
 | `agent/tools.md`        | `*Display` 组件                         | -        | -           |
 | `agent/engine.md`       | `AgentView`                             | -        | -           |
 | `agent/references.md`   | `ReferenceManager` / `ReferenceDisplay` | -        | -           |
@@ -372,8 +372,6 @@ ProofreadDisplay          - 校对结果展示
 | ------------------------- | ----------- | ----------------------- |
 | `AgentView`               | Agent主界面 | `agent/introduction.md` |
 | `AgentSessionManager`     | 会话管理    | `agent/session.md`      |
-| `WorkflowManager`         | 工作流管理  | `agent/workflow.md`     |
-| `WorkflowDisplay`         | 工作流展示  | `agent/workflow.md`     |
 | `ReferenceManager`        | 引用管理    | `agent/references.md`   |
 | `ReferenceDisplay`        | 引用展示    | `agent/references.md`   |
 | `CompletionSettingsPanel` | 补全设置    | `ai/completion.md`      |

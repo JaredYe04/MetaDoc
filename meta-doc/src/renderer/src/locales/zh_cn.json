@@ -103,6 +103,7 @@
     "langTooltip": "语言",
     "knowledgeBase": "知识库",
     "workspaceExplorer": "工作目录",
+    "workspaceGrep": "工作区搜索",
     "debugTools": "调试工具",
     "moreFeatures": "更多功能",
     "menuConfig": {
@@ -2426,26 +2427,6 @@
         "cannotDeleteDefault": "不能删除默认工具集",
         "builtIn": "内置"
       },
-      "workflow": {
-        "title": "工作流管理",
-        "create": "创建工作流",
-        "edit": "编辑工作流",
-        "name": "名称",
-        "description": "描述",
-        "version": "版本",
-        "nodeCount": "节点数量",
-        "nodes": "节点",
-        "builtIn": "内置",
-        "cannotEditBuiltIn": "不能编辑内置工作流",
-        "cannotDeleteBuiltIn": "不能删除内置工作流",
-        "validate": "验证",
-        "validationSuccess": "工作流验证通过",
-        "validationFailed": "工作流验证失败",
-        "createSuccess": "工作流创建成功",
-        "updateSuccess": "工作流更新成功",
-        "deleteSuccess": "工作流删除成功",
-        "confirmDelete": "确定要删除工作流「{name}」吗？"
-      },
       "agentConfig": {
         "title": "Agent配置管理",
         "create": "创建配置",
@@ -2497,8 +2478,7 @@
           "autogpt": "AutoGPT",
           "react": "ReAct",
           "planExecute": "Plan-Execute",
-          "simpleChat": "Simple Chat",
-          "workflow": "Workflow"
+          "simpleChat": "Simple Chat"
         },
         "llmConfigMode": "LLM配置模式",
         "useGlobalLLM": "使用全局LLM",
@@ -2531,74 +2511,6 @@
         "validationFailed": "引擎验证失败",
         "confirmDelete": "确定要删除引擎「{name}」吗？"
       }
-    },
-    "workflow": {
-      "validate": "验证工作流",
-      "validationSuccess": "工作流验证通过",
-      "validationFailed": "工作流验证失败",
-      "entryNodeRequired": "必须指定入口节点",
-      "canvasPlaceholder": "工作流画布（待集成draw.io）",
-      "nodeProperties": "节点属性",
-      "addTool": "添加工具",
-      "addLLM": "添加LLM决策",
-      "addWorkflow": "添加工作流",
-      "addAgent": "添加Agent",
-      "addCondition": "添加条件",
-      "addLoop": "添加循环",
-      "addParallel": "添加并行",
-      "addMerge": "添加合并",
-      "addAsync": "添加异步",
-      "addAggregate": "添加汇总",
-      "display": {
-        "structure": "工作流结构",
-        "progress": "执行进度",
-        "error": "错误",
-        "result": "执行结果",
-        "status": {
-          "succeeded": "成功",
-          "failed": "失败",
-          "running": "运行中",
-          "pending": "待执行"
-        }
-      },
-      "toolbar": {
-        "pointer": "指针",
-        "select": "框选",
-        "pan": "拖动画布",
-        "textEdit": "文字编辑",
-        "delete": "删除",
-        "copy": "复制",
-        "paste": "粘贴",
-        "cut": "剪切",
-        "undo": "撤销",
-        "redo": "重做",
-        "zoomIn": "放大",
-        "zoomOut": "缩小",
-        "zoomFit": "适应画布",
-        "zoomReset": "重置缩放"
-      },
-      "viewMode": {
-        "graph": "图形视图",
-        "code": "代码视图",
-        "switchToCode": "切换到代码视图",
-        "switchToGraph": "切换到图形视图"
-      },
-      "pseudoCode": {
-        "title": "伪代码",
-        "syntaxError": "语法错误",
-        "parseError": "解析错误",
-        "convertSuccess": "转换成功",
-        "convertFailed": "转换失败"
-      },
-      "nodeLabel": "节点标签",
-      "artifactId": "工件ID",
-      "selectTool": "选择工具",
-      "selectWorkflow": "选择工作流",
-      "selectToolPlaceholder": "请选择工具",
-      "selectWorkflowPlaceholder": "请选择工作流",
-      "toolRequired": "必须选择一个工具",
-      "workflowRequired": "必须选择一个工作流",
-      "cannotDeleteStartEnd": "不能删除工作流的入口节点或出口节点"
     },
     "display": {
       "dataAnalysis": {
@@ -3041,7 +2953,21 @@
     "collapse": "折叠",
     "expand": "展开",
     "workspace": "工作区",
+    "workspaceGrep": "工作区搜索",
     "metaInfo": "元信息"
+  },
+  "workspaceGrep": {
+    "title": "工作区搜索",
+    "search": "搜索",
+    "patternPlaceholder": "输入要搜索的文本或正则表达式",
+    "useRegex": "正则",
+    "matchCase": "区分大小写",
+    "wholeWord": "整词匹配",
+    "searching": "正在搜索工作区...",
+    "noResult": "未找到匹配项",
+    "resultSummary": "共找到 {count} 处匹配",
+    "globalWorkspace": "全局工作区（当前已打开文档）",
+    "activeWorkspaceCount": "已打开 {count} 个工作区"
   },
   "llmStatistics": {
     "title": "LLM API 用量统计",
@@ -3587,7 +3513,7 @@
       },
       "capabilities": {
         "title": "Agent能力说明",
-        "content": "# Agent能力说明\n\nAgent支持多种能力，可以帮助您完成各种文档处理任务。\n\n## 核心能力\n\n### 1. 文档编辑\n\n- 插入、删除、替换文本\n- 格式化文本\n- 调整文档结构\n\n### 2. 大纲操作\n\n- 生成文档大纲\n- 优化大纲结构\n- 添加子章节\n- 生成章节内容\n\n### 3. 图表生成\n\n- 根据内容自动生成图表\n- 插入Mermaid、PlantUML、ECharts代码\n- 优化图表布局\n\n### 4. 内容生成\n\n- 基于大纲生成内容\n- 扩写文档\n- 润色文本\n\n### 5. 知识检索\n\n- 从知识库检索相关信息\n- 基于检索结果生成内容\n\n## 工具集\n\nAgent可以使用以下工具：\n\n- `edit`: 编辑文档内容\n- `outline-tree`: 获取文档大纲\n- `outline-optimize`: 优化大纲结构\n- `chart-generation`: 生成图表\n- `rag-query`: 查询知识库\n- 等等...\n\n## 工作流\n\nAgent还支持自定义工作流，可以将多个工具组合成复杂的工作流程。\n\n## 限制\n\n- Agent的执行受限于可用的工具\n- 某些操作可能需要用户确认\n- 复杂任务可能需要多轮交互"
+        "content": "# Agent能力说明\n\nAgent支持多种能力，可以帮助您完成各种文档处理任务。\n\n## 核心能力\n\n### 1. 文档编辑\n\n- 插入、删除、替换文本\n- 格式化文本\n- 调整文档结构\n\n### 2. 大纲操作\n\n- 生成文档大纲\n- 优化大纲结构\n- 添加子章节\n- 生成章节内容\n\n### 3. 图表生成\n\n- 根据内容自动生成图表\n- 插入Mermaid、PlantUML、ECharts代码\n- 优化图表布局\n\n### 4. 内容生成\n\n- 基于大纲生成内容\n- 扩写文档\n- 润色文本\n\n### 5. 知识检索\n\n- 从知识库检索相关信息\n- 基于检索结果生成内容\n\n## 工具集\n\nAgent可以使用以下工具：\n\n- `edit`: 编辑文档内容\n- `outline-tree`: 获取文档大纲\n- `outline-optimize`: 优化大纲结构\n- `chart-generation`: 生成图表\n- `rag-query`: 查询知识库\n- 等等...\n\n## 限制\n\n- Agent的执行受限于可用的工具\n- 某些操作可能需要用户确认\n- 复杂任务可能需要多轮交互"
       },
       "risks": {
         "title": "Agent风险与开销",
@@ -3597,7 +3523,7 @@
     "design": {
       "philosophy": {
         "title": "MetaDoc设计理念",
-        "content": "# MetaDoc设计理念\n\nMetaDoc的设计遵循以下核心理念。\n\n## 自举式设计\n\n用户手册本身就是用Markdown编写的，展示了MetaDoc的能力。这体现了\"自举\"（Bootstrapping）的设计理念：用产品本身来展示产品。\n\n## 文档驱动\n\nMetaDoc是一个\"文档驱动\"的系统：\n\n- 文档是核心，所有功能都围绕文档展开\n- 支持多种文档格式（Markdown、LaTeX）\n- 文档可以导出为多种格式\n\n## 智能化\n\n通过AI和Agent技术，让文档创作更智能：\n\n- AI辅助写作和校对\n- Agent自动执行复杂任务\n- 智能图表生成\n\n## 可扩展性\n\n- 支持自定义工具和工作流\n- 插件化架构\n- 开放的API接口\n\n## 用户体验\n\n- 简洁美观的界面\n- 流畅的操作体验\n- 丰富的快捷键支持\n- 多语言支持\n\n## 技术栈\n\n- **前端**: Vue 3 + TypeScript\n- **桌面**: Electron\n- **编辑器**: Monaco + Vditor\n- **AI**: LLM Agent框架\n- **数据库**: SQLite + sqlite-vec\n\n## 未来规划\n\n- 更多AI能力\n- 更好的协作功能\n- 云端同步\n- 移动端支持"
+        "content": "# MetaDoc设计理念\n\nMetaDoc的设计遵循以下核心理念。\n\n## 自举式设计\n\n用户手册本身就是用Markdown编写的，展示了MetaDoc的能力。这体现了\"自举\"（Bootstrapping）的设计理念：用产品本身来展示产品。\n\n## 文档驱动\n\nMetaDoc是一个\"文档驱动\"的系统：\n\n- 文档是核心，所有功能都围绕文档展开\n- 支持多种文档格式（Markdown、LaTeX）\n- 文档可以导出为多种格式\n\n## 智能化\n\n通过AI和Agent技术，让文档创作更智能：\n\n- AI辅助写作和校对\n- Agent自动执行复杂任务\n- 智能图表生成\n\n## 可扩展性\n\n- 支持自定义工具\n- 插件化架构\n- 开放的API接口\n\n## 用户体验\n\n- 简洁美观的界面\n- 流畅的操作体验\n- 丰富的快捷键支持\n- 多语言支持\n\n## 技术栈\n\n- **前端**: Vue 3 + TypeScript\n- **桌面**: Electron\n- **编辑器**: Monaco + Vditor\n- **AI**: LLM Agent框架\n- **数据库**: SQLite + sqlite-vec\n\n## 未来规划\n\n- 更多AI能力\n- 更好的协作功能\n- 云端同步\n- 移动端支持"
       }
     },
     "overview": {

@@ -272,57 +272,6 @@ class ToolCollectionManager {
   }
 
   /**
-   * 初始化默认工作流工具集
-   */
-  async initializeDefaultWorkflowCollection(workflowIds: string[]): Promise<void> {
-    const defaultId = 'default-workflow-collection'
-
-    // 检查是否已存在
-    const existing = this.collections.get(defaultId)
-    if (existing) {
-      // 更新工作流列表
-      this.updateCollection(defaultId, {
-        toolIds: workflowIds,
-        name: {
-          zh_cn: { name: '默认工作流' },
-          en_us: { name: 'Default Workflow Collection' }
-        },
-        description: {
-          zh_cn: { description: 'MetaDoc内置的全部工作流，不可删除' },
-          en_us: { description: 'All built-in MetaDoc workflows, cannot be deleted' }
-        },
-        isBuiltIn: true
-      })
-      return
-    }
-
-    // 创建默认工作流工具集
-    const defaultCollection: ToolCollection = {
-      entityType: 'tool-collection',
-      id: defaultId,
-      name: {
-        zh_cn: { name: '默认工作流' },
-        en_us: { name: 'Default Workflow Collection' }
-      },
-      description: {
-        zh_cn: { description: 'MetaDoc内置的全部工作流，不可删除' },
-        en_us: { description: 'All built-in MetaDoc workflows, cannot be deleted' }
-      },
-      version: '1.0.0',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      toolIds: workflowIds,
-      enabled: true,
-      tags: ['default', 'built-in', 'workflow'],
-      isBuiltIn: true
-    }
-
-    this.collections.set(defaultId, defaultCollection)
-    this.saveToStorage()
-    this.getLogger().info('默认工作流工具集已初始化')
-  }
-
-  /**
    * 从本地存储加载
    */
   private loadFromStorage(): void {

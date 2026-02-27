@@ -5,8 +5,6 @@
 
 import type { ToolCallbackResult } from '../../types/agent-tool'
 import { agentToolManager } from '../agent-tool-manager'
-import { workflowExecutor } from './workflow-executor'
-import { workflowManager } from './workflow-manager'
 import { createRendererLogger } from '../logger'
 import type { AgentSession } from '../../types/agent-framework'
 
@@ -58,12 +56,6 @@ export class ToolRunner {
     session?: AgentSession // 可选的session对象，用于工具访问session状态
   ): Promise<ToolObservation> {
     try {
-      // 检查是否是Workflow工具
-      const workflow = workflowManager.getWorkflow(toolId)
-      if (workflow) {
-        return await this.runWorkflowTool(toolId, params, signal)
-      }
-
       // 执行普通工具
       const tool = agentToolManager.getTool(toolId)
       if (!tool) {
@@ -126,45 +118,6 @@ export class ToolRunner {
       return {
         toolId,
         toolName: toolId,
-        status: 'failed',
-        error: error instanceof Error ? error.message : String(error)
-      }
-    }
-  }
-
-  /**
-   * 执行Workflow工具
-   */
-  private static async runWorkflowTool(
-    workflowId: string,
-    params: Record<string, unknown>,
-    signal?: AbortSignal
-  ): Promise<ToolObservation> {
-    try {
-      getLogger().debug(`执行Workflow工具: ${workflowId}`, params)
-
-      const result = await workflowExecutor.executeWorkflow(workflowId, params, signal)
-
-      const workflow = workflowManager.getWorkflow(workflowId)
-      const workflowName = workflow
-        ? typeof workflow.name === 'string'
-          ? workflow.name
-          : workflow.name['zh_cn']?.name || workflow.name['en_us']?.name || workflowId
-        : workflowId
-
-      return {
-        toolId: workflowId,
-        toolName: workflowName,
-        status: result.status === 'succeeded' ? 'succeeded' : 'failed',
-        result: result.result,
-        error: result.error,
-        summary: result.result ? this.generateSummary(result.result) : undefined
-      }
-    } catch (error) {
-      getLogger().error(`Workflow执行失败: ${workflowId}`, error)
-      return {
-        toolId: workflowId,
-        toolName: workflowId,
         status: 'failed',
         error: error instanceof Error ? error.message : String(error)
       }

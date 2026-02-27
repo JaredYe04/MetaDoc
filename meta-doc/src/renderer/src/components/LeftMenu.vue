@@ -370,6 +370,34 @@
           {{ $t('leftMenu.userManual', '用户手册') }}
         </UISubMenuItem>
 
+        <!-- 工作目录：默认在更多功能子菜单中 -->
+        <UISubMenuItem
+          v-if="!isMenuItemVisible('workspace-explorer')"
+          :iconImage="(themeState.currentTheme as any).FolderIcon"
+          @click="toggleWorkspaceExplorer"
+        >
+          {{ $t('leftMenu.workspaceExplorer', '工作目录') }}
+        </UISubMenuItem>
+
+        <!-- 工作区 grep：在更多功能子菜单中 -->
+        <UISubMenuItem :icon="Search" @click="toggleWorkspaceGrep">
+          {{ $t('leftMenu.workspaceGrep', '工作区搜索') }}
+        </UISubMenuItem>
+
+        <!-- 工作目录：默认在更多功能子菜单中 -->
+        <UISubMenuItem
+          v-if="!isMenuItemVisible('workspace-explorer')"
+          :iconImage="(themeState.currentTheme as any).FolderIcon"
+          @click="toggleWorkspaceExplorer"
+        >
+          {{ $t('leftMenu.workspaceExplorer', '工作目录') }}
+        </UISubMenuItem>
+
+        <!-- 工作区 grep：在更多功能子菜单中 -->
+        <UISubMenuItem :icon="Search" @click="toggleWorkspaceGrep">
+          {{ $t('leftMenu.workspaceGrep', '工作区搜索') }}
+        </UISubMenuItem>
+
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
           {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>
@@ -941,7 +969,8 @@ import {
   FileText,
   X,
   FolderPlus as FolderAdd,
-  Wand2 as MagicStick
+  Wand2 as MagicStick,
+  Search
 } from 'lucide-vue-next'
 
 import eventBus from '../utils/event-bus'
@@ -1040,7 +1069,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
       id: 'workspace-explorer',
       label: t('leftMenu.workspaceExplorer', '工作目录'),
       iconImage: (themeState.currentTheme as any).FolderIcon,
-      visible: true,
+      visible: false,
       isCore: true,
       position: 'top'
     },
@@ -1343,6 +1372,10 @@ const openKnowledgeBase = () => {
 // 切换工作目录菜单
 const toggleWorkspaceExplorer = () => {
   emitMenu('toggle-workspace-explorer')
+}
+
+const toggleWorkspaceGrep = () => {
+  emitMenu('toggle-workspace-grep')
 }
 
 // 打开调试工具

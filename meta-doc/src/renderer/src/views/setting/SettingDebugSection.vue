@@ -5129,7 +5129,6 @@ const getNodeTypeLabel = (type: string): string => {
   const labels: Record<string, string> = {
     message: '消息',
     'tool-call': '工具调用',
-    'workflow-call': '工作流调用',
     'llm-call': 'LLM调用'
   }
   return labels[type] || type
@@ -5140,7 +5139,6 @@ const getNodeTypeTagType = (type: string): string => {
   const types: Record<string, string> = {
     message: 'info',
     'tool-call': 'warning',
-    'workflow-call': 'success',
     'llm-call': 'primary'
   }
   return types[type] || 'info'
@@ -5199,7 +5197,6 @@ const getSessionStatusTagType = (status?: string): string => {
     thinking: 'warning',
     generating: 'primary',
     'tool-calling': 'warning',
-    'workflow-executing': 'success',
     'waiting-input': 'info',
     error: 'danger'
   }

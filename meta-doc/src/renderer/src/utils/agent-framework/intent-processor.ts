@@ -10,7 +10,6 @@ import type { AgentSession, AgentEngine } from '../../types/agent-framework'
 import type { AgentConfig } from '../../types/agent-framework'
 import { agentConfigManager } from './agent-config-manager'
 import { agentToolManager } from '../agent-tool-manager'
-import { workflowManager } from './workflow-manager'
 import { AIContextManager } from './ai-context-manager'
 import { LlmAdapter } from './llm-adapter'
 import { createRendererLogger } from '../logger'
@@ -96,31 +95,6 @@ function getAvailableToolBriefs(
 
       toolBriefs.push({
         id: toolId,
-        brief
-      })
-    }
-  }
-
-  // 添加Workflow工具
-  const workflows = workflowManager.getAllWorkflows()
-  const addedToolIds = new Set(toolBriefs.map((t) => t.id))
-  for (const workflow of workflows) {
-    if (
-      workflow.enabled !== false &&
-      toolIds.includes(workflow.id) &&
-      !addedToolIds.has(workflow.id)
-    ) {
-      // 从 workflow 提取简短说明
-      const description =
-        typeof workflow.description === 'string'
-          ? workflow.description
-          : workflow.description['zh_cn']?.description ||
-            workflow.description['en_us']?.description ||
-            ''
-      const brief = description.length > 100 ? description.substring(0, 100) + '...' : description
-
-      toolBriefs.push({
-        id: workflow.id,
         brief
       })
     }

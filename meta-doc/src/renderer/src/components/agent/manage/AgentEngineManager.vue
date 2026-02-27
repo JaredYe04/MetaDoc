@@ -82,9 +82,6 @@
                 <SelectItem value="simple-chat">
                   {{ t('agent.manage.agentEngine.engineTypes.simpleChat') }}
                 </SelectItem>
-                <SelectItem value="workflow">
-                  {{ t('agent.manage.agentEngine.engineTypes.workflow') }}
-                </SelectItem>
               </SelectContent>
             </Select>
           </FormField>
@@ -322,8 +319,7 @@ const getEngineTypeLabel = (type: EngineType): string => {
     autogpt: t('agent.manage.agentEngine.engineTypes.autogpt'),
     react: t('agent.manage.agentEngine.engineTypes.react'),
     'plan-execute': t('agent.manage.agentEngine.engineTypes.planExecute'),
-    'simple-chat': t('agent.manage.agentEngine.engineTypes.simpleChat'),
-    workflow: t('agent.manage.agentEngine.engineTypes.workflow')
+    'simple-chat': t('agent.manage.agentEngine.engineTypes.simpleChat')
   }
   return labels[type] || type
 }

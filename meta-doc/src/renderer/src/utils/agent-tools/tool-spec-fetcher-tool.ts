@@ -12,7 +12,6 @@ import type {
   ToolLocales
 } from '../../types/agent-tool'
 import { agentToolManager } from '../agent-tool-manager'
-import { workflowManager } from '../agent-framework/workflow-manager'
 import { createRendererLogger } from '../logger'
 import { createDetailedError } from './tool-utils'
 
@@ -98,38 +97,13 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
             fullSpec = null
           }
         } else {
-          // 尝试从workflow获取
-          const workflow = workflowManager.getWorkflow(toolId)
-          if (workflow) {
-            toolName =
-              typeof workflow.name === 'string'
-                ? workflow.name
-                : workflow.name['zh_cn']?.name || workflow.name['en_us']?.name || toolId
-
-            const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
-            if (registeredWorkflowTool?.config.spec?.fullSpec) {
-              fullSpec = registeredWorkflowTool.config.spec.fullSpec
-            } else if (registeredWorkflowTool?.config.instruction) {
-              if (typeof registeredWorkflowTool.config.instruction === 'string') {
-                fullSpec = registeredWorkflowTool.config.instruction
-              } else {
-                fullSpec =
-                  registeredWorkflowTool.config.instruction['zh_cn']?.instruction ||
-                  registeredWorkflowTool.config.instruction['en_us']?.instruction ||
-                  null
-              }
-            } else {
-              fullSpec = null
-            }
-          } else {
-            specs.push({
-              toolId,
-              name: toolId,
-              fullSpec: null,
-              error: `Tool not found: ${toolId}`
-            })
-            continue
-          }
+          specs.push({
+            toolId,
+            name: toolId,
+            fullSpec: null,
+            error: `Tool not found: ${toolId}`
+          })
+          continue
         }
 
         specs.push({

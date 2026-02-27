@@ -54,6 +54,8 @@ import PenAiIconBlack from '../assets/icons/pen-ai-black.svg'
 import PenAiIconWhite from '../assets/icons/pen-ai-white.svg'
 import FeedbackIconBlack from '../assets/icons/feedback-black.svg'
 import FeedbackIconWhite from '../assets/icons/feedback-white.svg'
+import SearchIconBlack from '../assets/icons/search-black.svg'
+import SearchIconWhite from '../assets/icons/search-white.svg'
 // 窗口控制图标（标题栏最小化/最大化/还原）
 import MinimizeIconBlack from '../assets/icons/minimize-black.svg'
 import MinimizeIconWhite from '../assets/icons/minimize-white.svg'
@@ -374,7 +376,8 @@ const generateThemeIcons = (isDarkMode) => {
       light: MultiBranchIconBlack,
       dark: MultiBranchIconWhite
     }),
-    FormatIcon: selectIconByTheme(isDarkMode, { light: FormatIconBlack, dark: FormatIconWhite })
+    FormatIcon: selectIconByTheme(isDarkMode, { light: FormatIconBlack, dark: FormatIconWhite }),
+    SearchIcon: selectIconByTheme(isDarkMode, { light: SearchIconBlack, dark: SearchIconWhite })
   }
 }
 

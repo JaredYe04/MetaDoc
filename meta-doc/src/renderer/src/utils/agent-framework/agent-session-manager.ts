@@ -15,7 +15,6 @@ import type {
 import type { AgentMessage } from '../../types/agent'
 import { createRendererLogger } from '../logger'
 import { agentConfigManager } from './agent-config-manager'
-import { workflowManager } from './workflow-manager'
 import { toolCollectionManager } from './tool-collection-manager'
 import { DEFAULT_AGENT_ASSISTANT_GREETING } from '../../constants/document'
 
@@ -369,7 +368,6 @@ class AgentSessionManager {
     dependencies?: {
       agentConfig?: any
       toolCollections?: any[]
-      workflows?: any[]
     }
   } {
     const serialized: {
@@ -377,7 +375,6 @@ class AgentSessionManager {
       dependencies?: {
         agentConfig?: any
         toolCollections?: any[]
-        workflows?: any[]
       }
     } = {
       session: JSON.parse(JSON.stringify(session))
@@ -387,7 +384,6 @@ class AgentSessionManager {
       const dependencies: {
         agentConfig?: any
         toolCollections?: any[]
-        workflows?: any[]
       } = {}
 
       // 收集AgentConfig
@@ -414,7 +410,6 @@ class AgentSessionManager {
       dependencies?: {
         agentConfig?: any
         toolCollections?: any[]
-        workflows?: any[]
       }
     },
     options: {
@@ -442,17 +437,6 @@ class AgentSessionManager {
             toolCollectionManager.importCollection(collectionEntity, options.overwriteDependencies)
           } catch (error) {
             this.getLogger().warn(`导入工具集失败: ${error}`)
-          }
-        }
-      }
-
-      // 导入工作流
-      if (dependencies.workflows) {
-        for (const workflowEntity of dependencies.workflows) {
-          try {
-            workflowManager.importWorkflow(workflowEntity, options.overwriteDependencies)
-          } catch (error) {
-            this.getLogger().warn(`导入工作流失败: ${error}`)
           }
         }
       }
@@ -701,7 +685,6 @@ class AgentSessionManager {
     dependencies?: {
       agentConfig?: any
       toolCollections?: any[]
-      workflows?: any[]
     }
   } {
     const serialized = this.serializeSession(session, includeDependencies)

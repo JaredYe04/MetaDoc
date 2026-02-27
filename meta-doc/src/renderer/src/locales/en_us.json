@@ -77,7 +77,10 @@
     "tip": "Hint",
     "saveAll": "Save All",
     "saveAllAndExit": "Save All and Exit",
-    "userFeedback": "User Feedback"
+    "userFeedback": "User Feedback",
+    "knowledgeBase": "Knowledge Base",
+    "workspaceExplorer": "Workspace Explorer",
+    "workspaceGrep": "Workspace Search"
   },
   "llmDialog": {
     "aiAssistant": "AI Assistant",
@@ -2043,7 +2046,21 @@
     "collapse": "Collapse",
     "expand": "Expand",
     "workspace": "Workspace",
+    "workspaceGrep": "Workspace Search",
     "metaInfo": "Meta Info"
+  },
+  "workspaceGrep": {
+    "title": "Workspace Search",
+    "search": "Search",
+    "patternPlaceholder": "Enter text or regular expression to search",
+    "useRegex": "Regex",
+    "matchCase": "Match case",
+    "wholeWord": "Whole word",
+    "searching": "Searching workspaces...",
+    "noResult": "No matches found",
+    "resultSummary": "Found {count} matches",
+    "globalWorkspace": "Global workspace (currently opened documents)",
+    "activeWorkspaceCount": "{count} workspace folders opened"
   },
   "leftMenu": {
     "userManual": "User Manual"
@@ -2250,7 +2267,7 @@
       },
       "capabilities": {
         "title": "Agent Capabilities",
-        "content": "# Agent Capabilities\n\nAgent supports various capabilities to help you complete various document processing tasks.\n\n## Core Capabilities\n\n### 1. Document Editing\n\n- Insert, delete, replace text\n- Format text\n- Adjust document structure\n\n### 2. Outline Operations\n\n- Generate document outline\n- Optimize outline structure\n- Add subsections\n- Generate section content\n\n### 3. Chart Generation\n\n- Automatically generate charts based on content\n- Insert Mermaid, PlantUML, ECharts code\n- Optimize chart layout\n\n### 4. Content Generation\n\n- Generate content based on outline\n- Expand documents\n- Polish text\n\n### 5. Knowledge Retrieval\n\n- Retrieve relevant information from knowledge base\n- Generate content based on retrieval results\n\n## Tool Collection\n\nAgent can use the following tools:\n\n- `edit`: Edit document content\n- `outline-tree`: Get document outline\n- `outline-optimize`: Optimize outline structure\n- `chart-generation`: Generate charts\n- `rag-query`: Query knowledge base\n- etc...\n\n## Workflows\n\nAgent also supports custom workflows, combining multiple tools into complex work processes.\n\n## Limitations\n\n- Agent execution is limited by available tools\n- Some operations may require user confirmation\n- Complex tasks may require multiple interactions"
+        "content": "# Agent Capabilities\n\nAgent supports various capabilities to help you complete various document processing tasks.\n\n## Core Capabilities\n\n### 1. Document Editing\n\n- Insert, delete, replace text\n- Format text\n- Adjust document structure\n\n### 2. Outline Operations\n\n- Generate document outline\n- Optimize outline structure\n- Add subsections\n- Generate section content\n\n### 3. Chart Generation\n\n- Automatically generate charts based on content\n- Insert Mermaid, PlantUML, ECharts code\n- Optimize chart layout\n\n### 4. Content Generation\n\n- Generate content based on outline\n- Expand documents\n- Polish text\n\n### 5. Knowledge Retrieval\n\n- Retrieve relevant information from knowledge base\n- Generate content based on retrieval results\n\n## Tool Collection\n\nAgent can use the following tools:\n\n- `edit`: Edit document content\n- `outline-tree`: Get document outline\n- `outline-optimize`: Optimize outline structure\n- `chart-generation`: Generate charts\n- `rag-query`: Query knowledge base\n- etc...\n\n## Limitations\n\n- Agent execution is limited by available tools\n- Some operations may require user confirmation\n- Complex tasks may require multiple interactions"
       },
       "risks": {
         "title": "Agent Risks and Costs",
@@ -2260,7 +2277,7 @@
     "design": {
       "philosophy": {
         "title": "MetaDoc Design Philosophy",
-        "content": "# MetaDoc Design Philosophy\n\nMetaDoc's design follows the following core principles.\n\n## Bootstrapping Design\n\nThe user manual itself is written in Markdown, demonstrating MetaDoc's capabilities. This reflects the \"bootstrapping\" design philosophy: using the product itself to showcase the product.\n\n## Document-Driven\n\nMetaDoc is a \"document-driven\" system:\n\n- Documents are the core, all features revolve around documents\n- Supports multiple document formats (Markdown, LaTeX)\n- Documents can be exported to multiple formats\n\n## Intelligence\n\nThrough AI and Agent technology, make document creation more intelligent:\n\n- AI-assisted writing and proofreading\n- Agent automatically executes complex tasks\n- Intelligent chart generation\n\n## Extensibility\n\n- Supports custom tools and workflows\n- Plugin architecture\n- Open API interface\n\n## User Experience\n\n- Clean and beautiful interface\n- Smooth operation experience\n- Rich shortcut key support\n- Multi-language support\n\n## Technology Stack\n\n- **Frontend**: Vue 3 + TypeScript\n- **Desktop**: Electron\n- **Editor**: Monaco + Vditor\n- **AI**: LLM Agent framework\n- **Database**: SQLite + sqlite-vec\n\n## Future Plans\n\n- More AI capabilities\n- Better collaboration features\n- Cloud sync\n- Mobile support"
+        "content": "# MetaDoc Design Philosophy\n\nMetaDoc's design follows the following core principles.\n\n## Bootstrapping Design\n\nThe user manual itself is written in Markdown, demonstrating MetaDoc's capabilities. This reflects the \"bootstrapping\" design philosophy: using the product itself to showcase the product.\n\n## Document-Driven\n\nMetaDoc is a \"document-driven\" system:\n\n- Documents are the core, all features revolve around documents\n- Supports multiple document formats (Markdown, LaTeX)\n- Documents can be exported to multiple formats\n\n## Intelligence\n\nThrough AI and Agent technology, make document creation more intelligent:\n\n- AI-assisted writing and proofreading\n- Agent automatically executes complex tasks\n- Intelligent chart generation\n\n## Extensibility\n\n- Supports custom tools\n- Plugin architecture\n- Open API interface\n\n## User Experience\n\n- Clean and beautiful interface\n- Smooth operation experience\n- Rich shortcut key support\n- Multi-language support\n\n## Technology Stack\n\n- **Frontend**: Vue 3 + TypeScript\n- **Desktop**: Electron\n- **Editor**: Monaco + Vditor\n- **AI**: LLM Agent framework\n- **Database**: SQLite + sqlite-vec\n\n## Future Plans\n\n- More AI capabilities\n- Better collaboration features\n- Cloud sync\n- Mobile support"
       }
     },
     "progress": {

@@ -25,7 +25,6 @@ interface AgentConfig {
   behavior?: {
     // Agent行为配置
     allowToolCalls?: boolean
-    allowWorkflowCalls?: boolean
     maxToolCalls?: number
     enableThoughts?: boolean
   }
@@ -85,7 +84,6 @@ agentConfigManager.updateConfig(config.id, {
 agentConfigManager.updateConfig(config.id, {
   behavior: {
     allowToolCalls: true,
-    allowWorkflowCalls: true,
     maxToolCalls: 10,
     enableThoughts: true
   },
@@ -190,7 +188,6 @@ agentConfigManager.updateConfig(writingAgent.id, {
   },
   behavior: {
     allowToolCalls: true,
-    allowWorkflowCalls: true,
     enableThoughts: true
   },
   scenario: 'editor'

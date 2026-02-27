@@ -103,6 +103,50 @@ export interface WorkspaceService {
    * @returns 取消监听的函数
    */
   onDocumentChange(callback: (document: any) => void): () => void
+
+  /**
+   * 获取当前所有工作区根目录（文件夹工作区）
+   * 如果用户未打开任何工作区，则返回空数组
+   */
+  getWorkspaceRoots(): string[]
+
+  /**
+   * 列出指定目录下的文件和子目录（非递归）
+   * @param dirPath 目录路径
+   */
+  listDirectory(
+    dirPath: string
+  ): Promise<Array<{ name: string; path: string; isDirectory: boolean }>>
+
+  /**
+   * 在指定目录下创建文件
+   */
+  createFile(parentPath: string, fileName: string, content?: string): Promise<string>
+
+  /**
+   * 在指定目录下创建子目录
+   */
+  createDirectory(parentPath: string, folderName: string): Promise<string>
+
+  /**
+   * 删除文件或文件夹
+   */
+  deletePath(targetPath: string): Promise<void>
+
+  /**
+   * 重命名文件或文件夹
+   */
+  renamePath(oldPath: string, newName: string): Promise<string>
+
+  /**
+   * 复制文件或文件夹
+   */
+  copyPath(sourcePath: string, targetPath: string): Promise<void>
+
+  /**
+   * 移动文件或文件夹
+   */
+  movePath(sourcePath: string, targetPath: string): Promise<void>
 }
 
 /**
@@ -343,6 +387,84 @@ class AgentToolServices {
         // 监听文档变化
         // 注意：这需要在 Vue 组件中使用，外部 Tool 可以通过轮询或事件总线实现
         return () => {}
+      },
+
+      getWorkspaceRoots: () => {
+        try {
+          const saved = localStorage.getItem('workspaceFolders')
+          if (!saved) return []
+          const arr = JSON.parse(saved)
+          if (!Array.isArray(arr)) return []
+          return arr.filter((p) => typeof p === 'string' && p.length > 0)
+        } catch {
+          return []
+        }
+      },
+
+      listDirectory: async (dirPath: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        const entries = (await messageBridge.invoke(
+          'read-directory',
+          dirPath
+        )) as Array<{ name: string; path: string; isDirectory: boolean }>
+        return entries
+      },
+
+      createFile: async (parentPath: string, fileName: string, content?: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        const newPath = (await messageBridge.invoke('create-file', {
+          parentPath,
+          fileName,
+          content: content ?? ''
+        })) as string
+        return newPath
+      },
+
+      createDirectory: async (parentPath: string, folderName: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        const newPath = (await messageBridge.invoke('create-directory', {
+          parentPath,
+          folderName
+        })) as string
+        return newPath
+      },
+
+      deletePath: async (targetPath: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        await messageBridge.invoke('delete-file-or-folder', targetPath)
+      },
+
+      renamePath: async (oldPath: string, newName: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        const newPath = (await messageBridge.invoke('rename-file-or-folder', {
+          oldPath,
+          newName
+        })) as string
+        return newPath
+      },
+
+      copyPath: async (sourcePath: string, targetPath: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        await messageBridge.invoke('copy-file-or-folder', { sourcePath, targetPath })
+      },
+
+      movePath: async (sourcePath: string, targetPath: string) => {
+        if (!isElectronEnv() || !messageBridge.getIpc()) {
+          throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+        }
+        await messageBridge.invoke('move-file-or-folder', { sourcePath, targetPath })
       }
     }
   }

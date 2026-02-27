@@ -19,6 +19,7 @@ import GrepDisplay from './components/GrepDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
 import { createDetailedError } from './tool-utils'
+import { grepInWorkspaces, type WorkspaceGrepMatch } from '../workspace/workspace-grep'
 
 const logger = createRendererLogger('GrepTool')
 const workspace = useWorkspace()
@@ -30,6 +31,7 @@ export interface GrepMatch {
   line: number // 行号（1-based）
   column: number // 列号（1-based）
   match: string // 匹配的文本
+  filePath?: string // 所在文件路径（工作区级别搜索时提供）
   preContext: string // 前置上下文
   postContext: string // 后置上下文
   context: string // 完整上下文（包含匹配行）
@@ -714,7 +716,12 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         isFuzzy,
         similarityThreshold
       )
-      allMatches.push(...docMatches)
+      allMatches.push(
+        ...docMatches.map((m) => ({
+          ...m,
+          filePath: doc.path || undefined
+        }))
+      )
     }
 
     // 在metadata中搜索
@@ -745,7 +752,113 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         isFuzzy,
         similarityThreshold
       )
-      allMatches.push(...metadataMatches)
+      allMatches.push(
+        ...metadataMatches.map((m) => ({
+          ...m,
+          filePath: doc.path || undefined
+        }))
+      )
+    }
+
+    // 在工作区中搜索（跨文件）
+    const searchWorkspaceScope = scope.includes('workspace') || scope.includes('workspaces')
+
+    if (searchWorkspaceScope) {
+      onUpdate(
+        {
+          content: {
+            stage: 'searching',
+            pattern,
+            isRegex,
+            scope,
+            currentScope: 'workspace'
+          },
+          format: 'json',
+          componentName: 'GrepDisplay'
+        },
+        {
+          percentage: 60,
+          message: i18n.global.t(
+            'agent.tool.grep.progress.searchingWorkspace',
+            '正在搜索工作区文件...'
+          )
+        }
+      )
+
+      // 从本地存储中获取当前工作区根目录列表（与 WorkspaceExplorer 共享）
+      const getWorkspaceRoots = (): string[] => {
+        try {
+          const saved = localStorage.getItem('workspaceFolders')
+          if (!saved) return []
+          const arr = JSON.parse(saved)
+          if (!Array.isArray(arr)) return []
+          return arr.filter((p) => typeof p === 'string' && p.length > 0)
+        } catch {
+          return []
+        }
+      }
+
+      const roots = getWorkspaceRoots()
+
+      let workspaceMatches: WorkspaceGrepMatch[] = []
+
+      if (roots.length === 0) {
+        // 没有显式工作区时，将当前已打开的文档视为“全局工作区”
+        // 使用内存中的文档内容进行搜索，避免额外的文件读取
+        for (const tab of workspace.tabs) {
+          if (tab.kind !== 'file' || !tab.path) continue
+          const docForTab = workspace.ensureDocument(tab.id)
+          const text =
+            docForTab.format === 'md'
+              ? (docForTab.markdown as string)
+              : (docForTab.tex as string)
+
+          const textMatches = searchInText(
+            text || '',
+            pattern,
+            isRegex,
+            contextLines,
+            isFuzzy,
+            similarityThreshold
+          )
+
+          const limitedMatches =
+            textMatches.length > 0
+              ? textMatches.map<WorkspaceGrepMatch>((m) => ({
+                  filePath: docForTab.path,
+                  line: m.line,
+                  column: m.column,
+                  match: m.match,
+                  preContext: m.preContext,
+                  postContext: m.postContext,
+                  context: m.context
+                }))
+              : []
+
+          workspaceMatches.push(...limitedMatches)
+        }
+      } else {
+        workspaceMatches = await grepInWorkspaces(roots, {
+          pattern,
+          isRegex,
+          contextLines,
+          maxMatchesPerFile: 50,
+          maxFiles: 2000,
+          signal
+        })
+      }
+
+      allMatches.push(
+        ...workspaceMatches.map<Readonly<GrepMatch>>((m) => ({
+          line: m.line,
+          column: m.column,
+          match: m.match,
+          preContext: m.preContext,
+          postContext: m.postContext,
+          context: m.context,
+          filePath: m.filePath
+        }))
+      )
     }
 
     if (signal?.aborted) {

@@ -155,7 +155,7 @@ meta-doc/
 | Window management | `src/main/window-manager.ts`                 | Multi-window system                          |
 | Tab drag (main)   | `src/main/drag-manager.ts`                   | Cross-window coordination                    |
 | Tab operations    | `src/renderer/src/composables/`              | useTabDrag, useTabOperations, useTabSwitcher |
-| Agent framework   | `src/renderer/src/utils/agent-framework/`    | Engines, workflows                           |
+| Agent framework   | `src/renderer/src/utils/agent-framework/`    | Engines, tool collections, sessions         |
 | AI tools          | `src/renderer/src/utils/agent-tools/`        | 20+ tools                                    |
 | Document state    | `src/renderer/src/stores/workspace.ts`       | 2009 lines                                   |
 | Export adapters   | `src/renderer/src/services/export-adapters/` | Strategy pattern                             |

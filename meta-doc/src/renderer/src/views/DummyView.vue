@@ -7,7 +7,7 @@
             <LogoIcon
               :size="128"
               :bg-color="bgColor"
-              :symbol-color="primaryColor"
+              :symbol-color="symbolColor"
               class="logo-image"
             />
           </div>
@@ -18,24 +18,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Empty } from '@renderer/components/ui/empty'
-import { themeState, generateLogoColors } from '../utils/themes'
+import { FIXED_LOGO_COLORS } from '../utils/themes'
 import LogoIcon from '../components/LogoIcon.vue'
 
 const { t } = useI18n()
 
 const isShaking = ref(false)
 
-// 主题色
-const isDark = computed(() => themeState.currentTheme.type === 'dark')
-const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
-
-// 使用HSL生成鲜艳的Logo颜色
-const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
-const bgColor = computed(() => logoColors.value.bgColor)
-const symbolColor = computed(() => logoColors.value.symbolColor)
+// Logo 固定配色，不随亮/暗主题变化
+const bgColor = FIXED_LOGO_COLORS.bgColor
+const symbolColor = FIXED_LOGO_COLORS.symbolColor
 
 const handleClick = () => {
   isShaking.value = true

@@ -27,7 +27,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
-import { mixColors, themeState, generateLogoColors } from '../utils/themes'
+import { themeState, FIXED_LOGO_COLORS } from '../utils/themes'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import LogoIcon from './LogoIcon.vue'
@@ -36,23 +36,17 @@ const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')
 const aboutDialogVisible = ref(false)
 
-// 与 MainTabs 背景色完全一致
-const logoTabBackgroundColor = computed(() => {
-  try {
-    const baseColor = themeState.currentTheme.background
-    return mixColors(baseColor, '#888888', 0.3)
-  } catch {
-    return '#e8e8e8'
-  }
-})
+// 与 workspace-explorer-main / LeftMenu 背景一致
+const logoTabBackgroundColor = computed(
+  () =>
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background
+)
 
-const isDark = computed(() => themeState.currentTheme.type === 'dark')
-const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
-
-// 使用HSL生成鲜艳的Logo颜色
-const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
-const bgColor = computed(() => logoColors.value.bgColor)
-const symbolColor = computed(() => logoColors.value.symbolColor)
+// Logo 固定配色，不随亮/暗主题变化
+const bgColor = FIXED_LOGO_COLORS.bgColor
+const symbolColor = FIXED_LOGO_COLORS.symbolColor
 
 // 获取应用版本
 onMounted(async () => {

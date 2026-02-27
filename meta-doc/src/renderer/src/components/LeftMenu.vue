@@ -1234,12 +1234,12 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
   logger.info('菜单配置已更新', menuConfigState.value)
 }
 
-// VSCode 风格侧边栏主题颜色配置
+// 与 workspace-explorer-main 一致：主背景用 background2nd
 const sidebarBackground = computed(
   () =>
-    themeState.currentTheme.SideBackgroundColor ||
+    themeState.currentTheme.background2nd ||
     themeState.currentTheme.sidebarBackground ||
-    themeState.currentTheme.background2nd
+    themeState.currentTheme.sidebarBackground2
 )
 const sidebarTextColor = computed(
   () => themeState.currentTheme.SideTextColor || themeState.currentTheme.textColor
@@ -1249,9 +1249,9 @@ const sidebarActiveTextColor = computed(
 )
 const sidebarSubMenuBg = computed(
   () =>
+    themeState.currentTheme.background2nd ||
     themeState.currentTheme.sidebarBackground2 ||
-    themeState.currentTheme.sidebarBackground ||
-    themeState.currentTheme.background2nd
+    themeState.currentTheme.sidebarBackground
 )
 const sidebarBorderColor = computed(
   () => themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'

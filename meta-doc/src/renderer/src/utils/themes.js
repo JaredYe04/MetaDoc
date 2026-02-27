@@ -181,7 +181,13 @@ export const mixColors = (color1, color2, weight) => {
   return rgbToHex(r, g, b)
 }
 
-// Helper: Generate logo colors using HSL for vibrant results
+// Logo 固定配色，不随亮/暗主题变化，保证品牌一致
+export const FIXED_LOGO_COLORS = {
+  bgColor: '#e8e8e8',
+  symbolColor: '#333333'
+}
+
+// Helper: Generate logo colors using HSL for vibrant results (保留供其他需要主题联动处使用)
 // Preserves saturation while adjusting lightness for contrast
 export const generateLogoColors = (primaryColor, isDark) => {
   const baseColor = tinycolor(primaryColor || '#000000')
@@ -394,8 +400,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         sidebarBackground2: mixColors(themeColor, '#1e1e1e', 0.25),
         SideBackgroundColor: adjustSaturation(mixColors(themeColor, '#2a2a2a', 0.6), 0.8),
         SideTextColor: mixColors(themeColor, '#ffffff', 0.9),
-        SideActiveTextColor: mixColors(themeColor, '#ffffff', 0.95),
-        SideTextColor2: mixColors(themeColor, '#dddddd', 0.8),
+        SideActiveTextColor: '#e0e0e0',
+        SideTextColor2: '#b0b0b0',
         editorPanelBackgroundColor: mixColors(themeColor, '#1a1a1a', 0.8),
         editorToolbarBackgroundColor: mixColors(themeColor, '#0d0d0d', 0.9),
         editorTextareaBackgroundColor: mixColors(themeColor, '#1a1a1a', 0.8),
@@ -408,11 +414,11 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         quickStartBackground2: mixColors(themeColor, '#000033', 0.3) + '22',
         mdeditorClass: 'md-editor-dark',
         mdeditorTheme: 'dark',
-        // 新增配色项
+        // 新增配色项：暗色模式统一灰度，不使用主题色避免黄/粉等色调
         borderColor: mixColors(themeColor, '#404040', 0.5),
         codeColor: adjustSaturation(mixColors(themeColor, '#e0e0e0', 0.8), 0.9),
-        primaryColor: adjustSaturation(mixColors(themeColor, '#ffffff', 0.7), 1.2),
-        secondaryColor: adjustSaturation(mixColors(themeColor, '#cccccc', 0.6), 1.0),
+        primaryColor: '#e0e0e0',
+        secondaryColor: '#909090',
         // 引用标签颜色
         referenceActiveBg: adjustSaturation(mixColors(themeColor, '#4a9eff', 0.6), 1.1),
         referenceActiveText: '#ffffff',
@@ -449,11 +455,11 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         quickStartBackground2: mixColors(themeColor, '#f0f7ff', 0.4) + '33',
         mdeditorClass: 'md-editor',
         mdeditorTheme: 'light',
-        // 新增配色项
+        // 新增配色项：亮色模式也以灰度为主，主色/次要色不用主题色
         borderColor: mixColors(themeColor, '#e0e0e0', 0.5),
         codeColor: adjustSaturation(mixColors(themeColor, '#333333', 0.8), 0.9),
-        primaryColor: adjustSaturation(mixColors(themeColor, '#000000', 0.7), 1.2),
-        secondaryColor: adjustSaturation(mixColors(themeColor, '#666666', 0.6), 1.0),
+        primaryColor: '#000000',
+        secondaryColor: '#666666',
         // 引用标签颜色
         referenceActiveBg: adjustSaturation(mixColors(themeColor, '#409eff', 0.5), 1.1),
         referenceActiveText: '#ffffff',
@@ -528,8 +534,8 @@ export const darkTheme = customTheme('#2c2c2c', {
   sidebarBackground2: '#2e2e2e', //设置界面侧边栏次要背景色，可以是侧边栏背景色的变体或浅色调
   SideBackgroundColor: '#545c64', //主界面侧边栏背景色，应当是主题色的变体或深色调
   SideTextColor: '#fff', //侧边栏文字颜色，与文字颜色1一致
-  SideActiveTextColor: '#ffd04b', //侧边栏激活状态文字颜色，应当和背景色形成对比，突出显示，可以是主题色的亮色调
-  SideTextColor2: '#ffd0ee', //侧边栏次要文字颜色，可以是侧边栏文字颜色的变体或浅色调,
+  SideActiveTextColor: '#e0e0e0', //侧边栏激活状态文字颜色，灰度与背景形成对比
+  SideTextColor2: '#b0b0b0', //侧边栏次要文字颜色，灰度
   editorPanelBackgroundColor: '#24292e', //编辑器面板背景色，应当是主题色的变体或深色调
   editorToolbarBackgroundColor: '#1d2125', //编辑器工具栏背景色，应当是主题色的变体或浅色调
   editorTextareaBackgroundColor: '#2f363d', //编辑器文本区域背景色，应当是主题色的变体或浅色调
@@ -542,11 +548,11 @@ export const darkTheme = customTheme('#2c2c2c', {
   quickStartBackground2: '#33336611', //快速开始背景色2，在背景色1的基础上进行色彩偏移，与背景色1形成对比
   mdeditorClass: 'md-editor-dark', //暗色为'mc-editor-dark'，浅色版为'md-editor'
   mdeditorTheme: 'dark', //暗色版为'dark'，浅色版为'light'
-  // 新增配色项：基于原始主题的合理值
+  // 新增配色项：黑白灰灰度，不作为彩色强调
   borderColor: '#404040',
   codeColor: '#e0e0e0',
-  primaryColor: '#ffd04b',
-  secondaryColor: '#ffd0ee',
+  primaryColor: '#e0e0e0', // 按钮/开关等主色用浅灰，保持灰度
+  secondaryColor: '#909090', // 次要色用中灰
   // 引用标签颜色
   referenceActiveBg: '#4a9eff',
   referenceActiveText: '#ffffff',

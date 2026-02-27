@@ -165,7 +165,7 @@ import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
 import messageBridge from '../../bridge/message-bridge'
 import { isDevEnvironment } from '../../utils/dev-env'
-import { themeState, generateLogoColors } from '../../utils/themes'
+import { FIXED_LOGO_COLORS } from '../../utils/themes'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
 import { FormField } from '@renderer/components/ui/form'
@@ -175,14 +175,9 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Divider } from '@renderer/components/ui/separator'
 import LogoIcon from '../../components/LogoIcon.vue'
 
-// 主题色
-const isDark = computed(() => themeState.currentTheme.type === 'dark')
-const primaryColor = computed(() => themeState.currentTheme.primaryColor || '#000000')
-
-// 使用HSL生成鲜艳的Logo颜色
-const logoColors = computed(() => generateLogoColors(primaryColor.value, isDark.value))
-const bgColor = computed(() => logoColors.value.bgColor)
-const symbolColor = computed(() => logoColors.value.symbolColor)
+// Logo 固定配色，不随亮/暗主题变化
+const bgColor = FIXED_LOGO_COLORS.bgColor
+const symbolColor = FIXED_LOGO_COLORS.symbolColor
 
 // ==================== Demo Mode Support ====================
 

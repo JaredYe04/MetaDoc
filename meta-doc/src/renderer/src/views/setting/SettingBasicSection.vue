@@ -97,7 +97,12 @@
       </Tooltip>
     </FormField> -->
 
-      <FormField :label="t('setting.excludeCodeBlocks')" name="excludeCodeBlocks">
+      <FormField
+        :label="t('setting.excludeCodeBlocks')"
+        name="excludeCodeBlocks"
+        layout="horizontal"
+        :hint="t('setting.excludeCodeHint')"
+      >
         <div class="flex items-center gap-2">
           <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
           <Switch
@@ -108,7 +113,12 @@
         </div>
       </FormField>
 
-      <FormField :label="t('setting.parseEmbeddedImages')" name="parseEmbeddedImages">
+      <FormField
+        :label="t('setting.parseEmbeddedImages')"
+        name="parseEmbeddedImages"
+        layout="horizontal"
+        :hint="t('setting.parseEmbeddedImagesHint')"
+      >
         <div class="flex items-center gap-2">
           <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
           <Switch
@@ -119,7 +129,12 @@
         </div>
       </FormField>
 
-      <FormField :label="t('setting.mathInlineDigit')" name="mathInlineDigit">
+      <FormField
+        :label="t('setting.mathInlineDigit')"
+        name="mathInlineDigit"
+        layout="horizontal"
+        :hint="t('setting.mathInlineDigitHint')"
+      >
         <div class="flex items-center gap-2">
           <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
           <Switch
@@ -130,7 +145,12 @@
         </div>
       </FormField>
 
-      <FormField :label="t('setting.metadataSaveMode')" name="metadataSaveMode">
+      <FormField
+        :label="t('setting.metadataSaveMode')"
+        name="metadataSaveMode"
+        layout="horizontal"
+        :hint="t('setting.metadataInfoHint')"
+      >
         <Select
           v-model="settings.metadataSaveMode"
           @update:model-value="saveSetting('metadataSaveMode', settings.metadataSaveMode)"

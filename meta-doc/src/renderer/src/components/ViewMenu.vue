@@ -30,9 +30,9 @@
         @select="handleSelect"
       />
 
-      <!-- 大纲树：纯文本格式不显示 -->
+      <!-- 大纲树：纯文本格式不显示；PDF 预览 tab 只显示主页和编辑器 -->
       <ViewMenuItem
-        v-if="!isPlainTextFormat"
+        v-if="!isPlainTextFormat && !isPdfPreviewTab"
         index="outline"
         :label="$t('headMenu.outline')"
         :icon-image="themeState.currentTheme.OutlineIcon"
@@ -42,9 +42,9 @@
         @select="handleSelect"
       />
 
-      <!-- 可视化：纯文本格式不显示 -->
+      <!-- 可视化：纯文本格式不显示；PDF 预览 tab 只显示主页和编辑器 -->
       <ViewMenuItem
-        v-if="!isPlainTextFormat"
+        v-if="!isPlainTextFormat && !isPdfPreviewTab"
         index="visualize"
         :label="$t('headMenu.visualize')"
         :icon-image="themeState.currentTheme.VisualIcon"
@@ -54,9 +54,9 @@
         @select="handleSelect"
       />
 
-      <!-- Agent：纯文本格式不显示 -->
+      <!-- Agent：纯文本格式不显示；PDF 预览 tab 只显示主页和编辑器 -->
       <ViewMenuItem
-        v-if="!isPlainTextFormat"
+        v-if="!isPlainTextFormat && !isPdfPreviewTab"
         index="agent"
         :label="$t('headMenu.agent')"
         :icon-image="themeState.currentTheme.AgentIcon"
@@ -66,9 +66,9 @@
         @select="handleSelect"
       />
 
-      <!-- 文章校对：纯文本格式不显示，需要活动文档 -->
+      <!-- 文章校对：纯文本格式不显示，需要活动文档；PDF 预览 tab 只显示主页和编辑器 -->
       <ViewMenuItem
-        v-if="activeDocument && !isPlainTextFormat"
+        v-if="activeDocument && !isPlainTextFormat && !isPdfPreviewTab"
         index="proofread"
         :label="$t('headMenu.proofread')"
         :icon-image="themeState.currentTheme.ProofreadIcon"
@@ -107,6 +107,15 @@ const isLocked = computed(() => props.mode === 'demo' || workspace.uiLocked?.val
 // 判断是否为纯文本格式
 const isPlainTextFormat = computed(() => {
   return activeDocument.value?.format === 'txt'
+})
+
+// 判断是否为 PDF 预览 tab（仅此类 tab 只显示主页和编辑器）
+const isPdfPreviewTab = computed(() => {
+  const tab = workspace.activeTab.value
+  if (!tab || tab.kind !== 'file') return false
+  const path = (tab.path || activeDocument.value?.path || '').toLowerCase()
+  const format = (tab.format || activeDocument.value?.format || '').toLowerCase()
+  return tab.preview === true && path.endsWith('.pdf') && format === 'pdf'
 })
 
 // 折叠状态 - 默认折叠

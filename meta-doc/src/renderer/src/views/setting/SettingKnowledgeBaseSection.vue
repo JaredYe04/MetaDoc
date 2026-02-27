@@ -2,96 +2,111 @@
   <div class="knowledge-base-settings">
     <h3 class="section-title">{{ t('setting.knowledgeBaseSettings') }}</h3>
     <Form class="settings-form">
-      <FormField :label="t('setting.enableKnowledgeBase')" name="enableKnowledgeBase">
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <div class="flex items-center gap-2">
-              <Switch
-                :checked="settings.enableKnowledgeBase"
-                @update:checked="handleKnowledgeBaseToggleChange"
-              />
-              <span class="text-sm text-muted-foreground">{{
-                settings.enableKnowledgeBase ? t('setting.enabled') : t('setting.disabled')
-              }}</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{{ t('setting.knowledgeBaseTooltip') }}</TooltipContent>
-        </Tooltip>
+      <FormField
+        :label="t('setting.enableKnowledgeBase')"
+        name="enableKnowledgeBase"
+        layout="horizontal"
+      >
+        <template #label-extra>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{{ t('setting.knowledgeBaseTooltip') }}</TooltipContent>
+          </Tooltip>
+        </template>
+        <div class="flex items-center gap-2">
+          <Switch
+            :checked="settings.enableKnowledgeBase"
+            @update:checked="handleKnowledgeBaseToggleChange"
+          />
+          <span class="text-sm text-muted-foreground">{{
+            settings.enableKnowledgeBase ? t('setting.enabled') : t('setting.disabled')
+          }}</span>
+        </div>
       </FormField>
 
       <FormField
         v-if="settings.enableKnowledgeBase"
         :label="t('setting.embeddingMode')"
         name="embeddingMode"
+        layout="horizontal"
       >
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Select
-              v-model="settings.embeddingMode"
-              @update:model-value="handleEmbeddingModeChange"
-            >
-              <SelectTrigger class="w-[300px]">
-                <SelectValue :placeholder="t('setting.chooseEmbeddingMode')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="api">{{ t('setting.embeddingModeApi') }}</SelectItem>
-                <SelectItem value="local" disabled>{{
-                  t('setting.embeddingModeLocal')
-                }}</SelectItem>
-              </SelectContent>
-            </Select>
-          </TooltipTrigger>
-          <TooltipContent side="top">{{ t('setting.embeddingModeTooltip') }}</TooltipContent>
-        </Tooltip>
+        <template #label-extra>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{ t('setting.embeddingModeTooltip') }}</TooltipContent>
+          </Tooltip>
+        </template>
+        <Select
+          v-model="settings.embeddingMode"
+          @update:model-value="handleEmbeddingModeChange"
+        >
+          <SelectTrigger class="w-[300px]">
+            <SelectValue :placeholder="t('setting.chooseEmbeddingMode')" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="api">{{ t('setting.embeddingModeApi') }}</SelectItem>
+            <SelectItem value="local" disabled>{{
+              t('setting.embeddingModeLocal')
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
       </FormField>
 
       <FormField
         v-if="settings.enableKnowledgeBase"
         :label="t('setting.knowledgeBaseScoreThreshold')"
         name="knowledgeBaseScoreThreshold"
+        layout="horizontal"
       >
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <div class="flex items-center gap-4" style="margin-bottom: 10px; width: 400px">
-              <Slider
-                :model-value="settings.knowledgeBaseScoreThreshold"
-                :min="0.01"
-                :max="0.99"
-                :step="0.01"
-                @update:model-value="
-                  (val) => {
-                    settings.knowledgeBaseScoreThreshold = val
-                    handleKnowledgeBaseThresholdChange()
-                  }
-                "
-                class="flex-1"
-              />
-              <NumberField
-                :model-value="settings.knowledgeBaseScoreThreshold"
-                :min="0.01"
-                :max="0.99"
-                :step="0.01"
-                :precision="2"
-                @update:model-value="
-                  (val) => {
-                    settings.knowledgeBaseScoreThreshold = val
-                    handleKnowledgeBaseThresholdChange()
-                  }
-                "
-                class="w-28"
-              >
-                <NumberFieldContent>
-                  <NumberFieldDecrement />
-                  <NumberFieldInput />
-                  <NumberFieldIncrement />
-                </NumberFieldContent>
-              </NumberField>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="top">{{
-            t('setting.knowledgeBaseScoreThresholdTooltip')
-          }}</TooltipContent>
-        </Tooltip>
+        <template #label-extra>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{{
+              t('setting.knowledgeBaseScoreThresholdTooltip')
+            }}</TooltipContent>
+          </Tooltip>
+        </template>
+        <div class="flex items-center gap-4 max-w-[400px] mb-2.5">
+          <Slider
+            :model-value="settings.knowledgeBaseScoreThreshold"
+            :min="0.01"
+            :max="0.99"
+            :step="0.01"
+            @update:model-value="
+              (val) => {
+                settings.knowledgeBaseScoreThreshold = val
+                handleKnowledgeBaseThresholdChange()
+              }
+            "
+            class="flex-1"
+          />
+          <NumberField
+            :model-value="settings.knowledgeBaseScoreThreshold"
+            :min="0.01"
+            :max="0.99"
+            :step="0.01"
+            :precision="2"
+            @update:model-value="
+              (val) => {
+                settings.knowledgeBaseScoreThreshold = val
+                handleKnowledgeBaseThresholdChange()
+              }
+            "
+            class="w-28"
+          >
+            <NumberFieldContent>
+              <NumberFieldDecrement />
+              <NumberFieldInput />
+              <NumberFieldIncrement />
+            </NumberFieldContent>
+          </NumberField>
+        </div>
       </FormField>
     </Form>
   </div>
@@ -121,6 +136,7 @@ import {
   NumberFieldIncrement,
   NumberFieldInput
 } from '@renderer/components/ui/number-field'
+import { HelpCircle } from 'lucide-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 
 const props = defineProps<{
@@ -221,5 +237,16 @@ const handleEmbeddingModeChange = async () => {
 
 .settings-form :deep(.el-slider) {
   max-width: 100%;
+}
+
+.metadata-info-icon {
+  margin-left: 4px;
+  color: var(--el-text-color-secondary);
+  cursor: help;
+  font-size: 14px;
+}
+
+.metadata-info-icon:hover {
+  color: var(--el-color-primary);
 }
 </style>

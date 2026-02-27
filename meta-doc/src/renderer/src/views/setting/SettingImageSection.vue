@@ -13,9 +13,12 @@
     </h3>
     <Form class="settings-form">
       <!-- 插入图片时的操作 -->
-      <FormField name="imageUploadAction">
-        <template #label>
-          <span>{{ t('setting.image.insertAction') }}</span>
+      <FormField
+        :label="t('setting.image.insertAction')"
+        name="imageUploadAction"
+        layout="horizontal"
+      >
+        <template #label-extra>
           <Tooltip>
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
@@ -43,15 +46,12 @@
       </FormField>
 
       <!-- 网络图片自动下载 -->
-      <FormField name="keepNetworkImageUrl">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <Checkbox
-            v-model="settings.imageUpload.keepNetworkImageUrl"
-            @update:model-value="
-              saveImageSetting('keepNetworkImageUrl', settings.imageUpload.keepNetworkImageUrl)
-            "
-          />
-          <span>{{ t('setting.image.keepNetworkImageUrl') }}</span>
+      <FormField
+        :label="t('setting.image.keepNetworkImageUrl')"
+        name="keepNetworkImageUrl"
+        layout="horizontal"
+      >
+        <template #label-extra>
           <Tooltip>
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
@@ -60,19 +60,28 @@
               t('setting.image.keepNetworkImageUrlHint')
             }}</TooltipContent>
           </Tooltip>
-        </label>
+        </template>
+        <div class="flex items-center gap-2">
+          <Checkbox
+            v-model="settings.imageUpload.keepNetworkImageUrl"
+            @update:model-value="
+              saveImageSetting('keepNetworkImageUrl', settings.imageUpload.keepNetworkImageUrl)
+            "
+          />
+          <span class="text-sm text-muted-foreground">{{
+            settings.imageUpload.keepNetworkImageUrl ? t('setting.enabled', '启用') : t('setting.disabled', '禁用')
+          }}</span>
+        </div>
       </FormField>
 
       <!-- 自动转义图片URL（仅在保留网络图片URL时显示） -->
-      <FormField v-if="settings.imageUpload.keepNetworkImageUrl" name="autoEscapeImageUrl">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <Checkbox
-            v-model="settings.imageUpload.autoEscapeImageUrl"
-            @update:model-value="
-              saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)
-            "
-          />
-          <span>{{ t('setting.image.autoEscapeImageUrl') }}</span>
+      <FormField
+        v-if="settings.imageUpload.keepNetworkImageUrl"
+        :label="t('setting.image.autoEscapeImageUrl')"
+        name="autoEscapeImageUrl"
+        layout="horizontal"
+      >
+        <template #label-extra>
           <Tooltip>
             <TooltipTrigger as-child>
               <HelpCircle class="metadata-info-icon h-4 w-4 inline-block align-middle" />
@@ -81,16 +90,27 @@
               t('setting.image.autoEscapeImageUrlHint')
             }}</TooltipContent>
           </Tooltip>
-        </label>
+        </template>
+        <div class="flex items-center gap-2">
+          <Checkbox
+            v-model="settings.imageUpload.autoEscapeImageUrl"
+            @update:model-value="
+              saveImageSetting('autoEscapeImageUrl', settings.imageUpload.autoEscapeImageUrl)
+            "
+          />
+          <span class="text-sm text-muted-foreground">{{
+            settings.imageUpload.autoEscapeImageUrl ? t('setting.enabled', '启用') : t('setting.disabled', '禁用')
+          }}</span>
+        </div>
       </FormField>
 
       <!-- 上传服务设定（仅在"上传图片"时显示） -->
       <template v-if="settings.imageUpload.action === 'upload'">
-        <FormField name="uploadServiceSettings">
-          <template #label>
-            <span>{{ t('setting.image.uploadServiceSettings') }}</span>
-          </template>
-        </FormField>
+        <FormField
+          :label="t('setting.image.uploadServiceSettings')"
+          name="uploadServiceSettings"
+          layout="horizontal"
+        />
 
         <FormField
           :label="t('setting.image.uploadService')"

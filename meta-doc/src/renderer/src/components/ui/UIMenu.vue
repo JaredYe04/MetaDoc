@@ -83,7 +83,8 @@ provide('hasOpenSubMenu', hasOpenSubMenu)
   -moz-user-select: none;
   -ms-user-select: none;
   overflow: hidden;
-  border-right: 1px solid var(--sidebar-border, rgba(0, 0, 0, 0.08));
+  /* 与主界面之间的半透明边界，避免背景撞色时看不出分界 */
+  border-right: 1px solid var(--sidebar-border, rgba(128, 128, 128, 0.28));
   display: flex;
   flex-direction: column;
   background-color: var(--menu-bg);

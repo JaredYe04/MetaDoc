@@ -249,7 +249,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--el-border-color);
+  /* 与主界面之间的半透明边界，避免背景撞色时看不出分界 */
+  border-right: 1px solid rgba(128, 128, 128, 0.28);
   background-color: v-bind('themeState.currentTheme.background || "#ffffff"');
 }
 

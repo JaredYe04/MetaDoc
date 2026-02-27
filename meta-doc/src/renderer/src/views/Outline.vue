@@ -4,7 +4,8 @@
     <OutlineAiToolbar />
 
     <div class="container">
-      <ScrollArea
+      <div
+        ref="generatePreviewRef"
         class="aero-div generate-preview"
         v-if="generating || pendingAccept || pendingBatchAccept"
         :style="{
@@ -14,7 +15,8 @@
         }"
         @mousedown.stop="startDrag"
       >
-        <div class="noselect-display">
+        <el-scrollbar class="generate-preview-scrollbar" :wrap-style="generatePreviewWrapStyle">
+          <div class="noselect-display">
           <!-- 单任务：生成中 -->
           <template v-if="generating && !parallelChildren.length">
             <h2>
@@ -25,14 +27,13 @@
                     <Button
                       variant="destructive"
                       size="sm"
-                      class="aero-btn"
-                      style="font-size: 12px; padding: 2px 6px"
+                      class="aero-btn generate-preview-btn-square"
                       @click.stop="cancelAllAiTasks"
                     >
                       <X class="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="top">
+                  <TooltipContent side="bottom">
                     <p>{{ $t('outline.cancelTasks') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -67,14 +68,13 @@
                     <Button
                       variant="destructive"
                       size="sm"
-                      class="aero-btn"
-                      style="font-size: 12px; padding: 2px 6px"
+                      class="aero-btn generate-preview-btn-square"
                       @click.stop="cancelAllAiTasks"
                     >
                       <X class="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="top">
+                  <TooltipContent side="bottom">
                     <p>{{ $t('outline.cancelTasks') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -134,16 +134,13 @@
                         <Button
                           variant="destructive"
                           size="sm"
-                          class="aero-btn"
-                          style="font-size: 12px; padding: 2px 6px"
-                          @click.stop="
-                            pendingBatchAccept && batchRejectItem(pendingBatchAccept.items[idx])
-                          "
+                          class="aero-btn generate-preview-btn-square"
+                          @click.stop="onBatchRejectItem(idx)"
                         >
                           <X class="w-4 h-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
+                      <TooltipContent side="bottom">
                         <p>{{ $t('outline.reject') }}</p>
                       </TooltipContent>
                     </Tooltip>
@@ -161,23 +158,23 @@
               </div>
             </div>
           </template>
-        </div>
+          </div>
+        </el-scrollbar>
         <!-- 单任务：接受/拒绝 -->
         <div v-if="pendingAccept" class="generate-preview-actions">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button
-                  variant="default"
+                  variant="outline"
                   size="sm"
-                  class="aero-btn"
-                  style="font-size: 12px; padding: 2px 6px"
+                  class="aero-btn generate-preview-btn-square generate-preview-accept-btn"
                   @click.stop="acceptChange"
                 >
                   <Check class="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top">
+              <TooltipContent side="bottom">
                 <p>{{ $t('outline.accept') }}</p>
               </TooltipContent>
             </Tooltip>
@@ -188,15 +185,14 @@
                 <Button
                   variant="destructive"
                   size="sm"
-                  class="aero-btn"
-                  style="font-size: 12px; padding: 2px 6px"
+                  class="aero-btn generate-preview-btn-square"
                   @click.stop="discardChange"
                   :loading="generateChildChapterLoading"
                 >
                   <X class="w-4 h-4" v-if="!generateChildChapterLoading" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top">
+              <TooltipContent side="bottom">
                 <p>{{ $t('outline.reject') }}</p>
               </TooltipContent>
             </Tooltip>
@@ -207,7 +203,7 @@
           v-if="pendingBatchAccept"
           class="generate-preview-actions generate-preview-actions--batch"
         >
-          <Button variant="default" size="sm" class="aero-btn" @click.stop="batchAcceptAll">
+          <Button variant="outline" size="sm" class="aero-btn generate-preview-accept-btn" @click.stop="batchAcceptAll">
             <Check class="w-4 h-4" />
             <span>{{ $t('outline.acceptAll') }}</span>
           </Button>
@@ -216,7 +212,7 @@
             <span>{{ $t('outline.rejectAll') }}</span>
           </Button>
         </div>
-      </ScrollArea>
+      </div>
 
       <!-- Viewport: 使用 vue-tree 内置的缩放与拖拽，不再自建 transform -->
       <div
@@ -244,11 +240,14 @@
               #node="{ node, collapsed }"
               :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
             >
-              <!-- 节点被折叠时显示正常节点，但在文字前显示子节点数量 badge -->
+              <!-- 节点被折叠时显示正常节点，但在文字前显示子节点数量 badge，并加样式区分 -->
               <template v-if="collapsed && node.children && node.children.length > 0">
                 <div
-                  class="tree-node"
-                  :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                  class="tree-node tree-node--collapsed-with-children"
+                  :style="{
+                    backgroundColor: themeState.currentTheme.outlineNode,
+                    '--outline-primary': themeState.currentTheme.primaryColor
+                  }"
                   :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
                   draggable="true"
                   @dragstart.stop="onNodeDragStart(node)"
@@ -831,7 +830,6 @@ import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
 import { getSetting, setSetting } from '../utils/settings.js'
 import { createRendererLogger } from '../utils/logger.ts'
-import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -987,14 +985,17 @@ const parallelChildren = ref<Array<Ref<string>>>([]) // 用于存储并行生成
 const batchItemsRef = ref<BatchAcceptItem[]>([]) // 批量任务项（含 backup、rawContentRef），用于接受/拒绝
 const userPrompt = ref('') // 用户输入的提示词
 
+function getBatchItemContent(refOrVal: Ref<string> | string): string {
+  return typeof refOrVal === 'object' && refOrVal && 'value' in refOrVal ? refOrVal.value : String(refOrVal ?? '')
+}
 const batchDisplayItems = computed(() =>
-  batchItemsRef.value.map((item) => ({ ...item, content: item.rawContentRef?.value ?? '' }))
+  batchItemsRef.value.map((item) => ({ ...item, content: getBatchItemContent(item.rawContentRef) }))
 )
 const batchPendingDisplayItems = computed(
   () =>
     pendingBatchAccept.value?.items.map((item) => ({
       ...item,
-      content: item.rawContentRef?.value ?? ''
+      content: getBatchItemContent(item.rawContentRef)
     })) ?? []
 )
 
@@ -1033,6 +1034,17 @@ watch(
 
 // 树数据变化后库会重绘连接线（D3 会再次设 opacity 0→1），需重新强制为不透明
 watch(treeData, () => scheduleForceOutlineLinkStyles(), { deep: true })
+
+// 文档大纲与编辑器/AI 同步：当文档内容变化（编辑或 AI 生成）导致 outline 更新时，刷新树以保持一致
+watch(
+  () => activeDocument.value?.outline,
+  (newOutline) => {
+    if (newOutline) {
+      treeData.value = cloneOutline(newOutline)
+    }
+  },
+  { deep: true }
+)
 
 // 加载保存的方向设置
 onMounted(async () => {
@@ -1268,6 +1280,11 @@ const handleAiConfigConfirm = async () => {
   const run = pendingAiAction.value
   pendingAiAction.value = null
   if (run) run()
+  // 执行后自动取消当前 AI 工具选中状态，避免与“未选中”时的节点操作混淆
+  const currentTool = selectedAiTool.value
+  if (currentTool) {
+    toggleAiTool(currentTool)
+  }
 }
 
 const keywordsTaskOutputRef = ref('')
@@ -1545,6 +1562,8 @@ const discardChange = () => {
 const batchAcceptAll = () => {
   if (!pendingBatchAccept.value) return
   pendingBatchAccept.value = null
+  batchItemsRef.value = []
+  parallelChildren.value = []
   commitOutline()
 }
 
@@ -1554,33 +1573,56 @@ const batchRejectAll = () => {
   const rootNode = searchNode(rootPath, treeData.value)
   if (rootNode) {
     if (type === 'children') {
-      // 回滚子节点
       items.forEach((item) => {
         if (item.backupChildren) {
           const node = searchNode(item.nodePath, treeData.value)
           if (node) {
-            node.children = item.backupChildren
+            node.children = [...item.backupChildren]
+            const parent = searchParentNode(item.nodePath, treeData.value)
+            if (parent) reindexChildrenPaths(parent)
           }
         }
       })
     } else if (type === 'content') {
-      // 回滚内容
       items.forEach((item) => {
         if (item.backupText !== undefined) {
           const node = searchNode(item.nodePath, treeData.value)
           if (node) {
             node.text = item.backupText
+            syncChildrenFromNodeText(node)
           }
         }
       })
     }
   }
   pendingBatchAccept.value = null
+  batchItemsRef.value = []
+  parallelChildren.value = []
   commitOutline()
 }
 
 const batchRejectItem = (item: BatchAcceptItem) => {
+  if (!pendingBatchAccept.value) return
+  const { type } = pendingBatchAccept.value
+  const node = searchNode(item.nodePath, treeData.value)
+  if (!node) return
+  if (type === 'children' && item.backupChildren) {
+    node.children = [...item.backupChildren]
+    const parent = searchParentNode(item.nodePath, treeData.value)
+    if (parent) reindexChildrenPaths(parent)
+  }
+  if (type === 'content' && item.backupText !== undefined) {
+    node.text = item.backupText
+    syncChildrenFromNodeText(node)
+  }
   item.rejected = true
+}
+
+const onBatchRejectItem = (idx: number) => {
+  const state = pendingBatchAccept.value
+  if (!state) return
+  const item = state.items[idx]
+  if (item) batchRejectItem(item)
 }
 
 const cancelAllAiTasks = () => {
@@ -2075,6 +2117,27 @@ const setTextElementRef = (el: any, path: string) => {
   }
 }
 const position = ref({ top: 100, left: 100 })
+const generatePreviewRef = ref<HTMLElement | null>(null)
+const generatePreviewVisible = computed(
+  () => !!generating.value || !!pendingAccept.value || !!pendingBatchAccept.value
+)
+watch(generatePreviewVisible, (visible) => {
+  if (visible) {
+    nextTick(() => {
+      const el = generatePreviewRef.value
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        position.value = {
+          left: (window.innerWidth - rect.width) / 2,
+          top: (window.innerHeight - rect.height) / 2
+        }
+      }
+    })
+  }
+})
+const generatePreviewWrapStyle = computed(() => ({
+  maxHeight: pendingAccept.value || pendingBatchAccept.value ? '60vh' : '70vh'
+}))
 let isDragging = false
 let offset: { x: number; y: number } = { x: 0, y: 0 }
 const startDrag = (e: MouseEvent) => {
@@ -2239,13 +2302,14 @@ const generateContent = async () => {
   eventBus.emit('show-success', t('outline.generateChapterSuccess'))
 }
 const generateChildrenContent = async () => {
-  // 暂停文档同步，避免并发写入期间 treeData 被替换
   workspace.lockUI?.()
   const prevSync = suppressDocumentSync
   suppressDocumentSync = true
   const node = selectedNode.value
   generating.value = true
   generateChildrenContentLoading.value = true
+  parallelChildren.value = []
+  batchItemsRef.value = []
 
   const rootNode = node ? searchNode(node.path, treeData.value) : null
   if (!rootNode) {
@@ -2255,31 +2319,50 @@ const generateChildrenContent = async () => {
     workspace.unlockUI?.()
     return
   }
-  parallelChildren.value = [] // 清空并行生成列表
-  const taskPromises: Promise<unknown>[] = [] // 用于收集所有任务的done promise
+
+  const nodes: DocumentOutlineNode[] = []
+  collectAllNodes(rootNode, nodes)
+  const backupMap = new Map<string, string>()
+  for (const n of nodes) {
+    backupMap.set(n.path, n.text ?? '')
+  }
+
+  const taskPromises: Promise<unknown>[] = []
 
   const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
     if (!curNode) return
+    if (curNode.path === 'dummy') {
+      if (curNode.children) {
+        await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
+      }
+      return
+    }
 
     if (curNode.children && curNode.children.length > 0) {
       await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
     }
 
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-    // 为每个节点创建一个独立的ref用于显示原始内容
     const nodeRawContentRef = ref('')
     parallelChildren.value.push(nodeRawContentRef)
+    batchItemsRef.value.push({
+      nodePath: curNode.path,
+      nodeTitle: curNode.title || curNode.path,
+      rawContentRef: nodeRawContentRef,
+      backupText: backupMap.get(curNode.path) ?? ''
+    })
 
     const task = generateNodeContentUtil(
       curNode,
       treeData.value,
       userPrompt.value,
-      undefined, // signal
+      undefined,
       docFormat,
-      nodeRawContentRef // 传入ref，用于实时显示原始内容
+      nodeRawContentRef
     )
       .then((content) => {
         curNode.text = content || ''
+        syncChildrenFromNodeText(curNode)
         eventBus.emit(
           'show-success',
           t('outline.generateContentSuccessWithTitle', { title: curNode.title })
@@ -2293,26 +2376,41 @@ const generateChildrenContent = async () => {
     taskPromises.push(task)
   }
 
-  await traverseAndGenerate(rootNode) // 启动任务遍历
-
-  await Promise.all(taskPromises) // 等待所有任务完成
-
-  generating.value = false
-  generateChildrenContentLoading.value = false
-  generated.value = true
-  // 恢复同步并统一提交一次
-  suppressDocumentSync = prevSync
-  commitOutline()
-  workspace.unlockUI?.()
+  try {
+    await traverseAndGenerate(rootNode)
+    await Promise.all(taskPromises)
+    if (commitOutlineTimer) {
+      clearTimeout(commitOutlineTimer)
+      commitOutlineTimer = null
+    }
+    pendingBatchAccept.value = {
+      type: 'content',
+      rootPath: rootNode.path,
+      items: [...batchItemsRef.value]
+    }
+    generated.value = true
+    eventBus.emit('show-success', t('outline.generateChildSuccess'))
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    logger.error('批量生成内容失败:', e)
+    eventBus.emit('show-error', t('outline.generateContentFail', { error: message }))
+  } finally {
+    generating.value = false
+    generateChildrenContentLoading.value = false
+    suppressDocumentSync = prevSync
+    if (!pendingBatchAccept.value) commitOutline()
+    workspace.unlockUI?.()
+  }
 }
 const generateChildrenChildren = async () => {
-  // 暂停文档同步，避免并发写入时 treeData 被替换导致后续引用失效
   workspace.lockUI?.()
   const prevSync = suppressDocumentSync
   suppressDocumentSync = true
   const node = selectedNode.value
   generating.value = true
   generateChildrenChildrenLoading.value = true
+  parallelChildren.value = []
+  batchItemsRef.value = []
 
   const rootNode = node ? searchNode(node.path, treeData.value) : null
   if (!rootNode) {
@@ -2322,7 +2420,15 @@ const generateChildrenChildren = async () => {
     workspace.unlockUI?.()
     return
   }
-  parallelChildren.value = []
+
+  const leaves: DocumentOutlineNode[] = []
+  collectLeaves(rootNode, leaves)
+  const backupMap = new Map<string, DocumentOutlineNode[]>()
+  for (const leaf of leaves) {
+    const cloned = cloneOutline(leaf)
+    backupMap.set(leaf.path, cloned.children ?? [])
+  }
+
   const taskPromises: Promise<void>[] = []
 
   const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
@@ -2333,23 +2439,28 @@ const generateChildrenChildren = async () => {
       return
     }
 
+    if (curNode.path === 'dummy') return
+
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
-    // 为每个节点创建一个独立的ref用于显示原始内容
     const nodeRawContentRef = ref('')
     parallelChildren.value.push(nodeRawContentRef)
+    batchItemsRef.value.push({
+      nodePath: curNode.path,
+      nodeTitle: curNode.title || curNode.path,
+      rawContentRef: nodeRawContentRef,
+      backupChildren: backupMap.get(curNode.path) ?? []
+    })
 
     const task = generateChildNodesUtil(
       curNode,
       treeData.value,
       userPrompt.value,
-      undefined, // signal
+      undefined,
       docFormat,
-      nodeRawContentRef // 传入ref，用于实时显示原始内容
+      nodeRawContentRef
     )
       .then((newChildren) => {
-        if (!curNode.children) {
-          curNode.children = []
-        }
+        if (!curNode.children) curNode.children = []
         curNode.children.push(...newChildren)
         eventBus.emit(
           'show-success',
@@ -2366,6 +2477,15 @@ const generateChildrenChildren = async () => {
   try {
     await traverseAndGenerate(rootNode)
     await Promise.all(taskPromises)
+    if (commitOutlineTimer) {
+      clearTimeout(commitOutlineTimer)
+      commitOutlineTimer = null
+    }
+    pendingBatchAccept.value = {
+      type: 'children',
+      rootPath: rootNode.path,
+      items: [...batchItemsRef.value]
+    }
     eventBus.emit('show-success', t('outline.generateChildSuccess'))
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
@@ -2373,9 +2493,8 @@ const generateChildrenChildren = async () => {
   } finally {
     generateChildrenChildrenLoading.value = false
     generating.value = false
-    // 恢复同步并统一提交一次，确保所有并发结果都写入
     suppressDocumentSync = prevSync
-    commitOutline()
+    if (!pendingBatchAccept.value) commitOutline()
     workspace.unlockUI?.()
   }
 }
@@ -2482,6 +2601,26 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   max-width: 500px;
   min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.generate-preview-scrollbar {
+  flex: 1;
+  min-height: 0;
+}
+
+.generate-preview-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+}
+
+/* 标题行（如「AI正在工作中」+ 取消按钮）与下方预览内容之间的空隙 */
+.noselect-display > .generate-preview-body {
+  margin-top: 12px;
+}
+.noselect-display > .batch-panels {
+  margin-top: 12px;
 }
 
 .generate-preview-content {
@@ -2545,6 +2684,26 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   justify-content: space-between;
 }
 
+/* 接受/拒绝/取消图标按钮保持正方形（不含“接受全部/拒绝全部”） */
+.generate-preview-btn-square {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+}
+
+/* 接受/接受全部：成功绿色，避免暗色下白底白字 */
+.generate-preview-accept-btn {
+  background: var(--el-color-success) !important;
+  border-color: var(--el-color-success) !important;
+  color: #fff !important;
+}
+.generate-preview-accept-btn:hover {
+  background: var(--el-color-success-light-3) !important;
+  border-color: var(--el-color-success-light-3) !important;
+  color: #fff !important;
+}
+
 .tree-node {
   padding: 4px;
   cursor: pointer;
@@ -2593,6 +2752,16 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 .tree-node-expand-btn:hover {
   opacity: 1;
   filter: brightness(1.1);
+}
+
+/* 折叠且有子节点的节点：左侧竖线 + 轻微背景区分，便于识别可展开 */
+.tree-node--collapsed-with-children {
+  border-left: 3px solid v-bind('themeState.currentTheme.primaryColor');
+  border-radius: 0 8px 8px 0;
+  padding-left: 6px;
+}
+.tree-node--collapsed-with-children .children-count-badge {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 /* 子节点数量 badge - 显示在节点文字前 */

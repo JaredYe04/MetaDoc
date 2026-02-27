@@ -159,21 +159,31 @@ const handleFormatTitle = () => {
   padding: 0;
 }
 
-/* 按钮 hover 时展开 - 固定宽度 160px，使用 sidebar 背景色 */
-.ai-toolbar-btn:hover,
-.ai-toolbar-btn--expanded {
-  width: 160px;
-  padding: 0 12px !important;
+/* 仅 hover（未选中）时：展开宽度随内容，浅色高亮，与选中区分开 */
+.ai-toolbar-btn:hover:not(.ai-toolbar-btn--selected) {
+  width: auto;
+  min-width: 40px;
+  padding: 0 8px !important;
   justify-content: flex-start;
   align-items: center;
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
   ) !important;
-  border: 2px solid v-bind('themeState.currentTheme.textColor') !important;
+  border: 1px solid rgba(128, 128, 128, 0.35) !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
+  opacity: 0.92;
 }
 
-/* 选中状态的按钮样式 - 使用 sidebar 背景色 */
+/* 选中状态：明显区分，粗边框 + 实色，宽度随内容无右侧多余空白 */
+.ai-toolbar-btn--selected,
+.ai-toolbar-btn--expanded {
+  width: auto;
+  min-width: 40px;
+  padding: 0 8px !important;
+  justify-content: flex-start;
+  align-items: center;
+}
+
 .ai-toolbar-btn--selected {
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
@@ -182,14 +192,14 @@ const handleFormatTitle = () => {
   color: v-bind('themeState.currentTheme.textColor') !important;
 }
 
-/* 确保选中状态下hover保持 */
+/* 选中时 hover 保持选中样式，仅微调 */
 .ai-toolbar-btn--selected:hover {
   background-color: v-bind(
     'themeState.currentTheme.sidebarBackground || themeState.currentTheme.background'
   ) !important;
   border: 2px solid v-bind('themeState.currentTheme.textColor') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* 图标样式 - 在按钮内垂直水平居中 */

@@ -433,3 +433,8 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 </style>
+
+<script lang="ts">
+import { themeState } from '../utils/themes'
+export { themeState }
+</script>

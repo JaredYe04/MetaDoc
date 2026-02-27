@@ -92,7 +92,11 @@
           </template>
         </FormField>
 
-        <FormField :label="t('setting.image.uploadService')" name="uploadService">
+        <FormField
+          :label="t('setting.image.uploadService')"
+          name="uploadService"
+          layout="horizontal"
+        >
           <Select
             v-model="settings.imageUpload.uploadService"
             @update:model-value="handleUploadServiceChange"
@@ -109,7 +113,11 @@
 
         <!-- 本地服务配置 -->
         <template v-if="settings.imageUpload.uploadService === 'local'">
-          <FormField :label="t('setting.image.localImageDir')" name="localImageDir">
+          <FormField
+            :label="t('setting.image.localImageDir')"
+            name="localImageDir"
+            layout="horizontal"
+          >
             <div class="image-dir-selector flex gap-2">
               <Button @click="selectImageDirectory" size="default">{{
                 t('setting.image.browse')
@@ -130,7 +138,11 @@
 
       <!-- 自定义API配置 -->
       <template v-if="settings.imageUpload.uploadService === 'custom'">
-        <FormField :label="t('setting.image.customUploadApiUrl')" name="customUploadApiUrl">
+        <FormField
+          :label="t('setting.image.customUploadApiUrl')"
+          name="customUploadApiUrl"
+          layout="horizontal"
+        >
           <Input
             v-model="settings.imageUpload.customUploadApiUrl"
             :placeholder="t('setting.image.customUploadApiUrlPlaceholder')"
@@ -140,7 +152,11 @@
           />
         </FormField>
 
-        <FormField :label="t('setting.image.customUploadApiMethod')" name="customUploadApiMethod">
+        <FormField
+          :label="t('setting.image.customUploadApiMethod')"
+          name="customUploadApiMethod"
+          layout="horizontal"
+        >
           <Select
             v-model="settings.imageUpload.customUploadApiMethod"
             @update:model-value="
@@ -160,6 +176,7 @@
         <FormField
           :label="t('setting.image.customUploadApiFieldName')"
           name="customUploadApiFieldName"
+          layout="horizontal"
         >
           <Input
             v-model="settings.imageUpload.customUploadApiFieldName"

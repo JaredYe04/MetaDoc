@@ -57,7 +57,6 @@ onUnmounted(() => {
   <DialogPortal>
     <DialogOverlay
       class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay pointer-events-auto"
-      style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)"
     />
     <DialogContent
       v-bind="forwarded"
@@ -75,7 +74,7 @@ onUnmounted(() => {
 
       <!-- 默认关闭按钮 - 固定在右上角，不随滚动移动 -->
       <DialogClose
-        class="absolute right-4 top-4 rounded-sm p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none cursor-pointer z-[10001] bg-background/80 backdrop-blur-sm"
+        class="absolute right-4 top-4 rounded-sm p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none cursor-pointer z-[10001] bg-background"
       >
         <X class="h-4 w-4" />
       </DialogClose>

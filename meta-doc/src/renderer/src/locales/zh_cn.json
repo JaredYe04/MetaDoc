@@ -1162,6 +1162,12 @@
     },
     "aiConfig": {
       "title": "AI配置",
+      "titleFor": {
+        "generateChildren": "生成子章节配置",
+        "generateContent": "生成内容配置",
+        "generateChildrenChildren": "批量生成子章节配置",
+        "generateChildrenContent": "批量生成内容配置"
+      },
       "temperature": "AI温度",
       "temperatureStrict": "严谨",
       "temperatureBalance": "平衡",

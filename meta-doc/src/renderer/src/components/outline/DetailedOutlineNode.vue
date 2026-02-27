@@ -42,14 +42,22 @@
           </template>
 
           <!-- 待确认：显示本次生成的新内容（使用 pendingContent 确保是修改后文字） -->
-          <VditorPreview
-            v-else-if="pendingAccept"
-            :markdown="pendingContent || ''"
-            :docPath="docPath"
-          />
+          <template v-else-if="pendingAccept">
+            <!-- LaTeX 文档：直接按文本预览，避免 Markdown 渲染异常 -->
+            <pre v-if="docFormat === 'tex'" class="detailed-outline-node__plain-text">
+{{ pendingContent || '' }}
+            </pre>
+            <!-- Markdown 文档：使用 Vditor 预览 -->
+            <VditorPreview v-else :markdown="pendingContent || ''" :docPath="docPath" />
+          </template>
 
           <!-- 正常显示：当前节点正文 -->
-          <VditorPreview v-else :markdown="node.text || ''" :docPath="docPath" />
+          <template v-else>
+            <pre v-if="docFormat === 'tex'" class="detailed-outline-node__plain-text">
+{{ node.text || '' }}
+            </pre>
+            <VditorPreview v-else :markdown="node.text || ''" :docPath="docPath" />
+          </template>
         </div>
       </ScrollArea>
     </div>
@@ -425,7 +433,7 @@ defineExpose({
   min-width: 300px;
   box-sizing: border-box;
   position: relative;
-  z-index: 10000;
+  z-index: 100000;
 }
 
 .detailed-outline-node__header {
@@ -517,6 +525,17 @@ defineExpose({
   justify-content: center;
   color: var(--el-text-color-secondary);
   font-size: 14px;
+}
+
+.detailed-outline-node__plain-text {
+  margin: 0;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
 }
 
 .detailed-outline-node__resize-handle {

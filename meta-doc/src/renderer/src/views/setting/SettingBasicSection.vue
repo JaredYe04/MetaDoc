@@ -196,7 +196,12 @@
             v-model="settings.fontEditorChinese"
             :placeholder="t('setting.selectChineseFont', '选择中文字体')"
             preview-text="你好世界"
-            @update:model-value="saveSetting('fontEditorChinese', settings.fontEditorChinese)"
+            @update:model-value="
+              (val) => {
+                saveSetting('fontEditorChinese', val)
+                applyFontSettings()
+              }
+            "
           />
         </FormField>
         <FormField
@@ -207,7 +212,12 @@
             v-model="settings.fontEditorWestern"
             :placeholder="t('setting.selectWesternFont', '选择西文字体')"
             preview-text="AaBbCc"
-            @update:model-value="saveSetting('fontEditorWestern', settings.fontEditorWestern)"
+            @update:model-value="
+              (val) => {
+                saveSetting('fontEditorWestern', val)
+                applyFontSettings()
+              }
+            "
           />
         </FormField>
       </div>
@@ -222,7 +232,12 @@
             v-model="settings.fontPreviewChinese"
             :placeholder="t('setting.selectChineseFont', '选择中文字体')"
             preview-text="你好世界"
-            @update:model-value="saveSetting('fontPreviewChinese', settings.fontPreviewChinese)"
+            @update:model-value="
+              (val) => {
+                saveSetting('fontPreviewChinese', val)
+                applyFontSettings()
+              }
+            "
           />
         </FormField>
         <FormField
@@ -233,7 +248,12 @@
             v-model="settings.fontPreviewWestern"
             :placeholder="t('setting.selectWesternFont', '选择西文字体')"
             preview-text="AaBbCc"
-            @update:model-value="saveSetting('fontPreviewWestern', settings.fontPreviewWestern)"
+            @update:model-value="
+              (val) => {
+                saveSetting('fontPreviewWestern', val)
+                applyFontSettings()
+              }
+            "
           />
         </FormField>
       </div>
@@ -314,11 +334,48 @@ const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value)
 }
 
-// 应用UI字体设置
+// 应用字体设置（UI / 编辑器 / 预览）
 const applyFontSettings = () => {
-  const fontFamily = settings.fontUi || 'OPPO Sans 4.0'
-  document.documentElement.style.setProperty('--font-family-ui', fontFamily)
-  eventBus.emit('font-settings-changed', { type: 'ui', font: fontFamily })
+  const root = document.documentElement
+
+  const fontUi = settings.fontUi || 'OPPO Sans 4.0'
+  const fontEditorChinese = settings.fontEditorChinese || 'OPPO Sans 4.0'
+  const fontEditorWestern = settings.fontEditorWestern || 'Fira Code'
+  const fontPreviewChinese = settings.fontPreviewChinese || 'OPPO Sans 4.0'
+  const fontPreviewWestern = settings.fontPreviewWestern || 'New York'
+
+  // UI 字体
+  root.style.setProperty('--font-family-ui', fontUi)
+
+  // 编辑器字体组合（Monaco + Vditor 编辑区）
+  root.style.setProperty(
+    '--font-family-editor',
+    `${fontEditorWestern}, ${fontEditorChinese}, -apple-system, BlinkMacSystemFont, sans-serif`
+  )
+
+  // 渲染预览字体组合（Vditor 预览区、新文档预览等）
+  root.style.setProperty(
+    '--font-family-preview',
+    `${fontPreviewWestern}, ${fontPreviewChinese}, -apple-system, BlinkMacSystemFont, sans-serif`
+  )
+
+  // 基础字体（用于全局正文）
+  root.style.setProperty(
+    '--font-family-base',
+    `${fontUi}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
+  )
+  root.style.setProperty(
+    '--font-family-chinese',
+    `${fontUi}, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif`
+  )
+
+  // 发送事件，方便后续需要时做扩展
+  eventBus.emit('font-settings-changed', {
+    type: 'all',
+    ui: fontUi,
+    editor: { chinese: fontEditorChinese, western: fontEditorWestern },
+    preview: { chinese: fontPreviewChinese, western: fontPreviewWestern }
+  })
 }
 
 // 粒子效果相关代码已注释，以备后用

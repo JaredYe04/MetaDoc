@@ -218,21 +218,21 @@
         </div>
       </ScrollArea>
 
-      <!-- Viewport: 全屏固定视口，捕获事件 -->
+      <!-- Viewport: 使用 vue-tree 内置的缩放与拖拽，不再自建 transform -->
       <div
         ref="viewportRef"
         class="outline-viewport"
-        :class="{ 'is-dragging': isDraggingNode, 'is-panning': isPanning }"
-        @mousedown="handleViewportMouseDown"
-        @wheel="handleWheelZoom"
+        :class="{ 'is-dragging': isDraggingNode }"
+        @wheel="handleViewportWheel"
       >
-        <!-- Canvas: 无限画布层，应用摄像头变换 -->
-        <div ref="canvasRef" class="outline-canvas" :style="canvasTransformStyle">
-          <vue-tree
+        <vue-tree
             ref="treeRef"
             :key="outlineTreeKey"
-            class="outline-tree-inner"
-            :class="{ 'is-dragging': isDraggingNode }"
+            class="outline-tree-inner outline-viewport-tree"
+            :class="{
+              'is-dragging': isDraggingNode,
+              'outline-theme-dark': themeState.currentTheme.type === 'dark'
+            }"
             :dataset="treeData"
             :config="treeConfig"
             :direction="direction"
@@ -246,66 +246,68 @@
             >
               <!-- 节点被折叠时显示正常节点，但在文字前显示子节点数量 badge -->
               <template v-if="collapsed && node.children && node.children.length > 0">
-                <TooltipProvider>
-                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                    <TooltipTrigger as-child>
-                      <div
-                        class="tree-node"
-                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                        :class="
-                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
-                        "
-                        draggable="true"
-                        @dragstart.stop="onNodeDragStart(node)"
-                        @dragover.prevent="onNodeDragOver($event, node)"
-                        @dragleave="onNodeDragLeave(node)"
-                        @drop.stop="onNodeDrop(node, $event)"
-                        @dragend.stop="onNodeDragEnd"
-                        @mousedown.stop
-                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                        @contextmenu.prevent="openNodeContextMenu($event, node)"
-                      >
-                        <!-- 子节点数量 badge -->
-                        <span
-                          class="children-count-badge"
-                          :style="{ backgroundColor: themeState.currentTheme.primaryColor }"
-                        >
-                          {{ node.children.length }}
-                        </span>
+                <div
+                  class="tree-node"
+                  :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                  :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
+                  draggable="true"
+                  @dragstart.stop="onNodeDragStart(node)"
+                  @dragover.prevent="onNodeDragOver($event, node)"
+                  @dragleave="onNodeDragLeave(node)"
+                  @drop.stop="onNodeDrop(node, $event)"
+                  @dragend.stop="onNodeDragEnd"
+                  @mousedown.stop
+                  @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <!-- 子节点数量 badge -->
+                  <span
+                    class="children-count-badge"
+                    :style="{ backgroundColor: themeState.currentTheme.primaryColor }"
+                  >
+                    {{ node.children.length }}
+                  </span>
+                  <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
+                  <TooltipProvider>
+                    <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                      <TooltipTrigger as-child>
                         <span
                           class="tree-node-text"
                           :ref="(el) => setTextElementRef(el, node.path)"
                           >{{ node.title }}</span
                         >
-                        <!-- 展开按钮 -->
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger as-child>
-                              <button
-                                type="button"
-                                class="tree-node-expand-btn"
-                                @click.stop="toggleNodeExpand(node.path)"
-                                v-if="node.path !== 'dummy'"
-                                :disabled="pendingAccept || generating"
-                                aria-label="Expand"
-                              >
-                                <ChevronRight class="w-4 h-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>{{ $t('outline.expand') }}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                      <p>{{ node.title }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        v-if="node.title && isNodeTextTruncated(node.path)"
+                      >
+                        <p>{{ node.title }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <!-- 展开按钮：未选中 AI 工具时显示 -->
+                  <TooltipProvider v-if="!selectedAiTool">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <button
+                          type="button"
+                          class="tree-node-expand-btn"
+                          @click.stop="toggleNodeExpand(node.path)"
+                          v-if="node.path !== 'dummy'"
+                          :disabled="pendingAccept || generating"
+                          aria-label="Expand"
+                        >
+                          <ChevronRight class="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{{ $t('outline.expand') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </template>
-              <!-- 如果节点未折叠且展开编辑面板，显示详细节点面板 -->
+              <!-- 展开时用详细面板替代该节点内容，留在原 slot 内随画布移动 -->
               <template v-else-if="expandedNodes[node.path] && node.path !== 'dummy'">
                 <div
                   class="detailed-node-wrapper"
@@ -334,60 +336,62 @@
               </template>
               <!-- 如果节点未展开，显示正常节点 -->
               <template v-else>
-                <TooltipProvider>
-                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                    <TooltipTrigger as-child>
-                      <div
-                        class="tree-node"
-                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                        :class="
-                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
-                        "
-                        draggable="true"
-                        @dragstart.stop="onNodeDragStart(node)"
-                        @dragover.prevent="onNodeDragOver($event, node)"
-                        @dragleave="onNodeDragLeave(node)"
-                        @drop.stop="onNodeDrop(node, $event)"
-                        @dragend.stop="onNodeDragEnd"
-                        @mousedown.stop
-                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                        @contextmenu.prevent="openNodeContextMenu($event, node)"
-                      >
+                <div
+                  class="tree-node"
+                  :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                  :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
+                  draggable="true"
+                  @dragstart.stop="onNodeDragStart(node)"
+                  @dragover.prevent="onNodeDragOver($event, node)"
+                  @dragleave="onNodeDragLeave(node)"
+                  @drop.stop="onNodeDrop(node, $event)"
+                  @dragend.stop="onNodeDragEnd"
+                  @mousedown.stop
+                  @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
+                  <TooltipProvider>
+                    <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                      <TooltipTrigger as-child>
                         <span
                           class="tree-node-text"
                           :ref="(el) => setTextElementRef(el, node.path)"
                           >{{ node.title }}</span
                         >
-                        <!-- 展开按钮：小尺寸、扁平，不凸起 -->
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger as-child>
-                              <button
-                                type="button"
-                                class="tree-node-expand-btn"
-                                @click.stop="toggleNodeExpand(node.path)"
-                                v-if="node.path !== 'dummy'"
-                                :disabled="pendingAccept || generating"
-                                aria-label="Expand"
-                              >
-                                <component
-                                  :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
-                                  class="w-4 h-4"
-                                />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>{{ $t('outline.expand') }}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                      <p>{{ node.title }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        v-if="node.title && isNodeTextTruncated(node.path)"
+                      >
+                        <p>{{ node.title }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <!-- 展开按钮：未选中 AI 工具时显示 -->
+                  <TooltipProvider v-if="!selectedAiTool">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <button
+                          type="button"
+                          class="tree-node-expand-btn"
+                          @click.stop="toggleNodeExpand(node.path)"
+                          v-if="node.path !== 'dummy'"
+                          :disabled="pendingAccept || generating"
+                          aria-label="Expand"
+                        >
+                          <component
+                            :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
+                            class="w-4 h-4"
+                          />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{{ $t('outline.expand') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
                 <OutlineNodeActionButton
                   v-if="selectedAiTool"
@@ -398,7 +402,6 @@
               </template>
             </template>
           </vue-tree>
-        </div>
       </div>
 
       <!-- 节点右键菜单：Teleport 到 body，避免父级 transform 导致 fixed 定位偏移 -->
@@ -472,20 +475,12 @@
             <DialogTitle>{{ $t('outline.formatTitleWizard') }}</DialogTitle>
           </DialogHeader>
           <div class="grid gap-4 py-4">
-            <div class="flex items-center justify-between">
-              <span>{{ $t('outline.adjustMarkdown') }}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div class="flex items-center">
-                      <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" :avoid-collisions="true">
-                    <p>{{ $t('outline.adjustMarkdownTip') }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div class="format-title-item">
+              <div class="flex items-center justify-between">
+                <span>{{ $t('outline.adjustMarkdown') }}</span>
+                <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
+              </div>
+              <p class="format-title-hint">{{ $t('outline.adjustMarkdownTip') }}</p>
             </div>
             <div v-if="formatTitleConfig.adjustMarkdown" class="flex items-center justify-between">
               <span>{{ $t('outline.firstMarkdownTitleLevel') }}</span>
@@ -503,50 +498,26 @@
                 </NumberFieldContent>
               </NumberField>
             </div>
-            <div class="flex items-center justify-between">
-              <span>{{ $t('outline.adjustTitle') }}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div class="flex items-center">
-                      <Switch v-model:checked="formatTitleConfig.adjustTitle" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" :avoid-collisions="true">
-                    <p>{{ $t('outline.adjustTitleTip') }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div class="format-title-item">
+              <div class="flex items-center justify-between">
+                <span>{{ $t('outline.adjustTitle') }}</span>
+                <Switch v-model:checked="formatTitleConfig.adjustTitle" />
+              </div>
+              <p class="format-title-hint">{{ $t('outline.adjustTitleTip') }}</p>
             </div>
-            <div v-if="formatTitleConfig.adjustTitle" class="flex items-center justify-between">
-              <span>{{ $t('outline.coverOriginalNumber') }}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div class="flex items-center">
-                      <Switch v-model:checked="formatTitleConfig.cover" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" :avoid-collisions="true">
-                    <p>{{ $t('outline.coverTip') }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div v-if="formatTitleConfig.adjustTitle" class="format-title-item">
+              <div class="flex items-center justify-between">
+                <span>{{ $t('outline.coverOriginalNumber') }}</span>
+                <Switch v-model:checked="formatTitleConfig.cover" />
+              </div>
+              <p class="format-title-hint">{{ $t('outline.coverTip') }}</p>
             </div>
-            <div v-if="formatTitleConfig.adjustTitle" class="flex items-center justify-between">
-              <span>{{ $t('outline.level1Chinese') }}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div class="flex items-center">
-                      <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" :avoid-collisions="true">
-                    <p>{{ $t('outline.level1ChineseTip') }}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div v-if="formatTitleConfig.adjustTitle" class="format-title-item">
+              <div class="flex items-center justify-between">
+                <span>{{ $t('outline.level1Chinese') }}</span>
+                <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
+              </div>
+              <p class="format-title-hint">{{ $t('outline.level1ChineseTip') }}</p>
             </div>
           </div>
           <DialogFooter class="flex justify-between">
@@ -739,7 +710,7 @@
 
           <Tooltip>
             <TooltipTrigger as-child>
-              <Button variant="secondary" size="icon" @click="zoomOut">
+              <Button variant="secondary" size="icon" @click="outlineZoomOut">
                 <Minus class="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -748,20 +719,9 @@
             </TooltipContent>
           </Tooltip>
 
-          <Select v-model="selectedScale">
-            <SelectTrigger class="zoom-toolbar-select">
-              <span class="zoom-toolbar-percent">{{ Math.round(canvasScale * 100) }}%</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="scale in scaleOptions" :key="scale" :value="scale">
-                {{ scale }}%
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
           <Tooltip>
             <TooltipTrigger as-child>
-              <Button variant="default" size="icon" @click="zoomIn">
+              <Button variant="default" size="icon" @click="outlineZoomIn">
                 <Plus class="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -772,12 +732,12 @@
 
           <Tooltip>
             <TooltipTrigger as-child>
-              <Button variant="outline" size="icon" @click="fitToScreen">
-                <Maximize class="w-4 h-4" />
+              <Button variant="outline" size="icon" @click="outlineFitToScreen">
+                <RefreshCw class="w-4 h-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{{ $t('outline.fitToScreen') }}</p>
+              <p>{{ $t('outline.reset') }}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -912,13 +872,6 @@ import {
 } from '@renderer/components/ui/tooltip'
 import { Switch } from '@renderer/components/ui/switch'
 import { Slider } from '@renderer/components/ui/slider'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@renderer/components/ui/select'
 
 /** 批量生成时单个任务的结果项，用于接受/拒绝 */
 interface BatchAcceptItem {
@@ -1085,14 +1038,15 @@ const treeConfig = ref({
   siblingSpacing: 500
 })
 
-// 监听主题变化
+// 监听主题变化：同步连接线颜色
 watch(
   () => themeState.currentTheme,
-  () => {
-    // 主题变化时，重新渲染树
-  },
+  () => scheduleForceOutlineLinkStyles(),
   { deep: true }
 )
+
+// 树数据变化后库会重绘连接线（D3 会再次设 opacity 0→1），需重新强制为不透明
+watch(treeData, () => scheduleForceOutlineLinkStyles(), { deep: true })
 
 // 加载保存的方向设置
 onMounted(async () => {
@@ -1105,14 +1059,8 @@ onMounted(async () => {
   if (savedAiConfig) {
     Object.assign(aiConfig, savedAiConfig)
   }
-
-  // 等待 vue-tree 渲染后，自动 fit to screen 显示所有节点
-  // 使用更长的延迟确保节点数据已准备好
-  nextTick(() => {
-    setTimeout(() => {
-      fitToScreen()
-    }, 800)
-  })
+  // 树绘制后强制连接线不透明，覆盖 D3 的 opacity 动画
+  scheduleForceOutlineLinkStyles()
 })
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
@@ -1139,363 +1087,34 @@ const toggleLayout = async () => {
   direction.value = direction.value === 'horizontal' ? 'vertical' : 'horizontal'
   updateTreeConfig(direction.value)
   await setSetting('outline.direction', direction.value)
-
-  // 方向改变后，vue-tree 会重新计算节点位置
-  // 需要等待过渡动画完成（约 600-800ms）后再 fit
-  nextTick(() => {
-    setTimeout(() => {
-      fitToScreen()
-    }, 800)
-  })
 }
 
-// 视口/画布变换系统 - 2D 摄像头模式
-const canvasScale = ref(1)
-const canvasTranslateX = ref(0)
-const canvasTranslateY = ref(0)
-const isPanning = ref(false)
-const panStartX = ref(0)
-const panStartY = ref(0)
-const panStartTranslateX = ref(0)
-const panStartTranslateY = ref(0)
-
-// 平滑动画控制
-const enableSmoothTransition = ref(false)
-const SMOOTH_DURATION = 300 // 动画持续时间 ms
-
-// 画布变换样式（应用到 canvas 层）
-const canvasTransformStyle = computed(() => ({
-  transform: `translate(${canvasTranslateX.value}px, ${canvasTranslateY.value}px) scale(${canvasScale.value})`,
-  transformOrigin: '0 0',
-  transition: enableSmoothTransition.value
-    ? `transform ${SMOOTH_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
-    : 'none'
-}))
-
-// 缩放控制：范围 1% ~ 5000%，使用倍数序列
-const MIN_SCALE = 0.01 // 1%
-const MAX_SCALE = 50 // 5000%
-const FIT_TO_SCREEN_MEASURE_SCALE = 0.02 // fitToScreen 测量时使用的缩放值（2%）
-// 倍数序列：每个级别约为上一个的 1.5 倍（近似），最低 1%
-const scaleOptions = [
-  1,
-  1.5,
-  2,
-  3,
-  5,
-  8, // 1% - 8%
-  10,
-  15,
-  20,
-  30,
-  50,
-  80, // 10% - 80%
-  100,
-  150,
-  200,
-  300,
-  500,
-  800, // 100% - 800%
-  1000,
-  1500,
-  2000,
-  3000,
-  5000 // 1000% - 5000%
-]
-
-// Select 绑定的缩放值（数字类型，与 scaleOptions 匹配）
-const selectedScale = computed({
-  get: () => Math.round(canvasScale.value * 100),
-  set: (val: number) => {
-    if (!isNaN(val)) {
-      canvasScale.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, val / 100))
-    }
-  }
-})
-
-// 缩放操作时启用平滑动画
-const withSmoothTransition = (fn: () => void) => {
-  enableSmoothTransition.value = true
-  fn()
-  setTimeout(() => {
-    enableSmoothTransition.value = false
-  }, SMOOTH_DURATION)
+// 使用 vue-tree 内置缩放与拖拽，不再自建 transform
+const outlineZoomIn = () => {
+  const tree = treeRef.value
+  if (tree && typeof tree.zoomIn === 'function') tree.zoomIn()
+}
+const outlineZoomOut = () => {
+  const tree = treeRef.value
+  if (tree && typeof tree.zoomOut === 'function') tree.zoomOut()
+}
+const outlineFitToScreen = () => {
+  const tree = treeRef.value
+  if (tree && typeof tree.restoreScale === 'function') tree.restoreScale()
 }
 
-// 查找当前缩放值在序列中的位置，并跳到下一个更大的级别
-const zoomIn = () => {
-  const currentPercent = canvasScale.value * 100
-  // 找到第一个比当前值大的级别
-  const nextLevel = scaleOptions.find((level) => level > currentPercent)
-  if (nextLevel) {
-    withSmoothTransition(() => {
-      canvasScale.value = Math.min(MAX_SCALE, nextLevel / 100)
-    })
-  }
-}
+// Ctrl/Cmd + 滚轮缩放（调用 vue-tree 内置缩放）
+const handleViewportWheel = (e: WheelEvent) => {
+  const isZoomModifier = e.ctrlKey || e.metaKey
+  if (!isZoomModifier) return
 
-// 查找当前缩放值在序列中的位置，并跳到下一个更小的级别
-const zoomOut = () => {
-  const currentPercent = canvasScale.value * 100
-  // 找到最后一个比当前值小的级别
-  const prevLevel = [...scaleOptions].reverse().find((level) => level < currentPercent)
-  if (prevLevel) {
-    withSmoothTransition(() => {
-      canvasScale.value = Math.max(MIN_SCALE, prevLevel / 100)
-    })
-  }
-}
-
-const resetScale = () => {
-  withSmoothTransition(() => {
-    canvasScale.value = 1
-  })
-}
-
-// 滚轮缩放（不需要 Ctrl，直接滚轮）
-const handleWheelZoom = (e: WheelEvent) => {
   e.preventDefault()
+
   if (e.deltaY < 0) {
-    zoomIn()
-  } else {
-    zoomOut()
+    outlineZoomIn()
+  } else if (e.deltaY > 0) {
+    outlineZoomOut()
   }
-}
-
-// 画布平移（摄像头移动）- 传统拖拽：鼠标右拖，内容左移，摄像头右移
-const handleViewportMouseDown = (e: MouseEvent) => {
-  // 只有左键点击且不是点击在节点上时才启动平移
-  if (e.button !== 0) return
-
-  // 检查是否点击在节点或详情节点上
-  const target = e.target as HTMLElement
-  if (target.closest('.tree-node') || target.closest('.detailed-node-wrapper')) {
-    return
-  }
-
-  isPanning.value = true
-  // 拖拽时禁用平滑动画，确保即时响应
-  enableSmoothTransition.value = false
-  panStartX.value = e.clientX
-  panStartY.value = e.clientY
-  panStartTranslateX.value = canvasTranslateX.value
-  panStartTranslateY.value = canvasTranslateY.value
-
-  // 添加全局事件监听器
-  document.addEventListener('mousemove', handleViewportMouseMove)
-  document.addEventListener('mouseup', handleViewportMouseUp)
-}
-
-const handleViewportMouseMove = (e: MouseEvent) => {
-  if (!isPanning.value) return
-
-  const deltaX = e.clientX - panStartX.value
-  const deltaY = e.clientY - panStartY.value
-
-  // 传统拖拽：鼠标向右拖，摄像头向右移（内容向左移）
-  // 所以 translateX = startX + deltaX
-  canvasTranslateX.value = panStartTranslateX.value + deltaX
-  canvasTranslateY.value = panStartTranslateY.value + deltaY
-}
-
-const handleViewportMouseUp = () => {
-  isPanning.value = false
-  document.removeEventListener('mousemove', handleViewportMouseMove)
-  document.removeEventListener('mouseup', handleViewportMouseUp)
-}
-
-// 将摄像头对准根节点（让根节点显示在视口中心）
-const centerViewportOnRootNode = () => {
-  const viewport = document.querySelector('.outline-viewport') as HTMLElement
-  const canvas = document.querySelector('.outline-canvas') as HTMLElement
-
-  if (!viewport || !canvas) return
-
-  const viewportRect = viewport.getBoundingClientRect()
-
-  // 获取第一个树节点的位置（根节点）
-  const rootNodeElement = canvas.querySelector('.tree-node') as HTMLElement
-  if (!rootNodeElement) return
-
-  // 获取根节点在 canvas 内的相对位置
-  // 注意：此时 canvas 可能已经应用了 transform，需要计算相对于 canvas 原点的位置
-  const rootRect = rootNodeElement.getBoundingClientRect()
-
-  // 计算根节点相对于视口原点的位置
-  const rootInViewportX = rootRect.left - viewportRect.left
-  const rootInViewportY = rootRect.top - viewportRect.top
-
-  // 视口中心
-  const viewportCenterX = viewportRect.width / 2
-  const viewportCenterY = viewportRect.height / 2
-
-  // 启用平滑动画
-  enableSmoothTransition.value = true
-
-  // 计算需要的 canvas 偏移量
-  // 当前偏移 + (目标位置 - 当前位置) = 新偏移
-  canvasTranslateX.value = canvasTranslateX.value + (viewportCenterX - rootInViewportX)
-  canvasTranslateY.value = canvasTranslateY.value + (viewportCenterY - rootInViewportY)
-
-  // 动画结束后禁用平滑过渡
-  setTimeout(() => {
-    enableSmoothTransition.value = false
-  }, SMOOTH_DURATION)
-}
-
-// 适配屏幕（Fit to screen）
-// 计算所有节点的 bounding box，缩放并居中显示
-// 使用 Reset-Then-Measure 算法：先重置 transform，测量原始位置，再应用新 transform
-const fitToScreen = () => {
-  // 使用 ref 获取当前组件内的元素，而不是全局查询（避免跨 tab 问题）
-  const viewport = viewportRef.value
-  const canvas = canvasRef.value
-  if (!viewport || !canvas) {
-    console.log('[fitToScreen] viewport or canvas not found')
-    return
-  }
-
-  // 诊断日志：检查跨 tab 状态
-  console.log('[fitToScreen] activeTab:', activeTabId.value)
-  console.log(
-    '[fitToScreen] treeData root:',
-    treeData.value?.path,
-    'children:',
-    treeData.value?.children?.length
-  )
-  console.log('[fitToScreen] canvas ref:', canvas)
-  console.log('[fitToScreen] canvas node count:', canvas.querySelectorAll('.tree-node').length)
-  console.log('[fitToScreen] current canvasScale:', canvasScale.value)
-
-  // 保存当前 transform（用于日志）
-  const prevScale = canvasScale.value
-  const prevTranslateX = canvasTranslateX.value
-  const prevTranslateY = canvasTranslateY.value
-
-  // 1. 重置 transform 为很小的值，确保所有节点都在视口内渲染
-  // 禁用 transition 避免动画延迟，确保立即生效
-  enableSmoothTransition.value = false
-  canvasScale.value = FIT_TO_SCREEN_MEASURE_SCALE
-  canvasTranslateX.value = 0
-  canvasTranslateY.value = 0
-
-  // 2. 等待 DOM 刷新并给 D3 布局计算时间后再测量
-  // nextTick 只等待 Vue 渲染，D3 布局是异步的，需要额外延迟
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      // 使用 ref 获取当前组件内的 canvas（避免跨 tab 查询到错误的元素）
-      const freshCanvas = canvasRef.value
-      if (!freshCanvas) {
-        console.log('[fitToScreen] fresh canvas not found')
-        return
-      }
-      const nodeElements = freshCanvas.querySelectorAll('.tree-node')
-      if (nodeElements.length === 0) {
-        console.log('[fitToScreen] no nodes found')
-        return
-      }
-
-      const viewportRect = viewport.getBoundingClientRect()
-
-      // 3. 计算原始 bounding box
-      let minX = Infinity
-      let minY = Infinity
-      let maxX = -Infinity
-      let maxY = -Infinity
-
-      nodeElements.forEach((node, index) => {
-        const rect = node.getBoundingClientRect()
-        const left = rect.left - viewportRect.left
-        const right = rect.right - viewportRect.left
-        const top = rect.top - viewportRect.top
-        const bottom = rect.bottom - viewportRect.top
-
-        if (index < 3 || index >= nodeElements.length - 3) {
-          console.log(`[fitToScreen] node[${index}] measured:`, { left, right, top, bottom })
-        }
-
-        minX = Math.min(minX, left)
-        minY = Math.min(minY, top)
-        maxX = Math.max(maxX, right)
-        maxY = Math.max(maxY, bottom)
-      })
-
-      const contentWidth = maxX - minX
-      const contentHeight = maxY - minY
-
-      console.log('[fitToScreen] measured bbox (reset):', {
-        minX,
-        minY,
-        maxX,
-        maxY,
-        contentWidth,
-        contentHeight
-      })
-
-      // 4. 计算缩放比例（带 padding）
-      // 注意：测量时 canvas 缩放到 FIT_TO_SCREEN_MEASURE_SCALE，所以 contentWidth/Height 是基于该缩放的
-      // 需要除以该值换算回原始尺寸，再计算目标缩放
-      const padding = 40
-      const availableWidth = viewportRect.width - padding * 2
-      const availableHeight = viewportRect.height - padding * 2
-
-      let targetScale = 1
-      if (contentWidth > 0 && contentHeight > 0) {
-        const originalContentWidth = contentWidth / FIT_TO_SCREEN_MEASURE_SCALE
-        const originalContentHeight = contentHeight / FIT_TO_SCREEN_MEASURE_SCALE
-        const scaleX = availableWidth / originalContentWidth
-        const scaleY = availableHeight / originalContentHeight
-        targetScale = Math.min(scaleX, scaleY)
-      }
-
-      targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
-
-      // 将计算出的缩放值对齐到最近的 scaleOptions 等级（向下对齐，确保内容能完整显示）
-      const targetPercent = targetScale * 100
-      // 找到不大于 targetPercent 的最大 scaleOption
-      const floorLevel = scaleOptions
-        .slice()
-        .reverse()
-        .find((level) => level <= targetPercent)
-      if (floorLevel !== undefined) {
-        targetScale = floorLevel / 100
-      }
-
-      // 5. 计算居中偏移
-      const contentCenterX = (minX + maxX) / 2
-      const contentCenterY = (minY + maxY) / 2
-      const viewportCenterX = viewportRect.width / 2
-      const viewportCenterY = viewportRect.height / 2
-
-      // 关键公式：viewportCenter = contentCenter * scale + translate
-      // 注意：contentCenterX/Y 是在 FIT_TO_SCREEN_MEASURE_SCALE (2%) 下测量的 viewport 坐标
-      // 需要先除以测量缩放得到原始 content 坐标，再乘以 targetScale
-      // 解出：translate = viewportCenter - contentCenter * targetScale
-      const translateX =
-        viewportCenterX - contentCenterX * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
-      const translateY =
-        viewportCenterY - contentCenterY * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
-
-      // 6. 启用平滑动画并应用新 transform
-      enableSmoothTransition.value = true
-
-      canvasScale.value = targetScale
-      canvasTranslateX.value = translateX
-      canvasTranslateY.value = translateY
-
-      // 7. 动画结束后禁用平滑过渡（避免影响拖拽）
-      setTimeout(() => {
-        enableSmoothTransition.value = false
-      }, SMOOTH_DURATION)
-
-      console.log('[fitToScreen] applied:', {
-        prevTransform: { scale: prevScale, x: prevTranslateX, y: prevTranslateY },
-        measuredCenter: { x: contentCenterX, y: contentCenterY },
-        targetCenter: { x: viewportCenterX, y: viewportCenterY },
-        newTransform: { scale: targetScale, x: translateX, y: translateY }
-      })
-    })
-  })
 }
 
 // 节点展开状态管理
@@ -1518,8 +1137,7 @@ const toggleNodeExpand = (path: string) => {
     expandedNodes.value[path] = true
     lastExpandedNodePath.value = path
   }
-  // 强制刷新树，确保面板显示
-  outlineTreeKey.value++
+  // 不刷新整棵树，保持用户当前的平移与缩放
 }
 
 const handleNodeContentUpdate = (path: string, content: string) => {
@@ -1535,7 +1153,6 @@ const handleNodeContentCancel = (path: string) => {
   if (lastExpandedNodePath.value === path) {
     lastExpandedNodePath.value = null
   }
-  outlineTreeKey.value++
 }
 
 // 展开所有节点
@@ -1551,14 +1168,12 @@ const expandAllNodes = () => {
   if (treeData.value) {
     traverseAndExpand(treeData.value)
   }
-  outlineTreeKey.value++
 }
 
 // 折叠所有节点
 const collapseAllNodes = () => {
   expandedNodes.value = {}
   lastExpandedNodePath.value = null
-  outlineTreeKey.value++
 }
 
 // AI 配置对话框相关
@@ -2480,8 +2095,27 @@ function stopDrag() {
   document.removeEventListener('mouseup', stopDrag)
 }
 const treeRef = ref<any>(null)
-const canvasRef = ref<HTMLElement | null>(null)
 const viewportRef = ref<HTMLElement | null>(null)
+
+/** 强制设置连接线样式：覆盖 tree-chart-core 的 D3 opacity 动画（0→1），避免首帧/少节点时连接线过淡；使用纯色不透明 */
+function forceOutlineLinkStyles() {
+  const el = treeRef.value?.$el ?? treeRef.value?.el
+  if (!el || typeof el.querySelectorAll !== 'function') return
+  const isDark = themeState.currentTheme.type === 'dark'
+  const stroke = isDark ? '#e0e0e0' : '#9ca3af'
+  el.querySelectorAll('.link').forEach((path: SVGPathElement) => {
+    path.style.setProperty('opacity', '1', 'important')
+    path.style.setProperty('stroke', stroke, 'important')
+    path.style.setProperty('stroke-opacity', '1', 'important')
+    path.style.setProperty('fill', 'none', 'important')
+  })
+}
+function scheduleForceOutlineLinkStyles() {
+  nextTick(() => {
+    setTimeout(forceOutlineLinkStyles, 50)
+    setTimeout(forceOutlineLinkStyles, 400)
+  })
+}
 const editNodeValue = ref('')
 const currentChapterValue = ref('')
 const currentChapterContent = ref('')
@@ -2774,27 +2408,17 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   flex: 1;
   position: relative;
   overflow: hidden;
-  cursor: grab;
-}
-
-.outline-viewport.is-panning {
-  cursor: grabbing;
+  min-height: 0;
 }
 
 .outline-viewport.is-dragging {
   cursor: default;
 }
 
-/* 画布层 - 尺寸由内容决定，vue-tree 内部会计算合适的初始 transform
-   我们只需要让 canvas 可以自由扩展即可 */
-.outline-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  min-width: 100%;
-  min-height: 100%;
-  /* 变换由 JS 动态应用 */
-  will-change: transform;
+/* vue-tree 填满视口，缩放与拖拽由库内置处理 */
+.outline-viewport-tree {
+  width: 100%;
+  height: 100%;
 }
 
 .outline-tree-inner {
@@ -2825,42 +2449,24 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   /* 容器本身透明 */
   background: transparent !important;
 }
-
-/* 确保连接线可见并添加对比度 */
-.outline-tree-inner :deep(.link) {
-  stroke: v-bind('themeState.isDarkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)"') !important;
+/* 连接线：纯色不透明，由 JS forceOutlineLinkStyles 覆盖 D3 的 opacity 动画，此处作兜底 */
+.outline-viewport .outline-tree-inner :deep(.tree-container .link),
+.outline-viewport .outline-tree-inner :deep(.tree-container path.link) {
+  fill: none !important;
   stroke-width: 2px !important;
   opacity: 1 !important;
+  stroke-opacity: 1 !important;
+}
+.outline-viewport .outline-tree-inner:not(.outline-theme-dark) :deep(.tree-container .link),
+.outline-viewport .outline-tree-inner:not(.outline-theme-dark) :deep(.tree-container path.link) {
+  stroke: #9ca3af !important;
+}
+.outline-viewport .outline-tree-inner.outline-theme-dark :deep(.tree-container .link),
+.outline-viewport .outline-tree-inner.outline-theme-dark :deep(.tree-container path.link) {
+  stroke: #e0e0e0 !important;
 }
 
 /* 缩放工具栏样式 */
-.zoom-toolbar-divider {
-  width: 1px;
-  height: 24px;
-  background: rgba(0, 0, 0, 0.2);
-  margin: 0 4px;
-}
-
-.zoom-toolbar-scale {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 50px;
-  padding: 0 8px;
-}
-
-.zoom-toolbar-percent {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--foreground);
-  margin-left: 8px;
-}
-
-/* Select 触发器 - 仅设置最小宽度，其他样式由 shadcn Select 组件处理 */
-.zoom-toolbar-select {
-  min-width: 120px;
-}
-
 /* 底栏按钮统一为正方形 */
 .bottom-menu :deep(button) {
   width: 36px;
@@ -2944,7 +2550,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   min-width: auto;
   max-width: none;
@@ -3005,15 +2611,18 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   margin-right: 4px;
 }
 
+/* 展开面板留在 node-slot 内，替代原节点；通过 :has 让该 slot 置顶，避免被右侧节点盖住 */
+.outline-tree-inner :deep(.node-slot:has(.detailed-node-wrapper)) {
+  z-index: 99999;
+}
 .detailed-node-wrapper {
-  position: absolute;
-  z-index: 50;
+  position: relative;
+  z-index: 1;
   min-width: 400px;
   max-width: 600px;
 }
-
 .detailed-node-wrapper--top {
-  z-index: 51;
+  z-index: 1;
 }
 
 .outline-node-context-menu {
@@ -3061,6 +2670,20 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   padding: 8px;
   border-radius: 12px;
   z-index: 100;
+}
+
+/* 格式化标题向导：每项底部显示 hint，不用 tooltip */
+.format-title-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.format-title-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+  padding-left: 0;
 }
 
 .ai-config-body {

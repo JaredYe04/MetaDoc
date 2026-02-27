@@ -90,6 +90,18 @@ html.dark {
   font-family: var(--font-family-preview) !important;
 }
 
+/* 保持 KaTeX 公式字体为默认字体，而不是应用编辑器/预览字体 */
+.vditor-preview .katex,
+.vditor-preview .katex *,
+.vditor-ir .katex,
+.vditor-ir .katex *,
+.vditor-wysiwyg .katex,
+.vditor-wysiwyg .katex *,
+.vditor-sv .katex,
+.vditor-sv .katex * {
+  font-family: 'KaTeX_Main', 'Times New Roman', serif !important;
+}
+
 /* 代码元素 - 等宽字体 */
 code,
 pre,

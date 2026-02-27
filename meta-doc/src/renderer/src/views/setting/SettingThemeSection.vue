@@ -121,8 +121,14 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.lineNumber')" name="lineNumber" layout="horizontal">
+      <FormField
+        :label="t('setting.lineNumber')"
+        name="lineNumber"
+        layout="horizontal"
+        :hint="t('setting.lineNumberHint', '在编辑器中显示代码行号')"
+      >
         <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground">{{ t('setting.disabled') }}</span>
           <Switch
             :checked="settings.lineNumber"
             @update:checked="
@@ -132,9 +138,7 @@
               }
             "
           />
-          <span class="text-sm text-muted-foreground">{{
-            settings.lineNumber ? t('setting.enabled') : t('setting.disabled')
-          }}</span>
+          <span class="text-sm text-muted-foreground">{{ t('setting.enabled') }}</span>
         </div>
       </FormField>
     </Form>

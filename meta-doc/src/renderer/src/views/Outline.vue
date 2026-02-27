@@ -297,7 +297,10 @@
                           :disabled="pendingAccept || generating"
                           aria-label="Expand"
                         >
-                          <ChevronRight class="w-4 h-4" />
+                          <component
+                            :is="direction === 'vertical' ? ChevronDown : ChevronRight"
+                            class="w-4 h-4"
+                          />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
@@ -381,7 +384,15 @@
                           aria-label="Expand"
                         >
                           <component
-                            :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
+                            :is="
+                              direction === 'vertical'
+                                ? expandedNodes[node.path]
+                                  ? ChevronUp
+                                  : ChevronDown
+                                : expandedNodes[node.path]
+                                  ? ChevronDown
+                                  : ChevronRight
+                            "
                             class="w-4 h-4"
                           />
                         </button>
@@ -617,9 +628,9 @@
                 class="ai-config-keywords-input"
               />
               <div class="ai-config-recommended">
-                <span class="ai-config-recommended-title"
-                  >{{ $t('outline.aiConfig.recommendedKeywords') }}：</span
-                >
+                <span class="ai-config-recommended-title">{{
+                  $t('outline.aiConfig.recommendedKeywords')
+                }}：</span>
                 <template v-if="recommendedKeywordsLoading">
                   <Loader2 class="w-4 h-4 animate-spin" />
                   <span class="ai-config-recommended-text">{{
@@ -653,32 +664,6 @@
               />
             </div>
 
-            <!-- 字数：NumberField + Slider 组合 -->
-            <div class="ai-config-section">
-              <label class="ai-config-label">{{ $t('outline.aiConfig.wordCount') }}</label>
-              <div class="flex items-center gap-4">
-                <NumberField
-                  v-model="aiConfig.wordCount"
-                  :min="100"
-                  :max="10000"
-                  :step="100"
-                  class="w-32"
-                >
-                  <NumberFieldContent>
-                    <NumberFieldDecrement />
-                    <NumberFieldInput />
-                    <NumberFieldIncrement />
-                  </NumberFieldContent>
-                </NumberField>
-                <Slider
-                  v-model="aiConfig.wordCount"
-                  :min="100"
-                  :max="10000"
-                  :step="100"
-                  class="flex-1"
-                />
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" @click="aiConfigDialogVisible = false">{{
@@ -795,6 +780,7 @@ import {
   ArrowDown,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Check,
   X,
   ArrowUpDown,
@@ -1207,19 +1193,31 @@ function toggleAiTool(
   }
 }
 
-// 处理节点按钮点击
+// 处理节点按钮点击：打开配置对话框并登记“确定”后要执行的 AI 动作
 const handleNodeButtonClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node
   if (selectedAiTool.value) {
     aiConfig.temperature = 1.0
     aiConfig.keywords = []
-    aiConfig.wordCount = undefined
     wordCountInput.value = ''
     aiConfig.userPrompt = userPrompt.value || ''
     selectedPresetPrompt.value = ''
+    const tool = selectedAiTool.value
+    pendingAiAction.value = () => {
+      if (tool === 'generateChildren') generateChildChapter()
+      else if (tool === 'generateContent') generateContent()
+      else if (tool === 'generateChildrenChildren') generateChildrenChildren()
+      else if (tool === 'generateChildrenContent') generateChildrenContent()
+    }
     aiConfigDialogVisible.value = true
+    nextTick(() => {
+      setTimeout(() => onAiConfigDialogOpened(), 150)
+    })
   }
 }
+
+// 不再在 watch 里触发关键词生成，避免与 handleNodeButtonClick 的 setTimeout(150) 重复调用，
+// 导致两个任务共写同一 keywordsTaskOutputRef、流式输出混在一起、JSON 解析失败并可能触发 Vite 重载
 
 const pendingAiAction = ref<(() => void) | null>(null)
 
@@ -1236,18 +1234,16 @@ const aiConfigDialogTitleForDisplay = computed(() => {
 })
 
 const presetPrompts = computed(() => [
+  { label: t('outline.aiConfig.presets.expand'), value: t('outline.aiConfig.presets.expandValue') },
+  { label: t('outline.aiConfig.presets.abridge'), value: t('outline.aiConfig.presets.abridgeValue') },
+  { label: t('outline.aiConfig.presets.polish'), value: t('outline.aiConfig.presets.polishValue') },
   {
-    label: t('outline.aiConfig.presets.detailed'),
-    value: t('outline.aiConfig.presets.detailedValue')
+    label: t('outline.aiConfig.presets.combineStructure'),
+    value: t('outline.aiConfig.presets.combineStructureValue')
   },
-  {
-    label: t('outline.aiConfig.presets.concise'),
-    value: t('outline.aiConfig.presets.conciseValue')
-  },
-  {
-    label: t('outline.aiConfig.presets.academic'),
-    value: t('outline.aiConfig.presets.academicValue')
-  }
+  { label: t('outline.aiConfig.presets.detailed'), value: t('outline.aiConfig.presets.detailedValue') },
+  { label: t('outline.aiConfig.presets.concise'), value: t('outline.aiConfig.presets.conciseValue') },
+  { label: t('outline.aiConfig.presets.academic'), value: t('outline.aiConfig.presets.academicValue') }
 ])
 
 const addRecommendedKeyword = (keyword: string) => {
@@ -1260,38 +1256,42 @@ const getKeywordsPromptString = () => aiConfig.keywords.join('，')
 
 const handleAiConfigConfirm = async () => {
   aiConfigDialogVisible.value = false
+  // 同步到当前会话使用的 userPrompt，供后续生成函数读取
+  userPrompt.value = aiConfig.userPrompt || ''
   // 保存配置到本地存储
   await setSetting('outline.aiConfig', {
     temperature: aiConfig.temperature,
     keywords: aiConfig.keywords,
-    userPrompt: aiConfig.userPrompt,
-    wordCount: aiConfig.wordCount
+    userPrompt: aiConfig.userPrompt
   })
-  // 执行待执行的 AI 操作
-  if (pendingAiAction.value) {
-    pendingAiAction.value()
-    pendingAiAction.value = null
-  }
+  // 执行待执行的 AI 操作（在打开对话框时由 handleNodeButtonClick 登记）
+  const run = pendingAiAction.value
+  pendingAiAction.value = null
+  if (run) run()
 }
 
+const keywordsTaskOutputRef = ref('')
 const onAiConfigDialogOpened = async () => {
-  // 生成推荐关键词
-  if (selectedNode.value && aiConfig.keywords.length === 0) {
-    recommendedKeywordsLoading.value = true
-    try {
-      const result = await generateWithSchema({
-        prompt: generateOutlineSectionKeywordsPrompt(selectedNode.value.title),
-        schema: OUTLINE_SECTION_KEYWORDS_SCHEMA,
-        taskName: 'outline_keywords'
-      })
-      if (result?.keywords && Array.isArray(result.keywords)) {
-        recommendedKeywords.value = result.keywords.slice(0, 5)
-      }
-    } catch (e) {
-      logger.warn('生成推荐关键词失败', e)
-    } finally {
-      recommendedKeywordsLoading.value = false
+  if (!selectedNode.value) return
+  if (recommendedKeywordsLoading.value) return
+  recommendedKeywordsLoading.value = true
+  try {
+    const result = await generateWithSchema(
+      OUTLINE_SECTION_KEYWORDS_SCHEMA,
+      generateOutlineSectionKeywordsPrompt(
+        selectedNode.value.title,
+        generateMarkdownFromOutlineTree(treeData.value) || ''
+      ),
+      keywordsTaskOutputRef,
+      { taskName: 'outline_keywords' }
+    )
+    if (result?.keywords && Array.isArray(result.keywords)) {
+      recommendedKeywords.value = result.keywords.slice(0, 5)
     }
+  } catch (e) {
+    logger.warn('生成推荐关键词失败', e)
+  } finally {
+    recommendedKeywordsLoading.value = false
   }
 }
 
@@ -2699,9 +2699,20 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   gap: 8px;
 }
 
+/* 关键词与用户提示词输入区域同宽 */
+.ai-config-keywords-input,
+.ai-config-user-prompt {
+  width: 100%;
+}
+
 .ai-config-label {
   font-weight: 500;
   font-size: 14px;
+}
+
+/* 关键词输入框容器：与文本框一致的可见边框，避免被全局 --border 覆盖 */
+.ai-config-keywords-input :deep(.keywords-container) {
+  border: 1px solid rgba(145, 145, 145, 0.55) !important;
 }
 
 .ai-config-recommended {

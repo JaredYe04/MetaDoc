@@ -61,6 +61,7 @@ import {
 import {
   queryKnowledgeBase,
   getResourcesPath,
+  getLlmStatisticsPath,
   compileLatexToPDF,
   setEmbeddingMode,
   getEmbeddingMode,
@@ -75,7 +76,7 @@ import {
   quitAndInstall,
   type UpdateChannel
 } from './utils/update-service'
-import { getSystemFonts, type SystemFont } from './utils/font-service'
+import { getSystemFonts, clearFontCache as clearMainFontCache, type SystemFont } from './utils/font-service'
 import {
   getDatabase,
   getDatabasePath,
@@ -2223,6 +2224,11 @@ function bindUtilityHandlers(): void {
     }
   )
 
+  // 清除主进程字体缓存（用于增量刷新时强制主进程重新拉取系统字体）
+  ipcBridge.registerHandle('clear-main-font-cache', async () => {
+    clearMainFontCache()
+  })
+
   // Windows: 从注册表获取系统主题色
   async function getWindowsAccentColor(): Promise<string | undefined> {
     try {
@@ -2439,6 +2445,11 @@ function bindUtilityHandlers(): void {
 
   ipcBridge.registerHandle('resources-path', (event: IpcMainInvokeEvent): string => {
     return getResourcesPath()
+  })
+
+  // LLM 统计文件路径（userData，不打包、不监听）
+  ipcBridge.registerHandle('llm-statistics-path', (): string => {
+    return getLlmStatisticsPath()
   })
 
   // HTTP请求代理处理器（通过主进程绕过CORS限制）

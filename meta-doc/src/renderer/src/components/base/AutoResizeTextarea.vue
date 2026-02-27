@@ -12,28 +12,43 @@
         :style="inputStyle"
       />
     </ScrollArea>
-    <!-- 预设提示词下拉菜单：以按钮为 reference，使 popover 定位在按钮旁 -->
-    <Popover v-if="presetOptions && presetOptions.length > 0" v-model:open="showPresetDropdown">
-      <PopoverTrigger as-child>
-        <Button variant="link" size="sm" class="preset-dropdown-trigger">
-          <ChevronDown class="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent class="w-[300px] p-0" align="end">
-        <ScrollArea class="h-[280px]">
-          <div class="preset-list">
-            <div
-              v-for="preset in presetOptions"
-              :key="preset.value"
-              class="preset-item"
-              @click="handlePresetClick(preset)"
-            >
-              {{ preset.label }}
-            </div>
-          </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+    <!-- 预设提示词：用绝对定位层把按钮浮在右上角，保证可点击、可 hover -->
+    <div
+      v-if="presetOptions && presetOptions.length > 0"
+      class="preset-trigger-zone"
+      aria-hidden="true"
+    >
+      <PopoverRoot v-model:open="showPresetDropdown">
+        <PopoverTrigger as-child>
+          <Button variant="link" size="sm" class="preset-dropdown-trigger">
+            <ChevronDown class="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverPortal>
+          <PopoverContent
+            class="preset-popover-content preset-popover-content--styled w-[300px] p-0"
+            align="end"
+            side="bottom"
+            :side-offset="4"
+          >
+            <el-scrollbar class="preset-list-scrollbar" max-height="280px">
+              <div class="preset-list">
+                <div
+                  v-for="preset in presetOptions"
+                  :key="preset.value"
+                  class="preset-item"
+                  role="button"
+                  tabindex="0"
+                  @click.prevent="handlePresetClick(preset)"
+                >
+                  {{ preset.label }}
+                </div>
+              </div>
+            </el-scrollbar>
+          </PopoverContent>
+        </PopoverPortal>
+      </PopoverRoot>
+    </div>
   </div>
 </template>
 
@@ -41,8 +56,14 @@
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { themeState, colorWithOpacity } from '../../utils/themes'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import { ElScrollbar } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@renderer/components/ui/popover'
+import {
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverPortal,
+  PopoverContent
+} from 'reka-ui'
 import { ChevronDown } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 
@@ -146,34 +167,52 @@ const wrapperStyle = computed(() => ({
   position: 'relative'
 }))
 
-// 计算下拉菜单位置
-const dropdownMenuStyle = computed(() => {
-  if (!textareaRef.value || !triggerButtonRef.value) {
-    return {}
-  }
-  const textareaRect = textareaRef.value.getBoundingClientRect()
-  const buttonRect = triggerButtonRef.value.getBoundingClientRect()
-  return {
-    position: 'fixed',
-    top: `${buttonRect.bottom + 4}px`,
-    left: `${textareaRect.left}px`,
-    width: `${Math.max(textareaRect.width, 300)}px`,
-    zIndex: 2000
-  }
-})
-
-// 处理预设点击
+// 处理预设点击：先更新 modelValue，再关闭下拉并聚焦
 const handlePresetClick = (preset: PresetOption) => {
-  if (preset.value) {
-    emit('update:modelValue', preset.value)
-  }
+  const value = preset?.value ?? ''
+  emit('update:modelValue', value)
   showPresetDropdown.value = false
-  // 聚焦回textarea
   nextTick(() => {
     textareaRef.value?.focus()
   })
 }
 </script>
+
+<!-- 预设下拉通过 portal 渲染到 body，需全局样式才能生效；z-index 必须高于 Dialog(10000) 否则会被遮罩挡住无法点击 -->
+<style lang="less">
+.preset-popover-content {
+  z-index: 11000 !important;
+  pointer-events: auto !important;
+}
+/* 圆角、边框、背景（portal 内无 scoped，此处全局写） */
+.preset-popover-content.preset-popover-content--styled {
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--el-bg-color-overlay, var(--el-bg-color, #ffffff)) !important;
+  border: 1px solid rgba(145, 145, 145, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  pointer-events: auto !important;
+}
+/* 确保列表和项可接收 hover/click，不被上层遮挡 */
+.preset-popover-content--styled .preset-list-scrollbar,
+.preset-popover-content--styled .preset-list,
+.preset-popover-content--styled .preset-item {
+  pointer-events: auto !important;
+}
+.preset-popover-content--styled .preset-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  color: var(--el-text-color-primary, inherit);
+}
+.preset-popover-content--styled .preset-item:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+.preset-popover-content--styled .preset-item:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+</style>
 
 <style scoped lang="less">
 .auto-resize-textarea-wrapper {
@@ -229,16 +268,47 @@ const handlePresetClick = (preset: PresetOption) => {
   opacity: 0.6;
 }
 
+/* 预设按钮容器：绝对定位在右上角，置于 ScrollArea 之上，仅按钮可点击 */
+.preset-trigger-zone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.preset-trigger-zone .preset-dropdown-trigger {
+  pointer-events: auto;
+  border: 1px solid rgba(145, 145, 145, 0.5);
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  border-radius: 6px;
+  color: v-bind('themeState.currentTheme.textColor');
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.preset-trigger-zone .preset-dropdown-trigger:hover {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"');
+  border-color: rgba(145, 145, 145, 0.7);
+}
+.preset-trigger-zone .preset-dropdown-trigger:active {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"');
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 .preset-dropdown-trigger {
   position: absolute;
   top: 4px;
   right: 4px;
-  z-index: 10;
+  z-index: 21;
   padding: 4px;
   min-height: auto;
   height: auto;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .preset-dropdown-overlay {
@@ -251,15 +321,13 @@ const handlePresetClick = (preset: PresetOption) => {
   background: transparent;
 }
 
-.preset-dropdown-menu {
+/* 预设列表容器：圆角、背景、el-scrollbar */
+.preset-popover-content--styled {
+  border-radius: 10px;
+  overflow: hidden;
   background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
-  border: 1px solid rgba(145, 145, 145, 0.3);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  max-height: 300px;
-  overflow-y: auto;
+  border: 1px solid rgba(145, 145, 145, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .preset-list-scrollbar {
@@ -268,8 +336,12 @@ const handlePresetClick = (preset: PresetOption) => {
 .preset-list-scrollbar :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
 }
+.preset-list-scrollbar :deep(.el-scrollbar__view) {
+  padding: 6px 0;
+}
+
 .preset-list {
-  padding: 4px;
+  padding: 4px 8px;
 }
 
 .preset-item {

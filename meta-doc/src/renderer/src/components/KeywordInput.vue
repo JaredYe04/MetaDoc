@@ -93,7 +93,7 @@ const handleBackspace = (e: KeyboardEvent) => {
 
 <style scoped>
 .keyword-input {
-  width: 90%;
+  width: 100%;
 }
 
 .keywords-container {
@@ -103,7 +103,7 @@ const handleBackspace = (e: KeyboardEvent) => {
   gap: 4px;
   padding: 4px 8px;
   min-height: 32px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(145, 145, 145, 0.55) !important;
   border-radius: 6px;
   background-color: var(--background);
 }

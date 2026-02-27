@@ -629,6 +629,22 @@
       "userPromptPlaceholder": "Enter your prompt to guide AI generation",
       "presetPrompts": "Preset prompts",
       "selectPreset": "Select preset prompt",
+      "presets": {
+        "expand": "Expand",
+        "expandValue": "Help me expand",
+        "abridge": "Abridge",
+        "abridgeValue": "Help me condense, keeping core points",
+        "polish": "Polish",
+        "polishValue": "Help me polish to improve expression quality",
+        "combineStructure": "Combine structure",
+        "combineStructureValue": "Please combine the article structure to help me improve this section",
+        "detailed": "Detailed",
+        "detailedValue": "Please generate detailed content with specific cases and data support.",
+        "concise": "Concise",
+        "conciseValue": "Please keep content concise and highlight key points.",
+        "academic": "Academic",
+        "academicValue": "Please use a professional, accurate academic writing style."
+      },
       "preset": {
         "combineStructure": "Please combine the article structure to help me improve this section",
         "expand": "Help me expand",

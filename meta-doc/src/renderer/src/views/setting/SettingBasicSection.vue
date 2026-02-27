@@ -212,6 +212,7 @@
         >
           <FontSelect
             v-model="settings.fontUi"
+            default-recommended="OPPO Sans 4.0"
             :placeholder="t('setting.selectFont', '选择字体')"
             preview-text="AaBbCc 你好世界"
             @update:model-value="
@@ -233,6 +234,7 @@
         >
           <FontSelect
             v-model="settings.fontEditorChinese"
+            default-recommended="OPPO Sans 4.0"
             :placeholder="t('setting.selectChineseFont', '选择中文字体')"
             preview-text="你好世界"
             @update:model-value="
@@ -250,6 +252,7 @@
         >
           <FontSelect
             v-model="settings.fontEditorWestern"
+            default-recommended="Fira Code"
             :placeholder="t('setting.selectWesternFont', '选择西文字体')"
             preview-text="AaBbCc"
             @update:model-value="
@@ -271,6 +274,7 @@
         >
           <FontSelect
             v-model="settings.fontPreviewChinese"
+            default-recommended="OPPO Sans 4.0"
             :placeholder="t('setting.selectChineseFont', '选择中文字体')"
             preview-text="你好世界"
             @update:model-value="
@@ -288,6 +292,7 @@
         >
           <FontSelect
             v-model="settings.fontPreviewWestern"
+            default-recommended="New York"
             :placeholder="t('setting.selectWesternFont', '选择西文字体')"
             preview-text="AaBbCc"
             @update:model-value="
@@ -352,6 +357,7 @@ import { Form, FormField } from '@renderer/components/ui/form'
 import { Switch } from '@renderer/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { FontSelect } from '@renderer/components/ui/font-select'
+import { preloadFonts } from '@renderer/services/font-service'
 import FontDebugPanel from '@renderer/components/FontDebugPanel.vue'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
@@ -521,6 +527,9 @@ const loadDemoData = () => {
 }
 
 onMounted(() => {
+  // 预加载字体列表，避免用户首次展开下拉时 1～2 秒卡顿
+  preloadFonts()
+
   // Demo mode: skip all API calls and load mock data
   if (isDemo.value) {
     loadDemoData()

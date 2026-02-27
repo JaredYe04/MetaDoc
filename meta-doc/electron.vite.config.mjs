@@ -59,6 +59,10 @@ export default defineConfig({
     }
   },
   server: {
+    watch: {
+      // 任何 AI 任务完成后会写 llm-statistics.json，忽略该文件避免触发整页重载/白屏
+      ignored: (path) => path.includes('llm-statistics.json')
+    },
     proxy: {
       '/api': {
         target: 'https://server.simpletex.cn',

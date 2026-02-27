@@ -93,7 +93,7 @@
 
     <!-- 其他设置 -->
     <Form class="settings-form space-y-6">
-      <FormField :label="t('setting.contentTheme')" name="contentTheme">
+      <FormField :label="t('setting.contentTheme')" name="contentTheme" layout="horizontal">
         <Select v-model="settings.contentTheme" @update:model-value="handleContentThemeChange">
           <SelectTrigger class="w-[180px]">
             <SelectValue :placeholder="t('setting.selectContentTheme')" />
@@ -107,7 +107,7 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.codeTheme')" name="codeTheme">
+      <FormField :label="t('setting.codeTheme')" name="codeTheme" layout="horizontal">
         <Select v-model="settings.codeTheme" @update:model-value="handleCodeThemeChange">
           <SelectTrigger class="w-[180px]">
             <SelectValue :placeholder="t('setting.selectCodeTheme')" />
@@ -121,7 +121,7 @@
         </Select>
       </FormField>
 
-      <FormField :label="t('setting.lineNumber')" name="lineNumber">
+      <FormField :label="t('setting.lineNumber')" name="lineNumber" layout="horizontal">
         <div class="flex items-center gap-2">
           <Switch
             :checked="settings.lineNumber"
@@ -153,14 +153,14 @@
           </DialogDescription>
         </DialogHeader>
         <Form class="space-y-4">
-          <FormField :label="t('setting.themeName')" name="themeName">
+          <FormField :label="t('setting.themeName')" name="themeName" layout="horizontal">
             <Input
               v-model="themeForm.name"
               :placeholder="t('setting.themeNamePlaceholder')"
               @input="handleNameInput"
             />
           </FormField>
-          <FormField :label="t('setting.themeColor')" name="themeColor">
+          <FormField :label="t('setting.themeColor')" name="themeColor" layout="horizontal">
             <ColorPicker
               v-model="themeForm.themeColor"
               :predefine="predefineColors"

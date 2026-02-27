@@ -1,5 +1,30 @@
 <template>
-  <div :class="cn('space-y-2', props.class)">
+  <!-- 水平布局 -->
+  <div
+    v-if="currentLayout === 'horizontal'"
+    :class="cn('flex items-start justify-between gap-4', props.class)"
+  >
+    <!-- 左侧：Label -->
+    <div class="flex items-center gap-2 flex-shrink-0 pt-2" style="width: 200px">
+      <Label v-if="label" :for="name" class="flex items-center gap-1">
+        {{ label }}
+        <span v-if="required" class="text-destructive ml-1">*</span>
+      </Label>
+      <slot name="label-extra" />
+    </div>
+
+    <!-- 右侧：控件 + Hint -->
+    <div class="flex-1 space-y-1">
+      <slot />
+      <!-- Hint 文字说明 -->
+      <p v-if="hint" class="text-xs text-muted-foreground">
+        {{ hint }}
+      </p>
+    </div>
+  </div>
+
+  <!-- 垂直布局（默认） -->
+  <div v-else :class="cn('space-y-2', props.class)">
     <!-- Label -->
     <Label v-if="label" :for="name" class="flex items-center gap-1">
       {{ label }}
@@ -28,6 +53,7 @@
 import { inject, computed, watch, onMounted, onUnmounted } from 'vue'
 import { cn } from '@renderer/lib/utils'
 import { Label } from '../label'
+
 import type { FormContext } from './types'
 
 const props = defineProps<{
@@ -35,9 +61,14 @@ const props = defineProps<{
   label?: string
   required?: boolean
   description?: string
+  hint?: string
+  layout?: 'vertical' | 'horizontal'
   rules?: any[]
   class?: string
 }>()
+
+// Default layout
+const currentLayout = computed(() => props.layout || 'vertical')
 
 // Inject form context
 const formContext = inject<FormContext | null>('formContext', null)

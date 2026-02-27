@@ -2,27 +2,24 @@
   <!-- 水平布局 -->
   <div
     v-if="currentLayout === 'horizontal'"
-    :class="cn('flex items-center justify-between gap-4', props.class)"
+    :class="cn('flex items-start justify-between gap-4', props.class)"
   >
-    <!-- 左侧：Label + Hint -->
-    <div class="flex items-center gap-2 flex-shrink-0" style="width: 200px">
+    <!-- 左侧：Label -->
+    <div class="flex items-center gap-2 flex-shrink-0 pt-2" style="width: 200px">
       <Label v-if="label" :for="name" class="flex items-center gap-1">
         {{ label }}
         <span v-if="required" class="text-destructive ml-1">*</span>
       </Label>
-      <!-- Hint Tooltip -->
-      <Tooltip v-if="hint">
-        <TooltipTrigger as-child>
-          <HelpCircle class="h-4 w-4 text-muted-foreground cursor-help" />
-        </TooltipTrigger>
-        <TooltipContent side="top">{{ hint }}</TooltipContent>
-      </Tooltip>
       <slot name="label-extra" />
     </div>
 
-    <!-- 右侧：控件 -->
-    <div class="flex-1">
+    <!-- 右侧：控件 + Hint -->
+    <div class="flex-1 space-y-1">
       <slot />
+      <!-- Hint 文字说明 -->
+      <p v-if="hint" class="text-xs text-muted-foreground">
+        {{ hint }}
+      </p>
     </div>
   </div>
 
@@ -56,8 +53,7 @@
 import { inject, computed, watch, onMounted, onUnmounted } from 'vue'
 import { cn } from '@renderer/lib/utils'
 import { Label } from '../label'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../tooltip'
-import { HelpCircle } from 'lucide-vue-next'
+
 import type { FormContext } from './types'
 
 const props = defineProps<{

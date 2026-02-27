@@ -2,53 +2,68 @@
   <div class="tab-content-wrapper">
     <!-- 使用v-show控制显示/隐藏，实现零时间切换，所有组件保持挂载状态 -->
     <div class="tab-content-container">
-      <!-- 渲染所有Tab的内容，使用v-if+v-show组合：首次挂载时确保可见，之后用v-show保持挂载 -->
+      <!-- 渲染所有Tab的内容，使用keep-alive缓存组件实例 -->
       <template v-for="tab in workspace.tabs" :key="tab.id">
         <!-- 文档Tab：根据lastView显示不同视图 -->
         <template v-if="tab.kind === 'file' || tab.kind === 'new'">
-          <Home
-            v-if="shouldRenderView(tab.id, 'home')"
-            v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'home'"
-            :key="`home-${tab.id}`"
-          />
-          <Editor
-            v-if="shouldRenderView(tab.id, 'editor')"
-            v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
-            :key="`editor-${tab.id}`"
-            :tab-id="tab.id"
-          />
-          <Outline
-            v-if="shouldRenderView(tab.id, 'outline')"
-            v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
-            :key="`outline-${tab.id}`"
-          />
-          <Visualize
-            v-if="shouldRenderView(tab.id, 'visualize')"
-            v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
-            :key="`visualize-${tab.id}`"
-          />
-          <AgentView
-            v-if="shouldRenderView(tab.id, 'agent')"
-            v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
-            :key="`agent-${tab.id}`"
-          />
-          <ProofreadView
-            v-if="shouldRenderView(tab.id, 'proofread')"
-            v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
-            :key="`proofread-${tab.id}`"
-          />
+          <!-- Home视图 -->
+          <keep-alive v-if="shouldRenderView(tab.id, 'home')">
+            <Home
+              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'home'"
+              :key="`home-${tab.id}`"
+            />
+          </keep-alive>
+          <!-- Editor视图 -->
+          <keep-alive v-if="shouldRenderView(tab.id, 'editor')">
+            <Editor
+              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
+              :key="`editor-${tab.id}`"
+              :tab-id="tab.id"
+            />
+          </keep-alive>
+          <!-- Outline视图 -->
+          <keep-alive v-if="shouldRenderView(tab.id, 'outline')">
+            <Outline
+              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
+              :key="`outline-${tab.id}`"
+            />
+          </keep-alive>
+          <!-- Visualize视图 -->
+          <keep-alive v-if="shouldRenderView(tab.id, 'visualize')">
+            <Visualize
+              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
+              :key="`visualize-${tab.id}`"
+            />
+          </keep-alive>
+          <!-- Agent视图 -->
+          <keep-alive v-if="shouldRenderView(tab.id, 'agent')">
+            <AgentView
+              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
+              :key="`agent-${tab.id}`"
+            />
+          </keep-alive>
+          <!-- Proofread视图 -->
+          <keep-alive v-if="shouldRenderView(tab.id, 'proofread')">
+            <ProofreadView
+              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
+              :key="`proofread-${tab.id}`"
+            />
+          </keep-alive>
         </template>
         <!-- 系统Tab和工具Tab：使用配置化的组件映射 -->
         <template v-else-if="tab.kind === 'system' || tab.kind === 'tool'">
           <!-- 动态渲染配置的组件 -->
-          <component
-            v-if="tab.route && getTabComponent(tab.kind, tab.route)"
-            :is="getTabComponent(tab.kind, tab.route)"
-            v-show="tab.id === activeTabId"
-            :key="`${tab.kind}-${tab.route}-${tab.id}`"
-          />
+          <keep-alive v-if="tab.route && getTabComponent(tab.kind, tab.route)">
+            <component
+              :is="getTabComponent(tab.kind, tab.route)"
+              v-show="tab.id === activeTabId"
+              :key="`${tab.kind}-${tab.route}-${tab.id}`"
+            />
+          </keep-alive>
           <!-- 其他系统Tab和工具Tab使用router-view作为fallback -->
-          <router-view v-else v-show="tab.id === activeTabId" :key="`router-${tab.id}`" />
+          <keep-alive v-else>
+            <router-view v-show="tab.id === activeTabId" :key="`router-${tab.id}`" />
+          </keep-alive>
         </template>
       </template>
       <!-- 如果没有Tab，显示router-view作为fallback -->
@@ -58,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useWorkspace } from '../stores/workspace'
 import { getTabComponent } from '../config/tab-content-config'
 import type { DocumentView } from '../stores/workspace'

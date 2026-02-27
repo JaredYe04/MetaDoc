@@ -118,8 +118,8 @@ export async function verifyFontApplication() {
  * 强制刷新字体设置（重新应用）
  */
 export async function refreshFontSettings() {
-  const { applyCurrentTheme } = await import('./themes.js')
-  await applyCurrentTheme()
+  const { applyTheme } = await import('./themes.js')
+  await applyTheme()
   return verifyFontApplication()
 }
 

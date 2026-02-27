@@ -521,6 +521,7 @@
     "zoomIn": "ズームイン",
     "zoomOut": "ズームアウト",
     "reset": "リセット",
+    "fitToScreen": "画面に合わせる",
     "formatTitle": "タイトルをフォーマット",
     "openAiAssistant": "AIアシスタントを開く",
     "generateChildSuccessWithTitle": "AIがノード {title} の子章を生成しました！",

@@ -218,112 +218,188 @@
         </div>
       </ScrollArea>
 
-      <vue-tree
-        ref="treeRef"
-        :key="outlineTreeKey"
-        class="outline-tree-container"
-        :class="{ 'is-dragging': isDraggingNode }"
-        style="width: 100%; height: 100%; border-radius: 18px"
-        :style="{ backgroundColor: themeState.currentTheme.background }"
-        :dataset="treeData"
-        :config="treeConfig"
-        :direction="direction"
-        link-style="straight"
-        @node-click="handleNodeClick"
-        @drag-node-end="handleNodeDrag"
+      <!-- Viewport: 全屏固定视口，捕获事件 -->
+      <div
+        ref="viewportRef"
+        class="outline-viewport"
+        :class="{ 'is-dragging': isDraggingNode, 'is-panning': isPanning }"
+        @mousedown="handleViewportMouseDown"
         @wheel="handleWheelZoom"
       >
-        <template
-          #node="{ node, collapsed }"
-          :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-        >
-          <!-- 如果节点展开，显示详细节点面板 -->
-          <template v-if="expandedNodes[node.path] && node.path !== 'dummy'">
-            <div
-              class="detailed-node-wrapper"
-              :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
-              @mousedown.stop
-              @pointerdown.stop
-              @click.stop
-              @contextmenu.prevent="openNodeContextMenu($event, node)"
+        <!-- Canvas: 无限画布层，应用摄像头变换 -->
+        <div ref="canvasRef" class="outline-canvas" :style="canvasTransformStyle">
+          <vue-tree
+            ref="treeRef"
+            :key="outlineTreeKey"
+            class="outline-tree-inner"
+            :class="{ 'is-dragging': isDraggingNode }"
+            :dataset="treeData"
+            :config="treeConfig"
+            :direction="direction"
+            link-style="straight"
+            @node-click="handleNodeClick"
+            @drag-node-end="handleNodeDrag"
+          >
+            <template
+              #node="{ node, collapsed }"
+              :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
             >
-              <DetailedOutlineNode
-                :node="node"
-                :outlineTree="treeData"
-                :docPath="activeDocument?.path || ''"
-                :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
-                :userPrompt="aiConfig.userPrompt || userPrompt"
-                :temperature="aiConfig.temperature"
-                :wordCount="aiConfig.wordCount"
-                @content-updated="(content: string) => handleNodeContentUpdate(node.path, content)"
-                @cancel="handleNodeContentCancel(node.path)"
-                @collapse="toggleNodeExpand(node.path)"
-                class="detailed-node-inline"
-              />
-            </div>
-          </template>
-          <!-- 如果节点未展开，显示正常节点 -->
-          <template v-else>
-            <TooltipProvider>
-              <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                <TooltipTrigger as-child>
-                  <div
-                    class="tree-node"
-                    :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                    :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
-                    draggable="true"
-                    @dragstart.stop="onNodeDragStart(node)"
-                    @dragover.prevent="onNodeDragOver($event, node)"
-                    @dragleave="onNodeDragLeave(node)"
-                    @drop.stop="onNodeDrop(node, $event)"
-                    @dragend.stop="onNodeDragEnd"
-                    @mousedown.stop
-                    @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                    @contextmenu.prevent="openNodeContextMenu($event, node)"
-                  >
-                    <span class="tree-node-text" :ref="(el) => setTextElementRef(el, node.path)">{{
-                      node.title
-                    }}</span>
-                    <!-- 展开按钮：小尺寸、扁平，不凸起 -->
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger as-child>
-                          <button
-                            type="button"
-                            class="tree-node-expand-btn"
-                            @click.stop="toggleNodeExpand(node.path)"
-                            v-if="node.path !== 'dummy'"
-                            :disabled="pendingAccept || generating"
-                            aria-label="Expand"
-                          >
-                            <component
-                              :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
-                              class="w-4 h-4"
-                            />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>{{ $t('outline.expand') }}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                  <p>{{ node.title }}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
-            <OutlineNodeActionButton
-              v-if="selectedAiTool"
-              :node="node"
-              :pending-accept="pendingAccept"
-              :generating="generating"
-            />
-          </template>
-        </template>
-      </vue-tree>
+              <!-- 节点被折叠时显示正常节点，但在文字前显示子节点数量 badge -->
+              <template v-if="collapsed && node.children && node.children.length > 0">
+                <TooltipProvider>
+                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                    <TooltipTrigger as-child>
+                      <div
+                        class="tree-node"
+                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                        :class="
+                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
+                        "
+                        draggable="true"
+                        @dragstart.stop="onNodeDragStart(node)"
+                        @dragover.prevent="onNodeDragOver($event, node)"
+                        @dragleave="onNodeDragLeave(node)"
+                        @drop.stop="onNodeDrop(node, $event)"
+                        @dragend.stop="onNodeDragEnd"
+                        @mousedown.stop
+                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                        @contextmenu.prevent="openNodeContextMenu($event, node)"
+                      >
+                        <!-- 子节点数量 badge -->
+                        <span
+                          class="children-count-badge"
+                          :style="{ backgroundColor: themeState.currentTheme.primaryColor }"
+                        >
+                          {{ node.children.length }}
+                        </span>
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                        <!-- 展开按钮 -->
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <button
+                                type="button"
+                                class="tree-node-expand-btn"
+                                @click.stop="toggleNodeExpand(node.path)"
+                                v-if="node.path !== 'dummy'"
+                                :disabled="pendingAccept || generating"
+                                aria-label="Expand"
+                              >
+                                <ChevronRight class="w-4 h-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>{{ $t('outline.expand') }}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
+                      <p>{{ node.title }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </template>
+              <!-- 如果节点未折叠且展开编辑面板，显示详细节点面板 -->
+              <template v-else-if="expandedNodes[node.path] && node.path !== 'dummy'">
+                <div
+                  class="detailed-node-wrapper"
+                  :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
+                  @mousedown.stop
+                  @pointerdown.stop
+                  @click.stop
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <DetailedOutlineNode
+                    :node="node"
+                    :outlineTree="treeData"
+                    :docPath="activeDocument?.path || ''"
+                    :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
+                    :userPrompt="aiConfig.userPrompt || userPrompt"
+                    :temperature="aiConfig.temperature"
+                    :wordCount="aiConfig.wordCount"
+                    @content-updated="
+                      (content: string) => handleNodeContentUpdate(node.path, content)
+                    "
+                    @cancel="handleNodeContentCancel(node.path)"
+                    @collapse="toggleNodeExpand(node.path)"
+                    class="detailed-node-inline"
+                  />
+                </div>
+              </template>
+              <!-- 如果节点未展开，显示正常节点 -->
+              <template v-else>
+                <TooltipProvider>
+                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                    <TooltipTrigger as-child>
+                      <div
+                        class="tree-node"
+                        :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                        :class="
+                          dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''
+                        "
+                        draggable="true"
+                        @dragstart.stop="onNodeDragStart(node)"
+                        @dragover.prevent="onNodeDragOver($event, node)"
+                        @dragleave="onNodeDragLeave(node)"
+                        @drop.stop="onNodeDrop(node, $event)"
+                        @dragend.stop="onNodeDragEnd"
+                        @mousedown.stop
+                        @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                        @contextmenu.prevent="openNodeContextMenu($event, node)"
+                      >
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                        <!-- 展开按钮：小尺寸、扁平，不凸起 -->
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger as-child>
+                              <button
+                                type="button"
+                                class="tree-node-expand-btn"
+                                @click.stop="toggleNodeExpand(node.path)"
+                                v-if="node.path !== 'dummy'"
+                                :disabled="pendingAccept || generating"
+                                aria-label="Expand"
+                              >
+                                <component
+                                  :is="expandedNodes[node.path] ? ChevronDown : ChevronRight"
+                                  class="w-4 h-4"
+                                />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>{{ $t('outline.expand') }}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
+                      <p>{{ node.title }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
+                <OutlineNodeActionButton
+                  v-if="selectedAiTool"
+                  :node="node"
+                  :pending-accept="pendingAccept"
+                  :generating="generating"
+                />
+              </template>
+            </template>
+          </vue-tree>
+        </div>
+      </div>
 
       <!-- 节点右键菜单：Teleport 到 body，避免父级 transform 导致 fixed 定位偏移 -->
       <Teleport to="body">
@@ -400,10 +476,12 @@
               <span>{{ $t('outline.adjustMarkdown') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.adjustMarkdown" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.adjustMarkdownTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -429,10 +507,12 @@
               <span>{{ $t('outline.adjustTitle') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.adjustTitle" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.adjustTitle" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.adjustTitleTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -442,10 +522,12 @@
               <span>{{ $t('outline.coverOriginalNumber') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.cover" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.cover" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.coverTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -455,10 +537,12 @@
               <span>{{ $t('outline.level1Chinese') }}</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
+                  <TooltipTrigger>
+                    <div class="flex items-center">
+                      <Switch v-model:checked="formatTitleConfig.level1TitleChinese" />
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
+                  <TooltipContent side="right" :avoid-collisions="true">
                     <p>{{ $t('outline.level1ChineseTip') }}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -478,6 +562,29 @@
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <!-- 移除前缀确认对话框 -->
+      <AlertDialog v-model:open="removePrefixesDialogVisible">
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{{ $t('outline.warning') }}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {{ $t('outline.removePrefixesConfirm') }}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel @click="removePrefixesDialogVisible = false">
+              {{ $t('outline.cancel') }}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              @click="executeRemovePrefixes"
+              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {{ $t('outline.confirm') }}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog v-model:open="editValueDialogVisible">
         <DialogContent class="sm:max-w-[40%]">
@@ -519,10 +626,9 @@
             <div class="ai-config-section">
               <label class="ai-config-label">{{ $t('outline.aiConfig.temperature') }}</label>
               <div class="flex items-center gap-4">
-                <span class="text-sm text-muted-foreground">{{ aiConfig.temperature }}</span>
-                <input
-                  type="range"
-                  v-model.number="aiConfig.temperature"
+                <span class="text-sm text-muted-foreground w-8">{{ aiConfig.temperature }}</span>
+                <Slider
+                  v-model="aiConfig.temperature"
                   :min="0"
                   :max="2"
                   :step="0.1"
@@ -576,22 +682,31 @@
               />
             </div>
 
-            <!-- 字数 -->
+            <!-- 字数：NumberField + Slider 组合 -->
             <div class="ai-config-section">
               <label class="ai-config-label">{{ $t('outline.aiConfig.wordCount') }}</label>
-              <NumberField
-                v-model="aiConfig.wordCount"
-                :min="100"
-                :max="10000"
-                :step="100"
-                class="inline-input"
-              >
-                <NumberFieldContent>
-                  <NumberFieldDecrement />
-                  <NumberFieldInput />
-                  <NumberFieldIncrement />
-                </NumberFieldContent>
-              </NumberField>
+              <div class="flex items-center gap-4">
+                <NumberField
+                  v-model="aiConfig.wordCount"
+                  :min="100"
+                  :max="10000"
+                  :step="100"
+                  class="w-32"
+                >
+                  <NumberFieldContent>
+                    <NumberFieldDecrement />
+                    <NumberFieldInput />
+                    <NumberFieldIncrement />
+                  </NumberFieldContent>
+                </NumberField>
+                <Slider
+                  v-model="aiConfig.wordCount"
+                  :min="100"
+                  :max="10000"
+                  :step="100"
+                  class="flex-1"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -624,6 +739,28 @@
 
           <Tooltip>
             <TooltipTrigger as-child>
+              <Button variant="secondary" size="icon" @click="zoomOut">
+                <Minus class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('outline.zoomOut') }}</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Select v-model="selectedScale">
+            <SelectTrigger class="zoom-toolbar-select">
+              <span class="zoom-toolbar-percent">{{ Math.round(canvasScale * 100) }}%</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="scale in scaleOptions" :key="scale" :value="scale">
+                {{ scale }}%
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
               <Button variant="default" size="icon" @click="zoomIn">
                 <Plus class="w-4 h-4" />
               </Button>
@@ -635,34 +772,12 @@
 
           <Tooltip>
             <TooltipTrigger as-child>
-              <Button variant="secondary" size="icon" @click="zoomOut">
-                <Minus class="w-4 h-4" />
+              <Button variant="outline" size="icon" @click="fitToScreen">
+                <Maximize class="w-4 h-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p>{{ $t('outline.zoomOut') }}</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <Button variant="outline" size="icon" @click="resetScale">
-                <RefreshCw class="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>{{ $t('outline.reset') }}</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <Button variant="secondary" size="icon" @click="formatTitle">
-                <span class="text-xs font-bold">T</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>{{ $t('outline.formatTitle') }}</p>
+              <p>{{ $t('outline.fitToScreen') }}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -718,13 +833,16 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowDown,
+  ChevronRight,
+  ChevronDown,
   Check,
   X,
   ArrowUpDown,
   RefreshCw,
   Loader2,
-  ChevronRight,
-  ChevronDown
+  Maximize,
+  FolderOpen,
+  Folder
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
@@ -771,10 +889,21 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle
 } from '@renderer/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@renderer/components/ui/alert-dialog-shadcn'
 import {
   Tooltip,
   TooltipContent,
@@ -782,6 +911,14 @@ import {
   TooltipTrigger
 } from '@renderer/components/ui/tooltip'
 import { Switch } from '@renderer/components/ui/switch'
+import { Slider } from '@renderer/components/ui/slider'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
 
 /** 批量生成时单个任务的结果项，用于接受/拒绝 */
 interface BatchAcceptItem {
@@ -855,6 +992,7 @@ const rawstring = ref('')
 const generatedText = ref('')
 
 let suppressDocumentSync = false
+let commitOutlineTimer: NodeJS.Timeout | null = null
 
 const commitOutline = async (outline?: DocumentOutlineNode) => {
   const tabId = activeTabId.value
@@ -890,6 +1028,7 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
 }
 
 const formatTitleDialogVisible = ref(false)
+const removePrefixesDialogVisible = ref(false)
 const formatTitle = () => {
   formatTitleDialogVisible.value = true
 }
@@ -940,10 +1079,10 @@ function collectAllNodes(node: DocumentOutlineNode, out: DocumentOutlineNode[]):
 
 const direction = ref<'horizontal' | 'vertical'>('horizontal')
 const treeConfig = ref({
-  nodeWidth: 140,
-  nodeHeight: 50,
-  levelHeight: 150,
-  siblingSpacing: 40
+  nodeWidth: 250,
+  nodeHeight: 160,
+  levelHeight: 200,
+  siblingSpacing: 500
 })
 
 // 监听主题变化
@@ -966,19 +1105,29 @@ onMounted(async () => {
   if (savedAiConfig) {
     Object.assign(aiConfig, savedAiConfig)
   }
+
+  // 等待 vue-tree 渲染后，自动 fit to screen 显示所有节点
+  // 使用更长的延迟确保节点数据已准备好
+  nextTick(() => {
+    setTimeout(() => {
+      fitToScreen()
+    }, 800)
+  })
 })
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
   if (dir === 'vertical') {
+    // nodeWidth 控制 D3 节点中心间距（即 slot 宽度）
+    // siblingSpacing 不被库使用，间距完全由 nodeWidth 控制
     treeConfig.value = {
-      nodeWidth: 140,
-      nodeHeight: 50,
-      levelHeight: 120,
-      siblingSpacing: 50
+      nodeWidth: 250, // 控制节点水平间距（中心到中心）
+      nodeHeight: 160,
+      levelHeight: 200,
+      siblingSpacing: 500 // 不被库使用，仅作参考
     }
   } else {
     treeConfig.value = {
-      nodeWidth: 140,
+      nodeWidth: 200, // 140 visual + 60 spacing
       nodeHeight: 50,
       levelHeight: 180,
       siblingSpacing: 60
@@ -990,42 +1139,363 @@ const toggleLayout = async () => {
   direction.value = direction.value === 'horizontal' ? 'vertical' : 'horizontal'
   updateTreeConfig(direction.value)
   await setSetting('outline.direction', direction.value)
+
+  // 方向改变后，vue-tree 会重新计算节点位置
+  // 需要等待过渡动画完成（约 600-800ms）后再 fit
+  nextTick(() => {
+    setTimeout(() => {
+      fitToScreen()
+    }, 800)
+  })
 }
 
-// 缩放相关
-const scale = ref(1)
-const zoomIn = () => {
-  if (scale.value < 2) {
-    scale.value += 0.1
-    updateTreeScale()
-  }
-}
-const zoomOut = () => {
-  if (scale.value > 0.5) {
-    scale.value -= 0.1
-    updateTreeScale()
-  }
-}
-const resetScale = () => {
-  scale.value = 1
-  updateTreeScale()
-}
-const updateTreeScale = () => {
-  const treeContainer = document.querySelector('.outline-tree-container') as HTMLElement
-  if (treeContainer) {
-    treeContainer.style.transform = `scale(${scale.value})`
-    treeContainer.style.transformOrigin = 'center center'
-  }
-}
-const handleWheelZoom = (e: WheelEvent) => {
-  if (e.ctrlKey || e.metaKey) {
-    e.preventDefault()
-    if (e.deltaY < 0) {
-      zoomIn()
-    } else {
-      zoomOut()
+// 视口/画布变换系统 - 2D 摄像头模式
+const canvasScale = ref(1)
+const canvasTranslateX = ref(0)
+const canvasTranslateY = ref(0)
+const isPanning = ref(false)
+const panStartX = ref(0)
+const panStartY = ref(0)
+const panStartTranslateX = ref(0)
+const panStartTranslateY = ref(0)
+
+// 平滑动画控制
+const enableSmoothTransition = ref(false)
+const SMOOTH_DURATION = 300 // 动画持续时间 ms
+
+// 画布变换样式（应用到 canvas 层）
+const canvasTransformStyle = computed(() => ({
+  transform: `translate(${canvasTranslateX.value}px, ${canvasTranslateY.value}px) scale(${canvasScale.value})`,
+  transformOrigin: '0 0',
+  transition: enableSmoothTransition.value
+    ? `transform ${SMOOTH_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1)`
+    : 'none'
+}))
+
+// 缩放控制：范围 1% ~ 5000%，使用倍数序列
+const MIN_SCALE = 0.01 // 1%
+const MAX_SCALE = 50 // 5000%
+const FIT_TO_SCREEN_MEASURE_SCALE = 0.02 // fitToScreen 测量时使用的缩放值（2%）
+// 倍数序列：每个级别约为上一个的 1.5 倍（近似），最低 1%
+const scaleOptions = [
+  1,
+  1.5,
+  2,
+  3,
+  5,
+  8, // 1% - 8%
+  10,
+  15,
+  20,
+  30,
+  50,
+  80, // 10% - 80%
+  100,
+  150,
+  200,
+  300,
+  500,
+  800, // 100% - 800%
+  1000,
+  1500,
+  2000,
+  3000,
+  5000 // 1000% - 5000%
+]
+
+// Select 绑定的缩放值（数字类型，与 scaleOptions 匹配）
+const selectedScale = computed({
+  get: () => Math.round(canvasScale.value * 100),
+  set: (val: number) => {
+    if (!isNaN(val)) {
+      canvasScale.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, val / 100))
     }
   }
+})
+
+// 缩放操作时启用平滑动画
+const withSmoothTransition = (fn: () => void) => {
+  enableSmoothTransition.value = true
+  fn()
+  setTimeout(() => {
+    enableSmoothTransition.value = false
+  }, SMOOTH_DURATION)
+}
+
+// 查找当前缩放值在序列中的位置，并跳到下一个更大的级别
+const zoomIn = () => {
+  const currentPercent = canvasScale.value * 100
+  // 找到第一个比当前值大的级别
+  const nextLevel = scaleOptions.find((level) => level > currentPercent)
+  if (nextLevel) {
+    withSmoothTransition(() => {
+      canvasScale.value = Math.min(MAX_SCALE, nextLevel / 100)
+    })
+  }
+}
+
+// 查找当前缩放值在序列中的位置，并跳到下一个更小的级别
+const zoomOut = () => {
+  const currentPercent = canvasScale.value * 100
+  // 找到最后一个比当前值小的级别
+  const prevLevel = [...scaleOptions].reverse().find((level) => level < currentPercent)
+  if (prevLevel) {
+    withSmoothTransition(() => {
+      canvasScale.value = Math.max(MIN_SCALE, prevLevel / 100)
+    })
+  }
+}
+
+const resetScale = () => {
+  withSmoothTransition(() => {
+    canvasScale.value = 1
+  })
+}
+
+// 滚轮缩放（不需要 Ctrl，直接滚轮）
+const handleWheelZoom = (e: WheelEvent) => {
+  e.preventDefault()
+  if (e.deltaY < 0) {
+    zoomIn()
+  } else {
+    zoomOut()
+  }
+}
+
+// 画布平移（摄像头移动）- 传统拖拽：鼠标右拖，内容左移，摄像头右移
+const handleViewportMouseDown = (e: MouseEvent) => {
+  // 只有左键点击且不是点击在节点上时才启动平移
+  if (e.button !== 0) return
+
+  // 检查是否点击在节点或详情节点上
+  const target = e.target as HTMLElement
+  if (target.closest('.tree-node') || target.closest('.detailed-node-wrapper')) {
+    return
+  }
+
+  isPanning.value = true
+  // 拖拽时禁用平滑动画，确保即时响应
+  enableSmoothTransition.value = false
+  panStartX.value = e.clientX
+  panStartY.value = e.clientY
+  panStartTranslateX.value = canvasTranslateX.value
+  panStartTranslateY.value = canvasTranslateY.value
+
+  // 添加全局事件监听器
+  document.addEventListener('mousemove', handleViewportMouseMove)
+  document.addEventListener('mouseup', handleViewportMouseUp)
+}
+
+const handleViewportMouseMove = (e: MouseEvent) => {
+  if (!isPanning.value) return
+
+  const deltaX = e.clientX - panStartX.value
+  const deltaY = e.clientY - panStartY.value
+
+  // 传统拖拽：鼠标向右拖，摄像头向右移（内容向左移）
+  // 所以 translateX = startX + deltaX
+  canvasTranslateX.value = panStartTranslateX.value + deltaX
+  canvasTranslateY.value = panStartTranslateY.value + deltaY
+}
+
+const handleViewportMouseUp = () => {
+  isPanning.value = false
+  document.removeEventListener('mousemove', handleViewportMouseMove)
+  document.removeEventListener('mouseup', handleViewportMouseUp)
+}
+
+// 将摄像头对准根节点（让根节点显示在视口中心）
+const centerViewportOnRootNode = () => {
+  const viewport = document.querySelector('.outline-viewport') as HTMLElement
+  const canvas = document.querySelector('.outline-canvas') as HTMLElement
+
+  if (!viewport || !canvas) return
+
+  const viewportRect = viewport.getBoundingClientRect()
+
+  // 获取第一个树节点的位置（根节点）
+  const rootNodeElement = canvas.querySelector('.tree-node') as HTMLElement
+  if (!rootNodeElement) return
+
+  // 获取根节点在 canvas 内的相对位置
+  // 注意：此时 canvas 可能已经应用了 transform，需要计算相对于 canvas 原点的位置
+  const rootRect = rootNodeElement.getBoundingClientRect()
+
+  // 计算根节点相对于视口原点的位置
+  const rootInViewportX = rootRect.left - viewportRect.left
+  const rootInViewportY = rootRect.top - viewportRect.top
+
+  // 视口中心
+  const viewportCenterX = viewportRect.width / 2
+  const viewportCenterY = viewportRect.height / 2
+
+  // 启用平滑动画
+  enableSmoothTransition.value = true
+
+  // 计算需要的 canvas 偏移量
+  // 当前偏移 + (目标位置 - 当前位置) = 新偏移
+  canvasTranslateX.value = canvasTranslateX.value + (viewportCenterX - rootInViewportX)
+  canvasTranslateY.value = canvasTranslateY.value + (viewportCenterY - rootInViewportY)
+
+  // 动画结束后禁用平滑过渡
+  setTimeout(() => {
+    enableSmoothTransition.value = false
+  }, SMOOTH_DURATION)
+}
+
+// 适配屏幕（Fit to screen）
+// 计算所有节点的 bounding box，缩放并居中显示
+// 使用 Reset-Then-Measure 算法：先重置 transform，测量原始位置，再应用新 transform
+const fitToScreen = () => {
+  // 使用 ref 获取当前组件内的元素，而不是全局查询（避免跨 tab 问题）
+  const viewport = viewportRef.value
+  const canvas = canvasRef.value
+  if (!viewport || !canvas) {
+    console.log('[fitToScreen] viewport or canvas not found')
+    return
+  }
+
+  // 诊断日志：检查跨 tab 状态
+  console.log('[fitToScreen] activeTab:', activeTabId.value)
+  console.log(
+    '[fitToScreen] treeData root:',
+    treeData.value?.path,
+    'children:',
+    treeData.value?.children?.length
+  )
+  console.log('[fitToScreen] canvas ref:', canvas)
+  console.log('[fitToScreen] canvas node count:', canvas.querySelectorAll('.tree-node').length)
+  console.log('[fitToScreen] current canvasScale:', canvasScale.value)
+
+  // 保存当前 transform（用于日志）
+  const prevScale = canvasScale.value
+  const prevTranslateX = canvasTranslateX.value
+  const prevTranslateY = canvasTranslateY.value
+
+  // 1. 重置 transform 为很小的值，确保所有节点都在视口内渲染
+  // 禁用 transition 避免动画延迟，确保立即生效
+  enableSmoothTransition.value = false
+  canvasScale.value = FIT_TO_SCREEN_MEASURE_SCALE
+  canvasTranslateX.value = 0
+  canvasTranslateY.value = 0
+
+  // 2. 等待 DOM 刷新并给 D3 布局计算时间后再测量
+  // nextTick 只等待 Vue 渲染，D3 布局是异步的，需要额外延迟
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      // 使用 ref 获取当前组件内的 canvas（避免跨 tab 查询到错误的元素）
+      const freshCanvas = canvasRef.value
+      if (!freshCanvas) {
+        console.log('[fitToScreen] fresh canvas not found')
+        return
+      }
+      const nodeElements = freshCanvas.querySelectorAll('.tree-node')
+      if (nodeElements.length === 0) {
+        console.log('[fitToScreen] no nodes found')
+        return
+      }
+
+      const viewportRect = viewport.getBoundingClientRect()
+
+      // 3. 计算原始 bounding box
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+
+      nodeElements.forEach((node, index) => {
+        const rect = node.getBoundingClientRect()
+        const left = rect.left - viewportRect.left
+        const right = rect.right - viewportRect.left
+        const top = rect.top - viewportRect.top
+        const bottom = rect.bottom - viewportRect.top
+
+        if (index < 3 || index >= nodeElements.length - 3) {
+          console.log(`[fitToScreen] node[${index}] measured:`, { left, right, top, bottom })
+        }
+
+        minX = Math.min(minX, left)
+        minY = Math.min(minY, top)
+        maxX = Math.max(maxX, right)
+        maxY = Math.max(maxY, bottom)
+      })
+
+      const contentWidth = maxX - minX
+      const contentHeight = maxY - minY
+
+      console.log('[fitToScreen] measured bbox (reset):', {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        contentWidth,
+        contentHeight
+      })
+
+      // 4. 计算缩放比例（带 padding）
+      // 注意：测量时 canvas 缩放到 FIT_TO_SCREEN_MEASURE_SCALE，所以 contentWidth/Height 是基于该缩放的
+      // 需要除以该值换算回原始尺寸，再计算目标缩放
+      const padding = 40
+      const availableWidth = viewportRect.width - padding * 2
+      const availableHeight = viewportRect.height - padding * 2
+
+      let targetScale = 1
+      if (contentWidth > 0 && contentHeight > 0) {
+        const originalContentWidth = contentWidth / FIT_TO_SCREEN_MEASURE_SCALE
+        const originalContentHeight = contentHeight / FIT_TO_SCREEN_MEASURE_SCALE
+        const scaleX = availableWidth / originalContentWidth
+        const scaleY = availableHeight / originalContentHeight
+        targetScale = Math.min(scaleX, scaleY)
+      }
+
+      targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale))
+
+      // 将计算出的缩放值对齐到最近的 scaleOptions 等级（向下对齐，确保内容能完整显示）
+      const targetPercent = targetScale * 100
+      // 找到不大于 targetPercent 的最大 scaleOption
+      const floorLevel = scaleOptions
+        .slice()
+        .reverse()
+        .find((level) => level <= targetPercent)
+      if (floorLevel !== undefined) {
+        targetScale = floorLevel / 100
+      }
+
+      // 5. 计算居中偏移
+      const contentCenterX = (minX + maxX) / 2
+      const contentCenterY = (minY + maxY) / 2
+      const viewportCenterX = viewportRect.width / 2
+      const viewportCenterY = viewportRect.height / 2
+
+      // 关键公式：viewportCenter = contentCenter * scale + translate
+      // 注意：contentCenterX/Y 是在 FIT_TO_SCREEN_MEASURE_SCALE (2%) 下测量的 viewport 坐标
+      // 需要先除以测量缩放得到原始 content 坐标，再乘以 targetScale
+      // 解出：translate = viewportCenter - contentCenter * targetScale
+      const translateX =
+        viewportCenterX - contentCenterX * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
+      const translateY =
+        viewportCenterY - contentCenterY * (targetScale / FIT_TO_SCREEN_MEASURE_SCALE)
+
+      // 6. 启用平滑动画并应用新 transform
+      enableSmoothTransition.value = true
+
+      canvasScale.value = targetScale
+      canvasTranslateX.value = translateX
+      canvasTranslateY.value = translateY
+
+      // 7. 动画结束后禁用平滑过渡（避免影响拖拽）
+      setTimeout(() => {
+        enableSmoothTransition.value = false
+      }, SMOOTH_DURATION)
+
+      console.log('[fitToScreen] applied:', {
+        prevTransform: { scale: prevScale, x: prevTranslateX, y: prevTranslateY },
+        measuredCenter: { x: contentCenterX, y: contentCenterY },
+        targetCenter: { x: viewportCenterX, y: viewportCenterY },
+        newTransform: { scale: targetScale, x: translateX, y: translateY }
+      })
+    })
+  })
 }
 
 // 节点展开状态管理
@@ -1068,6 +1538,29 @@ const handleNodeContentCancel = (path: string) => {
   outlineTreeKey.value++
 }
 
+// 展开所有节点
+const expandAllNodes = () => {
+  const traverseAndExpand = (node: DocumentOutlineNode) => {
+    if (node.children && node.children.length > 0) {
+      expandedNodes.value[node.path] = true
+      for (const child of node.children) {
+        traverseAndExpand(child)
+      }
+    }
+  }
+  if (treeData.value) {
+    traverseAndExpand(treeData.value)
+  }
+  outlineTreeKey.value++
+}
+
+// 折叠所有节点
+const collapseAllNodes = () => {
+  expandedNodes.value = {}
+  lastExpandedNodePath.value = null
+  outlineTreeKey.value++
+}
+
 // AI 配置对话框相关
 const aiConfigDialogVisible = ref(false)
 const aiConfig = reactive({
@@ -1080,6 +1573,8 @@ const recommendedKeywords = ref<string[]>([])
 const recommendedKeywordsLoading = ref(false)
 const editingNodePath = ref<string | null>(null)
 const selectedAiTool = ref<string | null>(null)
+const wordCountInput = ref('')
+const selectedPresetPrompt = ref('')
 
 // 切换 AI 工具：已选中则取消，否则选中；选中时折叠已展开的编辑节点面板
 function toggleAiTool(
@@ -1302,6 +1797,7 @@ const pendingAccept = ref(false)
 const pendingBatchAccept = ref<BatchAcceptState | null>(null)
 const backupChildren = ref<DocumentOutlineNode[] | null>(null)
 const backupContent = ref<string>('')
+const singleGenerateType = ref<'content' | 'children'>('children') // 单任务生成类型：内容或子节点
 
 const generateChildChapter = async () => {
   workspace.lockUI?.()
@@ -1362,7 +1858,9 @@ const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
   if (index !== -1) {
     parent.children.splice(index, 1)
   } else {
-    parent.children.forEach((child) => removeNode(child, node))
+    parent.children.forEach((child) => {
+      removeNode(child, node)
+    })
   }
 }
 
@@ -1379,6 +1877,34 @@ function reindexChildrenPaths(parent: DocumentOutlineNode) {
     }
   }
 }
+
+/**
+ * 移除大纲树中所有节点的标题前缀
+ */
+function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
+  const node = cloneOutline(outlineTree)
+
+  function dfs(n: DocumentOutlineNode): void {
+    if (n.title) {
+      n.title = removeTitleIndex(n.title)
+    }
+
+    for (const child of n.children) {
+      dfs(child)
+    }
+  }
+
+  if (node.path === 'dummy') {
+    for (const child of node.children) {
+      dfs(child)
+    }
+  } else {
+    dfs(node)
+  }
+
+  return node
+}
+
 const acceptChange = () => {
   backupChildren.value = null
   backupContent.value = ''
@@ -1459,52 +1985,465 @@ const moveNodeLeft = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
-  // 实现从原文件保留
-  return null
+  const parent = searchParentNode(node.path, tree)
+  if (!parent) return null
+
+  const index = parent.children.findIndex((c) => c.path === node.path)
+  if (index <= 0) return null
+
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedParent = searchParentNode(node.path, clonedTree)
+  if (!clonedParent) return null
+
+  const clonedNode = clonedParent.children[index]
+  // 移除节点
+  clonedParent.children.splice(index, 1)
+  // 在目标位置前插入
+  clonedParent.children.splice(index - 1, 0, clonedNode)
+  // 重新索引
+  reindexChildrenPaths(clonedParent)
+
+  // 找到移动后的节点
+  const movedNode = searchNode(clonedNode.path, clonedTree)
+  if (!movedNode) return null
+
+  return { tree: clonedTree, movedNode }
 }
 const moveNodeRight = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): { tree: DocumentOutlineNode; movedNode: DocumentOutlineNode } | null => {
-  // 实现从原文件保留
-  return null
+  const parent = searchParentNode(node.path, tree)
+  if (!parent) return null
+
+  const index = parent.children.findIndex((c) => c.path === node.path)
+  if (index < 0 || index >= parent.children.length - 1) return null
+
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedParent = searchParentNode(node.path, clonedTree)
+  if (!clonedParent) return null
+
+  const clonedNode = clonedParent.children[index]
+  // 移除节点
+  clonedParent.children.splice(index, 1)
+  // 在目标位置后插入
+  clonedParent.children.splice(index + 1, 0, clonedNode)
+  // 重新索引
+  reindexChildrenPaths(clonedParent)
+
+  // 找到移动后的节点
+  const movedNode = searchNode(clonedNode.path, clonedTree)
+  if (!movedNode) return null
+
+  return { tree: clonedTree, movedNode }
 }
 const addChild = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): { tree: DocumentOutlineNode; newNode: DocumentOutlineNode } | null => {
-  // 实现从原文件保留
-  return null
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedNode = searchNode(node.path, clonedTree)
+  if (!clonedNode) return null
+
+  if (!clonedNode.children) {
+    clonedNode.children = []
+  }
+
+  const newNode: DocumentOutlineNode = {
+    title: t('outline.newNode'),
+    text: '',
+    title_level: clonedNode.title_level + 1,
+    path: clonedNode.path + '.' + (clonedNode.children.length + 1),
+    children: []
+  }
+
+  clonedNode.children.push(newNode)
+
+  return { tree: clonedTree, newNode }
 }
 const removeNodeAndReindex = (
   node: DocumentOutlineNode,
   tree: DocumentOutlineNode
 ): DocumentOutlineNode | null => {
-  // 实现从原文件保留
-  return null
+  const parent = searchParentNode(node.path, tree)
+  if (!parent) return null
+
+  // 克隆树进行修改
+  const clonedTree = cloneOutline(tree)
+  const clonedParent = searchParentNode(node.path, clonedTree)
+  if (!clonedParent) return null
+
+  // 查找并移除节点
+  const index = clonedParent.children.findIndex((c) => c.path === node.path)
+  if (index === -1) return null
+
+  clonedParent.children.splice(index, 1)
+  reindexChildrenPaths(clonedParent)
+
+  return clonedTree
 }
 const handleNodeClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node
 }
-const handleNodeDrag = (event: any) => {
-  // 实现从原文件保留
+const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
+  // 尝试将拖拽节点移动为目标节点的最后一个子节点
+  try {
+    if (!_dragNode || !_targetNode) return
+    const drag = searchNode(_dragNode.path, treeData.value)
+    if (!drag) return
+    const originParent = searchParentNode(_dragNode.path, treeData.value)
+    // 如果拖动的是根节点，则不允许
+    if (!originParent) return
+
+    // 暂停同步，防止频繁重新渲染
+    const wasSuppressed = suppressDocumentSync
+    suppressDocumentSync = true
+
+    // 从原父节点移除
+    removeNode(originParent, drag)
+    // 确定目标插入位置（目标节点作为父）
+    const target = searchNode(_targetNode.path, treeData.value)
+    const targetParent = searchParentNode(_targetNode.path, treeData.value)
+    if (target) {
+      target.children = target.children || []
+      target.children.push(drag)
+      // 重新计算路径
+      reindexChildrenPaths(target)
+    } else if (targetParent) {
+      // 退化为与目标同级追加
+      targetParent.children = targetParent.children || []
+      targetParent.children.push(drag)
+      reindexChildrenPaths(targetParent)
+    }
+
+    // 恢复同步并提交更改
+    suppressDocumentSync = wasSuppressed
+    if (!wasSuppressed) {
+      commitOutline()
+    }
+  } catch (err) {
+    logger.warn('节点拖拽失败', err)
+    // 即使出错也要恢复同步状态
+    if (!suppressDocumentSync) {
+      suppressDocumentSync = false
+    }
+  }
 }
+const draggingNodePath = ref<string | null>(null)
+const isDraggingNode = ref(false)
 const onNodeDragStart = (node: DocumentOutlineNode) => {
-  // 实现从原文件保留
+  draggingNodePath.value = node.path
+  isDraggingNode.value = true
+  // 拖动开始时暂停文档同步，防止频繁重新渲染
+  suppressDocumentSync = true
+  // 清除可能存在的 commitOutline 定时器，避免在拖拽过程中触发提交
+  if (commitOutlineTimer) {
+    clearTimeout(commitOutlineTimer)
+    commitOutlineTimer = null
+  }
+  // 在拖拽时给 body 添加 class，防止其他组件受影响
+  document.body.classList.add('outline-dragging')
 }
-const onNodeDragOver = (event: DragEvent, node: DocumentOutlineNode) => {
-  // 实现从原文件保留
+type DropMode = 'before' | 'after' | 'inside' | 'parent'
+
+// 节流定时器，用于减少拖拽过程中的 dropPreview 更新频率
+let dropPreviewThrottleTimer: NodeJS.Timeout | null = null
+let pendingDropPreviewUpdate: { targetPath: string; mode: DropMode } | null = null
+
+function computeDropMode(e: DragEvent, el: HTMLElement): DropMode {
+  const rect = el.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const w = rect.width
+  const h = rect.height
+
+  if (direction.value === 'vertical') {
+    // 纵向布局：左右调整平级顺序，上下调整父子关系
+    const leftZone = w * 0.25
+    const rightZone = w * 0.75
+    const topZone = h * 0.25
+    const bottomZone = h * 0.75
+    if (x <= leftZone) return 'before'
+    if (x >= rightZone) return 'after'
+    if (y >= bottomZone) return 'inside'
+    if (y <= topZone) return 'parent'
+    // 默认作为 inside
+    return 'inside'
+  } else {
+    // 横向布局：上下调整平级顺序，左右调整父子关系
+    const topZone = h * 0.25
+    const bottomZone = h * 0.75
+    const leftZone = w * 0.25
+    const rightZone = w * 0.75
+    if (y <= topZone) return 'before'
+    if (y >= bottomZone) return 'after'
+    if (x >= rightZone) return 'inside'
+    if (x <= leftZone) return 'parent'
+    // 默认作为 inside
+    return 'inside'
+  }
 }
-const onNodeDragLeave = (node: DocumentOutlineNode) => {
-  // 实现从原文件保留
+
+const onNodeDragOver = (e: DragEvent, node: DocumentOutlineNode) => {
+  const el = e.currentTarget as HTMLElement | null
+  if (!el) return
+  const mode = computeDropMode(e, el)
+
+  // 保存待更新的值
+  pendingDropPreviewUpdate = { targetPath: node.path, mode }
+
+  // 如果定时器不存在，立即更新并设置定时器
+  if (!dropPreviewThrottleTimer) {
+    dropPreview.targetPath = node.path
+    dropPreview.mode = mode
+    // 使用节流，每 50ms 最多更新一次，减少重新渲染频率
+    dropPreviewThrottleTimer = setTimeout(() => {
+      dropPreviewThrottleTimer = null
+      // 应用最后一次待更新的值
+      if (pendingDropPreviewUpdate) {
+        dropPreview.targetPath = pendingDropPreviewUpdate.targetPath
+        dropPreview.mode = pendingDropPreviewUpdate.mode
+        pendingDropPreviewUpdate = null
+      }
+    }, 50)
+  }
 }
-const onNodeDrop = (node: DocumentOutlineNode, event: DragEvent) => {
-  // 实现从原文件保留
+const onNodeDragLeave = (_node: DocumentOutlineNode) => {
+  // 清除节流定时器
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer)
+    dropPreviewThrottleTimer = null
+  }
+  pendingDropPreviewUpdate = null
+  dropPreview.targetPath = null
+  dropPreview.mode = null
+}
+const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
+  try {
+    // 清除节流定时器
+    if (dropPreviewThrottleTimer) {
+      clearTimeout(dropPreviewThrottleTimer)
+      dropPreviewThrottleTimer = null
+    }
+    pendingDropPreviewUpdate = null
+
+    const fromPath = draggingNodePath.value
+    draggingNodePath.value = null
+    const mode = dropPreview.mode
+    dropPreview.targetPath = null
+    dropPreview.mode = null
+    isDraggingNode.value = false
+    if (!fromPath) return
+    if (fromPath === targetNode.path || !mode) return
+    const drag = searchNode(fromPath, treeData.value)
+    if (!drag) return
+    const originParent = searchParentNode(fromPath, treeData.value)
+    if (!originParent) return
+    // 工具：判断是否为后代（防止自包含导致的子树丢失）
+    const isDescendant = (candidatePath: string, ancestorPath: string): boolean => {
+      if (!ancestorPath) return false
+      return candidatePath === ancestorPath || candidatePath.startsWith(ancestorPath + '.')
+    }
+    // 工具：创建只包含标题与正文的浅拷贝（不带子节点）
+    const createShallowCopy = (node: DocumentOutlineNode): DocumentOutlineNode => {
+      return {
+        title: node.title,
+        text: node.text,
+        title_level: node.title_level,
+        path: '',
+        children: []
+      }
+    }
+
+    const target = searchNode(targetNode.path, treeData.value)
+    if (!target) return
+
+    if (mode === 'inside') {
+      // 插入为子节点；如果目标是拖拽节点的后代，分两类：
+      // 1) 目标是拖拽节点的"直接子节点"：将该直接子节点及其同级（即拖拽节点的所有直接子）上移到原父级；再把拖拽节点作为该目标的子节点
+      // 2) 目标是更深层后代：避免形成环，仅复制"当前节点内容"插入
+      target.children = target.children || []
+      if (isDescendant(target.path, drag.path)) {
+        const targetParent = searchParentNode(target.path, treeData.value)
+        const isDirectChild = targetParent && targetParent.path === drag.path
+        if (isDirectChild) {
+          const hostParent = originParent ?? treeData.value
+          hostParent.children = hostParent.children || []
+          const indexOfA = hostParent.children.indexOf(drag)
+          const oldChildren = drag.children && drag.children.length ? [...drag.children] : []
+          // 1) 在祖父层用 A 的子列表替换 A，自然保持原排序位置
+          if (indexOfA >= 0) {
+            hostParent.children.splice(indexOfA, 1, ...oldChildren)
+          } else {
+            // 找不到 A 的极端情况，退化为末尾插入
+            hostParent.children.push(...oldChildren)
+            removeNode(originParent ?? treeData.value, drag)
+          }
+          // 2) 清空 A 的子列表
+          drag.children = []
+          // 3) 把 A 作为 B 的子节点
+          target.children.push(drag)
+          // 4) 重新索引
+          reindexChildrenPaths(hostParent)
+          reindexChildrenPaths(target)
+          reindexChildrenPaths(treeData.value)
+        } else {
+          // 更深层后代：仅复制"当前节点内容"，避免环
+          const shallow = createShallowCopy(drag)
+          target.children.push(shallow)
+          reindexChildrenPaths(target)
+        }
+      } else {
+        // 正常移动：先从原父移除再插入
+        removeNode(originParent, drag)
+        target.children.push(drag)
+        reindexChildrenPaths(target)
+      }
+      return
+    }
+
+    if (mode === 'before' || mode === 'after') {
+      const parent = searchParentNode(target.path, treeData.value)
+      if (!parent || !parent.children) return
+      const targetIdx = parent.children.findIndex((c) => c.path === target.path)
+      if (targetIdx === -1) return
+
+      // 插入到目标同级；如果该"同级父节点"是拖拽节点的后代，同样只复制"当前节点内容"
+      if (isDescendant(parent.path, drag.path)) {
+        const insertIndex = mode === 'before' ? targetIdx : targetIdx + 1
+        const shallow = createShallowCopy(drag)
+        parent.children.splice(insertIndex, 0, shallow)
+        reindexChildrenPaths(parent)
+        return
+      }
+
+      // 检查拖拽节点和目标节点是否在同一父节点（同层级）
+      const isSameParent = originParent === parent
+      let dragIdx = -1
+      if (isSameParent) {
+        dragIdx = parent.children.findIndex((c) => c.path === drag.path)
+      }
+
+      // 计算插入位置（基于移除前的索引）
+      let insertIndex: number
+      if (mode === 'before') {
+        insertIndex = targetIdx
+      } else {
+        insertIndex = targetIdx + 1
+      }
+
+      // 如果同层级移动，需要调整插入索引
+      if (isSameParent && dragIdx !== -1) {
+        // 如果拖拽节点已经在目标位置（before模式：dragIdx === targetIdx，after模式：dragIdx === targetIdx + 1），保持顺序不变
+        if (
+          (mode === 'before' && dragIdx === targetIdx) ||
+          (mode === 'after' && dragIdx === targetIdx + 1)
+        ) {
+          // 已经在目标位置，不需要移动
+          reindexChildrenPaths(parent)
+          return
+        }
+
+        // 先移除拖拽节点
+        parent.children.splice(dragIdx, 1)
+
+        // 移除后，如果拖拽节点在目标节点之前，目标节点的索引会-1
+        if (dragIdx < targetIdx) {
+          // 目标节点索引变成 targetIdx - 1
+          if (mode === 'before') {
+            // 插入到目标前面，现在目标在 targetIdx - 1，所以插入位置也是 targetIdx - 1
+            insertIndex = targetIdx - 1
+          } else {
+            // 插入到目标后面，现在目标在 targetIdx - 1，后面是 targetIdx
+            insertIndex = targetIdx
+          }
+        } else {
+          // 拖拽节点在目标节点之后（dragIdx > targetIdx），目标节点索引不变
+          // 需要调整插入位置：如果 dragIdx < insertIndex，移除后 insertIndex 需要-1
+          if (dragIdx < insertIndex) {
+            insertIndex--
+          }
+        }
+      } else {
+        // 不同层级，直接移除
+        removeNode(originParent, drag)
+      }
+
+      // 插入节点
+      parent.children.splice(insertIndex, 0, drag)
+      reindexChildrenPaths(parent)
+      return
+    }
+
+    if (mode === 'parent') {
+      const targetParent = searchParentNode(target.path, treeData.value)
+      if (!targetParent) {
+        // 目标无父节点（根），放不到更上层，回退为 before
+        const parent = searchParentNode(target.path, treeData.value)
+        if (!parent || !parent.children) return
+        const idx = parent.children.findIndex((c) => c.path === target.path)
+        if (idx === -1) return
+        if (isDescendant(parent.path, drag.path)) {
+          const shallow = createShallowCopy(drag)
+          parent.children.splice(idx, 0, shallow)
+        } else {
+          removeNode(originParent, drag)
+          parent.children.splice(idx, 0, drag)
+        }
+        reindexChildrenPaths(parent)
+        return
+      }
+      const grandParent = searchParentNode(targetParent.path, treeData.value)
+      if (!grandParent || !grandParent.children) return
+      const idxParent = grandParent.children.findIndex((c) => c.path === targetParent.path)
+      // 将拖拽节点插入到"父节点"的后面，等价于提升一层（作为父节点的同级）
+      const insertIndex = idxParent + 1
+      if (isDescendant(grandParent.path, drag.path)) {
+        const shallow = createShallowCopy(drag)
+        grandParent.children.splice(insertIndex, 0, shallow)
+      } else {
+        removeNode(originParent, drag)
+        grandParent.children.splice(insertIndex, 0, drag)
+      }
+      reindexChildrenPaths(grandParent)
+      return
+    }
+
+    // 拖动操作完成后恢复同步并提交更改
+    if (suppressDocumentSync) {
+      suppressDocumentSync = false
+      commitOutline()
+    }
+  } catch (err) {
+    logger.warn('HTML5 拖拽节点失败', err)
+    // 即使出错也要恢复同步状态
+    if (suppressDocumentSync) {
+      suppressDocumentSync = false
+    }
+  }
 }
 const onNodeDragEnd = () => {
-  // 实现从原文件保留
+  // 清除节流定时器
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer)
+    dropPreviewThrottleTimer = null
+  }
+  pendingDropPreviewUpdate = null
+  draggingNodePath.value = null
+  dropPreview.targetPath = null
+  dropPreview.mode = null
+  isDraggingNode.value = false
+  // 移除 body 上的 class
+  document.body.classList.remove('outline-dragging')
+  // 拖动结束时恢复同步并提交更改
+  if (suppressDocumentSync) {
+    suppressDocumentSync = false
+    commitOutline()
+  }
 }
-const isDraggingNode = ref(false)
 const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({
   targetPath: null,
   mode: null
@@ -1521,31 +2460,290 @@ const setTextElementRef = (el: any, path: string) => {
   }
 }
 const position = ref({ top: 100, left: 100 })
+let isDragging = false
+let offset: { x: number; y: number } = { x: 0, y: 0 }
 const startDrag = (e: MouseEvent) => {
-  // 实现从原文件保留
+  isDragging = true
+  offset.x = e.clientX - position.value.left
+  offset.y = e.clientY - position.value.top
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+}
+function onDrag(e: MouseEvent) {
+  if (!isDragging) return
+  position.value.left = e.clientX - offset.x
+  position.value.top = e.clientY - offset.y
+}
+function stopDrag() {
+  isDragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
 }
 const treeRef = ref<any>(null)
+const canvasRef = ref<HTMLElement | null>(null)
+const viewportRef = ref<HTMLElement | null>(null)
 const editNodeValue = ref('')
 const currentChapterValue = ref('')
 const currentChapterContent = ref('')
 const editValueDialogVisible = ref(false)
 const changeNodeValue = () => {
-  // 实现从原文件保留
+  const selected = selectedNode.value
+  if (!selected) return
+  const curNode = searchNode(selected.path, treeData.value)
+  if (!curNode) return
+  curNode.title = currentChapterValue.value
+  curNode.text = currentChapterContent.value
+  editValueDialogVisible.value = false
 }
+// 执行移除前缀操作
+const executeRemovePrefixes = async () => {
+  backupOutlineTree.value = cloneOutline(treeData.value)
+
+  // 暂停文档同步，避免触发 watch 导致循环
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+
+  try {
+    let modifiedTree = cloneOutline(treeData.value)
+    modifiedTree = removeAllTitlePrefixes(modifiedTree)
+
+    // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+    treeData.value = modifiedTree
+
+    // 手动提交更改
+    await commitOutline(modifiedTree)
+
+    formatTitleDialogVisible.value = false
+    eventBus.emit('show-success', t('outline.removePrefixesSuccess'))
+  } finally {
+    // 恢复同步状态
+    suppressDocumentSync = prevSync
+  }
+}
+
 const handleRemovePrefixes = () => {
-  // 实现从原文件保留
+  removePrefixesDialogVisible.value = true
 }
-const executeFormatTitle = () => {
-  // 实现从原文件保留
+const executeFormatTitle = async () => {
+  backupOutlineTree.value = cloneOutline(treeData.value)
+
+  // 暂停文档同步，避免触发 watch 导致循环
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+
+  try {
+    let modifiedTree = cloneOutline(treeData.value)
+
+    // 调整Markdown标题层级（如果指定）
+    if (formatTitleConfig.adjustMarkdown) {
+      const firstLevel = formatTitleConfig.firstMarkdownTitleLevel
+      modifiedTree = cloneOutline(adjustTitleLevel(modifiedTree, firstLevel))
+    }
+
+    // 3. 调整章节编号（如果指定）
+    if (formatTitleConfig.adjustTitle) {
+      const cover = formatTitleConfig.cover
+      const level1TitleChinese = formatTitleConfig.level1TitleChinese
+      modifiedTree = cloneOutline(adjustTitleIndex(modifiedTree, cover, level1TitleChinese))
+    }
+
+    // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+    treeData.value = modifiedTree
+
+    // 手动提交更改
+    await commitOutline(modifiedTree)
+
+    formatTitleDialogVisible.value = false
+    eventBus.emit('show-success', t('outline.formatSuccess'))
+  } finally {
+    // 恢复同步状态
+    suppressDocumentSync = prevSync
+  }
 }
-const generateContent = () => {
-  // 实现从原文件保留
+const generateContent = async () => {
+  workspace.lockUI?.()
+  const node = selectedNode.value
+  generating.value = true
+  if (node) {
+    backupContent.value = node.text
+  }
+  generateContentLoading.value = true
+  const curNode = node ? searchNode(node.path, treeData.value) : null
+  if (!curNode) {
+    generateContentLoading.value = false
+    generating.value = false
+    workspace.unlockUI?.()
+    return
+  }
+  const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+  rawstring.value = '' // 清空之前的内容
+  try {
+    const content = await generateNodeContentUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      rawstring // 传入rawstring ref，用于实时显示原始内容
+    )
+    // rawstring.value 已经通过ref实时更新了，这里只需要设置处理后的内容
+    curNode.text = content || ''
+  } catch (err) {
+    logger.warn('任务失败或取消：', err)
+    const rawContent = rawstring.value?.trim() || ''
+    if (rawContent) {
+      curNode.text = rawContent
+    } else {
+      curNode.text = ''
+    }
+  } finally {
+    pendingAccept.value = true
+    generateContentLoading.value = false
+    generating.value = false
+    workspace.unlockUI?.()
+  }
+  eventBus.emit('show-success', t('outline.generateChapterSuccess'))
 }
-const generateChildrenContent = () => {
-  // 实现从原文件保留
+const generateChildrenContent = async () => {
+  // 暂停文档同步，避免并发写入期间 treeData 被替换
+  workspace.lockUI?.()
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+  const node = selectedNode.value
+  generating.value = true
+  generateChildrenContentLoading.value = true
+
+  const rootNode = node ? searchNode(node.path, treeData.value) : null
+  if (!rootNode) {
+    generateChildrenContentLoading.value = false
+    generating.value = false
+    suppressDocumentSync = prevSync
+    workspace.unlockUI?.()
+    return
+  }
+  parallelChildren.value = [] // 清空并行生成列表
+  const taskPromises: Promise<unknown>[] = [] // 用于收集所有任务的done promise
+
+  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
+    if (!curNode) return
+
+    if (curNode.children && curNode.children.length > 0) {
+      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
+    }
+
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    // 为每个节点创建一个独立的ref用于显示原始内容
+    const nodeRawContentRef = ref('')
+    parallelChildren.value.push(nodeRawContentRef)
+
+    const task = generateNodeContentUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      nodeRawContentRef // 传入ref，用于实时显示原始内容
+    )
+      .then((content) => {
+        curNode.text = content || ''
+        eventBus.emit(
+          'show-success',
+          t('outline.generateContentSuccessWithTitle', { title: curNode.title })
+        )
+      })
+      .catch((err) => {
+        logger.warn(`节点 ${curNode.title} 任务失败或取消：`, err)
+        curNode.text = ''
+      })
+
+    taskPromises.push(task)
+  }
+
+  await traverseAndGenerate(rootNode) // 启动任务遍历
+
+  await Promise.all(taskPromises) // 等待所有任务完成
+
+  generating.value = false
+  generateChildrenContentLoading.value = false
+  generated.value = true
+  // 恢复同步并统一提交一次
+  suppressDocumentSync = prevSync
+  commitOutline()
+  workspace.unlockUI?.()
 }
-const generateChildrenChildren = () => {
-  // 实现从原文件保留
+const generateChildrenChildren = async () => {
+  // 暂停文档同步，避免并发写入时 treeData 被替换导致后续引用失效
+  workspace.lockUI?.()
+  const prevSync = suppressDocumentSync
+  suppressDocumentSync = true
+  const node = selectedNode.value
+  generating.value = true
+  generateChildrenChildrenLoading.value = true
+
+  const rootNode = node ? searchNode(node.path, treeData.value) : null
+  if (!rootNode) {
+    generateChildrenChildrenLoading.value = false
+    generating.value = false
+    suppressDocumentSync = prevSync
+    workspace.unlockUI?.()
+    return
+  }
+  parallelChildren.value = []
+  const taskPromises: Promise<void>[] = []
+
+  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
+    if (!curNode) return
+
+    if (curNode.children && curNode.children.length > 0) {
+      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
+      return
+    }
+
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    // 为每个节点创建一个独立的ref用于显示原始内容
+    const nodeRawContentRef = ref('')
+    parallelChildren.value.push(nodeRawContentRef)
+
+    const task = generateChildNodesUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      nodeRawContentRef // 传入ref，用于实时显示原始内容
+    )
+      .then((newChildren) => {
+        if (!curNode.children) {
+          curNode.children = []
+        }
+        curNode.children.push(...newChildren)
+        eventBus.emit(
+          'show-success',
+          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+        )
+      })
+      .catch((err) => {
+        logger.warn(`节点 ${curNode.title} 生成子节点失败`, err)
+      })
+
+    taskPromises.push(task)
+  }
+
+  try {
+    await traverseAndGenerate(rootNode)
+    await Promise.all(taskPromises)
+    eventBus.emit('show-success', t('outline.generateChildSuccess'))
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    eventBus.emit('show-error', t('outline.generateChildFail', { error: message }))
+  } finally {
+    generateChildrenChildrenLoading.value = false
+    generating.value = false
+    // 恢复同步并统一提交一次，确保所有并发结果都写入
+    suppressDocumentSync = prevSync
+    commitOutline()
+    workspace.unlockUI?.()
+  }
 }
 
 // Provide AI toolbar dependencies to child components
@@ -1569,6 +2767,105 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   flex-direction: column;
   position: relative;
   overflow: hidden;
+}
+
+/* 无限画布视口系统 */
+.outline-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.outline-viewport.is-panning {
+  cursor: grabbing;
+}
+
+.outline-viewport.is-dragging {
+  cursor: default;
+}
+
+/* 画布层 - 尺寸由内容决定，vue-tree 内部会计算合适的初始 transform
+   我们只需要让 canvas 可以自由扩展即可 */
+.outline-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  min-height: 100%;
+  /* 变换由 JS 动态应用 */
+  will-change: transform;
+}
+
+.outline-tree-inner {
+  width: 100%;
+  height: 100%;
+  /* 覆盖 vue-tree 内部的 overflow 限制，防止内容被截断 */
+  overflow: visible !important;
+  /* 容器本身透明 */
+  background: transparent !important;
+}
+
+/* 覆盖 vue-tree 内部的 tree-container 样式 */
+.outline-tree-inner :deep(.tree-container) {
+  overflow: visible !important;
+  width: 100% !important;
+  height: 100% !important;
+  /* 容器本身透明 */
+  background: transparent !important;
+}
+
+/* 覆盖 vue-tree 内部的 dom-container 和 svg 尺寸限制 */
+.outline-tree-inner :deep(.dom-container),
+.outline-tree-inner :deep(.vue-tree) {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  transform-origin: 0 0 !important;
+  /* 容器本身透明 */
+  background: transparent !important;
+}
+
+/* 确保连接线可见并添加对比度 */
+.outline-tree-inner :deep(.link) {
+  stroke: v-bind('themeState.isDarkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)"') !important;
+  stroke-width: 2px !important;
+  opacity: 1 !important;
+}
+
+/* 缩放工具栏样式 */
+.zoom-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  margin: 0 4px;
+}
+
+.zoom-toolbar-scale {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 0 8px;
+}
+
+.zoom-toolbar-percent {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-left: 8px;
+}
+
+/* Select 触发器 - 仅设置最小宽度，其他样式由 shadcn Select 组件处理 */
+.zoom-toolbar-select {
+  min-width: 120px;
+}
+
+/* 底栏按钮统一为正方形 */
+.bottom-menu :deep(button) {
+  width: 36px;
+  height: 36px;
+  padding: 0;
 }
 
 .generate-preview {
@@ -1642,51 +2939,70 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   justify-content: space-between;
 }
 
-.outline-tree-container {
-  flex: 1;
-  overflow: auto;
-}
-
 .tree-node {
-  padding: 8px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 120px;
-  transition: all 0.2s;
-}
-
-.tree-node:hover {
-  filter: brightness(1.1);
-}
-
-.tree-node-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tree-node-expand-btn {
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
+  padding: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  gap: 8px;
+  min-width: auto;
+  max-width: none;
+  margin: 0;
+  background: transparent !important;
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+
+.tree-node:hover {
+  filter: brightness(1.05);
+}
+
+.tree-node-text {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background-color: v-bind('themeState.currentTheme.outlineNode');
+  max-width: 140px;
+}
+
+.tree-node-expand-btn {
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  border: none;
+  background-color: v-bind('themeState.currentTheme.outlineNode');
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  opacity: 0.8;
+  transition: all 0.2s;
 }
 
 .tree-node-expand-btn:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.1);
+  filter: brightness(1.1);
+}
+
+/* 子节点数量 badge - 显示在节点文字前 */
+.children-count-badge {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 0 4px;
+  flex-shrink: 0;
+  margin-right: 4px;
 }
 
 .detailed-node-wrapper {
@@ -1737,7 +3053,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .bottom-menu {
   position: fixed;
-  bottom: 20px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1789,8 +3105,11 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
   font-size: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
+}
+
+/* 确保 Tooltip 永远在最高层级 */
+:global([data-reka-tooltip-content]) {
+  z-index: 99999 !important;
 }
 
 .ai-config-recommended-tag:hover {

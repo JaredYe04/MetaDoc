@@ -73,7 +73,16 @@ function applyShadcnTheme() {
     { source: 'borderColor', target: '--border' },
     { source: 'secondaryColor', target: '--secondary' },
     { source: 'textColor2', target: '--muted-foreground' },
-    { source: 'textColor', target: ['--primary-foreground', '--card-foreground', '--popover-foreground', '--secondary-foreground', '--accent-foreground'] },
+    {
+      source: 'textColor',
+      target: [
+        '--primary-foreground',
+        '--card-foreground',
+        '--popover-foreground',
+        '--secondary-foreground',
+        '--accent-foreground'
+      ]
+    },
     { source: 'background', target: ['--card', '--popover'] },
     { source: 'secondaryColor', target: '--accent' }
   ]
@@ -84,7 +93,9 @@ function applyShadcnTheme() {
       try {
         const hslValue = hexToHsl(colorValue)
         const targets = Array.isArray(target) ? target : [target]
-        targets.forEach(t => { root.style.setProperty(t, hslValue) })
+        targets.forEach((t) => {
+          root.style.setProperty(t, hslValue)
+        })
       } catch (error) {
         console.warn(`[shadcn-theme-bridge] 转换颜色失败: ${source} = ${colorValue}`, error)
       }

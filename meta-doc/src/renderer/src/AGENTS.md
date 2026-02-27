@@ -89,6 +89,29 @@ renderer/src/
 - `utils/` has 184 files — flat structure; prefer subfolders
 - Many utils are JS (`md-utils.js`, `event-bus.js`, etc.) — new code should be TypeScript
 - `SettingDebugSection.vue` (6297 lines) — largest Vue file, needs decomposition
+- **New UI MUST use shadcn-vue** — Element Plus only for legacy code, see "UI Component Priority" below
+
+## UI COMPONENT PRIORITY (CRITICAL)
+
+**Rule**: All new development and bug fixes MUST use shadcn-vue. Element Plus is legacy-only.
+
+| Scenario               | Action                                                        |
+| ---------------------- | ------------------------------------------------------------- |
+| New feature UI         | **shadcn ONLY** — Import from `components/ui/*`               |
+| Bug fix with UI change | **shadcn ONLY** — Replace Element Plus with shadcn equivalent |
+| Missing component      | `npx shadcn-vue@latest add <name>`                            |
+| Icon needed            | Use `lucide-vue-next`                                         |
+
+```vue
+<!-- ✅ CORRECT -->
+<script setup>
+import { Button } from '@renderer/components/ui/button'
+import { X } from 'lucide-vue-next'
+</script>
+
+<!-- ❌ FORBIDDEN in new code -->
+<el-button>Text</el-button>
+```
 
 ## NOTIFICATION SYSTEM
 

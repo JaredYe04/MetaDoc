@@ -175,16 +175,10 @@
               </FormField>
             </Form>
             <DialogFooter>
-              <Button
-                variant="secondary"
-                @click="metaDialogVisible = false"
-                >{{ $t('common.cancel') }}</Button
-              >
-              <Button
-                variant="default"
-                @click="commitForm"
-                >{{ $t('common.confirm') }}</Button
-              >
+              <Button variant="secondary" @click="metaDialogVisible = false">{{
+                $t('common.cancel')
+              }}</Button>
+              <Button variant="default" @click="commitForm">{{ $t('common.confirm') }}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -16,20 +16,20 @@ description: Standardizes creating and maintaining MetaDoc agent tools. Use when
 
 ## 核心路径与角色
 
-| 角色 | 路径 |
-|------|------|
-| Tool 定义 | `src/renderer/src/utils/agent-tools/*-tool.ts` |
-| Display 组件 | `src/renderer/src/utils/agent-tools/components/*Display.vue` |
-| 注册入口 | `src/renderer/src/utils/agent-tools/index.ts` |
-| Tool↔Display 通信 | `tool-display-communication.ts`（emit/on） |
-| Display 实时状态 | `composables/useToolDisplayRealtime.ts` |
-| 手册（可选） | `src/renderer/src/manuals/zh_CN/agent/tools.md` |
+| 角色               | 路径                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| Tool 定义          | `src/renderer/src/utils/agent-tools/*-tool.ts`               |
+| Display 组件       | `src/renderer/src/utils/agent-tools/components/*Display.vue` |
+| 注册入口           | `src/renderer/src/utils/agent-tools/index.ts`                |
+| Tool↔Display 通信 | `tool-display-communication.ts`（emit/on）                   |
+| Display 实时状态   | `composables/useToolDisplayRealtime.ts`                      |
+| 手册（可选）       | `src/renderer/src/manuals/zh_CN/agent/tools.md`              |
 
 详细类型与事件命名见 [reference.md](reference.md)。
 
 ---
 
-## 一、创建/修改 Tool（*-tool.ts）
+## 一、创建/修改 Tool（\*-tool.ts）
 
 ### 1.1 配置结构（必守）
 
@@ -60,7 +60,7 @@ description: Standardizes creating and maintaining MetaDoc agent tools. Use when
 
 ---
 
-## 二、创建/修改 Display 组件（*Display.vue）
+## 二、创建/修改 Display 组件（\*Display.vue）
 
 ### 2.1 Props 与数据源
 

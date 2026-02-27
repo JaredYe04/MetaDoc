@@ -2,7 +2,11 @@
   <div class="basic-settings">
     <h3 class="section-title">{{ t('setting.basic') }}</h3>
     <Form class="settings-form">
-      <FormField :label="t('setting.startupOption')" name="startupOption">
+      <FormField
+        :label="t('setting.startupOption')"
+        name="startupOption"
+        layout="horizontal"
+      >
         <Select
           v-model="settings.startupOption"
           @update:model-value="saveSetting('startupOption', settings.startupOption)"
@@ -20,6 +24,7 @@
       <FormField
         :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')"
         name="autoOpenHomeOnStartup"
+        layout="horizontal"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm text-muted-foreground">{{ t('setting.disabled', '禁用') }}</span>
@@ -31,7 +36,11 @@
         </div>
       </FormField>
 
-      <FormField :label="t('setting.defaultEditorMode')" name="defaultEditorMode">
+      <FormField
+        :label="t('setting.defaultEditorMode')"
+        name="defaultEditorMode"
+        layout="horizontal"
+      >
         <Select
           v-model="settings.metadataSaveMode"
           @update:model-value="saveSetting('metadataSaveMode', settings.metadataSaveMode)"
@@ -69,7 +78,11 @@
         </div>
       </FormField> -->
 
-      <FormField :label="t('setting.autoSave')" name="autoSave">
+      <FormField
+        :label="t('setting.autoSave')"
+        name="autoSave"
+        layout="horizontal"
+      >
         <Select
           v-model="settings.autoSave"
           @update:model-value="saveSetting('autoSave', settings.autoSave)"
@@ -169,6 +182,7 @@
       <FormField
         :label="t('setting.externalFileOpenMode', '外部文件打开方式')"
         name="externalFileOpenMode"
+        layout="horizontal"
       >
         <Select
           v-model="settings.externalFileOpenMode"
@@ -191,7 +205,11 @@
       <!-- 字体设置分组 -->
       <div class="font-settings-group">
         <h4 class="font-group-title">{{ t('setting.fontUi', '界面字体') }}</h4>
-        <FormField :label="t('setting.fontUiLabel', 'UI字体')" name="fontUi">
+        <FormField
+          :label="t('setting.fontUiLabel', 'UI字体')"
+          name="fontUi"
+          layout="horizontal"
+        >
           <FontSelect
             v-model="settings.fontUi"
             :placeholder="t('setting.selectFont', '选择字体')"
@@ -211,6 +229,7 @@
         <FormField
           :label="t('setting.fontEditorChinese', '编辑器中文字体')"
           name="fontEditorChinese"
+          layout="horizontal"
         >
           <FontSelect
             v-model="settings.fontEditorChinese"
@@ -227,6 +246,7 @@
         <FormField
           :label="t('setting.fontEditorWestern', '编辑器西文字体')"
           name="fontEditorWestern"
+          layout="horizontal"
         >
           <FontSelect
             v-model="settings.fontEditorWestern"
@@ -247,6 +267,7 @@
         <FormField
           :label="t('setting.fontPreviewChinese', '预览中文字体')"
           name="fontPreviewChinese"
+          layout="horizontal"
         >
           <FontSelect
             v-model="settings.fontPreviewChinese"
@@ -263,6 +284,7 @@
         <FormField
           :label="t('setting.fontPreviewWestern', '预览西文字体')"
           name="fontPreviewWestern"
+          layout="horizontal"
         >
           <FontSelect
             v-model="settings.fontPreviewWestern"
@@ -281,6 +303,7 @@
       <FormField
         :label="t('setting.referenceDirManagement', '引用文件目录管理')"
         name="referenceDirManagement"
+        layout="horizontal"
       >
         <div class="reference-dir-management">
           <div class="reference-dir-info">

@@ -1135,6 +1135,7 @@
     "zoomIn": "放大",
     "zoomOut": "缩小",
     "reset": "重置",
+    "fitToScreen": "适合屏幕",
     "formatTitle": "格式化标题",
     "toggleLayout": "切换布局方向",
     "switchToVertical": "切换到纵向布局",

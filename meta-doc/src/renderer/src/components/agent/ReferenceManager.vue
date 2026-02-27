@@ -84,7 +84,13 @@
                     : row.parsedContent
                 }}
               </div>
-              <div class="table-cell-content" v-else :style="{ color: themeState.currentTheme.textColor2 }">-</div>
+              <div
+                class="table-cell-content"
+                v-else
+                :style="{ color: themeState.currentTheme.textColor2 }"
+              >
+                -
+              </div>
             </TableCell>
             <TableCell style="text-align: center">
               <div class="action-buttons">
@@ -216,7 +222,10 @@
                 <Loading />
               </el-icon>
               <div style="font-size: 14px; margin-bottom: 8px">{{ parsingMessage }}</div>
-              <div v-if="parsingProgress" :style="{ fontSize: '12px', color: themeState.currentTheme.textColor2 }">
+              <div
+                v-if="parsingProgress"
+                :style="{ fontSize: '12px', color: themeState.currentTheme.textColor2 }"
+              >
                 {{ parsingProgress }}
               </div>
               <Button size="sm" variant="secondary" class="mt-4" @click="handleCancelParsing">

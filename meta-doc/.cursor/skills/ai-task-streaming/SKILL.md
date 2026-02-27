@@ -50,13 +50,7 @@ createAiTask(
 ```ts
 const generatedText = ref('')
 const messages: AIDialogMessage[] = [{ role: 'user', content: prompt }]
-const { done } = createAiTask(
-  props.title,
-  messages,
-  generatedText,
-  ai_types.chat,
-  'title-menu'
-)
+const { done } = createAiTask(props.title, messages, generatedText, ai_types.chat, 'title-menu')
 generating.value = true
 try {
   await done
@@ -71,14 +65,9 @@ try {
 
 ```ts
 const target = ref('')
-const { done } = createAiTask(
-  t('attachment.analyzing'),
-  messages,
-  target,
-  'chat',
-  originKey,
-  { stream: true }
-)
+const { done } = createAiTask(t('attachment.analyzing'), messages, target, 'chat', originKey, {
+  stream: true
+})
 await done
 // target.value now holds full response
 ```
@@ -93,10 +82,10 @@ Use when the view should show streamed text **in place** (e.g. attachment analys
 
 **Props**:
 
-| Prop        | Type                    | Description                          |
-|------------|--------------------------|--------------------------------------|
+| Prop         | Type                                 | Description                          |
+| ------------ | ------------------------------------ | ------------------------------------ |
 | `contentRef` | `Ref<string>` or `{ value: string }` | Ref that receives streamed content   |
-| `done`       | `Promise<any> \| boolean \| null`   | Task completion (Promise or boolean) |
+| `done`       | `Promise<any> \| boolean \| null`    | Task completion (Promise or boolean) |
 | `style`      | `Record<string, string>` (optional)  | Container styles                     |
 
 **Behavior**: Renders `contentRef.value` in a scrollable pre; when `done` resolves (or is true), it marks finished (e.g. hides or transitions). Rejected/cancelled `done` is treated as done so current content is kept.
@@ -121,20 +110,17 @@ const aiAnalysisStreamingRefWrapper = computed(() => aiAnalysisStreamingRef)
 
 const handleAiAnalysis = async () => {
   const target = ref('')
-  const { done } = createAiTask(
-    t('attachment.analyzing'),
-    messages,
-    target,
-    'chat',
-    originKey,
-    { stream: true }
-  )
+  const { done } = createAiTask(t('attachment.analyzing'), messages, target, 'chat', originKey, {
+    stream: true
+  })
   aiAnalysisStreamingRef.value = ''
   aiAnalysisDonePromise.value = done
 
   const stopWatch = watch(
     () => target.value,
-    (v) => { aiAnalysisStreamingRef.value = v },
+    (v) => {
+      aiAnalysisStreamingRef.value = v
+    },
     { immediate: true }
   )
   try {

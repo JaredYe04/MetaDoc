@@ -124,7 +124,8 @@ const tagStyle = (ref: ReferenceDisplayItem) => {
       // 如果referenceActiveBg不存在，尝试使用primaryColor
       baseStyle.backgroundColor = themeState.currentTheme.primaryColor || '#409eff'
     }
-    baseStyle.color = themeState.currentTheme.referenceActiveText || themeState.currentTheme.textColor
+    baseStyle.color =
+      themeState.currentTheme.referenceActiveText || themeState.currentTheme.textColor
   } else {
     // 优先使用referenceInactiveBg，如果没有则使用background2nd，最后才用fallback
     const inactiveBg = themeState.currentTheme.referenceInactiveBg

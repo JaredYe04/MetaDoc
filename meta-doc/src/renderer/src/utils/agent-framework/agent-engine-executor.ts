@@ -11,7 +11,6 @@ import { AIContextManager, type LlmMessage } from './ai-context-manager'
 import { LlmAdapter } from './llm-adapter'
 import { agentConfigManager } from './agent-config-manager'
 import { agentToolManager } from '../agent-tool-manager'
-import { workflowManager } from './workflow-manager'
 import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
 import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
@@ -153,24 +152,6 @@ export abstract class BaseEngineExecutor {
               undefined
           }
         }
-      } else {
-        // 尝试从workflow获取
-        const workflow = workflowManager.getWorkflow(toolId)
-        if (workflow) {
-          const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
-          if (registeredWorkflowTool?.config.spec?.fullSpec) {
-            fullSpec = registeredWorkflowTool.config.spec.fullSpec
-          } else if (registeredWorkflowTool?.config.instruction) {
-            if (typeof registeredWorkflowTool.config.instruction === 'string') {
-              fullSpec = registeredWorkflowTool.config.instruction
-            } else {
-              fullSpec =
-                registeredWorkflowTool.config.instruction['zh_cn']?.instruction ||
-                registeredWorkflowTool.config.instruction['en_us']?.instruction ||
-                undefined
-            }
-          }
-        }
       }
 
       if (fullSpec) {
@@ -310,68 +291,6 @@ export abstract class BaseEngineExecutor {
                 tool.config.description['en_us']?.description ||
                 '',
           schema: tool.config.inputSchema || {},
-          brief,
-          fullSpec
-        })
-      }
-    }
-
-    // 添加Workflow工具（如果还没有在第一个循环中添加）
-    const workflows = workflowManager.getAllWorkflows()
-    const addedToolIds = new Set(tools.map((t) => t.id))
-    for (const workflow of workflows) {
-      if (
-        workflow.enabled !== false &&
-        toolIds.includes(workflow.id) &&
-        !addedToolIds.has(workflow.id)
-      ) {
-        // 尝试从agentToolManager获取已注册的workflow工具
-        const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
-
-        let brief: string | undefined = undefined
-        let fullSpec: string | undefined = undefined
-
-        if (registeredWorkflowTool?.config.spec) {
-          brief = registeredWorkflowTool.config.spec.brief
-          fullSpec = registeredWorkflowTool.config.spec.fullSpec
-        } else {
-          brief =
-            typeof workflow.description === 'string'
-              ? workflow.description
-              : workflow.description['zh_cn']?.description ||
-                workflow.description['en_us']?.description ||
-                ''
-
-          if (registeredWorkflowTool?.config.instruction) {
-            if (typeof registeredWorkflowTool.config.instruction === 'string') {
-              fullSpec = registeredWorkflowTool.config.instruction
-            } else {
-              fullSpec =
-                registeredWorkflowTool.config.instruction['zh_cn']?.instruction ||
-                registeredWorkflowTool.config.instruction['en_us']?.instruction ||
-                undefined
-            }
-          }
-        }
-
-        // 如果activeToolSpecs中有该工具的fullSpec，使用它
-        if (activeToolSpecs.has(workflow.id)) {
-          fullSpec = activeToolSpecs.get(workflow.id)
-        }
-
-        tools.push({
-          id: workflow.id,
-          name:
-            typeof workflow.name === 'string'
-              ? workflow.name
-              : workflow.name['zh_cn']?.name || workflow.name['en_us']?.name || workflow.id,
-          description:
-            typeof workflow.description === 'string'
-              ? workflow.description
-              : workflow.description['zh_cn']?.description ||
-                workflow.description['en_us']?.description ||
-                '',
-          schema: workflow.inputSchema || {},
           brief,
           fullSpec
         })
@@ -2006,202 +1925,6 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
 }
 
 /**
- * Workflow引擎执行器
- * 专为执行Workflow工具而设计
- */
-export class WorkflowEngineExecutor extends BaseEngineExecutor {
-  async execute(userMessage: string): Promise<void> {
-    // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
-
-    // 步骤1: 意图识别并更新activeToolSpecs
-    this.options.onProgress?.({
-      stage: 'thinking',
-      message: 'Analyzing intent...'
-    })
-
-    const intentOutputRef = ref('')
-    const intentResult = await this.processIntentAndUpdateSpecs(userMessage, intentOutputRef)
-
-    // 添加意图识别消息到会话（用于UI显示）
-    if (intentResult.toolIds.length > 0) {
-      const intentMessage = {
-        id: `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        role: 'system' as const,
-        type: 'intent-recognition' as const,
-        timestamp: new Date().toISOString(),
-        toolIds: intentResult.toolIds,
-        reasoning: intentResult.reasoning,
-        output: intentOutputRef.value
-      }
-      this.session.messages.push(intentMessage as any)
-    }
-
-    this.options.onProgress?.({
-      stage: 'thinking',
-      message: 'Workflow mode: Analyzing requirements...'
-    })
-
-    // 获取可用工具（包括Workflow）
-    const tools = this.getAvailableTools()
-    const workflows = tools.filter((t) => {
-      // 检查是否是workflow工具
-      const workflow = workflowManager.getWorkflow(t.id)
-      return workflow !== null
-    })
-
-    if (workflows.length === 0) {
-      // 没有可用的Workflow，使用简单对话
-      const simpleChatEngine = new SimpleChatEngineExecutor(
-        this.engine,
-        this.session,
-        this.agentConfig,
-        this.options
-      )
-      await simpleChatEngine.execute(userMessage)
-      return
-    }
-
-    // 获取LLM配置
-    const llmConfig = await LlmAdapter.getLlmConfig(this.engine)
-
-    // 构建Workflow选择提示
-    const workflowPrompt =
-      '\n\n=== 可用Workflow工具 ===\n' +
-      workflows.map((w) => `- ${w.name} (${w.id}): ${w.description}`).join('\n') +
-      '\n\n请根据用户需求选择合适的Workflow工具。如果不需要Workflow，直接回复文本。\n'
-
-    const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
-    if (contextMessages.length > 0 && contextMessages[0].role === 'system') {
-      contextMessages[0].content += workflowPrompt
-    } else {
-      contextMessages.unshift({
-        role: 'system',
-        content: workflowPrompt
-      })
-    }
-
-    // 创建响应式消息对象用于实时流式显示
-    const assistantMessage = reactive({
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      role: 'assistant' as const,
-      type: 'chat' as const,
-      timestamp: new Date().toISOString(),
-      markdown: ''
-    }) as ChatAgentMessage
-
-    // 立即添加到消息列表
-    this.session.messages.push(assistantMessage)
-
-    // 创建工具调用队列
-    this.createToolCallQueue()
-
-    // 调用LLM选择Workflow - 使用createAiTask
-    const response = await LlmAdapter.callChatViaTask(llmConfig, contextMessages, {
-      temperature: await this.getTemperature(),
-      maxTokens: this.engine.customLlmConfig?.maxTokens,
-      stream: true,
-      signal: this.options.signal,
-      taskName: 'Workflow引擎执行',
-      originKey: `agent-workflow-${this.session.id}-${Date.now()}-execute`,
-      reactiveMessage: assistantMessage,
-      onTaskCreated: this.options.onTaskCreated,
-      onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
-    })
-
-    // AI输出完成
-    this.isAiResponding = false
-
-    // 检查是否选择Workflow
-    // 优先使用流式输出过程中检测到的工具调用（已在onToolCallsDetected中添加到队列）
-    // 如果没有，则从响应中解析
-    let toolCalls: Array<{
-      id: string
-      tool_id: string
-      parameters: Record<string, unknown>
-    }> | null = null
-
-    // 从响应中解析工具调用（兜底机制）
-    if (!toolCalls) {
-      const responseContent = response || assistantMessage.markdown || ''
-      toolCalls = this.parseToolCalls(responseContent)
-      getLogger().debug('[WorkflowEngine] 从响应中解析工具调用:', toolCalls ? toolCalls.length : 0)
-
-      // 如果解析到工具调用，添加到队列
-      if (toolCalls && toolCalls.length > 0) {
-        for (const toolCall of toolCalls) {
-          this.currentToolCallQueue!.addTask(toolCall)
-        }
-      }
-    }
-
-    // 等待工具调用队列完成
-    await this.waitForToolCallQueue()
-
-    // 如果执行成功，添加总结（检查是否有成功的Workflow执行）
-    const workflowExecuted = toolCalls && toolCalls.length > 0
-    if (workflowExecuted) {
-      // 检查是否有成功的工具调用
-      const currentMessageIndex = this.session.messages.indexOf(assistantMessage)
-      let hasSucceeded = false
-
-      if (currentMessageIndex !== -1) {
-        for (let i = currentMessageIndex + 1; i < this.session.messages.length; i++) {
-          const msg = this.session.messages[i]
-          if (msg.type === 'tool' && msg.role === 'tool' && (msg as any).status === 'succeeded') {
-            hasSucceeded = true
-            break
-          }
-        }
-      }
-
-      if (hasSucceeded) {
-        const summaryMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
-        summaryMessages.push({
-          role: 'user',
-          content: '请根据Workflow执行结果，生成一个用户友好的总结。'
-        })
-
-        // 创建响应式消息对象用于实时流式显示
-        const summaryMessage = reactive({
-          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          role: 'assistant' as const,
-          type: 'chat' as const,
-          timestamp: new Date().toISOString(),
-          markdown: ''
-        }) as ChatAgentMessage
-
-        // 立即添加到消息列表
-        this.session.messages.push(summaryMessage)
-
-        // 创建新的工具调用队列用于总结阶段
-        this.createToolCallQueue()
-
-        const summary = await LlmAdapter.callChatViaTask(llmConfig, summaryMessages, {
-          temperature: await this.getTemperature(),
-          stream: true,
-          signal: this.options.signal,
-          taskName: 'Workflow总结',
-          originKey: `agent-workflow-${this.session.id}-${Date.now()}-summary`,
-          reactiveMessage: summaryMessage,
-          onTaskCreated: this.options.onTaskCreated,
-          onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
-        })
-
-        // 等待工具调用队列完成
-        await this.waitForToolCallQueue()
-
-        // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
-      }
-    }
-
-    this.options.onProgress?.({
-      stage: 'complete',
-      message: '完成'
-    })
-  }
-}
-
-/**
  * AgentEngine执行器工厂
  */
 export class AgentEngineExecutorFactory {
@@ -2220,8 +1943,6 @@ export class AgentEngineExecutorFactory {
         return new PlanExecuteEngineExecutor(engine, session, agentConfig, options)
       case 'simple-chat':
         return new SimpleChatEngineExecutor(engine, session, agentConfig, options)
-      case 'workflow':
-        return new WorkflowEngineExecutor(engine, session, agentConfig, options)
       default:
         getLogger().warn(`未知引擎类型: ${engine.engineType}，使用AutoGPT引擎`)
         return new AutoGPTEngineExecutor(engine, session, agentConfig, options)

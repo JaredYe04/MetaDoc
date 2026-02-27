@@ -43,6 +43,26 @@
                 <p>{{ $t('viewMenuContainer.workspace') }}</p>
               </TooltipContent>
             </Tooltip>
+            <Tooltip v-if="showWorkspaceGrep">
+              <TooltipTrigger as-child>
+                <div
+                  class="sidebar-tab"
+                  :class="{ active: activeTab === 'grep' }"
+                  @click="activeTab = 'grep'"
+                >
+                  <div class="icon-wrapper">
+                    <img
+                      :src="(themeState.currentTheme as any).SearchIcon || (themeState.currentTheme as any).SearchFileIcon || (themeState.currentTheme as any).SearchDocIcon"
+                      class="menu-icon"
+                      alt="grep"
+                    />
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{{ $t('viewMenuContainer.workspaceGrep', '工作区搜索') }}</p>
+              </TooltipContent>
+            </Tooltip>
             <Tooltip v-if="showMetaInfoTab">
               <TooltipTrigger as-child>
                 <div
@@ -68,6 +88,7 @@
           <!-- Tab 内容 -->
           <div class="sidebar-content">
             <WorkspaceExplorer v-if="activeTab === 'workspace'" />
+            <WorkspaceGrepPanel v-if="activeTab === 'grep'" />
             <MetaInfoPanel
               v-if="activeTab === 'meta' && activeDocument"
               :meta="activeDocument.meta"
@@ -95,6 +116,7 @@ import { useI18n } from 'vue-i18n'
 import { mixColors, themeState } from '../utils/themes'
 import ResizableContainer from './base/ResizableContainer.vue'
 import WorkspaceExplorer from './WorkspaceExplorer.vue'
+import WorkspaceGrepPanel from './WorkspaceGrepPanel.vue'
 import MetaInfoPanel from './MetaInfoPanel.vue'
 import eventBus from '../utils/event-bus'
 import { getSetting, setSetting } from '../utils/settings'
@@ -107,8 +129,9 @@ const { t } = useI18n()
 const workspace = useWorkspace()
 
 const showWorkspaceExplorer = ref(false)
+const showWorkspaceGrep = ref(false)
 const sidebarSize = ref(250)
-const activeTab = ref<'workspace' | 'meta'>('workspace')
+const activeTab = ref<'workspace' | 'grep' | 'meta'>('workspace')
 
 // 获取当前活动的文档
 const activeDocument = computed(() => workspace.activeDocument.value)
@@ -123,12 +146,12 @@ const showMetaInfoTab = computed(() => {
 
 // 计算是否显示 Tab 切换（只要有内容就显示，不管是一个还是两个）
 const hasMultipleTabs = computed(() => {
-  return showWorkspaceExplorer.value || showMetaInfoTab.value
+  return showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
 })
 
 // 计算是否有可见的菜单
 const hasVisibleMenus = computed(() => {
-  return showWorkspaceExplorer.value || showMetaInfoTab.value
+  return showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
 })
 
 // 计算当前大纲 JSON（用于 MetaInfoPanel）
@@ -173,16 +196,26 @@ const tabBarBackgroundColor = computed(() =>
 )
 
 // 监听活动文档变化，自动切换到合适的 Tab
-watch([showMetaInfoTab, showWorkspaceExplorer], ([showMeta, showWorkspace]) => {
+watch([showMetaInfoTab, showWorkspaceExplorer, showWorkspaceGrep], ([showMeta, showWorkspace, showGrep]) => {
   // 如果当前 tab 不可用，切换到可用的 tab
   if (activeTab.value === 'meta' && !showMeta) {
     // 如果 meta tab 被隐藏，切换到 workspace（如果可用）
     if (showWorkspace) {
       activeTab.value = 'workspace'
+    } else if (showGrep) {
+      activeTab.value = 'grep'
     }
   } else if (activeTab.value === 'workspace' && !showWorkspace) {
-    // 如果 workspace tab 被隐藏，切换到 meta（如果可用）
-    if (showMeta) {
+    // 如果 workspace tab 被隐藏，优先切换到 grep，其次 meta
+    if (showGrep) {
+      activeTab.value = 'grep'
+    } else if (showMeta) {
+      activeTab.value = 'meta'
+    }
+  } else if (activeTab.value === 'grep' && !showGrep) {
+    if (showWorkspace) {
+      activeTab.value = 'workspace'
+    } else if (showMeta) {
       activeTab.value = 'meta'
     }
   }
@@ -208,12 +241,28 @@ const handleToggleWorkspaceExplorer = () => {
   setSetting('workspaceExplorerVisible', showWorkspaceExplorer.value)
 }
 
+// 切换工作区 grep 菜单
+const handleToggleWorkspaceGrep = () => {
+  showWorkspaceGrep.value = !showWorkspaceGrep.value
+  setSetting('workspaceGrepVisible', showWorkspaceGrep.value)
+}
+
 // 加载保存的状态
 const loadSavedState = async () => {
   try {
-    const saved = await getSetting('workspaceExplorerVisible')
-    if (typeof saved === 'boolean') {
-      showWorkspaceExplorer.value = saved
+    const savedWorkspace = await getSetting('workspaceExplorerVisible')
+    if (typeof savedWorkspace === 'boolean') {
+      showWorkspaceExplorer.value = savedWorkspace
+    } else {
+      // 默认显示工作目录
+      showWorkspaceExplorer.value = true
+    }
+    const savedGrep = await getSetting('workspaceGrepVisible')
+    if (typeof savedGrep === 'boolean') {
+      showWorkspaceGrep.value = savedGrep
+    } else {
+      // 默认显示工作区 grep
+      showWorkspaceGrep.value = true
     }
     const savedSize = await getSetting('workspaceExplorerSize')
     if (typeof savedSize === 'number' && savedSize >= 200 && savedSize <= 600) {
@@ -227,10 +276,12 @@ const loadSavedState = async () => {
 onMounted(async () => {
   await loadSavedState()
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
+  eventBus.on('toggle-workspace-grep', handleToggleWorkspaceGrep)
 })
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
+  eventBus.off('toggle-workspace-grep', handleToggleWorkspaceGrep)
 })
 </script>
 

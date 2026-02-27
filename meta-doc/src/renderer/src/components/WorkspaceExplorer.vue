@@ -685,6 +685,20 @@ const addWorkspaceFolder = async () => {
     if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
       const newFolder = result.filePaths[0]
 
+      // 确保工作区根目录下存在 .metadoc 目录（用于存放工作区级别的 AI / 配置数据）
+      try {
+        const metadocPath = join(newFolder, '.metadoc')
+        const exists = (await ipcRenderer.invoke('file-exists', metadocPath)) as boolean
+        if (!exists) {
+          await ipcRenderer.invoke('create-directory', {
+            parentPath: newFolder,
+            folderName: '.metadoc'
+          })
+        }
+      } catch (err) {
+        logger.warn('初始化 .metadoc 工作区目录失败', { folder: newFolder, error: err })
+      }
+
       // 检查是否已存在
       if (workspaceFolders.value.includes(newFolder)) {
         eventBus.emit('show-warning', { message: t('workspaceExplorer.folderAlreadyAdded') })

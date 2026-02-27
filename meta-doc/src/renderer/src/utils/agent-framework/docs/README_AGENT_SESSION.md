@@ -98,7 +98,7 @@ interface PublicContext {
 ```typescript
 interface ExecutionNode {
   id: string
-  type: 'message' | 'tool-call' | 'workflow-call' | 'llm-call'
+  type: 'message' | 'tool-call' | 'llm-call'
   timestamp: number
   data: unknown
   status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
@@ -210,7 +210,6 @@ Agent会话有以下状态：
 - `thinking`：思考中
 - `generating`：生成中
 - `tool-calling`：调用工具中
-- `workflow-executing`：执行工作流中
 - `waiting-input`：等待输入
 - `error`：错误
 
@@ -241,7 +240,7 @@ const session = agentSessionManager.deserializeSession(serialized, {
 
 ### 策略1：内嵌所有依赖
 
-导出时将所有依赖（AgentConfig、ToolSet、Workflow）都内嵌到会话文件中：
+导出时将所有依赖（AgentConfig、ToolSet）都内嵌到会话文件中：
 
 - **优点**：会话完全独立，可以在任何环境中使用
 - **缺点**：文件较大，可能包含重复内容

@@ -125,7 +125,7 @@ export interface AgentSession {
   }
   executionNodes?: Array<{
     id: string
-    type: 'message' | 'tool-call' | 'workflow-call' | 'llm-call'
+    type: 'message' | 'tool-call' | 'llm-call'
     timestamp: number
     data: unknown
     status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
@@ -138,7 +138,6 @@ export interface AgentSession {
     | 'thinking'
     | 'generating'
     | 'tool-calling'
-    | 'workflow-executing'
     | 'waiting-input'
     | 'error'
   readonly?: boolean

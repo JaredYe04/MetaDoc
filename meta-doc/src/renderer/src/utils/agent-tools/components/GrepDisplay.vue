@@ -81,6 +81,9 @@
                 <Badge :class="getMatchScopeBadgeClass(match)">
                   {{ getMatchScopeLabel(match) }}
                 </Badge>
+                <span v-if="match.filePath" class="match-file" :style="locationStyle">
+                  {{ match.filePath }}
+                </span>
                 <span class="match-location" :style="locationStyle">
                   {{ $t('agent.display.grep.line') }} {{ match.line }},
                   {{ $t('agent.display.grep.column') }} {{ match.column }}
@@ -119,6 +122,9 @@
                   <Badge :class="getMatchScopeBadgeClass(match)">
                     {{ getMatchScopeLabel(match) }}
                   </Badge>
+                  <span v-if="match.filePath" class="match-file" :style="locationStyle">
+                    {{ match.filePath }}
+                  </span>
                   <span class="match-location" :style="locationStyle">
                     {{ $t('agent.display.grep.line') }} {{ match.line }},
                     {{ $t('agent.display.grep.column') }} {{ match.column }}

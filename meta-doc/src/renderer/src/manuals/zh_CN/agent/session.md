@@ -290,7 +290,6 @@ Agent可以感知引用素材的内容，并基于它们进行推理和操作。
 - **thinking**：Agent正在思考
 - **generating**：Agent正在生成回复
 - **tool-calling**：Agent正在调用工具
-- **workflow-executing**：Agent正在执行工作流
 - **waiting-input**：等待用户输入
 - **error**：发生错误
 
@@ -301,18 +300,14 @@ graph LR
     A[idle] --> B[thinking]
     B --> C[generating]
     B --> D[tool-calling]
-    B --> E[workflow-executing]
     C --> A
     D --> A
-    E --> A
     D --> F[error]
-    E --> F
     F --> A
     style A fill:#f3f4f6,stroke:#374151
     style B fill:#f3f4f6,stroke:#374151
     style C fill:#f3f4f6,stroke:#374151
     style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
     style F fill:#f3f4f6,stroke:#374151
 ```
 

@@ -53,10 +53,6 @@ package "Agent框架核心" {
         Tool集管理
         (工具组织)
     }
-    RECTANGLE WorkflowEngine {
-        Workflow引擎
-        (图执行)
-    }
     RECTANGLE AgentEngine {
         Agent引擎
         (5种范式)
@@ -79,10 +75,8 @@ VueComponents --> AgentTools
 AgentTools --> ConfigManager
 AgentTools --> SessionManager
 AgentTools --> ToolCollectionManager
-ConfigManager --> WorkflowEngine
 ConfigManager --> AgentEngine
 ConfigManager --> LLMAdapter
-WorkflowEngine --> Infrastructure
 AgentEngine --> Infrastructure
 LLMAdapter --> Infrastructure
 
@@ -98,8 +92,6 @@ LLMAdapter --> Infrastructure
 | **配置管理**   | `src/renderer/src/utils/agent-framework/agent-config-manager.ts`    | AgentConfig的CRUD和持久化 |
 | **会话管理**   | `src/renderer/src/utils/agent-framework/agent-session-manager.ts`   | AgentSession生命周期管理  |
 | **工具集管理** | `src/renderer/src/utils/agent-framework/tool-collection-manager.ts` | 工具集的组织和管理        |
-| **工作流管理** | `src/renderer/src/utils/agent-framework/workflow-manager.ts`        | 工作流CRUD和执行状态      |
-| **工作流执行** | `src/renderer/src/utils/agent-framework/workflow-executor.ts`       | 工作流图执行引擎          |
 | **引擎管理**   | `src/renderer/src/utils/agent-framework/agent-engine-manager.ts`    | Agent引擎配置管理         |
 | **引擎执行**   | `src/renderer/src/utils/agent-framework/agent-engine-executor.ts`   | 5种执行范式实现           |
 | **工具运行**   | `src/renderer/src/utils/agent-framework/tool-runner.ts`             | 统一工具调用入口          |
@@ -110,14 +102,11 @@ graph TB
     A[Agent框架] --> B[Agent会话]
     A --> C[Agent配置]
     A --> D[工具集]
-    A --> E[工作流]
     A --> F[Agent引擎]
     B --> G[消息队列]
     B --> H[引用素材]
     B --> I[公共上下文]
     C --> D
-    C --> E
-    E --> J[节点执行]
     F --> K[AutoGPT]
     F --> L[ReAct]
     F --> M[PlanExecute]
@@ -125,7 +114,6 @@ graph TB
     style B fill:#f3f4f6,stroke:#374151
     style C fill:#f3f4f6,stroke:#374151
     style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
     style F fill:#f3f4f6,stroke:#374151
 ```
 
@@ -157,7 +145,7 @@ export interface AgentSession {
 **会话状态机**：
 
 ```
-idle → thinking → generating → tool-calling → workflow-executing → waiting-input → error
+idle → thinking → generating → tool-calling → waiting-input → error
 ```
 
 详见[[agent.session|Agent会话管理]]。

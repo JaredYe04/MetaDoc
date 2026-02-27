@@ -17,7 +17,7 @@ renderer/src/
 │   ├── user.ts           # User preferences
 │   └── notification.ts   # Sonner notification queue
 ├── components/           # 53 Vue components + 93 shadcn-vue UI
-│   ├── agent/            # Agent UI (workflow canvas, managers)
+│   ├── agent/            # Agent UI (managers)
 │   ├── chat/             # Chat UI components
 │   ├── common/           # Reusable UI (CardGrid, SessionList)
 │   ├── home/             # Home/quick-start panels

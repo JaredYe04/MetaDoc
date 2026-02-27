@@ -46,8 +46,7 @@ class AgentEngineManager {
       'default-autogpt-engine',
       'default-react-engine',
       'default-plan-execute-engine',
-      'default-simple-chat-engine',
-      'default-workflow-engine'
+      'default-simple-chat-engine'
     ]
 
     let needsInit = false
@@ -111,17 +110,6 @@ class AgentEngineManager {
       'Simple Chat 范式：轻量对话，适合无工具任务',
       'Simple Chat paradigm: Lightweight conversation, suitable for tool-free tasks',
       'simple-chat',
-      {}
-    )
-
-    // Workflow 引擎
-    this.createBuiltInEngine(
-      'default-workflow-engine',
-      'Workflow 引擎',
-      'Default Workflow Engine',
-      'Workflow 范式：专为执行 Workflow 这个 tool 而设计',
-      'Workflow paradigm: Designed specifically for executing Workflow tools',
-      'workflow',
       {}
     )
 

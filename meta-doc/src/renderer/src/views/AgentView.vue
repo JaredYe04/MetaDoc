@@ -52,9 +52,6 @@
                 <DropdownMenuItem @click="handleManageCommand('tool-collection')">
                   {{ t('agent.manage.toolCollection.title') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem @click="handleManageCommand('workflow')">
-                  {{ t('agent.manage.workflow.title') }}
-                </DropdownMenuItem>
                 <DropdownMenuItem @click="handleManageCommand('agent-config')">
                   {{ t('agent.manage.agentConfig.title') }}
                 </DropdownMenuItem>
@@ -376,16 +373,13 @@
             {{
               manageDialogType === 'tool-collection'
                 ? t('agent.manage.toolCollection.title')
-                : manageDialogType === 'workflow'
-                  ? t('agent.manage.workflow.title')
-                  : manageDialogType === 'agent-engine'
-                    ? t('agent.manage.agentEngine.title')
-                    : t('agent.manage.agentConfig.title')
+                : manageDialogType === 'agent-engine'
+                  ? t('agent.manage.agentEngine.title')
+                  : t('agent.manage.agentConfig.title')
             }}
           </DialogTitle>
         </DialogHeader>
         <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
-        <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
         <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
         <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
         <DialogFooter>
@@ -513,7 +507,6 @@ import { sanitizeMessages } from '../utils/llm-api.js'
 import { getLlmTemperature } from '../utils/settings.js'
 import { LlmAdapter } from '../utils/agent-framework/llm-adapter'
 import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue'
-import WorkflowManager from '../components/agent/manage/WorkflowManager.vue'
 import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue'
 import AgentEngineManager from '../components/agent/manage/AgentEngineManager.vue'
 import ReferenceManager from '../components/agent/ReferenceManager.vue'
@@ -734,7 +727,7 @@ const openSessionMenuId = ref<string | null>(null)
 const showCreateSessionDialog = ref(false)
 const showManageDialog = ref(false)
 const manageDialogType = ref<
-  'tool-collection' | 'workflow' | 'agent-config' | 'agent-engine' | null
+  'tool-collection' | 'agent-config' | 'agent-engine' | null
 >(null)
 const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
 const selectedAgentConfigId = ref<string>('')

@@ -1,0 +1,48 @@
+---
+description: 动态主题系统与深浅色适配规范
+alwaysApply: true
+---
+
+# 主题系统与深浅色适配
+
+- **单一主题源**：所有与主题相关的颜色、图标和 CSS 变量必须从 `themeState.currentTheme` 派生，禁止在组件中直接硬编码明暗色值（例如 `#fff`/`#000`/固定灰度）作为主背景或主文字。
+
+- **主题状态**：全局主题状态为 `themeState.currentTheme`，其值由 `applyTheme` 统一设置，支持以下模式：`light`、`dark`、`sync`（跟随系统明暗）、`sync-color`（跟随系统强调色）、`custom`（自定义主题色）。组件不得直接修改 `themeState`，只能读取。
+
+- **主题结构**：每个主题对象至少包含：
+  - **类型**：`type: 'light' | 'dark'`
+  - **基础色**：`background`、`background2nd`、`textColor`、`textColor2`、`borderColor`
+  - **侧边栏/编辑器**：`sidebarBackground`、`sidebarBackground2`、`SideBackgroundColor`、`SideTextColor`、`SideTextColor2`、`SideActiveTextColor`、`editorPanelBackgroundColor` 等
+  - **代码与编辑器**：`codeTheme`、`mdeditorClass`、`mdeditorTheme`
+  - **强调色**：`primaryColor`、`secondaryColor`
+  - **引用区域**：`referenceActiveBg`、`referenceActiveText`、`referenceInactiveBg`、`referenceInactiveText`、`referenceContainerBorderColor`
+
+- **动态主题算法（customTheme）**：
+  - 使用传入的 `themeColor` 计算亮度 \(getLuminance\)，阈值为 `160`，低于阈值视为暗色主题，高于等于阈值视为亮色主题。
+  - 通过 `mixColors`、`adjustSaturation`、`hexToHsl` 等函数衍生出一整套背景、文本、边框和强调色；在暗色模式下以黑/灰为主，避免彩色大面积铺底；在亮色模式下以白/浅灰为主，仅用主题色做柔和点缀。
+  - 如需新增颜色维度，必须同时在：
+    - `customTheme` 的 `generateColorSet` 中增加字段（light/dark 两分支都要考虑）；
+    - `lightTheme` / `darkTheme` 的 `overrides` 中给出清晰的基准值；
+    - 相关 CSS 变量同步逻辑（`applyShadcnTheme` / `applyElementPlusTheme`）中增加映射。
+
+- **固定主题（lightTheme / darkTheme）**：
+  - `lightTheme` 与 `darkTheme` 都通过 `customTheme(baseColor, overrides)` 构建，`overrides` 中的显式配置是设计稿的“基准值”，不能随意删除或绕过。
+  - **亮色主题**：以白色为背景主色，`primaryColor`/`secondaryColor` 为黑/灰系，保证文字与背景对比充足。
+  - **暗色主题**：以深灰/黑为背景主色，`primaryColor`/`secondaryColor` 为不同亮度灰度，禁止在大面积结构中使用高饱和彩色背景。
+
+- **图标与明暗适配**：
+  - 图标一律通过 `generateThemeIcons(isDarkMode)` 与 `selectIconByTheme` 组合，根据 `theme.type === 'dark'` 或 `isDarkMode` 在黑/白版 SVG 之间切换，禁止在组件内部直接 `import` 某一版图标后手写 if/else。
+  - Logo 品牌色使用 `FIXED_LOGO_COLORS` 或 `generateLogoColors`，保证在深浅主题下对比度与品牌一致性，不允许单独在页面里重写 Logo 背景/前景色。
+
+- **CSS 变量同步**：
+  - `applyShadcnTheme` 将当前主题同步到 `--background`、`--foreground`、`--primary`、`--secondary`、`--muted`、`--border` 以及侧边栏相关 CSS 变量；使用 shadcn UI 的组件必须只通过这些变量控制明暗与主色。
+  - `applyElementPlusTheme` 将当前主题映射到 `--el-bg-color`、`--el-text-color-primary`、`--el-color-primary` 等变量；Element Plus 组件样式扩展必须建立在这些变量基础上，不得绕开改回固定色值。
+
+- **文档级别的明暗类**：
+  - 全局仅通过 `applyThemeClasses(themeType)` 在 `document.documentElement` 上维护 `light` / `dark` class，所有手写 CSS 如需针对深浅色做定制，只能通过 `.light` 或 `.dark` 前缀配合上文 CSS 变量完成，禁止增加新的全局主题 class 名称。
+
+- **新增主题需求的接入流程**：
+  1. 优先尝试复用现有 `themeState.currentTheme` 字段或现有 CSS 变量，避免新增字段。
+  2. 确认确实需要新增颜色/状态时，按本规则在 `themes.js` 中扩展主题结构与同步逻辑，而不是在单个组件里硬编码。
+  3. 新增后，检查在 light/dark、自定义颜色（`customTheme`）以及系统同步模式（`sync` / `sync-color`）下表现是否一致、对比度是否足够。
+

@@ -50,7 +50,7 @@ views/
 | Task             | View                                           | Notes                              |
 | ---------------- | ---------------------------------------------- | ---------------------------------- |
 | Editor feature   | `MarkdownEditor.vue`, `LaTeXEditor.vue`        | Monaco (LaTeX) + Vditor (MD)       |
-| AI agent UI      | `AgentView.vue`                                | Workflow canvas, agent config      |
+| AI agent UI      | `AgentView.vue`                                | Agent config, sessions, tools      |
 | Chat interface   | `AIChat.vue`                                   | AI conversation UI                 |
 | Document outline | `Outline.vue`                                  | Hierarchical outline tree          |
 | Settings         | `Setting.vue`, `setting/*Section.vue`          | 8 setting sections                 |

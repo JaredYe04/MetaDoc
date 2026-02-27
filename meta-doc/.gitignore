@@ -14,3 +14,5 @@ resources/bce-embedding-base_v1-Q8_0.gguf.part02
 resources/bce-embedding-base_v1-Q8_0.gguf.part01
 resources/bce-embedding-base_v1-Q8_0.gguf.part02
 resources/bce-embedding-base_v1-Q8_0.gguf.part03
+# LLM 使用统计（现存 userData，此处仅防旧文件被提交）
+resources/llm-statistics.json

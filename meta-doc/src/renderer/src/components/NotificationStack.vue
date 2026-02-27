@@ -8,7 +8,7 @@
       'has-notifications': notifications.length > 0
     }"
   >
-    <!-- 3D 堆叠的通知 -->
+    <!-- 3D 堆叠的通知（自下而上） -->
     <div
       ref="toastStackRef"
       class="toast-stack"
@@ -41,6 +41,23 @@
         <div v-if="!toast.read" class="toast-unread" />
       </div>
     </div>
+    <!-- 展开态底部操作栏：一键清空（无容器边框/背景，与 stack 透明风格一致） -->
+    <div
+      v-show="isVisible && isExpanded && notifications.length > 0"
+      class="toast-stack-footer"
+      @mouseenter="handleStackMouseEnter"
+      @mouseleave="handleStackMouseLeave"
+    >
+      <span class="toast-stack-footer-title">{{ $t('notificationQueue.title') }}</span>
+      <button
+        type="button"
+        class="toast-stack-footer-clear"
+        :title="$t('notificationQueue.clear')"
+        @click.stop="handleClearAll"
+      >
+        {{ $t('notificationQueue.clear') }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -53,6 +70,10 @@ import type { NotificationType, NotificationItem } from '../types/notification'
 import { X, CheckCircle2, XCircle, AlertCircle, Info } from 'lucide-vue-next'
 
 const store = useNotificationStore()
+
+function handleClearAll(): void {
+  store.removeAll()
+}
 const { notifications } = storeToRefs(store)
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -68,14 +89,6 @@ const visibilityProgress = ref(0)
 const expandProgress = ref(0)
 let visibilityRaf: number | null = null
 let expandRaf: number | null = null
-
-// 自动隐藏计时器
-let autoHideTimer: ReturnType<typeof setTimeout> | null = null
-const AUTO_HIDE_DELAY = 2000 // 2000ms 后自动隐藏
-
-// 鼠标离开延迟计时器（处理展开态间隙问题）
-let mouseLeaveTimer: ReturnType<typeof setTimeout> | null = null
-const MOUSE_LEAVE_DELAY = 500 // 500ms 延迟，允许在间隙间滑动
 
 const toastHeight = 76
 const expandedGap = 8
@@ -163,29 +176,12 @@ function animateExpand(target: number) {
 }
 
 function toggleVisibility() {
-  console.log('[NotificationStack] toggleVisibility called, current isVisible:', isVisible.value)
   const newVisible = !isVisible.value
   isVisible.value = newVisible
   animateVisibility(newVisible ? 1 : 0)
-  console.log('[NotificationStack] toggled to:', newVisible)
-
-  // 如果手动呼出，启动自动隐藏计时器
-  if (newVisible && !isExpanded.value) {
-    startAutoHideTimer()
-  } else if (!newVisible) {
-    // 如果手动缩回，清除计时器
-    clearAutoHideTimer()
-  }
 }
 
 function handleStackMouseEnter() {
-  // 清除所有计时器
-  clearAutoHideTimer()
-  if (mouseLeaveTimer) {
-    clearTimeout(mouseLeaveTimer)
-    mouseLeaveTimer = null
-  }
-
   if (isVisible.value) {
     isExpanded.value = true
     animateExpand(1)
@@ -193,52 +189,11 @@ function handleStackMouseEnter() {
 }
 
 function handleStackMouseLeave() {
-  // 延迟处理 mouseleave，允许在 toast 间隙间滑动
-  mouseLeaveTimer = setTimeout(() => {
-    isExpanded.value = false
-    animateExpand(0)
-
-    // 启动自动隐藏计时器（仅在堆叠态时）
-    if (isVisible.value && !isExpanded.value) {
-      startAutoHideTimer()
-    }
-  }, MOUSE_LEAVE_DELAY)
+  // 已移除失焦时折叠：鼠标离开不再收起展开态，也不自动隐藏
 }
 
-function startAutoHideTimer() {
-  // 清除旧计时器
-  if (autoHideTimer) {
-    clearTimeout(autoHideTimer)
-  }
-
-  // 2000ms 后自动隐藏到 docked 态
-  autoHideTimer = setTimeout(() => {
-    if (isVisible.value && !isExpanded.value) {
-      // 只有在仍然处于堆叠态时才隐藏
-      isVisible.value = false
-      animateVisibility(0)
-    }
-  }, AUTO_HIDE_DELAY)
-}
-
-function clearAutoHideTimer() {
-  if (autoHideTimer) {
-    clearTimeout(autoHideTimer)
-    autoHideTimer = null
-  }
-}
-
-function clearMouseLeaveTimer() {
-  if (mouseLeaveTimer) {
-    clearTimeout(mouseLeaveTimer)
-    mouseLeaveTimer = null
-  }
-}
-
-function handleToastMouseEnter(index: number) {
-  // 鼠标在任意 toast 上时重置所有计时器
-  clearAutoHideTimer()
-  clearMouseLeaveTimer()
+function handleToastMouseEnter(_index: number) {
+  // 仅保留以兼容模板 @mouseenter，无逻辑
 }
 
 function handleToastClick(event: MouseEvent, toast: NotificationItem) {
@@ -266,21 +221,11 @@ onMounted(() => {
   expandProgress.value = 0
 })
 
-// 监听展开状态变化，展开时清除自动隐藏计时器
-watch(isExpanded, (expanded) => {
-  if (expanded) {
-    // 展开时清除计时器
-    clearAutoHideTimer()
-  } else if (isVisible.value) {
-    // 从展开回到堆叠态时，重新启动计时器
-    startAutoHideTimer()
-  }
-})
-
-// 监听通知列表变化，为空时清除计时器
+// 监听通知列表变化：为空时收起展开态
 watch(notifications, (notifs) => {
-  if (notifs.length === 0) {
-    clearAutoHideTimer()
+  if (notifs.length === 0 && isExpanded.value) {
+    isExpanded.value = false
+    expandProgress.value = 0
   }
 })
 
@@ -288,8 +233,6 @@ onBeforeUnmount(() => {
   eventBus.off('toggle-notification-queue', toggleVisibility)
   if (visibilityRaf) cancelAnimationFrame(visibilityRaf)
   if (expandRaf) cancelAnimationFrame(expandRaf)
-  clearAutoHideTimer()
-  clearMouseLeaveTimer()
 })
 </script>
 
@@ -304,12 +247,69 @@ onBeforeUnmount(() => {
   pointer-events: none;
   z-index: 9999;
   perspective: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* 展开态时底部操作栏：与上方提示留出间距，背景、圆角边框，hover/点击反馈 */
+.toast-stack-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px 12px;
+  min-height: 40px;
+  pointer-events: auto;
+  background: hsl(var(--background) / 0.98);
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toast-stack-footer:hover {
+  background: hsl(var(--background));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.toast-stack-footer-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.toast-stack-footer-clear {
+  font-size: 12px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.toast-stack-footer-clear:hover {
+  background: hsl(var(--muted) / 0.8);
+  border-color: hsl(var(--border));
+}
+
+.toast-stack-footer-clear:active {
+  transform: scale(0.96);
 }
 
 .toast-stack {
   position: relative;
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   transform-style: preserve-3d;
   /* 堆叠容器也不拦截点击，由每个 toast 自己控制 */
   pointer-events: none;

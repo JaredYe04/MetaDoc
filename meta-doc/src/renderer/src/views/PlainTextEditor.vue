@@ -439,6 +439,17 @@ const toggleConsole = async () => {
 
 const editorDomId = computed(() => props.editorDomId || 'plaintext-editor')
 
+/** 从 CSS 变量读取当前编辑器字体（与设置页「编辑器字体」一致） */
+function getEditorFontFamily(): string {
+  if (typeof document === 'undefined') return "'Fira Code', 'OPPO Sans 4.0', sans-serif"
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue('--font-family-editor')
+    .trim()
+  return v || "'Fira Code', 'OPPO Sans 4.0', sans-serif"
+}
+
+let handleFontSettingsChanged: (() => void) | null = null
+
 // 监听内容变化
 watch(
   () => currentText.value,
@@ -592,6 +603,7 @@ const initEditor = async () => {
     mouseWheelZoom: true,
     automaticLayout: true,
     fontSize: 14,
+    fontFamily: getEditorFontFamily(),
     wordWrap: 'on',
     wrappingIndent: 'same',
     lineNumbers: enableRowNumber ? 'on' : 'off', // 使用从设置中读取的值
@@ -871,6 +883,12 @@ onMounted(async () => {
       monaco.editor.setTheme('myCustomTheme')
     })
     eventBus.emit('sync-editor-theme')
+
+    handleFontSettingsChanged = () => {
+      const ed = getActiveMonacoEditor()
+      if (ed) ed.updateOptions({ fontFamily: getEditorFontFamily() })
+    }
+    eventBus.on('font-settings-changed', handleFontSettingsChanged)
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('plaintextEditor.init_failed') + e)
@@ -881,6 +899,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   aiCompletionService.removeAdapter()
+
+  if (handleFontSettingsChanged) {
+    eventBus.off('font-settings-changed', handleFontSettingsChanged)
+    handleFontSettingsChanged = null
+  }
 
   // 移除控制台输入监听
   eventBus.off('console-input', handleConsoleInput)

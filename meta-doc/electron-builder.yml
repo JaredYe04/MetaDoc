@@ -5,6 +5,7 @@ directories:
 files:
   - 'out/**/*' # 明确包含 out 目录（构建输出）
   - 'resources/**/*' # 明确包含 resources 目录
+  - '!resources/llm-statistics.json' # LLM 统计存 userData，不打包（避免开发者数据被打包给用户）
   # 注意：buildResources 中的文件不会自动复制到安装目录
   # 图标文件需要通过其他方式包含（如通过 resources 目录或嵌入到可执行文件中）
   # 确保图标文件被包含（electron-builder 会自动嵌入到可执行文件中）

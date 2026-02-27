@@ -1,6 +1,6 @@
 /**
  * 字体服务（Renderer 进程）
- * 通过 IPC 获取系统字体列表
+ * 通过 IPC 获取系统字体列表，支持缓存、预加载与增量刷新
  */
 
 export interface SystemFont {
@@ -14,22 +14,38 @@ let cachedFonts: SystemFont[] | null = null
 let fontsPromise: Promise<SystemFont[]> | null = null
 
 /**
- * 获取系统字体列表
+ * 获取当前缓存的字体列表（不触发加载）
+ * 用于下拉打开时立即展示，避免卡顿
+ */
+export function getCachedFonts(): SystemFont[] | null {
+  return cachedFonts
+}
+
+/**
+ * 预加载字体列表（后台执行，不阻塞）
+ * 建议在设置页挂载时调用，这样用户展开下拉时缓存已就绪
+ */
+export function preloadFonts(): void {
+  if (cachedFonts || fontsPromise) return
+  fontsPromise = loadFonts()
+  fontsPromise
+    .then((fonts) => {
+      cachedFonts = fonts
+      fontsPromise = null
+    })
+    .catch(() => {
+      fontsPromise = null
+    })
+}
+
+/**
+ * 获取系统字体列表（使用缓存，同一加载中复用 Promise）
  */
 export async function getSystemFonts(): Promise<SystemFont[]> {
-  // 如果已缓存，直接返回
-  if (cachedFonts) {
-    return cachedFonts
-  }
+  if (cachedFonts) return cachedFonts
+  if (fontsPromise) return fontsPromise
 
-  // 如果正在加载，返回同一个 Promise
-  if (fontsPromise) {
-    return fontsPromise
-  }
-
-  // 创建新的加载 Promise
   fontsPromise = loadFonts()
-
   try {
     const fonts = await fontsPromise
     cachedFonts = fonts
@@ -37,8 +53,40 @@ export async function getSystemFonts(): Promise<SystemFont[]> {
   } catch (error) {
     fontsPromise = null
     console.error('获取系统字体失败:', error)
-    // 返回默认字体列表
     return getDefaultFonts()
+  } finally {
+    fontsPromise = null
+  }
+}
+
+/**
+ * 增量刷新：后台拉取最新系统字体，与当前缓存合并（只增加新字体，不删已有）
+ * 用于用户点击「刷新」时，避免清空列表造成的闪烁，且只追加新发现的字体
+ */
+export async function refreshFontsIncremental(): Promise<SystemFont[]> {
+  const messageBridge = (await import('../bridge/message-bridge')).default
+  const ipc = messageBridge.getIpc()
+  if (!ipc?.invoke) return cachedFonts || getDefaultFonts()
+
+  try {
+    await ipc.invoke('clear-main-font-cache')
+    const freshList = (await ipc.invoke('get-system-fonts')) as SystemFont[]
+    const current = cachedFonts || []
+    const seen = new Set(current.map((f) => f.family.toLowerCase()))
+    const toAdd = (freshList || []).filter((f) => {
+      const key = f.family.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    const merged = [...current, ...toAdd].sort((a, b) =>
+      (a.displayName || a.name).localeCompare(b.displayName || b.name, undefined, { sensitivity: 'base' })
+    )
+    cachedFonts = merged
+    return merged
+  } catch (e) {
+    console.error('增量刷新字体失败:', e)
+    return cachedFonts || getDefaultFonts()
   }
 }
 
@@ -84,7 +132,8 @@ function getDefaultFonts(): SystemFont[] {
 }
 
 /**
- * 清除字体缓存（用于刷新字体列表）
+ * 清除字体缓存（用于强制下次重新拉取完整列表）
+ * 一般优先使用 refreshFontsIncremental 做增量更新
  */
 export function clearFontCache(): void {
   cachedFonts = null

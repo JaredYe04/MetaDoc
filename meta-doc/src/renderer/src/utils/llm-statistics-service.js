@@ -16,14 +16,11 @@ function getLogger() {
 }
 
 /**
- * 获取统计文件路径
+ * 获取统计文件路径（userData，打包不包含、用户安装后首次使用才生成）
  */
 async function getStatisticsFilePath() {
   try {
-    const resourcesPath = await messageBridge.invoke('resources-path')
-    // 在 renderer 进程中，路径拼接使用字符串操作
-    const separator = resourcesPath.includes('\\') ? '\\' : '/'
-    return `${resourcesPath}${separator}llm-statistics.json`
+    return await messageBridge.invoke('llm-statistics-path')
   } catch (error) {
     getLogger().error('获取统计文件路径失败:', error)
     throw error

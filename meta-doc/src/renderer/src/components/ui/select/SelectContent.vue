@@ -11,6 +11,8 @@ defineOptions({
 const props = defineProps({
   forceMount: { type: Boolean, required: false },
   position: { type: String, required: false, default: 'popper' },
+  /** 覆盖 viewport 高度（如 300），用于虚拟列表等需要固定可视高度的场景 */
+  viewportHeight: { type: Number, required: false },
   bodyLock: { type: Boolean, required: false },
   side: { type: null, required: false },
   sideOffset: { type: Number, required: false },
@@ -37,7 +39,7 @@ const props = defineProps({
 })
 const emits = defineEmits(['closeAutoFocus', 'escapeKeyDown', 'pointerDownOutside'])
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class', 'viewportHeight')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
@@ -61,9 +63,14 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           cn(
             'p-1',
             position === 'popper' &&
-              'h-[var(--reka-select-trigger-height)] w-full min-w-[var(--reka-select-trigger-width)]'
+              !viewportHeight &&
+              'h-[var(--reka-select-trigger-height)] w-full min-w-[var(--reka-select-trigger-width)]',
+            position === 'popper' &&
+              viewportHeight &&
+              'w-full min-w-[var(--reka-select-trigger-width)]'
           )
         "
+        :style="viewportHeight ? { height: viewportHeight + 'px' } : undefined"
       >
         <slot />
       </SelectViewport>

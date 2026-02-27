@@ -626,6 +626,17 @@ const getActiveMonacoEditor = () => {
   return byId || editors[0] || editor.value
 }
 
+/** 从 CSS 变量读取当前编辑器字体（与设置页「编辑器字体」一致） */
+function getEditorFontFamily(): string {
+  if (typeof document === 'undefined') return "'Fira Code', 'OPPO Sans 4.0', sans-serif"
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue('--font-family-editor')
+    .trim()
+  return v || "'Fira Code', 'OPPO Sans 4.0', sans-serif"
+}
+
+let handleFontSettingsChanged: (() => void) | null = null
+
 // 文本到大纲的同步（类似 MarkdownEditor）
 let suppressOutlineSync = false
 const syncOutlineFromTex = debounce(() => {
@@ -3886,6 +3897,7 @@ const initEditor = () => {
     mouseWheelZoom: true,
     automaticLayout: true, // 自动适应容器大小
     fontSize: 14,
+    fontFamily: getEditorFontFamily(),
     wordWrap: 'on', // 自动换行
     wrappingIndent: 'same', // 缩进方式，"none" | "same" | "indent" | "deepIndent"
     lineNumbers: enableRowNumber ? 'on' : 'off',
@@ -4163,6 +4175,13 @@ onMounted(async () => {
       monaco.editor.setTheme('myCustomTheme')
     })
     eventBus.emit('sync-editor-theme')
+
+    handleFontSettingsChanged = () => {
+      const ed = getActiveMonacoEditor()
+      if (ed) ed.updateOptions({ fontFamily: getEditorFontFamily() })
+    }
+    eventBus.on('font-settings-changed', handleFontSettingsChanged)
+
     initPdfJs()
     await nextTick()
 
@@ -4317,6 +4336,11 @@ onUnmounted(() => {
 
   // 移除AI分析开关监听器
   eventBus.off('console-ai-analysis-toggle')
+
+  if (handleFontSettingsChanged) {
+    eventBus.off('font-settings-changed', handleFontSettingsChanged)
+    handleFontSettingsChanged = null
+  }
 
   // 清理PDF加载状态
   loadedPdfUrl = null

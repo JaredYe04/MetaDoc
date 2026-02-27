@@ -43,6 +43,9 @@ export default defineConfig({
     }
   },
   server: {
+    watch: {
+      ignored: ['**/resources/llm-statistics.json', '**/llm-statistics.json']
+    },
     proxy: {
       '/api': {
         target: 'https://server.simpletex.cn',

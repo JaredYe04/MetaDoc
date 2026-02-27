@@ -42,6 +42,9 @@ import './assets/element-plus-theme-override.css'
 await applyTheme()
 syncShadcnTheme()
 
+// 统一 Monaco 编辑器字体：包装 monaco.editor.create，使所有实例使用「设置 - 编辑器字体」
+import './utils/monaco-editor-font.js'
+
 // 尽早注册输入框右键菜单监听器，确保优先于其他 contextmenu 处理
 initInputContextMenuHandler()
 

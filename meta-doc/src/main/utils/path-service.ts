@@ -52,9 +52,10 @@ class PathServiceImpl implements PathService {
 
   /**
    * 获取 LLM 统计文件路径
+   * 存放在 userData，不占用 resources：打包不会包含此文件，用户安装后首次使用才生成，避免开发者数据被打包给用户
    */
   getLlmStatisticsPath(): FilePath {
-    return path.join(this.config.resourcesPath, 'llm-statistics.json')
+    return path.join(app.getPath('userData'), 'llm-statistics.json')
   }
 
   /**
@@ -126,3 +127,4 @@ export type { PathService }
 // 向后兼容的导出（保持原有API）
 export const getResourcesPath = (): FilePath => pathService.getResourcesPath()
 export const getVectorDatabasePath = (): FilePath => pathService.getVectorDatabasePath()
+export const getLlmStatisticsPath = (): FilePath => pathService.getLlmStatisticsPath()

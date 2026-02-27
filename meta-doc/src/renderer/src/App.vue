@@ -40,7 +40,6 @@ import { createRendererLogger } from './utils/logger'
 import { initMonacoEnvironment } from './utils/monaco-worker-config'
 import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { aiCompletionService } from './utils/ai-completion-service'
-import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat'
 import { useWorkspace } from './stores/workspace'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
@@ -287,15 +286,6 @@ onMounted(async () => {
   // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
   initMonacoEnvironment()
 
-  // 自动迁移AIChat历史会话（从localStorage到SQLite）
-  // 只在主窗口执行迁移，避免在辅助窗口中重复执行
-  const windowType = getWindowType()
-  if (windowType === 'home') {
-    autoMigrateAIChatSessions().catch((error) => {
-      logger.error('AIChat会话迁移失败:', error)
-    })
-  }
-
   window.addEventListener('beforeunload', () => {
     clearAiTasks()
   })
@@ -313,7 +303,6 @@ onMounted(async () => {
       errorStack: e.error?.stack,
       errorName: e.error?.name
     }
-
     // 过滤掉一些无害的错误
     // 1. 资源加载失败（图片、字体等）
     if (e.message?.includes('Failed to load resource') || e.message?.includes('net::ERR_')) {

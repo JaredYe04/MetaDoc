@@ -131,7 +131,7 @@
           </div>
         </CardHeader>
         <CardContent class="p-0">
-          <ScrollArea class="h-[400px]">
+          <ScrollArea class="config-list-scroll h-[400px]">
             <RadioGroup
               v-model="currentConfigId"
               class="space-y-1 p-3"
@@ -142,6 +142,7 @@
                 :key="config.id"
                 class="config-item"
                 :class="{
+                  selected: currentConfigId === config.id,
                   dragging: draggingConfigId === config.id,
                   'drop-before':
                     dropPreview.targetId === config.id && dropPreview.mode === 'before',
@@ -2097,6 +2098,15 @@ onMounted(async () => {
   background-color: hsl(var(--primary));
   border-radius: 1px;
   z-index: 10;
+}
+
+/* 左侧列表：防止滚动链（滚到底/顶时不带动整页）；当前选中项高亮 */
+.config-list-scroll :deep([data-reka-scroll-area-viewport]) {
+  overscroll-behavior: contain;
+}
+.config-item.selected .flex.items-center {
+  background-color: hsl(var(--accent));
+  font-weight: 500;
 }
 
 /* 响应式布局 */

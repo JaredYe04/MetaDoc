@@ -549,7 +549,20 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const isFuzzy = params.fuzzy === true // 模糊搜索开关
   const similarityThreshold = (params.similarityThreshold as number) || 0.6 // 相似度阈值，默认0.6
   const contextLines = (params.contextLines as number) || 3
-  const scope = (params.scope as string[]) || ['document', 'metadata']
+  const rawScope = params.scope as string[] | undefined
+  let scope: string[]
+  if (rawScope && rawScope.length > 0) {
+    scope = rawScope
+  } else {
+    try {
+      const saved = localStorage.getItem('workspaceFolders')
+      const roots = saved ? (JSON.parse(saved) || []) : []
+      const hasRoots = Array.isArray(roots) && roots.some((p: unknown) => typeof p === 'string' && (p as string).length > 0)
+      scope = hasRoots ? ['workspace', 'document', 'metadata'] : ['document', 'metadata']
+    } catch {
+      scope = ['document', 'metadata']
+    }
+  }
   const tabId = params.tabId as string | undefined
   const verbose = params.verbose === true // 是否返回完整内容（默认false，节省token）
 
@@ -590,7 +603,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         ],
         [
           '支持普通文本搜索和正则表达式搜索（设置isRegex: true）',
-          '可以通过scope指定搜索范围：["document"]（文档）或["metadata"]（元数据）',
+          '可以通过scope指定搜索范围：["workspace"]（整个工作区）、["document"]（当前文档）、["metadata"]（元数据）；有工作区根时默认包含 workspace',
           '可以设置contextLines参数控制返回的上下文行数',
           '支持在文档和元数据中同时搜索'
         ]
@@ -1046,7 +1059,9 @@ export const grepToolConfig: AgentToolConfig = {
     fullSpec: `# Text Search Tool (Grep)
 
 ## Description
-Search for text patterns in the current document and metadata using text, regular expressions, or fuzzy search. Returns all matches with context (preceding and following text). Supports search and replace functionality. This is an **efficient, lightweight query tool** that can be called frequently to quickly locate and modify document content.
+Search for text patterns in the current document, metadata, and/or **workspace** using text, regular expressions, or fuzzy search. Returns all matches with context (preceding and following text). Supports search and replace functionality. This is an **efficient, lightweight query tool** that can be called frequently to quickly locate and modify document content.
+
+**Scope \`workspace\`**: When workspace roots exist, scope defaults to include \`workspace\` (whole workspace directory; excludes .git, node_modules, .metadoc). Use \`scope: ["workspace"]\` to search only workspace files.
 
 ## ⭐ Recommended for Frequent Use
 
@@ -1093,7 +1108,7 @@ Use when you don't remember exact keywords, based on similarity matching, **very
   "fuzzy": false,                // Optional, whether to use fuzzy search, default false (cannot be true with isRegex)
   "similarityThreshold": 0.6,    // Optional, fuzzy search similarity threshold (0-1), default 0.6
   "contextLines": 3,             // Optional, context lines, default 3
-  "scope": ["document", "metadata"],  // Optional, search scope, default both
+  "scope": ["workspace", "document", "metadata"],  // Optional; with workspace roots default includes workspace (whole workspace directory)
   "tabId": "string",             // Optional, document tab ID
   "replaceText": "string",      // Optional, replacement text (if provided, will perform replace)
   "replaceAll": false,           // Optional, whether to replace all matches, default false

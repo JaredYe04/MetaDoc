@@ -141,13 +141,13 @@ function registerEventListeners(): void {
   })
 
   eventBus.on('open-doc-success', (payload) => {
-    const t = getTranslator()
-    const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
-    pushNotification(
-      t('main.notification.open.title'),
-      t('main.notification.open.message', { name }),
-      'success'
-    )
+    // const t = getTranslator()
+    // const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
+    // pushNotification(
+    //   t('main.notification.open.title'),
+    //   t('main.notification.open.message', { name }),
+    //   'success'
+    // )
   })
 
   eventBus.on('export-success', (payload) => {

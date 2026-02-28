@@ -23,6 +23,26 @@
         <div class="view-menu-container-sidebar">
           <!-- Tab 切换 -->
           <div class="sidebar-tabs" v-if="hasMultipleTabs">
+            <Tooltip v-if="showAgentInSidebar">
+              <TooltipTrigger as-child>
+                <div
+                  class="sidebar-tab"
+                  :class="{ active: activeTab === 'agent' }"
+                  @click="activeTab = 'agent'"
+                >
+                  <div class="icon-wrapper">
+                    <img
+                      :src="(themeState.currentTheme as any).AgentIcon"
+                      class="menu-icon"
+                      alt="agent"
+                    />
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{{ $t('headMenu.agent', 'Agent') }}</p>
+              </TooltipContent>
+            </Tooltip>
             <Tooltip v-if="showWorkspaceExplorer">
               <TooltipTrigger as-child>
                 <div
@@ -87,6 +107,7 @@
 
           <!-- Tab 内容 -->
           <div class="sidebar-content">
+            <AgentViewCompact v-if="activeTab === 'agent' && showAgentInSidebar" />
             <WorkspaceExplorer v-if="activeTab === 'workspace'" />
             <WorkspaceGrepPanel v-if="activeTab === 'grep'" />
             <MetaInfoPanel
@@ -118,6 +139,7 @@ import ResizableContainer from './base/ResizableContainer.vue'
 import WorkspaceExplorer from './WorkspaceExplorer.vue'
 import WorkspaceGrepPanel from './WorkspaceGrepPanel.vue'
 import MetaInfoPanel from './MetaInfoPanel.vue'
+import AgentViewCompact from './agent/AgentViewCompact.vue'
 import eventBus from '../utils/event-bus'
 import { getSetting, setSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
@@ -131,10 +153,17 @@ const workspace = useWorkspace()
 const showWorkspaceExplorer = ref(false)
 const showWorkspaceGrep = ref(false)
 const sidebarSize = ref(250)
-const activeTab = ref<'workspace' | 'grep' | 'meta'>('workspace')
+const activeTab = ref<'agent' | 'workspace' | 'grep' | 'meta'>('workspace')
 
 // 获取当前活动的文档
 const activeDocument = computed(() => workspace.activeDocument.value)
+
+// 如果完整 Agent Tab 已打开，则隐藏右侧紧凑 Agent 面板
+const isAgentFullViewOpen = computed(() => {
+  const tab = workspace.activeTab.value
+  return tab?.kind === 'system' && tab?.route === '/agent'
+})
+const showAgentInSidebar = computed(() => !isAgentFullViewOpen.value)
 
 // 判断是否显示 MetaInfo Tab（当前 tab 是 md 或 tex 文档时显示）
 const showMetaInfoTab = computed(() => {
@@ -146,12 +175,12 @@ const showMetaInfoTab = computed(() => {
 
 // 计算是否显示 Tab 切换（只要有内容就显示，不管是一个还是两个）
 const hasMultipleTabs = computed(() => {
-  return showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
+  return showAgentInSidebar.value || showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
 })
 
 // 计算是否有可见的菜单
 const hasVisibleMenus = computed(() => {
-  return showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
+  return showAgentInSidebar.value || showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
 })
 
 // 计算当前大纲 JSON（用于 MetaInfoPanel）
@@ -196,12 +225,14 @@ const tabBarBackgroundColor = computed(() =>
 )
 
 // 监听活动文档变化，自动切换到合适的 Tab
-watch([showMetaInfoTab, showWorkspaceExplorer, showWorkspaceGrep], ([showMeta, showWorkspace, showGrep]) => {
+watch([showMetaInfoTab, showWorkspaceExplorer, showWorkspaceGrep, showAgentInSidebar], ([showMeta, showWorkspace, showGrep, showAgent]) => {
   // 如果当前 tab 不可用，切换到可用的 tab
   if (activeTab.value === 'meta' && !showMeta) {
     // 如果 meta tab 被隐藏，切换到 workspace（如果可用）
     if (showWorkspace) {
       activeTab.value = 'workspace'
+    } else if (showAgent) {
+      activeTab.value = 'agent'
     } else if (showGrep) {
       activeTab.value = 'grep'
     }
@@ -211,10 +242,22 @@ watch([showMetaInfoTab, showWorkspaceExplorer, showWorkspaceGrep], ([showMeta, s
       activeTab.value = 'grep'
     } else if (showMeta) {
       activeTab.value = 'meta'
+    } else if (showAgent) {
+      activeTab.value = 'agent'
     }
   } else if (activeTab.value === 'grep' && !showGrep) {
     if (showWorkspace) {
       activeTab.value = 'workspace'
+    } else if (showMeta) {
+      activeTab.value = 'meta'
+    } else if (showAgent) {
+      activeTab.value = 'agent'
+    }
+  } else if (activeTab.value === 'agent' && !showAgent) {
+    if (showWorkspace) {
+      activeTab.value = 'workspace'
+    } else if (showGrep) {
+      activeTab.value = 'grep'
     } else if (showMeta) {
       activeTab.value = 'meta'
     }

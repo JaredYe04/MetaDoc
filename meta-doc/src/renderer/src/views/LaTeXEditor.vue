@@ -3730,6 +3730,30 @@ eventBus.on('search-replace', (payload?: any) => {
   }
 })
 
+const handleEditorGotoPosition = (payload: {
+  tabId?: string
+  line?: number
+  column?: number
+  endColumn?: number
+}) => {
+  if (payload?.tabId !== props.tabId || payload?.line == null || payload?.column == null) return
+  const adapter = textEditorAdapter.value
+  if (!adapter) return
+  const line = payload.line
+  const column = payload.column
+  const endColumn = payload.endColumn
+  if (
+    typeof endColumn === 'number' &&
+    endColumn > column
+  ) {
+    adapter.goToRanges([
+      { start: { line, column }, end: { line, column: endColumn } }
+    ])
+  } else {
+    adapter.goTo({ line, column })
+  }
+}
+
 watch(isActive, (active) => {
   if (!active) {
     searchReplaceDialogVisible.value = false
@@ -4181,6 +4205,7 @@ onMounted(async () => {
       if (ed) ed.updateOptions({ fontFamily: getEditorFontFamily() })
     }
     eventBus.on('font-settings-changed', handleFontSettingsChanged)
+    eventBus.on('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
 
     initPdfJs()
     await nextTick()
@@ -4336,6 +4361,7 @@ onUnmounted(() => {
 
   // 移除AI分析开关监听器
   eventBus.off('console-ai-analysis-toggle')
+  eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
 
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)

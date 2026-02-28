@@ -74,6 +74,16 @@ async function grepInFile(
   try {
     const content = (await messageBridge.invoke('read-file-content', filePath)) as string | null
     if (content == null) return []
+    // 只搜索文本文件：跳过含 null 或大量非可打印字符的内容（视为二进制）
+    if (content.includes('\0')) return []
+    if (content.length > 100) {
+      let controlCount = 0
+      for (let i = 0; i < content.length; i++) {
+        const c = content.charCodeAt(i)
+        if (c === 0 || (c < 32 && c !== 9 && c !== 10 && c !== 13)) controlCount++
+      }
+      if (controlCount / content.length > 0.3) return []
+    }
 
     const textMatches = searchInTextCore(content, options.pattern, {
       useRegex: options.isRegex === true,

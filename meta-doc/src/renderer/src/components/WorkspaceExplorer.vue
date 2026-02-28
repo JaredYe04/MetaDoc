@@ -668,6 +668,24 @@ const activeTabBackgroundColor = computed(() => {
   return mixColors(baseBg, '#777777', 0.3)
 })
 
+// 确保工作区根目录下存在 .metadoc 目录（用于存放工作区级别的 AI / 配置数据）
+const ensureMetadocInWorkspaceRoot = async (folderPath: string): Promise<void> => {
+  const ipcRenderer = getIpcRenderer()
+  if (!ipcRenderer) return
+  try {
+    const metadocPath = join(folderPath, '.metadoc')
+    const exists = (await ipcRenderer.invoke('file-exists', metadocPath)) as boolean
+    if (!exists) {
+      await ipcRenderer.invoke('create-directory', {
+        parentPath: folderPath,
+        folderName: '.metadoc'
+      })
+    }
+  } catch (err) {
+    logger.warn('初始化 .metadoc 工作区目录失败', { folder: folderPath, error: err })
+  }
+}
+
 // 添加工作文件夹
 const addWorkspaceFolder = async () => {
   const ipcRenderer = getIpcRenderer()
@@ -685,19 +703,7 @@ const addWorkspaceFolder = async () => {
     if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
       const newFolder = result.filePaths[0]
 
-      // 确保工作区根目录下存在 .metadoc 目录（用于存放工作区级别的 AI / 配置数据）
-      try {
-        const metadocPath = join(newFolder, '.metadoc')
-        const exists = (await ipcRenderer.invoke('file-exists', metadocPath)) as boolean
-        if (!exists) {
-          await ipcRenderer.invoke('create-directory', {
-            parentPath: newFolder,
-            folderName: '.metadoc'
-          })
-        }
-      } catch (err) {
-        logger.warn('初始化 .metadoc 工作区目录失败', { folder: newFolder, error: err })
-      }
+      await ensureMetadocInWorkspaceRoot(newFolder)
 
       // 检查是否已存在
       if (workspaceFolders.value.includes(newFolder)) {
@@ -793,11 +799,13 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
   return directoryLoadPool.execute(async () => {
     try {
       // 读取目录内容
-      const entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
+      let entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
         name: string
         path: string
         isDirectory: boolean
       }>
+      // 不在工作区树中显示 .metadoc 隐藏目录
+      entries = entries.filter((e) => e.name !== '.metadoc')
 
       // 初始化 Worker（如果还没有初始化）
       const worker = await initWorker()
@@ -821,11 +829,12 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
       logger.error('加载目录内容失败:', { path: nodePath, error: err })
       // 如果 Worker 处理失败，回退到主线程处理
       try {
-        const entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
+        let entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
           name: string
           path: string
           isDirectory: boolean
         }>
+        entries = entries.filter((e) => e.name !== '.metadoc')
         return processDirectoryContentInMainThread(entries)
       } catch (fallbackErr) {
         logger.error('主线程回退处理也失败:', fallbackErr)
@@ -843,6 +852,7 @@ const processDirectoryContentInMainThread = (
   const files: FileNode[] = []
 
   for (const entry of entries) {
+    if (entry.name === '.metadoc') continue
     if (entry.isDirectory) {
       dirs.push({
         name: entry.name,
@@ -1071,6 +1081,9 @@ const loadWorkspaceFolders = async () => {
       const successfulFolders: string[] = []
       for (const folderPath of folders) {
         try {
+          // 加载时确保每个工作区根目录下存在 .metadoc
+          await ensureMetadocInWorkspaceRoot(folderPath)
+
           // 创建根节点（不立即加载内容，懒加载）
           const folderName = basename(folderPath)
           const rootNode: FileNode = {

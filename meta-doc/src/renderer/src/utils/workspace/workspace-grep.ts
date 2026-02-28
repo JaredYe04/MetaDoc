@@ -128,6 +128,61 @@ async function grepInFile(
 }
 
 /**
+ * 在给定文件内容中执行 grep（用于未保存的脏文件等内存内容）
+ */
+export function grepInContent(
+  filePath: string,
+  content: string,
+  options: WorkspaceGrepOptions
+): WorkspaceGrepMatch[] {
+  if (content.includes('\0')) return []
+  if (content.length > 100) {
+    let controlCount = 0
+    for (let i = 0; i < content.length; i++) {
+      const c = content.charCodeAt(i)
+      if (c === 0 || (c < 32 && c !== 9 && c !== 10 && c !== 13)) controlCount++
+    }
+    if (controlCount / content.length > 0.3) return []
+  }
+
+  const textMatches = searchInTextCore(content, options.pattern, {
+    useRegex: options.isRegex === true,
+    matchCase: options.matchCase === true,
+    wholeWord: options.wholeWord === true
+  })
+
+  const contextLines = options.contextLines ?? 3
+  const limited =
+    options.maxMatchesPerFile && options.maxMatchesPerFile > 0
+      ? textMatches.slice(0, options.maxMatchesPerFile)
+      : textMatches
+
+  const lines = content.split(/\r?\n/)
+
+  return limited.map((m: TextSearchMatch) => {
+    const lineIndex = m.line - 1
+    const startLine = Math.max(0, lineIndex - contextLines)
+    const endLine = Math.min(lines.length - 1, lineIndex + contextLines)
+
+    const preContext = lines.slice(startLine, lineIndex).join('\n')
+    const postContext = lines.slice(lineIndex + 1, endLine + 1).join('\n')
+    const context = lines.slice(startLine, endLine + 1).join('\n')
+    const lineText = lines[lineIndex] ?? ''
+
+    return {
+      filePath,
+      line: m.line,
+      column: m.column,
+      match: m.match,
+      lineText,
+      preContext,
+      postContext,
+      context
+    }
+  })
+}
+
+/**
  * 在多个工作区根目录下执行 grep（递归搜索）
  */
 export async function grepInWorkspaces(

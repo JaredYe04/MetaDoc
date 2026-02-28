@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">meta-doc</string>
-    <string name="title_activity_main">meta-doc</string>
-    <string name="package_name">com.byte-light.metadoc</string>
-    <string name="custom_url_scheme">com.byte-light.metadoc</string>
-</resources>

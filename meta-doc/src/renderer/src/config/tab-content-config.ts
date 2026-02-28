@@ -18,6 +18,7 @@ import GraphWindow from '../views/GraphWindow.vue'
 import LlmStatisticsView from '../views/LlmStatisticsView.vue'
 import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
 import UserFeedbackView from '../views/UserFeedbackView.vue'
+import AgentView from '../views/AgentView.vue'
 
 /**
  * 系统 Tab 路由到组件的映射
@@ -26,7 +27,8 @@ export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
   '/knowledge-base': KnowledgeBase,
   '/debug': DebugView,
-  '/dummy': DummyView
+  '/dummy': DummyView,
+  '/agent': AgentView
 }
 
 /**

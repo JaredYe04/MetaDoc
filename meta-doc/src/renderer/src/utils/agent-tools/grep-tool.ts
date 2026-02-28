@@ -49,7 +49,7 @@ export interface GrepResult {
   isRegex: boolean
   isFuzzy: boolean // 是否使用模糊搜索
   similarityThreshold?: number // 相似度阈值
-  scope: string[] // 搜索范围：['document', 'metadata']
+  scope: string[] // 搜索范围：['workspace', 'document', 'metadata']
   originalContent?: string // 原始文档内容（用于Display组件显示）
   language?: string // 文档语言类型（'markdown' | 'latex' | 'plaintext'）
   replacedCount?: number // 替换的数量（如果执行了替换）
@@ -1123,7 +1123,9 @@ Returns array of matches with line numbers, positions, and context.`
 # 文本搜索工具
 
 ## 功能描述
-在当前活动文档和metadata中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。支持**搜索和替换**功能，可以一次性完成查找和替换操作。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位和修改文档内容。
+在当前活动文档、metadata 以及**工作区**中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。支持**搜索和替换**功能，可以一次性完成查找和替换操作。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位和修改文档内容。
+
+**scope \`workspace\`**：有工作区根时，默认搜索范围包含整个工作区目录（排除 .git、node_modules、.metadoc）。可仅指定 \`scope: ["workspace"]\` 只搜工作区文件。
 
 ## ⭐ 推荐频繁使用
 
@@ -1178,7 +1180,7 @@ Returns array of matches with line numbers, positions, and context.`
   "fuzzy": false,                // 可选，是否使用模糊搜索，默认false（与isRegex不能同时为true）
   "similarityThreshold": 0.6,    // 可选，模糊搜索相似度阈值（0-1），默认0.6，值越高要求越严格
   "contextLines": 3,             // 可选，上下文行数，默认3
-  "scope": ["document", "metadata"],  // 可选，搜索范围，默认两者都搜索
+  "scope": ["workspace", "document", "metadata"],  // 可选；有工作区根时默认包含 workspace（整个工作区目录）
   "tabId": "string",             // 可选，指定文档标签页ID，默认使用当前活动标签页
   "replaceText": "string",      // 可选，替换文本（如果提供，将执行替换操作）
   "replaceAll": false,           // 可选，是否替换所有匹配项，默认false（只替换第一个）
@@ -1308,7 +1310,7 @@ Returns array of matches with line numbers, positions, and context.`
   - 0.7-0.8：中等严格，平衡结果数量和准确性
   - 0.9+：非常严格，只返回几乎完全匹配的结果
 - 返回每个匹配的行号、列号和上下文，便于定位和了解周围内容
-- 可以指定搜索范围：仅文档、仅metadata或两者
+- 可以指定搜索范围：workspace（整个工作区）、仅文档、仅 metadata 或组合；有工作区根时默认包含 workspace
 - 上下文行数可以自定义（默认3行），帮助理解匹配项在文档中的位置
 - 正则表达式使用JavaScript RegExp语法
 - **定位插入位置的好方法**：可以搜索关键词，根据匹配位置确定插入点，比总是从行1列1插入更准确
@@ -1360,10 +1362,10 @@ Returns array of matches with line numbers, positions, and context.`
         type: 'array',
         items: {
           type: 'string',
-          enum: ['document', 'metadata']
+          enum: ['workspace', 'document', 'metadata']
         },
-        description: '搜索范围',
-        default: ['document', 'metadata']
+        description: '搜索范围：workspace=整个工作区目录，document=当前文档，metadata=元数据；有工作区根时默认包含 workspace',
+        default: ['workspace', 'document', 'metadata']
       },
       tabId: {
         type: 'string',

@@ -21,7 +21,13 @@ export default defineConfig({
     base: './',
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        // CSS 子路径必须单独映射，否则会被下面的别名误解析为 index.js/dist/...
+        '@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css': resolve(
+          'node_modules/@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css'
+        ),
+        // 使用 vue3-tree-chart 源码（不 patch node_modules，视口保留通过 Outline 内用普通变量锁避免点击重渲染实现）
+        '@ssthouse/vue3-tree-chart': resolve('node_modules/@ssthouse/vue3-tree-chart/src/vue-tree/index.js')
       }
     },
     plugins: [vue()],

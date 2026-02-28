@@ -2,6 +2,18 @@
 
 本文档包含一系列Agent测试用例，用于验证各种工具的正确性和工具间的协作能力。
 
+## 工作区级 Agent 与测试假设
+
+- **Agent 边界**：Agent 的上下文与持久化以「当前活跃工作区」或「全局 default 工作区」为边界；会话等数据存放在工作区目录或程序 userData 下的 `.metadoc` 中。
+- **测试假设**：运行 test-cases 时，若涉及工作区文件（如 `edit` 的 `filePath`、`grep` 的 `scope: ["workspace"]`），默认存在至少一个工作区根（或使用 userData 默认根）；`.metadoc` 会在需要时由主进程创建。
+- **Edit 工具**：
+  - 支持 **filePath**（工作区相对路径或绝对路径）+ **diff**（Unified diff）编辑磁盘文件；与 Cursor 风格一致。
+  - 当 diff 为纯新增（`@@ -0,0 +...`）且文件不存在时，视为**新建文件**（父目录需存在或由写入逻辑创建）。
+  - 未指定 `filePath` 时仍可使用 **tabId** 或当前活动文档；若既无 filePath 也无有效 tabId，应返回明确错误。
+- **Grep 工具**：
+  - **scope** 支持 `workspace`：在整个工作区目录中搜索（排除 .git、node_modules、.metadoc）。
+  - 当存在工作区根时，默认 scope 包含 `workspace`，即默认会搜索工作区文件。
+
 ## 基础用例
 
 ### 1. 分析文档并概括内容

@@ -935,6 +935,30 @@
           "replacedCountShouldBeGreaterThan": 0,
           "matchesShouldHaveContext": true
         }
+      },
+      {
+        "id": "grep::workspace-scope-001",
+        "name": "工作区范围搜索（scope workspace）",
+        "params": {
+          "pattern": "function",
+          "scope": ["workspace"],
+          "contextLines": 2
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThanOrEqual": 0,
+          "scopeShouldInclude": "workspace"
+        }
+      },
+      {
+        "id": "grep::workspace-default-001",
+        "name": "默认包含工作区（有工作区根时）",
+        "params": {
+          "pattern": "test",
+          "contextLines": 1
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThanOrEqual": 0
+        }
       }
     ]
   },
@@ -1461,6 +1485,45 @@
         "assertions": {
           "appliedEdits": 1,
           "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::filepath-diff-001",
+        "name": "按 filePath + diff 编辑已有文件（工作区相对路径）",
+        "params": {
+          "filePath": "test-data/sample-edit-target.md",
+          "diff": "@@ -1,1 +1,1 @@\n-old line\n+new line"
+        },
+        "setup": "ensure workspace has test-data/sample-edit-target.md with first line 'old line'",
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::filepath-newfile-001",
+        "name": "按 filePath + 纯新增 diff 新建文件",
+        "params": {
+          "filePath": "test-data/new-file-from-diff.md",
+          "diff": "@@ -0,0 +1,3 @@\n+# New File\n+Content line 1\n+Content line 2"
+        },
+        "setup": "workspace root exists; parent dir test-data/ may exist",
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::no-target-error-001",
+        "name": "无 filePath 且无活动文档时返回明确错误",
+        "expectError": true,
+        "params": {
+          "diff": "@@ -1,1 +1,1 @@\n-a\n+b"
+        },
+        "setup": "no document tab active and no tabId provided",
+        "assertions": {
+          "errorMessageShouldContain": "filePath",
+          "errorMessageShouldContain2": "tabId"
         }
       }
     ]

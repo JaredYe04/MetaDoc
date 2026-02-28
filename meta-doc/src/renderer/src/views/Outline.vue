@@ -1,5 +1,5 @@
 <template>
-  <div class="outline-page" :data-direction="direction" :class="{ 'is-dragging': isDraggingNode }">
+  <div class="outline-page" :data-direction="direction" :data-theme="themeState.currentTheme.type === 'dark' ? 'dark' : 'light'" :class="{ 'is-dragging': isDraggingNode }">
     <!-- AI 工具栏与格式化标题：通过子组件 + inject 使用 selectedAiTool，避免 Outline 因 selectedAiTool 变化而 re-render 导致树图位置重置 -->
     <OutlineAiToolbar />
 
@@ -220,6 +220,8 @@
         class="outline-viewport"
         :class="{ 'is-dragging': isDraggingNode }"
         @wheel="handleViewportWheel"
+        @mousedown.capture="onViewportMouseDownCapture"
+        @mouseleave="onViewportMouseLeave"
       >
         <vue-tree
             ref="treeRef"
@@ -229,7 +231,7 @@
               'is-dragging': isDraggingNode,
               'outline-theme-dark': themeState.currentTheme.type === 'dark'
             }"
-            :dataset="treeData"
+            :dataset="chartDataset"
             :config="treeConfig"
             :direction="direction"
             link-style="straight"
@@ -240,8 +242,8 @@
               #node="{ node, collapsed }"
               :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
             >
-              <!-- 节点被折叠时显示正常节点，但在文字前显示子节点数量 badge，并加样式区分 -->
-              <template v-if="collapsed && node.children && node.children.length > 0">
+              <!-- 节点被折叠且有子节点时：显示 badge 与区分样式（库折叠时会把 children 移到 _children） -->
+              <template v-if="collapsed && hasNodeChildren(node)">
                 <div
                   class="tree-node tree-node--collapsed-with-children"
                   :style="{
@@ -255,16 +257,19 @@
                   @dragleave="onNodeDragLeave(node)"
                   @drop.stop="onNodeDrop(node, $event)"
                   @dragend.stop="onNodeDragEnd"
-                  @mousedown.stop
+                  @mousedown.stop="onNodeMouseDown"
                   @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
                   @contextmenu.prevent="openNodeContextMenu($event, node)"
                 >
-                  <!-- 子节点数量 badge -->
+                  <!-- 子节点数量 badge：背景与字体色与 tree-node 一致 -->
                   <span
                     class="children-count-badge"
-                    :style="{ backgroundColor: themeState.currentTheme.primaryColor }"
+                    :style="{
+                      backgroundColor: themeState.currentTheme.outlineNode,
+                      color: themeState.currentTheme.textColor
+                    }"
                   >
-                    {{ node.children.length }}
+                    {{ nodeChildrenCount(node) }}
                   </span>
                   <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
                   <TooltipProvider>
@@ -336,19 +341,22 @@
                   />
                 </div>
               </template>
-              <!-- 如果节点未展开，显示正常节点 -->
+              <!-- 如果节点未展开，显示正常节点；有子节点时加样式区分 -->
               <template v-else>
                 <div
                   class="tree-node"
+                  :class="[
+                    dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : '',
+                    hasNodeChildren(node) ? 'tree-node--has-children-collapsed' : ''
+                  ]"
                   :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                  :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
                   draggable="true"
                   @dragstart.stop="onNodeDragStart(node)"
                   @dragover.prevent="onNodeDragOver($event, node)"
                   @dragleave="onNodeDragLeave(node)"
                   @drop.stop="onNodeDrop(node, $event)"
                   @dragend.stop="onNodeDragEnd"
-                  @mousedown.stop
+                  @mousedown.stop="onNodeMouseDown"
                   @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
                   @contextmenu.prevent="openNodeContextMenu($event, node)"
                 >
@@ -469,6 +477,14 @@
             </button>
             <button
               type="button"
+              class="outline-node-context-menu__item item-menu__item"
+              @click="onNodeContextAction('moveToBasket')"
+            >
+              <Folder class="outline-node-context-menu__icon w-4 h-4" />
+              <span>{{ $t('outline.materialBasket.moveToBasket') }}</span>
+            </button>
+            <button
+              type="button"
               class="outline-node-context-menu__item item-menu__item danger"
               @click="onNodeContextAction('delete')"
             >
@@ -567,27 +583,31 @@
         </AlertDialogContent>
       </AlertDialog>
 
+      <!-- 编辑章节（与新建/编辑素材同布局：左标题 + 右编辑器，以新对话框为准） -->
       <Dialog v-model:open="editValueDialogVisible">
-        <DialogContent class="sm:max-w-[40%]">
+        <DialogContent class="edit-chapter-dialog-content">
           <DialogHeader>
             <DialogTitle>{{ $t('outline.editChapterTitle') }}</DialogTitle>
           </DialogHeader>
-          <div class="grid gap-4 py-4">
-            <div class="grid gap-2">
-              <label class="text-sm font-medium">{{ $t('outline.chapterName') }}</label>
-              <Input v-model="currentChapterValue" class="aero-input" />
+          <div class="edit-chapter-dialog-body">
+            <div class="edit-chapter-form-column">
+              <label class="ai-config-label">{{ $t('outline.chapterName') }}</label>
+              <Input v-model="currentChapterValue" class="aero-input" :placeholder="$t('outline.chapterName')" />
             </div>
-            <div class="grid gap-2">
-              <label class="text-sm font-medium">{{ $t('outline.chapterContent') }}</label>
-              <md-editor
-                v-model="currentChapterContent"
-                show-code-row-number
-                preview-theme="github"
-                code-style-reverse
-                style="text-align: left"
-                :auto-fold-threshold="300"
-                :theme="editorTheme"
-              />
+            <div class="edit-chapter-editor-column">
+              <label class="ai-config-label">{{ $t('outline.chapterContent') }}</label>
+              <div class="outline-md-editor-wrap edit-chapter-editor-wrap">
+                <md-editor
+                  v-model="currentChapterContent"
+                  show-code-row-number
+                  preview-theme="github"
+                  code-style-reverse
+                  style="text-align: left"
+                  :auto-fold-threshold="300"
+                  :theme="editorTheme"
+                  :language="currentLocaleForEditor"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -673,7 +693,129 @@
         </DialogContent>
       </Dialog>
 
-      <div class="bottom-menu aero-div">
+      <!-- 新建/编辑素材对话框：左表单项 + 右编辑器 -->
+      <Dialog v-model:open="newMaterialDialogVisible">
+        <DialogContent class="new-material-dialog-content">
+          <DialogHeader>
+            <DialogTitle>{{ editingMaterialItem ? $t('outline.materialBasket.editMaterialTitle') : $t('outline.materialBasket.newMaterialTitle') }}</DialogTitle>
+          </DialogHeader>
+          <div class="new-material-dialog-body">
+            <div class="new-material-form-column">
+              <div class="ai-config-section">
+                <label class="ai-config-label">{{ $t('outline.materialBasket.titleLabel') }}</label>
+                <Input v-model="newMaterialName" class="aero-input" :placeholder="$t('outline.materialBasket.titleLabel')" />
+              </div>
+              <div class="ai-config-section">
+                <label class="ai-config-label">{{ $t('outline.aiConfig.temperature') }}</label>
+                <div class="flex items-center gap-4">
+                  <span class="text-sm text-muted-foreground w-8">{{ newMaterialTemperature }}</span>
+                  <Slider
+                    v-model="newMaterialTemperature"
+                    :min="0"
+                    :max="2"
+                    :step="0.1"
+                    class="flex-1"
+                  />
+                </div>
+              </div>
+              <div class="ai-config-section">
+                <label class="ai-config-label">{{ $t('outline.aiConfig.keywords') }}</label>
+                <KeywordInput
+                  v-model="newMaterialKeywords"
+                  :placeholder="$t('outline.aiConfig.keywordsPlaceholder')"
+                  class="ai-config-keywords-input"
+                />
+              </div>
+              <div class="ai-config-section">
+                <label class="ai-config-label">{{ $t('outline.materialBasket.prompt') }}</label>
+                <AutoResizeTextarea
+                  v-model="newMaterialPrompt"
+                  :placeholder="$t('outline.materialBasket.promptPlaceholder')"
+                  :autosize="{ minRows: 3 }"
+                  class="ai-config-user-prompt"
+                />
+              </div>
+              <div class="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  :disabled="newMaterialGenerating"
+                  @click="generateNewMaterialThreeSteps"
+                >
+                  <Loader2 v-if="newMaterialGenerating" class="w-4 h-4 animate-spin" />
+                  <span v-else>{{ $t('outline.materialBasket.aiGenerate') }}</span>
+                </Button>
+              </div>
+            </div>
+            <div class="new-material-editor-column">
+              <div class="new-material-editor-wrap">
+                <md-editor
+                  v-model="newMaterialContent"
+                  show-code-row-number
+                  preview-theme="github"
+                  code-style-reverse
+                  class="new-material-md-editor"
+                  style="text-align: left; min-height: 200px"
+                  :auto-fold-threshold="300"
+                  :theme="editorTheme"
+                  :language="currentLocaleForEditor"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" @click="newMaterialDialogVisible = false">{{
+              $t('outline.materialBasket.cancel')
+            }}</Button>
+            <Button @click="saveNewMaterial">{{ $t('outline.materialBasket.save') }}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog v-model:open="mergeTargetDialogVisible">
+        <DialogContent class="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>{{ $t('outline.materialBasket.selectTargetNode') }}</DialogTitle>
+          </DialogHeader>
+          <div class="merge-target-list">
+            <button
+              v-for="n in mergeTargetNodeList"
+              :key="n.path"
+              type="button"
+              class="merge-target-item"
+              :class="{ active: selectedMergeTargetNode?.path === n.path }"
+              @click="selectedMergeTargetNode = n"
+            >
+              <span class="merge-target-item-title">{{ n.title || n.path }}</span>
+            </button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" @click="mergeTargetDialogVisible = false; pendingMergeTarget = null">{{ $t('outline.materialBasket.cancel') }}</Button>
+            <Button :disabled="!selectedMergeTargetNode" @click="confirmMergeTarget">{{ $t('outline.confirm') }}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <!-- 素材篮：右上角浮动面板，不超出 .container 范围 -->
+      <MaterialBasketPanel
+        v-if="activeTabId && !isDemo"
+        ref="materialBasketPanelRef"
+        :basket="materialBasketList"
+        :expanded="materialBasketExpanded"
+        :is-dragging-from-outline="isDraggingNode && !!draggingNodePath"
+        @update:expanded="materialBasketExpanded = $event"
+        @drop-from-outline="moveDraggingNodeToBasket"
+        @merge-to-tree="(item, mode) => openMergeTargetDialog(item, mode)"
+        @copy-item="copyBasketItem"
+        @delete-item="deleteBasketItem"
+        @update-basket="commitMaterialBasket"
+        @drag-start-basket="draggingBasketId = $event"
+        @drag-end-basket="draggingBasketId = null"
+        @request-add-item="openNewMaterialDialog"
+        @edit-item="openEditMaterialDialog"
+      />
+
+      <div class="bottom-menu">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger as-child>
@@ -789,7 +931,7 @@ import {
   FolderOpen,
   Folder
 } from 'lucide-vue-next'
-import type { DocumentOutlineNode } from '../../../types'
+import type { DocumentOutlineNode, MaterialBasketItem } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
 import { searchNode, searchParentNode, syncChildrenFromNodeText } from '../utils/outline-helpers'
 import {
@@ -820,12 +962,17 @@ import {
 import DetailedOutlineNode from '../components/outline/DetailedOutlineNode.vue'
 import OutlineAiToolbar from '../components/outline/OutlineAiToolbar.vue'
 import OutlineNodeActionButton from '../components/outline/OutlineNodeActionButton.vue'
+import MaterialBasketPanel from '../components/outline/MaterialBasketPanel.vue'
 import StreamingJsonTree from '../components/outline/StreamingJsonTree.vue'
 import KeywordInput from '../components/KeywordInput.vue'
 import '../assets/noselect-display.css'
 import { generateWithSchema } from '../utils/ai-schema-task'
-import { OUTLINE_SECTION_KEYWORDS_SCHEMA } from '../utils/schemas'
-import { generateOutlineSectionKeywordsPrompt } from '../utils/prompts'
+import { OUTLINE_SECTION_KEYWORDS_SCHEMA, DOCUMENT_TITLE_SCHEMA } from '../utils/schemas'
+import {
+  generateOutlineSectionKeywordsPrompt,
+  getNewMaterialTitlePrompt,
+  getNewMaterialKeywordsPrompt
+} from '../utils/prompts'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
 import { getSetting, setSetting } from '../utils/settings.js'
@@ -861,7 +1008,8 @@ import { Slider } from '@renderer/components/ui/slider'
 interface BatchAcceptItem {
   nodePath: string
   nodeTitle: string
-  rawContentRef: Ref<string>
+  /** 流式原始内容：可为 Ref 或已 unwrap 的 string */
+  rawContentRef: { value: string } | string
   backupChildren?: DocumentOutlineNode[]
   backupText?: string
   rejected?: boolean
@@ -873,7 +1021,10 @@ interface BatchAcceptState {
   items: BatchAcceptItem[]
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const currentLocaleForEditor = computed(() =>
+  String(locale?.value ?? 'zh_CN').startsWith('zh') ? 'zh-CN' : 'en-US'
+)
 const logger = createRendererLogger('Outline', {
   windowTypeProvider: () => getWindowType()
 })
@@ -886,6 +1037,7 @@ const {
   updateDocumentOutline,
   updateDocumentLastView,
   updateDocumentMarkdown,
+  updateDocumentMeta,
   withAutoOutlineSyncSuppressed
 } = workspace
 
@@ -903,30 +1055,208 @@ const activeDocument = computed(() => {
 })
 
 const treeData = ref<DocumentOutlineNode>(cloneOutline(activeDocument.value?.outline))
+// 传给 vue-tree 的 dataset：交互期间不更新引用，避免库内 deep watch 触发 updateDataset 导致视口还原
+const chartDataset = ref<DocumentOutlineNode>(treeData.value)
 const editorTheme = computed<Themes | undefined>(
   () => themeState.currentTheme.vditorTheme as Themes | undefined
 )
 const selectedNode = ref<DocumentOutlineNode | null>(null)
 const nodeContextMenuPath = ref<string | null>(null)
 const nodeContextMenuPosition = ref<{ x: number; y: number } | null>(null)
-const nodeContextMenuStyle = computed(() => ({
+const nodeContextMenuStyle = computed<Record<string, string>>(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
   borderColor:
     themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 const nodeContextMenuPositionStyle = computed(() => {
-  if (!nodeContextMenuPosition.value) return {}
+  if (!nodeContextMenuPosition.value) return {} as Record<string, string>
   return {
     position: 'fixed',
     left: nodeContextMenuPosition.value.x + 'px',
     top: nodeContextMenuPosition.value.y + 'px'
-  }
+  } as Record<string, string>
 })
 const generated = ref(false)
 const generating = ref(false)
 const rawstring = ref('')
 const generatedText = ref('')
+
+// 素材篮
+const materialBasketExpanded = ref(false)
+const draggingBasketId = ref<string | null>(null)
+const materialBasketPanelRef = ref<InstanceType<typeof MaterialBasketPanel> | null>(null)
+const MIME_MATERIAL_BASKET = 'application/x-metadoc-material-basket'
+
+const materialBasketList = computed(() => {
+  const meta = activeDocument.value?.meta
+  const list = meta?.materialBasket
+  return Array.isArray(list) ? list : []
+})
+
+function outlineNodeToBasketItem(node: DocumentOutlineNode): MaterialBasketItem {
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const children = node.children?.length
+    ? node.children.map((c) => outlineNodeToBasketItem(c))
+    : undefined
+  return {
+    id,
+    title: node.title,
+    text: node.text ?? '',
+    title_level: node.title_level,
+    children,
+    createdAt: Date.now()
+  }
+}
+
+function basketItemToOutlineNode(item: MaterialBasketItem): DocumentOutlineNode {
+  const children = item.children?.length
+    ? item.children.map((c) => basketItemToOutlineNode(c))
+    : []
+  return {
+    path: '', // 插入时由 reindexChildrenPaths 分配
+    title: item.title,
+    text: item.text ?? '',
+    title_level: item.title_level ?? 1,
+    children
+  }
+}
+
+function commitMaterialBasket(items: MaterialBasketItem[]) {
+  const tabId = activeTabId.value
+  if (!tabId) return
+  updateDocumentMeta(tabId, (meta) => {
+    meta.materialBasket = JSON.parse(JSON.stringify(items))
+  })
+}
+
+function moveSelectedNodeToBasket() {
+  const node = selectedNode.value
+  if (!node) return
+  const tree = treeData.value
+  const originParent = searchParentNode(node.path, tree)
+  if (!originParent) return
+  const fullNode = searchNode(node.path, tree)
+  if (!fullNode) return
+  const item = outlineNodeToBasketItem(fullNode)
+  const nextBasket = [...materialBasketList.value, item]
+  commitMaterialBasket(nextBasket)
+  runWithTreeTransformPreserved(() => {
+    removeNode(originParent, fullNode)
+    reindexChildrenPaths(originParent)
+    treeData.value = cloneOutline(tree)
+    chartDataset.value = treeData.value
+    commitOutline()
+  })
+  materialBasketExpanded.value = true
+  notifyInfo(t('outline.materialBasket.moveToBasket') + ' ' + t('common.success'))
+}
+
+function moveDraggingNodeToBasket() {
+  const fromPath = draggingNodePath.value
+  if (!fromPath) return
+  const tree = treeData.value
+  const originParent = searchParentNode(fromPath, tree)
+  if (!originParent) return
+  const fullNode = searchNode(fromPath, tree)
+  if (!fullNode) return
+  const item = outlineNodeToBasketItem(fullNode)
+  const nextBasket = [...materialBasketList.value, item]
+  commitMaterialBasket(nextBasket)
+  runWithTreeTransformPreserved(() => {
+    removeNode(originParent, fullNode)
+    reindexChildrenPaths(originParent)
+    treeData.value = cloneOutline(tree)
+    chartDataset.value = treeData.value
+    commitOutline()
+  })
+  draggingNodePath.value = null
+  isDraggingNode.value = false
+  document.body.classList.remove('outline-dragging')
+  if (suppressDocumentSync) {
+    suppressDocumentSync = false
+  }
+  materialBasketExpanded.value = true
+}
+
+const pendingMergeTarget = ref<{ item: MaterialBasketItem; mode: 'child' | 'after' | 'before' } | null>(null)
+const mergeTargetDialogVisible = ref(false)
+const mergeTargetNodeList = computed(() => {
+  const root = treeData.value
+  if (!root) return []
+  const out: DocumentOutlineNode[] = []
+  collectAllNodes(root, out)
+  return out
+})
+const selectedMergeTargetNode = ref<DocumentOutlineNode | null>(null)
+function openMergeTargetDialog(item: MaterialBasketItem, mode: 'child' | 'after' | 'before') {
+  pendingMergeTarget.value = { item, mode }
+  selectedMergeTargetNode.value = selectedNode.value
+  mergeTargetDialogVisible.value = true
+}
+function confirmMergeTarget() {
+  const pending = pendingMergeTarget.value
+  const target = selectedMergeTargetNode.value
+  if (!pending || !target) return
+  mergeBasketItemToTree(pending.item, pending.mode, target)
+  pendingMergeTarget.value = null
+  selectedMergeTargetNode.value = null
+  mergeTargetDialogVisible.value = false
+}
+function mergeBasketItemToTree(item: MaterialBasketItem, mode: 'child' | 'after' | 'before', targetNode?: DocumentOutlineNode | null) {
+  const target = targetNode ?? selectedNode.value
+  if (!target) {
+    notifyInfo(t('outline.materialBasket.selectTargetFirst'))
+    return
+  }
+  const tree = treeData.value
+  const targetInTree = searchNode(target.path, tree)
+  const targetParent = searchParentNode(target.path, tree)
+  if (!targetInTree || !targetParent) return
+  const newNode = basketItemToOutlineNode(item)
+  runWithTreeTransformPreserved(() => {
+    if (mode === 'child') {
+      targetInTree.children = targetInTree.children || []
+      targetInTree.children.push(newNode)
+      reindexChildrenPaths(targetInTree)
+    } else {
+      const idx = targetParent.children.findIndex((c) => c.path === target.path)
+      if (idx === -1) return
+      const insertIdx = mode === 'before' ? idx : idx + 1
+      targetParent.children.splice(insertIdx, 0, newNode)
+      reindexChildrenPaths(targetParent)
+    }
+    reindexChildrenPaths(tree)
+    treeData.value = cloneOutline(tree)
+    chartDataset.value = treeData.value
+    commitOutline()
+  })
+  const nextBasket = materialBasketList.value.filter((i) => i.id !== item.id)
+  commitMaterialBasket(nextBasket)
+  notifyInfo(t('outline.materialBasket.mergeToOutline') + ' ' + t('common.success'))
+}
+
+function copyBasketItem(item: MaterialBasketItem) {
+  const copy: MaterialBasketItem = {
+    ...JSON.parse(JSON.stringify(item)),
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    createdAt: Date.now()
+  }
+  commitMaterialBasket([...materialBasketList.value, copy])
+}
+
+function deleteBasketItem(item: MaterialBasketItem) {
+  ElMessageBox.confirm(t('outline.materialBasket.deleteConfirm'), t('outline.warning'), {
+    confirmButtonText: t('outline.confirm'),
+    cancelButtonText: t('outline.cancel'),
+    type: 'warning'
+  })
+    .then(() => {
+      const next = materialBasketList.value.filter((i) => i.id !== item.id)
+      commitMaterialBasket(next)
+    })
+    .catch(() => {})
+}
 
 let suppressDocumentSync = false
 let commitOutlineTimer: NodeJS.Timeout | null = null
@@ -935,6 +1265,7 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
   const tabId = activeTabId.value
   if (!tabId) return
   const snapshot = cloneOutline(outline ?? treeData.value)
+  outlineCommittedFromOutlineView = true
 
   // 使用 withAutoOutlineSyncSuppressed 防止死循环：
   // 从大纲生成文本 -> 自动提取大纲 -> 触发 watch -> 再次生成文本
@@ -981,11 +1312,11 @@ const backupOutlineTree = ref<DocumentOutlineNode | null>(null)
 const generateContentLoading = ref(false)
 const generateChildrenContentLoading = ref(false)
 const generateChildrenChildrenLoading = ref(false)
-const parallelChildren = ref<Array<Ref<string>>>([]) // 用于存储并行生成的子节点
+const parallelChildren = ref<Array<Ref<string> | string>>([]) // 用于存储并行生成的子节点
 const batchItemsRef = ref<BatchAcceptItem[]>([]) // 批量任务项（含 backup、rawContentRef），用于接受/拒绝
 const userPrompt = ref('') // 用户输入的提示词
 
-function getBatchItemContent(refOrVal: Ref<string> | string): string {
+function getBatchItemContent(refOrVal: { value: string } | string): string {
   return typeof refOrVal === 'object' && refOrVal && 'value' in refOrVal ? refOrVal.value : String(refOrVal ?? '')
 }
 const batchDisplayItems = computed(() =>
@@ -1035,12 +1366,40 @@ watch(
 // 树数据变化后库会重绘连接线（D3 会再次设 opacity 0→1），需重新强制为不透明
 watch(treeData, () => scheduleForceOutlineLinkStyles(), { deep: true })
 
-// 文档大纲与编辑器/AI 同步：当文档内容变化（编辑或 AI 生成）导致 outline 更新时，刷新树以保持一致
+// 由本视图 commit 引起的 outline 更新不要回写到 treeData，避免 vue-tree 收到新引用后重置视口（ pan/zoom 回到初始）
+let outlineCommittedFromOutlineView = false
+// 在 viewport 内按下鼠标时立即加锁（捕获阶段早于节点），避免随后触发的 outline watch 覆盖 treeData 导致视口跳回
+// 使用普通变量：在 mousedown 时置 true 不会触发组件重渲染，从而 vue-tree 不重渲染、视口不被 patch 清空（无需 patch node_modules）
+let viewportInteractionLock = false
+const VIEWPORT_LOCK_CLEAR_DELAY_MS = 180
+
+// 文档大纲与编辑器/AI 同步：当文档内容变化（编辑或 AI 生成）导致 outline 更新时，刷新树以保持一致。
+// 仅当新 outline 与当前 treeData 结构/内容不一致时才赋值，避免相同数据新引用导致 vue-tree 收到新 dataset 触发重绘并重置视口
+function outlineStructuralEqual(a: DocumentOutlineNode | undefined, b: DocumentOutlineNode | undefined): boolean {
+  if (a === b) return true
+  if (!a || !b) return !a && !b
+  if (a.path !== b.path || a.title !== b.title) return false
+  const ac = a.children?.length ?? 0
+  const bc = b.children?.length ?? 0
+  if (ac !== bc) return false
+  for (let i = 0; i < ac; i++) {
+    if (!outlineStructuralEqual(a.children![i], b.children![i])) return false
+  }
+  return true
+}
 watch(
   () => activeDocument.value?.outline,
   (newOutline) => {
+    if (outlineCommittedFromOutlineView) {
+      outlineCommittedFromOutlineView = false
+      return
+    }
+    // 拖动中、本视图正在抑制同步、或用户正在与 viewport 交互时，不要用 store 覆盖 treeData
+    if (suppressDocumentSync || isDraggingNode.value || viewportInteractionLock) return
     if (newOutline) {
+      if (outlineStructuralEqual(newOutline, treeData.value)) return
       treeData.value = cloneOutline(newOutline)
+      chartDataset.value = treeData.value
     }
   },
   { deep: true }
@@ -1048,13 +1407,13 @@ watch(
 
 // 加载保存的方向设置
 onMounted(async () => {
-  const savedDirection = await getSetting('outline.direction', 'horizontal')
-  direction.value = savedDirection as 'horizontal' | 'vertical'
+  const savedDirection = await getSetting('outline.direction')
+  direction.value = (savedDirection ?? 'horizontal') as 'horizontal' | 'vertical'
   updateTreeConfig(direction.value)
 
   // 加载 AI 配置默认值
-  const savedAiConfig = await getSetting('outline.aiConfig', null)
-  if (savedAiConfig) {
+  const savedAiConfig = await getSetting('outline.aiConfig')
+  if (savedAiConfig != null) {
     Object.assign(aiConfig, savedAiConfig)
   }
   // 树绘制后强制连接线不透明，覆盖 D3 的 opacity 动画
@@ -1185,7 +1544,13 @@ const aiConfig = reactive({
 const recommendedKeywords = ref<string[]>([])
 const recommendedKeywordsLoading = ref(false)
 const editingNodePath = ref<string | null>(null)
-const selectedAiTool = ref<string | null>(null)
+const selectedAiTool = ref<
+  | null
+  | 'generateChildren'
+  | 'generateContent'
+  | 'generateChildrenChildren'
+  | 'generateChildrenContent'
+>(null)
 const wordCountInput = ref('')
 const selectedPresetPrompt = ref('')
 
@@ -1287,6 +1652,164 @@ const handleAiConfigConfirm = async () => {
   }
 }
 
+// 新建素材对话框
+const newMaterialDialogVisible = ref(false)
+const newMaterialName = ref('')
+const newMaterialPrompt = ref('')
+const newMaterialTemperature = ref(1.0)
+const newMaterialKeywords = ref<string[]>([])
+const newMaterialContent = ref('')
+const newMaterialGenerating = ref(false)
+const newMaterialKeywordsLoading = ref(false)
+let newMaterialKeywordsTimer: NodeJS.Timeout | null = null
+
+const editingMaterialItem = ref<MaterialBasketItem | null>(null)
+
+function openNewMaterialDialog() {
+  editingMaterialItem.value = null
+  newMaterialName.value = ''
+  newMaterialPrompt.value = ''
+  newMaterialTemperature.value = 1.0
+  newMaterialKeywords.value = []
+  newMaterialContent.value = ''
+  newMaterialDialogVisible.value = true
+  materialBasketExpanded.value = true
+  scheduleGenerateNewMaterialKeywords()
+}
+
+function openEditMaterialDialog(item: MaterialBasketItem) {
+  editingMaterialItem.value = item
+  newMaterialName.value = item.title || ''
+  newMaterialPrompt.value = item.prompt || ''
+  newMaterialTemperature.value = item.temperature ?? 1.0
+  newMaterialKeywords.value = item.keywords ? [...item.keywords] : []
+  newMaterialContent.value = item.text || ''
+  newMaterialDialogVisible.value = true
+  materialBasketExpanded.value = true
+}
+
+function scheduleGenerateNewMaterialKeywords() {
+  if (newMaterialKeywordsTimer) clearTimeout(newMaterialKeywordsTimer)
+  newMaterialKeywordsTimer = setTimeout(() => {
+    generateNewMaterialKeywords()
+  }, 450)
+}
+
+async function generateNewMaterialKeywords() {
+  if (newMaterialKeywordsLoading.value) return
+  if (newMaterialKeywords.value && newMaterialKeywords.value.length > 0) return
+
+  const title = (newMaterialName.value || '').trim()
+  const prompt = (newMaterialPrompt.value || '').trim()
+  if (!title && !prompt) return
+
+  newMaterialKeywordsLoading.value = true
+  try {
+    const outlineMarkdown = generateMarkdownFromOutlineTree(treeData.value) || ''
+    const promptText = getNewMaterialKeywordsPrompt(
+      title || t('outline.materialBasket.newMaterialTitle'),
+      prompt,
+      outlineMarkdown
+    )
+    const result = await generateWithSchema(
+      OUTLINE_SECTION_KEYWORDS_SCHEMA,
+      promptText,
+      keywordsTaskOutputRef,
+      { taskName: 'material_basket_keywords' }
+    )
+    if (result?.keywords && Array.isArray(result.keywords)) {
+      newMaterialKeywords.value = result.keywords.slice(0, 5)
+    }
+  } catch (e) {
+    logger.warn('素材篮生成推荐标签失败', e)
+  } finally {
+    newMaterialKeywordsLoading.value = false
+  }
+}
+
+// 三步生成：标题 → 标签 → 内容（内容为流式输出）
+async function generateNewMaterialThreeSteps() {
+  const prompt = newMaterialPrompt.value?.trim()
+  if (!prompt) {
+    notifyInfo(t('outline.materialBasket.promptPlaceholder'))
+    return
+  }
+  newMaterialGenerating.value = true
+  const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+  const outlineMarkdown = generateMarkdownFromOutlineTree(treeData.value) || ''
+  try {
+    if (!(newMaterialName.value || '').trim()) {
+      const titleResult = await generateWithSchema(
+        DOCUMENT_TITLE_SCHEMA,
+        getNewMaterialTitlePrompt(prompt),
+        keywordsTaskOutputRef,
+        { taskName: 'material_basket_title' }
+      )
+      if (titleResult?.title) newMaterialName.value = String(titleResult.title).trim()
+    }
+    await generateNewMaterialKeywords()
+    const title = newMaterialName.value || t('outline.materialBasket.newMaterialTitle')
+    const kwStr = newMaterialKeywords.value.length ? newMaterialKeywords.value.join('，') : ''
+    newMaterialContent.value = ''
+    const fakeNode: DocumentOutlineNode = {
+      path: '0',
+      title,
+      text: '',
+      title_level: 1,
+      children: []
+    }
+    const content = await generateNodeContentUtil(
+      fakeNode,
+      treeData.value,
+      prompt + (kwStr ? `\n关键词：${kwStr}` : ''),
+      undefined,
+      docFormat,
+      newMaterialContent,
+      undefined,
+      newMaterialTemperature.value
+    )
+    if (content) newMaterialContent.value = content
+  } catch (e) {
+    logger.warn('素材篮 AI 生成失败', e)
+    notifyError(t('outline.generateContentFail', { error: String(e) }))
+  } finally {
+    newMaterialGenerating.value = false
+  }
+}
+
+function saveNewMaterial() {
+  const title = newMaterialName.value?.trim() || t('outline.materialBasket.newMaterialTitle')
+  const editing = editingMaterialItem.value
+  if (editing) {
+    const updated: MaterialBasketItem = {
+      ...editing,
+      title,
+      text: newMaterialContent.value,
+      prompt: newMaterialPrompt.value || undefined,
+      temperature: newMaterialTemperature.value,
+      keywords: newMaterialKeywords.value.length ? [...newMaterialKeywords.value] : undefined
+    }
+    commitMaterialBasket(
+      materialBasketList.value.map((i) => (i.id === editing.id ? updated : i))
+    )
+    editingMaterialItem.value = null
+  } else {
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const item: MaterialBasketItem = {
+      id,
+      title,
+      text: newMaterialContent.value,
+      prompt: newMaterialPrompt.value || undefined,
+      temperature: newMaterialTemperature.value,
+      keywords: newMaterialKeywords.value.length ? [...newMaterialKeywords.value] : undefined,
+      createdAt: Date.now()
+    }
+    commitMaterialBasket([...materialBasketList.value, item])
+  }
+  newMaterialDialogVisible.value = false
+  notifyInfo(t('outline.materialBasket.save') + ' ' + t('common.success'))
+}
+
 const keywordsTaskOutputRef = ref('')
 const onAiConfigDialogOpened = async () => {
   if (!selectedNode.value) return
@@ -1312,7 +1835,7 @@ const onAiConfigDialogOpened = async () => {
   }
 }
 
-// 打开节点右键菜单
+// 打开节点右键菜单（视口不还原依赖 vue3-tree-chart 补丁：模板不绑定 initialTransformStyle）
 const openNodeContextMenu = (e: MouseEvent, node: DocumentOutlineNode) => {
   e.preventDefault()
   selectedNode.value = node
@@ -1320,8 +1843,15 @@ const openNodeContextMenu = (e: MouseEvent, node: DocumentOutlineNode) => {
   nodeContextMenuPosition.value = { x: e.clientX, y: e.clientY }
 }
 
-// 关闭节点右键菜单
+// 关闭节点右键菜单（关闭时短暂保持 viewport 锁，避免点击关闭触发的 outline 同步导致视口跳回）
 const closeNodeContextMenu = () => {
+  if (nodeContextMenuPath.value != null) {
+    viewportInteractionLock = true
+    setTimeout(() => {
+      viewportInteractionLock = false
+      if (chartDataset.value !== treeData.value) chartDataset.value = treeData.value
+    }, VIEWPORT_LOCK_CLEAR_DELAY_MS)
+  }
   nodeContextMenuPath.value = null
   nodeContextMenuPosition.value = null
 }
@@ -1341,6 +1871,9 @@ const onNodeContextAction = (action: string) => {
       break
     case 'edit':
       editNode()
+      break
+    case 'moveToBasket':
+      moveSelectedNodeToBasket()
       break
     case 'delete':
       deleteNode()
@@ -1362,9 +1895,12 @@ const move2Left = () => {
   if (!node) return
   const result = moveNodeLeft(node, treeData.value)
   if (result) {
-    treeData.value = result.tree
-    selectedNode.value = result.movedNode
-    commitOutline()
+    runWithTreeTransformPreserved(() => {
+      treeData.value = result!.tree
+      chartDataset.value = treeData.value
+      selectedNode.value = result!.movedNode
+      commitOutline()
+    })
   }
 }
 
@@ -1373,9 +1909,12 @@ const move2Right = () => {
   if (!node) return
   const result = moveNodeRight(node, treeData.value)
   if (result) {
-    treeData.value = result.tree
-    selectedNode.value = result.movedNode
-    commitOutline()
+    runWithTreeTransformPreserved(() => {
+      treeData.value = result!.tree
+      chartDataset.value = treeData.value
+      selectedNode.value = result!.movedNode
+      commitOutline()
+    })
   }
 }
 
@@ -1384,13 +1923,16 @@ const addChildNode = () => {
   if (!node) return
   const result = addChild(node, treeData.value)
   if (result) {
-    treeData.value = result.tree
-    selectedNode.value = result.newNode
-    editNodeValue.value = result.newNode.title
-    currentChapterValue.value = result.newNode.title
-    currentChapterContent.value = result.newNode.text || ''
-    editValueDialogVisible.value = true
-    commitOutline()
+    runWithTreeTransformPreserved(() => {
+      treeData.value = result!.tree
+      chartDataset.value = treeData.value
+      selectedNode.value = result!.newNode
+      editNodeValue.value = result!.newNode.title
+      currentChapterValue.value = result!.newNode.title
+      currentChapterContent.value = result!.newNode.text || ''
+      editValueDialogVisible.value = true
+      commitOutline()
+    })
   }
 }
 
@@ -1414,9 +1956,12 @@ const deleteNode = () => {
     .then(() => {
       const result = removeNodeAndReindex(node, treeData.value)
       if (result) {
-        treeData.value = result
-        selectedNode.value = null
-        commitOutline()
+        runWithTreeTransformPreserved(() => {
+          treeData.value = result!
+          chartDataset.value = treeData.value
+          selectedNode.value = null
+          commitOutline()
+        })
       }
       closeNodeContextMenu()
       notifyInfo(t('outline.deleteSuccess'))
@@ -1743,7 +2288,10 @@ const removeNodeAndReindex = (
   return clonedTree
 }
 const handleNodeClick = (node: DocumentOutlineNode) => {
-  selectedNode.value = node
+  runWithTreeTransformPreserved(() => {
+    selectedNode.value = node
+    editNode()
+  })
 }
 const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
   // 尝试将拖拽节点移动为目标节点的最后一个子节点
@@ -1791,6 +2339,52 @@ const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
 }
 const draggingNodePath = ref<string | null>(null)
 const isDraggingNode = ref(false)
+
+// 树数据变更时仅执行 fn，不恢复视口（已通过修补 vue3-tree-chart：模板不再绑定 :style="initialTransformStyle"，仅在 init/direction 时写入 DOM，重渲染不会覆盖）
+function runWithTreeTransformPreserved(fn: () => void) {
+  fn()
+}
+
+// 让 vue-tree 内部的 pan 拖拽在鼠标释出视口或 document 时结束（库只监听 container 的 mouseup，移出后松开会一直处于拖动态）
+function releaseTreePan() {
+  const container = treeRef.value?.$refs?.container as HTMLElement | undefined
+  if (container) {
+    container.dispatchEvent(
+      new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window })
+    )
+  }
+}
+
+// 捕获阶段：仅设普通变量锁，不更新 ref，避免触发重渲染导致 vue-tree 重渲染并丢失视口 transform
+// mouseup 后延迟解除并同步 chartDataset（仅当引用变化时赋值，减少不必要重渲染）
+function onViewportMouseDownCapture() {
+  viewportInteractionLock = true
+  document.addEventListener(
+    'mouseup',
+    () => {
+      releaseTreePan()
+      setTimeout(() => {
+        viewportInteractionLock = false
+        if (chartDataset.value !== treeData.value) chartDataset.value = treeData.value
+      }, VIEWPORT_LOCK_CLEAR_DELAY_MS)
+    },
+    { once: true }
+  )
+}
+
+function onViewportMouseLeave() {
+  releaseTreePan()
+}
+
+// 在节点上 mousedown 时立即置位，避免 dragstart 前 outline watch 覆盖 treeData 导致视口跳回
+function onNodeMouseDown() {
+  isDraggingNode.value = true
+  const clearIfNotDragging = () => {
+    if (!draggingNodePath.value) isDraggingNode.value = false
+  }
+  document.addEventListener('mouseup', clearIfNotDragging, { once: true })
+}
+
 const onNodeDragStart = (node: DocumentOutlineNode) => {
   draggingNodePath.value = node.path
   isDraggingNode.value = true
@@ -1854,15 +2448,15 @@ const onNodeDragOver = (e: DragEvent, node: DocumentOutlineNode) => {
 
   // 如果定时器不存在，立即更新并设置定时器
   if (!dropPreviewThrottleTimer) {
-    dropPreview.targetPath = node.path
-    dropPreview.mode = mode
+    dropPreview.value.targetPath = node.path
+    dropPreview.value.mode = mode
     // 使用节流，每 50ms 最多更新一次，减少重新渲染频率
     dropPreviewThrottleTimer = setTimeout(() => {
       dropPreviewThrottleTimer = null
       // 应用最后一次待更新的值
       if (pendingDropPreviewUpdate) {
-        dropPreview.targetPath = pendingDropPreviewUpdate.targetPath
-        dropPreview.mode = pendingDropPreviewUpdate.mode
+        dropPreview.value.targetPath = pendingDropPreviewUpdate.targetPath
+        dropPreview.value.mode = pendingDropPreviewUpdate.mode
         pendingDropPreviewUpdate = null
       }
     }, 50)
@@ -1875,10 +2469,11 @@ const onNodeDragLeave = (_node: DocumentOutlineNode) => {
     dropPreviewThrottleTimer = null
   }
   pendingDropPreviewUpdate = null
-  dropPreview.targetPath = null
-  dropPreview.mode = null
+  dropPreview.value.targetPath = null
+  dropPreview.value.mode = null
 }
 const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
+  const restoreAfterDrop = () => { /* 视口由 vue3-tree-chart 补丁保持，无需恢复 */ }
   try {
     // 清除节流定时器
     if (dropPreviewThrottleTimer) {
@@ -1887,11 +2482,51 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
     }
     pendingDropPreviewUpdate = null
 
+    // 从素材篮拖入：合并到当前树
+    const basketId = e.dataTransfer?.getData(MIME_MATERIAL_BASKET)
+    if (basketId) {
+      draggingBasketId.value = null
+      const mode = dropPreview.value.mode
+      dropPreview.value.targetPath = null
+      dropPreview.value.mode = null
+      const item = materialBasketList.value.find((i) => i.id === basketId)
+      if (!item || !mode) return
+      const tree = treeData.value
+      const target = searchNode(targetNode.path, tree)
+      const targetParent = searchParentNode(targetNode.path, tree)
+      if (!target || !targetParent) return
+      const newNode = basketItemToOutlineNode(item)
+      if (mode === 'inside') {
+        target.children = target.children || []
+        target.children.push(newNode)
+        reindexChildrenPaths(target)
+      } else if (mode === 'parent') {
+        const grandParent = searchParentNode(targetParent.path, tree)
+        if (!grandParent || !grandParent.children) return
+        const idxParent = grandParent.children.findIndex((c) => c.path === targetParent.path)
+        const insertIdx = idxParent >= 0 ? idxParent + 1 : grandParent.children.length
+        grandParent.children.splice(insertIdx, 0, newNode)
+        reindexChildrenPaths(grandParent)
+      } else {
+        const idx = targetParent.children.findIndex((c) => c.path === target.path)
+        if (idx === -1) return
+        const insertIdx = mode === 'before' ? idx : idx + 1
+        targetParent.children.splice(insertIdx, 0, newNode)
+        reindexChildrenPaths(targetParent)
+      }
+      reindexChildrenPaths(tree)
+      commitOutline()
+      const nextBasket = materialBasketList.value.filter((i) => i.id !== basketId)
+      commitMaterialBasket(nextBasket)
+      restoreAfterDrop()
+      return
+    }
+
     const fromPath = draggingNodePath.value
     draggingNodePath.value = null
-    const mode = dropPreview.mode
-    dropPreview.targetPath = null
-    dropPreview.mode = null
+    const mode = dropPreview.value.mode
+    dropPreview.value.targetPath = null
+    dropPreview.value.mode = null
     isDraggingNode.value = false
     if (!fromPath) return
     if (fromPath === targetNode.path || !mode) return
@@ -1959,6 +2594,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         target.children.push(drag)
         reindexChildrenPaths(target)
       }
+      restoreAfterDrop()
       return
     }
 
@@ -1974,6 +2610,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         const shallow = createShallowCopy(drag)
         parent.children.splice(insertIndex, 0, shallow)
         reindexChildrenPaths(parent)
+        restoreAfterDrop()
         return
       }
 
@@ -2001,6 +2638,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         ) {
           // 已经在目标位置，不需要移动
           reindexChildrenPaths(parent)
+          restoreAfterDrop()
           return
         }
 
@@ -2032,6 +2670,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
       // 插入节点
       parent.children.splice(insertIndex, 0, drag)
       reindexChildrenPaths(parent)
+      restoreAfterDrop()
       return
     }
 
@@ -2051,6 +2690,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
           parent.children.splice(idx, 0, drag)
         }
         reindexChildrenPaths(parent)
+        restoreAfterDrop()
         return
       }
       const grandParent = searchParentNode(targetParent.path, treeData.value)
@@ -2066,6 +2706,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         grandParent.children.splice(insertIndex, 0, drag)
       }
       reindexChildrenPaths(grandParent)
+      restoreAfterDrop()
       return
     }
 
@@ -2074,6 +2715,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
       suppressDocumentSync = false
       commitOutline()
     }
+    restoreAfterDrop()
   } catch (err) {
     logger.warn('HTML5 拖拽节点失败', err)
     // 即使出错也要恢复同步状态
@@ -2090,11 +2732,17 @@ const onNodeDragEnd = () => {
   }
   pendingDropPreviewUpdate = null
   draggingNodePath.value = null
-  dropPreview.targetPath = null
-  dropPreview.mode = null
+  dropPreview.value.targetPath = null
+  dropPreview.value.mode = null
   isDraggingNode.value = false
   // 移除 body 上的 class
   document.body.classList.remove('outline-dragging')
+  // 拖动结束后短暂保持 viewport 锁，避免焦点还原等触发的 outline 同步导致视口跳回
+  viewportInteractionLock = true
+  setTimeout(() => {
+    viewportInteractionLock = false
+    chartDataset.value = treeData.value
+  }, VIEWPORT_LOCK_CLEAR_DELAY_MS)
   // 拖动结束时恢复同步并提交更改
   if (suppressDocumentSync) {
     suppressDocumentSync = false
@@ -2106,6 +2754,14 @@ const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({
   mode: null
 })
 const textElementRefs = ref<Record<string, HTMLElement>>({})
+// 库折叠时会把 node.children 移到 node._children，判断是否有子节点需同时看两者
+function hasNodeChildren(node: DocumentOutlineNode & { _children?: DocumentOutlineNode[] }): boolean {
+  return !!(node.children?.length || (node._children?.length ?? 0))
+}
+function nodeChildrenCount(node: DocumentOutlineNode & { _children?: DocumentOutlineNode[] }): number {
+  return node.children?.length ?? node._children?.length ?? 0
+}
+
 const isNodeTextTruncated = (path: string): boolean => {
   const el = textElementRefs.value[path]
   if (!el) return false
@@ -2206,6 +2862,7 @@ const executeRemovePrefixes = async () => {
 
     // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
     treeData.value = modifiedTree
+    chartDataset.value = treeData.value
 
     // 手动提交更改
     await commitOutline(modifiedTree)
@@ -2246,6 +2903,7 @@ const executeFormatTitle = async () => {
 
     // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
     treeData.value = modifiedTree
+    chartDataset.value = treeData.value
 
     // 手动提交更改
     await commitOutline(modifiedTree)
@@ -2705,6 +3363,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 }
 
 .tree-node {
+  position: relative;
   padding: 4px;
   cursor: pointer;
   display: flex;
@@ -2721,6 +3380,131 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 
 .tree-node:hover {
   filter: brightness(1.05);
+}
+
+/* 拖放预览：根据放置位置高亮节点对应边（before/after/inside/parent） */
+.tree-node.drop-before::before,
+.tree-node.drop-after::after,
+.tree-node.drop-inside::before,
+.tree-node.drop-parent::before {
+  content: '';
+  position: absolute;
+  background: v-bind('themeState.currentTheme.primaryColor');
+  opacity: 0.85;
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+/* 纵向布局：左/右为平级前后，上为提升层级，下为作为子节点 */
+.outline-page[data-direction='vertical'] .tree-node.drop-before::before {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.outline-page[data-direction='vertical'] .tree-node.drop-after::after {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.outline-page[data-direction='vertical'] .tree-node.drop-inside::before {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+.outline-page[data-direction='vertical'] .tree-node.drop-parent::before {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+}
+/* 横向布局：上/下为平级前后，左为提升层级，右为作为子节点 */
+.outline-page[data-direction='horizontal'] .tree-node.drop-before::before {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node.drop-after::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node.drop-inside::before {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node.drop-parent::before {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+/* 折叠态节点同样需要定位上下文以便伪元素显示 */
+.tree-node--collapsed-with-children.drop-before::before,
+.tree-node--collapsed-with-children.drop-after::after,
+.tree-node--collapsed-with-children.drop-inside::before,
+.tree-node--collapsed-with-children.drop-parent::before {
+  content: '';
+  position: absolute;
+  background: v-bind('themeState.currentTheme.primaryColor');
+  opacity: 0.85;
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+.outline-page[data-direction='vertical'] .tree-node--collapsed-with-children.drop-before::before {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.outline-page[data-direction='vertical'] .tree-node--collapsed-with-children.drop-after::after {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.outline-page[data-direction='vertical'] .tree-node--collapsed-with-children.drop-inside::before {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+.outline-page[data-direction='vertical'] .tree-node--collapsed-with-children.drop-parent::before {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node--collapsed-with-children.drop-before::before {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node--collapsed-with-children.drop-after::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node--collapsed-with-children.drop-inside::before {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.outline-page[data-direction='horizontal'] .tree-node--collapsed-with-children.drop-parent::before {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
 }
 
 .tree-node-text {
@@ -2754,17 +3538,28 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   filter: brightness(1.1);
 }
 
-/* 折叠且有子节点的节点：左侧竖线 + 轻微背景区分，便于识别可展开 */
+/* 折叠且有子节点的节点：仅背景稍深，浅色/深色主题均适配 */
 .tree-node--collapsed-with-children {
-  border-left: 3px solid v-bind('themeState.currentTheme.primaryColor');
-  border-radius: 0 8px 8px 0;
-  padding-left: 6px;
+  position: relative;
 }
-.tree-node--collapsed-with-children .children-count-badge {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+.outline-page[data-theme='dark'] .tree-node--collapsed-with-children {
+  filter: brightness(1.15);
+}
+.outline-page:not([data-theme='dark']) .tree-node--collapsed-with-children {
+  filter: brightness(0.92);
+}
+/* 有子节点但当前为折叠态（库用普通 slot 渲染时）：仅背景稍深 */
+.tree-node--has-children-collapsed {
+  position: relative;
+}
+.outline-page[data-theme='dark'] .tree-node--has-children-collapsed {
+  filter: brightness(1.15);
+}
+.outline-page:not([data-theme='dark']) .tree-node--has-children-collapsed {
+  filter: brightness(0.92);
 }
 
-/* 子节点数量 badge - 显示在节点文字前 */
+/* 子节点数量 badge - 显示在节点文字前，背景与字体色由内联 style 与 tree-node 一致 */
 .children-count-badge {
   min-width: 20px;
   height: 20px;
@@ -2772,7 +3567,6 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
   font-size: 11px;
   font-weight: bold;
   padding: 0 4px;
@@ -2839,6 +3633,40 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   padding: 8px;
   border-radius: 12px;
   z-index: 100;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.merge-target-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+}
+.merge-target-item {
+  padding: 8px 12px;
+  text-align: left;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+.merge-target-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.merge-target-item.active {
+  background: rgba(64, 158, 255, 0.16);
+}
+.merge-target-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
 /* 格式化标题向导：每项底部显示 hint，不用 tooltip */
@@ -2853,6 +3681,101 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   color: var(--muted-foreground);
   line-height: 1.4;
   padding-left: 0;
+}
+
+/* 新建/编辑素材对话框：整体宽度约 2.5 倍，左右 1:2 + 编辑器加高 */
+.new-material-dialog-content {
+  width: 80vw;
+}
+.new-material-dialog-body {
+  display: flex;
+  gap: 24px;
+  padding: 20px 0;
+  min-height: 416px;
+}
+.new-material-form-column {
+  flex: 0 0 33.33%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.new-material-editor-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+}
+.new-material-editor-wrap {
+  flex: 1;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 260px;
+}
+.new-material-editor-wrap :deep(.md-editor) {
+  border: none;
+  border-radius: 0;
+}
+.new-material-md-editor {
+  height: 100%;
+  min-height: 260px;
+}
+
+/* 编辑章节对话框：与新建/编辑素材同布局与宽度（左标题 + 右编辑器） */
+.edit-chapter-dialog-content {
+  width: 80vw;
+}
+.edit-chapter-dialog-body {
+  display: flex;
+  gap: 24px;
+  padding: 20px 0;
+  min-height: 416px;
+}
+.edit-chapter-form-column {
+  flex: 0 0 33.33%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.edit-chapter-editor-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 320px;
+}
+.edit-chapter-editor-wrap {
+  flex: 1;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 260px;
+}
+.edit-chapter-editor-wrap :deep(.md-editor) {
+  border: none;
+  border-radius: 0;
+}
+.edit-chapter-editor-wrap :deep(.md-editor-toolbar-wrapper),
+.edit-chapter-editor-wrap :deep(.md-editor-content) {
+  border: none;
+}
+.edit-chapter-editor-wrap :deep(.md-editor) {
+  height: 100%;
+  min-height: 260px;
+}
+
+.outline-md-editor-wrap {
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.outline-md-editor-wrap :deep(.md-editor) {
+  border: none;
+  border-radius: 0;
 }
 
 .ai-config-body {
@@ -2927,5 +3850,14 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+</style>
+
+<!-- 编辑/新建对话框内容通过 Portal 到 body，scoped 样式不生效，用全局样式保证 80% 宽度 -->
+<style>
+.dialog-content-box.new-material-dialog-content,
+.dialog-content-box.edit-chapter-dialog-content {
+  width: 80vw !important;
+  max-width: 80vw !important;
 }
 </style>

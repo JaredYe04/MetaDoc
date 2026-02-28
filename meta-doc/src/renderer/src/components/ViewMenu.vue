@@ -54,18 +54,6 @@
         @select="handleSelect"
       />
 
-      <!-- Agent：纯文本格式不显示；PDF 预览 tab 只显示主页和编辑器 -->
-      <ViewMenuItem
-        v-if="!isPlainTextFormat && !isPdfPreviewTab"
-        index="agent"
-        :label="$t('headMenu.agent')"
-        :icon-image="themeState.currentTheme.AgentIcon"
-        :is-active="activeMenuIndex === 'agent'"
-        :is-collapsed="isCollapsed"
-        :is-disabled="isLocked"
-        @select="handleSelect"
-      />
-
       <!-- 文章校对：纯文本格式不显示，需要活动文档；PDF 预览 tab 只显示主页和编辑器 -->
       <ViewMenuItem
         v-if="activeDocument && !isPlainTextFormat && !isPdfPreviewTab"

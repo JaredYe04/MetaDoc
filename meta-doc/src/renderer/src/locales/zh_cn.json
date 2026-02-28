@@ -114,6 +114,7 @@
       "reset": "重置",
       "save": "保存"
     },
+    "userManual": "用户手册",
     "userFeedback": "反馈"
   },
   "llmDialog": {
@@ -1250,10 +1251,13 @@
       "asRightSibling": "作为右兄弟节点",
       "asLeftSibling": "作为左兄弟节点",
       "selectTargetFirst": "请先在大纲中选中目标节点",
+      "selectTargetNode": "选择插入位置的目标节点",
       "copy": "复制",
       "delete": "删除",
       "deleteConfirm": "确定要移除此素材吗？",
       "newMaterialTitle": "新建素材",
+      "editMaterialTitle": "编辑素材",
+      "titleLabel": "标题",
       "name": "名称",
       "prompt": "提示词",
       "promptPlaceholder": "描述希望 AI 生成的内容方向",
@@ -1261,7 +1265,9 @@
       "aiGenerate": "AI 生成",
       "generating": "生成中…",
       "save": "保存",
-      "cancel": "取消"
+      "cancel": "取消",
+      "searchPlaceholder": "按标题、关键词、内容搜索",
+      "noSearchResult": "无匹配项"
     }
   },
   "setting": {
@@ -1274,6 +1280,9 @@
     "startupOption": "启动选项",
     "openNewFile": "打开新文件",
     "openLastFile": "打开上次编辑的文件",
+    "externalFileOpenMode": "外部文件打开方式",
+    "openInNewWindow": "在新窗口中打开",
+    "openInNewTab": "在当前窗口新标签页中打开",
     "askBeforeSave": "总是询问保存",
     "enableKnowledgeBase": "启用知识库",
     "embeddingMode": "Embedding 模式",
@@ -1318,6 +1327,7 @@
     "codeTheme": "代码主题",
     "selectCodeTheme": "选择代码主题",
     "lineNumber": "代码框显示行号",
+    "lineNumberHint": "在编辑器中显示代码行号",
     "customThemeColor": "自定义主题颜色",
     "newTheme": "新建主题",
     "editTheme": "编辑主题",
@@ -1359,6 +1369,17 @@
     "microphoneHint": "检测麦克风是否能正常录音。",
     "excludeCodeBlocks": "统计文本时排除代码块",
     "excludeCodeHint": "代码的内容会影响词频统计的准确性，因此可选择是否排除。",
+    "fontUi": "界面字体",
+    "fontUiLabel": "UI字体",
+    "fontEditor": "编辑器字体",
+    "fontEditorChinese": "编辑器中文字体",
+    "fontEditorWestern": "编辑器西文字体",
+    "fontPreview": "渲染预览字体",
+    "fontPreviewChinese": "预览中文字体",
+    "fontPreviewWestern": "预览西文字体",
+    "selectFont": "选择字体",
+    "selectChineseFont": "选择中文字体",
+    "selectWesternFont": "选择西文字体",
     "autoDownloadImage": "自动下载外部图片",
     "autoDownloadHint": "若开启，在导入外部图片时，会自动保存到本地，否则离线时外部图片无法显示。需重新打开编辑器界面生效。",
     "parseEmbeddedImages": "解析文档内嵌图片",

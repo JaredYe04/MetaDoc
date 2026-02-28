@@ -2,7 +2,8 @@ import type {
   ArticleMetaData,
   AIDialogMessage,
   AIDialog,
-  DocumentOutlineNode
+  DocumentOutlineNode,
+  MaterialBasketItem
 } from '../../../types'
 import type { AgentSession } from '../types/agent'
 import type { SchemaDefinition } from '../utils/schemas'
@@ -75,7 +76,8 @@ export const DEFAULT_ARTICLE_META: ArticleMetaData = {
   title: '',
   author: '',
   description: '',
-  keywords: []
+  keywords: [],
+  materialBasket: []
 }
 
 export const DEFAULT_AI_ASSISTANT_GREETING =

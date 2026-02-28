@@ -93,6 +93,25 @@ export interface WorkspaceService {
   }>
 
   /**
+   * 获取当前打开的文档 Tab 列表（仅 kind === 'file' | 'new'，不含系统/工具 Tab）
+   */
+  getDocumentTabs(): Array<{
+    id: string
+    title: string
+    path: string
+    format: string
+  }>
+
+  /**
+   * 获取工作区轻量级文件列表（用于系统上下文注入，限制深度与条数）
+   * @param options maxDepth 最大递归深度，maxEntries 最大条目数
+   */
+  getWorkspaceFileList(options?: {
+    maxDepth?: number
+    maxEntries?: number
+  }): Promise<Array<{ path: string; isDirectory: boolean }>>
+
+  /**
    * 获取当前活动标签页 ID
    */
   getActiveTabId(): string | null
@@ -354,6 +373,16 @@ class AgentToolServices {
     const workspace = useWorkspace()
     const { activeDocument } = useActiveDocument()
 
+    const listDir = async (dirPath: string) => {
+      if (!isElectronEnv() || !messageBridge.getIpc()) return []
+      const entries = (await messageBridge.invoke('read-directory', dirPath)) as Array<{
+        name: string
+        path: string
+        isDirectory: boolean
+      }>
+      return entries
+    }
+
     return {
       getActiveDocument: () => {
         const doc = activeDocument.value
@@ -377,6 +406,53 @@ class AgentToolServices {
           path: tab.path,
           format: tab.format
         }))
+      },
+
+      getDocumentTabs: () => {
+        return workspace.tabs
+          .filter((tab) => tab.kind === 'file' || tab.kind === 'new')
+          .map((tab) => ({
+            id: tab.id,
+            title: tab.title,
+            path: tab.path,
+            format: tab.format || 'md'
+          }))
+      },
+
+      getWorkspaceFileList: async (options = {}) => {
+        const { maxDepth = 2, maxEntries = 200 } = options
+        let roots: string[] = []
+        try {
+          const saved = localStorage.getItem('workspaceFolders')
+          if (saved) {
+            const arr = JSON.parse(saved)
+            roots = Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+          }
+        } catch {
+          // ignore
+        }
+        if (roots.length === 0) return []
+        const exclude = new Set(['.git', 'node_modules', '.metadoc'])
+        const result: Array<{ path: string; isDirectory: boolean }> = []
+        const queue: Array<{ path: string; depth: number }> = roots.map((r) => ({ path: r, depth: 0 }))
+        while (queue.length > 0 && result.length < maxEntries) {
+          const { path: dirPath, depth } = queue.shift()!
+          if (depth >= maxDepth) continue
+          try {
+            const entries = await listDir(dirPath)
+            for (const e of entries) {
+              if (result.length >= maxEntries) break
+              if (exclude.has(e.name)) continue
+              result.push({ path: e.path, isDirectory: e.isDirectory })
+              if (e.isDirectory && depth + 1 < maxDepth) {
+                queue.push({ path: e.path, depth: depth + 1 })
+              }
+            }
+          } catch {
+            // ignore single directory errors
+          }
+        }
+        return result
       },
 
       getActiveTabId: () => {

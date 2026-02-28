@@ -228,6 +228,84 @@ ${outlineMarkdown || '（暂无大纲）'}
   )
 }
 
+/**
+ * 新建/编辑素材：根据用户提示生成素材标题（i18n）
+ */
+export const getNewMaterialTitlePrompt = (userPrompt: string): string => {
+  const template = getPromptTemplate('newMaterialGenerateTitlePrompt', {
+    userPrompt: userPrompt || '（未填写）'
+  })
+  return (
+    template ||
+    `你是一个文档编辑助手。用户正在创建一条「素材」，当前用户给出的提示词或方向如下：
+
+**用户提示：** ${userPrompt || '（未填写）'}
+
+请根据上述提示，生成一个简洁的素材标题（15字以内）。
+
+**输出要求：** 直接输出标题本身，从第一行开始，不要添加引号、前缀或解释。`
+  )
+}
+
+/**
+ * 新建/编辑素材：根据标题与提示生成推荐关键词（i18n）
+ */
+export const getNewMaterialKeywordsPrompt = (
+  sectionTitle: string,
+  userPrompt: string,
+  outlineMarkdown: string
+): string => {
+  const template = getPromptTemplate('newMaterialGenerateKeywordsPrompt', {
+    sectionTitle: sectionTitle || '（未命名）',
+    userPrompt: userPrompt || '（未填写）',
+    outlineMarkdown: outlineMarkdown || '（暂无大纲）'
+  })
+  return (
+    template ||
+    `你是一个专业的文档编辑助手。当前需要为一条「素材」生成「推荐关键词」。
+
+**素材标题：** ${sectionTitle || '（未命名）'}
+
+**用户提示词/方向：** ${userPrompt || '（未填写）'}
+
+**整体大纲（Markdown）：**
+${outlineMarkdown || '（暂无大纲）'}
+
+请根据标题与提示的语境，生成 5-8 个推荐关键词。
+
+**输出要求：** 请严格输出符合给定 JSON Schema 的结果，仅包含 keywords 数组，不要添加解释。`
+  )
+}
+
+/**
+ * 新建/编辑素材：根据标题、提示与关键词生成正文（i18n）
+ */
+export const getNewMaterialContentPrompt = (
+  title: string,
+  userPrompt: string,
+  keywords: string
+): string => {
+  const template = getPromptTemplate('newMaterialGenerateContentPrompt', {
+    title: title || '（未命名）',
+    userPrompt: userPrompt || '（未填写）',
+    keywords: keywords || '（无）'
+  })
+  return (
+    template ||
+    `你是一个文笔出色的编辑。用户正在为「素材」生成正文。
+
+**素材标题：** ${title || '（未命名）'}
+
+**用户提示词：** ${userPrompt || '（未填写）'}
+
+**关键词：** ${keywords || '（无）'}
+
+请根据标题、提示词与关键词，直接撰写该素材的正文内容。
+
+**输出要求：** 直接输出正文，从第一行开始就是内容，使用 Markdown 格式。`
+  )
+}
+
 export const sectionChangePrompt = (
   tree: string,
   section: string,

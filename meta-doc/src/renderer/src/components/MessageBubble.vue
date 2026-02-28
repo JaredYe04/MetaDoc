@@ -62,7 +62,10 @@ const emit = defineEmits<{
   regenerate: [index: number]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const editorLanguage = computed(() =>
+  String(locale?.value ?? 'zh_CN').startsWith('zh') ? 'zh-CN' : 'en-US'
+)
 
 const role = computed(() => {
   return props.message.role
@@ -476,15 +479,18 @@ onBeforeMount(() => {
       <DialogHeader>
         <DialogTitle>{{ $t('messageBubble.editTitle') }}</DialogTitle>
       </DialogHeader>
-      <md-editor
-        v-model="editingText"
-        showCodeRowNumber
-        previewTheme="github"
-        codeStyleReverse
-        style="text-align: left"
-        :autoFoldThreshold="300"
-        :theme="themeState.currentTheme.vditorTheme as any"
-      />
+      <div class="message-bubble-md-editor-wrap">
+        <md-editor
+          v-model="editingText"
+          showCodeRowNumber
+          previewTheme="github"
+          codeStyleReverse
+          style="text-align: left"
+          :autoFoldThreshold="300"
+          :theme="themeState.currentTheme.vditorTheme as any"
+          :language="editorLanguage"
+        />
+      </div>
       <DialogFooter>
         <Button variant="secondary" @click="editDialogVisible = false">{{
           $t('common.cancel')
@@ -496,6 +502,16 @@ onBeforeMount(() => {
 </template>
 
 <style scoped>
+.message-bubble-md-editor-wrap {
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.message-bubble-md-editor-wrap :deep(.md-editor) {
+  border: none;
+  border-radius: 0;
+}
+
 .side-button {
   align-self: flex-end; /* 将按钮对齐到容器的底部 */
   margin-top: auto; /* 自动填充上方的空间，贴到底部 */

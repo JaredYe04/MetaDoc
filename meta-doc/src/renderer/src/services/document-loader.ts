@@ -41,7 +41,10 @@ const cloneOutline = (node: DocumentOutlineNode): DocumentOutlineNode =>
 
 const cloneMeta = (meta: ArticleMetaData): ArticleMetaData => ({
   ...meta,
-  keywords: Array.isArray(meta.keywords) ? [...meta.keywords] : []
+  keywords: Array.isArray(meta.keywords) ? [...meta.keywords] : [],
+  materialBasket: Array.isArray(meta.materialBasket)
+    ? JSON.parse(JSON.stringify(meta.materialBasket))
+    : []
 })
 
 const cloneDialogs = (dialogs: AIDialog[]): AIDialog[] => JSON.parse(JSON.stringify(dialogs))

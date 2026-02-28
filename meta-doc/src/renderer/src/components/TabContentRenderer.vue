@@ -35,13 +35,6 @@
               :key="`visualize-${tab.id}`"
             />
           </keep-alive>
-          <!-- Agent视图 -->
-          <keep-alive v-if="shouldRenderView(tab.id, 'agent')">
-            <AgentView
-              v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
-              :key="`agent-${tab.id}`"
-            />
-          </keep-alive>
           <!-- Proofread视图 -->
           <keep-alive v-if="shouldRenderView(tab.id, 'proofread')">
             <ProofreadView
@@ -83,7 +76,6 @@ import Home from '../views/Home.vue'
 import Editor from '../views/Editor.vue'
 import Outline from '../views/Outline.vue'
 import Visualize from '../views/Visualize.vue'
-import AgentView from '../views/AgentView.vue'
 import ProofreadView from '../views/ProofreadView.vue'
 
 const workspace = useWorkspace()

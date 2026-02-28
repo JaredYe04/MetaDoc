@@ -21,6 +21,28 @@ export interface DocumentOutlineNode {
   extras?: Record<string, any>
 }
 
+/** 素材篮单项（节点暂存区，可来自大纲或本地面板新建） */
+export interface MaterialBasketItem {
+  /** 唯一 id */
+  id: string
+  /** 标题/名称 */
+  title: string
+  /** 正文内容 */
+  text: string
+  /** 子节点（从大纲移入时保留结构） */
+  children?: MaterialBasketItem[]
+  /** 标题层级（与大纲一致） */
+  title_level?: number
+  /** AI 生成用提示词（本地面板新建时可填） */
+  prompt?: string
+  /** AI 温度（本地面板新建时可填） */
+  temperature?: number
+  /** 关键词/标签（本地面板新建时可填，也可自动生成） */
+  keywords?: string[]
+  /** 创建时间戳 */
+  createdAt?: number
+}
+
 /** 文档元信息 */
 export interface ArticleMetaData {
   /** 文档标题 */
@@ -31,6 +53,8 @@ export interface ArticleMetaData {
   description: string
   /** 文档关键词 */
   keywords: string[]
+  /** 素材篮（节点暂存区，持久化在文档元信息中） */
+  materialBasket?: MaterialBasketItem[]
 }
 
 /** 文档格式类型 */

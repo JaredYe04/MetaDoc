@@ -1066,9 +1066,55 @@ function bindFileHandlers(): void {
         }
 
         fs.mkdirSync(newPath, { recursive: true })
+
+        // .metadoc 设为系统隐藏文件夹（Windows 下设置隐藏属性；macOS/Linux 下以点开头已默认隐藏）
+        if (folderName === '.metadoc' && process.platform === 'win32') {
+          try {
+            const { execSync } = require('child_process')
+            execSync(`attrib +h "${newPath}"`, { stdio: 'ignore' })
+          } catch (attrErr) {
+            logger.warn('设置 .metadoc 隐藏属性失败:', attrErr)
+          }
+        }
+
         return newPath
       } catch (error) {
         logger.error('创建文件夹失败:', error)
+        throw error
+      }
+    }
+  )
+
+  // 获取 Agent 工作区根路径，并确保 .metadoc/agent 存在（用于工作区级 Agent 会话持久化）
+  ipcBridge.registerHandle(
+    'get-agent-workspace-root',
+    async (event: IpcMainInvokeEvent, workspaceFolders: string[]): Promise<string> => {
+      try {
+        const root = Array.isArray(workspaceFolders) && workspaceFolders.length > 0
+          ? workspaceFolders[0]
+          : app.getPath('userData')
+
+        const metadocDir = path.join(root, '.metadoc')
+        if (!fs.existsSync(metadocDir)) {
+          fs.mkdirSync(metadocDir, { recursive: true })
+          if (process.platform === 'win32') {
+            try {
+              const { execSync } = require('child_process')
+              execSync(`attrib +h "${metadocDir}"`, { stdio: 'ignore' })
+            } catch (attrErr) {
+              logger.warn('设置 .metadoc 隐藏属性失败:', attrErr)
+            }
+          }
+        }
+
+        const agentDir = path.join(metadocDir, 'agent')
+        if (!fs.existsSync(agentDir)) {
+          fs.mkdirSync(agentDir, { recursive: true })
+        }
+
+        return root
+      } catch (error) {
+        logger.error('get-agent-workspace-root 失败:', error)
         throw error
       }
     }

@@ -265,6 +265,15 @@
         @click="openKnowledgeBase"
       />
 
+      <!-- Agent -->
+      <UIMenuItem
+        v-if="menuId === 'agent' && isMenuItemVisible('agent')"
+        :label="$t('headMenu.agent', 'Agent')"
+        :tooltip="$t('headMenu.agent', 'Agent')"
+        :icon-image="(themeState.currentTheme as any).AgentIcon"
+        @click="openAgent"
+      />
+
       <!-- 工作目录 -->
       <UIMenuItem
         v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
@@ -718,6 +727,16 @@
         @click="openKnowledgeBase"
       />
 
+      <!-- Agent -->
+      <UIMenuItem
+        v-if="menuId === 'agent' && isMenuItemVisible('agent')"
+        :label="$t('headMenu.agent', 'Agent')"
+        :tooltip="$t('headMenu.agent', 'Agent')"
+        :icon-image="(themeState.currentTheme as any).AgentIcon"
+        class="bottom-menu"
+        @click="openAgent"
+      />
+
       <!-- 工作目录 -->
       <UIMenuItem
         v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
@@ -1066,6 +1085,14 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
       position: 'top'
     },
     {
+      id: 'agent',
+      label: t('headMenu.agent', 'Agent'),
+      iconImage: (themeState.currentTheme as any).AgentIcon,
+      visible: true,
+      isCore: false,
+      position: 'top'
+    },
+    {
       id: 'workspace-explorer',
       label: t('leftMenu.workspaceExplorer', '工作目录'),
       iconImage: (themeState.currentTheme as any).FolderIcon,
@@ -1367,6 +1394,11 @@ const openGlobalHome = () => {
 // 打开知识库
 const openKnowledgeBase = () => {
   workspace.openSystemTab('/knowledge-base', t('leftMenu.knowledgeBase', '知识库'))
+}
+
+// 打开 Agent（工作区级）
+const openAgent = () => {
+  workspace.openSystemTab('/agent', t('headMenu.agent', 'Agent'))
 }
 
 // 切换工作目录菜单

@@ -445,6 +445,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
 
 // === Demo Mode Props ===
 const props = defineProps<{
@@ -487,6 +488,7 @@ import type {
 } from '../types/agent'
 import { cloneDeep } from 'lodash'
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace'
+import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import {
   agentConfigManager,
   agentSessionManager,
@@ -546,10 +548,12 @@ const {
   activeTabId,
   removeTab,
   moveTab,
-  activateTab,
-  updateDocumentAgentSessions,
-  updateDocumentActiveAgentSessionId
+  activateTab
 } = workspace
+const agentStore = useAgentWorkspaceStore()
+// 与紧凑面板共享的 UI 状态（输入框、生成状态、引擎选择、任务句柄）
+const { composerInput, selectedEngineId, isGenerating, currentAiTaskHandle, aiTaskHandles } =
+  storeToRefs(agentStore)
 
 const borderColor = computed(() =>
   themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
@@ -696,12 +700,11 @@ const tools = computed(() => {
         id: tool.config.id,
         name: agentToolManager.getLocalizedText(tool.config.name),
         description: agentToolManager.getLocalizedText(tool.config.description),
-        origin:
-          tool.config.origin === 'internal'
-            ? 'renderer'
-            : tool.config.origin === 'mcp'
-              ? 'mcp'
-              : 'main',
+        origin: (tool.config.origin === 'internal'
+          ? 'renderer'
+          : tool.config.origin === 'mcp'
+            ? 'mcp'
+            : 'main') as ToolOrigin,
         tags: tool.config.tags || [],
         running: tool.running,
         enabled: tool.config.enabled !== false,
@@ -713,15 +716,15 @@ const tools = computed(() => {
     return []
   }
 })
-const sessionsState = ref<AgentSession[]>([])
-const activeSessionId = ref<string | null>(null)
+// 工作区级会话：来自 agent-workspace-store，与 .metadoc 持久化同步
+const sessionsState = computed(() => agentStore.sessions)
+const activeSessionId = computed(() => agentStore.activeSessionId)
 const activeToolId = ref<string | null>(null)
 const syncingSessions = ref(false)
 // 当前激活的引用ID列表（用于控制哪些引用会被发送给AI）
 const activeReferenceIds = ref<string[]>([])
 const shouldBootstrapDemoSessions = false // 不再使用示例会话
 const demoAppliedDocs = new Set<string>()
-const composerInput = ref('')
 const openSessionMenuId = ref<string | null>(null)
 // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
 const showCreateSessionDialog = ref(false)
@@ -733,11 +736,7 @@ const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
 const selectedAgentConfigId = ref<string>('')
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
-const selectedEngineId = ref<string>('default-autogpt-engine')
 const availableEngines = ref(agentEngineManager.getEnabledEngines())
-const currentAiTaskHandle = ref<string | null>(null)
-const aiTaskHandles = ref<Set<string>>(new Set()) // 保存所有AI任务的handle
-const isGenerating = ref(false)
 
 // === Demo Mode Data ===
 const loadDemoData = () => {
@@ -820,8 +819,8 @@ const loadDemoData = () => {
     }
   ]
 
-  sessionsState.value = demoSessions
-  activeSessionId.value = demoSessions[0].id
+  agentStore.setSessions(demoSessions)
+  agentStore.setActiveSessionId(demoSessions[0].id)
 
   // 演示引擎列表
   availableEngines.value = [
@@ -839,7 +838,7 @@ const loadDemoData = () => {
       enabled: true,
       isBuiltIn: false
     }
-  ]
+  ] as any
   selectedEngineId.value = 'default-autogpt-engine'
 }
 
@@ -855,30 +854,8 @@ const showEditMessageDialog = ref(false)
 const editingMessage = ref<ChatAgentMessage | null>(null)
 const editingMessageContent = ref('')
 const showToolPane = ref(false) // 默认隐藏工具面板
-// 判断是否需要显示格式选择界面
-const needsFormatSelection = computed(() => {
-  const doc = activeDocument.value
-  if (!doc) {
-    // 没有活动文档，如果没有标签页，创建一个
-    if (!activeTabId.value && workspace.tabs.length === 0) {
-      workspace.openNewDocumentTab()
-    }
-    return true
-  }
-
-  // 检查文档格式是否已确定
-  // 如果文档是新建的（kind === 'new'）且格式未确定（format为空或未设置），需要选择格式
-  const tab = workspace.tabs.find((t) => t.id === doc.tabId)
-  if (
-    tab &&
-    tab.kind === 'new' &&
-    (!doc.format || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0))
-  ) {
-    return true
-  }
-
-  return false
-})
+// 不再要求文章初始化后才能使用 Agent View，可直接打开使用
+const needsFormatSelection = computed(() => false)
 
 const activeSession = computed(
   () => sessionsState.value.find((session) => session.id === activeSessionId.value) ?? null
@@ -915,143 +892,38 @@ const activeTool = computed(
 )
 
 const ensureActiveSessionId = () => {
-  const list = sessionsState.value
+  const list = agentStore.sessions
   if (!list.length) {
-    activeSessionId.value = null
+    agentStore.setActiveSessionId(null)
     openSessionMenuId.value = null
     return
   }
-  if (!list.some((session) => session.id === activeSessionId.value)) {
-    activeSessionId.value = list[0].id
+  if (!list.some((session) => session.id === agentStore.activeSessionId)) {
+    agentStore.setActiveSessionId(list[0].id)
   }
 }
 
 const touchSession = (session: AgentSession) => {
   session.updatedAt = new Date().toISOString()
+  agentStore.touchSession()
 }
 
-const applySessionsToDocument = (sessions: AgentSession[], skipDirtyCheck = false) => {
-  const doc = activeDocument.value
-  if (!doc) return
-  syncingSessions.value = true
-  updateDocumentAgentSessions(doc.tabId, cloneDeep(sessions), skipDirtyCheck)
-  nextTick(() => {
-    syncingSessions.value = false
-  })
-}
+/** 工作区级：触发 store 持久化到 .metadoc */
+const persistSessions = () => agentStore.touchSession()
 
-const persistSessions = () => {
-  if (!activeDocument.value) return
-  applySessionsToDocument(sessionsState.value, false)
-}
+// 工作区级：挂载时从 .metadoc 加载会话（演示模式跳过）
+onMounted(async () => {
+  if (isDemo.value) return
+  await agentStore.init()
+  ensureActiveSessionId()
+})
 
 watch(
-  () => activeDocument.value?.agentSessions,
-  (sessions) => {
-    // 演示模式：跳过文档会话同步
-    if (isDemo.value) {
-      return
-    }
-
-    const doc = activeDocument.value
-    if (!doc) {
-      sessionsState.value = []
-      activeSessionId.value = null
-      return
-    }
-    if (syncingSessions.value) {
-      syncingSessions.value = false
-      return
-    }
-
-    // 关键：如果在流式输出期间，不要更新sessionsState，避免破坏reactive对象
-    if (isGenerating.value) {
-      const logger = createRendererLogger('AgentView')
-      logger.debug('[watch agentSessions] 正在生成中，跳过会话更新以避免破坏reactive对象')
-      return
-    }
-
-    let source = Array.isArray(sessions) ? cloneDeep(sessions as AgentSession[]) : []
-
-    // 如果没有会话，创建默认会话
-    if (!source.length) {
-      try {
-        const defaultConfigId = 'default-agent-config'
-        const defaultSession = agentSessionManager.createSession(
-          defaultConfigId,
-          t('agent.sessions.defaultTitle'),
-          ''
-        )
-
-        // 获取当前文档信息并设置到publicContext
-        const doc = activeDocument.value
-        if (doc) {
-          // 确保文档格式已设置（如果未设置，默认为md）
-          const docFormat = doc.format || 'md'
-          defaultSession.publicContext = defaultSession.publicContext || {}
-          defaultSession.publicContext.document = {
-            id: activeTabId.value || '',
-            path: doc.path || '',
-            format: docFormat as 'md' | 'tex',
-            title: doc.meta?.title || ''
-          }
-        }
-
-        const legacySession: AgentSession = {
-          id: defaultSession.id,
-          title: defaultSession.title,
-          description: defaultSession.description,
-          createdAt: new Date(defaultSession.createdAt).toISOString(),
-          updatedAt: new Date(defaultSession.updatedAt).toISOString(),
-          messages: defaultSession.messages,
-          activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
-          agentConfigId: defaultSession.agentConfigId,
-          messageQueue: defaultSession.messageQueue || [],
-          referenceStore: defaultSession.referenceStore || [],
-          publicContext: defaultSession.publicContext || {},
-          executionNodes: defaultSession.executionNodes || [],
-          status: defaultSession.status || 'idle'
-        }
-
-        source = [legacySession]
-        sessionsState.value = source
-        ensureActiveSessionId()
-
-        // 创建默认会话时不触发dirty状态
-        applySessionsToDocument(source, true)
-        return
-      } catch (error) {
-        console.error('创建默认会话失败:', error)
-      }
-    }
-
-    sessionsState.value = source
-    // 恢复迁移/保存的当前会话（文档 activeAgentSessionId）
-    const savedId = doc.activeAgentSessionId
-    if (savedId && source.some((s: AgentSession) => s.id === savedId)) {
-      activeSessionId.value = savedId
-    } else {
-      ensureActiveSessionId()
-    }
-    openSessionMenuId.value = null
-
-    // 如果有会话变更，持久化
-    if (source.length > 0) {
-      applySessionsToDocument(source)
-    }
-  },
-  { immediate: true, deep: true }
-)
-
-watch(
-  () => activeSessionId.value,
+  () => agentStore.activeSessionId,
   (newId) => {
     activeToolId.value = null
     composerInput.value = ''
     openSessionMenuId.value = null
-    if (activeTabId.value && newId) {
-      updateDocumentActiveAgentSessionId(activeTabId.value, newId)
-    }
     // 切换会话时，重置激活的引用ID列表，默认激活所有引用
     if (activeSession.value?.referenceStore) {
       activeReferenceIds.value = activeSession.value.referenceStore.map((ref) => ref.id)
@@ -1192,8 +1064,8 @@ const createSession = (agentConfigId?: string) => {
       executionNodes: [],
       status: 'idle'
     }
-    sessionsState.value.unshift(demoSession)
-    activeSessionId.value = demoSession.id
+    agentStore.setSessions([demoSession, ...agentStore.sessions])
+    agentStore.setActiveSessionId(demoSession.id)
     showCreateSessionDialog.value = false
     notifySuccess(t('agent.sessions.createSuccess', '会话创建成功'))
     return
@@ -1242,9 +1114,9 @@ const createSession = (agentConfigId?: string) => {
       status: session.status || 'idle'
     }
 
-    sessionsState.value.unshift(legacySession)
+    agentStore.setSessions([legacySession, ...agentStore.sessions])
     ensureActiveSessionId()
-    activeSessionId.value = session.id
+    agentStore.setActiveSessionId(session.id)
     persistSessions()
     showCreateSessionDialog.value = false
     selectedAgentConfigId.value = ''
@@ -1265,7 +1137,7 @@ const deleteSession = async (session?: AgentSession) => {
 
   // 演示模式：直接删除不确认
   if (isDemo.value) {
-    sessionsState.value = sessionsState.value.filter((item) => item.id !== target.id)
+    agentStore.setSessions(agentStore.sessions.filter((item) => item.id !== target.id))
     ensureActiveSessionId()
     if (sessionsState.value.length === 0) {
       loadDemoData()
@@ -1279,7 +1151,7 @@ const deleteSession = async (session?: AgentSession) => {
       t('agent.sessions.delete'),
       { type: 'warning' }
     )
-    sessionsState.value = sessionsState.value.filter((item) => item.id !== target.id)
+    agentStore.setSessions(agentStore.sessions.filter((item) => item.id !== target.id))
     ensureActiveSessionId()
     persistSessions()
     notifySuccess(t('agent.sessions.deleteSuccess'))
@@ -1318,11 +1190,10 @@ const createDefaultSession = () => {
       status: defaultSession.status || 'idle'
     }
 
-    sessionsState.value = [legacySession]
+    agentStore.setSessions([legacySession])
     ensureActiveSessionId()
-    activeSessionId.value = legacySession.id
-    // 创建默认会话时不触发dirty状态
-    applySessionsToDocument([legacySession], true)
+    agentStore.setActiveSessionId(legacySession.id)
+    agentStore.touchSession()
   } catch (error) {
     notifyError(error instanceof Error ? error.message : String(error))
   }
@@ -1737,12 +1608,13 @@ const executeAgentEngine = async (
 
       // 创建工具调用队列（用于执行检测到的工具调用）
       const { ToolCallQueue } = await import('../utils/agent-framework/tool-call-queue')
-      const toolCallQueue = new ToolCallQueue(session as any, agentConfig)
+      const toolCallQueue = new ToolCallQueue(session as any, abortController.signal)
 
       // 创建工具调用检测回调
       const onToolCallsDetected = async (
         toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>
       ) => {
+        if (!assistantMessage) return
         logger.debug('[executeAgentEngine] 检测到工具调用:', {
           toolCallsCount: toolCalls.length,
           toolCalls: toolCalls.map((tc) => ({ id: tc.id, tool_id: tc.tool_id }))
@@ -2301,9 +2173,9 @@ const handleDuplicateSession = async (session: AgentSession) => {
       status: duplicated.status
     }
 
-    sessionsState.value.unshift(legacySession)
+    agentStore.setSessions([legacySession, ...agentStore.sessions])
     ensureActiveSessionId()
-    activeSessionId.value = duplicated.id
+    agentStore.setActiveSessionId(duplicated.id)
     persistSessions()
     notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {
@@ -2381,9 +2253,9 @@ const handleImportSession = () => {
         status: session.status
       }
 
-      sessionsState.value.unshift(legacySession)
+      agentStore.setSessions([legacySession, ...agentStore.sessions])
       ensureActiveSessionId()
-      activeSessionId.value = session.id
+      agentStore.setActiveSessionId(session.id)
       persistSessions()
       notifySuccess(t('agent.sessions.importSuccess'))
     } catch (error) {
@@ -2468,11 +2340,8 @@ const sessionListItems = computed<SessionListItem[]>(() =>
 )
 
 const handleSessionListSelect = (item: SessionListItem) => {
-  activeSessionId.value = item.id
+  agentStore.setActiveSessionId(item.id)
   openSessionMenuId.value = null
-  if (activeTabId.value) {
-    updateDocumentActiveAgentSessionId(activeTabId.value, item.id)
-  }
 }
 
 const handleSessionListRename = (item: SessionListItem, newTitle: string) => {
@@ -2502,7 +2371,7 @@ const handleSessionListDelete = (item: SessionListItem) => {
     return
   }
 
-  sessionsState.value = sessionsState.value.filter((s) => s.id !== session.id)
+  agentStore.setSessions(agentStore.sessions.filter((s) => s.id !== session.id))
   ensureActiveSessionId()
   persistSessions()
   notifySuccess(t('agent.sessions.deleteSuccess'))
@@ -2856,9 +2725,9 @@ const handleMessageDuplicate = async (message: AgentMessage) => {
       status: duplicated.status
     }
 
-    sessionsState.value.unshift(legacySession)
+    agentStore.setSessions([legacySession, ...agentStore.sessions])
     ensureActiveSessionId()
-    activeSessionId.value = duplicated.id
+    agentStore.setActiveSessionId(duplicated.id)
     persistSessions()
     notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {

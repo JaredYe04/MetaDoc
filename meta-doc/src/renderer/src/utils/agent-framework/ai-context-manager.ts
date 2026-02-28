@@ -278,6 +278,38 @@ export class AIContextManager {
       prompt += `处理器架构: ${systemInfo.arch}\n\n`
     }
 
+    // 注入当前打开的文档 Tab 列表与工作区信息（与时间戳、当前 tab reference 同级）
+    try {
+      const workspace = useWorkspace()
+      const documentTabs = (workspace.tabs as Array<{ id: string; title: string; path: string; kind: string; format?: string }>)
+        .filter((tab) => tab.kind === 'file' || tab.kind === 'new')
+        .map((tab) => ({ id: tab.id, title: tab.title, path: tab.path, format: tab.format || 'md' }))
+      if (documentTabs.length > 0) {
+        prompt += `当前打开的文档 Tab（共 ${documentTabs.length} 个）：\n`
+        documentTabs.forEach((t, i) => {
+          prompt += `  ${i + 1}. id=${t.id}, title=${t.title || '(无标题)'}, path=${t.path || '(未保存)'}, format=${t.format}\n`
+        })
+        prompt += '\n'
+      }
+      let roots: string[] = []
+      try {
+        const saved = localStorage.getItem('workspaceFolders')
+        if (saved) {
+          const arr = JSON.parse(saved)
+          roots = Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+        }
+      } catch {
+        // ignore
+      }
+      if (roots.length > 0) {
+        prompt += `工作区根路径: ${roots.join(', ')}\n\n`
+      } else {
+        prompt += '工作区: 全局 default 工作区（未打开文件夹）\n\n'
+      }
+    } catch (e) {
+      getLogger().warn('[buildSystemPrompt] 注入 openTabs/workspace 失败', e)
+    }
+
     // 公共上下文（兼容新旧格式）
     const publicCtx = (session as any).publicContext
     if (publicCtx) {

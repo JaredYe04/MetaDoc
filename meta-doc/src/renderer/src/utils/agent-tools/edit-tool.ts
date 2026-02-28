@@ -998,9 +998,10 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
                   '示例：{"filePath": "path/to/new.md", "diff": "@@ -0,0 +1,3 @@\\n+line1\\n+line2\\n+line3"}'
                 ],
                 []
-              )
-            }
-          const newContent = hunks.flatMap((h) => h.newLines).join('\n')
+            )
+          }
+        }
+        const newContent = hunks.flatMap((h) => h.newLines).join('\n')
           onUpdate(
             {
               content: { stage: 'updating', editCount: 1, appliedCount: 1, failedCount: 0 },
@@ -1010,15 +1011,21 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             { percentage: 80, message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...') }
           )
           await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
+          const newFileResult: EditResult = {
+            appliedEdits: 1,
+            failedEdits: 0,
+            operations: [],
+            hunks,
+            ...(verbose ? { originalContent: '', newContent } : {})
+          }
           return {
-            status: 'success',
+            status: 'succeeded',
             data: {
-              appliedEdits: 1,
-              failedEdits: 0,
-              operations: [],
-              hunks,
-              ...(verbose ? { originalContent: '', newContent } : {})
-            }
+              content: { stage: 'completed', result: newFileResult },
+              format: 'json',
+              componentName: 'EditDisplay'
+            },
+            result: { appliedEdits: 1, failedEdits: 0, operations: [], hunks }
           }
         }
         currentContent = currentContent as string
@@ -1064,15 +1071,21 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           { percentage: 80, message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...') }
         )
         await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
+        const filePathResult: EditResult = {
+          appliedEdits: appliedCount,
+          failedEdits: failedCount,
+          operations: edits,
+          hunks,
+          ...(verbose ? { originalContent: currentContent, newContent } : {})
+        }
         return {
-          status: 'success',
+          status: 'succeeded',
           data: {
-            appliedEdits: appliedCount,
-            failedEdits: failedCount,
-            operations: edits,
-            hunks,
-            ...(verbose ? { originalContent: currentContent, newContent } : {})
-          }
+            content: { stage: 'completed', result: filePathResult },
+            format: 'json',
+            componentName: 'EditDisplay'
+          },
+          result: { appliedEdits: appliedCount, failedEdits: failedCount, operations: edits, hunks }
         }
       }
 
@@ -1125,7 +1138,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           currentFormat = 'md'
         }
       }
-      const currentContent = currentFormat === 'md' ? doc.markdown : doc.tex
+      const docContent = currentFormat === 'md' ? doc.markdown : doc.tex
 
       onUpdate(
         {
@@ -1146,7 +1159,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       // 将 hunks 转换为 EditOperation
       const edits: EditOperation[] = []
       for (const hunk of hunks) {
-        const edit = convertHunkToEditOperation(hunk, currentContent)
+        const edit = convertHunkToEditOperation(hunk, docContent)
         if (edit) {
           edits.push(edit)
         } else {
@@ -1168,7 +1181,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       // 应用编辑（从后往前排序，避免位置偏移）
       let appliedCount = 0
       let failedCount = 0
-      let newContent = currentContent
+      let newContent = docContent
 
       const sortedEdits = [...edits].sort((a, b) => {
         const aStart = positionToOffset(newContent, a.range.start.line, a.range.start.column)
@@ -1225,7 +1238,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         hunks: hunks,
         ...(verbose
           ? {
-              originalContent: currentContent,
+              originalContent: docContent,
               newContent: newContent
             }
           : {})
@@ -1307,7 +1320,6 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
   }
-
   // 支持单个操作或多个操作（向后兼容）
   const rawEdits: AnyEditOperation[] = operations || (operation ? [operation] : [])
 

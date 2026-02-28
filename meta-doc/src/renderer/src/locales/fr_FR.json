@@ -436,6 +436,7 @@
     "chapterContent": "Chapitre",
     "chapterName": "Nom du chapitre",
     "confirm": "Bien sûr.",
+    "deleteConfirm": "Voulez-vous vraiment supprimer ce chapitre ?",
     "confirmDeleteChapter": "Le chapitre devrait-il être supprimé?",
     "coverOriginalNumber": "Smart écraser le numéro original",
     "coverTip": "Le numéro d'origine, comme '1.1 1.2. Un, sera couvert.",

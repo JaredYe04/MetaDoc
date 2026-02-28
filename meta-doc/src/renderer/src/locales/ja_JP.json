@@ -515,6 +515,7 @@
     "level1ChineseTip": "有効にすると、最初の見出しは中国語で表示されます",
     "cancel": "キャンセル",
     "confirm": "確定",
+    "deleteConfirm": "このチャプターを削除してもよろしいですか？",
     "editChapterTitle": "章タイトルを編集",
     "chapterName": "章名",
     "chapterContent": "章の内容",

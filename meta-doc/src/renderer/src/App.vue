@@ -732,6 +732,20 @@ a {
   border-radius: 20px !important;
 }
 
+/* 深色模式下确认按钮对比度：避免白底白字 */
+.dark .el-message-box__btns .el-button--primary,
+.dark .el-message-box__btns .el-button--warning {
+  background-color: var(--el-color-warning) !important;
+  border-color: var(--el-color-warning) !important;
+  color: #fff !important;
+}
+.dark .el-message-box__btns .el-button--primary:hover,
+.dark .el-message-box__btns .el-button--warning:hover {
+  background-color: var(--el-color-warning-light-3) !important;
+  border-color: var(--el-color-warning-light-3) !important;
+  color: #fff !important;
+}
+
 /* ============================================
    Mousedown 反馈效果 - 粗野主义原生风格
    ============================================ */

@@ -515,6 +515,7 @@
     "level1ChineseTip": "활성화하면 첫 번째 제목이 중국어로 표시됩니다",
     "cancel": "취소",
     "confirm": "확인",
+    "deleteConfirm": "이 챕터를 삭제하시겠습니까?",
     "editChapterTitle": "챕터 제목 수정",
     "chapterName": "챕터 이름",
     "chapterContent": "챕터 내용",

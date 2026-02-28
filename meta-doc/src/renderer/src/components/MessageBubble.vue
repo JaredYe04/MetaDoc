@@ -511,6 +511,9 @@ onBeforeMount(() => {
   border: none;
   border-radius: 0;
 }
+.message-bubble-md-editor-wrap :deep(.cm-scroller) {
+  overflow-y: auto !important;
+}
 
 .side-button {
   align-self: flex-end; /* 将按钮对齐到容器的底部 */

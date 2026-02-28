@@ -251,7 +251,7 @@
                     '--outline-primary': themeState.currentTheme.primaryColor
                   }"
                   :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
-                  draggable="true"
+                  :draggable="node.path !== 'dummy'"
                   @dragstart.stop="onNodeDragStart(node)"
                   @dragover.prevent="onNodeDragOver($event, node)"
                   @dragleave="onNodeDragLeave(node)"
@@ -350,7 +350,7 @@
                     hasNodeChildren(node) ? 'tree-node--has-children-collapsed' : ''
                   ]"
                   :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                  draggable="true"
+                  :draggable="node.path !== 'dummy'"
                   @dragstart.stop="onNodeDragStart(node)"
                   @dragover.prevent="onNodeDragOver($event, node)"
                   @dragleave="onNodeDragLeave(node)"
@@ -583,7 +583,7 @@
         </AlertDialogContent>
       </AlertDialog>
 
-      <!-- 编辑章节（与新建/编辑素材同布局：左标题 + 右编辑器，以新对话框为准） -->
+      <!-- 编辑章节：与素材对话框同布局（标题/关键词/内容 + 可折叠 AI 辅助），支持接受/拒绝 AI 结果 -->
       <Dialog v-model:open="editValueDialogVisible">
         <DialogContent class="edit-chapter-dialog-content">
           <DialogHeader>
@@ -591,27 +591,112 @@
           </DialogHeader>
           <div class="edit-chapter-dialog-body">
             <div class="edit-chapter-form-column">
-              <label class="ai-config-label">{{ $t('outline.chapterName') }}</label>
-              <Input v-model="currentChapterValue" class="aero-input" :placeholder="$t('outline.chapterName')" />
+              <section class="new-material-edit-section">
+                <div class="material-field">
+                  <label class="material-field-label">{{ $t('outline.chapterName') }}</label>
+                  <Input
+                    v-model="currentChapterValue"
+                    class="aero-input"
+                    :placeholder="$t('outline.chapterName')"
+                    :disabled="chapterEditGenerating"
+                  />
+                </div>
+                <div class="material-field">
+                  <label class="material-field-label">{{ $t('outline.materialBasket.keywordsLabel') }}</label>
+                  <p class="material-field-hint">{{ $t('outline.materialBasket.keywordsHint') }}</p>
+                  <KeywordInput
+                    v-model="currentChapterKeywords"
+                    :placeholder="$t('outline.materialBasket.keywordsPlaceholder')"
+                    class="ai-config-keywords-input"
+                    :disabled="chapterEditGenerating"
+                  />
+                </div>
+              </section>
+              <section class="new-material-ai-section">
+                <button
+                  type="button"
+                  class="new-material-ai-heading-btn"
+                  @click="chapterEditAiExpanded = !chapterEditAiExpanded"
+                >
+                  <component :is="chapterEditAiExpanded ? ChevronDown : ChevronRight" class="w-4 h-4" />
+                  <span>{{ $t('outline.materialBasket.aiAssistHeading') }}</span>
+                </button>
+                <template v-if="chapterEditAiExpanded">
+                  <div class="material-field">
+                    <label class="material-field-label">{{ $t('outline.materialBasket.prompt') }}</label>
+                    <AutoResizeTextarea
+                      v-model="chapterEditPrompt"
+                      :placeholder="$t('outline.materialBasket.promptPlaceholder')"
+                      :autosize="{ minRows: 2 }"
+                      class="ai-config-user-prompt"
+                      :disabled="chapterEditGenerating"
+                    />
+                  </div>
+                  <div class="material-field">
+                    <label class="material-field-label">{{ $t('outline.aiConfig.temperature') }}</label>
+                    <div class="flex items-center gap-4">
+                      <span class="text-sm text-muted-foreground w-8">{{ chapterEditTemperature }}</span>
+                      <Slider
+                        v-model="chapterEditTemperature"
+                        :min="0"
+                        :max="2"
+                        :step="0.1"
+                        class="flex-1"
+                        :disabled="chapterEditGenerating"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex gap-2 items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :disabled="chapterEditGenerating"
+                      @click="generateChapterContent"
+                    >
+                      <Loader2 v-if="chapterEditGenerating" class="w-4 h-4 animate-spin" />
+                      <span v-else>{{ $t('outline.materialBasket.aiGenerate') }}</span>
+                    </Button>
+                    <Button
+                      v-if="chapterEditGenerating"
+                      variant="outline"
+                      size="sm"
+                      class="text-destructive hover:text-destructive"
+                      @click="stopChapterGenerate"
+                    >
+                      <StopCircle class="w-4 h-4" />
+                      <span>{{ $t('outline.stop') }}</span>
+                    </Button>
+                  </div>
+                </template>
+              </section>
             </div>
             <div class="edit-chapter-editor-column">
-              <label class="ai-config-label">{{ $t('outline.chapterContent') }}</label>
-              <div class="outline-md-editor-wrap edit-chapter-editor-wrap">
-                <md-editor
-                  v-model="currentChapterContent"
-                  show-code-row-number
-                  preview-theme="github"
-                  code-style-reverse
-                  style="text-align: left"
-                  :auto-fold-threshold="300"
-                  :theme="editorTheme"
-                  :language="currentLocaleForEditor"
-                />
+              <div class="material-field material-field-fill">
+                <label class="material-field-label">{{ $t('outline.chapterContent') }}</label>
+                <div ref="chapterEditorWrapRef" class="outline-md-editor-wrap edit-chapter-editor-wrap" :class="{ 'is-disabled': chapterEditGenerating }">
+                  <md-editor
+                    v-model="currentChapterContent"
+                    show-code-row-number
+                    preview-theme="github"
+                    code-style-reverse
+                    style="text-align: left"
+                    :auto-fold-threshold="300"
+                    :theme="editorTheme"
+                    :language="currentLocaleForEditor"
+                    :readonly="chapterEditGenerating"
+                  />
+                </div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button @click="changeNodeValue">{{ $t('outline.confirm') }}</Button>
+            <template v-if="pendingChapterAccept">
+              <Button variant="destructive" @click="rejectChapterGenerate">{{ $t('outline.reject') }}</Button>
+              <Button variant="outline" class="generate-preview-accept-btn" @click="acceptChapterGenerate">{{ $t('outline.accept') }}</Button>
+            </template>
+            <template v-else>
+              <Button :disabled="chapterEditGenerating" @click="changeNodeValue">{{ $t('outline.confirm') }}</Button>
+            </template>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -693,7 +778,7 @@
         </DialogContent>
       </Dialog>
 
-      <!-- 新建/编辑素材对话框：左表单项 + 右编辑器 -->
+      <!-- 新建/编辑素材对话框：先编辑（标题/关键词/内容），AI 为辅助 -->
       <Dialog v-model:open="newMaterialDialogVisible">
         <DialogContent class="new-material-dialog-content">
           <DialogHeader>
@@ -701,73 +786,116 @@
           </DialogHeader>
           <div class="new-material-dialog-body">
             <div class="new-material-form-column">
-              <div class="ai-config-section">
-                <label class="ai-config-label">{{ $t('outline.materialBasket.titleLabel') }}</label>
-                <Input v-model="newMaterialName" class="aero-input" :placeholder="$t('outline.materialBasket.titleLabel')" />
-              </div>
-              <div class="ai-config-section">
-                <label class="ai-config-label">{{ $t('outline.aiConfig.temperature') }}</label>
-                <div class="flex items-center gap-4">
-                  <span class="text-sm text-muted-foreground w-8">{{ newMaterialTemperature }}</span>
-                  <Slider
-                    v-model="newMaterialTemperature"
-                    :min="0"
-                    :max="2"
-                    :step="0.1"
-                    class="flex-1"
+              <section class="new-material-edit-section">
+                <div class="material-field">
+                  <label class="material-field-label">{{ $t('outline.materialBasket.titleLabel') }}</label>
+                  <Input
+                    v-model="newMaterialName"
+                    class="aero-input"
+                    :placeholder="$t('outline.materialBasket.titlePlaceholder')"
+                    :disabled="newMaterialGenerating"
                   />
                 </div>
-              </div>
-              <div class="ai-config-section">
-                <label class="ai-config-label">{{ $t('outline.aiConfig.keywords') }}</label>
-                <KeywordInput
-                  v-model="newMaterialKeywords"
-                  :placeholder="$t('outline.aiConfig.keywordsPlaceholder')"
-                  class="ai-config-keywords-input"
-                />
-              </div>
-              <div class="ai-config-section">
-                <label class="ai-config-label">{{ $t('outline.materialBasket.prompt') }}</label>
-                <AutoResizeTextarea
-                  v-model="newMaterialPrompt"
-                  :placeholder="$t('outline.materialBasket.promptPlaceholder')"
-                  :autosize="{ minRows: 3 }"
-                  class="ai-config-user-prompt"
-                />
-              </div>
-              <div class="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  :disabled="newMaterialGenerating"
-                  @click="generateNewMaterialThreeSteps"
+                <div class="material-field">
+                  <label class="material-field-label">{{ $t('outline.materialBasket.keywordsLabel') }}</label>
+                  <p class="material-field-hint">{{ $t('outline.materialBasket.keywordsHint') }}</p>
+                  <KeywordInput
+                    v-model="newMaterialKeywords"
+                    :placeholder="$t('outline.materialBasket.keywordsPlaceholder')"
+                    class="ai-config-keywords-input"
+                    :disabled="newMaterialGenerating"
+                  />
+                </div>
+              </section>
+              <section class="new-material-ai-section">
+                <button
+                  type="button"
+                  class="new-material-ai-heading-btn"
+                  @click="newMaterialAiSectionExpanded = !newMaterialAiSectionExpanded"
                 >
-                  <Loader2 v-if="newMaterialGenerating" class="w-4 h-4 animate-spin" />
-                  <span v-else>{{ $t('outline.materialBasket.aiGenerate') }}</span>
-                </Button>
-              </div>
+                  <component :is="newMaterialAiSectionExpanded ? ChevronDown : ChevronRight" class="w-4 h-4" />
+                  <span>{{ $t('outline.materialBasket.aiAssistHeading') }}</span>
+                </button>
+                <template v-if="newMaterialAiSectionExpanded">
+                  <div class="material-field">
+                    <label class="material-field-label">{{ $t('outline.materialBasket.prompt') }}</label>
+                    <AutoResizeTextarea
+                      v-model="newMaterialPrompt"
+                      :placeholder="$t('outline.materialBasket.promptPlaceholder')"
+                      :autosize="{ minRows: 2 }"
+                      class="ai-config-user-prompt"
+                      :disabled="newMaterialGenerating"
+                    />
+                  </div>
+                  <div class="material-field">
+                    <label class="material-field-label">{{ $t('outline.aiConfig.temperature') }}</label>
+                    <div class="flex items-center gap-4">
+                      <span class="text-sm text-muted-foreground w-8">{{ newMaterialTemperature }}</span>
+                      <Slider
+                        v-model="newMaterialTemperature"
+                        :min="0"
+                        :max="2"
+                        :step="0.1"
+                        class="flex-1"
+                        :disabled="newMaterialGenerating"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex gap-2 items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :disabled="newMaterialGenerating"
+                      @click="generateNewMaterialThreeSteps"
+                    >
+                      <Loader2 v-if="newMaterialGenerating" class="w-4 h-4 animate-spin" />
+                      <span v-else>{{ $t('outline.materialBasket.aiGenerate') }}</span>
+                    </Button>
+                    <Button
+                      v-if="newMaterialGenerating"
+                      variant="outline"
+                      size="sm"
+                      class="text-destructive hover:text-destructive"
+                      @click="stopMaterialGenerate"
+                    >
+                      <StopCircle class="w-4 h-4" />
+                      <span>{{ $t('outline.stop') }}</span>
+                    </Button>
+                  </div>
+                </template>
+              </section>
             </div>
             <div class="new-material-editor-column">
-              <div class="new-material-editor-wrap">
-                <md-editor
-                  v-model="newMaterialContent"
-                  show-code-row-number
-                  preview-theme="github"
-                  code-style-reverse
-                  class="new-material-md-editor"
-                  style="text-align: left; min-height: 200px"
-                  :auto-fold-threshold="300"
-                  :theme="editorTheme"
-                  :language="currentLocaleForEditor"
-                />
+              <div class="material-field material-field-fill">
+                <label class="material-field-label">{{ $t('outline.materialBasket.content') }}</label>
+                <div ref="newMaterialEditorWrapRef" class="new-material-editor-wrap" :class="{ 'is-disabled': newMaterialGenerating }">
+                  <md-editor
+                    v-model="newMaterialContent"
+                    show-code-row-number
+                    preview-theme="github"
+                    code-style-reverse
+                    class="new-material-md-editor"
+                    style="text-align: left"
+                    :auto-fold-threshold="300"
+                    :theme="editorTheme"
+                    :language="currentLocaleForEditor"
+                    :readonly="newMaterialGenerating"
+                  />
+                </div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" @click="newMaterialDialogVisible = false">{{
-              $t('outline.materialBasket.cancel')
-            }}</Button>
-            <Button @click="saveNewMaterial">{{ $t('outline.materialBasket.save') }}</Button>
+            <template v-if="pendingMaterialAccept">
+              <Button variant="destructive" @click="rejectMaterialGenerate">{{ $t('outline.reject') }}</Button>
+              <Button variant="outline" class="generate-preview-accept-btn" @click="acceptMaterialGenerate">{{ $t('outline.accept') }}</Button>
+            </template>
+            <template v-else>
+              <Button variant="outline" :disabled="newMaterialGenerating" @click="newMaterialDialogVisible = false">{{
+                $t('outline.materialBasket.cancel')
+              }}</Button>
+              <Button :disabled="newMaterialGenerating" @click="saveNewMaterial">{{ $t('outline.materialBasket.save') }}</Button>
+            </template>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -929,7 +1057,8 @@ import {
   Loader2,
   Maximize,
   FolderOpen,
-  Folder
+  Folder,
+  StopCircle
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode, MaterialBasketItem } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
@@ -1662,8 +1791,26 @@ const newMaterialContent = ref('')
 const newMaterialGenerating = ref(false)
 const newMaterialKeywordsLoading = ref(false)
 let newMaterialKeywordsTimer: NodeJS.Timeout | null = null
+const newMaterialAiSectionExpanded = ref(false)
+const pendingMaterialAccept = ref(false)
+const backupMaterialContentBeforeGenerate = ref('')
+const newMaterialEditorWrapRef = ref<HTMLElement | null>(null)
+const materialGenerateAbortControllerRef = ref<AbortController | null>(null)
 
 const editingMaterialItem = ref<MaterialBasketItem | null>(null)
+
+function scrollMaterialEditorToBottom() {
+  nextTick(() => {
+    const el = newMaterialEditorWrapRef.value?.querySelector?.('.cm-scroller') as HTMLElement | null
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  })
+}
+
+watch(newMaterialContent, () => {
+  if (newMaterialGenerating.value) scrollMaterialEditorToBottom()
+})
 
 function openNewMaterialDialog() {
   editingMaterialItem.value = null
@@ -1674,6 +1821,8 @@ function openNewMaterialDialog() {
   newMaterialContent.value = ''
   newMaterialDialogVisible.value = true
   materialBasketExpanded.value = true
+  newMaterialAiSectionExpanded.value = false
+  pendingMaterialAccept.value = false
   scheduleGenerateNewMaterialKeywords()
 }
 
@@ -1686,6 +1835,8 @@ function openEditMaterialDialog(item: MaterialBasketItem) {
   newMaterialContent.value = item.text || ''
   newMaterialDialogVisible.value = true
   materialBasketExpanded.value = true
+  newMaterialAiSectionExpanded.value = false
+  pendingMaterialAccept.value = false
 }
 
 function scheduleGenerateNewMaterialKeywords() {
@@ -1750,6 +1901,11 @@ async function generateNewMaterialThreeSteps() {
     await generateNewMaterialKeywords()
     const title = newMaterialName.value || t('outline.materialBasket.newMaterialTitle')
     const kwStr = newMaterialKeywords.value.length ? newMaterialKeywords.value.join('，') : ''
+    const existingContent = (newMaterialContent.value || '').trim()
+    backupMaterialContentBeforeGenerate.value = existingContent
+    const fullDocMarkdown = outlineMarkdown || '（暂无）'
+    const materialContext = `标题：${title}；关键词：${kwStr || '（无）'}；已有内容：${existingContent || '（无）'}`
+    const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${fullDocMarkdown}\n\n【当前素材信息】${materialContext}`
     newMaterialContent.value = ''
     const fakeNode: DocumentOutlineNode = {
       path: '0',
@@ -1758,23 +1914,54 @@ async function generateNewMaterialThreeSteps() {
       title_level: 1,
       children: []
     }
-    const content = await generateNodeContentUtil(
-      fakeNode,
-      treeData.value,
-      prompt + (kwStr ? `\n关键词：${kwStr}` : ''),
-      undefined,
-      docFormat,
-      newMaterialContent,
-      undefined,
-      newMaterialTemperature.value
-    )
-    if (content) newMaterialContent.value = content
+    materialGenerateAbortControllerRef.value = new AbortController()
+    try {
+      const content = await generateNodeContentUtil(
+        fakeNode,
+        treeData.value,
+        enhancedUserPrompt,
+        materialGenerateAbortControllerRef.value.signal,
+        docFormat,
+        newMaterialContent,
+        undefined,
+        newMaterialTemperature.value
+      )
+      if (content) newMaterialContent.value = content
+      pendingMaterialAccept.value = true
+    } catch (contentErr) {
+      const aborted = materialGenerateAbortControllerRef.value?.signal.aborted
+      if (aborted) {
+        pendingMaterialAccept.value = true
+      } else {
+        logger.warn('素材篮 AI 生成失败', contentErr)
+        notifyError(t('outline.generateContentFail', { error: String(contentErr) }))
+      }
+    } finally {
+      newMaterialGenerating.value = false
+      materialGenerateAbortControllerRef.value = null
+    }
   } catch (e) {
     logger.warn('素材篮 AI 生成失败', e)
     notifyError(t('outline.generateContentFail', { error: String(e) }))
   } finally {
     newMaterialGenerating.value = false
+    materialGenerateAbortControllerRef.value = null
   }
+}
+
+function stopMaterialGenerate() {
+  materialGenerateAbortControllerRef.value?.abort()
+}
+
+function acceptMaterialGenerate() {
+  pendingMaterialAccept.value = false
+  backupMaterialContentBeforeGenerate.value = ''
+}
+
+function rejectMaterialGenerate() {
+  newMaterialContent.value = backupMaterialContentBeforeGenerate.value
+  pendingMaterialAccept.value = false
+  backupMaterialContentBeforeGenerate.value = ''
 }
 
 function saveNewMaterial() {
@@ -1930,6 +2117,13 @@ const addChildNode = () => {
       editNodeValue.value = result!.newNode.title
       currentChapterValue.value = result!.newNode.title
       currentChapterContent.value = result!.newNode.text || ''
+      currentChapterKeywords.value = (result!.newNode.extras?.keywords && Array.isArray(result!.newNode.extras.keywords))
+        ? [...result!.newNode.extras.keywords]
+        : []
+      chapterEditPrompt.value = ''
+      chapterEditTemperature.value = 1.0
+      chapterEditAiExpanded.value = false
+      pendingChapterAccept.value = false
       editValueDialogVisible.value = true
       commitOutline()
     })
@@ -1942,6 +2136,13 @@ const editNode = () => {
   editNodeValue.value = node.title
   currentChapterValue.value = node.title
   currentChapterContent.value = node.text || ''
+  currentChapterKeywords.value = (node.extras?.keywords && Array.isArray(node.extras.keywords))
+    ? [...node.extras.keywords]
+    : []
+  chapterEditPrompt.value = ''
+  chapterEditTemperature.value = 1.0
+  chapterEditAiExpanded.value = false
+  pendingChapterAccept.value = false
   editValueDialogVisible.value = true
 }
 
@@ -2441,7 +2642,9 @@ function computeDropMode(e: DragEvent, el: HTMLElement): DropMode {
 const onNodeDragOver = (e: DragEvent, node: DocumentOutlineNode) => {
   const el = e.currentTarget as HTMLElement | null
   if (!el) return
-  const mode = computeDropMode(e, el)
+  let mode = computeDropMode(e, el)
+  // dummy 节点仅作为“放入其下”（顶级段落）的目标，不允许 before/after/parent
+  if (node.path === 'dummy') mode = 'inside'
 
   // 保存待更新的值
   pendingDropPreviewUpdate = { targetPath: node.path, mode }
@@ -2491,28 +2694,36 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
       dropPreview.value.mode = null
       const item = materialBasketList.value.find((i) => i.id === basketId)
       if (!item || !mode) return
+      if (targetNode.path === 'dummy' && mode !== 'inside') {
+        dropPreview.value.targetPath = null
+        dropPreview.value.mode = null
+        return
+      }
       const tree = treeData.value
       const target = searchNode(targetNode.path, tree)
-      const targetParent = searchParentNode(targetNode.path, tree)
-      if (!target || !targetParent) return
+      if (!target) return
       const newNode = basketItemToOutlineNode(item)
       if (mode === 'inside') {
         target.children = target.children || []
         target.children.push(newNode)
         reindexChildrenPaths(target)
-      } else if (mode === 'parent') {
-        const grandParent = searchParentNode(targetParent.path, tree)
-        if (!grandParent || !grandParent.children) return
-        const idxParent = grandParent.children.findIndex((c) => c.path === targetParent.path)
-        const insertIdx = idxParent >= 0 ? idxParent + 1 : grandParent.children.length
-        grandParent.children.splice(insertIdx, 0, newNode)
-        reindexChildrenPaths(grandParent)
       } else {
-        const idx = targetParent.children.findIndex((c) => c.path === target.path)
-        if (idx === -1) return
-        const insertIdx = mode === 'before' ? idx : idx + 1
-        targetParent.children.splice(insertIdx, 0, newNode)
-        reindexChildrenPaths(targetParent)
+        const targetParent = searchParentNode(targetNode.path, tree)
+        if (!targetParent || !targetParent.children) return
+        if (mode === 'parent') {
+          const grandParent = searchParentNode(targetParent.path, tree)
+          if (!grandParent || !grandParent.children) return
+          const idxParent = grandParent.children.findIndex((c) => c.path === targetParent.path)
+          const insertIdx = idxParent >= 0 ? idxParent + 1 : grandParent.children.length
+          grandParent.children.splice(insertIdx, 0, newNode)
+          reindexChildrenPaths(grandParent)
+        } else {
+          const idx = targetParent.children.findIndex((c) => c.path === target.path)
+          if (idx === -1) return
+          const insertIdx = mode === 'before' ? idx : idx + 1
+          targetParent.children.splice(insertIdx, 0, newNode)
+          reindexChildrenPaths(targetParent)
+        }
       }
       reindexChildrenPaths(tree)
       commitOutline()
@@ -2523,13 +2734,18 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
     }
 
     const fromPath = draggingNodePath.value
-    draggingNodePath.value = null
     const mode = dropPreview.value.mode
+    if (!fromPath) return
+    if (fromPath === targetNode.path || !mode) return
+    if (targetNode.path === 'dummy' && mode !== 'inside') {
+      dropPreview.value.targetPath = null
+      dropPreview.value.mode = null
+      return
+    }
+    draggingNodePath.value = null
     dropPreview.value.targetPath = null
     dropPreview.value.mode = null
     isDraggingNode.value = false
-    if (!fromPath) return
-    if (fromPath === targetNode.path || !mode) return
     const drag = searchNode(fromPath, treeData.value)
     if (!drag) return
     const originParent = searchParentNode(fromPath, treeData.value)
@@ -2838,7 +3054,30 @@ function scheduleForceOutlineLinkStyles() {
 const editNodeValue = ref('')
 const currentChapterValue = ref('')
 const currentChapterContent = ref('')
+const currentChapterKeywords = ref<string[]>([])
+const chapterEditPrompt = ref('')
+const chapterEditTemperature = ref(1.0)
+const chapterEditAiExpanded = ref(false)
+const chapterEditGenerating = ref(false)
+const pendingChapterAccept = ref(false)
+const backupChapterContentBeforeGenerate = ref('')
+const chapterEditorWrapRef = ref<HTMLElement | null>(null)
+const chapterGenerateAbortControllerRef = ref<AbortController | null>(null)
 const editValueDialogVisible = ref(false)
+
+function scrollChapterEditorToBottom() {
+  nextTick(() => {
+    const el = chapterEditorWrapRef.value?.querySelector?.('.cm-scroller') as HTMLElement | null
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  })
+}
+
+watch(currentChapterContent, () => {
+  if (chapterEditGenerating.value) scrollChapterEditorToBottom()
+})
+
 const changeNodeValue = () => {
   const selected = selectedNode.value
   if (!selected) return
@@ -2846,7 +3085,71 @@ const changeNodeValue = () => {
   if (!curNode) return
   curNode.title = currentChapterValue.value
   curNode.text = currentChapterContent.value
+  if (!curNode.extras) curNode.extras = {}
+  curNode.extras.keywords = currentChapterKeywords.value.length ? [...currentChapterKeywords.value] : undefined
   editValueDialogVisible.value = false
+}
+
+async function generateChapterContent() {
+  const node = selectedNode.value
+  if (!node) return
+  const prompt = chapterEditPrompt.value?.trim()
+  if (!prompt) {
+    notifyInfo(t('outline.materialBasket.promptPlaceholder'))
+    return
+  }
+  const curNode = searchNode(node.path, treeData.value)
+  if (!curNode) return
+  chapterEditGenerating.value = true
+  backupChapterContentBeforeGenerate.value = currentChapterContent.value || ''
+  const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+  const outlineMarkdown = generateMarkdownFromOutlineTree(treeData.value) || ''
+  const kwStr = currentChapterKeywords.value.length ? currentChapterKeywords.value.join('，') : ''
+  const existingContent = (currentChapterContent.value || '').trim()
+    const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${outlineMarkdown || '（暂无）'}\n\n【当前章节信息】标题：${currentChapterValue.value || '（无）'}；关键词：${kwStr || '（无）'}；已有内容：${existingContent || '（无）'}`
+  currentChapterContent.value = ''
+  chapterGenerateAbortControllerRef.value = new AbortController()
+  try {
+    const content = await generateNodeContentUtil(
+      { ...curNode, text: '' },
+      treeData.value,
+      enhancedUserPrompt,
+      chapterGenerateAbortControllerRef.value.signal,
+      docFormat,
+      currentChapterContent,
+      undefined,
+      chapterEditTemperature.value
+    )
+    if (content) currentChapterContent.value = content
+    pendingChapterAccept.value = true
+  } catch (e) {
+    const aborted = chapterGenerateAbortControllerRef.value?.signal.aborted
+    if (aborted) {
+      pendingChapterAccept.value = true
+    } else {
+      logger.warn('章节 AI 生成失败', e)
+      notifyError(t('outline.generateContentFail', { error: String(e) }))
+      currentChapterContent.value = backupChapterContentBeforeGenerate.value
+    }
+  } finally {
+    chapterEditGenerating.value = false
+    chapterGenerateAbortControllerRef.value = null
+  }
+}
+
+function stopChapterGenerate() {
+  chapterGenerateAbortControllerRef.value?.abort()
+}
+
+function acceptChapterGenerate() {
+  pendingChapterAccept.value = false
+  backupChapterContentBeforeGenerate.value = ''
+}
+
+function rejectChapterGenerate() {
+  currentChapterContent.value = backupChapterContentBeforeGenerate.value
+  pendingChapterAccept.value = false
+  backupChapterContentBeforeGenerate.value = ''
 }
 // 执行移除前缀操作
 const executeRemovePrefixes = async () => {
@@ -3686,78 +3989,194 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 /* 新建/编辑素材对话框：整体宽度约 2.5 倍，左右 1:2 + 编辑器加高 */
 .new-material-dialog-content {
   width: 80vw;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+.new-material-dialog-content :deep(.el-scrollbar__view) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
 }
 .new-material-dialog-body {
   display: flex;
   gap: 24px;
   padding: 20px 0;
-  min-height: 416px;
+  flex: 1;
+  min-height: 0;
 }
 .new-material-form-column {
   flex: 0 0 33.33%;
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.new-material-edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.new-material-ai-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
+}
+.new-material-ai-heading-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.new-material-ai-heading-btn:hover {
+  color: var(--foreground);
+}
+.new-material-ai-heading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.material-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.material-field-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+.material-field-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.3;
 }
 .new-material-editor-column {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 320px;
+}
+.material-field-fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.material-field-fill .new-material-editor-wrap {
+  flex: 1;
+  min-height: 0;
 }
 .new-material-editor-wrap {
   flex: 1;
+  min-height: 0;
   border: 1px solid rgba(128, 128, 128, 0.35);
   border-radius: 8px;
   overflow: hidden;
-  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+}
+.new-material-editor-wrap.is-disabled {
+  pointer-events: none;
+  opacity: 0.85;
 }
 .new-material-editor-wrap :deep(.md-editor) {
   border: none;
   border-radius: 0;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+.new-material-editor-wrap :deep(.cm-scroller) {
+  overflow-y: auto !important;
 }
 .new-material-md-editor {
   height: 100%;
-  min-height: 260px;
+  min-height: 0;
 }
 
-/* 编辑章节对话框：与新建/编辑素材同布局与宽度（左标题 + 右编辑器） */
+/* 编辑章节对话框：与新建/编辑素材同布局与宽度（左标题/关键词/AI + 右编辑器） */
 .edit-chapter-dialog-content {
   width: 80vw;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+.edit-chapter-dialog-content :deep(.el-scrollbar__view) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
 }
 .edit-chapter-dialog-body {
   display: flex;
   gap: 24px;
   padding: 20px 0;
-  min-height: 416px;
+  flex: 1;
+  min-height: 0;
 }
 .edit-chapter-form-column {
   flex: 0 0 33.33%;
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .edit-chapter-editor-column {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 320px;
+}
+.edit-chapter-editor-column .material-field-fill {
+  flex: 1;
+  min-height: 0;
 }
 .edit-chapter-editor-wrap {
   flex: 1;
+  min-height: 0;
   border: 1px solid rgba(128, 128, 128, 0.35);
   border-radius: 8px;
   overflow: hidden;
-  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+}
+.edit-chapter-editor-wrap.is-disabled {
+  pointer-events: none;
+  opacity: 0.85;
 }
 .edit-chapter-editor-wrap :deep(.md-editor) {
   border: none;
   border-radius: 0;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+.edit-chapter-editor-wrap :deep(.cm-scroller) {
+  overflow-y: auto !important;
 }
 .edit-chapter-editor-wrap :deep(.md-editor-toolbar-wrapper),
 .edit-chapter-editor-wrap :deep(.md-editor-content) {
@@ -3765,7 +4184,7 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 }
 .edit-chapter-editor-wrap :deep(.md-editor) {
   height: 100%;
-  min-height: 260px;
+  min-height: 0;
 }
 
 .outline-md-editor-wrap {
@@ -3853,11 +4272,42 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 }
 </style>
 
-<!-- 编辑/新建对话框内容通过 Portal 到 body，scoped 样式不生效，用全局样式保证 80% 宽度 -->
+<!-- 编辑/新建对话框：不用 grid，用 flex；body 高度固定，仅左侧滚动，右侧编辑器始终占满 -->
 <style>
 .dialog-content-box.new-material-dialog-content,
 .dialog-content-box.edit-chapter-dialog-content {
   width: 80vw !important;
   max-width: 80vw !important;
+  height: 80vh !important;
+  max-height: 80vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-rows: unset !important;
+}
+.dialog-content-box.new-material-dialog-content .dialog-slot-scrollbar,
+.dialog-content-box.edit-chapter-dialog-content .dialog-slot-scrollbar {
+  flex: 1;
+  min-height: 0;
+}
+/* 约束 wrap 与 view 高度，避免 view 随内容增高，这样 body 高度固定、右侧才能始终占满 */
+.dialog-content-box.new-material-dialog-content .el-scrollbar__wrap,
+.dialog-content-box.edit-chapter-dialog-content .el-scrollbar__wrap {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.dialog-content-box.new-material-dialog-content .el-scrollbar__view,
+.dialog-content-box.edit-chapter-dialog-content .el-scrollbar__view {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+.dialog-content-box.new-material-dialog-content .el-scrollbar__view > *:not(.new-material-dialog-body),
+.dialog-content-box.edit-chapter-dialog-content .el-scrollbar__view > *:not(.edit-chapter-dialog-body) {
+  flex-shrink: 0;
 }
 </style>

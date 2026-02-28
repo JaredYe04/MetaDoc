@@ -436,6 +436,7 @@
     "chapterContent": "Kapitel",
     "chapterName": "Bezeichnung",
     "confirm": "Sicher.",
+    "deleteConfirm": "Möchten Sie dieses Kapitel wirklich löschen?",
     "confirmDeleteChapter": "Sollte das Kapitel gestrichen werden?",
     "coverOriginalNumber": "Smart überschreiben Originalnummer",
     "coverTip": "Die ursprüngliche Nummer, wie '1.1 1.2. Eins,' wird abgedeckt.",

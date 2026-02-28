@@ -77,11 +77,11 @@
         </div>
       </div>
     </transition>
-    <!-- 左下角拖动调整大小 -->
+    <!-- 左下角拖动调整大小：使用 pointer 捕获，拖拽时光标离开面板仍持续生效 -->
     <div
       v-show="expanded"
       class="material-basket-resize-handle"
-      @mousedown.prevent="startResize"
+      @pointerdown.prevent="startResize"
     />
     <!-- 素材项右键菜单：与 SessionList 一致的结构与样式 -->
     <Teleport to="body">
@@ -159,21 +159,22 @@ const emit = defineEmits<{
 const panelWidth = ref(DEFAULT_WIDTH)
 const panelHeight = ref(DEFAULT_HEIGHT)
 let resizeStart = { x: 0, y: 0, w: 0, h: 0 }
-function startResize(e: MouseEvent) {
+function startResize(e: PointerEvent) {
+  const el = e.currentTarget as HTMLElement
+  el.setPointerCapture(e.pointerId)
   resizeStart = { x: e.clientX, y: e.clientY, w: panelWidth.value, h: panelHeight.value }
-  document.addEventListener('mousemove', onResizeMove)
-  document.addEventListener('mouseup', onResizeEnd)
+  document.addEventListener('pointermove', onResizeMove, true)
+  document.addEventListener('pointerup', onResizeEnd, { once: true, capture: true })
 }
-// 左下角手柄：往左拖 = 加宽，往下拖 = 加高
-function onResizeMove(e: MouseEvent) {
+// 左下角手柄：往左拖 = 加宽，往下拖 = 加高（光标离开面板仍持续生效）
+function onResizeMove(e: PointerEvent) {
   const dx = e.clientX - resizeStart.x
   const dy = e.clientY - resizeStart.y
   panelWidth.value = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, resizeStart.w - dx))
   panelHeight.value = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, resizeStart.h + dy))
 }
 function onResizeEnd() {
-  document.removeEventListener('mousemove', onResizeMove)
-  document.removeEventListener('mouseup', onResizeEnd)
+  document.removeEventListener('pointermove', onResizeMove, true)
 }
 
 const menuStyle = computed(() => ({
@@ -381,7 +382,7 @@ defineExpose({ closeItemContextMenu })
 
 .material-basket-empty-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted-foreground);
   line-height: 1.4;
   padding: 4px 0;
@@ -426,7 +427,7 @@ defineExpose({ closeItemContextMenu })
   bottom: 0;
   width: 20px;
   height: 20px;
-  cursor: nwse-resize;
+  cursor: nesw-resize;
   z-index: 2;
 }
 .material-basket-resize-handle::after {

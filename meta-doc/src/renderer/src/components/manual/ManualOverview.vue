@@ -310,8 +310,8 @@ const handleClearProgress = async () => {
       t('userManual.progress.clearProgressConfirm'),
       t('userManual.progress.clearProgress') || '清空学习进度',
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning'
       }
     )

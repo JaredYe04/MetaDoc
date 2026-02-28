@@ -79,11 +79,11 @@ export function initNotificationLegacyAdapter(): void {
   })
 
   eventBus.on('open-doc-success', (payload: unknown) => {
-    const t = getTranslator()
-    const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
-    notifySuccess(t('main.notification.open.message', { name }), {
-      title: t('main.notification.open.title')
-    })
+    // const t = getTranslator()
+    // const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
+    // notifySuccess(t('main.notification.open.message', { name }), {
+    //   title: t('main.notification.open.title')
+    // })
   })
 
   eventBus.on('export-success', (payload: unknown) => {

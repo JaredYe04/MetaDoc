@@ -1,5 +1,5 @@
 <template>
-  <div class="workspace-grep-panel" :style="panelStyle">
+  <div ref="panelRef" class="workspace-grep-panel" :style="panelStyle">
     <header class="panel-header">
       <div class="panel-title">
         <span>{{ $t('workspaceGrep.title', '工作区搜索') }}</span>
@@ -10,50 +10,82 @@
     <section class="search-widgets-container">
       <div class="search-widget">
         <div class="search-row">
-          <button
-            class="toggle-replace-button"
-            type="button"
-            :aria-expanded="showReplace ? 'true' : 'false'"
-            @click="showReplace = !showReplace"
-          >
-            ⇅
-          </button>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  class="toggle-replace-btn grep-icon-btn"
+                  :aria-expanded="showReplace ? 'true' : 'false'"
+                  @click="showReplace = !showReplace"
+                >
+                  <component :is="showReplace ? ArrowUp : ArrowDown" class="grep-icon-svg" />
+                </Button>
+              </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ $t('searchReplace.toggleReplace', '切换替换') }}
+            </TooltipContent>
+          </Tooltip>
           <div class="search-input-container">
             <div class="search-input-wrapper">
-              <ScrollArea class="search-textarea-scroll">
-                <Textarea
-                  v-model="pattern"
-                  :rows="1"
-                  class="search-input"
-                  :placeholder="$t('workspaceGrep.patternPlaceholder', '输入要搜索的文本或正则表达式')"
-                  @keydown.enter.prevent="handleEnter"
-                />
-              </ScrollArea>
+              <input
+                v-model="pattern"
+                type="text"
+                class="search-input"
+                :placeholder="$t('workspaceGrep.patternPlaceholder', '搜索')"
+                autocomplete="off"
+                spellcheck="false"
+                @keydown.enter.prevent="handleEnter"
+              />
               <div class="search-controls">
-                <button
-                  class="toggle-flag"
-                  :class="{ active: matchCase }"
-                  type="button"
-                  @click="matchCase = !matchCase"
-                >
-                  Aa
-                </button>
-                <button
-                  class="toggle-flag"
-                  :class="{ active: wholeWord }"
-                  type="button"
-                  @click="wholeWord = !wholeWord"
-                >
-                  W
-                </button>
-                <button
-                  class="toggle-flag"
-                  :class="{ active: useRegex }"
-                  type="button"
-                  @click="useRegex = !useRegex"
-                >
-                  .*
-                </button>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <button
+                      type="button"
+                      class="grep-toggle-btn"
+                      :class="{ active: matchCase }"
+                      @click="matchCase = !matchCase"
+                      :aria-label="$t('searchReplace.matchCase', '区分大小写')"
+                    >
+                      <span class="grep-toggle-label">Aa</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('searchReplace.matchCase', '区分大小写') }} (Alt+C)
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <button
+                      type="button"
+                      class="grep-toggle-btn"
+                      :class="{ active: wholeWord }"
+                      @click="wholeWord = !wholeWord"
+                      :aria-label="$t('searchReplace.matchWholeWord', '全词匹配')"
+                    >
+                      <span class="grep-toggle-label">W</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('searchReplace.matchWholeWord', '全词匹配') }} (Alt+W)
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <button
+                      type="button"
+                      class="grep-toggle-btn"
+                      :class="{ active: useRegex }"
+                      @click="useRegex = !useRegex"
+                      :aria-label="$t('searchReplace.useRegex', '正则表达式')"
+                    >
+                      <span class="grep-toggle-label">.*</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {{ $t('searchReplace.useRegex', '正则表达式') }} (Alt+R)
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -61,25 +93,33 @@
 
         <div v-if="showReplace" class="replace-row">
           <div class="replace-input-container">
-            <ScrollArea class="replace-textarea-scroll">
-              <Textarea
-                v-model="replaceText"
-                :rows="1"
-                class="replace-input"
-                :placeholder="$t('workspaceGrep.replacePlaceholder', '替换为')"
-                @keydown.enter.prevent
-              />
-            </ScrollArea>
+            <input
+              v-model="replaceText"
+              type="text"
+              class="replace-input"
+              :placeholder="$t('workspaceGrep.replacePlaceholder', '替换为')"
+              autocomplete="off"
+              spellcheck="false"
+              @keydown.enter.prevent
+            />
           </div>
           <div class="replace-controls">
-            <button
-              class="toggle-flag"
-              :class="{ active: preserveCase }"
-              type="button"
-              @click="preserveCase = !preserveCase"
-            >
-              ↔
-            </button>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <button
+                  type="button"
+                  class="grep-toggle-btn"
+                  :class="{ active: preserveCase }"
+                  @click="preserveCase = !preserveCase"
+                  :aria-label="$t('searchReplace.preserveCase', '保留大小写')"
+                >
+                  <span class="grep-toggle-label">AB</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {{ $t('searchReplace.preserveCase', '保留大小写') }} (Alt+P)
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -98,7 +138,7 @@
     </section>
 
     <!-- 结果树：文件为一级节点，匹配为子节点 -->
-    <section class="result-list" v-if="matches.length > 0">
+    <section ref="resultListRef" class="result-list" v-if="matches.length > 0">
       <ScrollArea class="result-scroll">
         <div class="file-group" v-for="group in fileGroups" :key="group.filePath">
           <div
@@ -121,10 +161,12 @@
               v-for="(m, idx) in group.matches"
               :key="group.filePath + ':' + idx + ':' + m.line + ':' + m.column"
               class="match-row"
+              :class="{ 'is-selected': isMatchSelected(group.filePath, m) }"
+              :data-context-width="resultListWidth"
               @click="handleMatchClick(group.filePath, m)"
             >
               <span class="match-line-number">{{ m.line }}</span>
-              <span class="match-line-text" v-html="getHighlightedLine(m)"></span>
+              <span class="match-line-text" v-html="getMatchContextHtml(m)"></span>
             </div>
           </div>
         </div>
@@ -140,14 +182,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Textarea } from '@renderer/components/ui/textarea'
+import { Button } from '@renderer/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState, mixColors } from '../utils/themes'
+import { ArrowDown, ArrowUp } from 'lucide-vue-next'
 import { useWorkspace } from '../stores/workspace'
 import { grepInWorkspaces, type WorkspaceGrepMatch } from '../utils/workspace/workspace-grep'
 import { searchInText } from '../utils/text-search-utils'
+import { generateMatchContext } from '../utils/match-context'
 import eventBus from '../utils/event-bus'
 import { normalize as normalizePath } from '../utils/path-utils'
+import { onMounted, onBeforeUnmount } from 'vue'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -159,6 +205,9 @@ const matchCase = ref(false)
 const wholeWord = ref(false)
 const preserveCase = ref(false)
 const showReplace = ref(false)
+
+/** 当前选中的匹配项（点击后高亮并用于打开/定位） */
+const selectedMatch = ref<{ filePath: string; line: number; column: number } | null>(null)
 
 const isSearching = ref(false)
 const hasSearched = ref(false)
@@ -228,6 +277,103 @@ const getFileName = (fullPath: string) => {
   const idx = normalized.lastIndexOf('/')
   return idx >= 0 ? normalized.slice(idx + 1) : normalized
 }
+
+const isMatchSelected = (filePath: string, m: WorkspaceGrepMatch) => {
+  const s = selectedMatch.value
+  return s !== null && s.filePath === filePath && s.line === m.line && s.column === m.column
+}
+
+/** 根据结果列表容器宽度动态计算上下文最大字符数，确保匹配项在可视区中间（与 SearchReplaceMenu 一致） */
+const resultListWidth = ref(0)
+const calculateMatchContextMaxLength = (): number => {
+  const w = resultListWidth.value
+  if (w <= 0) return 60
+  const lineNumberWidth = 36
+  const marginRight = 6
+  const padding = 8 * 2
+  const availableWidth = w - lineNumberWidth - marginRight - padding - 16
+  const charsPerPixel = 1 / 7
+  const chars = Math.floor(availableWidth * charsPerPixel)
+  return Math.max(20, Math.min(120, chars))
+}
+
+/** 以匹配项为中心取左右上下文并高亮，与 SearchReplaceMenu 一致 */
+const getMatchContextHtml = (m: WorkspaceGrepMatch): string => {
+  const lineText = m.lineText ?? m.context ?? ''
+  if (!lineText) return ''
+  const startOffset = Math.max(0, m.column - 1)
+  const endOffset = Math.min(lineText.length, m.column - 1 + m.match.length)
+  const maxLength = calculateMatchContextMaxLength()
+  const context = generateMatchContext(
+    lineText,
+    m.match,
+    startOffset,
+    endOffset,
+    maxLength
+  )
+  const escapeHtml = (text: string) =>
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+  const beforeEscaped = escapeHtml(context.before)
+  const matchEscaped = escapeHtml(context.match)
+  const afterEscaped = escapeHtml(context.after)
+  return `${beforeEscaped}<mark class="match-highlight">${matchEscaped}</mark>${afterEscaped}`
+}
+
+const panelRef = ref<HTMLElement | null>(null)
+const resultListRef = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  const ro = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      resultListWidth.value = e.contentRect.width
+      break
+    }
+  })
+  watch(
+    () => resultListRef.value,
+    (el, prev) => {
+      if (prev) ro.unobserve(prev)
+      if (el) {
+        resultListWidth.value = el.getBoundingClientRect().width
+        ro.observe(el)
+      } else {
+        resultListWidth.value = 0
+      }
+    },
+    { immediate: true }
+  )
+
+  const onDocKeydown = (e: KeyboardEvent) => {
+    if (!e.altKey) return
+    if (!document.activeElement?.closest('.workspace-grep-panel')) return
+    switch (e.code) {
+      case 'KeyC':
+        e.preventDefault()
+        matchCase.value = !matchCase.value
+        break
+      case 'KeyW':
+        e.preventDefault()
+        wholeWord.value = !wholeWord.value
+        break
+      case 'KeyR':
+        e.preventDefault()
+        useRegex.value = !useRegex.value
+        break
+      case 'KeyP':
+        e.preventDefault()
+        preserveCase.value = !preserveCase.value
+        break
+    }
+  }
+  document.addEventListener('keydown', onDocKeydown)
+  onBeforeUnmount(() => {
+    ro.disconnect()
+    document.removeEventListener('keydown', onDocKeydown)
+  })
+})
 
 const getFileDir = (fullPath: string) => {
   const normalized = normalizePath(fullPath || '')
@@ -387,6 +533,15 @@ const getHighlightedLine = (m: WorkspaceGrepMatch) => {
 
 const handleFileClick = (filePath: string, firstMatch?: WorkspaceGrepMatch) => {
   if (!filePath) return
+  if (firstMatch) {
+    selectedMatch.value = {
+      filePath,
+      line: firstMatch.line,
+      column: firstMatch.column
+    }
+  } else {
+    selectedMatch.value = null
+  }
   eventBus.emit('workspace-open-document', {
     path: filePath,
     isPreview: false
@@ -395,12 +550,19 @@ const handleFileClick = (filePath: string, firstMatch?: WorkspaceGrepMatch) => {
     eventBus.emit('workspace-grep-jump', {
       path: filePath,
       line: firstMatch.line,
-      column: firstMatch.column
+      column: firstMatch.column,
+      matchLength: firstMatch.match?.length ?? 0,
+      matchText: firstMatch.match ?? ''
     })
   }
 }
 
 const handleMatchClick = (filePath: string, match: WorkspaceGrepMatch) => {
+  selectedMatch.value = {
+    filePath,
+    line: match.line,
+    column: match.column
+  }
   eventBus.emit('workspace-open-document', {
     path: filePath,
     isPreview: false
@@ -408,7 +570,9 @@ const handleMatchClick = (filePath: string, match: WorkspaceGrepMatch) => {
   eventBus.emit('workspace-grep-jump', {
     path: filePath,
     line: match.line,
-    column: match.column
+    column: match.column,
+    matchLength: match.match?.length ?? 0,
+    matchText: match.match ?? ''
   })
 }
 
@@ -457,30 +621,57 @@ watch(
   gap: 4px;
 }
 
-.toggle-replace-button {
+/* 切换替换按钮：与输入框同背景，图标随主题文字色，避免深色模式下黑底黑字 */
+.toggle-replace-btn.grep-icon-btn {
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  padding: 0;
+  border-radius: 6px;
+  background-color: v-bind('themeState.currentTheme.background') !important;
+  color: v-bind('themeState.currentTheme.textColor') !important;
   border: none;
-  background: transparent;
-  width: 22px;
-  height: 22px;
-  cursor: pointer;
-  color: v-bind('themeState.currentTheme.SideTextColor2');
+}
+
+.toggle-replace-btn.grep-icon-btn:hover {
+  background-color: v-bind('mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)') !important;
+}
+
+.toggle-replace-btn.grep-icon-btn .grep-icon-svg {
+  width: 14px;
+  height: 14px;
+  color: inherit;
 }
 
 .search-input-container {
   flex: 1;
+  min-width: 0;
 }
 
 .search-input-wrapper {
   position: relative;
 }
 
-.search-textarea-scroll {
-  max-height: 60px;
+.search-input {
+  display: block;
+  width: 100%;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 8px;
+  padding-right: 112px;
+  border-radius: 4px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  background-color: v-bind('themeState.currentTheme.background');
+  color: v-bind('themeState.currentTheme.textColor');
+  font-size: 13px;
+  outline: none;
 }
 
-.search-input :deep(textarea) {
-  resize: none;
-  padding-right: 72px; /* 给右上角的 toggle 留出空间，避免文字覆盖 */
+.search-input::placeholder {
+  color: v-bind('themeState.currentTheme.textColor2');
+  opacity: 0.8;
 }
 
 .search-controls {
@@ -489,52 +680,83 @@ watch(
   right: 4px;
   display: flex;
   flex-direction: row;
-  gap: 4px;
+  gap: 2px;
+  align-items: center;
 }
 
-.toggle-flag {
-  min-width: 22px;
-  height: 22px;
-  border-radius: 3px;
-  border: 1px solid v-bind('themeState.currentTheme.borderColor');
-  background-color: transparent;
-  color: inherit;
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
+/* 与 ViewMenuContainer 上方菜单按钮一致：小尺寸、统一宽高、背景与输入框一致 */
+.grep-toggle-btn {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: v-bind('themeState.currentTheme.background');
+  color: v-bind('themeState.currentTheme.textColor');
+  font-size: 12px;
+  font-family: inherit;
+  transition: background-color 0.2s;
 }
 
-.toggle-flag.active {
-  background-color: v-bind('themeState.currentTheme.primaryColor');
-  color: v-bind('themeState.currentTheme.background');
+.grep-toggle-btn:hover {
+  background-color: v-bind('mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)');
+}
+
+/* 高亮状态：用 background2nd + 文字色混合，亮暗主题下文字都保持可见 */
+.grep-toggle-btn.active {
+  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)');
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.grep-toggle-label {
+  font-size: 12px;
+  line-height: 1;
+  font-family: inherit;
 }
 
 .replace-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 4px;
   margin-top: 4px;
 }
 
 .replace-input-container {
   flex: 1;
+  min-width: 0;
 }
 
-.replace-textarea-scroll {
-  max-height: 60px;
+.replace-input {
+  display: block;
+  width: 100%;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 8px;
+  padding-right: 36px;
+  border-radius: 4px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  background-color: v-bind('themeState.currentTheme.background');
+  color: v-bind('themeState.currentTheme.textColor');
+  font-size: 13px;
+  outline: none;
 }
 
-.replace-input :deep(textarea) {
-  resize: none;
+.replace-input::placeholder {
+  color: v-bind('themeState.currentTheme.textColor2');
+  opacity: 0.8;
 }
 
 .replace-controls {
   display: flex;
   flex-direction: row;
-  gap: 4px;
-  padding-left: 2px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .query-details {
@@ -629,6 +851,7 @@ watch(
 .match-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   padding: 1px 4px;
   border-radius: 3px;
   cursor: pointer;
@@ -638,13 +861,18 @@ watch(
   background-color: v-bind('mixColors(themeState.currentTheme.background2nd, "#000000", 0.05)');
 }
 
+.match-row.is-selected {
+  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || "#409eff", 0.25)');
+}
+
 .match-line-number {
   width: 36px;
+  flex-shrink: 0;
   font-size: 11px;
   opacity: 0.8;
-  text-align: right;
+  text-align: left;
   margin-right: 6px;
-  font-family: monospace;
+  font-family: inherit;
 }
 
 .match-line-text {
@@ -653,6 +881,8 @@ watch(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .match-highlight {

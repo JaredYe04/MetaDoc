@@ -983,6 +983,84 @@ const handleSyncWithHtml = () => {
 }
 eventBus.on('vditor-sync-with-html', handleSyncWithHtml)
 
+const handleEditorGotoPosition = (payload: {
+  tabId?: string
+  line?: number
+  column?: number
+  endColumn?: number
+  matchText?: string
+}) => {
+  if (payload?.tabId !== props.tabId || payload?.line == null || payload?.column == null) return
+  const adapter = textEditorAdapter.value
+  if (!adapter) return
+  // Vditor 的 DOM/IR 与文件坐标可能不完全一致：
+  // 优先使用适配器基于「当前编辑器内容」定位（类似 SearchReplaceMenu 的做法）
+  if (adapter.kind === 'vditor' && typeof payload.matchText === 'string' && payload.matchText) {
+    const vditorAdapter = adapter as unknown as {
+      configureSearch?: (opts: any, behavior?: any) => unknown
+      findTextByContent?: (text: string, options?: any) => Array<{ range: any }>
+      highlightSingleMatch?: (findResult: any, index: number, focus: boolean) => void
+      goToRanges: (ranges: any[]) => void
+    }
+    if (typeof vditorAdapter.findTextByContent === 'function') {
+      const results = vditorAdapter.findTextByContent(payload.matchText, {
+        matchCase: true,
+        wholeWord: false,
+        useRegex: false,
+        maxResults: 5000
+      })
+      if (results && results.length > 0) {
+        const targetLine = payload.line
+        const targetColumn = payload.column
+        let bestIndex = 0
+        let bestScore = Number.POSITIVE_INFINITY
+        for (let i = 0; i < results.length; i += 1) {
+          const r = results[i]?.range
+          const sLine = r?.start?.line
+          const sCol = r?.start?.column
+          if (typeof sLine !== 'number' || typeof sCol !== 'number') continue
+          const score = Math.abs(sLine - targetLine) * 10000 + Math.abs(sCol - targetColumn)
+          if (score < bestScore) {
+            bestScore = score
+            bestIndex = i
+          }
+        }
+        // 让 vditor-adapter 使用同样的文本选项构建 regex，便于精确高亮与选中
+        if (typeof vditorAdapter.configureSearch === 'function') {
+          vditorAdapter.configureSearch(
+            { text: payload.matchText, matchCase: true, wholeWord: false, useRegex: false },
+            { revealFirst: false }
+          )
+        }
+        if (typeof vditorAdapter.highlightSingleMatch === 'function') {
+          vditorAdapter.highlightSingleMatch(results[bestIndex], bestIndex, true)
+          return
+        }
+        // 兜底：若没有 highlightSingleMatch，则至少选中该范围
+        const bestRange = results[bestIndex]?.range
+        if (bestRange) {
+          vditorAdapter.goToRanges([bestRange])
+          return
+        }
+      }
+    }
+  }
+  const line = payload.line
+  const column = payload.column
+  const endColumn = payload.endColumn
+  if (
+    typeof endColumn === 'number' &&
+    endColumn > column
+  ) {
+    adapter.goToRanges([
+      { start: { line, column }, end: { line, column: endColumn } }
+    ])
+  } else {
+    adapter.goTo({ line, column })
+  }
+}
+eventBus.on('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
+
 // 接受生成的文本
 const acceptGeneratedText = async (payload: any) => {
   const { append, content, sectionInfo } = payload
@@ -2594,6 +2672,7 @@ onBeforeUnmount(() => {
   eventBus.off('sync-active-editor')
   eventBus.off('search-replace')
   eventBus.off('vditor-sync-with-html', handleSyncWithHtml)
+  eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
   eventBus.off('sync-editor-theme', handleSyncEditorTheme)
   if (layoutObserver) {
     layoutObserver.disconnect()

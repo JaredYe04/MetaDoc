@@ -17,9 +17,33 @@ import { i18n } from '../../i18n'
 import type { TextRange } from '../../editor/text-editor-types'
 import EditDisplay from './components/EditDisplay.vue'
 import { createDetailedError } from './tool-utils'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('EditTool')
 const workspace = useWorkspace()
+
+function getWorkspaceRoots(): string[] {
+  try {
+    const saved = localStorage.getItem('workspaceFolders')
+    if (!saved) return []
+    const arr = JSON.parse(saved)
+    return Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+  } catch {
+    return []
+  }
+}
+
+function resolveFilePath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/').trim()
+  if (normalized.startsWith('/') || /^[A-Za-z]:[/\\]/.test(normalized)) {
+    return normalized
+  }
+  const roots = getWorkspaceRoots()
+  const root = roots[0]
+  if (!root) return normalized
+  const base = root.replace(/\\/g, '/').replace(/\/$/, '')
+  return `${base}/${normalized}`
+}
 
 /**
  * 稳定锚点（用于增量diff编辑）
@@ -908,6 +932,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const operation = params.operation as AnyEditOperation | undefined
   const diff = params.diff as string | undefined
   const tabId = params.tabId as string | undefined
+  const filePathParam = params.filePath as string | undefined
   const verbose = params.verbose === true // 是否返回完整内容（默认false，节省token）
 
   // 优先处理 diff 格式（如果提供）
@@ -946,16 +971,121 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       // 解析 Unified diff
       const hunks = parseUnifiedDiff(diff)
 
-      // 获取文档
+      // --- filePath 分支：按工作区文件路径编辑（Cursor 风格，支持新建文件）---
+      if (filePathParam) {
+        if (!messageBridge.getIpc()?.invoke) {
+          return {
+            status: 'failed',
+            error: createDetailedError('filePath 编辑需要 IPC（仅 Electron 环境可用）', [], [])
+          }
+        }
+        const absPath = resolveFilePath(filePathParam)
+        let currentContent: string | null = null
+        try {
+          currentContent = await messageBridge.invoke('read-file-content', absPath) as string | null
+        } catch (e) {
+          logger.warn('read-file-content failed', e)
+        }
+        const isNewFile = currentContent === null || currentContent === undefined
+        if (isNewFile) {
+          const isPureAdd = hunks.every((h) => h.oldCount === 0 && h.oldStart === 0)
+          if (!isPureAdd) {
+            return {
+              status: 'failed',
+              error: createDetailedError(
+                '新建文件时 diff 必须为纯新增（old 侧为 0,0）',
+                [
+                  '示例：{"filePath": "path/to/new.md", "diff": "@@ -0,0 +1,3 @@\\n+line1\\n+line2\\n+line3"}'
+                ],
+                []
+              )
+            }
+          const newContent = hunks.flatMap((h) => h.newLines).join('\n')
+          onUpdate(
+            {
+              content: { stage: 'updating', editCount: 1, appliedCount: 1, failedCount: 0 },
+              format: 'json',
+              componentName: 'EditDisplay'
+            },
+            { percentage: 80, message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...') }
+          )
+          await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
+          return {
+            status: 'success',
+            data: {
+              appliedEdits: 1,
+              failedEdits: 0,
+              operations: [],
+              hunks,
+              ...(verbose ? { originalContent: '', newContent } : {})
+            }
+          }
+        }
+        currentContent = currentContent as string
+        const currentFormat = currentContent.trim().length === 0 ? 'md' : (/\\.tex$/i.test(absPath) ? 'tex' : 'md')
+        const edits: EditOperation[] = []
+        for (const hunk of hunks) {
+          const edit = convertHunkToEditOperation(hunk, currentContent)
+          if (edit) edits.push(edit)
+        }
+        if (edits.length === 0) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              '无法定位任何编辑位置',
+              ['请检查 diff 中的行号或上下文是否与文件内容一致'],
+              []
+            )
+          }
+        }
+        let newContent = currentContent
+        const sortedEdits = [...edits].sort((a, b) => {
+          const aStart = positionToOffset(newContent, a.range.start.line, a.range.start.column)
+          const bStart = positionToOffset(newContent, b.range.start.line, b.range.start.column)
+          return bStart - aStart
+        })
+        let appliedCount = 0
+        let failedCount = 0
+        for (const edit of sortedEdits) {
+          try {
+            newContent = applyEditToText(newContent, edit)
+            appliedCount++
+          } catch {
+            failedCount++
+          }
+        }
+        if (signal?.aborted) return { status: 'cancelled' }
+        onUpdate(
+          {
+            content: { stage: 'updating', editCount: edits.length, appliedCount, failedCount },
+            format: 'json',
+            componentName: 'EditDisplay'
+          },
+          { percentage: 80, message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...') }
+        )
+        await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
+        return {
+          status: 'success',
+          data: {
+            appliedEdits: appliedCount,
+            failedEdits: failedCount,
+            operations: edits,
+            hunks,
+            ...(verbose ? { originalContent: currentContent, newContent } : {})
+          }
+        }
+      }
+
+      // --- tabId / 当前文档分支 ---
       const targetTabId = tabId || workspace.activeTabId.value
       if (!targetTabId) {
         return {
           status: 'failed',
           error: createDetailedError(
-            '没有活动的文档标签页',
+            '没有活动的文档标签页且未指定 filePath',
             [
-              '请先打开一个文档，然后再执行编辑操作',
-              '或者指定tabId参数：{"diff": "...", "tabId": "文档ID"}'
+              '请先打开一个文档，或指定 tabId：{"diff": "...", "tabId": "文档ID"}',
+              '或指定 filePath（工作区相对/绝对路径）：{"diff": "...", "filePath": "path/to/file.md"}'
             ],
             []
           )
@@ -2291,6 +2421,7 @@ export const editToolConfig: AgentToolConfig = {
 - 建议在编辑前保存文档
 - 如果某个编辑操作失败（例如找不到匹配文本、位置超出范围），其他操作仍会继续执行
 - 查找替换如果找不到匹配文本，该操作会失败但不影响其他操作
+- \`filePath\` 参数可选：工作区相对或绝对路径；与 \`diff\` 配合可编辑磁盘文件或新建文件（diff 为纯新增 @@ -0,0 +... 时创建新文件）。推荐 Cursor 风格：\`filePath\` + \`diff\`
 - \`tabId\` 参数可选，默认使用当前活动的文档标签页
 - \`verbose\` 参数可选，默认false。如果设置为true，会在结果中包含完整的原始内容和新内容（originalContent和newContent），用于Display组件显示完整的编辑对比。**默认不包含完整内容以节省token**，只有在需要查看完整编辑对比时才设置为true。
 `
@@ -2385,6 +2516,11 @@ export const editToolConfig: AgentToolConfig = {
         type: 'string',
         description:
           'Unified diff 格式字符串（与operations/operation二选一）。格式类似 Git diff：@@ -start,count +start,count @@，后跟-行（删除）、+行（新增）和上下文行。推荐AI使用此格式，更直观易读。'
+      },
+      filePath: {
+        type: 'string',
+        description:
+          '工作区相对路径或绝对路径（可选）。与 diff 配合使用可编辑磁盘文件或新建文件；未指定时使用 tabId/当前文档。推荐 Cursor 风格：filePath + diff。'
       },
       tabId: {
         type: 'string',

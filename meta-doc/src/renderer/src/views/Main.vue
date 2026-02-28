@@ -89,7 +89,7 @@ import TabContentRenderer from '../components/TabContentRenderer.vue'
 // ============================================================================
 // 导入工具和库
 // ============================================================================
-import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
@@ -149,7 +149,8 @@ const {
   createDocumentSnapshotFromTemplate,
   updateDocumentTex,
   updateDocumentMarkdown,
-  refreshActiveTabMetadata
+  refreshActiveTabMetadata,
+  updateDocumentLastView
 } = workspace
 
 // 判断是否显示子视图菜单（仅在文档相关视图显示）
@@ -158,6 +159,15 @@ const showSubViewMenu = computed(() => {
   if (!activeTab) return false
   return activeTab.kind === 'file' || activeTab.kind === 'new'
 })
+
+// 工作区 grep 跳转：若打开文档尚未完成则暂存，待 open-doc-success 后执行
+const pendingGrepGoto = ref<{
+  path: string
+  line: number
+  column: number
+  matchLength?: number
+  matchText?: string
+} | null>(null)
 
 // UI状态
 const showUserProfileCard = ref(false)
@@ -193,6 +203,9 @@ const normalizeContent = (value: string | null | undefined): string => {
   if (!value) return ''
   return value.replace(/\r\n/g, '\n')
 }
+
+// 路径规范化比较（用于 grep 跳转等）
+const normalizePathForGrep = (p: string) => (p || '').replace(/\\/g, '/')
 
 // 使用 workspace 导出的统一函数
 const hasDocumentContent = (doc: WorkspaceDocument): boolean => {
@@ -680,6 +693,41 @@ function initMainEventListeners() {
   }
   eventBus.on('workspace-open-document', workspaceOpenDocumentHandler)
 
+  // 工作区 grep 点击匹配项：切换到编辑器视图并定位到行，选中匹配文字
+  const handleWorkspaceGrepJump = (payload: unknown) => {
+    const p = payload as {
+      path?: string
+      line?: number
+      column?: number
+      matchLength?: number
+      matchText?: string
+    }
+    const path = typeof p?.path === 'string' ? p.path : ''
+    const line = typeof p?.line === 'number' ? p.line : 1
+    const column = typeof p?.column === 'number' ? p.column : 1
+    const matchLength = typeof p?.matchLength === 'number' ? p.matchLength : 0
+    const matchText = typeof p?.matchText === 'string' ? p.matchText : ''
+    const endColumn = column + matchLength
+    if (!path) return
+    nextTick(() => {
+      const tab = workspaceTabs.find(
+        (t) => t.kind === 'file' && normalizePathForGrep(t.path || '') === normalizePathForGrep(path)
+      )
+      if (tab) {
+        activateTab(tab.id)
+        updateDocumentLastView(tab.id, 'editor')
+        const gotoPayload = { tabId: tab.id, line, column, endColumn, matchText }
+        eventBus.emit('editor-goto-position', gotoPayload)
+        setTimeout(() => {
+          eventBus.emit('editor-goto-position', gotoPayload)
+        }, 150)
+      } else {
+        pendingGrepGoto.value = { path, line, column, matchLength, matchText }
+      }
+    })
+  }
+  eventBus.on('workspace-grep-jump', handleWorkspaceGrepJump)
+
   // 切换用户资料卡
   const handleToggleUserProfile = () => {
     showUserProfileCard.value = !showUserProfileCard.value
@@ -744,6 +792,33 @@ function initMainEventListeners() {
 
     // lastView 已经在 createSnapshotFromLoadedData 中根据内容正确设置了
     // 这里不需要再修改，保持逻辑清晰
+
+    // 若有工作区 grep 待跳转（刚打开的文件），切换到编辑器并定位
+    const payloadPath =
+      payload && typeof payload === 'object' && 'path' in payload
+        ? (payload as { path?: string }).path
+        : undefined
+    if (
+      pendingGrepGoto.value &&
+      payloadPath &&
+      normalizePathForGrep(pendingGrepGoto.value.path) === normalizePathForGrep(payloadPath)
+    ) {
+      const tabId = activeTabId.value
+      if (tabId) {
+        updateDocumentLastView(tabId, 'editor')
+        const { line, column, matchLength = 0, matchText = '' } = pendingGrepGoto.value
+        const payload = {
+          tabId,
+          line,
+          column,
+          endColumn: column + matchLength,
+          matchText
+        }
+        eventBus.emit('editor-goto-position', payload)
+        setTimeout(() => eventBus.emit('editor-goto-position', payload), 150)
+      }
+      pendingGrepGoto.value = null
+    }
   }
   eventBus.on('open-doc-success', handleOpenDocSuccess)
 
@@ -1161,6 +1236,7 @@ function initMainEventListeners() {
     () => eventBus.off('tab-new', handleTabNew),
     () => eventBus.off('tab-switch-indicator', handleTabSwitchIndicator),
     () => eventBus.off('workspace-open-document', workspaceOpenDocumentHandler),
+    () => eventBus.off('workspace-grep-jump', handleWorkspaceGrepJump),
     () => eventBus.off('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd),
     () => eventBus.off('toggle-user-profile', handleToggleUserProfile),
     () => eventBus.off('save-success', handleSaveSuccess),

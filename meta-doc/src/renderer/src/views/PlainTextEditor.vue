@@ -721,6 +721,30 @@ eventBus.on('search-replace', (payload?: any) => {
   }
 })
 
+const handleEditorGotoPosition = (payload: {
+  tabId?: string
+  line?: number
+  column?: number
+  endColumn?: number
+}) => {
+  if (payload?.tabId !== props.tabId || payload?.line == null || payload?.column == null) return
+  const adapter = textEditorAdapter.value
+  if (!adapter) return
+  const line = payload.line
+  const column = payload.column
+  const endColumn = payload.endColumn
+  if (
+    typeof endColumn === 'number' &&
+    endColumn > column
+  ) {
+    adapter.goToRanges([
+      { start: { line, column }, end: { line, column: endColumn } }
+    ])
+  } else {
+    adapter.goTo({ line, column })
+  }
+}
+
 watch(isActive, (active) => {
   if (!active) {
     searchReplaceDialogVisible.value = false
@@ -889,6 +913,7 @@ onMounted(async () => {
       if (ed) ed.updateOptions({ fontFamily: getEditorFontFamily() })
     }
     eventBus.on('font-settings-changed', handleFontSettingsChanged)
+    eventBus.on('editor-goto-position', handleEditorGotoPosition)
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('plaintextEditor.init_failed') + e)
@@ -899,6 +924,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   aiCompletionService.removeAdapter()
+  eventBus.off('editor-goto-position', handleEditorGotoPosition)
 
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)

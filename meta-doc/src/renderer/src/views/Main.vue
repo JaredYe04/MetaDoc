@@ -303,6 +303,25 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   const normalizePathForCompare = (p: string) => (p || '').replace(/\\/g, '/')
   const resolvedPathNorm = normalizePathForCompare(resolvedPath)
 
+  // 仅指定 tabId（如工作区搜索点击未命名文档）：激活已有 Tab
+  if (payload.tabId && !resolvedPath) {
+    const existingByTabId = workspaceTabs.find((t) => t.id === payload.tabId)
+    if (
+      existingByTabId &&
+      (existingByTabId.kind === 'file' || existingByTabId.kind === 'new')
+    ) {
+      activateTab(existingByTabId.id)
+      const existingDoc = ensureDocument(existingByTabId.id)
+      eventBus.emit('open-doc-success', {
+        tabId: existingByTabId.id,
+        path: '',
+        fileName: getDisplayName(existingDoc, ''),
+        isPreview: false
+      })
+      return
+    }
+  }
+
   if (resolvedPath) {
     // 先检查当前窗口是否已打开该文件（路径规范化后比较，避免 D:\ 与 D:/ 等导致误判）
     const existing = workspaceTabs.find(
@@ -697,23 +716,29 @@ function initMainEventListeners() {
   const handleWorkspaceGrepJump = (payload: unknown) => {
     const p = payload as {
       path?: string
+      tabId?: string
       line?: number
       column?: number
       matchLength?: number
       matchText?: string
     }
     const path = typeof p?.path === 'string' ? p.path : ''
+    const tabId = typeof p?.tabId === 'string' ? p.tabId : ''
     const line = typeof p?.line === 'number' ? p.line : 1
     const column = typeof p?.column === 'number' ? p.column : 1
     const matchLength = typeof p?.matchLength === 'number' ? p.matchLength : 0
     const matchText = typeof p?.matchText === 'string' ? p.matchText : ''
     const endColumn = column + matchLength
-    if (!path) return
+    if (!path && !tabId) return
     nextTick(() => {
-      const tab = workspaceTabs.find(
-        (t) => t.kind === 'file' && normalizePathForGrep(t.path || '') === normalizePathForGrep(path)
-      )
-      if (tab) {
+      const tab = tabId
+        ? workspaceTabs.find((t) => t.id === tabId)
+        : workspaceTabs.find(
+            (t) =>
+              t.kind === 'file' &&
+              normalizePathForGrep(t.path || '') === normalizePathForGrep(path)
+          )
+      if (tab && (tab.kind === 'file' || tab.kind === 'new')) {
         activateTab(tab.id)
         updateDocumentLastView(tab.id, 'editor')
         const gotoPayload = { tabId: tab.id, line, column, endColumn, matchText }
@@ -721,7 +746,7 @@ function initMainEventListeners() {
         setTimeout(() => {
           eventBus.emit('editor-goto-position', gotoPayload)
         }, 150)
-      } else {
+      } else if (!tabId) {
         pendingGrepGoto.value = { path, line, column, matchLength, matchText }
       }
     })

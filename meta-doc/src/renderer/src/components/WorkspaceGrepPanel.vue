@@ -108,6 +108,27 @@
               <TooltipTrigger as-child>
                 <button
                   type="button"
+                  class="grep-toggle-btn replace-all-btn"
+                  :disabled="!canReplaceAll || isReplacingAll"
+                  :aria-label="$t('searchReplace.replaceAllBtn', '全部替换')"
+                  @click="handleReplaceAll"
+                >
+                  <img
+                    :src="(themeState.currentTheme as any).ReplaceAllIcon"
+                    alt=""
+                    class="replace-all-icon"
+                    :class="{ 'replace-all-icon-spin': isReplacingAll }"
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {{ $t('searchReplace.replaceAllBtn', '全部替换') }}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <button
+                  type="button"
                   class="grep-toggle-btn"
                   :class="{ active: preserveCase }"
                   @click="preserveCase = !preserveCase"
@@ -132,9 +153,7 @@
     </section>
 
     <section class="result-summary" v-if="!isSearching && matches.length > 0">
-      <span>
-        {{ $t('workspaceGrep.resultSummary', '共找到 {count} 处匹配', { count: matches.length }) }}
-      </span>
+      <span>{{ resultSummaryText }}</span>
     </section>
 
     <!-- 结果树：文件为一级节点，匹配为子节点 -->
@@ -188,11 +207,16 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState, mixColors } from '../utils/themes'
 import { ArrowDown, ArrowUp } from 'lucide-vue-next'
 import { useWorkspace } from '../stores/workspace'
-import { grepInWorkspaces, type WorkspaceGrepMatch } from '../utils/workspace/workspace-grep'
-import { searchInText } from '../utils/text-search-utils'
+import {
+  grepInWorkspaces,
+  grepInContent,
+  type WorkspaceGrepMatch
+} from '../utils/workspace/workspace-grep'
+import { searchInText, computeReplacementText } from '../utils/text-search-utils'
 import { generateMatchContext } from '../utils/match-context'
 import eventBus from '../utils/event-bus'
-import { normalize as normalizePath } from '../utils/path-utils'
+import messageBridge from '../bridge/message-bridge'
+import { normalize } from '../utils/path-utils'
 import { onMounted, onBeforeUnmount } from 'vue'
 
 const { t } = useI18n()
@@ -211,6 +235,7 @@ const selectedMatch = ref<{ filePath: string; line: number; column: number } | n
 
 const isSearching = ref(false)
 const hasSearched = ref(false)
+const isReplacingAll = ref(false)
 const matches = ref<WorkspaceGrepMatch[]>([])
 const expandedFiles = ref<Set<string>>(new Set())
 let currentAbortController: AbortController | null = null
@@ -226,6 +251,15 @@ const panelStyle = computed(() => ({
 }))
 
 const canSearch = computed(() => pattern.value.trim().length > 0 && !isSearching.value)
+
+const canReplaceAll = computed(
+  () => showReplace.value && matches.value.length > 0 && !!replaceText.value.trim()
+)
+
+/** 共找到 x 处匹配（i18n 插值：第二个参数传 { count }，与 zh_cn 的 workspaceGrep.resultSummary 一致） */
+const resultSummaryText = computed(() =>
+  t('workspaceGrep.resultSummary', { count: matches.value.length })
+)
 
 const workspaceRoots = computed<string[]>(() => {
   try {
@@ -273,7 +307,12 @@ const toggleFileExpand = (filePath: string) => {
 }
 
 const getFileName = (fullPath: string) => {
-  const normalized = normalizePath(fullPath || '')
+  if (fullPath.startsWith(UNTITLED_PATH_PREFIX)) {
+    const tabId = fullPath.slice(UNTITLED_PATH_PREFIX.length)
+    const tab = workspace.tabs.find((t) => t.id === tabId)
+    return tab?.title || t('workspace.untitledDocument', '未命名文档')
+  }
+  const normalized = normalize(fullPath || '')
   const idx = normalized.lastIndexOf('/')
   return idx >= 0 ? normalized.slice(idx + 1) : normalized
 }
@@ -376,9 +415,29 @@ onMounted(() => {
 })
 
 const getFileDir = (fullPath: string) => {
-  const normalized = normalizePath(fullPath || '')
+  if (fullPath.startsWith(UNTITLED_PATH_PREFIX)) return ''
+  const normalized = normalize(fullPath || '')
   const idx = normalized.lastIndexOf('/')
   return idx >= 0 ? normalized.slice(0, idx) : ''
+}
+
+/** 判断 path 是否在任一 roots 下（含 root 自身） */
+const isPathUnderRoots = (path: string, roots: string[]): boolean => {
+  const n = normalize(path || '')
+  for (const root of roots) {
+    const r = normalize(root || '')
+    if (n === r || n.startsWith(r + '/')) return true
+  }
+  return false
+}
+
+/** 未命名文档在结果中使用的路径前缀，便于分组与替换时按 tabId 定位 */
+const UNTITLED_PATH_PREFIX = 'untitled:'
+
+/** 获取 tab 在搜索结果中的 filePath：有真实路径用路径，否则用 untitled:tabId */
+const pathForTab = (tab: { path?: string; id: string }): string => {
+  if (tab.path && normalize(tab.path || '')) return tab.path
+  return UNTITLED_PATH_PREFIX + tab.id
 }
 
 const handleEnter = () => {
@@ -439,8 +498,8 @@ const runSearch = async () => {
     if (roots.length === 0) {
       for (const tab of workspace.tabs) {
         if (abortController.signal.aborted) break
-        if (tab.kind !== 'file' || !tab.id || !tab.path) continue
-        const path = tab.path
+        if ((tab.kind !== 'file' && tab.kind !== 'new') || !tab.id) continue
+        const path = pathForTab(tab)
 
         const doc = workspace.ensureDocument(tab.id)
         const text =
@@ -502,6 +561,51 @@ const runSearch = async () => {
           matches.value = matches.value.concat(batch)
         }
       })
+
+      // 合并未保存（脏）文件的搜索结果：用内存内容覆盖同路径的磁盘结果
+      if (!abortController.signal.aborted && roots.length > 0) {
+        const grepOpts = {
+          pattern: patternValue,
+          isRegex,
+          matchCase: matchCaseValue,
+          wholeWord: wholeWordValue,
+          contextLines: 3,
+          maxMatchesPerFile: 100
+        }
+        for (const tab of workspace.tabs) {
+          if (tab.kind !== 'file' || !tab.path || !tab.id) continue
+          if (!isPathUnderRoots(tab.path, roots)) continue
+          const doc = workspace.documents[tab.id]
+          if (!doc || !doc.dirty) continue
+          const text =
+            doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
+          if (!text) continue
+          const dirtyMatches = grepInContent(tab.path, text, grepOpts)
+          if (dirtyMatches.length === 0) {
+            matches.value = matches.value.filter(
+              (m) => normalize(m.filePath) !== normalize(tab.path!)
+            )
+          } else {
+            matches.value = matches.value.filter(
+              (m) => normalize(m.filePath) !== normalize(tab.path!)
+            )
+            matches.value = matches.value.concat(dirtyMatches)
+          }
+        }
+        // 未命名/新建且脏的文档：无 path 或 kind===new，用 untitled:tabId 作为 filePath
+        for (const tab of workspace.tabs) {
+          if (!tab.id || (tab.kind !== 'file' && tab.kind !== 'new')) continue
+          if (tab.path && normalize(tab.path || '')) continue
+          const doc = workspace.documents[tab.id]
+          if (!doc || !doc.dirty) continue
+          const text =
+            doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
+          if (!text) continue
+          const virtualPath = UNTITLED_PATH_PREFIX + tab.id
+          const dirtyMatches = grepInContent(virtualPath, text, grepOpts)
+          matches.value = matches.value.concat(dirtyMatches)
+        }
+      }
     }
   } finally {
     if (currentAbortController === abortController) {
@@ -542,13 +646,17 @@ const handleFileClick = (filePath: string, firstMatch?: WorkspaceGrepMatch) => {
   } else {
     selectedMatch.value = null
   }
+  const isUntitled = filePath.startsWith(UNTITLED_PATH_PREFIX)
+  const tabId = isUntitled ? filePath.slice(UNTITLED_PATH_PREFIX.length) : undefined
   eventBus.emit('workspace-open-document', {
-    path: filePath,
+    path: isUntitled ? '' : filePath,
+    tabId,
     isPreview: false
   })
   if (firstMatch) {
     eventBus.emit('workspace-grep-jump', {
-      path: filePath,
+      path: isUntitled ? '' : filePath,
+      tabId,
       line: firstMatch.line,
       column: firstMatch.column,
       matchLength: firstMatch.match?.length ?? 0,
@@ -563,17 +671,102 @@ const handleMatchClick = (filePath: string, match: WorkspaceGrepMatch) => {
     line: match.line,
     column: match.column
   }
+  const isUntitled = filePath.startsWith(UNTITLED_PATH_PREFIX)
+  const tabId = isUntitled ? filePath.slice(UNTITLED_PATH_PREFIX.length) : undefined
   eventBus.emit('workspace-open-document', {
-    path: filePath,
+    path: isUntitled ? '' : filePath,
+    tabId,
     isPreview: false
   })
   eventBus.emit('workspace-grep-jump', {
-    path: filePath,
+    path: isUntitled ? '' : filePath,
+    tabId,
     line: match.line,
     column: match.column,
     matchLength: match.match?.length ?? 0,
     matchText: match.match ?? ''
   })
+}
+
+/** 全部替换：对当前结果中涉及的文件逐文件读入或取内存内容、按匹配替换、写回或更新 store，然后重新搜索 */
+const handleReplaceAll = async () => {
+  if (!canReplaceAll.value || isReplacingAll.value) return
+  const ipc = messageBridge.getIpc()
+  if (!ipc) return
+  const files = Array.from(new Set(matches.value.map((m) => m.filePath)))
+  const patternValue = pattern.value
+  const replaceValue = replaceText.value
+  const opts = {
+    useRegex: useRegex.value,
+    matchCase: matchCase.value,
+    wholeWord: wholeWord.value,
+    preserveCase: preserveCase.value
+  }
+  isReplacingAll.value = true
+  let totalReplaced = 0
+  try {
+    for (const filePath of files) {
+      const isUntitled = filePath.startsWith(UNTITLED_PATH_PREFIX)
+      const tabIdFromUntitled = isUntitled
+        ? filePath.slice(UNTITLED_PATH_PREFIX.length)
+        : ''
+      let tab = isUntitled
+        ? workspace.tabs.find((t) => t.id === tabIdFromUntitled)
+        : workspace.tabs.find(
+            (t) =>
+              t.kind === 'file' &&
+              t.path &&
+              normalize(t.path) === normalize(filePath)
+          )
+      if (isUntitled && !tab) continue
+      const doc = tab ? workspace.documents[tab.id] : null
+      const isDirty = Boolean(doc?.dirty) || isUntitled
+
+      let content: string | null
+      if ((isDirty || isUntitled) && doc) {
+        content =
+          doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '') || null
+      } else {
+        content = (await messageBridge.invoke('read-file-content', filePath)) as
+          | string
+          | null
+      }
+      if (content == null) continue
+      const textMatches = searchInText(content, patternValue, {
+        useRegex: opts.useRegex,
+        matchCase: opts.matchCase,
+        wholeWord: opts.wholeWord
+      })
+      if (!textMatches.length) continue
+      const sorted = [...textMatches].sort((a, b) => b.startOffset - a.startOffset)
+      let newContent = content
+      for (const m of sorted) {
+        const repl = computeReplacementText(replaceValue, m, {
+          useRegex: opts.useRegex,
+          preserveCase: opts.preserveCase
+        })
+        newContent = newContent.slice(0, m.startOffset) + repl + newContent.slice(m.endOffset)
+        totalReplaced += 1
+      }
+      if ((isDirty || isUntitled) && tab && doc) {
+        if (doc.format === 'tex') {
+          workspace.updateDocumentTex(tab.id, newContent)
+        } else {
+          workspace.updateDocumentMarkdown(tab.id, newContent)
+        }
+      } else if (!isUntitled) {
+        await messageBridge.invoke('write-file-content', {
+          filePath,
+          content: newContent
+        })
+      }
+    }
+    if (totalReplaced > 0) {
+      triggerSearch(true)
+    }
+  } finally {
+    isReplacingAll.value = false
+  }
 }
 
 watch(
@@ -712,6 +905,27 @@ watch(
 .grep-toggle-btn.active {
   background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)');
   color: v-bind('themeState.currentTheme.textColor');
+}
+
+.grep-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.replace-all-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  object-fit: contain;
+}
+
+.replace-all-icon-spin {
+  animation: replace-all-spin 0.8s linear infinite;
+}
+
+@keyframes replace-all-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .grep-toggle-label {

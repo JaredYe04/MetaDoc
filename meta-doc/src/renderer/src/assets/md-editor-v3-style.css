@@ -3328,3 +3328,51 @@ svg.md-editor-icon {
 .md-editor-disabled {
   cursor: not-allowed !important;
 }
+
+/* 覆盖：工具栏稍大、图标略明显；左右分屏保留明显分割线，resize 条透明 */
+.md-editor-toolbar-wrapper {
+  padding: 6px 6px 8px;
+  border-bottom: 1px solid var(--md-border-color);
+}
+.md-editor-toolbar-wrapper .md-editor-toolbar-item {
+  margin: 0 3px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.md-editor-toolbar-wrapper .md-editor-toolbar-item-name {
+  font-size: 12px;
+}
+.md-editor-toolbar-wrapper .md-editor-toolbar-left,
+.md-editor-toolbar-wrapper .md-editor-toolbar-right {
+  padding: 2px 0;
+}
+.md-editor svg.md-editor-icon,
+.md-editor .lucide-list-icon,
+.md-editor .lucide-list-ordered-icon,
+.md-editor .lucide-list-todo-icon {
+  width: 18px !important;
+  height: 18px !important;
+  padding: 2px;
+  stroke-width: 2;
+  opacity: 0.88;
+}
+.md-editor-toolbar-wrapper .md-editor-toolbar-item:hover svg.md-editor-icon,
+.md-editor-toolbar-wrapper .md-editor-toolbar-item:hover .lucide-list-icon {
+  opacity: 1;
+}
+/* 左右分屏：仅预览区左侧分割线可见，resize 条保持透明 */
+.md-editor-preview-wrapper {
+  border-left: 2px solid rgba(128, 128, 128, 0.35);
+  margin-left: 0;
+}
+.md-editor-dark .md-editor-preview-wrapper {
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+.md-editor-resize-operate {
+  width: 2px;
+  background-color: transparent !important;
+  z-index: 2;
+}
+.md-editor-resize-operate:hover {
+  background-color: transparent !important;
+}

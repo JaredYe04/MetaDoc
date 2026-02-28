@@ -2695,11 +2695,11 @@ const saveCurrentConfig = async () => {
   if (existingConfig) {
     try {
       await ElMessageBox.confirm(
-        `配置名称"${saveConfigName.value.trim()}"已存在，是否覆盖？`,
-        '确认覆盖',
+        t('setting.overwriteConfigConfirm', { name: saveConfigName.value.trim() }),
+        t('setting.overwriteConfigTitle'),
         {
-          confirmButtonText: '覆盖',
-          cancelButtonText: '取消',
+          confirmButtonText: t('common.overwrite'),
+          cancelButtonText: t('common.cancel'),
           type: 'warning'
         }
       )
@@ -2750,9 +2750,9 @@ const deleteSavedConfig = async () => {
   if (!selectedConfigId.value) return
 
   try {
-    await ElMessageBox.confirm('确定要删除这个配置吗？', '确认删除', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('setting.confirmDeleteConfig'), t('setting.deleteConfig'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning'
     })
 
@@ -2761,7 +2761,7 @@ const deleteSavedConfig = async () => {
     selectedConfigId.value = ''
     toolTestForm.toolId = ''
     toolTestForm.paramsJson = '{}'
-    notifySuccess('配置已删除')
+    notifySuccess(t('setting.configDeleted'))
   } catch {
     // 用户取消
   }

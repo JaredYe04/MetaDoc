@@ -912,7 +912,7 @@ export async function generateNodeContent(
 
   if (signal) {
     signal.addEventListener('abort', () => {
-      // 任务取消由 ai_tasks 内部处理
+      cancelAiTask(handle, false)
     })
   }
 

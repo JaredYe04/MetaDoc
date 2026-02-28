@@ -80,8 +80,8 @@ const handleReanalyze = async () => {
         '重置用户画像将清空当前学习进度，是否继续？',
       t('userManual.profile.reanalyzeConfirmTitle') || '重置用户画像',
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning'
       }
     )

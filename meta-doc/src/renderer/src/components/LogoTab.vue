@@ -82,6 +82,8 @@ const handleLogoClick = () => {
   position: relative;
   -webkit-app-region: no-drag;
   background-color: v-bind('logoTabBackgroundColor');
+  /* 与 LeftMenu 右边缘一致：明显分界线 */
+  border-right: 1px solid var(--sidebar-border, rgba(128, 128, 128, 0.28));
 }
 
 .logo-tab {

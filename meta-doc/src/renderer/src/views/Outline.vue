@@ -1481,18 +1481,21 @@ const treeConfig = ref({
   siblingSpacing: 500
 })
 
-// 监听主题变化：同步连接线颜色与 data-theme 属性
+// 监听主题变化：同步连接线颜色与 CSS 自定义属性
 watch(
   () => themeState.currentTheme,
-  () => {
-    // 使用 DOM 操作更新 data-theme，避免触发 Vue 重新渲染
+  (theme) => {
+    // 使用 CSS 自定义属性传递主题数据，避免触发 Vue 重新渲染
     const outlinePage = document.querySelector('.outline-page') as HTMLElement | null
     if (outlinePage) {
-      outlinePage.dataset.theme = themeState.currentTheme.type === 'dark' ? 'dark' : 'light'
+      outlinePage.style.setProperty('--outline-theme-type', theme.type)
+      outlinePage.style.setProperty('--outline-node-bg', theme.outlineNode)
+      outlinePage.style.setProperty('--outline-primary', theme.primaryColor)
+      outlinePage.style.setProperty('--outline-text-color', theme.textColor)
     }
     scheduleForceOutlineLinkStyles()
   },
-  { deep: true }
+  { deep: true, immediate: true }
 )
 
 // 树数据变化后库会重绘连接线（D3 会再次设 opacity 0→1），需重新强制为不透明
@@ -1548,10 +1551,10 @@ onMounted(async () => {
   if (savedAiConfig != null) {
     Object.assign(aiConfig, savedAiConfig)
   }
-  // 初始化 data-theme 属性，避免使用响应式绑定
+  // 初始化 CSS 自定义属性（watch 中已设置，此处为保险）
   const outlinePage = document.querySelector('.outline-page') as HTMLElement | null
   if (outlinePage) {
-    outlinePage.dataset.theme = themeState.currentTheme.type === 'dark' ? 'dark' : 'light'
+    outlinePage.style.setProperty('--outline-dragging', '0')
   }
   // 树绘制后强制连接线不透明，覆盖 D3 的 opacity 动画
   scheduleForceOutlineLinkStyles()
@@ -2597,9 +2600,11 @@ function onNodeMouseDown() {
 const onNodeDragStart = (node: DocumentOutlineNode) => {
   draggingNodePath.value = node.path
   isDraggingNode.value = true
-  // 使用 DOM classList 添加 is-dragging 类，避免触发 Vue 重新渲染
-  document.querySelector('.outline-page')?.classList.add('is-dragging')
-  document.querySelector('.outline-viewport')?.classList.add('is-dragging')
+  // 使用 CSS 自定义属性设置拖拽状态，避免触发 Vue 重新渲染
+  const outlinePage = document.querySelector('.outline-page') as HTMLElement | null
+  if (outlinePage) {
+    outlinePage.style.setProperty('--outline-dragging', '1')
+  }
   // 拖动开始时暂停文档同步，防止频繁重新渲染
   suppressDocumentSync = true
   // 清除可能存在的 commitOutline 定时器，避免在拖拽过程中触发提交
@@ -2962,9 +2967,11 @@ const onNodeDragEnd = () => {
   dropPreview.value.targetPath = null
   dropPreview.value.mode = null
   isDraggingNode.value = false
-  // 使用 DOM classList 移除 is-dragging 类，避免触发 Vue 重新渲染
-  document.querySelector('.outline-page')?.classList.remove('is-dragging')
-  document.querySelector('.outline-viewport')?.classList.remove('is-dragging')
+  // 使用 CSS 自定义属性移除拖拽状态，避免触发 Vue 重新渲染
+  const outlinePage = document.querySelector('.outline-page') as HTMLElement | null
+  if (outlinePage) {
+    outlinePage.style.setProperty('--outline-dragging', '0')
+  }
   // 移除 body 上的 class
   document.body.classList.remove('outline-dragging')
   // 拖动结束后短暂保持 viewport 锁，避免焦点还原等触发的 outline 同步导致视口跳回
@@ -3518,8 +3525,9 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   overflow: hidden;
 }
 
-.outline-viewport.is-dragging {
-  cursor: default;
+/* 使用 CSS 自定义属性控制拖拽状态，避免响应式 class 触发重新渲染 */
+.outline-viewport {
+  cursor: var(--outline-dragging, 0) == 1 ? default : inherit;
 }
 
 /* vue-tree 填满视口，无最大尺寸限制，缩放与拖拽由库内置处理 */
@@ -3528,6 +3536,15 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   height: 100%;
   max-width: none;
   max-height: none;
+}
+
+/* CSS 自定义属性定义 */
+.outline-page {
+  --outline-dragging: 0;
+  --outline-theme-type: light;
+  --outline-node-bg: #ffffff;
+  --outline-primary: #3b82f6;
+  --outline-text-color: #1f2937;
 }
 
 .outline-tree-inner {
@@ -3570,13 +3587,10 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   opacity: 1 !important;
   stroke-opacity: 1 !important;
 }
-.outline-viewport .outline-tree-inner:not(.outline-theme-dark) :deep(.tree-container .link),
-.outline-viewport .outline-tree-inner:not(.outline-theme-dark) :deep(.tree-container path.link) {
-  stroke: #9ca3af !important;
-}
-.outline-viewport .outline-tree-inner.outline-theme-dark :deep(.tree-container .link),
-.outline-viewport .outline-tree-inner.outline-theme-dark :deep(.tree-container path.link) {
-  stroke: #e0e0e0 !important;
+/* 使用 CSS 自定义属性控制主题颜色，避免响应式 class 触发重新渲染 */
+.outline-viewport .outline-tree-inner :deep(.tree-container .link),
+.outline-viewport .outline-tree-inner :deep(.tree-container path.link) {
+  stroke: var(--outline-theme-type, light) == dark ? #e0e0e0 : #9ca3af !important;
 }
 
 /* 缩放工具栏样式 */
@@ -3874,25 +3888,15 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   filter: brightness(1.1);
 }
 
-/* 折叠且有子节点的节点：仅背景稍深，浅色/深色主题均适配 */
+/* 折叠且有子节点的节点：使用 CSS 自定义属性适配主题，避免响应式 class 触发重新渲染 */
 .tree-node--collapsed-with-children {
   position: relative;
+  filter: var(--outline-theme-type, light) == dark ? brightness(1.15) : brightness(0.92);
 }
-.outline-page[data-theme='dark'] .tree-node--collapsed-with-children {
-  filter: brightness(1.15);
-}
-.outline-page:not([data-theme='dark']) .tree-node--collapsed-with-children {
-  filter: brightness(0.92);
-}
-/* 有子节点但当前为折叠态（库用普通 slot 渲染时）：仅背景稍深 */
+/* 有子节点但当前为折叠态（库用普通 slot 渲染时）：使用 CSS 自定义属性适配主题 */
 .tree-node--has-children-collapsed {
   position: relative;
-}
-.outline-page[data-theme='dark'] .tree-node--has-children-collapsed {
-  filter: brightness(1.15);
-}
-.outline-page:not([data-theme='dark']) .tree-node--has-children-collapsed {
-  filter: brightness(0.92);
+  filter: var(--outline-theme-type, light) == dark ? brightness(1.15) : brightness(0.92);
 }
 
 /* 子节点数量 badge - 显示在节点文字前，背景与字体色由内联 style 与 tree-node 一致 */

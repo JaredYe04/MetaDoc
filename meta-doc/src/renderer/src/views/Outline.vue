@@ -1,5 +1,5 @@
 <template>
-  <div class="outline-page" :data-direction="direction" :data-theme="themeState.currentTheme.type === 'dark' ? 'dark' : 'light'" :class="{ 'is-dragging': isDraggingNode }">
+  <div class="outline-page" :data-direction="direction">
     <!-- AI 工具栏与格式化标题：通过子组件 + inject 使用 selectedAiTool，避免 Outline 因 selectedAiTool 变化而 re-render 导致树图位置重置 -->
     <OutlineAiToolbar />
 
@@ -218,7 +218,6 @@
       <div
         ref="viewportRef"
         class="outline-viewport"
-        :class="{ 'is-dragging': isDraggingNode }"
         @wheel="handleViewportWheel"
         @mousedown.capture="onViewportMouseDownCapture"
         @mouseleave="onViewportMouseLeave"
@@ -227,10 +226,7 @@
             ref="treeRef"
             :key="outlineTreeKey"
             class="outline-tree-inner outline-viewport-tree"
-            :class="{
-              'is-dragging': isDraggingNode,
-              'outline-theme-dark': themeState.currentTheme.type === 'dark'
-            }"
+
             :dataset="chartDataset"
             :config="treeConfig"
             :direction="direction"
@@ -1485,10 +1481,17 @@ const treeConfig = ref({
   siblingSpacing: 500
 })
 
-// 监听主题变化：同步连接线颜色
+// 监听主题变化：同步连接线颜色与 data-theme 属性
 watch(
   () => themeState.currentTheme,
-  () => scheduleForceOutlineLinkStyles(),
+  () => {
+    // 使用 DOM 操作更新 data-theme，避免触发 Vue 重新渲染
+    const outlinePage = document.querySelector('.outline-page') as HTMLElement | null
+    if (outlinePage) {
+      outlinePage.dataset.theme = themeState.currentTheme.type === 'dark' ? 'dark' : 'light'
+    }
+    scheduleForceOutlineLinkStyles()
+  },
   { deep: true }
 )
 
@@ -1544,6 +1547,11 @@ onMounted(async () => {
   const savedAiConfig = await getSetting('outline.aiConfig')
   if (savedAiConfig != null) {
     Object.assign(aiConfig, savedAiConfig)
+  }
+  // 初始化 data-theme 属性，避免使用响应式绑定
+  const outlinePage = document.querySelector('.outline-page') as HTMLElement | null
+  if (outlinePage) {
+    outlinePage.dataset.theme = themeState.currentTheme.type === 'dark' ? 'dark' : 'light'
   }
   // 树绘制后强制连接线不透明，覆盖 D3 的 opacity 动画
   scheduleForceOutlineLinkStyles()
@@ -2589,6 +2597,9 @@ function onNodeMouseDown() {
 const onNodeDragStart = (node: DocumentOutlineNode) => {
   draggingNodePath.value = node.path
   isDraggingNode.value = true
+  // 使用 DOM classList 添加 is-dragging 类，避免触发 Vue 重新渲染
+  document.querySelector('.outline-page')?.classList.add('is-dragging')
+  document.querySelector('.outline-viewport')?.classList.add('is-dragging')
   // 拖动开始时暂停文档同步，防止频繁重新渲染
   suppressDocumentSync = true
   // 清除可能存在的 commitOutline 定时器，避免在拖拽过程中触发提交
@@ -2951,6 +2962,9 @@ const onNodeDragEnd = () => {
   dropPreview.value.targetPath = null
   dropPreview.value.mode = null
   isDraggingNode.value = false
+  // 使用 DOM classList 移除 is-dragging 类，避免触发 Vue 重新渲染
+  document.querySelector('.outline-page')?.classList.remove('is-dragging')
+  document.querySelector('.outline-viewport')?.classList.remove('is-dragging')
   // 移除 body 上的 class
   document.body.classList.remove('outline-dragging')
   // 拖动结束后短暂保持 viewport 锁，避免焦点还原等触发的 outline 同步导致视口跳回

@@ -130,8 +130,8 @@ const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 200
 const MIN_WIDTH = 220
 const MIN_HEIGHT = 120
-const MAX_WIDTH = 480
-const MAX_HEIGHT = 360
+const MAX_WIDTH = 560
+const MAX_HEIGHT = 520
 const headerHeight = 36
 
 const props = withDefaults(
@@ -292,16 +292,12 @@ defineExpose({ closeItemContextMenu })
   flex-direction: column;
 }
 
-.material-basket-panel:not(.expanded) .material-basket-header {
-  padding: 2px 8px;
-  min-height: 24px;
-}
-
 .material-basket-header {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
+  min-height: 32px;
   cursor: pointer;
   user-select: none;
   transition: background 0.2s;
@@ -320,12 +316,12 @@ defineExpose({ closeItemContextMenu })
 .material-basket-title {
   flex: 1;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   min-width: 0;
 }
 
 .material-basket-count {
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.8;
   min-width: 18px;
   text-align: right;

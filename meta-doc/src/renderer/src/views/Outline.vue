@@ -3468,37 +3468,52 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
 </script>
 
 <style scoped>
+/* 无 max-width/max-height 限制，大分辨率下画布与树图可铺满整屏 */
 .outline-page {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
   display: flex;
   flex-direction: column;
 }
 
 .container {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  width: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
 }
 
-/* 无限画布视口系统 */
+/* 无限画布视口系统：无尺寸上限，树图可铺满右侧与底部 */
 .outline-viewport {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
   position: relative;
   overflow: hidden;
-  min-height: 0;
 }
 
 .outline-viewport.is-dragging {
   cursor: default;
 }
 
-/* vue-tree 填满视口，缩放与拖拽由库内置处理 */
+/* vue-tree 填满视口，无最大尺寸限制，缩放与拖拽由库内置处理 */
 .outline-viewport-tree {
   width: 100%;
   height: 100%;
+  max-width: none;
+  max-height: none;
 }
 
 .outline-tree-inner {
@@ -3510,20 +3525,24 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   background: transparent !important;
 }
 
-/* 覆盖 vue-tree 内部的 tree-container 样式 */
+/* 覆盖 vue-tree 内部的 tree-container 样式，无最大尺寸限制 */
 .outline-tree-inner :deep(.tree-container) {
   overflow: visible !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   /* 容器本身透明 */
   background: transparent !important;
 }
 
-/* 覆盖 vue-tree 内部的 dom-container 和 svg 尺寸限制 */
+/* 覆盖 vue-tree 内部的 dom-container 和 svg 尺寸限制，大屏下铺满 */
 .outline-tree-inner :deep(.dom-container),
 .outline-tree-inner :deep(.vue-tree) {
   width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   overflow: visible !important;
   transform-origin: 0 0 !important;
   /* 容器本身透明 */

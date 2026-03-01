@@ -2005,11 +2005,11 @@
     "formats": {
       "latex": {
         "description": "학술지, 보고서 및 기술 문서에 대한 특수 레이아웃 형식.",
-        "label": "프로젝트"
+        "label": "LaTeX"
       },
       "markdown": {
         "description": "기사, 메모 및 블로그에 대한 일반 텍스트 형식.",
-        "label": "연락처"
+        "label": "Markdown"
       },
       "plaintext": {
         "label": "일반 텍스트",

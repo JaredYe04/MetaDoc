@@ -598,6 +598,16 @@
       "new": "New Document",
       "open": "Open Document"
     },
+    "toolTab": {
+      "ocr": "OCR",
+      "graph": "Graph",
+      "attachment": "Attachment",
+      "dataAnalysis": "Data Analysis",
+      "formulaRecognition": "Formula Recognition",
+      "aiChat": "AI Chat",
+      "setting": "Settings",
+      "aigcDetection": "AIGC Detection"
+    },
     "authorLabel": "Author",
     "abstractLabel": "Abstract",
     "fileFormatLabel": "File Format",

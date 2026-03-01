@@ -601,6 +601,16 @@
       "new": "新規ドキュメント",
       "open": "ドキュメントを開く"
     },
+    "toolTab": {
+      "ocr": "OCR認識",
+      "graph": "グラフ",
+      "attachment": "添付ファイル解析",
+      "dataAnalysis": "データ分析",
+      "formulaRecognition": "数式認識",
+      "aiChat": "AIチャット",
+      "setting": "設定",
+      "aigcDetection": "AIGC検出"
+    },
     "authorLabel": "著者",
     "abstractLabel": "要約",
     "quickStartTitle": "クイックスタート",

@@ -4238,4 +4238,24 @@
     "useRegex": "regex",
     "wholeWord": "matching complet"
   }
+,
+  "agentEngine": {
+    "greeting": {
+      "title": "Bonjour ! Je suis l'Assistant IA MetaDoc !",
+      "subtitle": "Je suis votre assistant d'écriture de documents intelligent. Je peux utiliser efficacement divers outils d'IA pour vous aider à générer des articles professionnels, riches et multi-domaines avec graphiques et diagrammes.",
+      "canDo": "Je peux :",
+      "ragTool": "Utiliser les outils RAG pour rechercher des connaissances pertinentes",
+      "chartTool": "Utiliser les outils de génération de graphiques pour créer des visualisations",
+      "editTool": "Utiliser les outils d'édition pour optimiser la structure du document",
+      "proofreadTool": "Utiliser les outils de relecture pour garantir la qualité du contenu",
+      "tellMe": "Dites-moi vos besoins, je ferai de mon mieux pour vous aider à terminer vos tâches de création de documents !"
+    },
+    "engines": {
+      "autogpt": "Moteur AutoGPT",
+      "react": "Moteur ReAct",
+      "planExecute": "Moteur Plan-Execute",
+      "simpleChat": "Moteur Simple Chat",
+      "workflow": "Moteur Workflow"
+    }
+  }
 }

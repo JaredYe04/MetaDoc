@@ -1,50 +1,86 @@
 {
-  "activeSessionId": "session-1772363134530-5iitwtsrl",
+  "activeSessionId": "demo-session-1",
   "sessions": [
     {
-      "id": "session-1772363134530-5iitwtsrl",
-      "title": "New session",
-      "description": "",
-      "createdAt": "2026-03-01T11:05:34.530Z",
-      "updatedAt": "2026-03-01T11:05:43.874Z",
+      "id": "demo-session-1",
+      "title": "代码审查会话",
+      "description": "审查 Vue 组件代码",
+      "createdAt": "2026-02-28T17:20:26.717Z",
+      "updatedAt": "2026-03-01T17:20:26.717Z",
       "messages": [
         {
-          "id": "msg-1772363134530-greeting",
-          "role": "assistant",
-          "type": "chat",
-          "timestamp": "2026-03-01T11:05:34.530Z",
-          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
-        },
-        {
-          "id": "msg-1772363140458-0gmum4",
-          "timestamp": "2026-03-01T11:05:40.458Z",
+          "id": "demo-msg-1",
           "role": "user",
           "type": "chat",
-          "markdown": "2333",
-          "referenceIds": []
+          "timestamp": "2026-03-01T16:20:26.717Z",
+          "markdown": "请帮我审查这个 Vue 组件的代码质量"
         },
         {
-          "id": "msg-1772363143904-i28op6d2j",
+          "id": "demo-msg-2",
           "role": "assistant",
           "type": "chat",
-          "timestamp": "2026-03-01T11:05:43.904Z",
-          "markdown": ""
+          "timestamp": "2026-03-01T16:22:06.717Z",
+          "markdown": "我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范"
+        }
+      ],
+      "activeToolIds": [
+        "code-executor"
+      ],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "document": {
+          "id": "demo-doc-1",
+          "path": "",
+          "format": "md"
+        }
+      },
+      "executionNodes": [],
+      "status": "idle"
+    },
+    {
+      "id": "demo-session-2",
+      "title": "文档编写助手",
+      "description": "翻译技术文档",
+      "createdAt": "2026-02-27T17:20:26.717Z",
+      "updatedAt": "2026-02-28T17:20:26.717Z",
+      "messages": [
+        {
+          "id": "demo-msg-3",
+          "role": "user",
+          "type": "chat",
+          "timestamp": "2026-02-28T16:20:26.717Z",
+          "markdown": "将这段文档翻译成中文"
         }
       ],
       "activeToolIds": [],
       "agentConfigId": "default-agent-config",
       "messageQueue": [],
       "referenceStore": [],
-      "publicContext": {
-        "currentTime": "2026-03-01T11:05:34.530Z"
-      },
+      "publicContext": {},
       "executionNodes": [],
-      "status": "error",
-      "activeToolSpecs": {},
-      "enableBuiltInDocumentReference": true
+      "status": "idle"
+    },
+    {
+      "id": "demo-session-3",
+      "title": "数据分析专家",
+      "description": "分析错误日志",
+      "createdAt": "2026-02-26T17:20:26.717Z",
+      "updatedAt": "2026-02-27T17:20:26.717Z",
+      "messages": [],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {},
+      "executionNodes": [],
+      "status": "idle"
     }
   ],
   "openTabIds": [
+    "session-1772385235931-bvjaf92tu",
+    "session-1772385222875-4tuskm98c",
     "session-1772363134530-5iitwtsrl"
   ]
 }

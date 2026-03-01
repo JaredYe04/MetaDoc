@@ -4337,5 +4337,24 @@
     "renameSuccess": "Rename successful",
     "selectFolder": "Select Workspace Folder",
     "title": "Workspace Directory"
+  },
+  "agentEngine": {
+    "greeting": {
+      "title": "Hello! I'm MetaDoc AI Assistant!",
+      "subtitle": "I'm your intelligent document writing assistant. I can efficiently use various AI tools to help you generate professional, rich, multi-domain articles with graphics and charts.",
+      "canDo": "I can:",
+      "ragTool": "Use RAG tools to retrieve relevant knowledge",
+      "chartTool": "Use chart generation tools to create visualizations",
+      "editTool": "Use editing tools to optimize document structure",
+      "proofreadTool": "Use proofreading tools to ensure content quality",
+      "tellMe": "Tell me your needs, and I'll do my best to help you complete your document creation tasks!"
+    },
+    "engines": {
+      "autogpt": "AutoGPT Engine",
+      "react": "ReAct Engine",
+      "planExecute": "Plan-Execute Engine",
+      "simpleChat": "Simple Chat Engine",
+      "workflow": "Workflow Engine"
+    }
   }
 }

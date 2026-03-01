@@ -6,10 +6,10 @@
     "copy": "コピー",
     "paste": "貼り付け",
     "selectAll": "すべて選択",
-    "closeAutoCompletion": "障がいのあるAI完成",
-    "closeKnowledgeBase": "障害のある知識 立派な図書館",
-    "openAutoCompletion": "AI完了を有効にする",
-    "openKnowledgeBase": "知識の有効化 立派な図書館",
+    "closeAutoCompletion": "AI補完を無効化",
+    "closeKnowledgeBase": "知識検索を無効化",
+    "openAutoCompletion": "AI補完を有効化",
+    "openKnowledgeBase": "知識検索を有効化",
     "locateToPdf": "PDFへの投稿",
     "sectionOptimizer": "現在の段落を最適化",
     "triggerAutoCompletion": "手動でAIの完了をトリガーする",
@@ -520,8 +520,8 @@
     "latex_init_failed": "LaTeX の初期化が失敗しました:",
     "msgbox": {
       "cancel": "キャンセル",
-      "confirm": "お問い合わせ",
-      "tip": "ログイン"
+      "confirm": "確定",
+      "tip": "ヒント"
     },
     "collapse_meta_panel": "メタ情報パネルを折りたたむ",
     "edit_description": "要約を編集",
@@ -675,12 +675,12 @@
         "title": "警告"
       },
       "open": {
-        "message": "正常に開く",
-        "title": "正常に開く"
+        "message": "{name} の読み込みに成功しました",
+        "title": "開くことに成功しました"
       },
       "save": {
-        "message": "お問い合わせ 正常に保存",
-        "title": "正常に保存"
+        "message": "{name} の保存に成功しました",
+        "title": "保存に成功しました"
       },
       "saveAllNone": "文書保存なし",
       "saveAllPartial": "部分的な文書保存失敗({count})",
@@ -727,15 +727,15 @@
       "saveFailedDetail": "他のドキュメントを閉じ続けますか？"
     },
     "latex": {
-      "compileFailed": "コンパイル失敗、終了コード: お問い合わせ"
+      "compileFailed": "コンパイル失敗、終了コード: {code}"
     },
     "windows": {
       "aiChatTitle": "AIとの対話",
       "aiGraphTitle": "スマートドローイングアシスタント",
-      "appTitle": "メタドック",
-      "documentTitlePattern": "お問い合わせ",
+      "appTitle": "MetaDoc",
+      "documentTitlePattern": "{name} - {app}",
       "formulaRecognitionTitle": "手書き式認識アシスタント",
-      "settingTitle": "セットパネル",
+      "settingTitle": "設定パネル",
       "dataAnalysisTitle": "データ分析ツール",
       "ocrTitle": "OCR文字認識",
       "attachmentTitle": "添付ファイル解析ツール",
@@ -1010,15 +1010,15 @@
     "loggingEnabled": "ログレコードを有効にする",
     "loggingLevel": "ログレベル",
     "loggingLevels": {
-      "debug": "デブグ",
+      "debug": "デバッグ",
       "error": "エラー",
-      "info": "インフォメーション",
-      "warn": "インフォメーション"
+      "info": "情報",
+      "warn": "警告"
     },
     "logs": "ログ設定",
     "openLogDirectory": "ログフォルダを開く",
     "openLogFile": "ログファイルを開く",
-    "deepseek": "イマラチオ",
+    "deepseek": "DeepSeek",
     "deepseekHint": "DeepSeekが提供する主要なAIモデルは複数のモデルをサポートしています",
     "gemini": "Google Gemini",
     "geminiHint": "Google Geminiが提供する主要なAIモデルは複数のモデルをサポートしています",
@@ -1542,8 +1542,8 @@
     "vector_dim": "ベクトル次元",
     "searchTest": {
       "noResult": "結果はありません。",
-      "placeholder": "ご質問・お問い合わせ",
-      "searchBtn": "インフォメーション",
+      "placeholder": "検索キーワードを入力",
+      "searchBtn": "検索",
       "title": "検索テスト"
     },
     "upload_complete": "ナレッジベース工事完了",
@@ -2025,7 +2025,7 @@
   },
   "agent": {
     "conversation": {
-      "emptyTitle": "お問い合わせ",
+      "emptyTitle": "タイトルなし",
       "messages": "メッセージ",
       "none": "対話を開始するには、新しいセッションを選択してください。",
       "tools": "ツール {count} を有効にする",
@@ -2156,8 +2156,8 @@
     },
     "display": {
       "autoTest": {
-        "copyFailed": "失敗したコピー",
-        "copyMarkdown": "マークダウンのコピー インフォメーション",
+        "copyFailed": "コピーに失敗しました",
+        "copyMarkdown": "Markdownをコピー",
         "copySuccess": "クリップボードにコピー",
         "downloadFailed": "ダウンロード失敗",
         "downloadMarkdown": "Markdownのダウンロード レポート",
@@ -2626,7 +2626,7 @@
           "autogpt": "AutoGPT",
           "react": "ReAct",
           "planExecute": "Plan-Execute",
-          "simpleChat": "Simple Chat"
+          "simpleChat": "シンプルチャット"
         },
         "llmConfigMode": "LLM設定モード",
         "useGlobalLLM": "グローバルLLMを使用",
@@ -3448,13 +3448,13 @@
     }
   },
   "tabSwitcher": {
-    "openEditors": "Open Editors",
-    "untitledDocument": "Untitled Document"
+    "openEditors": "開いているエディタ",
+    "untitledDocument": "無題のドキュメント"
   },
   "ai": {
     "completion": {
-      "demoComment": "Calculate the sum of two numbers",
-      "aiSuggestion": "AI Suggestion"
+      "demoComment": "2つの数の合計を計算",
+      "aiSuggestion": "AI 提案"
     }
   },
   "datePicker": {
@@ -3595,7 +3595,7 @@
     "exportSuccess": "エクスポート成功",
     "formatCsv": "CSV",
     "formatJson": "JSON",
-    "formatXlsx": "Excel (XLSX)",
+    "formatXlsx": "Excel形式 (XLSX)",
     "loadAll": "すべて読み込み",
     "loadFailed": "統計データの読み込みに失敗しました",
     "promptTokens": "入力トークン",
@@ -4240,5 +4240,24 @@
     "title": "ワークスペース検索",
     "useRegex": "正規表現",
     "wholeWord": "単語全体を一致"
+  },
+  "agentEngine": {
+    "greeting": {
+      "title": "こんにちは！私はMetaDoc AIアシスタントです！",
+      "subtitle": "私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に活用し、図表やグラフを含むプロフェッショナルで豊かな多領域の記事を作成するお手伝いをします。",
+      "canDo": "私ができること：",
+      "ragTool": "RAGツールで関連知識を検索",
+      "chartTool": "チャート生成ツールでビジュアライゼーションを作成",
+      "editTool": "編集ツールで文書構造を最適化",
+      "proofreadTool": "校正ツールでコンテンツの品質を確保",
+      "tellMe": "あなたのニーズを教えてください。文書作成タスクの完了に最善を尽くします！"
+    },
+    "engines": {
+      "autogpt": "AutoGPT エンジン",
+      "react": "ReAct エンジン",
+      "planExecute": "Plan-Execute エンジン",
+      "simpleChat": "Simple Chat エンジン",
+      "workflow": "Workflow エンジン"
+    }
   }
 }

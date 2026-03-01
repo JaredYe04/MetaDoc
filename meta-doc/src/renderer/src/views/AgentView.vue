@@ -2340,6 +2340,13 @@ const getEngineLabel = (engine: any) => {
   if (typeof engine.name === 'string') {
     return engine.name
   }
+  // 优先使用i18n key获取翻译
+  const engineKey = engine.engineType
+  const i18nKey = `agentEngine.engines.${engineKey}`
+  const translated = t(i18nKey)
+  if (translated !== i18nKey) {
+    return translated
+  }
   return engine.name['zh_cn']?.name || engine.name['en_us']?.name || engine.id
 }
 

@@ -595,13 +595,14 @@ onBeforeMount(() => {
 .avatar-with-mask {
   width: 40px;
   height: 40px;
-  background-color: rgba(64, 158, 255, 0.15);
-  border: 2px solid rgba(64, 158, 255, 0.3);
+  background-color: rgba(64, 158, 255, 0.08);
+  border: 2px solid rgba(64, 158, 255, 0.2);
 }
 
 .avatar-fallback {
   width: 40px;
   height: 40px;
+  background-color: rgba(64, 158, 255, 0.08) !important;
 }
 
 .message-bubble__references {

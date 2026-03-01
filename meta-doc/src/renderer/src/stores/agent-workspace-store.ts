@@ -18,6 +18,8 @@ const METADOC_AGENT_SESSIONS_FILE = '.metadoc/agent/sessions.json'
 export interface AgentWorkspacePersisted {
   activeSessionId: string | null
   sessions: AgentSession[]
+  /** Compact 视图：当前打开的 tab 会话 ID 列表，按顺序；不持久化则恢复时视为全部打开 */
+  openTabIds?: string[]
 }
 
 function getWorkspaceFolders(): string[] {
@@ -36,6 +38,8 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
   const workspaceRoot = ref<string>('')
   const sessions = ref<AgentSession[]>([])
   const activeSessionId = ref<string | null>(null)
+  /** Compact 视图：当前打开的 tab 会话 ID 列表（持久化） */
+  const openTabIds = ref<string[]>([])
   const _saveTimer = ref<ReturnType<typeof setTimeout> | null>(null)
   const SAVE_DEBOUNCE_MS = 500
 
@@ -105,6 +109,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     if (!root) {
       sessions.value = []
       activeSessionId.value = null
+      openTabIds.value = []
       return
     }
 
@@ -129,6 +134,14 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
           ? data.activeSessionId
           : normalized[0]?.id ?? null
 
+      const sessionIds = new Set(normalized.map((s) => s.id))
+      const savedOpen = Array.isArray(data.openTabIds) ? data.openTabIds : []
+      openTabIds.value = savedOpen.filter((id) => sessionIds.has(id))
+      if (openTabIds.value.length === 0 && normalized.length > 0) {
+        const fallback = activeSessionId.value ?? normalized[0].id
+        openTabIds.value = [fallback]
+      }
+
       if (sessions.value.length === 0) {
         ensureDefaultSession()
       }
@@ -136,6 +149,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       logger.warn('加载 Agent 会话失败', e)
       sessions.value = []
       activeSessionId.value = null
+      openTabIds.value = []
       ensureDefaultSession()
     }
   }
@@ -154,6 +168,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     session.publicContext = session.publicContext || {}
     sessions.value = [session]
     activeSessionId.value = session.id
+    openTabIds.value = [session.id]
     scheduleSave()
   }
 
@@ -175,7 +190,8 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     try {
       const payload: AgentWorkspacePersisted = {
         activeSessionId: activeSessionId.value,
-        sessions: sessions.value
+        sessions: sessions.value,
+        openTabIds: openTabIds.value
       }
       await messageBridge.invoke('write-file-content', { filePath, content: JSON.stringify(payload, null, 2) })
     } catch (e) {
@@ -209,10 +225,17 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     scheduleSave()
   }
 
+  /** 设置 Compact 视图打开的 tab 列表（会持久化） */
+  function setOpenTabIds(ids: string[]): void {
+    openTabIds.value = ids
+    scheduleSave()
+  }
+
   return {
     workspaceRoot,
     sessions,
     activeSessionId,
+    openTabIds,
     activeSession,
     isGenerating,
     composerInput,
@@ -226,6 +249,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     setActiveSessionId,
     setSessions,
     touchSession,
+    setOpenTabIds,
     ensureDefaultSession,
     getSessionsFilePath
   }

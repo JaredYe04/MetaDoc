@@ -2928,7 +2928,26 @@
       "warning": "警告",
       "info": "提示"
     },
-    "title": "文章校对"
+    "title": "文章校对",
+    "noDocument": "没有活动的文档",
+    "startProofread": "开始校对",
+    "errorsList": "错误列表",
+    "documentPreview": "文档预览",
+    "clearFixed": "清空已修复",
+    "noContent": "文档内容为空",
+    "autoFixed": "已修复",
+    "location": "位置",
+    "errorText": "错误文本",
+    "suggestions": "修改建议",
+    "addToDictionary": "添加到词典",
+    "proofreadSuccess": "校对完成",
+    "proofreadFailed": "校对失败",
+    "fixFailed": "修复失败：错误位置不匹配",
+    "fixSuccess": "修复成功",
+    "addToDictionarySuccess": "已添加到词典",
+    "addToDictionaryFailed": "添加到词典失败",
+    "fixAllSuccess": "已修复 {count} 个错误",
+    "clearFixedSuccess": "已清空 {removedCount} 个已修复的错误"
   },
   "proofread-tool": {
     "cancelled": "请求已取消",

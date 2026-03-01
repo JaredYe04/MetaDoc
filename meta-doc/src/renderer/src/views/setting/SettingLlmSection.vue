@@ -1453,7 +1453,7 @@ const handleCreateConfig = async () => {
   } catch (error) {
     if (error !== 'cancel') {
       logger.error('创建配置失败', error)
-      notifyError(t('setting.configCreateFailed') || '创建配置失败')
+      notifyError(t('setting.configCreateFailed') || 'Failed to create configuration')
     }
   }
 }
@@ -1761,11 +1761,11 @@ const handleSaveChanges = async () => {
       loadConfigs()
       notifySuccess(t('setting.changesSaved'))
     } else {
-      notifyError(t('setting.saveFailed') || '保存失败')
+      notifyError(t('setting.saveFailed') || 'Save failed')
     }
   } catch (error) {
     logger.error('保存配置失败', error)
-    notifyError(t('setting.saveFailed') || '保存失败')
+    notifyError(t('setting.saveFailed') || 'Save failed')
   }
 }
 
@@ -1798,7 +1798,7 @@ const handleDiscardChanges = async () => {
       }
       notifySuccess(t('setting.changesDiscarded'))
     } else {
-      notifyError(t('setting.discardFailed') || '放弃失败')
+      notifyError(t('setting.discardFailed') || 'Discard failed')
     }
   } catch {
     // 用户取消
@@ -1809,7 +1809,7 @@ const handleExportConfig = async (configId: string) => {
   try {
     const jsonString = exportConfig(configId)
     if (!jsonString) {
-      notifyError(t('setting.exportFailed') || '导出失败')
+      notifyError(t('setting.exportFailed') || 'Export failed')
       return
     }
 
@@ -1828,14 +1828,14 @@ const handleExportConfig = async (configId: string) => {
     notifySuccess(t('setting.exportSuccess') || '导出成功')
   } catch (error) {
     logger.error('导出配置失败', error)
-    notifyError(t('setting.exportFailed') || '导出失败')
+    notifyError(t('setting.exportFailed') || 'Export failed')
   }
 }
 
 const handleImportConfig = async () => {
   try {
     if (!importJsonText.value.trim()) {
-      notifyWarning(t('setting.importConfigJsonRequired') || '请输入配置JSON')
+      notifyWarning(t('setting.importConfigJsonRequired') || 'Please enter configuration JSON')
       return
     }
 
@@ -1846,17 +1846,17 @@ const handleImportConfig = async () => {
       importJsonText.value = ''
       notifySuccess(
         t('setting.importSuccess', { count: result.imported }) ||
-          `成功导入 ${result.imported} 个配置`
+          `Successfully imported ${result.imported} configuration(s)`
       )
       if (result.errors.length > 0) {
         notifyWarning(result.errors.join('; '))
       }
     } else {
-      notifyError(result.errors.join('; ') || t('setting.importFailed') || '导入失败')
+      notifyError(result.errors.join('; ') || t('setting.importFailed') || 'Import failed')
     }
   } catch (error) {
     logger.error('导入配置失败', error)
-    notifyError(t('setting.importFailed') || '导入失败')
+    notifyError(t('setting.importFailed') || 'Import failed')
   }
 }
 
@@ -1878,7 +1878,7 @@ const handleExportAllConfigs = async () => {
     notifySuccess(t('setting.exportSuccess') || '导出成功')
   } catch (error) {
     logger.error('导出所有配置失败', error)
-    notifyError(t('setting.exportFailed') || '导出失败')
+    notifyError(t('setting.exportFailed') || 'Failed to export all configurations')
   }
 }
 
@@ -1983,8 +1983,7 @@ const loadDemoData = () => {
   // Demo state
   currentConfigId.value = 'demo-1'
   hasUnsavedChanges.value = true
-  testResult.value =
-    '这是一个演示模式的 LLM 测试结果。在实际使用中，这里会显示真实的 LLM 响应内容。'
+  testResult.value = t('setting.demoTestResult') || 'This is a demo mode LLM test result. In actual use, real LLM response content will be displayed here.'
 }
 
 onMounted(async () => {

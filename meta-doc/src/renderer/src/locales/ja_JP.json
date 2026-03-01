@@ -135,7 +135,26 @@
     "failed": "失敗",
     "error": "エラー",
     "warning": "警告",
-    "info": "情報"
+    "info": "情報",
+    "apply": "適用",
+    "confirmDelete": "「{name}」を削除してもよろしいですか？",
+    "continue": "続行",
+    "copy": "コピー",
+    "copyFailed": "コピーに失敗しました",
+    "copySuccess": "クリップボードにコピーしました",
+    "create": "作成",
+    "duplicate": "複製",
+    "duplicateSuccess": "複製に成功しました",
+    "format": "フォーマット",
+    "noOtherWindow": "他のウィンドウがありません",
+    "older": "より早い",
+    "overwrite": "上書き",
+    "rename": "名前を変更",
+    "reset": "リセット",
+    "thisMonth": "今月",
+    "thisWeek": "今週",
+    "today": "今日",
+    "yesterday": "昨日"
   },
   "console": {
     "title": "コンソール出力",
@@ -143,7 +162,34 @@
     "copy": "コピー",
     "saveLog": "ログを保存",
     "copiedToClipboard": "クリップボードにコピーしました",
-    "logSaved": "ログを保存しました"
+    "logSaved": "ログを保存しました",
+    "enableAiAnalysis": "AIエラー分析",
+    "encoding": {
+      "unicode": "Unicode",
+      "chinese": "中国語",
+      "japanese": "日本語",
+      "korean": "韓国語",
+      "western": "西欧",
+      "centralEastern": "中欧/東欧",
+      "russian": "ロシア語",
+      "greek": "ギリシャ語",
+      "utf8": "UTF-8",
+      "gbk": "GBK",
+      "gb2312": "GB2312",
+      "big5": "Big5（繁体）",
+      "shiftJis": "Shift_JIS",
+      "eucKr": "EUC-KR",
+      "iso88591": "ISO-8859-1（Latin1）",
+      "windows1252": "Windows-1252",
+      "iso885915": "ISO-8859-15",
+      "iso88592": "ISO-8859-2（Latin2）",
+      "windows1250": "Windows-1250",
+      "koi8r": "KOI8-R",
+      "windows1251": "Windows-1251",
+      "iso88595": "ISO-8859-5",
+      "iso88597": "ISO-8859-7"
+    },
+    "logSaveFailed": "ログの保存に失敗しました"
   },
   "searchReplace": {
     "title": "検索と置換",
@@ -338,7 +384,8 @@
     "bitmapImage": "ビットマップ(PNG)",
     "exportFormat": "エクスポート形式",
     "pdfDocument": "サイトマップ ドキュメント",
-    "vectorImage": "ベクトルチャート(SVG)"
+    "vectorImage": "ベクトルチャート(SVG)",
+    "insertImage": "画像を挿入"
   },
   "article": {
     "drag_to_resize": "幅を変更するにはドラッグしてください",
@@ -408,7 +455,12 @@
       "cancel": "キャンセル",
       "confirm": "お問い合わせ",
       "tip": "ログイン"
-    }
+    },
+    "collapse_meta_panel": "メタ情報パネルを折りたたむ",
+    "edit_description": "要約を編集",
+    "edit_title": "タイトルを編集",
+    "expand_meta_panel": "メタ情報パネルを展開",
+    "toggle_meta_panel": "メタ情報パネルを切り替え"
   },
   "formulaRecognition": {
     "undo": "元に戻す",
@@ -439,7 +491,16 @@
       "pointer": "矢印"
     },
     "simpletexHint": "本機能は SimpleTex を利用しており、容量に制限があります。大量の数式変換が必要な場合は、直接",
-    "simpletexLinkText": "SimpleTex 数式認識"
+    "simpletexLinkText": "SimpleTex 数式認識",
+    "defaultTitle": "新しい数式認識セッション",
+    "expandCanvas": "キャンバスを拡大",
+    "expandCanvasNoNeed": "キャンバスはすでにビューポート以上のサイズです、拡大する必要はありません",
+    "newSession": "新しいセッション",
+    "noSessionSelected": "セッションを選択するか、新しいセッションを作成してください",
+    "renamePlaceholder": "セッション名を入力してください",
+    "renameTitle": "セッションの名前を変更",
+    "resultTitle": "認識結果",
+    "sessionsTitle": "数式認識セッション"
   },
   "home": {
     "metaDoc": "MetaDocスマート文書処理ソフトウェア",
@@ -841,7 +902,10 @@
     "notificationEmpty": "お知らせ",
     "notificationTooltip": "キューを呼び出す。",
     "logConsoleLabel": "ログイン",
-    "logConsoleTooltip": "ログコンソールを開く"
+    "logConsoleTooltip": "ログコンソールを開く",
+    "llmStatistics": "LLM統計",
+    "versionLabel": "バージョン",
+    "versionTooltip": "バージョン情報"
   },
   "wordCountDialog": {
     "title": "文字数統計",
@@ -1963,7 +2027,33 @@
     "userBehavior": "ユーザー行動分析",
     "exportExcel": "Excelにエクスポート",
     "fileNotFound": "Excelファイルが存在しません",
-    "fileMoved": "ファイルが削除または移動された可能性があります。再度アップロードしてください"
+    "fileMoved": "ファイルが削除または移動された可能性があります。再度アップロードしてください",
+    "analysisRequest": "分析要件（オプション）",
+    "analysisRequestPlaceholder": "分析要件を説明してください...",
+    "analyze": "分析を開始",
+    "analyzeFailed": "分析に失敗しました",
+    "analyzeSuccess": "分析が完了しました",
+    "autoGroupBy": "自動集約分析",
+    "currentHeader": "現在のヘッダー",
+    "defaultTitle": "新しいデータ分析セッション",
+    "generateReport": "分析レポートを生成",
+    "headerPreview": "現在のヘッダープレビュー:",
+    "headerRowHint": "デフォルト値:自動検出（現在の推測:第{0}行）",
+    "headerRowIndex": "ヘッダー行数（0から開始）",
+    "newSession": "新しいセッション",
+    "noAnalysisResult": "まだ分析結果がありません。「データプレビュー」タブで分析を開始してください",
+    "noFile": "データファイルを先にアップロードしてください",
+    "noSessionSelected": "セッションを選択するか、新しいセッションを作成してください",
+    "renamePlaceholder": "セッション名を入力してください",
+    "renameTitle": "セッションの名前を変更",
+    "sessionsTitle": "データ分析セッション",
+    "tabs": {
+      "report": "分析レポート",
+      "data": "元データ",
+      "analysis": "データ分析"
+    },
+    "uploadHint": "ファイルをここにドラッグするか、クリックしてアップロード",
+    "uploadTip": "CSV、Excel、JSON形式をサポート"
   },
   "userFeedback": {
     "uploadedToGist": "Gistにアップロードしました",
@@ -2107,7 +2197,9 @@
     "exportAndDetect": "AIGC率を検出する",
     "exportAsNewDoc": "新しいドキュメントとして",
     "exportParaphrased": "書き換えた記事をエクスポート",
-    "exportParaphrasedSuccess": "書き換えた記事を新しいドキュメントにエクスポートしました"
+    "exportParaphrasedSuccess": "書き換えた記事を新しいドキュメントにエクスポートしました",
+    "viewOriginal": "A 原文",
+    "viewParaphrased": "B 書き換え"
   },
   "attachment": {
     "analysisSuccess": "分析完了",
@@ -2119,20 +2211,40 @@
     "noAttachmentSelected": "添付ファイルを選択するか、新しいファイルをアップロードしてください",
     "noParsedContent": "先に添付ファイルを解析してください",
     "parse": "添付ファイルを解析",
-    "parseSuccess": "解析完了"
+    "parseSuccess": "解析完了",
+    "reanalyze": "AI分析を再実行",
+    "renamePlaceholder": "添付ファイル名を入力してください",
+    "renameTitle": "添付ファイルの名前を変更",
+    "reparse": "再解析",
+    "selectFile": "添付ファイルを選択",
+    "startAnalysis": "AI分析を開始",
+    "tabs": {
+      "parsed": "解析内容",
+      "aiAnalysis": "AI分析"
+    },
+    "uploadSuccess": "添付ファイルのアップロードが完了しました"
   },
   "data-analysis-tool": {
     "analyze": "データ分析",
     "analyze1": "自動分析",
     "analyze2": "集計分析など",
-    "analyze3": "データ分析ツール"
+    "analyze3": "データ分析ツール",
+    "description": "記述統計",
+    "descriptionFeature": "機能の説明",
+    "info": "フィールド情報を抽出",
+    "text": "などのデータ"
   },
   "dataAnalysisWindow": {
     "text": "デフォルト値",
     "text1": "現在の推測",
     "text2": "選択済み",
     "text3": "次の場所で",
-    "tooltip": "ツールチップ"
+    "tooltip": "ツールチップ",
+    "analyze": "選択したデータのみを分析します",
+    "analyze1": "テーブルで行をチェックして、データの一部のみを分析できます",
+    "analyze2": "まだ分析結果がありません",
+    "detect": "自動検出",
+    "preview": "データプレビュー"
   },
   "detailedOutlineNode": {
     "generating": "生成中",
@@ -2178,6 +2290,196 @@
         "name": "LaTeXからLaTeX",
         "description": "LaTeXドキュメントをエクスポート"
       }
+    },
+    "options": {
+      "title": "エクスポートオプション",
+      "pageSize": {
+        "label": "用紙サイズ",
+        "description": "PDFの用紙サイズを選択",
+        "descriptionTex": "PDFの用紙サイズを選択（LaTeX文書クラスで設定が必要）",
+        "a4": "A4",
+        "a3": "A3",
+        "a5": "A5",
+        "b5": "B5",
+        "letter": "Letter",
+        "legal": "Legal"
+      },
+      "margins": {
+        "label": "余白",
+        "description": "PDFの余白設定",
+        "descriptionTex": "PDFの余白設定（注意：LaTeXの余白は文書で設定する必要があります）"
+      },
+      "marginTop": {
+        "label": "上余白（インチ）",
+        "description": "PDFの上余白、単位：インチ",
+        "descriptionTex": "PDFの上余白、単位：インチ（注意：LaTeXの余白は文書で設定する必要があります）"
+      },
+      "marginBottom": {
+        "label": "下余白（インチ）",
+        "description": "PDFの下余白、単位：インチ"
+      },
+      "marginLeft": {
+        "label": "左余白（インチ）",
+        "description": "PDFの左余白、単位：インチ"
+      },
+      "marginRight": {
+        "label": "右余白（インチ）",
+        "description": "PDFの右余白、単位：インチ"
+      },
+      "printBackground": {
+        "label": "背景を印刷",
+        "description": "PDFに背景色と画像を含めるかどうか"
+      },
+      "tabs": {
+        "basic": "基本設定",
+        "style": "スタイル設定"
+      },
+      "chineseFont": {
+        "label": "中国語フォント",
+        "description": "PDFエクスポート時に使用する中国語フォント"
+      },
+      "westernFont": {
+        "label": "欧文フォント",
+        "description": "PDFエクスポート時に使用する欧文フォント"
+      },
+      "colorMode": {
+        "label": "カラーモード",
+        "description": "PDFのカラーモード（カラーまたはグレースケール）",
+        "color": "カラー",
+        "grayscale": "グレースケール"
+      },
+      "enableStyleMapping": {
+        "label": "フォーマットバインディングを有効にする",
+        "description": "Markdown要素をWordスタイルにマッピングするかどうか（見出し1、見出し2など）"
+      },
+      "normalFontFamily": {
+        "label": "本文フォント",
+        "description": "本文に使用するフォント"
+      },
+      "normalFontSize": {
+        "label": "本文フォントサイズ（pt）",
+        "description": "本文フォントサイズ、単位：ポイント（pt）"
+      },
+      "normalLineHeight": {
+        "label": "本文行間",
+        "description": "本文行間倍数"
+      },
+      "heading1FontFamily": {
+        "label": "見出し1フォント",
+        "description": "レベル1見出しに使用するフォント"
+      },
+      "heading1FontSize": {
+        "label": "見出し1フォントサイズ（pt）",
+        "description": "レベル1見出しフォントサイズ、単位：ポイント（pt）"
+      },
+      "heading1LineHeight": {
+        "label": "見出し1行間",
+        "description": "レベル1見出し行間倍数"
+      },
+      "heading2FontFamily": {
+        "label": "見出し2フォント",
+        "description": "レベル2見出しに使用するフォント"
+      },
+      "heading2FontSize": {
+        "label": "見出し2フォントサイズ（pt）",
+        "description": "レベル2見出しフォントサイズ、単位：ポイント（pt）"
+      },
+      "heading2LineHeight": {
+        "label": "見出し2行間",
+        "description": "レベル2見出し行間倍数"
+      },
+      "heading3FontFamily": {
+        "label": "見出し3フォント",
+        "description": "レベル3見出しに使用するフォント"
+      },
+      "heading3FontSize": {
+        "label": "見出し3フォントサイズ（pt）",
+        "description": "レベル3見出しフォントサイズ、単位：ポイント（pt）"
+      },
+      "heading3LineHeight": {
+        "label": "見出し3行間",
+        "description": "レベル3見出し行間倍数"
+      },
+      "heading4FontFamily": {
+        "label": "見出し4フォント",
+        "description": "レベル4見出しに使用するフォント"
+      },
+      "heading4FontSize": {
+        "label": "見出し4フォントサイズ（pt）",
+        "description": "レベル4見出しフォントサイズ、単位：ポイント（pt）"
+      },
+      "heading4LineHeight": {
+        "label": "見出し4行間",
+        "description": "レベル4見出し行間倍数"
+      },
+      "inlineStyles": {
+        "label": "インラインCSS",
+        "description": "CSSスタイルをHTMLにインライン化するかどうか"
+      },
+      "imageProcessing": {
+        "label": "画像処理方法",
+        "description": "画像の処理方法を選択：元のリンクを保持、Base64埋め込み、またはフォルダに保存",
+        "original": "元のリンクを保持",
+        "base64": "Base64埋め込み",
+        "folder": "フォルダに保存"
+      },
+      "includeMetadata": {
+        "label": "メタデータを含める",
+        "description": "エクスポートされたMarkdownにドキュメントメタデータを含めるかどうか"
+      },
+      "documentClass": {
+        "label": "ドキュメントクラス",
+        "description": "LaTeXドキュメントクラス"
+      },
+      "includePackages": {
+        "label": "一般的なパッケージを含める",
+        "description": "一般的なLaTeXパッケージを自動的に含めるかどうか"
+      },
+      "generateCover": {
+        "label": "表紙を生成",
+        "description": "最初のページにドキュメントタイトル、著者、要約、キーワードを表示"
+      },
+      "generateToc": {
+        "label": "目次を生成",
+        "description": "表紙の後（またはドキュメントの先頭）に目次を生成",
+        "title": "目次"
+      },
+      "processFormula": {
+        "label": "数式を処理",
+        "description": "LaTeX数式を自動的に処理するかどうか"
+      },
+      "removeTitlePrefixes": {
+        "label": "タイトルのプレフィックスを自動的に削除",
+        "description": "LaTeXは自動的に各章に番号を付けます。タイトルにすでに番号プレフィックスがあると重複します。このオプションを有効にすると、すべてのタイトルの先頭にある番号とドット（例：「1.1」、「一、」など）が自動的に削除されます"
+      },
+      "showPageNumbers": {
+        "label": "ページ番号を表示",
+        "description": "フッターにページ番号を表示"
+      },
+      "showHeader": {
+        "label": "ヘッダーを表示",
+        "description": "ヘッダーにドキュメントタイトルとページ番号情報を表示"
+      },
+      "autoNumberImages": {
+        "label": "画像に自動的に番号を付ける",
+        "description": "ドキュメント内の画像に自動的に番号ラベルを追加（図1、図2など）"
+      },
+      "imageLabelFontSize": {
+        "label": "画像ラベルフォントサイズ",
+        "description": "画像番号ラベルのフォントサイズ（pt）"
+      },
+      "imageLabelFontFamily": {
+        "label": "画像ラベルフォント",
+        "description": "画像番号ラベルのフォント"
+      },
+      "imageLabelPrefix": {
+        "label": "図",
+        "description": "画像番号のプレフィックス"
+      },
+      "imageLabelDefaultName": {
+        "label": "画像",
+        "description": "画像のデフォルト名（画像に名前がない場合に使用）"
+      }
     }
   },
   "tabSwitcher": {
@@ -2195,5 +2497,84 @@
     "startPlaceholder": "開始日",
     "endPlaceholder": "終了日",
     "rangeSeparator": "から"
+  },
+  "aigcDetectionWindow": {
+    "text": "句式の統一性",
+    "text1": "語彙の重複度",
+    "text2": "論理的な滑らかさ",
+    "text3": "個人的痕跡の欠如度",
+    "text4": "スタイルリスク",
+    "text5": "過度な説明",
+    "text6": "曖昧な限定",
+    "text7": "接続詞テンプレート",
+    "text8": "構造の繰り返し",
+    "text9": "抽象的な空洞"
+  },
+  "celebration": {
+    "continue": "MetaDocを始める →",
+    "skip": "任意の場所をクリックしてスキップ",
+    "subtitle": "MetaDocの完全な学習ガイドを完了しました",
+    "title": "準備完了！"
+  },
+  "chart-generation-tool": {
+    "code": "チャートコードが空です",
+    "code1": "コードが短すぎます",
+    "codeMissing": "コードがありません",
+    "error": "構文エラー",
+    "errorFormat": "設定フォーマットエラー",
+    "text": "マーク",
+    "typeRecognize": "チャートタイプを認識できません",
+    "validateFailedFailedValidate": "構文検証に失敗しました"
+  },
+  "editorModeFirstTime": {
+    "changeLaterHint": "後で「設定」でデフォルトの編集モードを変更できます。",
+    "message": "お好みのMarkdown編集モードを選択してください。後で設定で変更できます。",
+    "title": "デフォルトのエディタモードを選択"
+  },
+  "fomulaRecognition": {
+    "copyFailed": "コピーに失敗しました",
+    "deleteFailed": "削除に失敗しました",
+    "failedCreate": "セッションの作成に失敗しました",
+    "failedLoading": "セッションリストの読み込みに失敗しました",
+    "failedLoading1": "セッションの読み込みに失敗しました",
+    "recognize": "数式認識の例",
+    "renameFailed": "名前の変更に失敗しました",
+    "text": "コピー"
+  },
+  "graph": {
+    "analyzingIntent": "意図を分析中...",
+    "assistant": "アシスタント",
+    "chartType": "チャートタイプ",
+    "conversationMode": "会話モード",
+    "defaultTitle": "新しい描画セッション",
+    "engine": "描画エンジン",
+    "export": "エクスポート",
+    "exportSuccess": "エクスポートに成功しました",
+    "generate": "生成",
+    "generateSuccess": "生成に成功しました",
+    "generated": "チャートが生成されました",
+    "generatedImage": "生成された画像",
+    "generating": "生成中...",
+    "inputPlaceholder": "描画要件を入力してください、AIが適切なチャートエンジンを自動的に選択します...",
+    "newSession": "新しいセッション",
+    "noChart": "エクスポートできるチャートがありません",
+    "noOptimizePrompt": "最適化要件を入力してください",
+    "noPrompt": "描画要件を入力してください",
+    "noSessionSelected": "セッションを選択するか、新しいセッションを作成してください",
+    "optimize": "画像を最適化",
+    "optimizeOnlyInConversation": "最適化機能は会話モードでのみ使用可能です",
+    "optimizePrompt": "以下の会話履歴に基づいて、画像を最適化:",
+    "outputFormat": "出力形式",
+    "renamePlaceholder": "セッション名を入力してください",
+    "renameTitle": "セッションの名前を変更",
+    "sessionsTitle": "描画セッション",
+    "simpleMode": "シンプルモード",
+    "user": "ユーザー",
+    "userRequest": "ユーザーの新しい要件"
+  },
+  "graphWindow": {
+    "format": "形式は以下の通り",
+    "name": "エンジン名",
+    "text": "使用可能なチャートエンジン"
   }
 }

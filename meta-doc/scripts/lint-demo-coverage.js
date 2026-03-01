@@ -105,7 +105,6 @@ function generateSuggestions(demos, missing) {
     'EditorDemo',
     'ChatDemo',
     'AgentDemo',
-    'WorkflowDemo',
     'ChartDemo',
     'OutlineDemo',
     'KnowledgeBaseDemo',

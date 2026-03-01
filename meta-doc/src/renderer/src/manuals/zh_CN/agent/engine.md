@@ -16,7 +16,6 @@ MetaDoc支持以下Agent引擎：
 | **ReAct**       | 推理-行动循环，思考过程透明 | 需要详细推理的任务 |
 | **PlanExecute** | 先规划后执行，计划可调整    | 结构化任务         |
 | **SimpleChat**  | 纯对话，不调用工具          | 简单问答           |
-| **Workflow**    | 预定义工作流执行            | 固定流程任务       |
 
 ```mermaid
 graph TB
@@ -28,13 +27,11 @@ graph TB
         C[PlanExecute] --> C1[先规划后执行]
         C --> C2[计划可调整]
         D[SimpleChat] --> D1[纯对话模式]
-        E[Workflow] --> E1[预定义流程]
     end
     style A fill:#dbeafe,stroke:#3b82f6
     style B fill:#d1fae5,stroke:#10b981
     style C fill:#fef3c7,stroke:#f59e0b
     style D fill:#fce7f3,stroke:#ec4899
-    style E fill:#e0e7ff,stroke:#6366f1
 ```
 
 ## 引擎详解
@@ -136,20 +133,6 @@ Agent：[自动分解为：1.收集资料 2.整理大纲 3.撰写内容 4.润色
 
 <AgentEngineManager mode="demo" />
 
-### Workflow引擎
-
-**特点**：
-
-- **预定义流程**：按照预设的工作流执行
-- **确定性高**：执行路径固定，结果可预期
-- **可复用**：工作流可以被重复使用
-
-**适用场景**：
-
-- 标准化流程任务
-- 重复性工作
-- 团队协作任务
-
 ## 选择引擎
 
 ### 如何选择合适的引擎
@@ -167,13 +150,11 @@ flowchart TD
     E -->|否| H[AutoGPT]
     F -->|是| I[ReAct]
     F -->|否| H
-    D -->|固定流程| J[Workflow]
     style A fill:#f3f4f6,stroke:#374151
     style C fill:#fce7f3,stroke:#ec4899
     style G fill:#fef3c7,stroke:#f59e0b
     style H fill:#dbeafe,stroke:#3b82f6
     style I fill:#d1fae5,stroke:#10b981
-    style J fill:#e0e7ff,stroke:#6366f1
 ```
 
 <AgentView mode="demo" />
@@ -187,7 +168,6 @@ flowchart TD
 | 数据分析   | ReAct 或 PlanExecute |
 | 代码编写   | ReAct                |
 | 研究调研   | AutoGPT              |
-| 标准化流程 | Workflow             |
 | 项目管理   | PlanExecute          |
 
 <AgentView mode="demo" />
@@ -292,7 +272,6 @@ sequenceDiagram
 1. **从简单开始**：不确定时先用SimpleChat测试
 2. **根据复杂度选择**：复杂任务用AutoGPT或ReAct
 3. **考虑可解释性**：需要解释时用ReAct
-4. **标准化用Workflow**：重复性任务固化成工作流
 
 ### 优化引擎效果
 
@@ -342,4 +321,3 @@ A: 会。不同引擎的思考方式和执行策略不同：
 - [[agent.config|Agent配置管理]]
 - [[agent.session|Agent会话管理]]
 - [[agent.tools|工具集管理]]
-- [[agent.workflow|工作流管理]]

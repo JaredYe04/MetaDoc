@@ -32,7 +32,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 <template>
   <AlertDialogPortal>
     <AlertDialogOverlay
-      class="fixed inset-0 z-[11000] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+      class="alert-dialog-overlay fixed inset-0 z-[11000] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
     />
     <AlertDialogContent
       v-bind="forwarded"
@@ -47,3 +47,16 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     </AlertDialogContent>
   </AlertDialogPortal>
 </template>
+
+<style>
+/* 非 scoped：AlertDialog 遮罩通过 Portal 挂到 body，关闭后必须不拦截点击 */
+.alert-dialog-overlay {
+  pointer-events: none;
+}
+.alert-dialog-overlay[data-state='open'] {
+  pointer-events: auto;
+}
+.alert-dialog-overlay[data-state='closed'] {
+  pointer-events: none !important;
+}
+</style>

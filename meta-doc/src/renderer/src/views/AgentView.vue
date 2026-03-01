@@ -42,7 +42,7 @@
       >
         <template #sidebar-footer>
           <div class="sidebar-footer-content">
-            <DropdownMenu>
+            <DropdownMenu :modal="false">
               <DropdownMenuTrigger as-child>
                 <Button size="small" type="info" class="[&_svg]:size-4">
                   <Setting class="h-4 w-4" />
@@ -74,12 +74,7 @@
               </SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="engine in availableEngines" :key="engine.id" :value="engine.id">
-                  <div class="flex items-center justify-between w-full gap-4">
-                    <span>{{ getEngineLabel(engine) }}</span>
-                    <Badge v-if="engine.isBuiltIn" variant="outline">
-                      {{ t('agent.manage.agentEngine.builtIn') }}
-                    </Badge>
-                  </div>
+                  {{ getEngineLabel(engine) }}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -266,40 +261,39 @@
                   </ScrollArea>
                 </CardContent>
               </Card>
-              <ScrollArea class="tool-detail-scroll">
+              <div class="tool-detail-wrapper">
                 <div v-if="activeTool" class="tool-detail" :style="detailStyle">
-                  <h3>{{ activeTool.name }}</h3>
-                  <Descriptions :column="1" size="small" border>
-                    <DescriptionsItem :label="t('agent.tools.detail.name')">
-                      {{ activeTool.name }}
-                    </DescriptionsItem>
-                    <DescriptionsItem :label="t('agent.tools.detail.description')">
-                      <p>{{ activeTool.description }}</p>
-                    </DescriptionsItem>
-                    <DescriptionsItem :label="t('agent.tools.detail.origin')">
+                  <h3 class="tool-detail__title">{{ activeTool.name }}</h3>
+                  <dl class="tool-detail__list">
+                    <dt class="tool-detail__label">{{ t('agent.tools.detail.name') }}</dt>
+                    <dd class="tool-detail__value">{{ activeTool.name ?? '' }}</dd>
+                    <dt class="tool-detail__label">{{ t('agent.tools.detail.description') }}</dt>
+                    <dd class="tool-detail__value">{{ activeTool.description ?? '' }}</dd>
+                    <dt class="tool-detail__label">{{ t('agent.tools.detail.origin') }}</dt>
+                    <dd class="tool-detail__value">
                       <Badge>{{ originLabel(activeTool.origin as ToolOrigin) }}</Badge>
-                    </DescriptionsItem>
-                    <DescriptionsItem
-                      :label="t('agent.tools.detail.tags')"
-                      v-if="activeTool.tags?.length"
-                    >
-                      <div class="tag-group">
-                        <Badge
-                          v-for="tag in activeTool.tags"
-                          :key="tag"
-                          variant="default"
-                          class="mr-1"
-                        >
-                          {{ tag }}
-                        </Badge>
-                      </div>
-                    </DescriptionsItem>
-                  </Descriptions>
+                    </dd>
+                    <template v-if="activeTool.tags?.length">
+                      <dt class="tool-detail__label">{{ t('agent.tools.detail.tags') }}</dt>
+                      <dd class="tool-detail__value">
+                        <div class="tag-group">
+                          <Badge
+                            v-for="tag in activeTool.tags"
+                            :key="tag"
+                            variant="default"
+                            class="mr-1"
+                          >
+                            {{ tag }}
+                          </Badge>
+                        </div>
+                      </dd>
+                    </template>
+                  </dl>
                 </div>
                 <div v-else class="tool-detail placeholder" :style="detailStyle">
                   <Empty :description="t('agent.tools.detail.placeholder')" />
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           </section>
         </div>
@@ -537,7 +531,6 @@ import {
   DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Card, CardContent } from '@renderer/components/ui/card'
-import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descriptions'
 import { Empty } from '@renderer/components/ui/empty'
 dayjs.extend(relativeTime)
 
@@ -3016,15 +3009,25 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.tool-list-scroll,
-.tool-detail-scroll {
+.tool-list-scroll {
   flex: 1;
   min-height: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.tool-list-scroll :deep(.el-scrollbar__wrap),
-.tool-detail-scroll :deep(.el-scrollbar__wrap) {
+/* 工具详情区域：纯 div 占满剩余高度，不再用 ScrollArea 避免高度链断裂 */
+.tool-detail-wrapper {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tool-list-scroll :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
 }
 
@@ -3060,22 +3063,20 @@ onBeforeUnmount(() => {
   }
 }
 
-.tool-detail-scroll :deep(.el-scrollbar__view) {
-  padding: 0;
-  box-sizing: border-box;
-  height: 100%;
-}
-
 .tool-detail {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
 
   border-radius: 12px;
   border: 1px solid;
   padding: 14px;
   box-sizing: border-box;
-  overflow-x: hidden;
 
   transition:
     background-color 0.2s ease,
@@ -3083,17 +3084,53 @@ onBeforeUnmount(() => {
     color 0.2s ease;
 }
 
-.tool-detail :deep(.descriptions) {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+.tool-detail__title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
-.tool-detail :deep(.descriptions__table) {
+.tool-detail__list {
+  margin: 0;
+  padding: 0;
   width: 100%;
   max-width: 100%;
+  flex: 1;
+  min-height: 0;
   box-sizing: border-box;
-  table-layout: auto;
+  border: 1px solid var(--el-border-color, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 100px 1fr;
+}
+
+.tool-detail__label,
+.tool-detail__value {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+}
+
+.tool-detail__label {
+  font-weight: 500;
+  color: var(--el-text-color-regular, #606266);
+  background-color: var(--el-fill-color-light, #f5f7fa);
+}
+
+.tool-detail__value {
+  word-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.tool-detail__list .tool-detail__label:last-of-type,
+.tool-detail__list .tool-detail__value:last-of-type {
+  border-bottom: none;
 }
 
 /* 确保工具详情内部的所有容器元素都不会溢出 */
@@ -3109,7 +3146,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 100%;
 }
 
 .tag-group {

@@ -73,30 +73,24 @@ export class TabAnimationController {
 
     // Wait for Vue to add new tab to DOM
     await nextTick()
-    await nextFrame()
 
-    // Get container for forced layout
+    // Get container
     const container = this.containerRef.value
     if (!container) return
 
-    // Step 2: LAST - Force layout calculation after DOM update
-    container.offsetHeight
-
-    // Step 3 & 4: INVERT + PLAY - Animate existing tabs
-    const animations: Promise<void>[] = []
+    // Step 2: LAST - Immediately measure new positions and apply invert
+    // CRITICAL: Must do this in the same frame to avoid visual flash
     const newTab = this.getTabElement(newTabId)
+    const invertTransforms = new Map<string, string>()
 
-    // Animate existing tabs (squeeze effect)
+    // Calculate deltas and prepare invert transforms
     firstPositions.forEach((first, id) => {
       const tab = this.getTabElement(id)
       if (!tab) return
 
       // Measure new position
-      const prevTransform = tab.style.transform
-      tab.style.transform = 'none'
       const rect = tab.getBoundingClientRect()
       const last = rectToBox(rect)
-      tab.style.transform = prevTransform
 
       // Calculate delta
       const delta = calcDelta(first, last)
@@ -104,31 +98,50 @@ export class TabAnimationController {
       if (Math.abs(delta.x.translate) > 0.5) {
         // Cancel any existing animation
         this.activeAnimations.get(id)?.cancel()
-
-        // Apply FLIP
+        
+        // Store the invert transform
         const transform = buildTransform(delta)
-        tab.style.transform = transform
-
-        const animation = tab.animate(
-          [
-            { transform },
-            { transform: 'translate3d(0, 0, 0)' }
-          ],
-          {
-            duration: config.duration,
-            easing: config.easing,
-            fill: 'forwards'
-          }
-        )
-
-        this.activeAnimations.set(id, animation)
-        animations.push(
-          animation.finished.then(() => {
-            tab.style.transform = ''
-            this.activeAnimations.delete(id)
-          })
-        )
+        invertTransforms.set(id, transform)
       }
+    })
+
+    // Step 3: INVERT - Apply all transforms immediately (same frame)
+    invertTransforms.forEach((transform, id) => {
+      const tab = this.getTabElement(id)
+      if (tab) {
+        tab.style.transform = transform
+      }
+    })
+
+    // Step 4: PLAY - Animate to final positions on next frame
+    await nextFrame()
+
+    const animations: Promise<void>[] = []
+
+    // Animate existing tabs
+    invertTransforms.forEach((transform, id) => {
+      const tab = this.getTabElement(id)
+      if (!tab) return
+
+      const animation = tab.animate(
+        [
+          { transform },
+          { transform: 'translate3d(0, 0, 0)' }
+        ],
+        {
+          duration: config.duration,
+          easing: config.easing,
+          fill: 'forwards'
+        }
+      )
+
+      this.activeAnimations.set(id, animation)
+      animations.push(
+        animation.finished.then(() => {
+          tab.style.transform = ''
+          this.activeAnimations.delete(id)
+        })
+      )
     })
 
     // Animate new tab entry

@@ -524,7 +524,7 @@
                         <Textarea
                           v-model="toolTestForm.paramsJson"
                           rows="8"
-                          :placeholder="$t('setting.debug.paramsPlaceholder', '请输入JSON格式的参数，例如: {\"prompt\": \"生成一个流程图\", \"chartType\": \"mermaid\"}')"
+                          :placeholder="$t('setting.debug.paramsPlaceholder', '请输入JSON格式的参数')"  
                         />
                       </FormField>
 

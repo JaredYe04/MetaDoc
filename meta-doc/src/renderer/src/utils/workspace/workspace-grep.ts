@@ -216,11 +216,10 @@ export async function grepInWorkspaces(
 
     let entries: Array<{ name: string; path: string; isDirectory: boolean }> = []
     try {
-      entries = (await messageBridge.invoke('read-directory', dirPath)) as Array<{
-        name: string
-        path: string
-        isDirectory: boolean
-      }>
+      entries = (await messageBridge.invoke(
+        'read-directory',
+        dirPath
+      )) as Array<{ name: string; path: string; isDirectory: boolean }>
     } catch (error) {
       logger.warn('读取目录失败，跳过', { dirPath, error })
       continue
@@ -260,3 +259,4 @@ export async function grepInWorkspaces(
 
   return results
 }
+

@@ -25,7 +25,10 @@ const tooltipContentClass =
 <template>
   <!-- 强制挂载到 body，避免被父容器 overflow 裁剪，保证 tooltip 始终可见 -->
   <TooltipPortal to="body">
-    <TooltipContent v-bind="props" :class="cn(tooltipContentClass, props.class)">
+    <TooltipContent
+      v-bind="props"
+      :class="cn(tooltipContentClass, props.class)"
+    >
       <slot />
     </TooltipContent>
   </TooltipPortal>

@@ -235,19 +235,19 @@ const loadDemoData = () => {
 
   // 示例日志历史
   logHistory.value = [
-    { timestamp: Date.now() - 3600000, level: 'info', message: t('setting.logMessages.appStartup'), source: 'main' },
-    { timestamp: Date.now() - 3500000, level: 'info', message: t('setting.logMessages.loadConfig'), source: 'config' },
+    { timestamp: Date.now() - 3600000, level: 'info', message: '应用启动成功', source: 'main' },
+    { timestamp: Date.now() - 3500000, level: 'info', message: '加载配置文件', source: 'config' },
     {
       timestamp: Date.now() - 3000000,
       level: 'warn',
-      message: t('setting.logMessages.noHistorySession'),
+      message: '未找到历史会话',
       source: 'session'
     },
-    { timestamp: Date.now() - 2400000, level: 'info', message: t('setting.logMessages.createDocument'), source: 'document' },
-    { timestamp: Date.now() - 1800000, level: 'debug', message: t('setting.logMessages.initEditor'), source: 'editor' },
-    { timestamp: Date.now() - 1200000, level: 'info', message: t('setting.logMessages.llmReady'), source: 'llm' },
-    { timestamp: Date.now() - 600000, level: 'error', message: t('setting.logMessages.networkTimeout'), source: 'network' },
-    { timestamp: Date.now() - 300000, level: 'info', message: t('setting.logMessages.autoSaveSuccess'), source: 'auto-save' }
+    { timestamp: Date.now() - 2400000, level: 'info', message: '创建新文档', source: 'document' },
+    { timestamp: Date.now() - 1800000, level: 'debug', message: '初始化编辑器', source: 'editor' },
+    { timestamp: Date.now() - 1200000, level: 'info', message: 'LLM 服务就绪', source: 'llm' },
+    { timestamp: Date.now() - 600000, level: 'error', message: '网络连接超时', source: 'network' },
+    { timestamp: Date.now() - 300000, level: 'info', message: '自动保存成功', source: 'auto-save' }
   ]
 }
 

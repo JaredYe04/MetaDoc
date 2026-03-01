@@ -1,14 +1,11 @@
 <template>
   <div class="about">
-    <!-- <h2>{{ $t('about.aboutUs') }}</h2> -->
-    <p>{{ $t('about.content') }}</p>
+    <!-- <h2>关于我们</h2> -->
+    <p>这里是关于我们页面的内容</p>
   </div>
 </template>
 
-<script setup>
-import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
-</script>
+<script setup></script>
 
 <style scoped>
 .about {

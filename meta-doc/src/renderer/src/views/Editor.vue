@@ -115,7 +115,7 @@ onBeforeUnmount(() => {
           :active="currentTab.id === activeTabId"
         />
       </KeepAlive>
-      <Empty v-if="!currentTab" class="workspace-editor-empty" :description="t('dummyView.emptyDescription')" />
+      <Empty v-if="!currentTab" class="workspace-editor-empty" description="暂无打开的文档" />
     </div>
   </div>
 </template>

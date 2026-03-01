@@ -137,7 +137,7 @@ const tabsRef = ref<any>(null)
 const tabsKey = ref(0) // 用于强制重新渲染 tabs
 
 const primaryLabel = (tab: WorkspaceTab) => {
-  return tab.subtitle?.trim() || tab.title?.trim() || t('untitledDocument')
+  return tab.subtitle?.trim() || tab.title?.trim() || '未命名文档'
 }
 
 const tooltipLabel = (tab: WorkspaceTab) => {

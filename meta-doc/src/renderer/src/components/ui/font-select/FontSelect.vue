@@ -173,7 +173,9 @@ const selectedFont = computed({
 })
 
 // 预览文本
-const previewTextValue = computed(() => props.previewText || 'AaBbCc 你好世界 Hello World')
+const previewTextValue = computed(
+  () => props.previewText || 'AaBbCc 你好世界 Hello World'
+)
 
 // 虚拟列表：仅渲染可见项
 const scrollContainerRef = ref<HTMLElement | null>(null)
@@ -206,7 +208,9 @@ function onListScroll(e: Event) {
 }
 
 // 打开下拉时滚动到当前选中项
-const selectedIndex = computed(() => fonts.value.findIndex((f) => f.family === props.modelValue))
+const selectedIndex = computed(() =>
+  fonts.value.findIndex((f) => f.family === props.modelValue)
+)
 watch(
   () => [isOpen.value, selectedIndex.value, fonts.value.length] as const,
   ([open, idx]) => {
@@ -246,7 +250,10 @@ watch(
           <RotateCcw class="h-3 w-3" />
         </button>
       </SelectTrigger>
-      <SelectContent class="min-w-[280px] max-h-[300px] p-0" :viewport-height="LIST_HEIGHT">
+      <SelectContent
+        class="min-w-[280px] max-h-[300px] p-0"
+        :viewport-height="LIST_HEIGHT"
+      >
         <div
           v-if="loading"
           class="flex items-center justify-center py-4 text-sm text-muted-foreground"

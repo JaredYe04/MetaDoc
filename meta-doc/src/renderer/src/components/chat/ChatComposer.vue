@@ -1,9 +1,5 @@
 <template>
-  <form
-    class="chat-composer"
-    @submit.prevent="handleSubmit"
-    :class="{ 'chat-composer--compact': compact }"
-  >
+  <form class="chat-composer" @submit.prevent="handleSubmit" :class="{ 'chat-composer--compact': compact }">
     <div
       class="composer-shell"
       :class="{ 'is-multiline': isMultiline }"

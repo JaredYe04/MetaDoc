@@ -3,13 +3,7 @@
     <div class="agent-message__main">
       <!-- 消息气泡（用户消息保持气泡样式，AI消息平铺） -->
       <div
-        :class="[
-          'agent-message__body',
-          {
-            'agent-message__body--flat': message.role !== 'user',
-            'agent-message__body--user-compact': compact && message.role === 'user'
-          }
-        ]"
+        :class="['agent-message__body', { 'agent-message__body--flat': message.role !== 'user', 'agent-message__body--user-compact': compact && message.role === 'user' }]"
         :style="bubbleStyle"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
@@ -198,12 +192,14 @@
     </div>
 
     <!-- 用户消息操作按钮（紧凑模式下在气泡下方，始终显示，与 AI 消息一致） -->
-    <div
-      v-if="compact && message.role === 'user' && message.type === 'chat'"
-      class="user-message-actions"
-    >
+    <div v-if="compact && message.role === 'user' && message.type === 'chat'" class="user-message-actions">
       <Tooltip :content="t('agent.message.edit')" placement="bottom">
-        <Button variant="ghost" size="small" class="ai-action-btn" @click.stop.prevent="handleEdit">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          @click.stop.prevent="handleEdit"
+        >
           <el-icon><Edit /></el-icon>
         </Button>
       </Tooltip>
@@ -1081,8 +1077,7 @@ onBeforeUnmount(() => {
 }
 
 /* 紧凑模式：用户消息气泡占满宽、小边距小圆角小字号、可选中文字 */
-.agent-message--compact.agent-message.align-right
-  .agent-message__body:not(.agent-message__body--flat) {
+.agent-message--compact.agent-message.align-right .agent-message__body:not(.agent-message__body--flat) {
   width: 100%;
   max-width: 100%;
   min-width: 0;

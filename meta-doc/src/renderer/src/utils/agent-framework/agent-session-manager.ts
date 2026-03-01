@@ -17,7 +17,6 @@ import { createRendererLogger } from '../logger'
 import { agentConfigManager } from './agent-config-manager'
 import { toolCollectionManager } from './tool-collection-manager'
 import { DEFAULT_AGENT_ASSISTANT_GREETING } from '../../constants/document'
-import { i18n } from '../../i18n'
 
 /**
  * Agent会话管理器类
@@ -48,24 +47,12 @@ class AgentSessionManager {
     }
 
     // 创建初始问候语消息
-    // 使用i18n替换模板中的占位符
-    const t = i18n.global.t
-    const greetingMarkdown = DEFAULT_AGENT_ASSISTANT_GREETING
-      .replace('{{agentEngine.greeting.title}}', t('agentEngine.greeting.title'))
-      .replace('{{agentEngine.greeting.subtitle}}', t('agentEngine.greeting.subtitle'))
-      .replace('{{agentEngine.greeting.canDo}}', t('agentEngine.greeting.canDo'))
-      .replace('{{agentEngine.greeting.ragTool}}', t('agentEngine.greeting.ragTool'))
-      .replace('{{agentEngine.greeting.chartTool}}', t('agentEngine.greeting.chartTool'))
-      .replace('{{agentEngine.greeting.editTool}}', t('agentEngine.greeting.editTool'))
-      .replace('{{agentEngine.greeting.proofreadTool}}', t('agentEngine.greeting.proofreadTool'))
-      .replace('{{agentEngine.greeting.tellMe}}', t('agentEngine.greeting.tellMe'))
-
     const greetingMessage: AgentMessage = {
       id: `msg-${now}-greeting`,
       role: 'assistant',
       type: 'chat',
       timestamp: new Date(now).toISOString(),
-      markdown: greetingMarkdown
+      markdown: DEFAULT_AGENT_ASSISTANT_GREETING
     }
 
     const session: AgentSession = {

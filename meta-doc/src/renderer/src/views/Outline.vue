@@ -17,147 +17,147 @@
       >
         <el-scrollbar class="generate-preview-scrollbar" :wrap-style="generatePreviewWrapStyle">
           <div class="noselect-display">
-            <!-- 单任务：生成中 -->
-            <template v-if="generating && !parallelChildren.length">
-              <h2>
-                {{ $t('outline.generating') }}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        class="aero-btn generate-preview-btn-square"
-                        @click.stop="cancelAllAiTasks"
-                      >
-                        <X class="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>{{ $t('outline.cancelTasks') }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </h2>
-              <div
-                class="generate-preview-body"
-                :class="{ 'is-node': singleGenerateType === 'children' }"
-              >
-                <template v-if="singleGenerateType === 'content'">
-                  <div class="generate-preview-content generate-preview-content--text">
+          <!-- 单任务：生成中 -->
+          <template v-if="generating && !parallelChildren.length">
+            <h2>
+              {{ $t('outline.generating') }}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      class="aero-btn generate-preview-btn-square"
+                      @click.stop="cancelAllAiTasks"
+                    >
+                      <X class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{{ $t('outline.cancelTasks') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </h2>
+            <div
+              class="generate-preview-body"
+              :class="{ 'is-node': singleGenerateType === 'children' }"
+            >
+              <template v-if="singleGenerateType === 'content'">
+                <div class="generate-preview-content generate-preview-content--text">
+                  {{ rawstring }}
+                </div>
+              </template>
+              <template v-else>
+                <div class="generate-preview-json-wrap">
+                  <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                  <div v-else class="generate-preview-content generate-preview-content--text">
                     {{ rawstring }}
                   </div>
-                </template>
-                <template v-else>
+                </div>
+              </template>
+            </div>
+          </template>
+          <!-- 批量任务：生成中，多块流式输出 -->
+          <template v-else-if="generating && parallelChildren.length">
+            <h2>
+              {{ $t('outline.generating') }}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      class="aero-btn generate-preview-btn-square"
+                      @click.stop="cancelAllAiTasks"
+                    >
+                      <X class="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{{ $t('outline.cancelTasks') }}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </h2>
+            <div class="batch-panels">
+              <div v-for="item in batchDisplayItems" :key="item.nodePath" class="batch-panel">
+                <div class="batch-panel-title">{{ item.nodeTitle }}</div>
+                <div class="generate-preview-body batch-panel-body">
                   <div class="generate-preview-json-wrap">
-                    <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                    <StreamingJsonTree v-if="item.content" :raw="item.content" />
                     <div v-else class="generate-preview-content generate-preview-content--text">
-                      {{ rawstring }}
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </template>
-            <!-- 批量任务：生成中，多块流式输出 -->
-            <template v-else-if="generating && parallelChildren.length">
-              <h2>
-                {{ $t('outline.generating') }}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        class="aero-btn generate-preview-btn-square"
-                        @click.stop="cancelAllAiTasks"
-                      >
-                        <X class="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>{{ $t('outline.cancelTasks') }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </h2>
-              <div class="batch-panels">
-                <div v-for="item in batchDisplayItems" :key="item.nodePath" class="batch-panel">
-                  <div class="batch-panel-title">{{ item.nodeTitle }}</div>
-                  <div class="generate-preview-body batch-panel-body">
-                    <div class="generate-preview-json-wrap">
-                      <StreamingJsonTree v-if="item.content" :raw="item.content" />
-                      <div v-else class="generate-preview-content generate-preview-content--text">
-                        {{ item.content }}
-                      </div>
+                      {{ item.content }}
                     </div>
                   </div>
                 </div>
               </div>
-            </template>
-            <!-- 单任务：待接受/拒绝 -->
-            <template v-else-if="pendingAccept">
-              <h2>{{ $t('outline.previewResult') }}</h2>
-              <div
-                class="generate-preview-body"
-                :class="{ 'is-node': singleGenerateType === 'children' }"
-              >
-                <template v-if="singleGenerateType === 'content'">
-                  <div class="generate-preview-content generate-preview-content--text">
+            </div>
+          </template>
+          <!-- 单任务：待接受/拒绝 -->
+          <template v-else-if="pendingAccept">
+            <h2>{{ $t('outline.previewResult') }}</h2>
+            <div
+              class="generate-preview-body"
+              :class="{ 'is-node': singleGenerateType === 'children' }"
+            >
+              <template v-if="singleGenerateType === 'content'">
+                <div class="generate-preview-content generate-preview-content--text">
+                  {{ rawstring }}
+                </div>
+              </template>
+              <template v-else>
+                <div class="generate-preview-json-wrap">
+                  <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                  <div v-else class="generate-preview-content generate-preview-content--text">
                     {{ rawstring }}
                   </div>
-                </template>
-                <template v-else>
+                </div>
+              </template>
+            </div>
+          </template>
+          <!-- 批量任务：待接受/拒绝 -->
+          <template v-else-if="pendingBatchAccept">
+            <h2>{{ $t('outline.previewResult') }}</h2>
+            <div class="batch-panels">
+              <div
+                v-for="(displayItem, idx) in batchPendingDisplayItems"
+                :key="displayItem.nodePath"
+                class="batch-panel"
+                :class="{ 'batch-panel--rejected': displayItem.rejected }"
+              >
+                <div class="batch-panel-head">
+                  <span class="batch-panel-title">{{ displayItem.nodeTitle }}</span>
+                  <TooltipProvider v-if="!displayItem.rejected">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          class="aero-btn generate-preview-btn-square"
+                          @click.stop="onBatchRejectItem(idx)"
+                        >
+                          <X class="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>{{ $t('outline.reject') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span v-else class="batch-panel-rejected-tag">{{ $t('outline.reject') }}</span>
+                </div>
+                <div class="generate-preview-body batch-panel-body">
                   <div class="generate-preview-json-wrap">
-                    <StreamingJsonTree v-if="rawstring" :raw="rawstring" />
+                    <StreamingJsonTree v-if="displayItem.content" :raw="displayItem.content" />
                     <div v-else class="generate-preview-content generate-preview-content--text">
-                      {{ rawstring }}
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </template>
-            <!-- 批量任务：待接受/拒绝 -->
-            <template v-else-if="pendingBatchAccept">
-              <h2>{{ $t('outline.previewResult') }}</h2>
-              <div class="batch-panels">
-                <div
-                  v-for="(displayItem, idx) in batchPendingDisplayItems"
-                  :key="displayItem.nodePath"
-                  class="batch-panel"
-                  :class="{ 'batch-panel--rejected': displayItem.rejected }"
-                >
-                  <div class="batch-panel-head">
-                    <span class="batch-panel-title">{{ displayItem.nodeTitle }}</span>
-                    <TooltipProvider v-if="!displayItem.rejected">
-                      <Tooltip>
-                        <TooltipTrigger as-child>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            class="aero-btn generate-preview-btn-square"
-                            @click.stop="onBatchRejectItem(idx)"
-                          >
-                            <X class="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>{{ $t('outline.reject') }}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <span v-else class="batch-panel-rejected-tag">{{ $t('outline.reject') }}</span>
-                  </div>
-                  <div class="generate-preview-body batch-panel-body">
-                    <div class="generate-preview-json-wrap">
-                      <StreamingJsonTree v-if="displayItem.content" :raw="displayItem.content" />
-                      <div v-else class="generate-preview-content generate-preview-content--text">
-                        {{ displayItem.content }}
-                      </div>
+                      {{ displayItem.content }}
                     </div>
                   </div>
                 </div>
               </div>
-            </template>
+            </div>
+          </template>
           </div>
         </el-scrollbar>
         <!-- 单任务：接受/拒绝 -->
@@ -203,12 +203,7 @@
           v-if="pendingBatchAccept"
           class="generate-preview-actions generate-preview-actions--batch"
         >
-          <Button
-            variant="outline"
-            size="sm"
-            class="aero-btn generate-preview-accept-btn"
-            @click.stop="batchAcceptAll"
-          >
+          <Button variant="outline" size="sm" class="aero-btn generate-preview-accept-btn" @click.stop="batchAcceptAll">
             <Check class="w-4 h-4" />
             <span>{{ $t('outline.acceptAll') }}</span>
           </Button>
@@ -228,192 +223,199 @@
         @mouseleave="onViewportMouseLeave"
       >
         <vue-tree
-          ref="treeRef"
-          :key="outlineTreeKey"
-          class="outline-tree-inner outline-viewport-tree"
-          :dataset="chartDataset"
-          :config="treeConfig"
-          :direction="direction"
-          link-style="straight"
-          @node-click="handleNodeClick"
-          @drag-node-end="handleNodeDrag"
-        >
-          <template
-            #node="{ node, collapsed }"
-            :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+            ref="treeRef"
+            :key="outlineTreeKey"
+            class="outline-tree-inner outline-viewport-tree"
+
+            :dataset="chartDataset"
+            :config="treeConfig"
+            :direction="direction"
+            link-style="straight"
+            @node-click="handleNodeClick"
+            @drag-node-end="handleNodeDrag"
           >
-            <!-- 节点被折叠且有子节点时：显示 badge 与区分样式（库折叠时会把 children 移到 _children） -->
-            <template v-if="collapsed && hasNodeChildren(node)">
-              <div
-                class="tree-node tree-node--collapsed-with-children"
-                :style="{
-                  backgroundColor: themeState.currentTheme.outlineNode,
-                  '--outline-primary': themeState.currentTheme.primaryColor
-                }"
-                :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
-                :draggable="node.path !== 'dummy'"
-                @dragstart.stop="onNodeDragStart(node)"
-                @dragover.prevent="onNodeDragOver($event, node)"
-                @dragleave="onNodeDragLeave(node)"
-                @drop.stop="onNodeDrop(node, $event)"
-                @dragend.stop="onNodeDragEnd"
-                @mousedown.stop="onNodeMouseDown"
-                @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                @contextmenu.prevent="openNodeContextMenu($event, node)"
-              >
-                <!-- 子节点数量 badge：背景与字体色与 tree-node 一致 -->
-                <span
-                  class="children-count-badge"
+            <template
+              #node="{ node, collapsed }"
+              :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+            >
+              <!-- 节点被折叠且有子节点时：显示 badge 与区分样式（库折叠时会把 children 移到 _children） -->
+              <template v-if="collapsed && hasNodeChildren(node)">
+                <div
+                  class="tree-node tree-node--collapsed-with-children"
                   :style="{
                     backgroundColor: themeState.currentTheme.outlineNode,
-                    color: themeState.currentTheme.textColor
+                    '--outline-primary': themeState.currentTheme.primaryColor
                   }"
+                  :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
+                  :draggable="node.path !== 'dummy'"
+                  @dragstart.stop="onNodeDragStart(node)"
+                  @dragover.prevent="onNodeDragOver($event, node)"
+                  @dragleave="onNodeDragLeave(node)"
+                  @drop.stop="onNodeDrop(node, $event)"
+                  @dragend.stop="onNodeDragEnd"
+                  @mousedown.stop="onNodeMouseDown"
+                  @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
                 >
-                  {{ nodeChildrenCount(node) }}
-                </span>
-                <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
-                <TooltipProvider>
-                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                    <TooltipTrigger as-child>
-                      <span
-                        class="tree-node-text"
-                        :ref="(el) => setTextElementRef(el, node.path)"
-                        >{{ node.title }}</span
+                  <!-- 子节点数量 badge：背景与字体色与 tree-node 一致 -->
+                  <span
+                    class="children-count-badge"
+                    :style="{
+                      backgroundColor: themeState.currentTheme.outlineNode,
+                      color: themeState.currentTheme.textColor
+                    }"
+                  >
+                    {{ nodeChildrenCount(node) }}
+                  </span>
+                  <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
+                  <TooltipProvider>
+                    <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                      <TooltipTrigger as-child>
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        v-if="node.title && isNodeTextTruncated(node.path)"
                       >
-                    </TooltipTrigger>
-                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                      <p>{{ node.title }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <!-- 展开按钮：未选中 AI 工具时显示 -->
-                <TooltipProvider v-if="!selectedAiTool">
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <button
-                        type="button"
-                        class="tree-node-expand-btn"
-                        @click.stop="toggleNodeExpand(node.path)"
-                        v-if="node.path !== 'dummy'"
-                        :disabled="pendingAccept || generating"
-                        aria-label="Expand"
+                        <p>{{ node.title }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <!-- 展开按钮：未选中 AI 工具时显示 -->
+                  <TooltipProvider v-if="!selectedAiTool">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <button
+                          type="button"
+                          class="tree-node-expand-btn"
+                          @click.stop="toggleNodeExpand(node.path)"
+                          v-if="node.path !== 'dummy'"
+                          :disabled="pendingAccept || generating"
+                          aria-label="Expand"
+                        >
+                          <component
+                            :is="direction === 'vertical' ? ChevronDown : ChevronRight"
+                            class="w-4 h-4"
+                          />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{{ $t('outline.expand') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </template>
+              <!-- 展开时用详细面板替代该节点内容，留在原 slot 内随画布移动 -->
+              <template v-else-if="expandedNodes[node.path] && node.path !== 'dummy'">
+                <div
+                  class="detailed-node-wrapper"
+                  :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
+                  @mousedown.stop
+                  @pointerdown.stop
+                  @click.stop
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <DetailedOutlineNode
+                    :node="node"
+                    :outlineTree="treeData"
+                    :docPath="activeDocument?.path || ''"
+                    :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
+                    :userPrompt="aiConfig.userPrompt || userPrompt"
+                    :temperature="aiConfig.temperature"
+                    :wordCount="aiConfig.wordCount"
+                    @content-updated="
+                      (content: string) => handleNodeContentUpdate(node.path, content)
+                    "
+                    @cancel="handleNodeContentCancel(node.path)"
+                    @collapse="toggleNodeExpand(node.path)"
+                    class="detailed-node-inline"
+                  />
+                </div>
+              </template>
+              <!-- 如果节点未展开，显示正常节点；有子节点时加样式区分 -->
+              <template v-else>
+                <div
+                  class="tree-node"
+                  :class="[
+                    dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : '',
+                    hasNodeChildren(node) ? 'tree-node--has-children-collapsed' : ''
+                  ]"
+                  :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+                  :draggable="node.path !== 'dummy'"
+                  @dragstart.stop="onNodeDragStart(node)"
+                  @dragover.prevent="onNodeDragOver($event, node)"
+                  @dragleave="onNodeDragLeave(node)"
+                  @drop.stop="onNodeDrop(node, $event)"
+                  @dragend.stop="onNodeDragEnd"
+                  @mousedown.stop="onNodeMouseDown"
+                  @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+                  @contextmenu.prevent="openNodeContextMenu($event, node)"
+                >
+                  <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
+                  <TooltipProvider>
+                    <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
+                      <TooltipTrigger as-child>
+                        <span
+                          class="tree-node-text"
+                          :ref="(el) => setTextElementRef(el, node.path)"
+                          >{{ node.title }}</span
+                        >
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        v-if="node.title && isNodeTextTruncated(node.path)"
                       >
-                        <component
-                          :is="direction === 'vertical' ? ChevronDown : ChevronRight"
-                          class="w-4 h-4"
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>{{ $t('outline.expand') }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </template>
-            <!-- 展开时用详细面板替代该节点内容，留在原 slot 内随画布移动 -->
-            <template v-else-if="expandedNodes[node.path] && node.path !== 'dummy'">
-              <div
-                class="detailed-node-wrapper"
-                :class="{ 'detailed-node-wrapper--top': lastExpandedNodePath === node.path }"
-                @mousedown.stop
-                @pointerdown.stop
-                @click.stop
-                @contextmenu.prevent="openNodeContextMenu($event, node)"
-              >
-                <DetailedOutlineNode
+                        <p>{{ node.title }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <!-- 展开按钮：未选中 AI 工具时显示 -->
+                  <TooltipProvider v-if="!selectedAiTool">
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <button
+                          type="button"
+                          class="tree-node-expand-btn"
+                          @click.stop="toggleNodeExpand(node.path)"
+                          v-if="node.path !== 'dummy'"
+                          :disabled="pendingAccept || generating"
+                          aria-label="Expand"
+                        >
+                          <component
+                            :is="
+                              direction === 'vertical'
+                                ? expandedNodes[node.path]
+                                  ? ChevronUp
+                                  : ChevronDown
+                                : expandedNodes[node.path]
+                                  ? ChevronDown
+                                  : ChevronRight
+                            "
+                            class="w-4 h-4"
+                          />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{{ $t('outline.expand') }}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
+                <OutlineNodeActionButton
+                  v-if="selectedAiTool"
                   :node="node"
-                  :outlineTree="treeData"
-                  :docPath="activeDocument?.path || ''"
-                  :docFormat="(activeDocument?.format ?? 'md') as 'md' | 'tex'"
-                  :userPrompt="aiConfig.userPrompt || userPrompt"
-                  :temperature="aiConfig.temperature"
-                  :wordCount="aiConfig.wordCount"
-                  @content-updated="
-                    (content: string) => handleNodeContentUpdate(node.path, content)
-                  "
-                  @cancel="handleNodeContentCancel(node.path)"
-                  @collapse="toggleNodeExpand(node.path)"
-                  class="detailed-node-inline"
+                  :pending-accept="pendingAccept"
+                  :generating="generating"
                 />
-              </div>
+              </template>
             </template>
-            <!-- 如果节点未展开，显示正常节点；有子节点时加样式区分 -->
-            <template v-else>
-              <div
-                class="tree-node"
-                :class="[
-                  dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : '',
-                  hasNodeChildren(node) ? 'tree-node--has-children-collapsed' : ''
-                ]"
-                :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                :draggable="node.path !== 'dummy'"
-                @dragstart.stop="onNodeDragStart(node)"
-                @dragover.prevent="onNodeDragOver($event, node)"
-                @dragleave="onNodeDragLeave(node)"
-                @drop.stop="onNodeDrop(node, $event)"
-                @dragend.stop="onNodeDragEnd"
-                @mousedown.stop="onNodeMouseDown"
-                @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
-                @contextmenu.prevent="openNodeContextMenu($event, node)"
-              >
-                <!-- 仅文字区域有标题 tooltip，避免与展开按钮的 tooltip 同时出现 -->
-                <TooltipProvider>
-                  <Tooltip :disabled="!node.title || !isNodeTextTruncated(node.path)">
-                    <TooltipTrigger as-child>
-                      <span
-                        class="tree-node-text"
-                        :ref="(el) => setTextElementRef(el, node.path)"
-                        >{{ node.title }}</span
-                      >
-                    </TooltipTrigger>
-                    <TooltipContent side="top" v-if="node.title && isNodeTextTruncated(node.path)">
-                      <p>{{ node.title }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <!-- 展开按钮：未选中 AI 工具时显示 -->
-                <TooltipProvider v-if="!selectedAiTool">
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <button
-                        type="button"
-                        class="tree-node-expand-btn"
-                        @click.stop="toggleNodeExpand(node.path)"
-                        v-if="node.path !== 'dummy'"
-                        :disabled="pendingAccept || generating"
-                        aria-label="Expand"
-                      >
-                        <component
-                          :is="
-                            direction === 'vertical'
-                              ? expandedNodes[node.path]
-                                ? ChevronUp
-                                : ChevronDown
-                              : expandedNodes[node.path]
-                                ? ChevronDown
-                                : ChevronRight
-                          "
-                          class="w-4 h-4"
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>{{ $t('outline.expand') }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
-              <OutlineNodeActionButton
-                v-if="selectedAiTool"
-                :node="node"
-                :pending-accept="pendingAccept"
-                :generating="generating"
-              />
-            </template>
-          </template>
-        </vue-tree>
+          </vue-tree>
       </div>
 
       <!-- 节点右键菜单：Teleport 到 body，避免父级 transform 导致 fixed 定位偏移 -->
@@ -596,9 +598,7 @@
                   />
                 </div>
                 <div class="material-field">
-                  <label class="material-field-label">{{
-                    $t('outline.materialBasket.keywordsLabel')
-                  }}</label>
+                  <label class="material-field-label">{{ $t('outline.materialBasket.keywordsLabel') }}</label>
                   <p class="material-field-hint">{{ $t('outline.materialBasket.keywordsHint') }}</p>
                   <KeywordInput
                     v-model="currentChapterKeywords"
@@ -614,17 +614,12 @@
                   class="new-material-ai-heading-btn"
                   @click="chapterEditAiExpanded = !chapterEditAiExpanded"
                 >
-                  <component
-                    :is="chapterEditAiExpanded ? ChevronDown : ChevronRight"
-                    class="w-4 h-4"
-                  />
+                  <component :is="chapterEditAiExpanded ? ChevronDown : ChevronRight" class="w-4 h-4" />
                   <span>{{ $t('outline.materialBasket.aiAssistHeading') }}</span>
                 </button>
                 <template v-if="chapterEditAiExpanded">
                   <div class="material-field">
-                    <label class="material-field-label">{{
-                      $t('outline.materialBasket.prompt')
-                    }}</label>
+                    <label class="material-field-label">{{ $t('outline.materialBasket.prompt') }}</label>
                     <AutoResizeTextarea
                       v-model="chapterEditPrompt"
                       :placeholder="$t('outline.materialBasket.promptPlaceholder')"
@@ -634,13 +629,9 @@
                     />
                   </div>
                   <div class="material-field">
-                    <label class="material-field-label">{{
-                      $t('outline.aiConfig.temperature')
-                    }}</label>
+                    <label class="material-field-label">{{ $t('outline.aiConfig.temperature') }}</label>
                     <div class="flex items-center gap-4">
-                      <span class="text-sm text-muted-foreground w-8">{{
-                        chapterEditTemperature
-                      }}</span>
+                      <span class="text-sm text-muted-foreground w-8">{{ chapterEditTemperature }}</span>
                       <Slider
                         v-model="chapterEditTemperature"
                         :min="0"
@@ -678,11 +669,7 @@
             <div class="edit-chapter-editor-column">
               <div class="material-field material-field-fill">
                 <label class="material-field-label">{{ $t('outline.chapterContent') }}</label>
-                <div
-                  ref="chapterEditorWrapRef"
-                  class="outline-md-editor-wrap edit-chapter-editor-wrap"
-                  :class="{ 'is-disabled': chapterEditGenerating }"
-                >
+                <div ref="chapterEditorWrapRef" class="outline-md-editor-wrap edit-chapter-editor-wrap" :class="{ 'is-disabled': chapterEditGenerating }">
                   <md-editor
                     v-model="currentChapterContent"
                     show-code-row-number
@@ -700,20 +687,11 @@
           </div>
           <DialogFooter>
             <template v-if="pendingChapterAccept">
-              <Button variant="destructive" @click="rejectChapterGenerate">{{
-                $t('outline.reject')
-              }}</Button>
-              <Button
-                variant="outline"
-                class="generate-preview-accept-btn"
-                @click="acceptChapterGenerate"
-                >{{ $t('outline.accept') }}</Button
-              >
+              <Button variant="destructive" @click="rejectChapterGenerate">{{ $t('outline.reject') }}</Button>
+              <Button variant="outline" class="generate-preview-accept-btn" @click="acceptChapterGenerate">{{ $t('outline.accept') }}</Button>
             </template>
             <template v-else>
-              <Button :disabled="chapterEditGenerating" @click="changeNodeValue">{{
-                $t('outline.confirm')
-              }}</Button>
+              <Button :disabled="chapterEditGenerating" @click="changeNodeValue">{{ $t('outline.confirm') }}</Button>
             </template>
           </DialogFooter>
         </DialogContent>
@@ -750,9 +728,9 @@
                 class="ai-config-keywords-input"
               />
               <div class="ai-config-recommended">
-                <span class="ai-config-recommended-title"
-                  >{{ $t('outline.aiConfig.recommendedKeywords') }}：</span
-                >
+                <span class="ai-config-recommended-title">{{
+                  $t('outline.aiConfig.recommendedKeywords')
+                }}：</span>
                 <template v-if="recommendedKeywordsLoading">
                   <Loader2 class="w-4 h-4 animate-spin" />
                   <span class="ai-config-recommended-text">{{
@@ -785,6 +763,7 @@
                 class="ai-config-user-prompt"
               />
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" @click="aiConfigDialogVisible = false">{{
@@ -799,19 +778,13 @@
       <Dialog v-model:open="newMaterialDialogVisible">
         <DialogContent class="new-material-dialog-content">
           <DialogHeader>
-            <DialogTitle>{{
-              editingMaterialItem
-                ? $t('outline.materialBasket.editMaterialTitle')
-                : $t('outline.materialBasket.newMaterialTitle')
-            }}</DialogTitle>
+            <DialogTitle>{{ editingMaterialItem ? $t('outline.materialBasket.editMaterialTitle') : $t('outline.materialBasket.newMaterialTitle') }}</DialogTitle>
           </DialogHeader>
           <div class="new-material-dialog-body">
             <div class="new-material-form-column">
               <section class="new-material-edit-section">
                 <div class="material-field">
-                  <label class="material-field-label">{{
-                    $t('outline.materialBasket.titleLabel')
-                  }}</label>
+                  <label class="material-field-label">{{ $t('outline.materialBasket.titleLabel') }}</label>
                   <Input
                     v-model="newMaterialName"
                     class="aero-input"
@@ -820,9 +793,7 @@
                   />
                 </div>
                 <div class="material-field">
-                  <label class="material-field-label">{{
-                    $t('outline.materialBasket.keywordsLabel')
-                  }}</label>
+                  <label class="material-field-label">{{ $t('outline.materialBasket.keywordsLabel') }}</label>
                   <p class="material-field-hint">{{ $t('outline.materialBasket.keywordsHint') }}</p>
                   <KeywordInput
                     v-model="newMaterialKeywords"
@@ -838,17 +809,12 @@
                   class="new-material-ai-heading-btn"
                   @click="newMaterialAiSectionExpanded = !newMaterialAiSectionExpanded"
                 >
-                  <component
-                    :is="newMaterialAiSectionExpanded ? ChevronDown : ChevronRight"
-                    class="w-4 h-4"
-                  />
+                  <component :is="newMaterialAiSectionExpanded ? ChevronDown : ChevronRight" class="w-4 h-4" />
                   <span>{{ $t('outline.materialBasket.aiAssistHeading') }}</span>
                 </button>
                 <template v-if="newMaterialAiSectionExpanded">
                   <div class="material-field">
-                    <label class="material-field-label">{{
-                      $t('outline.materialBasket.prompt')
-                    }}</label>
+                    <label class="material-field-label">{{ $t('outline.materialBasket.prompt') }}</label>
                     <AutoResizeTextarea
                       v-model="newMaterialPrompt"
                       :placeholder="$t('outline.materialBasket.promptPlaceholder')"
@@ -858,13 +824,9 @@
                     />
                   </div>
                   <div class="material-field">
-                    <label class="material-field-label">{{
-                      $t('outline.aiConfig.temperature')
-                    }}</label>
+                    <label class="material-field-label">{{ $t('outline.aiConfig.temperature') }}</label>
                     <div class="flex items-center gap-4">
-                      <span class="text-sm text-muted-foreground w-8">{{
-                        newMaterialTemperature
-                      }}</span>
+                      <span class="text-sm text-muted-foreground w-8">{{ newMaterialTemperature }}</span>
                       <Slider
                         v-model="newMaterialTemperature"
                         :min="0"
@@ -901,14 +863,8 @@
             </div>
             <div class="new-material-editor-column">
               <div class="material-field material-field-fill">
-                <label class="material-field-label">{{
-                  $t('outline.materialBasket.content')
-                }}</label>
-                <div
-                  ref="newMaterialEditorWrapRef"
-                  class="new-material-editor-wrap"
-                  :class="{ 'is-disabled': newMaterialGenerating }"
-                >
+                <label class="material-field-label">{{ $t('outline.materialBasket.content') }}</label>
+                <div ref="newMaterialEditorWrapRef" class="new-material-editor-wrap" :class="{ 'is-disabled': newMaterialGenerating }">
                   <md-editor
                     v-model="newMaterialContent"
                     show-code-row-number
@@ -927,26 +883,14 @@
           </div>
           <DialogFooter>
             <template v-if="pendingMaterialAccept">
-              <Button variant="destructive" @click="rejectMaterialGenerate">{{
-                $t('outline.reject')
-              }}</Button>
-              <Button
-                variant="outline"
-                class="generate-preview-accept-btn"
-                @click="acceptMaterialGenerate"
-                >{{ $t('outline.accept') }}</Button
-              >
+              <Button variant="destructive" @click="rejectMaterialGenerate">{{ $t('outline.reject') }}</Button>
+              <Button variant="outline" class="generate-preview-accept-btn" @click="acceptMaterialGenerate">{{ $t('outline.accept') }}</Button>
             </template>
             <template v-else>
-              <Button
-                variant="outline"
-                :disabled="newMaterialGenerating"
-                @click="newMaterialDialogVisible = false"
-                >{{ $t('outline.materialBasket.cancel') }}</Button
-              >
-              <Button :disabled="newMaterialGenerating" @click="saveNewMaterial">{{
-                $t('outline.materialBasket.save')
+              <Button variant="outline" :disabled="newMaterialGenerating" @click="newMaterialDialogVisible = false">{{
+                $t('outline.materialBasket.cancel')
               }}</Button>
+              <Button :disabled="newMaterialGenerating" @click="saveNewMaterial">{{ $t('outline.materialBasket.save') }}</Button>
             </template>
           </DialogFooter>
         </DialogContent>
@@ -970,17 +914,8 @@
             </button>
           </div>
           <DialogFooter>
-            <Button
-              variant="ghost"
-              @click="
-                mergeTargetDialogVisible = false;
-                pendingMergeTarget = null
-              "
-              >{{ $t('outline.materialBasket.cancel') }}</Button
-            >
-            <Button :disabled="!selectedMergeTargetNode" @click="confirmMergeTarget">{{
-              $t('outline.confirm')
-            }}</Button>
+            <Button variant="ghost" @click="mergeTargetDialogVisible = false; pendingMergeTarget = null">{{ $t('outline.materialBasket.cancel') }}</Button>
+            <Button :disabled="!selectedMergeTargetNode" @click="confirmMergeTarget">{{ $t('outline.confirm') }}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1285,10 +1220,7 @@ const materialBasketList = computed(() => {
 })
 
 function outlineNodeToBasketItem(node: DocumentOutlineNode): MaterialBasketItem {
-  const id =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
   const children = node.children?.length
     ? node.children.map((c) => outlineNodeToBasketItem(c))
     : undefined
@@ -1303,7 +1235,9 @@ function outlineNodeToBasketItem(node: DocumentOutlineNode): MaterialBasketItem 
 }
 
 function basketItemToOutlineNode(item: MaterialBasketItem): DocumentOutlineNode {
-  const children = item.children?.length ? item.children.map((c) => basketItemToOutlineNode(c)) : []
+  const children = item.children?.length
+    ? item.children.map((c) => basketItemToOutlineNode(c))
+    : []
   return {
     path: '', // 插入时由 reindexChildrenPaths 分配
     title: item.title,
@@ -1370,10 +1304,7 @@ function moveDraggingNodeToBasket() {
   materialBasketExpanded.value = true
 }
 
-const pendingMergeTarget = ref<{
-  item: MaterialBasketItem
-  mode: 'child' | 'after' | 'before'
-} | null>(null)
+const pendingMergeTarget = ref<{ item: MaterialBasketItem; mode: 'child' | 'after' | 'before' } | null>(null)
 const mergeTargetDialogVisible = ref(false)
 const mergeTargetNodeList = computed(() => {
   const root = treeData.value
@@ -1397,11 +1328,7 @@ function confirmMergeTarget() {
   selectedMergeTargetNode.value = null
   mergeTargetDialogVisible.value = false
 }
-function mergeBasketItemToTree(
-  item: MaterialBasketItem,
-  mode: 'child' | 'after' | 'before',
-  targetNode?: DocumentOutlineNode | null
-) {
+function mergeBasketItemToTree(item: MaterialBasketItem, mode: 'child' | 'after' | 'before', targetNode?: DocumentOutlineNode | null) {
   const target = targetNode ?? selectedNode.value
   if (!target) {
     notifyInfo(t('outline.materialBasket.selectTargetFirst'))
@@ -1437,10 +1364,7 @@ function mergeBasketItemToTree(
 function copyBasketItem(item: MaterialBasketItem) {
   const copy: MaterialBasketItem = {
     ...JSON.parse(JSON.stringify(item)),
-    id:
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: Date.now()
   }
   commitMaterialBasket([...materialBasketList.value, copy])
@@ -1518,9 +1442,7 @@ const batchItemsRef = ref<BatchAcceptItem[]>([]) // 批量任务项（含 backup
 const userPrompt = ref('') // 用户输入的提示词
 
 function getBatchItemContent(refOrVal: { value: string } | string): string {
-  return typeof refOrVal === 'object' && refOrVal && 'value' in refOrVal
-    ? refOrVal.value
-    : String(refOrVal ?? '')
+  return typeof refOrVal === 'object' && refOrVal && 'value' in refOrVal ? refOrVal.value : String(refOrVal ?? '')
 }
 const batchDisplayItems = computed(() =>
   batchItemsRef.value.map((item) => ({ ...item, content: getBatchItemContent(item.rawContentRef) }))
@@ -1571,10 +1493,7 @@ watch(
       outlinePage.style.setProperty('--outline-node-bg', theme.outlineNode)
       outlinePage.style.setProperty('--outline-primary', theme.primaryColor)
       outlinePage.style.setProperty('--outline-text-color', theme.textColor)
-      outlinePage.style.setProperty(
-        '--outline-filter',
-        isDark ? 'brightness(1.15)' : 'brightness(0.92)'
-      )
+      outlinePage.style.setProperty('--outline-filter', isDark ? 'brightness(1.15)' : 'brightness(0.92)')
     }
     scheduleForceOutlineLinkStyles()
   },
@@ -1593,10 +1512,7 @@ const VIEWPORT_LOCK_CLEAR_DELAY_MS = 180
 
 // 文档大纲与编辑器/AI 同步：当文档内容变化（编辑或 AI 生成）导致 outline 更新时，刷新树以保持一致。
 // 仅当新 outline 与当前 treeData 结构/内容不一致时才赋值，避免相同数据新引用导致 vue-tree 收到新 dataset 触发重绘并重置视口
-function outlineStructuralEqual(
-  a: DocumentOutlineNode | undefined,
-  b: DocumentOutlineNode | undefined
-): boolean {
+function outlineStructuralEqual(a: DocumentOutlineNode | undefined, b: DocumentOutlineNode | undefined): boolean {
   if (a === b) return true
   if (!a || !b) return !a && !b
   if (a.path !== b.path || a.title !== b.title) return false
@@ -1838,27 +1754,15 @@ const aiConfigDialogTitleForDisplay = computed(() => {
 
 const presetPrompts = computed(() => [
   { label: t('outline.aiConfig.presets.expand'), value: t('outline.aiConfig.presets.expandValue') },
-  {
-    label: t('outline.aiConfig.presets.abridge'),
-    value: t('outline.aiConfig.presets.abridgeValue')
-  },
+  { label: t('outline.aiConfig.presets.abridge'), value: t('outline.aiConfig.presets.abridgeValue') },
   { label: t('outline.aiConfig.presets.polish'), value: t('outline.aiConfig.presets.polishValue') },
   {
     label: t('outline.aiConfig.presets.combineStructure'),
     value: t('outline.aiConfig.presets.combineStructureValue')
   },
-  {
-    label: t('outline.aiConfig.presets.detailed'),
-    value: t('outline.aiConfig.presets.detailedValue')
-  },
-  {
-    label: t('outline.aiConfig.presets.concise'),
-    value: t('outline.aiConfig.presets.conciseValue')
-  },
-  {
-    label: t('outline.aiConfig.presets.academic'),
-    value: t('outline.aiConfig.presets.academicValue')
-  }
+  { label: t('outline.aiConfig.presets.detailed'), value: t('outline.aiConfig.presets.detailedValue') },
+  { label: t('outline.aiConfig.presets.concise'), value: t('outline.aiConfig.presets.conciseValue') },
+  { label: t('outline.aiConfig.presets.academic'), value: t('outline.aiConfig.presets.academicValue') }
 ])
 
 const addRecommendedKeyword = (keyword: string) => {
@@ -2012,8 +1916,8 @@ async function generateNewMaterialThreeSteps() {
     const kwStr = newMaterialKeywords.value.length ? newMaterialKeywords.value.join('，') : ''
     const existingContent = (newMaterialContent.value || '').trim()
     backupMaterialContentBeforeGenerate.value = existingContent
-    const fullDocMarkdown = outlineMarkdown || t('outline.emptyContent')
-    const materialContext = `标题：${title}；关键词：${kwStr || t('outline.noContent')}；已有内容：${existingContent || t('outline.noContent')}`
+    const fullDocMarkdown = outlineMarkdown || '（暂无）'
+    const materialContext = `标题：${title}；关键词：${kwStr || '（无）'}；已有内容：${existingContent || '（无）'}`
     const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${fullDocMarkdown}\n\n【当前素材信息】${materialContext}`
     newMaterialContent.value = ''
     const fakeNode: DocumentOutlineNode = {
@@ -2085,13 +1989,12 @@ function saveNewMaterial() {
       temperature: newMaterialTemperature.value,
       keywords: newMaterialKeywords.value.length ? [...newMaterialKeywords.value] : undefined
     }
-    commitMaterialBasket(materialBasketList.value.map((i) => (i.id === editing.id ? updated : i)))
+    commitMaterialBasket(
+      materialBasketList.value.map((i) => (i.id === editing.id ? updated : i))
+    )
     editingMaterialItem.value = null
   } else {
-    const id =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
     const item: MaterialBasketItem = {
       id,
       title,
@@ -2227,10 +2130,9 @@ const addChildNode = () => {
       editNodeValue.value = result!.newNode.title
       currentChapterValue.value = result!.newNode.title
       currentChapterContent.value = result!.newNode.text || ''
-      currentChapterKeywords.value =
-        result!.newNode.extras?.keywords && Array.isArray(result!.newNode.extras.keywords)
-          ? [...result!.newNode.extras.keywords]
-          : []
+      currentChapterKeywords.value = (result!.newNode.extras?.keywords && Array.isArray(result!.newNode.extras.keywords))
+        ? [...result!.newNode.extras.keywords]
+        : []
       chapterEditPrompt.value = ''
       chapterEditTemperature.value = 1.0
       chapterEditAiExpanded.value = false
@@ -2247,8 +2149,9 @@ const editNode = () => {
   editNodeValue.value = node.title
   currentChapterValue.value = node.title
   currentChapterContent.value = node.text || ''
-  currentChapterKeywords.value =
-    node.extras?.keywords && Array.isArray(node.extras.keywords) ? [...node.extras.keywords] : []
+  currentChapterKeywords.value = (node.extras?.keywords && Array.isArray(node.extras.keywords))
+    ? [...node.extras.keywords]
+    : []
   chapterEditPrompt.value = ''
   chapterEditTemperature.value = 1.0
   chapterEditAiExpanded.value = false
@@ -2294,9 +2197,9 @@ const generateChildChapter = async () => {
   rawstring.value = ''
   try {
     const node = selectedNode.value
-    if (!node) throw new Error(t('outline.noNodeSelected'))
+    if (!node) throw new Error('未选择节点')
     const currentNode = searchNode(node.path, treeData.value)
-    if (!currentNode) throw new Error(t('outline.nodeNotExist'))
+    if (!currentNode) throw new Error('节点不存在')
 
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
     rawstring.value = '' // 清空之前的内容
@@ -2791,9 +2694,7 @@ const onNodeDragLeave = (_node: DocumentOutlineNode) => {
   dropPreview.value.mode = null
 }
 const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
-  const restoreAfterDrop = () => {
-    /* 视口由 vue3-tree-chart 补丁保持，无需恢复 */
-  }
+  const restoreAfterDrop = () => { /* 视口由 vue3-tree-chart 补丁保持，无需恢复 */ }
   try {
     // 清除节流定时器
     if (dropPreviewThrottleTimer) {
@@ -3093,14 +2994,10 @@ const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({
 })
 const textElementRefs = ref<Record<string, HTMLElement>>({})
 // 库折叠时会把 node.children 移到 node._children，判断是否有子节点需同时看两者
-function hasNodeChildren(
-  node: DocumentOutlineNode & { _children?: DocumentOutlineNode[] }
-): boolean {
+function hasNodeChildren(node: DocumentOutlineNode & { _children?: DocumentOutlineNode[] }): boolean {
   return !!(node.children?.length || (node._children?.length ?? 0))
 }
-function nodeChildrenCount(
-  node: DocumentOutlineNode & { _children?: DocumentOutlineNode[] }
-): number {
+function nodeChildrenCount(node: DocumentOutlineNode & { _children?: DocumentOutlineNode[] }): number {
   return node.children?.length ?? node._children?.length ?? 0
 }
 
@@ -3212,9 +3109,7 @@ const changeNodeValue = () => {
   curNode.title = currentChapterValue.value
   curNode.text = currentChapterContent.value
   if (!curNode.extras) curNode.extras = {}
-  curNode.extras.keywords = currentChapterKeywords.value.length
-    ? [...currentChapterKeywords.value]
-    : undefined
+  curNode.extras.keywords = currentChapterKeywords.value.length ? [...currentChapterKeywords.value] : undefined
   editValueDialogVisible.value = false
 }
 
@@ -3234,7 +3129,7 @@ async function generateChapterContent() {
   const outlineMarkdown = generateMarkdownFromOutlineTree(treeData.value) || ''
   const kwStr = currentChapterKeywords.value.length ? currentChapterKeywords.value.join('，') : ''
   const existingContent = (currentChapterContent.value || '').trim()
-  const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${outlineMarkdown || t('outline.emptyContent')}\n\n【当前章节信息】标题：${currentChapterValue.value || t('outline.noContent')}；关键词：${kwStr || t('outline.noContent')}；已有内容：${existingContent || t('outline.noContent')}`
+    const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${outlineMarkdown || '（暂无）'}\n\n【当前章节信息】标题：${currentChapterValue.value || '（无）'}；关键词：${kwStr || '（无）'}；已有内容：${existingContent || '（无）'}`
   currentChapterContent.value = ''
   chapterGenerateAbortControllerRef.value = new AbortController()
   try {
@@ -4451,12 +4346,8 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   flex: 1 !important;
   min-height: 0 !important;
 }
-.dialog-content-box.new-material-dialog-content
-  .el-scrollbar__view
-  > *:not(.new-material-dialog-body),
-.dialog-content-box.edit-chapter-dialog-content
-  .el-scrollbar__view
-  > *:not(.edit-chapter-dialog-body) {
+.dialog-content-box.new-material-dialog-content .el-scrollbar__view > *:not(.new-material-dialog-body),
+.dialog-content-box.edit-chapter-dialog-content .el-scrollbar__view > *:not(.edit-chapter-dialog-body) {
   flex-shrink: 0;
 }
 </style>

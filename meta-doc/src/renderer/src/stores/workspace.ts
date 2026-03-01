@@ -9,7 +9,6 @@ import type {
 import type { AgentSession } from '../types/agent'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
-import { i18n } from '../i18n'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils.js'
 import { convertLatexToMarkdown } from '../utils/latex-utils.js'
 import { getSupportedFormats } from '../constants/supported-formats'
@@ -468,7 +467,7 @@ function createNewDocumentTabInternal(): WorkspaceTab {
     snapshot,
     {
       kind: 'new',
-      title: i18n.global.t('home.tabActions.new'),
+      title: '新建文档',
       subtitle: '',
       dirty: false,
       readonly: false
@@ -1818,9 +1817,16 @@ export function getLinkBase(docPath: string): string {
   return getDirectoryFromPath(docPath)
 }
 
-// 工具Tab的标题映射（使用i18n动态获取）
-function getToolTabTitle(toolType: ToolTabType): string {
-  return i18n.global.t(`home.toolTab.${toolType}`)
+// 工具Tab的标题映射
+const TOOL_TAB_TITLES: Record<ToolTabType, string> = {
+  ocr: 'OCR识别',
+  graph: '绘图',
+  attachment: '附件解析',
+  dataAnalysis: '数据分析',
+  formulaRecognition: '公式识别',
+  aiChat: 'AI对话',
+  setting: '设置',
+  aigcDetection: 'AIGC检测'
 }
 
 // 工具Tab的路由映射
@@ -1873,7 +1879,7 @@ function openToolTab(toolType: ToolTabType): WorkspaceTab {
   const tab = reactive<WorkspaceTab>({
     id,
     kind: 'tool',
-    title: getToolTabTitle(toolType),
+    title: TOOL_TAB_TITLES[toolType],
     subtitle: '',
     path: '',
     format: 'md',

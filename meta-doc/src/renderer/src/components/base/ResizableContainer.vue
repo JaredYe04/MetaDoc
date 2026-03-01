@@ -32,7 +32,7 @@
         @click.stop="toggleCollapse"
         @mouseenter="handleCollapseButtonEnter"
         @mouseleave="handleCollapseButtonLeave"
-        :title="resolvedCollapseButtonTitle"
+        :title="collapseButtonTitle"
       >
         <el-icon
           ><ArrowLeft v-if="sidebarOnLeft" /><ArrowRight
@@ -62,7 +62,7 @@
       @click="toggleCollapse"
       @mouseenter="handleExpandButtonEnter"
       @mouseleave="handleExpandButtonLeave"
-        :title="resolvedExpandButtonTitle"
+      :title="expandButtonTitle"
     >
       <el-icon
         ><ArrowRight v-if="sidebarOnLeft" /><ArrowLeft
@@ -74,12 +74,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { ElIcon } from 'element-plus'
 import ResizableDivider from './ResizableDivider.vue'
-
-const { t } = useI18n()
 
 interface Props {
   /** 布局方向 */
@@ -130,8 +127,8 @@ const props = withDefaults(defineProps<Props>(), {
   collapsible: false,
   showCollapseButton: true,
   autoCollapseWidth: 0,
-  collapseButtonTitle: undefined,
-  expandButtonTitle: undefined,
+  collapseButtonTitle: '折叠',
+  expandButtonTitle: '展开',
   collapsedWidth: 0,
   sidebarOnLeft: false,
   storageKey: undefined,
@@ -199,15 +196,6 @@ const isCollapsed = ref(savedState?.collapsed ?? false)
 
 // 是否显示展开按钮
 const showExpandButton = ref(false)
-
-// 按钮标题（使用计算属性支持国际化）
-const resolvedCollapseButtonTitle = computed(() => {
-  return props.collapseButtonTitle ?? t('resizableContainer.collapse')
-})
-
-const resolvedExpandButtonTitle = computed(() => {
-  return props.expandButtonTitle ?? t('resizableContainer.expand')
-})
 
 // 是否显示折叠按钮（仅当鼠标靠近 divider 中心时为 true）
 const showCollapseButtonHover = ref(false)

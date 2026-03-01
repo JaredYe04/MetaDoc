@@ -161,14 +161,14 @@ flowchart TD
 
 ### 选择建议
 
-| 任务场景 | 推荐引擎             |
-| -------- | -------------------- |
-| 日常问答 | SimpleChat           |
-| 文档编辑 | AutoGPT 或 ReAct     |
-| 数据分析 | ReAct 或 PlanExecute |
-| 代码编写 | ReAct                |
-| 研究调研 | AutoGPT              |
-| 项目管理 | PlanExecute          |
+| 任务场景   | 推荐引擎             |
+| ---------- | -------------------- |
+| 日常问答   | SimpleChat           |
+| 文档编辑   | AutoGPT 或 ReAct     |
+| 数据分析   | ReAct 或 PlanExecute |
+| 代码编写   | ReAct                |
+| 研究调研   | AutoGPT              |
+| 项目管理   | PlanExecute          |
 
 <AgentView mode="demo" />
 

@@ -18,7 +18,7 @@
             @click="handleMenuSelect('updatetest')"
           >
             <Refresh class="debug-menu-icon" />
-            <span class="debug-menu-label">{{ $t('setting.debug.updateTest') }}</span>
+            <span class="debug-menu-label">更新测试</span>
           </Button>
           <Button
             variant="ghost"
@@ -26,7 +26,7 @@
             @click="handleMenuSelect('agenttool')"
           >
             <Tools class="debug-menu-icon" />
-            <span class="debug-menu-label">{{ $t('setting.debug.agentTool') }}</span>
+            <span class="debug-menu-label">Agent Tool测试</span>
           </Button>
           <Button
             variant="ghost"
@@ -42,7 +42,7 @@
             @click="handleMenuSelect('autotest')"
           >
             <Setting class="debug-menu-icon" />
-            <span class="debug-menu-label">{{ $t('setting.debug.autoTest') }}</span>
+            <span class="debug-menu-label">Tool自动测试</span>
           </Button>
           <Button
             variant="ghost"
@@ -58,7 +58,7 @@
             @click="handleMenuSelect('agentsessiondebug')"
           >
             <ChatDotRound class="debug-menu-icon" />
-            <span class="debug-menu-label">{{ $t('setting.debug.agentSessionDebug') }}</span>
+            <span class="debug-menu-label">Agent会话调试</span>
           </Button>
         </div>
       </div>
@@ -196,19 +196,19 @@
                           <div class="flex items-center gap-2">
                             <RadioGroupItem value="hasUpdate" id="scenario-has-update" />
                             <label for="scenario-has-update" class="text-sm cursor-pointer"
-                              >{{ $t('setting.debug.hasUpdateAvailable', '有更新可用') }}</label
+                              >有更新可用</label
                             >
                           </div>
                           <div class="flex items-center gap-2">
                             <RadioGroupItem value="noUpdate" id="scenario-no-update" />
                             <label for="scenario-no-update" class="text-sm cursor-pointer"
-                              >{{ $t('setting.debug.noUpdateAvailable', '已是最新版本') }}</label
+                              >已是最新版本</label
                             >
                           </div>
                           <div class="flex items-center gap-2">
                             <RadioGroupItem value="error" id="scenario-error" />
                             <label for="scenario-error" class="text-sm cursor-pointer"
-                              >{{ $t('setting.debug.simulateNetworkError', '模拟网络错误') }}</label
+                              >模拟网络错误</label
                             >
                           </div>
                         </RadioGroup>
@@ -223,11 +223,11 @@
                           >
                             <template v-if="updateTestChecking">
                               <Loading class="mr-2 h-4 w-4 animate-spin" />
-                              {{ $t('setting.debug.checking', '检查中...') }}
+                              检查中...
                             </template>
-                            <template v-else> {{ $t('setting.debug.checkUpdateBtn', '检查更新') }} </template>
+                            <template v-else> 检查更新 </template>
                           </Button>
-                          <Button variant="outline" @click="handleMockReset"> {{ $t('setting.debug.resetStatus', '重置状态') }} </Button>
+                          <Button variant="outline" @click="handleMockReset"> 重置状态 </Button>
                         </div>
                       </FormField>
                     </Form>
@@ -238,7 +238,7 @@
                       class="update-test-status"
                       style="margin-top: 20px"
                     >
-                      <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.updateStatus', '更新状态') }}</Divider>
+                      <Divider :style="{ marginTop: 0 }">更新状态</Divider>
                       <Alert v-if="updateTestStatus.updateAvailable" variant="default" class="mb-4">
                         <CheckCircle2 class="h-4 w-4" />
                         <AlertTitle
@@ -254,14 +254,14 @@
                         class="mb-4"
                       >
                         <Info class="h-4 w-4" />
-                        <AlertTitle>{{ $t('setting.debug.noUpdateAvailable', '已是最新版本') }}</AlertTitle>
+                        <AlertTitle>已是最新版本</AlertTitle>
                         <AlertDescription v-if="updateTestStatus.updateInfo?.version">
-                          {{ $t('setting.debug.currentVersion', '当前版本') }}: {{ updateTestStatus.updateInfo.version }}
+                          当前版本: {{ updateTestStatus.updateInfo.version }}
                         </AlertDescription>
                       </Alert>
                       <Alert v-else-if="updateTestStatus.error" variant="destructive" class="mb-4">
                         <XCircle class="h-4 w-4" />
-                        <AlertTitle>{{ $t('setting.debug.checkUpdateFailed', '检查更新失败') }}</AlertTitle>
+                        <AlertTitle>检查更新失败</AlertTitle>
                         <AlertDescription>{{ updateTestStatus.error }}</AlertDescription>
                       </Alert>
 
@@ -272,11 +272,11 @@
                           variant="default"
                           @click="handleMockDownloadUpdate"
                         >
-                          {{ $t('setting.debug.downloadUpdate', '下载更新') }}
+                          下载更新
                         </Button>
                         <Button v-if="updateTestDownloading" variant="default" disabled>
                           <Loading class="mr-2 h-4 w-4 animate-spin" />
-                          {{ $t('setting.debug.downloading', '正在下载') }} ({{ updateTestDownloadProgress }}%)
+                          正在下载 ({{ updateTestDownloadProgress }}%)
                         </Button>
                         <Button
                           v-if="updateTestDownloaded"
@@ -284,14 +284,14 @@
                           class="bg-green-600 hover:bg-green-700 text-white"
                           @click="handleMockInstallUpdate"
                         >
-                          {{ $t('setting.about.installAndRestart', '安装并重启') }}
+                          安装并重启
                         </Button>
                         <Button
                           v-if="updateTestDownloading"
                           variant="outline"
                           @click="handleMockCancelDownload"
                         >
-                          {{ $t('setting.debug.cancelDownload', '取消下载') }}
+                          取消下载
                         </Button>
                         <Alert v-if="updateTestDownloadError" variant="destructive" class="mt-4">
                           <XCircle class="h-4 w-4" />
@@ -306,7 +306,7 @@
                       class="update-test-history"
                       style="margin-top: 20px"
                     >
-                      <Divider>{{ $t('setting.debug.testHistory', '测试历史') }}</Divider>
+                      <Divider>测试历史</Divider>
                       <ScrollArea class="h-[200px]">
                         <div
                           v-for="(entry, index) in updateTestHistory"
@@ -354,12 +354,12 @@
                   <div class="test-panel" :style="testPanelStyle">
                     <Form class="space-y-4">
                       <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
-                      <FormField name="testCase" :label="$t('setting.debug.testCase', '测试用例')">
+                      <FormField name="testCase" label="测试用例">
                         <div style="display: flex; gap: 8px; flex-direction: column">
                           <div style="display: flex; gap: 8px">
                             <Input
                               v-model="testCaseIdInput"
-                              :placeholder="$t('setting.debug.testCaseIdPlaceholder', '输入测试用例ID（如：color-processing::mix-001')")
+                              placeholder="输入测试用例ID（如：color-processing::mix-001）"
                               class="flex-1"
                               @keyup.enter="loadTestCaseById"
                             />
@@ -370,7 +370,7 @@
                           </div>
                           <Select v-model="selectedTestCase" @update:model-value="loadTestCase">
                             <SelectTrigger class="w-[240px]">
-                              <SelectValue :placeholder="$t('setting.debug.selectTestCasePlaceholder', '从test-cases.json选择测试用例')" />
+                              <SelectValue placeholder="从test-cases.json选择测试用例" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectGroup
@@ -435,7 +435,7 @@
                         <div style="display: flex; gap: 8px; margin-bottom: 8px">
                           <Select v-model="selectedConfigId" @update:model-value="loadSavedConfig">
                             <SelectTrigger class="w-[200px]">
-                              <SelectValue :placeholder="$t('setting.debug.selectConfigPlaceholder', '选择已保存的配置')" />
+                              <SelectValue placeholder="选择已保存的配置" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem
@@ -449,7 +449,7 @@
                           </Select>
                           <Button variant="outline" size="sm" @click="handleSaveConfigClick">
                             <Plus class="mr-1 h-4 w-4" />
-                            {{ $t('setting.newConfig', '新建配置') }}
+                            新建配置
                           </Button>
                           <Button
                             variant="default"
@@ -458,7 +458,7 @@
                             @click="handleEditConfigClick"
                           >
                             <Edit class="mr-1 h-4 w-4" />
-                            {{ $t('setting.edit', '编辑') }}
+                            编辑
                           </Button>
                           <Button
                             variant="destructive"
@@ -467,7 +467,7 @@
                             @click="deleteSavedConfig"
                           >
                             <Delete class="mr-1 h-4 w-4" />
-                            {{ $t('setting.delete', '删除') }}
+                            删除
                           </Button>
                         </div>
                       </FormField>
@@ -476,10 +476,10 @@
                       <FormField name="contextTabId" label="上下文Tab">
                         <Select v-model="toolTestForm.contextTabId">
                           <SelectTrigger class="w-[240px]">
-                            <SelectValue :placeholder="$t('setting.debug.selectContextTab', '选择上下文Tab（用于模拟文档环境，可选）')" />
+                            <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">{{ $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）') }}</SelectItem>
+                            <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
                             <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
                               {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
                             </SelectItem>
@@ -505,7 +505,7 @@
                         <Textarea
                           :model-value="currentToolInstruction"
                           readonly
-                          :placeholder="$t('setting.debug.toolDescPlaceholder', '请先选择一个Tool查看说明')"
+                          placeholder="请先选择一个Tool查看说明"
                           rows="6"
                           class="font-mono text-xs"
                         />
@@ -517,14 +517,14 @@
                           "
                         >
                           <el-icon><InfoFilled /></el-icon>
-                          <span>{{ $t('setting.debug.toolDescDefault', '这是工具的详细说明，包含参数格式、使用场景等信息') }}</span>
+                          <span>这是工具的详细说明，包含参数格式、使用场景等信息</span>
                         </div>
                       </FormField>
                       <FormField name="paramsJson" label="参数JSON">
                         <Textarea
                           v-model="toolTestForm.paramsJson"
                           rows="8"
-                          :placeholder="$t('setting.debug.paramsPlaceholder', '请输入JSON格式的参数')"  
+                          placeholder='请输入JSON格式的参数，例如: {"prompt": "生成一个流程图", "chartType": "mermaid"}'
                         />
                       </FormField>
 
@@ -537,12 +537,12 @@
                           >
                             <template v-if="toolTestExecuting">
                               <Loading class="mr-2 h-4 w-4 animate-spin" />
-                              {{ $t('setting.debug.executing', '执行中...') }}
+                              执行中...
                             </template>
-                            <template v-else> {{ $t('setting.debug.executeTool', '执行Tool') }} </template>
+                            <template v-else> 执行Tool </template>
                           </Button>
                           <Button variant="outline" @click="clearToolTestHistory">
-                            {{ $t('setting.debug.clearToolTestHistory', '清空历史') }}
+                            清空历史
                           </Button>
                         </div>
                       </FormField>
@@ -815,24 +815,24 @@
                           }}</pre>
                         </div>
 
-                          <div
-                            v-if="entry.error"
-                            class="test-error-message"
-                            :style="{ color: themeState.currentTheme.textColor }"
+                        <div
+                          v-if="importedSnapshot.error"
+                          class="test-error-message"
+                          :style="{ color: themeState.currentTheme.textColor }"
+                        >
+                          <strong>{{ $t('setting.debug.error') }}:</strong>
+                          <pre
+                            :style="{
+                              ...codeBlockStyle,
+                              backgroundColor:
+                                themeState.currentTheme.type === 'dark'
+                                  ? 'rgba(245, 108, 108, 0.15)'
+                                  : '#fef0f0',
+                              color: '#f56c6c'
+                            }"
+                            >{{ importedSnapshot.error }}</pre
                           >
-                            <strong>{{ $t('setting.debug.error', '错误') }}:</strong>
-                            <pre
-                              :style="{
-                                ...codeBlockStyle,
-                                backgroundColor:
-                                  themeState.currentTheme.type === 'dark'
-                                    ? 'rgba(245, 108, 108, 0.15)'
-                                    : '#fef0f0',
-                                color: '#f56c6c'
-                              }"
-                              >{{ entry.error }}</pre
-                            >
-                          </div>
+                        </div>
 
                         <!-- 如果有显示组件，展示渲染卡片 -->
                         <div
@@ -918,7 +918,7 @@
                       <FormField name="selectedTools" label="选择要测试的Tool">
                         <Select v-model="autoTestForm.selectedTools" multiple>
                           <SelectTrigger class="w-[240px]">
-                            <SelectValue :placeholder="$t('setting.debug.selectToolPlaceholder', '选择要测试的Tool（留空则测试所有）')" />
+                            <SelectValue placeholder="选择要测试的Tool（留空则测试所有）" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem
@@ -938,10 +938,10 @@
                       <FormField name="contextTabId" label="上下文Tab">
                         <Select v-model="autoTestForm.contextTabId" style="width: 100%">
                           <SelectTrigger class="w-[240px]">
-                            <SelectValue :placeholder="$t('setting.debug.selectContextTab', '选择上下文Tab（用于模拟文档环境，可选）')" />
+                            <SelectValue placeholder="选择上下文Tab（用于模拟文档环境，可选）" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">{{ $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）') }}</SelectItem>
+                            <SelectItem value="__none__">（不指定，使用当前活动Tab）</SelectItem>
                             <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
                               {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
                             </SelectItem>
@@ -1187,7 +1187,7 @@
                           >
                             <Select v-model="unitTestBatchForm.selectedModules" multiple>
                               <SelectTrigger class="w-[240px]">
-                                <SelectValue :placeholder="$t('setting.debug.selectModulePlaceholder', '选择要测试的模块（留空则测试所有）')" />
+                                <SelectValue placeholder="选择要测试的模块（留空则测试所有）" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem v-for="module in modules" :key="module" :value="module">
@@ -1202,12 +1202,12 @@
                             <Select v-model="unitTestBatchForm.contextTabId" style="width: 100%">
                               <SelectTrigger class="w-[240px]">
                                 <SelectValue
-                                  :placeholder="$t('setting.debug.selectContextTab', '选择上下文Tab（用于模拟文档环境，可选）')"
+                                  placeholder="选择上下文Tab（用于模拟文档环境，可选）"
                                 />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__none__"
-                                  >{{ $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）') }}</SelectItem
+                                  >（不指定，使用当前活动Tab）</SelectItem
                                 >
                                 <SelectItem
                                   v-for="tab in documentTabs"
@@ -1225,10 +1225,10 @@
                                 color: var(--el-text-color-secondary);
                               "
                             >
-                          <el-icon><InfoFilled /></el-icon>
-                          <span
-                            >{{ $t('setting.debug.contextTabTooltip', '选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。') }}</span
-                          >
+                              <el-icon><InfoFilled /></el-icon>
+                              <span
+                                >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
+                              >
                             </div>
                           </FormField>
 
@@ -1548,7 +1548,7 @@
                                       </Collapsible>
                                       <Collapsible v-if="(message as any).tool_calls">
                                         <CollapsibleTrigger class="bg-muted/50">
-                                          {{ $t('setting.debug.toolCalls', '工具调用') }}
+                                          工具调用
                                         </CollapsibleTrigger>
                                         <CollapsibleContent>
                                           <pre :style="messageContentStyle">{{
@@ -1592,7 +1592,7 @@
                                 <DescriptionsItem label="执行节点数量">{{
                                   selectedSession.executionNodes?.length || 0
                                 }}</DescriptionsItem>
-                                 <DescriptionsItem :label="$t('setting.debug.referenceCount', '引用数量')">{{
+                                <DescriptionsItem label="引用数量">{{
                                   selectedSession.referenceStore?.length || 0
                                 }}</DescriptionsItem>
                                 <DescriptionsItem label="创建时间">{{
@@ -1765,8 +1765,8 @@
                                 <span class="replay-message-time">{{
                                   formatTime(message.timestamp)
                                 }}</span>
-                                <Badge v-if="message.isReplaying" variant="warning"> {{ $t('setting.debug.replaying', '回放中') }} </Badge>
-                                <Badge v-if="message.isReplayed" variant="default"> {{ $t('setting.debug.replayed', '已回放') }} </Badge>
+                                <Badge v-if="message.isReplaying" variant="warning"> 回放中 </Badge>
+                                <Badge v-if="message.isReplayed" variant="default"> 已回放 </Badge>
                                 <!-- 显示解析出的工具调用 -->
                                 <template v-if="getParsedToolCalls(message).length > 0">
                                   <Badge
@@ -1789,7 +1789,7 @@
                                     variant="outline"
                                     class="ml-2"
                                   >
-                                    {{ $t('setting.debug.toolCallsCount', '共 {count} 个工具调用', { count: getParsedToolCalls(message).length }) }}
+                                    共 {{ getParsedToolCalls(message).length }} 个工具调用
                                   </Badge>
                                 </template>
                               </div>
@@ -1872,7 +1872,7 @@
             />
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium">{{ $t('setting.debug.paramsPreview', '参数预览') }}</label>
+            <label class="text-sm font-medium">参数预览</label>
             <Textarea v-model="toolTestForm.paramsJson" rows="4" disabled />
           </div>
         </div>
@@ -2628,7 +2628,7 @@ const currentToolInstruction = computed(() => {
       return getLocalizedInstruction(instruction)
     }
   }
-  return t('setting.debug.noToolDesc', '该工具没有提供详细说明')
+  return '该工具没有提供详细说明'
 })
 
 const clearToolTestHistory = () => {
@@ -2665,7 +2665,7 @@ const loadSavedConfig = (configId: string) => {
   if (config) {
     toolTestForm.toolId = config.toolId
     toolTestForm.paramsJson = config.paramsJson
-    notifySuccess(t('setting.debug.configLoaded', '配置已加载'))
+    notifySuccess('配置已加载')
   }
 }
 
@@ -2727,16 +2727,16 @@ const saveCurrentConfig = async () => {
     const index = savedConfigs.value.findIndex((c) => c.id === selectedConfigId.value)
     if (index !== -1) {
       savedConfigs.value[index] = config
-      notifySuccess(t('setting.configUpdated', '配置已更新'))
+      notifySuccess('配置已更新')
     } else {
       // 如果找不到，作为新配置添加
       savedConfigs.value.push(config)
-      notifySuccess(t('setting.configSaved', '配置已保存'))
+      notifySuccess('配置已保存')
     }
   } else {
     // 添加新配置
     savedConfigs.value.push(config)
-    notifySuccess(t('setting.configSaved', '配置已保存'))
+    notifySuccess('配置已保存')
   }
 
   saveSavedConfigs()
@@ -2786,7 +2786,7 @@ const handleToolChange = () => {
 // 通过ID加载测试用例
 const loadTestCaseById = () => {
   if (!testCaseIdInput.value.trim()) {
-    notifyWarning(t('setting.debug.enterTestCaseId', '请输入测试用例ID'))
+    notifyWarning('请输入测试用例ID')
     return
   }
 
@@ -2808,12 +2808,12 @@ const loadTestCaseById = () => {
       // 清空保存的配置选择
       selectedConfigId.value = ''
 
-      notifySuccess(t('setting.debug.testCaseLoaded', '测试用例已加载: {name}', { name: testCase.name }))
+      notifySuccess(`测试用例已加载: ${testCase.name}`)
       return
     }
   }
 
-  notifyWarning(t('setting.debug.testCaseNotFound', '找不到ID为 "{id}" 的测试用例', { id: testCaseId }))
+  notifyWarning(`找不到ID为 "${testCaseId}" 的测试用例`)
 }
 
 // 加载测试用例
@@ -2829,13 +2829,13 @@ const loadTestCase = (testCaseValue: string) => {
 
   const toolTestCases = availableTestCases.value[toolId]
   if (!toolTestCases) {
-    notifyWarning(t('setting.debug.toolTestCaseNotFound', '找不到该工具的测试用例'))
+    notifyWarning('找不到该工具的测试用例')
     return
   }
 
   const testCase = toolTestCases.testCases.find((tc) => tc.name === testCaseName)
   if (!testCase) {
-    notifyWarning(t('setting.debug.testCaseNotFoundById', '找不到该测试用例'))
+    notifyWarning('找不到该测试用例')
     return
   }
 
@@ -2853,7 +2853,7 @@ const loadTestCase = (testCaseValue: string) => {
   // 清空保存的配置选择
   selectedConfigId.value = ''
 
-  notifySuccess(t('setting.debug.testCaseLoaded', '测试用例已加载: {name}', { name: testCase.name }))
+  notifySuccess('测试用例已加载')
 }
 
 const handleSaveConfigClick = () => {
@@ -2887,7 +2887,7 @@ const handleSaveConfigClick = () => {
 // 编辑配置（更新现有配置）
 const handleEditConfigClick = () => {
   if (!selectedConfigId.value) {
-    notifyWarning(t('setting.debug.selectConfigFirst', '请先选择一个配置'))
+    notifyWarning('请先选择一个配置')
     return
   }
 
@@ -3932,25 +3932,25 @@ const runAutoTests = async () => {
     }
 
     if (allTestCases.length === 0) {
-      notifyWarning(t('setting.debug.noTestCasesFound', '没有找到可执行的测试用例'))
+      notifyWarning('没有找到可执行的测试用例')
       return
     }
 
-    autoTestCurrentTest.value = t('setting.debug.preparingTests', '准备执行 {count} 个测试用例...', { count: allTestCases.length })
+    autoTestCurrentTest.value = `准备执行 ${allTestCases.length} 个测试用例...`
 
     // 使用并发池执行测试（默认并发数为5，可以根据需要调整）
     const concurrency = 5 // 可以改为可配置的
     await runTestWithConcurrency(allTestCases, concurrency)
 
     autoTestProgress.value = 100
-    autoTestCurrentTest.value = t('setting.debug.testCompletedStatus', '测试完成')
+    autoTestCurrentTest.value = '测试完成'
 
     // 显示测试结果摘要
     const summary = autoTestSummary.value
     if (summary.failed > 0) {
-      notifyWarning(t('setting.debug.testCompleted', '测试完成: {passed} 通过, {failed} 失败', { passed: summary.passed, failed: summary.failed }))
+      notifyWarning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`)
     } else {
-      notifySuccess(t('setting.debug.allTestsPassed', '所有测试通过! ({passed}/{total})', { passed: summary.passed, total: summary.total }))
+      notifySuccess(`所有测试通过! (${summary.passed}/${summary.total})`)
     }
   } catch (error) {
     notifyError(`自动测试失败: ${error instanceof Error ? error.message : String(error)}`)
@@ -4271,25 +4271,25 @@ const runUnitTestBatch = async () => {
     }
 
     if (allTestItems.length === 0) {
-      notifyWarning(t('setting.debug.noTestCasesFound', '没有找到可执行的测试用例'))
+      notifyWarning('没有找到可执行的测试用例')
       return
     }
 
-    unitTestBatchCurrentTest.value = t('setting.debug.preparingTests', '准备执行 {count} 个测试用例...', { count: allTestItems.length })
+    unitTestBatchCurrentTest.value = `准备执行 ${allTestItems.length} 个测试用例...`
 
     // 使用并发池执行测试（默认并发数为5）
     const concurrency = 5
     await runUnitTestWithConcurrency(allTestItems, concurrency)
 
     unitTestBatchProgress.value = 100
-    unitTestBatchCurrentTest.value = t('setting.debug.testCompletedStatus', '测试完成')
+    unitTestBatchCurrentTest.value = '测试完成'
 
     // 显示测试结果摘要
     const summary = unitTestBatchSummary.value
     if (summary.failed > 0) {
-      notifyWarning(t('setting.debug.testCompleted', '测试完成: {passed} 通过, {failed} 失败', { passed: summary.passed, failed: summary.failed }))
+      notifyWarning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`)
     } else {
-      notifySuccess(t('setting.debug.allTestsPassed', '所有测试通过! ({passed}/{total})', { passed: summary.passed, total: summary.total }))
+      notifySuccess(`所有测试通过! (${summary.passed}/${summary.total})`)
     }
   } catch (error) {
     notifyError(`批量测试失败: ${error instanceof Error ? error.message : String(error)}`)

@@ -47,7 +47,7 @@ Agent框架
    - 配置验证
    - 导入/导出
 
-3. **Agent会话管理器**（`agent-session-manager.ts`）
+4. **Agent会话管理器**（`agent-session-manager.ts`）
    - 会话创建和管理
    - 消息队列操作
    - 引用素材管理

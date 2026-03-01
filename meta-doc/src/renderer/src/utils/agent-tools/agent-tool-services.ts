@@ -426,9 +426,7 @@ class AgentToolServices {
           const saved = localStorage.getItem('workspaceFolders')
           if (saved) {
             const arr = JSON.parse(saved)
-            roots = Array.isArray(arr)
-              ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
-              : []
+            roots = Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
           }
         } catch {
           // ignore
@@ -436,10 +434,7 @@ class AgentToolServices {
         if (roots.length === 0) return []
         const exclude = new Set(['.git', 'node_modules', '.metadoc'])
         const result: Array<{ path: string; isDirectory: boolean }> = []
-        const queue: Array<{ path: string; depth: number }> = roots.map((r) => ({
-          path: r,
-          depth: 0
-        }))
+        const queue: Array<{ path: string; depth: number }> = roots.map((r) => ({ path: r, depth: 0 }))
         while (queue.length > 0 && result.length < maxEntries) {
           const { path: dirPath, depth } = queue.shift()!
           if (depth >= maxDepth) continue
@@ -486,11 +481,10 @@ class AgentToolServices {
         if (!isElectronEnv() || !messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
-        const entries = (await messageBridge.invoke('read-directory', dirPath)) as Array<{
-          name: string
-          path: string
-          isDirectory: boolean
-        }>
+        const entries = (await messageBridge.invoke(
+          'read-directory',
+          dirPath
+        )) as Array<{ name: string; path: string; isDirectory: boolean }>
         return entries
       },
 

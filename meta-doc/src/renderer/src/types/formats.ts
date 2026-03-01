@@ -6,8 +6,6 @@ export interface DocumentTemplate {
   descriptionKey?: string
   image?: string
   content: string
-  /** i18n key for template content */
-  contentKey?: string
   /** 是否为用户自己添加的模板（新建文档时可显示删除按钮） */
   isUserTemplate?: boolean
   /** 用户模板唯一 id，用于删除 */

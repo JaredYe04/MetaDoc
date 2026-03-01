@@ -58,7 +58,12 @@ import { themeState, colorWithOpacity } from '../../utils/themes'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { ElScrollbar } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
-import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
+import {
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverPortal,
+  PopoverContent
+} from 'reka-ui'
 import { ChevronDown } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 
@@ -280,21 +285,14 @@ const handlePresetClick = (preset: PresetOption) => {
   background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
   border-radius: 6px;
   color: v-bind('themeState.currentTheme.textColor');
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    box-shadow 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .preset-trigger-zone .preset-dropdown-trigger:hover {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"'
-  );
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"');
   border-color: rgba(145, 145, 145, 0.7);
 }
 .preset-trigger-zone .preset-dropdown-trigger:active {
-  background: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"'
-  );
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"');
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 

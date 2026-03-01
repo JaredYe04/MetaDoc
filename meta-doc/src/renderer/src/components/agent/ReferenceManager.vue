@@ -515,7 +515,7 @@ const handlePreviewBuiltInDocument = () => {
         format: 'md',
         parsedContent:
           '# Demo Current Document\n\nThis is a demonstration of the built-in document reference feature. In real mode, this would show the content of the currently active document.',
-        description: `${t('agent.reference.builtInDocument.description')}${t('agent.reference.builtInDocument.formatSuffix', { format: 'Markdown' })}`,
+        description: t('agent.reference.builtInDocument.description') + '（Markdown格式）',
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
@@ -550,7 +550,7 @@ const handlePreviewBuiltInDocument = () => {
       origin: activeDoc.path || t('agent.reference.builtInDocument.currentActiveDocument'),
       format: docFormat,
       parsedContent: content,
-      description: `${t('agent.reference.builtInDocument.description')}${t('agent.reference.builtInDocument.formatSuffix', { format: formatName })}`,
+      description: `${t('agent.reference.builtInDocument.description')}（${formatName}格式）`,
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -772,7 +772,7 @@ const handleCancelParsing = () => {
     try {
       messageBridge.invoke('cancel-file-conversion', currentRequestId.value)
     } catch (error) {
-      getLogger().warn(t('agent.reference.error.cancelRequestFailed'), error)
+      getLogger().warn('发送取消请求失败:', error)
     }
     currentRequestId.value = null
   }

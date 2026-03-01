@@ -10,13 +10,20 @@
 \usepackage{color}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
+\usepackage{booktabs}
+\usepackage{caption}
 
-% English fonts
+% 英文正文字体
 \setmainfont{Times New Roman}
 \setsansfont{Arial}
 \setmonofont{Consolas}
 
-\title{Report Title}
+% 中文字体
+\setCJKmainfont{SimSun}
+\setCJKsansfont{Microsoft YaHei}
+\setCJKmonofont{FangSong}
+
+\title{报告标题}
 \author{}
 \date{\today}
 
@@ -24,12 +31,52 @@
 \maketitle
 
 \chapter{Introduction}
-Write your introduction here.
+Introduction goes here.
 
 \chapter{Content}
-Write your content here.
+Main content goes here.
+
+\chapter{Format examples and cross-references}
+This chapter shows equations, figures, tables, citations, and footnotes.
+
+\section{Equations}
+Inline: $E=mc^2$. Numbered:
+\begin{equation}
+  \label{eq:rep}
+  \sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}.
+\end{equation}
+See Eq.~\ref{eq:rep}.
+
+\section{Figures and tables}
+Figure~\ref{fig:rep} and Table~\ref{tab:rep} are placeholders.
+\begin{figure}[htbp]
+  \centering
+  \rule{4cm}{2.5cm}
+  \caption{Example figure.}
+  \label{fig:rep}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Example table.}
+  \label{tab:rep}
+  \begin{tabular}{lc}
+    \toprule
+    Item & Value \\
+    \midrule
+    A    & 1.0   \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Citations and footnotes}
+See \cite{ref1}. Footnote\footnote{Footnote text.}.
 
 \chapter{Conclusion}
-Write your conclusion here.
+Conclusion goes here.
+
+\begin{thebibliography}{99}
+\bibitem{ref1} Author. Title. \textit{Journal}, Year, Volume(Issue): pages.
+\end{thebibliography}
 
 \end{document}

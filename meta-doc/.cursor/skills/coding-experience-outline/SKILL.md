@@ -20,7 +20,6 @@ filter: var(--outline-theme-type, light) == dark ? brightness(1.15) : brightness
 ```
 
 **原因**：
-
 - CSS 没有 `==` 运算符
 - CSS 不支持三元条件表达式
 - PostCSS/浏览器会报语法错误
@@ -33,8 +32,10 @@ const isDark = theme.type === 'dark'
 const outlinePage = document.querySelector('.outline-page') as HTMLElement
 
 // 设置计算后的值
-outlinePage.style.setProperty('--outline-link-color', isDark ? '#e0e0e0' : '#9ca3af')
-outlinePage.style.setProperty('--outline-filter', isDark ? 'brightness(1.15)' : 'brightness(0.92)')
+outlinePage.style.setProperty('--outline-link-color', 
+  isDark ? '#e0e0e0' : '#9ca3af')
+outlinePage.style.setProperty('--outline-filter', 
+  isDark ? 'brightness(1.15)' : 'brightness(0.92)')
 ```
 
 ```css
@@ -65,7 +66,6 @@ outlinePage.style.setProperty('--outline-filter', isDark ? 'brightness(1.15)' : 
 ```
 
 **问题**：
-
 - 第三方组件内部绑定了 `:style="initialTransformStyle"`
 - Vue 重新渲染时重新应用初始样式
 - 用户 pan/zoom 状态丢失，造成"闪动抽搐"
@@ -78,13 +78,11 @@ outlinePage.style.setProperty('--outline-filter', isDark ? 'brightness(1.15)' : 
 </template>
 
 <script>
-watch(
-  () => themeState.type,
-  (type) => {
-    const page = document.querySelector('.outline-page')
-    page?.style.setProperty('--outline-link-color', type === 'dark' ? '#e0e0e0' : '#9ca3af')
-  }
-)
+watch(() => themeState.type, (type) => {
+  const page = document.querySelector('.outline-page')
+  page?.style.setProperty('--outline-link-color', 
+    type === 'dark' ? '#e0e0e0' : '#9ca3af')
+})
 </script>
 ```
 
@@ -94,12 +92,12 @@ watch(
 
 ### 3. DOM 操作 vs CSS 变量：如何选择？
 
-| 场景                   | 推荐方案   | 原因                   |
-| ---------------------- | ---------- | ---------------------- |
-| 主题切换（颜色、亮度） | CSS 变量   | 数据驱动，不触发重渲染 |
-| 拖拽状态（cursor）     | CSS 变量   | 纯视觉反馈             |
-| 动态添加/移除元素      | Vue 响应式 | 必须触发重新渲染       |
-| 复杂的交互逻辑         | Vue 响应式 | 需要组件重新计算       |
+| 场景 | 推荐方案 | 原因 |
+|------|----------|------|
+| 主题切换（颜色、亮度） | CSS 变量 | 数据驱动，不触发重渲染 |
+| 拖拽状态（cursor） | CSS 变量 | 纯视觉反馈 |
+| 动态添加/移除元素 | Vue 响应式 | 必须触发重新渲染 |
+| 复杂的交互逻辑 | Vue 响应式 | 需要组件重新计算 |
 
 **决策流程**：
 
@@ -134,12 +132,12 @@ async animateTabOpen() {
 async animateTabOpen() {
   const first = recordPositions()
   await nextTick()
-
+  
   // 立即在同一帧内测量并应用 invert
   const last = measurePositions()
   const delta = calcDelta(first, last)
   applyInvert(delta)  // 同一事件循环！
-
+  
   await nextFrame()   // 下一帧才播放动画
   playAnimation()
 }
@@ -167,7 +165,10 @@ async animateTabOpen() {
 ```typescript
 // 创建动画
 const animation = element.animate(
-  [{ transform: 'translate3d(0, 0, 0)' }, { transform: 'translate3d(100px, 0, 0)' }],
+  [
+    { transform: 'translate3d(0, 0, 0)' },
+    { transform: 'translate3d(100px, 0, 0)' }
+  ],
   { duration: 200, easing: 'ease-out' }
 )
 
@@ -189,7 +190,7 @@ await animation.finished
 ```typescript
 // ❌ 错误
 const outlinePage = document.querySelector('.outline-page')
-outlinePage.dataset.theme = 'dark' // Property 'dataset' does not exist
+outlinePage.dataset.theme = 'dark'  // Property 'dataset' does not exist
 ```
 
 #### 解决：类型断言
@@ -212,7 +213,6 @@ git push origin fix/branch-name -f
 ```
 
 **注意**：
-
 - 仅在个人分支使用 `-f`
 - 确保没有其他人基于该分支工作
 - 在 PR 评论中说明"已强制推送更新"

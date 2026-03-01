@@ -79,17 +79,13 @@ onUnmounted(() => {
 
 <template>
   <DialogPortal :to="'body'">
-    <DialogOverlay class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay dialog-viewport-full" />
+    <DialogOverlay
+      class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay dialog-viewport-full"
+    />
     <DialogContent v-bind="forwardedForRoot">
       <!-- 内容盒：居中于整个视口，宽度由调用方 class 控制；有自定义 class 时不加 max-w-lg 以免限制宽度 -->
       <div
-        :class="
-          cn(
-            'dialog-content-box grid w-full max-h-[85vh] gap-4 border bg-background p-6 shadow-xl overflow-hidden rounded-lg relative min-h-0 grid-rows-[1fr]',
-            props.class ? '' : 'max-w-lg',
-            props.class
-          )
-        "
+        :class="cn('dialog-content-box grid w-full max-h-[85vh] gap-4 border bg-background p-6 shadow-xl overflow-hidden rounded-lg relative min-h-0 grid-rows-[1fr]', props.class ? '' : 'max-w-lg', props.class)"
       >
         <el-scrollbar class="dialog-slot-scrollbar max-h-full min-h-0">
           <slot />

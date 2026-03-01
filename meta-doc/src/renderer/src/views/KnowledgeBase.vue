@@ -1,6 +1,6 @@
 <template>
   <div class="kb-root">
-    <!-- {{ t('knowledgeBase.disabledOverlay') }} -->
+    <!-- 知识库已禁用时的提示界面 -->
     <div v-if="!knowledgeBaseEnabled" class="kb-disabled-overlay">
       <div class="kb-disabled-content">
         <el-icon class="kb-disabled-icon" :size="64">
@@ -486,11 +486,11 @@ function humanSize(bytes: number | undefined): string {
 async function fetchList(): Promise<void> {
   try {
     await ensureExpressReady()
-    logger.info(t('knowledgeBase.fetchListStarted') || '开始获取知识库列表')
+    logger.info('开始获取知识库列表')
     const r = await fetch(`${baseUrl.value}/list`)
 
     const j = (await r.json()) as { items?: KnowledgeBaseItem[] }
-    logger.debug(t('knowledgeBase.fetchListResponse') || '知识库列表响应', j)
+    logger.debug('知识库列表响应', j)
     items.value = (j.items || []).map((it) => ({ ...it, info: it.info || {} }))
   } catch (e) {
     logger.error(e)
@@ -510,7 +510,7 @@ async function doSearch(): Promise<void> {
     })
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
-    searchResults.value = [(t('knowledgeBase.searchFailed') || '检索失败') + ': ' + errorMessage]
+    searchResults.value = ['检索失败: ' + errorMessage]
   } finally {
     searching.value = false
   }
@@ -554,29 +554,26 @@ async function uploadFile(file: File): Promise<void> {
     const contentType = r.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
       const text = await r.text()
-      logger.error(t('knowledgeBase.nonJsonResponse') || '服务器返回非JSON响应', {
+      logger.error('服务器返回非JSON响应', {
         status: r.status,
         contentType,
         text: text.substring(0, 200)
       })
       eventBus.emit(
         'show-error',
-        (t('knowledgeBase.upload_error') || '上传出错') +
-          (t('knowledgeBase.nonJsonResponseMessage') || '服务器返回了非JSON响应，请检查服务器日志')
+        t('knowledgeBase.upload_error') + '服务器返回了非JSON响应，请检查服务器日志'
       )
       return
     }
 
     const j = await r.json()
     if (j.success) {
-      eventBus.emit('show-success', t('knowledgeBase.upload_complete') || '知识库构建完成')
+      eventBus.emit('show-success', t('knowledgeBase.upload_complete'))
       await fetchList()
     } else {
       eventBus.emit(
         'show-error',
-        (t('knowledgeBase.upload_failed') || '上传失败') +
-          ': ' +
-          (j.message || j.error || t('knowledgeBase.unknownError') || '未知错误')
+        t('knowledgeBase.upload_failed') + ': ' + (j.message || j.error || '未知错误')
       )
     }
   } catch (e) {
@@ -586,12 +583,10 @@ async function uploadFile(file: File): Promise<void> {
     if (errorMessage.includes('JSON') || errorMessage.includes('<!DOCTYPE')) {
       eventBus.emit(
         'show-error',
-        (t('knowledgeBase.upload_error') || '上传出错') +
-          (t('knowledgeBase.invalidResponseFormat') ||
-            '服务器响应格式错误，请检查服务器是否正常运行')
+        t('knowledgeBase.upload_error') + '服务器响应格式错误，请检查服务器是否正常运行'
       )
     } else {
-      eventBus.emit('show-error', (t('knowledgeBase.upload_error') || '上传出错') + errorMessage)
+      eventBus.emit('show-error', t('knowledgeBase.upload_error') + errorMessage)
     }
   } finally {
     isUploading.value = false
@@ -688,7 +683,7 @@ const initMonacoEditor = async (): Promise<void> => {
 
   const container = document.getElementById(previewEditorId)
   if (!container) {
-    logger.warn(t('knowledgeBase.previewEditorContainerNotFound') || '预览编辑器容器未找到')
+    logger.warn('预览编辑器容器未找到')
     return
   }
 
@@ -731,7 +726,7 @@ const initMonacoEditor = async (): Promise<void> => {
       }
     )
   } catch (e) {
-    logger.error(t('knowledgeBase.createMonacoEditorFailed') || '创建Monaco编辑器失败', e)
+    logger.error('创建Monaco编辑器失败', e)
   }
 }
 
@@ -783,7 +778,7 @@ async function fetchInfo(id: string): Promise<void> {
     const j = await r.json()
     if (j.success) {
       delete j['success']
-      logger.debug(t('knowledgeBase.kbDetails') || '知识库详情', j)
+      logger.debug('知识库详情', j)
       // also attach to items list if present
       const it = items.value.find((x) => x.id === id)
       if (it) {
@@ -793,12 +788,12 @@ async function fetchInfo(id: string): Promise<void> {
       // 更新配置面板的info对象（使用Object.assign确保响应式更新）
       Object.keys(info).forEach((key) => delete info[key])
       Object.assign(info, j)
-      logger.debug(t('knowledgeBase.updatedInfoObject') || '更新后的info对象', info)
+      logger.debug('更新后的info对象', info)
     } else {
-      logger.warn(t('knowledgeBase.fetchKbDetailsFailed') || '获取知识库详情失败', j)
+      logger.warn('获取知识库详情失败', j)
     }
   } catch (e) {
-    logger.error(t('knowledgeBase.fetchKbDetailsError') || '获取知识库详情异常', e)
+    logger.error('获取知识库详情异常', e)
   }
 }
 
@@ -881,11 +876,7 @@ async function openFolder(): Promise<void> {
   }
   try {
     if (!messageBridge.getIpc()) {
-      eventBus.emit(
-        'show-error',
-        t('knowledgeBase.ipcNotInitialized') ||
-          'IPC Renderer 未初始化，此功能仅在 Electron 环境中可用'
-      )
+      eventBus.emit('show-error', 'IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
       return
     }
 
@@ -897,7 +888,7 @@ async function openFolder(): Promise<void> {
       eventBus.emit('show-error', t('knowledgeBase.open_folder_error'))
     }
   } catch (e) {
-    logger.error(t('knowledgeBase.openFolderFailedLog') || '打开文件夹失败', e)
+    logger.error('打开文件夹失败', e)
     eventBus.emit('show-error', t('knowledgeBase.open_folder_error'))
   }
 }
@@ -926,7 +917,7 @@ function onCancel(): void {
 async function onConfirm(): Promise<void> {
   if (!selectedItem.value) return
   if (!editFilename.value.trim()) {
-    eventBus.emit('show-error', t('knowledgeBase.filenameRequired') || '文件名不能为空')
+    eventBus.emit('show-error', '文件名不能为空')
     return
   }
   if (editFilename.value === selectedItem.value.name) {
@@ -949,18 +940,15 @@ async function onConfirm(): Promise<void> {
     })
     const data = (await res.json()) as { success: boolean; message?: string }
     if (data.success) {
-      eventBus.emit('show-success', t('knowledgeBase.renameSuccess') || '重命名成功')
+      eventBus.emit('show-success', '重命名成功')
       isEditing.value = false
       await fetchList()
     } else {
-      eventBus.emit('show-error', data.message || t('knowledgeBase.renameFailed') || '重命名失败')
+      eventBus.emit('show-error', data.message || '重命名失败')
     }
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e)
-    eventBus.emit(
-      'show-error',
-      (t('knowledgeBase.requestFailed') || '请求失败') + ': ' + errorMessage
-    )
+    eventBus.emit('show-error', '请求失败: ' + errorMessage)
   } finally {
     renaming.value = false
   }
@@ -989,7 +977,7 @@ const handleKnowledgeBaseToggle = (payload: unknown) => {
   const data = payload as { enabled?: boolean }
   if (typeof data?.enabled === 'boolean') {
     knowledgeBaseEnabled.value = data.enabled
-    logger.info(t('knowledgeBase.kbStatusUpdated') || '知识库状态已更新', { enabled: data.enabled })
+    logger.info('知识库状态已更新', { enabled: data.enabled })
   }
 }
 

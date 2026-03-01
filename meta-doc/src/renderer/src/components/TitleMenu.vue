@@ -181,32 +181,32 @@ const props = defineProps({
   }
 })
 const context_mode = ref(1)
-const presetPrompts = computed(() => [
+const presetPrompts = ref([
   {
-    value: t('titleMenu.presetPrompts.expand.value'),
-    label: t('titleMenu.presetPrompts.expand.label')
+    value: '扩写这段文字',
+    label: '扩写这段文字'
   },
   {
-    value: t('titleMenu.presetPrompts.condense.value'),
-    label: t('titleMenu.presetPrompts.condense.label')
+    value: '精简这段文字',
+    label: '精简这段文字'
   },
   {
-    value: t('titleMenu.presetPrompts.polish.value'),
-    label: t('titleMenu.presetPrompts.polish.label')
+    value: '优化文笔，使得这段文字更加优美',
+    label: '优化一下文笔'
   },
   {
-    value: t('titleMenu.presetPrompts.generateSection.value'),
-    label: t('titleMenu.presetPrompts.generateSection.label')
+    value: '根据整篇文章的大意内容，生成本章节的文字内容，要求丰富翔实',
+    label: '生成本节内容'
   },
   {
-    value: t('titleMenu.presetPrompts.proofread.value'),
-    label: t('titleMenu.presetPrompts.proofread.label')
+    value: '修改文本中所有的语病、错别字、不妥当之处，保留原意',
+    label: '校对修改'
   },
   {
-    value: t('titleMenu.presetPrompts.flowchart.value')
+    value: '根据本段内容，生成一张mermaid流程图，使用代码框包裹'
   },
   {
-    value: t('titleMenu.presetPrompts.mindmap.value')
+    value: '根据文章结构，生成一张mermaid思维导图，使用代码框包裹'
   }
 ])
 

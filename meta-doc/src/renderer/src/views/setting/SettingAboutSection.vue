@@ -192,7 +192,7 @@ const workspace = useWorkspace()
 function openFeedbackTab() {
   workspace.openSystemTab(
     '/user-feedback',
-    t('leftMenu.userFeedback') || t('userFeedback.title') || 'User Feedback'
+    t('leftMenu.userFeedback') || t('userFeedback.title') || '用户反馈'
   )
 }
 
@@ -370,8 +370,8 @@ const loadLicenseAndAssets = async () => {
     thirdPartyAssets.value = thirdPartyAssetsText
   } catch (error) {
     console.error('加载许可证和资产信息失败:', error)
-    openSourceLicenses.value = t('setting.about.loadFailed')
-    thirdPartyAssets.value = t('setting.about.loadFailed')
+    openSourceLicenses.value = '加载失败，请稍后重试。'
+    thirdPartyAssets.value = '加载失败，请稍后重试。'
   }
 }
 

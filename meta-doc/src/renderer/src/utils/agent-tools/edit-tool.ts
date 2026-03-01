@@ -27,9 +27,7 @@ function getWorkspaceRoots(): string[] {
     const saved = localStorage.getItem('workspaceFolders')
     if (!saved) return []
     const arr = JSON.parse(saved)
-    return Array.isArray(arr)
-      ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
-      : []
+    return Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
   } catch {
     return []
   }
@@ -984,9 +982,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         const absPath = resolveFilePath(filePathParam)
         let currentContent: string | null = null
         try {
-          currentContent = (await messageBridge.invoke('read-file-content', absPath)) as
-            | string
-            | null
+          currentContent = await messageBridge.invoke('read-file-content', absPath) as string | null
         } catch (e) {
           logger.warn('read-file-content failed', e)
         }
@@ -1002,25 +998,19 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
                   '示例：{"filePath": "path/to/new.md", "diff": "@@ -0,0 +1,3 @@\\n+line1\\n+line2\\n+line3"}'
                 ],
                 []
-              )
-            }
+            )
           }
-          const newContent = hunks.flatMap((h) => h.newLines).join('\n')
+        }
+        const newContent = hunks.flatMap((h) => h.newLines).join('\n')
           onUpdate(
             {
               content: { stage: 'updating', editCount: 1, appliedCount: 1, failedCount: 0 },
               format: 'json',
               componentName: 'EditDisplay'
             },
-            {
-              percentage: 80,
-              message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...')
-            }
+            { percentage: 80, message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...') }
           )
-          await messageBridge.invoke('write-file-content', {
-            filePath: absPath,
-            content: newContent
-          })
+          await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
           const newFileResult: EditResult = {
             appliedEdits: 1,
             failedEdits: 0,
@@ -1039,8 +1029,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           }
         }
         currentContent = currentContent as string
-        const currentFormat =
-          currentContent.trim().length === 0 ? 'md' : /\\.tex$/i.test(absPath) ? 'tex' : 'md'
+        const currentFormat = currentContent.trim().length === 0 ? 'md' : (/\\.tex$/i.test(absPath) ? 'tex' : 'md')
         const edits: EditOperation[] = []
         for (const hunk of hunks) {
           const edit = convertHunkToEditOperation(hunk, currentContent)
@@ -1079,10 +1068,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             format: 'json',
             componentName: 'EditDisplay'
           },
-          {
-            percentage: 80,
-            message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...')
-          }
+          { percentage: 80, message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...') }
         )
         await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
         const filePathResult: EditResult = {

@@ -1,8 +1,5 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import {
@@ -44,17 +41,13 @@ onMounted(() => {
   <div class="font-debug-panel border rounded-lg p-3 bg-muted/30">
     <div class="flex items-center justify-between cursor-pointer" @click="expanded = !expanded">
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">{{ $t('fontDebugPanel.fontPreview') }}</span>
+        <span class="text-sm font-medium">字体预览</span>
         <Badge
           v-if="verification"
           size="sm"
           :variant="verification.success ? 'default' : 'destructive'"
         >
-          {{
-            verification.success
-              ? $t('fontDebugPanel.statusNormal')
-              : $t('fontDebugPanel.statusAbnormal')
-          }}
+          {{ verification.success ? '正常' : '异常' }}
         </Badge>
       </div>
       <div class="flex items-center gap-2">
@@ -67,9 +60,7 @@ onMounted(() => {
         >
           <RefreshCw class="h-3 w-3" :class="{ 'animate-spin': loading }" />
         </Button>
-        <span class="text-xs text-muted-foreground">{{
-          expanded ? $t('fontDebugPanel.collapse') : $t('fontDebugPanel.expand')
-        }}</span>
+        <span class="text-xs text-muted-foreground">{{ expanded ? '收起' : '展开' }}</span>
       </div>
     </div>
 
@@ -77,7 +68,7 @@ onMounted(() => {
       <div class="grid grid-cols-1 gap-2">
         <div class="font-preview-item p-2 bg-background rounded border">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-xs text-muted-foreground">{{ $t('fontDebugPanel.uiFont') }}</span>
+            <span class="text-xs text-muted-foreground">UI字体</span>
             <Badge
               v-if="verification"
               size="sm"
@@ -86,14 +77,12 @@ onMounted(() => {
               {{ configured.ui }}
             </Badge>
           </div>
-          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">
-            {{ $t('fontDebugPanel.previewText') }}
-          </div>
+          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">AaBbCc 你好世界</div>
         </div>
 
         <div class="font-preview-item p-2 bg-background rounded border">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-xs text-muted-foreground">{{ $t('fontDebugPanel.editorFont') }}</span>
+            <span class="text-xs text-muted-foreground">编辑器字体</span>
             <div v-if="verification" class="flex gap-1">
               <Badge
                 size="sm"
@@ -110,15 +99,13 @@ onMounted(() => {
             </div>
           </div>
           <div class="text-lg font-mono" :style="{ fontFamily: fontVars.editorFont }">
-            function hello() { return "{{ $t('fontDebugPanel.helloWorld') }}"; }
+            function hello() { return "你好世界"; }
           </div>
         </div>
 
         <div class="font-preview-item p-2 bg-background rounded border">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-xs text-muted-foreground">{{
-              $t('fontDebugPanel.previewFont')
-            }}</span>
+            <span class="text-xs text-muted-foreground">预览字体</span>
             <div v-if="verification" class="flex gap-1">
               <Badge
                 size="sm"
@@ -135,7 +122,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="text-base" :style="{ fontFamily: fontVars.previewFont }">
-            {{ $t('fontDebugPanel.previewTextAlt') }}
+            This is a **Markdown** preview 这是预览文本
           </div>
         </div>
       </div>

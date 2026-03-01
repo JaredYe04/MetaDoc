@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <!-- {{ t('aiTaskQueue.delayControlArea') }} -->
+      <!-- 延迟控制区域 -->
       <div v-if="settings.autoCompletion" class="delay-control">
         <div class="delay-info">
           <span v-if="remainingDelay > 0" class="delay-text">

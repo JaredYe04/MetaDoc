@@ -10,18 +10,18 @@
     <section class="search-widgets-container">
       <div class="search-widget">
         <div class="search-row">
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <Button
-                variant="secondary"
-                size="icon"
-                class="toggle-replace-btn grep-icon-btn"
-                :aria-expanded="showReplace ? 'true' : 'false'"
-                @click="showReplace = !showReplace"
-              >
-                <component :is="showReplace ? ArrowUp : ArrowDown" class="grep-icon-svg" />
-              </Button>
-            </TooltipTrigger>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  class="toggle-replace-btn grep-icon-btn"
+                  :aria-expanded="showReplace ? 'true' : 'false'"
+                  @click="showReplace = !showReplace"
+                >
+                  <component :is="showReplace ? ArrowUp : ArrowDown" class="grep-icon-svg" />
+                </Button>
+              </TooltipTrigger>
             <TooltipContent side="top">
               {{ $t('searchReplace.toggleReplace', '切换替换') }}
             </TooltipContent>
@@ -343,9 +343,18 @@ const getMatchContextHtml = (m: WorkspaceGrepMatch): string => {
   const startOffset = Math.max(0, m.column - 1)
   const endOffset = Math.min(lineText.length, m.column - 1 + m.match.length)
   const maxLength = calculateMatchContextMaxLength()
-  const context = generateMatchContext(lineText, m.match, startOffset, endOffset, maxLength)
+  const context = generateMatchContext(
+    lineText,
+    m.match,
+    startOffset,
+    endOffset,
+    maxLength
+  )
   const escapeHtml = (text: string) =>
-    text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
   const beforeEscaped = escapeHtml(context.before)
   const matchEscaped = escapeHtml(context.match)
   const afterEscaped = escapeHtml(context.after)
@@ -493,7 +502,10 @@ const runSearch = async () => {
         const path = pathForTab(tab)
 
         const doc = workspace.ensureDocument(tab.id)
-        const text = doc.format === 'tex' ? (doc.tex as string) : (doc.markdown as string)
+        const text =
+          doc.format === 'tex'
+            ? (doc.tex as string)
+            : (doc.markdown as string)
 
         if (!text) continue
 
@@ -565,7 +577,8 @@ const runSearch = async () => {
           if (!isPathUnderRoots(tab.path, roots)) continue
           const doc = workspace.documents[tab.id]
           if (!doc || !doc.dirty) continue
-          const text = doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
+          const text =
+            doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
           if (!text) continue
           const dirtyMatches = grepInContent(tab.path, text, grepOpts)
           if (dirtyMatches.length === 0) {
@@ -585,7 +598,8 @@ const runSearch = async () => {
           if (tab.path && normalize(tab.path || '')) continue
           const doc = workspace.documents[tab.id]
           if (!doc || !doc.dirty) continue
-          const text = doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
+          const text =
+            doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
           if (!text) continue
           const virtualPath = UNTITLED_PATH_PREFIX + tab.id
           const dirtyMatches = grepInContent(virtualPath, text, grepOpts)
@@ -602,7 +616,10 @@ const runSearch = async () => {
 }
 
 const escapeHtml = (text: string) =>
-  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 
 const getHighlightedLine = (m: WorkspaceGrepMatch) => {
   const line = m.lineText ?? m.context ?? ''
@@ -690,11 +707,16 @@ const handleReplaceAll = async () => {
   try {
     for (const filePath of files) {
       const isUntitled = filePath.startsWith(UNTITLED_PATH_PREFIX)
-      const tabIdFromUntitled = isUntitled ? filePath.slice(UNTITLED_PATH_PREFIX.length) : ''
+      const tabIdFromUntitled = isUntitled
+        ? filePath.slice(UNTITLED_PATH_PREFIX.length)
+        : ''
       let tab = isUntitled
         ? workspace.tabs.find((t) => t.id === tabIdFromUntitled)
         : workspace.tabs.find(
-            (t) => t.kind === 'file' && t.path && normalize(t.path) === normalize(filePath)
+            (t) =>
+              t.kind === 'file' &&
+              t.path &&
+              normalize(t.path) === normalize(filePath)
           )
       if (isUntitled && !tab) continue
       const doc = tab ? workspace.documents[tab.id] : null
@@ -702,9 +724,12 @@ const handleReplaceAll = async () => {
 
       let content: string | null
       if ((isDirty || isUntitled) && doc) {
-        content = doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '') || null
+        content =
+          doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '') || null
       } else {
-        content = (await messageBridge.invoke('read-file-content', filePath)) as string | null
+        content = (await messageBridge.invoke('read-file-content', filePath)) as
+          | string
+          | null
       }
       if (content == null) continue
       const textMatches = searchInText(content, patternValue, {
@@ -804,9 +829,7 @@ watch(
 }
 
 .toggle-replace-btn.grep-icon-btn:hover {
-  background-color: v-bind(
-    'mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)'
-  ) !important;
+  background-color: v-bind('mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)') !important;
 }
 
 .toggle-replace-btn.grep-icon-btn .grep-icon-svg {
@@ -875,16 +898,12 @@ watch(
 }
 
 .grep-toggle-btn:hover {
-  background-color: v-bind(
-    'mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)'
-  );
+  background-color: v-bind('mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)');
 }
 
 /* 高亮状态：用 background2nd + 文字色混合，亮暗主题下文字都保持可见 */
 .grep-toggle-btn.active {
-  background-color: v-bind(
-    'mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)'
-  );
+  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)');
   color: v-bind('themeState.currentTheme.textColor');
 }
 
@@ -905,12 +924,8 @@ watch(
 }
 
 @keyframes replace-all-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .grep-toggle-label {
@@ -1061,9 +1076,7 @@ watch(
 }
 
 .match-row.is-selected {
-  background-color: v-bind(
-    'mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || "#409eff", 0.25)'
-  );
+  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || "#409eff", 0.25)');
 }
 
 .match-line-number {
@@ -1097,3 +1110,4 @@ watch(
   opacity: 0.8;
 }
 </style>
+

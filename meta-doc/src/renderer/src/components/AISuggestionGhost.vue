@@ -5,15 +5,12 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
 import { aiCompletionService } from '../utils/ai-completion-service'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import * as monaco from 'monaco-editor'
 import '../assets/ai-suggestion.css'
-
-const { t } = useI18n()
 
 const logger = createRendererLogger('AISuggestionGhost', {
   windowTypeProvider: () => getWindowType()
@@ -273,7 +270,7 @@ function showTooltip(position: monaco.Position) {
 
   tooltipEl = document.createElement('div')
   tooltipEl.className = 'ai-suggestion-tooltip'
-  tooltipEl.textContent = t('aiSuggestion.tooltip', '按 Tab 接受，按 ESC 取消')
+  tooltipEl.textContent = '按 Tab 接受，按 ESC 取消'
   tooltipEl.style.position = 'fixed'
   tooltipEl.style.padding = '4px 8px'
   tooltipEl.style.background =
@@ -943,7 +940,7 @@ function showVditorTooltip() {
   if (!suggestionEl) return
 
   tooltipEl = document.createElement('div')
-  tooltipEl.textContent = t('aiSuggestion.tooltip', '按 Tab 接受，按 ESC 取消')
+  tooltipEl.textContent = '按 Tab 接受，按 ESC 取消'
   tooltipEl.style.position = 'absolute'
   tooltipEl.style.padding = '4px 8px'
   tooltipEl.style.background =

@@ -5,7 +5,7 @@ import { rectToBox, calcDelta, buildTransform, nextFrame } from './flip'
 
 /**
  * GPU-Accelerated Tab Animation Controller
- * 
+ *
  * Handles smooth 60fps tab open/close animations using FLIP technique:
  * - First: Record positions before DOM change
  * - Last: Measure positions after DOM change
@@ -32,7 +32,7 @@ export class TabAnimationController {
 
   /**
    * Record current positions of all tabs
-   * 
+   *
    * Step 1 of FLIP: Capture "First" state
    */
   private recordPositions(excludeTabId?: string): Map<string, Box> {
@@ -41,7 +41,7 @@ export class TabAnimationController {
     if (!container) return positions
 
     const tabs = container.querySelectorAll('[data-tab-id]')
-    
+
     tabs.forEach((tab) => {
       const id = (tab as HTMLElement).dataset.tabId
       if (!id || id === excludeTabId) return
@@ -49,10 +49,10 @@ export class TabAnimationController {
       // Temporarily remove transform to capture natural layout position
       const prevTransform = (tab as HTMLElement).style.transform
       ;(tab as HTMLElement).style.transform = 'none'
-      
+
       const rect = tab.getBoundingClientRect()
       positions.set(id, rectToBox(rect))
-      
+
       // Restore transform
       ;(tab as HTMLElement).style.transform = prevTransform
     })
@@ -62,12 +62,12 @@ export class TabAnimationController {
 
   /**
    * Animate tab opening
-   * 
+   *
    * Visual: New tab slides in from left, existing tabs slide right to make room
    */
   async animateTabOpen(newTabId: string, options: TabAnimationOptions = {}): Promise<void> {
     const config = this.getAnimationConfig(options)
-    
+
     // Step 1: FIRST - Record positions before DOM change
     const firstPositions = this.recordPositions()
 
@@ -91,21 +91,21 @@ export class TabAnimationController {
       // Temporarily clear transform to measure natural layout position
       const previousTransform = tab.style.transform
       tab.style.transform = 'none'
-      
+
       // Measure new position
       const rect = tab.getBoundingClientRect()
       const last = rectToBox(rect)
-      
+
       // Restore transform
       tab.style.transform = previousTransform
 
       // Calculate delta
       const delta = calcDelta(first, last)
-      
+
       if (Math.abs(delta.x.translate) > 0.5) {
         // Cancel any existing animation
         this.activeAnimations.get(id)?.cancel()
-        
+
         // Store the invert transform
         const transform = buildTransform(delta)
         invertTransforms.set(id, transform)
@@ -130,17 +130,11 @@ export class TabAnimationController {
       const tab = this.getTabElement(id)
       if (!tab) return
 
-      const animation = tab.animate(
-        [
-          { transform },
-          { transform: 'translate3d(0, 0, 0)' }
-        ],
-        {
-          duration: config.duration,
-          easing: config.easing,
-          fill: 'forwards'
-        }
-      )
+      const animation = tab.animate([{ transform }, { transform: 'translate3d(0, 0, 0)' }], {
+        duration: config.duration,
+        easing: config.easing,
+        fill: 'forwards'
+      })
 
       this.activeAnimations.set(id, animation)
       animations.push(
@@ -179,13 +173,13 @@ export class TabAnimationController {
 
   /**
    * Animate tab closing
-   * 
+   *
    * Visual: Closing tab slides out left, siblings smoothly slide left to fill
    */
   async animateTabClose(tabId: string, onRemove: () => void): Promise<void> {
     // Step 1: FIRST - Record positions before removal
     const firstPositions = this.recordPositions()
-    
+
     // Get closing tab for exit animation
     const closingTab = this.getTabElement(tabId)
     let exitClone: HTMLElement | null = null
@@ -195,7 +189,7 @@ export class TabAnimationController {
       exitClone = closingTab.cloneNode(true) as HTMLElement
       const rect = closingTab.getBoundingClientRect()
       const computedStyle = window.getComputedStyle(closingTab)
-      
+
       // Copy computed styles to ensure CSS variables are inherited
       exitClone.style.cssText = `
         position: fixed;
@@ -212,9 +206,9 @@ export class TabAnimationController {
         font-size: ${computedStyle.fontSize};
         font-family: ${computedStyle.fontFamily};
       `
-      
+
       document.body.appendChild(exitClone)
-      
+
       // Hide original immediately
       closingTab.style.opacity = '0'
     }
@@ -259,17 +253,11 @@ export class TabAnimationController {
         const transform = buildTransform(delta)
         tab.style.transform = transform
 
-        const animation = tab.animate(
-          [
-            { transform },
-            { transform: 'translate3d(0, 0, 0)' }
-          ],
-          {
-            duration: 180,
-            easing: 'ease-out',
-            fill: 'forwards'
-          }
-        )
+        const animation = tab.animate([{ transform }, { transform: 'translate3d(0, 0, 0)' }], {
+          duration: 180,
+          easing: 'ease-out',
+          fill: 'forwards'
+        })
 
         this.activeAnimations.set(id, animation)
         animations.push(
@@ -297,7 +285,7 @@ export class TabAnimationController {
 
       // Track clone for cleanup
       const cloneAnimation = animation
-      
+
       animations.push(
         cloneAnimation.finished
           .then(() => {

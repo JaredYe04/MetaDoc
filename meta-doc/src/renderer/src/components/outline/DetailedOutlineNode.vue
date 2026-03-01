@@ -44,8 +44,8 @@
           <!-- 待确认：显示本次生成的新内容（使用 pendingContent 确保是修改后文字） -->
           <template v-else-if="pendingAccept">
             <!-- LaTeX 文档：直接按文本预览，避免 Markdown 渲染异常 -->
-            <pre v-if="docFormat === 'tex'" class="detailed-outline-node__plain-text">
-{{ pendingContent || '' }}
+            <pre v-if="docFormat === 'tex'" class="detailed-outline-node__plain-text"
+              >{{ pendingContent || '' }}
             </pre>
             <!-- Markdown 文档：使用 Vditor 预览 -->
             <VditorPreview v-else :markdown="pendingContent || ''" :docPath="docPath" />
@@ -53,8 +53,8 @@
 
           <!-- 正常显示：当前节点正文 -->
           <template v-else>
-            <pre v-if="docFormat === 'tex'" class="detailed-outline-node__plain-text">
-{{ node.text || '' }}
+            <pre v-if="docFormat === 'tex'" class="detailed-outline-node__plain-text"
+              >{{ node.text || '' }}
             </pre>
             <VditorPreview v-else :markdown="node.text || ''" :docPath="docPath" />
           </template>

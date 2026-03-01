@@ -69,7 +69,9 @@
             "
           />
           <span class="text-sm text-muted-foreground">{{
-            settings.imageUpload.keepNetworkImageUrl ? t('setting.enabled', '启用') : t('setting.disabled', '禁用')
+            settings.imageUpload.keepNetworkImageUrl
+              ? t('setting.enabled', '启用')
+              : t('setting.disabled', '禁用')
           }}</span>
         </div>
       </FormField>
@@ -99,7 +101,9 @@
             "
           />
           <span class="text-sm text-muted-foreground">{{
-            settings.imageUpload.autoEscapeImageUrl ? t('setting.enabled', '启用') : t('setting.disabled', '禁用')
+            settings.imageUpload.autoEscapeImageUrl
+              ? t('setting.enabled', '启用')
+              : t('setting.disabled', '禁用')
           }}</span>
         </div>
       </FormField>

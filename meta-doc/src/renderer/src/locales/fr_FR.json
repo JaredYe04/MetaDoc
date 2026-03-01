@@ -874,8 +874,8 @@
     "completionSuffix": "suffixe URL pour les questions et réponses",
     "contentTheme": "Thème du contenu",
     "customThemeColor": "Couleur du thème personnalisé",
-    "disabled": "Fermer",
-    "enabled": "Activer",
+    "disabled": "Désactivé",
+    "enabled": "Activé",
     "excludeCodeBlocks": "Blocs de code exclus du texte statistique",
     "excludeCodeHint": "Le contenu du code affecte l'exactitude des statistiques de fréquence de mots, il est donc facultatif d'exclure.",
     "globalTheme": "Thème mondial",
@@ -1055,8 +1055,8 @@
       "openSourceLicenses": "Licences open source",
       "thirdPartyAssets": "Ressources tierces"
     },
-    "allChangesSaved": "Toutes les modifications ont été enregistrées",
-    "autoOpenHomeOnStartup": "Ouvrir automatiquement la page d'accueil au démarrage",
+    "allChangesSaved": "Toutes les modifications enregistrées",
+    "autoOpenHomeOnStartup": "Ouvrir l'accueil au démarrage",
     "cancel": "Annuler",
     "cannotCreateManualConfig": "Impossible de créer une configuration de type manuel, ce type est réservé au mode développement",
     "cannotDeleteDefaultConfig": "Impossible de supprimer la configuration par défaut",
@@ -1113,7 +1113,36 @@
     "embeddingModeApi": "API externe",
     "embeddingModeApiHint": "Utilise une API externe pour générer des vecteurs d'embedding, aucune carte graphique requise",
     "embeddingModeLocal": "Modèle local",
-    "embeddingModeLocalHint": "Utilise un modèle local pour générer des vecteurs d'embedding, nécessite une carte graphique, pas besoin de réseau"
+    "embeddingModeLocalHint": "Utilise un modèle local pour générer des vecteurs d'embedding, nécessite une carte graphique, pas besoin de réseau",
+    "externalFileOpenMode": "Mode d'ouverture des fichiers externes",
+    "fontEditorChinese": "Police chinoise de l'éditeur",
+    "fontEditorWestern": "Police occidentale de l'éditeur",
+    "fontUi": "Police de l'interface",
+    "fontPreviewChinese": "Police chinoise de l'aperçu",
+    "fontEditor": "Police de l'éditeur",
+    "fontPreviewWestern": "Police occidentale de l'aperçu",
+    "mathInlineDigit": "Autoriser les nombres dans les maths en ligne",
+    "fontPreview": "Police d'aperçu",
+    "metadataSaveMode": "Mode de sauvegarde des métadonnées",
+    "metadataSaveModeSidecar": "Enregistrer le fichier sidecar caché (Recommandé)",
+    "metadataSaveModeEmbed": "Intégrer les métadonnées en tant que commentaires",
+    "metadataSaveModeNone": "Ne pas sauvegarder les métadonnées",
+    "refresh": "Actualiser",
+    "fontUiLabel": "Police UI",
+    "openReferenceDir": "Ouvrir le répertoire",
+    "referenceDirManagement": "Gestion du répertoire de référence",
+    "referenceDirSize": "Taille du répertoire",
+    "openInNewWindow": "Ouvrir dans une nouvelle fenêtre",
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "llmSettings": "Paramètres LLM",
+    "knowledgeBaseSettings": "Paramètres de la base de connaissances",
+    "themeSettings": "Paramètres du thème",
+    "discard": "Annuler",
+    "save": "Enregistrer",
+    "enableMaxTokens": "Activer la limite max_tokens",
+    "maxTokens": "Maximum max_tokens",
+    "selectLLMType": "Sélectionner le type de LLM",
+    "selectModel": "Sélectionner le modèle"
   },
   "titleMenu": {
     "contextMarks": {
@@ -1695,8 +1724,8 @@
           "label": "Modèle d'article"
         },
         "blank": {
-          "description": "Créer à partir d'une page complètement vierge.",
-          "label": "Document vide"
+          "description": "Créer un document Markdown vierge",
+          "label": "Document vierge"
         },
         "technicalDoc": {
           "label": "Documentation technique",
@@ -3520,5 +3549,11 @@
   "resizableContainer": {
     "collapse": "Réduire",
     "expand": "Développer"
+  },
+  "datePicker": {
+    "placeholder": "Sélectionner la date",
+    "startPlaceholder": "Date de début",
+    "endPlaceholder": "Date de fin",
+    "rangeSeparator": "à"
   }
 }

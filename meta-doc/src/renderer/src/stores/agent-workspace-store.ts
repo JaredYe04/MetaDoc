@@ -69,14 +69,19 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       id: s.id,
       title: s.title,
       description: typeof s.description === 'string' ? s.description : undefined,
-      createdAt: typeof createdAt === 'string' ? createdAt : new Date(Number(createdAt) || 0).toISOString(),
-      updatedAt: typeof updatedAt === 'string' ? updatedAt : new Date(Number(updatedAt) || 0).toISOString(),
+      createdAt:
+        typeof createdAt === 'string' ? createdAt : new Date(Number(createdAt) || 0).toISOString(),
+      updatedAt:
+        typeof updatedAt === 'string' ? updatedAt : new Date(Number(updatedAt) || 0).toISOString(),
       messages: Array.isArray(s.messages) ? s.messages : [],
       activeToolIds: Array.isArray(s.activeToolIds) ? s.activeToolIds : [],
       agentConfigId: typeof s.agentConfigId === 'string' ? s.agentConfigId : undefined,
       messageQueue: Array.isArray(s.messageQueue) ? s.messageQueue : [],
       referenceStore: Array.isArray(s.referenceStore) ? s.referenceStore : [],
-      publicContext: s.publicContext && typeof s.publicContext === 'object' ? s.publicContext as any : undefined,
+      publicContext:
+        s.publicContext && typeof s.publicContext === 'object'
+          ? (s.publicContext as any)
+          : undefined,
       executionNodes: Array.isArray(s.executionNodes) ? s.executionNodes : [],
       status: typeof s.status === 'string' ? s.status : 'idle',
       enableBuiltInDocumentReference: s.enableBuiltInDocumentReference !== false
@@ -130,9 +135,10 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       const normalized = list.map(normalizeSession).filter((s): s is AgentSession => s !== null)
       sessions.value = normalized.length > 0 ? normalized : []
       activeSessionId.value =
-        typeof data.activeSessionId === 'string' && normalized.some((s) => s.id === data.activeSessionId)
+        typeof data.activeSessionId === 'string' &&
+        normalized.some((s) => s.id === data.activeSessionId)
           ? data.activeSessionId
-          : normalized[0]?.id ?? null
+          : (normalized[0]?.id ?? null)
 
       const sessionIds = new Set(normalized.map((s) => s.id))
       const savedOpen = Array.isArray(data.openTabIds) ? data.openTabIds : []
@@ -193,7 +199,10 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
         sessions: sessions.value,
         openTabIds: openTabIds.value
       }
-      await messageBridge.invoke('write-file-content', { filePath, content: JSON.stringify(payload, null, 2) })
+      await messageBridge.invoke('write-file-content', {
+        filePath,
+        content: JSON.stringify(payload, null, 2)
+      })
     } catch (e) {
       logger.error('保存 Agent 会话失败', e)
     }

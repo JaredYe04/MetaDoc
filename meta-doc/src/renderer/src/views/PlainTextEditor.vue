@@ -733,13 +733,8 @@ const handleEditorGotoPosition = (payload: {
   const line = payload.line
   const column = payload.column
   const endColumn = payload.endColumn
-  if (
-    typeof endColumn === 'number' &&
-    endColumn > column
-  ) {
-    adapter.goToRanges([
-      { start: { line, column }, end: { line, column: endColumn } }
-    ])
+  if (typeof endColumn === 'number' && endColumn > column) {
+    adapter.goToRanges([{ start: { line, column }, end: { line, column: endColumn } }])
   } else {
     adapter.goTo({ line, column })
   }

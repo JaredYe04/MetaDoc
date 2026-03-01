@@ -33,7 +33,7 @@ agent-framework/
 | ------------------------ | -------------------------- | --------------------------------------------------------------------- |
 | Add new engine type      | `agent-engine-executor.ts` | Extend `BaseEngineExecutor`, register in `AgentEngineExecutorFactory` |
 | Modify tool-call parsing | `tool-call-parsers.ts`     | Handles XML/JSON/markdown formats                                     |
-| Change context building  | `ai-context-manager.ts`    | Controls LLM prompt content                                          |
+| Change context building  | `ai-context-manager.ts`    | Controls LLM prompt content                                           |
 | Modify session lifecycle | `agent-session-manager.ts` | Create/run/pause/resume/cancel                                        |
 | Change LLM communication | `llm-adapter.ts`           | Streaming, retries, token management                                  |
 

@@ -670,7 +670,8 @@ const activeTabBackgroundColor = computed(() => {
 
 // 与 LeftMenu 右侧边界一致：左侧明显分界线，避免与左侧撞色难以区分
 const explorerLeftBorderColor = computed(
-  () => (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
+  () =>
+    (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
 )
 
 // 确保工作区根目录下存在 .metadoc 目录（用于存放工作区级别的 AI / 配置数据）

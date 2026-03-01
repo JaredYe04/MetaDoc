@@ -123,11 +123,15 @@
             <span class="code-text">function calculateSum(a, b) {{ '{' }}</span>
           </div>
           <div class="code-line">
-            <span class="code-text"> // {{ t('ai.completion.demoComment', '计算两个数的和') }}</span>
+            <span class="code-text">
+              // {{ t('ai.completion.demoComment', '计算两个数的和') }}</span
+            >
           </div>
           <div class="code-line completion-active">
             <span class="code-text"> return a + b;</span>
-            <span class="completion-suggestion">← {{ t('ai.completion.aiSuggestion', 'AI 建议') }}</span>
+            <span class="completion-suggestion"
+              >← {{ t('ai.completion.aiSuggestion', 'AI 建议') }}</span
+            >
           </div>
           <div class="code-line">
             <span class="code-text">{{ '}' }}</span>

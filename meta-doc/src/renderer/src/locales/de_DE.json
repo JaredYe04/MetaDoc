@@ -732,8 +732,8 @@
     "completionSuffix": "URL-Suffix für Fragen und Antworten",
     "contentTheme": "Inhalt Thema",
     "customThemeColor": "Farbe des Motivs",
-    "disabled": "Schließen",
-    "enabled": "Ermöglichen",
+    "disabled": "Deaktiviert",
+    "enabled": "Aktiviert",
     "excludeCodeBlocks": "Ausgeschlossene Codeblöcke aus statistischem Text",
     "excludeCodeHint": "Der Inhalt des Codes beeinflusst die Genauigkeit der Wortfrequenzstatistik, so ist es optional auszuschließen.",
     "globalTheme": "Globales Thema",
@@ -851,7 +851,42 @@
     "autoCompletionMaxTokens": "Automatisches Gesamtmaximum Token",
     "autoCompletionMaxTokensHint": "Beschränken Sie die maximale Anzahl von Token für KI-Autokompletion, wobei mindestens 20,0 unbegrenzt sind",
     "tokens": "Ein Token.",
-    "unlimited": "Unbegrenzt"
+    "unlimited": "Unbegrenzt",
+    "autoOpenHomeOnStartup": "Startseite beim Start automatisch öffnen",
+    "externalFileOpenMode": "Modus zum Öffnen externer Dateien",
+    "fontEditorChinese": "Editor-Chinesische Schriftart",
+    "fontEditorWestern": "Editor-Westliche Schriftart",
+    "fontUi": "Schnittstellen-Schriftart",
+    "fontPreviewChinese": "Vorschau-Chinesische Schriftart",
+    "fontEditor": "Editor-Schriftart",
+    "fontPreviewWestern": "Vorschau-Westliche Schriftart",
+    "mathInlineDigit": "Zahlen in Inline-Mathematik erlauben",
+    "metadataSaveMode": "Metadaten-Speichermodus",
+    "metadataSaveModeSidecar": "Versteckte Sidecar-Datei speichern (Empfohlen)",
+    "metadataSaveModeEmbed": "Metadaten als Kommentare einbetten",
+    "fontPreview": "Vorschau-Schriftart",
+    "metadataSaveModeNone": "Metadaten nicht speichern",
+    "refresh": "Aktualisieren",
+    "fontUiLabel": "UI-Schriftart",
+    "openReferenceDir": "Verzeichnis öffnen",
+    "referenceDirManagement": "Verzeichnisverwaltung referenzieren",
+    "referenceDirSize": "Verzeichnisgröße",
+    "clearReferenceDir": "Verzeichnis leeren",
+    "openInNewWindow": "In neuem Fenster öffnen",
+    "openInNewTab": "In neuem Tab öffnen",
+    "llmSettings": "LLM-Einstellungen",
+    "knowledgeBaseSettings": "Wissensbasis-Einstellungen",
+    "themeSettings": "Themeinstellungen",
+    "allChangesSaved": "Alle Änderungen gespeichert",
+    "discard": "Verwerfen",
+    "save": "Speichern",
+    "enableMaxTokens": "max_tokens-Limit aktivieren",
+    "maxTokens": "max_tokens Maximum",
+    "selectLLMType": "LLM-Typ auswählen",
+    "selectModel": "Modell auswählen",
+    "themeSyncColor": "Systemfarbe folgen",
+    "presetThemeCoralRed": "Korallenrot",
+    "presetThemeGoldenOrange": "Goldorange"
   },
   "titleMenu": {
     "contextMarks": {
@@ -1143,8 +1178,8 @@
           "label": "Artikel Muster"
         },
         "blank": {
-          "description": "Erstellen Sie aus einer komplett leeren Seite.",
-          "label": "leeres Dokument"
+          "description": "Leeres Markdown-Dokument erstellen",
+          "label": "Leeres Dokument"
         }
       }
     },
@@ -2673,5 +2708,11 @@
       "demoComment": "Calculate the sum of two numbers",
       "aiSuggestion": "AI Suggestion"
     }
+  },
+  "datePicker": {
+    "placeholder": "Datum auswählen",
+    "startPlaceholder": "Startdatum",
+    "endPlaceholder": "Enddatum",
+    "rangeSeparator": "bis"
   }
 }

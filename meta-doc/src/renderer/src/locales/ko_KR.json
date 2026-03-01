@@ -777,7 +777,50 @@
     "autoCompletionMaxTokens": "자동 완성 토큰",
     "autoCompletionMaxTokensHint": "AI Auto-completion용 토큰의 최대 수를 제한하고 최소 20,0이 제한됩니다.",
     "tokens": "토큰.",
-    "unlimited": "제한 없음"
+    "unlimited": "제한 없음",
+    "autoOpenHomeOnStartup": "시작 시 홈 자동 열기",
+    "externalFileOpenMode": "외부 파일 열기 방식",
+    "fontEditorChinese": "에디터 중국어 글꼴",
+    "fontEditorWestern": "에디터 서양 글꼴",
+    "fontUi": "인터페이스 글꼴",
+    "fontPreviewChinese": "미리보기 중국어 글꼴",
+    "fontEditor": "에디터 글꼴",
+    "metadataSaveMode": "메타데이터 저장 방식",
+    "fontPreviewWestern": "미리보기 서양 글꼴",
+    "metadataSaveModeSidecar": "숨겨진 사이드카 파일 저장(권장)",
+    "mathInlineDigit": "인라인 수식에서 숫자 허용",
+    "metadataSaveModeEmbed": "메타데이터를 주석으로 포함",
+    "metadataSaveModeNone": "메타데이터 저장 안 함",
+    "fontPreview": "미리보기 글꼴",
+    "refresh": "새로고침",
+    "fontUiLabel": "UI 글꼴",
+    "openReferenceDir": "디렉토리 열기",
+    "referenceDirManagement": "참조 파일 디렉토리 관리",
+    "referenceDirSize": "디렉토리 크기",
+    "clearReferenceDir": "디렉토리 비우기",
+    "openInNewWindow": "새 창에서 열기",
+    "openInNewTab": "새 탭에서 열기",
+    "llmSettings": "LLM 설정",
+    "knowledgeBaseSettings": "지식 베이스 설정",
+    "themeSettings": "테마 설정",
+    "allChangesSaved": "모든 변경 사항이 저장되었습니다",
+    "discard": "폐기",
+    "save": "저장",
+    "enableMaxTokens": "max_tokens 제한 활성화",
+    "maxTokens": "max_tokens 최대값",
+    "selectLLMType": "LLM 유형 선택",
+    "selectModel": "모델 선택",
+    "themeSyncColor": "시스템 색상 따라가기",
+    "presetThemeCoralRed": "코랄 레드",
+    "presetThemeGoldenOrange": "골든 오렌지",
+    "aboutUpdateSettings": "업데이트 설정",
+    "aboutOpenSourceLicense": "오픈소스 라이선스",
+    "aboutThirdPartyAssets": "타사 자산",
+    "autoCheckUpdates": "자동 업데이트 확인",
+    "updateChannel": "업데이트 채널",
+    "channelRelease": "릴리즈",
+    "channelDev": "개발",
+    "checkUpdate": "업데이트 확인"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -989,7 +1032,7 @@
           "label": "문서 템플릿"
         },
         "blank": {
-          "description": "완전 빈 페이지에서 생성.",
+          "description": "빈 Markdown 문서 만들기",
           "label": "빈 문서"
         }
       }
@@ -2204,5 +2247,11 @@
       "demoComment": "Calculate the sum of two numbers",
       "aiSuggestion": "AI Suggestion"
     }
+  },
+  "datePicker": {
+    "placeholder": "날짜 선택",
+    "startPlaceholder": "시작 날짜",
+    "endPlaceholder": "종료 날짜",
+    "rangeSeparator": "~"
   }
 }

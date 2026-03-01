@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { PopoverRoot, PopoverTrigger, PopoverContent, PopoverPortal } from 'reka-ui'
 import { Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { cn } from '@renderer/lib/utils'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+
+const { t } = useI18n()
 
 export interface DatePickerProps {
   modelValue?: Date | [Date | null, Date | null] | string | [string, string] | null
@@ -24,15 +27,29 @@ export interface DatePickerProps {
 
 const props = withDefaults(defineProps<DatePickerProps>(), {
   type: 'date',
-  placeholder: '请选择日期',
-  startPlaceholder: '开始日期',
-  endPlaceholder: '结束日期',
+  placeholder: undefined,
+  startPlaceholder: undefined,
+  endPlaceholder: undefined,
   format: 'YYYY-MM-DD',
   valueFormat: '',
   clearable: true,
-  rangeSeparator: '至',
+  rangeSeparator: undefined,
   disabled: false
 })
+
+// Computed properties for i18n with fallback
+const placeholderText = computed(
+  () => props.placeholder ?? t('datePicker.placeholder', '请选择日期')
+)
+const startPlaceholderText = computed(
+  () => props.startPlaceholder ?? t('datePicker.startPlaceholder', '开始日期')
+)
+const endPlaceholderText = computed(
+  () => props.endPlaceholder ?? t('datePicker.endPlaceholder', '结束日期')
+)
+const rangeSeparatorText = computed(
+  () => props.rangeSeparator ?? t('datePicker.rangeSeparator', '至')
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: Date | [Date | null, Date | null] | string | [string, string] | null]
@@ -232,7 +249,7 @@ const displayValue = computed(() => {
     if (!selectedStartDate.value && !selectedEndDate.value) return ''
     const start = formatDate(selectedStartDate.value, fmt)
     const end = formatDate(selectedEndDate.value, fmt)
-    return `${start} ${props.rangeSeparator} ${end}`
+    return `${start} ${rangeSeparatorText.value} ${end}`
   } else {
     return formatDate(selectedStartDate.value, fmt)
   }
@@ -436,7 +453,7 @@ function handleInputBlur() {
   const fmt = props.format
 
   if (isRange) {
-    const parts = inputValue.value.split(props.rangeSeparator)
+    const parts = inputValue.value.split(rangeSeparatorText.value)
     if (parts.length === 2) {
       const start = parseDate(parts[0].trim(), fmt)
       const end = parseDate(parts[1].trim(), fmt)
@@ -474,15 +491,15 @@ function handleInputBlur() {
         <!-- Range input display -->
         <template v-if="type === 'daterange' || type === 'datetimerange'">
           <span v-if="!selectedStartDate && !selectedEndDate" class="text-muted-foreground">
-            {{ placeholder }}
+            {{ placeholderText }}
           </span>
           <span v-else class="flex items-center gap-1">
             <span class="text-foreground">{{
-              formatDate(selectedStartDate, format) || startPlaceholder
+              formatDate(selectedStartDate, format) || startPlaceholderText
             }}</span>
-            <span class="text-muted-foreground">{{ rangeSeparator }}</span>
+            <span class="text-muted-foreground">{{ rangeSeparatorText }}</span>
             <span class="text-foreground">{{
-              formatDate(selectedEndDate, format) || endPlaceholder
+              formatDate(selectedEndDate, format) || endPlaceholderText
             }}</span>
           </span>
         </template>
@@ -490,7 +507,7 @@ function handleInputBlur() {
         <!-- Single date input display -->
         <template v-else>
           <span v-if="!selectedStartDate" class="text-muted-foreground">
-            {{ placeholder }}
+            {{ placeholderText }}
           </span>
           <span v-else class="text-foreground">{{ displayValue }}</span>
         </template>

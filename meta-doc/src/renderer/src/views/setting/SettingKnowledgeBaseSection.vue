@@ -40,18 +40,13 @@
             <TooltipContent side="top">{{ t('setting.embeddingModeTooltip') }}</TooltipContent>
           </Tooltip>
         </template>
-        <Select
-          v-model="settings.embeddingMode"
-          @update:model-value="handleEmbeddingModeChange"
-        >
+        <Select v-model="settings.embeddingMode" @update:model-value="handleEmbeddingModeChange">
           <SelectTrigger class="w-[300px]">
             <SelectValue :placeholder="t('setting.chooseEmbeddingMode')" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="api">{{ t('setting.embeddingModeApi') }}</SelectItem>
-            <SelectItem value="local" disabled>{{
-              t('setting.embeddingModeLocal')
-            }}</SelectItem>
+            <SelectItem value="local" disabled>{{ t('setting.embeddingModeLocal') }}</SelectItem>
           </SelectContent>
         </Select>
       </FormField>

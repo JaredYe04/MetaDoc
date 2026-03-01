@@ -40,8 +40,11 @@
       },
       "executionNodes": [],
       "status": "error",
-      "activeToolSpecs": {}
+      "activeToolSpecs": {},
+      "enableBuiltInDocumentReference": true
     }
   ],
-  "openTabIds": ["session-1772363134530-5iitwtsrl"]
+  "openTabIds": [
+    "session-1772363134530-5iitwtsrl"
+  ]
 }

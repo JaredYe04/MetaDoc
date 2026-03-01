@@ -1157,7 +1157,150 @@
     "updateChannel": "Canal de mise à jour",
     "channelRelease": "Stable",
     "channelDev": "Développement",
-    "checkUpdate": "Vérifier les mises à jour"
+    "checkUpdate": "Vérifier les mises à jour",
+    "embeddingModeTooltip": "Choisissez d'utiliser une API externe ou un modèle local pour générer des vecteurs d'embedding de texte.",
+    "enableLlm": "Activer LLM",
+    "enterConfigName": "Veuillez entrer un nom de configuration",
+    "exportAllConfigs": "Exporter toutes les configurations",
+    "exportConfig": "Exporter la configuration",
+    "exportFailed": "Échec de l'exportation",
+    "exportSuccess": "Exportation réussie",
+    "globalSettings": "Paramètres globaux",
+    "hasUnsavedChanges": "Modifications non enregistrées",
+    "image": {
+      "title": "Paramètres d'image",
+      "titleHint": "Les paramètres de téléchargement d'images prendront effet après réouverture du fichier",
+      "insertAction": "Lors de l'insertion d'images",
+      "insertActionNone": "Aucune action spéciale",
+      "insertActionUpload": "Télécharger l'image",
+      "insertActionSaveToDocumentDir": "Enregistrer dans le même répertoire que le document",
+      "insertActionSaveToAssetsDir": "Enregistrer dans /assets/ du répertoire du document",
+      "insertActionHint": "Choisissez l'action par défaut lors de l'insertion d'images.",
+      "keepNetworkImageUrl": "Conserver l'URL de l'image réseau",
+      "keepNetworkImageUrlHint": "Si coché, l'URL d'origine sera conservée lors de l'insertion d'images réseau, sans téléchargement local. Si décoché, les images réseau seront automatiquement téléchargées et sauvegardées localement, permettant la consultation hors ligne.",
+      "syntaxPreferences": "Préférences de syntaxe d'image",
+      "syntaxPreferencesHint": "Configurer le format de syntaxe des chemins d'image.",
+      "preferRelativePath": "Préférer les chemins relatifs",
+      "addDotSlashForRelativePath": "Ajouter ./ aux chemins relatifs",
+      "addDotSlashHint": "Ajouter le préfixe ./ aux chemins relatifs pour améliorer la lisibilité.",
+      "autoEscapeImageUrl": "Échapper automatiquement l'URL des images réseau",
+      "autoEscapeImageUrlHint": "Par exemple, lors de l'insertion d'une image située dans 'img/示例图片.png', le chemin deviendra automatiquement 'img/%E7%A4%BA%E4%BE%8B%E5%9B%BE%E7%89%87.png'. Activer cette option améliore la compatibilité avec d'autres moteurs Markdown, la désactiver améliore la lisibilité.",
+      "uploadServiceSettings": "Paramètres du service de téléchargement",
+      "uploadService": "Service de téléchargement",
+      "uploadServiceNone": "Aucun",
+      "uploadServiceLocal": "Service local",
+      "uploadServiceCustom": "API personnalisée",
+      "localImageDir": "Répertoire local des images",
+      "localImageDirPlaceholder": "Laisser vide pour utiliser le chemin par défaut (Pictures/meta-doc-imgs)",
+      "localImageDirHint": "Définir le répertoire de stockage local des images. Laisser vide pour utiliser le chemin par défaut.",
+      "browse": "Parcourir",
+      "open": "Ouvrir",
+      "noImageDirSet": "Aucun répertoire d'images défini",
+      "copyToDocumentDir": "Copier dans le répertoire du document",
+      "copyToDocumentDirHint": "Une fois activé, les images seront d'abord enregistrées dans le répertoire du document. Pour un nouveau document (non enregistré), elles seront enregistrées dans le répertoire de téléchargement.",
+      "customUploadApiUrl": "URL de l'API de téléchargement personnalisée",
+      "customUploadApiUrlPlaceholder": "Par exemple : https://api.example.com/upload",
+      "customUploadApiMethod": "Méthode HTTP",
+      "customUploadApiFieldName": "Nom du champ de fichier",
+      "customUploadApiFieldNamePlaceholder": "Par exemple : file",
+      "customUploadApiFieldNameHint": "Nom du champ de formulaire utilisé par l'API de téléchargement pour recevoir le fichier.",
+      "selectImageDirectory": "Sélectionner le répertoire d'images"
+    },
+    "importConfig": "Importer la configuration",
+    "importConfigJson": "Configuration JSON",
+    "importConfigJsonPlaceholder": "Veuillez coller le contenu JSON de configuration (objet unique ou tableau de configurations)",
+    "importConfigJsonRequired": "Veuillez entrer la configuration JSON",
+    "importFailed": "Échec de l'importation",
+    "importSuccess": "Importation réussie de {count} configuration(s)",
+    "knowledgeBase": "Paramètres de la base de connaissances",
+    "lineNumberHint": "Afficher les numéros de ligne dans l'éditeur",
+    "llmConfigList": "Liste des configurations LLM",
+    "llmSettingsDescription": "Configurez l'accès aux grands modèles, la température et les options de complétion ; prend en charge le basculement entre plusieurs configurations et l'import/export.",
+    "llmTemperature": "Température LLM",
+    "llmTemperatureHint": "Contrôle la randomisation des sorties IA, plus la valeur est élevée, plus c'est aléatoire. Recommandé : 1.3",
+    "logRetentionPeriod": "Période de conservation des journaux",
+    "logRetentionPeriodHint": "Nettoyage automatique des anciens fichiers journaux dépassant la période de conservation. Exécuté automatiquement au démarrage du logiciel.",
+    "logRetentionPeriods": {
+      "none": "Ne pas sauvegarder",
+      "1day": "1 jour",
+      "3days": "3 jours",
+      "7days": "7 jours",
+      "1month": "1 mois",
+      "3months": "3 mois",
+      "6months": "6 mois",
+      "1year": "1 an",
+      "never": "Ne jamais nettoyer"
+    },
+    "loggingFilter": "Filtre de journal",
+    "loggingFilterHint": "Prend en charge le filtrage des journaux par nom de module, par exemple saisir \"ai-graph\" pour afficher uniquement les journaux de ce module et de ses sous-modules",
+    "loggingFilterPlaceholder": "Entrez le nom du module pour filtrer, ex : ai-graph",
+    "loggingSettings": "Paramètres de journalisation",
+    "manual": "Manuel (mode développement)",
+    "manualConfigHint": "Mode manuel : saisie manuelle des réponses API via l'interface simulée du serveur Express",
+    "manualHint": "Saisie manuelle des réponses API simulées, disponible uniquement en environnement de développement",
+    "manualLLMInterface": "Interface de réponse LLM manuelle",
+    "manualResponseSubmitted": "Réponse soumise",
+    "manualTokenInput": "Saisie de réponse LLM manuelle",
+    "manualTokenInputPlaceholder": "Entrez le contenu de la réponse LLM manuelle ici (pour tests et débogage)",
+    "mathInlineDigitHint": "Une fois activé, les formules mathématiques en ligne autorisent les chiffres après le $ initial, par exemple $ sera reconnu comme une formule mathématique. Une fois désactivé, seules les formules comme $ seront reconnues.",
+    "metadataInfoHint": "Les métadonnées incluent l'auteur, le résumé, les mots-clés, l'historique des sessions Agent, etc. Ces informations vous aident à mieux gérer et rechercher vos documents.",
+    "metadataSaveModeEmbedHint": "Intègre les métadonnées sous forme de commentaires dans le contenu du fichier. Cette méthode modifie le contenu du document et les commentaires peuvent être visibles lors de l'ouverture avec d'autres logiciels.",
+    "metadataSaveModeNoneHint": "Ne sauvegarde aucune métadonnée. Les informations d'auteur, résumé, mots-clés, historique des sessions Agent ne seront pas conservées.",
+    "metadataSaveModeSidecarHint": "Crée un fichier .meta caché dans le même répertoire que le fichier pour stocker les métadonnées. Cette méthode n'affecte pas le contenu du document et les métadonnées ne sont pas visibles lors de l'ouverture avec d'autres logiciels.",
+    "newConfig": "Nouvelle configuration",
+    "newTheme": "Nouveau thème",
+    "newThemeDescription": "Créer un nouveau thème personnalisé",
+    "noPendingRequest": "Aucune demande en attente",
+    "openManualLLMInterface": "Ouvrir l'interface LLM manuelle",
+    "overwriteConfigConfirm": "Le nom de configuration \"{name}\" existe déjà, voulez-vous le remplacer ?",
+    "overwriteConfigTitle": "Confirmer le remplacement",
+    "parseEmbeddedImages": "Analyser les images intégrées au document",
+    "parseEmbeddedImagesHint": "Effectue automatiquement la reconnaissance OCR des images intégrées au document. Une fois désactivé, les images dans les pièces jointes ne feront pas l'objet d'une OCR, mais les images téléchargées individuellement seront toujours reconnues.",
+    "pendingRequestId": "ID de demande en attente",
+    "pendingRequests": "Demandes en attente",
+    "presetThemeLakeBlue": "Bleu lac",
+    "presetThemeLemonYellow": "Jaune citron",
+    "presetThemeLightBlue": "Bleu clair",
+    "presetThemeLightCyan": "Cyan clair",
+    "presetThemeLightGreen": "Vert clair",
+    "presetThemeLightOrange": "Orange clair",
+    "presetThemeLightPurple": "Violet clair",
+    "presetThemeLightRed": "Rouge clair",
+    "presetThemeLightYellow": "Jaune clair",
+    "presetThemeMintGreen": "Vert menthe",
+    "presetThemeOffWhite": "Blanc cassé",
+    "presetThemeRosePurple": "Violet rose",
+    "presetThemeSkyBlue": "Bleu ciel",
+    "presetThemeSpaceGray": "Gris spatial",
+    "refreshRequests": "Actualiser la liste des demandes",
+    "requestNotFound": "Demande inexistante ou expirée",
+    "resetConfig": "Réinitialiser la configuration",
+    "resetFailed": "Échec de la réinitialisation",
+    "saveChanges": "Enregistrer",
+    "saveCurrentAsConfig": "Enregistrer la configuration actuelle",
+    "saveFailed": "Échec de l'enregistrement",
+    "saveSuccess": "Enregistrement réussi",
+    "selectChineseFont": "Sélectionner la police chinoise",
+    "selectCodeTheme": "Sélectionner le thème de code",
+    "selectContentTheme": "Sélectionner le thème de contenu",
+    "selectFont": "Sélectionner la police",
+    "selectLlmConfig": "Sélectionner la configuration LLM",
+    "selectPendingRequest": "Sélectionner la demande en attente",
+    "selectWesternFont": "Sélectionner la police occidentale",
+    "submitFailed": "Échec de la soumission",
+    "submitManualResponse": "Soumettre la réponse",
+    "temporaryConfig": "(Temporaire)",
+    "testChatNonStream": "Conversation - Non flux",
+    "testChatStream": "Conversation - Flux",
+    "testCompletionNonStream": "Complétion - Non flux",
+    "testCompletionStream": "Complétion - Flux",
+    "testScenario": "Scénario de test",
+    "themeColor": "Couleur du thème",
+    "themeName": "Nom du thème",
+    "themeNamePlaceholder": "Veuillez entrer le nom du thème",
+    "themeNameRequired": "Veuillez entrer le nom du thème",
+    "unsavedChanges": "Modifications non enregistrées",
+    "unsavedChangesConfirm": "La configuration actuelle a des modifications non enregistrées. Voulez-vous les enregistrer d'abord ?"
   },
   "titleMenu": {
     "contextMarks": {
@@ -1178,6 +1321,34 @@
       "chat": "Transformer le dialogue sur la croissance",
       "generate": "Générer",
       "reset": "Réinitialiser"
+    },
+    "presetPrompts": {
+      "expand": {
+        "value": "Développer ce texte",
+        "label": "Développer ce texte"
+      },
+      "condense": {
+        "value": "Condenser ce texte",
+        "label": "Condenser ce texte"
+      },
+      "polish": {
+        "value": "Optimiser le style pour rendre ce texte plus élégant",
+        "label": "Optimiser le style"
+      },
+      "generateSection": {
+        "value": "Générer le contenu de cette section basé sur le sens général de l'article, avec des détails riches et complets",
+        "label": "Générer le contenu de cette section"
+      },
+      "proofread": {
+        "value": "Corriger toutes les fautes de grammaire, d'orthographe et les inappropriations dans le texte, en préservant le sens original",
+        "label": "Relire et corriger"
+      },
+      "flowchart": {
+        "value": "Générer un diagramme de flux mermaid basé sur ce contenu, enveloppé dans un bloc de code"
+      },
+      "mindmap": {
+        "value": "Générer une carte mentale mermaid basée sur la structure de l'article, enveloppée dans un bloc de code"
+      }
     }
   },
   "userProfile": {
@@ -2727,7 +2898,50 @@
     "uploading": "Telechargement en cours...",
     "attachImage": "Joindre une image",
     "submit": "Envoyer le feedback",
-    "thankYou": "Merci pour votre feedback !"
+    "thankYou": "Merci pour votre feedback !",
+    "addAttachment": "Ajouter une pièce jointe",
+    "attachmentRules": "Pièce jointe unique ≤ 10 Mo, taille totale ≤ 50 Mo, maximum 5. Tous types acceptés selon les capacités Gist.",
+    "attachments": "Pièces jointes / Captures d'écran",
+    "bodyLabel": "Description détaillée",
+    "copied": "Copié dans le presse-papiers",
+    "copyFailed": "Échec de la copie",
+    "emailHint": "Envoyer un email à :",
+    "errors": {
+      "titleRequired": "Veuillez remplir le titre",
+      "bodyRequired": "Veuillez remplir la description détaillée",
+      "tooManyFiles": "Maximum {max} pièces jointes",
+      "singleFileTooLarge": "Une pièce jointe ne peut pas dépasser {max}",
+      "totalTooLarge": "La taille totale des pièces jointes ne peut pas dépasser {max}",
+      "invalidFile": "Fichier invalide",
+      "noIpc": "L'environnement actuel ne permet pas de soumettre de commentaires"
+    },
+    "feedbackType": "Type de commentaire",
+    "footerHint": "Vous pouvez également nous contacter via :",
+    "qqGroupHint": "Rejoindre le groupe QQ :",
+    "selectType": "Veuillez sélectionner le type",
+    "submitFailed": "Échec de la soumission",
+    "submitSuccess": "Commentaire soumis, merci pour votre retour !",
+    "submitting": "Soumission en cours...",
+    "template": {
+      "systemInfo": "Informations système",
+      "describeProblemTitle": "Décrire le problème",
+      "describeProblem": "Veuillez décrire clairement et précisément le problème rencontré.",
+      "expectedResultTitle": "Résultat attendu",
+      "expectedResult": "Veuillez décrire clairement et précisément le résultat attendu.",
+      "otherInfoTitle": "Autres informations",
+      "otherInfo": "Veuillez fournir d'autres informations supplémentaires pour nous aider à diagnostiquer le problème.",
+      "contactTitle": "Vos coordonnées (facultatif)",
+      "contactOptional": "Veuillez fournir vos coordonnées pour que nous puissions vous contacter ultérieurement."
+    },
+    "title": "Commentaire",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "Veuillez décrire brièvement le problème ou la suggestion",
+    "types": {
+      "bug": "Signalement de BUG",
+      "feature": "Suggestion de fonctionnalité",
+      "security": "Signalement de sécurité",
+      "other": "Autre"
+    }
   },
   "editor": {
     "noOpenDocument": "Aucun document ouvert",
@@ -3573,5 +3787,231 @@
     "startPlaceholder": "Date de début",
     "endPlaceholder": "Date de fin",
     "rangeSeparator": "à"
+  },
+  "settingBasicSection": {
+    "failedSize": "Échec de l'obtention de la taille du répertoire",
+    "text": "Bonjour le monde",
+    "unavailable": "Rendu indisponible"
+  },
+  "settingDebugSection": {
+    "debug": "Débogage de session",
+    "test": "Test",
+    "test1": "Test automatique",
+    "text": "Exemple",
+    "updateTest": "Test de mise à jour",
+    "version": "Version actuelle",
+    "versionUpdate": "Simuler la mise à jour de version"
+  },
+  "settingLlmSection": {
+    "cancelled": "Annulé",
+    "delete": "Impossible de supprimer la configuration par défaut",
+    "failedTest": "Échec du test",
+    "successImport": "Importation réussie",
+    "test": "Résultat du test",
+    "text": "configuration(s)",
+    "text1": "Par défaut",
+    "text2": "Ceci est un mode démonstration"
+  },
+  "streamingJsonTree": {
+    "untitled": "Sans titre"
+  },
+  "todolist-tool": {
+    "descriptionFeature": "Description de la fonctionnalité",
+    "descriptionUserLanguage": "Basé sur la description en langage naturel de l'utilisateur",
+    "failed": "Échec",
+    "recognize": "Reconnaissance d'intention et division des tâches",
+    "recognize1": "Outil de reconnaissance d'intention et division des tâches",
+    "save": "Enregistré dans",
+    "success": "Succès",
+    "text": "lu à partir de",
+    "text1": "Nombre de tâches",
+    "text2": "Décompose les tâches complexes en listes de tâches structurées",
+    "text3": "et décompose les tâches complexes en listes de tâches structurées",
+    "userAnalyze": "Analyser l'intention de l'utilisateur",
+    "userRecognize": "Reconnaître l'intention de l'utilisateur",
+    "validate": "Valider"
+  },
+  "tool-call-parsers": {
+    "detect": "Détection imbriquée de",
+    "detect1": "Détection standard de",
+    "format": "format",
+    "notExistUnavailable": "n'existe pas ou est indisponible",
+    "parse": "Analyseur",
+    "parseFailed": "Échec de l'analyse",
+    "text": "Outil",
+    "text1": "Délégué à"
+  },
+  "useCloseTab": {
+    "closeOff": "Déjà en cours de fermeture",
+    "ignoreRepeat": "Ignorer la demande répétée",
+    "notExist": "N'existe plus"
+  },
+  "useTabDrag": {
+    "failed": "Échec de la pré-récupération de la vignette",
+    "failed1": "Échec de la sérialisation des données du document",
+    "failedDrag": "Échec de l'initialisation de la session de glisser-déposer",
+    "startDragOn": "Début de la session de glisser-déposer",
+    "text": "Sans nom"
+  },
+  "useWorkspaceOperations": {
+    "deleteFailed": "Échec de la suppression",
+    "failedPaste": "Échec du collage",
+    "renameFailed": "Échec du renommage"
+  },
+  "userManual": {
+    "agent": {
+      "introduction": {
+        "title": "Tutoriel d'utilisation de l'Agent"
+      },
+      "capabilities": {
+        "title": "Description des capacités de l'Agent"
+      },
+      "risks": {
+        "title": "Risques et coûts de l'Agent"
+      }
+    },
+    "ai": {
+      "llmConfig": {
+        "title": "Guide de configuration LLM"
+      },
+      "tools": {
+        "title": "Utilisation des outils IA"
+      },
+      "chat": {
+        "title": "Utilisation des sessions IA"
+      }
+    },
+    "backToOverview": "Retour à l'aperçu",
+    "charts": {
+      "introduction": {
+        "title": "Introduction aux diagrammes"
+      },
+      "mermaid": {
+        "title": "Diagrammes Mermaid"
+      },
+      "plantuml": {
+        "title": "Diagrammes PlantUML"
+      },
+      "echarts": {
+        "title": "Diagrammes ECharts"
+      }
+    },
+    "core": {
+      "fileOperations": {
+        "title": "Opérations sur les fichiers"
+      },
+      "editor": {
+        "title": "Utilisation de l'éditeur"
+      },
+      "multiTab": {
+        "title": "Gestion des onglets multiples"
+      },
+      "multiWindow": {
+        "title": "Gestion des fenêtres multiples"
+      },
+      "export": {
+        "title": "Fonctionnalité d'export"
+      }
+    },
+    "design": {
+      "philosophy": {
+        "title": "Philosophie de conception MetaDoc"
+      }
+    },
+    "emptyContent": "Veuillez sélectionner un chapitre dans le menu de gauche",
+    "graph": {
+      "title": "Carte du parcours d'apprentissage",
+      "expand": "Développer",
+      "collapse": "Réduire",
+      "completed": "Terminé",
+      "current": "En cours",
+      "pending": "À apprendre",
+      "selected": "Sélectionné",
+      "confirmTitle": "Confirmer l'apprentissage",
+      "confirmStart": "Commencer à apprendre \"{title}\" ?",
+      "confirm": "Commencer l'apprentissage",
+      "cancel": "Annuler"
+    },
+    "latex": {
+      "basic": {
+        "title": "Bases de LaTeX"
+      },
+      "advanced": {
+        "title": "LaTeX avancé"
+      }
+    },
+    "markdown": {
+      "basic": {
+        "title": "Syntaxe Markdown de base"
+      },
+      "advanced": {
+        "title": "Fonctionnalités avancées Markdown"
+      }
+    },
+    "navigation": {
+      "core": "Opérations de base",
+      "markdown": "Tutoriel Markdown",
+      "latex": "Tutoriel LaTeX",
+      "charts": "Dessin de graphiques",
+      "ai": "Outils IA",
+      "agent": "Utilisation de l'Agent",
+      "design": "Philosophie de conception"
+    },
+    "overview": {
+      "title": "Aperçu",
+      "welcome": "Démarrage rapide avec MetaDoc",
+      "description": "Cette page vous aide à comprendre rapidement votre positionnement et recommande un parcours d'apprentissage adapté. Vous pouvez suivre l'ordre recommandé ou naviguer vers n'importe quel chapitre depuis le menu de gauche.",
+      "profile": "Mon profil utilisateur",
+      "profileSummary": "Votre positionnement",
+      "profileSummarySentence": "Vous utilisez principalement pour le scénario \"{scenario}\" ; actuellement Markdown est à {markdown}, LaTeX à {latex}, AI Agent à {agent}.",
+      "progress": "Progression d'apprentissage",
+      "recommendedPath": "Parcours d'apprentissage recommandé",
+      "quickStart": "Démarrage rapide",
+      "quickLinks": "Liens rapides",
+      "noProfile": "Pas encore de profil utilisateur ? Faisons le point sur vos préférences d'utilisation pour vous recommander le meilleur parcours d'apprentissage.",
+      "startLearning": "Commencer l'apprentissage",
+      "viewGraph": "Voir la carte du parcours",
+      "completed": "Terminé",
+      "current": "En cours",
+      "pending": "À apprendre",
+      "articles": "articles",
+      "skillRadar": "Radar de compétences"
+    },
+    "profile": {
+      "title": "Questionnaire de profil utilisateur",
+      "buttonText": "Compléter mes préférences",
+      "scenario": "Scénario d'utilisation",
+      "scenarioHint": "Veuillez sélectionner votre scénario d'utilisation principal, cela nous aidera à vous recommander le meilleur parcours d'apprentissage",
+      "reanalyze": "Réanalyser",
+      "reanalyzeConfirmTitle": "Réinitialiser le profil utilisateur",
+      "reanalyzeConfirmMessage": "La réinitialisation du profil utilisateur effacera votre progression actuelle. Continuer ?",
+      "scenarios": {
+        "student": "Étudiant",
+        "researcher": "Chercheur",
+        "it": "Personnel informatique",
+        "office": "Employé de bureau",
+        "other": "Autre"
+      },
+      "markdownLevel": "Maîtrise de Markdown",
+      "latexLevel": "Maîtrise de LaTeX",
+      "agentLevel": "Connaissance de l'Agent IA",
+      "agentLevels": {
+        "none": "Aucune",
+        "heard": "Entendu parler mais ne sais pas",
+        "basic": "Connaît les concepts de base"
+      },
+      "markdownLevelHints": {
+        "none": "Ne connaît pas du tout Markdown, doit commencer par la syntaxe de base",
+        "basic": "Connaît la syntaxe de base (titres, listes, gras), peut écrire des documents simples",
+        "intermediate": "Maîtrise Markdown, connaît les tableaux, blocs de code, liens et autres fonctions avancées",
+        "advanced": "Expert en Markdown, connaît la syntaxe étendue, formules mathématiques, diagrammes et autres fonctionnalités avancées"
+      },
+      "latexLevelHints": {
+        "none": "Ne connaît pas du tout LaTeX, doit commencer par la syntaxe de base et la structure des documents",
+        "basic": "Connaît la syntaxe de base et la structure des documents, peut écrire des documents LaTeX simples",
+        "intermediate": "Maîtrise LaTeX, connaît les formules mathématiques, tableaux, insertion d'images et autres fonctions courantes",
+        "advanced": "Expert en LaTeX, connaît l'utilisation des packages, commandes personnalisées, gestion des références et autres fonctionnalités avancées"
+      }
+    }
   }
 }

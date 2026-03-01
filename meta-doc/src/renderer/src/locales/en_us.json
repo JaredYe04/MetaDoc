@@ -133,7 +133,19 @@
   "messageBubble": {
     "editTitle": "Edit Text",
     "deleteConfirmMessage": "Are you sure you want to delete?",
-    "deleteConfirmTitle": "Warning"
+    "deleteConfirmTitle": "Warning",
+    "convertToLatexAndInsert": "Convert to LaTeX and Insert",
+    "edit": "Edit",
+    "exportSuccess": "Content successfully exported to new document",
+    "exportToNewDocument": "Export to New Document",
+    "insertAsMarkdown": "Insert Markdown Source",
+    "insertFailed": "Insert Failed",
+    "insertLatexOptionsMessage": "The current document is in LaTeX format. Please choose how to insert the content:",
+    "insertLatexOptionsTitle": "Insert LaTeX Options",
+    "insertSuccess": "Content successfully inserted",
+    "insertToDocument": "Insert into Current Document",
+    "latexConvertFailed": "LaTeX conversion failed: {error}",
+    "regenerate": "Regenerate"
   },
   "microphoneTest": {
     "cannotAccessMic": "Cannot access microphone, please check permission settings"
@@ -193,7 +205,20 @@
       "showInFolder": "Show in File Explorer",
       "moveLeft": "Move Left",
       "moveRight": "Move Right"
-    }
+    },
+    "add": "Add",
+    "close": "Close",
+    "closeTabTooltip": "Close tab",
+    "failed": "Failed",
+    "invalid": "Invalid",
+    "maximize": "Maximize",
+    "minimize": "Minimize",
+    "newDocumentTooltip": "New Document",
+    "text": "Data",
+    "unsavedIndicator": "Unsaved",
+    "untitled": "Untitled",
+    "userManual": "User Manual",
+    "version": "Version {version}"
   },
   "searchReplace": {
     "title": "Search and Replace",
@@ -646,7 +671,10 @@
       },
       "saveAllNone": "No document saved",
       "saveAllPartial": "Partial document saving failed ({count})",
-      "saveAllSuccess": "All documents saved"
+      "saveAllSuccess": "All documents saved",
+      "fileSynced": "File synced",
+      "keptCurrentVersion": "Kept current version",
+      "mergedConflicts": "Conflicts merged"
     },
     "windows": {
       "appTitle": "MetaDoc",
@@ -684,7 +712,18 @@
       "unsavedDocument": "Unsaved Document",
       "saveFailed": "Save Failed",
       "saveFailedMessage": "Failed to save {fileName}",
-      "saveFailedDetail": "Do you want to continue closing other documents?"
+      "saveFailedDetail": "Do you want to continue closing other documents?",
+      "fileConflictTitle": "File Conflict",
+      "fileConflictMessage": "The file \"{fileName}\" has been modified externally and has unsaved changes. Please choose how to handle it.",
+      "fileConflictMessageWithConflicts": "The file \"{fileName}\" has {unresolvedCount} conflicts that need to be resolved. Please choose whether to use the MetaDoc version or disk version for each conflict.",
+      "currentVersion": "Current Version (MetaDoc)",
+      "externalVersion": "External Version (Disk)",
+      "useExternalVersion": "Use External Version",
+      "useCurrentVersion": "Use MetaDoc",
+      "keepCurrentVersion": "Keep Current Version",
+      "conflictBlock": "Conflict {index}",
+      "conflictsList": "Conflicts List ({count})",
+      "mergeConflicts": "Merge"
     },
     "latex": {
       "compileFailed": "Compilation failed, exit code: {code}"
@@ -805,7 +844,19 @@
         "trends": "Analyze development trends and future prospects",
         "practice": "Provide practical suggestions and operation guidelines",
         "custom": "Custom"
-      }
+      },
+      "titleFor": {
+        "generateChildren": "Generate Sub-chapters Configuration",
+        "generateContent": "Generate Content Configuration",
+        "generateChildrenChildren": "Batch Generate Sub-chapters Configuration",
+        "generateChildrenContent": "Batch Generate Content Configuration"
+      },
+      "temperatureStrict": "Strict",
+      "temperatureBalance": "Balanced",
+      "temperatureCreative": "Creative",
+      "recommendedKeywords": "AI Recommended",
+      "generatingKeywords": "Generating recommended keywords...",
+      "addKeyword": "Add"
     },
     "generateContentSuccessWithTitle": "AI successfully generated content for node {title}!",
     "generateContentSuccess": "AI generated content successfully!",
@@ -1692,7 +1743,10 @@
       "info": "Information circular",
       "success": "Successful notification",
       "warning": "Warning Notification"
-    }
+    },
+    "hoursAgo": "{count} hours ago",
+    "justNow": "Just now",
+    "minutesAgo": "{count} minutes ago"
   },
   "newDocument": {
     "formatTitle": "Select Format",
@@ -1704,6 +1758,10 @@
       "markdown": {
         "description": "Structured plain text format for articles, notes and blogs.",
         "label": "Markdown"
+      },
+      "plaintext": {
+        "label": "Plain Text",
+        "description": "Plain text or code files with syntax highlighting support for various programming languages."
       }
     },
     "subtitle": "Select the document format and template to start creating.",
@@ -3671,5 +3729,235 @@
     "startPlaceholder": "Start date",
     "endPlaceholder": "End date",
     "rangeSeparator": "to"
+  },
+  "llm-adapter": {
+    "failed": "Configuration Failed",
+    "login": "Please log in first",
+    "text": "Not Selected",
+    "text1": "Account",
+    "text2": "Get",
+    "type": "Type",
+    "unsupported": "Unsupported"
+  },
+  "llm-config-manager": {
+    "text": "Default",
+    "text1": "Compatible",
+    "text2": "Official"
+  },
+  "llmStatistics": {
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "clearConfirm": "Are you sure you want to clear all statistics? This action cannot be undone!",
+    "clearConfirmAgain": "Please confirm again: This action will permanently delete all statistics and cannot be recovered!",
+    "clearConfirmTitle": "Confirm Clear",
+    "clearFailed": "Failed to clear statistics",
+    "clearSuccess": "Statistics cleared",
+    "close": "Close",
+    "completionTokens": "Output Tokens",
+    "confirm": "Confirm",
+    "csvHeaders": {
+      "timestamp": "Timestamp",
+      "date": "Date",
+      "model": "Model",
+      "type": "Type",
+      "promptTokens": "Input Tokens",
+      "completionTokens": "Output Tokens",
+      "totalTokens": "Total Tokens",
+      "summary": "Summary"
+    },
+    "custom": "Custom",
+    "endDate": "End Date",
+    "export": "Export",
+    "exportFailed": "Export Failed",
+    "exportFormatInvalid": "Please enter a valid number (1-3)",
+    "exportFormatMessage": "Please select the file format to export:",
+    "exportFormatTitle": "Select Export Format",
+    "exportSuccess": "Export Successful",
+    "formatCsv": "CSV",
+    "formatJson": "JSON",
+    "formatXlsx": "Excel (XLSX)",
+    "loadAll": "Load All",
+    "loadFailed": "Failed to load statistics",
+    "promptTokens": "Input Tokens",
+    "quickSelect": "Quick Select",
+    "requestCount": "Request Count",
+    "requestCountChart": "Request Count Statistics (Line Chart)",
+    "startDate": "Start Date",
+    "thisMonth": "This Month",
+    "thisWeek": "This Week",
+    "thisYear": "This Year",
+    "title": "LLM API Usage Statistics",
+    "to": "To",
+    "today": "Today",
+    "tokenCount": "Token Count",
+    "tokenUsageChart": "Token Usage Statistics (Bar Chart)",
+    "tooltip": "Click to view LLM API usage statistics",
+    "totalCompletionTokens": "Total Output Tokens",
+    "totalPromptTokens": "Total Input Tokens",
+    "totalRequests": "Total Requests",
+    "totalTokens": "Total Tokens",
+    "xlsxHeaders": {
+      "metric": "Metric",
+      "value": "Value",
+      "timestamp": "Timestamp",
+      "date": "Date",
+      "model": "Model",
+      "type": "Type",
+      "promptTokens": "Input Tokens",
+      "completionTokens": "Output Tokens",
+      "totalTokens": "Total Tokens"
+    },
+    "xlsxSheetNames": {
+      "summary": "Summary",
+      "details": "Details"
+    }
+  },
+  "notification": {
+    "clearAll": "Clear All",
+    "desktopNotifications": "Desktop Notifications",
+    "dismiss": "Dismiss",
+    "markRead": "Mark as Read",
+    "markUnread": "Mark as Unread",
+    "noNotifications": "No Notifications",
+    "notificationSettings": "Notification Settings",
+    "showAll": "Show All",
+    "soundEnabled": "Enable Sound"
+  },
+  "ocr": {
+    "aiFix": "AI Fix",
+    "aiFixFailed": "AI Fix Failed",
+    "aiFixSuccess": "AI Fix Completed",
+    "aiFixing": "AI Fixing...",
+    "allRecognized": "All images recognized",
+    "brightness": "Brightness",
+    "clickRecognizeHint": "Click the left button to start recognition",
+    "contrast": "Contrast",
+    "copyFixedText": "Copy Fixed Text",
+    "copyOriginalText": "Copy Original Text",
+    "copySuccess": "Text copied to clipboard",
+    "copyText": "Copy Text",
+    "defaultParams": "Recommended Settings",
+    "defaultTitle": "New OCR Session",
+    "deleteConfirm": "Are you sure you want to delete this image?",
+    "deleteSuccess": "Deleted successfully",
+    "deleteTitle": "Delete Image",
+    "diffView": "Diff View",
+    "fixedText": "Fixed Text",
+    "grayscale": "Grayscale",
+    "image": "Image",
+    "imagePreprocessing": "Image Preprocessing",
+    "imagePreview": "Image Preview",
+    "languages": "OCR Language Pack",
+    "newSession": "New Session",
+    "noClipboardImage": "No image in clipboard",
+    "noImages": "Please upload an image first",
+    "noLanguages": "Please select at least one language pack",
+    "noSession": "Please create or select a session first",
+    "noSessionSelected": "Please select a session or create a new one",
+    "normalize": "Normalize",
+    "notRecognized": "Not yet recognized",
+    "ocrSuccess": "Recognition completed",
+    "originalText": "Original Text",
+    "pasteFromClipboard": "Paste Image from Clipboard",
+    "pasteSuccess": "Image pasted from clipboard",
+    "preprocessingParams": "Preprocessing Parameters",
+    "previewImage": "Preview Image",
+    "reOcr": "Re-recognize",
+    "reRecognize": "Re-recognize",
+    "reRecognizeSuccess": "Re-recognition successful",
+    "recognizeSuccess": "Recognition successful",
+    "recognizing": "Recognizing...",
+    "renamePlaceholder": "Enter session name",
+    "renameTitle": "Rename Session",
+    "resetParams": "Reset Parameters",
+    "resetZoom": "Reset",
+    "saturation": "Saturation",
+    "selectLanguages": "Select Language Pack",
+    "sessionsTitle": "OCR Sessions",
+    "sharpness": "Sharpness",
+    "singleView": "Single View",
+    "startOcr": "Start Recognition",
+    "startRecognize": "Start Recognition",
+    "uploadHint": "Drag images here or click to upload",
+    "uploadTip": "Supports JPG, PNG, GIF, BMP formats, multiple selection allowed",
+    "viewMode": "View Mode"
+  },
+  "ocrWindow": {
+    "failedCreate": "Failed to create session",
+    "failedLoading": "Failed to load session list",
+    "failedLoading1": "Failed to load session",
+    "recognize": "Sample Document Recognition",
+    "renameFailed": "Rename failed",
+    "text": "Simplified Chinese",
+    "text1": "Traditional Chinese",
+    "text2": "Japanese",
+    "text3": "Book Scan",
+    "unavailable": "Renderer unavailable"
+  },
+  "outline-ai-utils": {
+    "addContent": "Do not add any other content",
+    "format": "Please strictly follow the example format output",
+    "format1": "format output",
+    "text": "Now",
+    "text1": "Please output directly",
+    "text2": "result",
+    "text3": "Please strictly follow"
+  },
+  "plaintextEditor": {
+    "init_failed": "Plain text editor initialization failed: ",
+    "toolbar": {
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)",
+      "zoomIn": "Zoom In (Ctrl +)",
+      "zoomOut": "Zoom Out (Ctrl -)",
+      "toggleLineNumbers": "Toggle Line Numbers",
+      "toggleMinimap": "Toggle Minimap",
+      "showConsole": "Show Terminal"
+    }
+  },
+  "proofread": {
+    "errorTypes": {
+      "grammar": "Grammar Error",
+      "spelling": "Spelling Error",
+      "latex": "LaTeX Syntax Error",
+      "style": "Style Issue",
+      "other": "Other Error"
+    },
+    "errorsFound": "Found {count} errors",
+    "fix": "Fix",
+    "fixAll": "Fix All",
+    "ignore": "Ignore",
+    "ignoreAll": "Ignore All",
+    "ignoreAllSuccess": "Ignored {count} errors",
+    "ignoreSuccess": "Ignored",
+    "noErrors": "No errors found",
+    "severity": {
+      "error": "Error",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "title": "Proofreading"
+  },
+  "proofread-tool": {
+    "cancelled": "Request cancelled",
+    "errorContentFormatFile": "File content format error",
+    "failed": "Request failed",
+    "failed1": "Failed to get data",
+    "failedFile": "Failed to read file",
+    "file": "Unable to read file",
+    "fileNotExistNotexistContentFile": "File content is empty or file does not exist",
+    "lineNumber": "Line number",
+    "operationCancelled": "Operation cancelled",
+    "text": "Main process",
+    "text1": "Try using",
+    "unavailable": "Renderer unavailable"
+  },
+  "proofreadView": {
+    "content": "This is a sample document content",
+    "error": "errors",
+    "feature": "feature characteristics",
+    "suggestion": "Grammar suggestion",
+    "suggestion1": "Suggested modification",
+    "suggestion2": "Suggestion"
   }
 }

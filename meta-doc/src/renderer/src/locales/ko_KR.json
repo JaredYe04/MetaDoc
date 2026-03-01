@@ -135,7 +135,26 @@
     "failed": "Silpae",
     "error": "Olyu",
     "warning": "Gye go",
-    "info": "Jeongbo"
+    "info": "Jeongbo",
+    "apply": "적용",
+    "confirmDelete": "「{name}」을(를) 삭제하시겠습니까?",
+    "continue": "계속",
+    "copy": "복사",
+    "copyFailed": "복사 실패",
+    "copySuccess": "클립보드에 복사되었습니다",
+    "create": "생성",
+    "duplicate": "복제",
+    "duplicateSuccess": "복제 성공",
+    "format": "포맷",
+    "noOtherWindow": "다른 창 없음",
+    "older": "이전",
+    "overwrite": "덮어쓰기",
+    "rename": "이름 변경",
+    "reset": "초기화",
+    "thisMonth": "이번 달",
+    "thisWeek": "이번 주",
+    "today": "오늘",
+    "yesterday": "어제"
   },
   "console": {
     "title": "콘솔 출력",
@@ -143,7 +162,34 @@
     "copy": "복사",
     "saveLog": "로그 저장",
     "copiedToClipboard": "클립보드에 복사됨",
-    "logSaved": "로그가 저장되었습니다"
+    "logSaved": "로그가 저장되었습니다",
+    "enableAiAnalysis": "AI 오류 분석",
+    "encoding": {
+      "unicode": "유니코드",
+      "chinese": "중국어",
+      "japanese": "일본어",
+      "korean": "한국어",
+      "western": "서유럽",
+      "centralEastern": "중유럽/동유럽",
+      "russian": "러시아어",
+      "greek": "그리스어",
+      "utf8": "UTF-8",
+      "gbk": "GBK",
+      "gb2312": "GB2312",
+      "big5": "Big5 (번체)",
+      "shiftJis": "Shift_JIS",
+      "eucKr": "EUC-KR",
+      "iso88591": "ISO-8859-1 (Latin1)",
+      "windows1252": "Windows-1252",
+      "iso885915": "ISO-8859-15",
+      "iso88592": "ISO-8859-2 (Latin2)",
+      "windows1250": "Windows-1250",
+      "koi8r": "KOI8-R",
+      "windows1251": "Windows-1251",
+      "iso88595": "ISO-8859-5",
+      "iso88597": "ISO-8859-7"
+    },
+    "logSaveFailed": "로그 저장 실패"
   },
   "searchReplace": {
     "title": "찾기 및 바꾸기",
@@ -338,7 +384,8 @@
     "bitmapImage": "비트맵 (PNG)",
     "exportFormat": "수출 체재",
     "pdfDocument": "PDF 파일 회사연혁",
-    "vectorImage": "벡터 차트 (SVG)"
+    "vectorImage": "벡터 차트 (SVG)",
+    "insertImage": "이미지 삽입"
   },
   "article": {
     "drag_to_resize": "너비 변경을 위해 드래그",
@@ -408,7 +455,12 @@
       "cancel": "이름 *",
       "confirm": "견적 요청",
       "tip": "힌트"
-    }
+    },
+    "collapse_meta_panel": "메타 정보 패널 접기",
+    "edit_description": "요약 편집",
+    "edit_title": "제목 편집",
+    "expand_meta_panel": "메타 정보 패널 펼치기",
+    "toggle_meta_panel": "메타 정보 패널 전환"
   },
   "formulaRecognition": {
     "undo": "실행 취소",
@@ -842,7 +894,10 @@
     "notificationEmpty": "공지사항",
     "notificationTooltip": "자주 묻는 질문",
     "logConsoleLabel": "로그인",
-    "logConsoleTooltip": "로그 콘솔"
+    "logConsoleTooltip": "로그 콘솔",
+    "llmStatistics": "LLM 통계",
+    "versionLabel": "버전",
+    "versionTooltip": "버전 정보"
   },
   "wordCountDialog": {
     "title": "단어 수 통계",
@@ -1964,7 +2019,26 @@
     "userBehavior": "Sayongja haengdong bunseok",
     "exportExcel": "Excel export",
     "fileNotFound": "Excel fairu ga jonjae haji anhseubnida",
-    "fileMoved": "Fairu ga sakje doen tto neun ido doeeosseul su issseubnida. Dasi eobrodeu hae juseyo"
+    "fileMoved": "Fairu ga sakje doen tto neun ido doeeosseul su issseubnida. Dasi eobrodeu hae juseyo",
+    "analysisRequest": "분석 요구사항 (선택)",
+    "analysisRequestPlaceholder": "분석 요구사항을 설명하세요...",
+    "analyze": "분석 시작",
+    "analyzeFailed": "분석 실패",
+    "analyzeSuccess": "분석 완료",
+    "autoGroupBy": "자동 집계 분석",
+    "currentHeader": "현재 헤더",
+    "defaultTitle": "새 데이터 분석 세션",
+    "generateReport": "분석 보고서 생성",
+    "headerPreview": "현재 헤더 미리보기:",
+    "headerRowHint": "기본값: 자동 감지 (현재 추정: {0}행)",
+    "headerRowIndex": "헤더 행 번호 (0부터 시작)",
+    "newSession": "새 세션",
+    "noAnalysisResult": "분석 결과가 없습니다. '데이터 미리보기' 탭에서 분석을 시작하세요",
+    "noFile": "먼저 데이터 파일을 업로드하세요",
+    "noSessionSelected": "세션을 선택하거나 새 세션을 생성하세요",
+    "renamePlaceholder": "세션 이름을 입력하세요",
+    "renameTitle": "세션 이름 변경",
+    "sessionsTitle": "데이터 분석 세션"
   },
   "userFeedback": {
     "uploadedToGist": "Gist e eobrodeu doem",
@@ -2110,7 +2184,10 @@
     "text3": "개인적 흔적 결여도",
     "text4": "스타일 위험",
     "text5": "과도한 설명",
-    "text6": "모호한 한정"
+    "text6": "모호한 한정",
+    "text7": "전환어 템플릿",
+    "text8": "구조 중복",
+    "text9": "추상적이고 공허함"
   },
   "attachment": {
     "analysisSuccess": "분석 완료",
@@ -2122,13 +2199,28 @@
     "noAttachmentSelected": "첨부 파일을 선택하거나 새 파일을 업로드하세요",
     "noParsedContent": "먼저 첨부 파일을 구문 분석하세요",
     "parse": "첨부 파일 구문 분석",
-    "parseSuccess": "구문 분석 완료"
+    "parseSuccess": "구문 분석 완료",
+    "reanalyze": "AI 재분석",
+    "renamePlaceholder": "첨부 파일 이름을 입력하세요",
+    "renameTitle": "첨부 파일 이름 변경",
+    "reparse": "다시 분석",
+    "selectFile": "첨부 파일 선택",
+    "startAnalysis": "AI 분석 시작",
+    "tabs": {
+      "parsed": "분석 내용",
+      "aiAnalysis": "AI 분석"
+    },
+    "uploadSuccess": "첨부 파일 업로드 성공"
   },
   "data-analysis-tool": {
     "analyze": "데이터 분석",
     "analyze1": "자동 분석",
     "analyze2": "집계 분석 등",
-    "analyze3": "데이터 분석 도구"
+    "analyze3": "데이터 분석 도구",
+    "description": "기술 통계",
+    "descriptionFeature": "기능 설명",
+    "info": "필드 정보 추출",
+    "text": "등 데이터"
   },
   "dataAnalysisWindow": {
     "preview": "데이터 미리보기",
@@ -2242,6 +2334,78 @@
       "enableStyleMapping": {
         "label": "스타일 매핑 활성화",
         "description": "Markdown 요소를 Word 스타일에 매핑"
+      },
+      "title": "낸 옵션",
+      "normalFontFamily": {
+        "label": "본문 글꼴",
+        "description": "본문에 사용되는 글꼴"
+      },
+      "normalFontSize": {
+        "label": "본문 글자 크기 (pt)",
+        "description": "본문 글자 크기, 단위: 포인트 (pt)"
+      },
+      "normalLineHeight": {
+        "label": "본문 줄 간격",
+        "description": "본문 줄 간격 배수"
+      },
+      "heading1FontFamily": {
+        "label": "제목 1 글꼴",
+        "description": "1단계 제목에 사용되는 글꼴"
+      },
+      "heading1FontSize": {
+        "label": "제목 1 글자 크기 (pt)",
+        "description": "1단계 제목 글자 크기, 단위: 포인트 (pt)"
+      },
+      "heading1LineHeight": {
+        "label": "제목 1 줄 간격",
+        "description": "1단계 제목 줄 간격 배수"
+      },
+      "heading2FontFamily": {
+        "label": "제목 2 글꼴",
+        "description": "2단계 제목에 사용되는 글꼴"
+      },
+      "heading2FontSize": {
+        "label": "제목 2 글자 크기 (pt)",
+        "description": "2단계 제목 글자 크기, 단위: 포인트 (pt)"
+      },
+      "heading2LineHeight": {
+        "label": "제목 2 줄 간격",
+        "description": "2단계 제목 줄 간격 배수"
+      },
+      "heading3FontFamily": {
+        "label": "제목 3 글꼴",
+        "description": "3단계 제목에 사용되는 글꼴"
+      },
+      "heading3FontSize": {
+        "label": "제목 3 글자 크기 (pt)",
+        "description": "3단계 제목 글자 크기, 단위: 포인트 (pt)"
+      },
+      "heading3LineHeight": {
+        "label": "제목 3 줄 간격",
+        "description": "3단계 제목 줄 간격 배수"
+      },
+      "heading4FontFamily": {
+        "label": "제목 4 글꼴",
+        "description": "4단계 제목에 사용되는 글꼴"
+      },
+      "heading4FontSize": {
+        "label": "제목 4 글자 크기 (pt)",
+        "description": "4단계 제목 글자 크기, 단위: 포인트 (pt)"
+      },
+      "heading4LineHeight": {
+        "label": "제목 4 줄 간격",
+        "description": "4단계 제목 줄 간격 배수"
+      },
+      "inlineStyles": {
+        "label": "인라인 CSS",
+        "description": "CSS 스타일을 HTML에 인라인할지 여부"
+      },
+      "imageProcessing": {
+        "label": "이미지 처리 방식",
+        "description": "이미지 처리 방식 선택: 원본 링크 유지, Base64 임베드 또는 폼에 저장",
+        "original": "원본 링크 유지",
+        "base64": "Base64 임베드",
+        "folder": "폼에 저장"
       }
     }
   },
@@ -2260,5 +2424,21 @@
     "startPlaceholder": "시작 날짜",
     "endPlaceholder": "종료 날짜",
     "rangeSeparator": "~"
+  },
+  "celebration": {
+    "continue": "MetaDoc 시작하기 →",
+    "subtitle": "MetaDoc 완전 학습 가이드를 완료했습니다",
+    "title": "준비 완료!",
+    "skip": "아무 곳이나 클릭하여 건"
+  },
+  "chart-generation-tool": {
+    "code": "차트 코드가 비어있습니다",
+    "code1": "코드가 너무 짧습니다",
+    "codeMissing": "코드 누락",
+    "error": "구문 오류",
+    "errorFormat": "설정 형식 오류",
+    "text": "표시",
+    "typeRecognize": "차트 유형을 인식할 수 없습니다",
+    "validateFailedFailedValidate": "구문 검증 실패"
   }
 }

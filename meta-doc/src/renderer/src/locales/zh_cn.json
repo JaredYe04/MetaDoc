@@ -1741,9 +1741,12 @@
     "quickStartFormatDescriptionMarkdown": "使用 Markdown 语法快速编写并即时预览内容。",
     "quickStartFormatTitle": "选择快速开始格式",
     "quickStartTitle": "快速开始",
+    "latexCode": "LaTeX 代码",
+    "preview": "预览",
     "recentDocuments": "最近文档",
     "subtitle": "现代文档编辑与创作工具",
     "suggestionLabel": "建议标签",
+    "suggestionTagsTitle": "建议标签",
     "tab": {
       "aiAssistant": "AI 助手",
       "documentInfo": "文档信息"
@@ -2663,6 +2666,7 @@
   },
   "outline": {
     "abridge": "略写",
+    "noTitle": "(无标题)",
     "accept": "接受",
     "acceptAll": "全部接受",
     "addChild": "添加子节点",
@@ -3361,6 +3365,16 @@
       "error": "错误"
     },
     "loggingSettings": "日志设置",
+    "logMessages": {
+      "appStartup": "应用启动成功",
+      "loadConfig": "加载配置文件",
+      "noHistorySession": "未找到历史会话",
+      "createDocument": "创建新文档",
+      "initEditor": "初始化编辑器",
+      "llmReady": "LLM 服务就绪",
+      "networkTimeout": "网络连接超时",
+      "autoSaveSuccess": "自动保存成功"
+    },
     "logs": "日志设置",
     "lowPrecision": "低精度",
     "manual": "手动（开发模式）",

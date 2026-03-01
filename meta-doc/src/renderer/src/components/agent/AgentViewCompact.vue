@@ -155,7 +155,7 @@
           :message="message"
           :messages="activeSession.messages"
           :message-index="index"
-          :user-name="'用户'"
+          :user-name="t('agentViewCompact.user')"
           :session-references="activeSession.referenceStore || []"
           :compact="true"
           @edit="handleMessageEdit"
@@ -779,8 +779,8 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
     const logger = createRendererLogger('AgentViewCompact')
     const isCancelled =
       error instanceof Error &&
-      (error.message === '任务已取消' ||
-        error.message.includes('任务已取消') ||
+      (error.message === t('agentViewCompact.cancelled') ||
+        error.message.includes(t('agentViewCompact.cancelled')) ||
         error.name === 'AbortError')
 
     if (isCancelled) {

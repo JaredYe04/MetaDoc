@@ -30,9 +30,12 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../../utils/themes'
+
+const { t } = useI18n()
 
 interface SuggestionTag {
   label: string
@@ -46,7 +49,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: '建议标签',
+  title: t('home.suggestionTagsTitle', '建议标签'),
   disabled: false
 })
 

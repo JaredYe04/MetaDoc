@@ -74,9 +74,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { ElIcon } from 'element-plus'
 import ResizableDivider from './ResizableDivider.vue'
+
+const { t } = useI18n()
 
 interface Props {
   /** 布局方向 */
@@ -127,8 +130,8 @@ const props = withDefaults(defineProps<Props>(), {
   collapsible: false,
   showCollapseButton: true,
   autoCollapseWidth: 0,
-  collapseButtonTitle: '折叠',
-  expandButtonTitle: '展开',
+  collapseButtonTitle: t('resizableContainer.collapse'),
+  expandButtonTitle: t('resizableContainer.expand'),
   collapsedWidth: 0,
   sidebarOnLeft: false,
   storageKey: undefined,

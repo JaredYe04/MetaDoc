@@ -18,7 +18,9 @@
     "openAutoCompletion": "Enable AI Completion",
     "openKnowledgeBase": "Enable Knowledge Retrieval Library",
     "locateToPdf": "Locate to PDF Position",
-    "sectionOptimizer": "Optimize Current Paragraph"
+    "sectionOptimizer": "Optimize Current Paragraph",
+    "insertGraph": "Insert chart",
+    "triggerAutoCompletion": "Manually trigger AI completion"
   },
   "headMenu": {
     "tooltip": "An intelligent document processor based on AI Agent",
@@ -32,7 +34,68 @@
     "proofread": "Proofread"
   },
   "leftMenu": {
-    "userManual": "User Manual"
+    "userManual": "User Manual",
+    "aiAssistant": "AI助手",
+    "aiToolTooltip": "AI工具",
+    "aigcDetection": "AIGC检测工具",
+    "askSave": "是否要保存当前文档？",
+    "attachment": "附件解析工具",
+    "chatWithAI": "与AI对话",
+    "close": "关闭",
+    "closeFile": "关闭文件",
+    "dataAnalysis": "数据分析工具",
+    "debugTools": "调试工具",
+    "discard": "放弃",
+    "exit": "退出",
+    "exitTooltip": "退出",
+    "exitWithoutSaving": "退出但不保存",
+    "export": "导出",
+    "exportAsTemplate": "导出为模板",
+    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
+    "exportAsTemplateDescLabel": "模板描述",
+    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
+    "exportAsTemplateTitleLabel": "模板标题",
+    "exportDocx": "导出DOCX",
+    "exportHtml": "导出HTML",
+    "exportLatex": "导出LaTeX",
+    "exportMarkdown": "导出Markdown",
+    "exportPdf": "导出PDF",
+    "file": "文件",
+    "fileTooltip": "文件",
+    "graph": "绘图工具",
+    "handwritingFormulaRecognition": "手写公式识别",
+    "home": "主页",
+    "knowledgeBase": "知识库",
+    "langTooltip": "语言",
+    "menuConfig": {
+      "title": "菜单配置",
+      "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
+      "visible": "显示",
+      "hidden": "隐藏",
+      "reset": "重置",
+      "save": "保存"
+    },
+    "metaDocTooltip": "MetaDoc ;-)",
+    "moreFeatures": "更多功能",
+    "new": "新建",
+    "ocr": "OCR文字识别",
+    "open": "打开",
+    "recentFiles": "最近文件",
+    "recentFilesTooltip": "最近文件",
+    "save": "保存",
+    "saveAll": "保存全部",
+    "saveAllAndExit": "保存全部并退出",
+    "saveAndExit": "保存并退出",
+    "saveAs": "另存为",
+    "settings": "设置",
+    "settingsPanel": "设置面板",
+    "settingsTooltip": "设置",
+    "smartDrawingAssistant": "智能绘图助手",
+    "tip": "提示",
+    "userFeedback": "反馈",
+    "userProfileTooltip": "用户资料",
+    "workspaceExplorer": "工作目录",
+    "workspaceGrep": "工作区搜索"
   },
   "llmDialog": {
     "aiAssistant": "AI Assistant",
@@ -77,7 +140,20 @@
     "failed": "Failed",
     "error": "Error",
     "warning": "Warning",
-    "info": "Info"
+    "info": "Info",
+    "apply": "Apply",
+    "confirmDelete": "Are you sure you want to delete \"{name}\"?",
+    "create": "Create",
+    "duplicate": "Duplicate",
+    "duplicateSuccess": "Duplicate successful",
+    "format": "Format",
+    "older": "Older",
+    "rename": "Rename",
+    "reset": "Reset",
+    "thisMonth": "This month",
+    "thisWeek": "This week",
+    "today": "Today",
+    "yesterday": "Yesterday"
   },
   "mainTabs": {
     "contextMenu": {
@@ -249,7 +325,38 @@
     "defaultTitle": "Chat with AI Assistant",
     "enterToSend": "Enter to send",
     "ctrlEnterToSend": "Ctrl+Enter to send",
-    "changeSendMode": "Click to toggle send hotkey"
+    "changeSendMode": "Click to toggle send hotkey",
+    "atLeastOneRequired": "At least one conversation must be kept",
+    "attachTooltip": "Attach file",
+    "cancelTooltip": "Cancel AI generation",
+    "confirmDelete": "Are you sure you want to delete \"{title}\"?",
+    "delete": "Delete",
+    "deleteSuccess": "Delete successful",
+    "duplicate": "Duplicate",
+    "duplicateSuccess": "Conversation duplicated",
+    "earlier": "Earlier",
+    "exportSuccess": "Exported to new document",
+    "exportToDocument": "Export to new document",
+    "exportToDocumentSuccess": "Export request sent",
+    "generationCancelled": "AI generation cancelled",
+    "insertAsLatex": "Convert to LaTeX and insert",
+    "insertAsMarkdown": "Insert Markdown source",
+    "insertSuccess": "Content inserted into document",
+    "insertToDocument": "Insert into document",
+    "insertToDocumentSuccess": "Insert request sent",
+    "insertToDocumentsSuccess": "Content inserted into selected document",
+    "insertToLatexMessage": "Please select insert method:",
+    "insertToLatexTitle": "Insert into LaTeX document",
+    "knowledgeBaseTooltip": "Query knowledge base",
+    "lastMonth": "Last month",
+    "lastWeek": "Last week",
+    "noActiveDocument": "No active document",
+    "noDocuments": "No open documents",
+    "rename": "Rename",
+    "selectDocumentTitle": "Select document to insert into",
+    "sendTooltip": "Send message",
+    "today": "Today",
+    "yesterday": "Yesterday"
   },
   "aigraph": {
     "renameTitle": "Rename",
@@ -289,7 +396,8 @@
     "bitmapImage": "Bitmap (PNG)",
     "exportFormat": "Export Format",
     "pdfDocument": "PDF Document",
-    "vectorImage": "Vector Chart (SVG)"
+    "vectorImage": "Vector Chart (SVG)",
+    "insertImage": "Insert image"
   },
   "article": {
     "drag_to_resize": "Drag to resize width",
@@ -343,7 +451,14 @@
       "ai_assistant": "AI Assistant",
       "toggle_outline": "Toggle Outline",
       "toggle_outline_show": "Show Outline",
-      "toggle_outline_hide": "Hide Outline"
+      "toggle_outline_hide": "Hide Outline",
+      "mode": "Edit mode",
+      "convert_latex_formulas": "Convert LaTeX formula format",
+      "convert_latex_formulas_title": "Convert LaTeX formula format",
+      "convert_latex_formulas_message": "This operation will convert \\(...\\) inline formulas and \\[...\\] block formulas in the document to Vditor-compatible $...$ and 519741...519741 formats.\\n\\nNote: This operation modifies document content. It is recommended to save the document first.",
+      "convert_latex_formulas_success": "Formula format conversion completed",
+      "convert_latex_formulas_no_match": "No formula formats found to convert",
+      "convert_latex_formulas_no_editor": "Editor not ready"
     },
     "convert_to_latex": "Convert Document to LaTeX",
     "convert_to_latex_confirm": "The conversion will generate the text file, which is not synchronized with the existing Markdown file, and will continue?",
@@ -352,7 +467,12 @@
       "cancel": "Cancel",
       "confirm": "Sure.",
       "tip": "Hint"
-    }
+    },
+    "collapse_meta_panel": "Collapse meta panel",
+    "edit_description": "Edit description",
+    "edit_title": "Edit title",
+    "expand_meta_panel": "Expand meta panel",
+    "toggle_meta_panel": "Toggle meta panel"
   },
   "formulaRecognition": {
     "undo": "Undo",
@@ -386,7 +506,13 @@
     "simpletexLinkText": "SimpleTex LaTeX OCR",
     "expandCanvas": "Expand Canvas",
     "expandCanvasNoNeed": "Canvas is already not smaller than viewport",
-    "resultTitle": "Result"
+    "resultTitle": "Result",
+    "defaultTitle": "New Formula Recognition Session",
+    "newSession": "New Session",
+    "noSessionSelected": "Please select a session or create a new one",
+    "renamePlaceholder": "Enter session name",
+    "renameTitle": "Rename Session",
+    "sessionsTitle": "Formula Recognition Sessions"
   },
   "home": {
     "metaDoc": "MetaDoc - AI Document Editor",
@@ -1014,7 +1140,10 @@
     "notificationEmpty": "No notice",
     "notificationTooltip": "Notification Queue",
     "logConsoleLabel": "Log",
-    "logConsoleTooltip": "Open log console"
+    "logConsoleTooltip": "Open log console",
+    "llmStatistics": "LLM Statistics",
+    "versionLabel": "Version",
+    "versionTooltip": "Version info"
   },
   "aiTask": {
     "cancel": "Cancel",
@@ -1023,14 +1152,21 @@
     "running": "Running",
     "status": "Status",
     "taskCancelled": "{task} Canceled",
-    "taskCancelled2": "Task cancelled"
+    "taskCancelled2": "Task cancelled",
+    "error": "Error"
   },
   "aiTaskQueue": {
     "empty": "No assignment.",
     "error": "Loading failed",
     "loading": "Loading...",
     "switchWarning": "Switches the interface while AI works may result in the task being lost.",
-    "title": "AI Task Queue"
+    "title": "AI Task Queue",
+    "cancelDelay": "Cancel delay",
+    "delayActive": "Completion enabled",
+    "delayButton": "Delay {minutes} minutes",
+    "delayRemaining": "Delay remaining: {time}",
+    "minutes": "minutes",
+    "seconds": "seconds"
   },
   "knowledgeBase": {
     "add": "Add",
@@ -1082,7 +1218,47 @@
     "clear_all_confirm_title": "Clear confirmation",
     "clear_all_error": "Error cleaning the knowledge base:",
     "clear_all_failed": "Clearing the knowledge base failed!",
-    "clear_all_success": "Clear the knowledge base!"
+    "clear_all_success": "Clear the knowledge base!",
+    "addKnowledge": "Add Knowledge",
+    "check": "Please check server logs",
+    "createMonacoEditorFailed": "Failed to create Monaco editor",
+    "deleteConfirm": "Are you sure you want to delete this knowledge?",
+    "disabled": "Disabled",
+    "disabledMessage": "Knowledge base is currently disabled. Please enable it in settings.",
+    "enable": "Enable Knowledge Base",
+    "enableError": "Failed to enable knowledge base",
+    "failed": "Retrieval failed",
+    "feature": "Knowledge base feature is currently disabled",
+    "fetchKbDetailsError": "Error fetching knowledge base details",
+    "fetchKbDetailsFailed": "Failed to fetch knowledge base details",
+    "fetchListResponse": "Knowledge base list response",
+    "fetchListStarted": "Started fetching knowledge base list",
+    "filenameRequired": "Filename cannot be empty",
+    "invalidResponseFormat": "Invalid server response format. Please check if server is running.",
+    "ipcNotInitialized": "IPC Renderer not initialized. This feature is only available in Electron environment.",
+    "kbDetails": "Knowledge Base Details",
+    "kbStatusUpdated": "Knowledge base status updated",
+    "nonJsonResponse": "Server returned non-JSON response",
+    "nonJsonResponseMessage": "Server returned non-JSON response. Please check server logs.",
+    "noResults": "No results found",
+    "openFolderFailedLog": "Failed to open folder",
+    "open_folder": "Open Folder",
+    "open_folder_error": "Failed to open folder",
+    "previewEditorContainerNotFound": "Preview editor container not found",
+    "renameFailed": "Rename failed",
+    "renameSuccess": "Rename successful",
+    "requestFailed": "Request failed",
+    "searchPlaceholder": "Search knowledge base...",
+    "settingsFeature": "Please enable knowledge base in settings to use this feature",
+    "syncFailed": "Sync failed",
+    "syncSuccess": "Sync successful",
+    "text": "Knowledge base disabled",
+    "text1": "Server returned non-",
+    "text2": "Response",
+    "unknownError": "Unknown error",
+    "updatedInfoObject": "Updated info object",
+    "uploadFailed": "Knowledge upload failed",
+    "uploadSuccess": "Knowledge upload successful"
   },
   "aiSuggestion": {
     "accept": "Acceptance of recommendations",
@@ -1532,6 +1708,33 @@
           "completed": "Search completed, found {count} matches",
           "completedWithReplace": "Search completed, found {count} matches, replaced {replaced} occurrences"
         }
+      },
+      "metadata": {
+        "error": {
+          "missingOperation": "Missing required parameter: operation",
+          "invalidOperation": "Invalid operation: {operation}",
+          "noActiveTab": "No active document tab",
+          "noContent": "No active {format} document content",
+          "noOutline": "Document outline is empty, cannot generate metadata",
+          "missingField": "set operation requires field parameter",
+          "missingValue": "set operation requires value parameter",
+          "invalidField": "Invalid field: {field}",
+          "documentNotFound": "Document not found"
+        }
+      },
+      "workspace": {
+        "progress": {
+          "loadingTree": "Loading directory tree...",
+          "reading": "Reading file...",
+          "readingFile": "Reading file {index}/{total}: {path}",
+          "completed": "Read completed, total {count} file(s)"
+        }
+      },
+      "nodeAgent": {
+        "progress": {
+          "syncing": "Syncing document content...",
+          "completed": "Node agent execution completed"
+        }
       }
     },
     "sessions": {
@@ -1545,13 +1748,34 @@
       "rename": "Rename Session",
       "renamePlaceholder": "Enter a new session title",
       "renameRequired": "Title is required",
-      "renameSuccess": "Session renamed successfully"
+      "renameSuccess": "Session renamed successfully",
+      "selectEngine": "Select Engine",
+      "engineChanged": "Switched to engine: {engine}",
+      "selectAgentConfig": "Select Agent Config",
+      "selectAgentConfigPlaceholder": "Please select the Agent config to use",
+      "retry": "Retry",
+      "duplicate": "Duplicate",
+      "export": "Export",
+      "import": "Import",
+      "references": "References",
+      "noExecutionNode": "No execution node to retry",
+      "retrySuccess": "Retry successful",
+      "duplicateSuccess": "Duplicate successful",
+      "exportSuccess": "Export successful",
+      "importSuccess": "Import successful",
+      "defaultTitle": "Default Session",
+      "atLeastOneRequired": "At least one session must be kept",
+      "noAgentConfig": "Session not associated with Agent config",
+      "engineNotFound": "Selected engine not found",
+      "agentConfigNotFound": "Agent config not found"
     },
     "conversation": {
       "emptyTitle": "No Active Session",
       "messages": "{{count}} messages",
       "tools": "{{count}} tools enabled",
-      "none": "Select or create a session to start chatting."
+      "none": "Select or create a session to start chatting.",
+      "references": "{count} reference(s)",
+      "referencesTooltip": "Click to manage references"
     },
     "tools": {
       "title": "Toolbox",
@@ -1570,13 +1794,17 @@
         "idle": "Idle",
         "never": "Never used",
         "tags": "Tags",
-        "placeholder": "Select a tool to inspect its details."
+        "placeholder": "Select a tool to inspect its details.",
+        "lastUsed": "Last Used",
+        "name": "Name",
+        "description": "Description"
       },
       "origins": {
         "renderer": "Renderer Process",
         "main": "Main Process",
         "mcp": "MCP Application"
-      }
+      },
+      "available": "Available"
     },
     "display": {
       "dataAnalysis": {
@@ -1586,7 +1814,21 @@
         "aggregating": "Performing aggregation analysis...",
         "summarizing": "Generating analysis summary...",
         "fields": "Fields",
-        "stats": "Descriptive Statistics",
+        "stats": {
+          "label": "Descriptive Statistics",
+          "count": "Count",
+          "mean": "Mean",
+          "median": "Median",
+          "mode": "Mode",
+          "std": "Standard Deviation",
+          "variance": "Variance",
+          "min": "Minimum",
+          "max": "Maximum",
+          "q25": "First Quartile",
+          "q75": "Third Quartile",
+          "sum": "Sum",
+          "avg": "Average"
+        },
         "aggregations": "Aggregations",
         "summary": "Summary",
         "totalRows": "Total Rows",
@@ -1596,7 +1838,16 @@
         "uniqueValues": "Unique Values",
         "sampleValues": "Sample Values",
         "groupBy": "Group by {{field}}",
-        "analysisFailed": "Analysis Failed"
+        "analysisFailed": "Analysis Failed",
+        "generatingTemplate": "Generating analysis report template...",
+        "statsLabel": "Descriptive Statistics",
+        "numeric": "Numeric",
+        "string": "String",
+        "rows": "Rows",
+        "groupCount": "Rows in group",
+        "uniqueCount": "Unique values",
+        "totalCount": "Total count",
+        "topValues": "Common values"
       },
       "ocr": {
         "sessionsTitle": "OCR Sessions",
@@ -1689,7 +1940,8 @@
         "stderr": "Standard Error:",
         "aiSummary": "AI Analysis Summary",
         "rejected": "Command execution has been rejected",
-        "executionFailed": "Command Execution Failed"
+        "executionFailed": "Command Execution Failed",
+        "terminalOutput": "Terminal Output"
       },
       "todoList": {
         "analyzing": "Analyzing user intent...",
@@ -1707,7 +1959,9 @@
         "noDueDate": "No Due Date",
         "tags": "Tags",
         "noTags": "No Tags",
-        "generationFailed": "Generation Failed"
+        "generationFailed": "Generation Failed",
+        "urgent": "Urgent",
+        "dependencies": "Depends on {count} task(s)"
       },
       "ragTool": {
         "searching": "Searching knowledge base...",
@@ -1732,7 +1986,11 @@
         "copySuccess": "Copied to clipboard",
         "copyFailed": "Copy failed",
         "downloadSuccess": "Download successful",
-        "downloadFailed": "Download failed"
+        "downloadFailed": "Download failed",
+        "copyId": "Copy ID",
+        "copyTestCaseId": "Copy Test Case ID",
+        "testCaseIdCopied": "Test case ID copied: {id}",
+        "clickToCopy": "Click to copy test case ID"
       },
       "titleFormat": {
         "title": "Title Formatting",
@@ -1762,7 +2020,227 @@
         "replacedCount": "Replaced {count} occurrences",
         "replacementText": "Replacement Text",
         "showOriginal": "Show Original",
-        "showReplaced": "Show Replaced"
+        "showReplaced": "Show Replaced",
+        "summaryMode": "Summary Mode",
+        "summaryDescription": "Search operation completed successfully. Full document content not included to save space since verbose mode is disabled."
+      },
+      "diff": {
+        "fetching": "Fetching content...",
+        "calculating": "Calculating differences...",
+        "title": "Text Diff Comparison",
+        "insertions": "Insert {count} line(s)",
+        "deletions": "Delete {count} line(s)",
+        "equal": "{count} unchanged line(s)",
+        "unifiedView": "Unified View",
+        "splitView": "Split View",
+        "oldText": "Old Text",
+        "newText": "New Text",
+        "noData": "No diff data",
+        "error": "Diff calculation failed"
+      },
+      "outlineTree": {
+        "retrieving": "Retrieving document outline...",
+        "loading": "Loading document...",
+        "extracting": "Extracting outline tree...",
+        "title": "Document Outline",
+        "nodeCount": "{count} node(s)",
+        "hasContent": "Has content",
+        "emptyTitle": "Untitled",
+        "error": "Failed to retrieve outline",
+        "path": "Path",
+        "level": "Level",
+        "childrenCount": "{count} child node(s)"
+      },
+      "color": {
+        "processing": "Processing color...",
+        "title": "Color Processing Result",
+        "color1": "Color 1",
+        "color2": "Color 2",
+        "original": "Original Color",
+        "result": "Result",
+        "complementary": "Complementary Color",
+        "weight": "Weight: {weight}",
+        "brightnessAdjust": "Brightness adjustment: {amount}%",
+        "contrastAdjust": "Contrast adjustment: {amount}%",
+        "convertTo": "Convert to {format}",
+        "hex": "HEX",
+        "rgb": "RGB",
+        "hsl": "HSL",
+        "alpha": "Alpha",
+        "isDark": "Dark",
+        "isLight": "Light",
+        "yes": "Yes",
+        "no": "No",
+        "operation": {
+          "mix": "Color Mixing",
+          "brightness": "Brightness Adjustment",
+          "contrast": "Contrast Adjustment",
+          "complementary": "Complementary Color",
+          "convert": "Format Conversion",
+          "analyze": "Color Analysis"
+        },
+        "error": "Color processing failed"
+      },
+      "metadata": {
+        "completed": "Operation completed",
+        "title": "Title",
+        "author": "Author",
+        "description": "Description",
+        "keywords": "Keywords",
+        "error": "Operation failed",
+        "loading": "Loading document...",
+        "generating": "Generating metadata...",
+        "updating": "Updating metadata...",
+        "processing": "Processing..."
+      },
+      "outlineOptimize": {
+        "loading": "Loading document...",
+        "generating": "Generating...",
+        "syncing": "Syncing document content...",
+        "processing": "Processing...",
+        "completed": "Expansion completed",
+        "error": "Expansion failed",
+        "tooltip": "Quickly generate document outline and content. ⚠️ Note: This tool cannot guarantee content quality, but can quickly generate article drafts",
+        "operationLabel": "Operation Type",
+        "nodePath": "Node Path",
+        "nodeTitle": "Node Title",
+        "generatedChildrenCount": "Generated {count} child node(s)",
+        "totalChildrenCount": "Total {count} child node(s) generated",
+        "contentLength": "Content length: {length} characters",
+        "totalContentCount": "Total {count} node(s) content generated",
+        "outlineTree": "Document Outline Tree",
+        "path": "Path",
+        "level": "Level",
+        "hasContent": "Has content",
+        "childrenCount": "{count} child node(s)",
+        "emptyTitle": "Untitled",
+        "operation": {
+          "generateChildren": "Generate child nodes",
+          "generateContent": "Generate content",
+          "generateChildrenChildren": "Generate child nodes for all children",
+          "generateChildrenContent": "Generate content for all children"
+        }
+      },
+      "nodeAgent": {
+        "loading": "Loading document...",
+        "traversing": "Traversing nodes...",
+        "syncing": "Syncing document content...",
+        "processing": "Processing...",
+        "completed": "Node agent execution completed",
+        "error": "Node agent execution failed",
+        "currentNode": "Current Node",
+        "nodePath": "Node Path",
+        "nodeTitle": "Node Title",
+        "activeNodes": "Active Nodes",
+        "executedNodes": "Executed Nodes",
+        "executedNodesCount": "{count} node(s) executed",
+        "totalNodesProcessed": "Total {count} node(s) processed",
+        "generatedContent": "Generated Content",
+        "startNodePath": "Start Node Path",
+        "startNodeTitle": "Start Node Title"
+      },
+      "outlineReorder": {
+        "loading": "Loading document...",
+        "reordering": "Reordering nodes...",
+        "syncing": "Syncing document content...",
+        "completed": "Outline optimization completed",
+        "error": "Outline optimization failed"
+      },
+      "webCrawler": {
+        "title": "Web Page Access Result",
+        "size": "Size",
+        "renderView": "Rendered View",
+        "rawContent": "Raw Content",
+        "headers": "Response Headers",
+        "fetching": "Fetching web page...",
+        "processing": "Processing response...",
+        "loading": "Loading...",
+        "error": "Web page access failed"
+      },
+      "workspace": {
+        "loadingTree": "Loading directory tree...",
+        "reading": "Reading file...",
+        "processing": "Processing...",
+        "directoryTree": "Directory Tree",
+        "workspaceFolder": "Workspace Folder",
+        "filesTitle": "File Content",
+        "filesCount": "Total {count} file(s)",
+        "summarized": "Summarized",
+        "summary": "Summary",
+        "content": "Content",
+        "showContent": "Show full content",
+        "hideContent": "Hide full content",
+        "linesRange": "Lines {start}-{end} (of {total})",
+        "totalLines": "Total {count} line(s)",
+        "error": "Failed to read workspace files"
+      },
+      "edit": {
+        "completed": "Edit completed",
+        "appliedEdits": "Successfully applied",
+        "failedEdits": "Failed",
+        "totalOperations": "Total operations",
+        "loading": "Loading document...",
+        "applying": "Applying edits...",
+        "updating": "Updating document...",
+        "processing": "Processing...",
+        "error": "Edit failed",
+        "title": "Document Edit Result",
+        "unifiedView": "Unified View",
+        "splitView": "Split View",
+        "oldContent": "Original Content",
+        "newContent": "New Content",
+        "operations": "Edit Operations",
+        "operation": "Operation",
+        "summaryMode": "Summary Mode",
+        "summaryDescription": "Edit operations completed successfully. Full content not included to save space since verbose mode is disabled.",
+        "noDetails": "Edit operation completed successfully",
+        "type": {
+          "insert": "Insert",
+          "replace": "Replace",
+          "delete": "Delete"
+        },
+        "range": "Range",
+        "content": "Content",
+        "progress": {
+          "applying": "Applying edits...",
+          "updating": "Updating document...",
+          "processing": "Processing...",
+          "completed": "Edit completed",
+          "failed": "Edit failed",
+          "totalOperations": "Total operations",
+          "loading": "Loading document...",
+          "error": "Edit failed"
+        }
+      },
+      "proofread": {
+        "proofreading": "Proofreading",
+        "fixing": "Auto-fixing errors...",
+        "title": "Text Proofreading Result",
+        "totalErrors": "Found {count} error(s)",
+        "location": "Location: Line {line}, Column {column}",
+        "errorText": "Error Text",
+        "suggestion": "Suggestion",
+        "suggestions": "Suggestions",
+        "noErrors": "No errors found",
+        "error": "Proofreading failed",
+        "fixed": "Fixed",
+        "autoFixed": "Auto-fixed",
+        "severity": {
+          "error": "Error",
+          "warning": "Warning",
+          "info": "Info"
+        },
+        "errorType": {
+          "grammar": "Grammar Error",
+          "spelling": "Spelling Error",
+          "latex": "LaTeX Syntax Error",
+          "style": "Style Issue",
+          "other": "Other"
+        },
+        "unifiedView": "Unified View",
+        "splitView": "Split View",
+        "originalText": "Original Text",
+        "correctedText": "Corrected Text"
       }
     },
     "reference": {
@@ -1788,7 +2266,9 @@
       "type": {
         "file": "File",
         "url": "URL",
-        "custom": "Custom Text"
+        "custom": "Custom Text",
+        "knowledgeBase": "Knowledge Base",
+        "articleService": "Article Service"
       },
       "url": "URL",
       "urlPlaceholder": "Enter URL",
@@ -1852,7 +2332,23 @@
         "copyingPdf": "Copying PDF file...",
         "processingSlide": "Processing slide {current}/{total}",
         "foundSlides": "Found {count} slides",
-        "foundImages": "Found {count} images"
+        "foundImages": "Found {count} images",
+        "foundCharts": "Found {count} chart(s)"
+      },
+      "nameAndUrlRequired": "Name and URL are required",
+      "builtInDocument": {
+        "title": "Current Document Reference",
+        "description": "Dynamically fetches current active document content, real-time updates, doesn't occupy history message space",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "preview": "Preview",
+        "noActiveDocument": "No active document",
+        "emptyDocument": "Current document is empty",
+        "currentActiveDocument": "Current Active Document",
+        "formatSuffix": "({format} format)"
+      },
+      "error": {
+        "cancelRequestFailed": "Failed to send cancel request"
       }
     },
     "userLabel": "User",
@@ -1867,7 +2363,142 @@
     "callParams": "Call parameters",
     "demoSession1": "Code Review Session",
     "demoSession2": "Document Writing Assistant",
-    "demoSession3": "Data Analysis Expert"
+    "demoSession3": "Data Analysis Expert",
+    "copy": "Copy",
+    "manage": {
+      "status": "Status",
+      "title": "Manage",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "edit": "Edit",
+      "delete": "Delete",
+      "export": "Export",
+      "import": "Import",
+      "validate": "Validate",
+      "actions": "Actions",
+      "exportSuccess": "Export successful",
+      "importSuccess": "Import successful",
+      "toolCollection": {
+        "tools": "Tools",
+        "title": "Tool Collection Management",
+        "create": "Create Tool Collection",
+        "edit": "Edit Tool Collection",
+        "name": "Name",
+        "description": "Description",
+        "toolCount": "Tool Count",
+        "selectTools": "Select Tools",
+        "nameRequired": "Name is required",
+        "createSuccess": "Tool collection created successfully",
+        "updateSuccess": "Tool collection updated successfully",
+        "deleteSuccess": "Tool collection deleted successfully",
+        "confirmDelete": "Are you sure you want to delete tool collection \"{name}\"?",
+        "cannotDeleteDefault": "Cannot delete default tool collection",
+        "builtIn": "Built-in"
+      },
+      "agentConfig": {
+        "title": "Agent Config Management",
+        "create": "Create Config",
+        "edit": "Edit Config",
+        "name": "Name",
+        "description": "Description",
+        "scenario": "Scenario",
+        "toolCount": "Available Tools",
+        "toolCollections": "Tool Collections",
+        "default": "Default",
+        "cannotEditDefault": "Cannot edit default config",
+        "selectToolCollections": "Select Tool Collections",
+        "toolCollectionHint": "When multiple tool collections are selected, available tools are the intersection",
+        "llmModel": "LLM Model",
+        "temperature": "Temperature",
+        "systemPrompt": "System Prompt",
+        "maxToolCalls": "Max Tool Calls",
+        "unlimited": "Unlimited",
+        "toolCollectionRequired": "At least one tool collection must be selected",
+        "cannotDeleteDefault": "Cannot delete default config",
+        "nameRequired": "Name is required",
+        "createSuccess": "Config created successfully",
+        "updateSuccess": "Config updated successfully",
+        "deleteSuccess": "Config deleted successfully",
+        "validationSuccess": "Config validation passed",
+        "validationWarnings": "Config validation warnings",
+        "validationFailed": "Config validation failed",
+        "confirmDelete": "Are you sure you want to delete config \"{name}\"?",
+        "view": "View",
+        "viewOnly": "View Only",
+        "systemPromptPlaceholder": "Enter Agent system prompt to define the role and responsibilities...",
+        "systemPromptHint": "System prompt defines the Agent's core role, capabilities, and working style",
+        "injectTimestamp": "Inject Timestamp",
+        "injectTimestampLabel": "Inject current timestamp before system prompt",
+        "injectTimestampHint": "When enabled, current timestamp info is automatically added before system prompt when creating Agent instance"
+      },
+      "agentEngine": {
+        "title": "Agent Engine Management",
+        "create": "Create Engine",
+        "edit": "Edit Engine",
+        "view": "View Engine",
+        "viewOnly": "View Only",
+        "name": "Name",
+        "description": "Description",
+        "engineType": "Engine Type",
+        "llmMode": "LLM Mode",
+        "selectEngineType": "Select Engine Type",
+        "engineTypes": {
+          "autogpt": "AutoGPT",
+          "react": "ReAct",
+          "planExecute": "Plan-Execute",
+          "simpleChat": "Simple Chat"
+        },
+        "llmConfigMode": "LLM Config Mode",
+        "useGlobalLLM": "Use Global LLM",
+        "useCustomLLM": "Use Custom LLM",
+        "llmConfigModeHint": "Global LLM uses LLM config from MetaDoc settings, Custom LLM requires API URL and key configuration",
+        "apiBaseUrl": "API Base URL",
+        "apiBaseUrlPlaceholder": "https://api.example.com/v1",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Please enter API key",
+        "model": "Model Name",
+        "modelPlaceholder": "e.g.: gpt-3.5-turbo",
+        "temperature": "Temperature",
+        "maxTokens": "Max Tokens",
+        "maxIterations": "Max Iterations",
+        "thinkingDepth": "Thinking Depth",
+        "enableReflection": "Enable Reflection",
+        "enablePlanning": "Enable Planning",
+        "builtIn": "Built-in",
+        "nameRequired": "Name is required",
+        "baseUrlRequired": "API Base URL is required",
+        "apiKeyRequired": "API Key is required",
+        "modelRequired": "Model name is required",
+        "cannotEditBuiltIn": "Cannot edit built-in engine",
+        "cannotDeleteBuiltIn": "Cannot delete built-in engine",
+        "createSuccess": "Engine created successfully",
+        "updateSuccess": "Engine updated successfully",
+        "deleteSuccess": "Engine deleted successfully",
+        "validationSuccess": "Engine validation passed",
+        "validationWarnings": "Engine validation warnings",
+        "validationFailed": "Engine validation failed",
+        "confirmDelete": "Are you sure you want to delete engine \"{name}\"?"
+      }
+    },
+    "message": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "regenerate": "Regenerate",
+      "duplicateSession": "Duplicate Session",
+      "editMessage": "Edit Message",
+      "editPlaceholder": "Please enter message content",
+      "confirmDelete": "Are you sure you want to delete this message?",
+      "deleteSuccess": "Message deleted",
+      "editSuccess": "Message updated",
+      "callingTool": "Calling tool: {tool}",
+      "callingTools": "Calling {count} tool(s): {tools}",
+      "toolCallInitiated": "AI initiated call to {tool}",
+      "toolCallsInitiated": "AI initiated {count} tool call(s): {tools}",
+      "intentRecognition": "Intent Recognition",
+      "selectedTools": "Selected tools:",
+      "noToolsNeeded": "No tools needed for this request.",
+      "reasoning": "Reasoning:"
+    }
   },
   "agentToolResultCard": {
     "emptyResultSaveFile": "Save file call returned empty result",
@@ -2048,7 +2679,8 @@
         "label": "Image Processing",
         "description": "Choose how to process images: keep original links or save to folder",
         "original": "Keep Original Links",
-        "folder": "Save to Folder"
+        "folder": "Save to Folder",
+        "base64": "Base64 Embed"
       },
       "generateCover": {
         "label": "Generate Cover",
@@ -2056,7 +2688,8 @@
       },
       "generateToc": {
         "label": "Generate Table of Contents",
-        "description": "Generate table of contents after cover (or at document start)"
+        "description": "Generate table of contents after cover (or at document start)",
+        "title": "Table of Contents"
       },
       "processFormula": {
         "label": "Process Formulas",
@@ -2073,6 +2706,163 @@
       "removeTitlePrefixes": {
         "label": "Auto Remove Title Prefixes",
         "description": "LaTeX automatically numbers each section. If titles already have numbering prefixes, it will cause duplication. Enabling this option will automatically remove all numbering and dots at the beginning of titles (e.g., \"1.1\", \"一、\", etc.)"
+      },
+      "pageSize": {
+        "label": "Page Size",
+        "description": "Select PDF page size",
+        "descriptionTex": "Select PDF page size (needs to be configured in LaTeX document class)",
+        "a4": "A4",
+        "a3": "A3",
+        "a5": "A5",
+        "b5": "B5",
+        "letter": "Letter",
+        "legal": "Legal"
+      },
+      "margins": {
+        "label": "Margins",
+        "description": "PDF margin settings",
+        "descriptionTex": "PDF margin settings (Note: LaTeX margins need to be configured in the document)"
+      },
+      "marginTop": {
+        "label": "Top Margin (inches)",
+        "description": "PDF top margin, unit: inches",
+        "descriptionTex": "PDF top margin, unit: inches (Note: LaTeX margins need to be configured in the document)"
+      },
+      "marginBottom": {
+        "label": "Bottom Margin (inches)",
+        "description": "PDF bottom margin, unit: inches"
+      },
+      "marginLeft": {
+        "label": "Left Margin (inches)",
+        "description": "PDF left margin, unit: inches"
+      },
+      "marginRight": {
+        "label": "Right Margin (inches)",
+        "description": "PDF right margin, unit: inches"
+      },
+      "printBackground": {
+        "label": "Print Background",
+        "description": "Whether to include background colors and images in PDF"
+      },
+      "tabs": {
+        "basic": "Basic Settings",
+        "style": "Style Settings"
+      },
+      "chineseFont": {
+        "label": "Chinese Font",
+        "description": "Chinese font used for PDF export"
+      },
+      "westernFont": {
+        "label": "Western Font",
+        "description": "Western font used for PDF export"
+      },
+      "colorMode": {
+        "label": "Color Mode",
+        "description": "PDF color mode (color or grayscale)",
+        "color": "Color",
+        "grayscale": "Grayscale"
+      },
+      "enableStyleMapping": {
+        "label": "Enable Style Mapping",
+        "description": "Whether to map Markdown elements to Word styles (such as Heading 1, Heading 2, etc.)"
+      },
+      "normalFontFamily": {
+        "label": "Body Font",
+        "description": "Font used for body text"
+      },
+      "normalFontSize": {
+        "label": "Body Font Size (pt)",
+        "description": "Body font size, unit: points (pt)"
+      },
+      "normalLineHeight": {
+        "label": "Body Line Height",
+        "description": "Body line height multiplier"
+      },
+      "heading1FontFamily": {
+        "label": "Heading 1 Font",
+        "description": "Font used for Heading 1"
+      },
+      "heading1FontSize": {
+        "label": "Heading 1 Font Size (pt)",
+        "description": "Heading 1 font size, unit: points (pt)"
+      },
+      "heading1LineHeight": {
+        "label": "Heading 1 Line Height",
+        "description": "Heading 1 line height multiplier"
+      },
+      "heading2FontFamily": {
+        "label": "Heading 2 Font",
+        "description": "Font used for Heading 2"
+      },
+      "heading2FontSize": {
+        "label": "Heading 2 Font Size (pt)",
+        "description": "Heading 2 font size, unit: points (pt)"
+      },
+      "heading2LineHeight": {
+        "label": "Heading 2 Line Height",
+        "description": "Heading 2 line height multiplier"
+      },
+      "heading3FontFamily": {
+        "label": "Heading 3 Font",
+        "description": "Font used for Heading 3"
+      },
+      "heading3FontSize": {
+        "label": "Heading 3 Font Size (pt)",
+        "description": "Heading 3 font size, unit: points (pt)"
+      },
+      "heading3LineHeight": {
+        "label": "Heading 3 Line Height",
+        "description": "Heading 3 line height multiplier"
+      },
+      "heading4FontFamily": {
+        "label": "Heading 4 Font",
+        "description": "Font used for Heading 4"
+      },
+      "heading4FontSize": {
+        "label": "Heading 4 Font Size (pt)",
+        "description": "Heading 4 font size, unit: points (pt)"
+      },
+      "heading4LineHeight": {
+        "label": "Heading 4 Line Height",
+        "description": "Heading 4 line height multiplier"
+      },
+      "inlineStyles": {
+        "label": "Inline CSS",
+        "description": "Whether to inline CSS styles into HTML"
+      },
+      "includeMetadata": {
+        "label": "Include Metadata",
+        "description": "Whether to include document metadata in exported Markdown"
+      }
+    },
+    "adapters": {
+      "mdToPdf": {
+        "name": "Markdown to PDF",
+        "description": "Export Markdown documents to PDF format"
+      },
+      "mdToDocx": {
+        "name": "Markdown to DOCX",
+        "description": "Export Markdown documents to DOCX format"
+      },
+      "mdToHtml": {
+        "name": "Markdown to HTML",
+        "description": "Export Markdown documents to HTML format"
+      },
+      "mdToMd": {
+        "name": "Markdown to Markdown",
+        "description": "Export Markdown documents"
+      },
+      "mdToTex": {
+        "name": "Markdown to LaTeX",
+        "description": "Export Markdown documents to LaTeX format"
+      },
+      "texToPdf": {
+        "name": "LaTeX to PDF",
+        "description": "Compile LaTeX documents to PDF format"
+      },
+      "texToTex": {
+        "name": "LaTeX to LaTeX",
+        "description": "Export LaTeX documents"
       }
     }
   },
@@ -2395,7 +3185,34 @@
     "userBehavior": "User Behavior Analysis",
     "exportExcel": "Export to Excel",
     "fileNotFound": "Excel file does not exist",
-    "fileMoved": "File may have been deleted or moved. Please re-upload"
+    "fileMoved": "File may have been deleted or moved. Please re-upload",
+    "analysisRequest": "Analysis requirements (optional)",
+    "analysisRequestPlaceholder": "Describe your analysis requirements...",
+    "analyze": "Start analysis",
+    "analyzeFailed": "Analysis failed",
+    "analyzeSuccess": "Analysis complete",
+    "autoGroupBy": "Auto aggregation analysis",
+    "currentHeader": "Current header",
+    "defaultTitle": "New data analysis session",
+    "generateReport": "Generate analysis report",
+    "headerPreview": "Current header preview:",
+    "headerRowHint": "Default: auto-detect (current guess: row {0})",
+    "headerRowIndex": "Header row index (starting from 0)",
+    "newSession": "New session",
+    "noAnalysisResult": "No analysis result yet, please start analysis in the Data Preview tab",
+    "noFile": "Please upload data file first",
+    "noSessionSelected": "Please select a session or create a new one",
+    "renamePlaceholder": "Please enter session name",
+    "renameTitle": "Rename session",
+    "sessionsTitle": "Data Analysis Sessions",
+    "tabs": {
+      "report": "Analysis report",
+      "data": "Raw data",
+      "analysis": "Data analysis"
+    },
+    "title": "Data Analysis",
+    "uploadHint": "Drag files here or click to upload",
+    "uploadTip": "Supports CSV, Excel, JSON formats"
   },
   "editor": {
     "noOpenDocument": "No open document",
@@ -2404,5 +3221,298 @@
     "edit": "Edit",
     "save": "Save",
     "unsaved": "Unsaved"
+  },
+  "aIService": {
+    "cancelled": "Cancelled",
+    "clear": "Clear",
+    "create": "Create",
+    "failed": "Task failed",
+    "text": "Launch"
+  },
+  "agent-engine-executor": {
+    "clear": "Cleared",
+    "completed": "Injection completed",
+    "completedRecognize": "Intent recognition completed",
+    "startRecognize": "Starting intent recognition",
+    "text": "Tool injected",
+    "text1": "Tool",
+    "text2": "Not found",
+    "update": "Updated"
+  },
+  "agentView": {
+    "analyzeGenerate": "Generate charts and data analysis results",
+    "code": "Run code in secure sandbox",
+    "fileLocal": "Browse local project files",
+    "infoSearch": "Search for latest information via internet",
+    "previewGenerate": "Supports quick preview and summary generation",
+    "text": "Return structured summary and citations",
+    "text1": "Supports",
+    "text2": "Via",
+    "text3": "Protocol and",
+    "user": "User"
+  },
+  "agentViewCompact": {
+    "cancelled": "Task cancelled",
+    "user": "User"
+  },
+  "aigc": {
+    "analysisComplete": "Analysis complete",
+    "analysisReport": "Analysis report",
+    "analyzing": "Analyzing...",
+    "analyzingParagraph": "Analyzing paragraph {index}/{total}",
+    "articleContent": "Article content",
+    "assembleAsNewArticle": "Assemble as new article",
+    "assembleNewTitle": "Rewritten article",
+    "assembleSuccess": "Assembled into new article and opened",
+    "backToTop": "Back to top",
+    "chartWeightTitle": "Risk Source Weight (Weighted Power Contribution Ratio)",
+    "clickGenerateReport": "Click generate report button to generate detailed report",
+    "contentSelected": "Content selected",
+    "copy": "Copy",
+    "copyFailed": "Copy failed",
+    "copyOneClick": "One-click copy",
+    "copySuccess": "Copied",
+    "defaultTitle": "New AIGC Detection Session",
+    "dimensions": {
+      "sentence_uniformity": "Sentence Uniformity",
+      "lexical_diversity": "Lexical Diversity",
+      "reasoning_smoothness": "Reasoning Smoothness",
+      "personal_trace": "Personal Trace Absence",
+      "stylistic_risk": "Stylistic Risk",
+      "over_explanation": "Over Explanation",
+      "hedging_pattern": "Hedging Pattern",
+      "opening_transition_pattern": "Opening Transition Pattern",
+      "structural_repetition": "Structural Repetition",
+      "abstractness": "Abstractness",
+      "emotional_flatness": "Emotional Flatness",
+      "formulaic_closure": "Formulaic Closure"
+    },
+    "documentEmpty": "Document content is empty",
+    "documentNotFound": "Document not found",
+    "domainAcademic": "Academic",
+    "domainGeneral": "General",
+    "export": "Export",
+    "exportAndDetect": "Perform AIGC rate detection",
+    "exportAsNewDoc": "As new document",
+    "exportParaphrased": "Export paraphrased article",
+    "exportParaphrasedSuccess": "Paraphrased article exported to new document",
+    "exportReport": "Export report",
+    "exportReportSuccess": "Exported to new document",
+    "fileUploaded": "File uploaded successfully",
+    "generateReport": "Generate report",
+    "mergeWithNext": "Merge with next paragraph",
+    "modified": "Modified",
+    "newSession": "New session",
+    "noActiveDocument": "No active document",
+    "noAnalysisData": "No analysis data",
+    "noAnalysisYet": "No analysis yet",
+    "noContent": "Please upload or select article content first",
+    "noDocuments": "No open documents",
+    "noSessionSelected": "Please select a session or create a new one",
+    "nonSignificantRisk": "Non-significant risk",
+    "paragraphContent": "Paragraph content",
+    "paragraphCount": "Total {n} paragraph(s)",
+    "paraphraseAll": "Paraphrase all",
+    "paraphraseOne": "Paraphrase",
+    "paraphraseSuccess": "Paraphrase successful",
+    "paraphrasedContent": "Paraphrased content",
+    "paraphrasing": "Paraphrasing...",
+    "pleaseSelectDocument": "Please select document to analyze",
+    "pleaseUploadOrSelect": "Please upload file or select content from document",
+    "reAnalyze": "Re-analyze",
+    "reParaphraseAll": "Re-paraphrase all",
+    "reParaphraseOne": "Re-paraphrase",
+    "rePreprocess": "Re-divide paragraphs",
+    "renamePlaceholder": "Please enter session name",
+    "renameTitle": "Rename session",
+    "reportGenerated": "Report generated successfully",
+    "selectDocumentTitle": "Select document to analyze",
+    "selectDomain": "Select domain",
+    "selectFromDocument": "Select from document",
+    "selectLanguage": "Select language",
+    "selectedOneDocument": "1 document selected",
+    "sessionsTitle": "AIGC Detection Sessions",
+    "splitAtCursor": "Split at cursor",
+    "startAnalysis": "Start analysis",
+    "unsupportedFileType": "Unsupported file type",
+    "unsupportedFormat": "Unsupported document format",
+    "uploadFile": "Upload file",
+    "viewOriginal": "A Original",
+    "viewParaphrased": "B Paraphrased"
+  },
+  "aigcDetectionWindow": {
+    "text": "Sentence Uniformity",
+    "text1": "Lexical Diversity",
+    "text2": "Reasoning Smoothness",
+    "text3": "Personal Trace Absence",
+    "text4": "Stylistic Risk",
+    "text5": "Over Explanation",
+    "text6": "Hedging Pattern",
+    "text7": "Opening Transition Pattern",
+    "text8": "Structural Repetition",
+    "text9": "Abstractness"
+  },
+  "attachment": {
+    "analysisSuccess": "Analysis complete",
+    "analyzing": "Analyzing attachment",
+    "attachmentsTitle": "Attachment Parser",
+    "fileType": "File type",
+    "newAttachment": "Upload attachment",
+    "noAnalysis": "No AI analysis results yet",
+    "noAttachmentSelected": "Please select an attachment or upload a new one",
+    "noParsedContent": "Please parse the attachment first",
+    "parse": "Parse attachment",
+    "parseSuccess": "Parse complete",
+    "reanalyze": "Re-analyze with AI",
+    "renamePlaceholder": "Please enter attachment name",
+    "renameTitle": "Rename attachment",
+    "reparse": "Re-parse",
+    "selectFile": "Select attachment",
+    "startAnalysis": "Start AI analysis",
+    "tabs": {
+      "parsed": "Parsed content",
+      "aiAnalysis": "AI analysis"
+    },
+    "uploadSuccess": "Attachment uploaded successfully"
+  },
+  "celebration": {
+    "continue": "Start using MetaDoc →",
+    "skip": "Click anywhere to skip",
+    "subtitle": "You have completed the MetaDoc learning guide",
+    "title": "Ready!"
+  },
+  "chart-generation-tool": {
+    "code": "Chart code is empty",
+    "code1": "Code too short",
+    "codeMissing": "Code missing",
+    "error": "Syntax error",
+    "errorFormat": "Configuration format error",
+    "text": "Token",
+    "typeRecognize": "Cannot recognize chart type",
+    "validateFailedFailedValidate": "Syntax validation failed"
+  },
+  "console": {
+    "clear": "Clear screen",
+    "copiedToClipboard": "Copied to clipboard",
+    "copy": "Copy",
+    "enableAiAnalysis": "AI error analysis",
+    "encoding": {
+      "unicode": "Unicode",
+      "chinese": "Chinese",
+      "japanese": "Japanese",
+      "korean": "Korean",
+      "western": "Western",
+      "centralEastern": "Central/Eastern Europe",
+      "russian": "Russian",
+      "greek": "Greek",
+      "utf8": "UTF-8",
+      "gbk": "GBK",
+      "gb2312": "GB2312",
+      "big5": "Big5 (Traditional)",
+      "shiftJis": "Shift_JIS",
+      "eucKr": "EUC-KR",
+      "iso88591": "ISO-8859-1 (Latin1)",
+      "windows1252": "Windows-1252",
+      "iso885915": "ISO-8859-15",
+      "iso88592": "ISO-8859-2 (Latin2)",
+      "windows1250": "Windows-1250",
+      "koi8r": "KOI8-R",
+      "windows1251": "Windows-1251",
+      "iso88595": "ISO-8859-5",
+      "iso88597": "ISO-8859-7"
+    },
+    "logSaveFailed": "Failed to save log",
+    "logSaved": "Log saved",
+    "saveLog": "Save log",
+    "title": "Terminal Output"
+  },
+  "data-analysis-tool": {
+    "analyze": "Data analysis",
+    "analyze1": "Auto analysis",
+    "analyze2": "Aggregation analysis, etc.",
+    "analyze3": "Data analysis tool",
+    "description": "Descriptive statistics",
+    "descriptionFeature": "Feature description",
+    "info": "Extract field information",
+    "text": "and other data"
+  },
+  "dataAnalysisWindow": {
+    "analyze": "Will only analyze selected data",
+    "analyze1": "You can check rows in the table to analyze only partial data",
+    "analyze2": "No analysis results yet",
+    "detect": "Auto-detect",
+    "preview": "Data preview",
+    "text": "Default value",
+    "text1": "Current Guess",
+    "text2": "Selected",
+    "text3": "Please in",
+    "tooltip": "Tooltip"
+  },
+  "detailedOutlineNode": {
+    "generating": "Generating",
+    "sizeDragAdjust": "Drag to resize"
+  },
+  "documentService": {
+    "exportFailedFailedExport": "Document export failed",
+    "failedClose": "Failed to close document",
+    "failedNew": "Failed to create new document",
+    "loadFailedFailedLoading": "Document load failed",
+    "saveFailedFailedSave": "Document save failed"
+  },
+  "dummyView": {
+    "emptyDescription": "No open documents"
+  },
+  "fomulaRecognition": {
+    "copyFailed": "Copy failed",
+    "deleteFailed": "Delete failed",
+    "failedCreate": "Failed to create session",
+    "failedLoading": "Failed to load session list",
+    "failedLoading1": "Failed to load session",
+    "recognize": "Formula Recognition Example",
+    "renameFailed": "Rename failed",
+    "text": "Copy"
+  },
+  "graph": {
+    "analyzingIntent": "Analyzing intent...",
+    "assistant": "Assistant",
+    "chartType": "Chart Type",
+    "conversationMode": "Conversation Mode",
+    "defaultTitle": "New Graph Session",
+    "engine": "Graph Engine",
+    "export": "Export",
+    "exportSuccess": "Export successful",
+    "generate": "Generate",
+    "generateSuccess": "Generation successful",
+    "generated": "Chart generated",
+    "generatedImage": "Generated Image",
+    "generating": "Generating...",
+    "inputPlaceholder": "Enter graph requirements, AI will automatically select the appropriate chart engine...",
+    "newSession": "New Session",
+    "noChart": "No chart to export",
+    "noOptimizePrompt": "Please enter optimization requirements",
+    "noPrompt": "Please enter graph requirements",
+    "noSessionSelected": "Please select a session or create a new session",
+    "optimize": "Optimize Image",
+    "optimizeOnlyInConversation": "Optimization is only available in conversation mode",
+    "optimizePrompt": "Optimize the image based on the following conversation history:",
+    "outputFormat": "Output Format",
+    "renamePlaceholder": "Please enter session name",
+    "renameTitle": "Rename Session",
+    "sessionsTitle": "Graph Sessions",
+    "simpleMode": "Simple Mode",
+    "user": "User",
+    "userRequest": "User Request"
+  },
+  "graphWindow": {
+    "format": "Format as follows",
+    "name": "Engine Name",
+    "text": "Available Chart Engines",
+    "text1": "And return a",
+    "text2": "Object",
+    "text3": "Lowercase",
+    "type": "Supported Types",
+    "type1": "Chart Type",
+    "user": "User Requirements",
+    "userAnalyze": "Please analyze user requirements"
   }
 }

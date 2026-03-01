@@ -10,10 +10,42 @@
     "send": "Bitte",
     "enterToSend": "Enter zum Senden",
     "ctrlEnterToSend": "Strg+Enter zum Senden",
-    "changeSendMode": "Klicken, um die Sende-Tastenkombination zu wechseln"
+    "changeSendMode": "Klicken, um die Sende-Tastenkombination zu wechseln",
+    "atLeastOneRequired": "Mindestens ein Dialog muss beibehalten werden",
+    "attachTooltip": "Datei anhängen",
+    "cancelTooltip": "KI-Generierung abbrechen",
+    "confirmDelete": "Soll \"{title}\" wirklich gelöscht werden?",
+    "delete": "Löschen",
+    "deleteSuccess": "Löschung erfolgreich",
+    "duplicate": "Duplizieren",
+    "duplicateSuccess": "Dialog dupliziert",
+    "earlier": "Früher",
+    "exportSuccess": "In neues Dokument exportiert",
+    "exportToDocument": "In neues Dokument exportieren",
+    "exportToDocumentSuccess": "Exportanfrage gesendet",
+    "generationCancelled": "KI-Generierung abgebrochen",
+    "insertAsLatex": "Als LaTeX einfügen",
+    "insertAsMarkdown": "Als Markdown einfügen",
+    "insertSuccess": "Inhalt in Dokument eingefügt",
+    "insertToDocument": "In Dokument einfügen",
+    "insertToDocumentSuccess": "Einfügeanfrage gesendet",
+    "insertToDocumentsSuccess": "Inhalt in ausgewählte Dokumente eingefügt",
+    "insertToLatexMessage": "Bitte Einfügemethode auswählen:",
+    "insertToLatexTitle": "In LaTeX-Dokument einfügen",
+    "knowledgeBaseTooltip": "Wissensbasis abfragen",
+    "lastMonth": "Letzter Monat",
+    "lastWeek": "Letzte Woche",
+    "noActiveDocument": "Kein aktives Dokument",
+    "noDocuments": "Keine geöffneten Dokumente",
+    "rename": "Umbenennen",
+    "selectDocumentTitle": "Dokument zum Einfügen auswählen",
+    "sendTooltip": "Nachricht senden",
+    "today": "Heute",
+    "yesterday": "Gestern"
   },
   "aiTask": {
     "cancel": "Abbrechen",
+    "error": "Fehler",
     "failed": "Versäumt",
     "ready": "Fertig",
     "running": "Laufen",
@@ -72,7 +104,8 @@
     "bitmapImage": "Bitmap (PNG)",
     "exportFormat": "Ausfuhrformat",
     "pdfDocument": "PDF Dokument",
-    "vectorImage": "Vector Chart (SVG)"
+    "vectorImage": "Vector Chart (SVG)",
+    "insertImage": "Bild einfügen"
   },
   "article": {
     "ai_analyze_title": "KI analysiert „{title}“",
@@ -83,6 +116,11 @@
     "click_to_edit_author": "Klicken Sie auf den Autor zu ändern",
     "click_to_edit_description": "Klicken Sie, um die Artikelübersicht zu ändern",
     "click_to_edit_title": "Klicken Sie, um den Titel zu ändern",
+    "collapse_meta_panel": "Metainformationsfeld einklappen",
+    "edit_description": "Zusammenfassung bearbeiten",
+    "edit_title": "Titel bearbeiten",
+    "expand_meta_panel": "Metainformationsfeld ausklappen",
+    "toggle_meta_panel": "Metainformationsfeld umschalten",
     "description": "Zusammenfassung",
     "description_placeholder": "Bitte geben Sie einen Artikel zusammen",
     "drag_to_resize": "Ziehen Sie die Breite",
@@ -122,7 +160,17 @@
       "search_replace": "Finden und ersetzen",
       "strike": "Strikeout",
       "table": "Tabelle",
-      "undo": "Und"
+      "undo": "Und",
+      "mode": "Bearbeitungsmodus",
+      "convert_latex_formulas": "LaTeX-Formeln konvertieren",
+      "convert_latex_formulas_title": "LaTeX-Formeln konvertieren",
+      "convert_latex_formulas_message": "Diese Aktion konvertiert \\(...\\) Inline-Formeln und \\[...\\] Blockformeln in das Vditor-kompatible $...$ und $$...$$ Format.\n\nHinweis: Diese Aktion ändert den Dokumentinhalt. Speichern Sie das Dokument zuerst.",
+      "convert_latex_formulas_success": "Formelkonvertierung abgeschlossen",
+      "convert_latex_formulas_no_match": "Keine zu konvertierenden Formeln gefunden",
+      "convert_latex_formulas_no_editor": "Editor nicht bereit",
+      "toggle_outline": "Gliederung umschalten",
+      "toggle_outline_show": "Gliederung anzeigen",
+      "toggle_outline_hide": "Gliederung ausblenden"
     },
     "vditor_init_failed": "Initialisierung fehlgeschlagen:",
     "convert_to_latex": "Dokument nach LaTeX umrechnen",
@@ -134,6 +182,29 @@
       "tip": "Hinweis"
     }
   },
+  "attachment": {
+    "analysisSuccess": "Analyse abgeschlossen",
+    "analyzing": "Anhang analysieren",
+    "attachmentsTitle": "Anhangsanalyse",
+    "fileType": "Dateityp",
+    "newAttachment": "Anhang hochladen",
+    "noAnalysis": "Keine KI-Analyseergebnisse",
+    "noAttachmentSelected": "Bitte wählen Sie einen Anhang aus oder laden Sie einen neuen hoch",
+    "noParsedContent": "Bitte analysieren Sie den Anhang zuerst",
+    "parse": "Anhang analysieren",
+    "parseSuccess": "Analyse abgeschlossen",
+    "reanalyze": "KI-Analyse wiederholen",
+    "renamePlaceholder": "Bitte Anhangsnamen eingeben",
+    "renameTitle": "Anhang umbenennen",
+    "reparse": "Analyse wiederholen",
+    "selectFile": "Anhang auswählen",
+    "startAnalysis": "KI-Analyse starten",
+    "tabs": {
+      "parsed": "Analyseinhalt",
+      "aiAnalysis": "KI-Analyse"
+    },
+    "uploadSuccess": "Anhang erfolgreich hochgeladen"
+  },
   "bottomMenu": {
     "aiTaskQueueTooltip": "KI Aufgabensuche",
     "currentFile": "Aktuelles Dokument:",
@@ -143,7 +214,26 @@
     "notificationEmpty": "Keine Mitteilung",
     "notificationTooltip": "Ruf die Warteschlange an.",
     "logConsoleLabel": "Protokoll",
-    "logConsoleTooltip": "Protokollkonsole öffnen"
+    "logConsoleTooltip": "Protokollkonsole öffnen",
+    "llmStatistics": "LLM-Statistik",
+    "versionLabel": "Version",
+    "versionTooltip": "Versionsinformation"
+  },
+  "celebration": {
+    "continue": "MetaDoc verwenden →",
+    "skip": "Beliebige Stelle anklicken zum Überspringen",
+    "title": "Bereit!",
+    "subtitle": "Sie haben die vollständige MetaDoc-Lernanleitung abgeschlossen"
+  },
+  "chart-generation-tool": {
+    "code": "Diagrammcode ist leer",
+    "code1": "Code zu kurz",
+    "codeMissing": "Code fehlt",
+    "error": "Syntaxfehler",
+    "errorFormat": "Konfigurationsformatfehler",
+    "text": "Markierung",
+    "typeRecognize": "Diagrammtyp nicht erkannt",
+    "validateFailedFailedValidate": "Syntaxvalidierung fehlgeschlagen"
   },
   "wordCountDialog": {
     "title": "Wortanzahl",
@@ -176,7 +266,26 @@
     "failed": "Fehlgeschlagen",
     "error": "Fehler",
     "warning": "Warnung",
-    "info": "Info"
+    "info": "Info",
+    "apply": "Anwenden",
+    "confirmDelete": "Soll \"{name}\" wirklich gelöscht werden?",
+    "continue": "Weiter",
+    "copy": "Kopieren",
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "copySuccess": "In Zwischenablage kopiert",
+    "create": "Erstellen",
+    "duplicate": "Duplizieren",
+    "duplicateSuccess": "Duplizierung erfolgreich",
+    "format": "Formatieren",
+    "noOtherWindow": "Keine anderen Fenster",
+    "older": "Älter",
+    "overwrite": "Überschreiben",
+    "rename": "Umbenennen",
+    "reset": "Zurücksetzen",
+    "thisMonth": "Dieser Monat",
+    "thisWeek": "Diese Woche",
+    "today": "Heute",
+    "yesterday": "Gestern"
   },
   "console": {
     "title": "Konsolenausgabe",
@@ -184,7 +293,34 @@
     "copy": "Kopieren",
     "saveLog": "Protokoll speichern",
     "copiedToClipboard": "In die Zwischenablage kopiert",
-    "logSaved": "Protokoll gespeichert"
+    "logSaved": "Protokoll gespeichert",
+    "enableAiAnalysis": "KI-Fehleranalyse",
+    "encoding": {
+      "unicode": "Unicode",
+      "chinese": "Chinesisch",
+      "japanese": "Japanisch",
+      "korean": "Koreanisch",
+      "western": "Westeuropäisch",
+      "centralEastern": "Mitteleuropäisch/Osteuropäisch",
+      "russian": "Russisch",
+      "greek": "Griechisch",
+      "utf8": "UTF-8",
+      "gbk": "GBK",
+      "gb2312": "GB2312",
+      "big5": "Big5 (Traditionell)",
+      "shiftJis": "Shift_JIS",
+      "eucKr": "EUC-KR",
+      "iso88591": "ISO-8859-1 (Latin1)",
+      "windows1252": "Windows-1252",
+      "iso885915": "ISO-8859-15",
+      "iso88592": "ISO-8859-2 (Latin2)",
+      "windows1250": "Windows-1250",
+      "koi8r": "KOI8-R",
+      "windows1251": "Windows-1251",
+      "iso88595": "ISO-8859-5",
+      "iso88597": "ISO-8859-7"
+    },
+    "logSaveFailed": "Protokoll speichern fehlgeschlagen"
   },
   "contextMenu": {
     "aiAnalysis": "KI Volltextanalyse",
@@ -198,7 +334,10 @@
     "openKnowledgeBase": "Wissen aktivieren Retrieval Bibliothek",
     "locateToPdf": "Position zu PDF.",
     "sectionOptimizer": "Aktuellen Absatz optimieren",
-    "triggerAutoCompletion": "Manuelle KI-Vervollständigung auslösen"
+    "triggerAutoCompletion": "Manuelle KI-Vervollständigung auslösen",
+    "insertGraph": "Diagramm einfügen",
+    "redo": "Wiederholen",
+    "undo": "Rückgängig"
   },
   "formulaRecognition": {
     "brush_size": "Bürste:",
@@ -359,7 +498,34 @@
     "tip": "Hinweis",
     "userProfileTooltip": "Benutzerinformationen",
     "saveAll": "Alle speichern",
-    "saveAllAndExit": "Alle speichern und ausfahren"
+    "saveAllAndExit": "Alle speichern und ausfahren",
+    "aigcDetection": "AIGC检测工具",
+    "attachment": "附件解析工具",
+    "close": "关闭",
+    "dataAnalysis": "数据分析工具",
+    "debugTools": "调试工具",
+    "exportAsTemplate": "导出为模板",
+    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
+    "exportAsTemplateDescLabel": "模板描述",
+    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
+    "exportAsTemplateTitleLabel": "模板标题",
+    "graph": "绘图工具",
+    "home": "主页",
+    "knowledgeBase": "知识库",
+    "menuConfig": {
+      "title": "菜单配置",
+      "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
+      "visible": "显示",
+      "hidden": "隐藏",
+      "reset": "重置",
+      "save": "保存"
+    },
+    "moreFeatures": "更多功能",
+    "ocr": "OCR文字识别",
+    "userFeedback": "反馈",
+    "userManual": "用户手册",
+    "workspaceExplorer": "工作目录",
+    "workspaceGrep": "工作区搜索"
   },
   "llmDialog": {
     "acceptTooltip": "Annahme",
@@ -930,7 +1096,9 @@
       "emptyTitle": "Noch nicht.",
       "messages": "Nachricht",
       "none": "Wählen Sie eine neue Sitzung aus, um den Dialog zu starten.",
-      "tools": "Werkzeuge aktivieren {count}"
+      "tools": "Werkzeuge aktivieren {count}",
+      "references": "{count} Referenzen vorhanden",
+      "referencesTooltip": "Klicken Sie, um Referenzen zu verwalten"
     },
     "roles": {
       "assistant": "Assistent",
@@ -949,7 +1117,26 @@
       "renamePlaceholder": "Bitte geben Sie einen neuen Sitzungstitel ein",
       "renameRequired": "Titel kann nicht leer sein",
       "renameSuccess": "Umbenennung erfolgreich",
-      "title": "Sitzung"
+      "title": "Sitzung",
+      "selectEngine": "Engine auswählen",
+      "engineChanged": "Zu Engine gewechselt: {engine}",
+      "selectAgentConfig": "Agent-Konfiguration auswählen",
+      "selectAgentConfigPlaceholder": "Bitte zu verwendende Agent-Konfiguration auswählen",
+      "retry": "Wiederholen",
+      "duplicate": "Duplizieren",
+      "export": "Exportieren",
+      "import": "Importieren",
+      "references": "Referenzmaterial",
+      "noExecutionNode": "Kein ausführbarer Knoten zum Wiederholen",
+      "retrySuccess": "Wiederholung erfolgreich",
+      "duplicateSuccess": "Duplizierung erfolgreich",
+      "exportSuccess": "Export erfolgreich",
+      "importSuccess": "Import erfolgreich",
+      "defaultTitle": "Standardsitzung",
+      "atLeastOneRequired": "Mindestens eine Sitzung muss beibehalten werden",
+      "noAgentConfig": "Sitzung ist nicht mit Agent-Konfiguration verknüpft",
+      "engineNotFound": "Ausgewählte Engine nicht gefunden",
+      "agentConfigNotFound": "Agent-Konfiguration nicht gefunden"
     },
     "tool": {
       "status": {
@@ -957,16 +1144,67 @@
         "pending": "Ausgaben",
         "running": "Durchführung",
         "success": "abgeschlossen"
+      },
+      "exportSnapshot": "Ausführungssnapshot exportieren",
+      "exportSnapshotSuccess": "Ausführungssnapshot exportiert",
+      "exportSnapshotFailed": "Export des Ausführungssnapshots fehlgeschlagen",
+      "importSnapshot": "Ausführungssnapshot importieren",
+      "importSnapshotSuccess": "Ausführungssnapshot importiert",
+      "importSnapshotFailed": "Import des Ausführungssnapshots fehlgeschlagen",
+      "snapshotFile": "Snapshot-Datei",
+      "selectSnapshotFile": "Snapshot-Datei auswählen",
+      "invalidSnapshot": "Ungültige Snapshot-Datei",
+      "snapshotVersionMismatch": "Snapshot-Versionskonflikt",
+      "metadata": {
+        "error": {
+          "missingOperation": "Fehlender erforderlicher Parameter: operation",
+          "invalidOperation": "Ungültige Operation: {operation}",
+          "noActiveTab": "Keine aktive Dokumentregisterkarte",
+          "noContent": "Kein aktiver {format}-Dokumenteninhalt",
+          "noOutline": "Dokumentenübersicht ist leer, Metadaten können nicht generiert werden",
+          "missingField": "set-Operation erfordert field-Parameter",
+          "missingValue": "set-Operation erfordert value-Parameter",
+          "invalidField": "Ungültiges Feld: {field}",
+          "documentNotFound": "Dokument nicht gefunden"
+        }
+      },
+      "grep": {
+        "progress": {
+          "searching": "Suche läuft...",
+          "searchingDocument": "Dokumenteninhalt wird durchsucht...",
+          "searchingMetadata": "Metadaten werden durchsucht...",
+          "replacing": "Ersetzung wird durchgeführt...",
+          "completed": "Suche abgeschlossen, {count} Übereinstimmungen gefunden",
+          "completedWithReplace": "Suche abgeschlossen, {count} Übereinstimmungen gefunden, {replaced} Ersetzungen durchgeführt"
+        }
+      },
+      "workspace": {
+        "progress": {
+          "loadingTree": "Verzeichnisbaum wird geladen...",
+          "reading": "Datei wird gelesen...",
+          "readingFile": "Datei wird gelesen {index}/{total}: {path}",
+          "completed": "Lesen abgeschlossen, {count} Dateien insgesamt"
+        }
+      },
+      "nodeAgent": {
+        "progress": {
+          "syncing": "Dokumenteninhalt wird synchronisiert...",
+          "completed": "Knoten-Agent-Ausführung abgeschlossen"
+        }
       }
     },
     "tools": {
+      "available": "Verfügbar",
       "detail": {
         "idle": "Kostenlos",
         "never": "Nie verwendet",
         "origin": "Quelle",
         "placeholder": "Wählen Sie ein Tool, um Details anzuzeigen.",
         "status": "Start-Status",
-        "tags": "Bezeichnung"
+        "tags": "Bezeichnung",
+        "lastUsed": "Zuletzt verwendet",
+        "name": "Name",
+        "description": "Beschreibung"
       },
       "disabled": "Nicht aktiviert",
       "enabled": "Ermöglicht",
@@ -999,6 +1237,11 @@
           "sampleValues": "Beispielwerte",
           "groupBy": "Gruppiert nach {{field}}",
           "analysisFailed": "Analyse fehlgeschlagen"
+        },
+        "color": {
+          "processing": "Farben werden verarbeitet...",
+          "title": "Farbverarbeitungsergebnis",
+          "color1": "Farbe 1"
         },
         "chartGeneration": {
           "generating": "Diagrammcode wird generiert...",
@@ -1099,7 +1342,53 @@
         "passed": "Pass.",
         "result": "Ergebnisse der Umsetzung",
         "testResults": "Prüfergebnisse",
-        "totalTests": "Gesamttests"
+        "totalTests": "Gesamttests",
+        "copyId": "ID kopieren",
+        "copyTestCaseId": "Testfall-ID kopieren",
+        "testCaseIdCopied": "Testfall-ID kopiert: {id}",
+        "clickToCopy": "Klicken Sie, um Testfall-ID zu kopieren"
+      },
+      "color": {
+        "processing": "Farben werden verarbeitet...",
+        "title": "Farbverarbeitungsergebnis",
+        "color1": "Farbe 1",
+        "color2": "Farbe 2",
+        "original": "Originalfarbe",
+        "result": "Ergebnis",
+        "complementary": "Komplementärfarbe",
+        "weight": "Gewichtung: {weight}",
+        "brightnessAdjust": "Helligkeitsanpassung: {amount}%",
+        "contrastAdjust": "Kontrastanpassung: {amount}%",
+        "convertTo": "Konvertieren zu {format}",
+        "hex": "HEX",
+        "rgb": "RGB",
+        "hsl": "HSL",
+        "alpha": "Transparenz",
+        "isDark": "Dunkel",
+        "isLight": "Hell",
+        "yes": "Ja",
+        "no": "Nein",
+        "operation": {
+          "mix": "Farbemischung",
+          "brightness": "Helligkeitsanpassung",
+          "contrast": "Kontrastanpassung",
+          "complementary": "Komplementärfarbe",
+          "convert": "Formatkonvertierung",
+          "analyze": "Farbanalyse"
+        },
+        "error": "Farbverarbeitung fehlgeschlagen"
+      },
+      "metadata": {
+        "completed": "Vorgang abgeschlossen",
+        "title": "Titel",
+        "author": "Autor",
+        "description": "Beschreibung",
+        "keywords": "Schlüsselwörter",
+        "error": "Vorgang fehlgeschlagen",
+        "loading": "Dokument wird geladen...",
+        "generating": "Metadaten werden generiert...",
+        "updating": "Metadaten werden aktualisiert...",
+        "processing": "Wird verarbeitet..."
       },
       "chartGeneration": {
         "chartType": "Diagrammtyp",
@@ -1128,12 +1417,242 @@
         "nullable": "Leere",
         "parsing": "Parsing-Daten...",
         "sampleValues": "Beispielwert",
-        "stats": "Beschreibung Statistik",
+        "stats": {
+          "count": "Anzahl",
+          "mean": "Mittelwert",
+          "median": "Median",
+          "mode": "Modus",
+          "std": "Standardabweichung",
+          "variance": "Varianz",
+          "min": "Minimum",
+          "max": "Maximum",
+          "q25": "Unteres Quartil",
+          "q75": "Oberes Quartil",
+          "sum": "Summe",
+          "avg": "Durchschnitt"
+        },
         "summarizing": "Generierende analytische Zusammenfassung...",
         "summary": "Analytische Übersicht",
         "totalColumns": "Spalten insgesamt",
         "totalRows": "Insgesamt",
-        "uniqueValues": "Einmaliger Wert"
+        "uniqueValues": "Einmaliger Wert",
+        "generatingTemplate": "Analysereport-Vorlage wird generiert...",
+        "statsLabel": "Deskriptive Statistik",
+        "numeric": "Numerisch",
+        "string": "Zeichenkette",
+        "rows": "Zeilen",
+        "groupCount": "Zeilen in der Gruppe",
+        "uniqueCount": "Anzahl eindeutiger Werte",
+        "totalCount": "Gesamtanzahl",
+        "topValues": "Häufige Werte"
+      },
+      "diff": {
+        "fetching": "Inhalt wird abgerufen...",
+        "calculating": "Unterschiede werden berechnet...",
+        "title": "Textvergleich",
+        "insertions": "{count} Zeilen eingefügt",
+        "deletions": "{count} Zeilen gelöscht",
+        "equal": "{count} Zeilen identisch",
+        "unifiedView": "Einheitliche Ansicht",
+        "splitView": "Geteilte Ansicht",
+        "oldText": "Alter Text",
+        "newText": "Neuer Text",
+        "noData": "Keine Unterschiedsdaten",
+        "error": "Vergleich fehlgeschlagen"
+      },
+      "outlineTree": {
+        "retrieving": "Dokumentgliederung wird abgerufen...",
+        "loading": "Dokument wird geladen...",
+        "extracting": "Gliederungsbaum wird extrahiert...",
+        "title": "Dokumentgliederung",
+        "nodeCount": "{count} Knoten insgesamt",
+        "hasContent": "Mit Inhalt",
+        "emptyTitle": "Ohne Titel",
+        "error": "Abrufen der Gliederung fehlgeschlagen",
+        "path": "Pfad",
+        "level": "Ebene",
+        "childrenCount": "{count} Unterknoten"
+      },
+      "outlineOptimize": {
+        "loading": "Dokument wird geladen...",
+        "generating": "Wird generiert...",
+        "syncing": "Dokumentinhalt wird synchronisiert...",
+        "processing": "Wird verarbeitet...",
+        "completed": "Erweiterung abgeschlossen",
+        "error": "Erweiterung fehlgeschlagen",
+        "tooltip": "Schnelle Generierung von Dokumentgliederung und Inhalt. ⚠️ Hinweis: Dieses Tool kann keine Inhaltsqualität garantieren, kann jedoch schnell einen Artikelentwurf erstellen",
+        "operationLabel": "Vorgangstyp",
+        "nodePath": "Knotenpfad",
+        "nodeTitle": "Knotentitel",
+        "generatedChildrenCount": "{count} Unterknoten generiert",
+        "totalChildrenCount": "{count} Unterknoten insgesamt generiert",
+        "contentLength": "Inhaltslänge: {length} Zeichen",
+        "totalContentCount": "Inhalte für {count} Knoten insgesamt generiert",
+        "outlineTree": "Dokumentgliederungsbaum",
+        "path": "Pfad",
+        "level": "Ebene",
+        "hasContent": "Mit Inhalt",
+        "childrenCount": "{count} Unterknoten",
+        "emptyTitle": "Ohne Titel",
+        "operation": {
+          "generateChildren": "Unterknoten generieren",
+          "generateContent": "Inhalt generieren",
+          "generateChildrenChildren": "Unterknoten für alle Unterknoten generieren",
+          "generateChildrenContent": "Inhalt für alle Unterknoten generieren"
+        }
+      },
+      "nodeAgent": {
+        "loading": "Dokument wird geladen...",
+        "traversing": "Knoten werden durchlaufen...",
+        "syncing": "Dokumentinhalt wird synchronisiert...",
+        "processing": "Wird verarbeitet...",
+        "completed": "Knoten-Agent-Ausführung abgeschlossen",
+        "error": "Knoten-Agent-Ausführung fehlgeschlagen",
+        "currentNode": "Aktueller Knoten",
+        "nodePath": "Knotenpfad",
+        "nodeTitle": "Knotentitel",
+        "activeNodes": "Aktive Knoten",
+        "executedNodes": "Ausgeführte Knoten",
+        "executedNodesCount": "{count} Knoten ausgeführt",
+        "totalNodesProcessed": "{count} Knoten insgesamt verarbeitet",
+        "generatedContent": "Generierter Inhalt",
+        "startNodePath": "Startknotenpfad",
+        "startNodeTitle": "Startknotentitel"
+      },
+      "outlineReorder": {
+        "loading": "Dokument wird geladen...",
+        "reordering": "Knoten werden neu angeordnet...",
+        "syncing": "Dokumentinhalt wird synchronisiert...",
+        "completed": "Gliederungsoptimierung abgeschlossen",
+        "error": "Gliederungsoptimierung fehlgeschlagen"
+      },
+      "grep": {
+        "searching": "Suche läuft...",
+        "title": "Textsucheergebnisse",
+        "matchesCount": "{count} Übereinstimmungen gefunden",
+        "searchPattern": "Suchmuster",
+        "matchesList": "Suchergebnisliste",
+        "contextView": "Kontextansicht",
+        "line": "Zeile",
+        "column": "Spalte",
+        "document": "Dokument",
+        "metadata": "Metadaten",
+        "noMatches": "Keine Übereinstimmungen gefunden",
+        "error": "Suche fehlgeschlagen",
+        "preContext": "Vorheriger Kontext",
+        "postContext": "Nachfolgender Kontext",
+        "replacedCount": "{count} Ersetzungen durchgeführt",
+        "replacementText": "Ersatztext",
+        "showOriginal": "Originalinhalt anzeigen",
+        "showReplaced": "Ersetzten Inhalt anzeigen",
+        "match": "Übereinstimmung",
+        "summaryMode": "Übersichtsmodus",
+        "summaryDescription": "Suchvorgang erfolgreich abgeschlossen. Da der ausführliche Modus nicht aktiviert ist, wurde der vollständige Dokumenteninhalt zur Speicherplatzersparnis nicht eingeschlossen."
+      },
+      "webCrawler": {
+        "title": "Webseitenzugriffsergebnis",
+        "size": "Größe",
+        "renderView": "Gerenderte Ansicht",
+        "rawContent": "Rohinhalt",
+        "headers": "Antwort-Header",
+        "fetching": "Webseite wird abgerufen...",
+        "processing": "Antwort wird verarbeitet...",
+        "loading": "Wird geladen...",
+        "error": "Webseitenzugriff fehlgeschlagen"
+      },
+      "workspace": {
+        "loadingTree": "Verzeichnisbaum wird geladen...",
+        "reading": "Datei wird gelesen...",
+        "processing": "Wird verarbeitet...",
+        "directoryTree": "Verzeichnisbaum",
+        "workspaceFolder": "Arbeitsordner",
+        "filesTitle": "Dateiinhalte",
+        "filesCount": "{count} Dateien insgesamt",
+        "summarized": "Zusammengefasst",
+        "summary": "Zusammenfassung",
+        "content": "Inhalt",
+        "showContent": "Vollständigen Inhalt anzeigen",
+        "hideContent": "Vollständigen Inhalt ausblenden",
+        "linesRange": "Zeile {start}-{end} (von {total} Zeilen)",
+        "totalLines": "{count} Zeilen insgesamt",
+        "error": "Arbeitsbereichsdatei konnte nicht gelesen werden"
+      },
+      "edit": {
+        "completed": "Bearbeitung abgeschlossen",
+        "appliedEdits": "Erfolgreich angewendet",
+        "failedEdits": "Fehlgeschlagen",
+        "totalOperations": "Gesamtzahl der Operationen",
+        "loading": "Dokument wird geladen...",
+        "applying": "Bearbeitungen werden angewendet...",
+        "updating": "Dokument wird aktualisiert...",
+        "processing": "Wird verarbeitet...",
+        "error": "Bearbeitung fehlgeschlagen",
+        "title": "Dokumentbearbeitungsergebnis",
+        "unifiedView": "Vereinheitlichte Ansicht",
+        "splitView": "Geteilte Ansicht",
+        "oldContent": "Ursprünglicher Inhalt",
+        "newContent": "Neuer Inhalt",
+        "operations": "Bearbeitungsoperationen",
+        "operation": "Operation",
+        "summaryMode": "Übersichtsmodus",
+        "summaryDescription": "Bearbeitungsoperation erfolgreich abgeschlossen. Da der ausführliche Modus nicht aktiviert ist, wurde der vollständige Inhalt zur Speicherplatzersparnis nicht eingeschlossen.",
+        "noDetails": "Bearbeitungsoperation erfolgreich abgeschlossen",
+        "type": {
+          "insert": "Einfügen",
+          "replace": "Ersetzen",
+          "delete": "Löschen"
+        },
+        "range": "Bereich",
+        "content": "Inhalt",
+        "progress": {
+          "applying": "Bearbeitungen werden angewendet...",
+          "updating": "Dokument wird aktualisiert...",
+          "processing": "Wird verarbeitet...",
+          "completed": "Bearbeitung abgeschlossen",
+          "failed": "Bearbeitung fehlgeschlagen",
+          "totalOperations": "Gesamtzahl der Operationen",
+          "loading": "Dokument wird geladen...",
+          "error": "Bearbeitung fehlgeschlagen"
+        }
+      },
+      "titleFormat": {
+        "title": "Titelformatierung",
+        "completed": "Titelformatierung abgeschlossen",
+        "operationsPerformed": "Ausgeführte Operationen",
+        "error": "Titelformatierung fehlgeschlagen",
+        "loading": "Dokumentgliederung wird geladen...",
+        "processing": "Titel werden formatiert...",
+        "saving": "Dokument wird gespeichert..."
+      },
+      "proofread": {
+        "proofreading": "Wird Korrektur gelesen...",
+        "fixing": "Fehler werden automatisch korrigiert...",
+        "title": "Textkorrekturergebnis",
+        "totalErrors": "{count} Fehler gefunden",
+        "location": "Position: Zeile {line}, Spalte {column}",
+        "errorText": "Fehlertext",
+        "suggestion": "Korrekturvorschlag",
+        "suggestions": "Korrekturvorschläge",
+        "noErrors": "Keine Fehler gefunden",
+        "error": "Korrektur fehlgeschlagen",
+        "fixed": "Korrigiert",
+        "autoFixed": "Automatisch korrigiert",
+        "severity": {
+          "error": "Fehler",
+          "warning": "Warnung",
+          "info": "Hinweis"
+        },
+        "errorType": {
+          "grammar": "Grammatikfehler",
+          "spelling": "Rechtschreibfehler",
+          "latex": "LaTeX-Syntaxfehler",
+          "style": "Stilproblem",
+          "other": "Sonstiges"
+        },
+        "unifiedView": "Einheitliche Ansicht",
+        "splitView": "Geteilte Ansicht",
+        "originalText": "Originaltext",
+        "correctedText": "Korrigierter Text"
       },
       "ragTool": {
         "hint": "Hinweis: Versuchen Sie, die Ähnlichkeitsschwelle anzupassen oder zu überprüfen, ob es relevante Dokumente in der Wissensbasis gibt",
@@ -1159,7 +1678,8 @@
         "resetTrust": "Alle Fragen zurücksetzen",
         "stderr": "Standardfehler:",
         "stdout": "Standardausgang:",
-        "trustMode": "Trust-Modus: automatische Ausführung aller Befehle (keine Bestätigung erforderlich zu jeder Zeit)"
+        "trustMode": "Trust-Modus: automatische Ausführung aller Befehle (keine Bestätigung erforderlich zu jeder Zeit)",
+        "terminalOutput": "Terminalausgabe"
       },
       "todoList": {
         "analyzing": "Analyse des Benutzers...",
@@ -1182,6 +1702,248 @@
         "urgent": "Notfall"
       }
     },
+    "manage": {
+      "status": "Status",
+      "title": "Verwaltung",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "export": "Exportieren",
+      "import": "Importieren",
+      "validate": "Validieren",
+      "actions": "Aktionen",
+      "exportSuccess": "Export erfolgreich",
+      "importSuccess": "Import erfolgreich",
+      "toolCollection": {
+        "tools": "Werkzeuge",
+        "title": "Werkzeugsammlung",
+        "create": "Werkzeugsammlung erstellen",
+        "edit": "Werkzeugsammlung bearbeiten",
+        "name": "Name",
+        "description": "Beschreibung",
+        "toolCount": "Anzahl der Werkzeuge",
+        "selectTools": "Werkzeuge auswählen",
+        "nameRequired": "Name ist erforderlich",
+        "createSuccess": "Werkzeugsammlung erfolgreich erstellt",
+        "updateSuccess": "Werkzeugsammlung erfolgreich aktualisiert",
+        "deleteSuccess": "Werkzeugsammlung erfolgreich gelöscht",
+        "confirmDelete": "Soll die Werkzeugsammlung \"{name}\" wirklich gelöscht werden?",
+        "cannotDeleteDefault": "Standard-Werkzeugsammlung kann nicht gelöscht werden",
+        "builtIn": "Integriert"
+      },
+      "agentConfig": {
+        "title": "Agent-Konfigurationsverwaltung",
+        "create": "Konfiguration erstellen",
+        "edit": "Konfiguration bearbeiten",
+        "name": "Name",
+        "description": "Beschreibung",
+        "scenario": "Szenario",
+        "toolCount": "Verfügbare Werkzeuge",
+        "toolCollections": "Werkzeugsammlungen",
+        "default": "Standard",
+        "cannotEditDefault": "Standardkonfiguration kann nicht bearbeitet werden",
+        "selectToolCollections": "Werkzeugsammlungen auswählen",
+        "toolCollectionHint": "Bei mehreren Werkzeugsammlungen ist der Schnittmenge verfügbar",
+        "llmModel": "LLM-Modell",
+        "temperature": "Temperatur",
+        "systemPrompt": "Systemaufforderung",
+        "maxToolCalls": "Maximale Werkzeugaufrufe",
+        "unlimited": "Unbegrenzt",
+        "toolCollectionRequired": "Mindestens eine Werkzeugsammlung muss ausgewählt werden",
+        "cannotDeleteDefault": "Standardkonfiguration kann nicht gelöscht werden",
+        "nameRequired": "Name ist erforderlich",
+        "createSuccess": "Konfiguration erfolgreich erstellt",
+        "updateSuccess": "Konfiguration erfolgreich aktualisiert",
+        "deleteSuccess": "Konfiguration erfolgreich gelöscht",
+        "validationSuccess": "Konfigurationsvalidierung bestanden",
+        "validationWarnings": "Konfigurationsvalidierungswarnungen",
+        "validationFailed": "Konfigurationsvalidierung fehlgeschlagen",
+        "confirmDelete": "Soll die Konfiguration \"{name}\" wirklich gelöscht werden?",
+        "view": "Anzeigen",
+        "viewOnly": "Schreibgeschützt",
+        "systemPromptPlaceholder": "Geben Sie die Systemaufforderung des Agents ein, um die Rolle und Verantwortung des Agents zu definieren...",
+        "systemPromptHint": "Die Systemaufforderung definiert die Kernrolle, Fähigkeiten und Arbeitsweise des Agents",
+        "injectTimestamp": "Zeitstempel einfügen",
+        "injectTimestampLabel": "Aktuellen Zeitstempel vor der Systemaufforderung einfügen",
+        "injectTimestampHint": "Wenn aktiviert, wird bei jeder Erstellung einer Agent-Instanz mit dieser Konfiguration automatisch der aktuelle Zeitstempel vor der Systemaufforderung hinzugefügt"
+      },
+      "agentEngine": {
+        "title": "Agent-Engine-Verwaltung",
+        "create": "Engine erstellen",
+        "edit": "Engine bearbeiten",
+        "view": "Engine anzeigen",
+        "viewOnly": "Schreibgeschützt",
+        "name": "Name",
+        "description": "Beschreibung",
+        "engineType": "Engine-Typ",
+        "llmMode": "LLM-Modus",
+        "selectEngineType": "Engine-Typ auswählen",
+        "engineTypes": {
+          "autogpt": "AutoGPT",
+          "react": "ReAct",
+          "planExecute": "Plan-Execute",
+          "simpleChat": "Simple Chat"
+        },
+        "llmConfigMode": "LLM-Konfigurationsmodus",
+        "useGlobalLLM": "Globales LLM verwenden",
+        "useCustomLLM": "Benutzerdefiniertes LLM verwenden",
+        "llmConfigModeHint": "Das globale LLM verwendet die LLM-Konfiguration aus den MetaDoc-Einstellungen, für benutzerdefiniertes LLM müssen API-Adresse und Schlüssel konfiguriert werden",
+        "apiBaseUrl": "API-Basis-URL",
+        "apiBaseUrlPlaceholder": "https://api.beispiel.com/v1",
+        "apiKey": "API-Schlüssel",
+        "apiKeyPlaceholder": "Bitte API-Schlüssel eingeben",
+        "model": "Modellname",
+        "modelPlaceholder": "z.B.: gpt-3.5-turbo",
+        "temperature": "Temperatur",
+        "maxTokens": "Maximale Token-Anzahl",
+        "maxIterations": "Maximale Iterationen",
+        "thinkingDepth": "Denktiefe",
+        "enableReflection": "Reflexion aktivieren",
+        "enablePlanning": "Planung aktivieren",
+        "builtIn": "Integriert",
+        "nameRequired": "Name ist erforderlich",
+        "baseUrlRequired": "API-Basis-URL ist erforderlich",
+        "apiKeyRequired": "API-Schlüssel ist erforderlich",
+        "modelRequired": "Modellname ist erforderlich",
+        "cannotEditBuiltIn": "Integrierte Engine kann nicht bearbeitet werden",
+        "cannotDeleteBuiltIn": "Integrierte Engine kann nicht gelöscht werden",
+        "createSuccess": "Engine erfolgreich erstellt",
+        "updateSuccess": "Engine erfolgreich aktualisiert",
+        "deleteSuccess": "Engine erfolgreich gelöscht",
+        "validationSuccess": "Engine-Validierung bestanden",
+        "validationWarnings": "Engine-Validierungswarnungen",
+        "validationFailed": "Engine-Validierung fehlgeschlagen",
+        "confirmDelete": "Soll die Engine \"{name}\" wirklich gelöscht werden?"
+      }
+    },
+    "message": {
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "regenerate": "Neu generieren",
+      "duplicateSession": "Sitzung duplizieren",
+      "editMessage": "Nachricht bearbeiten",
+      "editPlaceholder": "Bitte Nachrichteninhalt eingeben",
+      "confirmDelete": "Soll diese Nachricht wirklich gelöscht werden?",
+      "deleteSuccess": "Nachricht gelöscht",
+      "editSuccess": "Nachricht aktualisiert",
+      "callingTool": "Tool wird aufgerufen: {tool}",
+      "callingTools": "{count} Tools werden aufgerufen: {tools}",
+      "toolCallInitiated": "KI hat den Aufruf von {tool} initiiert",
+      "toolCallsInitiated": "KI hat {count} Tool-Aufrufe initiiert: {tools}",
+      "intentRecognition": "Absichtserkennung",
+      "selectedTools": "Ausgewählte Tools:",
+      "noToolsNeeded": "Für diese Anfrage sind keine Tools erforderlich.",
+      "reasoning": "Schlussfolgerung:"
+    },
+    "reference": {
+      "title": "Referenzmaterialverwaltung",
+      "add": "Referenz hinzufügen",
+      "edit": "Referenz bearbeiten",
+      "name": "Name",
+      "format": "Format",
+      "origin": "Herkunft",
+      "inputType": "Eingabetyp",
+      "url": "URL-Adresse",
+      "file": "Datei",
+      "text": "Text",
+      "actions": "Aktionen",
+      "selectFile": "Datei auswählen",
+      "textPlaceholder": "Bitte Textinhalt eingeben",
+      "description": "Beschreibung",
+      "content": "Inhalt",
+      "viewContent": "Inhalt anzeigen",
+      "urlPlaceholder": "Bitte URL-Adresse eingeben",
+      "nameAndUrlRequired": "Name und Adresse sind erforderlich",
+      "nameRequired": "Name ist erforderlich",
+      "fileRequired": "Bitte Datei auswählen",
+      "urlRequired": "URL ist erforderlich",
+      "textRequired": "Textinhalt ist erforderlich",
+      "addSuccess": "Referenz erfolgreich hinzugefügt",
+      "updateSuccess": "Referenz erfolgreich aktualisiert",
+      "deleteSuccess": "Referenz erfolgreich gelöscht",
+      "confirmDelete": "Soll die Referenz \"{name}\" wirklich gelöscht werden?",
+      "clearAll": "Alle löschen",
+      "clearAllConfirmTitle": "Alle Referenzen löschen bestätigen",
+      "confirmClearAll": "Sollen alle {count} Referenzen wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "clearAllSuccess": "Alle Referenzen gelöscht",
+      "type": {
+        "file": "Datei",
+        "url": "URL",
+        "knowledgeBase": "Wissensbasis",
+        "articleService": "Artikeldienst",
+        "custom": "Text"
+      },
+      "parsingFile": "Datei wird analysiert...",
+      "parsingUrl": "URL wird analysiert...",
+      "downloadingUrl": "URL-Inhalt wird heruntergeladen...",
+      "parseSuccess": "Analyse erfolgreich",
+      "parseFailed": "Analyse fehlgeschlagen",
+      "parseCancelled": "Analyse abgebrochen",
+      "fileTypeCategory": {
+        "all": "Alle unterstützten Formate",
+        "text": "Textdateien",
+        "document": "Dokumentdateien",
+        "data": "Datendateien",
+        "image": "Bilddateien",
+        "web": "Webdateien"
+      },
+      "progress": {
+        "parsingFile": "Datei wird analysiert: {filename}",
+        "parsingImage": "Bild wird analysiert: {filename}",
+        "parsingContent": "Inhalt wird analysiert",
+        "downloadingUrl": "URL-Inhalt wird heruntergeladen",
+        "downloadingWebpage": "Webseiteninhalt wird heruntergeladen",
+        "downloadingFile": "Datei wird heruntergeladen",
+        "extractingText": "Textinhalt wird extrahiert...",
+        "processingFormat": "{format}-Format wird verarbeitet...",
+        "ocrRecognizing": "OCR-Erkennung läuft",
+        "processingImage": "Bild {imageCurrent}/{imageTotal} verarbeitet",
+        "processingImageWithPage": "Bild {current}/{total} verarbeitet (Seite {page})",
+        "processingImageFailed": "Bild {imageCurrent}/{imageTotal} verarbeitet (fehlgeschlagen)",
+        "cleaningText": "Textinhalt wird bereinigt...",
+        "parseComplete": "Analyse abgeschlossen: {filename}",
+        "parseCompleteGeneric": "Analyse abgeschlossen",
+        "parseError": "Analyse fehlgeschlagen: {filename}",
+        "downloadError": "Herunterladen fehlgeschlagen",
+        "urlFormatInvalid": "URL-Format ungültig",
+        "exporting": "Wird als {format} exportiert",
+        "savingImages": "Bilder werden gespeichert...",
+        "preparingExport": "Export wird vorbereitet...",
+        "preRenderingCharts": "Diagramme werden vorgerendert",
+        "foundCharts": "{count} Diagramme gefunden",
+        "renderingChart": "Diagramm {current}/{total} gerendert",
+        "renderingChartFailed": "Diagramm {current}/{total} gerendert (fehlgeschlagen)",
+        "convertingMarkdown": "Markdown wird nach {format} konvertiert...",
+        "generatingFile": "{format}-Datei wird generiert...",
+        "addingMetadata": "Dokumentenmetadaten werden hinzugefügt...",
+        "renderingHtml": "HTML wird nach PDF gerendert...",
+        "savingFile": "Datei wird gespeichert...",
+        "cleaningTempFiles": "Temporäre Dateien werden bereinigt",
+        "exportComplete": "Export abgeschlossen",
+        "exportError": "Export fehlgeschlagen",
+        "compilingLatex": "LaTeX-Dokument wird kompiliert...",
+        "executingLatexCompile": "LaTeX-Kompilierung wird ausgeführt...",
+        "copyingPdf": "PDF-Datei wird kopiert...",
+        "processingSlide": "Folie {current}/{total} wird verarbeitet",
+        "foundSlides": "{count} Folien gefunden",
+        "foundImages": "{count} Bilder gefunden"
+      },
+      "builtInDocument": {
+        "title": "Aktuelle Dokumentenreferenz",
+        "description": "Dynamischer Abruf des aktuellen Dokumenteninhalts in Echtzeit, ohne Belegung von Nachrichtenverlaufsspeicher",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "preview": "Vorschau",
+        "noActiveDocument": "Kein aktives Dokument",
+        "emptyDocument": "Aktuelles Dokument ist leer",
+        "currentActiveDocument": "Aktuelles Dokument",
+        "formatSuffix": "({format}-Format)"
+      },
+      "error": {
+        "cancelRequestFailed": "Senden der Abbruchanforderung fehlgeschlagen"
+      }
+    },
     "userLabel": "Benutzer",
     "assistantLabel": "Assistent",
     "systemLabel": "System",
@@ -1194,7 +1956,38 @@
     "callParams": "Aufrufparameter",
     "demoSession1": "Code-Review-Sitzung",
     "demoSession2": "Dokumentenschreibassistent",
-    "demoSession3": "Datenanalyse-Experte"
+    "demoSession3": "Datenanalyse-Experte",
+    "copy": "Kopieren"
+  },
+  "agent-engine-executor": {
+    "clear": "Geleert",
+    "completed": "Injektion abgeschlossen",
+    "completedRecognize": "Absichtserkennung abgeschlossen",
+    "startRecognize": "Absichtserkennung gestartet",
+    "text": "Tool injiziert",
+    "text1": "Tool",
+    "text2": "nicht gefunden",
+    "update": "Aktualisiert"
+  },
+  "agentToolResultCard": {
+    "emptyResultSaveFile": "Speicherdatei-Aufruf hat leeres Ergebnis zurückgegeben",
+    "saveFailed": "Speichern fehlgeschlagen"
+  },
+  "agentView": {
+    "analyzeGenerate": "Diagramm- und Datenanalyseergebnisse generieren",
+    "code": "Code in sicherer Sandbox ausführen",
+    "fileLocal": "Lokale Projektdateien durchsuchen",
+    "infoSearch": "Neueste Informationen durch Websuche abrufen",
+    "previewGenerate": "Schnelle Vorschau und Zusammenfassungsgenerierung unterstützen",
+    "text": "Strukturierte Zusammenfassung und Zitate zurückgeben",
+    "text1": "Unterstützt",
+    "text2": "Durch",
+    "text3": "Protokoll mit",
+    "user": "Benutzer"
+  },
+  "agentViewCompact": {
+    "cancelled": "Aufgabe abgebrochen",
+    "user": "Benutzer"
   },
   "sectionOptimizer": {
     "clear": "Klar.",
@@ -1303,6 +2096,103 @@
     "previewTextAlt": "Dies ist Vorschautext",
     "loadingFonts": "Schriftarten werden geladen..."
   },
+  "aigc": {
+    "analysisComplete": "Analyse abgeschlossen",
+    "analysisReport": "Analysebericht",
+    "analyzing": "Analyse läuft...",
+    "analyzingParagraph": "Absatz {index}/{total} wird analysiert",
+    "articleContent": "Artikelinhalt",
+    "assembleAsNewArticle": "Als neuen Artikel zusammenfügen",
+    "assembleNewTitle": "Überarbeiteter Artikel",
+    "assembleSuccess": "Als neuer Artikel zusammengefügt und geöffnet",
+    "backToTop": "Nach oben",
+    "chartWeightTitle": "Risikoquellengewichtung (gewichteter Potenzbeitrag)",
+    "clickGenerateReport": "Klicken Sie auf Bericht generieren, um einen detaillierten Bericht zu erstellen",
+    "contentSelected": "Inhalt ausgewählt",
+    "copy": "Kopieren",
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "copyOneClick": "Einfaches Kopieren",
+    "copySuccess": "Kopiert",
+    "defaultTitle": "Neue AIGC-Erkennungssitzung",
+    "dimensions": {
+      "sentence_uniformity": "Satzstruktur-Einheitlichkeit",
+      "lexical_diversity": "Wiederholungsgrad",
+      "reasoning_smoothness": "Logische Glätte",
+      "personal_trace": "Fehlende persönliche Spuren",
+      "stylistic_risk": "Stilrisiko",
+      "over_explanation": "Übermäßige Erklärung",
+      "hedging_pattern": "Unscharfe Einschränkung",
+      "opening_transition_pattern": "Übergangssprache-Vorlage",
+      "structural_repetition": "Strukturelle Wiederholung",
+      "abstractness": "Abstrakte Leere",
+      "emotional_flatness": "Emotionale Flachheit",
+      "formulaic_closure": "Schema-Abgeschlossenheit"
+    },
+    "documentEmpty": "Dokumenteninhalt ist leer",
+    "documentNotFound": "Dokument nicht gefunden",
+    "domainAcademic": "Akademisch",
+    "domainGeneral": "Allgemein",
+    "export": "Exportieren",
+    "exportAndDetect": "AIGC-Rate-Erkennung durchführen",
+    "exportAsNewDoc": "Als neues Dokument",
+    "exportParaphrased": "Überarbeiteten Artikel exportieren",
+    "exportParaphrasedSuccess": "Überarbeiteter Artikel in neues Dokument exportiert",
+    "exportReport": "Bericht exportieren",
+    "exportReportSuccess": "In neues Dokument exportiert",
+    "fileUploaded": "Datei erfolgreich hochgeladen",
+    "generateReport": "Bericht generieren",
+    "mergeWithNext": "Mit nächstem Absatz zusammenführen",
+    "modified": "Geändert",
+    "newSession": "Neue Sitzung",
+    "noActiveDocument": "Kein aktives Dokument",
+    "noAnalysisData": "Keine Analysedaten",
+    "noAnalysisYet": "Noch keine Analyse durchgeführt",
+    "noContent": "Bitte zuerst Artikelinhalt hochladen oder auswählen",
+    "noDocuments": "Keine geöffneten Dokumente",
+    "noSessionSelected": "Bitte Sitzung auswählen oder neue Sitzung erstellen",
+    "nonSignificantRisk": "Nicht-signifikantes Risiko",
+    "paragraphContent": "Absatzinhalt",
+    "paragraphCount": "{n} Absätze insgesamt",
+    "paraphraseAll": "Alle überarbeiten",
+    "paraphraseOne": "Überarbeiten",
+    "paraphraseSuccess": "Überarbeitung erfolgreich",
+    "paraphrasedContent": "Überarbeiteter Inhalt",
+    "paraphrasing": "Wird überarbeitet...",
+    "pleaseSelectDocument": "Bitte zu analysierendes Dokument auswählen",
+    "pleaseUploadOrSelect": "Bitte Datei hochladen oder Inhalt aus Dokument auswählen",
+    "reAnalyze": "Erneut analysieren",
+    "reParaphraseAll": "Alle erneut überarbeiten",
+    "reParaphraseOne": "Erneut überarbeiten",
+    "rePreprocess": "Absätze erneut aufteilen",
+    "renamePlaceholder": "Bitte Sitzungsnamen eingeben",
+    "renameTitle": "Sitzung umbenennen",
+    "reportGenerated": "Bericht erfolgreich generiert",
+    "selectDocumentTitle": "Zu analysierendes Dokument auswählen",
+    "selectDomain": "Domäne auswählen",
+    "selectFromDocument": "Aus Dokument auswählen",
+    "selectLanguage": "Sprache auswählen",
+    "selectedOneDocument": "1 Dokument ausgewählt",
+    "sessionsTitle": "AIGC-Erkennungssitzungen",
+    "splitAtCursor": "An Cursor aufteilen",
+    "startAnalysis": "Analyse starten",
+    "unsupportedFileType": "Nicht unterstützter Dateityp",
+    "unsupportedFormat": "Nicht unterstütztes Dokumentenformat",
+    "uploadFile": "Datei hochladen",
+    "viewOriginal": "A Original",
+    "viewParaphrased": "B Überarbeitung"
+  },
+  "aigcDetectionWindow": {
+    "text": "Satzstruktur-Einheitlichkeit",
+    "text1": "Wiederholungsgrad",
+    "text2": "Logische Glätte",
+    "text3": "Fehlende persönliche Spuren",
+    "text4": "Stilrisiko",
+    "text5": "Übermäßige Erklärung",
+    "text6": "Unscharfe Einschränkung",
+    "text7": "Übergangssprache-Vorlage",
+    "text8": "Strukturelle Wiederholung",
+    "text9": "Abstrakte Leere"
+  },
   "aigcDetection": {
     "title": "AIGC-Erkennung",
     "sentenceUniformity": "Satzgleichfoermigkeit",
@@ -1325,6 +2215,16 @@
     "uploadSuccess": "Hochladen erfolgreich",
     "uploadFailed": "Hochladen fehlgeschlagen"
   },
+  "data-analysis-tool": {
+    "analyze": "Datenanalyse",
+    "analyze1": "Automatische Analyse",
+    "analyze2": "Aggregationsanalyse usw.",
+    "analyze3": "Datenanalyse-Tool",
+    "description": "Deskriptive Statistik",
+    "descriptionFeature": "Funktionsbeschreibung",
+    "info": "Feldinformationen extrahieren",
+    "text": "usw. Daten"
+  },
   "dataAnalysis": {
     "title": "Datenanalyse",
     "hint": "Tipp: Markieren Sie Zeilen in der Tabelle, um nur ausgewaehlte Daten zu analysieren",
@@ -1333,7 +2233,33 @@
     "userBehavior": "Nutzerverhaltensanalyse",
     "exportExcel": "Nach Excel exportieren",
     "fileNotFound": "Excel-Datei existiert nicht",
-    "fileMoved": "Datei wurde moeglicherweise geloescht oder verschoben. Bitte laden Sie sie erneut hoch"
+    "fileMoved": "Datei wurde moeglicherweise geloescht oder verschoben. Bitte laden Sie sie erneut hoch",
+    "analysisRequest": "Analyseanforderung (optional)",
+    "analysisRequestPlaceholder": "Beschreiben Sie Ihre Analyseanforderung...",
+    "analyze": "Analyse starten",
+    "analyzeFailed": "Analyse fehlgeschlagen",
+    "analyzeSuccess": "Analyse abgeschlossen",
+    "autoGroupBy": "Automatische Aggregationsanalyse",
+    "currentHeader": "Aktuelle Kopfzeile",
+    "defaultTitle": "Neue Datenanalysesitzung",
+    "generateReport": "Analysebericht generieren",
+    "headerPreview": "Aktuelle Kopfzeilenvorschau:",
+    "headerRowHint": "Standardwert: Automatische Erkennung (aktuelle Vermutung: Zeile {0})",
+    "headerRowIndex": "Kopfzeilenindex (beginnt bei 0)",
+    "newSession": "Neue Sitzung",
+    "noAnalysisResult": "Keine Analyseergebnisse vorhanden, bitte im \"Datenvorschau\"-Tab Analyse starten",
+    "noFile": "Bitte zuerst Datendatei hochladen",
+    "noSessionSelected": "Bitte Sitzung auswählen oder neue Sitzung erstellen",
+    "renamePlaceholder": "Bitte Sitzungsnamen eingeben",
+    "renameTitle": "Sitzung umbenennen",
+    "sessionsTitle": "Datenanalysesitzungen",
+    "tabs": {
+      "report": "Analysebericht",
+      "data": "Rohdaten",
+      "analysis": "Datenanalyse"
+    },
+    "uploadHint": "Datei hierher ziehen oder zum Hochladen klicken",
+    "uploadTip": "Unterstützt CSV-, Excel-, JSON-Formate"
   },
   "userFeedback": {
     "uploadedToGist": "Zu Gist hochgeladen",
@@ -1349,5 +2275,136 @@
     "edit": "Bearbeiten",
     "save": "Speichern",
     "unsaved": "Ungespeichert"
+  },
+  "aIService": {
+    "cancelled": "Storniert",
+    "clear": "Leeren",
+    "create": "Erstellen",
+    "failed": "Aufgabe fehlgeschlagen",
+    "text": "Starten"
+  },
+  "dataAnalysisWindow": {
+    "text": "Standardwert",
+    "text1": "Aktuelle Vermutung",
+    "text2": "Ausgewählt",
+    "text3": "Bitte in",
+    "tooltip": "Tooltip",
+    "analyze": "Nur ausgewählte Daten analysieren",
+    "analyze1": "Zeilen in der Tabelle können angekreuzt werden, um nur Teildaten zu analysieren",
+    "analyze2": "Noch keine Analyseergebnisse",
+    "detect": "Automatisch erkennen",
+    "preview": "Datenvorschau"
+  },
+  "detailedOutlineNode": {
+    "generating": "Generiere",
+    "sizeDragAdjust": "Ziehen zum Größenändern"
+  },
+  "documentService": {
+    "exportFailedFailedExport": "Dokumentexport fehlgeschlagen",
+    "failedClose": "Dokument schließen fehlgeschlagen",
+    "failedNew": "Neues Dokument erstellen fehlgeschlagen",
+    "loadFailedFailedLoading": "Dokument laden fehlgeschlagen",
+    "saveFailedFailedSave": "Dokument speichern fehlgeschlagen"
+  },
+  "editorModeFirstTime": {
+    "changeLaterHint": "Kann später in den \"Einstellungen\" geändert werden.",
+    "message": "Bitte wählen Sie Ihren bevorzugten Markdown-Bearbeitungsmodus aus, der später in den Einstellungen geändert werden kann.",
+    "title": "Standard-Editor-Modus auswählen"
+  },
+  "dummyView": {
+    "emptyDescription": "Keine geöffneten Dokumente"
+  },
+  "export": {
+    "adapters": {
+      "mdToPdf": {
+        "name": "Markdown zu PDF",
+        "description": "Markdown-Dokumente als PDF exportieren"
+      },
+      "mdToDocx": {
+        "name": "Markdown zu DOCX",
+        "description": "Markdown-Dokumente als DOCX exportieren"
+      },
+      "mdToHtml": {
+        "name": "Markdown zu HTML",
+        "description": "Markdown-Dokumente als HTML exportieren"
+      },
+      "mdToMd": {
+        "name": "Markdown zu Markdown",
+        "description": "Markdown-Dokumente exportieren"
+      },
+      "mdToTex": {
+        "name": "Markdown zu LaTeX",
+        "description": "Markdown-Dokumente als LaTeX exportieren"
+      },
+      "texToPdf": {
+        "name": "LaTeX zu PDF",
+        "description": "LaTeX-Dokumente als PDF kompilieren"
+      },
+      "texToTex": {
+        "name": "LaTeX zu LaTeX",
+        "description": "LaTeX-Dokumente exportieren"
+      }
+    },
+    "options": {
+      "pageSize": {
+        "label": "Seitengröße",
+        "description": "PDF-Seitengröße auswählen",
+        "descriptionTex": "PDF-Seitengröße auswählen (muss in LaTeX-Dokumentenklasse konfiguriert werden)",
+        "a4": "A4",
+        "a3": "A3",
+        "a5": "A5",
+        "b5": "B5",
+        "letter": "Letter",
+        "legal": "Legal"
+      },
+      "margins": {
+        "label": "Seitenränder",
+        "description": "PDF-Seitenrand-Einstellungen",
+        "descriptionTex": "PDF-Seitenrand-Einstellungen (Hinweis: LaTeX-Ränder müssen im Dokument konfiguriert werden)"
+      },
+      "marginTop": {
+        "label": "Oberer Rand (Zoll)",
+        "description": "PDF oberer Rand, Einheit: Zoll",
+        "descriptionTex": "PDF oberer Rand, Einheit: Zoll (Hinweis: LaTeX-Ränder müssen im Dokument konfiguriert werden)"
+      },
+      "title": "Exportoptionen",
+      "marginBottom": {
+        "label": "Unterer Rand (Zoll)",
+        "description": "PDF unterer Rand, Einheit: Zoll"
+      },
+      "marginLeft": {
+        "label": "Linker Rand (Zoll)",
+        "description": "PDF linker Rand, Einheit: Zoll"
+      },
+      "marginRight": {
+        "label": "Rechter Rand (Zoll)",
+        "description": "PDF rechter Rand, Einheit: Zoll"
+      },
+      "printBackground": {
+        "label": "Hintergrund drucken",
+        "description": "Ob Hintergrundfarbe und -bilder im PDF enthalten sein sollen"
+      },
+      "tabs": {
+        "basic": "Grundeinstellungen",
+        "style": "Stileinstellungen"
+      },
+      "chineseFont": {
+        "label": "Chinesische Schriftart",
+        "description": "Beim PDF-Export verwendete chinesische Schriftart"
+      },
+      "westernFont": {
+        "label": "Westliche Schriftart",
+        "description": "Beim PDF-Export verwendete westliche Schriftart"
+      },
+      "colorMode": {
+        "label": "Farbmodus",
+        "description": "Farbmodus des PDF (Farbe oder Graustufen)",
+        "color": "Farbe",
+        "grayscale": "Graustufen"
+      },
+      "enableStyleMapping": {
+        "label": "Formatbindung aktivieren"
+      }
+    }
   }
 }

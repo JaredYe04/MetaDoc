@@ -88,7 +88,7 @@
     "exportImage": "Bild vergrößern",
     "graph": {
       "chart": "Diagramm",
-      "default_chart": "Default Chart"
+      "default_chart": "Standarddiagramm"
     },
     "newChartBtn": "Neues Diagramm",
     "newChartPlaceholder": "Bitte geben Sie einen neuen Titel ein",
@@ -527,8 +527,8 @@
     "exportDocx": "Ausfuhr",
     "exportHtml": "HTML exportieren",
     "exportLatex": "Exportieren Sie LaTeX",
-    "exportMarkdown": "Export Markdown",
-    "exportPdf": "Export PDF",
+    "exportMarkdown": "Markdown exportieren",
+    "exportPdf": "PDF exportieren",
     "file": "Dokumentation",
     "fileTooltip": "Dokumentation",
     "handwritingFormulaRecognition": "Handschriftliche Formelerkennung",
@@ -717,7 +717,7 @@
     "firstMarkdownTitleLevel": "Markdown First Level Titel Level",
     "formatSuccess": "Titel formatiert erfolgreich!",
     "formatTitle": "Format Titel",
-    "formatTitleWizard": "Format Titel Wizard",
+    "formatTitleWizard": "Format-Titel-Assistent",
     "generateChapterSuccess": "AI Erzeugtes Kapitel erfolgreich!",
     "generateChildChapter": "AI Subchapter generieren",
     "generateChildFail": "Konnte den temporären Ordner nicht schließen: %",
@@ -1029,10 +1029,10 @@
       "sendEvent": "Veranstaltungen",
       "targetAiChat": "KI Dialogfenster",
       "targetAiGraph": "KI Diagrammfenster",
-      "targetAll": "Alle Windows",
-      "targetFormulaRecognition": "Formel Recognition Window",
+      "targetAll": "Alle Fenster",
+      "targetFormulaRecognition": "Formelerkennungsfenster",
       "targetHome": "Hauptfenster",
-      "targetSetting": "Set Window",
+      "targetSetting": "Einstellungsfenster",
       "targetWindow": "Zielfenster",
       "testExecuted": "Testdurchführung erfolgreich",
       "testFailed": "Testausführung versagt",
@@ -1523,11 +1523,11 @@
     "usernamePlaceholder": "Bitte geben Sie einen Benutzernamen ein"
   },
   "visualize": {
-    "articleOutline": "Artikel Outline",
+    "articleOutline": "Artikelgliederung",
     "paragraphDistribution": "Absatzverteilung",
     "wordCloud": "Wortwolke",
     "wordCount": "Wortstatistik",
-    "wordFrequency": "Word Frequency Statistik"
+    "wordFrequency": "Wortfrequenzstatistik"
   },
   "voiceInput": {
     "messages": {
@@ -1561,7 +1561,7 @@
     "expand": "Ausbau",
     "filename": "Dateiname",
     "name": "Name",
-    "open_in_editor": "Open in Editor",
+    "open_in_editor": "Im Editor öffnen",
     "path": "Pfad",
     "preview": "Voransicht",
     "rebuild": "Rebuild Vector",
@@ -2088,7 +2088,7 @@
       "deleteSuccess": "Sitzung gelöscht",
       "new": "Neu",
       "newTitle": "Sitzung",
-      "rename": "Rename Session",
+      "rename": "Sitzung umbenennen",
       "renamePlaceholder": "Bitte geben Sie einen neuen Sitzungstitel ein",
       "renameRequired": "Titel kann nicht leer sein",
       "renameSuccess": "Umbenennung erfolgreich",
@@ -2191,7 +2191,7 @@
       "origins": {
         "main": "Hauptprozess",
         "mcp": "MCP-Anwendung",
-        "renderer": "Rendering Process"
+        "renderer": "Rendering-Prozess"
       },
       "display": {
         "dataAnalysis": {
@@ -3079,7 +3079,7 @@
     "title": "Schriftart-Debug-Panel",
     "fontPreview": "Schriftvorschau",
     "statusNormal": "Normal",
-    "statusAbnormal": "Abnormal",
+    "statusAbnormal": "Abweichend",
     "collapse": "Einklappen",
     "expand": "Erweitern",
     "uiFont": "UI-Schriftart",
@@ -3633,13 +3633,13 @@
     "userAnalyze": "Bitte Benutzeranforderung analysieren"
   },
   "tabSwitcher": {
-    "openEditors": "Open Editors",
-    "untitledDocument": "Untitled Document"
+    "openEditors": "Geöffnete Editoren",
+    "untitledDocument": "Unbenanntes Dokument"
   },
   "ai": {
     "completion": {
-      "demoComment": "Calculate the sum of two numbers",
-      "aiSuggestion": "AI Suggestion"
+      "demoComment": "Berechnen Sie die Summe zweier Zahlen",
+      "aiSuggestion": "KI-Vorschlag"
     }
   },
   "datePicker": {
@@ -4338,5 +4338,24 @@
     "title": "Arbeitsbereich-Suche",
     "useRegex": "Regulärer Ausdruck",
     "wholeWord": "Ganzes Wort"
+  },
+  "agentEngine": {
+    "greeting": {
+      "title": "Hallo! Ich bin der MetaDoc KI-Assistent!",
+      "subtitle": "Ich bin Ihr intelligenter Assistent für Dokumentenverfassung. Ich kann effizient verschiedene KI-Tools nutzen, um Ihnen bei der Erstellung illustrierter, inhaltsreicher, professioneller und multidisziplinärer Artikel zu helfen.",
+      "canDo": "Ich kann:",
+      "ragTool": "Mit RAG-Tools relevantes Wissen abrufen",
+      "chartTool": "Mit Diagramm-Tools visuelle Inhalte erstellen",
+      "editTool": "Mit Bearbeitungs-Tools die Dokumentenstruktur optimieren",
+      "proofreadTool": "Mit Korrektur-Tools die Inhaltsqualität sicherstellen",
+      "tellMe": "Sagen Sie mir Ihre Anforderungen, und ich werde mein Bestes tun, um Ihnen bei Ihren Dokumentenerstellungsaufgaben zu helfen!"
+    },
+    "engines": {
+      "autogpt": "AutoGPT-Engine",
+      "react": "ReAct-Engine",
+      "planExecute": "Plan-Execute-Engine",
+      "simpleChat": "Simple-Chat-Engine",
+      "workflow": "Workflow-Engine"
+    }
   }
 }

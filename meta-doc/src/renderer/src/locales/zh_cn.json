@@ -4165,5 +4165,24 @@
     "startPlaceholder": "开始日期",
     "endPlaceholder": "结束日期",
     "rangeSeparator": "至"
+  },
+  "agentEngine": {
+    "greeting": {
+      "title": "你好！我是MetaDoc AI助手！",
+      "subtitle": "我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。",
+      "canDo": "我可以：",
+      "ragTool": "使用RAG工具检索相关知识",
+      "chartTool": "使用图表生成工具创建可视化内容",
+      "editTool": "使用编辑工具优化文档结构",
+      "proofreadTool": "使用校对工具确保内容质量",
+      "tellMe": "告诉我你的需求，我会尽力帮助你完成文档创作任务！"
+    },
+    "engines": {
+      "autogpt": "AutoGPT 引擎",
+      "react": "ReAct 引擎",
+      "planExecute": "Plan-Execute 引擎",
+      "simpleChat": "Simple Chat 引擎",
+      "workflow": "Workflow 引擎"
+    }
   }
 }

@@ -81,10 +81,10 @@ export const DEFAULT_ARTICLE_META: ArticleMetaData = {
 }
 
 export const DEFAULT_AI_ASSISTANT_GREETING =
-  '### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n'
+  '### {{aiGreeting.title}}\n{{aiGreeting.subtitle}}\n'
 
 export const DEFAULT_AGENT_ASSISTANT_GREETING =
-  '### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n'
+  '### {{agentEngine.greeting.title}}\n\n{{agentEngine.greeting.subtitle}}\n\n{{agentEngine.greeting.canDo}}\n- {{agentEngine.greeting.ragTool}}\n- {{agentEngine.greeting.chartTool}}\n- {{agentEngine.greeting.editTool}}\n- {{agentEngine.greeting.proofreadTool}}\n\n{{agentEngine.greeting.tellMe}}\n'
 
 export const DEFAULT_AI_CHAT_MESSAGES: AIDialogMessage[] = [
   {

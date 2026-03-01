@@ -2495,6 +2495,7 @@
     "cannotAccessMic": "无法访问麦克风，请检查权限设置"
   },
   "newDocument": {
+    "emptyTemplate": "空白文档",
     "formatTitle": "选择格式",
     "formats": {
       "markdown": {

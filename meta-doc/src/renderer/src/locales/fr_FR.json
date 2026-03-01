@@ -51,7 +51,9 @@
     "status": "État",
     "taskCancelled": "{tâche} Annulé",
     "taskCancelled2": "Tâche annulée",
-    "error": "Erreur"
+    "error": "Erreur",
+    "errorTitle": "Erreur",
+    "showError": "Afficher le message d'erreur"
   },
   "aiTaskQueue": {
     "empty": "Pas de mission.",
@@ -64,7 +66,8 @@
     "delayButton": "_PALACEHOLDER_000_minutes",
     "delayRemaining": "Délai restant: __PACEHOLDER_00000_",
     "minutes": "min",
-    "seconds": "sec"
+    "seconds": "sec",
+    "delayControlArea": "Zone de contrôle de délai"
   },
   "aigraph": {
     "addScheme": "Nouveau schéma de dessin",
@@ -281,7 +284,9 @@
       "iso88595": "ISO-8859-5",
       "iso88597": "ISO-8859-7"
     },
-    "logSaveFailed": "Échec de l'enregistrement du journal"
+    "logSaveFailed": "Échec de l'enregistrement du journal",
+    "cdFailed": "Impossible de changer de répertoire",
+    "invalidArgument": "Argument invalide"
   },
   "contextMenu": {
     "aiAnalysis": "Analyse du texte intégral",
@@ -317,7 +322,11 @@
       "title_error": "Erreur",
       "title_info": "Conseil",
       "title_success": "Succès",
-      "undo_fail": "Impossible d'annuler"
+      "undo_fail": "Impossible d'annuler",
+      "title": "Notification",
+      "markAllRead": "Tout marquer comme lu",
+      "stackDescription": "Notifications empilées 3D (du bas vers le haut)",
+      "footerDescription": "Barre d'action inférieure étendue: tout effacer (sans bordure/fond, cohérent avec le style transparent)"
     },
     "options": {
       "eraser": "Essuie-glace en caoutchouc.",
@@ -1061,7 +1070,9 @@
       "downloadError": "Échec du téléchargement",
       "installAndRestart": "Installer et redémarrer",
       "openSourceLicenses": "Licences open source",
-      "thirdPartyAssets": "Ressources tierces"
+      "thirdPartyAssets": "Ressources tierces",
+      "aboutUs": "À propos de nous",
+      "content": "Contenu sur l'équipe MetaDoc et sa mission"
     },
     "allChangesSaved": "Toutes les modifications enregistrées",
     "autoOpenHomeOnStartup": "Ouvrir l'accueil au démarrage",
@@ -1529,7 +1540,8 @@
     "unknownError": "Erreur inconnue",
     "updatedInfoObject": "Objet info mis à jour",
     "uploadFailed": "Échec du téléchargement de la connaissance",
-    "uploadSuccess": "Téléchargement de la connaissance réussi"
+    "uploadSuccess": "Téléchargement de la connaissance réussi",
+    "disabledOverlay": "La base de connaissances est actuellement désactivée"
   },
   "aiSuggestion": {
     "accept": "Acceptation des recommandations",
@@ -1874,6 +1886,7 @@
     "minutesAgo": "Il y a {count} minute(s)"
   },
   "newDocument": {
+    "emptyTemplate": "Document vide",
     "formatTitle": "Sélectionner le format",
     "formats": {
       "latex": {
@@ -2847,7 +2860,8 @@
     "previewFont": "Police de l'apercu",
     "previewText": "AaBbCc Bonjour le monde",
     "previewTextAlt": "Ceci est un texte d'apercu",
-    "loadingFonts": "Chargement des polices..."
+    "loadingFonts": "Chargement des polices...",
+    "helloWorld": "Bonjour le monde"
   },
   "aigcDetection": {
     "title": "Detection AIGC",
@@ -3237,7 +3251,11 @@
     "saveFailedFailedSave": "Échec de l'enregistrement du document"
   },
   "dummyView": {
-    "emptyDescription": "Aucun document ouvert"
+    "emptyDescription": "Aucun document ouvert",
+    "animationDuration": "Durée de l'animation",
+    "shakeAnimation": "Animation de secousse",
+    "shakeDescription": "Uniquement déplacement et rotation, géré par le conteneur externe",
+    "shakeScale": "Appliquer l'échelle lors de la secousse, la transition sera douce"
   },
   "editorModeFirstTime": {
     "changeLaterHint": "Vous pourrez modifier le mode d'édition par défaut dans les \"Paramètres\" plus tard.",
@@ -3463,7 +3481,8 @@
       "imageLabelDefaultName": {
         "label": "Image",
         "description": "Nom par défaut de l'image (utilisé lorsque l'image n'a pas de nom)"
-      }
+      },
+      "objectTypeField": "Champ de type d'objet"
     }
   },
   "fomulaRecognition": {
@@ -3505,7 +3524,8 @@
     "sessionsTitle": "Sessions de graphique",
     "simpleMode": "Mode simple",
     "user": "Utilisateur",
-    "userRequest": "Nouvelle demande de l'utilisateur"
+    "userRequest": "Nouvelle demande de l'utilisateur",
+    "renderFailed": "Échec du rendu"
   },
   "graphWindow": {
     "format": "Format comme suit",
@@ -3974,31 +3994,31 @@
     },
     "markdown": {
       "basic": {
-        "title": "Syntaxe Markdown de base",
+        "title": "Bases Markdown",
         "content": "# Syntaxe de base de Markdown\n\nL'éditeur Markdown de MetaDoc est basé sur [Vditor](https://b3log.org/vditor), qui prend en charge les normes CommonMark et GFM (GitHub Flavored Markdown). Cette documentation présente la syntaxe de Markdown supportée par MetaDoc.\n\n## Titres\n\nUtilisez `#` pour indiquer un titre, le nombre de `#` détermine le niveau du titre (de 1 à 6) :\n\n```markdown\n# Titre de niveau 1\n## Titre de niveau 2\n### Titre de niveau 3\n#### Titre de niveau 4\n##### Titre de niveau 5\n###### Titre de niveau 6\n```\n\n**Meilleures pratiques** :\n- Séparez les titres par des lignes vides\n- Ajoutez un espace après `#`\n- Évitez les sauts de niveau (par exemple, passer directement du niveau 1 au niveau 3)\n\n### Titres Setext (syntaxe optionnelle)\n\nVous pouvez également créer des titres en utilisant des égalités ou des traits horizontaux :\n\n```markdown\nTitre de niveau 1\n========\n\nTitre de niveau 2\n--------\n```\n\nRemarque : La syntaxe Setext ne peut créer que des titres de niveau 1 et 2, elle n'est pas recommandée.\n\n## Paragraphes\n\nSéparez les paragraphes par des lignes vides :\n\n```markdown\nCeci est le premier paragraphe.\n\nCeci est le deuxième paragraphe.\n```\n\n**Meilleures pratiques** :\n- Ne commencez pas un paragraphe par un espace ou une tabulation\n- Séparez les paragraphes par des lignes vides\n\n## Retour à la ligne\n\nPour forcer un retour à la ligne, ajoutez deux espaces ou plus en fin de ligne puis appuyez sur Entrée :\n\n```markdown\nCeci est la première ligne.  \nCeci est la deuxième ligne.\n```\n\nRemarque : La plupart des moteurs de Markdown modernes gèrent automatiquement les retours à la ligne, il n'est généralement pas nécessaire d'ajouter des espaces.\n\n## Format de texte\n\n### Gras\n\nUtilisez `**texte**` ou `__texte__` pour indiquer du texte gras :\n\n```markdown\nCeci est **du texte gras**\nCeci est __du texte gras__\n```\n\n**Meilleures pratiques** : On recommande l'utilisation de `**` car des espaces avant et après ne sont pas nécessaires.\n\n### Souligné (italique)\n\nUtilisez `*texte*` ou `_texte_` pour indiquer du texte en italique :\n\n```markdown\nCeci est *du texte en italique*\nCeci est _du texte en italique_\n```\n\n### Gras et souligné\n\nUtilisez `***texte***` ou `___texte___` :\n\n```markdown\nCeci est ***du texte en gras et en italique***\n```\n\n### Souligné avec une ligne traitée\n\nUtilisez `~~texte~~` pour indiquer du texte souligné :\n\n```markdown\n~~Ceci est du texte souligné~~\n```\n\n### Code en ligne\n\nEntourez le code d'astérisques :\n\n```markdown\nUtilisez `console.log()` pour afficher du contenu\n```\n\nSi vous devez afficher des astérisques, utilisez l'échappement : `` ` ``\n\n## Listes\n\n### Liste non numérotée\n\nCréez une liste non numérotée en utilisant `-`, `*` ou `+` :\n\n```markdown\n- Projet 1\n- Projet 2\n  - Sous-projet 2.1\n  - Sous-projet 2.2\n- Projet 3\n```\n\n### Liste numérotée\n\nCréez une liste numérotée en utilisant un numéro suivi d'un point ou d'un parenthèse :\n\n```markdown\n1. Premier élément\n2. Deuxième élément\n3. Troisième élément\n```\n\nRemarque : Les numéros n'ont pas à être consécutifs, Markdown les numérote automatiquement.\n\n### Éléments de liste contenant d'autres éléments\n\nLes éléments de liste peuvent contenir des paragraphes, des blocs de code, des citations, etc. :\n\n```markdown\n- Élément de liste 1\n- Élément de liste 2 premier paragraphe\n\n  C'est le deuxième paragraphe (remarque : alignement des indentations)\n\n  > C'est une citation\n\n  ```\n  C'est un bloc de code\n  ```\n- Élément de liste 3\n```\n\n## Citations\n\nCréez une citation en utilisant un trait de plus :\n\n```markdown\n> C'est du contenu de la citation\n> Cela peut être sur plusieurs lignes\n```\n\n### Citations imbriquées\n\n```markdown\n> Première citation\n>\n>> Deuxième citation\n```\n\n### Citation contenant d'autres éléments\n\nLes citations peuvent contenir des titres, des listes, des blocs de code, etc. :\n\n```markdown\n> ### Titre\n>\n> - Élément de liste\n> - Élément de liste\n>\n> **Gras** et *italique*\n```\n\n## Blocs de code\n\n### Blocs de code indentés\n\nUtilisez quatre espaces ou un tabulation pour indenter le code :\n\n```markdown\n    Ceci est un bloc de code\n    qui peut être sur plusieurs lignes\n```\n\n### Blocs de code avec balises (recommandé)\n\nEntourez le code de trois guillemets et spécifiez le langage :\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\nLes langages de syntaxe colorée supportés incluent : JavaScript, Python, Java, C++, HTML, CSS, JSON, Markdown, etc.\n\n## Liens\n\n### Liens inline\n\n```markdown\n[Texte du lien](https://example.com)\n[Texte du lien](https://example.com \"Titre du lien\")\n```\n\n### Liens de style de citation\n\n```markdown\n[Texte du lien][identifiant du lien]\n\n[identifiant du lien]: https://example.com \"Titre optionnel\"\n```\n\n### Liens automatiques\n\n```markdown\n<https://example.com>\n<email@example.com>\n```\n\nLa plupart des moteurs de Markdown supportent également l'identification automatique des URL :\n\n```markdown\nhttps://example.com\n```\n\n**Meilleures pratiques** : Après un texte en chinois, il est recommandé d'utiliser un espace ou des guillemets pour séparer l'URL, afin d'éviter des erreurs de reconnaissance.\n\n## Images\n\n```markdown\n![Description de l'image](image.png)\n![Description de l'image](image.png \"Titre de l'image\")\n```\n\n### Image imbriquée dans un lien\n\n```markdown\n[![Description de l'image](image.png)](https://example.com)\n```\n\n## Tables\n\nUtilisez des barres verticales `|` pour séparer les colonnes et des traits horizontaux `---` pour séparer la tête de la table :\n\n```markdown\n| Colonne 1 | Colonne 2 | Colonne 3 |\n|-----------|-----------|-----------|\n| Données 1 | Données 2 | Données 3 |\n| Données 4 | Données 5 | Données 6 |\n```\n\n### Alignement des colonnes dans les tables\n\n```markdown\n| Alignement à gauche | Alignement centré | Alignement à droite |\n|:-------------------|:-----------------:|-------------------:|\n| Données 1          | Données 2         |   Données 3        |\n```\n\n### Contenu formaté dans les tables\n\nLes tables peuvent contenir du texte gras, en italique, des liens, etc. :\n\n```markdown\n| Colonne 1 | Colonne 2 |\n|-----------|-----------|\n| **Texte en gras** | [Lien](url) |\n```\n\nRemarque : Les éléments de type bloc (titres, listes, blocs de code, etc.) ne peuvent pas être utilisés dans les tables.\n\n## Lignes de séparation\n\nCréez une ligne de séparation en utilisant trois ou plus `*`, `-` ou `_` :\n\n```markdown\n***\n---\n___\n```\n\n## Caractères d'échappement\n\nUtilisez un backslash `\\` pour échapper des caractères spéciaux :\n\n```markdown\n\\* Étoile\n\\` Backtick\n\\# Hashtag\n\\[ Crochets\n\\( Parenthèses\n```\n\n## Support HTML\n\nMarkdown prend en charge l'insertion d'HTML :\n\n```html\n<div style=\"color: red;\">Texte en rouge</div>\n```\n\n**Remarques** :\n- Certains moteurs de Markdown peuvent filtrer certaines balises HTML ou leurs attributs\n- Il ne faut pas imbriquer de syntaxe Markdown dans du HTML\n- On recommande d'utiliser la syntaxe Markdown plutôt que du HTML si possible"
       },
       "advanced": {
-        "title": "Fonctionnalités avancées Markdown",
+        "title": "Fonctionnalités Avancées Markdown",
         "content": "# Caractéristiques avancées de Markdown\n\n## À propos de Vditor\n\nL'éditeur de Markdown de MetaDoc est basé sur [Vditor](https://b3log.org/vditor), un puissant éditeur de Markdown côté navigateur. Vditor implémente les normes CommonMark et GFM (GitHub Flavored Markdown) et prend en charge de nombreuses extensions de syntaxe.\n\n### Capacités de Vditor\n\n- ✅ Support des normes CommonMark et GFM\n- ✅ Support de l'affichage de formules mathématiques (KaTeX/MathJax)\n- ✅ Support de l'highlighting de code (highlight.js)\n- ✅ Support de tableaux, listes de tâches, notes de bas de page, etc.\n- ✅ Support de l'affichage de diagrammes (Mermaid, ECharts, PlantUML, etc.)\n- ✅ Support de trois modes d'édition : WYSIWYG, IR, SV\n- ✅ Support de la navigation par plan\n- ✅ Support de l'upload et du collage d'images\n- ✅ Support de l'emoji\n\n### Limitations de Vditor\n\n- ❌ Pas de support pour les séparateurs de formules LaTeX standards `\\(...\\)` et `\\[...\\]`\n- ❌ Certaines extensions de syntaxe Markdown non conventionnelles peuvent ne pas être supportées\n- ❌ Certains balises et attributs HTML peuvent être filtrés\n\n**Solution** : Si votre document contient des formules dans le format `\\(...\\)` ou `\\[...\\]`, vous pouvez utiliser le bouton \"Convertir le format de formule LaTeX\" dans la barre d'outils pour les convertir en format compatible de Vditor `$...$` et `$$...$$`.\n\n## Formules mathématiques\n\n### Formules en ligne\n\nUtilisez `$formule$` pour indiquer une formule en ligne :\n\n```markdown\nC'est une formule en ligne : $E = mc^2$\n```\n\nRésultat de rendu : C'est une formule en ligne : $E = mc^2$\n\n**Avertissement important** : Vditor ne supporte que le format `$...$` pour les formules en ligne, et non le format LaTeX standard `\\(...\\)`. Si votre document utilise le format `\\(...\\)` , utilisez le bouton \"Convertir le format de formule LaTeX\" dans la barre d'outils pour le convertir.\n\n### Formules en bloc\n\nUtilisez `$$formule$$` pour indiquer une formule en bloc :\n\n```markdown\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n```\n\nRésultat de rendu :\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**Avertissement important** : Vditor ne supporte que le format `$$...$$` pour les formules en bloc, et non le format LaTeX standard `\\[...\\]`. Si votre document utilise le format `\\[...\\]`, utilisez le bouton \"Convertir le format de formule LaTeX\" dans la barre d'outils pour le convertir.\n\n### Exemples de formules mathématiques\n\n```markdown\nFormule en ligne : $\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$\n\nFormule en bloc :\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n```\n\n## Liste de tâches\n\nUtilisez `[ ]` ou `[x]` pour créer une liste de tâches :\n\n```markdown\n- [x] Tâche terminée\n- [ ] Tâche non terminée\n- [x] Une autre tâche terminée\n```\n\nRésultat de rendu :\n\n- [x] Tâche terminée\n- [ ] Tâche non terminée\n- [x] Une autre tâche terminée\n\n## Notes de bas de page\n\nUtilisez `[^identifiant]` pour créer une référence de note de bas de page, et `[^identifiant]:` pour définir la note de bas de page :\n\n```markdown\nVoici une référence de note de bas de page[^1], et voici une autre référence de note[^note].\n\n[^1]: Définition de la première note.\n[^note]: La définition de la note peut utiliser plusieurs paragraphes.\n\n    Les paragraphes indentés sont également inclus dans la note.\n```\n\n## Lignes de soulignement\n\nUtilisez `~~texte~~` pour créer une ligne de soulignement :\n\n```markdown\n~~Ceci est du texte souligné~~\n```\n\n## Emoji\n\nIl existe deux façons d'utiliser les Emoji :\n\n1. Entrer directement les caractères Emoji : 😀 🌻 ☀️\n2. Utiliser des aliases : `:smile:` `:sunny:` `:heart:`\n\n```markdown\nAujourd'hui, il fait vraiment beau :sunny:\nLes fleurs 🌻 me sourient\n```\n\n## Spécifier l'ID des titres\n\nCertains moteurs de Markdown permettent de spécifier un ID pour les titres :\n\n```markdown\n### C'est un titre {#custom-id}\n```\n\nPuis vous pouvez sauter directement à ce titre :\n\n```markdown\n[Aller au titre](#custom-id)\n```\n\n## Diagrammes\n\nMetaDoc prend en charge de nombreux types de diagrammes, voir la section \"Création de diagrammes\" pour plus de détails :\n\n- **Mermaid** : Diagrammes de flux, diagrammes de séquence, diagrammes Gantt, diagrammes UML de classe, etc.\n- **PlantUML** : Modélisation professionnelle UML\n- **ECharts** : Diagrammes de visualisation de données\n- **Flowchart** : Diagrammes de flux de base\n- **Mindmap** : Cartes mentales\n\n## Highlighting de blocs de code\n\nSupport de l'highlighting de code pour de nombreuses langues de programmation :\n\n````markdown\n```javascript\nconst hello = () => {\n  console.log('Hello, World!');\n};\n```\n\n```python\ndef hello():\n    print('Hello, World!')\n```\n\n```java\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n```\n````\n\n## Liens automatiques\n\nLa plupart des moteurs de Markdown activent par défaut l'identification des liens automatiques :\n\n```markdown\nVisitez https://example.com pour en savoir plus\n```\n\nSi vous souhaitez désactiver l'identification automatique des liens, vous pouvez les convertir en code :\n\n```markdown\n`https://example.com`\n```\n\n## Liens de style de citation\n\nUtiliser un style de citation peut rendre le Markdown original plus lisible :\n\n```markdown\nC'est un lien [texte de lien][id1], et c'est un autre lien [texte de lien][id2].\n\n[id1]: https://example.com \"Titre optionnel\"\n[id2]: https://example.org\n```\n\nLa définition des liens peut se trouver n'importe où dans le document, généralement à la fin.\n\n## Résumé\n\nL'éditeur de Markdown de MetaDoc est basé sur Vditor, qui supporte les normes CommonMark et GFM et offre de nombreuses extensions de syntaxe. Si vous rencontrez des syntaxes non compatibles (comme `\\(...\\)` et `\\[...\\]` pour les formules), vous pouvez utiliser les outils de conversion de la barre d'outils pour les gérer.\n\nPour plus d'informations, consultez :\n- [Documentation officielle de Vditor](https://b3log.org/vditor)\n- [Normes CommonMark](https://spec.commonmark.org)\n- [Normes GitHub Flavored Markdown](https://github.github.com/gfm)"
       }
     },
     "navigation": {
-      "core": "Opérations de base",
+      "core": "Opérations Principales",
       "markdown": "Tutoriel Markdown",
       "latex": "Tutoriel LaTeX",
-      "charts": "Dessin de graphiques",
+      "charts": "Dessin de Graphiques",
       "ai": "Outils IA",
-      "agent": "Utilisation de l'Agent",
-      "design": "Philosophie de conception"
+      "agent": "Utilisation Agent",
+      "design": "Philosophie de Design"
     },
     "overview": {
-      "title": "Aperçu",
-      "welcome": "Démarrage rapide avec MetaDoc",
+      "title": "Vue d'ensemble",
+      "welcome": "Démarrage Rapide avec MetaDoc",
       "description": "Cette page vous aide à comprendre rapidement votre positionnement et recommande un parcours d'apprentissage adapté. Vous pouvez suivre l'ordre recommandé ou naviguer vers n'importe quel chapitre depuis le menu de gauche.",
-      "profile": "Mon profil utilisateur",
+      "profile": "Mon Profil Utilisateur",
       "profileSummary": "Votre positionnement",
-      "profileSummarySentence": "Vous utilisez principalement pour le scénario \"{scenario}\" ; actuellement Markdown est à {markdown}, LaTeX à {latex}, AI Agent à {agent}.",
-      "progress": "Progression d'apprentissage",
+      "profileSummarySentence": "Vous utilisez principalement le scénario 「{scenario}」; actuellement {markdown} pour Markdown, {latex} pour LaTeX et {agent} pour AI Agent.",
+      "progress": "Progression d'Apprentissage",
       "recommendedPath": "Parcours d'apprentissage recommandé",
       "quickStart": "Démarrage rapide",
       "quickLinks": "Liens rapides",
@@ -4006,31 +4026,31 @@
       "startLearning": "Commencer l'apprentissage",
       "viewGraph": "Voir la carte du parcours",
       "completed": "Terminé",
-      "current": "En cours",
-      "pending": "À apprendre",
+      "current": "Actuel",
+      "pending": "En attente",
       "articles": "articles",
       "skillRadar": "Radar de compétences"
     },
     "profile": {
-      "title": "Questionnaire de profil utilisateur",
+      "title": "Questionnaire Profil Utilisateur",
       "buttonText": "Compléter mes préférences",
       "scenario": "Scénario d'utilisation",
-      "scenarioHint": "Veuillez sélectionner votre scénario d'utilisation principal, cela nous aidera à vous recommander le meilleur parcours d'apprentissage",
+      "scenarioHint": "Veuillez sélectionner votre scénario d'utilisation principal",
       "reanalyze": "Réanalyser",
       "reanalyzeConfirmTitle": "Réinitialiser le profil utilisateur",
-      "reanalyzeConfirmMessage": "La réinitialisation du profil utilisateur effacera votre progression actuelle. Continuer ?",
+      "reanalyzeConfirmMessage": "La réinitialisation effacera votre progression actuelle. Continuer?",
       "scenarios": {
         "student": "Étudiant",
         "researcher": "Chercheur",
-        "it": "Personnel informatique",
+        "it": "Professionnel IT",
         "office": "Employé de bureau",
         "other": "Autre",
         "hint": {
-          "student": "étudiant : Principalement utilisé pour prendre des notes de cours, des documents d'exercices, l'organisation de ressources d'étude, etc.",
-          "researcher": "Recherches scientifiques : principalement utilisées dans des contextes tels que les articles de recherche académiques, les rapports de recherche, les notes d'experimentation, etc.",
-          "it": "IT personnel : Utilisé principalement pour les documents techniques, les commentaires de code, les documents API, les documents de projets, etc.",
-          "office": "Personnel de bureau : Utilisé principalement pour les procès-verbaux de réunions, les rapports de travail, les documents commerciaux, etc.",
-          "other": "Autres : Édition de documents généraux"
+          "student": "Étudiants: principalement pour les notes de cours, devoirs et matériel d'étude",
+          "researcher": "Chercheurs: principalement pour articles académiques, rapports de recherche et protocoles expérimentaux",
+          "it": "Professionnels IT: principalement pour documentation technique, commentaires de code, documentation API",
+          "office": "Employés de bureau: principalement pour comptes-rendus de réunions, rapports de travail, documents commerciaux",
+          "other": "Autres: scénarios généraux d'édition de documents"
         },
         "tooltip": {
           "student": "étudiant : Utilisé principalement pour prendre des notes de cours, des documents d'exercices, et l'organisation de matériel d'étude, etc.",

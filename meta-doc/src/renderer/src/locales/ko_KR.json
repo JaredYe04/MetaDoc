@@ -550,7 +550,11 @@
       "redo_fail": "다시 실행 실패",
       "copy_image_success": "복사 성공, Ctrl+V로 이미지 붙여넣기",
       "copy_formula_success": "수식 복사 성공",
-      "copy_formula_fail": "수식 복사 실패"
+      "copy_formula_fail": "수식 복사 실패",
+      "title": "알림",
+      "markAllRead": "모두 읽음으로 표시",
+      "stackDescription": "3D 스택 알림(아래에서 위로)",
+      "footerDescription": "확장된 하단 작업 표시줄: 모두 지우기(테두리/배경 없음, 투명 스택 스타일과 일관됨)"
     },
     "options": {
       "pen": "펜",
@@ -1218,7 +1222,7 @@
       "openSourceLicenses": "오픈 소스 라이선스",
       "thirdPartyAssets": "제3자 에셋",
       "aboutUs": "회사 소개",
-      "content": "회사 소개 페이지의 콘텐츠입니다"
+      "content": "MetaDoc 팀과 미션에 대한 내용"
     },
     "cancel": "취소",
     "cannotCreateManualConfig": "수동 유형의 구성을 생성할 수 없습니다. 수동 유형은 개발 모드에서만 사용됩니다",
@@ -1482,7 +1486,7 @@
     "taskCancelled2": "업무 취소",
     "error": "오류",
     "errorTitle": "오류",
-    "showError": "오류 정보 표시"
+    "showError": "오류 메시지 표시"
   },
   "aiTaskQueue": {
     "empty": "할당 없음.",
@@ -1588,7 +1592,8 @@
     "unknownError": "알 수 없는 오류",
     "updatedInfoObject": "업데이트된 info 개체",
     "uploadFailed": "지식 업로드 실패",
-    "uploadSuccess": "지식 업로드 성공"
+    "uploadSuccess": "지식 업로드 성공",
+    "disabledOverlay": "지식 베이스 비활성화 시 오버레이"
   },
   "aiSuggestion": {
     "accept": "자주 묻는 질문",
@@ -1933,6 +1938,7 @@
     "minutesAgo": "{count}분 전"
   },
   "newDocument": {
+    "emptyTemplate": "빈 문서",
     "formatTitle": "형식 선택",
     "formats": {
       "latex": {
@@ -3520,7 +3526,8 @@
     "sessionsTitle": "그리기 세션",
     "simpleMode": "간단 모드",
     "user": "사용자",
-    "userRequest": "사용자 새 요구사항"
+    "userRequest": "사용자 새 요구사항",
+    "renderFailed": "렌더링 실패"
   },
   "graphWindow": {
     "format": "형식은 다음과 같습니다",
@@ -3980,12 +3987,249 @@
     },
     "markdown": {
       "basic": {
-        "title": "Markdown 기초 문법",
+        "title": "Markdown 기본 구문",
         "content": "# Markdown 기초 문법\n\nMetaDoc의 Markdown 편집기는 [Vditor](https://b3log.org/vditor)를 기반으로 하며, CommonMark와 GFM(GitHub Flavored Markdown) 사양을 지원합니다. 이 문서에서는 MetaDoc에서 지원하는 Markdown 문법을 소개합니다.\n\n## 제목\n\n`#`를 사용하여 제목을 표시하며, `#`의 개수로 제목 수준(1-6)을 나타냅니다:\n\n```markdown\n# 1단계 제목\n## 2단계 제목\n### 3단계 제목\n#### 4단계 제목\n##### 5단계 제목\n###### 6단계 제목\n```\n\n**모범 사례**:\n- 제목 전후에 빈 줄 사용\n- `#` 뒤에는 반드시 공백 추가\n- 레벨 건에 하지 않기(예: 1단계에서 3단계로 직접 이동)\n\n### Setext 제목(대체 문법)\n\n등호 또는 하이픈을 사용하여 제목을 만들 수도 있습니다:\n\n```markdown\n1단계 제목\n========\n\n2단계 제목\n--------\n```\n\n참고: Setext 문법은 1단계와 2단계 제목만 만들 수 있으며 권장하지 않습니다.\n\n## 단락\n\n빈 줄로 단락을 구분합니다:\n\n```markdown\n첫 번째 단락입니다.\n\n두 번째 단락입니다.\n```\n\n**모범 사례**:\n- 단락 시작 부분에 공백이나 탭 들여쓰기 사용하지 않기\n- 단락 사이에 빈 줄 사용\n\n## 줄 바꿈\n\n줄 끝에 두 개 이상의 공백을 추가한 후 Enter를 누륍니다:\n\n```markdown\n첫 번째 줄입니다.  \n두 번째 줄입니다.\n```\n\n참고: 현대적인 Markdown 엔진은 일반적으로 줄 바꿈을 자동으로 처리하므로 수동으로 공백을 추가할 필요가 없습니다.\n\n## 텍스트 서식\n\n### 굵게\n\n`**텍스트**` 또는 `__텍스트__`로 굵게 표시:\n\n```markdown\n**굵은 텍스트**입니다\n__굵은 텍스트__입니다\n```\n\n**모범 사례**: 별표 `**`를 권장하며, 앞뒤에 공백을 넣지 않아도 됩니다.\n\n### 강조(기울임)\n\n`*텍스트*` 또는 `_텍스트_`로 강조:\n\n```markdown\n*강조 텍스트*입니다\n_강조 텍스트_입니다\n```\n\n### 굵게 및 강조\n\n`***텍스트***` 또는 `___텍스트___`를 사용합니다:\n\n```markdown\n***굵게 및 강조***입니다\n```\n\n### 취소선\n\n`~~텍스트~~`로 취소선을 표시합니다:\n\n```markdown\n~~삭제된 텍스트~~입니다\n```\n\n### 인라인 코드\n\n백틱으로 코드를 감싸서 표시합니다:\n\n```markdown\n`console.log()`를 사용하여 콘텐츠를 출력합니다\n```"
       },
       "advanced": {
-        "content": "# Markdown 고급 특성\n\n## Vditor 소개\n\nMetaDoc의 Markdown 편집기는 [Vditor](https://b3log.org/vditor)를 기반으로 합니다. 이는 강력한 브라우저 기반 Markdown 편집기입니다. Vditor는 CommonMark와 GFM(GitHub Flavored Markdown) 사양을 구현하며 다양한 확장 문법을 지원합니다.\n\n### Vditor의 능력\n\n- ✅ CommonMark 및 GFM 사양 지원\n- ✅ 수학 수식 렌더링 지원(KaTeX/MathJax)\n- ✅ 코드 강조 지원(highlight.js)\n- ✅ 표, 작업 목록, 각주 등 확장 문법 지원\n- ✅ 차트 렌더링 지원(Mermaid, ECharts, PlantUML 등)\n- ✅ 3가지 편집 모드 지원: WYSIWYG, 즉시 렌더링(IR), 분할 미리보기(SV)\n- ✅ 개요 탐색 지원\n- ✅ 이미지 업로드 및 붙여넣기 지원\n- ✅ 이모지 지원\n\n### Vditor의 한계\n\n- ❌ LaTeX 표준 형식의 수식 구분자 `\\\\(...\\\\)` 및 `\\\\[...\\\\]` 지원하지 않음\n- ❌ 일부 비정상적인 Markdown 확장 문법 지원하지 않을 수 있음\n- ❌ HTML의 일부 태그와 속성이 필터링될 수 있음\n\n**해결책**: 문서에 `\\\\(...\\\\)` 또는 `\\\\[...\\\\)` 형식의 수식이 포함된 경우 도구 모음의 \"LaTeX 수식 형식 변환\" 버튼을 사용하여 Vditor와 호환되는 `$...$` 및 `$$...$$` 형식으로 변환하세요.\n\n## 수학 수식\n\n### 인라인 수식\n\n`$수식$`을 사용하여 인라인 수식을 표시합니다:\n\n```markdown\n인라인 수식: $E = mc^2$\n```\n\n렌더링 결과: 인라인 수식: $E = mc^2$\n\n**중요 힌트**: Vditor는 `$...$` 형식의 인라인 수식만 지원하며 LaTeX 표준 형식 `\\\\(...\\\\)`는 지원하지 않습니다. 문서에 `\\\\(...\\\\)` 형식을 사용한 경우 도구 모음의 \"LaTeX 수식 형식 변환\" 버튼을 사용하여 변환하세요.\n\n### 블록 수식\n\n`$$수식$$`을 사용하여 블록 수식을 표시합니다:\n\n```markdown\n$$\\\\int_{-\\\\infty}^{\\\\infty} e^{-x^2} dx = \\\\sqrt{\\\\pi}$$\n```\n\n렌더링 결과:\n\n$$\\\\int_{-\\\\infty}^{\\\\infty} e^{-x^2} dx = \\\\sqrt{\\\\pi}$$\n\n**중요 힌트**: Vditor는 `$$...$$` 형식의 블록 수식만 지원하며 LaTeX 표준 형식 `\\\\[...\\\\]`는 지원하지 않습니다. 문서에 `\\\\[...\\\\]` 형식을 사용한 경우 도구 모음의 \"LaTeX 수식 형식 변환\" 버튼을 사용하여 변환하세요.\n\n### 수학 수식 예시\n\n```markdown\n인라인 수식: $\\\\sum_{i=1}^{n} i = \\\\frac{n(n+1)}{2}$\n\n블록 수식:\n$$\\\\begin{pmatrix}\na & b \\\\\\\\\nc & d\n\\\\end{pmatrix}$$\n```\n\n## 작업 목록\n\n`[ ]` 또는 `[x]`를 사용하여 작업 목록을 만듭니다:\n\n```markdown\n- [x] 완료된 작업\n- [ ] 미완료된 작업\n- [x] 또 다른 완료된 작업\n```\n\n렌더링 결과:\n\n- [x] 완료된 작업\n- [ ] 미완료된 작업\n- [x] 또 다른 완료된 작업\n\n## 각주\n\n`[^식별자]`를 사용하여 각주를 참조하고 `[^식별자]:`로 각주를 정의합니다:\n\n```markdown\n여기는 각주 참조[^1]이며, 여기는 또 다른 각주 참조[^note]입니다.\n\n[^1]: 첫 번째 각주 정의입니다.\n[^note]: 각주 정의는 여러 단락을 포함할 수 있습니다.\n\n    들여쓰기된 단락도 각주에 포함됩니다.\n```\n\n## 취소선\n\n`~~텍스트~~`를 사용하여 취소선을 만듭니다:\n\n```markdown\n~~삭제된 텍스트~~\n```\n\n## 이모지\n\n이모지를 사용하는 방법은 두 가지가 있습니다:\n\n1. 이모지 문자 직접 입력: 😀 🌻 ☀️\n2. 별칭 사용: `:smile:` `:sunny:` `:heart:`\n\n```markdown\n오늘 날씨가 정말 좋습니다 :sunny:\n꽃이 🌻 저에게 미소 짓습니다\n```"
+        "content": "# Markdown 고급 특성\n\n## Vditor 소개\n\nMetaDoc의 Markdown 편집기는 [Vditor](https://b3log.org/vditor)를 기반으로 합니다. 이는 강력한 브라우저 기반 Markdown 편집기입니다. Vditor는 CommonMark와 GFM(GitHub Flavored Markdown) 사양을 구현하며 다양한 확장 문법을 지원합니다.\n\n### Vditor의 능력\n\n- ✅ CommonMark 및 GFM 사양 지원\n- ✅ 수학 수식 렌더링 지원(KaTeX/MathJax)\n- ✅ 코드 강조 지원(highlight.js)\n- ✅ 표, 작업 목록, 각주 등 확장 문법 지원\n- ✅ 차트 렌더링 지원(Mermaid, ECharts, PlantUML 등)\n- ✅ 3가지 편집 모드 지원: WYSIWYG, 즉시 렌더링(IR), 분할 미리보기(SV)\n- ✅ 개요 탐색 지원\n- ✅ 이미지 업로드 및 붙여넣기 지원\n- ✅ 이모지 지원\n\n### Vditor의 한계\n\n- ❌ LaTeX 표준 형식의 수식 구분자 `\\\\(...\\\\)` 및 `\\\\[...\\\\]` 지원하지 않음\n- ❌ 일부 비정상적인 Markdown 확장 문법 지원하지 않을 수 있음\n- ❌ HTML의 일부 태그와 속성이 필터링될 수 있음\n\n**해결책**: 문서에 `\\\\(...\\\\)` 또는 `\\\\[...\\\\)` 형식의 수식이 포함된 경우 도구 모음의 \"LaTeX 수식 형식 변환\" 버튼을 사용하여 Vditor와 호환되는 `$...$` 및 `$$...$$` 형식으로 변환하세요.\n\n## 수학 수식\n\n### 인라인 수식\n\n`$수식$`을 사용하여 인라인 수식을 표시합니다:\n\n```markdown\n인라인 수식: $E = mc^2$\n```\n\n렌더링 결과: 인라인 수식: $E = mc^2$\n\n**중요 힌트**: Vditor는 `$...$` 형식의 인라인 수식만 지원하며 LaTeX 표준 형식 `\\\\(...\\\\)`는 지원하지 않습니다. 문서에 `\\\\(...\\\\)` 형식을 사용한 경우 도구 모음의 \"LaTeX 수식 형식 변환\" 버튼을 사용하여 변환하세요.\n\n### 블록 수식\n\n`$$수식$$`을 사용하여 블록 수식을 표시합니다:\n\n```markdown\n$$\\\\int_{-\\\\infty}^{\\\\infty} e^{-x^2} dx = \\\\sqrt{\\\\pi}$$\n```\n\n렌더링 결과:\n\n$$\\\\int_{-\\\\infty}^{\\\\infty} e^{-x^2} dx = \\\\sqrt{\\\\pi}$$\n\n**중요 힌트**: Vditor는 `$$...$$` 형식의 블록 수식만 지원하며 LaTeX 표준 형식 `\\\\[...\\\\]`는 지원하지 않습니다. 문서에 `\\\\[...\\\\]` 형식을 사용한 경우 도구 모음의 \"LaTeX 수식 형식 변환\" 버튼을 사용하여 변환하세요.\n\n### 수학 수식 예시\n\n```markdown\n인라인 수식: $\\\\sum_{i=1}^{n} i = \\\\frac{n(n+1)}{2}$\n\n블록 수식:\n$$\\\\begin{pmatrix}\na & b \\\\\\\\\nc & d\n\\\\end{pmatrix}$$\n```\n\n## 작업 목록\n\n`[ ]` 또는 `[x]`를 사용하여 작업 목록을 만듭니다:\n\n```markdown\n- [x] 완료된 작업\n- [ ] 미완료된 작업\n- [x] 또 다른 완료된 작업\n```\n\n렌더링 결과:\n\n- [x] 완료된 작업\n- [ ] 미완료된 작업\n- [x] 또 다른 완료된 작업\n\n## 각주\n\n`[^식별자]`를 사용하여 각주를 참조하고 `[^식별자]:`로 각주를 정의합니다:\n\n```markdown\n여기는 각주 참조[^1]이며, 여기는 또 다른 각주 참조[^note]입니다.\n\n[^1]: 첫 번째 각주 정의입니다.\n[^note]: 각주 정의는 여러 단락을 포함할 수 있습니다.\n\n    들여쓰기된 단락도 각주에 포함됩니다.\n```\n\n## 취소선\n\n`~~텍스트~~`를 사용하여 취소선을 만듭니다:\n\n```markdown\n~~삭제된 텍스트~~\n```\n\n## 이모지\n\n이모지를 사용하는 방법은 두 가지가 있습니다:\n\n1. 이모지 문자 직접 입력: 😀 🌻 ☀️\n2. 별칭 사용: `:smile:` `:sunny:` `:heart:`\n\n```markdown\n오늘 날씨가 정말 좋습니다 :sunny:\n꽃이 🌻 저에게 미소 짓습니다\n```",
+        "title": "Markdown 고급 기능"
       }
-    }
+    },
+    "navigation": {
+      "core": "핵심 작업",
+      "markdown": "Markdown 튜토리얼",
+      "latex": "LaTeX 튜토리얼",
+      "charts": "차트 그리기",
+      "ai": "AI 도구",
+      "agent": "에이전트 사용",
+      "design": "디자인 철학"
+    },
+    "overview": {
+      "title": "개요",
+      "welcome": "MetaDoc 빠른 시작",
+      "profile": "내 사용자 프로필",
+      "progress": "학습 진도",
+      "completed": "완료",
+      "current": "현재",
+      "pending": "대기 중",
+      "description": "이 페이지는 사용 프로필을 이해하고 적합한 학습 경로를 추천하는 데 도움이 됩니다.",
+      "profileSummary": "사용 프로필 요약",
+      "profileSummarySentence": "주로 「{scenario}」 시나리오를 사용합니다. 현재 Markdown은 {markdown}, LaTeX는 {latex}, AI Agent는 {agent}입니다.",
+      "recommendedPath": "추천 학습 경로",
+      "quickStart": "빠른 시작",
+      "quickLinks": "빠른 링크",
+      "noProfile": "아직 사용자 프로필을 설정하지 않으셨나요? 먼저 사용 선호도를 알려주시면 가장 적합한 학습 경로를 추천해 드리겠습니다.",
+      "startLearning": "학습 시작",
+      "viewGraph": "학습 경로도 보기",
+      "articles": "편의 기사",
+      "skillRadar": "기술 레이더 차트"
+    },
+    "profile": {
+      "title": "사용자 프로필 설문",
+      "steps": {
+        "markdownEditor": "Markdown 에디터",
+        "latex": "LaTeX",
+        "latexEditor": "LaTeX 에디터",
+        "agent": "AI Agent",
+        "experience": "사용 경험",
+        "scenario": "사용 시나리오",
+        "markdown": "Markdown"
+      },
+      "markdownEditorHint": "Markdown 에디터 사용 경험을 알려주세요",
+      "latexEditorHint": "LaTeX 에디터 사용 경험을 알려주세요",
+      "experienceTitle": "에디터 경험",
+      "markdownLevelHint": "Markdown 문법에 대한 숙련도를 평가해주세요",
+      "latexLevelHint": "LaTeX 문법에 대한 숙련도를 평가해주세요",
+      "agentLevelHint": "AI Agent에 대한 이핼도를 평가해주세요",
+      "experienceHint": "에디터 사용 경험을 알려주세요",
+      "noExperienceQuestions": "답변을 바탕으로 충분한 정보를 수집했습니다.",
+      "next": "다음",
+      "levels": {
+        "none": "전혀 모름",
+        "basic": "기본 개념 알음",
+        "intermediate": "숙련됨",
+        "advanced": "전문가 수준"
+      },
+      "yes": "예",
+      "no": "아니오",
+      "skip": "걸러뛰기",
+      "submit": "제출",
+      "buttonText": "내 사용 선호도 완성하기",
+      "scenario": "사용 시나리오",
+      "scenarioHint": "주요 사용 시나리오를 선택하세요",
+      "reanalyze": "재분석",
+      "reanalyzeConfirmTitle": "사용자 프로필 재설정",
+      "reanalyzeConfirmMessage": "재설정하면 현재 학습 진도가 지워집니다. 계속하시겠습니까?",
+      "scenarios": {
+        "student": "학생",
+        "researcher": "연구원",
+        "it": "IT 전문가",
+        "office": "회사원",
+        "other": "기타",
+        "hint": {
+          "student": "학생: 주로 강의 노트, 과제, 학습 자료용",
+          "researcher": "연구원: 주로 학술 논문, 연구 보고서, 실험 기록용",
+          "it": "IT 전문가: 주로 기술 문서, 코드 주석, API 문서용",
+          "office": "회사원: 주로 회의록, 업무 보고, 비즈니스 문서용",
+          "other": "기타: 일반 문서 편집 시나리오"
+        },
+        "tooltip": {
+          "student": "학생: 주로 강의 노트, 과제 문서, 학습 자료 정리 등의 상황에서 사용합니다",
+          "researcher": "연구원: 주로 학술 논문, 연구 보고서, 실험 기록 등의 상황에서 사용합니다",
+          "it": "IT 전문가: 주로 기술 문서, 코드 주석, API 문서, 프로젝트 문서 등의 상황에서 사용합니다",
+          "office": "오피스 직장인: 주로 회의록, 업무 보고서, 비즈니스 문서 등의 상황에서 사용합니다",
+          "other": "기타: 일반 문서 편집 상황"
+        }
+      },
+      "markdownLevel": "Markdown 수준",
+      "markdownLevelHints": {
+        "none": "Markdown 경험 없음",
+        "basic": "기본 Markdown 구문 알음",
+        "intermediate": "Markdown 작성에 능숙",
+        "advanced": "전문가 수준 Markdown 사용자"
+      },
+      "latexLevel": "LaTeX 수준",
+      "latexLevelHints": {
+        "none": "LaTeX 경험 없음",
+        "basic": "기본 LaTeX 구문 알음",
+        "intermediate": "LaTeX 작성에 능숙",
+        "advanced": "전문가 수준 LaTeX 사용자"
+      },
+      "agentLevel": "AI Agent 이핵도",
+      "agentLevels": {
+        "none": "전혀 모름",
+        "heard": "들어는 봤지만 잘 모름",
+        "basic": "기본 개념을 알고 있음",
+        "used": "사용해 본 적 있음",
+        "proficient": "능숙하게 사용함"
+      },
+      "knowsAgent": "AI Agent를 알고 있는지",
+      "usedWysiwygMarkdown": "WYSIWYG Markdown 편집기를 사용해 본 적이 있나요?",
+      "usedWysiwygMarkdownHint": "Typora, Mark Text, Zettlr 등의 WYSIWYG(What You See Is What You Get) 편집기",
+      "usedLatexEditor": "LaTeX 편집기를 사용해 본 적이 있나요?",
+      "usedLatexEditorHint": "Overleaf, TeXStudio, TeXworks, TeXShop 등의 LaTeX 편집기",
+      "usedOtherMarkdownEditor": "다른 Markdown 편집기를 사용해 본 적이 있나요?",
+      "usedOtherMarkdownEditorHint": "VS Code, Obsidian, Notion, Yuque 등 Markdown을 지원하는 편집기"
+    },
+    "progress": {
+      "label": "학습 진도",
+      "completed": "완료",
+      "completed100": "축하합니다! 추천 경로의 모든 콘텐츠를 완료했습니다.",
+      "clearProgress": "학습 진도 지우기",
+      "clearProgressConfirm": "현재 추천 경로의 학습 진도를 지우시겠습니까? 읽음 상태가 모두 재설정됩니다.",
+      "clearProgressDone": "학습 진도가 지워졌습니다"
+    },
+    "replayCelebration": "축하 애니메이션 다시 재생",
+    "search": {
+      "fragment": "조각",
+      "line": "줄",
+      "noResults": "관련 문서를 찾을 수 없습니다"
+    },
+    "searchPlaceholder": "문서 내용 검색...",
+    "sidebar": {
+      "recommendedList": "추천 학습",
+      "onlyRecommended": "추천 경로만 표시",
+      "onlyRecommendedTip": "끄면 전체 매뉴얼 카탈로그 표시"
+    },
+    "title": "사용자 설명서"
+  },
+  "versionInfoPanel": {
+    "buildEnvironment": "빌드 환경",
+    "checkUpdate": "업데이트 확인",
+    "checkUpdateError": "업데이트 확인 실패",
+    "checking": "확인 중...",
+    "downloadAndInstall": "다운로드 및 설치",
+    "downloadError": "다운로드 실패",
+    "downloadProgress": "다운로드 진행률: {progress}%",
+    "downloading": "다운로드 중",
+    "installAndRestart": "설치 및 재시작",
+    "noUpdate": "이미 최신 버전입니다",
+    "noUpdateDesc": "현재 최신 버전을 사용 중입니다",
+    "releaseDate": "릴리스 날짜",
+    "title": "버전 정보",
+    "updateAvailable": "새 버전 발견",
+    "updateAvailableDesc": "새 버전 {version}을(를) 사용할 수 있습니다",
+    "version": "버전"
+  },
+  "viewMenuContainer": {
+    "collapse": "접기",
+    "expand": "펼치기",
+    "metaInfo": "메타 정보",
+    "workspace": "작업 공간",
+    "workspaceGrep": "작업 공간 검색"
+  },
+  "workspaceExplorer": {
+    "addFolder": "작업 폭더 추가",
+    "closeFile": "파일 닫기",
+    "closeFileConfirm": "파일「{name}」에 저장되지 않은 변경사항이 있습니다. 계속해서 닫으시겠습니까?",
+    "closeFileTitle": "파일 닫기",
+    "closeWorkspace": "작업 공간 닫기",
+    "contextMenu": {
+      "open": "열기",
+      "cut": "잘라내기",
+      "copy": "복사",
+      "paste": "붙여넣기",
+      "rename": "이름 변경",
+      "delete": "삭제",
+      "copyPath": "경로 복사",
+      "copyRelativePath": "상대 경로 복사",
+      "showInFolder": "폭더에서 표시",
+      "openFolder": "폭더 열기",
+      "newFile": "새 파일",
+      "newFolder": "새 폭더",
+      "refresh": "새로고침"
+    },
+    "copyPathSuccess": "경로가 클립보드에 복사되었습니다",
+    "copyRelativePathSuccess": "상대 경로가 클립보드에 복사되었습니다",
+    "copySuccess": "{count}개 항목을 복사했습니다",
+    "cutSuccess": "{count}개 항목을 잘라냈습니다",
+    "deleteConfirm": "「{name}」을(를) 휴지통으로 이동하시겠습니까?",
+    "deleteSuccess": "휴지통으로 이동되었습니다",
+    "deleteTitle": "삭제 확인",
+    "fileNotFound": "파일이 존재하지 않습니다",
+    "folderAlreadyAdded": "이 작업 폭더는 이미 추가되었습니다",
+    "ipcNotAvailable": "IPC를 사용할 수 없습니다",
+    "loading": "로딩 중...",
+    "newFileDialog": {
+      "title": "새 파일",
+      "name": "파일 이름",
+      "placeholder": "파일 이름을 입력하세요(확장자 포함, 예: .md, .tex, .txt 등)"
+    },
+    "newFileSuccess": "파일이 생성되었습니다",
+    "newFolderDialog": {
+      "title": "새 폭더",
+      "name": "폭더 이름",
+      "placeholder": "폭더 이름을 입력하세요"
+    },
+    "newFolderSuccess": "폭더가 생성되었습니다",
+    "noWorkspaceFolder": "작업 폭더가 선택되지 않았습니다",
+    "openFolder": "폭더 열기",
+    "openedFiles": "열린 파일",
+    "pasteSuccess": "{count}개 항목을 붙여넣었습니다",
+    "refresh": "새로고침",
+    "refreshSuccess": "새로고침 성공",
+    "renameDialog": {
+      "title": "이름 변경",
+      "name": "이름",
+      "placeholder": "새 이름을 입력하세요"
+    },
+    "renameSuccess": "이름 변경 성공",
+    "selectFolder": "작업 폭더 선택",
+    "title": "작업 디렉토리",
+    "moveFailed": "이동 실패"
+  },
+  "workspaceGrep": {
+    "activeWorkspaceCount": "{count}개 작업 공간이 열림",
+    "globalWorkspace": "전역 작업 공간 (현재 열린 문서)",
+    "matchCase": "대소문자 구분",
+    "noResult": "일치하는 항목을 찾을 수 없습니다",
+    "patternPlaceholder": "검색",
+    "replacePlaceholder": "교체",
+    "resultSummary": "총 {count}개 일치",
+    "search": "검색",
+    "searching": "작업 공간 검색 중...",
+    "title": "작업 공간 검색",
+    "useRegex": "정규식",
+    "wholeWord": "전체 단어 일치"
   }
 }

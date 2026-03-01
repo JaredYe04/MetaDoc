@@ -1221,7 +1221,7 @@
       "openSourceLicenses": "オープンソースライセンス",
       "thirdPartyAssets": "サードパーティアセット",
       "aboutUs": "私たちについて",
-      "content": "こちらは私たちについてのページです"
+      "content": "MetaDocチームとミッションについて"
     },
     "cancel": "キャンセル",
     "cannotCreateManualConfig": "手動タイプの設定は作成できません。手動タイプは開発モード専用です",
@@ -1486,7 +1486,7 @@
     "taskCancelled2": "キャンセル",
     "error": "エラー",
     "errorTitle": "エラー",
-    "showError": "エラー情報を表示"
+    "showError": "エラーメッセージを表示"
   },
   "aiTaskQueue": {
     "empty": "割り当てなし。",
@@ -1593,7 +1593,7 @@
     "updatedInfoObject": "更新されたinfoオブジェクト",
     "uploadFailed": "知識のアップロードに失敗しました",
     "uploadSuccess": "知識のアップロードに成功しました",
-    "disabledOverlay": "ナレッジベースが無効になった際のプロンプト画面"
+    "disabledOverlay": "ナレッジベースは現在無効になっています"
   },
   "aiSuggestion": {
     "accept": "推奨事項の承諾",
@@ -1938,6 +1938,7 @@
     "minutesAgo": "{count}分前"
   },
   "newDocument": {
+    "emptyTemplate": "空白ドキュメント",
     "formatTitle": "フォーマットを選択",
     "formats": {
       "latex": {
@@ -3535,7 +3536,7 @@
     "simpleMode": "シンプルモード",
     "user": "ユーザー",
     "userRequest": "ユーザーの新しい要件",
-    "renderFailed": "レンダリングに失敗しました"
+    "renderFailed": "レンダリング失敗"
   },
   "graphWindow": {
     "format": "形式は以下の通り",
@@ -3995,31 +3996,31 @@
     },
     "markdown": {
       "basic": {
-        "title": "Markdown基礎構文",
+        "title": "Markdown基本構文",
         "content": "# Markdown基礎構文\n\nMetaDocのMarkdownエディタは [Vditor](https://b3log.org/vditor) をベースにしており、CommonMarkとGFM（GitHub Flavored Markdown）仕様をサポートしています。このドキュメントでは、MetaDocでサポートされているMarkdown構文を紹介します。\n\n## 見出し\n\n`#` を使用して見出しを表し、`#` の数は見出しレベル（1-6レベル）を示します：\n\n```markdown\n# 第1レベル見出し\n## 第2レベル見出し\n### 第3レベル見出し\n#### 第4レベル見出し\n##### 第5レベル見出し\n###### 第6レベル見出し\n```\n\n**ベストプラクティス**：\n- 見出しの前後に空行を入れる\n- `#` の後にスペースを入れる必要がある\n- レベルのスキップを避ける（例：第1レベルから直接第3レベルへ）\n\n### Setext 見出し（オプション構文）\n\n等号またはハイフンを使用して見出しを作成することもできます：\n\n```markdown\n第1レベル見出し\n========\n\n第2レベル見出し\n--------\n```\n\n注意：Setext構文では第1レベルと第2レベルの見出しのみ作成可能で、推奨されていません。\n\n## 段落\n\n空行で段落を区切ります：\n\n```markdown\nこれは第1段落です。\n\nこれは第2段落です。\n```\n\n**ベストプラクティス**：\n- 段落の先頭にスペースやタブでのインデントを使用しない\n- 段落間は空行で区切る\n\n## 改行\n\n行末に2つ以上のスペースを追加してから改行すると、強制的に改行できます：\n\n```markdown\nこれは第1行です。  \nこれは第2行です。\n```\n\n注意：最近のMarkdownエンジンは通常、改行を自動的に処理するため、手動でスペースを追加する必要はありません。\n\n## テキスト書式\n\n### 太字\n\n`**テキスト**` または `__テキスト__` を使用して太字を表します：\n\n```markdown\nこれは**太字テキスト**です\nこれは __太字テキスト__ です\n```\n\n**ベストプラクティス**：星号 `**` の使用を推奨します。前後にスペースを入れる必要がありません。\n\n### 強調（斜体）\n\n`*テキスト*` または `_テキスト_` を使用して強調を表します：\n\n```markdown\nこれは*強調テキスト*です\nこれは _強調テキスト_ です\n```\n\n### 太字かつ強調\n\n`***テキスト***` または `___テキスト___` を使用：\n\n```markdown\nこれは***太字かつ強調***です\n```\n\n### 取り消し線\n\n`~~テキスト~~` を使用して取り消し線を表します：\n\n```markdown\n~~これは削除されたテキストです~~\n```\n\n### インラインコード\n\nバッククォートでコードを囲みます：\n\n```markdown\n`console.log()` を使用してコンテンツを出力\n```\n\nバッククォートを表示する必要がある場合は、エスケープを使用：`` ` ``\n\n## リスト\n\n### 番号なしリスト\n\n`-`、`*`、または `+` を使用して番号なしリストを作成：\n\n```markdown\n- 項目1\n- 項目2\n  - サブ項目2.1\n  - サブ項目2.2\n- 項目3\n```\n\n### 番号付きリスト\n\n数字の後に `.` または `)` を使用して番号付きリストを作成：\n\n```markdown\n1. 第1項目\n2. 第2項目\n3. 第3項目\n```\n\n注意：数字は連続している必要はありません。Markdownは自動的に番号を付けます。\n\n### リスト項目に他の要素を含める\n\nリスト項目には段落、コードブロック、引用などを含めることができます：\n\n```markdown\n- リスト項目1\n- リスト項目2第1段落\n\n  これは第2段落です（インデントの整列に注意）\n\n  > これはブロック引用です\n\n  ```\n  これはコードブロックです\n  ```\n- リスト項目3\n```\n\n## ブロック引用\n\n`>` を使用してブロック引用を作成：\n\n```markdown\n> これは引用コンテンツです\n> 複数行にわたることができます\n```\n\n### ネストしたブロック引用\n\n```markdown\n> 第1レベル引用\n>\n>> 第2レベル引用\n```\n\n### ブロック引用に他の要素を含める\n\nブロック引用には見出し、リスト、コードブロックなどを含めることができます：\n\n```markdown\n> ### 見出し\n>\n> - リスト項目\n> - リスト項目\n>\n> **太字**と*強調*\n```\n\n## コードブロック\n\n### インデントされたコードブロック\n\n4つのスペースまたは1つのタブでインデント：\n\n```markdown\n    これはコードブロックです\n    複数行にわたることができます\n```\n\n### フェンス付きコードブロック（推奨）\n\n3つのバッククォートでコードを囲み、言語を指定できます：\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n注意：コードブロック内でバッククォートを使用する必要がある場合は、より多くのバッククォートで囲みます。\n\n## 水平線\n\n3つ以上のハイフン、アスタリスク、またはアンダースコアを使用：\n\n```markdown\n---\n\n***\n\n___\n```\n\n## リンク\n\n### インラインリンク\n\n```markdown\n[リンクテキスト](https://example.com)\n[リンクテキスト](https://example.com \"タイトル\")\n```\n\n### 参照スタイルリンク\n\n```markdown\n[リンクテキスト][参照ID]\n\n[参照ID]: https://example.com \"タイトル\"\n```\n\n### 自動リンク\n\n```markdown\n<https://example.com>\n```\n\n## 画像\n\n### 基本構文\n\n```markdown\n![代替テキスト](画像のパス)\n![代替テキスト](画像のパス \"タイトル\")\n```\n\n### 画像をリンクとして使用\n\n```markdown\n[![代替テキスト](画像のパス)](リンクのURL)\n```\n\n## テーブル\n\nパイプ `|` とハイフン `-` を使用してテーブルを作成：\n\n```markdown\n| 見出し1 | 見出し2 | 見出し3 |\n|---------|---------|---------|\n| セル1   | セル2   | セル3   |\n| セル4   | セル5   | セル6   |\n```\n\n### テーブルの配置\n\nコロン `:` を使用して列の配置を制御：\n\n```markdown\n| 左寄せ | 中央寄せ | 右寄せ |\n|:-------|:--------:|-------:|\n| セル1  |  セル2   |  セル3 |\n```"
       },
       "advanced": {
-        "title": "Markdown上級機能",
+        "title": "Markdown高度機能",
         "content": "# Markdown上級機能\n\n## Vditorについて\n\nMetaDocのMarkdownエディタは [Vditor](https://b3log.org/vditor) をベースにしており、これは強力なブラウザベースのMarkdownエディタです。VditorはCommonMarkとGFM（GitHub Flavored Markdown）仕様を実装し、複数の拡張構文をサポートしています。\n\n### Vditorの機能\n\n- ✅ CommonMarkとGFM仕様をサポート\n- ✅ 数学式のレンダリングをサポート（KaTeX/MathJax）\n- ✅ コードハイライトをサポート（highlight.js）\n- ✅ テーブル、タスクリスト、脚注などの拡張構文をサポート\n- ✅ グラフのレンダリングをサポート（Mermaid、ECharts、PlantUMLなど）\n- ✅ 3つの編集モードをサポート：WYSIWYG、即時レンダリング（IR）、分割プレビュー（SV）\n- ✅ アウトラインナビゲーションをサポート\n- ✅ 画像のアップロードと貼り付けをサポート\n- ✅ Emojiをサポート\n\n### Vditorの制限\n\n- ❌ LaTeX標準形式の数式区切り `\\(...\\)` と `\\[...\\]` はサポートされていません\n- ❌ 一部の標準外のMarkdown拡張構文はサポートされていない場合があります\n- ❌ HTML内の一部のタグと属性はフィルタリングされる場合があります\n\n**解決策**：ドキュメントに `\\(...\\)` または `\\[...\\)` 形式の数式が含まれている場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して、Vditor互換の `$...$` と `$$...$$` 形式に一括変換できます。\n\n## 数学式\n\n### インライン数式\n\n`$数式$` を使用してインライン数式を表します：\n\n```markdown\nこれはインライン数式：$E = mc^2$ です\n```\n\nレンダリング結果：これはインライン数式：$E = mc^2$ です\n\n**重要なヒント**：Vditorは `$...$` 形式のインライン数式のみサポートしており、LaTeX標準形式 `\\(...\\)` はサポートしていません。ドキュメントで `\\(...\\)` 形式を使用している場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して変換してください。\n\n### ブロック数式\n\n`$$数式$$` を使用してブロック数式を表します：\n\n```markdown\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n```\n\nレンダリング結果：\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**重要なヒント**：Vditorは `$$...$$` 形式のブロック数式のみサポートしており、LaTeX標準形式 `\\[...\\]` はサポートしていません。ドキュメントで `\\[...\\]` 形式を使用している場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して変換してください。\n\n### 数学式の例\n\n```markdown\nインライン数式：$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$\n\nブロック数式：\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n```\n\n## タスクリスト\n\n`[ ]` または `[x]` を使用してタスクリストを作成：\n\n```markdown\n- [x] 完了したタスク\n- [ ] 未完了のタスク\n- [x] 別の完了したタスク\n```\n\nレンダリング結果：\n\n- [x] 完了したタスク\n- [ ] 未完了のタスク\n- [x] 別の完了したタスク\n\n## 脚注\n\n`[^識別子]` を使用して脚注の参照を作成し、`[^識別子]:` を使用して脚注を定義：\n\n```markdown\nこれは脚注の参照[^1]です、これは別の脚注の参照[^note]です。\n\n[^1]: 第1の脚注定義。\n[^note]: 脚注定義は複数の段落を含むことができます。\n\n    インデントされた段落も脚注に含まれます。\n```\n\n## 取り消し線\n\n`~~テキスト~~` を使用して取り消し線を作成：\n\n```markdown\n~~これは削除されたテキストです~~\n```\n\n## Emoji\n\nEmojiを使用するには2つの方法があります：\n\n1. Emoji文字を直接入力：😀 🌻 ☀️\n2. エイリアスを使用：`:smile:` `:sunny:` `:heart:`\n\n```markdown\n今日の天気はいいですね :sunny:\n花が 🌻 私に微笑んでいます\n```\n\n## 見出しにIDを指定\n\n一部のMarkdownエンジンは見出しにIDを指定することをサポートしています：\n\n```markdown\n### 見出し {#custom-id}\n```\n\nこれにより、リンクで `#custom-id` を使用してこの見出しにジャンプできます。\n\n## 定義リスト\n\n一部のMarkdownエンジンは定義リストをサポートしています：\n\n```markdown\n用語1\n: 定義1\n\n用語2\n: 定義2\n```\n\n## ハイライト\n\n`==テキスト==` を使用してテキストをハイライト：\n\n```markdown\nこれは ==ハイライトされたテキスト== です\n```\n\n## サブスクリプトとスーパースクリプト\n\n```markdown\nH~2~O は水です\n\nE = mc^2^\n```\n\n## キーボード入力\n\n`&#x3C;kbd&#x3E;` タグを使用：\n\n```markdown\n&#x3C;kbd&#x3E;Ctrl&#x3C;/kbd&#x3E; + &#x3C;kbd&#x3E;S&#x3C;/kbd&#x3E; で保存\n```\n\n## 非推奨の構文\n\n以下の構文は非推奨となっており、使用は推奨されません：\n\n- HTMLタグ（可能な限りMarkdown構文を使用）\n- インラインスタイル\n- 複雑なテーブル（シンプルなテーブルを使用）\n- 入れ子になった複雑なリスト（シンプルなリストを使用）"
       }
     },
     "navigation": {
-      "core": "コア操作",
-      "markdown": "Markdownガイド",
-      "latex": "LaTeXガイド",
-      "charts": "グラフ作成",
+      "core": "基本操作",
+      "markdown": "Markdownチュートリアル",
+      "latex": "LaTeXチュートリアル",
+      "charts": "チャート描画",
       "ai": "AIツール",
-      "agent": "Agentの使用",
+      "agent": "エージェント使用",
       "design": "デザイン理念"
     },
     "overview": {
       "title": "概要",
-      "welcome": "MetaDocを始めましょう",
+      "welcome": "MetaDoc クイックスタート",
       "description": "このページは、あなたの使用状況を把握し、適切な学習パスを提案します。推奨順に学習することも、左側の目次から任意の章に移動することもできます",
-      "profile": "ユーザープロフィール",
+      "profile": "マイユーザープロフィール",
       "profileSummary": "使用状況の概要",
-      "profileSummarySentence": "主な使用シーンは「{scenario}」です。現在、Markdownは{markdown}、LaTeXは{latex}、AI Agentは{agent}のレベルです",
-      "progress": "学習進捗",
+      "profileSummarySentence": "Main scenario: {scenario}; Markdown: {markdown}, LaTeX: {latex}, AI Agent: {agent}",
+      "progress": "学習進度",
       "recommendedPath": "推奨学習パス",
       "quickStart": "クイックスタート",
       "quickLinks": "クイックリンク",
@@ -4028,7 +4029,7 @@
       "viewGraph": "学習パス図を表示",
       "completed": "完了",
       "current": "現在",
-      "pending": "学習待ち",
+      "pending": "未学習",
       "articles": "記事",
       "skillRadar": "スキルレーダーチャート"
     },
@@ -4036,10 +4037,10 @@
       "title": "ユーザープロフィールアンケート",
       "buttonText": "使用偏好を設定する",
       "scenario": "使用シーン",
-      "scenarioHint": "主な使用シーンを選択してください。最適な学習パスをおすすめします",
+      "scenarioHint": "主な使用シナリオを選択してください",
       "reanalyze": "再分析",
       "reanalyzeConfirmTitle": "ユーザープロフィールをリセット",
-      "reanalyzeConfirmMessage": "ユーザープロフィールをリセットすると現在の学習進捗がクリアされます。続行しますか？",
+      "reanalyzeConfirmMessage": "リセットすると現在の学習進度が消去されます。続行しますか？",
       "scenarios": {
         "student": "学生",
         "researcher": "研究者",
@@ -4047,11 +4048,11 @@
         "office": "オフィスワーカー",
         "other": "その他",
         "hint": {
-          "student": "学生：主に授業ノート、課題ドキュメント、学習資料の整理などに使用",
-          "researcher": "研究者：主に学術論文、研究報告、実験記録などに使用",
-          "it": "IT技術者：主に技術文書、コードコメント、APIドキュメント、プロジェクトドキュメントなどに使用",
-          "office": "オフィスワーカー：主に会議議事録、業務報告、ビジネス文書などに使用",
-          "other": "その他：一般的なドキュメント編集シーン"
+          "student": "学生：主に講義ノート、課題、学習資料用",
+          "researcher": "研究者：主に学術論文、研究報告、実験記録用",
+          "it": "IT技術者：主に技術文書、コードコメント、APIドキュメント用",
+          "office": "オフィスワーカー：主に会議議事録、業務報告、ビジネス文書用",
+          "other": "その他：一般的な文書編集シナリオ"
         },
         "tooltip": {
           "student": "学生：主に授業ノート、課題ドキュメント、学習資料の整理などに使用",
@@ -4092,8 +4093,152 @@
       "usedOtherMarkdownEditorHint": "VS Code、Obsidian、Notion、語雀など、Markdownをサポートするエディタ",
       "steps": {
         "scenario": "使用シーン",
-        "markdown": "Markdown"
-      }
-    }
+        "markdown": "Markdown",
+        "markdownEditor": "Markdownエディタ",
+        "latex": "LaTeX",
+        "latexEditor": "LaTeXエディタ",
+        "agent": "AI Agent",
+        "experience": "使用経験"
+      },
+      "markdownEditorHint": "Markdownエディタの使用経験を教えてください",
+      "latexEditorHint": "LaTeXエディタの使用経験を教えてください",
+      "experienceTitle": "エディタ経験",
+      "markdownLevelHint": "Markdown構文への精通度を評価してください",
+      "latexLevelHint": "LaTeX構文への精通度を評価してください",
+      "agentLevelHint": "AI Agentの理解度を評価してください",
+      "experienceHint": "エディタの使用経験を教えてください",
+      "noExperienceQuestions": "回答に基づき、十分な情報を収集しました。",
+      "next": "次へ",
+      "levels": {
+        "none": "未経験",
+        "basic": "基本知識",
+        "intermediate": "中級",
+        "advanced": "上級"
+      },
+      "yes": "はい",
+      "no": "いいえ",
+      "skip": "スキップ",
+      "submit": "送信"
+    },
+    "progress": {
+      "label": "学習進度",
+      "completed": "完了",
+      "completed100": "おめでとうございます！推奨パスの全コンテンツを完了しました。",
+      "clearProgress": "学習進捗をクリア",
+      "clearProgressConfirm": "現在の推奨パスの学習進捗をクリアしますか？既読状態がすべてリセットされます。",
+      "clearProgressDone": "学習進捗をクリアしました"
+    },
+    "replayCelebration": "お祝いアニメーションを再生",
+    "search": {
+      "fragment": "フラグメント",
+      "line": "行",
+      "noResults": "関連ドキュメントが見つかりません"
+    },
+    "searchPlaceholder": "ドキュメント内容を検索...",
+    "sidebar": {
+      "recommendedList": "推奨学習",
+      "onlyRecommended": "推奨パスのみ表示",
+      "onlyRecommendedTip": "オフにすると完全なマニュアルカタログを表示"
+    },
+    "title": "ユーザーマニュアル"
+  },
+  "versionInfoPanel": {
+    "buildEnvironment": "ビルド環境",
+    "checkUpdate": "更新を確認",
+    "checkUpdateError": "更新の確認に失敗しました",
+    "checking": "確認中...",
+    "downloadAndInstall": "ダウンロードしてインストール",
+    "downloadError": "ダウンロード失敗",
+    "downloadProgress": "ダウンロード進捗：{progress}%",
+    "downloading": "ダウンロード中",
+    "installAndRestart": "インストールして再起動",
+    "noUpdate": "最新バージョンです",
+    "noUpdateDesc": "現在お使いのバージョンは最新です",
+    "releaseDate": "リリース日",
+    "title": "バージョン情報",
+    "updateAvailable": "新しいバージョンが見つかりました",
+    "updateAvailableDesc": "新バージョン {version} が利用可能です",
+    "version": "バージョン"
+  },
+  "viewMenuContainer": {
+    "collapse": "折りたたむ",
+    "expand": "展開する",
+    "metaInfo": "メタ情報",
+    "workspace": "ワークスペース",
+    "workspaceGrep": "ワークスペース検索"
+  },
+  "workspaceExplorer": {
+    "addFolder": "ワークフォルダを追加",
+    "closeFile": "ファイルを閉じる",
+    "closeFileConfirm": "ファイル「{name}」に保存されていない変更があります。閉じてもよろしいですか？",
+    "closeFileTitle": "ファイルを閉じる",
+    "closeWorkspace": "ワークスペースを閉じる",
+    "contextMenu": {
+      "open": "開く",
+      "cut": "切り取り",
+      "copy": "コピー",
+      "paste": "貼り付け",
+      "rename": "名前を変更",
+      "delete": "削除",
+      "copyPath": "パスをコピー",
+      "copyRelativePath": "相対パスをコピー",
+      "showInFolder": "フォルダに表示",
+      "openFolder": "フォルダを開く",
+      "newFile": "新しいファイル",
+      "newFolder": "新しいフォルダ",
+      "refresh": "更新"
+    },
+    "copyPathSuccess": "パスをクリップボードにコピーしました",
+    "copyRelativePathSuccess": "相対パスをクリップボードにコピーしました",
+    "copySuccess": "{count} 項目をコピーしました",
+    "cutSuccess": "{count} 項目を切り取りました",
+    "deleteConfirm": "「{name}」をごみ箱に移動しますか？",
+    "deleteSuccess": "ごみ箱に移動しました",
+    "deleteTitle": "削除の確認",
+    "fileNotFound": "ファイルが存在しません",
+    "folderAlreadyAdded": "このワークフォルダはすでに追加されています",
+    "ipcNotAvailable": "IPC を利用できません",
+    "loading": "読み込み中...",
+    "newFileDialog": {
+      "title": "新しいファイル",
+      "name": "ファイル名",
+      "placeholder": "ファイル名を入力してください（拡張子を含む、例：.md、.tex、.txt など）"
+    },
+    "newFileSuccess": "ファイルを作成しました",
+    "newFolderDialog": {
+      "title": "新しいフォルダ",
+      "name": "フォルダ名",
+      "placeholder": "フォルダ名を入力してください"
+    },
+    "newFolderSuccess": "フォルダを作成しました",
+    "noWorkspaceFolder": "ワークフォルダが選択されていません",
+    "openFolder": "フォルダを開く",
+    "openedFiles": "開いているファイル",
+    "pasteSuccess": "{count} 項目を貼り付けました",
+    "refresh": "更新",
+    "refreshSuccess": "更新しました",
+    "renameDialog": {
+      "title": "名前を変更",
+      "name": "名前",
+      "placeholder": "新しい名前を入力してください"
+    },
+    "renameSuccess": "名前を変更しました",
+    "selectFolder": "ワークフォルダを選択",
+    "title": "ワークディレクトリ",
+    "moveFailed": "移動に失敗しました"
+  },
+  "workspaceGrep": {
+    "activeWorkspaceCount": "{count} 個のワークスペースを開いています",
+    "globalWorkspace": "グローバルワークスペース（現在開いているドキュメント）",
+    "matchCase": "大文字小文字を区別",
+    "noResult": "一致する項目が見つかりません",
+    "patternPlaceholder": "検索",
+    "replacePlaceholder": "置換",
+    "resultSummary": "{count} 件の一致が見つかりました",
+    "search": "検索",
+    "searching": "ワークスペースを検索中...",
+    "title": "ワークスペース検索",
+    "useRegex": "正規表現",
+    "wholeWord": "単語全体を一致"
   }
 }

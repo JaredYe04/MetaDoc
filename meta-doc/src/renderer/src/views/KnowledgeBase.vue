@@ -1,6 +1,6 @@
 <template>
   <div class="kb-root">
-    <!-- 知识库已禁用时的提示界面 -->
+    <!-- {{ t('knowledgeBase.disabledOverlay') }} -->
     <div v-if="!knowledgeBaseEnabled" class="kb-disabled-overlay">
       <div class="kb-disabled-content">
         <el-icon class="kb-disabled-icon" :size="64">

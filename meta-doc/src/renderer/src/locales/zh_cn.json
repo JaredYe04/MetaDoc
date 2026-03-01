@@ -871,9 +871,11 @@
   "aiTask": {
     "cancel": "取消",
     "error": "错误",
+    "errorTitle": "错误",
     "failed": "失败",
     "ready": "就绪",
     "running": "运行中",
+    "showError": "显示错误信息",
     "status": "状态",
     "taskCancelled": "任务 {task} 已取消",
     "taskCancelled2": "任务已取消"
@@ -882,6 +884,7 @@
     "cancelDelay": "取消延迟",
     "delayActive": "补全已启用",
     "delayButton": "延迟{minutes}分钟",
+    "delayControlArea": "延迟控制区域",
     "delayRemaining": "剩余延迟：{time}",
     "empty": "暂无任务",
     "error": "加载失败",
@@ -1322,7 +1325,11 @@
     "saveFailedFailedSave": "文档保存失败"
   },
   "dummyView": {
-    "emptyDescription": "暂无打开的文档"
+    "emptyDescription": "暂无打开的文档",
+    "animationDuration": "动画持续时间",
+    "shakeAnimation": "摇晃动画",
+    "shakeDescription": "只包含位移和旋转，由外层容器处理",
+    "shakeScale": "摇晃时也应用缩放，transition会平滑过渡"
   },
   "editor": {
     "edit": "编辑",
@@ -1407,6 +1414,7 @@
         "label": "打印背景",
         "description": "是否在PDF中包含背景颜色和图片"
       },
+      "objectTypeField": "对象类型字段",
       "tabs": {
         "basic": "基本设置",
         "style": "样式设置"
@@ -1578,6 +1586,7 @@
     "previewFont": "预览字体",
     "previewText": "AaBbCc 你好世界",
     "previewTextAlt": "这是预览文本",
+    "helloWorld": "你好世界",
     "statusAbnormal": "异常",
     "statusNormal": "正常",
     "title": "字体调试面板",
@@ -1615,16 +1624,12 @@
     "import_image": "导入图片",
     "newSession": "新建会话",
     "noSessionSelected": "请选择一个会话或创建新会话",
-    "notification": {
-      "title_info": "提示",
-      "title_success": "成功",
-      "title_error": "错误",
-      "undo_fail": "无法撤销",
-      "redo_fail": "无法重做",
-      "copy_image_success": "复制成功，请使用 Ctrl+V 粘贴图片",
-      "copy_formula_success": "复制成功",
-      "copy_formula_fail": "复制失败"
-    },
+  "notification": {
+    "title": "通知",
+    "markAllRead": "全部已读",
+    "stackDescription": "3D 堆叠的通知（自下而上）",
+    "footerDescription": "展开态底部操作栏：一键清空（无容器边框/背景，与 stack 透明风格一致）"
+  },
     "options": {
       "pen": "画笔",
       "eraser": "橡皮擦",
@@ -1645,6 +1650,7 @@
     "analyzingIntent": "分析意图中...",
     "assistant": "助手",
     "chartType": "图表类型",
+    "renderFailed": "渲染失败",
     "conversationMode": "对话模式",
     "defaultTitle": "新绘图会话",
     "engine": "绘图引擎",
@@ -1804,6 +1810,7 @@
     "deleted": "已删除",
     "disabled": "禁用",
     "disabledMessage": "知识库功能当前已禁用。请在设置中启用知识库功能以使用此功能。",
+    "disabledOverlay": "知识库已禁用时的提示界面",
     "download": "下载文件",
     "enable": "启用知识库",
     "enableError": "启用知识库失败",
@@ -3063,35 +3070,11 @@
     }
   },
   "setting": {
-    "about": {
-      "title": "关于",
-      "appName": "MetaDoc",
-      "version": "版本",
-      "releaseDate": "发布日期",
-      "buildEnvironment": "构建环境",
-      "buildEnvironmentDev": "开发版",
-      "buildEnvironmentRelease": "正式版",
-      "officialQQGroup": "官方 QQ 群",
-      "feedback": "反馈",
-      "updateSettings": "更新设置",
-      "autoCheckUpdates": "自动检查更新",
-      "updateChannel": "更新渠道",
-      "channelRelease": "正式版",
-      "channelDev": "内测版",
-      "checkUpdate": "检查更新",
-      "checking": "检查中...",
-      "updateAvailable": "发现新版本",
-      "updateAvailableDesc": "新版本 {version} 已可用",
-      "noUpdate": "已是最新版本",
-      "noUpdateDesc": "您当前使用的已是最新版本",
-      "checkUpdateError": "检查更新失败",
-      "downloadUpdate": "下载更新",
-      "downloading": "正在下载",
-      "downloadError": "下载失败",
-      "installAndRestart": "安装并重启",
-      "openSourceLicenses": "开源许可证",
-      "thirdPartyAssets": "第三方资产"
-    },
+  "about": {
+    "title": "关于",
+    "aboutUs": "关于我们",
+    "content": "这里是关于我们页面的内容"
+  },
     "allChangesSaved": "所有更改已保存",
     "apiBaseUrl": "API BaseURL",
     "apiKey": "API 秘钥",

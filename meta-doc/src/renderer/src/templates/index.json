@@ -107,57 +107,201 @@
         "ja_JP": [
           {
             "id": "blank",
-            "file": "blank.md",
+            "file": "../../en_US/md/blank.md",
             "labelKey": "newDocument.templates.markdown.blank.label",
             "descriptionKey": "newDocument.templates.markdown.blank.description"
           },
           {
             "id": "article",
-            "file": "article.md",
+            "file": "../../en_US/md/article.md",
             "labelKey": "newDocument.templates.markdown.article.label",
             "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "../../en_US/md/technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "../../en_US/md/lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "../../en_US/md/course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "../../en_US/md/letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "../../en_US/md/blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "../../en_US/md/lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
           }
         ],
         "ko_KR": [
           {
             "id": "blank",
-            "file": "blank.md",
+            "file": "../../en_US/md/blank.md",
             "labelKey": "newDocument.templates.markdown.blank.label",
             "descriptionKey": "newDocument.templates.markdown.blank.description"
           },
           {
             "id": "article",
-            "file": "article.md",
+            "file": "../../en_US/md/article.md",
             "labelKey": "newDocument.templates.markdown.article.label",
             "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "../../en_US/md/technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "../../en_US/md/lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "../../en_US/md/course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "../../en_US/md/letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "../../en_US/md/blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "../../en_US/md/lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
           }
         ],
         "de_DE": [
           {
             "id": "blank",
-            "file": "blank.md",
+            "file": "../../en_US/md/blank.md",
             "labelKey": "newDocument.templates.markdown.blank.label",
             "descriptionKey": "newDocument.templates.markdown.blank.description"
           },
           {
             "id": "article",
-            "file": "article.md",
+            "file": "../../en_US/md/article.md",
             "labelKey": "newDocument.templates.markdown.article.label",
             "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "../../en_US/md/technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "../../en_US/md/lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "../../en_US/md/course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "../../en_US/md/letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "../../en_US/md/blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "../../en_US/md/lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
           }
         ],
         "fr_FR": [
           {
             "id": "blank",
-            "file": "blank.md",
+            "file": "../../en_US/md/blank.md",
             "labelKey": "newDocument.templates.markdown.blank.label",
             "descriptionKey": "newDocument.templates.markdown.blank.description"
           },
           {
             "id": "article",
-            "file": "article.md",
+            "file": "../../en_US/md/article.md",
             "labelKey": "newDocument.templates.markdown.article.label",
             "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "../../en_US/md/technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "../../en_US/md/lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "../../en_US/md/course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "../../en_US/md/letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "../../en_US/md/blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "../../en_US/md/lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
           }
         ]
       }

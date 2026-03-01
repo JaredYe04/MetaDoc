@@ -545,7 +545,11 @@
       "redo_fail": "Cannot redo",
       "copy_image_success": "Copied successfully, please use Ctrl+V to paste the image",
       "copy_formula_success": "Copied successfully",
-      "copy_formula_fail": "Copy failed"
+      "copy_formula_fail": "Copy failed",
+      "title": "Notification",
+      "markAllRead": "Mark All as Read",
+      "stackDescription": "3D stacked notifications (bottom to top)",
+      "footerDescription": "Expanded bottom action bar: clear all (no border/background, consistent with stack transparent style)"
     },
     "options": {
       "pen": "Pen",
@@ -996,7 +1000,9 @@
       "downloadError": "Download Failed",
       "installAndRestart": "Install and Restart",
       "openSourceLicenses": "Open Source Licenses",
-      "thirdPartyAssets": "Third-party Assets"
+      "thirdPartyAssets": "Third-party Assets",
+      "aboutUs": "About Us",
+      "content": "Content about MetaDoc team and mission"
     },
     "microphoneTest": "Microphone Test",
     "microphoneHint": "Check if microphone is working.",
@@ -1466,7 +1472,9 @@
     "status": "Status",
     "taskCancelled": "{task} Canceled",
     "taskCancelled2": "Task cancelled",
-    "error": "Error"
+    "error": "Error",
+    "errorTitle": "Error",
+    "showError": "Show Error Message"
   },
   "aiTaskQueue": {
     "empty": "No assignment.",
@@ -1479,7 +1487,8 @@
     "delayButton": "Delay {minutes} minutes",
     "delayRemaining": "Delay remaining: {time}",
     "minutes": "minutes",
-    "seconds": "seconds"
+    "seconds": "seconds",
+    "delayControlArea": "Delay Control Area"
   },
   "knowledgeBase": {
     "add": "Add",
@@ -1571,7 +1580,8 @@
     "unknownError": "Unknown error",
     "updatedInfoObject": "Updated info object",
     "uploadFailed": "Knowledge upload failed",
-    "uploadSuccess": "Knowledge upload successful"
+    "uploadSuccess": "Knowledge upload successful",
+    "disabledOverlay": "Knowledge base is currently disabled"
   },
   "aiSuggestion": {
     "accept": "Acceptance of recommendations",
@@ -1916,6 +1926,7 @@
     "minutesAgo": "{count} minutes ago"
   },
   "newDocument": {
+    "emptyTemplate": "Empty Document",
     "formatTitle": "Select Format",
     "formats": {
       "latex": {
@@ -3176,7 +3187,8 @@
       "includeMetadata": {
         "label": "Include Metadata",
         "description": "Whether to include document metadata in exported Markdown"
-      }
+      },
+      "objectTypeField": "Object Type Field"
     },
     "adapters": {
       "mdToPdf": {
@@ -3250,27 +3262,27 @@
   },
   "userManual": {
     "title": "User Manual",
-    "searchPlaceholder": "Search tutorial content...",
+    "searchPlaceholder": "Search document content...",
     "emptyContent": "Please select a section from the left",
     "backToOverview": "Back to Overview",
     "overview": {
       "title": "Overview",
-      "welcome": "Get Started with MetaDoc",
-      "description": "This page helps you understand your usage profile and recommends a learning path. You can follow the path or jump to any chapter from the left sidebar.",
-      "profile": "My Profile",
+      "welcome": "Quick Start with MetaDoc",
+      "description": "This page helps you understand your usage profile and recommends a suitable learning path. You can follow the recommended order or jump to any chapter from the left menu.",
+      "profile": "My User Profile",
       "profileSummary": "Your Usage Profile",
-      "profileSummarySentence": "You're mainly in the \"{scenario}\" scenario; currently Markdown: {markdown}, LaTeX: {latex}, AI Agent: {agent}.",
+      "profileSummarySentence": "You mainly use 「{scenario}」 scenario; currently {markdown} for Markdown, {latex} for LaTeX, and {agent} for AI Agent.",
       "progress": "Learning Progress",
-      "recommendedPath": "Recommended Path",
+      "recommendedPath": "Recommended Learning Path",
       "quickStart": "Quick Start",
       "quickLinks": "Quick Links",
-      "noProfile": "Haven't set your profile yet? Tell us your preferences so we can recommend a learning path.",
+      "noProfile": "Haven't set up your user profile yet? Let's understand your preferences first to recommend the best learning path.",
       "startLearning": "Start Learning",
-      "viewGraph": "View Learning Graph",
+      "viewGraph": "View Learning Path Graph",
       "completed": "Completed",
       "current": "Current",
       "pending": "Pending",
-      "articles": " articles",
+      "articles": "articles",
       "skillRadar": "Skill Radar"
     },
     "navigation": {
@@ -3283,13 +3295,13 @@
       "design": "Design Philosophy"
     },
     "profile": {
-      "title": "User Profile Questionnaire",
-      "buttonText": "Improve My Preferences",
+      "title": "User Profile Survey",
+      "buttonText": "Complete My Preferences",
       "scenario": "Usage Scenario",
-      "scenarioHint": "Please select your main usage scenario, which will help us recommend the most suitable learning path for you",
+      "scenarioHint": "Please select your main usage scenario",
       "reanalyze": "Reanalyze",
       "reanalyzeConfirmTitle": "Reset User Profile",
-      "reanalyzeConfirmMessage": "Resetting your profile will clear your current learning progress. Continue?",
+      "reanalyzeConfirmMessage": "Resetting will clear current learning progress. Continue?",
       "scenarios": {
         "student": "Student",
         "researcher": "Researcher",
@@ -3297,33 +3309,33 @@
         "office": "Office Worker",
         "other": "Other",
         "hint": {
-          "student": "Student: Mainly for course notes, homework documents, study materials organization, etc.",
-          "researcher": "Researcher: Mainly for academic papers, research reports, experiment records, etc.",
-          "it": "IT Professional: Mainly for technical documentation, code comments, API documentation, project documentation, etc.",
-          "office": "Office Worker: Mainly for meeting minutes, work reports, business documents, etc.",
-          "other": "Other: General document editing scenarios"
+          "student": "Students: mainly for course notes, assignments, and study materials",
+          "researcher": "Researchers: mainly for academic papers, research reports, and experiment records",
+          "it": "IT Professionals: mainly for technical documentation, code comments, API docs",
+          "office": "Office Workers: mainly for meeting minutes, work reports, business documents",
+          "other": "Other: general document editing scenarios"
         },
         "tooltip": {
-          "student": "Student: Mainly for course notes, homework documents, study materials organization, etc.",
-          "researcher": "Researcher: Mainly for academic papers, research reports, experiment records, etc.",
-          "it": "IT Professional: Mainly for technical documentation, code comments, API documentation, project documentation, etc.",
-          "office": "Office Worker: Mainly for meeting minutes, work reports, business documents, etc.",
-          "other": "Other: General document editing scenarios"
+          "student": "Student: mainly for course notes, assignments, and study materials",
+          "researcher": "Researcher: mainly for academic papers, research reports, and experiment records",
+          "it": "IT Professional: mainly for technical documentation, code comments, API docs",
+          "office": "Office Worker: mainly for meeting minutes, work reports, business documents",
+          "other": "Other: general document editing scenarios"
         }
       },
-      "markdownLevel": "Markdown Proficiency",
+      "markdownLevel": "Markdown Level",
       "markdownLevelHints": {
-        "none": "Completely unfamiliar with Markdown syntax, need to start learning from basic syntax",
-        "basic": "Know basic syntax (headings, lists, bold, etc.), can write simple documents",
-        "intermediate": "Proficient in Markdown syntax, familiar with advanced features like tables, code blocks, links, etc.",
-        "advanced": "Expert in Markdown, familiar with extended syntax, math formulas, charts, and other advanced features"
+        "none": "No experience with Markdown",
+        "basic": "Know basic Markdown syntax",
+        "intermediate": "Comfortable writing Markdown",
+        "advanced": "Expert level Markdown user"
       },
-      "latexLevel": "LaTeX Proficiency",
+      "latexLevel": "LaTeX Level",
       "latexLevelHints": {
-        "none": "Completely unfamiliar with LaTeX, need to start learning from basic syntax and document structure",
-        "basic": "Know basic syntax and document structure, can write simple LaTeX documents",
-        "intermediate": "Proficient in LaTeX, familiar with common features like math formulas, tables, image insertion, etc.",
-        "advanced": "Expert in LaTeX, familiar with advanced features like package usage, custom commands, bibliography management, etc."
+        "none": "No experience with LaTeX",
+        "basic": "Know basic LaTeX syntax",
+        "intermediate": "Comfortable writing LaTeX",
+        "advanced": "Expert level LaTeX user"
       },
       "agentLevel": "AI Agent Knowledge Level",
       "agentLevels": {
@@ -3342,7 +3354,7 @@
       "usedOtherMarkdownEditorHint": "Such as VS Code, Obsidian, Notion, Yuque and other editors that support Markdown",
       "steps": {
         "scenario": "Usage Scenario",
-        "markdown": "Markdown",
+        "markdown": "Markdown Editor",
         "markdownEditor": "Markdown Editor",
         "latex": "LaTeX",
         "latexEditor": "LaTeX Editor",
@@ -3354,15 +3366,15 @@
       "experienceTitle": "Editor Experience",
       "markdownLevelHint": "Please assess your familiarity with Markdown syntax",
       "latexLevelHint": "Please assess your familiarity with LaTeX syntax",
-      "agentLevelHint": "Please assess your knowledge of AI Agent",
+      "agentLevelHint": "Please assess your understanding of AI Agent",
       "experienceHint": "Please tell us about your editor experience",
-      "noExperienceQuestions": "Based on your answers, we have collected sufficient information.",
+      "noExperienceQuestions": "Based on your answers, we have gathered enough information.",
       "next": "Next",
       "levels": {
-        "none": "Completely unfamiliar",
-        "basic": "Know basic concepts",
+        "none": "No Experience",
+        "basic": "Basic Knowledge",
         "intermediate": "Proficient",
-        "advanced": "Expert level"
+        "advanced": "Expert"
       },
       "yes": "Yes",
       "no": "No",
@@ -3467,14 +3479,14 @@
       "label": "Learning Progress",
       "completed": "Completed",
       "completed100": "Congratulations! You have completed all recommended content.",
-      "clearProgress": "Clear learning progress",
-      "clearProgressConfirm": "Clear learning progress for the current recommended path? All read states will be reset.",
+      "clearProgress": "Clear Learning Progress",
+      "clearProgressConfirm": "Are you sure you want to clear the current learning progress? Read status will be reset.",
       "clearProgressDone": "Learning progress cleared"
     },
     "sidebar": {
-      "recommendedList": "Recommended",
-      "onlyRecommended": "Only recommended path",
-      "onlyRecommendedTip": "Turn off to show full manual index"
+      "recommendedList": "Recommended Learning",
+      "onlyRecommended": "Show Recommended Only",
+      "onlyRecommendedTip": "Turn off to show full manual catalog"
     },
     "graph": {
       "title": "Learning Path",
@@ -3508,7 +3520,8 @@
     "previewFont": "Preview Font",
     "previewText": "AaBbCc Hello World",
     "previewTextAlt": "This is preview text",
-    "loadingFonts": "Loading fonts..."
+    "loadingFonts": "Loading fonts...",
+    "helloWorld": "Hello World"
   },
   "aigcDetection": {
     "title": "AIGC Detection",
@@ -3778,7 +3791,9 @@
     "logSaveFailed": "Failed to save log",
     "logSaved": "Log saved",
     "saveLog": "Save log",
-    "title": "Terminal Output"
+    "title": "Terminal Output",
+    "cdFailed": "Cannot change directory",
+    "invalidArgument": "Invalid argument"
   },
   "data-analysis-tool": {
     "analyze": "Data analysis",
@@ -3814,7 +3829,11 @@
     "saveFailedFailedSave": "Document save failed"
   },
   "dummyView": {
-    "emptyDescription": "No open documents"
+    "emptyDescription": "No open documents",
+    "animationDuration": "Animation Duration",
+    "shakeAnimation": "Shake Animation",
+    "shakeDescription": "Only displacement and rotation, handled by outer container",
+    "shakeScale": "Apply scale when shaking, transition will smooth"
   },
   "fomulaRecognition": {
     "copyFailed": "Copy failed",
@@ -3855,7 +3874,8 @@
     "sessionsTitle": "Graph Sessions",
     "simpleMode": "Simple Mode",
     "user": "User",
-    "userRequest": "User Request"
+    "userRequest": "User Request",
+    "renderFailed": "Rendering Failed"
   },
   "graphWindow": {
     "format": "Format as follows",

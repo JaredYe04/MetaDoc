@@ -51,7 +51,9 @@
     "running": "Laufen",
     "status": "Status",
     "taskCancelled": "{task} Abgesagt",
-    "taskCancelled2": "Aufgaben abgesagt"
+    "taskCancelled2": "Aufgaben abgesagt",
+    "errorTitle": "Fehler",
+    "showError": "Fehlermeldung anzeigen"
   },
   "aiTaskQueue": {
     "empty": "Keine Aufgabe.",
@@ -64,7 +66,8 @@
     "delayButton": "Verzögerung _PALACEHOLDER_000_Minuten",
     "delayRemaining": "Restlaufzeit: __PACEHOLDER_00000_",
     "minutes": "min",
-    "seconds": "S."
+    "seconds": "S.",
+    "delayControlArea": "Verzögerungssteuerungsbereich"
   },
   "aigraph": {
     "addScheme": "Neues Zeichnungsschema",
@@ -358,7 +361,11 @@
       "title_error": "Fehler",
       "title_info": "Hinweis",
       "title_success": "Erfolg",
-      "undo_fail": "Unfähig zu Undo"
+      "undo_fail": "Unfähig zu Undo",
+      "title": "Benachrichtigung",
+      "markAllRead": "Alle als gelesen markieren",
+      "stackDescription": "3D gestapelte Benachrichtigungen (von unten nach oben)",
+      "footerDescription": "Erweiterte untere Aktionsleiste: Alle löschen (kein Rand/Hintergrund, konsistent mit transparentem Stil)"
     },
     "options": {
       "eraser": "Gummituch.",
@@ -1191,7 +1198,9 @@
       "downloadError": "Download fehlgeschlagen",
       "installAndRestart": "Installieren und neu starten",
       "openSourceLicenses": "Open-Source-Lizenzen",
-      "thirdPartyAssets": "Drittanbieter-Assets"
+      "thirdPartyAssets": "Drittanbieter-Assets",
+      "aboutUs": "Über uns",
+      "content": "Inhalt über das MetaDoc-Team und die Mission"
     },
     "cancel": "Abbrechen",
     "cannotCreateManualConfig": "Manuelle Konfiguration kann nicht erstellt werden, manueller Typ nur für Entwicklungsmodus",
@@ -1626,7 +1635,8 @@
     "uploadSuccess": "Hochladen erfolgreich",
     "unknownError": "Unbekannter Fehler",
     "updatedInfoObject": "Aktualisiertes Info-Objekt",
-    "uploadFailed": "Wissens-Upload fehlgeschlagen"
+    "uploadFailed": "Wissens-Upload fehlgeschlagen",
+    "disabledOverlay": "Wissensbasis ist derzeit deaktiviert"
   },
   "aiSuggestion": {
     "accept": "Annahme von Empfehlungen",
@@ -1971,6 +1981,7 @@
     "minutesAgo": "Vor {count} Minuten"
   },
   "newDocument": {
+    "emptyTemplate": "Leeres Dokument",
     "formatTitle": "Wählen Sie Format",
     "formats": {
       "latex": {
@@ -3076,7 +3087,8 @@
     "previewFont": "Vorschau-Schriftart",
     "previewText": "AaBbCc Hallo Welt",
     "previewTextAlt": "Dies ist Vorschautext",
-    "loadingFonts": "Schriftarten werden geladen..."
+    "loadingFonts": "Schriftarten werden geladen...",
+    "helloWorld": "Hallo Welt"
   },
   "aigc": {
     "analysisComplete": "Analyse abgeschlossen",
@@ -3337,7 +3349,11 @@
     "title": "Standard-Editormodus auswählen"
   },
   "dummyView": {
-    "emptyDescription": "Keine geöffneten Dokumente"
+    "emptyDescription": "Keine geöffneten Dokumente",
+    "animationDuration": "Animationsdauer",
+    "shakeAnimation": "Schüttelanimation",
+    "shakeDescription": "Nur Verschiebung und Rotation, vom äußeren Container verarbeitet",
+    "shakeScale": "Skalierung beim Schütteln anwenden, Übergang wird sanft"
   },
   "export": {
     "adapters": {
@@ -3558,7 +3574,8 @@
       "imageLabelDefaultName": {
         "label": "Bild",
         "description": "Standardname für Bilder (wenn Bild keinen Namen hat)"
-      }
+      },
+      "objectTypeField": "Objekttyp-Feld"
     }
   },
   "fomulaRecognition": {
@@ -3600,7 +3617,8 @@
     "sessionsTitle": "Zeichnungssitzungen",
     "simpleMode": "Einfacher Modus",
     "user": "Benutzer",
-    "userRequest": "Neue Benutzeranforderung"
+    "userRequest": "Neue Benutzeranforderung",
+    "renderFailed": "Rendering fehlgeschlagen"
   },
   "graphWindow": {
     "format": "Format wie folgt",
@@ -4076,11 +4094,249 @@
     },
     "markdown": {
       "basic": {
-        "content": "# Markdown-Grundlagen\n\nDer Markdown-Editor von MetaDoc basiert auf [Vditor](https://b3log.org/vditor) und unterstützt die CommonMark- und GFM-Spezifikationen (GitHub Flavored Markdown).\n\n## Überschriften\n\nVerwenden Sie `#` für Überschriften, die Anzahl der `#` gibt die Ebene an (1-6):\n\n```markdown\n# Überschrift Ebene 1\n## Überschrift Ebene 2\n### Überschrift Ebene 3\n#### Überschrift Ebene 4\n##### Überschrift Ebene 5\n###### Überschrift Ebene 6\n```\n\n## Absätze\n\nVerwenden Sie Leerzeilen, um Absätze zu trennen:\n\n```markdown\nDies ist der erste Absatz.\n\nDies ist der zweite Absatz.\n```\n\n## Textformatierung\n\n### Fett\n\nVerwendung von `**Text**` oder `__Text__`:\n\n```markdown\nDies ist **fetter Text**\n```\n\n### Kursiv\n\nVerwendung von `*Text*` oder `_Text_`:\n\n```markdown\nDies ist *kursiver Text*\n```\n\n### Durchgestrichen\n\nVerwendung von `~~Text~~`:\n\n```markdown\n~~Dies ist durchgestrichener Text~~\n```\n\n### Inline-Code\n\nVerwendung von Backticks:\n\n```markdown\nVerwenden Sie `console.log()` für die Ausgabe\n```\n\n## Listen\n\n### Ungeordnete Listen\n\n```markdown\n- Punkt 1\n- Punkt 2\n  - Unterpunkt 2.1\n  - Unterpunkt 2.2\n- Punkt 3\n```\n\n### Geordnete Listen\n\n```markdown\n1. Erster Punkt\n2. Zweiter Punkt\n3. Dritter Punkt\n```\n\n## Blockzitate\n\n```markdown\n> Dies ist ein Zitat.\n> Es kann mehrere Zeilen umfassen.\n```\n\n## Codeblöcke\n\nVerwendung von drei Backticks:\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n## Links\n\n```markdown\n[Linktext](https://example.com)\n[Linktext](https://example.com \"Linktitel\")\n```\n\n## Bilder\n\n```markdown\n![Bildbeschreibung](image.png)\n![Bildbeschreibung](image.png \"Bildtitel\")\n```\n\n## Tabellen\n\n```markdown\n| Spalte 1 | Spalte 2 | Spalte 3 |\n|----------|----------|----------|\n| Daten 1  | Daten 2  | Daten 3  |\n| Daten 4  | Daten 5  | Daten 6  |\n```\n\n## Trennlinien\n\nVerwendung von drei oder mehr `*`, `-` oder `_`:\n\n```markdown\n***\n---\n___\n```\n\n## Maskierungszeichen\n\nVerwendung von Backslash `\\` zum Maskieren:\n\n```markdown\n\\* Stern\n\\` Backtick\n\\# Hash\n```\n\n## HTML-Unterstützung\n\nMarkdown unterstützt eingebettetes HTML:\n\n```html\n<div style=\"color: red;\">Roter Text</div>\n```"
+        "content": "# Markdown-Grundlagen\n\nDer Markdown-Editor von MetaDoc basiert auf [Vditor](https://b3log.org/vditor) und unterstützt die CommonMark- und GFM-Spezifikationen (GitHub Flavored Markdown).\n\n## Überschriften\n\nVerwenden Sie `#` für Überschriften, die Anzahl der `#` gibt die Ebene an (1-6):\n\n```markdown\n# Überschrift Ebene 1\n## Überschrift Ebene 2\n### Überschrift Ebene 3\n#### Überschrift Ebene 4\n##### Überschrift Ebene 5\n###### Überschrift Ebene 6\n```\n\n## Absätze\n\nVerwenden Sie Leerzeilen, um Absätze zu trennen:\n\n```markdown\nDies ist der erste Absatz.\n\nDies ist der zweite Absatz.\n```\n\n## Textformatierung\n\n### Fett\n\nVerwendung von `**Text**` oder `__Text__`:\n\n```markdown\nDies ist **fetter Text**\n```\n\n### Kursiv\n\nVerwendung von `*Text*` oder `_Text_`:\n\n```markdown\nDies ist *kursiver Text*\n```\n\n### Durchgestrichen\n\nVerwendung von `~~Text~~`:\n\n```markdown\n~~Dies ist durchgestrichener Text~~\n```\n\n### Inline-Code\n\nVerwendung von Backticks:\n\n```markdown\nVerwenden Sie `console.log()` für die Ausgabe\n```\n\n## Listen\n\n### Ungeordnete Listen\n\n```markdown\n- Punkt 1\n- Punkt 2\n  - Unterpunkt 2.1\n  - Unterpunkt 2.2\n- Punkt 3\n```\n\n### Geordnete Listen\n\n```markdown\n1. Erster Punkt\n2. Zweiter Punkt\n3. Dritter Punkt\n```\n\n## Blockzitate\n\n```markdown\n> Dies ist ein Zitat.\n> Es kann mehrere Zeilen umfassen.\n```\n\n## Codeblöcke\n\nVerwendung von drei Backticks:\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n## Links\n\n```markdown\n[Linktext](https://example.com)\n[Linktext](https://example.com \"Linktitel\")\n```\n\n## Bilder\n\n```markdown\n![Bildbeschreibung](image.png)\n![Bildbeschreibung](image.png \"Bildtitel\")\n```\n\n## Tabellen\n\n```markdown\n| Spalte 1 | Spalte 2 | Spalte 3 |\n|----------|----------|----------|\n| Daten 1  | Daten 2  | Daten 3  |\n| Daten 4  | Daten 5  | Daten 6  |\n```\n\n## Trennlinien\n\nVerwendung von drei oder mehr `*`, `-` oder `_`:\n\n```markdown\n***\n---\n___\n```\n\n## Maskierungszeichen\n\nVerwendung von Backslash `\\` zum Maskieren:\n\n```markdown\n\\* Stern\n\\` Backtick\n\\# Hash\n```\n\n## HTML-Unterstützung\n\nMarkdown unterstützt eingebettetes HTML:\n\n```html\n<div style=\"color: red;\">Roter Text</div>\n```",
+        "title": "Markdown-Grundlagen"
       },
       "advanced": {
-        "content": "# Markdown-Fortgeschrittene Funktionen\n\n## Über Vditor\n\nDer Markdown-Editor von MetaDoc basiert auf [Vditor](https://b3log.org/vditor), einem leistungsstarken Browser-basierten Markdown-Editor. Vditor implementiert die CommonMark- und GFM-Spezifikationen.\n\n### Fähigkeiten von Vditor\n\n- ✅ Unterstützung für CommonMark- und GFM-Spezifikationen\n- ✅ Mathematische Formeln (KaTeX/MathJax)\n- ✅ Code-Hervorhebung (highlight.js)\n- ✅ Tabellen, Aufgabenlisten, Fußnoten\n- ✅ Diagramm-Rendering (Mermaid, ECharts, PlantUML)\n- ✅ Drei Bearbeitungsmodi: WYSIWYG, IR, SV\n- ✅ Gliederungsnavigation\n- ✅ Bild-Upload und -Einfügung\n- ✅ Emoji-Unterstützung\n\n### Einschränkungen von Vditor\n\n- ❌ Keine Unterstützung für LaTeX-Standard-Formel-Trennzeichen `\\(...\\)` und `\\[...\\]`\n- ❌ Einige ungewöhnliche Markdown-Erweiterungen möglicherweise nicht unterstützt\n\n**Lösung**: Wenn Ihr Dokument `\\(...\\)` oder `\\[...\\)`-Format-Formeln enthält, verwenden Sie die Schaltfläche \"LaTeX-Formel-Format konvertieren\".\n\n## Mathematische Formeln\n\n### Inline-Formeln\n\nVerwendung von `$Formel$`:\n\n```markdown\nDies ist eine Inline-Formel: $E = mc^2$\n```\n\n### Block-Formeln\n\nVerwendung von `$$Formel$$`:\n\n```markdown\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n$$\n```\n\n## Aufgabenlisten\n\nVerwendung von `[ ]` oder `[x]`:\n\n```markdown\n- [x] Erledigte Aufgabe\n- [ ] Nicht erledigte Aufgabe\n- [x] Eine weitere erledigte Aufgabe\n```\n\n## Fußnoten\n\n```markdown\nDies ist ein Fußnotenverweis[^1].\n\n[^1]: Dies ist die Fußnotendefinition.\n```\n\n## Emoji\n\nZwei Möglichkeiten:\n\n1. Direkte Eingabe: 😀 🌻 ☀️\n2. Alias: `:smile:` `:sunny:`\n\n```markdown\nDas Wetter ist schön :sunny:\n```\n\n## Diagramme\n\nMetaDoc unterstützt verschiedene Diagrammtypen:\n\n- **Mermaid**: Flussdiagramme, Sequenzdiagramme, Gantt-Diagramme\n- **PlantUML**: Professionelles UML-Modellierung\n- **ECharts**: Datenvisualisierungsdiagramme\n- **Flowchart**: Grundlegende Flussdiagramme\n- **Mindmap**: Mindmaps\n\n## Code-Hervorhebung\n\nUnterstützung für verschiedene Programmiersprachen:\n\n````markdown\n```python\ndef hello():\n    print('Hello, World!')\n```\n\n```javascript\nconst hello = () => {\n  console.log('Hello, World!');\n};\n```\n````\n\n## Automatische Links\n\nDie meisten Markdown-Engines erkennen URLs automatisch:\n\n```markdown\nBesuchen Sie https://example.com für mehr Informationen\n```\n\n## Zusammenfassung\n\nDer Markdown-Editor von MetaDoc basiert auf Vditor und unterstützt CommonMark- und GFM-Spezifikationen mit umfangreichen Erweiterungen. Weitere Informationen:\n- [Vditor-Dokumentation](https://b3log.org/vditor)\n- [CommonMark-Spezifikation](https://spec.commonmark.org)\n- [GFM-Spezifikation](https://github.github.com/gfm)"
+        "content": "# Markdown-Fortgeschrittene Funktionen\n\n## Über Vditor\n\nDer Markdown-Editor von MetaDoc basiert auf [Vditor](https://b3log.org/vditor), einem leistungsstarken Browser-basierten Markdown-Editor. Vditor implementiert die CommonMark- und GFM-Spezifikationen.\n\n### Fähigkeiten von Vditor\n\n- ✅ Unterstützung für CommonMark- und GFM-Spezifikationen\n- ✅ Mathematische Formeln (KaTeX/MathJax)\n- ✅ Code-Hervorhebung (highlight.js)\n- ✅ Tabellen, Aufgabenlisten, Fußnoten\n- ✅ Diagramm-Rendering (Mermaid, ECharts, PlantUML)\n- ✅ Drei Bearbeitungsmodi: WYSIWYG, IR, SV\n- ✅ Gliederungsnavigation\n- ✅ Bild-Upload und -Einfügung\n- ✅ Emoji-Unterstützung\n\n### Einschränkungen von Vditor\n\n- ❌ Keine Unterstützung für LaTeX-Standard-Formel-Trennzeichen `\\(...\\)` und `\\[...\\]`\n- ❌ Einige ungewöhnliche Markdown-Erweiterungen möglicherweise nicht unterstützt\n\n**Lösung**: Wenn Ihr Dokument `\\(...\\)` oder `\\[...\\)`-Format-Formeln enthält, verwenden Sie die Schaltfläche \"LaTeX-Formel-Format konvertieren\".\n\n## Mathematische Formeln\n\n### Inline-Formeln\n\nVerwendung von `$Formel$`:\n\n```markdown\nDies ist eine Inline-Formel: $E = mc^2$\n```\n\n### Block-Formeln\n\nVerwendung von `$$Formel$$`:\n\n```markdown\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n$$\n```\n\n## Aufgabenlisten\n\nVerwendung von `[ ]` oder `[x]`:\n\n```markdown\n- [x] Erledigte Aufgabe\n- [ ] Nicht erledigte Aufgabe\n- [x] Eine weitere erledigte Aufgabe\n```\n\n## Fußnoten\n\n```markdown\nDies ist ein Fußnotenverweis[^1].\n\n[^1]: Dies ist die Fußnotendefinition.\n```\n\n## Emoji\n\nZwei Möglichkeiten:\n\n1. Direkte Eingabe: 😀 🌻 ☀️\n2. Alias: `:smile:` `:sunny:`\n\n```markdown\nDas Wetter ist schön :sunny:\n```\n\n## Diagramme\n\nMetaDoc unterstützt verschiedene Diagrammtypen:\n\n- **Mermaid**: Flussdiagramme, Sequenzdiagramme, Gantt-Diagramme\n- **PlantUML**: Professionelles UML-Modellierung\n- **ECharts**: Datenvisualisierungsdiagramme\n- **Flowchart**: Grundlegende Flussdiagramme\n- **Mindmap**: Mindmaps\n\n## Code-Hervorhebung\n\nUnterstützung für verschiedene Programmiersprachen:\n\n````markdown\n```python\ndef hello():\n    print('Hello, World!')\n```\n\n```javascript\nconst hello = () => {\n  console.log('Hello, World!');\n};\n```\n````\n\n## Automatische Links\n\nDie meisten Markdown-Engines erkennen URLs automatisch:\n\n```markdown\nBesuchen Sie https://example.com für mehr Informationen\n```\n\n## Zusammenfassung\n\nDer Markdown-Editor von MetaDoc basiert auf Vditor und unterstützt CommonMark- und GFM-Spezifikationen mit umfangreichen Erweiterungen. Weitere Informationen:\n- [Vditor-Dokumentation](https://b3log.org/vditor)\n- [CommonMark-Spezifikation](https://spec.commonmark.org)\n- [GFM-Spezifikation](https://github.github.com/gfm)",
+        "title": "Markdown Erweiterte Funktionen"
       }
-    }
+    },
+    "navigation": {
+      "core": "Kernfunktionen",
+      "markdown": "Markdown Anleitung",
+      "latex": "LaTeX Anleitung",
+      "charts": "Diagramme Zeichnen",
+      "ai": "KI-Tools",
+      "agent": "Agent Nutzung",
+      "design": "Design-Philosophie"
+    },
+    "overview": {
+      "title": "Übersicht",
+      "welcome": "Schnellstart mit MetaDoc",
+      "description": "Diese Seite hilft Ihnen, Ihr Nutzungsprofil zu verstehen und empfiehlt einen passenden Lernpfad.",
+      "profile": "Mein Nutzerprofil",
+      "profileSummary": "Ihr Nutzungsprofil",
+      "progress": "Lernfortschritt",
+      "recommendedPath": "Empfohlener Lernpfad",
+      "quickStart": "Schnellstart",
+      "quickLinks": "Schnelllinks",
+      "noProfile": "Noch kein Nutzerprofil? Lassen Sie uns Ihre Präferenzen kennenlernen.",
+      "startLearning": "Lernen beginnen",
+      "viewGraph": "Lernpfad anzeigen",
+      "completed": "Abgeschlossen",
+      "current": "Aktuell",
+      "pending": "Ausstehend",
+      "articles": "Artikel",
+      "skillRadar": "Fähigkeiten-Radar",
+      "profileSummarySentence": "Sie verwenden hauptsächlich das Szenario 「{scenario}」; aktuell {markdown} für Markdown, {latex} für LaTeX und {agent} für AI Agent."
+    },
+    "profile": {
+      "title": "Nutzerprofil-Fragebogen",
+      "buttonText": "Meine Präferenzen vervollständigen",
+      "scenario": "Nutzungsszenario",
+      "reanalyze": "Neu analysieren",
+      "scenarioHint": "Bitte wählen Sie Ihr Hauptnutzungsszenario",
+      "reanalyzeConfirmTitle": "Nutzerprofil zurücksetzen",
+      "reanalyzeConfirmMessage": "Das Zurücksetzen löscht den aktuellen Lernfortschritt. Fortfahren?",
+      "scenarios": {
+        "student": "Student",
+        "researcher": "Forscher",
+        "it": "IT-Fachkraft",
+        "office": "Büroangestellter",
+        "other": "Sonstiges",
+        "hint": {
+          "student": "Studenten: hauptsächlich für Kursnotizen, Aufgaben und Lernmaterialien",
+          "researcher": "Forscher: hauptsächlich für wissenschaftliche Arbeiten, Forschungsberichte und Experimentprotokolle",
+          "it": "IT-Fachkräfte: hauptsächlich für technische Dokumentation, Code-Kommentare, API-Dokumentation",
+          "office": "Büroangestellte: hauptsächlich für Besprechungsprotokolle, Arbeitsberichte, Geschäftsdokumente",
+          "other": "Sonstige: allgemeine Dokumentenbearbeitung"
+        },
+        "tooltip": {
+          "student": "Student: Hauptsächlich für Vorlesungsnotizen, Hausaufgaben, Organisation von Lernmaterialien usw.",
+          "researcher": "Forscher: Hauptsächlich für akademische Arbeiten, Forschungsberichte, Laborprotokolle usw.",
+          "it": "IT-Mitarbeiter: Hauptsächlich für technische Dokumentation, Code-Kommentare, API-Dokumentation, Projektdokumentation usw.",
+          "office": "Büroangestellter: Hauptsächlich für Besprechungsprotokolle, Arbeitsberichte, Geschäftsdokumente usw.",
+          "other": "Sonstiges: Allgemeine Dokumentenbearbeitungsszenarien"
+        }
+      },
+      "markdownLevel": "Markdown-Kenntnisstand",
+      "markdownLevelHints": {
+        "none": "Keine Kenntnisse über Markdown-Syntax, muss die Grundlagen von Grund auf lernen",
+        "basic": "Kennt die Grundsyntax (Überschriften, Listen, Fett usw.), kann einfache Dokumente verfassen",
+        "intermediate": "Beherrscht Markdown-Syntax, kennt Tabellen, Code-Blöcke, Links und andere erweiterte Funktionen",
+        "advanced": "Experte in Markdown, vertraut mit erweiterter Syntax, mathematischen Formeln, Diagrammen und anderen fortgeschrittenen Funktionen"
+      },
+      "latexLevel": "LaTeX-Kenntnisstand",
+      "latexLevelHints": {
+        "none": "Keine Kenntnisse über LaTeX, muss die Grundsyntax und Dokumentenstruktur von Grund auf lernen",
+        "basic": "Kennt die Grundsyntax und Dokumentenstruktur, kann einfache LaTeX-Dokumente verfassen",
+        "intermediate": "Beherrscht LaTeX, kennt mathematische Formeln, Tabellen, Bilder einfügen und andere häufig verwendete Funktionen",
+        "advanced": "Experte in LaTeX, vertraut mit Paketverwendung, benutzerdefinierten Befehlen, Literaturverwaltung und anderen fortgeschrittenen Funktionen"
+      },
+      "agentLevel": "Kenntnisstand über AI Agent",
+      "agentLevels": {
+        "none": "Keine Kenntnisse",
+        "heard": "Schon gehört, aber nicht vertraut",
+        "basic": "Grundlegende Konzepte verstehen",
+        "used": "Schon verwendet",
+        "proficient": "Versiert"
+      },
+      "knowsAgent": "Kennt AI Agent",
+      "usedWysiwygMarkdown": "WYSIWYG Markdown-Editor verwendet",
+      "usedWysiwygMarkdownHint": "Wie Typora, Mark Text, Zettlr und andere WYSIWYG-Editoren",
+      "usedLatexEditor": "LaTeX-Editor verwendet",
+      "usedLatexEditorHint": "Wie Overleaf, TeXStudio, TeXworks, TeXShop und andere LaTeX-Editoren",
+      "usedOtherMarkdownEditor": "Anderen Markdown-Editor verwendet",
+      "usedOtherMarkdownEditorHint": "Wie VS Code, Obsidian, Notion, Yuque und andere Editoren mit Markdown-Unterstützung",
+      "steps": {
+        "scenario": "Nutzungsszenario",
+        "markdown": "Markdown",
+        "markdownEditor": "Markdown-Editor",
+        "latex": "LaTeX",
+        "latexEditor": "LaTeX-Editor",
+        "agent": "AI Agent",
+        "experience": "Erfahrung"
+      },
+      "markdownEditorHint": "Bitte teilen Sie uns Ihre Erfahrung mit Markdown-Editoren mit",
+      "latexEditorHint": "Bitte teilen Sie uns Ihre Erfahrung mit LaTeX-Editoren mit",
+      "experienceTitle": "Editor-Erfahrung",
+      "markdownLevelHint": "Bitte bewerten Sie Ihre Vertrautheit mit Markdown-Syntax",
+      "latexLevelHint": "Bitte bewerten Sie Ihre Vertrautheit mit LaTeX-Syntax",
+      "agentLevelHint": "Bitte bewerten Sie Ihr Verständnis von AI Agent",
+      "experienceHint": "Bitte teilen Sie uns Ihre Erfahrung mit verwendeten Editoren mit",
+      "noExperienceQuestions": "Basierend auf Ihren Antworten haben wir bereits genügend Informationen gesammelt.",
+      "next": "Nächster Schritt",
+      "levels": {
+        "none": "Keine Kenntnisse",
+        "basic": "Grundlegende Konzepte",
+        "intermediate": "Versiert",
+        "advanced": "Experte"
+      },
+      "yes": "Ja",
+      "no": "Nein",
+      "skip": "Überspringen",
+      "submit": "Absenden"
+    },
+    "progress": {
+      "label": "Lernfortschritt",
+      "completed": "Abgeschlossen",
+      "completed100": "Herzlichen Glückwunsch! Sie haben alle Inhalte des empfohlenen Lernpfads abgeschlossen.",
+      "clearProgress": "Lernfortschritt löschen",
+      "clearProgressConfirm": "Möchten Sie den Lernfortschritt des aktuellen empfohlenen Pfads wirklich löschen? Der Lesestatus wird vollständig zurückgesetzt.",
+      "clearProgressDone": "Lernfortschritt gelöscht"
+    },
+    "replayCelebration": "Feieranimation erneut abspielen",
+    "search": {
+      "fragment": "Fragment",
+      "line": "Zeile",
+      "noResults": "Keine relevanten Dokumente gefunden"
+    },
+    "searchPlaceholder": "Dokumenteninhalt durchsuchen...",
+    "sidebar": {
+      "recommendedList": "Empfohlenes Lernen",
+      "onlyRecommended": "Nur empfohlenen Pfad anzeigen",
+      "onlyRecommendedTip": "Bei Deaktivierung wird das vollständige Handbuchverzeichnis angezeigt"
+    },
+    "title": "Benutzerhandbuch"
+  },
+  "versionInfoPanel": {
+    "buildEnvironment": "Build-Umgebung",
+    "checkUpdate": "Auf Updates prüfen",
+    "checkUpdateError": "Update-Prüfung fehlgeschlagen",
+    "checking": "Prüfung läuft...",
+    "downloadAndInstall": "Herunterladen und installieren",
+    "downloadError": "Download fehlgeschlagen",
+    "downloadProgress": "Download-Fortschritt: {progress}%",
+    "downloading": "Wird heruntergeladen",
+    "installAndRestart": "Installieren und neu starten",
+    "noUpdate": "Bereits neueste Version",
+    "noUpdateDesc": "Sie verwenden bereits die neueste Version",
+    "releaseDate": "Veröffentlichungsdatum",
+    "title": "Versionsinformation",
+    "updateAvailable": "Neue Version verfügbar",
+    "updateAvailableDesc": "Neue Version {version} ist verfügbar",
+    "version": "Version"
+  },
+  "viewMenuContainer": {
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "metaInfo": "Metainformation",
+    "workspace": "Arbeitsbereich",
+    "workspaceGrep": "Arbeitsbereich-Suche"
+  },
+  "workspaceExplorer": {
+    "addFolder": "Arbeitsordner hinzufügen",
+    "closeFile": "Datei schließen",
+    "closeFileConfirm": "Die Datei \"{name}\" enthält nicht gespeicherte Änderungen. Möchten Sie den Vorgang fortsetzen?",
+    "closeFileTitle": "Datei schließen",
+    "closeWorkspace": "Arbeitsbereich schließen",
+    "contextMenu": {
+      "open": "Öffnen",
+      "cut": "Ausschneiden",
+      "copy": "Kopieren",
+      "paste": "Einfügen",
+      "rename": "Umbenennen",
+      "delete": "Löschen",
+      "copyPath": "Pfad kopieren",
+      "copyRelativePath": "Relativen Pfad kopieren",
+      "showInFolder": "Im Ordner anzeigen",
+      "openFolder": "Ordner öffnen",
+      "newFile": "Neue Datei",
+      "newFolder": "Neuer Ordner",
+      "refresh": "Aktualisieren"
+    },
+    "copyPathSuccess": "Pfad in Zwischenablage kopiert",
+    "copyRelativePathSuccess": "Relativer Pfad in Zwischenablage kopiert",
+    "copySuccess": "{count} Element(e) kopiert",
+    "cutSuccess": "{count} Element(e) ausgeschnitten",
+    "deleteConfirm": "Möchten Sie \"{name}\" wirklich in den Papierkorb verschieben?",
+    "deleteSuccess": "In den Papierkorb verschoben",
+    "deleteTitle": "Löschbestätigung",
+    "fileNotFound": "Datei nicht gefunden",
+    "folderAlreadyAdded": "Dieser Arbeitsordner wurde bereits hinzugefügt",
+    "ipcNotAvailable": "IPC nicht verfügbar",
+    "loading": "Laden...",
+    "newFileDialog": {
+      "title": "Neue Datei",
+      "name": "Dateiname",
+      "placeholder": "Bitte Dateinamen eingeben (mit Erweiterung, z.B. .md, .tex, .txt usw.)"
+    },
+    "newFileSuccess": "Datei erfolgreich erstellt",
+    "newFolderDialog": {
+      "title": "Neuer Ordner",
+      "name": "Ordnername",
+      "placeholder": "Bitte Ordnernamen eingeben"
+    },
+    "newFolderSuccess": "Ordner erfolgreich erstellt",
+    "noWorkspaceFolder": "Kein Arbeitsordner ausgewählt",
+    "openFolder": "Ordner öffnen",
+    "openedFiles": "Geöffnete Dateien",
+    "pasteSuccess": "{count} Element(e) eingefügt",
+    "refresh": "Aktualisieren",
+    "refreshSuccess": "Aktualisierung erfolgreich",
+    "renameDialog": {
+      "title": "Umbenennen",
+      "name": "Name",
+      "placeholder": "Bitte neuen Namen eingeben"
+    },
+    "renameSuccess": "Umbenennung erfolgreich",
+    "selectFolder": "Arbeitsordner auswählen",
+    "title": "Arbeitsverzeichnis",
+    "moveFailed": "Verschieben fehlgeschlagen"
+  },
+  "workspaceGrep": {
+    "activeWorkspaceCount": "{count} Arbeitsbereiche geöffnet",
+    "globalWorkspace": "Globaler Arbeitsbereich (aktuell geöffnete Dokumente)",
+    "matchCase": "Groß-/Kleinschreibung beachten",
+    "noResult": "Keine Übereinstimmungen gefunden",
+    "patternPlaceholder": "Suchen",
+    "replacePlaceholder": "Ersetzen durch",
+    "resultSummary": "{count} Übereinstimmung(en) gefunden",
+    "search": "Suchen",
+    "searching": "Arbeitsbereich wird durchsucht...",
+    "title": "Arbeitsbereich-Suche",
+    "useRegex": "Regulärer Ausdruck",
+    "wholeWord": "Ganzes Wort"
   }
 }

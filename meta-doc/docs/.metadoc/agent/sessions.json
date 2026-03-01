@@ -1,6 +1,32 @@
 {
-  "activeSessionId": "demo-session-1",
+  "activeSessionId": "session-1772388489549-pcw5vmnrt",
   "sessions": [
+    {
+      "id": "session-1772388489549-pcw5vmnrt",
+      "title": "新規セッション",
+      "description": "",
+      "createdAt": "2026-03-01T18:08:09.549Z",
+      "updatedAt": "2026-03-01T18:08:09.549Z",
+      "messages": [
+        {
+          "id": "msg-1772388489549-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T18:08:09.549Z",
+          "markdown": "### こんにちは！私はMetaDoc AIアシスタントです！\n\n私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に活用し、図表やグラフを含むプロフェッショナルで豊かな多領域の記事を作成するお手伝いをします。\n\n私ができること：\n- RAGツールで関連知識を検索\n- チャート生成ツールでビジュアライゼーションを作成\n- 編集ツールで文書構造を最適化\n- 校正ツールでコンテンツの品質を確保\n\nあなたのニーズを教えてください。文書作成タスクの完了に最善を尽くします！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T18:08:09.549Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
     {
       "id": "demo-session-1",
       "title": "代码审查会话",
@@ -37,7 +63,8 @@
         }
       },
       "executionNodes": [],
-      "status": "idle"
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
     },
     {
       "id": "demo-session-2",
@@ -60,7 +87,8 @@
       "referenceStore": [],
       "publicContext": {},
       "executionNodes": [],
-      "status": "idle"
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
     },
     {
       "id": "demo-session-3",
@@ -75,12 +103,11 @@
       "referenceStore": [],
       "publicContext": {},
       "executionNodes": [],
-      "status": "idle"
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
     }
   ],
   "openTabIds": [
-    "session-1772385235931-bvjaf92tu",
-    "session-1772385222875-4tuskm98c",
-    "session-1772363134530-5iitwtsrl"
+    "session-1772388489549-pcw5vmnrt"
   ]
 }

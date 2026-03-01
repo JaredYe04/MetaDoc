@@ -1,0 +1,78 @@
+[Korean] \documentclass[12pt,a4paper,twocolumn]{article}
+\usepackage[UTF8]{ctex}
+\usepackage{fontspec}
+\usepackage{geometry}
+\geometry{left=1.8cm,right=1.8cm,top=2.5cm,bottom=2.5cm,columnsep=0.8cm}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{setspace}
+\onehalfspacing
+
+% 字体设置
+\setmainfont{Times New Roman}  % 英文正文字体
+\setsansfont{Microsoft YaHei}  % 雅黑（可选）
+\setmonofont{Consolas}
+\setCJKmainfont{SimSun}        % 宋体
+\setCJKsansfont{Microsoft YaHei}
+
+% 标题信息
+\title{论文标题}
+\author{作者姓名}
+\date{\today}
+
+\begin{document}
+
+% 标题页（单栏）
+\twocolumn[
+\maketitle
+\begin{abstract}
+\textbf{摘要：} 在此处撰写摘要内容。摘要应简洁明了地概括论文的主要内容、研究方法、主要结果和结论。
+
+\textbf{关键词：} 关键词1；关键词2；关键词3
+\end{abstract}
+]
+
+% 正文（双栏）
+\section{引言}
+引言部分应介绍研究背景、研究意义、国内外研究现状以及本文的研究内容和组织结构。
+
+\section{相关工作}
+相关工作部分应综述与本文研究相关的已有研究成果，分析现有方法的优缺点，指出本文研究的创新点。
+
+\section{研究方法}
+研究方法部分应详细描述本文所采用的研究方法、实验设计、数据来源等。
+
+\subsection{方法概述}
+在此处描述方法的基本思路和框架。
+
+\subsection{具体实现}
+在此处描述方法的具体实现细节。
+
+\section{实验结果与分析}
+实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。
+
+\subsection{实验设置}
+在此处描述实验的环境、参数设置等。
+
+\subsection{结果分析}
+在此处展示和分析实验结果。
+
+\section{结论}
+结论部分应总结本文的主要贡献，指出研究的局限性，并提出未来的研究方向。
+
+% 参考文献
+\begin{thebibliography}{99}
+\bibitem{ref1} 参考文献1
+\bibitem{ref2} 参考文献2
+\end{thebibliography}
+
+% 附录（可选）
+\appendix
+\section{附录A}
+附录内容（如有需要）。
+
+\end{document}

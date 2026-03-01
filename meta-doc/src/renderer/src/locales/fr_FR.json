@@ -1142,7 +1142,18 @@
     "enableMaxTokens": "Activer la limite max_tokens",
     "maxTokens": "Maximum max_tokens",
     "selectLLMType": "Sélectionner le type de LLM",
-    "selectModel": "Sélectionner le modèle"
+    "selectModel": "Sélectionner le modèle",
+    "themeSyncColor": "Suivre la couleur du système",
+    "presetThemeCoralRed": "Rouge corail",
+    "presetThemeGoldenOrange": "Orange doré",
+    "aboutUpdateSettings": "Paramètres de mise à jour",
+    "aboutOpenSourceLicense": "Licence open source",
+    "aboutThirdPartyAssets": "Ressources tierces",
+    "autoCheckUpdates": "Vérifier automatiquement les mises à jour",
+    "updateChannel": "Canal de mise à jour",
+    "channelRelease": "Stable",
+    "channelDev": "Développement",
+    "checkUpdate": "Vérifier les mises à jour"
   },
   "titleMenu": {
     "contextMarks": {

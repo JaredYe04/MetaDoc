@@ -2609,7 +2609,10 @@
       "selectedTools": "Selected tools:",
       "noToolsNeeded": "No tools needed for this request.",
       "reasoning": "Reasoning:"
-    }
+    },
+    "welcomeTitle": "Hello! I'm MetaDoc AI Assistant!",
+    "welcomeDescription": "I'm your intelligent document writing assistant. I can help you write, edit, and polish your documents with AI-powered suggestions and corrections.",
+    "tellMeYourNeeds": "Tell me your needs and I'll help you complete your document creation tasks!"
   },
   "agentToolResultCard": {
     "emptyResultSaveFile": "Save file call returned empty result",

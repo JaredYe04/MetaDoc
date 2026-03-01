@@ -12,7 +12,10 @@
     "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관",
     "locateToPdf": "PDF의 위치.",
     "sectionOptimizer": "현재 단락 최적화",
-    "triggerAutoCompletion": "수동으로 트리거 AI 완료"
+    "triggerAutoCompletion": "수동으로 트리거 AI 완료",
+    "insertGraph": "그래프 삽입",
+    "redo": "다시 실행",
+    "undo": "실행 취소"
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
@@ -60,33 +63,33 @@
     "tip": "",
     "saveAll": "모두 저장",
     "saveAllAndExit": "모든 및 출구 저장",
-    "aigcDetection": "AIGC检测工具",
-    "attachment": "附件解析工具",
-    "close": "关闭",
-    "dataAnalysis": "数据分析工具",
-    "debugTools": "调试工具",
-    "exportAsTemplate": "导出为模板",
-    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
-    "exportAsTemplateDescLabel": "模板描述",
-    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
-    "exportAsTemplateTitleLabel": "模板标题",
-    "graph": "绘图工具",
-    "home": "主页",
-    "knowledgeBase": "知识库",
+    "aigcDetection": "AIGC 감지 도구",
+    "attachment": "첨부 파일 분석 도구",
+    "close": "닫기",
+    "dataAnalysis": "데이터 분석 도구",
+    "debugTools": "디버그 도구",
+    "exportAsTemplate": "템플릿으로 납치",
+    "exportAsTemplateAiGenerate": "AI가 제목과 설명을 생성",
+    "exportAsTemplateDescLabel": "템플릿 설명",
+    "exportAsTemplateSuccess": "템플릿으로 추가되었습니다. 새 문서 작성 시 선택할 수 있습니다",
+    "exportAsTemplateTitleLabel": "템플릿 제목",
+    "graph": "그리기 도구",
+    "home": "홈",
+    "knowledgeBase": "지식 베이스",
     "menuConfig": {
-      "title": "菜单配置",
-      "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
-      "visible": "显示",
-      "hidden": "隐藏",
-      "reset": "重置",
-      "save": "保存"
+      "title": "메뉴 구성",
+      "description": "메뉴 순서를 조정하려면 드래그하거나 사용하지 않는 기능을 숨깁니다",
+      "visible": "표시",
+      "hidden": "숨김",
+      "reset": "재설정",
+      "save": "저장"
     },
-    "moreFeatures": "更多功能",
-    "ocr": "OCR文字识别",
-    "userFeedback": "反馈",
-    "userManual": "用户手册",
-    "workspaceExplorer": "工作目录",
-    "workspaceGrep": "工作区搜索"
+    "moreFeatures": "더 많은 기능",
+    "ocr": "OCR 문자 인식",
+    "userFeedback": "피드백",
+    "userManual": "사용자 설명서",
+    "workspaceExplorer": "작업 공간 탐색기",
+    "workspaceGrep": "작업 공간 검색"
   },
   "llmDialog": {
     "aiAssistant": "AI 어시스턴트",
@@ -386,7 +389,17 @@
       "fullscreen": "전체 화면 편집기",
       "quote": "인용",
       "search_replace": "찾기 및 바꾸기",
-      "ai_assistant": "AI 어시스턴트"
+      "ai_assistant": "AI 어시스턴트",
+      "mode": "편집 모드",
+      "convert_latex_formulas": "LaTeX 수식 변환",
+      "convert_latex_formulas_title": "LaTeX 수식 변환",
+      "convert_latex_formulas_message": "이 작업은 \\(...\\) 인라인 수식과 \\[...\\] 블록 수식을 Vditor 호환 $...$ 및 $$...$$ 형식으로 변환합니다.\n\n참고: 이 작업은 문서 내용을 수정합니다. 문서를 먼저 저장하는 것이 좋습니다.",
+      "convert_latex_formulas_success": "수식 형식 변환 완료",
+      "convert_latex_formulas_no_match": "변환할 수식 형식을 찾을 수 없음",
+      "convert_latex_formulas_no_editor": "편집기가 준비되지 않음",
+      "toggle_outline": "개요 전환",
+      "toggle_outline_show": "개요 표시",
+      "toggle_outline_hide": "개요 숨기기"
     },
     "convert_to_latex": "문서를 LaTeX로 변환",
     "convert_to_latex_confirm": "변환은 기존의 Markdown 파일과 동기화되지 않은 텍스트 파일을 생성하고 계속할 것인가?",
@@ -2027,6 +2040,154 @@
   },
   "aigcDetectionWindow": {
     "text": "구문 통일성",
-    "text1": "어휘 반복도"
+    "text1": "어휘 반복도",
+    "text2": "논리적 평활도",
+    "text3": "개인적 흔적 결여도",
+    "text4": "스타일 위험",
+    "text5": "과도한 설명",
+    "text6": "모호한 한정"
+  },
+  "attachment": {
+    "analysisSuccess": "분석 완료",
+    "analyzing": "첨부 파일 분석 중",
+    "attachmentsTitle": "첨부 파일 분석",
+    "fileType": "파일 유형",
+    "newAttachment": "첨부 파일 업로드",
+    "noAnalysis": "AI 분석 결과 없음",
+    "noAttachmentSelected": "첨부 파일을 선택하거나 새 파일을 업로드하세요",
+    "noParsedContent": "먼저 첨부 파일을 구문 분석하세요",
+    "parse": "첨부 파일 구문 분석",
+    "parseSuccess": "구문 분석 완료"
+  },
+  "data-analysis-tool": {
+    "analyze": "데이터 분석",
+    "analyze1": "자동 분석",
+    "analyze2": "집계 분석 등",
+    "analyze3": "데이터 분석 도구"
+  },
+  "dataAnalysisWindow": {
+    "preview": "데이터 미리보기",
+    "text": "기본값",
+    "text1": "현재 추측",
+    "text2": "선택됨",
+    "text3": "다음에서",
+    "tooltip": "툴팁"
+  },
+  "detailedOutlineNode": {
+    "generating": "생성 중",
+    "sizeDragAdjust": "드래그하여 크기 조정"
+  },
+  "documentService": {
+    "exportFailedFailedExport": "문서 날짜 실패",
+    "failedClose": "문서 닫기 실패",
+    "failedNew": "새 문서 만들기 실패",
+    "loadFailedFailedLoading": "문서 불러오기 실패",
+    "saveFailedFailedSave": "문서 저장 실패"
+  },
+  "dummyView": {
+    "emptyDescription": "열린 문서 없음"
+  },
+  "export": {
+    "adapters": {
+      "mdToPdf": {
+        "name": "Markdown에서 PDF로",
+        "description": "Markdown 문서를 PDF 형식으로 날짜"
+      },
+      "mdToDocx": {
+        "name": "Markdown에서 DOCX로",
+        "description": "Markdown 문서를 DOCX 형식으로 날짜"
+      },
+      "mdToHtml": {
+        "name": "Markdown에서 HTML로",
+        "description": "Markdown 문서를 HTML 형식으로 날짜"
+      },
+      "mdToMd": {
+        "name": "Markdown에서 Markdown으로",
+        "description": "Markdown 문서 날짜"
+      },
+      "mdToTex": {
+        "name": "Markdown에서 LaTeX로",
+        "description": "Markdown 문서를 LaTeX 형식으로 날짜"
+      },
+      "texToPdf": {
+        "name": "LaTeX에서 PDF로",
+        "description": "LaTeX 문서를 PDF 형식으로 컴파일"
+      },
+      "texToTex": {
+        "name": "LaTeX에서 LaTeX로",
+        "description": "LaTeX 문서 날짜"
+      }
+    },
+    "options": {
+      "pageSize": {
+        "label": "페이지 크기",
+        "description": "PDF 페이지 크기 선택",
+        "descriptionTex": "PDF 페이지 크기 선택(LaTeX 문서 클래스에서 구성 필요)",
+        "a4": "A4",
+        "a3": "A3",
+        "a5": "A5",
+        "b5": "B5",
+        "letter": "Letter",
+        "legal": "Legal"
+      },
+      "margins": {
+        "label": "여백",
+        "description": "PDF 여백 설정",
+        "descriptionTex": "PDF 여백 설정(참고: LaTeX 여백은 문서에서 구성해야 함)"
+      },
+      "marginTop": {
+        "label": "상단 여백(인치)",
+        "description": "PDF 상단 여백, 단위: 인치",
+        "descriptionTex": "PDF 상단 여백, 단위: 인치(참고: LaTeX 여백은 문서에서 구성해야 함)"
+      },
+      "marginBottom": {
+        "label": "하단 여백(인치)",
+        "description": "PDF 하단 여백, 단위: 인치"
+      },
+      "marginLeft": {
+        "label": "왼쪽 여백(인치)",
+        "description": "PDF 왼쪽 여백, 단위: 인치"
+      },
+      "marginRight": {
+        "label": "오른쪽 여백(인치)",
+        "description": "PDF 오른쪽 여백, 단위: 인치"
+      },
+      "printBackground": {
+        "label": "배경 인쇄",
+        "description": "PDF에 배경 색상과 이미지 포함"
+      },
+      "tabs": {
+        "basic": "기본 설정",
+        "style": "스타일 설정"
+      },
+      "chineseFont": {
+        "label": "중국어 글꼴",
+        "description": "PDF 날짜에 사용되는 중국어 글꼴"
+      },
+      "westernFont": {
+        "label": "서양어 글꼴",
+        "description": "PDF 날짜에 사용되는 서양어 글꼴"
+      },
+      "colorMode": {
+        "label": "색상 모드",
+        "description": "PDF 색상 모드(컬러 또는 흑백)",
+        "color": "컬러",
+        "grayscale": "흑백"
+      },
+      "enableStyleMapping": {
+        "label": "스타일 매핑 활성화",
+        "description": "Markdown 요소를 Word 스타일에 매핑"
+      }
+    }
+  },
+  "tabSwitcher": {
+    "openEditors": "Open Editors",
+    "untitledDocument": "Untitled Document"
+  },
+  "ai": {
+    "completion": {
+      "demoComment": "Calculate the sum of two numbers",
+      "aiSuggestion": "AI Suggestion"
+    }
   }
 }

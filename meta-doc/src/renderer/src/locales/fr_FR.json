@@ -329,7 +329,16 @@
     "reset": "Réinitialiser",
     "undo": "Annuler",
     "simpletexHint": "Cette fonction est basée sur SimpleTex, capacité limitée. Pour la conversion en masse de formules, veuillez visiter",
-    "simpletexLinkText": "SimpleTex LaTeX OCR"
+    "simpletexLinkText": "SimpleTex LaTeX OCR",
+    "defaultTitle": "Nouvelle session de reconnaissance de formule",
+    "expandCanvas": "Agrandir le canevas",
+    "expandCanvasNoNeed": "Le canevas n'est pas inférieur à la fenêtre d'affichage, pas besoin d'agrandir",
+    "newSession": "Nouvelle session",
+    "noSessionSelected": "Veuillez sélectionner une session ou en créer une nouvelle",
+    "renamePlaceholder": "Veuillez saisir le nom de la session",
+    "renameTitle": "Renommer la session",
+    "resultTitle": "Résultat de la reconnaissance",
+    "sessionsTitle": "Sessions de reconnaissance de formule"
   },
   "headMenu": {
     "editor": "Éditeur",
@@ -339,7 +348,8 @@
     "tooltip": "Un logiciel intelligent de traitement de texte basé sur AI Agent",
     "visualize": "Visualiser",
     "knowledgeBase": "Base de connaissances",
-    "agent": "Agent."
+    "agent": "Agent.",
+    "proofread": "Relecture"
   },
   "home": {
     "abstractLabel": "Résumé",
@@ -349,7 +359,8 @@
       "openFile": "Document ouvert",
       "newDoc": "Nouveau document",
       "quickStart": "Début rapide.",
-      "refresh": "Actualiser"
+      "refresh": "Actualiser",
+      "userManual": "Manuel de l'utilisateur"
     },
     "tabActions": {
       "title": "Créer ou ouvrir un document",
@@ -409,8 +420,16 @@
       "ready": "Prêt.",
       "reset": "Réinitialiser le contenu de génération",
       "selectMood": "Sélectionner un document Style",
-      "selectTemperature": "Sélectionnez la température pour générer et influencer la diversité du contenu"
-    }
+      "selectTemperature": "Sélectionnez la température pour générer et influencer la diversité du contenu",
+      "userManual": "Apprendre à utiliser MetaDoc"
+    },
+    "creationDateLabel": "Date de création",
+    "emptyContent": "Contenu du document vide",
+    "fileFormatLabel": "Format de fichier",
+    "modificationDateLabel": "Date de modification",
+    "quickStartButton": "Génération rapide de contenu",
+    "recentDocuments": "Documents récents",
+    "subtitle": "Outil moderne d'édition et de création de documents"
   },
   "mainTabs": {
     "contextMenu": {
@@ -460,33 +479,33 @@
     "userProfileTooltip": "Informations sur l'utilisateur",
     "saveAll": "Tout enregistrer",
     "saveAllAndExit": "Enregistrer tout et quitter",
-    "aigcDetection": "AIGC检测工具",
-    "attachment": "附件解析工具",
-    "close": "关闭",
-    "dataAnalysis": "数据分析工具",
-    "debugTools": "调试工具",
-    "exportAsTemplate": "导出为模板",
-    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
-    "exportAsTemplateDescLabel": "模板描述",
-    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
-    "exportAsTemplateTitleLabel": "模板标题",
-    "graph": "绘图工具",
-    "home": "主页",
-    "knowledgeBase": "知识库",
+    "aigcDetection": "Outil de détection AIGC",
+    "attachment": "Outil d'analyse des pièces jointes",
+    "close": "Fermer",
+    "dataAnalysis": "Outil d'analyse de données",
+    "debugTools": "Outils de débogage",
+    "exportAsTemplate": "Exporter comme modèle",
+    "exportAsTemplateAiGenerate": "IA génère titre et description",
+    "exportAsTemplateDescLabel": "Description du modèle",
+    "exportAsTemplateSuccess": "Ajouté comme modèle, peut être sélectionné lors de la création de nouveaux documents",
+    "exportAsTemplateTitleLabel": "Titre du modèle",
+    "graph": "Outil de dessin",
+    "home": "Accueil",
+    "knowledgeBase": "Base de connaissances",
     "menuConfig": {
-      "title": "菜单配置",
-      "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
-      "visible": "显示",
-      "hidden": "隐藏",
-      "reset": "重置",
-      "save": "保存"
+      "title": "Configuration du menu",
+      "description": "Faites glisser pour ajuster l'ordre du menu, ou masquez les fonctionnalités non utilisées",
+      "visible": "Afficher",
+      "hidden": "Masquer",
+      "reset": "Réinitialiser",
+      "save": "Enregistrer"
     },
-    "moreFeatures": "更多功能",
-    "ocr": "OCR文字识别",
-    "userFeedback": "反馈",
-    "userManual": "用户手册",
-    "workspaceExplorer": "工作目录",
-    "workspaceGrep": "工作区搜索"
+    "moreFeatures": "Plus de fonctionnalités",
+    "ocr": "Reconnaissance de texte OCR",
+    "userFeedback": "Retour d'information",
+    "userManual": "Manuel de l'utilisateur",
+    "workspaceExplorer": "Explorateur de l'espace de travail",
+    "workspaceGrep": "Recherche dans l'espace de travail"
   },
   "llmDialog": {
     "acceptTooltip": "Accepter",
@@ -940,7 +959,47 @@
     "clear_all_confirm_title": "Effacer la confirmation",
     "clear_all_error": "Erreur lors du nettoyage de la base de connaissances :",
     "clear_all_failed": "Effacer la base de connaissances a échoué!",
-    "clear_all_success": "Dégagez la base de connaissances !"
+    "clear_all_success": "Dégagez la base de connaissances !",
+    "addKnowledge": "Ajouter une connaissance",
+    "check": "Veuillez vérifier les journaux du serveur",
+    "createMonacoEditorFailed": "Échec de la création de l'éditeur Monaco",
+    "deleteConfirm": "Êtes-vous sûr(e) de vouloir supprimer cette connaissance ?",
+    "disabled": "Désactivé",
+    "disabledMessage": "La fonction de base de connaissances est actuellement désactivée. Veuillez l'activer dans les paramètres pour utiliser cette fonction.",
+    "enable": "Activer la base de connaissances",
+    "enableError": "Échec de l'activation de la base de connaissances",
+    "failed": "Échec de la récupération",
+    "feature": "La fonction de base de connaissances est actuellement désactivée",
+    "fetchKbDetailsError": "Erreur lors de la récupération des détails de la base de connaissances",
+    "fetchKbDetailsFailed": "Échec de la récupération des détails de la base de connaissances",
+    "fetchListResponse": "Réponse de la liste des bases de connaissances",
+    "fetchListStarted": "Début de la récupération de la liste des bases de connaissances",
+    "filenameRequired": "Le nom de fichier ne peut pas être vide",
+    "invalidResponseFormat": "Format de réponse du serveur incorrect, veuillez vérifier que le serveur fonctionne correctement",
+    "ipcNotInitialized": "IPC Renderer non initialisé, cette fonction est uniquement disponible dans l'environnement Electron",
+    "kbDetails": "Détails de la base de connaissances",
+    "kbStatusUpdated": "Statut de la base de connaissances mis à jour",
+    "nonJsonResponse": "Le serveur a renvoyé une réponse non JSON",
+    "nonJsonResponseMessage": "Le serveur a renvoyé une réponse non JSON, veuillez vérifier les journaux du serveur",
+    "noResults": "Aucun résultat trouvé",
+    "openFolderFailedLog": "Échec de l'ouverture du dossier",
+    "open_folder": "Ouvrir le dossier",
+    "open_folder_error": "Échec de l'ouverture du dossier",
+    "previewEditorContainerNotFound": "Conteneur de l'éditeur d'aperçu non trouvé",
+    "renameFailed": "Échec du renommage",
+    "renameSuccess": "Renommage réussi",
+    "requestFailed": "Échec de la requête",
+    "searchPlaceholder": "Rechercher dans la base de connaissances...",
+    "settingsFeature": "Veuillez activer la fonction de base de connaissances dans les paramètres pour utiliser cette fonction",
+    "syncFailed": "Échec de la synchronisation",
+    "syncSuccess": "Synchronisation réussie",
+    "text": "Base de connaissances désactivée",
+    "text1": "Le serveur a renvoyé une réponse non-",
+    "text2": "Réponse",
+    "unknownError": "Erreur inconnue",
+    "updatedInfoObject": "Objet info mis à jour",
+    "uploadFailed": "Échec du téléchargement de la connaissance",
+    "uploadSuccess": "Téléchargement de la connaissance réussi"
   },
   "aiSuggestion": {
     "accept": "Acceptation des recommandations",
@@ -997,6 +1056,62 @@
       "zoomIn": "Zoomer",
       "zoomOut": "Zoom arrière",
       "zoomReset": "Réinitialiser l'échelle"
+    },
+    "commandDocs": {
+      "documentclass": "Définit la classe du document. Exemple : \\documentclass{article} ou \\documentclass[12pt]{report}",
+      "usepackage": "Charge les packages LaTeX. Exemple : \\usepackage{graphicx} ou \\usepackage[utf8]{inputenc}",
+      "begin": "Démarre un environnement. Exemples : \\begin{document}, \\begin{equation}, \\begin{figure}",
+      "end": "Termine un environnement. Exemples : \\end{document}, \\end{equation}, \\end{figure}",
+      "document": "Environnement du document principal. Exemple : \\begin{document} ... \\end{document}",
+      "input": "Insère un autre fichier LaTeX. Exemple : \\input{chapter1.tex}",
+      "include": "Inclut un autre fichier LaTeX (avec saut de page). Exemple : \\include{appendix}",
+      "part": "Crée une partie (niveau le plus élevé). Exemple : \\part{Introduction}",
+      "chapter": "Crée un chapitre (classes book/report). Exemple : \\chapter{Contexte}",
+      "section": "Crée une section. Exemple : \\section{Méthodes}",
+      "subsection": "Crée une sous-section. Exemple : \\subsection{Collecte de données}",
+      "subsubsection": "Crée une sous-sous-section. Exemple : \\subsubsection{Méthodes d'échantillonnage}",
+      "paragraph": "Crée un titre de paragraphe. Exemple : \\paragraph{Note}",
+      "subparagraph": "Crée un titre de sous-paragraphe. Exemple : \\subparagraph{Détails}",
+      "textbf": "Texte en gras. Exemple : \\textbf{Texte important}",
+      "textit": "Texte en italique. Exemple : \\textit{Texte souligné}",
+      "textsl": "Texte penché. Exemple : \\textsl{Texte penché}",
+      "texttt": "Texte à chasse fixe (machine à écrire). Exemple : \\texttt{code}",
+      "textsc": "Texte en petites capitales. Exemple : \\textsc{Titre}",
+      "textsf": "Texte sans empattement. Exemple : \\textsf{Sans empattement}",
+      "textrm": "Texte avec empattement. Exemple : \\textrm{Texte avec empattement}",
+      "textmd": "Texte de graisse moyenne. Exemple : \\textmd{Graisse normale}",
+      "textup": "Texte normal. Exemple : \\textup{Texte normal}",
+      "emph": "Texte en emphase (généralement en italique). Exemple : \\emph{emphase}",
+      "underline": "Texte souligné. Exemple : \\underline{souligné}",
+      "sout": "Texte barré. Exemple : \\sout{supprimé}",
+      "textcolor": "Texte coloré. Exemple : \\textcolor{red}{texte} ou \\textcolor[rgb]{1,0,0}{texte}",
+      "colorbox": "Boîte colorée. Exemple : \\colorbox{yellow}{surligné}",
+      "fcolorbox": "Boîte colorée avec bordure. Exemple : \\fcolorbox{red}{yellow}{texte}",
+      "tiny": "Police minuscule. Exemple : {\\tiny plus petit texte}",
+      "scriptsize": "Taille de police script. Exemple : {\\scriptsize petit texte}",
+      "footnotesize": "Taille de police note de bas de page. Exemple : {\\footnotesize texte de note de bas de page}",
+      "small": "Petite police. Exemple : {\\small petit texte}",
+      "normalsize": "Police normale. Exemple : {\\normalsize texte normal}",
+      "large": "Grande police. Exemple : {\\large grand texte}",
+      "Large": "Police plus grande. Exemple : {\\Large texte plus grand}",
+      "LARGE": "Police très grande. Exemple : {\\LARGE très grand}",
+      "huge": "Police énorme. Exemple : {\\huge texte énorme}",
+      "Huge": "Police maximale. Exemple : {\\Huge texte maximal}",
+      "centering": "Centrer le texte. Exemple : \\centering (déclaration, affecte le texte suivant)",
+      "raggedright": "Aligner le texte à gauche. Exemple : \\raggedright",
+      "raggedleft": "Aligner le texte à droite. Exemple : \\raggedleft",
+      "newline": "Saut de ligne. Exemple : texte\\newline ligne suivante",
+      "linebreak": "Saut de ligne avec pénalité. Exemple : texte\\linebreak",
+      "pagebreak": "Saut de page. Exemple : \\pagebreak ou \\pagebreak[4]",
+      "newpage": "Commence une nouvelle page. Exemple : \\newpage",
+      "clearpage": "Vide la page et commence une nouvelle page. Exemple : \\clearpage",
+      "itemize": "Environnement de liste non ordonnée. Exemple : \\begin{itemize} \\item premier élément \\item deuxième élément \\end{itemize}",
+      "enumerate": "Environnement de liste ordonnée. Exemple : \\begin{enumerate} \\item premier élément \\item deuxième élément \\end{enumerate}",
+      "description": "Environnement de liste de description. Exemple : \\begin{description} \\item[terme] description \\end{description}",
+      "item": "Élément de liste. Exemple : \\item premier élément ou \\item[étiquette] élément avec étiquette",
+      "table": "Environnement flottant de tableau. Exemple : \\begin{table} ... \\end{table}",
+      "tabular": "Environnement de tableau. Exemple : \\begin{tabular}{lcr} ... \\end{tabular}",
+      "hline": "Ligne horizontale dans un tableau. Exemple : \\hline"
     }
   },
   "notificationQueue": {
@@ -1980,8 +2095,8 @@
       "data": "Données brutes",
       "analysis": "Analyse de données"
     },
-    "uploadHint": "Glissez-déposez le fichier ici, ou cliquez pour télécharger",
-    "uploadTip": "Formats CSV, Excel et JSON pris en charge"
+    "uploadHint": "Glissez le fichier ici ou cliquez pour télécharger",
+    "uploadTip": "Formats supportés : CSV, Excel, JSON"
   },
   "userFeedback": {
     "uploadedToGist": "Telecharge vers Gist",
@@ -2255,17 +2370,17 @@
     "text": "Valeur par défaut",
     "text1": "Supposition actuelle",
     "text2": "Sélectionné",
-    "text3": "Veuillez",
-    "tooltip": "Astuce"
+    "text3": "Veuillez dans",
+    "tooltip": "Info-bulle"
   },
   "detailedOutlineNode": {
     "generating": "Génération en cours",
     "sizeDragAdjust": "Glisser pour redimensionner"
   },
   "documentService": {
-    "exportFailedFailedExport": "Échec de l'export du document",
+    "exportFailedFailedExport": "Échec de l'exportation du document",
     "failedClose": "Échec de la fermeture du document",
-    "failedNew": "Échec de la création du document",
+    "failedNew": "Échec de la création du nouveau document",
     "loadFailedFailedLoading": "Échec du chargement du document",
     "saveFailedFailedSave": "Échec de l'enregistrement du document"
   },
@@ -2281,20 +2396,285 @@
     "adapters": {
       "mdToPdf": {
         "name": "Markdown vers PDF",
-        "description": "Exporter le document Markdown au format PDF"
+        "description": "Exporter les documents Markdown au format PDF"
       },
       "mdToDocx": {
         "name": "Markdown vers DOCX",
-        "description": "Exporter le document Markdown au format DOCX"
+        "description": "Exporter les documents Markdown au format DOCX"
       },
       "mdToHtml": {
         "name": "Markdown vers HTML",
-        "description": "Exporter le document Markdown au format HTML"
+        "description": "Exporter les documents Markdown au format HTML"
       },
       "mdToMd": {
         "name": "Markdown vers Markdown",
-        "description": "Exporter le document Markdown"
+        "description": "Exporter les documents Markdown"
+      },
+      "mdToTex": {
+        "name": "Markdown vers LaTeX",
+        "description": "Exporter les documents Markdown au format LaTeX"
+      },
+      "texToPdf": {
+        "name": "LaTeX vers PDF",
+        "description": "Compiler les documents LaTeX au format PDF"
+      },
+      "texToTex": {
+        "name": "LaTeX vers LaTeX",
+        "description": "Exporter les documents LaTeX"
       }
+    },
+    "options": {
+      "title": "Options d'export",
+      "pageSize": {
+        "label": "Taille de page",
+        "description": "Sélectionner la taille de page PDF",
+        "descriptionTex": "Sélectionner la taille de page PDF (doit être configurée dans la classe de document LaTeX)",
+        "a4": "A4",
+        "a3": "A3",
+        "a5": "A5",
+        "b5": "B5",
+        "letter": "Letter",
+        "legal": "Legal"
+      },
+      "margins": {
+        "label": "Marges",
+        "description": "Paramètres des marges PDF",
+        "descriptionTex": "Paramètres des marges PDF (Note : les marges LaTeX doivent être configurées dans le document)"
+      },
+      "marginTop": {
+        "label": "Marge supérieure (pouces)",
+        "description": "Marge supérieure PDF, unité : pouces",
+        "descriptionTex": "Marge supérieure PDF, unité : pouces (Note : les marges LaTeX doivent être configurées dans le document)"
+      },
+      "marginBottom": {
+        "label": "Marge inférieure (pouces)",
+        "description": "Marge inférieure PDF, unité : pouces"
+      },
+      "marginLeft": {
+        "label": "Marge gauche (pouces)",
+        "description": "Marge gauche PDF, unité : pouces"
+      },
+      "marginRight": {
+        "label": "Marge droite (pouces)",
+        "description": "Marge droite PDF, unité : pouces"
+      },
+      "printBackground": {
+        "label": "Imprimer l'arrière-plan",
+        "description": "Inclure les couleurs et images d'arrière-plan dans le PDF"
+      },
+      "tabs": {
+        "basic": "Paramètres de base",
+        "style": "Paramètres de style"
+      },
+      "chineseFont": {
+        "label": "Police chinoise",
+        "description": "Police chinoise utilisée pour l'export PDF"
+      },
+      "westernFont": {
+        "label": "Police occidentale",
+        "description": "Police occidentale utilisée pour l'export PDF"
+      },
+      "colorMode": {
+        "label": "Mode couleur",
+        "description": "Mode couleur du PDF (couleur ou niveaux de gris)",
+        "color": "Couleur",
+        "grayscale": "Niveaux de gris"
+      },
+      "enableStyleMapping": {
+        "label": "Activer le mappage de styles",
+        "description": "Mapper les éléments Markdown vers les styles Word"
+      },
+      "normalFontFamily": {
+        "label": "Police du corps de texte",
+        "description": "Police utilisée pour le corps de texte"
+      },
+      "normalFontSize": {
+        "label": "Taille de police du corps (pt)",
+        "description": "Taille de police du corps de texte, unité : points (pt)"
+      },
+      "normalLineHeight": {
+        "label": "Interligne du corps",
+        "description": "Multiple de l'interligne du corps de texte"
+      },
+      "heading1FontFamily": {
+        "label": "Police du titre 1",
+        "description": "Police utilisée pour le titre de niveau 1"
+      },
+      "heading1FontSize": {
+        "label": "Taille de police du titre 1 (pt)",
+        "description": "Taille de police du titre de niveau 1, unité : points (pt)"
+      },
+      "heading1LineHeight": {
+        "label": "Interligne du titre 1",
+        "description": "Multiple de l'interligne du titre de niveau 1"
+      },
+      "heading2FontFamily": {
+        "label": "Police du titre 2",
+        "description": "Police utilisée pour le titre de niveau 2"
+      },
+      "heading2FontSize": {
+        "label": "Taille de police du titre 2 (pt)",
+        "description": "Taille de police du titre de niveau 2, unité : points (pt)"
+      },
+      "heading2LineHeight": {
+        "label": "Interligne du titre 2",
+        "description": "Multiple de l'interligne du titre de niveau 2"
+      },
+      "heading3FontFamily": {
+        "label": "Police du titre 3",
+        "description": "Police utilisée pour le titre de niveau 3"
+      },
+      "heading3FontSize": {
+        "label": "Taille de police du titre 3 (pt)",
+        "description": "Taille de police du titre de niveau 3, unité : points (pt)"
+      },
+      "heading3LineHeight": {
+        "label": "Interligne du titre 3",
+        "description": "Multiple de l'interligne du titre de niveau 3"
+      },
+      "heading4FontFamily": {
+        "label": "Police du titre 4",
+        "description": "Police utilisée pour le titre de niveau 4"
+      },
+      "heading4FontSize": {
+        "label": "Taille de police du titre 4 (pt)",
+        "description": "Taille de police du titre de niveau 4, unité : points (pt)"
+      },
+      "heading4LineHeight": {
+        "label": "Interligne du titre 4",
+        "description": "Multiple de l'interligne du titre de niveau 4"
+      },
+      "inlineStyles": {
+        "label": "CSS en ligne",
+        "description": "Intégrer ou non les styles CSS dans le HTML"
+      },
+      "imageProcessing": {
+        "label": "Traitement des images",
+        "description": "Choisir le mode de traitement des images : conserver les liens d'origine, intégrer en Base64 ou enregistrer dans un dossier",
+        "original": "Conserver le lien d'origine",
+        "base64": "Intégration Base64",
+        "folder": "Enregistrer dans un dossier"
+      },
+      "includeMetadata": {
+        "label": "Inclure les métadonnées",
+        "description": "Inclure ou non les métadonnées du document dans le Markdown exporté"
+      },
+      "documentClass": {
+        "label": "Classe de document",
+        "description": "Classe de document LaTeX"
+      },
+      "includePackages": {
+        "label": "Inclure les packages courants",
+        "description": "Inclure automatiquement ou non les packages LaTeX courants"
+      },
+      "generateCover": {
+        "label": "Générer la page de garde",
+        "description": "Afficher le titre du document, l'auteur, le résumé et les mots-clés sur la première page"
+      },
+      "generateToc": {
+        "label": "Générer la table des matières",
+        "description": "Générer une table des matières après la page de garde (ou au début du document)",
+        "title": "Table des matières"
+      },
+      "processFormula": {
+        "label": "Traiter les formules",
+        "description": "Traiter automatiquement ou non les formules LaTeX"
+      },
+      "removeTitlePrefixes": {
+        "label": "Supprimer automatiquement les préfixes de titres",
+        "description": "LaTeX ajoute automatiquement une numérotation à chaque section. Si les titres contiennent déjà un préfixe numéroté, cela entraînera une duplication. Activez cette option pour supprimer automatiquement les numéros et points au début des titres (par exemple \"1.1\", \"一、\", etc.)"
+      },
+      "showPageNumbers": {
+        "label": "Afficher les numéros de page",
+        "description": "Afficher les numéros de page dans le pied de page"
+      },
+      "showHeader": {
+        "label": "Afficher l'en-tête",
+        "description": "Afficher le titre du document et les informations de numérotation de page dans l'en-tête"
+      },
+      "autoNumberImages": {
+        "label": "Numéroter automatiquement les images",
+        "description": "Ajouter automatiquement des étiquettes de numérotation aux images du document (fig. 1, fig. 2, etc.)"
+      },
+      "imageLabelFontSize": {
+        "label": "Taille de police des étiquettes d'image",
+        "description": "Taille de police des étiquettes de numérotation d'image (pt)"
+      },
+      "imageLabelFontFamily": {
+        "label": "Police des étiquettes d'image",
+        "description": "Police des étiquettes de numérotation d'image"
+      },
+      "imageLabelPrefix": {
+        "label": "Fig.",
+        "description": "Préfixe de numérotation des images"
+      },
+      "imageLabelDefaultName": {
+        "label": "Image",
+        "description": "Nom par défaut de l'image (utilisé lorsque l'image n'a pas de nom)"
+      }
+    }
+  },
+  "fomulaRecognition": {
+    "copyFailed": "Échec de la copie",
+    "deleteFailed": "Échec de la suppression",
+    "failedCreate": "Échec de la création de la session",
+    "failedLoading": "Échec du chargement de la liste des sessions",
+    "failedLoading1": "Échec du chargement de la session",
+    "recognize": "Exemple de reconnaissance de formule",
+    "renameFailed": "Échec du renommage",
+    "text": "Copie"
+  },
+  "graph": {
+    "analyzingIntent": "Analyse de l'intention en cours...",
+    "assistant": "Assistant",
+    "chartType": "Type de graphique",
+    "conversationMode": "Mode conversation",
+    "defaultTitle": "Nouvelle session de graphique",
+    "engine": "Moteur de graphique",
+    "export": "Exporter",
+    "exportSuccess": "Export réussi",
+    "generate": "Générer",
+    "generateSuccess": "Génération réussie",
+    "generated": "Graphique généré",
+    "generatedImage": "Image générée",
+    "generating": "Génération en cours...",
+    "inputPlaceholder": "Saisissez votre demande de graphique, l'IA sélectionnera automatiquement le moteur de graphique approprié...",
+    "newSession": "Nouvelle session",
+    "noChart": "Aucun graphique à exporter",
+    "noOptimizePrompt": "Veuillez saisir une demande d'optimisation",
+    "noPrompt": "Veuillez saisir une demande de graphique",
+    "noSessionSelected": "Veuillez sélectionner une session ou en créer une nouvelle",
+    "optimize": "Optimiser l'image",
+    "optimizeOnlyInConversation": "La fonction d'optimisation est uniquement disponible en mode conversation",
+    "optimizePrompt": "Optimiser l'image basée sur l'historique de conversation suivant :",
+    "outputFormat": "Format de sortie",
+    "renamePlaceholder": "Veuillez saisir le nom de la session",
+    "renameTitle": "Renommer la session",
+    "sessionsTitle": "Sessions de graphique",
+    "simpleMode": "Mode simple",
+    "user": "Utilisateur",
+    "userRequest": "Nouvelle demande de l'utilisateur"
+  },
+  "graphWindow": {
+    "format": "Format comme suit",
+    "name": "Nom du moteur",
+    "text": "Moteurs de graphique disponibles",
+    "text1": "Et retourne un",
+    "text2": "Objet",
+    "text3": "Minuscule",
+    "type": "Types supportés",
+    "type1": "Type de graphique",
+    "user": "Demande de l'utilisateur",
+    "userAnalyze": "Veuillez analyser la demande de l'utilisateur"
+  },
+  "tabSwitcher": {
+    "openEditors": "Open Editors",
+    "untitledDocument": "Untitled Document"
+  },
+  "ai": {
+    "completion": {
+      "demoComment": "Calculate the sum of two numbers",
+      "aiSuggestion": "AI Suggestion"
     }
   }
 }

@@ -3187,6 +3187,10 @@
       "exportSnapshotFailed": "导出执行快照失败",
       "renderResult": "渲染结果",
       "rawResult": "原始结果",
+      "updateTest": "更新测试",
+      "agentTool": "Agent Tool测试",
+      "autoTest": "Tool自动测试",
+      "agentSessionDebug": "Agent会话调试",
       "unitTest": {
         "title": "单元测试",
         "singleTest": "单个测试",

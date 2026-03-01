@@ -772,6 +772,10 @@
       "testResult": "試験結果",
       "title": "デバッグツール",
       "undefined": "申し訳ございません。",
+      "updateTest": "更新テスト",
+      "agentTool": "Agent Toolテスト",
+      "autoTest": "Tool自動テスト",
+      "agentSessionDebug": "Agentセッション調試",
       "unitTest": "ユニットテスト"
     },
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",

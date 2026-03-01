@@ -1138,6 +1138,10 @@
       "testResult": "Test Results",
       "title": "Debug Tool",
       "undefined": "I'm sorry.",
+      "updateTest": "Update Test",
+      "agentTool": "Agent Tool Test",
+      "autoTest": "Tool Auto Test",
+      "agentSessionDebug": "Agent Session Debug",
       "unitTest": {
         "singleTest": "Single Test",
         "batchTest": "Batch Test",

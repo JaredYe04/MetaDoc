@@ -4355,8 +4355,8 @@
     }
   },
   "logoTab": {
-    "version": "[French] 版本 {version}",
-    "versionLoading": "[French] 版本 ..."
+    "version": "Version {version} ({channel})",
+    "versionLoading": "Version ..."
   },
   "vditorPreview": {
     "renderFailed": "[French] 渲染失败"

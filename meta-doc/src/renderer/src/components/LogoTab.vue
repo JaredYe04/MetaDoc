@@ -27,6 +27,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
+import { getSetting } from '../utils/settings'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 import { themeState, FIXED_LOGO_COLORS } from '../utils/themes'
 import { Tooltip } from '@renderer/components/ui/tooltip'
@@ -37,6 +38,7 @@ const { t } = useI18n()
 
 const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')
+const updateChannel = ref<'release' | 'dev'>('release')
 const aboutDialogVisible = ref(false)
 
 // 与 workspace-explorer-main / LeftMenu 背景一致
@@ -51,19 +53,24 @@ const logoTabBackgroundColor = computed(
 const bgColor = FIXED_LOGO_COLORS.bgColor
 const symbolColor = FIXED_LOGO_COLORS.symbolColor
 
-// 获取应用版本
+// 获取应用版本和更新频道
 onMounted(async () => {
   try {
     appVersion.value = await getAppVersion()
+    const channel = await getSetting('updateChannel')
+    updateChannel.value = channel === 'dev' || channel === 'release' ? channel : 'release'
   } catch (error) {
-    logger.warn('获取应用版本失败:', error)
+    logger.warn('获取应用版本或频道失败:', error)
     appVersion.value = 'Unknown'
+    updateChannel.value = 'release'
   }
 })
 
 const versionTooltip = computed(() => {
   if (!appVersion.value) return t('logoTab.versionLoading', '版本 ...')
-  return t('logoTab.version', '版本 {version}', { version: appVersion.value })
+  const channelKey = updateChannel.value === 'dev' ? 'channelDev' : 'channelRelease'
+  const channel = t(`setting.about.${channelKey}`, updateChannel.value === 'dev' ? '测试频道' : '稳定频道')
+  return t('logoTab.version', '版本 {version} ({channel})', { version: appVersion.value, channel })
 })
 
 // 点击Logo打开关于对话框

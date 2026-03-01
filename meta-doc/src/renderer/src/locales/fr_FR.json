@@ -162,11 +162,21 @@
   },
   "common": {
     "cancel": "Annuler",
-    "confirm": "Confirmez.",
+    "confirm": "Confirmer",
     "deleteFailed": "Impossible de supprimer",
     "deleteSuccess": "Supprimer le succès",
     "save": "Enregistrer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "refresh": "Actualiser",
+    "loading": "Chargement...",
+    "success": "Succes",
+    "failed": "Echec",
+    "error": "Erreur",
+    "warning": "Avertissement",
+    "info": "Info"
   },
   "console": {
     "title": "Sortie de console",
@@ -306,7 +316,12 @@
     "contextMenu": {
       "pinTab": "Épingler l'onglet",
       "unpinTab": "Désépingler l'onglet"
-    }
+    },
+    "newDocumentTooltip": "Nouveau document",
+    "untitled": "Sans titre",
+    "userManual": "Manuel de l'utilisateur",
+    "closeTabTooltip": "Fermer l'onglet",
+    "unsavedIndicator": "Non enregistre"
   },
   "lang": "_NJ",
   "leftMenu": {
@@ -483,7 +498,13 @@
     "moveUp": "Déplacer vers le haut",
     "switchToHorizontal": "Passer à la mise en page horizontale",
     "switchToVertical": "Passez à la mise en page verticale",
-    "toggleLayout": "Basculer l'orientation de la disposition"
+    "toggleLayout": "Basculer l'orientation de la disposition",
+    "noNodeSelected": "Aucun noeud selectionne",
+    "nodeNotExist": "Le noeud n'existe pas",
+    "aiOptimizing": "L'IA optimise...",
+    "insertSuccess": "Insertion reussie",
+    "emptyContent": "(Aucun)",
+    "noContent": "(Aucun)"
   },
   "searchReplace": {
     "title": "Rechercher et remplacer",
@@ -1062,7 +1083,20 @@
         "totalTasks": "Tâches générales",
         "urgent": "Urgence"
       }
-    }
+    },
+    "userLabel": "Utilisateur",
+    "assistantLabel": "Assistant",
+    "systemLabel": "Systeme",
+    "thinking": "Reflexion en cours...",
+    "toolCall": "Appel d'outil",
+    "toolResult": "Resultat de l'outil",
+    "error": "Une erreur s'est produite",
+    "retry": "Reessayer",
+    "saveFailed": "Echec de l'enregistrement",
+    "callParams": "Parametres d'appel",
+    "demoSession1": "Session de revision de code",
+    "demoSession2": "Assistant de redaction de documents",
+    "demoSession3": "Expert en analyse de donnees"
   },
   "sectionOptimizer": {
     "clear": "Effacer",
@@ -1156,5 +1190,66 @@
     "xiaoliu": "Petit Sixième",
     "qihao": "Septième",
     "bahao": "Huitième"
+  },
+  "fontDebugPanel": {
+    "title": "Panneau de debogage des polices",
+    "fontPreview": "Apercu de la police",
+    "statusNormal": "Normal",
+    "statusAbnormal": "Anormal",
+    "collapse": "Reduire",
+    "expand": "Developper",
+    "uiFont": "Police de l'interface",
+    "editorFont": "Police de l'editeur",
+    "previewFont": "Police de l'apercu",
+    "previewText": "AaBbCc Bonjour le monde",
+    "previewTextAlt": "Ceci est un texte d'apercu",
+    "loadingFonts": "Chargement des polices..."
+  },
+  "aigcDetection": {
+    "title": "Detection AIGC",
+    "sentenceUniformity": "Uniformite des phrases",
+    "lexicalDiversity": "Diversite lexicale",
+    "reasoningSmoothness": "Fluidite du raisonnement",
+    "emotionalConsistency": "Coherence emotionnelle",
+    "contentDepth": "Profondeur du contenu",
+    "informationDensity": "Densite d'information",
+    "styleConsistency": "Coherence de style",
+    "argumentQuality": "Qualite de l'argumentation",
+    "terminologyUsage": "Utilisation de la terminologie",
+    "structuralCompleteness": "Completude structurelle",
+    "riskLevel": "Niveau de risque",
+    "lowRisk": "Risque faible",
+    "mediumRisk": "Risque moyen",
+    "highRisk": "Risque eleve",
+    "analyzing": "Analyse en cours...",
+    "analysisComplete": "Analyse terminee",
+    "noText": "Veuillez entrer du texte a detecter",
+    "uploadSuccess": "Telechargement reussi",
+    "uploadFailed": "Echec du telechargement"
+  },
+  "dataAnalysis": {
+    "title": "Analyse des donnees",
+    "hint": "Astuce : Cochez les lignes dans le tableau pour analyser uniquement les donnees selectionnees",
+    "noResult": "Pas encore de resultats d'analyse. Veuillez demarrer l'analyse dans l'onglet Apercu des donnees",
+    "salesAnalysis": "Analyse des donnees de vente",
+    "userBehavior": "Analyse du comportement utilisateur",
+    "exportExcel": "Exporter vers Excel",
+    "fileNotFound": "Le fichier Excel n'existe pas",
+    "fileMoved": "Le fichier a peut-etre ete supprime ou deplace. Veuillez le telecharger a nouveau"
+  },
+  "userFeedback": {
+    "uploadedToGist": "Telecharge vers Gist",
+    "uploading": "Telechargement en cours...",
+    "attachImage": "Joindre une image",
+    "submit": "Envoyer le feedback",
+    "thankYou": "Merci pour votre feedback !"
+  },
+  "editor": {
+    "noOpenDocument": "Aucun document ouvert",
+    "loading": "Chargement de l'apercu...",
+    "preview": "Apercu",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "unsaved": "Non enregistre"
   }
 }

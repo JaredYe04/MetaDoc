@@ -154,7 +154,7 @@
                   :message="message"
                   :messages="activeSession.messages"
                   :message-index="index"
-                  :user-name="'用户'"
+                  :user-name="t('agent.userLabel')"
                   :session-references="activeSession.referenceStore || []"
                   @edit="handleMessageEdit"
                   @regenerate="handleMessageRegenerate"
@@ -605,7 +605,7 @@ const sampleTools: AgentTool[] = [
   {
     id: 'web-search',
     name: 'Web Search',
-    description: '通过联网搜索最新信息，返回结构化摘要与引用。',
+    description: t('agent.tools.webSearch.description', '通过联网搜索最新信息，返回结构化摘要与引用。'),
     origin: 'renderer',
     running: false,
     enabled: true,
@@ -615,7 +615,7 @@ const sampleTools: AgentTool[] = [
   {
     id: 'code-executor',
     name: 'Code Interpreter',
-    description: '在安全沙箱运行代码，支持 Python 与 Node.js，生成图表与数据分析结果。',
+    description: t('agent.tools.codeExecutor.description', '在安全沙箱运行代码，支持 Python 与 Node.js，生成图表与数据分析结果。'),
     origin: 'main',
     running: true,
     enabled: true,
@@ -625,7 +625,7 @@ const sampleTools: AgentTool[] = [
   {
     id: 'file-browser',
     name: 'File Browser',
-    description: '浏览本地项目文件，并支持快速预览与生成摘要。',
+    description: t('agent.tools.fileBrowser.description', '浏览本地项目文件，并支持快速预览与生成摘要。'),
     origin: 'renderer',
     running: false,
     enabled: false,
@@ -635,7 +635,7 @@ const sampleTools: AgentTool[] = [
   {
     id: 'mcp-wordpress',
     name: 'WordPress MCP',
-    description: '通过 MCP 协议与 WordPress 通讯，实现内容发布和评论管理。',
+    description: t('agent.tools.wordpressMcp.description', '通过 MCP 协议与 WordPress 通讯，实现内容发布和评论管理。'),
     origin: 'mcp',
     running: false,
     enabled: true,
@@ -744,8 +744,8 @@ const loadDemoData = () => {
   const demoSessions: AgentSession[] = [
     {
       id: 'demo-session-1',
-      title: '代码审查会话',
-      description: '审查 Vue 组件代码',
+      title: t('agent.demoSession1'),
+      description: t('agent.demoSession1Description', '审查 Vue 组件代码'),
       createdAt: new Date(Date.now() - 86400000).toISOString(),
       updatedAt: new Date().toISOString(),
       messages: [
@@ -754,15 +754,14 @@ const loadDemoData = () => {
           role: 'user',
           type: 'chat',
           timestamp: new Date(Date.now() - 3600000).toISOString(),
-          markdown: '请帮我审查这个 Vue 组件的代码质量'
+          markdown: t('agent.demo.message1', '请帮我审查这个 Vue 组件的代码质量')
         },
         {
           id: 'demo-msg-2',
           role: 'assistant',
           type: 'chat',
           timestamp: new Date(Date.now() - 3500000).toISOString(),
-          markdown:
-            '我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范'
+          markdown: t('agent.demo.reply1', '我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范')
         }
       ],
       activeToolIds: ['code-executor'],
@@ -781,8 +780,8 @@ const loadDemoData = () => {
     },
     {
       id: 'demo-session-2',
-      title: '文档翻译助手',
-      description: '翻译技术文档',
+      title: t('agent.demoSession2'),
+      description: t('agent.demoSession2Description', '翻译技术文档'),
       createdAt: new Date(Date.now() - 172800000).toISOString(),
       updatedAt: new Date(Date.now() - 86400000).toISOString(),
       messages: [
@@ -791,7 +790,7 @@ const loadDemoData = () => {
           role: 'user',
           type: 'chat',
           timestamp: new Date(Date.now() - 90000000).toISOString(),
-          markdown: '将这段文档翻译成中文'
+          markdown: t('agent.demo.message2', '将这段文档翻译成中文')
         }
       ],
       activeToolIds: [],
@@ -804,8 +803,8 @@ const loadDemoData = () => {
     },
     {
       id: 'demo-session-3',
-      title: 'Bug 分析',
-      description: '分析错误日志',
+      title: t('agent.demoSession3'),
+      description: t('agent.demoSession3Description', '分析错误日志'),
       createdAt: new Date(Date.now() - 259200000).toISOString(),
       updatedAt: new Date(Date.now() - 172800000).toISOString(),
       messages: [],
@@ -826,14 +825,14 @@ const loadDemoData = () => {
   availableEngines.value = [
     {
       id: 'default-autogpt-engine',
-      name: 'AutoGPT 引擎',
+      name: t('agent.engine.autoGpt'),
       engineType: 'autogpt',
       enabled: true,
       isBuiltIn: true
     },
     {
       id: 'simple-chat-engine',
-      name: '简单对话引擎',
+      name: t('agent.engine.simpleChat'),
       engineType: 'simple-chat',
       enabled: true,
       isBuiltIn: false
@@ -995,9 +994,9 @@ watch(
           // 只有当任务确实已完成/失败/取消时，才从handle集合中移除
           if (
             task &&
-            (task.status.value === '已完成' ||
-              task.status.value === '失败' ||
-              task.status.value === '取消')
+          (task.status.value === t('agent.task.status.completed', '已完成') ||
+            task.status.value === t('agent.task.status.failed', '失败') ||
+            task.status.value === t('agent.task.status.cancelled', '取消'))
           ) {
             handlesToRemove.push(handle)
           }
@@ -1009,9 +1008,9 @@ watch(
           const currentTask = allTasks.value.find((t) => t.handle === currentAiTaskHandle.value)
           if (
             currentTask &&
-            (currentTask.status.value === '已完成' ||
-              currentTask.status.value === '失败' ||
-              currentTask.status.value === '取消')
+          (currentTask.status.value === t('agent.task.status.completed', '已完成') ||
+            currentTask.status.value === t('agent.task.status.failed', '失败') ||
+            currentTask.status.value === t('agent.task.status.cancelled', '取消'))
           ) {
             currentAiTaskHandle.value = null
           }
@@ -1052,7 +1051,7 @@ const createSession = (agentConfigId?: string) => {
   if (isDemo.value) {
     const demoSession: AgentSession = {
       id: `demo-session-${Date.now()}`,
-      title: `演示会话 ${sessionsState.value.length + 1}`,
+      title: `${t('agent.demo.sessionTitle')} ${sessionsState.value.length + 1}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       messages: [],
@@ -1247,11 +1246,11 @@ const createChatMessage = (
 
 const handleComposerSubmit = async () => {
   // 演示模式：显示提示并返回
-  if (guardDemoAction('发送消息')) {
+  if (guardDemoAction(t('agent.demo.action.sendMessage'))) {
     // 演示模式下添加模拟消息
     const session = activeSession.value
     if (session) {
-      const message = createChatMessage('user', composerInput.value.trim() || '演示消息')
+      const message = createChatMessage('user', composerInput.value.trim() || t('agent.demo.message'))
       session.messages.push(message)
       touchSession(session)
       composerInput.value = ''
@@ -1259,7 +1258,7 @@ const handleComposerSubmit = async () => {
       setTimeout(() => {
         const reply = createChatMessage(
           'assistant',
-          '这是演示模式下的模拟回复。在实际使用中，AI会根据您的消息生成智能回复。'
+          t('agent.demo.simulatedReply', '这是演示模式下的模拟回复。在实际使用中，AI会根据您的消息生成智能回复。')
         )
         session.messages.push(reply)
         touchSession(session)
@@ -1675,7 +1674,7 @@ const executeAgentEngine = async (
         maxTokens: engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: abortController.signal,
-        taskName: 'Agent对话',
+        taskName: t('agent.task.agentConversation'),
         originKey,
         reactiveMessage: assistantMessage,
         onTaskCreated: (handle: string) => {
@@ -1727,8 +1726,8 @@ const executeAgentEngine = async (
       // 检查是否是用户取消的任务
       const isCancelled =
         error instanceof Error &&
-        (error.message === '任务已取消' ||
-          error.message.includes('任务已取消') ||
+        (error.message === t('agent.task.cancelledMessage') ||
+          error.message.includes(t('agent.task.cancelledMessage')) ||
           error.name === 'AbortError')
 
       if (isCancelled) {
@@ -1756,7 +1755,7 @@ const executeAgentEngine = async (
           persistSessions()
         }
         const errorMessage = error instanceof Error ? error.message : String(error)
-        AIContextManager.addAssistantMessage(session, `执行失败: ${errorMessage}`)
+        AIContextManager.addAssistantMessage(session, t('agent.error.executionFailed', { message: errorMessage }))
         persistSessions()
       }
 
@@ -1810,8 +1809,8 @@ const executeAgentEngine = async (
       // 检查是否是用户取消的任务
       const isCancelled =
         error instanceof Error &&
-        (error.message === '任务已取消' ||
-          error.message.includes('任务已取消') ||
+        (error.message === t('agent.task.cancelled') ||
+          error.message.includes(t('agent.task.cancelled')) ||
           error.name === 'AbortError')
 
       if (isCancelled) {
@@ -1829,7 +1828,7 @@ const executeAgentEngine = async (
       persistSessions()
 
       const errorMessage = error instanceof Error ? error.message : String(error)
-      AIContextManager.addAssistantMessage(session, `执行失败: ${errorMessage}`)
+      AIContextManager.addAssistantMessage(session, t('agent.error.executionFailed', { message: errorMessage }))
       persistSessions()
 
       throw error
@@ -1910,7 +1909,7 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
       // 批量处理文件上传
       const loading = ElLoading.service({
         lock: true,
-        text: files.length > 1 ? `正在处理 ${files.length} 个文件...` : '正在处理文件...',
+        text: files.length > 1 ? t('agent.reference.processingFiles', { count: files.length }) : t('agent.reference.processingFile'),
         background: 'rgba(0, 0, 0, 0.7)'
       })
 
@@ -1925,8 +1924,8 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
           try {
             loading.setText(
               files.length > 1
-                ? `正在处理文件 ${i + 1}/${files.length}: ${file.name}`
-                : `正在处理: ${file.name}`
+                ? t('agent.reference.processingFileN', { current: i + 1, total: files.length, name: file.name })
+                : t('agent.reference.processingNamedFile', { name: file.name })
             )
             const reference = await processFileUpload(file)
             references.push(reference)
@@ -1968,13 +1967,13 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
           // 显示成功消息
           if (failCount === 0) {
             notifySuccess(
-              files.length > 1 ? `成功添加 ${successCount} 个引用` : t('agent.reference.addSuccess')
+              files.length > 1 ? t('agent.reference.addSuccessCount', { count: successCount }) : t('agent.reference.addSuccess')
             )
           } else {
-            notifyWarning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
+            notifyWarning(t('agent.reference.addPartialSuccess', { success: successCount, fail: failCount }))
           }
         } else {
-          notifyError('所有文件处理失败')
+          notifyError(t('agent.reference.allFilesFailed'))
         }
       } finally {
         loading.close()

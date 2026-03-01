@@ -82,15 +82,30 @@
     "contextMenu": {
       "pinTab": "탭 고정",
       "unpinTab": "탭 고정 해제"
-    }
+    },
+    "newDocumentTooltip": "Sae munseo",
+    "untitled": "Jemok eopum",
+    "userManual": "Sayongja maenyu-eol",
+    "closeTabTooltip": "Tab dalki",
+    "unsavedIndicator": "Jjeongdoeeji anum"
   },
   "common": {
-    "confirm": "확인",
-    "cancel": "취소",
+    "confirm": "Hwagin",
+    "cancel": "Chwiso",
     "save": "저장",
     "deleteSuccess": "삭제 성공",
     "deleteFailed": "삭제 실패",
-    "close": "이름 *"
+    "close": "Dalki",
+    "delete": "Sakje",
+    "edit": "Pyeonjib",
+    "add": "Chuga",
+    "refresh": "Saero gochim",
+    "loading": "Roding jung...",
+    "success": "Seonggong",
+    "failed": "Silpae",
+    "error": "Olyu",
+    "warning": "Gye go",
+    "info": "Jeongbo"
   },
   "console": {
     "title": "콘솔 출력",
@@ -546,7 +561,13 @@
     "moveUp": "맨 위로",
     "switchToHorizontal": "수평 배치로 전환",
     "switchToVertical": "수직 배치로 전환",
-    "toggleLayout": "사이트 맵"
+    "toggleLayout": "사이트 맵",
+    "noNodeSelected": "Seontaeuk doen nodo ga eobsseubnida",
+    "nodeNotExist": "Nodo ga jonjae haji anhseubnida",
+    "aiOptimizing": "AI ga chojae hwa jung...",
+    "insertSuccess": "Sambig seonggong",
+    "emptyContent": "(Eobs eum)",
+    "noContent": "(Eobs eum)"
   },
   "setting": {
     "auto": "자동",
@@ -1062,7 +1083,20 @@
         "totalTasks": "전체 작업",
         "urgent": "- 연혁"
       }
-    }
+    },
+    "userLabel": "Sayongja",
+    "assistantLabel": "Eosiseuteonteu",
+    "systemLabel": "Siseutem",
+    "thinking": "Saenggak jung...",
+    "toolCall": "Dogu hochul",
+    "toolResult": "Dogu gyeolgwa",
+    "error": "Olyu ga balsaenghaessseubnida",
+    "retry": "Jae sido",
+    "saveFailed": "Jjeongjang silpae",
+    "callParams": "Hochul mae gig bun",
+    "demoSession1": "Kodeu ribyu sesyeon",
+    "demoSession2": "Munseo jakseong doumi",
+    "demoSession3": "Deta bunseog jeonmun ga"
   },
   "sectionOptimizer": {
     "clear": "이름 *",
@@ -1156,5 +1190,66 @@
     "xiaoliu": "소육",
     "qihao": "칠호",
     "bahao": "팔호"
+  },
+  "fontDebugPanel": {
+    "title": "Geulggol dibeugeu paenel",
+    "fontPreview": "Geulggol mireubogi",
+    "statusNormal": "Jeongsang",
+    "statusAbnormal": "Bijeongsang",
+    "collapse": "Jepgi",
+    "expand": "Pyeolchigi",
+    "uiFont": "UI geulggol",
+    "editorFont": "Edito geulggol",
+    "previewFont": "Mireubogi geulggol",
+    "previewText": "AaBbCc annyeonghaseyo",
+    "previewTextAlt": "Mireubogi tegseuteu imnida",
+    "loadingFonts": "Geulggol roding jung..."
+  },
+  "aigcDetection": {
+    "title": "AIGC gamji",
+    "sentenceUniformity": "Munjang gyunil seong",
+    "lexicalDiversity": "Eohwi dayang seong",
+    "reasoningSmoothness": "Churun ui wonhwal ham",
+    "emotionalConsistency": "Gamjeong ilgwan seong",
+    "contentDepth": "Kontencheu gip i",
+    "informationDensity": " Jeongbo mil do",
+    "styleConsistency": "Seutail ilgwan seong",
+    "argumentQuality": "Nonjeung pumjil",
+    "terminologyUsage": "Yongeo sayong",
+    "structuralCompleteness": "Gujo jeog wanjeon seong",
+    "riskLevel": "Wiheom sujun",
+    "lowRisk": "Najeun wiheom",
+    "mediumRisk": "Jung gan wiheom",
+    "highRisk": "Nopeun wiheom",
+    "analyzing": "Bunseok jung...",
+    "analysisComplete": "Bunseok wanryo",
+    "noText": "Gamjihal tegseuteu reul ipryeok haseyo",
+    "uploadSuccess": "Eobrodeu seonggong",
+    "uploadFailed": "Eobrodeu silpae"
+  },
+  "dataAnalysis": {
+    "title": "Deta bunseok",
+    "hint": "Tip: Teibeul eseo haeng eul seontaeuk hamyeon seontaeuk han deta man bunseok hal su issseubnida",
+    "noResult": "Ajig bunseok gyeolgwa ga eobsseubnida. Deta mireubogi tab eseo bunseok eul sijak haseyo",
+    "salesAnalysis": "Panmae deta bunseok",
+    "userBehavior": "Sayongja haengdong bunseok",
+    "exportExcel": "Excel export",
+    "fileNotFound": "Excel fairu ga jonjae haji anhseubnida",
+    "fileMoved": "Fairu ga sakje doen tto neun ido doeeosseul su issseubnida. Dasi eobrodeu hae juseyo"
+  },
+  "userFeedback": {
+    "uploadedToGist": "Gist e eobrodeu doem",
+    "uploading": "Eobrodeu jung...",
+    "attachImage": "Imiji cheombu",
+    "submit": "Pideubag je chul",
+    "thankYou": "Pideubag eul ju syeoseo gamsa habnida!"
+  },
+  "editor": {
+    "noOpenDocument": "Yeo lin munseo ga eobsseubnida",
+    "loading": "Mireubogi roding jung...",
+    "preview": "Mireubogi",
+    "edit": "Pyeonjib",
+    "save": "Jjeongjang",
+    "unsaved": "Jjeongdoeeji anum"
   }
 }

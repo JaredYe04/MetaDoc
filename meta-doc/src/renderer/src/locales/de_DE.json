@@ -2046,7 +2046,7 @@
         "article": {
           "description": "Enthält die Struktur der Kapitel, wie Zusammenfassungen, Körper, Schlussfolgerungen, etc.",
           "label": "Artikel Muster",
-          "content": "[German] # 标题\n\n## 摘要\n\n在这里撰写摘要内容。\n\n## 正文\n\n- 要点一\n- 要点二\n\n## 结论\n\n在这里撰写结论内容。\n"
+          "content": "# Titel\n\n## Zusammenfassung\n\nHier die Zusammenfassung verfassen.\n\n## Hauptteil\n\n- Hauptpunkt eins\n- Hauptpunkt zwei\n\n## Schlussfolgerung\n\nHier die Schlussfolgerung verfassen.\n"
         },
         "blank": {
           "description": "Leeres Markdown-Dokument erstellen",

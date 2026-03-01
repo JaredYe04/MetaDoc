@@ -1,14 +1,14 @@
-[French] # 标题
+# Titre
 
-## 摘要
+## Résumé
 
-在这里撰写摘要内容。
+Rédigez votre résumé ici.
 
-## 正文
+## Contenu principal
 
-- 要点一
-- 要点二
+- Point clé un
+- Point clé deux
 
-## 结论
+## Conclusion
 
-在这里撰写结论内容。
+Rédigez votre conclusion ici.

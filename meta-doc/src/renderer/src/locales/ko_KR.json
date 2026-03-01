@@ -1760,7 +1760,22 @@
     "demoSession1": "Kodeu ribyu sesyeon",
     "demoSession2": "Munseo jakseong doumi",
     "demoSession3": "Deta bunseog jeonmun ga",
-    "copy": "복사"
+    "copy": "복사",
+    "compact": {
+      "untitled": "제목 없는 세션",
+      "recentSessions": "최근 세션",
+      "newSession": "새 세션",
+      "newSessionTitle": "새 세션",
+      "today": "오늘",
+      "yesterday": "어제",
+      "lastWeek": "지난 주",
+      "lastMonth": "지난 달",
+      "older": "이전",
+      "loadMore": "10개 더 보기",
+      "closeTab": "탭 닫기",
+      "exportJson": "JSON으로 낭출",
+      "deleteSession": "세션 삭제"
+    }
   },
   "sectionOptimizer": {
     "clear": "이름 *",

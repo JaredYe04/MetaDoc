@@ -2493,6 +2493,21 @@
       "error": {
         "cancelRequestFailed": "Échec de l'envoi de la demande d'annulation"
       }
+    },
+    "compact": {
+      "untitled": "Session sans titre",
+      "recentSessions": "Sessions récentes",
+      "newSession": "Nouvelle session",
+      "newSessionTitle": "Nouvelle session",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "lastWeek": "Semaine dernière",
+      "lastMonth": "Mois dernier",
+      "older": "Plus ancien",
+      "loadMore": "Afficher 10 de plus",
+      "closeTab": "Fermer l'onglet",
+      "exportJson": "Exporter en JSON",
+      "deleteSession": "Supprimer la session"
     }
   },
   "sectionOptimizer": {

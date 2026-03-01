@@ -770,7 +770,22 @@
         "mcp": "MCP 应用"
       }
     },
-    "userLabel": "用户"
+    "userLabel": "用户",
+    "compact": {
+      "untitled": "未命名会话",
+      "recentSessions": "最近会话",
+      "newSession": "新建会话",
+      "newSessionTitle": "新会话",
+      "today": "今天",
+      "yesterday": "昨天",
+      "lastWeek": "上周",
+      "lastMonth": "上个月",
+      "older": "更早",
+      "loadMore": "展示更多 10 条",
+      "closeTab": "关闭标签",
+      "exportJson": "导出为 JSON",
+      "deleteSession": "删除会话"
+    }
   },
   "agent-engine-executor": {
     "clear": "已清空",

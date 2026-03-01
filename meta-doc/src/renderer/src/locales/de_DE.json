@@ -2017,7 +2017,22 @@
     "demoSession1": "Code-Review-Sitzung",
     "demoSession2": "Dokumentenschreibassistent",
     "demoSession3": "Datenanalyse-Experte",
-    "copy": "Kopieren"
+    "copy": "Kopieren",
+    "compact": {
+      "untitled": "Unbenannte Sitzung",
+      "recentSessions": "Kürzliche Sitzungen",
+      "newSession": "Neue Sitzung",
+      "newSessionTitle": "Neue Sitzung",
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "lastWeek": "Letzte Woche",
+      "lastMonth": "Letzter Monat",
+      "older": "Älter",
+      "loadMore": "10 weitere anzeigen",
+      "closeTab": "Tab schließen",
+      "exportJson": "Als JSON exportieren",
+      "deleteSession": "Sitzung löschen"
+    }
   },
   "agent-engine-executor": {
     "clear": "Geleert",

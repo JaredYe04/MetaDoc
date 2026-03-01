@@ -1,25 +1,25 @@
-# Blog / Post Title
+# ブログ / 投稿タイトル
 
-One-line hook or summary that works as a subtitle.
-
----
-
-Open with one or two sentences that grab attention and state the main question or idea.
-
-Then develop: tell a story, list points, give examples, or use short sections.
-
-- Point one
-- Point two
-- Point three
-
-Use **bold**, _italic_, or `code` where it helps.
-
-For quotes:
-
-> Quoted text or someone else’s idea; cite the source when possible.
-
-Close with a summary, a question, or a call to action (e.g. like, share, comment).
+サブタイトルとして機能する一言のフックまたは要約。
 
 ---
 
-**Tags**: #tag1 #tag2 #tag3
+注意を引き、主な質問やアイデアを述べる1〜2文で始めます。
+
+次に展開: ストーリーを語る、ポイントを列挙する、例を挙げる、または短いセクションを使用します。
+
+- ポイント1
+- ポイント2
+- ポイント3
+
+必要に応じて**太字**、_斜体_、または `コード` を使用します。
+
+引用の場合:
+
+> 引用テキストまたは他の人のアイデア; 可能な場合は出典を明記します。
+
+まとめ、質問、または行動喚起（例: いいね、シェア、コメント）で締めくくります。
+
+---
+
+**タグ**: #タグ1 #タグ2 #タグ3

@@ -1,43 +1,43 @@
-# Technical Document Title
+# 技術文書タイトル
 
-> Version: 1.0 | Last updated: Date
+> バージョン: 1.0 | 最終更新日: 日付
 
-## 1. Overview
+## 1. 概要
 
-Brief description of the document purpose, scope, and intended audience.
+文書の目的、対象範囲、対象読者について簡潔に説明します。
 
-**Audience**: Developers / DevOps / Product
+**対象読者**: 開発者 / DevOps / プロダクト
 
-**Type**: API docs / Architecture / Deployment guide
+**種類**: APIドキュメント / アーキテクチャ / デプロイガイド
 
 ---
 
-## 2. System Architecture
+## 2. システムアーキテクチャ
 
-### 2.1 High-Level Architecture
+### 2.1 高レベルアーキテクチャ
 
-- Component A: responsibility
-- Component B: responsibility
-- Data flow and call relationships
+- コンポーネントA: 責任範囲
+- コンポーネントB: 責任範囲
+- データフローと呼び出し関係
 
-### 2.2 Tech Stack
+### 2.2 技術スタック
 
-| Layer    | Technology | Notes |
+| レイヤー    | 技術 | 備考 |
 | -------- | ---------- | ----- |
-| Frontend | —          | —     |
-| Backend  | —          | —     |
-| Storage  | —          | —     |
+| フロントエンド | —          | —     |
+| バックエンド  | —          | —     |
+| ストレージ  | —          | —     |
 
 ---
 
-## 3. API Reference
+## 3. APIリファレンス
 
-### 3.1 Endpoint Name
+### 3.1 エンドポイント名
 
-- **Method**: `GET` / `POST`
-- **Path**: `/api/xxx`
-- **Parameters**: see table below
-- **Response example**: see code block
+- **メソッド**: `GET` / `POST`
+- **パス**: `/api/xxx`
+- **パラメータ**: 下表参照
+- **レスポンス例**: コードブロック参照
 
 ```json
 {
@@ -46,32 +46,32 @@ Brief description of the document purpose, scope, and intended audience.
 }
 ```
 
-### 3.2 Error Codes
+### 3.2 エラーコード
 
-| Code | Meaning      |
+| コード | 意味      |
 | ---- | ------------ |
-| 0    | Success      |
-| 4xx  | Client error |
-| 5xx  | Server error |
+| 0    | 成功      |
+| 4xx  | クライアントエラー |
+| 5xx  | サーバーエラー |
 
 ---
 
-## 4. Configuration & Deployment
+## 4. 設定とデプロイ
 
-### 4.1 Requirements
+### 4.1 要件
 
-- Runtime
-- Dependencies
+- ランタイム
+- 依存関係
 
-### 4.2 Deployment Steps
+### 4.2 デプロイ手順
 
-1. Step one
-2. Step two
-3. Step three
+1. 手順1
+2. 手順2
+3. 手順3
 
 ---
 
-## 5. Appendix
+## 5. 付録
 
-- Glossary
-- Changelog
+- 用語集
+- 変更履歴

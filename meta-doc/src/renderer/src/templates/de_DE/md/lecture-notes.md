@@ -1,38 +1,38 @@
-# Course Name: Lecture X — Chapter Title
+# Kursname: Vorlesung X – Kapitel-Titel
 
-**Date**:  
-**Instructor**:
-
----
-
-## Key Points
-
-- Point 1
-- Point 2
-- Point 3
+**Datum**:  
+**Dozent**:
 
 ---
 
-## 1. Section Title
+## Kernpunkte
 
-(Class content: definitions, theorems, examples. Use lists or short paragraphs.)
+- Punkt 1
+- Punkt 2
+- Punkt 3
+
+---
+
+## 1. Abschnitts-Titel
+
+(Unterrichtsinhalt: Definitionen, Theoreme, Beispiele. Verwenden Sie Listen oder kurze Absätze.)
 
 - **Definition**: …
-- **Theorem**: … (proof: “see board” or brief)
-- **Example**: …
+- **Theorem**: … (Beweis: „siehe Tafel“ oder kurz)
+- **Beispiel**: …
 
-## 2. Section Title
+## 2. Abschnitts-Titel
 
-(Important formulas or steps can go on their own line.)
+(Wichtige Formeln oder Schritte können in eine eigene Zeile.)
 
-(For figures/tables, write “see slide X” or insert image.)
+(Für Abbildungen/Tabellen „siehe Folie X“ schreiben oder Bild einfügen.)
 
-## 3. Summary and Questions
+## 3. Zusammenfassung und Fragen
 
-- Main takeaways
-- Points to review or look up later
+- Hauptergebnisse
+- Punkte zum Nachlesen oder Nachschlagen
 
 ---
 
-**Next**: Preview of next lecture  
-**Homework / Reading**: Section or exercises
+**Nächstes**: Vorschau auf die nächste Vorlesung  
+**Hausaufgabe / Lektüre**: Abschnitt oder Übungen

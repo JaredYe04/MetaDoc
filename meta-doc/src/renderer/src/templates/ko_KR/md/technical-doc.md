@@ -1,43 +1,43 @@
-# Technical Document Title
+# 기술 문서 제목
 
-> Version: 1.0 | Last updated: Date
+> 버전: 1.0 | 최종 업데이트: 날짜
 
-## 1. Overview
+## 1. 개요
 
-Brief description of the document purpose, scope, and intended audience.
+문서 목적, 범위 및 대상 독자에 대한 간략한 설명.
 
-**Audience**: Developers / DevOps / Product
+**대상**: 개발자 / DevOps / 제품
 
-**Type**: API docs / Architecture / Deployment guide
+**유형**: API 문서 / 아키텍처 / 배포 가이드
 
 ---
 
-## 2. System Architecture
+## 2. 시스템 아키텍처
 
-### 2.1 High-Level Architecture
+### 2.1 고수준 아키텍처
 
-- Component A: responsibility
-- Component B: responsibility
-- Data flow and call relationships
+- 구성 요소 A: 책임
+- 구성 요소 B: 책임
+- 데이터 흐름 및 호출 관계
 
-### 2.2 Tech Stack
+### 2.2 기술 스택
 
-| Layer    | Technology | Notes |
+| 계층    | 기술 | 비고 |
 | -------- | ---------- | ----- |
-| Frontend | —          | —     |
-| Backend  | —          | —     |
-| Storage  | —          | —     |
+| 프론트엔드 | —          | —     |
+| 백엔드  | —          | —     |
+| 저장소  | —          | —     |
 
 ---
 
-## 3. API Reference
+## 3. API 참조
 
-### 3.1 Endpoint Name
+### 3.1 엔드포인트 이름
 
-- **Method**: `GET` / `POST`
-- **Path**: `/api/xxx`
-- **Parameters**: see table below
-- **Response example**: see code block
+- **메소드**: `GET` / `POST`
+- **경로**: `/api/xxx`
+- **매개변수**: 아래 표 참조
+- **응답 예시**: 코드 블록 참조
 
 ```json
 {
@@ -46,32 +46,32 @@ Brief description of the document purpose, scope, and intended audience.
 }
 ```
 
-### 3.2 Error Codes
+### 3.2 오류 코드
 
-| Code | Meaning      |
+| 코드 | 의미      |
 | ---- | ------------ |
-| 0    | Success      |
-| 4xx  | Client error |
-| 5xx  | Server error |
+| 0    | 성공      |
+| 4xx  | 클라이언트 오류 |
+| 5xx  | 서버 오류 |
 
 ---
 
-## 4. Configuration & Deployment
+## 4. 구성 및 배포
 
-### 4.1 Requirements
+### 4.1 요구사항
 
-- Runtime
-- Dependencies
+- 런타임
+- 의존성
 
-### 4.2 Deployment Steps
+### 4.2 배포 단계
 
-1. Step one
-2. Step two
-3. Step three
+1. 첫 번째 단계
+2. 두 번째 단계
+3. 세 번째 단계
 
 ---
 
-## 5. Appendix
+## 5. 부록
 
-- Glossary
-- Changelog
+- 용어집
+- 변경 로그

@@ -1,49 +1,49 @@
-# Course Report Title
+# 수업 보고서 제목
 
-**Course**:  
-**Type**: Reading report / Topic report / Survey report  
-**Name / ID**:  
-**Date**:
-
----
-
-## Abstract
-
-(200–400 words summarizing the main content, method, and conclusions.)
-
-**Keywords**: keyword1; keyword2; keyword3
+**과목**:  
+**유형**: 독서 보고서 / 주제 보고서 / 조사 보고서  
+**이름 / 학번**:  
+**날짜**: 
 
 ---
 
-## 1. Introduction
+## 초록
 
-- Background and significance
-- Questions addressed and structure of the report
+(주요 내용, 방법 및 결론을 요약한 200~400자.)
 
-## 2. Main Content
+**키워드**: 키워드1; 키워드2; 키워드3
 
-### 2.1 Part One
+---
 
-(Organize by course requirements: literature review, analysis, cases, etc.)
+## 1. 서론
 
-### 2.2 Part Two
+- 배경 및 의의
+- 다루는 질문과 보고서 구조
 
-(Data, figures, and citations should be properly attributed.)
+## 2. 본론
 
-### 2.3 Part Three
+### 2.1 첫 번째 부분
 
-(Argument and summary.)
+(수업 요구사항에 따라: 문헌 검토, 분석, 사례 등)
 
-## 3. Conclusion and Outlook
+### 2.2 두 번째 부분
 
-- Main conclusions
-- Limitations and future work
+(데이터, 그림 및 인용은 적절히 출처를 표시하세요.)
 
-## References
+### 2.3 세 번째 부분
 
-1. Author. Title. _Journal_, Year, Volume(Issue): pages.
-2. Author. _Book Title_. Place: Publisher, Year.
+(논증 및 요약.)
 
-## Appendix (optional)
+## 3. 결론 및 전망
 
-(Questionnaires, raw data, code, etc.)
+- 주요 결론
+- 한계 및 향후 연구
+
+## 참고문헌
+
+1. 저자. 제목. _저널명_, 연도, 권(호): 페이지.
+2. 저자. _책 제목_. 출판지: 출판사, 연도.
+
+## 부록 (선택사항)
+
+(설문지, 원본 데이터, 코드 등)

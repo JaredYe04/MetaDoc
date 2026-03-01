@@ -1,49 +1,49 @@
-# Course Report Title
+# Titel des Kursberichts
 
-**Course**:  
-**Type**: Reading report / Topic report / Survey report  
+**Kurs**:  
+**Typ**: Lesericht / Themenbericht / Recherchebericht  
 **Name / ID**:  
-**Date**:
+**Datum**:
 
 ---
 
-## Abstract
+## Zusammenfassung
 
-(200–400 words summarizing the main content, method, and conclusions.)
+(200–400 Wörter, die Hauptinhalt, Methode und Schlussfolgerungen zusammenfassen.)
 
-**Keywords**: keyword1; keyword2; keyword3
+**Schlüsselwörter**: Schlüsselwort1; Schlüsselwort2; Schlüsselwort3
 
 ---
 
-## 1. Introduction
+## 1. Einleitung
 
-- Background and significance
-- Questions addressed and structure of the report
+- Hintergrund und Bedeutung
+- Fragestellungen und Aufbau des Berichts
 
-## 2. Main Content
+## 2. Hauptteil
 
-### 2.1 Part One
+### 2.1 Teil Eins
 
-(Organize by course requirements: literature review, analysis, cases, etc.)
+(Nach Kursanforderungen organisieren: Literaturübersicht, Analyse, Fallstudien usw.)
 
-### 2.2 Part Two
+### 2.2 Teil Zwei
 
-(Data, figures, and citations should be properly attributed.)
+(Daten, Abbildungen und Zitate sollten ordnungsgemäß angegeben werden.)
 
-### 2.3 Part Three
+### 2.3 Teil Drei
 
-(Argument and summary.)
+(Argumentation und Zusammenfassung.)
 
-## 3. Conclusion and Outlook
+## 3. Schlussfolgerung und Ausblick
 
-- Main conclusions
-- Limitations and future work
+- Hauptergebnisse
+- Einschränkungen und zukünftige Arbeit
 
-## References
+## Quellen
 
-1. Author. Title. _Journal_, Year, Volume(Issue): pages.
-2. Author. _Book Title_. Place: Publisher, Year.
+1. Autor. Titel. _Zeitschrift_, Jahr, Band(Ausgabe): Seiten.
+2. Autor. _Buchtitel_. Ort: Verlag, Jahr.
 
-## Appendix (optional)
+## Anhang (optional)
 
-(Questionnaires, raw data, code, etc.)
+(Fragebögen, Rohdaten, Code usw.)

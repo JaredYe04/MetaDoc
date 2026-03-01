@@ -1,49 +1,49 @@
-# Course Report Title
+# Titre du rapport de cours
 
-**Course**:  
-**Type**: Reading report / Topic report / Survey report  
-**Name / ID**:  
-**Date**:
+**Cours** :  
+**Type** : Rapport de lecture / Rapport thématique / Rapport d'étude  
+**Nom / ID** :  
+**Date** :
 
 ---
 
-## Abstract
+## Résumé
 
-(200–400 words summarizing the main content, method, and conclusions.)
+(200–400 mots résumant le contenu principal, la méthode et les conclusions.)
 
-**Keywords**: keyword1; keyword2; keyword3
+**Mots-clés** : mot-clé1 ; mot-clé2 ; mot-clé3
 
 ---
 
 ## 1. Introduction
 
-- Background and significance
-- Questions addressed and structure of the report
+- Contexte et importance
+- Questions abordées et structure du rapport
 
-## 2. Main Content
+## 2. Contenu principal
 
-### 2.1 Part One
+### 2.1 Partie une
 
-(Organize by course requirements: literature review, analysis, cases, etc.)
+(Organiser selon les exigences du cours : revue de littérature, analyse, cas, etc.)
 
-### 2.2 Part Two
+### 2.2 Partie deux
 
-(Data, figures, and citations should be properly attributed.)
+(Les données, figures et citations doivent être correctement attribuées.)
 
-### 2.3 Part Three
+### 2.3 Partie trois
 
-(Argument and summary.)
+(Argumentation et synthèse.)
 
-## 3. Conclusion and Outlook
+## 3. Conclusion et perspectives
 
-- Main conclusions
-- Limitations and future work
+- Conclusions principales
+- Limites et travaux futurs
 
-## References
+## Références
 
-1. Author. Title. _Journal_, Year, Volume(Issue): pages.
-2. Author. _Book Title_. Place: Publisher, Year.
+1. Auteur. Titre. _Revue_, Année, Volume(Numéro) : pages.
+2. Auteur. _Titre du livre_. Lieu : Éditeur, Année.
 
-## Appendix (optional)
+## Annexe (facultatif)
 
-(Questionnaires, raw data, code, etc.)
+(Questionnaires, données brutes, code, etc.)

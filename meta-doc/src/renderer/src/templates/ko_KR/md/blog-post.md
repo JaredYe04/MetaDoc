@@ -1,25 +1,25 @@
-# Blog / Post Title
+# 블로그 / 게시물 제목
 
-One-line hook or summary that works as a subtitle.
-
----
-
-Open with one or two sentences that grab attention and state the main question or idea.
-
-Then develop: tell a story, list points, give examples, or use short sections.
-
-- Point one
-- Point two
-- Point three
-
-Use **bold**, _italic_, or `code` where it helps.
-
-For quotes:
-
-> Quoted text or someone else’s idea; cite the source when possible.
-
-Close with a summary, a question, or a call to action (e.g. like, share, comment).
+부제목으로 사용할 한 줄의 훅 또는 요약.
 
 ---
 
-**Tags**: #tag1 #tag2 #tag3
+주요 질문이나 아이디어를 제시하며 독자의 주목을 끄는 한두 문장으로 시작하세요.
+
+그런 다음 전개하세요: 이야기를 들려주거나, 요점을 나열하거나, 예시를 들거나, 짧은 단락을 사용하세요.
+
+- 요점 하나
+- 요점 둘
+- 요점 셋
+
+필요한 곳에 **굵게**, _기울임_, 또는 `코드`를 사용하세요.
+
+인용문의 경우:
+
+> 인용된 텍스트 또는 타인의 아이디어; 가능하면 출처를 인용하세요.
+
+요약, 질문 또는 행동 촉구(예: 좋아요, 공유, 댓글)로 마무리하세요.
+
+---
+
+**태그**: #태그1 #태그2 #태그3

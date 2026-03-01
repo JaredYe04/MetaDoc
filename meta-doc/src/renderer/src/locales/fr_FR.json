@@ -2008,31 +2008,37 @@
         "blank": {
           "description": "Créer un document Markdown vierge",
           "label": "Document vierge",
-          "content": "[French] "
+          "content": ""
         },
         "technicalDoc": {
           "label": "Documentation technique",
-          "description": "Structure de documentation technique API/architecture/déploiement, incluant descriptions d'interfaces et configurations."
+          "description": "Structure de documentation technique API/architecture/déploiement, incluant descriptions d'interfaces et configurations.",
+          "content": "# Titre du document technique\n\n> Version : 1.0 | Dernière mise à jour : Date\n\n## 1. Vue d'ensemble\n\nBrève description de l'objectif du document, de sa portée et de son public cible.\n\n**Public** : Développeurs / DevOps / Produit\n\n**Type** : Documentation API / Architecture / Guide de déploiement\n\n---\n\n## 2. Architecture du système\n\n### 2.1 Architecture de haut niveau\n\n- Composant A : responsabilité\n- Composant B : responsabilité\n- Flux de données et relations d'appel\n\n### 2.2 Stack technique\n\n| Couche    | Technologie | Notes |\n| --------- | ----------- | ----- |\n| Frontend  | —           | —     |\n| Backend   | —           | —     |\n| Stockage  | —           | —     |\n\n---\n\n## 3. Référence API\n\n### 3.1 Nom du point de terminaison\n\n- **Méthode** : `GET` / `POST`\n- **Chemin** : `/api/xxx`\n- **Paramètres** : voir tableau ci-dessous\n- **Exemple de réponse** : voir bloc de code\n\n```json\n{\n  \"code\": 0,\n  \"data\": {}\n}\n```\n\n### 3.2 Codes d'erreur\n\n| Code | Signification |\n| ---- | ------------- |\n| 0    | Succès        |\n| 4xx  | Erreur client |\n| 5xx  | Erreur serveur|\n\n---\n\n## 4. Configuration et déploiement\n\n### 4.1 Prérequis\n\n- Environnement d'exécution\n- Dépendances\n\n### 4.2 Étapes de déploiement\n\n1. Première étape\n2. Deuxième étape\n3. Troisième étape\n\n---\n\n## 5. Annexe\n\n- Glossaire\n- Journal des modifications\n"
         },
         "labReport": {
           "label": "Rapport de laboratoire",
-          "description": "Rapport de laboratoire complet comprenant objectif, principe, procédure, données et conclusions."
+          "description": "Rapport de laboratoire complet comprenant objectif, principe, procédure, données et conclusions.",
+          "content": "# Rapport de laboratoire : Titre de l'expérience\n\n**Cours** :  \n**Date** :  \n**Nom / ID** :  \n**Enseignant** :\n\n---\n\n## 1. Objectif\n\n1. Objectif 1\n2. Objectif 2\n3. Objectif 3\n\n## 2. Principe\n\nBrève description de la théorie, des formules ou des principes liés à l'expérience. Utiliser des équations ou des diagrammes si nécessaire.\n\n## 3. Équipement et procédure\n\n### 3.1 Équipement\n\n| Élément | Spécification/Modèle | Qté |\n| ------- | -------------------- | --- |\n| —       | —                    | —   |\n\n### 3.2 Procédure\n\n1. Étape 1 : …\n2. Étape 2 : …\n3. Étape 3 : …\n\n## 4. Données et analyse\n\n### 4.1 Données brutes\n\n(Enregistrer les données brutes dans des tableaux ou des listes.)\n\n### 4.2 Traitement et résultats\n\n- Formules utilisées\n- Tableaux ou figures de résultats\n- Brève analyse\n\n## 5. Discussion\n\n- Concordance avec la théorie\n- Sources d'erreur\n- Suggestions d'amélioration\n\n## 6. Conclusion\n\nRésumer les conclusions et les enseignements tirés.\n\n## 7. Références\n\n1. Référence 1\n2. Référence 2\n"
         },
         "courseReport": {
           "label": "Rapport de cours",
-          "description": "Rapports de lecture, rapports thématiques, rapports de recherche et autres devoirs de cours."
+          "description": "Rapports de lecture, rapports thématiques, rapports de recherche et autres devoirs de cours.",
+          "content": "# Titre du rapport de cours\n\n**Cours** :  \n**Type** : Rapport de lecture / Rapport thématique / Rapport d'étude  \n**Nom / ID** :  \n**Date** :\n\n---\n\n## Résumé\n\n(200–400 mots résumant le contenu principal, la méthode et les conclusions.)\n\n**Mots-clés** : mot-clé1 ; mot-clé2 ; mot-clé3\n\n---\n\n## 1. Introduction\n\n- Contexte et importance\n- Questions abordées et structure du rapport\n\n## 2. Contenu principal\n\n### 2.1 Partie une\n\n(Organiser selon les exigences du cours : revue de littérature, analyse, cas, etc.)\n\n### 2.2 Partie deux\n\n(Les données, figures et citations doivent être correctement attribuées.)\n\n### 2.3 Partie trois\n\n(Argumentation et synthèse.)\n\n## 3. Conclusion et perspectives\n\n- Conclusions principales\n- Limites et travaux futurs\n\n## Références\n\n1. Auteur. Titre. _Revue_, Année, Volume(Numéro) : pages.\n2. Auteur. _Titre du livre_. Lieu : Éditeur, Année.\n\n## Annexe (facultatif)\n\n(Questionnaires, données brutes, code, etc.)\n"
         },
         "letter": {
           "label": "Lettre",
-          "description": "Format de lettre formelle ou informelle, comprenant salutation, corps et signature."
+          "description": "Format de lettre formelle ou informelle, comprenant salutation, corps et signature.",
+          "content": "**De :**  \nNom / Organisation  \nContact\n\n**À :**  \nNom / Organisation  \nAdresse\n\n**Date :** Jour Mois, Année\n\n**Objet :** Objet de la lettre (facultatif)\n\n---\n\nMadame, Monsieur,\n\n(Ouverture : indiquer l'objet de la lettre.)\n\n(Paragraphe 1 : Demande principale ou sujet.)\n\n(Paragraphe 2 : Détails supplémentaires, raisons ou contexte.)\n\n(Paragraphe 3 : Attentes et prochaines étapes, par exemple « Dans l'attente de votre réponse. »)\n\nCordialement,\n\nSignature  \nDate\n"
         },
         "blogPost": {
           "label": "Article de blog / Tweet",
-          "description": "Article de blog ou publication sur les réseaux sociaux, adapté aux textes courts et hashtags."
+          "description": "Article de blog ou publication sur les réseaux sociaux, adapté aux textes courts et hashtags.",
+          "content": "# Titre de l'article / publication\n\nAccroche ou résumé en une ligne qui fait office de sous-titre.\n\n---\n\nCommencez par une ou deux phrases qui attirent l'attention et posent la question ou l'idée principale.\n\nPuis développez : racontez une histoire, énumérez des points, donnez des exemples ou utilisez de courtes sections.\n\n- Point un\n- Point deux\n- Point trois\n\nUtilisez le **gras**, l'_italique_ ou le `code` quand cela aide.\n\nPour les citations :\n\n> Texte cité ou idée d'une autre personne ; citez la source quand c'est possible.\n\nConcluez par un résumé, une question ou un appel à l'action (par exemple aimer, partager, commenter).\n\n---\n\n**Tags** : #tag1 #tag2 #tag3\n"
         },
         "lectureNotes": {
           "label": "Notes de cours",
-          "description": "Structure de notes de cours organisées par séance et points clés."
+          "description": "Structure de notes de cours organisées par séance et points clés.",
+          "content": "# Nom du cours : Cours X — Titre du chapitre\n\n**Date** :  \n**Enseignant** :\n\n---\n\n## Points clés\n\n- Point 1\n- Point 2\n- Point 3\n\n---\n\n## 1. Titre de section\n\n(Contenu du cours : définitions, théorèmes, exemples. Utiliser des listes ou de courts paragraphes.)\n\n- **Définition** : …\n- **Théorème** : … (preuve : « voir tableau » ou brève)\n- **Exemple** : …\n\n## 2. Titre de section\n\n(Les formules ou étapes importantes peuvent être sur leur propre ligne.)\n\n(Pour les figures/tableaux, écrire « voir diapositive X » ou insérer une image.)\n\n## 3. Résumé et questions\n\n- Enseignements principaux\n- Points à revoir ou approfondir\n\n---\n\n**Suivant** : Aperçu du prochain cours  \n**Devoirs / Lecture** : Section ou exercices\n"
         }
       }
     },

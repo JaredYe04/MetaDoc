@@ -1,28 +1,28 @@
-**From:**  
-Name / Organization  
+**De :**  
+Nom / Organisation  
 Contact
 
-**To:**  
-Name / Organization  
-Address
+**À :**  
+Nom / Organisation  
+Adresse
 
-**Date:** Month Day, Year
+**Date :** Jour Mois, Année
 
-**Subject:** Subject of the letter (optional)
+**Objet :** Objet de la lettre (facultatif)
 
 ---
 
-Dear XXX,
+Madame, Monsieur,
 
-(Opening: state the purpose of the letter.)
+(Ouverture : indiquer l'objet de la lettre.)
 
-(Paragraph 1: Main request or matter.)
+(Paragraphe 1 : Demande principale ou sujet.)
 
-(Paragraph 2: Additional details, reasons, or context.)
+(Paragraphe 2 : Détails supplémentaires, raisons ou contexte.)
 
-(Paragraph 3: Expectations and next steps, e.g. “Looking forward to your reply.”)
+(Paragraphe 3 : Attentes et prochaines étapes, par exemple « Dans l'attente de votre réponse. »)
 
-Sincerely,
+Cordialement,
 
 Signature  
 Date

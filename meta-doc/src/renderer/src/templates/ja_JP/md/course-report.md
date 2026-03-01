@@ -1,49 +1,49 @@
-# Course Report Title
+# レポートタイトル
 
-**Course**:  
-**Type**: Reading report / Topic report / Survey report  
-**Name / ID**:  
-**Date**:
-
----
-
-## Abstract
-
-(200–400 words summarizing the main content, method, and conclusions.)
-
-**Keywords**: keyword1; keyword2; keyword3
+**コース**:  
+**種類**: 読書レポート / トピックレポート / 調査レポート  
+**名前 / ID**:  
+**日付**:
 
 ---
 
-## 1. Introduction
+## 要約
 
-- Background and significance
-- Questions addressed and structure of the report
+（200〜400字で主要な内容、方法、結論を要約してください。）
 
-## 2. Main Content
+**キーワード**: キーワード1; キーワード2; キーワード3
 
-### 2.1 Part One
+---
 
-(Organize by course requirements: literature review, analysis, cases, etc.)
+## 1. はじめに
 
-### 2.2 Part Two
+- 背景と意義
+- 取り組む問題とレポートの構成
 
-(Data, figures, and citations should be properly attributed.)
+## 2. 本文
 
-### 2.3 Part Three
+### 2.1 パート1
 
-(Argument and summary.)
+（コース要件に応じて整理: 文献レビュー、分析、事例など）
 
-## 3. Conclusion and Outlook
+### 2.2 パート2
 
-- Main conclusions
-- Limitations and future work
+（データ、図表、引用には適切な出典を明記してください。）
 
-## References
+### 2.3 パート3
 
-1. Author. Title. _Journal_, Year, Volume(Issue): pages.
-2. Author. _Book Title_. Place: Publisher, Year.
+（論証とまとめ）
 
-## Appendix (optional)
+## 3. 結論と展望
 
-(Questionnaires, raw data, code, etc.)
+- 主な結論
+- 限界と今後の課題
+
+## 参考文献
+
+1. 著者. タイトル. _ジャーナル名_, 年, 巻(号): ページ.
+2. 著者. _書籍タイトル_. 場所: 出版社, 年.
+
+## 付録（オプション）
+
+（アンケート、生データ、コードなど）

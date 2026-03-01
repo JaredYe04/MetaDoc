@@ -1,6 +1,162 @@
 {
-  "activeSessionId": "session-1772388489549-pcw5vmnrt",
+  "activeSessionId": "session-1772394933084-lufi8usl3",
   "sessions": [
+    {
+      "id": "session-1772394933772-bwdb5z35h",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:55:33.772Z",
+      "updatedAt": "2026-03-01T19:55:33.772Z",
+      "messages": [
+        {
+          "id": "msg-1772394933772-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:55:33.772Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:55:33.772Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "session-1772394933605-dkmpjus7c",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:55:33.605Z",
+      "updatedAt": "2026-03-01T19:55:33.605Z",
+      "messages": [
+        {
+          "id": "msg-1772394933605-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:55:33.605Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:55:33.605Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "session-1772394933428-88g85m96e",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:55:33.428Z",
+      "updatedAt": "2026-03-01T19:55:33.428Z",
+      "messages": [
+        {
+          "id": "msg-1772394933428-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:55:33.428Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:55:33.429Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "session-1772394933268-c7919j7ws",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:55:33.268Z",
+      "updatedAt": "2026-03-01T19:55:33.268Z",
+      "messages": [
+        {
+          "id": "msg-1772394933268-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:55:33.268Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:55:33.268Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "session-1772394933084-lufi8usl3",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:55:33.084Z",
+      "updatedAt": "2026-03-01T19:55:33.084Z",
+      "messages": [
+        {
+          "id": "msg-1772394933084-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:55:33.084Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:55:33.084Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "session-1772394932701-6cs6xv31g",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:55:32.701Z",
+      "updatedAt": "2026-03-01T19:55:32.701Z",
+      "messages": [
+        {
+          "id": "msg-1772394932701-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:55:32.701Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:55:32.701Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
     {
       "id": "session-1772393481820-tq6uzr3ur",
       "title": "新会话",
@@ -134,7 +290,12 @@
     }
   ],
   "openTabIds": [
-    "session-1772393481820-tq6uzr3ur",
-    "session-1772388489549-pcw5vmnrt"
+    "session-1772394933772-bwdb5z35h",
+    "session-1772394933605-dkmpjus7c",
+    "session-1772394933428-88g85m96e",
+    "session-1772394933268-c7919j7ws",
+    "session-1772394933084-lufi8usl3",
+    "session-1772394932701-6cs6xv31g",
+    "session-1772393481820-tq6uzr3ur"
   ]
 }

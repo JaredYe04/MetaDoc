@@ -82,7 +82,12 @@
     "contextMenu": {
       "pinTab": "タブを固定",
       "unpinTab": "タブの固定を解除"
-    }
+    },
+    "newDocumentTooltip": "新規ドキュメント",
+    "untitled": "無題",
+    "userManual": "ユーザーマニュアル",
+    "closeTabTooltip": "タブを閉じる",
+    "unsavedIndicator": "未保存"
   },
   "common": {
     "confirm": "確認",
@@ -90,7 +95,17 @@
     "save": "保存",
     "deleteSuccess": "削除に成功しました",
     "deleteFailed": "削除に失敗しました",
-    "close": "ふりがな"
+    "close": "閉じる",
+    "delete": "削除",
+    "edit": "編集",
+    "add": "追加",
+    "refresh": "更新",
+    "loading": "読み込み中...",
+    "success": "成功",
+    "failed": "失敗",
+    "error": "エラー",
+    "warning": "警告",
+    "info": "情報"
   },
   "console": {
     "title": "コンソール出力",
@@ -546,7 +561,13 @@
     "moveUp": "移動する",
     "switchToHorizontal": "水平レイアウトへの切り替え",
     "switchToVertical": "垂直レイアウトへの切り替え",
-    "toggleLayout": "トグルレイアウトオリエンテーション"
+    "toggleLayout": "トグルレイアウトオリエンテーション",
+    "noNodeSelected": "ノードが選択されていません",
+    "nodeNotExist": "ノードが存在しません",
+    "aiOptimizing": "AIが最適化中...",
+    "insertSuccess": "挿入成功",
+    "emptyContent": "（なし）",
+    "noContent": "（なし）"
   },
   "setting": {
     "auto": "自動",
@@ -1062,7 +1083,20 @@
         "totalTasks": "全体タスク",
         "urgent": "緊急事態"
       }
-    }
+    },
+    "userLabel": "ユーザー",
+    "assistantLabel": "アシスタント",
+    "systemLabel": "システム",
+    "thinking": "考え中...",
+    "toolCall": "ツールを呼び出し中",
+    "toolResult": "ツール結果",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "saveFailed": "保存に失敗しました",
+    "callParams": "呼び出しパラメータ",
+    "demoSession1": "コードレビューセッション",
+    "demoSession2": "文書作成アシスタント",
+    "demoSession3": "データ分析エキスパート"
   },
   "sectionOptimizer": {
     "clear": "クリア",
@@ -1156,5 +1190,66 @@
     "xiaoliu": "小六",
     "qihao": "七号",
     "bahao": "八号"
+  },
+  "fontDebugPanel": {
+    "title": "フォントデバッグパネル",
+    "fontPreview": "フォントプレビュー",
+    "statusNormal": "正常",
+    "statusAbnormal": "異常",
+    "collapse": "折りたたむ",
+    "expand": "展開する",
+    "uiFont": "UIフォント",
+    "editorFont": "エディタフォント",
+    "previewFont": "プレビューフォント",
+    "previewText": "AaBbCc ハローワールド",
+    "previewTextAlt": "これはプレビューテキストです",
+    "loadingFonts": "フォントを読み込み中..."
+  },
+  "aigcDetection": {
+    "title": "AIGC検出",
+    "sentenceUniformity": "文の均一性",
+    "lexicalDiversity": "語彙の多様性",
+    "reasoningSmoothness": "推論の滑らかさ",
+    "emotionalConsistency": "感情の一貫性",
+    "contentDepth": "コンテンツの深さ",
+    "informationDensity": "情報密度",
+    "styleConsistency": "スタイルの一貫性",
+    "argumentQuality": "議論の質",
+    "terminologyUsage": "用語の使用",
+    "structuralCompleteness": "構造的完全性",
+    "riskLevel": "リスクレベル",
+    "lowRisk": "低リスク",
+    "mediumRisk": "中リスク",
+    "highRisk": "高リスク",
+    "analyzing": "分析中...",
+    "analysisComplete": "分析完了",
+    "noText": "検出するテキストを入力してください",
+    "uploadSuccess": "アップロード成功",
+    "uploadFailed": "アップロード失敗"
+  },
+  "dataAnalysis": {
+    "title": "データ分析",
+    "hint": "ヒント：テーブルで行をチェックすると、選択したデータのみを分析できます",
+    "noResult": "まだ分析結果がありません。データプレビュータブで分析を開始してください",
+    "salesAnalysis": "販売データ分析",
+    "userBehavior": "ユーザー行動分析",
+    "exportExcel": "Excelにエクスポート",
+    "fileNotFound": "Excelファイルが存在しません",
+    "fileMoved": "ファイルが削除または移動された可能性があります。再度アップロードしてください"
+  },
+  "userFeedback": {
+    "uploadedToGist": "Gistにアップロードしました",
+    "uploading": "アップロード中...",
+    "attachImage": "画像を添付",
+    "submit": "フィードバックを送信",
+    "thankYou": "フィードバックありがとうございます！"
+  },
+  "editor": {
+    "noOpenDocument": "開いているドキュメントがありません",
+    "loading": "プレビューを読み込み中...",
+    "preview": "プレビュー",
+    "edit": "編集",
+    "save": "保存",
+    "unsaved": "未保存"
   }
 }

@@ -162,11 +162,21 @@
   },
   "common": {
     "cancel": "Abbrechen",
-    "confirm": "Bestätigen Sie.",
+    "confirm": "Bestaetigen",
     "deleteFailed": "Nicht zu löschen",
     "deleteSuccess": "Löschen erfolgreich",
     "save": "Speichern",
-    "close": "Schließen"
+    "close": "Schliessen",
+    "delete": "Loeschen",
+    "edit": "Bearbeiten",
+    "add": "Hinzufuegen",
+    "refresh": "Aktualisieren",
+    "loading": "Wird geladen...",
+    "success": "Erfolg",
+    "failed": "Fehlgeschlagen",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Info"
   },
   "console": {
     "title": "Konsolenausgabe",
@@ -306,7 +316,12 @@
     "contextMenu": {
       "pinTab": "Tab anheften",
       "unpinTab": "Tab lösen"
-    }
+    },
+    "newDocumentTooltip": "Neues Dokument",
+    "untitled": "Unbenannt",
+    "userManual": "Benutzerhandbuch",
+    "closeTabTooltip": "Tab schliessen",
+    "unsavedIndicator": "Ungespeichert"
   },
   "lang": "Zh_CN",
   "leftMenu": {
@@ -483,7 +498,13 @@
     "moveUp": "Nach oben",
     "switchToHorizontal": "Umschalten auf horizontales Layout",
     "switchToVertical": "Umschalten auf Vertikales Layout",
-    "toggleLayout": "Toggle Layout Ausrichtung"
+    "toggleLayout": "Toggle Layout Ausrichtung",
+    "noNodeSelected": "Kein Knoten ausgewaehlt",
+    "nodeNotExist": "Knoten existiert nicht",
+    "aiOptimizing": "KI optimiert...",
+    "insertSuccess": "Einfuegen erfolgreich",
+    "emptyContent": "(Keine)",
+    "noContent": "(Keine)"
   },
   "searchReplace": {
     "title": "Suchen und Ersetzen",
@@ -1160,7 +1181,20 @@
         "totalTasks": "Gesamtaufgaben",
         "urgent": "Notfall"
       }
-    }
+    },
+    "userLabel": "Benutzer",
+    "assistantLabel": "Assistent",
+    "systemLabel": "System",
+    "thinking": "Denke nach...",
+    "toolCall": "Tool aufrufen",
+    "toolResult": "Tool-Ergebnis",
+    "error": "Fehler aufgetreten",
+    "retry": "Wiederholen",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "callParams": "Aufrufparameter",
+    "demoSession1": "Code-Review-Sitzung",
+    "demoSession2": "Dokumentenschreibassistent",
+    "demoSession3": "Datenanalyse-Experte"
   },
   "sectionOptimizer": {
     "clear": "Klar.",
@@ -1254,5 +1288,66 @@
     "xiaoliu": "Small Sixth",
     "qihao": "Seventh",
     "bahao": "Eighth"
+  },
+  "fontDebugPanel": {
+    "title": "Schriftart-Debug-Panel",
+    "fontPreview": "Schriftvorschau",
+    "statusNormal": "Normal",
+    "statusAbnormal": "Abnormal",
+    "collapse": "Einklappen",
+    "expand": "Erweitern",
+    "uiFont": "UI-Schriftart",
+    "editorFont": "Editor-Schriftart",
+    "previewFont": "Vorschau-Schriftart",
+    "previewText": "AaBbCc Hallo Welt",
+    "previewTextAlt": "Dies ist Vorschautext",
+    "loadingFonts": "Schriftarten werden geladen..."
+  },
+  "aigcDetection": {
+    "title": "AIGC-Erkennung",
+    "sentenceUniformity": "Satzgleichfoermigkeit",
+    "lexicalDiversity": "Lexikalische Vielfalt",
+    "reasoningSmoothness": "Schlussfolgerungsglaette",
+    "emotionalConsistency": "Emotionale Konsistenz",
+    "contentDepth": "Inhaltstiefe",
+    "informationDensity": "Informationsdichte",
+    "styleConsistency": "Stilkonsistenz",
+    "argumentQuality": "Argumentqualitaet",
+    "terminologyUsage": "Terminologieverwendung",
+    "structuralCompleteness": "Strukturelle Vollstaendigkeit",
+    "riskLevel": "Risikostufe",
+    "lowRisk": "Niedriges Risiko",
+    "mediumRisk": "Mittleres Risiko",
+    "highRisk": "Hohes Risiko",
+    "analyzing": "Analysiere...",
+    "analysisComplete": "Analyse abgeschlossen",
+    "noText": "Bitte geben Sie Text zur Erkennung ein",
+    "uploadSuccess": "Hochladen erfolgreich",
+    "uploadFailed": "Hochladen fehlgeschlagen"
+  },
+  "dataAnalysis": {
+    "title": "Datenanalyse",
+    "hint": "Tipp: Markieren Sie Zeilen in der Tabelle, um nur ausgewaehlte Daten zu analysieren",
+    "noResult": "Noch keine Analyseergebnisse. Bitte starten Sie die Analyse im Daten-Vorschau-Tab",
+    "salesAnalysis": "Verkaufsdatenanalyse",
+    "userBehavior": "Nutzerverhaltensanalyse",
+    "exportExcel": "Nach Excel exportieren",
+    "fileNotFound": "Excel-Datei existiert nicht",
+    "fileMoved": "Datei wurde moeglicherweise geloescht oder verschoben. Bitte laden Sie sie erneut hoch"
+  },
+  "userFeedback": {
+    "uploadedToGist": "Zu Gist hochgeladen",
+    "uploading": "Wird hochgeladen...",
+    "attachImage": "Bild anhaengen",
+    "submit": "Feedback senden",
+    "thankYou": "Vielen Dank fuer Ihr Feedback!"
+  },
+  "editor": {
+    "noOpenDocument": "Kein geoeffnetes Dokument",
+    "loading": "Vorschau wird geladen...",
+    "preview": "Vorschau",
+    "edit": "Bearbeiten",
+    "save": "Speichern",
+    "unsaved": "Ungespeichert"
   }
 }

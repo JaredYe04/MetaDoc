@@ -1916,8 +1916,8 @@ async function generateNewMaterialThreeSteps() {
     const kwStr = newMaterialKeywords.value.length ? newMaterialKeywords.value.join('，') : ''
     const existingContent = (newMaterialContent.value || '').trim()
     backupMaterialContentBeforeGenerate.value = existingContent
-    const fullDocMarkdown = outlineMarkdown || '（暂无）'
-    const materialContext = `标题：${title}；关键词：${kwStr || '（无）'}；已有内容：${existingContent || '（无）'}`
+    const fullDocMarkdown = outlineMarkdown || t('outline.emptyContent')
+    const materialContext = `标题：${title}；关键词：${kwStr || t('outline.noContent')}；已有内容：${existingContent || t('outline.noContent')}`
     const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${fullDocMarkdown}\n\n【当前素材信息】${materialContext}`
     newMaterialContent.value = ''
     const fakeNode: DocumentOutlineNode = {
@@ -2197,9 +2197,9 @@ const generateChildChapter = async () => {
   rawstring.value = ''
   try {
     const node = selectedNode.value
-    if (!node) throw new Error('未选择节点')
+    if (!node) throw new Error(t('outline.noNodeSelected'))
     const currentNode = searchNode(node.path, treeData.value)
-    if (!currentNode) throw new Error('节点不存在')
+    if (!currentNode) throw new Error(t('outline.nodeNotExist'))
 
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
     rawstring.value = '' // 清空之前的内容
@@ -3129,7 +3129,7 @@ async function generateChapterContent() {
   const outlineMarkdown = generateMarkdownFromOutlineTree(treeData.value) || ''
   const kwStr = currentChapterKeywords.value.length ? currentChapterKeywords.value.join('，') : ''
   const existingContent = (currentChapterContent.value || '').trim()
-    const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${outlineMarkdown || '（暂无）'}\n\n【当前章节信息】标题：${currentChapterValue.value || '（无）'}；关键词：${kwStr || '（无）'}；已有内容：${existingContent || '（无）'}`
+    const enhancedUserPrompt = `${prompt}${kwStr ? `\n关键词：${kwStr}` : ''}\n\n【重要】请严格遵守用户在提示词中提出的格式、风格、长度、禁止事项等一切规约。\n\n【当前整篇文章内容（供参考）】\n${outlineMarkdown || t('outline.emptyContent')}\n\n【当前章节信息】标题：${currentChapterValue.value || t('outline.noContent')}；关键词：${kwStr || t('outline.noContent')}；已有内容：${existingContent || t('outline.noContent')}`
   currentChapterContent.value = ''
   chapterGenerateAbortControllerRef.value = new AbortController()
   try {

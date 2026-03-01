@@ -415,6 +415,16 @@
       "new": "Neues Dokument",
       "open": "Dokument öffnen"
     },
+    "toolTab": {
+      "ocr": "OCR-Erkennung",
+      "graph": "Diagramm",
+      "attachment": "Anhangsanalyse",
+      "dataAnalysis": "Datenanalyse",
+      "formulaRecognition": "Formelerkennung",
+      "aiChat": "AI-Chat",
+      "setting": "Einstellungen",
+      "aigcDetection": "AIGC-Erkennung"
+    },
     "defaultText": "# Welcome to MetaDoc\n\nDies ist eine AI-gesteuerte Textverarbeitungssoftware, die Ihnen hilft, Dokumentinhalte schnell zu generieren.",
     "documentInfoLabel": "Dokumenteninformation Füllung",
     "label": {

@@ -625,6 +625,16 @@
       "new": "새 문서",
       "open": "문서 열기"
     },
+    "toolTab": {
+      "ocr": "OCR 인식",
+      "graph": "그래프",
+      "attachment": "첨부 파일 분석",
+      "dataAnalysis": "데이터 분석",
+      "formulaRecognition": "수식 인식",
+      "aiChat": "AI 채팅",
+      "setting": "설정",
+      "aigcDetection": "AIGC 감지"
+    },
     "authorLabel": "작성자",
     "abstractLabel": "요약",
     "quickStartTitle": "빠른 시작",

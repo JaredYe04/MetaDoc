@@ -1764,6 +1764,16 @@
       "new": "新建文档",
       "open": "打开文档"
     },
+    "toolTab": {
+      "ocr": "OCR识别",
+      "graph": "绘图",
+      "attachment": "附件解析",
+      "dataAnalysis": "数据分析",
+      "formulaRecognition": "公式识别",
+      "aiChat": "AI对话",
+      "setting": "设置",
+      "aigcDetection": "AIGC检测"
+    },
     "temperatureMarks": {
       "rigorous": "严谨",
       "balanced": "平衡",

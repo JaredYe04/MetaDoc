@@ -141,6 +141,34 @@
       "chat": "Convert to chat",
       "acceptReplace": "Accept and replace",
       "acceptAppend": "Accept and append"
+    },
+    "presetPrompts": {
+      "expand": {
+        "value": "Expand this text",
+        "label": "Expand this text"
+      },
+      "condense": {
+        "value": "Condense this text",
+        "label": "Condense this text"
+      },
+      "polish": {
+        "value": "Polish the writing to make it more elegant",
+        "label": "Polish the writing"
+      },
+      "generateSection": {
+        "value": "Generate content for this section based on the overall article context, with rich and detailed information",
+        "label": "Generate section content"
+      },
+      "proofread": {
+        "value": "Fix all grammatical errors, typos, and inappropriate phrasing in the text while preserving the original meaning",
+        "label": "Proofread and edit"
+      },
+      "flowchart": {
+        "value": "Generate a mermaid flowchart based on this section's content, wrapped in code block"
+      },
+      "mindmap": {
+        "value": "Generate a mermaid mindmap based on the article structure, wrapped in code block"
+      }
     }
   },
   "userProfile": {
@@ -1840,6 +1868,10 @@
     "demoSession1": "Code Review Session",
     "demoSession2": "Document Writing Assistant",
     "demoSession3": "Data Analysis Expert"
+  },
+  "agentToolResultCard": {
+    "emptyResultSaveFile": "Save file call returned empty result",
+    "saveFailed": "Save failed"
   },
   "sectionOptimizer": {
     "clear": "Clear",

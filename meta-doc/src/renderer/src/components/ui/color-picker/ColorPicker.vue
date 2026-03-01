@@ -63,7 +63,7 @@ const handlePredefineClick = (color: string) => {
             v-for="(color, index) in predefine"
             :key="index"
             type="button"
-            class="w-5 h-5 rounded-sm border border-gray-300 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="w-5 h-5 rounded-sm border border-gray-300 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
             :style="{ backgroundColor: color }"
             @click="handlePredefineClick(color)"
           />

@@ -1898,8 +1898,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       temperature: await this.getTemperature(),
       stream: true,
       signal: this.options.signal,
-      taskName: 'Workflow引擎选择',
-      originKey: `agent-workflow-${this.session.id}-${Date.now()}-select`,
+      taskName: '计划步骤选择',
+      originKey: `agent-plan-${this.session.id}-${Date.now()}-select`,
       onTaskCreated: this.options.onTaskCreated
       // 注意：这里没有reactiveMessage，所以不需要onToolCallsDetected
     })

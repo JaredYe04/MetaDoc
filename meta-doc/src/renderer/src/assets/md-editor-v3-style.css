@@ -3360,12 +3360,12 @@ svg.md-editor-icon {
 .md-editor-toolbar-wrapper .md-editor-toolbar-item:hover .lucide-list-icon {
   opacity: 1;
 }
-/* 左右分屏：仅预览区左侧分割线可见，resize 条保持透明 */
-.md-editor-preview-wrapper {
+/* 左右分屏：仅预览区左侧分割线可见，resize 条保持透明；仅对完整编辑器生效，仅预览（如聊天气泡）不加左边线 */
+.md-editor:not(.md-editor-previewOnly) .md-editor-preview-wrapper {
   border-left: 2px solid rgba(128, 128, 128, 0.35);
   margin-left: 0;
 }
-.md-editor-dark .md-editor-preview-wrapper {
+.md-editor-dark:not(.md-editor-previewOnly) .md-editor-preview-wrapper {
   border-left-color: rgba(255, 255, 255, 0.2);
 }
 .md-editor-resize-operate {

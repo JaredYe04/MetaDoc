@@ -2,7 +2,7 @@
   <div class="agent-config-manager" :style="containerStyle">
     <div class="manager-header">
       <h2>{{ t('agent.manage.agentConfig.title') }}</h2>
-      <div>
+      <div class="manager-header-actions">
         <Button @click="handleImport">{{ t('agent.manage.import') }}</Button>
         <Button type="primary" @click="handleCreate">
           <Plus class="h-4 w-4 mr-1" />
@@ -520,6 +520,12 @@ onMounted(() => {
 
 .manager-header h2 {
   margin: 0;
+}
+
+.manager-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .form-hint {

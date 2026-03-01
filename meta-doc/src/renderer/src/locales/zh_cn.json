@@ -2398,6 +2398,21 @@
         "currentActiveDocument": "当前活动文档"
       }
     },
+    "compact": {
+      "untitled": "未命名会话",
+      "recentSessions": "最近会话",
+      "newSession": "新建会话",
+      "newSessionTitle": "新会话",
+      "today": "今天",
+      "yesterday": "昨天",
+      "lastWeek": "上周",
+      "lastMonth": "上个月",
+      "older": "更早",
+      "loadMore": "展示更多 10 条",
+      "closeTab": "关闭标签",
+      "exportJson": "导出为 JSON",
+      "deleteSession": "删除会话"
+    },
     "conversation": {
       "emptyTitle": "暂无会话",
       "messages": "消息 {count} 条",

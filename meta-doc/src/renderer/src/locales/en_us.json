@@ -1556,6 +1556,21 @@
       "renameRequired": "Title is required",
       "renameSuccess": "Session renamed successfully"
     },
+    "compact": {
+      "untitled": "Untitled",
+      "recentSessions": "Recent sessions",
+      "newSession": "New session",
+      "newSessionTitle": "New session",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "lastWeek": "Last week",
+      "lastMonth": "Last month",
+      "older": "Older",
+      "loadMore": "Show 10 more",
+      "closeTab": "Close tab",
+      "exportJson": "Export as JSON",
+      "deleteSession": "Delete session"
+    },
     "conversation": {
       "emptyTitle": "No Active Session",
       "messages": "{{count}} messages",

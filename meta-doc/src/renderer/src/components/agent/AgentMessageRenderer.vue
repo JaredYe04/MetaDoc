@@ -1,9 +1,9 @@
 <template>
-  <div :class="['agent-message', alignmentClass]">
+  <div :class="['agent-message', alignmentClass, { 'agent-message--compact': compact }]">
     <div class="agent-message__main">
       <!-- 消息气泡（用户消息保持气泡样式，AI消息平铺） -->
       <div
-        :class="['agent-message__body', { 'agent-message__body--flat': message.role !== 'user' }]"
+        :class="['agent-message__body', { 'agent-message__body--flat': message.role !== 'user', 'agent-message__body--user-compact': compact && message.role === 'user' }]"
         :style="bubbleStyle"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
@@ -176,19 +176,53 @@
         </div>
       </div>
 
-      <!-- 用户消息：头像在右边 -->
+      <!-- 用户消息：头像在右边（紧凑模式不显示） -->
       <div
-        v-if="message.role === 'user'"
+        v-if="message.role === 'user' && !compact"
         class="agent-message__avatar agent-message__avatar--right"
       >
         <Tooltip :content="userName" placement="left" :disabled="!userName">
-          <Avatar class="avatar-fallback">
-            <AvatarFallback>
-              <User />
+          <Avatar class="avatar-fallback user-avatar">
+            <AvatarFallback class="user-avatar-fallback">
+              <el-icon class="user-avatar-icon"><User /></el-icon>
             </AvatarFallback>
           </Avatar>
         </Tooltip>
       </div>
+    </div>
+
+    <!-- 用户消息操作按钮（紧凑模式下在气泡下方，始终显示，与 AI 消息一致） -->
+    <div v-if="compact && message.role === 'user' && message.type === 'chat'" class="user-message-actions">
+      <Tooltip :content="t('agent.message.edit')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          @click.stop.prevent="handleEdit"
+        >
+          <el-icon><Edit /></el-icon>
+        </Button>
+      </Tooltip>
+      <Tooltip :content="t('agent.message.regenerate')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          @click.stop.prevent="emit('regenerate', message)"
+        >
+          <el-icon><Refresh /></el-icon>
+        </Button>
+      </Tooltip>
+      <Tooltip :content="t('agent.message.delete')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          @click.stop.prevent="emit('delete', message)"
+        >
+          <el-icon><Delete /></el-icon>
+        </Button>
+      </Tooltip>
     </div>
 
     <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
@@ -228,7 +262,7 @@
       :references="sessionReferences"
       :active-reference-ids="(message as ChatAgentMessage).referenceIds || []"
       readonly
-      class="agent-message__references"
+      :class="['agent-message__references', { 'agent-message__references--compact': compact }]"
     />
   </div>
 </template>
@@ -268,13 +302,18 @@ import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
 
-const props = defineProps<{
-  message: AgentMessage
-  messages?: AgentMessage[] // 传递整个消息数组，用于检查tool_calls是否已完成
-  messageIndex?: number // 当前消息的索引
-  userName?: string
-  sessionReferences?: Reference[] // 会话的引用列表
-}>()
+const props = withDefaults(
+  defineProps<{
+    message: AgentMessage
+    messages?: AgentMessage[] // 传递整个消息数组，用于检查tool_calls是否已完成
+    messageIndex?: number // 当前消息的索引
+    userName?: string
+    sessionReferences?: Reference[] // 会话的引用列表
+    /** 紧凑模式：用户消息无头像、占满宽、小边距小圆角小字号 */
+    compact?: boolean
+  }>(),
+  { compact: false }
+)
 
 const emit = defineEmits<{
   (e: 'edit', message: AgentMessage): void
@@ -945,13 +984,49 @@ onBeforeUnmount(() => {
 .avatar-with-mask {
   width: 40px;
   height: 40px;
-  background-color: rgba(64, 158, 255, 0.15);
-  border: 2px solid rgba(64, 158, 255, 0.3);
+  background-color: rgba(64, 158, 255, 0.08);
+  border: 2px solid rgba(64, 158, 255, 0.2);
 }
 
 .avatar-fallback {
   width: 40px;
   height: 40px;
+  background-color: rgba(64, 158, 255, 0.08) !important;
+}
+
+/* 用户头像：确保 Fallback 与图标可见，背景浅色 */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(64, 158, 255, 0.08) !important;
+}
+
+.user-avatar :deep(span) {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--el-text-color-regular);
 }
 
 .agent-message__body {
@@ -978,11 +1053,12 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* AI消息：平铺展示，无气泡效果，无头像，占满宽度 */
+/* AI消息：平铺展示，无气泡效果，无头像，占满宽度，左侧无细线 */
 .agent-message__body--flat {
   width: 100%;
   max-width: 100%;
-  border: none;
+  border: none !important;
+  border-left: none !important;
   border-radius: 0;
   box-shadow: none;
   background: transparent !important;
@@ -994,8 +1070,45 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
+/* 确保 AI 消息内容区域左侧无装饰线 */
+.agent-message.align-left .agent-message__body--flat,
+.agent-message.align-left .agent-message__body--flat .agent-message__content {
+  border-left: none !important;
+}
+
+/* 紧凑模式：用户消息气泡占满宽、小边距小圆角小字号、可选中文字 */
+.agent-message--compact.agent-message.align-right .agent-message__body:not(.agent-message__body--flat) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.agent-message__body--user-compact {
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.agent-message__body--user-compact .agent-message__content :deep(.md-editor-preview),
+.agent-message__body--user-compact .agent-message__content :deep(.md-editor-preview p) {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.agent-message__references.agent-message__references--compact {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+}
+
+.agent-message--compact.align-right .agent-message__references {
+  margin-right: 0;
+}
+
 /* AI消息底部操作按钮 */
-.ai-message-actions {
+.ai-message-actions,
+.user-message-actions {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -1056,6 +1169,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .agent-message__content :deep(.md-editor) {

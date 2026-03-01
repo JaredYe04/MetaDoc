@@ -2,9 +2,9 @@
 
 ## 概述
 
-Agent框架是MetaDoc中用于构建和管理智能Agent系统的核心框架，采用**分层架构设计**。它提供了完整的Agent生命周期管理，包括会话管理、配置管理、工具集管理、工作流管理和引擎管理等功能。
+Agent框架是MetaDoc中用于构建和管理智能Agent系统的核心框架，采用**分层架构设计**。它提供了完整的Agent生命周期管理，包括会话管理、配置管理、工具集管理和引擎管理等功能。
 
-Agent框架基于已有的Tool系统构建，通过工作流（Workflow）、Agent配置（AgentConfig）、工具集（ToolCollection）和Agent会话（AgentSession）等核心组件，实现了灵活、可扩展的Agent系统。
+Agent框架基于已有的Tool系统构建，通过Agent配置（AgentConfig）、工具集（ToolCollection）和Agent会话（AgentSession）等核心组件，实现了灵活、可扩展的Agent系统。
 
 <AgentSessionManager mode="demo" />
 
@@ -55,7 +55,7 @@ package "Agent框架核心" {
     }
     RECTANGLE AgentEngine {
         Agent引擎
-        (5种范式)
+        (4种范式)
     }
     RECTANGLE LLMAdapter {
         LLM适配器
@@ -93,7 +93,7 @@ LLMAdapter --> Infrastructure
 | **会话管理**   | `src/renderer/src/utils/agent-framework/agent-session-manager.ts`   | AgentSession生命周期管理  |
 | **工具集管理** | `src/renderer/src/utils/agent-framework/tool-collection-manager.ts` | 工具集的组织和管理        |
 | **引擎管理**   | `src/renderer/src/utils/agent-framework/agent-engine-manager.ts`    | Agent引擎配置管理         |
-| **引擎执行**   | `src/renderer/src/utils/agent-framework/agent-engine-executor.ts`   | 5种执行范式实现           |
+| **引擎执行**   | `src/renderer/src/utils/agent-framework/agent-engine-executor.ts`   | 4种执行范式实现           |
 | **工具运行**   | `src/renderer/src/utils/agent-framework/tool-runner.ts`             | 统一工具调用入口          |
 | **LLM适配**    | `src/renderer/src/utils/agent-framework/llm-adapter.ts`             | 多LLM提供商适配           |
 
@@ -174,7 +174,6 @@ export interface AgentConfig {
   }
   behavior?: {
     allowToolCalls?: boolean
-    allowWorkflowCalls?: boolean
   }
   scenario?: 'outline' | 'editor' | 'analysis' | 'visualization' | 'custom'
 }
@@ -196,14 +195,6 @@ export interface AgentConfig {
 工具集是一组Agent工具的集合，用于组织和管理Agent可用的工具。AgentConfig可以关联多个工具集，可用工具取所有工具集的交集。
 
 详见[[agent.tools|工具集管理]]。
-
-### 工作流（Workflow）
-
-<ChartGenerationDisplay mode="demo" />
-
-工作流以程序流程图的方式规定了固定的、标准化的执行流程，减少由于大模型随机性造成的结果差异。工作流可以作为工具被Agent调用，也可以嵌套使用。
-
-详见[[agent.workflow|工作流管理]]。
 
 ### 引用素材（Reference）
 
@@ -234,11 +225,8 @@ graph LR
     E --> F[LLM调用]
     E --> G[工具调用]
     G --> H[工具执行]
-    G --> I[工作流执行]
-    I --> J[节点执行]
     F --> K[消息生成]
     H --> K
-    J --> K
     K --> B
     style A fill:#f3f4f6,stroke:#374151
     style B fill:#f3f4f6,stroke:#374151
@@ -289,7 +277,6 @@ sequenceDiagram
 - **会话管理**：创建、删除、复制、导出/导入会话
 - **配置管理**：灵活的Agent配置，支持多工具集交集
 - **工具集管理**：组织和管理Agent工具
-- **工作流管理**：图形化创建工作流，支持复杂执行逻辑
 - **引用素材管理**：管理会话中的引用文档和文件
 - **引擎管理**：支持多种执行范式，可自定义引擎
 
@@ -307,9 +294,9 @@ Agent框架适用于以下场景：
 
 - **文档编辑**：使用Agent工具进行文档编辑和优化
 - **数据分析**：使用数据分析工具进行数据处理和可视化
-- **内容生成**：使用工作流生成结构化的内容
+- **内容生成**：使用Agent引擎与工具集生成结构化内容
 - **知识检索**：结合知识库进行智能检索和分析
-- **自动化任务**：通过工作流实现复杂的自动化任务
+- **自动化任务**：通过 Agent 与工具集实现多步骤任务
 
 ## 快速开始
 
@@ -319,15 +306,14 @@ Agent框架适用于以下场景：
 2. [[agent.config|Agent配置管理]]：了解如何配置Agent
 3. [[agent.tools|工具集管理]]：学习如何管理工具集
 4. [[agent.session|Agent会话管理]]：创建和管理会话
-5. [[agent.workflow|工作流管理]]：创建复杂的工作流
-6. [[agent.references|引用素材管理]]：管理引用素材
-7. [[agent.engine|Agent引擎管理]]：选择和配置引擎
+5. [[agent.references|引用素材管理]]：管理引用素材
+6. [[agent.engine|Agent引擎管理]]：选择和配置引擎
 
 ## 常见问题
 
 ### Q: Agent框架和AI对话有什么区别？
 
-A: AI对话是简单的对话功能，而Agent框架提供了完整的Agent系统，包括工具调用、工作流执行、引用素材管理等高级功能。Agent框架可以执行复杂的任务，而不仅仅是对话。
+A: AI对话是简单的对话功能，而Agent框架提供了完整的Agent系统，包括工具调用、引用素材管理等高级功能。Agent框架可以执行复杂的任务，而不仅仅是对话。
 
 ### Q: 如何选择合适的Agent引擎？
 
@@ -337,22 +323,16 @@ A:
 - **ReAct引擎**：适合需要详细推理步骤的任务，显式思考过程
 - **PlanExecute引擎**：适合需要结构化执行的任务，先规划再执行
 - **SimpleChat引擎**：适合纯对话任务，不调用工具
-- **Workflow引擎**：专为执行Workflow工具而设计
 
 ### Q: 工具集交集是什么意思？
 
 A: 当AgentConfig关联多个工具集时，可用的工具是所有工具集的交集。例如，工具集A包含`[tool1, tool2, tool3]`，工具集B包含`[tool2, tool3, tool4]`，则AgentConfig可用工具为`[tool2, tool3]`。
-
-### Q: 工作流和Agent有什么区别？
-
-A: 工作流不是Agent，它是一种将多个Tool/Workflow组合封装成一个新的Tool的方式。工作流本质上是复杂的Tool调用，不参与Agent的内部推理逻辑。Agent的执行策略由Agent引擎决定。
 
 ## 相关文档
 
 - [[agent.session|Agent会话管理]]
 - [[agent.config|Agent配置管理]]
 - [[agent.tools|工具集管理]]
-- [[agent.workflow|工作流管理]]
 - [[agent.references|引用素材管理]]
 - [[agent.engine|Agent引擎管理]]
 - [[ai.llm-config|LLM配置]]

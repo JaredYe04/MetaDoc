@@ -32,7 +32,7 @@
         @click.stop="toggleCollapse"
         @mouseenter="handleCollapseButtonEnter"
         @mouseleave="handleCollapseButtonLeave"
-        :title="collapseButtonTitle"
+        :title="resolvedCollapseButtonTitle"
       >
         <el-icon
           ><ArrowLeft v-if="sidebarOnLeft" /><ArrowRight
@@ -62,7 +62,7 @@
       @click="toggleCollapse"
       @mouseenter="handleExpandButtonEnter"
       @mouseleave="handleExpandButtonLeave"
-      :title="expandButtonTitle"
+        :title="resolvedExpandButtonTitle"
     >
       <el-icon
         ><ArrowRight v-if="sidebarOnLeft" /><ArrowLeft
@@ -130,8 +130,8 @@ const props = withDefaults(defineProps<Props>(), {
   collapsible: false,
   showCollapseButton: true,
   autoCollapseWidth: 0,
-  collapseButtonTitle: t('resizableContainer.collapse'),
-  expandButtonTitle: t('resizableContainer.expand'),
+  collapseButtonTitle: undefined,
+  expandButtonTitle: undefined,
   collapsedWidth: 0,
   sidebarOnLeft: false,
   storageKey: undefined,
@@ -199,6 +199,15 @@ const isCollapsed = ref(savedState?.collapsed ?? false)
 
 // 是否显示展开按钮
 const showExpandButton = ref(false)
+
+// 按钮标题（使用计算属性支持国际化）
+const resolvedCollapseButtonTitle = computed(() => {
+  return props.collapseButtonTitle ?? t('resizableContainer.collapse')
+})
+
+const resolvedExpandButtonTitle = computed(() => {
+  return props.expandButtonTitle ?? t('resizableContainer.expand')
+})
 
 // 是否显示折叠按钮（仅当鼠标靠近 divider 中心时为 true）
 const showCollapseButtonHover = ref(false)

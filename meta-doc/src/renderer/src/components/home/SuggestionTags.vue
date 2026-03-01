@@ -1,7 +1,7 @@
 <template>
   <div class="suggestion-tags-container">
     <div class="suggestion-tags-header">
-      <span class="suggestion-tags-title">{{ title }}</span>
+      <span class="suggestion-tags-title">{{ resolvedTitle }}</span>
       <Button
         size="sm"
         variant="ghost"
@@ -30,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
@@ -49,8 +50,13 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: t('home.suggestionTagsTitle', '建议标签'),
+  title: undefined,
   disabled: false
+})
+
+// 使用计算属性支持国际化
+const resolvedTitle = computed(() => {
+  return props.title ?? t('home.suggestionTagsTitle', '建议标签')
 })
 
 const emit = defineEmits<{

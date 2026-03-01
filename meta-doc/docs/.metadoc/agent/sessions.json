@@ -1,0 +1,140 @@
+{
+  "activeSessionId": "session-1772388489549-pcw5vmnrt",
+  "sessions": [
+    {
+      "id": "session-1772393481820-tq6uzr3ur",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:31:21.820Z",
+      "updatedAt": "2026-03-01T19:31:21.820Z",
+      "messages": [
+        {
+          "id": "msg-1772393481820-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:31:21.820Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:31:21.820Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "session-1772388489549-pcw5vmnrt",
+      "title": "新規セッション",
+      "description": "",
+      "createdAt": "2026-03-01T18:08:09.549Z",
+      "updatedAt": "2026-03-01T18:08:09.549Z",
+      "messages": [
+        {
+          "id": "msg-1772388489549-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T18:08:09.549Z",
+          "markdown": "### こんにちは！私はMetaDoc AIアシスタントです！\n\n私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に活用し、図表やグラフを含むプロフェッショナルで豊かな多領域の記事を作成するお手伝いをします。\n\n私ができること：\n- RAGツールで関連知識を検索\n- チャート生成ツールでビジュアライゼーションを作成\n- 編集ツールで文書構造を最適化\n- 校正ツールでコンテンツの品質を確保\n\nあなたのニーズを教えてください。文書作成タスクの完了に最善を尽くします！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T18:08:09.549Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "demo-session-1",
+      "title": "代码审查会话",
+      "description": "审查 Vue 组件代码",
+      "createdAt": "2026-02-28T17:20:26.717Z",
+      "updatedAt": "2026-03-01T17:20:26.717Z",
+      "messages": [
+        {
+          "id": "demo-msg-1",
+          "role": "user",
+          "type": "chat",
+          "timestamp": "2026-03-01T16:20:26.717Z",
+          "markdown": "请帮我审查这个 Vue 组件的代码质量"
+        },
+        {
+          "id": "demo-msg-2",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T16:22:06.717Z",
+          "markdown": "我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范"
+        }
+      ],
+      "activeToolIds": [
+        "code-executor"
+      ],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "document": {
+          "id": "demo-doc-1",
+          "path": "",
+          "format": "md"
+        }
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "demo-session-2",
+      "title": "文档编写助手",
+      "description": "翻译技术文档",
+      "createdAt": "2026-02-27T17:20:26.717Z",
+      "updatedAt": "2026-02-28T17:20:26.717Z",
+      "messages": [
+        {
+          "id": "demo-msg-3",
+          "role": "user",
+          "type": "chat",
+          "timestamp": "2026-02-28T16:20:26.717Z",
+          "markdown": "将这段文档翻译成中文"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {},
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
+      "id": "demo-session-3",
+      "title": "数据分析专家",
+      "description": "分析错误日志",
+      "createdAt": "2026-02-26T17:20:26.717Z",
+      "updatedAt": "2026-02-27T17:20:26.717Z",
+      "messages": [],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {},
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    }
+  ],
+  "openTabIds": [
+    "session-1772393481820-tq6uzr3ur",
+    "session-1772388489549-pcw5vmnrt"
+  ]
+}

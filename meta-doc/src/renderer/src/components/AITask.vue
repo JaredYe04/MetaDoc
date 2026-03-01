@@ -45,7 +45,7 @@
             </Button>
           </div>
         </div>
-        <!-- 显示错误信息 -->
+        <!-- {{ t('aiTask.showError') }} -->
         <div
           v-if="taskStatus === ai_task_status.FAILED && task.error"
           style="
@@ -57,7 +57,7 @@
           "
         >
           <AlertTriangle class="w-4 h-4" style="vertical-align: middle; margin-right: 4px" />
-          <strong>{{ t('aiTask.error') || '错误' }}:</strong> {{ task.error }}
+          <strong>{{ t('aiTask.errorTitle') }}:</strong> {{ task.error }}
         </div>
       </div>
     </CardContent>

@@ -80,7 +80,9 @@ export async function refreshFontsIncremental(): Promise<SystemFont[]> {
       return true
     })
     const merged = [...current, ...toAdd].sort((a, b) =>
-      (a.displayName || a.name).localeCompare(b.displayName || b.name, undefined, { sensitivity: 'base' })
+      (a.displayName || a.name).localeCompare(b.displayName || b.name, undefined, {
+        sensitivity: 'base'
+      })
     )
     cachedFonts = merged
     return merged

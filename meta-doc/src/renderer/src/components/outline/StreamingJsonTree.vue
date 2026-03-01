@@ -3,7 +3,7 @@
     <template v-if="parsed">
       <ul class="streaming-json-tree__list">
         <li v-for="(node, i) in parsed.nodes" :key="i" class="streaming-json-tree__item">
-          <span class="streaming-json-tree__title">{{ node.title || '(无标题)' }}</span>
+          <span class="streaming-json-tree__title">{{ node.title || t('outline.noTitle', '(无标题)') }}</span>
           <StreamingJsonTree
             v-if="node.children?.length"
             :raw="jsonStringify(node.children)"
@@ -18,7 +18,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const props = defineProps<{ raw: string }>()
 
 /** 尝试将可能未闭合的流式 JSON 补全并解析为大纲节点数组 */

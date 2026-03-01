@@ -14,7 +14,7 @@
         <!-- 左侧：编辑器区域 -->
         <div class="preview-section">
           <div class="preview-header">
-            <span class="section-label">LaTeX 代码</span>
+            <span class="section-label">{{ $t('home.latexCode') }}</span>
           </div>
           <div class="editor-container">
             <div class="generated-latex-container" ref="editorContainerRef"></div>

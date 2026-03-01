@@ -2,11 +2,7 @@
   <div class="basic-settings">
     <h3 class="section-title">{{ t('setting.basic') }}</h3>
     <Form class="settings-form">
-      <FormField
-        :label="t('setting.startupOption')"
-        name="startupOption"
-        layout="horizontal"
-      >
+      <FormField :label="t('setting.startupOption')" name="startupOption" layout="horizontal">
         <Select
           v-model="settings.startupOption"
           @update:model-value="saveSetting('startupOption', settings.startupOption)"
@@ -78,11 +74,7 @@
         </div>
       </FormField> -->
 
-      <FormField
-        :label="t('setting.autoSave')"
-        name="autoSave"
-        layout="horizontal"
-      >
+      <FormField :label="t('setting.autoSave')" name="autoSave" layout="horizontal">
         <Select
           v-model="settings.autoSave"
           @update:model-value="saveSetting('autoSave', settings.autoSave)"
@@ -205,11 +197,7 @@
       <!-- 字体设置分组 -->
       <div class="font-settings-group">
         <h4 class="font-group-title">{{ t('setting.fontUi', '界面字体') }}</h4>
-        <FormField
-          :label="t('setting.fontUiLabel', 'UI字体')"
-          name="fontUi"
-          layout="horizontal"
-        >
+        <FormField :label="t('setting.fontUiLabel', 'UI字体')" name="fontUi" layout="horizontal">
           <FontSelect
             v-model="settings.fontUi"
             default-recommended="OPPO Sans 4.0"
@@ -454,7 +442,7 @@ const refreshReferenceDirSize = async () => {
     const size = (await messageBridge.invoke('get-reference-dir-size')) as number
     referenceDirSize.value = size
   } catch (error) {
-    notifyError('获取目录大小失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(t('setting.getDirSizeFailed', '获取目录大小失败') + ': ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -468,7 +456,7 @@ const openReferenceDir = async () => {
 
     await messageBridge.invoke('open-reference-dir')
   } catch (error) {
-    notifyError('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(t('setting.openDirFailed', '打开目录失败') + ': ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -498,7 +486,7 @@ const clearReferenceDir = async () => {
     notifySuccess(t('setting.clearReferenceDirSuccess', '目录已清空'))
   } catch (error) {
     if (error !== 'cancel') {
-      notifyError('清空目录失败: ' + (error instanceof Error ? error.message : String(error)))
+      notifyError(t('setting.clearReferenceDirFailed', '清空目录失败') + ': ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 }

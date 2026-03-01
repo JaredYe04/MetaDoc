@@ -106,7 +106,7 @@ const renderChart = async () => {
   } catch (error) {
     logger.error('渲染图表失败:', error)
     if (chartContainerRef.value) {
-      chartContainerRef.value.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
+      chartContainerRef.value.innerHTML = `<p style="color: var(--el-color-danger);">${t('graph.renderFailed')}: ${error instanceof Error ? error.message : String(error)}</p>`
     }
   }
 }

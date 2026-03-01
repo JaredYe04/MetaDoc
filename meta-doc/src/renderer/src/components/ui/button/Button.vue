@@ -68,7 +68,12 @@ const computedClass = computed(() => {
   <Primitive
     :as="as"
     :as-child="asChild"
-    :class="cn(buttonVariants({ variant: computedVariant, size: computedSize, circle: props.circle }), computedClass)"
+    :class="
+      cn(
+        buttonVariants({ variant: computedVariant, size: computedSize, circle: props.circle }),
+        computedClass
+      )
+    "
     :disabled="props.disabled || props.loading"
   >
     <slot />

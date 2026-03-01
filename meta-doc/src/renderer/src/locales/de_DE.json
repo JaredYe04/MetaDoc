@@ -1053,7 +1053,47 @@
       "exportSnapshotSuccess": "Ausführungssnapshot exportiert",
       "exportSnapshotFailed": "Export des Ausführungssnapshots fehlgeschlagen",
       "renderResult": "Rendering-Ergebnis",
-      "rawResult": "Rohdaten-Ergebnis"
+      "rawResult": "Rohdaten-Ergebnis",
+      "hasUpdateAvailable": "Update verfügbar",
+      "noUpdateAvailable": "Bereits neueste Version",
+      "simulateNetworkError": "Netzwerkfehler simulieren",
+      "checking": "Wird geprüft...",
+      "checkUpdateBtn": "Auf Updates prüfen",
+      "resetStatus": "Status zurücksetzen",
+      "updateStatus": "Update-Status",
+      "currentVersion": "Aktuelle Version",
+      "checkUpdateFailed": "Update-Prüfung fehlgeschlagen",
+      "downloadUpdate": "Update herunterladen",
+      "downloading": "Wird heruntergeladen",
+      "cancelDownload": "Download abbrechen",
+      "testHistory": "Testverlauf",
+      "testCase": "Testfall",
+      "testCaseIdPlaceholder": "Testfall-ID eingeben (z.B.: color-processing::mix-001)",
+      "selectTestCasePlaceholder": "Testfall aus test-cases.json auswählen",
+      "selectConfigPlaceholder": "Gespeicherte Konfiguration auswählen",
+      "selectContextTab": "Kontext-Tab auswählen (zur Simulation der Dokumentenumgebung, optional)",
+      "useCurrentActiveTab": "(Nicht angeben, aktiven Tab verwenden)",
+      "contextTabTooltip": "Dokument-Tab als Kontext auswählen, alle Werkzeugoperationen werden in diesem Tab durchgeführt. Wenn nicht ausgewählt, wird der aktive Tab verwendet.",
+      "toolDescPlaceholder": "Bitte zuerst ein Tool auswählen, um Beschreibung anzuzeigen",
+      "toolDescDefault": "Dies ist die detaillierte Beschreibung des Tools, enthält Parameterformat, Anwendungsszenarien usw.",
+      "paramsPlaceholder": "Bitte Parameter im JSON-Format eingeben, z.B.: {\"prompt\": \"Flussdiagramm generieren\", \"chartType\": \"mermaid\"}",
+      "selectToolPlaceholder": "Zu testendes Tool auswählen (leer lassen für alle)",
+      "selectModulePlaceholder": "Zu testendes Modul auswählen (leer lassen für alle)",
+      "toolCalls": "Werkzeugaufrufe",
+      "referenceCount": "Referenzanzahl",
+      "replayed": "Wiedergegeben",
+      "toolCallsCount": "Insgesamt {count} Werkzeugaufrufe",
+      "paramsPreview": "Parametervorschau",
+      "noToolDesc": "Dieses Tool bietet keine detaillierte Beschreibung",
+      "configLoaded": "Konfiguration geladen",
+      "configUpdated": "Konfiguration aktualisiert",
+      "configSaved": "Konfiguration gespeichert",
+      "enterTestCaseId": "Bitte Testfall-ID eingeben",
+      "testCaseLoaded": "Testfall geladen: {name}",
+      "testCaseNotFound": "Testfall mit ID \"{id}\" nicht gefunden",
+      "toolTestCaseNotFound": "Keine Testfälle für dieses Tool gefunden",
+      "testCaseNotFoundById": "Dieser Testfall nicht gefunden",
+      "selectConfigFirst": "Bitte zuerst eine Konfiguration auswählen"
     },
     "autoCompletionMaxTokens": "Automatisches Gesamtmaximum Token",
     "autoCompletionMaxTokensHint": "Beschränken Sie die maximale Anzahl von Token für KI-Autokompletion, wobei mindestens 20,0 unbegrenzt sind",
@@ -3186,7 +3226,50 @@
     "uploading": "Wird hochgeladen...",
     "attachImage": "Bild anhaengen",
     "submit": "Feedback senden",
-    "thankYou": "Vielen Dank fuer Ihr Feedback!"
+    "thankYou": "Vielen Dank fuer Ihr Feedback!",
+    "addAttachment": "Anhang hinzufügen",
+    "attachmentRules": "Einzelner Anhang ≤ 10 MB, Gesamtgröße ≤ 50 MB, maximal 5 Stück. Typen unbeschränkt, abhängig von Gist-Fähigkeiten.",
+    "attachments": "Anhänge / Screenshots",
+    "bodyLabel": "Detaillierte Beschreibung",
+    "copied": "In die Zwischenablage kopiert",
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "emailHint": "E-Mail senden an:",
+    "errors": {
+      "titleRequired": "Bitte Titel eingeben",
+      "bodyRequired": "Bitte detaillierte Beschreibung eingeben",
+      "tooManyFiles": "Maximal {max} Anhänge erlaubt",
+      "singleFileTooLarge": "Einzelner Anhang darf {max} nicht überschreiten",
+      "totalTooLarge": "Gesamtgröße der Anhänge darf {max} nicht überschreiten",
+      "invalidFile": "Ungültige Datei",
+      "noIpc": "Feedback kann in der aktuellen Umgebung nicht abgeschickt werden"
+    },
+    "feedbackType": "Feedback-Typ",
+    "footerHint": "Sie können auch auf folgende Weise Feedback geben:",
+    "qqGroupHint": "QQ-Gruppe beitreten:",
+    "selectType": "Bitte Typ auswählen",
+    "submitFailed": "Absenden fehlgeschlagen",
+    "submitSuccess": "Feedback abgeschickt, vielen Dank für Ihr Feedback!",
+    "submitting": "Wird abgeschickt...",
+    "template": {
+      "systemInfo": "Systeminformation",
+      "describeProblemTitle": "Problem beschreiben",
+      "describeProblem": "Bitte beschreiben Sie das Problem so klar und präzise wie möglich.",
+      "expectedResultTitle": "Erwartetes Ergebnis",
+      "expectedResult": "Bitte beschreiben Sie das erwartete Ergebnis so klar und präzise wie möglich.",
+      "otherInfoTitle": "Weitere Informationen",
+      "otherInfo": "Bitte geben Sie zusätzliche Informationen an, die uns bei der Diagnose des Problems helfen.",
+      "contactTitle": "Ihre Kontaktdaten (optional)",
+      "contactOptional": "Bitte geben Sie Ihre Kontaktdaten an, damit wir Sie bei Bedarf kontaktieren können."
+    },
+    "title": "Feedback",
+    "titleLabel": "Titel",
+    "titlePlaceholder": "Bitte beschreiben Sie das Problem oder den Vorschlag kurz",
+    "types": {
+      "bug": "BUG-Feedback",
+      "feature": "Funktionsvorschlag",
+      "security": "Sicherheits-Feedback",
+      "other": "Sonstiges"
+    }
   },
   "editor": {
     "noOpenDocument": "Kein geoeffnetes Dokument",
@@ -3855,6 +3938,109 @@
     "notExist": "Existiert nicht mehr"
   },
   "useTabDrag": {
-    "failed": "Vorauslesen der Miniaturansicht fehlgeschlagen"
+    "failed": "Vorauslesen der Miniaturansicht fehlgeschlagen",
+    "failed1": "Serialisierung der Dokumentendaten fehlgeschlagen",
+    "failedDrag": "Initialisierung der Drag-and-Drop-Sitzung fehlgeschlagen",
+    "startDragOn": "Drag-and-Drop-Sitzung gestartet",
+    "text": "Unbenannt"
+  },
+  "useWorkspaceOperations": {
+    "deleteFailed": "Löschen fehlgeschlagen",
+    "failedPaste": "Einfügen fehlgeschlagen",
+    "renameFailed": "Umbenennen fehlgeschlagen"
+  },
+  "vditorPreview": {
+    "renderFailed": "Rendering fehlgeschlagen"
+  },
+  "userManual": {
+    "agent": {
+      "introduction": {
+        "title": "Agent-Anleitung",
+        "content": "# Agent-Anleitung\n\nAgent ist eine der Kernfunktionen von MetaDoc. Es ist ein intelligenter Assistent, der komplexe Aufgaben automatisch ausführen kann.\n\n## Was ist Agent\n\nAgent ist ein auf LLM basierendes intelligentes System, das folgendes kann:\n\n- Ihre Absicht verstehen\n- Ausführungsschritte planen\n- Verschiedene Werkzeuge zum Aufgabenabschluss aufrufen\n- Fehler automatisch korrigieren\n\n## Wie Agent arbeitet\n\nAgent verwendet einen \"Denken-Handeln-Beobachten\"-Zyklus:\n\n1. **Denken**: Aufgabe analysieren, Plan erstellen\n2. **Handeln**: Werkzeuge aufrufen, Aktionen ausführen\n3. **Beobachten**: Ergebnisse prüfen, ob Fortsetzung nötig\n4. **Reflektieren**: Ausführung bewerten, Strategie anpassen\n\n## Anwendungsszenarien\n\nAgent eignet sich für folgende Szenarien:\n\n- Dokumentgenerierung und -optimierung\n- Automatische Diagrammerstellung und -einfügung\n- Dokumentstrukturoptimierung\n- Batch-Verarbeitungsaufgaben\n\n## Erste Schritte\n\n1. \"Agent\"-Ansicht öffnen\n2. Neue Agent-Sitzung erstellen\n3. Aufgabenbeschreibung eingeben\n4. Agent führt die Aufgabe automatisch aus\n\n## Hinweise\n\n- Agent verbraucht API-Aufrufe, bitte beachten Sie die Kosten\n- Komplexe Aufgaben können länger dauern\n- Beginnen Sie mit kleinen Aufgaben, um Agent kennenzulernen"
+      },
+      "capabilities": {
+        "title": "Agent-Fähigkeiten",
+        "content": "# Agent-Fähigkeiten\n\nAgent unterstützt verschiedene Fähigkeiten zur Unterstützung bei Dokumentverarbeitungsaufgaben.\n\n## Kernfähigkeiten\n\n### 1. Dokumentbearbeitung\n\n- Text einfügen, löschen, ersetzen\n- Text formatieren\n- Dokumentstruktur anpassen\n\n### 2. Gliederungsoperationen\n\n- Dokumentgliederung generieren\n- Gliederungsstruktur optimieren\n- Unterkapitel hinzufügen\n- Kapitelinhalte generieren\n\n### 3. Diagrammerstellung\n\n- Diagramme automatisch aus Inhalten generieren\n- Mermaid-, PlantUML-, ECharts-Code einfügen\n- Diagrammlayout optimieren\n\n### 4. Inhaltsgenerierung\n\n- Inhalte basierend auf Gliederung generieren\n- Dokumente erweitern\n- Texte verbessern\n\n### 5. Wissensabfrage\n\n- Relevante Informationen aus Wissensdatenbank abrufen\n- Inhalte basierend auf Abfrageergebnissen generieren\n\n## Werkzeugsatz\n\nAgent kann folgende Werkzeuge verwenden:\n\n- \"edit\": Dokumentinhalt bearbeiten\n- \"outline-tree\": Dokumentgliederung abrufen\n- \"outline-optimize\": Gliederungsstruktur optimieren\n- \"chart-generation\": Diagramme generieren\n- \"rag-query\": Wissensdatenbank abfragen\n- usw.\n\n## Einschränkungen\n\n- Agent-Ausführung ist durch verfügbare Werkzeuge begrenzt\n- Einige Operationen erfordern möglicherweise Bestätigung\n- Komplexe Aufgaben erfordern möglicherweise mehrere Interaktionen"
+      },
+      "risks": {
+        "title": "Agent-Risiken und Kosten",
+        "content": "# Agent-Risiken und Kosten\n\nBei der Nutzung von Agent sind folgende Risiken und Kosten zu beachten.\n\n## Risiken\n\n### 1. Inhaltsgenauigkeit\n\n- Von Agent generierte Inhalte sind möglicherweise nicht vollständig korrekt\n- Manuelle Überprüfung und Bearbeitung wird empfohlen\n- Bei wichtigen Dokumenten bitte vorsichtig verwenden\n\n### 2. Unbeabsichtigte Änderungen\n\n- Agent kann Inhalte ändern, die Sie nicht geändert haben möchten\n- Speichern Sie das Dokument vor der Verwendung\n- Versionskontrollfunktion nutzen\n\n### 3. Datenschutz und Sicherheit\n\n- Agent sendet Dokumentinhalte an LLM-API\n- Bei sensiblen Informationen vorsichtig verwenden\n- Verwendung lokaler LLM (z.B. Ollama) empfohlen\n\n## Kosten\n\n### API-Aufrufgebühren\n\nDie Nutzung von Agent verursacht API-Aufrufgebühren:\n\n- **OpenAI GPT-4**: ca. 0,03-0,06 $ pro 1000 Tokens\n- **OpenAI GPT-3.5**: ca. 0,001-0,002 $ pro 1000 Tokens\n- **DeepSeek**: ca. 0,0001-0,0002 $ pro 1000 Tokens\n- **Ollama**: kostenlos (lokale Bereitstellung)\n\n### Token-Verbrauch\n\nDer Token-Verbrauch von Agent hängt ab von:\n\n- Dokumentlänge\n- Aufgabenkomplexität\n- Anzahl der Werkzeugaufrufe\n\nEine mittelkomplexe Aufgabe verbraucht möglicherweise:\n\n- Eingabe: 1000-5000 Tokens\n- Ausgabe: 500-2000 Tokens\n- Werkzeugaufrufe: 500-2000 Tokens\n\nGesamt: 2000-9000 Tokens\n\n## Optimierungsempfehlungen\n\n1. **Lokales LLM nutzen**: Verwenden Sie Ollama oder andere lokale LLM\n2. **Passende Einstellungen**: Temperatur, maximale Tokens usw. anpassen\n3. **Stapelverarbeitung**: Große Aufgaben in kleine aufteilen\n4. **Nutzung überwachen**: LLM-Statistiken regelmäßig prüfen\n\n## Kostenschätzung\n\nAngenommen tägliche Verarbeitung von 10 Dokumenten, je 5000 Tokens:\n\n- GPT-3.5: ca. 0,05-0,10 $/Tag\n- GPT-4: ca. 1,50-3,00 $/Tag\n- DeepSeek: ca. 0,005-0,01 $/Tag\n- Ollama: 0 $/Tag"
+      }
+    },
+    "ai": {
+      "llmConfig": {
+        "title": "LLM-Konfigurationsanleitung",
+        "content": "# LLM-Konfigurationsanleitung\n\nMetaDoc unterstützt verschiedene LLM-APIs. Sie können Ihre eigenen API-Schlüssel konfigurieren.\n\n## Unterstützte LLM-APIs\n\nMetaDoc unterstützt folgende LLM-Dienste:\n\n- **OpenAI**: GPT-3.5, GPT-4 usw.\n- **DeepSeek**: DeepSeek Chat usw.\n- **Ollama**: Lokal bereitgestellte Modelle\n- **Gemini**: Google Gemini\n- **MetaDoc**: MetaDoc-Offiziell-API\n- **Benutzerdefinierte API**: OpenAI-kompatible benutzerdefinierte API\n\n## Konfigurationsschritte\n\n1. \"Einstellungen\" → \"LLM-Konfiguration\" öffnen\n2. LLM-Typ auswählen\n3. API-Schlüssel eingeben (falls erforderlich)\n4. Modell auswählen\n5. Weitere Optionen konfigurieren (Temperatur, maximale Tokens usw.)\n6. \"Speichern\" klicken\n\n## API-Schlüssel erhalten\n\n### OpenAI\n\n1. https://platform.openai.com/api-keys besuchen\n2. Anmelden\n3. Neuen API-Schlüssel erstellen\n4. Schlüssel in MetaDoc kopieren\n\n### DeepSeek\n\n1. https://platform.deepseek.com/api_keys besuchen\n2. Anmelden\n3. API-Schlüssel erstellen\n4. Schlüssel in MetaDoc kopieren\n\n### Ollama (lokale Bereitstellung)\n\n1. Ollama installieren: https://ollama.ai\n2. \"ollama serve\" ausführen\n3. API-URL in MetaDoc auf \"http://localhost:11434/api\" konfigurieren\n4. Installiertes Modell auswählen\n\n## Hinweise\n\n- API-Schlüssel bitte sicher aufbewahren, nicht weitergeben\n- API-Nutzung verursacht Kosten, bitte Verbrauch beachten\n- Einige APIs erfordern möglicherweise VPN für Zugriff"
+      },
+      "tools": {
+        "title": "KI-Werkzeuge",
+        "content": "# KI-Werkzeuge\n\nMetaDoc bietet reichhaltige KI-Werkzeuge zur Verbesserung der Dokumenterstellungseffizienz.\n\n## Verfügbare Werkzeuge\n\n### 1. KI-Dialog\n\nMit KI dialogisieren, Hilfe und Vorschläge erhalten.\n\n- Linkes Menü \"KI-Assistent\" → \"Mit KI dialogisieren\" klicken\n- Oder Tastenkürzel verwenden, um KI-Dialogfenster zu öffnen\n- Unterstützt Kontextverständnis, kann auf aktuellen Dokumentinhalt basieren\n\n### 2. Formelerkennung\n\nHandgeschriebene oder Bild-Mathematikformeln erkennen.\n\n- \"KI-Assistent\" → \"Handschrifterkennung\" klicken\n- Bild hochladen oder Kamera verwenden\n- KI erkennt Formel automatisch und wandelt in LaTeX-Format um\n\n### 3. Intelligenter Zeichenassistent\n\nKI verwenden, um Diagramm-Code zu generieren.\n\n- Gewünschtes Diagramm beschreiben\n- KI generiert entsprechenden Mermaid-, PlantUML- oder ECharts-Code\n- Kann direkt in Dokument eingefügt werden\n\n### 4. Datenanalysewerkzeug\n\nDatentabellen im Dokument analysieren.\n\n- Tabelle im Dokument auswählen\n- \"KI-Assistent\" → \"Datenanalysewerkzeug\" klicken\n- KI analysiert Daten und generiert Visualisierungsdiagramme\n\n### 5. OCR-Texterkennung\n\nText in Bildern erkennen.\n\n- \"KI-Assistent\" → \"OCR-Texterkennung\" klicken\n- Bild hochladen\n- KI erkennt Text im Bild und extrahiert ihn\n\n### 6. Anhangsanalysewerkzeug\n\nPDF-, Word-Anhänge usw. analysieren.\n\n- \"KI-Assistent\" → \"Anhangsanalysewerkzeug\" klicken\n- Anhang hochladen\n- KI extrahiert Dateiinhalt und fügt ihn zur Wissensdatenbank hinzu\n\n## Nutzungstipps\n\n- RAG-Wissensdatenbank kann KI-Antwortgenauigkeit verbessern\n- Dokumentinhalt in Dialog zitieren für relevantere Antworten\n- Rationale Werkzeugnutzung kann Effizienz erheblich steigern"
+      },
+      "chat": {
+        "title": "KI-Konversationsnutzung",
+        "content": "# KI-Konversationsnutzung\n\nDie KI-Konversationsfunktion ermöglicht Mehrfachdialoge mit KI und speichert Konversationshistorie.\n\n## Sitzung erstellen\n\n1. KI-Dialogfenster öffnen\n2. \"Neue Sitzung\" klicken\n3. Sitzungsnamen eingeben (optional)\n4. Dialog beginnen\n\n## Sitzungsverwaltung\n\n- **Sitzung wechseln**: Verschiedene Sitzungen in Sitzungsliste auswählen\n- **Sitzung umbenennen**: Rechtsklick auf Sitzung → \"Umbenennen\"\n- **Sitzung löschen**: Rechtsklick auf Sitzung → \"Löschen\"\n- **Sitzung exportieren**: Rechtsklick auf Sitzung → \"Exportieren\", kann als Markdown exportiert werden\n\n## Sitzungsfunktionen\n\n### Kontextverständnis\n\nKI-Sitzung merkt sich vorherige Dialoginhalte und kann kontextbasiert antworten.\n\n### Dokumentzitierung\n\nIm Dialog kann auf aktuell geöffneten Dokumentinhalt verwiesen werden:\n\n- Text im Dokument auswählen\n- In KI-Dialog \"Bitte analysieren Sie diesen Text\" eingeben\n- KI analysiert basierend auf ausgewähltem Text\n\n### Wissensdatenbank-Abfrage\n\nNach Aktivierung der RAG-Wissensdatenbank ruft KI relevante Informationen aus Wissensdatenbank ab, um Fragen zu beantworten.\n\n## Tastenkürzel\n\n- : KI-Dialogfenster öffnen/schließen\n- : Nachricht senden\n- : Zeilenumbruch\n- : Eingabefeld leeren"
+      }
+    },
+    "backToOverview": "Zurück zur Übersicht",
+    "charts": {
+      "introduction": {
+        "title": "Diagramm-Einführung",
+        "content": "# Diagramm-Einführung\n\nMetaDoc unterstützt verschiedene Diagramm-Rendering-Engines zur Erstellung verschiedener Diagrammtypen.\n\n## Unterstützte Diagramm-Engines\n\n| Engine | Anwendungsszenario |\n|--------|-------------------|\n| Mermaid | Flussdiagramme, UML-Diagramme, Gantt-Diagramme |\n| PlantUML | Professionelles UML-Modellierung |\n| ECharts | Datenvisualisierungsdiagramme |\n| Flowchart | Basis-Flussdiagramme |\n| Mindmap | Mindmaps |\n\n## Diagramm einfügen\n\nDiagramm in Markdown-Dokument mit Code-Block einfügen:\n\nmarkdown\n\n\n\n## Diagramm-Rendering\n\n- Diagramme werden in Echtzeit im Editor gerendert\n- Unterstützt Export als PDF, HTML usw.\n- Diagramm-Code unterstützt i18n-Mehrsprachigkeit"
+      },
+      "mermaid": {
+        "title": "Mermaid-Diagramme"
+      },
+      "plantuml": {
+        "title": "PlantUML-Diagramme"
+      },
+      "echarts": {
+        "title": "ECharts-Diagramme"
+      }
+    },
+    "core": {
+      "fileOperations": {
+        "title": "Dateioperationen",
+        "content": "# Dateioperationen\n\nMetaDoc unterstützt verschiedene Dateioperationen, einschließlich Neu, Öffnen, Speichern usw.\n\n## Neues Dokument\n\nLinkes Menü \"Datei\" → \"Neu\" klicken oder Tastenkürzel  verwenden, um neues Dokument zu erstellen.\n\n## Dokument öffnen\n\n- Linkes Menü \"Datei\" → \"Öffnen\" klicken oder Tastenkürzel  verwenden\n- Unterstützt Öffnen von  (Markdown)- und  (LaTeX)-Dateien\n- Kürzlich geöffnete Dokumente werden in \"Letzte Dokumente\" auf Startseite angezeigt\n\n## Dokument speichern\n\n- Tastenkürzel  verwenden, um aktuelles Dokument zu speichern\n-  für \"Speichern unter\"\n-  für alle geöffneten Dokumente speichern\n\n## Dokument exportieren\n\nUnterstützt Export in verschiedene Formate:\n\n- **PDF**: Geeignet für Druck und Freigabe\n- **HTML**: Geeignet für Webanzeige\n- **DOCX**: Geeignet für Word-Bearbeitung\n- **LaTeX**: Geeignet für akademische Arbeiten\n\nIm Menü \"Datei\" → \"Exportieren\" das gewünschte Format auswählen."
+      },
+      "editor": {
+        "title": "Editor-Nutzung"
+      },
+      "multiTab": {
+        "title": "Multi-Tab-Operationen"
+      },
+      "multiWindow": {
+        "title": "Multi-Fenster-Operationen"
+      },
+      "export": {
+        "title": "Exportfunktion"
+      }
+    },
+    "design": {
+      "philosophy": {
+        "title": "MetaDoc-Designphilosophie"
+      }
+    },
+    "emptyContent": "Bitte Kapitel links auswählen",
+    "graph": {
+      "title": "Lernpfad-Diagramm",
+      "expand": "Erweitern",
+      "collapse": "Zusammenklappen",
+      "completed": "Abgeschlossen",
+      "current": "Aktuell",
+      "pending": "Ausstehend",
+      "selected": "Ausgewählt",
+      "confirmTitle": "Lernen bestätigen",
+      "confirmStart": "Möchten Sie \"{title}\" lernen?",
+      "confirm": "Lernen starten",
+      "cancel": "Abbrechen"
+    },
+    "latex": {
+      "basic": {
+        "title": "LaTeX-Grundlagen"
+      },
+      "advanced": {
+        "title": "LaTeX-Fortgeschritten"
+      }
+    }
   }
 }

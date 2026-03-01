@@ -1003,6 +1003,10 @@
       "exportSnapshotFailed": "Échec de l'exportation de l'instantané d'exécution",
       "renderResult": "Rendre le résultat",
       "rawResult": "Résultat brut",
+      "updateTest": "Test de mise à jour",
+      "agentTool": "Test Agent Tool",
+      "autoTest": "Test automatique Tool",
+      "agentSessionDebug": "Débogage Session Agent",
       "unitTest": {
         "title": "Tests unitaires",
         "singleTest": "Test unique",
@@ -2548,7 +2552,10 @@
       "closeTab": "Fermer l'onglet",
       "exportJson": "Exporter en JSON",
       "deleteSession": "Supprimer la session"
-    }
+    },
+    "welcomeTitle": "Bonjour ! Je suis l'assistant IA MetaDoc !",
+    "welcomeDescription": "Je suis votre assistant intelligent pour la rédaction de documents. Je peux vous aider à rédiger, modifier et peaufiner vos documents avec des suggestions et des corrections alimentées par l'IA.",
+    "tellMeYourNeeds": "Dites-moi ce dont vous avez besoin et je vous aiderai à accomplir vos tâches de création de documents !"
   },
   "sectionOptimizer": {
     "clear": "Effacer",

@@ -18,7 +18,7 @@
             @click="handleMenuSelect('updatetest')"
           >
             <Refresh class="debug-menu-icon" />
-            <span class="debug-menu-label">更新测试</span>
+            <span class="debug-menu-label">{{ $t('setting.debug.updateTest') }}</span>
           </Button>
           <Button
             variant="ghost"
@@ -26,7 +26,7 @@
             @click="handleMenuSelect('agenttool')"
           >
             <Tools class="debug-menu-icon" />
-            <span class="debug-menu-label">Agent Tool测试</span>
+            <span class="debug-menu-label">{{ $t('setting.debug.agentTool') }}</span>
           </Button>
           <Button
             variant="ghost"
@@ -42,7 +42,7 @@
             @click="handleMenuSelect('autotest')"
           >
             <Setting class="debug-menu-icon" />
-            <span class="debug-menu-label">Tool自动测试</span>
+            <span class="debug-menu-label">{{ $t('setting.debug.autoTest') }}</span>
           </Button>
           <Button
             variant="ghost"
@@ -58,7 +58,7 @@
             @click="handleMenuSelect('agentsessiondebug')"
           >
             <ChatDotRound class="debug-menu-icon" />
-            <span class="debug-menu-label">Agent会话调试</span>
+            <span class="debug-menu-label">{{ $t('setting.debug.agentSessionDebug') }}</span>
           </Button>
         </div>
       </div>

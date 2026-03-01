@@ -846,6 +846,10 @@
       "testResult": "Prüfergebnisse",
       "title": "Debug Tool",
       "undefined": "Es tut mir leid.",
+      "updateTest": "Update-Test",
+      "agentTool": "Agent Tool-Test",
+      "autoTest": "Tool-Auto-Test",
+      "agentSessionDebug": "Agent-Session-Debug",
       "unitTest": "Prüfverfahren"
     },
     "autoCompletionMaxTokens": "Automatisches Gesamtmaximum Token",
@@ -2075,7 +2079,10 @@
       "closeTab": "Tab schließen",
       "exportJson": "Als JSON exportieren",
       "deleteSession": "Sitzung löschen"
-    }
+    },
+    "welcomeTitle": "Hallo! Ich bin MetaDoc AI Assistant!",
+    "welcomeDescription": "Ich bin Ihr intelligenter Assistent für das Schreiben von Dokumenten. Ich kann Ihnen beim Schreiben, Bearbeiten und Optimieren Ihrer Dokumente mit KI-gestützten Vorschlägen und Korrekturen helfen.",
+    "tellMeYourNeeds": "Sagen Sie mir, was Sie brauchen, und ich helfe Ihnen bei der Erledigung Ihrer Dokumentenerstellungsaufgaben!"
   },
   "agent-engine-executor": {
     "clear": "Geleert",

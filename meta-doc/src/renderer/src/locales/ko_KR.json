@@ -772,6 +772,10 @@
       "testResult": "시험 결과",
       "title": "Debug 도구",
       "undefined": "미안 해요.",
+      "updateTest": "업데이트 테스트",
+      "agentTool": "Agent Tool 테스트",
+      "autoTest": "Tool 자동 테스트",
+      "agentSessionDebug": "Agent 세션 디버그",
       "unitTest": "단위 시험"
     },
     "autoCompletionMaxTokens": "자동 완성 토큰",

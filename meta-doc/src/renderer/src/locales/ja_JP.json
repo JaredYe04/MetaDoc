@@ -1760,6 +1760,21 @@
       "error": {
         "cancelRequestFailed": "キャンセルリクエストの送信に失敗しました"
       }
+    },
+    "compact": {
+      "untitled": "無名のセッション",
+      "recentSessions": "最近のセッション",
+      "newSession": "新規セッション",
+      "newSessionTitle": "新規セッション",
+      "today": "今日",
+      "yesterday": "昨日",
+      "lastWeek": "先週",
+      "lastMonth": "先月",
+      "older": "それ以前",
+      "loadMore": "さらに10件表示",
+      "closeTab": "タブを閉じる",
+      "exportJson": "JSONとしてエクスポート",
+      "deleteSession": "セッションを削除"
     }
   },
   "sectionOptimizer": {

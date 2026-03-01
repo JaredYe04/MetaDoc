@@ -76,7 +76,11 @@ import {
   quitAndInstall,
   type UpdateChannel
 } from './utils/update-service'
-import { getSystemFonts, clearFontCache as clearMainFontCache, type SystemFont } from './utils/font-service'
+import {
+  getSystemFonts,
+  clearFontCache as clearMainFontCache,
+  type SystemFont
+} from './utils/font-service'
 import {
   getDatabase,
   getDatabasePath,
@@ -1090,9 +1094,10 @@ function bindFileHandlers(): void {
     'get-agent-workspace-root',
     async (event: IpcMainInvokeEvent, workspaceFolders: string[]): Promise<string> => {
       try {
-        const root = Array.isArray(workspaceFolders) && workspaceFolders.length > 0
-          ? workspaceFolders[0]
-          : app.getPath('userData')
+        const root =
+          Array.isArray(workspaceFolders) && workspaceFolders.length > 0
+            ? workspaceFolders[0]
+            : app.getPath('userData')
 
         const metadocDir = path.join(root, '.metadoc')
         if (!fs.existsSync(metadocDir)) {

@@ -1170,7 +1170,50 @@
       "exportSnapshotFailed": "Failed to export execution snapshot",
       "renderResult": "Render Result",
       "rawResult": "Raw Result"
-    }
+    },
+    "autoOpenHomeOnStartup": "Auto-open Home on Startup",
+    "externalFileOpenMode": "External File Open Mode",
+    "fontEditorChinese": "Editor Chinese Font",
+    "fontUi": "Interface Font",
+    "fontEditorWestern": "Editor Western Font",
+    "metadataSaveMode": "Metadata Save Mode",
+    "metadataSaveModeSidecar": "Save Hidden Sidecar File (Recommended)",
+    "fontPreviewChinese": "Preview Chinese Font",
+    "metadataSaveModeEmbed": "Embed Metadata as Comments",
+    "metadataSaveModeNone": "Don't Save Metadata",
+    "fontEditor": "Editor Font",
+    "fontPreviewWestern": "Preview Western Font",
+    "mathInlineDigit": "Allow Numbers in Inline Math",
+    "fontPreview": "Preview Font",
+    "refresh": "Refresh",
+    "fontUiLabel": "UI Font",
+    "openReferenceDir": "Open Directory",
+    "referenceDirManagement": "Reference Directory Management",
+    "referenceDirSize": "Directory Size",
+    "clearReferenceDir": "Clear Directory",
+    "openInNewWindow": "Open in New Window",
+    "openInNewTab": "Open in New Tab",
+    "llmSettings": "LLM Settings",
+    "knowledgeBaseSettings": "Knowledge Base Settings",
+    "themeSettings": "Theme Settings",
+    "allChangesSaved": "All Changes Saved",
+    "discard": "Discard",
+    "save": "Save",
+    "enableMaxTokens": "Enable max_tokens Limit",
+    "maxTokens": "max_tokens Maximum",
+    "selectLLMType": "Select LLM Type",
+    "selectModel": "Select Model",
+    "themeSyncColor": "Follow System Color",
+    "presetThemeCoralRed": "Coral Red",
+    "presetThemeGoldenOrange": "Golden Orange",
+    "aboutUpdateSettings": "Update Settings",
+    "aboutOpenSourceLicense": "Open Source License",
+    "aboutThirdPartyAssets": "Third Party Assets",
+    "autoCheckUpdates": "Auto Check Updates",
+    "updateChannel": "Update Channel",
+    "channelRelease": "Release",
+    "channelDev": "Dev",
+    "checkUpdate": "Check Update"
   },
   "visualize": {
     "articleOutline": "Article Outline",
@@ -1718,8 +1761,8 @@
           "description": "Structured lecture notes by session and key points."
         },
         "blank": {
-          "description": "Create from a completely blank page.",
-          "label": "Empty Document"
+          "description": "Create a blank Markdown document",
+          "label": "Blank Document"
         }
       }
     },
@@ -3615,5 +3658,11 @@
       "demoComment": "Calculate the sum of two numbers",
       "aiSuggestion": "AI Suggestion"
     }
+  },
+  "datePicker": {
+    "placeholder": "Select date",
+    "startPlaceholder": "Start date",
+    "endPlaceholder": "End date",
+    "rangeSeparator": "to"
   }
 }

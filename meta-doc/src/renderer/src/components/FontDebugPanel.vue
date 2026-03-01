@@ -50,7 +50,11 @@ onMounted(() => {
           size="sm"
           :variant="verification.success ? 'default' : 'destructive'"
         >
-          {{ verification.success ? $t('fontDebugPanel.statusNormal') : $t('fontDebugPanel.statusAbnormal') }}
+          {{
+            verification.success
+              ? $t('fontDebugPanel.statusNormal')
+              : $t('fontDebugPanel.statusAbnormal')
+          }}
         </Badge>
       </div>
       <div class="flex items-center gap-2">
@@ -63,7 +67,9 @@ onMounted(() => {
         >
           <RefreshCw class="h-3 w-3" :class="{ 'animate-spin': loading }" />
         </Button>
-        <span class="text-xs text-muted-foreground">{{ expanded ? $t('fontDebugPanel.collapse') : $t('fontDebugPanel.expand') }}</span>
+        <span class="text-xs text-muted-foreground">{{
+          expanded ? $t('fontDebugPanel.collapse') : $t('fontDebugPanel.expand')
+        }}</span>
       </div>
     </div>
 
@@ -80,7 +86,9 @@ onMounted(() => {
               {{ configured.ui }}
             </Badge>
           </div>
-          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">{{ $t('fontDebugPanel.previewText') }}</div>
+          <div class="text-lg" :style="{ fontFamily: fontVars.uiFont }">
+            {{ $t('fontDebugPanel.previewText') }}
+          </div>
         </div>
 
         <div class="font-preview-item p-2 bg-background rounded border">
@@ -108,7 +116,9 @@ onMounted(() => {
 
         <div class="font-preview-item p-2 bg-background rounded border">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-xs text-muted-foreground">{{ $t('fontDebugPanel.previewFont') }}</span>
+            <span class="text-xs text-muted-foreground">{{
+              $t('fontDebugPanel.previewFont')
+            }}</span>
             <div v-if="verification" class="flex gap-1">
               <Badge
                 size="sm"

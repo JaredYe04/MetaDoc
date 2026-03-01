@@ -4,12 +4,10 @@ import type { TabAnimationOptions } from './animation'
 
 /**
  * Composable for tab animations in MainTabs component
- * 
+ *
  * Provides GPU-accelerated FLIP animations for tab open/close operations
  */
-export function useTabAnimation(
-  tabsListRef: Ref<HTMLElement | null>
-) {
+export function useTabAnimation(tabsListRef: Ref<HTMLElement | null>) {
   const controller = new TabAnimationController(tabsListRef)
 
   return {

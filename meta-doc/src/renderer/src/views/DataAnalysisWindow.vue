@@ -149,16 +149,18 @@
                       </div>
                       <ScrollArea class="header-preview-scrollbar" v-if="headerPreview.length > 0">
                         <div class="header-preview-content">
-          <Badge
-            v-for="(header, index) in headerPreview"
-            :key="index"
-            size="small"
-            effect="plain"
-            class="header-tag"
-            :style="headerTagStyle"
-          >
-            {{ header || t('dataAnalysis.column', '列{index}', { index: index + 1 }) }}
-          </Badge>
+                          <Badge
+                            v-for="(header, index) in headerPreview"
+                            :key="index"
+                            size="small"
+                            effect="plain"
+                            class="header-tag"
+                            :style="headerTagStyle"
+                          >
+                            {{
+                              header || t('dataAnalysis.column', '列{index}', { index: index + 1 })
+                            }}
+                          </Badge>
                         </div>
                       </ScrollArea>
                       <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
@@ -427,7 +429,11 @@ const loadSessions = async () => {
       updatedAt: s.updated_at
     }))
   } catch (error) {
-    notifyError(t('dataAnalysis.loadSessionsFailed', '加载会话列表失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.loadSessionsFailed', '加载会话列表失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   }
 }
 
@@ -473,7 +479,11 @@ const handleCreateSession = async () => {
       analysisRequest: ''
     }
   } catch (error) {
-    notifyError(t('dataAnalysis.createSessionFailed', '创建会话失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.createSessionFailed', '创建会话失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   }
 }
 
@@ -517,7 +527,9 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
       if (session.data_file_path) {
         currentFile.value = {
-          name: session.data_file_path.split(/[/\\]/).pop() || t('dataAnalysis.unknownFile', '未知文件'),
+          name:
+            session.data_file_path.split(/[/\\]/).pop() ||
+            t('dataAnalysis.unknownFile', '未知文件'),
           path: session.data_file_path
         }
         // 加载预览数据
@@ -578,7 +590,11 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     }
   } catch (error) {
-    notifyError(t('dataAnalysis.loadSessionFailed', '加载会话失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.loadSessionFailed', '加载会话失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   } finally {
     loadingSession.value = false
   }
@@ -590,7 +606,11 @@ const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
     await dataAnalysisSessionsDb.update(item.id, { title: newTitle })
     await loadSessions()
   } catch (error) {
-    notifyError(t('dataAnalysis.renameFailed', '重命名失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.renameFailed', '重命名失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   }
 }
 
@@ -618,7 +638,11 @@ const handleDuplicateSession = async (item: SessionListItem) => {
     await loadSessions()
     notifySuccess(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
-    notifyError(t('dataAnalysis.duplicateFailed', '复制失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.duplicateFailed', '复制失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   }
 }
 
@@ -643,7 +667,11 @@ const handleDeleteSession = async (item: SessionListItem) => {
     }
     notifySuccess(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
-    notifyError(t('dataAnalysis.deleteFailed', '删除失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.deleteFailed', '删除失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   }
 }
 
@@ -1136,7 +1164,11 @@ const handleFileChange = async (file: any) => {
       await loadPreviewData()
     }
   } catch (error) {
-    notifyError(t('dataAnalysis.saveFileFailed', '保存文件信息失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.saveFileFailed', '保存文件信息失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
   }
 }
 
@@ -1344,7 +1376,11 @@ const handleAnalyze = async () => {
   } catch (error) {
     // 清理流式显示
     reportStreamingDonePromise.value = null
-    notifyError(t('dataAnalysis.analyzeFailed', '分析失败') + ': ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(
+      t('dataAnalysis.analyzeFailed', '分析失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
     analysisStage.value = ''
   } finally {
     analyzing.value = false
@@ -1721,8 +1757,16 @@ onMounted(() => {
   if (isDemo.value) {
     // Demo mode: use mock data
     sessions.value = [
-      { id: 'demo-1', title: t('dataAnalysis.salesAnalysis', '销售数据分析'), updatedAt: Date.now() },
-      { id: 'demo-2', title: t('dataAnalysis.userBehavior', '用户行为分析'), updatedAt: Date.now() - 3600000 }
+      {
+        id: 'demo-1',
+        title: t('dataAnalysis.salesAnalysis', '销售数据分析'),
+        updatedAt: Date.now()
+      },
+      {
+        id: 'demo-2',
+        title: t('dataAnalysis.userBehavior', '用户行为分析'),
+        updatedAt: Date.now() - 3600000
+      }
     ]
     activeSessionId.value = 'demo-1'
     return

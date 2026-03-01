@@ -56,25 +56,18 @@ export function buildTransform(delta: Delta): string {
 
 /**
  * Apply FLIP animation using Web Animations API
- * 
+ *
  * Step 1: Invert - Apply transform to put element at "first" position
  * Step 2: Play - Animate to identity (no transform)
  */
-export function applyFLIP(
-  element: HTMLElement,
-  delta: Delta,
-  config: AnimationConfig
-): Animation {
+export function applyFLIP(element: HTMLElement, delta: Delta, config: AnimationConfig): Animation {
   // Invert: Apply transform immediately (same frame)
   const invertTransform = buildTransform(delta)
   element.style.transform = invertTransform
 
   // Play: Animate to identity on next frame
   const animation = element.animate(
-    [
-      { transform: invertTransform },
-      { transform: 'translate3d(0, 0, 0) scale3d(1, 1, 1)' }
-    ],
+    [{ transform: invertTransform }, { transform: 'translate3d(0, 0, 0) scale3d(1, 1, 1)' }],
     {
       duration: config.duration,
       easing: config.easing,
@@ -106,5 +99,5 @@ export function forceLayout(element: HTMLElement): void {
  * Wait for next animation frame
  */
 export function nextFrame(): Promise<void> {
-  return new Promise(resolve => requestAnimationFrame(() => resolve()))
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }

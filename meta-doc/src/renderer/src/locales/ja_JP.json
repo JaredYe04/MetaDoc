@@ -777,7 +777,49 @@
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
     "tokens": "トークン。",
-    "unlimited": "無制限"
+    "unlimited": "無制限",
+    "autoOpenHomeOnStartup": "起動時にホームを自動で開く",
+    "externalFileOpenMode": "外部ファイルの開き方",
+    "fontEditorChinese": "エディタ中国語フォント",
+    "fontEditorWestern": "エディタ欧米フォント",
+    "fontPreviewChinese": "プレビュー中国語フォント",
+    "metadataSaveMode": "メタデータ保存モード",
+    "metadataSaveModeSidecar": "隠されたサイドカーファイルを保存（推奨）",
+    "fontEditor": "エディタフォント",
+    "metadataSaveModeEmbed": "メタデータをコメントとして埋め込む",
+    "metadataSaveModeNone": "メタデータを保存しない",
+    "fontPreviewWestern": "プレビュー欧米フォント",
+    "mathInlineDigit": "インライン数式で数字を許可",
+    "fontPreview": "プレビューフォント",
+    "refresh": "更新",
+    "fontUiLabel": "UIフォント",
+    "openReferenceDir": "ディレクトリを開く",
+    "referenceDirManagement": "参照ファイルディレクトリ管理",
+    "referenceDirSize": "ディレクトリサイズ",
+    "clearReferenceDir": "ディレクトリをクリア",
+    "openInNewWindow": "新しいウィンドウで開く",
+    "openInNewTab": "新しいタブで開く",
+    "llmSettings": "LLM設定",
+    "knowledgeBaseSettings": "ナレッジベース設定",
+    "themeSettings": "テーマ設定",
+    "allChangesSaved": "すべての変更が保存されました",
+    "discard": "破棄",
+    "save": "保存",
+    "enableMaxTokens": "max_tokens制限を有効化",
+    "maxTokens": "max_tokens最大値",
+    "selectLLMType": "LLMタイプを選択",
+    "selectModel": "モデルを選択",
+    "themeSyncColor": "システムカラーに追随",
+    "presetThemeCoralRed": "コーラルレッド",
+    "presetThemeGoldenOrange": "ゴールデンオレンジ",
+    "aboutUpdateSettings": "アップデート設定",
+    "aboutOpenSourceLicense": "オープンソースライセンス",
+    "aboutThirdPartyAssets": "サードパーティアセット",
+    "autoCheckUpdates": "自動更新チェック",
+    "updateChannel": "更新チャンネル",
+    "channelRelease": "リリース版",
+    "channelDev": "開発版",
+    "checkUpdate": "更新を確認"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -989,8 +1031,8 @@
           "label": "記事のテンプレート"
         },
         "blank": {
-          "description": "完全に空白のページから作成します。",
-          "label": "空の文書"
+          "description": "空白のMarkdownドキュメントを作成",
+          "label": "空白のドキュメント"
         }
       }
     },
@@ -2140,5 +2182,11 @@
       "demoComment": "Calculate the sum of two numbers",
       "aiSuggestion": "AI Suggestion"
     }
+  },
+  "datePicker": {
+    "placeholder": "日付を選択",
+    "startPlaceholder": "開始日",
+    "endPlaceholder": "終了日",
+    "rangeSeparator": "から"
   }
 }

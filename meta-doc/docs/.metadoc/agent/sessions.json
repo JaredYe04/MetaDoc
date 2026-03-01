@@ -1,0 +1,47 @@
+{
+  "activeSessionId": "session-1772363134530-5iitwtsrl",
+  "sessions": [
+    {
+      "id": "session-1772363134530-5iitwtsrl",
+      "title": "New session",
+      "description": "",
+      "createdAt": "2026-03-01T11:05:34.530Z",
+      "updatedAt": "2026-03-01T11:05:43.874Z",
+      "messages": [
+        {
+          "id": "msg-1772363134530-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T11:05:34.530Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        },
+        {
+          "id": "msg-1772363140458-0gmum4",
+          "timestamp": "2026-03-01T11:05:40.458Z",
+          "role": "user",
+          "type": "chat",
+          "markdown": "2333",
+          "referenceIds": []
+        },
+        {
+          "id": "msg-1772363143904-i28op6d2j",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T11:05:43.904Z",
+          "markdown": ""
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T11:05:34.530Z"
+      },
+      "executionNodes": [],
+      "status": "error",
+      "activeToolSpecs": {}
+    }
+  ],
+  "openTabIds": ["session-1772363134530-5iitwtsrl"]
+}

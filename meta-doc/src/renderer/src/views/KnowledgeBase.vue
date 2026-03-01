@@ -561,7 +561,8 @@ async function uploadFile(file: File): Promise<void> {
       })
       eventBus.emit(
         'show-error',
-        (t('knowledgeBase.upload_error') || '上传出错') + (t('knowledgeBase.nonJsonResponseMessage') || '服务器返回了非JSON响应，请检查服务器日志')
+        (t('knowledgeBase.upload_error') || '上传出错') +
+          (t('knowledgeBase.nonJsonResponseMessage') || '服务器返回了非JSON响应，请检查服务器日志')
       )
       return
     }
@@ -573,7 +574,9 @@ async function uploadFile(file: File): Promise<void> {
     } else {
       eventBus.emit(
         'show-error',
-        (t('knowledgeBase.upload_failed') || '上传失败') + ': ' + (j.message || j.error || (t('knowledgeBase.unknownError') || '未知错误'))
+        (t('knowledgeBase.upload_failed') || '上传失败') +
+          ': ' +
+          (j.message || j.error || t('knowledgeBase.unknownError') || '未知错误')
       )
     }
   } catch (e) {
@@ -583,7 +586,9 @@ async function uploadFile(file: File): Promise<void> {
     if (errorMessage.includes('JSON') || errorMessage.includes('<!DOCTYPE')) {
       eventBus.emit(
         'show-error',
-        (t('knowledgeBase.upload_error') || '上传出错') + (t('knowledgeBase.invalidResponseFormat') || '服务器响应格式错误，请检查服务器是否正常运行')
+        (t('knowledgeBase.upload_error') || '上传出错') +
+          (t('knowledgeBase.invalidResponseFormat') ||
+            '服务器响应格式错误，请检查服务器是否正常运行')
       )
     } else {
       eventBus.emit('show-error', (t('knowledgeBase.upload_error') || '上传出错') + errorMessage)
@@ -876,7 +881,11 @@ async function openFolder(): Promise<void> {
   }
   try {
     if (!messageBridge.getIpc()) {
-      eventBus.emit('show-error', t('knowledgeBase.ipcNotInitialized') || 'IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
+      eventBus.emit(
+        'show-error',
+        t('knowledgeBase.ipcNotInitialized') ||
+          'IPC Renderer 未初始化，此功能仅在 Electron 环境中可用'
+      )
       return
     }
 
@@ -944,11 +953,14 @@ async function onConfirm(): Promise<void> {
       isEditing.value = false
       await fetchList()
     } else {
-      eventBus.emit('show-error', data.message || (t('knowledgeBase.renameFailed') || '重命名失败'))
+      eventBus.emit('show-error', data.message || t('knowledgeBase.renameFailed') || '重命名失败')
     }
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e)
-    eventBus.emit('show-error', (t('knowledgeBase.requestFailed') || '请求失败') + ': ' + errorMessage)
+    eventBus.emit(
+      'show-error',
+      (t('knowledgeBase.requestFailed') || '请求失败') + ': ' + errorMessage
+    )
   } finally {
     renaming.value = false
   }

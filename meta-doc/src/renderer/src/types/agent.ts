@@ -133,13 +133,7 @@ export interface AgentSession {
     error?: string
   }>
   currentExecutionNodeId?: string
-  status?:
-    | 'idle'
-    | 'thinking'
-    | 'generating'
-    | 'tool-calling'
-    | 'waiting-input'
-    | 'error'
+  status?: 'idle' | 'thinking' | 'generating' | 'tool-calling' | 'waiting-input' | 'error'
   readonly?: boolean
   metadata?: Record<string, unknown>
 }

@@ -19,7 +19,9 @@
             :disabled="isGenerating || workspace.uiLocked?.value"
             @click="agentStore.setActiveSessionId(s.id)"
           >
-            <span class="agent-compact-tab-label">{{ s.title || t('agent.compact.untitled') }}</span>
+            <span class="agent-compact-tab-label">{{
+              s.title || t('agent.compact.untitled')
+            }}</span>
           </button>
           <Button
             type="button"
@@ -44,16 +46,32 @@
         <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextClose">
           {{ t('agent.compact.closeTab') }}
         </button>
-        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextRename">
+        <button
+          type="button"
+          class="agent-compact-tab-context-item"
+          @click="handleTabContextRename"
+        >
           {{ t('agent.sessions.rename') }}
         </button>
-        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextExport">
+        <button
+          type="button"
+          class="agent-compact-tab-context-item"
+          @click="handleTabContextExport"
+        >
           {{ t('agent.compact.exportJson') }}
         </button>
-        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextDuplicate">
+        <button
+          type="button"
+          class="agent-compact-tab-context-item"
+          @click="handleTabContextDuplicate"
+        >
           {{ t('agent.sessions.duplicate') }}
         </button>
-        <button type="button" class="agent-compact-tab-context-item agent-compact-tab-context-item-danger" @click="handleTabContextDelete">
+        <button
+          type="button"
+          class="agent-compact-tab-context-item agent-compact-tab-context-item-danger"
+          @click="handleTabContextDelete"
+        >
           {{ t('agent.compact.deleteSession') }}
         </button>
       </div>
@@ -84,10 +102,17 @@
                   v-for="s in group.sessions"
                   :key="s.id"
                   class="agent-compact-history-item"
-                  @select="openSessionFromHistory(s); historyOpen = false"
+                  @select="
+                    openSessionFromHistory(s);
+                    historyOpen = false
+                  "
                 >
-                  <span class="agent-compact-history-title">{{ s.title || t('agent.compact.untitled') }}</span>
-                  <span class="agent-compact-history-time">{{ formatHistoryTime(s.updatedAt) }}</span>
+                  <span class="agent-compact-history-title">{{
+                    s.title || t('agent.compact.untitled')
+                  }}</span>
+                  <span class="agent-compact-history-time">{{
+                    formatHistoryTime(s.updatedAt)
+                  }}</span>
                 </DropdownMenuItem>
               </template>
               <DropdownMenuItem
@@ -119,7 +144,10 @@
       </div>
     </div>
 
-    <div v-if="activeSession && openTabIds.includes(activeSession.id)" class="agent-compact-content">
+    <div
+      v-if="activeSession && openTabIds.includes(activeSession.id)"
+      class="agent-compact-content"
+    >
       <ScrollArea class="conversation-scroll agent-compact-selectable">
         <AgentMessageRenderer
           v-for="(message, index) in activeSession.messages"
@@ -158,7 +186,11 @@
     <div v-else class="agent-compact-empty">
       <Empty :description="t('agent.conversation.none', '请选择或新建一个会话开始对话。')">
         <template #image>
-          <div class="agent-compact-empty-logo" :class="{ shake: emptyLogoShake }" @click="emptyLogoClick">
+          <div
+            class="agent-compact-empty-logo"
+            :class="{ shake: emptyLogoShake }"
+            @click="emptyLogoClick"
+          >
             <div class="logo-animation-wrapper">
               <LogoIcon
                 :size="96"
@@ -230,14 +262,27 @@ import ChatComposer from '../chat/ChatComposer.vue'
 import type { AgentMessage, AgentSession, ChatAgentMessage } from '../../types/agent'
 import { createRendererLogger } from '../../utils/logger'
 import { notifyError, notifySuccess, notifyWarning } from '../../utils/notify'
-import { agentEngineManager, agentConfigManager, agentSessionManager } from '../../utils/agent-framework'
+import {
+  agentEngineManager,
+  agentConfigManager,
+  agentSessionManager
+} from '../../utils/agent-framework'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
 const agentStore = useAgentWorkspaceStore()
-const { sessions, activeSessionId, activeSession, openTabIds, isGenerating, composerInput, selectedEngineId, currentAiTaskHandle, aiTaskHandles } =
-  storeToRefs(agentStore)
+const {
+  sessions,
+  activeSessionId,
+  activeSession,
+  openTabIds,
+  isGenerating,
+  composerInput,
+  selectedEngineId,
+  currentAiTaskHandle,
+  aiTaskHandles
+} = storeToRefs(agentStore)
 const { setOpenTabIds } = agentStore
 
 const panelStyle = computed(() => ({
@@ -267,7 +312,10 @@ watch(
       const fallback = (activeId as string | null) ?? (ids as string[])[0]
       if (fallback) next = [fallback]
     }
-    if (next.length !== openTabIds.value.length || next.some((id, i) => openTabIds.value[i] !== id)) {
+    if (
+      next.length !== openTabIds.value.length ||
+      next.some((id, i) => openTabIds.value[i] !== id)
+    ) {
       setOpenTabIds(next)
     }
   },
@@ -313,7 +361,12 @@ function formatHistoryTime(iso: string | undefined): string {
   const weekAgo = new Date(today)
   weekAgo.setDate(weekAgo.getDate() - 7)
   if (dDay >= weekAgo) {
-    return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleDateString('zh-CN', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
   return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
 }
@@ -356,9 +409,7 @@ const historyGroups = computed<HistoryGroup[]>(() => {
   return groups
 })
 
-const hasMoreHistory = computed(
-  () => sortedSessionsForHistory.value.length > historyLimit.value
-)
+const hasMoreHistory = computed(() => sortedSessionsForHistory.value.length > historyLimit.value)
 
 // Tab 右键菜单
 const tabContextSession = ref<AgentSession | null>(null)
@@ -502,7 +553,10 @@ async function handleTabContextRename() {
     const { value } = await ElMessageBox.prompt(
       t('agent.sessions.renamePlaceholder'),
       t('agent.sessions.rename'),
-      { inputValue: s.title, inputValidator: (v: string) => (v.trim() ? '' : t('agent.sessions.renameRequired')) }
+      {
+        inputValue: s.title,
+        inputValidator: (v: string) => (v.trim() ? '' : t('agent.sessions.renameRequired'))
+      }
     )
     s.title = value.trim()
     touchSession(s)
@@ -655,7 +709,9 @@ const createChatMessage = (
 
 const scrollToBottom = () => {
   nextTick(() => {
-    const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap') as HTMLElement | null
+    const container = document.querySelector(
+      '.conversation-scroll .el-scrollbar__wrap'
+    ) as HTMLElement | null
     if (container) container.scrollTop = container.scrollHeight
   })
 }
@@ -699,7 +755,9 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
   session.status = 'thinking'
 
   try {
-    const { AgentEngineExecutorFactory } = await import('../../utils/agent-framework/agent-engine-executor')
+    const { AgentEngineExecutorFactory } = await import(
+      '../../utils/agent-framework/agent-engine-executor'
+    )
     const executor = AgentEngineExecutorFactory.create(engine, session as any, agentConfig, {
       signal: abortController.signal,
       onProgress: (progress: any) => {
@@ -783,7 +841,11 @@ const handleCancelGeneration = () => {
   const allTasks = useAiTasks()
   const relatedTasks = allTasks.value.filter((task) => {
     const key = (task as any).origin_key
-    return key && typeof key === 'string' && (key.includes(session.id) || key.startsWith(`agent-${session.id}-`))
+    return (
+      key &&
+      typeof key === 'string' &&
+      (key.includes(session.id) || key.startsWith(`agent-${session.id}-`))
+    )
   })
 
   relatedTasks.forEach((task: { handle: string }) => cancelAiTask(task.handle, false))
@@ -953,8 +1015,14 @@ async function handleMessageDuplicate(message: AgentMessage) {
     const newFormatSession: any = {
       ...session,
       entityType: 'agent-session',
-      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
-      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      createdAt:
+        typeof session.createdAt === 'string'
+          ? new Date(session.createdAt).getTime()
+          : session.createdAt,
+      updatedAt:
+        typeof session.updatedAt === 'string'
+          ? new Date(session.updatedAt).getTime()
+          : session.updatedAt,
       messageQueue: session.messageQueue || [],
       referenceStore: session.referenceStore || [],
       publicContext: session.publicContext || {},
@@ -1176,16 +1244,28 @@ onMounted(async () => {
   line-height: 1.45;
 }
 
-.agent-compact-selectable :deep(.md-editor-preview h1) { font-size: 1.25em; }
-.agent-compact-selectable :deep(.md-editor-preview h2) { font-size: 1.15em; }
-.agent-compact-selectable :deep(.md-editor-preview h3) { font-size: 1.08em; }
+.agent-compact-selectable :deep(.md-editor-preview h1) {
+  font-size: 1.25em;
+}
+.agent-compact-selectable :deep(.md-editor-preview h2) {
+  font-size: 1.15em;
+}
+.agent-compact-selectable :deep(.md-editor-preview h3) {
+  font-size: 1.08em;
+}
 .agent-compact-selectable :deep(.md-editor-preview h4),
 .agent-compact-selectable :deep(.md-editor-preview h5),
-.agent-compact-selectable :deep(.md-editor-preview h6) { font-size: 1em; }
+.agent-compact-selectable :deep(.md-editor-preview h6) {
+  font-size: 1em;
+}
 .agent-compact-selectable :deep(.md-editor-preview p),
-.agent-compact-selectable :deep(.md-editor-preview li) { font-size: 13px; }
+.agent-compact-selectable :deep(.md-editor-preview li) {
+  font-size: 13px;
+}
 .agent-compact-selectable :deep(.md-editor-preview pre),
-.agent-compact-selectable :deep(.md-editor-preview code) { font-size: 12px; }
+.agent-compact-selectable :deep(.md-editor-preview code) {
+  font-size: 12px;
+}
 
 .conversation-scroll {
   flex: 1;
@@ -1240,9 +1320,23 @@ onMounted(async () => {
 }
 
 @keyframes agent-compact-shake {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-10px) rotate(-5deg); }
-  20%, 40%, 60%, 80% { transform: translateX(10px) rotate(5deg); }
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-10px) rotate(-5deg);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(10px) rotate(5deg);
+  }
 }
 
 .agent-compact-empty-logo.shake .logo-animation-wrapper {
@@ -1297,4 +1391,3 @@ onMounted(async () => {
   margin-top: 4px;
 }
 </style>
-

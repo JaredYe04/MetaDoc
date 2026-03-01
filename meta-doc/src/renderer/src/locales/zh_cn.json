@@ -2501,7 +2501,7 @@
       "markdown": {
         "blank": {
           "label": "空白文档",
-          "description": "从完全空白的页面开始创作。"
+          "description": "创建一个空白的 Markdown 文档"
         },
         "article": {
           "label": "文章模板",
@@ -4095,5 +4095,11 @@
       "demoComment": "计算两个数的和",
       "aiSuggestion": "AI 建议"
     }
+  },
+  "datePicker": {
+    "placeholder": "请选择日期",
+    "startPlaceholder": "开始日期",
+    "endPlaceholder": "结束日期",
+    "rangeSeparator": "至"
   }
 }

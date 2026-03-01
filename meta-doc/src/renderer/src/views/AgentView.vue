@@ -536,13 +536,7 @@ dayjs.extend(relativeTime)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
-const {
-  activeDocument,
-  activeTabId,
-  removeTab,
-  moveTab,
-  activateTab
-} = workspace
+const { activeDocument, activeTabId, removeTab, moveTab, activateTab } = workspace
 const agentStore = useAgentWorkspaceStore()
 // 与紧凑面板共享的 UI 状态（输入框、生成状态、引擎选择、任务句柄）
 const { composerInput, selectedEngineId, isGenerating, currentAiTaskHandle, aiTaskHandles } =
@@ -598,7 +592,10 @@ const sampleTools: AgentTool[] = [
   {
     id: 'web-search',
     name: 'Web Search',
-    description: t('agent.tools.webSearch.description', '通过联网搜索最新信息，返回结构化摘要与引用。'),
+    description: t(
+      'agent.tools.webSearch.description',
+      '通过联网搜索最新信息，返回结构化摘要与引用。'
+    ),
     origin: 'renderer',
     running: false,
     enabled: true,
@@ -608,7 +605,10 @@ const sampleTools: AgentTool[] = [
   {
     id: 'code-executor',
     name: 'Code Interpreter',
-    description: t('agent.tools.codeExecutor.description', '在安全沙箱运行代码，支持 Python 与 Node.js，生成图表与数据分析结果。'),
+    description: t(
+      'agent.tools.codeExecutor.description',
+      '在安全沙箱运行代码，支持 Python 与 Node.js，生成图表与数据分析结果。'
+    ),
     origin: 'main',
     running: true,
     enabled: true,
@@ -618,7 +618,10 @@ const sampleTools: AgentTool[] = [
   {
     id: 'file-browser',
     name: 'File Browser',
-    description: t('agent.tools.fileBrowser.description', '浏览本地项目文件，并支持快速预览与生成摘要。'),
+    description: t(
+      'agent.tools.fileBrowser.description',
+      '浏览本地项目文件，并支持快速预览与生成摘要。'
+    ),
     origin: 'renderer',
     running: false,
     enabled: false,
@@ -628,7 +631,10 @@ const sampleTools: AgentTool[] = [
   {
     id: 'mcp-wordpress',
     name: 'WordPress MCP',
-    description: t('agent.tools.wordpressMcp.description', '通过 MCP 协议与 WordPress 通讯，实现内容发布和评论管理。'),
+    description: t(
+      'agent.tools.wordpressMcp.description',
+      '通过 MCP 协议与 WordPress 通讯，实现内容发布和评论管理。'
+    ),
     origin: 'mcp',
     running: false,
     enabled: true,
@@ -722,9 +728,7 @@ const openSessionMenuId = ref<string | null>(null)
 // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
 const showCreateSessionDialog = ref(false)
 const showManageDialog = ref(false)
-const manageDialogType = ref<
-  'tool-collection' | 'agent-config' | 'agent-engine' | null
->(null)
+const manageDialogType = ref<'tool-collection' | 'agent-config' | 'agent-engine' | null>(null)
 const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
 const selectedAgentConfigId = ref<string>('')
 const showReferenceDialog = ref(false)
@@ -754,7 +758,10 @@ const loadDemoData = () => {
           role: 'assistant',
           type: 'chat',
           timestamp: new Date(Date.now() - 3500000).toISOString(),
-          markdown: t('agent.demo.reply1', '我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范')
+          markdown: t(
+            'agent.demo.reply1',
+            '我来帮您审查代码。从整体来看，组件结构清晰，但有几个方面可以优化：\n\n1. **Props 定义**：建议使用更严格的类型定义\n2. **Computed 属性**：有性能优化的空间\n3. **事件命名**：建议遵循 kebab-case 规范'
+          )
         }
       ],
       activeToolIds: ['code-executor'],
@@ -987,9 +994,9 @@ watch(
           // 只有当任务确实已完成/失败/取消时，才从handle集合中移除
           if (
             task &&
-          (task.status.value === t('agent.task.status.completed', '已完成') ||
-            task.status.value === t('agent.task.status.failed', '失败') ||
-            task.status.value === t('agent.task.status.cancelled', '取消'))
+            (task.status.value === t('agent.task.status.completed', '已完成') ||
+              task.status.value === t('agent.task.status.failed', '失败') ||
+              task.status.value === t('agent.task.status.cancelled', '取消'))
           ) {
             handlesToRemove.push(handle)
           }
@@ -1001,9 +1008,9 @@ watch(
           const currentTask = allTasks.value.find((t) => t.handle === currentAiTaskHandle.value)
           if (
             currentTask &&
-          (currentTask.status.value === t('agent.task.status.completed', '已完成') ||
-            currentTask.status.value === t('agent.task.status.failed', '失败') ||
-            currentTask.status.value === t('agent.task.status.cancelled', '取消'))
+            (currentTask.status.value === t('agent.task.status.completed', '已完成') ||
+              currentTask.status.value === t('agent.task.status.failed', '失败') ||
+              currentTask.status.value === t('agent.task.status.cancelled', '取消'))
           ) {
             currentAiTaskHandle.value = null
           }
@@ -1243,7 +1250,10 @@ const handleComposerSubmit = async () => {
     // 演示模式下添加模拟消息
     const session = activeSession.value
     if (session) {
-      const message = createChatMessage('user', composerInput.value.trim() || t('agent.demo.message'))
+      const message = createChatMessage(
+        'user',
+        composerInput.value.trim() || t('agent.demo.message')
+      )
       session.messages.push(message)
       touchSession(session)
       composerInput.value = ''
@@ -1251,7 +1261,10 @@ const handleComposerSubmit = async () => {
       setTimeout(() => {
         const reply = createChatMessage(
           'assistant',
-          t('agent.demo.simulatedReply', '这是演示模式下的模拟回复。在实际使用中，AI会根据您的消息生成智能回复。')
+          t(
+            'agent.demo.simulatedReply',
+            '这是演示模式下的模拟回复。在实际使用中，AI会根据您的消息生成智能回复。'
+          )
         )
         session.messages.push(reply)
         touchSession(session)
@@ -1748,7 +1761,10 @@ const executeAgentEngine = async (
           persistSessions()
         }
         const errorMessage = error instanceof Error ? error.message : String(error)
-        AIContextManager.addAssistantMessage(session, t('agent.error.executionFailed', { message: errorMessage }))
+        AIContextManager.addAssistantMessage(
+          session,
+          t('agent.error.executionFailed', { message: errorMessage })
+        )
         persistSessions()
       }
 
@@ -1821,7 +1837,10 @@ const executeAgentEngine = async (
       persistSessions()
 
       const errorMessage = error instanceof Error ? error.message : String(error)
-      AIContextManager.addAssistantMessage(session, t('agent.error.executionFailed', { message: errorMessage }))
+      AIContextManager.addAssistantMessage(
+        session,
+        t('agent.error.executionFailed', { message: errorMessage })
+      )
       persistSessions()
 
       throw error
@@ -1902,7 +1921,10 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
       // 批量处理文件上传
       const loading = ElLoading.service({
         lock: true,
-        text: files.length > 1 ? t('agent.reference.processingFiles', { count: files.length }) : t('agent.reference.processingFile'),
+        text:
+          files.length > 1
+            ? t('agent.reference.processingFiles', { count: files.length })
+            : t('agent.reference.processingFile'),
         background: 'rgba(0, 0, 0, 0.7)'
       })
 
@@ -1917,7 +1939,11 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
           try {
             loading.setText(
               files.length > 1
-                ? t('agent.reference.processingFileN', { current: i + 1, total: files.length, name: file.name })
+                ? t('agent.reference.processingFileN', {
+                    current: i + 1,
+                    total: files.length,
+                    name: file.name
+                  })
                 : t('agent.reference.processingNamedFile', { name: file.name })
             )
             const reference = await processFileUpload(file)
@@ -1960,10 +1986,14 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
           // 显示成功消息
           if (failCount === 0) {
             notifySuccess(
-              files.length > 1 ? t('agent.reference.addSuccessCount', { count: successCount }) : t('agent.reference.addSuccess')
+              files.length > 1
+                ? t('agent.reference.addSuccessCount', { count: successCount })
+                : t('agent.reference.addSuccess')
             )
           } else {
-            notifyWarning(t('agent.reference.addPartialSuccess', { success: successCount, fail: failCount }))
+            notifyWarning(
+              t('agent.reference.addPartialSuccess', { success: successCount, fail: failCount })
+            )
           }
         } else {
           notifyError(t('agent.reference.allFilesFailed'))

@@ -15,7 +15,7 @@
           <TabsContent v-for="tab in tabs" :key="tab.name" :value="tab.name">
             <form class="export-options-form space-y-4">
               <template v-for="field in getFieldsForTab(tab.name)" :key="field.key">
-                <!-- 对象类型字段（如margins） -->
+                <!-- {{ t('export.objectTypeField', '对象类型字段') }} -->
                 <template v-if="field.type === 'object' && field.fields">
                   <div class="flex items-center gap-2 my-4">
                     <Separator class="flex-1" />
@@ -112,7 +112,7 @@
                         :model-value="getNestedValue(formData, field.key)"
                         @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
                         :placeholder="getFieldLabel(field)"
-                        :preview-text="field.previewText || 'AaBbCc 你好世界'"
+                        :preview-text="field.previewText || t('fontDebugPanel.helloWorld')"
                         class="w-full"
                       />
                       <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">

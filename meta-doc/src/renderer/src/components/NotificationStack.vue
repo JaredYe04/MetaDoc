@@ -8,7 +8,7 @@
       'has-notifications': notifications.length > 0
     }"
   >
-    <!-- 3D 堆叠的通知（自下而上） -->
+    <!-- {{ $t('notification.stackDescription') }} -->
     <div
       ref="toastStackRef"
       class="toast-stack"
@@ -41,7 +41,7 @@
         <div v-if="!toast.read" class="toast-unread" />
       </div>
     </div>
-    <!-- 展开态底部操作栏：一键清空（无容器边框/背景，与 stack 透明风格一致） -->
+    <!-- {{ $t('notification.footerDescription') }} -->
     <div
       v-show="isVisible && isExpanded && notifications.length > 0"
       class="toast-stack-footer"

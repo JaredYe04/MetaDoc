@@ -1135,7 +1135,12 @@
       "testCaseNotFound": "ID \"{id}\"의 테스트 케이스를 찾을 수 없습니다",
       "toolTestCaseNotFound": "이 도구의 테스트 케이스를 찾을 수 없습니다",
       "testCaseNotFoundById": "해당 테스트 케이스를 찾을 수 없습니다",
-      "selectConfigFirst": "먼저 구성을 선택하세요"
+      "selectConfigFirst": "먼저 구성을 선택하세요",
+      "noTestCasesFound": "실행할 테스트 케이스를 찾을 수 없습니다",
+      "preparingTests": "{count}개 테스트 케이스를 준비하는 중...",
+      "testCompleted": "테스트 완료: {passed}개 통과, {failed}개 실패",
+      "allTestsPassed": "모든 테스트 통과! ({passed}/{total})",
+      "testCompletedStatus": "테스트 완료"
     },
     "autoCompletionMaxTokens": "자동 완성 토큰",
     "autoCompletionMaxTokensHint": "AI Auto-completion용 토큰의 최대 수를 제한하고 최소 20,0이 제한됩니다.",
@@ -1211,7 +1216,9 @@
       "downloadError": "다운로드 실패",
       "installAndRestart": "설치 및 재시작",
       "openSourceLicenses": "오픈 소스 라이선스",
-      "thirdPartyAssets": "제3자 에셋"
+      "thirdPartyAssets": "제3자 에셋",
+      "aboutUs": "회사 소개",
+      "content": "회사 소개 페이지의 콘텐츠입니다"
     },
     "cancel": "취소",
     "cannotCreateManualConfig": "수동 유형의 구성을 생성할 수 없습니다. 수동 유형은 개발 모드에서만 사용됩니다",
@@ -1473,7 +1480,9 @@
     "status": "주요연혁",
     "taskCancelled": "{task} 취소",
     "taskCancelled2": "업무 취소",
-    "error": "오류"
+    "error": "오류",
+    "errorTitle": "오류",
+    "showError": "오류 정보 표시"
   },
   "aiTaskQueue": {
     "empty": "할당 없음.",
@@ -1486,7 +1495,8 @@
     "delayButton": "{minutes}분 지연",
     "cancelDelay": "지연 취소",
     "minutes": "분",
-    "seconds": "초"
+    "seconds": "초",
+    "delayControlArea": "지연 제어 영역"
   },
   "knowledgeBase": {
     "add": "기타 제품",
@@ -2895,7 +2905,8 @@
     "previewFont": "Mireubogi geulggol",
     "previewText": "AaBbCc annyeonghaseyo",
     "previewTextAlt": "Mireubogi tegseuteu imnida",
-    "loadingFonts": "Geulggol roding jung..."
+    "loadingFonts": "Geulggol roding jung...",
+    "helloWorld": "안녕하세요 세계"
   },
   "aigcDetection": {
     "title": "AIGC gamji",
@@ -3204,7 +3215,11 @@
     "saveFailedFailedSave": "문서 저장 실패"
   },
   "dummyView": {
-    "emptyDescription": "열린 문서 없음"
+    "emptyDescription": "열린 문서 없음",
+    "animationDuration": "애니메이션 지속 시간",
+    "shakeAnimation": "흔들기 애니메이션",
+    "shakeDescription": "위치 이동과 회전만 포함하며, 외부 컨테이너에서 처리",
+    "shakeScale": "흔들 때에도 스케일 적용, 전환 효과가 부드럽게 처리"
   },
   "export": {
     "adapters": {
@@ -3425,7 +3440,8 @@
       "imageLabelDefaultName": {
         "label": "이미지",
         "description": "이미지 기본 이름(이미지에 이름이 없을 때 사용)"
-      }
+      },
+      "objectTypeField": "객체 유형 필드"
     }
   },
   "tabSwitcher": {
@@ -3868,11 +3884,103 @@
     "graph": {
       "title": "학습 경로도",
       "expand": "펼치기",
-      "collapse": "접기"
+      "collapse": "접기",
+      "completed": "완료됨",
+      "current": "현재",
+      "pending": "학습 예정",
+      "selected": "선택됨",
+      "confirmTitle": "학습 확인",
+      "confirmStart": "'{title}' 학습을 시작하시겠습니까?",
+      "confirm": "학습 시작",
+      "cancel": "취소"
     },
     "agent": {
       "introduction": {
-        "title": "Agent 사용 가이드"
+        "title": "Agent 사용 가이드",
+        "content": "# Agent 사용 가이드\n\nAgent는 MetaDoc의 핵심 기능 중 하나로, 복잡한 작업을 자동으로 수행하는 AI 어시스턴트입니다.\n\n## Agent란\n\nAgent는 LLM 기반의 스마트 시스템으로 다음을 수행할 수 있습니다:\n\n- 사용자의 의도 파악\n- 실행 계획 수립\n- 다양한 도구 호출로 작업 완료\n- 자동 오류 수정\n\n## Agent의 작동 방식\n\nAgent는 '생각-행동-관찰' 순환 패턴을 사용합니다:\n\n1. **생각**: 작업 분석 및 계획 수립\n2. **행동**: 도구 호출로 작업 실행\n3. **관찰**: 결과 확인 및 추가 작업 필요 여부 판단\n4. **반성**: 실행 효과 평가 및 전략 조정\n\n## 사용 시나리오\n\nAgent는 다음과 같은 시나리오에 적합합니다:\n\n- 문서 내용 생성 및 최적화\n- 차트 자동 생성 및 삽입\n- 문서 구조 최적화\n- 일괄 작업 처리\n\n## 시작하기\n\n1. 'Agent' 뷰 열기\n2. 새 Agent 세션 생성\n3. 작업 설명 입력\n4. Agent가 자동으로 작업 실행\n\n## 주의사항\n\n- Agent는 API 호출 횟수를 소모하므로 비용에 유의하세요\n- 복잡한 작업은 시간이 오래 걸릴 수 있습니다\n- 작은 작업부터 시작하여 Agent 사용에 익숙해지는 것을 권장합니다"
+      },
+      "capabilities": {
+        "title": "Agent 기능 설명",
+        "content": "# Agent 기능 설명\n\nAgent는 다양한 능력을 지원하여 다양한 문서 처리 작업을 완료할 수 있습니다.\n\n## 핵심 능력\n\n### 1. 문서 편집\n\n- 텍스트 삽입, 삭제, 교체\n- 텍스트 서식 지정\n- 문서 구조 조정\n\n### 2. 개요 작업\n\n- 문서 개요 생성\n- 개요 구조 최적화\n- 하위 장 추가\n- 장 내용 생성\n\n### 3. 차트 생성\n\n- 콘텐츠 기반 자동 차트 생성\n- Mermaid, PlantUML, ECharts 코드 삽입\n- 차트 레이아웃 최적화\n\n### 4. 콘텐츠 생성\n\n- 개요 기반 콘텐츠 생성\n- 문서 확장\n- 텍스트 다듬기\n\n### 5. 지식 검색\n\n- 지식베이스에서 관련 정보 검색\n- 검색 결과 기반 콘텐츠 생성\n\n## 도구 세트\n\nAgent는 다음 도구들을 사용할 수 있습니다:\n\n- 'edit': 문서 콘텐츠 편집\n- 'outline-tree': 문서 개요 가져오기\n- 'outline-optimize': 개요 구조 최적화\n- 'chart-generation': 차트 생성\n- 'rag-query': 지식베이스 쿼리\n- 기타...\n\n## 제한사항\n\n- Agent의 실행은 사용 가능한 도구에 의해 제한됩니다\n- 일부 작업은 사용자 확인이 필요할 수 있습니다\n- 복잡한 작업은 다중 상호작용이 필요할 수 있습니다"
+      },
+      "risks": {
+        "title": "Agent 위험 및 비용",
+        "content": "# Agent 위험 및 비용\n\nAgent 사용 시 다음 위험과 비용에 주의해야 합니다.\n\n## 위험\n\n### 1. 콘텐츠 정확성\n\n- Agent가 생성한 콘텐츠가 완전히 정확하지 않을 수 있습니다\n- 수동 검토 및 수정을 권장합니다\n- 중요한 문서는 신중하게 사용하세요\n\n### 2. 예기치 않은 수정\n\n- Agent가 원하지 않는 콘텐츠를 수정할 수 있습니다\n- 사용 전 문서를 저장하는 것을 권장합니다\n- 버전 관리 기능을 사용할 수 있습니다\n\n### 3. 개인정보 보안\n\n- Agent는 문서 콘텐츠를 LLM API로 전송합니다\n- 민감한 정보는 신중하게 사용하세요\n- Ollama와 같은 로컬 LLM 사용을 권장합니다\n\n## 비용\n\n### API 호출 비용\n\nAgent 사용 시 API 호출 비용이 발생합니다:\n\n- **OpenAI GPT-4**: 약 /home/ezra/Documents/MetaDoc/meta-doc/update_ko_batch1.sh.03-0.06 / 1,000 토큰\n- **OpenAI GPT-3.5**: 약 /home/ezra/Documents/MetaDoc/meta-doc/update_ko_batch1.sh.001-0.002 / 1,000 토큰\n- **DeepSeek**: 약 /home/ezra/Documents/MetaDoc/meta-doc/update_ko_batch1.sh.0001-0.0002 / 1,000 토큰\n- **Ollama**: 물뭄 (로컬 배포)\n\n### 토큰 소모\n\nAgent의 토큰 소모는 다음에 따라 달라집니다:\n\n- 문서 길이\n- 작업 복잡도\n- 도구 호출 횟수\n\n중간 복잡도의 작업은 다음을 소모할 수 있습니다:\n\n- 입력: 1,000-5,000 토큰\n- 출력: 500-2,000 토큰\n- 도구 호출: 500-2,000 토큰\n\n총계: 2,000-9,000 토큰\n\n## 최적화 제안\n\n1. **로컬 LLM 사용**: 가능하다면 Ollama 등 로컬 배포 LLM 사용\n2. **적절한 설정**: 온도, 최대 토큰 등 파라미터 조정\n3. **분할 처리**: 대형 작업을 소형 작업으로 나누기\n4. **사용 모니터링**: LLM 통계를 정기적으로 확인하여 사용량 파악"
+      }
+    },
+    "ai": {
+      "llmConfig": {
+        "title": "LLM 설정 가이드",
+        "content": "# LLM 설정 가이드\n\nMetaDoc는 다양한 LLM API를 지원하며, 필요에 따라 자신의 API 키를 설정할 수 있습니다.\n\n## 지원하는 LLM API\n\nMetaDoc는 다음 LLM 서비스를 지원합니다:\n\n- **OpenAI**: GPT-3.5, GPT-4 등\n- **DeepSeek**: DeepSeek Chat 등\n- **Ollama**: 로컬 배포 모델\n- **Gemini**: Google Gemini\n- **MetaDoc**: MetaDoc 공식 API\n- **사용자 정의 API**: OpenAI 형식과 호환되는 사용자 정의 API\n\n## 설정 단계\n\n1. '설정' → 'LLM 설정' 열기\n2. LLM 유형 선택\n3. API 키 입력 (필요한 경우)\n4. 모델 선택\n5. 기타 옵션 설정 (온도, 최대 토큰 등)\n6. '저장' 클릭\n\n## API 키 가져오기\n\n### OpenAI\n\n1. https://platform.openai.com/api-keys 방문\n2. 계정 로그인\n3. 새 API 키 생성\n4. MetaDoc에 키 복사\n\n### DeepSeek\n\n1. https://platform.deepseek.com/api_keys 방문\n2. 계정 로그인\n3. API 키 생성\n4. MetaDoc에 키 복사\n\n### Ollama (로컬 배포)\n\n1. Ollama 설치: https://ollama.ai\n2. 'ollama serve' 실행\n3. MetaDoc에서 API URL을 'http://localhost:11434/api'로 설정\n4. 설치된 모델 선택\n\n## 주의사항\n\n- API 키는 안전하게 보관하고 유출하지 마세요\n- API 사용 시 비용이 발생하므로 사용량에 주의하세요\n- 일부 API는 VPN이 필요할 수 있습니다"
+      },
+      "tools": {
+        "title": "AI 도구 사용",
+        "content": "# AI 도구 사용\n\nMetaDoc는 문서 작성 효율성을 높이기 위해 다양한 AI 도구를 제공합니다.\n\n## 사용 가능한 도구\n\n### 1. AI 대화\n\nAI와 대화하며 도움과 조언을 받으세요.\n\n- 왼쪽 메뉴에서 'AI 어시스턴트' → 'AI와 대화' 클릭\n- 또는 단축키로 AI 대화 창 열기\n- 현재 문서 콘텐츠를 기반으로 한 컨텍스트 이해 지원\n\n### 2. 수식 인식\n\n손글씨나 이미지의 수학 수식을 인식합니다.\n\n- 'AI 어시스턴트' → '손글씨 수식 인식' 클릭\n- 이미지 업로드 또는 칩으로 촬영\n- AI가 수식을 자동 인식하여 LaTeX 형식으로 변환\n\n### 3. 스마트 차트 어시스턴트\n\nAI를 사용하여 차트 코드를 생성합니다.\n\n- 원하는 차트 설명\n- AI가 Mermaid, PlantUML 또는 ECharts 코드 생성\n- 문서에 바로 삽입 가능\n\n### 4. 데이터 분석 도구\n\n문서의 데이터 테이블을 분석합니다.\n\n- 문서에서 테이블 선택\n- 'AI 어시스턴트' → '데이터 분석 도구' 클릭\n- AI가 데이터를 분석하고 시각화 차트 생성\n\n### 5. OCR 문자 인식\n\n이미지에서 문자를 인식합니다.\n\n- 'AI 어시스턴트' → 'OCR 문자 인식' 클릭\n- 이미지 업로드\n- AI가 이미지에서 문자를 인식하고 추출\n\n### 6. 첨부 파일 분석 도구\n\nPDF, Word 등의 첨부 파일을 분석합니다.\n\n- 'AI 어시스턴트' → '첨부 파일 분석 도구' 클릭\n- 첨부 파일 업로드\n- AI가 파일 콘텐츠를 추출하여 지식베이스에 추가\n\n## 사용 팁\n\n- RAG 지식베이스를 사용하면 AI 응답의 정확도를 높일 수 있습니다\n- 문서 콘텐츠를 참조하면 더 관련성 높은 답변을 받을 수 있습니다\n- 도구를 적절히 활용하면 업무 효율성을 크게 높일 수 있습니다"
+      },
+      "chat": {
+        "title": "AI 채팅 사용",
+        "content": "# AI 채팅 사용\n\nAI 채팅 기능을 사용하여 AI와 다중 라운드 대화를 하고 대화 기록을 저장할 수 있습니다.\n\n## 세션 생성\n\n1. AI 대화 창 열기\n2. '새 세션' 클릭\n3. 세션 이름 입력 (선택사항)\n4. 대화 시작\n\n## 세션 관리\n\n- **세션 전환**: 세션 목록에서 다른 세션 선택\n- **세션 이름 변경**: 세션을 우클릭하여 '이름 변경' 선택\n- **세션 삭제**: 세션을 우클릭하여 '삭제' 선택\n- **세션 남기**: 세션을 우클릭하여 '남기' 선택, Markdown 형식으로 남기기 가능\n\n## 세션 기능\n\n### 컨텍스트 이해\n\nAI 세션은 이전 대화 콘텐츠를 기억하여 컨텍스트를 기반으로 답변합니다.\n\n### 문서 참조\n\n대화에서 현재 열린 문서 콘텐츠를 참조할 수 있습니다:\n\n- 문서에서 텍스트 선택\n- AI 대화에서 '이 텍스트를 분석해주세요' 입력\n- AI가 선택한 텍스트를 기반으로 분석\n\n### 지식베이스 검색\n\nRAG 지식베이스를 활성화하면 AI가 지식베이스에서 관련 정보를 검색하여 답변합니다.\n\n## 단축키\n\n- 'Ctrl+L': AI 대화 창 열기/닫기\n- 'Enter': 메시지 전송\n- 'Shift+Enter': 줄 바꿈\n- 'Ctrl+/': 입력창 비우기"
+      }
+    },
+    "charts": {
+      "introduction": {
+        "title": "차트 그리기 소개",
+        "content": "# 차트 그리기 소개\n\nMetaDoc는 다양한 차트 엔진을 지원하여 다양한 유형의 차트를 생성할 수 있습니다.\n\n## 지원하는 차트 엔진\n\n| 엔진 | 사용 시나리오 |\n|------|-------------|\n| Mermaid | 순서도, UML 다이어그램, 간트 차트 |\n| PlantUML | 전문 UML 모델링 |\n| ECharts | 데이터 시각화 차트 |\n| Flowchart | 기본 순서도 |\n| Mindmap | 마인드맵 |\n\n## 차트 삽입\n\nMarkdown 문서에서 코드 블록을 사용하여 차트를 삽입합니다:\n\nmarkdown\n\n\n\n\n## 차트 렌더링\n\n- 에디터에서 차트가 실시간으로 렌더링됩니다\n- PDF, HTML 등 다양한 형식으로 남기기 지원\n- 차트 코드는 i18n 다국어 지원"
+      },
+      "mermaid": {
+        "title": "Mermaid 차트",
+        "content": "# Mermaid 차트\n\nMermaid는 순서도, 시퀀스 다이어그램, 프로젝트 계획도를 빠르게 그리는 데 적합합니다.\n\n## 순서도\n\n\n\n## 시퀀스 다이어그램\n\n\n\n## UML 클래스 다이어그램\n\n\n\n## 간트 차트\n\n\n\n## 주의사항\n\n- 문자열을 [\"...\"]로 감싸면 이스케이프 오류를 피할 수 있습니다\n- 클래스 다이어그램에서는 공백이나 특수 문자가 있는 식별자를 피하세요"
+      },
+      "plantuml": {
+        "title": "PlantUML 차트",
+        "content": "# PlantUML 차트\n\nPlantUML은 UML 모델링에 집중하여 다양한 소프트웨어 구조와 행위 다이어그램을 상세하게 모델링하는 데 적합합니다.\n\n## UML 클래스 다이어그램\n\n\n\n## 시퀀스 다이어그램\n\n\n\n## 활동 다이어그램\n\n\n\n## 주의사항\n\n- PlantUML은 Pascal 스타일 구문을 사용합니다\n- 중국어 식별자는 지원되지 않습니다\n- 레이아웃 제어는 'skinparam' 등을 사용하세요"
+      },
+      "echarts": {
+        "title": "ECharts 차트",
+        "content": "# ECharts 차트\n\nECharts는 데이터 중심의 상호작용이 풍부한 시각화 차트를 만드는 데 적합합니다.\n\n## 꺾은선형 차트\n\n\n\n## 막대 차트\n\n\n\n## 원형 차트\n\n\n\n## 주의사항\n\n- 설정 항목은 ECharts의 JSON 형식을 따라야 합니다\n- ECharts 공식 사이트의 Option Builder에서 템플릿을 가져올 수 있습니다\n- 코드 블록 언어는 'echarts'로 작성하세요, 'javascript'가 아닙니다\n- 코드 블록 내에는 JSON 형식의 설정 항목만 포함하세요"
+      }
+    },
+    "core": {
+      "fileOperations": {
+        "title": "파일 작업",
+        "content": "# 파일 작업\n\nMetaDoc는 새로 만들기, 열기, 저장 등 기본 기능을 포함한 다양한 파일 작업을 지원합니다.\n\n## 새 문서 만들기\n\n왼쪽 메뉴에서 '파일' → '새로 만들기'를 클릭하거나 단축키 'Ctrl+N'을 사용하여 새 문서를 만듭니다.\n\n## 문서 열기\n\n- 왼쪽 메뉴에서 '파일' → '열기'를 클릭하거나 단축키 'Ctrl+O'를 사용\n- '.md'(Markdown) 및 '.tex'(LaTeX) 형식 파일 열기 지원\n- 최근에 연 문서는 홈페이지의 '최근 문서' 목록에 표시됩니다\n\n## 문서 저장\n\n- 단축키 'Ctrl+S'를 사용하여 현재 문서 저장\n- 'Ctrl+Shift+S'를 사용하여 다른 이름으로 저장\n- 'Ctrl+K S'를 사용하여 열린 모든 문서 저장\n\n## 문서 남기기\n\n다양한 형식으로 남기기가 지원됩니다:\n\n- **PDF**: 인쇄 및 공유에 적합\n- **HTML**: 웹 페이지 표시에 적합\n- **DOCX**: Word 편집에 적합\n- **LaTeX**: 학술 논문에 적합\n\n'파일' → '남기기' 메뉴에서 필요한 형식을 선택하세요."
+      },
+      "editor": {
+        "title": "에디터 사용",
+        "content": "# 에디터 사용\n\nMetaDoc는 Markdown 에디터와 LaTeX 에디터 두 가지를 제공합니다.\n\n## Markdown 에디터\n\n- Vditor 기반, 실시간 미리보기 지원\n- 구문 강조 및 자동 완성\n- 수학 수식, 코드 블록, 테이블 등 지원\n- 단축키:\n  - 'Ctrl+B': 굵게\n  - 'Ctrl+I': 기울임\n  - 'Ctrl+K': 링크 삽입\n\n## LaTeX 에디터\n\n- Monaco Editor 기반, 전문적인 LaTeX 편집 경험 제공\n- 실시간 컴파일 PDF 미리보기\n- 구문 검사 및 오류 힌트\n- 매크로 패키지 자동 다운로드 지원\n\n## 다중 탭 작업\n\n- 여러 문서를 동시에 열 수 있습니다\n- 'Ctrl+Tab'을 사용하여 탭 간 빠르게 전환\n- 탭을 드래그하여 순서 변경 가능\n- 탭을 우클릭하여 고정, 닫기, 새 창으로 이동 등의 작업 가능"
+      },
+      "multiTab": {
+        "title": "다중 탭 작업",
+        "content": "# 다중 탭 작업\n\nMetaDoc는 브라우저와 유사한 다중 탭 관리를 지원합니다.\n\n## 기본 작업\n\n- **새 탭**: 탭 표시줄 오른쪽의 '+' 버튼 클릭\n- **탭 전환**: 탭 클릭 또는 'Ctrl+Tab' 사용\n- **탭 닫기**: 탭의 '×' 클릭 또는 'Ctrl+W' 사용\n- **닫은 탭 복원**: 'Ctrl+Shift+T' 사용\n\n## 탭 관리\n\n\n\n## 탭 고정\n\n탭을 우클릭하여 '탭 고정'을 선택하면, 고정된 탭은 항상 왼쪽에 표시되며 닫을 수 없습니다.\n\n## 탭 드래그\n\n- 탭을 드래그하여 순서 변경 가능\n- 탭을 창 밖으로 드래그하여 새 창 생성\n- 탭을 다른 창으로 드래그하여 창 합치기"
+      },
+      "multiWindow": {
+        "title": "다중 창 작업",
+        "content": "# 다중 창 작업\n\nMetaDoc는 다중 창 관리를 지원하여 다른 창에서 다른 문서를 열 수 있습니다.\n\n## 새 창 만들기\n\n- 탭을 창 경계 밖으로 드래그\n- 탭을 우클릭하여 '새 창에서 열기' 선택\n- 'Ctrl+N'을 사용하여 새 창에서 문서 생성\n\n## 창 간 전환\n\n- 'Alt+Tab'을 사용하여 창 전환\n- 각 창은 독립적인 탭 목록을 가집니다\n\n## 창 합치기\n\n탭을 한 창에서 다른 창으로 드래그하여 합칠 수 있습니다."
+      },
+      "export": {
+        "title": "남기기 기능",
+        "content": "# 남기기 기능\n\nMetaDoc는 문서를 다양한 형식으로 남기기를 지원합니다.\n\n## 지원하는 남기기 형식\n\n| 소스 형식 | 지원하는 남기기 형식 |\n|----------|-------------------|\n| Markdown | MD, HTML, DOCX, PDF, TEX |\n| LaTeX | TEX, PDF, MD, HTML, DOCX |\n\n## 남기기 단계\n\n1. 남기기할 문서 열기\n2. '파일' → '남기기' 클릭\n3. 대상 형식 선택\n4. 남기기 옵션 구성 (PDF 페이지 크기, HTML 스타일 등)\n5. '남기기' 버튼 클릭\n\n## 남기기 옵션\n\n형식에 따라 다른 남기기 옵션이 있습니다:\n\n- **PDF**: 페이지 크기, 여백, 머리글/바닥글 등\n- **HTML**: CSS 스타일, 리소스 내장 여부 등\n- **DOCX**: 템플릿 선택, 스타일 매핑 등"
+      }
+    },
+    "design": {
+      "philosophy": {
+        "title": "MetaDoc 설계 철학",
+        "content": "# MetaDoc 설계 철학\n\nMetaDoc의 설계는 다음 핵심 철학을 따릅니다.\n\n## 부트스트랩 설계\n\n사용자 매뉴얼 자체가 Markdown으로 작성되어 MetaDoc의 기능을 보여줍니다. 이는 '부트스트랩' 설계 철학을 구현한 것입니다: 제품 자체로 제품을 보여줍니다.\n\n## 문서 중심\n\nMetaDoc는 '문서 중심' 시스템입니다:\n\n- 문서가 핵심이며, 모든 기능이 문서 중심으로 전개됩니다\n- 다양한 문서 형식 지원 (Markdown, LaTeX)\n- 문서를 다양한 형식으로 남기기 가능\n\n## 지능화\n\nAI와 Agent 기술을 통해 문서 작성을 더욱 스마트하게:\n\n- AI 보조 작성 및 교정\n- Agent가 복잡한 작업 자동 실행\n- 스마트 차트 생성\n\n## 확장성\n\n- 사용자 정의 도구 지원\n- 플러그인 아키텍처\n- 개방형 API 인터페이스\n\n## 사용자 경험\n\n- 간결하고 아름다운 인터페이스\n- 부드러운 작동 경험\n- 풍부한 단축키 지원\n- 다국어 지원\n\n## 기술 스택\n\n- **프론트엔드**: Vue 3 + TypeScript\n- **데스크톱**: Electron\n- **에디터**: Monaco + Vditor\n- **AI**: LLM Agent 프레임워크\n- **데이터베이스**: SQLite + sqlite-vec\n\n## 미래 계획\n\n- 더 많은 AI 기능\n- 더 나은 협업 기능\n- 클라우드 동기화\n- 모바일 지원"
+      }
+    },
+    "latex": {
+      "basic": {
+        "title": "LaTeX 기초",
+        "content": "# LaTeX 기초\n\nLaTeX는 전문적인 문서 조판 시스템으로, 특히 학술 논문, 기술 문서 및 도서 조판에 적합합니다. MetaDoc는 **Tectonic**을 LaTeX 컴파일러로 사용하여 수동으로 TeX 배포판을 설치하고 구성할 필요가 없습니다.\n\n## Tectonic의 장점\n\nMetaDoc는 [Tectonic](https://tectonic-typesetting.github.io/) 컴파일러를 기반으로 합니다:\n\n- ✅ **TeX 배포판 설치 불필요**: Tectonic은 독립 실행형 바이너리로, 완전한 TeX Live나 MiKTeX 설치가 필요 없습니다\n- ✅ **자동 매크로 패키지 다운로드**: 컴파일 시 CTAN에서 필요한 매크로 패키지를 자동으로 다운로드합니다\n- ✅ **빠른 컴파일**: 기존 TeX 배포판보다 컴파일 속도가 더 빠릅니다\n- ✅ **크로스 플랫폼 지원**: Windows, macOS, Linux를 모두 지원합니다\n- ✅ **오류 위치 파악**: 컴파일 오류가 소스 코드 위치를 정확히 알려줍니다\n\n**참고**: Tectonic은 매크로 패키지를 자동으로 관리하므로 수동으로 다운로드하거나 구성할 필요가 없습니다. 문서에서 `\\usepackage{}` 명령을 사용하기만 하면, Tectonic이 컴파일 시 필요한 패키지를 자동으로 다운로드합니다.\n\n## 문서 구조\n\nLaTeX 문서의 기본 구조:\n\n```latex\n\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amsmath}\n\\usepackage{graphicx}\n\n\\title{문서 제목}\n\\author{작성자 이름}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{장 제목}\n문서 내용...\n\n\\end{document}\n```\n\n## 수학 공식\n\n### 인라인 공식\n\n`$공식$` 또는 `\\(공식\\)` 사용:\n\n```latex\n인라인 공식: $E = mc^2$\n```\n\n### 블록 공식\n\n`\\[` 및 `\\]` 사용:\n\n```latex\n\\[\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n\\]\n```\n\n## 목록\n\n### 비순서 목록\n\n```latex\n\\begin{itemize}\n  \\item 첫 번째 항목\n  \\item 두 번째 항목\n\\end{itemize}\n```\n\n### 순서 목록\n\n```latex\n\\begin{enumerate}\n  \\item 첫 번째 항목\n  \\item 두 번째 항목\n\\end{enumerate}\n```\n\n## 표\n\n```latex\n\\begin{tabular}{|c|c|c|}\n\\hline\n열1 & 열2 & 열3 \\\\\n\\hline\n데이터1 & 데이터2 & 데이터3 \\\\\n\\hline\n\\end{tabular}\n```\n\n## 이미지 삽입\n\n```latex\n\\includegraphics[width=0.8\\textwidth]{image.png}\n```\n\n## 참고와 교차 참조\n\n```latex\n\\section{소개}\n\\label{sec:intro}\n\n장 \\ref{sec:intro}에서...\n```\n\n## 특수 문자\n\nLaTeX의 특수 문자는 이스케이프가 필요합니다:\n\n```latex\n\\# \\$ \\% \\u0026 \\_ \\{ \\} \\textbackslash\n```\n\nMetaDoc는 Tectonic 컴파일러를 사용하여 표준 LaTeX 문법과 대부분의 일반적인 매크로 패키지를 지원합니다."
+      },
+      "advanced": {
+        "title": "LaTeX 고급",
+        "content": "# LaTeX 고급\n\n## Tectonic 컴파일러 특성\n\nMetaDoc는 **Tectonic**을 LaTeX 컴파일러로 사용합니다.\n\n### 자동 매크로 패키지 관리\n\nTectonic은 CTAN(Comprehensive TeX Archive Network)에서 필요한 매크로 패키지를 자동으로 다운로드합니다. 문서에서 `\\usepackage{}` 명령만 사용하면 됩니다.\n\n### 지원하는 매크로 패키지\n\n**수학 관련**:\n- `amsmath`, `amssymb`, `amsthm`: 수학 기호와 정리 환경\n- `mathtools`: 수학 도구 확장\n\n**이미지 및 표**:\n- `graphicx`: 이미지 삽입\n- `booktabs`: 전문적인 표\n\n**참고 문헌**:\n- `natbib`: 참고 문헌 관리\n- `biblatex`: 현대적 참고 문헌 시스템\n\n**기타**:\n- `hyperref`: 하이퍼링크 및 PDF 책갈피\n- `geometry`: 페이지 레이아웃\n- `xcolor`: 색상 지원\n\n## 수학 공식 고급\n\n### 다중 공식 정렬\n\n```latex\n\\begin{align}\nf(x) &= ax^2 + bx + c \\\\\n     &= a(x + \\frac{b}{2a})^2 + c\n\\end{align}\n```\n\n### 행렬\n\n```latex\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n```\n\n### 조각 함수\n\n```latex\nf(x) = \\begin{cases}\nx^2 & \\text{만약 } x \\geq 0 \\\\\n-x^2 & \\text{만약 } x < 0\n\\end{cases}\n```\n\n## 페이지 레이아웃\n\n### geometry 패키지 사용\n\n```latex\n\\usepackage[margin=2.5cm,a4paper]{geometry}\n```\n\n## 하이퍼링크 및 PDF 책갈피\n\n```latex\n\\usepackage[colorlinks=true]{hyperref}\n\n\\href{https://example.com}{링크 텍스트}\n\\url{https://example.com}\n```\n\n## 컴파일 및 디버그\n\n### 컴파일 흐름\n\n1. **문서 구문 분석**: Tectonic이 `.tex` 파일을 구문 분석합니다\n2. **매크로 패키지 다운로드**: CTAN에서 필요한 패키지를 자동으로 다운로드합니다\n3. **컴파일**: PDF 파일을 생성합니다\n4. **오류 처리**: 컴파일 실패 시 자세한 오류 정보를 표시합니다\n\n### 일반적인 오류\n\n**정의되지 않은 명령**:\n```\n! Undefined control sequence.\n```\n해결 방법: 명령 철자를 확인하고 해당 패키지가 로드되었는지 확인합니다.\n\n**수학 모드 오류**:\n```\n! Missing $ inserted.\n```\n해결 방법: 수학 공식이 `$` 또는 수학 환경을 올바르게 사용하는지 확인합니다.\n\n## 성능 최적화\n\n- `\\includeonly{}`를 사용하여 일부 장만 컴파일합니다\n- `\\nofiles`를 사용하여 보조 파일 생성을 줄입니다\n\n자세한 내용은 [Tectonic 공식 문서](https://tectonic-typesetting.github.io/)를 참조하세요."
+      }
+    },
+    "markdown": {
+      "basic": {
+        "title": "Markdown 기초 문법"
       }
     }
   }

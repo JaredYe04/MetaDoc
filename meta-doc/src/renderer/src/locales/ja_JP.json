@@ -272,6 +272,34 @@
       "chat": "長い会話に変換",
       "acceptReplace": "受け入れて置換",
       "acceptAppend": "受け入れて追加"
+    },
+    "presetPrompts": {
+      "expand": {
+        "value": "この文章を拡張してください",
+        "label": "この文章を拡張"
+      },
+      "condense": {
+        "value": "この文章を簡潔にしてください",
+        "label": "この文章を簡潔に"
+      },
+      "polish": {
+        "value": "文章を洗練させて、より美しくしてください",
+        "label": "文章を洗練させる"
+      },
+      "generateSection": {
+        "value": "記事全体の内容に基づいて、この章の内容を生成してください。詳細で充実したものにしてください",
+        "label": "このセクションを生成"
+      },
+      "proofread": {
+        "value": "テキストの誤り、誤字、不適切な部分をすべて修正し、元の意味を保持してください",
+        "label": "校正・修正"
+      },
+      "flowchart": {
+        "value": "この内容に基づいて、mermaidフローチャートを生成してください。コードブロックで囲んでください"
+      },
+      "mindmap": {
+        "value": "記事の構造に基づいて、mermaidマインドマップを生成してください。コードブロックで囲んでください"
+      }
     }
   },
   "userProfile": {
@@ -522,7 +550,11 @@
       "redo_fail": "やり直せません",
       "copy_image_success": "コピーに成功しました。Ctrl+Vで画像を貼り付けてください",
       "copy_formula_success": "コピーに成功しました",
-      "copy_formula_fail": "コピーに失敗しました"
+      "copy_formula_fail": "コピーに失敗しました",
+      "title": "通知",
+      "markAllRead": "すべて既読にする",
+      "stackDescription": "3Dスタック通知（下から上へ）",
+      "footerDescription": "展開時の下部操作バー：ワンクリックでクリア（コンテナの枠線/背景なし、スタックの透明スタイルと一致）"
     },
     "options": {
       "pen": "ペン",
@@ -1107,7 +1139,12 @@
       "testCaseNotFound": "IDが \"{id}\" のテストケースが見つかりません",
       "toolTestCaseNotFound": "このツールのテストケースが見つかりません",
       "testCaseNotFoundById": "このテストケースが見つかりません",
-      "selectConfigFirst": "設定を選択してください"
+      "selectConfigFirst": "設定を選択してください",
+      "noTestCasesFound": "実行可能なテストケースが見つかりません",
+      "preparingTests": "{count}個のテストケースを準備中...",
+      "testCompleted": "テスト完了: {passed}件合格、{failed}件失敗",
+      "allTestsPassed": "すべてのテストが合格しました！({passed}/{total})",
+      "testCompletedStatus": "テスト完了"
     },
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
@@ -1182,7 +1219,9 @@
       "downloadError": "ダウンロード失敗",
       "installAndRestart": "インストールして再起動",
       "openSourceLicenses": "オープンソースライセンス",
-      "thirdPartyAssets": "サードパーティアセット"
+      "thirdPartyAssets": "サードパーティアセット",
+      "aboutUs": "私たちについて",
+      "content": "こちらは私たちについてのページです"
     },
     "cancel": "キャンセル",
     "cannotCreateManualConfig": "手動タイプの設定は作成できません。手動タイプは開発モード専用です",
@@ -1354,7 +1393,52 @@
     "overwriteConfigTitle": "上書き確認",
     "parseEmbeddedImages": "ドキュメント内の埋め込み画像を解析",
     "parseEmbeddedImagesHint": "ドキュメント内の埋め込み画像に対して自動的にOCR認識を行います。無効にすると、添付ファイルのアップロード時にその中の画像に対してOCRを行わなくなりますが、画像を単独でアップロードした場合は認識されます。",
-    "pendingRequestId": "保留中リクエストID"
+    "pendingRequestId": "保留中リクエストID",
+    "pendingRequests": "保留中のリクエスト",
+    "presetThemeLakeBlue": "湖水ブルー",
+    "presetThemeLemonYellow": "レモンイエロー",
+    "presetThemeLightBlue": "ライトブルー",
+    "presetThemeLightCyan": "ライトシアン",
+    "presetThemeLightGreen": "ライトグリーン",
+    "presetThemeLightOrange": "ライトオレンジ",
+    "presetThemeLightPurple": "ライトパープル",
+    "presetThemeLightRed": "ライトレッド",
+    "presetThemeLightYellow": "ライトイエロー",
+    "presetThemeMintGreen": "ミントグリーン",
+    "presetThemeOffWhite": "オフホワイト",
+    "presetThemeRosePurple": "ローズパープル",
+    "presetThemeSkyBlue": "スカイブルー",
+    "presetThemeSpaceGray": "スペースグレー",
+    "refreshRequests": "リクエストリストを更新",
+    "requestNotFound": "リクエストが存在しないか、期限切れです",
+    "resetConfig": "設定をリセット",
+    "resetFailed": "リセットに失敗しました",
+    "saveChanges": "保存",
+    "saveCurrentAsConfig": "現在の設定を保存",
+    "saveFailed": "保存に失敗しました",
+    "saveSuccess": "保存しました",
+    "selectChineseFont": "中国語フォントを選択",
+    "selectCodeTheme": "コードテーマを選択",
+    "selectContentTheme": "コンテンツテーマを選択",
+    "selectFont": "フォントを選択",
+    "selectLlmConfig": "LLM設定を選択",
+    "selectPendingRequest": "保留中のリクエストを選択",
+    "selectWesternFont": "欧米フォントを選択",
+    "submitFailed": "送信に失敗しました",
+    "submitManualResponse": "レスポンスを送信",
+    "temporaryConfig": "（一時的）",
+    "testChatNonStream": "チャット-非ストリーム",
+    "testChatStream": "チャット-ストリーム",
+    "testCompletionNonStream": "補完-非ストリーム",
+    "testCompletionStream": "補完-ストリーム",
+    "testResultFailed": "テストに失敗しました",
+    "testScenario": "テストシナリオ",
+    "themeColor": "テーマカラー",
+    "themeName": "テーマ名",
+    "themeNamePlaceholder": "テーマ名を入力してください",
+    "themeNameRequired": "テーマ名を入力してください",
+    "unsavedChanges": "未保存の変更",
+    "unsavedChangesConfirm": "現在の設定に未保存の変更があります。先に保存しますか？"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -1400,7 +1484,9 @@
     "status": "ステータス",
     "taskCancelled": "{task} キャンセル",
     "taskCancelled2": "キャンセル",
-    "error": "エラー"
+    "error": "エラー",
+    "errorTitle": "エラー",
+    "showError": "エラー情報を表示"
   },
   "aiTaskQueue": {
     "empty": "割り当てなし。",
@@ -1413,7 +1499,8 @@
     "delayButton": "{minutes}分遅延",
     "cancelDelay": "遅延をキャンセル",
     "minutes": "分",
-    "seconds": "秒"
+    "seconds": "秒",
+    "delayControlArea": "遅延制御エリア"
   },
   "knowledgeBase": {
     "add": "追加する",
@@ -1505,7 +1592,8 @@
     "unknownError": "不明なエラー",
     "updatedInfoObject": "更新されたinfoオブジェクト",
     "uploadFailed": "知識のアップロードに失敗しました",
-    "uploadSuccess": "知識のアップロードに成功しました"
+    "uploadSuccess": "知識のアップロードに成功しました",
+    "disabledOverlay": "ナレッジベースが無効になった際のプロンプト画面"
   },
   "aiSuggestion": {
     "accept": "推奨事項の承諾",
@@ -2822,7 +2910,8 @@
     "previewFont": "プレビューフォント",
     "previewText": "AaBbCc ハローワールド",
     "previewTextAlt": "これはプレビューテキストです",
-    "loadingFonts": "フォントを読み込み中..."
+    "loadingFonts": "フォントを読み込み中...",
+    "helloWorld": "こんにちは世界"
   },
   "aigcDetection": {
     "title": "AIGC検出",
@@ -2887,7 +2976,50 @@
     "uploading": "アップロード中...",
     "attachImage": "画像を添付",
     "submit": "フィードバックを送信",
-    "thankYou": "フィードバックありがとうございます！"
+    "thankYou": "フィードバックありがとうございます！",
+    "addAttachment": "添付ファイルを追加",
+    "attachmentRules": "各ファイル≤10MB、合計≤50MB、最大5個。Gist機能でサポートされる形式",
+    "attachments": "添付ファイル/スクリーンショット",
+    "bodyLabel": "詳細説明",
+    "copied": "クリップボードにコピーしました",
+    "copyFailed": "コピーに失敗しました",
+    "emailHint": "メールを送信:",
+    "errors": {
+      "titleRequired": "タイトルを入力してください",
+      "bodyRequired": "詳細説明を入力してください",
+      "tooManyFiles": "最大{max}個の添付ファイルまで",
+      "singleFileTooLarge": "各ファイルは{max}を超えられません",
+      "totalTooLarge": "添付ファイルの合計は{max}を超えられません",
+      "invalidFile": "無効なファイル",
+      "noIpc": "現在の環境ではフィードバックを送信できません"
+    },
+    "feedbackType": "フィードバックの種類",
+    "footerHint": "以下の方法でもフィードバックできます:",
+    "qqGroupHint": "QQグループに参加:",
+    "selectType": "種類を選択",
+    "submitFailed": "送信に失敗しました",
+    "submitSuccess": "フィードバックを送信しました。ご協力ありがとうございます！",
+    "submitting": "送信中...",
+    "template": {
+      "systemInfo": "システム情報",
+      "describeProblemTitle": "問題の説明",
+      "describeProblem": "できるだけ明確かつ正確に問題を説明してください",
+      "expectedResultTitle": "期待される結果",
+      "expectedResult": "できるだけ明確かつ正確に期待される結果を説明してください",
+      "otherInfoTitle": "その他の情報",
+      "otherInfo": "問題の診断に役立つ追加情報を提供してください",
+      "contactTitle": "連絡先（任意）",
+      "contactOptional": "フォローアップのため、連絡先をご提供ください"
+    },
+    "title": "フィードバック",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "問題や提案を簡潔に説明してください",
+    "types": {
+      "bug": "バグ報告",
+      "feature": "機能リクエスト",
+      "security": "セキュリティ報告",
+      "other": "その他"
+    }
   },
   "editor": {
     "noOpenDocument": "開いているドキュメントがありません",
@@ -3085,7 +3217,11 @@
     "saveFailedFailedSave": "ドキュメントの保存に失敗しました"
   },
   "dummyView": {
-    "emptyDescription": "開いているドキュメントがありません"
+    "emptyDescription": "開いているドキュメントがありません",
+    "animationDuration": "アニメーション時間",
+    "shakeAnimation": "シェイクアニメーション",
+    "shakeDescription": "移動と回転のみ、外側のコンテナで処理",
+    "shakeScale": "シェイク時にもスケーリングを適用、transitionでスムーズに遷移"
   },
   "export": {
     "adapters": {
@@ -3306,7 +3442,8 @@
       "imageLabelDefaultName": {
         "label": "画像",
         "description": "画像のデフォルト名（画像に名前がない場合に使用）"
-      }
+      },
+      "objectTypeField": "オブジェクトタイプフィールド"
     }
   },
   "tabSwitcher": {
@@ -3397,7 +3534,8 @@
     "sessionsTitle": "描画セッション",
     "simpleMode": "シンプルモード",
     "user": "ユーザー",
-    "userRequest": "ユーザーの新しい要件"
+    "userRequest": "ユーザーの新しい要件",
+    "renderFailed": "レンダリングに失敗しました"
   },
   "graphWindow": {
     "format": "形式は以下の通り",
@@ -3681,5 +3819,261 @@
   "resizableContainer": {
     "collapse": "折りたたむ",
     "expand": "展開"
+  },
+  "settingBasicSection": {
+    "failedSize": "ディレクトリサイズの取得に失敗しました",
+    "text": "こんにちは世界",
+    "unavailable": "レンダラーが利用できません"
+  },
+  "settingDebugSection": {
+    "debug": "セッションデバッグ",
+    "test": "テスト",
+    "test1": "自動テスト",
+    "text": "例",
+    "updateTest": "更新テスト",
+    "version": "現在のバージョン",
+    "versionUpdate": "バージョン更新をシミュレート"
+  },
+  "settingLlmSection": {
+    "cancelled": "キャンセル",
+    "delete": "デフォルト設定は削除できません",
+    "failedTest": "テストに失敗しました",
+    "successImport": "インポート成功",
+    "test": "テスト結果",
+    "text": "個の設定",
+    "text1": "デフォルト",
+    "text2": "これはデモモードの"
+  },
+  "streamingJsonTree": {
+    "untitled": "無題"
+  },
+  "todolist-tool": {
+    "descriptionFeature": "機能説明",
+    "descriptionUserLanguage": "ユーザーの自然言語による入力に基づく",
+    "failed": "失敗",
+    "recognize": "意図認識とタスク分割",
+    "recognize1": "意図認識とタスク分割ツール",
+    "save": "に保存しました",
+    "success": "成功",
+    "text": "から読み取りました",
+    "text1": "タスク数",
+    "text2": "複雑なタスクを構造化されたタスクリストに分解します",
+    "text3": "複雑なタスクを構造化されたタスクリストに分解します",
+    "userAnalyze": "ユーザー意図を分析",
+    "userRecognize": "ユーザー意図を認識",
+    "validate": "検証"
+  },
+  "tool-call-parsers": {
+    "detect": "ネストされたを検出しました",
+    "detect1": "標準を検出しました",
+    "format": "フォーマット",
+    "notExistUnavailable": "存在しないか利用できません",
+    "parse": "パーサー",
+    "parseFailed": "解析に失敗しました",
+    "text": "ツール",
+    "text1": "に委任"
+  },
+  "useCloseTab": {
+    "closeOff": "既に閉じています",
+    "ignoreRepeat": "重複リクエストを無視",
+    "notExist": "既に存在しません"
+  },
+  "useTabDrag": {
+    "failed": "サムネイルのプリフェッチに失敗しました",
+    "failed1": "ドキュメントデータのシリアライズに失敗しました",
+    "failedDrag": "ドラッグセッションの初期化に失敗しました",
+    "startDragOn": "ドラッグセッション開始",
+    "text": "無題"
+  },
+  "useWorkspaceOperations": {
+    "deleteFailed": "削除に失敗しました",
+    "failedPaste": "貼り付けに失敗しました",
+    "renameFailed": "名前変更に失敗しました"
+  },
+  "vditorPreview": {
+    "renderFailed": "レンダリングに失敗しました"
+  },
+  "userManual": {
+    "agent": {
+      "introduction": {
+        "title": "Agentの使用方法"
+      },
+      "capabilities": {
+        "title": "Agentの機能説明"
+      },
+      "risks": {
+        "title": "Agentのリスクとコスト"
+      }
+    },
+    "ai": {
+      "llmConfig": {
+        "title": "LLM設定ガイド"
+      },
+      "tools": {
+        "title": "AIツールの使用"
+      },
+      "chat": {
+        "title": "AIチャットの使用"
+      }
+    },
+    "backToOverview": "概要に戻る",
+    "charts": {
+      "introduction": {
+        "title": "グラフ作成の概要"
+      },
+      "mermaid": {
+        "title": "Mermaidグラフ"
+      },
+      "plantuml": {
+        "title": "PlantUMLグラフ"
+      },
+      "echarts": {
+        "title": "EChartsグラフ"
+      }
+    },
+    "core": {
+      "fileOperations": {
+        "title": "ファイル操作"
+      },
+      "editor": {
+        "title": "エディタの使用"
+      },
+      "multiTab": {
+        "title": "マルチタブ操作"
+      },
+      "multiWindow": {
+        "title": "マルチウィンドウ操作"
+      },
+      "export": {
+        "title": "エクスポート機能"
+      }
+    },
+    "design": {
+      "philosophy": {
+        "title": "MetaDocのデザイン理念"
+      }
+    },
+    "emptyContent": "左側から章を選択してください",
+    "graph": {
+      "title": "学習パス図",
+      "expand": "展開",
+      "collapse": "折りたたむ",
+      "completed": "完了",
+      "current": "現在",
+      "pending": "学習待ち",
+      "selected": "選択済み",
+      "confirmTitle": "学習を確認",
+      "confirmStart": "「{title}」の学習を開始しますか？",
+      "confirm": "学習を開始",
+      "cancel": "キャンセル"
+    },
+    "latex": {
+      "basic": {
+        "title": "LaTeX基礎"
+      },
+      "advanced": {
+        "title": "LaTeX上級"
+      }
+    },
+    "markdown": {
+      "basic": {
+        "title": "Markdown基礎構文"
+      },
+      "advanced": {
+        "title": "Markdown上級機能"
+      }
+    },
+    "navigation": {
+      "core": "コア操作",
+      "markdown": "Markdownガイド",
+      "latex": "LaTeXガイド",
+      "charts": "グラフ作成",
+      "ai": "AIツール",
+      "agent": "Agentの使用",
+      "design": "デザイン理念"
+    },
+    "overview": {
+      "title": "概要",
+      "welcome": "MetaDocを始めましょう",
+      "description": "このページは、あなたの使用状況を把握し、適切な学習パスを提案します。推奨順に学習することも、左側の目次から任意の章に移動することもできます",
+      "profile": "ユーザープロフィール",
+      "profileSummary": "使用状況の概要",
+      "profileSummarySentence": "主な使用シーンは「{scenario}」です。現在、Markdownは{markdown}、LaTeXは{latex}、AI Agentは{agent}のレベルです",
+      "progress": "学習進捗",
+      "recommendedPath": "推奨学習パス",
+      "quickStart": "クイックスタート",
+      "quickLinks": "クイックリンク",
+      "noProfile": "ユーザープロフィールをまだ設定していませんか？まず使用偏好を教えてください。最適な学習パスをおすすめします",
+      "startLearning": "学習を開始",
+      "viewGraph": "学習パス図を表示",
+      "completed": "完了",
+      "current": "現在",
+      "pending": "学習待ち",
+      "articles": "記事",
+      "skillRadar": "スキルレーダーチャート"
+    },
+    "profile": {
+      "title": "ユーザープロフィールアンケート",
+      "buttonText": "使用偏好を設定する",
+      "scenario": "使用シーン",
+      "scenarioHint": "主な使用シーンを選択してください。最適な学習パスをおすすめします",
+      "reanalyze": "再分析",
+      "reanalyzeConfirmTitle": "ユーザープロフィールをリセット",
+      "reanalyzeConfirmMessage": "ユーザープロフィールをリセットすると現在の学習進捗がクリアされます。続行しますか？",
+      "scenarios": {
+        "student": "学生",
+        "researcher": "研究者",
+        "it": "IT技術者",
+        "office": "オフィスワーカー",
+        "other": "その他",
+        "hint": {
+          "student": "学生：主に授業ノート、課題ドキュメント、学習資料の整理などに使用",
+          "researcher": "研究者：主に学術論文、研究報告、実験記録などに使用",
+          "it": "IT技術者：主に技術文書、コードコメント、APIドキュメント、プロジェクトドキュメントなどに使用",
+          "office": "オフィスワーカー：主に会議議事録、業務報告、ビジネス文書などに使用",
+          "other": "その他：一般的なドキュメント編集シーン"
+        },
+        "tooltip": {
+          "student": "学生：主に授業ノート、課題ドキュメント、学習資料の整理などに使用",
+          "researcher": "研究者：主に学術論文、研究報告、実験記録などに使用",
+          "it": "IT技術者：主に技術文書、コードコメント、APIドキュメント、プロジェクトドキュメントなどに使用",
+          "office": "オフィスワーカー：主に会議議事録、業務報告、ビジネス文書などに使用",
+          "other": "その他：一般的なドキュメント編集シーン"
+        }
+      },
+      "markdownLevel": "Markdown熟練度",
+      "markdownLevelHints": {
+        "none": "Markdown構文を全く知らず、基礎構文から学習する必要がある",
+        "basic": "基本構文（見出し、リスト、太字など）を知っており、簡単なドキュメントを作成できる",
+        "intermediate": "Markdown構文を熟练使用し、テーブル、コードブロック、リンクなどの高度な機能を知っている",
+        "advanced": "Markdownに精通しており、拡張構文、数学公式、グラフなどの高度な機能に詳しい"
+      },
+      "latexLevel": "LaTeX熟練度",
+      "latexLevelHints": {
+        "none": "LaTeXを全く知らず、基礎構文とドキュメント構造から学習する必要がある",
+        "basic": "基本構文とドキュメント構造を知っており、簡単なLaTeXドキュメントを作成できる",
+        "intermediate": "LaTeXを熟练使用し、数学公式、テーブル、画像挿入などの一般的な機能を知っている",
+        "advanced": "LaTeXに精通しており、パッケージの使用、カスタムコマンド、参考文献管理などの高度な機能に詳しい"
+      },
+      "agentLevel": "AI Agentの理解度",
+      "agentLevels": {
+        "none": "全く知らない",
+        "heard": "聞いたことはあるが詳しくは知らない",
+        "basic": "基本概念を理解している",
+        "used": "使用したことがある",
+        "proficient": "熟练使用できる"
+      },
+      "knowsAgent": "AI Agentを知っていますか",
+      "usedWysiwygMarkdown": "WYSIWYG Markdownエディタを使用したことがありますか",
+      "usedWysiwygMarkdownHint": "Typora、Mark Text、ZettlrなどのWYSIWYGエディタ",
+      "usedLatexEditor": "LaTeXエディタを使用したことがありますか",
+      "usedLatexEditorHint": "Overleaf、TeXStudio、TeXworks、TeXShopなどのLaTeXエディタ",
+      "usedOtherMarkdownEditor": "他のMarkdownエディタを使用したことがありますか",
+      "usedOtherMarkdownEditorHint": "VS Code、Obsidian、Notion、語雀など、Markdownをサポートするエディタ",
+      "steps": {
+        "scenario": "使用シーン",
+        "markdown": "Markdown"
+      }
+    }
   }
 }

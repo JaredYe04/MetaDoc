@@ -110,7 +110,7 @@ onMounted(() => {
             </div>
           </div>
           <div class="text-lg font-mono" :style="{ fontFamily: fontVars.editorFont }">
-            function hello() { return "你好世界"; }
+            function hello() { return "{{ $t('fontDebugPanel.helloWorld') }}"; }
           </div>
         </div>
 

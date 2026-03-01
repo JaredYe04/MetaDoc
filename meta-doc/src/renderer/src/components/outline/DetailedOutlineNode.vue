@@ -66,7 +66,7 @@
     <div
       class="detailed-outline-node__resize-handle"
       @mousedown.capture.prevent="onResizeHandleMouseDown"
-      title="拖动调整大小"
+      :title="t('detailedOutlineNode.sizeDragAdjust', '拖动调整大小')"
     />
 
     <!-- 操作按钮区域 -->

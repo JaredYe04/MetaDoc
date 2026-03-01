@@ -429,7 +429,10 @@
     "modificationDateLabel": "Date de modification",
     "quickStartButton": "Génération rapide de contenu",
     "recentDocuments": "Documents récents",
-    "subtitle": "Outil moderne d'édition et de création de documents"
+    "subtitle": "Outil moderne d'édition et de création de documents",
+    "latexCode": "code LaTeX",
+    "preview": "Prévisualisation",
+    "suggestionTagsTitle": "Suggestions pour les étiquettes"
   },
   "mainTabs": {
     "contextMenu": {
@@ -826,7 +829,8 @@
     "removePrefixesConfirm": "Voulez-vous vraiment supprimer tous les préfixes de titres ? Cette action supprimera tous les numéros et points au début des titres et est irréversible.",
     "removePrefixesSuccess": "Tous les préfixes de titres ont été supprimés avec succès",
     "removePrefixesTip": "Supprime tous les numéros et points au début des titres, utile pour la conversion Markdown vers LaTeX (LaTeX numérote automatiquement)",
-    "stop": "Arrêter"
+    "stop": "Arrêter",
+    "noTitle": "(Sans titre)"
   },
   "searchReplace": {
     "title": "Rechercher et remplacer",
@@ -1300,7 +1304,17 @@
     "themeNamePlaceholder": "Veuillez entrer le nom du thème",
     "themeNameRequired": "Veuillez entrer le nom du thème",
     "unsavedChanges": "Modifications non enregistrées",
-    "unsavedChangesConfirm": "La configuration actuelle a des modifications non enregistrées. Voulez-vous les enregistrer d'abord ?"
+    "unsavedChangesConfirm": "La configuration actuelle a des modifications non enregistrées. Voulez-vous les enregistrer d'abord ?",
+    "logMessages": {
+      "appStartup": "Lancement de l'application réussi",
+      "loadConfig": "charger le fichier de configuration",
+      "noHistorySession": "Aucune session historique trouvée",
+      "createDocument": "Créer un nouveau document",
+      "initEditor": "Initialisation de l'éditeur",
+      "llmReady": "LLM prête à servir",
+      "networkTimeout": "Connexion réseau temporairement interrompue",
+      "autoSaveSuccess": "Sauvegarde automatique réussie"
+    }
   },
   "titleMenu": {
     "contextMarks": {
@@ -3861,61 +3875,77 @@
   "userManual": {
     "agent": {
       "introduction": {
-        "title": "Tutoriel d'utilisation de l'Agent"
+        "title": "Tutoriel d'utilisation de l'Agent",
+        "content": "# Utilisation de l'Agent\n\nL'Agent est l'une des fonctionnalités clés de MetaDoc, il s'agit d'un assistant intelligent capable d'exécuter automatiquement des tâches complexes.\n\n## Qu'est-ce que l'Agent\n\nL'Agent est un système intelligent basé sur les LLM (Modèles de Langue de Grande Taille) qui peut :\n\n- Comprendre vos intentions\n- Planifier les étapes d'exécution\n- Appeler divers outils pour accomplir une tâche\n- Corriger automatiquement les erreurs\n\n## Comment fonctionne l'Agent\n\nL'Agent utilise un cycle \"Penser-Faire-Observer\" :\n\n1. **Penser** : Analyser la tâche, élaborer un plan\n2. **Faire** : Appeler des outils pour exécuter des opérations\n3. **Observer** : Vérifier les résultats, déterminer si une action supplémentaire est nécessaire\n4. **Réfléchir** : Évaluer l'efficacité de l'exécution, ajuster la stratégie\n\n## Scénarios d'utilisation\n\nL'Agent est adapté aux scénarios suivants :\n\n- Génération et optimisation de contenu documentaire\n- Génération et insertion automatique de graphiques\n- Optimisation de la structure documentaire\n- Traitement批量处理任务\n\n## Commencer à utiliser l'Agent\n\n1. Ouvrez la vue \"Agent\"\n2. Créez une nouvelle session Agent\n3. Entrez une description de la tâche\n4. L'Agent exécutera automatiquement la tâche\n\n## Remarques\n\n- L'Agent consomme des appels d'API, veillez à prendre en compte les coûts\n- Des tâches complexes peuvent nécessiter un temps de traitement plus long\n- Il est recommandé de commencer par des tâches plus petites pour se familiariser avec l'utilisation de l'Agent"
       },
       "capabilities": {
-        "title": "Description des capacités de l'Agent"
+        "title": "Description des capacités de l'Agent",
+        "content": "# Explication des capacités de l'Agent\n\nL'Agent soutient de multiples capacités qui peuvent vous aider à accomplir diverses tâches de traitement de documents.\n\n## Capacités principales\n\n### 1. Édition de documents\n\n- Insérer, supprimer, remplacer du texte\n- Formater le texte\n- Adaptez la structure du document\n\n### 2. Gestion de l'index\n\n- Générer un index de document\n- Optimiser la structure de l'index\n- Ajouter des sous-chapitres\n- Générer le contenu des chapitres\n\n### 3. Génération de diagrammes\n\n- Générer automatiquement des diagrammes en fonction du contenu\n- Insérer du code Mermaid, PlantUML, ECharts\n- Optimiser le placement des diagrammes\n\n### 4. Génération de contenu\n\n- Générer du contenu basé sur l'index\n- Étendre le document\n- Polir le texte\n\n### 5. Recherche de connaissances\n\n- Rechercher des informations dans la base de connaissances\n- Générer du contenu basé sur les résultats de la recherche\n\n## Ensemble d'outils\n\nL'Agent peut utiliser les outils suivants :\n\n- `edit` : Éditer le contenu du document\n- `outline-tree` : Obtenir l'index de document\n- `outline-optimize` : Optimiser la structure de l'index\n- `chart-generation` : Générer des diagrammes\n- `rag-query` : Rechercher dans la base de connaissances\n- Et plus encore...\n\n## Limites\n\n- L'exécution de l'Agent est limitée par les outils disponibles\n- Certaines opérations peuvent nécessiter une confirmation de l'utilisateur\n- Les tâches complexes peuvent nécessiter plusieurs interactions"
       },
       "risks": {
-        "title": "Risques et coûts de l'Agent"
+        "title": "Risques et coûts de l'Agent",
+        "content": "# Risques et coûts de l'Agent\n\nL'utilisation de l'Agent comporte les risques et les coûts suivants.\n\n## Risques\n\n### 1. Précision du contenu\n\n- Le contenu généré par l'Agent peut ne pas être entièrement précis.\n- Il est recommandé de faire une révision manuelle et de faire des modifications.\n- Pour les documents importants, utilisez avec prudence.\n\n### 2. Modifications accidentelles\n\n- L'Agent peut modifier des contenus que vous ne souhaitez pas modifier.\n- Il est recommandé de sauvegarder le document avant utilisation.\n- Vous pouvez utiliser la fonction de contrôle de versions.\n\n### 3. Confidentialité et sécurité\n\n- L'Agent enverra le contenu du document à l'API LLM.\n- Utilisez avec prudence les informations sensibles.\n- Il est recommandé d'utiliser une LLM déployée localement (comme Ollama).\n\n## Coûts\n\n### Coûts des appels API\n\nL'utilisation de l'Agent génère des coûts d'appels API :\n\n- **OpenAI GPT-4** : environ $0,03-0,06 par 1000 tokens\n- **OpenAI GPT-3.5** : environ $0,001-0,002 par 1000 tokens\n- **DeepSeek** : environ $0,0001-0,0002 par 1000 tokens\n- **Ollama** : gratuit (déploiement local)\n\n### Consommation de tokens\n\nLa consommation de tokens par l'Agent dépend de :\n\n- La longueur du document\n- La complexité de la tâche\n- Le nombre de commandes d'outils\n\nUne tâche de moyenne complexité peut consommer :\n\n- Entrée : 1000-5000 tokens\n- Sortie : 500-2000 tokens\n- Commandes d'outils : 500-2000 tokens\n\nTotal : 2000-9000 tokens\n\n## Suggestions d'optimisation\n\n1. **Utiliser une LLM locale** : Si possible, utilisez une LLM déployée localement comme Ollama\n2. **Paramètres appropriés** : Adaptez la température, le nombre maximal de tokens, etc.\n3. **Traiter en lots** : Divisez les grandes tâches en petites tâches\n4. **Suivre l'utilisation** : Vérifiez régulièrement les statistiques de la LLM pour comprendre l'utilisation\n\n## Estimation des coûts\n\nSupposons que vous utilisez l'Agent pour traiter 10 documents par jour, avec une consommation moyenne de 5000 tokens par document :\n\n- Utilisation de GPT-3.5 : environ $0,05-0,10/jour\n- Utilisation de GPT-4 : environ $1,50-3,00/jour\n- Utilisation de DeepSeek : environ $0,005-0,01/jour\n- Utilisation d'Ollama : $0/jour"
       }
     },
     "ai": {
       "llmConfig": {
-        "title": "Guide de configuration LLM"
+        "title": "Guide de configuration LLM",
+        "content": "# Configuration de LLM\n\nMetaDoc prend en charge plusieurs API LLM, vous pouvez configurer vos propres clés API selon vos besoins.\n\n## API LLM pris en charge\n\nMetaDoc prend en charge les services LLM suivants :\n\n- **OpenAI** : GPT-3.5, GPT-4, etc.\n- **DeepSeek** : DeepSeek Chat, etc.\n- **Ollama** : Modèles déployés localement\n- **Gemini** : Google Gemini\n- **MetaDoc** : API officielle MetaDoc\n- **API personnalisé** : API personnalisé compatible avec le format OpenAI\n\n## Étapes de configuration\n\n1. Ouvrez \"Paramètres\" → \"Configuration LLM\"\n2. Sélectionnez le type de LLM\n3. Entrez la clé API (si nécessaire)\n4. Sélectionnez le modèle\n5. Configurez d'autres options (température, nombre maximal de tokens, etc.)\n6. Cliquez sur \"Enregistrer\"\n\n## Obtention de la clé API\n\n### OpenAI\n\n1. Accédez à https://platform.openai.com/api-keys\n2. Connectez-vous à votre compte\n3. Créez une nouvelle clé API\n4. Copiez la clé dans MetaDoc\n\n### DeepSeek\n\n1. Accédez à https://platform.deepseek.com/api_keys\n2. Connectez-vous à votre compte\n3. Créez une clé API\n4. Copiez la clé dans MetaDoc\n\n### Ollama (déploiement local)\n\n1. Installez Ollama : https://ollama.ai\n2. Exécutez `ollama serve`\n3. Configurez l'URL API dans MetaDoc en utilisant `http://localhost:11434/api`\n4. Sélectionnez le modèle installé\n\n## Points à noter\n\n- Gardez votre clé API en sécurité et ne la partagez pas\n- L'utilisation d'API peut engendrer des coûts, veillez à surveiller votre utilisation\n- Certaines API nécessitent un accès Internet scientifique pour être accessibles"
       },
       "tools": {
-        "title": "Utilisation des outils IA"
+        "title": "Utilisation des outils IA",
+        "content": "# Outils d'IA\n\nMetaDoc propose une variété d'outils d'IA pour vous aider à augmenter l'efficacité de la création de documents.\n\n## Outils disponibles\n\n### 1. Dialogue avec l'IA\n\nCommuniquez avec l'IA pour obtenir de l'aide et des conseils.\n\n- Cliquez sur le menu de gauche \"Assistant IA\" → \"Dialogue avec l'IA\"\n- Ou ouvrez la fenêtre de dialogue avec l'IA en utilisant les raccourcis clavier\n- Prend en compte le contexte, permet des conversations basées sur le contenu actuel du document\n\n### 2. Reconnaissance de formulaire\n\nReconnaissez des formules mathématiques manuscrites ou dans des images.\n\n- Cliquez sur \"Assistant IA\" → \"Reconnaissance de formules manuscrites\"\n- Téléchargez une image ou prenez une photo avec la caméra\n- L'IA reconnaîtra automatiquement la formule et la convertira en format LaTeX\n\n### 3. Assistant de dessin intelligent\n\nUtilisez l'IA pour générer le code de diagrammes.\n\n- Décrivez le type de diagramme que vous souhaitez\n- L'IA générera le code correspondant en Mermaid, PlantUML ou ECharts\n- Vous pouvez l'insérer directement dans le document\n\n### 4. Outils d'analyse de données\n\nAnalysez les tableaux de données dans le document.\n\n- Sélectionnez le tableau dans le document\n- Cliquez sur \"Assistant IA\" → \"Outils d'analyse de données\"\n- L'IA analysera les données et générera des graphiques visuels\n\n### 5. Reconnaissance optique de caractères (OCR)\n\nReconnaissez les textes dans des images.\n\n- Cliquez sur \"Assistant IA\" → \"Reconnaissance optique de caractères (OCR)\"\n- Téléchargez une image\n- L'IA reconnaîtra les textes dans l'image et les extraira\n\n### 6. Outil d'analyse de pièces jointes\n\nAnalysez les fichiers joints tels que des PDF, des documents Word, etc.\n\n- Cliquez sur \"Assistant IA\" → \"Outil d'analyse de pièces jointes\"\n- Téléchargez le fichier joint\n- L'IA extraira le contenu du fichier et l'ajoutera à la base de connaissances\n\n## Astuces d'utilisation\n\n- Utilisez la base de connaissances RAG pour améliorer l'exactitude des réponses de l'IA\n- Référez-vous au contenu du document dans la conversation pour obtenir des réponses plus pertinentes\n- Utilisez judicieusement ces outils pour augmenter considérablement votre efficacité"
       },
       "chat": {
-        "title": "Utilisation des sessions IA"
+        "title": "Utilisation des sessions IA",
+        "content": "# Utilisation des conversations AI\n\nLa fonction de conversation AI vous permet de mener des conversations en plusieurs tours avec l'IA et de sauvegarder l'historique de la conversation.\n\n## Créer une conversation\n\n1. Ouvrez la fenêtre de conversation AI\n2. Cliquez sur \"Nouvelle conversation\"\n3. Entrez un nom de conversation (facultatif)\n4. Démarrez la conversation\n\n## Gestion des conversations\n\n- **Changer de conversation** : Sélectionnez une conversation différente dans la liste des conversations\n- **Renommer une conversation** : Cliquez avec le bouton droit sur la conversation et choisissez \"Renommer\"\n- **Supprimer une conversation** : Cliquez avec le bouton droit sur la conversation et choisissez \"Supprimer\"\n- **Exporter une conversation** : Cliquez avec le bouton droit sur la conversation et choisissez \"Exporter\", vous pouvez l'exporter au format Markdown\n\n## Fonctions de conversation\n\n### Compréhension contextuelle\n\nL'IA se souvient des conversations précédentes et peut répondre en se basant sur le contexte.\n\n### Référence de document\n\nVous pouvez citer le contenu du document ouvert dans la conversation :\n\n- Sélectionnez du texte dans le document\n- Entrez \"Veuillez analyser ce texte\" dans la conversation avec l'IA\n- L'IA analysera le texte sélectionné\n\n### Recherche dans la base de connaissances\n\nUne fois la base de connaissances RAG activée, l'IA cherchera des informations dans la base de connaissances pour répondre aux questions.\n\n## Raccourcis clavier\n\n- `Ctrl+L` : Ouvrir/Fermer la fenêtre de conversation AI\n- `Entrée` : Envoyer un message\n- `Shift+Entrée` : Passer à la ligne suivante\n- `Ctrl+/` : Effacer la zone de saisie"
       }
     },
     "backToOverview": "Retour à l'aperçu",
     "charts": {
       "introduction": {
-        "title": "Introduction aux diagrammes"
+        "title": "Introduction aux diagrammes",
+        "content": "# Introduction à la création de graphiques\n\nMetaDoc prend en charge plusieurs moteurs de création de graphiques, permettant la création de différents types de graphiques.\n\n## Moteurs de création de graphiques pris en charge\n\n| Moteur | Scénarios d'utilisation |\n|------|---------|\n| Mermaid | Diagrammes de flux, UML, Graphe Gantt |\n| PlantUML | Modélisation UML professionnelle |\n| ECharts | Graphiques de visualisation de données |\n| Flowchart | Diagrammes de flux de base |\n| Mindmap | Cartes mentales |\n\n## Insérer un graphique\n\nUtilisez des blocs de code dans le document Markdown pour insérer un graphique :\n\n````markdown\n```mermaid\ngraph TD\n    A[Début] --> B[Traitement]\n    B --> C[Fin]\n```\n````\n\n## Rendering des graphiques\n\n- Les graphiques sont rendus en temps réel dans l'éditeur\n- Prise en charge de l'exportation au format PDF, HTML, etc.\n- Le code des graphiques prend en charge la multilinguisme (i18n)"
       },
       "mermaid": {
-        "title": "Diagrammes Mermaid"
+        "title": "Diagrammes Mermaid",
+        "content": "# Diagrammes Mermaid\n\nMermaid est adapté pour créer rapidement des diagrammes de flux, des diagrammes de séquence et des plans de projet.\n\n## Diagramme de flux\n\n```mermaid\ngraph TD\n    A[Début] --> B{Jugement}\n    B -->|Oui| C[Opération 1]\n    B -->|Non| D[Opération 2]\n    C --> E[Fin]\n    D --> E\n```\n\n## Diagramme de séquence\n\n```mermaid\nsequenceDiagram\n    participant A as Utilisateur\n    participant B as Système\n    A->>B: Demande\n    B-->>A: Réponse\n```\n\n## Diagramme UML de classe\n\n```mermaid\nclassDiagram\n    class Animal {\n        +String name\n        +int age\n        +eat()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal <|-- Dog\n```\n\n## Gantt\n\n```mermaid\ngantt\n    title Plan du projet\n    dateFormat YYYY-MM-DD\n    section Phase 1\n        tâche 1 :a1, 2024-01-01, 30d\n        tâche 2 :a2, après a1, 20d\n```\n\n## Remarques\n\n- Il est recommandé d'emballer les chaînes avec `[\"...\"]` pour éviter les erreurs d'échappement\n- Évitez l'utilisation d'identificateurs contenant des espaces ou des caractères spéciaux dans les diagrammes UML"
       },
       "plantuml": {
-        "title": "Diagrammes PlantUML"
+        "title": "Diagrammes PlantUML",
+        "content": "# Diagrammes PlantUML\n\nPlantUML se spécialise dans la modélisation UML et est adapté à la modélisation détaillée de diverses structures et comportements de logiciels.\n\n## Diagramme de classes UML\n\n```plantuml\n@startuml\nclass Animal {\n    -name: String\n    -age: int\n    +eat()\n}\n\nclass Dog {\n    +bark()\n}\n\nAnimal <|-- Dog\n@enduml\n```\n\n## Diagramme de séquence\n\n```plantuml\n@startuml\nAlice -> Bob: Requête\nBob --> Alice: Réponse\n@enduml\n```\n\n## Diagramme d'activité\n\n```plantuml\n@startuml\nstart\n:Traiter les données;\nif (les données sont valides?) then (oui)\n  :Enregistrer les données;\nelse (non)\n  :Afficher une erreur;\nendif\nstop\n@enduml\n```\n\n## Notes\n\n- PlantUML utilise la syntaxe style Pascal pour les classes\n- Les identificateurs en chinois ne sont pas pris en charge\n- Prenez en compte le contrôle de l'alignement comme `skinparam`"
       },
       "echarts": {
-        "title": "Diagrammes ECharts"
+        "title": "Diagrammes ECharts",
+        "content": "# Diagrammes ECharts\n\nECharts est adapté pour créer des diagrammes visuellement orientés vers les données et interactifs.\n\n## Diagramme en lignes\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"Exemple de diagramme en lignes\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"Lun\", \"Mar\", \"Mer\", \"Jeu\", \"Ven\", \"Sam\", \"Dim\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [150, 230, 224, 218, 135, 147, 260],\n    \"type\": \"line\"\n  }]\n}\n```\n\n## Diagramme en barres\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"Exemple de diagramme en barres\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"Lun\", \"Mar\", \"Mer\", \"Jeu\", \"Ven\", \"Sam\", \"Dim\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [120, 200, 150, 80, 70, 110, 130],\n    \"type\": \"bar\"\n  }]\n}\n```\n\n## Diagramme en camembert\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"Exemple de diagramme en camembert\"\n  },\n  \"series\": [{\n    \"type\": \"pie\",\n    \"data\": [\n      {\"value\": 1048, \"name\": \"Recherche en moteur\"},\n      {\"value\": 735, \"name\": \"Accès directs\"},\n      {\"value\": 580, \"name\": \"Marketing par email\"}\n    ]\n  }]\n}\n```\n\n## Remarques\n\n- Les paramètres doivent suivre le format JSON d'ECharts\n- Vous pouvez obtenir un modèle via le constructeur d'options sur le site web d'ECharts\n- La langue du bloc de code est directement écrite en `echarts`, et non en `javascript`\n- Le bloc de code ne contient que les paramètres au format JSON, sans autre contenu"
       }
     },
     "core": {
       "fileOperations": {
-        "title": "Opérations sur les fichiers"
+        "title": "Opérations sur les fichiers",
+        "content": "# Opérations de fichier\n\nMetaDoc prend en charge de multiples opérations de fichier, y compris des fonctions de base telles que la création, l'ouverture et la sauvegarde.\n\n## Créer un document\n\nCliquez sur le menu de gauche \"Fichier\" → \"Nouveau\", ou utilisez la combinaison de touches `Ctrl+N` pour créer un nouveau document.\n\n## Ouvrir un document\n\n- Cliquez sur le menu de gauche \"Fichier\" → \"Ouvrir\", ou utilisez la combinaison de touches `Ctrl+O`\n- Les fichiers au format `.md` (Markdown) et `.tex` (LaTeX) sont pris en charge\n- Les fichiers récemment ouverts sont affichés dans la liste \"Derniers documents\" de la page d'accueil\n\n## Sauvegarder un document\n\n- Utilisez la combinaison de touches `Ctrl+S` pour sauvegarder le document actuel\n- Utilisez `Ctrl+Shift+S` pour enregistrer sous\n- Utilisez `Ctrl+K S` pour enregistrer tous les documents ouverts\n\n## Exporter un document\n\nL'exportation est possible dans de multiples formats :\n\n- **PDF** : convient à la mise en page et à la partage\n- **HTML** : convient à la présentation sur un site web\n- **DOCX** : convient à l'édition avec Word\n- **LaTeX** : convient aux articles scientifiques\n\nDans le menu \"Fichier\" → \"Exporter\", choisissez le format souhaité."
       },
       "editor": {
-        "title": "Utilisation de l'éditeur"
+        "title": "Utilisation de l'éditeur",
+        "content": "# Utilisation de l'éditeur\n\nMetaDoc propose deux éditeurs : un éditeur Markdown et un éditeur LaTeX.\n\n## Éditeur Markdown\n\n- Basé sur Vditor, il offre une prévisualisation en temps réel\n- Mise en évidence syntaxique et complétion automatique\n- Support des formules mathématiques, des blocs de code, des tables, etc.\n- Raccourcis clavier :\n  - `Ctrl+B` : gras\n  - `Ctrl+I` : italique\n  - `Ctrl+K` : insérer un lien\n\n## Éditeur LaTeX\n\n- Basé sur Monaco Editor, il offre une expérience d'édition LaTeX professionnelle\n- Prévisualisation en temps réel de PDF compilé\n- Vérification de la syntaxe et indication d'erreurs\n- Support de téléchargement automatique des packages\n\n## Opérations avec plusieurs onglets\n\n- Permet d'ouvrir plusieurs documents simultanément\n- Utilisation de `Ctrl+Tab` pour basculer rapidement entre les onglets\n- Glisser-déposer des onglets permet de les réorganiser\n- Le clic droit sur un onglet permet de le fixer, de le fermer ou de le déplacer dans un nouvel onglet"
       },
       "multiTab": {
-        "title": "Gestion des onglets multiples"
+        "title": "Gestion des onglets multiples",
+        "content": "# Gestion de plusieurs onglets\n\nMetaDoc prend en charge la gestion de plusieurs onglets similaire à un navigateur.\n\n## Opérations de base\n\n- **Créer un onglet**: Cliquez sur le bouton `+` à droite de la barre d'onglets\n- **Changer d'onglet**: Cliquez sur l'onglet ou utilisez `Ctrl+Tab`\n- **Fermer un onglet**: Cliquez sur l'icône `×` de l'onglet ou utilisez `Ctrl+W`\n- **Rétablir un onglet fermé**: Utilisez `Ctrl+Shift+T`\n\n## Gestion des onglets\n\n```mermaid\ngraph LR\nA[Créer un document] --> B[Ouvrir un document]\nB --> C[Éditer un document]\nC --> D[Enregistrer un document]\nD --> E[Fermer un onglet]\n```\n\n## Fixer un onglet\n\nCliquez avec le bouton droit sur l'onglet et sélectionnez \"Fixer l'onglet\". Les onglets fixés resteront toujours à gauche et ne peuvent pas être fermés.\n\n## Glisser-déposer d'onglets\n\n- Glisser-déposer un onglet permet de le réorganiser\n- Glisser-déposer un onglet hors de la fenêtre crée une nouvelle fenêtre\n- Glisser-déposer un onglet dans une autre fenêtre permet de les fusionner"
       },
       "multiWindow": {
-        "title": "Gestion des fenêtres multiples"
+        "title": "Gestion des fenêtres multiples",
+        "content": "# Gestion de plusieurs fenêtres\n\nMetaDoc prend en charge la gestion de plusieurs fenêtres et permet d'ouvrir différents documents dans des fenêtres distinctes.\n\n## Créer une nouvelle fenêtre\n\n- Glisser un onglet en dehors de la limite de la fenêtre\n- Cliquer avec le bouton droit sur l'onglet et sélectionner \"Ouvrir dans une nouvelle fenêtre\"\n- Utiliser `Ctrl+N` pour créer un document dans une nouvelle fenêtre\n\n## Passer d'une fenêtre à l'autre\n\n- Utiliser `Alt+Tab` pour passer de fenêtre en fenêtre\n- Chaque fenêtre dispose d'une liste d'onglets indépendante\n\n## Fusionner des fenêtres\n\nGlisser un onglet d'une fenêtre à une autre pour fusionner les fenêtres."
       },
       "export": {
-        "title": "Fonctionnalité d'export"
+        "title": "Fonctionnalité d'export",
+        "content": "# Fonction d'exportation\n\nMetaDoc prend en charge l'exportation des documents dans plusieurs formats.\n\n## Formats d'exportation pris en charge\n\n| Format source | Formats d'exportation |\n|---------------|----------------------|\n| Markdown      | MD, HTML, DOCX, PDF, TEX |\n| LaTeX         | TEX, PDF, MD, HTML, DOCX |\n\n## Étapes d'exportation\n\n1. Ouvrez le document à exporter\n2. Cliquez sur \"Fichier\" → \"Exporter\"\n3. Choisissez le format cible\n4. Configurez les options d'exportation (taille de la page PDF, styles CSS pour HTML, etc.)\n5. Cliquez sur le bouton \"Exporter\"\n\n## Options d'exportation\n\nChaque format a des options d'exportation différentes :\n\n- **PDF** : Taille de la page, marges, en-têtes et pieds de page, etc.\n- **HTML** : Styles CSS, ressources imbriquées, etc.\n- **DOCX** : Choix de modèle, mappage des styles, etc."
       }
     },
     "design": {
       "philosophy": {
-        "title": "Philosophie de conception MetaDoc"
+        "title": "Philosophie de conception MetaDoc",
+        "content": "# Conception MetaDoc\n\nLa conception de MetaDoc se base sur les principes suivants.\n\n## Conception auto-élevante\n\nLe manuel utilisateur est rédigé en Markdown, démontrant les capacités de MetaDoc. Cela illustre la philosophie de la \"conception auto-élevante\" (bootstrapping) : utiliser le produit lui-même pour le montrer.\n\n## Document-driven\n\nMetaDoc est un système \"document-driven\" :\n\n- Les documents sont au cœur de tout, toutes les fonctionnalités s'y rattachent\n- Il prend en charge divers formats de documents (Markdown, LaTeX)\n- Les documents peuvent être exportés dans divers formats\n\n## Intélligent\n\nGrâce à l'intelligence artificielle et aux agents, la création de documents devient plus intelligente :\n\n- L'assistance par IA pour l'écriture et la révision\n- Les agents pour l'exécution automatique de tâches complexes\n- Génération intelligente de graphiques\n\n## Évolutivité\n\n- Prise en charge d'outils personnalisés\n- Architecture plug-in\n- Interfaces API ouvertes\n\n## Expérience utilisateur\n\n- Interface simple et élégante\n- Expérience d'utilisation fluide\n- Support abondant des raccourcis clavier\n- Support des langues multiples\n\n## Stack technique\n\n- **Frontend** : Vue 3 + TypeScript\n- **Desktop** : Electron\n- **Éditeur** : Monaco + Vditor\n- **IA** : Cadre LLM Agent\n- **Base de données** : SQLite + sqlite-vec\n\n## Planification future\n\n- Plus de capacités d'IA\n- Fonctionnalités de collaboration améliorées\n- Synchronisation en nuage\n- Support mobile"
       }
     },
     "emptyContent": "Veuillez sélectionner un chapitre dans le menu de gauche",
@@ -3934,18 +3964,22 @@
     },
     "latex": {
       "basic": {
-        "title": "Bases de LaTeX"
+        "title": "Bases de LaTeX",
+        "content": "# Base LaTeX\n\nLaTeX est un système de mise en page professionnel, particulièrement adapté à la rédaction de thèses, de documents scientifiques et de livres. MetaDoc utilise le compilateur **Tectonic**, ce qui évite la nécessité d'installer et de configurer une distribution TeX.\n\n## Avantages de Tectonic\n\nMetaDoc est basé sur le compilateur [Tectonic](https://tectonic-typesetting.github.io/), qui offre les avantages suivants :\n\n- ✅ **Aucune installation de TeX nécessaire** : Tectonic est un fichier binaire indépendant qui n'a pas besoin d'une installation complète de TeX Live ou MiKTeX.\n- ✅ **Téléchargement automatique des packages** : Les packages nécessaires sont téléchargés automatiquement lors de la compilation depuis CTAN, sans configuration manuelle.\n- ✅ **Compilation rapide** : La compilation est plus rapide que celle des distributions TeX traditionnelles.\n- ✅ **Support跨平台** : Prise en charge sur Windows, macOS et Linux.\n- ✅ **Localisation des erreurs** : Les erreurs de compilation sont localisées avec précision dans le code source.\n\n**Remarque** : Tectonic gère automatiquement les packages, vous n'avez pas besoin de télécharger ou de configurer manuellement les packages. Vous pouvez simplement utiliser la commande `\\usepackage{}` dans votre document, et Tectonic téléchargera automatiquement les packages nécessaires lors de la compilation.\n\n## Structure de document\n\nLa structure de base d'un document LaTeX :\n\n```latex\n\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\usepackage{amsmath}\n\\usepackage{graphicx}\n\n\\title{Titre du document}\n\\author{Nom de l'auteur}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{Titre de la section}\nContenu du document...\n\n\\subsection{Titre de la sous-section}\nPlus de contenu...\n\n\\end{document}\n```\n\n### Classes de document (Document Classes)\n\nLes classes de document couramment utilisées :\n\n- `article` : Article, pour des documents courts.\n- `report` : Rapport, pour des documents plus longs avec des chapitres.\n- `book` : Livre, pour la mise en page de livres.\n- `beamer` : Présentation, pour la création de diapositives.\n\n```latex\n\\documentclass[12pt,a4paper]{article}\n```\n\nParamètres optionnels :\n- `10pt`, `11pt`, `12pt` : Taille de la police.\n- `a4paper`, `letterpaper` : Taille de la feuille.\n- `twocolumn` : Mise en page à deux colonnes.\n- `twoside` : Imprimer à deux faces.\n\n## Structure des chapitres\n\n```latex\n\\part{Titre de la partie}        % Seulement pour book et report\n\\chapter{Titre du chapitre}        % Seulement pour book et report\n\\section{Titre de la section}        % Section principale\n\\subsection{Titre de la sous-section}   % Sous-section\n\\subsubsection{Titre de la sous-sous-section}  % Sous-sous-section\n\\paragraph{Titre du paragraphe}   % Titre de paragraphe\n\\subparagraph{Titre du sous-paragraphe}  % Titre de sous-paragraphe\n```\n\n## Formats de texte\n\n### Styles de police\n\n```latex\n\\textbf{Texte en gras}\n\\textit{Texte en italique}\n\\emph{Texte en italique ou en gras}  % Généralement en italique\n\\texttt{Texte en police monospacée}  % Police pour le code\n\\textsc{Texte en minuscules majuscules}\n\\underline{Texte souligné}\n```\n\n### Tailles de police\n\n```latex\n{\\tiny Texte très petit}\n{\\scriptsize Texte très petit}\n{\\footnotesize Texte de note de bas de page}\n{\\small Texte petit}\n{\\normalsize Texte normal}\n{\\large Texte grand}\n{\\Large Texte très grand}\n{\\LARGE Texte très très grand}\n{\\huge Texte immense}\n{\\Huge Texte très immense}\n```\n\n## Formules mathématiques\n\n### Formules en ligne\n\nUtiliser `$formule$` ou `\\(formule\\)` :\n\n```latex\nC'est une formule en ligne : $E = mc^2$, et une autre : \\(a^2 + b^2 = c^2\\)\n```\n\n### Formules en bloc (sans numérotation)\n\nUtiliser `$$formule$$` ou `\\[formule\\]` :\n\n```latex\n\\[\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n\\]\n```\n\n### Formules en bloc (avec numérotation)\n\nUtiliser l'environnement `equation` :\n\n```latex\n\\begin{equation}\n\\label{eq:einstein}\nE = mc^2\n\\end{equation}\n```\n\nPuis vous pouvez citer cette formule avec `\\ref{eq:einstein}`.\n\n### Formules sur plusieurs lignes\n\nUtiliser l'environnement `align` (nécessite le package `amsmath`) :\n\n```latex\n\\begin{align}\na &= b + c \\\\\nd &= e + f\n\\end{align}\n```\n\n### Exemples de symboles mathématiques\n\n```latex\n$\\alpha, \\beta, \\gamma, \\delta$\n$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$\n$\\int_{0}^{\\infty} e^{-x} dx = 1$\n$\\sqrt{x}, \\sqrt[n]{x}$\n$\\frac{a}{b}, \\binom{n}{k}$\n$\\leq, \\geq, \\neq, \\approx$\n$\\in, \\notin, \\subset, \\subseteq$\n$\\forall, \\exists, \\nexists$\n```\n\n## Listes\n\n### Liste non ordonnée\n\n```latex\n\\begin{itemize}\n  \\item Premier élément\n  \\item Deuxième élément\n    \\begin{itemize}\n      \\item Sous-élément 1\n      \\item Sous-élément 2\n    \\end{itemize}\n  \\item Troisième élément\n\\end{itemize}\n```\n\n### Liste ordonnée\n\n```latex\n\\begin{enumerate}\n  \\item Premier élément\n  \\item Deuxième élément\n    \\begin{enumerate}\n      \\item Sous-élément 1\n      \\item Sous-élément 2\n    \\end{enumerate}\n  \\item Troisième élément\n\\end{enumerate}\n```\n\n### Liste de description\n\n```latex\n\\begin{description}\n  \\item[Terme 1] Définition 1\n  \\item[Terme 2] Définition 2\n\\end{description}\n```\n\n## Tableaux\n\n### Tableau de base\n\n```latex\n\\begin{tabular}{|c|c|c|}\n\\hline\nColonne 1 & Colonne 2 & Colonne 3 \\\\\n\\hline\nDonnées 1 & Données 2 & Données 3 \\\\\nDonnées 4 & Données 5 & Données 6 \\\\\n\\hline\n\\end{tabular}\n```\n\nAlignement des colonnes :\n- `l` : Alignement à gauche\n- `c` : Alignement au centre\n- `r` : Alignement à droite\n- `|` : Traits de séparation\n\n### Environnement de tableau (avec titre et étiquette)\n\n```latex\n\\begin{table}[h]\n\\centering\n\\begin{tabular}{|c|c|c|}\n\\hline\nColonne 1 & Colonne 2 & Colonne 3 \\\\\n\\hline\nDonnées 1 & Données 2 & Données 3 \\\\\n\\hline\n\\end{tabular}\n\\caption{Titre du tableau}\n\\label{tab:example}\n\\end{table}\n```\n\nPuis vous pouvez citer ce tableau avec `\\ref{tab:example}`.\n\n### Environnement de tableau avec package `booktabs`\n\nUtiliser le package `booktabs` pour créer des tableaux plus beaux :\n\n```latex\n\\usepackage{booktabs}\n\n\\begin{tabular}{ccc}\n\\toprule\nColonne 1 & Colonne 2 & Colonne 3 \\\\\n\\midrule\nDonnées 1 & Données 2 & Données 3 \\\\\nDonnées 4 & Données 5 & Données 6 \\\\\n\\bottomrule\n\\end{tabular}\n```\n\n## Insertion d'images\n\n### Insertion d'image de base\n\n```latex\n\\usepackage{graphicx}\n\n\\includegraphics{image.png}\n```\n\n### Environnement d'image (avec titre et étiquette)\n\n```latex\n\\begin{figure}[h]\n\\centering\n\\includegraphics[width=0.8\\textwidth]{image.png}\n\\caption{Titre de l'image}\n\\label{fig:example}\n\\end{figure}\n```\n\nParamètres de positionnement de l'image :\n- `h` : Ici, à la position actuelle\n- `t` : Haut, en haut de la page\n- `b` : Bas, en bas de la page\n- `p` : Page, sur une page séparée\n\nOptions de taille de l'image :\n- `width=0.8\\textwidth` : Largeur de 80% de la largeur du texte\n- `height=5cm` : Hauteur de 5 cm\n- `scale=0.5` : Échelle de 50%\n\n## Citations et références\n\n### Étiquettes et citations\n\n```latex\n\\section{Introduction}\n\\label{sec:intro}\n\nDans la section \\ref{sec:intro}, nous avons discuté de...\n```\n\n### Références bibliographiques\n\nGérer les références avec BibTeX :\n\n```latex\n\\bibliographystyle{plain}\n\\bibliography{references}\n```\n\n## Code et environnements\n\n### Code en ligne\n\n```latex\nUtilisez \\texttt{code} pour indiquer du code\n```\n\n### Bloc de code (nécessite le package `listings`)\n\n```latex\n\\usepackage{listings}\n\\usepackage{xcolor}\n\n\\begin{lstlisting}[language=Python]\ndef hello():\n    print('Hello, World!')\n\\end{lstlisting}\n```\n\n## Environnements spéciaux\n\n### Environnement de citation\n\n```latex\n\\begin{quote}\nCeci est un texte de citation.\nIl peut s'étendre sur plusieurs lignes.\n\\end{quote}\n```\n\n### Environnement de poésie\n\n```latex\n\\begin{verse}\nLigne 1\\\\\nLigne 2\\\\\nLigne 3\n\\end{verse}\n```\n\n### Environnement de résumé\n\n```latex\n\\begin{abstract}\nCeci est le résumé du document.\n\\end{abstract}\n```\n\n## Pages et sauts de ligne\n\n```latex\n\\newpage      % Nouvelle page\n\\clearpage    % Nouvelle page après l'enregistrement des flottants\n\\pagebreak    % Saut de page\n\\linebreak    % Saut de ligne\n\\newline      % Nouvelle ligne\n```\n\n## Commentaires\n\nCréer des commentaires en utilisant `%` :\n\n```latex\nCeci est du texte % Ceci est un commentaire\n```\n\n## Caractères spéciaux\n\nLes caractères spéciaux dans LaTeX doivent être échappés :\n\n```latex\n\\# Hashtag\n\\$ Symbole dollar\n\\% Pourcent\n\\& Et\n\\_ Sous-ligne\n\\{ Crochets gauches\n\\} Crochets droits\n\\textbackslash Backslash\n```\n\n## Résumé\n\nMetaDoc utilise Tectonic comme compilateur, qui supporte la syntaxe standard de LaTeX et la plupart des packages couramment utilisés. Tectonic télécharge automatiquement les packages nécessaires, vous n'avez pas besoin de les configurer manuellement. Si vous rencontrez des erreurs de compilation, l'éditeur affiche des informations détaillées pour vous aider à les résoudre rapidement."
       },
       "advanced": {
-        "title": "LaTeX avancé"
+        "title": "LaTeX avancé",
+        "content": "# Avancées LaTeX\n\n## Caractéristiques du compilateur Tectonic\n\nMetaDoc utilise **Tectonic** comme compilateur LaTeX, un moteur de compilation moderne avec les caractéristiques suivantes :\n\n### Gestion automatique des paquets\n\nTectonic télécharge automatiquement les paquets nécessaires depuis CTAN (Comprehensive TeX Archive Network), vous n'avez pas besoin d'installer ou de configurer manuellement ces paquets. Vous pouvez simplement utiliser la commande `\\usepackage{}` dans votre document, et Tectonic gérera le reste.\n\n```latex\n\\usepackage{amsmath}      % Équations mathématiques\n\\usepackage{graphicx}     % Insertion d'images\n\\usepackage{hyperref}     % Liens hypertextes\n\\usepackage{listings}     % Insertion de code\n```\n\n### Paquets pris en charge\n\nTectonic prend en charge la plupart des paquets LaTeX couramment utilisés, notamment :\n\n**Mathématiques** :\n- `amsmath`, `amssymb`, `amsthm` : Symboles mathématiques et environnements de théorèmes\n- `mathtools` : Extensions de mathématiques\n- `bm` : Symboles mathématiques gras\n\n**Images et tables** :\n- `graphicx` : Insertion d'images\n- `booktabs` : Tables professionnelles\n- `longtable` : Tables跨页\n- `tabularx` : Tables de largeur automatique\n\n**Code et algorithmes** :\n- `listings` : Coloration syntaxique\n- `algorithm2e` : Algorithmes pseudo-code\n- `minted` : Coloration syntaxique avancée (nécessite Python)\n\n**Références bibliographiques** :\n- `natbib` : Gestion de références bibliographiques\n- `biblatex` : Système de références bibliographiques moderne\n\n**Autres paquets couramment utilisés** :\n- `hyperref` : Liens hypertextes et signets PDF\n- `geometry` : Gestion de la mise en page\n- `fancyhdr` : En-têtes et pieds de page\n- `titlesec` : Formats de titres\n- `xcolor` : Support des couleurs\n- `tikz` : Dessin (support de base)\n\n### Paquets ou fonctionnalités non pris en charge\n\nEn raison de la conception de Tectonic, certaines fonctionnalités peuvent ne pas être complètement supportées :\n\n- ❌ Certains paquets nécessitant un moteur TeX particulier (comme XeTeX/LuaTeX)\n- ❌ Certains paquets nécessitant des programmes externes (comme `minted` nécessite Python)\n- ❌ Certains paquets très anciens ou non standard\n\nSi vous rencontrez des paquets non pris en charge, Tectonic affichera des messages d'erreur explicites.\n\n## Utilisation des paquets\n\n### Utilisation basique\n\n```latex\n\\usepackage{nom_du_paquet}\n```\n\n### Utilisation avec des options\n\n```latex\n\\usepackage[option1,option2]{nom_du_paquet}\n```\n\nExemple :\n\n```latex\n\\usepackage[utf8]{inputenc}           % Encodage UTF-8\n\\usepackage[T1]{fontenc}             % Encodage de police T1\n\\usepackage[margin=2cm]{geometry}    % Marge de page\n\\usepackage[colorlinks=true]{hyperref}  % Liens hypertextes colorés\n```\n\n## Avancées en équations mathématiques\n\n### Équations alignées\n\n```latex\n\\begin{align}\nf(x) &= ax^2 + bx + c \\\\\n     &= a(x^2 + \\frac{b}{a}x) + c \\\\\n     &= a(x + \\frac{b}{2a})^2 + c - \\frac{b^2}{4a}\n\\end{align}\n```\n\n### Matrices\n\n```latex\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\n\\begin{bmatrix}\n1 & 2 & 3 \\\\\n4 & 5 & 6\n\\end{bmatrix}\n\n\\begin{vmatrix}\na & b \\\\\nc & d\n\\end{vmatrix}\n```\n\n### Fonctions en plusieurs parties\n\n```latex\nf(x) = \\begin{cases}\nx^2 & \\text{si } x \\geq 0 \\\\\n-x^2 & \\text{si } x < 0\n\\end{cases}\n```\n\n### Environnements de théorèmes\n\n```latex\n\\usepackage{amsthm}\n\n\\theoremstyle{definition}\n\\newtheorem{definition}{Définition}\n\n\\theoremstyle{theorem}\n\\newtheorem{theorem}{Théorème}\n\\newtheorem{lemma}{Lemme}\n\n\\begin{definition}\nContenu de la définition.\n\\end{definition}\n\n\\begin{theorem}\nContenu du théorème.\n\\end{theorem}\n```\n\n## Gestion des références bibliographiques\n\n### Utilisation de BibTeX\n\n1. Créer un fichier `.bib` (par exemple `references.bib`) :\n\n```bibtex\n@article{einstein1905,\n  title={Sur la dynamique de l'électromagnétisme des corps en mouvement},\n  author={Einstein, Albert},\n  journal={Annalen der Physik},\n  volume={17},\n  year={1905}\n}\n\n@book{knuth1984,\n  title={The TeXbook},\n  author={Knuth, Donald E.},\n  year={1984},\n  publisher={Addison-Wesley}\n}\n```\n\n2. Dans le document LaTeX :\n\n```latex\n\\bibliographystyle{plain}\n\\bibliography{references}\n```\n\n3. Dans le texte :\n\n```latex\nComme le montre la référence \\cite{einstein1905}...\n```\n\n### Utilisation de biblatex (recommandé)\n\n```latex\n\\usepackage[style=numeric]{biblatex}\n\\addbibresource{references.bib}\n\nDans le texte : \\cite{einstein1905}\n\n\\printbibliography\n```\n\n## Commandes et environnements personnalisés\n\n### Commandes personnalisées\n\n```latex\n\\newcommand{\\R}{\\mathbb{R}}\n\\newcommand{\\N}{\\mathbb{N}}\n\\newcommand{\\Z}{\\mathbb{Z}}\n\n\\newcommand{\\abs}[1]{\\left|#1\\right|}\n\\newcommand{\\norm}[1]{\\left\\|#1\\right\\|}\n```\n\nUtilisation :\n\n```latex\n$\\R, \\N, \\Z$\n$\\abs{x}, \\norm{\\mathbf{v}}$\n```\n\n### Environnements personnalisés\n\n```latex\n\\newenvironment{myenv}\n  {\\begin{quote}\\itshape}\n  {\\end{quote}}\n```\n\nUtilisation :\n\n```latex\n\\begin{myenv}\nContenu de l'environnement personnalisé.\n\\end{myenv}\n```\n\n## Mise en page\n\n### Utilisation de la macro `geometry`\n\n```latex\n\\usepackage[margin=2.5cm,a4paper]{geometry}\n```\n\nOptions :\n- `margin=2.5cm` : Marges de page\n- `left=3cm, right=2cm` : Marges de gauche et de droite\n- `top=3cm, bottom=2cm` : Marges de haut et de bas\n- `a4paper, letterpaper` : Taille de la feuille\n\n### En-têtes et pieds de page\n\n```latex\n\\usepackage{fancyhdr}\n\n\\pagestyle{fancy}\n\\fancyhf{}\n\\fancyhead[L]{En-tête de gauche}\n\\fancyhead[R]{En-tête de droite}\n\\fancyfoot[C]{Pied de page}\n```\n\n## Liens hypertextes et signets PDF\n\n```latex\n\\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}\n\n\\href{https://example.com}{Texte du lien}\n\\url{https://example.com}\n\\email{email@example.com}\n```\n\n## Coloration syntaxique\n\n### Utilisation de la macro `listings`\n\n```latex\n\\usepackage{listings}\n\\usepackage{xcolor}\n\n\\lstset{\n  language=Python,\n  basicstyle=\\ttfamily,\n  keywordstyle=\\color{blue},\n  commentstyle=\\color{green},\n  stringstyle=\\color{red}\n}\n\n\\begin{lstlisting}\ndef hello():\n    print('Hello, World!')\n\\end{lstlisting}\n```\n\n## Compilation et débogage\n\n### Flux de compilation\n\nMetaDoc utilise Tectonic pour la compilation, le flux de compilation est le suivant :\n\n1. **Analyse du document** : Tectonic analyse le fichier `.tex`\n2. **Téléchargement des paquets** : Tectonic télécharge automatiquement les paquets nécessaires depuis CTAN\n3. **Compilation** : Tectonic génère un fichier PDF\n4. **Gestion des erreurs** : Si la compilation échoue, Tectonic affiche des informations d'erreur détaillées\n\n### Erreurs courantes\n\n**Commande non définie** :\n```\n! Commande non définie.\n```\nSolution : Vérifiez l'orthographe de la commande, assurez-vous d'avoir chargé le paquet approprié.\n\n**Paquet manquant** :\n```\n! Erreur de LaTeX : Fichier 'xxx.sty' non trouvé.\n```\nSolution : Tectonic télécharge automatiquement, si l'échec persiste, vérifiez le nom du paquet.\n\n**Erreur en mode mathématique** :\n```\n! Caractère manquant $.\n```\nSolution : Vérifiez que les équations mathématiques sont correctement encadrées par `$` ou des environnements mathématiques.\n\n### Astuces pour le débogage\n\n1. **Vérification des journaux** : Les erreurs de compilation sont affichées dans la console de l'éditeur\n2. **Localisation de l'erreur** : Les informations d'erreur affichent le numéro de ligne et de colonne\n3. **Compilation par étapes** : Vous pouvez commenter temporairement des parties du document pour isoler les problèmes\n4. **Vérification de la syntaxe** : Assurez-vous que toutes les commandes et environnements sont correctement fermés\n\n## Optimisation de la performance\n\n### Vitesse de compilation\n\nLa vitesse de compilation de Tectonic est généralement plus rapide que les éditions traditionnelles de TeX, mais la compilation peut prendre un certain temps pour des documents volumineux ou contenant de nombreuses images.\n\nSuggestions d'optimisation :\n- Utiliser `\\includeonly{}` pour compiler seulement certaines sections\n- Commenter temporairement des images ou des tableaux volumineux\n- Utiliser `\\nofiles` pour réduire la génération de fichiers d'aide\n\n## Résumé\n\nL'éditeur LaTeX de MetaDoc est basé sur Tectonic, qui prend en charge la syntaxe standard LaTeX et la plupart des paquets couramment utilisés. Tectonic gère automatiquement les paquets, vous n'avez pas besoin de les installer ou de les configurer manuellement. Si vous rencontrez des paquets ou des fonctionnalités non pris en charge, l'éditeur affichera des messages d'erreur explicites pour vous aider à les résoudre rapidement.\n\nPour plus d'informations, consultez :\n- [Documentation officielle de Tectonic](https://tectonic-typesetting.github.io/)\n- [Documentation officielle de LaTeX](https://www.latex-project.org/)\n- [Répertoire CTAN des paquets](https://www.ctan.org/)"
       }
     },
     "markdown": {
       "basic": {
-        "title": "Syntaxe Markdown de base"
+        "title": "Syntaxe Markdown de base",
+        "content": "# Syntaxe de base de Markdown\n\nL'éditeur Markdown de MetaDoc est basé sur [Vditor](https://b3log.org/vditor), qui prend en charge les normes CommonMark et GFM (GitHub Flavored Markdown). Cette documentation présente la syntaxe de Markdown supportée par MetaDoc.\n\n## Titres\n\nUtilisez `#` pour indiquer un titre, le nombre de `#` détermine le niveau du titre (de 1 à 6) :\n\n```markdown\n# Titre de niveau 1\n## Titre de niveau 2\n### Titre de niveau 3\n#### Titre de niveau 4\n##### Titre de niveau 5\n###### Titre de niveau 6\n```\n\n**Meilleures pratiques** :\n- Séparez les titres par des lignes vides\n- Ajoutez un espace après `#`\n- Évitez les sauts de niveau (par exemple, passer directement du niveau 1 au niveau 3)\n\n### Titres Setext (syntaxe optionnelle)\n\nVous pouvez également créer des titres en utilisant des égalités ou des traits horizontaux :\n\n```markdown\nTitre de niveau 1\n========\n\nTitre de niveau 2\n--------\n```\n\nRemarque : La syntaxe Setext ne peut créer que des titres de niveau 1 et 2, elle n'est pas recommandée.\n\n## Paragraphes\n\nSéparez les paragraphes par des lignes vides :\n\n```markdown\nCeci est le premier paragraphe.\n\nCeci est le deuxième paragraphe.\n```\n\n**Meilleures pratiques** :\n- Ne commencez pas un paragraphe par un espace ou une tabulation\n- Séparez les paragraphes par des lignes vides\n\n## Retour à la ligne\n\nPour forcer un retour à la ligne, ajoutez deux espaces ou plus en fin de ligne puis appuyez sur Entrée :\n\n```markdown\nCeci est la première ligne.  \nCeci est la deuxième ligne.\n```\n\nRemarque : La plupart des moteurs de Markdown modernes gèrent automatiquement les retours à la ligne, il n'est généralement pas nécessaire d'ajouter des espaces.\n\n## Format de texte\n\n### Gras\n\nUtilisez `**texte**` ou `__texte__` pour indiquer du texte gras :\n\n```markdown\nCeci est **du texte gras**\nCeci est __du texte gras__\n```\n\n**Meilleures pratiques** : On recommande l'utilisation de `**` car des espaces avant et après ne sont pas nécessaires.\n\n### Souligné (italique)\n\nUtilisez `*texte*` ou `_texte_` pour indiquer du texte en italique :\n\n```markdown\nCeci est *du texte en italique*\nCeci est _du texte en italique_\n```\n\n### Gras et souligné\n\nUtilisez `***texte***` ou `___texte___` :\n\n```markdown\nCeci est ***du texte en gras et en italique***\n```\n\n### Souligné avec une ligne traitée\n\nUtilisez `~~texte~~` pour indiquer du texte souligné :\n\n```markdown\n~~Ceci est du texte souligné~~\n```\n\n### Code en ligne\n\nEntourez le code d'astérisques :\n\n```markdown\nUtilisez `console.log()` pour afficher du contenu\n```\n\nSi vous devez afficher des astérisques, utilisez l'échappement : `` ` ``\n\n## Listes\n\n### Liste non numérotée\n\nCréez une liste non numérotée en utilisant `-`, `*` ou `+` :\n\n```markdown\n- Projet 1\n- Projet 2\n  - Sous-projet 2.1\n  - Sous-projet 2.2\n- Projet 3\n```\n\n### Liste numérotée\n\nCréez une liste numérotée en utilisant un numéro suivi d'un point ou d'un parenthèse :\n\n```markdown\n1. Premier élément\n2. Deuxième élément\n3. Troisième élément\n```\n\nRemarque : Les numéros n'ont pas à être consécutifs, Markdown les numérote automatiquement.\n\n### Éléments de liste contenant d'autres éléments\n\nLes éléments de liste peuvent contenir des paragraphes, des blocs de code, des citations, etc. :\n\n```markdown\n- Élément de liste 1\n- Élément de liste 2 premier paragraphe\n\n  C'est le deuxième paragraphe (remarque : alignement des indentations)\n\n  > C'est une citation\n\n  ```\n  C'est un bloc de code\n  ```\n- Élément de liste 3\n```\n\n## Citations\n\nCréez une citation en utilisant un trait de plus :\n\n```markdown\n> C'est du contenu de la citation\n> Cela peut être sur plusieurs lignes\n```\n\n### Citations imbriquées\n\n```markdown\n> Première citation\n>\n>> Deuxième citation\n```\n\n### Citation contenant d'autres éléments\n\nLes citations peuvent contenir des titres, des listes, des blocs de code, etc. :\n\n```markdown\n> ### Titre\n>\n> - Élément de liste\n> - Élément de liste\n>\n> **Gras** et *italique*\n```\n\n## Blocs de code\n\n### Blocs de code indentés\n\nUtilisez quatre espaces ou un tabulation pour indenter le code :\n\n```markdown\n    Ceci est un bloc de code\n    qui peut être sur plusieurs lignes\n```\n\n### Blocs de code avec balises (recommandé)\n\nEntourez le code de trois guillemets et spécifiez le langage :\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\nLes langages de syntaxe colorée supportés incluent : JavaScript, Python, Java, C++, HTML, CSS, JSON, Markdown, etc.\n\n## Liens\n\n### Liens inline\n\n```markdown\n[Texte du lien](https://example.com)\n[Texte du lien](https://example.com \"Titre du lien\")\n```\n\n### Liens de style de citation\n\n```markdown\n[Texte du lien][identifiant du lien]\n\n[identifiant du lien]: https://example.com \"Titre optionnel\"\n```\n\n### Liens automatiques\n\n```markdown\n<https://example.com>\n<email@example.com>\n```\n\nLa plupart des moteurs de Markdown supportent également l'identification automatique des URL :\n\n```markdown\nhttps://example.com\n```\n\n**Meilleures pratiques** : Après un texte en chinois, il est recommandé d'utiliser un espace ou des guillemets pour séparer l'URL, afin d'éviter des erreurs de reconnaissance.\n\n## Images\n\n```markdown\n![Description de l'image](image.png)\n![Description de l'image](image.png \"Titre de l'image\")\n```\n\n### Image imbriquée dans un lien\n\n```markdown\n[![Description de l'image](image.png)](https://example.com)\n```\n\n## Tables\n\nUtilisez des barres verticales `|` pour séparer les colonnes et des traits horizontaux `---` pour séparer la tête de la table :\n\n```markdown\n| Colonne 1 | Colonne 2 | Colonne 3 |\n|-----------|-----------|-----------|\n| Données 1 | Données 2 | Données 3 |\n| Données 4 | Données 5 | Données 6 |\n```\n\n### Alignement des colonnes dans les tables\n\n```markdown\n| Alignement à gauche | Alignement centré | Alignement à droite |\n|:-------------------|:-----------------:|-------------------:|\n| Données 1          | Données 2         |   Données 3        |\n```\n\n### Contenu formaté dans les tables\n\nLes tables peuvent contenir du texte gras, en italique, des liens, etc. :\n\n```markdown\n| Colonne 1 | Colonne 2 |\n|-----------|-----------|\n| **Texte en gras** | [Lien](url) |\n```\n\nRemarque : Les éléments de type bloc (titres, listes, blocs de code, etc.) ne peuvent pas être utilisés dans les tables.\n\n## Lignes de séparation\n\nCréez une ligne de séparation en utilisant trois ou plus `*`, `-` ou `_` :\n\n```markdown\n***\n---\n___\n```\n\n## Caractères d'échappement\n\nUtilisez un backslash `\\` pour échapper des caractères spéciaux :\n\n```markdown\n\\* Étoile\n\\` Backtick\n\\# Hashtag\n\\[ Crochets\n\\( Parenthèses\n```\n\n## Support HTML\n\nMarkdown prend en charge l'insertion d'HTML :\n\n```html\n<div style=\"color: red;\">Texte en rouge</div>\n```\n\n**Remarques** :\n- Certains moteurs de Markdown peuvent filtrer certaines balises HTML ou leurs attributs\n- Il ne faut pas imbriquer de syntaxe Markdown dans du HTML\n- On recommande d'utiliser la syntaxe Markdown plutôt que du HTML si possible"
       },
       "advanced": {
-        "title": "Fonctionnalités avancées Markdown"
+        "title": "Fonctionnalités avancées Markdown",
+        "content": "# Caractéristiques avancées de Markdown\n\n## À propos de Vditor\n\nL'éditeur de Markdown de MetaDoc est basé sur [Vditor](https://b3log.org/vditor), un puissant éditeur de Markdown côté navigateur. Vditor implémente les normes CommonMark et GFM (GitHub Flavored Markdown) et prend en charge de nombreuses extensions de syntaxe.\n\n### Capacités de Vditor\n\n- ✅ Support des normes CommonMark et GFM\n- ✅ Support de l'affichage de formules mathématiques (KaTeX/MathJax)\n- ✅ Support de l'highlighting de code (highlight.js)\n- ✅ Support de tableaux, listes de tâches, notes de bas de page, etc.\n- ✅ Support de l'affichage de diagrammes (Mermaid, ECharts, PlantUML, etc.)\n- ✅ Support de trois modes d'édition : WYSIWYG, IR, SV\n- ✅ Support de la navigation par plan\n- ✅ Support de l'upload et du collage d'images\n- ✅ Support de l'emoji\n\n### Limitations de Vditor\n\n- ❌ Pas de support pour les séparateurs de formules LaTeX standards `\\(...\\)` et `\\[...\\]`\n- ❌ Certaines extensions de syntaxe Markdown non conventionnelles peuvent ne pas être supportées\n- ❌ Certains balises et attributs HTML peuvent être filtrés\n\n**Solution** : Si votre document contient des formules dans le format `\\(...\\)` ou `\\[...\\]`, vous pouvez utiliser le bouton \"Convertir le format de formule LaTeX\" dans la barre d'outils pour les convertir en format compatible de Vditor `$...$` et `$$...$$`.\n\n## Formules mathématiques\n\n### Formules en ligne\n\nUtilisez `$formule$` pour indiquer une formule en ligne :\n\n```markdown\nC'est une formule en ligne : $E = mc^2$\n```\n\nRésultat de rendu : C'est une formule en ligne : $E = mc^2$\n\n**Avertissement important** : Vditor ne supporte que le format `$...$` pour les formules en ligne, et non le format LaTeX standard `\\(...\\)`. Si votre document utilise le format `\\(...\\)` , utilisez le bouton \"Convertir le format de formule LaTeX\" dans la barre d'outils pour le convertir.\n\n### Formules en bloc\n\nUtilisez `$$formule$$` pour indiquer une formule en bloc :\n\n```markdown\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n```\n\nRésultat de rendu :\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**Avertissement important** : Vditor ne supporte que le format `$$...$$` pour les formules en bloc, et non le format LaTeX standard `\\[...\\]`. Si votre document utilise le format `\\[...\\]`, utilisez le bouton \"Convertir le format de formule LaTeX\" dans la barre d'outils pour le convertir.\n\n### Exemples de formules mathématiques\n\n```markdown\nFormule en ligne : $\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$\n\nFormule en bloc :\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n```\n\n## Liste de tâches\n\nUtilisez `[ ]` ou `[x]` pour créer une liste de tâches :\n\n```markdown\n- [x] Tâche terminée\n- [ ] Tâche non terminée\n- [x] Une autre tâche terminée\n```\n\nRésultat de rendu :\n\n- [x] Tâche terminée\n- [ ] Tâche non terminée\n- [x] Une autre tâche terminée\n\n## Notes de bas de page\n\nUtilisez `[^identifiant]` pour créer une référence de note de bas de page, et `[^identifiant]:` pour définir la note de bas de page :\n\n```markdown\nVoici une référence de note de bas de page[^1], et voici une autre référence de note[^note].\n\n[^1]: Définition de la première note.\n[^note]: La définition de la note peut utiliser plusieurs paragraphes.\n\n    Les paragraphes indentés sont également inclus dans la note.\n```\n\n## Lignes de soulignement\n\nUtilisez `~~texte~~` pour créer une ligne de soulignement :\n\n```markdown\n~~Ceci est du texte souligné~~\n```\n\n## Emoji\n\nIl existe deux façons d'utiliser les Emoji :\n\n1. Entrer directement les caractères Emoji : 😀 🌻 ☀️\n2. Utiliser des aliases : `:smile:` `:sunny:` `:heart:`\n\n```markdown\nAujourd'hui, il fait vraiment beau :sunny:\nLes fleurs 🌻 me sourient\n```\n\n## Spécifier l'ID des titres\n\nCertains moteurs de Markdown permettent de spécifier un ID pour les titres :\n\n```markdown\n### C'est un titre {#custom-id}\n```\n\nPuis vous pouvez sauter directement à ce titre :\n\n```markdown\n[Aller au titre](#custom-id)\n```\n\n## Diagrammes\n\nMetaDoc prend en charge de nombreux types de diagrammes, voir la section \"Création de diagrammes\" pour plus de détails :\n\n- **Mermaid** : Diagrammes de flux, diagrammes de séquence, diagrammes Gantt, diagrammes UML de classe, etc.\n- **PlantUML** : Modélisation professionnelle UML\n- **ECharts** : Diagrammes de visualisation de données\n- **Flowchart** : Diagrammes de flux de base\n- **Mindmap** : Cartes mentales\n\n## Highlighting de blocs de code\n\nSupport de l'highlighting de code pour de nombreuses langues de programmation :\n\n````markdown\n```javascript\nconst hello = () => {\n  console.log('Hello, World!');\n};\n```\n\n```python\ndef hello():\n    print('Hello, World!')\n```\n\n```java\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n```\n````\n\n## Liens automatiques\n\nLa plupart des moteurs de Markdown activent par défaut l'identification des liens automatiques :\n\n```markdown\nVisitez https://example.com pour en savoir plus\n```\n\nSi vous souhaitez désactiver l'identification automatique des liens, vous pouvez les convertir en code :\n\n```markdown\n`https://example.com`\n```\n\n## Liens de style de citation\n\nUtiliser un style de citation peut rendre le Markdown original plus lisible :\n\n```markdown\nC'est un lien [texte de lien][id1], et c'est un autre lien [texte de lien][id2].\n\n[id1]: https://example.com \"Titre optionnel\"\n[id2]: https://example.org\n```\n\nLa définition des liens peut se trouver n'importe où dans le document, généralement à la fin.\n\n## Résumé\n\nL'éditeur de Markdown de MetaDoc est basé sur Vditor, qui supporte les normes CommonMark et GFM et offre de nombreuses extensions de syntaxe. Si vous rencontrez des syntaxes non compatibles (comme `\\(...\\)` et `\\[...\\]` pour les formules), vous pouvez utiliser les outils de conversion de la barre d'outils pour les gérer.\n\nPour plus d'informations, consultez :\n- [Documentation officielle de Vditor](https://b3log.org/vditor)\n- [Normes CommonMark](https://spec.commonmark.org)\n- [Normes GitHub Flavored Markdown](https://github.github.com/gfm)"
       }
     },
     "navigation": {
@@ -3990,7 +4024,21 @@
         "researcher": "Chercheur",
         "it": "Personnel informatique",
         "office": "Employé de bureau",
-        "other": "Autre"
+        "other": "Autre",
+        "hint": {
+          "student": "étudiant : Principalement utilisé pour prendre des notes de cours, des documents d'exercices, l'organisation de ressources d'étude, etc.",
+          "researcher": "Recherches scientifiques : principalement utilisées dans des contextes tels que les articles de recherche académiques, les rapports de recherche, les notes d'experimentation, etc.",
+          "it": "IT personnel : Utilisé principalement pour les documents techniques, les commentaires de code, les documents API, les documents de projets, etc.",
+          "office": "Personnel de bureau : Utilisé principalement pour les procès-verbaux de réunions, les rapports de travail, les documents commerciaux, etc.",
+          "other": "Autres : Édition de documents généraux"
+        },
+        "tooltip": {
+          "student": "étudiant : Utilisé principalement pour prendre des notes de cours, des documents d'exercices, et l'organisation de matériel d'étude, etc.",
+          "researcher": "Recherches scientifiques : principalement utilisées dans les contextes de publications académiques, de rapports de recherche, de registres d'expériences, etc.",
+          "it": "IT personnel : Utilisé principalement pour les documents techniques, les commentaires de code, les documents API, les documents de projets, etc.",
+          "office": "Personnel de bureau : Utilisé principalement pour les procès-verbaux de réunions, les rapports de travail, les documents commerciaux, etc.",
+          "other": "Autres : Édition de documents généraux"
+        }
       },
       "markdownLevel": "Maîtrise de Markdown",
       "latexLevel": "Maîtrise de LaTeX",
@@ -3998,7 +4046,9 @@
       "agentLevels": {
         "none": "Aucune",
         "heard": "Entendu parler mais ne sais pas",
-        "basic": "Connaît les concepts de base"
+        "basic": "Connaît les concepts de base",
+        "used": "utilisé",
+        "proficient": "maîtriser avec compétence"
       },
       "markdownLevelHints": {
         "none": "Ne connaît pas du tout Markdown, doit commencer par la syntaxe de base",
@@ -4011,7 +4061,161 @@
         "basic": "Connaît la syntaxe de base et la structure des documents, peut écrire des documents LaTeX simples",
         "intermediate": "Maîtrise LaTeX, connaît les formules mathématiques, tableaux, insertion d'images et autres fonctions courantes",
         "advanced": "Expert en LaTeX, connaît l'utilisation des packages, commandes personnalisées, gestion des références et autres fonctionnalités avancées"
-      }
-    }
+      },
+      "knowsAgent": "Savez-vous si vous connaissez l'agent IA",
+      "usedWysiwygMarkdown": "Avez-vous utilisé un éditeur Markdown WYSIWYG ?",
+      "usedWysiwygMarkdownHint": "Comme les éditeurs WYSIWYG Typora, Mark Text, Zettlr, etc.",
+      "usedLatexEditor": "Avez-vous utilisé un éditeur LaTeX",
+      "usedLatexEditorHint": "Comme Overleaf, TeXStudio, TeXworks, TeXShop, etc., éditeurs LaTeX",
+      "usedOtherMarkdownEditor": "Avez-vous utilisé d'autres éditeurs Markdown ?",
+      "usedOtherMarkdownEditorHint": "Comme VS Code, Obsidian, Notion et Yuque, éditeurs de Markdown的支持",
+      "steps": {
+        "scenario": "Étapes de utilisation",
+        "markdown": "Markdown\n\nFrench:",
+        "markdownEditor": "Éditeur Markdown",
+        "latex": "LaTeX",
+        "latexEditor": "Éditeur LaTeX",
+        "agent": "Agent IA",
+        "experience": "Expérience d'utilisation"
+      },
+      "markdownEditorHint": "Veuillez nous dire votre expérience avec les éditeurs Markdown utilisés.",
+      "latexEditorHint": "Veuillez nous raconter votre expérience avec les éditeurs LaTeX utilisés.",
+      "experienceTitle": "Expérience d'édition",
+      "markdownLevelHint": "Veuillez évaluer votre familiarité avec la syntaxe Markdown",
+      "latexLevelHint": "Veuillez évaluer votre familiarité avec la syntaxe LaTeX",
+      "agentLevelHint": "Veuillez évaluer votre niveau de connaissance des agents IA",
+      "experienceHint": "Veuillez nous dire de l'expérience que vous avez avec les éditeurs",
+      "noExperienceQuestions": "Selon votre réponse, nous avons recueilli suffisamment d'informations.",
+      "next": "下一步\n\nFrench: \nLa prochaine étape",
+      "levels": {
+        "none": "Completement ignorant",
+        "basic": "Connaitre les concepts de base",
+        "intermediate": "Maîtriser l'écriture",
+        "advanced": "Expert"
+      },
+      "yes": "est",
+      "no": "Non",
+      "skip": "Passer",
+      "submit": "Soumission"
+    },
+    "progress": {
+      "label": "Progrès d'apprentissage",
+      "completed": "Terminé",
+      "completed100": "Félicitations ! Vous avez terminé tout le contenu de la recommandation de parcours.",
+      "clearProgress": "Effacer la progression d'apprentissage",
+      "clearProgressConfirm": "Êtes-vous sûr de vouloir effacer les progrès d'apprentissage actuels pour les recommandations de parcours ? L'état lu sera réinitialisé.",
+      "clearProgressDone": "Les progrès d'apprentissage ont été effacés"
+    },
+    "replayCelebration": "Rejouer l'animation de célébration",
+    "search": {
+      "fragment": "Fragment",
+      "line": "Ligne",
+      "noResults": "Aucun document pertinent trouvé"
+    },
+    "searchPlaceholder": "Rechercher le contenu du document...",
+    "sidebar": {
+      "recommendedList": "Recommandations d'apprentissage",
+      "onlyRecommended": "Afficher seulement les itinéraires recommandés",
+      "onlyRecommendedTip": "Afficher le sommaire complet du manuel après la fermeture"
+    },
+    "title": "Manuel de l'utilisateur"
+  },
+  "versionInfoPanel": {
+    "buildEnvironment": "Construire l'environnement",
+    "checkUpdate": "Vérifier les mises à jour",
+    "checkUpdateError": "Échec de la vérification des mises à jour",
+    "checking": "Vérification en cours...",
+    "downloadAndInstall": "Télécharger et installer",
+    "downloadError": "Téléchargement échoué",
+    "downloadProgress": "Téléchargement en cours : {progress}%",
+    "downloading": "Téléchargement en cours",
+    "installAndRestart": "Installation et redémarrage",
+    "noUpdate": "Déjà la version la plus récente",
+    "noUpdateDesc": "Vous utilisez déjà la version la plus récente",
+    "releaseDate": "Date de publication",
+    "title": "Informations sur la version",
+    "updateAvailable": "Découverte de la nouvelle version",
+    "updateAvailableDesc": "Nouvelle version {version} disponible",
+    "version": "Version"
+  },
+  "viewMenuContainer": {
+    "collapse": "plier",
+    "expand": "Déplier",
+    "metaInfo": "Métadonnées",
+    "workspace": "Zone de travail",
+    "workspaceGrep": "Recherche dans les zones de travail"
+  },
+  "workspaceExplorer": {
+    "addFolder": "Ajouter un dossier de travail",
+    "closeFile": "Fermer le fichier",
+    "closeFileConfirm": "Le fichier « {name} » contient des modifications non enregistrées. Voulez-vous continuer à fermer ?",
+    "closeFileTitle": "Fermer le fichier",
+    "closeWorkspace": "Fermer l'espace de travail",
+    "contextMenu": {
+      "open": "Ouvrir",
+      "cut": "Couper",
+      "copy": "Copier",
+      "paste": "Coller",
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "copyPath": "Copier le chemin",
+      "copyRelativePath": "Copier le chemin relatif",
+      "showInFolder": "Afficher dans le dossier",
+      "openFolder": "Ouvrir le dossier",
+      "newFile": "Nouveau fichier",
+      "newFolder": "Créer un dossier",
+      "refresh": "Actualiser"
+    },
+    "copyPathSuccess": "Le chemin a été copié dans le presse-papiers",
+    "copyRelativePathSuccess": "Le chemin relatif a été copié dans le presse-papier",
+    "copySuccess": "Copié {count} élément",
+    "cutSuccess": "Décalé {count} éléments",
+    "deleteConfirm": "Voulez-vous déplacer « {name} » dans la corbeille ?",
+    "deleteSuccess": "Déplacé dans la corbeille",
+    "deleteTitle": "Confirmer la suppression",
+    "fileNotFound": "Fichier introuvable",
+    "folderAlreadyAdded": "Ce dossier de travail a été ajouté",
+    "ipcNotAvailable": "IPC non disponible",
+    "loading": "chargement en cours...",
+    "newFileDialog": {
+      "title": "Nouveau fichier",
+      "name": "Nom de fichier",
+      "placeholder": "Veuillez entrer le nom du fichier (incluant l'extension, comme .md, .tex, .txt, etc.)"
+    },
+    "newFileSuccess": "Le fichier a été créé avec succès",
+    "newFolderDialog": {
+      "title": "Créer un dossier",
+      "name": "Nom de dossier",
+      "placeholder": "Veuillez entrer le nom du dossier"
+    },
+    "newFolderSuccess": "Le dossier a été créé avec succès",
+    "noWorkspaceFolder": "Aucun dossier de travail sélectionné",
+    "openFolder": "Ouvrir le dossier",
+    "openedFiles": "Fichier ouvert",
+    "pasteSuccess": "Collé {count} élément",
+    "refresh": "Actualiser",
+    "refreshSuccess": "Mise à jour réussie",
+    "renameDialog": {
+      "title": "Renommer",
+      "name": "Nom",
+      "placeholder": "Veuillez entrer un nouveau nom"
+    },
+    "renameSuccess": "Renommer avec succès",
+    "selectFolder": "Sélectionnez le dossier de travail",
+    "title": "Répertoire de travail"
+  },
+  "workspaceGrep": {
+    "activeWorkspaceCount": "已打开 {count} 个工作区",
+    "globalWorkspace": "Zone de travail global (Les documents ouverts actuellement)",
+    "matchCase": "Distinguer la casse",
+    "noResult": "Aucun résultat trouvé",
+    "patternPlaceholder": "Rechercher",
+    "replacePlaceholder": "Remplacer par",
+    "resultSummary": "Il a été trouvé {count} correspondance(s)",
+    "search": "Recherche",
+    "searching": "Recherche dans le workspace...",
+    "title": "recherche dans le répertoire de travail",
+    "useRegex": "regex",
+    "wholeWord": "matching complet"
   }
 }

@@ -25,7 +25,8 @@
     "editor": "에디터",
     "visualize": "시각화",
     "knowledgeBase": "지식 베이스",
-    "agent": "에이전트."
+    "agent": "에이전트.",
+    "proofread": "교정"
   },
   "leftMenu": {
     "metaDocTooltip": "MetaDoc ;-)",
@@ -58,9 +59,9 @@
     "exitWithoutSaving": "저장하지 않고 종료",
     "userProfileTooltip": "사용자 프로필",
     "langTooltip": "언어",
-    "askSave": "",
-    "discard": "",
-    "tip": "",
+    "askSave": "현재 문서를 저장하시겠습니까?",
+    "discard": "버리기",
+    "tip": "팁",
     "saveAll": "모두 저장",
     "saveAllAndExit": "모든 및 출구 저장",
     "aigcDetection": "AIGC 감지 도구",
@@ -103,7 +104,19 @@
   "messageBubble": {
     "editTitle": "텍스트 편집",
     "deleteConfirmMessage": "삭제하시겠습니까?",
-    "deleteConfirmTitle": "경고"
+    "deleteConfirmTitle": "경고",
+    "convertToLatexAndInsert": "LaTeX로 변환하여 삽입",
+    "edit": "편집",
+    "exportSuccess": "콘텐츠가 새 문서로 성공적으로 난출되었습니다",
+    "exportToNewDocument": "새 문서로 난출",
+    "insertAsMarkdown": "Markdown 원문 삽입",
+    "insertFailed": "삽입 실패",
+    "insertLatexOptionsMessage": "현재 문서는 LaTeX 형식입니다. 콘텐츠 삽입 방법을 선택하세요:",
+    "insertLatexOptionsTitle": "LaTeX 삽입 옵션",
+    "insertSuccess": "콘텐츠가 성공적으로 삽입되었습니다",
+    "insertToDocument": "현재 문서에 삽입",
+    "latexConvertFailed": "LaTeX 변환 실패: {error}",
+    "regenerate": "다시 생성"
   },
   "microphoneTest": {
     "cannotAccessMic": "마이크에 접근할 수 없습니다. 권한 설정을 확인해 주세요"
@@ -111,13 +124,31 @@
   "mainTabs": {
     "contextMenu": {
       "pinTab": "탭 고정",
-      "unpinTab": "탭 고정 해제"
+      "unpinTab": "탭 고정 해제",
+      "closeTab": "탭 닫기",
+      "closeOtherTabs": "다른 탭 닫기",
+      "openInNewWindow": "새 창에서 열기",
+      "moveToWindow": "탭을 다른 창으로 이동",
+      "copyPath": "경로 복사",
+      "copyTitle": "제목 복사",
+      "copyFilename": "파일 이름 복사",
+      "showInFolder": "파일 탐색기에서 표시",
+      "moveLeft": "왼쪽으로 이동",
+      "moveRight": "오른쪽으로 이동"
     },
     "newDocumentTooltip": "Sae munseo",
     "untitled": "Jemok eopum",
     "userManual": "Sayongja maenyu-eol",
     "closeTabTooltip": "Tab dalki",
-    "unsavedIndicator": "Jjeongdoeeji anum"
+    "unsavedIndicator": "Jjeongdoeeji anum",
+    "add": "추가",
+    "close": "닫기",
+    "failed": "실패",
+    "invalid": "유효하지 않음",
+    "maximize": "최대화",
+    "minimize": "최소화",
+    "text": "데이터",
+    "version": "버전 {version}"
   },
   "common": {
     "confirm": "Hwagin",
@@ -491,7 +522,16 @@
       "pointer": "포인터"
     },
     "simpletexHint": "이 기능은 SimpleTex 기반이며 용량이 제한됩니다. 대량 수식 변환이 필요하면 직접",
-    "simpletexLinkText": "SimpleTex 수식 인식"
+    "simpletexLinkText": "SimpleTex 수식 인식",
+    "defaultTitle": "새 수식 인식 세션",
+    "expandCanvas": "캔버스 확장",
+    "expandCanvasNoNeed": "캔버스가 뷰포트보다 작지 않아 확장할 필요가 없습니다",
+    "newSession": "새 세션",
+    "noSessionSelected": "세션을 선택하거나 새 세션을 생성하세요",
+    "renamePlaceholder": "세션 이름을 입력하세요",
+    "renameTitle": "세션 이름 변경",
+    "resultTitle": "인식 결과",
+    "sessionsTitle": "수식 인식 세션"
   },
   "home": {
     "metaDoc": "MetaDoc 스마트 문서 처리 소프트웨어",
@@ -506,13 +546,15 @@
       "inputPrompt": "프롬프트 입력",
       "generateArticle": "문서 생성",
       "reset": "생성 내용 초기화",
-      "accept": "생성 내용 수락"
+      "accept": "생성 내용 수락",
+      "userManual": "MetaDoc 사용 방법 배우기"
     },
     "button": {
       "quickStart": "빠른 시작",
       "newDoc": "새 문서",
       "openFile": "문서 열기",
-      "refresh": "새로 고침"
+      "refresh": "새로 고침",
+      "userManual": "사용자 설명서"
     },
     "tabActions": {
       "title": "문서 추가",
@@ -562,7 +604,17 @@
       "creative": "창의적"
     },
     "defaultText": "# MetaDoc에 오신 것을 환영합니다\n\n이것은 AI 기반 문서 처리 소프트웨어로, 빠르게 문서 내용을 생성할 수 있습니다.",
-    "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{MetaDoc에 오신 것을 환영합니다}\n\\author{AI 어시스턴트}\n\\maketitle\n\n\\section{소개}\n이것은 MetaDoc이 생성한 LaTeX 빠른 시작 템플릿입니다.\n\n\\end{document}"
+    "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{MetaDoc에 오신 것을 환영합니다}\n\\author{AI 어시스턴트}\n\\maketitle\n\n\\section{소개}\n이것은 MetaDoc이 생성한 LaTeX 빠른 시작 템플릿입니다.\n\n\\end{document}",
+    "creationDateLabel": "생성 날짜",
+    "emptyContent": "문서 내용이 비어 있습니다",
+    "fileFormatLabel": "파일 형식",
+    "modificationDateLabel": "수정 날짜",
+    "quickStartButton": "빠른 내용 생성",
+    "recentDocuments": "최근 문서",
+    "subtitle": "현대적인 문서 편집 및 창작 도구",
+    "latexCode": "LaTeX 코드",
+    "preview": "미리보기",
+    "suggestionTagsTitle": "추천 태그"
   },
   "main": {
     "notification": {
@@ -592,7 +644,10 @@
       },
       "saveAllNone": "자주 묻는 질문",
       "saveAllPartial": "Partial 문서 저장 실패 ({count})",
-      "saveAllSuccess": "모든 문서 저장"
+      "saveAllSuccess": "모든 문서 저장",
+      "fileSynced": "파일이 동기화되었습니다",
+      "keptCurrentVersion": "현재 버전을 유지했습니다",
+      "mergedConflicts": "충돌이 병합되었습니다"
     },
     "dialogs": {
       "exportDocumentTitle": "수출 문서",
@@ -611,7 +666,25 @@
       "closeTabCancel": "이름 *",
       "closeTabConfirm": "아직 닫기",
       "closeTabMessage": "현재 문서가 저장되지 않았습니다. 계속하려면?",
-      "closeTabTitle": "잘못된 변화"
+      "closeTabTitle": "잘못된 변화",
+      "fileConflictTitle": "파일 충돌",
+      "fileConflictMessage": "파일 \"{fileName}\"이(가) 외부에서 수정되었고 현재 저장되지 않은 변경사항이 있습니다. 처리 방법을 선택하세요.",
+      "fileConflictMessageWithConflicts": "파일 \"{fileName}\"에 해결해야 할 {unresolvedCount}개의 충돌이 있습니다. 각 충돌에 대해 MetaDoc 버전 또는 디스크 버전을 선택하세요.",
+      "currentVersion": "현재 버전(MetaDoc)",
+      "externalVersion": "외부 버전(디스크)",
+      "useExternalVersion": "외부 버전 사용",
+      "useCurrentVersion": "MetaDoc 사용",
+      "keepCurrentVersion": "현재 버전 유지",
+      "conflictBlock": "충돌 {index}",
+      "conflictsList": "충돌 목록 ({count})",
+      "mergeConflicts": "병합",
+      "closeWindowTitle": "창 닫기",
+      "askSaveWithFileName": "{fileName}을(를) 저장하시겠습니까?",
+      "unsavedChangesDetail": "변경사항이 저장되지 않았습니다.",
+      "unsavedDocument": "저장되지 않은 문서",
+      "saveFailed": "저장 실패",
+      "saveFailedMessage": "{fileName} 저장 실패",
+      "saveFailedDetail": "다른 문서를 닫으시겠습니까?"
     },
     "latex": {
       "compileFailed": "컴파일 실패, 종료 코드: 이름 *"
@@ -622,7 +695,11 @@
       "appTitle": "메타딕",
       "documentTitlePattern": "{이름} - {app}",
       "formulaRecognitionTitle": "Handwritten 공식 인식 보조",
-      "settingTitle": "연락처"
+      "settingTitle": "연락처",
+      "dataAnalysisTitle": "데이터 분석 도구",
+      "ocrTitle": "OCR 문자 인식",
+      "attachmentTitle": "첨부 파일 분석 도구",
+      "graphTitle": "그리기 도구"
     }
   },
   "outline": {
@@ -987,7 +1064,47 @@
     "clear_all_confirm_title": "자주 묻는 질문",
     "clear_all_error": "지식베이스를 청소하는 오류 :",
     "clear_all_failed": "지식 베이스가 실패했습니다!",
-    "clear_all_success": "지식 기반을 지우십시오!"
+    "clear_all_success": "지식 기반을 지우십시오!",
+    "addKnowledge": "지식 추가",
+    "check": "서버 로그를 확인하세요",
+    "createMonacoEditorFailed": "Monaco 편집기 생성 실패",
+    "deleteConfirm": "이 지식을 삭제하시겠습니까?",
+    "disabled": "비활성화",
+    "disabledMessage": "지식 베이스 기능이 현재 비활성화되어 있습니다. 설정에서 지식 베이스 기능을 활성화하여 이 기능을 사용하세요.",
+    "enable": "지식 베이스 활성화",
+    "enableError": "지식 베이스 활성화 실패",
+    "failed": "검색 실패",
+    "feature": "지식 베이스 기능이 현재 비활성화되어 있습니다",
+    "fetchKbDetailsError": "지식 베이스 상세 정보 가져오기 오류",
+    "fetchKbDetailsFailed": "지식 베이스 상세 정보 가져오기 실패",
+    "fetchListResponse": "지식 베이스 목록 응답",
+    "fetchListStarted": "지식 베이스 목록 가져오기 시작",
+    "filenameRequired": "파일 이름은 비워둘 수 없습니다",
+    "invalidResponseFormat": "서버 응답 형식 오류, 서버가 정상적으로 실행 중인지 확인하세요",
+    "ipcNotInitialized": "IPC 렌더러가 초기화되지 않았습니다. 이 기능은 Electron 환경에서만 사용할 수 있습니다",
+    "kbDetails": "지식 베이스 상세 정보",
+    "kbStatusUpdated": "지식 베이스 상태가 업데이트되었습니다",
+    "nonJsonResponse": "서버가 JSON이 아닌 응답을 반환했습니다",
+    "nonJsonResponseMessage": "서버가 JSON이 아닌 응답을 반환했습니다. 서버 로그를 확인하세요",
+    "noResults": "관련 결과를 찾을 수 없습니다",
+    "openFolderFailedLog": "폴터 열기 실패",
+    "open_folder": "폴터 열기",
+    "open_folder_error": "폴터 열기 실패",
+    "previewEditorContainerNotFound": "미리보기 편집기 컨테이너를 찾을 수 없습니다",
+    "renameFailed": "이름 변경 실패",
+    "renameSuccess": "이름 변경 성공",
+    "requestFailed": "요청 실패",
+    "searchPlaceholder": "지식 베이스 검색...",
+    "settingsFeature": "설정에서 지식 베이스 기능을 활성화하여 이 기능을 사용하세요",
+    "syncFailed": "동기화 실패",
+    "syncSuccess": "동기화 성공",
+    "text": "지식 베이스 비활성화됨",
+    "text1": "서버가 다음이 아닌 것을 반환했습니다",
+    "text2": "응답",
+    "unknownError": "알 수 없는 오류",
+    "updatedInfoObject": "업데이트된 info 개체",
+    "uploadFailed": "지식 업로드 실패",
+    "uploadSuccess": "지식 업로드 성공"
   },
   "aiSuggestion": {
     "accept": "자주 묻는 질문",
@@ -1018,7 +1135,9 @@
       "savePdfFailed": "PDF 저장 실패",
       "textNotFound": "텍스트가 없습니다 : {text}",
       "pdfFileNotFoundOrInaccessible": "PDF 파일은 존재하지 않거나 접근할 수 없습니다.",
-      "pdfLoadFailed": "임시 폴더를 닫지 않을 수 있었습니다: 100%년"
+      "pdfLoadFailed": "임시 폴더를 닫지 않을 수 있었습니다: 100%년",
+      "analyzingError": "AI가 컴파일 오류를 분석 중입니다...",
+      "errorAnalysisFailed": "AI 오류 분석 실패"
     },
     "pages": "(주)",
     "pdfEmpty": "LaTeX 코드를 올바르게 컴파일하십시오. PDF는 여기에 표시됩니다.",
@@ -1033,7 +1152,9 @@
       "undo": "취소 (Ctrl+Z)",
       "zoomIn": "줌 (Ctrl +)",
       "zoomOut": "줌 아웃 (Ctrl-)",
-      "zoomReset": "지원하다"
+      "zoomReset": "지원하다",
+      "pointerMode": "포인터 모드(텍스트 선택)",
+      "handMode": "손 모드(드래그)"
     },
     "pdfMenu": {
       "locateToCode": "코드 위치",
@@ -1044,7 +1165,271 @@
       "zoomIn": "줌 에",
       "zoomOut": "줌 아웃",
       "zoomReset": "재설정 스케일"
-    }
+    },
+    "commandDocs": {
+      "documentclass": "문서 클래스를 설정합니다. 예시: \\documentclass{article} 또는 \\documentclass[12pt]{report}",
+      "usepackage": "LaTeX 패키지를 로드합니다. 예시: \\usepackage{graphicx} 또는 \\usepackage[utf8]{inputenc}",
+      "begin": "환경을 시작합니다. 예시: \\begin{document}, \\begin{equation}, \\begin{figure}",
+      "end": "환경을 종료합니다. 예시: \\end{document}, \\end{equation}, \\end{figure}",
+      "document": "주 문서 환경. 예시: \\begin{document} ... \\end{document}",
+      "input": "다른 LaTeX 파일을 입력합니다. 예시: \\input{chapter1.tex}",
+      "include": "다른 LaTeX 파일을 포함합니다(페이지 나누기 포함). 예시: \\include{appendix}",
+      "part": "부분을 생성합니다(최상위 레벨). 예시: \\part{서론}",
+      "chapter": "장을 생성합니다(book/report 클래스). 예시: \\chapter{배경}",
+      "section": "절을 생성합니다. 예시: \\section{방법}",
+      "subsection": "소절을 생성합니다. 예시: \\subsection{데이터 수집}",
+      "subsubsection": "소소절을 생성합니다. 예시: \\subsubsection{샘플링 방법}",
+      "paragraph": "단락 제목을 생성합니다. 예시: \\paragraph{주의}",
+      "subparagraph": "하위 단락 제목을 생성합니다. 예시: \\subparagraph{세부사항}",
+      "textbf": "굵은 텍스트. 예시: \\textbf{중요한 텍스트}",
+      "textit": "이탤릭체 텍스트. 예시: \\textit{강조 텍스트}",
+      "textsl": "기울어진 텍스트. 예시: \\textsl{기울어진 텍스트}",
+      "texttt": "고정폭(타자기) 텍스트. 예시: \\texttt{코드}",
+      "textsc": "소형 대문자 텍스트. 예시: \\textsc{제목}",
+      "textsf": "산세리프 텍스트. 예시: \\textsf{산세리프}",
+      "textrm": "세리프 텍스트. 예시: \\textrm{세리프 텍스트}",
+      "textmd": "중간 굵기 텍스트. 예시: \\textmd{정상 굵기}",
+      "textup": "정자 텍스트. 예시: \\textup{정자 텍스트}",
+      "emph": "강조 텍스트(일반적으로 이탤릭체). 예시: \\emph{강조}",
+      "underline": "밑줄 텍스트. 예시: \\underline{밑줄}",
+      "sout": "취소선 텍스트. 예시: \\sout{삭제됨}",
+      "textcolor": "컬러 텍스트. 예시: \\textcolor{red}{텍스트} 또는 \\textcolor[rgb]{1,0,0}{텍스트}",
+      "colorbox": "컬러 배경 상자. 예시: \\colorbox{yellow}{강조}",
+      "fcolorbox": "테두리가 있는 컬러 상자. 예시: \\fcolorbox{red}{yellow}{텍스트}",
+      "tiny": "매우 작은 글꼴. 예시: {\\tiny 가장 작은 텍스트}",
+      "scriptsize": "스크립트 크기 글꼴. 예시: {\\scriptsize 작은 텍스트}",
+      "footnotesize": "각주 크기 글꼴. 예시: {\\footnotesize 각주 텍스트}",
+      "small": "작은 글꼴. 예시: {\\small 작은 텍스트}",
+      "normalsize": "정상 글꼴. 예시: {\\normalsize 정상 텍스트}",
+      "large": "큰 글꼴. 예시: {\\large 큰 텍스트}",
+      "Large": "더 큰 글꼴. 예시: {\\Large 더 큰 텍스트}",
+      "LARGE": "매우 큰 글꼴. 예시: {\\LARGE 매우 큰}",
+      "huge": "거대한 글꼴. 예시: {\\huge 거대한 텍스트}",
+      "Huge": "최대 글꼴. 예시: {\\Huge 최대 텍스트}",
+      "centering": "텍스트 가울배. 예시: \\centering(선언, 후속 텍스트에 영향)",
+      "raggedright": "왼쪽 맞춤 텍스트. 예시: \\raggedright",
+      "raggedleft": "오른쪽 맞춤 텍스트. 예시: \\raggedleft",
+      "newline": "줄 바꿈. 예시: 텍스트\\newline 다음 줄",
+      "linebreak": "패널티가 있는 줄 바꿈. 예시: 텍스트\\linebreak",
+      "pagebreak": "페이지 나누기. 예시: \\pagebreak 또는 \\pagebreak[4]",
+      "newpage": "새 페이지 시작. 예시: \\newpage",
+      "clearpage": "페이지를 비우고 새 페이지 시작. 예시: \\clearpage",
+      "itemize": "순서 없는 목록 환경. 예시: \\begin{itemize} \\item 첫 번째 \\item 두 번째 \\end{itemize}",
+      "enumerate": "순서 있는 목록 환경. 예시: \\begin{enumerate} \\item 첫 번째 \\item 두 번째 \\end{enumerate}",
+      "description": "설명 목록 환경. 예시: \\begin{description} \\item[용어] 설명 \\end{description}",
+      "item": "목록 항목. 예시: \\item 첫 번째 또는 \\item[라벨] 라벨이 있는 항목",
+      "table": "표 플로팅 환경. 예시: \\begin{table} ... \\end{table}",
+      "tabular": "표 환경. 예시: \\begin{tabular}{lcr} ... \\end{tabular}",
+      "hline": "표의 수평선. 예시: \\hline",
+      "cline": "부분 수평선. 예시: \\cline{1-3}",
+      "multicolumn": "다중 열 셀. 예시: \\multicolumn{3}{c}{가울배}",
+      "multirow": "다중 행 셀(multirow 패키지 필요). 예시: \\multirow{2}{*}{텍스트}",
+      "figure": "이미지 플로팅 환경. 예시: \\begin{figure} ... \\end{figure}",
+      "includegraphics": "이미지 삽입. 예시: \\includegraphics{image.png} 또는 \\includegraphics[width=0.5\\textwidth]{image}",
+      "caption": "플로팅 요소 캡션. 예시: \\caption{이미지 설명}",
+      "label": "교차 참조 라벨 생성. 예시: \\label{fig:myfigure}",
+      "ref": "교차 참조 라벨. 예시: \\ref{fig:myfigure}",
+      "pageref": "페이지 번호 참조. 예시: \\pageref{fig:myfigure}",
+      "equation": "번호가 있는 수식 환경. 예시: \\begin{equation} E=mc^2 \\end{equation}",
+      "equation*": "번호가 없는 수식 환경. 예시: \\begin{equation*} E=mc^2 \\end{equation*}",
+      "align": "정렬 수식(번호 있음). 예시: \\begin{align} x &= 1 \\\\ y &= 2 \\end{align}",
+      "align*": "정렬 수식(번호 없음). 예시: \\begin{align*} x &= 1 \\\\ y &= 2 \\end{align*}",
+      "alignat": "간격 제어가 있는 정렬 수식. 예시: \\begin{alignat}{2} ... \\end{alignat}",
+      "gather": "모음 수식(번호 있음). 예시: \\begin{gather} x=1 \\\\ y=2 \\end{gather}",
+      "gather*": "모음 수식(번호 없음). 예시: \\begin{gather*} x=1 \\\\ y=2 \\end{gather*}",
+      "multline": "다중 행 수식(번호 있음). 예시: \\begin{multline} ... \\end{multline}",
+      "eqnarray": "수식 배열(번호 있음). 예시: \\begin{eqnarray} ... \\end{eqnarray}",
+      "math": "인라인 수학 모드. 예시: ^2$ 또는 \\(x^2\\)",
+      "displaymath": "표시 수학 모드. 예시: 689367x^2689367 또는 \\[x^2\\]",
+      "frac": "분수. 예시: \\frac{분자}{분모} 또는 \\frac{1}{2}",
+      "sqrt": "제곱근. 예시: \\sqrt{x} 또는 \\sqrt[n]{x}는 n제곱근을 의미",
+      "sum": "시그마(합) 기호. 예시: \\sum_{i=1}^{n} 또는 \\sum",
+      "prod": "곱 기호. 예시: \\prod_{i=1}^{n}",
+      "int": "적분. 예시: \\int_{a}^{b} f(x) dx",
+      "oint": "폐곡선 적분. 예시: \\oint_C f(z) dz",
+      "iint": "이중 적분. 예시: \\iint_D f(x,y) dx dy",
+      "iiint": "삼중 적분. 예시: \\iiint_V f(x,y,z) dx dy dz",
+      "lim": "극한. 예시: \\lim_{x \\to \\infty} 또는 \\lim",
+      "sup": "상한. 예시: \\sup_{x \\in A}",
+      "inf": "하한. 예시: \\inf_{x \\in A}",
+      "max": "최대값. 예시: \\max_{x \\in A}",
+      "min": "최소값. 예시: \\min_{x \\in A}",
+      "det": "행렬식. 예시: \\det(A)",
+      "exp": "지수 함수. 예시: \\exp(x)",
+      "log": "로그. 예시: \\log(x)",
+      "ln": "자연 로그. 예시: \\ln(x)",
+      "sin": "사인 함수. 예시: \\sin(x)",
+      "cos": "코사인 함수. 예시: \\cos(x)",
+      "tan": "탄젠트 함수. 예시: \\tan(x)",
+      "alpha": "그리스 문자 알파(α). 예시: $\\alpha$",
+      "beta": "그리스 문자 베타(β). 예시: $\\beta$",
+      "gamma": "그리스 문자 감마(γ). 예시: $\\gamma$",
+      "delta": "그리스 문자 델타(δ). 예시: $\\delta$",
+      "epsilon": "그리스 문자 엡실론(ε). 예시: $\\epsilon$",
+      "varepsilon": "그리스 문자 변형 엡실론(ε). 예시: $\\varepsilon$",
+      "zeta": "그리스 문자 제타(ζ). 예시: $\\zeta$",
+      "eta": "그리스 문자 에타(η). 예시: $\\eta$",
+      "theta": "그리스 문자 세타(θ). 예시: $\\theta$",
+      "vartheta": "그리스 문자 변형 세타(ϑ). 예시: $\\vartheta$",
+      "iota": "그리스 문자 이오타(ι). 예시: $\\iota$",
+      "kappa": "그리스 문자 카파(κ). 예시: $\\kappa$",
+      "lambda": "그리스 문자 람다(λ). 예시: $\\lambda$",
+      "mu": "그리스 문자 뮤(μ). 예시: $\\mu$",
+      "nu": "그리스 문자 누(ν). 예시: $\\nu$",
+      "xi": "그리스 문자 크시(ξ). 예시: $\\xi$",
+      "pi": "그리스 문자 파이(π). 예시: $\\pi$",
+      "varpi": "그리스 문자 변형 파이(ϖ). 예시: $\\varpi$",
+      "rho": "그리스 문자 로(ρ). 예시: $\\rho$",
+      "varrho": "그리스 문자 변형 로(ϱ). 예시: $\\varrho$",
+      "sigma": "그리스 문자 시그마(σ). 예시: $\\sigma$",
+      "varsigma": "그리스 문자 변형 시그마(ς). 예시: $\\varsigma$",
+      "tau": "그리스 문자 타우(τ). 예시: $\\tau$",
+      "upsilon": "그리스 문자 윱실론(υ). 예시: $\\upsilon$",
+      "phi": "그리스 문자 파이(φ). 예시: $\\phi$",
+      "varphi": "그리스 문자 변형 파이(ϕ). 예시: $\\varphi$",
+      "chi": "그리스 문자 카이(χ). 예시: $\\chi$",
+      "psi": "그리스 문자 프시(ψ). 예시: $\\psi$",
+      "omega": "그리스 문자 오메가(ω). 예시: $\\omega$",
+      "Gamma": "그리스 문자 감마(Γ). 예시: $\\Gamma$",
+      "Delta": "그리스 문자 델타(Δ). 예시: $\\Delta$",
+      "Theta": "그리스 문자 세타(Θ). 예시: $\\Theta$",
+      "Lambda": "그리스 문자 람다(Λ). 예시: $\\Lambda$",
+      "Xi": "그리스 문자 크시(Ξ). 예시: $\\Xi$",
+      "Pi": "그리스 문자 파이(Π). 예시: $\\Pi$",
+      "Sigma": "그리스 문자 시그마(Σ). 예시: $\\Sigma$",
+      "Upsilon": "그리스 문자 윱실론(Υ). 예시: $\\Upsilon$",
+      "Phi": "그리스 문자 파이(Φ). 예시: $\\Phi$",
+      "Psi": "그리스 문자 프시(Ψ). 예시: $\\Psi$",
+      "Omega": "그리스 문자 오메가(Ω). 예시: $\\Omega$",
+      "cdot": "중심점(·). 예시:  \\cdot b$",
+      "cdots": "중심 생략 기호(⋯). 예시: , x_2, \\cdots, x_n$",
+      "ldots": "바닥 생략 기호(…). 예시: , x_2, \\ldots, x_n$",
+      "vdots": "수직 생략 기호(⋮). 예시: $\\vdots$",
+      "ddots": "대각선 생략 기호(⋱). 예시: $\\ddots$",
+      "pm": "플러스 마이너스 기호(±). 예시:  \\pm y$",
+      "mp": "마이너스 플러스 기호(∓). 예시:  \\mp y$",
+      "times": "곱하기 기호(×). 예시:  \\times b$",
+      "div": "나누기 기호(÷). 예시:  \\div b$",
+      "ast": "별표(∗). 예시:  \\ast b$",
+      "star": "별 모양(⋆). 예시:  \\star b$",
+      "circ": "원(∘). 예시:  \\circ g$",
+      "bullet": "글머리 기호(•). 예시:  \\bullet b$",
+      "cap": "교집합(∩). 예시:  \\cap B$",
+      "cup": "합집합(∪). 예시:  \\cup B$",
+      "uplus": "다중 집합 합집합(⊎). 예시:  \\uplus B$",
+      "sqcap": "사각 교집합(⊓). 예시:  \\sqcap B$",
+      "sqcup": "사각 합집합(⊔). 예시:  \\sqcup B$",
+      "vee": "논리합(∨). 예시:  \\vee q$",
+      "wedge": "논리곱(∧). 예시:  \\wedge q$",
+      "setminus": "집합 차이(∖). 예시:  \\setminus B$",
+      "wr": "원형 곱(≀). 예시:  \\wr H$",
+      "diamond": "마름모(⋄). 예시:  \\diamond b$",
+      "leq": "작거나 같음(≤). 예시:  \\leq y$",
+      "prec": "선행(≺). 예시:  \\prec b$",
+      "preceq": "선행 또는 같음(≼). 예시:  \\preceq b$",
+      "ll": "훨씬 작음(≪). 예시:  \\ll y$",
+      "subset": "부분집합(⊂). 예시:  \\subset B$",
+      "subseteq": "부분집합 또는 같음(⊆). 예시:  \\subseteq B$",
+      "sqsubset": "사각 부분집합(⊏). 예시:  \\sqsubset B$",
+      "sqsubseteq": "사각 부분집합 또는 같음(⊑). 예시:  \\sqsubseteq B$",
+      "in": "속함(∈). 예시:  \\in A$",
+      "vdash": "증명(⊢). 예시: $\\Gamma \\vdash \\phi$",
+      "smile": "미소(⌣). 예시:  \\smile b$",
+      "frown": "찡그림(⌢). 예시:  \\frown b$",
+      "geq": "크거나 같음(≥). 예시:  \\geq y$",
+      "succ": "후행(≻). 예시:  \\succ b$",
+      "succeq": "후행 또는 같음(≽). 예시:  \\succeq b$",
+      "gg": "훨씬 큼(≫). 예시:  \\gg y$",
+      "supset": "상위집합(⊃). 예시:  \\supset B$",
+      "supseteq": "상위집합 또는 같음(⊇). 예시:  \\supseteq B$",
+      "sqsupset": "사각 상위집합(⊐). 예시:  \\sqsupset B$",
+      "sqsupseteq": "사각 상위집합 또는 같음(⊒). 예시:  \\sqsupseteq B$",
+      "ni": "포함 멤버(∋). 예시:  \\ni x$",
+      "dashv": "왼쪽 핀(⊣). 예시: $\\phi \\dashv \\Gamma$",
+      "mid": "중간(∣). 예시:  \\mid b$",
+      "parallel": "평행(∥). 예시:  \\parallel l_2$",
+      "equiv": "동치(≡). 예시:  \\equiv b$",
+      "sim": "유사(∼). 예시:  \\sim B$",
+      "simeq": "유사 또는 같음(≃). 예시:  \\simeq B$",
+      "asymp": "점근(≍). 예시: (x) \\asymp g(x)$",
+      "approx": "근사(≈). 예시:  \\approx y$",
+      "cong": "합동(≅). 예시:  \\cong B$",
+      "neq": "같지 않음(≠). 예시:  \\neq b$",
+      "doteq": "점 같음(≐). 예시:  \\doteq b$",
+      "propto": "비례(∝). 예시:  \\propto y$",
+      "models": "모델(⊨). 예시: $\\Gamma \\models \\phi$",
+      "perp": "수직(⊥). 예시:  \\perp l_2$",
+      "leftarrow": "왼쪽 화살표(←). 예시:  \\leftarrow y$",
+      "Leftarrow": "이중 왼쪽 화살표(⇐). 예시:  \\Leftarrow y$",
+      "rightarrow": "오른쪽 화살표(→). 예시:  \\rightarrow y$",
+      "Rightarrow": "이중 오른쪽 화살표(⇒). 예시:  \\Rightarrow y$",
+      "leftrightarrow": "좌우 화살표(↔). 예시:  \\leftrightarrow y$",
+      "Leftrightarrow": "이중 좌우 화살표(⇔). 예시:  \\Leftrightarrow y$",
+      "mapsto": "매핑(↦). 예시:  \\mapsto f(x)$",
+      "hookleftarrow": "갈고리 왼쪽 화살표(↩). 예시:  \\hookleftarrow B$",
+      "leftharpoonup": "왼쪽 하푼 위(↼). 예시:  \\leftharpoonup y$",
+      "leftharpoondown": "왼쪽 하푼 아래(↽). 예시:  \\leftharpoondown y$",
+      "rightleftharpoons": "오른쪽 왼쪽 하푼(⇌). 예시:  \\rightleftharpoons y$",
+      "longleftarrow": "긴 왼쪽 화살표(⟵). 예시:  \\longleftarrow y$",
+      "Longleftarrow": "긴 이중 왼쪽 화살표(⟸). 예시:  \\Longleftarrow y$",
+      "longrightarrow": "긴 오른쪽 화살표(⟶). 예시:  \\longrightarrow y$",
+      "Longrightarrow": "긴 이중 오른쪽 화살표(⟹). 예시:  \\Longrightarrow y$",
+      "longleftrightarrow": "긴 좌우 화살표(⟷). 예시:  \\longleftrightarrow y$",
+      "Longleftrightarrow": "긴 이중 좌우 화살표(⟺). 예시:  \\Longleftrightarrow y$",
+      "longmapsto": "긴 매핑(⟼). 예시:  \\longmapsto f(x)$",
+      "hookrightarrow": "갈고리 오른쪽 화살표(↪). 예시:  \\hookrightarrow B$",
+      "rightharpoonup": "오른쪽 하푼 위(⇀). 예시:  \\rightharpoonup y$",
+      "rightharpoondown": "오른쪽 하푼 아래(⇁). 예시:  \\rightharpoondown y$",
+      "leadsto": "유도(⇝). 예시:  \\leadsto y$",
+      "uparrow": "위쪽 화살표(↑). 예시:  \\uparrow$",
+      "Uparrow": "이중 위쪽 화살표(⇑). 예시:  \\Uparrow$",
+      "downarrow": "아래쪽 화살표(↓). 예시:  \\downarrow$",
+      "Downarrow": "이중 아래쪽 화살표(⇓). 예시:  \\Downarrow$",
+      "updownarrow": "위아래 화살표(↕). 예시:  \\updownarrow$",
+      "Updownarrow": "이중 위아래 화살표(⇕). 예시:  \\Updownarrow$",
+      "nearrow": "북동쪽 화살표(↗). 예시: $\\nearrow$",
+      "searrow": "남동쪽 화살표(↘). 예시: $\\searrow$",
+      "swarrow": "남서쪽 화살표(↙). 예시: $\\swarrow$",
+      "nwarrow": "북서쪽 화살표(↖). 예시: $\\nwarrow$",
+      "quad": "4배 간격(1em). 예시: 텍스트\\quad 더 많은 텍스트",
+      "qquad": "이중 4배 간격(2em). 예시: 텍스트\\qquad 더 많은 텍스트",
+      "hspace": "수평 간격. 예시: \\hspace{1cm} 또는 \\hspace{2em}",
+      "vspace": "수직 간격. 예시: \\vspace{1cm} 또는 \\vspace{2em}",
+      "hfill": "수평 채우기. 예시: 왼쪽\\hfill 오른쪽",
+      "vfill": "수직 채우기. 예시: \\vfill",
+      "cite": "문헌 인용. 예시: \\cite{key} 또는 \\cite[페이지]{key}",
+      "footnote": "각주 생성. 예시: 텍스트\\footnote{각주 텍스트}",
+      "marginpar": "여백 주석. 예시: \\marginpar{주석}",
+      "tableofcontents": "목차 생성. 예시: \\tableofcontents",
+      "listoffigures": "그림 목차 생성. 예시: \\listoffigures",
+      "listoftables": "표 목차 생성. 예시: \\listoftables",
+      "bibliography": "참고문헌. 예시: \\bibliography{references}",
+      "bibliographystyle": "참고문헌 스타일. 예시: \\bibliographystyle{plain}",
+      "maketitle": "제목 페이지 생성. 예시: \\maketitle",
+      "title": "문서 제목. 예시: \\title{내 문서}",
+      "author": "문서 저자. 예시: \\author{홍길동}",
+      "date": "문서 날짜. 예시: \\date{\\today} 또는 \\date{2024}",
+      "thanks": "감사 주석. 예시: \\author{홍길동\\thanks{감사합니다...}}",
+      "and": "저자 구분 기호. 예시: \\author{홍길동 \\and 김철수}",
+      "abstract": "초록 환경. 예시: \\begin{abstract} ... \\end{abstract}",
+      "today": "현재 날짜. 예시: \\date{\\today}",
+      "verb": "원문 인라인 텍스트. 예시: \\verb|코드| 또는 \\verb+코드+",
+      "verbatim": "원문 환경. 예시: \\begin{verbatim} 코드 \\end{verbatim}",
+      "lstlisting": "코드 목록(listings 패키지 필요). 예시: \\begin{lstlisting} ... \\end{lstlisting}",
+      "url": "URL(url 또는 hyperref 패키지 필요). 예시: \\url{https://example.com}",
+      "href": "하이퍼링크(hyperref 패키지 필요). 예시: \\href{https://example.com}{링크 텍스트}",
+      "email": "이메일(url 패키지 필요). 예시: \\email{user@example.com}",
+      "index": "색인 항목. 예시: \\index{키워드}",
+      "glossary": "용어집 항목. 예시: \\glossary{용어}",
+      "addcontentsline": "목차에 추가. 예시: \\addcontentsline{toc}{section}{제목}",
+      "addtocontents": "목차 파일에 추가. 예시: \\addtocontents{toc}{\\protect\\newpage}",
+      "appendix": "부록 시작. 예시: \\appendix",
+      "appendixpage": "부록 페이지(appendix 패키지 필요). 예시: \\appendixpage",
+      "frontmatter": "서론(book 클래스). 예시: \\frontmatter",
+      "mainmatter": "본문(book 클래스). 예시: \\mainmatter",
+      "backmatter": "후기(book 클래스). 예시: \\backmatter"
+    },
+    "pagesPerRow": "행당 페이지 수"
   },
   "notificationQueue": {
     "clear": "모든 것",
@@ -1070,6 +1455,10 @@
       "markdown": {
         "description": "기사, 메모 및 블로그에 대한 일반 텍스트 형식.",
         "label": "연락처"
+      },
+      "plaintext": {
+        "label": "일반 텍스트",
+        "description": "일반 텍스트 또는 코드 파일, 다양한 프로그래밍 언어의 구문 강조를 지원합니다."
       }
     },
     "subtitle": "문서 형식과 템플릿을 선택하여 생성을 시작합니다.",
@@ -1083,6 +1472,22 @@
         "report": {
           "description": "챕터 구조와 템플릿을 보고하는 과정이나 프로젝트 보고서에 적용.",
           "label": "템플릿 보기"
+        },
+        "gb7714_zh": {
+          "label": "중문 국가 표준 학술 논문",
+          "description": "GB/T 7714-2015 표준을 준수하는 중문 학술 논문 템플릿, 완전한 논문 구조 포함."
+        },
+        "ieee_en": {
+          "label": "영문 표준 학술 논문",
+          "description": "IEEE 표준을 준수하는 영문 학술 논문 템플릿, 국제 저널과 학회에 적합."
+        },
+        "gb7714_zh_twocolumn": {
+          "label": "중문 국가 표준 학술 논문(2단)",
+          "description": "GB/T 7714-2015 표준을 준수하는 중문 학술 논문 템플릿(2단 배치), 저널 투고에 적합."
+        },
+        "ieee_en_twocolumn": {
+          "label": "영문 표준 학술 논문(2단)",
+          "description": "IEEE 표준을 준수하는 영문 학술 논문 템플릿(2단 배치), 저널과 학회 투고에 적합."
         }
       },
       "markdown": {
@@ -1093,11 +1498,37 @@
         "blank": {
           "description": "빈 Markdown 문서 만들기",
           "label": "빈 문서"
+        },
+        "technicalDoc": {
+          "label": "기술 문서",
+          "description": "API/아키텍처/배포 등 기술 문서 구조, 인터페이스 설명과 구성 포함."
+        },
+        "labReport": {
+          "label": "실험 보고서",
+          "description": "목적, 원리, 단계, 데이터와 결론의 완전한 실험 보고서."
+        },
+        "courseReport": {
+          "label": "수업 보고서",
+          "description": "독서 보고서, 주제 보고서, 조사 보고서 등 수업 과제."
+        },
+        "letter": {
+          "label": "편지",
+          "description": "공식 또는 비공식 편지 형식, 호칭, 본문과 서명 포함."
+        },
+        "blogPost": {
+          "label": "블로그/트윗",
+          "description": "블로그 게시물 또는 소셜 미디어 트윗, 짧은 글과 태그에 적합."
+        },
+        "lectureNotes": {
+          "label": "강의 노트",
+          "description": "강의별 및 요점별로 정리된 강의 노트 구조."
         }
       }
     },
     "title": "새 문서",
-    "useTemplate": "이 템플릿 사용"
+    "useTemplate": "이 템플릿 사용",
+    "removeTemplateConfirm": "템플릿 「{name}」을(를) 제거하시겠습니까? 제거 후에는 복구할 수 없습니다.",
+    "removeTemplateTitle": "템플릿 제거"
   },
   "agent": {
     "conversation": {
@@ -2038,7 +2469,14 @@
     "noSessionSelected": "세션을 선택하거나 새 세션을 생성하세요",
     "renamePlaceholder": "세션 이름을 입력하세요",
     "renameTitle": "세션 이름 변경",
-    "sessionsTitle": "데이터 분석 세션"
+    "sessionsTitle": "데이터 분석 세션",
+    "tabs": {
+      "report": "분석 보고서",
+      "data": "원본 데이터",
+      "analysis": "데이터 분석"
+    },
+    "uploadHint": "파일을 여기로 끌어다 놓거나 클릭하여 업로드하세요",
+    "uploadTip": "CSV, Excel, JSON 형식 지원"
   },
   "userFeedback": {
     "uploadedToGist": "Gist e eobrodeu doem",
@@ -2228,7 +2666,11 @@
     "text1": "현재 추측",
     "text2": "선택됨",
     "text3": "다음에서",
-    "tooltip": "툴팁"
+    "tooltip": "툴팁",
+    "analyze": "선택된 데이터만 분석됩니다",
+    "analyze1": "테이블에서 행을 선택하여 일부 데이터만 분석할 수 있습니다",
+    "analyze2": "분석 결과가 없습니다",
+    "detect": "자동 감지"
   },
   "detailedOutlineNode": {
     "generating": "생성 중",
@@ -2406,6 +2848,63 @@
         "original": "원본 링크 유지",
         "base64": "Base64 임베드",
         "folder": "폼에 저장"
+      },
+      "includeMetadata": {
+        "label": "메타데이터 포함",
+        "description": "난출된 Markdown에 문서 메타데이터 포함 여부"
+      },
+      "documentClass": {
+        "label": "문서 클래스",
+        "description": "LaTeX 문서 클래스"
+      },
+      "includePackages": {
+        "label": "일반 패키지 포함",
+        "description": "일반적인 LaTeX 패키지를 자동으로 포함할지 여부"
+      },
+      "generateCover": {
+        "label": "표지 생성",
+        "description": "첫 페이지에 문서 제목, 저자, 초록 및 키워드 표시"
+      },
+      "generateToc": {
+        "label": "목차 생성",
+        "description": "표지 뒤(또는 문서 시작 부분)에 목차 생성",
+        "title": "목차"
+      },
+      "processFormula": {
+        "label": "수식 처리",
+        "description": "LaTeX 수식을 자동으로 처리할지 여부"
+      },
+      "removeTitlePrefixes": {
+        "label": "제목 접두사 자동 제거",
+        "description": "LaTeX는 각 장절에 자동으로 번호를 매깁니다. 제목에 이미 번호 접두사가 있으면 중복됩니다. 이 옵션을 활성화하면 모든 제목 시작 부분의 번호와 점(예: '1.1', '一、' 등)이 자동으로 제거됩니다"
+      },
+      "showPageNumbers": {
+        "label": "페이지 번호 표시",
+        "description": "페이지 하단에 페이지 번호 표시"
+      },
+      "showHeader": {
+        "label": "머리글 표시",
+        "description": "페이지 머리글에 문서 제목과 페이지 번호 정보 표시"
+      },
+      "autoNumberImages": {
+        "label": "이미지 자동 번호 매기기",
+        "description": "문서의 이미지에 자동으로 번호 태그 추가(예: 그림 1, 그림 2)"
+      },
+      "imageLabelFontSize": {
+        "label": "이미지 레이블 글꼴 크기",
+        "description": "이미지 번호 레이블의 글꼴 크기(pt)"
+      },
+      "imageLabelFontFamily": {
+        "label": "이미지 레이블 글꼴",
+        "description": "이미지 번호 레이블의 글꼴"
+      },
+      "imageLabelPrefix": {
+        "label": "그림",
+        "description": "이미지 번호 접두사"
+      },
+      "imageLabelDefaultName": {
+        "label": "이미지",
+        "description": "이미지 기본 이름(이미지에 이름이 없을 때 사용)"
       }
     }
   },
@@ -2440,5 +2939,149 @@
     "text": "표시",
     "typeRecognize": "차트 유형을 인식할 수 없습니다",
     "validateFailedFailedValidate": "구문 검증 실패"
+  },
+  "editorModeFirstTime": {
+    "changeLaterHint": "나중에 '설정'에서 기본 편집 모드를 변경할 수 있습니다.",
+    "message": "선호하는 Markdown 편집 모드를 선택하세요. 나중에 설정에서 변경할 수 있습니다.",
+    "title": "기본 편집기 모드 선택"
+  },
+  "fomulaRecognition": {
+    "copyFailed": "복사 실패",
+    "deleteFailed": "삭제 실패",
+    "failedCreate": "세션 생성 실패",
+    "failedLoading": "세션 목록 로드 실패",
+    "failedLoading1": "세션 로드 실패",
+    "recognize": "수식 인식 예시",
+    "renameFailed": "이름 변경 실패",
+    "text": "복사본"
+  },
+  "graph": {
+    "analyzingIntent": "의도 분석 중...",
+    "assistant": "어시스턴트",
+    "chartType": "차트 유형",
+    "conversationMode": "대화 모드",
+    "defaultTitle": "새 그리기 세션",
+    "engine": "그리기 엔진",
+    "export": "난출",
+    "exportSuccess": "난출 성공",
+    "generate": "생성",
+    "generateSuccess": "생성 성공",
+    "generated": "차트가 생성되었습니다",
+    "generatedImage": "생성된 이미지",
+    "generating": "생성 중...",
+    "inputPlaceholder": "그리기 요구사항을 입력하세요, AI가 적절한 차트 엔진을 자동으로 선택합니다...",
+    "newSession": "새 세션",
+    "noChart": "난출할 차트가 없습니다",
+    "noOptimizePrompt": "최적화 요구사항을 입력하세요",
+    "noPrompt": "그리기 요구사항을 입력하세요",
+    "noSessionSelected": "세션을 선택하거나 새 세션을 생성하세요",
+    "optimize": "이미지 최적화",
+    "optimizeOnlyInConversation": "최적화 기능은 대화 모드에서만 사용할 수 있습니다",
+    "optimizePrompt": "다음 대화 기록을 바탕으로 이미지를 최적화합니다:",
+    "outputFormat": "출력 형식",
+    "renamePlaceholder": "세션 이름을 입력하세요",
+    "renameTitle": "세션 이름 변경",
+    "sessionsTitle": "그리기 세션",
+    "simpleMode": "간단 모드",
+    "user": "사용자",
+    "userRequest": "사용자 새 요구사항"
+  },
+  "graphWindow": {
+    "format": "형식은 다음과 같습니다",
+    "name": "엔진 이름",
+    "text": "사용 가능한 차트 엔진",
+    "text1": "그리고 반환",
+    "text2": "개체",
+    "text3": "소문자",
+    "type": "지원 유형",
+    "type1": "차트 유형",
+    "user": "사용자 요구사항",
+    "userAnalyze": "사용자 요구사항을 분석하세요"
+  },
+  "llm-adapter": {
+    "failed": "구성 실패",
+    "login": "로그인하세요",
+    "text": "선택 안 됨",
+    "text1": "계정",
+    "text2": "가져오기",
+    "type": "유형",
+    "unsupported": "지원되지 않음"
+  },
+  "llm-config-manager": {
+    "text": "기본",
+    "text1": "호환",
+    "text2": "공식"
+  },
+  "llmStatistics": {
+    "cancel": "취소",
+    "clear": "비우기",
+    "clearConfirm": "모든 통계 데이터를 비우시겠습니까? 이 작업은 복구할 수 없습니다!",
+    "clearConfirmAgain": "다시 확인하세요: 이 작업은 모든 통계 데이터를 영구적으로 삭제하며 복구할 수 없습니다!",
+    "clearConfirmTitle": "비우기 확인",
+    "clearFailed": "통계 데이터 비우기 실패",
+    "clearSuccess": "통계 데이터가 비워졌습니다",
+    "close": "닫기",
+    "completionTokens": "출력 토큰",
+    "confirm": "확인",
+    "csvHeaders": {
+      "timestamp": "타임스탬프",
+      "date": "날짜",
+      "model": "모델",
+      "type": "유형",
+      "promptTokens": "입력 토큰",
+      "completionTokens": "출력 토큰",
+      "totalTokens": "총 토큰",
+      "summary": "요약"
+    },
+    "custom": "사용자 지정",
+    "endDate": "종료 날짜",
+    "export": "난출",
+    "exportFailed": "난출 실패",
+    "exportFormatInvalid": "유효한 숫자를 입력하세요 (1-3)",
+    "exportFormatMessage": "난출할 파일 형식을 선택하세요:",
+    "exportFormatTitle": "난출 형식 선택",
+    "exportSuccess": "난출 성공",
+    "formatCsv": "CSV",
+    "formatJson": "JSON",
+    "formatXlsx": "Excel (XLSX)",
+    "loadAll": "모두 로드",
+    "loadFailed": "통계 데이터 로드 실패",
+    "promptTokens": "입력 토큰",
+    "quickSelect": "빠른 선택",
+    "requestCount": "요청 횟수",
+    "requestCountChart": "요청 횟수 통계(선 그래프)",
+    "startDate": "시작 날짜",
+    "thisMonth": "이번 달",
+    "thisWeek": "이번 주",
+    "thisYear": "올해",
+    "title": "LLM API 사용량 통계",
+    "to": "~",
+    "today": "오늘",
+    "tokenCount": "토큰 수량",
+    "tokenUsageChart": "토큰 사용량 통계(막대 그래프)",
+    "tooltip": "LLM API 사용량 통계를 별륵하려면 클릭하세요",
+    "totalCompletionTokens": "총 출력 토큰",
+    "totalPromptTokens": "총 입력 토큰",
+    "totalRequests": "총 요청 수",
+    "totalTokens": "총 토큰 수",
+    "xlsxHeaders": {
+      "metric": "지표",
+      "value": "값",
+      "timestamp": "타임스탬프",
+      "date": "날짜",
+      "model": "모델",
+      "type": "유형",
+      "promptTokens": "입력 토큰",
+      "completionTokens": "출력 토큰",
+      "totalTokens": "총 토큰"
+    },
+    "xlsxSheetNames": {
+      "summary": "요약",
+      "details": "상세 데이터"
+    }
+  },
+  "messageBox": {
+    "cancel": "취소",
+    "confirm": "확인"
   }
 }

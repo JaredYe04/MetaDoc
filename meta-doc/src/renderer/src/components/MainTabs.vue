@@ -68,7 +68,7 @@
         class="new-tab-button"
         :class="{ 'is-locked': isLockedEffective }"
         @click="handleNewTabClick"
-        title="新建文档"
+        :title="$t('mainTabs.newDocumentTooltip')"
       >
         <el-icon><Plus /></el-icon>
       </div>
@@ -270,11 +270,11 @@ const tabsListRef = ref<HTMLElement | null>(null)
 const { checkCanCloseTab, doRemoveTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
 
-const DEMO_TABS: WorkspaceTab[] = [
+const DEMO_TABS = computed<WorkspaceTab[]>(() => [
   {
     id: 'demo-1',
     kind: 'file',
-    title: '未命名',
+    title: t('mainTabs.untitled'),
     subtitle: '',
     path: '',
     format: 'md',
@@ -283,14 +283,14 @@ const DEMO_TABS: WorkspaceTab[] = [
   {
     id: 'demo-2',
     kind: 'system',
-    title: '用户手册',
+    title: t('mainTabs.userManual'),
     subtitle: '',
     path: '',
     format: 'md',
     dirty: false,
     route: '/user-manual'
   }
-]
+])
 
 // 使用新的拖拽 composable
 const {
@@ -679,7 +679,7 @@ const handleNewTabClick = () => {
 
 // 合并文档Tab和系统Tab、工具Tab，过滤掉空白页Tab；demo 模式用静态示例
 const allTabs = computed(() => {
-  if (props.mode === 'demo') return DEMO_TABS
+  if (props.mode === 'demo') return DEMO_TABS.value
   return workspace.tabs.filter((tab) => !(tab.kind === 'system' && tab.route === '/dummy'))
 })
 
@@ -712,7 +712,7 @@ const currentActiveId = computed({
 })
 
 const getTabLabel = (tab: WorkspaceTab): string => {
-  return tab.subtitle?.trim() || tab.title?.trim() || '未命名'
+  return tab.subtitle?.trim() || tab.title?.trim() || t('mainTabs.untitled')
 }
 
 const getTabTooltip = (tab: WorkspaceTab): string => {

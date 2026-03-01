@@ -3788,7 +3788,27 @@
       "warning": "警告",
       "info": "情報"
     },
-    "title": "文章校正"
+    "title": "文章校正",
+    "startProofread": "校正を開始",
+    "errorsList": "エラーリスト",
+    "documentPreview": "ドキュメントプレビュー",
+    "noErrorsFound": "エラーは見つかりませんでした",
+    "clearFixed": "修正済みをクリア",
+    "noDocument": "アクティブなドキュメントがありません",
+    "noContent": "ドキュメントが空です",
+    "autoFixed": "修正済み",
+    "location": "位置",
+    "errorText": "エラーテキスト",
+    "suggestions": "修正提案",
+    "addToDictionary": "辞書に追加",
+    "proofreadSuccess": "校正が完了しました",
+    "proofreadFailed": "校正に失敗しました",
+    "fixFailed": "修正失敗：エラー位置が一致しません",
+    "fixSuccess": "修正成功",
+    "addToDictionarySuccess": "辞書に追加しました",
+    "addToDictionaryFailed": "辞書への追加に失敗しました",
+    "fixAllSuccess": "{count}個のエラーを修正しました",
+    "clearFixedSuccess": "{removedCount}個の修正済みエラーをクリアしました"
   },
   "proofread-tool": {
     "cancelled": "リクエストがキャンセルされました",

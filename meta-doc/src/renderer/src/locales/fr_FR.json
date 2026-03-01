@@ -3835,7 +3835,27 @@
       "warning": "Avertissement",
       "info": "Information"
     },
-    "title": "Correction d'article"
+    "title": "Correction d'article",
+    "startProofread": "Commencer la correction",
+    "errorsList": "Liste des erreurs",
+    "documentPreview": "Aperçu du document",
+    "noErrorsFound": "Aucune erreur trouvée",
+    "clearFixed": "Effacer les corrections",
+    "noDocument": "Aucun document actif",
+    "noContent": "Le document est vide",
+    "autoFixed": "Corrigé",
+    "location": "Emplacement",
+    "errorText": "Texte d'erreur",
+    "suggestions": "Suggestions",
+    "addToDictionary": "Ajouter au dictionnaire",
+    "proofreadSuccess": "Correction terminée",
+    "proofreadFailed": "Échec de la correction",
+    "fixFailed": "Échec de la correction : position d'erreur incorrecte",
+    "fixSuccess": "Correction réussie",
+    "addToDictionarySuccess": "Ajouté au dictionnaire",
+    "addToDictionaryFailed": "Échec de l'ajout au dictionnaire",
+    "fixAllSuccess": "{count} erreurs corrigées",
+    "clearFixedSuccess": "{removedCount} erreurs corrigées effacées"
   },
   "proofread-tool": {
     "cancelled": "Requête annulée",

@@ -668,6 +668,11 @@ const activeTabBackgroundColor = computed(() => {
   return mixColors(baseBg, '#777777', 0.3)
 })
 
+// 与 LeftMenu 右侧边界一致：左侧明显分界线，避免与左侧撞色难以区分
+const explorerLeftBorderColor = computed(
+  () => (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
+)
+
 // 确保工作区根目录下存在 .metadoc 目录（用于存放工作区级别的 AI / 配置数据）
 const ensureMetadocInWorkspaceRoot = async (folderPath: string): Promise<void> => {
   const ipcRenderer = getIpcRenderer()
@@ -2525,6 +2530,7 @@ const handleSelectAll = async () => {
   flex-direction: column;
   height: 100%;
   background-color: v-bind('themeState.currentTheme.editorToolbarBackgroundColor');
+  border-left: 1px solid v-bind('explorerLeftBorderColor');
   border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
   outline: none;
 }

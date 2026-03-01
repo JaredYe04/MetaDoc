@@ -115,7 +115,6 @@ registerDemoComponent('DialogDemo', DialogDemoWrapper)
 
 import UserFeedbackView from '../views/UserFeedbackView.vue'
 import LlmStatisticsView from '../views/LlmStatisticsView.vue'
-import WorkflowManager from '../components/agent/manage/WorkflowManager.vue'
 import ReferenceManager from '../components/agent/ReferenceManager.vue'
 import LaTeXEditor from '../views/LaTeXEditor.vue'
 import OutlineAiToolbar from '../components/outline/OutlineAiToolbar.vue'
@@ -125,7 +124,6 @@ import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
 
 registerDemoComponent('UserFeedbackView', UserFeedbackView)
 registerDemoComponent('LlmStatisticsView', LlmStatisticsView)
-registerDemoComponent('WorkflowManager', WorkflowManager)
 registerDemoComponent('ReferenceManager', ReferenceManager)
 registerDemoComponent('LaTeXEditor', LaTeXEditor)
 registerDemoComponent('OutlineAiToolbar', OutlineAiToolbar)

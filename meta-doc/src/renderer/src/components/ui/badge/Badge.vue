@@ -112,7 +112,7 @@ const dynamicStyles = computed(() => {
     <button
       v-if="closable"
       type="button"
-      class="ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      class="ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring"
       @click="handleClose"
     >
       <X class="h-3 w-3" />

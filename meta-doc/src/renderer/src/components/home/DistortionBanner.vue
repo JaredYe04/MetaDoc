@@ -286,6 +286,12 @@ function resize() {
   const w = rect.width
   const h = rect.height
   if (w === 0 || h === 0) return
+  // 尺寸未实际变化时跳过
+  const roundedW = Math.round(w)
+  const roundedH = Math.round(h)
+  if (logicalW > 0 && logicalH > 0 && Math.round(logicalW) === roundedW && Math.round(logicalH) === roundedH) {
+    return
+  }
   logicalW = w
   logicalH = h
   dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -298,6 +304,8 @@ function resize() {
   if (!ctx) return
   buildGrid(w, h)
   drawTextToOffscreen(w, h)
+  // 立即重绘，避免设置 width/height 清空画布后出现一帧空白
+  draw()
 }
 
 function onMouseMove(e: MouseEvent) {
@@ -324,17 +332,41 @@ watch(isDark, () => {
   if (logicalW > 0 && logicalH > 0) drawTextToOffscreen(logicalW, logicalH)
 })
 
+const RESIZE_DEBOUNCE_MS = 160
+let resizeObserver: ResizeObserver | null = null
+let resizeDebounceTimer = 0
+let resizeRafId = 0
+
+function scheduleResize() {
+  if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer)
+  resizeDebounceTimer = window.setTimeout(() => {
+    resizeDebounceTimer = 0
+    if (resizeRafId) return
+    resizeRafId = requestAnimationFrame(() => {
+      resizeRafId = 0
+      resize()
+    })
+  }, RESIZE_DEBOUNCE_MS)
+}
+
 onMounted(() => {
   if (containerRef.value && canvasRef.value) {
     resize()
     loop()
-    window.addEventListener('resize', resize)
+    // 防抖：仅在停止 resize 一段时间后再执行，拖拽过程中不碰 canvas，避免闪烁
+    resizeObserver = new ResizeObserver(scheduleResize)
+    resizeObserver.observe(containerRef.value)
   }
 })
 
 onUnmounted(() => {
   if (animationId) cancelAnimationFrame(animationId)
-  window.removeEventListener('resize', resize)
+  if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer)
+  if (resizeRafId) cancelAnimationFrame(resizeRafId)
+  if (resizeObserver && containerRef.value) {
+    resizeObserver.unobserve(containerRef.value)
+    resizeObserver = null
+  }
 })
 </script>
 

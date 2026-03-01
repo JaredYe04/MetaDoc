@@ -1,27 +1,126 @@
 <template>
   <div class="agent-compact" :style="panelStyle">
     <div class="agent-compact-header">
-      <Select
-        v-if="sessions.length > 1"
-        v-model="activeSessionIdModel"
-        :disabled="isGenerating || workspace.uiLocked?.value"
+      <div class="agent-compact-tabs">
+        <div
+          v-for="s in displaySessions"
+          :key="s.id"
+          class="agent-compact-tab-wrap"
+          draggable="true"
+          @contextmenu.prevent="openTabContextMenu($event, s)"
+          @dragstart="handleTabDragStart($event, s)"
+          @dragover.prevent="handleTabDragOver($event, s)"
+          @drop.prevent="handleTabDrop($event, s)"
+        >
+          <button
+            type="button"
+            class="agent-compact-tab"
+            :class="{ active: s.id === activeSessionId }"
+            :disabled="isGenerating || workspace.uiLocked?.value"
+            @click="agentStore.setActiveSessionId(s.id)"
+          >
+            <span class="agent-compact-tab-label">{{ s.title || t('agent.compact.untitled') }}</span>
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="agent-compact-tab-close"
+            :disabled="isGenerating || workspace.uiLocked?.value"
+            :title="t('agent.compact.closeTab')"
+            @click.stop="closeTab(s)"
+          >
+            <X class="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <!-- Tab 右键菜单 -->
+      <div
+        v-if="tabContextSession"
+        class="agent-compact-tab-context"
+        :style="{ left: tabContextX + 'px', top: tabContextY + 'px' }"
+        @mouseleave="tabContextSession = null"
       >
-        <SelectTrigger class="h-8 text-sm w-full">
-          <SelectValue :placeholder="t('agent.sessions.title', '会话')" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="s in sessions" :key="s.id" :value="s.id">
-            {{ s.title }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-      <div v-else class="agent-compact-title">
-        {{ activeSession?.title || t('agent.conversation.emptyTitle', '会话') }}
+        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextClose">
+          {{ t('agent.compact.closeTab') }}
+        </button>
+        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextRename">
+          {{ t('agent.sessions.rename') }}
+        </button>
+        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextExport">
+          {{ t('agent.compact.exportJson') }}
+        </button>
+        <button type="button" class="agent-compact-tab-context-item" @click="handleTabContextDuplicate">
+          {{ t('agent.sessions.duplicate') }}
+        </button>
+        <button type="button" class="agent-compact-tab-context-item agent-compact-tab-context-item-danger" @click="handleTabContextDelete">
+          {{ t('agent.compact.deleteSession') }}
+        </button>
+      </div>
+      <div class="agent-compact-header-actions">
+        <DropdownMenu v-model:open="historyOpen">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="agent-compact-header-btn"
+                  :disabled="isGenerating || workspace.uiLocked?.value"
+                >
+                  <Clock class="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{{ t('agent.compact.recentSessions') }}</p>
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent class="agent-compact-history-dropdown" align="end" :side-offset="4">
+            <div class="agent-compact-history-list">
+              <template v-for="group in historyGroups" :key="group.label">
+                <div class="agent-compact-history-group-label">{{ group.label }}</div>
+                <DropdownMenuItem
+                  v-for="s in group.sessions"
+                  :key="s.id"
+                  class="agent-compact-history-item"
+                  @select="openSessionFromHistory(s); historyOpen = false"
+                >
+                  <span class="agent-compact-history-title">{{ s.title || t('agent.compact.untitled') }}</span>
+                  <span class="agent-compact-history-time">{{ formatHistoryTime(s.updatedAt) }}</span>
+                </DropdownMenuItem>
+              </template>
+              <DropdownMenuItem
+                v-if="hasMoreHistory"
+                class="agent-compact-history-more"
+                @select="historyLimit += 10"
+              >
+                {{ t('agent.compact.loadMore') }}
+              </DropdownMenuItem>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="agent-compact-header-btn"
+              :disabled="isGenerating || workspace.uiLocked?.value"
+              @click="createNewSession"
+            >
+              <Plus class="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('agent.compact.newSession') }}</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
 
-    <div v-if="activeSession" class="agent-compact-content">
-      <ScrollArea class="conversation-scroll">
+    <div v-if="activeSession && openTabIds.includes(activeSession.id)" class="agent-compact-content">
+      <ScrollArea class="conversation-scroll agent-compact-selectable">
         <AgentMessageRenderer
           v-for="(message, index) in activeSession.messages"
           :key="message.id"
@@ -30,6 +129,11 @@
           :message-index="index"
           :user-name="'用户'"
           :session-references="activeSession.referenceStore || []"
+          :compact="true"
+          @edit="handleMessageEdit"
+          @regenerate="handleMessageRegenerate"
+          @delete="handleMessageDelete"
+          @duplicate="handleMessageDuplicate"
         />
         <div class="conversation-bottom-spacer" />
       </ScrollArea>
@@ -41,8 +145,10 @@
           :disabled="!activeSession"
           :show-attach="false"
           :show-voice="false"
+          :show-reset="false"
           :placeholder="t('aiChat.inputPlaceholder')"
           :show-knowledge-base="false"
+          :compact="true"
           @submit="handleComposerSubmit"
           @reset="handleComposerReset"
           @cancel="handleCancelGeneration"
@@ -50,8 +156,44 @@
       </div>
     </div>
     <div v-else class="agent-compact-empty">
-      <Empty :description="t('agent.conversation.none', '暂无对话')" />
+      <Empty :description="t('agent.conversation.none', '请选择或新建一个会话开始对话。')">
+        <template #image>
+          <div class="agent-compact-empty-logo" :class="{ shake: emptyLogoShake }" @click="emptyLogoClick">
+            <div class="logo-animation-wrapper">
+              <LogoIcon
+                :size="96"
+                :bg-color="emptyLogoBgColor"
+                :symbol-color="emptyLogoSymbolColor"
+                class="logo-image"
+              />
+            </div>
+          </div>
+        </template>
+      </Empty>
     </div>
+
+    <!-- 消息编辑对话框 -->
+    <Dialog v-model:open="showEditMessageDialog">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.message.editMessage') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <Textarea
+            v-model="editingMessageContent"
+            :rows="10"
+            :placeholder="t('agent.message.editPlaceholder')"
+            class="w-full"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showEditMessageDialog = false">
+            {{ t('common.cancel') }}
+          </Button>
+          <Button @click="handleConfirmEditMessage">{{ t('common.confirm') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -59,35 +201,422 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
+import { Clock, Plus, X } from 'lucide-vue-next'
+import { ElMessageBox } from 'element-plus'
+import { Button } from '@renderer/components/ui/button'
+import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Empty } from '@renderer/components/ui/empty'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@renderer/components/ui/select'
-import { themeState } from '../../utils/themes'
+import LogoIcon from '../LogoIcon.vue'
+import { themeState, FIXED_LOGO_COLORS } from '../../utils/themes'
 import { useWorkspace } from '../../stores/workspace'
 import { useAgentWorkspaceStore } from '../../stores/agent-workspace-store'
 import AgentMessageRenderer from './AgentMessageRenderer.vue'
 import ChatComposer from '../chat/ChatComposer.vue'
-import type { AgentSession, ChatAgentMessage } from '../../types/agent'
+import type { AgentMessage, AgentSession, ChatAgentMessage } from '../../types/agent'
 import { createRendererLogger } from '../../utils/logger'
-import { notifyError, notifyWarning } from '../../utils/notify'
-import { agentEngineManager, agentConfigManager } from '../../utils/agent-framework'
+import { notifyError, notifySuccess, notifyWarning } from '../../utils/notify'
+import { agentEngineManager, agentConfigManager, agentSessionManager } from '../../utils/agent-framework'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
 const agentStore = useAgentWorkspaceStore()
-const { sessions, activeSessionId, activeSession, isGenerating, composerInput, selectedEngineId, currentAiTaskHandle, aiTaskHandles } =
+const { sessions, activeSessionId, activeSession, openTabIds, isGenerating, composerInput, selectedEngineId, currentAiTaskHandle, aiTaskHandles } =
   storeToRefs(agentStore)
+const { setOpenTabIds } = agentStore
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor
 }))
 
-const activeSessionIdModel = computed({
-  get: () => activeSessionId.value || '',
-  set: (v: string) => agentStore.setActiveSessionId(v || null)
+// 空状态 Logo 动画（与 DummyView 一致）
+const emptyLogoShake = ref(false)
+const emptyLogoBgColor = FIXED_LOGO_COLORS.bgColor
+const emptyLogoSymbolColor = FIXED_LOGO_COLORS.symbolColor
+
+function emptyLogoClick() {
+  emptyLogoShake.value = true
+  setTimeout(() => {
+    emptyLogoShake.value = false
+  }, 1500)
+}
+
+// openTabIds 来自 store（持久化）；仅做校验：移除已删除的会话 id，若为空且有会话则至少保留当前/第一个
+watch(
+  () => [sessions.value.map((s) => s.id), activeSessionId.value] as const,
+  ([ids, activeId]) => {
+    const set = new Set(ids as string[])
+    let next = openTabIds.value.filter((id) => set.has(id))
+    if (next.length === 0 && (ids as string[]).length > 0) {
+      const fallback = (activeId as string | null) ?? (ids as string[])[0]
+      if (fallback) next = [fallback]
+    }
+    if (next.length !== openTabIds.value.length || next.some((id, i) => openTabIds.value[i] !== id)) {
+      setOpenTabIds(next)
+    }
+  },
+  { immediate: true }
+)
+
+// Tab 展示的会话列表（仅当前打开的 tab，按 openTabIds 顺序）
+const displaySessions = computed(() => {
+  const order = openTabIds.value
+  return order
+    .map((id) => sessions.value.find((s) => s.id === id))
+    .filter((s): s is AgentSession => !!s)
 })
+
+// 历史下拉：按时间分组，最多展示 historyLimit 条
+const historyLimit = ref(20)
+const historyOpen = ref(false)
+
+const HISTORY_LOAD_MORE = 10
+
+const sortedSessionsForHistory = computed(() =>
+  [...sessions.value].sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt || 0).getTime() -
+      new Date(a.updatedAt || a.createdAt || 0).getTime()
+  )
+)
+
+function formatHistoryTime(iso: string | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  if (dDay.getTime() === today.getTime()) {
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
+  if (dDay.getTime() === yesterday.getTime()) {
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
+  const weekAgo = new Date(today)
+  weekAgo.setDate(weekAgo.getDate() - 7)
+  if (dDay >= weekAgo) {
+    return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
+}
+
+type HistoryGroup = { label: string; sessions: AgentSession[] }
+
+const historyGroups = computed<HistoryGroup[]>(() => {
+  const list = sortedSessionsForHistory.value.slice(0, historyLimit.value)
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterdayStart = new Date(todayStart)
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+  const weekStart = new Date(todayStart)
+  weekStart.setDate(weekStart.getDate() - 7)
+  const monthStart = new Date(todayStart)
+  monthStart.setMonth(monthStart.getMonth() - 1)
+
+  const today: AgentSession[] = []
+  const yesterday: AgentSession[] = []
+  const lastWeek: AgentSession[] = []
+  const lastMonth: AgentSession[] = []
+  const older: AgentSession[] = []
+
+  for (const s of list) {
+    const t = new Date(s.updatedAt || s.createdAt || 0)
+    const dayStart = new Date(t.getFullYear(), t.getMonth(), t.getDate())
+    if (dayStart.getTime() >= todayStart.getTime()) today.push(s)
+    else if (dayStart.getTime() >= yesterdayStart.getTime()) yesterday.push(s)
+    else if (dayStart.getTime() >= weekStart.getTime()) lastWeek.push(s)
+    else if (dayStart.getTime() >= monthStart.getTime()) lastMonth.push(s)
+    else older.push(s)
+  }
+
+  const groups: HistoryGroup[] = []
+  if (today.length) groups.push({ label: t('agent.compact.today'), sessions: today })
+  if (yesterday.length) groups.push({ label: t('agent.compact.yesterday'), sessions: yesterday })
+  if (lastWeek.length) groups.push({ label: t('agent.compact.lastWeek'), sessions: lastWeek })
+  if (lastMonth.length) groups.push({ label: t('agent.compact.lastMonth'), sessions: lastMonth })
+  if (older.length) groups.push({ label: t('agent.compact.older'), sessions: older })
+  return groups
+})
+
+const hasMoreHistory = computed(
+  () => sortedSessionsForHistory.value.length > historyLimit.value
+)
+
+// Tab 右键菜单
+const tabContextSession = ref<AgentSession | null>(null)
+const tabContextX = ref(0)
+const tabContextY = ref(0)
+
+function openTabContextMenu(e: MouseEvent, session: AgentSession) {
+  tabContextSession.value = session
+  tabContextX.value = e.clientX
+  tabContextY.value = e.clientY
+}
+
+function ensureActiveSessionId() {
+  tabContextSession.value = null
+  const open = displaySessions.value
+  if (!open.length) {
+    agentStore.setActiveSessionId(null)
+    return
+  }
+  const current = agentStore.activeSessionId
+  if (!current || !open.some((s) => s.id === current)) {
+    agentStore.setActiveSessionId(open[0].id)
+  }
+}
+
+/** 关闭 tab：仅从 tab 栏移除，会话仍保留，可从最近会话打开 */
+function closeTab(session: AgentSession) {
+  const idx = openTabIds.value.indexOf(session.id)
+  if (idx === -1) return
+  setOpenTabIds(openTabIds.value.filter((id) => id !== session.id))
+  ensureActiveSessionId()
+}
+
+/** 从最近会话中打开：加入 tab 并选中 */
+function openSessionFromHistory(session: AgentSession) {
+  if (!openTabIds.value.includes(session.id)) {
+    setOpenTabIds([session.id, ...openTabIds.value.filter((id) => id !== session.id)])
+  }
+  agentStore.setActiveSessionId(session.id)
+}
+
+// Tab 拖拽排序
+const dragTabSession = ref<AgentSession | null>(null)
+
+function handleTabDragStart(e: DragEvent, session: AgentSession) {
+  dragTabSession.value = session
+  e.dataTransfer?.setData('text/plain', session.id)
+  e.dataTransfer!.effectAllowed = 'move'
+}
+
+function handleTabDragOver(e: DragEvent, session: AgentSession) {
+  e.dataTransfer!.dropEffect = 'move'
+}
+
+function handleTabDrop(_e: DragEvent, targetSession: AgentSession) {
+  const src = dragTabSession.value
+  dragTabSession.value = null
+  if (!src || src.id === targetSession.id) return
+  const ids = [...openTabIds.value]
+  const srcIdx = ids.indexOf(src.id)
+  const tgtIdx = ids.indexOf(targetSession.id)
+  if (srcIdx === -1 || tgtIdx === -1) return
+  ids.splice(srcIdx, 1)
+  ids.splice(tgtIdx, 0, src.id)
+  setOpenTabIds(ids)
+}
+
+/** 删除会话：从 store 和 openTabIds 中移除，需至少保留一个会话 */
+async function deleteSession(session: AgentSession) {
+  if (sessions.value.length <= 1) {
+    notifyWarning(t('agent.sessions.atLeastOneRequired'))
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      t('agent.sessions.confirmDelete', { title: session.title }),
+      t('agent.sessions.delete'),
+      { type: 'warning' }
+    )
+    setOpenTabIds(openTabIds.value.filter((id) => id !== session.id))
+    agentStore.setSessions(agentStore.sessions.filter((s) => s.id !== session.id))
+    ensureActiveSessionId()
+    persistSessions()
+    notifySuccess(t('agent.sessions.deleteSuccess'))
+    if (sessions.value.length === 0) createDefaultSession()
+  } catch {
+    /* cancel */
+  }
+}
+
+function createDefaultSession() {
+  try {
+    const session = agentSessionManager.createSession(
+      'default-agent-config',
+      t('agent.sessions.defaultTitle'),
+      ''
+    )
+    const legacySession: AgentSession = {
+      id: session.id,
+      title: session.title,
+      description: session.description,
+      createdAt: new Date(session.createdAt).toISOString(),
+      updatedAt: new Date(session.updatedAt).toISOString(),
+      messages: session.messages,
+      activeToolIds: [],
+      agentConfigId: session.agentConfigId,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    }
+    agentStore.setSessions([legacySession])
+    agentStore.setActiveSessionId(legacySession.id)
+    setOpenTabIds([legacySession.id])
+    persistSessions()
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
+function handleTabContextClose() {
+  const s = tabContextSession.value
+  tabContextSession.value = null
+  if (!s) return
+  closeTab(s)
+}
+
+async function handleTabContextDelete() {
+  const s = tabContextSession.value
+  tabContextSession.value = null
+  if (!s) return
+  await deleteSession(s)
+}
+
+async function handleTabContextRename() {
+  const s = tabContextSession.value
+  tabContextSession.value = null
+  if (!s) return
+  try {
+    const { value } = await ElMessageBox.prompt(
+      t('agent.sessions.renamePlaceholder'),
+      t('agent.sessions.rename'),
+      { inputValue: s.title, inputValidator: (v: string) => (v.trim() ? '' : t('agent.sessions.renameRequired')) }
+    )
+    s.title = value.trim()
+    touchSession(s)
+    persistSessions()
+    notifySuccess(t('agent.sessions.renameSuccess'))
+  } catch {
+    /* cancel */
+  }
+}
+
+async function handleTabContextExport() {
+  const s = tabContextSession.value
+  tabContextSession.value = null
+  if (!s) return
+  try {
+    const newFormatSession: any = {
+      ...s,
+      entityType: 'agent-session',
+      createdAt: typeof s.createdAt === 'string' ? new Date(s.createdAt).getTime() : s.createdAt,
+      updatedAt: typeof s.updatedAt === 'string' ? new Date(s.updatedAt).getTime() : s.updatedAt,
+      messageQueue: s.messageQueue || [],
+      referenceStore: s.referenceStore || [],
+      publicContext: s.publicContext || {},
+      executionNodes: s.executionNodes || [],
+      status: s.status || 'idle'
+    }
+    const serialized = agentSessionManager.serializeSession(newFormatSession, true)
+    const json = JSON.stringify(serialized, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `agent-session-${s.id}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    notifySuccess(t('agent.sessions.exportSuccess'))
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
+function handleTabContextDuplicate() {
+  const s = tabContextSession.value
+  tabContextSession.value = null
+  if (!s) return
+  try {
+    const newFormatSession: any = {
+      ...s,
+      entityType: 'agent-session',
+      createdAt: typeof s.createdAt === 'string' ? new Date(s.createdAt).getTime() : s.createdAt,
+      updatedAt: typeof s.updatedAt === 'string' ? new Date(s.updatedAt).getTime() : s.updatedAt,
+      messageQueue: s.messageQueue || [],
+      referenceStore: s.referenceStore || [],
+      publicContext: s.publicContext || {},
+      executionNodes: s.executionNodes || [],
+      status: s.status || 'idle'
+    }
+    const duplicated = agentSessionManager.duplicateSession(newFormatSession, undefined)
+    const legacySession: AgentSession = {
+      id: duplicated.id,
+      title: duplicated.title,
+      description: duplicated.description,
+      createdAt: new Date(duplicated.createdAt).toISOString(),
+      updatedAt: new Date(duplicated.updatedAt).toISOString(),
+      messages: duplicated.messages,
+      activeToolIds: [],
+      agentConfigId: duplicated.agentConfigId,
+      messageQueue: duplicated.messageQueue || [],
+      referenceStore: duplicated.referenceStore || [],
+      publicContext: duplicated.publicContext || {},
+      executionNodes: duplicated.executionNodes || [],
+      status: duplicated.status || 'idle'
+    }
+    agentStore.setSessions([legacySession, ...agentStore.sessions])
+    agentStore.setActiveSessionId(duplicated.id)
+    setOpenTabIds([legacySession.id, ...openTabIds.value.filter((id) => id !== legacySession.id)])
+    persistSessions()
+    notifySuccess(t('agent.sessions.duplicateSuccess'))
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
+function createNewSession() {
+  try {
+    const defaultConfigId = 'default-agent-config'
+    const session = agentSessionManager.createSession(
+      defaultConfigId,
+      t('agent.compact.newSessionTitle'),
+      ''
+    )
+    const legacySession: AgentSession = {
+      id: session.id,
+      title: session.title,
+      description: session.description,
+      createdAt: new Date(session.createdAt).toISOString(),
+      updatedAt: new Date(session.updatedAt).toISOString(),
+      messages: session.messages,
+      activeToolIds: [],
+      agentConfigId: session.agentConfigId,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    }
+    agentStore.setSessions([legacySession, ...agentStore.sessions])
+    agentStore.setActiveSessionId(session.id)
+    setOpenTabIds([legacySession.id, ...openTabIds.value.filter((id) => id !== legacySession.id)])
+    persistSessions()
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
 
 // 当前激活的引用ID（紧凑模式不提供 UI，但默认激活全部引用）
 const activeReferenceIds = ref<string[]>([])
@@ -275,6 +804,189 @@ const handleCancelGeneration = () => {
   persistSessions()
 }
 
+// 消息编辑
+const showEditMessageDialog = ref(false)
+const editingMessage = ref<ChatAgentMessage | null>(null)
+const editingMessageContent = ref('')
+
+function handleMessageEdit(message: AgentMessage) {
+  if (message.role !== 'user' || message.type !== 'chat') return
+  editingMessage.value = message as ChatAgentMessage
+  editingMessageContent.value = message.markdown || ''
+  showEditMessageDialog.value = true
+}
+
+function cleanupUnfinishedToolCalls(session: AgentSession) {
+  const toolCallIds = new Set<string>()
+  for (let i = 0; i < session.messages.length; i++) {
+    const msg = session.messages[i]
+    if (msg.role === 'assistant' && msg.type === 'chat') {
+      const toolCalls = (msg as any).tool_calls
+      if (toolCalls?.length) {
+        for (const tc of toolCalls) {
+          if (tc.id) toolCallIds.add(tc.id)
+        }
+      }
+    } else if (msg.role === 'tool' && msg.type === 'tool') {
+      const tid = (msg as any).tool_call_id
+      if (tid) toolCallIds.delete(tid)
+    }
+  }
+  if (toolCallIds.size === 0) return
+  for (let i = 0; i < session.messages.length; i++) {
+    const msg = session.messages[i]
+    if (msg.role === 'assistant' && msg.type === 'chat') {
+      const toolCalls = (msg as any).tool_calls
+      if (toolCalls?.length) {
+        const completed = toolCalls.filter((tc: any) => tc.id && toolCallIds.has(tc.id))
+        if (completed.length === 0) delete (msg as any).tool_calls
+        else (msg as any).tool_calls = completed
+      }
+    }
+  }
+}
+
+async function handleConfirmEditMessage() {
+  const session = activeSession.value
+  if (!editingMessage.value || !session) return
+  const content = editingMessageContent.value.trim()
+  if (!content) {
+    notifyWarning(t('agent.message.editPlaceholder'))
+    return
+  }
+  const messageIndex = session.messages.findIndex((m) => m.id === editingMessage.value!.id)
+  if (messageIndex === -1) return
+  const message = session.messages[messageIndex] as ChatAgentMessage
+  message.markdown = content
+  session.messages = session.messages.slice(0, messageIndex + 1)
+  cleanupUnfinishedToolCalls(session)
+  touchSession(session)
+  persistSessions()
+  notifySuccess(t('agent.message.editSuccess'))
+  showEditMessageDialog.value = false
+  editingMessage.value = null
+  editingMessageContent.value = ''
+  try {
+    await executeAgentEngine(content, session)
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
+async function handleMessageRegenerate(message: AgentMessage) {
+  const session = activeSession.value
+  if (!session) return
+  const messageIndex = session.messages.findIndex((m) => m.id === message.id)
+  if (messageIndex === -1) return
+
+  if (message.role === 'user' && message.type === 'chat') {
+    session.messages = session.messages.slice(0, messageIndex + 1)
+    touchSession(session)
+    persistSessions()
+    try {
+      await executeAgentEngine((message as ChatAgentMessage).markdown, session)
+    } catch (err) {
+      notifyError(err instanceof Error ? err.message : String(err))
+    }
+    return
+  }
+
+  if (message.role === 'assistant' && message.type === 'chat') {
+    if (messageIndex === 0) return
+    const prevIndex = messageIndex - 1
+    const prev = session.messages[prevIndex]
+    session.messages = session.messages.slice(0, prevIndex + 1)
+    cleanupUnfinishedToolCalls(session)
+    touchSession(session)
+    persistSessions()
+    if (prev.role === 'user' && prev.type === 'chat') {
+      try {
+        await executeAgentEngine((prev as ChatAgentMessage).markdown, session)
+      } catch (err) {
+        notifyError(err instanceof Error ? err.message : String(err))
+      }
+    } else if (prev.role === 'assistant' && prev.type === 'chat') {
+      let lastUserIndex = -1
+      for (let i = prevIndex - 1; i >= 0; i--) {
+        if (session.messages[i].role === 'user' && session.messages[i].type === 'chat') {
+          lastUserIndex = i
+          break
+        }
+      }
+      if (lastUserIndex >= 0) {
+        const userMsg = session.messages[lastUserIndex] as ChatAgentMessage
+        try {
+          await executeAgentEngine(userMsg.markdown, session)
+        } catch (err) {
+          notifyError(err instanceof Error ? err.message : String(err))
+        }
+      }
+    }
+  }
+}
+
+async function handleMessageDelete(message: AgentMessage) {
+  const session = activeSession.value
+  if (!session) return
+  try {
+    await ElMessageBox.confirm(t('agent.message.confirmDelete'), t('agent.message.delete'), {
+      type: 'warning'
+    })
+    const messageIndex = session.messages.findIndex((m) => m.id === message.id)
+    if (messageIndex !== -1) {
+      session.messages = session.messages.slice(0, messageIndex)
+      touchSession(session)
+      persistSessions()
+      notifySuccess(t('agent.message.deleteSuccess'))
+    }
+  } catch {
+    /* cancel */
+  }
+}
+
+async function handleMessageDuplicate(message: AgentMessage) {
+  const session = activeSession.value
+  if (!session) return
+  const messageIndex = session.messages.findIndex((m) => m.id === message.id)
+  if (messageIndex === -1) return
+  try {
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    }
+    const duplicated = agentSessionManager.duplicateSession(newFormatSession, message.id)
+    const legacySession: AgentSession = {
+      id: duplicated.id,
+      title: duplicated.title,
+      description: duplicated.description,
+      createdAt: new Date(duplicated.createdAt).toISOString(),
+      updatedAt: new Date(duplicated.updatedAt).toISOString(),
+      messages: duplicated.messages,
+      activeToolIds: [],
+      agentConfigId: duplicated.agentConfigId,
+      messageQueue: duplicated.messageQueue || [],
+      referenceStore: duplicated.referenceStore || [],
+      publicContext: duplicated.publicContext || {},
+      executionNodes: duplicated.executionNodes || [],
+      status: duplicated.status || 'idle'
+    }
+    agentStore.setSessions([legacySession, ...agentStore.sessions])
+    agentStore.setActiveSessionId(duplicated.id)
+    setOpenTabIds([legacySession.id, ...openTabIds.value.filter((id) => id !== legacySession.id)])
+    persistSessions()
+    notifySuccess(t('agent.sessions.duplicateSuccess'))
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
 onMounted(async () => {
   // 紧凑面板：确保工作区会话已加载
   if (!sessions.value.length) {
@@ -293,21 +1005,151 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  font-size: 13px;
 }
 
 .agent-compact-header {
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
   border-bottom: 1px solid rgba(128, 128, 128, 0.22);
   flex-shrink: 0;
+  min-height: 28px;
 }
 
-.agent-compact-title {
+.agent-compact-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.agent-compact-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.agent-compact-tab-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  max-width: 140px;
+}
+
+.agent-compact-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px 2px 8px;
   font-size: 12px;
-  font-weight: 600;
-  opacity: 0.9;
+  line-height: 1.3;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.agent-compact-tab:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.12);
+}
+
+.agent-compact-tab.active {
+  opacity: 1;
+  font-weight: 600;
+  background: rgba(128, 128, 128, 0.18);
+}
+
+.agent-compact-tab:disabled {
+  cursor: not-allowed;
+}
+
+.agent-compact-tab-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-compact-tab-close {
+  position: absolute;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  opacity: 0;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--el-fill-color, #e8e8e8);
+}
+
+.agent-compact-tab-wrap:hover .agent-compact-tab-close {
+  opacity: 1;
+}
+
+.agent-compact-tab-close:hover {
+  background: var(--el-fill-color-dark, #d0d0d0);
+}
+
+.agent-compact-tab-close svg {
+  width: 10px;
+  height: 10px;
+}
+
+.agent-compact-tab-context {
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  padding: 4px 0;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.agent-compact-tab-context-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-primary);
+  cursor: pointer;
+}
+
+.agent-compact-tab-context-item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.agent-compact-tab-context-item-danger {
+  color: var(--el-color-danger);
+}
+
+.agent-compact-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.agent-compact-header-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.agent-compact-header-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .agent-compact-content {
@@ -318,18 +1160,46 @@ onMounted(async () => {
   overflow: hidden;
 }
 
+/* 允许对话区域文字选中、复制 */
+.agent-compact-selectable,
+.agent-compact-selectable :deep(.md-editor),
+.agent-compact-selectable :deep(.md-editor-preview),
+.agent-compact-selectable :deep(.agent-message__content) {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* 紧凑模式：Markdown 渲染字号缩小 */
+.agent-compact-selectable :deep(.md-editor-preview),
+.agent-compact-selectable :deep(.md-editor-preview-wrapper) {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.agent-compact-selectable :deep(.md-editor-preview h1) { font-size: 1.25em; }
+.agent-compact-selectable :deep(.md-editor-preview h2) { font-size: 1.15em; }
+.agent-compact-selectable :deep(.md-editor-preview h3) { font-size: 1.08em; }
+.agent-compact-selectable :deep(.md-editor-preview h4),
+.agent-compact-selectable :deep(.md-editor-preview h5),
+.agent-compact-selectable :deep(.md-editor-preview h6) { font-size: 1em; }
+.agent-compact-selectable :deep(.md-editor-preview p),
+.agent-compact-selectable :deep(.md-editor-preview li) { font-size: 13px; }
+.agent-compact-selectable :deep(.md-editor-preview pre),
+.agent-compact-selectable :deep(.md-editor-preview code) { font-size: 12px; }
+
 .conversation-scroll {
   flex: 1;
   min-height: 0;
-  padding: 8px 10px;
+  padding: 6px 8px;
+  font-size: 13px;
 }
 
 .conversation-bottom-spacer {
-  height: 12px;
+  height: 8px;
 }
 
 .agent-compact-composer {
-  padding: 8px 10px;
+  padding: 4px 6px;
   border-top: 1px solid rgba(128, 128, 128, 0.22);
   flex-shrink: 0;
 }
@@ -339,6 +1209,92 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 13px;
+}
+
+.agent-compact-empty-logo {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.agent-compact-empty-logo:hover {
+  transform: scale(1.2);
+}
+
+.agent-compact-empty-logo.shake {
+  transform: scale(1.2);
+}
+
+.agent-compact-empty-logo.shake:hover {
+  transform: scale(1.2);
+}
+
+.agent-compact-empty .logo-animation-wrapper {
+  display: inline-block;
+}
+
+.agent-compact-empty .logo-image {
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+}
+
+@keyframes agent-compact-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-10px) rotate(-5deg); }
+  20%, 40%, 60%, 80% { transform: translateX(10px) rotate(5deg); }
+}
+
+.agent-compact-empty-logo.shake .logo-animation-wrapper {
+  animation: agent-compact-shake 1.5s ease-in-out;
+}
+
+/* 历史下拉 */
+.agent-compact-history-dropdown {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.agent-compact-history-list {
+  min-width: 200px;
+  padding: 4px 0;
+}
+
+.agent-compact-history-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  padding: 6px 12px 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.agent-compact-history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.agent-compact-history-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.agent-compact-history-time {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.agent-compact-history-more {
+  font-size: 12px;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  margin-top: 4px;
 }
 </style>
 

@@ -6,7 +6,7 @@
       storage-key="view-menu-sidebar"
       :initial-sidebar-size="sidebarSize"
       :min-size="200"
-      :max-size="600"
+      :max-size="maxSidebarSize"
       :divider-size="5"
       :show-sidebar="hasVisibleMenus"
       :sidebar-position="'start'"
@@ -155,6 +155,10 @@ const showWorkspaceGrep = ref(false)
 const sidebarSize = ref(250)
 const activeTab = ref<'agent' | 'workspace' | 'grep' | 'meta'>('workspace')
 
+// 侧边栏最大宽度：窗口宽度的 2/3
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
+const maxSidebarSize = computed(() => Math.max(400, Math.floor(windowWidth.value * 2 / 3)))
+
 // 获取当前活动的文档
 const activeDocument = computed(() => workspace.activeDocument.value)
 
@@ -222,6 +226,11 @@ const hoverBackgroundColor = computed(() =>
 // Tab 选择栏的背景色：background2nd 和 #777777 进行 0.3 混合
 const tabBarBackgroundColor = computed(() =>
   mixColors(themeState.currentTheme.background2nd, '#777777', 0.1)
+)
+
+// 与 LeftMenu 右侧边界一致：整个侧栏左侧明显分界线，避免与 LeftMenu 撞色难以区分
+const sidebarLeftBorderColor = computed(
+  () => (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
 )
 
 // 监听活动文档变化，自动切换到合适的 Tab
@@ -316,15 +325,21 @@ const loadSavedState = async () => {
   }
 }
 
+const updateWindowWidth = () => {
+  windowWidth.value = window.innerWidth
+}
+
 onMounted(async () => {
   await loadSavedState()
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.on('toggle-workspace-grep', handleToggleWorkspaceGrep)
+  window.addEventListener('resize', updateWindowWidth)
 })
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('toggle-workspace-grep', handleToggleWorkspaceGrep)
+  window.removeEventListener('resize', updateWindowWidth)
 })
 </script>
 
@@ -343,7 +358,9 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* 与主界面之间的半透明边界，避免背景撞色时看不出分界 */
+  /* 左侧：与 LeftMenu 分界，避免撞色 */
+  border-left: 1px solid v-bind('sidebarLeftBorderColor');
+  /* 右侧：与主内容区分 */
   border-right: 1px solid rgba(128, 128, 128, 0.28);
   background-color: v-bind('themeState.currentTheme.background || "#ffffff"');
 }

@@ -2,6 +2,32 @@
   "activeSessionId": "session-1772388489549-pcw5vmnrt",
   "sessions": [
     {
+      "id": "session-1772393481820-tq6uzr3ur",
+      "title": "新会话",
+      "description": "",
+      "createdAt": "2026-03-01T19:31:21.820Z",
+      "updatedAt": "2026-03-01T19:31:21.820Z",
+      "messages": [
+        {
+          "id": "msg-1772393481820-greeting",
+          "role": "assistant",
+          "type": "chat",
+          "timestamp": "2026-03-01T19:31:21.820Z",
+          "markdown": "### 你好！我是MetaDoc AI助手！\n\n我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。\n\n我可以：\n- 使用RAG工具检索相关知识\n- 使用图表生成工具创建可视化内容\n- 使用编辑工具优化文档结构\n- 使用校对工具确保内容质量\n\n告诉我你的需求，我会尽力帮助你完成文档创作任务！\n"
+        }
+      ],
+      "activeToolIds": [],
+      "agentConfigId": "default-agent-config",
+      "messageQueue": [],
+      "referenceStore": [],
+      "publicContext": {
+        "currentTime": "2026-03-01T19:31:21.820Z"
+      },
+      "executionNodes": [],
+      "status": "idle",
+      "enableBuiltInDocumentReference": true
+    },
+    {
       "id": "session-1772388489549-pcw5vmnrt",
       "title": "新規セッション",
       "description": "",
@@ -108,6 +134,7 @@
     }
   ],
   "openTabIds": [
+    "session-1772393481820-tq6uzr3ur",
     "session-1772388489549-pcw5vmnrt"
   ]
 }

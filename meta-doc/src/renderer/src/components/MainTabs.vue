@@ -808,10 +808,11 @@ const handleCloseTab = async (tabId: string) => {
   tab._isClosing = true
 
   try {
-    // 播放关闭动画
-    await triggerCloseTabAnimation(tabId)
-    // 动画完成后真正移除
+    // 同时触发：1) 从 store 移除标签 2) 播放关闭动画
+    // 新的 FLIP 动画会在 nextTick 前记录位置，然后移除后计算位置差
+    const animationPromise = triggerCloseTabAnimation(tabId)
     doRemoveTab(tabId)
+    await animationPromise
   } finally {
     closingTabIds.delete(tabId)
   }

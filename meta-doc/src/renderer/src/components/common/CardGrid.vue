@@ -7,7 +7,11 @@
           v-for="item in items"
           :key="getItemId(item)"
           class="card-grid-item"
-          :class="{ 'is-selected': isSelected(item), 'is-disabled': isDisabled(item) }"
+          :class="{
+            'is-selected': isSelected(item),
+            'is-disabled': isDisabled(item),
+            'has-actions': showActions
+          }"
           @click="handleItemClick(item)"
           @dblclick="handleItemDoubleClick(item)"
         >
@@ -60,7 +64,7 @@
           <div v-if="showActions" class="card-item__actions" @click.stop>
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button type="ghost" circle size="sm">
+                <Button variant="secondary" circle size="sm" class="card-item__actions-btn">
                   <More />
                 </Button>
               </DropdownMenuTrigger>
@@ -261,14 +265,15 @@ const handleAction = (command: string, item: CardGridItem) => {
   border-bottom-color: v-bind('themeState.currentTheme.textColor2 + "20"');
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .text-preview-content {
   font-size: 16px;
   font-weight: 600;
   color: v-bind('themeState.currentTheme.textColor');
-  text-align: center;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -276,13 +281,21 @@ const handleAction = (command: string, item: CardGridItem) => {
   -webkit-box-orient: vertical;
   line-clamp: 2;
   word-break: break-word;
+  flex: 1;
+  min-width: 0;
 }
 
 .card-item__badge {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
+  left: auto;
   z-index: 1;
+}
+
+/* 有操作按钮时，badge 左移避免与按钮重叠 */
+.card-grid-item.has-actions .card-item__badge {
+  right: 44px;
 }
 
 .card-item__body {
@@ -331,6 +344,15 @@ const handleAction = (command: string, item: CardGridItem) => {
   top: 8px;
   right: 8px;
   z-index: 2;
+}
+
+/* 操作按钮始终显示背景，不依赖 hover */
+.card-item__actions-btn {
+  background-color: v-bind('themeState.currentTheme.background2nd') !important;
+  border: 1px solid v-bind('themeState.currentTheme.textColor2 + "30"');
+}
+.card-item__actions-btn:hover {
+  background-color: v-bind('themeState.currentTheme.textColor2 + "18"') !important;
 }
 
 .card-item__actions :deep(.el-dropdown-menu__item.danger) {

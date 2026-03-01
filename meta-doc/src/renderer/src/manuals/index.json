@@ -396,7 +396,7 @@
           "difficulty": 3,
           "estimatedTime": 25,
           "prerequisites": ["agent.introduction"],
-          "relatedArticles": ["agent.config", "agent.workflow"],
+          "relatedArticles": ["agent.config"],
           "file": "agent/session.md"
         },
         {
@@ -409,7 +409,7 @@
           "difficulty": 3,
           "estimatedTime": 25,
           "prerequisites": ["agent.introduction"],
-          "relatedArticles": ["agent.tools", "agent.workflow"],
+          "relatedArticles": ["agent.tools"],
           "file": "agent/config.md"
         },
         {
@@ -424,19 +424,6 @@
           "prerequisites": ["agent.introduction"],
           "relatedArticles": ["agent.config"],
           "file": "agent/tools.md"
-        },
-        {
-          "id": "agent.workflow",
-          "title": {
-            "zh_CN": "工作流管理",
-            "en_US": "Workflow Management"
-          },
-          "tags": ["Agent", "工作流"],
-          "difficulty": 3,
-          "estimatedTime": 35,
-          "prerequisites": ["agent.config"],
-          "relatedArticles": ["agent.session", "agent.config"],
-          "file": "agent/workflow.md"
         }
       ]
     },
@@ -1069,8 +1056,7 @@
         "agent.introduction",
         "agent.session",
         "agent.config",
-        "agent.tools",
-        "agent.workflow"
+        "agent.tools"
       ]
     },
     "office": {

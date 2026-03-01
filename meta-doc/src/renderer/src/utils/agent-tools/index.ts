@@ -99,10 +99,8 @@ import { toolCollectionManager } from '../agent-framework'
 export function initializeDefaultToolSet(): void {
   const allTools = agentToolManager.getAllTools()
 
-  // 获取所有内置工具ID（排除工作流工具）
-  const builtInToolIds = allTools
-    .map((tool) => tool.config.id)
-    .filter((id) => !id.startsWith('workflow-'))
+  // 获取所有内置工具ID
+  const builtInToolIds = allTools.map((tool) => tool.config.id)
 
   // 初始化默认工具集
   toolCollectionManager.initializeDefaultToolSet(builtInToolIds)
@@ -116,7 +114,6 @@ export function initializeDefaultAgentConfig(): void {
   // 默认工具集ID
   const defaultToolCollectionId = 'default-tool-set'
 
-  // 初始化默认Agent配置（先只包含默认工具集，工作流工具集稍后异步添加）
   agentConfigManager.initializeDefaultAgentConfig(defaultToolCollectionId, [])
 }
 

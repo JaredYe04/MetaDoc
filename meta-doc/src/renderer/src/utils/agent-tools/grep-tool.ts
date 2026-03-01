@@ -629,63 +629,86 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     )
 
-    // 获取文档（支持跨窗口）
+    // 仅当 scope 包含 document 或 metadata 时才需要解析文档；仅 workspace 时不需要文档上下文
+    const needDocument = scope.includes('document') || scope.includes('metadata')
     const windowType = getWindowType()
     let doc: any = null
     let targetTabId: string | null = null
 
-    if (windowType === 'setting') {
-      // 在设置窗口中，通过广播获取文档信息
-      const docInfo = await getActiveDocumentInfoViaBroadcast()
-      if (!docInfo) {
-        return {
-          status: 'failed',
-          error: createDetailedError(
-            '没有活动的文档标签页',
-            [
-              '请先打开一个文档，然后再执行搜索操作',
-              '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}'
-            ],
-            ['grep工具可以在文档内容和元数据中搜索文本', '支持正则表达式搜索，设置isRegex: true']
-          )
+    if (needDocument) {
+      if (windowType === 'setting') {
+        const docInfo = await getActiveDocumentInfoViaBroadcast()
+        if (!docInfo) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              '没有活动的文档标签页',
+              [
+                '请先打开一个文档，然后再执行搜索操作',
+                '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}'
+              ],
+              ['grep工具可以在文档内容和元数据中搜索文本', '支持正则表达式搜索，设置isRegex: true']
+            )
+          }
         }
-      }
-      doc = {
-        markdown: docInfo.markdown,
-        tex: docInfo.tex,
-        format: docInfo.format,
-        meta: docInfo.meta,
-        path: docInfo.path
-      }
-      targetTabId = docInfo.tabId
-    } else {
-      // 在主窗口中，直接使用workspace
-      targetTabId = tabId || workspace.activeTabId.value
-      if (!targetTabId) {
-        return {
-          status: 'failed',
-          error: createDetailedError(
-            '没有活动的文档标签页',
-            [
-              '请先打开一个文档，然后再执行搜索操作',
-              '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}'
-            ],
-            ['grep工具可以在文档内容和元数据中搜索文本', '支持正则表达式搜索，设置isRegex: true']
-          )
+        doc = {
+          markdown: docInfo.markdown,
+          tex: docInfo.tex,
+          format: docInfo.format,
+          meta: docInfo.meta,
+          path: docInfo.path
         }
-      }
-      doc = workspace.ensureDocument(targetTabId)
-      if (!doc) {
-        return {
-          status: 'failed',
-          error: createDetailedError(
-            '文档不存在',
-            [
-              '请确认文档已正确打开',
-              '检查tabId参数是否正确：{"pattern": "搜索文本", "tabId": "正确的文档ID"}'
-            ],
-            ['可以通过tabId参数指定要搜索的文档', '如果未指定tabId，将使用当前活动的文档']
-          )
+        targetTabId = docInfo.tabId
+      } else {
+        // 主窗口：仅当显式传入 tabId 或当前活动标签页为文档标签页时使用，避免对系统/工具 Tab 调用文档上下文
+        if (tabId) {
+          targetTabId = tabId
+        } else if (workspace.activeDocument.value) {
+          targetTabId = workspace.activeTabId.value
+        }
+        if (!targetTabId) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              '当前活动标签页不是文档（例如正在查看 Agent 等系统页）',
+              [
+                '请通过 tabId 参数指定要搜索的文档（系统上下文中会提供当前打开的文档列表）',
+                '或仅使用 scope: ["workspace"] 仅搜索工作区文件'
+              ],
+              ['可通过 scope 指定搜索范围：["workspace"]、["document"]、["metadata"]']
+            )
+          }
+        }
+        try {
+          doc = workspace.ensureDocument(targetTabId)
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              msg.includes('不应该有文档上下文')
+                ? '指定的 tabId 对应的是系统/工具标签页，无文档上下文。请使用系统上下文中列出的文档 tabId，或使用 scope: ["workspace"]。'
+                : '文档不存在',
+              [
+                '检查 tabId 是否为已打开的文档标签页 id',
+                '或使用 scope: ["workspace"] 仅搜索工作区'
+              ],
+              []
+            )
+          }
+        }
+        if (!doc) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              '文档不存在',
+              [
+                '请确认文档已正确打开',
+                '检查tabId参数是否正确：{"pattern": "搜索文本", "tabId": "正确的文档ID"}'
+              ],
+              ['可以通过tabId参数指定要搜索的文档', '如果未指定tabId，将使用当前活动的文档']
+            )
+          }
         }
       }
     }

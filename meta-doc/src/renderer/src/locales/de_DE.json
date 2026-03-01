@@ -368,7 +368,16 @@
     "reset": "Zurück zur Übersicht",
     "undo": "Und",
     "simpletexHint": "Diese Funktion basiert auf SimpleTex, Kapazität begrenzt. Für Massen-Formelumwandlung besuchen Sie bitte",
-    "simpletexLinkText": "SimpleTex LaTeX OCR"
+    "simpletexLinkText": "SimpleTex LaTeX OCR",
+    "defaultTitle": "Neue Formelerkennungssitzung",
+    "expandCanvas": "Leinwand erweitern",
+    "expandCanvasNoNeed": "Leinwand ist bereits nicht kleiner als der Viewport, keine Erweiterung erforderlich",
+    "newSession": "Neue Sitzung",
+    "noSessionSelected": "Bitte wählen Sie eine Sitzung aus oder erstellen Sie eine neue",
+    "renamePlaceholder": "Sitzungsnamen eingeben",
+    "renameTitle": "Sitzung umbenennen",
+    "sessionsTitle": "Formelerkennungssitzungen",
+    "resultTitle": "Ergebnis"
   },
   "headMenu": {
     "editor": "Herausgeber",
@@ -378,7 +387,8 @@
     "tooltip": "Eine intelligente Textverarbeitungssoftware auf Basis von AI Agent",
     "visualize": "Visualisierung",
     "knowledgeBase": "Wissensbasis",
-    "agent": "Agent."
+    "agent": "Agent.",
+    "proofread": "Korrektur"
   },
   "home": {
     "abstractLabel": "Zusammenfassung",
@@ -388,7 +398,8 @@
       "openFile": "Dokument öffnen",
       "newDoc": "Neues Dokument",
       "quickStart": "Schneller Start.",
-      "refresh": "Refreshing"
+      "refresh": "Refreshing",
+      "userManual": "Benutzerhandbuch"
     },
     "tabActions": {
       "title": "Dokument erstellen oder öffnen",
@@ -447,9 +458,17 @@
       "ready": "Fertig.",
       "reset": "Zurücksetzen Generative Inhalte",
       "selectMood": "Wählen Sie Dokument Stil",
-      "selectTemperature": "Wählen Sie die Temperatur, um die Vielfalt der Inhalte zu erzeugen und zu beeinflussen"
+      "selectTemperature": "Wählen Sie die Temperatur, um die Vielfalt der Inhalte zu erzeugen und zu beeinflussen",
+      "userManual": "Lernen Sie, wie MetaDoc verwendet wird"
     },
-    "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{Willkommen bei MetaDoc}\n\\\\author{AI-Assistent}\n\\\\maketitle\n\n\\\\section{Einleitung}\nDies ist eine LaTeX-Schnellstartvorlage, die von MetaDoc erzeugt wurde.\n\n\\\\end{document}"
+    "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{Willkommen bei MetaDoc}\n\\\\author{AI-Assistent}\n\\\\maketitle\n\n\\\\section{Einleitung}\nDies ist eine LaTeX-Schnellstartvorlage, die von MetaDoc erzeugt wurde.\n\n\\\\end{document}",
+    "creationDateLabel": "Erstellungsdatum",
+    "emptyContent": "Dokumenteninhalt ist leer",
+    "fileFormatLabel": "Dateiformat",
+    "modificationDateLabel": "Änderungsdatum",
+    "quickStartButton": "Inhalt schnell generieren",
+    "recentDocuments": "Kürzliche Dokumente",
+    "subtitle": "Moderne Dokumentenbearbeitung und -erstellung"
   },
   "mainTabs": {
     "contextMenu": {
@@ -499,33 +518,33 @@
     "userProfileTooltip": "Benutzerinformationen",
     "saveAll": "Alle speichern",
     "saveAllAndExit": "Alle speichern und ausfahren",
-    "aigcDetection": "AIGC检测工具",
-    "attachment": "附件解析工具",
-    "close": "关闭",
-    "dataAnalysis": "数据分析工具",
-    "debugTools": "调试工具",
-    "exportAsTemplate": "导出为模板",
-    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
-    "exportAsTemplateDescLabel": "模板描述",
-    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
-    "exportAsTemplateTitleLabel": "模板标题",
-    "graph": "绘图工具",
-    "home": "主页",
-    "knowledgeBase": "知识库",
+    "aigcDetection": "AIGC-Erkennungstool",
+    "attachment": "Anhangsanalysetool",
+    "close": "Schließen",
+    "dataAnalysis": "Datenanalysetool",
+    "debugTools": "Debug-Tools",
+    "exportAsTemplate": "Als Vorlage exportieren",
+    "exportAsTemplateAiGenerate": "KI generiert Titel und Beschreibung",
+    "exportAsTemplateDescLabel": "Vorlagenbeschreibung",
+    "exportAsTemplateSuccess": "Als Vorlage hinzugefügt, kann beim Erstellen neuer Dokumente ausgewählt werden",
+    "exportAsTemplateTitleLabel": "Vorlagentitel",
+    "graph": "Zeichentool",
+    "home": "Startseite",
+    "knowledgeBase": "Wissensbasis",
     "menuConfig": {
-      "title": "菜单配置",
-      "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
-      "visible": "显示",
-      "hidden": "隐藏",
-      "reset": "重置",
-      "save": "保存"
+      "title": "Menükonfiguration",
+      "description": "Ziehen Sie, um die Menüreihenfolge anzupassen, oder blenden Sie nicht verwendete Funktionen aus",
+      "visible": "Anzeigen",
+      "hidden": "Ausblenden",
+      "reset": "Zurücksetzen",
+      "save": "Speichern"
     },
-    "moreFeatures": "更多功能",
-    "ocr": "OCR文字识别",
-    "userFeedback": "反馈",
-    "userManual": "用户手册",
-    "workspaceExplorer": "工作目录",
-    "workspaceGrep": "工作区搜索"
+    "moreFeatures": "Weitere Funktionen",
+    "ocr": "OCR-Text",
+    "userFeedback": "Feedback",
+    "userManual": "Benutzerhandbuch",
+    "workspaceExplorer": "Arbeitsbereich-Explorer",
+    "workspaceGrep": "Arbeitsbereichssuche"
   },
   "llmDialog": {
     "acceptTooltip": "Annahme",
@@ -979,7 +998,38 @@
     "clear_all_confirm_title": "Klare Bestätigung",
     "clear_all_error": "Fehlerreinigung der Wissensbasis:",
     "clear_all_failed": "Die Wissensbasis zu löschen ist gescheitert!",
-    "clear_all_success": "Löschen Sie die Wissensbasis!"
+    "clear_all_success": "Löschen Sie die Wissensbasis!",
+    "addKnowledge": "Wissen hinzufügen",
+    "check": "Bitte Serverprotokolle überprüfen",
+    "createMonacoEditorFailed": "Monaco-Editor erstellen fehlgeschlagen",
+    "deleteConfirm": "Soll dieses Wissen wirklich gelöscht werden?",
+    "disabled": "Deaktiviert",
+    "disabledMessage": "Wissensbasis-Funktion ist derzeit deaktiviert. Bitte in den Einstellungen aktivieren.",
+    "enable": "Wissensbasis aktivieren",
+    "enableError": "Wissensbasis aktivieren fehlgeschlagen",
+    "failed": "Abruf fehlgeschlagen",
+    "feature": "Wissensbasis-Funktion ist derzeit deaktiviert",
+    "fetchKbDetailsError": "Fehler beim Abrufen der Wissensbasisdetails",
+    "fetchKbDetailsFailed": "Wissensbasisdetails abrufen fehlgeschlagen",
+    "fetchListResponse": "Wissensbasislisten-Antwort",
+    "fetchListStarted": "Wissensbasislisten-Abruf gestartet",
+    "filenameRequired": "Dateiname ist erforderlich",
+    "invalidResponseFormat": "Server-Antwortformatfehler, bitte Server-Status überprüfen",
+    "ipcNotInitialized": "IPC Renderer nicht initialisiert, diese Funktion nur in Electron-Umgebung verfügbar",
+    "kbDetails": "Wissensbasisdetails",
+    "kbStatusUpdated": "Wissensbasisstatus aktualisiert",
+    "nonJsonResponse": "Server hat nicht-JSON-Antwort zurückgegeben",
+    "nonJsonResponseMessage": "Server hat nicht-JSON-Antwort zurückgegeben, bitte Serverprotokolle überprüfen",
+    "noResults": "Keine relevanten Ergebnisse gefunden",
+    "openFolderFailedLog": "Ordner öffnen fehlgeschlagen",
+    "open_folder": "Ordner öffnen",
+    "open_folder_error": "Ordner öffnen fehlgeschlagen",
+    "previewEditorContainerNotFound": "Vorschau-Editor-Container nicht gefunden",
+    "renameFailed": "Umbenennung fehlgeschlagen",
+    "renameSuccess": "Umbenennung erfolgreich",
+    "requestFailed": "Anfrage fehlgeschlagen",
+    "searchPlaceholder": "Wissensbasis durchsuchen...",
+    "settingsFeature": "Bitte in den Einstellungen Wissensbasis-Funktion aktivieren"
   },
   "aiSuggestion": {
     "accept": "Annahme von Empfehlungen",
@@ -2307,9 +2357,9 @@
     "saveFailedFailedSave": "Dokument speichern fehlgeschlagen"
   },
   "editorModeFirstTime": {
-    "changeLaterHint": "Kann später in den \"Einstellungen\" geändert werden.",
-    "message": "Bitte wählen Sie Ihren bevorzugten Markdown-Bearbeitungsmodus aus, der später in den Einstellungen geändert werden kann.",
-    "title": "Standard-Editor-Modus auswählen"
+    "changeLaterHint": "Kann später in den Einstellungen geändert werden.",
+    "message": "Bitte wählen Sie Ihren bevorzugten Markdown-Bearbeitungsmodus.",
+    "title": "Standard-Editormodus auswählen"
   },
   "dummyView": {
     "emptyDescription": "Keine geöffneten Dokumente"
@@ -2382,7 +2432,7 @@
       },
       "printBackground": {
         "label": "Hintergrund drucken",
-        "description": "Ob Hintergrundfarbe und -bilder im PDF enthalten sein sollen"
+        "description": "Hintergrundfarben und -bilder in PDF einbeziehen"
       },
       "tabs": {
         "basic": "Grundeinstellungen",
@@ -2390,21 +2440,213 @@
       },
       "chineseFont": {
         "label": "Chinesische Schriftart",
-        "description": "Beim PDF-Export verwendete chinesische Schriftart"
+        "description": "Für PDF-Export verwendete chinesische Schriftart"
       },
       "westernFont": {
         "label": "Westliche Schriftart",
-        "description": "Beim PDF-Export verwendete westliche Schriftart"
+        "description": "Für PDF-Export verwendete westliche Schriftart"
       },
       "colorMode": {
         "label": "Farbmodus",
-        "description": "Farbmodus des PDF (Farbe oder Graustufen)",
+        "description": "PDF-Farbmodus (Farbe oder Graustufen)",
         "color": "Farbe",
         "grayscale": "Graustufen"
       },
       "enableStyleMapping": {
-        "label": "Formatbindung aktivieren"
+        "label": "Stilzuordnung aktivieren",
+        "description": "Markdown-Elemente auf Word-Stile zuordnen"
+      },
+      "normalFontFamily": {
+        "label": "Fließtext-Schriftart",
+        "description": "Für Fließtext verwendete Schriftart"
+      },
+      "normalFontSize": {
+        "label": "Fließtext-Schriftgröße (pt)",
+        "description": "Fließtext-Schriftgröße, Einheit: Punkt (pt)"
+      },
+      "normalLineHeight": {
+        "label": "Fließtext-Zeilenabstand",
+        "description": "Fließtext-Zeilenabstand-Multiplikator"
+      },
+      "heading1FontFamily": {
+        "label": "Überschrift 1 Schriftart",
+        "description": "Für Überschrift 1 verwendete Schriftart"
+      },
+      "heading1FontSize": {
+        "label": "Überschrift 1 Schriftgröße (pt)",
+        "description": "Überschrift 1 Schriftgröße, Einheit: Punkt (pt)"
+      },
+      "heading1LineHeight": {
+        "label": "Überschrift 1 Zeilenabstand",
+        "description": "Überschrift 1 Zeilenabstand-Multiplikator"
+      },
+      "heading2FontFamily": {
+        "label": "Überschrift 2 Schriftart",
+        "description": "Für Überschrift 2 verwendete Schriftart"
+      },
+      "heading2FontSize": {
+        "label": "Überschrift 2 Schriftgröße (pt)",
+        "description": "Überschrift 2 Schriftgröße, Einheit: Punkt (pt)"
+      },
+      "heading2LineHeight": {
+        "label": "Überschrift 2 Zeilenabstand",
+        "description": "Überschrift 2 Zeilenabstand-Multiplikator"
+      },
+      "heading3FontFamily": {
+        "label": "Überschrift 3 Schriftart",
+        "description": "Für Überschrift 3 verwendete Schriftart"
+      },
+      "heading3FontSize": {
+        "label": "Überschrift 3 Schriftgröße (pt)",
+        "description": "Überschrift 3 Schriftgröße, Einheit: Punkt (pt)"
+      },
+      "heading3LineHeight": {
+        "label": "Überschrift 3 Zeilenabstand",
+        "description": "Überschrift 3 Zeilenabstand-Multiplikator"
+      },
+      "heading4FontFamily": {
+        "label": "Überschrift 4 Schriftart",
+        "description": "Für Überschrift 4 verwendete Schriftart"
+      },
+      "heading4FontSize": {
+        "label": "Überschrift 4 Schriftgröße (pt)",
+        "description": "Überschrift 4 Schriftgröße, Einheit: Punkt (pt)"
+      },
+      "heading4LineHeight": {
+        "label": "Überschrift 4 Zeilenabstand",
+        "description": "Überschrift 4 Zeilenabstand-Multiplikator"
+      },
+      "inlineStyles": {
+        "label": "Inline-CSS",
+        "description": "CSS-Stile in HTML einbetten"
+      },
+      "imageProcessing": {
+        "label": "Bildverarbeitung",
+        "description": "Bildverarbeitungsmethode auswählen: Original-Link beibehalten, Base64-Einbettung oder in Ordner speichern",
+        "original": "Original-Link beibehalten",
+        "base64": "Base64-Einbettung",
+        "folder": "In Ordner speichern"
+      },
+      "includeMetadata": {
+        "label": "Metadaten einbeziehen",
+        "description": "Dokumentenmetadaten in exportiertes Markdown einbeziehen"
+      },
+      "documentClass": {
+        "label": "Dokumentenklasse",
+        "description": "LaTeX-Dokumentenklasse"
+      },
+      "includePackages": {
+        "label": "Häufig verwendete Pakete einbeziehen",
+        "description": "Ob häufig verwendete LaTeX-Pakete automatisch eingebunden werden sollen"
+      },
+      "generateCover": {
+        "label": "Titelseite generieren",
+        "description": "Dokumenttitel, Autor, Zusammenfassung und Schlüsselwörter auf der ersten Seite anzeigen"
+      },
+      "generateToc": {
+        "label": "Inhaltsverzeichnis generieren",
+        "description": "Inhaltsverzeichnis nach der Titelseite (oder am Dokumentanfang) erstellen",
+        "title": "Inhaltsverzeichnis"
+      },
+      "processFormula": {
+        "label": "Formeln verarbeiten",
+        "description": "Ob LaTeX-Formeln automatisch verarbeitet werden sollen"
+      },
+      "removeTitlePrefixes": {
+        "label": "Titelpräfixe automatisch entfernen",
+        "description": "LaTeX fügt automatisch Kapitelnummern hinzu. Wenn Titel bereits Nummerierungspräfixe haben, führt dies zu Duplikaten. Diese Option entfernt automatisch alle führenden Nummerierungen und Punkte in Titeln (z.B. \"1.1\", \"一、\" usw.)"
+      },
+      "showPageNumbers": {
+        "label": "Seitenzahlen anzeigen",
+        "description": "Seitenzahlen in der Fußzeile anzeigen"
+      },
+      "showHeader": {
+        "label": "Kopfzeile anzeigen",
+        "description": "Dokumenttitel und Seitenzahlinformationen in der Kopfzeile anzeigen"
+      },
+      "autoNumberImages": {
+        "label": "Bilder automatisch nummerieren",
+        "description": "Dokumentenbildern automatisch Nummerierungsetiketten hinzufügen (z.B. Abb. 1, Abb. 2)"
+      },
+      "imageLabelFontSize": {
+        "label": "Bildnummerierungs-Schriftgröße",
+        "description": "Schriftgröße der Bildnummerierungsetiketten (pt)"
+      },
+      "imageLabelFontFamily": {
+        "label": "Bildnummerierungs-Schriftart",
+        "description": "Schriftart der Bildnummerierungsetiketten"
+      },
+      "imageLabelPrefix": {
+        "label": "Abb.",
+        "description": "Präfix der Bildnummerierung"
+      },
+      "imageLabelDefaultName": {
+        "label": "Bild",
+        "description": "Standardname für Bilder (wenn Bild keinen Namen hat)"
       }
+    }
+  },
+  "fomulaRecognition": {
+    "copyFailed": "Kopieren fehlgeschlagen",
+    "deleteFailed": "Löschen fehlgeschlagen",
+    "failedCreate": "Sitzungserstellung fehlgeschlagen",
+    "failedLoading": "Sitzungslistenladen fehlgeschlagen",
+    "failedLoading1": "Sitzungsladen fehlgeschlagen",
+    "recognize": "Formelerkennungsbeispiel",
+    "renameFailed": "Umbenennung fehlgeschlagen",
+    "text": "Kopie"
+  },
+  "graph": {
+    "analyzingIntent": "Absicht wird analysiert...",
+    "assistant": "Assistent",
+    "chartType": "Diagrammtyp",
+    "conversationMode": "Dialogmodus",
+    "defaultTitle": "Neue Zeichnungssitzung",
+    "engine": "Zeichnungsmaschine",
+    "export": "Exportieren",
+    "exportSuccess": "Export erfolgreich",
+    "generate": "Generieren",
+    "generateSuccess": "Generierung erfolgreich",
+    "generated": "Diagramm generiert",
+    "generatedImage": "Generiertes Bild",
+    "generating": "Wird generiert...",
+    "inputPlaceholder": "Zeichnungsanforderung eingeben, KI wählt automatisch die passende Diagrammmaschine aus...",
+    "newSession": "Neue Sitzung",
+    "noChart": "Kein zu exportierendes Diagramm",
+    "noOptimizePrompt": "Bitte Optimierungsanforderung eingeben",
+    "noPrompt": "Bitte Zeichnungsanforderung eingeben",
+    "noSessionSelected": "Bitte Sitzung auswählen oder neue Sitzung erstellen",
+    "optimize": "Bild optimieren",
+    "optimizeOnlyInConversation": "Optimierungsfunktion nur im Dialogmodus verfügbar",
+    "optimizePrompt": "Bild basierend auf folgendem Dialogverlauf optimieren:",
+    "outputFormat": "Ausgabeformat",
+    "renamePlaceholder": "Bitte Sitzungsnamen eingeben",
+    "renameTitle": "Sitzung umbenennen",
+    "sessionsTitle": "Zeichnungssitzungen",
+    "simpleMode": "Einfacher Modus",
+    "user": "Benutzer",
+    "userRequest": "Neue Benutzeranforderung"
+  },
+  "graphWindow": {
+    "format": "Format wie folgt",
+    "name": "Maschinenname",
+    "text": "Verfügbare Diagrammmaschinen",
+    "text1": "und ein",
+    "text2": "Objekt zurückgeben",
+    "text3": "Kleinbuchstaben",
+    "type": "Unterstützte Typen",
+    "type1": "Diagrammtyp",
+    "user": "Benutzeranforderung",
+    "userAnalyze": "Bitte Benutzeranforderung analysieren"
+  },
+  "tabSwitcher": {
+    "openEditors": "Open Editors",
+    "untitledDocument": "Untitled Document"
+  },
+  "ai": {
+    "completion": {
+      "demoComment": "Calculate the sum of two numbers",
+      "aiSuggestion": "AI Suggestion"
     }
   }
 }

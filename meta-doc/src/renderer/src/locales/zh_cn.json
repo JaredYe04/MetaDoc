@@ -4070,5 +4070,15 @@
     "title": "工作区搜索",
     "useRegex": "正则",
     "wholeWord": "整词匹配"
+  },
+  "tabSwitcher": {
+    "openEditors": "打开的编辑器",
+    "untitledDocument": "未命名文档"
+  },
+  "ai": {
+    "completion": {
+      "demoComment": "计算两个数的和",
+      "aiSuggestion": "AI 建议"
+    }
   }
 }

@@ -12,7 +12,10 @@
     "openKnowledgeBase": "知識の有効化 立派な図書館",
     "locateToPdf": "PDFへの投稿",
     "sectionOptimizer": "現在の段落を最適化",
-    "triggerAutoCompletion": "手動でAIの完了をトリガーする"
+    "triggerAutoCompletion": "手動でAIの完了をトリガーする",
+    "insertGraph": "グラフを挿入",
+    "redo": "やり直し",
+    "undo": "元に戻す"
   },
   "headMenu": {
     "tooltip": "AI Agentベースのスマート文書処理ソフトウェア",
@@ -60,33 +63,33 @@
     "tip": "",
     "saveAll": "すべて保存",
     "saveAllAndExit": "すべて保存して終了",
-    "aigcDetection": "AIGC检测工具",
-    "attachment": "附件解析工具",
-    "close": "关闭",
-    "dataAnalysis": "数据分析工具",
-    "debugTools": "调试工具",
-    "exportAsTemplate": "导出为模板",
-    "exportAsTemplateAiGenerate": "AI 生成标题与描述",
-    "exportAsTemplateDescLabel": "模板描述",
-    "exportAsTemplateSuccess": "已添加为模板，可在新建文档时选择",
-    "exportAsTemplateTitleLabel": "模板标题",
-    "graph": "绘图工具",
-    "home": "主页",
-    "knowledgeBase": "知识库",
+    "aigcDetection": "AIGC検出ツール",
+    "attachment": "添付ファイル解析ツール",
+    "close": "閉じる",
+    "dataAnalysis": "データ分析ツール",
+    "debugTools": "デバッグツール",
+    "exportAsTemplate": "テンプレートとしてエクスポート",
+    "exportAsTemplateAiGenerate": "AIがタイトルと説明を生成",
+    "exportAsTemplateDescLabel": "テンプレート説明",
+    "exportAsTemplateSuccess": "テンプレートとして追加されました。新規ドキュメント作成時に選択できます",
+    "exportAsTemplateTitleLabel": "テンプレートタイトル",
+    "graph": "描画ツール",
+    "home": "ホーム",
+    "knowledgeBase": "ナレッジベース",
     "menuConfig": {
-      "title": "菜单配置",
-      "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
-      "visible": "显示",
-      "hidden": "隐藏",
-      "reset": "重置",
+      "title": "メニュー設定",
+      "description": "ドラッグしてメニュー順序を調整するか、使用しない機能を非表示にします",
+      "visible": "表示",
+      "hidden": "非表示",
+      "reset": "リセット",
       "save": "保存"
     },
-    "moreFeatures": "更多功能",
-    "ocr": "OCR文字识别",
-    "userFeedback": "反馈",
-    "userManual": "用户手册",
-    "workspaceExplorer": "工作目录",
-    "workspaceGrep": "工作区搜索"
+    "moreFeatures": "その他の機能",
+    "ocr": "OCR文字認識",
+    "userFeedback": "フィードバック",
+    "userManual": "ユーザーマニュアル",
+    "workspaceExplorer": "ワークスペースエクスプローラー",
+    "workspaceGrep": "ワークスペース検索"
   },
   "llmDialog": {
     "aiAssistant": "AIアシスタント",
@@ -386,7 +389,17 @@
       "fullscreen": "フルスクリーンエディタ",
       "quote": "引用",
       "search_replace": "検索と置換",
-      "ai_assistant": "AIアシスタント"
+      "ai_assistant": "AIアシスタント",
+      "mode": "編集モード",
+      "convert_latex_formulas": "LaTeX数式を変換",
+      "convert_latex_formulas_title": "LaTeX数式を変換",
+      "convert_latex_formulas_message": "この操作は、\\(...\\)インライン数式と\\[...\\]ブロック数式をVditor互換の$...$および$$...$$形式に変換します。\n\n注意：この操作はドキュメントの内容を変更します。事前にドキュメントを保存することをお勧めします。",
+      "convert_latex_formulas_success": "数式形式の変換が完了しました",
+      "convert_latex_formulas_no_match": "変換が必要な数式形式が見つかりません",
+      "convert_latex_formulas_no_editor": "エディタの準備ができていません",
+      "toggle_outline": "アウトラインの切り替え",
+      "toggle_outline_show": "アウトラインを表示",
+      "toggle_outline_hide": "アウトラインを隠す"
     },
     "convert_to_latex": "ドキュメントをLaTeXに変換する",
     "convert_to_latex_confirm": "変換は、既存のMarkdownファイルと同期されていないテキストファイルを生成し、続行しますか?",
@@ -2025,6 +2038,92 @@
     "startAnalysis": "分析を開始",
     "unsupportedFileType": "サポートされていないファイルタイプ",
     "unsupportedFormat": "サポートされていないドキュメント形式",
-    "uploadFile": "ファイルをアップロード"
+    "uploadFile": "ファイルをアップロード",
+    "export": "エクスポート",
+    "exportAndDetect": "AIGC率を検出する",
+    "exportAsNewDoc": "新しいドキュメントとして",
+    "exportParaphrased": "書き換えた記事をエクスポート",
+    "exportParaphrasedSuccess": "書き換えた記事を新しいドキュメントにエクスポートしました"
+  },
+  "attachment": {
+    "analysisSuccess": "分析完了",
+    "analyzing": "添付ファイルを分析中",
+    "attachmentsTitle": "添付ファイル解析",
+    "fileType": "ファイルタイプ",
+    "newAttachment": "添付ファイルをアップロード",
+    "noAnalysis": "AI分析結果がありません",
+    "noAttachmentSelected": "添付ファイルを選択するか、新しいファイルをアップロードしてください",
+    "noParsedContent": "先に添付ファイルを解析してください",
+    "parse": "添付ファイルを解析",
+    "parseSuccess": "解析完了"
+  },
+  "data-analysis-tool": {
+    "analyze": "データ分析",
+    "analyze1": "自動分析",
+    "analyze2": "集計分析など",
+    "analyze3": "データ分析ツール"
+  },
+  "dataAnalysisWindow": {
+    "text": "デフォルト値",
+    "text1": "現在の推測",
+    "text2": "選択済み",
+    "text3": "次の場所で",
+    "tooltip": "ツールチップ"
+  },
+  "detailedOutlineNode": {
+    "generating": "生成中",
+    "sizeDragAdjust": "ドラッグしてサイズ調整"
+  },
+  "documentService": {
+    "exportFailedFailedExport": "ドキュメントのエクスポートに失敗しました",
+    "failedClose": "ドキュメントを閉じるのに失敗しました",
+    "failedNew": "新しいドキュメントの作成に失敗しました",
+    "loadFailedFailedLoading": "ドキュメントの読み込みに失敗しました",
+    "saveFailedFailedSave": "ドキュメントの保存に失敗しました"
+  },
+  "dummyView": {
+    "emptyDescription": "開いているドキュメントがありません"
+  },
+  "export": {
+    "adapters": {
+      "mdToPdf": {
+        "name": "MarkdownからPDF",
+        "description": "MarkdownドキュメントをPDF形式にエクスポート"
+      },
+      "mdToDocx": {
+        "name": "MarkdownからDOCX",
+        "description": "MarkdownドキュメントをDOCX形式にエクスポート"
+      },
+      "mdToHtml": {
+        "name": "MarkdownからHTML",
+        "description": "MarkdownドキュメントをHTML形式にエクスポート"
+      },
+      "mdToMd": {
+        "name": "MarkdownからMarkdown",
+        "description": "Markdownドキュメントをエクスポート"
+      },
+      "mdToTex": {
+        "name": "MarkdownからLaTeX",
+        "description": "MarkdownドキュメントをLaTeX形式にエクスポート"
+      },
+      "texToPdf": {
+        "name": "LaTeXからPDF",
+        "description": "LaTeXドキュメントをPDF形式にコンパイル"
+      },
+      "texToTex": {
+        "name": "LaTeXからLaTeX",
+        "description": "LaTeXドキュメントをエクスポート"
+      }
+    }
+  },
+  "tabSwitcher": {
+    "openEditors": "Open Editors",
+    "untitledDocument": "Untitled Document"
+  },
+  "ai": {
+    "completion": {
+      "demoComment": "Calculate the sum of two numbers",
+      "aiSuggestion": "AI Suggestion"
+    }
   }
 }

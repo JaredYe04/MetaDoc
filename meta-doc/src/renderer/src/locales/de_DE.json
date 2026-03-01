@@ -1029,7 +1029,17 @@
     "renameSuccess": "Umbenennung erfolgreich",
     "requestFailed": "Anfrage fehlgeschlagen",
     "searchPlaceholder": "Wissensbasis durchsuchen...",
-    "settingsFeature": "Bitte in den Einstellungen Wissensbasis-Funktion aktivieren"
+    "settingsFeature": "Bitte in den Einstellungen Wissensbasis-Funktion aktivieren",
+    "syncFailed": "Synchronisierung fehlgeschlagen",
+    "syncSuccess": "Synchronisierung erfolgreich",
+    "text": "Text",
+    "text1": "Text1",
+    "text2": "Text2",
+    "updateSuccess": "Aktualisierung erfolgreich",
+    "upload": "Hochladen",
+    "uploadError": "Hochladen fehlgeschlagen",
+    "uploadFirst": "Bitte zuerst Datei hochladen",
+    "uploadSuccess": "Hochladen erfolgreich"
   },
   "aiSuggestion": {
     "accept": "Annahme von Empfehlungen",

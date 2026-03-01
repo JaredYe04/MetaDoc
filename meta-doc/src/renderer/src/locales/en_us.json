@@ -32,55 +32,7 @@
     "proofread": "Proofread"
   },
   "leftMenu": {
-    "metaDocTooltip": "MetaDoc ;-)",
-    "fileTooltip": "File",
-    "file": "File",
-    "new": "New",
-    "open": "Open",
-    "save": "Save",
-    "saveAs": "Save As",
-    "export": "Export",
-    "exportPdf": "Export PDF",
-    "exportMarkdown": "Export Markdown",
-    "exportDocx": "Export DOCX",
-    "exportHtml": "Export HTML",
-    "exportLatex": "Export LaTeX",
-    "closeFile": "Close File",
-    "close": "Close",
-    "exportAsTemplate": "Export as template",
-    "exportAsTemplateTitleLabel": "Template title",
-    "exportAsTemplateDescLabel": "Template description",
-    "exportAsTemplateAiGenerate": "AI generate title and description",
-    "exportAsTemplateSuccess": "Added as template; you can select it when creating a new document",
-    "aiToolTooltip": "AI Tools",
-    "aiAssistant": "AI Assistant",
-    "chatWithAI": "Chat with AI",
-    "handwritingFormulaRecognition": "Handwriting Formula Recognition",
-    "smartDrawingAssistant": "Smart Drawing Assistant",
-    "dataAnalysis": "Data Analysis Tool",
-    "ocr": "OCR Text Recognition",
-    "attachment": "Attachment Parser",
-    "graph": "Graph Tool",
-    "settingsTooltip": "Settings",
-    "settings": "Settings",
-    "settingsPanel": "Settings Panel",
-    "recentFilesTooltip": "Recent Files",
-    "recentFiles": "Recent Files",
-    "exitTooltip": "Exit",
-    "exit": "Exit",
-    "saveAndExit": "Save and Exit",
-    "exitWithoutSaving": "Exit Without Saving",
-    "userProfileTooltip": "User Profile",
-    "langTooltip": "Language",
-    "askSave": "Do you want to save the current document",
-    "discard": "Abandon",
-    "tip": "Hint",
-    "saveAll": "Save All",
-    "saveAllAndExit": "Save All and Exit",
-    "userFeedback": "User Feedback",
-    "knowledgeBase": "Knowledge Base",
-    "workspaceExplorer": "Workspace Explorer",
-    "workspaceGrep": "Workspace Search"
+    "userManual": "User Manual"
   },
   "llmDialog": {
     "aiAssistant": "AI Assistant",
@@ -117,7 +69,15 @@
     "copySuccess": "Copied to clipboard",
     "copyFailed": "Copy failed",
     "overwrite": "Overwrite",
-    "noOtherWindow": "No other windows"
+    "noOtherWindow": "No other windows",
+    "add": "Add",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "success": "Success",
+    "failed": "Failed",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
   },
   "mainTabs": {
     "contextMenu": {
@@ -671,7 +631,6 @@
     },
     "generateContentSuccessWithTitle": "AI successfully generated content for node {title}!",
     "generateContentSuccess": "AI generated content successfully!",
-
     "formatSuccess": "Title formatting successful!",
     "confirmDeleteChapter": "Do you want to delete this chapter?",
     "warning": "Warning",
@@ -722,14 +681,18 @@
       "cancel": "Cancel",
       "searchPlaceholder": "Search by title, keywords, content",
       "noSearchResult": "No matches"
-    }
+    },
+    "nodeNotExist": "Node does not exist",
+    "aiOptimizing": "AI is optimizing...",
+    "insertSuccess": "Insert successful",
+    "emptyContent": "(None)",
+    "noContent": "(None)"
   },
   "setting": {
     "auto": "Auto",
     "basic": "Basic Settings",
     "llm": "LLM Settings",
     "themes": "Theme Settings",
-
     "startupOption": "Startup Option",
     "openNewFile": "Open New File",
     "openLastFile": "Open Last Edited File",
@@ -1863,7 +1826,20 @@
         "foundSlides": "Found {count} slides",
         "foundImages": "Found {count} images"
       }
-    }
+    },
+    "userLabel": "User",
+    "assistantLabel": "Assistant",
+    "systemLabel": "System",
+    "thinking": "Thinking...",
+    "toolCall": "Calling tool",
+    "toolResult": "Tool result",
+    "error": "Error occurred",
+    "retry": "Retry",
+    "saveFailed": "Save failed",
+    "callParams": "Call parameters",
+    "demoSession1": "Code Review Session",
+    "demoSession2": "Document Writing Assistant",
+    "demoSession3": "Data Analysis Expert"
   },
   "sectionOptimizer": {
     "clear": "Clear",
@@ -1999,7 +1975,11 @@
       "totalTooLarge": "Total attachments must be ≤ {max}",
       "invalidFile": "Invalid file",
       "noIpc": "Feedback not available in this environment"
-    }
+    },
+    "uploadedToGist": "Uploaded to Gist",
+    "uploading": "Uploading...",
+    "attachImage": "Attach image",
+    "thankYou": "Thank you for your feedback!"
   },
   "export": {
     "options": {
@@ -2101,9 +2081,6 @@
     "resultSummary": "Found {count} matches",
     "globalWorkspace": "Global workspace (currently opened documents)",
     "activeWorkspaceCount": "{count} workspace folders opened"
-  },
-  "leftMenu": {
-    "userManual": "User Manual"
   },
   "userManual": {
     "title": "User Manual",
@@ -2342,5 +2319,58 @@
       "pending": "Pending",
       "selected": "Selected"
     }
+  },
+  "fontDebugPanel": {
+    "title": "Font Debug Panel",
+    "fontPreview": "Font Preview",
+    "statusNormal": "Normal",
+    "statusAbnormal": "Abnormal",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "uiFont": "UI Font",
+    "editorFont": "Editor Font",
+    "previewFont": "Preview Font",
+    "previewText": "AaBbCc Hello World",
+    "previewTextAlt": "This is preview text",
+    "loadingFonts": "Loading fonts..."
+  },
+  "aigcDetection": {
+    "title": "AIGC Detection",
+    "sentenceUniformity": "Sentence Uniformity",
+    "lexicalDiversity": "Lexical Diversity",
+    "reasoningSmoothness": "Reasoning Smoothness",
+    "emotionalConsistency": "Emotional Consistency",
+    "contentDepth": "Content Depth",
+    "informationDensity": "Information Density",
+    "styleConsistency": "Style Consistency",
+    "argumentQuality": "Argument Quality",
+    "terminologyUsage": "Terminology Usage",
+    "structuralCompleteness": "Structural Completeness",
+    "riskLevel": "Risk Level",
+    "lowRisk": "Low Risk",
+    "mediumRisk": "Medium Risk",
+    "highRisk": "High Risk",
+    "analyzing": "Analyzing...",
+    "analysisComplete": "Analysis Complete",
+    "noText": "Please enter text to detect",
+    "uploadSuccess": "Upload Successful",
+    "uploadFailed": "Upload Failed"
+  },
+  "dataAnalysis": {
+    "hint": "Tip: Check rows in the table to analyze only selected data",
+    "noResult": "No analysis results yet. Please start analysis in the Data Preview tab",
+    "salesAnalysis": "Sales Data Analysis",
+    "userBehavior": "User Behavior Analysis",
+    "exportExcel": "Export to Excel",
+    "fileNotFound": "Excel file does not exist",
+    "fileMoved": "File may have been deleted or moved. Please re-upload"
+  },
+  "editor": {
+    "noOpenDocument": "No open document",
+    "loading": "Loading preview...",
+    "preview": "Preview",
+    "edit": "Edit",
+    "save": "Save",
+    "unsaved": "Unsaved"
   }
 }

@@ -1,17 +1,27 @@
-import type { Box, Delta, FLIPState, AnimationConfig } from './types'
+import type { Box, Delta, AnimationConfig } from './types'
 
 /**
  * Calculate delta between first and last positions
+ * Guards against division by zero to prevent Infinity scale values
  */
 export function calcDelta(first: Box, last: Box): Delta {
+  const firstWidth = first.x.max - first.x.min
+  const firstHeight = first.y.max - first.y.min
+  const lastWidth = last.x.max - last.x.min
+  const lastHeight = last.y.max - last.y.min
+
+  // Guard against zero/negative sizes
+  const safeLastWidth = lastWidth > 0 ? lastWidth : firstWidth
+  const safeLastHeight = lastHeight > 0 ? lastHeight : firstHeight
+
   return {
     x: {
       translate: first.x.min - last.x.min,
-      scale: (first.x.max - first.x.min) / (last.x.max - last.x.min) || 1
+      scale: firstWidth / safeLastWidth
     },
     y: {
       translate: first.y.min - last.y.min,
-      scale: (first.y.max - first.y.min) / (last.y.max - last.y.min) || 1
+      scale: firstHeight / safeLastHeight
     }
   }
 }
@@ -72,9 +82,13 @@ export function applyFLIP(
     }
   )
 
-  animation.finished.then(() => {
-    element.style.transform = ''
-  })
+  animation.finished
+    .then(() => {
+      element.style.transform = ''
+    })
+    .catch(() => {
+      // Ignore cancellation errors - cleanup is handled by caller
+    })
 
   return animation
 }
@@ -84,6 +98,7 @@ export function applyFLIP(
  * Call this between DOM changes to ensure positions are calculated
  */
 export function forceLayout(element: HTMLElement): void {
+  // eslint-disable-next-line no-unused-expressions
   element.offsetHeight
 }
 

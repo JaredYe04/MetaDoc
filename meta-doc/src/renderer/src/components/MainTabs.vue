@@ -687,7 +687,7 @@ const allTabs = computed(() => {
 const tabCount = computed(() => allTabs.value.length)
 
 // 使用标签页动画 composable - GPU 加速 FLIP 动画
-const { triggerNewTabAnimation, triggerCloseTabAnimation } = useTabAnimation(tabsListRef)
+const { triggerNewTabAnimation, triggerCloseTabAnimation, cancelAnimations } = useTabAnimation(tabsListRef)
 
 const currentActiveId = computed({
   get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
@@ -1544,6 +1544,9 @@ watch(
 
 // 清理事件监听器
 onUnmounted(() => {
+  // Cancel any running tab animations
+  cancelAnimations()
+
   document.removeEventListener('click', handleTabContextMenuClickOutside)
 
   eventBus.off('tab-close-with-animation', handleCloseTab)

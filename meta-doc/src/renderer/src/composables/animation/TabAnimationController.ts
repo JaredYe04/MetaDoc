@@ -88,9 +88,16 @@ export class TabAnimationController {
       const tab = this.getTabElement(id)
       if (!tab) return
 
+      // Temporarily clear transform to measure natural layout position
+      const previousTransform = tab.style.transform
+      tab.style.transform = 'none'
+      
       // Measure new position
       const rect = tab.getBoundingClientRect()
       const last = rectToBox(rect)
+      
+      // Restore transform
+      tab.style.transform = previousTransform
 
       // Calculate delta
       const delta = calcDelta(first, last)
@@ -137,10 +144,16 @@ export class TabAnimationController {
 
       this.activeAnimations.set(id, animation)
       animations.push(
-        animation.finished.then(() => {
-          tab.style.transform = ''
-          this.activeAnimations.delete(id)
-        })
+        animation.finished
+          .then(() => {
+            tab.style.transform = ''
+          })
+          .catch(() => {
+            // Animation was cancelled - cleanup will be handled by cancelAll
+          })
+          .finally(() => {
+            this.activeAnimations.delete(id)
+          })
       )
     })
 
@@ -181,7 +194,9 @@ export class TabAnimationController {
       // Create clone for exit animation
       exitClone = closingTab.cloneNode(true) as HTMLElement
       const rect = closingTab.getBoundingClientRect()
+      const computedStyle = window.getComputedStyle(closingTab)
       
+      // Copy computed styles to ensure CSS variables are inherited
       exitClone.style.cssText = `
         position: fixed;
         left: ${rect.left}px;
@@ -191,6 +206,11 @@ export class TabAnimationController {
         margin: 0;
         z-index: 9999;
         pointer-events: none;
+        background-color: ${computedStyle.backgroundColor};
+        color: ${computedStyle.color};
+        border-radius: ${computedStyle.borderRadius};
+        font-size: ${computedStyle.fontSize};
+        font-family: ${computedStyle.fontFamily};
       `
       
       document.body.appendChild(exitClone)
@@ -211,7 +231,8 @@ export class TabAnimationController {
       return
     }
 
-    // Force layout
+    // Force layout calculation (eslint-disable for intentional side-effect)
+    // eslint-disable-next-line no-unused-expressions
     container.offsetHeight
 
     // Step 3 & 4: INVERT + PLAY
@@ -274,14 +295,29 @@ export class TabAnimationController {
         }
       )
 
+      // Track clone for cleanup
+      const cloneAnimation = animation
+      
       animations.push(
-        animation.finished.then(() => {
-          exitClone.remove()
-        })
+        cloneAnimation.finished
+          .then(() => {
+            exitClone.remove()
+          })
+          .catch(() => {
+            // Animation cancelled - still need to cleanup
+            exitClone.remove()
+          })
       )
     }
 
-    await Promise.all(animations)
+    try {
+      await Promise.all(animations)
+    } finally {
+      // Ensure clone is always cleaned up
+      if (exitClone && exitClone.parentNode) {
+        exitClone.remove()
+      }
+    }
   }
 
   /**

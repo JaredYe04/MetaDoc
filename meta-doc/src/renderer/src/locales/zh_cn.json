@@ -894,6 +894,20 @@
     "switchWarning": "AI工作时切换界面可能导致任务丢失。",
     "title": "AI任务队列"
   },
+  "aigcDetection": {
+    "sentenceUniformity": "句式统一性",
+    "lexicalDiversity": "词汇重复度",
+    "reasoningSmoothness": "逻辑平滑度",
+    "personalTrace": "个人痕迹缺失度",
+    "styleConsistency": "风格风险",
+    "overExplanation": "过度解释",
+    "hedgingPattern": "模糊限定",
+    "openingTransitionPattern": "过渡语模板",
+    "structuralCompleteness": "结构重复",
+    "contentDepth": "抽象空洞",
+    "emotionalConsistency": "情感平淡",
+    "formulaicClosure": "套路化收尾"
+  },
   "aigc": {
     "analysisComplete": "分析完成",
     "analysisReport": "分析报告",

@@ -48,10 +48,11 @@ def get_missing_keys(lang, limit=None):
                 {"key": key, "chinese": value, "current": target_flat.get(key, None)}
             )
 
+    total_missing = len(missing)
     if limit:
         missing = missing[:limit]
 
-    return missing
+    return missing, total_missing
 
 
 def main():
@@ -61,9 +62,9 @@ def main():
     parser.add_argument("--output", help="Output file (default: stdout)")
     args = parser.parse_args()
 
-    missing = get_missing_keys(args.lang, args.limit)
+    missing, total_missing = get_missing_keys(args.lang, args.limit)
 
-    result = {"lang": args.lang, "total_missing": len(missing), "keys": missing}
+    result = {"lang": args.lang, "total_missing": total_missing, "keys": missing}
 
     output = json.dumps(result, ensure_ascii=False, indent=2)
 

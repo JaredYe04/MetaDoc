@@ -69,10 +69,6 @@
 import { computed } from 'vue'
 import { useTabSwitcher } from '../composables/useTabSwitcher'
 import type { WorkspaceTab } from '../stores/workspace'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
-
 const {
   isVisible,
   isCapturing,

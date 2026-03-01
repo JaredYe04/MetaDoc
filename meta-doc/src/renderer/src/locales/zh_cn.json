@@ -1231,7 +1231,9 @@
     "logSaveFailed": "保存日志失败",
     "logSaved": "日志已保存",
     "saveLog": "保存日志",
-    "title": "终端输出"
+    "title": "终端输出",
+    "cdFailed": "无法切换目录",
+    "invalidArgument": "无效的参数"
   },
   "contextMenu": {
     "aiAnalysis": "AI全文分析",
@@ -2186,6 +2188,10 @@
       "handMode": "手型模式（拖动）"
     }
   },
+  "logoTab": {
+    "version": "版本 {version}",
+    "versionLoading": "版本 ..."
+  },
   "leftMenu": {
     "aiAssistant": "AI助手",
     "aiToolTooltip": "AI工具",
@@ -2445,6 +2451,7 @@
       "moveLeft": "左移",
       "moveRight": "右移"
     },
+    "addTabFailed": "添加 Tab 失败",
     "failed": "失败",
     "invalid": "无效的",
     "maximize": "最大化",
@@ -3119,6 +3126,9 @@
     "clearReferenceDir": "清空目录",
     "clearReferenceDirConfirm": "确定要清空引用文件目录吗？此操作将删除目录中的所有文件，且无法恢复。",
     "clearReferenceDirSuccess": "目录已清空",
+    "clearReferenceDirFailed": "清空目录失败",
+    "getDirSizeFailed": "获取目录大小失败",
+    "openDirFailed": "打开目录失败",
     "clearResult": "清空结果",
     "codeTheme": "代码主题",
     "completionSuffix": "问答补全功能(Completions)的URL后缀（可选）",
@@ -3314,7 +3324,9 @@
       "customUploadApiFieldName": "文件字段名",
       "customUploadApiFieldNamePlaceholder": "例如：file",
       "customUploadApiFieldNameHint": "上传API中用于接收文件的表单字段名称。",
-      "selectImageDirectory": "选择图片目录"
+      "selectImageDirectory": "选择图片目录",
+      "selectDirFailed": "选择目录失败",
+      "openDirFailed": "打开目录失败"
     },
     "importConfig": "导入配置",
     "importConfigJson": "配置JSON",
@@ -3483,6 +3495,7 @@
     "testLlm": "测试大模型",
     "testPrompt": "你好！请用简短的话介绍一下你自己。",
     "testResult": "测试结果",
+    "testResultFailed": "测试失败",
     "testScenario": "测试场景",
     "themeColor": "主题颜色",
     "themeCustom": "自定义",
@@ -3668,6 +3681,9 @@
     },
     "uploadedToGist": "已上传到 Gist",
     "uploading": "正在上传..."
+  },
+  "vditorPreview": {
+    "renderFailed": "渲染失败"
   },
   "userManual": {
     "agent": {
@@ -4088,7 +4104,8 @@
     },
     "renameSuccess": "重命名成功",
     "selectFolder": "选择工作文件夹",
-    "title": "工作目录"
+    "title": "工作目录",
+    "moveFailed": "移动失败"
   },
   "workspaceGrep": {
     "activeWorkspaceCount": "已打开 {count} 个工作区",

@@ -1935,7 +1935,7 @@ const testLlmApi = async () => {
     }
   } catch (error) {
     logger.error(t('setting.testFailed'), error)
-    testResult.value = `测试失败: ${error instanceof Error ? error.message : String(error)}`
+    testResult.value = t('setting.testResultFailed', '测试失败') + ': ' + (error instanceof Error ? error.message : String(error))
   } finally {
     testLoading.value = false
   }

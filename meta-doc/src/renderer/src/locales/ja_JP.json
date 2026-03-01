@@ -104,7 +104,19 @@
   "messageBubble": {
     "editTitle": "テキストを編集",
     "deleteConfirmMessage": "削除してもよろしいですか？",
-    "deleteConfirmTitle": "警告"
+    "deleteConfirmTitle": "警告",
+    "convertToLatexAndInsert": "LaTeXに変換して挿入",
+    "edit": "編集",
+    "exportSuccess": "コンテンツを新規ドキュメントに正常にエクスポートしました",
+    "exportToNewDocument": "新規ドキュメントにエクスポート",
+    "insertAsMarkdown": "Markdown原文を挿入",
+    "insertFailed": "挿入に失敗しました",
+    "insertLatexOptionsMessage": "現在のドキュメントはLaTeX形式です。挿入方法を選択してください：",
+    "insertLatexOptionsTitle": "LaTeX挿入オプション",
+    "insertSuccess": "コンテンツを正常に挿入しました",
+    "insertToDocument": "現在のドキュメントに挿入",
+    "latexConvertFailed": "LaTeX変換失敗：{error}",
+    "regenerate": "再生成"
   },
   "microphoneTest": {
     "cannotAccessMic": "マイクにアクセスできません。権限設定を確認してください"
@@ -112,13 +124,32 @@
   "mainTabs": {
     "contextMenu": {
       "pinTab": "タブを固定",
-      "unpinTab": "タブの固定を解除"
+      "unpinTab": "タブの固定を解除",
+      "closeTab": "タブを閉じる",
+      "closeOtherTabs": "他のタブを閉じる",
+      "openInNewWindow": "新しいウィンドウで開く",
+      "moveToWindow": "タブを別ウィンドウに移動",
+      "copyPath": "パスをコピー",
+      "copyTitle": "タイトルをコピー",
+      "copyFilename": "ファイル名をコピー",
+      "showInFolder": "フォルダで表示",
+      "moveLeft": "左へ移動",
+      "moveRight": "右へ移動"
     },
     "newDocumentTooltip": "新規ドキュメント",
     "untitled": "無題",
     "userManual": "ユーザーマニュアル",
     "closeTabTooltip": "タブを閉じる",
-    "unsavedIndicator": "未保存"
+    "unsavedIndicator": "未保存",
+    "add": "追加",
+    "close": "閉じる",
+    "failed": "失敗",
+    "invalid": "無効",
+    "maximize": "最大化",
+    "minimize": "最小化",
+    "text": "データ",
+    "version": "バージョン {version}",
+    "addTabFailed": "タブ追加失敗"
   },
   "common": {
     "confirm": "確認",
@@ -213,7 +244,12 @@
     "aiRegexSuggestion": "AIが提案する正規表現：",
     "replaceCount": "「{find}」を「{replace}」に{count}箇所置換しました",
     "foundCount": "「{find}」が{count}箇所見つかりました",
-    "notFoundMore": "これ以上一致するものは見つかりませんでした"
+    "notFoundMore": "これ以上一致するものは見つかりませんでした",
+    "column": "列",
+    "contextView": "コンテキストビュー",
+    "line": "行",
+    "matchesList": "一致リスト",
+    "toggleReplace": "置換を切り替え"
   },
   "titleMenu": {
     "defaultTitle": "タイトル",
@@ -581,7 +617,10 @@
     "modificationDateLabel": "更新日",
     "quickStartButton": "内容を素早く生成",
     "recentDocuments": "最近のドキュメント",
-    "subtitle": "現代的なドキュメント編集・作成ツール"
+    "subtitle": "現代的なドキュメント編集・作成ツール",
+    "latexCode": "LaTeXコード",
+    "preview": "プレビュー",
+    "suggestionTagsTitle": "推奨タグ"
   },
   "main": {
     "notification": {
@@ -665,7 +704,8 @@
       "settingTitle": "セットパネル",
       "dataAnalysisTitle": "データ分析ツール",
       "ocrTitle": "OCR文字認識",
-      "attachmentTitle": "添付ファイル解析ツール"
+      "attachmentTitle": "添付ファイル解析ツール",
+      "graphTitle": "グラフツール"
     }
   },
   "outline": {
@@ -733,7 +773,129 @@
     "aiOptimizing": "AIが最適化中...",
     "insertSuccess": "挿入成功",
     "emptyContent": "（なし）",
-    "noContent": "（なし）"
+    "noContent": "（なし）",
+    "abridge": "省略",
+    "noTitle": "（タイトルなし）",
+    "acceptAll": "すべて承認",
+    "aiConfig": {
+      "title": "AI設定",
+      "titleFor": {
+        "generateChildren": "子チャプター生成設定",
+        "generateContent": "コンテンツ生成設定",
+        "generateChildrenChildren": "子チャプター一括生成設定",
+        "generateChildrenContent": "コンテンツ一括生成設定"
+      },
+      "temperature": "AI温度",
+      "temperatureStrict": "厳密",
+      "temperatureBalance": "バランス",
+      "temperatureCreative": "クリエイティブ",
+      "temperatureHint": "左端はより厳密・再現性あり、右端はよりクリエイティブ・多様",
+      "keywords": "キーワード",
+      "keywordsPlaceholder": "任意、AIコンテンツ生成の指針となるキーワード",
+      "recommendedKeywords": "AI推奨",
+      "generatingKeywords": "推奨キーワードを生成中…",
+      "addKeyword": "追加",
+      "wordCount": "目標文字数",
+      "wordCountPlaceholder": "任意、プロンプトで生成コンテンツの文字数を制御",
+      "wordCountHint": "注：これはプロンプトによる制御で、max_tokens ではありません",
+      "userPrompt": "ユーザープロンプト",
+      "userPromptPlaceholder": "AI生成の指針となるプロンプトを入力",
+      "presetPrompts": "プリセットプロンプト",
+      "selectPreset": "プリセットを選択",
+      "presets": {
+        "expand": "拡張",
+        "expandValue": "拡張してください",
+        "abridge": "要約",
+        "abridgeValue": "内容を要約し、核心ポイントを保持してください",
+        "polish": "磨き上げ",
+        "polishValue": "表現の質を向上させるために磨き上げてください",
+        "combineStructure": "構造と組み合わせ",
+        "combineStructureValue": "文章構造に合わせてこの部分の内容を改善してください",
+        "detailed": "詳細",
+        "detailedValue": "具体的な事例とデータサポートを含む詳細な内容を生成してください",
+        "concise": "簡潔",
+        "conciseValue": "内容を簡潔にし、ポイントを明確にしてください",
+        "academic": "学術",
+        "academicValue": "専門的で正確な学術的ライティングスタイルを使用してください"
+      },
+      "preset": {
+        "combineStructure": "文章構造に合わせてこの部分の内容を改善してください",
+        "expand": "拡張してください",
+        "abridge": "内容を要約し、核心ポイントを保持してください",
+        "polish": "表現の質を向上させるために磨き上げてください",
+        "detailed": "具体的な事例とデータサポートを含む詳細な内容を生成",
+        "professional": "専門的で正確な学術的ライティングスタイルを使用",
+        "concise": "内容を簡潔にし、ポイントを明確に",
+        "examples": "具体的な事例と実際の応用シナリオを追加",
+        "theory": "理論的基盤と背景知識を補充",
+        "summary": "要点を要約するまとめコンテンツを生成",
+        "analysis": "多角度の視点から深入り分析を行う",
+        "comparison": "比較分析を追加し、相違点と特徴を明確に",
+        "trends": "発展傾向と将来展望を分析",
+        "practice": "実践的な提案と操作ガイドを提供",
+        "custom": "カスタム"
+      }
+    },
+    "aiTool": {
+      "title": "AIツール",
+      "pointer": "ポインターツール（選択なし）",
+      "generateChildren": "子チャプターを生成",
+      "generateContent": "コンテンツを生成",
+      "generateChildrenChildren": "子チャプターを一括生成",
+      "generateChildrenContent": "コンテンツを一括生成"
+    },
+    "collapse": "折りたたむ",
+    "expand": "展開",
+    "expandContent": "拡張",
+    "materialBasket": {
+      "title": "素材バスケット",
+      "collapse": "折りたたむ",
+      "expand": "展開",
+      "emptyHint": "アウトラインノードをドラッグするか右クリックで「素材バスケットに移動」、または+をクリックして新規素材を作成",
+      "addItem": "新規素材",
+      "moveToBasket": "素材バスケットに移動",
+      "mergeToOutline": "アウトラインに統合",
+      "asChild": "子ノードとして",
+      "asRightSibling": "右兄弟ノードとして",
+      "asLeftSibling": "左兄弟ノードとして",
+      "selectTargetFirst": "まずアウトラインでターゲットノードを選択してください",
+      "selectTargetNode": "挿入位置のターゲットノードを選択",
+      "copy": "コピー",
+      "delete": "削除",
+      "deleteConfirm": "この素材を削除しますか？",
+      "newMaterialTitle": "新規素材",
+      "editMaterialTitle": "素材を編集",
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "素材タイトルを入力",
+      "name": "名称",
+      "keywordsLabel": "キーワード",
+      "keywordsHint": "タグ付けと検索に使用",
+      "keywordsPlaceholder": "キーワードを入力、Enterで追加",
+      "prompt": "プロンプト",
+      "promptPlaceholder": "AIが生成または最適化する方向性を説明してください",
+      "content": "コンテンツ",
+      "aiAssistHeading": "AI支援",
+      "aiGenerate": "AI生成",
+      "generating": "生成中…",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "searchPlaceholder": "タイトル、キーワード、コンテンツで検索",
+      "noSearchResult": "一致する項目がありません"
+    },
+    "nodeAgent": "ノードエージェント",
+    "nodeAgentAlreadyRunning": "ノードエージェント実行中",
+    "nodeAgentCancelled": "ノードエージェント実行がキャンセルされました",
+    "nodeAgentConfirm": "ノード「{title}」のノードエージェントを開始しますか？",
+    "nodeAgentFail": "ノードエージェント実行失敗: {error}",
+    "nodeAgentSuccess": "ノードエージェント実行完了",
+    "polish": "磨き上げ",
+    "previewResult": "生成結果",
+    "rejectAll": "すべて拒否",
+    "removePrefixes": "すべてのタイトル接頭辞を削除",
+    "removePrefixesConfirm": "すべてのタイトル接頭辞を削除しますか？この操作はすべてのタイトルの先頭の番号とドットを削除し、元に戻せません。",
+    "removePrefixesSuccess": "すべてのタイトル接頭辞を正常に削除しました",
+    "removePrefixesTip": "すべてのタイトルの先頭の番号とドットを削除。MarkdownからLaTeXへの変換に適用（LaTeXは自動的に番号付け）",
+    "stop": "停止"
   },
   "setting": {
     "auto": "自動",
@@ -871,7 +1033,22 @@
       "agentTool": "Agent Toolテスト",
       "autoTest": "Tool自動テスト",
       "agentSessionDebug": "Agentセッション調試",
-      "unitTest": "ユニットテスト"
+      "unitTest": "ユニットテスト",
+      "importSnapshot": "実行スナップショットをインポート",
+      "importSnapshotTitle": "ツール実行スナップショットをインポート",
+      "importSnapshotDescription": "ファイルからツール実行スナップショットをインポートし、ツール実行状態を復元",
+      "selectSnapshotFile": "スナップショットファイルを選択",
+      "snapshotFilePlaceholder": "スナップショットJSONコンテンツを選択または貼り付けてください",
+      "snapshotFile": "スナップショットファイル",
+      "importButton": "インポート",
+      "importSuccess": "スナップショットをインポートしました",
+      "importFailed": "スナップショットインポート失敗",
+      "invalidSnapshot": "無効なスナップショットファイル",
+      "exportSnapshot": "実行スナップショットをエクスポート",
+      "exportSnapshotSuccess": "実行スナップショットをエクスポートしました",
+      "exportSnapshotFailed": "実行スナップショットのエクスポートに失敗しました",
+      "renderResult": "レンダリング結果",
+      "rawResult": "生の結果"
     },
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
@@ -918,7 +1095,63 @@
     "updateChannel": "更新チャンネル",
     "channelRelease": "リリース版",
     "channelDev": "開発版",
-    "checkUpdate": "更新を確認"
+    "checkUpdate": "更新を確認",
+    "about": {
+      "title": "について",
+      "appName": "MetaDoc",
+      "version": "バージョン",
+      "releaseDate": "リリース日",
+      "buildEnvironment": "ビルド環境",
+      "buildEnvironmentDev": "開発版",
+      "buildEnvironmentRelease": "正式版",
+      "officialQQGroup": "公式QQグループ",
+      "feedback": "フィードバック",
+      "updateSettings": "更新設定",
+      "autoCheckUpdates": "自動更新チェック",
+      "updateChannel": "更新チャンネル",
+      "channelRelease": "正式版",
+      "channelDev": "ベータ版",
+      "checkUpdate": "更新を確認",
+      "checking": "確認中...",
+      "updateAvailable": "新バージョンあり",
+      "updateAvailableDesc": "新バージョン {version} が利用可能です",
+      "noUpdate": "最新バージョンです",
+      "noUpdateDesc": "現在お使いのバージョンは最新です",
+      "checkUpdateError": "更新チェック失敗",
+      "downloadUpdate": "更新をダウンロード",
+      "downloading": "ダウンロード中",
+      "downloadError": "ダウンロード失敗",
+      "installAndRestart": "インストールして再起動",
+      "openSourceLicenses": "オープンソースライセンス",
+      "thirdPartyAssets": "サードパーティアセット"
+    },
+    "cancel": "キャンセル",
+    "cannotCreateManualConfig": "手動タイプの設定は作成できません。手動タイプは開発モード専用です",
+    "cannotDeleteDefaultConfig": "デフォルト設定は削除できません",
+    "changesDiscarded": "変更を破棄しました",
+    "changesSaved": "変更を保存しました",
+    "chooseEmbeddingMode": "Embeddingモードを選択",
+    "clearManualToken": "クリア",
+    "clearReferenceDirConfirm": "引用ファイルディレクトリをクリアしますか？この操作はディレクトリ内のすべてのファイルを削除し、元に戻せません。",
+    "clearReferenceDirSuccess": "ディレクトリをクリアしました",
+    "clearResult": "結果をクリア",
+    "configCreateFailed": "設定の作成に失敗しました",
+    "configCreated": "設定を作成しました",
+    "configDeleted": "設定を削除しました",
+    "configModifiedSuffix": "(変更済み)",
+    "configName": "設定名",
+    "configNameRequired": "設定名は必須です",
+    "configReset": "設定をリセットしました",
+    "configSaved": "設定を保存しました",
+    "configSwitched": "設定を切り替えました",
+    "configUpdated": "設定を更新しました",
+    "confirmDeleteConfig": "この設定を削除しますか？",
+    "confirmDiscardChanges": "保存されていない変更を破棄しますか？",
+    "confirmResetConfig": "このデフォルト設定を初期状態にリセットしますか？すべての変更が削除されます。",
+    "copy": "コピー",
+    "clearReferenceDirFailed": "ディレクトリクリア失敗",
+    "getDirSizeFailed": "ディレクトリサイズ取得失敗",
+    "openDirFailed": "ディレクトリオープン失敗"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -1408,7 +1641,10 @@
       "info": "情報円",
       "success": "成功した通知",
       "warning": "警告通知"
-    }
+    },
+    "hoursAgo": "{count}時間前",
+    "justNow": "たった今",
+    "minutesAgo": "{count}分前"
   },
   "newDocument": {
     "formatTitle": "フォーマットを選択",
@@ -1420,6 +1656,10 @@
       "markdown": {
         "description": "記事、メモ、ブログのテキスト形式を構造化しました。",
         "label": "マークダウン"
+      },
+      "plaintext": {
+        "label": "プレーンテキスト",
+        "description": "プレーンテキストまたはコードファイル。複数のプログラミング言語のシンタックスハイライトをサポート。"
       }
     },
     "subtitle": "ドキュメント形式とテンプレートを選択して作成を開始します。",
@@ -1433,6 +1673,22 @@
         "report": {
           "description": "コースやプロジェクトレポートに適用できるチャプター構造でテンプレートをレポートします。",
           "label": "テンプレートのレポート"
+        },
+        "gb7714_zh": {
+          "label": "中国語学術論文（GB規格）",
+          "description": "GB/T 7714-2015規格に準拠した中国語学術論文テンプレート。完全な論文構造を含む。"
+        },
+        "ieee_en": {
+          "label": "英語学術論文（IEEE規格）",
+          "description": "IEEE規格に準拠した英語学術論文テンプレート。国際ジャーナルと会議に適用。"
+        },
+        "gb7714_zh_twocolumn": {
+          "label": "中国語学術論文（GB規格・2段組）",
+          "description": "GB/T 7714-2015規格に準拠した中国語学術論文テンプレート（2段組）。ジャーナル投稿に適用。"
+        },
+        "ieee_en_twocolumn": {
+          "label": "英語学術論文（IEEE規格・2段組）",
+          "description": "IEEE規格に準拠した英語学術論文テンプレート（2段組）。ジャーナルと会議投稿に適用。"
         }
       },
       "markdown": {
@@ -1443,11 +1699,37 @@
         "blank": {
           "description": "空白のMarkdownドキュメントを作成",
           "label": "空白のドキュメント"
+        },
+        "technicalDoc": {
+          "label": "技術文書",
+          "description": "API/アーキテクチャ/デプロイメントなどの技術文書構造。インターフェース説明と設定を含む。"
+        },
+        "labReport": {
+          "label": "実験レポート",
+          "description": "目的、原理、手順、データ、結論を含む完全な実験レポート。"
+        },
+        "courseReport": {
+          "label": "レポート",
+          "description": "読書レポート、特別レポート、調査レポートなどの課題レポート。"
+        },
+        "letter": {
+          "label": "手紙",
+          "description": "正式または非正式な手紙形式。挨拶、本文、署名を含む。"
+        },
+        "blogPost": {
+          "label": "ブログ/投稿",
+          "description": "ブログ記事またはソーシャルメディア投稿。短文とハッシュタグに最適。"
+        },
+        "lectureNotes": {
+          "label": "授業メモ",
+          "description": "講義と要点で整理された授業メモ構造。"
         }
       }
     },
     "title": "新しい文書",
-    "useTemplate": "このテンプレートを使用する"
+    "useTemplate": "このテンプレートを使用する",
+    "removeTemplateConfirm": "テンプレート「{name}」を削除しますか？削除後は復元できません。",
+    "removeTemplateTitle": "テンプレート削除"
   },
   "agent": {
     "conversation": {
@@ -3007,5 +3289,194 @@
       "summary": "サマリー",
       "details": "詳細データ"
     }
+  },
+  "messageBox": {
+    "cancel": "キャンセル",
+    "confirm": "OK"
+  },
+  "notification": {
+    "clearAll": "すべて削除",
+    "desktopNotifications": "デスクトップ通知",
+    "dismiss": "閉じる",
+    "markRead": "既読にする",
+    "markUnread": "未読にする",
+    "noNotifications": "通知はありません",
+    "notificationSettings": "通知設定",
+    "showAll": "すべて表示",
+    "soundEnabled": "サウンドを有効にする"
+  },
+  "ocr": {
+    "aiFix": "AI修正",
+    "aiFixFailed": "AI修正失敗",
+    "aiFixSuccess": "AI修正完了",
+    "aiFixing": "AI修正中...",
+    "allRecognized": "すべての画像を認識しました",
+    "brightness": "輝度",
+    "clickRecognizeHint": "左側のボタンをクリックして認識を開始",
+    "contrast": "コントラスト",
+    "copyFixedText": "修正後のテキストをコピー",
+    "copyOriginalText": "元のテキストをコピー",
+    "copySuccess": "テキストをクリップボードにコピーしました",
+    "copyText": "テキストをコピー",
+    "defaultParams": "推奨設定",
+    "defaultTitle": "新しいOCRセッション",
+    "deleteConfirm": "この画像を削除しますか？",
+    "deleteSuccess": "削除成功",
+    "deleteTitle": "画像を削除",
+    "diffView": "比較ビュー",
+    "fixedText": "修正後テキスト",
+    "grayscale": "グレースケール",
+    "image": "画像",
+    "imagePreprocessing": "画像前処理",
+    "imagePreview": "画像プレビュー",
+    "languages": "OCR言語パック",
+    "newSession": "新規セッション",
+    "noClipboardImage": "クリップボードに画像がありません",
+    "noImages": "画像をアップロードしてください",
+    "noLanguages": "少なくとも1つの言語パックを選択してください",
+    "noSession": "セッションを作成または選択してください",
+    "noSessionSelected": "セッションを選択するか、新規作成してください",
+    "normalize": "正規化",
+    "notRecognized": "未認識",
+    "ocrSuccess": "認識完了",
+    "originalText": "元のテキスト",
+    "pasteFromClipboard": "クリップボードから画像を貼り付け",
+    "pasteSuccess": "画像をクリップボードから貼り付けました",
+    "preprocessingParams": "前処理パラメータ",
+    "previewImage": "画像をプレビュー",
+    "reOcr": "再認識",
+    "reRecognize": "再認識",
+    "reRecognizeSuccess": "再認識成功",
+    "recognizeSuccess": "認識成功",
+    "recognizing": "認識中...",
+    "renamePlaceholder": "セッション名を入力",
+    "renameTitle": "セッション名を変更",
+    "resetParams": "パラメータをリセット",
+    "resetZoom": "リセット",
+    "saturation": "彩度",
+    "selectLanguages": "言語パックを選択",
+    "sessionsTitle": "OCRセッション",
+    "sharpness": "シャープネス",
+    "singleView": "単一ビュー",
+    "startOcr": "認識を開始",
+    "startRecognize": "認識を開始",
+    "uploadHint": "画像をここにドラッグするか、クリックしてアップロード",
+    "uploadTip": "JPG、PNG、GIF、BMPなどの形式をサポート、複数選択可能",
+    "viewMode": "ビューモード"
+  },
+  "ocrWindow": {
+    "failedCreate": "セッション作成失敗",
+    "failedLoading": "セッションリスト読み込み失敗",
+    "failedLoading1": "セッション読み込み失敗",
+    "recognize": "サンプル文書認識",
+    "renameFailed": "名前変更失敗",
+    "text": "簡体字中国語",
+    "text1": "繁体字中国語",
+    "text2": "日本語",
+    "text3": "書籍スキャン",
+    "unavailable": "レンダラー利用不可"
+  },
+  "logoTab": {
+    "version": "バージョン {version}",
+    "versionLoading": "バージョン ..."
+  },
+  "outline-ai-utils": {
+    "addContent": "他のコンテンツは追加しないでください",
+    "format": "サンプル形式に厳密に従って出力してください",
+    "format1": "形式で出力",
+    "text": "現在",
+    "text1": "直接出力してください",
+    "text2": "結果",
+    "text3": "厳密に従ってください"
+  },
+  "plaintextEditor": {
+    "init_failed": "プレーンテキストエディタ初期化失敗: ",
+    "toolbar": {
+      "undo": "元に戻す (Ctrl+Z)",
+      "redo": "やり直し (Ctrl+Y)",
+      "zoomIn": "拡大 (Ctrl +)",
+      "zoomOut": "縮小 (Ctrl -)",
+      "toggleLineNumbers": "行番号表示を切り替え",
+      "toggleMinimap": "ミニマップを切り替え",
+      "showConsole": "ターミナルを表示"
+    }
+  },
+  "proofread": {
+    "errorTypes": {
+      "grammar": "文法エラー",
+      "spelling": "スペルミス",
+      "latex": "LaTeX文法エラー",
+      "style": "スタイル問題",
+      "other": "その他のエラー"
+    },
+    "errorsFound": "{count}個のエラーを発見",
+    "fix": "修正",
+    "fixAll": "すべてを一括修正",
+    "ignore": "無視",
+    "ignoreAll": "すべてを一括無視",
+    "ignoreAllSuccess": "{count}個のエラーを無視しました",
+    "ignoreSuccess": "無視しました",
+    "noErrors": "エラーはありません",
+    "severity": {
+      "error": "エラー",
+      "warning": "警告",
+      "info": "情報"
+    },
+    "title": "文章校正"
+  },
+  "proofread-tool": {
+    "cancelled": "リクエストがキャンセルされました",
+    "errorContentFormatFile": "ファイルコンテンツ形式エラー",
+    "failed": "リクエスト失敗",
+    "failed1": "データ取得失敗",
+    "failedFile": "ファイル読み込み失敗",
+    "file": "ファイルを読み込めません",
+    "fileNotExistNotexistContentFile": "ファイルコンテンツが空、またはファイルが存在しません",
+    "lineNumber": "行番号",
+    "operationCancelled": "操作がキャンセルされました",
+    "text": "メインプロセス",
+    "text1": "使用を試行",
+    "unavailable": "レンダラー利用不可"
+  },
+  "proofreadView": {
+    "content": "これはサンプルドキュメントコンテンツです",
+    "error": "個のエラー",
+    "feature": "の各機能",
+    "suggestion": "文法提案",
+    "suggestion1": "変更を提案",
+    "suggestion2": "提案",
+    "text": "発見",
+    "text1": "本文書は詳しく説明しています",
+    "text2": "スタイル最適化",
+    "text3": "表現を最適化"
+  },
+  "reference-adapters": {
+    "convertFailed": "変換失敗",
+    "failedLanguage": "言語失敗",
+    "file": "ファイル",
+    "parse": "解析できません",
+    "parseFailed": "解析失敗",
+    "text": "取得",
+    "text1": "デフォルトの英語を使用",
+    "unavailable": "レンダラー利用不可"
+  },
+  "reference-processor": {
+    "failedSaveFile": "ファイル保存失敗",
+    "file": "ファイル",
+    "operationCancelled": "操作がキャンセルされました",
+    "recognize": "画像を認識",
+    "start": "開始",
+    "startParse": "解析を開始"
+  },
+  "referenceManager": {
+    "cancelRequestFailed": "キャンセルリクエスト送信失敗",
+    "contentDynamic": "現在のアクティブドキュメントコンテンツを動的に取得",
+    "format": "形式",
+    "spaceOccupyMessageHistory": "履歴メッセージスペースを占有しない",
+    "updateRealtime": "リアルタイム更新"
+  },
+  "resizableContainer": {
+    "collapse": "折りたたむ",
+    "expand": "展開"
   }
 }

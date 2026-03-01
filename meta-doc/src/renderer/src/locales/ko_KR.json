@@ -3846,7 +3846,7 @@
     "unavailable": "렌더러 사용 불가"
   },
   "logoTab": {
-    "version": "버전 {version}",
+    "version": "버전 {version} ({channel})",
     "versionLoading": "버전 ..."
   },
   "outline-ai-utils": {

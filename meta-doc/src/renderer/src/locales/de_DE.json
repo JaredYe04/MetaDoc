@@ -3960,7 +3960,7 @@
     "expand": "Ausklappen"
   },
   "logoTab": {
-    "version": "Version {version}",
+    "version": "Version {version} ({channel})",
     "versionLoading": "Version ..."
   },
   "settingBasicSection": {

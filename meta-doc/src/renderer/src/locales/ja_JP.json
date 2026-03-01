@@ -3743,7 +3743,7 @@
     "unavailable": "レンダラー利用不可"
   },
   "logoTab": {
-    "version": "バージョン {version}",
+    "version": "バージョン {version} ({channel})",
     "versionLoading": "バージョン ..."
   },
   "outline-ai-utils": {

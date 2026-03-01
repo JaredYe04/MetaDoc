@@ -2206,7 +2206,7 @@
     }
   },
   "logoTab": {
-    "version": "版本 {version}",
+    "version": "版本 {version} ({channel})",
     "versionLoading": "版本 ..."
   },
   "leftMenu": {
@@ -3111,7 +3111,9 @@
     "about": {
       "title": "关于",
       "aboutUs": "关于我们",
-      "content": "这里是关于我们页面的内容"
+      "content": "这里是关于我们页面的内容",
+      "channelRelease": "稳定频道",
+      "channelDev": "测试频道"
     },
     "allChangesSaved": "所有更改已保存",
     "apiBaseUrl": "API BaseURL",

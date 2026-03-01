@@ -4423,8 +4423,8 @@
     }
   },
   "logoTab": {
-    "version": "[English] 版本 {version}",
-    "versionLoading": "[English] 版本 ..."
+    "version": "Version {version} ({channel})",
+    "versionLoading": "Version ..."
   },
   "vditorPreview": {
     "renderFailed": "[English] 渲染失败"

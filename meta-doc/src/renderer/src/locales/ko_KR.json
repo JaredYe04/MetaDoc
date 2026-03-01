@@ -1818,7 +1818,10 @@
       "closeTab": "탭 닫기",
       "exportJson": "JSON으로 낭출",
       "deleteSession": "세션 삭제"
-    }
+    },
+    "welcomeTitle": "안녕하세요! MetaDoc AI 어시스턴트입니다!",
+    "welcomeDescription": "당신의 지능형 문서 작성 어시스턴트입니다. AI 기반 제안과 수정으로 문서 작성, 편집 및 다듬기를 도와드립니다.",
+    "tellMeYourNeeds": "필요한 것을 말씀해 주세요. 문서 작성 작업을 완료하는 데 도움을 드리겠습니다!"
   },
   "sectionOptimizer": {
     "clear": "이름 *",

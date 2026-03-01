@@ -1817,7 +1817,10 @@
       "closeTab": "タブを閉じる",
       "exportJson": "JSONとしてエクスポート",
       "deleteSession": "セッションを削除"
-    }
+    },
+    "welcomeTitle": "こんにちは！MetaDoc AIアシスタントです！",
+    "welcomeDescription": "あなたのインテリジェントな文書作成アシスタントです。AIによる提案と修正で、文書の作成、編集、仕上げをお手伝いします。",
+    "tellMeYourNeeds": "ご要件をお聞かせください。文書作成タスクの完了をお手伝いします！"
   },
   "sectionOptimizer": {
     "clear": "クリア",

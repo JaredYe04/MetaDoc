@@ -886,7 +886,15 @@
     "selectModel": "Modell auswählen",
     "themeSyncColor": "Systemfarbe folgen",
     "presetThemeCoralRed": "Korallenrot",
-    "presetThemeGoldenOrange": "Goldorange"
+    "presetThemeGoldenOrange": "Goldorange",
+    "aboutUpdateSettings": "Update-Einstellungen",
+    "aboutOpenSourceLicense": "Open-Source-Lizenz",
+    "aboutThirdPartyAssets": "Drittanbieter-Assets",
+    "autoCheckUpdates": "Automatisch nach Updates suchen",
+    "updateChannel": "Update-Kanal",
+    "channelRelease": "Release",
+    "channelDev": "Entwicklung",
+    "checkUpdate": "Nach Updates suchen"
   },
   "titleMenu": {
     "contextMarks": {

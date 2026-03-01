@@ -34,6 +34,7 @@ const computedVariant = computed(() => {
     case 'info':
       return 'outline'
     case 'text':
+    case 'ghost':
       return 'ghost'
     default:
       return 'default'
@@ -54,10 +55,10 @@ const computedSize = computed(() => {
   }
 })
 
-// Compute additional classes
+// Compute additional classes (circle size/shape 由 buttonVariants 的 compoundVariants 统一处理)
 const computedClass = computed(() => {
   const classes = [props.class]
-  if (props.circle) classes.push('rounded-full aspect-square p-2')
+  if (props.circle) classes.push('rounded-full aspect-square')
   else if (props.round) classes.push('rounded-full')
   return classes.filter(Boolean).join(' ')
 })
@@ -67,7 +68,7 @@ const computedClass = computed(() => {
   <Primitive
     :as="as"
     :as-child="asChild"
-    :class="cn(buttonVariants({ variant: computedVariant, size: computedSize }), computedClass)"
+    :class="cn(buttonVariants({ variant: computedVariant, size: computedSize, circle: props.circle }), computedClass)"
     :disabled="props.disabled || props.loading"
   >
     <slot />

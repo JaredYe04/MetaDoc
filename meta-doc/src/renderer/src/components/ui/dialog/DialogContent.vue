@@ -43,27 +43,44 @@ watch(
   () => (forwarded.value as any)?.open,
   (newVal) => {
     isOpen.value = !!newVal
+    // 关闭后：清理残留遮罩，并恢复 body 的 pointer-events（避免 reka-ui DismissableLayer 关闭时未恢复导致整页无法点击）
+    if (!newVal) {
+      setTimeout(() => {
+        removeClosedDialogOverlays()
+        restoreBodyPointerEvents()
+      }, 250)
+    }
   },
   { immediate: true }
 )
 
-// 组件卸载时清理可能残留的遮罩
+function removeClosedDialogOverlays() {
+  const overlays = document.querySelectorAll('.dialog-overlay[data-state="closed"]')
+  overlays.forEach((el) => {
+    el.remove()
+  })
+}
+
+/** 恢复 body 的 pointer-events，修复 reka-ui DismissableLayer 关闭时未恢复导致整页无法点击的问题 */
+function restoreBodyPointerEvents() {
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.style.pointerEvents = ''
+  }
+}
+
+// 组件卸载时清理可能残留的遮罩并恢复 body
 onUnmounted(() => {
-  // 延迟清理，确保动画完成
   setTimeout(() => {
-    const overlays = document.querySelectorAll('.dialog-overlay[data-state="closed"]')
-    overlays.forEach((el) => {
-      ;(el as HTMLElement).style.display = 'none'
-      el.remove()
-    })
-  }, 200)
+    removeClosedDialogOverlays()
+    restoreBodyPointerEvents()
+  }, 250)
 })
 </script>
 
 <template>
   <DialogPortal :to="'body'">
     <DialogOverlay
-      class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay pointer-events-auto dialog-viewport-full"
+      class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay dialog-viewport-full"
     />
     <DialogContent v-bind="forwardedForRoot">
       <!-- 内容盒：居中于整个视口，宽度由调用方 class 控制；有自定义 class 时不加 max-w-lg 以免限制宽度 -->
@@ -74,7 +91,7 @@ onUnmounted(() => {
           <slot />
         </el-scrollbar>
         <DialogClose
-          class="absolute right-4 top-4 rounded-sm p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none cursor-pointer z-[10001] bg-background"
+          class="absolute right-4 top-4 rounded-sm p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring disabled:pointer-events-none cursor-pointer z-[10001] bg-background"
         >
           <X class="h-4 w-4" />
         </DialogClose>
@@ -173,13 +190,19 @@ onUnmounted(() => {
   pointer-events: none !important;
 }
 
+/* 默认不拦截点击，避免关闭后遮罩残留导致页面无法点击 */
+.dialog-overlay {
+  pointer-events: none;
+}
+
 .dialog-overlay[data-state='open'] {
+  pointer-events: auto;
   animation: overlay-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-overlay[data-state='closed'] {
-  animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   pointer-events: none !important;
+  animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   opacity: 0 !important;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <form class="chat-composer" @submit.prevent="handleSubmit">
+  <form class="chat-composer" @submit.prevent="handleSubmit" :class="{ 'chat-composer--compact': compact }">
     <div
       class="composer-shell"
       :class="{ 'is-multiline': isMultiline }"
@@ -89,6 +89,7 @@
         </Button>
 
         <Button
+          v-if="showReset"
           :title="t('aiChat.resetTooltip', '重置')"
           variant="ghost"
           size="icon"
@@ -122,7 +123,10 @@ const props = withDefaults(
     showVoice?: boolean
     showCancel?: boolean
     showKnowledgeBase?: boolean
+    showReset?: boolean
     enableKnowledgeBaseQuery?: boolean
+    /** 紧凑模式：小字号、小内边距、小圆角、小按钮 */
+    compact?: boolean
   }>(),
   {
     modelValue: '',
@@ -133,7 +137,9 @@ const props = withDefaults(
     showVoice: false,
     showCancel: false,
     showKnowledgeBase: false,
-    enableKnowledgeBaseQuery: false
+    showReset: true,
+    enableKnowledgeBaseQuery: false,
+    compact: false
   }
 )
 
@@ -422,6 +428,52 @@ onBeforeUnmount(() => {
   overflow: hidden;
   position: relative;
   z-index: 10;
+}
+
+/* 紧凑模式 */
+.chat-composer--compact .composer-shell {
+  border-radius: 5px;
+  padding: 4px 6px;
+  gap: 4px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.06);
+}
+
+.chat-composer--compact .composer-textarea {
+  font-size: 13px;
+  line-height: 1.4;
+  min-height: 20px;
+}
+
+.chat-composer--compact .composer-actions {
+  gap: 2px;
+}
+
+.chat-composer--compact .composer-send-toggle {
+  padding: 1px 4px;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.chat-composer--compact .composer-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.chat-composer--compact .composer-btn .w-4.h-4,
+.chat-composer--compact .composer-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.chat-composer--compact .composer-shell.is-multiline .composer-leading,
+.chat-composer--compact .composer-shell.is-multiline .composer-actions {
+  bottom: 6px;
+}
+
+.chat-composer--compact .composer-shell.is-multiline .composer-scroll {
+  padding-bottom: 12px;
+  padding-left: 28px;
 }
 
 .composer-shell.is-multiline {

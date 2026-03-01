@@ -1490,10 +1490,10 @@ onMounted(async () => {
         if (messageBridge.getIpc()) {
           messageBridge.send('drag:renderer-response', {
             _requestId,
-            _error: error instanceof Error ? error.message : '添加 Tab 失败',
+            _error: error instanceof Error ? error.message : t('mainTabs.addTabFailed', '添加 Tab 失败'),
             result: {
               success: false,
-              error: error instanceof Error ? error.message : '添加 Tab 失败'
+              error: error instanceof Error ? error.message : t('mainTabs.addTabFailed', '添加 Tab 失败')
             }
           })
         }

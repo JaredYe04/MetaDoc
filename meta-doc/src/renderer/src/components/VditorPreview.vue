@@ -12,10 +12,13 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview, local2fileProtocol } from '../utils/md-utils'
 import eventBus from '../utils/event-bus'
 import { Skeleton } from '@renderer/components/ui/skeleton'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
@@ -134,7 +137,7 @@ const renderMarkdown = async () => {
   } catch (error) {
     console.error('[VditorPreview] Render failed:', error)
     if (containerRef.value) {
-      containerRef.value.innerHTML = `<p style="color: red; padding: 20px;">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
+      containerRef.value.innerHTML = `<p style="color: red; padding: 20px;">${t('vditorPreview.renderFailed', '渲染失败')}: ${error instanceof Error ? error.message : String(error)}</p>`
     }
   } finally {
     console.log('[VditorPreview] Setting isRendering to false')

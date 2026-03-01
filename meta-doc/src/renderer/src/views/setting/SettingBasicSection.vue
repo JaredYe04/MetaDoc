@@ -442,7 +442,7 @@ const refreshReferenceDirSize = async () => {
     const size = (await messageBridge.invoke('get-reference-dir-size')) as number
     referenceDirSize.value = size
   } catch (error) {
-    notifyError('获取目录大小失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(t('setting.getDirSizeFailed', '获取目录大小失败') + ': ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -456,7 +456,7 @@ const openReferenceDir = async () => {
 
     await messageBridge.invoke('open-reference-dir')
   } catch (error) {
-    notifyError('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(t('setting.openDirFailed', '打开目录失败') + ': ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -486,7 +486,7 @@ const clearReferenceDir = async () => {
     notifySuccess(t('setting.clearReferenceDirSuccess', '目录已清空'))
   } catch (error) {
     if (error !== 'cancel') {
-      notifyError('清空目录失败: ' + (error instanceof Error ? error.message : String(error)))
+      notifyError(t('setting.clearReferenceDirFailed', '清空目录失败') + ': ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 }

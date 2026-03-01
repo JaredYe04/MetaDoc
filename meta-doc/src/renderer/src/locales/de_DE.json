@@ -320,7 +320,9 @@
       "iso88595": "ISO-8859-5",
       "iso88597": "ISO-8859-7"
     },
-    "logSaveFailed": "Protokoll speichern fehlgeschlagen"
+    "logSaveFailed": "Protokoll speichern fehlgeschlagen",
+    "cdFailed": "Verzeichniswechsel nicht möglich",
+    "invalidArgument": "Ungültiges Argument"
   },
   "contextMenu": {
     "aiAnalysis": "KI Volltextanalyse",
@@ -470,7 +472,8 @@
     "recentDocuments": "Kürzliche Dokumente",
     "subtitle": "Moderne Dokumentenbearbeitung und -erstellung",
     "latexCode": "LaTeX-Code",
-    "preview": "Vorschau"
+    "preview": "Vorschau",
+    "suggestionTagsTitle": "Empfohlene Tags"
   },
   "mainTabs": {
     "contextMenu": {
@@ -499,7 +502,8 @@
     "maximize": "Maximieren",
     "minimize": "Minimieren",
     "text": "Daten",
-    "version": "Version {version}"
+    "version": "Version {version}",
+    "addTabFailed": "Tab hinzufügen fehlgeschlagen"
   },
   "lang": "Zh_CN",
   "leftMenu": {
@@ -867,7 +871,8 @@
     "removePrefixesConfirm": "Möchten Sie wirklich alle Titelpräfixe entfernen? Diese Aktion entfernt alle Nummerierungen und Punkte am Titelanfang und kann nicht rückgängig gemacht werden.",
     "removePrefixesSuccess": "Alle Titelpräfixe erfolgreich entfernt",
     "removePrefixesTip": "Entfernt alle Nummerierungen und Punkte am Titelanfang, geeignet für Markdown-zu-LaTeX-Konvertierung (LaTeX nummeriert automatisch)",
-    "stop": "Stoppen"
+    "stop": "Stoppen",
+    "noTitle": "(Kein Titel)"
   },
   "searchReplace": {
     "title": "Suchen und Ersetzen",
@@ -1189,7 +1194,158 @@
     "exportConfig": "Konfiguration exportieren",
     "exportFailed": "Export fehlgeschlagen",
     "exportSuccess": "Export erfolgreich",
-    "globalSettings": "Globale Einstellungen"
+    "globalSettings": "Globale Einstellungen",
+    "hasUnsavedChanges": "Ungespeicherte Änderungen vorhanden",
+    "image": {
+      "title": "Bildeinstellungen",
+      "titleHint": "Bild-Upload-Einstellungen, wirksam nach erneutem Öffnen der Datei",
+      "insertAction": "Beim Einfügen von Bildern",
+      "insertActionNone": "Keine besondere Aktion",
+      "insertActionUpload": "Bild hochladen",
+      "insertActionSaveToDocumentDir": "Im selben Verzeichnis wie das Dokument speichern",
+      "insertActionSaveToAssetsDir": "Im Verzeichnis /assets/ des Dokuments speichern",
+      "insertActionHint": "Wählen Sie die Standardaktion beim Einfügen von Bildern.",
+      "keepNetworkImageUrl": "Netzwerkbild-URL beibehalten",
+      "keepNetworkImageUrlHint": "Wenn aktiviert, wird die ursprüngliche URL beim Einfügen von Netzwerkbildern beibehalten und nicht lokal heruntergeladen. Wenn deaktiviert, werden Netzwerkbilder automatisch heruntergeladen und als lokale Bilder gespeichert, sodass beim lokalen Betrachten des Dokuments keine Internetverbindung erforderlich ist.",
+      "syntaxPreferences": "Bildsyntax-Einstellungen",
+      "syntaxPreferencesHint": "Konfigurieren Sie die bevorzugte Syntaxformatierung für Bildpfade.",
+      "preferRelativePath": "Relativen Pfad bevorzugen",
+      "addDotSlashForRelativePath": "./ für relative Pfade hinzufügen",
+      "addDotSlashHint": "Fügt ./-Präfix zu relativen Pfaden hinzu, um die Lesbarkeit zu verbessern.",
+      "autoEscapeImageUrl": "URL beim Einfügen von Netzwerkbildern automatisch escapen",
+      "autoEscapeImageUrlHint": "Beispielsweise wird beim Einfügen von 'img/Beispielbild.png' der Bildpfad automatisch zu 'img/%E7%A4%BA%E4%B5%8Bild.png'. Aktivieren Sie diese Option für bessere Kompatibilität mit anderen Markdown-Engines, deaktivieren Sie sie für bessere Lesbarkeit.",
+      "uploadServiceSettings": "Upload-Service-Einstellungen",
+      "uploadService": "Upload-Service",
+      "uploadServiceNone": "Keiner",
+      "uploadServiceLocal": "Lokaler Service",
+      "uploadServiceCustom": "Benutzerdefinierte API",
+      "localImageDir": "Lokales Bildverzeichnis",
+      "localImageDirPlaceholder": "Leer lassen für Standardpfad (Pictures/meta-doc-imgs)",
+      "localImageDirHint": "Legen Sie das lokale Bildspeicherverzeichnis fest. Leer lassen für Standardpfad.",
+      "browse": "Durchsuchen",
+      "open": "Öffnen",
+      "noImageDirSet": "Kein Bildverzeichnis festgelegt",
+      "copyToDocumentDir": "In Dokumentverzeichnis kopieren",
+      "copyToDocumentDirHint": "Wenn aktiviert, werden Bilder priorisiert im Verzeichnis des Dokuments gespeichert. Bei neuen Dokumenten (nicht gespeichert) wird auf das Upload-Verzeichnis zurückgegriffen.",
+      "customUploadApiUrl": "Benutzerdefinierte Upload-API-URL",
+      "customUploadApiUrlPlaceholder": "z.B.: https://api.example.com/upload",
+      "customUploadApiMethod": "HTTP-Methode",
+      "customUploadApiFieldName": "Dateifeldname",
+      "customUploadApiFieldNamePlaceholder": "z.B.: file",
+      "customUploadApiFieldNameHint": "Der Name des Formularfelds, das in der Upload-API zum Empfangen der Datei verwendet wird.",
+      "selectImageDirectory": "Bildverzeichnis auswählen",
+      "selectDirFailed": "Verzeichnis auswählen fehlgeschlagen",
+      "openDirFailed": "Verzeichnis öffnen fehlgeschlagen"
+    },
+    "importConfig": "Konfiguration importieren",
+    "importConfigJson": "Konfigurations-JSON",
+    "importConfigJsonPlaceholder": "Bitte fügen Sie den Konfigurations-JSON-Inhalt ein (unterstützt einzelne Konfigurationsobjekte oder Konfigurations-Arrays)",
+    "importConfigJsonRequired": "Bitte geben Sie den Konfigurations-JSON ein",
+    "importFailed": "Import fehlgeschlagen",
+    "importSuccess": "{count} Konfigurationen erfolgreich importiert",
+    "knowledgeBase": "Wissensdatenbank-Einstellungen",
+    "lineNumberHint": "Code-Zeilennummern im Editor anzeigen",
+    "llmConfigList": "LLM-Konfigurationsliste",
+    "llmSettingsDescription": "Konfigurieren Sie den LLM-Zugriff, Temperatur und Vervollständigungsoptionen; unterstützt mehrere Konfigurationen zum Wechseln sowie Import/Export.",
+    "llmTemperature": "LLM-Temperatur",
+    "llmTemperatureHint": "Steuert die Zufälligkeit der KI-Ausgabe, je höher desto zufälliger, empfohlen: 1.3",
+    "logRetentionPeriod": "Protokoll-Aufbewahrungsfrist",
+    "logRetentionPeriodHint": "Alte Protokolldateien über der Aufbewahrungsfrist automatisch bereinigen, Bereinigung wird beim Softwarestart automatisch ausgeführt",
+    "logRetentionPeriods": {
+      "none": "Nicht speichern",
+      "1day": "1 Tag",
+      "3days": "3 Tage",
+      "7days": "7 Tage",
+      "1month": "Ein Monat",
+      "3months": "Drei Monate",
+      "6months": "Halbes Jahr",
+      "1year": "Ein Jahr",
+      "never": "Nicht bereinigen"
+    },
+    "loggingFilter": "Protokollfilter",
+    "loggingFilterHint": "Unterstützt Filterung von Protokollen nach Modulnamen, z.B. Eingabe von \"ai-graph\" zeigt nur Protokolle dieses Moduls und seiner Untermodule an",
+    "loggingFilterPlaceholder": "Modulnamen zur Filterung eingeben, z.B.: ai-graph",
+    "loggingSettings": "Protokolleinstellungen",
+    "logMessages": {
+      "appStartup": "Anwendung erfolgreich gestartet",
+      "loadConfig": "Konfigurationsdatei laden",
+      "noHistorySession": "Keine Verlaufssitzung gefunden",
+      "createDocument": "Neues Dokument erstellen",
+      "initEditor": "Editor initialisieren",
+      "llmReady": "LLM-Dienst bereit",
+      "networkTimeout": "Netzwerkverbindung Zeitüberschreitung",
+      "autoSaveSuccess": "Automatische Speicherung erfolgreich"
+    },
+    "manual": "Manuell (Entwicklermodus)",
+    "manualConfigHint": "Manueller Modus: Manuelle Eingabe von API-Antworten über simulierte Schnittstellen des Express-Servers",
+    "manualHint": "Manuelle Eingabe simulierter API-Antworten, nur in der Entwicklungsumgebung verfügbar",
+    "manualLLMInterface": "Manuelle LLM-Antwort-Schnittstelle",
+    "manualResponseSubmitted": "Antwort übermittelt",
+    "manualTokenInput": "Manuelle LLM-Antwort-Eingabe",
+    "manualTokenInputPlaceholder": "Geben Sie hier den Inhalt der manuellen LLM-Antwort ein (für Tests und Debugging)",
+    "mathInlineDigitHint": "Wenn aktiviert, erlaubt die mathematische Inline-Formel nach dem Start-$ Zahlen, z.B. wird $123$ als mathematische Formel erkannt. Bei Deaktivierung werden nur Formeln wie $x$ erkannt.",
+    "metadataInfoHint": "Metadaten umfassen Autor, Zusammenfassung, Schlüsselwörter, Agent-Sitzungsaufzeichnungen usw. Diese Informationen helfen Ihnen, Dokumente besser zu verwalten und abzurufen.",
+    "metadataSaveModeEmbedHint": "Metadaten als Kommentar in den Dateiinhalt einbetten. Diese Methode ändert den Dokumentinhalt, diese Kommentare können bei Verwendung anderer Software sichtbar sein.",
+    "metadataSaveModeNoneHint": "Keine Metadaten speichern. Informationen wie Autor, Zusammenfassung, Schlüsselwörter und Agent-Sitzungsaufzeichnungen werden nicht gespeichert.",
+    "metadataSaveModeSidecarHint": "Versteckte .meta-Datei im gleichen Verzeichnis wie die Datei erstellen, um Metadaten zu speichern. Diese Methode beeinflusst nicht den Dokumentinhalt, beim Öffnen mit anderer Software sind Metadaten nicht sichtbar.",
+    "newConfig": "Neue Konfiguration",
+    "newTheme": "Neues Thema",
+    "newThemeDescription": "Ein neues benutzerdefiniertes Thema erstellen",
+    "noPendingRequest": "Keine ausstehenden Anfragen",
+    "openManualLLMInterface": "Manuelle LLM-Schnittstelle öffnen",
+    "overwriteConfigConfirm": "Konfigurationsname \"{name}\" existiert bereits, überschreiben?",
+    "overwriteConfigTitle": "Überschreiben bestätigen",
+    "parseEmbeddedImages": "Eingebettete Bilder im Dokument analysieren",
+    "parseEmbeddedImagesHint": "Automatische OCR-Erkennung eingebetteter Bilder im Dokument, bei Deaktivierung werden Bilder in Anhängen nicht per OCR erkannt, aber einzeln hochgeladene Bilder werden weiterhin erkannt.",
+    "pendingRequestId": "Ausstehende Anfrage-ID",
+    "pendingRequests": "Ausstehende Anfragen",
+    "presetThemeLakeBlue": "Seeblau",
+    "presetThemeLemonYellow": "Zitronengelb",
+    "presetThemeLightBlue": "Hellblau",
+    "presetThemeLightCyan": "Hellcyan",
+    "presetThemeLightGreen": "Hellgrün",
+    "presetThemeLightOrange": "Hellorange",
+    "presetThemeLightPurple": "Helllila",
+    "presetThemeLightRed": "Hellrot",
+    "presetThemeLightYellow": "Hellgelb",
+    "presetThemeMintGreen": "Minzgrün",
+    "presetThemeOffWhite": "Cremeweiß",
+    "presetThemeRosePurple": "Rosenlila",
+    "presetThemeSkyBlue": "Himmelblau",
+    "presetThemeSpaceGray": "Weltraumgrau",
+    "refreshRequests": "Anfrageliste aktualisieren",
+    "requestNotFound": "Anfrage existiert nicht oder ist abgelaufen",
+    "resetConfig": "Konfiguration zurücksetzen",
+    "resetFailed": "Zurücksetzen fehlgeschlagen",
+    "saveChanges": "Speichern",
+    "saveCurrentAsConfig": "Aktuelle als Konfiguration speichern",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "saveSuccess": "Speichern erfolgreich",
+    "selectChineseFont": "Chinesische Schriftart auswählen",
+    "selectCodeTheme": "Code-Thema auswählen",
+    "selectContentTheme": "Inhaltsthema auswählen",
+    "selectFont": "Schriftart auswählen",
+    "selectLlmConfig": "LLM-Konfiguration auswählen",
+    "selectPendingRequest": "Ausstehende Anfrage auswählen",
+    "selectWesternFont": "Westliche Schriftart auswählen",
+    "submitFailed": "Übermittlung fehlgeschlagen",
+    "submitManualResponse": "Antwort übermitteln",
+    "temporaryConfig": "(Temporär)",
+    "testChatNonStream": "Dialog - Nicht-Streaming",
+    "testChatStream": "Dialog - Streaming",
+    "testCompletionNonStream": "Vervollständigung - Nicht-Streaming",
+    "testCompletionStream": "Vervollständigung - Streaming",
+    "clearReferenceDirFailed": "Verzeichnis leeren fehlgeschlagen",
+    "getDirSizeFailed": "Verzeichnisgröße abrufen fehlgeschlagen",
+    "openDirFailed": "Verzeichnis öffnen fehlgeschlagen",
+    "testResultFailed": "Test fehlgeschlagen",
+    "testScenario": "Testszenario",
+    "themeColor": "Themenfarbe",
+    "themeName": "Themenname",
+    "themeNamePlaceholder": "Bitte geben Sie den Themennamen ein",
+    "themeNameRequired": "Bitte geben Sie den Themennamen ein",
+    "unsavedChanges": "Nicht gespeicherte Änderungen",
+    "unsavedChangesConfirm": "Die aktuelle Konfiguration hat nicht gespeicherte Änderungen, zuerst speichern?"
   },
   "titleMenu": {
     "contextMarks": {
@@ -1210,6 +1366,34 @@
       "chat": "Transformation des Wachstumsdialogs",
       "generate": "Generieren",
       "reset": "Zurück zur Übersicht"
+    },
+    "presetPrompts": {
+      "expand": {
+        "value": "Erweitern Sie diesen Text",
+        "label": "Text erweitern"
+      },
+      "condense": {
+        "value": "Kürzen Sie diesen Text",
+        "label": "Text kürzen"
+      },
+      "polish": {
+        "value": "Optimieren Sie den Schreibstil, um diesen Text eleganter zu machen",
+        "label": "Schreibstil optimieren"
+      },
+      "generateSection": {
+        "value": "Generieren Sie den Textinhalt für diesen Abschnitt basierend auf dem Gesamtinhalt des Artikels, reichhaltig und detailliert",
+        "label": "Abschnittsinhalt generieren"
+      },
+      "proofread": {
+        "value": "Korrigieren Sie alle grammatikalischen Fehler, Tippfehler und unpassenden Stellen im Text, behalten Sie die ursprüngliche Bedeutung bei",
+        "label": "Korrekturlesen und bearbeiten"
+      },
+      "flowchart": {
+        "value": "Generieren Sie ein Mermaid-Flussdiagramm basierend auf diesem Abschnitt, in Code-Block eingefasst"
+      },
+      "mindmap": {
+        "value": "Generieren Sie eine Mermaid-Mindmap basierend auf der Artikelstruktur, in Code-Block eingefasst"
+      }
     }
   },
   "userProfile": {
@@ -3607,5 +3791,70 @@
   "resizableContainer": {
     "collapse": "Einklappen",
     "expand": "Ausklappen"
+  },
+  "logoTab": {
+    "version": "Version {version}",
+    "versionLoading": "Version ..."
+  },
+  "settingBasicSection": {
+    "failedSize": "Verzeichnisgröße abrufen fehlgeschlagen",
+    "text": "Hallo Welt",
+    "unavailable": "Renderer nicht verfügbar"
+  },
+  "settingDebugSection": {
+    "debug": "Sitzungs-Debugging",
+    "test": "Test",
+    "test1": "Automatischer Test",
+    "text": "Beispiel",
+    "updateTest": "Aktualisierungstest",
+    "version": "Aktuelle Version",
+    "versionUpdate": "Aktualisierungsversion simulieren"
+  },
+  "settingLlmSection": {
+    "cancelled": "Abgebrochen",
+    "delete": "Standardkonfiguration kann nicht gelöscht werden",
+    "failedTest": "Test fehlgeschlagen",
+    "successImport": "Erfolgreich importiert",
+    "test": "Testergebnis",
+    "text": "Konfigurationen",
+    "text1": "Standard",
+    "text2": "Dies ist ein Demo-Modus"
+  },
+  "streamingJsonTree": {
+    "untitled": "Unbenannt"
+  },
+  "todolist-tool": {
+    "descriptionFeature": "Funktionsbeschreibung",
+    "descriptionUserLanguage": "Basierend auf der natürlichsprachigen Beschreibung des Benutzers",
+    "failed": "Fehlgeschlagen",
+    "recognize": "Intentionserkennung und Aufgabenaufteilung",
+    "recognize1": "Intentionserkennungs- und Aufgabenaufteilungswerkzeug",
+    "save": "Gespeichert in",
+    "success": "Erfolg",
+    "text": "Gelesen aus",
+    "text1": "Aufgabenanzahl",
+    "text2": "Komplexe Aufgaben in strukturierte Aufgabenlisten zerlegen",
+    "text3": "und komplexe Aufgaben in strukturierte Aufgabenlisten zerlegen",
+    "userAnalyze": "Benutzerintention analysieren",
+    "userRecognize": "Benutzerintention erkennen",
+    "validate": "Validieren"
+  },
+  "tool-call-parsers": {
+    "detect": "Verschachteltes erkannt",
+    "detect1": "Standard erkannt",
+    "format": "Format",
+    "notExistUnavailable": "Existiert nicht oder nicht verfügbar",
+    "parse": "Parser",
+    "parseFailed": "Parsing fehlgeschlagen",
+    "text": "Werkzeug",
+    "text1": "Delegieren an"
+  },
+  "useCloseTab": {
+    "closeOff": "Wird bereits geschlossen",
+    "ignoreRepeat": "Doppelte Anfrage ignorieren",
+    "notExist": "Existiert nicht mehr"
+  },
+  "useTabDrag": {
+    "failed": "Vorauslesen der Miniaturansicht fehlgeschlagen"
   }
 }

@@ -289,7 +289,7 @@ const selectImageDirectory = async () => {
       await saveImageSetting('localImageDir', result.filePaths[0])
     }
   } catch (error) {
-    notifyError('选择目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(t('setting.image.selectDirFailed', '选择目录失败') + ': ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
@@ -309,7 +309,7 @@ const openImageDirectory = async () => {
       notifyWarning(t('setting.image.noImageDirSet', '未设置图片目录'))
     }
   } catch (error) {
-    notifyError('打开目录失败: ' + (error instanceof Error ? error.message : String(error)))
+    notifyError(t('setting.image.openDirFailed', '打开目录失败') + ': ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 </script>

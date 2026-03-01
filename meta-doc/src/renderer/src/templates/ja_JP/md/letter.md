@@ -1,28 +1,28 @@
-**From:**  
-Name / Organization  
-Contact
+**差出人:**  
+名前 / 組織  
+連絡先
 
-**To:**  
-Name / Organization  
-Address
+**宛先:**  
+名前 / 組織  
+住所
 
-**Date:** Month Day, Year
+**日付:** 年 月 日
 
-**Subject:** Subject of the letter (optional)
+**件名:** 手紙の件名（オプション）
 
 ---
 
-Dear XXX,
+○○様
 
-(Opening: state the purpose of the letter.)
+（導入: 手紙の目的を述べます。）
 
-(Paragraph 1: Main request or matter.)
+（段落1: 主な要請または事項。）
 
-(Paragraph 2: Additional details, reasons, or context.)
+（段落2: 追加の詳細、理由、または背景。）
 
-(Paragraph 3: Expectations and next steps, e.g. “Looking forward to your reply.”)
+（段落3: 期待される結果と次のステップ、例: 「ご返答をお待ちしております。」）
 
-Sincerely,
+敬具
 
-Signature  
-Date
+署名  
+日付

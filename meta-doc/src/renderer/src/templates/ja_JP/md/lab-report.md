@@ -1,59 +1,59 @@
-# Lab Report: Experiment Title
+# 実験レポート: 実験タイトル
 
-**Course**:  
-**Date**:  
-**Name / ID**:  
-**Instructor**:
+**コース**:  
+**日付**:  
+**名前 / ID**:  
+**指導教員**:
 
 ---
 
-## 1. Objective
+## 1. 目的
 
-1. Objective 1
-2. Objective 2
-3. Objective 3
+1. 目的1
+2. 目的2
+3. 目的3
 
-## 2. Principle
+## 2. 原理
 
-Brief description of the theory, formulas, or principles related to the experiment. Use equations or diagrams if needed.
+実験に関連する理論、公式、または原理について簡潔に説明します。必要に応じて式や図を使用してください。
 
-## 3. Equipment and Procedure
+## 3. 機器と手順
 
-### 3.1 Equipment
+### 3.1 機器
 
-| Item | Spec/Model | Qty |
+| 項目 | 仕様/型番 | 数量 |
 | ---- | ---------- | --- |
 | —    | —          | —   |
 
-### 3.2 Procedure
+### 3.2 手順
 
-1. Step 1: …
-2. Step 2: …
-3. Step 3: …
+1. 手順1: …
+2. 手順2: …
+3. 手順3: …
 
-## 4. Data and Analysis
+## 4. データと分析
 
-### 4.1 Raw Data
+### 4.1 生データ
 
-(Record raw data in tables or lists.)
+（生データを表またはリストで記録してください。）
 
-### 4.2 Processing and Results
+### 4.2 処理と結果
 
-- Formulas used
-- Result tables or figures
-- Brief analysis
+- 使用した公式
+- 結果の表または図
+- 簡潔な分析
 
-## 5. Discussion
+## 5. 考察
 
-- Agreement with theory
-- Error sources
-- Suggestions for improvement
+- 理論との一致
+- 誤差の原因
+- 改善の提案
 
-## 6. Conclusion
+## 6. 結論
 
-Summarize conclusions and takeaways.
+結論と学びを要約します。
 
-## 7. References
+## 7. 参考文献
 
-1. Reference 1
-2. Reference 2
+1. 参考文献1
+2. 参考文献2

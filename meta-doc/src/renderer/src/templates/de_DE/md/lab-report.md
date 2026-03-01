@@ -1,59 +1,59 @@
-# Lab Report: Experiment Title
+# Laborbericht: Experiment-Titel
 
-**Course**:  
-**Date**:  
+**Kurs**:  
+**Datum**:  
 **Name / ID**:  
-**Instructor**:
+**Dozent**:
 
 ---
 
-## 1. Objective
+## 1. Zielsetzung
 
-1. Objective 1
-2. Objective 2
-3. Objective 3
+1. Ziel 1
+2. Ziel 2
+3. Ziel 3
 
-## 2. Principle
+## 2. Theorie
 
-Brief description of the theory, formulas, or principles related to the experiment. Use equations or diagrams if needed.
+Kurze Beschreibung der Theorie, Formeln oder Prinzipien, die mit dem Experiment zusammenhängen. Verwenden Sie bei Bedarf Gleichungen oder Diagramme.
 
-## 3. Equipment and Procedure
+## 3. Geräte und Durchführung
 
-### 3.1 Equipment
+### 3.1 Geräte
 
-| Item | Spec/Model | Qty |
-| ---- | ---------- | --- |
-| —    | —          | —   |
+| Gegenstand | Spezifikation/Modell | Anzahl |
+| ---------- | -------------------- | ------ |
+| —          | —                    | —      |
 
-### 3.2 Procedure
+### 3.2 Durchführung
 
-1. Step 1: …
-2. Step 2: …
-3. Step 3: …
+1. Schritt 1: …
+2. Schritt 2: …
+3. Schritt 3: …
 
-## 4. Data and Analysis
+## 4. Daten und Auswertung
 
-### 4.1 Raw Data
+### 4.1 Rohdaten
 
-(Record raw data in tables or lists.)
+(Rohdaten in Tabellen oder Listen aufzeichnen.)
 
-### 4.2 Processing and Results
+### 4.2 Verarbeitung und Ergebnisse
 
-- Formulas used
-- Result tables or figures
-- Brief analysis
+- Verwendete Formeln
+- Ergebnistabellen oder -abbildungen
+- Kurze Analyse
 
-## 5. Discussion
+## 5. Diskussion
 
-- Agreement with theory
-- Error sources
-- Suggestions for improvement
+- Übereinstimmung mit der Theorie
+- Fehlerquellen
+- Verbesserungsvorschläge
 
-## 6. Conclusion
+## 6. Schlussfolgerung
 
-Summarize conclusions and takeaways.
+Zusammenfassung der Schlussfolgerungen und Erkenntnisse.
 
-## 7. References
+## 7. Quellen
 
-1. Reference 1
-2. Reference 2
+1. Quelle 1
+2. Quelle 2

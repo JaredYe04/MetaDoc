@@ -1,28 +1,28 @@
-**From:**  
-Name / Organization  
-Contact
+**Von:**  
+Name / Organisation  
+Kontakt
 
-**To:**  
-Name / Organization  
-Address
+**An:**  
+Name / Organisation  
+Adresse
 
-**Date:** Month Day, Year
+**Datum:** Tag Monat, Jahr
 
-**Subject:** Subject of the letter (optional)
+**Betreff:** Betreff des Briefes (optional)
 
 ---
 
-Dear XXX,
+Sehr geehrte/r XXX,
 
-(Opening: state the purpose of the letter.)
+(Einleitung: Zweck des Briefes angeben.)
 
-(Paragraph 1: Main request or matter.)
+(Absatz 1: Hauptanliegen oder Anfrage.)
 
-(Paragraph 2: Additional details, reasons, or context.)
+(Absatz 2: Zusätzliche Details, Gründe oder Kontext.)
 
-(Paragraph 3: Expectations and next steps, e.g. “Looking forward to your reply.”)
+(Absatz 3: Erwartungen und nächste Schritte, z.B. „Ich freue mich auf Ihre Antwort.“)
 
-Sincerely,
+Mit freundlichen Grüßen,
 
-Signature  
-Date
+Unterschrift  
+Datum

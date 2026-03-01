@@ -1,38 +1,38 @@
-# Course Name: Lecture X — Chapter Title
+# コース名: 第X回 — 章タイトル
 
-**Date**:  
-**Instructor**:
-
----
-
-## Key Points
-
-- Point 1
-- Point 2
-- Point 3
+**日付**:  
+**講師**:
 
 ---
 
-## 1. Section Title
+## 重要ポイント
 
-(Class content: definitions, theorems, examples. Use lists or short paragraphs.)
-
-- **Definition**: …
-- **Theorem**: … (proof: “see board” or brief)
-- **Example**: …
-
-## 2. Section Title
-
-(Important formulas or steps can go on their own line.)
-
-(For figures/tables, write “see slide X” or insert image.)
-
-## 3. Summary and Questions
-
-- Main takeaways
-- Points to review or look up later
+- ポイント1
+- ポイント2
+- ポイント3
 
 ---
 
-**Next**: Preview of next lecture  
-**Homework / Reading**: Section or exercises
+## 1. セクションタイトル
+
+（授業内容: 定義、定理、例。リストまたは短い段落を使用。）
+
+- **定義**: …
+- **定理**: …（証明: 「黒板参照」または簡潔に）
+- **例**: …
+
+## 2. セクションタイトル
+
+（重要な公式やステップは独自の行に記載できます。）
+
+（図表の場合、「スライドX参照」と書くか画像を挿入。）
+
+## 3. まとめと質問
+
+- 主な要点
+- 後で復習または調べるポイント
+
+---
+
+**次回**: 次の講義の予告  
+**宿題 / 読書**: セクションまたは演習

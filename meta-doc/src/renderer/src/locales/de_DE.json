@@ -2051,31 +2051,37 @@
         "blank": {
           "description": "Leeres Markdown-Dokument erstellen",
           "label": "Leeres Dokument",
-          "content": "[German] "
+          "content": ""
         },
         "technicalDoc": {
           "label": "Technische Dokumentation",
-          "description": "Struktur für technische Dokumentation wie API, Architektur, Deployment – inkl. Schnittstellenbeschreibung und Konfiguration."
+          "description": "Struktur für technische Dokumentation wie API, Architektur, Deployment – inkl. Schnittstellenbeschreibung und Konfiguration.",
+          "content": "# Titel der technischen Dokumentation\n\n> Version: 1.0 | Zuletzt aktualisiert: Datum\n\n## 1. Übersicht\n\nKurze Beschreibung des Dokumentzwecks, des Umfangs und der Zielgruppe.\n\n**Zielgruppe**: Entwickler / DevOps / Produkt\n\n**Typ**: API-Dokumentation / Architektur / Deployment-Guide\n\n---\n\n## 2. Systemarchitektur\n\n### 2.1 Architektur auf hoher Ebene\n\n- Komponente A: Verantwortung\n- Komponente B: Verantwortung\n- Datenfluss und Aufrufbeziehungen\n\n### 2.2 Technologie-Stack\n\n| Ebene    | Technologie | Hinweise |\n| -------- | ----------- | -------- |\n| Frontend | —           | —        |\n| Backend  | —           | —        |\n| Speicher | —           | —        |\n\n---\n\n## 3. API-Referenz\n\n### 3.1 Endpunkt-Name\n\n- **Methode**: `GET` / `POST`\n- **Pfad**: `/api/xxx`\n- **Parameter**: siehe Tabelle unten\n- **Antwortbeispiel**: siehe Code-Block\n\n```json\n{\n  \"code\": 0,\n  \"data\": {}\n}\n```\n\n### 3.2 Fehlercodes\n\n| Code | Bedeutung       |\n| ---- | --------------- |\n| 0    | Erfolg          |\n| 4xx  | Client-Fehler   |\n| 5xx  | Server-Fehler   |\n\n---\n\n## 4. Konfiguration & Deployment\n\n### 4.1 Anforderungen\n\n- Laufzeitumgebung\n- Abhängigkeiten\n\n### 4.2 Deployment-Schritte\n\n1. Schritt eins\n2. Schritt zwei\n3. Schritt drei\n\n---\n\n## 5. Anhang\n\n- Glossar\n- Änderungsprotokoll\n"
         },
         "labReport": {
           "label": "Laborbericht",
-          "description": "Vollständiger Laborbericht mit Ziel, Theorie, Durchführung, Daten und Schlussfolgerung."
+          "description": "Vollständiger Laborbericht mit Ziel, Theorie, Durchführung, Daten und Schlussfolgerung.",
+          "content": "# Laborbericht: Experiment-Titel\n\n**Kurs**:  \n**Datum**:  \n**Name / ID**:  \n**Dozent**:\n\n---\n\n## 1. Zielsetzung\n\n1. Ziel 1\n2. Ziel 2\n3. Ziel 3\n\n## 2. Theorie\n\nKurze Beschreibung der Theorie, Formeln oder Prinzipien, die mit dem Experiment zusammenhängen. Verwenden Sie bei Bedarf Gleichungen oder Diagramme.\n\n## 3. Geräte und Durchführung\n\n### 3.1 Geräte\n\n| Gegenstand | Spezifikation/Modell | Anzahl |\n| ---------- | -------------------- | ------ |\n| —          | —                    | —      |\n\n### 3.2 Durchführung\n\n1. Schritt 1: …\n2. Schritt 2: …\n3. Schritt 3: …\n\n## 4. Daten und Auswertung\n\n### 4.1 Rohdaten\n\n(Rohdaten in Tabellen oder Listen aufzeichnen.)\n\n### 4.2 Verarbeitung und Ergebnisse\n\n- Verwendete Formeln\n- Ergebnistabellen oder -abbildungen\n- Kurze Analyse\n\n## 5. Diskussion\n\n- Übereinstimmung mit der Theorie\n- Fehlerquellen\n- Verbesserungsvorschläge\n\n## 6. Schlussfolgerung\n\nZusammenfassung der Schlussfolgerungen und Erkenntnisse.\n\n## 7. Quellen\n\n1. Quelle 1\n2. Quelle 2\n"
         },
         "courseReport": {
           "label": "Kursbericht",
-          "description": "Leserichte, Themenberichte, Rechercheberichte und andere Kursaufgaben."
+          "description": "Leserichte, Themenberichte, Rechercheberichte und andere Kursaufgaben.",
+          "content": "# Titel des Kursberichts\n\n**Kurs**:  \n**Typ**: Lesericht / Themenbericht / Recherchebericht  \n**Name / ID**:  \n**Datum**:\n\n---\n\n## Zusammenfassung\n\n(200–400 Wörter, die Hauptinhalt, Methode und Schlussfolgerungen zusammenfassen.)\n\n**Schlüsselwörter**: Schlüsselwort1; Schlüsselwort2; Schlüsselwort3\n\n---\n\n## 1. Einleitung\n\n- Hintergrund und Bedeutung\n- Fragestellungen und Aufbau des Berichts\n\n## 2. Hauptteil\n\n### 2.1 Teil Eins\n\n(Nach Kursanforderungen organisieren: Literaturübersicht, Analyse, Fallstudien usw.)\n\n### 2.2 Teil Zwei\n\n(Daten, Abbildungen und Zitate sollten ordnungsgemäß angegeben werden.)\n\n### 2.3 Teil Drei\n\n(Argumentation und Zusammenfassung.)\n\n## 3. Schlussfolgerung und Ausblick\n\n- Hauptergebnisse\n- Einschränkungen und zukünftige Arbeit\n\n## Quellen\n\n1. Autor. Titel. _Zeitschrift_, Jahr, Band(Ausgabe): Seiten.\n2. Autor. _Buchtitel_. Ort: Verlag, Jahr.\n\n## Anhang (optional)\n\n(Fragebögen, Rohdaten, Code usw.)\n"
         },
         "letter": {
           "label": "Brief",
-          "description": "Formales oder informelles Briefformat mit Anrede, Text und Unterschrift."
+          "description": "Formales oder informelles Briefformat mit Anrede, Text und Unterschrift.",
+          "content": "**Von:**  \nName / Organisation  \nKontakt\n\n**An:**  \nName / Organisation  \nAdresse\n\n**Datum:** Tag Monat, Jahr\n\n**Betreff:** Betreff des Briefes (optional)\n\n---\n\nSehr geehrte/r XXX,\n\n(Einleitung: Zweck des Briefes angeben.)\n\n(Absatz 1: Hauptanliegen oder Anfrage.)\n\n(Absatz 2: Zusätzliche Details, Gründe oder Kontext.)\n\n(Absatz 3: Erwartungen und nächste Schritte, z.B. „Ich freue mich auf Ihre Antwort.“)\n\nMit freundlichen Grüßen,\n\nUnterschrift  \nDatum\n"
         },
         "blogPost": {
           "label": "Blog/Post",
-          "description": "Blog-Artikel oder Social-Media-Post, geeignet für Kurztexte und Hashtags."
+          "description": "Blog-Artikel oder Social-Media-Post, geeignet für Kurztexte und Hashtags.",
+          "content": "# Blog- / Post-Titel\n\nEinzeiliger Haken oder Zusammenfassung, die als Untertitel dient.\n\n---\n\nBeginnen Sie mit einem oder zwei Sätzen, die Aufmerksamkeit erregen und die Hauptfrage oder Idee formulieren.\n\nDann entwickeln: Erzählen Sie eine Geschichte, listen Sie Punkte auf, geben Sie Beispiele oder verwenden Sie kurze Abschnitte.\n\n- Punkt eins\n- Punkt zwei\n- Punkt drei\n\nVerwenden Sie **fett**, _kursiv_ oder `Code`, wo es hilft.\n\nFür Zitate:\n\n> Zitierter Text oder fremde Idee; nennen Sie die Quelle, wenn möglich.\n\nSchließen Sie mit einer Zusammenfassung, einer Frage oder einem Aufruf zum Handeln (z.B. liken, teilen, kommentieren).\n\n---\n\n**Tags**: #Tag1 #Tag2 #Tag3\n"
         },
         "lectureNotes": {
           "label": "Vorlesungsnotizen",
-          "description": "Strukturierte Vorlesungsnotizen nach Sitzungen und Kernpunkten."
+          "description": "Strukturierte Vorlesungsnotizen nach Sitzungen und Kernpunkten.",
+          "content": "# Kursname: Vorlesung X – Kapitel-Titel\n\n**Datum**:  \n**Dozent**:\n\n---\n\n## Kernpunkte\n\n- Punkt 1\n- Punkt 2\n- Punkt 3\n\n---\n\n## 1. Abschnitts-Titel\n\n(Unterrichtsinhalt: Definitionen, Theoreme, Beispiele. Verwenden Sie Listen oder kurze Absätze.)\n\n- **Definition**: …\n- **Theorem**: … (Beweis: „siehe Tafel“ oder kurz)\n- **Beispiel**: …\n\n## 2. Abschnitts-Titel\n\n(Wichtige Formeln oder Schritte können in eine eigene Zeile.)\n\n(Für Abbildungen/Tabellen „siehe Folie X“ schreiben oder Bild einfügen.)\n\n## 3. Zusammenfassung und Fragen\n\n- Hauptergebnisse\n- Punkte zum Nachlesen oder Nachschlagen\n\n---\n\n**Nächstes**: Vorschau auf die nächste Vorlesung  \n**Hausaufgabe / Lektüre**: Abschnitt oder Übungen\n"
         }
       }
     },

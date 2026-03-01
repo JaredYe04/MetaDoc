@@ -1,11 +1,11 @@
-# Course Name: Lecture X — Chapter Title
+# Nom du cours : Cours X — Titre du chapitre
 
-**Date**:  
-**Instructor**:
+**Date** :  
+**Enseignant** :
 
 ---
 
-## Key Points
+## Points clés
 
 - Point 1
 - Point 2
@@ -13,26 +13,26 @@
 
 ---
 
-## 1. Section Title
+## 1. Titre de section
 
-(Class content: definitions, theorems, examples. Use lists or short paragraphs.)
+(Contenu du cours : définitions, théorèmes, exemples. Utiliser des listes ou de courts paragraphes.)
 
-- **Definition**: …
-- **Theorem**: … (proof: “see board” or brief)
-- **Example**: …
+- **Définition** : …
+- **Théorème** : … (preuve : « voir tableau » ou brève)
+- **Exemple** : …
 
-## 2. Section Title
+## 2. Titre de section
 
-(Important formulas or steps can go on their own line.)
+(Les formules ou étapes importantes peuvent être sur leur propre ligne.)
 
-(For figures/tables, write “see slide X” or insert image.)
+(Pour les figures/tableaux, écrire « voir diapositive X » ou insérer une image.)
 
-## 3. Summary and Questions
+## 3. Résumé et questions
 
-- Main takeaways
-- Points to review or look up later
+- Enseignements principaux
+- Points à revoir ou approfondir
 
 ---
 
-**Next**: Preview of next lecture  
-**Homework / Reading**: Section or exercises
+**Suivant** : Aperçu du prochain cours  
+**Devoirs / Lecture** : Section ou exercices

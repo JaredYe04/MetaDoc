@@ -1,38 +1,38 @@
-# Course Name: Lecture X — Chapter Title
+# 과목명: 강의 X — 장 제목
 
-**Date**:  
-**Instructor**:
-
----
-
-## Key Points
-
-- Point 1
-- Point 2
-- Point 3
+**날짜**:  
+**강사**: 
 
 ---
 
-## 1. Section Title
+## 핵심 포인트
 
-(Class content: definitions, theorems, examples. Use lists or short paragraphs.)
-
-- **Definition**: …
-- **Theorem**: … (proof: “see board” or brief)
-- **Example**: …
-
-## 2. Section Title
-
-(Important formulas or steps can go on their own line.)
-
-(For figures/tables, write “see slide X” or insert image.)
-
-## 3. Summary and Questions
-
-- Main takeaways
-- Points to review or look up later
+- 포인트 1
+- 포인트 2
+- 포인트 3
 
 ---
 
-**Next**: Preview of next lecture  
-**Homework / Reading**: Section or exercises
+## 1. 단원 제목
+
+(수업 내용: 정의, 정리, 예시. 목록이나 짧은 단락을 사용하세요.)
+
+- **정의**: …
+- **정리**: … (증명: "칠판 참고" 또는 간략히)
+- **예시**: …
+
+## 2. 단원 제목
+
+(중요한 공식이나 단계는 별도의 줄에 적으세요.)
+
+(그림/표의 경우 "슬라이드 X 참고"라고 쓰거나 이미지를 삽입하세요.)
+
+## 3. 요약 및 질문
+
+- 주요 요약
+- 나중에 복습하거나 찾아볼 포인트
+
+---
+
+**다음 시간**: 다음 강의 예고  
+**숙제 / 예습**: 단원 또는 연습문제

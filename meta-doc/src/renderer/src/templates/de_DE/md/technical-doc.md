@@ -1,43 +1,43 @@
-# Technical Document Title
+# Titel der technischen Dokumentation
 
-> Version: 1.0 | Last updated: Date
+> Version: 1.0 | Zuletzt aktualisiert: Datum
 
-## 1. Overview
+## 1. Übersicht
 
-Brief description of the document purpose, scope, and intended audience.
+Kurze Beschreibung des Dokumentzwecks, des Umfangs und der Zielgruppe.
 
-**Audience**: Developers / DevOps / Product
+**Zielgruppe**: Entwickler / DevOps / Produkt
 
-**Type**: API docs / Architecture / Deployment guide
-
----
-
-## 2. System Architecture
-
-### 2.1 High-Level Architecture
-
-- Component A: responsibility
-- Component B: responsibility
-- Data flow and call relationships
-
-### 2.2 Tech Stack
-
-| Layer    | Technology | Notes |
-| -------- | ---------- | ----- |
-| Frontend | —          | —     |
-| Backend  | —          | —     |
-| Storage  | —          | —     |
+**Typ**: API-Dokumentation / Architektur / Deployment-Guide
 
 ---
 
-## 3. API Reference
+## 2. Systemarchitektur
 
-### 3.1 Endpoint Name
+### 2.1 Architektur auf hoher Ebene
 
-- **Method**: `GET` / `POST`
-- **Path**: `/api/xxx`
-- **Parameters**: see table below
-- **Response example**: see code block
+- Komponente A: Verantwortung
+- Komponente B: Verantwortung
+- Datenfluss und Aufrufbeziehungen
+
+### 2.2 Technologie-Stack
+
+| Ebene    | Technologie | Hinweise |
+| -------- | ----------- | -------- |
+| Frontend | —           | —        |
+| Backend  | —           | —        |
+| Speicher | —           | —        |
+
+---
+
+## 3. API-Referenz
+
+### 3.1 Endpunkt-Name
+
+- **Methode**: `GET` / `POST`
+- **Pfad**: `/api/xxx`
+- **Parameter**: siehe Tabelle unten
+- **Antwortbeispiel**: siehe Code-Block
 
 ```json
 {
@@ -46,32 +46,32 @@ Brief description of the document purpose, scope, and intended audience.
 }
 ```
 
-### 3.2 Error Codes
+### 3.2 Fehlercodes
 
-| Code | Meaning      |
-| ---- | ------------ |
-| 0    | Success      |
-| 4xx  | Client error |
-| 5xx  | Server error |
-
----
-
-## 4. Configuration & Deployment
-
-### 4.1 Requirements
-
-- Runtime
-- Dependencies
-
-### 4.2 Deployment Steps
-
-1. Step one
-2. Step two
-3. Step three
+| Code | Bedeutung       |
+| ---- | --------------- |
+| 0    | Erfolg          |
+| 4xx  | Client-Fehler   |
+| 5xx  | Server-Fehler   |
 
 ---
 
-## 5. Appendix
+## 4. Konfiguration & Deployment
 
-- Glossary
-- Changelog
+### 4.1 Anforderungen
+
+- Laufzeitumgebung
+- Abhängigkeiten
+
+### 4.2 Deployment-Schritte
+
+1. Schritt eins
+2. Schritt zwei
+3. Schritt drei
+
+---
+
+## 5. Anhang
+
+- Glossar
+- Änderungsprotokoll

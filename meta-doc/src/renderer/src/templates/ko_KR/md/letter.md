@@ -1,28 +1,28 @@
-**From:**  
-Name / Organization  
-Contact
+**본인**:  
+이름 / 조직  
+연락처
 
-**To:**  
-Name / Organization  
-Address
+**수신**:  
+이름 / 조직  
+주소
 
-**Date:** Month Day, Year
+**날짜**: 월 일, 년도
 
-**Subject:** Subject of the letter (optional)
+**제목**: 편지 주제 (선택사항)
 
 ---
 
-Dear XXX,
+존경하는 XXX,
 
-(Opening: state the purpose of the letter.)
+(서두: 편지의 목적을 명시하세요.)
 
-(Paragraph 1: Main request or matter.)
+(단락 1: 주요 요청 또는 사항.)
 
-(Paragraph 2: Additional details, reasons, or context.)
+(단락 2: 추가 세부사항, 이유 또는 배경.)
 
-(Paragraph 3: Expectations and next steps, e.g. “Looking forward to your reply.”)
+(단락 3: 기대사항 및 다음 단계, 예: "답변을 기다리겠습니다.")
 
-Sincerely,
+감사합니다,
 
-Signature  
-Date
+서명  
+날짜

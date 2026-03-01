@@ -31,7 +31,9 @@ import { themeState, FIXED_LOGO_COLORS } from '../utils/themes'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import LogoIcon from './LogoIcon.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')
 const aboutDialogVisible = ref(false)
@@ -59,8 +61,8 @@ onMounted(async () => {
 })
 
 const versionTooltip = computed(() => {
-  if (!appVersion.value) return `版本 ...`
-  return `版本 ${appVersion.value}`
+  if (!appVersion.value) return t('logoTab.versionTooltip', '版本 ...')
+  return t('logoTab.versionTooltip', '版本 {version}', { version: appVersion.value })
 })
 
 // 点击Logo打开关于对话框

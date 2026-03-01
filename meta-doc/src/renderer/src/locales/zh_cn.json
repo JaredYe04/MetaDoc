@@ -921,7 +921,7 @@
       "creative": "创意"
     },
     "defaultText": "# 欢迎使用MetaDoc\n\n这是一款AI驱动的文字处理软件，可以帮助您快速生成文档内容。",
-    "defaultLatexText": "\\\\documentclass\u007Barticle\u007D\n\\\\begin\u007Bdocument\u007D\n\\\\title\u007B欢迎使用 MetaDoc\u007D\n\\\\author\u007BAI 助手\u007D\n\\\\maketitle\n\n\\\\section\u007B简介\u007D\n这是由 MetaDoc 生成的 LaTeX 快速开始模板。\n\n\\\\end\u007Bdocument\u007D"
+    "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{欢迎使用 MetaDoc}\n\\\\author{AI 助手}\n\\\\maketitle\n\n\\\\section{简介}\n这是由 MetaDoc 生成的 LaTeX 快速开始模板。\n\n\\\\end{document}"
   },
   "main": {
     "notification": {
@@ -1227,7 +1227,6 @@
     },
     "generateContentSuccessWithTitle": "AI为节点 {title} 生成内容成功！",
     "generateContentSuccess": "AI生成内容成功！",
-
     "formatSuccess": "标题格式化成功！",
     "confirmDeleteChapter": "是否要删除章节？",
     "warning": "警告",
@@ -1550,7 +1549,6 @@
     "knowledgeBaseSettings": "知识库设置",
     "themeSettings": "主题设置",
     "loggingSettings": "日志设置",
-
     "enableLlm": "启用LLM",
     "temporaryConfig": "(临时)",
     "configModifiedSuffix": "(已修改)",
@@ -1635,7 +1633,11 @@
       "downloadError": "下载失败",
       "installAndRestart": "安装并重启",
       "openSourceLicenses": "开源许可证",
-      "thirdPartyAssets": "第三方资产"
+      "thirdPartyAssets": "第三方资产",
+      "updateNotAvailable": "已是最新版本",
+      "updateNotAvailableDesc": "当前已是最新版本",
+      "updateError": "检查更新失败",
+      "appLogo": "应用图标"
     },
     "debug": {
       "title": "调试工具",
@@ -1835,7 +1837,6 @@
     "select_placeholder": "请选择左侧知识库条目以查看预览",
     "choose_one": "请选择一个知识库查看并修改配置",
     "delete_confirm_title": "删除确认",
-
     "delete_confirm": "确认删除知识库：{name}？",
     "cancel": "取消",
     "upload_started": "文件已上传并开始构建知识库",
@@ -3318,10 +3319,6 @@
         "label": "自动去除标题前缀",
         "description": "LaTeX会自动为每个章节添加编号，如果标题中已有编号前缀会导致重复。启用此选项将自动去除所有标题开头的编号和点号（如\"1.1\"、\"一、\"等）"
       },
-      "tabs": {
-        "basic": "基本设置",
-        "style": "样式设置"
-      },
       "showPageNumbers": {
         "label": "显示页码",
         "description": "在页脚显示页码"
@@ -3650,5 +3647,8 @@
       "line": "行",
       "noResults": "未找到相关文档"
     }
+  },
+  "logoTab": {
+    "versionTooltip": "版本 {version}"
   }
 }

@@ -32,55 +32,7 @@
     "proofread": "Proofread"
   },
   "leftMenu": {
-    "metaDocTooltip": "MetaDoc ;-)",
-    "fileTooltip": "File",
-    "file": "File",
-    "new": "New",
-    "open": "Open",
-    "save": "Save",
-    "saveAs": "Save As",
-    "export": "Export",
-    "exportPdf": "Export PDF",
-    "exportMarkdown": "Export Markdown",
-    "exportDocx": "Export DOCX",
-    "exportHtml": "Export HTML",
-    "exportLatex": "Export LaTeX",
-    "closeFile": "Close File",
-    "close": "Close",
-    "exportAsTemplate": "Export as template",
-    "exportAsTemplateTitleLabel": "Template title",
-    "exportAsTemplateDescLabel": "Template description",
-    "exportAsTemplateAiGenerate": "AI generate title and description",
-    "exportAsTemplateSuccess": "Added as template; you can select it when creating a new document",
-    "aiToolTooltip": "AI Tools",
-    "aiAssistant": "AI Assistant",
-    "chatWithAI": "Chat with AI",
-    "handwritingFormulaRecognition": "Handwriting Formula Recognition",
-    "smartDrawingAssistant": "Smart Drawing Assistant",
-    "dataAnalysis": "Data Analysis Tool",
-    "ocr": "OCR Text Recognition",
-    "attachment": "Attachment Parser",
-    "graph": "Graph Tool",
-    "settingsTooltip": "Settings",
-    "settings": "Settings",
-    "settingsPanel": "Settings Panel",
-    "recentFilesTooltip": "Recent Files",
-    "recentFiles": "Recent Files",
-    "exitTooltip": "Exit",
-    "exit": "Exit",
-    "saveAndExit": "Save and Exit",
-    "exitWithoutSaving": "Exit Without Saving",
-    "userProfileTooltip": "User Profile",
-    "langTooltip": "Language",
-    "askSave": "Do you want to save the current document",
-    "discard": "Abandon",
-    "tip": "Hint",
-    "saveAll": "Save All",
-    "saveAllAndExit": "Save All and Exit",
-    "userFeedback": "User Feedback",
-    "knowledgeBase": "Knowledge Base",
-    "workspaceExplorer": "Workspace Explorer",
-    "workspaceGrep": "Workspace Search"
+    "userManual": "User Manual"
   },
   "llmDialog": {
     "aiAssistant": "AI Assistant",
@@ -671,7 +623,6 @@
     },
     "generateContentSuccessWithTitle": "AI successfully generated content for node {title}!",
     "generateContentSuccess": "AI generated content successfully!",
-
     "formatSuccess": "Title formatting successful!",
     "confirmDeleteChapter": "Do you want to delete this chapter?",
     "warning": "Warning",
@@ -729,7 +680,6 @@
     "basic": "Basic Settings",
     "llm": "LLM Settings",
     "themes": "Theme Settings",
-
     "startupOption": "Startup Option",
     "openNewFile": "Open New File",
     "openLastFile": "Open Last Edited File",
@@ -754,7 +704,27 @@
     "disabled": "Disabled",
     "about": {
       "feedback": "User Feedback",
-      "officialQQGroup": "Official QQ Group"
+      "officialQQGroup": "Official QQ Group",
+      "appName": "MetaDoc",
+      "version": "Version",
+      "releaseDate": "Release Date",
+      "buildEnvironment": "Build Environment",
+      "updateSettings": "Update Settings",
+      "openSourceLicenses": "Open Source Licenses",
+      "thirdPartyAssets": "Third-party Assets",
+      "autoCheckUpdates": "Auto Check Updates",
+      "updateChannel": "Update Channel",
+      "channelRelease": "Release",
+      "channelDev": "Dev",
+      "checkUpdate": "Check for Updates",
+      "checking": "Checking...",
+      "updateAvailable": "Update Available",
+      "updateAvailableDesc": "New version {version} available, click to download",
+      "updateNotAvailable": "Up to Date",
+      "updateNotAvailableDesc": "You are using the latest version",
+      "updateError": "Check Failed",
+      "downloadUpdate": "Download Update",
+      "appLogo": "App Logo"
     },
     "microphoneTest": "Microphone Test",
     "microphoneHint": "Check if microphone is working.",
@@ -2117,9 +2087,6 @@
     "globalWorkspace": "Global workspace (currently opened documents)",
     "activeWorkspaceCount": "{count} workspace folders opened"
   },
-  "leftMenu": {
-    "userManual": "User Manual"
-  },
   "userManual": {
     "title": "User Manual",
     "searchPlaceholder": "Search tutorial content...",
@@ -2357,5 +2324,8 @@
       "pending": "Pending",
       "selected": "Selected"
     }
+  },
+  "logoTab": {
+    "versionTooltip": "Version {version}"
   }
 }

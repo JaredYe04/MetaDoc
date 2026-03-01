@@ -685,7 +685,31 @@
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
     "tokens": "トークン。",
-    "unlimited": "無制限"
+    "unlimited": "無制限",
+    "about": {
+      "appName": "MetaDoc",
+      "version": "バージョン",
+      "releaseDate": "リリース日",
+      "buildEnvironment": "ビルド環境",
+      "officialQQGroup": "公式QQグループ",
+      "feedback": "フィードバック",
+      "updateSettings": "更新設定",
+      "openSourceLicenses": "オープンソースライセンス",
+      "thirdPartyAssets": "サードパーティアセット",
+      "autoCheckUpdates": "自動更新チェック",
+      "updateChannel": "更新チャンネル",
+      "channelRelease": "安定版",
+      "channelDev": "開発版",
+      "checkUpdate": "更新を確認",
+      "checking": "確認中...",
+      "updateAvailable": "更新あり",
+      "updateAvailableDesc": "新バージョン {version} が利用可能です。クリックしてダウンロード",
+      "updateNotAvailable": "最新版です",
+      "updateNotAvailableDesc": "最新バージョンを使用中です",
+      "updateError": "確認失敗",
+      "downloadUpdate": "ダウンロード",
+      "appLogo": "アプリロゴ"
+    }
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -1156,5 +1180,8 @@
     "xiaoliu": "小六",
     "qihao": "七号",
     "bahao": "八号"
+  },
+  "logoTab": {
+    "versionTooltip": "バージョン {version}"
   }
 }

@@ -685,7 +685,31 @@
     "autoCompletionMaxTokens": "자동 완성 토큰",
     "autoCompletionMaxTokensHint": "AI Auto-completion용 토큰의 최대 수를 제한하고 최소 20,0이 제한됩니다.",
     "tokens": "토큰.",
-    "unlimited": "제한 없음"
+    "unlimited": "제한 없음",
+    "about": {
+      "appName": "MetaDoc",
+      "version": "버전",
+      "releaseDate": "릴리스 날짜",
+      "buildEnvironment": "빌드 환경",
+      "officialQQGroup": "공식 QQ 그룹",
+      "feedback": "피드백",
+      "updateSettings": "업데이트 설정",
+      "openSourceLicenses": "오픈 소스 라이선스",
+      "thirdPartyAssets": "타사 에셋",
+      "autoCheckUpdates": "자동 업데이트 확인",
+      "updateChannel": "업데이트 채널",
+      "channelRelease": "정식 버전",
+      "channelDev": "개발 버전",
+      "checkUpdate": "업데이트 확인",
+      "checking": "확인 중...",
+      "updateAvailable": "업데이트 가능",
+      "updateAvailableDesc": "새 버전 {version} 사용 가능, 클릭하여 다운로드",
+      "updateNotAvailable": "최신 버전",
+      "updateNotAvailableDesc": "최신 버전을 사용 중입니다",
+      "updateError": "확인 실패",
+      "downloadUpdate": "업데이트 다운로드",
+      "appLogo": "앱 로고"
+    }
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -1156,5 +1180,8 @@
     "xiaoliu": "소육",
     "qihao": "칠호",
     "bahao": "팔호"
+  },
+  "logoTab": {
+    "versionTooltip": "버전 {version}"
   }
 }

@@ -645,7 +645,31 @@
     "autoCompletionMaxTokens": "Automatiquement complet maximum Jetons",
     "autoCompletionMaxTokensHint": "Limiter le nombre maximal de jetons pour l'auto-achèvement de l'IA, avec un minimum de 20,0 étant illimité",
     "tokens": "Un jeton.",
-    "unlimited": "Illimité"
+    "unlimited": "Illimité",
+    "about": {
+      "appName": "MetaDoc",
+      "version": "Version",
+      "releaseDate": "Date de sortie",
+      "buildEnvironment": "Environnement de build",
+      "officialQQGroup": "Groupe QQ officiel",
+      "feedback": "Retour",
+      "updateSettings": "Paramètres de mise à jour",
+      "openSourceLicenses": "Licences open source",
+      "thirdPartyAssets": "Ressources tierces",
+      "autoCheckUpdates": "Vérification automatique",
+      "updateChannel": "Canal de mise à jour",
+      "channelRelease": "Stable",
+      "channelDev": "Développement",
+      "checkUpdate": "Vérifier les mises à jour",
+      "checking": "Vérification...",
+      "updateAvailable": "Mise à jour disponible",
+      "updateAvailableDesc": "Nouvelle version {version} disponible, cliquez pour télécharger",
+      "updateNotAvailable": "À jour",
+      "updateNotAvailableDesc": "Vous utilisez la dernière version",
+      "updateError": "Échec de la vérification",
+      "downloadUpdate": "Télécharger",
+      "appLogo": "Logo"
+    }
   },
   "titleMenu": {
     "contextMarks": {
@@ -1156,5 +1180,8 @@
     "xiaoliu": "Petit Sixième",
     "qihao": "Septième",
     "bahao": "Huitième"
+  },
+  "logoTab": {
+    "versionTooltip": "Version {version}"
   }
 }

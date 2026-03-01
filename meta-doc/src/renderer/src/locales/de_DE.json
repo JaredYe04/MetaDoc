@@ -645,7 +645,31 @@
     "autoCompletionMaxTokens": "Automatisches Gesamtmaximum Token",
     "autoCompletionMaxTokensHint": "Beschränken Sie die maximale Anzahl von Token für KI-Autokompletion, wobei mindestens 20,0 unbegrenzt sind",
     "tokens": "Ein Token.",
-    "unlimited": "Unbegrenzt"
+    "unlimited": "Unbegrenzt",
+    "about": {
+      "appName": "MetaDoc",
+      "version": "Version",
+      "releaseDate": "Veröffentlichungsdatum",
+      "buildEnvironment": "Build-Umgebung",
+      "officialQQGroup": "Offizielle QQ-Gruppe",
+      "feedback": "Feedback",
+      "updateSettings": "Update-Einstellungen",
+      "openSourceLicenses": "Open-Source-Lizenzen",
+      "thirdPartyAssets": "Drittanbieter-Assets",
+      "autoCheckUpdates": "Automatisch auf Updates prüfen",
+      "updateChannel": "Update-Kanal",
+      "channelRelease": "Release",
+      "channelDev": "Entwicklung",
+      "checkUpdate": "Auf Updates prüfen",
+      "checking": "Prüfung...",
+      "updateAvailable": "Update verfügbar",
+      "updateAvailableDesc": "Neue Version {version} verfügbar, zum Download klicken",
+      "updateNotAvailable": "Aktuell",
+      "updateNotAvailableDesc": "Sie verwenden die neueste Version",
+      "updateError": "Prüfung fehlgeschlagen",
+      "downloadUpdate": "Update herunterladen",
+      "appLogo": "App-Logo"
+    }
   },
   "titleMenu": {
     "contextMarks": {
@@ -1254,5 +1278,8 @@
     "xiaoliu": "Small Sixth",
     "qihao": "Seventh",
     "bahao": "Eighth"
+  },
+  "logoTab": {
+    "versionTooltip": "Version {version}"
   }
 }

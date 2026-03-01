@@ -894,20 +894,6 @@
     "switchWarning": "AI工作时切换界面可能导致任务丢失。",
     "title": "AI任务队列"
   },
-  "aigcDetection": {
-    "sentenceUniformity": "句式统一性",
-    "lexicalDiversity": "词汇重复度",
-    "reasoningSmoothness": "逻辑平滑度",
-    "personalTrace": "个人痕迹缺失度",
-    "styleConsistency": "风格风险",
-    "overExplanation": "过度解释",
-    "hedgingPattern": "模糊限定",
-    "openingTransitionPattern": "过渡语模板",
-    "structuralCompleteness": "结构重复",
-    "contentDepth": "抽象空洞",
-    "emotionalConsistency": "情感平淡",
-    "formulaicClosure": "套路化收尾"
-  },
   "aigc": {
     "analysisComplete": "分析完成",
     "analysisReport": "分析报告",
@@ -999,12 +985,17 @@
     "argumentQuality": "论证质量",
     "contentDepth": "内容深度",
     "emotionalConsistency": "情感一致性",
+    "formulaicClosure": "套路化收尾",
+    "hedgingPattern": "模糊限定",
     "highRisk": "高风险",
     "informationDensity": "信息密度",
     "lexicalDiversity": "词汇重复度",
     "lowRisk": "低风险",
     "mediumRisk": "中风险",
     "noText": "请输入要检测的文本",
+    "openingTransitionPattern": "过渡语模板",
+    "overExplanation": "过度解释",
+    "personalTrace": "个人痕迹缺失度",
     "reasoningSmoothness": "逻辑平滑度",
     "riskLevel": "风险等级",
     "sentenceUniformity": "句式统一性",
@@ -3124,10 +3115,33 @@
   "setting": {
     "about": {
       "title": "关于",
-      "aboutUs": "关于我们",
-      "content": "这里是关于我们页面的内容",
+      "appName": "MetaDoc",
+      "version": "版本",
+      "releaseDate": "发布日期",
+      "buildEnvironment": "构建环境",
+      "buildEnvironmentDev": "开发环境",
+      "buildEnvironmentRelease": "正式环境",
+      "officialQQGroup": "官方 QQ 群",
+      "feedback": "反馈问题",
+      "updateSettings": "更新设置",
+      "openSourceLicenses": "开源协议",
+      "thirdPartyAssets": "第三方资源",
+      "autoCheckUpdates": "自动检查更新",
+      "updateChannel": "更新频道",
       "channelRelease": "稳定频道",
-      "channelDev": "测试频道"
+      "channelDev": "测试频道",
+      "checking": "检查中...",
+      "checkUpdate": "检查更新",
+      "updateAvailable": "发现新版本",
+      "updateAvailableDesc": "发现新版本 {version}，请下载更新。",
+      "noUpdate": "已是最新版本",
+      "noUpdateDesc": "当前已是最新版本。",
+      "checkUpdateError": "检查更新失败",
+      "downloadUpdate": "下载更新",
+      "downloading": "下载中",
+      "installAndRestart": "安装并重启",
+      "downloadError": "下载失败",
+      "loadFailed": "加载失败"
     },
     "allChangesSaved": "所有更改已保存",
     "apiBaseUrl": "API BaseURL",
@@ -4218,6 +4232,10 @@
     "startPlaceholder": "开始日期",
     "endPlaceholder": "结束日期",
     "rangeSeparator": "至"
+  },
+  "aiGreeting": {
+    "title": "你好！我是MetaDoc AI助手！",
+    "subtitle": "我是你的智能文档写作助手，我可以高效地使用各种AI工具，帮助你生成图文并茂、内容充实丰富的、专业的、多领域的文章。"
   },
   "agentEngine": {
     "greeting": {

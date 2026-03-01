@@ -1730,8 +1730,20 @@ const executeAgentEngine = async (
     } catch (error) {
       const logger = createRendererLogger('AgentView')
 
-      // 检查是否是用户取消的任务 (AbortError 是取消的标记)
-      const isCancelled = error instanceof Error && error.name === 'AbortError'
+      // 检查是否是用户取消的任务
+      // - 原始 AbortError（如 fetch/AbortController）
+      // - LlmError(type === 'ABORTED')，或其 originalError/cause 为 AbortError
+      const anyError = error as any
+      const isAbortErrorName =
+        error instanceof Error &&
+        (error.name === 'AbortError' || (error as any).cause?.name === 'AbortError')
+      const isLlmAborted =
+        anyError &&
+        typeof anyError === 'object' &&
+        (anyError.type === 'ABORTED' ||
+          anyError.originalError?.name === 'AbortError' ||
+          anyError.originalError?.type === 'ABORTED')
+      const isCancelled = isAbortErrorName || isLlmAborted
 
       if (isCancelled) {
         // 用户手动取消，不记录为错误，只更新消息内容

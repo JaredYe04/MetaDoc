@@ -67,10 +67,14 @@ onMounted(async () => {
 })
 
 const versionTooltip = computed(() => {
-  if (!appVersion.value) return t('logoTab.versionLoading', '版本 ...')
+  const versionLoadingText = t('logoTab.versionLoading')
+  if (!appVersion.value) return versionLoadingText === 'logoTab.versionLoading' ? '版本 ...' : versionLoadingText
   const channelKey = updateChannel.value === 'dev' ? 'channelDev' : 'channelRelease'
-  const channel = t(`setting.about.${channelKey}`, updateChannel.value === 'dev' ? '测试频道' : '稳定频道')
-  return t('logoTab.version', '版本 {version} ({channel})', { version: appVersion.value, channel })
+  const channelText = t(`setting.about.${channelKey}`)
+  const channel = channelText === `setting.about.${channelKey}` 
+    ? (updateChannel.value === 'dev' ? '测试频道' : '稳定频道')
+    : channelText
+  return t('logoTab.version', { version: appVersion.value, channel })
 })
 
 // 点击Logo打开关于对话框

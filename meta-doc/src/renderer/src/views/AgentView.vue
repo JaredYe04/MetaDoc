@@ -440,6 +440,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
+import { ai_task_status } from '../utils/consts'
 
 // === Demo Mode Props ===
 const props = defineProps<{
@@ -994,9 +995,9 @@ watch(
           // 只有当任务确实已完成/失败/取消时，才从handle集合中移除
           if (
             task &&
-            (task.status.value === t('agent.task.status.completed', '已完成') ||
-              task.status.value === t('agent.task.status.failed', '失败') ||
-              task.status.value === t('agent.task.status.cancelled', '取消'))
+            (task.status.value === ai_task_status.FINISHED ||
+              task.status.value === ai_task_status.FAILED ||
+              task.status.value === ai_task_status.CANCELLED)
           ) {
             handlesToRemove.push(handle)
           }
@@ -1008,9 +1009,9 @@ watch(
           const currentTask = allTasks.value.find((t) => t.handle === currentAiTaskHandle.value)
           if (
             currentTask &&
-            (currentTask.status.value === t('agent.task.status.completed', '已完成') ||
-              currentTask.status.value === t('agent.task.status.failed', '失败') ||
-              currentTask.status.value === t('agent.task.status.cancelled', '取消'))
+            (currentTask.status.value === ai_task_status.FINISHED ||
+              currentTask.status.value === ai_task_status.FAILED ||
+              currentTask.status.value === ai_task_status.CANCELLED)
           ) {
             currentAiTaskHandle.value = null
           }
@@ -1730,11 +1731,19 @@ const executeAgentEngine = async (
       const logger = createRendererLogger('AgentView')
 
       // 检查是否是用户取消的任务
-      const isCancelled =
+      // - 原始 AbortError（如 fetch/AbortController）
+      // - LlmError(type === 'ABORTED')，或其 originalError/cause 为 AbortError
+      const anyError = error as any
+      const isAbortErrorName =
         error instanceof Error &&
-        (error.message === t('agent.task.cancelledMessage') ||
-          error.message.includes(t('agent.task.cancelledMessage')) ||
-          error.name === 'AbortError')
+        (error.name === 'AbortError' || (error as any).cause?.name === 'AbortError')
+      const isLlmAborted =
+        anyError &&
+        typeof anyError === 'object' &&
+        (anyError.type === 'ABORTED' ||
+          anyError.originalError?.name === 'AbortError' ||
+          anyError.originalError?.type === 'ABORTED')
+      const isCancelled = isAbortErrorName || isLlmAborted
 
       if (isCancelled) {
         // 用户手动取消，不记录为错误，只更新消息内容

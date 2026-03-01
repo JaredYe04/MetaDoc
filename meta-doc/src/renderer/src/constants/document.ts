@@ -81,7 +81,7 @@ export const DEFAULT_ARTICLE_META: ArticleMetaData = {
 }
 
 export const DEFAULT_AI_ASSISTANT_GREETING =
-  '### {{aiGreeting.title}}\n{{aiGreeting.subtitle}}\n'
+  '### {{agentEngine.greeting.title}}\n{{agentEngine.greeting.subtitle}}\n'
 
 export const DEFAULT_AGENT_ASSISTANT_GREETING =
   '### {{agentEngine.greeting.title}}\n\n{{agentEngine.greeting.subtitle}}\n\n{{agentEngine.greeting.canDo}}\n- {{agentEngine.greeting.ragTool}}\n- {{agentEngine.greeting.chartTool}}\n- {{agentEngine.greeting.editTool}}\n- {{agentEngine.greeting.proofreadTool}}\n\n{{agentEngine.greeting.tellMe}}\n'

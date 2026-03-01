@@ -2012,7 +2012,7 @@
         "article": {
           "description": "Contains the structure of the chapters, such as summaries, body, conclusions, etc.",
           "label": "Article Template",
-          "content": "[English] # 标题\n\n## 摘要\n\n在这里撰写摘要内容。\n\n## 正文\n\n- 要点一\n- 要点二\n\n## 结论\n\n在这里撰写结论内容。\n"
+          "content": "# Title\n\n## Abstract\n\nWrite your abstract content here.\n\n## Main Content\n\n- Key point one\n- Key point two\n\n## Conclusion\n\nWrite your conclusion content here.\n"
         },
         "technicalDoc": {
           "label": "Technical document",

@@ -2003,7 +2003,7 @@
         "article": {
           "description": "Contient la structure des chapitres, tels que résumés, corps, conclusions, etc.",
           "label": "Modèle d'article",
-          "content": "[French] # 标题\n\n## 摘要\n\n在这里撰写摘要内容。\n\n## 正文\n\n- 要点一\n- 要点二\n\n## 结论\n\n在这里撰写结论内容。\n"
+          "content": "# Titre\n\n## Résumé\n\nRédigez votre résumé ici.\n\n## Contenu principal\n\n- Point clé un\n- Point clé deux\n\n## Conclusion\n\nRédigez votre conclusion ici.\n"
         },
         "blank": {
           "description": "Créer un document Markdown vierge",

@@ -1,14 +1,14 @@
-[German] # 标题
+# Titel
 
-## 摘要
+## Zusammenfassung
 
-在这里撰写摘要内容。
+Hier die Zusammenfassung verfassen.
 
-## 正文
+## Hauptteil
 
-- 要点一
-- 要点二
+- Hauptpunkt eins
+- Hauptpunkt zwei
 
-## 结论
+## Schlussfolgerung
 
-在这里撰写结论内容。
+Hier die Schlussfolgerung verfassen.

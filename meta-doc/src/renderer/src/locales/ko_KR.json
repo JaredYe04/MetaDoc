@@ -3891,7 +3891,27 @@
       "warning": "경고",
       "info": "정보"
     },
-    "title": "문서 교정"
+    "title": "문서 교정",
+    "startProofread": "교정 시작",
+    "errorsList": "오류 목록",
+    "documentPreview": "문서 미리보기",
+    "noErrorsFound": "오류를 찾을 수 없습니다",
+    "clearFixed": "수정 항목 지우기",
+    "noDocument": "활성 문서가 없습니다",
+    "noContent": "문서가 비어 있습니다",
+    "autoFixed": "수정됨",
+    "location": "위치",
+    "errorText": "오류 텍스트",
+    "suggestions": "수정 제안",
+    "addToDictionary": "사전에 추가",
+    "proofreadSuccess": "교정 완료",
+    "proofreadFailed": "교정 실패",
+    "fixFailed": "수정 실패: 오류 위치 불일치",
+    "fixSuccess": "수정 성공",
+    "addToDictionarySuccess": "사전에 추가됨",
+    "addToDictionaryFailed": "사전 추가 실패",
+    "fixAllSuccess": "{count}개 오류 수정",
+    "clearFixedSuccess": "{removedCount}개 수정 항목 지움"
   },
   "proofread-tool": {
     "cancelled": "요청이 취소되었습니다",

@@ -3882,7 +3882,27 @@
       "warning": "Warnung",
       "info": "Hinweis"
     },
-    "title": "Textkorrektur"
+    "title": "Textkorrektur",
+    "startProofread": "Korrektur starten",
+    "errorsList": "Fehlerliste",
+    "documentPreview": "Dokumentvorschau",
+    "noErrorsFound": "Keine Fehler gefunden",
+    "clearFixed": "Behobene löschen",
+    "noDocument": "Kein aktives Dokument",
+    "noContent": "Dokument ist leer",
+    "autoFixed": "Behoben",
+    "location": "Position",
+    "errorText": "Fehlertext",
+    "suggestions": "Vorschläge",
+    "addToDictionary": "Zum Wörterbuch hinzufügen",
+    "proofreadSuccess": "Korrektur abgeschlossen",
+    "proofreadFailed": "Korrektur fehlgeschlagen",
+    "fixFailed": "Korrektur fehlgeschlagen: Fehlerposition stimmt nicht überein",
+    "fixSuccess": "Korrektur erfolgreich",
+    "addToDictionarySuccess": "Zum Wörterbuch hinzugefügt",
+    "addToDictionaryFailed": "Hinzufügen zum Wörterbuch fehlgeschlagen",
+    "fixAllSuccess": "{count} Fehler behoben",
+    "clearFixedSuccess": "{removedCount} behobene Fehler gelöscht"
   },
   "proofread-tool": {
     "cancelled": "Anfrage abgebrochen",

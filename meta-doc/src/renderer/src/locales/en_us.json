@@ -4178,7 +4178,27 @@
       "warning": "Warning",
       "info": "Info"
     },
-    "title": "Proofreading"
+    "title": "Proofreading",
+    "startProofread": "Start Proofreading",
+    "errorsList": "Error List",
+    "documentPreview": "Document Preview",
+    "noErrorsFound": "No errors found",
+    "clearFixed": "Clear Fixed",
+    "noDocument": "No active document",
+    "noContent": "Document is empty",
+    "autoFixed": "Fixed",
+    "location": "Location",
+    "errorText": "Error Text",
+    "suggestions": "Suggestions",
+    "addToDictionary": "Add to Dictionary",
+    "proofreadSuccess": "Proofreading completed",
+    "proofreadFailed": "Proofreading failed",
+    "fixFailed": "Fix failed: error position mismatch",
+    "fixSuccess": "Fix successful",
+    "addToDictionarySuccess": "Added to dictionary",
+    "addToDictionaryFailed": "Failed to add to dictionary",
+    "fixAllSuccess": "Fixed {count} errors",
+    "clearFixedSuccess": "Cleared {removedCount} fixed errors"
   },
   "proofread-tool": {
     "cancelled": "Request cancelled",

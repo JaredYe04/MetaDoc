@@ -4,7 +4,8 @@
     :class="{ expanded: expanded }"
     :style="{
       backgroundColor: themeState.currentTheme.background2nd,
-      borderColor: themeState.currentTheme.type === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+      borderColor:
+        themeState.currentTheme.type === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
       width: panelWidth + 'px',
       height: expanded ? panelHeight + 'px' : undefined
     }"
@@ -17,12 +18,19 @@
       :class="{ 'drop-target': isDropTarget }"
       @click="toggleExpand"
     >
-      <component :is="expanded ? ChevronDown : ChevronRight" class="material-basket-chevron w-4 h-4" />
+      <component
+        :is="expanded ? ChevronDown : ChevronRight"
+        class="material-basket-chevron w-4 h-4"
+      />
       <span class="material-basket-title">{{ $t('outline.materialBasket.title') }}</span>
       <span v-if="basket.length > 0" class="material-basket-count">{{ basket.length }}</span>
     </div>
     <transition name="basket-expand">
-      <div v-show="expanded" class="material-basket-body" :style="{ maxHeight: panelHeight - headerHeight + 'px' }">
+      <div
+        v-show="expanded"
+        class="material-basket-body"
+        :style="{ maxHeight: panelHeight - headerHeight + 'px' }"
+      >
         <div v-if="basket.length > 0" class="material-basket-search-wrap">
           <input
             v-model="searchQuery"
@@ -42,7 +50,9 @@
             <p class="material-basket-empty-hint">{{ $t('outline.materialBasket.emptyHint') }}</p>
           </template>
           <template v-else-if="filteredBasket.length === 0">
-            <p class="material-basket-empty-hint">{{ $t('outline.materialBasket.noSearchResult') }}</p>
+            <p class="material-basket-empty-hint">
+              {{ $t('outline.materialBasket.noSearchResult') }}
+            </p>
           </template>
           <template v-else>
             <div
@@ -56,7 +66,9 @@
               @dragend="onItemDragEnd"
               @contextmenu.prevent="openItemContextMenu($event, item)"
             >
-              <span class="material-basket-item-text" :title="item.title">{{ item.title || $t('outline.newNode') }}</span>
+              <span class="material-basket-item-text" :title="item.title">{{
+                item.title || $t('outline.newNode')
+              }}</span>
             </div>
           </template>
         </div>
@@ -64,7 +76,12 @@
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger as-child>
-                <Button variant="outline" size="sm" class="add-item-btn" @click.stop="emit('requestAddItem')">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="add-item-btn"
+                  @click.stop="emit('requestAddItem')"
+                >
                   <Plus class="w-4 h-4" />
                   <span>{{ $t('outline.materialBasket.addItem') }}</span>
                 </Button>
@@ -92,7 +109,9 @@
           :style="[menuPositionStyle, menuStyle]"
           @click.stop
         >
-          <div class="item-menu__submenu-label">{{ $t('outline.materialBasket.mergeToOutline') }}</div>
+          <div class="item-menu__submenu-label">
+            {{ $t('outline.materialBasket.mergeToOutline') }}
+          </div>
           <button type="button" class="item-menu__item" @click="onMergeAsChild">
             <span>{{ $t('outline.materialBasket.asChild') }}</span>
           </button>
@@ -120,7 +139,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Plus, ChevronRight, ChevronDown, Copy, Trash2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@renderer/components/ui/tooltip'
 import { themeState } from '../../utils/themes'
 import type { MaterialBasketItem } from '../../../types'
 
@@ -180,7 +204,8 @@ function onResizeEnd() {
 const menuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
-  borderColor: themeState.currentTheme.type === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
 }))
 const menuPositionStyle = computed(() => {
   if (!itemContextMenuPosition.value) return {}
@@ -212,14 +237,18 @@ const onPanelDragover = (e: DragEvent) => {
     if (!props.expanded) emit('update:expanded', true)
   }
 }
-const onPanelDragleave = () => { isDropTarget.value = false }
+const onPanelDragleave = () => {
+  isDropTarget.value = false
+}
 const onDropZoneDragover = (e: DragEvent) => {
   if (props.isDraggingFromOutline) {
     isDropTarget.value = true
     if (!props.expanded) emit('update:expanded', true)
   }
 }
-const onDropZoneDragleave = () => { isDropTarget.value = false }
+const onDropZoneDragleave = () => {
+  isDropTarget.value = false
+}
 const onPanelDrop = () => {
   isDropTarget.value = false
   if (props.isDraggingFromOutline) emit('dropFromOutline')
@@ -232,7 +261,9 @@ const onItemDragStart = (e: DragEvent, item: MaterialBasketItem) => {
   }
   emit('dragStartBasket', item.id)
 }
-const onItemDragEnd = () => { emit('dragEndBasket') }
+const onItemDragEnd = () => {
+  emit('dragEndBasket')
+}
 
 const itemContextMenuItem = ref<MaterialBasketItem | null>(null)
 const itemContextMenuPosition = ref<{ x: number; y: number } | null>(null)
@@ -486,7 +517,9 @@ defineExpose({ closeItemContextMenu })
 
 .basket-expand-enter-active,
 .basket-expand-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .basket-expand-enter-from,
 .basket-expand-leave-to {

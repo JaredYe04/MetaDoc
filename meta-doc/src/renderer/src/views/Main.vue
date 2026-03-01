@@ -306,10 +306,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   // 仅指定 tabId（如工作区搜索点击未命名文档）：激活已有 Tab
   if (payload.tabId && !resolvedPath) {
     const existingByTabId = workspaceTabs.find((t) => t.id === payload.tabId)
-    if (
-      existingByTabId &&
-      (existingByTabId.kind === 'file' || existingByTabId.kind === 'new')
-    ) {
+    if (existingByTabId && (existingByTabId.kind === 'file' || existingByTabId.kind === 'new')) {
       activateTab(existingByTabId.id)
       const existingDoc = ensureDocument(existingByTabId.id)
       eventBus.emit('open-doc-success', {
@@ -735,8 +732,7 @@ function initMainEventListeners() {
         ? workspaceTabs.find((t) => t.id === tabId)
         : workspaceTabs.find(
             (t) =>
-              t.kind === 'file' &&
-              normalizePathForGrep(t.path || '') === normalizePathForGrep(path)
+              t.kind === 'file' && normalizePathForGrep(t.path || '') === normalizePathForGrep(path)
           )
       if (tab && (tab.kind === 'file' || tab.kind === 'new')) {
         activateTab(tab.id)

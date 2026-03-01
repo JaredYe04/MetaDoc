@@ -36,7 +36,7 @@ const handleClick = () => {
   isShaking.value = true
   setTimeout(() => {
     isShaking.value = false
-  }, 1500) // 动画持续时间
+  }, 1500) // {{ t('dummyView.animationDuration') }}
 }
 </script>
 
@@ -60,7 +60,7 @@ const handleClick = () => {
   transform: scale(1.2);
 }
 
-/* 摇晃时也应用 scale(1.2) ，transition 会平滑过渡 */
+/* {{ t('dummyView.shakeScale') }} */
 .logo-container.shake {
   transform: scale(1.2);
 }
@@ -78,7 +78,7 @@ const handleClick = () => {
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
-/* 摇晃动画 - 只包含位移和旋转，scale 由外层容器处理 */
+/* {{ t('dummyView.shakeAnimation') }} - {{ t('dummyView.shakeDescription') }} */
 @keyframes shake {
   0%,
   100% {

@@ -103,6 +103,206 @@
             "labelKey": "newDocument.templates.markdown.lectureNotes.label",
             "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
           }
+        ],
+        "ja_JP": [
+          {
+            "id": "blank",
+            "file": "blank.md",
+            "labelKey": "newDocument.templates.markdown.blank.label",
+            "descriptionKey": "newDocument.templates.markdown.blank.description"
+          },
+          {
+            "id": "article",
+            "file": "article.md",
+            "labelKey": "newDocument.templates.markdown.article.label",
+            "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
+          }
+        ],
+        "ko_KR": [
+          {
+            "id": "blank",
+            "file": "blank.md",
+            "labelKey": "newDocument.templates.markdown.blank.label",
+            "descriptionKey": "newDocument.templates.markdown.blank.description"
+          },
+          {
+            "id": "article",
+            "file": "article.md",
+            "labelKey": "newDocument.templates.markdown.article.label",
+            "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
+          }
+        ],
+        "de_DE": [
+          {
+            "id": "blank",
+            "file": "blank.md",
+            "labelKey": "newDocument.templates.markdown.blank.label",
+            "descriptionKey": "newDocument.templates.markdown.blank.description"
+          },
+          {
+            "id": "article",
+            "file": "article.md",
+            "labelKey": "newDocument.templates.markdown.article.label",
+            "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
+          }
+        ],
+        "fr_FR": [
+          {
+            "id": "blank",
+            "file": "blank.md",
+            "labelKey": "newDocument.templates.markdown.blank.label",
+            "descriptionKey": "newDocument.templates.markdown.blank.description"
+          },
+          {
+            "id": "article",
+            "file": "article.md",
+            "labelKey": "newDocument.templates.markdown.article.label",
+            "descriptionKey": "newDocument.templates.markdown.article.description"
+          },
+          {
+            "id": "technical-doc",
+            "file": "technical-doc.md",
+            "labelKey": "newDocument.templates.markdown.technicalDoc.label",
+            "descriptionKey": "newDocument.templates.markdown.technicalDoc.description"
+          },
+          {
+            "id": "lab-report",
+            "file": "lab-report.md",
+            "labelKey": "newDocument.templates.markdown.labReport.label",
+            "descriptionKey": "newDocument.templates.markdown.labReport.description"
+          },
+          {
+            "id": "course-report",
+            "file": "course-report.md",
+            "labelKey": "newDocument.templates.markdown.courseReport.label",
+            "descriptionKey": "newDocument.templates.markdown.courseReport.description"
+          },
+          {
+            "id": "letter",
+            "file": "letter.md",
+            "labelKey": "newDocument.templates.markdown.letter.label",
+            "descriptionKey": "newDocument.templates.markdown.letter.description"
+          },
+          {
+            "id": "blog-post",
+            "file": "blog-post.md",
+            "labelKey": "newDocument.templates.markdown.blogPost.label",
+            "descriptionKey": "newDocument.templates.markdown.blogPost.description"
+          },
+          {
+            "id": "lecture-notes",
+            "file": "lecture-notes.md",
+            "labelKey": "newDocument.templates.markdown.lectureNotes.label",
+            "descriptionKey": "newDocument.templates.markdown.lectureNotes.description"
+          }
         ]
       }
     },
@@ -148,6 +348,158 @@
           }
         ],
         "en_US": [
+          {
+            "id": "article",
+            "file": "article.tex",
+            "labelKey": "newDocument.templates.latex.article.label",
+            "descriptionKey": "newDocument.templates.latex.article.description"
+          },
+          {
+            "id": "report",
+            "file": "report.tex",
+            "labelKey": "newDocument.templates.latex.report.label",
+            "descriptionKey": "newDocument.templates.latex.report.description"
+          },
+          {
+            "id": "gb7714_zh",
+            "file": "gb7714_zh.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh.description"
+          },
+          {
+            "id": "ieee_en",
+            "file": "ieee_en.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en.description"
+          },
+          {
+            "id": "gb7714_zh_twocolumn",
+            "file": "gb7714_zh_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh_twocolumn.description"
+          },
+          {
+            "id": "ieee_en_twocolumn",
+            "file": "ieee_en_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
+          }
+        ],
+        "ja_JP": [
+          {
+            "id": "article",
+            "file": "article.tex",
+            "labelKey": "newDocument.templates.latex.article.label",
+            "descriptionKey": "newDocument.templates.latex.article.description"
+          },
+          {
+            "id": "report",
+            "file": "report.tex",
+            "labelKey": "newDocument.templates.latex.report.label",
+            "descriptionKey": "newDocument.templates.latex.report.description"
+          },
+          {
+            "id": "gb7714_zh",
+            "file": "gb7714_zh.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh.description"
+          },
+          {
+            "id": "ieee_en",
+            "file": "ieee_en.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en.description"
+          },
+          {
+            "id": "gb7714_zh_twocolumn",
+            "file": "gb7714_zh_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh_twocolumn.description"
+          },
+          {
+            "id": "ieee_en_twocolumn",
+            "file": "ieee_en_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
+          }
+        ],
+        "ko_KR": [
+          {
+            "id": "article",
+            "file": "article.tex",
+            "labelKey": "newDocument.templates.latex.article.label",
+            "descriptionKey": "newDocument.templates.latex.article.description"
+          },
+          {
+            "id": "report",
+            "file": "report.tex",
+            "labelKey": "newDocument.templates.latex.report.label",
+            "descriptionKey": "newDocument.templates.latex.report.description"
+          },
+          {
+            "id": "gb7714_zh",
+            "file": "gb7714_zh.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh.description"
+          },
+          {
+            "id": "ieee_en",
+            "file": "ieee_en.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en.description"
+          },
+          {
+            "id": "gb7714_zh_twocolumn",
+            "file": "gb7714_zh_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh_twocolumn.description"
+          },
+          {
+            "id": "ieee_en_twocolumn",
+            "file": "ieee_en_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
+          }
+        ],
+        "de_DE": [
+          {
+            "id": "article",
+            "file": "article.tex",
+            "labelKey": "newDocument.templates.latex.article.label",
+            "descriptionKey": "newDocument.templates.latex.article.description"
+          },
+          {
+            "id": "report",
+            "file": "report.tex",
+            "labelKey": "newDocument.templates.latex.report.label",
+            "descriptionKey": "newDocument.templates.latex.report.description"
+          },
+          {
+            "id": "gb7714_zh",
+            "file": "gb7714_zh.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh.description"
+          },
+          {
+            "id": "ieee_en",
+            "file": "ieee_en.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en.description"
+          },
+          {
+            "id": "gb7714_zh_twocolumn",
+            "file": "gb7714_zh_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.gb7714_zh_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.gb7714_zh_twocolumn.description"
+          },
+          {
+            "id": "ieee_en_twocolumn",
+            "file": "ieee_en_twocolumn.tex",
+            "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
+            "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
+          }
+        ],
+        "fr_FR": [
           {
             "id": "article",
             "file": "article.tex",

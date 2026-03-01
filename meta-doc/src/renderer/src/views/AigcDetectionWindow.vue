@@ -320,23 +320,21 @@ import messageBridge from '../bridge/message-bridge'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import { ref as vueRef } from 'vue'
 
-/** 维度显示顺序与中文标签（与 schemas.AigcDimensionScore 一致） */
-/** 维度标签：统一方向为「分数越高 AIGC 风险越大」，名称与方向一致 */
-const AIGC_DIMENSION_LABELS: Record<keyof AigcDimensionScore, string> = {
-  sentence_uniformity: '句式统一性',
-  lexical_diversity: '词汇重复度',
-  reasoning_smoothness: '逻辑平滑度',
-  personal_trace: '个人痕迹缺失度',
-  stylistic_risk: '风格风险',
-  over_explanation: '过度解释',
-  hedging_pattern: '模糊限定',
-  opening_transition_pattern: '过渡语模板',
-  structural_repetition: '结构重复',
-  abstractness: '抽象空洞',
-  emotional_flatness: '情感平淡',
-  formulaic_closure: '套路化收尾'
-}
-const AIGC_DIMENSION_KEYS = Object.keys(AIGC_DIMENSION_LABELS) as (keyof AigcDimensionScore)[]
+/** AIGC 维度键名列表（与 schemas.AigcDimensionScore 一致） */
+const AIGC_DIMENSION_KEYS: (keyof AigcDimensionScore)[] = [
+  'sentence_uniformity',
+  'lexical_diversity',
+  'reasoning_smoothness',
+  'personal_trace',
+  'stylistic_risk',
+  'over_explanation',
+  'hedging_pattern',
+  'opening_transition_pattern',
+  'structural_repetition',
+  'abstractness',
+  'emotional_flatness',
+  'formulaic_closure'
+]
 /** 从分析结果中安全取维度分（兼容旧数据缺字段） */
 function getDimensionScore(result: AigcAnalysisResult, key: keyof AigcDimensionScore): number {
   const v = result[key]
@@ -435,9 +433,25 @@ const AIGC_DIM_DESCRIPTIONS: Record<keyof AigcDimensionScore, [string, string, s
 }
 
 const { t, locale } = useI18n()
-/** 维度标签 i18n（雷达图、饼图、报告表格等） */
+/** 维度标签 i18n（雷达图、饼图、报告表格等）
+ * 使用 aigcDetection 命名空间下的新 i18n 键
+ */
 function getDimensionLabel(k: keyof AigcDimensionScore): string {
-  return t(`aigc.dimensions.${k}`)
+  const keyMap: Record<keyof AigcDimensionScore, string> = {
+    sentence_uniformity: 'aigcDetection.sentenceUniformity',
+    lexical_diversity: 'aigcDetection.lexicalDiversity',
+    reasoning_smoothness: 'aigcDetection.reasoningSmoothness',
+    personal_trace: 'aigcDetection.personalTrace',
+    stylistic_risk: 'aigcDetection.styleConsistency',
+    over_explanation: 'aigcDetection.overExplanation',
+    hedging_pattern: 'aigcDetection.hedgingPattern',
+    opening_transition_pattern: 'aigcDetection.openingTransitionPattern',
+    structural_repetition: 'aigcDetection.structuralCompleteness',
+    abstractness: 'aigcDetection.contentDepth',
+    emotional_flatness: 'aigcDetection.emotionalConsistency',
+    formulaic_closure: 'aigcDetection.formulaicClosure'
+  }
+  return t(keyMap[k] || `aigc.dimensions.${k}`)
 }
 const { activeDocument, activeTab } = useActiveDocument()
 const workspace = useWorkspace()

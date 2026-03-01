@@ -8,7 +8,12 @@
         class="keyword-badge"
       >
         {{ keyword }}
-        <button type="button" class="keyword-remove" :disabled="disabled" @click="removeKeyword(index)">
+        <button
+          type="button"
+          class="keyword-remove"
+          :disabled="disabled"
+          @click="removeKeyword(index)"
+        >
           <X class="h-3 w-3" />
         </button>
       </Badge>

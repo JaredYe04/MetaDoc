@@ -27,7 +27,9 @@ export default defineConfig({
           'node_modules/@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css'
         ),
         // 使用 vue3-tree-chart 源码（不 patch node_modules，视口保留通过 Outline 内用普通变量锁避免点击重渲染实现）
-        '@ssthouse/vue3-tree-chart': resolve('node_modules/@ssthouse/vue3-tree-chart/src/vue-tree/index.js')
+        '@ssthouse/vue3-tree-chart': resolve(
+          'node_modules/@ssthouse/vue3-tree-chart/src/vue-tree/index.js'
+        )
       }
     },
     plugins: [vue()],

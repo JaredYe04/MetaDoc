@@ -111,7 +111,79 @@ watch(() => themeState.type, (type) => {
 
 ---
 
-### 4. TypeScript 类型安全
+### 4. FLIP 动画时序控制
+
+#### 错误：给浏览器绘制机会
+
+```typescript
+// ❌ 错误
+async animateTabOpen() {
+  const first = recordPositions()
+  await nextTick()
+  await nextFrame()  // 浏览器在这里绘制了！
+  applyInvert()      // 标签已闪现到新位置
+}
+```
+
+#### 正确：立即应用 invert
+
+```typescript
+// ✅ 正确
+async animateTabOpen() {
+  const first = recordPositions()
+  await nextTick()
+  
+  // 立即在同一帧内测量并应用 invert
+  const last = measurePositions()
+  const delta = calcDelta(first, last)
+  applyInvert(delta)  // 同一事件循环！
+  
+  await nextFrame()   // 下一帧才播放动画
+  playAnimation()
+}
+```
+
+**关键**：`nextTick()` 后立即测量并应用 invert，不给浏览器绘制机会。
+
+---
+
+### 5. GPU 加速 CSS
+
+```css
+.animated-element {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+```
+
+---
+
+### 6. Web Animations API
+
+```typescript
+// 创建动画
+const animation = element.animate(
+  [
+    { transform: 'translate3d(0, 0, 0)' },
+    { transform: 'translate3d(100px, 0, 0)' }
+  ],
+  { duration: 200, easing: 'ease-out' }
+)
+
+// 取消动画
+animation.cancel()
+
+// 等待完成
+await animation.finished
+```
+
+**优势**：完全控制（暂停、回放、取消），60fps GPU 加速。
+
+---
+
+### 7. TypeScript 类型安全
 
 #### 问题：Element 类型没有 dataset 属性
 
@@ -155,6 +227,11 @@ git push origin fix/branch-name -f
 - [ ] 主题/状态变化使用 CSS 变量
 - [ ] 类型断言确保 TypeScript 编译通过
 - [ ] 测试时检查是否触发重新渲染
+- [ ] FLIP 动画立即应用 invert（不给浏览器绘制机会）
+- [ ] 使用 `translate3d` 强制 GPU 加速
+- [ ] 及时清理 transform 样式
+- [ ] 取消冲突的动画
+- [ ] 使用克隆元素播放退出动画
 
 ## 常见陷阱
 
@@ -162,9 +239,12 @@ git push origin fix/branch-name -f
 2. **过度使用响应式** - 不是所有数据都需要 Vue 响应式
 3. **忽视第三方组件** - 它们可能有内部的响应式设计
 4. **类型安全问题** - `Element` vs `HTMLElement`
+5. **FLIP 时序错误** - `await nextFrame()` 在应用 invert 之前
+6. **动画冲突** - 不取消已有动画导致抖动
+7. **样式残留** - 动画结束后不清理 transform
 
 ---
 
-**相关 Issue**: #25  
-**相关 PR**: #26  
+**相关 Issue**: #25 (大纲), #21 (Tab 动画)  
+**相关 PR**: #26, #27  
 **文档**: docs/CODING_EXPERIENCE_OUTLINE_RENDER_FLASH.md

@@ -686,8 +686,8 @@ const allTabs = computed(() => {
 // 计算Tab数量，用于CSS变量
 const tabCount = computed(() => allTabs.value.length)
 
-// 使用标签页动画 composable - 必须在 allTabs 定义之后
-const { triggerNewTabAnimation, triggerCloseTabAnimation } = useTabAnimation(tabsListRef, allTabs)
+// 使用标签页动画 composable - GPU 加速 FLIP 动画
+const { triggerNewTabAnimation, triggerCloseTabAnimation, cancelAnimations } = useTabAnimation(tabsListRef)
 
 const currentActiveId = computed({
   get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
@@ -808,10 +808,10 @@ const handleCloseTab = async (tabId: string) => {
   tab._isClosing = true
 
   try {
-    // 播放关闭动画
-    await triggerCloseTabAnimation(tabId)
-    // 动画完成后真正移除
-    doRemoveTab(tabId)
+    // GPU 加速 FLIP 动画：先记录位置，然后播放动画同时移除 store
+    await triggerCloseTabAnimation(tabId, () => {
+      doRemoveTab(tabId)
+    })
   } finally {
     closingTabIds.delete(tabId)
   }
@@ -1544,6 +1544,9 @@ watch(
 
 // 清理事件监听器
 onUnmounted(() => {
+  // Cancel any running tab animations
+  cancelAnimations()
+
   document.removeEventListener('click', handleTabContextMenuClickOutside)
 
   eventBus.off('tab-close-with-animation', handleCloseTab)
@@ -1708,6 +1711,10 @@ onUnmounted(() => {
   flex: 1 1 100px;
   min-width: 100px;
   max-width: 200px;
+  /* GPU 加速优化 */
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 /* 活跃 Tab */

@@ -651,22 +651,23 @@ const handleContainerClick = (event: MouseEvent) => {
   }
 }
 
-// 计算悬停颜色
-const hoverColor = computed(() => {
-  return mixColors(
-    themeState.currentTheme.background2nd,
-    themeState.currentTheme.SideTextColor,
-    0.15
-  )
-})
+// 计算悬停颜色（基于面板背景）
+const hoverColor = computed(() =>
+  mixColors(explorerPanelBackground.value, themeState.currentTheme.SideTextColor, 0.15)
+)
 
-// 计算活跃 Tab 背景色（不高亮背景色与 #777777 混合 0.5）
-const activeTabBackgroundColor = computed(() => {
-  // 使用 editorToolbarBackgroundColor（不高亮背景色）与 #777777 混合
-  const baseBg =
-    themeState.currentTheme.editorToolbarBackgroundColor || themeState.currentTheme.background2nd
-  return mixColors(baseBg, '#777777', 0.3)
-})
+// 与 LeftMenu、ViewMenuContainer 一致：面板统一背景
+const explorerPanelBackground = computed(
+  () =>
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background
+)
+// 计算活跃 Tab 背景色（在面板背景基础上略深）
+const activeTabBackgroundColor = computed(() =>
+  mixColors(explorerPanelBackground.value, '#777777', 0.3)
+)
 
 // 与 LeftMenu 右侧边界一致：左侧明显分界线，避免与左侧撞色难以区分
 const explorerLeftBorderColor = computed(
@@ -2529,7 +2530,7 @@ const handleSelectAll = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: v-bind('themeState.currentTheme.editorToolbarBackgroundColor');
+  background-color: v-bind('explorerPanelBackground');
   border-left: 1px solid v-bind('explorerLeftBorderColor');
   border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
   outline: none;
@@ -2548,7 +2549,7 @@ const handleSelectAll = async () => {
   font-size: 13px;
   font-weight: 600;
   min-height: 32px;
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: v-bind('explorerPanelBackground');
 }
 
 .workspace-explorer-title {
@@ -2576,7 +2577,7 @@ const handleSelectAll = async () => {
 }
 
 .workspace-explorer-main {
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: v-bind('explorerPanelBackground');
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -2622,7 +2623,7 @@ const handleSelectAll = async () => {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: v-bind('explorerPanelBackground');
 }
 
 .opened-files-scrollbar {
@@ -2636,7 +2637,7 @@ const handleSelectAll = async () => {
   font-size: 13px;
   font-weight: 600;
   color: v-bind('themeState.currentTheme.SideTextColor');
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: v-bind('explorerPanelBackground');
   border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
   user-select: none;
 }

@@ -346,32 +346,29 @@ const getFileIcon = (fileName: string): string => {
   return theme.BaseDocIcon || theme.MdDocIcon || ''
 }
 
+// 与 WorkspaceExplorer 面板背景一致
+const nodePanelBackground = computed(
+  () =>
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background
+)
+
 // 计算悬停颜色
-const hoverColor = computed(() => {
-  return mixColors(
-    themeState.currentTheme.background2nd,
-    themeState.currentTheme.SideTextColor,
-    0.15
-  )
-})
+const hoverColor = computed(() =>
+  mixColors(nodePanelBackground.value, themeState.currentTheme.SideTextColor, 0.15)
+)
 
 // 计算选中颜色
-const selectedColor = computed(() => {
-  return mixColors(
-    themeState.currentTheme.background2nd,
-    themeState.currentTheme.primaryColor || '#409eff',
-    0.3
-  )
-})
+const selectedColor = computed(() =>
+  mixColors(nodePanelBackground.value, themeState.currentTheme.primaryColor || '#409eff', 0.3)
+)
 
 // 计算拖拽目标高亮颜色
-const dragTargetColor = computed(() => {
-  return mixColors(
-    themeState.currentTheme.background2nd,
-    themeState.currentTheme.primaryColor || '#409eff',
-    0.2
-  )
-})
+const dragTargetColor = computed(() =>
+  mixColors(nodePanelBackground.value, themeState.currentTheme.primaryColor || '#409eff', 0.2)
+)
 
 // 处理拖拽开始
 const handleDragStart = (event: DragEvent) => {
@@ -463,7 +460,7 @@ const handleDragEnd = (event: DragEvent) => {
   gap: 4px;
   padding: 2px 8px;
   font-size: 13px;
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: v-bind('nodePanelBackground');
   color: v-bind('themeState.currentTheme.SideTextColor');
   cursor: pointer;
   min-height: 20px;

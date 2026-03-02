@@ -247,11 +247,16 @@ const formState = reactive({
   description: ''
 })
 
+// 与 LeftMenu、ViewMenuContainer 及子面板一致：统一用 sidebarPanelBackground
 const panelStyle = computed(() => {
   const textColor = themeState.currentTheme.textColor
-  const muted = mixColors(themeState.currentTheme.background2nd, textColor, 0.4)
+  const bg =
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.background
+  const muted = mixColors(bg, textColor, 0.4)
   return {
-    backgroundColor: themeState.currentTheme.background2nd,
+    backgroundColor: bg,
     color: textColor,
     '--meta-text-color': textColor,
     '--meta-muted-color': muted

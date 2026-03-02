@@ -213,7 +213,7 @@ const statusTagType = computed(() => {
     case 'succeeded':
       return 'success'
     case 'failed':
-      return 'danger'
+      return 'info'
     default:
       return 'info'
   }
@@ -612,9 +612,8 @@ const outputBodyStyle = computed(() => ({
   borderColor: contentBorderColor.value
 }))
 
-// 进度条状态
+// 进度条状态（失败用默认/灰色，不用 exception 红色）
 const progressStatus = computed(() => {
-  if (props.message.status === 'failed') return 'exception'
   if (props.message.status === 'succeeded') return 'success'
   if (props.message.status === 'running') return undefined
   return undefined
@@ -997,8 +996,8 @@ const exportSnapshot = async () => {
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 8px;
-  background-color: rgba(245, 108, 108, 0.12);
-  color: #f56c6c;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor2');
   display: flex;
   align-items: center;
   gap: 8px;

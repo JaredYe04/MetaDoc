@@ -434,7 +434,9 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceInactiveBg: mixColors(themeColor, '#3a3a3a', 0.7),
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#cccccc', 0.85), 0.7),
         // 引用容器边框颜色
-        referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5)
+        referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5),
+        // 左侧菜单 + 视图侧栏 + 面板统一背景（与 background2nd 一致，略浅）
+        sidebarPanelBackground: mixColors(themeColor, '#2a2a2a', 0.85)
       }
       // 应用覆盖值
       return { ...baseColors, ...overrides }
@@ -475,7 +477,9 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceInactiveBg: mixColors(themeColor, '#f5f5f5', 0.8),
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#666666', 0.7), 0.8),
         // 引用容器边框颜色
-        referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5)
+        referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5),
+        // 左侧菜单 + 视图侧栏 + 面板统一背景（浅色下柔和略深，避免纯白）
+        sidebarPanelBackground: mixColors(themeColor, '#ebebeb', 0.25)
       }
       // 应用覆盖值
       return { ...baseColors, ...overrides }
@@ -522,6 +526,8 @@ export const lightTheme = customTheme('#ffffff', {
   codeColor: '#333333',
   primaryColor: '#000000',
   secondaryColor: '#666666',
+  // 左侧菜单 + 视图侧栏 + 面板统一背景（浅色下柔和、略深于 #f0f0f0）
+  sidebarPanelBackground: '#ebebeb',
   // 引用标签颜色
   referenceActiveBg: '#409eff',
   referenceActiveText: '#ffffff',
@@ -562,6 +568,8 @@ export const darkTheme = customTheme('#2c2c2c', {
   codeColor: '#e0e0e0',
   primaryColor: '#e0e0e0', // 按钮/开关等主色用浅灰，保持灰度
   secondaryColor: '#909090', // 次要色用中灰
+  // 左侧菜单 + 视图侧栏 + 面板统一背景（与原来一致且略浅，用 background2nd）
+  sidebarPanelBackground: '#3a3a3a',
   // 引用标签颜色
   referenceActiveBg: '#4a9eff',
   referenceActiveText: '#ffffff',

@@ -7,6 +7,7 @@
         :style="bubbleStyle"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
+        @click="message.role === 'user' ? handleUserMessageBodyClick($event) : undefined"
       >
         <!-- 时间戳（用户消息显示在左边，AI消息显示在右边） -->
         <transition name="fade">
@@ -296,7 +297,7 @@ import type {
 } from '../../types/agent'
 import AgentToolResultCard from './AgentToolResultCard.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
-import { themeState } from '../../utils/themes'
+import { themeState, mixColors } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
@@ -421,7 +422,7 @@ const getToolStatusTagType = (status: ToolAgentMessage['status']) => {
     case 'succeeded':
       return 'success'
     case 'failed':
-      return 'danger'
+      return 'info'
     default:
       return 'info'
   }
@@ -449,29 +450,62 @@ const alignmentClass = computed(() => {
 })
 
 const bubbleStyle = computed(() => {
-  const currentTheme = themeState.currentTheme as Record<string, any>
-  const primarySubtle = currentTheme.primarySubtle as string | undefined
+  const theme = themeState.currentTheme
   if (props.message.role === 'user') {
+    // 用户消息气泡：深色稍浅一点、浅色稍深一点（不要过头）
+    const isDark = theme.type === 'dark'
+    const bg = isDark
+      ? mixColors(theme.background2nd, '#000000', 0.28)
+      : mixColors(theme.background2nd, '#ffffff', 0.25)
+    const border = isDark
+      ? mixColors(theme.background2nd, '#000000', 0.42)
+      : mixColors(theme.background2nd, '#000000', 0.1)
     return {
-      backgroundColor: primarySubtle ?? 'rgba(64, 158, 255, 0.12)',
-      borderColor: 'rgba(64, 158, 255, 0.45)',
-      color: themeState.currentTheme.textColor
+      backgroundColor: bg,
+      borderColor: border,
+      color: theme.textColor
     }
   }
   if (props.message.type === 'tool') {
     return {
-      backgroundColor: themeState.currentTheme.background2nd,
-      borderColor: 'rgba(103, 194, 58, 0.3)',
-      color: themeState.currentTheme.textColor
+      backgroundColor: theme.background2nd,
+      borderColor: theme.borderColor || (theme.type === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'),
+      color: theme.textColor
     }
   }
   // AI消息：透明背景，无边框
   return {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
-    color: themeState.currentTheme.textColor
+    color: theme.textColor
   }
 })
+
+// 中性块（意图识别等）背景/边框：深色稍浅一点、浅色稍深一点
+const neutralBlockBg = computed(() => {
+  const theme = themeState.currentTheme
+  const isDark = theme.type === 'dark'
+  return isDark
+    ? mixColors(theme.background2nd, '#000000', 0.25)
+    : mixColors(theme.background2nd, '#ffffff', 0.28)
+})
+const neutralBlockBorder = computed(() => {
+  const theme = themeState.currentTheme
+  const isDark = theme.type === 'dark'
+  return isDark
+    ? mixColors(theme.background2nd, '#000000', 0.4)
+    : mixColors(theme.background2nd, '#000000', 0.1)
+})
+
+// 意图识别内 tag：深色用深底白字、浅色用浅底黑字（避免反了导致看不清）
+const intentTagBg = computed(() => {
+  const theme = themeState.currentTheme
+  const isDark = theme.type === 'dark'
+  return isDark
+    ? mixColors(theme.background2nd, '#000000', 0.2)
+    : mixColors(theme.background2nd, '#000000', 0.08)
+})
+const intentTagColor = computed(() => themeState.currentTheme.textColor)
 
 /**
  * 清理多余的或不完整的工具调用标记
@@ -859,6 +893,12 @@ const handleEdit = () => {
   emit('edit', props.message)
 }
 
+// 点击用户消息气泡内容区时等同于点编辑按钮（点击链接不触发）
+const handleUserMessageBodyClick = (e: MouseEvent) => {
+  if ((e.target as HTMLElement).closest('a')) return
+  handleEdit()
+}
+
 const handleActionCommand = (command: string) => {
   switch (command) {
     case 'regenerate':
@@ -1083,6 +1123,11 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+/* 用户消息气泡可点击，等同编辑 */
+.agent-message.align-right .agent-message__body:not(.agent-message__body--flat) {
+  cursor: pointer;
+}
+
 .agent-message__body--user-compact {
   padding: 6px 10px;
   border-radius: 5px;
@@ -1123,7 +1168,7 @@ onBeforeUnmount(() => {
 }
 
 .ai-action-btn:hover {
-  color: var(--el-color-primary);
+  color: v-bind('themeState.currentTheme.primaryColor');
 }
 
 .agent-message__timestamp {
@@ -1212,9 +1257,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background-color: rgba(64, 158, 255, 0.08);
+  background-color: v-bind('neutralBlockBg');
   border-radius: 8px;
-  color: var(--el-color-primary);
+  color: v-bind('themeState.currentTheme.textColor');
   font-size: 13px;
   margin: 2px 0;
 }
@@ -1301,7 +1346,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   font-weight: 600;
   width: 100%;
-  padding: 0;
+  padding: 6px 0;
   margin: 0;
   line-height: 1;
 }
@@ -1314,7 +1359,7 @@ onBeforeUnmount(() => {
 
 .tool-message-title {
   font-size: 13px;
-  color: var(--el-color-primary);
+  color: v-bind('themeState.currentTheme.primaryColor');
   font-weight: 600;
 }
 
@@ -1337,8 +1382,8 @@ onBeforeUnmount(() => {
 .intent-recognition-message {
   width: 100%;
   padding: 12px 16px;
-  background-color: rgba(64, 158, 255, 0.08);
-  border: 1px solid rgba(64, 158, 255, 0.2);
+  background-color: v-bind('neutralBlockBg');
+  border: 1px solid v-bind('neutralBlockBorder');
   border-radius: 8px;
   margin-bottom: 8px;
 }
@@ -1354,11 +1399,11 @@ onBeforeUnmount(() => {
 }
 
 .intent-icon {
-  color: var(--el-color-primary);
+  color: v-bind('themeState.currentTheme.primaryColor');
 }
 
 .intent-title {
-  color: var(--el-color-primary);
+  color: v-bind('themeState.currentTheme.primaryColor');
 }
 
 .intent-content {
@@ -1387,6 +1432,13 @@ onBeforeUnmount(() => {
 
 .intent-tool-tag {
   margin: 0;
+  background-color: v-bind('intentTagBg') !important;
+  color: v-bind('intentTagColor') !important;
+  border: none;
+}
+
+.intent-tool-tag :deep(*) {
+  color: inherit;
 }
 
 .intent-no-tools {

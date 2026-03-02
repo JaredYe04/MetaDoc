@@ -1,0 +1,39 @@
+% Zweispaltig: links Kontakt/Skills, rechts Erfahrung/Ausbildung.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{paracol}
+\geometry{left=1cm,right=1cm,top=1.2cm,bottom=1.2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\columnratio{0.28}
+\setlength{\columnsep}{1.2em}
+
+\begin{document}
+\begin{paracol}{2}
+\setlength{\parindent}{0pt}
+{\large \textbf{Ihr Name}}\\[0.2em]
+% Foto: \rule durch \includegraphics[width=\linewidth]{photo} ersetzen
+\rule{\linewidth}{2.2cm}\\[0.5em]
+\textbf{Kontakt}\\
+Email: email@example.com\\
+Telefon: ……\\
+Stadt, Land\\[0.6em]
+\textbf{Fähigkeiten}\\
+Fähigkeit 1\\ 2\\ 3\\[0.6em]
+\textbf{Interessen}\\
+Kurzzeile.
+
+\switchcolumn
+\section*{Berufserfahrung}
+\textbf{Position} \hfill Jahr--Jahr \\
+Unternehmen \\
+Erfolge.
+
+\section*{Ausbildung}
+\textbf{Abschluss} \hfill Jahr \\
+Hochschule \\
+Anmerkung.
+\end{paracol}
+\end{document}

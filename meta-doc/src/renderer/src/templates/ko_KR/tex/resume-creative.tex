@@ -1,0 +1,36 @@
+% 크리에이티브 이력서. 포인트 색·배경 지원.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}}{\setmainfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+% 사진: \rule을 \includegraphics[width=2.2cm]{photo}로 교체
+\begin{center}\rule{2.2cm}{2.8cm}\end{center}
+\begin{center}
+{\LARGE \textbf{성함}}\\[0.15em]
+{\color{gray} 직함 또는 한 줄 소개}\\[0.4em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad 포트폴리오 \quad | \quad 도시
+\end{center}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{1pt}\\[0.3em]
+\section*{경력}
+\textbf{직함} \hfill 연도 -- 연도 \\
+회사 \\
+성과·프로젝트.
+\section*{학력}
+\textbf{학위} \hfill 연도 \quad 학교
+\section*{스킬·도구}
+디자인: 도구1, 2. \quad 기타: 스킬.
+\end{document}

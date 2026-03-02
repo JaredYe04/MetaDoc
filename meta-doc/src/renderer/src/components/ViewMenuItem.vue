@@ -9,11 +9,16 @@
       }"
       @click="handleClick"
     >
-      <div class="view-menu-item__content">
+      <div ref="contentRef" class="view-menu-item__content">
         <div class="icon-wrapper">
           <img v-if="iconImage" :src="iconImage" class="menu-icon" :alt="index" />
         </div>
-        <span v-if="!isCollapsed" class="view-menu-item__label">{{ label }}</span>
+        <span
+          v-if="!isCollapsed"
+          ref="labelRef"
+          class="view-menu-item__label"
+          :style="labelStyle"
+        >{{ label }}</span>
       </div>
     </div>
   </Tooltip>
@@ -27,17 +32,22 @@
     }"
     @click="handleClick"
   >
-    <div class="view-menu-item__content">
+    <div ref="contentRef" class="view-menu-item__content">
       <div class="icon-wrapper">
         <img v-if="iconImage" :src="iconImage" class="menu-icon" :alt="index" />
       </div>
-      <span v-if="!isCollapsed" class="view-menu-item__label">{{ label }}</span>
+      <span
+        v-if="!isCollapsed"
+        ref="labelRef"
+        class="view-menu-item__label"
+        :style="labelStyle"
+      >{{ label }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 import { themeState, mixColors } from '../utils/themes'
 
@@ -59,6 +69,73 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select', index: string): void
 }>()
+
+const labelRef = ref<HTMLSpanElement | null>(null)
+const contentRef = ref<HTMLDivElement | null>(null)
+const labelStyle = ref<{ fontSize?: string }>({})
+
+const MIN_FONT_SIZE = 1
+const MAX_FONT_SIZE = 13
+
+/** 强制浏览器重排，以便 scrollWidth/clientWidth 等为最新值 */
+function forceReflow(el: HTMLElement) {
+  void el.offsetHeight
+}
+
+function adjustLabelFontSize() {
+  if (props.isCollapsed) {
+    labelStyle.value = {}
+    return
+  }
+  nextTick(() => {
+    const el = labelRef.value
+    if (!el) return
+    const availableWidth = el.clientWidth
+    if (availableWidth <= 0) return
+    // 先以最大字号测量，得到当前文字“想要”的宽度
+    el.style.fontSize = `${MAX_FONT_SIZE}px`
+    forceReflow(el)
+    const contentWidth = el.scrollWidth
+    let fontSize: number
+    if (contentWidth <= availableWidth) {
+      fontSize = MAX_FONT_SIZE
+    } else {
+      // 按比例算出刚好能塞下的字号
+      fontSize = Math.max(MIN_FONT_SIZE, Math.floor((MAX_FONT_SIZE * availableWidth) / contentWidth))
+      el.style.fontSize = `${fontSize}px`
+      forceReflow(el)
+      // 若仍溢出则继续逐 px 缩小直到刚好塞下
+      while (fontSize > MIN_FONT_SIZE && el.scrollWidth > el.clientWidth) {
+        fontSize -= 1
+        el.style.fontSize = `${fontSize}px`
+        forceReflow(el)
+      }
+    }
+    labelStyle.value = { fontSize: `${fontSize}px` }
+  })
+}
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  adjustLabelFontSize()
+  const content = contentRef.value
+  if (content) {
+    resizeObserver = new ResizeObserver(() => adjustLabelFontSize())
+    resizeObserver.observe(content)
+  }
+})
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+})
+
+watch(
+  () => [props.label, props.isCollapsed],
+  () => adjustLabelFontSize(),
+  { immediate: false }
+)
 
 const handleClick = () => {
   if (!props.isDisabled) {
@@ -164,6 +241,7 @@ const handleClick = () => {
 
 .view-menu-item__label {
   flex: 1;
+  min-width: 0; /* 允许 flex 子项收缩，便于正确测量可用宽度 */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -1,0 +1,30 @@
+% Timeline-Form der Berufserfahrung.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Ihr Name}}\\[0.2em]
+email@example.com \quad | \quad Stadt, Land
+\end{center}
+% Foto: \rule durch \includegraphics[width=2cm]{photo} ersetzen
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{Berufserfahrung (Timeline)}
+\textbf{2023 -- Heute} \quad \textbf{Position}, Unternehmen \\
+Kurzbeschreibung und Ergebnisse.
+\vspace{0.3em}
+\textbf{2021 -- 2023} \quad \textbf{Position}, Unternehmen \\
+Erfolge und Umfang.
+\vspace{0.5em}
+\section*{Ausbildung}
+\textbf{2015 -- 2019} \quad Abschluss, Hochschule
+\section*{Fähigkeiten}
+Fähigkeiten auflisten.
+\end{document}

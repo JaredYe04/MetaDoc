@@ -1,0 +1,49 @@
+% 带证件照的简历。自选背景：\usepackage{pagecolor} \pagecolor{gray!8}。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.2cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Courier New}}}}}
+\IfFontExistsTF{Noto Serif CJK SC}{\setCJKmainfont{Noto Serif CJK SC}[Fallback=SimSun]}{\setCJKmainfont{SimSun}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}[Fallback=Microsoft YaHei]}{\setCJKsansfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}[Fallback=FangSong]}{\setCJKmonofont{FangSong}}
+\pagestyle{empty}
+
+\begin{document}
+% 使用照片：将下方 \rule 换为 \includegraphics[width=2.8cm,height=3.2cm,keepaspectratio=false]{photo}
+\begin{minipage}[t]{0.72\textwidth}
+\vspace{0pt}
+{\LARGE \textbf{您的姓名}}\\[0.25em]
+邮箱：邮箱@example.com \\
+电话：…… \\
+地址：城市，国家
+\end{minipage}
+\begin{minipage}[t]{0.25\textwidth}
+\vspace{0pt}
+\raggedleft
+\rule{2.8cm}{3.2cm}
+\end{minipage}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{个人摘要}
+简短个人摘要（2--3 行）。
+
+\section*{工作经历}
+\textbf{职位} \hfill 年份 -- 年份 \\
+公司 \\
+要点。
+
+\section*{教育背景}
+\textbf{学位} \hfill 年份 \quad 学校
+
+\section*{技能}
+技能与语言。
+
+\end{document}

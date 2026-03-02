@@ -1,0 +1,36 @@
+% Lebenslauf mit Foto. Foto: \includegraphics[width=2.8cm,height=3.2cm,keepaspectratio=false]{photo}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.2cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{minipage}[t]{0.72\textwidth}
+\vspace{0pt}
+{\LARGE \textbf{Ihr Name}}\\[0.25em]
+Email: email@example.com \\
+Telefon: …… \\
+Adresse: Stadt, Land
+\end{minipage}
+\begin{minipage}[t]{0.25\textwidth}
+\vspace{0pt}
+\raggedleft
+\rule{2.8cm}{3.2cm}
+\end{minipage}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\section*{Zusammenfassung}
+Kurze berufliche Zusammenfassung (2--3 Zeilen).
+\section*{Berufserfahrung}
+\textbf{Position} \hfill Jahr -- Jahr \\
+Unternehmen \\
+Stichpunkte.
+\section*{Ausbildung}
+\textbf{Abschluss} \hfill Jahr \quad Hochschule
+\section*{Fähigkeiten}
+Fähigkeiten und Sprachen.
+\end{document}

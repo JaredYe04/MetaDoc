@@ -1993,6 +1993,46 @@
           "description": "GB/T 7714-2015規格に準拠した中国語学術論文テンプレート（2段組）。ジャーナル投稿に適用。",
           "content": "[Japanese] \\documentclass[12pt,a4paper,twocolumn]{article}\n\\usepackage[UTF8]{ctex}\n\\usepackage{fontspec}\n\\usepackage{geometry}\n\\geometry{left=1.8cm,right=1.8cm,top=2.5cm,bottom=2.5cm,columnsep=0.8cm}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\usepackage{multirow}\n\\usepackage{hyperref}\n\\usepackage{cite}\n\\usepackage{setspace}\n\\onehalfspacing\n\n% 字体设置\n\\setmainfont{Times New Roman}  % 英文正文字体\n\\setsansfont{Microsoft YaHei}  % 雅黑（可选）\n\\setmonofont{Consolas}\n\\setCJKmainfont{SimSun}        % 宋体\n\\setCJKsansfont{Microsoft YaHei}\n\n% 标题信息\n\\title{论文标题}\n\\author{作者姓名}\n\\date{\\today}\n\n\\begin{document}\n\n% 标题页（单栏）\n\\twocolumn[\n\\maketitle\n\\begin{abstract}\n\\textbf{摘要：} 在此处撰写摘要内容。摘要应简洁明了地概括论文的主要内容、研究方法、主要结果和结论。\n\n\\textbf{关键词：} 关键词1；关键词2；关键词3\n\\end{abstract}\n]\n\n% 正文（双栏）\n\\section{引言}\n引言部分应介绍研究背景、研究意义、国内外研究现状以及本文的研究内容和组织结构。\n\n\\section{相关工作}\n相关工作部分应综述与本文研究相关的已有研究成果，分析现有方法的优缺点，指出本文研究的创新点。\n\n\\section{研究方法}\n研究方法部分应详细描述本文所采用的研究方法、实验设计、数据来源等。\n\n\\subsection{方法概述}\n在此处描述方法的基本思路和框架。\n\n\\subsection{具体实现}\n在此处描述方法的具体实现细节。\n\n\\section{实验结果与分析}\n实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。\n\n\\subsection{实验设置}\n在此处描述实验的环境、参数设置等。\n\n\\subsection{结果分析}\n在此处展示和分析实验结果。\n\n\\section{结论}\n结论部分应总结本文的主要贡献，指出研究的局限性，并提出未来的研究方向。\n\n% 参考文献\n\\begin{thebibliography}{99}\n\\bibitem{ref1} 参考文献1\n\\bibitem{ref2} 参考文献2\n\\end{thebibliography}\n\n% 附录（可选）\n\\appendix\n\\section{附录A}\n附录内容（如有需要）。\n\n\\end{document}\n"
         },
+        "resume_classic": {
+          "label": "クラシック履歴書",
+          "description": "就職用の従来型1段組。写真・背景対応。"
+        },
+        "resume_modern": {
+          "label": "モダン履歴書",
+          "description": "シンプルでプロ仕様。写真・背景対応。"
+        },
+        "resume_twocolumn": {
+          "label": "2段組履歴書",
+          "description": "左に連絡先・スキル、右に経歴。写真・背景対応。"
+        },
+        "resume_academic": {
+          "label": "学術CV",
+          "description": "進学・研究職向け。論文・教育・研究。写真・背景対応。"
+        },
+        "resume_executive": {
+          "label": "エグゼクティブ履歴書",
+          "description": "要約を上部に。シニア向け。写真・背景対応。"
+        },
+        "resume_creative": {
+          "label": "クリエイティブ履歴書",
+          "description": "デザイン重視。アクセント色・背景対応。"
+        },
+        "resume_minimal": {
+          "label": "ミニマル履歴書",
+          "description": "余白多めのシンプル版。写真・背景対応。"
+        },
+        "resume_timeline": {
+          "label": "タイムライン履歴書",
+          "description": "経歴をタイムライン表示。写真・背景対応。"
+        },
+        "resume_with_photo": {
+          "label": "写真付き履歴書",
+          "description": "写真を前面に。背景対応。"
+        },
+        "resume_student": {
+          "label": "学生・インターン履歴書",
+          "description": "学歴・プロジェクト・スキル中心。写真・背景対応。"
+        },
         "ieee_en_twocolumn": {
           "label": "英語学術論文（IEEE規格・2段組）",
           "description": "IEEE規格に準拠した英語学術論文テンプレート（2段組）。ジャーナルと会議投稿に適用。",
@@ -2734,6 +2774,7 @@
       "clearAllConfirmTitle": "すべての引用をクリアしますか",
       "confirmClearAll": "{count}個の引用をすべてクリアしてもよろしいですか？この操作は元に戻せません。",
       "clearAllSuccess": "すべての引用をクリアしました",
+      "tagRemove": "参照を削除",
       "type": {
         "file": "ファイル",
         "url": "URL",

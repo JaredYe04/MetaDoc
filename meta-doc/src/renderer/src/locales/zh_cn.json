@@ -357,7 +357,9 @@
           "totalOperations": "总操作数",
           "loading": "正在加载文档...",
           "error": "编辑失败"
-        }
+        },
+        "expandDiff": "展开",
+        "collapseDiff": "收起"
       },
       "titleFormat": {
         "title": "标题格式化",
@@ -534,6 +536,12 @@
       "noToolsNeeded": "此请求无需工具。",
       "reasoning": "推理："
     },
+    "attachment": {
+      "untitled": "未命名"
+    },
+    "composer": {
+      "atTagRemove": "移除"
+    },
     "reference": {
       "title": "引用素材管理",
       "add": "添加引用",
@@ -565,6 +573,15 @@
       "clearAllConfirmTitle": "确认清空所有引用",
       "confirmClearAll": "确定要清空所有 {count} 个引用吗？此操作不可恢复。",
       "clearAllSuccess": "已清空所有引用",
+      "tagRemove": "移除引用",
+      "pickerButton": "引用工作区文件或文档",
+      "pickerPlaceholder": "输入文件名或路径搜索…",
+      "unsavedDocs": "未保存文档",
+      "workspaceFiles": "工作区文件",
+      "noMatch": "无匹配文件",
+      "noWorkspaceFiles": "暂无工作区或未打开工作区",
+      "untitled": "未命名",
+      "readFileFailed": "无法读取文件内容",
       "type": {
         "file": "文件",
         "url": "URL",
@@ -784,7 +801,26 @@
       "loadMore": "展示更多 10 条",
       "closeTab": "关闭标签",
       "exportJson": "导出为 JSON",
-      "deleteSession": "删除会话"
+      "deleteSession": "删除会话",
+      "uploadAttachment": "上传附件",
+      "manageAttachments": "管理附件"
+    },
+    "staging": {
+      "title": "编辑暂存",
+      "empty": "暂无待审编辑",
+      "accept": "接受",
+      "reject": "拒绝",
+      "acceptAll": "全部接受",
+      "rejectAll": "全部拒绝",
+      "accepted": "已接受",
+      "rejected": "已拒绝",
+      "rollback": "回滚本次编辑",
+      "redo": "恢复本次编辑",
+      "rollbackDone": "已回退 {count} 处编辑",
+      "redoDone": "已恢复 {count} 处编辑",
+      "reviewWindow": "编辑审阅",
+      "openReview": "独立审阅",
+      "selectEdit": "请从左侧选择一条编辑"
     }
   },
   "agent-engine-executor": {
@@ -1777,7 +1813,8 @@
       "formulaRecognition": "公式识别",
       "aiChat": "AI对话",
       "setting": "设置",
-      "aigcDetection": "AIGC检测"
+      "aigcDetection": "AIGC检测",
+      "agentReview": "编辑审阅"
     },
     "temperatureMarks": {
       "rigorous": "严谨",
@@ -2592,6 +2629,46 @@
           "label": "中文国标学术论文（双栏）",
           "description": "符合 GB/T 7714-2015 标准的中文学术论文模板（双栏排版），适用于期刊投稿。",
           "content": "\\documentclass[12pt,a4paper,twocolumn]{article}\n\\usepackage[UTF8]{ctex}\n\\usepackage{fontspec}\n\\usepackage{geometry}\n\\geometry{left=1.8cm,right=1.8cm,top=2.5cm,bottom=2.5cm,columnsep=0.8cm}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\usepackage{multirow}\n\\usepackage{hyperref}\n\\usepackage{cite}\n\\usepackage{setspace}\n\\onehalfspacing\n\n% 字体设置\n\\setmainfont{Times New Roman}  % 英文正文字体\n\\setsansfont{Microsoft YaHei}  % 雅黑（可选）\n\\setmonofont{Consolas}\n\\setCJKmainfont{SimSun}        % 宋体\n\\setCJKsansfont{Microsoft YaHei}\n\n% 标题信息\n\\title{论文标题}\n\\author{作者姓名}\n\\date{\\today}\n\n\\begin{document}\n\n% 标题页（单栏）\n\\twocolumn[\n\\maketitle\n\\begin{abstract}\n\\textbf{摘要：} 在此处撰写摘要内容。摘要应简洁明了地概括论文的主要内容、研究方法、主要结果和结论。\n\n\\textbf{关键词：} 关键词1；关键词2；关键词3\n\\end{abstract}\n]\n\n% 正文（双栏）\n\\section{引言}\n引言部分应介绍研究背景、研究意义、国内外研究现状以及本文的研究内容和组织结构。\n\n\\section{相关工作}\n相关工作部分应综述与本文研究相关的已有研究成果，分析现有方法的优缺点，指出本文研究的创新点。\n\n\\section{研究方法}\n研究方法部分应详细描述本文所采用的研究方法、实验设计、数据来源等。\n\n\\subsection{方法概述}\n在此处描述方法的基本思路和框架。\n\n\\subsection{具体实现}\n在此处描述方法的具体实现细节。\n\n\\section{实验结果与分析}\n实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。\n\n\\subsection{实验设置}\n在此处描述实验的环境、参数设置等。\n\n\\subsection{结果分析}\n在此处展示和分析实验结果。\n\n\\section{结论}\n结论部分应总结本文的主要贡献，指出研究的局限性，并提出未来的研究方向。\n\n% 参考文献\n\\begin{thebibliography}{99}\n\\bibitem{ref1} 参考文献1\n\\bibitem{ref2} 参考文献2\n\\end{thebibliography}\n\n% 附录（可选）\n\\appendix\n\\section{附录A}\n附录内容（如有需要）。\n\n\\end{document}\n"
+        },
+        "resume_classic": {
+          "label": "经典简历",
+          "description": "传统单栏求职简历，支持插入照片与自选背景。"
+        },
+        "resume_modern": {
+          "label": "现代简历",
+          "description": "简约专业排版，支持照片与自定义背景。"
+        },
+        "resume_twocolumn": {
+          "label": "双栏简历",
+          "description": "左侧联系方式与技能、右侧经历；支持照片与背景。"
+        },
+        "resume_academic": {
+          "label": "学术简历",
+          "description": "适用于申请学校、科研岗位；含发表、教学与研究方向；支持照片与背景。"
+        },
+        "resume_executive": {
+          "label": "高管简历",
+          "description": "摘要置顶，适合高级岗位；支持照片与自选背景。"
+        },
+        "resume_creative": {
+          "label": "创意简历",
+          "description": "设计感排版，可选强调色与背景，适合创意类岗位。"
+        },
+        "resume_minimal": {
+          "label": "极简简历",
+          "description": "留白多、极简风格；支持照片与淡色背景。"
+        },
+        "resume_timeline": {
+          "label": "时间线简历",
+          "description": "经历以时间线呈现；支持照片与背景。"
+        },
+        "resume_with_photo": {
+          "label": "带照片简历",
+          "description": "突出证件照区域；支持自选背景。"
+        },
+        "resume_student": {
+          "label": "学生/实习简历",
+          "description": "侧重学历、项目与技能，适合实习与校招；支持照片与背景。"
         },
         "ieee_en_twocolumn": {
           "label": "英文标准学术论文（双栏）",

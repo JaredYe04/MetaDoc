@@ -1,0 +1,42 @@
+% 写真付き履歴書。写真は \includegraphics[width=2.8cm,height=3.2cm,keepaspectratio=false]{photo} で差し替え。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.2cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Serif CJK JP}{\setCJKmainfont{Noto Serif CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Mincho}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{minipage}[t]{0.72\textwidth}
+\vspace{0pt}
+{\LARGE \textbf{お名前}}\\[0.25em]
+Email: email@example.com \\
+電話: …… \\
+住所: 都市、国
+\end{minipage}
+\begin{minipage}[t]{0.25\textwidth}
+\vspace{0pt}
+\raggedleft
+\rule{2.8cm}{3.2cm}
+\end{minipage}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\section*{要約}
+短文で自己紹介（2--3行）。
+\section*{職歴}
+\textbf{役職} \hfill 年 -- 年 \\
+会社 \\
+要点。
+\section*{学歴}
+\textbf{学位} \hfill 年 \quad 大学
+\section*{スキル}
+スキル・言語。
+\end{document}

@@ -19,6 +19,7 @@ import LlmStatisticsView from '../views/LlmStatisticsView.vue'
 import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
 import UserFeedbackView from '../views/UserFeedbackView.vue'
 import AgentView from '../views/AgentView.vue'
+import AgentReviewView from '../views/AgentReviewView.vue'
 
 /**
  * 系统 Tab 路由到组件的映射
@@ -46,7 +47,8 @@ export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
   '/smart-drawing-assistant': GraphWindow,
   '/llm-statistics': LlmStatisticsView,
   '/aigc-detection': AigcDetectionWindow,
-  '/user-feedback': UserFeedbackView
+  '/user-feedback': UserFeedbackView,
+  '/agent-review': AgentReviewView
 }
 
 /**

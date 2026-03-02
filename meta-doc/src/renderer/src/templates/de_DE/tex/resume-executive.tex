@@ -1,0 +1,34 @@
+% Führungskräfte-Lebenslauf. Zusammenfassung oben.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.8cm,right=1.8cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Ihr Name}}\\[0.2em]
+email@example.com \quad | \quad Telefon \quad | \quad Stadt, Land
+\end{center}
+% Foto: \rule durch \includegraphics[width=2cm]{photo} ersetzen
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\noindent\textbf{Zusammenfassung}\\
+Erfahrener Berufstätiger mit X Jahren in [Bereich]. Nachweisbare Erfolge in [Schwerpunkte]. Suche [Rolle/Umfang].
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\section*{Berufserfahrung}
+\textbf{Leitende Position} \hfill Jahr -- Heute \\
+Unternehmen \\
+\begin{itemize}
+  \item Strategische Initiative und Ergebnis.
+\end{itemize}
+\section*{Ausbildung}
+\textbf{Abschluss} \hfill Jahr \quad Institution
+\section*{Kernkompetenzen}
+Bereich 1, Bereich 2, Bereich 3.
+\end{document}

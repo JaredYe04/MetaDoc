@@ -26,11 +26,11 @@
     "tooltip": "An intelligent document processor based on AI Agent",
     "title": "MetaDoc",
     "home": "Home",
-    "outline": "Outline Tree",
+    "outline": "Outline",
     "editor": "Editor",
-    "visualize": "Visualization",
+    "visualize": "Visualize",
     "knowledgeBase": "Knowledge base",
-    "agent": "Agent.",
+    "agent": "Agent",
     "proofread": "Proofread"
   },
   "leftMenu": {
@@ -607,7 +607,8 @@
       "formulaRecognition": "Formula Recognition",
       "aiChat": "AI Chat",
       "setting": "Settings",
-      "aigcDetection": "AIGC Detection"
+      "aigcDetection": "AIGC Detection",
+      "agentReview": "Edit Review"
     },
     "authorLabel": "Author",
     "abstractLabel": "Abstract",
@@ -2002,6 +2003,46 @@
           "description": "Chinese academic paper template compliant with GB/T 7714-2015 standard (two-column layout), suitable for journal submissions.",
           "content": "[English] \\documentclass[12pt,a4paper,twocolumn]{article}\n\\usepackage[UTF8]{ctex}\n\\usepackage{fontspec}\n\\usepackage{geometry}\n\\geometry{left=1.8cm,right=1.8cm,top=2.5cm,bottom=2.5cm,columnsep=0.8cm}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\usepackage{multirow}\n\\usepackage{hyperref}\n\\usepackage{cite}\n\\usepackage{setspace}\n\\onehalfspacing\n\n% 字体设置\n\\setmainfont{Times New Roman}  % 英文正文字体\n\\setsansfont{Microsoft YaHei}  % 雅黑（可选）\n\\setmonofont{Consolas}\n\\setCJKmainfont{SimSun}        % 宋体\n\\setCJKsansfont{Microsoft YaHei}\n\n% 标题信息\n\\title{论文标题}\n\\author{作者姓名}\n\\date{\\today}\n\n\\begin{document}\n\n% 标题页（单栏）\n\\twocolumn[\n\\maketitle\n\\begin{abstract}\n\\textbf{摘要：} 在此处撰写摘要内容。摘要应简洁明了地概括论文的主要内容、研究方法、主要结果和结论。\n\n\\textbf{关键词：} 关键词1；关键词2；关键词3\n\\end{abstract}\n]\n\n% 正文（双栏）\n\\section{引言}\n引言部分应介绍研究背景、研究意义、国内外研究现状以及本文的研究内容和组织结构。\n\n\\section{相关工作}\n相关工作部分应综述与本文研究相关的已有研究成果，分析现有方法的优缺点，指出本文研究的创新点。\n\n\\section{研究方法}\n研究方法部分应详细描述本文所采用的研究方法、实验设计、数据来源等。\n\n\\subsection{方法概述}\n在此处描述方法的基本思路和框架。\n\n\\subsection{具体实现}\n在此处描述方法的具体实现细节。\n\n\\section{实验结果与分析}\n实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。\n\n\\subsection{实验设置}\n在此处描述实验的环境、参数设置等。\n\n\\subsection{结果分析}\n在此处展示和分析实验结果。\n\n\\section{结论}\n结论部分应总结本文的主要贡献，指出研究的局限性，并提出未来的研究方向。\n\n% 参考文献\n\\begin{thebibliography}{99}\n\\bibitem{ref1} 参考文献1\n\\bibitem{ref2} 参考文献2\n\\end{thebibliography}\n\n% 附录（可选）\n\\appendix\n\\section{附录A}\n附录内容（如有需要）。\n\n\\end{document}\n"
         },
+        "resume_classic": {
+          "label": "Classic Resume",
+          "description": "Traditional one-column resume for job applications; supports photo and optional background."
+        },
+        "resume_modern": {
+          "label": "Modern Resume",
+          "description": "Clean, minimal layout for professionals; supports photo and custom background."
+        },
+        "resume_twocolumn": {
+          "label": "Two-Column Resume",
+          "description": "Sidebar layout: contact and skills on the left, experience on the right; supports photo and background."
+        },
+        "resume_academic": {
+          "label": "Academic CV",
+          "description": "For school applications and research positions; publications, teaching, and research focus; supports photo and background."
+        },
+        "resume_executive": {
+          "label": "Executive Resume",
+          "description": "Summary-led layout for senior roles; supports photo and optional background."
+        },
+        "resume_creative": {
+          "label": "Creative Resume",
+          "description": "Design-oriented layout with optional accent color and background; ideal for creative roles."
+        },
+        "resume_minimal": {
+          "label": "Minimal Resume",
+          "description": "Ultra-clean, lots of whitespace; supports photo and subtle background."
+        },
+        "resume_timeline": {
+          "label": "Timeline Resume",
+          "description": "Experience displayed as a timeline; supports photo and background."
+        },
+        "resume_with_photo": {
+          "label": "Resume with Photo",
+          "description": "Prominent photo area; suitable for roles where appearance matters; supports custom background."
+        },
+        "resume_student": {
+          "label": "Student / Internship Resume",
+          "description": "Focus on education, projects, and skills; for internships and first jobs; supports photo and background."
+        },
         "ieee_en_twocolumn": {
           "label": "IEEE Standard Academic Paper (Two-Column)",
           "description": "IEEE standard English academic paper template (two-column layout), suitable for journal and conference submissions.",
@@ -2162,7 +2203,26 @@
       "loadMore": "Show 10 more",
       "closeTab": "Close tab",
       "exportJson": "Export as JSON",
-      "deleteSession": "Delete session"
+      "deleteSession": "Delete session",
+      "uploadAttachment": "Upload attachment",
+      "manageAttachments": "Manage attachments"
+    },
+    "staging": {
+      "title": "Edit staging",
+      "empty": "No pending edits",
+      "accept": "Accept",
+      "reject": "Reject",
+      "acceptAll": "Accept all",
+      "rejectAll": "Reject all",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "rollback": "Rollback this turn's edits",
+      "redo": "Redo reverted edits",
+      "rollbackDone": "Rolled back {count} edit(s)",
+      "redoDone": "Redone {count} edit(s)",
+      "reviewWindow": "Edit Review",
+      "openReview": "Open in Review",
+      "selectEdit": "Select an edit from the list"
     },
     "conversation": {
       "emptyTitle": "No Active Session",
@@ -2605,7 +2665,9 @@
           "totalOperations": "Total operations",
           "loading": "Loading document...",
           "error": "Edit failed"
-        }
+        },
+        "expandDiff": "Expand",
+        "collapseDiff": "Collapse"
       },
       "proofread": {
         "proofreading": "Proofreading",
@@ -2638,6 +2700,12 @@
         "correctedText": "Corrected Text"
       }
     },
+    "attachment": {
+      "untitled": "Untitled"
+    },
+    "composer": {
+      "atTagRemove": "Remove"
+    },
     "reference": {
       "title": "Reference Management",
       "name": "Name",
@@ -2652,6 +2720,15 @@
       "clearAll": "Clear All",
       "clearAllConfirmTitle": "Clear All References",
       "clearAllSuccess": "All references cleared",
+      "tagRemove": "Remove reference",
+      "pickerButton": "Reference workspace file or document",
+      "pickerPlaceholder": "Search by file name or path…",
+      "unsavedDocs": "Unsaved documents",
+      "workspaceFiles": "Workspace files",
+      "noMatch": "No matching files",
+      "noWorkspaceFiles": "No workspace or folder opened",
+      "untitled": "Untitled",
+      "readFileFailed": "Could not read file content",
       "confirmClearAll": "Are you sure you want to clear all {{count}} references?",
       "confirmDelete": "Are you sure you want to delete \"{{name}}\"?",
       "deleteSuccess": "Reference deleted",

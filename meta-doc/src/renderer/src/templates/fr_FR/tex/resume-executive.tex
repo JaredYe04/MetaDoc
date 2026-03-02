@@ -1,0 +1,34 @@
+% CV cadre. Résumé en tête.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.8cm,right=1.8cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Votre nom}}\\[0.2em]
+email@example.com \quad | \quad Téléphone \quad | \quad Ville, Pays
+\end{center}
+% Photo : remplacer \rule par \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\noindent\textbf{Résumé}\\
+Professionnel avec X ans d'expérience en [domaine]. Résultats en [axes]. Recherche [poste/périmètre].
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\section*{Expérience}
+\textbf{Poste cadre} \hfill Année -- Présent \\
+Entreprise \\
+\begin{itemize}
+  \item Initiative et résultat stratégiques.
+\end{itemize}
+\section*{Formation}
+\textbf{Diplôme} \hfill Année \quad Établissement
+\section*{Compétences clés}
+Domaine 1, domaine 2, domaine 3.
+\end{document}

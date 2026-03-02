@@ -1,0 +1,48 @@
+% Academic CV for school applications and research positions.
+% Optional background: \usepackage{pagecolor} and \pagecolor{gray!5}.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\title{\vspace{-1cm}\textbf{Your Name}}
+\author{Department / Institution \\ \href{mailto:email@uni.edu}{email@uni.edu}}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.6cm}
+% Photo: replace \rule with \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\section*{Education}
+\textbf{Ph.D. / M.S. in Field} \hfill Year -- Year \\
+University, Advisor: Name \\
+Thesis: ``Thesis Title''
+
+\textbf{B.S. in Field} \hfill Year \\
+University
+
+\section*{Research Experience}
+\textbf{Position} \hfill Year -- Year \\
+Institution \\
+Description of research and outcomes.
+
+\section*{Publications}
+\begin{itemize}
+  \item Author. ``Title.'' \textit{Journal/Conference}, Year.
+  \item Author. ``Title.'' \textit{Journal}, Year.
+\end{itemize}
+
+\section*{Teaching}
+Course name, Role (TA/Instructor), Institution, Year.
+
+\section*{Honors \& Awards}
+Award name, Year. \quad Grant name, Year.
+
+\section*{Skills}
+Methods, tools, languages.
+
+\end{document}

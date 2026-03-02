@@ -1,0 +1,56 @@
+% 双栏简历：左侧联系方式与技能，右侧经历与教育。自选背景：\usepackage{pagecolor} \pagecolor{gray!6}。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{paracol}
+\geometry{left=1cm,right=1cm,top=1.2cm,bottom=1.2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Courier New}}}}}
+\IfFontExistsTF{Noto Serif CJK SC}{\setCJKmainfont{Noto Serif CJK SC}[Fallback=SimSun]}{\setCJKmainfont{SimSun}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}[Fallback=Microsoft YaHei]}{\setCJKsansfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}[Fallback=FangSong]}{\setCJKmonofont{FangSong}}
+\columnratio{0.28}
+\setlength{\columnsep}{1.2em}
+
+\begin{document}
+% 可选：\pagecolor{blue!4}
+\begin{paracol}{2}
+
+\setlength{\parindent}{0pt}
+{\large \textbf{您的姓名}}\\[0.2em]
+% 照片位置：将 \rule 换为 \includegraphics[width=\linewidth]{photo}
+\rule{\linewidth}{2.2cm}\\[0.5em]
+\textbf{联系方式}\\
+邮箱：邮箱@example.com\\
+电话：……\\
+城市，国家\\[0.6em]
+\textbf{技能}\\
+技能1\\
+技能2\\
+技能3\\
+语言：语种（水平）\\[0.6em]
+\textbf{兴趣}\\
+简短一行。
+
+\switchcolumn
+
+\section*{工作经历}
+\textbf{职位名称} \hfill 年份--年份 \\
+公司 \\
+成果要点。
+
+\textbf{职位名称} \hfill 年份--年份 \\
+公司 \\
+主要成果。
+
+\section*{教育背景}
+\textbf{学位} \hfill 年份 \\
+学校 \\
+备注。
+
+\end{paracol}
+\end{document}

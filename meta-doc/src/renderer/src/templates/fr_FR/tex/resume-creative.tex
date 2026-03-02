@@ -1,0 +1,31 @@
+% CV créatif. Couleur d'accent et fond optionnels.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}}{\setmainfont{Arial}}}
+\pagestyle{empty}
+
+\begin{document}
+% Photo : remplacer \rule par \includegraphics[width=2.2cm]{photo}
+\begin{center}\rule{2.2cm}{2.8cm}\end{center}
+\begin{center}
+{\LARGE \textbf{Votre nom}}\\[0.15em]
+{\color{gray} Poste ou accroche}\\[0.4em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad Portfolio \quad | \quad Ville
+\end{center}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{1pt}\\[0.3em]
+\section*{Expérience}
+\textbf{Poste} \hfill Année -- Année \\
+Entreprise \\
+Résultats et projets.
+
+\section*{Formation}
+\textbf{Diplôme} \hfill Année \quad Établissement
+\section*{Compétences \& outils}
+Design : outil 1, 2. \quad Autres : compétences.
+\end{document}

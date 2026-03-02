@@ -1,0 +1,36 @@
+% クリエイティブ履歴書。アクセント色・背景対応。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}}{\setmainfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmainfont{Noto Sans CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+% 写真: \rule を \includegraphics[width=2.2cm]{photo} に置換
+\begin{center}\rule{2.2cm}{2.8cm}\end{center}
+\begin{center}
+{\LARGE \textbf{お名前}}\\[0.15em]
+{\color{gray} 役職またはキャッチコピー}\\[0.4em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad ポートフォリオ \quad | \quad 都市
+\end{center}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{1pt}\\[0.3em]
+\section*{職歴}
+\textbf{役職} \hfill 年 -- 年 \\
+会社 \\
+成果・プロジェクト。
+\section*{学歴}
+\textbf{学位} \hfill 年 \quad 学校
+\section*{スキル・ツール}
+デザイン: ツール1、2。 \quad その他: スキル。
+\end{document}

@@ -174,19 +174,56 @@
                   @toggle="handleToggleReference"
                 />
                 <ChatComposer
-                  class="conversation-composer"
+                  :key="activeSessionId || 'no-session'"
+                  ref="composerRef"
+                  class="conversation-composer agent-view-composer"
                   v-model="composerInput"
                   :loading="isGenerating"
-                  :disabled="!activeSession"
-                  :show-attach="true"
+                  :disabled="!activeSession || isGenerating"
+                  :show-attach="false"
                   :show-voice="false"
                   :placeholder="t('aiChat.inputPlaceholder')"
                   :show-knowledge-base="false"
+                  :show-reference-picker="true"
+                  :get-at-label="getAtLabel"
                   @submit="handleComposerSubmit"
                   @reset="handleComposerReset"
                   @attach="handleAttachFile"
+                  @open-reference-picker="referencePickerOpen = true"
                   @cancel="handleCancelGeneration"
-                />
+                >
+                  <template v-if="activeSession" #leading>
+                    <div class="agent-view-composer-leading">
+                      <AgentReferencePicker
+                        v-model:open="referencePickerOpen"
+                        :disabled="isGenerating || !!workspace.uiLocked?.value"
+                        @select-file="handleReferencePickerFile"
+                        @select-tab="handleReferencePickerTab"
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            class="agent-view-composer-btn"
+                            :disabled="isGenerating || !!workspace.uiLocked?.value"
+                            :title="t('aiChat.attachTooltip')"
+                          >
+                            <Paperclip class="agent-view-composer-btn-icon" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" class="agent-view-attach-dropdown">
+                          <DropdownMenuItem @select="openAttachFilePicker">
+                            {{ t('agent.compact.uploadAttachment', '上传附件') }}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem @select="handleOpenReferenceDialog">
+                            {{ t('agent.compact.manageAttachments', '管理附件') }}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </template>
+                </ChatComposer>
               </div>
             </div>
             <div v-else class="empty-placeholder">
@@ -452,6 +489,7 @@ import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, More, Setting } from '@element-plus/icons-vue'
+import { Paperclip } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -474,6 +512,7 @@ import { themeState, mixColors } from '../utils/themes'
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
+import AgentReferencePicker from '../components/agent/AgentReferencePicker.vue'
 import type {
   AgentMessage,
   AgentSession,
@@ -493,6 +532,8 @@ import {
 import { createRendererLogger } from '../utils/logger'
 import { agentToolManager } from '../utils/agent-tool-manager'
 import { recognizeIntent } from '../utils/agent-framework/intent-processor'
+import { processTextReference } from '../utils/agent-framework/reference-processor'
+import messageBridge from '../bridge/message-bridge'
 import {
   ai_types,
   createAiTask,
@@ -734,6 +775,8 @@ const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
 const selectedAgentConfigId = ref<string>('')
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
+const referencePickerOpen = ref(false)
+const composerRef = ref<{ insertAtCursor: (value: string) => void } | null>(null)
 const availableEngines = ref(agentEngineManager.getEnabledEngines())
 
 // === Demo Mode Data ===
@@ -1303,22 +1346,22 @@ const handleComposerSubmit = async () => {
     logger.debug('[handleComposerSubmit] 已清空activeToolIds，等待意图识别结果')
   }
 
-  // 创建用户消息，保存当前激活的引用ID
-  const message = createChatMessage('user', content, [...activeReferenceIds.value])
+  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
+  const messageRefIds = refIdsInInput.length > 0 ? refIdsInInput : [...activeReferenceIds.value]
+  const message = createChatMessage('user', content, messageRefIds)
   session.messages.push(message)
   logger.debug(
     `[handleComposerSubmit] 用户消息已添加，ID: ${message.id}, 当前消息数量: ${session.messages.length}`
   )
 
-  composerInput.value = ''
   touchSession(session)
 
   // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
   const shouldQueryKnowledgeBase = false
 
-  // 注意：不要在创建消息后立即持久化，因为会破坏reactive对象的响应式
-  // 只在用户消息创建时持久化一次（延迟持久化，不影响响应式）
+  // 在 nextTick 中清空输入并持久化，避免 contenteditable 的 input 事件把旧内容写回
   nextTick(() => {
+    composerInput.value = ''
     persistSessions()
   })
 
@@ -2016,6 +2059,69 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
     }
   } catch (error) {
     notifyError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+function getAtLabel(rawValue: string): string {
+  if (rawValue.startsWith('tab:')) {
+    const tabId = rawValue.slice(4)
+    const tab = workspace.tabs.find((t) => t.id === tabId)
+    return tab?.title ?? t('agent.attachment.untitled', '未命名')
+  }
+  return rawValue.replace(/^.*[/\\]/, '') || rawValue
+}
+
+function handleReferencePickerFile(payload: { type: 'file'; path: string }) {
+  if (payload.type !== 'file') return
+  composerRef.value?.insertAtCursor(payload.path)
+  referencePickerOpen.value = false
+}
+
+function handleReferencePickerTab(payload: { type: 'tab'; tabId: string }) {
+  if (payload.type !== 'tab') return
+  const tab = workspace.tabs.find((t) => t.id === payload.tabId)
+  if (tab?.path) {
+    composerRef.value?.insertAtCursor(tab.path)
+  } else {
+    composerRef.value?.insertAtCursor('tab:' + payload.tabId)
+  }
+  referencePickerOpen.value = false
+}
+
+async function pathToFile(filePath: string): Promise<File> {
+  const result = (await messageBridge.invoke('read-file-for-upload', filePath)) as {
+    name: string
+    data: string
+    mimeType: string
+  }
+  const binaryString = atob(result.data)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  const blob = new Blob([bytes], { type: result.mimeType })
+  return new File([blob], result.name, { type: result.mimeType })
+}
+
+async function openAttachFilePicker() {
+  if (!activeSession.value) return
+  try {
+    const { selectReferenceFiles } = await import('../utils/agent-framework/reference-processor')
+    const filePaths = await selectReferenceFiles('all', true, t('aiChat.attachTooltip'))
+    if (filePaths.length === 0) return
+    const files: File[] = []
+    for (const filePath of filePaths) {
+      try {
+        files.push(await pathToFile(filePath))
+      } catch (e) {
+        console.error(`无法读取文件 ${filePath}:`, e)
+      }
+    }
+    if (files.length > 0) {
+      await handleAttachFile(files.length === 1 ? files[0] : files)
+    }
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
   }
 }
 
@@ -2967,26 +3073,76 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
+/* 非绝对定位：输入区域为 panel 内正常流，左右边界为 panel，底部留空隙避免重叠 */
 .composer-wrapper {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 12px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  padding: 0 8px;
-  gap: 8px;
-}
-
-.composer-wrapper > * {
-  pointer-events: auto;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px 8px;
+  gap: 4px;
+  border-top: 1px solid rgba(128, 128, 128, 0.22);
 }
 
 .conversation-composer {
-  pointer-events: auto;
   width: 100%;
+  min-width: 0;
+}
+
+/* AgentView 专用：输入框占满 panel 宽度，长短文本模式与底部空隙 */
+.agent-view-composer :deep(.composer-shell) {
+  width: 100%;
+  border-radius: 5px;
+  padding: 4px 6px;
+  gap: 4px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.06);
+}
+
+.agent-view-composer :deep(.composer-shell.is-multiline) {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+.agent-view-composer :deep(.composer-shell.is-multiline .composer-leading) {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  z-index: 10;
+}
+
+.agent-view-composer :deep(.composer-shell.is-multiline .composer-actions) {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+}
+
+.agent-view-composer :deep(.composer-shell.is-multiline .composer-scroll) {
+  padding-bottom: 20px;
+  padding-left: 28px;
+}
+
+.agent-view-composer-leading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-end;
+}
+
+.agent-view-composer-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.agent-view-composer-btn-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.agent-view-attach-dropdown {
+  font-size: 12px;
+  min-width: 120px;
 }
 
 .empty-placeholder {

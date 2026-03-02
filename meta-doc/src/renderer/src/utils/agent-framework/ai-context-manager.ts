@@ -512,9 +512,12 @@ export class AIContextManager {
     for (const msg of recentMessages) {
       if (msg.role === 'user') {
         if (msg.type === 'chat') {
+          // 发送给 AI 时把闭合 tag @[path] 转成 @path，便于模型理解
+          const rawContent = msg.markdown || ''
+          const contentForLlm = rawContent.replace(/@\[([^\]]+)\]/g, '@$1')
           llmMessages.push({
             role: msg.role,
-            content: msg.markdown || ''
+            content: contentForLlm
           })
         }
       } else if (msg.role === 'assistant') {

@@ -1,0 +1,49 @@
+% Klassischer einspaltiger Lebenslauf. Optional: \usepackage{pagecolor} \pagecolor{gray!8}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\title{\vspace{-1.2cm}\textbf{Ihr Name}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.8cm}
+% Foto: \rule durch \includegraphics[width=2.2cm,clip]{photo} ersetzen
+\begin{flushright}\rule{2.2cm}{2.8cm}\end{flushright}
+
+\textbf{Kontakt:} email@example.com \quad | \quad Telefon \quad | \quad Stadt, Land \\
+\textbf{LinkedIn:} linkedin.com/in/yourprofile
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{Ausbildung}
+\textbf{Abschluss} \hfill Jahr -- Jahr \\
+Hochschule, Stadt \\
+Kurze Anmerkung (Auszeichnungen, Note).
+
+\section*{Berufserfahrung}
+\textbf{Position} \hfill Monat Jahr -- Heute \\
+Unternehmen, Stadt \\
+\begin{itemize}
+  \item Erfolg oder Verantwortung.
+  \item Weitere Punkte.
+\end{itemize}
+
+\textbf{Vorherige Position} \hfill Monat Jahr -- Monat Jahr \\
+Unternehmen \\
+\begin{itemize}
+  \item Wichtige Verantwortung oder Ergebnis.
+\end{itemize}
+
+\section*{Fähigkeiten}
+Technisch: Fähigkeit 1, 2, 3. \\
+Sprachen: Sprache 1 (Niveau), Sprache 2 (Niveau).
+
+\end{document}

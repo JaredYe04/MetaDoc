@@ -68,10 +68,23 @@ export class ToolRunner {
 
       getLogger().debug(`执行工具: ${toolId}`, params)
 
-      // 如果提供了session，自动注入sessionId到参数中（用于工具访问session状态）
-      const toolParams = session
-        ? { ...params, _sessionId: session.id, _session: session } // 同时传递sessionId和session对象
-        : params
+      // 如果提供了session，自动注入 sessionId、session、以及最后一则用户消息 id（用于编辑暂存等）
+      let toolParams = params
+      if (session) {
+        const lastUser = [...(session.messages || [])]
+          .reverse()
+          .find((m: { role?: string }) => m.role === 'user')
+        const _userMessageId =
+          lastUser && typeof (lastUser as { id?: string }).id === 'string'
+            ? (lastUser as { id: string }).id
+            : undefined
+        toolParams = {
+          ...params,
+          _sessionId: session.id,
+          _session: session,
+          _userMessageId
+        }
+      }
 
       // 调用工具
       const result = await agentToolManager.invokeTool(

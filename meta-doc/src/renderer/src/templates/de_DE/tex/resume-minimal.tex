@@ -1,0 +1,29 @@
+% Minimaler Lebenslauf. Viel Weißraum.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=2.2cm,right=2.2cm,top=2cm,bottom=2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Georgia}}}
+\pagestyle{empty}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+\begin{center}
+\vspace{0.5cm}
+{\LARGE Ihr Name}\\[0.8em]
+Email \quad · \quad Telefon \quad · \quad Stadt\\[0.6em]
+% Foto: \rule durch \includegraphics[width=1.8cm]{photo} ersetzen
+\rule{1.8cm}{2.2cm}\\[0.6em]
+\end{center}
+\vspace{1em}
+\textbf{Ausbildung}\\
+Abschluss, Jahr. Hochschule.
+\vspace{0.8em}
+\textbf{Berufserfahrung}\\
+Position, Unternehmen, Jahr--Jahr. Kurzfassung.
+\vspace{0.8em}
+\textbf{Fähigkeiten}\\
+Kurz auflisten.
+\end{document}

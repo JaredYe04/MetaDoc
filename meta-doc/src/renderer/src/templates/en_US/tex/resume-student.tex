@@ -1,0 +1,43 @@
+% Student / internship resume. Optional: \usepackage{pagecolor} \pagecolor{gray!5}.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Your Name}}\\[0.2em]
+email@university.edu \quad | \quad +1 234 567 8900 \quad | \quad City
+\end{center}
+% Photo: replace \rule with \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\section*{Education}
+\textbf{B.S. / B.A. in Major} \hfill Expected Graduation Year \\
+University Name \\
+GPA: X.XX (if strong). Relevant coursework.
+
+\section*{Projects}
+\textbf{Project Name} \hfill Semester / Year \\
+Technologies used. Brief description and outcome.
+
+\textbf{Another Project} \hfill Year \\
+What you built and learned.
+
+\section*{Experience}
+\textbf{Intern / Part-time Role} \hfill Year -- Year \\
+Company \\
+Key tasks and achievements.
+
+\section*{Skills}
+Technical: Languages, tools, frameworks. \\
+Languages: English (fluent), Other (level).
+
+\section*{Activities}
+Clubs, volunteer, leadership (if relevant).
+
+\end{document}

@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { AgentSession } from '../types/agent'
 import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
@@ -20,6 +20,8 @@ export interface AgentWorkspacePersisted {
   sessions: AgentSession[]
   /** Compact 视图：当前打开的 tab 会话 ID 列表，按顺序；不持久化则恢复时视为全部打开 */
   openTabIds?: string[]
+  /** 各会话的提示词输入框内容（会话级隔离） */
+  composerInputBySessionId?: Record<string, string>
 }
 
 function getWorkspaceFolders(): string[] {
@@ -45,7 +47,10 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
 
   /** 共享 UI 状态：Full 与 Compact 视图同步（仅一个可见时由当前视图更新） */
   const isGenerating = ref(false)
+  /** 当前会话的提示词输入（与 composerInputBySessionId 按 activeSessionId 同步） */
   const composerInput = ref('')
+  /** 各会话的提示词输入框内容（会话级隔离，持久化） */
+  const composerInputBySessionId = ref<Record<string, string>>({})
   const selectedEngineId = ref('default-autogpt-engine')
   /** 共享任务句柄：用于跨视图取消/解锁 */
   const currentAiTaskHandle = ref<string | null>(null)
@@ -148,8 +153,15 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
         openTabIds.value = [fallback]
       }
 
+      const savedComposer = data.composerInputBySessionId && typeof data.composerInputBySessionId === 'object'
+        ? data.composerInputBySessionId
+        : {}
+      composerInputBySessionId.value = savedComposer
+      composerInput.value = (activeSessionId.value && savedComposer[activeSessionId.value]) ?? ''
+
       if (sessions.value.length === 0) {
         ensureDefaultSession()
+        composerInput.value = (activeSessionId.value && composerInputBySessionId.value[activeSessionId.value]) ?? ''
       }
     } catch (e) {
       logger.warn('加载 Agent 会话失败', e)
@@ -188,17 +200,36 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     }, SAVE_DEBOUNCE_MS)
   }
 
-  /** 写入 .metadoc */
+  /** 立即保存（用于关闭前 flush，保证提示词等完整持久化） */
+  function flushSave(): void {
+    if (_saveTimer.value) {
+      clearTimeout(_saveTimer.value)
+      _saveTimer.value = null
+    }
+    saveToMetadoc()
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', flushSave)
+    window.addEventListener('pagehide', flushSave)
+  }
+
+  /** 写入 .metadoc（保存前先把当前会话的 composer 输入同步进 map，避免丢失） */
   async function saveToMetadoc(): Promise<void> {
     const root = workspaceRoot.value
     if (!root) return
     const filePath = getSessionsFilePath()
     if (!filePath) return
+    const aid = activeSessionId.value
+    if (aid) {
+      composerInputBySessionId.value[aid] = composerInput.value
+    }
     try {
       const payload: AgentWorkspacePersisted = {
         activeSessionId: activeSessionId.value,
         sessions: sessions.value,
-        openTabIds: openTabIds.value
+        openTabIds: openTabIds.value,
+        composerInputBySessionId: composerInputBySessionId.value
       }
       await messageBridge.invoke('write-file-content', {
         filePath,
@@ -215,11 +246,32 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     await loadFromMetadoc()
   }
 
-  /** 设置当前选中的会话 */
+  /** 设置当前选中的会话（会同步保存/恢复该会话的 composer 输入） */
   function setActiveSessionId(id: string | null): void {
+    const prevId = activeSessionId.value
+    if (prevId) {
+      composerInputBySessionId.value[prevId] = composerInput.value
+    }
     activeSessionId.value = id
+    composerInput.value = (id && composerInputBySessionId.value[id]) ?? ''
     scheduleSave()
   }
+
+  /** 用户编辑 composer 时更新当前会话的输入并写入 map（会触发持久化） */
+  function setComposerInput(value: string): void {
+    composerInput.value = value
+    if (activeSessionId.value) {
+      composerInputBySessionId.value[activeSessionId.value] = value
+      scheduleSave()
+    }
+  }
+
+  watch(composerInput, (val) => {
+    if (activeSessionId.value) {
+      composerInputBySessionId.value[activeSessionId.value] = val
+      scheduleSave()
+    }
+  })
 
   /** 更新会话列表（替换/追加/删除后调用 scheduleSave） */
   function setSessions(list: AgentSession[]): void {
@@ -255,11 +307,13 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     refreshWorkspaceRoot,
     loadFromMetadoc,
     saveToMetadoc,
+    flushSave,
     init,
     setActiveSessionId,
     setSessions,
     touchSession,
     setOpenTabIds,
+    setComposerInput,
     ensureDefaultSession,
     getSessionsFilePath
   }

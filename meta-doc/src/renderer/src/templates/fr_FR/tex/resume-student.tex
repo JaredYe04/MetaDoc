@@ -1,0 +1,39 @@
+% CV étudiant / stage.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Votre nom}}\\[0.2em]
+email@univ.fr \quad | \quad Téléphone \quad | \quad Ville
+\end{center}
+% Photo : remplacer \rule par \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\section*{Formation}
+\textbf{Licence/Master Domaine} \hfill Année prévue \\
+Établissement \\
+Mention (si pertinent). Parcours.
+
+\section*{Projets}
+\textbf{Nom du projet} \hfill Semestre / Année \\
+Technos. Description et résultat.
+
+\section*{Expérience}
+\textbf{Stage / Alternance} \hfill Année -- Année \\
+Entreprise \\
+Missions et résultats.
+
+\section*{Compétences}
+Techniques : langages, outils, frameworks. \\
+Langues : Français (natif), Anglais (niveau).
+
+\section*{Activités}
+Associations, bénévolat (si pertinent).
+\end{document}

@@ -72,6 +72,33 @@
           </div>
         </transition>
 
+        <!-- 用户消息右下角：回滚 / 恢复（依赖 sessionId 与编辑暂存） -->
+        <transition name="fade">
+          <div
+            v-if="
+              showActions &&
+              message.role === 'user' &&
+              message.type === 'chat' &&
+              sessionId &&
+              (canRollback || canRedo)
+            "
+            class="agent-message__actions agent-message__actions--right"
+            @mouseenter="handleActionsMouseEnter"
+            @mouseleave="handleActionsMouseLeave"
+          >
+            <Tooltip v-if="canRollback" :content="t('agent.staging.rollback')" placement="top">
+              <Button circle size="small" @click.stop="emit('rollback', message)">
+                <el-icon><Refresh /></el-icon>
+              </Button>
+            </Tooltip>
+            <Tooltip v-if="canRedo" :content="t('agent.staging.redo')" placement="top">
+              <Button circle size="small" @click.stop="emit('redo', message)">
+                <el-icon><Check /></el-icon>
+              </Button>
+            </Tooltip>
+          </div>
+        </transition>
+
         <!-- 意图识别消息 -->
         <div v-if="message.type === 'intent-recognition'" class="intent-recognition-message">
           <div class="intent-recognition-header">
@@ -306,6 +333,7 @@ import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
+import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 
 const props = withDefaults(
   defineProps<{
@@ -316,8 +344,10 @@ const props = withDefaults(
     sessionReferences?: Reference[] // 会话的引用列表
     /** 紧凑模式：用户消息无头像、占满宽、小边距小圆角小字号 */
     compact?: boolean
+    /** 当前会话 id，用于显示回滚/恢复按钮（依赖编辑暂存 store） */
+    sessionId?: string | null
   }>(),
-  { compact: false }
+  { compact: false, sessionId: null }
 )
 
 const emit = defineEmits<{
@@ -325,9 +355,24 @@ const emit = defineEmits<{
   (e: 'regenerate', message: AgentMessage): void
   (e: 'duplicate', message: AgentMessage): void
   (e: 'delete', message: AgentMessage): void
+  (e: 'rollback', message: AgentMessage): void
+  (e: 'redo', message: AgentMessage): void
 }>()
 
 const { t } = useI18n()
+const stagingStore = useAgentEditStagingStore()
+
+/** 该用户消息产生的编辑：可回滚（未拒绝的）与可恢复（已拒绝的） */
+const editsForThisMessage = computed(() => {
+  if (!props.sessionId || props.message.role !== 'user') return []
+  return stagingStore.getEditsByUserMessage(props.sessionId, props.message.id)
+})
+const canRollback = computed(() =>
+  editsForThisMessage.value.some((r) => r.status !== 'rejected')
+)
+const canRedo = computed(() =>
+  editsForThisMessage.value.some((r) => r.status === 'rejected')
+)
 
 const showTimestamp = ref(false)
 const showActions = ref(false)
@@ -554,10 +599,11 @@ const cleanIncompleteToolCallTags = (content: string): string => {
   // 标准格式
   content = content.replace(/<tool_call>/gi, '')
   content = content.replace(/<\/tool_call>/gi, '')
-  // DSML格式
+  // DSML 格式：移除完整开始标签（含属性），避免残留 name="..." 等
+  content = content.replace(/<｜DSML｜invoke[^>]*>/gi, '')
+  content = content.replace(/<｜DSML｜function_calls>\s*>/gi, '')
   content = content.replace(/<｜DSML｜function_calls>/gi, '')
   content = content.replace(/<\/｜DSML｜function_calls>/gi, '')
-  content = content.replace(/<｜DSML｜invoke/gi, '')
   content = content.replace(/<\/｜DSML｜invoke>/gi, '')
   // 旧格式（兼容性）
   content = content.replace(/\<\|redacted_tool_calls_begin\|>/gi, '')
@@ -1211,7 +1257,8 @@ onBeforeUnmount(() => {
 
 .agent-message__actions--right {
   left: auto;
-  right: -80px;
+  right: 8px;
+  bottom: 6px;
 }
 
 .agent-message__content {

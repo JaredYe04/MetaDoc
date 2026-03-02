@@ -13,22 +13,41 @@
         borderColor: themeState.currentTheme.background2nd ?? 'rgba(0,0,0,0.08)'
       }"
     >
-      <div class="composer-leading">
-        <Button
-          v-if="showAttach"
-          :title="t('aiChat.attachTooltip')"
-          variant="ghost"
-          size="icon"
-          class="composer-btn"
-          :disabled="disabled"
-          @click.prevent="handleSelectFiles"
-        >
-          <Paperclip class="w-4 h-4" />
-        </Button>
+      <div class="composer-leading" v-if="showAttach || $slots.leading">
+        <slot name="leading">
+          <Button
+            v-if="showAttach"
+            :title="t('aiChat.attachTooltip')"
+            variant="ghost"
+            size="icon"
+            class="composer-btn"
+            :disabled="disabled"
+            @click.prevent="handleSelectFiles"
+          >
+            <Paperclip class="w-4 h-4" />
+          </Button>
+        </slot>
       </div>
 
-      <div ref="scrollContainerRef" class="composer-scroll" :style="scrollContainerStyle">
+      <el-scrollbar
+        ref="scrollContainerRef"
+        class="composer-scroll"
+        :style="scrollContainerStyle"
+        :wrap-style="scrollWrapStyle"
+      >
+        <AgentRefComposerInput
+          v-if="showReferencePicker"
+          ref="refInputRef"
+          :model-value="modelValue"
+          :get-at-label="getAtLabel"
+          :placeholder="placeholder || t('aiChat.inputPlaceholder')"
+          :disabled="disabled"
+          @update:model-value="emit('update:modelValue', $event)"
+          @open-reference-picker="emit('open-reference-picker')"
+          @keydown="handleKeydown"
+        />
         <textarea
+          v-else
           ref="textareaRef"
           :value="modelValue"
           class="composer-textarea"
@@ -38,7 +57,7 @@
           @input="handleInput"
           @keydown="handleKeydown"
         />
-      </div>
+      </el-scrollbar>
 
       <div class="composer-actions">
         <div class="composer-send-switch">
@@ -70,7 +89,7 @@
           :variant="loading ? 'destructive' : 'default'"
           size="icon"
           class="composer-btn"
-          :disabled="disabled || (loading ? false : !modelValue.trim().length)"
+          :disabled="loading ? false : (disabled || !hasContentToSend)"
           @click.prevent="loading ? emit('cancel') : handleSubmit()"
         >
           <ArrowUp v-if="!loading" class="w-4 h-4" />
@@ -113,9 +132,11 @@ import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
 import { Paperclip, Mic, ArrowUp, RefreshCw, Link } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
+import { ElScrollbar } from 'element-plus'
 import { themeState } from '../../utils/themes'
 import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
+import AgentRefComposerInput from '../agent/AgentRefComposerInput.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -131,6 +152,10 @@ const props = withDefaults(
     enableKnowledgeBaseQuery?: boolean
     /** 紧凑模式：小字号、小内边距、小圆角、小按钮 */
     compact?: boolean
+    /** 是否在输入 @ 时触发打开选择器（插入 @path 或 @tab:id 到输入框） */
+    showReferencePicker?: boolean
+    /** 根据 @ 的原始值返回展示文案（如文件名、标签页标题） */
+    getAtLabel?: (rawValue: string) => string
   }>(),
   {
     modelValue: '',
@@ -143,7 +168,9 @@ const props = withDefaults(
     showKnowledgeBase: false,
     showReset: true,
     enableKnowledgeBaseQuery: false,
-    compact: false
+    compact: false,
+    showReferencePicker: false,
+    getAtLabel: undefined
   }
 )
 
@@ -155,11 +182,13 @@ const emit = defineEmits<{
   (e: 'voice'): void
   (e: 'cancel'): void
   (e: 'update:enableKnowledgeBaseQuery', value: boolean): void
+  (e: 'open-reference-picker'): void
 }>()
 
 const { t } = useI18n()
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const scrollContainerRef = ref<HTMLDivElement | null>(null)
+const refInputRef = ref<InstanceType<typeof AgentRefComposerInput> | null>(null)
+const scrollContainerRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
 const maxScrollHeight = ref(0)
 const singleLineHeight = ref<number | null>(null)
 const isMultiline = ref(false)
@@ -173,13 +202,29 @@ const updateMaxScrollHeight = () => {
 }
 
 const scrollContainerStyle = computed(() => ({
-  maxHeight: `${maxScrollHeight.value}px`,
+  maxHeight: `${maxScrollHeight.value}px`
+}))
+
+const scrollWrapStyle = computed(() => ({
   overflowX: 'hidden',
   overflowY: 'auto'
 }))
 
+const effectiveInputTrim = computed(() => {
+  const v = props.modelValue || ''
+  return v.replace(/@\[[^\]]+\]/g, '').trim()
+})
+
+const hasContentToSend = computed(() => {
+  const v = props.modelValue || ''
+  if (!v) return false
+  if (v.replace(/@\[[^\]]*\]/g, '').trim().length > 0) return true
+  return /@\[[^\]]*\]/.test(v)
+})
+
 const multilineThreshold = 6
 const autoResize = () => {
+  if (props.showReferencePicker) return
   if (!textareaRef.value) return
   const el = textareaRef.value
   const content = el.value || props.modelValue || ''
@@ -226,7 +271,8 @@ const autoResize = () => {
 }
 
 const scrollToBottom = () => {
-  const wrap = scrollContainerRef.value
+  const el = scrollContainerRef.value?.$el as HTMLElement | undefined
+  const wrap = el?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
   if (wrap && wrap.scrollHeight > wrap.clientHeight) {
     wrap.scrollTop = wrap.scrollHeight
   }
@@ -239,7 +285,7 @@ const handleInput = (event: Event) => {
 }
 
 const handleSubmit = () => {
-  if (props.disabled || !props.modelValue.trim().length) return
+  if (props.disabled || !hasContentToSend.value) return
   emit('submit', enableKnowledgeBaseQuery.value)
 }
 
@@ -251,6 +297,10 @@ const toggleKnowledgeBaseQuery = () => {
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (props.disabled) return
+  if (event.key === '@' && props.showReferencePicker) {
+    emit('open-reference-picker')
+    return
+  }
   if (event.key !== 'Enter') return
   const isModifierPressed = event.altKey || event.shiftKey
   if (sendOnEnter.value) {
@@ -332,8 +382,16 @@ const handleSelectFiles = async () => {
 watch(
   () => props.modelValue,
   () => {
-    nextTick(autoResize)
-  }
+    if (props.showReferencePicker) {
+      const text = props.modelValue || ''
+      const lines = text.split(/\n/).length
+      const textOnlyLen = text.replace(/@\[[^\]]*\]/g, '').length
+      isMultiline.value = lines > multilineThreshold || textOnlyLen > 400
+    } else {
+      nextTick(autoResize)
+    }
+  },
+  { immediate: true }
 )
 
 watch(
@@ -358,6 +416,16 @@ const checkKnowledgeBaseEnabled = async () => {
     emit('update:enableKnowledgeBaseQuery', false)
   }
 }
+
+defineExpose({
+  /** 在光标处插入 @path 或 @tab:tabId（仅当 showReferencePicker 时有效） */
+  insertAtCursor(value: string) {
+    refInputRef.value?.insertAtCursor(value)
+  },
+  insertRefAtCursor(value: string) {
+    refInputRef.value?.insertAtCursor(value)
+  }
+})
 
 onMounted(async () => {
   updateMaxScrollHeight()
@@ -434,8 +502,9 @@ onBeforeUnmount(() => {
   z-index: 10;
 }
 
-/* 紧凑模式 */
+/* 紧凑模式：占满 panel 宽度，长文本时输入框右边界为 panel 边界 */
 .chat-composer--compact .composer-shell {
+  width: 100%;
   border-radius: 5px;
   padding: 4px 6px;
   gap: 4px;
@@ -476,7 +545,7 @@ onBeforeUnmount(() => {
 }
 
 .chat-composer--compact .composer-shell.is-multiline .composer-scroll {
-  padding-bottom: 12px;
+  padding-bottom: 20px;
   padding-left: 28px;
 }
 
@@ -502,25 +571,15 @@ onBeforeUnmount(() => {
 .composer-scroll {
   width: 100%;
   min-width: 0;
+}
+
+.composer-scroll :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-.composer-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.composer-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.composer-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-.composer-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+.composer-scroll :deep(.el-scrollbar__view) {
+  width: 100%;
 }
 
 .composer-shell.is-multiline .composer-scroll {

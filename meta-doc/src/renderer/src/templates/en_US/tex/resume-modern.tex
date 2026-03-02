@@ -1,0 +1,41 @@
+% Modern minimal resume. Optional background: \usepackage{pagecolor} then \pagecolor{blue!3} (or any color).
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\geometry{left=1.8cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}[BoldFont=* Bold]}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}[BoldFont=* Bold]}{\setmainfont{Arial}[BoldFont=* Bold]}}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{0.8em}{0.4em}
+
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Your Name}}\\[0.3em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad +1 234 567 8900 \quad | \quad City, Country
+\end{center}
+
+% Photo: replace \rule with \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{Education}
+\textbf{B.S. / M.S. in Field} \hfill Graduation Year \\
+University Name \\
+Relevant coursework or thesis topic.
+
+\section*{Experience}
+\textbf{Role} \hfill Start -- End \\
+Company \\
+Achievement-oriented bullet points. Quantify where possible.
+
+\textbf{Role} \hfill Start -- End \\
+Company \\
+Key outcomes and responsibilities.
+
+\section*{Skills}
+Category: A, B, C. \quad Category: X, Y, Z.
+
+\end{document}

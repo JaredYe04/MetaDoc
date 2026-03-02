@@ -1,0 +1,45 @@
+% 2段組：左連絡先・スキル、右職歴・学歴。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{paracol}
+\geometry{left=1cm,right=1cm,top=1.2cm,bottom=1.2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Serif CJK JP}{\setCJKmainfont{Noto Serif CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Mincho}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+\columnratio{0.28}
+\setlength{\columnsep}{1.2em}
+
+\begin{document}
+\begin{paracol}{2}
+\setlength{\parindent}{0pt}
+{\large \textbf{お名前}}\\[0.2em]
+% 写真: \rule を \includegraphics[width=\linewidth]{photo} に置換
+\rule{\linewidth}{2.2cm}\\[0.5em]
+\textbf{連絡先}\\
+Email: email@example.com\\
+電話: ……\\
+都市、国\\[0.6em]
+\textbf{スキル}\\
+スキル1\\ スキル2\\ スキル3\\[0.6em]
+\textbf{興味}\\
+短文。
+
+\switchcolumn
+\section*{職歴}
+\textbf{役職} \hfill 年--年 \\
+会社 \\
+成果。
+
+\section*{学歴}
+\textbf{学位} \hfill 年 \\
+大学 \\
+備考。
+\end{paracol}
+\end{document}

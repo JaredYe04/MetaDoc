@@ -1,0 +1,53 @@
+% 学术简历，适用于申请学校、科研岗位。自选背景：\usepackage{pagecolor} \pagecolor{gray!5}。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Courier New}}}}}
+\IfFontExistsTF{Noto Serif CJK SC}{\setCJKmainfont{Noto Serif CJK SC}[Fallback=SimSun]}{\setCJKmainfont{SimSun}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}[Fallback=Microsoft YaHei]}{\setCJKsansfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}[Fallback=FangSong]}{\setCJKmonofont{FangSong}}
+
+\title{\vspace{-1cm}\textbf{您的姓名}}
+\author{院系 / 单位 \\ \href{mailto:邮箱@学校.edu}{邮箱@学校.edu}}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.6cm}
+% 照片位置：将 \rule 换为 \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\section*{教育背景}
+\textbf{博士/硕士 · 专业} \hfill 年份 -- 年份 \\
+学校，导师：姓名 \\
+论文题目：「论文标题」
+
+\textbf{本科 · 专业} \hfill 年份 \\
+学校
+
+\section*{科研经历}
+\textbf{职位/项目} \hfill 年份 -- 年份 \\
+单位 \\
+研究内容与成果简述。
+
+\section*{发表与成果}
+\begin{itemize}
+  \item 作者. 「题目。」\textit{期刊/会议}，年份。
+  \item 作者. 「题目。」\textit{期刊}，年份。
+\end{itemize}
+
+\section*{教学}
+课程名称，角色（助教/主讲），单位，年份。
+
+\section*{荣誉与奖励}
+奖项名称，年份。 \quad 项目/基金，年份。
+
+\section*{技能}
+方法、工具、语言。
+
+\end{document}

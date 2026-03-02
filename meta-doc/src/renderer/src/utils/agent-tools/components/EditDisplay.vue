@@ -1,10 +1,51 @@
 <template>
   <div class="edit-display" :style="containerStyle">
+    <!-- Cursor 风格内联：文件名 + 最多 4 行 diff + 可展开 -->
+    <div v-if="showCompactInline" class="edit-compact-inline" :style="compactInlineStyle">
+      <div class="edit-compact-header" :style="chunkHeaderStyle">
+        <span class="edit-compact-filename">{{ editFileName || t('agent.display.edit.title') }}</span>
+        <span v-if="displayData.stage !== 'completed'" class="edit-compact-status">
+          <el-icon v-if="displayData.stage !== 'completed'" class="is-loading"><Loading /></el-icon>
+          {{ getStageMessage(displayData.stage) }}
+        </span>
+      </div>
+      <div class="edit-compact-diff" :style="diffCompactStyle">
+        <div
+          v-for="(line, idx) in compactDiffLinesVisible"
+          :key="idx"
+          :class="['edit-compact-line', line.type === 'delete' ? 'diff-delete' : 'diff-insert']"
+          :style="getDiffLineStyle(line.type)"
+        >
+          <span class="line-prefix">{{ line.type === 'delete' ? '-' : '+' }}</span>
+          <span class="line-text">{{ line.text }}</span>
+        </div>
+      </div>
+      <button
+        v-if="hasMoreDiffLines && !compactDiffExpanded"
+        type="button"
+        class="edit-compact-expand-bar"
+        @click="compactDiffExpanded = true"
+      >
+        <ChevronDown class="edit-compact-chevron" />
+        <span>{{ t('agent.display.edit.expandDiff', '展开') }}</span>
+      </button>
+      <button
+        v-else-if="hasMoreDiffLines && compactDiffExpanded"
+        type="button"
+        class="edit-compact-expand-bar"
+        @click="compactDiffExpanded = false"
+      >
+        <ChevronUp class="edit-compact-chevron" />
+        <span>{{ t('agent.display.edit.collapseDiff', '收起') }}</span>
+      </button>
+    </div>
+
     <div
       v-if="
-        displayData.stage === 'loading' ||
-        displayData.stage === 'applying' ||
-        displayData.stage === 'updating'
+        !showCompactInline &&
+        (displayData.stage === 'loading' ||
+          displayData.stage === 'applying' ||
+          displayData.stage === 'updating')
       "
       class="status-message"
       :style="statusMessageStyle"
@@ -14,7 +55,7 @@
     </div>
 
     <div
-      v-else-if="displayData.stage === 'completed'"
+      v-else-if="displayData.stage === 'completed' && !showCompactInline"
       class="completed-state"
       :style="completedStateStyle"
     >
@@ -285,7 +326,7 @@ import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
-import { Info, XCircle } from 'lucide-vue-next'
+import { Info, XCircle, ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Result } from '@renderer/components/ui/result'
@@ -371,14 +412,13 @@ const resultData = computed((): EditResult | null => {
     // 4. 如果data本身就有operations，说明data就是result
     let result = data.result || data.content?.result || data.content || data
 
-    // 如果result有operations字段，说明它是EditResult
-    if (
-      result &&
-      typeof result === 'object' &&
-      'operations' in result &&
-      Array.isArray(result.operations)
-    ) {
-      return result as EditResult
+    // 如果result有operations或hunks，说明它是EditResult（或流式部分结果）
+    if (result && typeof result === 'object') {
+      const hasOps = 'operations' in result && Array.isArray(result.operations)
+      const hasHunks = 'hunks' in result && Array.isArray(result.hunks)
+      if (hasOps || hasHunks) {
+        return result as EditResult
+      }
     }
   }
   return null
@@ -398,6 +438,50 @@ const hasHunks = computed(() => {
 const hunks = computed((): UnifiedDiffHunk[] => {
   return resultData.value?.hunks || []
 })
+
+// Cursor 风格：编辑文件名（用于内联展示，支持流式时的 content.filePath）
+const editFileName = computed(() => {
+  const r = resultData.value
+  if (r?.filePath) return r.filePath.replace(/^.*[/\\]/, '') || r.filePath
+  const data = displayData.value as any
+  const path = data?.filePath ?? data?.content?.filePath
+  return path ? String(path).replace(/^.*[/\\]/, '') : ''
+})
+
+// 是否显示 Cursor 风格内联面板（有 filePath 且有 hunks 或进行中）
+const showCompactInline = computed(() => {
+  const hasPath = !!editFileName.value
+  const data = displayData.value as any
+  const stage = data?.stage
+  const isRunning = stage === 'loading' || stage === 'applying' || stage === 'updating'
+  const hasHunksData = hunks.value.length > 0
+  return hasPath && (hasHunksData || isRunning)
+})
+
+const compactDiffExpanded = ref(false)
+const COMPACT_DIFF_LINES = 4
+
+// 紧凑 diff 显示行（最多 4 行，可展开）
+const compactDiffLines = computed(() => {
+  const lines: { type: 'delete' | 'insert'; text: string }[] = []
+  for (const hunk of hunks.value) {
+    for (const line of hunk.oldLines || []) {
+      lines.push({ type: 'delete', text: line })
+    }
+    for (const line of hunk.newLines || []) {
+      lines.push({ type: 'insert', text: line })
+    }
+  }
+  return lines
+})
+
+const compactDiffLinesVisible = computed(() => {
+  const list = compactDiffLines.value
+  if (compactDiffExpanded.value) return list
+  return list.slice(0, COMPACT_DIFF_LINES)
+})
+
+const hasMoreDiffLines = computed(() => compactDiffLines.value.length > COMPACT_DIFF_LINES)
 
 const oldContent = computed(() => {
   return resultData.value?.originalContent || ''
@@ -940,6 +1024,22 @@ const lineNumberStyle = computed(() => ({
   textAlign: 'right',
   userSelect: 'none'
 }))
+
+const compactInlineStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
+  border: `1px solid ${themeState.currentTheme.textColor2}20`,
+  borderRadius: '6px',
+  overflow: 'hidden',
+  marginBottom: '8px'
+}))
+
+const diffCompactStyle = computed(() => ({
+  maxHeight: compactDiffExpanded.value ? 'none' : `${COMPACT_DIFF_LINES * 22}px`,
+  overflow: 'auto',
+  fontFamily: 'JetBrains Mono, Consolas, monospace',
+  fontSize: '12px',
+  lineHeight: '22px'
+}))
 </script>
 
 <style scoped>
@@ -1165,6 +1265,83 @@ const lineNumberStyle = computed(() => ({
 
 .diff-context {
   opacity: 0.7;
+}
+
+/* Cursor 风格内联 */
+.edit-compact-inline {
+  width: 100%;
+}
+
+.edit-compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.edit-compact-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-compact-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.edit-compact-diff {
+  padding: 0 8px;
+}
+
+.edit-compact-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 4px;
+  white-space: pre;
+  word-break: break-all;
+}
+
+.edit-compact-line .line-prefix {
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.edit-compact-line .line-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-compact-expand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: rgba(128, 128, 128, 0.06);
+  border: none;
+  border-top: 1px solid rgba(128, 128, 128, 0.12);
+  cursor: pointer;
+}
+
+.edit-compact-expand-bar:hover {
+  background: rgba(128, 128, 128, 0.1);
+  color: var(--el-text-color-primary);
+}
+
+.edit-compact-chevron {
+  width: 12px;
+  height: 12px;
 }
 </style>
 

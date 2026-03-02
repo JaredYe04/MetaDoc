@@ -1,0 +1,41 @@
+% CV académique. Candidatures scolaires et recherche.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\title{\vspace{-1cm}\textbf{Votre nom}}
+\author{Département / Institution \\ \href{mailto:email@univ.fr}{email@univ.fr}}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-0.6cm}
+% Photo : remplacer \rule par \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\section*{Formation}
+\textbf{Doctorat/Master Domaine} \hfill Année -- Année \\
+Université, Directeur : Nom \\
+Sujet : « Titre du mémoire »
+
+\section*{Recherche}
+\textbf{Poste} \hfill Année -- Année \\
+Institution \\
+Description et résultats.
+
+\section*{Publications}
+\begin{itemize}
+  \item Auteur. « Titre. » \textit{Revue/Colloque}, année.
+\end{itemize}
+
+\section*{Enseignement}
+Cours, rôle (chargé de TD/enseignant), institution, année.
+
+\section*{Distinctions}
+Prix, année.
+
+\section*{Compétences}
+Méthodes, outils, langues.
+\end{document}

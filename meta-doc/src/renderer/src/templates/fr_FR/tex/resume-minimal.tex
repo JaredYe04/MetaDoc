@@ -1,0 +1,29 @@
+% CV minimal. Beaucoup de blanc.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=2.2cm,right=2.2cm,top=2cm,bottom=2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Georgia}}}
+\pagestyle{empty}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+\begin{center}
+\vspace{0.5cm}
+{\LARGE Votre nom}\\[0.8em]
+Email \quad · \quad Tél. \quad · \quad Ville\\[0.6em]
+% Photo : remplacer \rule par \includegraphics[width=1.8cm]{photo}
+\rule{1.8cm}{2.2cm}\\[0.6em]
+\end{center}
+\vspace{1em}
+\textbf{Formation}\\
+Diplôme, année. Établissement.
+\vspace{0.8em}
+\textbf{Expérience}\\
+Poste, entreprise, année--année. En bref.
+\vspace{0.8em}
+\textbf{Compétences}\\
+Énumération courte.
+\end{document}

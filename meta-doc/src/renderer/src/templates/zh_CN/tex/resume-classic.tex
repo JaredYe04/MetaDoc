@@ -1,0 +1,59 @@
+% 经典单栏求职简历。自选背景：取消注释下行并确保已 \usepackage{pagecolor}。
+% \pagecolor{gray!8}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm}
+% 英文字体（跨平台：TeX Gyre / Liberation / 系统字体）
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Courier New}}}}}
+% 中文字体（优先 Noto，回退到系统宋体/黑体）
+\IfFontExistsTF{Noto Serif CJK SC}{\setCJKmainfont{Noto Serif CJK SC}[Fallback=SimSun]}{\setCJKmainfont{SimSun}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}[Fallback=Microsoft YaHei]}{\setCJKsansfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}[Fallback=FangSong]}{\setCJKmonofont{FangSong}}
+
+\title{\vspace{-1.2cm}\textbf{您的姓名}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.8cm}
+
+% 照片位置：将 \rule 替换为 \includegraphics[width=2.2cm,clip]{photo}
+\begin{flushright}\rule{2.2cm}{2.8cm}\end{flushright}
+
+\textbf{联系方式：} 邮箱@example.com \quad | \quad 电话 \quad | \quad 城市，国家 \\
+\textbf{LinkedIn：} linkedin.com/in/yourprofile
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{教育背景}
+\textbf{学位名称} \hfill 年份 -- 年份 \\
+学校名称，城市 \\
+简要说明（荣誉、GPA 等）。
+
+\section*{工作经历}
+\textbf{职位名称} \hfill 年 月 -- 至今 \\
+公司名称，城市 \\
+\begin{itemize}
+  \item 工作成果或职责。
+  \item 其他要点。
+\end{itemize}
+
+\textbf{上一职位} \hfill 年 月 -- 年 月 \\
+公司名称 \\
+\begin{itemize}
+  \item 主要职责或成果。
+\end{itemize}
+
+\section*{技能}
+技术：技能1、技能2、技能3。 \\
+语言：语言1（水平）、语言2（水平）。
+
+\end{document}

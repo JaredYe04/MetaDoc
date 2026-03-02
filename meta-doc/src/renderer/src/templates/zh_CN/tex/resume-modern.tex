@@ -1,0 +1,46 @@
+% 现代简约简历。自选背景：\usepackage{pagecolor} 后使用 \pagecolor{blue!3} 等。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\geometry{left=1.8cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}[BoldFont=* Bold]}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}[BoldFont=* Bold]}{\setmainfont{Arial}[BoldFont=* Bold]}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Courier New}}}}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmainfont{Noto Sans CJK SC}[Fallback=SimSun]}{\setCJKmainfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}[Fallback=Microsoft YaHei]}{\setCJKsansfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}[Fallback=FangSong]}{\setCJKmonofont{FangSong}}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{0.8em}{0.4em}
+
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{您的姓名}}\\[0.3em]
+\href{mailto:邮箱@example.com}{邮箱@example.com} \quad | \quad 电话 \quad | \quad 城市，国家
+\end{center}
+% 照片位置：将 \rule 换为 \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{教育背景}
+\textbf{本科/硕士 · 专业} \hfill 毕业年份 \\
+学校名称 \\
+相关课程或论文方向。
+
+\section*{工作经历}
+\textbf{职位} \hfill 开始 -- 结束 \\
+公司 \\
+成果导向的要点，尽量量化。
+
+\textbf{职位} \hfill 开始 -- 结束 \\
+公司 \\
+主要成果与职责。
+
+\section*{技能}
+类别：A、B、C。 \quad 类别：X、Y、Z。
+
+\end{document}

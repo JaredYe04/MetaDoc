@@ -1,0 +1,44 @@
+% 创意简历，可选强调色与背景。自定义：取消注释 \definecolor 与 \pagecolor（需 \usepackage{xcolor,pagecolor}）。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+% \usepackage{pagecolor}
+% \definecolor{accent}{RGB}{60,90,140}
+% \pagecolor{accent!6}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}}{\setmainfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}}{\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Courier New}}}}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmainfont{Noto Sans CJK SC}[Fallback=SimSun]}{\setCJKmainfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}[Fallback=Microsoft YaHei]}{\setCJKsansfont{Microsoft YaHei}}
+\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}[Fallback=FangSong]}{\setCJKmonofont{FangSong}}
+\pagestyle{empty}
+
+\begin{document}
+% 照片位置：将 \rule 换为 \includegraphics[width=2.2cm,clip]{photo}
+\begin{center}\rule{2.2cm}{2.8cm}\end{center}
+\begin{center}
+{\LARGE \textbf{您的姓名}}\\[0.15em]
+{\color{gray} 职位或一句话介绍}\\[0.4em]
+\href{mailto:邮箱@example.com}{邮箱@example.com} \quad | \quad 作品集 \quad | \quad 城市
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{1pt}\\[0.3em]
+
+\section*{工作/项目经历}
+\textbf{职位/项目名} \hfill 年份 -- 年份 \\
+公司/机构 \\
+创意成果、项目与影响。
+
+\section*{教育背景}
+\textbf{学位} \hfill 年份 \quad 学校
+
+\section*{技能与工具}
+设计：工具1、工具2。 \quad 其他：技能组合。
+
+\end{document}

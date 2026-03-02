@@ -289,7 +289,12 @@ function resize() {
   // 尺寸未实际变化时跳过
   const roundedW = Math.round(w)
   const roundedH = Math.round(h)
-  if (logicalW > 0 && logicalH > 0 && Math.round(logicalW) === roundedW && Math.round(logicalH) === roundedH) {
+  if (
+    logicalW > 0 &&
+    logicalH > 0 &&
+    Math.round(logicalW) === roundedW &&
+    Math.round(logicalH) === roundedH
+  ) {
     return
   }
   logicalW = w

@@ -9,7 +9,7 @@
         <!-- 标签列表（左侧面板） -->
         <div class="switcher-panel">
           <div class="tab-list">
-            <div class="tab-list-header">打开的编辑器</div>
+            <div class="tab-list-header">{{ $t('tabSwitcher.openEditors', '打开的编辑器') }}</div>
             <div class="tab-list-scroll">
               <div
                 v-for="(tab, index) in orderedTabs"
@@ -29,7 +29,7 @@
                 </div>
                 <div class="tab-info">
                   <div class="tab-title">
-                    {{ tab.title || '未命名文档' }}
+                    {{ tab.title || $t('tabSwitcher.untitledDocument', '未命名文档') }}
                     <span v-if="tab.dirty" class="dirty-dot" />
                   </div>
                   <div v-if="tab.subtitle" class="tab-path">{{ tab.subtitle }}</div>
@@ -48,7 +48,7 @@
                 @click="selectAndConfirm(index)"
               >
                 <div class="frame-label">
-                  {{ tab.title || '未命名文档' }}
+                  {{ tab.title || $t('tabSwitcher.untitledDocument', '未命名文档') }}
                 </div>
                 <div class="frame-thumbnail">
                   <img v-if="thumbnailCache[tab.id]" :src="thumbnailCache[tab.id]" alt="" />
@@ -69,7 +69,6 @@
 import { computed } from 'vue'
 import { useTabSwitcher } from '../composables/useTabSwitcher'
 import type { WorkspaceTab } from '../stores/workspace'
-
 const {
   isVisible,
   isCapturing,

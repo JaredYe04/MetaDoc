@@ -72,7 +72,11 @@
                 >
                   <div class="icon-wrapper">
                     <img
-                      :src="(themeState.currentTheme as any).SearchIcon || (themeState.currentTheme as any).SearchFileIcon || (themeState.currentTheme as any).SearchDocIcon"
+                      :src="
+                        (themeState.currentTheme as any).SearchIcon ||
+                        (themeState.currentTheme as any).SearchFileIcon ||
+                        (themeState.currentTheme as any).SearchDocIcon
+                      "
                       class="menu-icon"
                       alt="grep"
                     />
@@ -157,7 +161,7 @@ const activeTab = ref<'agent' | 'workspace' | 'grep' | 'meta'>('workspace')
 
 // 侧边栏最大宽度：窗口宽度的 2/3
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
-const maxSidebarSize = computed(() => Math.max(400, Math.floor(windowWidth.value * 2 / 3)))
+const maxSidebarSize = computed(() => Math.max(400, Math.floor((windowWidth.value * 2) / 3)))
 
 // 获取当前活动的文档
 const activeDocument = computed(() => workspace.activeDocument.value)
@@ -179,12 +183,22 @@ const showMetaInfoTab = computed(() => {
 
 // 计算是否显示 Tab 切换（只要有内容就显示，不管是一个还是两个）
 const hasMultipleTabs = computed(() => {
-  return showAgentInSidebar.value || showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
+  return (
+    showAgentInSidebar.value ||
+    showWorkspaceExplorer.value ||
+    showWorkspaceGrep.value ||
+    showMetaInfoTab.value
+  )
 })
 
 // 计算是否有可见的菜单
 const hasVisibleMenus = computed(() => {
-  return showAgentInSidebar.value || showWorkspaceExplorer.value || showWorkspaceGrep.value || showMetaInfoTab.value
+  return (
+    showAgentInSidebar.value ||
+    showWorkspaceExplorer.value ||
+    showWorkspaceGrep.value ||
+    showMetaInfoTab.value
+  )
 })
 
 // 计算当前大纲 JSON（用于 MetaInfoPanel）
@@ -238,50 +252,54 @@ const tabBarBackgroundColor = computed(() =>
 
 // 与 LeftMenu 右侧边界一致：整个侧栏左侧明显分界线，避免与 LeftMenu 撞色难以区分
 const sidebarLeftBorderColor = computed(
-  () => (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
+  () =>
+    (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
 )
 
 // 监听活动文档变化，自动切换到合适的 Tab
-watch([showMetaInfoTab, showWorkspaceExplorer, showWorkspaceGrep, showAgentInSidebar], ([showMeta, showWorkspace, showGrep, showAgent]) => {
-  // 如果当前 tab 不可用，切换到可用的 tab
-  if (activeTab.value === 'meta' && !showMeta) {
-    // 如果 meta tab 被隐藏，切换到 workspace（如果可用）
-    if (showWorkspace) {
-      activeTab.value = 'workspace'
-    } else if (showAgent) {
-      activeTab.value = 'agent'
-    } else if (showGrep) {
-      activeTab.value = 'grep'
+watch(
+  [showMetaInfoTab, showWorkspaceExplorer, showWorkspaceGrep, showAgentInSidebar],
+  ([showMeta, showWorkspace, showGrep, showAgent]) => {
+    // 如果当前 tab 不可用，切换到可用的 tab
+    if (activeTab.value === 'meta' && !showMeta) {
+      // 如果 meta tab 被隐藏，切换到 workspace（如果可用）
+      if (showWorkspace) {
+        activeTab.value = 'workspace'
+      } else if (showAgent) {
+        activeTab.value = 'agent'
+      } else if (showGrep) {
+        activeTab.value = 'grep'
+      }
+    } else if (activeTab.value === 'workspace' && !showWorkspace) {
+      // 如果 workspace tab 被隐藏，优先切换到 grep，其次 meta
+      if (showGrep) {
+        activeTab.value = 'grep'
+      } else if (showMeta) {
+        activeTab.value = 'meta'
+      } else if (showAgent) {
+        activeTab.value = 'agent'
+      }
+    } else if (activeTab.value === 'grep' && !showGrep) {
+      if (showWorkspace) {
+        activeTab.value = 'workspace'
+      } else if (showMeta) {
+        activeTab.value = 'meta'
+      } else if (showAgent) {
+        activeTab.value = 'agent'
+      }
+    } else if (activeTab.value === 'agent' && !showAgent) {
+      if (showWorkspace) {
+        activeTab.value = 'workspace'
+      } else if (showGrep) {
+        activeTab.value = 'grep'
+      } else if (showMeta) {
+        activeTab.value = 'meta'
+      }
     }
-  } else if (activeTab.value === 'workspace' && !showWorkspace) {
-    // 如果 workspace tab 被隐藏，优先切换到 grep，其次 meta
-    if (showGrep) {
-      activeTab.value = 'grep'
-    } else if (showMeta) {
-      activeTab.value = 'meta'
-    } else if (showAgent) {
-      activeTab.value = 'agent'
-    }
-  } else if (activeTab.value === 'grep' && !showGrep) {
-    if (showWorkspace) {
-      activeTab.value = 'workspace'
-    } else if (showMeta) {
-      activeTab.value = 'meta'
-    } else if (showAgent) {
-      activeTab.value = 'agent'
-    }
-  } else if (activeTab.value === 'agent' && !showAgent) {
-    if (showWorkspace) {
-      activeTab.value = 'workspace'
-    } else if (showGrep) {
-      activeTab.value = 'grep'
-    } else if (showMeta) {
-      activeTab.value = 'meta'
-    }
-  }
 
-  // 如果两个都不可用，保持当前值（hasVisibleMenus 会处理整体显示）
-})
+    // 如果两个都不可用，保持当前值（hasVisibleMenus 会处理整体显示）
+  }
+)
 
 // 处理折叠
 const handleCollapse = (collapsed: boolean) => {

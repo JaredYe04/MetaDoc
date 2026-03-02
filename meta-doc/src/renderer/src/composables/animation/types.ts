@@ -1,6 +1,6 @@
 /**
  * GPU-Accelerated Tab Animation System
- * 
+ *
  * Provides smooth 60fps tab open/close animations using FLIP technique
  * with GPU-accelerated CSS transforms.
  */

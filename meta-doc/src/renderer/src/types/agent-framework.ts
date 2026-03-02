@@ -8,11 +8,7 @@ import type { LocalizedText } from './agent-tool'
 /**
  * 实体类型标识符（用于序列化/反序列化时识别实体类型）
  */
-export type EntityType =
-  | 'tool-collection'
-  | 'agent-config'
-  | 'agent-session'
-  | 'agent-engine'
+export type EntityType = 'tool-collection' | 'agent-config' | 'agent-session' | 'agent-engine'
 
 /**
  * 工件（Artifact）类型

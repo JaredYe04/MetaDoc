@@ -43,3 +43,6 @@ issues.md
 .DS_Store
 Thumbs.db
 *.png
+
+# MetaDoc 用户数据
+docs/.metadoc/agent/sessions.json

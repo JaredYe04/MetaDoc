@@ -281,9 +281,22 @@ export class AIContextManager {
     // 注入当前打开的文档 Tab 列表与工作区信息（与时间戳、当前 tab reference 同级）
     try {
       const workspace = useWorkspace()
-      const documentTabs = (workspace.tabs as Array<{ id: string; title: string; path: string; kind: string; format?: string }>)
+      const documentTabs = (
+        workspace.tabs as Array<{
+          id: string
+          title: string
+          path: string
+          kind: string
+          format?: string
+        }>
+      )
         .filter((tab) => tab.kind === 'file' || tab.kind === 'new')
-        .map((tab) => ({ id: tab.id, title: tab.title, path: tab.path, format: tab.format || 'md' }))
+        .map((tab) => ({
+          id: tab.id,
+          title: tab.title,
+          path: tab.path,
+          format: tab.format || 'md'
+        }))
       if (documentTabs.length > 0) {
         prompt += `当前打开的文档 Tab（共 ${documentTabs.length} 个）：\n`
         documentTabs.forEach((t, i) => {
@@ -296,7 +309,9 @@ export class AIContextManager {
         const saved = localStorage.getItem('workspaceFolders')
         if (saved) {
           const arr = JSON.parse(saved)
-          roots = Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+          roots = Array.isArray(arr)
+            ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
+            : []
         }
       } catch {
         // ignore

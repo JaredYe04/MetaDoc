@@ -27,7 +27,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getAppVersion } from '../utils/version'
 import { createRendererLogger } from '../utils/logger'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
-import { themeState, FIXED_LOGO_COLORS } from '../utils/themes'
+import { themeState, FIXED_LOGO_COLORS, mixColors } from '../utils/themes'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import LogoIcon from './LogoIcon.vue'
@@ -36,13 +36,15 @@ const logger = createRendererLogger('LogoTab')
 const appVersion = ref<string>('')
 const aboutDialogVisible = ref(false)
 
-// 与 workspace-explorer-main / LeftMenu 背景一致
-const logoTabBackgroundColor = computed(
-  () =>
-    themeState.currentTheme.background2nd ||
-    themeState.currentTheme.sidebarBackground ||
-    themeState.currentTheme.background
-)
+// 与 MainTabs 的 tabs-list 背景一致：tabsContainerBackgroundColor
+const logoTabBackgroundColor = computed(() => {
+  try {
+    const baseColor = themeState.currentTheme.background
+    return mixColors(baseColor, '#888888', 0.3)
+  } catch {
+    return '#f5f5f5'
+  }
+})
 
 // Logo 固定配色，不随亮/暗主题变化
 const bgColor = FIXED_LOGO_COLORS.bgColor
@@ -82,8 +84,6 @@ const handleLogoClick = () => {
   position: relative;
   -webkit-app-region: no-drag;
   background-color: v-bind('logoTabBackgroundColor');
-  /* 与 LeftMenu 右边缘一致：明显分界线 */
-  border-right: 1px solid var(--sidebar-border, rgba(128, 128, 128, 0.28));
 }
 
 .logo-tab {

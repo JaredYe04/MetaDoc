@@ -215,17 +215,25 @@ const handleMetaPatch = (patch: any) => {
   workspace.updateDocumentMeta(doc.tabId, (meta) => Object.assign(meta, patch))
 }
 
-// 计算选中状态的背景色（参考 ViewMenu.vue 的配色方案）
+// 计算选中/悬停状态背景色（基于侧栏面板背景，与整体一致）
 const activeBackgroundColor = computed(() =>
-  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+  mixColors(sidebarPanelBackground.value, themeState.currentTheme.textColor, 0.3)
 )
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 const hoverBackgroundColor = computed(() =>
-  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.15)
+  mixColors(sidebarPanelBackground.value, themeState.currentTheme.textColor, 0.15)
 )
-// Tab 选择栏的背景色：background2nd 和 #777777 进行 0.3 混合
+// 侧栏与内容区统一背景（与 LeftMenu、LogoTab 一致）
+const sidebarPanelBackground = computed(
+  () =>
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.sidebarBackground ||
+    themeState.currentTheme.background
+)
+// Tab 选择栏的背景色：在 sidebarPanelBackground 基础上略深
 const tabBarBackgroundColor = computed(() =>
-  mixColors(themeState.currentTheme.background2nd, '#777777', 0.1)
+  mixColors(sidebarPanelBackground.value, '#777777', 0.1)
 )
 
 // 与 LeftMenu 右侧边界一致：整个侧栏左侧明显分界线，避免与 LeftMenu 撞色难以区分
@@ -362,7 +370,7 @@ onBeforeUnmount(() => {
   border-left: 1px solid v-bind('sidebarLeftBorderColor');
   /* 右侧：与主内容区分 */
   border-right: 1px solid rgba(128, 128, 128, 0.28);
-  background-color: v-bind('themeState.currentTheme.background || "#ffffff"');
+  background-color: v-bind('sidebarPanelBackground');
 }
 
 .sidebar-tabs {

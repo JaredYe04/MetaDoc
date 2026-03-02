@@ -241,12 +241,37 @@ const expandedFiles = ref<Set<string>>(new Set())
 let currentAbortController: AbortController | null = null
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
+// 与 LeftMenu、ViewMenuContainer 及子面板一致：统一用 sidebarPanelBackground
+const grepPanelBg = computed(
+  () =>
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.background
+)
+// 搜索栏内输入/按钮背景：在面板背景上略加深，与面板一致风格
+const grepSearchInputBg = computed(() =>
+  mixColors(grepPanelBg.value, themeState.currentTheme.textColor, 0.06)
+)
+// 搜索栏按钮/输入悬停、高亮（用于 v-bind）
+const grepSearchHoverBg = computed(() =>
+  mixColors(grepPanelBg.value, themeState.currentTheme.textColor, 0.12)
+)
+const grepSearchActiveBg = computed(() =>
+  mixColors(grepPanelBg.value, themeState.currentTheme.textColor, 0.3)
+)
+const grepFileRowHoverBg = computed(() =>
+  mixColors(grepPanelBg.value, '#000000', 0.05)
+)
+const grepMatchSelectedBg = computed(() =>
+  mixColors(grepPanelBg.value, themeState.currentTheme.primaryColor || '#409eff', 0.25)
+)
+
 const panelStyle = computed(() => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
   padding: '8px 8px 8px 8px',
-  backgroundColor: themeState.currentTheme.background2nd,
+  backgroundColor: grepPanelBg.value,
   color: themeState.currentTheme.textColor
 }))
 
@@ -805,7 +830,7 @@ watch(
 .search-widget {
   border-radius: 4px;
   padding: 4px 4px 6px;
-  background-color: v-bind('mixColors(themeState.currentTheme.background, "#000000", 0.02)');
+  background-color: v-bind('grepPanelBg');
 }
 
 .search-row {
@@ -814,7 +839,7 @@ watch(
   gap: 4px;
 }
 
-/* 切换替换按钮：与输入框同背景，图标随主题文字色，避免深色模式下黑底黑字 */
+/* 切换替换按钮：与搜索栏背景一致 */
 .toggle-replace-btn.grep-icon-btn {
   flex-shrink: 0;
   width: 25px;
@@ -823,13 +848,13 @@ watch(
   min-height: 25px;
   padding: 0;
   border-radius: 6px;
-  background-color: v-bind('themeState.currentTheme.background') !important;
+  background-color: v-bind('grepSearchInputBg') !important;
   color: v-bind('themeState.currentTheme.textColor') !important;
   border: none;
 }
 
 .toggle-replace-btn.grep-icon-btn:hover {
-  background-color: v-bind('mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)') !important;
+  background-color: v-bind('grepSearchHoverBg') !important;
 }
 
 .toggle-replace-btn.grep-icon-btn .grep-icon-svg {
@@ -856,7 +881,7 @@ watch(
   padding-right: 112px;
   border-radius: 4px;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
-  background-color: v-bind('themeState.currentTheme.background');
+  background-color: v-bind('grepSearchInputBg');
   color: v-bind('themeState.currentTheme.textColor');
   font-size: 13px;
   outline: none;
@@ -877,7 +902,7 @@ watch(
   align-items: center;
 }
 
-/* 与 ViewMenuContainer 上方菜单按钮一致：小尺寸、统一宽高、背景与输入框一致 */
+/* 与搜索栏一致：小尺寸、统一宽高 */
 .grep-toggle-btn {
   width: 25px;
   height: 25px;
@@ -890,7 +915,7 @@ watch(
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  background-color: v-bind('themeState.currentTheme.background');
+  background-color: v-bind('grepSearchInputBg');
   color: v-bind('themeState.currentTheme.textColor');
   font-size: 12px;
   font-family: inherit;
@@ -898,12 +923,12 @@ watch(
 }
 
 .grep-toggle-btn:hover {
-  background-color: v-bind('mixColors(themeState.currentTheme.background, themeState.currentTheme.textColor, 0.12)');
+  background-color: v-bind('grepSearchHoverBg');
 }
 
-/* 高亮状态：用 background2nd + 文字色混合，亮暗主题下文字都保持可见 */
+/* 高亮状态：面板背景 + 文字色混合 */
 .grep-toggle-btn.active {
-  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)');
+  background-color: v-bind('grepSearchActiveBg');
   color: v-bind('themeState.currentTheme.textColor');
 }
 
@@ -955,7 +980,7 @@ watch(
   padding-right: 36px;
   border-radius: 4px;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
-  background-color: v-bind('themeState.currentTheme.background');
+  background-color: v-bind('grepSearchInputBg');
   color: v-bind('themeState.currentTheme.textColor');
   font-size: 13px;
   outline: none;
@@ -1011,11 +1036,11 @@ watch(
   padding: 2px 6px;
   border-radius: 3px;
   cursor: pointer;
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: v-bind('grepPanelBg');
 }
 
 .file-row:hover {
-  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, "#000000", 0.05)');
+  background-color: v-bind('grepFileRowHoverBg');
 }
 
 .file-main {
@@ -1072,11 +1097,11 @@ watch(
 }
 
 .match-row:hover {
-  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, "#000000", 0.05)');
+  background-color: v-bind('grepFileRowHoverBg');
 }
 
 .match-row.is-selected {
-  background-color: v-bind('mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || "#409eff", 0.25)');
+  background-color: v-bind('grepMatchSelectedBg');
 }
 
 .match-line-number {

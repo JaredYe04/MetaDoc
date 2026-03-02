@@ -1290,9 +1290,10 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
   logger.info('菜单配置已更新', menuConfigState.value)
 }
 
-// 与 workspace-explorer-main 一致：主背景用 background2nd
+// 与 LogoTab、ViewMenuContainer 及子面板一致：浅色下柔和略深，统一用 sidebarPanelBackground
 const sidebarBackground = computed(
   () =>
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
     themeState.currentTheme.background2nd ||
     themeState.currentTheme.sidebarBackground ||
     themeState.currentTheme.sidebarBackground2

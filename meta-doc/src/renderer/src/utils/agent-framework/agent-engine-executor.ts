@@ -399,7 +399,8 @@ export abstract class BaseEngineExecutor {
     prompt += "- Read each tool's instructions and parameter requirements carefully\n"
     prompt += '- Ensure parameter types are correct (string, number, boolean, object, etc.)\n'
     prompt += '- Parameters must be in valid JSON string format\n'
-    prompt += '- If tool call fails, check if parameters are correct, then retry\n'
+    prompt +=
+      '- If a tool call fails, do not retry the same tool repeatedly; try once with corrected parameters at most, then report the error to the user or use another approach\n'
     prompt +=
       '- Tool call results will be provided in subsequent conversations, you can continue processing based on results\n'
     prompt +=
@@ -1377,8 +1378,23 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       // 构建观察结果文本（从messages中获取工具执行结果）
       let observationText = '\n\n=== 工具执行结果 ===\n'
 
-      // 从messages中查找对应的tool消息
+      // 从messages中查找对应的tool消息，并统计本轮是否有失败、同一工具是否已多次失败
+      let hasFailureThisRound = false
+      const toolFailureCounts: Record<string, number> = {}
+
       if (toolCalls) {
+        // 统计历史中同一工具失败次数（从后往前，最近若干条 tool 消息）
+        const toolMessages = this.session.messages.filter(
+          (m) => m.type === 'tool' && m.role === 'tool'
+        ) as any[]
+        for (let i = toolMessages.length - 1; i >= 0 && i >= toolMessages.length - 20; i--) {
+          const tm = toolMessages[i]
+          const tid = tm.tool?.id || (tm as any).toolId || ''
+          if (tid && tm.status !== 'succeeded') {
+            toolFailureCounts[tid] = (toolFailureCounts[tid] || 0) + 1
+          }
+        }
+
         for (const toolCall of toolCalls) {
           // 在当前消息之后查找对应的tool消息
           const currentMessageIndex = this.session.messages.indexOf(assistantMessage)
@@ -1393,6 +1409,9 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
                 const toolMsg = msg as any
                 const toolName = toolMsg.tool?.name || toolCall.tool_id
                 const status = toolMsg.status === 'succeeded' ? '成功' : '失败'
+                if (toolMsg.status !== 'succeeded') {
+                  hasFailureThisRound = true
+                }
                 observationText += `工具 ${toolName}: ${status}\n`
 
                 if (toolMsg.status === 'succeeded') {
@@ -1413,6 +1432,17 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
               }
             }
           }
+        }
+
+        // 若有工具失败，追加明确提示，避免无限重试同一工具
+        if (hasFailureThisRound) {
+          observationText +=
+            '\n【重要】上述有工具执行失败。请勿重复调用同一工具；应改换其他方式或直接向用户说明错误并结束。\n'
+        }
+        const repeatedFailures = Object.entries(toolFailureCounts).filter(([, n]) => n >= 2)
+        if (repeatedFailures.length > 0) {
+          const names = repeatedFailures.map(([id]) => id).join('、')
+          observationText += `\n【重要】以下工具已多次失败，请勿再次调用：${names}。请直接向用户说明情况。\n`
         }
       }
 

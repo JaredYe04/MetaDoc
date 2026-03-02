@@ -240,8 +240,12 @@ const { sessions, activeSessionId, activeSession, openTabIds, isGenerating, comp
   storeToRefs(agentStore)
 const { setOpenTabIds } = agentStore
 
+// 与 LeftMenu、ViewMenuContainer 及子面板一致：统一用 sidebarPanelBackground
 const panelStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
+  backgroundColor:
+    (themeState.currentTheme as { sidebarPanelBackground?: string }).sidebarPanelBackground ||
+    themeState.currentTheme.background2nd ||
+    themeState.currentTheme.background,
   color: themeState.currentTheme.textColor
 }))
 

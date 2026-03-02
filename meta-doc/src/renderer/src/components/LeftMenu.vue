@@ -402,11 +402,6 @@
           {{ $t('leftMenu.workspaceExplorer', '工作目录') }}
         </UISubMenuItem>
 
-        <!-- 工作区 grep：在更多功能子菜单中 -->
-        <UISubMenuItem :icon="Search" @click="toggleWorkspaceGrep">
-          {{ $t('leftMenu.workspaceGrep', '工作区搜索') }}
-        </UISubMenuItem>
-
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
           {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>

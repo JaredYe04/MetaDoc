@@ -13,6 +13,7 @@ import type {
 } from '../../types/agent-framework'
 import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
+import { i18n } from '../../i18n'
 
 /**
  * AgentEngine 管理器类
@@ -64,8 +65,8 @@ class AgentEngineManager {
     // AutoGPT 引擎（默认）
     this.createBuiltInEngine(
       'default-autogpt-engine',
-      'AutoGPT 引擎',
-      'Default AutoGPT Engine',
+      i18n.global.t('agentEngine.engines.autogpt'),
+      'AutoGPT Engine',
       'AutoGPT 范式：计划→执行→反思循环，自主决策，适合多数智能任务',
       'AutoGPT paradigm: Planning → Execution → Reflection loop, autonomous decision-making, suitable for most intelligent tasks',
       'autogpt',
@@ -79,8 +80,8 @@ class AgentEngineManager {
     // ReAct 引擎
     this.createBuiltInEngine(
       'default-react-engine',
-      'ReAct 引擎',
-      'Default ReAct Engine',
+      i18n.global.t('agentEngine.engines.react'),
+      'ReAct Engine',
       'ReAct 范式：推理+行动模式，Observation 驱动',
       'ReAct paradigm: Reasoning + Acting mode, Observation-driven',
       'react',
@@ -92,8 +93,8 @@ class AgentEngineManager {
     // Plan-Execute 引擎
     this.createBuiltInEngine(
       'default-plan-execute-engine',
-      'Plan-Execute 引擎',
-      'Default Plan-Execute Engine',
+      i18n.global.t('agentEngine.engines.planExecute'),
+      'Plan-Execute Engine',
       'Plan-Execute 范式：先生成计划，再逐项执行',
       'Plan-Execute paradigm: Generate plan first, then execute step by step',
       'plan-execute',
@@ -105,8 +106,8 @@ class AgentEngineManager {
     // Simple Chat 引擎
     this.createBuiltInEngine(
       'default-simple-chat-engine',
-      'Simple Chat 引擎',
-      'Default Simple Chat Engine',
+      i18n.global.t('agentEngine.engines.simpleChat'),
+      'Simple Chat Engine',
       'Simple Chat 范式：轻量对话，适合无工具任务',
       'Simple Chat paradigm: Lightweight conversation, suitable for tool-free tasks',
       'simple-chat',

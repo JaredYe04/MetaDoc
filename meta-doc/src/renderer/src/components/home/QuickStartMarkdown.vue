@@ -14,7 +14,7 @@
         <!-- 左侧：预览区域 -->
         <div class="preview-section">
           <div class="preview-header">
-            <span class="section-label">预览</span>
+            <span class="section-label">{{ $t('home.preview') }}</span>
           </div>
           <ScrollArea class="preview-container h-full">
             <div class="preview-content">

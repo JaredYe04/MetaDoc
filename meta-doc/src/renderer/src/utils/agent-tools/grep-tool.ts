@@ -556,8 +556,10 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   } else {
     try {
       const saved = localStorage.getItem('workspaceFolders')
-      const roots = saved ? (JSON.parse(saved) || []) : []
-      const hasRoots = Array.isArray(roots) && roots.some((p: unknown) => typeof p === 'string' && (p as string).length > 0)
+      const roots = saved ? JSON.parse(saved) || [] : []
+      const hasRoots =
+        Array.isArray(roots) &&
+        roots.some((p: unknown) => typeof p === 'string' && (p as string).length > 0)
       scope = hasRoots ? ['workspace', 'document', 'metadata'] : ['document', 'metadata']
     } catch {
       scope = ['document', 'metadata']
@@ -845,9 +847,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           if (tab.kind !== 'file' || !tab.path) continue
           const docForTab = workspace.ensureDocument(tab.id)
           const text =
-            docForTab.format === 'md'
-              ? (docForTab.markdown as string)
-              : (docForTab.tex as string)
+            docForTab.format === 'md' ? (docForTab.markdown as string) : (docForTab.tex as string)
 
           const textMatches = searchInText(
             text || '',
@@ -1387,7 +1387,8 @@ Returns array of matches with line numbers, positions, and context.`
           type: 'string',
           enum: ['workspace', 'document', 'metadata']
         },
-        description: '搜索范围：workspace=整个工作区目录，document=当前文档，metadata=元数据；有工作区根时默认包含 workspace',
+        description:
+          '搜索范围：workspace=整个工作区目录，document=当前文档，metadata=元数据；有工作区根时默认包含 workspace',
         default: ['workspace', 'document', 'metadata']
       },
       tabId: {

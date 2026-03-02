@@ -783,7 +783,7 @@ const exportSnapshot = async () => {
 
     if (!result) {
       console.error('[导出快照] 保存文件调用返回空结果')
-      throw new Error('保存文件调用返回空结果')
+      throw new Error(t('agentToolResultCard.emptyResultSaveFile', '保存文件调用返回空结果'))
     }
 
     if (result.success) {
@@ -797,7 +797,7 @@ const exportSnapshot = async () => {
       }
       // 其他错误，显示错误消息
       console.error('[导出快照] 保存失败:', result.error)
-      throw new Error(result.error || '保存失败')
+      throw new Error(result.error || t('agentToolResultCard.saveFailed', '保存失败'))
     }
   } catch (error) {
     console.error('导出快照失败:', error)

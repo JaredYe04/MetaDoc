@@ -2045,6 +2045,46 @@
           "description": "GB/T 7714-2015 표준을 준수하는 중문 학술 논문 템플릿(2단 배치), 저널 투고에 적합.",
           "content": "[Korean] \\documentclass[12pt,a4paper,twocolumn]{article}\n\\usepackage[UTF8]{ctex}\n\\usepackage{fontspec}\n\\usepackage{geometry}\n\\geometry{left=1.8cm,right=1.8cm,top=2.5cm,bottom=2.5cm,columnsep=0.8cm}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\usepackage{multirow}\n\\usepackage{hyperref}\n\\usepackage{cite}\n\\usepackage{setspace}\n\\onehalfspacing\n\n% 字体设置\n\\setmainfont{Times New Roman}  % 英文正文字体\n\\setsansfont{Microsoft YaHei}  % 雅黑（可选）\n\\setmonofont{Consolas}\n\\setCJKmainfont{SimSun}        % 宋体\n\\setCJKsansfont{Microsoft YaHei}\n\n% 标题信息\n\\title{论文标题}\n\\author{作者姓名}\n\\date{\\today}\n\n\\begin{document}\n\n% 标题页（单栏）\n\\twocolumn[\n\\maketitle\n\\begin{abstract}\n\\textbf{摘要：} 在此处撰写摘要内容。摘要应简洁明了地概括论文的主要内容、研究方法、主要结果和结论。\n\n\\textbf{关键词：} 关键词1；关键词2；关键词3\n\\end{abstract}\n]\n\n% 正文（双栏）\n\\section{引言}\n引言部分应介绍研究背景、研究意义、国内外研究现状以及本文的研究内容和组织结构。\n\n\\section{相关工作}\n相关工作部分应综述与本文研究相关的已有研究成果，分析现有方法的优缺点，指出本文研究的创新点。\n\n\\section{研究方法}\n研究方法部分应详细描述本文所采用的研究方法、实验设计、数据来源等。\n\n\\subsection{方法概述}\n在此处描述方法的基本思路和框架。\n\n\\subsection{具体实现}\n在此处描述方法的具体实现细节。\n\n\\section{实验结果与分析}\n实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。\n\n\\subsection{实验设置}\n在此处描述实验的环境、参数设置等。\n\n\\subsection{结果分析}\n在此处展示和分析实验结果。\n\n\\section{结论}\n结论部分应总结本文的主要贡献，指出研究的局限性，并提出未来的研究方向。\n\n% 参考文献\n\\begin{thebibliography}{99}\n\\bibitem{ref1} 参考文献1\n\\bibitem{ref2} 参考文献2\n\\end{thebibliography}\n\n% 附录（可选）\n\\appendix\n\\section{附录A}\n附录内容（如有需要）。\n\n\\end{document}\n"
         },
+        "resume_classic": {
+          "label": "클래식 이력서",
+          "description": "구직용 전통 1단 구성. 사진·배경 지원."
+        },
+        "resume_modern": {
+          "label": "모던 이력서",
+          "description": "깔끔한 전문가용. 사진·배경 지원."
+        },
+        "resume_twocolumn": {
+          "label": "2단 이력서",
+          "description": "왼쪽 연락처·기술, 오른쪽 경력. 사진·배경 지원."
+        },
+        "resume_academic": {
+          "label": "학술 CV",
+          "description": "진학·연구직용. 논문·교육·연구. 사진·배경 지원."
+        },
+        "resume_executive": {
+          "label": "임원 이력서",
+          "description": "요약 상단. 시니어용. 사진·배경 지원."
+        },
+        "resume_creative": {
+          "label": "크리에이티브 이력서",
+          "description": "디자인 강조. 포인트 색·배경 지원."
+        },
+        "resume_minimal": {
+          "label": "미니멀 이력서",
+          "description": "여백 많은 심플 버전. 사진·배경 지원."
+        },
+        "resume_timeline": {
+          "label": "타임라인 이력서",
+          "description": "경력을 타임라인으로 표시. 사진·배경 지원."
+        },
+        "resume_with_photo": {
+          "label": "사진 포함 이력서",
+          "description": "사진 강조. 배경 지원."
+        },
+        "resume_student": {
+          "label": "학생·인턴 이력서",
+          "description": "학력·프로젝트·기술 중심. 사진·배경 지원."
+        },
         "ieee_en_twocolumn": {
           "label": "영문 표준 학술 논문(2단)",
           "description": "IEEE 표준을 준수하는 영문 학술 논문 템플릿(2단 배치), 저널과 학회 투고에 적합.",
@@ -2832,6 +2872,7 @@
       "clearAllConfirmTitle": "모든 참조 지우기 확인",
       "confirmClearAll": "정말로 모든 {count}개 참조를 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "clearAllSuccess": "모든 참조가 지워졌습니다",
+      "tagRemove": "참조 제거",
       "type": {
         "file": "파일",
         "url": "URL",

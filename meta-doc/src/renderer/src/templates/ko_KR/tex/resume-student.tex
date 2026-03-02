@@ -1,0 +1,40 @@
+% 학생·인턴 이력서.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{성함}}\\[0.2em]
+email@university.ac.kr \quad | \quad 전화 \quad | \quad 도시
+\end{center}
+% 사진: \rule을 \includegraphics[width=2cm]{photo}로 교체
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\section*{학력}
+\textbf{학사/석사 · 전공} \hfill 졸업예정 연도 \\
+대학교 \\
+GPA·관련 과목.
+\section*{프로젝트}
+\textbf{프로젝트명} \hfill 학기/연도 \\
+기술. 요약·성과.
+\section*{경력}
+\textbf{인턴/아르바이트} \hfill 연도 -- 연도 \\
+회사 \\
+주요 업무·성과.
+\section*{스킬}
+기술: 언어, 도구. \quad 언어: 한국어(모국어), 영어(수준).
+\section*{활동}
+동아리, 봉사 등.
+\end{document}

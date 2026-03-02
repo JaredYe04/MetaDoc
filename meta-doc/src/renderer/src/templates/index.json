@@ -345,7 +345,17 @@
             "file": "ieee_en_twocolumn.tex",
             "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
             "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
-          }
+          },
+          { "id": "resume-classic", "file": "resume-classic.tex", "labelKey": "newDocument.templates.latex.resume_classic.label", "descriptionKey": "newDocument.templates.latex.resume_classic.description" },
+          { "id": "resume-modern", "file": "resume-modern.tex", "labelKey": "newDocument.templates.latex.resume_modern.label", "descriptionKey": "newDocument.templates.latex.resume_modern.description" },
+          { "id": "resume-twocolumn", "file": "resume-twocolumn.tex", "labelKey": "newDocument.templates.latex.resume_twocolumn.label", "descriptionKey": "newDocument.templates.latex.resume_twocolumn.description" },
+          { "id": "resume-academic", "file": "resume-academic.tex", "labelKey": "newDocument.templates.latex.resume_academic.label", "descriptionKey": "newDocument.templates.latex.resume_academic.description" },
+          { "id": "resume-executive", "file": "resume-executive.tex", "labelKey": "newDocument.templates.latex.resume_executive.label", "descriptionKey": "newDocument.templates.latex.resume_executive.description" },
+          { "id": "resume-creative", "file": "resume-creative.tex", "labelKey": "newDocument.templates.latex.resume_creative.label", "descriptionKey": "newDocument.templates.latex.resume_creative.description" },
+          { "id": "resume-minimal", "file": "resume-minimal.tex", "labelKey": "newDocument.templates.latex.resume_minimal.label", "descriptionKey": "newDocument.templates.latex.resume_minimal.description" },
+          { "id": "resume-timeline", "file": "resume-timeline.tex", "labelKey": "newDocument.templates.latex.resume_timeline.label", "descriptionKey": "newDocument.templates.latex.resume_timeline.description" },
+          { "id": "resume-with-photo", "file": "resume-with-photo.tex", "labelKey": "newDocument.templates.latex.resume_with_photo.label", "descriptionKey": "newDocument.templates.latex.resume_with_photo.description" },
+          { "id": "resume-student", "file": "resume-student.tex", "labelKey": "newDocument.templates.latex.resume_student.label", "descriptionKey": "newDocument.templates.latex.resume_student.description" }
         ],
         "en_US": [
           {
@@ -383,7 +393,17 @@
             "file": "ieee_en_twocolumn.tex",
             "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
             "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
-          }
+          },
+          { "id": "resume-classic", "file": "resume-classic.tex", "labelKey": "newDocument.templates.latex.resume_classic.label", "descriptionKey": "newDocument.templates.latex.resume_classic.description" },
+          { "id": "resume-modern", "file": "resume-modern.tex", "labelKey": "newDocument.templates.latex.resume_modern.label", "descriptionKey": "newDocument.templates.latex.resume_modern.description" },
+          { "id": "resume-twocolumn", "file": "resume-twocolumn.tex", "labelKey": "newDocument.templates.latex.resume_twocolumn.label", "descriptionKey": "newDocument.templates.latex.resume_twocolumn.description" },
+          { "id": "resume-academic", "file": "resume-academic.tex", "labelKey": "newDocument.templates.latex.resume_academic.label", "descriptionKey": "newDocument.templates.latex.resume_academic.description" },
+          { "id": "resume-executive", "file": "resume-executive.tex", "labelKey": "newDocument.templates.latex.resume_executive.label", "descriptionKey": "newDocument.templates.latex.resume_executive.description" },
+          { "id": "resume-creative", "file": "resume-creative.tex", "labelKey": "newDocument.templates.latex.resume_creative.label", "descriptionKey": "newDocument.templates.latex.resume_creative.description" },
+          { "id": "resume-minimal", "file": "resume-minimal.tex", "labelKey": "newDocument.templates.latex.resume_minimal.label", "descriptionKey": "newDocument.templates.latex.resume_minimal.description" },
+          { "id": "resume-timeline", "file": "resume-timeline.tex", "labelKey": "newDocument.templates.latex.resume_timeline.label", "descriptionKey": "newDocument.templates.latex.resume_timeline.description" },
+          { "id": "resume-with-photo", "file": "resume-with-photo.tex", "labelKey": "newDocument.templates.latex.resume_with_photo.label", "descriptionKey": "newDocument.templates.latex.resume_with_photo.description" },
+          { "id": "resume-student", "file": "resume-student.tex", "labelKey": "newDocument.templates.latex.resume_student.label", "descriptionKey": "newDocument.templates.latex.resume_student.description" }
         ],
         "ja_JP": [
           {
@@ -421,7 +441,17 @@
             "file": "ieee_en_twocolumn.tex",
             "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
             "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
-          }
+          },
+          { "id": "resume-classic", "file": "resume-classic.tex", "labelKey": "newDocument.templates.latex.resume_classic.label", "descriptionKey": "newDocument.templates.latex.resume_classic.description" },
+          { "id": "resume-modern", "file": "resume-modern.tex", "labelKey": "newDocument.templates.latex.resume_modern.label", "descriptionKey": "newDocument.templates.latex.resume_modern.description" },
+          { "id": "resume-twocolumn", "file": "resume-twocolumn.tex", "labelKey": "newDocument.templates.latex.resume_twocolumn.label", "descriptionKey": "newDocument.templates.latex.resume_twocolumn.description" },
+          { "id": "resume-academic", "file": "resume-academic.tex", "labelKey": "newDocument.templates.latex.resume_academic.label", "descriptionKey": "newDocument.templates.latex.resume_academic.description" },
+          { "id": "resume-executive", "file": "resume-executive.tex", "labelKey": "newDocument.templates.latex.resume_executive.label", "descriptionKey": "newDocument.templates.latex.resume_executive.description" },
+          { "id": "resume-creative", "file": "resume-creative.tex", "labelKey": "newDocument.templates.latex.resume_creative.label", "descriptionKey": "newDocument.templates.latex.resume_creative.description" },
+          { "id": "resume-minimal", "file": "resume-minimal.tex", "labelKey": "newDocument.templates.latex.resume_minimal.label", "descriptionKey": "newDocument.templates.latex.resume_minimal.description" },
+          { "id": "resume-timeline", "file": "resume-timeline.tex", "labelKey": "newDocument.templates.latex.resume_timeline.label", "descriptionKey": "newDocument.templates.latex.resume_timeline.description" },
+          { "id": "resume-with-photo", "file": "resume-with-photo.tex", "labelKey": "newDocument.templates.latex.resume_with_photo.label", "descriptionKey": "newDocument.templates.latex.resume_with_photo.description" },
+          { "id": "resume-student", "file": "resume-student.tex", "labelKey": "newDocument.templates.latex.resume_student.label", "descriptionKey": "newDocument.templates.latex.resume_student.description" }
         ],
         "ko_KR": [
           {
@@ -459,7 +489,17 @@
             "file": "ieee_en_twocolumn.tex",
             "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
             "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
-          }
+          },
+          { "id": "resume-classic", "file": "resume-classic.tex", "labelKey": "newDocument.templates.latex.resume_classic.label", "descriptionKey": "newDocument.templates.latex.resume_classic.description" },
+          { "id": "resume-modern", "file": "resume-modern.tex", "labelKey": "newDocument.templates.latex.resume_modern.label", "descriptionKey": "newDocument.templates.latex.resume_modern.description" },
+          { "id": "resume-twocolumn", "file": "resume-twocolumn.tex", "labelKey": "newDocument.templates.latex.resume_twocolumn.label", "descriptionKey": "newDocument.templates.latex.resume_twocolumn.description" },
+          { "id": "resume-academic", "file": "resume-academic.tex", "labelKey": "newDocument.templates.latex.resume_academic.label", "descriptionKey": "newDocument.templates.latex.resume_academic.description" },
+          { "id": "resume-executive", "file": "resume-executive.tex", "labelKey": "newDocument.templates.latex.resume_executive.label", "descriptionKey": "newDocument.templates.latex.resume_executive.description" },
+          { "id": "resume-creative", "file": "resume-creative.tex", "labelKey": "newDocument.templates.latex.resume_creative.label", "descriptionKey": "newDocument.templates.latex.resume_creative.description" },
+          { "id": "resume-minimal", "file": "resume-minimal.tex", "labelKey": "newDocument.templates.latex.resume_minimal.label", "descriptionKey": "newDocument.templates.latex.resume_minimal.description" },
+          { "id": "resume-timeline", "file": "resume-timeline.tex", "labelKey": "newDocument.templates.latex.resume_timeline.label", "descriptionKey": "newDocument.templates.latex.resume_timeline.description" },
+          { "id": "resume-with-photo", "file": "resume-with-photo.tex", "labelKey": "newDocument.templates.latex.resume_with_photo.label", "descriptionKey": "newDocument.templates.latex.resume_with_photo.description" },
+          { "id": "resume-student", "file": "resume-student.tex", "labelKey": "newDocument.templates.latex.resume_student.label", "descriptionKey": "newDocument.templates.latex.resume_student.description" }
         ],
         "de_DE": [
           {
@@ -497,7 +537,17 @@
             "file": "ieee_en_twocolumn.tex",
             "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
             "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
-          }
+          },
+          { "id": "resume-classic", "file": "resume-classic.tex", "labelKey": "newDocument.templates.latex.resume_classic.label", "descriptionKey": "newDocument.templates.latex.resume_classic.description" },
+          { "id": "resume-modern", "file": "resume-modern.tex", "labelKey": "newDocument.templates.latex.resume_modern.label", "descriptionKey": "newDocument.templates.latex.resume_modern.description" },
+          { "id": "resume-twocolumn", "file": "resume-twocolumn.tex", "labelKey": "newDocument.templates.latex.resume_twocolumn.label", "descriptionKey": "newDocument.templates.latex.resume_twocolumn.description" },
+          { "id": "resume-academic", "file": "resume-academic.tex", "labelKey": "newDocument.templates.latex.resume_academic.label", "descriptionKey": "newDocument.templates.latex.resume_academic.description" },
+          { "id": "resume-executive", "file": "resume-executive.tex", "labelKey": "newDocument.templates.latex.resume_executive.label", "descriptionKey": "newDocument.templates.latex.resume_executive.description" },
+          { "id": "resume-creative", "file": "resume-creative.tex", "labelKey": "newDocument.templates.latex.resume_creative.label", "descriptionKey": "newDocument.templates.latex.resume_creative.description" },
+          { "id": "resume-minimal", "file": "resume-minimal.tex", "labelKey": "newDocument.templates.latex.resume_minimal.label", "descriptionKey": "newDocument.templates.latex.resume_minimal.description" },
+          { "id": "resume-timeline", "file": "resume-timeline.tex", "labelKey": "newDocument.templates.latex.resume_timeline.label", "descriptionKey": "newDocument.templates.latex.resume_timeline.description" },
+          { "id": "resume-with-photo", "file": "resume-with-photo.tex", "labelKey": "newDocument.templates.latex.resume_with_photo.label", "descriptionKey": "newDocument.templates.latex.resume_with_photo.description" },
+          { "id": "resume-student", "file": "resume-student.tex", "labelKey": "newDocument.templates.latex.resume_student.label", "descriptionKey": "newDocument.templates.latex.resume_student.description" }
         ],
         "fr_FR": [
           {
@@ -535,7 +585,17 @@
             "file": "ieee_en_twocolumn.tex",
             "labelKey": "newDocument.templates.latex.ieee_en_twocolumn.label",
             "descriptionKey": "newDocument.templates.latex.ieee_en_twocolumn.description"
-          }
+          },
+          { "id": "resume-classic", "file": "resume-classic.tex", "labelKey": "newDocument.templates.latex.resume_classic.label", "descriptionKey": "newDocument.templates.latex.resume_classic.description" },
+          { "id": "resume-modern", "file": "resume-modern.tex", "labelKey": "newDocument.templates.latex.resume_modern.label", "descriptionKey": "newDocument.templates.latex.resume_modern.description" },
+          { "id": "resume-twocolumn", "file": "resume-twocolumn.tex", "labelKey": "newDocument.templates.latex.resume_twocolumn.label", "descriptionKey": "newDocument.templates.latex.resume_twocolumn.description" },
+          { "id": "resume-academic", "file": "resume-academic.tex", "labelKey": "newDocument.templates.latex.resume_academic.label", "descriptionKey": "newDocument.templates.latex.resume_academic.description" },
+          { "id": "resume-executive", "file": "resume-executive.tex", "labelKey": "newDocument.templates.latex.resume_executive.label", "descriptionKey": "newDocument.templates.latex.resume_executive.description" },
+          { "id": "resume-creative", "file": "resume-creative.tex", "labelKey": "newDocument.templates.latex.resume_creative.label", "descriptionKey": "newDocument.templates.latex.resume_creative.description" },
+          { "id": "resume-minimal", "file": "resume-minimal.tex", "labelKey": "newDocument.templates.latex.resume_minimal.label", "descriptionKey": "newDocument.templates.latex.resume_minimal.description" },
+          { "id": "resume-timeline", "file": "resume-timeline.tex", "labelKey": "newDocument.templates.latex.resume_timeline.label", "descriptionKey": "newDocument.templates.latex.resume_timeline.description" },
+          { "id": "resume-with-photo", "file": "resume-with-photo.tex", "labelKey": "newDocument.templates.latex.resume_with_photo.label", "descriptionKey": "newDocument.templates.latex.resume_with_photo.description" },
+          { "id": "resume-student", "file": "resume-student.tex", "labelKey": "newDocument.templates.latex.resume_student.label", "descriptionKey": "newDocument.templates.latex.resume_student.description" }
         ]
       }
     }

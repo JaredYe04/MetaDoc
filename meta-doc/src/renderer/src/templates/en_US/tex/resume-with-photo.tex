@@ -1,0 +1,43 @@
+% Resume with prominent photo area. Optional background: \usepackage{pagecolor} \pagecolor{gray!8}.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.2cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+% To use your photo: replace the \rule below with \includegraphics[width=2.8cm,height=3.2cm,keepaspectratio=false]{photo}
+\begin{minipage}[t]{0.72\textwidth}
+\vspace{0pt}
+{\LARGE \textbf{Your Name}}\\[0.25em]
+Email: email@example.com \\
+Phone: +1 234 567 8900 \\
+Address: City, Country
+\end{minipage}
+\begin{minipage}[t]{0.25\textwidth}
+\vspace{0pt}
+\raggedleft
+\rule{2.8cm}{3.2cm}
+\end{minipage}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{Summary}
+Short professional summary (2--3 lines).
+
+\section*{Experience}
+\textbf{Job Title} \hfill Year -- Year \\
+Company \\
+Bullet points.
+
+\section*{Education}
+\textbf{Degree} \hfill Year \quad University
+
+\section*{Skills}
+Skills and languages.
+
+\end{document}

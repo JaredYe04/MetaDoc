@@ -1,0 +1,40 @@
+% 学生・インターン向け履歴書。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Serif CJK JP}{\setCJKmainfont{Noto Serif CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Mincho}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{お名前}}\\[0.2em]
+email@university.ac.jp \quad | \quad 電話 \quad | \quad 都市
+\end{center}
+% 写真: \rule を \includegraphics[width=2cm]{photo} に置換
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\section*{学歴}
+\textbf{学士/修士・専攻} \hfill 卒業予定年 \\
+大学名 \\
+GPA・関連科目。
+\section*{プロジェクト}
+\textbf{プロジェクト名} \hfill 年度 \\
+使用技術。概要・成果。
+\section*{経験}
+\textbf{インターン/アルバイト} \hfill 年 -- 年 \\
+会社 \\
+主な業務・成果。
+\section*{スキル}
+技術: 言語、ツール。 \quad 言語: 日本語（母語）、英語（レベル）。
+\section*{活動}
+サークル、ボランティア等。
+\end{document}

@@ -1,0 +1,35 @@
+% Studenten-/Praktikums-Lebenslauf.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Ihr Name}}\\[0.2em]
+email@uni.de \quad | \quad Telefon \quad | \quad Stadt
+\end{center}
+% Foto: \rule durch \includegraphics[width=2cm]{photo} ersetzen
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\section*{Ausbildung}
+\textbf{B.Sc./B.A. Fach} \hfill voraussichtlich Jahr \\
+Hochschule \\
+GPA (falls stark). Relevante Schwerpunkte.
+\section*{Projekte}
+\textbf{Projektname} \hfill Semester / Jahr \\
+Technologien. Kurzbeschreibung und Ergebnis.
+\section*{Erfahrung}
+\textbf{Praktikum / Werkstudent} \hfill Jahr -- Jahr \\
+Unternehmen \\
+Aufgaben und Erfolge.
+\section*{Fähigkeiten}
+Technisch: Sprachen, Tools, Frameworks. \\
+Sprachen: Deutsch (Muttersprache), Englisch (Niveau).
+\section*{Aktivitäten}
+Hochschulgruppen, Ehrenamt (falls relevant).
+\end{document}

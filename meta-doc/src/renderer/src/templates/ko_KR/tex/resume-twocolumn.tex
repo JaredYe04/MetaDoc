@@ -1,0 +1,45 @@
+% 2단 이력서: 왼쪽 연락처·스킬, 오른쪽 경력·학력.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{paracol}
+\geometry{left=1cm,right=1cm,top=1.2cm,bottom=1.2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+\columnratio{0.28}
+\setlength{\columnsep}{1.2em}
+
+\begin{document}
+\begin{paracol}{2}
+\setlength{\parindent}{0pt}
+{\large \textbf{성함}}\\[0.2em]
+% 사진: \rule을 \includegraphics[width=\linewidth]{photo}로 교체
+\rule{\linewidth}{2.2cm}\\[0.5em]
+\textbf{연락처}\\
+Email: email@example.com\\
+전화: ……\\
+도시, 국가\\[0.6em]
+\textbf{스킬}\\
+스킬1\\ 스킬2\\ 스킬3\\[0.6em]
+\textbf{관심사}\\
+한 줄.
+
+\switchcolumn
+\section*{경력}
+\textbf{직함} \hfill 연도--연도 \\
+회사 \\
+성과.
+
+\section*{학력}
+\textbf{학위} \hfill 연도 \\
+대학교 \\
+비고.
+\end{paracol}
+\end{document}

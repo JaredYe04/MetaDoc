@@ -1,0 +1,51 @@
+% Two-column resume: sidebar (contact, skills) + main (experience, education).
+% Optional background: \usepackage{pagecolor} and \pagecolor{gray!6}.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{paracol}
+\geometry{left=1cm,right=1cm,top=1.2cm,bottom=1.2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\columnratio{0.28}
+\setlength{\columnsep}{1.2em}
+
+\begin{document}
+% Optional: \pagecolor{blue!4}
+\begin{paracol}{2}
+
+\setlength{\parindent}{0pt}
+{\large \textbf{Your Name}}\\[0.2em]
+% Photo: replace \rule with \includegraphics[width=\linewidth]{photo}
+\rule{\linewidth}{2.2cm}\\[0.5em]
+\textbf{Contact}\\
+Email: email@example.com\\
+Phone: +1 234 567 8900\\
+City, Country\\[0.6em]
+\textbf{Skills}\\
+Skill 1\\
+Skill 2\\
+Skill 3\\
+Languages: Lang (level)\\[0.6em]
+\textbf{Interests}\\
+Short line.
+
+\switchcolumn
+
+\section*{Experience}
+\textbf{Job Title} \hfill Year--Year \\
+Company \\
+Bullet points for achievements.
+
+\textbf{Job Title} \hfill Year--Year \\
+Company \\
+Key results.
+
+\section*{Education}
+\textbf{Degree} \hfill Year \\
+University \\
+Note.
+
+\end{paracol}
+\end{document}

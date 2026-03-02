@@ -1,0 +1,39 @@
+% CV deux colonnes : gauche contact/compétences, droite expérience/formation.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{paracol}
+\geometry{left=1cm,right=1cm,top=1.2cm,bottom=1.2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\columnratio{0.28}
+\setlength{\columnsep}{1.2em}
+
+\begin{document}
+\begin{paracol}{2}
+\setlength{\parindent}{0pt}
+{\large \textbf{Votre nom}}\\[0.2em]
+% Photo : remplacer \rule par \includegraphics[width=\linewidth]{photo}
+\rule{\linewidth}{2.2cm}\\[0.5em]
+\textbf{Contact}\\
+Email : email@example.com\\
+Tél. : ……\\
+Ville, Pays\\[0.6em]
+\textbf{Compétences}\\
+Compétence 1\\ 2\\ 3\\[0.6em]
+\textbf{Centres d'intérêt}\\
+Une ligne.
+
+\switchcolumn
+\section*{Expérience}
+\textbf{Poste} \hfill Année--Année \\
+Entreprise \\
+Résultats.
+
+\section*{Formation}
+\textbf{Diplôme} \hfill Année \\
+Établissement \\
+Remarque.
+\end{paracol}
+\end{document}

@@ -102,17 +102,30 @@
                   v-for="s in group.sessions"
                   :key="s.id"
                   class="agent-compact-history-item"
+                  @contextmenu.prevent="openHistoryContextMenu($event, s)"
                   @select="
                     openSessionFromHistory(s);
                     historyOpen = false
                   "
                 >
-                  <span class="agent-compact-history-title">{{
-                    s.title || t('agent.compact.untitled')
-                  }}</span>
-                  <span class="agent-compact-history-time">{{
-                    formatHistoryTime(s.updatedAt)
-                  }}</span>
+                  <span class="agent-compact-history-row">
+                    <span class="agent-compact-history-title">{{
+                      s.title || t('agent.compact.untitled')
+                    }}</span>
+                    <span class="agent-compact-history-time">{{
+                      formatHistoryTime(s.updatedAt)
+                    }}</span>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="agent-compact-history-item-close"
+                    :title="t('agent.compact.deleteSession')"
+                    @click.stop="confirmDeleteHistoryItem(s)"
+                  >
+                    <X class="h-3 w-3" />
+                  </Button>
                 </DropdownMenuItem>
               </template>
               <DropdownMenuItem
@@ -124,6 +137,45 @@
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>
+          <!-- 最近会话项右键菜单（无关闭标签页，z-index 高于下拉层） -->
+          <div
+            v-if="historyContextSession"
+            class="agent-compact-tab-context agent-compact-history-context"
+            :style="{
+              left: historyContextX + 'px',
+              top: historyContextY + 'px'
+            }"
+            @mouseleave="historyContextSession = null"
+          >
+            <button
+              type="button"
+              class="agent-compact-tab-context-item"
+              @click="handleHistoryContextRename"
+            >
+              {{ t('agent.sessions.rename') }}
+            </button>
+            <button
+              type="button"
+              class="agent-compact-tab-context-item"
+              @click="handleHistoryContextExport"
+            >
+              {{ t('agent.compact.exportJson') }}
+            </button>
+            <button
+              type="button"
+              class="agent-compact-tab-context-item"
+              @click="handleHistoryContextDuplicate"
+            >
+              {{ t('agent.sessions.duplicate') }}
+            </button>
+            <button
+              type="button"
+              class="agent-compact-tab-context-item agent-compact-tab-context-item-danger"
+              @click="handleHistoryContextDelete"
+            >
+              {{ t('agent.compact.deleteSession') }}
+            </button>
+          </div>
         </DropdownMenu>
         <Tooltip>
           <TooltipTrigger as-child>
@@ -157,30 +209,150 @@
           :message-index="index"
           :user-name="t('agentViewCompact.user')"
           :session-references="activeSession.referenceStore || []"
+          :session-id="activeSession.id"
           :compact="true"
           @edit="handleMessageEdit"
           @regenerate="handleMessageRegenerate"
           @delete="handleMessageDelete"
           @duplicate="handleMessageDuplicate"
+          @rollback="handleMessageRollback"
+          @redo="handleMessageRedo"
         />
         <div class="conversation-bottom-spacer" />
       </ScrollArea>
 
+      <!-- 编辑暂存：默认折叠，可上拉查看并逐条接受/拒绝 -->
+      <Collapsible
+        v-if="activeSession"
+        v-model:open="stagingPanelOpen"
+        class="agent-compact-staging"
+      >
+        <CollapsibleTrigger as-child>
+          <button
+            type="button"
+            class="agent-compact-staging-trigger"
+            :class="{ 'has-items': stagingEdits.length > 0 }"
+          >
+            <span class="agent-compact-staging-trigger-label">
+              {{ t('agent.staging.title', '编辑暂存') }}
+              <template v-if="stagingEdits.length"> ({{ stagingEdits.length }})</template>
+            </span>
+            <ChevronUp v-if="!stagingPanelOpen" class="agent-compact-staging-chevron" />
+            <ChevronDown v-else class="agent-compact-staging-chevron" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div class="agent-compact-staging-content">
+            <template v-if="stagingEdits.length === 0">
+              <div class="agent-compact-staging-empty">
+                {{ t('agent.staging.empty', '暂无待审编辑') }}
+              </div>
+            </template>
+            <template v-else>
+              <div class="agent-compact-staging-actions">
+                <Button size="sm" variant="ghost" class="text-xs" @click="stagingAcceptAll">
+                  {{ t('agent.staging.acceptAll', '全部接受') }}
+                </Button>
+                <Button size="sm" variant="ghost" class="text-xs text-destructive" @click="stagingRejectAll">
+                  {{ t('agent.staging.rejectAll', '全部拒绝') }}
+                </Button>
+                <Button size="sm" variant="ghost" class="text-xs" @click="openReviewWindow">
+                  {{ t('agent.staging.openReview', '独立审阅') }}
+                </Button>
+              </div>
+              <div class="agent-compact-staging-list">
+                <div
+                  v-for="edit in stagingEdits"
+                  :key="edit.id"
+                  class="agent-compact-staging-item"
+                  :class="edit.status"
+                >
+                  <span class="agent-compact-staging-item-path" :title="edit.filePath">{{
+                    edit.filePath.replace(/^.*[/\\]/, '') || edit.filePath
+                  }}</span>
+                  <span class="agent-compact-staging-item-diff">
+                    <span class="add">+{{ edit.addedLines }}</span>
+                    <span class="del">-{{ edit.removedLines }}</span>
+                  </span>
+                  <span v-if="edit.status === 'pending'" class="agent-compact-staging-item-btns">
+                    <Button size="sm" variant="ghost" class="h-6 text-xs" @click="stagingAccept(edit)">
+                      {{ t('agent.staging.accept', '接受') }}
+                    </Button>
+                    <Button size="sm" variant="ghost" class="h-6 text-xs text-destructive" @click="stagingReject(edit)">
+                      {{ t('agent.staging.reject', '拒绝') }}
+                    </Button>
+                  </span>
+                  <span v-else class="agent-compact-staging-item-status">
+                    {{ edit.status === 'accepted' ? t('agent.staging.accepted', '已接受') : t('agent.staging.rejected', '已拒绝') }}
+                  </span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
       <div class="agent-compact-composer">
+        <ReferenceDisplay
+          v-if="activeSession"
+          class="agent-compact-ref-display"
+          :references="activeSession.referenceStore || []"
+          :active-reference-ids="activeReferenceIds"
+          @toggle="handleToggleReference"
+        />
         <ChatComposer
+          :key="activeSessionId || 'no-session'"
+          ref="composerRef"
           v-model="composerInput"
           :loading="isGenerating"
-          :disabled="!activeSession"
+          :disabled="!activeSession || isGenerating"
           :show-attach="false"
           :show-voice="false"
           :show-reset="false"
           :placeholder="t('aiChat.inputPlaceholder')"
           :show-knowledge-base="false"
           :compact="true"
+          :show-reference-picker="true"
+          :get-at-label="getAtLabel"
           @submit="handleComposerSubmit"
           @reset="handleComposerReset"
+          @attach="handleAttachFile"
+          @open-reference-picker="referencePickerOpen = true"
           @cancel="handleCancelGeneration"
-        />
+        >
+          <template v-if="activeSession" #leading>
+            <div class="agent-compact-composer-leading">
+              <AgentReferencePicker
+                v-model:open="referencePickerOpen"
+                :disabled="isGenerating || !!workspace.uiLocked?.value"
+                compact
+                @select-file="handleReferencePickerFile"
+                @select-tab="handleReferencePickerTab"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="agent-compact-composer-btn"
+                    :disabled="isGenerating || !!workspace.uiLocked?.value"
+                    :title="t('aiChat.attachTooltip')"
+                  >
+                    <Paperclip class="agent-compact-composer-btn-icon" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" class="agent-compact-attach-dropdown">
+                  <DropdownMenuItem @select="openAttachFilePicker">
+                    {{ t('agent.compact.uploadAttachment', '上传附件') }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem @select="openReferenceDialog">
+                    {{ t('agent.compact.manageAttachments', '管理附件') }}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </template>
+        </ChatComposer>
       </div>
     </div>
     <div v-else class="agent-compact-empty">
@@ -203,6 +375,28 @@
         </template>
       </Empty>
     </div>
+
+    <!-- 引用管理对话框 -->
+    <Dialog v-model:open="showReferenceDialog" v-if="referenceSession">
+      <DialogContent
+        class="sm:max-w-[800px]"
+        style="height: 80vh; display: flex; flex-direction: column"
+      >
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
+        </DialogHeader>
+        <div
+          style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0"
+        >
+          <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showReferenceDialog = false">
+            {{ t('common.close') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- 消息编辑对话框 -->
     <Dialog v-model:open="showEditMessageDialog">
@@ -233,7 +427,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
-import { Clock, Plus, X } from 'lucide-vue-next'
+import { Clock, ChevronDown, ChevronUp, Paperclip, Plus, X } from 'lucide-vue-next'
 import { ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -251,15 +445,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
+import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
 import { Empty } from '@renderer/components/ui/empty'
 import LogoIcon from '../LogoIcon.vue'
 import { themeState, FIXED_LOGO_COLORS } from '../../utils/themes'
 import { useWorkspace } from '../../stores/workspace'
 import { useAgentWorkspaceStore } from '../../stores/agent-workspace-store'
+import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 import AgentMessageRenderer from './AgentMessageRenderer.vue'
 import ChatComposer from '../chat/ChatComposer.vue'
+import ReferenceDisplay from './ReferenceDisplay.vue'
+import ReferenceManager from './ReferenceManager.vue'
+import AgentReferencePicker from './AgentReferencePicker.vue'
 import type { AgentMessage, AgentSession, ChatAgentMessage } from '../../types/agent'
+import type { StagingEditRecord } from '../../stores/agent-edit-staging-store'
+import type { Reference } from '../../types/agent-framework'
 import { createRendererLogger } from '../../utils/logger'
 import { notifyError, notifySuccess, notifyWarning } from '../../utils/notify'
 import {
@@ -268,6 +474,9 @@ import {
   agentSessionManager
 } from '../../utils/agent-framework'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
+import { processTextReference } from '../../utils/agent-framework/reference-processor'
+import messageBridge from '../../bridge/message-bridge'
+import { useWorkspace as useWorkspaceStore } from '../../stores/workspace'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -284,6 +493,11 @@ const {
   aiTaskHandles
 } = storeToRefs(agentStore)
 const { setOpenTabIds } = agentStore
+const stagingStore = useAgentEditStagingStore()
+const stagingPanelOpen = ref(false)
+const stagingEdits = computed(() =>
+  activeSession.value ? stagingStore.getEditsForSession(activeSession.value.id) : []
+)
 
 // 与 LeftMenu、ViewMenuContainer 及子面板一致：统一用 sidebarPanelBackground
 const panelStyle = computed(() => ({
@@ -415,6 +629,11 @@ const historyGroups = computed<HistoryGroup[]>(() => {
 
 const hasMoreHistory = computed(() => sortedSessionsForHistory.value.length > historyLimit.value)
 
+// 最近会话下拉关闭时同步关闭右键菜单
+watch(historyOpen, (open) => {
+  if (!open) historyContextSession.value = null
+})
+
 // Tab 右键菜单
 const tabContextSession = ref<AgentSession | null>(null)
 const tabContextX = ref(0)
@@ -424,6 +643,60 @@ function openTabContextMenu(e: MouseEvent, session: AgentSession) {
   tabContextSession.value = session
   tabContextX.value = e.clientX
   tabContextY.value = e.clientY
+}
+
+// 最近会话列表右键菜单（无关闭标签页）
+const historyContextSession = ref<AgentSession | null>(null)
+const historyContextX = ref(0)
+const historyContextY = ref(0)
+
+function openHistoryContextMenu(e: MouseEvent, session: AgentSession) {
+  historyContextSession.value = session
+  historyContextX.value = e.clientX
+  historyContextY.value = e.clientY
+}
+
+async function confirmDeleteHistoryItem(session: AgentSession) {
+  await deleteSession(session)
+  historyOpen.value = false
+}
+
+function handleHistoryContextRename() {
+  const s = historyContextSession.value
+  historyContextSession.value = null
+  historyOpen.value = false
+  if (!s) return
+  tabContextSession.value = s
+  handleTabContextRename()
+  tabContextSession.value = null
+}
+
+function handleHistoryContextExport() {
+  const s = historyContextSession.value
+  historyContextSession.value = null
+  historyOpen.value = false
+  if (!s) return
+  tabContextSession.value = s
+  handleTabContextExport()
+  tabContextSession.value = null
+}
+
+function handleHistoryContextDuplicate() {
+  const s = historyContextSession.value
+  historyContextSession.value = null
+  historyOpen.value = false
+  if (!s) return
+  tabContextSession.value = s
+  handleTabContextDuplicate()
+  tabContextSession.value = null
+}
+
+async function handleHistoryContextDelete() {
+  const s = historyContextSession.value
+  historyContextSession.value = null
+  historyOpen.value = false
+  if (!s) return
+  await deleteSession(s)
 }
 
 function ensureActiveSessionId() {
@@ -678,6 +951,10 @@ function createNewSession() {
 
 // 当前激活的引用ID（紧凑模式不提供 UI，但默认激活全部引用）
 const activeReferenceIds = ref<string[]>([])
+const referencePickerOpen = ref(false)
+const showReferenceDialog = ref(false)
+const referenceSession = ref<AgentSession | null>(null)
+const composerRef = ref<{ insertAtCursor: (value: string) => void } | null>(null)
 
 watch(
   () => activeSession.value?.referenceStore,
@@ -690,6 +967,189 @@ watch(
   },
   { immediate: true, deep: true }
 )
+
+function handleToggleReference(referenceId: string) {
+  const index = activeReferenceIds.value.indexOf(referenceId)
+  if (index > -1) {
+    activeReferenceIds.value.splice(index, 1)
+  } else {
+    activeReferenceIds.value.push(referenceId)
+  }
+}
+
+async function handleAttachFile(fileOrFiles?: File | File[]) {
+  const session = activeSession.value
+  if (!session) return
+  try {
+    const { processFileUpload } = await import('../../utils/agent-framework/reference-processor')
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : fileOrFiles ? [fileOrFiles] : []
+    if (files.length === 0) return
+    const references: Reference[] = []
+    for (const file of files) {
+      try {
+        const ref = await processFileUpload(file)
+        references.push(ref)
+      } catch (e) {
+        console.error(`处理文件 ${file.name} 失败:`, e)
+      }
+    }
+    if (references.length > 0) {
+      const newFormatSession: any = {
+        ...session,
+        entityType: 'agent-session',
+        createdAt:
+          typeof session.createdAt === 'string'
+            ? new Date(session.createdAt).getTime()
+            : session.createdAt,
+        updatedAt:
+          typeof session.updatedAt === 'string'
+            ? new Date(session.updatedAt).getTime()
+            : session.updatedAt,
+        messageQueue: session.messageQueue || [],
+        referenceStore: session.referenceStore || [],
+        publicContext: session.publicContext || {},
+        executionNodes: session.executionNodes || [],
+        status: session.status || 'idle'
+      }
+      references.forEach((ref) => agentSessionManager.addReferenceObject(newFormatSession, ref))
+      persistSessions()
+      notifySuccess(
+        references.length > 1
+          ? t('agent.reference.addSuccessCount', { count: references.length })
+          : t('agent.reference.addSuccess')
+      )
+    }
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
+function getAtLabel(rawValue: string): string {
+  if (rawValue.startsWith('tab:')) {
+    const tabId = rawValue.slice(4)
+    const tab = workspace.tabs.find((t) => t.id === tabId)
+    return tab?.title ?? t('agent.attachment.untitled', '未命名')
+  }
+  return rawValue.replace(/^.*[/\\]/, '') || rawValue
+}
+
+async function handleReferencePickerFile(payload: { type: 'file'; path: string }) {
+  if (payload.type !== 'file') return
+  composerRef.value?.insertAtCursor(payload.path)
+  referencePickerOpen.value = false
+}
+
+function handleReferencePickerTab(payload: { type: 'tab'; tabId: string }) {
+  if (payload.type !== 'tab') return
+  const tab = workspace.tabs.find((t) => t.id === payload.tabId)
+  if (tab?.path) {
+    composerRef.value?.insertAtCursor(tab.path)
+  } else {
+    composerRef.value?.insertAtCursor('tab:' + payload.tabId)
+  }
+  referencePickerOpen.value = false
+}
+
+function openReferenceDialog() {
+  if (activeSession.value) {
+    referenceSession.value = activeSession.value
+    showReferenceDialog.value = true
+  }
+}
+
+async function pathToFile(filePath: string): Promise<File> {
+  const result = (await messageBridge.invoke('read-file-for-upload', filePath)) as {
+    name: string
+    data: string
+    mimeType: string
+  }
+  const binaryString = atob(result.data)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  const blob = new Blob([bytes], { type: result.mimeType })
+  return new File([blob], result.name, { type: result.mimeType })
+}
+
+async function openAttachFilePicker() {
+  const session = activeSession.value
+  if (!session) return
+  try {
+    const filePaths = await selectReferenceFiles('all', true, t('aiChat.attachTooltip'))
+    if (filePaths.length === 0) return
+    const files: File[] = []
+    for (const filePath of filePaths) {
+      try {
+        files.push(await pathToFile(filePath))
+      } catch (e) {
+        console.error(`无法读取文件 ${filePath}:`, e)
+      }
+    }
+    if (files.length > 0) {
+      await handleAttachFile(files.length === 1 ? files[0] : files)
+    }
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
+  }
+}
+
+function handleReferenceUpdate() {
+  persistSessions()
+}
+
+function stagingAccept(edit: StagingEditRecord) {
+  stagingStore.acceptEdit(edit.id)
+}
+
+async function stagingReject(edit: StagingEditRecord) {
+  try {
+    await stagingStore.rejectEdit(edit)
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  }
+}
+
+function stagingAcceptAll() {
+  if (activeSession.value) stagingStore.acceptAll(activeSession.value.id)
+}
+
+async function stagingRejectAll() {
+  if (!activeSession.value) return
+  try {
+    await stagingStore.rejectAll(activeSession.value.id)
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  }
+}
+
+function openReviewWindow() {
+  workspace.openToolTab('agentReview')
+}
+
+async function handleMessageRollback(message: AgentMessage) {
+  const session = activeSession.value
+  if (!session || message.role !== 'user') return
+  try {
+    const { rollbackByUserMessage } = stagingStore
+    const { rolled } = await rollbackByUserMessage(session.id, message.id)
+    if (rolled > 0) notifySuccess(t('agent.staging.rollbackDone', { count: rolled }))
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  }
+}
+
+async function handleMessageRedo(message: AgentMessage) {
+  const session = activeSession.value
+  if (!session || message.role !== 'user') return
+  try {
+    const { redoByUserMessage } = stagingStore
+    const { redone } = await redoByUserMessage(session.id, message.id)
+    if (redone > 0) notifySuccess(t('agent.staging.redoDone', { count: redone }))
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  }
+}
 
 const touchSession = (session: AgentSession) => {
   session.updatedAt = new Date().toISOString()
@@ -819,15 +1279,18 @@ const handleComposerSubmit = async () => {
 
   if (session.activeToolIds) session.activeToolIds = []
 
-  // 用户消息：默认携带当前会话的全部引用（若有）
-  const message = createChatMessage('user', content, [...activeReferenceIds.value])
+  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
+  const messageRefIds = refIdsInInput.length > 0 ? refIdsInInput : [...activeReferenceIds.value]
+  const message = createChatMessage('user', content, messageRefIds)
   session.messages.push(message)
 
-  composerInput.value = ''
   touchSession(session)
 
-  // 延迟持久化一次（避免破坏 reactive 流式更新）
-  nextTick(() => persistSessions())
+  // 在 nextTick 中清空，避免 contenteditable 的 input 事件在同一 tick 内把旧内容再次写回
+  nextTick(() => {
+    composerInput.value = ''
+    persistSessions()
+  })
   scrollToBottom()
 
   try {
@@ -1186,6 +1649,11 @@ onMounted(async () => {
   box-shadow: var(--el-box-shadow-light);
 }
 
+/* 最近会话内右键菜单：高于下拉层 z-[10001] */
+.agent-compact-history-context {
+  z-index: 10002;
+}
+
 .agent-compact-tab-context-item {
   display: block;
   width: 100%;
@@ -1286,6 +1754,138 @@ onMounted(async () => {
   padding: 4px 6px;
   border-top: 1px solid rgba(128, 128, 128, 0.22);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-compact-ref-display {
+  min-height: 0;
+}
+
+.agent-compact-composer-leading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-end;
+}
+
+.agent-compact-composer-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.agent-compact-composer-btn-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.agent-compact-composer :deep(.chat-composer) {
+  width: 100%;
+}
+
+.agent-compact-attach-dropdown {
+  font-size: 12px;
+  min-width: 120px;
+}
+
+.agent-compact-attach-dropdown [data-reka-menu-item] {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+/* 编辑暂存面板 */
+.agent-compact-staging {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.agent-compact-staging-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.agent-compact-staging-trigger:hover,
+.agent-compact-staging-trigger.has-items {
+  color: var(--el-text-color-primary);
+}
+
+.agent-compact-staging-chevron {
+  width: 12px;
+  height: 12px;
+}
+
+.agent-compact-staging-content {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 8px 8px;
+  font-size: 11px;
+}
+
+.agent-compact-staging-empty {
+  padding: 6px 0;
+  color: var(--el-text-color-secondary);
+}
+
+.agent-compact-staging-actions {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.agent-compact-staging-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agent-compact-staging-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.agent-compact-staging-item-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-compact-staging-item-diff {
+  display: flex;
+  gap: 4px;
+}
+
+.agent-compact-staging-item-diff .add {
+  color: var(--el-color-success);
+}
+
+.agent-compact-staging-item-diff .del {
+  color: var(--el-color-danger);
+}
+
+.agent-compact-staging-item-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.agent-compact-staging-item-status {
+  font-size: 10px;
+  color: var(--el-text-color-secondary);
 }
 
 .agent-compact-empty {
@@ -1362,31 +1962,65 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
-  padding: 6px 12px 2px;
+  padding: 4px 8px 2px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
 .agent-compact-history-item {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  padding: 6px 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 8px;
   font-size: 12px;
+  min-height: 24px;
+  cursor: pointer;
+}
+
+.agent-compact-history-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
 }
 
 .agent-compact-history-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .agent-compact-history-time {
   font-size: 10px;
   opacity: 0.7;
-  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.agent-compact-history-item-close {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  opacity: 0.6;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.agent-compact-history-item:hover .agent-compact-history-item-close {
+  opacity: 1;
+}
+
+.agent-compact-history-item-close:hover {
+  background: var(--el-fill-color-dark, rgba(128, 128, 128, 0.2));
+}
+
+.agent-compact-history-item-close svg {
+  width: 10px;
+  height: 10px;
 }
 
 .agent-compact-history-more {

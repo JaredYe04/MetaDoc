@@ -1,0 +1,35 @@
+% 미니멀 이력서. 여백 많음.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=2.2cm,right=2.2cm,top=2cm,bottom=2cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Georgia}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+\pagestyle{empty}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+\begin{center}
+\vspace{0.5cm}
+{\LARGE 성함}\\[0.8em]
+email \quad · \quad 전화 \quad · \quad 도시\\[0.6em]
+% 사진: \rule을 \includegraphics[width=1.8cm]{photo}로 교체
+\rule{1.8cm}{2.2cm}\\[0.6em]
+\end{center}
+\vspace{1em}
+\textbf{학력}\\
+학위, 연도. 대학교.
+\vspace{0.8em}
+\textbf{경력}\\
+직함, 회사, 연도--연도. 한두 줄 요약.
+\vspace{0.8em}
+\textbf{스킬}\\
+간단 나열.
+\end{document}

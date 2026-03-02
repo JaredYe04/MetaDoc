@@ -1,0 +1,40 @@
+% 모던 이력서. 배경: \usepackage{pagecolor} \pagecolor{blue!3}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\geometry{left=1.8cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}[BoldFont=* Bold]}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}[BoldFont=* Bold]}{\setmainfont{Arial}[BoldFont=* Bold]}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{0.8em}{0.4em}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{성함}}\\[0.3em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad 전화 \quad | \quad 도시, 국가
+\end{center}
+% 사진: \rule을 \includegraphics[width=2cm]{photo}로 교체
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{학력}
+\textbf{학사/석사 · 전공} \hfill 졸업연도 \\
+대학교 \\
+관련 과목 또는 논문.
+
+\section*{경력}
+\textbf{직함} \hfill 시작 -- 종료 \\
+회사 \\
+성과 중심 불릿.
+
+\section*{스킬}
+카테고리: A, B, C. \quad 카테고리: X, Y, Z.
+\end{document}

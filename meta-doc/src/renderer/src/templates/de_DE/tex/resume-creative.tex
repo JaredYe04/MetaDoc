@@ -1,0 +1,31 @@
+% Kreativer Lebenslauf. Optionale Akzentfarbe und Hintergrund.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}}{\setmainfont{Arial}}}
+\pagestyle{empty}
+
+\begin{document}
+% Foto: \rule durch \includegraphics[width=2.2cm]{photo} ersetzen
+\begin{center}\rule{2.2cm}{2.8cm}\end{center}
+\begin{center}
+{\LARGE \textbf{Ihr Name}}\\[0.15em]
+{\color{gray} Rolle oder Tagline}\\[0.4em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad Portfolio \quad | \quad Stadt
+\end{center}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{1pt}\\[0.3em]
+\section*{Berufserfahrung}
+\textbf{Position} \hfill Jahr -- Jahr \\
+Unternehmen \\
+Erfolge und Projekte.
+
+\section*{Ausbildung}
+\textbf{Abschluss} \hfill Jahr \quad Hochschule
+\section*{Fähigkeiten \& Tools}
+Design: Tool 1, 2. \quad Sonstiges: Fähigkeiten.
+\end{document}

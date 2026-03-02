@@ -1,0 +1,54 @@
+% Classic one-column resume for job applications.
+% Optional background: uncomment the two lines below (and add \usepackage{pagecolor} in preamble if needed).
+% \usepackage{pagecolor}
+% \pagecolor{gray!8}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm}
+% Cross-platform: TeX Gyre / Liberation / system
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\title{\vspace{-1.2cm}\textbf{Your Name}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.8cm}
+
+% Photo: replace \rule with \includegraphics[width=2.2cm,clip]{photo}
+\begin{flushright}\rule{2.2cm}{2.8cm}\end{flushright}
+
+\textbf{Contact:} email@example.com \quad | \quad Phone \quad | \quad City, Country \\
+\textbf{LinkedIn:} linkedin.com/in/yourprofile
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{Education}
+\textbf{Degree Name} \hfill Year -- Year \\
+University Name, City \\
+Brief note (honors, GPA if relevant).
+
+\section*{Experience}
+\textbf{Job Title} \hfill Month Year -- Present \\
+Company Name, City \\
+\begin{itemize}
+  \item Achievement or responsibility.
+  \item Another point.
+\end{itemize}
+
+\textbf{Previous Role} \hfill Month Year -- Month Year \\
+Company Name \\
+\begin{itemize}
+  \item Key responsibility or result.
+\end{itemize}
+
+\section*{Skills}
+Technical: Skill 1, Skill 2, Skill 3. \\
+Languages: Language 1 (level), Language 2 (level).
+
+\end{document}

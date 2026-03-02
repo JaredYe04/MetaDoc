@@ -41,6 +41,7 @@ export type ToolTabType =
   | 'aiChat'
   | 'setting'
   | 'aigcDetection'
+  | 'agentReview'
 
 export interface WorkspaceTab {
   id: string
@@ -1832,7 +1833,8 @@ const TOOL_TAB_ROUTES: Record<ToolTabType, string> = {
   formulaRecognition: '/fomula-recognition',
   aiChat: '/ai-chat',
   setting: '/setting',
-  aigcDetection: '/aigc-detection'
+  aigcDetection: '/aigc-detection',
+  agentReview: '/agent-review'
 }
 
 /**

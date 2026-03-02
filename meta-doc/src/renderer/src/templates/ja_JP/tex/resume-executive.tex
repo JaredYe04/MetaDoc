@@ -1,0 +1,40 @@
+% エグゼクティブ履歴書。要約を上部に。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.8cm,right=1.8cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Serif CJK JP}{\setCJKmainfont{Noto Serif CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Mincho}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{お名前}}\\[0.2em]
+email@example.com \quad | \quad 電話 \quad | \quad 都市、国
+\end{center}
+% 写真: \rule を \includegraphics[width=2cm]{photo} に置換
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\noindent\textbf{要約}\\
+X年の経験。……の実績。……を希望。
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\section*{職歴}
+\textbf{シニア役職} \hfill 年 -- 現在 \\
+会社 \\
+\begin{itemize}
+  \item 戦略・成果。
+\end{itemize}
+\section*{学歴}
+\textbf{学位} \hfill 年 \quad 大学
+\section*{コアコンピテンシー}
+領域1、領域2、領域3。
+\end{document}

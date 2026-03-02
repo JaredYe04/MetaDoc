@@ -1,0 +1,40 @@
+% モダン履歴書。背景: \usepackage{pagecolor} \pagecolor{blue!3}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\geometry{left=1.8cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}[BoldFont=* Bold]}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}[BoldFont=* Bold]}{\setmainfont{Arial}[BoldFont=* Bold]}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmainfont{Noto Sans CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{0.8em}{0.4em}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{お名前}}\\[0.3em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad 電話 \quad | \quad 都市、国
+\end{center}
+% 写真位置: \rule を \includegraphics[width=2cm]{photo} に置換
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{学歴}
+\textbf{学士/修士・専攻} \hfill 卒業年 \\
+大学名 \\
+関連科目・論文。
+
+\section*{職歴}
+\textbf{役職} \hfill 開始 -- 終了 \\
+会社 \\
+成果中心の箇条書き。
+
+\section*{スキル}
+カテゴリ: A、B、C。 \quad カテゴリ: X、Y、Z。
+\end{document}

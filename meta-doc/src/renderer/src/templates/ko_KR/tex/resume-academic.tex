@@ -1,0 +1,47 @@
+% 학술 CV. 진학·연구직 지원용.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+
+\title{\vspace{-1cm}\textbf{성함}}
+\author{소속 \\ \href{mailto:email@ac.kr}{email@ac.kr}}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-0.6cm}
+% 사진: \rule을 \includegraphics[width=2cm]{photo}로 교체
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\section*{학력}
+\textbf{박사/석사 · 전공} \hfill 연도 -- 연도 \\
+대학교, 지도교수: 이름 \\
+논문: 「제목」
+
+\section*{연구 경력}
+\textbf{직위} \hfill 연도 -- 연도 \\
+기관 \\
+연구 내용·성과.
+
+\section*{논문}
+\begin{itemize}
+  \item 저자. 「제목.」\textit{저널/학회}, 연도.
+\end{itemize}
+
+\section*{강의}
+과목, 역할(TA/강사), 기관, 연도.
+
+\section*{수상}
+상 이름, 연도.
+
+\section*{스킬}
+방법, 도구, 언어.
+\end{document}

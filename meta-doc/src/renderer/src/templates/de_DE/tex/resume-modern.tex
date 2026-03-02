@@ -1,0 +1,34 @@
+% Moderner Lebenslauf. Optional: \usepackage{pagecolor} \pagecolor{blue!3}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\geometry{left=1.8cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}[BoldFont=* Bold]}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}[BoldFont=* Bold]}{\setmainfont{Arial}[BoldFont=* Bold]}}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{0.8em}{0.4em}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Ihr Name}}\\[0.3em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad Telefon \quad | \quad Stadt, Land
+\end{center}
+% Foto: \rule durch \includegraphics[width=2cm]{photo} ersetzen
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{Ausbildung}
+\textbf{B.Sc./M.Sc. Fach} \hfill Abschlussjahr \\
+Hochschule \\
+Relevante Schwerpunkte.
+
+\section*{Berufserfahrung}
+\textbf{Position} \hfill Von -- Bis \\
+Unternehmen \\
+Erfolgsorientierte Stichpunkte.
+
+\section*{Fähigkeiten}
+Kategorie: A, B, C. \quad Kategorie: X, Y, Z.
+\end{document}

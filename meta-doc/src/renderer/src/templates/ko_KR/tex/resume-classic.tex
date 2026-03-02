@@ -1,0 +1,55 @@
+% 구직용 클래식 1단 이력서. 배경: \usepackage{pagecolor} \pagecolor{gray!8}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+
+\title{\vspace{-1.2cm}\textbf{성함}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.8cm}
+% 사진: \rule을 \includegraphics[width=2.2cm,clip]{photo}로 교체
+\begin{flushright}\rule{2.2cm}{2.8cm}\end{flushright}
+
+\textbf{연락처:} email@example.com \quad | \quad 전화 \quad | \quad 도시, 국가 \\
+\textbf{LinkedIn:} linkedin.com/in/yourprofile
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{학력}
+\textbf{학위} \hfill 연도 -- 연도 \\
+대학교, 도시 \\
+간단 메모(영예, GPA 등).
+
+\section*{경력}
+\textbf{직함} \hfill 연월 -- 현재 \\
+회사명, 도시 \\
+\begin{itemize}
+  \item 성과 또는 책임.
+  \item 추가 항목.
+\end{itemize}
+
+\textbf{이전 직함} \hfill 연월 -- 연월 \\
+회사명 \\
+\begin{itemize}
+  \item 주요 책임 또는 결과.
+\end{itemize}
+
+\section*{스킬}
+기술: 스킬1, 스킬2, 스킬3. \\
+언어: 언어1(수준), 언어2(수준).
+
+\end{document}

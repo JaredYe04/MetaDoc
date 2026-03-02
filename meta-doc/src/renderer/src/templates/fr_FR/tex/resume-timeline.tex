@@ -1,0 +1,30 @@
+% Expérience en format chronologique.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Votre nom}}\\[0.2em]
+email@example.com \quad | \quad Ville, Pays
+\end{center}
+% Photo : remplacer \rule par \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{Expérience (chronologie)}
+\textbf{2023 -- Présent} \quad \textbf{Poste}, Entreprise \\
+Résumé et résultats.
+\vspace{0.3em}
+\textbf{2021 -- 2023} \quad \textbf{Poste}, Entreprise \\
+Résultats et périmètre.
+\vspace{0.5em}
+\section*{Formation}
+\textbf{2015 -- 2019} \quad Diplôme, Établissement
+\section*{Compétences}
+Énumération.
+\end{document}

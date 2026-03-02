@@ -1,0 +1,49 @@
+% CV classique une colonne. Option fond: \usepackage{pagecolor} \pagecolor{gray!8}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\title{\vspace{-1.2cm}\textbf{Votre nom}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.8cm}
+% Photo : remplacer \rule par \includegraphics[width=2.2cm,clip]{photo}
+\begin{flushright}\rule{2.2cm}{2.8cm}\end{flushright}
+
+\textbf{Contact :} email@example.com \quad | \quad Téléphone \quad | \quad Ville, Pays \\
+\textbf{LinkedIn :} linkedin.com/in/yourprofile
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{Formation}
+\textbf{Diplôme} \hfill Année -- Année \\
+Établissement, Ville \\
+Brève mention (honneurs, notes).
+
+\section*{Expérience}
+\textbf{Poste} \hfill Mois Année -- Présent \\
+Entreprise, Ville \\
+\begin{itemize}
+  \item Réalisation ou responsabilité.
+  \item Autre point.
+\end{itemize}
+
+\textbf{Poste précédent} \hfill Mois Année -- Mois Année \\
+Entreprise \\
+\begin{itemize}
+  \item Responsabilité ou résultat clé.
+\end{itemize}
+
+\section*{Compétences}
+Techniques : Compétence 1, 2, 3. \\
+Langues : Langue 1 (niveau), Langue 2 (niveau).
+
+\end{document}

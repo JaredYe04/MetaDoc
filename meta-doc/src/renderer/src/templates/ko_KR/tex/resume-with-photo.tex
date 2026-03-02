@@ -1,0 +1,42 @@
+% 사진 포함 이력서. 사진: \includegraphics[width=2.8cm,height=3.2cm,keepaspectratio=false]{photo}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.5cm,right=1.5cm,top=1.2cm,bottom=1.5cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmainfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKsansfont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKsansfont{Malgun Gothic}}
+\IfFontExistsTF{Noto Sans CJK KR}{\setCJKmonofont{Noto Sans CJK KR}[Fallback=Malgun Gothic]}{\setCJKmonofont{Malgun Gothic}}
+\pagestyle{empty}
+
+\begin{document}
+\begin{minipage}[t]{0.72\textwidth}
+\vspace{0pt}
+{\LARGE \textbf{성함}}\\[0.25em]
+Email: email@example.com \\
+전화: …… \\
+주소: 도시, 국가
+\end{minipage}
+\begin{minipage}[t]{0.25\textwidth}
+\vspace{0pt}
+\raggedleft
+\rule{2.8cm}{3.2cm}
+\end{minipage}
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+\section*{요약}
+간단 소개 (2--3줄).
+\section*{경력}
+\textbf{직함} \hfill 연도 -- 연도 \\
+회사 \\
+요점.
+\section*{학력}
+\textbf{학위} \hfill 연도 \quad 대학교
+\section*{스킬}
+스킬·언어.
+\end{document}

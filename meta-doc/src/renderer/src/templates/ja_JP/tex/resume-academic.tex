@@ -1,0 +1,46 @@
+% 学術CV。進学・研究職向け。
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setsansfont{Liberation Sans}}{\setsansfont{Arial}}}
+\IfFontExistsTF{TeX Gyre Cursor}{\setmonofont{TeX Gyre Cursor}}{\IfFontExistsTF{Liberation Mono}{\setmonofont{Liberation Mono}}{\setmonofont{DejaVu Sans Mono}}}
+\IfFontExistsTF{Noto Serif CJK JP}{\setCJKmainfont{Noto Serif CJK JP}[Fallback=MS Mincho]}{\setCJKmainfont{MS Mincho}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKsansfont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKsansfont{MS Gothic}}
+\IfFontExistsTF{Noto Sans CJK JP}{\setCJKmonofont{Noto Sans CJK JP}[Fallback=MS Gothic]}{\setCJKmonofont{MS Gothic}}
+
+\title{\vspace{-1cm}\textbf{お名前}}
+\author{所属 \\ \href{mailto:email@ac.jp}{email@ac.jp}}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-0.6cm}
+
+\section*{学歴}
+\textbf{博士/修士・専攻} \hfill 年 -- 年 \\
+大学、指導教員: 氏名 \\
+論文: 「タイトル」
+
+\section*{研究歴}
+\textbf{ポジション} \hfill 年 -- 年 \\
+機関 \\
+研究内容・成果。
+
+\section*{発表}
+\begin{itemize}
+  \item 著者. 「タイトル。」\textit{誌/会議}，年。
+\end{itemize}
+
+\section*{教育}
+科目、役割（TA/講師）、機関、年。
+
+\section*{受賞}
+賞名、年。
+
+\section*{スキル}
+手法、ツール、言語。
+\end{document}

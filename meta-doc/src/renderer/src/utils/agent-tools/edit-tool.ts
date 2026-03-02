@@ -18,6 +18,7 @@ import type { TextRange } from '../../editor/text-editor-types'
 import EditDisplay from './components/EditDisplay.vue'
 import { createDetailedError } from './tool-utils'
 import messageBridge from '../../bridge/message-bridge'
+import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 
 const logger = createRendererLogger('EditTool')
 const workspace = useWorkspace()
@@ -117,6 +118,7 @@ export interface EditResult {
   originalContent?: string // 编辑前的原始内容（用于显示对比）
   newContent?: string // 编辑后的新内容（用于显示对比）
   hunks?: UnifiedDiffHunk[] // Unified diff hunks（如果使用diff格式）
+  filePath?: string // 编辑的文件路径（Cursor 风格展示用）
 }
 
 /**
@@ -982,6 +984,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           }
         }
         const absPath = resolveFilePath(filePathParam)
+        onUpdate(
+          {
+            content: { stage: 'loading', filePath: absPath, editCount: 0 },
+            format: 'json',
+            componentName: 'EditDisplay'
+          },
+          { percentage: 10, message: i18n.global.t('agent.tool.edit.progress.loading', '正在解析 diff...') }
+        )
         let currentContent: string | null = null
         try {
           currentContent = (await messageBridge.invoke('read-file-content', absPath)) as
@@ -1021,13 +1031,31 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             filePath: absPath,
             content: newContent
           })
-          const newFileResult: EditResult = {
-            appliedEdits: 1,
-            failedEdits: 0,
-            operations: [],
-            hunks,
-            ...(verbose ? { originalContent: '', newContent } : {})
+          const addedLines = hunks.reduce((s, h) => s + (h.newLines?.length ?? h.newCount ?? 0), 0)
+          const removedLines = hunks.reduce((s, h) => s + (h.oldLines?.length ?? h.oldCount ?? 0), 0)
+          try {
+            const sid = params._sessionId as string | undefined
+            const umid = params._userMessageId as string | undefined
+            if (sid && umid) {
+              useAgentEditStagingStore().pushEdit(sid, umid, {
+                filePath: absPath,
+                type: 'create',
+                newContent,
+                addedLines,
+                removedLines
+              })
+            }
+          } catch (_) {
+            /* ignore */
           }
+        const newFileResult: EditResult = {
+          appliedEdits: 1,
+          failedEdits: 0,
+          operations: [],
+          hunks,
+          filePath: absPath,
+          ...(verbose ? { originalContent: '', newContent } : {})
+        }
           return {
             status: 'succeeded',
             data: {
@@ -1085,11 +1113,30 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           }
         )
         await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
+        const addedLines = hunks.reduce((s, h) => s + (h.newLines?.length ?? h.newCount ?? 0), 0)
+        const removedLines = hunks.reduce((s, h) => s + (h.oldLines?.length ?? h.oldCount ?? 0), 0)
+        try {
+          const sid = params._sessionId as string | undefined
+          const umid = params._userMessageId as string | undefined
+          if (sid && umid) {
+            useAgentEditStagingStore().pushEdit(sid, umid, {
+              filePath: absPath,
+              type: 'edit',
+              oldContent: currentContent,
+              newContent,
+              addedLines,
+              removedLines
+            })
+          }
+        } catch (_) {
+          /* ignore */
+        }
         const filePathResult: EditResult = {
           appliedEdits: appliedCount,
           failedEdits: failedCount,
           operations: edits,
           hunks,
+          filePath: absPath,
           ...(verbose ? { originalContent: currentContent, newContent } : {})
         }
         return {

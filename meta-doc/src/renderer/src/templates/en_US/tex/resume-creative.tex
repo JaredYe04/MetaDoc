@@ -1,0 +1,40 @@
+% Creative resume with optional accent color and background.
+% To customize: uncomment \definecolor and \pagecolor (add \usepackage{xcolor,pagecolor}).
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+% \usepackage{pagecolor}
+% \definecolor{accent}{RGB}{60,90,140}
+% \pagecolor{accent!6}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}}{\setmainfont{Arial}}}
+
+\pagestyle{empty}
+
+\begin{document}
+% Photo: replace \rule with \includegraphics[width=2.2cm,clip]{photo}
+\begin{center}\rule{2.2cm}{2.8cm}\end{center}
+\begin{center}
+{\LARGE \textbf{Your Name}}\\[0.15em]
+{\color{gray} Role or tagline}\\[0.4em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad Portfolio \quad | \quad City
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{1pt}\\[0.3em]
+
+\section*{Experience}
+\textbf{Title} \hfill Year -- Year \\
+Company \\
+Creative outcomes, projects, and impact.
+
+\section*{Education}
+\textbf{Degree} \hfill Year \quad School
+
+\section*{Skills \& Tools}
+Design: Tool 1, Tool 2. \quad Other: Skill set.
+
+\end{document}

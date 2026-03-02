@@ -1,0 +1,41 @@
+% Akademischer CV. Für Hochschulbewerbung und Forschung.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.6cm,right=1.6cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\title{\vspace{-1cm}\textbf{Ihr Name}}
+\author{Abteilung / Institution \\ \href{mailto:email@uni.de}{email@uni.de}}
+\date{}
+\begin{document}
+\maketitle
+\vspace{-0.6cm}
+% Foto: \rule durch \includegraphics[width=2cm]{photo} ersetzen
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\section*{Ausbildung}
+\textbf{Promotion/Master Fach} \hfill Jahr -- Jahr \\
+Universität, Betreuer: Name \\
+Thema: „Titel der Arbeit“
+
+\section*{Forschung}
+\textbf{Position} \hfill Jahr -- Jahr \\
+Institution \\
+Beschreibung und Ergebnisse.
+
+\section*{Publikationen}
+\begin{itemize}
+  \item Autor. „Titel.“ \textit{Zeitschrift/Konferenz}, Jahr.
+\end{itemize}
+
+\section*{Lehre}
+Veranstaltung, Rolle (Tutor/Dozent), Institution, Jahr.
+
+\section*{Auszeichnungen}
+Preis, Jahr.
+
+\section*{Fähigkeiten}
+Methoden, Tools, Sprachen.
+\end{document}

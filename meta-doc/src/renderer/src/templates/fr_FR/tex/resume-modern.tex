@@ -1,0 +1,34 @@
+% CV moderne. Option fond: \usepackage{pagecolor} \pagecolor{blue!3}
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{titlesec}
+\geometry{left=1.8cm,right=1.8cm,top=1.6cm,bottom=1.6cm}
+\IfFontExistsTF{TeX Gyre Heros}{\setmainfont{TeX Gyre Heros}[BoldFont=* Bold]}{\IfFontExistsTF{Liberation Sans}{\setmainfont{Liberation Sans}[BoldFont=* Bold]}{\setmainfont{Arial}[BoldFont=* Bold]}}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.5em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{0.8em}{0.4em}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Votre nom}}\\[0.3em]
+\href{mailto:email@example.com}{email@example.com} \quad | \quad Téléphone \quad | \quad Ville, Pays
+\end{center}
+% Photo : remplacer \rule par \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.6em}
+\section*{Formation}
+\textbf{Licence/Master Domaine} \hfill Année \\
+Établissement \\
+Parcours ou mémoire.
+
+\section*{Expérience}
+\textbf{Poste} \hfill Début -- Fin \\
+Entreprise \\
+Points axés résultats.
+
+\section*{Compétences}
+Catégorie : A, B, C. \quad Catégorie : X, Y, Z.
+\end{document}

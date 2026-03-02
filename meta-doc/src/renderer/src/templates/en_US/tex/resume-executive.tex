@@ -1,0 +1,44 @@
+% Executive / senior resume with summary at top. Optional: \usepackage{pagecolor} \pagecolor{gray!8}.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{left=1.8cm,right=1.8cm,top=1.4cm,bottom=1.4cm}
+\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{Times New Roman}}}
+
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\LARGE \textbf{Your Name}}\\[0.2em]
+email@example.com \quad | \quad +1 234 567 8900 \quad | \quad City, Country
+\end{center}
+% Photo: replace \rule with \includegraphics[width=2cm]{photo}
+\begin{flushright}\rule{2cm}{2.5cm}\end{flushright}
+\vspace{0.4em}
+\noindent\textbf{Executive Summary}\\
+Senior professional with X years of experience in [area]. Track record in [key outcomes]. Seeking [role/scope].
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.4pt}
+
+\section*{Experience}
+\textbf{Senior / Executive Title} \hfill Year -- Present \\
+Company Name \\
+\begin{itemize}
+  \item Strategic initiative and result.
+  \item Leadership and scope.
+\end{itemize}
+
+\textbf{Previous Senior Title} \hfill Year -- Year \\
+Company \\
+Key achievements.
+
+\section*{Education}
+\textbf{Degree} \hfill Year \quad \textbf{Institution}
+
+\section*{Core Competencies}
+Area 1, Area 2, Area 3.
+
+\end{document}

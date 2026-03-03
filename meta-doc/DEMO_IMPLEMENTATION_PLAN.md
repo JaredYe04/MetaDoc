@@ -224,14 +224,14 @@ These documents require components that either:
 
 ### Components Needing Demo Mode Support
 
-| Component         | Location                                    | Used In                            | Priority |
-| ----------------- | ------------------------------------------- | ---------------------------------- | -------- |
-| UserFeedbackView  | views/UserFeedbackView.vue                  | user/feedback.md                   | P3       |
-| LlmStatisticsView | views/LlmStatisticsView.vue                 | statistics/llm.md                  | P3       |
-| WorkflowManager   | components/agent/manage/WorkflowManager.vue | agent/engine.md                    | P1       |
-| ReferenceManager  | components/agent/ReferenceManager.vue       | agent/references.md                | P1       |
-| LaTeXEditor       | views/LaTeXEditor.vue                       | latex/editor.md, latex/basics.md   | P1       |
-| OutlineAiToolbar  | components/outline/OutlineAiToolbar.vue     | outline/ai-features.md             | P1       |
+| Component         | Location                                    | Used In                          | Priority |
+| ----------------- | ------------------------------------------- | -------------------------------- | -------- |
+| UserFeedbackView  | views/UserFeedbackView.vue                  | user/feedback.md                 | P3       |
+| LlmStatisticsView | views/LlmStatisticsView.vue                 | statistics/llm.md                | P3       |
+| WorkflowManager   | components/agent/manage/WorkflowManager.vue | agent/engine.md                  | P1       |
+| ReferenceManager  | components/agent/ReferenceManager.vue       | agent/references.md              | P1       |
+| LaTeXEditor       | views/LaTeXEditor.vue                       | latex/editor.md, latex/basics.md | P1       |
+| OutlineAiToolbar  | components/outline/OutlineAiToolbar.vue     | outline/ai-features.md           | P1       |
 
 ### Components to Create
 

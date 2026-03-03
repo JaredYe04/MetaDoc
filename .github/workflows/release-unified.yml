@@ -101,6 +101,10 @@ jobs:
         with:
           path: meta-doc/node_modules
           key: ${{ runner.os }}-meta-doc-node-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-meta-doc-node-
+
+      - name: 缓存诊断（prepare）
+        run: echo "node_modules cache-hit=${{ steps.node-modules.outputs.cache-hit }}"
 
       - name: 安装依赖（用于格式与 Lint，缓存命中时跳过以节省时间）
         if: steps.node-modules.outputs.cache-hit != 'true'
@@ -289,6 +293,12 @@ jobs:
         with:
           path: meta-doc/node_modules
           key: ${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-
+
+      - name: 缓存诊断（node_modules）
+        run: |
+          echo "node_modules cache-hit=${{ steps.node-modules.outputs.cache-hit }}"
+          echo "cache-key=${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-<hash>"
 
       - name: 恢复 Electron 缓存 (Windows)
         if: matrix.platform == 'win'
@@ -296,6 +306,7 @@ jobs:
         with:
           path: ${{ env.LOCALAPPDATA }}/electron
           key: ${{ runner.os }}-win-electron-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-win-electron-
 
       - name: 恢复 Electron 缓存 (Linux)
         if: matrix.platform == 'linux'
@@ -303,6 +314,7 @@ jobs:
         with:
           path: ~/.cache/electron
           key: ${{ runner.os }}-linux-electron-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-linux-electron-
 
       - name: 恢复 Electron 缓存 (macOS)
         if: matrix.platform == 'mac'
@@ -310,6 +322,7 @@ jobs:
         with:
           path: ~/Library/Caches/electron
           key: ${{ runner.os }}-mac-electron-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-mac-electron-
 
       - name: 恢复 electron-builder 缓存 (Windows)
         if: matrix.platform == 'win'
@@ -317,6 +330,7 @@ jobs:
         with:
           path: ${{ env.LOCALAPPDATA }}/electron-builder
           key: ${{ runner.os }}-win-electron-builder-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-win-electron-builder-
 
       - name: 恢复 electron-builder 缓存 (Linux/macOS)
         if: matrix.platform != 'win'
@@ -324,6 +338,7 @@ jobs:
         with:
           path: ~/.cache/electron-builder
           key: ${{ runner.os }}-${{ matrix.platform }}-electron-builder-${{ hashFiles('meta-doc/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.platform }}-electron-builder-
 
       - name: 检查当前平台文件是否已发布
         id: check_platform_release

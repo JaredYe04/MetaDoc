@@ -103,10 +103,7 @@
                   :key="s.id"
                   class="agent-compact-history-item"
                   @contextmenu.prevent="openHistoryContextMenu($event, s)"
-                  @select="
-                    openSessionFromHistory(s)
-                    historyOpen = false
-                  "
+                  @select="(openSessionFromHistory(s), historyOpen = false)"
                 >
                   <span class="agent-compact-history-row">
                     <span class="agent-compact-history-title">{{

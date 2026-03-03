@@ -972,10 +972,7 @@
           <DialogFooter>
             <Button
               variant="ghost"
-              @click="
-                mergeTargetDialogVisible = false
-                pendingMergeTarget = null
-              "
+              @click="(mergeTargetDialogVisible = false, pendingMergeTarget = null)"
               >{{ $t('outline.materialBasket.cancel') }}</Button
             >
             <Button :disabled="!selectedMergeTargetNode" @click="confirmMergeTarget">{{

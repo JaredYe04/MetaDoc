@@ -28,7 +28,7 @@
     "postinstall": "node scripts/postinstall-electron.js && (electron-builder install-app-deps || echo \"Warning: Some native dependencies (e.g. canvas) may need manual setup\") && npm run rebuild-native",
     "rebuild-native": "electron-rebuild -f -w better-sqlite3 --only better-sqlite3",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "npm run build:only && electron-builder --win",
     "temp-build:win": "npm run temp-build && electron-builder --win",
     "build:mac": "npm run build:only && electron-builder --mac",
     "build:linux": "npm run build:only && electron-builder --linux",

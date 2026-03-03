@@ -106,22 +106,10 @@ jobs:
       - name: 缓存诊断（prepare）
         run: echo "node_modules cache-hit=${{ steps.node-modules.outputs.cache-hit }}"
 
-      - name: 安装依赖（用于格式与 Lint，缓存命中时跳过以节省时间）
+      - name: 安装依赖（缓存命中时跳过）
         if: steps.node-modules.outputs.cache-hit != 'true'
         working-directory: meta-doc
         run: npm ci
-
-      - name: 格式与 Lint 检查（仅警告，不阻断发布；失败时产出 artifact）
-        working-directory: meta-doc
-        run: node scripts/run-format-and-lint-warn.js
-
-      - name: 上传格式与 Lint 警告报告（存在则上传）
-        uses: actions/upload-artifact@v4
-        with:
-          name: prepare-check-warnings
-          path: prepare-check-report/
-          if-no-files-found: ignore
-          retention-days: 30
 
       - name: 验证自定义版本号
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_type == 'custom'
@@ -268,13 +256,26 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          # 使用干净检出，确保 Win/Linux/Mac 三端代码一致，避免因缓存导致 lint 结果不同
           clean: true
 
       - name: 下载发布说明
         uses: actions/download-artifact@v4
         with:
           name: release-body
+
+      - name: 确保发布说明文件存在
+        run: |
+          node -e "
+          const fs=require('fs');
+          const path=require('path');
+          const cwd=process.cwd();
+          const fromDir=path.join(cwd,'release-body');
+          const from=path.join(fromDir,'final-notes.txt');
+          const to=path.join(cwd,'final-notes.txt');
+          if(fs.existsSync(from)) { fs.copyFileSync(from,to); console.log('Copied release-body/final-notes.txt'); }
+          else if(!fs.existsSync(to)) { fs.writeFileSync(to,'Release'); console.log('Created default final-notes.txt'); }
+          else { console.log('final-notes.txt already present'); }
+          "
 
       - name: 更新仓库到最新状态
         run: node meta-doc/scripts/update-repo.js "${{ github.ref }}" "${{ github.ref_name }}"

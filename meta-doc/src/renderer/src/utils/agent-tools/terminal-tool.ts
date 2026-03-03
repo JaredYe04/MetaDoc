@@ -299,7 +299,9 @@ async function executeCommand(
           messageBridge.removeListener('terminal-error', onError)
           try {
             await messageBridge.invoke('terminal-send-interrupt', { invocationId: invId })
-          } catch (_) {}
+          } catch {
+            /* ignore interrupt errors */
+          }
           resolve({
             exitCode: 124
           })

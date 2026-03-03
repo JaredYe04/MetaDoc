@@ -127,7 +127,6 @@ run: npm ci --include=optional # 改为 npm ci
 迁移后建议测试以下功能：
 
 1. **OCR 功能**
-
    - 测试图片 OCR 识别准确性
    - 测试不同格式图片的处理
    - 测试大图片的处理性能

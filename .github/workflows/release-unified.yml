@@ -95,6 +95,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: meta-doc/package-lock.json
 
+      - name: 安装依赖（用于格式与 Lint）
+        working-directory: meta-doc
+        run: npm ci
+
+      - name: 格式与 Lint 检查（单次执行，保证三平台结果一致）
+        working-directory: meta-doc
+        run: npm run format:check && npm run lint
+
       - name: 验证自定义版本号
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_type == 'custom'
         run: |
@@ -240,7 +248,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          clean: false
+          # 使用干净检出，确保 Win/Linux/Mac 三端代码一致，避免因缓存导致 lint 结果不同
+          clean: true
 
       - name: 下载发布说明
         uses: actions/download-artifact@v4

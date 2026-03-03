@@ -34,14 +34,12 @@ Agent框架
 ### ✅ 管理器实现
 
 1. **工具集管理器**（`tool-collection-manager.ts`）
-
    - CRUD操作
    - 工具添加/移除
    - 导入/导出
    - 本地存储持久化
 
 2. **AgentConfig管理器**（`agent-config-manager.ts`）
-
    - CRUD操作
    - 工具集交集计算
    - 配置验证
@@ -68,7 +66,6 @@ Agent框架
 需要创建以下管理界面：
 
 1. **工具集管理界面**
-
    - 工具集列表
    - 创建/编辑/删除工具集
    - 工具添加/移除
@@ -91,17 +88,14 @@ Agent框架
 需要更新`AgentView.vue`以集成新系统：
 
 1. **会话创建**：
-
    - 从AgentConfig创建会话
    - 显示可用的AgentConfig列表
 
 2. **工具选择**：
-
    - 从AgentConfig的工具集获取可用工具
    - 显示工具集信息
 
 3. **会话管理**：
-
    - 支持重试和Duplicate
    - 支持导入/导出
    - 引用素材管理界面
@@ -185,17 +179,14 @@ Agent执行时需要：
 ## 注意事项
 
 1. **存储位置**：
-
    - ToolCollection、AgentConfig存储在localStorage（全局）
    - AgentSession存储在文档metadata中（文档级别）
 
 2. **版本管理**：
-
    - 所有实体都有版本号字段
    - 导入时检查版本冲突
 
 3. **依赖管理**：
-
    - 导入时可以内嵌依赖或仅引用
    - 缺失依赖时会显示警告
 

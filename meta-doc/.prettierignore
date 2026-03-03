@@ -1,6 +1,30 @@
+# 构建/输出
 out
 dist
+release
+
+# 依赖与锁文件
+node_modules
 pnpm-lock.yaml
-LICENSE.md
+package-lock.json
+
+# 配置/类型（部分由工具生成或不宜统一格式）
 tsconfig.json
 tsconfig.*.json
+LICENSE.md
+
+# IDE / 工具 / 生成文件（不参与格式检查，避免本地与 CI 不一致）
+.cursor
+.github
+.vscode
+.marscode
+.opencode
+
+# 根目录配置与文档（避免 CI 与本地因换行/生成内容不一致而报错）
+.eslintrc.cjs
+.prettierrc.yaml
+AGENTS.md
+capacitor.config.ts
+components.json
+dev-app-update.yml
+docs

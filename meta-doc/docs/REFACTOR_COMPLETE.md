@@ -140,7 +140,6 @@ function stopResizing() { /* 清理逻辑 */ }
 ### 短期目标 (1-2周)
 
 1. **完成LaTeX编辑器重构**
-
    - 应用OverlayPanel到Console面板
    - 应用ResizableContainer到PDF和元信息面板
 
@@ -151,7 +150,6 @@ function stopResizing() { /* 清理逻辑 */ }
 ### 中期目标 (1个月)
 
 1. **扩展组件库功能**
-
    - 添加更多布局组件 (GridLayout, FlexLayout)
    - 创建通用的弹窗和对话框组件
 
@@ -162,7 +160,6 @@ function stopResizing() { /* 清理逻辑 */ }
 ### 长期目标 (3个月)
 
 1. **组件库独立化**
-
    - 提取为独立的npm包
    - 完善文档和示例
 

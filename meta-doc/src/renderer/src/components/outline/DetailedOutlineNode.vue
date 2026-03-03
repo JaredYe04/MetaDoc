@@ -534,8 +534,9 @@ defineExpose({
   word-wrap: break-word;
   font-size: 14px;
   line-height: 1.6;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
 }
 
 .detailed-outline-node__resize-handle {

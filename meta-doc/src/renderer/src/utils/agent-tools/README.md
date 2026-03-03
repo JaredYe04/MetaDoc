@@ -104,24 +104,20 @@ interface ToolDisplayComponentProps {
 **通信流程：**
 
 1. **Tool执行开始**：
-
    - `AgentToolManager.invokeTool`在调用Tool时生成唯一的`invocationId`（格式：`invocation-{timestamp}-{random}`）
    - `AgentToolManager`通过eventBus发送`tool-invocation-started`事件，包含`invocationId`、`toolId`和`params`
    - 测试界面（`SettingDebugSection.vue`）监听此事件，获取`invocationId`并设置到对应的entry中
 
 2. **建立连接**：
-
    - 测试界面使用`onToolUpdate`、`onToolComplete`、`onToolFailed`监听该Tool的更新事件
    - Display组件（如果有）通过`invocationId` prop接收执行ID，使用`useToolDisplayRealtime` composable监听eventBus事件
 
 3. **实时更新**：
-
    - Tool回调函数通过`onUpdate`参数发送更新时，`AgentToolManager`会通过eventBus发送`tool-update:{invocationId}`事件
    - 事件包含：`{ invocationId, data, progress, timestamp }`
    - 测试界面和Display组件都会收到此事件并更新UI
 
 4. **完成通知**：
-
    - Tool执行完成或失败时，`AgentToolManager`会发送`tool-complete:{invocationId}`或`tool-failed:{invocationId}`事件
    - 事件包含：`{ invocationId, status, data, error, progress, timestamp }`
    - 测试界面和Display组件都会收到此事件并更新最终状态
@@ -555,24 +551,20 @@ MCP（Model Context Protocol）Tool需要提供MCP配置：
 ### 功能特性
 
 1. **Tool选择**
-
    - 下拉列表显示所有已注册的Tool
    - 自动加载Tool的显示名称（支持i18n）
 
 2. **工具说明显示**
-
    - 在参数输入框上方显示只读的`instruction`字段
    - 帮助测试者了解Tool的功能、参数格式和使用场景
    - 使用等宽字体显示，便于阅读Markdown格式的说明
 
 3. **参数配置**
-
    - 支持JSON格式的参数输入
    - 实时验证JSON格式
    - 根据Tool的`instruction`了解参数结构
 
 4. **配置管理**
-
    - **新建配置**：保存当前Tool和参数为新的测试配置
    - **编辑配置**：修改已保存的配置
    - **加载配置**：快速加载已保存的配置
@@ -581,7 +573,6 @@ MCP（Model Context Protocol）Tool需要提供MCP配置：
    - 切换Tool时自动尝试加载匹配的配置
 
 5. **执行测试**
-
    - 执行Tool并实时显示进度
    - 显示所有中间输出（`onUpdate`调用）
    - 显示Tool的专用渲染组件（如果有）
@@ -787,25 +778,21 @@ RAG Tool是系统中的一个完整示例，展示了如何：
 图表生成Tool展示了更复杂的Tool实现，包括：
 
 1. **LLM集成**：Tool内部调用LLM生成图表代码
-
    - 使用`createAiTask`创建AI任务
    - 支持任务取消（通过`AbortSignal`）
    - 处理LLM调用错误
 
 2. **错误重试机制**：所有图表类型都支持自动重试
-
    - 语法验证失败时自动重试（最多2次）
    - 渲染失败时自动重试
    - 传递错误信息给LLM，帮助修复问题
 
 3. **代码清理和解析**：
-
    - ECharts：处理包含JavaScript函数的配置
    - 自动替换中文标点为英文标点
    - 移除注释和多余内容
 
 4. **多格式支持**：支持SVG、PNG、PDF输出
-
    - 使用现有的渲染基础设施
    - 处理格式转换
 
@@ -1259,7 +1246,6 @@ const myToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 工具执行结果支持两种序列化模式：
 
 1. **OpenAI格式（`OPENAI_FORMAT`）**：用于直接发送给LLM API
-
    - 在保存工具消息时自动生成
    - 确保`content`字段始终是字符串格式（JSON对象会被序列化）
    - 保存在工具消息的`markdown`字段中
@@ -1425,13 +1411,11 @@ interface ToolExecutionSnapshot {
 **所有Tool必须确保：**
 
 1. **数据可序列化**：
-
    - 所有返回的数据必须是可序列化的（JSON兼容）
    - 避免包含函数、循环引用、不可序列化的对象
    - 如果必须包含特殊类型（Date、RegExp等），系统会自动处理
 
 2. **Display组件可恢复**：
-
    - Display组件必须能够从快照数据中完全恢复渲染状态
    - 不依赖外部状态或实时数据流
    - 所有必要的显示数据都包含在快照中
@@ -1543,19 +1527,16 @@ if (!validation.valid) {
 ### 最佳实践
 
 1. **在Tool回调函数中**：
-
    - 确保返回的数据是可序列化的
    - 避免返回包含函数的对象（除非必要）
    - 使用标准的数据结构（对象、数组、基本类型）
 
 2. **在Display组件中**：
-
    - 不依赖外部状态或实时数据流
    - 所有显示数据都从props中获取
    - 支持从快照数据中完全恢复渲染状态
 
 3. **保存快照时**：
-
    - 在工具执行完成后立即创建快照
    - 包含所有中间输出（outputs）
    - 保存Tool配置快照（用于验证）

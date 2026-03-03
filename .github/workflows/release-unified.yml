@@ -225,8 +225,13 @@ jobs:
       - name: 安装 Git（macOS）
         if: matrix.platform == 'mac'
         run: |
-          if ! command -v git &> /dev/null; then
-            command -v brew &> /dev/null && brew install git || { echo "请先安装 Homebrew"; exit 1 }
+          if ! command -v git &>/dev/null; then
+            if command -v brew &>/dev/null; then
+              brew install git
+            else
+              echo "请先安装 Homebrew"
+              exit 1
+            fi
           fi
         shell: bash
 

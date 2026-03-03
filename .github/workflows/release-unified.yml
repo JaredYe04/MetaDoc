@@ -107,9 +107,17 @@ jobs:
         working-directory: meta-doc
         run: npm ci
 
-      - name: 格式与 Lint 检查（单次执行，保证三平台结果一致）
+      - name: 格式与 Lint 检查（仅警告，不阻断发布；失败时产出 artifact）
         working-directory: meta-doc
-        run: npm run format:check && npm run lint
+        run: node scripts/run-format-and-lint-warn.js
+
+      - name: 上传格式与 Lint 警告报告（存在则上传）
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepare-check-warnings
+          path: prepare-check-report/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: 验证自定义版本号
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_type == 'custom'

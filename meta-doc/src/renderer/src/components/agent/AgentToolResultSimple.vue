@@ -19,12 +19,11 @@
       }}</small>
     </header>
 
-    <div v-if="message.progress && message.progress.percentage > 0" class="tool-result-simple-progress">
-      <Progress
-        :percentage="message.progress.percentage"
-        :stroke-width="4"
-        :show-text="true"
-      >
+    <div
+      v-if="message.progress && message.progress.percentage > 0"
+      class="tool-result-simple-progress"
+    >
+      <Progress :percentage="message.progress.percentage" :stroke-width="4" :show-text="true">
         <template #default="{ percentage }">
           <span class="tool-result-simple-progress-text">{{ percentage }}%</span>
           <span v-if="message.progress?.message" class="tool-result-simple-progress-msg">
@@ -37,7 +36,10 @@
     <div class="tool-result-simple-body">
       <template v-for="output in message.outputs" :key="output.id">
         <component
-          v-if="getOutputRendererName(output) && resolveToolOutputComponent(getOutputRendererName(output)!)"
+          v-if="
+            getOutputRendererName(output) &&
+            resolveToolOutputComponent(getOutputRendererName(output)!)
+          "
           :is="resolveToolOutputComponent(getOutputRendererName(output)!)"
           :data="output.data"
           :status="message.status"
@@ -164,9 +166,7 @@ function formatTimestamp(ts: string) {
   background: v-bind('themeState.currentTheme.background2nd');
   border-radius: 8px;
   border: 1px solid
-    v-bind(
-      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"'
-    );
+    v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"');
 }
 
 .tool-result-simple--compact {

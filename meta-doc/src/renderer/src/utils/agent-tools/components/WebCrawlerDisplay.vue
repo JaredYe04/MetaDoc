@@ -15,136 +15,137 @@
     </template>
 
     <template v-else>
-    <div
-      v-if="displayData.stage === 'fetching' || displayData.stage === 'processing'"
-      class="status-message"
-      :style="statusMessageStyle"
-    >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ getStageMessage(displayData.stage) }}</span>
-    </div>
-
-    <div
-      v-else-if="displayData.stage === 'completed' && resultData"
-      class="completed-state"
-      :style="completedStateStyle"
-    >
-      <div class="result-header" :style="headerStyle">
-        <div class="header-info">
-          <h3 class="result-title" :style="titleStyle">
-            {{ $t('agent.display.webCrawler.title') }}
-          </h3>
-          <div class="result-meta" :style="metaStyle">
-            <Badge
-              :variant="
-                resultData.status >= 200 && resultData.status < 300 ? 'default' : 'destructive'
-              "
-            >
-              HTTP {{ resultData.status }} {{ resultData.statusText }}
-            </Badge>
-            <Badge variant="secondary"
-              >{{ $t('agent.display.webCrawler.size') }}:
-              {{ formatSize(resultData.size || 0) }}</Badge
-            >
-            <Badge variant="outline">{{ resultData.contentType }}</Badge>
-          </div>
-        </div>
-        <div class="header-url" :style="urlStyle">
-          <Link :href="resultData.url" target="_blank" type="primary">{{ resultData.url }}</Link>
-        </div>
+      <div
+        v-if="displayData.stage === 'fetching' || displayData.stage === 'processing'"
+        class="status-message"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ getStageMessage(displayData.stage) }}</span>
       </div>
 
-      <Tabs v-model="activeTab" class="content-tabs border-card">
-        <TabsList>
-          <TabsTrigger value="render">{{ $t('agent.display.webCrawler.renderView') }}</TabsTrigger>
-          <TabsTrigger value="raw">{{ $t('agent.display.webCrawler.rawContent') }}</TabsTrigger>
-          <TabsTrigger value="headers">{{ $t('agent.display.webCrawler.headers') }}</TabsTrigger>
-        </TabsList>
-        <!-- 渲染视图 -->
-        <TabsContent value="render">
-          <ScrollArea class="max-h-[500px]">
-            <div class="render-container">
-              <!-- JSON 渲染 - 使用 Monaco 编辑器 -->
-              <div v-if="isJsonContent" class="monaco-renderer" :style="rendererStyle">
-                <div
-                  :id="jsonEditorId"
-                  class="monaco-editor-container"
-                  :style="monacoEditorStyle"
-                ></div>
-              </div>
-              <!-- HTML 渲染 -->
-              <div v-else-if="isHtmlContent" class="html-renderer" :style="rendererStyle">
-                <iframe
-                  :srcdoc="sanitizedHtmlContent"
-                  class="html-iframe"
-                  frameborder="0"
-                  sandbox="allow-same-origin allow-scripts"
-                  @load="preventIframeNavigation"
-                ></iframe>
-              </div>
-              <!-- XML 渲染 - 使用 Monaco 编辑器 -->
-              <div v-else-if="isXmlContent" class="monaco-renderer" :style="rendererStyle">
-                <div
-                  :id="xmlEditorId"
-                  class="monaco-editor-container"
-                  :style="monacoEditorStyle"
-                ></div>
-              </div>
-              <!-- 纯文本渲染 -->
-              <div v-else class="text-renderer" :style="rendererStyle">
-                <pre class="text-content" :style="codeStyle">{{ resultData.content }}</pre>
-              </div>
-            </div>
-          </ScrollArea>
-        </TabsContent>
-
-        <!-- 原始内容 -->
-        <TabsContent value="raw">
-          <ScrollArea class="max-h-[500px]">
-            <pre class="raw-content" :style="codeStyle">{{ resultData.content }}</pre>
-          </ScrollArea>
-        </TabsContent>
-
-        <!-- 响应头 -->
-        <TabsContent value="headers">
-          <ScrollArea class="max-h-[500px]">
-            <div class="headers-list" :style="headersStyle">
-              <div
-                v-for="(value, key) in resultData.headers"
-                :key="key"
-                class="header-item"
-                :style="headerItemStyle"
+      <div
+        v-else-if="displayData.stage === 'completed' && resultData"
+        class="completed-state"
+        :style="completedStateStyle"
+      >
+        <div class="result-header" :style="headerStyle">
+          <div class="header-info">
+            <h3 class="result-title" :style="titleStyle">
+              {{ $t('agent.display.webCrawler.title') }}
+            </h3>
+            <div class="result-meta" :style="metaStyle">
+              <Badge
+                :variant="
+                  resultData.status >= 200 && resultData.status < 300 ? 'default' : 'destructive'
+                "
               >
-                <span class="header-key" :style="keyStyle">{{ key }}:</span>
-                <span class="header-value" :style="valueStyle">{{ value }}</span>
-              </div>
+                HTTP {{ resultData.status }} {{ resultData.statusText }}
+              </Badge>
+              <Badge variant="secondary"
+                >{{ $t('agent.display.webCrawler.size') }}:
+                {{ formatSize(resultData.size || 0) }}</Badge
+              >
+              <Badge variant="outline">{{ resultData.contentType }}</Badge>
             </div>
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
-    </div>
+          </div>
+          <div class="header-url" :style="urlStyle">
+            <Link :href="resultData.url" target="_blank" type="primary">{{ resultData.url }}</Link>
+          </div>
+        </div>
 
-    <div
-      v-else-if="displayData.stage === 'error' || (props.status === 'failed' && !resultData)"
-      class="error-state"
-    >
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>{{
-          displayData.error || props.error || $t('agent.display.webCrawler.error')
-        }}</AlertTitle>
-        <AlertDescription>
-          <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
-          <p
-            v-if="displayData.message"
-            style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
-          >
-            {{ displayData.message }}
-          </p>
-        </AlertDescription>
-      </Alert>
-    </div>
+        <Tabs v-model="activeTab" class="content-tabs border-card">
+          <TabsList>
+            <TabsTrigger value="render">{{
+              $t('agent.display.webCrawler.renderView')
+            }}</TabsTrigger>
+            <TabsTrigger value="raw">{{ $t('agent.display.webCrawler.rawContent') }}</TabsTrigger>
+            <TabsTrigger value="headers">{{ $t('agent.display.webCrawler.headers') }}</TabsTrigger>
+          </TabsList>
+          <!-- 渲染视图 -->
+          <TabsContent value="render">
+            <ScrollArea class="max-h-[500px]">
+              <div class="render-container">
+                <!-- JSON 渲染 - 使用 Monaco 编辑器 -->
+                <div v-if="isJsonContent" class="monaco-renderer" :style="rendererStyle">
+                  <div
+                    :id="jsonEditorId"
+                    class="monaco-editor-container"
+                    :style="monacoEditorStyle"
+                  ></div>
+                </div>
+                <!-- HTML 渲染 -->
+                <div v-else-if="isHtmlContent" class="html-renderer" :style="rendererStyle">
+                  <iframe
+                    :srcdoc="sanitizedHtmlContent"
+                    class="html-iframe"
+                    frameborder="0"
+                    sandbox="allow-same-origin allow-scripts"
+                    @load="preventIframeNavigation"
+                  ></iframe>
+                </div>
+                <!-- XML 渲染 - 使用 Monaco 编辑器 -->
+                <div v-else-if="isXmlContent" class="monaco-renderer" :style="rendererStyle">
+                  <div
+                    :id="xmlEditorId"
+                    class="monaco-editor-container"
+                    :style="monacoEditorStyle"
+                  ></div>
+                </div>
+                <!-- 纯文本渲染 -->
+                <div v-else class="text-renderer" :style="rendererStyle">
+                  <pre class="text-content" :style="codeStyle">{{ resultData.content }}</pre>
+                </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
+          <!-- 原始内容 -->
+          <TabsContent value="raw">
+            <ScrollArea class="max-h-[500px]">
+              <pre class="raw-content" :style="codeStyle">{{ resultData.content }}</pre>
+            </ScrollArea>
+          </TabsContent>
+
+          <!-- 响应头 -->
+          <TabsContent value="headers">
+            <ScrollArea class="max-h-[500px]">
+              <div class="headers-list" :style="headersStyle">
+                <div
+                  v-for="(value, key) in resultData.headers"
+                  :key="key"
+                  class="header-item"
+                  :style="headerItemStyle"
+                >
+                  <span class="header-key" :style="keyStyle">{{ key }}:</span>
+                  <span class="header-value" :style="valueStyle">{{ value }}</span>
+                </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <div
+        v-else-if="displayData.stage === 'error' || (props.status === 'failed' && !resultData)"
+        class="error-state"
+      >
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{
+            displayData.error || props.error || $t('agent.display.webCrawler.error')
+          }}</AlertTitle>
+          <AlertDescription>
+            <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
+            <p
+              v-if="displayData.message"
+              style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
+            >
+              {{ displayData.message }}
+            </p>
+          </AlertDescription>
+        </Alert>
+      </div>
     </template>
 
     <!-- 调试：显示原始数据（仅在开发环境） -->

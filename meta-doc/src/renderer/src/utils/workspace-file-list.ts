@@ -32,10 +32,12 @@ function getWorkspaceRoots(): string[] {
  * 递归列出工作区中的文件（含有限深度和数量）
  * @param options maxDepth 最大深度，maxEntries 最大条目数（仅文件）
  */
-export async function listWorkspaceFiles(options: {
-  maxDepth?: number
-  maxEntries?: number
-} = {}): Promise<WorkspaceFileItem[]> {
+export async function listWorkspaceFiles(
+  options: {
+    maxDepth?: number
+    maxEntries?: number
+  } = {}
+): Promise<WorkspaceFileItem[]> {
   const { maxDepth = 3, maxEntries = 500 } = options
   const roots = getWorkspaceRoots()
   if (roots.length === 0) return []

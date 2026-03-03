@@ -18,7 +18,8 @@
           ref="labelRef"
           class="view-menu-item__label"
           :style="labelStyle"
-        >{{ label }}</span>
+          >{{ label }}</span
+        >
       </div>
     </div>
   </Tooltip>
@@ -36,12 +37,9 @@
       <div class="icon-wrapper">
         <img v-if="iconImage" :src="iconImage" class="menu-icon" :alt="index" />
       </div>
-      <span
-        v-if="!isCollapsed"
-        ref="labelRef"
-        class="view-menu-item__label"
-        :style="labelStyle"
-      >{{ label }}</span>
+      <span v-if="!isCollapsed" ref="labelRef" class="view-menu-item__label" :style="labelStyle">{{
+        label
+      }}</span>
     </div>
   </div>
 </template>
@@ -101,7 +99,10 @@ function adjustLabelFontSize() {
       fontSize = MAX_FONT_SIZE
     } else {
       // 按比例算出刚好能塞下的字号
-      fontSize = Math.max(MIN_FONT_SIZE, Math.floor((MAX_FONT_SIZE * availableWidth) / contentWidth))
+      fontSize = Math.max(
+        MIN_FONT_SIZE,
+        Math.floor((MAX_FONT_SIZE * availableWidth) / contentWidth)
+      )
       el.style.fontSize = `${fontSize}px`
       forceReflow(el)
       // 若仍溢出则继续逐 px 缩小直到刚好塞下

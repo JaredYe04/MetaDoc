@@ -1,6 +1,10 @@
 <template>
   <Dialog :open="open" @update:open="handleOpenChange">
-    <DialogContent class="max-w-lg" :on-escape-key-down="preventClose" :on-pointer-down-outside="preventClose">
+    <DialogContent
+      class="max-w-lg"
+      :on-escape-key-down="preventClose"
+      :on-pointer-down-outside="preventClose"
+    >
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <el-icon class="warning-icon text-[var(--el-color-warning)]"><WarningFilled /></el-icon>
@@ -11,7 +15,10 @@
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
-        <pre class="rounded-md bg-muted p-3 text-sm overflow-x-auto whitespace-pre-wrap break-all font-mono">{{ pendingCommand }}</pre>
+        <pre
+          class="rounded-md bg-muted p-3 text-sm overflow-x-auto whitespace-pre-wrap break-all font-mono"
+          >{{ pendingCommand }}</pre
+        >
         <div class="flex items-center gap-2">
           <Checkbox :checked="trustMode" @update:checked="trustMode = $event" />
           <span class="text-sm">{{ t('agent.display.terminalExecution.trustMode') }}</span>
@@ -22,7 +29,11 @@
           {{ t('agent.display.terminalExecution.reject') }}
         </Button>
         <Button @click="handleApprove">
-          {{ trustMode ? t('agent.display.terminalExecution.approveWithTrust') : t('agent.display.terminalExecution.approve') }}
+          {{
+            trustMode
+              ? t('agent.display.terminalExecution.approveWithTrust')
+              : t('agent.display.terminalExecution.approve')
+          }}
         </Button>
       </DialogFooter>
     </DialogContent>

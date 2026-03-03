@@ -48,8 +48,7 @@ function checkLinux() {
   const deb = path.join(distDir, `meta-doc_${version}_amd64.deb`)
   const appImageAlt = path.join(distDir, `meta-doc-Beta${version}.AppImage`)
   const debAlt = path.join(distDir, `meta-doc_Beta${version}_amd64.deb`)
-  const hasAppImage =
-    fs.existsSync(appImage) || fs.existsSync(appImageAlt)
+  const hasAppImage = fs.existsSync(appImage) || fs.existsSync(appImageAlt)
   const hasDeb = fs.existsSync(deb) || fs.existsSync(debAlt)
   return hasAppImage || hasDeb
 }

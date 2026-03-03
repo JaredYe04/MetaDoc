@@ -582,7 +582,11 @@ function resolveScope(params: Record<string, unknown>): string[] | undefined {
 /**
  * 解析布尔参数（支持 true/false 或 "true"/"false" 字符串）
  */
-function resolveBoolean(params: Record<string, unknown>, key: string, defaultValue: boolean): boolean {
+function resolveBoolean(
+  params: Record<string, unknown>,
+  key: string,
+  defaultValue: boolean
+): boolean {
   const raw = params[key]
   if (raw === undefined || raw === null) return defaultValue
   if (typeof raw === 'boolean') return raw
@@ -638,11 +642,15 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const verbose = resolveBoolean(params, 'verbose', false)
 
   // 替换相关参数
-  const replaceText = (params.replaceText ?? params.replacement ?? params.replace) as string | undefined
+  const replaceText = (params.replaceText ?? params.replacement ?? params.replace) as
+    | string
+    | undefined
   const replaceAll = resolveBoolean(params, 'replaceAll', false)
   const rawReplaceIndices = params.replaceIndices ?? params.indices
   const replaceIndices: number[] | undefined = Array.isArray(rawReplaceIndices)
-    ? rawReplaceIndices.map((i) => (typeof i === 'number' ? i : parseInt(String(i), 10))).filter((i) => !Number.isNaN(i))
+    ? rawReplaceIndices
+        .map((i) => (typeof i === 'number' ? i : parseInt(String(i), 10)))
+        .filter((i) => !Number.isNaN(i))
     : undefined
 
   // 模糊搜索和正则搜索不能同时启用

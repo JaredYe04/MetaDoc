@@ -62,7 +62,7 @@
       @click="toggleCollapse"
       @mouseenter="handleExpandButtonEnter"
       @mouseleave="handleExpandButtonLeave"
-        :title="resolvedExpandButtonTitle"
+      :title="resolvedExpandButtonTitle"
     >
       <el-icon
         ><ArrowRight v-if="sidebarOnLeft" /><ArrowLeft

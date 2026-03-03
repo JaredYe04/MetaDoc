@@ -4,11 +4,7 @@
 import { ref } from 'vue'
 import { updateTitlePrompt } from './prompts'
 import { createAiTask, ai_types } from './ai_tasks'
-import {
-  parseSchemaJson,
-  DOCUMENT_TITLE_SCHEMA,
-  type DocumentTitleSchemaResult
-} from './schemas'
+import { parseSchemaJson, DOCUMENT_TITLE_SCHEMA, type DocumentTitleSchemaResult } from './schemas'
 import { createRendererLogger } from './logger'
 import type { AgentMessage } from '../types/agent'
 
@@ -18,7 +14,10 @@ const TITLE_CONTEXT_LIMIT = 6
 
 function getMessageText(m: AgentMessage): string {
   if (m.role === 'system') return ''
-  const text = (m as { markdown?: string; content?: string }).markdown ?? (m as { content?: string }).content ?? ''
+  const text =
+    (m as { markdown?: string; content?: string }).markdown ??
+    (m as { content?: string }).content ??
+    ''
   return typeof text === 'string' ? text : ''
 }
 

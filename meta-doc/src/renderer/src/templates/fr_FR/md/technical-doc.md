@@ -22,11 +22,11 @@ Brève description de l'objectif du document, de sa portée et de son public cib
 
 ### 2.2 Stack technique
 
-| Couche    | Technologie | Notes |
-| --------- | ----------- | ----- |
-| Frontend  | —           | —     |
-| Backend   | —           | —     |
-| Stockage  | —           | —     |
+| Couche   | Technologie | Notes |
+| -------- | ----------- | ----- |
+| Frontend | —           | —     |
+| Backend  | —           | —     |
+| Stockage | —           | —     |
 
 ---
 
@@ -48,11 +48,11 @@ Brève description de l'objectif du document, de sa portée et de son public cib
 
 ### 3.2 Codes d'erreur
 
-| Code | Signification |
-| ---- | ------------- |
-| 0    | Succès        |
-| 4xx  | Erreur client |
-| 5xx  | Erreur serveur|
+| Code | Signification  |
+| ---- | -------------- |
+| 0    | Succès         |
+| 4xx  | Erreur client  |
+| 5xx  | Erreur serveur |
 
 ---
 

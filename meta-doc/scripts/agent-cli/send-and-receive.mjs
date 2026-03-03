@@ -98,11 +98,22 @@ async function main() {
     const lines = await new Promise((resolve) => {
       let data = ''
       process.stdin.setEncoding('utf8')
-      process.stdin.on('data', (ch) => { data += ch })
-      process.stdin.on('end', () => resolve(data.split('\n').map((s) => s.trim()).filter(Boolean)))
+      process.stdin.on('data', (ch) => {
+        data += ch
+      })
+      process.stdin.on('end', () =>
+        resolve(
+          data
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        )
+      )
     })
     if (lines.length === 0) {
-      process.stderr.write('Usage: node send-and-receive.mjs "msg1" "msg2"  OR  echo "msg" | node send-and-receive.mjs\n')
+      process.stderr.write(
+        'Usage: node send-and-receive.mjs "msg1" "msg2"  OR  echo "msg" | node send-and-receive.mjs\n'
+      )
       process.exit(1)
     }
     messages.push(...lines)
@@ -118,7 +129,9 @@ async function main() {
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i]
-    process.stderr.write(`[${i + 1}/${messages.length}] Send: ${msg.slice(0, 60)}${msg.length > 60 ? '...' : ''}\n`)
+    process.stderr.write(
+      `[${i + 1}/${messages.length}] Send: ${msg.slice(0, 60)}${msg.length > 60 ? '...' : ''}\n`
+    )
     socket.write(msg + '\n')
     const line = await readUntilResult(socket)
     try {

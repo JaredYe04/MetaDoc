@@ -70,12 +70,16 @@ onMounted(async () => {
 
 const versionTooltip = computed(() => {
   const versionLoadingText = t('logoTab.versionLoading')
-  if (!appVersion.value) return versionLoadingText === 'logoTab.versionLoading' ? '版本 ...' : versionLoadingText
+  if (!appVersion.value)
+    return versionLoadingText === 'logoTab.versionLoading' ? '版本 ...' : versionLoadingText
   const channelKey = updateChannel.value === 'dev' ? 'channelDev' : 'channelRelease'
   const channelText = t(`setting.about.${channelKey}`)
-  const channel = channelText === `setting.about.${channelKey}` 
-    ? (updateChannel.value === 'dev' ? '测试频道' : '稳定频道')
-    : channelText
+  const channel =
+    channelText === `setting.about.${channelKey}`
+      ? updateChannel.value === 'dev'
+        ? '测试频道'
+        : '稳定频道'
+      : channelText
   return t('logoTab.version', { version: appVersion.value, channel })
 })
 

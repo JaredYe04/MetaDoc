@@ -48,7 +48,11 @@ function waitForPort(maxAttempts = 30, intervalMs = 500) {
       socket.on('error', () => {
         attempts++
         if (attempts >= maxAttempts) {
-          reject(new Error(`Could not connect to 127.0.0.1:${port} after ${maxAttempts} attempts. Start MetaDoc with: npm run dev -- --agent-cli-port=3847`))
+          reject(
+            new Error(
+              `Could not connect to 127.0.0.1:${port} after ${maxAttempts} attempts. Start MetaDoc with: npm run dev -- --agent-cli-port=3847`
+            )
+          )
           return
         }
         setTimeout(tryConnect, intervalMs)
@@ -114,9 +118,7 @@ async function main() {
     socket = await connect()
   } catch (e) {
     if (e.code === 'ECONNREFUSED' || e.code === 'ECONNRESET') {
-      process.stderr.write(
-        'Connection refused. Start MetaDoc with: npm run agent-cli:dev\n\n'
-      )
+      process.stderr.write('Connection refused. Start MetaDoc with: npm run agent-cli:dev\n\n')
       process.exit(1)
     }
     throw e
@@ -124,7 +126,11 @@ async function main() {
 
   log('Connected. Type /exit to quit, /clear has no effect (server keeps session).\n')
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true })
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true
+  })
 
   function prompt() {
     rl.question('You: ', async (line) => {

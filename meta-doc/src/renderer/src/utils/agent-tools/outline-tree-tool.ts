@@ -128,59 +128,59 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
       // 获取文档（支持跨窗口，按 tabId 或当前活动文档）
       const windowType = getWindowType()
       if (windowType === 'setting') {
-      // 在设置窗口中，通过广播获取文档信息
-      const docInfo = await getActiveDocumentInfoViaBroadcast()
-      if (!docInfo) {
-        return {
-          status: 'failed',
-          error: i18n.global.t('agent.tool.outlineTree.error.noActiveTab', '没有活动的文档标签页')
+        // 在设置窗口中，通过广播获取文档信息
+        const docInfo = await getActiveDocumentInfoViaBroadcast()
+        if (!docInfo) {
+          return {
+            status: 'failed',
+            error: i18n.global.t('agent.tool.outlineTree.error.noActiveTab', '没有活动的文档标签页')
+          }
+        }
+        doc = {
+          markdown: docInfo.markdown,
+          tex: docInfo.tex,
+          format: docInfo.format,
+          outline: docInfo.outline,
+          path: docInfo.path
+        }
+        targetTabId = docInfo.tabId
+      } else {
+        // 在主窗口中：仅当显式传入 tabId 或当前活动标签页为文档标签页时使用，避免对系统/工具 Tab 调用文档上下文
+        if (tabId) {
+          targetTabId = tabId
+        } else if (workspace.activeDocument.value) {
+          targetTabId = workspace.activeTabId.value
+        }
+        if (!targetTabId) {
+          return {
+            status: 'failed',
+            error: i18n.global.t(
+              'agent.tool.outlineTree.error.noDocumentContext',
+              '当前活动标签页不是文档（例如正在查看 Agent 等系统页）。请通过 tabId 参数指定要获取大纲的文档；系统上下文中会提供当前打开的文档列表及 id。'
+            )
+          }
+        }
+        try {
+          doc = workspace.ensureDocument(targetTabId)
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          return {
+            status: 'failed',
+            error: msg.includes('不应该有文档上下文')
+              ? i18n.global.t(
+                  'agent.tool.outlineTree.error.noDocumentContext',
+                  '指定的 tabId 对应的是系统/工具标签页，无文档上下文。请使用系统上下文中列出的文档 tabId。'
+                )
+              : i18n.global.t('agent.tool.outlineTree.error.documentNotFound', '文档不存在')
+          }
+        }
+        if (!doc) {
+          return {
+            status: 'failed',
+            error: i18n.global.t('agent.tool.outlineTree.error.documentNotFound', '文档不存在')
+          }
         }
       }
-      doc = {
-        markdown: docInfo.markdown,
-        tex: docInfo.tex,
-        format: docInfo.format,
-        outline: docInfo.outline,
-        path: docInfo.path
-      }
-      targetTabId = docInfo.tabId
-    } else {
-      // 在主窗口中：仅当显式传入 tabId 或当前活动标签页为文档标签页时使用，避免对系统/工具 Tab 调用文档上下文
-      if (tabId) {
-        targetTabId = tabId
-      } else if (workspace.activeDocument.value) {
-        targetTabId = workspace.activeTabId.value
-      }
-      if (!targetTabId) {
-        return {
-          status: 'failed',
-          error: i18n.global.t(
-            'agent.tool.outlineTree.error.noDocumentContext',
-            '当前活动标签页不是文档（例如正在查看 Agent 等系统页）。请通过 tabId 参数指定要获取大纲的文档；系统上下文中会提供当前打开的文档列表及 id。'
-          )
-        }
-      }
-      try {
-        doc = workspace.ensureDocument(targetTabId)
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e)
-        return {
-          status: 'failed',
-          error: msg.includes('不应该有文档上下文')
-            ? i18n.global.t(
-                'agent.tool.outlineTree.error.noDocumentContext',
-                '指定的 tabId 对应的是系统/工具标签页，无文档上下文。请使用系统上下文中列出的文档 tabId。'
-              )
-            : i18n.global.t('agent.tool.outlineTree.error.documentNotFound', '文档不存在')
-        }
-      }
-      if (!doc) {
-        return {
-          status: 'failed',
-          error: i18n.global.t('agent.tool.outlineTree.error.documentNotFound', '文档不存在')
-        }
-      }
-    }
     }
 
     onUpdate(

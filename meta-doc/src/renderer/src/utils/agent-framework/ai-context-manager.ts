@@ -697,7 +697,8 @@ export class AIContextManager {
     // 对齐 id：若 assistant 的 tool_calls 与紧随的 tool 消息数量一致，用 tool 消息的 tool_call_id 覆盖 assistant.tool_calls[].id，避免 session 中 id 缺失导致 API 报 “insufficient tool messages”
     for (let i = 0; i < llmMessages.length; i++) {
       const m = llmMessages[i] as any
-      if (m.role !== 'assistant' || !Array.isArray(m.tool_calls) || m.tool_calls.length === 0) continue
+      if (m.role !== 'assistant' || !Array.isArray(m.tool_calls) || m.tool_calls.length === 0)
+        continue
       const need = m.tool_calls.length
       let j = i + 1
       while (j < llmMessages.length && (llmMessages[j] as any).role === 'tool') j++

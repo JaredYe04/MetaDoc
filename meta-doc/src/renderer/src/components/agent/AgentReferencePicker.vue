@@ -15,7 +15,10 @@
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent
-        :class="['agent-reference-picker-content flex flex-col p-0', compact ? 'agent-reference-picker-content--compact' : 'w-[360px] max-h-[400px]']"
+        :class="[
+          'agent-reference-picker-content flex flex-col p-0',
+          compact ? 'agent-reference-picker-content--compact' : 'w-[360px] max-h-[400px]'
+        ]"
         align="start"
         side="top"
         :side-offset="6"
@@ -25,53 +28,108 @@
             ref="searchInputRef"
             v-model="searchQuery"
             type="text"
-            :class="compact ? 'agent-ref-picker-input--compact' : 'w-full px-3 py-2 text-sm rounded-md border bg-background'"
+            :class="
+              compact
+                ? 'agent-ref-picker-input--compact'
+                : 'w-full px-3 py-2 text-sm rounded-md border bg-background'
+            "
             :placeholder="t('agent.reference.pickerPlaceholder', '输入文件名或路径搜索…')"
             @keydown="onSearchKeydown"
           />
         </div>
-        <ScrollArea :class="['flex-1 min-h-0', compact ? 'agent-ref-picker-scroll--compact' : '']" :style="compact ? { maxHeight: '260px' } : { maxHeight: '320px' }">
+        <ScrollArea
+          :class="['flex-1 min-h-0', compact ? 'agent-ref-picker-scroll--compact' : '']"
+          :style="compact ? { maxHeight: '260px' } : { maxHeight: '320px' }"
+        >
           <div :class="compact ? 'p-0.5' : 'p-1'">
             <!-- 未保存文档 -->
             <div v-if="documentTabsFiltered.length > 0" :class="compact ? 'mb-1' : 'mb-2'">
-              <div :class="compact ? 'px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground' : 'px-2 py-1 text-xs font-medium text-muted-foreground'">
+              <div
+                :class="
+                  compact
+                    ? 'px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground'
+                    : 'px-2 py-1 text-xs font-medium text-muted-foreground'
+                "
+              >
                 {{ t('agent.reference.unsavedDocs', '未保存文档') }}
               </div>
               <button
                 v-for="tab in documentTabsFiltered"
                 :key="tab.id"
                 type="button"
-                :class="['agent-ref-picker-item w-full text-left rounded-md hover:bg-accent flex items-center gap-2', compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm']"
+                :class="[
+                  'agent-ref-picker-item w-full text-left rounded-md hover:bg-accent flex items-center gap-2',
+                  compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'
+                ]"
                 @click="selectTab(tab)"
               >
-                <FileText :class="compact ? 'w-3 h-3 shrink-0 text-muted-foreground' : 'w-4 h-4 shrink-0 text-muted-foreground'" />
-                <span class="truncate">{{ tab.title || t('agent.reference.untitled', '未命名') }}</span>
+                <FileText
+                  :class="
+                    compact
+                      ? 'w-3 h-3 shrink-0 text-muted-foreground'
+                      : 'w-4 h-4 shrink-0 text-muted-foreground'
+                  "
+                />
+                <span class="truncate">{{
+                  tab.title || t('agent.reference.untitled', '未命名')
+                }}</span>
               </button>
             </div>
             <!-- 工作区文件 -->
             <div>
-              <div :class="compact ? 'px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground' : 'px-2 py-1 text-xs font-medium text-muted-foreground'">
+              <div
+                :class="
+                  compact
+                    ? 'px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground'
+                    : 'px-2 py-1 text-xs font-medium text-muted-foreground'
+                "
+              >
                 {{ t('agent.reference.workspaceFiles', '工作区文件') }}
               </div>
               <template v-if="fileListLoading">
-                <div :class="compact ? 'px-2 py-3 text-xs text-muted-foreground' : 'px-3 py-4 text-sm text-muted-foreground'">
+                <div
+                  :class="
+                    compact
+                      ? 'px-2 py-3 text-xs text-muted-foreground'
+                      : 'px-3 py-4 text-sm text-muted-foreground'
+                  "
+                >
                   {{ t('common.loading', '加载中…') }}
                 </div>
               </template>
               <template v-else-if="workspaceFilesFiltered.length === 0">
-                <div :class="compact ? 'px-2 py-3 text-xs text-muted-foreground' : 'px-3 py-4 text-sm text-muted-foreground'">
-                  {{ searchQuery ? t('agent.reference.noMatch', '无匹配文件') : t('agent.reference.noWorkspaceFiles', '暂无工作区或未打开工作区') }}
+                <div
+                  :class="
+                    compact
+                      ? 'px-2 py-3 text-xs text-muted-foreground'
+                      : 'px-3 py-4 text-sm text-muted-foreground'
+                  "
+                >
+                  {{
+                    searchQuery
+                      ? t('agent.reference.noMatch', '无匹配文件')
+                      : t('agent.reference.noWorkspaceFiles', '暂无工作区或未打开工作区')
+                  }}
                 </div>
               </template>
               <button
                 v-for="item in workspaceFilesFiltered"
                 :key="item.path"
                 type="button"
-                :class="['agent-ref-picker-item w-full text-left rounded-md hover:bg-accent flex items-center gap-2', compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm']"
+                :class="[
+                  'agent-ref-picker-item w-full text-left rounded-md hover:bg-accent flex items-center gap-2',
+                  compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'
+                ]"
                 :title="item.path"
                 @click="selectFile(item)"
               >
-                <File :class="compact ? 'w-3 h-3 shrink-0 text-muted-foreground' : 'w-4 h-4 shrink-0 text-muted-foreground'" />
+                <File
+                  :class="
+                    compact
+                      ? 'w-3 h-3 shrink-0 text-muted-foreground'
+                      : 'w-4 h-4 shrink-0 text-muted-foreground'
+                  "
+                />
                 <span class="truncate flex-1 min-w-0">{{ item.name }}</span>
               </button>
             </div>
@@ -91,7 +149,11 @@ import { PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { PopoverContent } from '@renderer/components/ui/popover'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace } from '../../stores/workspace'
-import { listWorkspaceFiles, fuzzyMatchFile, type WorkspaceFileItem } from '../../utils/workspace-file-list'
+import {
+  listWorkspaceFiles,
+  fuzzyMatchFile,
+  type WorkspaceFileItem
+} from '../../utils/workspace-file-list'
 import type { WorkspaceTab } from '../../stores/workspace'
 
 const props = withDefaults(
@@ -121,18 +183,18 @@ const openState = computed({
 
 // 文档 tab：file 或 new，用于“未保存/当前文档”引用
 const documentTabs = computed<WorkspaceTab[]>(() => {
-  return workspace.tabs.filter(
-    (tab) => tab.kind === 'file' || tab.kind === 'new'
-  ) as WorkspaceTab[]
+  return workspace.tabs.filter((tab) => tab.kind === 'file' || tab.kind === 'new') as WorkspaceTab[]
 })
 
 const documentTabsFiltered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return documentTabs.value.slice(0, 20)
-  return documentTabs.value.filter((tab) => {
-    const title = (tab.title || '').toLowerCase()
-    return title.includes(q)
-  }).slice(0, 20)
+  return documentTabs.value
+    .filter((tab) => {
+      const title = (tab.title || '').toLowerCase()
+      return title.includes(q)
+    })
+    .slice(0, 20)
 })
 
 // 工作区文件列表

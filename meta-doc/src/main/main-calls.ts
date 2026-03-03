@@ -6242,14 +6242,11 @@ function bindAgentCliHandlers(): void {
 
   if (!useCli) return
 
-  ipcBridge.registerOn(
-    'agent-cli-progress',
-    (_event: IpcMainEvent, text: string): void => {
-      if (agentCliSocket && !agentCliSocket.destroyed) {
-        agentCliSocket.write('[p] ' + (typeof text === 'string' ? text : String(text)) + '\n')
-      }
+  ipcBridge.registerOn('agent-cli-progress', (_event: IpcMainEvent, text: string): void => {
+    if (agentCliSocket && !agentCliSocket.destroyed) {
+      agentCliSocket.write('[p] ' + (typeof text === 'string' ? text : String(text)) + '\n')
     }
-  )
+  })
 
   ipcBridge.registerHandle(
     'agent-cli-submit-response',
@@ -6276,7 +6273,11 @@ function bindAgentCliHandlers(): void {
       if (!targetWindow || targetWindow.isDestroyed()) {
         const line = lineQueue.shift()!
         processing = false
-        socket.write(JSON.stringify({ error: 'No window available for agent-cli (focus a MetaDoc window and retry)' }) + '\n')
+        socket.write(
+          JSON.stringify({
+            error: 'No window available for agent-cli (focus a MetaDoc window and retry)'
+          }) + '\n'
+        )
         if (lineQueue.length > 0) setImmediate(processQueue)
         return
       }
@@ -6291,7 +6292,14 @@ function bindAgentCliHandlers(): void {
           }),
           new Promise<string>((_, reject) =>
             setTimeout(
-              () => reject(new Error('Timeout: agent did not respond within ' + AGENT_CLI_RESPONSE_TIMEOUT_MS / 1000 + 's')),
+              () =>
+                reject(
+                  new Error(
+                    'Timeout: agent did not respond within ' +
+                      AGENT_CLI_RESPONSE_TIMEOUT_MS / 1000 +
+                      's'
+                  )
+                ),
               AGENT_CLI_RESPONSE_TIMEOUT_MS
             )
           )

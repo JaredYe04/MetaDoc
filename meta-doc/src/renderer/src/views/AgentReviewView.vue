@@ -12,7 +12,9 @@
           :class="{ selected: selectedEdit?.id === edit.id }"
           @click="selectEdit(edit)"
         >
-          <span class="agent-review-item-path">{{ edit.filePath.replace(/^.*[/\\]/, '') || edit.filePath }}</span>
+          <span class="agent-review-item-path">{{
+            edit.filePath.replace(/^.*[/\\]/, '') || edit.filePath
+          }}</span>
           <span class="agent-review-item-diff">
             <span class="add">+{{ edit.addedLines }}</span>
             <span class="del">-{{ edit.removedLines }}</span>
@@ -38,10 +40,16 @@
             <span class="agent-review-diff-path">{{ selectedEdit.filePath }}</span>
             <span v-if="selectedEdit.status === 'pending'" class="agent-review-diff-actions">
               <Button size="sm" @click="acceptSelected">{{ t('agent.staging.accept') }}</Button>
-              <Button size="sm" variant="destructive" @click="rejectSelected">{{ t('agent.staging.reject') }}</Button>
+              <Button size="sm" variant="destructive" @click="rejectSelected">{{
+                t('agent.staging.reject')
+              }}</Button>
             </span>
             <span v-else class="agent-review-diff-status">
-              {{ selectedEdit.status === 'accepted' ? t('agent.staging.accepted') : t('agent.staging.rejected') }}
+              {{
+                selectedEdit.status === 'accepted'
+                  ? t('agent.staging.accepted')
+                  : t('agent.staging.rejected')
+              }}
             </span>
           </div>
           <div class="agent-review-monaco-wrap">
@@ -69,7 +77,10 @@ import { useI18n } from 'vue-i18n'
 import { X } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
-import { useAgentEditStagingStore, type StagingEditRecord } from '../stores/agent-edit-staging-store'
+import {
+  useAgentEditStagingStore,
+  type StagingEditRecord
+} from '../stores/agent-edit-staging-store'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import { themeState } from '../utils/themes'

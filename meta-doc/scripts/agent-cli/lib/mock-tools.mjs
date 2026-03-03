@@ -10,7 +10,10 @@ export function runMockTool(toolId, parameters, opts = {}) {
   }
   switch (toolId) {
     case 'outline-tree':
-      return { outlineTree: { title: 'Mock outline', title_level: 1, path: '1', text: '', children: [] }, format: 'md' }
+      return {
+        outlineTree: { title: 'Mock outline', title_level: 1, path: '1', text: '', children: [] },
+        format: 'md'
+      }
     case 'grep':
       return { matches: [], total: 0 }
     case 'workspace':

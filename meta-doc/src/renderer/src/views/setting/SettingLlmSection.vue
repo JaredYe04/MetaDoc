@@ -84,7 +84,11 @@
           <div class="space-y-0.5">
             <Label class="text-base">{{ t('setting.agentTerminalExecutionAllowed') }}</Label>
             <p class="text-sm text-muted-foreground">
-              {{ settings.agentTerminalExecutionAllowed ? t('setting.enabled') : t('setting.disabled') }}
+              {{
+                settings.agentTerminalExecutionAllowed
+                  ? t('setting.enabled')
+                  : t('setting.disabled')
+              }}
             </p>
           </div>
           <Switch
@@ -1243,7 +1247,8 @@ const fetchLlmSettings = async () => {
 
   settings.llmTemperature = (await getSetting('llmTemperature')) || 1.3
   settings.autoRemoveThinkTag = (await getSetting('autoRemoveThinkTag')) ?? true
-  settings.agentTerminalExecutionAllowed = (await getSetting('agentTerminalExecutionAllowed')) !== false
+  settings.agentTerminalExecutionAllowed =
+    (await getSetting('agentTerminalExecutionAllowed')) !== false
 }
 
 const updateLlmInfo = () => {
@@ -1961,7 +1966,10 @@ const testLlmApi = async () => {
     }
   } catch (error) {
     logger.error(t('setting.testFailed'), error)
-    testResult.value = t('setting.testResultFailed', '测试失败') + ': ' + (error instanceof Error ? error.message : String(error))
+    testResult.value =
+      t('setting.testResultFailed', '测试失败') +
+      ': ' +
+      (error instanceof Error ? error.message : String(error))
   } finally {
     testLoading.value = false
   }
@@ -2009,7 +2017,9 @@ const loadDemoData = () => {
   // Demo state
   currentConfigId.value = 'demo-1'
   hasUnsavedChanges.value = true
-  testResult.value = t('setting.demoTestResult') || 'This is a demo mode LLM test result. In actual use, real LLM response content will be displayed here.'
+  testResult.value =
+    t('setting.demoTestResult') ||
+    'This is a demo mode LLM test result. In actual use, real LLM response content will be displayed here.'
 }
 
 onMounted(async () => {

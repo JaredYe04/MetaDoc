@@ -14,7 +14,8 @@ export async function runTurn(config, messages, systemSuffix, opts = {}) {
   const toolPrompt = buildToolCallPrompt()
   const existingSystem = messages[0]?.role === 'system' ? messages[0].content : ''
   const alreadyHasToolPrompt = existingSystem.includes(TOOL_PROMPT_MARKER)
-  const systemContent = existingSystem + (systemSuffix || '') + (alreadyHasToolPrompt ? '' : toolPrompt)
+  const systemContent =
+    existingSystem + (systemSuffix || '') + (alreadyHasToolPrompt ? '' : toolPrompt)
   const msgs = [...messages]
   if (msgs[0]?.role === 'system') msgs[0] = { role: 'system', content: systemContent }
   else msgs.unshift({ role: 'system', content: systemContent })

@@ -86,8 +86,13 @@ export async function runAgentCliTurn(userContent: string): Promise<string> {
   store.touchSession()
 
   const messages = session.messages
-  const lastAssistantIdx = messages.map((m, i) => (m.role === 'assistant' ? i : -1)).filter((i) => i >= 0).pop() ?? -1
-  const lastAssistant = lastAssistantIdx >= 0 ? (messages[lastAssistantIdx] as ChatAgentMessage) : undefined
+  const lastAssistantIdx =
+    messages
+      .map((m, i) => (m.role === 'assistant' ? i : -1))
+      .filter((i) => i >= 0)
+      .pop() ?? -1
+  const lastAssistant =
+    lastAssistantIdx >= 0 ? (messages[lastAssistantIdx] as ChatAgentMessage) : undefined
   let text = lastAssistant?.markdown ?? ''
 
   // 单步模式下若有工具消息在最后一条 assistant 之后，附上工具结果摘要便于终端查看
@@ -98,7 +103,11 @@ export async function runAgentCliTurn(userContent: string): Promise<string> {
       if (m.role === 'tool' && m.type === 'tool') {
         const name = m.tool?.name ?? m.toolId ?? 'tool'
         const status = m.status === 'succeeded' ? '成功' : '失败'
-        const summary = m.summary || (m.outputs?.[0]?.data != null ? String(m.outputs[0].data).slice(0, 200) : '') || m.error || ''
+        const summary =
+          m.summary ||
+          (m.outputs?.[0]?.data != null ? String(m.outputs[0].data).slice(0, 200) : '') ||
+          m.error ||
+          ''
         toolLines.push(`[${name}] ${status} ${summary}`)
       }
     }

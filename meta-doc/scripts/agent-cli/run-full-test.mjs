@@ -21,7 +21,13 @@ function runSync(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
     const c = spawn(cmd, args, { stdio: 'inherit', cwd: projectRoot, ...opts })
     c.on('error', reject)
-    c.on('exit', (code) => (opts.ignoreExitCode ? resolve(code) : (code !== 0 ? reject(new Error(`Exit ${code}`)) : resolve(0))))
+    c.on('exit', (code) =>
+      opts.ignoreExitCode
+        ? resolve(code)
+        : code !== 0
+          ? reject(new Error(`Exit ${code}`))
+          : resolve(0)
+    )
   })
 }
 

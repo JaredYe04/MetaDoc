@@ -24,9 +24,7 @@ export function resolveToolOutputComponent(renderer: string | any): any {
       comp = defineAsyncComponent(componentLoader)
     } else {
       try {
-        comp = defineAsyncComponent(
-          () => import(`./components/${renderer}.vue`)
-        )
+        comp = defineAsyncComponent(() => import(`./components/${renderer}.vue`))
       } catch {
         console.warn(`无法加载组件: ${renderer}`)
         return null

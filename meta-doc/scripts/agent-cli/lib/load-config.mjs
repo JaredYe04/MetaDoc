@@ -60,7 +60,9 @@ export function loadConfig(configPathOrEnv) {
 
   const resolved = path.isAbsolute(pathToTry) ? pathToTry : path.resolve(process.cwd(), pathToTry)
   if (!fs.existsSync(resolved)) {
-    throw new Error(`Config file not found: ${resolved}. Create a JSON file with apiUrl, apiKey, model (or point to MetaDoc Electron config).`)
+    throw new Error(
+      `Config file not found: ${resolved}. Create a JSON file with apiUrl, apiKey, model (or point to MetaDoc Electron config).`
+    )
   }
 
   const raw = fs.readFileSync(resolved, 'utf-8')

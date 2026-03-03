@@ -973,7 +973,7 @@
             <Button
               variant="ghost"
               @click="
-                mergeTargetDialogVisible = false;
+                mergeTargetDialogVisible = false
                 pendingMergeTarget = null
               "
               >{{ $t('outline.materialBasket.cancel') }}</Button

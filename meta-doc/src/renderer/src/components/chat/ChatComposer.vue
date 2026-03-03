@@ -89,7 +89,7 @@
           :variant="loading ? 'destructive' : 'default'"
           size="icon"
           class="composer-btn"
-          :disabled="loading ? false : (disabled || !hasContentToSend)"
+          :disabled="loading ? false : disabled || !hasContentToSend"
           @click.prevent="loading ? emit('cancel') : handleSubmit()"
         >
           <ArrowUp v-if="!loading" class="w-4 h-4" />

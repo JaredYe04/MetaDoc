@@ -95,7 +95,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: meta-doc/package-lock.json
 
-      - name: 安装依赖（用于格式与 Lint）
+      - name: 恢复 node_modules 缓存
+        uses: actions/cache@v4
+        id: node-modules
+        with:
+          path: meta-doc/node_modules
+          key: ${{ runner.os }}-meta-doc-node-${{ hashFiles('meta-doc/package-lock.json') }}
+
+      - name: 安装依赖（用于格式与 Lint，缓存命中时跳过以节省时间）
+        if: steps.node-modules.outputs.cache-hit != 'true'
         working-directory: meta-doc
         run: npm ci
 
@@ -264,9 +272,50 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Windows 上不启用 cache，避免下载大体积缓存导致超时；依赖安装用镜像重试兜底
-          cache: ${{ matrix.platform != 'win' && 'npm' || '' }}
-          cache-dependency-path: ${{ matrix.platform != 'win' && 'meta-doc/package-lock.json' || '' }}
+          cache: 'npm'
+          cache-dependency-path: meta-doc/package-lock.json
+
+      - name: 恢复 node_modules 缓存
+        uses: actions/cache@v4
+        id: node-modules
+        with:
+          path: meta-doc/node_modules
+          key: ${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-${{ hashFiles('meta-doc/package-lock.json') }}
+
+      - name: 恢复 Electron 缓存 (Windows)
+        if: matrix.platform == 'win'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}/electron
+          key: ${{ runner.os }}-win-electron-${{ hashFiles('meta-doc/package-lock.json') }}
+
+      - name: 恢复 Electron 缓存 (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron
+          key: ${{ runner.os }}-linux-electron-${{ hashFiles('meta-doc/package-lock.json') }}
+
+      - name: 恢复 Electron 缓存 (macOS)
+        if: matrix.platform == 'mac'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/electron
+          key: ${{ runner.os }}-mac-electron-${{ hashFiles('meta-doc/package-lock.json') }}
+
+      - name: 恢复 electron-builder 缓存 (Windows)
+        if: matrix.platform == 'win'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}/electron-builder
+          key: ${{ runner.os }}-win-electron-builder-${{ hashFiles('meta-doc/package-lock.json') }}
+
+      - name: 恢复 electron-builder 缓存 (Linux/macOS)
+        if: matrix.platform != 'win'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron-builder
+          key: ${{ runner.os }}-${{ matrix.platform }}-electron-builder-${{ hashFiles('meta-doc/package-lock.json') }}
 
       - name: 检查当前平台文件是否已发布
         id: check_platform_release
@@ -303,7 +352,7 @@ jobs:
         continue-on-error: true
 
       - name: 安装依赖
-        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true') && steps.node-modules.outputs.cache-hit != 'true'
         working-directory: meta-doc
         run: |
           node -e "

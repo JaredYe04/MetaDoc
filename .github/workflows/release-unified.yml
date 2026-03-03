@@ -255,8 +255,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: meta-doc/package-lock.json
+          # Windows 上不启用 cache，避免下载大体积缓存导致超时；依赖安装用镜像重试兜底
+          cache: ${{ matrix.platform != 'win' && 'npm' || '' }}
+          cache-dependency-path: ${{ matrix.platform != 'win' && 'meta-doc/package-lock.json' || '' }}
 
       - name: 检查当前平台文件是否已发布
         id: check_platform_release
@@ -295,7 +296,17 @@ jobs:
       - name: 安装依赖
         if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
-        run: npm ci
+        run: |
+          node -e "
+          const c = require('child_process');
+          const p = process.cwd();
+          const run = (cmd) => c.execSync(cmd, { cwd: p, stdio: 'inherit' });
+          try { run('npm ci'); } catch (e) {
+            console.warn('npm ci 失败，尝试使用国内镜像...');
+            run('npm config set registry https://registry.npmmirror.com');
+            run('npm ci');
+          }
+          "
 
       - name: 生成 Linux 图标（如果不存在）
         if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')

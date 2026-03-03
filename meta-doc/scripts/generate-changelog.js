@@ -10,8 +10,29 @@ const fs = require('fs')
 const rootDir = path.resolve(__dirname, '..')
 
 /**
- * 获取「上一次发布」对应的 tag，用于计算 commit 范围
- * 当前发布 tag 可能已存在（刚创建），取排序后的上一个 tag
+ * 从 tag 名解析出版本号数组 [major, minor, patch]，便于比较
+ * 例如 v1.0.0 / dev-1.0.0 -> [1, 0, 0]
+ */
+function parseVersionFromTag(tag) {
+  const m = (tag || '').match(/(?:^v|^dev-)?(\d+)\.(\d+)\.(\d+)/)
+  if (!m) return null
+  return [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)]
+}
+
+/**
+ * 比较两个版本数组，返回 a < b 为 true
+ */
+function versionLess(a, b) {
+  if (!a || !b) return false
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] < b[i]
+  }
+  return false
+}
+
+/**
+ * 获取「上一个不同版本」的发布 tag，用于计算 commit 范围
+ * 同一版本可能多次发布（工作流重跑），只与上一个不同版本比较
  */
 function getPreviousReleaseTag(currentTag, releaseType) {
   const match = releaseType === 'prod' ? 'v*' : 'dev-*'
@@ -23,11 +44,13 @@ function getPreviousReleaseTag(currentTag, releaseType) {
     }).trim()
     if (!out) return null
     const tags = out.split('\n').filter(Boolean)
-    // 列表从新到旧：[v1.0.0, v0.9.0, ...]
-    const idx = tags.indexOf(currentTag)
-    if (idx === 0) return tags[1] || null // 当前 tag 已存在，取上一个
-    if (idx > 0) return tags[idx + 1] || null
-    return tags[0] || null // 当前 tag 尚不存在，取当前最新作为「上一版」
+    const currentVer = parseVersionFromTag(currentTag)
+    if (!currentVer) return tags[0] || null
+    for (const tag of tags) {
+      const ver = parseVersionFromTag(tag)
+      if (ver && versionLess(ver, currentVer)) return tag
+    }
+    return null
   } catch (e) {
     return null
   }

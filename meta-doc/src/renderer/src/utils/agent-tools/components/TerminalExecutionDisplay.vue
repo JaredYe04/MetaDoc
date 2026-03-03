@@ -1,5 +1,17 @@
 <template>
   <div class="terminal-execution-display" :style="containerStyle">
+    <!-- 紧凑模式：只读 Monaco 显示终端输出 -->
+    <template v-if="compact">
+      <div v-if="effectiveData.stage === 'waiting_approval'" class="terminal-compact-status">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ $t('agent.display.terminalExecution.approvalTitle') }}</span>
+      </div>
+      <div v-else class="terminal-compact-monaco-wrap">
+        <div :id="terminalCompactEditorId" class="terminal-compact-monaco"></div>
+      </div>
+    </template>
+
+    <template v-else>
     <div
       v-if="effectiveData.stage === 'waiting_approval'"
       class="approval-state"
@@ -210,6 +222,7 @@
         :show-text="true"
       />
     </div>
+    </template>
   </div>
 </template>
 
@@ -232,20 +245,21 @@ import eventBus from '../../../utils/event-bus.js'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import { createRendererLogger } from '../../logger'
+import * as monaco from 'monaco-editor'
+import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
 
 const STORAGE_KEY = 'agent-tool-terminal-trust-mode'
 
-const props = defineProps<ToolDisplayComponentProps>()
+const props = withDefaults(defineProps<ToolDisplayComponentProps>(), { compact: false })
 
 const terminalBodyRef = ref<HTMLDivElement | null>(null)
 const logger = createRendererLogger('TerminalExecutionDisplay')
+// 仅记录摘要，避免切换会话时打印整份 toolConfig 等大对象
 logger.debug(
-  `[TerminalExecutionDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`,
-  props.data
+  `[TerminalExecutionDisplay] init invocationId=${props.invocationId} status=${props.status} dataType=${typeof props.data}`
 )
-logger.debug(`[TerminalExecutionDisplay] props 完整内容:`, props)
 
 // 使用实时通信
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
@@ -254,12 +268,6 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
   props.status,
   props.progress
 )
-
-logger.debug(`[TerminalExecutionDisplay] useToolDisplayRealtime 返回:`, {
-  realtimeData: realtimeData.value,
-  realtimeStatus: realtimeStatus.value,
-  realtimeProgress: realtimeProgress.value
-})
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
@@ -510,6 +518,59 @@ const stderrLines = computed(() => {
   return stderr.split(/\r?\n/)
 })
 
+// 紧凑模式：完整终端输出文本 + Monaco
+const terminalCompactEditorId = ref(`terminal-compact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
+const terminalOutputFullText = computed(() => {
+  const data = effectiveData.value as any
+  const cmd = data?.command || ''
+  const out = data?.stdout || ''
+  const err = data?.stderr || ''
+  const parts = []
+  if (cmd) parts.push(`$ ${cmd}`)
+  if (out) parts.push(out)
+  if (err) parts.push(err)
+  return parts.join('\n') || t('agent.display.terminalExecution.executingCommand') + '...'
+})
+let terminalCompactMonaco: monaco.editor.IStandaloneCodeEditor | null = null
+const initTerminalCompactMonaco = () => {
+  if (!props.compact) return
+  setupMonacoWorker()
+  nextTick().then(() => {
+    const el = document.getElementById(terminalCompactEditorId.value)
+    if (!el) return
+    if (terminalCompactMonaco) {
+      terminalCompactMonaco.setValue(terminalOutputFullText.value)
+      return
+    }
+    terminalCompactMonaco = monaco.editor.create(el, {
+      value: terminalOutputFullText.value,
+      language: 'plaintext',
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 12,
+      fontFamily: 'JetBrains Mono, Consolas, monospace'
+    })
+  })
+}
+watch(
+  () => [props.compact, terminalOutputFullText.value] as const,
+  ([isCompact]) => {
+    if (isCompact) nextTick().then(() => initTerminalCompactMonaco())
+  },
+  { immediate: true }
+)
+onBeforeUnmount(() => {
+  if (terminalCompactMonaco) {
+    terminalCompactMonaco.dispose()
+    terminalCompactMonaco = null
+  }
+})
+
 // 自动滚动到底部
 const scrollToBottom = () => {
   nextTick(() => {
@@ -717,5 +778,25 @@ watch(
 
 .terminal-command {
   color: v-bind('themeState.currentTheme.type === "dark" ? "#d4d4d4" : "#000000"');
+}
+
+.terminal-compact-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.terminal-compact-monaco-wrap {
+  height: 200px;
+  border: 1px solid v-bind('themeState.currentTheme.textColor2 + "20"');
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.terminal-compact-monaco {
+  width: 100%;
+  height: 100%;
 }
 </style>

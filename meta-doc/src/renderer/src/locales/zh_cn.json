@@ -3640,6 +3640,8 @@
     "refresh": "刷新",
     "refreshRequests": "刷新请求列表",
     "removeThinkTag": "去除think标签",
+    "agentTerminalExecutionAllowed": "默认允许终端执行",
+    "agentTerminalExecutionAllowedHint": "开启后，Agent 调用终端工具时将直接执行，无需每次确认。关闭后每次执行前会弹出确认。",
     "requestNotFound": "请求不存在或已过期",
     "resetConfig": "重置配置",
     "resetFailed": "重置失败",

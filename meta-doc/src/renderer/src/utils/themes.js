@@ -428,8 +428,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         codeColor: adjustSaturation(mixColors(themeColor, '#e0e0e0', 0.8), 0.9),
         primaryColor: '#e0e0e0',
         secondaryColor: '#909090',
-        // 引用标签颜色
-        referenceActiveBg: adjustSaturation(mixColors(themeColor, '#4a9eff', 0.6), 1.1),
+        // 引用标签颜色（灰度，与界面黑白灰一致）
+        referenceActiveBg: mixColors(themeColor, '#5a5a5a', 0.7),
         referenceActiveText: '#ffffff',
         referenceInactiveBg: mixColors(themeColor, '#3a3a3a', 0.7),
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#cccccc', 0.85), 0.7),
@@ -471,8 +471,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         codeColor: adjustSaturation(mixColors(themeColor, '#333333', 0.8), 0.9),
         primaryColor: '#000000',
         secondaryColor: '#666666',
-        // 引用标签颜色
-        referenceActiveBg: adjustSaturation(mixColors(themeColor, '#409eff', 0.5), 1.1),
+        // 引用标签颜色（灰度，与界面黑白灰一致）
+        referenceActiveBg: mixColors(themeColor, '#555555', 0.6),
         referenceActiveText: '#ffffff',
         referenceInactiveBg: mixColors(themeColor, '#f5f5f5', 0.8),
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#666666', 0.7), 0.8),
@@ -528,8 +528,8 @@ export const lightTheme = customTheme('#ffffff', {
   secondaryColor: '#666666',
   // 左侧菜单 + 视图侧栏 + 面板统一背景（浅色下柔和、略深于 #f0f0f0）
   sidebarPanelBackground: '#ebebeb',
-  // 引用标签颜色
-  referenceActiveBg: '#409eff',
+  // 引用标签颜色（黑白灰）
+  referenceActiveBg: '#555555',
   referenceActiveText: '#ffffff',
   referenceInactiveBg: '#f5f5f5',
   referenceInactiveText: '#666666',
@@ -570,8 +570,8 @@ export const darkTheme = customTheme('#2c2c2c', {
   secondaryColor: '#909090', // 次要色用中灰
   // 左侧菜单 + 视图侧栏 + 面板统一背景（与原来一致且略浅，用 background2nd）
   sidebarPanelBackground: '#3a3a3a',
-  // 引用标签颜色
-  referenceActiveBg: '#4a9eff',
+  // 引用标签颜色（黑白灰）
+  referenceActiveBg: '#5a5a5a',
   referenceActiveText: '#ffffff',
   referenceInactiveBg: '#3a3a3a',
   referenceInactiveText: '#cccccc',

@@ -68,8 +68,11 @@ export default defineConfig({
   },
   server: {
     watch: {
-      // 任何 AI 任务完成后会写 llm-statistics.json，忽略该文件避免触发整页重载/白屏
-      ignored: (path) => path.includes('llm-statistics.json')
+      // 忽略会频繁写入的文件，避免触发热更新导致窗口白屏
+      ignored: (path) =>
+        path.includes('llm-statistics.json') ||
+        path.includes('crud-out.txt') ||
+        path.includes('simple-out.txt')
     },
     proxy: {
       '/api': {

@@ -23,7 +23,7 @@
         :title="t('agent.sessions.title')"
         :items="sessionListItems"
         :active-index="activeSessionId || ''"
-        :disabled="isGenerating || workspace.uiLocked?.value"
+        :disabled="isGenerating"
         :create-button-tooltip="t('agent.sessions.new')"
         :rename-label="t('agent.sessions.rename')"
         :duplicate-label="t('agent.sessions.duplicate')"
@@ -66,7 +66,7 @@
             </DropdownMenu>
             <Select
               v-model="selectedEngineId"
-              :disabled="isGenerating || workspace.uiLocked?.value"
+              :disabled="isGenerating"
               @update:model-value="handleEngineChange"
             >
               <SelectTrigger class="h-8 text-sm flex-1 min-w-0">
@@ -186,7 +186,7 @@
                   :show-knowledge-base="false"
                   :show-reference-picker="true"
                   :get-at-label="getAtLabel"
-                  @submit="handleComposerSubmit"
+                  @submit="(kb, content) => handleComposerSubmit(kb, content)"
                   @reset="handleComposerReset"
                   @attach="handleAttachFile"
                   @open-reference-picker="referencePickerOpen = true"
@@ -196,7 +196,7 @@
                     <div class="agent-view-composer-leading">
                       <AgentReferencePicker
                         v-model:open="referencePickerOpen"
-                        :disabled="isGenerating || !!workspace.uiLocked?.value"
+                        :disabled="isGenerating"
                         @select-file="handleReferencePickerFile"
                         @select-tab="handleReferencePickerTab"
                       />
@@ -206,7 +206,7 @@
                             variant="ghost"
                             size="icon"
                             class="agent-view-composer-btn"
-                            :disabled="isGenerating || !!workspace.uiLocked?.value"
+                            :disabled="isGenerating"
                             :title="t('aiChat.attachTooltip')"
                           >
                             <Paperclip class="agent-view-composer-btn-icon" />
@@ -776,7 +776,10 @@ const selectedAgentConfigId = ref<string>('')
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
 const referencePickerOpen = ref(false)
-const composerRef = ref<{ insertAtCursor: (value: string) => void } | null>(null)
+const composerRef = ref<{
+  insertAtCursor: (value: string) => void
+  getContentForSubmit?: () => string
+} | null>(null)
 const availableEngines = ref(agentEngineManager.getEnabledEngines())
 
 // === Demo Mode Data ===
@@ -1288,7 +1291,7 @@ const createChatMessage = (
   referenceIds: referenceIds || []
 })
 
-const handleComposerSubmit = async () => {
+const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: string) => {
   // 演示模式：显示提示并返回
   if (guardDemoAction(t('agent.demo.action.sendMessage'))) {
     // 演示模式下添加模拟消息
@@ -1332,7 +1335,13 @@ const handleComposerSubmit = async () => {
     return
   }
 
-  const content = composerInput.value.trim()
+  // 优先用 submit 事件带来的内容（ChatComposer 从输入框取的最新值），否则再读 store
+  const rawContent =
+    contentFromEvent ??
+    (typeof composerRef.value?.getContentForSubmit === 'function'
+      ? composerRef.value.getContentForSubmit()
+      : composerInput.value)
+  const content = rawContent.trim()
   if (!content) {
     logger.warn('[handleComposerSubmit] 消息内容为空')
     return
@@ -1456,18 +1465,13 @@ const executeAgentEngine = async (
   actualSession?: AgentSession,
   shouldQueryKnowledgeBase: boolean = false
 ) => {
-  // 重要：在函数开始时就立即锁定UI并设置生成状态
-  // 这样可以防止用户在异步验证之前发送新消息或切换会话
-  workspace.lockUI?.()
   isGenerating.value = true
 
   // 使用传入的actualSession，如果没有则使用computed的session
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
     notifyWarning(t('agent.sessions.noAgentConfig'))
-    // 确保状态正确，即使早期返回
     isGenerating.value = false
-    workspace.unlockUI?.()
     return
   }
 
@@ -1475,18 +1479,14 @@ const executeAgentEngine = async (
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
     notifyError(t('agent.sessions.engineNotFound'))
-    // 确保状态正确，即使早期返回
     isGenerating.value = false
-    workspace.unlockUI?.()
     return
   }
 
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
     notifyError(t('agent.sessions.agentConfigNotFound'))
-    // 确保状态正确，即使早期返回
     isGenerating.value = false
-    workspace.unlockUI?.()
     return
   }
 
@@ -1832,7 +1832,6 @@ const executeAgentEngine = async (
       }
       currentAiTaskHandle.value = null
       isGenerating.value = false
-      workspace.unlockUI?.()
     }
   } else {
     // 对于其他引擎，使用现有的执行器逻辑
@@ -1903,7 +1902,6 @@ const executeAgentEngine = async (
       }
       currentAiTaskHandle.value = null
       isGenerating.value = false
-      workspace.unlockUI?.()
     }
   }
 }
@@ -2161,8 +2159,6 @@ const handleCancelGeneration = () => {
   }
 
   isGenerating.value = false
-  workspace.unlockUI?.()
-
   session.status = 'idle'
   persistSessions()
 }

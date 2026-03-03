@@ -15,6 +15,8 @@
       <InputContextMenu />
       <!-- 自定义 Toast 堆叠系统 - 接管 Sonner -->
       <NotificationStack />
+      <!-- 全局终端执行确认弹窗（不依赖 Agent 是否渲染 Display 组件） -->
+      <TerminalApprovalDialog />
     </div>
   </TooltipProvider>
 </template>
@@ -44,6 +46,7 @@ import { useWorkspace } from './stores/workspace'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
 import NotificationStack from './components/NotificationStack.vue'
+import TerminalApprovalDialog from './components/global/TerminalApprovalDialog.vue'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'
 import { initNotificationLegacyAdapter } from './utils/notifications-legacy'

@@ -21,9 +21,35 @@ import { removeTextFromOutline } from '../document/outline'
 import OutlineTreeDisplay from './components/OutlineTreeDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('OutlineTreeTool')
 const workspace = useWorkspace()
+
+function getWorkspaceRoots(): string[] {
+  try {
+    const saved = localStorage.getItem('workspaceFolders')
+    if (!saved) return []
+    const arr = JSON.parse(saved)
+    return Array.isArray(arr)
+      ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
+      : []
+  } catch {
+    return []
+  }
+}
+
+function resolveFilePath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/').trim()
+  if (normalized.startsWith('/') || /^[A-Za-z]:[/\\]/.test(normalized)) {
+    return normalized
+  }
+  const roots = getWorkspaceRoots()
+  const root = roots[0]
+  if (!root) return normalized
+  const base = root.replace(/\\/g, '/').replace(/\/$/, '')
+  return `${base}/${normalized}`
+}
 
 /**
  * 大纲树Tool回调函数
@@ -31,6 +57,7 @@ const workspace = useWorkspace()
 const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const includeText = params.includeText !== false // 默认true，包含文本内容
   const tabId = params.tabId as string | undefined // 可选，指定tabId，默认使用当前活动tab
+  const filePathParam = params.filePath as string | undefined // 可选，工作区相对或绝对路径，优先于 tabId
 
   try {
     onUpdate(
@@ -47,12 +74,60 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
       }
     )
 
-    // 获取文档（支持跨窗口）
-    const windowType = getWindowType()
     let doc: any = null
     let targetTabId: string | null = null
 
-    if (windowType === 'setting') {
+    // 优先：按工作区文件路径读取（支持未打开的任意工作区文件）
+    if (filePathParam && messageBridge.getIpc()?.invoke) {
+      const absPath = resolveFilePath(filePathParam)
+      let content: string | null = null
+      try {
+        content = (await messageBridge.invoke('read-file-content', absPath)) as string | null
+      } catch (e) {
+        logger.warn('read-file-content failed', e)
+      }
+      if (content == null) {
+        return {
+          status: 'failed',
+          error: i18n.global.t(
+            'agent.tool.outlineTree.error.fileNotFound',
+            `文件不存在或无法读取: ${filePathParam}`
+          )
+        }
+      }
+      const isTex = /\.tex$/i.test(absPath)
+      const isMd = /\.(md|markdown)$/i.test(absPath)
+      if (!isTex && !isMd) {
+        return {
+          status: 'failed',
+          error: i18n.global.t(
+            'agent.tool.outlineTree.error.unsupportedFormatFile',
+            '大纲仅支持 Markdown (.md) 和 LaTeX (.tex) 文件，当前文件格式不支持。'
+          )
+        }
+      }
+      const format = isTex ? 'tex' : 'md'
+      doc = {
+        markdown: format === 'md' ? content : '',
+        tex: format === 'tex' ? content : '',
+        format,
+        path: absPath
+      }
+      targetTabId = null
+    } else if (filePathParam) {
+      return {
+        status: 'failed',
+        error: i18n.global.t(
+          'agent.tool.outlineTree.error.needElectron',
+          'filePath 方式需要 Electron 环境（工作区文件读取）'
+        )
+      }
+    }
+
+    if (!doc) {
+      // 获取文档（支持跨窗口，按 tabId 或当前活动文档）
+      const windowType = getWindowType()
+      if (windowType === 'setting') {
       // 在设置窗口中，通过广播获取文档信息
       const docInfo = await getActiveDocumentInfoViaBroadcast()
       if (!docInfo) {
@@ -105,6 +180,7 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
           error: i18n.global.t('agent.tool.outlineTree.error.documentNotFound', '文档不存在')
         }
       }
+    }
     }
 
     onUpdate(
@@ -198,12 +274,12 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
 const outlineTreeToolLocales: ToolLocales = {
   zh_cn: {
     name: '大纲树',
-    description: '获取当前文档的大纲树结构，可选择是否包含文本内容'
+    description: '获取文档的大纲树结构（仅支持 .md 与 .tex，其他格式不支持）'
   },
   en_us: {
     name: 'Outline Tree',
     description:
-      'Get the outline tree structure of the current document, with option to include text content'
+      'Get outline tree of a document (only .md and .tex are supported; other formats are not)'
   },
   de_DE: {
     name: 'Gliederungsbaum',
@@ -234,11 +310,11 @@ export const outlineTreeToolConfig: AgentToolConfig = {
   spec: {
     name: 'outline-tree',
     brief:
-      'Get the outline tree structure of the current document. Returns hierarchical structure with titles, paths, and optional text content.',
+      'Get outline tree of a document. Only Markdown (.md) and LaTeX (.tex) are supported; other file formats do not support outline. Supports filePath or tabId/current tab.',
     fullSpec: `# Outline Tree Tool
 
 ## Description
-Gets the outline tree structure of the current active document. The outline tree is a hierarchical representation of the document, containing titles, paths, and optional text content.
+Gets the outline tree structure of a document. **Only Markdown (.md) and LaTeX (.tex) files support outline; other file formats (e.g. .txt, .json, .html) are not supported.** You can pass \`filePath\` (workspace-relative or absolute) to get the outline of any workspace .md/.tex file without opening it, or use \`tabId\`/current tab for the active document. The outline tree is a hierarchical representation with titles, paths, and optional text content.
 
 ## Usage Recommendations
 
@@ -300,9 +376,9 @@ When using \`edit\` tool to insert content, you can use the following methods:
 \`\`\`
 
 ## Important Notes
+- **Only .md and .tex**: Outline is supported only for Markdown (.md) and LaTeX (.tex) files; other formats (e.g. .txt, .json, .html) are not supported.
 - **Locate before insertion**: Before using \`edit\` tool to insert content, you can use this tool to get document outline, analyze structure, determine correct position (can also use grep or other methods)
 - **includeText parameter**: When you need to view specific content, it's recommended to set \`includeText: true\` to view specific content, making it easier to calculate accurate line number positions
-- Outline tree supports Markdown and LaTeX formats
 - LaTeX documents are first converted to Markdown before extracting outline
 - If includeText is false, the returned outline tree only contains structure information, not text content
 - The path field of outline tree represents the node's position in the tree (like "1", "1.1", "1.2.1", etc.)
@@ -352,8 +428,9 @@ When using \`edit\` tool to insert content, you can use the following methods:
 ## 输入格式
 \`\`\`json
 {
+  "filePath": "string", // 可选，工作区相对或绝对路径，获取未打开文件的大纲（优先于 tabId）
   "includeText": true,  // 可选，是否包含文本内容，默认true
-  "tabId": "string"     // 可选，指定文档标签页ID，默认使用当前活动标签页
+  "tabId": "string"     // 可选，指定文档标签页ID，默认使用当前活动标签页（无 filePath 时）
 }
 \`\`\`
 
@@ -375,10 +452,10 @@ When using \`edit\` tool to insert content, you can use the following methods:
 \`\`\`
 
 ## 注意事项
+- **仅支持 .md 与 .tex**：大纲功能只对 Markdown（.md）和 LaTeX（.tex）文件有效，其他格式（如 .txt、.json、.html）不支持。
 - **插入前定位**：使用 \`edit\` 工具插入内容前，可以使用此工具获取文档大纲，分析结构，确定正确位置（也可使用grep等其他方法）
 - **includeText参数**：需要查看具体内容时，建议设置 \`includeText: true\` 以查看具体内容，便于计算准确的行号位置
-- 大纲树支持Markdown和LaTeX格式
-- LaTeX文档会先转换为Markdown再提取大纲
+- LaTeX 文档会先转换为 Markdown 再提取大纲
 - 如果includeText为false，返回的大纲树仅包含结构信息，不包含文本内容
 - 大纲树的path字段表示节点在树中的位置（如"1", "1.1", "1.2.1"等）
 - 大纲树的text字段包含该节点下的所有文本内容，可用于分析文档内容分布和计算行号
@@ -392,6 +469,11 @@ When using \`edit\` tool to insert content, you can use the following methods:
   inputSchema: {
     type: 'object',
     properties: {
+      filePath: {
+        type: 'string',
+        description:
+          '工作区相对或绝对路径（可选）。指定时从磁盘读取该文件并提取大纲，不依赖当前 tab；未指定时使用 tabId/当前文档。'
+      },
       includeText: {
         type: 'boolean',
         description: '是否包含文本内容',
@@ -399,7 +481,7 @@ When using \`edit\` tool to insert content, you can use the following methods:
       },
       tabId: {
         type: 'string',
-        description: '文档标签页ID（可选，默认使用当前活动标签页）'
+        description: '文档标签页ID（可选，默认使用当前活动标签页；有 filePath 时忽略）'
       }
     }
   },

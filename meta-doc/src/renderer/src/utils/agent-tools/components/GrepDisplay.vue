@@ -1,5 +1,30 @@
 <template>
   <div class="grep-display" :style="containerStyle">
+    <!-- 紧凑模式：仅文件列表 -->
+    <template v-if="compact">
+      <div v-if="displayData.stage === 'searching'" class="grep-compact-status">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ $t('agent.display.grep.searching') }}</span>
+      </div>
+      <div
+        v-else-if="resultData && resultData.matches && resultData.matches.length"
+        class="grep-compact-list"
+      >
+        <div
+          v-for="(match, index) in resultData.matches"
+          :key="index"
+          class="grep-compact-item"
+        >
+          <span class="grep-compact-file">{{ match.filePath || $t('agent.display.grep.document') }}</span>
+          <span class="grep-compact-line">L{{ match.line }}</span>
+        </div>
+      </div>
+      <div v-else-if="displayData.stage === 'completed'" class="grep-compact-empty">
+        {{ $t('agent.display.grep.noMatches') }}
+      </div>
+    </template>
+
+    <template v-else>
     <div
       v-if="displayData.stage === 'searching'"
       class="status-message"
@@ -69,7 +94,7 @@
         <div class="panel-header" :style="panelHeaderStyle">
           <span>{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span>
         </div>
-        <ScrollArea class="h-[400px]">
+        <ScrollArea class="max-h-[400px]">
           <div class="matches-list">
             <div
               v-for="(match, index) in resultData.matches"
@@ -108,7 +133,7 @@
               >{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span
             >
           </div>
-          <ScrollArea class="h-[500px]">
+          <ScrollArea class="max-h-[500px]">
             <div class="matches-list">
               <div
                 v-for="(match, index) in resultData.matches"
@@ -177,6 +202,7 @@
         <AlertTitle>{{ displayData.error || $t('agent.display.grep.error') }}</AlertTitle>
       </Alert>
     </div>
+    </template>
   </div>
 </template>
 
@@ -199,7 +225,9 @@ import { setupMonacoWorker } from '../../monaco-worker-config'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const props = withDefaults(defineProps<ToolDisplayComponentProps & { mode?: string }>(), {
+  compact: false
+})
 const isDemo = computed(() => props.mode === 'demo')
 
 // Demo data
@@ -970,5 +998,47 @@ code {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.grep-compact-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.grep-compact-list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.grep-compact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.grep-compact-file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.grep-compact-line {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+
+.grep-compact-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

@@ -2,62 +2,20 @@
   <div
     ref="rootRef"
     class="agent-ref-composer-input"
-    contenteditable="true"
+    :contenteditable="!disabled"
     :data-placeholder="placeholder"
     :class="{ 'is-disabled': disabled }"
     @input="onInput"
+    @paste="onPaste"
     @keydown="onKeydown"
-  >
-    <template v-for="(seg, i) in segments" :key="segmentKey(i)">
-      <span v-if="seg.type === 'text'" class="ref-input-text">{{ seg.value }}</span>
-      <AtTag
-        v-else
-        :raw-value="seg.atValue!"
-        :label="getAtLabel(seg.atValue!)"
-        @remove="removeAt(seg.atValue!)"
-      />
-    </template>
-  </div>
+  ></div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
-import AtTag from './AtTag.vue'
-
-/**
- * Tag 以闭合形式存储：@[path] 或 @[tab:id]
- * 方括号内为 tag 的唯一边界，前后任意文字都不会影响 tag 范围，tag 作为只读的闭合符号存在。
- * 路径中不应包含 ]，否则需转义（常见路径通常不包含 ]）。
- */
-const AT_PATTERN = /@\[([^\]]+)\]/g
-
-export type Segment = { type: 'text'; value: string } | { type: 'at'; atValue: string }
-
-function parseSegments(value: string): Segment[] {
-  if (!value) return [{ type: 'text', value: '' }]
-  const parts: Segment[] = []
-  let lastIndex = 0
-  let m: RegExpExecArray | null
-  AT_PATTERN.lastIndex = 0
-  while ((m = AT_PATTERN.exec(value)) !== null) {
-    if (m.index > lastIndex) {
-      parts.push({ type: 'text', value: value.slice(lastIndex, m.index) })
-    }
-    parts.push({ type: 'at', atValue: m[1] })
-    lastIndex = m.index + m[0].length
-  }
-  if (lastIndex < value.length) {
-    parts.push({ type: 'text', value: value.slice(lastIndex) })
-  }
-  if (parts.length === 0) parts.push({ type: 'text', value: '' })
-  return parts
-}
-
-function serializeSegments(segs: Segment[]): string {
-  return segs
-    .map((s) => (s.type === 'text' ? s.value : `@[${s.atValue}]`))
-    .join('')
-}
+import { ref, watch, nextTick, onMounted } from 'vue'
+import eventBus from '../../utils/event-bus.js'
+import { parseSegments, serializeSegments } from '../../utils/ref-composer-segments'
+import type { Segment } from '../../utils/ref-composer-segments'
 
 const props = withDefaults(
   defineProps<{
@@ -77,26 +35,14 @@ const emit = defineEmits<{
 }>()
 
 const rootRef = ref<HTMLDivElement | null>(null)
-const segments = ref<Segment[]>(parseSegments(props.modelValue))
 const lastEmitted = ref(props.modelValue)
 const isInternal = ref(false)
-const skipNextInput = ref(false)
-/** 从 props 同步后一段时间内不根据 DOM 回写，避免切换会话时 DOM 未就绪导致只保留 tag 丢失文字 */
-const lastSyncedFromPropsAt = ref<number>(0)
 const savedInsertOffset = ref<number | null>(null)
-const SYNC_GUARD_MS = 200
 
 function getAtLabel(rawValue: string): string {
   if (props.getAtLabel) return props.getAtLabel(rawValue)
   if (rawValue.startsWith('tab:')) return rawValue.slice(4)
   return rawValue.replace(/^.*[/\\]/, '') || rawValue
-}
-
-function segmentKey(i: number): string {
-  const seg = segments.value[i]
-  if (!seg) return `seg-${i}`
-  if (seg.type === 'at') return `at-${seg.atValue}-${i}`
-  return `text-${i}`
 }
 
 watch(
@@ -107,37 +53,68 @@ watch(
       return
     }
     if (val === lastEmitted.value) return
-    segments.value = parseSegments(val)
     lastEmitted.value = val
-    lastSyncedFromPropsAt.value = Date.now()
-    skipNextInput.value = true
-    nextTick(removeStrayTextNodes)
-    setTimeout(() => {
-      skipNextInput.value = false
-    }, 80)
+    nextTick(() => renderFromValue(val))
   },
   { immediate: true }
 )
 
-function saveSelection(): { anchorNode: Node; anchorOffset: number; focusNode: Node; focusOffset: number } | null {
-  const sel = window.getSelection()
-  if (!sel || sel.rangeCount === 0) return null
-  return {
-    anchorNode: sel.anchorNode!,
-    anchorOffset: sel.anchorOffset,
-    focusNode: sel.focusNode!,
-    focusOffset: sel.focusOffset
-  }
+/** 保存当前光标位置为字符偏移（重渲染后用偏移恢复，因节点会变） */
+function saveCursorOffset(): number {
+  return getCursorOffset()
 }
 
-function restoreSelection(saved: { anchorNode: Node; anchorOffset: number; focusNode: Node; focusOffset: number } | null) {
-  if (!saved) return
+/** 在重渲染后的 DOM 上按字符偏移恢复光标并保持 focus */
+function setCursorOffset(offset: number) {
+  const el = rootRef.value
   const sel = window.getSelection()
-  if (!sel) return
+  if (!el || !sel) return
+  el.focus()
+  let current = 0
+  const walk = (node: Node): { node: Node; offset: number } | null => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const len = (node.textContent || '').length
+      if (current + len >= offset) return { node, offset: offset - current }
+      current += len
+      return null
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return null
+    const elNode = node as HTMLElement
+    if (elNode.classList?.contains('at-tag')) {
+      const val = elNode.getAttribute('data-at-value') || ''
+      const len = 2 + val.length + 1
+      if (current + len >= offset) return { node: elNode, offset: 0 }
+      current += len
+      return null
+    }
+    for (let i = 0; i < node.childNodes.length; i++) {
+      const found = walk(node.childNodes[i])
+      if (found) return found
+    }
+    return null
+  }
+  const found = walk(el)
+  if (!found) {
+    const last = el.lastChild
+    if (last) {
+      const range = document.createRange()
+      range.selectNodeContents(last)
+      range.collapse(false)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+    return
+  }
   try {
     const range = document.createRange()
-    range.setStart(saved.anchorNode, saved.anchorOffset)
-    range.setEnd(saved.focusNode, saved.focusOffset)
+    if (found.node.nodeType === Node.TEXT_NODE) {
+      const maxOff = (found.node.textContent || '').length
+      range.setStart(found.node, Math.min(found.offset, maxOff))
+      range.collapse(true)
+    } else {
+      range.setStart(found.node, 0)
+      range.collapse(true)
+    }
     sel.removeAllRanges()
     sel.addRange(range)
   } catch (_) {
@@ -149,10 +126,47 @@ function collectFromDom(): { segments: Segment[]; value: string } {
   const el = rootRef.value
   if (!el) return { segments: [], value: '' }
   const segs: Segment[] = []
+
+  const pushWrapNode = (wrap: HTMLElement) => {
+    let textBuf = ''
+    const flushText = () => {
+      if (!textBuf) return
+      segs.push({ type: 'text', value: textBuf.replace(/\u200b/g, '') })
+      textBuf = ''
+    }
+    for (let i = 0; i < wrap.childNodes.length; i++) {
+      const child = wrap.childNodes[i]
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const childEl = child as HTMLElement
+        if (childEl.classList?.contains('at-tag')) {
+          const val = childEl.getAttribute?.('data-at-value')
+          if (val) {
+            flushText()
+            segs.push({ type: 'at', atValue: val })
+          }
+          continue
+        }
+        if (childEl.classList?.contains('ref-input-text')) {
+          textBuf += childEl.textContent || ''
+          continue
+        }
+        // 其他元素：忽略，避免与 Vue 自身结构或浏览器插入节点混在一起导致重复/错位
+      } else if (child.nodeType === Node.TEXT_NODE) {
+        // 包裹内部裸文本：忽略，统一依赖 .ref-input-text 来读取文本
+        continue
+      }
+    }
+    flushText()
+  }
+
   for (let i = 0; i < el.childNodes.length; i++) {
     const node = el.childNodes[i]
     if (node.nodeType === Node.ELEMENT_NODE) {
       const elNode = node as HTMLElement
+      if (elNode.classList?.contains('ref-segment-wrap')) {
+        pushWrapNode(elNode)
+        continue
+      }
       if (elNode.classList?.contains('at-tag')) {
         const val = elNode.getAttribute?.('data-at-value')
         if (val) segs.push({ type: 'at', atValue: val })
@@ -160,16 +174,16 @@ function collectFromDom(): { segments: Segment[]; value: string } {
       }
       if (elNode.classList?.contains('ref-input-text')) {
         const t = elNode.textContent || ''
-        segs.push({ type: 'text', value: t })
+        segs.push({ type: 'text', value: t.replace(/\u200b/g, '') })
         continue
       }
-      // 未知元素或浏览器插入的节点：按纯文本收集，避免丢失内容
-      const t = elNode.textContent || ''
+      // 浏览器插入的未知元素：按纯文本收集，避免 tag 后输入的文字丢失
+      const t = (elNode.textContent || '').replace(/\u200b/g, '')
       if (t.length > 0) segs.push({ type: 'text', value: t })
       continue
     }
     if (node.nodeType === Node.TEXT_NODE) {
-      const t = (node.textContent || '').replace(/\u200b/g, '') // 零宽字符忽略
+      const t = (node.textContent || '').replace(/\u200b/g, '')
       if (t.length > 0) segs.push({ type: 'text', value: t })
     }
   }
@@ -178,44 +192,93 @@ function collectFromDom(): { segments: Segment[]; value: string } {
   return { segments: segs, value }
 }
 
+function clearRoot() {
+  const el = rootRef.value
+  if (!el) return
+  while (el.firstChild) {
+    el.removeChild(el.firstChild)
+  }
+}
+
+function createTextSpan(text: string): HTMLSpanElement {
+  const span = document.createElement('span')
+  span.className = 'ref-input-text'
+  span.textContent = text
+  return span
+}
+
+function createAtTagSpan(atValue: string): HTMLSpanElement {
+  const span = document.createElement('span')
+  span.className = 'at-tag'
+  span.setAttribute('data-at-value', atValue)
+  span.contentEditable = 'false'
+
+  const labelSpan = document.createElement('span')
+  labelSpan.className = 'at-tag-label'
+  labelSpan.textContent = getAtLabel(atValue)
+  span.appendChild(labelSpan)
+
+  const removeBtn = document.createElement('button')
+  removeBtn.type = 'button'
+  removeBtn.className = 'at-tag-remove'
+  removeBtn.textContent = '×'
+  removeBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    removeAt(atValue)
+  })
+  span.appendChild(removeBtn)
+
+  span.addEventListener('click', () => {
+    if (!atValue) return
+    if (atValue.startsWith('tab:')) {
+      const tabId = atValue.slice(4)
+      eventBus.emit('workspace-open-document', { tabId })
+    } else {
+      eventBus.emit('workspace-open-document', { path: atValue })
+    }
+  })
+
+  return span
+}
+
+function renderFromValue(value: string) {
+  const el = rootRef.value
+  if (!el) return
+  clearRoot()
+  const segs = parseSegments(value)
+  for (const seg of segs) {
+    if (seg.type === 'text') {
+      el.appendChild(createTextSpan(seg.value))
+    } else {
+      el.appendChild(createAtTagSpan(seg.atValue))
+    }
+  }
+  // 末尾始终保留一个可编辑空 span，避免在 tag 后打字时浏览器创建无 class 节点导致 collectFromDom 漏收
+  el.appendChild(createTextSpan(''))
+}
+
+/** 粘贴时只插入纯文本，避免从外部复制的富文本（背景色等）被保留，并避免重复插入导致内容重复 */
+function onPaste(e: ClipboardEvent) {
+  e.preventDefault()
+  if (props.disabled) return
+  const text = e.clipboardData?.getData('text/plain') ?? ''
+  if (!text) return
+  document.execCommand('insertText', false, text)
+}
+
 function onInput() {
   if (props.disabled) return
-  if (skipNextInput.value) {
-    skipNextInput.value = false
-    return
-  }
-  // 切换会话后刚从 props 恢复时，DOM 可能尚未渲染完整，若此时用 DOM 回写会只保留 tag 丢失文字
-  if (Date.now() - lastSyncedFromPropsAt.value < SYNC_GUARD_MS) {
-    return
-  }
-  const saved = saveSelection()
   const { value } = collectFromDom()
   if (value === lastEmitted.value) {
-    nextTick(() => restoreSelection(saved))
     return
   }
-  segments.value = parseSegments(value)
   lastEmitted.value = value
   isInternal.value = true
   emit('update:modelValue', value)
-  nextTick(() => {
-    removeStrayTextNodes()
-    restoreSelection(saved)
-  })
 }
 
-/** 移除 contenteditable 内由浏览器插入的裸文本节点，避免与 Vue 渲染的 .ref-input-text 重复被 collectFromDom 收集导致内容重复 */
 function removeStrayTextNodes() {
-  const el = rootRef.value
-  if (!el) return
-  const toRemove: ChildNode[] = []
-  for (let i = 0; i < el.childNodes.length; i++) {
-    const node = el.childNodes[i]
-    if (node.nodeType === Node.TEXT_NODE) {
-      toRemove.push(node)
-    }
-  }
-  toRemove.forEach((n) => n.remove())
+  // 已由 renderFromValue 完全控制 DOM 结构，这里无需额外处理
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -231,6 +294,14 @@ function onKeydown(e: KeyboardEvent) {
     if (!el || !sel || sel.rangeCount === 0) return
     const range = sel.getRangeAt(0)
     if (!range.collapsed) return
+    const getAtTagFromNode = (n: Node | null): HTMLElement | null => {
+      if (!n || n.nodeType !== Node.ELEMENT_NODE) return null
+      const h = n as HTMLElement
+      if (h.classList?.contains('at-tag')) return h
+      if (h.classList?.contains('ref-segment-wrap') && h.firstElementChild?.classList?.contains('at-tag'))
+        return h.firstElementChild as HTMLElement
+      return null
+    }
     let targetAtTag: HTMLElement | null = null
     const startContainer = range.startContainer
     const startOffset = range.startOffset
@@ -240,20 +311,19 @@ function onKeydown(e: KeyboardEvent) {
       if (parent) {
         let prev: Node | null = parent.previousSibling
         while (prev) {
-          if (prev.nodeType === Node.ELEMENT_NODE && (prev as HTMLElement).classList?.contains('at-tag')) {
-            targetAtTag = prev as HTMLElement
-            break
-          }
+          targetAtTag = getAtTagFromNode(prev)
+          if (targetAtTag) break
           if (prev.nodeType === Node.TEXT_NODE && (prev.textContent || '').trim().length > 0) break
           if (prev.nodeType === Node.ELEMENT_NODE && (prev as HTMLElement).classList?.contains('ref-input-text') && ((prev as HTMLElement).textContent || '').trim().length > 0) break
+          if (prev.nodeType === Node.ELEMENT_NODE && (prev as HTMLElement).classList?.contains('ref-segment-wrap')) {
+            const inner = (prev as HTMLElement).firstElementChild as HTMLElement | null
+            if (inner?.classList?.contains('ref-input-text') && (inner.textContent || '').trim().length > 0) break
+          }
           prev = prev.previousSibling
         }
       }
     } else if (startContainer === el && startOffset >= 1) {
-      const prevChild = el.childNodes[startOffset - 1]
-      if (prevChild && prevChild.nodeType === Node.ELEMENT_NODE && (prevChild as HTMLElement).classList?.contains('at-tag')) {
-        targetAtTag = prevChild as HTMLElement
-      }
+      targetAtTag = getAtTagFromNode(el.childNodes[startOffset - 1])
     }
     if (targetAtTag) {
       const val = targetAtTag.getAttribute('data-at-value')
@@ -267,13 +337,15 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 function removeAt(atValue: string) {
-  const segs = segments.value.filter((s) => !(s.type === 'at' && s.atValue === atValue))
+  const segs = parseSegments(lastEmitted.value).filter(
+    (s) => !(s.type === 'at' && s.atValue === atValue)
+  )
   if (segs.length === 0) segs.push({ type: 'text', value: '' })
   const value = serializeSegments(segs)
-  segments.value = parseSegments(value)
   lastEmitted.value = value
   isInternal.value = true
   emit('update:modelValue', value)
+  nextTick(() => renderFromValue(value))
 }
 
 function getCursorOffset(): number {
@@ -327,13 +399,28 @@ function insertAtCursor(rawValue: string) {
   savedInsertOffset.value = null
   const insertText = `@[${rawValue}]`
   const newValue = value.slice(0, offset) + insertText + value.slice(offset)
-  segments.value = parseSegments(newValue)
   lastEmitted.value = newValue
   isInternal.value = true
   emit('update:modelValue', newValue)
+  nextTick(() => {
+    if (!rootRef.value) return
+    renderFromValue(newValue)
+  })
 }
 
-defineExpose({ insertRefAtCursor: insertAtCursor, insertAtCursor })
+/** 供提交前刷新：从 DOM 收集当前内容并返回；取 DOM 与 lastEmitted 中更长的，避免漏掉 chip 外的普通文字 */
+function getValue(): string {
+  const { value: domVal } = collectFromDom()
+  const last = lastEmitted.value || ''
+  if (!domVal || domVal.length === 0) return last
+  return domVal.length >= last.length ? domVal : last
+}
+
+defineExpose({ insertRefAtCursor: insertAtCursor, insertAtCursor, getValue })
+
+onMounted(() => {
+  renderFromValue(lastEmitted.value)
+})
 </script>
 
 <style scoped>
@@ -364,5 +451,57 @@ defineExpose({ insertRefAtCursor: insertAtCursor, insertAtCursor })
 
 .ref-input-text {
   white-space: pre-wrap;
+}
+
+/* 动态插入的 chip 在根节点内，用 :deep 使样式生效；X 按钮默认隐藏，hover 时显示、居中、圆角 */
+.agent-ref-composer-input :deep(.at-tag) {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px 1px 6px;
+  margin: 0 2px;
+  font-size: 12px;
+  line-height: 1.3;
+  border-radius: 4px;
+  background: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+  color: var(--el-text-color-primary);
+  cursor: pointer;
+  user-select: none;
+  vertical-align: baseline;
+  border: 1px solid var(--el-border-color-lighter, rgba(0, 0, 0, 0.08));
+}
+
+.agent-ref-composer-input :deep(.at-tag:hover) {
+  background: var(--el-fill-color, rgba(0, 0, 0, 0.08));
+}
+
+.agent-ref-composer-input :deep(.at-tag-label) {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-ref-composer-input :deep(.at-tag-remove) {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  margin-left: 2px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+}
+
+.agent-ref-composer-input :deep(.at-tag:hover .at-tag-remove) {
+  display: inline-flex;
+}
+
+.agent-ref-composer-input :deep(.at-tag-remove:hover) {
+  background: var(--el-fill-color-dark, rgba(0, 0, 0, 0.12));
+  color: var(--el-text-color-primary);
 }
 </style>

@@ -138,6 +138,10 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       const data = JSON.parse(content) as AgentWorkspacePersisted
       const list = Array.isArray(data.sessions) ? data.sessions : []
       const normalized = list.map(normalizeSession).filter((s): s is AgentSession => s !== null)
+      // 从磁盘加载的会话一律视为空闲，避免残留 thinking 导致“正在分析用户意图”一直显示
+      normalized.forEach((s) => {
+        s.status = 'idle'
+      })
       sessions.value = normalized.length > 0 ? normalized : []
       activeSessionId.value =
         typeof data.activeSessionId === 'string' &&

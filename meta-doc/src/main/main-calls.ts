@@ -30,6 +30,8 @@ import os from 'os'
 import { exec, spawn } from 'child_process'
 import https from 'https'
 import http from 'http'
+import net from 'net'
+import readline from 'readline'
 import iconv from 'iconv-lite'
 
 // 内部模块导入
@@ -452,6 +454,7 @@ export function mainCalls(): void {
   bindSpellCheckHandlers()
   bindWindowManagementHandlers()
   bindTabRegistryHandlers()
+  bindAgentCliHandlers()
 
   initBroadcastChannel()
 }
@@ -2955,8 +2958,34 @@ function bindUtilityHandlers(): void {
  * 根据平台和终端设置解码Buffer为字符串
  * @param data 要解码的 Buffer
  * @param consoleKey 终端标识符（可选，用于获取该终端的字符集设置）
+ * @param invocationId 本次调用的 ID（可选，用于 Agent 调用时强制 UTF-8，避免中文乱码）
  */
-function decodeBuffer(data: Buffer, consoleKey?: string): string {
+function decodeBuffer(data: Buffer, consoleKey?: string, invocationId?: string): string {
+  // Agent 调用时若指定了该 invocation 使用 UTF-8，则优先用 UTF-8 解码（避免中文乱码）
+  if (invocationId && terminalInvocationEncodings.has(invocationId)) {
+    const enc = terminalInvocationEncodings.get(invocationId)!
+    if (enc === 'utf8' || enc === 'utf-8') {
+      const utf8Str = data.toString('utf8')
+      // Windows 下 chcp 65001 有时未生效，输出仍是 GBK，用 UTF-8 解码会得到乱码；若替换符过多则用 GBK 重解
+      if (process.platform === 'win32') {
+        const replacementCount = (utf8Str.match(/\uFFFD/g) || []).length
+        if (replacementCount > 0) {
+          try {
+            return iconv.decode(data, 'gbk')
+          } catch {
+            return utf8Str
+          }
+        }
+      }
+      return utf8Str
+    }
+    try {
+      return iconv.decode(data, enc)
+    } catch {
+      return data.toString('utf8')
+    }
+  }
+
   // 如果有 consoleKey，尝试使用该终端的字符集设置
   if (consoleKey && terminalEncodings.has(consoleKey)) {
     const encoding = terminalEncodings.get(consoleKey)!
@@ -2967,17 +2996,14 @@ function decodeBuffer(data: Buffer, consoleKey?: string): string {
         return iconv.decode(data, encoding)
       }
     } catch (error) {
-      // 如果解码失败，回退到平台默认编码
       console.warn(`使用编码 ${encoding} 解码失败，回退到平台默认编码:`, error)
     }
   }
 
   // 回退到平台默认编码
   if (process.platform === 'win32') {
-    // Windows上使用GBK编码解码
     return iconv.decode(data, 'gbk')
   } else {
-    // 其他平台使用UTF-8
     return data.toString('utf8')
   }
 }
@@ -2991,6 +3017,8 @@ const terminalProcesses = new Map<string, ReturnType<typeof spawn>>()
 const terminalCwds = new Map<string, string>()
 // 维护每个终端的字符集编码（consoleKey -> encoding）
 const terminalEncodings = new Map<string, string>()
+// Agent 单次调用的编码（invocationId -> encoding），用于强制 UTF-8 避免中文乱码，进程结束时清理
+const terminalInvocationEncodings = new Map<string, string>()
 
 function bindTerminalHandlers(): void {
   // 获取或设置终端的当前工作目录
@@ -3110,14 +3138,32 @@ function bindTerminalHandlers(): void {
     'execute-terminal-command',
     async (
       event: IpcMainInvokeEvent,
-      options: { command: string; cwd?: string; invocationId?: string; consoleKey?: string }
+      options: {
+        command: string
+        cwd?: string
+        invocationId?: string
+        consoleKey?: string
+        encoding?: 'utf-8'
+      }
     ): Promise<{ success: boolean; invocationId: string; error?: string }> => {
       const logger = createMainLogger('TerminalCommand')
-      const { command, cwd, consoleKey } = options
+      const { command, cwd, consoleKey, encoding } = options
       const invocationId =
         options.invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       try {
+        // 无 consoleKey 时多为 Agent 调用，默认使用 UTF-8 避免中文乱码；也可显式传 encoding: 'utf-8'
+        const useUtf8 = encoding === 'utf-8' || !consoleKey
+        if (useUtf8) {
+          terminalInvocationEncodings.set(invocationId, 'utf-8')
+        }
+
+        // Windows 下使用 UTF-8 时先切换代码页，保证子进程输出为 UTF-8
+        let runCommand = command
+        if (process.platform === 'win32' && useUtf8) {
+          runCommand = `chcp 65001 >nul && ${command}`
+        }
+
         // 确定工作目录：优先使用传入的cwd，否则使用该终端维护的cwd，最后使用进程cwd
         let workingDir = cwd
         if (!workingDir && consoleKey) {
@@ -3128,7 +3174,7 @@ function bindTerminalHandlers(): void {
         }
 
         logger.info(
-          `执行命令: ${command} (cwd: ${workingDir}, invocationId: ${invocationId}, consoleKey: ${consoleKey || 'none'})`
+          `执行命令: ${runCommand} (cwd: ${workingDir}, invocationId: ${invocationId}, consoleKey: ${consoleKey || 'none'})`
         )
 
         // 根据平台选择shell
@@ -3136,7 +3182,7 @@ function bindTerminalHandlers(): void {
         const shellArgs = process.platform === 'win32' ? ['/c'] : ['-c']
 
         // 创建子进程（不设置 timeout，支持长时间运行）
-        const childProcess = spawn(shell, [...shellArgs, command], {
+        const childProcess = spawn(shell, [...shellArgs, runCommand], {
           cwd: workingDir,
           env: process.env,
           stdio: ['pipe', 'pipe', 'pipe']
@@ -3145,9 +3191,9 @@ function bindTerminalHandlers(): void {
         // 保存进程到映射中
         terminalProcesses.set(invocationId, childProcess)
 
-        // 实时发送 stdout 到渲染进程
+        // 实时发送 stdout 到渲染进程（传入 invocationId 以便用 UTF-8 解码）
         childProcess.stdout?.on('data', (data: Buffer) => {
-          const text = decodeBuffer(data, consoleKey)
+          const text = decodeBuffer(data, consoleKey, invocationId)
           event.sender.send('terminal-stdout-stream', {
             invocationId,
             data: text
@@ -3156,7 +3202,7 @@ function bindTerminalHandlers(): void {
 
         // 实时发送 stderr 到渲染进程
         childProcess.stderr?.on('data', (data: Buffer) => {
-          const text = decodeBuffer(data, consoleKey)
+          const text = decodeBuffer(data, consoleKey, invocationId)
           event.sender.send('terminal-stderr-stream', {
             invocationId,
             data: text
@@ -3166,6 +3212,7 @@ function bindTerminalHandlers(): void {
         // 进程关闭时清理
         childProcess.on('close', (code: number | null) => {
           terminalProcesses.delete(invocationId)
+          terminalInvocationEncodings.delete(invocationId)
           const exitCode = code ?? 1
           logger.info(`命令执行完成: exitCode=${exitCode}, invocationId: ${invocationId}`)
 
@@ -3179,6 +3226,7 @@ function bindTerminalHandlers(): void {
         // 进程错误时清理
         childProcess.on('error', (error: Error) => {
           terminalProcesses.delete(invocationId)
+          terminalInvocationEncodings.delete(invocationId)
           logger.error('命令执行错误:', error)
           event.sender.send('terminal-error', {
             invocationId,
@@ -6177,5 +6225,102 @@ function bindWindowManagementHandlers(): void {
       return null
     }
     return getWindowId(focusedWindow)
+  })
+}
+
+/** agent-cli: 供 CLI 通过 TCP 驱动真实 agent 执行（与 GUI 同链路） */
+let agentCliResolve: ((value: string) => void) | null = null
+/** 当前处理请求的 socket，用于转发 progress 到终端 */
+let agentCliSocket: net.Socket | null = null
+
+function bindAgentCliHandlers(): void {
+  const portArg = process.argv.find((a) => a.startsWith('--agent-cli-port='))
+  const port = portArg ? parseInt(portArg.split('=')[1], 10) : 0
+  const useCli = port > 0 || process.argv.includes('--agent-cli')
+  const defaultPort = 49384
+  const listenPort = port > 0 ? port : defaultPort
+
+  if (!useCli) return
+
+  ipcBridge.registerOn(
+    'agent-cli-progress',
+    (_event: IpcMainEvent, text: string): void => {
+      if (agentCliSocket && !agentCliSocket.destroyed) {
+        agentCliSocket.write('[p] ' + (typeof text === 'string' ? text : String(text)) + '\n')
+      }
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'agent-cli-submit-response',
+    (_event: IpcMainInvokeEvent, content: string): void => {
+      if (agentCliResolve) {
+        agentCliResolve(typeof content === 'string' ? content : JSON.stringify(content))
+        agentCliResolve = null
+      }
+    }
+  )
+
+  const server = net.createServer((socket) => {
+    socket.setEncoding('utf8')
+    const rl = readline.createInterface({ input: socket, output: socket, terminal: false })
+    const lineQueue: string[] = []
+    let processing = false
+
+    const AGENT_CLI_RESPONSE_TIMEOUT_MS = 120_000
+
+    const processQueue = async (): Promise<void> => {
+      if (processing || lineQueue.length === 0) return
+      // 发给当前焦点窗口，这样「AI 队列没任务」的那一窗会回写结果；无焦点时用 mainWindow
+      const targetWindow = BrowserWindow.getFocusedWindow() || mainWindow
+      if (!targetWindow || targetWindow.isDestroyed()) {
+        const line = lineQueue.shift()!
+        processing = false
+        socket.write(JSON.stringify({ error: 'No window available for agent-cli (focus a MetaDoc window and retry)' }) + '\n')
+        if (lineQueue.length > 0) setImmediate(processQueue)
+        return
+      }
+      processing = true
+      agentCliSocket = socket
+      const line = lineQueue.shift()!
+      try {
+        targetWindow.webContents.send('agent-cli-run', line)
+        const result = await Promise.race([
+          new Promise<string>((resolve) => {
+            agentCliResolve = resolve
+          }),
+          new Promise<string>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Timeout: agent did not respond within ' + AGENT_CLI_RESPONSE_TIMEOUT_MS / 1000 + 's')),
+              AGENT_CLI_RESPONSE_TIMEOUT_MS
+            )
+          )
+        ])
+        // 单行协议：结果可能含换行，用 JSON 封装成一行，避免客户端读错位
+        socket.write(JSON.stringify({ reply: result }) + '\n')
+      } catch (e) {
+        socket.write(JSON.stringify({ error: String(e) }) + '\n')
+      } finally {
+        agentCliResolve = null
+        agentCliSocket = null
+        processing = false
+        if (lineQueue.length > 0) setImmediate(processQueue)
+      }
+    }
+
+    rl.on('line', (line) => {
+      lineQueue.push(line)
+      processQueue()
+    })
+
+    socket.on('error', () => {})
+    socket.on('close', () => rl.close())
+  })
+
+  server.listen(listenPort, '127.0.0.1', () => {
+    logger.info(`agent-cli TCP server listening on 127.0.0.1:${listenPort}`)
+  })
+  server.on('error', (err) => {
+    logger.error('agent-cli TCP server error:', err)
   })
 }

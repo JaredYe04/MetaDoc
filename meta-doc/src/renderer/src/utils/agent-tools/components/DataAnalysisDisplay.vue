@@ -90,7 +90,7 @@
         </TabsList>
         <!-- 字段信息 -->
         <TabsContent value="fields">
-          <ScrollArea class="h-[400px]">
+          <ScrollArea class="max-h-[400px]">
             <div class="fields-list">
               <div v-for="field in displayData.result.fields" :key="field.name" class="field-item">
                 <div class="field-header">
@@ -131,7 +131,7 @@
 
         <!-- 描述统计 -->
         <TabsContent value="stats">
-          <ScrollArea class="h-[400px]">
+          <ScrollArea class="max-h-[400px]">
             <Tree
               :data="statsTreeData"
               :props="{ children: 'children', label: 'label' }"
@@ -155,7 +155,7 @@
           v-if="displayData.result.aggregations && displayData.result.aggregations.length > 0"
           value="aggregations"
         >
-          <ScrollArea class="h-[400px]">
+          <ScrollArea class="max-h-[400px]">
             <div
               v-for="(agg, index) in displayData.result.aggregations"
               :key="index"
@@ -197,7 +197,7 @@
 
         <!-- 分析摘要 -->
         <TabsContent v-if="displayData.result.summary" value="summary">
-          <ScrollArea class="h-[400px]">
+          <ScrollArea class="max-h-[400px]">
             <div class="summary-content">
               <div
                 ref="summaryContainerRef"

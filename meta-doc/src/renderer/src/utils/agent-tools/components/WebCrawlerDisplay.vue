@@ -1,5 +1,20 @@
 <template>
   <div class="web-crawler-display" :style="containerStyle">
+    <!-- 紧凑模式：仅 Monaco 显示抓取文本 -->
+    <template v-if="compact">
+      <div
+        v-if="displayData.stage === 'fetching' || displayData.stage === 'processing'"
+        class="webcrawler-compact-status"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ getStageMessage(displayData.stage) }}</span>
+      </div>
+      <div v-else-if="resultData?.content" class="webcrawler-compact-monaco-wrap">
+        <div :id="webcrawlerCompactEditorId" class="webcrawler-compact-monaco"></div>
+      </div>
+    </template>
+
+    <template v-else>
     <div
       v-if="displayData.stage === 'fetching' || displayData.stage === 'processing'"
       class="status-message"
@@ -130,9 +145,12 @@
       </Alert>
     </div>
 
+    </template>
+
     <!-- 调试：显示原始数据（仅在开发环境） -->
     <div
       v-if="
+        !compact &&
         !resultData &&
         displayData.stage !== 'fetching' &&
         displayData.stage !== 'processing' &&
@@ -173,7 +191,9 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const props = withDefaults(defineProps<ToolDisplayComponentProps & { mode?: string }>(), {
+  compact: false
+})
 const isDemo = computed(() => props.mode === 'demo')
 
 // Demo data
@@ -794,9 +814,51 @@ onMounted(async () => {
   }
 })
 
+// 紧凑模式：单一 Monaco 显示 content
+const webcrawlerCompactEditorId = ref(
+  `webcrawler-compact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+)
+let webcrawlerCompactMonaco: monaco.editor.IStandaloneCodeEditor | null = null
+const initWebcrawlerCompactMonaco = () => {
+  if (!props.compact || !resultData.value?.content) return
+  setupMonacoWorker()
+  nextTick().then(() => {
+    const el = document.getElementById(webcrawlerCompactEditorId.value)
+    if (!el) return
+    if (webcrawlerCompactMonaco) {
+      webcrawlerCompactMonaco.setValue(resultData.value?.content || '')
+      return
+    }
+    webcrawlerCompactMonaco = monaco.editor.create(el, {
+      value: resultData.value?.content || '',
+      language: isJsonContent.value ? 'json' : isXmlContent.value ? 'xml' : 'plaintext',
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 12,
+      fontFamily: 'JetBrains Mono, Consolas, monospace'
+    })
+  })
+}
+watch(
+  () => [props.compact, resultData.value?.content] as const,
+  ([isCompact]) => {
+    if (isCompact && resultData.value?.content) nextTick().then(() => initWebcrawlerCompactMonaco())
+  },
+  { immediate: true }
+)
+
 onBeforeUnmount(() => {
   disposeJsonMonacoEditor()
   disposeXmlMonacoEditor()
+  if (webcrawlerCompactMonaco) {
+    webcrawlerCompactMonaco.dispose()
+    webcrawlerCompactMonaco = null
+  }
 })
 </script>
 
@@ -864,5 +926,25 @@ onBeforeUnmount(() => {
   height: 500px;
   border: none;
   background-color: v-bind('themeState.currentTheme.background');
+}
+
+.webcrawler-compact-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.webcrawler-compact-monaco-wrap {
+  height: 220px;
+  border: 1px solid v-bind('themeState.currentTheme.textColor2 + "20"');
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.webcrawler-compact-monaco {
+  width: 100%;
+  height: 100%;
 }
 </style>

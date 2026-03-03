@@ -138,15 +138,69 @@
           </div>
         </div>
 
-        <!-- Tool结果 -->
+        <!-- Tool结果：紧凑模式直接展示各 Display，非紧凑模式用卡片+折叠 -->
         <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
-          <Collapsible v-model:open="isToolMessageOpen" class="tool-message-collapsible">
+          <!-- 紧凑模式：不包 ToolResultCard，直接渲染工具输出组件，header 标明工具名 -->
+          <div
+            v-if="compact"
+            class="tool-message-compact-outputs"
+          >
+            <div class="tool-message-compact-header">
+              <span class="tool-message-compact-title">{{ (message as ToolAgentMessage).tool.name }}</span>
+              <Badge
+                class="tool-status-badge"
+                size="small"
+                :type="getToolStatusTagType((message as ToolAgentMessage).status)"
+              >
+                {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
+              </Badge>
+            </div>
+            <div
+              ref="compactBodyRef"
+              :class="['tool-message-compact-body', { 'tool-message-compact-body-collapsed': !isCompactToolExpanded }]"
+            >
+              <template
+                v-for="output in (message as ToolAgentMessage).outputs"
+                :key="output.id"
+              >
+                <component
+                  v-if="output.renderer && resolveToolOutputComponent(output.renderer)"
+                  :is="resolveToolOutputComponent(output.renderer)"
+                  :data="output.data"
+                  :status="(message as ToolAgentMessage).status"
+                  :progress="(message as ToolAgentMessage).progress"
+                  :error="(message as ToolAgentMessage).error"
+                  :tool-config="getToolConfigForMessage(message as ToolAgentMessage)"
+                  :invocation-id="(message as any).invocationId"
+                  :compact="true"
+                />
+                <pre v-else class="tool-message-compact-raw">{{ formatToolOutput(output) }}</pre>
+              </template>
+            </div>
+            <button
+              v-if="showCompactToggle"
+              type="button"
+              class="tool-message-compact-toggle"
+              :title="isCompactToolExpanded ? t('agent.tool.collapse', '折叠') : t('agent.tool.expand', '展开')"
+              @click="isCompactToolExpanded = !isCompactToolExpanded"
+            >
+              <ChevronUp v-if="isCompactToolExpanded" class="tool-message-compact-chevron" />
+              <ChevronDown v-else class="tool-message-compact-chevron" />
+            </button>
+          </div>
+          <!-- 非紧凑：原有 Collapsible + AgentToolResultCard -->
+          <Collapsible
+            v-else
+            v-model:open="isToolMessageOpen"
+            class="tool-message-collapsible"
+          >
             <CollapsibleTrigger class="tool-message-trigger">
               <div class="tool-message-header-preview">
                 <span class="tool-message-title">{{
                   (message as ToolAgentMessage).tool.name
                 }}</span>
                 <Badge
+                  class="tool-status-badge"
                   size="small"
                   :type="getToolStatusTagType((message as ToolAgentMessage).status)"
                 >
@@ -163,6 +217,7 @@
                 :message="message as ToolAgentMessage"
                 :messages="messages"
                 :message-index="messageIndex"
+                :compact="compact"
               />
             </CollapsibleContent>
           </Collapsible>
@@ -188,6 +243,7 @@
                 previewTheme="github"
                 :codeFold="false"
                 :autoFoldThreshold="300"
+                :sanitize="sanitizePreviewHtml"
                 :style="{
                   color: themeState.currentTheme.textColor
                 }"
@@ -195,13 +251,33 @@
               />
             </template>
           </template>
-          <!-- 如果没有tool_calls，正常显示markdown -->
+          <!-- 用户消息：@[xxx] 以 tag 样式展示，单行内联避免 chip 与文字间多余换行 -->
+          <template v-else-if="message.role === 'user' && message.type === 'chat' && userMessageContentSegments.length > 0">
+            <span class="user-message-segments-inline">
+              <span
+                v-for="(seg, segIdx) in userMessageContentSegments"
+                :key="segIdx"
+                class="user-message-segment"
+              >
+                <template v-if="seg.type === 'text'">{{ seg.value }}</template>
+                <span
+                  v-else
+                  class="user-message-at-tag"
+                  :title="seg.atValue"
+                >
+                  {{ getUserMessageAtLabel(seg.atValue) }}
+                </span>
+              </span>
+            </span>
+          </template>
+          <!-- 如果没有tool_calls且非用户消息，或用户消息无 @，正常显示markdown -->
           <MdPreview
             v-else-if="messageMarkdown"
             :modelValue="messageMarkdown"
             previewTheme="github"
             :codeFold="false"
             :autoFoldThreshold="300"
+            :sanitize="sanitizePreviewHtml"
             :style="{
               color: themeState.currentTheme.textColor
             }"
@@ -300,10 +376,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
 import { User, Edit, More, Loading, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
+import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import {
@@ -332,6 +409,7 @@ import { themeState, mixColors } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
+import { resolveToolOutputComponent } from '../../utils/agent-tools/resolve-tool-output-component'
 import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 
@@ -362,6 +440,22 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const stagingStore = useAgentEditStagingStore()
 
+/** 只保留真实 URL 链接：排除含 % 的 href（编码乱码）、排除主机名为文件名（如 xxx.md） */
+function sanitizePreviewHtml(html: string): string {
+  if (!html || typeof html !== 'string') return html
+  return html.replace(
+    /<a\s+[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
+    (match, href, content) => {
+      if (!/^https?:\/\//i.test(href)) return content
+      if (href.includes('%')) return content
+      const hostMatch = href.match(/^https?:\/\/([^/#?]+)/i)
+      const host = hostMatch ? hostMatch[1] : ''
+      if (/\.(md|txt|html|json)$/i.test(host)) return content
+      return match
+    }
+  )
+}
+
 /** 该用户消息产生的编辑：可回滚（未拒绝的）与可恢复（已拒绝的） */
 const editsForThisMessage = computed(() => {
   if (!props.sessionId || props.message.role !== 'user') return []
@@ -379,6 +473,21 @@ const showActions = ref(false)
 
 // Tool消息折叠状态 - shadcn-vue Collapsible uses boolean
 const isToolMessageOpen = ref(true)
+
+// 紧凑模式下工具结果默认折叠为最多 4 行，可展开/折叠
+const isCompactToolExpanded = ref(false)
+const compactBodyRef = ref<HTMLElement | null>(null)
+const showCompactToggle = ref(false)
+let compactResizeObserver: ResizeObserver | null = null
+
+const COLLAPSED_MAX_PX = 96 // 6em @ 16px，与 .tool-message-compact-body-collapsed 一致
+
+function checkCompactOverflow() {
+  const el = compactBodyRef.value
+  if (!el) return
+  // 用内容高度是否超过折叠高度判断，展开后仍显示折叠按钮
+  showCompactToggle.value = el.scrollHeight > COLLAPSED_MAX_PX
+}
 
 // 判断当前tool消息是否是最新的tool调用
 const isLatestToolMessage = computed(() => {
@@ -490,6 +599,20 @@ const getToolStatusLabel = (status: ToolAgentMessage['status']) => {
       return t('agent.tool.status.failed')
     default:
       return status
+  }
+}
+
+function getToolConfigForMessage(msg: ToolAgentMessage) {
+  return agentToolManager.getTool(msg.tool.id)?.config
+}
+
+function formatToolOutput(output: import('../../types/agent').ToolOutputDescriptor): string {
+  const d = output.data
+  if (typeof d === 'string') return d
+  try {
+    return JSON.stringify(d, null, 2)
+  } catch {
+    return String(d)
   }
 }
 
@@ -617,6 +740,36 @@ const cleanIncompleteToolCallTags = (content: string): string => {
   })
 
   return content
+}
+
+const USER_MSG_AT_PATTERN = /@\[([^\]]+)\]/g
+
+type UserMessageSegment = { type: 'text'; value: string } | { type: 'at'; atValue: string }
+
+const userMessageContentSegments = computed(() => {
+  if (props.message.role !== 'user' || props.message.type !== 'chat') return []
+  const raw = (props.message as ChatAgentMessage).markdown || ''
+  if (!raw) return []
+  const segments: UserMessageSegment[] = []
+  let lastIndex = 0
+  let m: RegExpExecArray | null
+  USER_MSG_AT_PATTERN.lastIndex = 0
+  while ((m = USER_MSG_AT_PATTERN.exec(raw)) !== null) {
+    if (m.index > lastIndex) {
+      segments.push({ type: 'text', value: raw.slice(lastIndex, m.index) })
+    }
+    segments.push({ type: 'at', atValue: m[1] })
+    lastIndex = m.index + m[0].length
+  }
+  if (lastIndex < raw.length) {
+    segments.push({ type: 'text', value: raw.slice(lastIndex) })
+  }
+  return segments
+})
+
+function getUserMessageAtLabel(rawValue: string): string {
+  if (rawValue.startsWith('tab:')) return rawValue.slice(4)
+  return rawValue.replace(/^.*[/\\]/, '') || rawValue
 }
 
 const messageMarkdown = computed(() => {
@@ -973,8 +1126,28 @@ const getToolName = (toolId: string): string => {
 }
 
 // 组件卸载时清理定时器
+onMounted(() => {
+  if (props.message.type === 'tool' && props.compact) {
+    nextTick(() => {
+      checkCompactOverflow()
+      compactResizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => checkCompactOverflow())
+      })
+      if (compactBodyRef.value) compactResizeObserver.observe(compactBodyRef.value)
+    })
+  }
+})
+
+watch(
+  () => (props.message.type === 'tool' ? (props.message as ToolAgentMessage).outputs : null),
+  () => nextTick(checkCompactOverflow),
+  { deep: true }
+)
+
 onBeforeUnmount(() => {
   clearHideTimer()
+  compactResizeObserver?.disconnect()
+  compactResizeObserver = null
 })
 </script>
 
@@ -1270,6 +1443,35 @@ onBeforeUnmount(() => {
   -webkit-user-select: text;
 }
 
+.user-message-segments-inline {
+  display: inline;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.user-message-segments-inline .user-message-segment {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.user-message-at-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 4px 1px 6px;
+  margin: 0 2px;
+  font-size: 12px;
+  line-height: 1.3;
+  border-radius: 4px;
+  background: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+  color: var(--el-text-color-primary);
+  vertical-align: baseline;
+  border: 1px solid var(--el-border-color-lighter, rgba(0, 0, 0, 0.08));
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .agent-message__content :deep(.md-editor) {
   width: 100%;
 }
@@ -1328,6 +1530,80 @@ onBeforeUnmount(() => {
 .tool-call-checkmark {
   color: var(--el-color-success);
   font-size: 14px;
+}
+
+.tool-message-compact-outputs {
+  width: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.tool-message-compact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"'
+    );
+}
+
+.tool-message-compact-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: v-bind('themeState.currentTheme.primaryColor');
+}
+
+/* 工具状态 Badge：无 hover、不可点击感 */
+.tool-status-badge {
+  cursor: default !important;
+  pointer-events: none;
+}
+.tool-status-badge:hover {
+  opacity: 1;
+}
+
+.tool-message-compact-body {
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+}
+.tool-message-compact-body-collapsed {
+  max-height: 6em; /* ~4 行，line-height 1.5 */
+}
+
+.tool-message-compact-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 2px 0;
+  font-size: 11px;
+  color: v-bind('themeState.currentTheme.primaryColor');
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.85;
+}
+.tool-message-compact-toggle:hover {
+  opacity: 1;
+}
+
+.tool-message-compact-chevron {
+  width: 14px;
+  height: 14px;
+  display: block;
+  margin: 0 auto;
+}
+
+.tool-message-compact-raw {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow: auto;
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .tool-message-wrapper {

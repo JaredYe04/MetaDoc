@@ -76,6 +76,25 @@
             @update:checked="handleRemoveThinkTagChange"
           />
         </div>
+
+        <Separator />
+
+        <!-- 终端执行默认允许 -->
+        <div class="flex items-center justify-between">
+          <div class="space-y-0.5">
+            <Label class="text-base">{{ t('setting.agentTerminalExecutionAllowed') }}</Label>
+            <p class="text-sm text-muted-foreground">
+              {{ settings.agentTerminalExecutionAllowed ? t('setting.enabled') : t('setting.disabled') }}
+            </p>
+          </div>
+          <Switch
+            :checked="settings.agentTerminalExecutionAllowed"
+            @update:checked="handleAgentTerminalExecutionAllowedChange"
+          />
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">
+          {{ t('setting.agentTerminalExecutionAllowedHint') }}
+        </p>
       </CardContent>
     </Card>
 
@@ -1148,6 +1167,11 @@ const handleRemoveThinkTagChange = (val: boolean) => {
   saveSetting('autoRemoveThinkTag', val)
 }
 
+const handleAgentTerminalExecutionAllowedChange = (val: boolean) => {
+  settings.agentTerminalExecutionAllowed = val
+  saveSetting('agentTerminalExecutionAllowed', val)
+}
+
 const fetchLlmSettings = async () => {
   settings.selectedLlm = (await getSetting('selectedLlm')) || ''
 
@@ -1219,6 +1243,7 @@ const fetchLlmSettings = async () => {
 
   settings.llmTemperature = (await getSetting('llmTemperature')) || 1.3
   settings.autoRemoveThinkTag = (await getSetting('autoRemoveThinkTag')) ?? true
+  settings.agentTerminalExecutionAllowed = (await getSetting('agentTerminalExecutionAllowed')) !== false
 }
 
 const updateLlmInfo = () => {
@@ -1248,6 +1273,7 @@ const updateLlmInfo = () => {
   setSetting('geminiSelectedModel', settings.gemini.selectedModel)
   setSetting('geminiEnableMaxTokens', settings.gemini.enableMaxTokens)
   setSetting('geminiMaxTokens', settings.gemini.maxTokens)
+  setSetting('agentTerminalExecutionAllowed', settings.agentTerminalExecutionAllowed)
   eventBus.emit('llm-api-updated')
 }
 

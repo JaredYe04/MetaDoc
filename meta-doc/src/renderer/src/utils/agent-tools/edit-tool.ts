@@ -118,7 +118,7 @@ export interface EditResult {
   originalContent?: string // 编辑前的原始内容（用于显示对比）
   newContent?: string // 编辑后的新内容（用于显示对比）
   hunks?: UnifiedDiffHunk[] // Unified diff hunks（如果使用diff格式）
-  filePath?: string // 编辑的文件路径（Cursor 风格展示用）
+  filePath?: string // 编辑的文件路径（用于展示）
 }
 
 /**
@@ -975,7 +975,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       // 解析 Unified diff
       const hunks = parseUnifiedDiff(diff)
 
-      // --- filePath 分支：按工作区文件路径编辑（Cursor 风格，支持新建文件）---
+      // --- filePath 分支：按工作区文件路径编辑（支持新建文件）---
       if (filePathParam) {
         if (!messageBridge.getIpc()?.invoke) {
           return {
@@ -1388,16 +1388,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     return {
       status: 'failed',
       error: createDetailedError(
-        '缺少必需参数: diff、operations 或 operation',
+        '缺少必需参数: 请提供 diff（推荐）或 operations/operation',
         [
-          '{"diff": "@@ -5,2 +5,2 @@\\n-旧文本\\n+新文本"}',
-          '{"operations": [{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}]}',
-          '{"operation": {"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}}'
+          '推荐：{"diff": "@@ -5,2 +5,2 @@\\n-旧文本\\n+新文本"}  （-/+ 行格式）',
+          '或：{"operations": [{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}]}'
         ],
         [
-          '可以使用 diff 参数提供 Unified diff 格式',
-          '也可以使用 operations 或 operation 参数',
-          '推荐使用 diff 格式，AI 更容易生成'
+          '优先使用 diff 参数：传入 - 行（删除）和 + 行（新增）的字符串，无需 operations',
+          '仅当 diff 不适用时才使用 operations 或 operation'
         ]
       )
     }
@@ -1807,12 +1805,12 @@ const editToolLocales: ToolLocales = {
   zh_cn: {
     name: '文档编辑',
     description:
-      '直接对文章进行编辑，支持查找替换（全局/单个）和基于位置的编辑，支持一次调用执行多个替换操作'
+      '用 git diff 格式编辑（-/+ 行）；也支持 operations 查找替换与基于位置的编辑'
   },
   en_us: {
     name: 'Document Edit',
     description:
-      'Directly edit the document, support find-replace (global/single) and position-based editing, support multiple replace operations in one call'
+      'Edit with git-style diff (-/+ lines); also supports operations (find-replace, position-based)'
   },
   de_DE: {
     name: 'Dokument bearbeiten',
@@ -1842,16 +1840,20 @@ export const editToolConfig: AgentToolConfig = {
   description: editToolLocales,
   origin: 'internal',
   instruction:
-    '直接对当前活动文档进行编辑。强烈推荐使用 Unified diff 格式（diff 参数），AI 可以直接输出 -xxxx 和 +yyyy 格式的 diff，工具自动解析并定位应用编辑。也支持查找替换（全局/单个）和基于位置的编辑（insert/replace/delete），支持一次调用执行多个编辑操作。',
+    '编辑文档时请优先使用 diff 参数：传入 git 风格的字符串，- 行表示删除，+ 行表示新增。不要用 operations 做简单编辑。仅当 diff 不适用时才使用 operations（findReplace/insert/replace/delete）。',
   spec: {
     name: 'edit',
     brief:
-      'Edit the current document with Unified diff format (recommended) or incremental diff editing. Supports Unified diff format (like Git diff), insert, replace, delete operations based on position or text search.',
+      'Edit or create workspace files with git-style diff (filePath + diff). For "create file with content" use filePath and diff with @@ -0,0 +1,N @@. Use this for any file content creation or editing—do not use terminal to write files.',
     fullSpec: `
 # 文档编辑工具
 
+**首选用法**：只传 \`diff\` 参数，字符串内容为 git 风格 diff：\`-旧行\` 与 \`+新行\`，不要用 \`operations\` 做简单读写。
+
+**创建新文件并写入内容**：用户要求「创建文件 xxx 内容为 yyy」时，必须用本工具，不要用终端。传 \`filePath\`（工作区相对路径，如 \`agent-test.txt\`）和 \`diff\`（新建文件用 \`@@ -0,0 +1,N @@\` 后跟 \`+行1\` \`+行2\` …）。示例：\`{"filePath": "agent-test.txt", "diff": "@@ -0,0 +1,1 @@\\n+你好世界，这是内容。"}\`
+
 ## 功能描述
-直接对当前活动文档进行编辑，支持多处编辑操作。采用**Unified diff 格式**（类似 Git diff）和**增量diff编辑框架**（类似Cursor/Claude），确保编辑稳定、高效、可控。
+直接对当前活动文档进行编辑，支持多处编辑操作。采用**Unified diff 格式**（类似 Git diff）和**增量 diff 编辑框架**，确保编辑稳定、高效、可控。
 
 ### 核心特性：Unified Diff 格式 ⭐⭐⭐ 强烈推荐AI使用
 - **标准格式**：使用类似 Git diff 的 Unified diff 格式，AI 模型非常熟悉
@@ -2370,7 +2372,7 @@ export const editToolConfig: AgentToolConfig = {
 
 ## 增量diff编辑最佳实践 ⭐⭐⭐
 
-### 核心原则（类似Cursor/Claude）
+### 核心原则
 1. **只生成变化部分**：永远不要生成整篇文档，只生成需要修改的部分（diff）
 2. **使用稳定锚点**：在编辑操作中提供 \`anchor\` 字段，包含 \`before\` 关键字，用于fallback定位
 3. **分块编辑**：将大范围编辑拆分为多个小范围编辑，每次只编辑一个逻辑块（如一个函数、一个段落）
@@ -2494,7 +2496,7 @@ export const editToolConfig: AgentToolConfig = {
 - 建议在编辑前保存文档
 - 如果某个编辑操作失败（例如找不到匹配文本、位置超出范围），其他操作仍会继续执行
 - 查找替换如果找不到匹配文本，该操作会失败但不影响其他操作
-- \`filePath\` 参数可选：工作区相对或绝对路径；与 \`diff\` 配合可编辑磁盘文件或新建文件（diff 为纯新增 @@ -0,0 +... 时创建新文件）。推荐 Cursor 风格：\`filePath\` + \`diff\`
+- \`filePath\` 参数可选：工作区相对或绝对路径；与 \`diff\` 配合可编辑磁盘文件或新建文件（diff 为纯新增 @@ -0,0 +... 时创建新文件）。推荐：\`filePath\` + \`diff\`
 - \`tabId\` 参数可选，默认使用当前活动的文档标签页
 - \`verbose\` 参数可选，默认false。如果设置为true，会在结果中包含完整的原始内容和新内容（originalContent和newContent），用于Display组件显示完整的编辑对比。**默认不包含完整内容以节省token**，只有在需要查看完整编辑对比时才设置为true。
 `
@@ -2508,92 +2510,16 @@ export const editToolConfig: AgentToolConfig = {
   inputSchema: {
     type: 'object',
     properties: {
-      operations: {
-        type: 'array',
-        items: {
-          type: 'object',
-          oneOf: [
-            {
-              // 查找替换操作
-              type: 'object',
-              properties: {
-                type: {
-                  type: 'string',
-                  enum: ['findReplace']
-                },
-                oldText: {
-                  type: 'string',
-                  description: '要查找的文本'
-                },
-                newText: {
-                  type: 'string',
-                  description: '替换为的文本'
-                },
-                all: {
-                  type: 'boolean',
-                  description: '是否替换所有匹配项（默认false，只替换第一个）'
-                },
-                caseSensitive: {
-                  type: 'boolean',
-                  description: '是否区分大小写（默认false）'
-                }
-              },
-              required: ['type', 'oldText', 'newText']
-            },
-            {
-              // 基于位置的操作
-              type: 'object',
-              properties: {
-                type: {
-                  type: 'string',
-                  enum: ['insert', 'replace', 'delete']
-                },
-                range: {
-                  type: 'object',
-                  properties: {
-                    start: {
-                      type: 'object',
-                      properties: {
-                        line: { type: 'number' },
-                        column: { type: 'number' }
-                      },
-                      required: ['line', 'column']
-                    },
-                    end: {
-                      type: 'object',
-                      properties: {
-                        line: { type: 'number' },
-                        column: { type: 'number' }
-                      },
-                      required: ['line', 'column']
-                    }
-                  },
-                  required: ['start', 'end']
-                },
-                content: {
-                  type: 'string'
-                }
-              },
-              required: ['type', 'range']
-            }
-          ]
-        },
-        description:
-          '编辑操作列表，支持查找替换（findReplace）和基于位置的编辑（insert/replace/delete）'
-      },
-      operation: {
-        type: 'object',
-        description: '单个编辑操作（与operations二选一），支持查找替换和基于位置的编辑'
-      },
+      // 首选参数：用 git diff 字符串，避免繁琐的 operations
       diff: {
         type: 'string',
         description:
-          'Unified diff 格式字符串（与operations/operation二选一）。格式类似 Git diff：@@ -start,count +start,count @@，后跟-行（删除）、+行（新增）和上下文行。推荐AI使用此格式，更直观易读。'
+          '【首选】Unified diff 字符串：- 开头的行表示删除，+ 开头的行表示新增。格式：@@ -行号,行数 +行号,行数 @@ 后跟 -old 和 +new 行。示例：{"diff": "@@ -5,2 +5,2 @@\\n-旧内容\\n+新内容"}。编辑时请优先使用 diff，不要用 operations 做简单替换/插入。'
       },
       filePath: {
         type: 'string',
         description:
-          '工作区相对路径或绝对路径（可选）。与 diff 配合使用可编辑磁盘文件或新建文件；未指定时使用 tabId/当前文档。推荐 Cursor 风格：filePath + diff。'
+          '工作区相对路径或绝对路径（可选）。与 diff 配合使用可编辑磁盘文件或新建文件；未指定时使用 tabId/当前文档。可配合：filePath + diff。'
       },
       tabId: {
         type: 'string',
@@ -2602,8 +2528,57 @@ export const editToolConfig: AgentToolConfig = {
       verbose: {
         type: 'boolean',
         description:
-          '是否返回完整内容（originalContent和newContent）用于Display组件显示对比。默认false，节省token。只有在需要查看完整编辑对比时才设置为true。',
+          '是否返回完整内容（originalContent和newContent）用于Display组件显示对比。默认false，节省token。',
         default: false
+      },
+      operations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          oneOf: [
+            {
+              type: 'object',
+              properties: {
+                type: { type: 'string', enum: ['findReplace'] },
+                oldText: { type: 'string', description: '要查找的文本' },
+                newText: { type: 'string', description: '替换为的文本' },
+                all: { type: 'boolean', description: '是否替换所有匹配项（默认false）' },
+                caseSensitive: { type: 'boolean', description: '是否区分大小写（默认false）' }
+              },
+              required: ['type', 'oldText', 'newText']
+            },
+            {
+              type: 'object',
+              properties: {
+                type: { type: 'string', enum: ['insert', 'replace', 'delete'] },
+                range: {
+                  type: 'object',
+                  properties: {
+                    start: {
+                      type: 'object',
+                      properties: { line: { type: 'number' }, column: { type: 'number' } },
+                      required: ['line', 'column']
+                    },
+                    end: {
+                      type: 'object',
+                      properties: { line: { type: 'number' }, column: { type: 'number' } },
+                      required: ['line', 'column']
+                    }
+                  },
+                  required: ['start', 'end']
+                },
+                content: { type: 'string' }
+              },
+              required: ['type', 'range']
+            }
+          ]
+        },
+        description:
+          '（仅在不用 diff 时使用）编辑操作列表：findReplace 或 insert/replace/delete。优先使用 diff 参数。'
+      },
+      operation: {
+        type: 'object',
+        description: '（仅在不用 diff 时使用）单个编辑操作，与 operations 二选一。优先使用 diff 参数。'
       }
     }
   },

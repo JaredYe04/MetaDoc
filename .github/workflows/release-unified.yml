@@ -455,11 +455,12 @@ jobs:
 
       - name: 发布 Windows 产物
         if: matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
           repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
           tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: main
           name: ${{ needs.prepare.outputs.release_name }}
           body_path: final-notes.txt
           prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
@@ -483,11 +484,12 @@ jobs:
       - name: 发布 Linux 产物（AppImage + deb）
         if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
         id: release_linux
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
           repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
           tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: main
           name: ${{ needs.prepare.outputs.release_name }}
           body_path: final-notes.txt
           prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
@@ -507,11 +509,12 @@ jobs:
 
       - name: 发布 macOS 产物
         if: (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
           repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
           tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: main
           name: ${{ needs.prepare.outputs.release_name }}
           body_path: final-notes.txt
           prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}

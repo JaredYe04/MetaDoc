@@ -40,7 +40,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: self-hosted
+        default: github-hosted
       runner_mac:
         description: 'macOS ARM64 Runner（关=不构建该平台）'
         required: false
@@ -49,7 +49,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: self-hosted
+        default: github-hosted
       runner_mac_amd64:
         description: 'macOS x64/Intel Runner（关=不构建该平台）'
         required: false
@@ -58,7 +58,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: off
+        default: github-hosted
       force_rebuild:
         description: '是否强制重新构建'
         required: false
@@ -189,30 +189,37 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
+      # 矩阵设计说明（避免逻辑/类型错误）：
+      # 1. enabled 必须输出 JSON 字符串 "true"/"false"，不能是布尔。release 里用 matrix.enabled == 'true' 比较，布尔 true != 字符串 'true' 会判反。
+      # 2. 平台为 off 时 runner_array 必须输出 JSON 字符串 "ubuntu-latest"，不能是数组 ["ubuntu-latest"]。数组会被当作 self-hosted 标签，一直等 runner。
+      # 3. 写入 GITHUB_OUTPUT 的矩阵 JSON 不能带尾部换行，否则 fromJson() 可能解析失败。
       - name: 输出 Runner 矩阵
         id: matrix
         run: |
           RW="${{ github.event.inputs.runner_win || 'self-hosted' }}"
-          RL="${{ github.event.inputs.runner_linux || 'self-hosted' }}"
-          RM="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
-          RM64="${{ github.event.inputs.runner_mac_amd64 || 'off' }}"
+          RL="${{ github.event.inputs.runner_linux || 'github-hosted' }}"
+          RM="${{ github.event.inputs.runner_mac || 'github-hosted' }}"
+          RM64="${{ github.event.inputs.runner_mac_amd64 || 'github-hosted' }}"
           ew=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
           el=$([ "$RL" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
           em=$([ "$RM" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
           e64=$([ "$RM64" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","x64"]')
-          # off 时用字符串 "ubuntu-latest" 才能立即分配 GitHub 托管 runner；用数组会当作 self-hosted 标签一直等
+          # off 时 runner_array 必须是字符串 "ubuntu-latest"（不能是数组），否则会当 self-hosted 标签一直等
           r_win=$([ "$RW" != "off" ] && echo "$ew" || echo '"ubuntu-latest"')
           r_linux=$([ "$RL" != "off" ] && echo "$el" || echo '"ubuntu-latest"')
           r_mac=$([ "$RM" != "off" ] && echo "$em" || echo '"ubuntu-latest"')
           r_mac64=$([ "$RM64" != "off" ] && echo "$e64" || echo '"ubuntu-latest"')
+          # enabled 必须输出字符串 "true"/"false"，否则 matrix.enabled == 'true' 会和 JSON 布尔 true 不匹配导致逻辑反了
           entries=()
-          entries+=("{\"platform\":\"win\",\"enabled\":$([ "$RW" != "off" ] && echo true || echo false),\"runner_array\":$r_win}")
-          entries+=("{\"platform\":\"linux\",\"enabled\":$([ "$RL" != "off" ] && echo true || echo false),\"runner_array\":$r_linux}")
-          entries+=("{\"platform\":\"mac\",\"enabled\":$([ "$RM" != "off" ] && echo true || echo false),\"runner_array\":$r_mac}")
-          entries+=("{\"platform\":\"mac-amd64\",\"enabled\":$([ "$RM64" != "off" ] && echo true || echo false),\"runner_array\":$r_mac64}")
-          printf '[%s]\n' "$(IFS=,; echo "${entries[*]}")" > matrix.json
+          entries+=("{\"platform\":\"win\",\"enabled\":$([ "$RW" != "off" ] && echo '"true"' || echo '"false"'),\"runner_array\":$r_win}")
+          entries+=("{\"platform\":\"linux\",\"enabled\":$([ "$RL" != "off" ] && echo '"true"' || echo '"false"'),\"runner_array\":$r_linux}")
+          entries+=("{\"platform\":\"mac\",\"enabled\":$([ "$RM" != "off" ] && echo '"true"' || echo '"false"'),\"runner_array\":$r_mac}")
+          entries+=("{\"platform\":\"mac-amd64\",\"enabled\":$([ "$RM64" != "off" ] && echo '"true"' || echo '"false"'),\"runner_array\":$r_mac64}")
+          json_str="$(IFS=,; echo "${entries[*]}")"
+          printf '[%s]\n' "$json_str" > matrix.json
+          # 输出不能带尾部换行，否则 fromJson() 可能解析失败
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
-          cat matrix.json >> $GITHUB_OUTPUT
+          printf '[%s]' "$json_str" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
 

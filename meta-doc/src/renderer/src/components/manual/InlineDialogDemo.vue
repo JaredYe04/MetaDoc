@@ -456,8 +456,8 @@ const simpleDialogOpen = ref(false)
 }
 
 .code-block code {
-  font-family:
-    ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo,
+    monospace;
   color: hsl(var(--foreground));
 }
 

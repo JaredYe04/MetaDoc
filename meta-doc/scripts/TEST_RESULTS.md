@@ -28,15 +28,18 @@
 ## 🔍 已验证的功能
 
 1. **版本信息处理**
+
    - 支持手动输入版本号
    - 支持从 package.json 自动读取
    - 正确处理 "Beta" 前缀
 
 2. **发布类型判断**
+
    - workflow_dispatch 手动触发
    - 从 git tag 自动判断（dev-_ 或 v_）
 
 3. **条件构建**
+
    - 检查 Release 是否已存在
    - 检查本地构建产物是否存在
    - 智能跳过不必要的构建步骤
@@ -49,14 +52,17 @@
 ## ⚠️ 注意事项
 
 1. **GitHub API 调用**
+
    - `check-release-exists.js` 需要有效的 `GH_TOKEN`
    - 如果 token 无效，脚本会返回 `release_exists=false`（默认需要构建）
 
 2. **文件路径**
+
    - 工作流中部分脚本在根目录运行，部分在 `meta-doc` 目录运行
    - 文件路径已正确配置
 
 3. **softprops/action-gh-release@v1**
+
    - 不支持 `owner` 和 `overwrite` 参数（已移除）
    - 使用 `repository: owner/repo` 格式
 

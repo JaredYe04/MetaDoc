@@ -218,10 +218,11 @@ jobs:
           entries+=("{\"platform\":\"mac\",\"enabled\":$(is_off "$RM" && echo '"false"' || echo '"true"'),\"runner_array\":$r_mac}")
           entries+=("{\"platform\":\"mac-amd64\",\"enabled\":$(is_off "$RM64" && echo '"false"' || echo '"true"'),\"runner_array\":$r_mac64}")
           json_str="$(IFS=,; echo "${entries[*]}")"
-          printf '[%s]\n' "$json_str" > matrix.json
-          # heredoc 要求分隔符 EOF 单独占一行，必须在 JSON 后先换行再写 EOF
+          matrix_json="[$json_str]"
+          printf '%s\n' "$matrix_json" > matrix.json
+          # heredoc 要求分隔符 EOF 单独占一行，必须在 JSON 后先换行再写 EOF；值必须是合法 JSON（含外层 []）
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
-          printf '%s\n' "$json_str" >> $GITHUB_OUTPUT
+          printf '%s\n' "$matrix_json" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
 

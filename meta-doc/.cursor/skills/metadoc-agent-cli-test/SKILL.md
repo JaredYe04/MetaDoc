@@ -58,22 +58,18 @@ node scripts/agent-cli/send-and-receive.mjs "消息1" "消息2"
 ### 测试顺序与示例提示
 
 1. **读（List/Read）**
-
    - 提示示例：`列出当前工作区根目录下的所有文件和文件夹。`
    - 预期：agent 调用 workspace 相关工具，返回目录列表。
 
 2. **建文件夹（Create directory）**
-
    - 提示示例：`在当前工作区根目录下创建一个文件夹，名为 agent-test-dir。`
    - 预期：工作区内出现 `agent-test-dir`。
 
 3. **建文件并写内容（Create file + Write，含中文）**
-
    - 提示示例：`在工作区根目录下创建一个文件 agent-test.txt，内容为：你好世界，这是 agent 写入的中文。`
    - 预期：文件存在且内容含中文。
 
 4. **读文件（Read file）**
-
    - 提示示例：`读取工作区根目录下的 agent-test.txt 并告诉我文件内容。`
    - 预期：返回内容与写入一致（含中文）。
 

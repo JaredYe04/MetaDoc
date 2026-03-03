@@ -356,8 +356,8 @@ const componentProps = computed(() => {
 .inline-dialog-code {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo,
-    monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.875rem;
   color: hsl(var(--foreground));
   background: hsl(var(--muted));

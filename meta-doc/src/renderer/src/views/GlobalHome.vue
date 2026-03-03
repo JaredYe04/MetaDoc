@@ -440,7 +440,8 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: linear-gradient(
+  background-image:
+    linear-gradient(
       v-bind(
           'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"'
         )

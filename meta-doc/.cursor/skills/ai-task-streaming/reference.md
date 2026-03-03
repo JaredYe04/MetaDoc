@@ -5,7 +5,6 @@
 **File**: `src/renderer/src/utils/ai_tasks.ts`
 
 - **Parameters**:
-
   - `name`: Shown in the task queue; often `t('some.key')`.
   - `prompt`: Single string (answer-style) or `AIDialogMessage[]` (chat-style). For chat, use `[{ role: 'user', content: prompt }]`.
   - `target`: `Ref<string>`. The task runner writes streamed chunks (or final text) into `target.value`. Must be a Vue ref.

@@ -18,7 +18,6 @@
 #### 主进程（Main Process）
 
 - **`src/main/runtime-server-config.ts`**：运行时服务器配置
-
   - `getRuntimeServerPort()`：获取端口（默认 52521，可通过 `RUNTIME_SERVER_PORT` 环境变量覆盖）
   - `getRuntimeServerHost()`：获取主机（默认 127.0.0.1，可通过 `RUNTIME_SERVER_HOST` 环境变量覆盖）
   - `getRuntimeServerBaseUrl()`：获取完整 base URL（如 `http://127.0.0.1:52521`）
@@ -32,7 +31,6 @@
 #### 渲染进程（Renderer Process）
 
 - **`src/renderer/src/config/runtime-server.ts`**：运行时服务器地址获取
-
   - `getRuntimeServerBaseUrl()`：异步获取 base URL（通过 IPC，带缓存）
   - `getRuntimeServerBaseUrlSync()`：同步获取已缓存的 base URL（需先调用过异步版本）
   - `setRuntimeServerBaseUrl(url)`：手动设置缓存（用于测试）

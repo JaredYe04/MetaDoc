@@ -110,7 +110,7 @@ export async function generateConversationTitleByAi(
         if (lines.length > 0) {
           const firstLine = lines[0]
             .replace(/^[{\[]/, '')
-            .replace(/[}\]]$/, '')
+            .replace(/[]}]$/, '')
             .replace(/^"title"\s*:\s*"?/, '')
             .replace(/^"|"$/g, '')
             .trim()

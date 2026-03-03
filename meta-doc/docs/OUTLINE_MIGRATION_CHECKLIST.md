@@ -34,23 +34,19 @@
 **迁移步骤**:
 
 1. [ ] 修改 imports:
-
    - 移除: `import { ElButton, ElTooltip } from 'element-plus'`
    - 添加: `import { Button } from '@renderer/components/ui/button'`
    - 添加: `import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'`
 
 2. [ ] 替换按钮:
-
    - `el-button type="primary"` → `Button variant="default"`
    - `el-button type="default"` → `Button variant="outline"`
    - `size="small"` → `size="sm"`
 
 3. [ ] 替换工具提示:
-
    - `el-tooltip` → `TooltipProvider + Tooltip + TooltipTrigger + TooltipContent`
 
 4. [ ] 替换图标:
-
    - 检查当前使用的图标类型
    - 改为使用主题图标系统 (`themeState.currentTheme.BranchIcon` 等)
 
@@ -76,18 +72,15 @@
 **迁移步骤**:
 
 1. [ ] 修改 imports:
-
    - 移除: `import { ElButton, ElTooltip } from 'element-plus'`
    - 添加: `import { Button } from '@renderer/components/ui/button'`
    - 添加: `import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'`
 
 2. [ ] 替换按钮:
-
    - `el-button` → `Button variant="ghost"`
    - `size="small"` → `size="sm"`
 
 3. [ ] 替换工具提示:
-
    - `el-tooltip` → `TooltipProvider + Tooltip + TooltipTrigger + TooltipContent`
 
 4. [ ] 测试验证:
@@ -112,22 +105,18 @@
 **迁移步骤**:
 
 1. [ ] 修改 imports:
-
    - 移除: `import { ElIcon } from 'element-plus'`
    - 移除: `import { CloseBold, Check, Close, EditPen, Minus, Star, ArrowUp } from '@element-plus/icons-vue'`
    - 添加: `import { X, Check, Pencil, Minus, Star, ArrowUp } from 'lucide-vue-next'`
 
 2. [ ] 替换图标:
-
    - `el-icon` + `@element-plus/icons-vue` → `lucide-vue-next` 直接导入
 
 3. [ ] 替换工具提示:
-
    - 找到所有 `el-tooltip` (约 3 处)
    - 替换为 `TooltipProvider + Tooltip + TooltipTrigger + TooltipContent`
 
 4. [ ] 检查 scrollarea:
-
    - 确保使用 shadcn-vue 的 `ScrollArea`
    - 移除可能残留的 `el-scrollbar`
 
@@ -158,7 +147,6 @@
 **迁移步骤**:
 
 1. [ ] 修改 imports:
-
    - 移除所有 `element-plus` 导入
    - 添加 shadcn-vue 组件导入:
      ```typescript
@@ -182,26 +170,21 @@
      ```
 
 2. [ ] 替换对话框:
-
    - `el-dialog` → `Dialog + DialogContent + DialogHeader + DialogTitle`
    - 找到所有对话框 (格式化标题、编辑章节)
 
 3. [ ] 替换表单:
-
    - `el-form` → 使用 `div class="grid gap-4"` 布局
    - `el-form-item` → 使用 `div class="grid gap-2"` + label
 
 4. [ ] 替换 switch:
-
    - `el-switch v-model="x"` → `Switch v-model:checked="x"`
    - 共 4 处: adjustMarkdown, adjustTitle, cover, level1TitleChinese
 
 5. [ ] 替换 number input:
-
    - `el-input-number` → `NumberField` 组件组
 
 6. [ ] 替换 text input:
-
    - `el-input` → `Input`
 
 7. [ ] 测试验证:

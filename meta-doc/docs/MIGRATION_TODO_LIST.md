@@ -305,7 +305,6 @@ const getIpc = () => messageBridge.getIpc()
 ## 六、注意事项
 
 1. **导入路径**：根据文件位置调整 `messageBridge` 的导入路径
-
    - 同目录：`'./bridge/message-bridge'`
    - 上一级：`'../bridge/message-bridge'`
    - 上两级：`'../../bridge/message-bridge'`

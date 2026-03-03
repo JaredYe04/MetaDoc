@@ -30,9 +30,13 @@ eventBus.on('font-settings-changed', () => {
     editors.forEach((ed) => {
       try {
         ed.updateOptions({ fontFamily })
-      } catch (_) {}
+      } catch {
+        /* ignore per-editor update errors */
+      }
     })
-  } catch (_) {}
+  } catch {
+    /* ignore when no editors */
+  }
 })
 
 export { getEditorFontFamily }

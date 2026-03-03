@@ -102,13 +102,11 @@ graph TB
 MetaDoc会自动检测文件格式：
 
 1. **扩展名检测**：优先根据文件扩展名检测格式
-
    - `.md`、`.markdown` → Markdown格式
    - `.tex` → LaTeX格式
    - `.txt`、`.json`等 → 纯文本格式
 
 2. **内容检测**：如果扩展名无法确定格式，会检测文件内容
-
    - LaTeX内容优先识别为LaTeX格式
    - 其他内容默认识别为Markdown格式
 

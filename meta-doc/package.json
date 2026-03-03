@@ -227,7 +227,7 @@
     "glob": "^13.0.6",
     "husky": "^9.1.7",
     "less": "^4.2.0",
-    "lint-staged": "^16.2.7",
+    "lint-staged": "^16.3.1",
     "markdownlint": "^0.40.0",
     "markdownlint-cli2": "^0.21.0",
     "mdast-util-to-string": "^4.0.0",

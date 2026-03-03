@@ -500,13 +500,11 @@ ipcRenderer.invoke('check-window-can-close')
 #### 9.1 主进程
 
 - **`window-pool.ts`**：窗口池管理
-
   - `initWindowPool()`：初始化窗口池
   - `acquirePoolWindow()`：从池中获取窗口
   - `createAndAddToPool()`：创建并添加到池中
 
 - **`main-calls.ts`**：IPC处理器
-
   - `create-window-with-tab`：创建新窗口
   - `transfer-tab-to-window`：窗口间Tab传递
   - `check-window-can-close`：检查窗口关闭
@@ -518,7 +516,6 @@ ipcRenderer.invoke('check-window-can-close')
 #### 9.2 渲染进程
 
 - **`MainTabs.vue`**：Tab组件
-
   - `handleDragStart()`：开始拖拽
   - `handleGlobalDragOver()`：全局拖拽处理
   - `handleGlobalDrop()`：拖拽放下
@@ -526,7 +523,6 @@ ipcRenderer.invoke('check-window-can-close')
   - `removeTabAfterDrag()`：移除Tab
 
 - **`Main.vue`**：主视图
-
   - `handleWorkspaceOpenDocument()`：打开文档
   - 防重复打开机制
 
@@ -555,25 +551,21 @@ ipcRenderer.invoke('check-window-can-close')
 ### 11. 开发注意点
 
 1. **窗口池窗口状态**：
-
    - 窗口池中的窗口已加载但隐藏
    - 使用前需要设置位置和大小
    - 发送Tab数据后立即显示
 
 2. **Tab数据完整性**：
-
    - 必须包含所有状态信息
    - 特别注意dirty状态和未保存内容
    - 工具Tab需要包含toolState
 
 3. **窗口生命周期**：
-
    - 窗口关闭时清理Tab
    - 窗口销毁时停止文件监听
    - 最后一个窗口关闭时退出应用
 
 4. **异步操作**：
-
    - Tab传递是异步的，需要等待完成
    - 窗口创建是异步的，需要处理错误
    - 文件检查是异步的，需要防竞态

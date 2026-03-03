@@ -90,50 +90,7 @@
             >{{ $t('agent.display.edit.totalOperations') }}:
             {{ resultData.operations.length }}</Badge
           >
-          <div v-if="hasFullContent" class="mode-switch flex gap-1">
-            <Button
-              :variant="viewMode === 'unified' ? 'default' : 'outline'"
-              size="sm"
-              @click="viewMode = 'unified'"
-            >
-              {{ $t('agent.display.edit.unifiedView') }}
-            </Button>
-            <Button
-              :variant="viewMode === 'split' ? 'default' : 'outline'"
-              size="sm"
-              @click="viewMode = 'split'"
-            >
-              {{ $t('agent.display.edit.splitView') }}
-            </Button>
-          </div>
         </div>
-      </div>
-
-      <!-- 如果没有完整内容（verbose模式），只显示概要 -->
-      <div v-if="resultData && !hasFullContent" class="summary-view" :style="summaryViewStyle">
-        <Alert variant="default">
-          <Info class="h-4 w-4" />
-          <AlertTitle>{{ $t('agent.display.edit.summaryMode') || '概要模式' }}</AlertTitle>
-          <AlertDescription>
-            <div class="summary-content">
-              <p>
-                {{
-                  $t('agent.display.edit.summaryDescription') ||
-                  '编辑操作已成功完成。由于verbose模式未启用，未包含完整内容以节省空间。'
-                }}
-              </p>
-              <ul class="summary-list">
-                <li>{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</li>
-                <li v-if="resultData.failedEdits > 0">
-                  {{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}
-                </li>
-                <li>
-                  {{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}
-                </li>
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>
       </div>
 
       <!-- 如果没有resultData，显示成功消息 -->
@@ -146,7 +103,7 @@
       </div>
 
       <!-- Unified Diff 视图（如果有 hunks） -->
-      <div v-if="resultData && hasHunks && viewMode === 'unified'" class="diff-view">
+      <div v-if="hasHunks" class="diff-view">
         <ScrollArea class="max-h-[500px]">
           <div class="diff-content">
             <div
@@ -214,8 +171,8 @@
         </ScrollArea>
       </div>
 
-      <!-- 统一视图（操作列表） -->
-      <div v-else-if="resultData && hasFullContent && viewMode === 'unified'">
+      <!-- 操作列表（有 operations 时） -->
+      <div v-else-if="resultData && resultData.operations?.length">
         <ScrollArea class="max-h-[500px]">
           <div class="operations-list">
             <div
@@ -258,75 +215,6 @@
           </div>
         </ScrollArea>
       </div>
-
-      <!-- 分列视图（Monaco 编辑器对比） -->
-      <div v-else-if="resultData && hasFullContent" class="split-view-container">
-        <div class="split-view-layout">
-          <!-- 左侧：操作列表 -->
-          <div class="operations-panel" :style="{ width: leftPanelWidth + '%' }">
-            <div class="operations-header" :style="editorHeaderStyle">
-              <span class="editor-label">{{
-                $t('agent.display.edit.operations') || '操作列表'
-              }}</span>
-            </div>
-            <ScrollArea class="flex-1 min-h-0">
-              <div class="operations-list-compact">
-                <div
-                  v-for="(operation, index) in resultData.operations"
-                  :key="index"
-                  class="operation-item-compact"
-                  :class="{ 'operation-item-active': selectedOperationIndex === index }"
-                  :style="operationItemStyle"
-                  @click="selectOperation(index)"
-                >
-                  <div class="operation-header-compact" :style="operationHeaderStyle">
-                    <Badge :variant="getOperationTypeTag(operation.type)">
-                      {{ getOperationTypeLabel(operation.type) }}
-                    </Badge>
-                    <span class="operation-range" :style="rangeStyle">
-                      {{ formatRange(operation.range) }}
-                    </span>
-                  </div>
-                  <div v-if="operation.content" class="operation-preview" :style="contentStyle">
-                    <pre class="content-text-preview" :style="textStyle">{{
-                      truncateText(operation.content, 50)
-                    }}</pre>
-                  </div>
-                </div>
-              </div>
-            </ScrollArea>
-          </div>
-
-          <!-- 分割线（固定30/70比例，不可调整） -->
-          <div class="resize-handle" :style="resizeHandleStyle"></div>
-
-          <!-- 右侧：Monaco 编辑器对比 -->
-          <div class="editors-panel" :style="{ width: rightPanelWidth + '%' }">
-            <div class="split-editors">
-              <div class="editor-panel old-panel">
-                <div class="editor-header" :style="editorHeaderStyle">
-                  <span class="editor-label">{{ $t('agent.display.edit.oldContent') }}</span>
-                </div>
-                <div
-                  :id="oldEditorId"
-                  class="monaco-editor-container"
-                  :style="editorContainerStyle"
-                ></div>
-              </div>
-              <div class="editor-panel new-panel">
-                <div class="editor-header" :style="editorHeaderStyle">
-                  <span class="editor-label">{{ $t('agent.display.edit.newContent') }}</span>
-                </div>
-                <div
-                  :id="newEditorId"
-                  class="monaco-editor-container"
-                  :style="editorContainerStyle"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div v-else class="error-state">
@@ -345,7 +233,7 @@ import { Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
-import { Info, XCircle, ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { XCircle, ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Result } from '@renderer/components/ui/result'
@@ -359,11 +247,15 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import type { EditResult, EditOperation, UnifiedDiffHunk } from '../edit-tool'
+import { parseUnifiedDiff } from '../edit-tool'
 import { useWorkspace } from '../../../stores/workspace'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = withDefaults(defineProps<ToolDisplayComponentProps>(), { compact: false })
+const props = withDefaults(
+  defineProps<ToolDisplayComponentProps & { paramsDiff?: string }>(),
+  { compact: false }
+)
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -371,18 +263,6 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
   props.status,
   props.progress
 )
-
-const viewMode = ref<'unified' | 'split'>('unified')
-const oldEditorId = ref(`edit-old-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
-const newEditorId = ref(`edit-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
-let oldMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
-let newMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
-
-// 左右面板宽度（百分比）
-const leftPanelWidth = ref(30) // 默认30%
-const rightPanelWidth = ref(70) // 默认70%
-const selectedOperationIndex = ref<number | null>(null)
-const isResizing = ref(false)
 
 const workspace = useWorkspace()
 
@@ -429,18 +309,24 @@ const displayData = computed(() => {
 const resultData = computed((): EditResult | null => {
   const data = displayData.value
   if (data && typeof data === 'object') {
-    // 尝试多种路径提取result
-    // 1. 直接从data.result获取（最直接）
-    // 2. 从data.content.result获取（ToolCallbackData格式）
-    // 3. 从data.content获取（如果content本身就是result）
-    // 4. 如果data本身就有operations，说明data就是result
-    let result = data.result || data.content?.result || data.content || data
+    // 尝试多种路径提取 result（兼容 parseToolData 提取后的 content、完整回调、持久化后的形状）
+    // 1. 直接从 data.result 获取（最直接，如 { stage, result }）
+    // 2. 从 data.data?.content?.result（完整回调未解包时）
+    // 3. 从 data.content?.result / data.content
+    // 4. 若 data 本身带 operations/hunks，则 data 即为 result
+    const raw = data as Record<string, unknown>
+    let result =
+      raw.result ??
+      (raw.data as any)?.content?.result ??
+      (raw.content as any)?.result ??
+      raw.content ??
+      raw
 
-    // 如果result有operations或hunks，说明它是EditResult（或流式部分结果）
     if (result && typeof result === 'object') {
-      const hasOps = 'operations' in result && Array.isArray(result.operations)
-      const hasHunks = 'hunks' in result && Array.isArray(result.hunks)
-      if (hasOps || hasHunks) {
+      const hasOps = 'operations' in result && Array.isArray((result as any).operations)
+      const hasHunks = 'hunks' in result && Array.isArray((result as any).hunks)
+      const hasRawDiff = 'rawDiff' in result && typeof (result as any).rawDiff === 'string'
+      if (hasOps || hasHunks || hasRawDiff) {
         return result as EditResult
       }
     }
@@ -448,19 +334,41 @@ const resultData = computed((): EditResult | null => {
   return null
 })
 
-// 检查是否有完整内容（verbose模式）
-const hasFullContent = computed(() => {
-  return !!(resultData.value?.originalContent && resultData.value?.newContent)
+// 仅当 result 中无 rawDiff/hunks 时，用调用参数中的 diff 构造一个“仅展示用”的 result，便于显示 git diff 样式（不读真实文件）
+const resultDataOrFromParams = computed((): EditResult | null => {
+  const r = resultData.value
+  if (r && (r.rawDiff || (r.hunks && r.hunks.length > 0))) return r
+  const diffFromParams = props.paramsDiff && props.paramsDiff.trim()
+  if (!diffFromParams) return r
+  return {
+    appliedEdits: 0,
+    failedEdits: 0,
+    operations: [],
+    hunks: [],
+    rawDiff: diffFromParams
+  } as EditResult
 })
 
-// 检查是否有 hunks（Unified diff 格式）
+// 检查是否有 hunks 或可从 params 解析的 diff（用于展示）
 const hasHunks = computed(() => {
-  return !!(resultData.value?.hunks && resultData.value.hunks.length > 0)
+  const r = resultDataOrFromParams.value
+  if (r?.hunks && r.hunks.length > 0) return true
+  if (r?.rawDiff && r.rawDiff.trim()) return true
+  return false
 })
 
-// 获取 hunks
+// 获取 hunks（优先 result，否则从 params 的 rawDiff 解析，便于只显示调用参数中的 git diff）
 const hunks = computed((): UnifiedDiffHunk[] => {
-  return resultData.value?.hunks || []
+  const r = resultDataOrFromParams.value
+  if (r?.hunks && r.hunks.length > 0) return r.hunks
+  if (r?.rawDiff && r.rawDiff.trim()) {
+    try {
+      return parseUnifiedDiff(r.rawDiff)
+    } catch {
+      return []
+    }
+  }
+  return []
 })
 
 // Cursor 风格：编辑文件名（用于内联展示，支持流式时的 content.filePath）
@@ -485,18 +393,35 @@ const showCompactInline = computed(() => {
 const compactDiffExpanded = ref(false)
 const COMPACT_DIFF_LINES = 4
 
-// 紧凑模式：默认折叠面板 + 单一 Monaco 显示 diff
+// 紧凑模式：有结果时默认展开，便于看到 diff
 const compactPanelOpen = ref(false)
 const compactDiffEditorId = ref(`edit-compact-diff-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
 let compactDiffMonaco: monaco.editor.IStandaloneCodeEditor | null = null
 const unifiedDiffText = computed(() => {
+  // 优先使用 result 或 params 中的原始 diff（不读真实文件，只显示调用参数里的 git diff）
+  const r = resultDataOrFromParams.value
+  if (r?.rawDiff && typeof r.rawDiff === 'string' && r.rawDiff.trim()) return r.rawDiff.trim()
   const lines: string[] = []
   for (const hunk of hunks.value) {
     lines.push(`@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@`)
     for (const line of hunk.oldLines || []) lines.push('-' + line)
     for (const line of hunk.newLines || []) lines.push('+' + line)
   }
-  return lines.length ? lines.join('\n') : (resultData.value?.originalContent || '')
+  if (lines.length) return lines.join('\n')
+  // 无 hunks 时用 operations 拼一段可读 diff，避免 Monaco 空白
+  if (r?.operations?.length) {
+    for (const op of r.operations) {
+      lines.push(`@@ ${op.type} 行 ${op.range.start.line}:${op.range.start.column} @@`)
+      if (op.type === 'delete' || op.type === 'replace') {
+        const old = getOldContent(op)
+        if (old) old.split(/\r?\n/).forEach((l) => lines.push('-' + l))
+      }
+      if (op.type === 'insert' || op.type === 'replace')
+        (op.content || '').split(/\r?\n/).forEach((l) => lines.push('+' + l))
+    }
+    if (lines.length) return lines.join('\n')
+  }
+  return r?.originalContent || r?.newContent || ''
 })
 const compactMonacoStyle = computed(() => ({
   height: '220px',
@@ -524,14 +449,6 @@ const compactDiffLinesVisible = computed(() => {
 })
 
 const hasMoreDiffLines = computed(() => compactDiffLines.value.length > COMPACT_DIFF_LINES)
-
-const oldContent = computed(() => {
-  return resultData.value?.originalContent || ''
-})
-
-const newContent = computed(() => {
-  return resultData.value?.newContent || ''
-})
 
 const getStageMessage = (stage: string) => {
   if (stage === 'loading') return t('agent.display.edit.loading')
@@ -655,219 +572,12 @@ const getDiffLineStyle = (type: 'insert' | 'delete' | 'context') => {
   }
 }
 
-// 截断文本
-const truncateText = (text: string, maxLength: number) => {
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength) + '...'
-}
-
-// 选择操作
-const selectOperation = (index: number) => {
-  selectedOperationIndex.value = index
-  // 可以在这里添加跳转到对应位置的逻辑
-  if (oldMonacoEditor && resultData.value?.operations[index]) {
-    const op = resultData.value.operations[index]
-    const range = new monaco.Range(
-      op.range.start.line,
-      op.range.start.column,
-      op.range.end.line,
-      op.range.end.column
-    )
-    oldMonacoEditor.revealRangeInCenter(range)
-    oldMonacoEditor.setPosition({ lineNumber: op.range.start.line, column: op.range.start.column })
-  }
-}
-
-// 调整宽度（保持30/70比例，不允许用户调整）
-const startResize = (e: MouseEvent) => {
-  // 禁用调整功能，始终保持30/70比例
-  // 如果需要允许调整，可以取消注释下面的代码
-  /*
-  isResizing.value = true
-  const startX = e.clientX
-  const startLeftWidth = leftPanelWidth.value
-  
-  const handleMouseMove = (moveEvent: MouseEvent) => {
-    const deltaX = moveEvent.clientX - startX
-    const container = (moveEvent.target as HTMLElement)?.closest('.split-view-container') as HTMLElement
-    if (container) {
-      const containerWidth = container.clientWidth
-      const deltaPercent = (deltaX / containerWidth) * 100
-      const newLeftWidth = Math.max(20, Math.min(60, startLeftWidth + deltaPercent))
-      leftPanelWidth.value = newLeftWidth
-      rightPanelWidth.value = 100 - newLeftWidth
+function syncCompactMonacoValue() {
+  if (compactDiffMonaco) {
+    const text = unifiedDiffText.value
+    if (text !== compactDiffMonaco.getValue()) {
+      compactDiffMonaco.setValue(text || '')
     }
-  }
-  
-  const handleMouseUp = () => {
-    isResizing.value = false
-    document.removeEventListener('mousemove', handleMouseMove)
-    document.removeEventListener('mouseup', handleMouseUp)
-  }
-  
-  document.addEventListener('mousemove', handleMouseMove)
-  document.addEventListener('mouseup', handleMouseUp)
-  */
-}
-
-const resizeHandleStyle = computed(() => ({
-  cursor: 'col-resize',
-  backgroundColor: isResizing.value
-    ? themeState.currentTheme.textColor2 + '40'
-    : themeState.currentTheme.textColor2 + '20',
-  width: '4px',
-  transition: isResizing.value ? 'none' : 'background-color 0.2s'
-}))
-
-// 初始化 Monaco 编辑器（分列视图）
-const initMonacoEditors = async () => {
-  if (viewMode.value !== 'split') return
-
-  // 确保 Monaco Worker 已配置
-  setupMonacoWorker()
-
-  await nextTick()
-
-  const oldContainer = document.getElementById(oldEditorId.value)
-  const newContainer = document.getElementById(newEditorId.value)
-
-  if (!oldContainer || !newContainer) {
-    console.warn('Monaco编辑器容器未找到')
-    return
-  }
-
-  // 从全局获取编辑器实例
-  const editors = monaco.editor.getEditors()
-  const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
-  const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
-
-  if (oldEditor) {
-    oldEditor.dispose()
-  }
-  if (newEditor) {
-    newEditor.dispose()
-  }
-
-  // 创建旧内容编辑器（使用空内容，因为无法完全重构）
-  oldMonacoEditor = monaco.editor.create(oldContainer, {
-    value: oldContent.value || '',
-    language: 'plaintext',
-    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
-    readOnly: true,
-    lineNumbers: 'on',
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    wordWrap: 'on',
-    automaticLayout: true,
-    fontSize: 13,
-    fontFamily: 'JetBrains Mono, Consolas, monospace',
-    renderLineHighlight: 'all'
-  })
-
-  // 创建新内容编辑器
-  newMonacoEditor = monaco.editor.create(newContainer, {
-    value: newContent.value || '',
-    language: 'plaintext',
-    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
-    readOnly: true,
-    lineNumbers: 'on',
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    wordWrap: 'on',
-    automaticLayout: true,
-    fontSize: 13,
-    fontFamily: 'JetBrains Mono, Consolas, monospace',
-    renderLineHighlight: 'all'
-  })
-
-  // 同步滚动
-  oldMonacoEditor.onDidScrollChange((e) => {
-    if (e.scrollTop !== undefined) {
-      newMonacoEditor?.setScrollTop(e.scrollTop)
-    }
-    if (e.scrollLeft !== undefined) {
-      newMonacoEditor?.setScrollLeft(e.scrollLeft)
-    }
-  })
-
-  newMonacoEditor.onDidScrollChange((e) => {
-    if (e.scrollTop !== undefined) {
-      oldMonacoEditor?.setScrollTop(e.scrollTop)
-    }
-    if (e.scrollLeft !== undefined) {
-      oldMonacoEditor?.setScrollLeft(e.scrollLeft)
-    }
-  })
-
-  // 高亮编辑区域（如果有 operations）
-  if (resultData.value && resultData.value.operations.length > 0) {
-    highlightEdits()
-  }
-}
-
-const highlightEdits = () => {
-  if (!oldMonacoEditor || !newMonacoEditor || !resultData.value) return
-
-  const oldDecorations: monaco.editor.IModelDeltaDecoration[] = []
-  const newDecorations: monaco.editor.IModelDeltaDecoration[] = []
-
-  for (const op of resultData.value.operations) {
-    if (op.type === 'delete' || op.type === 'replace') {
-      // 在旧编辑器中高亮删除的部分
-      const range = new monaco.Range(
-        op.range.start.line,
-        op.range.start.column,
-        op.range.end.line,
-        op.range.end.column
-      )
-      oldDecorations.push({
-        range,
-        options: {
-          isWholeLine: op.range.start.line === op.range.end.line,
-          className: 'edit-line-delete',
-          minimap: {
-            color: 'rgba(245, 108, 108, 0.3)',
-            position: monaco.editor.MinimapPosition.Inline
-          }
-        }
-      })
-    }
-
-    if (op.type === 'insert' || op.type === 'replace') {
-      // 在新编辑器中高亮插入的部分
-      // 需要计算插入后的位置（简化处理）
-      const range = new monaco.Range(
-        op.range.start.line,
-        op.range.start.column,
-        op.range.start.line,
-        op.range.start.column + (op.content?.length || 0)
-      )
-      newDecorations.push({
-        range,
-        options: {
-          isWholeLine: false,
-          className: 'edit-line-insert',
-          minimap: {
-            color: 'rgba(103, 194, 58, 0.3)',
-            position: monaco.editor.MinimapPosition.Inline
-          }
-        }
-      })
-    }
-  }
-
-  oldMonacoEditor.deltaDecorations([], oldDecorations)
-  newMonacoEditor.deltaDecorations([], newDecorations)
-}
-
-const disposeMonacoEditors = () => {
-  if (oldMonacoEditor) {
-    oldMonacoEditor.dispose()
-    oldMonacoEditor = null
-  }
-  if (newMonacoEditor) {
-    newMonacoEditor.dispose()
-    newMonacoEditor = null
   }
 }
 
@@ -878,12 +588,13 @@ const initCompactMonaco = () => {
     const el = document.getElementById(compactDiffEditorId.value)
     if (!el) return
     if (compactDiffMonaco) {
-      compactDiffMonaco.setValue(unifiedDiffText.value)
+      syncCompactMonacoValue()
       return
     }
+    const initialText = unifiedDiffText.value || ''
     compactDiffMonaco = monaco.editor.create(el, {
-      value: unifiedDiffText.value,
-      language: 'plaintext',
+      value: initialText,
+      language: 'diff',
       theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
       readOnly: true,
       lineNumbers: 'on',
@@ -894,6 +605,10 @@ const initCompactMonaco = () => {
       fontSize: 12,
       fontFamily: 'JetBrains Mono, Consolas, monospace'
     })
+    // 数据晚到或先创建后更新：多次尝试同步，避免空白
+    syncCompactMonacoValue()
+    setTimeout(() => syncCompactMonacoValue(), 0)
+    setTimeout(() => syncCompactMonacoValue(), 100)
   }))
 }
 
@@ -904,51 +619,38 @@ const disposeCompactMonaco = () => {
   }
 }
 
-// 监听视图模式变化
-watch(viewMode, async (newMode) => {
-  if (newMode === 'split') {
-    await nextTick()
-    initMonacoEditors()
-  } else {
-    disposeMonacoEditors()
-  }
-})
-
-// 监听内容变化
-watch([() => resultData.value, oldContent, newContent], async () => {
-  if (viewMode.value === 'split' && resultData.value) {
-    await nextTick()
-    initMonacoEditors()
-  }
-})
-
-// 监听主题变化
 watch(
-  () => themeState.currentTheme.type,
-  () => {
-    if (viewMode.value === 'split') {
-      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-      monaco.editor.setTheme(theme)
+  () => [props.compact, compactPanelOpen.value, unifiedDiffText.value] as const,
+  ([isCompact, open]) => {
+    if (isCompact && open) {
+      initCompactMonaco()
+      nextTick(() => syncCompactMonacoValue())
     }
   }
 )
 
-onMounted(async () => {
-  if (viewMode.value === 'split' && resultData.value) {
-    await nextTick()
-    initMonacoEditors()
-  }
-})
-
+// 紧凑模式：unifiedDiffText 变化时立即同步到 Monaco，避免空白
 watch(
-  () => [props.compact, compactPanelOpen.value, unifiedDiffText.value] as const,
-  ([isCompact, open]) => {
-    if (isCompact && open) initCompactMonaco()
+  () => (props.compact ? unifiedDiffText.value : ''),
+  () => {
+    if (props.compact) {
+      nextTick(() => syncCompactMonacoValue())
+    }
+  }
+)
+
+// 紧凑模式：完成且有 diff/operations 时默认展开面板，便于看到内容
+watch(
+  () =>
+    props.compact &&
+    displayData.value?.stage === 'completed' &&
+    (hunks.value.length > 0 || (resultData.value?.operations?.length ?? 0) > 0),
+  (shouldOpen) => {
+    if (shouldOpen) compactPanelOpen.value = true
   }
 )
 
 onBeforeUnmount(() => {
-  disposeMonacoEditors()
   disposeCompactMonaco()
 })
 
@@ -1049,28 +751,9 @@ const deletedTextStyle = computed(() => ({
   color: themeState.currentTheme.textColor2
 }))
 
-const editorHeaderStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd,
-  color: themeState.currentTheme.textColor,
-  borderBottom: `1px solid ${themeState.currentTheme.textColor2}20`,
-  padding: '8px 12px',
-  fontSize: '13px',
-  fontWeight: '500'
-}))
-
-const editorContainerStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
-  height: '500px'
-}))
-
 const noDataMessageStyle = computed(() => ({
   padding: '40px 20px',
   textAlign: 'center',
-  color: themeState.currentTheme.textColor
-}))
-
-const summaryViewStyle = computed(() => ({
-  padding: '20px',
   color: themeState.currentTheme.textColor
 }))
 
@@ -1134,10 +817,6 @@ const diffCompactStyle = computed(() => ({
   margin-bottom: 16px;
 }
 
-.mode-switch {
-  margin-left: auto;
-}
-
 .operations-list {
   padding: 8px;
 }
@@ -1165,123 +844,6 @@ const diffCompactStyle = computed(() => ({
   opacity: 0.7;
 }
 
-.split-view-container {
-  width: 100%;
-  height: 500px;
-  border: 1px solid v-bind('themeState.currentTheme.borderColor');
-  border-radius: 6px;
-  overflow: hidden;
-  background-color: v-bind('themeState.currentTheme.background');
-}
-
-.split-view-layout {
-  display: flex;
-  width: 100%;
-  height: 100%;
-}
-
-.operations-panel {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
-  overflow: hidden;
-  min-width: 200px;
-  flex-shrink: 0;
-  flex-grow: 0;
-}
-
-.operations-header {
-  flex-shrink: 0;
-}
-
-.operations-scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-.operations-list-compact {
-  padding: 8px;
-}
-
-.operation-item-compact {
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 8px;
-}
-
-.operation-item-compact:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.operation-item-active {
-  border: 2px solid v-bind('themeState.currentTheme.primaryColor || "#409eff"') !important;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
-}
-
-.operation-header-compact {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-}
-
-.operation-preview {
-  margin-top: 4px;
-}
-
-.content-text-preview {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.4;
-  max-height: 40px;
-  overflow: hidden;
-}
-
-.resize-handle {
-  flex-shrink: 0;
-  cursor: default;
-  user-select: none;
-  position: relative;
-}
-
-.resize-handle:hover {
-  background-color: v-bind('themeState.currentTheme.textColor2 + "30"') !important;
-}
-
-.editors-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 300px;
-  flex-shrink: 0;
-  flex-grow: 0;
-}
-
-.split-editors {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  flex: 1;
-}
-
-.editor-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
-  overflow: hidden;
-}
-
-.editor-panel:last-child {
-  border-right: none;
-}
-
-.monaco-editor-container {
-  flex: 1;
-  min-height: 0;
-}
-
 .is-loading {
   animation: rotating 2s linear infinite;
 }
@@ -1293,15 +855,6 @@ const diffCompactStyle = computed(() => ({
   to {
     transform: rotate(360deg);
   }
-}
-
-.summary-content {
-  margin-top: 12px;
-}
-
-.summary-list {
-  margin-top: 12px;
-  padding-left: 20px;
 }
 
 /* Diff 视图样式 */
@@ -1470,16 +1023,5 @@ const diffCompactStyle = computed(() => ({
 .edit-display-compact-monaco {
   width: 100%;
   min-height: 200px;
-}
-</style>
-
-<style>
-/* 全局样式：Monaco 编辑器的编辑高亮 */
-.edit-line-delete {
-  background-color: rgba(245, 108, 108, 0.1) !important;
-}
-
-.edit-line-insert {
-  background-color: rgba(103, 194, 58, 0.1) !important;
 }
 </style>

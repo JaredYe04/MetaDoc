@@ -19,6 +19,19 @@ import { toolCollectionManager } from './tool-collection-manager'
 import { DEFAULT_AGENT_ASSISTANT_GREETING } from '../../constants/document'
 import { i18n } from '../../i18n'
 
+const TITLE_MAX_LEN = 32
+
+/**
+ * 根据首条用户消息内容生成会话标题（去掉 @[xxx]、取首行、截断）
+ */
+export function generateSessionTitleFromContent(content: string, maxLen: number = TITLE_MAX_LEN): string {
+  const stripped = content.replace(/@\[[^\]]*\]/g, '').trim()
+  const firstLine = stripped.split(/\r?\n/)[0]?.trim() || stripped
+  if (!firstLine) return ''
+  if (firstLine.length <= maxLen) return firstLine
+  return firstLine.slice(0, maxLen).trim() + '…'
+}
+
 /**
  * Agent会话管理器类
  */
@@ -72,6 +85,7 @@ class AgentSessionManager {
       entityType: 'agent-session',
       id,
       title,
+      titleUserEdited: false,
       description,
       agentConfigId,
       createdAt: now,
@@ -324,6 +338,7 @@ class AgentSessionManager {
     const duplicated: AgentSession = JSON.parse(JSON.stringify(session))
     duplicated.id = newId
     duplicated.title = `${session.title} (副本)`
+    duplicated.titleUserEdited = true
     duplicated.createdAt = now
     duplicated.updatedAt = now
 
@@ -372,10 +387,14 @@ class AgentSessionManager {
 
   /**
    * 序列化会话（用于导出）
+   * @param session 会话对象
+   * @param includeDependencies 是否包含依赖（agentConfig、toolCollections），紧凑模式下忽略
+   * @param options.compact 为 true 时仅导出会话与消息必要信息：不包含依赖；工具消息只保留调用参数与结果摘要
    */
   serializeSession(
     session: AgentSession,
-    includeDependencies = false
+    includeDependencies = false,
+    options?: { compact?: boolean }
   ): {
     session: AgentSession
     dependencies?: {
@@ -383,6 +402,13 @@ class AgentSessionManager {
       toolCollections?: any[]
     }
   } {
+    let sessionData: AgentSession = JSON.parse(JSON.stringify(session))
+
+    if (options?.compact) {
+      sessionData = this.compactSessionForExport(sessionData)
+      includeDependencies = false
+    }
+
     const serialized: {
       session: AgentSession
       dependencies?: {
@@ -390,7 +416,7 @@ class AgentSessionManager {
         toolCollections?: any[]
       }
     } = {
-      session: JSON.parse(JSON.stringify(session))
+      session: sessionData
     }
 
     if (includeDependencies) {
@@ -412,6 +438,181 @@ class AgentSessionManager {
     }
 
     return serialized
+  }
+
+  /** 导出时截断字符串的最大长度 */
+  private static readonly EXPORT_TRUNCATE_RESULT = 2000
+  private static readonly EXPORT_TRUNCATE_REFERENCE_CONTENT = 500
+
+  /**
+   * 紧凑化会话用于导出：只保留会话与消息必要信息，工具只保留调用参数与结果摘要
+   */
+  private compactSessionForExport(session: AgentSession): AgentSession {
+    const out = JSON.parse(JSON.stringify(session)) as AgentSession
+
+    out.messages = (out.messages || []).map((msg: AgentMessage) =>
+      this.compactMessageForExport(msg)
+    ) as AgentMessage[]
+
+    if (out.referenceStore && out.referenceStore.length > 0) {
+      out.referenceStore = out.referenceStore.map((ref: Reference) => ({
+        id: ref.id,
+        name: ref.name,
+        origin: ref.origin,
+        format: ref.format,
+        description: ref.description,
+        createdAt: ref.createdAt,
+        updatedAt: ref.updatedAt,
+        parsedContent:
+          typeof ref.parsedContent === 'string' && ref.parsedContent.length > AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT
+            ? ref.parsedContent.slice(0, AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT) + '…'
+            : ref.parsedContent,
+        metadata: undefined
+      }))
+    }
+
+    if (out.executionNodes && out.executionNodes.length > 0) {
+      out.executionNodes = out.executionNodes.map((node: ExecutionNode) => ({
+        id: node.id,
+        type: node.type,
+        timestamp: node.timestamp,
+        status: node.status,
+        error: node.error,
+        data: undefined,
+        result: undefined
+      }))
+    }
+
+    return out
+  }
+
+  private compactMessageForExport(msg: AgentMessage): AgentMessage {
+    return this.compactMessageForPersistence(msg as any, { keepFullOutputForExternalTools: false })
+  }
+
+  private static isExternalToolMessage(m: any): boolean {
+    const origin = m.tool_config?.origin
+    if (origin === 'mcp' || origin === 'external') return true
+    const id = String(m.tool?.id ?? m.tool_id ?? '').toLowerCase()
+    const name = String(m.tool?.name ?? '').toLowerCase()
+    return id.startsWith('mcp') || id.includes('mcp') || name.includes('mcp') || name.includes('external')
+  }
+
+  /**
+   * 紧凑化会话用于持久化（.metadoc/agent/sessions.json）
+   * 与导出逻辑一致，但可选对「外部工具」（如 MCP）保留完整 outputs，便于恢复
+   */
+  compactSessionForPersistence(
+    session: AgentSession,
+    options?: { keepFullOutputForExternalTools?: boolean }
+  ): AgentSession {
+    const keepFull = options?.keepFullOutputForExternalTools !== false
+    const out = JSON.parse(JSON.stringify(session)) as AgentSession
+    out.messages = (out.messages || []).map((msg: AgentMessage) =>
+      this.compactMessageForPersistence(msg as any, { keepFullOutputForExternalTools: keepFull })
+    ) as AgentMessage[]
+
+    if (out.referenceStore && out.referenceStore.length > 0) {
+      out.referenceStore = out.referenceStore.map((ref: Reference) => ({
+        id: ref.id,
+        name: ref.name,
+        origin: ref.origin,
+        format: ref.format,
+        description: ref.description,
+        createdAt: ref.createdAt,
+        updatedAt: ref.updatedAt,
+        parsedContent:
+          typeof ref.parsedContent === 'string' &&
+          ref.parsedContent.length > AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT
+            ? ref.parsedContent.slice(0, AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT) + '…'
+            : ref.parsedContent,
+        metadata: undefined
+      }))
+    }
+
+    if (out.executionNodes && out.executionNodes.length > 0) {
+      out.executionNodes = out.executionNodes.map((node: ExecutionNode) => ({
+        id: node.id,
+        type: node.type,
+        timestamp: node.timestamp,
+        status: node.status,
+        error: node.error,
+        data: undefined,
+        result: undefined
+      }))
+    }
+    return out
+  }
+
+  private compactMessageForPersistence(
+    msg: any,
+    options: { keepFullOutputForExternalTools: boolean }
+  ): AgentMessage {
+    const m = msg
+    if (m.type === 'chat') {
+      if (Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+        m.tool_calls = m.tool_calls.map((tc: any) => ({
+          id: tc.id,
+          tool_id: tc.tool_id ?? tc.name ?? tc.function?.name,
+          parameters: tc.parameters ?? tc.function?.arguments ?? tc.arguments ?? {}
+        }))
+      }
+      return m
+    }
+    if (m.type === 'tool') {
+      if (options.keepFullOutputForExternalTools && AgentSessionManager.isExternalToolMessage(m)) {
+        return m
+      }
+      // edit 工具需保留完整 output（含 rawDiff）供 EditDisplay 的 Monaco 显示，不截断
+      if (m.tool?.id === 'edit') {
+        return m
+      }
+      // 持久化时保留完整 outputs（含 renderer 与 data），以便重新打开后能用 GrepDisplay/TodoListDisplay 等组件正确渲染，而不是显示裸 JSON
+      const outputs =
+        Array.isArray(m.outputs) && m.outputs.length > 0
+          ? m.outputs.map((o: any) => ({
+              id: o.id,
+              label: o.label,
+              format: o.format ?? 'json',
+              data: o.data,
+              renderer: o.renderer
+            }))
+          : undefined
+      const maxLen = AgentSessionManager.EXPORT_TRUNCATE_RESULT
+      let summaryText: string | undefined = m.summary
+      if (summaryText === undefined && outputs && outputs.length > 0) {
+        const first = outputs[0]
+        const data = first?.data
+        if (typeof data === 'string') {
+          summaryText =
+            data.length > maxLen ? data.slice(0, maxLen) + '…' : data
+        } else if (data !== null && data !== undefined) {
+          try {
+            const str = JSON.stringify(data)
+            summaryText = str.length > maxLen ? str.slice(0, maxLen) + '…' : str
+          } catch {
+            summaryText = '[object]'
+          }
+        }
+      }
+      summaryText = summaryText ?? m.summary ?? m.error ?? ''
+      return {
+        id: m.id,
+        role: m.role,
+        type: 'tool',
+        timestamp: m.timestamp,
+        tool: m.tool ? { id: m.tool.id, name: m.tool.name } : undefined,
+        status: m.status,
+        tool_call_id: m.tool_call_id,
+        summary: m.summary,
+        error: m.error,
+        outputs,
+        tool_config: undefined,
+        progress: undefined,
+        markdown: summaryText || m.markdown
+      } as any
+    }
+    return msg
   }
 
   /**

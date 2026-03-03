@@ -142,6 +142,21 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       normalized.forEach((s) => {
         s.status = 'idle'
       })
+      // 若正在生成中，保留当前激活会话的内存状态（消息、status），避免从磁盘覆盖导致流式输出内容丢失（如从 Compact 切到 Full 时 init 会调 loadFromMetadoc）
+      if (isGenerating.value && sessions.value.length > 0) {
+        const currentId = activeSessionId.value
+        const currentSession = currentId ? sessions.value.find((s) => s.id === currentId) : null
+        if (currentSession) {
+          const idx = normalized.findIndex((s) => s.id === currentSession.id)
+          if (idx >= 0) {
+            normalized[idx] = {
+              ...normalized[idx],
+              messages: currentSession.messages,
+              status: currentSession.status
+            }
+          }
+        }
+      }
       sessions.value = normalized.length > 0 ? normalized : []
       activeSessionId.value =
         typeof data.activeSessionId === 'string' &&
@@ -218,7 +233,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     window.addEventListener('pagehide', flushSave)
   }
 
-  /** 写入 .metadoc（保存前先把当前会话的 composer 输入同步进 map，避免丢失） */
+  /** 写入 .metadoc（保存前先把当前会话的 composer 输入同步进 map，避免丢失；会话以紧凑形式持久化以控制文件体积） */
   async function saveToMetadoc(): Promise<void> {
     const root = workspaceRoot.value
     if (!root) return
@@ -229,9 +244,14 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       composerInputBySessionId.value[aid] = composerInput.value
     }
     try {
+      const compactSessions = sessions.value.map((s) =>
+        agentSessionManager.compactSessionForPersistence(s, {
+          keepFullOutputForExternalTools: true
+        })
+      )
       const payload: AgentWorkspacePersisted = {
         activeSessionId: activeSessionId.value,
-        sessions: sessions.value,
+        sessions: compactSessions,
         openTabIds: openTabIds.value,
         composerInputBySessionId: composerInputBySessionId.value
       }

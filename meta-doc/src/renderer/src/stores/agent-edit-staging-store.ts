@@ -123,6 +123,14 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     setStatus(editId, 'accepted')
   }
 
+  /** 移除单条记录（用于叉掉后不再显示；若为 pending 会先拒绝再移除） */
+  async function removeEdit(record: StagingEditRecord): Promise<void> {
+    if (record.status === 'pending') {
+      await rejectEdit(record)
+    }
+    records.value = records.value.filter((r) => r.id !== record.id)
+  }
+
   /** 回滚某条用户消息触发的所有编辑（还原所有未拒绝的记录） */
   async function rollbackByUserMessage(
     sessionId: string,
@@ -212,6 +220,7 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     setStatus,
     rejectEdit,
     acceptEdit,
+    removeEdit,
     rollbackByUserMessage,
     redoByUserMessage,
     redoEdit,

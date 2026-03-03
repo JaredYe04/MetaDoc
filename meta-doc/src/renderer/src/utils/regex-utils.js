@@ -24,7 +24,11 @@ export function extractOuterJsonString(str) {
     }
   }
 
-  return null // 未找到匹配闭合的 JSON
+  // 未闭合的 JSON（只有左半边）：返回从第一个 { 或 [ 到末尾，供调用方补全后解析
+  if (depth > 0) {
+    return str.slice(startIdx)
+  }
+  return null
 }
 
 export function convertNumberToChinese(number) {

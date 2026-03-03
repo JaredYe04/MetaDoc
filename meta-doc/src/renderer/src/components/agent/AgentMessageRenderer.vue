@@ -164,14 +164,15 @@
                 :key="output.id"
               >
                 <component
-                  v-if="output.renderer && resolveToolOutputComponent(output.renderer)"
-                  :is="resolveToolOutputComponent(output.renderer)"
+                  v-if="getToolOutputRenderer(output, message as ToolAgentMessage) && resolveToolOutputComponent(getToolOutputRenderer(output, message as ToolAgentMessage)!)"
+                  :is="resolveToolOutputComponent(getToolOutputRenderer(output, message as ToolAgentMessage)!)"
                   :data="output.data"
                   :status="(message as ToolAgentMessage).status"
                   :progress="(message as ToolAgentMessage).progress"
                   :error="(message as ToolAgentMessage).error"
                   :tool-config="getToolConfigForMessage(message as ToolAgentMessage)"
                   :invocation-id="(message as any).invocationId"
+                  :params-diff="(message as any).params?.diff"
                   :compact="true"
                 />
                 <pre v-else class="tool-message-compact-raw">{{ formatToolOutput(output) }}</pre>
@@ -606,6 +607,16 @@ function getToolConfigForMessage(msg: ToolAgentMessage) {
   return agentToolManager.getTool(msg.tool.id)?.config
 }
 
+/** 解析工具输出展示组件名；edit 工具在无 renderer 时回退到 EditDisplay，避免持久化后显示裸 JSON */
+function getToolOutputRenderer(
+  output: import('../../types/agent').ToolOutputDescriptor,
+  message: ToolAgentMessage
+): string | null {
+  if (output.renderer) return output.renderer
+  if (message.tool?.id === 'edit') return 'EditDisplay'
+  return null
+}
+
 function formatToolOutput(output: import('../../types/agent').ToolOutputDescriptor): string {
   const d = output.data
   if (typeof d === 'string') return d
@@ -728,6 +739,8 @@ const cleanIncompleteToolCallTags = (content: string): string => {
   content = content.replace(/<｜DSML｜function_calls>/gi, '')
   content = content.replace(/<\/｜DSML｜function_calls>/gi, '')
   content = content.replace(/<\/｜DSML｜invoke>/gi, '')
+  content = content.replace(/<｜DSML｜_call>/gi, '')
+  content = content.replace(/<\/｜DSML｜_call>/gi, '')
   // 旧格式（兼容性）
   content = content.replace(/\<\|redacted_tool_calls_begin\|>/gi, '')
   content = content.replace(/\<\|redacted_tool_calls_end\|>/gi, '')
@@ -853,11 +866,14 @@ const processedContentParts = computed(() => {
 
   // 先匹配标准格式
   while ((match = toolCallRegex.exec(content)) !== null) {
-    // 添加标记前的markdown内容
+    // 添加标记前的markdown内容（用 cleanAllMarkers 清除可能残留的 DSML 等，避免重新打开时显示原始标记）
     if (match.index > lastIndex) {
       const markdownPart = content.substring(lastIndex, match.index).trim()
       if (markdownPart) {
-        parts.push({ type: 'markdown', content: markdownPart })
+        parts.push({
+          type: 'markdown',
+          content: toolCallParserManager.cleanAllMarkers(markdownPart)
+        })
       }
     }
 
@@ -876,11 +892,14 @@ const processedContentParts = computed(() => {
     lastIndex = match.index + match[0].length
   }
 
-  // 添加剩余的markdown内容
+  // 添加剩余的markdown内容（用 cleanAllMarkers 清除可能残留的 DSML 等）
   if (lastIndex < content.length) {
     const markdownPart = content.substring(lastIndex).trim()
     if (markdownPart) {
-      parts.push({ type: 'markdown', content: markdownPart })
+      parts.push({
+        type: 'markdown',
+        content: toolCallParserManager.cleanAllMarkers(markdownPart)
+      })
     }
   }
 
@@ -900,9 +919,12 @@ const processedContentParts = computed(() => {
     for (const toolCallInfo of toolCallMap.values()) {
       parts.push({ type: 'tool-call', text: toolCallInfo.text })
     }
-    // 如果有markdown内容，添加在后面
+    // 如果有markdown内容，添加在后面（用 cleanAllMarkers 清除 DSML 等，避免显示原始标记）
     if (content.trim()) {
-      parts.push({ type: 'markdown', content: content.trim() })
+      parts.push({
+        type: 'markdown',
+        content: toolCallParserManager.cleanAllMarkers(content.trim())
+      })
     }
   }
 

@@ -150,6 +150,8 @@ export interface AgentToolConfig {
   tags?: string[]
   /** 是否启用 */
   enabled?: boolean
+  /** 是否在默认工具集中隐藏（不推荐给 Agent 使用，如 outline-tree；工具仍可被显式加入集合调用） */
+  hidden?: boolean
   /** 是否可编辑（内部tool不可编辑） */
   editable?: boolean
   /** MCP配置（如果是MCP tool） */

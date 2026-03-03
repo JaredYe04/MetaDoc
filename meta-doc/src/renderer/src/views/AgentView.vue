@@ -529,6 +529,7 @@ import {
   agentEngineManager,
   AIContextManager
 } from '../utils/agent-framework'
+import { generateConversationTitleByAi } from '../utils/conversation-title'
 import { createRendererLogger } from '../utils/logger'
 import { agentToolManager } from '../utils/agent-tool-manager'
 import { recognizeIntent } from '../utils/agent-framework/intent-processor'
@@ -993,6 +994,34 @@ watch(
   { deep: true }
 )
 
+const scrollToBottom = () => {
+  nextTick(() => {
+    const container = document.querySelector(
+      '.conversation-pane .conversation-scroll [data-reka-scroll-area-viewport]'
+    ) as HTMLElement | null
+    if (container) container.scrollTop = container.scrollHeight
+  })
+}
+
+// AI 正在输出时，消息列表或最后一条助手消息内容变化则自动滚到底部，始终显示最新内容
+watch(
+  () => {
+    if (!isGenerating.value) return null
+    const msgs = activeSession.value?.messages
+    if (!msgs?.length) return null
+    const last = msgs[msgs.length - 1]
+    const md =
+      last?.role === 'assistant' && last?.type === 'chat'
+        ? (last as ChatAgentMessage).markdown
+        : undefined
+    return [msgs.length, md] as const
+  },
+  () => {
+    scrollToBottom()
+  },
+  { deep: true, flush: 'post' }
+)
+
 // 监听文档格式变化，同步更新所有会话的publicContext
 watch(
   [() => activeDocument.value?.format, () => activeTabId.value],
@@ -1255,6 +1284,7 @@ const renameSession = async (session: AgentSession) => {
     }
   )
   session.title = value.trim()
+  session.titleUserEdited = true
   touchSession(session)
   persistSessions()
   notifySuccess(t('agent.sessions.renameSuccess'))
@@ -1357,6 +1387,7 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
 
   const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
   const messageRefIds = refIdsInInput.length > 0 ? refIdsInInput : [...activeReferenceIds.value]
+  const isFirstUserMessage = session.messages.length === 1
   const message = createChatMessage('user', content, messageRefIds)
   session.messages.push(message)
   logger.debug(
@@ -1375,12 +1406,7 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   })
 
   // 滚动到底部
-  nextTick(() => {
-    const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap')
-    if (container) {
-      container.scrollTop = container.scrollHeight
-    }
-  })
+  scrollToBottom()
 
   // 执行Agent引擎
   try {
@@ -1449,6 +1475,20 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
         undefined,
         shouldQueryKnowledgeBase
       )
+    }
+    // 第一轮对话完成后，根据整轮会话内容由 AI 生成标题（参考 AIChat.vue）
+    if (isFirstUserMessage && !session.titleUserEdited) {
+      generateConversationTitleByAi(
+        session.messages,
+        session.title || t('agent.sessions.defaultTitle')
+      )
+        .then((newTitle) => {
+          if (newTitle && !session.titleUserEdited) {
+            session.title = newTitle
+            persistSessions()
+          }
+        })
+        .catch((err) => logger.debug('生成会话标题失败', err))
     }
   } catch (error) {
     logger.error('[handleComposerSubmit] 执行失败:', error)
@@ -1577,12 +1617,7 @@ const executeAgentEngine = async (
       stopWatcher = watch(
         () => assistantMessage?.markdown,
         () => {
-          nextTick(() => {
-            const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap')
-            if (container) {
-              container.scrollTop = container.scrollHeight
-            }
-          })
+          scrollToBottom()
         },
         { immediate: false }
       )
@@ -1764,12 +1799,7 @@ const executeAgentEngine = async (
       logger.debug('[executeAgentEngine] 会话已持久化')
 
       // 滚动到底部
-      nextTick(() => {
-        const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap')
-        if (container) {
-          container.scrollTop = container.scrollHeight
-        }
-      })
+      scrollToBottom()
     } catch (error) {
       const logger = createRendererLogger('AgentView')
 
@@ -1857,12 +1887,7 @@ const executeAgentEngine = async (
       persistSessions()
 
       // 滚动到底部
-      nextTick(() => {
-        const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap')
-        if (container) {
-          container.scrollTop = container.scrollHeight
-        }
-      })
+      scrollToBottom()
     } catch (error) {
       const logger = createRendererLogger('AgentView')
 
@@ -2337,7 +2362,9 @@ const handleExportSession = async (session: AgentSession) => {
       status: session.status || 'idle'
     }
 
-    const serialized = agentSessionManager.serializeSession(newFormatSession, true)
+    const serialized = agentSessionManager.serializeSession(newFormatSession, false, {
+      compact: true
+    })
     const json = JSON.stringify(serialized, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -2488,6 +2515,7 @@ const handleSessionListRename = (item: SessionListItem, newTitle: string) => {
   const session = sessionsState.value.find((s) => s.id === item.id)
   if (session) {
     session.title = newTitle
+    session.titleUserEdited = true
     touchSession(session)
     persistSessions()
     notifySuccess(t('agent.sessions.renameSuccess'))
@@ -3043,12 +3071,7 @@ onBeforeUnmount(() => {
   padding-right: 4px;
 }
 
-.conversation-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.conversation-scroll :deep(.el-scrollbar__view) {
-  width: 100%;
+.conversation-scroll :deep([data-reka-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 

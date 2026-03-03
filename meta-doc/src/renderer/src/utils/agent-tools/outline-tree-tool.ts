@@ -307,6 +307,7 @@ export const outlineTreeToolConfig: AgentToolConfig = {
   name: outlineTreeToolLocales,
   description: outlineTreeToolLocales,
   origin: 'internal',
+  hidden: true, // 不纳入默认工具集：查看文档内容优先用引用素材或 grep，此工具冗余
   spec: {
     name: 'outline-tree',
     brief:

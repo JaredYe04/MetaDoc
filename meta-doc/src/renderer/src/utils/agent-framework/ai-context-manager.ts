@@ -930,6 +930,8 @@ export class AIContextManager {
       // 保存OpenAI格式的content字符串，这样buildHistoryMessages可以直接使用
       markdown: openaiContent, // 使用markdown字段保存OpenAI格式的content
       ...(tool_call_id ? { tool_call_id } : {}),
+      // 与 tool_call_id 一致，供 Display 组件 useToolDisplayRealtime 订阅实时更新（执行中可收到 onUpdate）
+      ...(tool_call_id ? { invocationId: tool_call_id } : {}),
       ...(toolConfig ? { tool_config: toolConfig } : {}),
       ...(params ? { params } : {}) // 保存工具调用参数，用于快照导出
     } as any // 使用as any因为params不在ToolAgentMessage接口中，但我们需要保存它

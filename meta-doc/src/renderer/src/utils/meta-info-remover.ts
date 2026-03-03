@@ -41,13 +41,19 @@ export function removeMetaInfoFromLatex(content: string): string {
 /**
  * 根据文件格式移除 meta-info
  * @param content 文件内容
- * @param format 文件格式 ('md' | 'tex')
- * @returns 移除 meta-info 后的内容
+ * @param format 文件格式 ('md' | 'tex' | 'txt' | ...)
+ * @returns 移除 meta-info 后的内容；纯文本格式（如 txt）不修改，直接返回原内容
  */
-export function removeMetaInfo(content: string, format: 'md' | 'tex'): string {
+export function removeMetaInfo(content: string, format: string): string {
+  if (!content || typeof content !== 'string') {
+    return content || ''
+  }
   if (format === 'tex') {
     return removeMetaInfoFromLatex(content)
-  } else {
+  }
+  if (format === 'md') {
     return removeMetaInfoFromMarkdown(content)
   }
+  // 纯文本及其他格式（txt, json 等）不包含 MetaDoc 注入的 meta-info，直接返回原内容，不 trim
+  return content
 }

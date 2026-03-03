@@ -219,9 +219,8 @@ const autoOpenDoc = async () => {
     if (autoOpenHomeOnStartup) {
       const workspace = useWorkspace()
 
-      // 如果打开了文档，等待文档打开完成后再打开主页
+      // 如果本次启动会打开最近文档：等文档打开完成后再打开主页并 focus
       if (willOpenDocument) {
-        // 使用 Promise 等待 open-doc-success 事件
         const openHomeAfterDocOpen = () => {
           const existingHomeTab = workspace.tabs.find(
             (tab) => tab.kind === 'system' && tab.route === '/global-home'
@@ -232,19 +231,13 @@ const autoOpenDoc = async () => {
             workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
           }
         }
-
-        // 监听一次 open-doc-success 事件
         const handler = () => {
           eventBus.off('open-doc-success', handler)
-          // 使用 nextTick 确保在下一个事件循环中执行，让文档 tab 完全创建完成
-          nextTick(() => {
-            openHomeAfterDocOpen()
-          })
+          nextTick(() => openHomeAfterDocOpen())
         }
         eventBus.on('open-doc-success', handler)
       } else {
-        // 如果没有打开文档，直接打开主页
-        // 使用 nextTick 确保 workspace 已经初始化
+        // 没有打开文档时，直接打开主页
         nextTick(() => {
           const existingHomeTab = workspace.tabs.find(
             (tab) => tab.kind === 'system' && tab.route === '/global-home'

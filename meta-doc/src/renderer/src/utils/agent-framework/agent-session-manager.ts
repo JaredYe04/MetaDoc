@@ -21,6 +21,27 @@ import { i18n } from '../../i18n'
 
 const TITLE_MAX_LEN = 32
 
+/** 持久化时若 output.renderer 缺失，按 toolId 补全以便重开后能正确渲染 */
+const TOOL_ID_TO_RENDERER: Record<string, string> = {
+  edit: 'EditDisplay',
+  grep: 'GrepDisplay',
+  todolist: 'TodoListDisplay',
+  'todolist-planning': 'TodoListDisplay',
+  workspace: 'WorkspaceDisplay',
+  'outline-tree': 'OutlineTreeDisplay',
+  'outline-optimize': 'OutlineOptimizeDisplay',
+  diff: 'DiffDisplay',
+  proofread: 'ProofreadDisplay',
+  'title-format': 'TitleFormatDisplay',
+  'chart-generation': 'ChartGenerationDisplay',
+  'data-analysis': 'DataAnalysisDisplay',
+  'web-crawler': 'WebCrawlerDisplay',
+  terminal: 'TerminalExecutionDisplay',
+  metadata: 'MetadataDisplay',
+  color: 'ColorDisplay',
+  rag: 'RAGToolDisplay'
+}
+
 /**
  * 根据首条用户消息内容生成会话标题（去掉 @[xxx]、取首行、截断）
  */
@@ -568,6 +589,7 @@ class AgentSessionManager {
         return m
       }
       // 持久化时保留完整 outputs（含 renderer 与 data），以便重新打开后能用 GrepDisplay/TodoListDisplay 等组件正确渲染，而不是显示裸 JSON
+      const toolId = m.tool?.id
       const outputs =
         Array.isArray(m.outputs) && m.outputs.length > 0
           ? m.outputs.map((o: any) => ({
@@ -575,7 +597,7 @@ class AgentSessionManager {
               label: o.label,
               format: o.format ?? 'json',
               data: o.data,
-              renderer: o.renderer
+              renderer: o.renderer ?? (toolId ? TOOL_ID_TO_RENDERER[toolId] : undefined)
             }))
           : undefined
       const maxLen = AgentSessionManager.EXPORT_TRUNCATE_RESULT
@@ -609,7 +631,9 @@ class AgentSessionManager {
         outputs,
         tool_config: undefined,
         progress: undefined,
-        markdown: summaryText || m.markdown
+        markdown: summaryText || m.markdown,
+        params: m.params,
+        invocationId: m.invocationId
       } as any
     }
     return msg

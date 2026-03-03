@@ -10,11 +10,12 @@ import { createRendererLogger } from '../../logger'
 
 /**
  * 使用Tool Display实时通信
- * @param invocationId - Tool执行ID（可选）
- * @param initialData - 初始数据
+ * 首帧与持久化重开时以 initialData（通常为 props.data）为准；有 invocationId 时再通过事件增量更新。
+ * @param invocationId - Tool执行ID（可选，无则仅用 initialData 渲染快照）
+ * @param initialData - 初始/快照数据（message.outputs[].data）
  * @param initialStatus - 初始状态
  * @param initialProgress - 初始进度
- * @returns 实时数据、状态、进度和计算属性
+ * @returns 实时数据、状态、进度
  */
 export function useToolDisplayRealtime(
   invocationId: string | undefined,
@@ -22,7 +23,7 @@ export function useToolDisplayRealtime(
   initialStatus: ToolExecutionStatus = 'running',
   initialProgress?: ToolProgress
 ) {
-  // 实时数据
+  // 实时数据：首帧为 initialData，有 invocationId 时由 tool-update/tool-complete 更新
   const realtimeData = ref<any>(initialData)
   const realtimeStatus = ref<ToolExecutionStatus>(initialStatus)
   const realtimeProgress = ref<ToolProgress | undefined>(initialProgress)

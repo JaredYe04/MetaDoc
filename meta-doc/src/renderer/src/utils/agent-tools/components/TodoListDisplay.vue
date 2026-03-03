@@ -240,21 +240,47 @@ const { realtimeData, realtimeStatus } = useToolDisplayRealtime(
   props.progress
 )
 
-// 解析显示数据（优先使用实时数据）
-const displayData = computed(() => {
-  const data = realtimeData.value !== null ? realtimeData.value : props.data
+// 解析显示数据（优先使用实时数据）；兼容持久化后 data 为 JSON 字符串的情况
+function ensureParsed(data: unknown): unknown {
+  if (typeof data !== 'string') return data
+  const trimmed = data.trim()
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return data
+  try {
+    const once = JSON.parse(trimmed) as unknown
+    if (typeof once === 'string') {
+      try {
+        return JSON.parse(once) as unknown
+      } catch {
+        return once
+      }
+    }
+    return once
+  } catch {
+    return data
+  }
+}
+
+type TodoDisplayData = {
+  stage: 'analyzing' | 'generating' | 'completed' | 'error'
+  input?: string
+  context?: string
+  todoList?: TodoList
+  error?: string
+}
+
+const displayData = computed<TodoDisplayData>(() => {
+  const raw = realtimeData.value !== null ? realtimeData.value : props.data
+  const data = ensureParsed(raw)
   const parsed = parseToolData(data)
 
-  if (typeof parsed === 'object' && parsed !== null) {
-    return parsed as {
-      stage: 'analyzing' | 'generating' | 'completed' | 'error'
-      input?: string
-      context?: string
-      todoList?: TodoList
-      error?: string
-    }
+  if (typeof parsed !== 'object' || parsed === null) return { stage: 'analyzing' }
+
+  const obj = parsed as Record<string, unknown>
+  // 持久化/裸数据可能是根级 todo 对象 { id, title, items, ... }，无 stage/todoList
+  if (obj.todoList === undefined && Array.isArray(obj.items) && (obj.title != null || obj.id != null)) {
+    return { stage: 'completed', todoList: obj as unknown as TodoList }
   }
-  return { stage: 'analyzing' }
+  return obj as TodoDisplayData
 })
 
 const completedCount = computed(() => {
@@ -271,8 +297,8 @@ const pendingCount = computed(() => {
   return displayData.value.todoList?.items.filter((item) => item.status === 'pending').length || 0
 })
 
-const getPriorityType = (priority: string) => {
-  const map: Record<string, string> = {
+const getPriorityType = (priority: string): 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
+  const map: Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
     low: 'info',
     medium: 'success',
     high: 'warning',

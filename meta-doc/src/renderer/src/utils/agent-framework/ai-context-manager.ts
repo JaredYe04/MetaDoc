@@ -826,6 +826,29 @@ export class AIContextManager {
     const isWrappedResult = data && typeof data === 'object' && 'result' in data && 'data' in data
     const displayData = isWrappedResult ? (data as any).data : data // 用于Display组件的数据
 
+    // toolId -> Display 组件名，组件对象无 .name 时用于补全 renderer（持久化后能正确渲染）
+    const TOOL_ID_RENDERER: Record<string, string> = {
+      edit: 'EditDisplay',
+      grep: 'GrepDisplay',
+      todolist: 'TodoListDisplay',
+      'todolist-planning': 'TodoListDisplay',
+      workspace: 'WorkspaceDisplay',
+      'outline-tree': 'OutlineTreeDisplay',
+      'outline-optimize': 'OutlineOptimizeDisplay',
+      diff: 'DiffDisplay',
+      proofread: 'ProofreadDisplay',
+      'title-format': 'TitleFormatDisplay',
+      'chart-generation': 'ChartGenerationDisplay',
+      'data-analysis': 'DataAnalysisDisplay',
+      'web-crawler': 'WebCrawlerDisplay',
+      terminal: 'TerminalExecutionDisplay',
+      metadata: 'MetadataDisplay',
+      color: 'ColorDisplay',
+      rag: 'RAGToolDisplay'
+    }
+    const resolveRendererName = (fromComponent: string | undefined): string | undefined =>
+      fromComponent ?? (toolId ? TOOL_ID_RENDERER[toolId] : undefined)
+
     // 如果displayData是ToolCallbackData格式，提取format和content
     if (
       displayData &&
@@ -836,7 +859,6 @@ export class AIContextManager {
       const callbackData = displayData as any
       const displayComponent = toolConfig?.displayComponent
 
-      // 提取组件名称（如果是组件对象）
       let rendererName: string | undefined = undefined
       if (displayComponent) {
         if (typeof displayComponent === 'string') {
@@ -846,7 +868,6 @@ export class AIContextManager {
             (displayComponent as any).name ||
             (displayComponent as any).__name ||
             (displayComponent as any).displayName
-          // 如果仍然没有名称，尝试从文件路径提取
           if (!rendererName && (displayComponent as any).__file) {
             const match = String((displayComponent as any).__file).match(/([^/\\]+)\.vue$/)
             if (match && match[1]) {
@@ -855,6 +876,7 @@ export class AIContextManager {
           }
         }
       }
+      rendererName = resolveRendererName(rendererName)
 
       outputs.push({
         id: 'result',
@@ -867,13 +889,12 @@ export class AIContextManager {
           | 'table'
           | 'custom',
         data: callbackData.content,
-        renderer: rendererName // 使用组件名称字符串
+        renderer: rendererName
       })
     } else if (displayData) {
       // 兼容旧格式：直接使用displayData
       const displayComponent = toolConfig?.displayComponent
 
-      // 提取组件名称（如果是组件对象）
       let rendererName: string | undefined = undefined
       if (displayComponent) {
         if (typeof displayComponent === 'string') {
@@ -883,7 +904,6 @@ export class AIContextManager {
             (displayComponent as any).name ||
             (displayComponent as any).__name ||
             (displayComponent as any).displayName
-          // 如果仍然没有名称，尝试从文件路径提取
           if (!rendererName && (displayComponent as any).__file) {
             const match = String((displayComponent as any).__file).match(/([^/\\]+)\.vue$/)
             if (match && match[1]) {
@@ -892,13 +912,14 @@ export class AIContextManager {
           }
         }
       }
+      rendererName = resolveRendererName(rendererName)
 
       outputs.push({
         id: 'result',
         label: '结果',
         format: 'json' as 'text' | 'json' | 'markdown' | 'html' | 'table' | 'custom',
         data: displayData,
-        renderer: rendererName // 使用组件名称字符串
+        renderer: rendererName
       })
     }
 

@@ -395,40 +395,8 @@ const COMPACT_DIFF_LINES = 4
 
 // 紧凑模式：有结果时默认展开，便于看到 diff
 const compactPanelOpen = ref(false)
-const compactDiffEditorId = ref(`edit-compact-diff-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
-let compactDiffMonaco: monaco.editor.IStandaloneCodeEditor | null = null
-const unifiedDiffText = computed(() => {
-  // 优先使用 result 或 params 中的原始 diff（不读真实文件，只显示调用参数里的 git diff）
-  const r = resultDataOrFromParams.value
-  if (r?.rawDiff && typeof r.rawDiff === 'string' && r.rawDiff.trim()) return r.rawDiff.trim()
-  const lines: string[] = []
-  for (const hunk of hunks.value) {
-    lines.push(`@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@`)
-    for (const line of hunk.oldLines || []) lines.push('-' + line)
-    for (const line of hunk.newLines || []) lines.push('+' + line)
-  }
-  if (lines.length) return lines.join('\n')
-  // 无 hunks 时用 operations 拼一段可读 diff，避免 Monaco 空白
-  if (r?.operations?.length) {
-    for (const op of r.operations) {
-      lines.push(`@@ ${op.type} 行 ${op.range.start.line}:${op.range.start.column} @@`)
-      if (op.type === 'delete' || op.type === 'replace') {
-        const old = getOldContent(op)
-        if (old) old.split(/\r?\n/).forEach((l) => lines.push('-' + l))
-      }
-      if (op.type === 'insert' || op.type === 'replace')
-        (op.content || '').split(/\r?\n/).forEach((l) => lines.push('+' + l))
-    }
-    if (lines.length) return lines.join('\n')
-  }
-  return r?.originalContent || r?.newContent || ''
-})
-const compactMonacoStyle = computed(() => ({
-  height: '220px',
-  backgroundColor: themeState.currentTheme.background
-}))
 
-// 紧凑 diff 显示行（最多 4 行，可展开）
+// 紧凑 diff 显示行（来自 hunks：仅行内容，无 + - @@ 符号）
 const compactDiffLines = computed(() => {
   const lines: { type: 'delete' | 'insert'; text: string }[] = []
   for (const hunk of hunks.value) {
@@ -440,6 +408,192 @@ const compactDiffLines = computed(() => {
     }
   }
   return lines
+})
+
+// 紧凑 Monaco：仅正文拼接（无 + - @@），用于设置 editor value
+const compactDiffMonacoContent = computed(() =>
+  compactDiffLines.value.map((l) => l.text).join('\n')
+)
+// 每行类型，用于红/绿行背景（1-based 行号对应 index）
+const compactDiffLineTypes = computed(() =>
+  compactDiffLines.value.map((l) => l.type)
+)
+
+const compactDiffEditorId = ref(`edit-compact-diff-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
+let compactDiffMonaco: monaco.editor.IStandaloneCodeEditor | null = null
+let compactDiffDecorationIds: string[] = []
+let compactMonacoWheelCleanup: (() => void) | null = null
+
+function getScrollableAncestor(el: HTMLElement): HTMLElement | null {
+  // reka-ui / radix ScrollArea 的视口（Compact 消息列表用）
+  const viewport =
+    el.closest('[data-reka-scroll-area-viewport]') as HTMLElement | null ||
+    el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null
+  if (viewport && viewport.scrollHeight > viewport.clientHeight) return viewport
+  let p: HTMLElement | null = el.parentElement
+  while (p) {
+    const style = getComputedStyle(p)
+    const oy = style.overflowY
+    if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && p.scrollHeight > p.clientHeight) return p
+    p = p.parentElement
+  }
+  return null
+}
+
+const compactMonacoStyle = computed(() => ({
+  height: '280px',
+  backgroundColor: themeState.currentTheme.background
+}))
+
+/** 根据文件名推断 Monaco 语言（仅展示高亮，不改变逻辑） */
+function getLanguageFromFileName(fileName: string): string {
+  if (!fileName) return 'plaintext'
+  const ext = fileName.replace(/^.*\./, '').toLowerCase()
+  const map: Record<string, string> = {
+    md: 'markdown',
+    ts: 'typescript',
+    tsx: 'typescript',
+    js: 'javascript',
+    jsx: 'javascript',
+    json: 'json',
+    vue: 'vue',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    yaml: 'yaml',
+    yml: 'yaml',
+    py: 'python',
+    sh: 'shell',
+    bash: 'shell'
+  }
+  return map[ext] || 'plaintext'
+}
+
+function applyCompactDiffDecorations() {
+  if (!compactDiffMonaco) return
+  const model = compactDiffMonaco.getModel()
+  if (!model) return
+  const types = compactDiffLineTypes.value
+  const isDark = themeState.currentTheme.type === 'dark'
+  const redBg = isDark ? 'rgba(255,100,100,0.18)' : 'rgba(255,200,200,0.45)'
+  const greenBg = isDark ? 'rgba(100,255,130,0.18)' : 'rgba(200,255,200,0.45)'
+  const decorations: monaco.editor.IModelDeltaDecoration[] = []
+  for (let i = 0; i < types.length; i++) {
+    const lineNum = i + 1
+    const type = types[i]
+    decorations.push({
+      range: new monaco.Range(lineNum, 1, lineNum, 1),
+      options: {
+        isWholeLine: true,
+        className: type === 'delete' ? 'compact-diff-line-delete' : 'compact-diff-line-insert'
+      }
+    })
+  }
+  compactDiffDecorationIds = compactDiffMonaco.deltaDecorations(compactDiffDecorationIds, decorations)
+}
+
+function syncCompactMonacoValue() {
+  if (!compactDiffMonaco) return
+  const text = compactDiffMonacoContent.value
+  if (compactDiffMonaco.getValue() !== text) {
+    compactDiffMonaco.setValue(text)
+  }
+  const lang = getLanguageFromFileName(editFileName.value)
+  const model = compactDiffMonaco.getModel()
+  if (model && model.getLanguageId() !== lang) {
+    monaco.editor.setModelLanguage(model, lang)
+  }
+  applyCompactDiffDecorations()
+}
+
+const initCompactMonaco = (retryCount = 0) => {
+  if (!props.compact) return
+  setupMonacoWorker()
+  const tryInit = () => {
+    const el = document.getElementById(compactDiffEditorId.value)
+    if (!el) {
+      if (retryCount < 5) {
+        setTimeout(() => initCompactMonaco(retryCount + 1), 50 * (retryCount + 1))
+      }
+      return
+    }
+    if (compactDiffMonaco) {
+      syncCompactMonacoValue()
+      return
+    }
+    const lang = getLanguageFromFileName(editFileName.value)
+    compactDiffMonaco = monaco.editor.create(el, {
+      value: compactDiffMonacoContent.value,
+      language: lang,
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 12,
+      fontFamily: 'JetBrains Mono, Consolas, monospace'
+    })
+    syncCompactMonacoValue()
+    setTimeout(syncCompactMonacoValue, 0)
+    setTimeout(syncCompactMonacoValue, 100)
+
+    compactMonacoWheelCleanup?.()
+    const onWheel = (e: WheelEvent) => {
+      if (!compactDiffMonaco) return
+      const st = compactDiffMonaco.getScrollTop()
+      const sh = compactDiffMonaco.getScrollHeight()
+      const layout = compactDiffMonaco.getLayoutInfo()
+      const height = layout?.height ?? el.clientHeight
+      const atTop = st <= 0
+      const atBottom = st + height >= sh - 1
+      // 在顶部且用户向上滚(deltaY<0) 或 在底部且用户向下滚(deltaY>0)：把滚动交给外层消息框
+      if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+        e.preventDefault()
+        e.stopPropagation()
+        const scrollable = getScrollableAncestor(el)
+        if (scrollable) scrollable.scrollBy(0, e.deltaY)
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false, capture: true })
+    compactMonacoWheelCleanup = () => {
+      el.removeEventListener('wheel', onWheel, { capture: true })
+      compactMonacoWheelCleanup = null
+    }
+  }
+  nextTick().then(() => nextTick().then(tryInit))
+}
+
+function disposeCompactMonaco() {
+  compactMonacoWheelCleanup?.()
+  compactMonacoWheelCleanup = null
+  if (compactDiffMonaco) {
+    compactDiffMonaco.dispose()
+    compactDiffMonaco = null
+  }
+  compactDiffDecorationIds = []
+}
+
+watch(
+  () => [props.compact, compactPanelOpen.value, compactDiffMonacoContent.value, compactDiffLineTypes.value] as const,
+  ([isCompact, open]) => {
+    if (isCompact && open) {
+      nextTick().then(() => nextTick().then(() => {
+        initCompactMonaco()
+        nextTick(syncCompactMonacoValue)
+      }))
+    }
+  }
+)
+
+watch(
+  () => (props.compact ? compactDiffMonacoContent.value : ''),
+  () => { if (props.compact) nextTick(syncCompactMonacoValue) }
+)
+
+onBeforeUnmount(() => {
+  disposeCompactMonaco()
 })
 
 const compactDiffLinesVisible = computed(() => {
@@ -572,87 +726,20 @@ const getDiffLineStyle = (type: 'insert' | 'delete' | 'context') => {
   }
 }
 
-function syncCompactMonacoValue() {
-  if (compactDiffMonaco) {
-    const text = unifiedDiffText.value
-    if (text !== compactDiffMonaco.getValue()) {
-      compactDiffMonaco.setValue(text || '')
-    }
-  }
-}
-
-const initCompactMonaco = () => {
-  if (!props.compact) return
-  setupMonacoWorker()
-  nextTick().then(() => nextTick().then(() => {
-    const el = document.getElementById(compactDiffEditorId.value)
-    if (!el) return
-    if (compactDiffMonaco) {
-      syncCompactMonacoValue()
-      return
-    }
-    const initialText = unifiedDiffText.value || ''
-    compactDiffMonaco = monaco.editor.create(el, {
-      value: initialText,
-      language: 'diff',
-      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
-      readOnly: true,
-      lineNumbers: 'on',
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      wordWrap: 'on',
-      automaticLayout: true,
-      fontSize: 12,
-      fontFamily: 'JetBrains Mono, Consolas, monospace'
-    })
-    // 数据晚到或先创建后更新：多次尝试同步，避免空白
-    syncCompactMonacoValue()
-    setTimeout(() => syncCompactMonacoValue(), 0)
-    setTimeout(() => syncCompactMonacoValue(), 100)
-  }))
-}
-
-const disposeCompactMonaco = () => {
-  if (compactDiffMonaco) {
-    compactDiffMonaco.dispose()
-    compactDiffMonaco = null
-  }
-}
-
-watch(
-  () => [props.compact, compactPanelOpen.value, unifiedDiffText.value] as const,
-  ([isCompact, open]) => {
-    if (isCompact && open) {
-      initCompactMonaco()
-      nextTick(() => syncCompactMonacoValue())
-    }
-  }
-)
-
-// 紧凑模式：unifiedDiffText 变化时立即同步到 Monaco，避免空白
-watch(
-  () => (props.compact ? unifiedDiffText.value : ''),
-  () => {
-    if (props.compact) {
-      nextTick(() => syncCompactMonacoValue())
-    }
-  }
-)
-
-// 紧凑模式：完成且有 diff/operations 时默认展开面板，便于看到内容
+// 紧凑模式：完成或有 diff（含 paramsDiff）时默认展开面板，便于看到内容
 watch(
   () =>
     props.compact &&
-    displayData.value?.stage === 'completed' &&
-    (hunks.value.length > 0 || (resultData.value?.operations?.length ?? 0) > 0),
+    (displayData.value?.stage === 'completed' || !!props.paramsDiff?.trim()) &&
+    (hunks.value.length > 0 ||
+      (resultData.value?.operations?.length ?? 0) > 0 ||
+      !!(resultDataOrFromParams.value?.rawDiff?.trim())),
   (shouldOpen) => {
     if (shouldOpen) compactPanelOpen.value = true
-  }
+  },
+  { immediate: true }
 )
 
-onBeforeUnmount(() => {
-  disposeCompactMonaco()
-})
 
 const containerStyle = computed(() => ({
   padding: '16px',
@@ -1020,8 +1107,15 @@ const diffCompactStyle = computed(() => ({
   flex-shrink: 0;
 }
 
+/* 紧凑模式 Monaco：仅行背景红/绿，字体保持 Monaco 语言高亮 */
 .edit-display-compact-monaco {
   width: 100%;
   min-height: 200px;
+}
+.edit-display-compact-monaco :deep(.compact-diff-line-delete) {
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,100,100,0.18)" : "rgba(255,200,200,0.45)"');
+}
+.edit-display-compact-monaco :deep(.compact-diff-line-insert) {
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(100,255,130,0.18)" : "rgba(200,255,200,0.45)"');
 }
 </style>

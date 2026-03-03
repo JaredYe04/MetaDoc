@@ -98,95 +98,60 @@
   - 配置验证
   - 导入/导出
 
-### 5. 工作流画布组件 ✅
-
-- **文件**: `src/components/agent/workflow/WorkflowCanvas.vue`
-- **功能**:
-  - 基础画布框架
-  - 节点添加（工具、LLM决策、工作流、控制流）
-  - 节点属性编辑
-  - 工作流验证
-  - **注意**: 当前为基础实现，完整功能需要集成draw.io
-
-### 6. 工作流Display组件 ✅
-
-- **文件**: `src/components/agent/workflow/WorkflowDisplay.vue`
-- **功能**:
-  - 工作流结构可视化
-  - 当前执行节点高亮
-  - 已完成节点标记
-  - 节点执行结果展示
-  - 执行进度显示
-  - 错误信息显示
-
-### 7. AgentView.vue更新 ✅
+### 5. AgentView.vue更新 ✅
 
 - **文件**: `src/views/AgentView.vue`
 - **更新内容**:
-  - 添加管理界面入口（工具集、工作流、AgentConfig）
+  - 添加管理界面入口（工具集、AgentConfig）
   - 更新会话创建逻辑（从AgentConfig创建）
   - 更新工具选择逻辑（从AgentConfig的工具集获取）
   - 添加会话管理菜单（重试、Duplicate、导出）
   - 集成新的管理器和服务
 
-### 8. 文档 ✅
+### 6. 文档 ✅
 
-- **工作流系统文档**: `README_WORKFLOW.md`
 - **AgentConfig系统文档**: `README_AGENT_CONFIG.md`
 - **Agent会话系统文档**: `README_AGENT_SESSION.md`
 - **总体框架文档**: `README.md`
 
-### 9. 国际化支持 ✅
+### 7. 国际化支持 ✅
 
 - **文件**: `src/locales/zh_cn.json`
 - **添加的键**:
   - `agent.manage.*` - 管理界面相关
-  - `agent.workflow.*` - 工作流相关
   - `agent.sessions.*` - 会话管理相关（扩展）
   - `common.create` - 通用创建按钮
 
 ## 📋 待完善功能
 
-### 1. 工作流画布完整实现
-
-- **当前状态**: 基础框架已实现
-- **需要**: 集成draw.io或类似的图形库
-- **建议**: 使用mxGraph或react-flow等库
-
-### 2. LLM决策节点实现
+### 1. LLM 决策节点实现
 
 - **当前状态**: 框架已实现，需要集成LLM API
 - **需要**: 调用实际的LLM API进行决策
 
-### 3. AgentConfig节点实现
+### 2. AgentConfig节点实现
 
 - **当前状态**: 框架已实现
 - **需要**: 实现Agent实例创建和执行逻辑
 
-### 4. 会话重试和Duplicate功能
+### 3. 会话重试和Duplicate功能
 
 - **当前状态**: 管理器方法已实现
 - **需要**: 在AgentView.vue中完成UI集成
 
-### 5. 会话导入导出功能
+### 4. 会话导入导出功能
 
 - **当前状态**: 管理器方法已实现
 - **需要**: 在AgentView.vue中完成UI集成
 
-### 6. 引用素材管理界面
+### 5. 引用素材管理界面
 
 - **当前状态**: 管理器方法已实现
 - **需要**: 创建UI界面供用户管理引用素材
 
-### 7. 工作流作为Tool注册
-
-- **当前状态**: 工作流可以执行
-- **需要**: 自动将工作流注册为Tool，使其可以在Agent会话中使用
-
 ## 🎯 关键设计要点
 
-1. **工作流作为Tool**: 工作流实现了Tool接口，可以在Agent会话中使用
-2. **工具集交集**: AgentConfig关联多个工具集时，可用工具取交集
+1. **工具集交集**: AgentConfig关联多个工具集时，可用工具取交集
 3. **消息队列**: 支持在Agent执行过程中插入消息
 4. **公共上下文**: 所有LLM调用可见的上下文空间（谨慎使用）
 5. **序列化策略**: 支持内嵌依赖或仅引用两种导出方式

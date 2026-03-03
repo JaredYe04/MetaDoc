@@ -32,7 +32,7 @@
   - Markdown文档：markdown/editor.md ✅, markdown/basics.md ✅, markdown/advanced.md ✅, markdown/features.md ✅
   - LaTeX文档：latex/editor.md ✅, latex/basics.md ✅, latex/compilation.md ✅, latex/pdf-preview.md ✅, latex/console.md ✅
   - AI功能文档：ai/chat.md ✅, ai/proofread.md ✅, ai/completion.md ✅, ai/assistants.md ✅, ai/llm-config.md ✅, ai/task-queue.md ✅
-  - Agent框架文档：agent/introduction.md ✅, agent/session.md ✅, agent/config.md ✅, agent/tools.md ✅, agent/workflow.md ✅, agent/references.md ✅, agent/engine.md ✅
+  - Agent框架文档：agent/introduction.md ✅, agent/session.md ✅, agent/config.md ✅, agent/tools.md ✅, agent/references.md ✅, agent/engine.md ✅
   - 大纲文档：outline/basics.md ✅, outline/ai-features.md ✅
   - 知识库文档：knowledge-base/management.md ✅, knowledge-base/config.md ✅, knowledge-base/usage.md ✅
   - 设置文档：settings/basic.md ✅, settings/theme.md ✅, settings/theme-custom.md ✅, settings/llm.md ✅, settings/llm-types.md ✅, settings/llm-management.md ✅, settings/language.md ✅, settings/menu.md ✅, settings/image.md ✅, settings/image-upload.md ✅, settings/logging.md ✅, settings/about.md ✅
@@ -365,14 +365,6 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
   - 删除工具集
   - 工具集工具管理（添加、移除工具）
   - 导入/导出工具集
-- [x] `agent/workflow.md` - 工作流管理
-  - 创建工作流
-  - 编辑工作流（图形视图、代码视图）
-  - 删除工作流
-  - 工作流节点类型（工具节点、LLM决策节点、控制流节点、嵌套工作流、子Agent）
-  - 工作流执行
-  - 工作流作为工具使用
-  - 导入/导出工作流
 - [x] `agent/references.md` - 引用素材管理
   - 添加引用（文件、URL）
   - 删除引用

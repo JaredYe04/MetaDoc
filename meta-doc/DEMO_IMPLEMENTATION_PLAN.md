@@ -145,7 +145,6 @@ Description text...
 | agent/session.md             | 15           | AgentSessionManager (4x), AgentView (4x), MenuItemsDemo (7x)     |
 | agent/tools.md               | 11           | Various tool displays (5x), MenuItemsDemo (6x)                   |
 | agent/engine.md              | 10           | AgentView (4x), MenuItemsDemo (6x)                               |
-| agent/workflow.md            | 4            | WorkflowManager (2x), MenuItemsDemo (2x)                         |
 | agent/references.md          | 9            | ReferenceManager (4x), MenuItemsDemo (5x)                        |
 | latex/basics.md              | 4            | PdfPreviewPanel (2x), MenuItemsDemo (2x)                         |
 | latex/editor.md              | 13           | SearchReplaceMenu (4x), TitleMenu (4x), ViewMenuItemsDemo (5x)   |
@@ -229,7 +228,7 @@ These documents require components that either:
 | ----------------- | ------------------------------------------- | ---------------------------------- | -------- |
 | UserFeedbackView  | views/UserFeedbackView.vue                  | user/feedback.md                   | P3       |
 | LlmStatisticsView | views/LlmStatisticsView.vue                 | statistics/llm.md                  | P3       |
-| WorkflowManager   | components/agent/manage/WorkflowManager.vue | agent/workflow.md, agent/engine.md | P1       |
+| WorkflowManager   | components/agent/manage/WorkflowManager.vue | agent/engine.md                    | P1       |
 | ReferenceManager  | components/agent/ReferenceManager.vue       | agent/references.md                | P1       |
 | LaTeXEditor       | views/LaTeXEditor.vue                       | latex/editor.md, latex/basics.md   | P1       |
 | OutlineAiToolbar  | components/outline/OutlineAiToolbar.vue     | outline/ai-features.md             | P1       |

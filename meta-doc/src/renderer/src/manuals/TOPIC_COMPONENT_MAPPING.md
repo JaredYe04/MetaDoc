@@ -136,7 +136,6 @@
 | `agent/introduction.md` | `AgentView`                             | -        | -           |
 | `agent/config.md`       | `AgentView` + `AgentSessionManager`     | -        | -           |
 | `agent/session.md`      | `AgentSessionManager`                   | -        | `AgentView` |
-| `agent/workflow.md`     | -（工作流已移除）                       | -        | -           |
 | `agent/tools.md`        | `*Display` 组件                         | -        | -           |
 | `agent/engine.md`       | `AgentView`                             | -        | -           |
 | `agent/references.md`   | `ReferenceManager` / `ReferenceDisplay` | -        | -           |

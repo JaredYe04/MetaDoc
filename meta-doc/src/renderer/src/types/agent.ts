@@ -84,6 +84,8 @@ export interface AgentTool {
 export interface AgentSession {
   id: string
   title: string
+  /** 用户是否手动改过标题；为 true 时首次发送消息不再自动根据内容生成标题 */
+  titleUserEdited?: boolean
   description?: string
   createdAt: string
   updatedAt: string

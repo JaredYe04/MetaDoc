@@ -1499,7 +1499,7 @@ function getChartGenerationToolLocales(): ToolLocales {
     "operations": [{
       "type": "insert",
       "range": {
-        "start": {"line": 15, "column": 1},  // 先使用outline-tree定位位置
+        "start": {"line": 15, "column": 1},  // 先查看引用素材或使用 workspace 工作区文件读取工具查看文件定位位置
         "end": {"line": 15, "column": 1}
       },
       "content": "![数据趋势图](${baseUrl}/images/xxx.svg)\n"  // Markdown格式
@@ -1515,7 +1515,7 @@ function getChartGenerationToolLocales(): ToolLocales {
 2. **格式选择**：
    - Markdown文档：使用 \`svg\` 或 \`png\` 格式
    - LaTeX文档：**必须使用 \`pdf\` 格式**
-3. **插入位置**：插入图表前，先使用 \`outline-tree\` 工具定位合适的位置，不要总是从行1列1插入
+3. **插入位置**：插入图表前，先查看引用素材或使用 \`workspace\`（工作区文件读取）工具查看文件确定合适的位置，不要总是从行1列1插入
 4. **插入语法**：
    - Markdown: \`![描述](图片URL)\`
    - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{图片URL或路径}\`
@@ -1665,7 +1665,7 @@ Or use full path:
     "operations": [{
       "type": "insert",
       "range": {
-        "start": {"line": 15, "column": 1},  // First use outline-tree to locate position
+        "start": {"line": 15, "column": 1},  // First check reference or use workspace tool to read file and locate position
         "end": {"line": 15, "column": 1}
       },
       "content": "![Data Trend Chart](${baseUrl}/images/xxx.svg)\n"  // Markdown format
@@ -1681,7 +1681,7 @@ Or use full path:
 2. **Format selection**:
    - Markdown documents: Use \`svg\` or \`png\` format
    - LaTeX documents: **Must use \`pdf\` format**
-3. **Insert position**: Before inserting chart, first use \`outline-tree\` tool to locate appropriate position, don't always insert from line 1 column 1
+3. **Insert position**: Before inserting chart, first check reference or use \`workspace\` (workspace file reader) tool to read file and locate appropriate position, don't always insert from line 1 column 1
 4. **Insert syntax**:
    - Markdown: \`![Description](Image URL)\`
    - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{Image URL or path}\`

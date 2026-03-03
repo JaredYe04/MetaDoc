@@ -17,6 +17,16 @@
             <span class="add">+{{ edit.addedLines }}</span>
             <span class="del">-{{ edit.removedLines }}</span>
           </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="agent-review-item-close"
+            :title="t('agent.staging.dismiss', '关闭并拒绝')"
+            @click.stop="dismissEdit(edit)"
+          >
+            <X class="h-3.5 w-3.5" />
+          </Button>
         </div>
         <div v-if="sessionEdits.length === 0" class="agent-review-empty">
           {{ t('agent.staging.empty') }}
@@ -56,6 +66,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { X } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import { useAgentEditStagingStore, type StagingEditRecord } from '../stores/agent-edit-staging-store'
@@ -180,6 +191,15 @@ async function rejectSelected() {
   }
 }
 
+async function dismissEdit(edit: StagingEditRecord) {
+  try {
+    await stagingStore.removeEdit(edit)
+    if (selectedEdit.value?.id === edit.id) selectedEdit.value = null
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 onBeforeUnmount(() => {
   disposeEditors()
 })
@@ -220,6 +240,9 @@ onBeforeUnmount(() => {
 }
 
 .agent-review-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -233,10 +256,27 @@ onBeforeUnmount(() => {
 
 .agent-review-item.selected {
   background: var(--el-color-primary-light-9);
+  color: var(--el-text-color-primary);
+}
+/* 暗色下避免白底白字：高亮用半透明主色，文字保持可读 */
+html.dark .agent-review-item.selected,
+[data-theme='dark'] .agent-review-item.selected {
+  background: rgba(64, 158, 255, 0.22);
+  color: var(--el-text-color-primary);
+}
+
+.agent-review-item-close {
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.6;
+}
+.agent-review-item-close:hover {
+  opacity: 1;
 }
 
 .agent-review-item-path {
-  display: block;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

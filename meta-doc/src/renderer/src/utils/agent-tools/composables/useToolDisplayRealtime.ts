@@ -120,12 +120,47 @@ export function useToolDisplayRealtime(
 
 /**
  * 解析ToolCallbackData格式的数据
- * @param data - 原始数据
+ * @param data - 原始数据（可能是对象或 JSON 字符串，如工具 output.data）
  * @returns 解析后的数据
  */
 export function parseToolData(data: unknown): unknown {
+  // 兼容 output.data 为 JSON 字符串的情况（如 edit 工具保存的 outputs[].data）
+  if (typeof data === 'string') {
+    const trimmed = data.trim()
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        data = JSON.parse(trimmed) as unknown
+      } catch {
+        return data
+      }
+    } else {
+      return data
+    }
+  }
   if (typeof data === 'object' && data !== null) {
     const dataObj = data as any
+
+    // Edit 工具完整回调返回值：{ status, data: { content: { stage, result }, format, componentName }, result }
+    // 持久化后可能整段被序列化，解析后需提取 content 供 EditDisplay 使用
+    if (
+      dataObj.data?.content &&
+      typeof dataObj.data.content === 'object' &&
+      (dataObj.data.content.stage !== undefined || dataObj.data.content.result !== undefined)
+    ) {
+      return dataObj.data.content
+    }
+
+    // Edit 工具：持久化/序列化后 output.data 可能是裸结果对象（无 stage/result 包装）
+    // 形如 { appliedEdits, failedEdits, operations, hunks, rawDiff }，需规范为 { stage, result } 供 EditDisplay 使用
+    if (dataObj.stage === undefined) {
+      const hasEditResult =
+        Array.isArray(dataObj.hunks) ||
+        Array.isArray(dataObj.operations) ||
+        (typeof dataObj.rawDiff === 'string' && dataObj.rawDiff.trim() !== '')
+      if (hasEditResult) {
+        return { stage: 'completed', result: dataObj }
+      }
+    }
 
     // 首先检查dataObj本身是否已经是期望的内容结构（有outlineTree、stage等字段）
     // 如果是，直接返回（说明已经提取过了）

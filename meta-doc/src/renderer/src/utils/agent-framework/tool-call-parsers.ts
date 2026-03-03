@@ -118,12 +118,13 @@ class StandardToolCallParser implements ToolCallParser {
 
   private parseSingleToolCall(toolCallContent: string, index: number): ParsedToolCall | null {
     try {
-      // 检查是否包含嵌套的DSML格式（<｜DSML｜invoke、<｜DSML｜function_calls> 或 <｜DSML｜call>）
+      // 检查是否包含嵌套的DSML格式（<｜DSML｜invoke、<｜DSML｜function_calls>、<｜DSML｜call> 或 <｜DSML｜_call>）
       // 如果包含，委托给DSML解析器处理
       if (
         /<｜DSML｜invoke/i.test(toolCallContent) ||
         /<｜DSML｜function_calls>/i.test(toolCallContent) ||
-        /<｜DSML｜call/i.test(toolCallContent)
+        /<｜DSML｜call/i.test(toolCallContent) ||
+        /<｜DSML｜_call/i.test(toolCallContent)
       ) {
         getLogger().debug('[StandardToolCallParser] 检测到嵌套的DSML格式，委托给DSML解析器')
         const dsmlParser = new DeepSeekDSMLParser()
@@ -465,7 +466,8 @@ class DeepSeekDSMLParser implements ToolCallParser {
     return (
       /<｜DSML｜function_calls>/i.test(content) ||
       /<｜DSML｜invoke/i.test(content) ||
-      /<｜DSML｜call/i.test(content)
+      /<｜DSML｜call/i.test(content) ||
+      /<｜DSML｜_call/i.test(content)
     )
   }
 
@@ -481,7 +483,8 @@ class DeepSeekDSMLParser implements ToolCallParser {
 
     try {
       // 首先匹配完整的 call 块（优先级最高，因为它是外层容器）
-      const callPattern = /<｜DSML｜call>([\s\S]*?)<\/｜DSML｜call>/i
+      // 支持 <｜DSML｜call> 与 <｜DSML｜_call> 两种闭合标签
+      const callPattern = /<｜DSML｜_?call>([\s\S]*?)<\/｜DSML｜_?call>/i
       const callMatch = content.match(callPattern)
 
       if (callMatch) {
@@ -809,16 +812,20 @@ class DeepSeekDSMLParser implements ToolCallParser {
 
   cleanMarkers(content: string): string {
     // 清除完整的 call 块（优先级最高，因为它是外层容器）
+    // 同时支持 <｜DSML｜call> 与 <｜DSML｜_call> 两种标签
     let cleaned = content.replace(/<｜DSML｜call>[\s\S]*?<\/｜DSML｜call>/gi, '').trim()
+    cleaned = cleaned.replace(/<｜DSML｜_call>[\s\S]*?<\/｜DSML｜_call>/gi, '').trim()
     // 清除完整的 function_calls 块
     cleaned = cleaned
       .replace(/<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>/gi, '')
       .trim()
     // 清除单独的 invoke 标签（如果没有被 function_calls 或 call 包裹）
     cleaned = cleaned.replace(/<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi, '').trim()
-    // 清除不完整的标记
+    // 清除不完整的标记（含 _call 后缀，避免残留在消息中）
     cleaned = cleaned.replace(/<｜DSML｜call>/gi, '').trim()
     cleaned = cleaned.replace(/<\/｜DSML｜call>/gi, '').trim()
+    cleaned = cleaned.replace(/<｜DSML｜_call>/gi, '').trim()
+    cleaned = cleaned.replace(/<\/｜DSML｜_call>/gi, '').trim()
     cleaned = cleaned.replace(/<｜DSML｜function_calls>/gi, '').trim()
     cleaned = cleaned.replace(/<\/｜DSML｜function_calls>/gi, '').trim()
     cleaned = cleaned.replace(/<｜DSML｜invoke/gi, '').trim()
@@ -827,7 +834,7 @@ class DeepSeekDSMLParser implements ToolCallParser {
   }
 
   getMarkerPattern(): RegExp {
-    return /<｜DSML｜call>[\s\S]*?<\/｜DSML｜call>|<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
+    return /<｜DSML｜_?call>[\s\S]*?<\/｜DSML｜_?call>|<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
   }
 }
 
@@ -1415,43 +1422,117 @@ export class ToolCallParserManager {
 }
 
 /**
+ * 补全未闭合的 JSON：只有左半边、缺少右半边的字符串。
+ * 按栈顺序补全缺失的 "、]、}，使字符串可被 JSON.parse 解析。
+ */
+function completeIncompleteJson(str: string): string {
+  const stack: ('}' | ']')[] = []
+  let inDouble = false
+  let inSingle = false
+  let i = 0
+  while (i < str.length) {
+    const c = str[i]
+    if (inDouble) {
+      if (c === '\\') {
+        i += 2
+        continue
+      }
+      if (c === '"') {
+        inDouble = false
+      }
+      i++
+      continue
+    }
+    if (inSingle) {
+      if (c === '\\') {
+        i += 2
+        continue
+      }
+      if (c === "'") {
+        inSingle = false
+      }
+      i++
+      continue
+    }
+    if (c === '"') {
+      inDouble = true
+      i++
+      continue
+    }
+    if (c === "'") {
+      inSingle = true
+      i++
+      continue
+    }
+    if (c === '{') {
+      stack.push('}')
+      i++
+      continue
+    }
+    if (c === '[') {
+      stack.push(']')
+      i++
+      continue
+    }
+    if (c === '}' || c === ']') {
+      if (stack.length > 0 && stack[stack.length - 1] === c) {
+        stack.pop()
+      }
+      i++
+      continue
+    }
+    i++
+  }
+  let out = str
+  if (inDouble || inSingle) {
+    out += '"'
+  }
+  for (let j = stack.length - 1; j >= 0; j--) {
+    out += stack[j]
+  }
+  return out
+}
+
+/**
  * 宽松的JSON解析工具
- * 支持尾随逗号、单引号、注释等非标准JSON格式
+ * 支持尾随逗号、单引号、注释等非标准JSON格式；
+ * 若 JSON 未闭合（只有左半边），会先尝试补全再解析。
  */
 function parseLooseJson(jsonStr: string): any | null {
+  let cleaned = jsonStr.trim()
+
+  // 1. 移除单行和多行注释（但要小心，避免误删字符串中的内容）
+  cleaned = cleaned
+    .replace(/\/\/[^\n\r"']*$/gm, '') // 单行注释（不在字符串中）
+    .replace(/\/\*[\s\S]*?\*\//g, '') // 多行注释
+
+  // 2. 将单引号转换为双引号（更精确的匹配）
+  cleaned = cleaned.replace(/([{,]\s*)'([^']+)'(\s*:)/g, '$1"$2"$3')
+  cleaned = cleaned.replace(/:\s*'([^']*)'/g, ': "$1"')
+  cleaned = cleaned.replace(/\[\s*'([^']*)'\s*\]/g, '["$1"]')
+
+  // 3. 移除尾随逗号（在对象和数组的最后一个元素后）
+  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1')
+
+  // 4. 修复未转义的换行符（在字符串值中）
+  cleaned = cleaned.replace(/:\s*"([^"]*)\n([^"]*)"/g, ': "$1\\n$2"')
+
   try {
-    let cleaned = jsonStr.trim()
-
-    // 1. 移除单行和多行注释（但要小心，避免误删字符串中的内容）
-    // 使用更精确的注释匹配，避免匹配到URL中的//
-    cleaned = cleaned
-      .replace(/\/\/[^\n\r"']*$/gm, '') // 单行注释（不在字符串中）
-      .replace(/\/\*[\s\S]*?\*\//g, '') // 多行注释
-
-    // 2. 将单引号转换为双引号（更精确的匹配）
-    // 匹配键名：'key': 或 'key':
-    cleaned = cleaned.replace(/([{,]\s*)'([^']+)'(\s*:)/g, '$1"$2"$3')
-    // 匹配字符串值：: 'value' 或 :'value'
-    cleaned = cleaned.replace(/:\s*'([^']*)'/g, ': "$1"')
-    // 匹配数组中的字符串：['value']
-    cleaned = cleaned.replace(/\[\s*'([^']*)'\s*\]/g, '["$1"]')
-
-    // 3. 移除尾随逗号（在对象和数组的最后一个元素后）
-    cleaned = cleaned.replace(/,\s*([}\]])/g, '$1')
-
-    // 4. 修复未转义的换行符（在字符串值中）
-    // 注意：这是一个简化的修复，可能不适用于所有情况
-    cleaned = cleaned.replace(/:\s*"([^"]*)\n([^"]*)"/g, ': "$1\\n$2"')
-
-    // 5. 尝试解析
     return JSON.parse(cleaned)
   } catch (error) {
-    getLogger().debug('[parseLooseJson] 宽松解析失败，尝试标准解析:', error)
+    //getLogger().debug('[parseLooseJson] 宽松解析失败，尝试标准解析:', error)
     try {
-      // 如果宽松解析失败，尝试标准解析（只修复尾随逗号）
       return JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
     } catch {
-      return null
+      try {
+        // 未闭合的 JSON：补全右半边后再解析
+        const completed = completeIncompleteJson(cleaned)
+        const parsed = JSON.parse(completed)
+        //getLogger().debug('[parseLooseJson] 未闭合 JSON 已补全并解析成功')
+        return parsed
+      } catch {
+        return null
+      }
     }
   }
 }

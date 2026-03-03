@@ -621,6 +621,8 @@ export const workspaceToolConfig: AgentToolConfig = {
 ## Description
 Read files from workspace folders. Supports reading single files, multiple files, or file line ranges. Can optionally use AI to summarize file contents to save context space.
 
+**⚠️ Use this tool (not grep) when you need to read full file content or large portions of a file.** Grep only returns matching snippets; for full content use \`workspace\` with \`paths\`.
+
 ## Usage Scenarios
 - Read workspace files to understand codebase structure
 - Read specific lines from large files
@@ -674,6 +676,8 @@ Read files from workspace folders. Supports reading single files, multiple files
 
 ## 功能描述
 读取工作区文件夹中的文件，支持路径字符串和行数范围。可以读取单个文件、多个文件或指定行范围。支持可选的AI摘要功能，用于节省上下文空间。
+
+**⚠️ 需要读整个文件或大段内容时请用本工具（不要用 grep）**。grep 只返回匹配片段；要完整内容请用 \`workspace\` 传 \`paths\`。
 
 ## 使用场景
 - 读取工作区文件，了解代码库结构

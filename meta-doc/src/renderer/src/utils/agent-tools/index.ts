@@ -99,8 +99,10 @@ import { toolCollectionManager } from '../agent-framework'
 export function initializeDefaultToolSet(): void {
   const allTools = agentToolManager.getAllTools()
 
-  // 获取所有内置工具ID
-  const builtInToolIds = allTools.map((tool) => tool.config.id)
+  // 获取所有内置工具ID（排除 hidden 工具，不推荐 Agent 优先使用）
+  const builtInToolIds = allTools
+    .filter((tool) => !tool.config.hidden)
+    .map((tool) => tool.config.id)
 
   // 初始化默认工具集
   toolCollectionManager.initializeDefaultToolSet(builtInToolIds)

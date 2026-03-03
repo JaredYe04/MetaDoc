@@ -541,15 +541,84 @@ function performReplacements(
 }
 
 /**
+ * 从 params 中解析搜索模式，支持多种 key 和类型（适配不同 agent 调用格式）
+ */
+function resolvePattern(params: Record<string, unknown>): string {
+  const raw =
+    params.pattern ??
+    params.searchPattern ??
+    params.query ??
+    params.q ??
+    params.keyword ??
+    params.keywords
+  if (raw === undefined || raw === null) return ''
+  const s = typeof raw === 'string' ? raw : String(raw).trim()
+  return s.trim()
+}
+
+/**
+ * 从 params 中解析 scope，支持数组或字符串（如 "workspace,document,metadata" 或 "workspace"）
+ */
+function resolveScope(params: Record<string, unknown>): string[] | undefined {
+  const raw = params.scope ?? params.scopes ?? params.range
+  if (raw === undefined || raw === null) return undefined
+  if (Array.isArray(raw)) {
+    return raw.filter((x) => typeof x === 'string' && x.length > 0)
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return undefined
+    return trimmed
+      .split(/[\s,;|]+/)
+      .map((s) => {
+        const lower = s.trim().toLowerCase()
+        return lower === 'workspaces' ? 'workspace' : lower
+      })
+      .filter(Boolean)
+  }
+  return undefined
+}
+
+/**
+ * 解析布尔参数（支持 true/false 或 "true"/"false" 字符串）
+ */
+function resolveBoolean(params: Record<string, unknown>, key: string, defaultValue: boolean): boolean {
+  const raw = params[key]
+  if (raw === undefined || raw === null) return defaultValue
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'string') return raw.trim().toLowerCase() === 'true' || raw.trim() === '1'
+  return defaultValue
+}
+
+/**
+ * 解析数值参数
+ */
+function resolveNumber(
+  params: Record<string, unknown>,
+  key: string,
+  defaultValue: number,
+  min?: number,
+  max?: number
+): number {
+  const raw = params[key]
+  if (raw === undefined || raw === null) return defaultValue
+  const n = typeof raw === 'number' ? raw : Number(raw)
+  if (Number.isNaN(n)) return defaultValue
+  if (min !== undefined && n < min) return min
+  if (max !== undefined && n > max) return max
+  return n
+}
+
+/**
  * Grep Tool回调函数
  */
 const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
-  const pattern = params.pattern as string
-  const isRegex = params.isRegex === true
-  const isFuzzy = params.fuzzy === true // 模糊搜索开关
-  const similarityThreshold = (params.similarityThreshold as number) || 0.6 // 相似度阈值，默认0.6
-  const contextLines = (params.contextLines as number) || 3
-  const rawScope = params.scope as string[] | undefined
+  const pattern = resolvePattern(params)
+  const isRegex = resolveBoolean(params, 'isRegex', false)
+  const isFuzzy = resolveBoolean(params, 'fuzzy', false)
+  const similarityThreshold = resolveNumber(params, 'similarityThreshold', 0.6, 0, 1)
+  const contextLines = resolveNumber(params, 'contextLines', 3, 0, 50)
+  const rawScope = resolveScope(params)
   let scope: string[]
   if (rawScope && rawScope.length > 0) {
     scope = rawScope
@@ -565,13 +634,16 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       scope = ['document', 'metadata']
     }
   }
-  const tabId = params.tabId as string | undefined
-  const verbose = params.verbose === true // 是否返回完整内容（默认false，节省token）
+  const tabId = (params.tabId ?? params.tab_id) as string | undefined
+  const verbose = resolveBoolean(params, 'verbose', false)
 
   // 替换相关参数
-  const replaceText = params.replaceText as string | undefined
-  const replaceAll = params.replaceAll === true // 是否全部替换
-  const replaceIndices = params.replaceIndices as number[] | undefined // 要替换的匹配项索引（0-based）
+  const replaceText = (params.replaceText ?? params.replacement ?? params.replace) as string | undefined
+  const replaceAll = resolveBoolean(params, 'replaceAll', false)
+  const rawReplaceIndices = params.replaceIndices ?? params.indices
+  const replaceIndices: number[] | undefined = Array.isArray(rawReplaceIndices)
+    ? rawReplaceIndices.map((i) => (typeof i === 'number' ? i : parseInt(String(i), 10))).filter((i) => !Number.isNaN(i))
+    : undefined
 
   // 模糊搜索和正则搜索不能同时启用
   if (isFuzzy && isRegex) {
@@ -593,21 +665,20 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
   }
 
-  if (!pattern || typeof pattern !== 'string') {
+  if (!pattern || pattern.length === 0) {
     return {
       status: 'failed',
       error: createDetailedError(
-        '缺少必需参数: pattern（搜索模式）',
+        '缺少或无效的搜索模式（pattern）',
         [
-          '{"pattern": "搜索文本", "isRegex": false}',
-          '{"pattern": "\\d+", "isRegex": true}  // 正则表达式搜索',
+          '{"pattern": "搜索文本"} 或 {"searchPattern": "关键词"} 或 {"query": "内容"}',
+          '{"pattern": "\\d+", "isRegex": true}  // 正则表达式',
           '{"pattern": "关键词", "scope": ["document", "metadata"], "contextLines": 3}'
         ],
         [
-          '支持普通文本搜索和正则表达式搜索（设置isRegex: true）',
-          '可以通过scope指定搜索范围：["workspace"]（整个工作区）、["document"]（当前文档）、["metadata"]（元数据）；有工作区根时默认包含 workspace',
-          '可以设置contextLines参数控制返回的上下文行数',
-          '支持在文档和元数据中同时搜索'
+          'pattern 也可用 searchPattern、query、q、keyword 作为参数名',
+          'scope 可以是数组 ["workspace","document","metadata"] 或字符串 "workspace,document,metadata"',
+          '支持普通文本、正则（isRegex: true）和模糊搜索（fuzzy: true）'
         ]
       )
     }
@@ -783,7 +854,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       )
 
       const metadataMatches = searchInMetadata(
-        doc.meta,
+        doc.meta ?? {},
         pattern,
         isRegex,
         contextLines,
@@ -1086,6 +1157,8 @@ Search for text patterns in the current document, metadata, and/or **workspace**
 
 **Scope \`workspace\`**: When workspace roots exist, scope defaults to include \`workspace\` (whole workspace directory; excludes .git, node_modules, .metadoc). Use \`scope: ["workspace"]\` to search only workspace files.
 
+**⚠️ This tool does NOT return full file content.** It only returns **matching lines and context** (snippets). If you need to **read entire file content or large portions** of a file, use the **\`workspace\` (workspace file reader) tool** with \`paths\` instead; do not use grep for that.
+
 ## ⭐ Recommended for Frequent Use
 
 This tool is designed as a lightweight, efficient query tool, **recommended for frequent use** to:
@@ -1149,6 +1222,8 @@ Returns array of matches with line numbers, positions, and context.`
 在当前活动文档、metadata 以及**工作区**中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。支持**搜索和替换**功能，可以一次性完成查找和替换操作。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位和修改文档内容。
 
 **scope \`workspace\`**：有工作区根时，默认搜索范围包含整个工作区目录（排除 .git、node_modules、.metadoc）。可仅指定 \`scope: ["workspace"]\` 只搜工作区文件。
+
+**⚠️ 本工具不返回完整文件内容**，只返回**匹配行及上下文片段**。若需要**读取整个文件或大段内容**，请使用 **\`workspace\`（工作区文件读取）** 工具传 \`paths\`，不要用 grep。
 
 ## ⭐ 推荐频繁使用
 
@@ -1357,7 +1432,8 @@ Returns array of matches with line numbers, positions, and context.`
     properties: {
       pattern: {
         type: 'string',
-        description: '搜索模式（文本或正则表达式）'
+        description:
+          '搜索模式（必填）。也支持参数名 searchPattern、query、q、keyword 之一，任选其一即可'
       },
       isRegex: {
         type: 'boolean',
@@ -1388,7 +1464,7 @@ Returns array of matches with line numbers, positions, and context.`
           enum: ['workspace', 'document', 'metadata']
         },
         description:
-          '搜索范围：workspace=整个工作区目录，document=当前文档，metadata=元数据；有工作区根时默认包含 workspace',
+          '搜索范围：workspace/document/metadata。可为数组或字符串（如 "workspace,document,metadata"）',
         default: ['workspace', 'document', 'metadata']
       },
       tabId: {

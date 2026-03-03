@@ -545,7 +545,7 @@ export const proofreadToolCallback: ToolCallback = async (params, signal, onUpda
           ],
           [
             'nodePath格式：使用点号分隔的路径，如"1"、"1.1"、"1.2.3"',
-            '可以通过outline-tree工具获取文档的大纲结构，查看各个节点的path',
+            '可查看引用素材中的「当前文档内容」了解章节结构，或使用 workspace（工作区文件读取）工具查看文件',
             '校对的内容包括该节点及其所有子节点的文本',
             '测试环境：可以通过 _mockDocument 参数传入 mock 文档数据'
           ]
@@ -1115,7 +1115,7 @@ Returns array of errors with line numbers, positions, suggestions, and severity 
 
 **推荐使用方式**：
 - **校对全文**：使用 \`{}\` 或 \`{"source": "document"}\`，最简单高效
-- **校对特定章节**：使用 \`{"nodePath": "1.1"}\`，可以先通过 \`outline-tree\` 工具查看章节路径
+- **校对特定章节**：使用 \`{"nodePath": "1.1"}\`，可查看引用素材中的「当前文档内容」了解章节路径，或使用 \`workspace\`（工作区文件读取）工具查看文件
 
 ## 输出格式
 \`\`\`json
@@ -1153,7 +1153,7 @@ Returns array of errors with line numbers, positions, suggestions, and severity 
 - 错误位置基于行号和列号（1-based）
 - 严重程度分为：error（错误）、warning（警告）、info（信息）
 - 如果使用nodePath，校对的内容包括该节点及其所有子节点的文本
-- 可以通过outline-tree工具查看文档的大纲结构，获取节点路径
+- 可查看引用素材中的「当前文档内容」了解章节结构，或使用 \`workspace\`（工作区文件读取）工具查看文件获取节点路径
 `,
   callback: proofreadToolCallback,
   displayComponent: ProofreadDisplay,

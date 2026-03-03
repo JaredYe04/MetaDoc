@@ -45,9 +45,42 @@ import {
 import OutlineOptimizeDisplay from './components/OutlineOptimizeDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('OutlineOptimizeTool')
 const workspace = useWorkspace()
+
+/** 工作区根目录列表（用于解析相对路径） */
+function getWorkspaceRoots(): string[] {
+  try {
+    const saved = localStorage.getItem('workspaceFolders')
+    if (!saved) return []
+    const arr = JSON.parse(saved)
+    return Array.isArray(arr)
+      ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
+      : []
+  } catch {
+    return []
+  }
+}
+
+/** 将工作区相对路径或绝对路径解析为绝对路径 */
+function resolveFilePath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/').trim()
+  if (normalized.startsWith('/') || /^[A-Za-z]:[/\\]/.test(normalized)) {
+    return normalized
+  }
+  const roots = getWorkspaceRoots()
+  const root = roots[0]
+  if (!root) return normalized
+  const base = root.replace(/\\/g, '/').replace(/\/$/, '')
+  return `${base}/${normalized}`
+}
+
+/** 规范化路径用于比较 */
+function normalizePathForCompare(p: string): string {
+  return p.replace(/\\/g, '/').toLowerCase().replace(/\/$/, '')
+}
 
 // 清理函数已迁移到 outline-ai-utils.ts，使用导入的版本
 
@@ -204,6 +237,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
   const moveMode = params.moveMode as 'before' | 'after' | 'inside' | undefined // 移动模式
   const userPrompt = (params.userPrompt as string) || ''
   const tabId = params.tabId as string | undefined
+  const filePathParam = params.filePath as string | undefined
 
   if (!operation) {
     return {
@@ -249,13 +283,71 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
     )
 
-    // 获取文档（支持跨窗口）
+    // 获取文档：支持 filePath（工作区路径）或 tabId（标签页），仅 .md / .tex 支持大纲
     const windowType = getWindowType()
     let doc: any = null
     let targetTabId: string | null = null
+    /** 当通过 filePath 从磁盘加载且未在标签页打开时，操作完成后写回该路径 */
+    let targetFilePath: string | null = null
 
-    if (windowType === 'setting') {
-      // 在设置窗口中，通过广播获取文档信息
+    if (filePathParam && messageBridge.getIpc()?.invoke) {
+      const absPath = resolveFilePath(filePathParam)
+      const isTex = /\.tex$/i.test(absPath)
+      const isMd = /\.(md|markdown)$/i.test(absPath)
+      if (!isTex && !isMd) {
+        return {
+          status: 'failed',
+          error: i18n.global.t(
+            'agent.tool.outlineOptimize.error.unsupportedFormat',
+            '大纲仅支持 Markdown (.md) 和 LaTeX (.tex) 文件，当前文件格式不支持。'
+          )
+        }
+      }
+      const format = isTex ? 'tex' : 'md'
+      const normalizedAbs = normalizePathForCompare(absPath)
+      // 优先查找已打开的标签页（同路径）
+      const tabs = workspace.tabs
+      const existingTab = tabs.find(
+        (t) => t.kind === 'file' && t.path && normalizePathForCompare(t.path) === normalizedAbs
+      )
+      if (existingTab) {
+        targetTabId = existingTab.id
+        doc = workspace.ensureDocument(existingTab.id)
+        if (!doc) {
+          return {
+            status: 'failed',
+            error: i18n.global.t('agent.tool.outlineOptimize.error.documentNotFound', '文档不存在')
+          }
+        }
+      } else {
+        let content: string | null = null
+        try {
+          content = (await messageBridge.invoke('read-file-content', absPath)) as string | null
+        } catch (e) {
+          logger.warn('read-file-content failed', e)
+        }
+        if (content == null) {
+          return {
+            status: 'failed',
+            error: i18n.global.t(
+              'agent.tool.outlineOptimize.error.fileNotFound',
+              `文件不存在或无法读取: ${filePathParam}`
+            )
+          }
+        }
+        const adapter = getOutlineAdapter(format)
+        const outlineTree = adapter.fromText(content)
+        doc = {
+          markdown: format === 'md' ? content : '',
+          tex: format === 'tex' ? content : '',
+          format,
+          outline: outlineTree,
+          path: absPath
+        }
+        targetTabId = null
+        targetFilePath = absPath
+      }
+    } else if (windowType === 'setting') {
       const docInfo = await getActiveDocumentInfoViaBroadcast()
       if (!docInfo) {
         return {
@@ -275,7 +367,6 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
       targetTabId = docInfo.tabId
     } else {
-      // 在主窗口中，直接使用workspace
       targetTabId = tabId || workspace.activeTabId.value
       if (!targetTabId) {
         return {
@@ -295,10 +386,18 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
     }
 
-    // 确保文档格式已设置（如果未设置，默认为md）
     if (!doc.format) {
       doc.format = 'md'
       logger.warn('文档格式未设置，默认使用Markdown格式')
+    }
+    if (doc.format !== 'md' && doc.format !== 'tex') {
+      return {
+        status: 'failed',
+        error: i18n.global.t(
+          'agent.tool.outlineOptimize.error.unsupportedFormat',
+          '大纲仅支持 Markdown (.md) 和 LaTeX (.tex) 文档，当前格式不支持。'
+        )
+      }
     }
 
     // 获取大纲树
@@ -342,7 +441,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
             status: 'failed',
             error: i18n.global.t(
               'agent.tool.outlineOptimize.error.nodeNotFound',
-              `找不到路径为 ${nodePath} 的节点。提示：可以使用"dummy"指定根节点，或使用outline-tree工具查看节点路径`
+              `找不到路径为 ${nodePath} 的节点。提示：可使用 "dummy" 指定根节点，或通过引用素材/workspace 工具查看文档结构获取节点路径`
             )
           }
         }
@@ -602,7 +701,17 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
         }
       )
 
-      await syncOutlineToDocument(targetTabId, workingOutline, doc.format, doc.markdown, doc.tex)
+      if (targetTabId) {
+        await syncOutlineToDocument(targetTabId, workingOutline, doc.format, doc.markdown, doc.tex)
+      } else if (targetFilePath && messageBridge.getIpc()?.invoke) {
+        const adapter = getOutlineAdapter(doc.format)
+        const currentContent = doc.format === 'tex' ? doc.tex : doc.markdown
+        const newContent = await adapter.toText(workingOutline, currentContent)
+        await messageBridge.invoke('write-file-content', {
+          filePath: targetFilePath,
+          content: newContent
+        })
+      }
 
       onUpdate(
         {
@@ -735,12 +844,13 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 const outlineOptimizeToolLocales: ToolLocales = {
   zh_cn: {
     name: '大纲优化',
-    description: '使用AI生成/优化文档大纲（仅支持 .md 与 .tex），包括生成子节点、生成内容等，并自动同步到文档'
+    description:
+      '使用AI生成/优化文档大纲（仅 .md/.tex），支持按路径或 tab 指定文档；仅在对单一大型文档操作时使用'
   },
   en_us: {
     name: 'Outline Optimization',
     description:
-      'Use AI to generate/optimize document outline (only .md and .tex supported), including child nodes and content, auto-sync to document'
+      'Use AI to generate/optimize document outline (only .md/.tex). Specify doc by filePath or tabId. Use only when operating on a single large document.'
   },
   de_DE: {
     name: 'Gliederungsoptimierung',
@@ -772,11 +882,14 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
   spec: {
     name: 'outline-optimize',
     brief:
-      'Generate and optimize document outline using AI. Only Markdown (.md) and LaTeX (.tex) support outline; other formats are not supported. Supports multiple operation modes with concurrent processing.',
+      'Generate/optimize document outline (only .md/.tex). Use only for a single large document. Specify target by filePath or tabId.',
     fullSpec: `# Outline Optimization Tool
 
+## Scope Limitation ⚠️
+**Use this tool only when operating on a single large document**: one specific document with substantial length (e.g. long articles, theses). Do not use for multi-document workflows or short snippets.
+
 ## Description
-Uses AI to generate and optimize document outline, supports multiple operation modes. **Only Markdown (.md) and LaTeX (.tex) documents support outline; other file formats are not supported.** After generation, automatically syncs to document content. **Uses concurrent processing mechanism for efficient batch generation of large amounts of content**.
+Uses AI to generate and optimize document outline. **Only Markdown (.md) and LaTeX (.tex) support outline; other formats are not supported.** You can specify the target document by \`filePath\` (workspace-relative or absolute) or \`tabId\` (default: current active tab). After generation, syncs to the document (or writes to file when opened by path). **Concurrent processing for efficient batch generation**.
 
 **⭐ Smart Parsing**: This tool supports multiple AI response formats:
 - ✅ JSON format (recommended): [{"title": "Section 1", "children": []}, ...]
@@ -787,10 +900,10 @@ Uses AI to generate and optimize document outline, supports multiple operation m
 
 This tool uses **concurrent AI processing mechanism**, can generate content for multiple nodes simultaneously, **tens of times more efficient than manual generation**.
 
-**Suitable scenarios**:
-- ✅ **Large-scale content generation**: When generating many sections/paragraphs, use this tool for concurrent processing
-- ✅ **Batch operations**: One-click generate content for all subsections, one-click add subsections to all subsections, etc.
-- ✅ **Structured generation**: When generating content according to outline structure, use this tool to maintain structural consistency
+**Suitable scenarios** (single large document only):
+- ✅ **Large-scale content generation**: One document with many sections/paragraphs, use this tool for concurrent processing
+- ✅ **Batch operations**: One-click generate content for all subsections, etc.
+- ✅ **Structured generation**: Generate content according to outline structure for one document
 
 ## Usage Scenarios
 - **Large-scale content generation**: When generating many sections/paragraphs (recommended to use this tool, concurrent processing)
@@ -804,27 +917,30 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 \`\`\`json
 {
   "operation": "generateChildren|generateContent|generateChildrenChildren|generateChildrenContent|moveNode|deleteNodes|clearOutline",
-  "nodePath": "string",      // ⚠️ Important: Target node path (e.g., "1", "1.1", "dummy" for root). For generateChildren and generateContent, if nodePath is not specified, only affects first node
-  "nodePaths": ["string"],  // Optional, array of node paths for batch operations (for deleteNodes)
-  "targetPath": "string",   // Optional, target path for move operation (for moveNode)
-  "moveMode": "string",     // Optional, move mode: before/after/inside (for moveNode)
-  "userPrompt": "string",   // Optional, user prompt to guide AI generation
-  "tabId": "string"         // Optional, document tab ID, default uses current active tab
+  "nodePath": "string",      // ⚠️ Target node path (e.g., "1", "1.1", "dummy" for root)
+  "nodePaths": ["string"],  // Optional, for deleteNodes batch
+  "targetPath": "string",   // Optional, for moveNode
+  "moveMode": "string",     // Optional, before/after/inside (for moveNode)
+  "userPrompt": "string",   // Optional, guide AI generation
+  "filePath": "string",     // Optional, workspace-relative or absolute path to .md/.tex file (if not open in tab, reads/writes from disk)
+  "tabId": "string"         // Optional, document tab ID; default current active tab. Use filePath or tabId to specify target.
 }
 \`\`\`
 
 ## Important Notes
-1. **Only .md and .tex**: Outline (and this tool) is supported only for Markdown (.md) and LaTeX (.tex) documents; other formats are not supported.
-2. **Must specify nodePath** for generateChildren and generateContent operations
-3. Use "dummy" as nodePath to represent root node
-4. Batch operations (generateChildrenChildren, generateChildrenContent) use concurrent processing for efficiency
-5. Use outline-tree tool to view document outline structure and get node paths`
+1. **Only .md and .tex**: Outline is supported only for Markdown (.md) and LaTeX (.tex); other formats are not supported.
+2. **Single large document only**: Use this tool only when operating on one document with substantial content.
+3. **Target by filePath or tabId**: Provide \`filePath\` to work on a file (opens from disk if not in a tab; writes back after); or \`tabId\`/current tab.
+4. Use "dummy" as nodePath for root. Batch operations use concurrent processing.`
   },
   instruction: `
 # 大纲优化工具
 
+## 适用范围 ⚠️
+**仅在对单一大型文档进行操作时使用**：针对某一个文档，且该文档篇幅较大（如长文、论文）时使用。不要用于多文档或短片段。
+
 ## 功能描述
-使用AI生成和优化文档大纲，支持多种操作模式，生成后自动同步到文档内容。**仅支持 Markdown (.md) 和 LaTeX (.tex) 文档，其他文件格式不支持大纲。** 采用并发处理机制，可以高效批量生成大量内容。
+使用AI生成和优化文档大纲。**仅支持 Markdown (.md) 和 LaTeX (.tex)，其他格式不支持大纲。** 可通过 \`filePath\`（工作区相对或绝对路径）或 \`tabId\`（默认当前活动标签页）指定目标文档；未打开的 .md/.tex 文件会从磁盘读取，操作完成后写回。采用并发处理，可高效批量生成大量内容。
 
 **⭐ 智能解析**：此工具支持多种AI响应格式，包括：
 - ✅ JSON格式（推荐）：[{"title": "章节1", "children": []}, ...]
@@ -835,10 +951,10 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 
 此工具采用**并发AI处理机制**，可以同时为多个节点生成内容，**比手动逐段生成效率高数十倍**。
 
-**适用场景**：
-- ✅ **大规模内容生成**：需要生成大量章节、段落时，使用此工具可以并发处理，快速完成
+**适用场景**（仅限单一大型文档）：
+- ✅ **大规模内容生成**：对某一篇长文档需要生成大量章节、段落时，使用此工具并发处理
 - ✅ **批量操作**：一键为所有子章节生成内容、一键为所有子章节添加子章节等
-- ✅ **结构化生成**：需要按照大纲结构生成内容时，使用此工具可以保持结构一致性
+- ✅ **结构化生成**：按大纲结构为单一文档生成内容时使用
 
 **效率对比**：
 - ❌ **手动生成**：逐段生成，需要多次LLM调用，效率低，耗时长
@@ -856,12 +972,13 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 \`\`\`json
 {
   "operation": "generateChildren|generateContent|generateChildrenChildren|generateChildrenContent|moveNode|deleteNodes|clearOutline",
-  "nodePath": "string",      // ⚠️ 重要：目标节点的路径（如"1", "1.1", "dummy"表示根节点）。对于generateChildren和generateContent，如果不指定nodePath，只会作用在第一个节点上
-  "nodePaths": ["string"],  // 可选，批量操作的节点路径数组（用于deleteNodes）
-  "targetPath": "string",   // 可选，移动操作的目标路径（用于moveNode）
-  "moveMode": "string",     // 可选，移动模式：before/after/inside（用于moveNode）
-  "userPrompt": "string",   // 可选，用户提示词，用于指导AI生成
-  "tabId": "string"         // 可选，文档标签页ID，默认使用当前活动标签页
+  "nodePath": "string",      // ⚠️ 目标节点路径（如 "1", "1.1", "dummy" 表示根节点）
+  "nodePaths": ["string"],  // 可选，批量删除的节点路径（用于deleteNodes）
+  "targetPath": "string",   // 可选，移动目标路径（用于moveNode）
+  "moveMode": "string",     // 可选，before/after/inside（用于moveNode）
+  "userPrompt": "string",   // 可选，指导AI生成的提示词
+  "filePath": "string",     // 可选，工作区相对或绝对路径，指定要操作的 .md/.tex 文件（未打开则从磁盘读写）
+  "tabId": "string"         // 可选，文档标签页ID；默认当前活动标签页。用 filePath 或 tabId 指定目标文档
 }
 \`\`\`
 
@@ -886,7 +1003,7 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
    - 为每个节点单独调用一次操作，指定不同的nodePath
 
 ### 如何获取节点路径
-使用 \`outline-tree\` 工具可以查看文档的大纲结构，获取每个节点的path。
+可查看引用素材中的「当前文档内容」，或使用 \`workspace\`（工作区文件读取）工具查看文件内容，获取各节点 path。
 
 ## 操作类型说明
 
@@ -1054,7 +1171,7 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 3. 使用 \`generateChildrenContent\` 为所有章节批量生成内容
 
 **场景2：为已有大纲补充内容**
-1. 使用 \`outline-tree\` 工具查看文档大纲结构
+1. 通过引用素材或 \`workspace\` 工具查看文档大纲结构
 2. 使用 \`generateChildrenContent\` 为指定节点的所有子节点批量生成内容
 
 **场景3：扩展某个章节**
@@ -1151,9 +1268,13 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
         type: 'string',
         description: '用户提示词，用于指导AI生成（用于生成操作）'
       },
+      filePath: {
+        type: 'string',
+        description: '工作区相对或绝对路径，指定要操作的 .md/.tex 文件（未打开则从磁盘读写）'
+      },
       tabId: {
         type: 'string',
-        description: '文档标签页ID（可选，默认使用当前活动标签页）'
+        description: '文档标签页ID（可选，默认当前活动标签页）；与 filePath 二选一指定目标'
       }
     },
     required: ['operation']

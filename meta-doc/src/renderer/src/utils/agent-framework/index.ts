@@ -5,7 +5,10 @@
 // 管理器
 export { toolCollectionManager } from './tool-collection-manager'
 export { agentConfigManager } from './agent-config-manager'
-export { agentSessionManager } from './agent-session-manager'
+export {
+  agentSessionManager,
+  generateSessionTitleFromContent
+} from './agent-session-manager'
 export { agentEngineManager } from './agent-engine-manager'
 
 // 执行器

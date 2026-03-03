@@ -93,16 +93,17 @@
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div class="output-body" :style="outputBodyStyle">
-            <!-- 如果有显示组件，使用组件渲染（传入 invocationId 以支持实时更新） -->
+            <!-- 如果有显示组件，使用组件渲染（传入 invocationId 以支持实时更新）；edit 工具在无 renderer 时回退到 EditDisplay，避免持久化后显示裸 JSON -->
             <component
-              v-if="output.renderer && resolveToolOutputComponent(output.renderer)"
-              :is="resolveToolOutputComponent(output.renderer)"
+              v-if="getOutputRendererName(output) && resolveToolOutputComponent(getOutputRendererName(output)!)"
+              :is="resolveToolOutputComponent(getOutputRendererName(output)!)"
               :data="output.data"
               :status="message.status"
               :progress="message.progress"
               :error="message.error"
               :tool-config="toolConfig"
               :invocation-id="(message as any).invocationId"
+              :params-diff="(message as any).params?.diff"
               :compact="compact"
               @update="handleComponentUpdate"
               @cancel="handleComponentCancel"
@@ -179,6 +180,13 @@ const toolConfig = computed(() => {
   const tool = agentToolManager.getTool(props.message.tool.id)
   return tool?.config
 })
+
+// 解析输出使用的展示组件名（无 renderer 时 edit 工具回退到 EditDisplay，避免持久化后显示裸 JSON）
+function getOutputRendererName(output: ToolOutputDescriptor): string | null {
+  if (output.renderer) return output.renderer
+  if (props.message.tool?.id === 'edit') return 'EditDisplay'
+  return null
+}
 
 // 处理组件更新（用于交互式组件）
 const handleComponentUpdate = (data: unknown) => {

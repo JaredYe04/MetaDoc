@@ -253,13 +253,13 @@
             </template>
             <template v-else>
               <div class="agent-compact-staging-actions">
-                <Button size="sm" variant="ghost" class="text-xs" @click="stagingAcceptAll">
+                <Button size="sm" class="agent-staging-btn agent-staging-btn-accept" @click="stagingAcceptAll">
                   {{ t('agent.staging.acceptAll', '全部接受') }}
                 </Button>
-                <Button size="sm" variant="ghost" class="text-xs text-destructive" @click="stagingRejectAll">
+                <Button size="sm" class="agent-staging-btn agent-staging-btn-reject" @click="stagingRejectAll">
                   {{ t('agent.staging.rejectAll', '全部拒绝') }}
                 </Button>
-                <Button size="sm" variant="ghost" class="text-xs" @click="openReviewWindow">
+                <Button size="sm" class="agent-staging-btn agent-staging-btn-review" @click="openReviewWindow">
                   {{ t('agent.staging.openReview', '独立审阅') }}
                 </Button>
               </div>
@@ -288,6 +288,16 @@
                   <span v-else class="agent-compact-staging-item-status">
                     {{ edit.status === 'accepted' ? t('agent.staging.accepted', '已接受') : t('agent.staging.rejected', '已拒绝') }}
                   </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="agent-compact-staging-item-close"
+                    :title="t('agent.staging.dismiss', '关闭并拒绝')"
+                    @click.stop="stagingDismiss(edit)"
+                  >
+                    <X class="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
             </template>
@@ -476,6 +486,7 @@ import {
   agentConfigManager,
   agentSessionManager
 } from '../../utils/agent-framework'
+import { generateConversationTitleByAi } from '../../utils/conversation-title'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 import { processTextReference } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
@@ -790,6 +801,7 @@ function createDefaultSession() {
     const legacySession: AgentSession = {
       id: session.id,
       title: session.title,
+      titleUserEdited: session.titleUserEdited ?? false,
       description: session.description,
       createdAt: new Date(session.createdAt).toISOString(),
       updatedAt: new Date(session.updatedAt).toISOString(),
@@ -839,6 +851,7 @@ async function handleTabContextRename() {
       }
     )
     s.title = value.trim()
+    s.titleUserEdited = true
     touchSession(s)
     persistSessions()
     notifySuccess(t('agent.sessions.renameSuccess'))
@@ -863,7 +876,9 @@ async function handleTabContextExport() {
       executionNodes: s.executionNodes || [],
       status: s.status || 'idle'
     }
-    const serialized = agentSessionManager.serializeSession(newFormatSession, true)
+    const serialized = agentSessionManager.serializeSession(newFormatSession, false, {
+      compact: true
+    })
     const json = JSON.stringify(serialized, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -931,6 +946,7 @@ function createNewSession() {
     const legacySession: AgentSession = {
       id: session.id,
       title: session.title,
+      titleUserEdited: session.titleUserEdited ?? false,
       description: session.description,
       createdAt: new Date(session.createdAt).toISOString(),
       updatedAt: new Date(session.updatedAt).toISOString(),
@@ -1116,6 +1132,14 @@ async function stagingReject(edit: StagingEditRecord) {
   }
 }
 
+async function stagingDismiss(edit: StagingEditRecord) {
+  try {
+    await stagingStore.removeEdit(edit)
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  }
+}
+
 function stagingAcceptAll() {
   if (activeSession.value) stagingStore.acceptAll(activeSession.value.id)
 }
@@ -1180,11 +1204,30 @@ const createChatMessage = (
 const scrollToBottom = () => {
   nextTick(() => {
     const container = document.querySelector(
-      '.conversation-scroll .el-scrollbar__wrap'
+      '.agent-compact-content .conversation-scroll [data-reka-scroll-area-viewport]'
     ) as HTMLElement | null
     if (container) container.scrollTop = container.scrollHeight
   })
 }
+
+// AI 正在输出时，消息列表或最后一条助手消息内容变化则自动滚到底部，始终显示最新内容
+watch(
+  () => {
+    if (!isGenerating.value) return null
+    const msgs = activeSession.value?.messages
+    if (!msgs?.length) return null
+    const last = msgs[msgs.length - 1]
+    const md =
+      last?.role === 'assistant' && last?.type === 'chat'
+        ? (last as ChatAgentMessage).markdown
+        : undefined
+    return [msgs.length, md] as const
+  },
+  () => {
+    scrollToBottom()
+  },
+  { deep: true, flush: 'post' }
+)
 
 const handleComposerReset = () => {
   agentStore.setComposerInput('')
@@ -1287,6 +1330,7 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
 
   const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
   const messageRefIds = refIdsInInput.length > 0 ? refIdsInInput : [...activeReferenceIds.value]
+  const isFirstUserMessage = session.messages.length === 1
   const message = createChatMessage('user', content, messageRefIds)
   session.messages.push(message)
 
@@ -1300,6 +1344,20 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
 
   try {
     await executeAgentEngine(content, session)
+    // 第一轮对话完成后，根据整轮会话内容由 AI 生成标题（参考 AIChat.vue）
+    if (isFirstUserMessage && !session.titleUserEdited) {
+      generateConversationTitleByAi(
+        session.messages,
+        session.title || t('agent.sessions.defaultTitle')
+      )
+        .then((newTitle) => {
+          if (newTitle && !session.titleUserEdited) {
+            session.title = newTitle
+            persistSessions()
+          }
+        })
+        .catch(() => {})
+    }
   } catch (error) {
     logger.error('[handleComposerSubmit] 执行失败:', error)
     notifyError(error instanceof Error ? error.message : String(error))
@@ -1844,6 +1902,43 @@ onMounted(async () => {
   display: flex;
   gap: 4px;
   margin-bottom: 4px;
+}
+
+/* 底部按钮：背景色区分，文字颜色一致 */
+.agent-staging-btn {
+  font-size: 12px;
+  color: #fff !important;
+}
+.agent-staging-btn-accept {
+  background: var(--el-color-success) !important;
+}
+.agent-staging-btn-accept:hover {
+  opacity: 0.9;
+  color: #fff !important;
+}
+.agent-staging-btn-reject {
+  background: var(--el-color-danger) !important;
+}
+.agent-staging-btn-reject:hover {
+  opacity: 0.9;
+  color: #fff !important;
+}
+.agent-staging-btn-review {
+  background: var(--el-fill-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+.agent-staging-btn-review:hover {
+  background: var(--el-fill-color-dark) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+.agent-compact-staging-item-close {
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.6;
+}
+.agent-compact-staging-item-close:hover {
+  opacity: 1;
 }
 
 .agent-compact-staging-list {

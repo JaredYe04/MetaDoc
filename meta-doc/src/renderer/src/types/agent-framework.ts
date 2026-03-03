@@ -195,6 +195,8 @@ export interface AgentSession {
   id: string
   /** 会话标题 */
   title: string
+  /** 用户是否手动改过标题；为 true 时首次发送消息不再自动根据内容生成标题 */
+  titleUserEdited?: boolean
   /** 会话描述 */
   description?: string
   /** 关联的AgentConfig ID */

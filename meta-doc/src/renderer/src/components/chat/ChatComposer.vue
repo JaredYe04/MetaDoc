@@ -176,7 +176,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
-  (e: 'submit', enableKnowledgeBaseQuery?: boolean): void
+  (e: 'submit', enableKnowledgeBaseQuery?: boolean, content?: string): void
   (e: 'reset'): void
   (e: 'attach', file?: File | File[]): void
   (e: 'voice'): void
@@ -206,8 +206,8 @@ const scrollContainerStyle = computed(() => ({
 }))
 
 const scrollWrapStyle = computed(() => ({
-  overflowX: 'hidden',
-  overflowY: 'auto'
+  overflowX: 'hidden' as const,
+  overflowY: 'auto' as const
 }))
 
 const effectiveInputTrim = computed(() => {
@@ -286,7 +286,14 @@ const handleInput = (event: Event) => {
 
 const handleSubmit = () => {
   if (props.disabled || !hasContentToSend.value) return
-  emit('submit', enableKnowledgeBaseQuery.value)
+  // 带 @ 时从输入框取最新内容并随 submit 传出，避免父组件读 store 时拿到不完整
+  const content =
+    props.showReferencePicker && refInputRef.value?.getValue
+      ? refInputRef.value.getValue()
+      : (props.modelValue ?? '')
+  emit('submit', enableKnowledgeBaseQuery.value, content)
+  // 提交后主动清空本地输入值，确保输入框在父组件异步处理前也会被清空
+  emit('update:modelValue', '')
 }
 
 const toggleKnowledgeBaseQuery = () => {
@@ -420,10 +427,22 @@ const checkKnowledgeBaseEnabled = async () => {
 defineExpose({
   /** 在光标处插入 @path 或 @tab:tabId（仅当 showReferencePicker 时有效） */
   insertAtCursor(value: string) {
-    refInputRef.value?.insertAtCursor(value)
+    nextTick(() => {
+      refInputRef.value?.insertAtCursor(value)
+    })
   },
   insertRefAtCursor(value: string) {
-    refInputRef.value?.insertAtCursor(value)
+    nextTick(() => {
+      refInputRef.value?.insertAtCursor(value)
+    })
+  },
+  /** 提交前取当前内容：使用 ref 输入框时从 DOM 刷新再返回，避免只发出 @tag 而丢失其他文字 */
+  getContentForSubmit(): string {
+    if (props.showReferencePicker && refInputRef.value?.getValue) {
+      const v = refInputRef.value.getValue()
+      if (v !== undefined && v !== null) return String(v)
+    }
+    return props.modelValue ?? ''
   }
 })
 

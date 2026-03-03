@@ -264,6 +264,24 @@ messageBridge.on('request-tab-info', (_event, tabId) => {
   }
 })
 
+// Agent CLI：主进程 TCP 收到一行后发来 agent-cli-run，执行真实 agent 并回写结果
+// 设置全局标记，终端工具等可据此自动批准（无 UI 时不会卡在等待批准）
+messageBridge.on('agent-cli-run', async (_event, userContent) => {
+  if (typeof window !== 'undefined') window.__agentCliActive = true
+  try {
+    const { runAgentCliTurn } = await import('./agent-cli-runner')
+    const result = await runAgentCliTurn(typeof userContent === 'string' ? userContent : String(userContent))
+    await messageBridge.invoke('agent-cli-submit-response', result)
+  } catch (e) {
+    await messageBridge.invoke(
+      'agent-cli-submit-response',
+      JSON.stringify({ error: String(e && (e.message || e)) })
+    )
+  } finally {
+    if (typeof window !== 'undefined') window.__agentCliActive = false
+  }
+})
+
 // 检查文件是否在当前窗口打开
 messageBridge.on('check-file-exists-in-window', (_event, filePath) => {
   try {

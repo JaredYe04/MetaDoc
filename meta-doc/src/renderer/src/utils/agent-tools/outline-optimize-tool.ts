@@ -735,12 +735,12 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 const outlineOptimizeToolLocales: ToolLocales = {
   zh_cn: {
     name: '大纲优化',
-    description: '使用AI生成/优化文档大纲，包括生成子节点、生成内容等功能，并自动同步到文档'
+    description: '使用AI生成/优化文档大纲（仅支持 .md 与 .tex），包括生成子节点、生成内容等，并自动同步到文档'
   },
   en_us: {
     name: 'Outline Optimization',
     description:
-      'Use AI to generate/optimize document outline, including generating child nodes and content, and automatically sync to document'
+      'Use AI to generate/optimize document outline (only .md and .tex supported), including child nodes and content, auto-sync to document'
   },
   de_DE: {
     name: 'Gliederungsoptimierung',
@@ -772,11 +772,11 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
   spec: {
     name: 'outline-optimize',
     brief:
-      'Generate and optimize document outline using AI. Supports multiple operation modes with concurrent processing for efficient batch content generation.',
+      'Generate and optimize document outline using AI. Only Markdown (.md) and LaTeX (.tex) support outline; other formats are not supported. Supports multiple operation modes with concurrent processing.',
     fullSpec: `# Outline Optimization Tool
 
 ## Description
-Uses AI to generate and optimize document outline, supports multiple operation modes. After generation, automatically syncs to document content. **Uses concurrent processing mechanism for efficient batch generation of large amounts of content**.
+Uses AI to generate and optimize document outline, supports multiple operation modes. **Only Markdown (.md) and LaTeX (.tex) documents support outline; other file formats are not supported.** After generation, automatically syncs to document content. **Uses concurrent processing mechanism for efficient batch generation of large amounts of content**.
 
 **⭐ Smart Parsing**: This tool supports multiple AI response formats:
 - ✅ JSON format (recommended): [{"title": "Section 1", "children": []}, ...]
@@ -814,16 +814,17 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 \`\`\`
 
 ## Important Notes
-1. **Must specify nodePath** for generateChildren and generateContent operations
-2. Use "dummy" as nodePath to represent root node
-3. Batch operations (generateChildrenChildren, generateChildrenContent) use concurrent processing for efficiency
-4. Use outline-tree tool to view document outline structure and get node paths`
+1. **Only .md and .tex**: Outline (and this tool) is supported only for Markdown (.md) and LaTeX (.tex) documents; other formats are not supported.
+2. **Must specify nodePath** for generateChildren and generateContent operations
+3. Use "dummy" as nodePath to represent root node
+4. Batch operations (generateChildrenChildren, generateChildrenContent) use concurrent processing for efficiency
+5. Use outline-tree tool to view document outline structure and get node paths`
   },
   instruction: `
 # 大纲优化工具
 
 ## 功能描述
-使用AI生成和优化文档大纲，支持多种操作模式，生成后自动同步到文档内容。**采用并发处理机制，可以高效批量生成大量内容**。
+使用AI生成和优化文档大纲，支持多种操作模式，生成后自动同步到文档内容。**仅支持 Markdown (.md) 和 LaTeX (.tex) 文档，其他文件格式不支持大纲。** 采用并发处理机制，可以高效批量生成大量内容。
 
 **⭐ 智能解析**：此工具支持多种AI响应格式，包括：
 - ✅ JSON格式（推荐）：[{"title": "章节1", "children": []}, ...]
@@ -1097,8 +1098,8 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 \`\`\`
 
 ## 注意事项
+- **仅支持 .md 与 .tex**：大纲功能只对 Markdown (.md) 和 LaTeX (.tex) 文档有效，其他文件格式不支持。
 - 所有操作都会自动同步到文档内容
-- 支持Markdown和LaTeX格式
 - 生成的内容会替换原有内容（如果有）
 - 操作完成后，文档会自动更新
 - 建议在操作前保存文档

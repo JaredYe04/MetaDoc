@@ -1,5 +1,24 @@
 <template>
   <div class="edit-display" :style="containerStyle">
+    <!-- 紧凑模式：默认折叠的单一 Monaco 面板，仅文件名 + diff -->
+    <template v-if="compact">
+      <Collapsible v-model:open="compactPanelOpen" class="edit-display-compact-panel">
+        <CollapsibleTrigger class="edit-display-compact-trigger">
+          <ChevronRight v-if="!compactPanelOpen" class="edit-display-compact-chevron" />
+          <ChevronDown v-else class="edit-display-compact-chevron" />
+          <span class="edit-display-compact-filename">{{ editFileName || t('agent.display.edit.title') }}</span>
+          <span v-if="displayData.stage !== 'completed'" class="edit-display-compact-status">
+            <el-icon class="is-loading"><Loading /></el-icon>
+          </span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div :id="compactDiffEditorId" class="edit-display-compact-monaco" :style="compactMonacoStyle"></div>
+        </CollapsibleContent>
+      </Collapsible>
+    </template>
+
+    <!-- 非紧凑模式 -->
+    <template v-else>
     <!-- Cursor 风格内联：文件名 + 最多 4 行 diff + 可展开 -->
     <div v-if="showCompactInline" class="edit-compact-inline" :style="compactInlineStyle">
       <div class="edit-compact-header" :style="chunkHeaderStyle">
@@ -42,7 +61,6 @@
 
     <div
       v-if="
-        !showCompactInline &&
         (displayData.stage === 'loading' ||
           displayData.stage === 'applying' ||
           displayData.stage === 'updating')
@@ -55,7 +73,7 @@
     </div>
 
     <div
-      v-else-if="displayData.stage === 'completed' && !showCompactInline"
+      v-else-if="displayData.stage === 'completed'"
       class="completed-state"
       :style="completedStateStyle"
     >
@@ -129,7 +147,7 @@
 
       <!-- Unified Diff 视图（如果有 hunks） -->
       <div v-if="resultData && hasHunks && viewMode === 'unified'" class="diff-view">
-        <ScrollArea class="h-[500px]">
+        <ScrollArea class="max-h-[500px]">
           <div class="diff-content">
             <div
               v-for="(hunk, hunkIndex) in hunks"
@@ -198,7 +216,7 @@
 
       <!-- 统一视图（操作列表） -->
       <div v-else-if="resultData && hasFullContent && viewMode === 'unified'">
-        <ScrollArea class="h-[500px]">
+        <ScrollArea class="max-h-[500px]">
           <div class="operations-list">
             <div
               v-for="(operation, index) in resultData.operations"
@@ -317,6 +335,7 @@
         <AlertTitle>{{ displayData.error || $t('agent.display.edit.error') }}</AlertTitle>
       </Alert>
     </div>
+    </template>
   </div>
 </template>
 
@@ -330,6 +349,11 @@ import { Info, XCircle, ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Result } from '@renderer/components/ui/result'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@renderer/components/ui/collapsible'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
@@ -339,7 +363,7 @@ import { useWorkspace } from '../../../stores/workspace'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = defineProps<ToolDisplayComponentProps>()
+const props = withDefaults(defineProps<ToolDisplayComponentProps>(), { compact: false })
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -460,6 +484,24 @@ const showCompactInline = computed(() => {
 
 const compactDiffExpanded = ref(false)
 const COMPACT_DIFF_LINES = 4
+
+// 紧凑模式：默认折叠面板 + 单一 Monaco 显示 diff
+const compactPanelOpen = ref(false)
+const compactDiffEditorId = ref(`edit-compact-diff-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
+let compactDiffMonaco: monaco.editor.IStandaloneCodeEditor | null = null
+const unifiedDiffText = computed(() => {
+  const lines: string[] = []
+  for (const hunk of hunks.value) {
+    lines.push(`@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@`)
+    for (const line of hunk.oldLines || []) lines.push('-' + line)
+    for (const line of hunk.newLines || []) lines.push('+' + line)
+  }
+  return lines.length ? lines.join('\n') : (resultData.value?.originalContent || '')
+})
+const compactMonacoStyle = computed(() => ({
+  height: '220px',
+  backgroundColor: themeState.currentTheme.background
+}))
 
 // 紧凑 diff 显示行（最多 4 行，可展开）
 const compactDiffLines = computed(() => {
@@ -829,6 +871,39 @@ const disposeMonacoEditors = () => {
   }
 }
 
+const initCompactMonaco = () => {
+  if (!props.compact) return
+  setupMonacoWorker()
+  nextTick().then(() => nextTick().then(() => {
+    const el = document.getElementById(compactDiffEditorId.value)
+    if (!el) return
+    if (compactDiffMonaco) {
+      compactDiffMonaco.setValue(unifiedDiffText.value)
+      return
+    }
+    compactDiffMonaco = monaco.editor.create(el, {
+      value: unifiedDiffText.value,
+      language: 'plaintext',
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 12,
+      fontFamily: 'JetBrains Mono, Consolas, monospace'
+    })
+  }))
+}
+
+const disposeCompactMonaco = () => {
+  if (compactDiffMonaco) {
+    compactDiffMonaco.dispose()
+    compactDiffMonaco = null
+  }
+}
+
 // 监听视图模式变化
 watch(viewMode, async (newMode) => {
   if (newMode === 'split') {
@@ -865,8 +940,16 @@ onMounted(async () => {
   }
 })
 
+watch(
+  () => [props.compact, compactPanelOpen.value, unifiedDiffText.value] as const,
+  ([isCompact, open]) => {
+    if (isCompact && open) initCompactMonaco()
+  }
+)
+
 onBeforeUnmount(() => {
   disposeMonacoEditors()
+  disposeCompactMonaco()
 })
 
 const containerStyle = computed(() => ({
@@ -1342,6 +1425,51 @@ const diffCompactStyle = computed(() => ({
 .edit-compact-chevron {
   width: 12px;
   height: 12px;
+}
+
+/* 紧凑模式（AgentViewCompact） */
+.edit-display-compact-panel {
+  width: 100%;
+  border: 1px solid v-bind('themeState.currentTheme.textColor2 + "20"');
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.edit-display-compact-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: v-bind('themeState.currentTheme.background2nd');
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.edit-display-compact-chevron {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.edit-display-compact-filename {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-display-compact-status {
+  flex-shrink: 0;
+}
+
+.edit-display-compact-monaco {
+  width: 100%;
+  min-height: 200px;
 }
 </style>
 

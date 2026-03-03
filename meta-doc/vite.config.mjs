@@ -44,7 +44,12 @@ export default defineConfig({
   },
   server: {
     watch: {
-      ignored: ['**/resources/llm-statistics.json', '**/llm-statistics.json']
+      ignored: [
+        '**/resources/llm-statistics.json',
+        '**/llm-statistics.json',
+        '**/crud-out.txt',
+        '**/simple-out.txt'
+      ]
     },
     proxy: {
       '/api': {

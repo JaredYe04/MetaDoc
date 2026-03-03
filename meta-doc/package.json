@@ -54,7 +54,12 @@
     "test:e2e:dev": "node e2e/run-electron.mjs --dev",
     "test:e2e:latex": "node e2e/run-electron.mjs --latex",
     "test:e2e:latex:dev": "node e2e/run-electron.mjs --dev --latex",
-    "test:e2e:build": "npm run build && node e2e/run-electron.mjs"
+    "test:e2e:build": "npm run build && node e2e/run-electron.mjs",
+    "agent-cli": "node scripts/agent-cli/agent-cli.mjs",
+    "agent-cli:quiet": "node scripts/agent-cli/agent-cli.mjs --quiet",
+    "agent-cli:dev": "electron-vite dev -- --agent-cli-port=49384",
+    "agent-cli:test": "node scripts/agent-cli/send-and-receive.mjs \"Hello, reply with exactly: OK\" \"What is 1+1? Reply with one number.\"",
+    "agent-cli:full-test": "node scripts/agent-cli/run-full-test.mjs"
   },
   "fileAssociations": [
     {

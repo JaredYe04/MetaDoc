@@ -93,15 +93,17 @@
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div class="output-body" :style="outputBodyStyle">
-            <!-- 如果有显示组件，使用组件渲染 -->
+            <!-- 如果有显示组件，使用组件渲染（传入 invocationId 以支持实时更新） -->
             <component
-              v-if="output.renderer && resolveComponent(output.renderer)"
-              :is="resolveComponent(output.renderer)"
+              v-if="output.renderer && resolveToolOutputComponent(output.renderer)"
+              :is="resolveToolOutputComponent(output.renderer)"
               :data="output.data"
               :status="message.status"
               :progress="message.progress"
               :error="message.error"
               :tool-config="toolConfig"
+              :invocation-id="(message as any).invocationId"
+              :compact="compact"
               @update="handleComponentUpdate"
               @cancel="handleComponentCancel"
             />
@@ -125,7 +127,6 @@ import {
   ref,
   reactive,
   watch,
-  defineAsyncComponent,
   h,
   onMounted,
   onBeforeUnmount,
@@ -142,6 +143,7 @@ import { WarningFilled, Download } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import { agentToolManager } from '../../utils/agent-tool-manager'
+import { resolveToolOutputComponent } from '../../utils/agent-tools/resolve-tool-output-component'
 import {
   createSnapshotFromHistoryEntry,
   serializeToolExecutionSnapshot
@@ -159,11 +161,16 @@ import {
 } from '@renderer/components/ui/collapsible'
 import { Progress } from '@renderer/components/ui/progress'
 
-const props = defineProps<{
-  message: ToolAgentMessage
-  messages?: AgentMessage[]
-  messageIndex?: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    message: ToolAgentMessage
+    messages?: AgentMessage[]
+    messageIndex?: number
+    /** 紧凑模式（来自 AgentViewCompact）：工具展示使用精简 UI */
+    compact?: boolean
+  }>(),
+  { compact: false }
+)
 
 const { t } = useI18n()
 
@@ -622,71 +629,17 @@ const progressStatus = computed(() => {
 // 从工具配置中提取组件名称
 const extractComponentName = (displayComponent: any): string | undefined => {
   if (!displayComponent) return undefined
-
-  // 如果是字符串，直接返回
-  if (typeof displayComponent === 'string') {
-    return displayComponent
-  }
-
-  // 如果是组件对象，尝试提取名称
+  if (typeof displayComponent === 'string') return displayComponent
   if (typeof displayComponent === 'object') {
-    // 方法1：从组件对象的name属性获取
     const name = displayComponent.name || displayComponent.__name || displayComponent.displayName
-
-    if (name && typeof name === 'string') {
-      return name
-    }
-
-    // 方法2：尝试从组件文件的路径提取名称
+    if (name && typeof name === 'string') return name
     const filePath = (displayComponent as any).__file
     if (filePath && typeof filePath === 'string') {
       const match = filePath.match(/([^/\\]+)\.vue$/)
-      if (match && match[1]) {
-        return match[1]
-      }
+      if (match && match[1]) return match[1]
     }
   }
-
   return undefined
-}
-
-// 解析组件 - 支持字符串组件名称或组件对象
-const resolveComponent = (renderer: string | any) => {
-  if (!renderer) return null
-
-  // 如果是字符串，尝试动态导入
-  if (typeof renderer === 'string') {
-    // 组件名称映射表
-    const componentMap: Record<string, () => Promise<any>> = {
-      OutlineTreeDisplay: () => import('../../utils/agent-tools/components/OutlineTreeDisplay.vue')
-      // 可以添加更多组件的映射
-    }
-
-    const componentLoader = componentMap[renderer]
-    if (componentLoader) {
-      return defineAsyncComponent(componentLoader)
-    }
-
-    // 如果不在映射表中，尝试使用组件名称作为路径（假设在 components 目录下）
-    try {
-      return defineAsyncComponent(
-        () => import(`../../utils/agent-tools/components/${renderer}.vue`)
-      )
-    } catch {
-      console.warn(`无法加载组件: ${renderer}`)
-      return null
-    }
-  }
-
-  // 如果已经是组件对象，直接返回
-  if (
-    typeof renderer === 'object' &&
-    ('setup' in renderer || 'render' in renderer || 'name' in renderer)
-  ) {
-    return renderer
-  }
-
-  return null
 }
 
 // 导出执行快照

@@ -30,7 +30,7 @@
         }}</Badge>
       </div>
 
-      <ScrollArea class="h-[500px]">
+      <ScrollArea class="max-h-[500px]">
         <Tree
           :data="treeData"
           :props="{ children: 'children', label: 'label' }"

@@ -70,10 +70,9 @@
             <CardTitle class="card-title">{{ getCurrentTabTitle() }}</CardTitle>
           </CardHeader>
           <CardContent>
-            <transition name="fade" mode="out-in">
-              <div :key="activeTab" class="tab-content-wrapper">
-                <!-- EventBus 事件 -->
-                <div v-if="activeTab === 'eventbus'" class="tab-content">
+            <div class="tab-content-wrapper">
+              <!-- EventBus 事件 -->
+              <div v-show="activeTab === 'eventbus'" class="tab-content">
                   <Tabs v-model="eventBusActiveTab" class="debug-tabs">
                     <TabsList class="debug-tabs-list">
                       <TabsTrigger value="eventbus">{{ $t('setting.debug.eventBus') }}</TabsTrigger>
@@ -153,8 +152,8 @@
                       </div>
                     </TabsContent>
                   </Tabs>
-                </div>
-                <div v-else-if="activeTab === 'updatetest'" class="tab-content">
+              </div>
+              <div v-show="activeTab === 'updatetest'" class="tab-content">
                   <div class="test-panel" :style="testPanelStyle">
                     <Form class="space-y-4">
                       <FormField name="currentVersion" label="当前版本">
@@ -349,8 +348,8 @@
                       </ScrollArea>
                     </div>
                   </div>
-                </div>
-                <div v-else-if="activeTab === 'agenttool'" class="tab-content">
+              </div>
+              <div v-show="activeTab === 'agenttool'" class="tab-content">
                   <div class="test-panel" :style="testPanelStyle">
                     <Form class="space-y-4">
                       <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
@@ -359,7 +358,7 @@
                           <div style="display: flex; gap: 8px">
                             <Input
                               v-model="testCaseIdInput"
-                              :placeholder="$t('setting.debug.testCaseIdPlaceholder', '输入测试用例ID（如：color-processing::mix-001')")
+                              :placeholder="$t('setting.debug.testCaseIdPlaceholder', '输入测试用例ID（如：color-processing::mix-001）')"
                               class="flex-1"
                               @keyup.enter="loadTestCaseById"
                             />
@@ -715,8 +714,8 @@
                       </ScrollArea>
                     </div>
                   </div>
-                </div>
-                <div v-else-if="activeTab === 'importsnapshot'" class="tab-content">
+              </div>
+              <div v-show="activeTab === 'importsnapshot'" class="tab-content">
                   <div class="test-panel" :style="testPanelStyle">
                     <Form class="space-y-4">
                       <FormField name="importSnapshotTitle">
@@ -911,8 +910,8 @@
                       </div>
                     </div>
                   </div>
-                </div>
-                <div v-else-if="activeTab === 'autotest'" class="tab-content">
+              </div>
+              <div v-show="activeTab === 'autotest'" class="tab-content">
                   <div class="test-panel" :style="testPanelStyle">
                     <Form class="space-y-4">
                       <FormField name="selectedTools" label="选择要测试的Tool">
@@ -1011,8 +1010,8 @@
                       </div>
                     </div>
                   </div>
-                </div>
-                <div v-else-if="activeTab === 'unittest'" class="tab-content">
+              </div>
+              <div v-show="activeTab === 'unittest'" class="tab-content">
                   <Tabs v-model="unitTestActiveTab" class="debug-tabs">
                     <TabsList class="debug-tabs-list">
                       <TabsTrigger value="single">{{
@@ -1284,8 +1283,8 @@
                       </div>
                     </TabsContent>
                   </Tabs>
-                </div>
-                <div v-else-if="activeTab === 'agentsessiondebug'" class="tab-content">
+              </div>
+              <div v-show="activeTab === 'agentsessiondebug'" class="tab-content">
                   <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
                     <TabsList class="debug-tabs-list">
                       <TabsTrigger value="debug">会话调试</TabsTrigger>
@@ -1834,8 +1833,7 @@
                     </TabsContent>
                   </Tabs>
                 </div>
-              </div>
-            </transition>
+            </div>
           </CardContent>
         </Card>
       </div>

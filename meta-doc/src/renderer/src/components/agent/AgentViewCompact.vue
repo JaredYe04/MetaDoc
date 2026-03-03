@@ -16,7 +16,7 @@
             type="button"
             class="agent-compact-tab"
             :class="{ active: s.id === activeSessionId }"
-            :disabled="isGenerating || workspace.uiLocked?.value"
+            :disabled="isGenerating"
             @click="agentStore.setActiveSessionId(s.id)"
           >
             <span class="agent-compact-tab-label">{{
@@ -28,7 +28,7 @@
             variant="ghost"
             size="icon"
             class="agent-compact-tab-close"
-            :disabled="isGenerating || workspace.uiLocked?.value"
+            :disabled="isGenerating"
             :title="t('agent.compact.closeTab')"
             @click.stop="closeTab(s)"
           >
@@ -76,7 +76,7 @@
         </button>
       </div>
       <div class="agent-compact-header-actions">
-        <DropdownMenu v-model:open="historyOpen">
+        <DropdownMenu v-model:open="historyOpen" :modal="false">
           <Tooltip>
             <TooltipTrigger as-child>
               <DropdownMenuTrigger as-child>
@@ -84,7 +84,7 @@
                   variant="ghost"
                   size="icon"
                   class="agent-compact-header-btn"
-                  :disabled="isGenerating || workspace.uiLocked?.value"
+                  :disabled="isGenerating"
                 >
                   <Clock class="h-3.5 w-3.5" />
                 </Button>
@@ -137,45 +137,48 @@
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>
-          <!-- 最近会话项右键菜单（无关闭标签页，z-index 高于下拉层） -->
-          <div
-            v-if="historyContextSession"
-            class="agent-compact-tab-context agent-compact-history-context"
-            :style="{
-              left: historyContextX + 'px',
-              top: historyContextY + 'px'
-            }"
-            @mouseleave="historyContextSession = null"
-          >
-            <button
-              type="button"
-              class="agent-compact-tab-context-item"
-              @click="handleHistoryContextRename"
+          <!-- 最近会话项右键菜单：modal=false 时 body 不设 pointer-events:none，Teleport 到 body 可正常显示和点击；下拉保持打开，仅点击外部/列表项/菜单项时关闭 -->
+          <Teleport to="body">
+            <div
+              v-if="historyContextSession"
+              class="agent-compact-tab-context agent-compact-history-context"
+              :style="{
+                left: historyContextX + 'px',
+                top: historyContextY + 'px'
+              }"
+              @mouseleave="historyContextSession = null"
+              @click.stop
             >
-              {{ t('agent.sessions.rename') }}
-            </button>
-            <button
-              type="button"
-              class="agent-compact-tab-context-item"
-              @click="handleHistoryContextExport"
-            >
-              {{ t('agent.compact.exportJson') }}
-            </button>
-            <button
-              type="button"
-              class="agent-compact-tab-context-item"
-              @click="handleHistoryContextDuplicate"
-            >
-              {{ t('agent.sessions.duplicate') }}
-            </button>
-            <button
-              type="button"
-              class="agent-compact-tab-context-item agent-compact-tab-context-item-danger"
-              @click="handleHistoryContextDelete"
-            >
-              {{ t('agent.compact.deleteSession') }}
-            </button>
-          </div>
+              <button
+                type="button"
+                class="agent-compact-tab-context-item"
+                @click="handleHistoryContextRename"
+              >
+                {{ t('agent.sessions.rename') }}
+              </button>
+              <button
+                type="button"
+                class="agent-compact-tab-context-item"
+                @click="handleHistoryContextExport"
+              >
+                {{ t('agent.compact.exportJson') }}
+              </button>
+              <button
+                type="button"
+                class="agent-compact-tab-context-item"
+                @click="handleHistoryContextDuplicate"
+              >
+                {{ t('agent.sessions.duplicate') }}
+              </button>
+              <button
+                type="button"
+                class="agent-compact-tab-context-item agent-compact-tab-context-item-danger"
+                @click="handleHistoryContextDelete"
+              >
+                {{ t('agent.compact.deleteSession') }}
+              </button>
+            </div>
+          </Teleport>
         </DropdownMenu>
         <Tooltip>
           <TooltipTrigger as-child>
@@ -183,7 +186,7 @@
               variant="ghost"
               size="icon"
               class="agent-compact-header-btn"
-              :disabled="isGenerating || workspace.uiLocked?.value"
+              :disabled="isGenerating"
               @click="createNewSession"
             >
               <Plus class="h-3.5 w-3.5" />
@@ -314,7 +317,7 @@
           :compact="true"
           :show-reference-picker="true"
           :get-at-label="getAtLabel"
-          @submit="handleComposerSubmit"
+          @submit="(kb, content) => handleComposerSubmit(kb, content)"
           @reset="handleComposerReset"
           @attach="handleAttachFile"
           @open-reference-picker="referencePickerOpen = true"
@@ -324,7 +327,7 @@
             <div class="agent-compact-composer-leading">
               <AgentReferencePicker
                 v-model:open="referencePickerOpen"
-                :disabled="isGenerating || !!workspace.uiLocked?.value"
+                :disabled="isGenerating"
                 compact
                 @select-file="handleReferencePickerFile"
                 @select-tab="handleReferencePickerTab"
@@ -335,7 +338,7 @@
                     variant="ghost"
                     size="icon"
                     class="agent-compact-composer-btn"
-                    :disabled="isGenerating || !!workspace.uiLocked?.value"
+                    :disabled="isGenerating"
                     :title="t('aiChat.attachTooltip')"
                   >
                     <Paperclip class="agent-compact-composer-btn-icon" />
@@ -942,7 +945,7 @@ function createNewSession() {
     }
     agentStore.setSessions([legacySession, ...agentStore.sessions])
     agentStore.setActiveSessionId(session.id)
-    setOpenTabIds([legacySession.id, ...openTabIds.value.filter((id) => id !== legacySession.id)])
+    setOpenTabIds([...openTabIds.value.filter((id) => id !== legacySession.id), legacySession.id])
     persistSessions()
   } catch (err) {
     notifyError(err instanceof Error ? err.message : String(err))
@@ -954,7 +957,10 @@ const activeReferenceIds = ref<string[]>([])
 const referencePickerOpen = ref(false)
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
-const composerRef = ref<{ insertAtCursor: (value: string) => void } | null>(null)
+const composerRef = ref<{
+  insertAtCursor: (value: string) => void
+  getContentForSubmit?: () => string
+} | null>(null)
 
 watch(
   () => activeSession.value?.referenceStore,
@@ -1181,19 +1187,16 @@ const scrollToBottom = () => {
 }
 
 const handleComposerReset = () => {
-  composerInput.value = ''
+  agentStore.setComposerInput('')
 }
 
 const executeAgentEngine = async (userMessage: string, actualSession?: AgentSession) => {
-  // 立即锁定 UI 与生成状态，确保跨视图一致
-  workspace.lockUI?.()
   isGenerating.value = true
 
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
     notifyWarning(t('agent.sessions.noAgentConfig'))
     isGenerating.value = false
-    workspace.unlockUI?.()
     return
   }
 
@@ -1202,7 +1205,6 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
   if (!engine) {
     notifyError(t('agent.sessions.engineNotFound'))
     isGenerating.value = false
-    workspace.unlockUI?.()
     return
   }
 
@@ -1210,7 +1212,6 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
   if (!agentConfig) {
     notifyError(t('agent.sessions.agentConfigNotFound'))
     isGenerating.value = false
-    workspace.unlockUI?.()
     return
   }
 
@@ -1265,16 +1266,21 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
     }
     currentAiTaskHandle.value = null
     isGenerating.value = false
-    workspace.unlockUI?.()
   }
 }
 
-const handleComposerSubmit = async () => {
+const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: string) => {
   const logger = createRendererLogger('AgentViewCompact')
   const session = activeSession.value
   if (!session) return
 
-  const content = composerInput.value.trim()
+  // 优先用 submit 事件带来的内容（ChatComposer 从输入框取的最新值），否则再读 store
+  const rawContent =
+    contentFromEvent ??
+    (typeof composerRef.value?.getContentForSubmit === 'function'
+      ? composerRef.value.getContentForSubmit()
+      : composerInput.value)
+  const content = rawContent.trim()
   if (!content) return
 
   if (session.activeToolIds) session.activeToolIds = []
@@ -1286,11 +1292,10 @@ const handleComposerSubmit = async () => {
 
   touchSession(session)
 
-  // 在 nextTick 中清空，避免 contenteditable 的 input 事件在同一 tick 内把旧内容再次写回
-  nextTick(() => {
-    composerInput.value = ''
-    persistSessions()
-  })
+  // 立即清空输入并持久化；用 setComposerInput 同步 ref 与 session map，nextTick 再清一次防止子组件异步写回
+  agentStore.setComposerInput('')
+  nextTick(() => agentStore.setComposerInput(''))
+  persistSessions()
   scrollToBottom()
 
   try {
@@ -1328,7 +1333,6 @@ const handleCancelGeneration = () => {
   }
 
   isGenerating.value = false
-  workspace.unlockUI?.()
   session.status = 'idle'
   persistSessions()
 }

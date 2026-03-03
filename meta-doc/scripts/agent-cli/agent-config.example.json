@@ -1,0 +1,7 @@
+{
+  "apiUrl": "https://api.openai.com/v1",
+  "apiKey": "your-api-key-here",
+  "model": "gpt-4o",
+  "chatSuffix": "/chat/completions",
+  "temperature": 0.7
+}

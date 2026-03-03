@@ -543,7 +543,7 @@ export class AIContextManager {
           })
 
           if (msgToolCalls && Array.isArray(msgToolCalls) && msgToolCalls.length > 0) {
-            assistantLlmMessage.tool_calls = msgToolCalls.map((tc: any) => {
+            const mappedCalls = msgToolCalls.map((tc: any) => {
               // 确保arguments是对象格式（OpenAI API要求）
               // 支持多种输入格式：
               // 1. tc.parameters (我们的内部格式)
@@ -617,8 +617,9 @@ export class AIContextManager {
                 argumentsString = '{}'
               }
 
+              const id = tc.id || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
               return {
-                id: tc.id || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                id,
                 type: 'function',
                 function: {
                   name: tc.tool_id || tc.function?.name || '',
@@ -626,14 +627,13 @@ export class AIContextManager {
                 }
               }
             })
+            assistantLlmMessage.tool_calls = mappedCalls
             // 如果有tool_calls，content应该为null（如果markdown为空或只包含空白字符）
             assistantLlmMessage.content = msg.markdown && msg.markdown.trim() ? msg.markdown : null
 
-            // 记录所有tool_call_ids，等待对应的tool消息
-            for (const tc of (msg as any).tool_calls) {
-              if (tc.id) {
-                pendingToolCallIds.add(tc.id)
-              }
+            // 记录本条 assistant 实际发出的 tool_call id（与 llm 消息中一致），用于后续匹配 tool 消息
+            for (const c of mappedCalls) {
+              pendingToolCallIds.add(c.id)
             }
           } else {
             // 没有tool_calls，使用正常的content
@@ -694,12 +694,48 @@ export class AIContextManager {
       }
     }
 
-    // 验证：如果还有pendingToolCallIds，说明有assistant消息的tool_calls没有对应的tool消息
-    // 这种情况不应该发送给LLM API，但为了向后兼容，我们仍然发送，只是记录警告
+    // 对齐 id：若 assistant 的 tool_calls 与紧随的 tool 消息数量一致，用 tool 消息的 tool_call_id 覆盖 assistant.tool_calls[].id，避免 session 中 id 缺失导致 API 报 “insufficient tool messages”
+    for (let i = 0; i < llmMessages.length; i++) {
+      const m = llmMessages[i] as any
+      if (m.role !== 'assistant' || !Array.isArray(m.tool_calls) || m.tool_calls.length === 0) continue
+      const need = m.tool_calls.length
+      let j = i + 1
+      while (j < llmMessages.length && (llmMessages[j] as any).role === 'tool') j++
+      const toolCount = j - i - 1
+      if (toolCount !== need) continue
+      for (let k = 0; k < need; k++) {
+        const toolMsg = llmMessages[i + 1 + k] as any
+        const newId = toolMsg.tool_call_id
+        if (newId) {
+          const oldId = m.tool_calls[k].id
+          if (oldId) pendingToolCallIds.delete(oldId)
+          m.tool_calls[k].id = newId
+        }
+      }
+    }
+
+    // 若有未匹配的 tool_calls（如 singleStep 打断后下一轮），API 会 400。移除“带 tool_calls 且无对应 tool”的 assistant 及其紧随的 tool 消息，避免孤立的 tool 消息导致 400。
+    while (pendingToolCallIds.size > 0) {
+      let removed = false
+      for (let i = llmMessages.length - 1; i >= 0; i--) {
+        if (llmMessages[i].role === 'assistant' && (llmMessages[i] as any).tool_calls?.length) {
+          const tc = (llmMessages[i] as any).tool_calls as Array<{ id?: string }>
+          for (const c of tc) if (c.id) pendingToolCallIds.delete(c.id)
+          llmMessages.splice(i, 1)
+          // 移除紧随其后的 tool 消息，否则会出现 "tool must be response to tool_calls" 的 400
+          while (i < llmMessages.length && llmMessages[i].role === 'tool') {
+            llmMessages.splice(i, 1)
+          }
+          removed = true
+          break
+        }
+      }
+      if (!removed) break
+    }
     if (pendingToolCallIds.size > 0) {
       const logger = createRendererLogger('AIContextManager')
       logger.warn(
-        `警告：发现${pendingToolCallIds.size}个tool_calls没有对应的tool消息: ${Array.from(pendingToolCallIds).join(', ')}`
+        `仍有 ${pendingToolCallIds.size} 个 tool_calls 无对应 tool 消息（已移除不完整 assistant）`
       )
     }
 

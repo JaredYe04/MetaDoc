@@ -1,5 +1,35 @@
 <template>
   <div class="todolist-display" :style="containerStyle">
+    <!-- 紧凑模式：仅列表 + 是否完成（类似 Cursor） -->
+    <template v-if="compact">
+      <div
+        v-if="displayData.stage === 'analyzing' || displayData.stage === 'generating'"
+        class="todolist-compact-status"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{
+          displayData.stage === 'analyzing'
+            ? $t('agent.display.todoList.analyzing')
+            : $t('agent.display.todoList.generating')
+        }}</span>
+      </div>
+      <div
+        v-else-if="displayData.stage === 'completed' && displayData.todoList?.items?.length"
+        class="todolist-compact-list"
+      >
+        <div
+          v-for="item in displayData.todoList.items"
+          :key="item.id"
+          class="todolist-compact-item"
+          :class="{ 'todolist-compact-item--done': item.status === 'completed' }"
+        >
+          <span class="todolist-compact-check">{{ item.status === 'completed' ? '✓' : '○' }}</span>
+          <span class="todolist-compact-title">{{ item.title }}</span>
+        </div>
+      </div>
+    </template>
+
+    <template v-else>
     <div
       v-if="displayData.stage === 'analyzing'"
       class="status-message"
@@ -65,7 +95,7 @@
       </div>
 
       <div class="todolist-items">
-        <ScrollArea class="h-[500px]">
+        <ScrollArea class="max-h-[500px]">
           <div
             v-for="item in displayData.todoList.items"
             :key="item.id"
@@ -180,6 +210,7 @@
         }}</AlertTitle>
       </Alert>
     </div>
+    </template>
   </div>
 </template>
 
@@ -199,7 +230,7 @@ import { themeState } from '../../themes'
 
 const { t } = useI18n()
 
-const props = defineProps<ToolDisplayComponentProps>()
+const props = withDefaults(defineProps<ToolDisplayComponentProps>(), { compact: false })
 
 // 使用实时通信
 const { realtimeData, realtimeStatus } = useToolDisplayRealtime(
@@ -593,5 +624,54 @@ const formatDate = (dateString: string) => {
 
 .error-state {
   padding: 12px;
+}
+
+/* 紧凑模式（Cursor 风格：仅列表 + 完成状态） */
+.todolist-compact-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.todolist-compact-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.todolist-compact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.todolist-compact-item--done .todolist-compact-title {
+  text-decoration: line-through;
+  color: var(--el-text-color-secondary);
+}
+
+.todolist-compact-check {
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.todolist-compact-item--done .todolist-compact-check {
+  color: var(--el-color-success);
+}
+
+.todolist-compact-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

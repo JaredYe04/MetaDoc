@@ -534,51 +534,30 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       })
     }
 
-    // Display组件使用完整内容（包括完整HTML）
+    // Display 与 AI 均使用纯文本（innerText），不保留完整 DOM/HTML
     const displayResult = {
       url,
       status: result.status,
       statusText: result.statusText,
       headers: result.headers,
-      content: result.content, // 保留完整HTML用于显示
+      content: plainTextContent,
       contentType: result.contentType,
-      size: result.content.length
+      size: plainTextContent.length
     }
 
-    // 返回给AI的结果使用纯文本（如果是HTML）
     const aiResult = {
       url,
       status: result.status,
       statusText: result.statusText,
       headers: result.headers,
-      content: plainTextContent, // 使用提取的纯文本
+      content: plainTextContent,
       contentType: result.contentType,
-      size: plainTextContent.length,
-      // 如果是HTML，添加提示信息
-      ...(isHtmlContent && plainTextContent !== result.content
-        ? {
-            note: 'HTML内容已提取为纯文本，完整HTML可在显示组件中查看'
-          }
-        : {})
+      size: plainTextContent.length
     }
 
-    // 记录最终返回给AI的内容
-    logger.info('[WebCrawlerTool] 返回结果', {
-      forDisplay: {
-        hasFullHtml: displayResult.content === result.content,
-        contentLength: displayResult.content?.length || 0,
-        contentType: displayResult.contentType
-      },
-      forAI: {
-        isPlainText: aiResult.content === plainTextContent,
-        contentLength: aiResult.content?.length || 0,
-        contentType: aiResult.contentType,
-        hasNote: !!aiResult.note,
-        contentPreview:
-          typeof aiResult.content === 'string'
-            ? aiResult.content.substring(0, 500) + (aiResult.content.length > 500 ? '...' : '')
-            : 'N/A'
-      }
+    logger.info('[WebCrawlerTool] 返回结果（纯文本 innerText）', {
+      contentLength: plainTextContent?.length || 0,
+      contentType: result.contentType
     })
 
     onUpdate(
@@ -606,7 +585,6 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
         format: 'json',
         componentName: 'WebCrawlerDisplay'
       },
-      // 返回给AI的结果使用纯文本
       result: aiResult
     }
   } catch (error) {

@@ -36,6 +36,8 @@ export interface EngineExecuteOptions {
   signal?: AbortSignal
   onProgress?: (progress: { stage: string; message: string; data?: unknown }) => void
   onTaskCreated?: (handle: string) => void // AI任务创建时的回调，用于保存handle以便取消
+  /** CLI 调试：每轮只执行一步（一次 LLM 或一次工具调用后即停，不自动继续） */
+  singleStep?: boolean
 }
 
 /**
@@ -105,24 +107,32 @@ export abstract class BaseEngineExecutor {
 
     getLogger().debug('[processIntentAndUpdateSpecs] 已清空activeToolSpecs，开始意图识别')
 
-    // 执行意图识别
-    const intentResult = await recognizeIntent(
-      session as AgentSession,
-      this.agentConfig,
-      userMessage,
-      intentOutputRef,
-      this.engine,
-      {
-        taskName: 'Intent Recognition',
-        temperature: 0.3,
-        maxTokens: 500
-      }
-    )
-
-    getLogger().info('[processIntentAndUpdateSpecs] 意图识别完成', {
-      toolIds: intentResult.toolIds,
-      toolCount: intentResult.toolIds.length
-    })
+    // singleStep（如 agent-cli）下跳过意图识别的 LLM 调用，直接用全部可用工具，避免每条消息两次 LLM 导致超时
+    let intentResult: IntentRecognitionResult
+    if (this.options.singleStep) {
+      const toolIds = agentConfigManager.getAvailableToolIds(this.agentConfig.id)
+      intentResult = { toolIds, reasoning: 'CLI/singleStep: skip intent LLM, use all tools' }
+      getLogger().info('[processIntentAndUpdateSpecs] singleStep 跳过意图识别 LLM，使用全部工具', {
+        toolCount: toolIds.length
+      })
+    } else {
+      intentResult = await recognizeIntent(
+        session as AgentSession,
+        this.agentConfig,
+        userMessage,
+        intentOutputRef,
+        this.engine,
+        {
+          taskName: 'Intent Recognition',
+          temperature: 0.3,
+          maxTokens: 500
+        }
+      )
+      getLogger().info('[processIntentAndUpdateSpecs] 意图识别完成', {
+        toolIds: intentResult.toolIds,
+        toolCount: intentResult.toolIds.length
+      })
+    }
 
     // 更新session的activeToolIds（用于UI高亮显示）
     if (session.activeToolIds) {
@@ -923,6 +933,11 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         })
       }
 
+      if (this.options.singleStep) {
+        this.options.onProgress?.({ stage: 'complete', message: '单步结束（工具已执行）' })
+        break
+      }
+
       // 检查是否达到最大迭代次数
       if (iterations >= maxIterations) {
         // 最后一次调用，要求返回最终答案 - 使用createAiTask
@@ -1372,6 +1387,12 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         stage: 'tool-calling',
         message: `工具调用完成`
       })
+
+      // CLI 单步模式：工具执行完即停，不自动进入下一轮 LLM
+      if (this.options.singleStep) {
+        this.options.onProgress?.({ stage: 'complete', message: '单步结束（工具已执行）' })
+        break
+      }
 
       // 旧的执行逻辑已移除，因为工具调用现在在队列中执行
       // 工具调用结果已经通过队列添加到messages中，我们需要从messages中获取结果

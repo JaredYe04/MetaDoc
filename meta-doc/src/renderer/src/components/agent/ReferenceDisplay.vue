@@ -121,8 +121,8 @@ const tagStyle = (ref: ReferenceDisplayItem) => {
     if (activeBg) {
       baseStyle.backgroundColor = activeBg
     } else {
-      // 如果referenceActiveBg不存在，尝试使用primaryColor
-      baseStyle.backgroundColor = themeState.currentTheme.primaryColor || '#409eff'
+      // 如果referenceActiveBg不存在，使用 primaryColor 或灰度 fallback（与界面黑白灰一致）
+      baseStyle.backgroundColor = themeState.currentTheme.primaryColor || '#555555'
     }
     baseStyle.color =
       themeState.currentTheme.referenceActiveText || themeState.currentTheme.textColor

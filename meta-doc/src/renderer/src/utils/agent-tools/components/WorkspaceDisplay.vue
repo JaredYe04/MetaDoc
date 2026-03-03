@@ -24,7 +24,7 @@
           {{ displayData.workspaceFolder }}</Badge
         >
       </div>
-      <ScrollArea class="h-[500px]">
+      <ScrollArea class="max-h-[500px]">
         <div class="tree-content">
           <div
             v-for="(entry, index) in displayData.tree"
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <ScrollArea class="h-[600px]">
+      <ScrollArea class="max-h-[600px]">
         <div class="files-content">
           <div
             v-for="(file, index) in displayData.result.files"

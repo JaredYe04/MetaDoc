@@ -109,6 +109,8 @@ export interface ToolDisplayComponentProps {
   onUpdate?: (data: unknown) => void
   /** 取消回调 */
   onCancel?: () => void
+  /** 紧凑模式（如 AgentViewCompact）：最简 UI，默认折叠的 monaco/文件列表等 */
+  compact?: boolean
 }
 
 /**

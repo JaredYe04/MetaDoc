@@ -1,5 +1,5 @@
 <template>
-  <div class="rag-tool-display" :style="containerStyle">
+  <div class="rag-tool-display" :style="containerStyle" :class="{ 'rag-tool-display--compact': compact }">
     <div
       v-if="displayData.stage === 'searching'"
       class="searching-state"
@@ -18,11 +18,11 @@
         <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
           {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
         </Badge>
-        <span class="question-text" :style="questionTextStyle">{{ displayData.question }}</span>
+        <span v-if="!compact" class="question-text" :style="questionTextStyle">{{ displayData.question }}</span>
       </div>
 
       <div v-if="displayData.results && displayData.results.length > 0" class="results-container">
-        <ScrollArea class="max-h-[400px]">
+        <ScrollArea :class="compact ? 'max-h-[240px]' : 'max-h-[400px]'">
           <Card
             v-for="(result, index) in displayData.results"
             :key="index"
@@ -80,7 +80,9 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 
 const { t } = useI18n()
 
-const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
+const props = withDefaults(defineProps<ToolDisplayComponentProps & { mode?: string }>(), {
+  compact: false
+})
 const isDemo = computed(() => props.mode === 'demo')
 
 // Demo data
@@ -198,6 +200,24 @@ const cardStyle = computed(() => ({
 <style scoped>
 .rag-tool-display {
   width: 100%;
+}
+
+.rag-tool-display--compact .result-header {
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+.rag-tool-display--compact .result-card {
+  margin-bottom: 4px;
+}
+
+.rag-tool-display--compact .result-content {
+  padding: 4px 0;
+}
+
+.rag-tool-display--compact .result-text {
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .searching-state {

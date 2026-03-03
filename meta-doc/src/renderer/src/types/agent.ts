@@ -53,6 +53,10 @@ export interface ToolAgentMessage extends AgentMessageBase {
   tool_call_id?: string // 关联到具体的tool_call
   tool_config?: any // 传递工具配置，用于渲染
   markdown?: string // OpenAI格式的content字符串，用于直接发送给LLM API
+  /** 工具调用参数，用于快照与 EditDisplay 等展示 params.diff */
+  params?: Record<string, unknown>
+  /** 与 tool_call_id 一致，供 Display 组件 useToolDisplayRealtime 订阅实时更新 */
+  invocationId?: string
 }
 
 export interface IntentRecognitionAgentMessage extends AgentMessageBase {

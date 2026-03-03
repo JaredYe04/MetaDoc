@@ -138,68 +138,20 @@
           </div>
         </div>
 
-        <!-- Tool结果：紧凑模式直接展示各 Display，非紧凑模式用卡片+折叠 -->
-        <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
-          <!-- 紧凑模式：不包 ToolResultCard，直接渲染工具输出组件，header 标明工具名 -->
-          <div
-            v-if="compact"
-            class="tool-message-compact-outputs"
-          >
-            <div class="tool-message-compact-header">
-              <span class="tool-message-compact-title">{{ (message as ToolAgentMessage).tool.name }}</span>
-              <Badge
-                class="tool-status-badge"
-                size="small"
-                :type="getToolStatusTagType((message as ToolAgentMessage).status)"
-              >
-                {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
-              </Badge>
-            </div>
-            <div
-              ref="compactBodyRef"
-              :class="['tool-message-compact-body', { 'tool-message-compact-body-collapsed': !isCompactToolExpanded }]"
-            >
-              <template
-                v-for="output in (message as ToolAgentMessage).outputs"
-                :key="output.id"
-              >
-                <component
-                  v-if="getToolOutputRenderer(output, message as ToolAgentMessage) && resolveToolOutputComponent(getToolOutputRenderer(output, message as ToolAgentMessage)!)"
-                  :is="resolveToolOutputComponent(getToolOutputRenderer(output, message as ToolAgentMessage)!)"
-                  :data="output.data"
-                  :status="(message as ToolAgentMessage).status"
-                  :progress="(message as ToolAgentMessage).progress"
-                  :error="(message as ToolAgentMessage).error"
-                  :tool-config="getToolConfigForMessage(message as ToolAgentMessage)"
-                  :invocation-id="(message as any).invocationId"
-                  :params-diff="(message as any).params?.diff"
-                  :compact="true"
-                />
-                <pre v-else class="tool-message-compact-raw">{{ formatToolOutput(output) }}</pre>
-              </template>
-            </div>
-            <button
-              v-if="showCompactToggle"
-              type="button"
-              class="tool-message-compact-toggle"
-              :title="isCompactToolExpanded ? t('agent.tool.collapse', '折叠') : t('agent.tool.expand', '展开')"
-              @click="isCompactToolExpanded = !isCompactToolExpanded"
-            >
-              <ChevronUp v-if="isCompactToolExpanded" class="tool-message-compact-chevron" />
-              <ChevronDown v-else class="tool-message-compact-chevron" />
-            </button>
-          </div>
-          <!-- 非紧凑：原有 Collapsible + AgentToolResultCard -->
+        <!-- Tool结果：统一使用极简容器，仅根据 compact 区分样式 -->
+        <div
+          v-else-if="message.type === 'tool'"
+          class="tool-message-wrapper"
+          :class="{ 'tool-message-wrapper--compact': compact }"
+        >
           <Collapsible
-            v-else
+            v-if="!compact"
             v-model:open="isToolMessageOpen"
             class="tool-message-collapsible"
           >
             <CollapsibleTrigger class="tool-message-trigger">
               <div class="tool-message-header-preview">
-                <span class="tool-message-title">{{
-                  (message as ToolAgentMessage).tool.name
-                }}</span>
+                <span class="tool-message-title">{{ (message as ToolAgentMessage).tool.name }}</span>
                 <Badge
                   class="tool-status-badge"
                   size="small"
@@ -213,15 +165,17 @@
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent class="tool-message-content">
-              <component
-                :is="AgentToolResultCard"
+              <AgentToolResultSimple
                 :message="message as ToolAgentMessage"
-                :messages="messages"
-                :message-index="messageIndex"
-                :compact="compact"
+                :compact="false"
               />
             </CollapsibleContent>
           </Collapsible>
+          <AgentToolResultSimple
+            v-else
+            :message="message as ToolAgentMessage"
+            :compact="true"
+          />
         </div>
 
         <!-- 文本内容 -->
@@ -404,13 +358,12 @@ import type {
   ToolAgentMessage,
   IntentRecognitionAgentMessage
 } from '../../types/agent'
-import AgentToolResultCard from './AgentToolResultCard.vue'
+import AgentToolResultSimple from './AgentToolResultSimple.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
 import { themeState, mixColors } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
-import { resolveToolOutputComponent } from '../../utils/agent-tools/resolve-tool-output-component'
 import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 
@@ -474,21 +427,6 @@ const showActions = ref(false)
 
 // Tool消息折叠状态 - shadcn-vue Collapsible uses boolean
 const isToolMessageOpen = ref(true)
-
-// 紧凑模式下工具结果默认折叠为最多 4 行，可展开/折叠
-const isCompactToolExpanded = ref(false)
-const compactBodyRef = ref<HTMLElement | null>(null)
-const showCompactToggle = ref(false)
-let compactResizeObserver: ResizeObserver | null = null
-
-const COLLAPSED_MAX_PX = 96 // 6em @ 16px，与 .tool-message-compact-body-collapsed 一致
-
-function checkCompactOverflow() {
-  const el = compactBodyRef.value
-  if (!el) return
-  // 用内容高度是否超过折叠高度判断，展开后仍显示折叠按钮
-  showCompactToggle.value = el.scrollHeight > COLLAPSED_MAX_PX
-}
 
 // 判断当前tool消息是否是最新的tool调用
 const isLatestToolMessage = computed(() => {
@@ -600,30 +538,6 @@ const getToolStatusLabel = (status: ToolAgentMessage['status']) => {
       return t('agent.tool.status.failed')
     default:
       return status
-  }
-}
-
-function getToolConfigForMessage(msg: ToolAgentMessage) {
-  return agentToolManager.getTool(msg.tool.id)?.config
-}
-
-/** 解析工具输出展示组件名；edit 工具在无 renderer 时回退到 EditDisplay，避免持久化后显示裸 JSON */
-function getToolOutputRenderer(
-  output: import('../../types/agent').ToolOutputDescriptor,
-  message: ToolAgentMessage
-): string | null {
-  if (output.renderer) return output.renderer
-  if (message.tool?.id === 'edit') return 'EditDisplay'
-  return null
-}
-
-function formatToolOutput(output: import('../../types/agent').ToolOutputDescriptor): string {
-  const d = output.data
-  if (typeof d === 'string') return d
-  try {
-    return JSON.stringify(d, null, 2)
-  } catch {
-    return String(d)
   }
 }
 
@@ -1147,29 +1061,8 @@ const getToolName = (toolId: string): string => {
   return toolId
 }
 
-// 组件卸载时清理定时器
-onMounted(() => {
-  if (props.message.type === 'tool' && props.compact) {
-    nextTick(() => {
-      checkCompactOverflow()
-      compactResizeObserver = new ResizeObserver(() => {
-        requestAnimationFrame(() => checkCompactOverflow())
-      })
-      if (compactBodyRef.value) compactResizeObserver.observe(compactBodyRef.value)
-    })
-  }
-})
-
-watch(
-  () => (props.message.type === 'tool' ? (props.message as ToolAgentMessage).outputs : null),
-  () => nextTick(checkCompactOverflow),
-  { deep: true }
-)
-
 onBeforeUnmount(() => {
   clearHideTimer()
-  compactResizeObserver?.disconnect()
-  compactResizeObserver = null
 })
 </script>
 
@@ -1678,8 +1571,8 @@ onBeforeUnmount(() => {
   background-color: transparent;
 }
 
-/* 确保 AgentToolResultCard 不会超出父容器 */
-.tool-message-content :deep(.tool-result-card) {
+/* 确保 AgentToolResultSimple 不会超出父容器 */
+.tool-message-content :deep(.tool-result-simple) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;

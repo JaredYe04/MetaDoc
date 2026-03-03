@@ -24,29 +24,41 @@ on:
         required: false
         type: string
       runner_win:
-        description: 'Windows Runner'
+        description: 'Windows Runner（关=不构建该平台）'
         required: false
         type: choice
         options:
+          - off
           - self-hosted
           - github-hosted
         default: self-hosted
       runner_linux:
-        description: 'Linux Runner'
+        description: 'Linux Runner（关=不构建该平台）'
         required: false
         type: choice
         options:
+          - off
           - self-hosted
           - github-hosted
         default: self-hosted
       runner_mac:
-        description: 'macOS Runner'
+        description: 'macOS ARM64 Runner（关=不构建该平台）'
         required: false
         type: choice
         options:
+          - off
           - self-hosted
           - github-hosted
         default: self-hosted
+      runner_mac_amd64:
+        description: 'macOS x64/Intel Runner（关=不构建该平台）'
+        required: false
+        type: choice
+        options:
+          - off
+          - self-hosted
+          - github-hosted
+        default: off
       force_rebuild:
         description: '是否强制重新构建'
         required: false
@@ -81,6 +93,7 @@ jobs:
       version: ${{ steps.version_info.outputs.version }}
       release_type: ${{ steps.release_type.outputs.type }}
       matrix: ${{ steps.matrix.outputs.matrix }}
+      matrix_non_empty: ${{ steps.matrix.outputs.matrix_non_empty }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -180,20 +193,37 @@ jobs:
       - name: 输出 Runner 矩阵
         id: matrix
         run: |
-          RUNNER_WIN="${{ github.event.inputs.runner_win || 'self-hosted' }}"
-          RUNNER_LINUX="${{ github.event.inputs.runner_linux || 'self-hosted' }}"
-          RUNNER_MAC="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
-          win_arr=$([ "$RUNNER_WIN" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
-          linux_arr=$([ "$RUNNER_LINUX" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
-          mac_arr=$([ "$RUNNER_MAC" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
-          echo '[{"platform":"win","runner_array":'"$win_arr"'},{"platform":"linux","runner_array":'"$linux_arr"'},{"platform":"mac","runner_array":'"$mac_arr"'}]' > matrix.json
+          RW="${{ github.event.inputs.runner_win || 'self-hosted' }}"
+          RL="${{ github.event.inputs.runner_linux || 'self-hosted' }}"
+          RM="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
+          RM64="${{ github.event.inputs.runner_mac_amd64 || 'off' }}"
+          entries=()
+          if [ "$RW" != "off" ]; then
+            arr=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
+            entries+=("{\"platform\":\"win\",\"runner_array\":$arr}")
+          fi
+          if [ "$RL" != "off" ]; then
+            arr=$([ "$RL" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
+            entries+=("{\"platform\":\"linux\",\"runner_array\":$arr}")
+          fi
+          if [ "$RM" != "off" ]; then
+            arr=$([ "$RM" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
+            entries+=("{\"platform\":\"mac\",\"runner_array\":$arr}")
+          fi
+          if [ "$RM64" != "off" ]; then
+            arr=$([ "$RM64" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","x64"]')
+            entries+=("{\"platform\":\"mac-amd64\",\"runner_array\":$arr}")
+          fi
+          printf '[%s]\n' "$(IFS=,; echo "${entries[*]}")" > matrix.json
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
           cat matrix.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          if [ ${#entries[@]} -gt 0 ]; then echo "matrix_non_empty=true" >> $GITHUB_OUTPUT; else echo "matrix_non_empty=false" >> $GITHUB_OUTPUT; fi
         shell: bash
 
   release:
     needs: prepare
+    if: needs.prepare.outputs.matrix_non_empty == 'true'
     runs-on: ${{ matrix.runner_array }}
     strategy:
       fail-fast: false
@@ -228,7 +258,7 @@ jobs:
         shell: bash
 
       - name: 安装 Git（macOS）
-        if: matrix.platform == 'mac'
+        if: matrix.platform == 'mac' || matrix.platform == 'mac-amd64'
         run: |
           if ! command -v git &>/dev/null; then
             if command -v brew &>/dev/null; then
@@ -288,7 +318,7 @@ jobs:
           restore-keys: ${{ runner.os }}-linux-electron-
 
       - name: 恢复 Electron 缓存 (macOS)
-        if: matrix.platform == 'mac'
+        if: matrix.platform == 'mac' || matrix.platform == 'mac-amd64'
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/electron
@@ -313,7 +343,7 @@ jobs:
 
       - name: 检查当前平台文件是否已发布
         id: check_platform_release
-        run: node meta-doc/scripts/check-platform-release.js "${{ needs.prepare.outputs.tag }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || 'linux') }}"
+        run: node meta-doc/scripts/check-platform-release.js "${{ needs.prepare.outputs.tag }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || (matrix.platform == 'mac-amd64' && 'macos-x64' || 'linux')) }}"
         env:
           RELEASE_REPO_OWNER: ${{ env.RELEASE_REPO_OWNER }}
           RELEASE_REPO: ${{ env.RELEASE_REPO }}
@@ -342,7 +372,7 @@ jobs:
         if: steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
         working-directory: meta-doc
         run: |
-          node scripts/check-local-build.js "${{ needs.prepare.outputs.clean_version }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || 'linux') }}"
+          node scripts/check-local-build.js "${{ needs.prepare.outputs.clean_version }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'linux' && 'linux' || 'macos') }}"
         continue-on-error: true
 
       - name: 安装依赖
@@ -371,7 +401,7 @@ jobs:
         run: '[ -f build/icon.png ] || npm run generate-icons || true'
 
       - name: 生成 macOS 图标（如果不存在）
-        if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: '[ -f build/icon.icns ] || npm run generate-icons || true'
 
@@ -409,6 +439,15 @@ jobs:
         if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npx electron-builder --mac --arm64 --publish never
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: 打包 macOS x64 版本
+        if: matrix.platform == 'mac-amd64' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: npx electron-builder --mac --x64 --publish never
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
@@ -467,7 +506,7 @@ jobs:
         shell: bash
 
       - name: 发布 macOS 产物
-        if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true'
+        if: (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true'
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GH_TOKEN }}

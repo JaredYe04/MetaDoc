@@ -26,10 +26,11 @@ if (!owner) {
   process.exit(1)
 }
 
-// 定义每个平台的文件扩展名模式
+// 定义每个平台的文件扩展名模式（macos-x64 用 x64 区分 Intel 包）
 const platformPatterns = {
   windows: ['.exe', '.yml', '.blockmap'],
   macos: ['.dmg', '.zip'],
+  'macos-x64': ['x64'],
   linux: ['.AppImage', '.deb', '.snap']
 }
 

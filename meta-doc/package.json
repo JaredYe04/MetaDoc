@@ -11,7 +11,7 @@
   },
   "scripts": {
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write . && prettier --check .",
     "lint": "npm run lint:code && npm run lint:manuals",
     "lint:code": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "lint:manuals": "node scripts/lint-manuals.js",

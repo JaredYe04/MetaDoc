@@ -262,19 +262,26 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-body
+          path: ${{ github.workspace }}
 
-      - name: 确保发布说明文件存在
+      - name: 将发布说明写入工作区根目录
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
           node -e "
           const fs=require('fs');
           const path=require('path');
-          const cwd=process.cwd();
-          const fromDir=path.join(cwd,'release-body');
-          const from=path.join(fromDir,'final-notes.txt');
-          const to=path.join(cwd,'final-notes.txt');
-          if(fs.existsSync(from)) { fs.copyFileSync(from,to); console.log('Copied release-body/final-notes.txt'); }
-          else if(!fs.existsSync(to)) { fs.writeFileSync(to,'Release'); console.log('Created default final-notes.txt'); }
-          else { console.log('final-notes.txt already present'); }
+          const root=process.env.GITHUB_WORKSPACE;
+          if(!root) throw new Error('GITHUB_WORKSPACE not set');
+          const to=path.join(root,'final-notes.txt');
+          const from1=path.join(root,'release-body','final-notes.txt');
+          const from2=path.join(root,'final-notes.txt');
+          let content=null;
+          if(fs.existsSync(from1)) content=fs.readFileSync(from1,'utf8');
+          else if(fs.existsSync(from2)) content=fs.readFileSync(from2,'utf8');
+          fs.writeFileSync(to, content||'Release');
+          if(!fs.existsSync(to)) throw new Error('failed to write final-notes.txt');
+          console.log('final-notes.txt written to', to);
           "
 
       - name: 更新仓库到最新状态

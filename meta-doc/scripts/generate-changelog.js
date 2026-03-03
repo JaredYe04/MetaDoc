@@ -10,45 +10,45 @@ const fs = require('fs')
 const rootDir = path.resolve(__dirname, '..')
 
 /**
- * 获取自指定版本以来的所有 commits
+ * 获取「上一次发布」对应的 tag，用于计算 commit 范围
+ * 当前发布 tag 可能已存在（刚创建），取排序后的上一个 tag
+ */
+function getPreviousReleaseTag(currentTag, releaseType) {
+  const match = releaseType === 'prod' ? 'v*' : 'dev-*'
+  try {
+    const out = execSync(`git tag -l "${match}" --sort=-version:refname`, {
+      cwd: rootDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim()
+    if (!out) return null
+    const tags = out.split('\n').filter(Boolean)
+    // 列表从新到旧：[v1.0.0, v0.9.0, ...]
+    const idx = tags.indexOf(currentTag)
+    if (idx === 0) return tags[1] || null // 当前 tag 已存在，取上一个
+    if (idx > 0) return tags[idx + 1] || null
+    return tags[0] || null // 当前 tag 尚不存在，取当前最新作为「上一版」
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * 获取自「上一次发布」到 HEAD 的所有 commits（用于生成本版 release 说明）
  */
 function getCommitsSince(version, releaseType) {
   try {
-    // 尝试获取指定版本之后的 commits
-    let command = 'git log --pretty=format:"%H|%s|%b"'
+    const cleanVersion = version.replace(/^Beta/, '')
+    const currentTag =
+      releaseType === 'prod' ? `v${cleanVersion}` : `dev-${cleanVersion}`
 
-    // 如果是正式版，查找上一个正式版标签
-    if (releaseType === 'prod') {
-      try {
-        const lastTag = execSync('git describe --tags --abbrev=0 --match "v*"', {
-          cwd: rootDir,
-          encoding: 'utf-8',
-          stdio: ['ignore', 'pipe', 'ignore']
-        }).trim()
-
-        if (lastTag) {
-          command += ` ${lastTag}..HEAD`
-        }
-      } catch (error) {
-        // 没有找到标签，使用所有 commits
-      }
-    } else {
-      // 开发版，查找上一个开发版标签
-      try {
-        const lastTag = execSync('git describe --tags --abbrev=0 --match "dev-*"', {
-          cwd: rootDir,
-          encoding: 'utf-8',
-          stdio: ['ignore', 'pipe', 'ignore']
-        }).trim()
-
-        if (lastTag) {
-          command += ` ${lastTag}..HEAD`
-        }
-      } catch (error) {
-        // 没有找到标签，使用所有 commits
-      }
+    const previousTag = getPreviousReleaseTag(currentTag, releaseType)
+    let range = 'HEAD'
+    if (previousTag) {
+      range = `${previousTag}..HEAD`
     }
 
+    const command = `git log ${range} --pretty=format:"%H|%s|%b" --no-merges`
     const output = execSync(command, {
       cwd: rootDir,
       encoding: 'utf-8',
@@ -61,7 +61,7 @@ function getCommitsSince(version, releaseType) {
 
     return output.split('\n').map((line) => {
       const [hash, ...rest] = line.split('|')
-      const message = rest.join('|')
+      const message = rest.join('|').trim()
       return { hash, message }
     })
   } catch (error) {
@@ -86,19 +86,26 @@ function categorizeCommits(commits) {
 
   for (const commit of commits) {
     const message = commit.message.trim()
+    if (!message) continue
     const match = message.match(/^(\w+)(?:\([^)]+\))?(!?):\s*(.+)$/)
 
     if (match) {
       const type = match[1].toLowerCase()
-      const description = match[3]
+      const description = match[3].trim()
 
       if (categories[type]) {
-        categories[type].push(description)
+        if (!categories[type].includes(description)) {
+          categories[type].push(description)
+        }
       } else {
-        categories.other.push(message)
+        if (!categories.other.includes(message)) {
+          categories.other.push(message)
+        }
       }
     } else {
-      categories.other.push(message)
+      if (!categories.other.includes(message)) {
+        categories.other.push(message)
+      }
     }
   }
 
@@ -166,6 +173,15 @@ function generateChangelog(version, releaseType, categories) {
   if (categories.docs.length > 0) {
     changelog += '## 📝 文档\n\n'
     categories.docs.forEach((item) => {
+      changelog += `- ${item}\n`
+    })
+    changelog += '\n'
+  }
+
+  // 构建 / 杂项 (chore)
+  if (categories.chore.length > 0) {
+    changelog += '## 📦 构建 / 杂项\n\n'
+    categories.chore.forEach((item) => {
       changelog += `- ${item}\n`
     })
     changelog += '\n'

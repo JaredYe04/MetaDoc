@@ -1,0 +1,425 @@
+name: 发布到 Releases 仓库（多平台统一）
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: '渠道'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      version_type:
+        description: '版本类型'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: '自定义版本号（仅当 version_type 为 custom 时必填，如 0.1.0）'
+        required: false
+        type: string
+      runner_win:
+        description: 'Windows Runner'
+        required: false
+        type: choice
+        options:
+          - self-hosted
+          - github-hosted
+        default: self-hosted
+      runner_linux:
+        description: 'Linux Runner'
+        required: false
+        type: choice
+        options:
+          - self-hosted
+          - github-hosted
+        default: self-hosted
+      runner_mac:
+        description: 'macOS Runner'
+        required: false
+        type: choice
+        options:
+          - self-hosted
+          - github-hosted
+        default: self-hosted
+      force_rebuild:
+        description: '是否强制重新构建'
+        required: false
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+        default: 'true'
+      release_notes:
+        description: '发布说明（可选，留空则自动生成）'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+      - 'dev-*'
+
+env:
+  RELEASE_REPO_OWNER: ${{ github.repository_owner }}
+  RELEASE_REPO: MetaDoc-Releases
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.release_info.outputs.tag }}
+      release_name: ${{ steps.release_info.outputs.release_name }}
+      is_prerelease: ${{ steps.release_info.outputs.is_prerelease }}
+      clean_version: ${{ steps.version_info.outputs.clean_version }}
+      version: ${{ steps.version_info.outputs.version }}
+      release_type: ${{ steps.release_type.outputs.type }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: meta-doc/package-lock.json
+
+      - name: 验证自定义版本号
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_type == 'custom'
+        run: |
+          if [ -z "${{ github.event.inputs.custom_version }}" ] || [ "${{ github.event.inputs.custom_version }}" = "" ]; then
+            echo "❌ version_type 为 custom 时必须填写 custom_version"
+            exit 1
+          fi
+        shell: bash
+
+      - name: 确定发布类型（channel）
+        id: release_type
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "type=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
+          else
+            if echo "${{ github.ref }}" | grep -q 'refs/tags/dev-'; then
+              echo "type=dev" >> $GITHUB_OUTPUT
+            else
+              echo "type=prod" >> $GITHUB_OUTPUT
+            fi
+          fi
+        shell: bash
+
+      - name: 读取版本信息
+        id: version_info
+        working-directory: meta-doc
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.version_type }}" = "custom" ]; then
+              node scripts/get-version-info.js "${{ github.event.inputs.custom_version }}" ""
+            else
+              node scripts/get-version-info.js "" "${{ github.event.inputs.version_type }}"
+            fi
+          else
+            node scripts/get-version-info.js
+          fi
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+
+      - name: 确定标签和 Release 名称
+        id: release_info
+        working-directory: meta-doc
+        run: node scripts/get-release-info.js "${{ steps.release_type.outputs.type }}" "${{ steps.version_info.outputs.clean_version }}" ""
+        env:
+          RELEASE_TYPE: ${{ steps.release_type.outputs.type }}
+          CLEAN_VERSION: ${{ steps.version_info.outputs.clean_version }}
+          LATEST_TAG: ""
+
+      - name: 提交版本更改到仓库
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: meta-doc
+        run: node scripts/commit-version-changes.js "${{ steps.version_info.outputs.version }}"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: 创建 Git 标签（如果不存在）
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: meta-doc
+        run: node scripts/create-release-tag.js "${{ steps.release_info.outputs.tag }}" "${{ steps.release_info.outputs.release_name }}"
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: 生成发布说明
+        run: |
+          node meta-doc/scripts/generate-changelog-to-file.js "${{ steps.version_info.outputs.version }}" "${{ steps.release_type.outputs.type }}" release-notes.txt
+          node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes || '' }}" release-notes.txt final-notes.txt
+
+      - name: 上传发布说明
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-body
+          path: final-notes.txt
+
+      - name: 输出 Runner 矩阵
+        id: matrix
+        run: |
+          RUNNER_WIN="${{ github.event.inputs.runner_win || 'self-hosted' }}"
+          RUNNER_LINUX="${{ github.event.inputs.runner_linux || 'self-hosted' }}"
+          RUNNER_MAC="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
+          win_arr=$([ "$RUNNER_WIN" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
+          linux_arr=$([ "$RUNNER_LINUX" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
+          mac_arr=$([ "$RUNNER_MAC" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
+          echo '[{"platform":"win","runner_array":'"$win_arr"'},{"platform":"linux","runner_array":'"$linux_arr"'},{"platform":"mac","runner_array":'"$mac_arr"'}]' > matrix.json
+          echo "matrix<<EOF" >> $GITHUB_OUTPUT
+          cat matrix.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+
+  release:
+    needs: prepare
+    runs-on: ${{ matrix.runner_array }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    permissions:
+      contents: write
+    steps:
+      - name: 安装 Git（Windows）
+        if: matrix.platform == 'win'
+        run: |
+          if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+            if (Get-Command choco -ErrorAction SilentlyContinue) { choco install git -y }
+            elseif (Get-Command winget -ErrorAction SilentlyContinue) { winget install --id Git.Git -e --source winget }
+            else { Write-Host "请手动安装 Git"; exit 1 }
+          }
+        shell: powershell
+
+      - name: 安装 Git 和构建工具（Linux）
+        if: matrix.platform == 'linux'
+        run: |
+          if ! command -v git &> /dev/null; then
+            . /etc/os-release 2>/dev/null || true
+            case "${ID:-unknown}" in
+              ubuntu|debian) sudo apt-get update && sudo apt-get install -y git binutils fakeroot ;;
+              fedora|rhel|centos) sudo dnf install -y git binutils ;;
+              arch|manjaro) sudo pacman -S --noconfirm git binutils fakeroot ;;
+              *) echo "请手动安装 Git"; exit 1 ;;
+            esac
+          fi
+          command -v ar &>/dev/null || (case "${ID:-unknown}" in ubuntu|debian) sudo apt-get install -y binutils fakeroot ;; esac)
+        shell: bash
+
+      - name: 安装 Git（macOS）
+        if: matrix.platform == 'mac'
+        run: |
+          if ! command -v git &> /dev/null; then
+            command -v brew &> /dev/null && brew install git || { echo "请先安装 Homebrew"; exit 1 }
+          fi
+        shell: bash
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          clean: false
+
+      - name: 下载发布说明
+        uses: actions/download-artifact@v4
+        with:
+          name: release-body
+
+      - name: 更新仓库到最新状态
+        run: node meta-doc/scripts/update-repo.js "${{ github.ref }}" "${{ github.ref_name }}"
+        continue-on-error: true
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: meta-doc/package-lock.json
+
+      - name: 检查当前平台文件是否已发布
+        id: check_platform_release
+        run: node meta-doc/scripts/check-platform-release.js "${{ needs.prepare.outputs.tag }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || 'linux') }}"
+        env:
+          RELEASE_REPO_OWNER: ${{ env.RELEASE_REPO_OWNER }}
+          RELEASE_REPO: ${{ env.RELEASE_REPO }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        continue-on-error: true
+
+      - name: 确定是否需要构建
+        id: should_build
+        run: |
+          node -e "
+          const force = (process.env.FORCE_REBUILD || 'true').toLowerCase() === 'true';
+          const hasFiles = process.env.HAS_PLATFORM_FILES === 'true';
+          let shouldBuild, forceRebuild;
+          if (force) { shouldBuild = true; forceRebuild = true; }
+          else if (hasFiles) { shouldBuild = false; forceRebuild = false; }
+          else { shouldBuild = true; forceRebuild = false; }
+          const fs = require('fs');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'should_build=' + shouldBuild + '\nforce_rebuild=' + forceRebuild + '\n');
+          "
+        env:
+          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'true' }}
+          HAS_PLATFORM_FILES: ${{ steps.check_platform_release.outputs.has_platform_files }}
+
+      - name: 检查本地构建产物
+        id: check_local_build
+        if: steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
+        working-directory: meta-doc
+        run: |
+          node scripts/check-local-build.js "${{ needs.prepare.outputs.clean_version }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || 'linux') }}"
+        continue-on-error: true
+
+      - name: 安装依赖
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: npm ci
+
+      - name: 生成 Linux 图标（如果不存在）
+        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: '[ -f build/icon.png ] || npm run generate-icons || true'
+
+      - name: 生成 macOS 图标（如果不存在）
+        if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: '[ -f build/icon.icns ] || npm run generate-icons || true'
+
+      - name: 构建项目
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+
+      - name: 清理旧 Linux 产物
+        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        run: rm -f meta-doc/dist/*.AppImage meta-doc/dist/*.deb meta-doc/dist/*.snap || true
+
+      - name: 打包 Windows 版本
+        if: matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: npx electron-builder --win --publish never
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: 打包 Linux x64 版本
+        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: npx electron-builder --linux --x64 --publish never
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: 打包 macOS ARM64 版本
+        if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        working-directory: meta-doc
+        run: npx electron-builder --mac --arm64 --publish never
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: 发布 Windows 产物
+        if: matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          body_path: final-notes.txt
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          files: |
+            meta-doc/dist/*.exe
+            meta-doc/dist/*.yml
+            meta-doc/dist/*.blockmap
+          draft: false
+
+      - name: 准备 Linux 产物列表
+        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
+        id: release_files_linux
+        run: |
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "meta-doc/dist/meta-doc-${{ needs.prepare.outputs.clean_version }}.AppImage" >> $GITHUB_OUTPUT
+          echo "meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.deb" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "snap_file=meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: 发布 Linux 产物（AppImage + deb）
+        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
+        id: release_linux
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          body_path: final-notes.txt
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          files: ${{ steps.release_files_linux.outputs.files }}
+          draft: false
+
+      - name: 上传 Snap 包（Linux）
+        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && steps.release_linux.outcome == 'success'
+        run: |
+          SNAP="meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap"
+          if [ ! -f "$SNAP" ]; then exit 0; fi
+          URL="${{ steps.release_linux.outputs.upload_url }}"
+          URL="${URL%%\{*}"
+          curl -sL -X POST -H "Authorization: token ${{ secrets.GH_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@$SNAP" "${URL}?name=$(basename "$SNAP")" -o /dev/null -w "%{http_code}" || true
+        continue-on-error: true
+        shell: bash
+
+      - name: 发布 macOS 产物
+        if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          body_path: final-notes.txt
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          files: |
+            meta-doc/dist/*.dmg
+            meta-doc/dist/*.zip
+          draft: false
+
+      - name: 保存发布日志
+        working-directory: meta-doc
+        run: |
+          node scripts/save-release-log.js "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.tag }}" "${{ needs.prepare.outputs.release_type }}" "${{ needs.prepare.outputs.release_name }}" "${{ needs.prepare.outputs.is_prerelease }}" "${{ github.sha }}" "${{ github.run_id }}"
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: 上传发布日志
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-log-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
+          path: .github/release-logs/release_${{ needs.prepare.outputs.tag }}_*.json
+          retention-days: 90
+        if: always()

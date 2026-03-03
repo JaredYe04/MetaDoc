@@ -141,7 +141,11 @@ function positionToOffset(text: string, line: number, column: number): number {
     }
   }
   const lineStart = pos
-  while (pos < text.length && text[pos] !== '\n' && !(text[pos] === '\r' && text[pos + 1] === '\n')) {
+  while (
+    pos < text.length &&
+    text[pos] !== '\n' &&
+    !(text[pos] === '\r' && text[pos + 1] === '\n')
+  ) {
     pos++
   }
   const lineLen = pos - lineStart
@@ -1043,7 +1047,10 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             format: 'json',
             componentName: 'EditDisplay'
           },
-          { percentage: 10, message: i18n.global.t('agent.tool.edit.progress.loading', '正在解析 diff...') }
+          {
+            percentage: 10,
+            message: i18n.global.t('agent.tool.edit.progress.loading', '正在解析 diff...')
+          }
         )
         let currentContent: string | null = null
         try {
@@ -1085,7 +1092,10 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             content: newContent
           })
           const addedLines = hunks.reduce((s, h) => s + (h.newLines?.length ?? h.newCount ?? 0), 0)
-          const removedLines = hunks.reduce((s, h) => s + (h.oldLines?.length ?? h.oldCount ?? 0), 0)
+          const removedLines = hunks.reduce(
+            (s, h) => s + (h.oldLines?.length ?? h.oldCount ?? 0),
+            0
+          )
           try {
             const sid = params._sessionId as string | undefined
             const umid = params._userMessageId as string | undefined
@@ -1101,14 +1111,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           } catch (_) {
             /* ignore */
           }
-        const newFileResult: EditResult = {
-          appliedEdits: 1,
-          failedEdits: 0,
-          operations: [],
-          hunks,
-          filePath: absPath,
-          rawDiff: diff
-        }
+          const newFileResult: EditResult = {
+            appliedEdits: 1,
+            failedEdits: 0,
+            operations: [],
+            hunks,
+            filePath: absPath,
+            rawDiff: diff
+          }
           return {
             status: 'succeeded',
             data: {
@@ -1199,7 +1209,13 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             format: 'json',
             componentName: 'EditDisplay'
           },
-          result: { appliedEdits: appliedCount, failedEdits: failedCount, operations: edits, hunks, rawDiff: diff }
+          result: {
+            appliedEdits: appliedCount,
+            failedEdits: failedCount,
+            operations: edits,
+            hunks,
+            rawDiff: diff
+          }
         }
       }
 
@@ -1877,7 +1893,8 @@ const editToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Document Edit',
-    description: 'Accepts only git-style diff: pass a string with - lines (delete) and + lines (insert)'
+    description:
+      'Accepts only git-style diff: pass a string with - lines (delete) and + lines (insert)'
   },
   de_DE: {
     name: 'Dokument bearbeiten',
@@ -2035,8 +2052,7 @@ export const editToolConfig: AgentToolConfig = {
             }
           ]
         },
-        description:
-          '（兼容旧版，提示词中不体现）编辑操作列表。仅文档化：请使用 diff 参数。'
+        description: '（兼容旧版，提示词中不体现）编辑操作列表。仅文档化：请使用 diff 参数。'
       },
       operation: {
         type: 'object',

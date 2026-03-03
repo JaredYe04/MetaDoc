@@ -298,7 +298,10 @@ function onKeydown(e: KeyboardEvent) {
       if (!n || n.nodeType !== Node.ELEMENT_NODE) return null
       const h = n as HTMLElement
       if (h.classList?.contains('at-tag')) return h
-      if (h.classList?.contains('ref-segment-wrap') && h.firstElementChild?.classList?.contains('at-tag'))
+      if (
+        h.classList?.contains('ref-segment-wrap') &&
+        h.firstElementChild?.classList?.contains('at-tag')
+      )
         return h.firstElementChild as HTMLElement
       return null
     }
@@ -314,10 +317,22 @@ function onKeydown(e: KeyboardEvent) {
           targetAtTag = getAtTagFromNode(prev)
           if (targetAtTag) break
           if (prev.nodeType === Node.TEXT_NODE && (prev.textContent || '').trim().length > 0) break
-          if (prev.nodeType === Node.ELEMENT_NODE && (prev as HTMLElement).classList?.contains('ref-input-text') && ((prev as HTMLElement).textContent || '').trim().length > 0) break
-          if (prev.nodeType === Node.ELEMENT_NODE && (prev as HTMLElement).classList?.contains('ref-segment-wrap')) {
+          if (
+            prev.nodeType === Node.ELEMENT_NODE &&
+            (prev as HTMLElement).classList?.contains('ref-input-text') &&
+            ((prev as HTMLElement).textContent || '').trim().length > 0
+          )
+            break
+          if (
+            prev.nodeType === Node.ELEMENT_NODE &&
+            (prev as HTMLElement).classList?.contains('ref-segment-wrap')
+          ) {
             const inner = (prev as HTMLElement).firstElementChild as HTMLElement | null
-            if (inner?.classList?.contains('ref-input-text') && (inner.textContent || '').trim().length > 0) break
+            if (
+              inner?.classList?.contains('ref-input-text') &&
+              (inner.textContent || '').trim().length > 0
+            )
+              break
           }
           prev = prev.previousSibling
         }
@@ -394,8 +409,7 @@ function getCursorOffset(): number {
 /** 在光标处插入闭合 tag：@[path] 或 @[tab:id]。打开 @ 选择器时焦点会移走，故用按 @ 时保存的偏移。 */
 function insertAtCursor(rawValue: string) {
   const value = lastEmitted.value
-  const offset =
-    savedInsertOffset.value !== null ? savedInsertOffset.value : getCursorOffset()
+  const offset = savedInsertOffset.value !== null ? savedInsertOffset.value : getCursorOffset()
   savedInsertOffset.value = null
   const insertText = `@[${rawValue}]`
   const newValue = value.slice(0, offset) + insertText + value.slice(offset)

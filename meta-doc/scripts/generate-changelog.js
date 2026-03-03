@@ -39,8 +39,7 @@ function getPreviousReleaseTag(currentTag, releaseType) {
 function getCommitsSince(version, releaseType) {
   try {
     const cleanVersion = version.replace(/^Beta/, '')
-    const currentTag =
-      releaseType === 'prod' ? `v${cleanVersion}` : `dev-${cleanVersion}`
+    const currentTag = releaseType === 'prod' ? `v${cleanVersion}` : `dev-${cleanVersion}`
 
     const previousTag = getPreviousReleaseTag(currentTag, releaseType)
     let range = 'HEAD'

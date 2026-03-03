@@ -12,216 +12,218 @@
     </template>
 
     <template v-else>
-    <div
-      v-if="effectiveData.stage === 'waiting_approval'"
-      class="approval-state"
-      :style="approvalStateStyle"
-    >
-      <div class="approval-header" :style="approvalHeaderStyle">
-        <el-icon class="warning-icon"><WarningFilled /></el-icon>
-        <h4 :style="headerTitleStyle">{{ $t('agent.display.terminalExecution.approvalTitle') }}</h4>
+      <div
+        v-if="effectiveData.stage === 'waiting_approval'"
+        class="approval-state"
+        :style="approvalStateStyle"
+      >
+        <div class="approval-header" :style="approvalHeaderStyle">
+          <el-icon class="warning-icon"><WarningFilled /></el-icon>
+          <h4 :style="headerTitleStyle">
+            {{ $t('agent.display.terminalExecution.approvalTitle') }}
+          </h4>
+        </div>
+
+        <div class="command-display">
+          <div class="command-label" :style="labelStyle">
+            {{ $t('agent.display.terminalExecution.commandToExecute') }}
+          </div>
+          <Textarea
+            :model-value="(effectiveData as any)?.command || ''"
+            :rows="3"
+            readonly
+            class="command-input w-full"
+          />
+        </div>
+
+        <div class="trust-mode-section" :style="trustModeSectionStyle">
+          <Checkbox v-model:checked="trustMode" @update:checked="handleTrustModeChange">
+            {{ $t('agent.display.terminalExecution.trustMode') }}
+          </Checkbox>
+          <Button
+            v-if="trustMode"
+            variant="ghost"
+            size="sm"
+            @click="resetTrustMode"
+            style="margin-left: 8px"
+          >
+            {{ $t('agent.display.terminalExecution.resetTrust') }}
+          </Button>
+        </div>
+
+        <div class="approval-actions">
+          <Button variant="destructive" @click="handleReject">
+            {{ $t('agent.display.terminalExecution.reject') }}
+          </Button>
+          <Button variant="default" @click="handleApprove">
+            {{
+              trustMode
+                ? $t('agent.display.terminalExecution.approveWithTrust')
+                : $t('agent.display.terminalExecution.approve')
+            }}
+          </Button>
+        </div>
       </div>
 
-      <div class="command-display">
-        <div class="command-label" :style="labelStyle">
-          {{ $t('agent.display.terminalExecution.commandToExecute') }}
+      <div
+        v-else-if="effectiveData.stage === 'executing' || effectiveData.stage === 'analyzing'"
+        class="executing-state"
+        :style="executingStateStyle"
+      >
+        <div class="status-message" :style="statusMessageStyle">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>{{
+            effectiveData.stage === 'analyzing'
+              ? $t('agent.display.terminalExecution.analyzingOutput')
+              : $t('agent.display.terminalExecution.executingCommand')
+          }}</span>
         </div>
-        <Textarea
-          :model-value="(effectiveData as any)?.command || ''"
-          :rows="3"
-          readonly
-          class="command-input w-full"
+        <div class="command-display">
+          <div class="command-label" :style="labelStyle">
+            {{ $t('agent.display.terminalExecution.executing') }}
+          </div>
+          <code class="command-text" :style="commandTextStyle">{{
+            (effectiveData as any)?.command || ''
+          }}</code>
+        </div>
+
+        <!-- 流式终端输出 -->
+        <div class="terminal-output" :style="terminalOutputStyle">
+          <div class="terminal-header" :style="terminalHeaderStyle">
+            <span>{{ $t('agent.display.terminalExecution.terminalOutput') }}</span>
+          </div>
+          <div class="terminal-body" ref="terminalBodyRef" :style="terminalBodyStyle">
+            <!-- 命令提示符 -->
+            <div class="terminal-line">
+              <span class="terminal-prompt" :style="promptStyle">$</span>
+              <span class="terminal-command" :style="commandStyle">{{
+                (effectiveData as any)?.command || ''
+              }}</span>
+            </div>
+
+            <!-- stdout 输出（流式显示） -->
+            <div
+              v-for="(line, index) in stdoutLines"
+              :key="`stdout-${index}`"
+              class="terminal-line terminal-out"
+              :style="outLineStyle"
+            >
+              {{ line }}
+            </div>
+
+            <!-- stderr 输出（流式显示） -->
+            <div
+              v-for="(line, index) in stderrLines"
+              :key="`stderr-${index}`"
+              class="terminal-line terminal-err"
+              :style="errLineStyle"
+            >
+              {{ line }}
+            </div>
+
+            <!-- 执行中提示 -->
+            <div
+              v-if="
+                effectiveData.stage === 'executing' &&
+                stdoutLines.length === 0 &&
+                stderrLines.length === 0
+              "
+              class="terminal-line terminal-info"
+              :style="infoLineStyle"
+            >
+              {{ $t('agent.display.terminalExecution.executingCommand') }}...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-else-if="(effectiveData as any)?.stage === 'completed'"
+        class="completed-state"
+        :style="completedStateStyle"
+      >
+        <div class="result-header" :style="resultHeaderStyle">
+          <Badge
+            :type="((effectiveData as any)?.exitCode || 0) === 0 ? 'success' : 'danger'"
+            size="small"
+          >
+            {{ $t('agent.display.terminalExecution.exitCode') }}:
+            {{ (effectiveData as any)?.exitCode || 0 }}
+          </Badge>
+          <span class="command-text" :style="commandTextStyle">{{
+            (effectiveData as any)?.command || ''
+          }}</span>
+        </div>
+
+        <div v-if="(effectiveData as any)?.stdout" class="output-section">
+          <div class="output-header" :style="outputHeaderStyle">
+            <strong>{{ $t('agent.display.terminalExecution.stdout') }}</strong>
+          </div>
+          <ScrollArea class="max-h-[300px]">
+            <pre class="output-text" :style="outputTextStyle">{{
+              (effectiveData as any).stdout
+            }}</pre>
+          </ScrollArea>
+        </div>
+
+        <div v-if="(effectiveData as any)?.stderr" class="output-section error-output">
+          <div class="output-header" :style="outputHeaderStyle">
+            <strong>{{ $t('agent.display.terminalExecution.stderr') }}</strong>
+          </div>
+          <ScrollArea class="max-h-[200px]">
+            <pre class="output-text error-text" :style="errorTextStyle">{{
+              (effectiveData as any).stderr
+            }}</pre>
+          </ScrollArea>
+        </div>
+
+        <div v-if="(effectiveData as any)?.summary" class="summary-section">
+          <Divider>{{ $t('agent.display.terminalExecution.aiSummary') }}</Divider>
+          <div class="summary-text" :style="summaryTextStyle">
+            {{ (effectiveData as any).summary }}
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="(effectiveData as any)?.stage === 'rejected'" class="rejected-state">
+        <Alert variant="warning">
+          <AlertTriangle class="h-4 w-4" />
+          <AlertTitle>{{ $t('agent.display.terminalExecution.rejected') }}</AlertTitle>
+          <AlertDescription>
+            <div class="command-text" :style="commandTextStyle">
+              {{ (effectiveData as any)?.command || '' }}
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      <div v-else-if="(effectiveData as any)?.stage === 'error'" class="error-state">
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>
+            {{
+              (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed')
+            }}
+          </AlertTitle>
+        </Alert>
+      </div>
+
+      <!-- 进度条 -->
+      <div
+        v-if="
+          effectiveProgress &&
+          effectiveProgress.percentage > 0 &&
+          (effectiveData as any)?.stage !== 'completed'
+        "
+        style="margin-top: 12px"
+      >
+        <Progress
+          :percentage="effectiveProgress.percentage"
+          :status="progressStatus"
+          :stroke-width="6"
+          :show-text="true"
         />
       </div>
-
-      <div class="trust-mode-section" :style="trustModeSectionStyle">
-        <Checkbox v-model:checked="trustMode" @update:checked="handleTrustModeChange">
-          {{ $t('agent.display.terminalExecution.trustMode') }}
-        </Checkbox>
-        <Button
-          v-if="trustMode"
-          variant="ghost"
-          size="sm"
-          @click="resetTrustMode"
-          style="margin-left: 8px"
-        >
-          {{ $t('agent.display.terminalExecution.resetTrust') }}
-        </Button>
-      </div>
-
-      <div class="approval-actions">
-        <Button variant="destructive" @click="handleReject">
-          {{ $t('agent.display.terminalExecution.reject') }}
-        </Button>
-        <Button variant="default" @click="handleApprove">
-          {{
-            trustMode
-              ? $t('agent.display.terminalExecution.approveWithTrust')
-              : $t('agent.display.terminalExecution.approve')
-          }}
-        </Button>
-      </div>
-    </div>
-
-    <div
-      v-else-if="effectiveData.stage === 'executing' || effectiveData.stage === 'analyzing'"
-      class="executing-state"
-      :style="executingStateStyle"
-    >
-      <div class="status-message" :style="statusMessageStyle">
-        <el-icon class="is-loading"><Loading /></el-icon>
-        <span>{{
-          effectiveData.stage === 'analyzing'
-            ? $t('agent.display.terminalExecution.analyzingOutput')
-            : $t('agent.display.terminalExecution.executingCommand')
-        }}</span>
-      </div>
-      <div class="command-display">
-        <div class="command-label" :style="labelStyle">
-          {{ $t('agent.display.terminalExecution.executing') }}
-        </div>
-        <code class="command-text" :style="commandTextStyle">{{
-          (effectiveData as any)?.command || ''
-        }}</code>
-      </div>
-
-      <!-- 流式终端输出 -->
-      <div class="terminal-output" :style="terminalOutputStyle">
-        <div class="terminal-header" :style="terminalHeaderStyle">
-          <span>{{ $t('agent.display.terminalExecution.terminalOutput') }}</span>
-        </div>
-        <div class="terminal-body" ref="terminalBodyRef" :style="terminalBodyStyle">
-          <!-- 命令提示符 -->
-          <div class="terminal-line">
-            <span class="terminal-prompt" :style="promptStyle">$</span>
-            <span class="terminal-command" :style="commandStyle">{{
-              (effectiveData as any)?.command || ''
-            }}</span>
-          </div>
-
-          <!-- stdout 输出（流式显示） -->
-          <div
-            v-for="(line, index) in stdoutLines"
-            :key="`stdout-${index}`"
-            class="terminal-line terminal-out"
-            :style="outLineStyle"
-          >
-            {{ line }}
-          </div>
-
-          <!-- stderr 输出（流式显示） -->
-          <div
-            v-for="(line, index) in stderrLines"
-            :key="`stderr-${index}`"
-            class="terminal-line terminal-err"
-            :style="errLineStyle"
-          >
-            {{ line }}
-          </div>
-
-          <!-- 执行中提示 -->
-          <div
-            v-if="
-              effectiveData.stage === 'executing' &&
-              stdoutLines.length === 0 &&
-              stderrLines.length === 0
-            "
-            class="terminal-line terminal-info"
-            :style="infoLineStyle"
-          >
-            {{ $t('agent.display.terminalExecution.executingCommand') }}...
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-else-if="(effectiveData as any)?.stage === 'completed'"
-      class="completed-state"
-      :style="completedStateStyle"
-    >
-      <div class="result-header" :style="resultHeaderStyle">
-        <Badge
-          :type="((effectiveData as any)?.exitCode || 0) === 0 ? 'success' : 'danger'"
-          size="small"
-        >
-          {{ $t('agent.display.terminalExecution.exitCode') }}:
-          {{ (effectiveData as any)?.exitCode || 0 }}
-        </Badge>
-        <span class="command-text" :style="commandTextStyle">{{
-          (effectiveData as any)?.command || ''
-        }}</span>
-      </div>
-
-      <div v-if="(effectiveData as any)?.stdout" class="output-section">
-        <div class="output-header" :style="outputHeaderStyle">
-          <strong>{{ $t('agent.display.terminalExecution.stdout') }}</strong>
-        </div>
-        <ScrollArea class="max-h-[300px]">
-          <pre class="output-text" :style="outputTextStyle">{{
-            (effectiveData as any).stdout
-          }}</pre>
-        </ScrollArea>
-      </div>
-
-      <div v-if="(effectiveData as any)?.stderr" class="output-section error-output">
-        <div class="output-header" :style="outputHeaderStyle">
-          <strong>{{ $t('agent.display.terminalExecution.stderr') }}</strong>
-        </div>
-        <ScrollArea class="max-h-[200px]">
-          <pre class="output-text error-text" :style="errorTextStyle">{{
-            (effectiveData as any).stderr
-          }}</pre>
-        </ScrollArea>
-      </div>
-
-      <div v-if="(effectiveData as any)?.summary" class="summary-section">
-        <Divider>{{ $t('agent.display.terminalExecution.aiSummary') }}</Divider>
-        <div class="summary-text" :style="summaryTextStyle">
-          {{ (effectiveData as any).summary }}
-        </div>
-      </div>
-    </div>
-
-    <div v-else-if="(effectiveData as any)?.stage === 'rejected'" class="rejected-state">
-      <Alert variant="warning">
-        <AlertTriangle class="h-4 w-4" />
-        <AlertTitle>{{ $t('agent.display.terminalExecution.rejected') }}</AlertTitle>
-        <AlertDescription>
-          <div class="command-text" :style="commandTextStyle">
-            {{ (effectiveData as any)?.command || '' }}
-          </div>
-        </AlertDescription>
-      </Alert>
-    </div>
-
-    <div v-else-if="(effectiveData as any)?.stage === 'error'" class="error-state">
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>
-          {{
-            (effectiveData as any)?.error || $t('agent.display.terminalExecution.executionFailed')
-          }}
-        </AlertTitle>
-      </Alert>
-    </div>
-
-    <!-- 进度条 -->
-    <div
-      v-if="
-        effectiveProgress &&
-        effectiveProgress.percentage > 0 &&
-        (effectiveData as any)?.stage !== 'completed'
-      "
-      style="margin-top: 12px"
-    >
-      <Progress
-        :percentage="effectiveProgress.percentage"
-        :status="progressStatus"
-        :stroke-width="6"
-        :show-text="true"
-      />
-    </div>
     </template>
   </div>
 </template>
@@ -519,7 +521,9 @@ const stderrLines = computed(() => {
 })
 
 // 紧凑模式：完整终端输出文本 + Monaco
-const terminalCompactEditorId = ref(`terminal-compact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
+const terminalCompactEditorId = ref(
+  `terminal-compact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+)
 const terminalOutputFullText = computed(() => {
   const data = effectiveData.value as any
   const cmd = data?.command || ''

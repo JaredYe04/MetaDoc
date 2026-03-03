@@ -3,7 +3,9 @@
     <template v-if="parsed">
       <ul class="streaming-json-tree__list">
         <li v-for="(node, i) in parsed.nodes" :key="i" class="streaming-json-tree__item">
-          <span class="streaming-json-tree__title">{{ node.title || t('outline.noTitle', '(无标题)') }}</span>
+          <span class="streaming-json-tree__title">{{
+            node.title || t('outline.noTitle', '(无标题)')
+          }}</span>
           <StreamingJsonTree
             v-if="node.children?.length"
             :raw="jsonStringify(node.children)"

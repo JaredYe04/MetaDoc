@@ -240,8 +240,7 @@ async function executeCommand(
     throw new Error('终端执行功能仅在Electron环境中可用')
   }
 
-  const invId =
-    invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const invId = invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   const timeout = timeoutMs ?? 30000
   const accStdout: string[] = []
   const accStderr: string[] = []

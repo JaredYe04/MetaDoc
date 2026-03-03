@@ -172,15 +172,17 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
         openTabIds.value = [fallback]
       }
 
-      const savedComposer = data.composerInputBySessionId && typeof data.composerInputBySessionId === 'object'
-        ? data.composerInputBySessionId
-        : {}
+      const savedComposer =
+        data.composerInputBySessionId && typeof data.composerInputBySessionId === 'object'
+          ? data.composerInputBySessionId
+          : {}
       composerInputBySessionId.value = savedComposer
       composerInput.value = (activeSessionId.value && savedComposer[activeSessionId.value]) ?? ''
 
       if (sessions.value.length === 0) {
         ensureDefaultSession()
-        composerInput.value = (activeSessionId.value && composerInputBySessionId.value[activeSessionId.value]) ?? ''
+        composerInput.value =
+          (activeSessionId.value && composerInputBySessionId.value[activeSessionId.value]) ?? ''
       }
     } catch (e) {
       logger.warn('加载 Agent 会话失败', e)

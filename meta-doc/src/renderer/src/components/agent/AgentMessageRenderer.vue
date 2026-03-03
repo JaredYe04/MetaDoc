@@ -151,7 +151,9 @@
           >
             <CollapsibleTrigger class="tool-message-trigger">
               <div class="tool-message-header-preview">
-                <span class="tool-message-title">{{ (message as ToolAgentMessage).tool.name }}</span>
+                <span class="tool-message-title">{{
+                  (message as ToolAgentMessage).tool.name
+                }}</span>
                 <Badge
                   class="tool-status-badge"
                   size="small"
@@ -165,17 +167,10 @@
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent class="tool-message-content">
-              <AgentToolResultSimple
-                :message="message as ToolAgentMessage"
-                :compact="false"
-              />
+              <AgentToolResultSimple :message="message as ToolAgentMessage" :compact="false" />
             </CollapsibleContent>
           </Collapsible>
-          <AgentToolResultSimple
-            v-else
-            :message="message as ToolAgentMessage"
-            :compact="true"
-          />
+          <AgentToolResultSimple v-else :message="message as ToolAgentMessage" :compact="true" />
         </div>
 
         <!-- 文本内容 -->
@@ -207,7 +202,13 @@
             </template>
           </template>
           <!-- 用户消息：@[xxx] 以 tag 样式展示，单行内联避免 chip 与文字间多余换行 -->
-          <template v-else-if="message.role === 'user' && message.type === 'chat' && userMessageContentSegments.length > 0">
+          <template
+            v-else-if="
+              message.role === 'user' &&
+              message.type === 'chat' &&
+              userMessageContentSegments.length > 0
+            "
+          >
             <span class="user-message-segments-inline">
               <span
                 v-for="(seg, segIdx) in userMessageContentSegments"
@@ -215,11 +216,7 @@
                 class="user-message-segment"
               >
                 <template v-if="seg.type === 'text'">{{ seg.value }}</template>
-                <span
-                  v-else
-                  class="user-message-at-tag"
-                  :title="seg.atValue"
-                >
+                <span v-else class="user-message-at-tag" :title="seg.atValue">
                   {{ getUserMessageAtLabel(seg.atValue) }}
                 </span>
               </span>
@@ -415,12 +412,8 @@ const editsForThisMessage = computed(() => {
   if (!props.sessionId || props.message.role !== 'user') return []
   return stagingStore.getEditsByUserMessage(props.sessionId, props.message.id)
 })
-const canRollback = computed(() =>
-  editsForThisMessage.value.some((r) => r.status !== 'rejected')
-)
-const canRedo = computed(() =>
-  editsForThisMessage.value.some((r) => r.status === 'rejected')
-)
+const canRollback = computed(() => editsForThisMessage.value.some((r) => r.status !== 'rejected'))
+const canRedo = computed(() => editsForThisMessage.value.some((r) => r.status === 'rejected'))
 
 const showTimestamp = ref(false)
 const showActions = ref(false)
@@ -566,7 +559,8 @@ const bubbleStyle = computed(() => {
   if (props.message.type === 'tool') {
     return {
       backgroundColor: theme.background2nd,
-      borderColor: theme.borderColor || (theme.type === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'),
+      borderColor:
+        theme.borderColor || (theme.type === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'),
       color: theme.textColor
     }
   }

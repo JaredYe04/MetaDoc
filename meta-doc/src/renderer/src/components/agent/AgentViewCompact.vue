@@ -104,7 +104,7 @@
                   class="agent-compact-history-item"
                   @contextmenu.prevent="openHistoryContextMenu($event, s)"
                   @select="
-                    openSessionFromHistory(s);
+                    openSessionFromHistory(s)
                     historyOpen = false
                   "
                 >
@@ -253,13 +253,25 @@
             </template>
             <template v-else>
               <div class="agent-compact-staging-actions">
-                <Button size="sm" class="agent-staging-btn agent-staging-btn-accept" @click="stagingAcceptAll">
+                <Button
+                  size="sm"
+                  class="agent-staging-btn agent-staging-btn-accept"
+                  @click="stagingAcceptAll"
+                >
                   {{ t('agent.staging.acceptAll', '全部接受') }}
                 </Button>
-                <Button size="sm" class="agent-staging-btn agent-staging-btn-reject" @click="stagingRejectAll">
+                <Button
+                  size="sm"
+                  class="agent-staging-btn agent-staging-btn-reject"
+                  @click="stagingRejectAll"
+                >
                   {{ t('agent.staging.rejectAll', '全部拒绝') }}
                 </Button>
-                <Button size="sm" class="agent-staging-btn agent-staging-btn-review" @click="openReviewWindow">
+                <Button
+                  size="sm"
+                  class="agent-staging-btn agent-staging-btn-review"
+                  @click="openReviewWindow"
+                >
                   {{ t('agent.staging.openReview', '独立审阅') }}
                 </Button>
               </div>
@@ -278,15 +290,29 @@
                     <span class="del">-{{ edit.removedLines }}</span>
                   </span>
                   <span v-if="edit.status === 'pending'" class="agent-compact-staging-item-btns">
-                    <Button size="sm" variant="ghost" class="h-6 text-xs" @click="stagingAccept(edit)">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      class="h-6 text-xs"
+                      @click="stagingAccept(edit)"
+                    >
                       {{ t('agent.staging.accept', '接受') }}
                     </Button>
-                    <Button size="sm" variant="ghost" class="h-6 text-xs text-destructive" @click="stagingReject(edit)">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      class="h-6 text-xs text-destructive"
+                      @click="stagingReject(edit)"
+                    >
                       {{ t('agent.staging.reject', '拒绝') }}
                     </Button>
                   </span>
                   <span v-else class="agent-compact-staging-item-status">
-                    {{ edit.status === 'accepted' ? t('agent.staging.accepted', '已接受') : t('agent.staging.rejected', '已拒绝') }}
+                    {{
+                      edit.status === 'accepted'
+                        ? t('agent.staging.accepted', '已接受')
+                        : t('agent.staging.rejected', '已拒绝')
+                    }}
                   </span>
                   <Button
                     type="button"
@@ -399,7 +425,14 @@
           <DialogTitle>{{ t('agent.reference.title') }}</DialogTitle>
         </DialogHeader>
         <div
-          style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0"
+          style="
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+          "
         >
           <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
         </div>

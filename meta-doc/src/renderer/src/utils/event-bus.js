@@ -270,7 +270,9 @@ messageBridge.on('agent-cli-run', async (_event, userContent) => {
   if (typeof window !== 'undefined') window.__agentCliActive = true
   try {
     const { runAgentCliTurn } = await import('./agent-cli-runner')
-    const result = await runAgentCliTurn(typeof userContent === 'string' ? userContent : String(userContent))
+    const result = await runAgentCliTurn(
+      typeof userContent === 'string' ? userContent : String(userContent)
+    )
     await messageBridge.invoke('agent-cli-submit-response', result)
   } catch (e) {
     await messageBridge.invoke(

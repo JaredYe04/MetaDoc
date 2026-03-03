@@ -26,9 +26,7 @@ function parseSegments(value) {
 }
 
 function serializeSegments(segs) {
-  return segs
-    .map((s) => (s.type === 'text' ? s.value : `@[${s.atValue}]`))
-    .join('')
+  return segs.map((s) => (s.type === 'text' ? s.value : `@[${s.atValue}]`)).join('')
 }
 
 function getAtLabel(rawValue) {
@@ -52,7 +50,10 @@ const input = '@[path/to/测试文件.txt] 里面讲了什么'
 const segments = parseSegments(input)
 ok(segments.length >= 2, 'parse yields at least 2 segments')
 const atSeg = segments.find((s) => s.type === 'at')
-ok(!!atSeg && atSeg.atValue === 'path/to/测试文件.txt', 'atValue is full path (path/to/测试文件.txt)')
+ok(
+  !!atSeg && atSeg.atValue === 'path/to/测试文件.txt',
+  'atValue is full path (path/to/测试文件.txt)'
+)
 
 // 2. 序列化往返一致
 const roundTrip = serializeSegments(segments)

@@ -10,12 +10,10 @@
         v-else-if="resultData && resultData.matches && resultData.matches.length"
         class="grep-compact-list"
       >
-        <div
-          v-for="(match, index) in resultData.matches"
-          :key="index"
-          class="grep-compact-item"
-        >
-          <span class="grep-compact-file">{{ match.filePath || $t('agent.display.grep.document') }}</span>
+        <div v-for="(match, index) in resultData.matches" :key="index" class="grep-compact-item">
+          <span class="grep-compact-file">{{
+            match.filePath || $t('agent.display.grep.document')
+          }}</span>
           <span class="grep-compact-line">L{{ match.line }}</span>
         </div>
       </div>
@@ -25,123 +23,86 @@
     </template>
 
     <template v-else>
-    <div
-      v-if="displayData.stage === 'searching'"
-      class="status-message"
-      :style="statusMessageStyle"
-    >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ $t('agent.display.grep.searching') }}</span>
-    </div>
-
-    <div
-      v-else-if="displayData.stage === 'completed' && resultData && resultData.matches"
-      class="completed-state"
-      :style="completedStateStyle"
-    >
-      <div class="grep-header" :style="headerStyle">
-        <h3 class="grep-title" :style="titleStyle">{{ $t('agent.display.grep.title') }}</h3>
-        <div class="header-tags" :style="headerTagsStyle">
-          <Badge variant="secondary">{{
-            $t('agent.display.grep.matchesCount', { count: resultData.totalMatches })
-          }}</Badge>
-          <Badge variant="default"
-            >{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</Badge
-          >
-          <Badge
-            v-if="resultData.replacedCount && resultData.replacedCount > 0"
-            class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-          >
-            {{ $t('agent.display.grep.replacedCount', { count: resultData.replacedCount }) }}
-          </Badge>
-          <Badge
-            v-if="resultData.replacementText"
-            class="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
-          >
-            {{ $t('agent.display.grep.replacementText') }}: {{ resultData.replacementText }}
-          </Badge>
-        </div>
+      <div
+        v-if="displayData.stage === 'searching'"
+        class="status-message"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ $t('agent.display.grep.searching') }}</span>
       </div>
 
-      <!-- 如果没有完整内容（verbose模式），只显示概要 -->
-      <div v-if="!hasFullContent" class="summary-view" :style="summaryViewStyle">
-        <Alert variant="default">
-          <Info class="h-4 w-4" />
-          <AlertTitle>{{ $t('agent.display.grep.summaryMode') || '概要模式' }}</AlertTitle>
-          <AlertDescription>
-            <div class="summary-content">
-              <p>
-                {{
-                  $t('agent.display.grep.summaryDescription') ||
-                  '搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。'
-                }}
-              </p>
-              <ul class="summary-list">
-                <li>
-                  {{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}
-                </li>
-                <li v-if="resultData.replacedCount && resultData.replacedCount > 0">
-                  {{ $t('agent.display.grep.replacedCount', { count: resultData.replacedCount }) }}
-                </li>
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
-
-      <!-- 匹配列表（始终显示） -->
-      <div v-if="!hasFullContent" class="matches-only-view">
-        <div class="panel-header" :style="panelHeaderStyle">
-          <span>{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span>
-        </div>
-        <ScrollArea class="max-h-[400px]">
-          <div class="matches-list">
-            <div
-              v-for="(match, index) in resultData.matches"
-              :key="index"
-              class="match-item"
-              :style="getMatchItemStyle(index)"
+      <div
+        v-else-if="displayData.stage === 'completed' && resultData && resultData.matches"
+        class="completed-state"
+        :style="completedStateStyle"
+      >
+        <div class="grep-header" :style="headerStyle">
+          <h3 class="grep-title" :style="titleStyle">{{ $t('agent.display.grep.title') }}</h3>
+          <div class="header-tags" :style="headerTagsStyle">
+            <Badge variant="secondary">{{
+              $t('agent.display.grep.matchesCount', { count: resultData.totalMatches })
+            }}</Badge>
+            <Badge variant="default"
+              >{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</Badge
             >
-              <div class="match-header">
-                <Badge :class="getMatchScopeBadgeClass(match)">
-                  {{ getMatchScopeLabel(match) }}
-                </Badge>
-                <span v-if="match.filePath" class="match-file" :style="locationStyle">
-                  {{ match.filePath }}
-                </span>
-                <span class="match-location" :style="locationStyle">
-                  {{ $t('agent.display.grep.line') }} {{ match.line }},
-                  {{ $t('agent.display.grep.column') }} {{ match.column }}
-                </span>
-              </div>
-              <div class="match-text" :style="matchTextStyle">
-                <code>{{ match.match }}</code>
-              </div>
-              <div v-if="match.context" class="match-context" :style="matchContextStyle">
-                <pre>{{ match.context }}</pre>
-              </div>
-            </div>
+            <Badge
+              v-if="resultData.replacedCount && resultData.replacedCount > 0"
+              class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+            >
+              {{ $t('agent.display.grep.replacedCount', { count: resultData.replacedCount }) }}
+            </Badge>
+            <Badge
+              v-if="resultData.replacementText"
+              class="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+            >
+              {{ $t('agent.display.grep.replacementText') }}: {{ resultData.replacementText }}
+            </Badge>
           </div>
-        </ScrollArea>
-      </div>
+        </div>
 
-      <div v-else class="grep-content">
-        <!-- 左侧：搜索结果列表 -->
-        <div class="matches-panel">
+        <!-- 如果没有完整内容（verbose模式），只显示概要 -->
+        <div v-if="!hasFullContent" class="summary-view" :style="summaryViewStyle">
+          <Alert variant="default">
+            <Info class="h-4 w-4" />
+            <AlertTitle>{{ $t('agent.display.grep.summaryMode') || '概要模式' }}</AlertTitle>
+            <AlertDescription>
+              <div class="summary-content">
+                <p>
+                  {{
+                    $t('agent.display.grep.summaryDescription') ||
+                    '搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。'
+                  }}
+                </p>
+                <ul class="summary-list">
+                  <li>
+                    {{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}
+                  </li>
+                  <li v-if="resultData.replacedCount && resultData.replacedCount > 0">
+                    {{
+                      $t('agent.display.grep.replacedCount', { count: resultData.replacedCount })
+                    }}
+                  </li>
+                </ul>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        <!-- 匹配列表（始终显示） -->
+        <div v-if="!hasFullContent" class="matches-only-view">
           <div class="panel-header" :style="panelHeaderStyle">
             <span
               >{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span
             >
           </div>
-          <ScrollArea class="max-h-[500px]">
+          <ScrollArea class="max-h-[400px]">
             <div class="matches-list">
               <div
                 v-for="(match, index) in resultData.matches"
                 :key="index"
                 class="match-item"
-                :class="{ 'match-item-active': selectedMatchIndex === index }"
                 :style="getMatchItemStyle(index)"
-                @click="selectMatch(index)"
               >
                 <div class="match-header">
                   <Badge :class="getMatchScopeBadgeClass(match)">
@@ -158,50 +119,91 @@
                 <div class="match-text" :style="matchTextStyle">
                   <code>{{ match.match }}</code>
                 </div>
+                <div v-if="match.context" class="match-context" :style="matchContextStyle">
+                  <pre>{{ match.context }}</pre>
+                </div>
               </div>
             </div>
           </ScrollArea>
         </div>
 
-        <!-- 右侧：Monaco 编辑器显示完整上下文 -->
-        <div class="editor-panel">
-          <div class="panel-header" :style="panelHeaderStyle">
-            <span>{{ $t('agent.display.grep.contextView') }}</span>
-            <Button
-              v-if="hasReplacedContent"
-              size="sm"
-              :variant="showReplacedContent ? 'default' : 'outline'"
-              @click="toggleContent"
-            >
-              {{
-                showReplacedContent
-                  ? $t('agent.display.grep.showOriginal')
-                  : $t('agent.display.grep.showReplaced')
-              }}
-            </Button>
+        <div v-else class="grep-content">
+          <!-- 左侧：搜索结果列表 -->
+          <div class="matches-panel">
+            <div class="panel-header" :style="panelHeaderStyle">
+              <span
+                >{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span
+              >
+            </div>
+            <ScrollArea class="max-h-[500px]">
+              <div class="matches-list">
+                <div
+                  v-for="(match, index) in resultData.matches"
+                  :key="index"
+                  class="match-item"
+                  :class="{ 'match-item-active': selectedMatchIndex === index }"
+                  :style="getMatchItemStyle(index)"
+                  @click="selectMatch(index)"
+                >
+                  <div class="match-header">
+                    <Badge :class="getMatchScopeBadgeClass(match)">
+                      {{ getMatchScopeLabel(match) }}
+                    </Badge>
+                    <span v-if="match.filePath" class="match-file" :style="locationStyle">
+                      {{ match.filePath }}
+                    </span>
+                    <span class="match-location" :style="locationStyle">
+                      {{ $t('agent.display.grep.line') }} {{ match.line }},
+                      {{ $t('agent.display.grep.column') }} {{ match.column }}
+                    </span>
+                  </div>
+                  <div class="match-text" :style="matchTextStyle">
+                    <code>{{ match.match }}</code>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
           </div>
-          <div :id="editorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+
+          <!-- 右侧：Monaco 编辑器显示完整上下文 -->
+          <div class="editor-panel">
+            <div class="panel-header" :style="panelHeaderStyle">
+              <span>{{ $t('agent.display.grep.contextView') }}</span>
+              <Button
+                v-if="hasReplacedContent"
+                size="sm"
+                :variant="showReplacedContent ? 'default' : 'outline'"
+                @click="toggleContent"
+              >
+                {{
+                  showReplacedContent
+                    ? $t('agent.display.grep.showOriginal')
+                    : $t('agent.display.grep.showReplaced')
+                }}
+              </Button>
+            </div>
+            <div :id="editorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div
-      v-else-if="
-        displayData.stage === 'completed' &&
-        (!resultData || !resultData.matches || resultData.matches.length === 0)
-      "
-      class="no-results"
-      :style="noResultsStyle"
-    >
-      <Empty :description="$t('agent.display.grep.noMatches')" />
-    </div>
+      <div
+        v-else-if="
+          displayData.stage === 'completed' &&
+          (!resultData || !resultData.matches || resultData.matches.length === 0)
+        "
+        class="no-results"
+        :style="noResultsStyle"
+      >
+        <Empty :description="$t('agent.display.grep.noMatches')" />
+      </div>
 
-    <div v-else class="error-state">
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.grep.error') }}</AlertTitle>
-      </Alert>
-    </div>
+      <div v-else class="error-state">
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ displayData.error || $t('agent.display.grep.error') }}</AlertTitle>
+        </Alert>
+      </div>
     </template>
   </div>
 </template>

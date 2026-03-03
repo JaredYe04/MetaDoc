@@ -171,10 +171,8 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
           record.filePath.lastIndexOf('/'),
           record.filePath.lastIndexOf('\\')
         )
-        const parentPath =
-          lastSep <= 0 ? record.filePath : record.filePath.slice(0, lastSep)
-        const fileName =
-          lastSep < 0 ? record.filePath : record.filePath.slice(lastSep + 1)
+        const parentPath = lastSep <= 0 ? record.filePath : record.filePath.slice(0, lastSep)
+        const fileName = lastSep < 0 ? record.filePath : record.filePath.slice(lastSep + 1)
         await messageBridge.invoke('create-file', {
           parentPath: parentPath || '.',
           fileName,

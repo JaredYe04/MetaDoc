@@ -48,11 +48,11 @@ Kurze Beschreibung des Dokumentzwecks, des Umfangs und der Zielgruppe.
 
 ### 3.2 Fehlercodes
 
-| Code | Bedeutung       |
-| ---- | --------------- |
-| 0    | Erfolg          |
-| 4xx  | Client-Fehler   |
-| 5xx  | Server-Fehler   |
+| Code | Bedeutung     |
+| ---- | ------------- |
+| 0    | Erfolg        |
+| 4xx  | Client-Fehler |
+| 5xx  | Server-Fehler |
 
 ---
 

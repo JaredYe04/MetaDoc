@@ -2369,7 +2369,8 @@ const performMoveOperation = async (sourceURIs: URI[], targetDirURI: URI) => {
     const result = await executor.execute(plan)
 
     if (!result.success) {
-      const errorMsg = result.errors?.[0]?.error.message || t('workspaceExplorer.moveFailed', '移动失败')
+      const errorMsg =
+        result.errors?.[0]?.error.message || t('workspaceExplorer.moveFailed', '移动失败')
       eventBus.emit('show-error', { message: errorMsg })
       return
     }

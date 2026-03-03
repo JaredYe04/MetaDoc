@@ -27,7 +27,5 @@ export function parseSegments(value: string): Segment[] {
 }
 
 export function serializeSegments(segs: Segment[]): string {
-  return segs
-    .map((s) => (s.type === 'text' ? s.value : `@[${s.atValue}]`))
-    .join('')
+  return segs.map((s) => (s.type === 'text' ? s.value : `@[${s.atValue}]`)).join('')
 }

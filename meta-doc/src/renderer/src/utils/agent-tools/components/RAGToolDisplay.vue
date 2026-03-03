@@ -1,5 +1,9 @@
 <template>
-  <div class="rag-tool-display" :style="containerStyle" :class="{ 'rag-tool-display--compact': compact }">
+  <div
+    class="rag-tool-display"
+    :style="containerStyle"
+    :class="{ 'rag-tool-display--compact': compact }"
+  >
     <div
       v-if="displayData.stage === 'searching'"
       class="searching-state"
@@ -18,7 +22,9 @@
         <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
           {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
         </Badge>
-        <span v-if="!compact" class="question-text" :style="questionTextStyle">{{ displayData.question }}</span>
+        <span v-if="!compact" class="question-text" :style="questionTextStyle">{{
+          displayData.question
+        }}</span>
       </div>
 
       <div v-if="displayData.results && displayData.results.length > 0" class="results-container">

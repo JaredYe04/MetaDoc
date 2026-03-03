@@ -948,7 +948,8 @@ const createEditor = async () => {
                       })
                     }
                   } catch (err) {
-                    const errorMsg = err instanceof Error ? err.message : t('console.cdFailed', '无法切换目录')
+                    const errorMsg =
+                      err instanceof Error ? err.message : t('console.cdFailed', '无法切换目录')
                     lines.value.push({
                       id: lineId++,
                       content: `cd: ${targetPath}: ${errorMsg}`,
@@ -968,7 +969,11 @@ const createEditor = async () => {
                 return
               } else {
                 // cd 命令参数为空或格式错误
-                lines.value.push({ id: lineId++, content: `cd: ${t('console.invalidArgument', '无效的参数')}`, type: 'err' })
+                lines.value.push({
+                  id: lineId++,
+                  content: `cd: ${t('console.invalidArgument', '无效的参数')}`,
+                  type: 'err'
+                })
                 // 重置状态并返回（不发送到终端执行）
                 isMultiLineInput.value = false
                 currentInput.value = ''

@@ -28,16 +28,23 @@ const CATEGORIES = {
   resume: (id) => id.startsWith('resume-'),
   article: (id) => id === 'article',
   report: (id) => id === 'report',
-  academic: (id) => ['gb7714_zh', 'ieee_en', 'gb7714_zh_twocolumn', 'ieee_en_twocolumn'].includes(id),
+  academic: (id) =>
+    ['gb7714_zh', 'ieee_en', 'gb7714_zh_twocolumn', 'ieee_en_twocolumn'].includes(id),
   all: () => true
 }
 
 function parseArgs() {
-  const out = { category: 'all', locale: 'all', outputDir: path.join(metaDocRoot, 'debug', 'compile-pdf'), quiet: false }
+  const out = {
+    category: 'all',
+    locale: 'all',
+    outputDir: path.join(metaDocRoot, 'debug', 'compile-pdf'),
+    quiet: false
+  }
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith('--category=')) out.category = arg.slice('--category='.length).toLowerCase()
     else if (arg.startsWith('--locale=')) out.locale = arg.slice('--locale='.length)
-    else if (arg.startsWith('--out=')) out.outputDir = path.resolve(process.cwd(), arg.slice('--out='.length))
+    else if (arg.startsWith('--out='))
+      out.outputDir = path.resolve(process.cwd(), arg.slice('--out='.length))
     else if (arg === '--quiet') out.quiet = true
   }
   if (!CATEGORIES[out.category]) {

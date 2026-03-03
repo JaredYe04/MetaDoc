@@ -6,223 +6,233 @@
         <CollapsibleTrigger class="edit-display-compact-trigger">
           <ChevronRight v-if="!compactPanelOpen" class="edit-display-compact-chevron" />
           <ChevronDown v-else class="edit-display-compact-chevron" />
-          <span class="edit-display-compact-filename">{{ editFileName || t('agent.display.edit.title') }}</span>
+          <span class="edit-display-compact-filename">{{
+            editFileName || t('agent.display.edit.title')
+          }}</span>
           <span v-if="displayData.stage !== 'completed'" class="edit-display-compact-status">
             <el-icon class="is-loading"><Loading /></el-icon>
           </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div :id="compactDiffEditorId" class="edit-display-compact-monaco" :style="compactMonacoStyle"></div>
+          <div
+            :id="compactDiffEditorId"
+            class="edit-display-compact-monaco"
+            :style="compactMonacoStyle"
+          ></div>
         </CollapsibleContent>
       </Collapsible>
     </template>
 
     <!-- 非紧凑模式 -->
     <template v-else>
-    <!-- Cursor 风格内联：文件名 + 最多 4 行 diff + 可展开 -->
-    <div v-if="showCompactInline" class="edit-compact-inline" :style="compactInlineStyle">
-      <div class="edit-compact-header" :style="chunkHeaderStyle">
-        <span class="edit-compact-filename">{{ editFileName || t('agent.display.edit.title') }}</span>
-        <span v-if="displayData.stage !== 'completed'" class="edit-compact-status">
-          <el-icon v-if="displayData.stage !== 'completed'" class="is-loading"><Loading /></el-icon>
-          {{ getStageMessage(displayData.stage) }}
-        </span>
-      </div>
-      <div class="edit-compact-diff" :style="diffCompactStyle">
-        <div
-          v-for="(line, idx) in compactDiffLinesVisible"
-          :key="idx"
-          :class="['edit-compact-line', line.type === 'delete' ? 'diff-delete' : 'diff-insert']"
-          :style="getDiffLineStyle(line.type)"
+      <!-- Cursor 风格内联：文件名 + 最多 4 行 diff + 可展开 -->
+      <div v-if="showCompactInline" class="edit-compact-inline" :style="compactInlineStyle">
+        <div class="edit-compact-header" :style="chunkHeaderStyle">
+          <span class="edit-compact-filename">{{
+            editFileName || t('agent.display.edit.title')
+          }}</span>
+          <span v-if="displayData.stage !== 'completed'" class="edit-compact-status">
+            <el-icon v-if="displayData.stage !== 'completed'" class="is-loading"
+              ><Loading
+            /></el-icon>
+            {{ getStageMessage(displayData.stage) }}
+          </span>
+        </div>
+        <div class="edit-compact-diff" :style="diffCompactStyle">
+          <div
+            v-for="(line, idx) in compactDiffLinesVisible"
+            :key="idx"
+            :class="['edit-compact-line', line.type === 'delete' ? 'diff-delete' : 'diff-insert']"
+            :style="getDiffLineStyle(line.type)"
+          >
+            <span class="line-prefix">{{ line.type === 'delete' ? '-' : '+' }}</span>
+            <span class="line-text">{{ line.text }}</span>
+          </div>
+        </div>
+        <button
+          v-if="hasMoreDiffLines && !compactDiffExpanded"
+          type="button"
+          class="edit-compact-expand-bar"
+          @click="compactDiffExpanded = true"
         >
-          <span class="line-prefix">{{ line.type === 'delete' ? '-' : '+' }}</span>
-          <span class="line-text">{{ line.text }}</span>
-        </div>
+          <ChevronDown class="edit-compact-chevron" />
+          <span>{{ t('agent.display.edit.expandDiff', '展开') }}</span>
+        </button>
+        <button
+          v-else-if="hasMoreDiffLines && compactDiffExpanded"
+          type="button"
+          class="edit-compact-expand-bar"
+          @click="compactDiffExpanded = false"
+        >
+          <ChevronUp class="edit-compact-chevron" />
+          <span>{{ t('agent.display.edit.collapseDiff', '收起') }}</span>
+        </button>
       </div>
-      <button
-        v-if="hasMoreDiffLines && !compactDiffExpanded"
-        type="button"
-        class="edit-compact-expand-bar"
-        @click="compactDiffExpanded = true"
-      >
-        <ChevronDown class="edit-compact-chevron" />
-        <span>{{ t('agent.display.edit.expandDiff', '展开') }}</span>
-      </button>
-      <button
-        v-else-if="hasMoreDiffLines && compactDiffExpanded"
-        type="button"
-        class="edit-compact-expand-bar"
-        @click="compactDiffExpanded = false"
-      >
-        <ChevronUp class="edit-compact-chevron" />
-        <span>{{ t('agent.display.edit.collapseDiff', '收起') }}</span>
-      </button>
-    </div>
 
-    <div
-      v-if="
-        (displayData.stage === 'loading' ||
+      <div
+        v-if="
+          displayData.stage === 'loading' ||
           displayData.stage === 'applying' ||
-          displayData.stage === 'updating')
-      "
-      class="status-message"
-      :style="statusMessageStyle"
-    >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ getStageMessage(displayData.stage) }}</span>
-    </div>
+          displayData.stage === 'updating'
+        "
+        class="status-message"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ getStageMessage(displayData.stage) }}</span>
+      </div>
 
-    <div
-      v-else-if="displayData.stage === 'completed'"
-      class="completed-state"
-      :style="completedStateStyle"
-    >
-      <div v-if="resultData" class="edit-header" :style="headerStyle">
-        <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
-        <div class="edit-stats" :style="statsStyle">
-          <Badge variant="default"
-            >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</Badge
-          >
-          <Badge v-if="resultData.failedEdits > 0" variant="destructive"
-            >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</Badge
-          >
-          <Badge variant="secondary"
-            >{{ $t('agent.display.edit.totalOperations') }}:
-            {{ resultData.operations.length }}</Badge
-          >
+      <div
+        v-else-if="displayData.stage === 'completed'"
+        class="completed-state"
+        :style="completedStateStyle"
+      >
+        <div v-if="resultData" class="edit-header" :style="headerStyle">
+          <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
+          <div class="edit-stats" :style="statsStyle">
+            <Badge variant="default"
+              >{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</Badge
+            >
+            <Badge v-if="resultData.failedEdits > 0" variant="destructive"
+              >{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</Badge
+            >
+            <Badge variant="secondary"
+              >{{ $t('agent.display.edit.totalOperations') }}:
+              {{ resultData.operations.length }}</Badge
+            >
+          </div>
+        </div>
+
+        <!-- 如果没有resultData，显示成功消息 -->
+        <div v-else-if="!resultData" class="no-data-message" :style="noDataMessageStyle">
+          <Result
+            icon="success"
+            :title="$t('agent.display.edit.completed') || '编辑完成'"
+            :sub-title="$t('agent.display.edit.noDetails') || '编辑操作已成功完成'"
+          />
+        </div>
+
+        <!-- Unified Diff 视图（如果有 hunks） -->
+        <div v-if="hasHunks" class="diff-view">
+          <ScrollArea class="max-h-[500px]">
+            <div class="diff-content">
+              <div
+                v-for="(hunk, hunkIndex) in hunks"
+                :key="`hunk-${hunkIndex}`"
+                class="diff-chunk"
+                :style="diffChunkStyle"
+              >
+                <div class="chunk-header" :style="chunkHeaderStyle">
+                  <span class="chunk-info" :style="chunkInfoStyle">
+                    @@ -{{ hunk.oldStart }},{{ hunk.oldCount }} +{{ hunk.newStart }},{{
+                      hunk.newCount
+                    }}
+                    @@
+                  </span>
+                  <Badge :variant="getHunkTypeTag(hunk)">
+                    {{ getHunkTypeLabel(hunk) }}
+                  </Badge>
+                </div>
+                <!-- 显示删除的行 -->
+                <div v-if="hunk.oldLines && hunk.oldLines.length > 0" class="diff-lines old-lines">
+                  <div
+                    v-for="(line, lineIndex) in hunk.oldLines"
+                    :key="`old-${hunkIndex}-${lineIndex}`"
+                    class="diff-line diff-delete"
+                    :style="getDiffLineStyle('delete')"
+                  >
+                    <span class="line-number" :style="lineNumberStyle">{{
+                      hunk.oldStart + lineIndex
+                    }}</span>
+                    <span class="line-content">- {{ line }}</span>
+                  </div>
+                </div>
+                <!-- 显示新增的行 -->
+                <div v-if="hunk.newLines && hunk.newLines.length > 0" class="diff-lines new-lines">
+                  <div
+                    v-for="(line, lineIndex) in hunk.newLines"
+                    :key="`new-${hunkIndex}-${lineIndex}`"
+                    class="diff-line diff-insert"
+                    :style="getDiffLineStyle('insert')"
+                  >
+                    <span class="line-number" :style="lineNumberStyle">{{
+                      hunk.newStart + lineIndex
+                    }}</span>
+                    <span class="line-content">+ {{ line }}</span>
+                  </div>
+                </div>
+                <!-- 显示上下文行 -->
+                <div
+                  v-if="hunk.contextLines && hunk.contextLines.length > 0"
+                  class="diff-lines context-lines"
+                >
+                  <div
+                    v-for="(line, lineIndex) in hunk.contextLines"
+                    :key="`context-${hunkIndex}-${lineIndex}`"
+                    class="diff-line diff-context"
+                    :style="getDiffLineStyle('context')"
+                  >
+                    <span class="line-number" :style="lineNumberStyle"></span>
+                    <span class="line-content"> {{ line }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+
+        <!-- 操作列表（有 operations 时） -->
+        <div v-else-if="resultData && resultData.operations?.length">
+          <ScrollArea class="max-h-[500px]">
+            <div class="operations-list">
+              <div
+                v-for="(operation, index) in resultData.operations"
+                :key="index"
+                class="operation-item"
+                :style="operationItemStyle"
+              >
+                <div class="operation-header" :style="operationHeaderStyle">
+                  <Badge :variant="getOperationTypeTag(operation.type)">
+                    {{ getOperationTypeLabel(operation.type) }}
+                  </Badge>
+                  <span class="operation-range" :style="rangeStyle">
+                    {{ formatRange(operation.range) }}
+                  </span>
+                </div>
+                <div class="operation-content" :style="contentStyle">
+                  <div
+                    v-if="operation.type === 'insert' || operation.type === 'replace'"
+                    class="operation-new"
+                  >
+                    <span class="content-label" :style="labelStyle"
+                      >{{ $t('agent.display.edit.newContent') }}:</span
+                    >
+                    <pre class="content-text" :style="textStyle">{{ operation.content || '' }}</pre>
+                  </div>
+                  <div
+                    v-if="operation.type === 'delete' || operation.type === 'replace'"
+                    class="operation-old"
+                  >
+                    <span class="content-label" :style="labelStyle"
+                      >{{ $t('agent.display.edit.oldContent') }}:</span
+                    >
+                    <pre class="content-text deleted-text" :style="deletedTextStyle">{{
+                      getOldContent(operation)
+                    }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
-      <!-- 如果没有resultData，显示成功消息 -->
-      <div v-else-if="!resultData" class="no-data-message" :style="noDataMessageStyle">
-        <Result
-          icon="success"
-          :title="$t('agent.display.edit.completed') || '编辑完成'"
-          :sub-title="$t('agent.display.edit.noDetails') || '编辑操作已成功完成'"
-        />
+      <div v-else class="error-state">
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ displayData.error || $t('agent.display.edit.error') }}</AlertTitle>
+        </Alert>
       </div>
-
-      <!-- Unified Diff 视图（如果有 hunks） -->
-      <div v-if="hasHunks" class="diff-view">
-        <ScrollArea class="max-h-[500px]">
-          <div class="diff-content">
-            <div
-              v-for="(hunk, hunkIndex) in hunks"
-              :key="`hunk-${hunkIndex}`"
-              class="diff-chunk"
-              :style="diffChunkStyle"
-            >
-              <div class="chunk-header" :style="chunkHeaderStyle">
-                <span class="chunk-info" :style="chunkInfoStyle">
-                  @@ -{{ hunk.oldStart }},{{ hunk.oldCount }} +{{ hunk.newStart }},{{
-                    hunk.newCount
-                  }}
-                  @@
-                </span>
-                <Badge :variant="getHunkTypeTag(hunk)">
-                  {{ getHunkTypeLabel(hunk) }}
-                </Badge>
-              </div>
-              <!-- 显示删除的行 -->
-              <div v-if="hunk.oldLines && hunk.oldLines.length > 0" class="diff-lines old-lines">
-                <div
-                  v-for="(line, lineIndex) in hunk.oldLines"
-                  :key="`old-${hunkIndex}-${lineIndex}`"
-                  class="diff-line diff-delete"
-                  :style="getDiffLineStyle('delete')"
-                >
-                  <span class="line-number" :style="lineNumberStyle">{{
-                    hunk.oldStart + lineIndex
-                  }}</span>
-                  <span class="line-content">- {{ line }}</span>
-                </div>
-              </div>
-              <!-- 显示新增的行 -->
-              <div v-if="hunk.newLines && hunk.newLines.length > 0" class="diff-lines new-lines">
-                <div
-                  v-for="(line, lineIndex) in hunk.newLines"
-                  :key="`new-${hunkIndex}-${lineIndex}`"
-                  class="diff-line diff-insert"
-                  :style="getDiffLineStyle('insert')"
-                >
-                  <span class="line-number" :style="lineNumberStyle">{{
-                    hunk.newStart + lineIndex
-                  }}</span>
-                  <span class="line-content">+ {{ line }}</span>
-                </div>
-              </div>
-              <!-- 显示上下文行 -->
-              <div
-                v-if="hunk.contextLines && hunk.contextLines.length > 0"
-                class="diff-lines context-lines"
-              >
-                <div
-                  v-for="(line, lineIndex) in hunk.contextLines"
-                  :key="`context-${hunkIndex}-${lineIndex}`"
-                  class="diff-line diff-context"
-                  :style="getDiffLineStyle('context')"
-                >
-                  <span class="line-number" :style="lineNumberStyle"></span>
-                  <span class="line-content"> {{ line }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-      </div>
-
-      <!-- 操作列表（有 operations 时） -->
-      <div v-else-if="resultData && resultData.operations?.length">
-        <ScrollArea class="max-h-[500px]">
-          <div class="operations-list">
-            <div
-              v-for="(operation, index) in resultData.operations"
-              :key="index"
-              class="operation-item"
-              :style="operationItemStyle"
-            >
-              <div class="operation-header" :style="operationHeaderStyle">
-                <Badge :variant="getOperationTypeTag(operation.type)">
-                  {{ getOperationTypeLabel(operation.type) }}
-                </Badge>
-                <span class="operation-range" :style="rangeStyle">
-                  {{ formatRange(operation.range) }}
-                </span>
-              </div>
-              <div class="operation-content" :style="contentStyle">
-                <div
-                  v-if="operation.type === 'insert' || operation.type === 'replace'"
-                  class="operation-new"
-                >
-                  <span class="content-label" :style="labelStyle"
-                    >{{ $t('agent.display.edit.newContent') }}:</span
-                  >
-                  <pre class="content-text" :style="textStyle">{{ operation.content || '' }}</pre>
-                </div>
-                <div
-                  v-if="operation.type === 'delete' || operation.type === 'replace'"
-                  class="operation-old"
-                >
-                  <span class="content-label" :style="labelStyle"
-                    >{{ $t('agent.display.edit.oldContent') }}:</span
-                  >
-                  <pre class="content-text deleted-text" :style="deletedTextStyle">{{
-                    getOldContent(operation)
-                  }}</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-      </div>
-    </div>
-
-    <div v-else class="error-state">
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.edit.error') }}</AlertTitle>
-      </Alert>
-    </div>
     </template>
   </div>
 </template>
@@ -252,10 +262,9 @@ import { useWorkspace } from '../../../stores/workspace'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
-const props = withDefaults(
-  defineProps<ToolDisplayComponentProps & { paramsDiff?: string }>(),
-  { compact: false }
-)
+const props = withDefaults(defineProps<ToolDisplayComponentProps & { paramsDiff?: string }>(), {
+  compact: false
+})
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -415,11 +424,11 @@ const compactDiffMonacoContent = computed(() =>
   compactDiffLines.value.map((l) => l.text).join('\n')
 )
 // 每行类型，用于红/绿行背景（1-based 行号对应 index）
-const compactDiffLineTypes = computed(() =>
-  compactDiffLines.value.map((l) => l.type)
-)
+const compactDiffLineTypes = computed(() => compactDiffLines.value.map((l) => l.type))
 
-const compactDiffEditorId = ref(`edit-compact-diff-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`)
+const compactDiffEditorId = ref(
+  `edit-compact-diff-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+)
 let compactDiffMonaco: monaco.editor.IStandaloneCodeEditor | null = null
 let compactDiffDecorationIds: string[] = []
 let compactMonacoWheelCleanup: (() => void) | null = null
@@ -427,14 +436,15 @@ let compactMonacoWheelCleanup: (() => void) | null = null
 function getScrollableAncestor(el: HTMLElement): HTMLElement | null {
   // reka-ui / radix ScrollArea 的视口（Compact 消息列表用）
   const viewport =
-    el.closest('[data-reka-scroll-area-viewport]') as HTMLElement | null ||
-    el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null
+    (el.closest('[data-reka-scroll-area-viewport]') as HTMLElement | null) ||
+    (el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null)
   if (viewport && viewport.scrollHeight > viewport.clientHeight) return viewport
   let p: HTMLElement | null = el.parentElement
   while (p) {
     const style = getComputedStyle(p)
     const oy = style.overflowY
-    if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && p.scrollHeight > p.clientHeight) return p
+    if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && p.scrollHeight > p.clientHeight)
+      return p
     p = p.parentElement
   }
   return null
@@ -489,7 +499,10 @@ function applyCompactDiffDecorations() {
       }
     })
   }
-  compactDiffDecorationIds = compactDiffMonaco.deltaDecorations(compactDiffDecorationIds, decorations)
+  compactDiffDecorationIds = compactDiffMonaco.deltaDecorations(
+    compactDiffDecorationIds,
+    decorations
+  )
 }
 
 function syncCompactMonacoValue() {
@@ -576,20 +589,30 @@ function disposeCompactMonaco() {
 }
 
 watch(
-  () => [props.compact, compactPanelOpen.value, compactDiffMonacoContent.value, compactDiffLineTypes.value] as const,
+  () =>
+    [
+      props.compact,
+      compactPanelOpen.value,
+      compactDiffMonacoContent.value,
+      compactDiffLineTypes.value
+    ] as const,
   ([isCompact, open]) => {
     if (isCompact && open) {
-      nextTick().then(() => nextTick().then(() => {
-        initCompactMonaco()
-        nextTick(syncCompactMonacoValue)
-      }))
+      nextTick().then(() =>
+        nextTick().then(() => {
+          initCompactMonaco()
+          nextTick(syncCompactMonacoValue)
+        })
+      )
     }
   }
 )
 
 watch(
   () => (props.compact ? compactDiffMonacoContent.value : ''),
-  () => { if (props.compact) nextTick(syncCompactMonacoValue) }
+  () => {
+    if (props.compact) nextTick(syncCompactMonacoValue)
+  }
 )
 
 onBeforeUnmount(() => {
@@ -733,13 +756,12 @@ watch(
     (displayData.value?.stage === 'completed' || !!props.paramsDiff?.trim()) &&
     (hunks.value.length > 0 ||
       (resultData.value?.operations?.length ?? 0) > 0 ||
-      !!(resultDataOrFromParams.value?.rawDiff?.trim())),
+      !!resultDataOrFromParams.value?.rawDiff?.trim()),
   (shouldOpen) => {
     if (shouldOpen) compactPanelOpen.value = true
   },
   { immediate: true }
 )
-
 
 const containerStyle = computed(() => ({
   padding: '16px',
@@ -1113,9 +1135,13 @@ const diffCompactStyle = computed(() => ({
   min-height: 200px;
 }
 .edit-display-compact-monaco :deep(.compact-diff-line-delete) {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,100,100,0.18)" : "rgba(255,200,200,0.45)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,100,100,0.18)" : "rgba(255,200,200,0.45)"'
+  );
 }
 .edit-display-compact-monaco :deep(.compact-diff-line-insert) {
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(100,255,130,0.18)" : "rgba(200,255,200,0.45)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(100,255,130,0.18)" : "rgba(200,255,200,0.45)"'
+  );
 }
 </style>

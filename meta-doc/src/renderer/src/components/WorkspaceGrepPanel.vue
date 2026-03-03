@@ -259,9 +259,7 @@ const grepSearchHoverBg = computed(() =>
 const grepSearchActiveBg = computed(() =>
   mixColors(grepPanelBg.value, themeState.currentTheme.textColor, 0.3)
 )
-const grepFileRowHoverBg = computed(() =>
-  mixColors(grepPanelBg.value, '#000000', 0.05)
-)
+const grepFileRowHoverBg = computed(() => mixColors(grepPanelBg.value, '#000000', 0.05))
 const grepMatchSelectedBg = computed(() =>
   mixColors(grepPanelBg.value, themeState.currentTheme.primaryColor || '#409eff', 0.25)
 )

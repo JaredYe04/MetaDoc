@@ -1,10 +1,5 @@
 <template>
-  <span
-    class="reference-tag"
-    contenteditable="false"
-    :data-ref-id="refId"
-    @click="handleClick"
-  >
+  <span class="reference-tag" contenteditable="false" :data-ref-id="refId" @click="handleClick">
     <span class="reference-tag-label">{{ label }}</span>
     <button
       type="button"
@@ -39,7 +34,10 @@ function handleClick() {
   if (!props.reference) return
   const meta = props.reference.metadata as { tabId?: string } | undefined
   const tabId = meta?.tabId
-  const path = typeof props.reference.origin === 'string' && props.reference.origin ? props.reference.origin : ''
+  const path =
+    typeof props.reference.origin === 'string' && props.reference.origin
+      ? props.reference.origin
+      : ''
   if (tabId) {
     eventBus.emit('workspace-open-document', { tabId })
   } else if (path) {

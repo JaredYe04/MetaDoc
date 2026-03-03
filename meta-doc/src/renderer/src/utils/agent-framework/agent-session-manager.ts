@@ -45,7 +45,10 @@ const TOOL_ID_TO_RENDERER: Record<string, string> = {
 /**
  * 根据首条用户消息内容生成会话标题（去掉 @[xxx]、取首行、截断）
  */
-export function generateSessionTitleFromContent(content: string, maxLen: number = TITLE_MAX_LEN): string {
+export function generateSessionTitleFromContent(
+  content: string,
+  maxLen: number = TITLE_MAX_LEN
+): string {
   const stripped = content.replace(/@\[[^\]]*\]/g, '').trim()
   const firstLine = stripped.split(/\r?\n/)[0]?.trim() || stripped
   if (!firstLine) return ''
@@ -84,8 +87,10 @@ class AgentSessionManager {
     // 创建初始问候语消息
     // 使用i18n替换模板中的占位符
     const t = i18n.global.t
-    const greetingMarkdown = DEFAULT_AGENT_ASSISTANT_GREETING
-      .replace('{{agentEngine.greeting.title}}', t('agentEngine.greeting.title'))
+    const greetingMarkdown = DEFAULT_AGENT_ASSISTANT_GREETING.replace(
+      '{{agentEngine.greeting.title}}',
+      t('agentEngine.greeting.title')
+    )
       .replace('{{agentEngine.greeting.subtitle}}', t('agentEngine.greeting.subtitle'))
       .replace('{{agentEngine.greeting.canDo}}', t('agentEngine.greeting.canDo'))
       .replace('{{agentEngine.greeting.ragTool}}', t('agentEngine.greeting.ragTool'))
@@ -485,8 +490,10 @@ class AgentSessionManager {
         createdAt: ref.createdAt,
         updatedAt: ref.updatedAt,
         parsedContent:
-          typeof ref.parsedContent === 'string' && ref.parsedContent.length > AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT
-            ? ref.parsedContent.slice(0, AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT) + '…'
+          typeof ref.parsedContent === 'string' &&
+          ref.parsedContent.length > AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT
+            ? ref.parsedContent.slice(0, AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT) +
+              '…'
             : ref.parsedContent,
         metadata: undefined
       }))
@@ -516,7 +523,12 @@ class AgentSessionManager {
     if (origin === 'mcp' || origin === 'external') return true
     const id = String(m.tool?.id ?? m.tool_id ?? '').toLowerCase()
     const name = String(m.tool?.name ?? '').toLowerCase()
-    return id.startsWith('mcp') || id.includes('mcp') || name.includes('mcp') || name.includes('external')
+    return (
+      id.startsWith('mcp') ||
+      id.includes('mcp') ||
+      name.includes('mcp') ||
+      name.includes('external')
+    )
   }
 
   /**
@@ -545,7 +557,8 @@ class AgentSessionManager {
         parsedContent:
           typeof ref.parsedContent === 'string' &&
           ref.parsedContent.length > AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT
-            ? ref.parsedContent.slice(0, AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT) + '…'
+            ? ref.parsedContent.slice(0, AgentSessionManager.EXPORT_TRUNCATE_REFERENCE_CONTENT) +
+              '…'
             : ref.parsedContent,
         metadata: undefined
       }))
@@ -606,8 +619,7 @@ class AgentSessionManager {
         const first = outputs[0]
         const data = first?.data
         if (typeof data === 'string') {
-          summaryText =
-            data.length > maxLen ? data.slice(0, maxLen) + '…' : data
+          summaryText = data.length > maxLen ? data.slice(0, maxLen) + '…' : data
         } else if (data !== null && data !== undefined) {
           try {
             const str = JSON.stringify(data)

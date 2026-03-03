@@ -115,7 +115,11 @@ onBeforeUnmount(() => {
           :active="currentTab.id === activeTabId"
         />
       </KeepAlive>
-      <Empty v-if="!currentTab" class="workspace-editor-empty" :description="t('dummyView.emptyDescription')" />
+      <Empty
+        v-if="!currentTab"
+        class="workspace-editor-empty"
+        :description="t('dummyView.emptyDescription')"
+      />
     </div>
   </div>
 </template>

@@ -1,10 +1,5 @@
 <template>
-  <span
-    class="at-tag"
-    contenteditable="false"
-    :data-at-value="rawValue"
-    @click="handleClick"
-  >
+  <span class="at-tag" contenteditable="false" :data-at-value="rawValue" @click="handleClick">
     <span class="at-tag-label">{{ label }}</span>
     <button
       type="button"

@@ -30,186 +30,192 @@
     </template>
 
     <template v-else>
-    <div
-      v-if="displayData.stage === 'analyzing'"
-      class="status-message"
-      :style="statusMessageStyle"
-    >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ $t('agent.display.todoList.analyzing') }}</span>
-    </div>
-
-    <div
-      v-else-if="displayData.stage === 'generating'"
-      class="status-message"
-      :style="statusMessageStyle"
-    >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ $t('agent.display.todoList.generating') }}</span>
-    </div>
-
-    <div
-      v-else-if="displayData.stage === 'completed' && displayData.todoList"
-      class="completed-state"
-      :style="completedStateStyle"
-    >
-      <div class="todolist-header" :style="headerStyle">
-        <div class="header-left">
-          <h3 class="todolist-title" :style="titleStyle">{{ displayData.todoList.title }}</h3>
-          <p
-            v-if="displayData.todoList.description"
-            class="todolist-description"
-            :style="descriptionStyle"
-          >
-            {{ displayData.todoList.description }}
-          </p>
-        </div>
-        <div class="todolist-stats">
-          <div class="stat-item" :style="statItemStyle">
-            <span class="stat-value" :style="statValueStyle">{{
-              displayData.todoList.items.length
-            }}</span>
-            <span class="stat-label" :style="statLabelStyle">{{
-              $t('agent.display.todoList.totalTasks')
-            }}</span>
-          </div>
-          <div class="stat-item success" :style="statItemStyle">
-            <span class="stat-value" :style="statValueStyle">{{ completedCount }}</span>
-            <span class="stat-label" :style="statLabelStyle">{{
-              $t('agent.display.todoList.completed')
-            }}</span>
-          </div>
-          <div class="stat-item warning" :style="statItemStyle">
-            <span class="stat-value" :style="statValueStyle">{{ inProgressCount }}</span>
-            <span class="stat-label" :style="statLabelStyle">{{
-              $t('agent.display.todoList.inProgress')
-            }}</span>
-          </div>
-          <div class="stat-item info" :style="statItemStyle">
-            <span class="stat-value" :style="statValueStyle">{{ pendingCount }}</span>
-            <span class="stat-label" :style="statLabelStyle">{{
-              $t('agent.display.todoList.pending')
-            }}</span>
-          </div>
-        </div>
+      <div
+        v-if="displayData.stage === 'analyzing'"
+        class="status-message"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ $t('agent.display.todoList.analyzing') }}</span>
       </div>
 
-      <div class="todolist-items">
-        <ScrollArea class="max-h-[500px]">
-          <div
-            v-for="item in displayData.todoList.items"
-            :key="item.id"
-            class="todo-item"
-            :class="{
-              'todo-completed': item.status === 'completed',
-              'todo-in-progress': item.status === 'in_progress',
-              'todo-cancelled': item.status === 'cancelled',
-              'todo-pending': item.status === 'pending'
-            }"
-          >
-            <div class="todo-item-main">
-              <div class="todo-checkbox-wrapper">
-                <Checkbox :checked="item.status === 'completed'" disabled class="todo-checkbox" />
-                <div class="status-indicator" :class="`status-${item.status}`"></div>
-              </div>
-              <div class="todo-content">
-                <div class="todo-item-header">
-                  <span class="todo-title">{{ item.title }}</span>
-                  <div class="todo-badges">
-                    <Badge
-                      v-if="item.priority"
-                      :type="getPriorityType(item.priority)"
-                      size="small"
-                      effect="dark"
-                      class="priority-tag"
-                    >
-                      {{ getPriorityLabel(item.priority) }}
-                    </Badge>
-                    <Badge
-                      v-if="item.tags && item.tags.length === 0"
-                      size="small"
-                      effect="plain"
-                      class="todo-tag"
-                    >
-                      {{ $t('agent.display.todoList.noTags') }}
-                    </Badge>
-                    <Badge
-                      v-for="tag in item.tags"
-                      :key="tag"
-                      size="small"
-                      effect="plain"
-                      class="todo-tag"
-                    >
-                      {{ tag }}
-                    </Badge>
-                  </div>
+      <div
+        v-else-if="displayData.stage === 'generating'"
+        class="status-message"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ $t('agent.display.todoList.generating') }}</span>
+      </div>
+
+      <div
+        v-else-if="displayData.stage === 'completed' && displayData.todoList"
+        class="completed-state"
+        :style="completedStateStyle"
+      >
+        <div class="todolist-header" :style="headerStyle">
+          <div class="header-left">
+            <h3 class="todolist-title" :style="titleStyle">{{ displayData.todoList.title }}</h3>
+            <p
+              v-if="displayData.todoList.description"
+              class="todolist-description"
+              :style="descriptionStyle"
+            >
+              {{ displayData.todoList.description }}
+            </p>
+          </div>
+          <div class="todolist-stats">
+            <div class="stat-item" :style="statItemStyle">
+              <span class="stat-value" :style="statValueStyle">{{
+                displayData.todoList.items.length
+              }}</span>
+              <span class="stat-label" :style="statLabelStyle">{{
+                $t('agent.display.todoList.totalTasks')
+              }}</span>
+            </div>
+            <div class="stat-item success" :style="statItemStyle">
+              <span class="stat-value" :style="statValueStyle">{{ completedCount }}</span>
+              <span class="stat-label" :style="statLabelStyle">{{
+                $t('agent.display.todoList.completed')
+              }}</span>
+            </div>
+            <div class="stat-item warning" :style="statItemStyle">
+              <span class="stat-value" :style="statValueStyle">{{ inProgressCount }}</span>
+              <span class="stat-label" :style="statLabelStyle">{{
+                $t('agent.display.todoList.inProgress')
+              }}</span>
+            </div>
+            <div class="stat-item info" :style="statItemStyle">
+              <span class="stat-value" :style="statValueStyle">{{ pendingCount }}</span>
+              <span class="stat-label" :style="statLabelStyle">{{
+                $t('agent.display.todoList.pending')
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="todolist-items">
+          <ScrollArea class="max-h-[500px]">
+            <div
+              v-for="item in displayData.todoList.items"
+              :key="item.id"
+              class="todo-item"
+              :class="{
+                'todo-completed': item.status === 'completed',
+                'todo-in-progress': item.status === 'in_progress',
+                'todo-cancelled': item.status === 'cancelled',
+                'todo-pending': item.status === 'pending'
+              }"
+            >
+              <div class="todo-item-main">
+                <div class="todo-checkbox-wrapper">
+                  <Checkbox :checked="item.status === 'completed'" disabled class="todo-checkbox" />
+                  <div class="status-indicator" :class="`status-${item.status}`"></div>
                 </div>
+                <div class="todo-content">
+                  <div class="todo-item-header">
+                    <span class="todo-title">{{ item.title }}</span>
+                    <div class="todo-badges">
+                      <Badge
+                        v-if="item.priority"
+                        :type="getPriorityType(item.priority)"
+                        size="small"
+                        effect="dark"
+                        class="priority-tag"
+                      >
+                        {{ getPriorityLabel(item.priority) }}
+                      </Badge>
+                      <Badge
+                        v-if="item.tags && item.tags.length === 0"
+                        size="small"
+                        effect="plain"
+                        class="todo-tag"
+                      >
+                        {{ $t('agent.display.todoList.noTags') }}
+                      </Badge>
+                      <Badge
+                        v-for="tag in item.tags"
+                        :key="tag"
+                        size="small"
+                        effect="plain"
+                        class="todo-tag"
+                      >
+                        {{ tag }}
+                      </Badge>
+                    </div>
+                  </div>
 
-                <p v-if="item.description" class="todo-description">
-                  {{ item.description }}
-                </p>
+                  <p v-if="item.description" class="todo-description">
+                    {{ item.description }}
+                  </p>
 
-                <div
-                  v-if="
-                    item.dueDate ||
-                    item.estimatedTime ||
-                    item.assignee ||
-                    (item.dependencies && item.dependencies.length > 0)
-                  "
-                  class="todo-meta"
-                  :style="todoMetaStyle"
-                >
-                  <span v-if="item.dueDate" class="todo-meta-item" :style="todoMetaItemStyle">
-                    <el-icon><Calendar /></el-icon>
-                    <span>{{ formatDate(item.dueDate) }}</span>
-                  </span>
-                  <span
-                    v-else-if="
-                      !item.dueDate &&
-                      (item.estimatedTime ||
-                        item.assignee ||
-                        (item.dependencies && item.dependencies.length > 0))
+                  <div
+                    v-if="
+                      item.dueDate ||
+                      item.estimatedTime ||
+                      item.assignee ||
+                      (item.dependencies && item.dependencies.length > 0)
                     "
-                    class="todo-meta-item"
-                    :style="todoMetaItemStyle"
+                    class="todo-meta"
+                    :style="todoMetaStyle"
                   >
-                    <el-icon><Calendar /></el-icon>
-                    <span>{{ $t('agent.display.todoList.noDueDate') }}</span>
-                  </span>
-                  <span v-if="item.estimatedTime" class="todo-meta-item" :style="todoMetaItemStyle">
-                    <el-icon><Clock /></el-icon>
-                    <span>{{ item.estimatedTime }}</span>
-                  </span>
-                  <span v-if="item.assignee" class="todo-meta-item" :style="todoMetaItemStyle">
-                    <el-icon><User /></el-icon>
-                    <span>{{ item.assignee }}</span>
-                  </span>
-                  <span
-                    v-if="item.dependencies && item.dependencies.length > 0"
-                    class="todo-meta-item dependencies"
-                    :style="todoMetaItemStyle"
-                  >
-                    <el-icon><Connection /></el-icon>
-                    <span>{{
-                      $t('agent.display.todoList.dependencies', { count: item.dependencies.length })
-                    }}</span>
-                  </span>
+                    <span v-if="item.dueDate" class="todo-meta-item" :style="todoMetaItemStyle">
+                      <el-icon><Calendar /></el-icon>
+                      <span>{{ formatDate(item.dueDate) }}</span>
+                    </span>
+                    <span
+                      v-else-if="
+                        !item.dueDate &&
+                        (item.estimatedTime ||
+                          item.assignee ||
+                          (item.dependencies && item.dependencies.length > 0))
+                      "
+                      class="todo-meta-item"
+                      :style="todoMetaItemStyle"
+                    >
+                      <el-icon><Calendar /></el-icon>
+                      <span>{{ $t('agent.display.todoList.noDueDate') }}</span>
+                    </span>
+                    <span
+                      v-if="item.estimatedTime"
+                      class="todo-meta-item"
+                      :style="todoMetaItemStyle"
+                    >
+                      <el-icon><Clock /></el-icon>
+                      <span>{{ item.estimatedTime }}</span>
+                    </span>
+                    <span v-if="item.assignee" class="todo-meta-item" :style="todoMetaItemStyle">
+                      <el-icon><User /></el-icon>
+                      <span>{{ item.assignee }}</span>
+                    </span>
+                    <span
+                      v-if="item.dependencies && item.dependencies.length > 0"
+                      class="todo-meta-item dependencies"
+                      :style="todoMetaItemStyle"
+                    >
+                      <el-icon><Connection /></el-icon>
+                      <span>{{
+                        $t('agent.display.todoList.dependencies', {
+                          count: item.dependencies.length
+                        })
+                      }}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </div>
-    </div>
 
-    <div v-else class="error-state">
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>{{
-          displayData.error || $t('agent.display.todoList.generationFailed')
-        }}</AlertTitle>
-      </Alert>
-    </div>
+      <div v-else class="error-state">
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{
+            displayData.error || $t('agent.display.todoList.generationFailed')
+          }}</AlertTitle>
+        </Alert>
+      </div>
     </template>
   </div>
 </template>
@@ -277,7 +283,11 @@ const displayData = computed<TodoDisplayData>(() => {
 
   const obj = parsed as Record<string, unknown>
   // 持久化/裸数据可能是根级 todo 对象 { id, title, items, ... }，无 stage/todoList
-  if (obj.todoList === undefined && Array.isArray(obj.items) && (obj.title != null || obj.id != null)) {
+  if (
+    obj.todoList === undefined &&
+    Array.isArray(obj.items) &&
+    (obj.title != null || obj.id != null)
+  ) {
     return { stage: 'completed', todoList: obj as unknown as TodoList }
   }
   return obj as TodoDisplayData
@@ -297,7 +307,9 @@ const pendingCount = computed(() => {
   return displayData.value.todoList?.items.filter((item) => item.status === 'pending').length || 0
 })
 
-const getPriorityType = (priority: string): 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
+const getPriorityType = (
+  priority: string
+): 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
   const map: Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
     low: 'info',
     medium: 'success',

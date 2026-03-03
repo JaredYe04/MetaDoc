@@ -9,14 +9,22 @@
           <!-- Home视图 - 使用v-show代替v-if，配合keep-alive实现缓存 -->
           <keep-alive>
             <Home
-              v-show="shouldRenderView(tab.id, 'home') && tab.id === activeTabId && getDocumentView(tab.id) === 'home'"
+              v-show="
+                shouldRenderView(tab.id, 'home') &&
+                tab.id === activeTabId &&
+                getDocumentView(tab.id) === 'home'
+              "
               :key="`home-${tab.id}`"
             />
           </keep-alive>
           <!-- Editor视图 - 使用v-show代替v-if，配合keep-alive实现缓存 -->
           <keep-alive>
             <Editor
-              v-show="shouldRenderView(tab.id, 'editor') && tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
+              v-show="
+                shouldRenderView(tab.id, 'editor') &&
+                tab.id === activeTabId &&
+                getDocumentView(tab.id) === 'editor'
+              "
               :key="`editor-${tab.id}`"
               :tab-id="tab.id"
             />
@@ -24,21 +32,33 @@
           <!-- Outline视图 - 使用v-show代替v-if，配合keep-alive实现缓存 -->
           <keep-alive>
             <Outline
-              v-show="shouldRenderView(tab.id, 'outline') && tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
+              v-show="
+                shouldRenderView(tab.id, 'outline') &&
+                tab.id === activeTabId &&
+                getDocumentView(tab.id) === 'outline'
+              "
               :key="`outline-${tab.id}`"
             />
           </keep-alive>
           <!-- Visualize视图 - 使用v-show代替v-if，配合keep-alive实现缓存 -->
           <keep-alive>
             <Visualize
-              v-show="shouldRenderView(tab.id, 'visualize') && tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
+              v-show="
+                shouldRenderView(tab.id, 'visualize') &&
+                tab.id === activeTabId &&
+                getDocumentView(tab.id) === 'visualize'
+              "
               :key="`visualize-${tab.id}`"
             />
           </keep-alive>
           <!-- Proofread视图 - 使用v-show代替v-if，配合keep-alive实现缓存 -->
           <keep-alive>
             <ProofreadView
-              v-show="shouldRenderView(tab.id, 'proofread') && tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
+              v-show="
+                shouldRenderView(tab.id, 'proofread') &&
+                tab.id === activeTabId &&
+                getDocumentView(tab.id) === 'proofread'
+              "
               :key="`proofread-${tab.id}`"
             />
           </keep-alive>
@@ -55,10 +75,7 @@
           </keep-alive>
           <!-- 其他系统Tab和工具Tab使用router-view作为fallback -->
           <keep-alive v-else>
-            <router-view
-              v-show="tab.id === activeTabId"
-              :key="`router-${tab.id}`"
-            />
+            <router-view v-show="tab.id === activeTabId" :key="`router-${tab.id}`" />
           </keep-alive>
         </template>
       </template>

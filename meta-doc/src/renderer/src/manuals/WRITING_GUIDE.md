@@ -1091,7 +1091,6 @@ estimatedTime: 10
 - ✅ `agent/session.md` - Agent会话管理
 - ✅ `agent/config.md` - Agent配置管理
 - ✅ `agent/tools.md` - 工具集管理
-- ✅ `agent/workflow.md` - 工作流管理
 - ✅ `outline/basics.md` - 大纲视图功能
 - ✅ `outline/ai-features.md` - 大纲AI功能
 - ✅ `knowledge-base/management.md` - 知识库管理

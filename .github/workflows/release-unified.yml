@@ -93,7 +93,6 @@ jobs:
       version: ${{ steps.version_info.outputs.version }}
       release_type: ${{ steps.release_type.outputs.type }}
       matrix: ${{ steps.matrix.outputs.matrix }}
-      matrix_non_empty: ${{ steps.matrix.outputs.matrix_non_empty }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -197,33 +196,27 @@ jobs:
           RL="${{ github.event.inputs.runner_linux || 'self-hosted' }}"
           RM="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
           RM64="${{ github.event.inputs.runner_mac_amd64 || 'off' }}"
+          ew=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
+          el=$([ "$RL" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
+          em=$([ "$RM" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
+          e64=$([ "$RM64" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","x64"]')
+          r_win=$([ "$RW" != "off" ] && echo "$ew" || echo '["ubuntu-latest"]')
+          r_linux=$([ "$RL" != "off" ] && echo "$el" || echo '["ubuntu-latest"]')
+          r_mac=$([ "$RM" != "off" ] && echo "$em" || echo '["ubuntu-latest"]')
+          r_mac64=$([ "$RM64" != "off" ] && echo "$e64" || echo '["ubuntu-latest"]')
           entries=()
-          if [ "$RW" != "off" ]; then
-            arr=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
-            entries+=("{\"platform\":\"win\",\"runner_array\":$arr}")
-          fi
-          if [ "$RL" != "off" ]; then
-            arr=$([ "$RL" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
-            entries+=("{\"platform\":\"linux\",\"runner_array\":$arr}")
-          fi
-          if [ "$RM" != "off" ]; then
-            arr=$([ "$RM" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
-            entries+=("{\"platform\":\"mac\",\"runner_array\":$arr}")
-          fi
-          if [ "$RM64" != "off" ]; then
-            arr=$([ "$RM64" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","x64"]')
-            entries+=("{\"platform\":\"mac-amd64\",\"runner_array\":$arr}")
-          fi
+          entries+=("{\"platform\":\"win\",\"enabled\":$([ "$RW" != "off" ] && echo true || echo false),\"runner_array\":$r_win}")
+          entries+=("{\"platform\":\"linux\",\"enabled\":$([ "$RL" != "off" ] && echo true || echo false),\"runner_array\":$r_linux}")
+          entries+=("{\"platform\":\"mac\",\"enabled\":$([ "$RM" != "off" ] && echo true || echo false),\"runner_array\":$r_mac}")
+          entries+=("{\"platform\":\"mac-amd64\",\"enabled\":$([ "$RM64" != "off" ] && echo true || echo false),\"runner_array\":$r_mac64}")
           printf '[%s]\n' "$(IFS=,; echo "${entries[*]}")" > matrix.json
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
           cat matrix.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          if [ ${#entries[@]} -gt 0 ]; then echo "matrix_non_empty=true" >> $GITHUB_OUTPUT; else echo "matrix_non_empty=false" >> $GITHUB_OUTPUT; fi
         shell: bash
 
   release:
     needs: prepare
-    if: needs.prepare.outputs.matrix_non_empty == 'true'
     runs-on: ${{ matrix.runner_array }}
     strategy:
       fail-fast: false
@@ -232,8 +225,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: 平台已关闭（off），跳过构建与发布
+        if: matrix.enabled != 'true'
+        run: |
+          echo "::error::平台 ${{ matrix.platform }} 已选择为关闭（off），不进行构建与发布。此结果不影响其他平台的发布。"
+          exit 1
+        continue-on-error: true
+
       - name: 安装 Git（Windows）
-        if: matrix.platform == 'win'
+        if: matrix.enabled == 'true' && matrix.platform == 'win'
         run: |
           if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
             if (Get-Command choco -ErrorAction SilentlyContinue) { choco install git -y }
@@ -243,7 +243,7 @@ jobs:
         shell: powershell
 
       - name: 安装 Git 和构建工具（Linux）
-        if: matrix.platform == 'linux'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux'
         run: |
           if ! command -v git &> /dev/null; then
             . /etc/os-release 2>/dev/null || true
@@ -258,7 +258,7 @@ jobs:
         shell: bash
 
       - name: 安装 Git（macOS）
-        if: matrix.platform == 'mac' || matrix.platform == 'mac-amd64'
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64')
         run: |
           if ! command -v git &>/dev/null; then
             if command -v brew &>/dev/null; then
@@ -271,6 +271,7 @@ jobs:
         shell: bash
 
       - name: 检出代码
+        if: matrix.enabled == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -278,10 +279,12 @@ jobs:
           clean: true
 
       - name: 更新仓库到最新状态
+        if: matrix.enabled == 'true'
         run: node meta-doc/scripts/update-repo.js "${{ github.ref }}" "${{ github.ref_name }}"
         continue-on-error: true
 
       - name: 设置 Node.js
+        if: matrix.enabled == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -289,6 +292,7 @@ jobs:
           cache-dependency-path: meta-doc/package-lock.json
 
       - name: 恢复 node_modules 缓存
+        if: matrix.enabled == 'true'
         uses: actions/cache@v4
         id: node-modules
         with:
@@ -297,12 +301,13 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-
 
       - name: 缓存诊断（node_modules）
+        if: matrix.enabled == 'true'
         run: |
           echo "node_modules cache-hit=${{ steps.node-modules.outputs.cache-hit }}"
           echo "cache-key=${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-<hash>"
 
       - name: 恢复 Electron 缓存 (Windows)
-        if: matrix.platform == 'win'
+        if: matrix.enabled == 'true' && matrix.platform == 'win'
         uses: actions/cache@v4
         with:
           path: ${{ env.LOCALAPPDATA }}/electron
@@ -310,7 +315,7 @@ jobs:
           restore-keys: ${{ runner.os }}-win-electron-
 
       - name: 恢复 Electron 缓存 (Linux)
-        if: matrix.platform == 'linux'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux'
         uses: actions/cache@v4
         with:
           path: ~/.cache/electron
@@ -318,7 +323,7 @@ jobs:
           restore-keys: ${{ runner.os }}-linux-electron-
 
       - name: 恢复 Electron 缓存 (macOS)
-        if: matrix.platform == 'mac' || matrix.platform == 'mac-amd64'
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64')
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/electron
@@ -326,7 +331,7 @@ jobs:
           restore-keys: ${{ runner.os }}-mac-electron-
 
       - name: 恢复 electron-builder 缓存 (Windows)
-        if: matrix.platform == 'win'
+        if: matrix.enabled == 'true' && matrix.platform == 'win'
         uses: actions/cache@v4
         with:
           path: ${{ env.LOCALAPPDATA }}/electron-builder
@@ -334,7 +339,7 @@ jobs:
           restore-keys: ${{ runner.os }}-win-electron-builder-
 
       - name: 恢复 electron-builder 缓存 (Linux/macOS)
-        if: matrix.platform != 'win'
+        if: matrix.enabled == 'true' && matrix.platform != 'win'
         uses: actions/cache@v4
         with:
           path: ~/.cache/electron-builder
@@ -342,6 +347,7 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.platform }}-electron-builder-
 
       - name: 检查当前平台文件是否已发布
+        if: matrix.enabled == 'true'
         id: check_platform_release
         run: node meta-doc/scripts/check-platform-release.js "${{ needs.prepare.outputs.tag }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || (matrix.platform == 'mac-amd64' && 'macos-x64' || 'linux')) }}"
         env:
@@ -351,6 +357,7 @@ jobs:
         continue-on-error: true
 
       - name: 确定是否需要构建
+        if: matrix.enabled == 'true'
         id: should_build
         run: |
           node -e "
@@ -368,15 +375,15 @@ jobs:
           HAS_PLATFORM_FILES: ${{ steps.check_platform_release.outputs.has_platform_files }}
 
       - name: 检查本地构建产物
+        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
         id: check_local_build
-        if: steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
         working-directory: meta-doc
         run: |
           node scripts/check-local-build.js "${{ needs.prepare.outputs.clean_version }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'linux' && 'linux' || 'macos') }}"
         continue-on-error: true
 
       - name: 安装依赖
-        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true') && steps.node-modules.outputs.cache-hit != 'true'
+        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true') && steps.node-modules.outputs.cache-hit != 'true'
         working-directory: meta-doc
         run: |
           node -e "
@@ -391,22 +398,23 @@ jobs:
           "
 
       - name: 生成发布说明（release 阶段本地生成，不依赖 prepare artifact）
+        if: matrix.enabled == 'true'
         run: |
           node meta-doc/scripts/generate-changelog-to-file.js "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.release_type }}" release-notes.txt
           node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes || '' }}" release-notes.txt final-notes.txt
 
       - name: 生成 Linux 图标（如果不存在）
-        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: '[ -f build/icon.png ] || npm run generate-icons || true'
 
       - name: 生成 macOS 图标（如果不存在）
-        if: (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: '[ -f build/icon.icns ] || npm run generate-icons || true'
 
       - name: 构建项目
-        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npm run build
         env:
@@ -414,11 +422,11 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
 
       - name: 清理旧 Linux 产物
-        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         run: rm -f meta-doc/dist/*.AppImage meta-doc/dist/*.deb meta-doc/dist/*.snap || true
 
       - name: 打包 Windows 版本
-        if: matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npx electron-builder --win --publish never
         env:
@@ -427,7 +435,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 打包 Linux x64 版本
-        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npx electron-builder --linux --x64 --publish never
         env:
@@ -436,7 +444,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 打包 macOS ARM64 版本
-        if: matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npx electron-builder --mac --arm64 --publish never
         env:
@@ -445,7 +453,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 打包 macOS x64 版本
-        if: matrix.platform == 'mac-amd64' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'mac-amd64' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npx electron-builder --mac --x64 --publish never
         env:
@@ -454,7 +462,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 发布 Windows 产物
-        if: matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
@@ -471,7 +479,7 @@ jobs:
           draft: false
 
       - name: 准备 Linux 产物列表
-        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
         id: release_files_linux
         run: |
           echo "files<<EOF" >> $GITHUB_OUTPUT
@@ -482,7 +490,7 @@ jobs:
         shell: bash
 
       - name: 发布 Linux 产物（AppImage + deb）
-        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
         id: release_linux
         uses: softprops/action-gh-release@v2
         with:
@@ -497,7 +505,7 @@ jobs:
           draft: false
 
       - name: 上传 Snap 包（Linux）
-        if: matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && steps.release_linux.outcome == 'success'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && steps.release_linux.outcome == 'success'
         run: |
           SNAP="meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap"
           if [ ! -f "$SNAP" ]; then exit 0; fi
@@ -508,7 +516,7 @@ jobs:
         shell: bash
 
       - name: 发布 macOS 产物
-        if: (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
@@ -524,6 +532,7 @@ jobs:
           draft: false
 
       - name: 保存发布日志
+        if: matrix.enabled == 'true'
         working-directory: meta-doc
         run: |
           node scripts/save-release-log.js "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.tag }}" "${{ needs.prepare.outputs.release_type }}" "${{ needs.prepare.outputs.release_name }}" "${{ needs.prepare.outputs.is_prerelease }}" "${{ github.sha }}" "${{ github.run_id }}"
@@ -532,9 +541,9 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
 
       - name: 上传发布日志
+        if: ${{ matrix.enabled == 'true' && always() }}
         uses: actions/upload-artifact@v4
         with:
           name: release-log-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
           path: .github/release-logs/release_${{ needs.prepare.outputs.tag }}_*.json
           retention-days: 90
-        if: always()

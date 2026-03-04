@@ -12,12 +12,20 @@
     >
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
-        <Switch
-          v-if="showAiAnalysis"
-          :checked="enableAiAnalysisModel"
-          @update:checked="handleAiAnalysisToggle"
-          style="margin-right: 8px"
-        />
+        <Tooltip v-if="showAiAnalysis">
+          <TooltipTrigger as-child>
+            <div class="console-ai-switch-wrap">
+              <span class="console-ai-label">{{ $t('console.enableAiAnalysis') }}</span>
+              <Switch
+                :checked="enableAiAnalysisModel"
+                @update:checked="handleAiAnalysisToggle"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {{ $t('console.enableAiAnalysisHint') }}
+          </TooltipContent>
+        </Tooltip>
         <Button size="sm" @click="clearConsole">{{ $t('console.clear') }}</Button>
         <Button size="sm" @click="copyConsole">{{ $t('console.copy') }}</Button>
         <Button size="sm" @click="saveConsole">{{ $t('console.saveLog') }}</Button>
@@ -32,6 +40,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, PropType, nextTick } 
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { Switch } from '@renderer/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import messageBridge from '../bridge/message-bridge'
@@ -88,6 +97,11 @@ const props = defineProps({
   },
   /** 由父组件（如 LaTeXEditor）控制的 AI 分析开关，传入时与父组件保持同步 */
   parentEnableAiAnalysis: {
+    type: Boolean as PropType<boolean | undefined>,
+    default: undefined
+  },
+  /** 同上，与父组件 :enable-ai-analysis 对应 */
+  enableAiAnalysis: {
     type: Boolean as PropType<boolean | undefined>,
     default: undefined
   }
@@ -155,6 +169,10 @@ const enableAiAnalysisModel = computed({
     }
   }
 })
+
+const handleAiAnalysisToggle = (value: boolean) => {
+  enableAiAnalysisModel.value = value
+}
 
 watch(
   () => props.enableAiAnalysis,
@@ -657,17 +675,33 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px;
+  padding: 2px 6px;
+  min-height: 28px;
   border-bottom: 1px solid #9a9a9a41;
   flex-shrink: 0;
 }
 
 .console-title {
   user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.console-ai-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+}
+
+.console-ai-label {
+  font-size: 12px;
+  color: var(--console-text);
+  white-space: nowrap;
 }
 
 .console-actions button {
-  margin-left: 5px;
+  margin-left: 4px;
 }
 
 .console-editor {

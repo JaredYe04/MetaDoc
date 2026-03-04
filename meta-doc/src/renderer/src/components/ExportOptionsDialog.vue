@@ -1,12 +1,12 @@
 <template>
   <Dialog v-model:open="visible">
-    <DialogContent class="max-w-[800px]">
-      <DialogHeader>
+    <DialogContent class="max-w-[800px] export-options-dialog-content">
+      <DialogHeader class="export-options-dialog-header">
         <DialogTitle>{{ dialogTitle }}</DialogTitle>
       </DialogHeader>
-      <ScrollArea class="h-[500px]">
+      <ScrollArea class="export-options-scroll-area h-[500px]">
         <Tabs v-model="activeTab" v-if="hasTabs" class="export-options-tabs">
-          <TabsList class="w-full inline-flex justify-start gap-1 bg-muted p-1 rounded-lg">
+          <TabsList class="export-options-tabs-list w-full inline-flex justify-start gap-1 bg-muted p-1 rounded-lg">
             <TabsTrigger v-for="tab in tabs" :key="tab.name" :value="tab.name">
               {{ tab.label }}
             </TabsTrigger>
@@ -61,6 +61,39 @@
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          <FormDescription
+                            v-if="subField.description || subField.descriptionKey"
+                            class="mt-1"
+                          >
+                            {{ getFieldDescription(subField) }}
+                          </FormDescription>
+                        </div>
+                      </div>
+                    </FormField>
+                    <FormField
+                      v-else-if="shouldShowField(subField) && subField.type === 'boolean'"
+                      :name="subField.key"
+                    >
+                      <div class="flex items-start gap-4">
+                        <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                          getFieldLabel(subField)
+                        }}</FormLabel>
+                        <div class="flex-1">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm text-muted-foreground">{{
+                              t('setting.disabled', '禁用')
+                            }}</span>
+                            <span class="inline-flex shrink-0">
+                              <Switch
+                                :checked="getBooleanValue(formData, subField.key)"
+                                @update:checked="(val: boolean) => setBooleanValue(subField.key, val)"
+                                class="shrink-0"
+                              />
+                            </span>
+                            <span class="text-sm text-muted-foreground">{{
+                              t('setting.enabled', '启用')
+                            }}</span>
+                          </div>
                           <FormDescription
                             v-if="subField.description || subField.descriptionKey"
                             class="mt-1"
@@ -159,6 +192,38 @@
                   </div>
                 </FormField>
 
+                <!-- Boolean 字段（Switch） -->
+                <FormField
+                  v-else-if="shouldShowField(field) && field.type === 'boolean'"
+                  :name="field.key"
+                >
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(field)
+                    }}</FormLabel>
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-muted-foreground">{{
+                          t('setting.disabled', '禁用')
+                        }}</span>
+                        <span class="inline-flex shrink-0">
+                          <Switch
+                            :checked="getBooleanValue(formData, field.key)"
+                            @update:checked="(val: boolean) => setBooleanValue(field.key, val)"
+                            class="shrink-0"
+                          />
+                        </span>
+                        <span class="text-sm text-muted-foreground">{{
+                          t('setting.enabled', '启用')
+                        }}</span>
+                      </div>
+                      <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                        {{ getFieldHelperText(field) }}
+                      </FormDescription>
+                    </div>
+                  </div>
+                </FormField>
+
                 <!-- 普通字段 -->
                 <FormField v-else-if="shouldShowField(field)" :name="field.key">
                   <div class="flex items-start gap-4">
@@ -238,6 +303,39 @@
                     </div>
                   </div>
                 </FormField>
+                <FormField
+                  v-else-if="shouldShowField(subField) && subField.type === 'boolean'"
+                  :name="subField.key"
+                >
+                  <div class="flex items-start gap-4">
+                    <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                      getFieldLabel(subField)
+                    }}</FormLabel>
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-muted-foreground">{{
+                          t('setting.disabled', '禁用')
+                        }}</span>
+                        <span class="inline-flex shrink-0">
+                          <Switch
+                            :checked="getBooleanValue(formData, subField.key)"
+                            @update:checked="(val: boolean) => setBooleanValue(subField.key, val)"
+                            class="shrink-0"
+                          />
+                        </span>
+                        <span class="text-sm text-muted-foreground">{{
+                          t('setting.enabled', '启用')
+                        }}</span>
+                      </div>
+                      <FormDescription
+                        v-if="subField.description || subField.descriptionKey"
+                        class="mt-1"
+                      >
+                        {{ getFieldDescription(subField) }}
+                      </FormDescription>
+                    </div>
+                  </div>
+                </FormField>
                 <FormField v-else-if="shouldShowField(subField)" :name="subField.key">
                   <div class="flex items-start gap-4">
                     <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
@@ -305,6 +403,38 @@
               </div>
             </FormField>
 
+            <!-- Boolean 字段（Switch） -->
+            <FormField
+              v-else-if="shouldShowField(field) && field.type === 'boolean'"
+              :name="field.key"
+            >
+              <div class="flex items-start gap-4">
+                <FormLabel class="w-[140px] text-left shrink-0 pt-2">{{
+                  getFieldLabel(field)
+                }}</FormLabel>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-muted-foreground">{{
+                      t('setting.disabled', '禁用')
+                    }}</span>
+                    <span class="inline-flex shrink-0">
+                      <Switch
+                        :checked="getBooleanValue(formData, field.key)"
+                        @update:checked="(val: boolean) => setBooleanValue(field.key, val)"
+                        class="shrink-0"
+                      />
+                    </span>
+                    <span class="text-sm text-muted-foreground">{{
+                      t('setting.enabled', '启用')
+                    }}</span>
+                  </div>
+                  <FormDescription v-if="hasFieldHelperText(field)" class="mt-1">
+                    {{ getFieldHelperText(field) }}
+                  </FormDescription>
+                </div>
+              </div>
+            </FormField>
+
             <!-- 普通字段 -->
             <FormField v-else-if="shouldShowField(field)" :name="field.key">
               <div class="flex items-start gap-4">
@@ -355,7 +485,8 @@ import {
   FormControl,
   FormDescription
 } from '@renderer/components/ui/form'
-import { ElInput, ElInputNumber, ElSwitch } from 'element-plus'
+import { ElInput, ElInputNumber } from 'element-plus'
+import { Switch } from '@renderer/components/ui/switch'
 import { Separator } from '@renderer/components/ui/separator'
 import {
   Dialog,
@@ -574,11 +705,21 @@ function setNestedValue(obj: any, path: string, value: any): void {
   target[lastKey] = value
 }
 
+// Boolean 字段专用：保证读出的为 boolean，用于 Switch 正确切换
+function getBooleanValue(obj: any, path: string): boolean {
+  const v = getNestedValue(obj, path)
+  return v === true
+}
+
+function setBooleanValue(path: string, value: boolean): void {
+  setNestedValue(formData.value, path, value)
+}
+
 // 获取字段组件
 function getFieldComponent(field: ExportOptionField): any {
   switch (field.type) {
     case 'boolean':
-      return ElSwitch
+      return Switch
     case 'number':
       return ElInputNumber
     case 'select':
@@ -700,18 +841,60 @@ defineExpose({
   padding: 20px;
 }
 
+/* 标题与下方配置区域间距 */
+.export-options-dialog-header {
+  margin-bottom: 1.25rem;
+}
+
 .export-options-form {
   padding-right: 10px;
 }
 
-:deep(.export-options-tabs [data-state='active']) {
-  background-color: hsl(var(--background));
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+/* Tab 列表置顶：滚动时始终可见；使用 muted 与选中项形成对比 */
+:deep(.export-options-tabs-list) {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: hsl(var(--muted));
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
-:deep(.export-options-tabs button) {
+/* 选中 Tab：浅色下为白/亮块，深色下为深块，均有边框与阴影 */
+:deep(.export-options-tabs-list [data-state='active']) {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.06);
+}
+
+/* 仅作用于 Tab 标签按钮，不影响表单内的 Switch（也是 button） */
+:deep(.export-options-tabs-list button) {
   flex-shrink: 0;
   padding-left: 1rem;
   padding-right: 1rem;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+:deep(.export-options-tabs-list button:hover) {
+  background-color: hsl(var(--muted-foreground) / 0.1);
+}
+
+:deep(.export-options-tabs-list button:active) {
+  opacity: 0.85;
+}
+
+:deep(.export-options-tabs-list [data-state='active']:hover) {
+  background-color: hsl(var(--card));
+  filter: brightness(0.97);
+}
+
+/* 深色模式：选中 Tab 阴影略强，与背景区分更明显 */
+html.dark :deep(.export-options-tabs-list [data-state='active']) {
+  box-shadow: 0 1px 3px hsl(0 0% 0% / 0.3);
+}
+
+:deep(.export-options-tabs-list [data-state='active']:active) {
+  opacity: 0.95;
 }
 </style>

@@ -196,6 +196,7 @@
     "copiedToClipboard": "クリップボードにコピーしました",
     "logSaved": "ログを保存しました",
     "enableAiAnalysis": "AIエラー分析",
+    "enableAiAnalysisHint": "コンパイル失敗時にAIでエラーログを分析し修正案を提示",
     "encoding": {
       "unicode": "Unicode",
       "chinese": "中国語",

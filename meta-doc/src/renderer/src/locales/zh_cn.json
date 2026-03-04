@@ -1247,6 +1247,7 @@
     "copiedToClipboard": "已复制到剪贴板",
     "copy": "复制",
     "enableAiAnalysis": "AI错误分析",
+    "enableAiAnalysisHint": "编译失败时使用 AI 分析错误日志并给出修复建议",
     "encoding": {
       "unicode": "Unicode",
       "chinese": "中文",

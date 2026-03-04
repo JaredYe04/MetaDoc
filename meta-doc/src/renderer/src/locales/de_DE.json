@@ -298,6 +298,7 @@
     "copiedToClipboard": "In die Zwischenablage kopiert",
     "logSaved": "Protokoll gespeichert",
     "enableAiAnalysis": "KI-Fehleranalyse",
+    "enableAiAnalysisHint": "Bei Kompilierungsfehlern KI zur Analyse des Fehlerprotokolls und für Korrekturvorschläge nutzen",
     "encoding": {
       "unicode": "Unicode",
       "chinese": "Chinesisch",

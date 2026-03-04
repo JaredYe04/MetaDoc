@@ -259,6 +259,7 @@
     "copiedToClipboard": "Copié dans le presse-papiers",
     "logSaved": "Journal enregistré",
     "enableAiAnalysis": "Analyse des erreurs IA",
+    "enableAiAnalysisHint": "En cas d'échec de compilation, utiliser l'IA pour analyser le journal d'erreurs et suggérer des corrections",
     "encoding": {
       "unicode": "Unicode",
       "chinese": "Chinois",

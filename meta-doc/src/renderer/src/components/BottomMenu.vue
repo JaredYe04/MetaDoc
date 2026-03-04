@@ -59,7 +59,6 @@
     />
     <LlmStatisticsDialog v-model="showLlmStatisticsDialog" />
     <VersionInfoPanel />
-    <GlobalProgressBar />
     <div class="actions-group">
       <TooltipProvider>
         <Tooltip>
@@ -136,7 +135,6 @@ import { getAppVersion } from '../utils/version'
 import WordCountDialog from './WordCountDialog.vue'
 import LlmStatisticsDialog from './LlmStatisticsDialog.vue'
 import VersionInfoPanel from './VersionInfoPanel.vue'
-import GlobalProgressBar from './GlobalProgressBar.vue'
 import {
   Tooltip,
   TooltipContent,

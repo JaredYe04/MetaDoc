@@ -49,6 +49,8 @@
     <!-- 固定底部菜单 -->
     <!-- 固定的底部状态栏 -->
 
+    <!-- 全局进度条：仅在此挂载一次，用于导出 docx/pdf/tex 等进度显示 -->
+    <GlobalProgressBar />
     <AITaskQueue />
     <LoggerConsolePanel />
     <TabSwitcherOverlay />
@@ -85,6 +87,7 @@ import AITaskQueue from '../components/AITaskQueue.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
 import TabContentRenderer from '../components/TabContentRenderer.vue'
+import GlobalProgressBar from '../components/GlobalProgressBar.vue'
 
 // ============================================================================
 // 导入工具和库

@@ -57,6 +57,9 @@ asarUnpack:
   - node_modules/node-latex-compiler/**
 win:
   executableName: meta-doc
+  # LaTeX 编译使用 node-latex-compiler，其临时目录在安装目录下（如 C:\Program Files\meta-doc\...），
+  # 无管理员权限无法创建，故要求以管理员身份运行
+  requestedExecutionLevel: requireAdministrator
   icon: icon.ico # 主应用程序图标（相对于 buildResources (build) 目录）
   # Windows 文件关联配置
   # 注意：图标路径应该是相对于 buildResources 目录的

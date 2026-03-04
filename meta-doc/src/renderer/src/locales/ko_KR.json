@@ -220,6 +220,7 @@
     "copiedToClipboard": "클립보드에 복사됨",
     "logSaved": "로그가 저장되었습니다",
     "enableAiAnalysis": "AI 오류 분석",
+    "enableAiAnalysisHint": "컴파일 실패 시 AI가 오류 로그를 분석하고 수정 제안을 제공합니다",
     "encoding": {
       "unicode": "유니코드",
       "chinese": "중국어",

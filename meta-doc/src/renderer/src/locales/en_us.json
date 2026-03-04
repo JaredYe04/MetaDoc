@@ -3886,6 +3886,7 @@
     "copiedToClipboard": "Copied to clipboard",
     "copy": "Copy",
     "enableAiAnalysis": "AI error analysis",
+    "enableAiAnalysisHint": "When compilation fails, use AI to analyze error log and suggest fixes",
     "encoding": {
       "unicode": "Unicode",
       "chinese": "Chinese",

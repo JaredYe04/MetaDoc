@@ -41,7 +41,8 @@
       :class="{
         'is-collapsed': collapse && props.level === 1,
         'is-open': isOpen,
-        'is-nested': props.level > 1
+        'is-nested': props.level > 1,
+        'is-disabled': props.disabled
       }"
       @click.stop="handleTitleClick"
       @mouseenter="handleTitleMouseEnter"

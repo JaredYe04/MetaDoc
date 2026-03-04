@@ -41,12 +41,14 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
+  <!-- dir="ltr" 确保开关在 RTL 或弹窗内仍为左关右开 -->
+  <div dir="ltr" class="inline-flex">
   <SwitchRoot
     v-bind="forwarded"
     :model-value="actualValue"
     :class="
       cn(
-        'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
+        'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center justify-start overflow-hidden rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
         props.class
       )
     "
@@ -55,11 +57,13 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <SwitchThumb
       :class="
         cn(
-          'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5'
+          'pointer-events-none block h-5 w-5 min-h-5 min-w-5 shrink-0 rounded-full bg-background shadow-lg ring-0 transition-transform',
+          actualValue ? 'translate-x-5' : 'translate-x-0'
         )
       "
     >
       <slot name="thumb" />
     </SwitchThumb>
   </SwitchRoot>
+  </div>
 </template>

@@ -113,13 +113,19 @@ class LaTeXServiceImpl implements LaTeXService {
           : 'output.pdf')
       const outputFile = path.join(actualOutputDir, pdfFileName)
 
+      // 若有 .tex 文件路径：先以 UTF-8 写入该路径再按文件编译，使相对路径（如 ./xxx.tex.images/）基于该目录解析，避免中文/日文路径乱码与“找不到文件”
+      if (normalizedTexPath) {
+        this.ensureDirectoryExists(path.dirname(normalizedTexPath))
+        fs.writeFileSync(normalizedTexPath, tex, 'utf-8')
+      }
+
       // 准备输出流处理器
       const stdoutBuffer: string[] = []
       const stderrBuffer: string[] = []
 
-      // 调用 node-latex-compiler 进行编译
+      // 调用 node-latex-compiler：有文件路径时用 texFile 编译（相对路径正确），否则用 tex 在临时目录编译
       const result = await compile({
-        tex: tex,
+        ...(normalizedTexPath ? { texFile: normalizedTexPath } : { tex }),
         outputDir: actualOutputDir,
         outputFile: outputFile,
         onStdout: (data: string) => {

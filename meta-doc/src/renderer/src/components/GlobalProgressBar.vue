@@ -6,12 +6,17 @@
           <span class="progress-message">{{ message }}</span>
           <span v-if="subMessage" class="progress-sub-message">{{ subMessage }}</span>
         </div>
-        <div class="progress-bar-container">
-          <Progress :model-value="percentage" :class="progressClass" class="h-1" />
-          <span v-if="showPercentage" class="progress-percentage"
-            >{{ Math.round(percentage) }}%</span
-          >
-        </div>
+        <!-- 只保留一条进度条：用 Progress 且不把颜色类挂到根节点，颜色由 status 作用在内部填充条上 -->
+        <Progress
+          :model-value="percentage"
+          :status="status"
+          :show-text="false"
+          :stroke-width="6"
+          class="global-progress-bar-track"
+        />
+        <span v-if="showPercentage" class="progress-percentage">{{
+          Math.round(percentage)
+        }}%</span>
       </div>
     </div>
   </transition>
@@ -20,7 +25,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Progress } from '@renderer/components/ui/progress'
-import { Close } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useI18n } from 'vue-i18n'
@@ -57,20 +61,6 @@ const progressBarStyle = computed(() => ({
   color: themeState.currentTheme.textColor || '#333',
   borderColor: themeState.currentTheme.borderColor || '#e4e7ed'
 }))
-
-// 根据状态计算进度条样式类
-const progressClass = computed(() => {
-  switch (status.value) {
-    case 'success':
-      return 'bg-green-500'
-    case 'exception':
-      return 'bg-red-500'
-    case 'warning':
-      return 'bg-yellow-500'
-    default:
-      return 'bg-primary'
-  }
-})
 
 // 跟踪UI锁状态，避免重复锁定/解锁
 const uiLocked = ref(false)
@@ -214,15 +204,14 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
-.progress-bar-container {
+.global-progress-bar-track {
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .progress-percentage {
+  flex-shrink: 0;
+  margin-left: 8px;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;

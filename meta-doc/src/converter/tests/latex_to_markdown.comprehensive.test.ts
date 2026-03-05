@@ -115,11 +115,11 @@ describe('LaTeX → Markdown (comprehensive)', () => {
       const md = latexToMarkdown('\\# hash')
       expect(md).toContain('#')
     })
-    it('unknown inline rendered as raw in MD', () => {
+    it('\\cite{key} → [key] placeholder, rest preserved', () => {
       const md = latexToMarkdown('Before \\cite{key} after')
       expect(md).toContain('Before')
       expect(md).toContain('after')
-      expect(md).toContain('cite') // fallback preserves command in output
+      expect(md).toMatch(/\[.*key.*\]/) // cite converted to bracket placeholder
     })
   })
 })

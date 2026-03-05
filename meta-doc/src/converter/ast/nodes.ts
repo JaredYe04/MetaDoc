@@ -53,6 +53,13 @@ export interface ThematicBreakNode {
   type: 'thematic_break'
 }
 
+/** GFM-style table: header row + optional separator + data rows (cell text only) */
+export interface TableNode {
+  type: 'table'
+  headerRow: string[]
+  rows: string[][]
+}
+
 /** Unknown block: raw source for round-trip or error recovery */
 export interface UnknownBlockNode {
   type: 'unknown'
@@ -69,6 +76,7 @@ export type BlockNode =
   | MathBlockNode
   | BlockquoteNode
   | ThematicBreakNode
+  | TableNode
   | UnknownBlockNode
 
 // --- Inline nodes ---
@@ -110,6 +118,11 @@ export interface MathInlineNode {
   content: string
 }
 
+export interface StrikethroughNode {
+  type: 'strikethrough'
+  children: InlineNode[]
+}
+
 /** Unknown inline: raw source */
 export interface UnknownInlineNode {
   type: 'unknown_inline'
@@ -124,6 +137,7 @@ export type InlineNode =
   | LinkNode
   | ImageNode
   | MathInlineNode
+  | StrikethroughNode
   | UnknownInlineNode
 
 // --- Type guards ---
@@ -164,6 +178,10 @@ export function isThematicBreakNode(n: BlockNode): n is ThematicBreakNode {
   return n.type === 'thematic_break'
 }
 
+export function isTableNode(n: BlockNode): n is TableNode {
+  return n.type === 'table'
+}
+
 export function isUnknownBlockNode(n: BlockNode): n is UnknownBlockNode {
   return n.type === 'unknown'
 }
@@ -194,6 +212,10 @@ export function isImageNode(n: InlineNode): n is ImageNode {
 
 export function isMathInlineNode(n: InlineNode): n is MathInlineNode {
   return n.type === 'math_inline'
+}
+
+export function isStrikethroughNode(n: InlineNode): n is StrikethroughNode {
+  return n.type === 'strikethrough'
 }
 
 export function isUnknownInlineNode(n: InlineNode): n is UnknownInlineNode {

@@ -2131,44 +2131,50 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
     // 查找所有段落，如果段落属性中没有对齐设置（且不是center），添加左对齐
     const paragraphRegex = /<w:p([^>]*)>/g
     let paragraphMatch
-    const paragraphsToFix: Array<{ start: number; end: number; hasAlign: boolean }> = []
+    const paragraphsToFix: Array<{
+      paraStart: number
+      contentStart: number
+      pPrEnd: number
+      hasAlign: boolean
+    }> = []
 
     while ((paragraphMatch = paragraphRegex.exec(updatedXml)) !== null) {
       const paraStart = paragraphMatch.index
       const paraTag = paragraphMatch[0]
-
-      // 查找这个段落对应的段落属性
       const afterPara = updatedXml.substring(paraStart + paraTag.length)
       const pPrMatch = afterPara.match(/<w:pPr[^>]*>([\s\S]*?)<\/w:pPr>/)
 
       if (pPrMatch) {
-        // 有段落属性，检查是否有对齐设置
         const pPrContent = pPrMatch[1]
-        const hasJc = /<w:jc[^>]*w:val="center"[^>]*\/?>/.test(pPrContent)
-        const hasAlign = /<w:jc/.test(pPrContent)
+        const hasJc = /<w:jc[^>]*w:val="center"[^>]*\/?>/i.test(pPrContent)
+        const hasAlign = /<w:jc/i.test(pPrContent)
 
         paragraphsToFix.push({
-          start: paraStart + paraTag.length,
-          end: paraStart + paraTag.length + pPrMatch.index! + pPrMatch[0].length,
-          hasAlign: hasAlign && !hasJc // 如果有对齐但不是center，已经在上面处理了
+          paraStart,
+          contentStart: paraStart + paraTag.length,
+          pPrEnd: paraStart + paraTag.length + pPrMatch.index! + pPrMatch[0].length,
+          hasAlign: hasAlign && !hasJc
         })
       }
     }
 
-    // 对于没有对齐设置的段落，从后往前添加左对齐（避免索引偏移）
+    // 对于没有对齐设置的段落，从后往前添加左对齐（图片段落用居中）
     for (let i = paragraphsToFix.length - 1; i >= 0; i--) {
       const para = paragraphsToFix[i]
       if (!para.hasAlign) {
-        // 查找段落属性位置
-        const pPrMatch = updatedXml.substring(para.start).match(/<w:pPr([^>]*)>([\s\S]*?)<\/w:pPr>/)
+        const pPrMatch = updatedXml.substring(para.contentStart).match(/<w:pPr([^>]*)>([\s\S]*?)<\/w:pPr>/)
         if (pPrMatch) {
-          const pPrStart = para.start + pPrMatch.index!
+          const pPrStart = para.contentStart + pPrMatch.index!
           const pPrEnd = pPrStart + pPrMatch[0].length
           const pPrAttrs = pPrMatch[1]
           const pPrContent = pPrMatch[2]
-
-          // 在段落属性内容开头添加左对齐
-          const newPPrContent = `<w:jc w:val="left"/>${pPrContent}`
+          const paraEnd = updatedXml.indexOf('</w:p>', para.contentStart)
+          const paraContent =
+            paraEnd > 0 ? updatedXml.substring(para.paraStart, paraEnd + 6) : ''
+          const isImagePara =
+            paraContent.includes('<w:drawing') || paraContent.includes('<w:pict')
+          const jcVal = isImagePara ? 'center' : 'left'
+          const newPPrContent = `<w:jc w:val="${jcVal}"/>${pPrContent}`
           updatedXml =
             updatedXml.substring(0, pPrStart) +
             `<w:pPr${pPrAttrs}>${newPPrContent}</w:pPr>` +
@@ -2176,6 +2182,28 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
           modified = true
         }
       }
+    }
+
+    // 没有 pPr 的段落：若包含图片则补一段落属性并设为居中
+    const noPPrImageRegex =
+      /<w:p([^>]*)>([\s\S]*?)(<w:drawing[\s\S]*?<\/w:drawing>|<w:pict[\s\S]*?<\/w:pict>)([\s\S]*?)<\/w:p>/g
+    let noPPrMatch: RegExpExecArray | null
+    const noPPrImageParas: Array<{ index: number; full: string; openTag: string }> = []
+    while ((noPPrMatch = noPPrImageRegex.exec(updatedXml)) !== null) {
+      const full = noPPrMatch[0]
+      const inner = noPPrMatch[2] + noPPrMatch[3] + noPPrMatch[4]
+      if (!/<w:pPr[\s>]/.test(inner)) {
+        noPPrImageParas.push({ index: noPPrMatch.index, full })
+      }
+    }
+    for (let i = noPPrImageParas.length - 1; i >= 0; i--) {
+      const { index, full } = noPPrImageParas[i]
+      const newP = full.replace(
+        /^(<w:p)([^>]*>)/,
+        `$1$2<w:pPr><w:jc w:val="center"/></w:pPr>`
+      )
+      updatedXml = updatedXml.substring(0, index) + newP + updatedXml.substring(index + full.length)
+      modified = true
     }
 
     // 2. 修复目录结尾的换页符
@@ -2260,6 +2288,69 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
       logger.info('已修复 document.xml 中的对齐和分页问题')
     }
 
+    return modified
+  }
+}
+
+/**
+ * 图片段落居中处理器
+ * 在 document.xml 后处理阶段，将包含图片（w:drawing / w:pict）的段落设为居中对齐
+ * 与 ImageNumberingProcessor 使用相同方式定位图片段落，再改写段落属性中的 w:jc
+ */
+export class ImageCenterProcessor implements DocxProcessor {
+  name = 'ImageCenterProcessor'
+
+  async process(context: DocxProcessingContext): Promise<boolean> {
+    const { documentXml } = context
+    let updatedXml = documentXml
+    let modified = false
+
+    const imageParagraphRegex =
+      /<w:p[^>]*>([\s\S]*?<w:drawing[\s\S]*?<\/w:drawing>[\s\S]*?|[\s\S]*?<w:pict[\s\S]*?<\/w:pict>[\s\S]*?)<\/w:p>/g
+
+    const imageParagraphs: Array<{ fullMatch: string; index: number; endIndex: number }> = []
+    let match: RegExpExecArray | null
+    while ((match = imageParagraphRegex.exec(documentXml)) !== null) {
+      imageParagraphs.push({
+        fullMatch: match[0],
+        index: match.index,
+        endIndex: match.index + match[0].length
+      })
+    }
+
+    if (imageParagraphs.length === 0) {
+      logger.debug('ImageCenterProcessor: 未找到图片段落')
+      return false
+    }
+
+    const centerJc = '<w:jc w:val="center"/>'
+
+    for (let i = imageParagraphs.length - 1; i >= 0; i--) {
+      const { fullMatch, index, endIndex } = imageParagraphs[i]
+      let newParagraph = fullMatch
+
+      const pPrMatch = fullMatch.match(/<w:pPr([^>]*)>([\s\S]*?)<\/w:pPr>/)
+      if (pPrMatch) {
+        const pPrFull = pPrMatch[0]
+        let pPrContent = pPrMatch[2]
+        pPrContent = pPrContent.replace(/<w:jc[^>]*\/?>/gi, '')
+        const newPPrContent = `<w:pPr${pPrMatch[1]}>${centerJc}${pPrContent}</w:pPr>`
+        newParagraph = fullMatch.replace(pPrFull, newPPrContent)
+      } else {
+        const pPrBlock = `<w:pPr>${centerJc}</w:pPr>`
+        newParagraph = fullMatch.replace(/^(<w:p[^>]*>)/, `$1${pPrBlock}`)
+      }
+
+      if (newParagraph !== fullMatch) {
+        updatedXml = updatedXml.substring(0, index) + newParagraph + updatedXml.substring(endIndex)
+        modified = true
+      }
+    }
+
+    if (modified) {
+      context.documentXml = updatedXml
+      logger.info(`已将 ${imageParagraphs.length} 个图片段落设为居中对齐`)
+    }
     return modified
   }
 }

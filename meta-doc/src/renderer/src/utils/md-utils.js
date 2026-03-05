@@ -888,6 +888,25 @@ export async function embedImagesInline(md, convertSvgToBitmap = true, docPath =
             )
           }
         } else {
+          // 网络图：优先用主进程下载（无 CORS），再写回 Markdown 由 Vditor 生成 HTML，与本地图一致
+          if (
+            messageBridge.getIpc() &&
+            (image_path.startsWith('http://') || image_path.startsWith('https://'))
+          ) {
+            try {
+              const mainDataUrl = await messageBridge.invoke(
+                'download-image-to-data-url',
+                image_path
+              )
+              if (mainDataUrl && mainDataUrl.startsWith('data:')) {
+                const newLine = line.replace(image_path, mainDataUrl)
+                new_md += newLine + '\n'
+                continue
+              }
+            } catch (ipcErr) {
+              getLogger().debug('主进程下载网络图失败，尝试 fetch:', image_path, ipcErr)
+            }
+          }
           // 非 file:// 协议，使用原有的 fetch 方式
           const response = await fetch(image_path)
 

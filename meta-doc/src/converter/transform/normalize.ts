@@ -72,6 +72,13 @@ function normalizeBlock(node: BlockNode): BlockNode | null {
   if (node.type === 'thematic_break' || node.type === 'unknown') {
     return node
   }
+  if (node.type === 'table') {
+    return {
+      type: 'table',
+      headerRow: node.headerRow.map((c) => c.trim()),
+      rows: node.rows.map((row) => row.map((c) => c.trim()))
+    }
+  }
   return node
 }
 
@@ -93,7 +100,7 @@ function normalizeInlineSequence(nodes: InlineNode[]): InlineNode[] {
       continue
     }
     flushText()
-    if (n.type === 'strong' || n.type === 'emphasis' || n.type === 'link') {
+    if (n.type === 'strong' || n.type === 'emphasis' || n.type === 'link' || n.type === 'strikethrough') {
       merged.push({
         ...n,
         children: normalizeInlineSequence(n.children)

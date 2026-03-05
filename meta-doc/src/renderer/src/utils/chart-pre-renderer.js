@@ -12,6 +12,18 @@ import messageBridge from '../bridge/message-bridge'
 // mermaid 改为动态导入，实现按需加载
 // 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
 
+/** 与 fonts.css 中 --font-family-preview 一致，用于编辑器内与 Vditor 预览一致（仅在不用于导出时） */
+function getAppFontStack() {
+  if (typeof getComputedStyle !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--font-family-preview').trim()
+    if (v) return v
+  }
+  return "'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+}
+
+/** 导出用字体栈：通用 sans-serif，保证在 PDF/主进程 resvg、其他应用中一致渲染，避免字体缺失导致错位或字体不对 */
+const EXPORT_FONT_STACK = 'Arial, Verdana, sans-serif'
+
 // 导出图表类型配置供外部使用
 // 改进的正则表达式：使用更严格的匹配，确保只匹配到正确的代码块结束标记
 // 匹配模式：```type\n代码内容\n```
@@ -274,10 +286,14 @@ export async function renderMermaidViaApi(code, format = 'svg') {
   try {
     // 动态导入 mermaid，实现按需加载
     const mermaid = (await import('mermaid')).default
-    // 初始化 Mermaid（每次调用都初始化，确保配置正确）
+    // 导出用通用字体栈，保证在主进程 resvg 转 PDF、其他应用中一致渲染，避免字体缺失导致错位或字体不对；theme: 'base' 确保 themeVariables 生效
     mermaid.initialize({
       startOnLoad: false,
-      securityLevel: 'loose' // 允许交互功能
+      securityLevel: 'loose',
+      theme: 'base',
+      themeVariables: {
+        fontFamily: EXPORT_FONT_STACK
+      }
     })
 
     // 先验证语法
@@ -707,7 +723,10 @@ function cleanSvgForExport(svgContent) {
 
   // 覆盖样式层面的动画与过渡（ECharts 常通过 @keyframes + class 触发）
   const overrideStyle = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'style')
-  overrideStyle.textContent = '*{animation: none !important; transition: none !important;}'
+  // 导出用通用字体，保证 SVG 在任意环境（主进程 resvg、其他应用）中一致渲染，避免字体缺失导致错位或字体不对
+  overrideStyle.textContent =
+    '*{animation: none !important; transition: none !important;}' +
+    ` foreignObject body, foreignObject div { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; font-family: ${EXPORT_FONT_STACK} !important; }`
   // 将覆盖样式附加到 <svg> 末尾，确保优先级
   svgElement.appendChild(overrideStyle)
 

@@ -19,18 +19,24 @@ export interface ImageExportResult {
   relativePath: string
 }
 
+export interface SaveImageToFolderOptions {
+  /** 将冷门格式（avif/webp）转为 PNG 的回调，用于 LaTeX/DOCX 等只支持常见格式的场景 */
+  convertToPng?: (buffer: Buffer, mime: string) => Promise<Buffer>
+}
+
 /**
  * 将图片或 PDF 文件保存到指定文件夹
  * @param imageUrl - 图片或 PDF 文件 URL（运行时服务器 /images/filename 或本地路径）
  * @param targetFolder - 目标文件夹路径
  * @param imageName - 文件名（可选，如果不提供则从 URL 提取）
+ * @param options - 可选，如 convertToPng 用于将 avif/webp 转为 PNG
  * @returns 保存结果
- * 注意：此函数可以处理任何文件类型，包括图片（PNG、JPG、SVG 等）和 PDF 文件
  */
 export async function saveImageToFolder(
   imageUrl: string,
   targetFolder: string,
-  imageName?: string
+  imageName?: string,
+  options?: SaveImageToFolderOptions
 ): Promise<ImageExportResult> {
   try {
     // 首先清理路径：移除任何 LaTeX 命令（如 \detokenize）
@@ -96,9 +102,6 @@ export async function saveImageToFolder(
 
     // 清理文件名（移除非法字符）
     fileName = sanitizeFileName(fileName)
-
-    // 构建目标路径
-    const targetPath = path.join(targetFolder, fileName)
 
     // 尝试从本地文件系统读取或下载
     let imageBuffer: Buffer | null = null
@@ -191,6 +194,22 @@ export async function saveImageToFolder(
       }
     }
 
+    // 冷门格式（avif/webp）转为 PNG，便于 LaTeX/html-to-docx 等使用
+    let targetPath = path.join(targetFolder, fileName)
+    const mime = inferImageMimeType(imageUrl, undefined)
+    if (
+      options?.convertToPng &&
+      (mime === 'image/avif' || mime === 'image/webp')
+    ) {
+      try {
+        imageBuffer = await options.convertToPng(imageBuffer, mime)
+        fileName = fileName.replace(/\.[^.]+$/, '') + '.png'
+        targetPath = path.join(targetFolder, fileName)
+      } catch (e) {
+        logger.warn(`avif/webp 转 PNG 失败，按原格式保存: ${imageUrl}`, e)
+      }
+    }
+
     // 保存文件
     fs.writeFileSync(targetPath, imageBuffer)
     logger.info(`图片已保存到: ${targetPath}`)
@@ -211,16 +230,18 @@ export async function saveImageToFolder(
 
 /**
  * 批量保存图片到文件夹
+ * @param options.convertToPng - 可选，将 avif/webp 转为 PNG（需由调用方传入依赖 renderer 的转换器）
  */
 export async function saveImagesToFolder(
   imageUrls: string[],
-  targetFolder: string
+  targetFolder: string,
+  options?: SaveImageToFolderOptions
 ): Promise<ImageExportResult[]> {
   const results: ImageExportResult[] = []
 
   for (const url of imageUrls) {
     try {
-      const result = await saveImageToFolder(url, targetFolder)
+      const result = await saveImageToFolder(url, targetFolder, undefined, options)
       results.push(result)
     } catch (error) {
       logger.error(`保存图片失败: ${url}`, error)
@@ -261,6 +282,52 @@ function downloadImage(url: string): Promise<Buffer> {
       .on('error', (error) => {
         reject(error)
       })
+  })
+}
+
+/** 根据 URL 路径或 Content-Type 推断图片 MIME 类型 */
+function inferImageMimeType(url: string, contentTypeHeader: string | undefined): string {
+  if (contentTypeHeader) {
+    const main = contentTypeHeader.split(';')[0].trim().toLowerCase()
+    if (main.startsWith('image/')) return main
+  }
+  const lower = url.split('?')[0].toLowerCase()
+  if (lower.endsWith('.avif')) return 'image/avif'
+  if (lower.endsWith('.webp')) return 'image/webp'
+  if (lower.endsWith('.png')) return 'image/png'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+  if (lower.endsWith('.gif')) return 'image/gif'
+  if (lower.endsWith('.svg')) return 'image/svg+xml'
+  return 'image/png'
+}
+
+/**
+ * 通过 HTTP/HTTPS 下载网络图片并返回 data URL（用于 DOCX 等导出内嵌）
+ * 主进程无 CORS 限制，可可靠下载渲染进程 fetch 可能失败的远程图片
+ */
+export function downloadImageAsDataUrl(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const https = require('https') as typeof import('https')
+    const protocol = url.startsWith('https') ? https : http
+
+    protocol
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode}`))
+          return
+        }
+        const contentType = response.headers['content-type']
+        const chunks: Buffer[] = []
+        response.on('data', (chunk) => chunks.push(chunk))
+        response.on('end', () => {
+          const buffer = Buffer.concat(chunks)
+          const mime = inferImageMimeType(url, contentType)
+          const base64 = buffer.toString('base64')
+          resolve(`data:${mime};base64,${base64}`)
+        })
+        response.on('error', (error) => reject(error))
+      })
+      .on('error', (error) => reject(error))
   })
 }
 

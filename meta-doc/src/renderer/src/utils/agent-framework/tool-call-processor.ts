@@ -67,6 +67,12 @@ export function parseToolCalls(
   const { loose = false, validateToolId = false, toolIdValidator } = options
 
   try {
+    // 不完整标记：有开始无结束，且非宽松模式时直接返回 null
+    if (!loose && content.includes('<tool_call>') && !content.includes('</tool_call>')) {
+      getLogger().debug('[parseToolCalls] 不完整的工具调用标记（缺少 </tool_call>），返回 null')
+      return null
+    }
+
     getLogger().debug('[parseToolCalls] 开始解析工具调用', {
       contentLength: content.length,
       loose,

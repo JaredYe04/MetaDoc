@@ -47,7 +47,11 @@
         </Tooltip>
       </TooltipProvider>
       <span class="status-divider">|</span>
-      <span class="status-item status-file">
+      <span
+        class="status-item status-file"
+        :class="{ 'status-file--clickable': !!currentFilePath }"
+        @click="currentFilePath ? onCurrentFileClick() : null"
+      >
         {{ $t('bottomMenu.currentFile')
         }}{{ currentFilePath ? currentFilePath : $t('bottomMenu.newFile') }}
       </span>
@@ -127,6 +131,7 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { BellFilled, Document } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 import { themeState } from '../utils/themes'
 import { useNotificationStore } from '../stores/notification'
 import { useWorkspace } from '../stores/workspace'
@@ -268,6 +273,20 @@ function toggleLoggerConsole(): void {
   eventBus.emit('toggle-logger-console')
 }
 
+async function onCurrentFileClick(): Promise<void> {
+  const path = currentFilePath.value
+  if (!path) return
+  if (messageBridge.getIpc()?.invoke) {
+    await messageBridge.invoke('show-item-in-folder', path)
+  }
+  try {
+    await navigator.clipboard.writeText(path)
+    eventBus.emit('show-success', { message: t('workspaceExplorer.copyPathSuccess') })
+  } catch (e) {
+    console.warn('Copy path to clipboard failed', e)
+  }
+}
+
 // 组件挂载时加载版本信息
 onMounted(() => {
   loadVersion()
@@ -310,6 +329,21 @@ onMounted(() => {
 
 .status-file {
   max-width: 40vw;
+}
+
+.status-file--clickable {
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.status-file--clickable:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.status-file--clickable:active {
+  background-color: rgba(0, 0, 0, 0.12);
 }
 
 .status-divider {

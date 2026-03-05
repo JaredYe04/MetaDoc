@@ -1527,7 +1527,7 @@ const currentExportAdapter = ref<any>(null)
 
 const handleExportClick = (format: ExportFormat) => {
   const sourceFormat = (activeDocument.value?.format ?? 'md') as DocumentFormat
-  const adapter = exportAdapterRegistry(sourceFormat, format)
+  const adapter = exportAdapterRegistry.get(sourceFormat, format)
 
   if (adapter && adapter.getOptionFields().length > 0) {
     // 如果有导出选项，显示对话框

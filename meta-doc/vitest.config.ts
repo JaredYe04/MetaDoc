@@ -6,7 +6,10 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'node',
-    include: ['src/renderer/src/utils/**/*.test.ts'],
+    include: [
+      'src/renderer/src/utils/**/*.test.ts',
+      'src/converter/**/*.test.ts'
+    ],
     globals: true
   },
   resolve: {

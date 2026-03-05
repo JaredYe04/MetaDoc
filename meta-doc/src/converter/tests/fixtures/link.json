@@ -1,0 +1,4 @@
+{
+  "markdown": "[text](https://example.com)",
+  "latex": "\\href{https://example.com}{text}"
+}

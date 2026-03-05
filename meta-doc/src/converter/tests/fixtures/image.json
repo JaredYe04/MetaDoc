@@ -1,0 +1,4 @@
+{
+  "markdown": "![alt](img.png)",
+  "latex": "\\includegraphics{img.png}"
+}

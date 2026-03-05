@@ -37,7 +37,7 @@ function parseArgs() {
   const out = {
     category: 'all',
     locale: 'all',
-    outputDir: path.join(metaDocRoot, '..', '..', 'debug', 'compile-pdf'),
+    outputDir: path.join(metaDocRoot, 'debug', 'compile-pdf'),
     quiet: false
   }
   for (const arg of process.argv.slice(2)) {

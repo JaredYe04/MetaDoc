@@ -19,6 +19,9 @@ import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 
 const eventBus = mitt()
+if (typeof window !== 'undefined') {
+  window.__eventBus = eventBus
+}
 
 export default eventBus
 
@@ -124,7 +127,7 @@ const buildSavePayload = async (doc) => {
   const serialized = await serializeDocument(doc)
   const markdownSource =
     doc.format === 'tex' ? convertLatexToMarkdown(doc.tex ?? '') : (doc.markdown ?? '')
-  const html = await ConvertMarkdownToHtmlManually(markdownSource)
+  const html = await ConvertMarkdownToHtmlManually(markdownSource, true, doc.path || '')
   return {
     json: serialized.json,
     md: serialized.md,
@@ -699,7 +702,9 @@ eventBus.on('export', async ({ format, filename, options }) => {
   const doc = getDocument()
   if (!doc) return
 
-  // 设置鼠标等待状态
+  const targetPath = options?.targetPath
+
+  // 设置鼠标等待状态（无 targetPath 时显示等待，有 targetPath 时多为脚本驱动可不改光标）
   const setCursorWaiting = () => {
     document.body.style.cursor = 'wait'
     if (document.documentElement) {
@@ -714,17 +719,20 @@ eventBus.on('export', async ({ format, filename, options }) => {
     }
   }
 
-  setCursorWaiting()
+  if (!targetPath) setCursorWaiting()
 
-  // 监听主进程发送的对话框打开事件，恢复鼠标状态
+  // 监听主进程发送的对话框打开事件，恢复鼠标状态（仅走对话框时有效）
   const handleDialogOpening = () => {
     restoreCursor()
   }
   messageBridge.on('export-dialog-opening', handleDialogOpening)
 
   try {
+    // 与程序内导出完全同一套准备流程：预渲染图表、公式、图片处理等
     const payload = await prepareExportPayload(doc, format, filename, options)
-    const result = await messageBridge.invoke('perform-export', payload)
+    const result = targetPath
+      ? await messageBridge.invoke('perform-export-to-path', payload, targetPath)
+      : await messageBridge.invoke('perform-export', payload)
 
     // 如果用户取消了对话框（result.success === false 且没有 error），取消任务
     if (!result.success && !result.error) {
@@ -871,3 +879,5 @@ eventBus.on('receive-broadcast', (message) => {
 // eventBus.onAny((event, ...args) => {
 //     console.log('event:', event, 'args:', args);
 // });
+
+// 已在文件顶部挂载 window.__eventBus，此处保留注释供参考

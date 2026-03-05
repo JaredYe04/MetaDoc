@@ -698,9 +698,10 @@ export function generateWordFrequencyTrendChart(text, topWords) {
  * - 对于矢量图（SVG）：根据 convertSvgToBitmap 参数决定是否转换为位图
  * @param {string} md - Markdown 文本
  * @param {boolean} convertSvgToBitmap - 是否将 SVG 转换为位图（默认 true，用于 DOCX 导出）
+ * @param {string} [docPath] - 可选，文档路径，用于解析相对路径图片（如 ./images/xxx.png）
  * @returns {Promise<string>} 处理后的 Markdown 文本
  */
-export async function embedImagesInline(md, convertSvgToBitmap = true) {
+export async function embedImagesInline(md, convertSvgToBitmap = true, docPath = '') {
   //查找markdown里面所有的图片链接，读取图片，转换为内联 data URL，返回经过替换后的markdown
   // 注意：SVG 图片默认转换为位图（PNG）后再转 base64，因为 html-to-docx 不支持 SVG
   // 但对于 HTML 导出，可以保持 SVG 格式（convertSvgToBitmap=false）
@@ -711,7 +712,7 @@ export async function embedImagesInline(md, convertSvgToBitmap = true) {
     const line = lines[i]
     const match = line.match(/!\[.*?\]\((.*?)\)/)
     if (match) {
-      const image_path = match[1]
+      let image_path = match[1]
 
       // 检查 image_path 是否为空
       if (!image_path || image_path.trim() === '') {
@@ -721,6 +722,50 @@ export async function embedImagesInline(md, convertSvgToBitmap = true) {
       }
 
       let dataUrl = ''
+      // 相对路径：在 fetch 前尝试用 docPath 解析为绝对路径并走 read-file-for-upload
+      if (
+        docPath &&
+        !image_path.startsWith('file://') &&
+        !image_path.startsWith('http://') &&
+        !image_path.startsWith('https://') &&
+        !image_path.startsWith('data:')
+      ) {
+        try {
+          const { resolvePathWithLinkBase } = await import('./path-resolver')
+          const { getLinkBase } = await import('../stores/workspace')
+          const linkBase = getLinkBase(docPath)
+          const resolved = resolvePathWithLinkBase(image_path, linkBase || docPath)
+          if (resolved && messageBridge.getIpc()) {
+            const fileData = await messageBridge.invoke('read-file-for-upload', resolved)
+            if (fileData && fileData.data) {
+              const ext = (resolved.split(/[/\\]/).pop() || '').toLowerCase()
+              const isSvg = ext === '.svg' || fileData.mimeType?.includes('svg')
+              const mimeType = fileData.mimeType || 'image/png'
+              if (isSvg && convertSvgToBitmap) {
+                try {
+                  const svgText = atob(fileData.data)
+                  const { convertSvgToPng } = await import('./chart-pre-renderer')
+                  const pngDataUrl = await convertSvgToPng(svgText, 2.0)
+                  const base64Match = pngDataUrl.match(/^data:image\/png;base64,(.+)$/)
+                  dataUrl = base64Match ? pngDataUrl : `data:${mimeType};base64,${fileData.data}`
+                } catch (_) {
+                  dataUrl = `data:${mimeType};base64,${fileData.data}`
+                }
+              } else if (isSvg) {
+                dataUrl = `data:image/svg+xml;base64,${fileData.data}`
+              } else {
+                dataUrl = `data:${mimeType};base64,${fileData.data}`
+              }
+              if (dataUrl) {
+                new_md += line.replace(image_path, dataUrl) + '\n'
+                continue
+              }
+            }
+          }
+        } catch (e) {
+          getLogger().debug('相对路径解析/读取失败，继续用 fetch:', image_path, e)
+        }
+      }
       try {
         // 处理 file:// 协议的 URL
         if (image_path.startsWith('file://')) {
@@ -1933,7 +1978,12 @@ export async function ConvertMarkdownToHtmlVditor(md) {
  * - span.language-math 视为行内
  * - div.language-math 视为块级
  */
-export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = true) {
+/**
+ * @param md - Markdown 文本
+ * @param convertImagesToBase64 - 是否将图片转为 base64
+ * @param docPath - 可选，当前文档路径，用于解析相对图片路径（如 images/xxx.png）
+ */
+export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = true, docPath = '') {
   const contentTheme = await getSetting('contentTheme')
   const codeTheme = await getSetting('codeTheme')
   const lineNumber = await getSetting('lineNumber')
@@ -1983,10 +2033,10 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
             !imageUrl.startsWith('data:') &&
             !imageUrl.startsWith('file://')
           ) {
-            // 本地路径：先转换为HTTP URL
+            // 本地路径：先转换为HTTP URL（传入 docPath 以便解析相对路径如 images/xxx.png）
             try {
               const { local2httpProtocol } = await import('./md-utils')
-              const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '')
+              const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, docPath || '')
               const match = converted.match(/!\[.*?\]\((.*?)\)/)
               if (match && match[1] && match[1].startsWith(getRuntimeServerBaseUrlSync() + '/')) {
                 actualImageUrl = match[1]
@@ -2024,6 +2074,15 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
                 localPath = decodeURIComponent(localPath)
               } catch (e) {
                 // 解码失败，使用原始路径
+              }
+            }
+            // 相对路径（如 images/purple.png）必须结合文档路径解析为绝对路径，否则主进程读取会报「文件不存在」
+            if (docPath && localPath && !/^[A-Za-z]:[\\/]/.test(localPath) && !localPath.startsWith('/')) {
+              const { resolvePathWithLinkBase } = await import('./path-resolver')
+              const { getLinkBase } = await import('../stores/workspace')
+              const linkBase = getLinkBase(docPath)
+              if (linkBase) {
+                localPath = resolvePathWithLinkBase(localPath, linkBase)
               }
             }
 
@@ -2132,7 +2191,7 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
             ) {
               try {
                 const { local2httpProtocol } = await import('./md-utils')
-                const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, '')
+                const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, docPath || '')
                 const match = converted.match(/!\[.*?\]\((.*?)\)/)
                 if (match && match[1] && match[1].startsWith(getRuntimeServerBaseUrlSync() + '/')) {
                   // 如果转换成功，尝试 fetch 这个 HTTP URL

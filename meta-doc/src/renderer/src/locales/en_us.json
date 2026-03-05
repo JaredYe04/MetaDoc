@@ -160,6 +160,7 @@
     "continue": "Continue",
     "save": "Save",
     "edit": "Edit",
+    "export": "Export",
     "delete": "Delete",
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Failed to delete",

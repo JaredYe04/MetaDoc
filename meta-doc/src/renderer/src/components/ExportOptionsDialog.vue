@@ -465,7 +465,7 @@
           {{ t('common.cancel') }}
         </Button>
         <Button @click="handleConfirm">
-          {{ t('common.confirm') }}
+          {{ t('common.export') }}
         </Button>
         <Button @click="handleReset" variant="outline">
           {{ t('common.reset') }}
@@ -896,5 +896,25 @@ html.dark :deep(.export-options-tabs-list [data-state='active']) {
 
 :deep(.export-options-tabs-list [data-state='active']:active) {
   opacity: 0.95;
+}
+
+/* 打开对话框时不聚焦到 scroll viewport / tablist，避免整块 panel 出现难看的 focus 框 */
+:deep([data-reka-scroll-area-viewport]),
+:deep([data-reka-scroll-area-viewport]:focus),
+:deep([data-reka-scroll-area-viewport]:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+:deep(.export-options-tabs-list),
+:deep(.export-options-tabs-list:focus),
+:deep(.export-options-tabs-list:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+:deep(.export-options-tabs [role='tabpanel']),
+:deep(.export-options-tabs [role='tabpanel']:focus),
+:deep(.export-options-tabs [role='tabpanel']:focus-visible) {
+  outline: none;
+  box-shadow: none;
 }
 </style>

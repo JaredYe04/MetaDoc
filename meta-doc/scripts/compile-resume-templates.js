@@ -12,8 +12,7 @@ const path = require('path')
 
 const node = process.execPath
 const script = path.join(__dirname, 'compile-templates.js')
-// 调试目录统一在 MetaDoc/debug（workspace 根目录下的 debug）
-const result = spawnSync(node, [script, '--category=resume', '--out=../../debug/resume-pdf'], {
+const result = spawnSync(node, [script, '--category=resume', '--out=debug/resume-pdf'], {
   cwd: path.join(__dirname, '..'),
   stdio: 'inherit'
 })

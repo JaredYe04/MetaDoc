@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it'
 import footnote from 'markdown-it-footnote'
 import taskLists from 'markdown-it-task-lists'
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from './md-utils'
+import { markdownToLatex, latexToMarkdown } from '../../../converter'
 
 const md = new MarkdownIt({
   html: false,
@@ -11,68 +12,18 @@ const md = new MarkdownIt({
   .use(footnote)
   .use(taskLists, { enabled: true })
 
-// 数学公式占位处理：将 $...$ 与 $$...$$ 暂存，避免在后续转义中被破坏
-// 占位符仅使用不会被 escapeLatex 处理的字符：字母与 @ : 数字，避免下划线等
-function extractMathPlaceholders(source) {
-  const placeholders = []
-  let text = source
-
-  // 先处理块级 $$...$$（可跨行）
-  // 使用负向后顾断言避免匹配转义的 \$$
-  text = text.replace(/(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g, (match, content) => {
-    const index = placeholders.length
-    placeholders.push('$$' + content + '$$')
-    return `@@MATHBLOCK:${index}@@`
-  })
-
-  // 再处理内联 $...$（避免和 $$...$$ 冲突，且不跨行）
-  // 使用负向后顾断言避免匹配转义的 \$，且行内公式不应该跨行
-  // 注意：不要求 $ 前后不能有空格，只要不是转义的 $ 即可
-  text = text.replace(/(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g, (match, content) => {
-    const index = placeholders.length
-    placeholders.push('$' + content + '$')
-    return `@@MATHINLINE:${index}@@`
-  })
-
-  return { text, placeholders }
-}
-
-function restoreMathPlaceholders(text, placeholders) {
-  if (!placeholders || placeholders.length === 0) return text
-  let result = text
-  // 恢复块级
-  result = result.replace(/@@MATHBLOCK:(\d+)@@/g, (_, idx) => {
-    const i = parseInt(idx, 10)
-    return placeholders[i] ?? ''
-  })
-  // 恢复内联
-  result = result.replace(/@@MATHINLINE:(\d+)@@/g, (_, idx) => {
-    const i = parseInt(idx, 10)
-    return placeholders[i] ?? ''
-  })
-  return result
-}
-
 /**
  * 转换Markdown正文内容为LaTeX格式（仅正文，不包含documentclass、包等）
+ * 内部使用 AST 转换库 src/converter
  * @param {string} markdown - Markdown内容
  * @returns {Promise<string>} LaTeX正文内容
  */
 export async function convertMarkdownBodyToLatex(markdown) {
-  // 提前抽取数学公式，避免后续字符转义破坏 TeX 语法
-  const { text: markdownWithoutMath, placeholders } = extractMathPlaceholders(markdown)
-  let body = await convertTokensToLatex(md.parse(markdownWithoutMath, {}))
-  // 转换完成后再恢复数学公式原文
-  body = restoreMathPlaceholders(body, placeholders)
-  return body
+  return Promise.resolve(markdownToLatex(markdown ?? ''))
 }
 
 export async function convertMarkdownToLatex(markdown, title = 'Generated Document', options = {}) {
-  // 提前抽取数学公式，避免后续字符转义破坏 TeX 语法
-  const { text: markdownWithoutMath, placeholders } = extractMathPlaceholders(markdown)
-  let body = await convertTokensToLatex(md.parse(markdownWithoutMath, {}))
-  // 转换完成后再恢复数学公式原文
-  body = restoreMathPlaceholders(body, placeholders)
+  const body = markdownToLatex(markdown ?? '')
 
   // 提取选项，设置默认值
   const documentClass = options.documentClass || 'article'
@@ -910,280 +861,14 @@ export function extractPlainTextFromLatex(latex) {
     .trim()
 }
 
+/**
+ * LaTeX 正文 → Markdown
+ * 内部使用 AST 转换库 src/converter
+ * @param {string} latex - LaTeX 内容（可含 \\begin{document}...\\end{document}）
+ * @returns {string} Markdown 字符串
+ */
 export function convertLatexToMarkdown(latex) {
-  const sanitized = sanitizeLatexInput(latex)
-  const lines = sanitized.split('\n')
-  let md = ''
-  let inItemize = false
-  let inEnumerate = false
-  let inQuote = false
-  let inVerbatim = false
-  let inTable = false
-  let inFigure = false
-  let figureContent = ''
-  let figureDepth = 0
-  let tableRows = []
-  let pendingListItem = null
-  let enumerateIndex = 1
-
-  const headingMap = {
-    section: '#',
-    subsection: '##',
-    subsubsection: '###'
-  }
-
-  const flushListItem = () => {
-    if (pendingListItem === null) {
-      return
-    }
-    const normalized = pendingListItem.trim()
-    pendingListItem = null
-    if (!normalized) {
-      return
-    }
-    if (inEnumerate) {
-      md += `${enumerateIndex}. ${normalized}\n`
-      enumerateIndex += 1
-    } else {
-      md += `- ${normalized}\n`
-    }
-  }
-
-  const appendToPendingItem = (text) => {
-    const value = text.trim()
-    if (!value) return
-    if (!pendingListItem || pendingListItem.trim().length === 0) {
-      pendingListItem = value
-    } else {
-      pendingListItem += `\n  ${value}`
-    }
-  }
-
-  for (let rawLine of lines) {
-    const line = rawLine.trim()
-
-    if (!line) {
-      if (pendingListItem !== null && (inItemize || inEnumerate)) {
-        pendingListItem += '\n'
-        continue
-      }
-      flushListItem()
-      md += '\n'
-      continue
-    }
-
-    // --- verbatim (代码块) ---
-    if (line.startsWith('\\begin{verbatim}')) {
-      flushListItem()
-      inVerbatim = true
-      md += '```\n'
-      continue
-    }
-    if (line.startsWith('\\end{verbatim}')) {
-      inVerbatim = false
-      md += '```\n\n'
-      continue
-    }
-    if (inVerbatim) {
-      md += rawLine + '\n'
-      continue
-    }
-
-    // --- figure 环境 ---
-    // 完整保留 figure 环境，避免丢失 \detokenize{} 等命令
-    if (line.startsWith('\\begin{figure')) {
-      flushListItem()
-      inFigure = true
-      figureDepth = 1
-      figureContent = rawLine + '\n'
-      continue
-    }
-    if (line.startsWith('\\end{figure}')) {
-      figureContent += rawLine + '\n'
-      figureDepth--
-      if (figureDepth === 0) {
-        // 将 figure 环境作为代码块保留，这样在从大纲生成 LaTeX 时能正确恢复
-        md += '```latex\n' + figureContent + '```\n\n'
-        inFigure = false
-        figureContent = ''
-      }
-      continue
-    }
-    if (inFigure) {
-      // 在 figure 环境中，收集所有内容
-      if (line.startsWith('\\begin{figure')) {
-        figureDepth++
-      }
-      figureContent += rawLine + '\n'
-      continue
-    }
-
-    if (line.startsWith('\\begin{itemize}')) {
-      flushListItem()
-      inItemize = true
-      continue
-    }
-    if (line.startsWith('\\end{itemize}')) {
-      flushListItem()
-      inItemize = false
-      md += '\n'
-      continue
-    }
-
-    // --- enumerate 列表 ---
-    if (line.startsWith('\\begin{enumerate}')) {
-      flushListItem()
-      inEnumerate = true
-      enumerateIndex = 1
-      continue
-    }
-    if (line.startsWith('\\end{enumerate}')) {
-      flushListItem()
-      inEnumerate = false
-      md += '\n'
-      continue
-    }
-
-    if (line.startsWith('\\item')) {
-      flushListItem()
-      const itemText = transformInlineLatex(line.replace(/^\\item(\[[^\]]*\])?\s*/, ''))
-      pendingListItem = itemText
-      if (!inItemize && !inEnumerate) {
-        flushListItem()
-      }
-      continue
-    }
-
-    // 如果在列表环境中且当前行是纯文本，追加到当前列表项
-    if ((inItemize || inEnumerate) && !line.startsWith('\\')) {
-      const continuation = transformInlineLatex(line)
-      appendToPendingItem(continuation)
-      continue
-    }
-
-    // --- blockquote ---
-    if (line.startsWith('\\begin{quote}')) {
-      flushListItem()
-      inQuote = true
-      continue
-    }
-    if (line.startsWith('\\end{quote}')) {
-      flushListItem()
-      inQuote = false
-      md += '\n'
-      continue
-    }
-    if (inQuote) {
-      md += `> ${line}\n`
-      continue
-    }
-
-    // --- hr ---
-    if (line === '\\hrulefill') {
-      flushListItem()
-      md += '\n---\n\n'
-      continue
-    }
-
-    // --- headings ---
-    const headingMatch = line.match(/^\\(section|subsection|subsubsection)\*?\{(.+)\}/)
-    if (headingMatch) {
-      flushListItem()
-      const cmd = headingMatch[1]
-      const title = headingMatch[2]
-      const prefix = headingMap[cmd] || '#'
-      md += `${prefix} ${title}\n\n`
-      continue
-    }
-
-    // --- 图片 ---
-    // 注意：如果图片在 figure 环境中，已经在 figure 处理中包含了，这里跳过
-    if (!inFigure && line.startsWith('\\includegraphics')) {
-      flushListItem()
-      const match = line.match(/\\includegraphics\[.*\]\{(.+)\}/)
-      if (match) {
-        const path = match[1]
-        // caption 要在 figure 里
-        md += `![](${decodeLatexPath(path)})\n\n`
-      }
-      continue
-    }
-    if (!inFigure && line.startsWith('\\caption{')) {
-      const caption = line.replace(/\\caption\{(.+)\}/, '$1')
-      md = md.replace(/!\[\]\((.+?)\)/, `![$1]($1 "${caption}")`)
-      continue
-    }
-
-    // --- 链接 ---
-    const linkMatch = line.match(/\\href\{(.+?)\}\{(.+?)\}/)
-    if (linkMatch) {
-      flushListItem()
-      md += `[${linkMatch[2]}](${linkMatch[1]})\n\n`
-      continue
-    }
-
-    // --- 表格 ---
-    if (line.startsWith('\\begin{tabular}')) {
-      flushListItem()
-      inTable = true
-      tableRows = []
-      continue
-    }
-    if (line.startsWith('\\end{tabular}')) {
-      flushListItem()
-      inTable = false
-      // 渲染 markdown 表格
-      if (tableRows.length > 0) {
-        const colCount = tableRows[0].length
-        md += '\n' + tableRows.map((r) => '| ' + r.join(' | ') + ' |').join('\n') + '\n'
-        md += '| ' + Array(colCount).fill('---').join(' | ') + ' |\n\n'
-      }
-      continue
-    }
-    if (inTable && line.includes('&')) {
-      const row = line
-        .replace(/\\\\.*/, '')
-        .split('&')
-        .map((cell) => cell.trim())
-      tableRows.push(row)
-      continue
-    }
-
-    // --- 脚注 ---
-    const footnoteMatch = line.match(/\\footnote\{(.+)\}/)
-    if (footnoteMatch) {
-      flushListItem()
-      md += `[^1]: ${footnoteMatch[1]}\n`
-      continue
-    }
-
-    // --- 内联格式 ---
-    if (line.startsWith('\\begin{center}') || line.startsWith('\\end{center}')) {
-      flushListItem()
-      continue
-    }
-
-    // 跳过控制命令（不产生可见内容的命令）
-    if (CONTROL_COMMAND_REGEX.test(line)) {
-      flushListItem()
-      continue
-    }
-
-    if (IGNORED_INLINE_COMMAND_REGEX.test(line)) {
-      continue
-    }
-
-    const text = transformInlineLatex(line)
-    flushListItem()
-
-    if (text.trim()) {
-      md += text + '\n'
-    }
-  }
-
-  flushListItem()
-
-  return md.trim()
+  return latexToMarkdown(latex ?? '')
 }
 
 // 路径反转义

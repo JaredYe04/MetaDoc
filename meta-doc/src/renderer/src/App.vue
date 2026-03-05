@@ -264,9 +264,8 @@ onMounted(async () => {
   // 初始化 shadcn-vue 主题桥接（同步 themes.js 到 CSS 变量）
   useShadcnTheme()
 
-  // 初始化通知系统
+  // 初始化通知系统（不恢复上次会话的通知，每次启动从空队列开始）
   const notificationStore = useNotificationStore()
-  notificationStore.loadFromStorage()
   setNotificationStore(notificationStore)
   initNotificationLegacyAdapter()
 

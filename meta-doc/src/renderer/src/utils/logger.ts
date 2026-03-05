@@ -187,7 +187,7 @@ const dispatch = async (payload: LogPayload, level: LogLevel, formattedMessage: 
   }
 
   messageBridge.send('logger-log', payload)
-  logThroughConsole(level, formattedMessage)
+  // 不在此处再打 console，由主进程统一输出并 broadcast，保证程序控制台与 UI 完全一致
 }
 
 /**
@@ -205,6 +205,7 @@ const formatScopeSegment = (scope: string | undefined): string => {
   return `[${scope}]`
 }
 
+/** 与主进程一致的格式：时间戳 + 日志等级 + 所属进程/模块 + 内容（无日期前缀） */
 const buildMessage = (
   level: LogLevel,
   scope: string | undefined,
@@ -221,18 +222,15 @@ const buildMessage = (
     messages: normalized
   }
 
-  // 使用用户本地时区，格式化为 YYYY-MM-DD HH:mm:ss
   const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
   const hours = String(now.getHours()).padStart(2, '0')
   const minutes = String(now.getMinutes()).padStart(2, '0')
   const seconds = String(now.getSeconds()).padStart(2, '0')
-  const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  const timestamp = `${hours}:${minutes}:${seconds}`
   const scopeSegment = formatScopeSegment(scope)
   const windowSegment = windowType ? `[${windowType}]` : ''
-  const formatted = `${timestamp} [RENDERER]${windowSegment}${scopeSegment} [${level.toUpperCase()}] ${normalized.join(' ')}`
+  const processModule = `[RENDERER]${windowSegment}${scopeSegment}`
+  const formatted = `${timestamp} [${level.toUpperCase()}] ${processModule} ${normalized.join(' ')}`
 
   return { payload, formatted }
 }

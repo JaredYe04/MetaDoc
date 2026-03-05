@@ -995,7 +995,7 @@ import { useActiveDocument } from '../composables/useActiveDocument'
 import { EarthIcon } from 'tdesign-icons-vue-next'
 import { getExportOptions } from '../services/export-manager.ts'
 import type { DocumentFormat, ExportFormat } from '../../../types'
-import { exportAdapterRegistry } from '../services/export-adapters'
+import { getAdapterForExport } from '../services/export-adapters'
 import ExportOptionsDialog from './ExportOptionsDialog.vue'
 import type { ExportOptions } from '../services/export-adapters/types'
 import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
@@ -1527,7 +1527,7 @@ const currentExportAdapter = ref<any>(null)
 
 const handleExportClick = (format: ExportFormat) => {
   const sourceFormat = (activeDocument.value?.format ?? 'md') as DocumentFormat
-  const adapter = exportAdapterRegistry.get(sourceFormat, format)
+  const adapter = getAdapterForExport(sourceFormat, format)
 
   if (adapter && adapter.getOptionFields().length > 0) {
     // 如果有导出选项，显示对话框

@@ -79,57 +79,38 @@ const logHistory = ref<LoggerHistoryEntry[]>([])
 const filterText = ref(settings.loggingFilter || '')
 
 /**
- * 从日志内容中提取scope信息
- * 日志格式: timestamp [PROCESS][windowType?][scope] [LEVEL] message
- * 例如: "2024-01-01 12:00:00 [MAIN][ai-graph] [INFO] message"
- * 或: "2024-01-01 12:00:00 [RENDERER][windowType][ai-graph][WorkflowTool] [INFO] message"
+ * 从日志内容中提取 scope 信息
+ * 日志格式: HH:mm:ss [LEVEL] [PROCESS][windowType?][scope] content
+ * 例如: "12:00:00 [INFO] [MAIN][Logger] message"
+ * 或: "12:00:00 [ERROR] [RENDERER][main][ai-graph][WorkflowTool] message"
  */
 const extractScopeFromLog = (content: string): string | undefined => {
-  // 匹配所有方括号内容
   const bracketMatches = content.match(/\[([^\]]+)\]/g)
   if (!bracketMatches || bracketMatches.length < 2) {
     return undefined
   }
 
-  // 第一个是PROCESS类型（MAIN或RENDERER），最后一个通常是LEVEL
-  // 中间的可能是windowType和scope
-  // 跳过第一个（PROCESS）和最后一个（LEVEL）
-  const middleParts = bracketMatches.slice(1, -1)
-  if (middleParts.length === 0) {
+  const parts = bracketMatches.map((p) => p.slice(1, -1))
+  // 新格式：第一个是 LEVEL，第二个是 PROCESS (MAIN/RENDERER)，之后是 windowType 或 scope
+  const levelProcess = 2
+  if (parts.length <= levelProcess) {
     return undefined
   }
-
-  // 提取所有中间部分的内容（去掉方括号）
-  const parts = middleParts.map((p) => p.slice(1, -1))
-
-  // 如果只有一个部分，直接返回
-  if (parts.length === 1) {
-    return parts[0]
-  }
-
-  // 如果有多个部分，尝试识别scope部分
-  // scope通常包含连字符、链式格式，或者不是常见的windowType值
+  const rest = parts.slice(levelProcess)
   const commonWindowTypes = ['main', 'renderer', 'agent', 'settings']
-  const scopes = parts.filter((p) => {
-    // 如果包含链式格式，肯定是scope
+  const scopes = rest.filter((p) => {
     if (p.includes('][')) return true
-    // 如果包含连字符，可能是scope
     if (p.includes('-')) return true
-    // 如果不是常见的windowType，可能是scope
     if (!commonWindowTypes.includes(p.toLowerCase())) return true
     return false
   })
-
   if (scopes.length === 0) {
-    // 如果没有找到明显的scope，使用最后一个部分（通常是scope）
-    return parts[parts.length - 1]
+    return rest[rest.length - 1]
   }
-
-  // 组合成链式格式
   if (scopes.length === 1) {
     return scopes[0]
   }
-  return `[${scopes.join('][')}]`
+  return scopes.join('][')
 }
 
 /**

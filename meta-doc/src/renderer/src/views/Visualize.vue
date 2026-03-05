@@ -328,14 +328,19 @@ const generatePie = async () => {
   if (!data.length) return
 
   const config = generatePieFromData(data, documentTitle.value)
-  // 先销毁已存在的图表实例
   const existingChart = echarts.getInstanceByDom(node)
-  if (existingChart) {
-    existingChart.dispose()
+  if (existingChart) existingChart.dispose()
+  // 仅在容器已有尺寸时初始化，避免 ECharts 报 "Can't get DOM width or height"
+  const tryInit = (retries = 0) => {
+    if (node.clientWidth && node.clientHeight) {
+      const chart = echarts.init(node)
+      chart.setOption(config)
+      pieChart.value = chart
+      return
+    }
+    if (retries < 20) requestAnimationFrame(() => tryInit(retries + 1))
   }
-  const chart = echarts.init(node)
-  chart.setOption(config)
-  pieChart.value = chart
+  tryInit()
 }
 
 const generateWordCountDiagram = async () => {
@@ -344,15 +349,19 @@ const generateWordCountDiagram = async () => {
   if (!article_text.value?.trim()) {
     return
   }
-  // 先销毁已存在的图表实例
   const existingChart = echarts.getInstanceByDom(node)
-  if (existingChart) {
-    existingChart.dispose()
-  }
+  if (existingChart) existingChart.dispose()
   const config = generateWordCountBarChart(article_text.value)
-  const chart = echarts.init(node)
-  chart.setOption(config)
-  wordCountChart.value = chart
+  const tryInit = (retries = 0) => {
+    if (node.clientWidth && node.clientHeight) {
+      const chart = echarts.init(node)
+      chart.setOption(config)
+      wordCountChart.value = chart
+      return
+    }
+    if (retries < 20) requestAnimationFrame(() => tryInit(retries + 1))
+  }
+  tryInit()
 }
 
 const generateWordFrequencyDiagram = async () => {
@@ -361,17 +370,21 @@ const generateWordFrequencyDiagram = async () => {
   if (!wordCount.value.length || !article_text.value?.trim()) {
     return
   }
-  // 先销毁已存在的图表实例
   const existingChart = echarts.getInstanceByDom(node)
-  if (existingChart) {
-    existingChart.dispose()
-  }
+  if (existingChart) existingChart.dispose()
   const top5words = wordCount.value.slice(0, 5).map((item) => item.text)
   if (!top5words.length) return
   const config = generateWordFrequencyTrendChart(article_text.value, top5words)
-  const chart = echarts.init(node)
-  chart.setOption(config)
-  wordFrequencyChart.value = chart
+  const tryInit = (retries = 0) => {
+    if (node.clientWidth && node.clientHeight) {
+      const chart = echarts.init(node)
+      chart.setOption(config)
+      wordFrequencyChart.value = chart
+      return
+    }
+    if (retries < 20) requestAnimationFrame(() => tryInit(retries + 1))
+  }
+  tryInit()
 }
 
 const generateOutlineGraph = async () => {

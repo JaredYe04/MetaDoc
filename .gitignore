@@ -47,3 +47,4 @@ Thumbs.db
 # MetaDoc 用户数据
 docs/.metadoc/agent/sessions.json
 /meta-doc/debug
+/debug/resume-pdf

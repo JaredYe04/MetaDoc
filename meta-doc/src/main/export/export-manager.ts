@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import fs from 'fs'
 import path from 'path'
 // @ts-ignore - html-to-docx 没有类型定义
@@ -18,7 +18,8 @@ import {
   saveImagesToFolder,
   updateMarkdownImageLinks,
   updateHtmlImageLinks,
-  updateLatexImageLinks
+  updateLatexImageLinks,
+  downloadImageAsDataUrl
 } from '../utils/image-export-service'
 import {
   DocxProcessingManager,
@@ -26,10 +27,30 @@ import {
   DocumentXmlFixProcessor,
   WordTocProcessor,
   HeaderFooterProcessor,
-  ImageNumberingProcessor
+  ImageNumberingProcessor,
+  ImageCenterProcessor
 } from './docx-processor'
+import { convertSvgToPdf } from '../utils/svg-to-pdf'
 
 const logger = createMainLogger('PDFExport')
+
+/** 为没有尺寸选项的 \\includegraphics 添加最大不超出版心：max width + max height，等比例缩放且不放大小图 */
+function ensureIncludegraphicsWidth(tex: string): string {
+  return tex.replace(
+    /\\includegraphics\s*\{/g,
+    '\\includegraphics[max width=\\textwidth,max height=0.85\\textheight,keepaspectratio]{'
+  )
+}
+
+/** 将每个 \\includegraphics 包裹在 \\begin{center}...\\end{center} 中，使图片默认居中 */
+function wrapIncludegraphicsWithCenter(tex: string): string {
+  // 匹配完整 \includegraphics[可选]{路径}，路径内可含一层嵌套 {}（如 \detokenize{...}）
+  return tex.replace(
+    /\\includegraphics(?:\[[^\]]*\])?\{((?:[^{}]|\{[^{}]*\})*)\}/g,
+    '\\begin{center}\n$&\n\\end{center}'
+  )
+}
+
 let currentRequestId: string | undefined
 
 /**
@@ -1642,6 +1663,169 @@ const generateCoverPage = (
   `
 }
 
+// 1x1 红色像素 PNG，当无法加载 error-fallback.png 时的后备
+const FALLBACK_1X1_RED =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+/** 从 renderer 的 assets 加载错误占位图，失败则用 1x1 红点 */
+function getErrorPlaceholderDataUrl(): string {
+  try {
+    const appPath = app.getAppPath()
+    const candidate = path.join(appPath, 'src', 'renderer', 'src', 'assets', 'error-fallback.png')
+    if (fs.existsSync(candidate)) {
+      const buf = fs.readFileSync(candidate)
+      return `data:image/png;base64,${buf.toString('base64')}`
+    }
+    const fromOut = path.join(__dirname, '..', '..', '..', 'src', 'renderer', 'src', 'assets', 'error-fallback.png')
+    if (fs.existsSync(fromOut)) {
+      const buf = fs.readFileSync(fromOut)
+      return `data:image/png;base64,${buf.toString('base64')}`
+    }
+  } catch (e) {
+    logger.warn('加载 error-fallback.png 失败，使用后备占位图', e)
+  }
+  return FALLBACK_1X1_RED
+}
+
+const ERROR_PLACEHOLDER_IMAGE_DATA_URL = getErrorPlaceholderDataUrl()
+
+/** 冷门格式（avif/webp 等）转为 PNG，以便 html-to-docx / LaTeX 能识别；通过 renderer 的 canvas 转换 */
+async function convertImageToPngInRenderer(
+  dataUrl: string,
+  mainWindow: BrowserWindow | null
+): Promise<string | null> {
+  if (!mainWindow || mainWindow.isDestroyed()) return null
+  try {
+    const script = `
+      (function() {
+        if (!window.__convertImageToPng) {
+          window.__convertImageToPng = function(dataUrl) {
+            return new Promise(function(resolve, reject) {
+              var img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = function() {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+              };
+              img.onerror = function() { reject(new Error('Image load failed')); };
+              img.src = dataUrl;
+            });
+          };
+        }
+        return window.__convertImageToPng(${JSON.stringify(dataUrl)});
+      })()
+    `
+    const pngDataUrl = await mainWindow.webContents.executeJavaScript(script)
+    return typeof pngDataUrl === 'string' ? pngDataUrl : null
+  } catch (e) {
+    logger.warn('renderer 转 PNG 失败', e)
+    return null
+  }
+}
+
+/** 若为 avif/webp 等冷门格式则转为 PNG，否则返回原 data URL */
+async function ensureCommonFormat(
+  dataUrl: string,
+  mainWindow: BrowserWindow | null
+): Promise<string> {
+  const m = dataUrl.match(/^data:(image\/[^;]+);base64,/)
+  const mime = m ? m[1].toLowerCase() : ''
+  if (mime === 'image/avif' || mime === 'image/webp' || mime === 'image/svg+xml') {
+    const png = await convertImageToPngInRenderer(dataUrl, mainWindow)
+    if (png) return png
+  }
+  return dataUrl
+}
+
+/** 将 buffer 转为 PNG（通过 renderer canvas），用于 TEX 保存到文件夹时统一为 PNG */
+async function convertBufferToPng(
+  buffer: Buffer,
+  mime: string,
+  mainWindow: BrowserWindow | null
+): Promise<Buffer> {
+  const dataUrl = `data:${mime};base64,${buffer.toString('base64')}`
+  const pngDataUrl = await convertImageToPngInRenderer(dataUrl, mainWindow)
+  if (!pngDataUrl || !pngDataUrl.startsWith('data:image/png;base64,')) return buffer
+  const base64 = pngDataUrl.replace(/^data:image\/png;base64,/, '')
+  return Buffer.from(base64, 'base64')
+}
+
+/**
+ * 将 data URL 写入为本地文件，返回写入的绝对路径
+ */
+function writeDataUrlToFile(dataUrl: string, filePath: string): void {
+  const m = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/)
+  if (!m) throw new Error('Invalid data URL')
+  const buffer = Buffer.from(m[1], 'base64')
+  if (!fs.existsSync(path.dirname(filePath))) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  }
+  fs.writeFileSync(filePath, buffer)
+}
+
+/**
+ * 将 HTML 中所有指向网络地址的 img src 下载到本地（与本地图片同一套逻辑），
+ * 并替换为运行时服务器 URL，以便 html-to-docx 与本地图片一致地通过 URL 加载，避免 data URL 导致 DOCX 内出现裸露 base64。
+ * 下载失败时使用错误占位图（error-fallback.png）；avif/webp 等转为 PNG 后保存。
+ * @returns 替换后的 HTML 以及需要导出结束后清理的临时图片 URL 列表
+ */
+const downloadNetworkImagesToLocalAndReplaceInHtml = async (
+  html: string,
+  mainWindow: BrowserWindow | null
+): Promise<{ html: string; tempImageUrls: string[] }> => {
+  const imgSrcRegex = /<img([^>]*?)src\s*=\s*["'](https?:\/\/[^"']+)["']([^>]*)>/gi
+  const urls = new Set<string>()
+  let match
+  while ((match = imgSrcRegex.exec(html)) !== null) {
+    urls.add(match[2])
+  }
+  if (urls.size === 0) return { html, tempImageUrls: [] }
+
+  const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
+  const urlToRuntimeUrl = new Map<string, string>()
+  const tempImageUrls: string[] = []
+  let index = 0
+  const baseName = `docx_net_${Date.now()}`
+
+  await Promise.all(
+    Array.from(urls).map(async (url) => {
+      try {
+        let dataUrl = await downloadImageAsDataUrl(url)
+        dataUrl = await ensureCommonFormat(dataUrl, mainWindow)
+        const fileName = `${baseName}_${index++}.png`
+        const filePath = path.join(imageUploadDir, fileName)
+        writeDataUrlToFile(dataUrl, filePath)
+        const runtimeUrl = imagesPrefix + fileName
+        urlToRuntimeUrl.set(url, runtimeUrl)
+        tempImageUrls.push(runtimeUrl)
+      } catch (err) {
+        logger.warn(`下载网络图片失败，使用错误占位图: ${url}`, err)
+        const fallbackFileName = `${baseName}_${index++}_fallback.png`
+        const fallbackPath = path.join(imageUploadDir, fallbackFileName)
+        try {
+          writeDataUrlToFile(ERROR_PLACEHOLDER_IMAGE_DATA_URL, fallbackPath)
+          const runtimeUrl = imagesPrefix + fallbackFileName
+          urlToRuntimeUrl.set(url, runtimeUrl)
+          tempImageUrls.push(runtimeUrl)
+        } catch (e) {
+          logger.warn('写入错误占位图文件失败，保留原 URL', e)
+        }
+      }
+    })
+  )
+
+  const newHtml = html.replace(imgSrcRegex, (full, before, url, after) => {
+    const runtimeUrl = urlToRuntimeUrl.get(url)
+    if (runtimeUrl) return `<img${before}src="${runtimeUrl}"${after}>`
+    return full
+  })
+  return { html: newHtml, tempImageUrls }
+}
+
 const convertMarkdownToDocxBuffer = async (
   htmlContent: string,
   markdown: string,
@@ -1658,8 +1842,9 @@ const convertMarkdownToDocxBuffer = async (
     generateToc?: boolean
     processFormula?: boolean
   },
-  meta?: DocumentMetaInfo
-): Promise<Buffer> => {
+  meta?: DocumentMetaInfo,
+  mainWindow?: BrowserWindow | null
+): Promise<{ buffer: Buffer; tempImageUrls: string[] }> => {
   // 使用导出选项或默认值
   const enableStyleMapping =
     options?.enableStyleMapping !== undefined ? options.enableStyleMapping : true
@@ -1685,6 +1870,15 @@ const convertMarkdownToDocxBuffer = async (
   // 因为 HTML 是在渲染进程中生成的，公式可能已经被转换为图片或 MathML
   // 我们需要在 HTML 中找到这些公式元素，并替换为对应的占位符
   let processedHtml = htmlContent
+  let tempImageUrls: string[] = []
+
+  // 将网络图片下载到本地并替换为运行时 URL，与本地图片走同一套逻辑，避免 data URL 导致 DOCX 内出现裸露 base64
+  const networkResult = await downloadNetworkImagesToLocalAndReplaceInHtml(
+    processedHtml,
+    mainWindow ?? null
+  )
+  processedHtml = networkResult.html
+  tempImageUrls = networkResult.tempImageUrls
 
   if (options?.processFormula !== false) {
     // 只匹配 .language-math 元素（不匹配图片，因为图片不是公式）
@@ -2021,9 +2215,11 @@ const convertMarkdownToDocxBuffer = async (
         color: #d14 !important;
       }
       
-      /* 图片尺寸控制 - 使用max-width和max-height保持原始质量 */
-      /* A4页面可用区域：约680px × 1000px */
+      /* 图片尺寸控制与居中 - 使用max-width/max-height保持质量，并居中显示 */
       img {
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
         max-width: 680px !important;
         max-height: 1000px !important;
         width: auto !important;
@@ -2085,7 +2281,7 @@ const convertMarkdownToDocxBuffer = async (
   }
 
   const docxBuffer = await HTMLtoDOCX(htmlWrapped, null, documentOptions, null)
-  return Buffer.from(docxBuffer)
+  return { buffer: Buffer.from(docxBuffer), tempImageUrls }
 }
 
 // 导出公式占位符数据，供DOCX处理器使用
@@ -2201,7 +2397,9 @@ let docxProcessingManager: DocxProcessingManager | null = null
 const getDocxProcessingManager = (): DocxProcessingManager => {
   if (!docxProcessingManager) {
     docxProcessingManager = new DocxProcessingManager()
-    // 注册 Document XML 修复处理器（首先执行，修复对齐、分页、语言等问题）
+    // 图片居中必须在 DocumentXmlFixProcessor 之前执行，否则会被统一改成左对齐
+    docxProcessingManager.register(new ImageCenterProcessor())
+    // 注册 Document XML 修复处理器（修复对齐、分页、语言等；会保留已设置的 center）
     docxProcessingManager.register(new DocumentXmlFixProcessor())
     // 注册 Word 自动目录处理器
     docxProcessingManager.register(new WordTocProcessor())
@@ -2582,12 +2780,16 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
             imageLabelFontFamily: payload.exportOptions.imageLabelFontFamily
           }
         : undefined
-      const buffer = await convertMarkdownToDocxBuffer(
+      const { buffer, tempImageUrls } = await convertMarkdownToDocxBuffer(
         payload.html,
         payload.data.md,
         docxOptions,
-        meta
+        meta,
+        mainWindow
       )
+      if (tempImageUrls.length > 0) {
+        payload.imageUrls = [...(payload.imageUrls || []), ...tempImageUrls]
+      }
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.addingMetadata',
@@ -2771,7 +2973,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
 
     let finalTex = payload.data.tex
 
-    // 处理图片（根据模式）
+    // 处理图片（根据选项：folder = 保存到文件夹，original = 走统一图片上传 API）
     const imageProcessing = payload.exportOptions?.imageProcessing
 
     if (imageProcessing === 'folder') {
@@ -2813,7 +3015,11 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       // 先找到所有 \includegraphics 命令，然后提取大括号内容
       const graphicsRegex = /\\includegraphics(?:\[[^\]]*\])?\{/g
       let match
-      const texDir = path.dirname(targetPath) // TEX 文件所在目录，用于解析相对路径
+      const texDir = path.dirname(targetPath) // TEX 文件所在目录
+      // 相对路径（如 ./images/a.png）以源文档目录为基准解析，以便找到真实文件并保存到 xxx.tex.images；无 sourcePath 时退化为 TEX 所在目录
+      const relativePathBaseDir = payload.sourcePath
+        ? path.dirname(payload.sourcePath)
+        : texDir
 
       while ((match = graphicsRegex.exec(finalTex)) !== null) {
         const braceStart = match.index + match[0].length - 1 // 大括号 { 的位置
@@ -2841,28 +3047,16 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           logger.debug(`提取 \\detokenize 内的路径: ${imagePath}`)
         }
 
-        // 还原 LaTeX 转义的字符（如 \_ -> _，\# -> # 等）
-        // 但要注意，URL 中的转义字符不应该被还原
+        // 多次清理：移除 \detokenize，再还原 LaTeX 转义（\_ -> _ 等）
+        // URL/服务器路径也必须还原，否则 saveImageToFolder 读不到 127.0.0.1:52521/images 下的文件（文件名含 _ 不含 \_）
         let resolvedPath = imagePath
-        if (
-          !imagePath.startsWith('http://') &&
-          !imagePath.startsWith('https://') &&
-          !imagePath.startsWith('file://')
-        ) {
-          // 只对本地路径还原转义字符
-          resolvedPath = imagePath.replace(/\\([#%&{}_$])/g, '$1')
-        }
-
-        // 多次清理：移除任何残留的 \detokenize（使用多种方式确保完全清理）
-        // 方式1：标准匹配
         resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]+)\}/g, '$1')
-        // 方式2：处理不完整的情况（缺少闭合括号）
         resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]*)/g, '$1')
-        // 方式3：移除任何残留的 \detokenize 关键字
         if (resolvedPath.includes('\\detokenize')) {
           resolvedPath = resolvedPath.replace(/\\detokenize/g, '')
-          resolvedPath = resolvedPath.replace(/^\{+/, '').replace(/\}+$/, '') // 移除可能残留的大括号
+          resolvedPath = resolvedPath.replace(/^\{+/, '').replace(/\}+$/, '')
         }
+        resolvedPath = resolvedPath.replace(/\\([#%&{}_$])/g, '$1')
 
         // 调试日志：记录提取的路径
         logger.debug(
@@ -2884,10 +3078,10 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
               if (path.isAbsolute(resolvedPath)) {
                 imageUrlPairs.push({ original: originalPath, resolved: resolvedPath })
               } else {
-                // 如果是相对路径，相对于 TEX 文件所在目录解析
-                const absolutePath = path.resolve(texDir, resolvedPath)
+                // 相对路径（如 ./images/a.png）相对于源文档目录解析，以便找到文件并保存到 xxx.tex.images 后引用新路径
+                const absolutePath = path.resolve(relativePathBaseDir, resolvedPath)
                 imageUrlPairs.push({ original: originalPath, resolved: absolutePath })
-                logger.debug(`解析相对路径: ${resolvedPath} -> ${absolutePath}`)
+                logger.debug(`解析相对路径: ${resolvedPath} -> ${absolutePath} (base: ${relativePathBaseDir})`)
               }
             } catch (error) {
               // 如果解析失败，使用原始路径
@@ -2901,16 +3095,11 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         }
       }
 
-      // 提取解析后的路径用于保存
-      // 确保所有路径都被清理，不包含任何 LaTeX 命令
+      // 用于保存的路径：与磁盘/网络一致（去 \detokenize 并去 LaTeX 转义），否则 .tex.images 读不到文件
       const imageUrls = imageUrlPairs.map((pair) => {
         let cleaned = pair.resolved
-        // 最终清理：移除任何残留的 \detokenize
         cleaned = cleaned.replace(/\\detokenize\{([^}]+)\}/g, '$1')
-        // 确保路径是干净的
-        if (cleaned !== pair.resolved) {
-          logger.debug(`清理路径: ${pair.resolved} -> ${cleaned}`)
-        }
+        cleaned = cleaned.replace(/\\([#%&{}_$])/g, '$1')
         return cleaned
       })
 
@@ -2920,9 +3109,28 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         const texBaseName = path.basename(targetPath, path.extname(targetPath))
         const imagesFolder = path.join(texDir, `${texBaseName}.tex.images`)
 
-        // 保存图片和 PDF 文件（包括网络图片、本地图片和 PDF 文件）
-        // 注意：saveImagesToFolder 函数可以处理任何文件类型，包括 PDF
-        const results = await saveImagesToFolder(imageUrls, imagesFolder)
+        // 保存图片和 PDF 文件（含 avif/webp 转 PNG，便于 LaTeX 编译）
+        const convertToPng =
+          mainWindow && !mainWindow.isDestroyed()
+            ? (buf: Buffer, mime: string) => convertBufferToPng(buf, mime, mainWindow)
+            : undefined
+        const results = await saveImagesToFolder(imageUrls, imagesFolder, {
+          convertToPng
+        })
+
+        // 预渲染图表（mermaid/echarts/plantuml 等）当前为 SVG，LaTeX 不便直接插 SVG；将 xxx.tex.images 中的 SVG 转为 PDF 并删除原 SVG，使 \includegraphics 能找到 .pdf
+        for (const result of results) {
+          const savedPath = result.savedPath
+          if (savedPath && savedPath.toLowerCase().endsWith('.svg')) {
+            try {
+              await convertSvgToPdf(savedPath)
+              fs.unlinkSync(savedPath)
+              logger.debug(`已将图表 SVG 转为 PDF 并删除原文件: ${savedPath}`)
+            } catch (e) {
+              logger.warn(`图表 SVG 转 PDF 失败，保留 SVG: ${savedPath}`, e)
+            }
+          }
+        }
 
         // 创建 URL 到相对路径的映射（使用相对路径）
         const imageMappings = new Map<string, string>()
@@ -2941,88 +3149,57 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
 
         for (const result of results) {
           const fileName = path.basename(result.savedPath)
-          // LaTeX 路径使用正斜杠，移除扩展名（如果存在）
           const latexFileName = fileName.replace(/\.[^.]+$/, '')
-          // 使用相对路径：./xxx.tex.images/filename（不含扩展名）
-          // 使用正斜杠（LaTeX 标准），以 ./ 开头
           const relativePath = `./${imagesFolderName}/${latexFileName}`
 
-          // 找到对应的原始路径（LaTeX 中的路径，可能包含转义字符）
-          // 规范化 result.originalUrl 以确保匹配
-          const normalizedOriginalUrl = path.normalize(result.originalUrl).replace(/\\/g, '/')
-          let originalPath = resolvedToOriginal.get(normalizedOriginalUrl)
-          if (!originalPath) {
-            // 如果规范化后没找到，尝试原始格式
-            originalPath = resolvedToOriginal.get(result.originalUrl)
+          imageMappings.set(result.originalUrl, relativePath)
+          const pair = imageUrlPairs.find((p) => {
+            const cleaned = p.resolved.replace(/\\detokenize\{([^}]+)\}/g, '$1').replace(/\\([#%&{}_$])/g, '$1')
+            return cleaned === result.originalUrl
+          })
+          if (pair) {
+            imageMappings.set(pair.resolved, relativePath)
+            imageMappings.set(pair.original, relativePath)
+            if (!pair.original.includes('\\detokenize{')) {
+              imageMappings.set(`\\detokenize{${pair.original}}`, relativePath)
+            }
+            const unescapedOriginal = pair.original.replace(/\\([#%&{}_$])/g, '$1')
+            if (unescapedOriginal !== pair.original) {
+              imageMappings.set(unescapedOriginal, relativePath)
+              imageMappings.set(`\\detokenize{${unescapedOriginal}}`, relativePath)
+            }
           }
-          if (originalPath) {
-            // 使用原始路径（可能包含转义字符）作为键
-            imageMappings.set(originalPath, relativePath)
+        }
 
-            // 同时处理可能的 \detokenize{...} 格式
-            // 注意：如果 originalPath 已经包含 \detokenize{...}，就不需要再添加
-            const hasDetokenize = originalPath.includes('\\detokenize{')
-            if (!hasDetokenize) {
-              // 只有当 originalPath 不包含 \detokenize 时，才添加 \detokenize 格式的键
-              const detokenizeKey = `\\detokenize{${originalPath}}`
-              imageMappings.set(detokenizeKey, relativePath)
+        // 下载失败的网络图片：保存 fallback 图片并替换为相对路径，避免 TEX 中保留无效的原始链接
+        let fallbackIndex = 0
+        for (const pair of imageUrlPairs) {
+          if (imageMappings.has(pair.original)) continue
+          if (
+            !pair.resolved.startsWith('http://') &&
+            !pair.resolved.startsWith('https://')
+          )
+            continue
+          try {
+            const fallbackFileName = `error_fallback_${fallbackIndex++}.png`
+            const fallbackPath = path.join(imagesFolder, fallbackFileName)
+            writeDataUrlToFile(ERROR_PLACEHOLDER_IMAGE_DATA_URL, fallbackPath)
+            const latexBaseName = fallbackFileName.replace(/\.[^.]+$/, '')
+            const relativePath = `./${imagesFolderName}/${latexBaseName}`
+
+            imageMappings.set(pair.resolved, relativePath)
+            imageMappings.set(pair.original, relativePath)
+            if (!pair.original.includes('\\detokenize{')) {
+              imageMappings.set(`\\detokenize{${pair.original}}`, relativePath)
             }
-
-            // 规范化路径格式（统一使用正斜杠），并添加到映射
-            if (
-              !originalPath.startsWith('http://') &&
-              !originalPath.startsWith('https://') &&
-              !originalPath.startsWith('file://')
-            ) {
-              // 规范化路径：统一使用正斜杠
-              const normalizedPath = originalPath.replace(/\\/g, '/')
-              if (normalizedPath !== originalPath) {
-                imageMappings.set(normalizedPath, relativePath)
-                const detokenizeKeyNormalized = `\\detokenize{${normalizedPath}}`
-                imageMappings.set(detokenizeKeyNormalized, relativePath)
-              }
-
-              // 也处理还原转义字符后的路径（以防万一）
-              const unescapedPath = originalPath.replace(/\\([#%&{}_$])/g, '$1')
-              if (unescapedPath !== originalPath) {
-                imageMappings.set(unescapedPath, relativePath)
-                const detokenizeKeyUnescaped = `\\detokenize{${unescapedPath}}`
-                imageMappings.set(detokenizeKeyUnescaped, relativePath)
-
-                // 也规范化转义后的路径
-                const normalizedUnescapedPath = unescapedPath.replace(/\\/g, '/')
-                if (normalizedUnescapedPath !== unescapedPath) {
-                  imageMappings.set(normalizedUnescapedPath, relativePath)
-                  const detokenizeKeyNormalizedUnescaped = `\\detokenize{${normalizedUnescapedPath}}`
-                  imageMappings.set(detokenizeKeyNormalizedUnescaped, relativePath)
-                }
-              }
+            const unescapedOriginal = pair.original.replace(/\\([#%&{}_$])/g, '$1')
+            if (unescapedOriginal !== pair.original) {
+              imageMappings.set(unescapedOriginal, relativePath)
+              imageMappings.set(`\\detokenize{${unescapedOriginal}}`, relativePath)
             }
-          } else {
-            // 如果找不到原始路径，使用 result.originalUrl（已经还原转义字符的）
-            imageMappings.set(result.originalUrl, relativePath)
-            // 只有当 result.originalUrl 不包含 \detokenize 时，才添加 \detokenize 格式的键
-            if (!result.originalUrl.includes('\\detokenize{')) {
-              const detokenizeKey = `\\detokenize{${result.originalUrl}}`
-              imageMappings.set(detokenizeKey, relativePath)
-            }
-
-            // 也规范化 result.originalUrl
-            if (
-              !result.originalUrl.startsWith('http://') &&
-              !result.originalUrl.startsWith('https://') &&
-              !result.originalUrl.startsWith('file://')
-            ) {
-              const normalizedOriginalUrl = result.originalUrl.replace(/\\/g, '/')
-              if (normalizedOriginalUrl !== result.originalUrl) {
-                imageMappings.set(normalizedOriginalUrl, relativePath)
-                // 只有当 normalizedOriginalUrl 不包含 \detokenize 时，才添加 \detokenize 格式的键
-                if (!normalizedOriginalUrl.includes('\\detokenize{')) {
-                  const detokenizeKeyNormalized = `\\detokenize{${normalizedOriginalUrl}}`
-                  imageMappings.set(detokenizeKeyNormalized, relativePath)
-                }
-              }
-            }
+            logger.info(`网络图片下载失败，已用占位图替换并保存: ${pair.resolved}`)
+          } catch (e) {
+            logger.warn(`写入 fallback 图片失败，保留原链接: ${pair.original}`, e)
           }
         }
 
@@ -3030,114 +3207,12 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         finalTex = updateLatexImageLinks(finalTex, imageMappings)
       }
     } else if (imageProcessing === 'original') {
-      // original 模式：需要确保网络图片已经被下载并上传到本地服务
-      // 同时需要将运行时服务器 images URL 转换为本地文件路径，因为 LaTeX 无法直接读取 HTTP URL
-      const imageRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g
-      const imageMappings = new Map<string, string>()
-      let match
-
-      while ((match = imageRegex.exec(finalTex)) !== null) {
-        let imagePath = match[1]
-        // 检查是否使用了 \detokenize{...}
-        const detokenizeMatch = imagePath.match(/\\detokenize\{([^}]+)\}/)
-        if (detokenizeMatch) {
-          imagePath = detokenizeMatch[1]
-        }
-
-        // 检查是否是运行时服务器 images URL，需要转换为本地路径
-        const runtimeImagesPrefix = getRuntimeServerBaseUrl() + '/images/'
-        if (imagePath.startsWith(runtimeImagesPrefix)) {
-          const fileName = imagePath.replace(runtimeImagesPrefix, '')
-          const localPath = path.join(imageUploadDir, fileName)
-
-          // 检查文件是否存在
-          if (fs.existsSync(localPath)) {
-            // 使用绝对路径，LaTeX 需要绝对路径或相对于工作目录的路径
-            // 使用正斜杠（LaTeX 标准）
-            const normalizedPath = localPath.replace(/\\/g, '/')
-            imageMappings.set(match[1], normalizedPath)
-            // 如果使用了 \detokenize，也添加映射
-            if (detokenizeMatch) {
-              imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath)
-            }
-          } else {
-            logger.warn(`图片文件不存在: ${localPath}`)
-          }
-        }
-        // 检查是否是网络图片（http(s)但不是运行时服务器）
-        else if (
-          (imagePath.startsWith('http://') &&
-            !imagePath.startsWith(getRuntimeServerBaseUrl() + '/')) ||
-          imagePath.startsWith('https://')
-        ) {
-          // 如果还有网络图片，尝试在 main 进程中下载并上传
-          try {
-            logger.warn(`LaTeX 中仍然存在网络图片: ${imagePath}，尝试在 main 进程中处理`)
-            const http = require('http')
-            const https = require('https')
-            const { URL } = require('url')
-
-            const uploadUrl = getRuntimeServerBaseUrl() + '/api/image/url-upload'
-            const urlObj = new URL(uploadUrl)
-            const protocol = urlObj.protocol === 'https:' ? https : http
-
-            const postData = JSON.stringify({ url: imagePath })
-            const options = {
-              hostname: urlObj.hostname,
-              port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
-              path: urlObj.pathname,
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(postData)
-              }
-            }
-
-            const result = await new Promise<any>((resolve, reject) => {
-              const req = protocol.request(options, (res: any) => {
-                let data = ''
-                res.on('data', (chunk: any) => {
-                  data += chunk
-                })
-                res.on('end', () => {
-                  try {
-                    resolve(JSON.parse(data))
-                  } catch (e) {
-                    reject(e)
-                  }
-                })
-              })
-
-              req.on('error', reject)
-              req.write(postData)
-              req.end()
-            })
-
-            if (result.code === 0 && result.data && result.data.url) {
-              const serverPath = result.data.url
-              const fileName = serverPath.split(/[/\\]/).pop()
-              const localPath = path.join(imageUploadDir, fileName)
-
-              if (fs.existsSync(localPath)) {
-                const normalizedPath = localPath.replace(/\\/g, '/')
-                imageMappings.set(match[1], normalizedPath)
-                if (detokenizeMatch) {
-                  imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath)
-                }
-                logger.info(`网络图片已下载并上传: ${imagePath} -> ${localPath}`)
-              }
-            }
-          } catch (error) {
-            logger.error(`在 main 进程中处理网络图片失败: ${imagePath}`, error)
-          }
-        }
-      }
-
-      // 如果有需要转换的图片，更新 LaTeX 中的链接
-      if (imageMappings.size > 0) {
-        finalTex = updateLatexImageLinks(finalTex, imageMappings)
-      }
+      // 保留原始链接：不修改任何图片地址，不下载网络图片，TEX 中链接保持原样
     }
+
+    // 后处理：为无尺寸选项的图片添加 max width/height，并默认居中
+    finalTex = ensureIncludegraphicsWidth(finalTex)
+    finalTex = wrapIncludegraphicsWithCenter(finalTex)
 
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
@@ -3170,7 +3245,7 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
 
     let finalTex = payload.data.tex
 
-    // 处理图片（如果是 folder 模式）
+    // 处理图片（根据选项：folder = 保存到文件夹，original = 走统一图片上传 API）
     const imageProcessing = payload.exportOptions?.imageProcessing
     if (imageProcessing === 'folder') {
       sendProgress(mainWindow, {
@@ -3193,28 +3268,49 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       }
 
       if (imageUrls.length > 0) {
-        // 创建图片文件夹：xxx.tex.images
-        const imagesFolder = `${targetPath}.images`
+        const texDir = path.dirname(targetPath)
+        const texBaseName = path.basename(targetPath, path.extname(targetPath))
+        const texBaseNameSafe = texBaseName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_') || 'images'
+        const imagesFolder = path.join(texDir, `${texBaseNameSafe}.tex.images`)
 
-        // 保存图片
-        const results = await saveImagesToFolder(imageUrls, imagesFolder)
+        const convertToPng =
+          mainWindow && !mainWindow.isDestroyed()
+            ? (buf: Buffer, mime: string) => convertBufferToPng(buf, mime, mainWindow)
+            : undefined
+        const results = await saveImagesToFolder(imageUrls, imagesFolder, {
+          convertToPng
+        })
 
-        // 创建 URL 到相对路径的映射（使用相对路径）
+        // 预渲染图表等可能为 SVG，LaTeX 需 PDF：将 xxx.tex.images 中的 SVG 转为 PDF 并删除原 SVG
+        for (const result of results) {
+          const savedPath = result.savedPath
+          if (savedPath && savedPath.toLowerCase().endsWith('.svg')) {
+            try {
+              await convertSvgToPdf(savedPath)
+              fs.unlinkSync(savedPath)
+              logger.debug(`已将图表 SVG 转为 PDF 并删除原文件: ${savedPath}`)
+            } catch (e) {
+              logger.warn(`图表 SVG 转 PDF 失败，保留 SVG: ${savedPath}`, e)
+            }
+          }
+        }
+
         const imageMappings = new Map<string, string>()
         const imagesFolderName = path.basename(imagesFolder)
         for (const result of results) {
           const fileName = path.basename(result.savedPath)
-          // LaTeX 路径使用正斜杠，移除扩展名（如果存在）
           const latexFileName = fileName.replace(/\.[^.]+$/, '')
-          // 使用相对路径：xxx.tex.images/filename（不含扩展名）
           const relativePath = `${imagesFolderName}/${latexFileName}`
           imageMappings.set(result.originalUrl, relativePath)
         }
 
-        // 更新 LaTeX 中的图片链接（使用相对路径）
         finalTex = updateLatexImageLinks(finalTex, imageMappings)
       }
     }
+
+    // 后处理：为无尺寸选项的图片添加 max width/height，并默认居中
+    finalTex = ensureIncludegraphicsWidth(finalTex)
+    finalTex = wrapIncludegraphicsWithCenter(finalTex)
 
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
@@ -3423,7 +3519,16 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       percentage: 50,
       params: { format: 'DOCX' }
     })
-    const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md)
+    const { buffer, tempImageUrls } = await convertMarkdownToDocxBuffer(
+      payload.html,
+      payload.data.md,
+      undefined,
+      undefined,
+      mainWindow
+    )
+    if (tempImageUrls.length > 0) {
+      payload.imageUrls = [...(payload.imageUrls || []), ...tempImageUrls]
+    }
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.addingMetadata',

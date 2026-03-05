@@ -78,6 +78,7 @@ import {
   quitAndInstall,
   type UpdateChannel
 } from './utils/update-service'
+import { downloadImageAsDataUrl } from './utils/image-export-service'
 import {
   getSystemFonts,
   clearFontCache as clearMainFontCache,
@@ -2039,6 +2040,21 @@ function bindFileHandlers(): void {
         logger.error('读取文件失败:', error)
         throw error
       }
+    }
+  )
+
+  /**
+   * 由渲染进程调用：下载网络图片并返回 data URL。
+   * 主进程无 CORS 限制，网络图在渲染端先通过此处转为 data URL 再写回 Markdown，
+   * 由 Vditor 统一生成 HTML，与本地图片路径一致，避免在 HTML 里替换导致 DOCX 出现裸 base64。
+   */
+  ipcBridge.registerHandle(
+    'download-image-to-data-url',
+    async (_event: IpcMainInvokeEvent, url: string): Promise<string> => {
+      if (!url || (typeof url !== 'string') || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw new Error('无效的图片 URL')
+      }
+      return downloadImageAsDataUrl(url)
     }
   )
 }

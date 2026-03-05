@@ -13,6 +13,7 @@ import {
   isMathBlockNode,
   isBlockquoteNode,
   isThematicBreakNode,
+  isTableNode,
   isUnknownBlockNode,
   isTextNode,
   isStrongNode,
@@ -20,7 +21,8 @@ import {
   isInlineCodeNode,
   isLinkNode,
   isImageNode,
-  isMathInlineNode
+  isMathInlineNode,
+  isStrikethroughNode
 } from '../ast/nodes'
 
 const SECTION_CMD: Record<1 | 2 | 3, string> = {
@@ -84,6 +86,12 @@ function renderBlock(node: BlockNode): string {
   if (isThematicBreakNode(node)) {
     return '\\hrulefill'
   }
+  if (isTableNode(node)) {
+    const header = '| ' + node.headerRow.join(' | ') + ' |'
+    const sep = '| ' + node.headerRow.map(() => '---').join(' | ') + ' |'
+    const body = node.rows.map((row) => '| ' + row.join(' | ') + ' |').join('\n')
+    return [header, sep, body].filter(Boolean).join('\n')
+  }
   if (isUnknownBlockNode(node)) {
     return node.raw
   }
@@ -102,6 +110,7 @@ function renderInlineLatex(node: InlineNode): string {
   if (isLinkNode(node)) return `\\href{${escapeLatex(node.url)}}{${renderInlineSequenceLatex(node.children)}}`
   if (isImageNode(node)) return `\\includegraphics{${escapeLatex(node.url)}}`
   if (isMathInlineNode(node)) return `$${node.content}$`
+  if (isStrikethroughNode(node)) return `\\sout{${renderInlineSequenceLatex(node.children)}}`
   if (node.type === 'unknown_inline') return node.raw
   return ''
 }

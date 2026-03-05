@@ -38,6 +38,13 @@ function astEqual(a: unknown, b: unknown): boolean {
       for (let i = 0; i < arrA.length; i++) {
         if (!astEqual(arrA[i], arrB[i])) return false
       }
+    } else if (k === 'headerRow' || k === 'rows') {
+      const arrA = A[k] as unknown[]
+      const arrB = B[k] as unknown[]
+      if (arrA.length !== arrB.length) return false
+      for (let i = 0; i < arrA.length; i++) {
+        if (!astEqual(arrA[i], arrB[i])) return false
+      }
     } else if (!astEqual(A[k], B[k])) {
       return false
     }
@@ -143,5 +150,54 @@ describe('Round-trip (MD → LaTeX → MD, AST equivalence)', () => {
     const md = '# Title\n\nPara with **bold** and `code`.\n\n- item1\n- item2'
     const { ast1, ast2 } = roundTripAST(md)
     expect(astEqual(ast1, ast2)).toBe(true)
+  })
+
+  it('table round-trip (GFM pipe table)', () => {
+    const md = [
+      '### 3.4 表格',
+      '',
+      '| 列1 | 列2 | 列3 |',
+      '| --- | --- | --- |',
+      '| A1  | A2  | A3  |',
+      '| B1  | B2  | B3  |',
+      '',
+      '### 3.5 代码块（非图表）'
+    ].join('\n')
+    const { ast1, ast2, md2 } = roundTripAST(md)
+    expect(astEqual(ast1, ast2)).toBe(true)
+    expect(md2).toContain('| 列1 | 列2 | 列3 |')
+    expect(md2).toContain('| --- | --- | --- |')
+    expect(md2).toMatch(/\| A1\s*\| A2\s*\| A3\s*\|/) // data row present (cells may be trimmed)
+    expect(md2).not.toMatch(/\|\s*列1\s*\|\s*\n\s*\n\s*\|/) // no blank line between table rows
+  })
+
+  it('strikethrough round-trip', () => {
+    const md = '**加粗**、*斜体*、~~删除线~~。'
+    const { ast1, ast2, latex, md2 } = roundTripAST(md)
+    expect(astEqual(ast1, ast2)).toBe(true)
+    expect(latex).toContain('\\sout{')
+    expect(latex).not.toContain('\\textasciitilde{}\\textasciitilde{}删除线')
+    expect(md2).toContain('~~删除线~~')
+  })
+
+  it('LaTeX control blocks stripped when converting to Markdown', () => {
+    const latex = [
+      '\\begin{titlepage}',
+      '\\centering',
+      '{\\Huge\\bfseries 导出验收测试文档\\par}',
+      '\\end{titlepage}',
+      '\\newpage',
+      '\\tableofcontents',
+      '\\newpage',
+      '\\section{Hello}',
+      'Content here.',
+      '\\label{LastPage}'
+    ].join('\n')
+    const md = latexToMarkdown(latex)
+    expect(md).toContain('# Hello')
+    expect(md).toContain('Content here')
+    expect(md).not.toContain('titlepage')
+    expect(md).not.toContain('tableofcontents')
+    expect(md).not.toContain('LastPage')
   })
 })

@@ -71,6 +71,7 @@ ${coverKeywords.length > 0 ? `{\\normalsize 关键词：${escapeLatex(coverKeywo
 \\usepackage{fontspec}
 \\usepackage{xeCJK}
 \\usepackage{graphicx}
+\\usepackage[export]{adjustbox}
 \\usepackage{hyperref}
 \\usepackage{amsmath}
 \\usepackage{amssymb}

@@ -306,8 +306,21 @@ export async function convertSvgStringToPngFile(
 }
 
 /**
+ * 从标签字符串中提取属性值（支持 "val"、'val'、val）
+ */
+function getAttr(tag: string, name: string): string | null {
+  const re = new RegExp(
+    `\\s${name}\\s*=\\s*(["'])([^"']*)\\1|\\s${name}\\s*=\\s*([^\\s>]+)`,
+    'i'
+  )
+  const m = tag.match(re)
+  if (m) return (m[2] !== undefined ? m[2] : m[3]).trim()
+  return null
+}
+
+/**
  * 针对 Mermaid 等使用 foreignObject 的 SVG 进行规范化，避免 resvg 丢字
- * 将 foreignObject 中的内容转换为 SVG text 元素
+ * 将 foreignObject 中的内容转换为带位置的 SVG text 元素，避免文字漂移到 (0,0)
  */
 function normalizeSvgForResvg(svgContent: string): string {
   // 检查是否包含 foreignObject（Mermaid 常用）
@@ -315,23 +328,29 @@ function normalizeSvgForResvg(svgContent: string): string {
     return svgContent
   }
 
-  // 简单的规范化处理：移除 foreignObject，保留其内部文本
-  // 注意：这是一个基础实现，将 foreignObject 替换为简单占位
   let normalized = svgContent
 
-  // 移除 foreignObject 标签，保留内容（resvg 可能无法渲染复杂 HTML）
-  normalized = normalized.replace(/<foreignObject[^>]*>[\s\S]*?<\/foreignObject>/gi, (match) => {
-    // 尝试提取文本内容
-    const textMatch = match.match(/>([^<]+)</)
-    if (textMatch) {
-      const text = textMatch[1].trim()
-      if (text) {
-        // 返回一个简单的 text 元素作为占位
-        return `<text>${escapeXml(text)}</text>`
-      }
+  // 将每个 foreignObject 替换为带 x,y 的 text，使 resvg 渲染时文字在正确位置
+  normalized = normalized.replace(
+    /<foreignObject([^>]*)>([\s\S]*?)<\/foreignObject>/gi,
+    (match, attrs, inner) => {
+      const x = getAttr(attrs, 'x') ?? '0'
+      const y = getAttr(attrs, 'y') ?? '0'
+      // foreignObject 的 y 表示框顶，SVG text 的 y 表示基线，用 dy 使首行顶部接近框顶
+      const dy = '0.9em'
+      // 提取纯文本（跳过内部标签如 <div>、<br> 等，只取文本节点）
+      const textContent = inner
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .trim()
+      if (!textContent) return ''
+      return `<text x="${escapeXml(x)}" y="${escapeXml(y)}" dy="${dy}" font-family="Arial, Verdana, sans-serif">${escapeXml(textContent)}</text>`
     }
-    return ''
-  })
+  )
 
   return normalized
 }

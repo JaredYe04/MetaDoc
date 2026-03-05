@@ -18,6 +18,7 @@ import type {
   MathBlockNode,
   BlockquoteNode,
   ThematicBreakNode,
+  TableNode,
   UnknownBlockNode,
   TextNode,
   StrongNode,
@@ -184,6 +185,16 @@ function parseBlocks(source: string): BlockNode[] {
       continue
     }
 
+    // GFM table: | col1 | col2 | ... (header, optional separator, data rows)
+    if (indent === 0 && trimmed.startsWith('|') && trimmed.includes('|', 1)) {
+      const tableResult = parseTable(source, i)
+      if (tableResult) {
+        blocks.push(tableResult.node)
+        i = tableResult.consumed
+        continue
+      }
+    }
+
     // Paragraph: collect consecutive lines until blank or block start
     const paraLines: string[] = [trimmed]
     i = next
@@ -198,6 +209,7 @@ function parseBlocks(source: string): BlockNode[] {
       if (HEADING_PREFIX.test(ptrim) && (pindent === 0 || pindent === indent)) break
       if (/^\s*[*\-]\s+/.test(pline) || /^\s*\d+\.\s+/.test(pline)) break
       if (ptrim.startsWith('>')) break
+      if (ptrim.startsWith('|') && ptrim.includes('|', 1)) break
       paraLines.push(ptrim)
       i = pnext
     }
@@ -276,6 +288,54 @@ function parseBlockquote(source: string, start: number): { node: BlockquoteNode;
   const innerBlocks = parseBlocks(inner)
   return {
     node: { type: 'blockquote', children: innerBlocks },
+    consumed: i
+  }
+}
+
+/** Split a table row line into cell strings (strip leading/trailing pipes, split by |) */
+function splitTableRow(line: string): string[] {
+  const trimmed = line.trim()
+  const withoutBorders = trimmed.replace(/^\|/, '').replace(/\|$/, '')
+  return withoutBorders.split('|').map((c) => c.trim())
+}
+
+/** Check if line is a table separator row: | --- | --- | or |:---|---:|---:| (each cell is dashes/colons) */
+function isTableSeparator(line: string): boolean {
+  const t = line.trim()
+  if (!t.startsWith('|') || !t.endsWith('|')) return false
+  const cells = splitTableRow(line)
+  if (cells.length === 0) return false
+  return cells.every((c) => /^[-:\s]+$/.test(c) && c.includes('-'))
+}
+
+/** Parse GFM table starting at current position. Returns null if not a valid table. */
+function parseTable(source: string, start: number): { node: TableNode; consumed: number } | null {
+  const lines: string[] = []
+  let i = start
+  const len = source.length
+  while (i < len) {
+    const lineEnd = source.indexOf('\n', i)
+    const line = lineEnd === -1 ? source.slice(i) : source.slice(i, lineEnd)
+    const next = lineEnd === -1 ? len : lineEnd + 1
+    const trimmed = line.trim()
+    if (trimmed === '') break
+    if (!trimmed.startsWith('|') || !trimmed.includes('|', 1)) break
+    lines.push(trimmed)
+    i = next
+  }
+  if (lines.length === 0) return null
+  const headerRow = splitTableRow(lines[0])
+  if (headerRow.length === 0) return null
+  let rowStart = 1
+  if (lines.length > 1 && isTableSeparator(lines[1])) {
+    rowStart = 2
+  }
+  const rows: string[][] = []
+  for (let r = rowStart; r < lines.length; r++) {
+    rows.push(splitTableRow(lines[r]))
+  }
+  return {
+    node: { type: 'table', headerRow, rows },
     consumed: i
   }
 }
@@ -374,6 +434,17 @@ function parseInline(text: string): InlineNode[] {
       }
     }
 
+    // Strikethrough ~~...~~
+    if (text.slice(i, i + 2) === '~~') {
+      const close = text.indexOf('~~', i + 2)
+      if (close !== -1) {
+        const inner = text.slice(i + 2, close)
+        out.push({ type: 'strikethrough', children: parseInlineNoMath(inner) })
+        i = close + 2
+        continue
+      }
+    }
+
     // Default: consume until next special char
     const nextSpecial = findNextInlineSpecial(text, i)
     const end = nextSpecial === -1 ? len : nextSpecial
@@ -403,7 +474,7 @@ function findClosingDelim(s: string, start: number, delim: string): number {
 }
 
 function findNextInlineSpecial(s: string, start: number): number {
-  const specials = ['*', '`', '[', '!', '$', '\\']
+  const specials = ['*', '`', '[', '!', '$', '\\', '~']
   let i = start
   while (i < s.length) {
     if (specials.includes(s[i])) return i
@@ -476,6 +547,16 @@ function parseInlineNoMath(text: string): InlineNode[] {
       if (close !== -1) {
         out.push({ type: 'emphasis', children: parseInlineNoMath(text.slice(i + 1, close)) })
         i = close + 1
+        continue
+      }
+    }
+
+    // Strikethrough ~~...~~
+    if (text.slice(i, i + 2) === '~~') {
+      const close = text.indexOf('~~', i + 2)
+      if (close !== -1) {
+        out.push({ type: 'strikethrough', children: parseInlineNoMath(text.slice(i + 2, close)) })
+        i = close + 2
         continue
       }
     }

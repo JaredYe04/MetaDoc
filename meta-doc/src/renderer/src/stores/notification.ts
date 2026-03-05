@@ -131,6 +131,10 @@ export const useNotificationStore = defineStore('notification', () => {
         notifications.value = notifications.value.slice(0, MAX_HISTORY)
       }
       saveToStorage()
+      // info / success 10 秒后自动移除，warning / error 保留
+      if (type === 'info' || type === 'success') {
+        setTimeout(() => remove(notification.id), 10_000)
+      }
     }
 
     return notification.id

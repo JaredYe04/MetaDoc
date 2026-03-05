@@ -153,20 +153,18 @@ const formatScopeSegment = (scope: string | undefined): string => {
   return `[${scope}]`
 }
 
+/** 统一格式：时间戳 + 日志等级 + 所属进程/模块 + 内容（无日期前缀） */
 const formatMessage = (payload: LogPayload): string => {
-  // 使用用户本地时区，格式化为 YYYY-MM-DD HH:mm:ss
   const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
   const hours = String(now.getHours()).padStart(2, '0')
   const minutes = String(now.getMinutes()).padStart(2, '0')
   const seconds = String(now.getSeconds()).padStart(2, '0')
-  const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  const timestamp = `${hours}:${minutes}:${seconds}`
   const scopeSegment = formatScopeSegment(payload.scope)
   const windowSegment = payload.windowType ? `[${payload.windowType}]` : ''
+  const processModule = `[${payload.processType.toUpperCase()}]${windowSegment}${scopeSegment}`
   const body = payload.messages.join(' ')
-  return `${timestamp} [${payload.processType.toUpperCase()}]${windowSegment}${scopeSegment} [${payload.level.toUpperCase()}] ${body}`
+  return `${timestamp} [${payload.level.toUpperCase()}] ${processModule} ${body}`
 }
 
 const appendToFile = (line: string) => {
@@ -251,6 +249,25 @@ const normalizeArg = (arg: unknown): string => {
   }
 }
 
+/** ANSI 颜色：控制台输出 warning 黄、error 红；可通过 FORCE_COLOR=0 关闭 */
+const ANSI_RESET = '\x1b[0m'
+const ANSI_RED = '\x1b[31m'
+const ANSI_YELLOW = '\x1b[33m'
+
+const colorizeForStdio = (line: string, level: LogLevel): string => {
+  if (process.env.FORCE_COLOR === '0') {
+    return line
+  }
+  switch (level) {
+    case 'error':
+      return `${ANSI_RED}${line}${ANSI_RESET}`
+    case 'warn':
+      return `${ANSI_YELLOW}${line}${ANSI_RESET}`
+    default:
+      return line
+  }
+}
+
 const logInternal = (context: InternalContext, level: LogLevel, args: unknown[]) => {
   ensureInitialized()
 
@@ -270,19 +287,12 @@ const logInternal = (context: InternalContext, level: LogLevel, args: unknown[])
   appendToFile(line)
   broadcastConsoleMessage(level, line)
 
-  switch (level) {
-    case 'debug':
-      console.debug(line)
-      break
-    case 'info':
-      console.info(line)
-      break
-    case 'warn':
-      console.warn(line)
-      break
-    case 'error':
-      console.error(line)
-      break
+  const stdioLine = colorizeForStdio(line, level)
+  const out = stdioLine + '\n'
+  if (level === 'error') {
+    process.stderr.write(out)
+  } else {
+    process.stdout.write(out)
   }
 }
 

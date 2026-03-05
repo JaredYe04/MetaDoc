@@ -111,10 +111,11 @@ const emit = defineEmits<{
   (e: 'update:enableAiAnalysis', value: boolean): void
 }>()
 
+// debug / info 使用默认文字色；warning 黄色，error 红色
 const consoleStyle = ref({
   '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
   '--console-text': themeState.currentTheme.textColor2,
-  '--console-err': '#fe8771',
+  '--console-err': '#e74c3c',
   '--console-warn': '#e6a23c',
   '--console-debug': '#909399'
 })
@@ -348,7 +349,7 @@ eventBus.on('sync-editor-theme', async () => {
   consoleStyle.value = {
     '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
     '--console-text': themeState.currentTheme.textColor2,
-    '--console-err': '#fe8771',
+    '--console-err': '#e74c3c',
     '--console-warn': '#e6a23c',
     '--console-debug': '#909399'
   }
@@ -719,6 +720,7 @@ onBeforeUnmount(() => {
   background-color: transparent !important;
 }
 
+/* debug / info 无装饰，使用默认 --console-text；warning 黄色，error 红色 */
 :deep(.console-inline-err) {
   color: var(--console-err) !important;
 }

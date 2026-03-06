@@ -111,3 +111,44 @@
 3. **批量改译文**：配置好 `.deepseek_api_key` → 用 `i18n_ai_review.py` 按需全量或 `--locale`/`--module` 分批跑，看进度输出即可。
 
 更多细节可参考项目内 Skill：`.cursor/skills/i18n-locale-sync/SKILL.md`。
+
+---
+
+## 七、用户手册 i18n（按缺失文件翻译）
+
+用户手册以 **zh_CN** 为蓝本，存放在 `meta-doc/src/renderer/src/manuals/`。其他语言（en_US、ja_JP、ko_KR、de_DE、fr_FR）若缺少与 zh_CN 同路径的 `.md` 文件，即视为「缺失」，需要翻译生成。
+
+### 7.1 逻辑与约束
+
+- **检查的是「缺失文件」**：对比 `manuals/zh_CN/` 下所有 `.md` 的相对路径，若某语言下同路径不存在，则加入待翻译任务。
+- **翻译要求**：语言地道、不破坏原意；**不得修改** Vue 组件占位符（如 `<MenuItemsDemo mode="demo" ... />`）、代码块、Mermaid 块、组件属性及内部链接等，只翻译正文与标题等自然语言部分。
+- **并发 + 实时写回 + 进度**：与 locale JSON 的 AI 校对类似，每完成一篇即写回对应语言目录并追加进度；进度文件记录「语言\t相对路径」，再次运行会跳过已完成项。
+
+### 7.2 准备
+
+- **API Key**：在 `manuals/` 目录下创建 `.deepseek_api_key`，或使用 `locales/` 下的同名文件，或设置环境变量 `DEEPSEEK_API_KEY`。（`manuals/.deepseek_api_key` 与进度文件已加入 .gitignore。）
+
+### 7.3 进度与增量
+
+- 脚本在 `manuals/` 下维护 **`.manual_i18n_progress.txt`**（每行：`语言\t相对路径`）。
+- 再次执行时会跳过进度中已有的「语言|路径」，只处理尚未翻译的缺失文件。
+- **全量重跑**：加 `--reset-progress` 再执行（会清空进度，仍只生成「当前缺失」的文件）。
+
+### 7.4 命令（在 manuals 目录下执行）
+
+| 用途           | 命令 |
+|----------------|------|
+| 增量翻译缺失   | `python manual_i18n_translate.py --max-workers 3` |
+| 全量重跑       | `python manual_i18n_translate.py --reset-progress --max-workers 3` |
+| 只翻译某一语言 | `python manual_i18n_translate.py --locale en_US` |
+| 只列缺失不请求 | `python manual_i18n_translate.py --dry-run` |
+| 调并发数       | `python manual_i18n_translate.py --max-workers 4` |
+
+### 7.5 脚本与文件一览（手册）
+
+| 文件/命令 | 作用 |
+|-----------|------|
+| `manuals/zh_CN/**/*.md` | 蓝本，所有手册正文 |
+| `manual_i18n_translate.py` | 按缺失文件翻译，并发 + 每篇写回 + 进度 |
+| `.manual_i18n_progress.txt` | 已完成的「语言\t路径」记录（勿提交） |
+| `manuals/.deepseek_api_key` | 可选，与 locales 共用或单独放（勿提交） |

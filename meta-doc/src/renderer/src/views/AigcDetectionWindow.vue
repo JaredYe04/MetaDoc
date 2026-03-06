@@ -135,14 +135,20 @@
                     >
                       {{ t('aigc.rePreprocess') }}
                     </Button>
-                    <Button
-                      v-if="overallAnalysis"
-                      :disabled="!articleContent || analyzing"
-                      :loading="paraphrasing"
-                      @click="handleParaphraseAll"
-                    >
-                      {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
-                    </Button>
+                    <Tooltip v-if="overallAnalysis">
+                      <TooltipTrigger as-child>
+                        <Button
+                          :disabled="!articleContent || analyzing"
+                          :loading="paraphrasing"
+                          @click="handleParaphraseAll"
+                        >
+                          {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        {{ t('aigc.paraphraseHint') }}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
 
                   <div class="toolbar-right">
@@ -162,17 +168,9 @@
                         <DropdownMenuItem @click="handleExportCommand('report')">
                           {{ t('aigc.exportReport') }}
                         </DropdownMenuItem>
-                        <template v-if="hasAnyParaphrase">
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem @click="handleExportParaphrasedCommand('doc')">
-                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} -
-                            {{ t('aigc.exportAsNewDoc', '作为新文档') }}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem @click="handleExportParaphrasedCommand('session')">
-                            {{ t('aigc.exportParaphrased', '导出改写后的文章') }} -
-                            {{ t('aigc.exportAndDetect', '进行AIGC率检测') }}
-                          </DropdownMenuItem>
-                        </template>
+                        <DropdownMenuItem @click="handleExportParaphrasedCommand('doc')">
+                          {{ t('aigc.exportAsNewDoc', '作为新文档') }}
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -274,6 +272,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import {
@@ -300,9 +299,12 @@ import {
   AIGC_POWER_MEAN_P,
   AIGC_VETO_THRESHOLD,
   AIGC_VETO_BONUS_FACTOR,
+  DOCUMENT_TITLE_SCHEMA,
   type AigcAnalysisResult,
-  type AigcDimensionScore
+  type AigcDimensionScore,
+  type DocumentTitleSchemaResult
 } from '../utils/schemas'
+import { updateTitlePrompt } from '../utils/prompts'
 import { referenceAdapterManager } from '../utils/agent-framework/reference-adapters'
 import {
   preprocessParagraphs,
@@ -416,20 +418,13 @@ function buildAigcWeightPieEchartsOption(
     ]
   }
 }
-/** 各维度「高/中/低」说明文案，用于报告表格 */
-const AIGC_DIM_DESCRIPTIONS: Record<keyof AigcDimensionScore, [string, string, string]> = {
-  sentence_uniformity: ['句式过于统一', '句式较为统一', '句式变化丰富'],
-  lexical_diversity: ['词汇重复、保守', '词汇使用较为保守', '词汇使用多样'],
-  reasoning_smoothness: ['逻辑过于平滑', '逻辑较为平滑', '逻辑自然'],
-  personal_trace: ['缺乏个人思考痕迹', '个人痕迹较少', '个人思考痕迹明显'],
-  stylistic_risk: ['高度符合AIGC模板', '部分符合AIGC模板', '风格自然'],
-  over_explanation: ['教科书式解释', '解释较为详细', '解释适度'],
-  hedging_pattern: ['大量使用模糊限定词', '使用较多模糊限定词', '模糊限定词使用适度'],
-  opening_transition_pattern: ['过渡语高度模板化', '过渡语较为模板化', '过渡自然'],
-  structural_repetition: ['结构过于规整', '结构较为规整', '结构自然'],
-  abstractness: ['过于抽象空洞', '略显抽象', '具体有据'],
-  emotional_flatness: ['情感过于平淡', '情感较平淡', '情感自然'],
-  formulaic_closure: ['收尾高度套路化', '收尾较套路', '收尾自然']
+/** 各维度「高/中/低」说明文案，用于报告表格（i18n） */
+function getDimDesc(k: keyof AigcDimensionScore): [string, string, string] {
+  return [
+    t(`aigc.dimDesc.${k}.high`),
+    t(`aigc.dimDesc.${k}.mid`),
+    t(`aigc.dimDesc.${k}.low`)
+  ]
 }
 
 const { t, locale } = useI18n()
@@ -496,8 +491,8 @@ const initialReportPanelWidth = computed(() => {
   return Math.round(Math.max(200, Math.min(800, w * ratio)))
 })
 
-/** 每段改写后的文本，与段落一一对应；null 表示未改写。不修改原文，由用户决定是否采用。 */
-const paragraphParaphrases = ref<(string | null)[]>([])
+/** 每段改写前的原文备份，与段落一一对应；非 null 表示该段已改写可撤回。改写时直接替换 paragraphs，此处存原文。 */
+const paragraphOriginals = ref<(string | null)[]>([])
 
 /** 总体报告块（标题后、分段分析前），用于刷新 reportMarkdown */
 const overallReportBlock = ref<string>('')
@@ -525,6 +520,54 @@ function localeToAigcLanguage(loc: string): string {
   if (v.startsWith('ja')) return 'ja'
   if (v.startsWith('ko')) return 'ko'
   return 'en'
+}
+
+const MAX_SESSION_TITLE_LENGTH = 20
+const TITLE_CONTENT_LIMIT = 600
+
+/** 根据文章内容通过 AI 生成会话标题（参考 AIChat / conversation-title） */
+async function generateSessionTitleFromContent(articleContent: string): Promise<string> {
+  const trimmed = (articleContent || '').trim()
+  if (!trimmed) return ''
+  const titleSource = trimmed.slice(0, TITLE_CONTENT_LIMIT)
+  const prompt = updateTitlePrompt(JSON.stringify(titleSource))
+  const messages: AIDialogMessage[] = [{ role: 'user', content: prompt }]
+  const generatedText = vueRef('')
+  const { done } = createAiTask(
+    t('aigc.sessionsTitle'),
+    messages,
+    generatedText,
+    ai_types.chat,
+    'aigc-generate-session-title',
+    { stream: true }
+  )
+  try {
+    await done
+  } catch {
+    return ''
+  }
+  let schemaTitle: string | undefined
+  let fallbackTitle: string | undefined
+  try {
+    const parsed = parseSchemaJson<DocumentTitleSchemaResult>(
+      generatedText.value,
+      DOCUMENT_TITLE_SCHEMA
+    )
+    schemaTitle = parsed.title
+  } catch {
+    const m = generatedText.value.match(/"title"\s*:\s*"([^"]+)"/)
+    if (m) fallbackTitle = m[1]
+    else {
+      const q = generatedText.value.match(/"([^"]{4,40})"/)
+      if (q) fallbackTitle = q[1]
+    }
+  }
+  let raw = (schemaTitle ?? fallbackTitle ?? generatedText.value ?? titleSource).trim()
+  raw = raw.replace(/^\s*#+/, '').replace(/\s+/g, ' ')
+  if (raw.length > MAX_SESSION_TITLE_LENGTH) {
+    raw = raw.slice(0, MAX_SESSION_TITLE_LENGTH).replace(/[，。,;:!?、．…-]+$/, '').trim()
+  }
+  return raw || t('aigc.sessionsTitle')
 }
 
 const aigcLanguage = computed(() => localeToAigcLanguage(locale.value))
@@ -613,14 +656,14 @@ const hasAllParaphrases = computed(() => {
   const n = paragraphAnalyses.value.length
   if (n === 0) return false
   return paragraphAnalyses.value.every((_, i) => {
-    const p = paragraphParaphrases.value[i]
-    return p != null && (p ?? '').trim() !== ''
+    const o = paragraphOriginals.value[i]
+    return o != null && (o ?? '').trim() !== ''
   })
 })
 
-/** 是否至少有一段已改写（用于「拼成新文章」按钮） */
+/** 是否至少有一段已改写可撤回（用于导出等） */
 const hasAnyParaphrase = computed(() => {
-  return paragraphParaphrases.value.some((p) => p != null && (p ?? '').trim() !== '')
+  return paragraphOriginals.value.some((o) => o != null && (o ?? '').trim() !== '')
 })
 
 // 设置编辑器引用
@@ -870,52 +913,16 @@ async function renderAigcContentSwitcherMarkdown(container: HTMLElement) {
   }
 }
 
-/** 报告区点击委托：一键复制改写内容 */
+/** 报告区点击委托：撤回单段改写 */
 function onReportAreaClick(e: MouseEvent) {
   const target = e.target as HTMLElement
-  // A|B 切换：原文 / 改写
-  const abBtn = target.closest?.('.aigc-ab-btn') as HTMLElement | null
-  if (abBtn) {
+  const revertBtn = target.closest?.('.aigc-revert-one-btn') as HTMLElement | null
+  if (revertBtn) {
     e.preventDefault()
     e.stopPropagation()
-    const switcher = abBtn.closest('.aigc-paragraph-content-switcher')
-    if (!switcher) return
-    const showOriginal = abBtn.classList.contains('aigc-ab-original')
-    switcher.querySelectorAll('.aigc-ab-btn').forEach((btn) => btn.classList.remove('active'))
-    abBtn.classList.add('active')
-    const origDiv = switcher.querySelector('.aigc-original-content') as HTMLElement | null
-    const parDiv = switcher.querySelector('.aigc-paraphrased-content-block') as HTMLElement | null
-    if (origDiv && parDiv) {
-      if (showOriginal) {
-        origDiv.style.display = ''
-        parDiv.style.display = 'none'
-      } else {
-        origDiv.style.display = 'none'
-        parDiv.style.display = ''
-      }
-    }
-    return
+    const idx = revertBtn.getAttribute('data-paragraph-index')
+    if (idx != null) handleRevertOne(parseInt(idx, 10))
   }
-  // 复制：根据当前 A/B 视图复制原文或改写内容
-  const copyBtn = target.closest?.('.aigc-copy-paraphrase-btn') as HTMLElement | null
-  if (!copyBtn) return
-  const switcher = copyBtn.closest('.aigc-paragraph-content-switcher')
-  if (!switcher) return
-  const idx = copyBtn.getAttribute('data-paragraph-index')
-  if (idx == null) return
-  const showOriginal = switcher.querySelector('.aigc-ab-original.active') != null
-  const contentDiv = showOriginal
-    ? (switcher.querySelector('.aigc-original-content') as HTMLElement | null)
-    : (switcher.querySelector('.aigc-paraphrased-content-block') as HTMLElement | null)
-  if (!contentDiv?.textContent?.trim()) return
-  navigator.clipboard
-    .writeText(contentDiv.textContent.trim())
-    .then(() => {
-      notifySuccess(t('aigc.copySuccess', '已复制'))
-    })
-    .catch(() => {
-      notifyError(t('aigc.copyFailed', '复制失败'))
-    })
 }
 
 /** 根据 modifiedParagraphIndices 更新各段落 summary 上的「已改动」标记 */
@@ -970,7 +977,7 @@ function applyReportParagraphCollapse(container: HTMLElement) {
     details.setAttribute('data-paragraph-index', String(index))
     details.open = true
     const summary = document.createElement('summary')
-    summary.textContent = h3.textContent || `段落 ${index + 1}`
+    summary.textContent = h3.textContent || t('aigc.paragraphN', { n: index + 1 })
     if (modified.has(index)) {
       summary.appendChild(document.createTextNode(' '))
       const badge = document.createElement('span')
@@ -984,9 +991,10 @@ function applyReportParagraphCollapse(container: HTMLElement) {
     paraphraseBtn.className = 'aigc-paraphrase-one-btn'
     paraphraseBtn.setAttribute('data-paragraph-index', String(index))
     paraphraseBtn.textContent =
-      paragraphParaphrases.value[index] != null
+      paragraphOriginals.value[index] != null
         ? t('aigc.reParaphraseOne')
         : t('aigc.paraphraseOne')
+    paraphraseBtn.setAttribute('title', t('aigc.paraphraseHint'))
     paraphraseBtn.addEventListener('click', (e) => {
       e.preventDefault()
       e.stopPropagation()
@@ -1011,14 +1019,13 @@ function scrollReportToTop() {
   if (wrap) wrap.scrollTop = 0
 }
 
-const REPORT_TITLE = `# AIGC 风格风险评估报告\n\n`
-const SEGMENT_HEAD = `## 分段分析\n\n`
-
 /** 根据当前 segmentBlocks 与 overallReportBlock 刷新 reportMarkdown */
 function refreshReportMarkdown() {
+  const reportTitle = `# ${t('aigc.reportTitle')}\n\n`
+  const segmentHead = `## ${t('aigc.segmentAnalysis')}\n\n`
   const mid = overallReportBlock.value ? overallReportBlock.value + `\n` : ``
   reportMarkdown.value =
-    REPORT_TITLE + mid + SEGMENT_HEAD + segmentBlocks.value.map((b) => b ?? '').join('')
+    reportTitle + mid + segmentHead + segmentBlocks.value.map((b) => b ?? '').join('')
 }
 
 // 监听主题变化
@@ -1106,7 +1113,7 @@ const handleCreateSession = async () => {
     paragraphAnalyses.value = []
     reportMarkdown.value = ''
     segmentBlocks.value = []
-    paragraphParaphrases.value = []
+    paragraphOriginals.value = []
     overallReportBlock.value = ''
     modifiedParagraphIndices.value = new Set()
   } catch (error) {
@@ -1173,25 +1180,40 @@ const handleSelectSession = async (item: SessionListItem) => {
         paragraphAnalyses.value = []
       }
 
-      if (session.paragraph_paraphrases) {
+      if (session.paragraph_originals) {
         try {
-          paragraphParaphrases.value = JSON.parse(session.paragraph_paraphrases) as (
-            | string
-            | null
-          )[]
-          if (!Array.isArray(paragraphParaphrases.value)) paragraphParaphrases.value = []
+          const arr = JSON.parse(session.paragraph_originals) as (string | null)[]
+          paragraphOriginals.value = Array.isArray(arr) ? arr : []
         } catch {
-          paragraphParaphrases.value = []
+          paragraphOriginals.value = []
         }
       } else {
-        paragraphParaphrases.value = []
+        paragraphOriginals.value = []
+        // 兼容旧会话：若有 paragraph_paraphrases 则应用改写并写入 paragraph_originals（改写即替换正文）
+        if (session.paragraph_paraphrases) {
+          try {
+            const paraphrases = JSON.parse(session.paragraph_paraphrases) as (string | null)[]
+            if (Array.isArray(paraphrases) && paraphrases.some((p) => p != null && (p ?? '').trim())) {
+              const orig = [...paragraphs.value]
+              for (let i = 0; i < paraphrases.length && i < paragraphs.value.length; i++) {
+                if (paraphrases[i] != null && String(paraphrases[i]).trim()) {
+                  paragraphOriginals.value[i] = orig[i]
+                  paragraphs.value[i] = String(paraphrases[i]).trim()
+                }
+              }
+              articleContent.value = paragraphs.value.join('\n\n')
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
-      // 若有分段分析，从分析结果与改写结果重建 segmentBlocks 与 overallReportBlock，保证报告含「改写后的内容」
+      // 若有分段分析，从分析结果与当前段落、可撤回信息重建 segmentBlocks
       if (paragraphAnalyses.value.length > 0) {
         const overall = overallAnalysis.value
         overallReportBlock.value = overall ? buildOverallReportBlock(overall) : ''
         segmentBlocks.value = paragraphAnalyses.value.map((pa, i) =>
-          buildParagraphReportBlock(pa, paragraphParaphrases.value[i] ?? null)
+          buildParagraphReportBlock(pa, paragraphs.value[i] ?? pa.text, !!paragraphOriginals.value[i])
         )
         refreshReportMarkdown()
       } else {
@@ -1241,6 +1263,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       paragraph_analyses: session.paragraph_analyses,
       report_markdown: session.report_markdown,
       paragraph_paraphrases: session.paragraph_paraphrases,
+      paragraph_originals: session.paragraph_originals,
       language: session.language || 'zh',
       domain: session.domain || 'academic'
     })
@@ -1266,7 +1289,7 @@ const handleDeleteSession = async (item: SessionListItem) => {
       paragraphAnalyses.value = []
       reportMarkdown.value = ''
       segmentBlocks.value = []
-      paragraphParaphrases.value = []
+      paragraphOriginals.value = []
       overallReportBlock.value = ''
       modifiedParagraphIndices.value = new Set()
     }
@@ -1507,6 +1530,7 @@ const handleRePreprocess = () => {
     minSegments: DEFAULT_MIN_SEGMENTS,
     maxSegments: DEFAULT_MAX_SEGMENTS
   })
+  paragraphOriginals.value = []
   const n = paragraphAnalyses.value.length
   if (n) modifiedParagraphIndices.value = new Set(Array.from({ length: n }, (_, j) => j))
   saveParagraphTexts()
@@ -1521,7 +1545,8 @@ function saveParagraphTexts() {
     aigcDetectionSessionsDb
       .update(activeSessionId.value, {
         paragraph_texts: JSON.stringify(paragraphs.value),
-        article_content: paragraphs.value.join('\n\n')
+        article_content: paragraphs.value.join('\n\n'),
+        paragraph_originals: JSON.stringify(paragraphOriginals.value)
       })
       .catch(() => {})
   }
@@ -1544,7 +1569,6 @@ const handleAnalyze = async () => {
   reportMarkdown.value = ''
   paragraphAnalyses.value = []
   overallAnalysis.value = null
-  paragraphParaphrases.value = list.map(() => null)
   overallReportBlock.value = ''
   segmentBlocks.value = list.map(() => null)
   refreshReportMarkdown()
@@ -1553,15 +1577,14 @@ const handleAnalyze = async () => {
     const total = list.length
     const analyses: Array<{ index: number; text: string; analysis: AigcAnalysisResult }> = []
 
-    // 并行分析，每完成一个立即按索引插入到正确位置并刷新
+    // 并行分析，每完成一个立即按索引插入到正确位置并刷新（当前段落内容与可撤回状态保留）
     const promises = list.map(async (text, i) => {
       const analysis = await analyzeParagraph(text.trim(), i + 1, total)
       const result = { index: i, text: text.trim(), analysis }
       analyses.push(result)
-      segmentBlocks.value[result.index] = buildParagraphReportBlock(
-        result,
-        paragraphParaphrases.value[result.index] ?? null
-      )
+      const currentText = paragraphs.value[result.index] ?? result.text
+      const canRevert = !!paragraphOriginals.value[result.index]
+      segmentBlocks.value[result.index] = buildParagraphReportBlock(result, currentText, canRevert)
       refreshReportMarkdown()
       return result
     })
@@ -1584,13 +1607,21 @@ const handleAnalyze = async () => {
         overall_analysis: JSON.stringify(overall),
         paragraph_analyses: JSON.stringify(analyses),
         paragraph_texts: JSON.stringify(paragraphs.value),
-        paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
+        paragraph_originals: JSON.stringify(paragraphOriginals.value),
         report_markdown: reportMarkdown.value
       })
     }
     await nextTick()
     updateEditorDecorations()
     notifySuccess(t('aigc.analysisComplete'))
+    // 分析完成后根据正文生成会话标题（参考 AIChat）
+    if (activeSessionId.value && articleContent.value.trim()) {
+      generateSessionTitleFromContent(articleContent.value).then((newTitle) => {
+        if (newTitle && activeSessionId.value) {
+          aigcDetectionSessionsDb.update(activeSessionId.value, { title: newTitle }).then(() => loadSessions())
+        }
+      })
+    }
   } catch (error) {
     notifyError('分析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
@@ -1761,55 +1792,46 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
-/** 构建单个段落的报告块（不追加，供按索引插入用）；paraphrased 有值时追加「改写后的内容」与一键复制 */
+/** 构建单个段落的报告块：显示当前段落内容，可撤回时显示撤回按钮 */
 function buildParagraphReportBlock(
   para: { index: number; text: string; analysis: AigcAnalysisResult },
-  paraphrased: string | null = null
+  currentText: string,
+  canRevert: boolean
 ): string {
   const paraLevel = getRiskLevelFromScore(para.analysis.overall_aigc_risk)
   const paraRiskColor =
     paraLevel === 'HIGH' ? '#f56c6c' : paraLevel === 'MEDIUM' ? '#e6a23c' : '#67c23a'
+  const riskLevelLabel =
+    paraLevel === 'HIGH' ? t('aigc.riskHigh') : paraLevel === 'MEDIUM' ? t('aigc.riskMedium') : t('aigc.riskLow')
   const radarData = {
     indicator: AIGC_DIMENSION_KEYS.map((k) => ({ name: getDimensionLabel(k), max: 10 })),
     series: [
       {
-        name: `段落 ${para.index + 1} 评分`,
+        name: t('aigc.paragraphScore', { n: para.index + 1 }),
         value: AIGC_DIMENSION_KEYS.map((k) => getDimensionScore(para.analysis, k))
       }
     ]
   }
-  let block = `### 段落 ${para.index + 1} {#paragraph-${para.index}}\n\n`
-  block += `**风险评分：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${paraLevel === 'HIGH' ? '高' : paraLevel === 'MEDIUM' ? '中' : '低'})\n\n`
-  // 有改写时：主显示改写内容，A|B 切换查看原文/改写对比
-  if (paraphrased != null && paraphrased.trim()) {
-    const origEscaped = escapeHtml(para.text.trim())
-    const parEscaped = escapeHtml(paraphrased.trim())
-    block += `**${t('aigc.paragraphContent')}：**\n\n`
-    block += `<div class="aigc-paragraph-content-switcher" data-paragraph-index="${para.index}">\n`
-    block += `<span class="aigc-ab-btns">\n`
-    block += `<button type="button" class="aigc-ab-btn aigc-ab-original" data-paragraph-index="${para.index}">${t('aigc.viewOriginal')}</button>\n`
-    block += `<button type="button" class="aigc-ab-btn aigc-ab-paraphrased active" data-paragraph-index="${para.index}">${t('aigc.viewParaphrased')}</button>\n`
-    block += `<button type="button" class="aigc-copy-paraphrase-btn" data-paragraph-index="${para.index}">${t('aigc.copy')}</button>\n`
-    block += `</span>\n`
-    block += `<div class="aigc-original-content" data-paragraph-index="${para.index}" style="display:none"><pre class="aigc-original-pre">${origEscaped}</pre></div>\n`
-    block += `<div class="aigc-paraphrased-content-block" data-paragraph-index="${para.index}"><pre class="aigc-paraphrased-content" data-paragraph-index="${para.index}">${parEscaped}</pre></div>\n`
-    block += `</div>\n\n`
-  } else {
-    block += `**${t('aigc.paragraphContent')}：**\n\n`
-    block += `> ${para.text.split('\n').join('\n> ')}\n\n`
+  let block = `### ${t('aigc.paragraphN', { n: para.index + 1 })} {#paragraph-${para.index}}\n\n`
+  block += `**${t('aigc.riskScore')}：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${riskLevelLabel})\n\n`
+  block += `**${t('aigc.paragraphContent')}：**\n\n`
+  const displayText = (currentText || para.text).trim()
+  block += `> ${displayText.split('\n').join('\n> ')}\n\n`
+  if (canRevert) {
+    block += `<button type="button" class="aigc-revert-one-btn" data-paragraph-index="${para.index}">${t('aigc.revertOne')}</button>\n\n`
   }
-  block += `**各维度雷达图：**\n\n`
+  block += `**${t('aigc.radarChart')}：**\n\n`
   block += `\`\`\`echarts\n`
   block += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   block += `\n\`\`\`\n\n`
-  block += `**维度评分：**\n\n`
+  block += `**${t('aigc.dimensionScore')}：**\n\n`
   AIGC_DIMENSION_KEYS.forEach((k) => {
     const v = getDimensionScore(para.analysis, k)
     block += `- ${getDimensionLabel(k)}：${v.toFixed(1)}\n`
   })
   block += `\n`
   if (para.analysis.concise_suggestions.length > 0) {
-    block += `**修改建议：**\n\n`
+    block += `**${t('aigc.modificationSuggestions')}：**\n\n`
     para.analysis.concise_suggestions.forEach((s, i) => {
       block += `${i + 1}. ${s}\n`
     })
@@ -1825,7 +1847,7 @@ function buildOverallReportBlock(overall: AigcAnalysisResult): string {
     indicator: AIGC_DIMENSION_KEYS.map((k) => ({ name: getDimensionLabel(k), max: 10 })),
     series: [
       {
-        name: '总体评分',
+        name: t('aigc.overallScore'),
         value: AIGC_DIMENSION_KEYS.map((k) => getDimensionScore(overall, k))
       }
     ]
@@ -1836,45 +1858,51 @@ function buildOverallReportBlock(overall: AigcAnalysisResult): string {
       : overall.risk_level === 'MEDIUM'
         ? '#e6a23c'
         : '#67c23a'
+  const riskLevelLabel =
+    overall.risk_level === 'HIGH'
+      ? t('aigc.riskHigh')
+      : overall.risk_level === 'MEDIUM'
+        ? t('aigc.riskMedium')
+        : t('aigc.riskLow')
   const dimDesc = (v: number, high: string, mid: string, low: string) =>
     v >= 7 ? `⚠️ ${high}` : v >= 4 ? `⚠️ ${mid}` : `✓ ${low}`
-  let overallBlock = `## 总体分析\n\n`
-  overallBlock += `### 风险评分\n\n`
+  let overallBlock = `## ${t('aigc.overallAnalysis')}\n\n`
+  overallBlock += `### ${t('aigc.riskScore')}\n\n`
   overallBlock += `<div style="text-align: center; margin: 20px 0;">\n`
   overallBlock += `<div style="font-size: 48px; font-weight: bold; color: ${riskColor};">${overall.overall_aigc_risk}</div>\n`
-  overallBlock += `<div style="font-size: 18px; color: ${riskColor}; margin-top: 10px;">风险等级：${overall.risk_level === 'HIGH' ? '高' : overall.risk_level === 'MEDIUM' ? '中' : '低'}</div>\n`
+  overallBlock += `<div style="font-size: 18px; color: ${riskColor}; margin-top: 10px;">${t('aigc.riskLevel')}：${riskLevelLabel}</div>\n`
   overallBlock += `</div>\n\n`
-  overallBlock += `### 各维度雷达图\n\n`
+  overallBlock += `### ${t('aigc.radarChart')}\n\n`
   overallBlock += `\`\`\`echarts\n`
   overallBlock += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   overallBlock += `\n\`\`\`\n\n`
-  overallBlock += `### 风险来源权重（加权幂次贡献占比）\n\n`
+  overallBlock += `### ${t('aigc.riskWeightPie')}\n\n`
   overallBlock += `\`\`\`echarts\n`
   overallBlock += JSON.stringify(buildAigcWeightPieEchartsOption(overall, t), null, 2)
   overallBlock += `\n\`\`\`\n\n`
-  overallBlock += `### 维度评分详情\n\n`
-  overallBlock += `| 维度 | 评分 | 说明 |\n`
+  overallBlock += `### ${t('aigc.dimensionScoreDetail')}\n\n`
+  overallBlock += `| ${t('aigc.dimension')} | ${t('aigc.score')} | ${t('aigc.description')} |\n`
   overallBlock += `|------|------|------|\n`
   AIGC_DIMENSION_KEYS.forEach((k) => {
     const v = getDimensionScore(overall, k)
-    const [high, mid, low] = AIGC_DIM_DESCRIPTIONS[k]
+    const [high, mid, low] = getDimDesc(k)
     overallBlock += `| ${getDimensionLabel(k)} | ${v.toFixed(1)} | ${dimDesc(v, high, mid, low)} |\n`
   })
   overallBlock += `\n`
 
-  overallBlock += `### 修改建议\n\n`
+  overallBlock += `### ${t('aigc.modificationSuggestions')}\n\n`
   overall.concise_suggestions.forEach((suggestion, index) => {
     overallBlock += `${index + 1}. ${suggestion}\n`
   })
   overallBlock += `\n`
 
-  overallBlock += `## 结论\n\n`
+  overallBlock += `## ${t('aigc.conclusion')}\n\n`
   if (overall.risk_level === 'HIGH') {
-    overallBlock += `本文存在较高的 AIGC 风格风险。建议进行较大幅度的改写，特别是：\n\n`
+    overallBlock += t('aigc.conclusionHigh')
   } else if (overall.risk_level === 'MEDIUM') {
-    overallBlock += `本文存在中等的 AIGC 风格风险。建议进行适度调整，重点关注：\n\n`
+    overallBlock += t('aigc.conclusionMedium')
   } else {
-    overallBlock += `本文的 AIGC 风格风险较低，但仍有改进空间。建议：\n\n`
+    overallBlock += t('aigc.conclusionLow')
   }
 
   overall.concise_suggestions.slice(0, 3).forEach((suggestion, index) => {
@@ -1901,71 +1929,22 @@ const handleExportCommand = (command: string) => {
   if (command === 'report') handleExportReport()
 }
 
-/** 导出改写后的文章 二级菜单：doc=作为新文档，session=进行AIGC率检测 */
+/** 导出当前正文到新文档 */
 const handleExportParaphrasedCommand = (command: string) => {
   if (command === 'doc') handleExportParaphrasedArticle()
-  else if (command === 'session') handleAssembleAsNewArticle()
 }
 
-/** 导出改写后的文章到新文档（与拼成新文章相同的拼文逻辑，不创建新会话） */
+/** 导出当前正文到新文档（改写已直接替换在 paragraphs 中） */
 const handleExportParaphrasedArticle = () => {
   if (!paragraphs.value.length) {
     notifyWarning(t('aigc.noContent'))
     return
   }
-  const newParagraphs = paragraphs.value.map((p, i) => {
-    const par = paragraphParaphrases.value[i]
-    return par != null && String(par).trim() !== '' ? String(par).trim() : p
-  })
-  const newContent = newParagraphs.join('\n\n')
+  const newContent = paragraphs.value.join('\n\n')
   eventBus.emit('ai-chat-export-to-document', {
     content: newContent
   })
-  notifySuccess(t('aigc.exportParaphrasedSuccess', '已导出改写后的文章到新文档'))
-}
-
-/** 将改写后的内容拼成新文章并在新会话中打开（已改写段落用改写文，未改写的保留原文） */
-const handleAssembleAsNewArticle = async () => {
-  if (!paragraphs.value.length) {
-    notifyWarning(t('aigc.noContent'))
-    return
-  }
-  const newParagraphs = paragraphs.value.map((p, i) => {
-    const par = paragraphParaphrases.value[i]
-    return par != null && String(par).trim() !== '' ? String(par).trim() : p
-  })
-  const newContent = newParagraphs.join('\n\n')
-  try {
-    const id = `aigc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const title = t('aigc.assembleNewTitle', '改写后文章')
-    await aigcDetectionSessionsDb.create({
-      id,
-      title,
-      description: '',
-      article_content: newContent,
-      content_source: undefined,
-      source_file_path: undefined,
-      source_tab_id: undefined,
-      overall_analysis: undefined,
-      paragraph_analyses: undefined,
-      report_markdown: undefined,
-      paragraph_texts: JSON.stringify(newParagraphs),
-      paragraph_paraphrases: undefined,
-      language: aigcLanguage.value,
-      domain: 'general'
-    })
-    await loadSessions()
-    const newItem = sessions.value.find((s) => s.id === id)
-    if (newItem) {
-      activeSessionId.value = id
-      await handleSelectSession(newItem)
-    } else {
-      activeSessionId.value = id
-    }
-    notifySuccess(t('aigc.assembleSuccess', '已拼成新文章并打开'))
-  } catch (error) {
-    notifyError('拼成新文章失败: ' + (error instanceof Error ? error.message : String(error)))
-  }
+  notifySuccess(t('aigc.exportParaphrasedSuccess', '已导出到新文档'))
 }
 
 // 生成Markdown报告
@@ -1990,40 +1969,44 @@ const generateReportMarkdown = (
         : '#67c23a'
   const dimDesc = (v: number, high: string, mid: string, low: string) =>
     v >= 7 ? `⚠️ ${high}` : v >= 4 ? `⚠️ ${mid}` : `✓ ${low}`
-  let markdown = `# AIGC 风格风险评估报告\n\n`
-  markdown += `## 总体分析\n\n`
-  markdown += `### 风险评分\n\n`
+  const riskLevelLabel =
+    overall.risk_level === 'HIGH'
+      ? t('aigc.riskHigh')
+      : overall.risk_level === 'MEDIUM'
+        ? t('aigc.riskMedium')
+        : t('aigc.riskLow')
+  let markdown = `# ${t('aigc.reportTitle')}\n\n`
+  markdown += `## ${t('aigc.overallAnalysis')}\n\n`
+  markdown += `### ${t('aigc.riskScore')}\n\n`
   markdown += `<div style="text-align: center; margin: 20px 0;">\n`
   markdown += `<div style="font-size: 48px; font-weight: bold; color: ${riskColor};">${overall.overall_aigc_risk}</div>\n`
-  markdown += `<div style="font-size: 18px; color: ${riskColor}; margin-top: 10px;">风险等级：${overall.risk_level === 'HIGH' ? '高' : overall.risk_level === 'MEDIUM' ? '中' : '低'}</div>\n`
+  markdown += `<div style="font-size: 18px; color: ${riskColor}; margin-top: 10px;">${t('aigc.riskLevel')}：${riskLevelLabel}</div>\n`
   markdown += `</div>\n\n`
-  markdown += `### 各维度雷达图\n\n`
+  markdown += `### ${t('aigc.radarChart')}\n\n`
   markdown += `\`\`\`echarts\n`
   markdown += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   markdown += `\n\`\`\`\n\n`
-  markdown += `### 风险来源权重（加权幂次贡献占比）\n\n`
+  markdown += `### ${t('aigc.riskWeightPie')}\n\n`
   markdown += `\`\`\`echarts\n`
   markdown += JSON.stringify(buildAigcWeightPieEchartsOption(overall, t), null, 2)
   markdown += `\n\`\`\`\n\n`
-  markdown += `### 维度评分详情\n\n`
-  markdown += `| 维度 | 评分 | 说明 |\n`
+  markdown += `### ${t('aigc.dimensionScoreDetail')}\n\n`
+  markdown += `| ${t('aigc.dimension')} | ${t('aigc.score')} | ${t('aigc.description')} |\n`
   markdown += `|------|------|------|\n`
   AIGC_DIMENSION_KEYS.forEach((k) => {
     const v = getDimensionScore(overall, k)
-    const [high, mid, low] = AIGC_DIM_DESCRIPTIONS[k]
+    const [high, mid, low] = getDimDesc(k)
     markdown += `| ${getDimensionLabel(k)} | ${v.toFixed(1)} | ${dimDesc(v, high, mid, low)} |\n`
   })
   markdown += `\n`
 
-  // 修改建议
-  markdown += `### 修改建议\n\n`
+  markdown += `### ${t('aigc.modificationSuggestions')}\n\n`
   overall.concise_suggestions.forEach((suggestion, index) => {
     markdown += `${index + 1}. ${suggestion}\n`
   })
   markdown += `\n`
 
-  // 分段分析
-  markdown += `## 分段分析\n\n`
+  markdown += `## ${t('aigc.segmentAnalysis')}\n\n`
   paragraphs.forEach((para, index) => {
     const paraRiskColor =
       para.analysis.risk_level === 'HIGH'
@@ -2031,19 +2014,25 @@ const generateReportMarkdown = (
         : para.analysis.risk_level === 'MEDIUM'
           ? '#e6a23c'
           : '#67c23a'
+    const paraLevelLabel =
+      para.analysis.risk_level === 'HIGH'
+        ? t('aigc.riskHigh')
+        : para.analysis.risk_level === 'MEDIUM'
+          ? t('aigc.riskMedium')
+          : t('aigc.riskLow')
 
-    markdown += `### 段落 ${index + 1} {#paragraph-${index}}\n\n`
-    markdown += `**风险评分：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${para.analysis.risk_level === 'HIGH' ? '高' : para.analysis.risk_level === 'MEDIUM' ? '中' : '低'})\n\n`
-    markdown += `**段落内容：**\n\n`
+    markdown += `### ${t('aigc.paragraphN', { n: index + 1 })} {#paragraph-${index}}\n\n`
+    markdown += `**${t('aigc.riskScore')}：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${paraLevelLabel})\n\n`
+    markdown += `**${t('aigc.paragraphContent')}：**\n\n`
     markdown += `> ${para.text.split('\n').join('\n> ')}\n\n`
-    markdown += `**维度评分：**\n\n`
+    markdown += `**${t('aigc.dimensionScore')}：**\n\n`
     AIGC_DIMENSION_KEYS.forEach((k) => {
       markdown += `- ${getDimensionLabel(k)}：${getDimensionScore(para.analysis, k).toFixed(1)}\n`
     })
     markdown += `\n`
 
     if (para.analysis.concise_suggestions.length > 0) {
-      markdown += `**修改建议：**\n\n`
+      markdown += `**${t('aigc.modificationSuggestions')}：**\n\n`
       para.analysis.concise_suggestions.forEach((suggestion, i) => {
         markdown += `${i + 1}. ${suggestion}\n`
       })
@@ -2053,14 +2042,13 @@ const generateReportMarkdown = (
     markdown += `---\n\n`
   })
 
-  // 结论
-  markdown += `## 结论\n\n`
+  markdown += `## ${t('aigc.conclusion')}\n\n`
   if (overall.risk_level === 'HIGH') {
-    markdown += `本文存在较高的 AIGC 风格风险。建议进行较大幅度的改写，特别是：\n\n`
+    markdown += t('aigc.conclusionHigh')
   } else if (overall.risk_level === 'MEDIUM') {
-    markdown += `本文存在中等的 AIGC 风格风险。建议进行适度调整，重点关注：\n\n`
+    markdown += t('aigc.conclusionMedium')
   } else {
-    markdown += `本文的 AIGC 风格风险较低，但仍有改进空间。建议：\n\n`
+    markdown += t('aigc.conclusionLow')
   }
 
   overall.concise_suggestions.slice(0, 3).forEach((suggestion, index) => {
@@ -2070,7 +2058,7 @@ const generateReportMarkdown = (
   return markdown
 }
 
-/** 对单段做同义转述（参考报告修改建议），不修改原文，结果存入 paragraphParaphrases
+/** 对单段做同义转述并直接替换正文，原文存入 paragraphOriginals 供撤回
  * @param skipDbSave 为 true 时不写库（由调用方在全部完成后统一保存）
  */
 async function paraphraseOneSegment(index: number, skipDbSave = false): Promise<void> {
@@ -2101,21 +2089,25 @@ async function paraphraseOneSegment(index: number, skipDbSave = false): Promise<
   await done
   const paraphrased = resultRef.value.trim()
   if (!paraphrased) return
-  while (paragraphParaphrases.value.length <= index) {
-    paragraphParaphrases.value.push(null)
+  const original = paragraphs.value[index]
+  while (paragraphOriginals.value.length <= index) {
+    paragraphOriginals.value.push(null)
   }
-  paragraphParaphrases.value[index] = paraphrased
-  segmentBlocks.value[index] = buildParagraphReportBlock(pa, paraphrased)
+  paragraphOriginals.value[index] = original
+  paragraphs.value[index] = paraphrased
+  syncContentFromParagraphs()
+  segmentBlocks.value[index] = buildParagraphReportBlock(pa, paraphrased, true)
   refreshReportMarkdown()
   if (!skipDbSave && activeSessionId.value) {
     await aigcDetectionSessionsDb.update(activeSessionId.value, {
-      paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
+      paragraph_texts: JSON.stringify(paragraphs.value),
+      paragraph_originals: JSON.stringify(paragraphOriginals.value),
       report_markdown: reportMarkdown.value
     })
   }
 }
 
-/** 改写全部：并发对各段做同义转述（与开始分析类似，同时改写各段），每完成一段即更新报告 */
+/** 改写全部：并发对各段做同义转述并替换正文，完成后自动重新分析得到新报告 */
 const handleParaphraseAll = async () => {
   if (!paragraphAnalyses.value.length || !paragraphs.value.length) {
     notifyWarning(t('aigc.noContent'))
@@ -2127,13 +2119,15 @@ const handleParaphraseAll = async () => {
     await Promise.all(Array.from({ length: n }, (_, i) => paraphraseOneSegment(i, true)))
     if (activeSessionId.value) {
       await aigcDetectionSessionsDb.update(activeSessionId.value, {
-        paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
+        paragraph_texts: JSON.stringify(paragraphs.value),
+        paragraph_originals: JSON.stringify(paragraphOriginals.value),
         report_markdown: reportMarkdown.value
       })
     }
     await nextTick()
     onReportRendered()
     notifySuccess(t('aigc.paraphraseSuccess'))
+    await handleAnalyze()
   } catch (error) {
     notifyError('改写失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
@@ -2141,7 +2135,7 @@ const handleParaphraseAll = async () => {
   }
 }
 
-/** 对本段改写（首次或重新），在 summary 旁按钮触发 */
+/** 对本段改写（首次或重新），在 summary 旁按钮触发；改写后直接替换正文并保留原文供撤回 */
 const handleParaphraseOne = async (index: number) => {
   if (paraphrasingOneIndex.value != null || paraphrasing.value) return
   paraphrasingOneIndex.value = index
@@ -2155,6 +2149,34 @@ const handleParaphraseOne = async (index: number) => {
   } finally {
     paraphrasingOneIndex.value = null
   }
+}
+
+/** 撤回单段改写：该段恢复为改写前原文 */
+async function handleRevertOne(index: number) {
+  const orig = paragraphOriginals.value[index]
+  if (orig == null || index < 0 || index >= paragraphs.value.length) return
+  paragraphs.value[index] = orig
+  paragraphOriginals.value[index] = null
+  syncContentFromParagraphs()
+  const pa = paragraphAnalyses.value[index]
+  if (pa) {
+    segmentBlocks.value[index] = buildParagraphReportBlock(
+      pa,
+      paragraphs.value[index],
+      false
+    )
+    refreshReportMarkdown()
+  }
+  if (activeSessionId.value) {
+    await aigcDetectionSessionsDb.update(activeSessionId.value, {
+      paragraph_texts: JSON.stringify(paragraphs.value),
+      paragraph_originals: JSON.stringify(paragraphOriginals.value),
+      report_markdown: reportMarkdown.value
+    })
+  }
+  await nextTick()
+  onReportRendered()
+  notifySuccess(t('aigc.revertSuccess', '已撤回该段'))
 }
 
 /** 构建单段改写提示词：目标为一次性改写至低 AIGC 风险，非仅做轻微降低 */
@@ -2522,6 +2544,19 @@ onMounted(() => {
   cursor: pointer;
 }
 .report-scrollbar :deep(.aigc-paraphrase-one-btn:hover) {
+  opacity: 0.9;
+}
+.report-scrollbar :deep(.aigc-revert-one-btn) {
+  margin-top: 6px;
+  padding: 2px 10px;
+  font-size: 12px;
+  border: 1px solid v-bind('borderColor');
+  border-radius: 4px;
+  background: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  cursor: pointer;
+}
+.report-scrollbar :deep(.aigc-revert-one-btn:hover) {
   opacity: 0.9;
 }
 /* 雷达图容器：加大宽度与内边距，避免 12 维轴标签左右被截断 */

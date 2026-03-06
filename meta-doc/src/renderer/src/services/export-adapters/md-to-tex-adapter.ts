@@ -1,5 +1,14 @@
 import { BaseExportAdapter } from './base-adapter'
 import type { LatexExportOptions, ExportOptionField } from './types'
+import type { WorkspaceDocument } from '../../stores/workspace'
+import {
+  filterMetaStep,
+  preRenderCharts,
+  prepareImagesForTarget,
+  collectOriginalImageUrls,
+  collectRenderedImageUrls,
+  convertMarkdownToLatexWithOptions
+} from '../export-steps'
 
 /**
  * Markdown -> LaTeX 导出适配器
@@ -122,7 +131,10 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: LatexExportOptions,
-    context?: any
+    context?: {
+      doc?: WorkspaceDocument
+      handle?: { mark: (p: number, msg?: any) => void }
+    }
   ): Promise<{
     md: string
     json: string
@@ -130,7 +142,57 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
     html?: string
     imageUrls?: string[]
   }> {
-    return { ...data }
+    const doc = context?.doc
+    const handle = context?.handle
+    const docPath = doc?.path
+    const willRegenerateFromOutline =
+      options.removeTitlePrefixes !== false && !!doc?.outline
+
+    const progressCallback = handle
+      ? (p: any) => {
+          const percent = Math.min(80, p?.percentage ?? 0)
+          handle.mark(percent, {
+            message: p?.message ?? 'agent.reference.progress.preRenderingCharts',
+            subMessage: p?.subMessage ?? 'agent.reference.progress.preparingExport',
+            params: p?.params,
+            status: p?.status
+          })
+        }
+      : undefined
+
+    let markdown = filterMetaStep(data.md)
+    if (!willRegenerateFromOutline) {
+      markdown = await preRenderCharts(markdown, {
+        format: 'svg',
+        progressCallback
+      })
+    }
+    markdown = await prepareImagesForTarget(
+      markdown,
+      'tex',
+      options.imageProcessing,
+      docPath
+    )
+
+    if (!doc) {
+      throw new Error('MdToTexAdapter.prepareExportData requires context.doc')
+    }
+    const tex = await convertMarkdownToLatexWithOptions(
+      markdown,
+      doc,
+      data.json,
+      options
+    )
+
+    const originalImageUrls = collectOriginalImageUrls(data.md)
+    const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
+
+    return {
+      md: markdown,
+      json: data.json,
+      tex,
+      imageUrls
+    }
   }
 
   async executeExport(

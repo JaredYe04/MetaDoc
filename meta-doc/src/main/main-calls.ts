@@ -685,6 +685,27 @@ function bindFileHandlers(): void {
     }
   )
 
+  // 返回项目 debug 目录下固定验收文档路径（debug/export-test.md），供设置→调试→导出回归测试使用
+  ipcBridge.registerHandle(
+    'get-debug-export-test-path',
+    async (): Promise<string> => {
+      const cwd = process.cwd()
+      const candidates = [
+        path.join(cwd, 'debug', 'export-test.md'),
+        path.join(cwd, '..', 'debug', 'export-test.md'),
+        path.join(cwd, '..', '..', 'debug', 'export-test.md')
+      ]
+      for (const p of candidates) {
+        try {
+          if (fs.existsSync(p)) return path.resolve(p)
+        } catch {
+          /* ignore */
+        }
+      }
+      return path.resolve(candidates[0])
+    }
+  )
+
   // 读取目录内容
   ipcBridge.registerHandle(
     'read-directory',
@@ -2140,6 +2161,23 @@ function bindExportHandlers(): void {
     'perform-export',
     async (event: IpcMainInvokeEvent, payload: RendererExportPayload) => {
       const result = await performExportRequest(payload, mainWindow)
+      if (result.success && result.path) {
+        event.sender.send('export-success', result.path)
+      } else if (!result.success && result.error) {
+        event.sender.send('export-error', result.error)
+      }
+      return result
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'perform-export-to-path',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: RendererExportPayload,
+      targetPath: string
+    ) => {
+      const result = await performExportRequest(payload, mainWindow, targetPath)
       if (result.success && result.path) {
         event.sender.send('export-success', result.path)
       } else if (!result.success && result.error) {

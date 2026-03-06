@@ -1,5 +1,11 @@
 import { BaseExportAdapter } from './base-adapter'
 import type { MarkdownExportOptions, ExportOptionField } from './types'
+import {
+  filterMetaStep,
+  prepareImagesForTarget,
+  collectOriginalImageUrls,
+  collectRenderedImageUrls
+} from '../export-steps'
 
 /**
  * Markdown -> Markdown 导出适配器
@@ -61,7 +67,7 @@ export class MdToMdAdapter extends BaseExportAdapter<'md', 'md', MarkdownExportO
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: MarkdownExportOptions,
-    context?: any
+    context?: { doc?: { path?: string } }
   ): Promise<{
     md: string
     json: string
@@ -69,7 +75,22 @@ export class MdToMdAdapter extends BaseExportAdapter<'md', 'md', MarkdownExportO
     html?: string
     imageUrls?: string[]
   }> {
-    return { ...data }
+    const docPath = context?.doc?.path
+    let markdown = filterMetaStep(data.md)
+    markdown = await prepareImagesForTarget(
+      markdown,
+      'md',
+      options.imageProcessing,
+      docPath
+    )
+    const originalImageUrls = collectOriginalImageUrls(data.md)
+    const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
+    return {
+      md: markdown,
+      json: data.json,
+      tex: data.tex,
+      imageUrls
+    }
   }
 
   async executeExport(

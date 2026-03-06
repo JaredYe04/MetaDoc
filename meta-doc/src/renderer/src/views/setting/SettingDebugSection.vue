@@ -60,6 +60,14 @@
             <ChatDotRound class="debug-menu-icon" />
             <span class="debug-menu-label">{{ $t('setting.debug.agentSessionDebug') }}</span>
           </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'exportregression' }]"
+            @click="handleMenuSelect('exportregression')"
+          >
+            <Setting class="debug-menu-icon" />
+            <span class="debug-menu-label">导出回归测试</span>
+          </Button>
         </div>
       </div>
 
@@ -1324,6 +1332,107 @@
                   </TabsContent>
                 </Tabs>
               </div>
+              <!-- 导出回归测试：固定使用 debug/export-test.md 或调试人员打开的文档，一键导出多格式 -->
+              <div v-show="activeTab === 'exportregression'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <p class="text-sm text-muted-foreground mb-4">
+                    项目调试目录为 <code>debug/</code>，验收文档固定为 <code>debug/export-test.md</code>（写死）。也可通过 文件→打开 打开任意文档后在此选择。按下方用例依次导出到指定目录（与程序内导出同一套流程）。
+                  </p>
+                  <FormField label="选择要导出的文档" name="exportDoc">
+                    <div class="flex gap-2 items-center flex-wrap">
+                      <Select v-model="exportRegressionSelectedTabId">
+                        <SelectTrigger class="w-[320px]">
+                          <SelectValue placeholder="请先打开文档（如 debug/export-test.md）" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="tab in documentTabs"
+                            :key="tab.id"
+                            :value="tab.id"
+                          >
+                            {{ tab.path ? tab.path.replace(/^.*[/\\]/, '') : (tab.title || '未命名') }}
+                            <span v-if="isExportTestDoc(tab)" class="text-muted-foreground ml-1">(验收文档)</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="default"
+                        @click="handleOpenDebugExportTest"
+                      >
+                        打开 debug/export-test.md
+                      </Button>
+                    </div>
+                    <p v-if="!exportRegressionDoc && documentTabs.length === 0" class="text-xs text-muted-foreground mt-1">
+                      请先点击「打开 debug/export-test.md」或通过 文件→打开 打开要测试的文档。
+                    </p>
+                  </FormField>
+                  <FormField label="输出目录" name="outputDir">
+                    <div class="flex gap-2 items-center">
+                      <Input
+                        v-model="exportRegressionOutputDir"
+                        placeholder="选择或输入导出根目录"
+                        class="flex-1 max-w-md"
+                        readonly
+                      />
+                      <Button
+                        variant="outline"
+                        size="default"
+                        @click="handleExportRegressionChooseDir"
+                      >
+                        选择目录
+                      </Button>
+                    </div>
+                  </FormField>
+                  <FormField name="runExport">
+                    <Button
+                      variant="default"
+                      :disabled="!exportRegressionSelectedTabId || !exportRegressionDoc || !exportRegressionOutputDir || exportRegressionRunning"
+                      @click="runExportRegression"
+                    >
+                      <template v-if="exportRegressionRunning">
+                        导出中… ({{ exportRegressionCurrent }} / {{ exportRegressionCases.length }})
+                      </template>
+                      <template v-else>
+                        一键导出所有格式
+                      </template>
+                    </Button>
+                  </FormField>
+                  <div v-if="exportRegressionProgressMessage" class="text-sm text-muted-foreground mb-2">
+                    {{ exportRegressionProgressMessage }}
+                  </div>
+                  <Progress
+                    v-if="exportRegressionRunning"
+                    :model-value="exportRegressionProgressPercent"
+                    class="h-2 mb-4"
+                  />
+                  <div class="space-y-2">
+                    <div
+                      v-for="(c, idx) in exportRegressionCases"
+                      :key="c.name"
+                      class="flex items-center gap-3 py-1.5 px-2 rounded border text-sm"
+                    >
+                      <span class="w-6 text-muted-foreground">{{ idx + 1 }}.</span>
+                      <span class="flex-1">{{ c.name }}</span>
+                      <span class="text-muted-foreground">{{ c.description }}</span>
+                      <Badge
+                        :variant="
+                          c.status === 'success'
+                            ? 'default'
+                            : c.status === 'fail'
+                              ? 'destructive'
+                              : c.status === 'running'
+                                ? 'secondary'
+                                : 'outline'
+                        "
+                      >
+                        {{ c.status === 'success' ? '成功' : c.status === 'fail' ? '失败' : c.status === 'running' ? '进行中' : '待执行' }}
+                      </Badge>
+                      <span v-if="c.error" class="text-destructive text-xs max-w-xs truncate" :title="c.error">{{ c.error }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div v-show="activeTab === 'agentsessiondebug'" class="tab-content">
                 <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
                   <TabsList class="debug-tabs-list">
@@ -1929,7 +2038,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 // Demo mode support
@@ -2164,7 +2273,8 @@ const getCurrentTabTitle = () => {
     importsnapshot: t('setting.debug.importSnapshot'),
     autotest: 'Tool自动测试',
     unittest: t('setting.debug.unitTest.title'),
-    agentsessiondebug: 'Agent会话调试'
+    agentsessiondebug: 'Agent会话调试',
+    exportregression: '导出回归测试'
   }
   return titles[activeTab.value] || '调试工具'
 }
@@ -2218,6 +2328,41 @@ const unitTestBatchResults = ref<UnitTestResult[]>([])
 const unitTestBatchProgress = ref(0)
 const unitTestBatchCurrentTest = ref('')
 const unitTestBatchAbortController = ref<AbortController | null>(null)
+
+// 导出回归测试：在界面内一键导出多格式（与原先脚本核心逻辑一致，已迁移至此）
+const EXPORT_REGRESSION_CASES_MD: Array<{
+  name: string
+  format: 'pdf' | 'docx' | 'html' | 'tex' | 'md'
+  description: string
+  options: Record<string, any>
+}> = [
+  { name: 'pdf-default', format: 'pdf', description: 'PDF 默认', options: { margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }, pageSize: 'A4', printBackground: true } },
+  { name: 'docx-cover-toc', format: 'docx', description: 'DOCX 封面+目录+公式', options: { generateCover: true, generateToc: true, processFormula: true, enableStyleMapping: true } },
+  { name: 'tex-images-folder', format: 'tex', description: 'TEX 图片存文件夹', options: { documentClass: 'article', includePackages: true, imageProcessing: 'folder' } },
+  { name: 'tex-images-original', format: 'tex', description: 'TEX 图片保留原链接', options: { documentClass: 'article', includePackages: true, imageProcessing: 'original' } },
+  { name: 'html-images-folder', format: 'html', description: 'HTML 图片存文件夹', options: { inlineStyles: true, imageProcessing: 'folder' } },
+  { name: 'html-images-original', format: 'html', description: 'HTML 图片保留原链接', options: { inlineStyles: true, imageProcessing: 'original' } },
+  { name: 'md-export', format: 'md', description: 'Markdown', options: { imageProcessing: 'original' } }
+]
+const EXPORT_REGRESSION_CASES_TEX: Array<{
+  name: string
+  format: 'tex' | 'pdf' | 'md' | 'html' | 'docx'
+  description: string
+  options: Record<string, any>
+}> = [
+  { name: 'tex-same', format: 'tex', description: 'LaTeX', options: {} },
+  { name: 'tex-to-pdf', format: 'pdf', description: 'LaTeX 编译 PDF', options: {} },
+  { name: 'tex-to-md', format: 'md', description: 'LaTeX → Markdown', options: {} },
+  { name: 'tex-to-html', format: 'html', description: 'LaTeX → HTML', options: {} },
+  { name: 'tex-to-docx', format: 'docx', description: 'LaTeX → DOCX', options: {} }
+]
+const exportRegressionSelectedTabId = ref('')
+const exportRegressionOutputDir = ref('')
+const exportRegressionRunning = ref(false)
+const exportRegressionCurrent = ref(0)
+const exportRegressionProgressPercent = ref(0)
+const exportRegressionProgressMessage = ref('')
+const exportRegressionCaseStatus = ref<Record<string, { status: 'idle' | 'running' | 'success' | 'fail'; error?: string }>>({})
 
 // Agent Tool测试相关
 const toolTestForm = reactive({
@@ -2329,6 +2474,128 @@ const documentTabs = computed(() => {
     return tab.kind !== 'tool' && tab.kind !== 'system'
   })
 })
+
+// 导出回归测试：所选文档与用例列表（不依赖当前活跃 tab；固定推荐 debug/export-test.md）
+const exportRegressionDoc = computed(() => {
+  const id = exportRegressionSelectedTabId.value
+  return id ? workspace.documents[id] ?? null : null
+})
+const exportRegressionSourceFormat = computed(() => {
+  const doc = exportRegressionDoc.value
+  if (!doc) return 'md'
+  const tab = workspace.tabs.find((t) => t.id === doc.tabId)
+  return (tab?.format as 'md' | 'tex') || 'md'
+})
+function isExportTestDoc(tab: { path?: string }): boolean {
+  const p = (tab.path || '').replace(/\\/g, '/')
+  return p.endsWith('export-test.md') || p.includes('debug/export-test.md')
+}
+async function handleOpenDebugExportTest() {
+  const messageBridge = (await import('../../bridge/message-bridge')).default
+  const eventBus = (await import('../../utils/event-bus')).default
+  try {
+    const absPath = await messageBridge.invoke('get-debug-export-test-path')
+    eventBus.emit('open-doc', absPath)
+    // 新 tab 加入后由 watch(documentTabs) 自动选中
+  } catch (e) {
+    console.warn('打开 debug/export-test.md 失败:', e)
+  }
+}
+// 切换到导出回归测试或文档列表变化时，默认选中 debug/export-test.md 或第一个文档
+watch(
+  () => [activeTab.value, documentTabs.value] as const,
+  () => {
+    if (activeTab.value !== 'exportregression') return
+    const tabs = documentTabs.value
+    if (tabs.length === 0) {
+      exportRegressionSelectedTabId.value = ''
+      return
+    }
+    const current = exportRegressionSelectedTabId.value
+    const stillOpen = current && tabs.some((t) => t.id === current)
+    if (stillOpen) return
+    const exportTest = tabs.find((t) => isExportTestDoc(t))
+    exportRegressionSelectedTabId.value = exportTest ? exportTest.id : tabs[0].id
+  },
+  { immediate: true }
+)
+const exportRegressionCases = computed(() => {
+  const source = exportRegressionSourceFormat.value
+  const list = source === 'tex' ? EXPORT_REGRESSION_CASES_TEX : EXPORT_REGRESSION_CASES_MD
+  const statusMap = exportRegressionCaseStatus.value
+  return list.map((c) => ({
+    ...c,
+    status: statusMap[c.name]?.status ?? 'idle',
+    error: statusMap[c.name]?.error
+  }))
+})
+async function handleExportRegressionChooseDir() {
+  const msg = await import('../../bridge/message-bridge').then((m) => m.default)
+  const result = await msg.invoke('show-open-dialog', {
+    title: '选择导出根目录',
+    properties: ['openDirectory']
+  })
+  if (!result.canceled && result.filePaths?.[0]) {
+    exportRegressionOutputDir.value = result.filePaths[0]
+  }
+}
+async function runExportRegression() {
+  const doc = exportRegressionDoc.value
+  const outDir = exportRegressionOutputDir.value
+  if (!doc || !outDir) return
+  const source = exportRegressionSourceFormat.value
+  const list = source === 'tex' ? EXPORT_REGRESSION_CASES_TEX : EXPORT_REGRESSION_CASES_MD
+  const { prepareExportPayload } = await import('../../services/export-manager')
+  const messageBridge = (await import('../../bridge/message-bridge')).default
+  exportRegressionRunning.value = true
+  exportRegressionProgressMessage.value = ''
+  exportRegressionCaseStatus.value = {}
+  const extMap: Record<string, string> = {
+    pdf: 'pdf',
+    docx: 'docx',
+    html: 'html',
+    tex: 'tex',
+    md: 'md'
+  }
+  const eventBus = (await import('../../utils/event-bus')).default
+  const onProgress = (p: { percentage?: number; message?: string; subMessage?: string }) => {
+    exportRegressionProgressPercent.value = p?.percentage ?? 0
+    exportRegressionProgressMessage.value = [p?.message, p?.subMessage].filter(Boolean).join(' ')
+  }
+  eventBus.on('global-progress', onProgress)
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i]
+      exportRegressionCurrent.value = i + 1
+      exportRegressionCaseStatus.value = {
+        ...exportRegressionCaseStatus.value,
+        [c.name]: { status: 'running' }
+      }
+      const ext = extMap[c.format] ?? c.format
+      const targetPath = `${outDir.replace(/[/\\]+$/, '')}/${c.name}/export-test.${ext}`
+      try {
+        const payload = await prepareExportPayload(doc, c.format, 'export-test', c.options)
+        const result = await messageBridge.invoke('perform-export-to-path', payload, targetPath)
+        exportRegressionCaseStatus.value = {
+          ...exportRegressionCaseStatus.value,
+          [c.name]: result.success ? { status: 'success' } : { status: 'fail', error: result.error }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        exportRegressionCaseStatus.value = {
+          ...exportRegressionCaseStatus.value,
+          [c.name]: { status: 'fail', error: msg }
+        }
+      }
+    }
+  } finally {
+    eventBus.off('global-progress', onProgress)
+    exportRegressionRunning.value = false
+    exportRegressionCurrent.value = 0
+    exportRegressionProgressPercent.value = 100
+    exportRegressionProgressMessage.value = '全部完成'
+  }
+}
 
 // 会话回放相关
 const sessionReplayForm = reactive({})

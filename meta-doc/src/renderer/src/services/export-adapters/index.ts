@@ -11,6 +11,9 @@ import { MdToMdAdapter } from './md-to-md-adapter'
 import { MdToTexAdapter } from './md-to-tex-adapter'
 import { TexToPdfAdapter } from './tex-to-pdf-adapter'
 import { TexToTexAdapter } from './tex-to-tex-adapter'
+import { TexToMdAdapter } from './tex-to-md-adapter'
+import { TexToHtmlAdapter } from './tex-to-html-adapter'
+import { TexToDocxAdapter } from './tex-to-docx-adapter'
 
 // 注册所有适配器
 export async function registerAllAdapters(): Promise<void> {
@@ -24,8 +27,9 @@ export async function registerAllAdapters(): Promise<void> {
   // LaTeX 导出适配器
   exportAdapterRegistry.register(new TexToPdfAdapter())
   exportAdapterRegistry.register(new TexToTexAdapter())
-
-  // TODO: 添加更多适配器（TEX->MD, TEX->HTML, TEX->DOCX等）
+  exportAdapterRegistry.register(new TexToMdAdapter())
+  exportAdapterRegistry.register(new TexToHtmlAdapter())
+  exportAdapterRegistry.register(new TexToDocxAdapter())
 }
 
 // 导出注册表和适配器类型
@@ -50,5 +54,8 @@ export {
   MdToMdAdapter,
   MdToTexAdapter,
   TexToPdfAdapter,
-  TexToTexAdapter
+  TexToTexAdapter,
+  TexToMdAdapter,
+  TexToHtmlAdapter,
+  TexToDocxAdapter
 }

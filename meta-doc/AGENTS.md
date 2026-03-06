@@ -195,7 +195,7 @@ meta-doc/
 - **Tool specs are LLM config** — "Do NOT" / "Important Notes" control AI behavior
 - **Avoid more `!important`** — already in 30+ components
 - **Don't extend monoliths** — main-calls.ts (6119 lines), workspace.ts (2009 lines), export-manager.ts (3645 lines)
-- **Don't use deprecated paths** — express-server.ts legacy, export-manager.obsolete.ts, legacy-exports.js
+- **Don't use deprecated paths** — express-server.ts legacy, legacy-exports.js
 - **New code = TypeScript** — renderer bootstrap and utils are JS legacy
 - **Prompt changes need review** — `locale_prompts/*.json`, `prompts.ts`
 - **New UI MUST use shadcn-vue** — See "UI Component Priority" below

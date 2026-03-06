@@ -635,7 +635,8 @@
       "formulaRecognition": "수식 인식",
       "aiChat": "AI 채팅",
       "setting": "설정",
-      "aigcDetection": "AIGC 감지"
+      "aigcDetection": "AIGC 감지",
+      "agentReview": "편집 검토"
     },
     "authorLabel": "작성자",
     "abstractLabel": "요약",
@@ -1286,8 +1287,11 @@
       "openSourceLicenses": "오픈 소스 라이선스",
       "thirdPartyAssets": "제3자 에셋",
       "aboutUs": "회사 소개",
-      "content": "MetaDoc 팀과 미션에 대한 내용"
+      "content": "MetaDoc 팀과 미션에 대한 내용",
+      "loadFailed": "로드 실패"
     },
+    "agentTerminalExecutionAllowed": "기본적으로 터미널 실행 허용",
+    "agentTerminalExecutionAllowedHint": "켜면 Agent가 터미널 도구를 호출할 때 확인 없이 실행합니다. 끄면 실행할 때마다 확인 대화상자가 표시됩니다.",
     "cancel": "취소",
     "cannotCreateManualConfig": "수동 유형의 구성을 생성할 수 없습니다. 수동 유형은 개발 모드에서만 사용됩니다",
     "cannotDeleteDefaultConfig": "기본 구성을 삭제할 수 없습니다",
@@ -2997,7 +3001,7 @@
       "exportJson": "JSON으로 낭출",
       "deleteSession": "세션 삭제",
       "uploadAttachment": "첨부 파일 업로드",
-      "manageAttachments": "첨부 파일 관리",
+      "manageAttachments": "첨부 파일 관리"
     },
     "staging": {
       "title": "편집 스테이징",
@@ -3138,6 +3142,8 @@
     "contentDepth": "콘텐츠 깊이",
     "informationDensity": "정보 밀도",
     "styleConsistency": "스타일 일관성",
+    "argumentQuality": "논증 품질",
+    "terminologyUsage": "용어 사용",
     "overExplanation": "과도한 설명",
     "hedgingPattern": "모호한 표현",
     "openingTransitionPattern": "전환 패턴",
@@ -4468,6 +4474,10 @@
     "title": "작업 공간 검색",
     "useRegex": "정규식",
     "wholeWord": "전체 단어 일치"
+  },
+  "aiGreeting": {
+    "title": "안녕하세요! 저는 MetaDoc AI 어시스턴트입니다!",
+    "subtitle": "저는 당신의 스마트 문서 작성 도우미입니다. 다양한 AI 도구를 효율적으로 사용해 여러 분야의 전문적이고 풍부한 문서 작성에 도움을 드립니다."
   },
   "agentEngine": {
     "greeting": {

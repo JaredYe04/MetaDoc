@@ -3007,6 +3007,7 @@
     "ignoreAllSuccess": "已忽略 {count} 个错误",
     "ignoreSuccess": "已忽略",
     "noErrors": "未发现错误",
+    "noErrorsFound": "未发现错误",
     "severity": {
       "error": "错误",
       "warning": "警告",

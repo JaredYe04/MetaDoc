@@ -611,7 +611,8 @@
       "formulaRecognition": "数式認識",
       "aiChat": "AIチャット",
       "setting": "設定",
-      "aigcDetection": "AIGC検出"
+      "aigcDetection": "AIGC検出",
+      "agentReview": "編集レビュー"
     },
     "authorLabel": "著者",
     "abstractLabel": "要約",
@@ -1233,8 +1234,11 @@
       "openSourceLicenses": "オープンソースライセンス",
       "thirdPartyAssets": "サードパーティアセット",
       "aboutUs": "私たちについて",
-      "content": "MetaDocチームとミッションについて"
+      "content": "MetaDocチームとミッションについて",
+      "loadFailed": "読み込みに失敗しました"
     },
+    "agentTerminalExecutionAllowed": "デフォルトでターミナル実行を許可",
+    "agentTerminalExecutionAllowedHint": "オンにすると、Agentがターミナルツールを呼び出した際に毎回確認せず実行します。オフにすると実行のたびに確認ダイアログが表示されます。",
     "cancel": "キャンセル",
     "cannotCreateManualConfig": "手動タイプの設定は作成できません。手動タイプは開発モード専用です",
     "cannotDeleteDefaultConfig": "デフォルト設定は削除できません",
@@ -2555,7 +2559,9 @@
           "totalOperations": "総操作数",
           "loading": "ドキュメントを読み込んでいます...",
           "error": "編集に失敗しました"
-        }
+        },
+        "expandDiff": "展開",
+        "collapseDiff": "折りたたむ"
       },
       "titleFormat": {
         "title": "タイトルフォーマット",
@@ -2745,6 +2751,12 @@
       "noToolsNeeded": "このリクエストにはツールは必要ありません。",
       "reasoning": "推論："
     },
+    "attachment": {
+      "untitled": "無題"
+    },
+    "composer": {
+      "atTagRemove": "削除"
+    },
     "reference": {
       "title": "引用素材管理",
       "add": "引用を追加",
@@ -2777,6 +2789,14 @@
       "confirmClearAll": "{count}個の引用をすべてクリアしてもよろしいですか？この操作は元に戻せません。",
       "clearAllSuccess": "すべての引用をクリアしました",
       "tagRemove": "参照を削除",
+      "pickerButton": "ワークスペースのファイルまたはドキュメントを参照",
+      "pickerPlaceholder": "ファイル名またはパスで検索…",
+      "unsavedDocs": "未保存のドキュメント",
+      "workspaceFiles": "ワークスペースのファイル",
+      "noMatch": "一致するファイルがありません",
+      "noWorkspaceFiles": "ワークスペースが開かれていないか、ワークスペースがありません",
+      "untitled": "無題",
+      "readFileFailed": "ファイルの内容を読み取れませんでした",
       "type": {
         "file": "ファイル",
         "url": "URL",
@@ -2867,7 +2887,26 @@
       "loadMore": "さらに10件表示",
       "closeTab": "タブを閉じる",
       "exportJson": "JSONとしてエクスポート",
-      "deleteSession": "セッションを削除"
+      "deleteSession": "セッションを削除",
+      "uploadAttachment": "添付ファイルをアップロード",
+      "manageAttachments": "添付ファイルを管理"
+    },
+    "staging": {
+      "title": "編集ステージング",
+      "empty": "保留中の編集はありません",
+      "accept": "承認",
+      "reject": "拒否",
+      "acceptAll": "すべて承認",
+      "rejectAll": "すべて拒否",
+      "accepted": "承認済み",
+      "rejected": "拒否済み",
+      "rollback": "この編集を元に戻す",
+      "redo": "この編集をやり直す",
+      "rollbackDone": "{count}件の編集を元に戻しました",
+      "redoDone": "{count}件の編集をやり直しました",
+      "reviewWindow": "編集レビュー",
+      "openReview": "別ウィンドウでレビュー",
+      "selectEdit": "左から編集を1件選択してください"
     },
     "welcomeTitle": "こんにちは！MetaDoc AIアシスタントです！",
     "welcomeDescription": "あなたのインテリジェントな文書作成アシスタントです。AIによる提案と修正で、文書の作成、編集、仕上げをお手伝いします。",
@@ -2991,6 +3030,8 @@
     "contentDepth": "コンテンツの深さ",
     "informationDensity": "情報密度",
     "styleConsistency": "スタイルの一貫性",
+    "argumentQuality": "論証の質",
+    "terminologyUsage": "用語の使用",
     "overExplanation": "過剰説明",
     "hedgingPattern": "曖昧表現",
     "openingTransitionPattern": "導入・遷移パターン",
@@ -4330,6 +4371,10 @@
     "title": "ワークスペース検索",
     "useRegex": "正規表現",
     "wholeWord": "単語全体を一致"
+  },
+  "aiGreeting": {
+    "title": "こんにちは！私はMetaDoc AIアシスタントです！",
+    "subtitle": "私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に使い、多くの分野でプロフェッショナルで充実した文書を作成するお手伝いをします。"
   },
   "agentEngine": {
     "greeting": {

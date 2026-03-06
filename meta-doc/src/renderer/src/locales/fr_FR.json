@@ -386,7 +386,8 @@
       "formulaRecognition": "Reconnaissance de formules",
       "aiChat": "Chat IA",
       "setting": "Paramètres",
-      "aigcDetection": "Détection AIGC"
+      "aigcDetection": "Détection AIGC",
+      "agentReview": "Révision des modifications"
     },
     "defaultText": "Bienvenue sur MetaDoc\n\nIl s'agit d'un logiciel de traitement de texte piloté par l'IA qui vous aide à générer rapidement du contenu de document.",
     "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{Bienvenue sur MetaDoc}\n\\author{Assistant IA}\n\\maketitle\n\n\\section{Introduction}\nCeci est un modèle de démarrage rapide LaTeX généré par MetaDoc.\n\n\\end{document}",
@@ -1130,8 +1131,11 @@
       "openSourceLicenses": "Licences open source",
       "thirdPartyAssets": "Ressources tierces",
       "aboutUs": "À propos de nous",
-      "content": "Contenu sur l'équipe MetaDoc et sa mission"
+      "content": "Contenu sur l'équipe MetaDoc et sa mission",
+      "loadFailed": "Échec du chargement"
     },
+    "agentTerminalExecutionAllowed": "Autoriser l'exécution terminal par défaut",
+    "agentTerminalExecutionAllowedHint": "Si activé, l'Agent exécutera les commandes terminal sans confirmation. Si désactivé, une confirmation s'affichera avant chaque exécution.",
     "allChangesSaved": "Toutes les modifications enregistrées",
     "autoOpenHomeOnStartup": "Ouvrir l'accueil au démarrage",
     "cancel": "Annuler",
@@ -2556,7 +2560,9 @@
           "totalOperations": "Nombre total d'opérations",
           "loading": "Chargement du document...",
           "error": "Échec de l'édition"
-        }
+        },
+        "expandDiff": "Développer",
+        "collapseDiff": "Replier"
       },
       "titleFormat": {
         "title": "Formatage des titres",
@@ -2746,6 +2752,12 @@
       "noToolsNeeded": "Aucun outil nécessaire pour cette demande.",
       "reasoning": "Raisonnement :"
     },
+    "attachment": {
+      "untitled": "Sans titre"
+    },
+    "composer": {
+      "atTagRemove": "Retirer"
+    },
     "reference": {
       "title": "Gestion des références",
       "add": "Ajouter une référence",
@@ -2778,6 +2790,14 @@
       "confirmClearAll": "Confirmer la suppression des {count} références ? Cette action est irréversible.",
       "clearAllSuccess": "Toutes les références ont été supprimées",
       "tagRemove": "Supprimer la référence",
+      "pickerButton": "Référencer un fichier du workspace ou un document",
+      "pickerPlaceholder": "Rechercher par nom de fichier ou chemin…",
+      "unsavedDocs": "Documents non enregistrés",
+      "workspaceFiles": "Fichiers du workspace",
+      "noMatch": "Aucun fichier correspondant",
+      "noWorkspaceFiles": "Aucun workspace ouvert ou workspace indisponible",
+      "untitled": "Sans titre",
+      "readFileFailed": "Impossible de lire le contenu du fichier",
       "type": {
         "file": "Fichier",
         "url": "URL",
@@ -2868,7 +2888,26 @@
       "loadMore": "Afficher 10 de plus",
       "closeTab": "Fermer l'onglet",
       "exportJson": "Exporter en JSON",
-      "deleteSession": "Supprimer la session"
+      "deleteSession": "Supprimer la session",
+      "uploadAttachment": "Joindre un fichier",
+      "manageAttachments": "Gérer les pièces jointes"
+    },
+    "staging": {
+      "title": "Modifications en attente",
+      "empty": "Aucune modification en attente",
+      "accept": "Accepter",
+      "reject": "Refuser",
+      "acceptAll": "Tout accepter",
+      "rejectAll": "Tout refuser",
+      "accepted": "Accepté",
+      "rejected": "Refusé",
+      "rollback": "Annuler cette modification",
+      "redo": "Rétablir cette modification",
+      "rollbackDone": "{count} modification(s) annulée(s)",
+      "redoDone": "{count} modification(s) rétablie(s)",
+      "reviewWindow": "Révision des modifications",
+      "openReview": "Ouvrir la révision",
+      "selectEdit": "Sélectionnez une modification dans la liste à gauche"
     },
     "welcomeTitle": "Bonjour ! Je suis l'assistant IA MetaDoc !",
     "welcomeDescription": "Je suis votre assistant intelligent pour la rédaction de documents. Je peux vous aider à rédiger, modifier et peaufiner vos documents avec des suggestions et des corrections alimentées par l'IA.",
@@ -3001,6 +3040,11 @@
     "analyzing": "Analyse en cours...",
     "analysisComplete": "Analyse terminee",
     "noText": "Veuillez entrer du texte a detecter",
+    "formulaicClosure": "Formules de conclusion stereotypees",
+    "hedgingPattern": "Langage attenue",
+    "openingTransitionPattern": "Phrases de transition",
+    "overExplanation": "Surenchere explicative",
+    "personalTrace": "Manque de trace personnelle",
     "uploadSuccess": "Telechargement reussi",
     "uploadFailed": "Echec du telechargement"
   },
@@ -4377,6 +4421,10 @@
     "title": "recherche dans le répertoire de travail",
     "useRegex": "regex",
     "wholeWord": "matching complet"
+  },
+  "aiGreeting": {
+    "title": "Bonjour ! Je suis l'assistant IA MetaDoc !",
+    "subtitle": "Je suis votre assistant de rédaction. Je peux utiliser divers outils d'IA pour vous aider à créer des documents professionnels et riches dans de nombreux domaines."
   },
   "agentEngine": {
     "greeting": {

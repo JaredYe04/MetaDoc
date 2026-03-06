@@ -79,8 +79,9 @@ export interface AigcDetectionSession {
   overall_analysis?: string // 总体分析结果（JSON格式）
   paragraph_analyses?: string // 分段分析结果（JSON数组格式）
   report_markdown?: string // 生成的报告（Markdown格式）
-  paragraph_texts?: string // 划分后的段落列表（JSON 字符串数组），分析时直接使用
-  paragraph_paraphrases?: string // 每段改写后的文本（JSON 数组，与段落一一对应，null 表示未改写）
+  paragraph_texts?: string // 划分后的段落列表（JSON 字符串数组），当前正文，改写后为改写文
+  paragraph_paraphrases?: string // 已废弃，保留兼容
+  paragraph_originals?: string // 每段改写前的原文（JSON 数组，与段落一一对应，用于撤回）
   language?: string // 语言：'zh' | 'en' 等
   domain?: string // 领域：'academic' | 'general' 等
   created_at: string
@@ -632,8 +633,8 @@ export const aigcDetectionSessionsDb = {
   async create(session: Omit<AigcDetectionSession, 'created_at' | 'updated_at'>): Promise<void> {
     await messageBridge.invoke('db-execute', {
       sql: `INSERT INTO aigc_detection_sessions 
-            (id, title, description, article_content, content_source, source_file_path, source_tab_id, overall_analysis, paragraph_analyses, report_markdown, paragraph_texts, paragraph_paraphrases, language, domain, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            (id, title, description, article_content, content_source, source_file_path, source_tab_id, overall_analysis, paragraph_analyses, report_markdown, paragraph_texts, paragraph_paraphrases, paragraph_originals, language, domain, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       params: [
         session.id,
         session.title,
@@ -647,6 +648,7 @@ export const aigcDetectionSessionsDb = {
         session.report_markdown || null,
         session.paragraph_texts || null,
         session.paragraph_paraphrases || null,
+        session.paragraph_originals ?? null,
         session.language || 'zh',
         session.domain || 'academic'
       ]
@@ -703,6 +705,10 @@ export const aigcDetectionSessionsDb = {
     if (updates.paragraph_paraphrases !== undefined) {
       fields.push('paragraph_paraphrases = ?')
       params.push(updates.paragraph_paraphrases || null)
+    }
+    if (updates.paragraph_originals !== undefined) {
+      fields.push('paragraph_originals = ?')
+      params.push(updates.paragraph_originals ?? null)
     }
     if (updates.language !== undefined) {
       fields.push('language = ?')

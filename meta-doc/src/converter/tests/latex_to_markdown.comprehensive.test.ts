@@ -30,6 +30,17 @@ describe('LaTeX → Markdown (comprehensive)', () => {
       expect(md).toContain('E=mc^2')
       expect(md).toContain('$$')
     })
+    it('\\begin{center} with \\includegraphics → markdown image', () => {
+      const latex = [
+        '\\begin{center}',
+        '\\includegraphics[max width=\\textwidth,max height=0.85\\textheight,keepaspectratio]{./导出验收测试文档.tex.images/c8be8397418fb5aa877b7620f9d5b601211aae80}',
+        '\\end{center}'
+      ].join('\n')
+      const md = latexToMarkdown(latex)
+      expect(md).toMatch(/!\[.*\]\(.*c8be8397418fb5aa877b7620f9d5b601211aae80.*\)/)
+      expect(md).not.toContain('\\begin{center}')
+      expect(md).not.toContain('\\includegraphics')
+    })
   })
 
   describe('known inline commands', () => {

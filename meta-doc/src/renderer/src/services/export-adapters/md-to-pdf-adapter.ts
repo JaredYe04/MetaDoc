@@ -2,6 +2,15 @@ import { BaseExportAdapter } from './base-adapter'
 import type { PdfExportOptions, ExportOptionField } from './types'
 import type { DocumentFormat, ExportFormat } from '../../../../types'
 import { settings } from '../../utils/settings.js'
+import {
+  filterMetaStep,
+  preRenderCharts,
+  prepareMathForTarget,
+  ensureLocal2HttpForTarget,
+  collectOriginalImageUrls,
+  collectRenderedImageUrls
+} from '../export-steps'
+import { ConvertHtmlForPdf } from '../../utils/md-utils'
 
 /**
  * Markdown -> PDF 导出适配器
@@ -168,7 +177,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: PdfExportOptions,
-    context?: any
+    context?: { doc?: { path?: string }; handle?: { mark: (p: number, msg?: any) => void } }
   ): Promise<{
     md: string
     json: string
@@ -176,12 +185,38 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
     html?: string
     imageUrls?: string[]
   }> {
-    // 这个适配器使用通用的Markdown导出准备逻辑
-    // 实际的准备逻辑在重构后的export-manager中处理
-    // 这里只返回原始数据，具体的转换由export-manager协调
+    const handle = context?.handle
+    const docPath = context?.doc?.path
+    const progressCallback = handle
+      ? (p: any) => {
+          const percent = Math.min(80, p?.percentage ?? 0)
+          handle.mark(percent, {
+            message: p?.message ?? 'agent.reference.progress.preRenderingCharts',
+            subMessage: p?.subMessage ?? 'agent.reference.progress.preparingExport',
+            params: p?.params,
+            status: p?.status
+          })
+        }
+      : undefined
+
+    let markdown = filterMetaStep(data.md)
+    markdown = await preRenderCharts(markdown, {
+      format: 'svg',
+      progressCallback
+    })
+    markdown = await prepareMathForTarget(markdown, 'pdf')
+    markdown = await ensureLocal2HttpForTarget(markdown, 'pdf', docPath)
+
+    const html = await ConvertHtmlForPdf(markdown)
+    const originalImageUrls = collectOriginalImageUrls(data.md)
+    const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
+
     return {
-      ...data
-      // html 和 imageUrls 会在export-manager中填充
+      md: markdown,
+      json: data.json,
+      tex: data.tex,
+      html,
+      imageUrls
     }
   }
 

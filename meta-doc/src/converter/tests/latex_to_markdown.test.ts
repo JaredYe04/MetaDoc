@@ -41,6 +41,18 @@ describe('LaTeX → Markdown', () => {
     expect(latexToMarkdown(latex)).toBe(markdown)
   })
 
+  it('\\texttt{\\textbackslash} → `\\` (backslash in code)', () => {
+    expect(latexToMarkdown('\\texttt{\\textbackslash}')).toBe('`\\`')
+  })
+
+  it('\\textbackslash alone → \\ (plain backslash)', () => {
+    expect(latexToMarkdown('\\textbackslash')).toBe('\\')
+  })
+
+  it('\\verb|\\| → \\ (verb backslash)', () => {
+    expect(latexToMarkdown('\\verb|\\|')).toBe('\\')
+  })
+
   it('\\href{url}{text} → [text](url)', () => {
     const { markdown, latex } = loadFixture('link')
     expect(latexToMarkdown(latex)).toBe(markdown)

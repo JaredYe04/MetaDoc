@@ -2561,7 +2561,9 @@
           "totalOperations": "총 작업 수",
           "loading": "문서 로드 중...",
           "error": "편집 실패"
-        }
+        },
+        "expandDiff": "펼치기",
+        "collapseDiff": "접기"
       },
       "titleFormat": {
         "title": "제목 형식화",
@@ -2843,6 +2845,12 @@
       "noToolsNeeded": "이 요청에는 도구가 필요하지 않습니다.",
       "reasoning": "추론: "
     },
+    "attachment": {
+      "untitled": "제목 없음"
+    },
+    "composer": {
+      "atTagRemove": "제거"
+    },
     "reference": {
       "title": "참조 자료 관리",
       "add": "참조 추가",
@@ -2875,6 +2883,14 @@
       "confirmClearAll": "정말로 모든 {count}개 참조를 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "clearAllSuccess": "모든 참조가 지워졌습니다",
       "tagRemove": "참조 제거",
+      "pickerButton": "작업 공간 파일 또는 문서 참조",
+      "pickerPlaceholder": "파일 이름 또는 경로로 검색…",
+      "unsavedDocs": "저장되지 않은 문서",
+      "workspaceFiles": "작업 공간 파일",
+      "noMatch": "일치하는 파일 없음",
+      "noWorkspaceFiles": "작업 공간이 열려 있지 않거나 없습니다",
+      "untitled": "제목 없음",
+      "readFileFailed": "파일 내용을 읽을 수 없습니다",
       "type": {
         "file": "파일",
         "url": "URL",
@@ -2979,7 +2995,26 @@
       "loadMore": "10개 더 보기",
       "closeTab": "탭 닫기",
       "exportJson": "JSON으로 낭출",
-      "deleteSession": "세션 삭제"
+      "deleteSession": "세션 삭제",
+      "uploadAttachment": "첨부 파일 업로드",
+      "manageAttachments": "첨부 파일 관리",
+    },
+    "staging": {
+      "title": "편집 스테이징",
+      "empty": "검토 대기 중인 편집이 없습니다",
+      "accept": "수락",
+      "reject": "거부",
+      "acceptAll": "모두 수락",
+      "rejectAll": "모두 거부",
+      "accepted": "수락됨",
+      "rejected": "거부됨",
+      "rollback": "이 편집 되돌리기",
+      "redo": "이 편집 다시 실행",
+      "rollbackDone": "{count}개 편집 되돌림",
+      "redoDone": "{count}개 편집 다시 실행",
+      "reviewWindow": "편집 검토",
+      "openReview": "별도 검토 창",
+      "selectEdit": "왼쪽에서 편집을 선택하세요"
     },
     "welcomeTitle": "안녕하세요! MetaDoc AI 어시스턴트입니다!",
     "welcomeDescription": "당신의 지능형 문서 작성 어시스턴트입니다. AI 기반 제안과 수정으로 문서 작성, 편집 및 다듬기를 도와드립니다.",

@@ -284,6 +284,16 @@ function parseBlocks(source: string): BlockNode[] {
       }
     }
 
+    // \begin{center}...\end{center} with \includegraphics → markdown image(s)
+    if (trimmed.startsWith('\\begin{center}')) {
+      const centerResult = parseCenterEnv(lines, i)
+      if (centerResult.blocks.length > 0) {
+        blocks.push(...centerResult.blocks)
+      }
+      i = centerResult.nextIndex
+      continue
+    }
+
     // \begin{longtable}...\end{longtable} or \begin{longtblr}...\end{longtblr}
     if (trimmed.startsWith('\\begin{longtable') || trimmed.startsWith('\\begin{longtblr')) {
       const tblResult = parseLongTableEnv(lines, i)
@@ -683,6 +693,23 @@ function parseFigureEnv(
   return { blocks, nextIndex: i }
 }
 
+/** \begin{center}...\end{center}: extract all \includegraphics{path} and emit image paragraphs (no caption). */
+function parseCenterEnv(lines: string[], start: number): { blocks: BlockNode[]; nextIndex: number } {
+  const innerResult = parseGenericEnv(lines, start, 'center')
+  const inner = innerResult.inner
+  const blocks: BlockNode[] = []
+  const incRe = /\\includegraphics(?:\[[^\]]*\])?\{([^{}]+)\}/g
+  let m: RegExpExecArray | null
+  while ((m = incRe.exec(inner)) !== null) {
+    const url = m[1].trim()
+    blocks.push({
+      type: 'paragraph',
+      children: [{ type: 'image', url, alt: undefined }]
+    })
+  }
+  return { blocks, nextIndex: innerResult.nextIndex }
+}
+
 /** Parse longtable/longtblr: collect rows (lines with &), skip \hline \toprule etc., build TableNode */
 function parseLongTableEnv(
   lines: string[],
@@ -839,6 +866,28 @@ function parseInlineLatex(line: string): InlineNode[] {
   let i = 0
 
   while (i < line.length) {
+    // \textbackslash → single backslash character (for \ in output)
+    if (line.slice(i).startsWith('\\textbackslash')) {
+      out.push({ type: 'text', value: '\\' })
+      i += '\\textbackslash'.length
+      continue
+    }
+
+    // \verb<delim>...<delim> → verbatim text (e.g. \verb|\| → backslash)
+    if (line.slice(i).startsWith('\\verb')) {
+      const verbStart = i + 5
+      if (verbStart < line.length) {
+        const delim = line[verbStart]
+        const endIdx = line.indexOf(delim, verbStart + 1)
+        if (endIdx !== -1) {
+          const verbContent = line.slice(verbStart + 1, endIdx)
+          out.push({ type: 'text', value: verbContent })
+          i = endIdx + 1
+          continue
+        }
+      }
+    }
+
     // Inline math \( ... \)
     if (line.slice(i).startsWith('\\(')) {
       const end = line.indexOf('\\)', i + 2)
@@ -883,12 +932,16 @@ function parseInlineLatex(line: string): InlineNode[] {
       }
     }
 
-    // \texttt{...}
+    // \texttt{...} — parse inner so \textbackslash etc. resolve; then collapse to literal string
     if (line.slice(i).startsWith('\\texttt{')) {
       const open = line.indexOf('{', i)
       const content = extractBraced(line, open)
       if (content) {
-        out.push({ type: 'inline_code', value: content.content })
+        const innerNodes = parseInlineLatex(content.content)
+        const literal = innerNodes
+          .map((n) => (n.type === 'text' ? n.value : n.type === 'unknown_inline' ? n.raw : ''))
+          .join('')
+        out.push({ type: 'inline_code', value: literal })
         i = content.end
         continue
       }

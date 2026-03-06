@@ -146,6 +146,16 @@ describe('Round-trip (MD → LaTeX → MD, AST equivalence)', () => {
     expect(astEqual(ast1, ast2)).toBe(true)
   })
 
+  it('\\texttt{\\textbackslash} round-trip (backslash in code)', () => {
+    const latex = '\\texttt{\\textbackslash}'
+    const md = latexToMarkdown(latex)
+    expect(md).toBe('`\\`')
+    const latex2 = markdownToLatex(md)
+    const ast1 = normalizeAST(latexToAST(latex))
+    const ast2 = normalizeAST(latexToAST(latex2))
+    expect(astEqual(ast1, ast2)).toBe(true)
+  })
+
   it('mixed document round-trip', () => {
     const md = '# Title\n\nPara with **bold** and `code`.\n\n- item1\n- item2'
     const { ast1, ast2 } = roundTripAST(md)

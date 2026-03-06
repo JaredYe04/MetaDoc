@@ -437,27 +437,26 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
             const processSvgElement = () => {
               // 对于 mindmap 和 markmap，先冻结当前动画状态再清理，否则移除 SMIL 后浏览器会恢复初始值导致空白
               if (chartType === 'mindmap' || chartType === 'markmap') {
-                const allElements = [svgElement, ...svgElement.querySelectorAll('*')]
-                allElements.forEach((el) => {
+                // 只冻结子节点，不冻结根 <svg>：根节点 getComputedStyle 可能为 0/hidden 导致整图在 HTML/DOCX 中空白
+                const descendants = svgElement.querySelectorAll('*')
+                descendants.forEach((el) => {
                   if (el.nodeType !== Node.ELEMENT_NODE) return
                   const computed = window.getComputedStyle(el)
-                  const freeze = []
-                  const opacity = computed.getPropertyValue('opacity')
-                  if (opacity && opacity !== '1') freeze.push(`opacity:${opacity}`)
-                  const visibility = computed.getPropertyValue('visibility')
-                  if (visibility && visibility !== 'visible') freeze.push(`visibility:${visibility}`)
+                  const opacity = computed.getPropertyValue('opacity') || '1'
+                  const visibility = computed.getPropertyValue('visibility') || 'visible'
                   const transform = computed.getPropertyValue('transform')
+                  const freeze = [
+                    `opacity:${opacity}`,
+                    `visibility:${visibility}`
+                  ]
                   if (transform && transform !== 'none') freeze.push(`transform:${transform}`)
-                  // 保留可能由动画驱动的显示状态
                   const display = computed.getPropertyValue('display')
                   if (display && display !== 'inline') freeze.push(`display:${display}`)
-                  if (freeze.length > 0) {
-                    const existing = (el.getAttribute('style') || '').trim()
-                    el.setAttribute('style', existing ? `${existing}; ${freeze.join('; ')}` : freeze.join('; '))
-                  }
+                  const existing = (el.getAttribute('style') || '').trim()
+                  el.setAttribute('style', existing ? `${existing}; ${freeze.join('; ')}` : freeze.join('; '))
                 })
 
-                // 再清理动画（移除后不会丢失视觉，因已冻结到 style）
+                // 再清理动画（移除后不会丢失视觉）；仅子节点
                 const allElements2 = svgElement.querySelectorAll('*')
                 allElements2.forEach((el) => {
                   if (el.hasAttribute('style')) {
@@ -474,6 +473,11 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                     )
                   }
                 })
+
+                // 根 <svg> 强制可见，避免 PDF 打印上下文中根节点被库设为不可见导致整图空白（不依赖 getComputedStyle）
+                const rootStyle = (svgElement.getAttribute('style') || '').trim()
+                const cleanedRoot = rootStyle.replace(/animation[^;]*;?/gi, '').replace(/transition[^;]*;?/gi, '').trim()
+                svgElement.setAttribute('style', cleanedRoot ? `${cleanedRoot}; opacity:1; visibility:visible` : 'opacity:1; visibility:visible')
 
                 // 移除所有动画元素
                 const animations = svgElement.querySelectorAll(

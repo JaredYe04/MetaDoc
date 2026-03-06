@@ -91,7 +91,6 @@ import { useWorkspace } from '../stores/workspace'
 import { getTabComponent } from '../config/tab-content-config'
 import type { DocumentView } from '../stores/workspace'
 
-// 导入文档视图组件
 import Home from '../views/Home.vue'
 import Editor from '../views/Editor.vue'
 import Outline from '../views/Outline.vue'

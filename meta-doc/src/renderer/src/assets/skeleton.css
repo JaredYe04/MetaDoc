@@ -1,0 +1,180 @@
+/**
+ * 首帧骨架屏样式（独立于 index，供 skeleton.html 引用）
+ * 温和渐变闪烁动画，避免单调
+ */
+.metadoc-skeleton {
+  position: relative;
+  display: flex;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+}
+
+.metadoc-skeleton__side {
+  width: 56px;
+  min-width: 56px;
+  background: var(--md-skeleton-side, #f0f0f0);
+}
+
+.metadoc-skeleton__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.metadoc-skeleton__top {
+  height: 40px;
+  min-height: 40px;
+  background: var(--md-skeleton-top, #e8e8e8);
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.metadoc-skeleton__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.metadoc-skeleton__list {
+  width: 220px;
+  min-width: 220px;
+  background: var(--md-skeleton-list, #f5f5f5);
+}
+
+.metadoc-skeleton__content {
+  flex: 1;
+  background: var(--md-skeleton-content, #fafafa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 0;
+}
+
+/* 中间区域：Logo + 滚动提示，置于内容区中央且可点击 */
+.metadoc-skeleton__center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 24px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.metadoc-skeleton__logo-wrap {
+  display: inline-block;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.12));
+}
+.metadoc-skeleton__logo-wrap:hover {
+  transform: scale(1.08);
+}
+.metadoc-skeleton__logo-wrap.shake .metadoc-skeleton__logo-inner {
+  animation: metadoc-skeleton-shake 1.5s ease-in-out;
+}
+
+@keyframes metadoc-skeleton-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px) rotate(-4deg); }
+  20%, 40%, 60%, 80% { transform: translateX(8px) rotate(4deg); }
+}
+
+.metadoc-skeleton__logo-inner {
+  display: block;
+}
+
+.metadoc-skeleton__tips {
+  position: relative;
+  max-width: 420px;
+  min-height: 2.2em;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--md-skeleton-tip-color, #666);
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+html.dark .metadoc-skeleton__tips {
+  --md-skeleton-tip-color: #aaa;
+}
+
+.metadoc-skeleton__tips-inner {
+  display: inline-block;
+  transition: opacity 0.35s ease;
+}
+.metadoc-skeleton__tips-inner.hide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 整页遮罩：温和渐变闪烁，一层覆盖整个 skeleton */
+.metadoc-skeleton__shimmer {
+  position: absolute;
+  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.12) 55%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: metadoc-skeleton-shimmer 2.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+html.dark .metadoc-skeleton__shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.06) 55%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: metadoc-skeleton-shimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes metadoc-skeleton-shimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+/* 暗色主题变量 */
+html.dark .metadoc-skeleton__side {
+  --md-skeleton-side: #2a2a2a;
+}
+html.dark .metadoc-skeleton__top {
+  --md-skeleton-top: #1f1f1f;
+}
+html.dark .metadoc-skeleton__list {
+  --md-skeleton-list: #252525;
+}
+html.dark .metadoc-skeleton__content {
+  --md-skeleton-content: #1a1a1a;
+}

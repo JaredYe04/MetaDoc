@@ -747,7 +747,7 @@ const renderPreview = async () => {
         containerChanged: finalContainer !== container
       }
 
-      logger.debug('渲染后容器状态', afterRenderState)
+      //logger.debug('渲染后容器状态', afterRenderState)
 
       // 如果容器仍然是空的，记录警告并尝试重新渲染
       if (!finalContainer.innerHTML || finalContainer.innerHTML.trim() === '') {

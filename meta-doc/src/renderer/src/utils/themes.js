@@ -642,8 +642,8 @@ async function getOsThemeInfo() {
   }
 }
 
-// 应用主题类到 document
-function applyThemeClasses(themeType) {
+// 应用主题类到 document（供首屏快速应用默认主题，不阻塞 mount）
+export function applyThemeClasses(themeType) {
   if (themeType === 'light') {
     document.documentElement.classList.add('light')
     document.documentElement.classList.remove('dark')

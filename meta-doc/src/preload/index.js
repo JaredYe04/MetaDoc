@@ -2,7 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  getStartupProfile: () => ipcRenderer.invoke('get-startup-profile'),
+  startupProfileEnabled: process.env.ENABLE_STARTUP_PROFILE === '1'
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

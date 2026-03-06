@@ -1982,7 +1982,7 @@ async function handlePdfTextClick(event: MouseEvent) {
 
 // 建立PDF文本到源码的映射（异步）
 async function buildPdfToSourceMapping() {
-  logger.debug('=== 开始建立PDF到源码映射 ===')
+  //logger.debug('=== 开始建立PDF到源码映射 ===')
 
   if (!editorId) return
   // 从Monaco全局获取编辑器实例
@@ -2007,7 +2007,7 @@ async function buildPdfToSourceMapping() {
     return
   }
   if (isMappingInProgress) {
-    logger.debug('映射正在进行中，跳过')
+    //logger.debug('映射正在进行中，跳过')
     return
   }
 
@@ -2018,7 +2018,7 @@ async function buildPdfToSourceMapping() {
 
   try {
     const totalPages = pdfDoc.numPages
-    logger.debug('开始建立PDF到源码映射', { totalPages })
+    //logger.debug('开始建立PDF到源码映射', { totalPages })
 
     let totalMapped = 0
     let totalFailed = 0
@@ -2126,11 +2126,11 @@ async function buildPdfToSourceMapping() {
       }
     }
 
-    logger.debug('PDF到源码映射建立完成', {
-      totalPages: pdfToSourceMap.size,
-      totalMapped,
-      totalFailed
-    })
+    //logger.debug('PDF到源码映射建立完成', {
+    //  totalPages: pdfToSourceMap.size,
+    //  totalMapped,
+    //  totalFailed
+    //})
   } catch (error) {
     logger.error('建立PDF到源码映射失败', error)
   } finally {

@@ -68,6 +68,14 @@
             <Setting class="debug-menu-icon" />
             <span class="debug-menu-label">{{ $t('setting.debug.exportRegression') }}</span>
           </Button>
+          <Button
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'startupprofile' }]"
+            @click="handleMenuSelect('startupprofile')"
+          >
+            <Timer class="debug-menu-icon" />
+            <span class="debug-menu-label">{{ $t('setting.debug.startupProfile') }}</span>
+          </Button>
         </div>
       </div>
 
@@ -1969,6 +1977,50 @@
                   </TabsContent>
                 </Tabs>
               </div>
+              <div v-show="activeTab === 'startupprofile'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <p class="text-sm text-muted-foreground mb-2">{{ $t('setting.debug.startupProfileHint') }}</p>
+                  <Button variant="outline" size="sm" class="mb-2" @click="copyStartupProfileToClipboard">
+                    {{ startupProfileCopySuccess ? $t('setting.debug.copied') : $t('setting.debug.copyToClipboard') }}
+                  </Button>
+                  <div class="space-y-4">
+                    <div>
+                      <h4 class="text-sm font-medium mb-2">{{ $t('setting.debug.startupProfileMain') }}</h4>
+                      <table class="w-full text-sm border-collapse">
+                        <thead>
+                          <tr>
+                            <th class="text-left p-1 border">{{ $t('setting.debug.phase') }}</th>
+                            <th class="text-right p-1 border">{{ $t('setting.debug.deltaMs') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="e in startupProfileMain" :key="e.phase">
+                            <td class="p-1 border">{{ e.phase }}</td>
+                            <td class="text-right p-1 border">{{ e.deltaMs }} ms</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium mb-2">{{ $t('setting.debug.startupProfileRenderer') }}</h4>
+                      <table class="w-full text-sm border-collapse">
+                        <thead>
+                          <tr>
+                            <th class="text-left p-1 border">{{ $t('setting.debug.phase') }}</th>
+                            <th class="text-right p-1 border">{{ $t('setting.debug.deltaMs') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="e in startupProfileRenderer" :key="e.phase">
+                            <td class="p-1 border">{{ e.phase }}</td>
+                            <td class="text-right p-1 border">{{ e.deltaMs }} ms</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -2033,7 +2085,7 @@ const isDemo = computed(() => props.mode === 'demo')
 import { ElMessageBox } from 'element-plus'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
-import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
+import { CheckCircle2, Info, XCircle, Timer } from 'lucide-vue-next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Slider } from '@renderer/components/ui/slider'
 import { Progress } from '@renderer/components/ui/progress'
@@ -2258,11 +2310,51 @@ const getCurrentTabTitle = () => {
     autotest: t('setting.debug.autoTest'),
     unittest: t('setting.debug.unitTest.title'),
     agentsessiondebug: t('setting.debug.agentSessionDebug'),
-    exportregression: t('setting.debug.exportRegression')
+    exportregression: t('setting.debug.exportRegression'),
+    startupprofile: t('setting.debug.startupProfile')
   }
   return titles[activeTab.value] || t('setting.debug.title')
 }
 const eventBusActiveTab = ref('eventbus')
+
+// 启动耗时打点数据（主进程由 IPC 获取，渲染进程来自 window.__startupTimings__）
+const startupProfileMain = ref<{ phase: string; deltaMs: number }[]>([])
+const startupProfileRenderer = ref<{ phase: string; deltaMs: number }[]>([])
+const startupProfileCopySuccess = ref(false)
+async function loadStartupProfile() {
+  try {
+    const api = (window as Window & { api?: { getStartupProfile: () => Promise<{ phase: string; deltaMs: number }[]> } }).api
+    if (typeof window !== 'undefined' && api?.getStartupProfile) {
+      startupProfileMain.value = (await api.getStartupProfile()) || []
+    } else {
+      startupProfileMain.value = []
+    }
+  } catch {
+    startupProfileMain.value = []
+  }
+  startupProfileRenderer.value = Array.isArray((window as any).__startupTimings__)
+    ? (window as any).__startupTimings__.map((e: { phase: string; deltaMs: number }) => ({
+        phase: e.phase,
+        deltaMs: e.deltaMs
+      }))
+    : []
+}
+function copyStartupProfileToClipboard() {
+  const lines: string[] = ['=== Main Process ===']
+  startupProfileMain.value.forEach((e) => lines.push(`${e.phase}\t${e.deltaMs} ms`))
+  lines.push('', '=== Renderer Process ===')
+  startupProfileRenderer.value.forEach((e) => lines.push(`${e.phase}\t${e.deltaMs} ms`))
+  const text = lines.join('\n')
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      startupProfileCopySuccess.value = true
+      setTimeout(() => (startupProfileCopySuccess.value = false), 2000)
+    })
+  }
+}
+watch(activeTab, (tab) => {
+  if (tab === 'startupprofile') loadStartupProfile()
+})
 
 // EventBus 表单
 const eventBusForm = reactive({

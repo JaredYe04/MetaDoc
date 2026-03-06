@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MetaDoc</title>
+    <link rel="stylesheet" href="./src/assets/skeleton.css" />
+    <script>
+      (function () {
+        var theme = 'light';
+        try {
+          var q = new URLSearchParams(window.location.search);
+          var t = q.get('theme');
+          if (t === 'dark' || t === 'light') theme = t;
+        } catch (e) {}
+        document.documentElement.classList.add(theme);
+        document.documentElement.classList.remove(theme === 'dark' ? 'light' : 'dark');
+      })();
+    </script>
+  </head>
+  <body style="overflow: hidden; margin: 0; padding: 0">
+    <div id="app">
+      <div class="metadoc-skeleton" aria-hidden="true">
+        <div class="metadoc-skeleton__side"></div>
+        <div class="metadoc-skeleton__main">
+          <div class="metadoc-skeleton__top"></div>
+          <div class="metadoc-skeleton__body">
+            <div class="metadoc-skeleton__list"></div>
+            <div class="metadoc-skeleton__content">
+              <div class="metadoc-skeleton__center">
+                <div class="metadoc-skeleton__logo-wrap" id="skeleton-logo" role="button" aria-label="Logo">
+                  <span class="metadoc-skeleton__logo-inner">
+                    <svg width="128" height="128" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" class="metadoc-skeleton__logo-svg">
+                      <path d="M64 16 H192 C220 16 240 36 240 64 V192 C240 220 220 240 192 240 H64 C36 240 16 220 16 192 V64 C16 36 36 16 64 16 Z" fill="#e8e8e8"/>
+                      <g transform="translate(128, 128) scale(1.15) translate(-128, -128)" fill="none" stroke="#333" stroke-width="11.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M98 114 L74 128 L98 142"/>
+                        <path d="M138 96 L118 160"/>
+                        <path d="M158 114 L182 128 L158 142"/>
+                      </g>
+                    </svg>
+                  </span>
+                </div>
+                <div class="metadoc-skeleton__tips" id="skeleton-tips" aria-live="polite">
+                  <span class="metadoc-skeleton__tips-inner" id="skeleton-tip-a"></span>
+                  <span class="metadoc-skeleton__tips-inner hide" id="skeleton-tip-b"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="metadoc-skeleton__shimmer" aria-hidden="true"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var langKeys = ['zh_CN', 'en_US', 'ja_JP', 'ko_KR', 'de_DE', 'fr_FR'];
+        function getLang() {
+          try {
+            var q = new URLSearchParams(window.location.search);
+            var lang = q.get('lang') || navigator.language || '';
+            var lower = lang.replace('-', '_').toLowerCase();
+            if (lower.indexOf('zh') === 0) return 'zh_CN';
+            if (lower.indexOf('en') === 0) return 'en_US';
+            if (lower.indexOf('ja') === 0) return 'ja_JP';
+            if (lower.indexOf('ko') === 0) return 'ko_KR';
+            if (lower.indexOf('de') === 0) return 'de_DE';
+            if (lower.indexOf('fr') === 0) return 'fr_FR';
+          } catch (e) {}
+          return 'en_US';
+        }
+        function rotateTips(tips, a, b) {
+          if (!tips || !tips.length || !a || !b) return;
+          var idx = Math.floor(Math.random() * tips.length);
+          a.textContent = tips[idx];
+          a.classList.remove('hide');
+          b.classList.add('hide');
+          var step = function () {
+            var prev = idx;
+            do {
+              idx = Math.floor(Math.random() * tips.length);
+            } while (tips.length > 1 && idx === prev);
+            var next = (a.classList.contains('hide') ? a : b);
+            var visible = (next === a ? b : a);
+            next.textContent = tips[idx];
+            next.classList.remove('hide');
+            visible.classList.add('hide');
+          };
+          setInterval(step, 4500);
+        }
+        function initLogo(el) {
+          if (!el) return;
+          el.addEventListener('click', function () {
+            el.classList.add('shake');
+            setTimeout(function () { el.classList.remove('shake'); }, 1500);
+          });
+        }
+        var tipA = document.getElementById('skeleton-tip-a');
+        var tipB = document.getElementById('skeleton-tip-b');
+        var logoEl = document.getElementById('skeleton-logo');
+        initLogo(logoEl);
+        fetch('./skeleton-tips.json')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var key = getLang();
+            var tips = data[key] || data.zh_CN || data.en_US || [];
+            rotateTips(tips, tipA, tipB);
+          })
+          .catch(function () {
+            if (tipA) tipA.textContent = '';
+            if (tipB) tipB.textContent = '';
+          });
+      })();
+    </script>
+    <script type="module" src="./src/loader.js"></script>
+  </body>
+</html>

@@ -105,6 +105,18 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
 import { removeUserTemplate } from '../stores/user-templates'
 
+/** 根据主色亮度返回在按钮上可读的文字色（深色主色用白字，浅色主色用深字） */
+function getContrastTextColor(hex: string | undefined) {
+  if (!hex || typeof hex !== 'string') return '#ffffff'
+  const h = hex.replace(/^#/, '')
+  if (h.length !== 6 && h.length !== 8) return '#ffffff'
+  const r = parseInt(h.slice(0, 2), 16) / 255
+  const g = parseInt(h.slice(2, 4), 16) / 255
+  const b = parseInt(h.slice(4, 6), 16) / 255
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b
+  return luminance > 0.5 ? '#111111' : '#ffffff'
+}
+
 const props = defineProps<{
   tabId: string
   active: boolean
@@ -112,6 +124,13 @@ const props = defineProps<{
 
 const workspace = useWorkspace()
 const { t } = useI18n()
+
+const primaryButtonBg = computed(
+  () => themeState.currentTheme?.primaryColor || '#000000'
+)
+const primaryButtonText = computed(() =>
+  getContrastTextColor(themeState.currentTheme?.primaryColor)
+)
 
 const formats = computed<SupportedFormat[]>(
   () => (workspace.supportedFormats as { value: SupportedFormat[] }).value ?? []
@@ -549,6 +568,19 @@ function confirmTemplate(templateId?: string) {
   );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+/* 深色模式下避免按钮白底白字：强制使用主题主色与对比文字色 */
+.template-card__actions .rounded-full {
+  background-color: v-bind('primaryButtonBg') !important;
+  color: v-bind('primaryButtonText') !important;
+  border-color: v-bind('primaryButtonBg');
+}
+.template-card__actions .rounded-full:hover {
+  filter: brightness(1.1);
+}
+.template-card__actions .rounded-full:active {
+  filter: brightness(0.95);
 }
 
 .template-grid-wrapper {

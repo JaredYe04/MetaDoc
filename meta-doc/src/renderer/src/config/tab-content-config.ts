@@ -21,9 +21,6 @@ import UserFeedbackView from '../views/UserFeedbackView.vue'
 import AgentView from '../views/AgentView.vue'
 import AgentReviewView from '../views/AgentReviewView.vue'
 
-/**
- * 系统 Tab 路由到组件的映射
- */
 export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
   '/knowledge-base': KnowledgeBase,
@@ -32,9 +29,6 @@ export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/agent': AgentView
 }
 
-/**
- * 工具 Tab 路由到组件的映射
- */
 export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
   '/setting': Setting,
   '/ai-chat': AIChat,
@@ -51,30 +45,14 @@ export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
   '/agent-review': AgentReviewView
 }
 
-/**
- * 根据路由获取系统 Tab 组件
- * @param route 路由路径
- * @returns 对应的组件，如果不存在则返回 null
- */
 export function getSystemTabComponent(route: string): Component | null {
   return SYSTEM_TAB_COMPONENTS[route] || null
 }
 
-/**
- * 根据路由获取工具 Tab 组件
- * @param route 路由路径
- * @returns 对应的组件，如果不存在则返回 null
- */
 export function getToolTabComponent(route: string): Component | null {
   return TOOL_TAB_COMPONENTS[route] || null
 }
 
-/**
- * 根据 Tab 类型和路由获取组件
- * @param kind Tab 类型
- * @param route 路由路径
- * @returns 对应的组件，如果不存在则返回 null
- */
 export function getTabComponent(kind: 'system' | 'tool', route: string): Component | null {
   if (kind === 'system') {
     return getSystemTabComponent(route)

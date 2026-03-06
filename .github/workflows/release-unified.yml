@@ -285,13 +285,14 @@ jobs:
         if: matrix.enabled == 'true'
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.prepare.outputs.tag || github.ref }}
           fetch-depth: 0
           persist-credentials: true
           clean: true
 
       - name: 更新仓库到最新状态
         if: matrix.enabled == 'true'
-        run: node meta-doc/scripts/update-repo.js "${{ github.ref }}" "${{ github.ref_name }}"
+        run: node meta-doc/scripts/update-repo.js "${{ needs.prepare.outputs.tag || github.ref }}" "${{ needs.prepare.outputs.tag || github.ref_name }}"
         continue-on-error: true
 
       - name: 设置 Node.js

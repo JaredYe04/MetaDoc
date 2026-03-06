@@ -2656,8 +2656,8 @@
           "completed": "Bearbeitung abgeschlossen",
           "failed": "Bearbeitung fehlgeschlagen",
           "totalOperations": "Gesamtzahl der Operationen",
-        "loading": "Dokument wird geladen...",
-        "error": "Bearbeitung fehlgeschlagen"
+          "loading": "Dokument wird geladen...",
+          "error": "Bearbeitung fehlgeschlagen"
         },
         "expandDiff": "Aufklappen",
         "collapseDiff": "Zuklappen"
@@ -3957,10 +3957,10 @@
       "other": "Andere Fehler"
     },
     "errorsFound": "{count} Fehler gefunden",
-    "fix": "Reparieren",
-    "fixAll": "Alle mit einem Klick reparieren",
+    "fix": "Korrigieren",
+    "fixAll": "Alle auf einmal korrigieren",
     "ignore": "Ignorieren",
-    "ignoreAll": "Alle mit einem Klick ignorieren",
+    "ignoreAll": "Alle auf einmal ignorieren",
     "ignoreAllSuccess": "{count} Fehler ignoriert",
     "ignoreSuccess": "Ignoriert",
     "noErrors": "Keine Fehler gefunden",
@@ -3969,12 +3969,12 @@
       "warning": "Warnung",
       "info": "Hinweis"
     },
-    "title": "Textkorrektur",
-    "startProofread": "Korrektur starten",
+    "title": "Textüberprüfung",
+    "startProofread": "Überprüfung starten",
     "errorsList": "Fehlerliste",
     "documentPreview": "Dokumentvorschau",
     "noErrorsFound": "Keine Fehler gefunden",
-    "clearFixed": "Behobene löschen",
+    "clearFixed": "Behobene Fehler löschen",
     "noDocument": "Kein aktives Dokument",
     "noContent": "Dokument ist leer",
     "autoFixed": "Behoben",
@@ -3982,13 +3982,13 @@
     "errorText": "Fehlertext",
     "suggestions": "Vorschläge",
     "addToDictionary": "Zum Wörterbuch hinzufügen",
-    "proofreadSuccess": "Korrektur abgeschlossen",
-    "proofreadFailed": "Korrektur fehlgeschlagen",
+    "proofreadSuccess": "Überprüfung abgeschlossen",
+    "proofreadFailed": "Überprüfung fehlgeschlagen",
     "fixFailed": "Korrektur fehlgeschlagen: Fehlerposition stimmt nicht überein",
     "fixSuccess": "Korrektur erfolgreich",
     "addToDictionarySuccess": "Zum Wörterbuch hinzugefügt",
     "addToDictionaryFailed": "Hinzufügen zum Wörterbuch fehlgeschlagen",
-    "fixAllSuccess": "{count} Fehler behoben",
+    "fixAllSuccess": "{count} Fehler korrigiert",
     "clearFixedSuccess": "{removedCount} behobene Fehler gelöscht"
   },
   "proofread-tool": {

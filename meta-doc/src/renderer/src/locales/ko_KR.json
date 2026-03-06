@@ -3967,10 +3967,10 @@
     },
     "errorsFound": "{count}개의 오류 발견",
     "fix": "수정",
-    "fixAll": "모두 한 번에 수정",
+    "fixAll": "모두 수정",
     "ignore": "무시",
-    "ignoreAll": "모두 한 번에 무시",
-    "ignoreAllSuccess": "{count}개의 오류 무시됨",
+    "ignoreAll": "모두 무시",
+    "ignoreAllSuccess": "{count}개의 오류를 무시했습니다",
     "ignoreSuccess": "무시됨",
     "noErrors": "오류 없음",
     "severity": {
@@ -3982,10 +3982,10 @@
     "startProofread": "교정 시작",
     "errorsList": "오류 목록",
     "documentPreview": "문서 미리보기",
-    "noErrorsFound": "오류를 찾을 수 없습니다",
-    "clearFixed": "수정 항목 지우기",
+    "noErrorsFound": "오류가 발견되지 않았습니다",
+    "clearFixed": "수정된 항목 지우기",
     "noDocument": "활성 문서가 없습니다",
-    "noContent": "문서가 비어 있습니다",
+    "noContent": "문서 내용이 비어 있습니다",
     "autoFixed": "수정됨",
     "location": "위치",
     "errorText": "오류 텍스트",
@@ -3997,8 +3997,8 @@
     "fixSuccess": "수정 성공",
     "addToDictionarySuccess": "사전에 추가됨",
     "addToDictionaryFailed": "사전 추가 실패",
-    "fixAllSuccess": "{count}개 오류 수정",
-    "clearFixedSuccess": "{removedCount}개 수정 항목 지움"
+    "fixAllSuccess": "{count}개의 오류를 수정했습니다",
+    "clearFixedSuccess": "{removedCount}개의 수정된 항목을 지웠습니다"
   },
   "proofread-tool": {
     "cancelled": "요청이 취소되었습니다",

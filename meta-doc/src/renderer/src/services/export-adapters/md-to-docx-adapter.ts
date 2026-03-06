@@ -2,6 +2,14 @@ import { BaseExportAdapter } from './base-adapter'
 import type { DocxExportOptions, ExportOptionField } from './types'
 import type { DocumentFormat, ExportFormat } from '../../../../types'
 import { settings } from '../../utils/settings.js'
+import {
+  filterMetaStep,
+  preRenderCharts,
+  ensureLocal2HttpForTarget,
+  collectOriginalImageUrls,
+  collectRenderedImageUrls
+} from '../export-steps'
+import { embedImagesInline, ConvertMarkdownToHtmlVditor } from '../../utils/md-utils'
 
 /**
  * Markdown -> DOCX 导出适配器
@@ -384,8 +392,38 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
     html?: string
     imageUrls?: string[]
   }> {
+    const handle = context?.handle
+    const docPath = context?.doc?.path
+    const progressCallback = handle
+      ? (p: any) => {
+          const percent = Math.min(80, p?.percentage ?? 0)
+          handle.mark(percent, {
+            message: p?.message ?? 'agent.reference.progress.preRenderingCharts',
+            subMessage: p?.subMessage ?? 'agent.reference.progress.preparingExport',
+            params: p?.params,
+            status: p?.status
+          })
+        }
+      : undefined
+
+    let markdown = filterMetaStep(data.md)
+    markdown = await preRenderCharts(markdown, {
+      format: 'bitmap',
+      progressCallback
+    })
+    markdown = await ensureLocal2HttpForTarget(markdown, 'docx', docPath)
+    const markdownWithBase64Images = await embedImagesInline(markdown)
+    const html = await ConvertMarkdownToHtmlVditor(markdownWithBase64Images)
+
+    const originalImageUrls = collectOriginalImageUrls(data.md)
+    const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
+
     return {
-      ...data
+      md: markdown,
+      json: data.json,
+      tex: data.tex,
+      html,
+      imageUrls
     }
   }
 

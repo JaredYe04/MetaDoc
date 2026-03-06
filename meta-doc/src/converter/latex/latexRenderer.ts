@@ -47,6 +47,22 @@ export function escapeLatex(str: string): string {
   return result
 }
 
+/** Escape for content inside \\texttt{...}: backslash → \\textbackslash for roundtrip */
+function escapeLatexForTexttt(str: string): string {
+  if (!str) return ''
+  let result = String(str)
+  result = result.replace(/\\/g, '\\textbackslash')
+  result = result.replace(/([{}])/g, '\\$1')
+  result = result.replace(/#/g, '\\#')
+  result = result.replace(/\$/g, '\\$')
+  result = result.replace(/&/g, '\\&')
+  result = result.replace(/%/g, '\\%')
+  result = result.replace(/_/g, '\\_')
+  result = result.replace(/~/g, '\\textasciitilde{}')
+  result = result.replace(/\^/g, '\\^{}')
+  return result
+}
+
 export function renderLatex(ast: AST): string {
   return ast.children.map((b) => renderBlock(b)).filter(Boolean).join('\n\n')
 }
@@ -106,7 +122,7 @@ function renderInlineLatex(node: InlineNode): string {
   if (isTextNode(node)) return escapeLatex(node.value)
   if (isStrongNode(node)) return `\\textbf{${renderInlineSequenceLatex(node.children)}}`
   if (isEmphasisNode(node)) return `\\textit{${renderInlineSequenceLatex(node.children)}}`
-  if (isInlineCodeNode(node)) return `\\texttt{${escapeLatex(node.value)}}`
+  if (isInlineCodeNode(node)) return `\\texttt{${escapeLatexForTexttt(node.value)}}`
   if (isLinkNode(node)) return `\\href{${escapeLatex(node.url)}}{${renderInlineSequenceLatex(node.children)}}`
   if (isImageNode(node)) return `\\includegraphics{${escapeLatex(node.url)}}`
   if (isMathInlineNode(node)) return `$${node.content}$`

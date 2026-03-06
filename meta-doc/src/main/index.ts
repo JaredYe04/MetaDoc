@@ -14,6 +14,7 @@ import http from 'http'
 import os from 'os'
 import {
   mainCalls,
+  getInitialThemeClass,
   refreshMainWindowTitle,
   openDoc,
   findWindowWithToolTab,
@@ -47,9 +48,12 @@ import {
   dispatchLanguageToAuxWindows
 } from './window-manager'
 import { ensureInitialized } from './database/knowledge-db'
+import { mark as startupProfileMark, getTimelineForRenderer } from './startup-profile'
 
 const url = require('url')
 const path = require('path')
+
+startupProfileMark('after_imports')
 
 // 加载环境变量
 import dotenv from 'dotenv'
@@ -108,6 +112,7 @@ if (shouldDisableGPU()) {
 
 initLogger()
 initI18n()
+startupProfileMark('after_init_logger_i18n')
 const logger = createMainLogger('MainProcess')
 
 import { getRuntimeServerHost, getRuntimeServerPort } from './runtime-server-config'
@@ -115,7 +120,11 @@ import { getRuntimeServerHost, getRuntimeServerPort } from './runtime-server-con
 const SUPPORTED_FILE_EXTENSIONS = new Set(['.md', '.json', '.txt', '.tex'])
 
 const startupFileArgument = findSupportedFileArgument(process.argv)
-const prelaunchDelegationPromise = attemptDelegationToRunningInstance(startupFileArgument)
+// 若由 bootstrap 已做过单实例检测，则不再发起请求，直接视为本实例为主实例
+const prelaunchDelegationPromise =
+  process.env.METADOC_SINGLE_INSTANCE_CHECK_DONE === '1'
+    ? Promise.resolve(false)
+    : (startupProfileMark('prelaunch_check_start'), attemptDelegationToRunningInstance(startupFileArgument))
 
 // ============ 全局变量 ============
 
@@ -234,6 +243,7 @@ function focusMainApplicationWindow(): void {
  * 创建主窗口
  */
 function createWindow(): void {
+  startupProfileMark('create_window_start')
   dirname = __dirname
 
   // 启用日志输出
@@ -258,6 +268,7 @@ function createWindow(): void {
       webSecurity: false
     }
   })
+  startupProfileMark('create_window_after_browser_window')
 
   // 注册主窗口
   registerMainWindow(mainWindow)
@@ -270,16 +281,30 @@ function createWindow(): void {
 
   // 窗口准备好显示时
   mainWindow.on('ready-to-show', () => {
+    startupProfileMark('window_ready_to_show')
     // 显示窗口
     mainWindow?.show()
     mainWindow?.focus()
     broadcastServiceStatus()
+
+    // 先执行数据库迁移（同步、较快），再异步初始化工具服务
+    setImmediate(() => {
+      try {
+        logger.info('🚀 正在执行数据库迁移...')
+        ensureInitialized()
+        startupProfileMark('after_ensure_initialized')
+        logger.info('✅ 数据库迁移完成')
+      } catch (error) {
+        logger.error('❌ 数据库迁移失败:', error)
+      }
+    })
 
     // 初始化工具服务（包括知识库服务）
     ;(async () => {
       try {
         logger.info('🚀 正在后台初始化工具服务（包括知识库服务）...')
         await initializeUtils()
+        startupProfileMark('initialize_utils_done')
         // 工具服务初始化完成后，刷新知识库列表
         refreshKnowledgeItems()
         logger.info('✅ 工具服务初始化完成，知识库列表已刷新')
@@ -582,6 +607,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  startupProfileMark('create_window_before_load_url')
   // 处理命令行参数
   handleCommandLineArgs(startupFileArgument)
 
@@ -661,8 +687,7 @@ function createWindow(): void {
     focusMainApplicationWindow()
   })
 
-  // 启动Express服务器
-  runExpressServer()
+  // Express 已移至 whenReady 的 setImmediate 中统一启动，此处不再重复调用
 }
 
 /**
@@ -671,15 +696,18 @@ function createWindow(): void {
 function handleCommandLineArgs(initialFilePath?: string | null): void {
   const filePath = initialFilePath || findSupportedFileArgument(process.argv)
   const queryParams = filePath ? `&file=${encodeURIComponent(filePath)}` : ''
+  const themeClass = getInitialThemeClass()
+  const themeParam = `theme=${encodeURIComponent(themeClass)}`
 
+  // 加载骨架页（skeleton.html），窗口先显示骨架与温和动画，再在后台加载完整应用
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow?.loadURL(
-      process.env['ELECTRON_RENDERER_URL'] + '/#/home?windowType=home' + queryParams
-    )
+    const base = process.env['ELECTRON_RENDERER_URL'] + '/'
+    mainWindow?.loadURL(`${base}skeleton.html?${themeParam}#/home?windowType=home${queryParams}`)
   } else {
-    const indexPath = path.join(__dirname, '../renderer/index.html')
-    const fileURL = url.pathToFileURL(indexPath).toString()
-    mainWindow?.loadURL(`${fileURL}#/home?windowType=home${queryParams}`)
+    const skeletonPath = path.join(__dirname, '../renderer/skeleton.html')
+    const fileURL = url.pathToFileURL(skeletonPath).toString()
+    const sep = fileURL.includes('?') ? '&' : '?'
+    mainWindow?.loadURL(`${fileURL}${sep}${themeParam}#/home?windowType=home${queryParams}`)
   }
 }
 
@@ -689,6 +717,7 @@ function handleCommandLineArgs(initialFilePath?: string | null): void {
  * 应用准备就绪时
  */
 app.whenReady().then(async () => {
+  startupProfileMark('when_ready_fired')
   // 使用与 electron-builder.yml 中一致的 appId
   electronApp.setAppUserModelId('com.byte-light.metadoc')
 
@@ -696,23 +725,22 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  if (await prelaunchDelegationPromise) {
+  const delegated = await prelaunchDelegationPromise
+  startupProfileMark('delegation_checked')
+  startupProfileMark('prelaunch_check_end')
+  if (delegated) {
     const delegationAction = startupFileArgument ? '转发文件打开请求' : '发送聚焦请求'
     logger.info(`检测到已有 MetaDoc 实例，已${delegationAction}，本实例即将退出`)
     app.quit()
     return
   }
 
-  // 在创建窗口之前执行数据库迁移，确保表已创建
-  try {
-    logger.info('🚀 正在执行数据库迁移...')
-    ensureInitialized()
-    logger.info('✅ 数据库迁移完成')
-  } catch (error) {
-    logger.error('❌ 数据库迁移失败:', error)
-  }
-
+  // Express 先启动，再创建窗口并加载骨架页，窗口尽早显示；后续加载在骨架屏展示期间进行
+  startupProfileMark('run_express_server_called')
+  runExpressServer()
+  startupProfileMark('create_window_called')
   createWindow()
+
   mainCalls()
   registerDragManagerIPC()
   initWindowPool()
@@ -721,10 +749,10 @@ app.whenReady().then(async () => {
   // 初始化更新服务
   initUpdateService()
 
-  // 自动检查更新（延迟执行，避免阻塞应用启动）
+  // 自动检查更新：延后执行且完全 fire-and-forget，不阻塞窗口加载与后续逻辑；结果仅用于通知栏展示
   setTimeout(() => {
-    autoCheckForUpdates()
-  }, 5000) // 延迟5秒后检查更新
+    void autoCheckForUpdates().catch((err) => logger.warn('自动检查更新异常', err))
+  }, 8000) // 延迟 8 秒后再发起，确保首屏与后续加载已进行
 
   app.on('activate', function () {
     // 若正在退出（如关闭最后一个窗口触发 quit），则不要创建新窗口
@@ -748,6 +776,9 @@ app.whenReady().then(async () => {
 ipcBridge.registerOn('is-need-save', (event: IpcMainEvent, arg: boolean) => {
   is_need_save = arg
 })
+
+/** 启动耗时打点数据（供调试面板请求） */
+ipcBridge.registerHandle('get-startup-profile', () => Promise.resolve(getTimelineForRenderer()))
 
 /**
  * 所有窗口关闭时（由 Electron 触发，当 BrowserWindow.getAllWindows() 为空时）

@@ -278,11 +278,30 @@ export function setUpdateChannel(channel: UpdateChannel): void {
   }
 }
 
+/** 检查更新网络超时（毫秒），超时后不再阻塞，直接视为无更新 */
+const CHECK_UPDATE_TIMEOUT_MS = 15000
+
 /**
  * 检查更新
  */
 export async function checkForUpdates(channel: UpdateChannel = 'release'): Promise<UpdateStatus> {
   return new Promise((resolve) => {
+    let settled = false
+    const finish = (status: UpdateStatus) => {
+      if (settled) return
+      settled = true
+      resolve(status)
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (settled) return
+      logger.warn(`检查更新超时（${CHECK_UPDATE_TIMEOUT_MS}ms），跳过本次结果`)
+      updateStatus.checking = false
+      updateStatus.updateNotAvailable = true
+      updateStatus.error = null
+      finish(updateStatus)
+    }, CHECK_UPDATE_TIMEOUT_MS)
+
     try {
       // 在开发环境中，electron-updater 默认会跳过更新检查
       // 需要在每次检查前都设置 forceDevUpdateConfig
@@ -314,40 +333,45 @@ export async function checkForUpdates(channel: UpdateChannel = 'release'): Promi
       })
 
       autoUpdater.once('update-available', (info: UpdateInfo) => {
+        clearTimeout(timeoutId)
         logger.info('发现新版本:', info.version)
         updateStatus.checking = false
         updateStatus.updateAvailable = true
         updateStatus.updateInfo = info
-        resolve(updateStatus)
+        finish(updateStatus)
       })
 
       autoUpdater.once('update-not-available', (info: UpdateInfo) => {
+        clearTimeout(timeoutId)
         logger.info('当前已是最新版本:', info.version)
         updateStatus.checking = false
         updateStatus.updateNotAvailable = true
         updateStatus.updateInfo = info
-        resolve(updateStatus)
+        finish(updateStatus)
       })
 
       autoUpdater.once('error', (error: Error) => {
+        clearTimeout(timeoutId)
         logger.error('检查更新失败:', error)
         updateStatus.checking = false
         updateStatus.error = error.message
-        resolve(updateStatus)
+        finish(updateStatus)
       })
 
-      // 开始检查更新
-      autoUpdater.checkForUpdates().catch((error) => {
+      // 开始检查更新（纯后台，不阻塞启动与后续加载）
+      autoUpdater.checkForUpdates().catch((error: Error) => {
+        clearTimeout(timeoutId)
         logger.error('检查更新异常:', error)
         updateStatus.checking = false
         updateStatus.error = error.message
-        resolve(updateStatus)
+        finish(updateStatus)
       })
     } catch (error) {
+      clearTimeout(timeoutId)
       logger.error('检查更新失败:', error)
       updateStatus.checking = false
       updateStatus.error = error instanceof Error ? error.message : String(error)
-      resolve(updateStatus)
+      finish(updateStatus)
     }
   })
 }

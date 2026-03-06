@@ -212,6 +212,8 @@ const pageStyle = computed(() => ({
 
 const proofreading = ref(false)
 const proofreadResult = ref<ProofreadResult | null>(null)
+const isProofread = ref(false)
+const originalText = ref('')
 const editorId = ref(`proofread-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 let monacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let previousDecorations: string[] = []
@@ -228,8 +230,9 @@ const fixedErrorsCount = computed(() => {
   return (proofreadResult.value.errors || []).filter((e) => e.fixed).length
 })
 
-// 获取当前文档内容
+// 获取当前文档内容（demo 模式下使用 originalText）
 const documentContent = computed(() => {
+  if (isDemo.value && originalText.value) return originalText.value
   if (!activeDocument.value) return ''
   return activeDocument.value.format === 'tex'
     ? activeDocument.value.tex

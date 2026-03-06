@@ -2405,7 +2405,11 @@ function bindUtilityHandlers(): void {
       }
 
       return undefined
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as NodeJS.ErrnoException & { killed?: boolean; signal?: string }
+      if (err.killed || err.signal === 'SIGTERM' || err.signal === 'SIGKILL') {
+        return undefined
+      }
       console.error('Failed to get Windows accent color:', error)
       return undefined
     }
@@ -4056,6 +4060,17 @@ const store = new Store()
 
 function getSetting(key: string): any {
   return store.get(key)
+}
+
+/** 供主进程首帧注入：根据用户设置返回首屏主题类名，保证启动即符合用户设置 */
+export function getInitialThemeClass(): 'light' | 'dark' {
+  const globalTheme = store.get('globalTheme') as string | undefined
+  if (globalTheme === 'dark') return 'dark'
+  if (globalTheme === 'light') return 'light'
+  if (globalTheme === 'sync' || globalTheme === 'sync-color') {
+    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
+  }
+  return 'light'
 }
 
 function setSetting(key: string, value: any): void {

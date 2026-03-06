@@ -85,7 +85,11 @@ function buildNavigationTree(
 }
 
 // 预加载所有文档（使用 import.meta.glob）
-const manualModules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' })
+const manualModules = import.meta.glob<string>('../manuals/**/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default'
+})
 
 /**
  * 加载文档内容
@@ -128,7 +132,8 @@ async function loadArticleContent(articleId: string, locale: string): Promise<st
 
     if (moduleKey && manualModules[moduleKey]) {
       console.log('[userManual store] Found module:', moduleKey)
-      return manualModules[moduleKey] as string
+      const content = manualModules[moduleKey]
+      return typeof content === 'string' ? content : (content && (content as { default?: string }).default) ?? ''
     }
 
     console.warn(`[userManual store] 未找到文档: ${filePath}`, {

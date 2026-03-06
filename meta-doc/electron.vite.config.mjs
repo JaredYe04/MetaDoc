@@ -7,6 +7,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
+        // 双入口：bootstrap 先做单实例检测再加载 index，减少第二实例无谓加载
+        input: {
+          bootstrap: resolve('src/main/bootstrap.ts'),
+          index: resolve('src/main/index.ts')
+        },
         // 将 node-llama-cpp 标记为 external，因为它只在 devDependencies 中
         // 将 cspell-lib 标记为 external，因为它是纯 ESM 模块，需要在运行时动态导入
         external: ['node-llama-cpp', /^@node-llama-cpp\/./, 'cspell-lib', 'dotenv']
@@ -19,6 +24,7 @@ export default defineConfig({
   },
   renderer: {
     base: './',
+    publicDir: resolve('src/renderer/public'),
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
@@ -53,6 +59,10 @@ export default defineConfig({
       chunkSizeWarningLimit: 1000, // 增大警告阈值，因为monaco-editor等库本身就很大
       assetsInlineLimit: 0, // 不内联字体文件（TTF太大）
       rollupOptions: {
+        input: {
+          index: resolve('src/renderer/index.html'),
+          skeleton: resolve('src/renderer/skeleton.html')
+        },
         output: {
           assetFileNames: (assetInfo) => {
             const info = assetInfo.name.split('.')

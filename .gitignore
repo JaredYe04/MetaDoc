@@ -51,3 +51,4 @@ docs/.metadoc/agent/sessions.json
 /debug/compile-pdf
 /debug/out
 *.meta
+meta-doc/startup-profile-report.json

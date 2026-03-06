@@ -8,15 +8,25 @@ import type { TemplateIndex, TemplateIndexEntry } from './types'
 let indexCache: TemplateIndex | null = null
 
 // 预加载所有模板文件（.md / .tex），路径相对于 templates 目录
-const templateMdModules = import.meta.glob<string>('./**/*.md', { eager: true, as: 'raw' })
-const templateTexModules = import.meta.glob<string>('./**/*.tex', { eager: true, as: 'raw' })
+const templateMdModules = import.meta.glob<string>('./**/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default'
+})
+const templateTexModules = import.meta.glob<string>('./**/*.tex', {
+  eager: true,
+  query: '?raw',
+  import: 'default'
+})
 
 function getTemplateContent(locale: string, formatId: string, file: string): string {
   const key = `./${locale}/${formatId}/${file}`
   const isTex = file.endsWith('.tex')
   const modules = isTex ? templateTexModules : templateMdModules
   const content = modules[key as keyof typeof modules]
-  return typeof content === 'string' ? content : ''
+  if (typeof content === 'string') return content
+  if (content && typeof content === 'object' && 'default' in content) return (content as { default: string }).default
+  return ''
 }
 
 // 缩略图（可选）：仅当模板索引中指定 thumbnail 时加载

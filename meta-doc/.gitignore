@@ -16,3 +16,13 @@ resources/bce-embedding-base_v1-Q8_0.gguf.part02
 resources/bce-embedding-base_v1-Q8_0.gguf.part03
 # LLM 使用统计（现存 userData，此处仅防旧文件被提交）
 resources/llm-statistics.json
+
+# DeepSeek API key（i18n AI 校对脚本使用，勿提交）
+src/renderer/src/locales/.deepseek_api_key
+.deepseek_api_key
+# i18n AI 校对进度（记录已完成的 语言|模块，便于增量跑）
+src/renderer/src/locales/.i18n_ai_review_progress.txt
+
+# 用户手册 i18n：API key 与进度（勿提交）
+src/renderer/src/manuals/.deepseek_api_key
+src/renderer/src/manuals/.manual_i18n_progress.txt

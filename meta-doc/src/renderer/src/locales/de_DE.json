@@ -425,7 +425,8 @@
       "formulaRecognition": "Formelerkennung",
       "aiChat": "AI-Chat",
       "setting": "Einstellungen",
-      "aigcDetection": "AIGC-Erkennung"
+      "aigcDetection": "AIGC-Erkennung",
+      "agentReview": "Bearbeitungsprüfung"
     },
     "defaultText": "# Welcome to MetaDoc\n\nDies ist eine AI-gesteuerte Textverarbeitungssoftware, die Ihnen hilft, Dokumentinhalte schnell zu generieren.",
     "documentInfoLabel": "Dokumenteninformation Füllung",
@@ -1212,8 +1213,11 @@
       "openSourceLicenses": "Open-Source-Lizenzen",
       "thirdPartyAssets": "Drittanbieter-Assets",
       "aboutUs": "Über uns",
-      "content": "Inhalt über das MetaDoc-Team und die Mission"
+      "content": "Inhalt über das MetaDoc-Team und die Mission",
+      "loadFailed": "Laden fehlgeschlagen"
     },
+    "agentTerminalExecutionAllowed": "Terminal-Ausführung standardmäßig erlauben",
+    "agentTerminalExecutionAllowedHint": "Wenn aktiviert, führt der Agent Terminal-Befehle direkt aus ohne Bestätigung. Wenn deaktiviert, erscheint vor jeder Ausführung eine Bestätigung.",
     "cancel": "Abbrechen",
     "cannotCreateManualConfig": "Manuelle Konfiguration kann nicht erstellt werden, manueller Typ nur für Entwicklungsmodus",
     "cannotDeleteDefaultConfig": "Standardkonfiguration kann nicht gelöscht werden",
@@ -2652,9 +2656,11 @@
           "completed": "Bearbeitung abgeschlossen",
           "failed": "Bearbeitung fehlgeschlagen",
           "totalOperations": "Gesamtzahl der Operationen",
-          "loading": "Dokument wird geladen...",
-          "error": "Bearbeitung fehlgeschlagen"
-        }
+        "loading": "Dokument wird geladen...",
+        "error": "Bearbeitung fehlgeschlagen"
+        },
+        "expandDiff": "Aufklappen",
+        "collapseDiff": "Zuklappen"
       },
       "titleFormat": {
         "title": "Titelformatierung",
@@ -2877,6 +2883,12 @@
       "noToolsNeeded": "Für diese Anfrage sind keine Tools erforderlich.",
       "reasoning": "Schlussfolgerung:"
     },
+    "attachment": {
+      "untitled": "Unbenannt"
+    },
+    "composer": {
+      "atTagRemove": "Entfernen"
+    },
     "reference": {
       "title": "Referenzmaterialverwaltung",
       "add": "Referenz hinzufügen",
@@ -2909,6 +2921,14 @@
       "confirmClearAll": "Sollen alle {count} Referenzen wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.",
       "clearAllSuccess": "Alle Referenzen gelöscht",
       "tagRemove": "Referenz entfernen",
+      "pickerButton": "Workspace-Datei oder Dokument referenzieren",
+      "pickerPlaceholder": "Dateiname oder Pfad eingeben…",
+      "unsavedDocs": "Ungespeicherte Dokumente",
+      "workspaceFiles": "Workspace-Dateien",
+      "noMatch": "Keine passende Datei",
+      "noWorkspaceFiles": "Kein Workspace geöffnet oder kein Workspace vorhanden",
+      "untitled": "Unbenannt",
+      "readFileFailed": "Dateiinhalt konnte nicht gelesen werden",
       "type": {
         "file": "Datei",
         "url": "URL",
@@ -3013,7 +3033,26 @@
       "loadMore": "10 weitere anzeigen",
       "closeTab": "Tab schließen",
       "exportJson": "Als JSON exportieren",
-      "deleteSession": "Sitzung löschen"
+      "deleteSession": "Sitzung löschen",
+      "uploadAttachment": "Anhang hochladen",
+      "manageAttachments": "Anhänge verwalten"
+    },
+    "staging": {
+      "title": "Bearbeitungsstaging",
+      "empty": "Keine ausstehenden Bearbeitungen",
+      "accept": "Annehmen",
+      "reject": "Ablehnen",
+      "acceptAll": "Alle annehmen",
+      "rejectAll": "Alle ablehnen",
+      "accepted": "Angenommen",
+      "rejected": "Abgelehnt",
+      "rollback": "Diese Bearbeitung zurücksetzen",
+      "redo": "Diese Bearbeitung wiederherstellen",
+      "rollbackDone": "{count} Bearbeitung(en) zurückgesetzt",
+      "redoDone": "{count} Bearbeitung(en) wiederhergestellt",
+      "reviewWindow": "Bearbeitungsprüfung",
+      "openReview": "Eigenes Prüffenster",
+      "selectEdit": "Bitte links eine Bearbeitung auswählen"
     },
     "welcomeTitle": "Hallo! Ich bin MetaDoc AI Assistant!",
     "welcomeDescription": "Ich bin Ihr intelligenter Assistent für das Schreiben von Dokumenten. Ich kann Ihnen beim Schreiben, Bearbeiten und Optimieren Ihrer Dokumente mit KI-gestützten Vorschlägen und Korrekturen helfen.",
@@ -3273,6 +3312,11 @@
     "analyzing": "Analysiere...",
     "analysisComplete": "Analyse abgeschlossen",
     "noText": "Bitte geben Sie Text zur Erkennung ein",
+    "formulaicClosure": "Formelhafte Schlussformulierungen",
+    "hedgingPattern": "Abgeschwächte Formulierungen",
+    "openingTransitionPattern": "Übergangsphrasen",
+    "overExplanation": "Übermäßige Erklärungen",
+    "personalTrace": "Fehlende persönliche Note",
     "uploadSuccess": "Hochladen erfolgreich",
     "uploadFailed": "Hochladen fehlgeschlagen"
   },
@@ -4425,6 +4469,10 @@
     "title": "Arbeitsbereich-Suche",
     "useRegex": "Regulärer Ausdruck",
     "wholeWord": "Ganzes Wort"
+  },
+  "aiGreeting": {
+    "title": "Hallo! Ich bin der MetaDoc KI-Assistent!",
+    "subtitle": "Ich bin Ihr intelligenter Dokumenten-Assistent. Ich kann verschiedene KI-Tools nutzen, um Ihnen zu helfen, professionelle, inhaltsreiche Dokumente in vielen Bereichen zu erstellen."
   },
   "agentEngine": {
     "greeting": {

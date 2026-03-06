@@ -1019,7 +1019,8 @@
       "openSourceLicenses": "Open Source Licenses",
       "thirdPartyAssets": "Third-party Assets",
       "aboutUs": "About Us",
-      "content": "Content about MetaDoc team and mission"
+      "content": "Content about MetaDoc team and mission",
+      "loadFailed": "Load failed"
     },
     "microphoneTest": "Microphone Test",
     "microphoneHint": "Check if microphone is working.",
@@ -3666,6 +3667,11 @@
     "analyzing": "Analyzing...",
     "analysisComplete": "Analysis Complete",
     "noText": "Please enter text to detect",
+    "formulaicClosure": "Formulaic closure",
+    "hedgingPattern": "Hedging language",
+    "openingTransitionPattern": "Opening transition phrases",
+    "overExplanation": "Over-explanation",
+    "personalTrace": "Lack of personal voice",
     "uploadSuccess": "Upload Successful",
     "uploadFailed": "Upload Failed"
   },
@@ -4483,6 +4489,10 @@
     "selectFolder": "Select Workspace Folder",
     "title": "Workspace Directory",
     "moveFailed": "[English] 移动失败"
+  },
+  "aiGreeting": {
+    "title": "Hello! I'm MetaDoc AI Assistant!",
+    "subtitle": "I'm your intelligent document writing assistant. I can use various AI tools to help you create professional, content-rich documents across many domains."
   },
   "agentEngine": {
     "greeting": {

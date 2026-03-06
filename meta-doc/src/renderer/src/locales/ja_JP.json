@@ -10,15 +10,15 @@
     "closeKnowledgeBase": "知識検索を無効化",
     "openAutoCompletion": "AI補完を有効化",
     "openKnowledgeBase": "知識検索を有効化",
-    "locateToPdf": "PDFへの投稿",
+    "locateToPdf": "PDFの位置にジャンプ",
     "sectionOptimizer": "現在の段落を最適化",
-    "triggerAutoCompletion": "手動でAIの完了をトリガーする",
+    "triggerAutoCompletion": "手動でAI補完をトリガー",
     "insertGraph": "グラフを挿入",
     "redo": "やり直し",
     "undo": "元に戻す"
   },
   "headMenu": {
-    "tooltip": "AI Agentベースのスマート文書処理ソフトウェア",
+    "tooltip": "AIエージェントベースのスマート文書編集ソフトウェア",
     "title": "MetaDoc",
     "home": "ホーム",
     "outline": "アウトライン",
@@ -47,20 +47,20 @@
     "aiAssistant": "AIアシスタント",
     "chatWithAI": "AIとチャット",
     "handwritingFormulaRecognition": "手書き数式認識",
-    "smartDrawingAssistant": "スマート描画アシスタント",
+    "smartDrawingAssistant": "スマート作図アシスタント",
     "settingsTooltip": "設定",
     "settings": "設定",
     "settingsPanel": "設定パネル",
     "recentFilesTooltip": "最近のファイル",
     "recentFiles": "最近のファイル",
-    "exitTooltip": "終了",
+    "exitTooltip": "終了する",
     "exit": "終了",
     "saveAndExit": "保存して終了",
     "exitWithoutSaving": "保存せずに終了",
     "userProfileTooltip": "ユーザープロフィール",
     "langTooltip": "言語",
     "askSave": "現在のドキュメントを保存しますか？",
-    "discard": "破棄",
+    "discard": "破棄せずに閉じる",
     "tip": "ヒント",
     "saveAll": "すべて保存",
     "saveAllAndExit": "すべて保存して終了",
@@ -70,16 +70,16 @@
     "dataAnalysis": "データ分析ツール",
     "debugTools": "デバッグツール",
     "exportAsTemplate": "テンプレートとしてエクスポート",
-    "exportAsTemplateAiGenerate": "AIがタイトルと説明を生成",
+    "exportAsTemplateAiGenerate": "AIがタイトルと説明を生成する",
     "exportAsTemplateDescLabel": "テンプレート説明",
-    "exportAsTemplateSuccess": "テンプレートとして追加されました。新規ドキュメント作成時に選択できます",
+    "exportAsTemplateSuccess": "テンプレートとして追加されました。新規ドキュメント作成時に選択できます。",
     "exportAsTemplateTitleLabel": "テンプレートタイトル",
-    "graph": "描画ツール",
+    "graph": "グラフツール",
     "home": "ホーム",
     "knowledgeBase": "ナレッジベース",
     "menuConfig": {
       "title": "メニュー設定",
-      "description": "ドラッグしてメニュー順序を調整するか、使用しない機能を非表示にします",
+      "description": "ドラッグしてメニューの順序を調整するか、不要な機能を非表示にします",
       "visible": "表示",
       "hidden": "非表示",
       "reset": "リセット",
@@ -89,37 +89,37 @@
     "ocr": "OCR文字認識",
     "userFeedback": "フィードバック",
     "userManual": "ユーザーマニュアル",
-    "workspaceExplorer": "ワークスペースエクスプローラー",
+    "workspaceExplorer": "ワークスペースエクスプローラ",
     "workspaceGrep": "ワークスペース検索"
   },
   "llmDialog": {
     "aiAssistant": "AIアシスタント",
     "closeMenuTooltip": "メニューを閉じる",
-    "inputPlaceholder": "内容を入力してください",
-    "generateAITooltip": "AI生成",
-    "acceptTooltip": "受け入れる",
+    "inputPlaceholder": "入力してください",
+    "generateAITooltip": "AIで生成",
+    "acceptTooltip": "適用",
     "promptEmptyWarning": "プロンプトが空です。内容を生成できません！",
     "generateFailedError": "内容の生成に失敗しました。再試行してください！"
   },
   "messageBubble": {
     "editTitle": "テキストを編集",
-    "deleteConfirmMessage": "削除してもよろしいですか？",
+    "deleteConfirmMessage": "削除しますか？",
     "deleteConfirmTitle": "警告",
     "convertToLatexAndInsert": "LaTeXに変換して挿入",
     "edit": "編集",
-    "exportSuccess": "コンテンツを新規ドキュメントに正常にエクスポートしました",
+    "exportSuccess": "内容を新しいドキュメントにエクスポートしました",
     "exportToNewDocument": "新規ドキュメントにエクスポート",
     "insertAsMarkdown": "Markdown原文を挿入",
     "insertFailed": "挿入に失敗しました",
-    "insertLatexOptionsMessage": "現在のドキュメントはLaTeX形式です。挿入方法を選択してください：",
+    "insertLatexOptionsMessage": "現在のドキュメントはLaTeX形式です。挿入方法を選択してください。",
     "insertLatexOptionsTitle": "LaTeX挿入オプション",
-    "insertSuccess": "コンテンツを正常に挿入しました",
+    "insertSuccess": "内容を挿入しました",
     "insertToDocument": "現在のドキュメントに挿入",
-    "latexConvertFailed": "LaTeX変換失敗：{error}",
+    "latexConvertFailed": "LaTeX変換に失敗しました：{error}",
     "regenerate": "再生成"
   },
   "microphoneTest": {
-    "cannotAccessMic": "マイクにアクセスできません。権限設定を確認してください"
+    "cannotAccessMic": "マイクへのアクセスができません。権限設定をご確認ください"
   },
   "mainTabs": {
     "contextMenu": {
@@ -132,7 +132,7 @@
       "copyPath": "パスをコピー",
       "copyTitle": "タイトルをコピー",
       "copyFilename": "ファイル名をコピー",
-      "showInFolder": "フォルダで表示",
+      "showInFolder": "エクスプローラーで表示",
       "moveLeft": "左へ移動",
       "moveRight": "右へ移動"
     },
@@ -147,7 +147,7 @@
     "invalid": "無効",
     "maximize": "最大化",
     "minimize": "最小化",
-    "text": "データ",
+    "text": "テキスト",
     "version": "バージョン {version}",
     "addTabFailed": "タブ追加失敗"
   },
@@ -162,7 +162,7 @@
     "edit": "編集",
     "export": "エクスポート",
     "add": "追加",
-    "refresh": "更新",
+    "refresh": "リフレッシュ",
     "loading": "読み込み中...",
     "success": "成功",
     "failed": "失敗",
@@ -180,7 +180,7 @@
     "duplicateSuccess": "複製に成功しました",
     "format": "フォーマット",
     "noOtherWindow": "他のウィンドウがありません",
-    "older": "より早い",
+    "older": "以前",
     "overwrite": "上書き",
     "rename": "名前を変更",
     "reset": "リセット",
@@ -197,7 +197,7 @@
     "copiedToClipboard": "クリップボードにコピーしました",
     "logSaved": "ログを保存しました",
     "enableAiAnalysis": "AIエラー分析",
-    "enableAiAnalysisHint": "コンパイル失敗時にAIでエラーログを分析し修正案を提示",
+    "enableAiAnalysisHint": "コンパイル失敗時にAIがエラーログを分析し、修正案を提示します",
     "encoding": {
       "unicode": "Unicode",
       "chinese": "中国語",
@@ -253,44 +253,50 @@
     "contextView": "コンテキストビュー",
     "line": "行",
     "matchesList": "一致リスト",
-    "toggleReplace": "置換を切り替え"
+    "toggleReplace": "置換を切り替え",
+    "aiRegexSuggestion:": "AIによる正規表現の提案：",
+    "matchCase:": "大文字と小文字を区別する",
+    "matchWholeWord:": "単語全体に一致",
+    "matchesList:": "一致する項目",
+    "preserveCase:": "大文字小文字を保持",
+    "toggleReplace:": "置換に切り替え"
   },
   "titleMenu": {
     "defaultTitle": "タイトル",
-    "inputPlaceholder": "要件を入力してください",
+    "inputPlaceholder": "指示を入力してください",
     "contextMarks": {
-      "none": "参考にしない",
-      "chapter": "本章を参考",
-      "full": "全文を参考"
+      "none": "参照しない",
+      "chapter": "本章を参照",
+      "full": "全文を参照"
     },
     "contextTooltips": {
-      "none": "コンテキストを参考にしません",
-      "chapter": "AIは本章の内容を参考にします",
-      "full": "AIは全文の内容を参考にします"
+      "none": "コンテキストを参照しません",
+      "chapter": "AIは本章の内容を参照します",
+      "full": "AIは全文の内容を参照します"
     },
     "tooltips": {
       "generate": "生成",
       "reset": "リセット",
-      "chat": "長い会話に変換",
-      "acceptReplace": "受け入れて置換",
-      "acceptAppend": "受け入れて追加"
+      "chat": "長文チャットに変換",
+      "acceptReplace": "適用して置換",
+      "acceptAppend": "適用して末尾に追加"
     },
     "presetPrompts": {
       "expand": {
         "value": "この文章を拡張してください",
-        "label": "この文章を拡張"
+        "label": "この文章を拡張する"
       },
       "condense": {
         "value": "この文章を簡潔にしてください",
-        "label": "この文章を簡潔に"
+        "label": "この文章を簡潔にする"
       },
       "polish": {
-        "value": "文章を洗練させて、より美しくしてください",
-        "label": "文章を洗練させる"
+        "value": "文章を推敲して、より洗練されたものにしてください",
+        "label": "文章を推敲する"
       },
       "generateSection": {
         "value": "記事全体の内容に基づいて、この章の内容を生成してください。詳細で充実したものにしてください",
-        "label": "このセクションを生成"
+        "label": "この節の内容を生成"
       },
       "proofread": {
         "value": "テキストの誤り、誤字、不適切な部分をすべて修正し、元の意味を保持してください",
@@ -305,7 +311,7 @@
     }
   },
   "userProfile": {
-    "title": "プロフィール",
+    "title": "プロフィールカード",
     "closeMenu": "メニューを閉じる",
     "loginTab": "ログイン",
     "registerTab": "登録",
@@ -321,7 +327,7 @@
     "email": "メールアドレス",
     "emailPlaceholder": "メールアドレスを入力してください",
     "registerBtn": "登録",
-    "changeAvatar": "クリックしてアバターを変更",
+    "changeAvatar": "クリックでアバターを変更",
     "editProfileTitle": "プロフィール編集",
     "changePasswordTitle": "パスワード変更",
     "oldPassword": "現在のパスワード",
@@ -337,21 +343,21 @@
     "savePwd": "パスワードを保存",
     "changePwd": "パスワード変更",
     "messages": {
-      "invalidPassword": "パスワードが無効です！",
-      "samePassword": "新しいパスワードは現在のパスワードと同じにできません！",
-      "invalidInfo": "変更情報が無効です！",
+      "invalidPassword": "パスワードが無効です",
+      "samePassword": "新しいパスワードは現在のパスワードと異なる必要があります",
+      "invalidInfo": "入力内容が無効です！",
       "modifySuccess": "変更に成功しました！",
       "logoutSuccess": "ログアウトに成功しました",
-      "loginIncomplete": "ログイン情報が不完全です",
-      "registerIncomplete": "登録情報が不完全です",
+      "loginIncomplete": "ログイン情報が不足しています",
+      "registerIncomplete": "登録情報が不足しています",
       "registerSuccess": "登録に成功しました",
       "registerFailed": "登録に失敗しました：{error}"
     },
     "rules": {
       "usernameRequired": "ユーザー名/メールアドレス/電話番号を入力してください",
-      "usernamePattern": "ユーザー名は英数字とアンダースコアのみ使用可能で、6文字以上必要です",
+      "usernamePattern": "ユーザー名は英数字とアンダースコアのみ使用可能で、6文字以上である必要があります",
       "passwordRequired": "パスワードを入力してください",
-      "passwordPattern": "パスワードは大文字小文字と数字を含み、6文字以上必要です",
+      "passwordPattern": "パスワードは大文字、小文字、数字を含み、6文字以上である必要があります",
       "phoneRequired": "電話番号を入力してください",
       "phonePattern": "有効な電話番号を入力してください",
       "emailRequired": "メールアドレスを入力してください",
@@ -363,13 +369,13 @@
     "messages": {
       "microphoneDenied": "マイクにアクセスできません。権限設定を確認してください",
       "recognitionFailed": "認識に失敗しました：{error}",
-      "sendAudioError": "オーディオを百度に送信中にエラーが発生しました",
-      "tokenError": "百度トークンの取得中にエラーが発生しました"
+      "sendAudioError": "オーディオを百度へ送信する際にエラーが発生しました",
+      "tokenError": "百度トークンの取得時にエラーが発生しました"
     }
   },
   "wordCloudDetail": {
     "defaultWord": "単語",
-    "frequency": "頻度"
+    "frequency": "出現頻度"
   },
   "aiChat": {
     "renameTitle": "名前を変更",
@@ -413,7 +419,26 @@
     "selectDocumentTitle": "挿入するドキュメントを選択",
     "sendTooltip": "メッセージを送信",
     "today": "今日",
-    "yesterday": "昨日"
+    "yesterday": "昨日",
+    "atLeastOneRequired:": "少なくとも1つの会話を残す必要があります",
+    "cancelTooltip:": "AI生成をキャンセルする",
+    "changeSendMode:": "クリックして送信ショートカットを切り替える",
+    "deleteSuccess:": "削除に成功しました",
+    "earlier:": "以前の会話",
+    "exportSuccess:": "新しいドキュメントにエクスポートされました",
+    "exportToDocument:": "新規ドキュメントにエクスポート",
+    "exportToDocumentSuccess:": "エクスポートをリクエストしました",
+    "generationCancelled:": "AI生成はキャンセルされました",
+    "insertAsLatex:": "LaTeXに変換して挿入する",
+    "insertAsMarkdown:": "Markdownを原文のまま挿入",
+    "insertSuccess:": "内容をドキュメントに挿入しました",
+    "insertToDocument:": "ドキュメントに挿入する",
+    "insertToDocumentSuccess:": "挿入をリクエストしました",
+    "insertToDocumentsSuccess:": "選択したドキュメントに内容を挿入しました",
+    "knowledgeBaseTooltip:": "ナレッジベースを参照",
+    "newDialog:": "新規会話",
+    "renamePlaceholder:": "新しい会話タイトルを入力してください",
+    "selectDocumentTitle:": "挿入先のドキュメントを選択"
   },
   "aigraph": {
     "renameTitle": "名前を変更",
@@ -452,8 +477,8 @@
     },
     "bitmapImage": "ビットマップ(PNG)",
     "exportFormat": "エクスポート形式",
-    "pdfDocument": "サイトマップ ドキュメント",
-    "vectorImage": "ベクトルチャート(SVG)",
+    "pdfDocument": "PDFドキュメント",
+    "vectorImage": "ベクター画像(SVG)",
     "insertImage": "画像を挿入"
   },
   "article": {
@@ -470,13 +495,13 @@
     "modify_author": "著者を変更",
     "click_to_edit_description": "クリックして要約を編集",
     "description": "要約",
-    "no_description": "要約なし",
+    "no_description": "要約はありません",
     "generate_description": "要約を生成",
     "keywords": "キーワード",
     "generate_keywords": "キーワードを生成",
     "generating_keywords": "生成中…",
     "keywords_placeholder": "キーワードを入力しEnterで追加",
-    "no_keywords": "キーワードがありません",
+    "no_keywords": "キーワードはありません",
     "generate_keywords_parse_error": "生成されたキーワードを解析できませんでした。後でもう一度お試しください。",
     "generate_keywords_failed": "キーワードの生成に失敗しました。後でもう一度お試しください。",
     "apply_keywords_confirm": "生成されたキーワード：{keywords}。適用しますか？",
@@ -507,18 +532,20 @@
       "search_replace": "検索と置換",
       "ai_assistant": "AIアシスタント",
       "mode": "編集モード",
-      "convert_latex_formulas": "LaTeX数式を変換",
-      "convert_latex_formulas_title": "LaTeX数式を変換",
-      "convert_latex_formulas_message": "この操作は、\\(...\\)インライン数式と\\[...\\]ブロック数式をVditor互換の$...$および$$...$$形式に変換します。\n\n注意：この操作はドキュメントの内容を変更します。事前にドキュメントを保存することをお勧めします。",
+      "convert_latex_formulas": "LaTeX数式フォーマットを変換",
+      "convert_latex_formulas_title": "LaTeX数式フォーマットを変換",
+      "convert_latex_formulas_message": "この操作は、ドキュメント内の \\(...\\) インライン数式と \\[...\\] ブロック数式を、Vditor互換の $...$ および $$...$$ フォーマットに変換します。",
       "convert_latex_formulas_success": "数式形式の変換が完了しました",
       "convert_latex_formulas_no_match": "変換が必要な数式形式が見つかりません",
       "convert_latex_formulas_no_editor": "エディタの準備ができていません",
       "toggle_outline": "アウトラインの切り替え",
       "toggle_outline_show": "アウトラインを表示",
-      "toggle_outline_hide": "アウトラインを隠す"
+      "toggle_outline_hide": "アウトラインを隠す",
+      "search_replace:": "検索と置換",
+      "toggle_outline:": "アウトラインの表示/非表示"
     },
     "convert_to_latex": "ドキュメントをLaTeXに変換する",
-    "convert_to_latex_confirm": "変換は、既存のMarkdownファイルと同期されていないテキストファイルを生成し、続行しますか?",
+    "convert_to_latex_confirm": "変換するとtexファイルが生成されますが、既存のMarkdownファイルとは同期されません。続行しますか？",
     "latex_init_failed": "LaTeX の初期化が失敗しました:",
     "msgbox": {
       "cancel": "キャンセル",
@@ -576,18 +603,18 @@
     "sessionsTitle": "数式認識セッション"
   },
   "home": {
-    "metaDoc": "MetaDocスマート文書処理ソフトウェア",
+    "metaDoc": "MetaDoc スマート文書処理ソフトウェア",
     "tooltip": {
-      "quickStart": "クイックスタート：迅速にドキュメントを生成",
-      "newDoc": "新しいドキュメントを作成",
+      "quickStart": "クイックスタート：ドキュメントを素早く生成",
+      "newDoc": "新規ドキュメントを作成する",
       "openFile": "既存のドキュメントを開く",
       "close": "クイックスタートを閉じる",
       "ready": "準備完了",
-      "selectTemperature": "生成温度を選択（内容の多様性に影響）",
-      "selectMood": "ドキュメントスタイルを選択",
+      "selectTemperature": "生成温度を選択（内容の多様性に影響します）",
+      "selectMood": "ドキュメントのスタイルを選択",
       "inputPrompt": "プロンプトを入力してください",
-      "generateArticle": "記事を生成",
-      "reset": "生成内容をリセット",
+      "generateArticle": "記事を生成する",
+      "reset": "生成内容をリセットする",
       "accept": "生成内容を受け入れる",
       "userManual": "MetaDocの使い方を学ぶ"
     },
@@ -599,7 +626,7 @@
       "userManual": "ユーザーマニュアル"
     },
     "tabActions": {
-      "title": "ドキュメントを追加",
+      "title": "タブを追加",
       "new": "新規ドキュメント",
       "open": "ドキュメントを開く"
     },
@@ -618,13 +645,13 @@
     "abstractLabel": "要約",
     "quickStartTitle": "クイックスタート",
     "quickStartFormatTitle": "クイックスタート形式を選択",
-    "quickStartFormatDescriptionMarkdown": "親しみやすい Markdown 構文で素早く執筆し、その場でプレビューできます。",
-    "quickStartFormatDescriptionLatex": "LaTeX を使って構造化された文書や数式を作成します。",
+    "quickStartFormatDescriptionMarkdown": "Markdown構文で素早く執筆し、リアルタイムでプレビューできます。",
+    "quickStartFormatDescriptionLatex": "LaTeXを使用して、構造と数式を含むプロフェッショナルな組版文書を作成します。",
     "tab": {
       "aiAssistant": "AIアシスタント",
-      "documentInfo": "ドキュメント情報"
+      "documentInfo": "文書情報"
     },
-    "documentInfoLabel": "ドキュメント情報入力",
+    "documentInfoLabel": "文書情報入力",
     "label": {
       "title": "タイトル",
       "author": "著者",
@@ -635,15 +662,15 @@
       "author": "著者名を入力してください",
       "abstract": "要約を入力してください"
     },
-    "aiAssistantLabel": "AIアシスタントパラメータ設定",
+    "aiAssistantLabel": "AIアシスタント設定",
     "suggestionLabel": "推奨タグ",
     "mood": {
-      "happy": "幸せ",
+      "happy": "嬉しい",
       "lyrical": "叙情的",
-      "peaceful": "平和的",
-      "academic": "学術的",
+      "peaceful": "平穏",
+      "academic": "学術",
       "business": "ビジネス",
-      "sad": "悲しい",
+      "sad": "悲しみ",
       "warning": "警告",
       "exciting": "興奮",
       "angry": "怒り",
@@ -656,16 +683,16 @@
       "balanced": "バランス",
       "creative": "創造的"
     },
-    "defaultText": "# MetaDoc へようこそ\n\nこれは AI を活用した文書編集ソフトで、素早くコンテンツを生成できます。",
-    "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{MetaDoc へようこそ}\n\\author{AI アシスタント}\n\\maketitle\n\n\\section{はじめに}\nこれは MetaDoc が生成した LaTeX クイックスタート用テンプレートです。\n\n\\end{document}",
+    "defaultText": "# MetaDocへようこそ",
+    "defaultLatexText": "\\documentclass{article}",
     "creationDateLabel": "作成日",
-    "emptyContent": "ドキュメントの内容が空です",
+    "emptyContent": "文書の内容が空です",
     "fileFormatLabel": "ファイル形式",
-    "modificationDateLabel": "更新日",
-    "quickStartButton": "内容を素早く生成",
+    "modificationDateLabel": "更新日時",
+    "quickStartButton": "コンテンツを素早く生成",
     "recentDocuments": "最近のドキュメント",
-    "subtitle": "現代的なドキュメント編集・作成ツール",
-    "latexCode": "LaTeXコード",
+    "subtitle": "現代的な文書編集・作成ツール",
+    "latexCode": "LaTeX コード",
     "preview": "プレビュー",
     "suggestionTagsTitle": "推奨タグ"
   },
@@ -682,35 +709,35 @@
         "title": "メッセージ"
       },
       "success": {
-        "title": "メッセージ"
+        "title": "成功"
       },
       "warning": {
         "title": "警告"
       },
       "open": {
-        "message": "{name} の読み込みに成功しました",
-        "title": "開くことに成功しました"
+        "message": "{name} を開きました",
+        "title": "開きました"
       },
       "save": {
         "message": "{name} の保存に成功しました",
         "title": "保存に成功しました"
       },
-      "saveAllNone": "文書保存なし",
-      "saveAllPartial": "部分的な文書保存失敗({count})",
-      "saveAllSuccess": "保存されたすべての文書",
+      "saveAllNone": "保存されたドキュメントはありません",
+      "saveAllPartial": "一部のドキュメントの保存に失敗しました（{count}）",
+      "saveAllSuccess": "すべてのドキュメントを保存しました",
       "fileSynced": "ファイルが同期されました",
       "keptCurrentVersion": "現在のバージョンを保持しました",
       "mergedConflicts": "競合がマージされました"
     },
     "dialogs": {
-      "exportDocumentTitle": "輸出文書",
+      "exportDocumentTitle": "ドキュメントのエクスポート",
       "filters": {
         "all": "すべてのファイル",
-        "docx": "ドックス ファイル",
+        "docx": "DOCX ファイル",
         "html": "HTMLファイル",
-        "json": "ジェイソン ファイル",
+        "json": "JSON ファイル",
         "latex": "LaTeXファイル",
-        "markdown": "Markdown ドキュメント",
+        "markdown": "Markdown ファイル",
         "pdf": "PDFファイル",
         "supportedDocuments": "サポートされているファイルタイプ"
       },
@@ -718,8 +745,8 @@
       "saveFileTitle": "ファイルを保存する",
       "closeTabCancel": "キャンセル",
       "closeTabConfirm": "閉じる",
-      "closeTabMessage": "現在のドキュメントは保存されていません。 これからも閉じたいですか?",
-      "closeTabTitle": "変更なし",
+      "closeTabMessage": "現在のドキュメントは保存されていません。閉じてもよろしいですか？",
+      "closeTabTitle": "未保存の変更",
       "fileConflictTitle": "ファイルの競合",
       "fileConflictMessage": "ファイル「{fileName}」は外部で変更され、現在保存されていない変更があります。処理方法を選択してください。",
       "fileConflictMessageWithConflicts": "ファイル「{fileName}」に解決が必要な競合が {unresolvedCount} 件あります。各競合で MetaDoc バージョンまたはディスクバージョンを選択してください。",
@@ -743,71 +770,71 @@
       "compileFailed": "コンパイル失敗、終了コード: {code}"
     },
     "windows": {
-      "aiChatTitle": "AIとの対話",
-      "aiGraphTitle": "スマートドローイングアシスタント",
+      "aiChatTitle": "AIチャット",
+      "aiGraphTitle": "AI作図アシスタント",
       "appTitle": "MetaDoc",
       "documentTitlePattern": "{name} - {app}",
-      "formulaRecognitionTitle": "手書き式認識アシスタント",
+      "formulaRecognitionTitle": "手書き数式認識アシスタント",
       "settingTitle": "設定パネル",
       "dataAnalysisTitle": "データ分析ツール",
       "ocrTitle": "OCR文字認識",
       "attachmentTitle": "添付ファイル解析ツール",
-      "graphTitle": "グラフツール"
+      "graphTitle": "作図ツール"
     }
   },
   "outline": {
-    "generating": "AIが作業中です...",
+    "generating": "AIが処理中です...",
     "generatingFor": "生成中",
-    "generationDone": "生成が完了しました。変更を受け入れますか？",
+    "generationDone": "生成が完了しました。変更を適用しますか？",
     "editNode": "ノードを編集",
     "moveLeft": "左に移動",
-    "addChild": "子ノードを追加",
+    "addChild": "子項目を追加",
     "editContent": "コンテンツを編集",
     "delete": "削除",
     "moveRight": "右に移動",
-    "generateContent": "AIで本章のコンテンツを生成",
-    "generateChildChapter": "AIで子章を生成",
-    "generateChildrenContent": "AIですべての子章のコンテンツを生成",
-    "generateChildrenChildren": "AIですべての章の子章を生成",
-    "accept": "受け入れる",
+    "generateContent": "AIで本章のコンテンツを生成する",
+    "generateChildChapter": "AIで子章を生成する",
+    "generateChildrenContent": "AIですべての子章のコンテンツを生成する",
+    "generateChildrenChildren": "AIですべての章の子章を生成する",
+    "accept": "採用",
     "reject": "拒否",
     "formatTitleWizard": "タイトルフォーマットウィザード",
-    "adjustMarkdown": "自動的にMarkdown見出しレベルを調整",
-    "adjustMarkdownTip": "有効にすると、Markdown見出しレベルが自動調整され、1級から3級のような飛び級は発生しません",
-    "firstMarkdownTitleLevel": "Markdownの最初の見出しレベル",
+    "adjustMarkdown": "Markdown見出しレベルを自動調整",
+    "adjustMarkdownTip": "有効にすると、Markdownの見出しレベルが自動調整され、レベルが飛ぶ（例：1級から3級）ことはありません",
+    "firstMarkdownTitleLevel": "Markdownの第1見出しレベル",
     "adjustTitle": "章番号を調整しますか？",
-    "adjustTitleTip": "有効にすると、各章が再番号付けされます",
-    "coverOriginalNumber": "既存の番号をインテリジェントに上書き",
-    "coverTip": "既存の番号（例：'1.1 1.2 一、'）が上書きされます",
-    "level1Chinese": "最初の見出しを中国語にしますか？",
-    "level1ChineseTip": "有効にすると、最初の見出しは中国語で表示されます",
+    "adjustTitleTip": "有効にすると、各章の番号が振り直されます",
+    "coverOriginalNumber": "既存の番号をスマートに上書き",
+    "coverTip": "既存の番号（例：'1.1 1.2 一、'）は上書きされます。",
+    "level1Chinese": "第1見出しを中国語にしますか？",
+    "level1ChineseTip": "有効にすると、第1見出しは中国語で表示されます。",
     "cancel": "キャンセル",
     "confirm": "確定",
-    "deleteConfirm": "このチャプターを削除してもよろしいですか？",
-    "editChapterTitle": "章タイトルを編集",
+    "deleteConfirm": "この章を削除してもよろしいですか？",
+    "editChapterTitle": "章名を編集",
     "chapterName": "章名",
     "chapterContent": "章の内容",
     "zoomIn": "ズームイン",
     "zoomOut": "ズームアウト",
     "reset": "リセット",
     "fitToScreen": "画面に合わせる",
-    "formatTitle": "タイトルをフォーマット",
+    "formatTitle": "見出しをフォーマット",
     "openAiAssistant": "AIアシスタントを開く",
-    "generateChildSuccessWithTitle": "AIがノード {title} の子章を生成しました！",
-    "generateChildSuccess": "AIが子章を生成しました！",
-    "generateChildFail": "子章の生成に失敗しました: {error}",
-    "generateChildRetryFail": "子章の生成に失敗しました。再試行してください: {error}",
-    "generateContentSuccessWithTitle": "AIがノード {title} のコンテンツを生成しました！",
-    "generateContentSuccess": "AIがコンテンツを生成しました！",
-    "generateContentFail": "コンテンツの生成に失敗しました: {error}",
-    "generateChapterSuccess": "AIが章を生成しました！",
-    "formatSuccess": "タイトルのフォーマットに成功しました！",
+    "generateChildSuccessWithTitle": "AIがノード「{title}」の子章を生成しました。",
+    "generateChildSuccess": "AIによる子章の生成が成功しました。",
+    "generateChildFail": "AIによる子章の生成に失敗しました: {error}",
+    "generateChildRetryFail": "AIによる子章の生成に失敗しました。再試行してください: {error}",
+    "generateContentSuccessWithTitle": "AIがノード「{title}」のコンテンツを生成しました。",
+    "generateContentSuccess": "AIによるコンテンツの生成が成功しました。",
+    "generateContentFail": "AIによるコンテンツの生成に失敗しました: {error}",
+    "generateChapterSuccess": "AIによる章の内容生成が成功しました。",
+    "formatSuccess": "見出しのフォーマットに成功しました。",
     "confirmDeleteChapter": "章を削除しますか？",
     "warning": "警告",
     "error": "エラー",
     "message": "メッセージ",
-    "cannotDeleteRoot": "ルート章は削除できません",
-    "deleteSuccess": "章の削除に成功しました！",
+    "cannotDeleteRoot": "ルート章は削除できません。",
+    "deleteSuccess": "章の削除に成功しました。",
     "userPromptPlaceholder": "ヒントを入力してください。",
     "cancelTasks": "タスクをキャンセル",
     "moveDown": "移動ダウン",
@@ -821,22 +848,22 @@
     "insertSuccess": "挿入成功",
     "emptyContent": "（なし）",
     "noContent": "（なし）",
-    "abridge": "省略",
+    "abridge": "要約",
     "noTitle": "（タイトルなし）",
-    "acceptAll": "すべて承認",
+    "acceptAll": "すべて採用",
     "aiConfig": {
       "title": "AI設定",
       "titleFor": {
-        "generateChildren": "子チャプター生成設定",
+        "generateChildren": "子セクション生成設定",
         "generateContent": "コンテンツ生成設定",
-        "generateChildrenChildren": "子チャプター一括生成設定",
+        "generateChildrenChildren": "子セクション一括生成設定",
         "generateChildrenContent": "コンテンツ一括生成設定"
       },
       "temperature": "AI温度",
       "temperatureStrict": "厳密",
       "temperatureBalance": "バランス",
       "temperatureCreative": "クリエイティブ",
-      "temperatureHint": "左端はより厳密・再現性あり、右端はよりクリエイティブ・多様",
+      "temperatureHint": "左端はより厳密で再現性が高く、右端はより創造的で多様性があります",
       "keywords": "キーワード",
       "keywordsPlaceholder": "任意、AIコンテンツ生成の指針となるキーワード",
       "recommendedKeywords": "AI推奨",
@@ -844,42 +871,42 @@
       "addKeyword": "追加",
       "wordCount": "目標文字数",
       "wordCountPlaceholder": "任意、プロンプトで生成コンテンツの文字数を制御",
-      "wordCountHint": "注：これはプロンプトによる制御で、max_tokens ではありません",
+      "wordCountHint": "注意：これはプロンプトによる制御であり、max_tokens ではありません",
       "userPrompt": "ユーザープロンプト",
-      "userPromptPlaceholder": "AI生成の指針となるプロンプトを入力",
+      "userPromptPlaceholder": "AIが生成する内容の指針となるプロンプトを入力してください",
       "presetPrompts": "プリセットプロンプト",
       "selectPreset": "プリセットを選択",
       "presets": {
-        "expand": "拡張",
-        "expandValue": "拡張してください",
-        "abridge": "要約",
-        "abridgeValue": "内容を要約し、核心ポイントを保持してください",
-        "polish": "磨き上げ",
-        "polishValue": "表現の質を向上させるために磨き上げてください",
-        "combineStructure": "構造と組み合わせ",
-        "combineStructureValue": "文章構造に合わせてこの部分の内容を改善してください",
+        "expand": "拡充",
+        "expandValue": "内容を拡充してください",
+        "abridge": "簡潔化",
+        "abridgeValue": "内容を簡潔にし、核心となるポイントを残してください",
+        "polish": "推敲",
+        "polishValue": "表現の質を高めるために、文章を磨いてください",
+        "combineStructure": "構造に合わせて充実",
+        "combineStructureValue": "文章の構造に合わせて、この段落の内容を充実させてください",
         "detailed": "詳細",
-        "detailedValue": "具体的な事例とデータサポートを含む詳細な内容を生成してください",
+        "detailedValue": "具体的な事例やデータに基づいた詳細な内容を生成してください。",
         "concise": "簡潔",
-        "conciseValue": "内容を簡潔にし、ポイントを明確にしてください",
+        "conciseValue": "内容を簡潔にまとめ、要点を明確にしてください。",
         "academic": "学術",
-        "academicValue": "専門的で正確な学術的ライティングスタイルを使用してください"
+        "academicValue": "専門的で正確な学術的な文章スタイルを使用してください。"
       },
       "preset": {
-        "combineStructure": "文章構造に合わせてこの部分の内容を改善してください",
-        "expand": "拡張してください",
-        "abridge": "内容を要約し、核心ポイントを保持してください",
-        "polish": "表現の質を向上させるために磨き上げてください",
-        "detailed": "具体的な事例とデータサポートを含む詳細な内容を生成",
-        "professional": "専門的で正確な学術的ライティングスタイルを使用",
-        "concise": "内容を簡潔にし、ポイントを明確に",
-        "examples": "具体的な事例と実際の応用シナリオを追加",
-        "theory": "理論的基盤と背景知識を補充",
-        "summary": "要点を要約するまとめコンテンツを生成",
-        "analysis": "多角度の視点から深入り分析を行う",
-        "comparison": "比較分析を追加し、相違点と特徴を明確に",
-        "trends": "発展傾向と将来展望を分析",
-        "practice": "実践的な提案と操作ガイドを提供",
+        "combineStructure": "文章の構造に合わせて、この段落の内容を充実させてください",
+        "expand": "内容を拡充してください",
+        "abridge": "内容を簡潔にし、核心となるポイントを残してください",
+        "polish": "表現の質を高めるために、文章を磨いてください",
+        "detailed": "具体的な事例やデータに基づいた詳細な内容を生成してください",
+        "professional": "専門的で正確な学術的な文章スタイルを使用してください",
+        "concise": "内容を簡潔にまとめ、要点を明確にしてください",
+        "examples": "具体的な事例と実際の応用シーンを追加してください",
+        "theory": "理論的な背景と基礎知識を補足してください",
+        "summary": "要点をまとめた要約内容を生成してください",
+        "analysis": "多角的な視点から深く分析し、意見を提供してください",
+        "comparison": "比較分析を追加し、差異と特徴を際立たせてください",
+        "trends": "発展の傾向と将来の展望を分析してください",
+        "practice": "実践的なアドバイスと操作手順を提供してください",
         "custom": "カスタム"
       }
     },
@@ -887,19 +914,19 @@
       "title": "AIツール",
       "pointer": "ポインターツール（選択なし）",
       "generateChildren": "子チャプターを生成",
-      "generateContent": "コンテンツを生成",
-      "generateChildrenChildren": "子チャプターを一括生成",
-      "generateChildrenContent": "コンテンツを一括生成"
+      "generateContent": "コンテンツを生成する",
+      "generateChildrenChildren": "子チャプターを一括生成する",
+      "generateChildrenContent": "コンテンツを一括生成する"
     },
     "collapse": "折りたたむ",
     "expand": "展開",
-    "expandContent": "拡張",
+    "expandContent": "内容を拡張",
     "materialBasket": {
       "title": "素材バスケット",
       "collapse": "折りたたむ",
       "expand": "展開",
       "emptyHint": "アウトラインノードをドラッグするか右クリックで「素材バスケットに移動」、または+をクリックして新規素材を作成",
-      "addItem": "新規素材",
+      "addItem": "素材を新規作成",
       "moveToBasket": "素材バスケットに移動",
       "mergeToOutline": "アウトラインに統合",
       "asChild": "子ノードとして",
@@ -921,13 +948,19 @@
       "prompt": "プロンプト",
       "promptPlaceholder": "AIが生成または最適化する方向性を説明してください",
       "content": "コンテンツ",
-      "aiAssistHeading": "AI支援",
+      "aiAssistHeading": "AIアシスト",
       "aiGenerate": "AI生成",
       "generating": "生成中…",
       "save": "保存",
       "cancel": "キャンセル",
       "searchPlaceholder": "タイトル、キーワード、コンテンツで検索",
-      "noSearchResult": "一致する項目がありません"
+      "noSearchResult": "一致する項目がありません",
+      "deleteConfirm:": "この素材を削除してもよろしいですか？",
+      "emptyHint:": "アウトラインノードをドラッグするか、右クリックで「素材バスケットに移動」を選択、または「+」をクリックして新規素材を作成できます。",
+      "keywordsPlaceholder:": "キーワードを入力し、Enterで追加",
+      "promptPlaceholder:": "AIに生成または最適化してほしい内容を説明してください",
+      "selectTargetFirst:": "まず、アウトラインで対象ノードを選択してください",
+      "selectTargetNode:": "挿入先の対象ノードを選択"
     },
     "nodeAgent": "ノードエージェント",
     "nodeAgentAlreadyRunning": "ノードエージェント実行中",
@@ -942,7 +975,16 @@
     "removePrefixesConfirm": "すべてのタイトル接頭辞を削除しますか？この操作はすべてのタイトルの先頭の番号とドットを削除し、元に戻せません。",
     "removePrefixesSuccess": "すべてのタイトル接頭辞を正常に削除しました",
     "removePrefixesTip": "すべてのタイトルの先頭の番号とドットを削除。MarkdownからLaTeXへの変換に適用（LaTeXは自動的に番号付け）",
-    "stop": "停止"
+    "stop": "停止",
+    "moveDown:": "下に移動",
+    "moveUp:": "上に移動",
+    "polish:": "文章を磨く",
+    "removePrefixes:": "すべての見出し接頭辞を削除",
+    "removePrefixesConfirm:": "すべての見出しの先頭にある番号や点を削除してもよろしいですか？この操作は元に戻せません。",
+    "removePrefixesSuccess:": "すべての見出し接頭辞を削除しました",
+    "removePrefixesTip:": "すべての見出しの先頭にある番号や点を削除します。MarkdownからLaTeXへの変換に適しています（LaTeXは自動的に番号付けを行います）",
+    "toggleLayout:": "レイアウト方向を切り替え",
+    "userPromptPlaceholder:": "プロンプトを入力してください"
   },
   "setting": {
     "auto": "自動",
@@ -961,13 +1003,13 @@
     "minute30": "30分",
     "minute60": "1時間",
     "globalTheme": "グローバルテーマ",
-    "themeSync": "システムに同期",
+    "themeSync": "システムの外観に合わせる",
     "themeLight": "ライト",
     "themeDark": "ダーク",
     "themeCustom": "カスタム",
     "contentTheme": "内容テーマ",
     "codeTheme": "コードテーマ",
-    "lineNumber": "コードブロックの行番号を表示",
+    "lineNumber": "コードブロックに行番号を表示",
     "customThemeColor": "カスタムテーマカラー",
     "enabled": "有効",
     "disabled": "無効",
@@ -994,16 +1036,16 @@
     "apiSuffix": "API URLサフィックス",
     "completionSuffix": "質問回答補完機能(Completions)のURLサフィックス（オプション）",
     "chatSuffix": "チャット補完機能(Chat)のURLサフィックス（オプション）",
-    "removeThinkTag": "thinkタグを削除",
-    "testLlm": "大規模言語モデルをテスト",
+    "removeThinkTag": "thinkタグを除去",
+    "testLlm": "大規模言語モデルをテストする",
     "testResult": "テスト結果",
     "resultPlaceholder": "テスト結果はここに表示されます",
     "testPrompt": "こんにちは！簡潔に自己紹介をお願いします。",
-    "testFailed": "テストに失敗しました：",
+    "testFailed": "テスト失敗：",
     "particleEffect": "粒子効果",
     "particleEffectHint": "粒子効果を有効にして、視覚的な美しさを向上させます。これを有効にすると、パフォーマンスに影響を与える可能性があります。",
     "enableKnowledgeBase": "ナレッジベースを有効にする",
-    "knowledgeBaseTooltip": "有効にすると、ローカルナレッジベースから情報によってAIのコンテンツがサポートされています。",
+    "knowledgeBaseTooltip": "有効にすると、ローカルナレッジベースの情報を利用してAIによるコンテンツ生成を補助します。",
     "autoCompletion": "AIの自動完了",
     "autoCompletionFullMode": "フルモード",
     "autoCompletionFullModeHint": "全コンテンツ生成後にAIが出力されます(推奨)",
@@ -1013,14 +1055,14 @@
     "chooseAutoCompletionMode": "AIの自動完了モードの選択",
     "highPrecision": "高精度",
     "knowledgeBaseScoreThreshold": "知識ベーステキスト類似性しきい値",
-    "knowledgeBaseScoreThresholdTooltip": "上記と同様のクエリ結果は、AI、推奨0.5でのみ受け付けます。",
-    "lowPrecision": "低い精密",
-    "recommended": "推奨事項",
+    "knowledgeBaseScoreThresholdTooltip": "類似度がこの値より高いクエリ結果のみがAIに採用されます。推奨値は0.5です。",
+    "lowPrecision": "低精度",
+    "recommended": "推奨",
     "logDirectory": "ログディレクトリ",
     "logFilePath": "現在のログファイル",
-    "logFileUnavailable": "生成されないログファイル",
+    "logFileUnavailable": "ログファイルはまだ生成されていません",
     "loggerConsoleTitle": "リアルタイムでのログ出力",
-    "loggingEnabled": "ログレコードを有効にする",
+    "loggingEnabled": "ログ記録を有効にする",
     "loggingLevel": "ログレベル",
     "loggingLevels": {
       "debug": "デバッグ",
@@ -1032,12 +1074,12 @@
     "openLogDirectory": "ログフォルダを開く",
     "openLogFile": "ログファイルを開く",
     "deepseek": "DeepSeek",
-    "deepseekHint": "DeepSeekが提供する主要なAIモデルは複数のモデルをサポートしています",
+    "deepseekHint": "DeepSeek公式が提供するAI大規模言語モデルで、複数のモデルをサポートしています",
     "gemini": "Google Gemini",
-    "geminiHint": "Google Geminiが提供する主要なAIモデルは複数のモデルをサポートしています",
+    "geminiHint": "Google Geminiが提供するAI大規模モデルは、複数のモデルをサポートしています",
     "geminiApiKeyPlaceholder": "Gemini APIキーを入力",
     "openaiOfficial": "公式OpenAI API",
-    "openaiOfficialHint": "モデルをサポートするOpenAIのAPI",
+    "openaiOfficialHint": "OpenAIが公式に提供するAPIで、複数のモデルをサポートしています",
     "debug": {
       "broadcast": "放送事件",
       "broadcastSent": "ラジオ送信",
@@ -1056,26 +1098,26 @@
       "module": "モジュール",
       "noHistory": "テスト履歴はありません。",
       "parameters": "パラメーター",
-      "result": "結果発表",
+      "result": "結果",
       "selectModule": "モジュールの選択",
-      "selectTestFunction": "テスト機能の選択",
-      "selectTestFunctionFirst": "まずはテスト機能を選択してください。",
-      "sendBroadcast": "放送を送信",
+      "selectTestFunction": "テスト関数を選択",
+      "selectTestFunctionFirst": "まずテスト関数を選択してください",
+      "sendBroadcast": "ブロードキャストを送信",
       "sendEvent": "イベント送信",
-      "targetAiChat": "AIダイアログ",
+      "targetAiChat": "AIチャットウィンドウ",
       "targetAiGraph": "AIチャートウィンドウ",
-      "targetAll": "すべてのWindows",
-      "targetFormulaRecognition": "方式の認識の窓",
+      "targetAll": "すべてのウィンドウ",
+      "targetFormulaRecognition": "数式認識ウィンドウ",
       "targetHome": "メインウィンドウ",
-      "targetSetting": "セットウィンドウ",
+      "targetSetting": "設定ウィンドウ",
       "targetWindow": "ターゲットウィンドウ",
-      "testExecuted": "導入の成功をテストして下さい",
+      "testExecuted": "テスト実行成功",
       "testFailed": "テスト実行失敗",
-      "testFunction": "テスト機能",
-      "testNotFound": "テスト機能が存在しない",
-      "testResult": "試験結果",
+      "testFunction": "テスト関数",
+      "testNotFound": "テスト関数が存在しません",
+      "testResult": "テスト結果",
       "title": "デバッグツール",
-      "undefined": "申し訳ございません。",
+      "undefined": "undefined",
       "updateTest": "更新テスト",
       "agentTool": "Agent Toolテスト",
       "autoTest": "Tool自動テスト",
@@ -1086,8 +1128,8 @@
         "batchTest": "一括テスト",
         "selectModules": "モジュールを選択",
         "totalTests": "総テスト数",
-        "passed": "合格",
-        "failed": "不合格",
+        "passed": "通過",
+        "failed": "失敗",
         "duration": "総実行時間",
         "testResults": "テスト結果",
         "markdownSummary": "Markdown サマリー",
@@ -1133,7 +1175,7 @@
       "selectContextTab": "コンテキストTabを選択（ドキュメント環境をシミュレートするため、オプション）",
       "useCurrentActiveTab": "（指定しない場合、現在のアクティブTabを使用）",
       "contextTabTooltip": "ドキュメントTabをコンテキストとして選択すると、すべてのツール操作がそのTabで行われます。選択しない場合は、現在アクティブなTabが使用されます。",
-      "toolDescPlaceholder": "ツールを選択して説明を表示（Toolの選択が必要）",
+      "toolDescPlaceholder": "まずToolを選択して説明を表示",
       "toolDescDefault": "これはツールの詳細な説明で、パラメータ形式、使用シナリオなどの情報が含まれます",
       "paramsPlaceholder": "JSON形式のパラメータを入力してください。例: {\"prompt\": \"フローチャートを生成\", \"chartType\": \"mermaid\"}",
       "selectToolPlaceholder": "テストするToolを選択（空白の場合はすべてテスト）",
@@ -1157,11 +1199,21 @@
       "preparingTests": "{count}個のテストケースを準備中...",
       "testCompleted": "テスト完了: {passed}件合格、{failed}件失敗",
       "allTestsPassed": "すべてのテストが合格しました！({passed}/{total})",
-      "testCompletedStatus": "テスト完了"
+      "testCompletedStatus": "テスト完了",
+      "agentSessionDebug:": "Agentセッションデバッグ",
+      "allTestsPassed:": "すべてのテストに合格しました！({passed}/{total})",
+      "broadcast:": "ブロードキャストイベント",
+      "broadcastSent:": "ブロードキャストを送信しました",
+      "clearHistory:": "履歴をクリア",
+      "eventBus:": "EventBus イベント",
+      "eventDataPlaceholder:": "JSON形式のデータを入力してください（オプション）",
+      "eventSent:": "イベントを送信しました",
+      "executeTest:": "テストを実行",
+      "importFailed:": "スナップショットのインポートに失敗しました"
     },
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
-    "tokens": "トークン。",
+    "tokens": "トークン",
     "unlimited": "無制限",
     "autoOpenHomeOnStartup": "起動時にホームを自動で開く",
     "externalFileOpenMode": "外部ファイルの開き方",
@@ -1176,10 +1228,10 @@
     "fontPreviewWestern": "プレビュー欧米フォント",
     "mathInlineDigit": "インライン数式で数字を許可",
     "fontPreview": "プレビューフォント",
-    "refresh": "更新",
+    "refresh": "リフレッシュ",
     "fontUiLabel": "UIフォント",
     "openReferenceDir": "ディレクトリを開く",
-    "referenceDirManagement": "参照ファイルディレクトリ管理",
+    "referenceDirManagement": "参考文献ディレクトリ管理",
     "referenceDirSize": "ディレクトリサイズ",
     "clearReferenceDir": "ディレクトリをクリア",
     "openInNewWindow": "新しいウィンドウで開く",
@@ -1191,10 +1243,10 @@
     "discard": "破棄",
     "save": "保存",
     "enableMaxTokens": "max_tokens制限を有効化",
-    "maxTokens": "max_tokens最大値",
+    "maxTokens": "max_tokens 最大値",
     "selectLLMType": "LLMタイプを選択",
     "selectModel": "モデルを選択",
-    "themeSyncColor": "システムカラーに追随",
+    "themeSyncColor": "システムのカラーに合わせる",
     "presetThemeCoralRed": "コーラルレッド",
     "presetThemeGoldenOrange": "ゴールデンオレンジ",
     "aboutUpdateSettings": "アップデート設定",
@@ -1235,7 +1287,10 @@
       "thirdPartyAssets": "サードパーティアセット",
       "aboutUs": "私たちについて",
       "content": "MetaDocチームとミッションについて",
-      "loadFailed": "読み込みに失敗しました"
+      "loadFailed": "読み込みに失敗しました",
+      "title:": "MetaDocについて",
+      "updateAvailable:": "新しいバージョンがあります",
+      "updateAvailableDesc:": "新しいバージョン {version} が見つかりました。ダウンロードして更新してください。"
     },
     "agentTerminalExecutionAllowed": "デフォルトでターミナル実行を許可",
     "agentTerminalExecutionAllowedHint": "オンにすると、Agentがターミナルツールを呼び出した際に毎回確認せず実行します。オフにすると実行のたびに確認ダイアログが表示されます。",
@@ -1264,7 +1319,7 @@
     "confirmResetConfig": "このデフォルト設定を初期状態にリセットしますか？すべての変更が削除されます。",
     "copy": "コピー",
     "clearReferenceDirFailed": "ディレクトリクリア失敗",
-    "getDirSizeFailed": "ディレクトリサイズ取得失敗",
+    "getDirSizeFailed": "ディレクトリサイズの取得に失敗しました",
     "openDirFailed": "ディレクトリオープン失敗",
     "defaultConfigDeepseek": "DeepSeek (デフォルト)",
     "defaultConfigGemini": "Google Gemini (デフォルト)",
@@ -1298,7 +1353,7 @@
     "embeddingModeApiHint": "外部 API を使用して埋め込みベクトルを生成します。グラフィックカードは不要です。",
     "embeddingModeLocal": "ローカルモデル",
     "embeddingModeLocalHint": "ローカルモデルを使用して埋め込みベクトルを生成します。グラフィックカードが必要ですが、ネットワークは不要です。",
-    "embeddingModeTooltip": "テキスト埋め込みベクトルの生成に外部APIまたはローカルモデルを使用するように選択します。",
+    "embeddingModeTooltip": "テキスト埋め込みベクトルの生成に、外部APIまたはローカルモデルのいずれを使用するかを選択します。",
     "enableLlm": "LLMを有効化",
     "enterConfigName": "設定名を入力してください",
     "exportAllConfigs": "すべての設定をエクスポート",
@@ -1310,7 +1365,7 @@
     "hasUnsavedChanges": "保存されていない変更があります",
     "image": {
       "title": "画像設定",
-      "titleHint": "画像アップロード設定、ファイルを再度開いた後に有効になります",
+      "titleHint": "画像アップロード設定。ファイルを再度開くと有効になります",
       "insertAction": "画像挿入時",
       "insertActionNone": "特別な操作なし",
       "insertActionUpload": "画像をアップロード",
@@ -1318,14 +1373,14 @@
       "insertActionSaveToAssetsDir": "ドキュメントディレクトリ/assets/に保存",
       "insertActionHint": "画像挿入時のデフォルト操作を選択します。",
       "keepNetworkImageUrl": "ネットワーク画像URLを保持",
-      "keepNetworkImageUrlHint": "チェックすると、ネットワーク画像挿入時に元のURLを保持し、ローカルにダウンロードしません。チェックしない場合、ネットワーク画像は自動的にダウンロードされローカル画像として保存され、ローカルでドキュメントを閲覧する際にネットワーク接続なしで画像を読み込めます。",
+      "keepNetworkImageUrlHint": "チェックすると、ネットワーク画像挿入時に元のURLを保持し、ローカルにダウンロードしません。チェックしない場合、ネットワーク画像は自動的にダウンロードされローカル画像として保存されるため、ローカルでドキュメントを閲覧する際にネットワーク接続が不要になります。",
       "syntaxPreferences": "画像構文の設定",
       "syntaxPreferencesHint": "画像パスの構文形式の設定を行います。",
       "preferRelativePath": "相対パスを優先",
       "addDotSlashForRelativePath": "相対パスに./を追加",
       "addDotSlashHint": "相対パスに ./ プレフィックスを追加して可読性を向上させます。",
       "autoEscapeImageUrl": "ネットワーク画像挿入時にURLを自動エスケープ",
-      "autoEscapeImageUrlHint": "例えば、'img/示例图片.png'に挿入する場合、画像パスは自動的に 'img/%E7%A4%BA%E4%BE%8B%E5%9B%BE%E7%89%87.png' になります。このオプションを有効にすると、他のMarkdownエンジンとの互換性が向上します。無効にすると、可読性が向上します。",
+      "autoEscapeImageUrlHint": "例えば、'img/示例图片.png'に挿入する場合、画像パスは自動的に 'img/%E7%A4%BA%E4%BE%8B%E5%9B%BE%E7%89%87.png' になります。このオプションを有効にすると、他のMarkdownエンジンとの互換性が向上します。無効にすると、可読性が高まります。",
       "uploadServiceSettings": "アップロードサービス設定",
       "uploadService": "アップロードサービス",
       "uploadServiceNone": "なし",
@@ -1362,7 +1417,7 @@
     "llmTemperature": "LLM温度",
     "llmTemperatureHint": "AI出力のランダム性を制御します。値が高いほどランダムになります。推奨値は1.3です",
     "logRetentionPeriod": "ログ保持期間",
-    "logRetentionPeriodHint": "保持期間を超えた古いログファイルを自動的に削除します。ソフトウェア起動時に自動的にクリーンアップが実行されます",
+    "logRetentionPeriodHint": "保持期間を超えた古いログファイルを自動的に削除します。ソフトウェア起動時に自動的にクリーンアップが実行されます。",
     "logRetentionPeriods": {
       "none": "保存しない",
       "1day": "1日",
@@ -1395,7 +1450,7 @@
     "manualResponseSubmitted": "レスポンスが送信されました",
     "manualTokenInput": "手動LLMレスポンス入力",
     "manualTokenInputPlaceholder": "ここに手動LLMのレスポンス内容を入力（テストとデバッグ用）",
-    "mathInlineDigitHint": "有効にすると、インラインモードの数式開始。例えば。無効にすると、。",
+    "mathInlineDigitHint": "有効にすると、インライン数式の開始記号 $ の直後に数字が許可されます。例えば $123$ は数式として認識されます。無効にすると、$x$ のような形式のみが数式として認識されます。",
     "metadataInfoHint": "メタ情報には、ドキュメントの著者、要約、キーワード、Agentセッション記録などが含まれます。これらの情報は、ドキュメントの管理と検索に役立ちます。",
     "metadataSaveModeEmbedHint": "メタ情報をコメント形式としてファイルコンテンツに埋め込みます。この方式はドキュメントの内容を変更し、他のソフトウェアで開いた場合にこれらのコメントが表示される可能性があります。",
     "metadataSaveModeNoneHint": "メタ情報を保存しません。ドキュメントの著者、要約、キーワード、Agentセッション記録などの情報は保存されません。",
@@ -1425,28 +1480,28 @@
     "presetThemeRosePurple": "ローズパープル",
     "presetThemeSkyBlue": "スカイブルー",
     "presetThemeSpaceGray": "スペースグレー",
-    "refreshRequests": "リクエストリストを更新",
+    "refreshRequests": "リクエスト一覧を更新",
     "requestNotFound": "リクエストが存在しないか、期限切れです",
     "resetConfig": "設定をリセット",
     "resetFailed": "リセットに失敗しました",
     "saveChanges": "保存",
-    "saveCurrentAsConfig": "現在の設定を保存",
+    "saveCurrentAsConfig": "現在の設定を構成として保存",
     "saveFailed": "保存に失敗しました",
     "saveSuccess": "保存しました",
-    "selectChineseFont": "中国語フォントを選択",
+    "selectChineseFont": "日本語フォントを選択",
     "selectCodeTheme": "コードテーマを選択",
     "selectContentTheme": "コンテンツテーマを選択",
     "selectFont": "フォントを選択",
     "selectLlmConfig": "LLM設定を選択",
     "selectPendingRequest": "保留中のリクエストを選択",
-    "selectWesternFont": "欧米フォントを選択",
+    "selectWesternFont": "欧文フォントを選択",
     "submitFailed": "送信に失敗しました",
-    "submitManualResponse": "レスポンスを送信",
-    "temporaryConfig": "（一時的）",
-    "testChatNonStream": "チャット-非ストリーム",
-    "testChatStream": "チャット-ストリーム",
-    "testCompletionNonStream": "補完-非ストリーム",
-    "testCompletionStream": "補完-ストリーム",
+    "submitManualResponse": "応答を手動送信",
+    "temporaryConfig": "（一時）",
+    "testChatNonStream": "チャット（非ストリーミング）",
+    "testChatStream": "チャット（ストリーミング）",
+    "testCompletionNonStream": "補完（非ストリーミング）",
+    "testCompletionStream": "補完（ストリーミング）",
     "testResultFailed": "テストに失敗しました",
     "testScenario": "テストシナリオ",
     "themeColor": "テーマカラー",
@@ -1454,14 +1509,23 @@
     "themeNamePlaceholder": "テーマ名を入力してください",
     "themeNameRequired": "テーマ名を入力してください",
     "unsavedChanges": "未保存の変更",
-    "unsavedChangesConfirm": "現在の設定に未保存の変更があります。先に保存しますか？"
+    "unsavedChangesConfirm": "現在の設定に未保存の変更があります。保存してから続けますか？",
+    "autoCompletion:": "AIオートコンプリート",
+    "autoCompletionFullModeHint:": "AIがコンテンツをすべて生成した後に出力します（推奨）",
+    "autoCompletionMaxTokens:": "オートコンプリート最大トークン数",
+    "autoCompletionMaxTokensHint:": "AIオートコンプリートの出力トークン数の上限を設定します。最小20、0は無制限です。",
+    "autoCompletionMode:": "AIオートコンプリートモード",
+    "autoCompletionStreamMode:": "ストリーミングモード",
+    "autoCompletionStreamModeHint:": "AIが生成した内容をリアルタイムで出力します。",
+    "autoDownloadHint:": "有効にすると、外部画像をインポートする際に自動的にローカルに保存します。無効の場合、オフライン時には外部画像は表示されません。エディター画面を再起動する必要があります。",
+    "chooseAutoCompletionMode:": "AIオートコンプリートモードを選択"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
-    "wordCount": "文字数カウント",
+    "wordCount": "文字数",
     "wordCloud": "ワードクラウド",
-    "paragraphDistribution": "段落分布",
-    "wordFrequency": "単語頻度統計"
+    "paragraphDistribution": "段落分布図",
+    "wordFrequency": "単語頻度"
   },
   "bottomMenu": {
     "wordCount": "文字数：",
@@ -1469,9 +1533,9 @@
     "newFile": "新しいファイル",
     "aiTaskQueueTooltip": "AIタスクキュー",
     "aiTaskQueueLabel": "AIタスクキュー",
-    "notificationEmpty": "お知らせ",
-    "notificationTooltip": "キューを呼び出す。",
-    "logConsoleLabel": "ログイン",
+    "notificationEmpty": "通知はありません",
+    "notificationTooltip": "通知キュー",
+    "logConsoleLabel": "ログ",
     "logConsoleTooltip": "ログコンソールを開く",
     "llmStatistics": "LLM統計",
     "versionLabel": "バージョン",
@@ -1490,16 +1554,24 @@
     "nonChineseWords": "非中国語単語",
     "chineseAndKoreanChars": "中国文字と朝鮮語単語",
     "includeTextBoxesFootnotesEndnotes": "テキストボックス、脚注、尾注を含む（F）",
-    "close": "閉じる"
+    "close": "閉じる",
+    "charactersNoSpaces:": "文字数（スペース除く）",
+    "charactersWithSpaces:": "文字数（スペース含む）",
+    "chineseAndKoreanChars:": "中国語文字と韓国語単語",
+    "nonChineseWords:": "中国語以外の単語",
+    "statistics:": "統計情報",
+    "title:": "ワードカウント",
+    "tooltip:": "クリックして詳細なワードカウントを表示",
+    "words:": "単語数"
   },
   "aiTask": {
     "cancel": "キャンセル",
     "failed": "失敗した",
-    "ready": "レディー",
-    "running": "ランニング",
+    "ready": "準備完了",
+    "running": "実行中",
     "status": "ステータス",
-    "taskCancelled": "{task} キャンセル",
-    "taskCancelled2": "キャンセル",
+    "taskCancelled": "タスク {task} はキャンセルされました",
+    "taskCancelled2": "タスクはキャンセルされました",
     "error": "エラー",
     "errorTitle": "エラー",
     "showError": "エラーメッセージを表示"
@@ -1516,35 +1588,40 @@
     "cancelDelay": "遅延をキャンセル",
     "minutes": "分",
     "seconds": "秒",
-    "delayControlArea": "遅延制御エリア"
+    "delayControlArea": "遅延制御エリア",
+    "cancelDelay:": "遅延を解除",
+    "delayActive:": "補完は有効です",
+    "empty:": "タスクはありません",
+    "loading:": "読み込み中...",
+    "switchWarning:": "AI処理中に画面を切り替えると、タスクが失われる可能性があります。"
   },
   "knowledgeBase": {
     "add": "追加する",
     "cancel": "キャンセル",
-    "choose_one": "設定を閲覧・変更するためのナレッジベースを選択してください。",
+    "choose_one": "ナレッジベースを選択して設定を閲覧・変更してください。",
     "chunks": "段落の数",
-    "chunks_unit": "パラグラフ",
-    "collapse": "それを捨てなさい。",
-    "config": "情報の設定",
+    "chunks_unit": "段落",
+    "collapse": "折りたたむ",
+    "config": "設定情報",
     "delete": "削除",
-    "delete_confirm": "ナレッジベースを削除する:{name}?",
-    "delete_confirm_title": "確認の削除",
-    "delete_error": "エラー削除",
-    "delete_failed": "削除失敗",
-    "deleted": "削除された",
+    "delete_confirm": "このナレッジベースを削除しますか：{name}？",
+    "delete_confirm_title": "削除確認",
+    "delete_error": "削除エラー",
+    "delete_failed": "削除に失敗しました",
+    "deleted": "削除済み",
     "download": "ファイルのダウンロード",
-    "enabled": "アクセス",
-    "enabled_state": "ステータスを有効にする",
-    "expand": "プロモーション",
+    "enabled": "有効",
+    "enabled_state": "有効状態",
+    "expand": "展開",
     "filename": "ファイル名",
-    "name": "お名前 (必須)",
+    "name": "名前",
     "open_in_editor": "エディタで開く",
     "path": "パス",
     "preview": "プレビュー",
     "rebuild": "ベクトルを再構築",
-    "rebuild_error": "同期フォルダ",
-    "rebuild_failed": "再建障害",
-    "rebuild_submitted": "復興ベクタータスクが提出されました",
+    "rebuild_error": "再構築エラー",
+    "rebuild_failed": "再構築に失敗しました",
+    "rebuild_submitted": "ベクトル再構築タスクを送信しました",
     "select_placeholder": "左側の知識ライブラリエントリを選択してプレビューを表示",
     "set_error": "エラー設定",
     "set_failed": "セットアップ失敗",
@@ -1564,11 +1641,11 @@
     },
     "upload_complete": "ナレッジベース工事完了",
     "clear_all": "知識ベースをクリア",
-    "clear_all_confirm": "知識ベースを空にすることの確認? データベース内のすべてが削除されます!",
-    "clear_all_confirm_title": "明確な確認",
-    "clear_all_error": "知識ベースを清掃するエラー:",
-    "clear_all_failed": "知識ベースをクリアしても失敗!",
-    "clear_all_success": "知識ベースをクリア!",
+    "clear_all_confirm": "ナレッジベースを空にしますか？データベース内のすべての内容が削除されます！",
+    "clear_all_confirm_title": "クリア確認",
+    "clear_all_error": "ナレッジベースのクリア中にエラーが発生しました：",
+    "clear_all_failed": "ナレッジベースのクリアに失敗しました！",
+    "clear_all_success": "ナレッジベースのクリアが完了しました！",
     "addKnowledge": "知識を追加",
     "check": "サーバーログを確認してください",
     "createMonacoEditorFailed": "Monacoエディターの作成に失敗しました",
@@ -1577,11 +1654,11 @@
     "disabledMessage": "ナレッジベース機能は現在無効になっています。この機能を使用するには設定でナレッジベース機能を有効にしてください。",
     "enable": "ナレッジベースを有効にする",
     "enableError": "ナレッジベースの有効化に失敗しました",
-    "failed": "検索に失敗しました",
+    "failed": "検索失敗",
     "feature": "ナレッジベース機能は現在無効になっています",
     "fetchKbDetailsError": "ナレッジベース詳細の取得中にエラーが発生しました",
     "fetchKbDetailsFailed": "ナレッジベース詳細の取得に失敗しました",
-    "fetchListResponse": "ナレッジベースリストの応答",
+    "fetchListResponse": "ナレッジベースリストの応答結果",
     "fetchListStarted": "ナレッジベースリストの取得を開始",
     "filenameRequired": "ファイル名は必須です",
     "invalidResponseFormat": "サーバーレスポンス形式が無効です。サーバーが正常に実行されているか確認してください",
@@ -1609,14 +1686,14 @@
     "updatedInfoObject": "更新されたinfoオブジェクト",
     "uploadFailed": "知識のアップロードに失敗しました",
     "uploadSuccess": "知識のアップロードに成功しました",
-    "disabledOverlay": "ナレッジベースは現在無効になっています"
+    "disabledOverlay": "ナレッジベースが無効な場合の表示"
   },
   "aiSuggestion": {
-    "accept": "推奨事項の承諾",
-    "generating": "AIが提案を生む...",
-    "generatingTooltip": "タブを押せば、Escをキャンセルして下さい",
-    "reject": "リジェクション",
-    "tooltip": "AIの提言"
+    "accept": "推奨事項を採用",
+    "generating": "AIが提案を生成中...",
+    "generatingTooltip": "Tabで採用、Escでキャンセル",
+    "reject": "推奨事項を拒否",
+    "tooltip": "AI提案"
   },
   "latexEditor": {
     "nextPage": "次のページ",
@@ -1642,7 +1719,21 @@
       "pdfFileNotFoundOrInaccessible": "PDFファイルが存在しない、アクセスできない",
       "pdfLoadFailed": "一時的なフォルダを閉じることができません。 ログイン",
       "analyzingError": "AIを使用してコンパイルエラーを分析中...",
-      "errorAnalysisFailed": "AIエラー分析に失敗しました"
+      "errorAnalysisFailed": "AIエラー分析に失敗しました",
+      "compileFailed:": "コンパイルに失敗しました。エラーコード：{code}",
+      "compileSuccess:": "コンパイル成功",
+      "directoryOpened:": "ディレクトリを開きました",
+      "errorAnalysisFailed:": "AIによるエラー分析に失敗しました",
+      "locateToCodeFailed:": "コード位置への移動に失敗しました",
+      "locateToPdfFailed:": "PDF位置への移動に失敗しました",
+      "noCursorPosition:": "カーソル位置を取得できません",
+      "openDirectoryFailed:": "ディレクトリを開けませんでした",
+      "pdfFileNotFoundOrInaccessible:": "PDFファイルが存在しないか、アクセスできません",
+      "pdfLoadFailed:": "PDFの読み込みに失敗しました：{reason}",
+      "pdfSaved:": "PDFを保存しました：{path}",
+      "pleaseSaveFirst:": "まずファイルを保存してください",
+      "refreshSuccess:": "PDFを更新しました",
+      "savePdfFailed:": "PDFの保存に失敗しました"
     },
     "pages": "サイトマップ",
     "pdfEmpty": "LaTeXコードを正しくコンパイルしてください。 PDFをご覧いただけます。",
@@ -1652,14 +1743,15 @@
       "redo": "Redo (Ctrl+Y)",
       "showConsole": "ターミナルを表示",
       "showPdf": "PDFを表示",
-      "toggleLineNumbers": "行を表示する",
-      "togglePreview": "プレビュー表示",
-      "undo": "Undo (Ctrl+Z)",
-      "zoomIn": "ズームイン(Ctrl+)",
-      "zoomOut": "ズームアウト (Ctrl-)",
-      "zoomReset": "リセット",
+      "toggleLineNumbers": "行番号表示",
+      "togglePreview": "プレビュー表示切替",
+      "undo": "元に戻す (Ctrl+Z)",
+      "zoomIn": "拡大 (Ctrl +)",
+      "zoomOut": "縮小 (Ctrl -)",
+      "zoomReset": "ズームリセット",
       "pointerMode": "ポインターモード（テキスト選択）",
-      "handMode": "ハンドモード（ドラッグ）"
+      "handMode": "ハンドモード（ドラッグ）",
+      "redo:": "やり直し (Ctrl+Y)"
     },
     "pdfMenu": {
       "locateToCode": "コードの位置",
@@ -1669,22 +1761,25 @@
       "saveDialogTitle": "PDFを保存 ファイル",
       "zoomIn": "ズームイン",
       "zoomOut": "ズームアウト",
-      "zoomReset": "リセットスケール"
+      "zoomReset": "リセットスケール",
+      "locateToCode:": "コード位置に移動",
+      "saveDialogTitle:": "PDFファイルの保存",
+      "zoomReset:": "ズームをリセット"
     },
     "commandDocs": {
-      "documentclass": "ドキュメントクラスを設定します。例：\\documentclass{article} または \\documentclass[12pt]{report}",
+      "documentclass": "ドキュメントクラスを設定。例：\\documentclass{article} または \\documentclass[12pt]{report}",
       "usepackage": "LaTeXパッケージを読み込みます。例：\\usepackage{graphicx} または \\usepackage[utf8]{inputenc}",
       "begin": "環境を開始します。例：\\begin{document}、\\begin{equation}、\\begin{figure}",
-      "end": "環境を終了します。例：\\end{document}、\\end{equation}、\\end{figure}",
+      "end": "環境を終了。例：\\end{document}、\\end{equation}、\\end{figure}",
       "document": "メインドキュメント環境。例：\\begin{document} ... \\end{document}",
-      "input": "別のLaTeXファイルを入力します。例：\\input{chapter1.tex}",
-      "include": "別のLaTeXファイルを含めます（改ページ付き）。例：\\include{appendix}",
-      "part": "部を作成します（最高レベル）。例：\\part{序論}",
+      "input": "別のLaTeXファイルを入力。例：\\input{chapter1.tex}",
+      "include": "別のLaTeXファイルをインクルード（改ページ付き）。例：\\include{appendix}",
+      "part": "部を作成します（最上位レベル）。例：\\part{序論}",
       "chapter": "章を作成します（book/reportクラス）。例：\\chapter{背景}",
       "section": "節を作成します。例：\\section{方法}",
       "subsection": "小節を作成します。例：\\subsection{データ収集}",
       "subsubsection": "子小節を作成します。例：\\subsubsection{サンプリング方法}",
-      "paragraph": "段落タイトルを作成します。例：\\paragraph{注意}",
+      "paragraph": "段落見出しを作成します。例：\\paragraph{注意}",
       "subparagraph": "子段落タイトルを作成します。例：\\subparagraph{詳細}",
       "textbf": "太字テキスト。例：\\textbf{重要なテキスト}",
       "textit": "斜体テキスト。例：\\textit{強調テキスト}",
@@ -1703,13 +1798,13 @@
       "fcolorbox": "枠線付きカラーボックス。例：\\fcolorbox{red}{yellow}{テキスト}",
       "tiny": "極小フォント。例：{\\tiny 最小テキスト}",
       "scriptsize": "スクリプトサイズフォント。例：{\\scriptsize 小さいテキスト}",
-      "footnotesize": "脚注サイズフォント。例：{\\footnotesize 脚注テキスト}",
+      "footnotesize": "脚注サイズのフォント。例：{\\footnotesize 脚注テキスト}",
       "small": "小さいフォント。例：{\\small 小さいテキスト}",
-      "normalsize": "通常フォント。例：{\\normalsize 通常テキスト}",
-      "large": "大きいフォント。例：{\\large 大きいテキスト}",
+      "normalsize": "通常フォントサイズ。例：{\\normalsize 通常テキスト}",
+      "large": "大きいフォント。例：{\\large 大きなテキスト}",
       "Large": "より大きいフォント。例：{\\Large より大きいテキスト}",
       "LARGE": "とても大きいフォント。例：{\\LARGE とても大きい}",
-      "huge": "巨大フォント。例：{\\huge 巨大テキスト}",
+      "huge": "巨大フォント。例：{\\huge 巨大なテキスト}",
       "Huge": "最大フォント。例：{\\Huge 最大テキスト}",
       "centering": "中央揃えテキスト。例：\\centering（宣言、以降のテキストに影響）",
       "raggedright": "左揃えテキスト。例：\\raggedright",
@@ -1719,10 +1814,10 @@
       "pagebreak": "改ページ。例：\\pagebreak または \\pagebreak[4]",
       "newpage": "新しいページを開始します。例：\\newpage",
       "clearpage": "ページをクリアして新しいページを開始します。例：\\clearpage",
-      "itemize": "番号なしリスト環境。例：\\begin{itemize} \\item 第一項目 \\item 第二項目 \\end{itemize}",
-      "enumerate": "番号付きリスト環境。例：\\begin{enumerate} \\item 第一項目 \\item 第二項目 \\end{enumerate}",
+      "itemize": "番号なしリスト環境。例：\\begin{itemize} \\item 第1項 \\item 第2項 \\end{itemize}",
+      "enumerate": "番号付きリスト環境。例：\\begin{enumerate} \\item 第1項 \\item 第2項 \\end{enumerate}",
       "description": "説明リスト環境。例：\\begin{description} \\item[用語] 説明 \\end{description}",
-      "item": "リスト項目。例：\\item 第一項目 または \\item[ラベル] ラベル付き項目",
+      "item": "リスト項目。例：\\item 第1項 または \\item[ラベル] ラベル付き項目",
       "table": "表のフロート環境。例：\\begin{table} ... \\end{table}",
       "tabular": "表環境。例：\\begin{tabular}{lcr} ... \\end{tabular}",
       "hline": "表の水平線。例：\\hline",
@@ -1730,9 +1825,9 @@
       "multicolumn": "複数列セル。例：\\multicolumn{3}{c}{中央揃え}",
       "multirow": "複数行セル（multirowパッケージが必要）。例：\\multirow{2}{*}{テキスト}",
       "figure": "画像のフロート環境。例：\\begin{figure} ... \\end{figure}",
-      "includegraphics": "画像を挿入します。例：\\includegraphics{image.png} または \\includegraphics[width=0.5\\textwidth]{image}",
+      "includegraphics": "画像を挿入。例：\\includegraphics{image.png} または \\includegraphics[width=0.5\\textwidth]{image}",
       "caption": "フロートのキャプション。例：\\caption{画像の説明}",
-      "label": "相互参照ラベルを作成します。例：\\label{fig:myfigure}",
+      "label": "相互参照用ラベルを作成。例：\\label{fig:myfigure}",
       "ref": "ラベルを相互参照します。例：\\ref{fig:myfigure}",
       "pageref": "ページ番号を参照します。例：\\pageref{fig:myfigure}",
       "equation": "番号付き数式環境。例：\\begin{equation} E=mc^2 \\end{equation}",
@@ -1740,32 +1835,32 @@
       "align": "揃え数式（番号付き）。例：\\begin{align} x &= 1 \\\\\\ y &= 2 \\end{align}",
       "align*": "揃え数式（番号なし）。例：\\begin{align*} x &= 1 \\\\\\ y &= 2 \\end{align*}",
       "alignat": "間隔制御付き揃え数式。例：\\begin{alignat}{2} ... \\end{alignat}",
-      "gather": "集約数式（番号付き）。例：\\begin{gather} x=1 \\\\\\ y=2 \\end{gather}",
-      "gather*": "集約数式（番号なし）。例：\\begin{gather*} x=1 \\\\\\ y=2 \\end{gather*}",
+      "gather": "集約数式（番号付き）。例：\\begin{gather} x=1 \\\\ y=2 \\end{gather}",
+      "gather*": "集約数式（番号なし）。例：\\begin{gather*} x=1 \\\\ y=2 \\end{gather*}",
       "multline": "複数行数式（番号付き）。例：\\begin{multline} ... \\end{multline}",
       "eqnarray": "数式配列（番号付き）。例：\\begin{eqnarray} ... \\end{eqnarray}",
-      "math": "行内数学モード。例：^2$ または \\(x^2\\)",
-      "displaymath": "ディスプレイ数学モード。例：\\[x^2\\]",
+      "math": "インライン数式モード。例：$x^2$ または \\(x^2\\)",
+      "displaymath": "ディスプレイ数式モード。例：$$x^2$$ または \\[x^2\\]",
       "frac": "分数。例：\\frac{分子}{分母} または \\frac{1}{2}",
-      "sqrt": "平方根。例：\\sqrt{x} または \\sqrt[n]{x} でn乗根を表す",
-      "sum": "総和記号。例：\\sum_{i=1}^{n} または \\sum",
+      "sqrt": "平方根。例：$\\sqrt{x}$ または $\\sqrt[n]{x}$ でn乗根を表す",
+      "sum": "総和記号。例：$\\sum_{i=1}^{n}$ または $\\sum$",
       "prod": "総乗記号。例：\\prod_{i=1}^{n}",
-      "int": "積分。例：\\int_{a}^{b} f(x) dx",
-      "oint": "閉路積分。例：\\oint_C f(z) dz",
+      "int": "積分。例：$\\int_{a}^{b} f(x) dx$",
+      "oint": "周回積分。例：\\oint_C f(z) dz",
       "iint": "二重積分。例：\\iint_D f(x,y) dx dy",
       "iiint": "三重積分。例：\\iiint_V f(x,y,z) dx dy dz",
       "lim": "極限。例：\\lim_{x \\to \\infty} または \\lim",
-      "sup": "上限。例：\\sup_{x \\in A}",
-      "inf": "下限。例：\\inf_{x \\in A}",
+      "sup": "上限。例：$\\sup_{x \\in A}$",
+      "inf": "下限。例：$\\inf_{x \\in A}$",
       "max": "最大値。例：\\max_{x \\in A}",
       "min": "最小値。例：\\min_{x \\in A}",
       "det": "行列式。例：\\det(A)",
       "exp": "指数関数。例：\\exp(x)",
       "log": "対数。例：\\log(x)",
       "ln": "自然対数。例：\\ln(x)",
-      "sin": "正弦関数。例：\\sin(x)",
+      "sin": "正弦関数。例：$\\sin(x)$",
       "cos": "余弦関数。例：\\cos(x)",
-      "tan": "正接関数。例：\\tan(x)",
+      "tan": "正接関数。例：$\\tan(x)$",
       "alpha": "ギリシャ文字アルファ(α)。例：\\alpha",
       "beta": "ギリシャ文字ベータ(β)。例：\\beta",
       "gamma": "ギリシャ文字ガンマ(γ)。例：\\gamma",
@@ -1774,27 +1869,27 @@
       "varepsilon": "ギリシャ文字バレプシロン(ε)。例：\\varepsilon",
       "zeta": "ギリシャ文字ゼータ(ζ)。例：\\zeta",
       "eta": "ギリシャ文字イータ(η)。例：\\eta",
-      "theta": "ギリシャ文字シータ(θ)。例：\\theta",
+      "theta": "ギリシャ文字シータ(θ)。例：$\\theta$",
       "vartheta": "ギリシャ文字バーシータ(ϑ)。例：\\vartheta",
       "iota": "ギリシャ文字イオタ(ι)。例：\\iota",
       "kappa": "ギリシャ文字カッパ(κ)。例：\\kappa",
       "lambda": "ギリシャ文字ラムダ(λ)。例：\\lambda",
-      "mu": "ギリシャ文字ミュー(μ)。例：\\mu",
-      "nu": "ギリシャ文字ニュー(ν)。例：\\nu",
+      "mu": "ギリシャ文字ミュー (μ)。例：$\\mu$",
+      "nu": "ギリシャ文字ニュー (ν)。例：$\\nu$",
       "xi": "ギリシャ文字クシー(ξ)。例：\\xi",
-      "pi": "ギリシャ文字パイ(π)。例：\\pi",
+      "pi": "ギリシャ文字パイ (π)。例：$\\pi$",
       "varpi": "ギリシャ文字バーパイ(ϖ)。例：\\varpi",
-      "rho": "ギリシャ文字ロー(ρ)。例：\\rho",
+      "rho": "ギリシャ文字ロー(ρ)。例：$\\rho$",
       "varrho": "ギリシャ文字バーロー(ϱ)。例：\\varrho",
-      "sigma": "ギリシャ文字シグマ(σ)。例：\\sigma",
+      "sigma": "ギリシャ文字シグマ(σ)。例：$\\sigma$",
       "varsigma": "ギリシャ文字バーシグマ(ς)。例：\\varsigma",
-      "tau": "ギリシャ文字タウ(τ)。例：\\tau",
+      "tau": "ギリシャ文字タウ(τ)。例：$\\tau$",
       "upsilon": "ギリシャ文字ウプシロン(υ)。例：\\upsilon",
-      "phi": "ギリシャ文字ファイ(φ)。例：\\phi",
+      "phi": "ギリシャ文字ファイ (φ)。例：$\\phi$",
       "varphi": "ギリシャ文字バーファイ(ϕ)。例：\\varphi",
       "chi": "ギリシャ文字カイ(χ)。例：\\chi",
-      "psi": "ギリシャ文字プサイ(ψ)。例：\\psi",
-      "omega": "ギリシャ文字オメガ(ω)。例：\\omega",
+      "psi": "ギリシャ文字プサイ (ψ)。例：$\\psi$",
+      "omega": "ギリシャ文字オメガ (ω)。例：$\\omega$",
       "Gamma": "ギリシャ文字ガンマ(Γ)。例：\\Gamma",
       "Delta": "ギリシャ文字デルタ(Δ)。例：\\Delta",
       "Theta": "ギリシャ文字シータ(Θ)。例：\\Theta",
@@ -1808,106 +1903,106 @@
       "Omega": "ギリシャ文字オメガ(Ω)。例：\\Omega",
       "cdot": "中央点(·)。例：a \\cdot b",
       "cdots": "中央省略号(⋯)。例：x_1, x_2, \\cdots, x_n",
-      "ldots": "下部省略号(…)。例：x_1, x_2, \\ldots, x_n",
+      "ldots": "下付き省略記号 (…)。例：$x_1, x_2, \\ldots, x_n$",
       "vdots": "垂直省略号(⋮)。例：\\vdots",
-      "ddots": "対角省略号(⋱)。例：\\ddots",
-      "pm": "プラスマイナス記号(±)。例：x \\pm y",
-      "mp": "マイナスプラス記号(∓)。例：x \\mp y",
-      "times": "乗算記号(×)。例：a \\times b",
-      "div": "除算記号(÷)。例：a \\div b",
+      "ddots": "対角省略記号 (⋱)。例：$\\ddots$",
+      "pm": "プラスマイナス記号 (±)。例：$x \\pm y$",
+      "mp": "マイナスプラス記号 (∓)。例：$x \\mp y$",
+      "times": "乗算記号(×)。例：$a \\times b$",
+      "div": "除算記号 (÷)。例：$a \\div b$",
       "ast": "アスタリスク(∗)。例：a \\ast b",
-      "star": "星形(⋆)。例：a \\star b",
+      "star": "星形(⋆)。例：$a \\star b$",
       "circ": "円(∘)。例：f \\circ g",
       "bullet": "箇条書き記号(•)。例：a \\bullet b",
       "cap": "共通集合(∩)。例：A \\cap B",
       "cup": "和集合(∪)。例：A \\cup B",
       "uplus": "多重集合和(⊎)。例：A \\uplus B",
-      "sqcap": "方形共通集合(⊓)。例：A \\sqcap B",
-      "sqcup": "方形和集合(⊔)。例：A \\sqcup B",
+      "sqcap": "方形共通集合(⊓)。例：$A \\sqcap B$",
+      "sqcup": "方形和集合(⊔)。例：$A \\sqcup B$",
       "vee": "論理和(∨)。例：p \\vee q",
       "wedge": "論理積(∧)。例：p \\wedge q",
-      "setminus": "集合差(∖)。例：A \\setminus B",
+      "setminus": "集合差(∖)。例：$A \\setminus B$",
       "wr": "巻き積(≀)。例：G \\wr H",
-      "diamond": "菱形(⋄)。例：a \\diamond b",
-      "leq": "小なりイコール(≤)。例：x \\leq y",
-      "prec": "先立つ(≺)。例：a \\prec b",
-      "preceq": "先立つか等しい(≼)。例：a \\preceq b",
-      "ll": "はるかに小さい(≪)。例：x \\ll y",
-      "subset": "部分集合(⊂)。例：A \\subset B",
-      "subseteq": "部分集合または等しい(⊆)。例：A \\subseteq B",
-      "sqsubset": "方形部分集合(⊏)。例：A \\sqsubset B",
-      "sqsubseteq": "方形部分集合または等しい(⊑)。例：A \\sqsubseteq B",
-      "in": "要素(∈)。例：x \\in A",
+      "diamond": "菱形 (⋄)。例：$a \\diamond b$",
+      "leq": "小なりイコール (≤)。例：$x \\leq y$",
+      "prec": "先行する (≺)。例：$a \\prec b$",
+      "preceq": "先行するか等しい (≼)。例：$a \\preceq b$",
+      "ll": "はるかに小さい (≪)。例：$x \\ll y$",
+      "subset": "部分集合(⊂)。例：$A \\subset B$",
+      "subseteq": "部分集合または等しい(⊆)。例：$A \\subseteq B$",
+      "sqsubset": "方形部分集合(⊏)。例：$A \\sqsubset B$",
+      "sqsubseteq": "方形部分集合または等しい(⊑)。例：$A \\sqsubseteq B$",
+      "in": "属する (∈)。例：$x \\in A$",
       "vdash": "証明(⊢)。例：\\Gamma \\vdash \\phi",
-      "smile": "スマイル(⌣)。例：a \\smile b",
-      "frown": "フロウン(⌢)。例：a \\frown b",
-      "geq": "大なりイコール(≥)。例：x \\geq y",
-      "succ": "後続(≻)。例：a \\succ b",
-      "succeq": "後続または等しい(≽)。例：a \\succeq b",
-      "gg": "はるかに大きい(≫)。例：x \\gg y",
-      "supset": "上位集合(⊃)。例：A \\supset B",
-      "supseteq": "上位集合または等しい(⊇)。例：A \\supseteq B",
-      "sqsupset": "方形上位集合(⊐)。例：A \\sqsupset B",
-      "sqsupseteq": "方形上位集合または等しい(⊒)。例：A \\sqsupseteq B",
-      "ni": "要素を含む(∋)。例：A \\ni x",
+      "smile": "スマイル(⌣)。例：$a \\smile b$",
+      "frown": "下向き弧 (⌢)。例：$a \\frown b$",
+      "geq": "以上 (≥)。例：$x \\geq y$",
+      "succ": "後続(≻)。例：$a \\succ b$",
+      "succeq": "後続または等しい(≽)。例：$a \\succeq b$",
+      "gg": "はるかに大きい (≫)。例：$x \\gg y$",
+      "supset": "上位集合(⊃)。例：$A \\supset B$",
+      "supseteq": "上位集合または等しい(⊇)。例：$A \\supseteq B$",
+      "sqsupset": "方形上位集合(⊐)。例：$A \\sqsupset B$",
+      "sqsupseteq": "方形上位集合または等しい(⊒)。例：$A \\sqsupseteq B$",
+      "ni": "要素を含む (∋)。例：$A \\ni x$",
       "dashv": "左証明(⊣)。例：\\phi \\dashv \\Gamma",
-      "mid": "中間(∣)。例：a \\mid b",
-      "parallel": "平行(∥)。例：l_1 \\parallel l_2",
-      "equiv": "同値(≡)。例：a \\equiv b",
-      "sim": "相似(∼)。例：A \\sim B",
-      "simeq": "相似または等しい(≃)。例：A \\simeq B",
+      "mid": "中間 (∣)。例：$a \\mid b$",
+      "parallel": "平行 (∥)。例：$l_1 \\parallel l_2$",
+      "equiv": "同値 (≡)。例：$a \\equiv b$",
+      "sim": "相似(∼)。例：$A \\sim B$",
+      "simeq": "相似または等しい(≃)。例：$A \\simeq B$",
       "asymp": "漸近(≍)。例：f(x) \\asymp g(x)",
       "approx": "約等しい(≈)。例：x \\approx y",
       "cong": "合同(≅)。例：A \\cong B",
-      "neq": "等しくない(≠)。例：a \\neq b",
-      "doteq": "ドット等しい(≐)。例：a \\doteq b",
-      "propto": "比例(∝)。例：x \\propto y",
-      "models": "モデル(⊨)。例：\\Gamma \\models \\phi",
-      "perp": "垂直(⊥)。例：l_1 \\perp l_2",
+      "neq": "等しくない (≠)。例：$a \\neq b$",
+      "doteq": "ドット等号 (≐)。例：$a \\doteq b$",
+      "propto": "比例 (∝)。例：$x \\propto y$",
+      "models": "モデル (⊨)。例：$\\Gamma \\models \\phi$",
+      "perp": "垂直 (⊥)。例：$l_1 \\perp l_2$",
       "leftarrow": "左矢印(←)。例：x \\leftarrow y",
       "Leftarrow": "二重左矢印(⇐)。例：x \\Leftarrow y",
-      "rightarrow": "右矢印(→)。例：x \\rightarrow y",
+      "rightarrow": "右矢印(→)。例：$x \\rightarrow y$",
       "Rightarrow": "二重右矢印(⇒)。例：x \\Rightarrow y",
       "leftrightarrow": "左右矢印(↔)。例：x \\leftrightarrow y",
       "Leftrightarrow": "二重左右矢印(⇔)。例：x \\Leftrightarrow y",
-      "mapsto": "写像(↦)。例：x \\mapsto f(x)",
-      "hookleftarrow": "フック左矢印(↩)。例：A \\hookleftarrow B",
+      "mapsto": "写像 (↦)。例：$x \\mapsto f(x)$",
+      "hookleftarrow": "左フック矢印 (↩)。例：$A \\hookleftarrow B$",
       "leftharpoonup": "左ハープーン上(↼)。例：x \\leftharpoonup y",
       "leftharpoondown": "左ハープーン下(↽)。例：x \\leftharpoondown y",
-      "rightleftharpoons": "左右ハープーン(⇌)。例：x \\rightleftharpoons y",
-      "longleftarrow": "長い左矢印(⟵)。例：x \\longleftarrow y",
+      "rightleftharpoons": "右左ハープーン(⇌)。例：$x \\rightleftharpoons y$",
+      "longleftarrow": "長い左矢印 (⟵)。例：$x \\longleftarrow y$",
       "Longleftarrow": "長い二重左矢印(⟸)。例：x \\Longleftarrow y",
-      "longrightarrow": "長い右矢印(⟶)。例：x \\longrightarrow y",
+      "longrightarrow": "長い右矢印 (⟶)。例：$x \\longrightarrow y$",
       "Longrightarrow": "長い二重右矢印(⟹)。例：x \\Longrightarrow y",
-      "longleftrightarrow": "長い左右矢印(⟷)。例：x \\longleftrightarrow y",
+      "longleftrightarrow": "長い左右矢印 (⟷)。例：$x \\longleftrightarrow y$",
       "Longleftrightarrow": "長い二重左右矢印(⟺)。例：x \\Longleftrightarrow y",
-      "longmapsto": "長い写像(⟼)。例：x \\longmapsto f(x)",
-      "hookrightarrow": "フック右矢印(↪)。例：A \\hookrightarrow B",
-      "rightharpoonup": "右ハープーン上(⇀)。例：x \\rightharpoonup y",
-      "rightharpoondown": "右ハープーン下(⇁)。例：x \\rightharpoondown y",
-      "leadsto": "導く(⇝)。例：x \\leadsto y",
-      "uparrow": "上矢印(↑)。例：x \\uparrow",
+      "longmapsto": "長い写像 (⟼)。例：$x \\longmapsto f(x)$",
+      "hookrightarrow": "右フック矢印 (↪)。例：$A \\hookrightarrow B$",
+      "rightharpoonup": "右ハープーン上(⇀)。例：$x \\rightharpoonup y$",
+      "rightharpoondown": "右ハープーン下(⇁)。例：$x \\rightharpoondown y$",
+      "leadsto": "導く (⇝)。例：$x \\leadsto y$",
+      "uparrow": "上矢印(↑)。例：$x \\uparrow$",
       "Uparrow": "二重上矢印(⇑)。例：x \\Uparrow",
-      "downarrow": "下矢印(↓)。例：x \\downarrow",
+      "downarrow": "下向き矢印 (↓)。例：$x \\downarrow$",
       "Downarrow": "二重下矢印(⇓)。例：x \\Downarrow",
-      "updownarrow": "上下矢印(↕)。例：x \\updownarrow",
+      "updownarrow": "上下矢印(↕)。例：$x \\updownarrow$",
       "Updownarrow": "二重上下矢印(⇕)。例：x \\Updownarrow",
-      "nearrow": "北東矢印(↗)。例：\\nearrow",
-      "searrow": "南東矢印(↘)。例：\\searrow",
-      "swarrow": "南西矢印(↙)。例：\\swarrow",
-      "nwarrow": "北西矢印(↖)。例：\\nwarrow",
-      "quad": "4倍の空白(1em)。例：テキスト\\quad さらにテキスト",
-      "qquad": "2倍の4倍の空白(2em)。例：テキスト\\qquad さらにテキスト",
-      "hspace": "水平空白。例：\\hspace{1cm} または \\hspace{2em}",
+      "nearrow": "北東矢印 (↗)。例：$\\nearrow$",
+      "searrow": "南東矢印(↘)。例：$\\searrow$",
+      "swarrow": "南西矢印(↙)。例：$\\swarrow$",
+      "nwarrow": "北西矢印 (↖)。例：$\\nwarrow$",
+      "quad": "4倍空白 (1em)。例：テキスト\\quad さらにテキスト",
+      "qquad": "2倍の4倍空白 (2em)。例：テキスト\\qquad さらにテキスト",
+      "hspace": "水平方向の空白。例：\\hspace{1cm} または \\hspace{2em}",
       "vspace": "垂直空白。例：\\vspace{1cm} または \\vspace{2em}",
-      "hfill": "水平フィル。例：左\\hfill 右",
+      "hfill": "水平方向の充填。例：左\\hfill 右",
       "vfill": "垂直フィル。例：\\vfill",
       "cite": "参考文献を引用します。例：\\cite{key} または \\cite[ページ]{key}",
-      "footnote": "脚注を作成します。例：テキスト\\footnote{脚注テキスト}",
-      "marginpar": "余白に注釈を付けます。例：\\marginpar{注釈}",
+      "footnote": "脚注を作成。例：テキスト\\footnote{脚注テキスト}",
+      "marginpar": "余白注釈。例：\\marginpar{注釈}",
       "tableofcontents": "目次を生成します。例：\\tableofcontents",
-      "listoffigures": "図の一覧を生成します。例：\\listoffigures",
-      "listoftables": "表の一覧を生成します。例：\\listoftables",
+      "listoffigures": "図目次を生成します。例：\\listoffigures",
+      "listoftables": "表目次を生成します。例：\\listoftables",
       "bibliography": "参考文献。例：\\bibliography{references}",
       "bibliographystyle": "参考文献スタイル。例：\\bibliographystyle{plain}",
       "maketitle": "タイトルページを生成します。例：\\maketitle",
@@ -1924,28 +2019,74 @@
       "url": "URL（urlまたはhyperrefパッケージが必要）。例：\\url{https://example.com}",
       "href": "ハイパーリンク（hyperrefパッケージが必要）。例：\\href{https://example.com}{リンクテキスト}",
       "email": "メール（urlパッケージが必要）。例：\\email{user@example.com}",
-      "index": "索引項目。例：\\index{キーワード}",
-      "glossary": "用語集項目。例：\\glossary{用語}",
+      "index": "索引エントリ。例：\\index{キーワード}",
+      "glossary": "用語集エントリ。例：\\glossary{用語}",
       "addcontentsline": "目次に追加します。例：\\addcontentsline{toc}{section}{タイトル}",
       "addtocontents": "目次ファイルに追加します。例：\\addtocontents{toc}{\\protect\\newpage}",
       "appendix": "付録を開始します。例：\\appendix",
       "appendixpage": "付録ページ（appendixパッケージが必要）。例：\\appendixpage",
       "frontmatter": "前付け（bookクラス）。例：\\frontmatter",
       "mainmatter": "本文（bookクラス）。例：\\mainmatter",
-      "backmatter": "後付け（bookクラス）。例：\\backmatter"
+      "backmatter": "後付け（bookクラス）。例：\\backmatter",
+      "LARGE:": "非常に大きいフォント。例：{\\LARGE 非常に大きい}",
+      "Large:": "大きいフォント。例：{\\Large 大きいテキスト}",
+      "abstract:": "概要環境。例：\\begin{abstract} ... \\end{abstract}",
+      "addcontentsline:": "目次に追加。例：\\addcontentsline{toc}{section}{タイトル}",
+      "addtocontents:": "目次ファイルに追加。例：\\addtocontents{toc}{\\protect\\newpage}",
+      "align:": "数式のアラインメント（番号付き）。例：\\begin{align} x &= 1 \\\\ y &= 2 \\end{align}",
+      "align*:": "数式のアラインメント（番号なし）。例：\\begin{align*} x &= 1 \\\\ y &= 2 \\end{align*}",
+      "alignat:": "間隔制御付き数式アラインメント。例：\\begin{alignat}{2} ... \\end{alignat}",
+      "and:": "著者区切り。例：\\author{山田太郎 \\and 鈴木花子}",
+      "appendix:": "付録の開始。例：\\appendix",
+      "appendixpage:": "付録ページ（appendixパッケージが必要）。例：\\appendixpage",
+      "author:": "文書の著者。例：\\author{山田太郎}",
+      "backmatter:": "後付（bookクラス）。例：\\backmatter",
+      "begin:": "環境の開始。例：\\begin{document}、\\begin{equation}、\\begin{figure}",
+      "bullet:": "箇条書き記号(•)。例：a \\bullet b",
+      "cap:": "共通部分(∩)。例：A \\cap B",
+      "caption:": "図表のキャプション。例：\\caption{画像の説明}",
+      "centering:": "テキストの中央揃え。例：\\centering（宣言、以降のテキストに影響）",
+      "chapter:": "章の作成（book/reportクラス）。例：\\chapter{背景}",
+      "cite:": "文献の引用。例：\\cite{key} または \\cite[ページ]{key}",
+      "clearpage:": "ページをクリアして新規ページを開始。例：\\clearpage",
+      "colorbox:": "カラー背景ボックス。例：\\colorbox{yellow}{ハイライト}",
+      "cong:": "合同(≅)。例：A \\cong B",
+      "cup:": "和集合(∪)。例：A \\cup B",
+      "dashv:": "左タック(⊣)。例：\\phi \\dashv \\Gamma",
+      "date:": "文書の日付。例：\\date{\\today} または \\date{2024}",
+      "uplus:": "多重集合の合併 (⊎)。例：$A \\uplus B$",
+      "upsilon:": "ギリシャ文字のウプシロン (υ)。例：$\\upsilon$",
+      "varepsilon:": "ギリシャ文字のバレプシロン (ε)。例：$\\varepsilon$",
+      "varphi:": "ギリシャ文字のバーファイ (ϕ)。例：$\\varphi$",
+      "varpi:": "ギリシャ文字のバーパイ (ϖ)。例：$\\varpi$",
+      "varrho:": "ギリシャ文字のバーロー (ϱ)。例：$\\varrho$",
+      "varsigma:": "ギリシャ文字のバーシグマ (ς)。例：$\\varsigma$",
+      "vartheta:": "ギリシャ文字のバーシータ (ϑ)。例：$\\vartheta$",
+      "vdash:": "証明 (⊢)。例：$\\Gamma \\vdash \\phi$",
+      "vdots:": "垂直省略記号 (⋮)。例：$\\vdots$",
+      "vee:": "論理和 (∨)。例：$p \\vee q$",
+      "verb:": "逐語的行内テキスト。例：\\verb|コード| または \\verb+コード+",
+      "verbatim:": "逐語的環境。例：\\begin{verbatim} コード \\end{verbatim}",
+      "vspace:": "垂直スペース。例：\\vspace{1cm} または \\vspace{2em}",
+      "wedge:": "論理積 (∧)。例：$p \\wedge q$",
+      "wr:": "輪積 (≀)。例：$G \\wr H$",
+      "xi:": "ギリシャ文字のクシー (ξ)。例：$\\xi$",
+      "zeta:": "ギリシャ文字のゼータ (ζ)。例：$\\zeta$"
     },
-    "pagesPerRow": "1行あたりのページ数"
+    "pagesPerRow": "1行あたりのページ数",
+    "pages:": "ページ",
+    "pdfEmpty:": "LaTeXコードを正しくコンパイルすると、PDFがここに表示されます。"
   },
   "notificationQueue": {
-    "clear": "空のすべて",
-    "empty": "お知らせ",
-    "markAllRead": "マーク すべて として 読む",
-    "markRead": "マーク 読み込み",
+    "clear": "すべてクリア",
+    "empty": "通知はありません",
+    "markAllRead": "すべて既読にする",
+    "markRead": "既読にする",
     "remove": "削除",
-    "title": "キューを呼び出す。",
+    "title": "通知キュー",
     "type": {
       "error": "エラー通知",
-      "info": "情報円",
+      "info": "情報通知",
       "success": "成功した通知",
       "warning": "警告通知"
     },
@@ -1958,16 +2099,16 @@
     "formatTitle": "フォーマットを選択",
     "formats": {
       "latex": {
-        "description": "学術論文、報告書、技術文書の特別レイアウトフォーマット",
+        "description": "学術論文、レポート、技術文書に適したプロフェッショナルな組版フォーマット。",
         "label": "ラテックス"
       },
       "markdown": {
-        "description": "記事、メモ、ブログのテキスト形式を構造化しました。",
+        "description": "構造化されたプレーンテキスト形式。記事、メモ、ブログに適しています。",
         "label": "マークダウン"
       },
       "plaintext": {
         "label": "プレーンテキスト",
-        "description": "プレーンテキストまたはコードファイル。複数のプログラミング言語のシンタックスハイライトをサポート。"
+        "description": "プレーンテキストまたはコードファイル。様々なプログラミング言語のシンタックスハイライトに対応。"
       }
     },
     "subtitle": "ドキュメント形式とテンプレートを選択して作成を開始します。",
@@ -1975,13 +2116,13 @@
     "templates": {
       "latex": {
         "article": {
-          "description": "紙やスクリプトに適した一般的なLaTeXの記事構造。",
+          "description": "一般的なLaTeXの記事構造。論文や原稿に適しています。",
           "label": "標準的な記事",
           "content": "\\documentclass{article}\n\\usepackage{fontspec}\n\\usepackage{xeCJK}\n\\usepackage{graphicx}\n\\usepackage{hyperref}\n\\usepackage{amsmath}\n\\usepackage{amssymb}\n\\usepackage{ulem}\n\\usepackage{geometry}\n\\usepackage{color}\n\\usepackage{fancyhdr}\n\\usepackage{lastpage}\n\n% 英文正文字体\n\\setmainfont{Times New Roman}\n\\setsansfont{Arial}\n\\setmonofont{Consolas}\n\n% 中文字体\n\\setCJKmainfont{SimSun}\n\\setCJKsansfont{Microsoft YaHei}\n\\setCJKmonofont{FangSong}\n\n\\title{無題の文書}\n\\author{}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{はじめに}\nここに導入を記述してください。\n\n\\section{本文}\nここに本文を記述してください。\n\n\\section{結論}\nここに結論を記述してください。\n\n\\end{document}\n"
         },
         "report": {
-          "description": "コースやプロジェクトレポートに適用できるチャプター構造でテンプレートをレポートします。",
-          "label": "テンプレートのレポート",
+          "description": "章立て構造のレポートテンプレート。授業やプロジェクトの報告書に適しています。",
+          "label": "レポート",
           "content": "\\documentclass{report}\n\\usepackage{fontspec}\n\\usepackage{xeCJK}\n\\usepackage{graphicx}\n\\usepackage{hyperref}\n\\usepackage{amsmath}\n\\usepackage{amssymb}\n\\usepackage{ulem}\n\\usepackage{geometry}\n\\usepackage{color}\n\\usepackage{fancyhdr}\n\\usepackage{lastpage}\n\n% 英文正文字体\n\\setmainfont{Times New Roman}\n\\setsansfont{Arial}\n\\setmonofont{Consolas}\n\n% 中文字体\n\\setCJKmainfont{SimSun}\n\\setCJKsansfont{Microsoft YaHei}\n\\setCJKmonofont{FangSong}\n\n\\title{レポートタイトル}\n\\author{}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\chapter{はじめに}\nここに導入を記述してください。\n\n\\chapter{本文}\nここに本文を記述してください。\n\n\\chapter{結論}\nここに結論を記述してください。\n\n\\end{document}\n"
         },
         "gb7714_zh": {
@@ -2000,15 +2141,15 @@
           "content": "[Japanese] \\documentclass[12pt,a4paper,twocolumn]{article}\n\\usepackage[UTF8]{ctex}\n\\usepackage{fontspec}\n\\usepackage{geometry}\n\\geometry{left=1.8cm,right=1.8cm,top=2.5cm,bottom=2.5cm,columnsep=0.8cm}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\usepackage{multirow}\n\\usepackage{hyperref}\n\\usepackage{cite}\n\\usepackage{setspace}\n\\onehalfspacing\n\n% 字体设置\n\\setmainfont{Times New Roman}  % 英文正文字体\n\\setsansfont{Microsoft YaHei}  % 雅黑（可选）\n\\setmonofont{Consolas}\n\\setCJKmainfont{SimSun}        % 宋体\n\\setCJKsansfont{Microsoft YaHei}\n\n% 标题信息\n\\title{论文标题}\n\\author{作者姓名}\n\\date{\\today}\n\n\\begin{document}\n\n% 标题页（单栏）\n\\twocolumn[\n\\maketitle\n\\begin{abstract}\n\\textbf{摘要：} 在此处撰写摘要内容。摘要应简洁明了地概括论文的主要内容、研究方法、主要结果和结论。\n\n\\textbf{关键词：} 关键词1；关键词2；关键词3\n\\end{abstract}\n]\n\n% 正文（双栏）\n\\section{引言}\n引言部分应介绍研究背景、研究意义、国内外研究现状以及本文的研究内容和组织结构。\n\n\\section{相关工作}\n相关工作部分应综述与本文研究相关的已有研究成果，分析现有方法的优缺点，指出本文研究的创新点。\n\n\\section{研究方法}\n研究方法部分应详细描述本文所采用的研究方法、实验设计、数据来源等。\n\n\\subsection{方法概述}\n在此处描述方法的基本思路和框架。\n\n\\subsection{具体实现}\n在此处描述方法的具体实现细节。\n\n\\section{实验结果与分析}\n实验结果与分析部分应展示实验数据、分析结果，并对结果进行讨论。\n\n\\subsection{实验设置}\n在此处描述实验的环境、参数设置等。\n\n\\subsection{结果分析}\n在此处展示和分析实验结果。\n\n\\section{结论}\n结论部分应总结本文的主要贡献，指出研究的局限性，并提出未来的研究方向。\n\n% 参考文献\n\\begin{thebibliography}{99}\n\\bibitem{ref1} 参考文献1\n\\bibitem{ref2} 参考文献2\n\\end{thebibliography}\n\n% 附录（可选）\n\\appendix\n\\section{附录A}\n附录内容（如有需要）。\n\n\\end{document}\n"
         },
         "resume_classic": {
-          "label": "クラシック履歴書",
+          "label": "クラシックな履歴書",
           "description": "就職用の従来型1段組。写真・背景対応。"
         },
         "resume_modern": {
-          "label": "モダン履歴書",
+          "label": "モダンな履歴書",
           "description": "シンプルでプロ仕様。写真・背景対応。"
         },
         "resume_twocolumn": {
-          "label": "2段組履歴書",
+          "label": "2段組の履歴書",
           "description": "左に連絡先・スキル、右に経歴。写真・背景対応。"
         },
         "resume_academic": {
@@ -2016,19 +2157,19 @@
           "description": "進学・研究職向け。論文・教育・研究。写真・背景対応。"
         },
         "resume_executive": {
-          "label": "エグゼクティブ履歴書",
+          "label": "エグゼクティブ向け履歴書",
           "description": "要約を上部に。シニア向け。写真・背景対応。"
         },
         "resume_creative": {
-          "label": "クリエイティブ履歴書",
+          "label": "クリエイティブな履歴書",
           "description": "デザイン重視。アクセント色・背景対応。"
         },
         "resume_minimal": {
-          "label": "ミニマル履歴書",
+          "label": "ミニマルな履歴書",
           "description": "余白多めのシンプル版。写真・背景対応。"
         },
         "resume_timeline": {
-          "label": "タイムライン履歴書",
+          "label": "タイムライン形式の履歴書",
           "description": "経歴をタイムライン表示。写真・背景対応。"
         },
         "resume_with_photo": {
@@ -2036,7 +2177,7 @@
           "description": "写真を前面に。背景対応。"
         },
         "resume_student": {
-          "label": "学生・インターン履歴書",
+          "label": "学生・インターン向け履歴書",
           "description": "学歴・プロジェクト・スキル中心。写真・背景対応。"
         },
         "ieee_en_twocolumn": {
@@ -2047,7 +2188,7 @@
       },
       "markdown": {
         "article": {
-          "description": "要約、身体、結論などの章の構造が含まれています。",
+          "description": "要約、本文、結論などの章立て構造を含みます。",
           "label": "記事のテンプレート",
           "content": "# タイトル\n\n## 要約\n\nここに要約を記述してください。\n\n## 本文\n\n- ポイント1\n- ポイント2\n\n## 結論\n\nここに結論を記述してください。\n"
         },
@@ -2058,7 +2199,7 @@
         },
         "technicalDoc": {
           "label": "技術文書",
-          "description": "API/アーキテクチャ/デプロイメントなどの技術文書構造。インターフェース説明と設定を含む。",
+          "description": "API/アーキテクチャ/デプロイメントなどの技術文書の構成。インターフェース説明と設定を含みます。",
           "content": "# 技術文書タイトル\n\n> バージョン: 1.0 | 最終更新日: 日付\n\n## 1. 概要\n\n文書の目的、対象範囲、対象読者について簡潔に説明します。\n\n**対象読者**: 開発者 / DevOps / プロダクト\n\n**種類**: APIドキュメント / アーキテクチャ / デプロイガイド\n\n---\n\n## 2. システムアーキテクチャ\n\n### 2.1 高レベルアーキテクチャ\n\n- コンポーネントA: 責任範囲\n- コンポーネントB: 責任範囲\n- データフローと呼び出し関係\n\n### 2.2 技術スタック\n\n| レイヤー    | 技術 | 備考 |\n| -------- | ---------- | ----- |\n| フロントエンド | —          | —     |\n| バックエンド  | —          | —     |\n| ストレージ  | —          | —     |\n\n---\n\n## 3. APIリファレンス\n\n### 3.1 エンドポイント名\n\n- **メソッド**: `GET` / `POST`\n- **パス**: `/api/xxx`\n- **パラメータ**: 下表参照\n- **レスポンス例**: コードブロック参照\n\n```json\n{\n  \"code\": 0,\n  \"data\": {}\n}\n```\n\n### 3.2 エラーコード\n\n| コード | 意味      |\n| ---- | ------------ |\n| 0    | 成功      |\n| 4xx  | クライアントエラー |\n| 5xx  | サーバーエラー |\n\n---\n\n## 4. 設定とデプロイ\n\n### 4.1 要件\n\n- ランタイム\n- 依存関係\n\n### 4.2 デプロイ手順\n\n1. 手順1\n2. 手順2\n3. 手順3\n\n---\n\n## 5. 付録\n\n- 用語集\n- 変更履歴\n"
         },
         "labReport": {
@@ -2067,13 +2208,13 @@
           "content": "# 実験レポート: 実験タイトル\n\n**コース**:  \n**日付**:  \n**名前 / ID**:  \n**指導教員**:\n\n---\n\n## 1. 目的\n\n1. 目的1\n2. 目的2\n3. 目的3\n\n## 2. 原理\n\n実験に関連する理論、公式、または原理について簡潔に説明します。必要に応じて式や図を使用してください。\n\n## 3. 機器と手順\n\n### 3.1 機器\n\n| 項目 | 仕様/型番 | 数量 |\n| ---- | ---------- | --- |\n| —    | —          | —   |\n\n### 3.2 手順\n\n1. 手順1: …\n2. 手順2: …\n3. 手順3: …\n\n## 4. データと分析\n\n### 4.1 生データ\n\n（生データを表またはリストで記録してください。）\n\n### 4.2 処理と結果\n\n- 使用した公式\n- 結果の表または図\n- 簡潔な分析\n\n## 5. 考察\n\n- 理論との一致\n- 誤差の原因\n- 改善の提案\n\n## 6. 結論\n\n結論と学びを要約します。\n\n## 7. 参考文献\n\n1. 参考文献1\n2. 参考文献2\n"
         },
         "courseReport": {
-          "label": "レポート",
+          "label": "課題レポート",
           "description": "読書レポート、特別レポート、調査レポートなどの課題レポート。",
           "content": "# レポートタイトル\n\n**コース**:  \n**種類**: 読書レポート / トピックレポート / 調査レポート  \n**名前 / ID**:  \n**日付**:\n\n---\n\n## 要約\n\n（200〜400字で主要な内容、方法、結論を要約してください。）\n\n**キーワード**: キーワード1; キーワード2; キーワード3\n\n---\n\n## 1. はじめに\n\n- 背景と意義\n- 取り組む問題とレポートの構成\n\n## 2. 本文\n\n### 2.1 パート1\n\n（コース要件に応じて整理: 文献レビュー、分析、事例など）\n\n### 2.2 パート2\n\n（データ、図表、引用には適切な出典を明記してください。）\n\n### 2.3 パート3\n\n（論証とまとめ）\n\n## 3. 結論と展望\n\n- 主な結論\n- 限界と今後の課題\n\n## 参考文献\n\n1. 著者. タイトル. _ジャーナル名_, 年, 巻(号): ページ.\n2. 著者. _書籍タイトル_. 場所: 出版社, 年.\n\n## 付録（オプション）\n\n（アンケート、生データ、コードなど）\n"
         },
         "letter": {
           "label": "手紙",
-          "description": "正式または非正式な手紙形式。挨拶、本文、署名を含む。",
+          "description": "正式または非正式な手紙の形式。挨拶、本文、署名を含みます。",
           "content": "**差出人:**  \n名前 / 組織  \n連絡先\n\n**宛先:**  \n名前 / 組織  \n住所\n\n**日付:** 年 月 日\n\n**件名:** 手紙の件名（オプション）\n\n---\n\n○○様\n\n（導入: 手紙の目的を述べます。）\n\n（段落1: 主な要請または事項。）\n\n（段落2: 追加の詳細、理由、または背景。）\n\n（段落3: 期待される結果と次のステップ、例: 「ご返答をお待ちしております。」）\n\n敬具\n\n署名  \n日付\n"
         },
         "blogPost": {
@@ -2083,7 +2224,7 @@
         },
         "lectureNotes": {
           "label": "授業メモ",
-          "description": "講義と要点で整理された授業メモ構造。",
+          "description": "講義ごとと要点で整理された授業ノートの構成。",
           "content": "# コース名: 第X回 — 章タイトル\n\n**日付**:  \n**講師**:\n\n---\n\n## 重要ポイント\n\n- ポイント1\n- ポイント2\n- ポイント3\n\n---\n\n## 1. セクションタイトル\n\n（授業内容: 定義、定理、例。リストまたは短い段落を使用。）\n\n- **定義**: …\n- **定理**: …（証明: 「黒板参照」または簡潔に）\n- **例**: …\n\n## 2. セクションタイトル\n\n（重要な公式やステップは独自の行に記載できます。）\n\n（図表の場合、「スライドX参照」と書くか画像を挿入。）\n\n## 3. まとめと質問\n\n- 主な要点\n- 後で復習または調べるポイント\n\n---\n\n**次回**: 次の講義の予告  \n**宿題 / 読書**: セクションまたは演習\n"
         }
       }
@@ -2095,16 +2236,16 @@
   },
   "agent": {
     "conversation": {
-      "emptyTitle": "タイトルなし",
-      "messages": "メッセージ",
-      "none": "対話を開始するには、新しいセッションを選択してください。",
-      "tools": "ツール {count} を有効にする",
-      "references": "{count}件の参照があります",
-      "referencesTooltip": "参照を管理するにはクリックしてください"
+      "emptyTitle": "セッションなし",
+      "messages": "メッセージ {count} 件",
+      "none": "セッションを選択、または新規作成して対話を開始してください。",
+      "tools": "有効なツール {count} 件",
+      "references": "参照 {count} 件",
+      "referencesTooltip": "クリックして参照を管理"
     },
     "roles": {
       "assistant": "アシスタント",
-      "system": "システムヒント",
+      "system": "システムプロンプト",
       "tool": "ツール",
       "user": "ユーザー"
     },
@@ -2138,13 +2279,29 @@
       "atLeastOneRequired": "少なくとも1つのセッションを保持する必要があります",
       "noAgentConfig": "セッションがエージェント設定に関連付けられていません",
       "engineNotFound": "選択されたエンジンが見つかりません",
-      "agentConfigNotFound": "エージェント設定が見つかりません"
+      "agentConfigNotFound": "エージェント設定が見つかりません",
+      "agentConfigNotFound:": "エージェント設定が見つかりませんでした",
+      "confirmDelete:": "「{title}」を削除してもよろしいですか？",
+      "defaultSystemPrompt:": "あなたは能動的なAIエージェントです。まずはユーザーに挨拶し、指示を待ちましょう。",
+      "deleteSuccess:": "セッションを削除しました",
+      "duplicateSuccess:": "複製に成功しました",
+      "engineChanged:": "エンジンを {engine} に切り替えました",
+      "exportSuccess:": "エクスポートに成功しました",
+      "importSuccess:": "インポートに成功しました",
+      "new:": "新規作成",
+      "newTitle:": "エージェントセッション {index}",
+      "rename:": "セッション名を変更",
+      "renamePlaceholder:": "新しいセッションタイトルを入力してください",
+      "renameRequired:": "タイトルを入力してください",
+      "renameSuccess:": "名前を変更しました",
+      "retrySuccess:": "再試行に成功しました",
+      "title:": "エージェントセッション"
     },
     "tool": {
       "status": {
-        "failed": "実装失敗",
-        "pending": "ペンディング",
-        "running": "導入事例",
+        "failed": "実行失敗",
+        "pending": "待機中",
+        "running": "実行中",
         "success": "完了しました"
       },
       "exportSnapshot": "実行スナップショットをエクスポート",
@@ -2185,7 +2342,7 @@
           "loadingTree": "ディレクトリツリーを読み込み中...",
           "reading": "ファイルを読み込み中...",
           "readingFile": "ファイルを読み込み中 {index}/{total}: {path}",
-          "completed": "読み込み完了、合計{count}個のファイル"
+          "completed": "読み込み完了、合計{count}ファイル"
         }
       },
       "nodeAgent": {
@@ -2197,9 +2354,9 @@
     },
     "tools": {
       "detail": {
-        "idle": "無料",
-        "never": "使用しない",
-        "origin": "ソース",
+        "idle": "アイドル",
+        "never": "未使用",
+        "origin": "オリジン",
         "placeholder": "ツールを選択して詳細を表示します。",
         "status": "実行ステータス",
         "tags": "ラベル",
@@ -2207,21 +2364,21 @@
         "name": "名前",
         "description": "説明"
       },
-      "disabled": "機能しない",
-      "enabled": "有効化",
+      "disabled": "無効",
+      "enabled": "有効",
       "legend": {
-        "available": "オプション",
-        "running": "導入事例"
+        "available": "利用可能",
+        "running": "実行中"
       },
       "name": "ツール",
       "origins": {
-        "main": "主な工程",
+        "main": "メインプロセス",
         "mcp": "MCPアプリケーション",
         "renderer": "レンダリングプロセス"
       },
       "state": "ステータス",
       "title": "ツール管理",
-      "toggleAll": "すべてを選択 / なし",
+      "toggleAll": "すべて選択 / すべて解除",
       "available": "使用可能"
     },
     "display": {
@@ -2245,7 +2402,17 @@
         "copyId": "IDをコピー",
         "copyTestCaseId": "テストケースIDをコピー",
         "testCaseIdCopied": "テストケースIDをコピーしました: {id}",
-        "clickToCopy": "クリックしてテストケースIDをコピー"
+        "clickToCopy": "クリックしてテストケースIDをコピー",
+        "clickToCopy:": "テストケースIDをコピーするにはクリック",
+        "copySuccess:": "クリップボードにコピーしました",
+        "downloadMarkdown:": "Markdownレポートをダウンロード",
+        "duration:": "実行時間",
+        "executionTime:": "実行時間",
+        "failed:": "失敗",
+        "passed:": "合格",
+        "result:": "実行結果",
+        "testResults:": "テスト結果",
+        "totalTests:": "総テスト数"
       },
       "chartGeneration": {
         "chartType": "チャートタイプ",
@@ -2260,7 +2427,11 @@
         "noPreview": "チャートのプレビューをロードできません",
         "rendering": "レンダリングチャート...",
         "url": "サイトマップ",
-        "viewCode": "生成されたコードを表示"
+        "viewCode": "生成されたコードを表示",
+        "generating:": "チャートコードを生成中...",
+        "noChart:": "ダウンロード可能なチャートはありません",
+        "rendering:": "チャートをレンダリング中...",
+        "url:": "URL"
       },
       "dataAnalysis": {
         "aggregating": "方法に基づく収束解析...",
@@ -2301,54 +2472,70 @@
         "groupCount": "グループ内の行数",
         "uniqueCount": "一意な値の数",
         "totalCount": "合計数",
-        "topValues": "よく出る値"
+        "topValues": "よく出る値",
+        "aggregating:": "集計分析を実行中...",
+        "aggregations:": "集計分析",
+        "calculating:": "記述統計を計算中...",
+        "extracting:": "フィールド情報を抽出中...",
+        "fieldCount:": "フィールド数",
+        "groupBy:": "{field} でグループ化",
+        "nullable:": "NULL可",
+        "parsing:": "データを解析中...",
+        "statsLabel:": "記述統計",
+        "summarizing:": "分析サマリーを生成中...",
+        "summary:": "分析サマリー",
+        "topValues:": "頻出値",
+        "totalColumns:": "総列数",
+        "totalRows:": "総行数",
+        "uniqueCount:": "ユニーク値数",
+        "uniqueValues:": "ユニーク値"
       },
       "ragTool": {
-        "hint": "ヒント: 類似性のしきい値を調整したり、知識ベースに関連文書がある場合に確認してみてください",
+        "hint": "ヒント: 類似度のしきい値を調整するか、ナレッジベースに関連ドキュメントがあるか確認してください",
         "noResults": "結果が見つかりません",
-        "results": "アウトカム",
-        "searchFailed": "失敗した検索",
-        "searching": "知識ベースを取得する..."
+        "results": "件の結果",
+        "searchFailed": "検索に失敗しました",
+        "searching": "ナレッジベースを検索中..."
       },
       "terminalExecution": {
-        "aiSummary": "AI分析の概要",
-        "analyzingOutput": "出力分析...",
-        "approvalTitle": "ターミナルコマンド実行確認",
-        "approve": "導入承認",
-        "approveWithTrust": "実行 (trust モードを有効に)",
-        "commandToExecute": "コマンドを実行する:",
-        "executing": "実装中:",
-        "executingCommand": "コマンドを実行する...",
+        "aiSummary": "AI分析サマリー",
+        "analyzingOutput": "出力を分析中...",
+        "approvalTitle": "ターミナルコマンド実行の確認",
+        "approve": "実行を承認",
+        "approveWithTrust": "実行する（信頼モード有効）",
+        "commandToExecute": "実行するコマンド:",
+        "executing": "実行中:",
+        "executingCommand": "コマンドを実行中...",
         "executionFailed": "コマンド実行失敗",
-        "exitCode": "出口コード",
+        "exitCode": "終了コード",
         "outputPreview": "出力プレビュー:",
-        "reject": "Deny の実行",
-        "rejected": "コマンド実行拒否",
-        "resetTrust": "あらゆる質問へのリセット",
+        "reject": "実行を拒否",
+        "rejected": "コマンドの実行が拒否されました",
+        "resetTrust": "毎回確認するようにリセット",
         "stderr": "標準エラー:",
         "stdout": "標準出力:",
-        "trustMode": "Trust モード: すべてのコマンドの自動実行(毎回確認なし)",
+        "trustMode": "信頼モード: すべてのコマンドを自動実行（毎回の確認不要）",
         "terminalOutput": "ターミナル出力"
       },
       "todoList": {
-        "analyzing": "ユーザーの意図を分析...",
-        "cancelled": "キャンセル",
+        "analyzing": "ユーザーの意図を分析中...",
+        "cancelled": "キャンセル済み",
         "completed": "完了しました",
-        "dependencies": "信頼性 {CLACEHOLDER_000} タスク",
-        "dueDate": "デッドライン",
-        "generating": "発生 _その他 組織",
+        "dependencies": "依存タスク {count} 件",
+        "dueDate": "期限",
+        "generating": "タスクリストを生成中...",
         "generationFailed": "生成失敗",
         "high": "高い",
-        "inProgress": "オンゴーイング",
+        "inProgress": "実行中",
         "low": "低い",
-        "medium": "メディア",
+        "medium": "中",
         "noDueDate": "期限なし",
-        "noTags": "ラベルなし",
-        "pending": "ペンディング",
+        "noTags": "タグなし",
+        "pending": "保留中",
         "priority": "優先順位",
-        "tags": "ラベル",
-        "totalTasks": "全体タスク",
-        "urgent": "緊急事態"
+        "tags": "タグ",
+        "totalTasks": "総タスク数",
+        "urgent": "緊急"
       },
       "diff": {
         "fetching": "内容を取得しています...",
@@ -2362,14 +2549,18 @@
         "oldText": "旧テキスト",
         "newText": "新テキスト",
         "noData": "差分データがありません",
-        "error": "差分計算に失敗しました"
+        "error": "差分計算に失敗しました",
+        "equal:": "同一 {count} 行",
+        "insertions:": "{count} 行挿入",
+        "splitView:": "分割表示",
+        "unifiedView:": "統合表示"
       },
       "outlineTree": {
         "retrieving": "ドキュメントのアウトラインを取得しています...",
         "loading": "ドキュメントを読み込んでいます...",
         "extracting": "アウトラインツリーを抽出しています...",
         "title": "ドキュメントアウトライン",
-        "nodeCount": "{count}個のノード",
+        "nodeCount": "合計{count}個のノード",
         "hasContent": "内容あり",
         "emptyTitle": "タイトルなし",
         "error": "アウトラインの取得に失敗しました",
@@ -2403,9 +2594,13 @@
           "contrast": "コントラスト調整",
           "complementary": "補色",
           "convert": "フォーマット変換",
-          "analyze": "色分析"
+          "analyze": "色分析",
+          "brightness:": "明るさ調整"
         },
-        "error": "色処理に失敗しました"
+        "error": "色処理に失敗しました",
+        "brightnessAdjust:": "明るさ調整: {amount}%",
+        "isDark:": "ダークカラー",
+        "isLight:": "ライトカラー"
       },
       "metadata": {
         "completed": "操作が完了しました",
@@ -2424,9 +2619,9 @@
         "generating": "生成中...",
         "syncing": "ドキュメント内容を同期しています...",
         "processing": "処理中...",
-        "completed": "展開が完了しました",
-        "error": "展開に失敗しました",
-        "tooltip": "ドキュメントのアウトラインと内容を素早く生成します。※注意：このツールはコンテンツ品質を保証するものではありませんが、記事の下書きを素早く生成できます",
+        "completed": "アウトライン展開が完了しました",
+        "error": "アウトライン展開に失敗しました",
+        "tooltip": "ドキュメントのアウトラインと内容を素早く生成します。⚠️注意：このツールは内容の品質を保証するものではありませんが、記事の下書きを素早く作成できます",
         "operationLabel": "操作タイプ",
         "nodePath": "ノードパス",
         "nodeTitle": "ノードタイトル",
@@ -2443,8 +2638,8 @@
         "operation": {
           "generateChildren": "子ノードを生成",
           "generateContent": "内容を生成",
-          "generateChildrenChildren": "すべての子ノードに子ノードを生成",
-          "generateChildrenContent": "すべての子ノードに内容を生成"
+          "generateChildrenChildren": "すべての子ノードに対して孫ノードを生成",
+          "generateChildrenContent": "すべての子ノードに対して内容を生成"
         }
       },
       "nodeAgent": {
@@ -2469,8 +2664,8 @@
         "loading": "ドキュメントを読み込んでいます...",
         "reordering": "ノードを再配置しています...",
         "syncing": "ドキュメント内容を同期しています...",
-        "completed": "アウトライン最適化が完了しました",
-        "error": "アウトライン最適化に失敗しました"
+        "completed": "アウトラインの再編成が完了しました",
+        "error": "アウトラインの再編成に失敗しました"
       },
       "grep": {
         "searching": "検索中...",
@@ -2485,8 +2680,8 @@
         "metadata": "メタデータ",
         "noMatches": "一致する結果が見つかりませんでした",
         "error": "検索に失敗しました",
-        "preContext": "前のコンテキスト",
-        "postContext": "後のコンテキスト",
+        "preContext": "前方コンテキスト",
+        "postContext": "後方コンテキスト",
         "replacedCount": "{count}箇所を置換しました",
         "replacementText": "置換テキスト",
         "showOriginal": "元の内容を表示",
@@ -2499,7 +2694,7 @@
         "title": "ウェブアクセス結果",
         "size": "サイズ",
         "renderView": "レンダリングビュー",
-        "rawContent": "生の内容",
+        "rawContent": "生コンテンツ",
         "headers": "レスポンスヘッダー",
         "fetching": "ウェブページを取得しています...",
         "processing": "レスポンスを処理しています...",
@@ -2517,8 +2712,8 @@
         "summarized": "要約済み",
         "summary": "要約",
         "content": "内容",
-        "showContent": "完全な内容を表示",
-        "hideContent": "完全な内容を非表示",
+        "showContent": "コンテンツを表示",
+        "hideContent": "コンテンツを隠す",
         "linesRange": "行{start}-{end} (合計{total}行)",
         "totalLines": "合計{count}行",
         "error": "ワークスペースファイルの読み込みに失敗しました"
@@ -2561,7 +2756,10 @@
           "error": "編集に失敗しました"
         },
         "expandDiff": "展開",
-        "collapseDiff": "折りたたむ"
+        "collapseDiff": "折りたたむ",
+        "appliedEdits:": "適用済み",
+        "failedEdits:": "失敗",
+        "noDetails:": "編集が正常に完了しました"
       },
       "titleFormat": {
         "title": "タイトルフォーマット",
@@ -2573,18 +2771,18 @@
         "saving": "ドキュメントを保存しています..."
       },
       "proofread": {
-        "proofreading": "校正を実行中",
+        "proofreading": "校正中",
         "fixing": "エラーを自動修正しています...",
         "title": "テキスト校正結果",
         "totalErrors": "合計{count}個のエラーが見つかりました",
-        "location": "位置: 行{line}, 列{column}",
+        "location": "位置: 行 {line}, 列 {column}",
         "errorText": "エラーテキスト",
-        "suggestion": "修正提案",
-        "suggestions": "修正提案",
+        "suggestion": "修正案",
+        "suggestions": "修正案",
         "noErrors": "エラーは見つかりませんでした",
         "error": "校正に失敗しました",
-        "fixed": "修正済み",
-        "autoFixed": "自動修正済み",
+        "fixed": "修正されました",
+        "autoFixed": "自動で修正されました",
         "severity": {
           "error": "エラー",
           "warning": "警告",
@@ -2598,7 +2796,7 @@
           "other": "その他"
         },
         "unifiedView": "統一ビュー",
-        "splitView": "分割ビュー",
+        "splitView": "分割表示",
         "originalText": "元のテキスト",
         "correctedText": "修正済みテキスト"
       }
@@ -2606,17 +2804,17 @@
     "userLabel": "ユーザー",
     "assistantLabel": "アシスタント",
     "systemLabel": "システム",
-    "thinking": "考え中...",
-    "toolCall": "ツールを呼び出し中",
-    "toolResult": "ツール結果",
+    "thinking": "思考中...",
+    "toolCall": "ツールを呼び出しています",
+    "toolResult": "ツール実行結果",
     "error": "エラーが発生しました",
-    "retry": "再試行",
+    "retry": "リトライ",
     "saveFailed": "保存に失敗しました",
     "callParams": "呼び出しパラメータ",
     "demoSession1": "コードレビューセッション",
     "demoSession2": "文書作成アシスタント",
-    "demoSession3": "データ分析エキスパート",
-    "copy": "コピー",
+    "demoSession3": "データ分析スペシャリスト",
+    "copy": "コピーする",
     "manage": {
       "status": "ステータス",
       "title": "管理",
@@ -2645,7 +2843,14 @@
         "deleteSuccess": "ツールセットの削除に成功しました",
         "confirmDelete": "ツールセット「{name}」を削除してもよろしいですか？",
         "cannotDeleteDefault": "デフォルトのツールセットは削除できません",
-        "builtIn": "組み込み"
+        "builtIn": "組み込み",
+        "builtIn:": "標準搭載",
+        "cannotDeleteDefault:": "デフォルトのツールセットは削除できません",
+        "confirmDelete:": "ツールセット「{name}」を削除しますか？",
+        "create:": "ツールセットを作成する",
+        "edit:": "ツールセットを編集する",
+        "selectTools:": "使用するツールを選択",
+        "toolCount:": "ツール数"
       },
       "agentConfig": {
         "title": "エージェント設定管理",
@@ -2659,7 +2864,7 @@
         "default": "デフォルト",
         "cannotEditDefault": "デフォルト設定は編集できません",
         "selectToolCollections": "ツールセットを選択",
-        "toolCollectionHint": "複数のツールセットがある場合、使用可能なツールは共通部分になります",
+        "toolCollectionHint": "複数のツールセットを選択した場合、使用可能なツールはそれらの共通部分となります",
         "llmModel": "LLMモデル",
         "temperature": "温度",
         "systemPrompt": "システムプロンプト",
@@ -2667,18 +2872,18 @@
         "unlimited": "無制限",
         "toolCollectionRequired": "少なくとも1つのツールセットを選択する必要があります",
         "cannotDeleteDefault": "デフォルト設定は削除できません",
-        "nameRequired": "名前は必須です",
+        "nameRequired": "名前を入力してください",
         "createSuccess": "設定の作成に成功しました",
         "updateSuccess": "設定の更新に成功しました",
         "deleteSuccess": "設定の削除に成功しました",
-        "validationSuccess": "設定の検証が完了しました",
+        "validationSuccess": "設定の検証に成功しました",
         "validationWarnings": "設定検証の警告",
         "validationFailed": "設定検証に失敗しました",
         "confirmDelete": "設定「{name}」を削除してもよろしいですか？",
         "view": "表示",
         "viewOnly": "読み取り専用",
         "systemPromptPlaceholder": "エージェントのシステムプロンプトを入力し、役割と責務を定義してください...",
-        "systemPromptHint": "システムプロンプトはエージェントの主要な役割、能力、および作業方法を定義します",
+        "systemPromptHint": "システムプロンプトは、エージェントの基本的な役割、能力、および動作方法を定義します",
         "injectTimestamp": "タイムスタンプを挿入",
         "injectTimestampLabel": "システムプロンプトの前に現在のタイムスタンプを挿入",
         "injectTimestampHint": "有効にすると、この設定でエージェントインスタンスを作成する際に、システムプロンプトの前に自動的に現在のタイムスタンプ情報が追加されます"
@@ -2703,7 +2908,7 @@
         "llmConfigMode": "LLM設定モード",
         "useGlobalLLM": "グローバルLLMを使用",
         "useCustomLLM": "カスタムLLMを使用",
-        "llmConfigModeHint": "グローバルLLMはMetaDoc設定のLLM設定を使用し、カスタムLLMはAPIアドレスとキーの設定が必要です",
+        "llmConfigModeHint": "グローバルLLMはMetaDoc設定のLLM構成を使用し、カスタムLLMではAPIアドレスとキーの設定が必要です",
         "apiBaseUrl": "APIベースURL",
         "apiBaseUrlPlaceholder": "https://api.example.com/v1",
         "apiKey": "APIキー",
@@ -2714,8 +2919,8 @@
         "maxTokens": "最大トークン数",
         "maxIterations": "最大反復回数",
         "thinkingDepth": "思考の深さ",
-        "enableReflection": "リフレクションを有効にする",
-        "enablePlanning": "計画を有効にする",
+        "enableReflection": "リフレクション（振り返り）を有効にする",
+        "enablePlanning": "プランニングを有効にする",
         "builtIn": "組み込み",
         "nameRequired": "名前は必須です",
         "baseUrlRequired": "APIベースURLは必須です",
@@ -2729,8 +2934,16 @@
         "validationSuccess": "エンジンの検証が完了しました",
         "validationWarnings": "エンジン検証の警告",
         "validationFailed": "エンジンの検証に失敗しました",
-        "confirmDelete": "エンジン「{name}」を削除してもよろしいですか？"
-      }
+        "confirmDelete": "エンジン「{name}」を削除してもよろしいですか？",
+        "maxIterations:": "最大反復回数",
+        "temperature:": "ランダム性（温度）",
+        "thinkingDepth:": "思考深度",
+        "validationSuccess:": "エンジンの検証に成功しました",
+        "validationWarnings:": "エンジン検証の警告事項",
+        "view:": "エンジンを確認"
+      },
+      "exportSuccess:": "エクスポートが完了しました",
+      "importSuccess:": "インポートが完了しました"
     },
     "message": {
       "edit": "編集",
@@ -2749,13 +2962,15 @@
       "intentRecognition": "意図認識",
       "selectedTools": "選択されたツール：",
       "noToolsNeeded": "このリクエストにはツールは必要ありません。",
-      "reasoning": "推論："
+      "reasoning": "推論：",
+      "toolCallInitiated:": "AIが{tool}の呼び出しを開始しました",
+      "toolCallsInitiated:": "AIが{count}個のツールの呼び出しを開始しました：{tools}"
     },
     "attachment": {
       "untitled": "無題"
     },
     "composer": {
-      "atTagRemove": "削除"
+      "atTagRemove": "削除する"
     },
     "reference": {
       "title": "引用素材管理",
@@ -2802,7 +3017,9 @@
         "url": "URL",
         "knowledgeBase": "ナレッジベース",
         "articleService": "記事サービス",
-        "custom": "テキスト"
+        "custom": "テキスト",
+        "articleService:": "記事サービス",
+        "custom:": "カスタムテキスト"
       },
       "parsingFile": "ファイルを解析中...",
       "parsingUrl": "URLを解析中...",
@@ -2824,14 +3041,14 @@
         "parsingContent": "内容を解析中",
         "downloadingUrl": "URLの内容をダウンロード中",
         "downloadingWebpage": "ウェブページの内容をダウンロード中",
-        "downloadingFile": "ファイルをダウンロード中",
+        "downloadingFile": "ファイルをダウンロード中...",
         "extractingText": "テキスト内容を抽出中...",
         "processingFormat": "{format}形式を処理中...",
         "ocrRecognizing": "OCR認識を実行中",
         "processingImage": "画像を処理中 {imageCurrent}/{imageTotal}",
         "processingImageWithPage": "画像を処理中 {current}/{total} (第{page}ページ)",
         "processingImageFailed": "画像を処理中 {imageCurrent}/{imageTotal} (失敗)",
-        "cleaningText": "テキスト内容をクリーニング中...",
+        "cleaningText": "テキスト内容を整理中...",
         "parseComplete": "解析完了: {filename}",
         "parseCompleteGeneric": "解析完了",
         "parseError": "解析失敗: {filename}",
@@ -2849,18 +3066,38 @@
         "addingMetadata": "ドキュメントのメタデータを追加中...",
         "renderingHtml": "HTMLをPDFにレンダリング中...",
         "savingFile": "ファイルを保存中...",
-        "cleaningTempFiles": "一時ファイルをクリーニング中",
-        "exportComplete": "エクスポート完了",
+        "cleaningTempFiles": "一時ファイルを削除中",
+        "exportComplete": "エクスポートが完了しました",
         "exportError": "エクスポート失敗",
         "compilingLatex": "LaTeXドキュメントをコンパイル中...",
         "executingLatexCompile": "LaTeXコンパイルを実行中...",
         "copyingPdf": "PDFファイルをコピー中...",
         "processingSlide": "スライドを処理中 {current}/{total}",
         "foundSlides": "{count}枚のスライドが見つかりました",
-        "foundImages": "{count}枚の画像が見つかりました"
+        "foundImages": "{count}枚の画像が見つかりました",
+        "extractingText:": "テキストを抽出中...",
+        "foundCharts:": "{count}個のチャートを検出しました",
+        "foundImages:": "{count}枚の画像を検出しました",
+        "foundSlides:": "{count}枚のスライドを検出しました",
+        "ocrRecognizing:": "OCR認識中",
+        "parseComplete:": "解析完了: {filename}",
+        "parseCompleteGeneric:": "解析が完了しました",
+        "parseError:": "解析に失敗しました: {filename}",
+        "parsingContent:": "コンテンツを解析中",
+        "parsingFile:": "ファイルを解析中: {filename}",
+        "parsingImage:": "画像を解析中: {filename}",
+        "preRenderingCharts:": "チャートを事前レンダリングしています",
+        "processingImage:": "画像を処理中 ({imageCurrent}/{imageTotal})",
+        "processingImageFailed:": "画像を処理中 ({imageCurrent}/{imageTotal}) - 失敗",
+        "processingImageWithPage:": "画像を処理中 ({current}/{total}) - {page}ページ目",
+        "processingSlide:": "スライドを処理中 ({current}/{total})",
+        "renderingChart:": "チャートをレンダリング中 ({current}/{total})",
+        "renderingChartFailed:": "チャートをレンダリング中 ({current}/{total}) - 失敗",
+        "renderingHtml:": "HTMLをPDFにレンダリング中...",
+        "urlFormatInvalid:": "URLの形式が正しくありません"
       },
       "builtInDocument": {
-        "title": "現在のドキュメント引用",
+        "title": "現在のドキュメント参照",
         "description": "現在のアクティブドキュメントの内容を動的に取得し、リアルタイムで更新されます。履歴メッセージのスペースを占有しません",
         "enabled": "有効",
         "disabled": "無効",
@@ -2872,10 +3109,18 @@
       },
       "error": {
         "cancelRequestFailed": "キャンセルリクエストの送信に失敗しました"
-      }
+      },
+      "readFileFailed:": "ファイルの内容を読み込めませんでした",
+      "tagRemove:": "参照を解除",
+      "title:": "参照素材の管理",
+      "updateSuccess:": "参照が正常に更新されました",
+      "url:": "URL",
+      "urlPlaceholder:": "URLを入力してください",
+      "urlRequired:": "URLは必須項目です",
+      "viewContent:": "コンテンツを表示"
     },
     "compact": {
-      "untitled": "無名のセッション",
+      "untitled": "無題セッション",
       "recentSessions": "最近のセッション",
       "newSession": "新規セッション",
       "newSessionTitle": "新規セッション",
@@ -2883,29 +3128,29 @@
       "yesterday": "昨日",
       "lastWeek": "先週",
       "lastMonth": "先月",
-      "older": "それ以前",
-      "loadMore": "さらに10件表示",
+      "older": "過去",
+      "loadMore": "さらに10件を表示",
       "closeTab": "タブを閉じる",
       "exportJson": "JSONとしてエクスポート",
-      "deleteSession": "セッションを削除",
+      "deleteSession": "セッションを削除する",
       "uploadAttachment": "添付ファイルをアップロード",
       "manageAttachments": "添付ファイルを管理"
     },
     "staging": {
-      "title": "編集ステージング",
+      "title": "編集ステージングエリア",
       "empty": "保留中の編集はありません",
-      "accept": "承認",
-      "reject": "拒否",
-      "acceptAll": "すべて承認",
-      "rejectAll": "すべて拒否",
-      "accepted": "承認済み",
-      "rejected": "拒否済み",
-      "rollback": "この編集を元に戻す",
-      "redo": "この編集をやり直す",
-      "rollbackDone": "{count}件の編集を元に戻しました",
-      "redoDone": "{count}件の編集をやり直しました",
+      "accept": "承諾",
+      "reject": "却下",
+      "acceptAll": "すべて承諾",
+      "rejectAll": "すべて却下",
+      "accepted": "承諾済み",
+      "rejected": "却下済み",
+      "rollback": "この編集をロールバック",
+      "redo": "この編集を再適用",
+      "rollbackDone": "{count}件の編集をロールバックしました",
+      "redoDone": "{count}件の編集を再適用しました",
       "reviewWindow": "編集レビュー",
-      "openReview": "別ウィンドウでレビュー",
+      "openReview": "レビューを別ウィンドウで開く",
       "selectEdit": "左から編集を1件選択してください"
     },
     "welcomeTitle": "こんにちは！MetaDoc AIアシスタントです！",
@@ -2916,7 +3161,7 @@
     "clear": "クリア",
     "contextMarks": {
       "chapter": "この章への参照",
-      "full": "参考文献",
+      "full": "全文を参照",
       "none": "参照なし"
     },
     "contextTooltips": {
@@ -2925,64 +3170,16 @@
       "none": "コンテキスト参照なし"
     },
     "defaultTitle": "パラグラフの最適化",
-    "inputPlaceholder": "最適化された需要を入力してください",
+    "inputPlaceholder": "最適化の要望を入力してください",
     "presetPrompts": {
-      "latex": [
-        {
-          "value": "標準の LaTeX 構文を使用してこのテキストを拡張します。",
-          "label": "このテキストの拡大"
-        },
-        {
-          "value": "標準の LaTeX 構文を使用してテキストを合理化",
-          "label": "このテキストを合理化"
-        },
-        {
-          "value": "筆記を最適化し、標準的なLaTeX構文を使用してよりエレガントにします。",
-          "label": "ライティングの最適化"
-        },
-        {
-          "value": "記事のコンテンツ全体に応じて、費用対効果の章のテキストは、標準のLaTeX構文を使用して、濃縮を必要とし、\\documentclassなどの注文を出力しない注意",
-          "label": "コストセクション"
-        },
-        {
-          "value": "テキスト内のすべての言語障害、誤字、不適切性を修正し、元の意図を保持し、規範的なLaTeXの構文を使用する",
-          "label": "校正変更"
-        }
-      ],
-      "markdown": [
-        {
-          "value": "このテキストの拡大",
-          "label": "このテキストの拡大"
-        },
-        {
-          "value": "このテキストを合理化",
-          "label": "このテキストを合理化"
-        },
-        {
-          "value": "ライティングの最適化、より美しくします。",
-          "label": "ライティングの最適化"
-        },
-        {
-          "value": "記事全体のコンテンツに基づいて、費用対効果の章のテキストは、詳細の大きな取引が必要です。",
-          "label": "コストセクション"
-        },
-        {
-          "value": "すべてのスピーチ疾患、誤り、不適切性を修正し、元の意図を保持します",
-          "label": "校正変更"
-        },
-        {
-          "value": "コードフレームを使用して、この段落に基づいて人魚フローチャートを生成します"
-        },
-        {
-          "value": "記事の構造に基づいて、コードフレームを使用して、人魚のマインドマップを作成します"
-        }
-      ]
+      "latex": "[{\"value\": \"この文章を拡充し、標準的なLaTeX構文を使用してください\", \"label\": \"文章を拡充\"}, {\"value\": \"この文章を簡潔にし、標準的なLaTeX構文を使用してください\", \"label\": \"文章を簡潔化\"}, {\"value\": \"文章を洗練させ、より優美な表現にし、標準的なLaTeX構文を使用してください\", \"label\": \"文章を洗練\"}, {\"value\": \"記事全体の内容に基づき、本章の文章を生成してください。内容は豊富で詳細であることを求め、標準的なLaTeX構文を使用し、\\\\documentclassなどのコマンドを出力しないよう注意してください\", \"label\": \"本章を生成\"}, {\"value\": \"文章内の全ての語弊、誤字、不適切な表現を修正し、原意を保ち、標準的なLaTeX構文を使用してください\", \"label\": \"校正・修正\"}]",
+      "markdown": "[{\"value\": \"この文章を拡充してください\", \"label\": \"文章を拡充\"}, {\"value\": \"この文章を簡潔にしてください\", \"label\": \"文章を簡潔化\"}, {\"value\": \"文章を洗練させ、より優美な表現にしてください\", \"label\": \"文章を洗練\"}, {\"value\": \"記事全体の内容に基づき、本章の文章を生成してください。内容は豊富で詳細であることを求める\", \"label\": \"本章を生成\"}, {\"value\": \"文章内の全ての語弊、誤字、不適切な表現を修正し、原意を保ってください\", \"label\": \"校正・修正\"}, {\"value\": \"この段落の内容に基づき、mermaidのフローチャートを生成し、コードブロックで囲んでください\"}, {\"value\": \"記事の構造に基づき、mermaidのマインドマップを生成し、コードブロックで囲んでください\"}]"
     },
-    "showPresets": "プリセットヒントを表示する",
+    "showPresets": "プリセットプロンプトを表示",
     "tooltips": {
-      "acceptAppend": "受け入れ、追加",
-      "acceptReplace": "受け入れ及び取り替えて下さい",
-      "chat": "成長対話の変革",
+      "acceptAppend": "受け入れて末尾に追加",
+      "acceptReplace": "受け入れて置換",
+      "chat": "チャットに変換",
       "generate": "生成する",
       "reset": "リセット"
     }
@@ -3018,14 +3215,19 @@
     "previewText": "AaBbCc ハローワールド",
     "previewTextAlt": "これはプレビューテキストです",
     "loadingFonts": "フォントを読み込み中...",
-    "helloWorld": "こんにちは世界"
+    "helloWorld": "こんにちは世界",
+    "collapse:": "折りたたむ",
+    "expand:": "展開",
+    "previewFont:": "フォントをプレビュー",
+    "previewText:": "AaBbCc こんにちは世界",
+    "previewTextAlt:": "プレビュー用テキスト"
   },
   "aigcDetection": {
     "title": "AIGC検出",
     "sentenceUniformity": "文の均一性",
-    "lexicalDiversity": "語彙の多様性",
+    "lexicalDiversity": "語彙の重複度",
     "reasoningSmoothness": "推論の滑らかさ",
-    "personalTrace": "個人の痕跡",
+    "personalTrace": "個人の痕跡の欠如度",
     "emotionalConsistency": "感情の一貫性",
     "contentDepth": "コンテンツの深さ",
     "informationDensity": "情報密度",
@@ -3042,22 +3244,22 @@
     "mediumRisk": "中リスク",
     "highRisk": "高リスク",
     "analyzing": "分析中...",
-    "analysisComplete": "分析完了",
+    "analysisComplete": "分析が完了しました",
     "noText": "検出するテキストを入力してください",
-    "uploadSuccess": "アップロード成功",
-    "uploadFailed": "アップロード失敗"
+    "uploadSuccess": "アップロードに成功しました",
+    "uploadFailed": "アップロードに失敗しました"
   },
   "dataAnalysis": {
     "title": "データ分析",
-    "hint": "ヒント：テーブルで行をチェックすると、選択したデータのみを分析できます",
-    "noResult": "まだ分析結果がありません。データプレビュータブで分析を開始してください",
+    "hint": "ヒント: 表で行を選択すると、そのデータのみを分析できます",
+    "noResult": "分析結果はまだありません。「データプレビュー」タブで分析を開始してください",
     "salesAnalysis": "販売データ分析",
     "userBehavior": "ユーザー行動分析",
     "exportExcel": "Excelにエクスポート",
     "fileNotFound": "Excelファイルが存在しません",
     "fileMoved": "ファイルが削除または移動された可能性があります。再度アップロードしてください",
     "analysisRequest": "分析要件（オプション）",
-    "analysisRequestPlaceholder": "分析要件を説明してください...",
+    "analysisRequestPlaceholder": "分析の要件を記述してください...",
     "analyze": "分析を開始",
     "analyzeFailed": "分析に失敗しました",
     "analyzeSuccess": "分析が完了しました",
@@ -3066,22 +3268,22 @@
     "defaultTitle": "新しいデータ分析セッション",
     "generateReport": "分析レポートを生成",
     "headerPreview": "現在のヘッダープレビュー:",
-    "headerRowHint": "デフォルト値:自動検出（現在の推測:第{0}行）",
-    "headerRowIndex": "ヘッダー行数（0から開始）",
+    "headerRowHint": "デフォルト: 自動検出 (現在の推測: {0}行目)",
+    "headerRowIndex": "ヘッダー行 (0始まり)",
     "newSession": "新しいセッション",
-    "noAnalysisResult": "まだ分析結果がありません。「データプレビュー」タブで分析を開始してください",
+    "noAnalysisResult": "分析結果はまだありません。「データプレビュー」タブで分析を開始してください",
     "noFile": "データファイルを先にアップロードしてください",
     "noSessionSelected": "セッションを選択するか、新しいセッションを作成してください",
     "renamePlaceholder": "セッション名を入力してください",
-    "renameTitle": "セッションの名前を変更",
+    "renameTitle": "セッション名を変更",
     "sessionsTitle": "データ分析セッション",
     "tabs": {
       "report": "分析レポート",
       "data": "元データ",
       "analysis": "データ分析"
     },
-    "uploadHint": "ファイルをここにドラッグするか、クリックしてアップロード",
-    "uploadTip": "CSV、Excel、JSON形式をサポート"
+    "uploadHint": "ファイルをここにドラッグ、またはクリックしてアップロード",
+    "uploadTip": "CSV、Excel、JSON形式に対応"
   },
   "userFeedback": {
     "uploadedToGist": "Gistにアップロードしました",
@@ -3103,7 +3305,10 @@
       "singleFileTooLarge": "各ファイルは{max}を超えられません",
       "totalTooLarge": "添付ファイルの合計は{max}を超えられません",
       "invalidFile": "無効なファイル",
-      "noIpc": "現在の環境ではフィードバックを送信できません"
+      "noIpc": "現在の環境ではフィードバックを送信できません",
+      "singleFileTooLarge:": "各ファイルは{max}以下にしてください",
+      "tooManyFiles:": "添付ファイルは最大{max}個までです",
+      "totalTooLarge:": "添付ファイルの合計サイズは{max}以下にしてください"
     },
     "feedbackType": "フィードバックの種類",
     "footerHint": "以下の方法でもフィードバックできます:",
@@ -3121,7 +3326,8 @@
       "otherInfoTitle": "その他の情報",
       "otherInfo": "問題の診断に役立つ追加情報を提供してください",
       "contactTitle": "連絡先（任意）",
-      "contactOptional": "フォローアップのため、連絡先をご提供ください"
+      "contactOptional": "フォローアップのため、連絡先をご提供ください",
+      "contactOptional:": "今後の対応のため、ご連絡先をご記入ください（任意）。"
     },
     "title": "フィードバック",
     "titleLabel": "タイトル",
@@ -3131,10 +3337,14 @@
       "feature": "機能リクエスト",
       "security": "セキュリティ報告",
       "other": "その他"
-    }
+    },
+    "attachmentRules:": "各ファイルは10MB以下、合計50MB以下、最大5個まで。Gistでサポートされる形式であれば種類は問いません。",
+    "selectType:": "種類を選択してください",
+    "submitSuccess:": "フィードバックを送信しました。ご協力ありがとうございました！",
+    "titlePlaceholder:": "問題やご提案を簡潔に入力してください"
   },
   "editor": {
-    "noOpenDocument": "開いているドキュメントがありません",
+    "noOpenDocument": "開いているドキュメントはありません",
     "loading": "プレビューを読み込み中...",
     "preview": "プレビュー",
     "edit": "編集",
@@ -3150,46 +3360,46 @@
   },
   "agent-engine-executor": {
     "clear": "クリアしました",
-    "completed": "注入完了",
-    "completedRecognize": "意図認識完了",
-    "startRecognize": "意図認識を開始",
+    "completed": "注入が完了しました",
+    "completedRecognize": "意図の認識が完了しました",
+    "startRecognize": "意図の認識を開始します",
     "text": "ツールを注入しました",
     "text1": "ツール",
-    "text2": "見つかりません",
+    "text2": "見つかりませんでした",
     "update": "更新しました"
   },
   "agentToolResultCard": {
-    "emptyResultSaveFile": "ファイル保存呼び出しが空の結果を返しました",
+    "emptyResultSaveFile": "ファイルの保存呼び出しで空の結果が返されました",
     "saveFailed": "保存に失敗しました"
   },
   "agentView": {
     "analyzeGenerate": "グラフとデータ分析結果を生成",
     "code": "安全なサンドボックスでコードを実行",
-    "fileLocal": "ローカルプロジェクトファイルを参照",
+    "fileLocal": "ローカルプロジェクトファイルを参照する",
     "infoSearch": "インターネット検索で最新情報を取得",
-    "previewGenerate": "クイックプレビューと要約生成をサポート",
+    "previewGenerate": "クイックプレビューと要約生成に対応",
     "text": "構造化された要約と引用を返す",
-    "text1": "サポート",
-    "text2": "経由",
-    "text3": "プロトコルと",
+    "text1": "対応",
+    "text2": "を通じて",
+    "text3": "プロトコルおよび",
     "user": "ユーザー"
   },
   "agentViewCompact": {
-    "cancelled": "タスクがキャンセルされました",
+    "cancelled": "タスクはキャンセルされました",
     "user": "ユーザー"
   },
   "aigc": {
-    "analysisComplete": "分析完了",
+    "analysisComplete": "分析が完了しました",
     "analysisReport": "分析レポート",
     "analyzing": "分析中...",
     "analyzingParagraph": "段落を分析中 {index}/{total}",
     "articleContent": "記事の内容",
-    "assembleAsNewArticle": "新しい記事として組み立てる",
+    "assembleAsNewArticle": "新しい記事として構成",
     "assembleNewTitle": "書き換え後の記事",
-    "assembleSuccess": "新しい記事に組み立てて開きました",
+    "assembleSuccess": "新しい記事として構成し、開きました",
     "backToTop": "トップに戻る",
-    "chartWeightTitle": "リスクソースの重み（加重累乗貢献率）",
-    "clickGenerateReport": "詳細レポートを生成するには、レポート生成ボタンをクリックしてください",
+    "chartWeightTitle": "リスク要因の重み付け（加重累乗寄与率）",
+    "clickGenerateReport": "詳細レポートを生成するには、生成ボタンをクリックしてください",
     "contentSelected": "コンテンツが選択されました",
     "copy": "コピー",
     "copyFailed": "コピーに失敗しました",
@@ -3197,18 +3407,18 @@
     "copySuccess": "コピーしました",
     "defaultTitle": "新しいAIGC検出セッション",
     "dimensions": {
-      "sentence_uniformity": "句式統一性",
-      "lexical_diversity": "語彙反復度",
-      "reasoning_smoothness": "論理平滑度",
-      "personal_trace": "個人痕跡欠如度",
-      "stylistic_risk": "スタイルリスク",
-      "over_explanation": "過度な説明",
-      "hedging_pattern": "曖昧限定",
-      "opening_transition_pattern": "遷移語テンプレート",
-      "structural_repetition": "構造の反復",
-      "abstractness": "抽象的空洞",
-      "emotional_flatness": "感情の平坦さ",
-      "formulaic_closure": "型にはまった結び"
+      "sentence_uniformity": "文の構造の単調さ",
+      "lexical_diversity": "語彙の反復度",
+      "reasoning_smoothness": "論理の滑らかさ",
+      "personal_trace": "個人の痕跡の欠如度",
+      "stylistic_risk": "文体のリスク",
+      "over_explanation": "説明過多",
+      "hedging_pattern": "曖昧な表現",
+      "opening_transition_pattern": "導入・遷移の定型表現",
+      "structural_repetition": "構造の繰り返し",
+      "abstractness": "抽象的で内容が薄い",
+      "emotional_flatness": "感情表現の乏しさ",
+      "formulaic_closure": "決まり文句的な結び"
     },
     "documentEmpty": "ドキュメントの内容が空です",
     "documentNotFound": "ドキュメントが存在しません",
@@ -3224,50 +3434,50 @@
     "dragToUpload": "ファイルをドラッグしてアップロード、またはクリックして選択",
     "dropFileHere": "ファイルをここにドロップ",
     "exportReport": "レポートをエクスポート",
-    "exportReportSuccess": "新しいドキュメントにエクスポートされました",
+    "exportReportSuccess": "新しいドキュメントにエクスポートしました",
     "fileUploaded": "ファイルのアップロードに成功しました",
-    "generateReport": "レポートを生成",
-    "mergeWithNext": "次の段落と結合",
-    "modified": "変更済み",
+    "generateReport": "レポートを生成する",
+    "mergeWithNext": "次の段落と統合",
+    "modified": "変更あり",
     "newSession": "新しいセッション",
     "noActiveDocument": "アクティブなドキュメントがありません",
     "noAnalysisData": "分析データがありません",
-    "noAnalysisYet": "まだ分析されていません",
+    "noAnalysisYet": "分析がまだ行われていません",
     "noContent": "コンテンツをアップロードまたは選択してください",
     "noDocuments": "開いているドキュメントがありません",
     "noSessionSelected": "セッションを選択するか、新しいセッションを作成してください",
-    "nonSignificantRisk": "有意でないリスク",
-    "paragraphContent": "段落コンテンツ",
-    "paragraphCount": "合計 {n} 段落",
-    "paraphraseAll": "すべて書き換え",
-    "paraphraseOne": "書き換え",
-    "paraphraseSuccess": "書き換え成功",
-    "paraphrasedContent": "書き換え後のコンテンツ",
+    "nonSignificantRisk": "リスクは低い",
+    "paragraphContent": "段落の内容",
+    "paragraphCount": "全 {n} 段落",
+    "paraphraseAll": "すべてを書き換え",
+    "paraphraseOne": "書き換える",
+    "paraphraseSuccess": "書き換えが成功しました",
+    "paraphrasedContent": "書き換え後の内容",
     "paraphrasing": "書き換え中...",
     "pleaseSelectDocument": "分析するドキュメントを選択してください",
     "pleaseUploadOrSelect": "ファイルをアップロードするか、ドキュメントからコンテンツを選択してください",
     "reAnalyze": "再分析",
-    "reParaphraseAll": "すべて再書き換え",
-    "reParaphraseOne": "再書き換え",
+    "reParaphraseAll": "すべてを書き換え直す",
+    "reParaphraseOne": "書き換え直す",
     "rePreprocess": "段落を再分割",
     "renamePlaceholder": "セッション名を入力してください",
     "renameTitle": "セッション名を変更",
-    "reportGenerated": "レポート生成成功",
+    "reportGenerated": "レポートの生成に成功しました",
     "selectDocumentTitle": "分析するドキュメントを選択",
     "selectDomain": "ドメインを選択",
     "selectFromDocument": "ドキュメントから選択",
     "selectLanguage": "言語を選択",
-    "selectedOneDocument": "1つのドキュメントを選択しました",
-    "sessionsTitle": "AIGC検出セッション",
+    "selectedOneDocument": "1件のドキュメントを選択済み",
+    "sessionsTitle": "AIGC検出セッション履歴",
     "splitAtCursor": "カーソル位置で分割",
     "startAnalysis": "分析を開始",
-    "unsupportedFileType": "サポートされていないファイルタイプ",
-    "unsupportedFormat": "サポートされていないドキュメント形式",
+    "unsupportedFileType": "サポートされていないファイル形式",
+    "unsupportedFormat": "サポートされていないドキュメントフォーマット",
     "uploadFile": "ファイルをアップロード",
     "export": "エクスポート",
-    "exportAndDetect": "AIGC率を検出する",
+    "exportAndDetect": "AIGC使用率を検出する",
     "exportAsNewDoc": "新しいドキュメントとして",
-    "exportParaphrased": "書き換えた記事をエクスポート",
+    "exportParaphrased": "書き換え後の記事をエクスポート",
     "exportParaphrasedSuccess": "書き換えた記事を新しいドキュメントにエクスポートしました",
     "viewOriginal": "A 原文",
     "viewParaphrased": "B 書き換え"
@@ -3293,7 +3503,21 @@
       "parsed": "解析内容",
       "aiAnalysis": "AI分析"
     },
-    "uploadSuccess": "添付ファイルのアップロードが完了しました"
+    "uploadSuccess": "添付ファイルのアップロードが完了しました",
+    "analysisSuccess:": "分析が完了しました",
+    "analyzing:": "添付ファイルを分析しています",
+    "attachmentsTitle:": "添付ファイルの解析",
+    "newAttachment:": "添付ファイルを追加",
+    "noAnalysis:": "AI分析の結果はまだありません",
+    "noAttachmentSelected:": "添付ファイルを選択、または新しいファイルをアップロードしてください",
+    "parse:": "添付ファイルを解析する",
+    "reanalyze:": "AI分析を再度実行",
+    "renamePlaceholder:": "添付ファイル名を入力",
+    "renameTitle:": "添付ファイル名を変更",
+    "reparse:": "再度解析",
+    "selectFile:": "添付ファイルを選択する",
+    "startAnalysis:": "AI分析を開始する",
+    "uploadSuccess:": "添付ファイルをアップロードしました"
   },
   "data-analysis-tool": {
     "analyze": "データ分析",
@@ -3301,38 +3525,38 @@
     "analyze2": "集計分析など",
     "analyze3": "データ分析ツール",
     "description": "記述統計",
-    "descriptionFeature": "機能の説明",
+    "descriptionFeature": "機能説明",
     "info": "フィールド情報を抽出",
     "text": "などのデータ"
   },
   "dataAnalysisWindow": {
     "text": "デフォルト値",
     "text1": "現在の推測",
-    "text2": "選択済み",
-    "text3": "次の場所で",
-    "tooltip": "ツールチップ",
+    "text2": "選択中",
+    "text3": "以下で",
+    "tooltip": "ヒント",
     "analyze": "選択したデータのみを分析します",
-    "analyze1": "テーブルで行をチェックして、データの一部のみを分析できます",
+    "analyze1": "テーブルで行を選択することで、一部のデータのみを分析できます",
     "analyze2": "まだ分析結果がありません",
     "detect": "自動検出",
     "preview": "データプレビュー"
   },
   "detailedOutlineNode": {
     "generating": "生成中",
-    "sizeDragAdjust": "ドラッグしてサイズ調整"
+    "sizeDragAdjust": "ドラッグでサイズ調整"
   },
   "documentService": {
     "exportFailedFailedExport": "ドキュメントのエクスポートに失敗しました",
-    "failedClose": "ドキュメントを閉じるのに失敗しました",
-    "failedNew": "新しいドキュメントの作成に失敗しました",
+    "failedClose": "ドキュメントのクローズに失敗しました",
+    "failedNew": "ドキュメントの新規作成に失敗しました",
     "loadFailedFailedLoading": "ドキュメントの読み込みに失敗しました",
     "saveFailedFailedSave": "ドキュメントの保存に失敗しました"
   },
   "dummyView": {
     "emptyDescription": "開いているドキュメントがありません",
-    "animationDuration": "アニメーション時間",
+    "animationDuration": "アニメーションの長さ",
     "shakeAnimation": "シェイクアニメーション",
-    "shakeDescription": "移動と回転のみ、外側のコンテナで処理",
+    "shakeDescription": "移動と回転のみを含み、外側コンテナで処理されます",
     "shakeScale": "シェイク時にもスケーリングを適用、transitionでスムーズに遷移"
   },
   "export": {
@@ -3371,7 +3595,7 @@
       "pageSize": {
         "label": "用紙サイズ",
         "description": "PDFの用紙サイズを選択",
-        "descriptionTex": "PDFの用紙サイズを選択（LaTeX文書クラスで設定が必要）",
+        "descriptionTex": "PDFの用紙サイズを選択（LaTeX文書クラスでの設定が必要です）",
         "a4": "A4",
         "a3": "A3",
         "a5": "A5",
@@ -3382,27 +3606,27 @@
       "margins": {
         "label": "余白",
         "description": "PDFの余白設定",
-        "descriptionTex": "PDFの余白設定（注意：LaTeXの余白は文書で設定する必要があります）"
+        "descriptionTex": "PDFの余白設定（注意：LaTeXの余白は文書内で設定する必要があります）"
       },
       "marginTop": {
         "label": "上余白（インチ）",
-        "description": "PDFの上余白、単位：インチ",
-        "descriptionTex": "PDFの上余白、単位：インチ（注意：LaTeXの余白は文書で設定する必要があります）"
+        "description": "PDFの上余白（単位：インチ）",
+        "descriptionTex": "PDFの上余白（単位：インチ）（注意：LaTeXの余白は文書内で設定する必要があります）"
       },
       "marginBottom": {
         "label": "下余白（インチ）",
-        "description": "PDFの下余白、単位：インチ"
+        "description": "PDFの下余白（単位：インチ）"
       },
       "marginLeft": {
         "label": "左余白（インチ）",
-        "description": "PDFの左余白、単位：インチ"
+        "description": "PDFの左余白（単位：インチ）"
       },
       "marginRight": {
         "label": "右余白（インチ）",
-        "description": "PDFの右余白、単位：インチ"
+        "description": "PDFの右余白（単位：インチ）"
       },
       "printBackground": {
-        "label": "背景を印刷",
+        "label": "背景を印刷する",
         "description": "PDFに背景色と画像を含めるかどうか"
       },
       "tabs": {
@@ -3424,7 +3648,7 @@
         "grayscale": "グレースケール"
       },
       "enableStyleMapping": {
-        "label": "フォーマットバインディングを有効にする",
+        "label": "スタイルマッピングを有効にする",
         "description": "Markdown要素をWordスタイルにマッピングするかどうか（見出し1、見出し2など）"
       },
       "normalFontFamily": {
@@ -3436,15 +3660,15 @@
         "description": "本文フォントサイズ、単位：ポイント（pt）"
       },
       "normalLineHeight": {
-        "label": "本文行間",
-        "description": "本文行間倍数"
+        "label": "本文の行間",
+        "description": "本文の行間倍率"
       },
       "heading1FontFamily": {
         "label": "見出し1フォント",
         "description": "レベル1見出しに使用するフォント"
       },
       "heading1FontSize": {
-        "label": "見出し1フォントサイズ（pt）",
+        "label": "見出し1のフォントサイズ（pt）",
         "description": "レベル1見出しフォントサイズ、単位：ポイント（pt）"
       },
       "heading1LineHeight": {
@@ -3456,7 +3680,7 @@
         "description": "レベル2見出しに使用するフォント"
       },
       "heading2FontSize": {
-        "label": "見出し2フォントサイズ（pt）",
+        "label": "見出し2のフォントサイズ（pt）",
         "description": "レベル2見出しフォントサイズ、単位：ポイント（pt）"
       },
       "heading2LineHeight": {
@@ -3468,7 +3692,7 @@
         "description": "レベル3見出しに使用するフォント"
       },
       "heading3FontSize": {
-        "label": "見出し3フォントサイズ（pt）",
+        "label": "見出し3のフォントサイズ（pt）",
         "description": "レベル3見出しフォントサイズ、単位：ポイント（pt）"
       },
       "heading3LineHeight": {
@@ -3480,7 +3704,7 @@
         "description": "レベル4見出しに使用するフォント"
       },
       "heading4FontSize": {
-        "label": "見出し4フォントサイズ（pt）",
+        "label": "見出し4のフォントサイズ（pt）",
         "description": "レベル4見出しフォントサイズ、単位：ポイント（pt）"
       },
       "heading4LineHeight": {
@@ -3488,15 +3712,15 @@
         "description": "レベル4見出し行間倍数"
       },
       "inlineStyles": {
-        "label": "インラインCSS",
+        "label": "CSSをインライン化",
         "description": "CSSスタイルをHTMLにインライン化するかどうか"
       },
       "imageProcessing": {
         "label": "画像処理方法",
-        "description": "画像の処理方法を選択：元のリンクを保持、Base64埋め込み、またはフォルダに保存",
+        "description": "画像の処理方法を選択：元のリンクを保持、Base64埋め込み、またはフォルダへ保存",
         "original": "元のリンクを保持",
         "base64": "Base64埋め込み",
-        "folder": "フォルダに保存"
+        "folder": "フォルダへ保存"
       },
       "includeMetadata": {
         "label": "メタデータを含める",
@@ -3507,7 +3731,7 @@
         "description": "LaTeXドキュメントクラス"
       },
       "includePackages": {
-        "label": "一般的なパッケージを含める",
+        "label": "一般的なパッケージを追加",
         "description": "一般的なLaTeXパッケージを自動的に含めるかどうか"
       },
       "generateCover": {
@@ -3520,27 +3744,27 @@
         "title": "目次"
       },
       "processFormula": {
-        "label": "数式を処理",
+        "label": "数式を処理する",
         "description": "LaTeX数式を自動的に処理するかどうか"
       },
       "removeTitlePrefixes": {
-        "label": "タイトルのプレフィックスを自動的に削除",
-        "description": "LaTeXは自動的に各章に番号を付けます。タイトルにすでに番号プレフィックスがあると重複します。このオプションを有効にすると、すべてのタイトルの先頭にある番号とドット（例：「1.1」、「一、」など）が自動的に削除されます"
+        "label": "タイトルの接頭辞を自動削除",
+        "description": "LaTeXは自動的に各章に番号を付けます。タイトルに既に番号の接頭辞があると重複します。このオプションを有効にすると、すべてのタイトルの先頭にある番号とドット（例：「1.1」、「一、」など）が自動的に削除されます。"
       },
       "showPageNumbers": {
-        "label": "ページ番号を表示",
-        "description": "フッターにページ番号を表示"
+        "label": "ページ番号を表示する",
+        "description": "フッターにページ番号を表示します"
       },
       "showHeader": {
-        "label": "ヘッダーを表示",
-        "description": "ヘッダーにドキュメントタイトルとページ番号情報を表示"
+        "label": "ヘッダーを表示する",
+        "description": "ヘッダーに文書タイトルとページ番号情報を表示します"
       },
       "autoNumberImages": {
         "label": "画像に自動的に番号を付ける",
         "description": "ドキュメント内の画像に自動的に番号ラベルを追加（図1、図2など）"
       },
       "imageLabelFontSize": {
-        "label": "画像ラベルフォントサイズ",
+        "label": "画像ラベルのフォントサイズ",
         "description": "画像番号ラベルのフォントサイズ（pt）"
       },
       "imageLabelFontFamily": {
@@ -3549,58 +3773,58 @@
       },
       "imageLabelPrefix": {
         "label": "図",
-        "description": "画像番号のプレフィックス"
+        "description": "画像番号の接頭辞"
       },
       "imageLabelDefaultName": {
         "label": "画像",
         "description": "画像のデフォルト名（画像に名前がない場合に使用）"
       },
-      "objectTypeField": "オブジェクトタイプフィールド"
+      "objectTypeField": "オブジェクトタイプのフィールド"
     }
   },
   "tabSwitcher": {
-    "openEditors": "開いているエディタ",
+    "openEditors": "開いているエディター",
     "untitledDocument": "無題のドキュメント"
   },
   "ai": {
     "completion": {
-      "demoComment": "2つの数の合計を計算",
-      "aiSuggestion": "AI 提案"
+      "demoComment": "2つの数値の合計を計算します",
+      "aiSuggestion": "AIによる提案"
     }
   },
   "datePicker": {
     "placeholder": "日付を選択",
     "startPlaceholder": "開始日",
     "endPlaceholder": "終了日",
-    "rangeSeparator": "から"
+    "rangeSeparator": "へ"
   },
   "aigcDetectionWindow": {
     "text": "句式の統一性",
     "text1": "語彙の重複度",
     "text2": "論理的な滑らかさ",
-    "text3": "個人的痕跡の欠如度",
-    "text4": "スタイルリスク",
+    "text3": "個人の痕跡の欠如度",
+    "text4": "スタイルのリスク",
     "text5": "過度な説明",
     "text6": "曖昧な限定",
-    "text7": "接続詞テンプレート",
+    "text7": "移行表現のテンプレート化",
     "text8": "構造の繰り返し",
-    "text9": "抽象的な空洞"
+    "text9": "抽象的で内容が空疎"
   },
   "celebration": {
-    "continue": "MetaDocを始める →",
-    "skip": "任意の場所をクリックしてスキップ",
+    "continue": "MetaDocを使い始める →",
+    "skip": "画面をクリックしてスキップ",
     "subtitle": "MetaDocの完全な学習ガイドを完了しました",
     "title": "準備完了！"
   },
   "chart-generation-tool": {
     "code": "チャートコードが空です",
     "code1": "コードが短すぎます",
-    "codeMissing": "コードがありません",
+    "codeMissing": "コードが不足しています",
     "error": "構文エラー",
     "errorFormat": "設定フォーマットエラー",
-    "text": "マーク",
+    "text": "マークアップ",
     "typeRecognize": "チャートタイプを認識できません",
-    "validateFailedFailedValidate": "構文検証に失敗しました"
+    "validateFailedFailedValidate": "構文検証が失敗しました"
   },
   "editorModeFirstTime": {
     "changeLaterHint": "後で「設定」でデフォルトの編集モードを変更できます。",
@@ -3613,17 +3837,17 @@
     "failedCreate": "セッションの作成に失敗しました",
     "failedLoading": "セッションリストの読み込みに失敗しました",
     "failedLoading1": "セッションの読み込みに失敗しました",
-    "recognize": "数式認識の例",
+    "recognize": "数式認識サンプル",
     "renameFailed": "名前の変更に失敗しました",
-    "text": "コピー"
+    "text": "テキスト"
   },
   "graph": {
     "analyzingIntent": "意図を分析中...",
     "assistant": "アシスタント",
     "chartType": "チャートタイプ",
     "conversationMode": "会話モード",
-    "defaultTitle": "新しい描画セッション",
-    "engine": "描画エンジン",
+    "defaultTitle": "新規グラフセッション",
+    "engine": "グラフエンジン",
     "export": "エクスポート",
     "exportSuccess": "エクスポートに成功しました",
     "generate": "生成",
@@ -3631,55 +3855,55 @@
     "generated": "チャートが生成されました",
     "generatedImage": "生成された画像",
     "generating": "生成中...",
-    "inputPlaceholder": "描画要件を入力してください、AIが適切なチャートエンジンを自動的に選択します...",
-    "newSession": "新しいセッション",
-    "noChart": "エクスポートできるチャートがありません",
+    "inputPlaceholder": "グラフ作成の要件を入力してください。AIが適切なグラフエンジンを自動選択します...",
+    "newSession": "新規セッション",
+    "noChart": "エクスポート可能なグラフがありません",
     "noOptimizePrompt": "最適化要件を入力してください",
-    "noPrompt": "描画要件を入力してください",
+    "noPrompt": "グラフ作成の要件を入力してください",
     "noSessionSelected": "セッションを選択するか、新しいセッションを作成してください",
-    "optimize": "画像を最適化",
+    "optimize": "画像を最適化する",
     "optimizeOnlyInConversation": "最適化機能は会話モードでのみ使用可能です",
     "optimizePrompt": "以下の会話履歴に基づいて、画像を最適化:",
     "outputFormat": "出力形式",
     "renamePlaceholder": "セッション名を入力してください",
-    "renameTitle": "セッションの名前を変更",
-    "sessionsTitle": "描画セッション",
+    "renameTitle": "セッション名を変更する",
+    "sessionsTitle": "グラフセッション",
     "simpleMode": "シンプルモード",
     "user": "ユーザー",
-    "userRequest": "ユーザーの新しい要件",
-    "renderFailed": "レンダリング失敗"
+    "userRequest": "ユーザーの新規要件",
+    "renderFailed": "レンダリングに失敗しました"
   },
   "graphWindow": {
-    "format": "形式は以下の通り",
+    "format": "以下の形式で記述",
     "name": "エンジン名",
     "text": "使用可能なチャートエンジン",
-    "text1": "を返します",
+    "text1": "を返す",
     "text2": "オブジェクト",
     "text3": "小文字",
-    "type": "サポートタイプ",
+    "type": "対応タイプ",
     "type1": "グラフタイプ",
     "user": "ユーザー要件",
-    "userAnalyze": "ユーザー要件を分析してください"
+    "userAnalyze": "ユーザーの要件を分析してください"
   },
   "llm-adapter": {
     "failed": "設定に失敗しました",
     "login": "先にログインしてください",
     "text": "未選択",
     "text1": "アカウント",
-    "text2": "取得",
+    "text2": "取得する",
     "type": "タイプ",
     "unsupported": "サポートされていない"
   },
   "llm-config-manager": {
     "text": "デフォルト",
-    "text1": "互換",
-    "text2": "公式"
+    "text1": "互換性",
+    "text2": "公式/オフィシャル"
   },
   "llmStatistics": {
     "cancel": "キャンセル",
     "clear": "クリア",
     "clearConfirm": "すべての統計データをクリアしてもよろしいですか？この操作は元に戻せません！",
-    "clearConfirmAgain": "再度確認してください：この操作によりすべての統計データが永久に削除され、復元できません！",
+    "clearConfirmAgain": "再度確認してください：この操作によりすべての統計データが完全に削除され、復元できません！",
     "clearConfirmTitle": "クリアの確認",
     "clearFailed": "統計データのクリアに失敗しました",
     "clearSuccess": "統計データがクリアされました",
@@ -3700,13 +3924,13 @@
     "endDate": "終了日",
     "export": "エクスポート",
     "exportFailed": "エクスポートに失敗しました",
-    "exportFormatInvalid": "有効な数字を入力してください(1-3)",
+    "exportFormatInvalid": "有効な数字を入力してください (1-3)",
     "exportFormatMessage": "エクスポートするファイル形式を選択してください：",
     "exportFormatTitle": "エクスポート形式を選択",
     "exportSuccess": "エクスポート成功",
     "formatCsv": "CSV",
     "formatJson": "JSON",
-    "formatXlsx": "Excel形式 (XLSX)",
+    "formatXlsx": "Excel (XLSX)",
     "loadAll": "すべて読み込み",
     "loadFailed": "統計データの読み込みに失敗しました",
     "promptTokens": "入力トークン",
@@ -3718,11 +3942,11 @@
     "thisWeek": "今週",
     "thisYear": "今年",
     "title": "LLM API 使用量統計",
-    "to": "から",
+    "to": "〜",
     "today": "今日",
     "tokenCount": "トークン数",
     "tokenUsageChart": "トークン使用量統計（棒グラフ）",
-    "tooltip": "クリックして LLM API 使用量統計を表示",
+    "tooltip": "LLM API 使用量統計を表示",
     "totalCompletionTokens": "総出力トークン",
     "totalPromptTokens": "総入力トークン",
     "totalRequests": "総リクエスト数",
@@ -3745,76 +3969,76 @@
   },
   "messageBox": {
     "cancel": "キャンセル",
-    "confirm": "OK"
+    "confirm": "確認"
   },
   "notification": {
-    "clearAll": "すべて削除",
+    "clearAll": "すべてクリア",
     "desktopNotifications": "デスクトップ通知",
-    "dismiss": "閉じる",
+    "dismiss": "非表示にする",
     "markRead": "既読にする",
     "markUnread": "未読にする",
-    "noNotifications": "通知はありません",
+    "noNotifications": "通知はまだありません",
     "notificationSettings": "通知設定",
     "showAll": "すべて表示",
-    "soundEnabled": "サウンドを有効にする"
+    "soundEnabled": "通知音を有効にする"
   },
   "ocr": {
     "aiFix": "AI修正",
     "aiFixFailed": "AI修正失敗",
-    "aiFixSuccess": "AI修正完了",
+    "aiFixSuccess": "AI修正が完了しました",
     "aiFixing": "AI修正中...",
     "allRecognized": "すべての画像を認識しました",
     "brightness": "輝度",
-    "clickRecognizeHint": "左側のボタンをクリックして認識を開始",
+    "clickRecognizeHint": "左側のボタンをクリックして認識を開始します",
     "contrast": "コントラスト",
-    "copyFixedText": "修正後のテキストをコピー",
-    "copyOriginalText": "元のテキストをコピー",
+    "copyFixedText": "修正後のテキストをコピーする",
+    "copyOriginalText": "元のテキストをコピーする",
     "copySuccess": "テキストをクリップボードにコピーしました",
-    "copyText": "テキストをコピー",
+    "copyText": "テキストをコピーする",
     "defaultParams": "推奨設定",
     "defaultTitle": "新しいOCRセッション",
-    "deleteConfirm": "この画像を削除しますか？",
-    "deleteSuccess": "削除成功",
-    "deleteTitle": "画像を削除",
+    "deleteConfirm": "この画像を削除してもよろしいですか？",
+    "deleteSuccess": "削除に成功しました",
+    "deleteTitle": "画像の削除",
     "diffView": "比較ビュー",
-    "fixedText": "修正後テキスト",
+    "fixedText": "修正後のテキスト",
     "grayscale": "グレースケール",
     "image": "画像",
-    "imagePreprocessing": "画像前処理",
+    "imagePreprocessing": "画像の前処理",
     "imagePreview": "画像プレビュー",
-    "languages": "OCR言語パック",
+    "languages": "OCR言語パッケージ",
     "newSession": "新規セッション",
     "noClipboardImage": "クリップボードに画像がありません",
     "noImages": "画像をアップロードしてください",
-    "noLanguages": "少なくとも1つの言語パックを選択してください",
+    "noLanguages": "少なくとも1つの言語パッケージを選択してください",
     "noSession": "セッションを作成または選択してください",
     "noSessionSelected": "セッションを選択するか、新規作成してください",
     "normalize": "正規化",
     "notRecognized": "未認識",
-    "ocrSuccess": "認識完了",
+    "ocrSuccess": "認識が完了しました",
     "originalText": "元のテキスト",
-    "pasteFromClipboard": "クリップボードから画像を貼り付け",
-    "pasteSuccess": "画像をクリップボードから貼り付けました",
+    "pasteFromClipboard": "クリップボードから画像を貼り付ける",
+    "pasteSuccess": "クリップボードから画像を貼り付けました",
     "preprocessingParams": "前処理パラメータ",
-    "previewImage": "画像をプレビュー",
+    "previewImage": "画像をプレビューする",
     "reOcr": "再認識",
     "reRecognize": "再認識",
-    "reRecognizeSuccess": "再認識成功",
-    "recognizeSuccess": "認識成功",
+    "reRecognizeSuccess": "再認識に成功しました",
+    "recognizeSuccess": "認識に成功しました",
     "recognizing": "認識中...",
-    "renamePlaceholder": "セッション名を入力",
-    "renameTitle": "セッション名を変更",
-    "resetParams": "パラメータをリセット",
-    "resetZoom": "リセット",
+    "renamePlaceholder": "セッション名を入力してください",
+    "renameTitle": "セッション名の変更",
+    "resetParams": "パラメータをリセットする",
+    "resetZoom": "リセットする",
     "saturation": "彩度",
-    "selectLanguages": "言語パックを選択",
+    "selectLanguages": "言語パッケージを選択する",
     "sessionsTitle": "OCRセッション",
     "sharpness": "シャープネス",
     "singleView": "単一ビュー",
-    "startOcr": "認識を開始",
-    "startRecognize": "認識を開始",
-    "uploadHint": "画像をここにドラッグするか、クリックしてアップロード",
-    "uploadTip": "JPG、PNG、GIF、BMPなどの形式をサポート、複数選択可能",
+    "startOcr": "認識を開始する",
+    "startRecognize": "認識を開始する",
+    "uploadHint": "画像をここにドラッグするか、クリックしてアップロードします",
+    "uploadTip": "JPG、PNG、GIF、BMPなどの形式をサポートしており、複数選択可能です",
     "viewMode": "ビューモード"
   },
   "ocrWindow": {
@@ -3827,7 +4051,12 @@
     "text1": "繁体字中国語",
     "text2": "日本語",
     "text3": "書籍スキャン",
-    "unavailable": "レンダラー利用不可"
+    "unavailable": "レンダラー利用不可",
+    "failedCreate:": "セッションの作成に失敗しました",
+    "failedLoading:": "セッションリストの読み込みに失敗しました",
+    "failedLoading1:": "セッションの読み込みに失敗しました",
+    "renameFailed:": "名前の変更に失敗しました",
+    "unavailable:": "レンダラーが利用できません"
   },
   "logoTab": {
     "version": "バージョン {version} ({channel})",
@@ -3836,11 +4065,11 @@
   "outline-ai-utils": {
     "addContent": "他のコンテンツは追加しないでください",
     "format": "サンプル形式に厳密に従って出力してください",
-    "format1": "形式で出力",
-    "text": "現在",
-    "text1": "直接出力してください",
+    "format1": "フォーマット出力",
+    "text": "今すぐ",
+    "text1": "直接出力",
     "text2": "結果",
-    "text3": "厳密に従ってください"
+    "text3": "厳密に従って出力してください"
   },
   "plaintextEditor": {
     "init_failed": "プレーンテキストエディタ初期化失敗: ",
@@ -3851,8 +4080,11 @@
       "zoomOut": "縮小 (Ctrl -)",
       "toggleLineNumbers": "行番号表示を切り替え",
       "toggleMinimap": "ミニマップを切り替え",
-      "showConsole": "ターミナルを表示"
-    }
+      "showConsole": "ターミナルを表示",
+      "toggleLineNumbers:": "行番号の表示を切り替え",
+      "toggleMinimap:": "ミニマップの表示を切り替え"
+    },
+    "init_failed:": "プレーンテキストエディタの初期化に失敗しました:"
   },
   "proofread": {
     "errorTypes": {
@@ -3864,23 +4096,23 @@
     },
     "errorsFound": "{count}件のエラーを発見しました",
     "fix": "修正",
-    "fixAll": "すべて修正",
+    "fixAll": "すべてを修正",
     "ignore": "無視",
-    "ignoreAll": "すべて無視",
-    "ignoreAllSuccess": "{count}件のエラーを無視しました",
+    "ignoreAll": "すべてを無視",
+    "ignoreAllSuccess": "{count}件のエラーをすべて無視しました",
     "ignoreSuccess": "無視しました",
-    "noErrors": "エラーはありません",
+    "noErrors": "エラーは見つかりませんでした",
     "severity": {
       "error": "エラー",
       "warning": "警告",
       "info": "情報"
     },
     "title": "文章校正",
-    "startProofread": "校正を開始する",
+    "startProofread": "校正を開始",
     "errorsList": "エラーリスト",
     "documentPreview": "ドキュメントプレビュー",
     "noErrorsFound": "エラーは見つかりませんでした",
-    "clearFixed": "修正済みをクリア",
+    "clearFixed": "修正済みをクリアする",
     "noDocument": "アクティブなドキュメントがありません",
     "noContent": "ドキュメントの内容が空です",
     "autoFixed": "修正済み",
@@ -3894,47 +4126,47 @@
     "fixSuccess": "修正成功",
     "addToDictionarySuccess": "辞書に追加しました",
     "addToDictionaryFailed": "辞書への追加に失敗しました",
-    "fixAllSuccess": "{count}件のエラーを修正しました",
+    "fixAllSuccess": "{count}件のエラーをすべて修正しました",
     "clearFixedSuccess": "{removedCount}個の修正済みエラーをクリアしました"
   },
   "proofread-tool": {
     "cancelled": "リクエストがキャンセルされました",
-    "errorContentFormatFile": "ファイルコンテンツ形式エラー",
-    "failed": "リクエスト失敗",
-    "failed1": "データ取得失敗",
-    "failedFile": "ファイル読み込み失敗",
-    "file": "ファイルを読み込めません",
+    "errorContentFormatFile": "ファイルの内容形式が不正です",
+    "failed": "リクエストに失敗しました",
+    "failed1": "データの取得に失敗しました",
+    "failedFile": "ファイルの読み込みに失敗しました",
+    "file": "ファイルを読み込めませんでした",
     "fileNotExistNotexistContentFile": "ファイルコンテンツが空、またはファイルが存在しません",
     "lineNumber": "行番号",
     "operationCancelled": "操作がキャンセルされました",
     "text": "メインプロセス",
-    "text1": "使用を試行",
+    "text1": "使用を試みています",
     "unavailable": "レンダラー利用不可"
   },
   "proofreadView": {
     "content": "これはサンプルドキュメントコンテンツです",
-    "error": "個のエラー",
-    "feature": "の各機能",
-    "suggestion": "文法提案",
-    "suggestion1": "変更を提案",
+    "error": "件のエラー",
+    "feature": "の各機能特性",
+    "suggestion": "文法チェックの提案",
+    "suggestion1": "修正を提案",
     "suggestion2": "提案",
-    "text": "発見",
-    "text1": "本文書は詳しく説明しています",
+    "text": "件発見",
+    "text1": "本文書では、以下の機能特性について詳しく説明しています",
     "text2": "スタイル最適化",
     "text3": "表現を最適化"
   },
   "reference-adapters": {
     "convertFailed": "変換失敗",
-    "failedLanguage": "言語失敗",
+    "failedLanguage": "言語の取得に失敗しました",
     "file": "ファイル",
-    "parse": "解析できません",
+    "parse": "解析できませんでした",
     "parseFailed": "解析失敗",
-    "text": "取得",
+    "text": "テキストを取得",
     "text1": "デフォルトの英語を使用",
-    "unavailable": "レンダラー利用不可"
+    "unavailable": "レンダラーが利用できません"
   },
   "reference-processor": {
-    "failedSaveFile": "ファイル保存失敗",
+    "failedSaveFile": "ファイルの保存に失敗しました",
     "file": "ファイル",
     "operationCancelled": "操作がキャンセルされました",
     "recognize": "画像を認識",
@@ -3946,15 +4178,18 @@
     "contentDynamic": "現在のアクティブドキュメントコンテンツを動的に取得",
     "format": "形式",
     "spaceOccupyMessageHistory": "履歴メッセージスペースを占有しない",
-    "updateRealtime": "リアルタイム更新"
+    "updateRealtime": "リアルタイム更新",
+    "cancelRequestFailed:": "キャンセルリクエストの送信に失敗しました",
+    "contentDynamic:": "現在アクティブなドキュメントの内容を動的に取得",
+    "spaceOccupyMessageHistory:": "履歴メッセージのスペースを占有しません"
   },
   "resizableContainer": {
     "collapse": "折りたたむ",
-    "expand": "展開"
+    "expand": "展開する"
   },
   "settingBasicSection": {
     "failedSize": "ディレクトリサイズの取得に失敗しました",
-    "text": "こんにちは世界",
+    "text": "Hello World",
     "unavailable": "レンダラーが利用できません"
   },
   "settingDebugSection": {
@@ -3964,7 +4199,7 @@
     "text": "例",
     "updateTest": "更新テスト",
     "version": "現在のバージョン",
-    "versionUpdate": "バージョン更新をシミュレート"
+    "versionUpdate": "バージョンアップをシミュレート"
   },
   "settingLlmSection": {
     "cancelled": "キャンセル",
@@ -3972,22 +4207,22 @@
     "failedTest": "テストに失敗しました",
     "successImport": "インポート成功",
     "test": "テスト結果",
-    "text": "個の設定",
+    "text": "設定",
     "text1": "デフォルト",
-    "text2": "これはデモモードの"
+    "text2": "これはデモモードです"
   },
   "streamingJsonTree": {
     "untitled": "無題"
   },
   "todolist-tool": {
     "descriptionFeature": "機能説明",
-    "descriptionUserLanguage": "ユーザーの自然言語による入力に基づく",
+    "descriptionUserLanguage": "ユーザーが入力した自然言語に基づいて",
     "failed": "失敗",
     "recognize": "意図認識とタスク分割",
     "recognize1": "意図認識とタスク分割ツール",
-    "save": "に保存しました",
+    "save": "保存先:",
     "success": "成功",
-    "text": "から読み取りました",
+    "text": "から読み取りました:",
     "text1": "タスク数",
     "text2": "複雑なタスクを構造化されたタスクリストに分解します",
     "text3": "複雑なタスクを構造化されたタスクリストに分解します",
@@ -3996,19 +4231,19 @@
     "validate": "検証"
   },
   "tool-call-parsers": {
-    "detect": "ネストされたを検出しました",
-    "detect1": "標準を検出しました",
+    "detect": "ネストされたツール呼び出しを検出しました",
+    "detect1": "標準ツール呼び出しを検出しました",
     "format": "フォーマット",
     "notExistUnavailable": "存在しないか利用できません",
     "parse": "パーサー",
     "parseFailed": "解析に失敗しました",
     "text": "ツール",
-    "text1": "に委任"
+    "text1": "に委任する"
   },
   "useCloseTab": {
     "closeOff": "既に閉じています",
     "ignoreRepeat": "重複リクエストを無視",
-    "notExist": "既に存在しません"
+    "notExist": "既に存在していません"
   },
   "useTabDrag": {
     "failed": "サムネイルのプリフェッチに失敗しました",
@@ -4018,87 +4253,103 @@
     "text": "無題"
   },
   "useWorkspaceOperations": {
-    "deleteFailed": "削除に失敗しました",
-    "failedPaste": "貼り付けに失敗しました",
-    "renameFailed": "名前変更に失敗しました"
+    "deleteFailed": "削除できませんでした",
+    "failedPaste": "貼り付けできませんでした",
+    "renameFailed": "名前を変更できませんでした"
   },
   "vditorPreview": {
-    "renderFailed": "レンダリングに失敗しました"
+    "renderFailed": "レンダリング失敗"
   },
   "userManual": {
     "agent": {
       "introduction": {
         "title": "Agentの使用方法",
-        "content": "# Agentの使用方法\n\nAgentはMetaDocのコア機能の一つであり、複雑なタスクを自動実行できるインテリジェントアシスタントです。\n\n## Agentとは\n\nAgentはLLMベースのインテリジェントシステムで、以下のことができます：\n\n- ユーザーの意図を理解する\n- 実行ステップを計画する\n- 各種ツールを呼び出してタスクを完了する\n- エラーを自動修正する\n\n## Agentの動作方式\n\nAgentは「思考-実行-観察」のサイクルモードを使用します：\n\n1. **思考**: タスクを分析し、計画を立てる\n2. **実行**: ツールを呼び出して操作を実行する\n3. **観察**: 結果を確認し、継続するか判断する\n4. **反省**: 実行効果を評価し、戦略を調整する\n\n## 使用シーン\n\nAgentは以下のシーンに適しています：\n\n- ドキュメントコンテンツの生成と最適化\n- グラフの自動生成と挿入\n- ドキュメント構造の最適化\n- バッチ処理タスク\n\n## 使い始める\n\n1. 「Agent」ビューを開く\n2. 新しいAgentセッションを作成する\n3. タスク説明を入力する\n4. Agentが自動的にタスクを実行する\n\n## 注意事項\n\n- AgentはAPI呼び出し回数を消費するため、コストに注意してください\n- 複雑なタスクには時間がかかる場合があります\n- まず小さなタスクから始めて、Agentの使い方に慣れることをお勧めします"
+        "content": "# Agentの使用方法\n\nAgentはMetaDocのコア機能の一つであり、複雑なタスクを自動実行できるインテリジェントアシスタントです。\n\n## Agentとは\n\nAgentはLLMベースのインテリジェントシステムで、以下のことができます：\n\n- ユーザーの意図を理解する\n- 実行ステップを計画する\n- 各種ツールを呼び出してタスクを完了する\n- エラーを自動修正する\n\n## Agentの動作方式\n\nAgentは「思考-実行-観察」のサイクルモードを使用します：\n\n1. **思考**: タスクを分析し、計画を立てる\n2. **実行**: ツールを呼び出して操作を実行する\n3. **観察**: 結果を確認し、継続するか判断する\n4. **反省**: 実行効果を評価し、戦略を調整する\n\n## 使用シーン\n\nAgentは以下のシーンに適しています：\n\n- ドキュメントコンテンツの生成と最適化\n- グラフの自動生成と挿入\n- ドキュメント構造の最適化\n- バッチ処理タスク\n\n## 使い始める\n\n1. 「Agent」ビューを開く\n2. 新しいAgentセッションを作成する\n3. タスク説明を入力する\n4. Agentが自動的にタスクを実行する\n\n## 注意事項\n\n- AgentはAPI呼び出し回数を消費するため、コストに注意してください\n- 複雑なタスクには時間がかかる場合があります\n- まず小さなタスクから始めて、Agentの使い方に慣れることをお勧めします",
+        "title:": "Agentの使い方"
       },
       "capabilities": {
         "title": "Agentの機能説明",
-        "content": "# Agentの機能説明\n\nAgentはさまざまなドキュメント処理タスクを支援する複数の機能をサポートしています。\n\n## コア機能\n\n### 1. ドキュメント編集\n\n- テキストの挿入、削除、置換\n- テキストの書式設定\n- ドキュメント構造の調整\n\n### 2. アウトライン操作\n\n- ドキュメントアウトラインの生成\n- アウトライン構造の最適化\n- サブチャプターの追加\n- チャプターコンテンツの生成\n\n### 3. グラフ生成\n\n- コンテンツに基づいて自動的にグラフを生成\n- Mermaid、PlantUML、EChartsコードの挿入\n- グラフレイアウトの最適化\n\n### 4. コンテンツ生成\n\n- アウトラインに基づいてコンテンツを生成\n- ドキュメントの拡張\n- テキストの磨き上げ\n\n### 5. 知識検索\n\n- ナレッジベースから関連情報を検索\n- 検索結果に基づいてコンテンツを生成\n\n## ツールセット\n\nAgentは以下のツールを使用できます：\n\n- `edit`: ドキュメントコンテンツを編集\n- `outline-tree`: ドキュメントアウトラインを取得\n- `outline-optimize`: アウトライン構造を最適化\n- `chart-generation`: グラフを生成\n- `rag-query`: ナレッジベースをクエリ\n- その他...\n\n## 制限事項\n\n- Agentの実行は利用可能なツールによって制限されます\n- 一部の操作にはユーザー確認が必要な場合があります\n- 複雑なタスクには複数回の対話が必要な場合があります"
+        "content": "# Agentの機能説明\n\nAgentはさまざまなドキュメント処理タスクを支援する複数の機能をサポートしています。\n\n## コア機能\n\n### 1. ドキュメント編集\n\n- テキストの挿入、削除、置換\n- テキストの書式設定\n- ドキュメント構造の調整\n\n### 2. アウトライン操作\n\n- ドキュメントアウトラインの生成\n- アウトライン構造の最適化\n- サブチャプターの追加\n- チャプターコンテンツの生成\n\n### 3. グラフ生成\n\n- コンテンツに基づいて自動的にグラフを生成\n- Mermaid、PlantUML、EChartsコードの挿入\n- グラフレイアウトの最適化\n\n### 4. コンテンツ生成\n\n- アウトラインに基づいてコンテンツを生成\n- ドキュメントの拡張\n- テキストの磨き上げ\n\n### 5. 知識検索\n\n- ナレッジベースから関連情報を検索\n- 検索結果に基づいてコンテンツを生成\n\n## ツールセット\n\nAgentは以下のツールを使用できます：\n\n- `edit`: ドキュメントコンテンツを編集\n- `outline-tree`: ドキュメントアウトラインを取得\n- `outline-optimize`: アウトライン構造を最適化\n- `chart-generation`: グラフを生成\n- `rag-query`: ナレッジベースをクエリ\n- その他...\n\n## 制限事項\n\n- Agentの実行は利用可能なツールによって制限されます\n- 一部の操作にはユーザー確認が必要な場合があります\n- 複雑なタスクには複数回の対話が必要な場合があります",
+        "title:": "Agentの機能"
       },
       "risks": {
         "title": "Agentのリスクとコスト",
-        "content": "# Agentのリスクとコスト\n\nAgentを使用する際は、以下のリスクとコストに注意する必要があります。\n\n## リスク\n\n### 1. コンテンツの正確性\n\n- Agentが生成したコンテンツは完全に正確ではない場合があります\n- 手動での確認と修正をお勧めします\n- 重要なドキュメントは慎重に使用してください\n\n### 2. 予期しない変更\n\n- Agentは変更したくないコンテンツを変更する場合があります\n- 使用前にドキュメントを保存することをお勧めします\n- バージョン管理機能を使用できます\n\n### 3. プライバシーとセキュリティ\n\n- AgentはドキュメントコンテンツをLLM APIに送信します\n- 機密情報は慎重に使用してください\n- ローカル展開のLLM（例：Ollama）の使用をお勧めします\n\n## コスト\n\n### API呼び出し料金\n\nAgentを使用するとAPI呼び出し料金が発生します：\n\n- **OpenAI GPT-4**: 約 $0.03-0.06 / 1000 tokens\n- **OpenAI GPT-3.5**: 約 $0.001-0.002 / 1000 tokens\n- **DeepSeek**: 約 $0.0001-0.0002 / 1000 tokens\n- **Ollama**: 無料（ローカル展開）\n\n### Token消費\n\nAgentのToken消費は以下の要素に依存します：\n\n- ドキュメントの長さ\n- タスクの複雑さ\n- ツール呼び出し回数\n\n中程度の複雑さのタスクは以下を消費する可能性があります：\n\n- 入力: 1000-5000 tokens\n- 出力: 500-2000 tokens\n- ツール呼び出し: 500-2000 tokens\n\n合計: 2000-9000 tokens\n\n## 最適化の提案\n\n1. **ローカルLLMを使用**: 可能であれば、Ollamaなどのローカル展開のLLMを使用してください\n2. **適切な設定**: 温度、最大Tokenなどのパラメータを調整してください\n3. **バッチ処理**: 大きなタスクを小さなタスクに分割してください\n4. **使用状況の監視**: LLM統計を定期的に確認し、使用状況を把握してください\n\n## コスト見積もり\n\n毎日10個のドキュメントをAgentで処理し、各ドキュメントが平均5000 tokensを消費すると仮定：\n\n- GPT-3.5使用時: 約 $0.05-0.10/日\n- GPT-4使用時: 約 $1.50-3.00/日\n- DeepSeek使用時: 約 $0.005-0.01/日\n- Ollama使用時: $0/日"
+        "content": "# Agentのリスクとコスト\n\nAgentを使用する際は、以下のリスクとコストに注意する必要があります。\n\n## リスク\n\n### 1. コンテンツの正確性\n\n- Agentが生成したコンテンツは完全に正確ではない場合があります\n- 手動での確認と修正をお勧めします\n- 重要なドキュメントは慎重に使用してください\n\n### 2. 予期しない変更\n\n- Agentは変更したくないコンテンツを変更する場合があります\n- 使用前にドキュメントを保存することをお勧めします\n- バージョン管理機能を使用できます\n\n### 3. プライバシーとセキュリティ\n\n- AgentはドキュメントコンテンツをLLM APIに送信します\n- 機密情報は慎重に使用してください\n- ローカル展開のLLM（例：Ollama）の使用をお勧めします\n\n## コスト\n\n### API呼び出し料金\n\nAgentを使用するとAPI呼び出し料金が発生します：\n\n- **OpenAI GPT-4**: 約 $0.03-0.06 / 1000 tokens\n- **OpenAI GPT-3.5**: 約 $0.001-0.002 / 1000 tokens\n- **DeepSeek**: 約 $0.0001-0.0002 / 1000 tokens\n- **Ollama**: 無料（ローカル展開）\n\n### Token消費\n\nAgentのToken消費は以下の要素に依存します：\n\n- ドキュメントの長さ\n- タスクの複雑さ\n- ツール呼び出し回数\n\n中程度の複雑さのタスクは以下を消費する可能性があります：\n\n- 入力: 1000-5000 tokens\n- 出力: 500-2000 tokens\n- ツール呼び出し: 500-2000 tokens\n\n合計: 2000-9000 tokens\n\n## 最適化の提案\n\n1. **ローカルLLMを使用**: 可能であれば、Ollamaなどのローカル展開のLLMを使用してください\n2. **適切な設定**: 温度、最大Tokenなどのパラメータを調整してください\n3. **バッチ処理**: 大きなタスクを小さなタスクに分割してください\n4. **使用状況の監視**: LLM統計を定期的に確認し、使用状況を把握してください\n\n## コスト見積もり\n\n毎日10個のドキュメントをAgentで処理し、各ドキュメントが平均5000 tokensを消費すると仮定：\n\n- GPT-3.5使用時: 約 $0.05-0.10/日\n- GPT-4使用時: 約 $1.50-3.00/日\n- DeepSeek使用時: 約 $0.005-0.01/日\n- Ollama使用時: $0/日",
+        "title:": "Agentのリスクとコスト"
       }
     },
     "ai": {
       "llmConfig": {
         "title": "LLM設定ガイド",
-        "content": "# LLM設定ガイド\n\nMetaDocは複数のLLM APIをサポートしており、必要に応じて自分のAPIキーを設定できます。\n\n## サポートされているLLM API\n\nMetaDocは以下のLLMサービスをサポートしています：\n\n- **OpenAI**: GPT-3.5, GPT-4など\n- **DeepSeek**: DeepSeek Chatなど\n- **Ollama**: ローカル展開のモデル\n- **Gemini**: Google Gemini\n- **MetaDoc**: MetaDoc公式API\n- **カスタムAPI**: OpenAI形式と互換性のあるカスタムAPI\n\n## 設定手順\n\n1. 「設定」→「LLM設定」を開く\n2. LLMタイプを選択する\n3. APIキーを入力する（必要な場合）\n4. モデルを選択する\n5. その他のオプションを設定する（温度、最大Tokenなど）\n6. 「保存」をクリックする\n\n## APIキーの取得\n\n### OpenAI\n\n1. https://platform.openai.com/api-keys にアクセス\n2. アカウントにログイン\n3. 新しいAPIキーを作成\n4. キーをMetaDocにコピー\n\n### DeepSeek\n\n1. https://platform.deepseek.com/api_keys にアクセス\n2. アカウントにログイン\n3. APIキーを作成\n4. キーをMetaDocにコピー\n\n### Ollama（ローカル展開）\n\n1. Ollamaをインストール: https://ollama.ai\n2. `ollama serve` を実行\n3. MetaDocでAPI URLを `http://localhost:11434/api` に設定\n4. インストール済みのモデルを選択\n\n## 注意事項\n\n- APIキーは適切に保管し、漏洩しないようにしてください\n- APIを使用すると料金が発生するため、使用量に注意してください\n- 一部のAPIはアクセスするためにVPNが必要な場合があります"
+        "content": "# LLM設定ガイド\n\nMetaDocは複数のLLM APIをサポートしており、必要に応じて自分のAPIキーを設定できます。\n\n## サポートされているLLM API\n\nMetaDocは以下のLLMサービスをサポートしています：\n\n- **OpenAI**: GPT-3.5, GPT-4など\n- **DeepSeek**: DeepSeek Chatなど\n- **Ollama**: ローカル展開のモデル\n- **Gemini**: Google Gemini\n- **MetaDoc**: MetaDoc公式API\n- **カスタムAPI**: OpenAI形式と互換性のあるカスタムAPI\n\n## 設定手順\n\n1. 「設定」→「LLM設定」を開く\n2. LLMタイプを選択する\n3. APIキーを入力する（必要な場合）\n4. モデルを選択する\n5. その他のオプションを設定する（温度、最大Tokenなど）\n6. 「保存」をクリックする\n\n## APIキーの取得\n\n### OpenAI\n\n1. https://platform.openai.com/api-keys にアクセス\n2. アカウントにログイン\n3. 新しいAPIキーを作成\n4. キーをMetaDocにコピー\n\n### DeepSeek\n\n1. https://platform.deepseek.com/api_keys にアクセス\n2. アカウントにログイン\n3. APIキーを作成\n4. キーをMetaDocにコピー\n\n### Ollama（ローカル展開）\n\n1. Ollamaをインストール: https://ollama.ai\n2. `ollama serve` を実行\n3. MetaDocでAPI URLを `http://localhost:11434/api` に設定\n4. インストール済みのモデルを選択\n\n## 注意事項\n\n- APIキーは適切に保管し、漏洩しないようにしてください\n- APIを使用すると料金が発生するため、使用量に注意してください\n- 一部のAPIはアクセスするためにVPNが必要な場合があります",
+        "title:": "LLM設定"
       },
       "tools": {
         "title": "AIツールの使用",
-        "content": "# AIツールの使用\n\nMetaDocはドキュメント作成の効率を向上させる豊富なAIツールを提供しています。\n\n## 利用可能なツール\n\n### 1. AIチャット\n\nAIと対話してヘルプと提案を取得します。\n\n- 左側メニューの「AIアシスタント」→「AIとチャット」をクリック\n- またはショートカットでAIチャットウィンドウを開く\n- コンテキスト理解をサポートし、現在のドキュメントコンテンツに基づいて対話できます\n\n### 2. 数式認識\n\n手書きまたは画像内の数学式を認識します。\n\n- 「AIアシスタント」→「手書き数式認識」をクリック\n- 画像をアップロードするか、カメラで写真を撮る\n- AIが自動的に数式を認識し、LaTeX形式に変換\n\n### 3. スマート描画アシスタント\n\nAIを使用してグラフコードを生成します。\n\n- 希望するグラフを説明する\n- AIが対応するMermaid、PlantUML、またはEChartsコードを生成\n- ドキュメントに直接挿入可能\n\n### 4. データ分析ツール\n\nドキュメント内のデータテーブルを分析します。\n\n- ドキュメント内のテーブルを選択\n- 「AIアシスタント」→「データ分析ツール」をクリック\n- AIがデータを分析し、可視化グラフを生成\n\n### 5. OCR文字認識\n\n画像内の文字を認識します。\n\n- 「AIアシスタント」→「OCR文字認識」をクリック\n- 画像をアップロード\n- AIが画像内の文字を認識して抽出\n\n### 6. 添付ファイル解析ツール\n\nPDF、Wordなどの添付ファイルを解析します。\n\n- 「AIアシスタント」→「添付ファイル解析ツール」をクリック\n- 添付ファイルをアップロード\n- AIがファイルコンテンツを抽出し、ナレッジベースに追加\n\n## 使用ヒント\n\n- RAGナレッジベースを使用すると、AIの回答精度が向上します\n- 対話でドキュメントコンテンツを参照すると、より関連性の高い回答が得られます\n- ツールを適切に使用すると、作業効率が大幅に向上します"
+        "content": "# AIツールの使用\n\nMetaDocはドキュメント作成の効率を向上させる豊富なAIツールを提供しています。\n\n## 利用可能なツール\n\n### 1. AIチャット\n\nAIと対話してヘルプと提案を取得します。\n\n- 左側メニューの「AIアシスタント」→「AIとチャット」をクリック\n- またはショートカットでAIチャットウィンドウを開く\n- コンテキスト理解をサポートし、現在のドキュメントコンテンツに基づいて対話できます\n\n### 2. 数式認識\n\n手書きまたは画像内の数学式を認識します。\n\n- 「AIアシスタント」→「手書き数式認識」をクリック\n- 画像をアップロードするか、カメラで写真を撮る\n- AIが自動的に数式を認識し、LaTeX形式に変換\n\n### 3. スマート描画アシスタント\n\nAIを使用してグラフコードを生成します。\n\n- 希望するグラフを説明する\n- AIが対応するMermaid、PlantUML、またはEChartsコードを生成\n- ドキュメントに直接挿入可能\n\n### 4. データ分析ツール\n\nドキュメント内のデータテーブルを分析します。\n\n- ドキュメント内のテーブルを選択\n- 「AIアシスタント」→「データ分析ツール」をクリック\n- AIがデータを分析し、可視化グラフを生成\n\n### 5. OCR文字認識\n\n画像内の文字を認識します。\n\n- 「AIアシスタント」→「OCR文字認識」をクリック\n- 画像をアップロード\n- AIが画像内の文字を認識して抽出\n\n### 6. 添付ファイル解析ツール\n\nPDF、Wordなどの添付ファイルを解析します。\n\n- 「AIアシスタント」→「添付ファイル解析ツール」をクリック\n- 添付ファイルをアップロード\n- AIがファイルコンテンツを抽出し、ナレッジベースに追加\n\n## 使用ヒント\n\n- RAGナレッジベースを使用すると、AIの回答精度が向上します\n- 対話でドキュメントコンテンツを参照すると、より関連性の高い回答が得られます\n- ツールを適切に使用すると、作業効率が大幅に向上します",
+        "title:": "AIツール"
       },
       "chat": {
         "title": "AIチャットの使用",
-        "content": "# AIチャットの使用\n\nAIチャット機能により、AIとの複数回の対話が可能になり、対話履歴を保存できます。\n\n## セッションの作成\n\n1. AIチャットウィンドウを開く\n2. 「新しい会話」をクリック\n3. セッション名を入力（オプション）\n4. 対話を開始\n\n## セッション管理\n\n- **セッション切り替え**: セッションリストで異なるセッションを選択\n- **セッション名変更**: セッションを右クリックして「名前を変更」を選択\n- **セッション削除**: セッションを右クリックして「削除」を選択\n- **セッションエクスポート**: セッションを右クリックして「エクスポート」を選択し、Markdown形式でエクスポート可能\n\n## セッション機能\n\n### コンテキスト理解\n\nAIチャットは以前の対話コンテンツを記憶し、コンテキストに基づいて回答できます。\n\n### ドキュメント参照\n\n対話で現在開いているドキュメントコンテンツを参照できます：\n\n- ドキュメント内のテキストを選択\n- AIチャットで「このテキストを分析してください」と入力\n- AIが選択したテキストに基づいて分析\n\n### ナレッジベース検索\n\nRAGナレッジベースを有効にすると、AIはナレッジベースから関連情報を検索して質問に回答します。\n\n## ショートカット\n\n- `Ctrl+L`: AIチャットウィンドウを開く/閉じる\n- `Enter`: メッセージを送信\n- `Shift+Enter`: 改行\n- `Ctrl+/`: 入力ボックスをクリア"
+        "content": "# AIチャットの使用\n\nAIチャット機能により、AIとの複数回の対話が可能になり、対話履歴を保存できます。\n\n## セッションの作成\n\n1. AIチャットウィンドウを開く\n2. 「新しい会話」をクリック\n3. セッション名を入力（オプション）\n4. 対話を開始\n\n## セッション管理\n\n- **セッション切り替え**: セッションリストで異なるセッションを選択\n- **セッション名変更**: セッションを右クリックして「名前を変更」を選択\n- **セッション削除**: セッションを右クリックして「削除」を選択\n- **セッションエクスポート**: セッションを右クリックして「エクスポート」を選択し、Markdown形式でエクスポート可能\n\n## セッション機能\n\n### コンテキスト理解\n\nAIチャットは以前の対話コンテンツを記憶し、コンテキストに基づいて回答できます。\n\n### ドキュメント参照\n\n対話で現在開いているドキュメントコンテンツを参照できます：\n\n- ドキュメント内のテキストを選択\n- AIチャットで「このテキストを分析してください」と入力\n- AIが選択したテキストに基づいて分析\n\n### ナレッジベース検索\n\nRAGナレッジベースを有効にすると、AIはナレッジベースから関連情報を検索して質問に回答します。\n\n## ショートカット\n\n- `Ctrl+L`: AIチャットウィンドウを開く/閉じる\n- `Enter`: メッセージを送信\n- `Shift+Enter`: 改行\n- `Ctrl+/`: 入力ボックスをクリア",
+        "title:": "AIチャット"
       }
     },
     "backToOverview": "概要に戻る",
     "charts": {
       "introduction": {
         "title": "グラフ作成の概要",
-        "content": "# グラフ作成の概要\n\nMetaDocは複数のグラフ描画エンジンをサポートしており、さまざまなタイプのグラフを作成できます。\n\n## サポートされているグラフエンジン\n\n| エンジン | 適用シーン |\n|------|---------|\n| Mermaid | フローチャート、UML図、ガントチャート |\n| PlantUML | プロフェッショナルUMLモデリング |\n| ECharts | データ可視化グラフ |\n| Flowchart | 基本フローチャート |\n| Mindmap | マインドマップ |\n\n## グラフの挿入\n\nMarkdownドキュメントでコードブロックを使用してグラフを挿入：\n\n````markdown\n```mermaid\ngraph TD\n    A[開始] --> B[処理]\n    B --> C[終了]\n```\n````\n\n## グラフレンダリング\n\n- グラフはエディタでリアルタイムにレンダリングされます\n- PDF、HTMLなどの形式へのエクスポートをサポート\n- グラフコードはi18n多言語をサポート"
+        "content": "# グラフ作成の概要\n\nMetaDocは複数のグラフ描画エンジンをサポートしており、さまざまなタイプのグラフを作成できます。\n\n## サポートされているグラフエンジン\n\n| エンジン | 適用シーン |\n|------|---------|\n| Mermaid | フローチャート、UML図、ガントチャート |\n| PlantUML | プロフェッショナルUMLモデリング |\n| ECharts | データ可視化グラフ |\n| Flowchart | 基本フローチャート |\n| Mindmap | マインドマップ |\n\n## グラフの挿入\n\nMarkdownドキュメントでコードブロックを使用してグラフを挿入：\n\n````markdown\n```mermaid\ngraph TD\n    A[開始] --> B[処理]\n    B --> C[終了]\n```\n````\n\n## グラフレンダリング\n\n- グラフはエディタでリアルタイムにレンダリングされます\n- PDF、HTMLなどの形式へのエクスポートをサポート\n- グラフコードはi18n多言語をサポート",
+        "title:": "チャート作成"
       },
       "mermaid": {
         "title": "Mermaidグラフ",
-        "content": "# Mermaidグラフ\n\nMermaidは、フローチャート、シーケンス図、プロジェクト計画図を迅速に描画するのに適しています。\n\n## フローチャート\n\n```mermaid\ngraph TD\n    A[開始] --> B{判断}\n    B -->|はい| C[操作1]\n    B -->|いいえ| D[操作2]\n    C --> E[終了]\n    D --> E\n```\n\n## シーケンス図\n\n```mermaid\nsequenceDiagram\n    participant A as ユーザー\n    participant B as システム\n    A->>B: リクエスト\n    B-->>A: レスポンス\n```\n\n## UMLクラス図\n\n```mermaid\nclassDiagram\n    class Animal {\n        +String name\n        +int age\n        +eat()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal <|-- Dog\n```\n\n## ガントチャート\n\n```mermaid\ngantt\n    title プロジェクト計画\n    dateFormat YYYY-MM-DD\n    section フェーズ1\n    タスク1 :a1, 2024-01-01, 30d\n    タスク2 :a2, after a1, 20d\n```\n\n## 注意事項\n\n- 文字列は `[\"...\"]` で囲むことをお勧めします。エスケープエラーを回避するため\n- クラス図では、スペースや特殊文字を含む識別子は避けてください"
+        "content": "# Mermaidグラフ\n\nMermaidは、フローチャート、シーケンス図、プロジェクト計画図を迅速に描画するのに適しています。\n\n## フローチャート\n\n```mermaid\ngraph TD\n    A[開始] --> B{判断}\n    B -->|はい| C[操作1]\n    B -->|いいえ| D[操作2]\n    C --> E[終了]\n    D --> E\n```\n\n## シーケンス図\n\n```mermaid\nsequenceDiagram\n    participant A as ユーザー\n    participant B as システム\n    A->>B: リクエスト\n    B-->>A: レスポンス\n```\n\n## UMLクラス図\n\n```mermaid\nclassDiagram\n    class Animal {\n        +String name\n        +int age\n        +eat()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal <|-- Dog\n```\n\n## ガントチャート\n\n```mermaid\ngantt\n    title プロジェクト計画\n    dateFormat YYYY-MM-DD\n    section フェーズ1\n    タスク1 :a1, 2024-01-01, 30d\n    タスク2 :a2, after a1, 20d\n```\n\n## 注意事項\n\n- 文字列は `[\"...\"]` で囲むことをお勧めします。エスケープエラーを回避するため\n- クラス図では、スペースや特殊文字を含む識別子は避けてください",
+        "title:": "Mermaid"
       },
       "plantuml": {
         "title": "PlantUMLグラフ",
-        "content": "# PlantUMLグラフ\n\nPlantUMLはUMLモデリングに特化しており、さまざまなソフトウェア構造と振る舞い図の詳細なモデリングに適しています。\n\n## UMLクラス図\n\n```plantuml\n@startuml\nclass Animal {\n    -name: String\n    -age: int\n    +eat()\n}\n\nclass Dog {\n    +bark()\n}\n\nAnimal <|-- Dog\n@enduml\n```\n\n## シーケンス図\n\n```plantuml\n@startuml\nAlice -> Bob: リクエスト\nBob --> Alice: レスポンス\n@enduml\n```\n\n## アクティビティ図\n\n```plantuml\n@startuml\nstart\n:データを処理;\nif (データは有効?) then (はい)\n  :データを保存;\nelse (いいえ)\n  :エラーを表示;\nendif\nstop\n@enduml\n```\n\n## 注意事項\n\n- PlantUMLはPascalスタイルの構文を使用します\n- 中国語の識別子はサポートされていません\n- `skinparam` などのレイアウト制御に注意してください"
+        "content": "# PlantUMLグラフ\n\nPlantUMLはUMLモデリングに特化しており、さまざまなソフトウェア構造と振る舞い図の詳細なモデリングに適しています。\n\n## UMLクラス図\n\n```plantuml\n@startuml\nclass Animal {\n    -name: String\n    -age: int\n    +eat()\n}\n\nclass Dog {\n    +bark()\n}\n\nAnimal <|-- Dog\n@enduml\n```\n\n## シーケンス図\n\n```plantuml\n@startuml\nAlice -> Bob: リクエスト\nBob --> Alice: レスポンス\n@enduml\n```\n\n## アクティビティ図\n\n```plantuml\n@startuml\nstart\n:データを処理;\nif (データは有効?) then (はい)\n  :データを保存;\nelse (いいえ)\n  :エラーを表示;\nendif\nstop\n@enduml\n```\n\n## 注意事項\n\n- PlantUMLはPascalスタイルの構文を使用します\n- 中国語の識別子はサポートされていません\n- `skinparam` などのレイアウト制御に注意してください",
+        "title:": "PlantUML"
       },
       "echarts": {
         "title": "EChartsグラフ",
-        "content": "# EChartsグラフ\n\nEChartsは、データ駆動型でインタラクティブ性の高い可視化グラフを作成するのに適しています。\n\n## 折れ線グラフ\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"折れ線グラフの例\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"月\", \"火\", \"水\", \"木\", \"金\", \"土\", \"日\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [150, 230, 224, 218, 135, 147, 260],\n    \"type\": \"line\"\n  }]\n}\n```\n\n## 棒グラフ\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"棒グラフの例\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"月\", \"火\", \"水\", \"木\", \"金\", \"土\", \"日\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [120, 200, 150, 80, 70, 110, 130],\n    \"type\": \"bar\"\n  }]\n}\n```\n\n## 円グラフ\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"円グラフの例\"\n  },\n  \"series\": [{\n    \"type\": \"pie\",\n    \"data\": [\n      {\"value\": 1048, \"name\": \"検索エンジン\"},\n      {\"value\": 735, \"name\": \"直接アクセス\"},\n      {\"value\": 580, \"name\": \"メールマーケティング\"}\n    ]\n  }]\n}\n```\n\n## 注意事項\n\n- 設定項目はEChartsのJSON形式に従う必要があります\n- ECharts公式サイトのOption Builderでテンプレートを取得できます\n- コードブロックの言語は直接 `echarts` と書き、`javascript` ではありません\n- コードブロック内にはJSON形式の設定項目のみを含め、他の内容は不要です"
+        "content": "# EChartsグラフ\n\nEChartsは、データ駆動型でインタラクティブ性の高い可視化グラフを作成するのに適しています。\n\n## 折れ線グラフ\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"折れ線グラフの例\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"月\", \"火\", \"水\", \"木\", \"金\", \"土\", \"日\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [150, 230, 224, 218, 135, 147, 260],\n    \"type\": \"line\"\n  }]\n}\n```\n\n## 棒グラフ\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"棒グラフの例\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"月\", \"火\", \"水\", \"木\", \"金\", \"土\", \"日\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [120, 200, 150, 80, 70, 110, 130],\n    \"type\": \"bar\"\n  }]\n}\n```\n\n## 円グラフ\n\n```echarts\n{\n  \"title\": {\n    \"text\": \"円グラフの例\"\n  },\n  \"series\": [{\n    \"type\": \"pie\",\n    \"data\": [\n      {\"value\": 1048, \"name\": \"検索エンジン\"},\n      {\"value\": 735, \"name\": \"直接アクセス\"},\n      {\"value\": 580, \"name\": \"メールマーケティング\"}\n    ]\n  }]\n}\n```\n\n## 注意事項\n\n- 設定項目はEChartsのJSON形式に従う必要があります\n- ECharts公式サイトのOption Builderでテンプレートを取得できます\n- コードブロックの言語は直接 `echarts` と書き、`javascript` ではありません\n- コードブロック内にはJSON形式の設定項目のみを含め、他の内容は不要です",
+        "title:": "ECharts"
       }
     },
     "core": {
       "fileOperations": {
         "title": "ファイル操作",
-        "content": "# ファイル操作\n\nMetaDocは、新規作成、開く、保存などの基本機能を含む複数のファイル操作をサポートしています。\n\n## 新規ドキュメント\n\n左側メニューの「ファイル」→「新規」をクリックするか、ショートカット `Ctrl+N` を使用して新しいドキュメントを作成します。\n\n## ドキュメントを開く\n\n- 左側メニューの「ファイル」→「開く」をクリックするか、ショートカット `Ctrl+O` を使用\n- `.md`（Markdown）と `.tex`（LaTeX）形式のファイルを開くことができます\n- 最近開いたドキュメントは、ホームの「最近のドキュメント」リストに表示されます\n\n## ドキュメントを保存\n\n- ショートカット `Ctrl+S` を使用して現在のドキュメントを保存\n- `Ctrl+Shift+S` を使用して名前を付けて保存\n- `Ctrl+K S` を使用してすべての開いているドキュメントを保存\n\n## ドキュメントをエクスポート\n\n複数の形式へのエクスポートをサポート：\n\n- **PDF**: 印刷や共有に適しています\n- **HTML**: ウェブ表示に適しています\n- **DOCX**: Word編集に適しています\n- **LaTeX**: 学術論文に適しています\n\n「ファイル」→「エクスポート」メニューから必要な形式を選択してください。"
+        "content": "# ファイル操作\n\nMetaDocは、新規作成、開く、保存などの基本機能を含む複数のファイル操作をサポートしています。\n\n## 新規ドキュメント\n\n左側メニューの「ファイル」→「新規」をクリックするか、ショートカット `Ctrl+N` を使用して新しいドキュメントを作成します。\n\n## ドキュメントを開く\n\n- 左側メニューの「ファイル」→「開く」をクリックするか、ショートカット `Ctrl+O` を使用\n- `.md`（Markdown）と `.tex`（LaTeX）形式のファイルを開くことができます\n- 最近開いたドキュメントは、ホームの「最近のドキュメント」リストに表示されます\n\n## ドキュメントを保存\n\n- ショートカット `Ctrl+S` を使用して現在のドキュメントを保存\n- `Ctrl+Shift+S` を使用して名前を付けて保存\n- `Ctrl+K S` を使用してすべての開いているドキュメントを保存\n\n## ドキュメントをエクスポート\n\n複数の形式へのエクスポートをサポート：\n\n- **PDF**: 印刷や共有に適しています\n- **HTML**: ウェブ表示に適しています\n- **DOCX**: Word編集に適しています\n- **LaTeX**: 学術論文に適しています\n\n「ファイル」→「エクスポート」メニューから必要な形式を選択してください。",
+        "title:": "ファイル操作"
       },
       "editor": {
         "title": "エディタの使用",
-        "content": "# エディタの使用\n\nMetaDocは2つのエディタを提供しています：MarkdownエディタとLaTeXエディタ。\n\n## Markdownエディタ\n\n- Vditorをベースにしており、リアルタイムプレビューをサポート\n- シンタックスハイライトと自動補完\n- 数学式、コードブロック、テーブルなどをサポート\n- ショートカット：\n  - `Ctrl+B`: 太字\n  - `Ctrl+I`: 斜体\n  - `Ctrl+K`: リンクを挿入\n\n## LaTeXエディタ\n\n- Monaco Editorをベースにしており、プロフェッショナルなLaTeX編集体験を提供\n- リアルタイムコンパイルプレビュー\n- シンタックスチェックとエラー提示\n- パッケージの自動ダウンロードをサポート\n\n## マルチタブ操作\n\n- 複数のドキュメントを同時に開くことができます\n- `Ctrl+Tab` を使用してタブを素早く切り替え\n- タブをドラッグして並べ替え\n- タブを右クリックして固定、閉じる、新しいウィンドウに移動など"
+        "content": "# エディタの使用\n\nMetaDocは2つのエディタを提供しています：MarkdownエディタとLaTeXエディタ。\n\n## Markdownエディタ\n\n- Vditorをベースにしており、リアルタイムプレビューをサポート\n- シンタックスハイライトと自動補完\n- 数学式、コードブロック、テーブルなどをサポート\n- ショートカット：\n  - `Ctrl+B`: 太字\n  - `Ctrl+I`: 斜体\n  - `Ctrl+K`: リンクを挿入\n\n## LaTeXエディタ\n\n- Monaco Editorをベースにしており、プロフェッショナルなLaTeX編集体験を提供\n- リアルタイムコンパイルプレビュー\n- シンタックスチェックとエラー提示\n- パッケージの自動ダウンロードをサポート\n\n## マルチタブ操作\n\n- 複数のドキュメントを同時に開くことができます\n- `Ctrl+Tab` を使用してタブを素早く切り替え\n- タブをドラッグして並べ替え\n- タブを右クリックして固定、閉じる、新しいウィンドウに移動など",
+        "title:": "エディタ"
       },
       "multiTab": {
         "title": "マルチタブ操作",
-        "content": "# マルチタブ操作\n\nMetaDocは、ブラウザのようなマルチタブ管理をサポートしています。\n\n## 基本操作\n\n- **新しいタブ**: タグバーの右側にある `+` ボタンをクリック\n- **タブを切り替える**: タブをクリックするか `Ctrl+Tab` を使用\n- **タブを閉じる**: タブの `×` をクリックするか `Ctrl+W` を使用\n- **閉じたタブを復元**: `Ctrl+Shift+T` を使用\n\n## タブ管理\n\n```mermaid\ngraph LR\nA[新規ドキュメント] --> B[ドキュメントを開く]\nB --> C[ドキュメントを編集]\nC --> D[ドキュメントを保存]\nD --> E[タブを閉じる]\n```\n\n## タブを固定\n\nタブを右クリックして「タブを固定」を選択すると、固定されたタブは常に左側に表示され、閉じることができなくなります。\n\n## タブのドラッグ\n\n- タブをドラッグして並べ替え\n- タブをウィンドウの外にドラッグして新しいウィンドウを作成\n- タブを他のウィンドウにドラッグして統合"
+        "content": "# マルチタブ操作\n\nMetaDocは、ブラウザのようなマルチタブ管理をサポートしています。\n\n## 基本操作\n\n- **新しいタブ**: タグバーの右側にある `+` ボタンをクリック\n- **タブを切り替える**: タブをクリックするか `Ctrl+Tab` を使用\n- **タブを閉じる**: タブの `×` をクリックするか `Ctrl+W` を使用\n- **閉じたタブを復元**: `Ctrl+Shift+T` を使用\n\n## タブ管理\n\n```mermaid\ngraph LR\nA[新規ドキュメント] --> B[ドキュメントを開く]\nB --> C[ドキュメントを編集]\nC --> D[ドキュメントを保存]\nD --> E[タブを閉じる]\n```\n\n## タブを固定\n\nタブを右クリックして「タブを固定」を選択すると、固定されたタブは常に左側に表示され、閉じることができなくなります。\n\n## タブのドラッグ\n\n- タブをドラッグして並べ替え\n- タブをウィンドウの外にドラッグして新しいウィンドウを作成\n- タブを他のウィンドウにドラッグして統合",
+        "title:": "タブ操作"
       },
       "multiWindow": {
         "title": "マルチウィンドウ操作",
-        "content": "# マルチウィンドウ操作\n\nMetaDocはマルチウィンドウ管理をサポートしており、異なるウィンドウで異なるドキュメントを開くことができます。\n\n## 新しいウィンドウを作成\n\n- タブをウィンドウの境界の外にドラッグ\n- タブを右クリックして「新しいウィンドウで開く」を選択\n- `Ctrl+N` を使用して新しいウィンドウでドキュメントを作成\n\n## ウィンドウ間の切り替え\n\n- `Alt+Tab` を使用してウィンドウを切り替え\n- 各ウィンドウには独立したタブリストがあります\n\n## ウィンドウを統合\n\nタブを1つのウィンドウから別のウィンドウにドラッグすると統合されます。"
+        "content": "# マルチウィンドウ操作\n\nMetaDocはマルチウィンドウ管理をサポートしており、異なるウィンドウで異なるドキュメントを開くことができます。\n\n## 新しいウィンドウを作成\n\n- タブをウィンドウの境界の外にドラッグ\n- タブを右クリックして「新しいウィンドウで開く」を選択\n- `Ctrl+N` を使用して新しいウィンドウでドキュメントを作成\n\n## ウィンドウ間の切り替え\n\n- `Alt+Tab` を使用してウィンドウを切り替え\n- 各ウィンドウには独立したタブリストがあります\n\n## ウィンドウを統合\n\nタブを1つのウィンドウから別のウィンドウにドラッグすると統合されます。",
+        "title:": "ウィンドウ操作"
       },
       "export": {
         "title": "エクスポート機能",
-        "content": "# エクスポート機能\n\nMetaDocは、ドキュメントを複数の形式にエクスポートすることをサポートしています。\n\n## サポートされているエクスポート形式\n\n| ソース形式 | サポートされているエクスポート形式 |\n|--------|------------|\n| Markdown | MD, HTML, DOCX, PDF, TEX |\n| LaTeX | TEX, PDF, MD, HTML, DOCX |\n\n## エクスポート手順\n\n1. エクスポートするドキュメントを開く\n2. 「ファイル」→「エクスポート」をクリック\n3. ターゲット形式を選択\n4. エクスポートオプションを設定（PDFの用紙サイズ、HTMLスタイルなど）\n5. 「エクスポート」ボタンをクリック\n\n## エクスポートオプション\n\n形式ごとに異なるエクスポートオプションがあります：\n\n- **PDF**: 用紙サイズ、余白、ヘッダー/フッターなど\n- **HTML**: CSSスタイル、リソースを内包するかどうかなど\n- **DOCX**: テンプレート選択、スタイルマッピングなど"
+        "content": "# エクスポート機能\n\nMetaDocは、ドキュメントを複数の形式にエクスポートすることをサポートしています。\n\n## サポートされているエクスポート形式\n\n| ソース形式 | サポートされているエクスポート形式 |\n|--------|------------|\n| Markdown | MD, HTML, DOCX, PDF, TEX |\n| LaTeX | TEX, PDF, MD, HTML, DOCX |\n\n## エクスポート手順\n\n1. エクスポートするドキュメントを開く\n2. 「ファイル」→「エクスポート」をクリック\n3. ターゲット形式を選択\n4. エクスポートオプションを設定（PDFの用紙サイズ、HTMLスタイルなど）\n5. 「エクスポート」ボタンをクリック\n\n## エクスポートオプション\n\n形式ごとに異なるエクスポートオプションがあります：\n\n- **PDF**: 用紙サイズ、余白、ヘッダー/フッターなど\n- **HTML**: CSSスタイル、リソースを内包するかどうかなど\n- **DOCX**: テンプレート選択、スタイルマッピングなど",
+        "title:": "エクスポート"
       }
     },
     "design": {
       "philosophy": {
         "title": "MetaDocのデザイン理念",
-        "content": "# MetaDocのデザイン理念\n\nMetaDocのデザインは以下のコア理念に従っています。\n\n## ブートストラップ設計\n\nユーザーマニュアル自体がMarkdownで作成されており、MetaDocの能力を示しています。これは「ブートストラップ」（Bootstrapping）の設計理念を体現しています：製品自体を使用して製品を展示します。\n\n## ドキュメント駆動\n\nMetaDocは「ドキュメント駆動」のシステムです：\n\n- ドキュメントは核であり、すべての機能はドキュメントを中心に展開されます\n- 複数のドキュメント形式をサポート（Markdown、LaTeX）\n- ドキュメントは複数の形式にエクスポートできます\n\n## インテリジェント化\n\nAIとAgent技術を通じて、ドキュメント作成をよりインテリジェントに：\n\n- AI支援執筆と校正\n- Agentによる複雑なタスクの自動実行\n- インテリジェントなグラフ生成\n\n## 拡張性\n\n- カスタムツールをサポート\n- プラグインアーキテクチャ\n- オープンなAPIインターフェース\n\n## ユーザーエクスペリエンス\n\n- シンプルで美しいインターフェース\n- スムーズな操作体験\n- 豊富なショートカットサポート\n- 多言語サポート\n\n## 技術スタック\n\n- **フロントエンド**: Vue 3 + TypeScript\n- **デスクトップ**: Electron\n- **エディタ**: Monaco + Vditor\n- **AI**: LLM Agentフレームワーク\n- **データベース**: SQLite + sqlite-vec\n\n## 将来の計画\n\n- より多くのAI機能\n- より良いコラボレーション機能\n- クラウド同期\n- モバイルサポート"
+        "content": "# MetaDocのデザイン理念\n\nMetaDocのデザインは以下のコア理念に従っています。\n\n## ブートストラップ設計\n\nユーザーマニュアル自体がMarkdownで作成されており、MetaDocの能力を示しています。これは「ブートストラップ」（Bootstrapping）の設計理念を体現しています：製品自体を使用して製品を展示します。\n\n## ドキュメント駆動\n\nMetaDocは「ドキュメント駆動」のシステムです：\n\n- ドキュメントは核であり、すべての機能はドキュメントを中心に展開されます\n- 複数のドキュメント形式をサポート（Markdown、LaTeX）\n- ドキュメントは複数の形式にエクスポートできます\n\n## インテリジェント化\n\nAIとAgent技術を通じて、ドキュメント作成をよりインテリジェントに：\n\n- AI支援執筆と校正\n- Agentによる複雑なタスクの自動実行\n- インテリジェントなグラフ生成\n\n## 拡張性\n\n- カスタムツールをサポート\n- プラグインアーキテクチャ\n- オープンなAPIインターフェース\n\n## ユーザーエクスペリエンス\n\n- シンプルで美しいインターフェース\n- スムーズな操作体験\n- 豊富なショートカットサポート\n- 多言語サポート\n\n## 技術スタック\n\n- **フロントエンド**: Vue 3 + TypeScript\n- **デスクトップ**: Electron\n- **エディタ**: Monaco + Vditor\n- **AI**: LLM Agentフレームワーク\n- **データベース**: SQLite + sqlite-vec\n\n## 将来の計画\n\n- より多くのAI機能\n- より良いコラボレーション機能\n- クラウド同期\n- モバイルサポート",
+        "title:": "MetaDocの設計理念"
       }
     },
     "emptyContent": "左側から章を選択してください",
@@ -4113,26 +4364,32 @@
       "confirmTitle": "学習を確認",
       "confirmStart": "「{title}」の学習を開始しますか？",
       "confirm": "学習を開始",
-      "cancel": "キャンセル"
+      "cancel": "キャンセル",
+      "confirmStart:": "「{title}」の学習を開始しますか？",
+      "title:": "学習パス"
     },
     "latex": {
       "basic": {
         "title": "LaTeX基礎",
-        "content": "# LaTeX基礎\n\nLaTeXはプロフェッショナルなドキュメント組版システムであり、特に学術論文、技術文書、書籍の組版に適しています。MetaDocはLaTeXコンパイラとして **Tectonic** を使用しており、TeXディストリビューションの手動インストールや設定は不要です。\n\n## Tectonicの利点\n\nMetaDocは [Tectonic](https://tectonic-typesetting.github.io/) コンパイラをベースにしており、以下の利点があります：\n\n- ✅ **TeXディストリビューション不要**：Tectonicはスタンドアロンのバイナリファイルであり、完全なTeX LiveやMiKTeXのインストールは不要です\n- ✅ **自動パッケージダウンロード**：コンパイル時にCTANから必要なパッケージを自動ダウンロードします。手動設定は不要です\n- ✅ **高速コンパイル**：従来のTeXディストリビューションよりコンパイル速度が速いです\n- ✅ **クロスプラットフォーム対応**：Windows、macOS、Linuxを完全にサポート\n- ✅ **エラー位置特定**：コンパイルエラーがソースコードの位置に正確に表示されます\n\n**注意**：Tectonicはパッケージを自動的に管理します。手動でパッケージをダウンロードしたり設定したりする必要はありません。ドキュメントで `\\usepackage{}` コマンドを使用するだけで、Tectonicはコンパイル時に必要なパッケージを自動ダウンロードします。\n\n## ドキュメント構造\n\nLaTeXドキュメントの基本構造：\n\n```latex\n\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\usepackage{amsmath}\n\\usepackage{graphicx}\n\n\\title{ドキュメントタイトル}\n\\author{作者名}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{チャプタータイトル}\nドキュメントコンテンツ...\n\n\\subsection{サブチャプタータイトル}\nさらにコンテンツ...\n\n\\end{document}\n```\n\n### ドキュメントクラス（Document Classes）\n\nよく使われるドキュメントクラス：\n\n- `article`：記事、短いドキュメントに適しています\n- `report`：レポート、長いドキュメントに適しており、チャプター構造があります\n- `book`：書籍、書籍の組版に適しています\n- `beamer`：プレゼンテーション、スライド作成に適しています\n\n```latex\n\\documentclass[12pt,a4paper]{article}\n```\n\nオプションパラメータ：\n- `10pt`, `11pt`, `12pt`：フォントサイズ\n- `a4paper`, `letterpaper`：用紙サイズ\n- `twocolumn`：2段組み\n- `twoside`：両面印刷\n\n## チャプター構造\n\n```latex\n\\part{パートタイトル}        % パート（bookとreportのみ）\n\\chapter{章タイトル}        % 章（bookとreportのみ）\n\\section{節タイトル}        % 第1レベルチャプター\n\\subsection{小節タイトル}   % 第2レベルチャプター\n\\subsubsection{子小節}  % 第3レベルチャプター\n\\paragraph{段落タイトル}   % 段落タイトル\n\\subparagraph{子段落}  % 子段落タイトル\n```\n\n## テキスト書式\n\n### フォントスタイル\n\n```latex\n\\textbf{太字テキスト}\n\\textit{斜体テキスト}\n\\emph{強調テキスト}  % 通常は斜体で表示\n\\texttt{等幅フォント}  % コードフォント\n\\textsc{小型大文字}\n\\underline{下線}\n```\n\n### フォントサイズ\n\n```latex\n{\\tiny 極小}\n{\\scriptsize とても小さい}\n{\\footnotesize 脚注サイズ}\n{\\small 小さい}\n{\\normalsize 通常}\n{\\large 大きい}\n{\\Large より大きい}\n{\\LARGE とても大きい}\n{\\huge 巨大}\n{\\Huge 最大}\n```\n\n## 数学式\n\n### インライン数式\n\n`$数式$` または `\\(数式\\)` を使用：\n\n```latex\nこれはインライン数式：$E = mc^2$、これは別の数式：\\(a^2 + b^2 = c^2\\)\n```\n\n### ブロック数式（番号なし）\n\n`$$数式$$` または `\\[数式\\]` を使用：\n\n```latex\n\\[\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n\\]\n```"
+        "content": "# LaTeX基礎\n\nLaTeXはプロフェッショナルなドキュメント組版システムであり、特に学術論文、技術文書、書籍の組版に適しています。MetaDocはLaTeXコンパイラとして **Tectonic** を使用しており、TeXディストリビューションの手動インストールや設定は不要です。\n\n## Tectonicの利点\n\nMetaDocは [Tectonic](https://tectonic-typesetting.github.io/) コンパイラをベースにしており、以下の利点があります：\n\n- ✅ **TeXディストリビューション不要**：Tectonicはスタンドアロンのバイナリファイルであり、完全なTeX LiveやMiKTeXのインストールは不要です\n- ✅ **自動パッケージダウンロード**：コンパイル時にCTANから必要なパッケージを自動ダウンロードします。手動設定は不要です\n- ✅ **高速コンパイル**：従来のTeXディストリビューションよりコンパイル速度が速いです\n- ✅ **クロスプラットフォーム対応**：Windows、macOS、Linuxを完全にサポート\n- ✅ **エラー位置特定**：コンパイルエラーがソースコードの位置に正確に表示されます\n\n**注意**：Tectonicはパッケージを自動的に管理します。手動でパッケージをダウンロードしたり設定したりする必要はありません。ドキュメントで `\\usepackage{}` コマンドを使用するだけで、Tectonicはコンパイル時に必要なパッケージを自動ダウンロードします。\n\n## ドキュメント構造\n\nLaTeXドキュメントの基本構造：\n\n```latex\n\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\usepackage{amsmath}\n\\usepackage{graphicx}\n\n\\title{ドキュメントタイトル}\n\\author{作者名}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{チャプタータイトル}\nドキュメントコンテンツ...\n\n\\subsection{サブチャプタータイトル}\nさらにコンテンツ...\n\n\\end{document}\n```\n\n### ドキュメントクラス（Document Classes）\n\nよく使われるドキュメントクラス：\n\n- `article`：記事、短いドキュメントに適しています\n- `report`：レポート、長いドキュメントに適しており、チャプター構造があります\n- `book`：書籍、書籍の組版に適しています\n- `beamer`：プレゼンテーション、スライド作成に適しています\n\n```latex\n\\documentclass[12pt,a4paper]{article}\n```\n\nオプションパラメータ：\n- `10pt`, `11pt`, `12pt`：フォントサイズ\n- `a4paper`, `letterpaper`：用紙サイズ\n- `twocolumn`：2段組み\n- `twoside`：両面印刷\n\n## チャプター構造\n\n```latex\n\\part{パートタイトル}        % パート（bookとreportのみ）\n\\chapter{章タイトル}        % 章（bookとreportのみ）\n\\section{節タイトル}        % 第1レベルチャプター\n\\subsection{小節タイトル}   % 第2レベルチャプター\n\\subsubsection{子小節}  % 第3レベルチャプター\n\\paragraph{段落タイトル}   % 段落タイトル\n\\subparagraph{子段落}  % 子段落タイトル\n```\n\n## テキスト書式\n\n### フォントスタイル\n\n```latex\n\\textbf{太字テキスト}\n\\textit{斜体テキスト}\n\\emph{強調テキスト}  % 通常は斜体で表示\n\\texttt{等幅フォント}  % コードフォント\n\\textsc{小型大文字}\n\\underline{下線}\n```\n\n### フォントサイズ\n\n```latex\n{\\tiny 極小}\n{\\scriptsize とても小さい}\n{\\footnotesize 脚注サイズ}\n{\\small 小さい}\n{\\normalsize 通常}\n{\\large 大きい}\n{\\Large より大きい}\n{\\LARGE とても大きい}\n{\\huge 巨大}\n{\\Huge 最大}\n```\n\n## 数学式\n\n### インライン数式\n\n`$数式$` または `\\(数式\\)` を使用：\n\n```latex\nこれはインライン数式：$E = mc^2$、これは別の数式：\\(a^2 + b^2 = c^2\\)\n```\n\n### ブロック数式（番号なし）\n\n`$$数式$$` または `\\[数式\\]` を使用：\n\n```latex\n\\[\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n\\]\n```",
+        "title:": "LaTeX 基礎"
       },
       "advanced": {
         "title": "LaTeX上級",
-        "content": "# LaTeX上級\n\n## Tectonicコンパイラの特性\n\nMetaDocは **Tectonic** をLaTeXコンパイラとして使用しており、これは現代的なLaTeXコンパイルエンジンで、以下の特性があります：\n\n### 自動パッケージ管理\n\nTectonicはCTAN（Comprehensive TeX Archive Network）から必要なパッケージを自動ダウンロードします。`\\usepackage{}` コマンドをドキュメントで使用するだけで、Tectonicはコンパイル時に自動処理します。\n\n```latex\n\\usepackage{amsmath}      % 数学式\n\\usepackage{graphicx}     % 画像挿入\n\\usepackage{hyperref}     % ハイパーリンク\n\\usepackage{listings}     % コードブロック\n```\n\n### サポートされているパッケージ\n\nTectonicは、ほとんどの一般的なLaTeXパッケージをサポートしています：\n\n**数学関連**：\n- `amsmath`, `amssymb`, `amsthm`：数学記号と定理環境\n- `mathtools`：数学ツール拡張\n- `bm`：太字数学記号\n\n**画像とテーブル**：\n- `graphicx`：画像挿入\n- `booktabs`：プロフェッショナルなテーブル\n- `longtable`：ページをまたぐテーブル\n- `tabularx`：自動幅調整テーブル\n\n**コードとアルゴリズム**：\n- `listings`：コードハイライト\n- `algorithm2e`：アルゴリズム疑似コード\n- `minted`：高度なコードハイライト（Pythonが必要）\n\n**参考文献**：\n- `natbib`：参考文献管理\n- `biblatex`：現代的な参考文献システム\n\n**その他の一般的なパッケージ**：\n- `hyperref`：ハイパーリンクとPDFブックマーク\n- `geometry`：ページレイアウト\n- `fancyhdr`：ヘッダーとフッター\n- `titlesec`：タイトル書式\n- `xcolor`：カラーサポート\n- `tikz`：描画（基本サポート）\n\n### サポートされていないパッケージや機能\n\nTectonicの設計理念により、一部の機能は完全にはサポートされていません：\n\n- ❌ 特殊なTeXエンジンが必要な一部のパッケージ（例：XeTeX/LuaTeX専用パッケージ）\n- ❌ 外部プログラムが必要な一部のパッケージ（例：`minted`はPythonが必要）\n- ❌ 一部の非常に古いまたは非標準のパッケージ\n\nサポートされていないパッケージに遭遇した場合、Tectonicは明確なエラーメッセージを表示します。\n\n## パッケージの使用\n\n### 基本的な使い方\n\n```latex\n\\usepackage{パッケージ名}\n```\n\n### オプション付きのパッケージ\n\n```latex\n\\usepackage[オプション1,オプション2]{パッケージ名}\n```\n\n例：\n\n```latex\n\\usepackage[utf8]{inputenc}           % UTF-8 エンコーディング\n\\usepackage[T1]{fontenc}             % T1 フォントエンコーディング\n\\usepackage[margin=2cm]{geometry}    % ページ余白\n\\usepackage[colorlinks=true]{hyperref}  % カラーハイパーリンク\n```\n\n## 数学式上級\n\n### 複数行数式の配置\n\n```latex\n\\begin{align}\nf(x) &= ax^2 + bx + c \\\\\n     &= a(x^2 + \\frac{b}{a}x) + c \\\\\n     &= a(x + \\frac{b}{2a})^2 + c - \\frac{b^2}{4a}\n\\end{align}\n```\n\n### 行列\n\n```latex\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\n\\begin{bmatrix}\n1 & 2 & 3 \\\\\n4 & 5 & 6\n\\end{bmatrix}\n\n\\begin{vmatrix}\na & b \\\\\nc & d\n\\end{vmatrix}\n```\n\n### 区分関数\n\n```latex\nf(x) = \\begin{cases}\nx^2 & \\text{もし } x \\geq 0 \\\\\n-x^2 & \\text{もし } x < 0\n\\end{cases}\n```\n\n### 定理環境\n\n```latex\n\\theoremstyle{definition}\n\\newtheorem{definition}{定義}[section]\n\\newtheorem{theorem}{定理}[section]\n\\newtheorem{lemma}{補題}[section]\n\n\\begin{definition}\nこれは定義です。\n\\end{definition}\n\n\\begin{theorem}\nこれは定理です。\n\\end{theorem}\n```"
+        "content": "# LaTeX上級\n\n## Tectonicコンパイラの特性\n\nMetaDocは **Tectonic** をLaTeXコンパイラとして使用しており、これは現代的なLaTeXコンパイルエンジンで、以下の特性があります：\n\n### 自動パッケージ管理\n\nTectonicはCTAN（Comprehensive TeX Archive Network）から必要なパッケージを自動ダウンロードします。`\\usepackage{}` コマンドをドキュメントで使用するだけで、Tectonicはコンパイル時に自動処理します。\n\n```latex\n\\usepackage{amsmath}      % 数学式\n\\usepackage{graphicx}     % 画像挿入\n\\usepackage{hyperref}     % ハイパーリンク\n\\usepackage{listings}     % コードブロック\n```\n\n### サポートされているパッケージ\n\nTectonicは、ほとんどの一般的なLaTeXパッケージをサポートしています：\n\n**数学関連**：\n- `amsmath`, `amssymb`, `amsthm`：数学記号と定理環境\n- `mathtools`：数学ツール拡張\n- `bm`：太字数学記号\n\n**画像とテーブル**：\n- `graphicx`：画像挿入\n- `booktabs`：プロフェッショナルなテーブル\n- `longtable`：ページをまたぐテーブル\n- `tabularx`：自動幅調整テーブル\n\n**コードとアルゴリズム**：\n- `listings`：コードハイライト\n- `algorithm2e`：アルゴリズム疑似コード\n- `minted`：高度なコードハイライト（Pythonが必要）\n\n**参考文献**：\n- `natbib`：参考文献管理\n- `biblatex`：現代的な参考文献システム\n\n**その他の一般的なパッケージ**：\n- `hyperref`：ハイパーリンクとPDFブックマーク\n- `geometry`：ページレイアウト\n- `fancyhdr`：ヘッダーとフッター\n- `titlesec`：タイトル書式\n- `xcolor`：カラーサポート\n- `tikz`：描画（基本サポート）\n\n### サポートされていないパッケージや機能\n\nTectonicの設計理念により、一部の機能は完全にはサポートされていません：\n\n- ❌ 特殊なTeXエンジンが必要な一部のパッケージ（例：XeTeX/LuaTeX専用パッケージ）\n- ❌ 外部プログラムが必要な一部のパッケージ（例：`minted`はPythonが必要）\n- ❌ 一部の非常に古いまたは非標準のパッケージ\n\nサポートされていないパッケージに遭遇した場合、Tectonicは明確なエラーメッセージを表示します。\n\n## パッケージの使用\n\n### 基本的な使い方\n\n```latex\n\\usepackage{パッケージ名}\n```\n\n### オプション付きのパッケージ\n\n```latex\n\\usepackage[オプション1,オプション2]{パッケージ名}\n```\n\n例：\n\n```latex\n\\usepackage[utf8]{inputenc}           % UTF-8 エンコーディング\n\\usepackage[T1]{fontenc}             % T1 フォントエンコーディング\n\\usepackage[margin=2cm]{geometry}    % ページ余白\n\\usepackage[colorlinks=true]{hyperref}  % カラーハイパーリンク\n```\n\n## 数学式上級\n\n### 複数行数式の配置\n\n```latex\n\\begin{align}\nf(x) &= ax^2 + bx + c \\\\\n     &= a(x^2 + \\frac{b}{a}x) + c \\\\\n     &= a(x + \\frac{b}{2a})^2 + c - \\frac{b^2}{4a}\n\\end{align}\n```\n\n### 行列\n\n```latex\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\n\\begin{bmatrix}\n1 & 2 & 3 \\\\\n4 & 5 & 6\n\\end{bmatrix}\n\n\\begin{vmatrix}\na & b \\\\\nc & d\n\\end{vmatrix}\n```\n\n### 区分関数\n\n```latex\nf(x) = \\begin{cases}\nx^2 & \\text{もし } x \\geq 0 \\\\\n-x^2 & \\text{もし } x < 0\n\\end{cases}\n```\n\n### 定理環境\n\n```latex\n\\theoremstyle{definition}\n\\newtheorem{definition}{定義}[section]\n\\newtheorem{theorem}{定理}[section]\n\\newtheorem{lemma}{補題}[section]\n\n\\begin{definition}\nこれは定義です。\n\\end{definition}\n\n\\begin{theorem}\nこれは定理です。\n\\end{theorem}\n```",
+        "title:": "LaTeX 上級編"
       }
     },
     "markdown": {
       "basic": {
         "title": "Markdown基本構文",
-        "content": "# Markdown基礎構文\n\nMetaDocのMarkdownエディタは [Vditor](https://b3log.org/vditor) をベースにしており、CommonMarkとGFM（GitHub Flavored Markdown）仕様をサポートしています。このドキュメントでは、MetaDocでサポートされているMarkdown構文を紹介します。\n\n## 見出し\n\n`#` を使用して見出しを表し、`#` の数は見出しレベル（1-6レベル）を示します：\n\n```markdown\n# 第1レベル見出し\n## 第2レベル見出し\n### 第3レベル見出し\n#### 第4レベル見出し\n##### 第5レベル見出し\n###### 第6レベル見出し\n```\n\n**ベストプラクティス**：\n- 見出しの前後に空行を入れる\n- `#` の後にスペースを入れる必要がある\n- レベルのスキップを避ける（例：第1レベルから直接第3レベルへ）\n\n### Setext 見出し（オプション構文）\n\n等号またはハイフンを使用して見出しを作成することもできます：\n\n```markdown\n第1レベル見出し\n========\n\n第2レベル見出し\n--------\n```\n\n注意：Setext構文では第1レベルと第2レベルの見出しのみ作成可能で、推奨されていません。\n\n## 段落\n\n空行で段落を区切ります：\n\n```markdown\nこれは第1段落です。\n\nこれは第2段落です。\n```\n\n**ベストプラクティス**：\n- 段落の先頭にスペースやタブでのインデントを使用しない\n- 段落間は空行で区切る\n\n## 改行\n\n行末に2つ以上のスペースを追加してから改行すると、強制的に改行できます：\n\n```markdown\nこれは第1行です。  \nこれは第2行です。\n```\n\n注意：最近のMarkdownエンジンは通常、改行を自動的に処理するため、手動でスペースを追加する必要はありません。\n\n## テキスト書式\n\n### 太字\n\n`**テキスト**` または `__テキスト__` を使用して太字を表します：\n\n```markdown\nこれは**太字テキスト**です\nこれは __太字テキスト__ です\n```\n\n**ベストプラクティス**：星号 `**` の使用を推奨します。前後にスペースを入れる必要がありません。\n\n### 強調（斜体）\n\n`*テキスト*` または `_テキスト_` を使用して強調を表します：\n\n```markdown\nこれは*強調テキスト*です\nこれは _強調テキスト_ です\n```\n\n### 太字かつ強調\n\n`***テキスト***` または `___テキスト___` を使用：\n\n```markdown\nこれは***太字かつ強調***です\n```\n\n### 取り消し線\n\n`~~テキスト~~` を使用して取り消し線を表します：\n\n```markdown\n~~これは削除されたテキストです~~\n```\n\n### インラインコード\n\nバッククォートでコードを囲みます：\n\n```markdown\n`console.log()` を使用してコンテンツを出力\n```\n\nバッククォートを表示する必要がある場合は、エスケープを使用：`` ` ``\n\n## リスト\n\n### 番号なしリスト\n\n`-`、`*`、または `+` を使用して番号なしリストを作成：\n\n```markdown\n- 項目1\n- 項目2\n  - サブ項目2.1\n  - サブ項目2.2\n- 項目3\n```\n\n### 番号付きリスト\n\n数字の後に `.` または `)` を使用して番号付きリストを作成：\n\n```markdown\n1. 第1項目\n2. 第2項目\n3. 第3項目\n```\n\n注意：数字は連続している必要はありません。Markdownは自動的に番号を付けます。\n\n### リスト項目に他の要素を含める\n\nリスト項目には段落、コードブロック、引用などを含めることができます：\n\n```markdown\n- リスト項目1\n- リスト項目2第1段落\n\n  これは第2段落です（インデントの整列に注意）\n\n  > これはブロック引用です\n\n  ```\n  これはコードブロックです\n  ```\n- リスト項目3\n```\n\n## ブロック引用\n\n`>` を使用してブロック引用を作成：\n\n```markdown\n> これは引用コンテンツです\n> 複数行にわたることができます\n```\n\n### ネストしたブロック引用\n\n```markdown\n> 第1レベル引用\n>\n>> 第2レベル引用\n```\n\n### ブロック引用に他の要素を含める\n\nブロック引用には見出し、リスト、コードブロックなどを含めることができます：\n\n```markdown\n> ### 見出し\n>\n> - リスト項目\n> - リスト項目\n>\n> **太字**と*強調*\n```\n\n## コードブロック\n\n### インデントされたコードブロック\n\n4つのスペースまたは1つのタブでインデント：\n\n```markdown\n    これはコードブロックです\n    複数行にわたることができます\n```\n\n### フェンス付きコードブロック（推奨）\n\n3つのバッククォートでコードを囲み、言語を指定できます：\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n注意：コードブロック内でバッククォートを使用する必要がある場合は、より多くのバッククォートで囲みます。\n\n## 水平線\n\n3つ以上のハイフン、アスタリスク、またはアンダースコアを使用：\n\n```markdown\n---\n\n***\n\n___\n```\n\n## リンク\n\n### インラインリンク\n\n```markdown\n[リンクテキスト](https://example.com)\n[リンクテキスト](https://example.com \"タイトル\")\n```\n\n### 参照スタイルリンク\n\n```markdown\n[リンクテキスト][参照ID]\n\n[参照ID]: https://example.com \"タイトル\"\n```\n\n### 自動リンク\n\n```markdown\n<https://example.com>\n```\n\n## 画像\n\n### 基本構文\n\n```markdown\n![代替テキスト](画像のパス)\n![代替テキスト](画像のパス \"タイトル\")\n```\n\n### 画像をリンクとして使用\n\n```markdown\n[![代替テキスト](画像のパス)](リンクのURL)\n```\n\n## テーブル\n\nパイプ `|` とハイフン `-` を使用してテーブルを作成：\n\n```markdown\n| 見出し1 | 見出し2 | 見出し3 |\n|---------|---------|---------|\n| セル1   | セル2   | セル3   |\n| セル4   | セル5   | セル6   |\n```\n\n### テーブルの配置\n\nコロン `:` を使用して列の配置を制御：\n\n```markdown\n| 左寄せ | 中央寄せ | 右寄せ |\n|:-------|:--------:|-------:|\n| セル1  |  セル2   |  セル3 |\n```"
+        "content": "# Markdown基礎構文\n\nMetaDocのMarkdownエディタは [Vditor](https://b3log.org/vditor) をベースにしており、CommonMarkとGFM（GitHub Flavored Markdown）仕様をサポートしています。このドキュメントでは、MetaDocでサポートされているMarkdown構文を紹介します。\n\n## 見出し\n\n`#` を使用して見出しを表し、`#` の数は見出しレベル（1-6レベル）を示します：\n\n```markdown\n# 第1レベル見出し\n## 第2レベル見出し\n### 第3レベル見出し\n#### 第4レベル見出し\n##### 第5レベル見出し\n###### 第6レベル見出し\n```\n\n**ベストプラクティス**：\n- 見出しの前後に空行を入れる\n- `#` の後にスペースを入れる必要がある\n- レベルのスキップを避ける（例：第1レベルから直接第3レベルへ）\n\n### Setext 見出し（オプション構文）\n\n等号またはハイフンを使用して見出しを作成することもできます：\n\n```markdown\n第1レベル見出し\n========\n\n第2レベル見出し\n--------\n```\n\n注意：Setext構文では第1レベルと第2レベルの見出しのみ作成可能で、推奨されていません。\n\n## 段落\n\n空行で段落を区切ります：\n\n```markdown\nこれは第1段落です。\n\nこれは第2段落です。\n```\n\n**ベストプラクティス**：\n- 段落の先頭にスペースやタブでのインデントを使用しない\n- 段落間は空行で区切る\n\n## 改行\n\n行末に2つ以上のスペースを追加してから改行すると、強制的に改行できます：\n\n```markdown\nこれは第1行です。  \nこれは第2行です。\n```\n\n注意：最近のMarkdownエンジンは通常、改行を自動的に処理するため、手動でスペースを追加する必要はありません。\n\n## テキスト書式\n\n### 太字\n\n`**テキスト**` または `__テキスト__` を使用して太字を表します：\n\n```markdown\nこれは**太字テキスト**です\nこれは __太字テキスト__ です\n```\n\n**ベストプラクティス**：星号 `**` の使用を推奨します。前後にスペースを入れる必要がありません。\n\n### 強調（斜体）\n\n`*テキスト*` または `_テキスト_` を使用して強調を表します：\n\n```markdown\nこれは*強調テキスト*です\nこれは _強調テキスト_ です\n```\n\n### 太字かつ強調\n\n`***テキスト***` または `___テキスト___` を使用：\n\n```markdown\nこれは***太字かつ強調***です\n```\n\n### 取り消し線\n\n`~~テキスト~~` を使用して取り消し線を表します：\n\n```markdown\n~~これは削除されたテキストです~~\n```\n\n### インラインコード\n\nバッククォートでコードを囲みます：\n\n```markdown\n`console.log()` を使用してコンテンツを出力\n```\n\nバッククォートを表示する必要がある場合は、エスケープを使用：`` ` ``\n\n## リスト\n\n### 番号なしリスト\n\n`-`、`*`、または `+` を使用して番号なしリストを作成：\n\n```markdown\n- 項目1\n- 項目2\n  - サブ項目2.1\n  - サブ項目2.2\n- 項目3\n```\n\n### 番号付きリスト\n\n数字の後に `.` または `)` を使用して番号付きリストを作成：\n\n```markdown\n1. 第1項目\n2. 第2項目\n3. 第3項目\n```\n\n注意：数字は連続している必要はありません。Markdownは自動的に番号を付けます。\n\n### リスト項目に他の要素を含める\n\nリスト項目には段落、コードブロック、引用などを含めることができます：\n\n```markdown\n- リスト項目1\n- リスト項目2第1段落\n\n  これは第2段落です（インデントの整列に注意）\n\n  > これはブロック引用です\n\n  ```\n  これはコードブロックです\n  ```\n- リスト項目3\n```\n\n## ブロック引用\n\n`>` を使用してブロック引用を作成：\n\n```markdown\n> これは引用コンテンツです\n> 複数行にわたることができます\n```\n\n### ネストしたブロック引用\n\n```markdown\n> 第1レベル引用\n>\n>> 第2レベル引用\n```\n\n### ブロック引用に他の要素を含める\n\nブロック引用には見出し、リスト、コードブロックなどを含めることができます：\n\n```markdown\n> ### 見出し\n>\n> - リスト項目\n> - リスト項目\n>\n> **太字**と*強調*\n```\n\n## コードブロック\n\n### インデントされたコードブロック\n\n4つのスペースまたは1つのタブでインデント：\n\n```markdown\n    これはコードブロックです\n    複数行にわたることができます\n```\n\n### フェンス付きコードブロック（推奨）\n\n3つのバッククォートでコードを囲み、言語を指定できます：\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n注意：コードブロック内でバッククォートを使用する必要がある場合は、より多くのバッククォートで囲みます。\n\n## 水平線\n\n3つ以上のハイフン、アスタリスク、またはアンダースコアを使用：\n\n```markdown\n---\n\n***\n\n___\n```\n\n## リンク\n\n### インラインリンク\n\n```markdown\n[リンクテキスト](https://example.com)\n[リンクテキスト](https://example.com \"タイトル\")\n```\n\n### 参照スタイルリンク\n\n```markdown\n[リンクテキスト][参照ID]\n\n[参照ID]: https://example.com \"タイトル\"\n```\n\n### 自動リンク\n\n```markdown\n<https://example.com>\n```\n\n## 画像\n\n### 基本構文\n\n```markdown\n![代替テキスト](画像のパス)\n![代替テキスト](画像のパス \"タイトル\")\n```\n\n### 画像をリンクとして使用\n\n```markdown\n[![代替テキスト](画像のパス)](リンクのURL)\n```\n\n## テーブル\n\nパイプ `|` とハイフン `-` を使用してテーブルを作成：\n\n```markdown\n| 見出し1 | 見出し2 | 見出し3 |\n|---------|---------|---------|\n| セル1   | セル2   | セル3   |\n| セル4   | セル5   | セル6   |\n```\n\n### テーブルの配置\n\nコロン `:` を使用して列の配置を制御：\n\n```markdown\n| 左寄せ | 中央寄せ | 右寄せ |\n|:-------|:--------:|-------:|\n| セル1  |  セル2   |  セル3 |\n```",
+        "title:": "Markdown 基礎"
       },
       "advanced": {
         "title": "Markdown高度機能",
-        "content": "# Markdown上級機能\n\n## Vditorについて\n\nMetaDocのMarkdownエディタは [Vditor](https://b3log.org/vditor) をベースにしており、これは強力なブラウザベースのMarkdownエディタです。VditorはCommonMarkとGFM（GitHub Flavored Markdown）仕様を実装し、複数の拡張構文をサポートしています。\n\n### Vditorの機能\n\n- ✅ CommonMarkとGFM仕様をサポート\n- ✅ 数学式のレンダリングをサポート（KaTeX/MathJax）\n- ✅ コードハイライトをサポート（highlight.js）\n- ✅ テーブル、タスクリスト、脚注などの拡張構文をサポート\n- ✅ グラフのレンダリングをサポート（Mermaid、ECharts、PlantUMLなど）\n- ✅ 3つの編集モードをサポート：WYSIWYG、即時レンダリング（IR）、分割プレビュー（SV）\n- ✅ アウトラインナビゲーションをサポート\n- ✅ 画像のアップロードと貼り付けをサポート\n- ✅ Emojiをサポート\n\n### Vditorの制限\n\n- ❌ LaTeX標準形式の数式区切り `\\(...\\)` と `\\[...\\]` はサポートされていません\n- ❌ 一部の標準外のMarkdown拡張構文はサポートされていない場合があります\n- ❌ HTML内の一部のタグと属性はフィルタリングされる場合があります\n\n**解決策**：ドキュメントに `\\(...\\)` または `\\[...\\)` 形式の数式が含まれている場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して、Vditor互換の `$...$` と `$$...$$` 形式に一括変換できます。\n\n## 数学式\n\n### インライン数式\n\n`$数式$` を使用してインライン数式を表します：\n\n```markdown\nこれはインライン数式：$E = mc^2$ です\n```\n\nレンダリング結果：これはインライン数式：$E = mc^2$ です\n\n**重要なヒント**：Vditorは `$...$` 形式のインライン数式のみサポートしており、LaTeX標準形式 `\\(...\\)` はサポートしていません。ドキュメントで `\\(...\\)` 形式を使用している場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して変換してください。\n\n### ブロック数式\n\n`$$数式$$` を使用してブロック数式を表します：\n\n```markdown\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n```\n\nレンダリング結果：\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**重要なヒント**：Vditorは `$$...$$` 形式のブロック数式のみサポートしており、LaTeX標準形式 `\\[...\\]` はサポートしていません。ドキュメントで `\\[...\\]` 形式を使用している場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して変換してください。\n\n### 数学式の例\n\n```markdown\nインライン数式：$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$\n\nブロック数式：\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n```\n\n## タスクリスト\n\n`[ ]` または `[x]` を使用してタスクリストを作成：\n\n```markdown\n- [x] 完了したタスク\n- [ ] 未完了のタスク\n- [x] 別の完了したタスク\n```\n\nレンダリング結果：\n\n- [x] 完了したタスク\n- [ ] 未完了のタスク\n- [x] 別の完了したタスク\n\n## 脚注\n\n`[^識別子]` を使用して脚注の参照を作成し、`[^識別子]:` を使用して脚注を定義：\n\n```markdown\nこれは脚注の参照[^1]です、これは別の脚注の参照[^note]です。\n\n[^1]: 第1の脚注定義。\n[^note]: 脚注定義は複数の段落を含むことができます。\n\n    インデントされた段落も脚注に含まれます。\n```\n\n## 取り消し線\n\n`~~テキスト~~` を使用して取り消し線を作成：\n\n```markdown\n~~これは削除されたテキストです~~\n```\n\n## Emoji\n\nEmojiを使用するには2つの方法があります：\n\n1. Emoji文字を直接入力：😀 🌻 ☀️\n2. エイリアスを使用：`:smile:` `:sunny:` `:heart:`\n\n```markdown\n今日の天気はいいですね :sunny:\n花が 🌻 私に微笑んでいます\n```\n\n## 見出しにIDを指定\n\n一部のMarkdownエンジンは見出しにIDを指定することをサポートしています：\n\n```markdown\n### 見出し {#custom-id}\n```\n\nこれにより、リンクで `#custom-id` を使用してこの見出しにジャンプできます。\n\n## 定義リスト\n\n一部のMarkdownエンジンは定義リストをサポートしています：\n\n```markdown\n用語1\n: 定義1\n\n用語2\n: 定義2\n```\n\n## ハイライト\n\n`==テキスト==` を使用してテキストをハイライト：\n\n```markdown\nこれは ==ハイライトされたテキスト== です\n```\n\n## サブスクリプトとスーパースクリプト\n\n```markdown\nH~2~O は水です\n\nE = mc^2^\n```\n\n## キーボード入力\n\n`&#x3C;kbd&#x3E;` タグを使用：\n\n```markdown\n&#x3C;kbd&#x3E;Ctrl&#x3C;/kbd&#x3E; + &#x3C;kbd&#x3E;S&#x3C;/kbd&#x3E; で保存\n```\n\n## 非推奨の構文\n\n以下の構文は非推奨となっており、使用は推奨されません：\n\n- HTMLタグ（可能な限りMarkdown構文を使用）\n- インラインスタイル\n- 複雑なテーブル（シンプルなテーブルを使用）\n- 入れ子になった複雑なリスト（シンプルなリストを使用）"
+        "content": "# Markdown上級機能\n\n## Vditorについて\n\nMetaDocのMarkdownエディタは [Vditor](https://b3log.org/vditor) をベースにしており、これは強力なブラウザベースのMarkdownエディタです。VditorはCommonMarkとGFM（GitHub Flavored Markdown）仕様を実装し、複数の拡張構文をサポートしています。\n\n### Vditorの機能\n\n- ✅ CommonMarkとGFM仕様をサポート\n- ✅ 数学式のレンダリングをサポート（KaTeX/MathJax）\n- ✅ コードハイライトをサポート（highlight.js）\n- ✅ テーブル、タスクリスト、脚注などの拡張構文をサポート\n- ✅ グラフのレンダリングをサポート（Mermaid、ECharts、PlantUMLなど）\n- ✅ 3つの編集モードをサポート：WYSIWYG、即時レンダリング（IR）、分割プレビュー（SV）\n- ✅ アウトラインナビゲーションをサポート\n- ✅ 画像のアップロードと貼り付けをサポート\n- ✅ Emojiをサポート\n\n### Vditorの制限\n\n- ❌ LaTeX標準形式の数式区切り `\\(...\\)` と `\\[...\\]` はサポートされていません\n- ❌ 一部の標準外のMarkdown拡張構文はサポートされていない場合があります\n- ❌ HTML内の一部のタグと属性はフィルタリングされる場合があります\n\n**解決策**：ドキュメントに `\\(...\\)` または `\\[...\\)` 形式の数式が含まれている場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して、Vditor互換の `$...$` と `$$...$$` 形式に一括変換できます。\n\n## 数学式\n\n### インライン数式\n\n`$数式$` を使用してインライン数式を表します：\n\n```markdown\nこれはインライン数式：$E = mc^2$ です\n```\n\nレンダリング結果：これはインライン数式：$E = mc^2$ です\n\n**重要なヒント**：Vditorは `$...$` 形式のインライン数式のみサポートしており、LaTeX標準形式 `\\(...\\)` はサポートしていません。ドキュメントで `\\(...\\)` 形式を使用している場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して変換してください。\n\n### ブロック数式\n\n`$$数式$$` を使用してブロック数式を表します：\n\n```markdown\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n```\n\nレンダリング結果：\n\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n**重要なヒント**：Vditorは `$$...$$` 形式のブロック数式のみサポートしており、LaTeX標準形式 `\\[...\\]` はサポートしていません。ドキュメントで `\\[...\\]` 形式を使用している場合は、ツールバーの「LaTeX数式を変換」ボタンを使用して変換してください。\n\n### 数学式の例\n\n```markdown\nインライン数式：$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$\n\nブロック数式：\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n```\n\n## タスクリスト\n\n`[ ]` または `[x]` を使用してタスクリストを作成：\n\n```markdown\n- [x] 完了したタスク\n- [ ] 未完了のタスク\n- [x] 別の完了したタスク\n```\n\nレンダリング結果：\n\n- [x] 完了したタスク\n- [ ] 未完了のタスク\n- [x] 別の完了したタスク\n\n## 脚注\n\n`[^識別子]` を使用して脚注の参照を作成し、`[^識別子]:` を使用して脚注を定義：\n\n```markdown\nこれは脚注の参照[^1]です、これは別の脚注の参照[^note]です。\n\n[^1]: 第1の脚注定義。\n[^note]: 脚注定義は複数の段落を含むことができます。\n\n    インデントされた段落も脚注に含まれます。\n```\n\n## 取り消し線\n\n`~~テキスト~~` を使用して取り消し線を作成：\n\n```markdown\n~~これは削除されたテキストです~~\n```\n\n## Emoji\n\nEmojiを使用するには2つの方法があります：\n\n1. Emoji文字を直接入力：😀 🌻 ☀️\n2. エイリアスを使用：`:smile:` `:sunny:` `:heart:`\n\n```markdown\n今日の天気はいいですね :sunny:\n花が 🌻 私に微笑んでいます\n```\n\n## 見出しにIDを指定\n\n一部のMarkdownエンジンは見出しにIDを指定することをサポートしています：\n\n```markdown\n### 見出し {#custom-id}\n```\n\nこれにより、リンクで `#custom-id` を使用してこの見出しにジャンプできます。\n\n## 定義リスト\n\n一部のMarkdownエンジンは定義リストをサポートしています：\n\n```markdown\n用語1\n: 定義1\n\n用語2\n: 定義2\n```\n\n## ハイライト\n\n`==テキスト==` を使用してテキストをハイライト：\n\n```markdown\nこれは ==ハイライトされたテキスト== です\n```\n\n## サブスクリプトとスーパースクリプト\n\n```markdown\nH~2~O は水です\n\nE = mc^2^\n```\n\n## キーボード入力\n\n`&#x3C;kbd&#x3E;` タグを使用：\n\n```markdown\n&#x3C;kbd&#x3E;Ctrl&#x3C;/kbd&#x3E; + &#x3C;kbd&#x3E;S&#x3C;/kbd&#x3E; で保存\n```\n\n## 非推奨の構文\n\n以下の構文は非推奨となっており、使用は推奨されません：\n\n- HTMLタグ（可能な限りMarkdown構文を使用）\n- インラインスタイル\n- 複雑なテーブル（シンプルなテーブルを使用）\n- 入れ子になった複雑なリスト（シンプルなリストを使用）",
+        "title:": "Markdown 上級機能"
       }
     },
     "navigation": {
@@ -4142,7 +4399,14 @@
       "charts": "チャート描画",
       "ai": "AIツール",
       "agent": "エージェント使用",
-      "design": "デザイン理念"
+      "design": "デザイン理念",
+      "agent:": "Agent",
+      "ai:": "AIツール",
+      "charts:": "チャート",
+      "core:": "基本操作",
+      "design:": "設計理念",
+      "latex:": "LaTeX",
+      "markdown:": "Markdown"
     },
     "overview": {
       "title": "概要",
@@ -4162,10 +4426,18 @@
       "current": "現在",
       "pending": "未学習",
       "articles": "記事",
-      "skillRadar": "スキルレーダーチャート"
+      "skillRadar": "スキルレーダーチャート",
+      "completed:": "完了済み",
+      "description:": "このページでは、ご自身の使用状況を把握し、最適な学習パスをご案内します。推奨順に学習を進めることも、左側の目次から任意の章にジャンプすることもできます。",
+      "noProfile:": "ユーザープロフィールをまだ設定していませんか？まずは使用上のご希望をお聞かせください。最適な学習パスをご提案します。",
+      "profileSummary:": "あなたの使用状況",
+      "profileSummarySentence:": "主な使用シナリオは「{scenario}」です。現在、Markdownは{markdown}、LaTeXは{latex}、AI Agentは{agent}の習熟度です。",
+      "progress:": "学習進捗",
+      "skillRadar:": "スキルレーダーチャート",
+      "welcome:": "MetaDoc クイックスタートガイド"
     },
     "profile": {
-      "title": "ユーザープロフィールアンケート",
+      "title": "ユーザープロファイルアンケート",
       "buttonText": "使用偏好を設定する",
       "scenario": "使用シーン",
       "scenarioHint": "主な使用シナリオを選択してください",
@@ -4176,20 +4448,24 @@
         "student": "学生",
         "researcher": "研究者",
         "it": "IT技術者",
-        "office": "オフィスワーカー",
+        "office": "会社員",
         "other": "その他",
         "hint": {
           "student": "学生：主に講義ノート、課題、学習資料用",
           "researcher": "研究者：主に学術論文、研究報告、実験記録用",
           "it": "IT技術者：主に技術文書、コードコメント、APIドキュメント用",
           "office": "オフィスワーカー：主に会議議事録、業務報告、ビジネス文書用",
-          "other": "その他：一般的な文書編集シナリオ"
+          "other": "その他：一般的な文書編集シナリオ",
+          "it:": "IT担当者：主に技術文書、コードコメント、APIドキュメント、プロジェクト文書などに使用",
+          "office:": "事務職：主に会議議事録、業務報告書、ビジネス文書などに使用",
+          "researcher:": "研究者：主に学術論文、研究報告書、実験記録などに使用",
+          "student:": "学生：主に授業ノート、課題レポート、学習資料の整理などに使用"
         },
         "tooltip": {
-          "student": "学生：主に授業ノート、課題ドキュメント、学習資料の整理などに使用",
-          "researcher": "研究者：主に学術論文、研究報告、実験記録などに使用",
-          "it": "IT技術者：主に技術文書、コードコメント、APIドキュメント、プロジェクトドキュメントなどに使用",
-          "office": "オフィスワーカー：主に会議議事録、業務報告、ビジネス文書などに使用",
+          "student": "学生：授業ノート、課題レポート、学習資料の整理などに主に使用",
+          "researcher": "研究者：学術論文、研究報告書、実験記録などの作成に主に使用",
+          "it": "IT技術者：技術文書、コードコメント、APIドキュメント、プロジェクト文書などの作成に主に使用",
+          "office": "会社員：会議議事録、業務報告書、ビジネス文書などの作成に主に使用",
           "other": "その他：一般的なドキュメント編集シーン"
         }
       },
@@ -4198,14 +4474,16 @@
         "none": "Markdown構文を全く知らず、基礎構文から学習する必要がある",
         "basic": "基本構文（見出し、リスト、太字など）を知っており、簡単なドキュメントを作成できる",
         "intermediate": "Markdown構文を熟练使用し、テーブル、コードブロック、リンクなどの高度な機能を知っている",
-        "advanced": "Markdownに精通しており、拡張構文、数学公式、グラフなどの高度な機能に詳しい"
+        "advanced": "Markdownに精通しており、拡張構文、数学公式、グラフなどの高度な機能に詳しい",
+        "intermediate:": "Markdown構文を熟练に使用し、表、コードブロック、リンクなどの高度な機能を理解している"
       },
       "latexLevel": "LaTeX熟練度",
       "latexLevelHints": {
         "none": "LaTeXを全く知らず、基礎構文とドキュメント構造から学習する必要がある",
         "basic": "基本構文とドキュメント構造を知っており、簡単なLaTeXドキュメントを作成できる",
         "intermediate": "LaTeXを熟练使用し、数学公式、テーブル、画像挿入などの一般的な機能を知っている",
-        "advanced": "LaTeXに精通しており、パッケージの使用、カスタムコマンド、参考文献管理などの高度な機能に詳しい"
+        "advanced": "LaTeXに精通しており、パッケージの使用、カスタムコマンド、参考文献管理などの高度な機能に詳しい",
+        "intermediate:": "LaTeXを熟练に使用し、数式、表、画像挿入などの一般的な機能を理解している"
       },
       "agentLevel": "AI Agentの理解度",
       "agentLevels": {
@@ -4213,15 +4491,16 @@
         "heard": "聞いたことはあるが詳しくは知らない",
         "basic": "基本概念を理解している",
         "used": "使用したことがある",
-        "proficient": "熟练使用できる"
+        "proficient": "熟练使用できる",
+        "proficient:": "熟练に使用できる"
       },
       "knowsAgent": "AI Agentを知っていますか",
       "usedWysiwygMarkdown": "WYSIWYG Markdownエディタを使用したことがありますか",
-      "usedWysiwygMarkdownHint": "Typora、Mark Text、ZettlrなどのWYSIWYGエディタ",
+      "usedWysiwygMarkdownHint": "Typora、Mark Text、ZettlrなどのWYSIWYG（見たまま編集）エディター",
       "usedLatexEditor": "LaTeXエディタを使用したことがありますか",
-      "usedLatexEditorHint": "Overleaf、TeXStudio、TeXworks、TeXShopなどのLaTeXエディタ",
+      "usedLatexEditorHint": "Overleaf、TeXStudio、TeXworks、TeXShopなどのLaTeXエディター",
       "usedOtherMarkdownEditor": "他のMarkdownエディタを使用したことがありますか",
-      "usedOtherMarkdownEditorHint": "VS Code、Obsidian、Notion、語雀など、Markdownをサポートするエディタ",
+      "usedOtherMarkdownEditorHint": "VS Code、Obsidian、Notion、語雀などのMarkdown対応エディター",
       "steps": {
         "scenario": "使用シーン",
         "markdown": "Markdown",
@@ -4249,14 +4528,19 @@
       "yes": "はい",
       "no": "いいえ",
       "skip": "スキップ",
-      "submit": "送信"
+      "submit": "送信",
+      "buttonText:": "使用上の希望を設定する",
+      "experienceHint:": "これまでに使用したエディターの経験をお聞かせください",
+      "noExperienceQuestions:": "ご回答に基づき、十分な情報を収集しました。",
+      "reanalyzeConfirmMessage:": "ユーザープロフィールをリセットすると、現在の学習進捗が消去されます。続行しますか？",
+      "scenarioHint:": "主な使用シナリオを選択してください。これにより、最適な学習パスをご提案できます。"
     },
     "progress": {
-      "label": "学習進度",
+      "label": "学習進捗",
       "completed": "完了",
       "completed100": "おめでとうございます！推奨パスの全コンテンツを完了しました。",
-      "clearProgress": "学習進捗をクリア",
-      "clearProgressConfirm": "現在の推奨パスの学習進捗をクリアしますか？既読状態がすべてリセットされます。",
+      "clearProgress": "学習進捗をクリアする",
+      "clearProgressConfirm": "現在の推奨パスの学習進捗をクリアしますか？すべての既読状態がリセットされます。",
       "clearProgressDone": "学習進捗をクリアしました"
     },
     "replayCelebration": "お祝いアニメーションを再生",
@@ -4269,25 +4553,25 @@
     "sidebar": {
       "recommendedList": "推奨学習",
       "onlyRecommended": "推奨パスのみ表示",
-      "onlyRecommendedTip": "オフにすると完全なマニュアルカタログを表示"
+      "onlyRecommendedTip": "オフにすると、マニュアルの完全な目次を表示します"
     },
     "title": "ユーザーマニュアル"
   },
   "versionInfoPanel": {
     "buildEnvironment": "ビルド環境",
     "checkUpdate": "更新を確認",
-    "checkUpdateError": "更新の確認に失敗しました",
+    "checkUpdateError": "更新確認に失敗しました",
     "checking": "確認中...",
     "downloadAndInstall": "ダウンロードしてインストール",
-    "downloadError": "ダウンロード失敗",
-    "downloadProgress": "ダウンロード進捗：{progress}%",
+    "downloadError": "ダウンロードに失敗しました",
+    "downloadProgress": "ダウンロード進捗状況：{progress}%",
     "downloading": "ダウンロード中",
     "installAndRestart": "インストールして再起動",
     "noUpdate": "最新バージョンです",
     "noUpdateDesc": "現在お使いのバージョンは最新です",
     "releaseDate": "リリース日",
     "title": "バージョン情報",
-    "updateAvailable": "新しいバージョンが見つかりました",
+    "updateAvailable": "新しいバージョンが利用可能です",
     "updateAvailableDesc": "新バージョン {version} が利用可能です",
     "version": "バージョン"
   },
@@ -4296,7 +4580,7 @@
     "expand": "展開する",
     "metaInfo": "メタ情報",
     "workspace": "ワークスペース",
-    "workspaceGrep": "ワークスペース検索"
+    "workspaceGrep": "ワークスペース内検索"
   },
   "workspaceExplorer": {
     "addFolder": "ワークフォルダを追加",
@@ -4313,11 +4597,11 @@
       "delete": "削除",
       "copyPath": "パスをコピー",
       "copyRelativePath": "相対パスをコピー",
-      "showInFolder": "フォルダに表示",
+      "showInFolder": "フォルダ内に表示",
       "openFolder": "フォルダを開く",
       "newFile": "新しいファイル",
       "newFolder": "新しいフォルダ",
-      "refresh": "更新"
+      "refresh": "リフレッシュ"
     },
     "copyPathSuccess": "パスをクリップボードにコピーしました",
     "copyRelativePathSuccess": "相対パスをクリップボードにコピーしました",
@@ -4346,8 +4630,8 @@
     "openFolder": "フォルダを開く",
     "openedFiles": "開いているファイル",
     "pasteSuccess": "{count} 項目を貼り付けました",
-    "refresh": "更新",
-    "refreshSuccess": "更新しました",
+    "refresh": "リフレッシュ",
+    "refreshSuccess": "リフレッシュしました",
     "renameDialog": {
       "title": "名前を変更",
       "name": "名前",
@@ -4355,37 +4639,37 @@
     },
     "renameSuccess": "名前を変更しました",
     "selectFolder": "ワークフォルダを選択",
-    "title": "ワークディレクトリ",
+    "title": "ワークスペースエクスプローラー",
     "moveFailed": "移動に失敗しました"
   },
   "workspaceGrep": {
-    "activeWorkspaceCount": "{count} 個のワークスペースを開いています",
+    "activeWorkspaceCount": "{count}個のワークスペースを開いています",
     "globalWorkspace": "グローバルワークスペース（現在開いているドキュメント）",
-    "matchCase": "大文字小文字を区別",
-    "noResult": "一致する項目が見つかりません",
+    "matchCase": "大文字小文字を区別する",
+    "noResult": "一致する項目が見つかりませんでした",
     "patternPlaceholder": "検索",
-    "replacePlaceholder": "置換",
-    "resultSummary": "{count} 件の一致が見つかりました",
+    "replacePlaceholder": "置換する文字列",
+    "resultSummary": "{count}件の一致が見つかりました",
     "search": "検索",
-    "searching": "ワークスペースを検索中...",
+    "searching": "ワークスペースを検索しています...",
     "title": "ワークスペース検索",
     "useRegex": "正規表現",
-    "wholeWord": "単語全体を一致"
+    "wholeWord": "単語全体に一致"
   },
   "aiGreeting": {
     "title": "こんにちは！私はMetaDoc AIアシスタントです！",
-    "subtitle": "私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に使い、多くの分野でプロフェッショナルで充実した文書を作成するお手伝いをします。"
+    "subtitle": "私はあなたのスマート文書作成アシスタントです。様々なAIツールを効率的に活用し、図や文を豊富に取り入れた、内容が充実したプロフェッショナルな多分野の文章作成をお手伝いします。"
   },
   "agentEngine": {
     "greeting": {
       "title": "こんにちは！私はMetaDoc AIアシスタントです！",
-      "subtitle": "私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に活用し、図表やグラフを含むプロフェッショナルで豊かな多領域の記事を作成するお手伝いをします。",
+      "subtitle": "私はあなたのスマートな文書作成アシスタントです。さまざまなAIツールを効率的に活用し、図表を交えた内容充実のプロフェッショナルな記事を、様々な分野で作成するお手伝いをします。",
       "canDo": "私ができること：",
       "ragTool": "RAGツールで関連知識を検索",
       "chartTool": "チャート生成ツールでビジュアライゼーションを作成",
       "editTool": "編集ツールで文書構造を最適化",
       "proofreadTool": "校正ツールでコンテンツの品質を確保",
-      "tellMe": "あなたのニーズを教えてください。文書作成タスクの完了に最善を尽くします！"
+      "tellMe": "ご要望をお聞かせください。文書作成タスクの達成に尽力します！"
     },
     "engines": {
       "autogpt": "AutoGPT エンジン",

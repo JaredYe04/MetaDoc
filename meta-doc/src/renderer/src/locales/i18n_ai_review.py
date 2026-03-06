@@ -14,6 +14,7 @@ MetaDoc i18n AI 校对脚本（基于 DeepSeek API，并发）
   python i18n_ai_review.py --module proofread # 仅 proofread 模块
   python i18n_ai_review.py --dry-run         # 只打印将要调用的任务，不请求 API、不写文件
   python i18n_ai_review.py --max-workers 4   # 并发数
+  python i18n_ai_review.py --reset-progress  # 清空进度文件后全量重跑（默认会跳过已完成的模块）
 """
 
 import os
@@ -21,6 +22,7 @@ import sys
 import re
 import json
 import argparse
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -40,6 +42,7 @@ MAX_KEYS_PER_CHUNK = 60  # 每个请求最多键数，避免超长
 LOCALES_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_FILE = "zh_cn.json"
 KEY_FILE_NAMES = [".deepseek_api_key", ".deepseek_api_key.txt"]
+PROGRESS_FILE = ".i18n_ai_review_progress.txt"  # 每行: locale_file\tmodule_name
 
 
 def load_api_key():
@@ -198,6 +201,52 @@ def set_nested(data, path, value):
     d[parts[-1]] = value
 
 
+def load_progress(locales_dir):
+    """返回已完成的 (locale_file, module_name) 集合"""
+    path = os.path.join(locales_dir, PROGRESS_FILE)
+    if not os.path.isfile(path):
+        return set()
+    out = set()
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if "\t" in line:
+                loc, mod = line.split("\t", 1)
+                out.add((loc.strip(), mod.strip()))
+    return out
+
+
+def append_progress(locales_dir, locale_file, module_name):
+    """将完成的一项追加到进度文件"""
+    path = os.path.join(locales_dir, PROGRESS_FILE)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write("%s\t%s\n" % (locale_file, module_name))
+        f.flush()
+
+
+def reset_progress(locales_dir):
+    path = os.path.join(locales_dir, PROGRESS_FILE)
+    if os.path.isfile(path):
+        os.remove(path)
+        print("已清空进度文件: %s" % path, flush=True)
+
+
+def write_back_module(locales_dir, locale_file, corrections, file_locks):
+    """立即将当前模块的修正写回 JSON；按文件加锁避免并发写同一文件冲突"""
+    if not corrections:
+        return
+    lock = file_locks.setdefault(locale_file, threading.Lock())
+    with lock:
+        path = os.path.join(locales_dir, locale_file)
+        data = load_json(path)
+        for key, new_val in corrections:
+            try:
+                set_nested(data, key, new_val)
+            except Exception as e:
+                print("WARN: 无法设置 %s in %s: %s" % (key, locale_file, e), flush=True)
+        save_json(path, data)
+
+
 def run_one_task(api_key, locale_file, module_name, keys, flat_zh, flat_locale, lang_hint, dry_run):
     if dry_run:
         return (locale_file, [], None)
@@ -219,6 +268,7 @@ def main():
     ap.add_argument("--module", default=None, help="只处理该模块，如 proofread 或 agent.display")
     ap.add_argument("--dry-run", action="store_true", help="只打印任务，不请求 API、不写文件")
     ap.add_argument("--max-workers", type=int, default=5, help="并发数")
+    ap.add_argument("--reset-progress", action="store_true", help="清空进度文件，之后按全量执行（否则会跳过已完成的 语言|模块）")
     args = ap.parse_args()
 
     locales_dir = os.path.abspath(args.dir)
@@ -246,6 +296,11 @@ def main():
         print("ERROR: 没有可处理的语言文件")
         return 1
 
+    if args.reset_progress:
+        reset_progress(locales_dir)
+
+    completed_set = load_progress(locales_dir) if not args.reset_progress else set()
+
     # 语言名提示（用于提示词）
     lang_names = {
         "en_us.json": "English",
@@ -271,14 +326,21 @@ def main():
                 continue
             if args.module and not (mod_name == args.module or mod_name.startswith(args.module + ".") or mod_name.startswith(args.module + "_")):
                 continue
+            if (loc_file, mod_name) in completed_set:
+                continue
             tasks.append((loc_file, mod_name, keys_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
 
     if not tasks:
-        print("没有符合条件的任务（可尝试去掉 --locale / --module）")
+        print("没有符合条件的任务（可尝试去掉 --locale / --module，或使用 --reset-progress 全量重跑）")
+        if completed_set:
+            print("当前进度文件已记录 %d 个已完成项。" % len(completed_set), flush=True)
         return 0
 
     total = len(tasks)
-    print("任务数: %d（并发 %d）" % (total, args.max_workers))
+    if completed_set:
+        print("已跳过进度文件中 %d 项，本次待执行: %d（并发 %d）" % (len(completed_set), total, args.max_workers), flush=True)
+    else:
+        print("任务数: %d（并发 %d）" % (total, args.max_workers))
     print("进度格式: [当前/总数] 语言文件 | 模块 | 结果")
     print("-" * 60, flush=True)
     if args.dry_run:
@@ -286,10 +348,10 @@ def main():
             print("  %s | %s | %d keys" % (loc_file, mod_name, len(keys)))
         return 0
 
-    by_file = {}
     errors = []
     completed = 0
-    print("正在请求 DeepSeek API（并发 %d），下方将逐条输出完成情况…" % args.max_workers, flush=True)
+    file_locks = {}
+    print("正在请求 DeepSeek API（并发 %d），每完成一个模块即写回 JSON 并更新进度…" % args.max_workers, flush=True)
     with ThreadPoolExecutor(max_workers=args.max_workers) as ex:
         futures = {
             ex.submit(
@@ -314,31 +376,16 @@ def main():
                     errors.append((loc_file, mod_name, err))
                     print("[%3d/%d] %s | %s | 失败: %s" % (completed, total, loc_file, mod_name, err), flush=True)
                 else:
-                    by_file.setdefault(loc_file, []).extend(corrections)
-                    print("[%3d/%d] %s | %s | 完成，修正 %d 处" % (completed, total, loc_file, mod_name, len(corrections)), flush=True)
+                    write_back_module(locales_dir, loc_file, corrections, file_locks)
+                    append_progress(locales_dir, loc_file, mod_name)
+                    print("[%3d/%d] %s | %s | 完成，修正 %d 处，已写回并记入进度" % (completed, total, loc_file, mod_name, len(corrections)), flush=True)
             except Exception as e:
                 errors.append((loc_file, mod_name, str(e)))
                 print("[%3d/%d] %s | %s | 异常: %s" % (completed, total, loc_file, mod_name, e), flush=True)
 
     print("-" * 60, flush=True)
-    print("API 请求已全部完成，正在写回 JSON 文件…", flush=True)
     for loc_file, mod_name, err in errors:
         print("ERR %s %s: %s" % (loc_file, mod_name, err))
-
-    for loc_file, corrections in by_file.items():
-        if not corrections:
-            continue
-        path = os.path.join(locales_dir, loc_file)
-        data = load_json(path)
-        for key, new_val in corrections:
-            try:
-                set_nested(data, key, new_val)
-            except Exception as e:
-                print("WARN: 无法设置 %s in %s: %s" % (key, loc_file, e))
-        save_json(path, data)
-        print("  已保存 %s: 共应用 %d 处修正" % (loc_file, len(corrections)), flush=True)
-    if not by_file:
-        print("  无需要写回的修正。", flush=True)
     print("全部完成。" if not errors else "完成，但有 %d 个任务失败，请查看上方错误信息。" % len(errors), flush=True)
     return 0 if not errors else 1
 

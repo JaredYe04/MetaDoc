@@ -2,7 +2,7 @@ import MarkdownIt from 'markdown-it'
 import footnote from 'markdown-it-footnote'
 import taskLists from 'markdown-it-task-lists'
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from './md-utils'
-import { markdownToLatex, latexToMarkdown } from '../../../converter'
+import { markdownToLatex, latexToMarkdown, escapeLatex } from '@jared-ye/markdown-tex'
 
 const md = new MarkdownIt({
   html: false,
@@ -534,33 +534,6 @@ function splitTokensIntoBlocks(tokens) {
 
   return blocks
 }
-// LaTeX 特殊字符转义
-// 注意：转义顺序很重要，必须按正确顺序处理
-// Missing endcsname 错误通常由未转义的 # 字符引起
-function escapeLatex(str) {
-  if (!str) return ''
-
-  let result = String(str)
-
-  // 转义顺序很重要：
-  // 1. 先转义反斜杠（必须最先处理）
-  result = result.replace(/\\/g, '\\textbackslash{}')
-
-  // 2. 转义所有特殊字符（按 LaTeX 规则）
-  // 注意：大括号必须转义，否则会导致命令参数解析错误
-  result = result
-    .replace(/([{}])/g, '\\$1') // 大括号（必须转义，避免命令参数错误）
-    .replace(/#/g, '\\#') // 井号（这是导致 Missing endcsname 的主要原因）
-    .replace(/\$/g, '\\$') // 美元符号
-    .replace(/&/g, '\\&') // 和号
-    .replace(/%/g, '\\%') // 百分号
-    .replace(/_/g, '\\_') // 下划线
-    .replace(/~/g, '\\textasciitilde{}') // 波浪号
-    .replace(/\^/g, '\\^{}') // 插入符号
-
-  return result
-}
-
 // Emoji 转 LaTeX 表示（可以改成 unicode 或 TikZ 绘图）
 function convertEmojiToLatex(emojiName) {
   const emojiMap = {

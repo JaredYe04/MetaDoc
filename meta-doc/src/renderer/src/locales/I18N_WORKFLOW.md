@@ -61,9 +61,10 @@
 ### 4.2 进度文件与增量运行
 
 - 脚本会在 locales 目录下维护 **`.i18n_ai_review_progress.txt`**（已加入 .gitignore）。
-- 每完成一个「语言 + 模块」并写回 JSON 后，会往该文件追加一行：`语言文件\t模块名`。
-- **再次执行时**会跳过进度文件中已存在的项，只跑尚未完成的，方便断点续跑或分批跑。
-- 若要**全量重跑**（忽略已有进度）：先加 `--reset-progress` 再执行，例如：  
+- 每完成一个「语言 + 模块」并写回 JSON 后，会往该文件追加一行：`语言文件\t模块名` 或 `语言文件\t模块名\t源哈希`（源哈希为当时 zh_cn 该模块内容的 SHA256，用于检测蓝本是否变更）。
+- **再次执行时**会跳过进度中「已完成且源未变」的项；若蓝本 zh_cn 某模块内容已改（哈希不同），该语言+模块会**自动重新校对**。
+- 若进度是旧版（只有两列、无哈希），脚本仍会跳过这些项；若要**之后能按变更重校**，可先执行一次 `--record-hashes`，为已有进度补写当前蓝本哈希，再改 zh_cn 后正常跑脚本即可只重校变更的模块。
+- **全量重跑**（忽略已有进度）：先加 `--reset-progress` 再执行，例如：  
   `python i18n_ai_review.py --reset-progress --max-workers 5`
 
 ### 4.3 命令（均在 locales 目录下执行）
@@ -76,6 +77,7 @@
 | 只校对某一模块 | `python i18n_ai_review.py --module proofread` |
 | 只看任务不请求 | `python i18n_ai_review.py --dry-run` |
 | 调并发数       | `python i18n_ai_review.py --max-workers 4` |
+| 补写源哈希     | `python i18n_ai_review.py --record-hashes`（为已有进度写入 zh_cn 模块哈希，便于之后只重校变更） |
 
 ### 4.4 执行时输出与写回
 
@@ -98,7 +100,7 @@
 | `zh_cn.json` | 蓝本，键与结构标准 |
 | `i18n_report_missing.py` | 查缺：对比 zh_cn，列出缺失/多余键 |
 | `i18n_ai_review.py` | 批量校对：按模块调用 DeepSeek 审阅，**每模块完成即写回** |
-| `.i18n_ai_review_progress.txt` | 已完成的「语言\|模块」记录，用于增量跑（勿提交） |
+| `.i18n_ai_review_progress.txt` | 已完成的「语言\|模块」或「语言\|模块\|源哈希」记录，用于增量跑与变更检测（勿提交） |
 | `.deepseek_api_key` | DeepSeek API key（勿提交） |
 | `i18n_check.py` | 旧版机翻补全（可选，质量一般） |
 
@@ -130,9 +132,10 @@
 
 ### 7.3 进度与增量
 
-- 脚本在 `manuals/` 下维护 **`.manual_i18n_progress.txt`**（每行：`语言\t相对路径`）。
-- 再次执行时会跳过进度中已有的「语言|路径」，只处理尚未翻译的缺失文件。
-- **全量重跑**：加 `--reset-progress` 再执行（会清空进度，仍只生成「当前缺失」的文件）。
+- 脚本在 `manuals/` 下维护 **`.manual_i18n_progress.txt`**（每行：`语言\t相对路径` 或 `语言\t相对路径\t源哈希`）。源哈希为翻译时 zh_CN 该文件内容的 SHA256，用于检测源文件是否变更。
+- 再次执行时会跳过「已完成且源未变」的项；若 zh_CN 下某文件内容已改（哈希不同），该语言+路径会**自动重新翻译**。
+- 若进度是旧版（无哈希），脚本仍会跳过已完成项；若要**之后能按变更重译**，可先执行一次 `python manual_i18n_translate.py --record-hashes`，再改 zh_CN 后正常跑脚本即可只重译变更的文件。
+- **全量重跑**：加 `--reset-progress` 再执行（会清空进度，仍只生成「当前缺失」或「源已变更」的文件）。
 
 ### 7.4 命令（在 manuals 目录下执行）
 
@@ -143,6 +146,7 @@
 | 只翻译某一语言 | `python manual_i18n_translate.py --locale en_US` |
 | 只列缺失不请求 | `python manual_i18n_translate.py --dry-run` |
 | 调并发数       | `python manual_i18n_translate.py --max-workers 4` |
+| 补写源哈希     | `python manual_i18n_translate.py --record-hashes`（为已有进度写入 zh_CN 文件哈希，便于之后只重译变更） |
 
 ### 7.5 脚本与文件一览（手册）
 
@@ -150,5 +154,42 @@
 |-----------|------|
 | `manuals/zh_CN/**/*.md` | 蓝本，所有手册正文 |
 | `manual_i18n_translate.py` | 按缺失文件翻译，并发 + 每篇写回 + 进度 |
-| `.manual_i18n_progress.txt` | 已完成的「语言\t路径」记录（勿提交） |
+| `.manual_i18n_progress.txt` | 已完成的「语言\t路径」或「语言\t路径\t源哈希」记录（勿提交） |
 | `manuals/.deepseek_api_key` | 可选，与 locales 共用或单独放（勿提交） |
+
+---
+
+## 八、蓝本/源变更时如何只处理修改部分
+
+文档和 UI 文案会经常改动，希望**只重校/重译变更过的部分**，而不是每次全量跑。
+
+### 8.1 思路
+
+两个脚本的进度文件都支持**可选的第三列：源内容哈希**。
+
+- **UI i18n**：进度行格式为 `语言文件\t模块名\t源哈希`。源哈希 = 当时 zh_cn 该模块（键值对）的 SHA256。再次运行时，若当前 zh_cn 该模块的哈希与进度里记录的不一致，则认为蓝本已改，该「语言+模块」会重新进入校对任务。
+- **用户手册**：进度行格式为 `语言\t相对路径\t源哈希`。源哈希 = 当时 zh_CN 该 .md 文件内容的 SHA256。再次运行时，若当前 zh_CN 该文件的哈希与进度里记录的不一致，则该「语言+路径」会重新进入翻译任务。
+
+旧进度（只有两列、没有哈希）仍有效：脚本会视为「已完成、源未记录」，不会自动重跑。若要启用「按变更重跑」，需要先为已有进度补写哈希。
+
+### 8.2 操作步骤
+
+**UI i18n（locales）**
+
+1. （首次或从未写过哈希时）在 locales 目录执行：  
+   `python i18n_ai_review.py --record-hashes`  
+   会为当前进度文件中每一项计算当前 zh_cn 对应模块的哈希并写回进度文件（三列）。
+2. 之后你修改 zh_cn.json 中某模块的文案后，直接执行：  
+   `python i18n_ai_review.py --max-workers 5`  
+   脚本会自动只对「该模块内容已变」的语言+模块重新校对，其余跳过。
+
+**用户手册（manuals）**
+
+1. （首次或从未写过哈希时）在 manuals 目录执行：  
+   `python manual_i18n_translate.py --record-hashes`  
+   会为当前进度文件中每一项计算当前 zh_CN 对应文件的哈希并写回进度文件（三列）。
+2. 之后你修改 zh_CN 下某 .md 后，直接执行：  
+   `python manual_i18n_translate.py --max-workers 3`  
+   脚本会自动只对「该文件内容已变」的语言+路径重新翻译，其余跳过。
+
+这样即可在文档和 UI 扩展或修改后，用同一套脚本、一次运行，只更新受影响的部分。

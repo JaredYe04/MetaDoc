@@ -27,7 +27,7 @@
         <template #default="{ percentage }">
           <span class="tool-result-simple-progress-text">{{ percentage }}%</span>
           <span v-if="message.progress?.message" class="tool-result-simple-progress-msg">
-            {{ message.progress.message }}
+            {{ $t(message.progress.message, message.progress.params || {}) }}
           </span>
         </template>
       </Progress>

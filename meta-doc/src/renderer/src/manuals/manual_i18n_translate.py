@@ -14,6 +14,7 @@ API key：同目录 .deepseek_api_key，或 ../renderer/src/locales/.deepseek_ap
   python manual_i18n_translate.py --reset-progress  # 清空进度后全量
   python manual_i18n_translate.py --dry-run     # 只列缺失文件，不请求、不写回
   python manual_i18n_translate.py --max-workers 4
+  python manual_i18n_translate.py --record-hashes  # 为已有进度补写源文件哈希，便于之后检测变更
 """
 
 import os
@@ -21,6 +22,7 @@ import sys
 import json
 import argparse
 import time
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -35,7 +37,7 @@ if sys.platform == "win32":
 MANUALS_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_LOCALE = "zh_CN"
 TARGET_LOCALES = ["en_US", "ja_JP", "ko_KR", "de_DE", "fr_FR"]
-PROGRESS_FILE = ".manual_i18n_progress.txt"  # 每行: locale\trelative_path
+PROGRESS_FILE = ".manual_i18n_progress.txt"  # 每行: locale\trelative_path 或 locale\trelative_path\tsource_hash
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-chat"
 KEY_FILE_NAMES = [".deepseek_api_key", ".deepseek_api_key.txt"]
@@ -49,6 +51,12 @@ def load_api_key():
                 with open(path, "r", encoding="utf-8") as f:
                     return f.read().strip()
     return os.environ.get("DEEPSEEK_API_KEY", "").strip()
+
+
+def file_content_hash(filepath):
+    """返回文件内容的 SHA256 十六进制串，用于检测源是否变更。"""
+    with open(filepath, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
 
 
 def collect_zh_cn_md_paths():
@@ -66,23 +74,30 @@ def collect_zh_cn_md_paths():
 
 
 def load_progress():
+    """返回 (completed_set, hash_map)。completed_set 为 (locale, path) 集合；hash_map 为 (locale, path) -> 翻译时的 zh_CN 源哈希（无则 None）。"""
     path = os.path.join(MANUALS_DIR, PROGRESS_FILE)
     if not os.path.isfile(path):
-        return set()
+        return set(), {}
     out = set()
+    hash_map = {}
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if "\t" in line:
-                loc, p = line.split("\t", 1)
-                out.add((loc.strip(), p.strip()))
-    return out
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                loc, p = parts[0].strip(), parts[1].strip()
+                out.add((loc, p))
+                hash_map[(loc, p)] = parts[2].strip() if len(parts) >= 3 and parts[2] else None
+    return out, hash_map
 
 
-def append_progress(locale, relative_path):
+def append_progress(locale, relative_path, source_hash=None):
     path = os.path.join(MANUALS_DIR, PROGRESS_FILE)
     with open(path, "a", encoding="utf-8") as f:
-        f.write("%s\t%s\n" % (locale, relative_path))
+        if source_hash:
+            f.write("%s\t%s\t%s\n" % (locale, relative_path, source_hash))
+        else:
+            f.write("%s\t%s\n" % (locale, relative_path))
         f.flush()
 
 
@@ -176,6 +191,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="只列缺失，不请求、不写回")
     ap.add_argument("--max-workers", type=int, default=3, help="并发数（手册单篇较长，建议 3）")
     ap.add_argument("--reset-progress", action="store_true", help="清空进度后全量")
+    ap.add_argument("--record-hashes", action="store_true", help="为进度中已有项补写 zh_CN 源哈希，之后修改源文件会自动触发重译")
     args = ap.parse_args()
 
     zh_paths = collect_zh_cn_md_paths()
@@ -184,34 +200,65 @@ def main():
         return 1
 
     api_key = load_api_key()
-    if not api_key and not args.dry_run:
+    if not api_key and not args.dry_run and not args.record_hashes:
         print("ERROR: 未找到 API key。请在 manuals 或 locales 目录放置 .deepseek_api_key 或设置 DEEPSEEK_API_KEY")
         return 1
 
     if args.reset_progress:
         reset_progress()
 
-    completed = load_progress()
+    completed_set, hash_map = load_progress()
     locales = [l for l in TARGET_LOCALES if args.locale is None or l == args.locale or l.lower() == (args.locale or "").lower()]
     if not locales:
         print("ERROR: 未匹配到目标语言")
         return 1
 
+    # 当前 zh_CN 各路径的内容哈希，用于检测源文件变更
+    current_zh_hashes = {}
+    for rel in zh_paths:
+        zh_path = os.path.join(MANUALS_DIR, BASE_LOCALE, rel)
+        if os.path.isfile(zh_path):
+            current_zh_hashes[rel] = file_content_hash(zh_path)
+
+    if args.record_hashes:
+        lines = []
+        for (locale, path) in sorted(completed_set):
+            target_path = os.path.join(MANUALS_DIR, locale, path)
+            zh_path = os.path.join(MANUALS_DIR, BASE_LOCALE, path)
+            if os.path.isfile(target_path) and os.path.isfile(zh_path):
+                h = file_content_hash(zh_path)
+                lines.append("%s\t%s\t%s" % (locale, path, h))
+            else:
+                lines.append("%s\t%s" % (locale, path))
+        progress_path = os.path.join(MANUALS_DIR, PROGRESS_FILE)
+        with open(progress_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + ("\n" if lines else ""))
+        print("已为 %d 项写入/更新源哈希到进度文件。" % len(lines), flush=True)
+        return 0
+
     lang_names = {"en_US": "English", "ja_JP": "Japanese", "ko_KR": "Korean", "de_DE": "German", "fr_FR": "French"}
     tasks = []
     for locale in locales:
         for rel in zh_paths:
-            if (locale, rel) in completed:
-                continue
             target_path = os.path.join(MANUALS_DIR, locale, rel)
-            if os.path.isfile(target_path):
-                continue
-            tasks.append((locale, rel, lang_names.get(locale, locale)))
+            target_exists = os.path.isfile(target_path)
+            stored_hash = hash_map.get((locale, rel))
+            current_hash = current_zh_hashes.get(rel)
+            if (locale, rel) in completed_set:
+                if current_hash is not None and stored_hash is not None and stored_hash != current_hash:
+                    tasks.append((locale, rel, lang_names.get(locale, locale)))
+                elif not target_exists:
+                    tasks.append((locale, rel, lang_names.get(locale, locale)))
+                else:
+                    continue
+            else:
+                if not target_exists:
+                    tasks.append((locale, rel, lang_names.get(locale, locale)))
 
     if not tasks:
-        print("没有需要处理的任务（缺失文件已全部翻译，或已记录在进度中）。可用 --reset-progress 全量重跑。")
-        if completed:
-            print("当前进度文件已记录 %d 项。" % len(completed), flush=True)
+        print("没有需要处理的任务（缺失/源变更已全部处理）。可用 --reset-progress 全量重跑；或先 --record-hashes 再改源文件后重跑以只重译变更项。")
+        if completed_set:
+            print("当前进度文件已记录 %d 项。" % len(completed_set), flush=True)
         return 0
 
     total = len(tasks)
@@ -241,7 +288,8 @@ def main():
                     print("[%3d/%d] %s | %s | 失败: %s" % (done, total, locale, rel, err), flush=True)
                 else:
                     write_back(locale, rel, content or "")
-                    append_progress(locale, rel)
+                    src_hash = current_zh_hashes.get(rel)
+                    append_progress(locale, rel, source_hash=src_hash)
                     print("[%3d/%d] %s | %s | 已写回并记入进度" % (done, total, locale, rel), flush=True)
             except Exception as e:
                 errors.append((locale, rel, str(e)))

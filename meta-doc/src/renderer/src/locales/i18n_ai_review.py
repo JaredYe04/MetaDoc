@@ -15,6 +15,7 @@ MetaDoc i18n AI 校对脚本（基于 DeepSeek API，并发）
   python i18n_ai_review.py --dry-run         # 只打印将要调用的任务，不请求 API、不写文件
   python i18n_ai_review.py --max-workers 4   # 并发数
   python i18n_ai_review.py --reset-progress  # 清空进度文件后全量重跑（默认会跳过已完成的模块）
+  python i18n_ai_review.py --record-hashes   # 为已有进度补写 zh_cn 模块哈希，之后蓝本变更会自动触发重校
 """
 
 import os
@@ -22,6 +23,7 @@ import sys
 import re
 import json
 import argparse
+import hashlib
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.request import Request, urlopen
@@ -42,7 +44,7 @@ MAX_KEYS_PER_CHUNK = 60  # 每个请求最多键数，避免超长
 LOCALES_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_FILE = "zh_cn.json"
 KEY_FILE_NAMES = [".deepseek_api_key", ".deepseek_api_key.txt"]
-PROGRESS_FILE = ".i18n_ai_review_progress.txt"  # 每行: locale_file\tmodule_name
+PROGRESS_FILE = ".i18n_ai_review_progress.txt"  # 每行: locale_file\tmodule_name 或 locale_file\tmodule_name\tsource_hash
 
 
 def load_api_key():
@@ -99,6 +101,14 @@ def group_keys_by_module(flat_keys, max_per_chunk=MAX_KEYS_PER_CHUNK):
             chunk_name = mod if len(keys) <= max_per_chunk else f"{mod}_part{i//max_per_chunk}"
             result[chunk_name] = chunk
     return result
+
+
+def module_content_hash(flat_zh, keys):
+    """返回该模块在 zh_cn 下的内容哈希（键值对排序后拼接再 sha256），用于检测蓝本是否变更。"""
+    parts = []
+    for k in sorted(keys):
+        parts.append("%s:%s" % (k, flat_zh.get(k, "")))
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
 
 
 def infer_context_hint(key):
@@ -202,25 +212,30 @@ def set_nested(data, path, value):
 
 
 def load_progress(locales_dir):
-    """返回已完成的 (locale_file, module_name) 集合"""
+    """返回 (completed_set, hash_map)。completed_set 为 (locale_file, module_name) 集合；hash_map 为 (loc, mod) -> 校对时的 zh_cn 模块哈希（无则 None）。"""
     path = os.path.join(locales_dir, PROGRESS_FILE)
     if not os.path.isfile(path):
-        return set()
+        return set(), {}
     out = set()
+    hash_map = {}
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if "\t" in line:
-                loc, mod = line.split("\t", 1)
-                out.add((loc.strip(), mod.strip()))
-    return out
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                loc, mod = parts[0].strip(), parts[1].strip()
+                out.add((loc, mod))
+                hash_map[(loc, mod)] = parts[2].strip() if len(parts) >= 3 and parts[2] else None
+    return out, hash_map
 
 
-def append_progress(locales_dir, locale_file, module_name):
-    """将完成的一项追加到进度文件"""
+def append_progress(locales_dir, locale_file, module_name, source_hash=None):
     path = os.path.join(locales_dir, PROGRESS_FILE)
     with open(path, "a", encoding="utf-8") as f:
-        f.write("%s\t%s\n" % (locale_file, module_name))
+        if source_hash:
+            f.write("%s\t%s\t%s\n" % (locale_file, module_name, source_hash))
+        else:
+            f.write("%s\t%s\n" % (locale_file, module_name))
         f.flush()
 
 
@@ -269,6 +284,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="只打印任务，不请求 API、不写文件")
     ap.add_argument("--max-workers", type=int, default=5, help="并发数")
     ap.add_argument("--reset-progress", action="store_true", help="清空进度文件，之后按全量执行（否则会跳过已完成的 语言|模块）")
+    ap.add_argument("--record-hashes", action="store_true", help="为进度中已有项补写 zh_cn 模块哈希，之后蓝本变更会自动触发重校")
     args = ap.parse_args()
 
     locales_dir = os.path.abspath(args.dir)
@@ -278,13 +294,14 @@ def main():
         return 1
 
     api_key = load_api_key()
-    if not api_key and not args.dry_run:
+    if not api_key and not args.dry_run and not args.record_hashes:
         print("ERROR: 未找到 API key。请在同目录创建 .deepseek_api_key 或设置环境变量 DEEPSEEK_API_KEY")
         return 1
 
     zh_data = load_json(base_path)
     flat_zh = flatten_json(zh_data)
     all_modules = group_keys_by_module(list(flat_zh.keys()))
+    current_module_hashes = {mod: module_content_hash(flat_zh, keys) for mod, keys in all_modules.items()}
 
     locale_files = [
         f for f in os.listdir(locales_dir)
@@ -299,7 +316,21 @@ def main():
     if args.reset_progress:
         reset_progress(locales_dir)
 
-    completed_set = load_progress(locales_dir) if not args.reset_progress else set()
+    completed_set, hash_map = load_progress(locales_dir) if not args.reset_progress else (set(), {})
+
+    if args.record_hashes:
+        lines = []
+        for (loc_file, mod_name) in sorted(completed_set):
+            h = current_module_hashes.get(mod_name)
+            if h:
+                lines.append("%s\t%s\t%s" % (loc_file, mod_name, h))
+            else:
+                lines.append("%s\t%s" % (loc_file, mod_name))
+        progress_path = os.path.join(locales_dir, PROGRESS_FILE)
+        with open(progress_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + ("\n" if lines else ""))
+        print("已为 %d 项写入/更新模块哈希到进度文件。" % len(lines), flush=True)
+        return 0
 
     # 语言名提示（用于提示词）
     lang_names = {
@@ -320,18 +351,23 @@ def main():
             continue
         flat_loc = flatten_json(loc_data)
         for mod_name, keys in all_modules.items():
-            # 只处理该语言里存在的键
             keys_in_locale = [k for k in keys if k in flat_loc]
             if not keys_in_locale:
                 continue
             if args.module and not (mod_name == args.module or mod_name.startswith(args.module + ".") or mod_name.startswith(args.module + "_")):
                 continue
+            stored_hash = hash_map.get((loc_file, mod_name))
+            current_hash = current_module_hashes.get(mod_name)
             if (loc_file, mod_name) in completed_set:
-                continue
-            tasks.append((loc_file, mod_name, keys_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
+                if current_hash is not None and stored_hash is not None and stored_hash != current_hash:
+                    tasks.append((loc_file, mod_name, keys_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
+                else:
+                    continue
+            else:
+                tasks.append((loc_file, mod_name, keys_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
 
     if not tasks:
-        print("没有符合条件的任务（可尝试去掉 --locale / --module，或使用 --reset-progress 全量重跑）")
+        print("没有符合条件的任务（缺项或蓝本变更已处理完）。可尝试 --locale / --module 或 --reset-progress 全量重跑；或先 --record-hashes 再改蓝本后重跑以只重校变更模块。")
         if completed_set:
             print("当前进度文件已记录 %d 个已完成项。" % len(completed_set), flush=True)
         return 0
@@ -377,7 +413,8 @@ def main():
                     print("[%3d/%d] %s | %s | 失败: %s" % (completed, total, loc_file, mod_name, err), flush=True)
                 else:
                     write_back_module(locales_dir, loc_file, corrections, file_locks)
-                    append_progress(locales_dir, loc_file, mod_name)
+                    src_hash = current_module_hashes.get(mod_name)
+                    append_progress(locales_dir, loc_file, mod_name, source_hash=src_hash)
                     print("[%3d/%d] %s | %s | 完成，修正 %d 处，已写回并记入进度" % (completed, total, loc_file, mod_name, len(corrections)), flush=True)
             except Exception as e:
                 errors.append((loc_file, mod_name, str(e)))

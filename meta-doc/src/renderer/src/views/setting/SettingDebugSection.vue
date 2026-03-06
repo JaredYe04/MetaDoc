@@ -66,7 +66,7 @@
             @click="handleMenuSelect('exportregression')"
           >
             <Setting class="debug-menu-icon" />
-            <span class="debug-menu-label">导出回归测试</span>
+            <span class="debug-menu-label">{{ $t('setting.debug.exportRegression') }}</span>
           </Button>
         </div>
       </div>
@@ -162,36 +162,36 @@
               <div v-show="activeTab === 'updatetest'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
                   <Form class="space-y-4">
-                    <FormField name="currentVersion" label="当前版本">
+                    <FormField name="currentVersion" :label="$t('setting.debug.currentVersion')">
                       <Input
                         v-model="updateTestForm.currentVersion"
-                        placeholder="例如: 0.13.4"
+                        :placeholder="$t('setting.debug.currentVersionPlaceholder')"
                         class="w-[200px]"
                       />
                     </FormField>
 
-                    <FormField name="mockUpdateVersion" label="模拟更新版本">
+                    <FormField name="mockUpdateVersion" :label="$t('setting.debug.mockUpdateVersion')">
                       <Input
                         v-model="updateTestForm.mockUpdateVersion"
-                        placeholder="例如: 0.14.0"
+                        :placeholder="$t('setting.debug.mockUpdateVersionPlaceholder')"
                         class="w-[200px]"
                       />
                     </FormField>
 
-                    <FormField name="channel" label="更新渠道">
+                    <FormField name="channel" :label="$t('setting.debug.updateChannel')">
                       <RadioGroup v-model="updateTestForm.channel" class="flex flex-row gap-4">
                         <div class="flex items-center gap-2">
                           <RadioGroupItem value="release" id="channel-release" />
-                          <label for="channel-release" class="text-sm cursor-pointer">正式版</label>
+                          <label for="channel-release" class="text-sm cursor-pointer">{{ $t('setting.debug.channelRelease') }}</label>
                         </div>
                         <div class="flex items-center gap-2">
                           <RadioGroupItem value="dev" id="channel-dev" />
-                          <label for="channel-dev" class="text-sm cursor-pointer">内测版</label>
+                          <label for="channel-dev" class="text-sm cursor-pointer">{{ $t('setting.debug.channelDev') }}</label>
                         </div>
                       </RadioGroup>
                     </FormField>
 
-                    <FormField name="scenario" label="测试场景">
+                    <FormField name="scenario" :label="$t('setting.debug.testScenario')">
                       <RadioGroup
                         v-model="updateTestForm.scenario"
                         class="flex flex-row gap-4 flex-wrap"
@@ -247,7 +247,7 @@
                     <Alert v-if="updateTestStatus.updateAvailable" variant="default" class="mb-4">
                       <CheckCircle2 class="h-4 w-4" />
                       <AlertTitle
-                        >发现新版本: {{ updateTestStatus.updateInfo?.version || '' }}</AlertTitle
+                        >{{ $t('setting.debug.newVersionFound', { version: updateTestStatus.updateInfo?.version || '' }) }}</AlertTitle
                       >
                       <AlertDescription v-if="updateTestStatus.updateInfo?.releaseNotes">
                         {{ updateTestStatus.updateInfo.releaseNotes }}
@@ -344,7 +344,7 @@
                           class="test-error-message"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <strong>错误:</strong>
+                          <strong>{{ $t('setting.debug.error') }}:</strong>
                           <pre
                             :style="{
                               ...codeBlockStyle,
@@ -382,7 +382,7 @@
                           />
                           <Button variant="outline" size="sm" @click="loadTestCaseById">
                             <Search class="mr-1 h-4 w-4" />
-                            加载
+                            {{ $t('setting.debug.load') }}
                           </Button>
                         </div>
                         <Select v-model="selectedTestCase" @update:model-value="loadTestCase">
@@ -432,10 +432,10 @@
                       </div>
                     </FormField>
 
-                    <FormField name="toolId" label="选择Tool">
+                    <FormField name="toolId" :label="$t('setting.debug.selectTool')">
                       <Select v-model="toolTestForm.toolId" @update:model-value="handleToolChange">
                         <SelectTrigger class="w-[240px]">
-                          <SelectValue placeholder="选择要测试的Tool" />
+                          <SelectValue :placeholder="$t('setting.debug.selectToolPlaceholder')" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem
@@ -450,7 +450,7 @@
                     </FormField>
 
                     <!-- 保存的配置列表 -->
-                    <FormField name="savedConfig" label="保存的配置">
+                    <FormField name="savedConfig" :label="$t('setting.debug.savedConfig')">
                       <div style="display: flex; gap: 8px; margin-bottom: 8px">
                         <Select v-model="selectedConfigId" @update:model-value="loadSavedConfig">
                           <SelectTrigger class="w-[200px]">
@@ -496,7 +496,7 @@
                     </FormField>
 
                     <!-- 上下文Tab选择 -->
-                    <FormField name="contextTabId" label="上下文Tab">
+                    <FormField name="contextTabId" :label="$t('setting.debug.contextTab')">
                       <Select v-model="toolTestForm.contextTabId">
                         <SelectTrigger class="w-[240px]">
                           <SelectValue
@@ -513,7 +513,7 @@
                             $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）')
                           }}</SelectItem>
                           <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
-                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                            {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{ tab.id }})
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -525,15 +525,13 @@
                         "
                       >
                         <el-icon><InfoFilled /></el-icon>
-                        <span
-                          >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
-                        >
+                        <span>{{ $t('setting.debug.contextTabTooltip') }}</span>
                       </div>
                     </FormField>
 
                     <!-- 参数编辑区域 -->
-                    <Divider>参数配置</Divider>
-                    <FormField name="toolInstruction" label="工具说明">
+                    <Divider>{{ $t('setting.debug.paramsConfig') }}</Divider>
+                    <FormField name="toolInstruction" :label="$t('setting.debug.toolInstruction')">
                       <Textarea
                         :model-value="currentToolInstruction"
                         readonly
@@ -559,7 +557,7 @@
                         }}</span>
                       </div>
                     </FormField>
-                    <FormField name="paramsJson" label="参数JSON">
+                    <FormField name="paramsJson" :label="$t('setting.debug.parameters') + ' JSON'">
                       <Textarea
                         v-model="toolTestForm.paramsJson"
                         rows="8"
@@ -601,7 +599,7 @@
                       marginTop: '20px'
                     }"
                   >
-                    <Divider :style="{ marginTop: 0 }">执行结果</Divider>
+                    <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.executionResult') }}</Divider>
                     <ScrollArea class="flex-1">
                       <div
                         v-for="(entry, index) in toolTestHistory"
@@ -623,13 +621,13 @@
                               {{ $t('agent.tool.exportSnapshot') }}
                             </Button>
                             <Badge v-if="entry.status === 'running'" variant="warning">
-                              执行中
+                              {{ $t('setting.debug.running') }}
                             </Badge>
                             <Badge v-else-if="entry.status === 'succeeded'" variant="default">
-                              成功
+                              {{ $t('setting.debug.success') }}
                             </Badge>
                             <Badge v-else-if="entry.status === 'failed'" variant="destructive">
-                              失败
+                              {{ $t('setting.debug.fail') }}
                             </Badge>
                             <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
                           </div>
@@ -648,7 +646,7 @@
                             <template #default="{ percentage }">
                               <span class="progress-text">{{ percentage }}%</span>
                               <span v-if="entry.progress?.message" class="progress-message">
-                                {{ entry.progress.message }}
+                                {{ $t(entry.progress.message, entry.progress.params || {}) }}
                               </span>
                             </template>
                           </Progress>
@@ -659,7 +657,7 @@
                           class="test-params"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <strong>参数:</strong>
+                          <strong>{{ $t('setting.debug.paramsLabel') }}:</strong>
                           <pre :style="codeBlockStyle">{{
                             typeof entry.params === 'string'
                               ? entry.params
@@ -671,7 +669,7 @@
                           class="test-error-message"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <strong>错误:</strong>
+                          <strong>{{ $t('setting.debug.error') }}:</strong>
                           <pre
                             :style="{
                               ...codeBlockStyle,
@@ -690,7 +688,7 @@
                           v-if="entry.displayComponent && entry.outputs && entry.outputs.length > 0"
                           class="test-display-component"
                         >
-                          <Divider>渲染结果</Divider>
+                          <Divider>{{ $t('setting.debug.renderResultLabel') }}</Divider>
                           <div class="space-y-2">
                             <Collapsible
                               v-for="(output, idx) in entry.outputs"
@@ -736,7 +734,7 @@
                           class="test-result-data"
                           :style="{ color: themeState.currentTheme.textColor }"
                         >
-                          <Divider>原始结果</Divider>
+                          <Divider>{{ $t('setting.debug.rawResultLabel') }}</Divider>
                           <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
                         </div>
                       </div>
@@ -745,7 +743,7 @@
                         class="test-empty"
                         :style="testEmptyStyle"
                       >
-                        暂无测试历史
+                        {{ $t('setting.debug.noTestHistory') }}
                       </div>
                     </ScrollArea>
                   </div>
@@ -948,16 +946,11 @@
               <div v-show="activeTab === 'autotest'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
                   <Form class="space-y-4">
-                    <FormField name="selectedTools" label="选择要测试的Tool">
+                    <FormField name="selectedTools" :label="$t('setting.debug.selectToolForTest')">
                       <Select v-model="autoTestForm.selectedTools" multiple>
                         <SelectTrigger class="w-[240px]">
                           <SelectValue
-                            :placeholder="
-                              $t(
-                                'setting.debug.selectToolPlaceholder',
-                                '选择要测试的Tool（留空则测试所有）'
-                              )
-                            "
+                            :placeholder="$t('setting.debug.selectToolForTestPlaceholder')"
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -973,7 +966,7 @@
                     </FormField>
 
                     <!-- 上下文Tab选择 -->
-                    <FormField name="contextTabId" label="上下文Tab">
+                    <FormField name="contextTabId" :label="$t('setting.debug.contextTab')">
                       <Select v-model="autoTestForm.contextTabId" style="width: 100%">
                         <SelectTrigger class="w-[240px]">
                           <SelectValue
@@ -990,7 +983,7 @@
                             $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）')
                           }}</SelectItem>
                           <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
-                            {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                            {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{ tab.id }})
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1002,9 +995,7 @@
                         "
                       >
                         <el-icon><InfoFilled /></el-icon>
-                        <span
-                          >选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span
-                        >
+                        <span>{{ $t('setting.debug.contextTabTooltip') }}</span>
                       </div>
                     </FormField>
 
@@ -1013,16 +1004,16 @@
                         <Button variant="default" @click="runAutoTests" :disabled="autoTestRunning">
                           <template v-if="autoTestRunning">
                             <Loading class="mr-2 h-4 w-4 animate-spin" />
-                            测试中...
+                            {{ $t('setting.debug.testing') }}
                           </template>
-                          <template v-else> 开始自动测试 </template>
+                          <template v-else> {{ $t('setting.debug.startAutoTest') }} </template>
                         </Button>
                         <Button
                           variant="outline"
                           @click="stopAutoTests"
                           :disabled="!autoTestRunning"
                         >
-                          停止测试
+                          {{ $t('setting.debug.stopTest') }}
                         </Button>
                       </div>
                     </FormField>
@@ -1034,7 +1025,7 @@
                     class="auto-test-results"
                     style="margin-top: 20px"
                   >
-                    <Divider :style="{ marginTop: 0 }">测试结果</Divider>
+                    <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.testResultTitle') }}</Divider>
                     <AutoTestResultDisplay
                       v-if="autoTestResults.length > 0"
                       :test-results="autoTestResults"
@@ -1221,12 +1212,7 @@
                           <Select v-model="unitTestBatchForm.selectedModules" multiple>
                             <SelectTrigger class="w-[240px]">
                               <SelectValue
-                                :placeholder="
-                                  $t(
-                                    'setting.debug.selectModulePlaceholder',
-                                    '选择要测试的模块（留空则测试所有）'
-                                  )
-                                "
+                                :placeholder="$t('setting.debug.selectModulePlaceholder')"
                               />
                             </SelectTrigger>
                             <SelectContent>
@@ -1238,7 +1224,7 @@
                         </FormField>
 
                         <!-- 上下文Tab选择 -->
-                        <FormField name="contextTabId" label="上下文Tab">
+                        <FormField name="contextTabId" :label="$t('setting.debug.contextTab')">
                           <Select v-model="unitTestBatchForm.contextTabId" style="width: 100%">
                             <SelectTrigger class="w-[240px]">
                               <SelectValue
@@ -1258,7 +1244,7 @@
                                 )
                               }}</SelectItem>
                               <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
-                                {{ tab.title || tab.subtitle || '未命名' }} ({{ tab.id }})
+                                {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{ tab.id }})
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -1288,16 +1274,16 @@
                             >
                               <template v-if="unitTestBatchRunning">
                                 <Loading class="mr-2 h-4 w-4 animate-spin" />
-                                测试中...
+                                {{ $t('setting.debug.testing') }}
                               </template>
-                              <template v-else> 开始批量测试 </template>
+                              <template v-else> {{ $t('setting.debug.startBatchTest') }} </template>
                             </Button>
                             <Button
                               variant="outline"
                               @click="stopUnitTestBatch"
                               :disabled="!unitTestBatchRunning"
                             >
-                              停止测试
+                              {{ $t('setting.debug.stopBatchTest') }}
                             </Button>
                           </div>
                         </FormField>
@@ -1309,7 +1295,7 @@
                         class="unit-test-batch-results"
                         style="margin-top: 20px"
                       >
-                        <Divider :style="{ marginTop: 0 }">测试结果</Divider>
+                        <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.testResultTitle') }}</Divider>
                         <UnitTestResultDisplay
                           v-if="unitTestBatchResults.length > 0"
                           :test-results="unitTestBatchResults"
@@ -1336,13 +1322,13 @@
               <div v-show="activeTab === 'exportregression'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
                   <p class="text-sm text-muted-foreground mb-4">
-                    项目调试目录为 <code>debug/</code>，验收文档固定为 <code>debug/export-test.md</code>（写死）。也可通过 文件→打开 打开任意文档后在此选择。按下方用例依次导出到指定目录（与程序内导出同一套流程）。
+                    {{ $t('setting.debug.exportRegressionIntro') }}
                   </p>
-                  <FormField label="选择要导出的文档" name="exportDoc">
+                  <FormField :label="$t('setting.debug.selectExportDoc')" name="exportDoc">
                     <div class="flex gap-2 items-center flex-wrap">
                       <Select v-model="exportRegressionSelectedTabId">
                         <SelectTrigger class="w-[320px]">
-                          <SelectValue placeholder="请先打开文档（如 debug/export-test.md）" />
+                          <SelectValue :placeholder="$t('setting.debug.openDocPlaceholder')" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem
@@ -1350,8 +1336,8 @@
                             :key="tab.id"
                             :value="tab.id"
                           >
-                            {{ tab.path ? tab.path.replace(/^.*[/\\]/, '') : (tab.title || '未命名') }}
-                            <span v-if="isExportTestDoc(tab)" class="text-muted-foreground ml-1">(验收文档)</span>
+                            {{ tab.path ? tab.path.replace(/^.*[/\\]/, '') : (tab.title || $t('setting.debug.unnamed')) }}
+                            <span v-if="isExportTestDoc(tab)" class="text-muted-foreground ml-1">({{ $t('setting.debug.acceptanceDoc') }})</span>
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1360,18 +1346,18 @@
                         size="default"
                         @click="handleOpenDebugExportTest"
                       >
-                        打开 debug/export-test.md
+                        {{ $t('setting.debug.openExportTestDoc') }}
                       </Button>
                     </div>
                     <p v-if="!exportRegressionDoc && documentTabs.length === 0" class="text-xs text-muted-foreground mt-1">
-                      请先点击「打开 debug/export-test.md」或通过 文件→打开 打开要测试的文档。
+                      {{ $t('setting.debug.exportRegressionOpenHint') }}
                     </p>
                   </FormField>
-                  <FormField label="输出目录" name="outputDir">
+                  <FormField :label="$t('setting.debug.outputDir')" name="outputDir">
                     <div class="flex gap-2 items-center">
                       <Input
                         v-model="exportRegressionOutputDir"
-                        placeholder="选择或输入导出根目录"
+                        :placeholder="$t('setting.debug.outputDirPlaceholder')"
                         class="flex-1 max-w-md"
                         readonly
                       />
@@ -1380,7 +1366,7 @@
                         size="default"
                         @click="handleExportRegressionChooseDir"
                       >
-                        选择目录
+                        {{ $t('setting.debug.selectDir') }}
                       </Button>
                     </div>
                   </FormField>
@@ -1391,10 +1377,10 @@
                       @click="runExportRegression"
                     >
                       <template v-if="exportRegressionRunning">
-                        导出中… ({{ exportRegressionCurrent }} / {{ exportRegressionCases.length }})
+                        {{ $t('setting.debug.exportRegressionExporting', { current: exportRegressionCurrent, total: exportRegressionCases.length }) }}
                       </template>
                       <template v-else>
-                        一键导出所有格式
+                        {{ $t('setting.debug.exportRegressionRunAll') }}
                       </template>
                     </Button>
                   </FormField>
@@ -1426,7 +1412,7 @@
                                 : 'outline'
                         "
                       >
-                        {{ c.status === 'success' ? '成功' : c.status === 'fail' ? '失败' : c.status === 'running' ? '进行中' : '待执行' }}
+                        {{ c.status === 'success' ? $t('setting.debug.success') : c.status === 'fail' ? $t('setting.debug.fail') : c.status === 'running' ? $t('setting.debug.statusRunning') : $t('setting.debug.statusPending') }}
                       </Badge>
                       <span v-if="c.error" class="text-destructive text-xs max-w-xs truncate" :title="c.error">{{ c.error }}</span>
                     </div>
@@ -1436,21 +1422,21 @@
               <div v-show="activeTab === 'agentsessiondebug'" class="tab-content">
                 <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
                   <TabsList class="debug-tabs-list">
-                    <TabsTrigger value="debug">会话调试</TabsTrigger>
-                    <TabsTrigger value="replay">会话回放</TabsTrigger>
+                    <TabsTrigger value="debug">{{ $t('setting.debug.sessionDebug') }}</TabsTrigger>
+                    <TabsTrigger value="replay">{{ $t('setting.debug.sessionReplay') }}</TabsTrigger>
                   </TabsList>
 
                   <!-- 会话调试 -->
                   <TabsContent value="debug" class="debug-tabs-content">
                     <div class="test-panel" :style="testPanelStyle">
                       <Form class="space-y-4">
-                        <FormField name="tabId" label="选择文档">
+                        <FormField name="tabId" :label="$t('setting.debug.selectDoc')">
                           <Select
                             v-model="agentSessionDebugForm.tabId"
                             @update:model-value="handleSessionDebugTabChange"
                           >
                             <SelectTrigger class="w-[240px]">
-                              <SelectValue placeholder="选择要调试的文档" />
+                              <SelectValue :placeholder="$t('setting.debug.selectDocPlaceholder')" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem
@@ -1458,7 +1444,7 @@
                                 :key="tab.id"
                                 :value="tab.id"
                               >
-                                {{ tab.title || tab.path || '未命名文档' }}
+                                {{ tab.title || tab.path || $t('setting.debug.unnamedDoc') }}
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -1466,7 +1452,7 @@
 
                         <FormField
                           name="sessionId"
-                          label="选择会话"
+                          :label="$t('setting.debug.selectSession')"
                           v-if="agentSessionDebugForm.tabId"
                         >
                           <div style="display: flex; gap: 8px">
@@ -1476,7 +1462,7 @@
                               style="flex: 1"
                             >
                               <SelectTrigger class="w-[240px]">
-                                <SelectValue placeholder="选择要调试的会话" />
+                                <SelectValue :placeholder="$t('setting.debug.selectSessionPlaceholder')" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem
@@ -1487,7 +1473,7 @@
                                   <div class="flex justify-between items-center w-full">
                                     <span>{{ session.title || session.id }}</span>
                                     <Badge variant="outline" size="sm">
-                                      {{ session.messages?.length || 0 }} 条消息
+                                      {{ $t('setting.debug.messagesCount', { count: session.messages?.length || 0 }) }}
                                     </Badge>
                                   </div>
                                 </SelectItem>
@@ -1499,7 +1485,7 @@
                               :disabled="!agentSessionDebugForm.tabId"
                             >
                               <Upload class="mr-1 h-4 w-4" />
-                              导入会话
+                              {{ $t('setting.debug.importSession') }}
                             </Button>
                           </div>
                         </FormField>
@@ -1513,9 +1499,9 @@
                       >
                         <Tabs v-model="sessionDebugActiveTab" class="debug-tabs">
                           <TabsList class="debug-tabs-list">
-                            <TabsTrigger value="nodes">执行节点</TabsTrigger>
-                            <TabsTrigger value="messages">消息列表</TabsTrigger>
-                            <TabsTrigger value="metadata">会话信息</TabsTrigger>
+                            <TabsTrigger value="nodes">{{ $t('setting.debug.executionNodes') }}</TabsTrigger>
+                            <TabsTrigger value="messages">{{ $t('setting.debug.messageList') }}</TabsTrigger>
+                            <TabsTrigger value="metadata">{{ $t('setting.debug.sessionInfo') }}</TabsTrigger>
                           </TabsList>
 
                           <!-- 执行节点列表 -->
@@ -1553,7 +1539,7 @@
                                         variant="default"
                                         @click="handleRevertToNode(node.id)"
                                       >
-                                        回溯到此节点
+                                        {{ $t('setting.debug.revertToNode') }}
                                       </Button>
                                       <Button
                                         v-if="node.type === 'tool-call'"
@@ -1561,7 +1547,7 @@
                                         variant="outline"
                                         @click="handleReplayToolCall(node.id)"
                                       >
-                                        重新执行工具
+                                        {{ $t('setting.debug.replayTool') }}
                                       </Button>
                                     </div>
                                   </div>
@@ -1573,7 +1559,7 @@
                                   <div class="node-data space-y-2">
                                     <Collapsible>
                                       <CollapsibleTrigger class="bg-muted/50">
-                                        节点数据
+                                        {{ $t('setting.debug.nodeData') }}
                                       </CollapsibleTrigger>
                                       <CollapsibleContent>
                                         <pre :style="messageContentStyle">{{
@@ -1583,7 +1569,7 @@
                                     </Collapsible>
                                     <Collapsible v-if="node.result">
                                       <CollapsibleTrigger class="bg-muted/50">
-                                        执行结果
+                                        {{ $t('setting.debug.executionResult') }}
                                       </CollapsibleTrigger>
                                       <CollapsibleContent>
                                         <pre :style="messageContentStyle">{{
@@ -1593,7 +1579,7 @@
                                     </Collapsible>
                                     <Collapsible v-if="node.error">
                                       <CollapsibleTrigger class="bg-muted/50">
-                                        错误信息
+                                        {{ $t('setting.debug.errorInfo') }}
                                       </CollapsibleTrigger>
                                       <CollapsibleContent>
                                         <pre
@@ -1605,7 +1591,7 @@
                                   </div>
                                 </div>
                               </div>
-                              <div v-else class="test-empty">暂无执行节点</div>
+                              <div v-else class="test-empty">{{ $t('setting.debug.noExecutionNodes') }}</div>
                             </ScrollArea>
                           </TabsContent>
 
@@ -1648,7 +1634,7 @@
                                         variant="default"
                                         @click="handleReplayMessage(message.id)"
                                       >
-                                        重新执行消息
+                                        {{ $t('setting.debug.replayMessage') }}
                                       </Button>
                                       <Button
                                         v-if="message.role === 'tool' && message.type === 'tool'"
@@ -1656,14 +1642,14 @@
                                         variant="outline"
                                         @click="handleReplayToolCallFromMessage(message.id)"
                                       >
-                                        重新执行工具
+                                        {{ $t('setting.debug.replayTool') }}
                                       </Button>
                                     </div>
                                   </div>
                                   <div class="message-content space-y-2">
                                     <Collapsible>
                                       <CollapsibleTrigger class="bg-muted/50">
-                                        消息内容
+                                        {{ $t('setting.debug.messageContent') }}
                                       </CollapsibleTrigger>
                                       <CollapsibleContent>
                                         <div v-if="message.type === 'chat'">
@@ -1705,26 +1691,26 @@
                                   </div>
                                 </div>
                               </div>
-                              <div v-else class="test-empty">暂无消息</div>
+                              <div v-else class="test-empty">{{ $t('setting.debug.noMessages') }}</div>
                             </ScrollArea>
                           </TabsContent>
 
                           <!-- 会话元数据 -->
                           <TabsContent value="metadata" class="debug-tabs-content">
                             <Descriptions :column="1" border>
-                              <DescriptionsItem label="会话ID">{{
+                              <DescriptionsItem :label="$t('setting.debug.sessionId')">{{
                                 selectedSession.id
                               }}</DescriptionsItem>
-                              <DescriptionsItem label="标题">{{
+                              <DescriptionsItem :label="$t('setting.debug.fieldTitle')">{{
                                 selectedSession.title
                               }}</DescriptionsItem>
-                              <DescriptionsItem label="描述">{{
-                                selectedSession.description || '无'
+                              <DescriptionsItem :label="$t('setting.debug.fieldDescription')">{{
+                                selectedSession.description || $t('setting.debug.none')
                               }}</DescriptionsItem>
-                              <DescriptionsItem label="Agent配置ID">{{
-                                selectedSession.agentConfigId || '无'
+                              <DescriptionsItem :label="$t('setting.debug.agentConfigId')">{{
+                                selectedSession.agentConfigId || $t('setting.debug.none')
                               }}</DescriptionsItem>
-                              <DescriptionsItem label="状态">
+                              <DescriptionsItem :label="$t('setting.debug.status')">
                                 <Badge :variant="getSessionStatusTagType(selectedSession.status)">
                                   {{ selectedSession.status || 'idle' }}
                                 </Badge>
@@ -1742,10 +1728,10 @@
                                 :label="$t('setting.debug.referenceCount', '引用数量')"
                                 >{{ selectedSession.referenceStore?.length || 0 }}</DescriptionsItem
                               >
-                              <DescriptionsItem label="创建时间">{{
+                              <DescriptionsItem :label="$t('setting.debug.createdAt')">{{
                                 formatTime(selectedSession.createdAt)
                               }}</DescriptionsItem>
-                              <DescriptionsItem label="更新时间">{{
+                              <DescriptionsItem :label="$t('setting.debug.updatedAt')">{{
                                 formatTime(selectedSession.updatedAt)
                               }}</DescriptionsItem>
                             </Descriptions>
@@ -1753,7 +1739,7 @@
                         </Tabs>
                       </div>
                       <div v-else class="test-empty" style="margin-top: 20px">
-                        请先选择文档和会话
+                        {{ $t('setting.debug.selectDocAndSessionFirst') }}
                       </div>
                     </div>
                   </TabsContent>
@@ -1803,23 +1789,23 @@
                               >
                                 <template v-if="isReplaying">
                                   <Loading class="mr-2 h-4 w-4 animate-spin" />
-                                  回放中...
+                                  {{ $t('setting.debug.replaying') }}
                                 </template>
-                                <template v-else> 开始回放 </template>
+                                <template v-else> {{ $t('setting.debug.startReplay') }} </template>
                               </Button>
                               <Button
                                 variant="outline"
                                 @click="handleStopReplay"
                                 :disabled="!isReplaying"
                               >
-                                停止回放
+                                {{ $t('setting.debug.stopReplay') }}
                               </Button>
                               <Button
                                 variant="outline"
                                 @click="handleResetReplay"
                                 :disabled="isReplaying"
                               >
-                                重置到开头
+                                {{ $t('setting.debug.resetToStart') }}
                               </Button>
                               <Button
                                 variant="outline"
@@ -1827,7 +1813,7 @@
                                 @click="handleReplayStepBack"
                                 :disabled="isReplaying || replayCurrentIndex < 0"
                               >
-                                后退
+                                {{ $t('setting.debug.stepBack') }}
                               </Button>
                               <Button
                                 variant="outline"
@@ -1838,7 +1824,7 @@
                                   replayCurrentIndex >= replayDisplayMessages.length - 1
                                 "
                               >
-                                前进
+                                {{ $t('setting.debug.stepForward') }}
                               </Button>
                               <Slider
                                 v-model="replaySpeed"
@@ -1851,24 +1837,23 @@
                             </div>
                             <!-- 第二行：起始节点选择 -->
                             <div style="display: flex; gap: 8px; align-items: center">
-                              <span style="min-width: 80px">起始节点:</span>
+                              <span style="min-width: 80px">{{ $t('setting.debug.startNodeLabel') }}</span>
                               <Select
                                 v-model="replayStartIndex"
                                 :disabled="isReplaying"
                                 style="flex: 1"
                               >
                                 <SelectTrigger class="w-[240px]">
-                                  <SelectValue placeholder="选择回放起始节点" />
+                                  <SelectValue :placeholder="$t('setting.debug.selectReplayStartNode')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem :value="0">从头开始 (0)</SelectItem>
+                                  <SelectItem :value="0">{{ $t('setting.debug.fromStart') }}</SelectItem>
                                   <SelectItem
                                     v-for="(msg, index) in replayDisplayMessages"
                                     :key="msg.id"
                                     :value="index + 1"
                                   >
-                                    消息 {{ index + 1 }}: {{ getMessageRoleLabel(msg.role) }} -
-                                    {{ msg.type }}
+                                    {{ $t('setting.debug.messageIndex', { index: index + 1, role: getMessageRoleLabel(msg.role), type: msg.type }) }}
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
@@ -1879,8 +1864,7 @@
                                   color: var(--el-text-color-secondary);
                                 "
                               >
-                                当前: {{ replayCurrentIndex + 1 }} /
-                                {{ replayDisplayMessages.length }}
+                                {{ $t('setting.debug.currentPosition', { current: replayCurrentIndex + 1, total: replayDisplayMessages.length }) }}
                               </span>
                             </div>
                           </div>
@@ -1931,7 +1915,7 @@
                                       : `错误: ${toolCall.error || '未知错误'}`
                                   "
                                 >
-                                  {{ toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误` }}
+                                  {{ toolCall.isValid ? $t('setting.debug.toolLabel', { id: toolCall.tool_id }) : $t('setting.debug.parseError') }}
                                 </Badge>
                                 <Badge
                                   v-if="getParsedToolCalls(message).length > 1"
@@ -1974,12 +1958,12 @@
                             </div>
                           </div>
                           <div v-if="replayDisplayMessages.length === 0" class="test-empty">
-                            暂无消息
+                            {{ $t('setting.debug.noMessages') }}
                           </div>
                         </ScrollArea>
                       </div>
                       <div v-else class="test-empty" style="margin-top: 20px">
-                        请先导入会话JSON文件
+                        {{ $t('setting.debug.importSessionJsonFirst') }}
                       </div>
                     </div>
                   </TabsContent>
@@ -1995,14 +1979,14 @@
     <Dialog v-model:open="showSaveConfigDialog">
       <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{{ selectedConfigId ? '编辑配置' : '新建配置' }}</DialogTitle>
+          <DialogTitle>{{ selectedConfigId ? $t('setting.debug.editConfigTitle') : $t('setting.debug.newConfigTitle') }}</DialogTitle>
         </DialogHeader>
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
-            <label class="text-sm font-medium">配置名称 <span class="text-red-500">*</span></label>
+            <label class="text-sm font-medium">{{ $t('setting.debug.configNameRequired') }} <span class="text-red-500">*</span></label>
             <Input
               v-model="saveConfigName"
-              placeholder="请输入配置名称"
+              :placeholder="$t('setting.debug.configNamePlaceholder')"
               @keyup.enter="saveCurrentConfig"
             />
           </div>
@@ -2029,8 +2013,8 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showSaveConfigDialog = false">取消</Button>
-          <Button @click="saveCurrentConfig">保存</Button>
+          <Button variant="outline" @click="showSaveConfigDialog = false">{{ $t('setting.debug.cancel') }}</Button>
+          <Button @click="saveCurrentConfig">{{ $t('setting.debug.save') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -2268,15 +2252,15 @@ const handleMenuSelect = (key: string) => {
 const getCurrentTabTitle = () => {
   const titles: Record<string, string> = {
     eventbus: t('setting.debug.eventBus'),
-    updatetest: '更新测试',
-    agenttool: 'Agent Tool测试',
+    updatetest: t('setting.debug.updateTest'),
+    agenttool: t('setting.debug.agentTool'),
     importsnapshot: t('setting.debug.importSnapshot'),
-    autotest: 'Tool自动测试',
+    autotest: t('setting.debug.autoTest'),
     unittest: t('setting.debug.unitTest.title'),
-    agentsessiondebug: 'Agent会话调试',
-    exportregression: '导出回归测试'
+    agentsessiondebug: t('setting.debug.agentSessionDebug'),
+    exportregression: t('setting.debug.exportRegression')
   }
-  return titles[activeTab.value] || '调试工具'
+  return titles[activeTab.value] || t('setting.debug.title')
 }
 const eventBusActiveTab = ref('eventbus')
 
@@ -2532,7 +2516,7 @@ const exportRegressionCases = computed(() => {
 async function handleExportRegressionChooseDir() {
   const msg = await import('../../bridge/message-bridge').then((m) => m.default)
   const result = await msg.invoke('show-open-dialog', {
-    title: '选择导出根目录',
+    title: t('setting.debug.chooseExportRootDir'),
     properties: ['openDirectory']
   })
   if (!result.canceled && result.filePaths?.[0]) {
@@ -2558,9 +2542,12 @@ async function runExportRegression() {
     md: 'md'
   }
   const eventBus = (await import('../../utils/event-bus')).default
-  const onProgress = (p: { percentage?: number; message?: string; subMessage?: string }) => {
+  const onProgress = (p: { percentage?: number; message?: string; subMessage?: string; params?: Record<string, unknown> }) => {
     exportRegressionProgressPercent.value = p?.percentage ?? 0
-    exportRegressionProgressMessage.value = [p?.message, p?.subMessage].filter(Boolean).join(' ')
+    const params = p?.params ?? {}
+    const msg1 = p?.message ? t(p.message, params) : ''
+    const msg2 = p?.subMessage ? t(p.subMessage, params) : ''
+    exportRegressionProgressMessage.value = [msg1, msg2].filter(Boolean).join(' ')
   }
   eventBus.on('global-progress', onProgress)
   try {
@@ -2593,7 +2580,7 @@ async function runExportRegression() {
     exportRegressionRunning.value = false
     exportRegressionCurrent.value = 0
     exportRegressionProgressPercent.value = 100
-    exportRegressionProgressMessage.value = '全部完成'
+    exportRegressionProgressMessage.value = t('setting.debug.exportRegressionComplete')
   }
 }
 

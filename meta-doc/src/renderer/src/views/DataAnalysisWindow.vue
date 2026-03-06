@@ -1264,7 +1264,7 @@ const handleAnalyze = async () => {
     // 创建进度更新回调
     const onProgress = (data: any, progress?: any) => {
       if (progress?.message) {
-        analysisStage.value = progress.message
+        analysisStage.value = t(progress.message, progress.params || {})
       }
 
       // 检查是否是报告流式输出更新

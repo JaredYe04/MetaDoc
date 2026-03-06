@@ -116,15 +116,12 @@ const handleProgressEvent = (event: ProgressEvent | unknown) => {
   } else {
     // 显示进度条
     visible.value = true
-    // 处理i18n翻译，支持参数替换
+    // 统一按 i18n key 翻译（无对应 key 时 t() 返回原字符串）
+    const params = evt.params || {}
     const msg = evt.message || ''
     const subMsg = evt.subMessage || ''
-    const params = evt.params || {}
-
-    // 如果message是i18n key，使用t函数翻译，否则直接使用
-    message.value = msg.includes('.') && msg.startsWith('agent.') ? t(msg, params) : msg
-    subMessage.value =
-      subMsg.includes('.') && subMsg.startsWith('agent.') ? t(subMsg, params) : subMsg
+    message.value = msg ? t(msg, params) : ''
+    subMessage.value = subMsg ? t(subMsg, params) : ''
 
     // 确保百分比是数字类型，并在 0-100 范围内
     const percent =

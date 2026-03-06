@@ -14,7 +14,6 @@ services/
 ├── document-serializer.ts      # Serialize/deserialize document outline ↔ text
 ├── AIService.ts                # AI task dispatching service
 ├── export-manager.ts           # Export orchestration (renderer-side)
-├── export-manager.obsolete.ts  # @deprecated — do not extend
 ├── font-service.ts             # Font loading and management
 ├── image-processor.ts          # Image optimization for export
 └── export-adapters/            # Strategy pattern export pipeline
@@ -51,8 +50,7 @@ services/
 ## ANTI-PATTERNS
 
 - `document-serializer.ts` contains META-INFO sentinel lines — **DO NOT modify** or metadata parsing breaks
-- `export-manager.obsolete.ts` is `@deprecated` — exists for backward compat, do not add features
-- Export pipeline split between renderer (`services/export-adapters/`) and main (`src/main/export/`) — tracing full export flow requires checking both
+- Export pipeline split between renderer (`services/export-adapters/`, `export-steps/`) and main (`src/main/export/`) — tracing full export flow requires checking both
 
 ## EXPORT ADAPTER PATTERN
 

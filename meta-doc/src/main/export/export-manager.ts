@@ -2589,6 +2589,56 @@ const sendProgress = (
   }
 }
 
+/** 通用步骤：将 Markdown 中的图片保存到指定文件夹并更新链接 */
+const saveMarkdownImagesToFolderStep = async (
+  markdown: string,
+  imagesFolder: string
+): Promise<string> => {
+  const imageUrls: string[] = []
+  const regex = /!\[.*?\]\((.*?)\)/g
+  let match
+  const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
+  while ((match = regex.exec(markdown)) !== null) {
+    const url = match[1]
+    if (url.startsWith(imagesPrefix)) {
+      imageUrls.push(url)
+    }
+  }
+  if (imageUrls.length === 0) return markdown
+  const results = await saveImagesToFolder(imageUrls, imagesFolder)
+  const imageMappings = new Map<string, string>()
+  for (const result of results) {
+    imageMappings.set(result.originalUrl, result.relativePath)
+  }
+  return updateMarkdownImageLinks(markdown, imageMappings)
+}
+
+/** 通用步骤：将 HTML 中的图片保存到指定文件夹并更新链接（使用相对路径 xxx.images/filename） */
+const saveHtmlImagesToFolderStep = async (
+  html: string,
+  imagesFolder: string
+): Promise<string> => {
+  const imageUrls: string[] = []
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+  const matches = Array.from(html.matchAll(imgRegex))
+  for (const match of matches) {
+    const src = match[1]
+    if (!src.startsWith('data:')) {
+      imageUrls.push(src)
+    }
+  }
+  if (imageUrls.length === 0) return html
+  const results = await saveImagesToFolder(imageUrls, imagesFolder)
+  const imageMappings = new Map<string, string>()
+  const imagesFolderName = path.basename(imagesFolder)
+  for (const result of results) {
+    const fileName = path.basename(result.savedPath)
+    const relativePath = `${imagesFolderName}/${fileName}`
+    imageMappings.set(result.originalUrl, relativePath)
+  }
+  return updateHtmlImageLinks(html, imageMappings)
+}
+
 const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
   md: async ({ payload, targetPath, mainWindow }) => {
     try {
@@ -2601,7 +2651,6 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
 
       let finalMarkdown = payload.data.md
 
-      // 处理图片（如果是 folder 模式）
       const imageProcessing = payload.exportOptions?.imageProcessing
       if (imageProcessing === 'folder') {
         sendProgress(mainWindow, {
@@ -2610,36 +2659,9 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           percentage: 60,
           params: { format: 'Markdown' }
         })
-
-        // 提取所有图片 URL
-        const imageUrls: string[] = []
-        const regex = /!\[.*?\]\((.*?)\)/g
-        let match
-        const imagesPrefix = getRuntimeServerBaseUrl() + '/images/'
-        while ((match = regex.exec(finalMarkdown)) !== null) {
-          const url = match[1]
-          if (url.startsWith(imagesPrefix)) {
-            imageUrls.push(url)
-          }
-        }
-
-        if (imageUrls.length > 0) {
-          // 创建图片文件夹
-          const docName = path.basename(targetPath, path.extname(targetPath))
-          const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`)
-
-          // 保存图片
-          const results = await saveImagesToFolder(imageUrls, imagesFolder)
-
-          // 创建 URL 到相对路径的映射
-          const imageMappings = new Map<string, string>()
-          for (const result of results) {
-            imageMappings.set(result.originalUrl, result.relativePath)
-          }
-
-          // 更新 Markdown 中的图片链接
-          finalMarkdown = updateMarkdownImageLinks(finalMarkdown, imageMappings)
-        }
+        const docName = path.basename(targetPath, path.extname(targetPath))
+        const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`)
+        finalMarkdown = await saveMarkdownImagesToFolderStep(finalMarkdown, imagesFolder)
       }
 
       sendProgress(mainWindow, {
@@ -2679,7 +2701,6 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
 
       let finalHtml = payload.html
 
-      // 处理图片（如果是 folder 模式）
       const imageProcessing = payload.exportOptions?.imageProcessing
       if (imageProcessing === 'folder') {
         sendProgress(mainWindow, {
@@ -2688,40 +2709,8 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           percentage: 85,
           params: { format: 'HTML' }
         })
-
-        // 提取所有图片 URL（包括本地和网络图片）
-        const imageUrls: string[] = []
-        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
-        const matches = Array.from(finalHtml.matchAll(imgRegex))
-        for (const match of matches) {
-          const src = match[1]
-          // 收集所有图片URL：运行时服务器、http(s)网络链接、file://协议
-          // 排除 data URL（已经是内嵌的）
-          if (!src.startsWith('data:')) {
-            imageUrls.push(src)
-          }
-        }
-
-        if (imageUrls.length > 0) {
-          // 创建图片文件夹：xxx.html.images
-          const imagesFolder = `${targetPath}.images`
-
-          // 保存图片
-          const results = await saveImagesToFolder(imageUrls, imagesFolder)
-
-          // 创建 URL 到相对路径的映射（使用相对路径）
-          const imageMappings = new Map<string, string>()
-          const imagesFolderName = path.basename(imagesFolder)
-          for (const result of results) {
-            const fileName = path.basename(result.savedPath)
-            // 使用相对路径：xxx.html.images/filename
-            const relativePath = `${imagesFolderName}/${fileName}`
-            imageMappings.set(result.originalUrl, relativePath)
-          }
-
-          // 更新 HTML 中的图片链接（使用相对路径）
-          finalHtml = updateHtmlImageLinks(finalHtml, imageMappings)
-        }
+        const imagesFolder = `${targetPath}.images`
+        finalHtml = await saveHtmlImagesToFolderStep(finalHtml, imagesFolder)
       }
 
       sendProgress(mainWindow, {
@@ -3591,7 +3580,9 @@ const FILTER_MAP: Record<ExportFormat, Electron.FileFilter> = {
 
 export const performExportRequest = async (
   payload: RendererExportPayload,
-  mainWindow: BrowserWindow | null
+  mainWindow: BrowserWindow | null,
+  /** 若提供则跳过保存对话框，直接使用此路径（用于脚本/自动化导出） */
+  preSelectedPath?: string
 ): Promise<ExportResponse> => {
   currentRequestId = payload.requestId
   const abortController = payload.requestId ? new AbortController() : null
@@ -3627,36 +3618,40 @@ export const performExportRequest = async (
     }
 
     const defaultFileName = enforceExtension(payload.suggestedName, payload.targetFormat)
-    const filters = FILTER_MAP[payload.targetFormat]
-      ? [FILTER_MAP[payload.targetFormat]]
-      : [{ name: payload.targetFormat.toUpperCase(), extensions: [payload.targetFormat] }]
+    let targetPath: string
 
-    // 在弹出对话框之前，通知渲染进程恢复鼠标状态
-    if (mainWindow) {
-      mainWindow.webContents.send('export-dialog-opening')
+    if (preSelectedPath != null && preSelectedPath.trim() !== '') {
+      targetPath = enforceExtension(preSelectedPath.trim(), payload.targetFormat)
+    } else {
+      const filters = FILTER_MAP[payload.targetFormat]
+        ? [FILTER_MAP[payload.targetFormat]]
+        : [{ name: payload.targetFormat.toUpperCase(), extensions: [payload.targetFormat] }]
+
+      if (mainWindow) {
+        mainWindow.webContents.send('export-dialog-opening')
+      }
+
+      // @ts-ignore - Electron's showSaveDialog accepts BrowserWindow | undefined
+      const dialogResult = await dialog.showSaveDialog(mainWindow || undefined, {
+        title: t('main.dialogs.exportDocumentTitle'),
+        defaultPath: defaultFileName,
+        filters
+      })
+
+      if (dialogResult.canceled || !dialogResult.filePath) {
+        if (progressHandle) {
+          progressHandle.cancel()
+        }
+        if (abortController) {
+          abortController.abort()
+        }
+        sendProgress(mainWindow, { visible: false }, payload.requestId)
+        return { success: false }
+      }
+
+      targetPath = enforceExtension(dialogResult.filePath, payload.targetFormat)
     }
 
-    // @ts-ignore - Electron's showSaveDialog accepts BrowserWindow | undefined
-    const dialogResult = await dialog.showSaveDialog(mainWindow || undefined, {
-      title: t('main.dialogs.exportDocumentTitle'),
-      defaultPath: defaultFileName,
-      filters
-    })
-
-    if (dialogResult.canceled || !dialogResult.filePath) {
-      // 用户取消了对话框，取消任务并隐藏进度条
-      if (progressHandle) {
-        progressHandle.cancel()
-      }
-      if (abortController) {
-        abortController.abort()
-      }
-      sendProgress(mainWindow, { visible: false }, payload.requestId)
-      return { success: false }
-    }
-
-    // 显示导出进度条
-    // 预渲染已完成（0-80%），现在从80%开始
     sendProgress(
       mainWindow,
       {
@@ -3675,8 +3670,6 @@ export const performExportRequest = async (
         error: t('main.dialogs.exportNotSupported', '不支持的导出格式')
       }
     }
-
-    const targetPath = enforceExtension(dialogResult.filePath, payload.targetFormat)
     ensureNotCancelled()
     await handler({
       payload,

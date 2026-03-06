@@ -1,5 +1,16 @@
 import { BaseExportAdapter } from './base-adapter'
 import type { HtmlExportOptions, ExportOptionField } from './types'
+import {
+  filterMetaStep,
+  preRenderCharts,
+  prepareMathForTarget,
+  ensureLocal2HttpForTarget,
+  prepareImagesForTarget,
+  collectOriginalImageUrls,
+  collectRenderedImageUrls
+} from '../export-steps'
+import { ConvertMarkdownToHtmlManually } from '../../utils/md-utils'
+import { processHtmlImages } from '../image-processor'
 
 /**
  * Markdown -> HTML 导出适配器
@@ -61,7 +72,7 @@ export class MdToHtmlAdapter extends BaseExportAdapter<'md', 'html', HtmlExportO
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: HtmlExportOptions,
-    context?: any
+    context?: { doc?: { path?: string }; handle?: { mark: (p: number, msg?: any) => void } }
   ): Promise<{
     md: string
     json: string
@@ -69,7 +80,47 @@ export class MdToHtmlAdapter extends BaseExportAdapter<'md', 'html', HtmlExportO
     html?: string
     imageUrls?: string[]
   }> {
-    return { ...data }
+    const handle = context?.handle
+    const docPath = context?.doc?.path
+    const progressCallback = handle
+      ? (p: any) => {
+          const percent = Math.min(80, p?.percentage ?? 0)
+          handle.mark(percent, {
+            message: p?.message ?? 'agent.reference.progress.preRenderingCharts',
+            subMessage: p?.subMessage ?? 'agent.reference.progress.preparingExport',
+            params: p?.params,
+            status: p?.status
+          })
+        }
+      : undefined
+
+    let markdown = filterMetaStep(data.md)
+    markdown = await preRenderCharts(markdown, { format: 'svg', progressCallback })
+    markdown = await prepareMathForTarget(markdown, 'html')
+    markdown = await ensureLocal2HttpForTarget(markdown, 'html', docPath)
+    markdown = await prepareImagesForTarget(
+      markdown,
+      'html',
+      options.imageProcessing,
+      docPath
+    )
+
+    const convertToBase64 = options.imageProcessing === 'base64'
+    let html = await ConvertMarkdownToHtmlManually(markdown, convertToBase64)
+    if (options.imageProcessing === 'base64') {
+      html = await processHtmlImages(html, 'base64')
+    }
+
+    const originalImageUrls = collectOriginalImageUrls(data.md)
+    const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
+
+    return {
+      md: markdown,
+      json: data.json,
+      tex: data.tex,
+      html,
+      imageUrls
+    }
   }
 
   async executeExport(

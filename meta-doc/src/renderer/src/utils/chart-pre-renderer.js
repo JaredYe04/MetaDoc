@@ -435,19 +435,37 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
           if (svgElement) {
             // 定义处理 SVG 的函数
             const processSvgElement = () => {
-              // 对于 mindmap 和 markmap，先在 DOM 中清理动画
+              // 对于 mindmap 和 markmap，先冻结当前动画状态再清理，否则移除 SMIL 后浏览器会恢复初始值导致空白
               if (chartType === 'mindmap' || chartType === 'markmap') {
-                // 在 DOM 中直接清理动画
-                const allElements = svgElement.querySelectorAll('*')
+                const allElements = [svgElement, ...svgElement.querySelectorAll('*')]
                 allElements.forEach((el) => {
-                  // 移除 style 中的动画
+                  if (el.nodeType !== Node.ELEMENT_NODE) return
+                  const computed = window.getComputedStyle(el)
+                  const freeze = []
+                  const opacity = computed.getPropertyValue('opacity')
+                  if (opacity && opacity !== '1') freeze.push(`opacity:${opacity}`)
+                  const visibility = computed.getPropertyValue('visibility')
+                  if (visibility && visibility !== 'visible') freeze.push(`visibility:${visibility}`)
+                  const transform = computed.getPropertyValue('transform')
+                  if (transform && transform !== 'none') freeze.push(`transform:${transform}`)
+                  // 保留可能由动画驱动的显示状态
+                  const display = computed.getPropertyValue('display')
+                  if (display && display !== 'inline') freeze.push(`display:${display}`)
+                  if (freeze.length > 0) {
+                    const existing = (el.getAttribute('style') || '').trim()
+                    el.setAttribute('style', existing ? `${existing}; ${freeze.join('; ')}` : freeze.join('; '))
+                  }
+                })
+
+                // 再清理动画（移除后不会丢失视觉，因已冻结到 style）
+                const allElements2 = svgElement.querySelectorAll('*')
+                allElements2.forEach((el) => {
                   if (el.hasAttribute('style')) {
                     let style = el.getAttribute('style') || ''
                     style = style.replace(/animation[^;]*;?/gi, '')
                     style = style.replace(/transition[^;]*;?/gi, '')
                     el.setAttribute('style', style)
                   }
-                  // 移除 class 中可能包含的动画类（通过设置内联样式覆盖）
                   if (el.hasAttribute('class')) {
                     const currentStyle = el.getAttribute('style') || ''
                     el.setAttribute(

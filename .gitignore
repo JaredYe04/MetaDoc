@@ -48,3 +48,6 @@ Thumbs.db
 docs/.metadoc/agent/sessions.json
 /meta-doc/debug
 /debug/resume-pdf
+/debug/compile-pdf
+/debug/out
+*.meta

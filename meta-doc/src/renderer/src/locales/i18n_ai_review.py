@@ -131,23 +131,24 @@ def infer_context_hint(key):
 
 def build_prompt(locale_name, lang_hint, module_name, zh_items, locale_items):
     lang = lang_hint or locale_name
-    return f"""你正在审阅一款文档编辑/写作软件（MetaDoc）的 {lang} 界面文案。以中文为蓝本做**校对**，不是简单直译。
+    return f"""你正在审阅一款文档编辑/写作软件（MetaDoc）的 {lang} 界面文案。以中文为蓝本做**校对与补翻**。
 
 **规则：**
 1. 结合语境判断每条是：UI 标签（按钮/菜单/标题）、提示/占位符（hint/placeholder）、悬浮说明（tooltip）、错误信息、长说明等；按该场景写出自然、地道的 {lang}。
 2. 专有名词（如 MetaDoc、RAG、LaTeX、Markdown）不翻译；占位符如 {{count}}、{{name}}、{{line}} 原样保留。
-3. 仅对**翻译不当、生硬、明显机翻或不符合该语境**的条目给出修正；认为无需改动的不要输出。
-4. 输出格式：每行一条修正，且仅包含「完整键路径 + 制表符(Tab) + 修正后的整段译文」。键路径与下方列表完全一致；译文中不要包含 Tab 或换行（若有请用空格代替）。
-   示例：proofread.title\tProofreading
+3. **当前 {lang} 中标注为 (缺失) 的条目**：必须输出一行「完整键路径 + Tab + 译文」，为该键补充翻译。
+4. **当前 {lang} 中已有译文的条目**：仅当翻译不当、生硬、明显机翻或不符合该语境时才输出修正；认为无需改动的不要输出。
+5. 输出格式：每行一条，且仅包含「完整键路径 + 制表符(Tab) + 译文」。键路径与下方列表完全一致；译文中不要包含 Tab 或换行（若有请用空格代替）。
+   示例：agent.display.subagent.title\tSubagent
 
 **模块：** {module_name}
 **参考（中文）：**
 {zh_items}
 
-**当前 {lang} 文案（待审阅）：**
+**当前 {lang} 文案（(缺失)= 需要补翻，其余= 按需修正）：**
 {locale_items}
 
-请只输出需要修正的行（每行：键<Tab>新译文），无需解释。若无需要修正的，请回复一个空行或 "NONE"。
+请按要求输出每行「键<Tab>译文」，无需解释。若某条无需修正且非缺失，则不要输出该条。
 """
 
 
@@ -266,7 +267,10 @@ def run_one_task(api_key, locale_file, module_name, keys, flat_zh, flat_locale, 
     if dry_run:
         return (locale_file, [], None)
     zh_lines = "\n".join(f"{k}: {flat_zh.get(k, '')}" for k in keys)
-    locale_lines = "\n".join(f"{k}: {flat_locale.get(k, '')}" for k in keys)
+    # 缺失的键用 (缺失) 标注，便于 AI 必须输出补翻
+    locale_lines = "\n".join(
+        f"{k}: {(flat_locale.get(k, '') or '').strip() or '(缺失)'}" for k in keys
+    )
     prompt = build_prompt(locale_file.replace(".json", ""), lang_hint, module_name, zh_lines, locale_lines)
     try:
         raw = call_deepseek(api_key, prompt)
@@ -351,20 +355,22 @@ def main():
             continue
         flat_loc = flatten_json(loc_data)
         for mod_name, keys in all_modules.items():
-            keys_in_locale = [k for k in keys if k in flat_loc]
-            if not keys_in_locale:
-                continue
             if args.module and not (mod_name == args.module or mod_name.startswith(args.module + ".") or mod_name.startswith(args.module + "_")):
                 continue
+            # 始终以 zh_cn 的完整模块键列表为准；缺失的键由 AI 补翻并写回
+            missing_in_locale = [k for k in keys if k not in flat_loc]
             stored_hash = hash_map.get((loc_file, mod_name))
             current_hash = current_module_hashes.get(mod_name)
             if (loc_file, mod_name) in completed_set:
+                # 蓝本该模块内容变了 → 重校；或该语言在此模块有缺失键 → 补翻
                 if current_hash is not None and stored_hash is not None and stored_hash != current_hash:
-                    tasks.append((loc_file, mod_name, keys_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
+                    tasks.append((loc_file, mod_name, keys, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
+                elif missing_in_locale:
+                    tasks.append((loc_file, mod_name, keys, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
                 else:
                     continue
             else:
-                tasks.append((loc_file, mod_name, keys_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
+                tasks.append((loc_file, mod_name, keys, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
 
     if not tasks:
         print("没有符合条件的任务（缺项或蓝本变更已处理完）。可尝试 --locale / --module 或 --reset-progress 全量重跑；或先 --record-hashes 再改蓝本后重跑以只重校变更模块。")

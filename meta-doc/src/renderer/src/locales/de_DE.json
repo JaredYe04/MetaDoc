@@ -999,7 +999,7 @@
     "resultPlaceholder": "Testergebnisse werden hier angezeigt",
     "startupOption": "Startoption",
     "testFailed": "Test fehlgeschlagen:",
-    "testLlm": "Sprachmodell testen",
+    "testLlm": "Großes Sprachmodell testen",
     "testPrompt": "Hallo! Bitte stellen Sie sich kurz vor.",
     "testResult": "Testergebnis",
     "themeCustom": "Benutzerdefiniert",
@@ -1066,7 +1066,7 @@
       "selectTestFunction": "Testfunktion auswählen",
       "selectTestFunctionFirst": "Bitte zuerst eine Testfunktion auswählen",
       "sendBroadcast": "Broadcast senden",
-      "sendEvent": "Event senden",
+      "sendEvent": "Ereignis senden",
       "targetAiChat": "KI-Chat-Fenster",
       "targetAiGraph": "KI-Grafik-Fenster",
       "targetAll": "Alle Fenster",
@@ -1145,7 +1145,7 @@
       "toolDescPlaceholder": "Bitte zuerst ein Tool auswählen, um Beschreibung anzuzeigen",
       "toolDescDefault": "Dies ist die detaillierte Beschreibung des Tools. Sie enthält Parameterformat, Anwendungsszenarien und weitere Informationen.",
       "paramsPlaceholder": "Bitte Parameter im JSON-Format eingeben, z.B.: {\"prompt\": \"Flussdiagramm generieren\", \"chartType\": \"mermaid\"}",
-      "selectToolPlaceholder": "Zu testendes Tool auswählen (leer lassen für alle)",
+      "selectToolPlaceholder": "Zu testendes Tool auswählen",
       "selectModulePlaceholder": "Zu testendes Modul auswählen (leer lassen für alle)",
       "toolCalls": "Tool-Aufrufe",
       "referenceCount": "Referenzanzahl",
@@ -1177,7 +1177,6 @@
       "newVersionFound": "Neue Version: {version}",
       "load": "Laden",
       "selectTool": "Tool auswählen",
-      "selectToolPlaceholder": "Zu testendes Tool auswählen",
       "savedConfig": "Gespeicherte Konfiguration",
       "contextTab": "Kontext-Tab",
       "unnamed": "Unbenannt",
@@ -1215,11 +1214,11 @@
       "messageList": "Nachrichtenliste",
       "sessionInfo": "Sitzungsinfo",
       "revertToNode": "Zu diesem Knoten zurücksetzen",
-      "replayTool": "Tool erneut ausführen",
+      "replayTool": "Tool wiedergeben",
       "nodeData": "Knotendaten",
       "errorInfo": "Fehlerinfo",
       "noExecutionNodes": "Keine Ausführungsknoten",
-      "replayMessage": "Nachricht erneut ausführen",
+      "replayMessage": "Nachricht wiedergeben",
       "messageContent": "Nachrichteninhalt",
       "noMessages": "Keine Nachrichten",
       "sessionId": "Sitzungs-ID",
@@ -1267,13 +1266,21 @@
       "testResultTitle": "Testergebnis",
       "startBatchTest": "Batch-Test starten",
       "stopBatchTest": "Batch-Test stoppen",
-      "replayingBadge": "Wiedergabe",
+      "replayingBadge": "Wiedergabe läuft",
       "replayedBadge": "Wiedergegeben",
       "toolIdLabel": "Tool-ID: {id}",
       "errorLabel": "Fehler: {msg}",
       "toolLabel": "Tool: {id}",
       "chooseExportRootDir": "Export-Stammverzeichnis wählen",
-      "newVersionFoundShort": "Neue Version gefunden"
+      "newVersionFoundShort": "Neue Version gefunden",
+      "copied": "Kopiert",
+      "copyToClipboard": "In Zwischenablage kopieren",
+      "deltaMs": "Relative Dauer (ms)",
+      "phase": "Phase",
+      "startupProfile": "Startzeitanalyse",
+      "startupProfileHint": "Setzen Sie ENABLE_STARTUP_PROFILE=1 beim Start, um die Dauer der einzelnen Phasen zu erfassen. Hauptprozessdaten werden über IPC abgerufen, Renderer-Daten stammen von den Zeitmarken dieses Ladevorgangs.",
+      "startupProfileMain": "Hauptprozess",
+      "startupProfileRenderer": "Renderer-Prozess"
     },
     "autoCompletionMaxTokens": "Maximale Tokenzahl für Autovervollständigung",
     "autoCompletionMaxTokensHint": "Begrenzt die maximale Tokenzahl für die KI-Autovervollständigung. Minimum 20, 0 bedeutet unbegrenzt.",
@@ -1534,11 +1541,11 @@
     "presetThemeLightRed": "Hellrot",
     "presetThemeLightYellow": "Hellgelb",
     "presetThemeMintGreen": "Minzgrün",
-    "presetThemeOffWhite": "Elfenbein",
+    "presetThemeOffWhite": "Beige",
     "presetThemeRosePurple": "Rosaviolett",
     "presetThemeSkyBlue": "Himmelblau",
     "presetThemeSpaceGray": "Weltraumgrau",
-    "refreshRequests": "Anfrageliste aktualisieren",
+    "refreshRequests": "Anfragenliste aktualisieren",
     "requestNotFound": "Die Anfrage existiert nicht oder ist abgelaufen",
     "resetConfig": "Konfiguration zurücksetzen",
     "resetFailed": "Zurücksetzen fehlgeschlagen",
@@ -1554,7 +1561,7 @@
     "selectPendingRequest": "Ausstehende Anfrage auswählen",
     "selectWesternFont": "Westliche Schriftart auswählen",
     "submitFailed": "Übermittlung fehlgeschlagen",
-    "submitManualResponse": "Antwort manuell übermitteln",
+    "submitManualResponse": "Antwort übermitteln",
     "temporaryConfig": "(Temporär)",
     "testChatNonStream": "Chat – Nicht-Streaming",
     "testChatStream": "Chat – Streaming",
@@ -1570,7 +1577,7 @@
     "themeNamePlaceholder": "Bitte geben Sie den Themennamen ein",
     "themeNameRequired": "Bitte geben Sie den Themennamen ein",
     "unsavedChanges": "Nicht gespeicherte Änderungen",
-    "unsavedChangesConfirm": "Die aktuelle Konfiguration hat ungespeicherte Änderungen. Möchten Sie diese zuerst speichern?"
+    "unsavedChangesConfirm": "Es gibt ungespeicherte Änderungen in den Einstellungen. Möchten Sie diese zuerst speichern?"
   },
   "titleMenu": {
     "contextMarks": {
@@ -3001,6 +3008,16 @@
         "tags": "Tags",
         "totalTasks": "Gesamtzahl der Aufgaben",
         "urgent": "Dringend"
+      },
+      "subagent": {
+        "messages": "Nachrichten",
+        "noMessages": "Keine Nachrichten",
+        "result": "Ergebnis",
+        "roleAssistant": "Assistent",
+        "roleTool": "Werkzeug",
+        "roleUser": "Benutzer",
+        "running": "Wird ausgeführt...",
+        "title": "Subagent"
       }
     },
     "manage": {
@@ -3045,7 +3062,7 @@
         "default": "Standard",
         "cannotEditDefault": "Standardkonfiguration kann nicht bearbeitet werden",
         "selectToolCollections": "Werkzeugsammlungen auswählen",
-        "toolCollectionHint": "Bei mehreren Werkzeugsammlungen ist der Schnittmenge verfügbar",
+        "toolCollectionHint": "Bei mehreren Werkzeugsammlungen ist die Schnittmenge der verfügbaren Werkzeuge nutzbar",
         "llmModel": "LLM-Modell",
         "temperature": "Temperatur",
         "systemPrompt": "Systemaufforderung",
@@ -3068,7 +3085,10 @@
         "injectTimestamp": "Zeitstempel einfügen",
         "injectTimestampLabel": "Aktuellen Zeitstempel vor der Systemaufforderung einfügen",
         "injectTimestampHint": "Wenn aktiviert, wird bei jeder Erstellung einer Agent-Instanz mit dieser Konfiguration automatisch der aktuelle Zeitstempel vor der Systemaufforderung hinzugefügt",
-        "toolCollectionHint:": "Bei mehreren Werkzeugsammlungen werden die Schnittmengen der verfügbaren Werkzeuge verwendet."
+        "toolCollectionHint:": "Bei mehreren Werkzeugsammlungen werden die Schnittmengen der verfügbaren Werkzeuge verwendet.",
+        "isSubagent": "Als Subagent",
+        "isSubagentHint": "Wenn aktiviert, wird diese Konfiguration wie ein Werkzeug für den Haupt-Agent verfügbar gemacht. Der Haupt-Agent kann den Subagent über Werkzeugaufrufe ausführen, um Unteraufgaben parallel zu erledigen. Standard-Agent-Konfigurationen können nicht als Subagent festgelegt werden.",
+        "isSubagentLabel": "Als Subagent (nur vom Haupt-Agent aufrufbar)"
       },
       "agentEngine": {
         "title": "Agent-Engine-Verwaltung",
@@ -3516,8 +3536,8 @@
     "reParaphraseAll": "Alle neu umschreiben",
     "reParaphraseOne": "Neu umschreiben",
     "rePreprocess": "Absätze neu aufteilen",
-    "revertOne": "Rückgängig",
-    "revertSuccess": "Absatz zurückgesetzt",
+    "revertOne": "Widerrufen",
+    "revertSuccess": "Absatz wurde zurückgesetzt",
     "renamePlaceholder": "Sitzungsnamen eingeben",
     "renameTitle": "Sitzung umbenennen",
     "reportGenerated": "Bericht erfolgreich generiert",
@@ -3527,15 +3547,15 @@
     "selectLanguage": "Sprache auswählen",
     "selectedOneDocument": "1 Dokument ausgewählt",
     "sessionsTitle": "AIGC-Erkennungssitzungen",
-    "splitAtCursor": "An Cursor teilen",
+    "splitAtCursor": "An Cursorposition teilen",
     "startAnalysis": "Analyse starten",
     "unsupportedFileType": "Nicht unterstützter Dateityp",
     "unsupportedFormat": "Nicht unterstütztes Dokumentenformat",
     "uploadFile": "Datei hochladen",
-    "viewOriginal": "A Original",
-    "viewParaphrased": "B Umschreibung",
+    "viewOriginal": "A Originaltext",
+    "viewParaphrased": "B Umformulierung",
     "reportTitle": "AIGC-Stil-Risikobericht",
-    "segmentAnalysis": "Abschnittsanalyse",
+    "segmentAnalysis": "Segmentanalyse",
     "overallAnalysis": "Gesamtanalyse",
     "riskScore": "Risikoscore",
     "riskLevel": "Risikostufe",
@@ -3543,10 +3563,10 @@
     "riskMedium": "Mittel",
     "riskHigh": "Hoch",
     "radarChart": "Radardiagramm nach Dimension",
-    "riskWeightPie": "Risikobeitrag (gewichteter Potenzbeitrag)",
+    "riskWeightPie": "Gewichtete Risikobeiträge (Anteil gewichteter Potenzbeiträge)",
     "dimensionScoreDetail": "Dimensionsscore-Details",
     "dimension": "Dimension",
-    "score": "Score",
+    "score": "Bewertung",
     "description": "Beschreibung",
     "modificationSuggestions": "Änderungsvorschläge",
     "conclusion": "Schlussfolgerung",
@@ -3558,18 +3578,66 @@
     "overallScore": "Gesamtscore",
     "dimensionScore": "Dimensionsscore",
     "dimDesc": {
-      "sentence_uniformity": { "high": "Stark einheitliche Satzstruktur", "mid": "Eher einheitlich", "low": "Abwechslungsreiche Sätze" },
-      "lexical_diversity": { "high": "Wortschatz repetitiv/konservativ", "mid": "Eher konservativ", "low": "Vielfältiger Wortschatz" },
-      "reasoning_smoothness": { "high": "Logik zu glatt", "mid": "Eher glatt", "low": "Natürliche Logik" },
-      "personal_trace": { "high": "Fehlende persönliche Spuren", "mid": "Wenige Spuren", "low": "Deutliche persönliche Spuren" },
-      "stylistic_risk": { "high": "Stark AIGC-Vorlage", "mid": "Teilweise vorlagenhaft", "low": "Natürlicher Stil" },
-      "over_explanation": { "high": "Lehrbuchhafte Erklärung", "mid": "Ziemlich ausführlich", "low": "Angemessene Erklärung" },
-      "hedging_pattern": { "high": "Viele Abschwächungen", "mid": "Mehrere Abschwächungen", "low": "Angemessene Abschwächung" },
-      "opening_transition_pattern": { "high": "Übergänge stark formelhaft", "mid": "Eher formelhaft", "low": "Natürliche Übergänge" },
-      "structural_repetition": { "high": "Struktur zu regelmäßig", "mid": "Eher regelmäßig", "low": "Natürliche Struktur" },
-      "abstractness": { "high": "Zu abstrakt", "mid": "Etwas abstrakt", "low": "Konkret und belegt" },
-      "emotional_flatness": { "high": "Emotional flach", "mid": "Eher flach", "low": "Natürliche Emotion" },
-      "formulaic_closure": { "high": "Schluss stark formelhaft", "mid": "Eher formelhaft", "low": "Natürlicher Schluss" }
+      "sentence_uniformity": {
+        "high": "Stark einheitliche Satzstruktur",
+        "mid": "Eher einheitlich",
+        "low": "Abwechslungsreiche Sätze"
+      },
+      "lexical_diversity": {
+        "high": "Wortschatz repetitiv/konservativ",
+        "mid": "Eher konservativ",
+        "low": "Vielfältiger Wortschatz"
+      },
+      "reasoning_smoothness": {
+        "high": "Logik zu glatt",
+        "mid": "Eher glatt",
+        "low": "Natürliche Logik"
+      },
+      "personal_trace": {
+        "high": "Fehlende persönliche Spuren",
+        "mid": "Wenige Spuren",
+        "low": "Deutliche persönliche Spuren"
+      },
+      "stylistic_risk": {
+        "high": "Stark AIGC-Vorlage",
+        "mid": "Teilweise vorlagenhaft",
+        "low": "Natürlicher Stil"
+      },
+      "over_explanation": {
+        "high": "Lehrbuchhafte Erklärung",
+        "mid": "Ziemlich ausführlich",
+        "low": "Angemessene Erklärung"
+      },
+      "hedging_pattern": {
+        "high": "Viele Abschwächungen",
+        "mid": "Mehrere Abschwächungen",
+        "low": "Angemessene Abschwächung"
+      },
+      "opening_transition_pattern": {
+        "high": "Übergänge stark formelhaft",
+        "mid": "Eher formelhaft",
+        "low": "Natürliche Übergänge"
+      },
+      "structural_repetition": {
+        "high": "Struktur zu regelmäßig",
+        "mid": "Eher regelmäßig",
+        "low": "Natürliche Struktur"
+      },
+      "abstractness": {
+        "high": "Zu abstrakt",
+        "mid": "Etwas abstrakt",
+        "low": "Konkret und belegt"
+      },
+      "emotional_flatness": {
+        "high": "Emotional flach",
+        "mid": "Eher flach",
+        "low": "Natürliche Emotion"
+      },
+      "formulaic_closure": {
+        "high": "Schluss stark formelhaft",
+        "mid": "Eher formelhaft",
+        "low": "Natürlicher Schluss"
+      }
     }
   },
   "aigcDetectionWindow": {
@@ -4817,67 +4885,6 @@
   },
   "lang: Zh_CN": "lang: de_DE",
   "skeleton": {
-    "tips": [
-      "F1 öffnet die Benutzeranleitung",
-      "Strg+S speichert das aktuelle Dokument",
-      "Linke Seitenleiste zum Verbreitern ziehen",
-      "Markdown und LaTeX werden unterstützt",
-      "Wissensdatenbank für bessere AI-Antworten verknüpfen",
-      "Formelerkennung für Handschrift und Screenshots",
-      "Agent unterstützt Mehrrunden-Chat und Tools",
-      "Visualisierungsansicht als Bild exportierbar",
-      "Hell/Dunkel/System in den Einstellungen",
-      "Bilder direkt aus der Zwischenablage einfügen",
-      "Gliederung einklappbar und per Drag sortierbar",
-      "AI-Vervollständigung beim Schreiben aufrufen",
-      "Korrektur-Tool prüft Grammatik und Wortwahl",
-      "Daten-Tool für CSV und Excel",
-      "RAG nutzt zuerst verknüpfte Wissensdatenbanken",
-      "Neue Dokumente aus Vorlagen erstellen",
-      "Mehrere Tabs für paralleles Bearbeiten",
-      "Export als PDF, Word usw.",
-      "Strg+F für Suche, Regex möglich",
-      "Einzelne Absätze von AI überarbeiten lassen",
-      "Heute: schreiben. Aufschieben: morgen.",
-      "Festgefahren? Die erste Zeile von AI schreiben lassen.",
-      "Kommentare in Codeblöcken werden beachtet.",
-      "CSV einfügen und Tabelle in einem Schritt erzeugen",
-      "Lange Texte: zuerst Gliederung, dann ausarbeiten",
-      "LaTeX schreiben, MetaDoc rendert.",
-      "Diagramme: Balken, Linien usw.",
-      "Agent-Engines: ReAct, Plan-Execute usw.",
-      "Lokale Modelle und API gemeinsam nutzen",
-      "Debug-Panel zeigt Startzeiten",
-      "Fenster-Pool macht neue Fenster schnell",
-      "On-Demand laden, leicht starten.",
-      "Zwei-Spalten-Editor: jede Seite scrollt für sich",
-      "Mermaid-, PlantUML- und weitere Diagramm-Syntax",
-      "Zitate und Codeblöcke haben Shortcuts",
-      "AI-Vervollständigung verzögerbar, spart Tokens",
-      "Wissensdatenbank: PDF, Word, TXT usw.",
-      "Formelerkennung fügt LaTeX direkt ein",
-      "Tabs zwischen Fenstern ziehen zum Verschieben",
-      "PDF-Export mit Rändern und Schriftarten",
-      "Theme: System, Hell, Dunkel oder Eigen",
-      "Seitenleiste: mehrere Ordner hinzufügen",
-      "Suchen/Ersetzen: Groß-/Kleinschreibung, ganzes Wort",
-      "Abschnitts-Optimizer behält deine Formulierung",
-      "Agent-Engines: unterschiedliche Stile",
-      "RAG markiert Treffer im Quelltext",
-      "Tabellen an Agent für schnelle Auswertung",
-      "Für Papers: zuerst Wissensdatenbank anlegen",
-      "LaTeX-Fehler mit Zeilennummer in der Konsole",
-      "Monaco und Vditor jederzeit wechseln",
-      "Nur-Text-Modus ohne Rendering",
-      "Anhang-Parser extrahiert Bilder aus PDF",
-      "Korrektur: Tippfehler und Satzfluss",
-      "Flussdiagramme in Visualisierung als SVG exportieren",
-      "Absatz rechtsklicken → AI-Analyse",
-      "Willkommensseite für neue Docs mit Shortcuts",
-      "CSV einfügen für Markdown-Tabellen",
-      "Festgefahren? Logo klicken und schütteln.",
-      "Gerüchten zufolge levelt man durch Schreiben.",
-      "Dieser Tipp verschwindet; das F1-Handbuch nicht."
-    ]
+    "tips": "[\"Drücke F1, um das Benutzerhandbuch zu öffnen\", \"Strg+S speichert das aktuelle Dokument schnell\", \"Die Breite der linken Seitenleiste lässt sich per Drag-and-Drop anpassen\", \"Unterstützt sowohl Markdown als auch LaTeX\", \"Verknüpfen Sie lokale Dokumente mit der Wissensdatenbank, um KI-Antworten zu verbessern\", \"Formelerkennung unterstützt Handschrift und Screenshots\", \"Agent unterstützt Mehrrunden-Dialoge und Tool-Aufrufe\", \"Visualisierungsansicht kann als Bild exportiert werden\", \"In den Einstellungen zwischen Hell, Dunkel und System wechseln\", \"Bilder direkt aus der Zwischenablage einfügen\", \"Gliederung einklappbar und per Drag-and-Drop sortierbar\", \"Beim Schreiben jederzeit KI-Vervollständigung aufrufen\", \"Korrekturwerkzeug erkennt Grammatik und Wortwahl\", \"Datenanalyse-Tool unterstützt CSV und Excel\", \"RAG-Suche priorisiert verknüpfte Wissensdatenbanken\", \"Neue Dokumente aus Vorlagen erstellen\", \"Mehrere Tabs für gleichzeitiges Bearbeiten\", \"Export in Formate wie PDF oder Word\", \"Strg+F für Volltextsuche, unterstützt reguläre Ausdrücke\", \"Einzelne Absätze können von der KI überarbeitet werden\", \"Heute ist ein guter Tag zum Schreiben, nicht zum Aufschieben.\", \"Wenn Sie nicht weiterkommen, lassen Sie die KI den Anfang machen.\", \"Kommentare in Codeblöcken werden respektiert.\", \"Tabellen lassen sich per CSV-Einfügen mit einem Klick generieren\", \"Bei langen Dokumenten zuerst eine Gliederung erstellen, dann ausarbeiten\", \"Formeln in LaTeX schreiben, das Rendering überlässt man MetaDoc\", \"Diagramm-Generierung unterstützt Balken-, Linien- und andere Diagramme\", \"Agent-Engine kann z.B. ReAct oder Plan-Execute sein\", \"Lokale Modelle und API können gleichzeitig konfiguriert werden\", \"Debug-Panel zeigt Startzeiten an\", \"Fenster-Pool ermöglicht schnelles Ziehen neuer Fenster\", \"On-Demand-Ladung für schnelleren Start.\", \"Im Zwei-Spalten-Editor kann jede Seite unabhängig gescrollt werden\", \"Unterstützt Diagramm-Syntax wie Mermaid und PlantUML\", \"Zitat- und Codeblöcke haben Tastenkürzel\", \"KI-Vervollständigung kann verzögert ausgelöst werden, um Tokens zu sparen\", \"Wissensdatenbank unterstützt PDF, Word, TXT und weitere Formate\", \"Ergebnisse der Formelerkennung können direkt als LaTeX eingefügt werden\", \"Tabs können zwischen Fenstern per Drag-and-Drop verschoben werden\", \"Beim PDF-Export können Seitenränder und Schriftarten gewählt werden\", \"Designfarbe kann dem System folgen oder angepasst werden\", \"Im Seitenleisten-Arbeitsbereich können mehrere Ordner hinzugefügt werden\", \"Suchen und Ersetzen unterstützt Groß-/Kleinschreibung und ganze Wörter\", \"Absatzoptimierung bewahrt Ihren Kernausdruck.\", \"Agent kann verschiedene Engines nutzen, die unterschiedliche Stile haben\", \"RAG-Suchergebnisse werden im Originaltext hervorgehoben\", \"Datentabellen können vom Agent für einfache Analysen verwendet werden\", \"Für wissenschaftliche Arbeiten: erst Wissensdatenbank anlegen, dann den Agent fragen\", \"Bei LaTeX-Kompilierungsfehlern zeigt die Konsole die Zeilennummer an\", \"Zwischen Monaco und Vditor kann jederzeit gewechselt werden\", \"Nur-Text-Modus eignet sich für Szenarien ohne Rendering\", \"Anhang-Parser kann Bilder aus PDFs extrahieren\", \"Korrektur verbessert nicht nur Tippfehler, sondern auch den Satzfluss\", \"Flussdiagramme in der Visualisierungsansicht können als SVG exportiert werden\", \"Rechtsklick auf einen Absatz → \\\"KI-Analyse\\\"\", \"Die Willkommensseite für neue Dokumente bietet Schnellzugriffe\", \"Markdown-Tabellen lassen sich per CSV-Einfügen generieren\", \"Wenn Sie nicht weiterkommen, klicken Sie auf das Logo und schütteln Sie.\", \"Der Legende nach steigert Schreiben die Erfahrungspunkte.\", \"Dieser Tipp verschwindet, das F1-Handbuch bleibt.\"]"
   }
 }

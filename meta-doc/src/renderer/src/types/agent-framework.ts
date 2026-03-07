@@ -73,8 +73,10 @@ export interface AgentConfig {
     temperature?: number
     /** 最大token数 */
     maxTokens?: number
-    /** 系统提示词 */
+    /** 系统提示词（内联字符串，当未使用 systemPromptKey 时使用） */
     systemPrompt?: string
+    /** 系统提示词在 locale_prompts 中的 key，运行时按当前语言解析；优先于 systemPrompt */
+    systemPromptKey?: string
     /** 是否注入时间戳 */
     injectTimestamp?: boolean
   }
@@ -91,6 +93,8 @@ export interface AgentConfig {
   tags?: string[]
   /** 场景类型（用于分类） */
   scenario?: 'outline' | 'editor' | 'analysis' | 'visualization' | 'custom'
+  /** 是否为 Subagent：仅 Subagent 会像工具一样暴露 spec 给意图分析器，供主 Agent 调用 */
+  isSubagent?: boolean
 }
 
 /**

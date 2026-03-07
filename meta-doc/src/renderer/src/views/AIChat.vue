@@ -247,7 +247,7 @@ import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, cancelAiTask } from '../utils/ai_tasks.ts'
 import { getSetting } from '../utils/settings.js'
 // import { useActiveDocument } from '../composables/useActiveDocument';
-import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document'
+import { getDefaultAiChatMessages } from '../constants/document'
 import { useWorkspace } from '../stores/workspace'
 import type { AIDialog, AIDialogMessage } from '../../../types'
 import type { AgentSession } from '../types/agent'
@@ -291,7 +291,7 @@ const isDemo = computed(() => props.mode === 'demo')
 const cloneDeep = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 
 const createDefaultMessages = (): AIDialogMessage[] =>
-  DEFAULT_AI_CHAT_MESSAGES.map((message) => ({ ...message }))
+  getDefaultAiChatMessages().map((message) => ({ ...message }))
 
 const createDefaultDialog = (title: string): AIDialog => {
   const now = Date.now()

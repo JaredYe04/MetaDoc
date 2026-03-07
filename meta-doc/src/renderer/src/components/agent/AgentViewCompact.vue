@@ -531,6 +531,7 @@ const {
   activeSession,
   openTabIds,
   isGenerating,
+  generatingSessionId,
   composerInput,
   selectedEngineId,
   currentAiTaskHandle,
@@ -1269,14 +1270,17 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
     notifyWarning(t('agent.sessions.noAgentConfig'))
+    generatingSessionId.value = null
     isGenerating.value = false
     return
   }
+  generatingSessionId.value = session.id
 
   const engineId = selectedEngineId.value || 'default-autogpt-engine'
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
     notifyError(t('agent.sessions.engineNotFound'))
+    generatingSessionId.value = null
     isGenerating.value = false
     return
   }
@@ -1284,6 +1288,7 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
     notifyError(t('agent.sessions.agentConfigNotFound'))
+    generatingSessionId.value = null
     isGenerating.value = false
     return
   }
@@ -1338,6 +1343,7 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
       aiTaskHandles.value.delete(currentAiTaskHandle.value)
     }
     currentAiTaskHandle.value = null
+    generatingSessionId.value = null
     isGenerating.value = false
   }
 }
@@ -1420,6 +1426,7 @@ const handleCancelGeneration = () => {
     currentAiTaskHandle.value = null
   }
 
+  generatingSessionId.value = null
   isGenerating.value = false
   session.status = 'idle'
   persistSessions()

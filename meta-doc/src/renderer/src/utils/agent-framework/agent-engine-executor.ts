@@ -17,6 +17,7 @@ import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
 import { ToolCallQueue } from './tool-call-queue'
 import { reactive, ref, type Ref } from 'vue'
 import { getLlmTemperature } from '../settings.js'
+import { getPromptByKey } from '../prompts'
 import { recognizeIntent, type IntentRecognitionResult } from './intent-processor'
 
 // 懒加载logger，避免初始化顺序问题
@@ -142,9 +143,8 @@ export abstract class BaseEngineExecutor {
       })
     }
 
-    // 根据识别结果，注入对应工具的fullSpec
+    // 根据识别结果，注入对应工具的 fullSpec（含普通工具与 Subagent）
     for (const toolId of intentResult.toolIds) {
-      // 尝试从普通工具获取
       let tool = agentToolManager.getTool(toolId)
       let fullSpec: string | undefined = undefined
 
@@ -152,7 +152,6 @@ export abstract class BaseEngineExecutor {
         if (tool.config.spec?.fullSpec) {
           fullSpec = tool.config.spec.fullSpec
         } else if (tool.config.instruction) {
-          // 回退到instruction
           if (typeof tool.config.instruction === 'string') {
             fullSpec = tool.config.instruction
           } else {
@@ -162,11 +161,23 @@ export abstract class BaseEngineExecutor {
               undefined
           }
         }
+      } else {
+        // 可能是 Subagent 配置 ID
+        const subagentConfig = agentConfigManager.getConfig(toolId)
+        if (subagentConfig && (subagentConfig as any).isSubagent) {
+          const desc =
+            typeof subagentConfig.description === 'string'
+              ? subagentConfig.description
+              : subagentConfig.description['zh_cn']?.description ||
+                subagentConfig.description['en_us']?.description ||
+                ''
+          fullSpec = `Subagent 调用。参数 prompt：给该 Subagent 的指示或要完成的任务描述。${desc}`
+        }
       }
 
       if (fullSpec) {
         session.activeToolSpecs.set(toolId, fullSpec)
-        getLogger().debug(`[processIntentAndUpdateSpecs] 已注入工具 ${toolId} 的fullSpec`, {
+        getLogger().debug(`[processIntentAndUpdateSpecs] 已注入工具/Subagent ${toolId} 的fullSpec`, {
           toolId,
           fullSpecLength: fullSpec.length
         })
@@ -307,11 +318,43 @@ export abstract class BaseEngineExecutor {
       }
     }
 
+    // 添加 Subagent 配置作为可调用“工具”（主 Agent 可见）
+    const subagentConfigs = agentConfigManager.getSubagentConfigs()
+    for (const config of subagentConfigs) {
+      const name =
+        typeof config.name === 'string'
+          ? config.name
+          : config.name['zh_cn']?.name || config.name['en_us']?.name || config.id
+      const description =
+        typeof config.description === 'string'
+          ? config.description
+          : config.description['zh_cn']?.description ||
+            config.description['en_us']?.description ||
+            ''
+      tools.push({
+        id: config.id,
+        name,
+        description,
+        schema: {
+          type: 'object',
+          properties: {
+            prompt: {
+              type: 'string',
+              description: '给 Subagent 的指示或要完成的任务描述'
+            }
+          },
+          required: ['prompt']
+        },
+        brief: description.length > 120 ? description.substring(0, 120) + '...' : description,
+        fullSpec: `调用此 Subagent 完成子任务。参数 prompt：给 Subagent 的指示或要查找/完成的内容。`
+      })
+    }
+
     return tools
   }
 
   /**
-   * 构建工具调用提示（支持brief和fullSpec）
+   * 构建工具调用提示（支持brief和fullSpec），从 locale_prompts 读取模板并注入工具列表
    */
   protected buildToolCallPrompt(): string {
     const tools = this.getAvailableTools()
@@ -319,92 +362,40 @@ export abstract class BaseEngineExecutor {
       return ''
     }
 
-    let prompt = '\n\n=== Tool Calling Specification ===\n'
-    prompt +=
-      'You can call tools to complete various tasks. All tool calls must use a unified marker format.\n\n'
-
-    prompt += '## Tool Call Format\n'
-    prompt += 'When you need to call a tool, you must use the following marker format:\n'
-    prompt += '```\n'
-    prompt += '<tool_call>\n'
-    prompt += '{"name": "tool_id", "arguments": {"param1": "value1", "param2": "value2"}}\n'
-    prompt += '</tool_call>\n'
-    prompt += '```\n\n'
-
-    prompt += '## Important Rules\n'
-    prompt +=
-      '1. **Must use marker format**: Tool calls must use `<tool_call></tool_call>` marker format\n'
-    prompt +=
-      '2. **Markers must be complete**: Must include both opening `<tool_call>` and closing `</tool_call>` markers\n'
-    prompt +=
-      '3. **Tool ID must be accurate**: Use the exact ID from the tool list as the `name` field value, do not modify it\n'
-    prompt +=
-      '4. **Arguments must be JSON object**: The `arguments` field must be a valid JSON object format\n'
-    prompt +=
-      '5. **Can call multiple tools**: You can use multiple `<tool_call></tool_call>` blocks to call multiple tools\n'
-    prompt +=
-      '6. **Do not mix text in markers**: Marker blocks should be independent, do not mix other text explanations in markers\n'
-    prompt +=
-      '7. **Confirm requirements before calling**: Carefully analyze user requirements, select the most appropriate tool, and ensure parameters are correct\n\n'
-
-    prompt += '## Tool Call Examples\n'
-    prompt += 'Example 1 - Call a single tool:\n'
-    prompt += '```\n'
-    prompt += '<tool_call>\n'
-    prompt +=
-      '{"name": "chart-generation", "arguments": {"prompt": "Generate a line chart about data trends", "type": "line"}}\n'
-    prompt += '</tool_call>\n'
-    prompt += '```\n\n'
-
-    prompt += 'Example 2 - Call multiple tools:\n'
-    prompt += '```\n'
-    prompt += '<tool_call>\n'
-    prompt += '{"name": "outline-tree", "arguments": {"includeText": true}}\n'
-    prompt += '</tool_call>\n'
-    prompt += '<tool_call>\n'
-    prompt +=
-      '{"name": "chart-generation", "arguments": {"prompt": "Generate a mind map", "type": "mindmap"}}\n'
-    prompt += '</tool_call>\n'
-    prompt += '```\n\n'
-
-    prompt += '=== Available Tools List ===\n'
+    let toolList = '\n=== Available Tools List ===\n'
     for (const tool of tools) {
-      prompt += `\n**${tool.name}** (ID: \`${tool.id}\`)\n`
-
-      // 总是显示brief（简短说明）
+      toolList += `\n**${tool.name}** (ID: \`${tool.id}\`)\n`
       if (tool.brief) {
-        prompt += `${tool.brief}\n`
+        toolList += `${tool.brief}\n`
       } else {
-        prompt += `${tool.description}\n`
+        toolList += `${tool.description}\n`
       }
-
-      // 如果有fullSpec（按需注入的完整说明），显示它
       if (tool.fullSpec) {
-        prompt += `\n${tool.fullSpec}\n`
+        toolList += `\n${tool.fullSpec}\n`
       }
-
-      // 显示参数说明
       if (tool.schema && typeof tool.schema === 'object') {
         const schema = tool.schema as any
         if (schema.properties) {
-          prompt += `\nParameters:\n`
+          toolList += `\nParameters:\n`
           const props = schema.properties
           const required = schema.required || []
           for (const [key, value] of Object.entries(props)) {
             const prop = value as any
             const isRequired = required.includes(key)
-            prompt += `  - \`${key}\`${isRequired ? ' (required)' : ' (optional)'}: ${prop.description || 'No description'}\n`
-            if (prop.type) {
-              prompt += `    Type: ${prop.type}\n`
-            }
-            if (prop.enum) {
-              prompt += `    Allowed values: ${JSON.stringify(prop.enum)}\n`
-            }
+            toolList += `  - \`${key}\`${isRequired ? ' (required)' : ' (optional)'}: ${prop.description || 'No description'}\n`
+            if (prop.type) toolList += `    Type: ${prop.type}\n`
+            if (prop.enum) toolList += `    Allowed values: ${JSON.stringify(prop.enum)}\n`
           }
         }
       }
     }
-
+    let prompt = getPromptByKey('agent.toolCallSpec.prompt', { toolList })
+    const concurrentNote = getPromptByKey('agent.toolCallSpec.concurrentSubagentNote')?.trim()
+    const concurrentNoteFallback =
+      '## Concurrent and Subagent capability\nYou **can and should** issue multiple <tool_call> in one response when the user asks to run multiple subagents or tasks in parallel. The system will **run them concurrently**; do not claim you cannot create or run multiple subagents. If the tool list includes Subagents (e.g. subagent-doc-writer), call them directly as needed.'
+    if (concurrentNote || concurrentNoteFallback) {
+      prompt += '\n\n' + (concurrentNote || concurrentNoteFallback)
+    }
     prompt += '\n\n## Notes When Calling Tools\n'
     prompt += "- Read each tool's instructions and parameter requirements carefully\n"
     prompt += '- Ensure parameter types are correct (string, number, boolean, object, etc.)\n'
@@ -920,16 +911,14 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
             ? ToolRunner.serializeToOpenAIFormat(observation)
             : `错误: ${observation.error || '执行失败'}`
 
-        // 添加观察到上下文
         contextMessages.push({
           role: 'user',
-          content: `Observation: ${observationText}\n\n请根据这个观察继续推理和行动。如果任务完成，请使用 Action: finish 并提供最终答案。`
+          content: getPromptByKey('agent.observationContinuePrompt', { observationText })
         })
       } else {
-        // 如果没有找到观察结果，添加错误信息
         contextMessages.push({
           role: 'user',
-          content: `Observation: 工具执行结果未找到\n\n请根据这个错误继续推理和行动。`
+          content: getPromptByKey('agent.observationErrorPrompt')
         })
       }
 
@@ -979,26 +968,10 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
   }
 
   /**
-   * 构建ReAct提示词
+   * 构建ReAct提示词（来自 locale_prompts）
    */
   private buildReActPrompt(): string {
-    return (
-      '\n\n=== ReAct 模式 ===\n' +
-      '你需要在每个步骤中执行以下格式：\n' +
-      'Thought: [你的思考过程]\n' +
-      'Action: [工具名称 或 finish]\n' +
-      'Action Input: [工具参数，JSON格式]\n' +
-      'Observation: [等待工具执行结果]\n\n' +
-      '示例：\n' +
-      'Thought: 用户想要搜索信息，我应该使用搜索工具。\n' +
-      'Action: web-search\n' +
-      'Action Input: {"query": "关键词"}\n' +
-      'Observation: [工具执行结果会在这里显示]\n\n' +
-      '如果任务完成，使用：\n' +
-      'Thought: [总结]\n' +
-      'Action: finish\n' +
-      'Final Answer: [最终答案]\n\n'
-    )
+    return getPromptByKey('agent.reactPrompt')
   }
 
   /**
@@ -1619,12 +1592,9 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         })
       }
 
-      // 添加观察结果
       contextMessages.push({
         role: 'user',
-        content:
-          observationText +
-          '\n\n请根据工具执行结果继续完成任务。如果需要再次调用工具，请使用tool_calls格式。否则直接回复最终结果。'
+        content: observationText + getPromptByKey('agent.toolResultContinuePrompt')
       })
 
       // 检查是否达到最大迭代次数
@@ -1866,7 +1836,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
     const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
     contextMessages.push({
       role: 'user',
-      content: '请根据执行计划的完成情况，生成一个总结回复。'
+      content: getPromptByKey('agent.planSummaryPrompt')
     })
 
     // 创建响应式消息对象用于实时流式显示
@@ -1917,22 +1887,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
     }>
   }> {
     const toolPrompt = this.buildToolCallPrompt()
-    const planPrompt =
-      '\n\n=== 计划生成模式 ===\n' +
-      '请分析用户需求并生成详细的执行计划。\n' +
-      '计划格式（JSON）：\n' +
-      '```json\n' +
-      '{\n' +
-      '  "steps": [\n' +
-      '    {\n' +
-      '      "description": "步骤描述",\n' +
-      '      "tool_id": "工具ID（如果需要工具）",\n' +
-      '      "parameters": {"参数": "值"}\n' +
-      '    }\n' +
-      '  ]\n' +
-      '}\n' +
-      '```\n\n' +
-      '如果某个步骤不需要工具，可以不包含tool_id和parameters。\n'
+    const planPrompt = getPromptByKey('agent.planPrompt')
 
     const contextMessages: LlmMessage[] = [
       {

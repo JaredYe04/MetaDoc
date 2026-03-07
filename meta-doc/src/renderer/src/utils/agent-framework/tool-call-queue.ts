@@ -7,10 +7,12 @@ import { createRendererLogger } from '../logger'
 import { ToolRunner, type ToolObservation } from './tool-runner'
 import { AIContextManager } from './ai-context-manager'
 import { agentToolManager } from '../agent-tool-manager'
+import { agentConfigManager } from './agent-config-manager'
 import { createAiTask, ai_types } from '../ai_tasks'
 import { ref } from 'vue'
 import type { AgentSession } from '../../types/agent-framework'
-import type { AgentSession as LegacyAgentSession } from '../../types/agent'
+import type { AgentSession as LegacyAgentSession, AgentMessage } from '../../types/agent'
+import { runSubagent } from './subagent-runner'
 
 // 懒加载logger
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -94,33 +96,18 @@ export class ToolCallQueue {
   }
 
   /**
-   * 开始执行队列（串行执行）
+   * 执行单任务（供并发批次调用）
    */
-  private async start(): Promise<void> {
-    if (this.isRunning) {
-      return
-    }
+  private async runTask(task: ToolCallTask): Promise<void> {
+    getLogger().debug('[ToolCallQueue] 执行任务:', {
+      toolId: task.tool_id,
+      toolCallId: task.tool_call_id
+    })
 
-    this.isRunning = true
-    getLogger().debug('[ToolCallQueue] 开始执行队列，任务数量:', this.queue.length)
-
-    while (this.queue.length > 0) {
-      // 检查是否被取消
-      if (this.signal?.aborted) {
-        getLogger().warn('[ToolCallQueue] 队列执行被取消')
-        break
-      }
-
-      const task = this.queue.shift()!
-      getLogger().debug('[ToolCallQueue] 开始执行任务:', {
-        toolId: task.tool_id,
-        toolCallId: task.tool_call_id,
-        remainingTasks: this.queue.length
-      })
-
-      try {
-        // 处理dummy-tool（无效的工具调用）
-        if (task.tool_id === 'dummy-tool') {
+    let runningMsg: AgentMessage | undefined
+    try {
+      // 处理 dummy-tool（无效的工具调用）
+      if (task.tool_id === 'dummy-tool') {
           const errorInfo = (task.parameters.error as string) || '工具调用格式错误'
           const rawContent = (task.parameters.rawContent as string) || ''
           const parsed = task.parameters.parsed as any
@@ -163,7 +150,90 @@ export class ToolCallQueue {
           if (this.onTaskComplete) {
             this.onTaskComplete(task, failedObservation)
           }
-          continue
+          return
+        }
+
+        // Subagent：不经过 ToolRunner，直接运行 Subagent 并写入带 SubagentDisplay 的 tool 消息
+        const subagentConfig = agentConfigManager.getConfig(task.tool_id)
+        if (subagentConfig && (subagentConfig as any).isSubagent) {
+          const sessionForTool =
+            (this.session as any).entityType === 'agent-session'
+              ? (this.session as AgentSession)
+              : (this.session as any).publicContext
+                ? (this.session as any as AgentSession)
+                : undefined
+          if (!sessionForTool) {
+            AIContextManager.addToolMessage(
+              this.session,
+              task.tool_id,
+              (subagentConfig as any).name?.zh_cn?.name || task.tool_id,
+              'failed',
+              undefined,
+              'Subagent 需要会话上下文',
+              undefined,
+              task.tool_call_id,
+              { displayComponent: 'SubagentDisplay', id: task.tool_id }
+            )
+            if (this.onTaskComplete) {
+              this.onTaskComplete(task, {
+                toolId: task.tool_id,
+                toolName: task.tool_id,
+                status: 'failed',
+                error: 'Subagent 需要会话上下文'
+              })
+            }
+            return
+          }
+          const toolName =
+            typeof subagentConfig.name === 'string'
+              ? subagentConfig.name
+              : (subagentConfig.name as any)?.zh_cn?.name || (subagentConfig.name as any)?.en_us?.name || task.tool_id
+          const toolConfigSub = { displayComponent: 'SubagentDisplay', id: task.tool_id, name: toolName }
+          runningMsg = AIContextManager.addToolMessage(
+            this.session,
+            task.tool_id,
+            toolName,
+            'running',
+            { subagentMessages: [], result: '' },
+            undefined,
+            undefined,
+            task.tool_call_id,
+            toolConfigSub,
+            task.parameters
+          )
+          let result: Awaited<ReturnType<typeof runSubagent>>
+          try {
+            result = await runSubagent(
+              task.tool_id,
+              task.parameters as { prompt: string },
+              sessionForTool,
+              this.signal
+            )
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            AIContextManager.completeToolMessage(
+              this.session,
+              runningMsg.id,
+              { toolId: task.tool_id, toolName, status: 'failed', error: errMsg },
+              task.parameters
+            )
+            if (this.onTaskComplete) this.onTaskComplete(task, { toolId: task.tool_id, toolName, status: 'failed', error: errMsg })
+            return
+          }
+          const observation: ToolObservation = {
+            toolId: task.tool_id,
+            toolName,
+            status: result.status,
+            result: {
+              result: result.resultText,
+              data: { subagentMessages: result.subagentMessages, result: result.resultText }
+            },
+            error: result.error,
+            summary: result.resultText?.substring(0, 200)
+          }
+          AIContextManager.completeToolMessage(this.session, runningMsg.id, observation, task.parameters)
+          if (this.onTaskComplete) this.onTaskComplete(task, observation)
+          return
         }
 
         // 验证参数
@@ -196,7 +266,7 @@ export class ToolCallQueue {
           if (this.onTaskComplete) {
             this.onTaskComplete(task, failedObservation)
           }
-          continue
+          return
         }
 
         // 获取可以传递给工具的session对象：新类型有entityType字段，旧类型有publicContext字段
@@ -215,6 +285,20 @@ export class ToolCallQueue {
             ? toolConfig.name
             : toolConfig.name?.['zh_cn']?.name || toolConfig.name?.['en_us']?.name || task.tool_id
           : task.tool_id
+
+        // 先插入 running 消息，便于 UI 立即展示该工具正在执行
+        runningMsg = AIContextManager.addToolMessage(
+          this.session,
+          task.tool_id,
+          toolName,
+          'running',
+          undefined,
+          undefined,
+          undefined,
+          task.tool_call_id,
+          toolConfig,
+          task.parameters
+        )
 
         // 为工具调用创建AI任务，让用户能在任务队列中看到工具执行过程
         const taskResultRef = ref('')
@@ -307,19 +391,11 @@ export class ToolCallQueue {
           toolConfig = toolObj?.config
         }
 
-        // 添加工具消息到会话
-        // 注意：这个操作会向messages数组添加新消息，但不会触发新的AI响应
-        // 因为我们在agent-engine-executor中会检查响应状态
-        AIContextManager.addToolMessage(
+        // 替换 running 消息为完成状态，触发 Vue 响应式更新
+        AIContextManager.completeToolMessage(
           this.session,
-          observation.toolId,
-          observation.toolName,
-          observation.status,
-          observation.result,
-          observation.error,
-          observation.summary,
-          task.tool_call_id,
-          toolConfig,
+          runningMsg.id,
+          observation,
           observation.params || task.parameters
         )
 
@@ -341,28 +417,56 @@ export class ToolCallQueue {
           status: 'failed',
           error: errorMessage
         }
-
-        // 获取工具配置
-        const tool = agentToolManager.getTool(task.tool_id)
-        const toolConfig = tool?.config
-
-        AIContextManager.addToolMessage(
-          this.session,
-          task.tool_id,
-          task.tool_id,
-          'failed',
-          undefined,
-          errorMessage,
-          undefined,
-          task.tool_call_id,
-          toolConfig,
-          task.parameters
-        )
-
+        // 若此前已插入 running 消息（普通工具路径），则原地更新为失败；否则插入一条失败消息
+        if (typeof runningMsg !== 'undefined' && runningMsg != null) {
+          AIContextManager.completeToolMessage(
+            this.session,
+            runningMsg.id,
+            failedObservation,
+            task.parameters
+          )
+        } else {
+          const tool = agentToolManager.getTool(task.tool_id)
+          const toolConfig = tool?.config
+          AIContextManager.addToolMessage(
+            this.session,
+            task.tool_id,
+            task.tool_id,
+            'failed',
+            undefined,
+            errorMessage,
+            undefined,
+            task.tool_call_id,
+            toolConfig,
+            task.parameters
+          )
+        }
         if (this.onTaskComplete) {
           this.onTaskComplete(task, failedObservation)
         }
       }
+  }
+
+  /**
+   * 开始执行队列（同一批次并发执行，多批次串行）
+   */
+  private async start(): Promise<void> {
+    if (this.isRunning) {
+      return
+    }
+
+    this.isRunning = true
+    getLogger().debug('[ToolCallQueue] 开始执行队列，任务数量:', this.queue.length)
+
+    while (this.queue.length > 0) {
+      if (this.signal?.aborted) {
+        getLogger().warn('[ToolCallQueue] 队列执行被取消')
+        break
+      }
+
+      const batch = this.queue.splice(0, this.queue.length)
+      getLogger().debug('[ToolCallQueue] 本批次并发执行任务数:', batch.length)
+      await Promise.all(batch.map((task) => this.runTask(task)))
     }
 
     this.isRunning = false
@@ -372,10 +476,8 @@ export class ToolCallQueue {
       inputComplete: this.inputComplete
     })
 
-    // 如果队列中还有任务（可能在执行过程中添加的），继续执行
     if (this.queue.length > 0) {
       getLogger().debug('[ToolCallQueue] 队列中还有新任务，继续执行')
-      // 继续执行，保存新的 Promise
       this.runningPromise = this.start().catch((error) => {
         getLogger().error('[ToolCallQueue] 队列继续执行出错:', error)
         this.isRunning = false
@@ -385,11 +487,7 @@ export class ToolCallQueue {
       return
     }
 
-    // 标记 Promise 完成
     this.runningPromise = null
-
-    // 注意：不在这里调用 onQueueComplete()
-    // 只有在 waitForComplete() 中确认 inputComplete=true 且队列为空时，才调用 onQueueComplete()
   }
 
   /**

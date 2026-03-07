@@ -8,7 +8,8 @@ import type { AgentSession as LegacyAgentSession } from '../../types/agent'
 import type { AgentSession, Reference, PublicContext } from '../../types/agent-framework'
 import type { AgentConfig } from '../../types/agent-framework'
 import { createRendererLogger } from '../logger'
-import { ToolRunner } from './tool-runner'
+import { getPromptByKey } from '../prompts'
+import { ToolRunner, type ToolObservation } from './tool-runner'
 import { useWorkspace } from '../../stores/workspace'
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -261,9 +262,16 @@ export class AIContextManager {
 
     let prompt = ''
 
-    // AgentConfig的系统提示词
-    if (agentConfig.llmConfig?.systemPrompt) {
-      prompt += agentConfig.llmConfig.systemPrompt + '\n\n'
+    // AgentConfig 的系统提示词：优先从 locale_prompts 的 systemPromptKey 解析，否则用内联 systemPrompt
+    const systemPromptKey = agentConfig.llmConfig?.systemPromptKey
+    const systemPromptFromLocale =
+      systemPromptKey ? getPromptByKey(systemPromptKey) : ''
+    const baseSystemPrompt =
+      (systemPromptFromLocale && systemPromptFromLocale.trim()) ||
+      agentConfig.llmConfig?.systemPrompt ||
+      ''
+    if (baseSystemPrompt) {
+      prompt += baseSystemPrompt + '\n\n'
     }
 
     // 注入时间戳和系统信息
@@ -795,16 +803,16 @@ export class AIContextManager {
   }
 
   /**
-   * 添加工具消息
+   * 添加工具消息（支持一开始就插入 status='running'，便于 UI 立即展示并随执行过程更新）
    *
-   * 重要：这个方法会在保存工具消息时，同时保存OpenAI格式的content字符串。
-   * 这样在buildHistoryMessages时，可以直接使用这个content，不需要转换。
+   * 重要：status 为 running/pending 时立即 push 到 session.messages，返回该 message；
+   * 执行完成后由调用方使用 completeToolMessage(session, message.id, observation, params) 替换同一条消息以触发视图更新。
    */
   static addToolMessage(
     session: AgentSession | LegacyAgentSession,
     toolId: string,
     toolName: string,
-    status: 'succeeded' | 'failed',
+    status: 'pending' | 'running' | 'succeeded' | 'failed',
     data?: unknown,
     error?: string,
     summary?: string,
@@ -825,7 +833,11 @@ export class AIContextManager {
 
     // 检查是否是包装对象（包含result和data字段，用于区分给AI和Display的内容）
     const isWrappedResult = data && typeof data === 'object' && 'result' in data && 'data' in data
-    const displayData = isWrappedResult ? (data as any).data : data // 用于Display组件的数据
+    let displayData = isWrappedResult ? (data as any).data : data // 用于Display组件的数据
+    // running/pending 时若无 data，用占位数据以便正确选出 Display 组件并显示“执行中”
+    if ((status === 'running' || status === 'pending') && displayData == null) {
+      displayData = { stage: 'loading' }
+    }
 
     // toolId -> Display 组件名，组件对象无 .name 时用于补全 renderer（持久化后能正确渲染）
     const TOOL_ID_RENDERER: Record<string, string> = {
@@ -845,7 +857,10 @@ export class AIContextManager {
       terminal: 'TerminalExecutionDisplay',
       metadata: 'MetadataDisplay',
       color: 'ColorDisplay',
-      rag: 'RAGToolDisplay'
+      rag: 'RAGToolDisplay',
+      'subagent-workspace-reader': 'SubagentDisplay',
+      'subagent-doc-writer': 'SubagentDisplay',
+      'subagent-search': 'SubagentDisplay'
     }
     const resolveRendererName = (fromComponent: string | undefined): string | undefined =>
       fromComponent ?? (toolId ? TOOL_ID_RENDERER[toolId] : undefined)
@@ -924,20 +939,22 @@ export class AIContextManager {
       })
     }
 
-    // 构建OpenAI格式的content字符串（在保存时就生成，确保格式正确）
-    // 使用ToolRunner的序列化方法，确保所有工具的结果格式一致
-    // 注意：如果data是包装对象（包含result和data），serializeToOpenAIFormat会优先使用result字段（给AI的纯文本）
-    // 如果data不是包装对象，serializeToOpenAIFormat会使用data作为结果
-    const observation = {
-      toolId,
-      toolName,
-      status,
-      result: data, // 传递原始data，serializeToOpenAIFormat会处理包装对象的提取
-      error,
-      summary,
-      toolConfig
+    // 构建OpenAI格式的content字符串（running/pending 时用占位，完成后由 completeToolMessage 覆盖）
+    let openaiContent: string
+    if (status === 'running' || status === 'pending') {
+      openaiContent = '(执行中...)'
+    } else {
+      const observation = {
+        toolId,
+        toolName,
+        status,
+        result: data,
+        error,
+        summary,
+        toolConfig
+      }
+      openaiContent = ToolRunner.serializeToOpenAIFormat(observation)
     }
-    const openaiContent = ToolRunner.serializeToOpenAIFormat(observation)
 
     const message: AgentMessage = {
       id: messageId,
@@ -967,5 +984,131 @@ export class AIContextManager {
     }
 
     return message
+  }
+
+  /**
+   * 将之前用 addToolMessage(..., 'running') 插入的消息更新为完成状态。
+   * 通过「按 id 查找并替换整条消息」触发 Vue 响应式更新，避免原地改属性不触发视图刷新。
+   */
+  static completeToolMessage(
+    session: AgentSession | LegacyAgentSession,
+    messageId: string,
+    observation: ToolObservation,
+    params?: Record<string, unknown>
+  ): void {
+    const index = session.messages.findIndex((m) => m.id === messageId)
+    if (index < 0) return
+    const existing = session.messages[index] as any
+    if (existing.type !== 'tool' || existing.role !== 'tool') return
+
+    const toolId = existing.tool?.id ?? observation.toolId
+    const toolName = existing.tool?.name ?? observation.toolName
+    const toolConfig = existing.tool_config
+
+    const data = observation.result
+    const isWrappedResult = data && typeof data === 'object' && 'result' in data && 'data' in data
+    const displayData = isWrappedResult ? (data as any).data : data
+
+    const TOOL_ID_RENDERER: Record<string, string> = {
+      edit: 'EditDisplay',
+      grep: 'GrepDisplay',
+      todolist: 'TodoListDisplay',
+      'todolist-planning': 'TodoListDisplay',
+      workspace: 'WorkspaceDisplay',
+      'outline-tree': 'OutlineTreeDisplay',
+      'outline-optimize': 'OutlineOptimizeDisplay',
+      diff: 'DiffDisplay',
+      proofread: 'ProofreadDisplay',
+      'title-format': 'TitleFormatDisplay',
+      'chart-generation': 'ChartGenerationDisplay',
+      'data-analysis': 'DataAnalysisDisplay',
+      'web-crawler': 'WebCrawlerDisplay',
+      terminal: 'TerminalExecutionDisplay',
+      metadata: 'MetadataDisplay',
+      color: 'ColorDisplay',
+      rag: 'RAGToolDisplay',
+      'subagent-workspace-reader': 'SubagentDisplay',
+      'subagent-doc-writer': 'SubagentDisplay',
+      'subagent-search': 'SubagentDisplay'
+    }
+    const resolveRendererName = (fromComponent: string | undefined): string | undefined =>
+      fromComponent ?? (toolId ? TOOL_ID_RENDERER[toolId] : undefined)
+
+    const outputs: Array<{
+      id: string
+      label: string
+      format: 'text' | 'json' | 'markdown' | 'html' | 'table' | 'custom'
+      data: unknown
+      renderer?: string
+    }> = []
+
+    if (
+      displayData &&
+      typeof displayData === 'object' &&
+      'content' in displayData &&
+      'format' in displayData
+    ) {
+      const callbackData = displayData as any
+      let rendererName: string | undefined
+      if (toolConfig?.displayComponent) {
+        const dc = toolConfig.displayComponent
+        rendererName =
+          typeof dc === 'string'
+            ? dc
+            : (dc as any).name || (dc as any).__name || (dc as any).displayName
+      }
+      rendererName = resolveRendererName(rendererName)
+      outputs.push({
+        id: 'result',
+        label: '结果',
+        format: (callbackData.format || 'json') as 'text' | 'json' | 'markdown' | 'html' | 'table' | 'custom',
+        data: callbackData.content,
+        renderer: rendererName
+      })
+    } else if (displayData) {
+      let rendererName: string | undefined
+      if (toolConfig?.displayComponent) {
+        const dc = toolConfig.displayComponent
+        rendererName =
+          typeof dc === 'string'
+            ? dc
+            : (dc as any).name || (dc as any).__name || (dc as any).displayName
+      }
+      rendererName = resolveRendererName(rendererName)
+      outputs.push({
+        id: 'result',
+        label: '结果',
+        format: 'json',
+        data: displayData,
+        renderer: rendererName
+      })
+    }
+
+    const openaiContent = ToolRunner.serializeToOpenAIFormat({
+      toolId,
+      toolName,
+      status: observation.status,
+      result: data,
+      error: observation.error,
+      summary: observation.summary,
+      toolConfig
+    })
+
+    const completed: AgentMessage = {
+      ...existing,
+      status: observation.status,
+      error: observation.error,
+      summary: observation.summary,
+      outputs,
+      markdown: openaiContent,
+      ...(params != null ? { params } : {})
+    } as any
+
+    session.messages[index] = completed
+    if (typeof session.updatedAt === 'string') {
+      session.updatedAt = new Date().toISOString()
+    } else {
+      session.updatedAt = Date.now()
+    }
   }
 }

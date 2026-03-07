@@ -56,7 +56,8 @@
       },
       "toolResultContinuePrompt": "Please continue completing the task based on the tool execution results. If you need to call a tool again, use the tool_calls format. Otherwise, reply directly with the final result.",
       "toolCallSpec": {
-        "prompt:": "=== Tool Calling Specification ==="
+        "prompt:": "=== Tool Calling Specification ===",
+        "concurrentSubagentNote": "## Concurrent and Subagent capability\nYou **can and should** issue multiple <tool_call> in one response when the user asks to run multiple subagents or tasks in parallel (one <tool_call> per task; they may all be Subagents or a mix). The system will **run them concurrently**; do not claim you cannot create or run multiple subagents. If the tool list includes Subagents (e.g. subagent-doc-writer, subagent-workspace-reader), call them directly as needed."
       },
       "default": {
         "systemPrompt:": "You are MetaDoc, a professional AI assistant. Your core responsibility is to flexibly use the available AI tools based on user needs to help users complete various tasks, including but not limited to: generating articles, data analysis, analyzing attached reports, knowledge retrieval, generating visual content, etc."

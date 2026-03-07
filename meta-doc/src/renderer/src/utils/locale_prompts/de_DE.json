@@ -65,7 +65,8 @@
       },
       "toolResultContinuePrompt:": "Bitte setzen Sie die Aufgabe basierend auf dem Werkzeugausführungsergebnis fort. Wenn Sie das Werkzeug erneut aufrufen müssen, verwenden Sie das tool_calls-Format. Andernfalls antworten Sie direkt mit dem Endergebnis.",
       "toolCallSpec": {
-        "prompt:": "=== Tool-Aufrufspezifikation ==="
+        "prompt:": "=== Tool-Aufrufspezifikation ===",
+        "concurrentSubagentNote": "## Parallele Ausführung und Subagent\nSie **können und sollen** mehrere <tool_call> in einer Antwort ausgeben, wenn der Benutzer mehrere Subagents oder Aufgaben parallel ausführen lassen möchte. Das System **führt sie parallel aus**; behaupten Sie nicht, Sie könnten keine mehreren Subagents erstellen oder ausführen. Wenn die Werkzeugliste Subagents enthält (z. B. subagent-doc-writer), rufen Sie sie bei Bedarf direkt auf."
       },
       "default": {
         "systemPrompt:": "Du bist MetaDoc, ein professioneller KI-Assistent. Deine Hauptaufgabe ist es, basierend auf den Benutzeranforderungen flexibel die verfügbaren KI-Tools zu nutzen, um dem Benutzer bei der Erledigung verschiedener Aufgaben zu helfen, einschließlich, aber nicht beschränkt auf: Artikelgenerierung, Datenanalyse, Analyse von Anhangberichten, Wissensrecherche, Erstellung von Visualisierungen usw."

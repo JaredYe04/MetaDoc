@@ -318,7 +318,7 @@ import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
 import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks'
-import { getCurrentLocalePrompts } from '../utils/prompts'
+import { getPromptByKey } from '../utils/prompts'
 
 const { t } = useI18n()
 const logger = createRendererLogger('LaTeXEditor', {
@@ -2790,61 +2790,13 @@ const analyzeCompileError = async (compileResult: any) => {
       }
     }
 
-    // 获取提示词模板
-    const prompts = getCurrentLocalePrompts()
-    const template = prompts.prompts?.latexCompileErrorAnalysisPrompt
-
-    let prompt = ''
-    if (template) {
-      // 替换模板中的占位符
-      prompt = template
-        .replace(/{errorOutput}/g, errorOutput)
-        .replace(/{completeConsoleOutput}/g, completeConsoleOutput || errorOutput)
-        .replace(/{texPath}/g, currentPath.value || '未知路径')
-        .replace(/{latexSource}/g, latexSourceWithLineNumbers)
-        .replace(
-          /{exitCode}/g,
-          exitCode !== undefined && exitCode !== null ? String(exitCode) : '未知'
-        )
-    } else {
-      // 回退提示词
-      const isExtracted = relevantLineNumbers.length > 0 && totalLines > 100
-      const extractionNote = isExtracted
-        ? `\n**注意：** 由于 LaTeX 文档较长，这里只显示了控制台输出中提到的相关行号及其上下文（前后各 5 行）。省略的部分用 "... (省略 X 行) ..." 标记。请重点关注显示的行号。`
-        : ''
-
-      prompt = `你是一个专业的LaTeX编译错误分析助手。请仔细分析以下编译错误：
-
-**重要提示：请务必参考完整的控制台输出，特别是其中的行号信息！控制台输出中已经明确指出了错误所在的行号，请严格按照控制台输出中的行号信息进行分析。**${extractionNote}
-
-**完整控制台输出（包含所有编译信息，这是最重要的参考信息）：**
-\`\`\`
-${completeConsoleOutput || errorOutput}
-\`\`\`
-
-**编译错误摘要：**
-\`\`\`
-${errorOutput}
-\`\`\`
-
-**退出代码：** ${exitCode !== undefined && exitCode !== null ? exitCode : '未知'}
-
-**LaTeX 原文（已标注行号${isExtracted ? '，仅显示相关行号及其上下文' : ''}）：**
-\`\`\`latex
-${latexSourceWithLineNumbers}
-\`\`\`
-
-**请分析并输出：**
-1. **错误原因**：一句话说明错误原因
-2. **错误位置**：**必须参考控制台输出中的行号信息**，指出具体行号或命令
-3. **解决方法**：提供简洁的修复方案（如需要添加的包、修改的代码等）
-
-**输出要求：**
-- **必须参考完整控制台输出中的行号信息**，不要猜测或忽略控制台已经指出的错误位置
-- 语言精炼，直击要害，不要过于详细
-- 直接输出分析结果，从第一行开始就是分析内容
-- 避免冗长的解释和前缀，只输出必要的分析和建议`
-    }
+    const prompt = getPromptByKey('latexCompileErrorAnalysisPrompt', {
+      completeConsoleOutput: completeConsoleOutput || errorOutput,
+      errorOutput,
+      exitCode:
+        exitCode !== undefined && exitCode !== null ? String(exitCode) : '未知',
+      latexSource: latexSourceWithLineNumbers
+    })
 
     // 输出分析开始提示
     eventBus.emit('console-out', {

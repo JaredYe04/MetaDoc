@@ -659,6 +659,16 @@ function convertHunkToEditOperation(hunk: UnifiedDiffHunk, text: string): EditOp
     type = 'replace'
   }
 
+  // 纯新增（新文件或空文件开头插入）：oldCount===0 且只有新增行，直接返回“在开头插入”的 EditOperation，避免行号/上下文匹配失败
+  if (type === 'insert' && hunk.oldCount === 0 && hunk.newLines.length > 0) {
+    const newText = hunk.newLines.join('\n')
+    return {
+      type: 'insert',
+      range: { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } },
+      content: newText
+    }
+  }
+
   // 尝试使用行号定位
   let startLine = hunk.oldStart
   let endLine = hunk.oldStart + hunk.oldCount - 1
@@ -1060,9 +1070,13 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         } catch (e) {
           logger.warn('read-file-content failed', e)
         }
-        const isNewFile = currentContent === null || currentContent === undefined
+        const isPureAdd = hunks.every((h) => h.oldCount === 0 && h.oldStart === 0)
+        const isEmptyContent =
+          currentContent === null ||
+          currentContent === undefined ||
+          String(currentContent).trim() === ''
+        const isNewFile = isEmptyContent && isPureAdd
         if (isNewFile) {
-          const isPureAdd = hunks.every((h) => h.oldCount === 0 && h.oldStart === 0)
           if (!isPureAdd) {
             return {
               status: 'failed',
@@ -1129,7 +1143,19 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             result: { appliedEdits: 1, failedEdits: 0, operations: [], hunks, rawDiff: diff }
           }
         }
-        currentContent = currentContent as string
+        if (isEmptyContent && !isPureAdd) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              '文件为空或不存在且 diff 不是纯新增',
+              [
+                '新建或空文件请使用纯新增 diff，例如：{"filePath": "path/to/new.md", "diff": "@@ -0,0 +1,3 @@\\n+line1\\n+line2\\n+line3"}'
+              ],
+              []
+            )
+          }
+        }
+        currentContent = (currentContent ?? '') as string
         const currentFormat =
           currentContent.trim().length === 0 ? 'md' : /\\.tex$/i.test(absPath) ? 'tex' : 'md'
         const edits: EditOperation[] = []

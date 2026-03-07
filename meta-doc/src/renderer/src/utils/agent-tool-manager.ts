@@ -30,6 +30,15 @@ import {
 } from './agent-tools/tool-serialization'
 import { findTaskByOriginKey } from './ai_tasks'
 
+/** 工具 ID 别名：模型可能使用别名调用，解析为实际注册的 toolId */
+const TOOL_ALIASES: Record<string, string> = {
+  workspace_read: 'workspace'
+}
+
+function resolveToolId(toolId: string): string {
+  return TOOL_ALIASES[toolId] ?? toolId
+}
+
 /**
  * Agent Tool管理器类
  */
@@ -97,10 +106,11 @@ class AgentToolManager {
   }
 
   /**
-   * 根据ID获取Tool
+   * 根据ID获取Tool（支持别名，如 workspace_read -> workspace）
    */
   getTool(toolId: string): RegisteredTool | undefined {
-    return this.tools.get(toolId)
+    const resolved = resolveToolId(toolId)
+    return this.tools.get(resolved)
   }
 
   /**
@@ -115,7 +125,8 @@ class AgentToolManager {
       progress?: ToolProgress
     ) => void
   ): Promise<ToolCallbackResult> {
-    const tool = this.tools.get(toolId)
+    const resolvedId = resolveToolId(toolId)
+    const tool = this.tools.get(resolvedId)
     if (!tool) {
       throw new Error(`Tool ${toolId} 未找到`)
     }

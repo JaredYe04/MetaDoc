@@ -16,6 +16,8 @@ import {
   createDefaultOutlineTree
 } from '../utils/document/outline'
 import eventBus from '../utils/event-bus'
+import { getDefaultAiChatMessages } from '../constants/document'
+import { i18n } from '../i18n.js'
 
 /** 默认文档元数据 */
 const defaultArticleMetaData: ArticleMetaData = {
@@ -25,18 +27,15 @@ const defaultArticleMetaData: ArticleMetaData = {
   keywords: []
 }
 
-/** 默认AI对话消息 */
-const defaultAiChatMessages: AIDialogMessage[] = [
-  {
-    role: 'system',
-    content:
-      '你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）'
-  },
-  {
-    role: 'assistant',
-    content: '### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n'
-  }
-]
+/** 默认AI对话消息（来自 locale_prompts，与 getDefaultAiChatMessages 一致；助手欢迎语使用 locales i18n） */
+function getDefaultAiChatMessagesForStore(): AIDialogMessage[] {
+  const msgs = getDefaultAiChatMessages()
+  const greeting = i18n.global.t('document.aiAssistantGreeting') as string
+  return [
+    msgs[0],
+    { role: 'assistant', content: greeting || '### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n' }
+  ]
+}
 
 export const useDocumentStore = defineStore('document', () => {
   // ========== 状态定义 ==========
@@ -60,7 +59,7 @@ export const useDocumentStore = defineStore('document', () => {
   const articleMetaData = ref<ArticleMetaData>({ ...defaultArticleMetaData })
 
   /** AI对话消息列表 */
-  const aiDialogs = ref<AIDialogMessage[]>([...defaultAiChatMessages])
+  const aiDialogs = ref<AIDialogMessage[]>([...getDefaultAiChatMessagesForStore()])
 
   /** 最后视图类型 */
   const lastView = ref<'outline' | 'article'>('outline')
@@ -128,7 +127,7 @@ export const useDocumentStore = defineStore('document', () => {
     outlineTree.value = createDefaultOutlineTree()
     articleContent.value = generateMarkdownFromOutlineTree(outlineTree.value)
     articleMetaData.value = { ...defaultArticleMetaData }
-    aiDialogs.value = [...defaultAiChatMessages]
+    aiDialogs.value = [...getDefaultAiChatMessagesForStore()]
 
     eventBus.emit('refresh')
     eventBus.emit('reset-quickstart')

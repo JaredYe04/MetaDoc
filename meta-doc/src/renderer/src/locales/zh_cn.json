@@ -293,6 +293,16 @@
         "summaryMode": "概要模式",
         "summaryDescription": "搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。"
       },
+      "subagent": {
+        "title": "Subagent",
+        "messages": "条消息",
+        "result": "返回结果",
+        "noMessages": "无消息",
+        "running": "执行中...",
+        "roleUser": "用户",
+        "roleAssistant": "助手",
+        "roleTool": "工具"
+      },
       "webCrawler": {
         "title": "网页访问结果",
         "size": "大小",
@@ -466,7 +476,10 @@
         "systemPromptHint": "系统提示词定义了Agent的核心角色、能力和工作方式",
         "injectTimestamp": "注入时间戳",
         "injectTimestampLabel": "在系统提示词前注入当前时间戳",
-        "injectTimestampHint": "启用后，每次使用此配置创建Agent实例时，会在系统提示词前自动添加当前时间戳信息"
+        "injectTimestampHint": "启用后，每次使用此配置创建Agent实例时，会在系统提示词前自动添加当前时间戳信息",
+        "isSubagent": "作为 Subagent",
+        "isSubagentLabel": "作为 Subagent（仅主 Agent 可调用）",
+        "isSubagentHint": "勾选后，此配置会像工具一样暴露给主 Agent，主 Agent 可通过工具调用并发执行 Subagent 完成子任务。默认 Agent 配置不可设为 Subagent。"
       },
       "agentEngine": {
         "title": "Agent引擎管理",

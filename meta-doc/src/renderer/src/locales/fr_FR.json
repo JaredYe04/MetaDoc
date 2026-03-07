@@ -1043,7 +1043,7 @@
       "testExecuted": "Test exécuté avec succès",
       "testFailed": "Échec de l'exécution du test",
       "testFunction": "Fonction de test",
-      "testNotFound": "La fonction d'essai n'existe pas",
+      "testNotFound": "La fonction de test n'existe pas",
       "testResult": "Résultat du test",
       "title": "Outil de débogage",
       "undefined": "Indéfini",
@@ -1111,7 +1111,7 @@
       "toolDescPlaceholder": "Veuillez d'abord sélectionner un outil pour voir sa description",
       "toolDescDefault": "Voici la description détaillée de l'outil, incluant le format des paramètres, les scénarios d'utilisation, etc.",
       "paramsPlaceholder": "Veuillez saisir les paramètres au format JSON, par exemple : {\"prompt\": \"Générer un diagramme de flux\", \"chartType\": \"mermaid\"}",
-      "selectToolPlaceholder": "Sélectionner l'outil à tester (laisser vide pour tous tester)",
+      "selectToolPlaceholder": "Outil à tester",
       "selectModulePlaceholder": "Sélectionner le module à tester (laisser vide pour tous tester)",
       "toolCalls": "Appels d'outils",
       "referenceCount": "Nombre de références",
@@ -1143,7 +1143,6 @@
       "newVersionFound": "Nouvelle version : {version}",
       "load": "Charger",
       "selectTool": "Sélectionner l'outil",
-      "selectToolPlaceholder": "Outil à tester",
       "savedConfig": "Configuration enregistrée",
       "contextTab": "Onglet de contexte",
       "unnamed": "Sans nom",
@@ -1239,7 +1238,15 @@
       "errorLabel": "Erreur : {msg}",
       "toolLabel": "Outil : {id}",
       "chooseExportRootDir": "Sélectionner le répertoire d'export",
-      "newVersionFoundShort": "Nouvelle version trouvée"
+      "newVersionFoundShort": "Nouvelle version trouvée",
+      "phase": "Phase",
+      "copied": "Copié",
+      "copyToClipboard": "Copier dans le presse-papiers",
+      "deltaMs": "Temps relatif (ms)",
+      "startupProfile": "Profil de démarrage",
+      "startupProfileHint": "Pour enregistrer la durée de chaque étape, définissez ENABLE_STARTUP_PROFILE=1 au démarrage. Les données du processus principal sont obtenues via IPC, celles du processus de rendu proviennent des points de mesure de ce chargement.",
+      "startupProfileMain": "Processus principal",
+      "startupProfileRenderer": "Processus de rendu"
     },
     "autoCompletionMaxTokens": "Nombre maximum de tokens pour la complétion",
     "autoCompletionMaxTokensHint": "Limite le nombre maximum de tokens pour la complétion automatique par IA. Minimum : 20, 0 = illimité.",
@@ -1535,7 +1542,7 @@
     "themeNamePlaceholder": "Veuillez entrer le nom du thème",
     "themeNameRequired": "Veuillez entrer le nom du thème",
     "unsavedChanges": "Modifications non enregistrées",
-    "unsavedChangesConfirm": "La configuration actuelle comporte des modifications non enregistrées. Voulez-vous d'abord les enregistrer ?",
+    "unsavedChangesConfirm": "Des modifications non enregistrées sont présentes dans la configuration actuelle. Souhaitez-vous les enregistrer avant de continuer ?",
     "logMessages": {
       "appStartup": "Lancement de l'application réussi",
       "loadConfig": "charger le fichier de configuration",
@@ -1592,7 +1599,21 @@
     "loggingSettings:": "Paramètres de journalisation",
     "logs:": "Paramètres des journaux",
     "lowPrecision:": "Faible précision",
-    "manual:": "Manuel (mode développement)"
+    "manual:": "Manuel (mode développement)",
+    "presetThemeSpaceGray:": "Gris spatial",
+    "removeThinkTag:": "Supprimer le tag think",
+    "resultPlaceholder:": "Les résultats du test seront affichés ici.",
+    "saveCurrentAsConfig:": "Enregistrer la configuration actuelle sous",
+    "selectPendingRequest:": "Sélectionner la requête en attente",
+    "testChatNonStream:": "Chat - Non-streaming",
+    "testChatStream:": "Chat - Streaming",
+    "testCompletionNonStream:": "Complétion - Non-streaming",
+    "testCompletionStream:": "Complétion - Streaming",
+    "testLlm:": "Tester le grand modèle de langage",
+    "themeSync:": "Suivre le mode système",
+    "themeSyncColor:": "Suivre la couleur système",
+    "themes:": "Thèmes",
+    "tokens:": "jetons"
   },
   "titleMenu": {
     "contextMarks": {
@@ -2854,6 +2875,16 @@
         "splitView": "Vue divisée",
         "originalText": "Texte original",
         "correctedText": "Texte corrigé"
+      },
+      "subagent": {
+        "messages": "message(s)",
+        "noMessages": "Aucun message",
+        "result": "Résultat retourné",
+        "roleAssistant": "Assistant",
+        "roleTool": "Outil",
+        "roleUser": "Utilisateur",
+        "running": "Exécution en cours...",
+        "title": "Subagent"
       }
     },
     "userLabel": "Utilisateur",
@@ -2930,11 +2961,14 @@
         "confirmDelete": "Confirmer la suppression de la configuration « {name} » ?",
         "view": "Afficher",
         "viewOnly": "Lecture seule",
-        "systemPromptPlaceholder": "Saisir l'invite système de l'Agent, définissant son rôle et ses responsabilités...",
-        "systemPromptHint": "L'invite système définit le rôle central, les capacités et le mode de fonctionnement de l'Agent",
+        "systemPromptPlaceholder": "Saisissez l'invite système de l'Agent pour définir son rôle et ses responsabilités...",
+        "systemPromptHint": "L'invite système définit le rôle central, les capacités et le mode de fonctionnement de l'Agent.",
         "injectTimestamp": "Injecter l'horodatage",
         "injectTimestampLabel": "Injecter l'horodatage actuel avant l'invite système",
-        "injectTimestampHint": "Lorsqu'activé, l'horodatage actuel est automatiquement ajouté avant l'invite système à chaque création d'une instance d'Agent avec cette configuration."
+        "injectTimestampHint": "Lorsqu'activé, l'horodatage actuel est automatiquement ajouté avant l'invite système à chaque création d'une instance d'Agent avec cette configuration.",
+        "isSubagent": "En tant que sous-agent",
+        "isSubagentHint": "Si coché, cette configuration sera exposée comme un outil à l'agent principal, qui pourra l'appeler pour exécuter des sous-tâches en parallèle. La configuration d'agent par défaut ne peut pas être définie comme sous-agent.",
+        "isSubagentLabel": "En tant que sous-agent (appelable uniquement par l'agent principal)"
       },
       "agentEngine": {
         "title": "Gestion des moteurs d'agent",
@@ -2958,7 +2992,7 @@
         "useCustomLLM": "Utiliser un LLM personnalisé",
         "llmConfigModeHint": "Le LLM global utilise la configuration LLM des paramètres MetaDoc, tandis qu'un LLM personnalisé nécessite de configurer l'adresse API et la clé.",
         "apiBaseUrl": "URL de base de l'API",
-        "apiBaseUrlPlaceholder": "https://api.exemple.com/v1",
+        "apiBaseUrlPlaceholder": "https://api.example.com/v1",
         "apiKey": "Clé API",
         "apiKeyPlaceholder": "Saisir la clé API",
         "model": "Nom du modèle",
@@ -3452,8 +3486,8 @@
     "reParaphraseAll": "Tout réécrire",
     "reParaphraseOne": "Réécrire",
     "rePreprocess": "Redécouper les paragraphes",
-    "revertOne": "Annuler",
-    "revertSuccess": "Paragraphe rétabli",
+    "revertOne": "Rétablir",
+    "revertSuccess": "Ce paragraphe a été rétabli",
     "renamePlaceholder": "Veuillez entrer le nom de la session",
     "renameTitle": "Renommer la session",
     "reportGenerated": "Rapport généré avec succès",
@@ -3469,9 +3503,9 @@
     "unsupportedFormat": "Format de document non pris en charge",
     "uploadFile": "Importer un fichier",
     "viewOriginal": "A Original",
-    "viewParaphrased": "B Réécriture",
+    "viewParaphrased": "B Paraphrase",
     "reportTitle": "Rapport d'évaluation du risque de style AIGC",
-    "segmentAnalysis": "Analyse par paragraphe",
+    "segmentAnalysis": "Analyse par segment",
     "overallAnalysis": "Analyse globale",
     "riskScore": "Score de risque",
     "riskLevel": "Niveau de risque",
@@ -3479,7 +3513,7 @@
     "riskMedium": "Moyen",
     "riskHigh": "Élevé",
     "radarChart": "Graphique radar par dimension",
-    "riskWeightPie": "Pondération des sources de risque (contribution pondérée)",
+    "riskWeightPie": "Pondération des sources de risque (contribution pondérée en puissance)",
     "dimensionScoreDetail": "Détail des scores par dimension",
     "dimension": "Dimension",
     "score": "Score",
@@ -3494,18 +3528,66 @@
     "overallScore": "Score global",
     "dimensionScore": "Score par dimension",
     "dimDesc": {
-      "sentence_uniformity": { "high": "Structure de phrase trop uniforme", "mid": "Plutôt uniforme", "low": "Phrases variées" },
-      "lexical_diversity": { "high": "Vocabulaire répétitif et conservateur", "mid": "Plutôt conservateur", "low": "Vocabulaire diversifié" },
-      "reasoning_smoothness": { "high": "Logique trop lisse", "mid": "Assez lisse", "low": "Logique naturelle" },
-      "personal_trace": { "high": "Manque de trace personnelle", "mid": "Peu de traces", "low": "Trace personnelle nette" },
-      "stylistic_risk": { "high": "Très conforme au modèle AIGC", "mid": "Partiellement conforme", "low": "Style naturel" },
-      "over_explanation": { "high": "Explication type manuel", "mid": "Assez détaillée", "low": "Explication adaptée" },
-      "hedging_pattern": { "high": "Beaucoup d’atténuateurs", "mid": "Plusieurs atténuateurs", "low": "Atténuation adaptée" },
-      "opening_transition_pattern": { "high": "Transitions très stéréotypées", "mid": "Plutôt stéréotypées", "low": "Transitions naturelles" },
-      "structural_repetition": { "high": "Structure trop régulière", "mid": "Assez régulière", "low": "Structure naturelle" },
-      "abstractness": { "high": "Trop abstrait", "mid": "Un peu abstrait", "low": "Concret et fondé" },
-      "emotional_flatness": { "high": "Émotion plate", "mid": "Assez plate", "low": "Émotion naturelle" },
-      "formulaic_closure": { "high": "Conclusion très stéréotypée", "mid": "Plutôt stéréotypée", "low": "Conclusion naturelle" }
+      "sentence_uniformity": {
+        "high": "Structure de phrase trop uniforme",
+        "mid": "Plutôt uniforme",
+        "low": "Phrases variées"
+      },
+      "lexical_diversity": {
+        "high": "Vocabulaire répétitif et conservateur",
+        "mid": "Plutôt conservateur",
+        "low": "Vocabulaire diversifié"
+      },
+      "reasoning_smoothness": {
+        "high": "Logique trop lisse",
+        "mid": "Assez lisse",
+        "low": "Logique naturelle"
+      },
+      "personal_trace": {
+        "high": "Manque de trace personnelle",
+        "mid": "Peu de traces",
+        "low": "Trace personnelle nette"
+      },
+      "stylistic_risk": {
+        "high": "Très conforme au modèle AIGC",
+        "mid": "Partiellement conforme",
+        "low": "Style naturel"
+      },
+      "over_explanation": {
+        "high": "Explication type manuel",
+        "mid": "Assez détaillée",
+        "low": "Explication adaptée"
+      },
+      "hedging_pattern": {
+        "high": "Beaucoup d’atténuateurs",
+        "mid": "Plusieurs atténuateurs",
+        "low": "Atténuation adaptée"
+      },
+      "opening_transition_pattern": {
+        "high": "Transitions très stéréotypées",
+        "mid": "Plutôt stéréotypées",
+        "low": "Transitions naturelles"
+      },
+      "structural_repetition": {
+        "high": "Structure trop régulière",
+        "mid": "Assez régulière",
+        "low": "Structure naturelle"
+      },
+      "abstractness": {
+        "high": "Trop abstrait",
+        "mid": "Un peu abstrait",
+        "low": "Concret et fondé"
+      },
+      "emotional_flatness": {
+        "high": "Émotion plate",
+        "mid": "Assez plate",
+        "low": "Émotion naturelle"
+      },
+      "formulaic_closure": {
+        "high": "Conclusion très stéréotypée",
+        "mid": "Plutôt stéréotypée",
+        "low": "Conclusion naturelle"
+      }
     }
   },
   "aigcDetectionWindow": {
@@ -4710,67 +4792,6 @@
   "A": ">B: Requête",
   "B-": ">A: Réponse",
   "skeleton": {
-    "tips": [
-      "F1 ouvre le manuel utilisateur",
-      "Ctrl+S enregistre le document actuel",
-      "Redimensionner la barre latérale en la tirant",
-      "Markdown et LaTeX supportés",
-      "Lier une base de connaissances pour de meilleures réponses IA",
-      "Reconnaissance de formules (écriture et captures)",
-      "L’agent gère le chat multi-tours et les outils",
-      "La vue visualisation s’exporte en image",
-      "Clair/Sombre/Système dans les paramètres",
-      "Coller des images depuis le presse-papiers",
-      "Plan pliable et réordonnable par glisser-déposer",
-      "Invoquer la complétion IA en écrivant",
-      "Outil de relecture pour grammaire et style",
-      "Outil données pour CSV et Excel",
-      "RAG utilise d’abord les bases liées",
-      "Nouveaux documents depuis des modèles",
-      "Plusieurs onglets pour éditer en parallèle",
-      "Exporter en PDF, Word, etc.",
-      "Ctrl+F pour rechercher (regex supportée)",
-      "Faire polir un paragraphe par l’IA",
-      "Aujourd’hui : écrire. Demain : procrastiner.",
-      "Bloqué ? Laissez l’IA écrire la première ligne.",
-      "Les commentaires dans les blocs de code sont respectés.",
-      "Coller un CSV pour créer un tableau en un clic",
-      "Long document : plan d’abord, puis développer",
-      "Écrire en LaTeX, MetaDoc affiche.",
-      "Graphiques : barres, courbes, etc.",
-      "Moteurs d’agent : ReAct, Plan-Execute, etc.",
-      "Modèles locaux et API ensemble",
-      "Panneau debug pour les temps de démarrage",
-      "Fenêtres en pool pour ouvrir plus vite",
-      "Chargement à la demande, démarrage léger.",
-      "Éditeur deux colonnes : chaque côté défile seul",
-      "Mermaid, PlantUML et autres syntaxes de schémas",
-      "Citations et blocs de code ont des raccourcis",
-      "Complétion IA retardable pour économiser les tokens",
-      "Base de connaissances : PDF, Word, TXT, etc.",
-      "Reconnaissance de formules → LaTeX direct",
-      "Glisser les onglets entre fenêtres pour déplacer",
-      "Export PDF : marges et polices au choix",
-      "Thème : système, clair, sombre ou personnalisé",
-      "Barre latérale : plusieurs dossiers possibles",
-      "Rechercher/remplacer : sensibilité cas, mot entier",
-      "Optimisation de section garde votre tournure",
-      "Moteurs d’agent : styles différents",
-      "RAG surligne les correspondances dans le texte",
-      "Donnez un tableau à l’agent pour une analyse rapide",
-      "Pour les articles : créer la base de connaissances d’abord",
-      "Erreurs LaTeX avec numéro de ligne dans la console",
-      "Monaco et Vditor interchangeables à tout moment",
-      "Mode texte seul sans rendu",
-      "Parseur de pièces jointes extrait les images du PDF",
-      "Relecture : fautes et fluidité",
-      "Organigrammes en vue Visualisation exportables en SVG",
-      "Clic droit sur un paragraphe → Analyse IA",
-      "Page d’accueil nouveau doc avec raccourcis",
-      "Coller du CSV pour créer des tableaux Markdown",
-      "Bloqué ? Cliquez sur le logo et secouez.",
-      "Il paraît qu’écrire fait monter de niveau.",
-      "Cette astuce disparaît ; le manuel F1 reste."
-    ]
+    "tips": "[\"Appuyez sur F1 pour ouvrir le manuel utilisateur\", \"Ctrl+S pour enregistrer rapidement le document actuel\", \"Redimensionnez la largeur de la barre latérale en la faisant glisser\", \"Prise en charge des formats Markdown et LaTeX\", \"Associez une base de connaissances aux documents locaux pour enrichir les réponses de l'IA\", \"Reconnaissance de formules : écriture manuscrite et captures d'écran\", \"L'Agent prend en charge les conversations multi-tours et l'appel d'outils\", \"La vue visualisation peut être exportée en image\", \"Dans les paramètres, basculez entre les thèmes clair/sombre/système\", \"Collez directement des images depuis le presse-papiers\", \"Le plan peut être replié et réordonné par glisser-déposer\", \"Invoquez la complétion IA à tout moment pendant l'écriture\", \"L'outil de relecture détecte la grammaire et le vocabulaire\", \"L'outil d'analyse de données prend en charge CSV et Excel\", \"La recherche RAG utilise en priorité les bases de connaissances associées\", \"Créez de nouveaux documents à partir de modèles\", \"Édition simultanée avec plusieurs onglets\", \"À l'export, choisissez PDF, Word, etc.\", \"Ctrl+F pour rechercher dans tout le texte (expressions régulières prises en charge)\", \"Demandez à l'IA de polir un paragraphe individuellement\", \"Aujourd'hui, c'est le moment d'écrire, pas de procrastiner.\", \"Quand vous êtes bloqué, laissez l'IA écrire le début.\", \"Les commentaires dans les blocs de code sont respectés.\", \"Les tableaux peuvent être générés d'un clic en collant du CSV\", \"Pour un long document, il est conseillé de faire un plan avant de développer\", \"Écrivez les formules en LaTeX, MetaDoc s'occupe du rendu.\", \"Génération de graphiques : histogrammes, courbes, etc.\", \"Moteurs d'Agent : ReAct, Plan-Execute, etc.\", \"Configuration simultanée de modèles locaux et d'API\", \"Le panneau de débogage affiche le temps de démarrage\", \"Le pool de fenêtres permet d'ouvrir de nouvelles fenêtres plus rapidement\", \"Chargement à la demande pour un démarrage plus léger.\", \"En édition double colonne, chaque côté défile indépendamment\", \"Prise en charge des syntaxes de diagrammes comme Mermaid et PlantUML\", \"Les blocs de citation et de code ont des raccourcis clavier\", \"La complétion IA peut être déclenchée avec un délai pour économiser des tokens\", \"La base de connaissances prend en charge PDF, Word, TXT et autres formats\", \"Les résultats de reconnaissance de formules peuvent être insérés directement en LaTeX\", \"Glissez-déposez les onglets entre fenêtres pour déplacer les documents\", \"À l'export PDF, choisissez les marges et la police\", \"La couleur du thème peut suivre le système ou être personnalisée\", \"Ajoutez plusieurs dossiers à l'espace de travail de la barre latérale\", \"Le remplacement global prend en charge la sensibilité à la casse et au mot entier\", \"L'optimisation de paragraphe préserve votre expression centrale\", \"Choisissez différents moteurs d'Agent pour des styles différents\", \"Les résultats de recherche RAG sont surlignés dans le texte original\", \"Confiez un tableau de données à l'Agent pour une analyse simple\", \"Pour écrire un article, créez d'abord une base de connaissances avant d'interroger l'Agent\", \"En cas d'échec de compilation LaTeX, la console indique le numéro de ligne\", \"Basculez à tout moment entre Monaco et Vditor\", \"Le mode texte brut convient aux scénarios sans rendu\", \"L'analyse de pièces jointes peut extraire les images d'un PDF\", \"La relecture corrige non seulement les fautes, mais améliore aussi la fluidité des phrases\", \"Les organigrammes en vue visualisation peuvent être exportés en SVG\", \"Essayez un clic droit sur un paragraphe pour « Analyse IA »\", \"La page d'accueil des nouveaux documents propose des raccourcis\", \"Les tableaux Markdown peuvent être générés en collant du CSV\", \"Bloqué ? Cliquez sur le logo et secouez.\", \"Il paraît qu'écrire beaucoup de documents fait monter en niveau.\", \"Cette astuce disparaîtra, mais pas le manuel F1.\"]"
   }
 }

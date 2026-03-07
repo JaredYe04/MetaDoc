@@ -7,6 +7,11 @@ export { toolCollectionManager } from './tool-collection-manager'
 export { agentConfigManager } from './agent-config-manager'
 export { agentSessionManager, generateSessionTitleFromContent } from './agent-session-manager'
 export { agentEngineManager } from './agent-engine-manager'
+export {
+  initializeSubagentPresets,
+  SUBAGENT_COLLECTION_IDS,
+  SUBAGENT_CONFIG_IDS
+} from './subagent-presets'
 
 // 执行器
 export { ToolRunner } from './tool-runner'

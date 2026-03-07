@@ -582,8 +582,14 @@ const workspace = useWorkspace()
 const { activeDocument, activeTabId, removeTab, moveTab, activateTab } = workspace
 const agentStore = useAgentWorkspaceStore()
 // 与紧凑面板共享的 UI 状态（输入框、生成状态、引擎选择、任务句柄）
-const { composerInput, selectedEngineId, isGenerating, currentAiTaskHandle, aiTaskHandles } =
-  storeToRefs(agentStore)
+const {
+  composerInput,
+  selectedEngineId,
+  isGenerating,
+  generatingSessionId,
+  currentAiTaskHandle,
+  aiTaskHandles
+} = storeToRefs(agentStore)
 
 const borderColor = computed(() =>
   themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
@@ -1028,8 +1034,10 @@ watch(
   ([newFormat, newTabId]) => {
     if (!newFormat || !newTabId) return
 
-    // 更新所有会话的publicContext中的文档格式信息
+    const genId = generatingSessionId.value
+    // 更新所有会话的publicContext中的文档格式信息（生成中的会话不修改，避免视图切换时改写导致 subagent/tool 拿到空上下文）
     sessionsState.value.forEach((session) => {
+      if (genId && session.id === genId) return
       if (session.publicContext?.document?.id === newTabId) {
         session.publicContext.document.format = newFormat as 'md' | 'tex'
       }
@@ -1514,11 +1522,13 @@ const executeAgentEngine = async (
     isGenerating.value = false
     return
   }
+  generatingSessionId.value = session.id
 
   const engineId = selectedEngineId.value || 'default-autogpt-engine'
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
     notifyError(t('agent.sessions.engineNotFound'))
+    generatingSessionId.value = null
     isGenerating.value = false
     return
   }
@@ -1526,6 +1536,7 @@ const executeAgentEngine = async (
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
     notifyError(t('agent.sessions.agentConfigNotFound'))
+    generatingSessionId.value = null
     isGenerating.value = false
     return
   }
@@ -1861,6 +1872,7 @@ const executeAgentEngine = async (
         aiTaskHandles.value.delete(currentAiTaskHandle.value)
       }
       currentAiTaskHandle.value = null
+      generatingSessionId.value = null
       isGenerating.value = false
     }
   } else {
@@ -1926,6 +1938,7 @@ const executeAgentEngine = async (
         aiTaskHandles.value.delete(currentAiTaskHandle.value)
       }
       currentAiTaskHandle.value = null
+      generatingSessionId.value = null
       isGenerating.value = false
     }
   }
@@ -2183,6 +2196,7 @@ const handleCancelGeneration = () => {
     currentAiTaskHandle.value = null
   }
 
+  generatingSessionId.value = null
   isGenerating.value = false
   session.status = 'idle'
   persistSessions()

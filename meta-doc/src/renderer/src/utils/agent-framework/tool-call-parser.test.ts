@@ -114,6 +114,137 @@ describe('工具调用解析器 parseToolCalls', () => {
     })
   })
 
+  describe('Subagents 批调用 JSON 格式', () => {
+    it('解析 {"subagents": [{ task, output_file }]} 为多个 subagent 工具调用', () => {
+      const input = `\n\`\`\`json
+{"subagents": [
+  {"id": "agent1", "task": "在工作區根目錄下創建名為 '科技趨勢.md' 的文檔", "output_file": "科技趨勢.md"},
+  {"id": "agent2", "task": "創建 '健康生活.md'", "output_file": "健康生活.md"}
+]}
+\`\`\`;;;`
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(2)
+      expect(result![0].tool_id).toBe('subagent-doc-writer')
+      expect(result![0].parameters).toEqual({
+        prompt: "在工作區根目錄下創建名為 '科技趨勢.md' 的文檔",
+        output_file: '科技趨勢.md'
+      })
+      expect(result![1].tool_id).toBe('subagent-doc-writer')
+      expect(result![1].parameters).toEqual({ prompt: "創建 '健康生活.md'", output_file: '健康生活.md' })
+    })
+
+    it('裸 JSON 含 subagents 数组（无代码块）', () => {
+      const input = '{"subagents": [{"task": "写一个文档", "output_file": "a.md"}]}'
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(1)
+      expect(result![0].tool_id).toBe('subagent-doc-writer')
+      expect(result![0].parameters).toEqual({ prompt: '写一个文档', output_file: 'a.md' })
+    })
+
+    it('支持 item 中 tool_id / subagent 指定 subagent', () => {
+      const input =
+        '{"subagents": [{"task": "读工作区", "tool_id": "subagent-workspace-reader"}]}'
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(1)
+      expect(result![0].tool_id).toBe('subagent-workspace-reader')
+      expect(result![0].parameters).toEqual({ prompt: '读工作区' })
+    })
+  })
+
+  describe('Action+Params JSON 格式', () => {
+    it('解析 {"action": "edit", "params": { "file_path", "content" }} 并转为 filePath + diff', () => {
+      const input = `
+\`\`\`json
+{
+  "action": "edit",
+  "params": {
+    "file_path": "C:\\\\Users\\\\tange\\\\Documents\\\\metadoc-agent-test\\\\ai_technology.md",
+    "content": "# 人工智能技術發展\\n\\n人工智能技術正快速發展。",
+    "format": "md"
+  }
+}
+\`\`\`
+`
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(1)
+      expect(result![0].tool_id).toBe('edit')
+      expect(result![0].parameters!.filePath).toBe(
+        'C:\\Users\\tange\\Documents\\metadoc-agent-test\\ai_technology.md'
+      )
+      expect(result![0].parameters!.diff).toMatch(/^@@ -0,0 \+1,\d+ @@/)
+      expect((result![0].parameters!.diff as string).includes('+# 人工智能技術發展')).toBe(true)
+      expect(result![0].parameters!.content).toBeUndefined()
+      expect(result![0].parameters!.file_path).toBeUndefined()
+    })
+
+    it('裸 JSON action+params（无代码块）', () => {
+      const input =
+        '{"action": "edit", "params": {"file_path": "a.md", "content": "hello\\nworld"}}'
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(1)
+      expect(result![0].tool_id).toBe('edit')
+      expect(result![0].parameters!.filePath).toBe('a.md')
+      expect((result![0].parameters!.diff as string).trim()).toMatch(/^@@ -0,0 \+1,2 @@/)
+    })
+
+    it('支持 parameters 替代 params', () => {
+      const input = '{"action": "grep", "parameters": {"pattern": "test"}}'
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(1)
+      expect(result![0].tool_id).toBe('grep')
+      expect(result![0].parameters).toEqual({ pattern: 'test' })
+    })
+  })
+
+  describe('JSON 数组调用 [{}, {}, ...]', () => {
+    it('<tool_call> 内 JSON 数组展开为多个工具调用', () => {
+      const input = `<tool_call>
+[
+  {"name": "grep", "arguments": {"pattern": "a"}},
+  {"name": "edit", "arguments": {"filePath": "x.md", "diff": "@@ -0,0 +1,1 @@\\n+hi"}}
+]
+</tool_call>`
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(2)
+      expect(result![0].tool_id).toBe('grep')
+      expect(result![0].parameters).toEqual({ pattern: 'a' })
+      expect(result![1].tool_id).toBe('edit')
+      expect(result![1].parameters).toHaveProperty('filePath', 'x.md')
+    })
+
+    it('裸 JSON 数组（无标签）展开为多个工具调用', () => {
+      const input =
+        '[{"name": "grep", "arguments": {"pattern": "test"}}, {"name": "edit", "arguments": {"diff": "@@ -0,0 +1,0 @@"}}]'
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(2)
+      expect(result![0].tool_id).toBe('grep')
+      expect(result![1].tool_id).toBe('edit')
+    })
+
+    it('action+params 数组展开', () => {
+      const input = `[
+  {"action": "edit", "params": {"file_path": "a.md", "content": "x"}},
+  {"action": "grep", "params": {"pattern": "p"}}
+]`
+      const result = norm(parseToolCalls(input))
+      expect(result).not.toBeNull()
+      expect(result!.length).toBe(2)
+      expect(result![0].tool_id).toBe('edit')
+      expect(result![0].parameters!.filePath).toBe('a.md')
+      expect(result![0].parameters!.diff).toMatch(/^@@ -0,0 \+1,1 @@/)
+      expect(result![1].tool_id).toBe('grep')
+      expect(result![1].parameters).toEqual({ pattern: 'p' })
+    })
+  })
+
   describe('无效格式返回 null', () => {
     it('无工具调用标记', () => {
       const result = parseToolCalls('这是一段普通文本，没有工具调用')

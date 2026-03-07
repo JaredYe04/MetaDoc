@@ -7,6 +7,8 @@ import type {
 } from '../../../types'
 import type { AgentSession } from '../types/agent'
 import type { SchemaDefinition } from '../utils/schemas'
+import { getPromptByKey } from '../utils/prompts'
+import { i18n } from '../i18n.js'
 
 export const TREE_NODE_SCHEMA = {
   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -86,22 +88,24 @@ export const DEFAULT_AI_ASSISTANT_GREETING =
 export const DEFAULT_AGENT_ASSISTANT_GREETING =
   '### {{agentEngine.greeting.title}}\n\n{{agentEngine.greeting.subtitle}}\n\n{{agentEngine.greeting.canDo}}\n- {{agentEngine.greeting.ragTool}}\n- {{agentEngine.greeting.chartTool}}\n- {{agentEngine.greeting.editTool}}\n- {{agentEngine.greeting.proofreadTool}}\n\n{{agentEngine.greeting.tellMe}}\n'
 
-export const DEFAULT_AI_CHAT_MESSAGES: AIDialogMessage[] = [
-  {
-    role: 'system',
-    content:
-      '你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）'
-  },
-  {
-    role: 'assistant',
-    content: DEFAULT_AI_ASSISTANT_GREETING
-  }
-]
+/** 返回基于当前语言的默认 AI 对话消息（系统提示来自 locale_prompts；助手欢迎语来自 locales i18n） */
+export function getDefaultAiChatMessages(): AIDialogMessage[] {
+  const greeting =
+    (typeof i18n?.global?.t === 'function' && (i18n.global.t('document.aiAssistantGreeting') as string)) ||
+    DEFAULT_AI_ASSISTANT_GREETING
+  return [
+    { role: 'system', content: getPromptByKey('chat.documentSystemPrompt') },
+    { role: 'assistant', content: greeting }
+  ]
+}
+
+/** @deprecated 使用 getDefaultAiChatMessages() 以支持 i18n */
+export const DEFAULT_AI_CHAT_MESSAGES: AIDialogMessage[] = getDefaultAiChatMessages()
 
 export const DEFAULT_AI_DIALOGS: AIDialog[] = [
   {
     title: '新对话',
-    messages: DEFAULT_AI_CHAT_MESSAGES.map((message) => ({ ...message }))
+    messages: getDefaultAiChatMessages().map((message) => ({ ...message }))
   }
 ]
 

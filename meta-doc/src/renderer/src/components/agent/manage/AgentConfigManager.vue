@@ -143,6 +143,18 @@
               {{ t('agent.manage.agentConfig.injectTimestampHint') }}
             </div>
           </FormField>
+          <FormField
+            v-if="editingConfig?.id !== 'default-agent-config'"
+            :label="t('agent.manage.agentConfig.isSubagent')"
+            name="isSubagent"
+          >
+            <Checkbox v-model:checked="formData.isSubagent">
+              {{ t('agent.manage.agentConfig.isSubagentLabel') }}
+            </Checkbox>
+            <div class="form-hint">
+              {{ t('agent.manage.agentConfig.isSubagentHint') }}
+            </div>
+          </FormField>
         </Form>
         <DialogFooter>
           <Button @click="dialogVisible = false">{{ t('common.cancel') }}</Button>
@@ -215,7 +227,8 @@ const formData = ref({
   maxToolCalls: null as number | null,
   unlimitedToolCalls: true, // 默认无限次
   systemPrompt: '',
-  injectTimestamp: true // 默认勾选时间戳
+  injectTimestamp: true, // 默认勾选时间戳
+  isSubagent: false // 仅 Subagent 会像工具一样暴露给主 Agent
 })
 
 const availableCollections = computed(() => {
@@ -294,11 +307,12 @@ const handleCreate = () => {
   formData.value = {
     name: '',
     description: '',
-    toolCollectionIds: ['default-tool-set'], // 默认选择default工具集
+    toolCollectionIds: ['default-tool-set'],
     maxToolCalls: null,
-    unlimitedToolCalls: true, // 默认无限次
+    unlimitedToolCalls: true,
     systemPrompt: '',
-    injectTimestamp: true // 默认勾选时间戳
+    injectTimestamp: true,
+    isSubagent: false
   }
   dialogVisible.value = true
 }
@@ -315,7 +329,8 @@ const handleView = (config: AgentConfig) => {
     maxToolCalls: config.maxToolCalls ?? null,
     unlimitedToolCalls: config.maxToolCalls === null,
     systemPrompt: config.llmConfig?.systemPrompt || '',
-    injectTimestamp: config.llmConfig?.injectTimestamp || false
+    injectTimestamp: config.llmConfig?.injectTimestamp || false,
+    isSubagent: (config as any).isSubagent === true
   }
   dialogVisible.value = true
 }
@@ -336,7 +351,8 @@ const handleEdit = (config: AgentConfig) => {
     maxToolCalls: config.maxToolCalls ?? null,
     unlimitedToolCalls: config.maxToolCalls === null,
     systemPrompt: config.llmConfig?.systemPrompt || '',
-    injectTimestamp: config.llmConfig?.injectTimestamp || false
+    injectTimestamp: config.llmConfig?.injectTimestamp || false,
+    isSubagent: (config as any).isSubagent === true
   }
   dialogVisible.value = true
 }
@@ -365,6 +381,7 @@ const handleSave = () => {
         description: formData.value.description,
         toolCollectionIds: formData.value.toolCollectionIds,
         maxToolCalls: formData.value.unlimitedToolCalls ? null : formData.value.maxToolCalls,
+        isSubagent: formData.value.isSubagent || false,
         llmConfig: {
           systemPrompt: formData.value.systemPrompt || undefined,
           injectTimestamp: formData.value.injectTimestamp || false
@@ -380,6 +397,7 @@ const handleSave = () => {
       )
       agentConfigManager.updateConfig(created.id, {
         maxToolCalls: formData.value.unlimitedToolCalls ? null : formData.value.maxToolCalls,
+        isSubagent: formData.value.isSubagent || false,
         llmConfig: {
           systemPrompt: formData.value.systemPrompt || undefined,
           injectTimestamp: formData.value.injectTimestamp || false

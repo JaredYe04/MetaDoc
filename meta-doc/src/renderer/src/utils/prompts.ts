@@ -131,6 +131,9 @@ function getPromptTemplate(key: string, replacements: Record<string, string> = {
  */
 function getNestedPrompt(promptsObj: Record<string, unknown> | undefined, key: string): string | undefined {
   if (!promptsObj || typeof promptsObj !== 'object') return undefined
+  // 支持扁平 key（如 "agent.toolCallSpec.prompt" 作为整段 key 名）
+  const direct = promptsObj[key]
+  if (direct !== undefined && typeof direct === 'string') return direct
   const parts = key.split('.')
   let current: unknown = promptsObj
   for (const p of parts) {

@@ -39,7 +39,10 @@ const TOOL_ID_TO_RENDERER: Record<string, string> = {
   terminal: 'TerminalExecutionDisplay',
   metadata: 'MetadataDisplay',
   color: 'ColorDisplay',
-  rag: 'RAGToolDisplay'
+  rag: 'RAGToolDisplay',
+  'subagent-workspace-reader': 'SubagentDisplay',
+  'subagent-doc-writer': 'SubagentDisplay',
+  'subagent-search': 'SubagentDisplay'
 }
 
 /**

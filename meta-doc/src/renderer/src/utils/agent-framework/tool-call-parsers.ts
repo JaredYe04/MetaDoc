@@ -94,18 +94,43 @@ class StandardToolCallParser implements ToolCallParser {
         if (!match[1]) continue
 
         const toolCallContent = match[1].trim()
-        const parsed = this.parseSingleToolCall(toolCallContent, index)
-
-        if (parsed) {
-          if (validateToolId && parsed.isValid && toolIdValidator) {
-            if (!toolIdValidator(parsed.tool_id)) {
-              parsed.isValid = false
-              parsed.error = `工具ID "${parsed.tool_id}" 不存在或不可用`
+        // 支持内容为 JSON 数组 [{}, {}, ...]：展开为多个工具调用
+        const preParsed = parseLooseJson(
+          extractOuterJsonString(toolCallContent) || toolCallContent.trim()
+        )
+        const isArray =
+          preParsed != null && Array.isArray(preParsed) && preParsed.length > 0
+        if (isArray) {
+          for (let i = 0; i < preParsed.length; i++) {
+            const parsed = this.parseSingleToolCall(
+              typeof preParsed[i] === 'object'
+                ? JSON.stringify(preParsed[i])
+                : String(preParsed[i]),
+              index
+            )
+            if (parsed) {
+              if (validateToolId && parsed.isValid && toolIdValidator) {
+                if (!toolIdValidator(parsed.tool_id)) {
+                  parsed.isValid = false
+                  parsed.error = `工具ID "${parsed.tool_id}" 不存在或不可用`
+                }
+              }
+              toolCalls.push(parsed)
+              index++
             }
           }
-
-          toolCalls.push(parsed)
-          index++
+        } else {
+          const parsed = this.parseSingleToolCall(toolCallContent, index)
+          if (parsed) {
+            if (validateToolId && parsed.isValid && toolIdValidator) {
+              if (!toolIdValidator(parsed.tool_id)) {
+                parsed.isValid = false
+                parsed.error = `工具ID "${parsed.tool_id}" 不存在或不可用`
+              }
+            }
+            toolCalls.push(parsed)
+            index++
+          }
         }
       }
 
@@ -838,6 +863,249 @@ class DeepSeekDSMLParser implements ToolCallParser {
   }
 }
 
+/** 默认将 subagents 批任务映射到的 Subagent 配置 ID（文档编写） */
+const DEFAULT_SUBAGENT_FOR_BATCH = 'subagent-doc-writer'
+
+/**
+ * Subagents 批调用 JSON 格式解析器
+ * 格式：AI 在消息内容中输出 {"subagents": [ { "id", "task", "output_file"? }, ... ] } 或带 ```json ... ``` / 结尾 ;;; 的变体
+ * 将每个 subagents 项展开为一个 subagent 工具调用（默认 subagent-doc-writer），供队列并发执行
+ */
+class SubagentsBatchParser implements ToolCallParser {
+  name = 'subagents-batch'
+
+  detect(content: string): boolean {
+    const trimmed = content.trim()
+    // 代码块内的 JSON
+    const inCodeBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+    const toCheck = inCodeBlock ? inCodeBlock[1] : trimmed
+    const withoutTrailing = toCheck.replace(/;;;+\s*$/, '').trim()
+    return /["']subagents["']\s*:\s*\[/.test(withoutTrailing)
+  }
+
+  parse(
+    content: string,
+    options: {
+      loose?: boolean
+      validateToolId?: boolean
+      toolIdValidator?: (toolId: string) => boolean
+    } = {}
+  ): ParsedToolCall[] | null {
+    const { validateToolId = false, toolIdValidator } = options
+
+    try {
+      let jsonStr = content.trim()
+      const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim()
+      }
+      jsonStr = jsonStr.replace(/;;;+\s*$/, '').trim()
+      const outer = extractOuterJsonString(jsonStr) || jsonStr
+      let parsed: any = parseLooseJson(outer)
+      if (!parsed) {
+        try {
+          parsed = JSON.parse(outer.replace(/,\s*([}\]])/g, '$1'))
+        } catch {
+          return null
+        }
+      }
+      const list = parsed?.subagents
+      if (!Array.isArray(list) || list.length === 0) {
+        return null
+      }
+
+      const toolCalls: ParsedToolCall[] = []
+      for (let i = 0; i < list.length; i++) {
+        const item = list[i]
+        if (!item || typeof item !== 'object') continue
+        const task = item.task ?? item.prompt ?? ''
+        const toolId =
+          typeof item.tool_id === 'string'
+            ? item.tool_id
+            : typeof item.subagent === 'string'
+              ? item.subagent
+              : DEFAULT_SUBAGENT_FOR_BATCH
+        const parameters: Record<string, unknown> = { prompt: String(task) }
+        if (item.output_file != null) {
+          parameters.output_file = String(item.output_file)
+        }
+        const parsedCall: ParsedToolCall = {
+          id: `call_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+          tool_id: toolId,
+          parameters,
+          isValid: true,
+          rawContent: JSON.stringify(item)
+        }
+        if (validateToolId && toolIdValidator && !toolIdValidator(toolId)) {
+          parsedCall.isValid = false
+          parsedCall.error = `工具ID "${toolId}" 不存在或不可用`
+        }
+        toolCalls.push(parsedCall)
+      }
+
+      if (toolCalls.length === 0) return null
+      getLogger().debug(
+        `[SubagentsBatchParser] 解析到 ${toolCalls.length} 个 subagent 批调用`
+      )
+      return toolCalls
+    } catch (error) {
+      getLogger().error('[SubagentsBatchParser] 解析失败:', error)
+      return null
+    }
+  }
+
+  cleanMarkers(content: string): string {
+    let cleaned = content
+    // 移除 ```json ... ``` 或 ``` ... ``` 中包含 "subagents" 的块
+    const codeBlockRe = /```(?:json)?\s*([\s\S]*?)```/gi
+    cleaned = cleaned.replace(codeBlockRe, (fullMatch, inner) => {
+      const t = inner.trim().replace(/;;;+\s*$/, '').trim()
+      if (/["']subagents["']\s*:\s*\[/.test(t)) return ''
+      return fullMatch
+    })
+    // 移除裸的 {"subagents": [...]}（用 extractOuterJsonString 定位第一个完整对象）
+    let idx = cleaned.indexOf('"subagents"')
+    if (idx === -1) idx = cleaned.indexOf("'subagents'")
+    if (idx !== -1) {
+      const start = cleaned.lastIndexOf('{', idx)
+      if (start !== -1) {
+        const jsonStr = extractOuterJsonString(cleaned.substring(start))
+        if (jsonStr && /["']subagents["']\s*:\s*\[/.test(jsonStr)) {
+          cleaned = (cleaned.substring(0, start) + cleaned.substring(start + jsonStr.length)).trim()
+        }
+      }
+    }
+    return cleaned.trim()
+  }
+
+  getMarkerPattern(): RegExp {
+    return /["']subagents["']\s*:\s*\[[\s\S]*?\]/gi
+  }
+}
+
+/**
+ * 将“完整内容”转为新建文件的 Unified diff（@@ -0,0 +1,N @@ 后跟 +行）
+ */
+function newFileDiff(content: string): string {
+  if (content == null) return ''
+  const lines = String(content).split(/\r?\n/)
+  if (lines.length === 0) return '@@ -0,0 +1,0 @@\n'
+  return '@@ -0,0 +1,' + lines.length + ' @@\n' + lines.map((l) => '+' + l).join('\n')
+}
+
+/**
+ * 对 action+params 格式的参数做标准化，便于工具消费（如 file_path -> filePath；edit 的 content 转为 diff）
+ */
+function normalizeActionParams(
+  toolId: string,
+  params: Record<string, unknown>
+): Record<string, unknown> {
+  const p = { ...params }
+  const filePath = (p.file_path ?? p.filePath) as string | undefined
+  if (filePath !== undefined) {
+    p.filePath = filePath
+    delete p.file_path
+  }
+  if (toolId === 'edit' && p.content != null && (p.file_path != null || p.filePath != null)) {
+    p.diff = newFileDiff(String(p.content))
+    delete p.content
+  }
+  return p
+}
+
+/**
+ * Action+Params JSON 格式解析器
+ * 格式：AI 在消息中输出 {"action": "edit", "params": { "file_path": "...", "content": "..." } }（或 parameters）
+ * 支持代码块 ```json ... ```；将 action 映射为 tool_id，params 标准化后作为 parameters（如 file_path→filePath，edit 的 content→diff）
+ */
+class ActionParamsParser implements ToolCallParser {
+  name = 'action-params'
+
+  detect(content: string): boolean {
+    const trimmed = content.trim()
+    const inBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+    const toCheck = inBlock ? inBlock[1] : trimmed
+    const hasActionParams =
+      /["']action["']\s*:/.test(toCheck) &&
+      (/["']params["']\s*:/.test(toCheck) || /["']parameters["']\s*:/.test(toCheck))
+    const hasArrayOfAction = /\s*\[\s*\{\s*["']action["']\s*:/.test(toCheck)
+    return hasActionParams || hasArrayOfAction
+  }
+
+  parse(
+    content: string,
+    options: {
+      loose?: boolean
+      validateToolId?: boolean
+      toolIdValidator?: (toolId: string) => boolean
+    } = {}
+  ): ParsedToolCall[] | null {
+    const { validateToolId = false, toolIdValidator } = options
+
+    try {
+      let jsonStr = content.trim()
+      const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+      if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim()
+      const outer = extractOuterJsonString(jsonStr) || jsonStr
+      let parsed: any = parseLooseJson(outer)
+      if (!parsed) {
+        try {
+          parsed = JSON.parse(outer.replace(/,\s*([}\]])/g, '$1'))
+        } catch {
+          return null
+        }
+      }
+      const items = Array.isArray(parsed) ? parsed : [parsed]
+      const toolCalls: ParsedToolCall[] = []
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        const action = item?.action ?? item?.tool ?? item?.name
+        const paramsRaw = item?.params ?? item?.parameters ?? item?.arguments
+        if (!action || typeof action !== 'string') continue
+        if (paramsRaw === undefined || typeof paramsRaw !== 'object' || Array.isArray(paramsRaw)) {
+          continue
+        }
+        const parameters = normalizeActionParams(action, { ...paramsRaw })
+        const parsedCall: ParsedToolCall = {
+          id: `call_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+          tool_id: action,
+          parameters,
+          isValid: true,
+          rawContent: Array.isArray(parsed) ? JSON.stringify(item) : jsonStr
+        }
+        if (validateToolId && toolIdValidator && !toolIdValidator(action)) {
+          parsedCall.isValid = false
+          parsedCall.error = `工具ID "${action}" 不存在或不可用`
+        }
+        toolCalls.push(parsedCall)
+      }
+      if (toolCalls.length === 0) return null
+      getLogger().debug('[ActionParamsParser] 解析到 action+params 工具调用', {
+        count: toolCalls.length
+      })
+      return toolCalls
+    } catch (error) {
+      getLogger().error('[ActionParamsParser] 解析失败:', error)
+      return null
+    }
+  }
+
+  cleanMarkers(content: string): string {
+    let cleaned = content
+    const codeBlockRe = /```(?:json)?\s*([\s\S]*?)```/gi
+    cleaned = cleaned.replace(codeBlockRe, (fullMatch, inner) => {
+      const t = inner.trim()
+      if (/["']action["']\s*:/.test(t) && (/["']params["']\s*:/.test(t) || /["']parameters["']\s*:/.test(t))) return ''
+      return fullMatch
+    })
+    return cleaned.trim()
+  }
+
+  getMarkerPattern(): RegExp {
+    return /["']action["']\s*:\s*["'][^"']+["']\s*,\s*["'](?:params|parameters)["']\s*:/gi
+  }
+}
+
 /**
  * OpenAI Function Calling 格式解析器
  * 格式: { "tool": "tool_id", "arguments": {...} }
@@ -847,16 +1115,17 @@ class OpenAIFunctionCallParser implements ToolCallParser {
   name = 'openai-function-call'
 
   detect(content: string): boolean {
-    // 检测是否包含工具调用相关的JSON对象
+    // 检测是否包含工具调用相关的JSON对象或根级数组 [{},{}...]
     // 但要排除已经在标签中的内容
     const withoutToolCallTags = content.replace(
       /<(?:tool[_-]?call|function[_-]?call)>[\s\S]*?<\/(?:tool[_-]?call|function[_-]?call)>/gi,
       ''
     )
-    // 支持多种字段名称：tool, name, tool_id, function等
-    return /\{\s*["'](?:tool|name|tool_id|toolId|function|function_name)["']\s*:/i.test(
+    const hasObjectFormat = /\{\s*["'](?:tool|name|tool_id|toolId|function|function_name)["']\s*:/i.test(
       withoutToolCallTags
     )
+    const hasArrayFormat = /\s*\[\s*\{/.test(withoutToolCallTags.trim())
+    return hasObjectFormat || hasArrayFormat
   }
 
   parse(
@@ -876,62 +1145,60 @@ class OpenAIFunctionCallParser implements ToolCallParser {
         ''
       )
 
-      // 查找所有匹配的JSON对象
+      // 查找所有匹配的 JSON 对象或根级数组 [{},{}...]
       const toolCalls: ParsedToolCall[] = []
       let searchIndex = 0
       let index = 0
 
       while (searchIndex < withoutToolCallTags.length) {
-        // 查找下一个可能的JSON对象
-        const jsonStart = withoutToolCallTags.indexOf('{', searchIndex)
+        const nextBrace = withoutToolCallTags.indexOf('{', searchIndex)
+        const nextBracket = withoutToolCallTags.indexOf('[', searchIndex)
+        const jsonStart =
+          nextBracket === -1
+            ? nextBrace
+            : nextBrace === -1
+              ? nextBracket
+              : Math.min(nextBrace, nextBracket)
         if (jsonStart === -1) break
 
-        const jsonStr = extractOuterJsonString(withoutToolCallTags.substring(jsonStart))
+        const substring = withoutToolCallTags.substring(jsonStart)
+        const jsonStr = extractOuterJsonString(substring)
         if (!jsonStr) {
           searchIndex = jsonStart + 1
           continue
         }
 
-        // 尝试宽松的JSON解析
         let parsed: any = parseLooseJson(jsonStr)
-
-        // 如果宽松解析失败，尝试标准解析
         if (!parsed) {
           try {
             parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
-          } catch (parseError) {
-            // JSON解析失败，继续查找下一个
+          } catch {
             searchIndex = jsonStart + jsonStr.length
             continue
           }
         }
 
-        // 使用增强的字段提取函数
-        const toolId = extractToolId(parsed)
-        const parameters = extractParameters(parsed)
-
-        // 检查是否符合工具调用格式：必须有工具ID
-        if (toolId && parameters !== null) {
-          if (typeof parameters !== 'object' || Array.isArray(parameters)) {
-            searchIndex = jsonStart + jsonStr.length
-            continue
-          }
+        // 根级为数组：展开为多个工具调用
+        const items = Array.isArray(parsed) ? parsed : [parsed]
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+          const toolId = extractToolId(item)
+          const parameters = extractParameters(item)
+          if (!toolId || parameters === null) continue
+          if (typeof parameters !== 'object' || Array.isArray(parameters)) continue
 
           const toolCall: ParsedToolCall = {
             id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
             tool_id: toolId,
             parameters: parameters || {},
             isValid: true,
-            rawContent: jsonStr
+            rawContent: Array.isArray(parsed) ? JSON.stringify(item) : jsonStr
           }
-
-          if (validateToolId && toolIdValidator) {
-            if (!toolIdValidator(toolId)) {
-              toolCall.isValid = false
-              toolCall.error = `工具ID "${toolId}" 不存在或不可用`
-            }
+          if (validateToolId && toolIdValidator && !toolIdValidator(toolId)) {
+            toolCall.isValid = false
+            toolCall.error = `工具ID "${toolId}" 不存在或不可用`
           }
-
           toolCalls.push(toolCall)
           index++
         }
@@ -1320,7 +1587,11 @@ export class ToolCallParserManager {
     this.parsers.push(new XMLToolCallParser())
     // 3. DeepSeek DSML格式
     this.parsers.push(new DeepSeekDSMLParser())
-    // 4. OpenAI格式（最宽松，优先级最低，避免误匹配）
+    // 4. Subagents 批调用 JSON 格式（内容中的 {"subagents": [...]}，展开为多个 subagent 工具调用）
+    this.parsers.push(new SubagentsBatchParser())
+    // 5. Action+Params JSON 格式（{"action": "edit", "params": { "file_path", "content" }}等，支持 content 转 diff）
+    this.parsers.push(new ActionParamsParser())
+    // 6. OpenAI格式（最宽松，优先级最低，避免误匹配）
     this.parsers.push(new OpenAIFunctionCallParser())
   }
 

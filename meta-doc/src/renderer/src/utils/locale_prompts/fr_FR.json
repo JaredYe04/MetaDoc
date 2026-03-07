@@ -55,7 +55,8 @@
       "toolResultContinuePrompt": "Veuillez poursuivre la tâche en fonction des résultats de l'exécution de l'outil. Si vous devez appeler à nouveau un outil, utilisez le format tool_calls. Sinon, répondez directement avec le résultat final.",
       "toolResultContinuePrompt:": "Veuillez poursuivre la tâche en fonction des résultats de l'exécution de l'outil. Si vous devez appeler à nouveau un outil, utilisez le format tool_calls. Sinon, répondez directement avec le résultat final.",
       "toolCallSpec": {
-        "prompt:": "=== Spécifications d'appel d'outils ==="
+        "prompt:": "=== Spécifications d'appel d'outils ===",
+        "concurrentSubagentNote": "## Exécution concurrente et Subagent\nVous **pouvez et devez** émettre plusieurs <tool_call> dans une seule réponse lorsque l'utilisateur demande d'exécuter plusieurs subagents ou tâches en parallèle. Le système les **exécutera en parallèle** ; ne prétendez pas ne pas pouvoir créer ou exécuter plusieurs subagents. Si la liste d'outils inclut des Subagents (ex. subagent-doc-writer), appelez-les directement selon les besoins."
       },
       "default": {
         "systemPrompt:": "Vous êtes MetaDoc, un assistant IA professionnel. Votre responsabilité principale est d'utiliser de manière flexible les outils IA disponibles pour aider l'utilisateur à accomplir diverses tâches, en fonction de ses besoins, y compris mais sans s'y limiter : génération d'articles, analyse de données, analyse de rapports joints, recherche de connaissances, génération de contenu visuel, etc."

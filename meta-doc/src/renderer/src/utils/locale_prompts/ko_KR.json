@@ -52,7 +52,8 @@
         }
       },
       "toolCallSpec": {
-        "prompt:": "=== 도구 호출 규칙 ==="
+        "prompt:": "=== 도구 호출 규칙 ===",
+        "concurrentSubagentNote": "## 동시 실행 및 Subagent\n사용자가 여러 subagent나 작업을 동시에 실행해 달라고 하면 **한 번의 응답에서 여러 <tool_call>을 발행할 수 있으며 그렇게 해야 합니다.** 시스템이 **동시에 실행**합니다. \"여러 subagent를 만들거나 실행할 수 없다\"고 말하지 마세요. 도구 목록에 Subagent(예: subagent-doc-writer)가 있으면 필요 시 직접 호출하세요."
       },
       "toolResultContinuePrompt:": "도구 실행 결과를 바탕으로 작업을 계속 완료해 주세요. 도구를 다시 호출해야 하는 경우 tool_calls 형식을 사용해 주세요. 그렇지 않으면 최종 결과를 직접 답변해 주세요.",
       "default": {

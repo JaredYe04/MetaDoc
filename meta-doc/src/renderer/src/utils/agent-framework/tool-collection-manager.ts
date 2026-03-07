@@ -31,6 +31,39 @@ class ToolCollectionManager {
   }
 
   /**
+   * 按指定 ID 获取或创建工具集（用于内置/预设集合，如 Subagent 专用工具集）
+   */
+  getOrCreateCollection(
+    id: string,
+    name: LocalizedText,
+    description: LocalizedText,
+    toolIds: string[] = []
+  ): ToolCollection {
+    const existing = this.collections.get(id)
+    if (existing) {
+      this.updateCollection(id, { toolIds, name, description, updatedAt: Date.now() })
+      return this.collections.get(id)!
+    }
+    const now = Date.now()
+    const collection: ToolCollection = {
+      entityType: 'tool-collection',
+      id,
+      name,
+      description,
+      version: '1.0.0',
+      createdAt: now,
+      updatedAt: now,
+      toolIds,
+      enabled: true,
+      tags: []
+    }
+    this.collections.set(id, collection)
+    this.saveToStorage()
+    this.getLogger().info(`工具集已创建(预设): ${id}`)
+    return collection
+  }
+
+  /**
    * 创建工具集
    */
   createCollection(

@@ -12,6 +12,7 @@ import type {
   ToolLocales
 } from '../../types/agent-tool'
 import { agentToolManager } from '../agent-tool-manager'
+import { agentConfigManager } from '../agent-framework/agent-config-manager'
 import { createRendererLogger } from '../logger'
 import { createDetailedError } from './tool-utils'
 
@@ -70,7 +71,7 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
 
     for (const toolId of toolIds) {
       try {
-        // 尝试从普通工具获取
+        // 1) 尝试从普通工具获取
         let tool = agentToolManager.getTool(toolId)
         let fullSpec: string | null = null
         let toolName: string = toolId
@@ -97,13 +98,31 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
             fullSpec = null
           }
         } else {
-          specs.push({
-            toolId,
-            name: toolId,
-            fullSpec: null,
-            error: `Tool not found: ${toolId}`
-          })
-          continue
+          // 2) 未在 ToolManager 中找到时，检查是否为 Subagent（Agent 配置，非注册工具）
+          const subagentConfig = agentConfigManager.getConfig(toolId)
+          if (subagentConfig && (subagentConfig as { isSubagent?: boolean }).isSubagent) {
+            toolName =
+              typeof subagentConfig.name === 'string'
+                ? subagentConfig.name
+                : subagentConfig.name['zh_cn']?.name ||
+                  subagentConfig.name['en_us']?.name ||
+                  toolId
+            const desc =
+              typeof subagentConfig.description === 'string'
+                ? subagentConfig.description
+                : subagentConfig.description['zh_cn']?.description ||
+                  subagentConfig.description['en_us']?.description ||
+              ''
+            fullSpec = `Subagent: ${toolName}\n\n${desc}\n\nParameters: { "prompt": "给此 Subagent 的指示或要完成的任务描述（必填）" }\n\n调用方式：在同一条回复中可与其他工具/Subagent 一起用 <tool_call> 调用，系统会并发执行。`
+          } else {
+            specs.push({
+              toolId,
+              name: toolId,
+              fullSpec: null,
+              error: `Tool not found: ${toolId}`
+            })
+            continue
+          }
         }
 
         specs.push({

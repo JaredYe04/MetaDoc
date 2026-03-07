@@ -47,6 +47,8 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
 
   /** 共享 UI 状态：Full 与 Compact 视图同步（仅一个可见时由当前视图更新） */
   const isGenerating = ref(false)
+  /** 正在执行引擎的会话 ID（切换 tab/视图时 loadFromMetadoc 不覆盖该会话，保证执行不中断） */
+  const generatingSessionId = ref<string | null>(null)
   /** 当前会话的提示词输入（与 composerInputBySessionId 按 activeSessionId 同步） */
   const composerInput = ref('')
   /** 各会话的提示词输入框内容（会话级隔离，持久化） */
@@ -142,8 +144,19 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       normalized.forEach((s) => {
         s.status = 'idle'
       })
-      // 若正在生成中，保留当前激活会话的内存状态（消息、status），避免从磁盘覆盖导致流式输出内容丢失（如从 Compact 切到 Full 时 init 会调 loadFromMetadoc）
-      if (isGenerating.value && sessions.value.length > 0) {
+      // 若正在生成中，保留“正在执行”的会话的同一对象引用，避免替换后执行中的任务写错对象导致中断或不同步
+      const genId = generatingSessionId.value
+      if (isGenerating.value && genId && sessions.value.length > 0) {
+        const generatingSession = sessions.value.find((s) => s.id === genId)
+        if (generatingSession) {
+          const idx = normalized.findIndex((s) => s.id === genId)
+          if (idx >= 0) {
+            // 使用内存中的同一引用，不创建新对象，保证执行中的引擎/队列仍写入 store 中的会话
+            normalized[idx] = generatingSession
+          }
+        }
+      } else if (isGenerating.value && sessions.value.length > 0) {
+        // 兼容：未设置 generatingSessionId 时按当前激活会话保留消息与 status
         const currentId = activeSessionId.value
         const currentSession = currentId ? sessions.value.find((s) => s.id === currentId) : null
         if (currentSession) {
@@ -266,9 +279,10 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     }
   }
 
-  /** 初始化：刷新工作区根并加载 */
+  /** 初始化：刷新工作区根并加载（生成中不重载，避免覆盖正在执行的会话） */
   async function init(): Promise<void> {
     await refreshWorkspaceRoot()
+    if (isGenerating.value) return
     await loadFromMetadoc()
   }
 
@@ -326,6 +340,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     openTabIds,
     activeSession,
     isGenerating,
+    generatingSessionId,
     composerInput,
     selectedEngineId,
     currentAiTaskHandle,

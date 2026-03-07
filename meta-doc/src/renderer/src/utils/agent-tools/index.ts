@@ -17,7 +17,7 @@ import { outlineTreeToolConfig } from './outline-tree-tool'
 import { diffToolConfig } from './diff-tool'
 import { grepToolConfig } from './grep-tool'
 import { proofreadToolConfig } from './proofread-tool'
-import { outlineOptimizeToolConfig } from './outline-optimize-tool'
+// outline-optimize-tool 不注册给 Agent，保留给用户在界面中手动使用；Agent 通过 edit + outline-tree 自行编写文档
 import { editToolConfig } from './edit-tool'
 import { metadataToolConfig } from './metadata-tool'
 import { titleFormatToolConfig } from './title-format-tool'
@@ -67,8 +67,7 @@ export async function initializeAgentTools(): Promise<void> {
   // 注册文本校对Tool
   agentToolManager.registerTool(proofreadToolConfig)
 
-  // 注册大纲优化Tool
-  agentToolManager.registerTool(outlineOptimizeToolConfig)
+  // 大纲优化 Tool 不注册给 Agent，保留给用户在界面中手动使用
 
   // 注册文档编辑Tool
   agentToolManager.registerTool(editToolConfig)
@@ -111,12 +110,14 @@ export function initializeDefaultToolSet(): void {
 /**
  * 初始化默认Agent配置
  */
-import { agentConfigManager } from '../agent-framework'
+import { agentConfigManager, initializeSubagentPresets } from '../agent-framework'
 export function initializeDefaultAgentConfig(): void {
   // 默认工具集ID
   const defaultToolCollectionId = 'default-tool-set'
 
   agentConfigManager.initializeDefaultAgentConfig(defaultToolCollectionId, [])
+  // Subagent 预设（工作区读取、文档编写、知识库/联网查询）
+  initializeSubagentPresets()
 }
 
 /**

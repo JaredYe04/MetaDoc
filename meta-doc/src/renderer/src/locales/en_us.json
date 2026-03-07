@@ -1103,7 +1103,7 @@
     "metadocHint": "Official AI models provided by MetaDoc, supporting various models.",
     "ollamaHint": "Locally hosted LLM platform supporting multiple models.",
     "openaiHint": "Any external LLM compatible with the OpenAI API standard is supported.",
-    "apiBaseUrl": "API BaseURL",
+    "apiBaseUrl": "API Base URL",
     "ollamaApiUrl": "Enter Ollama API URL",
     "openaiApiUrl": "Enter OpenAI-Compatible API URL",
     "apiKey": "API Key",
@@ -2880,7 +2880,7 @@
       "clearAll": "Clear All",
       "clearAllConfirmTitle": "Confirm Clear All",
       "clearAllSuccess": "All references cleared",
-      "tagRemove": "Remove",
+      "tagRemove": "Remove Reference",
       "pickerButton": "Reference a File or Document",
       "pickerPlaceholder": "Search by file name or path…",
       "unsavedDocs": "Unsaved documents",
@@ -3837,11 +3837,32 @@
     "tabs": {
       "report": "Analysis report",
       "data": "Raw data",
-      "analysis": "Data analysis"
+      "analysis": "Data analysis",
+      "preview": "Data Preview",
+      "result": "Analysis Result"
     },
     "title": "Data Analysis",
     "uploadHint": "Drag a file here or click to upload",
-    "uploadTip": "Supports CSV, Excel, JSON formats"
+    "uploadTip": "Supports CSV, Excel, JSON formats",
+    "analyzing": "Analyzing...",
+    "column": "Column {index}",
+    "copySuffix": "(Copy)",
+    "createSessionFailed": "Failed to create session",
+    "deleteFailed": "Failed to delete",
+    "duplicateFailed": "Failed to duplicate",
+    "ipcNotAvailable": "IPC renderer unavailable",
+    "loadSessionFailed": "Failed to load session",
+    "loadSessionsFailed": "Failed to load session list",
+    "loadingPreview": "Loading data preview...",
+    "noHeaderPreview": "No header data available",
+    "noReport": "No analysis report yet",
+    "noSelectionHint": "Tip: Check rows in the table to analyze only selected data",
+    "noSession": "Please select or create a session first",
+    "renameFailed": "Failed to rename",
+    "saveFileFailed": "Failed to save file information",
+    "unknownFile": "Unknown file",
+    "uploadFile": "Upload File",
+    "uploadFileFirst": "Please upload a data file first"
   },
   "editor": {
     "noOpenDocument": "No open document",
@@ -3857,6 +3878,9 @@
     "create": "Create",
     "failed": "Task failed",
     "text": "Launch"
+  },
+  "document": {
+    "aiAssistantGreeting": "### Hello! I'm your AI document assistant!\nTell me what you need and I'll try to help.\n"
   },
   "agent-engine-executor": {
     "clear": "Cleared",

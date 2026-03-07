@@ -18,27 +18,39 @@ async function loadPromptsMap(): Promise<Record<string, any>> {
   try {
     const [
       zh_CN_prompts,
+      zh_TW_prompts,
       en_US_prompts,
       ja_JP_prompts,
       ko_KR_prompts,
       de_DE_prompts,
-      fr_FR_prompts
+      fr_FR_prompts,
+      es_ES_prompts,
+      pt_BR_prompts,
+      ru_RU_prompts
     ] = await Promise.all([
       import('./locale_prompts/zh_CN.json'),
+      import('./locale_prompts/zh_TW.json'),
       import('./locale_prompts/en_US.json'),
       import('./locale_prompts/ja_JP.json'),
       import('./locale_prompts/ko_KR.json'),
       import('./locale_prompts/de_DE.json'),
-      import('./locale_prompts/fr_FR.json')
+      import('./locale_prompts/fr_FR.json'),
+      import('./locale_prompts/es_ES.json'),
+      import('./locale_prompts/pt_BR.json'),
+      import('./locale_prompts/ru_RU.json')
     ])
 
     promptsMapCache = {
       zh_CN: zh_CN_prompts.default || zh_CN_prompts,
+      zh_TW: zh_TW_prompts.default || zh_TW_prompts,
       en_US: en_US_prompts.default || en_US_prompts,
       ja_JP: ja_JP_prompts.default || ja_JP_prompts,
       ko_KR: ko_KR_prompts.default || ko_KR_prompts,
       de_DE: de_DE_prompts.default || de_DE_prompts,
-      fr_FR: fr_FR_prompts.default || fr_FR_prompts
+      fr_FR: fr_FR_prompts.default || fr_FR_prompts,
+      es_ES: es_ES_prompts.default || es_ES_prompts,
+      pt_BR: pt_BR_prompts.default || pt_BR_prompts,
+      ru_RU: ru_RU_prompts.default || ru_RU_prompts
     }
 
     return promptsMapCache
@@ -47,11 +59,15 @@ async function loadPromptsMap(): Promise<Record<string, any>> {
     // 返回默认的中文配置
     return {
       zh_CN: { suggestionPresets: [], presets: [] },
+      zh_TW: { suggestionPresets: [], presets: [] },
       en_US: { suggestionPresets: [], presets: [] },
       ja_JP: { suggestionPresets: [], presets: [] },
       ko_KR: { suggestionPresets: [], presets: [] },
       de_DE: { suggestionPresets: [], presets: [] },
-      fr_FR: { suggestionPresets: [], presets: [] }
+      fr_FR: { suggestionPresets: [], presets: [] },
+      es_ES: { suggestionPresets: [], presets: [] },
+      pt_BR: { suggestionPresets: [], presets: [] },
+      ru_RU: { suggestionPresets: [], presets: [] }
     }
   }
 }
@@ -97,19 +113,53 @@ export function isChineseLocale(): boolean {
 }
 
 /**
- * 从配置中获取提示词模板并替换占位符
+ * 从配置中获取提示词模板并替换占位符（内部用）
  */
 function getPromptTemplate(key: string, replacements: Record<string, string> = {}): string {
-  const prompts = getCurrentLocalePrompts()
-  let template = prompts.prompts?.[key] || ''
+  const template = getPromptByKey(key, replacements)
+  const logger = createRendererLogger('Prompts')
+  logger.debug('getPromptTemplate: ' + template)
+  return template
+}
 
-  // 替换占位符
+/**
+ * 按 key 获取提示词模板，支持占位符替换；若当前语言无该 key 则回退到 zh_CN。
+ * 供 Agent/Subagent/工具等从 locale_prompts 统一读取 prompt 使用。
+ */
+/**
+ * 从 prompts 对象中按点号路径取值（支持嵌套，如 sectionChangePrompt.base）
+ */
+function getNestedPrompt(promptsObj: Record<string, unknown> | undefined, key: string): string | undefined {
+  if (!promptsObj || typeof promptsObj !== 'object') return undefined
+  const parts = key.split('.')
+  let current: unknown = promptsObj
+  for (const p of parts) {
+    if (current == null || typeof current !== 'object') return undefined
+    current = (current as Record<string, unknown>)[p]
+  }
+  if (typeof current !== 'string') return undefined
+  return current
+}
+
+export function getPromptByKey(
+  key: string,
+  replacements: Record<string, string> = {}
+): string {
+  const current = getCurrentLocalePrompts()
+  let template = getNestedPrompt(
+    current.prompts as Record<string, unknown> | undefined,
+    key
+  )
+  if (template == null || String(template).trim() === '') {
+    const zh = promptsMapCache?.['zh_CN']
+    template =
+      getNestedPrompt(zh?.prompts as Record<string, unknown> | undefined, key) ?? ''
+  }
+  template = String(template ?? '')
   Object.keys(replacements).forEach((placeholder) => {
     const value = replacements[placeholder]
     template = template.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), value)
   })
-  const logger = createRendererLogger('Prompts')
-  logger.debug('getPromptTemplate: ' + template)
   return template
 }
 
@@ -325,51 +375,43 @@ export const sectionChangePrompt = (
       treeText = tree
     }
   }
-  const prompts = getCurrentLocalePrompts()
-  const sectionPrompt = prompts.prompts?.sectionChangePrompt
-
-  // 根据语言类型添加格式要求
   const formatRequirement =
     language === 'latex'
       ? '请使用规范的LaTeX语法输出，注意不要输出\\documentclass、\\begin{document}、\\end{document}等命令，只输出章节内容部分。记住：禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等，输出必须从第一行开始就是正文内容。'
       : '请使用Markdown格式输出。记住：禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等，输出必须从第一行开始就是修改后的章节内容，没有任何其他文字。'
 
-  if (sectionPrompt && typeof sectionPrompt === 'object') {
-    let prompt = sectionPrompt.base || '你是一个文笔出色的AI文本编辑助手，'
+  const base = getPromptByKey('sectionChangePrompt.base')
+  const ending = getPromptByKey('sectionChangePrompt.ending') || formatRequirement
+  if (base) {
+    let prompt = base
     switch (contextMode) {
       case 0:
-        prompt += (sectionPrompt.mode0 || '')
-          .replace('{title}', title)
-          .replace('{userPrompt}', userPrompt)
+        prompt += getPromptByKey('sectionChangePrompt.mode0', { title, userPrompt })
         break
       case 1:
         prompt += !section
-          ? (sectionPrompt.mode1_empty || '')
-              .replace('{tree}', treeText)
-              .replace('{title}', title)
-              .replace('{userPrompt}', userPrompt)
-          : (sectionPrompt.mode1_hasContent || '')
-              .replace('{tree}', treeText)
-              .replace('{title}', title)
-              .replace('{section}', section)
-              .replace('{userPrompt}', userPrompt)
+          ? getPromptByKey('sectionChangePrompt.mode1_empty', { tree: treeText, title, userPrompt })
+          : getPromptByKey('sectionChangePrompt.mode1_hasContent', {
+              tree: treeText,
+              title,
+              section,
+              userPrompt
+            })
         break
       case 2:
         prompt += !section
-          ? (sectionPrompt.mode2_empty || '')
-              .replace('{article}', article)
-              .replace('{title}', title)
-              .replace('{userPrompt}', userPrompt)
-          : (sectionPrompt.mode2_hasContent || '')
-              .replace('{article}', article)
-              .replace('{title}', title)
-              .replace('{section}', section)
-              .replace('{userPrompt}', userPrompt)
+          ? getPromptByKey('sectionChangePrompt.mode2_empty', { article, title, userPrompt })
+          : getPromptByKey('sectionChangePrompt.mode2_hasContent', {
+              article,
+              title,
+              section,
+              userPrompt
+            })
         break
       default:
         break
     }
-    prompt += sectionPrompt.ending || formatRequirement
+    prompt += ending
     return prompt
   }
 
@@ -540,24 +582,11 @@ export function getSuggestionPresets(): SuggestionPreset[] {
 export const suggestionPresets: SuggestionPreset[] = getSuggestionPresets()
 
 export const explainWordPrompt = (word: string, contexts?: string[]): string => {
-  let contextText = ''
-  if (contexts && contexts.length > 0) {
-    contextText = `\n\n以下是在文档中出现的上下文片段，请结合这些上下文给出更符合文章语境的解释：\n${contexts.map((ctx, idx) => `${idx + 1}. ${ctx}`).join('\n')}`
-  }
-
-  // 先获取模板，然后替换占位符
-  const prompts = getCurrentLocalePrompts()
-  const template = prompts.prompts?.explainWordPrompt
-
-  if (template) {
-    // 替换 {word} 和 {contexts} 占位符
-    let result = template.replace(/{word}/g, word)
-    result = result.replace(/{contexts}/g, contextText)
-    return result
-  }
-
-  // 回退逻辑
-  return `请用一句话解释"${word}"这个词的意思。${contextText ? `结合以下文档中的上下文，给出更符合文章语境的解释：${contexts?.map((ctx, idx) => `${idx + 1}. ${ctx}`).join('\n')}` : ''}\n\n**输出要求：请直接输出释义句子本身，建议从第一行开始直接输出。优先输出释义内容，避免添加格式说明、标题、标签等不必要的内容。**`
+  const contextText =
+    contexts && contexts.length > 0
+      ? `\n\n以下是在文档中出现的上下文片段，请结合这些上下文给出更符合文章语境的解释：\n${contexts.map((ctx, idx) => `${idx + 1}. ${ctx}`).join('\n')}`
+      : ''
+  return getPromptByKey('explainWordPrompt', { word, contexts: contextText })
 }
 
 export const generateGraphPrompt = (
@@ -795,19 +824,9 @@ ${currentContent}
 }
 
 export const updateTitlePrompt = (conversationSummary: string): string => {
-  const prompts = getCurrentLocalePrompts()
-  const template = prompts.prompts?.updateTitlePrompt
-  const instruction = template
-    ? template.replace('{conversationSummary}', conversationSummary)
-    : `请根据以下对话内容，总结一个简洁且信息量充足的标题。标题应该准确反映对话的核心主题，长度控制在4-20个字符之间。
-
-对话内容如下：
-${conversationSummary}
-
-**输出要求：**
-- 请严格按照 JSON Schema 格式输出，优先输出 JSON 对象
-- 建议从第一行开始就是JSON对象，避免添加不必要的解释
-- 如果确实需要说明，请保持简洁，优先输出JSON对象`
+  const instruction = getPromptByKey('updateTitlePrompt', {
+    conversationSummary
+  })
   return buildSchemaPrompt(DOCUMENT_TITLE_SCHEMA, instruction)
 }
 
@@ -831,69 +850,40 @@ export const suggestionCompletionPrompt = (
   currentLine: string = '',
   documentType: string = 'Markdown'
 ) => {
-  const prompts = getCurrentLocalePrompts()
-  const suggestionPrompt = prompts.prompts?.suggestionCompletionPrompt
-
-  // 构建优化的system提示（包含文档类型和当前行信息）
   const systemContent = `你是一个AI智能写作助手，专门用于${documentType}文档的自动补全。\n\n**补全功能的目的：**\n- 你的任务是像Transformer模型预测下一个词一样，推断在[CURRENT_POS]位置（即当前光标位置）之后最适合接续的文本内容\n- [CURRENT_POS]就是当前光标的位置，你需要预测光标之后应该出现什么内容\n- 补全的内容应该与光标之前的上下文自然连贯，就像用户继续输入一样\n- 补全内容应该保持与当前行的风格、格式和语境一致\n\n**绝对禁止：**\n- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等\n- 禁止添加任何解释、说明、前缀或后缀\n- 如果当前上下文无需补全，或难以补全，请直接输出空字符串\n- 只输出需要补全的文字本身，不要任何其他内容\n- 如果有需要插入空格或换行也请补全`
-  // 构建优化的user提示（只使用preContext，不使用postContext，避免大模型幻觉）
-  // 强调[CURRENT_POS]是光标位置，需要预测光标之后的内容
   const userContent = currentLine
     ? `请根据光标之前的上下文，预测在光标位置[CURRENT_POS]之后最适合接续的文本内容。\n\n当前行内容：${currentLine}\n\n光标之前的上下文：\n${preContext}[CURRENT_POS]`
     : `请根据光标之前的上下文，预测在光标位置[CURRENT_POS]之后最适合接续的文本内容。\n\n光标之前的上下文：\n${preContext}[CURRENT_POS]`
 
-  if (suggestionPrompt && typeof suggestionPrompt === 'object') {
-    // 使用locale_prompts中的模板
-    let systemPrompt = suggestionPrompt.system || systemContent
-    let userPrompt = suggestionPrompt.user || userContent
+  const systemTemplate = getPromptByKey('suggestionCompletionPrompt.system')
+  const userTemplate = getPromptByKey('suggestionCompletionPrompt.user', {
+    preContext,
+    postContext: ''
+  })
+  let systemPrompt = systemTemplate || systemContent
+  let userPrompt = userTemplate || userContent
 
-    // 替换占位符：确保postContext被替换为空字符串（即使模板中没有{postContext}）
-    systemPrompt = systemPrompt.replace(/{preContext}/g, preContext).replace(/{postContext}/g, '')
-    userPrompt = userPrompt.replace(/{preContext}/g, preContext).replace(/{postContext}/g, '')
+  systemPrompt = systemPrompt.replace(/{preContext}/g, preContext).replace(/{postContext}/g, '')
+  userPrompt = userPrompt.replace(/{preContext}/g, preContext).replace(/{postContext}/g, '')
 
-    // 如果模板中没有currentLine占位符，但提供了currentLine，需要特殊处理
-    // 注意：locale_prompts模板可能不包含currentLine，所以需要手动添加
-    if (currentLine && !userPrompt.includes('{currentLine}')) {
-      // 如果模板中没有currentLine占位符，在提示中添加当前行信息
-      // 尝试在"光标之前的上下文"之前插入当前行信息（支持中英文）
-      const beforeContextPattern =
-        /(\n\n(?:光标之前的上下文|Context before the cursor|Kontext vor dem Cursor|Contexte avant le curseur|カーソルの前のコンテキスト|커서 이전의 컨텍스트)：\n)/
-      if (beforeContextPattern.test(userPrompt)) {
-        userPrompt = userPrompt.replace(beforeContextPattern, `\n\n当前行内容：${currentLine}$1`)
-      } else {
-        // 如果找不到标准模式，在[CURRENT_POS]之前插入
-        userPrompt = userPrompt.replace(
-          /(\[CURRENT_POS\])/,
-          `\n\n当前行内容：${currentLine}\n\n光标之前的上下文：\n$1`
-        )
-      }
-    } else if (userPrompt.includes('{currentLine}')) {
-      // 如果模板中有currentLine占位符，替换它
-      userPrompt = userPrompt.replace(/{currentLine}/g, currentLine || '')
+  if (currentLine && !userPrompt.includes('{currentLine}')) {
+    const beforeContextPattern =
+      /(\n\n(?:光标之前的上下文|Context before the cursor|Kontext vor dem Cursor|Contexte avant le curseur|カーソルの前のコンテキスト|커서 이전의 컨텍스트)：\n)/
+    if (beforeContextPattern.test(userPrompt)) {
+      userPrompt = userPrompt.replace(beforeContextPattern, `\n\n当前行内容：${currentLine}$1`)
+    } else {
+      userPrompt = userPrompt.replace(
+        /(\[CURRENT_POS\])/,
+        `\n\n当前行内容：${currentLine}\n\n光标之前的上下文：\n$1`
+      )
     }
-
-    return [
-      {
-        role: 'system',
-        content: systemPrompt
-      },
-      {
-        role: 'user',
-        content: userPrompt
-      }
-    ]
+  } else if (userPrompt.includes('{currentLine}')) {
+    userPrompt = userPrompt.replace(/{currentLine}/g, currentLine || '')
   }
 
-  // 回退到原始实现（使用优化的内容）
   return [
-    {
-      role: 'system',
-      content: systemContent
-    },
-    {
-      role: 'user',
-      content: userContent
-    }
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
   ]
 }
 
@@ -923,180 +913,15 @@ export const generateDataAnalysisReportPrompt = (
   analysisResult: any,
   analysisRequest?: string
 ): string => {
-  const prompts = getCurrentLocalePrompts()
-  const template = prompts.prompts?.dataAnalysisReportPrompt
-
-  if (template) {
-    const analysisRequestText = analysisRequest
-      ? isChineseLocale()
-        ? `**用户分析需求：**\n${analysisRequest}\n\n`
-        : `**User Analysis Request:**\n${analysisRequest}\n\n`
-      : ''
-
-    return template
-      .replace(/{analysisResult}/g, JSON.stringify(analysisResult))
-      .replace(/{analysisRequest}/g, analysisRequestText)
-  }
-
-  // 默认提示词（中文）
-  if (isChineseLocale()) {
-    return `你是一个专业的数据分析师，请根据以下数据分析结果，生成一份详细的Markdown格式分析报告。
-
-**数据分析结果：**
-\`\`\`json
-${JSON.stringify(analysisResult)}
-\`\`\`
-
-${analysisRequest ? `**用户分析需求：**\n${analysisRequest}\n` : ''}
-
-**报告要求：**
-
-1. **报告结构**：
-   - 使用Markdown格式编写
-   - 包含标题、摘要、数据概况、关键发现、可视化图表、结论等部分
-   - 使用清晰的标题层级（#、##、###）
-
-2. **可视化图表**（重要）：
-   - **必须包含多个数据可视化图表**，使用以下两种格式：
-     - **ECharts图表**：使用 \`\`\`echarts 代码块，包含完整的ECharts配置（JSON格式）
-     - **Mermaid图表**：使用 \`\`\`mermaid 代码块，包含Mermaid语法
-   
-   - **图表类型建议**：
-     - 雷达图：用于多维度数据对比
-     - 散点图：用于相关性分析
-     - 折线图：用于趋势分析
-     - 箱线图：用于分布分析
-     - 饼图：用于占比分析
-     - 柱状图：用于分类对比
-     - 热力图：用于相关性矩阵
-   
-   - **图表要求**：
-     - 每个图表都要有清晰的标题和说明
-     - ECharts配置要完整，包含title、tooltip、legend、xAxis、yAxis、series等
-     - 图表数据要基于分析结果中的实际数据
-     - 至少包含3-5个不同类型的图表
-
-3. **内容要求**：
-   - 数据概况：总结数据的基本信息（行数、列数、字段类型等）
-   - 关键发现：突出重要的统计发现和模式
-   - 异常值分析：识别并分析异常值
-   - 数据质量：评估数据质量（缺失值、重复值等）
-   - 结论和建议：基于分析结果给出结论和行动建议
-
-4. **格式要求**：
-   - 使用Markdown格式
-   - 代码块语言标识必须准确：\`\`\`echarts 和 \`\`\`mermaid
-   - 图表代码要完整可执行
-   - 文字描述要清晰、专业
-
-**输出示例格式：**
-\`\`\`markdown
-# 数据分析报告
-
-## 摘要
-[报告摘要]
-
-## 数据概况
-[数据基本信息]
-
-## 关键发现
-[重要发现]
-
-## 数据可视化
-
-### 字段分布雷达图
-\`\`\`echarts
-{
-  "title": { "text": "字段分布雷达图" },
-  "radar": {
-    "indicator": [...]
-  },
-  "series": [{
-    "type": "radar",
-    "data": [...]
-  }]
-}
-\`\`\`
-
-### 数值字段相关性散点图
-\`\`\`echarts
-{
-  "title": { "text": "相关性分析" },
-  "xAxis": {...},
-  "yAxis": {...},
-  "series": [{
-    "type": "scatter",
-    "data": [...]
-  }]
-}
-\`\`\`
-
-### 数据分布流程图
-\`\`\`mermaid
-graph TD
-  A[数据源] --> B[数据清洗]
-  B --> C[统计分析]
-  C --> D[可视化]
-\`\`\`
-
-## 结论和建议
-[结论和建议]
-\`\`\`
-
-现在请生成完整的分析报告。`
-  } else {
-    // 英文提示词
-    return `You are a professional data analyst. Please generate a detailed Markdown-format analysis report based on the following data analysis results.
-
-**Data Analysis Results:**
-\`\`\`json
-${JSON.stringify(analysisResult)}
-\`\`\`
-
-${analysisRequest ? `**User Analysis Request:**\n${analysisRequest}\n` : ''}
-
-**Report Requirements:**
-
-1. **Report Structure**:
-   - Use Markdown format
-   - Include title, summary, data overview, key findings, visualizations, conclusions, etc.
-   - Use clear heading hierarchy (#, ##, ###)
-
-2. **Visualizations** (Important):
-   - **Must include multiple data visualization charts** using:
-     - **ECharts charts**: Use \`\`\`echarts code blocks with complete ECharts configuration (JSON format)
-     - **Mermaid charts**: Use \`\`\`mermaid code blocks with Mermaid syntax
-   
-   - **Recommended Chart Types**:
-     - Radar chart: For multi-dimensional data comparison
-     - Scatter plot: For correlation analysis
-     - Line chart: For trend analysis
-     - Box plot: For distribution analysis
-     - Pie chart: For proportion analysis
-     - Bar chart: For category comparison
-     - Heatmap: For correlation matrix
-   
-   - **Chart Requirements**:
-     - Each chart should have a clear title and description
-     - ECharts configuration should be complete with title, tooltip, legend, xAxis, yAxis, series, etc.
-     - Chart data should be based on actual data from analysis results
-     - Include at least 3-5 different types of charts
-
-3. **Content Requirements**:
-   - Data Overview: Summarize basic data information (row count, column count, field types, etc.)
-   - Key Findings: Highlight important statistical findings and patterns
-   - Outlier Analysis: Identify and analyze outliers
-   - Data Quality: Assess data quality (missing values, duplicates, etc.)
-   - Conclusions and Recommendations: Provide conclusions and action recommendations based on analysis results
-
-4. **Format Requirements**:
-   - Use Markdown format
-   - Code block language identifiers must be accurate: \`\`\`echarts and \`\`\`mermaid
-   - Chart code should be complete and executable
-   - Text descriptions should be clear and professional
-
-Now please generate the complete analysis report.`
-  }
+  const analysisRequestText = analysisRequest
+    ? isChineseLocale()
+      ? `**用户分析需求：**\n${analysisRequest}\n\n`
+      : `**User Analysis Request:**\n${analysisRequest}\n\n`
+    : ''
+  return getPromptByKey('dataAnalysisReportPrompt', {
+    analysisResult: JSON.stringify(analysisResult),
+    analysisRequest: analysisRequestText
+  })
 }
 
 /**
@@ -1106,49 +931,8 @@ export const generateAttachmentAnalysisPrompt = (
   parsedContent: string,
   fileName: string
 ): string => {
-  const prompts = getCurrentLocalePrompts()
-  const template = prompts.prompts?.attachmentAnalysisPrompt
-
-  if (template) {
-    return template.replace(/{parsedContent}/g, parsedContent).replace(/{fileName}/g, fileName)
-  }
-
-  // 默认提示词
-  if (isChineseLocale()) {
-    return `你是一个专业的文档分析助手，请分析以下附件内容：
-
-**文件名：** ${fileName}
-
-**附件内容：**
-\`\`\`
-${parsedContent}
-\`\`\`
-
-请对附件内容进行详细分析，包括：
-1. **内容概述**：总结附件的主要内容和目的
-2. **关键信息**：提取重要的数据、事实或观点
-3. **结构分析**：分析文档的结构和组织方式
-4. **主题识别**：识别文档的主要主题和子主题
-5. **洞察和建议**：基于内容提供有价值的洞察和建议
-
-请使用Markdown格式输出分析结果，确保结构清晰、内容详实。`
-  } else {
-    return `You are a professional document analysis assistant. Please analyze the following attachment content:
-
-**File Name:** ${fileName}
-
-**Attachment Content:**
-\`\`\`
-${parsedContent}
-\`\`\`
-
-Please provide a detailed analysis of the attachment content, including:
-1. **Content Overview**: Summarize the main content and purpose of the attachment
-2. **Key Information**: Extract important data, facts, or viewpoints
-3. **Structure Analysis**: Analyze the document's structure and organization
-4. **Theme Identification**: Identify the main themes and sub-themes
-5. **Insights and Recommendations**: Provide valuable insights and recommendations based on the content
-
-Please output the analysis results in Markdown format, ensuring clear structure and detailed content.`
-  }
+  return getPromptByKey('attachmentAnalysisPrompt', {
+    parsedContent,
+    fileName
+  })
 }

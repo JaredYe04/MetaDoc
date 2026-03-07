@@ -3337,10 +3337,31 @@
     "tabs": {
       "report": "분석 보고서",
       "data": "원본 데이터",
-      "analysis": "데이터 분석"
+      "analysis": "데이터 분석",
+      "preview": "데이터 미리보기",
+      "result": "분석 결과"
     },
     "uploadHint": "파일을 여기로 끌어다 놓거나 클릭하여 업로드하세요",
-    "uploadTip": "CSV, Excel, JSON 형식 지원"
+    "uploadTip": "CSV, Excel, JSON 형식 지원",
+    "analyzing": "분석 중...",
+    "column": "열{index}",
+    "copySuffix": "(사본)",
+    "createSessionFailed": "세션 생성 실패",
+    "deleteFailed": "삭제 실패",
+    "duplicateFailed": "복사 실패",
+    "ipcNotAvailable": "IPC 렌더러를 사용할 수 없음",
+    "loadSessionFailed": "세션 불러오기 실패",
+    "loadSessionsFailed": "세션 목록 불러오기 실패",
+    "loadingPreview": "데이터 미리보기 로드 중...",
+    "noHeaderPreview": "현재 헤더 데이터 없음",
+    "noReport": "현재 분석 리포트 없음",
+    "noSelectionHint": "힌트: 테이블에서 행을 선택하여 일부 데이터만 분석할 수 있습니다",
+    "noSession": "먼저 세션을 선택하거나 생성해 주세요",
+    "renameFailed": "이름 변경 실패",
+    "saveFileFailed": "파일 정보 저장 실패",
+    "unknownFile": "알 수 없는 파일",
+    "uploadFile": "파일 업로드",
+    "uploadFileFirst": "먼저 데이터 파일을 업로드해 주세요"
   },
   "userFeedback": {
     "uploadedToGist": "Gist에 업로드됨",
@@ -3406,6 +3427,9 @@
     "create": "생성",
     "failed": "작업 실패",
     "text": "실행"
+  },
+  "document": {
+    "aiAssistantGreeting": "### 안녕하세요! AI 문서 도우미입니다.\n필요한 것을 말씀해 주시면 도와드리겠습니다.\n"
   },
   "agent-engine-executor": {
     "clear": "초기화됨",
@@ -4161,9 +4185,9 @@
     "failedLoading1": "세션 로드 실패",
     "recognize": "예제 문서 인식",
     "renameFailed": "이름 변경 실패",
-    "text": "简体中文",
-    "text1": "繁体中文",
-    "text2": "日本語",
+    "text": "간체 중국어",
+    "text1": "번체 중국어",
+    "text2": "일본어",
     "text3": "도서 스캔",
     "unavailable": "렌더러 사용 불가",
     "text:": "간체 중국어",

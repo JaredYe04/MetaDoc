@@ -9,7 +9,7 @@ import type { ToolLocales } from '../../types/agent-tool'
 /**
  * 支持的语言列表（按优先级排序）
  */
-const SUPPORTED_LOCALES = ['zh_cn', 'en_us', 'de_DE', 'fr_FR', 'ja_JP', 'ko_KR'] as const
+const SUPPORTED_LOCALES = ['zh_cn', 'zh_tw', 'en_us', 'de_DE', 'fr_FR', 'ja_JP', 'ko_KR', 'es_ES', 'pt_BR', 'ru_RU'] as const
 
 /**
  * 获取当前语言代码（标准化格式）

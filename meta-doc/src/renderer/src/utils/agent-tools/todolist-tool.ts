@@ -17,6 +17,7 @@ import { cancelAiTask } from '../ai_tasks'
 import { ref } from 'vue'
 import TodoListDisplay from './components/TodoListDisplay.vue'
 import { createRendererLogger } from '../logger'
+import { getPromptByKey } from '../prompts'
 import { i18n } from '../../i18n'
 import {
   parseJsonWithClean,
@@ -568,52 +569,17 @@ async function generateTodoListWithLLM(
   maxRetries: number = 2,
   lastError?: string
 ): Promise<TodoList> {
-  // 构建提示词
-  let systemPrompt = `你是一个专业的任务规划助手。根据用户的输入，识别用户意图，并将复杂任务分解为结构化的任务列表。
-
-要求：
-1. 仔细分析用户的输入，理解用户的真实意图
-2. 将复杂任务分解为多个可执行的小任务
-3. 为每个任务分配合理的优先级
-4. 识别任务之间的依赖关系
-5. **最重要**：输出必须严格符合以下JSON Schema格式，**只返回纯JSON，不要包含任何其他文字、解释、说明、注释或中文描述**
-6. **禁止**在JSON前后添加任何文字，例如"请根据以上要求生成任务列表"、"以下是任务列表"等
-7. **必须**使用英文标点符号（逗号、冒号、引号），不要使用中文标点符号（，、：、"）
-8. 所有字符串键和值必须使用英文双引号包裹
-9. 确保JSON格式完全正确，可以通过JSON.parse验证
-10. 输出格式：直接以 { 开头，以 } 结尾，中间是完整的JSON内容
-
-{
-  "id": "唯一标识符",
-  "title": "任务列表标题",
-  "description": "任务列表描述",
-  "createdAt": "ISO 8601格式的时间戳",
-  "updatedAt": "ISO 8601格式的时间戳",
-  "items": [
-    {
-      "id": "任务唯一ID",
-      "title": "任务标题",
-      "description": "任务详细描述（可选）",
-      "status": "pending",
-      "priority": "low|medium|high|urgent",
-      "dueDate": "ISO 8601格式（可选）",
-      "tags": ["标签1", "标签2"],
-      "dependencies": ["依赖的任务ID"],
-      "estimatedTime": "预估时间，如2h或30m（可选）",
-      "assignee": "负责人（可选）",
-      "metadata": {}
-    }
-  ],
-  "metadata": {}
-}
-
-用户输入：${input}
-${context ? `上下文信息：${context}` : ''}`
-
-  // 如果有之前的错误，添加到提示词中
-  if (retryCount > 0 && lastError) {
-    systemPrompt += `\n\n⚠️ 重要：之前的JSON解析失败，错误信息：${lastError}\n请仔细分析错误原因，修复所有问题，确保生成的JSON格式完全正确。特别注意：\n1. **只返回纯JSON**，不要包含任何其他文字、解释、说明、注释或中文描述\n2. **禁止**在JSON前后添加任何文字，例如"请根据以上要求生成任务列表"等\n3. 使用英文标点符号，不要使用中文标点\n4. 所有字符串必须用英文双引号包裹\n5. 确保JSON语法完全正确\n6. 输出格式：直接以 { 开头，以 } 结尾`
-  }
+  // 从 locale_prompts 读取提示词模板
+  const retryBlock =
+    retryCount > 0 && lastError
+      ? getPromptByKey('tools.todolist.retryBlock', { lastError })
+      : ''
+  const contextStr = context ? `上下文信息：${context}` : ''
+  const systemPrompt = getPromptByKey('tools.todolist.systemPrompt', {
+    input,
+    context: contextStr,
+    retryBlock
+  })
 
   const target = ref('')
   const originKey = `todolist-${Date.now()}-${Math.random().toString(36).slice(2)}`

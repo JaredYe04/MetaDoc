@@ -6,7 +6,8 @@ import { defineAsyncComponent } from 'vue'
 const componentCache = new Map<string, any>()
 
 const componentMap: Record<string, () => Promise<any>> = {
-  OutlineTreeDisplay: () => import('./components/OutlineTreeDisplay.vue')
+  OutlineTreeDisplay: () => import('./components/OutlineTreeDisplay.vue'),
+  SubagentDisplay: () => import('./components/SubagentDisplay.vue')
 }
 
 /**

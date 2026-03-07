@@ -115,7 +115,7 @@ import { getSetting } from '../utils/settings'
 import { isDevEnvironment } from '../utils/dev-env'
 import messageBridge from '../bridge/message-bridge'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const visible = ref(false)
 const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
@@ -173,11 +173,12 @@ const loadVersionInfo = async () => {
   }
 }
 
-// 格式化日期
+// 格式化日期（随当前语言）
 const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString)
-    return date.toLocaleDateString('zh-CN', {
+    const localeBcp47 = (locale.value || 'zh_CN').toString().replace(/_/g, '-')
+    return date.toLocaleDateString(localeBcp47, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

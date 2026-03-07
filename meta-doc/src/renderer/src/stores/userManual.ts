@@ -109,11 +109,15 @@ async function loadArticleContent(articleId: string, locale: string): Promise<st
     const normalizedLocale = locale.replace('-', '_').toLowerCase()
     const localeMap: Record<string, string> = {
       zh_cn: 'zh_CN',
+      zh_tw: 'zh_TW',
       en_us: 'en_US',
       ja_jp: 'ja_JP',
       ko_kr: 'ko_KR',
       fr_fr: 'fr_FR',
-      de_de: 'de_DE'
+      de_de: 'de_DE',
+      es_es: 'es_ES',
+      pt_br: 'pt_BR',
+      ru_ru: 'ru_RU'
     }
     const targetLocale = localeMap[normalizedLocale] || 'zh_CN'
 

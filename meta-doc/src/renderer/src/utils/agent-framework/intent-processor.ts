@@ -13,6 +13,7 @@ import { agentToolManager } from '../agent-tool-manager'
 import { AIContextManager } from './ai-context-manager'
 import { LlmAdapter } from './llm-adapter'
 import { createRendererLogger } from '../logger'
+import { getPromptByKey } from '../prompts'
 import { getLlmTemperature } from '../settings.js'
 
 // 懒加载logger，避免初始化顺序问题
@@ -66,6 +67,7 @@ const INTENT_RECOGNITION_SCHEMA: SchemaDefinition<IntentRecognitionResult> = {
 
 /**
  * 获取可用工具的简短说明列表（用于意图识别）
+ * 包含：主 Agent 配置下的普通工具 + 所有启用的 Subagent 配置（作为可调用的“工具”）
  */
 function getAvailableToolBriefs(
   session: AgentSession,
@@ -83,7 +85,6 @@ function getAvailableToolBriefs(
       if (tool.config.spec?.brief) {
         brief = tool.config.spec.brief
       } else {
-        // 从 description 提取简短说明
         const description =
           typeof tool.config.description === 'string'
             ? tool.config.description
@@ -92,12 +93,21 @@ function getAvailableToolBriefs(
               ''
         brief = description.length > 100 ? description.substring(0, 100) + '...' : description
       }
-
-      toolBriefs.push({
-        id: toolId,
-        brief
-      })
+      toolBriefs.push({ id: toolId, brief })
     }
+  }
+
+  // 添加 Subagent 配置作为可调用“工具”（仅 Subagent 会暴露 spec 给主 Agent）
+  const subagentConfigs = agentConfigManager.getSubagentConfigs()
+  for (const config of subagentConfigs) {
+    const desc =
+      typeof config.description === 'string'
+        ? config.description
+        : config.description['zh_cn']?.description ||
+          config.description['en_us']?.description ||
+          ''
+    const brief = desc.length > 120 ? desc.substring(0, 120) + '...' : desc
+    toolBriefs.push({ id: config.id, brief })
   }
 
   return toolBriefs
@@ -141,23 +151,10 @@ export async function recognizeIntent(
     .map((tool) => `- **${tool.id}**: ${tool.brief}`)
     .join('\n')
 
-  // 构建意图识别提示词
-  const intentPrompt = `You are an intent recognition system. Analyze the user's message and identify which tools are needed to fulfill the user's request.
-
-Available tools:
-${toolListText}
-
-User message: "${userMessage}"
-
-Please analyze the user's intent and identify the tools that are likely to be needed. Return a JSON object with:
-- toolIds: array of tool IDs that are needed
-- reasoning: brief explanation of why these tools are selected (optional)
-
-Important:
-1. Only include tools that are directly relevant to the user's request
-2. If no tools are needed, return an empty array
-3. Be precise and avoid including unnecessary tools
-4. Consider the context and intent, not just keywords`
+  const intentPrompt = getPromptByKey('agent.intentRecognition.prompt', {
+    toolListText,
+    userMessage
+  })
 
   // 创建输出ref（如果没有提供）
   const intentOutputRef = outputRef || ref('')

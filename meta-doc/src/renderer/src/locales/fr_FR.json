@@ -912,7 +912,7 @@
     "toggleReplace": "Basculer vers le remplacement"
   },
   "setting": {
-    "apiBaseUrl": "API BaseURL",
+    "apiBaseUrl": "URL de base de l'API",
     "apiKey": "Clé API",
     "apiKeyPlaceholder": "Saisissez une clé API compatible avec les spécifications OpenAI",
     "apiSuffix": "Suffixe de l'URL de l'API",
@@ -2884,7 +2884,7 @@
         "roleTool": "Outil",
         "roleUser": "Utilisateur",
         "running": "Exécution en cours...",
-        "title": "Subagent"
+        "title": "Sous-agent"
       }
     },
     "userLabel": "Utilisateur",
@@ -3016,7 +3016,8 @@
         "validationSuccess": "Validation du moteur réussie",
         "validationWarnings": "Avertissements de validation du moteur",
         "validationFailed": "Échec de la validation du moteur",
-        "confirmDelete": "Confirmer la suppression du moteur « {name} » ?"
+        "confirmDelete": "Confirmer la suppression du moteur « {name} » ?",
+        "apiBasePlaceholder": "https://api.example.com/v1"
       }
     },
     "message": {
@@ -3317,10 +3318,31 @@
     "tabs": {
       "report": "Rapport d'analyse",
       "data": "Données brutes",
-      "analysis": "Analyse de données"
+      "analysis": "Analyse de données",
+      "preview": "Aperçu des données",
+      "result": "Résultats de l'analyse"
     },
     "uploadHint": "Déposez le fichier ici ou cliquez pour télécharger",
-    "uploadTip": "Formats pris en charge : CSV, Excel, JSON"
+    "uploadTip": "Formats pris en charge : CSV, Excel, JSON",
+    "analyzing": "Analyse en cours...",
+    "column": "Colonne {index}",
+    "copySuffix": "(copie)",
+    "createSessionFailed": "Échec de la création de la session",
+    "deleteFailed": "Échec de la suppression",
+    "duplicateFailed": "Échec de la duplication",
+    "ipcNotAvailable": "Rendu IPC non disponible",
+    "loadSessionFailed": "Échec du chargement de la session",
+    "loadSessionsFailed": "Échec du chargement de la liste des sessions",
+    "loadingPreview": "Chargement de l'aperçu des données...",
+    "noHeaderPreview": "Aucune donnée d'en-tête pour le moment",
+    "noReport": "Aucun rapport d'analyse pour le moment",
+    "noSelectionHint": "Astuce : Cochez des lignes dans le tableau pour analyser uniquement une partie des données",
+    "noSession": "Veuillez d'abord sélectionner ou créer une session",
+    "renameFailed": "Échec du renommage",
+    "saveFileFailed": "Échec de l'enregistrement des informations du fichier",
+    "unknownFile": "Fichier inconnu",
+    "uploadFile": "Téléverser un fichier",
+    "uploadFileFirst": "Veuillez d'abord téléverser un fichier de données"
   },
   "userFeedback": {
     "uploadedToGist": "Téléchargé vers Gist",
@@ -3386,6 +3408,9 @@
     "create": "Créer",
     "failed": "Échec de la tâche",
     "text": "Lancer"
+  },
+  "document": {
+    "aiAssistantGreeting": "### Bonjour ! Je suis votre assistant de documents IA !\nDites-moi ce dont vous avez besoin, j'essaierai de vous aider.\n"
   },
   "agent-engine-executor": {
     "clear": "Vidé",
@@ -3792,8 +3817,8 @@
         "a3": "A3",
         "a5": "A5",
         "b5": "B5",
-        "letter": "Letter",
-        "legal": "Legal"
+        "letter": "Lettre",
+        "legal": "Format légal"
       },
       "margins": {
         "label": "Marges",
@@ -4735,7 +4760,7 @@
     "moveFailed": "Échec du déplacement"
   },
   "workspaceGrep": {
-    "activeWorkspaceCount": "已打开 {count} 个工作区",
+    "activeWorkspaceCount": "{count} espace(s) de travail ouvert(s)",
     "globalWorkspace": "Zone de travail global (Les documents ouverts actuellement)",
     "matchCase": "Distinguer la casse",
     "noResult": "Aucun résultat trouvé",

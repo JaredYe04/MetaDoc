@@ -26,6 +26,7 @@ import { cancelAiTask } from '../ai_tasks'
 import { ref, type Ref } from 'vue'
 import ChartGenerationDisplay from './components/ChartGenerationDisplay.vue'
 import { createRendererLogger } from '../logger'
+import { getPromptByKey } from '../prompts'
 import { getRuntimeServerBaseUrlSync } from '../../config/runtime-server'
 import { extractOuterJsonString } from '../regex-utils'
 import { retryLLMCall } from './tool-utils'
@@ -616,52 +617,24 @@ async function generateChartCodeWithLLM(
   const isECharts = normalizedType === 'echarts'
   const isMermaid = normalizedType === 'mermaid'
   const isPlantUML = normalizedType === 'plantuml'
-
-  let systemPrompt = `你是一个专业的图表代码生成助手。根据用户的需求，生成${chartType}格式的图表代码。
-
-要求：
-1. 只返回图表代码，不要包含任何解释、注释或markdown代码块标记
-2. 代码必须符合${chartType}的语法规范，确保语法完全正确`
-
-  if (isECharts) {
-    systemPrompt += `
-3. 返回有效的JSON格式配置对象（必须是有效的JSON）
-4. 必须使用英文标点符号：使用英文逗号(,)、英文冒号(:)、英文引号(")，不要使用中文标点符号（，、：、"）
-5. 所有字符串必须用英文双引号包裹
-6. 如果需要在tooltip等地方使用函数，可以使用function关键字（如：formatter: function(params) { return ... }）
-7. 不要使用箭头函数，使用function关键字
-8. 不要包含任何注释（// 或 /* */）
-9. 确保JSON格式完全正确，可以通过JSON.parse验证`
-  } else if (isMermaid) {
-    systemPrompt += `
-3. 确保Mermaid语法完全正确
-4. 仔细检查所有语法规则，避免语法错误
-5. 使用正确的图表类型标识（graph、flowchart、sequenceDiagram等）`
-  } else if (isPlantUML) {
-    systemPrompt += `
-3. 确保PlantUML语法完全正确
-4. 必须包含@startuml和@enduml标记
-5. 仔细检查所有语法规则`
-  } else {
-    systemPrompt += `
-3. 确保语法完全正确，避免语法错误
-4. 仔细检查所有语法规则`
-  }
-
-  if (retryCount > 0 && lastError) {
-    systemPrompt += `
-
-⚠️ 重要：之前的代码生成失败，错误信息：${lastError}
-请仔细分析错误原因，修复所有问题，确保生成的代码完全正确。特别注意：
-- 检查语法是否正确
-- 检查标点符号是否正确（必须使用英文标点）
-- 检查是否有遗漏的括号、引号等
-- 确保代码格式完全符合${chartType}的规范`
-  }
-
-  systemPrompt += `
-
-用户需求：${prompt}`
+  const rulesKey = isECharts
+    ? 'tools.chartGeneration.rules.echarts'
+    : isMermaid
+      ? 'tools.chartGeneration.rules.mermaid'
+      : isPlantUML
+        ? 'tools.chartGeneration.rules.plantuml'
+        : 'tools.chartGeneration.rules.default'
+  const chartTypeRules = getPromptByKey(rulesKey)
+  const retryBlock =
+    retryCount > 0 && lastError
+      ? getPromptByKey('tools.chartGeneration.retry', { lastError, chartType })
+      : ''
+  const systemPrompt = getPromptByKey('tools.chartGeneration.systemPrompt', {
+    chartType,
+    chartTypeRules,
+    retryBlock,
+    prompt
+  })
 
   // 使用createAiTask创建AI任务，设置stream: true使用流式模式
   const originKey = `chart-generation-${Date.now()}-${Math.random().toString(36).slice(2)}`

@@ -14,14 +14,8 @@ const TOOLS = [
     id: 'outline-tree',
     name: 'Outline Tree',
     brief:
-      'Get outline tree of a document. Only .md and .tex. Supports filePath or tabId/current tab.',
+      'Get outline tree of a document. Only .md and .tex support outline; for other formats read the document via workspace. Supports filePath or tabId/current tab.',
     schema: { filePath: 'string', includeText: 'boolean', tabId: 'string' }
-  },
-  {
-    id: 'outline-optimize',
-    name: 'Outline Optimization',
-    brief: 'Generate/optimize outline with AI. Only .md and .tex.',
-    schema: { operation: 'string', nodePath: 'string', tabId: 'string' }
   },
   {
     id: 'grep',

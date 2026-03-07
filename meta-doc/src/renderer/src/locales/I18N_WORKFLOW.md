@@ -8,7 +8,7 @@
 
 - **locales 目录**：`meta-doc/src/renderer/src/locales/`
 - **蓝本**：`zh_cn.json`（键与层级以它为准，其他语言不得缺键、建议结构一致）
-- **语言文件**：`en_us.json`、`ja_JP.json`、`ko_KR.json`、`de_DE.json`、`fr_FR.json`
+- **语言文件**：`en_us.json`、`zh_tw.json`、`ja_JP.json`、`ko_KR.json`、`de_DE.json`、`fr_FR.json`、`es_ES.json`、`pt_BR.json`、`ru_RU.json`
 
 ---
 
@@ -66,6 +66,7 @@
 - 若进度是旧版（只有两列、无哈希），脚本仍会跳过这些项；若要**之后能按变更重校**，可先执行一次 `--record-hashes`，为已有进度补写当前蓝本哈希，再改 zh_cn 后正常跑脚本即可只重校变更的模块。
 - **全量重跑**（忽略已有进度）：先加 `--reset-progress` 再执行，例如：  
   `python i18n_ai_review.py --reset-progress --max-workers 5`
+- **新增语言（从 zh_cn 复制的 JSON）**：新语言文件内容与中文相同时，脚本会将其视为「未翻译」并强制 AI 输出译文；若进度里已有该语言（之前误跑过），需先 `--reset-progress` 再跑一次。
 
 ### 4.3 命令（均在 locales 目录下执行）
 
@@ -118,7 +119,7 @@
 
 ## 七、用户手册 i18n（按缺失文件翻译）
 
-用户手册以 **zh_CN** 为蓝本，存放在 `meta-doc/src/renderer/src/manuals/`。其他语言（en_US、ja_JP、ko_KR、de_DE、fr_FR）若缺少与 zh_CN 同路径的 `.md` 文件，即视为「缺失」，需要翻译生成。
+用户手册以 **zh_CN** 为蓝本，存放在 `meta-doc/src/renderer/src/manuals/`。其他语言（en_US、zh_TW、ja_JP、ko_KR、de_DE、fr_FR、es_ES、pt_BR、ru_RU）若缺少与 zh_CN 同路径的 `.md` 文件，即视为「缺失」，需要翻译生成。
 
 ### 7.1 逻辑与约束
 
@@ -157,6 +158,15 @@
 | `.manual_i18n_progress.txt` | 已完成的「语言\t路径」或「语言\t路径\t源哈希」记录（勿提交） |
 | `manuals/.deepseek_api_key` | 可选，与 locales 共用或单独放（勿提交） |
 
+### 7.6 手册索引标题 i18n（index.json 的 title）
+
+侧边栏手册目录的**分类与文章标题**来自 `manuals/index.json` 的 `title.zh_CN`、`title.en_US` 等。若某语言的 title 与 zh_CN 相同（或缺失），切换语言后仍会显示中文。需单独把「与 zh_CN 相同」的标题翻译成目标语言并写回。
+
+- **脚本**（在 meta-doc 目录下）：`python scripts/manuals_index_translate_titles.py`
+- **逻辑**：遍历 index 中所有 category/article 的 title，对每个目标语言若当前值与 zh_CN 相同则调用 DeepSeek 翻译并写回。
+- **用法**：`python scripts/manuals_index_translate_titles.py`（全部语言）、`python scripts/manuals_index_translate_titles.py --locale zh_TW`、`--dry-run` 仅列出需翻译条数。
+- 一键脚本 `run_i18n_all.py` 已包含此步（在「手册 index 补全多语言键」之后）；可用 `--no-manuals-index-translate` 跳过。
+
 ---
 
 ## 八、蓝本/源变更时如何只处理修改部分
@@ -193,3 +203,38 @@
    脚本会自动只对「该文件内容已变」的语言+路径重新翻译，其余跳过。
 
 这样即可在文档和 UI 扩展或修改后，用同一套脚本、一次运行，只更新受影响的部分。
+
+---
+
+## 九、一键执行全部 i18n（UI + 手册 + 提示词）
+
+在 **meta-doc 项目根目录** 执行一条命令即可依次完成：手册 index 补 zh_TW、UI 文案校对、用户手册 .md 翻译、提示词（locale_prompts）补全/翻译。
+
+### 9.1 命令（在 meta-doc 目录下）
+
+```bash
+python scripts/run_i18n_all.py
+```
+
+可选参数：
+
+| 参数 | 说明 |
+|------|------|
+| `--dry-run` | 只打印将要执行的任务，不请求 API、不写回 |
+| `--locale zh_TW` | 只处理指定语言（传给 UI、手册、提示词三个脚本） |
+| `--reset-progress` | 各子脚本全量重跑（传 --reset-progress） |
+| `--skip-ui` | 跳过 UI 文案校对 |
+| `--skip-manuals` | 跳过用户手册（index + .md） |
+| `--skip-prompts` | 跳过提示词 locale_prompts |
+| `--no-manuals-index` | 不执行 manuals index 补全多语言键 |
+| `--no-manuals-index-translate` | 不执行手册 index 标题翻译（不调 API） |
+| `--max-workers 4` | 并发数（默认 5，传给 UI 与提示词） |
+
+### 9.2 新增繁体中文（zh_TW）时
+
+1. **UI**：已提供 `locales/zh_tw.json`（可从 zh_cn 复制后运行上述一键脚本或 `locales/i18n_ai_review.py --locale zh_tw` 校对为繁体）。
+2. **提示词**：已提供 `utils/locale_prompts/zh_TW.json`，运行一键脚本或 `locale_prompts_i18n_review.py` 即可按 zh_CN 蓝本补全并译为繁体。
+3. **用户手册**：`manuals/index.json` 的 title 已支持 zh_TW（可用 `python scripts/manuals_index_add_zh_tw.py` 从 zh_CN 补全）；手册正文运行 `manual_i18n_translate.py --locale zh_TW` 或一键脚本会从 zh_CN 翻译到 `manuals/zh_TW/`。
+4. **语言切换**：左侧菜单已增加「中文（繁體）」及西班牙语、葡萄牙语、俄语等选项，选择后界面、手册、提示词会使用对应语言。
+
+5. **西班牙语 / 葡萄牙语 / 俄语**：已支持 es_ES、pt_BR、ru_RU。UI 与提示词文件已就绪（从 zh_cn/zh_CN 复制），运行一键脚本或各子脚本即可翻译。手册 index 的 title 可用 `python scripts/manuals_index_add_locales.py --locales es_ES,pt_BR,ru_RU` 从 zh_CN 复制补全。

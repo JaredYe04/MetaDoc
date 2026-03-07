@@ -245,6 +245,8 @@
 
         <UISubMenuItem @click="changeLang('zh_CN')"> 中文（简体） </UISubMenuItem>
 
+        <UISubMenuItem @click="changeLang('zh_TW')"> 中文（繁體） </UISubMenuItem>
+
         <UISubMenuItem @click="changeLang('en_US')"> English (US) </UISubMenuItem>
 
         <UISubMenuItem @click="changeLang('ja_JP')"> 日本語 </UISubMenuItem>
@@ -254,6 +256,12 @@
         <UISubMenuItem @click="changeLang('fr_FR')"> Français </UISubMenuItem>
 
         <UISubMenuItem @click="changeLang('de_DE')"> Deutsch </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('es_ES')"> Español </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('pt_BR')"> Português (BR) </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('ru_RU')"> Русский </UISubMenuItem>
       </UISubMenu>
 
       <!-- 知识库 -->
@@ -701,6 +709,8 @@
 
         <UISubMenuItem @click="changeLang('zh_CN')"> 中文（简体） </UISubMenuItem>
 
+        <UISubMenuItem @click="changeLang('zh_TW')"> 中文（繁體） </UISubMenuItem>
+
         <UISubMenuItem @click="changeLang('en_US')"> English (US) </UISubMenuItem>
 
         <UISubMenuItem @click="changeLang('ja_JP')"> 日本語 </UISubMenuItem>
@@ -710,6 +720,12 @@
         <UISubMenuItem @click="changeLang('fr_FR')"> Français </UISubMenuItem>
 
         <UISubMenuItem @click="changeLang('de_DE')"> Deutsch </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('es_ES')"> Español </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('pt_BR')"> Português (BR) </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('ru_RU')"> Русский </UISubMenuItem>
       </UISubMenu>
 
       <!-- 知识库 -->

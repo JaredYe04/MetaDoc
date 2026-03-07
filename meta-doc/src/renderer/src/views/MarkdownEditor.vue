@@ -2014,6 +2014,7 @@ onMounted(async () => {
     }
     const supportedLang = [
       'en_US',
+      'es_ES',
       'fr_FR',
       'pt_BR',
       'ja_JP',

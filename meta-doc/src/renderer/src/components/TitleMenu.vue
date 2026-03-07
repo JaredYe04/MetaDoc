@@ -146,7 +146,7 @@ import { getSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { searchNode } from '../utils/outline-helpers'
-import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document'
+import { getDefaultAiChatMessages } from '../constants/document'
 
 const { t } = useI18n()
 
@@ -290,7 +290,7 @@ const chat = async () => {
     context_mode.value,
     currentMarkdown.value
   )
-  const messages = JSON.parse(JSON.stringify(DEFAULT_AI_CHAT_MESSAGES))
+  const messages = JSON.parse(JSON.stringify(getDefaultAiChatMessages()))
   messages.push({
     role: 'user',
     content: prompt

@@ -274,12 +274,12 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
 const outlineTreeToolLocales: ToolLocales = {
   zh_cn: {
     name: '大纲树',
-    description: '获取文档的大纲树结构（仅支持 .md 与 .tex，其他格式不支持）'
+    description: '获取文档的大纲树结构（仅 .md/.tex 可用，其他格式只能阅读原文）'
   },
   en_us: {
     name: 'Outline Tree',
     description:
-      'Get outline tree of a document (only .md and .tex are supported; other formats are not)'
+      'Get outline tree of a document (only .md and .tex; for other formats read the document content instead)'
   },
   de_DE: {
     name: 'Gliederungsbaum',
@@ -311,7 +311,7 @@ export const outlineTreeToolConfig: AgentToolConfig = {
   spec: {
     name: 'outline-tree',
     brief:
-      'Get outline tree of a document. Only Markdown (.md) and LaTeX (.tex) are supported; other file formats do not support outline. Supports filePath or tabId/current tab.',
+      'Get outline tree of a document. Only .md and .tex support outline; for other formats read the document via workspace or reference materials. Supports filePath or tabId/current tab.',
     fullSpec: `# Outline Tree Tool
 
 ## Description
@@ -377,7 +377,7 @@ When using \`edit\` tool to insert content, you can use the following methods:
 \`\`\`
 
 ## Important Notes
-- **Only .md and .tex**: Outline is supported only for Markdown (.md) and LaTeX (.tex) files; other formats (e.g. .txt, .json, .html) are not supported.
+- **Only .md and .tex**: Outline is supported only for Markdown (.md) and LaTeX (.tex) files; other formats (e.g. .txt, .json, .html) are not supported. **For non-.md/.tex files, do not use this tool** — read the document content via \`workspace\` or reference materials instead.
 - **Locate before insertion**: Before using \`edit\` tool to insert content, you can use this tool to get document outline, analyze structure, determine correct position (can also use grep or other methods)
 - **includeText parameter**: When you need to view specific content, it's recommended to set \`includeText: true\` to view specific content, making it easier to calculate accurate line number positions
 - LaTeX documents are first converted to Markdown before extracting outline
@@ -453,7 +453,7 @@ When using \`edit\` tool to insert content, you can use the following methods:
 \`\`\`
 
 ## 注意事项
-- **仅支持 .md 与 .tex**：大纲功能只对 Markdown（.md）和 LaTeX（.tex）文件有效，其他格式（如 .txt、.json、.html）不支持。
+- **仅支持 .md 与 .tex**：大纲功能只对 Markdown（.md）和 LaTeX（.tex）文件有效，其他格式（如 .txt、.json、.html）不支持。**非 .md/.tex 文件请勿使用本工具**，只能通过 \`workspace\` 或引用素材阅读原文了解内容。
 - **插入前定位**：使用 \`edit\` 工具插入内容前，可以使用此工具获取文档大纲，分析结构，确定正确位置（也可使用grep等其他方法）
 - **includeText参数**：需要查看具体内容时，建议设置 \`includeText: true\` 以查看具体内容，便于计算准确的行号位置
 - LaTeX 文档会先转换为 Markdown 再提取大纲

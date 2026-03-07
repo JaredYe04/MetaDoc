@@ -950,7 +950,7 @@
     "toggleReplace": "Ersetzen umschalten"
   },
   "setting": {
-    "apiBaseUrl": "API BaseURL",
+    "apiBaseUrl": "API-Basis-URL",
     "apiKey": "API-Schlüssel",
     "apiKeyPlaceholder": "Geben Sie einen API-Schlüssel ein, der mit der OpenAI-Spezifikation kompatibel ist",
     "apiSuffix": "API-URL-Suffix",
@@ -1080,7 +1080,7 @@
       "testNotFound": "Testfunktion existiert nicht",
       "testResult": "Testergebnis",
       "title": "Debugging-Tool",
-      "undefined": "undefined",
+      "undefined": "Undefined",
       "updateTest": "Test aktualisieren",
       "agentTool": "Agent-Tool testen",
       "autoTest": "Tool-Automatisierungstest",
@@ -1142,7 +1142,7 @@
       "selectContextTab": "Kontext-Tab auswählen (zur Simulation der Dokumentenumgebung, optional)",
       "useCurrentActiveTab": "(Nicht angeben, aktiven Tab verwenden)",
       "contextTabTooltip": "Dokumenten-Tab als Kontext auswählen. Alle Tool-Operationen werden in diesem Tab durchgeführt. Wenn nichts ausgewählt ist, wird der aktuell aktive Tab verwendet.",
-      "toolDescPlaceholder": "Bitte zuerst ein Tool auswählen, um Beschreibung anzuzeigen",
+      "toolDescPlaceholder": "Bitte wählen Sie zuerst ein Tool aus, um die Beschreibung anzuzeigen.",
       "toolDescDefault": "Dies ist die detaillierte Beschreibung des Tools. Sie enthält Parameterformat, Anwendungsszenarien und weitere Informationen.",
       "paramsPlaceholder": "Bitte Parameter im JSON-Format eingeben, z.B.: {\"prompt\": \"Flussdiagramm generieren\", \"chartType\": \"mermaid\"}",
       "selectToolPlaceholder": "Zu testendes Tool auswählen",
@@ -1435,7 +1435,7 @@
       "insertActionNone": "Keine besondere Aktion",
       "insertActionUpload": "Bild hochladen",
       "insertActionSaveToDocumentDir": "Im selben Verzeichnis wie das Dokument speichern",
-      "insertActionSaveToAssetsDir": "Unhalb von /assets/ im Dokumentverzeichnis speichern",
+      "insertActionSaveToAssetsDir": "Im Dokumentverzeichnis unter /assets/ speichern",
       "insertActionHint": "Wählen Sie die Standardaktion beim Einfügen von Bildern.",
       "keepNetworkImageUrl": "Netzwerkbild-URL beibehalten",
       "keepNetworkImageUrlHint": "Wenn aktiviert, wird beim Einfügen von Online-Bildern die ursprüngliche URL beibehalten und nicht lokal heruntergeladen. Wenn deaktiviert, werden Online-Bilder automatisch heruntergeladen und als lokale Bilder gespeichert, sodass zum Betrachten des Dokuments offline keine Internetverbindung nötig ist.",
@@ -3184,7 +3184,7 @@
       "description": "Beschreibung",
       "content": "Inhalt",
       "viewContent": "Inhalt anzeigen",
-      "urlPlaceholder": "URL eingeben",
+      "urlPlaceholder": "Bitte URL-Adresse eingeben",
       "nameAndUrlRequired": "Name und URL dürfen nicht leer sein.",
       "nameRequired": "Der Name ist erforderlich.",
       "fileRequired": "Bitte Datei auswählen",
@@ -3720,10 +3720,31 @@
     "tabs": {
       "report": "Analysebericht",
       "data": "Rohdaten",
-      "analysis": "Datenanalyse"
+      "analysis": "Datenanalyse",
+      "preview": "Datenvorschau",
+      "result": "Analyseergebnis"
     },
     "uploadHint": "Datei hierher ziehen oder klicken zum Hochladen",
-    "uploadTip": "Unterstützt CSV-, Excel-, JSON-Formate"
+    "uploadTip": "Unterstützt CSV-, Excel-, JSON-Formate",
+    "analyzing": "Analyse läuft...",
+    "column": "Spalte {index}",
+    "copySuffix": "(Kopie)",
+    "createSessionFailed": "Sitzungserstellung fehlgeschlagen",
+    "deleteFailed": "Löschen fehlgeschlagen",
+    "duplicateFailed": "Duplizieren fehlgeschlagen",
+    "ipcNotAvailable": "IPC-Renderer nicht verfügbar",
+    "loadSessionFailed": "Sitzung konnte nicht geladen werden",
+    "loadSessionsFailed": "Sitzungsliste konnte nicht geladen werden",
+    "loadingPreview": "Datenvorschau wird geladen...",
+    "noHeaderPreview": "Keine Kopfzeilendaten verfügbar",
+    "noReport": "Kein Analysebericht verfügbar",
+    "noSelectionHint": "Hinweis: Markieren Sie Zeilen in der Tabelle, um nur einen Teil der Daten zu analysieren.",
+    "noSession": "Bitte wählen Sie zuerst eine Sitzung aus oder erstellen Sie eine.",
+    "renameFailed": "Umbenennen fehlgeschlagen",
+    "saveFileFailed": "Speichern der Dateiinformationen fehlgeschlagen",
+    "unknownFile": "Unbekannte Datei",
+    "uploadFile": "Datei hochladen",
+    "uploadFileFirst": "Bitte laden Sie zuerst eine Datendatei hoch."
   },
   "userFeedback": {
     "uploadedToGist": "Zu Gist hochgeladen",
@@ -3789,6 +3810,9 @@
     "create": "Erstellen",
     "failed": "Fehlgeschlagen",
     "text": "Starten"
+  },
+  "document": {
+    "aiAssistantGreeting": "### Hallo! Ich bin Ihr KI-Dokumentenassistent!\nSagen Sie mir, was Sie brauchen, ich werde versuchen zu helfen.\n"
   },
   "dataAnalysisWindow": {
     "text": "Standardwert",
@@ -4697,7 +4721,7 @@
         "markdownEditor": "Markdown-Editor",
         "latex": "LaTeX",
         "latexEditor": "LaTeX-Editor",
-        "agent": "AI Agent",
+        "agent": "KI-Agent",
         "experience": "Nutzungserfahrung"
       },
       "markdownEditorHint": "Bitte teilen Sie uns Ihre Erfahrung mit Markdown-Editoren mit.",

@@ -7,7 +7,15 @@
       "id": "quick-start",
       "title": {
         "zh_CN": "快速开始",
-        "en_US": "Quick Start"
+        "en_US": "Quick Start",
+        "zh_TW": "快速開始",
+        "es_ES": "Inicio rápido",
+        "pt_BR": "Início Rápido",
+        "ru_RU": "Быстрый старт",
+        "ja_JP": "クイックスタート",
+        "ko_KR": "빠른 시작",
+        "de_DE": "Schnellstart",
+        "fr_FR": "Démarrage rapide"
       },
       "icon": "🚀",
       "articles": [
@@ -15,13 +23,27 @@
           "id": "quick-start.guide",
           "title": {
             "zh_CN": "快速开始指南",
-            "en_US": "Quick Start Guide"
+            "en_US": "Quick Start Guide",
+            "zh_TW": "快速開始指南",
+            "es_ES": "Guía de inicio rápido",
+            "pt_BR": "Guia de Início Rápido",
+            "ru_RU": "Руководство по быстрому старту",
+            "ja_JP": "クイックスタートガイド",
+            "ko_KR": "빠른 시작 가이드",
+            "de_DE": "Schnellstart-Anleitung",
+            "fr_FR": "Guide de démarrage rapide"
           },
-          "tags": ["基础", "入门"],
+          "tags": [
+            "基础",
+            "入门"
+          ],
           "difficulty": 1,
           "estimatedTime": 5,
           "prerequisites": [],
-          "relatedArticles": ["core.file-operations", "core.editor-basics"],
+          "relatedArticles": [
+            "core.file-operations",
+            "core.editor-basics"
+          ],
           "file": "quick-start/guide.md"
         }
       ]
@@ -30,7 +52,15 @@
       "id": "core",
       "title": {
         "zh_CN": "核心操作",
-        "en_US": "Core Operations"
+        "en_US": "Core Operations",
+        "zh_TW": "核心操作",
+        "es_ES": "Operaciones principales",
+        "pt_BR": "Operações Principais",
+        "ru_RU": "Основные операции",
+        "ja_JP": "基本操作",
+        "ko_KR": "핵심 작업",
+        "de_DE": "Kernoperationen",
+        "fr_FR": "Opérations principales"
       },
       "icon": "📝",
       "articles": [
@@ -38,104 +68,229 @@
           "id": "core.file-operations",
           "title": {
             "zh_CN": "文件操作",
-            "en_US": "File Operations"
+            "en_US": "File Operations",
+            "zh_TW": "檔案操作",
+            "es_ES": "Operaciones con archivos",
+            "pt_BR": "Operações com Arquivos",
+            "ru_RU": "Работа с файлами",
+            "ja_JP": "ファイル操作",
+            "ko_KR": "파일 작업",
+            "de_DE": "Dateioperationen",
+            "fr_FR": "Opérations sur les fichiers"
           },
-          "tags": ["文件", "基础"],
+          "tags": [
+            "文件",
+            "基础"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["core.editor-basics", "core.multi-tab"],
+          "relatedArticles": [
+            "core.editor-basics",
+            "core.multi-tab"
+          ],
           "file": "core/file-operations.md"
         },
         {
           "id": "core.editor-basics",
           "title": {
             "zh_CN": "编辑器基础操作",
-            "en_US": "Editor Basics"
+            "en_US": "Editor Basics",
+            "zh_TW": "編輯器基礎操作",
+            "es_ES": "Operaciones básicas del editor",
+            "pt_BR": "Operações Básicas do Editor",
+            "ru_RU": "Основные операции редактора",
+            "ja_JP": "エディタ基本操作",
+            "ko_KR": "편집기 기본 작업",
+            "de_DE": "Grundlegende Editor-Bedienung",
+            "fr_FR": "Opérations de base de l'éditeur"
           },
-          "tags": ["编辑器", "基础"],
+          "tags": [
+            "编辑器",
+            "基础"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
-          "prerequisites": ["core.file-operations"],
-          "relatedArticles": ["markdown.editor", "latex.editor", "core.editor-settings"],
+          "prerequisites": [
+            "core.file-operations"
+          ],
+          "relatedArticles": [
+            "markdown.editor",
+            "latex.editor",
+            "core.editor-settings"
+          ],
           "file": "core/editor-basics.md"
         },
         {
           "id": "core.plain-text-editor",
           "title": {
             "zh_CN": "纯文本编辑器",
-            "en_US": "Plain Text Editor"
+            "en_US": "Plain Text Editor",
+            "zh_TW": "純文字編輯器",
+            "es_ES": "Editor de texto plano",
+            "pt_BR": "Editor de Texto Simples",
+            "ru_RU": "Текстовый редактор",
+            "ja_JP": "テキストエディタ",
+            "ko_KR": "텍스트 편집기",
+            "de_DE": "Texteditor",
+            "fr_FR": "Éditeur de texte brut"
           },
-          "tags": ["编辑器", "代码"],
+          "tags": [
+            "编辑器",
+            "代码"
+          ],
           "difficulty": 1,
           "estimatedTime": 12,
-          "prerequisites": ["core.editor-basics"],
-          "relatedArticles": ["core.editor-basics", "markdown.editor", "core.editor-settings"],
+          "prerequisites": [
+            "core.editor-basics"
+          ],
+          "relatedArticles": [
+            "core.editor-basics",
+            "markdown.editor",
+            "core.editor-settings"
+          ],
           "file": "editor/plain-text.md"
         },
         {
           "id": "core.editor-settings",
           "title": {
             "zh_CN": "编辑器设置",
-            "en_US": "Editor Settings"
+            "en_US": "Editor Settings",
+            "zh_TW": "編輯器設定",
+            "es_ES": "Configuración del editor",
+            "pt_BR": "Configurações do Editor",
+            "ru_RU": "Настройки редактора",
+            "ja_JP": "エディタ設定",
+            "ko_KR": "편집기 설정",
+            "de_DE": "Editor-Einstellungen",
+            "fr_FR": "Paramètres de l'éditeur"
           },
-          "tags": ["编辑器", "设置"],
+          "tags": [
+            "编辑器",
+            "设置"
+          ],
           "difficulty": 1,
           "estimatedTime": 5,
-          "prerequisites": ["core.editor-basics"],
-          "relatedArticles": ["core.editor-basics"],
+          "prerequisites": [
+            "core.editor-basics"
+          ],
+          "relatedArticles": [
+            "core.editor-basics"
+          ],
           "file": "core/editor-settings.md"
         },
         {
           "id": "core.multi-tab",
           "title": {
             "zh_CN": "多标签页管理",
-            "en_US": "Multi-Tab Management"
+            "en_US": "Multi-Tab Management",
+            "zh_TW": "多標籤頁管理",
+            "es_ES": "Gestión de pestañas múltiples",
+            "pt_BR": "Gerenciamento de Múltiplas Abas",
+            "ru_RU": "Управление вкладками",
+            "ja_JP": "タブ管理",
+            "ko_KR": "다중 탭 관리",
+            "de_DE": "Verwaltung mehrerer Tabs",
+            "fr_FR": "Gestion des onglets multiples"
           },
-          "tags": ["标签页", "管理"],
+          "tags": [
+            "标签页",
+            "管理"
+          ],
           "difficulty": 1,
           "estimatedTime": 8,
-          "prerequisites": ["core.file-operations"],
-          "relatedArticles": ["core.multi-window"],
+          "prerequisites": [
+            "core.file-operations"
+          ],
+          "relatedArticles": [
+            "core.multi-window"
+          ],
           "file": "core/multi-tab.md"
         },
         {
           "id": "core.multi-window",
           "title": {
             "zh_CN": "多窗口管理",
-            "en_US": "Multi-Window Management"
+            "en_US": "Multi-Window Management",
+            "zh_TW": "多視窗管理",
+            "es_ES": "Gestión de múltiples ventanas",
+            "pt_BR": "Gerenciamento de Múltiplas Janelas",
+            "ru_RU": "Управление несколькими окнами",
+            "ja_JP": "マルチウィンドウ管理",
+            "ko_KR": "다중 창 관리",
+            "de_DE": "Verwaltung mehrerer Fenster",
+            "fr_FR": "Gestion des fenêtres multiples"
           },
-          "tags": ["窗口", "管理"],
+          "tags": [
+            "窗口",
+            "管理"
+          ],
           "difficulty": 2,
           "estimatedTime": 10,
-          "prerequisites": ["core.multi-tab"],
-          "relatedArticles": ["core.multi-tab"],
+          "prerequisites": [
+            "core.multi-tab"
+          ],
+          "relatedArticles": [
+            "core.multi-tab"
+          ],
           "file": "core/multi-window.md"
         },
         {
           "id": "core.export",
           "title": {
             "zh_CN": "导出功能",
-            "en_US": "Export Functions"
+            "en_US": "Export Functions",
+            "zh_TW": "匯出功能",
+            "es_ES": "Funcionalidad de exportación",
+            "pt_BR": "Funcionalidade de Exportação",
+            "ru_RU": "Функция экспорта",
+            "ja_JP": "エクスポート機能",
+            "ko_KR": "내보내기 기능",
+            "de_DE": "Exportfunktion",
+            "fr_FR": "Fonction d'exportation"
           },
-          "tags": ["导出", "格式"],
+          "tags": [
+            "导出",
+            "格式"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["core.file-operations"],
-          "relatedArticles": ["core.file-operations", "markdown.basics", "latex.basics"],
+          "prerequisites": [
+            "core.file-operations"
+          ],
+          "relatedArticles": [
+            "core.file-operations",
+            "markdown.basics",
+            "latex.basics"
+          ],
           "file": "core/export.md"
         },
         {
           "id": "core.document-metadata",
           "title": {
             "zh_CN": "文档元信息",
-            "en_US": "Document Metadata"
+            "en_US": "Document Metadata",
+            "zh_TW": "文件元資訊",
+            "es_ES": "Metadatos del documento",
+            "pt_BR": "Metadados do Documento",
+            "ru_RU": "Метаинформация документа",
+            "ja_JP": "ドキュメントメタ情報",
+            "ko_KR": "문서 메타정보",
+            "de_DE": "Dokument-Metadaten",
+            "fr_FR": "Métadonnées du document"
           },
-          "tags": ["元信息", "文档"],
+          "tags": [
+            "元信息",
+            "文档"
+          ],
           "difficulty": 1,
           "estimatedTime": 8,
-          "prerequisites": ["core.file-operations"],
-          "relatedArticles": ["core.file-operations"],
+          "prerequisites": [
+            "core.file-operations"
+          ],
+          "relatedArticles": [
+            "core.file-operations"
+          ],
           "file": "core/document-metadata.md"
         }
       ]
@@ -144,7 +299,15 @@
       "id": "markdown",
       "title": {
         "zh_CN": "Markdown编辑器",
-        "en_US": "Markdown Editor"
+        "en_US": "Markdown Editor",
+        "zh_TW": "Markdown編輯器",
+        "es_ES": "Editor Markdown",
+        "pt_BR": "Editor Markdown",
+        "ru_RU": "Редактор Markdown",
+        "ja_JP": "Markdownエディタ",
+        "ko_KR": "Markdown 편집기",
+        "de_DE": "Markdown-Editor",
+        "fr_FR": "Éditeur Markdown"
       },
       "icon": "📄",
       "articles": [
@@ -152,52 +315,117 @@
           "id": "markdown.editor",
           "title": {
             "zh_CN": "Markdown编辑器使用指南",
-            "en_US": "Markdown Editor Guide"
+            "en_US": "Markdown Editor Guide",
+            "zh_TW": "Markdown編輯器使用指南",
+            "es_ES": "Guía de uso del editor Markdown",
+            "pt_BR": "Guia de Uso do Editor Markdown",
+            "ru_RU": "Руководство по использованию редактора Markdown",
+            "ja_JP": "Markdownエディタ利用ガイド",
+            "ko_KR": "Markdown 편집기 사용 가이드",
+            "de_DE": "Anleitung zur Verwendung des Markdown-Editors",
+            "fr_FR": "Guide d'utilisation de l'éditeur Markdown"
           },
-          "tags": ["Markdown", "编辑器"],
+          "tags": [
+            "Markdown",
+            "编辑器"
+          ],
           "difficulty": 1,
           "estimatedTime": 15,
-          "prerequisites": ["core.editor-basics"],
-          "relatedArticles": ["markdown.basics", "markdown.advanced", "markdown.features"],
+          "prerequisites": [
+            "core.editor-basics"
+          ],
+          "relatedArticles": [
+            "markdown.basics",
+            "markdown.advanced",
+            "markdown.features"
+          ],
           "file": "markdown/editor.md"
         },
         {
           "id": "markdown.basics",
           "title": {
             "zh_CN": "Markdown语法",
-            "en_US": "Markdown Syntax"
+            "en_US": "Markdown Syntax",
+            "zh_TW": "Markdown語法",
+            "es_ES": "Sintaxis de Markdown",
+            "pt_BR": "Sintaxe Markdown",
+            "ru_RU": "Синтаксис Markdown",
+            "ja_JP": "Markdown構文",
+            "ko_KR": "Markdown 문법",
+            "de_DE": "Markdown-Syntax",
+            "fr_FR": "Syntaxe Markdown"
           },
-          "tags": ["Markdown", "语法"],
+          "tags": [
+            "Markdown",
+            "语法"
+          ],
           "difficulty": 1,
           "estimatedTime": 20,
-          "prerequisites": ["markdown.editor"],
-          "relatedArticles": ["markdown.advanced", "markdown.editor"],
+          "prerequisites": [
+            "markdown.editor"
+          ],
+          "relatedArticles": [
+            "markdown.advanced",
+            "markdown.editor"
+          ],
           "file": "markdown/basics.md"
         },
         {
           "id": "markdown.advanced",
           "title": {
             "zh_CN": "Markdown高级功能",
-            "en_US": "Markdown Advanced Features"
+            "en_US": "Markdown Advanced Features",
+            "zh_TW": "Markdown進階功能",
+            "es_ES": "Funciones avanzadas de Markdown",
+            "pt_BR": "Funcionalidades Avançadas do Markdown",
+            "ru_RU": "Расширенные возможности Markdown",
+            "ja_JP": "Markdown高度な機能",
+            "ko_KR": "Markdown 고급 기능",
+            "de_DE": "Erweiterte Markdown-Funktionen",
+            "fr_FR": "Fonctions avancées Markdown"
           },
-          "tags": ["Markdown", "高级"],
+          "tags": [
+            "Markdown",
+            "高级"
+          ],
           "difficulty": 2,
           "estimatedTime": 25,
-          "prerequisites": ["markdown.basics"],
-          "relatedArticles": ["markdown.basics", "markdown.features"],
+          "prerequisites": [
+            "markdown.basics"
+          ],
+          "relatedArticles": [
+            "markdown.basics",
+            "markdown.features"
+          ],
           "file": "markdown/advanced.md"
         },
         {
           "id": "markdown.features",
           "title": {
             "zh_CN": "Markdown编辑器功能",
-            "en_US": "Markdown Editor Features"
+            "en_US": "Markdown Editor Features",
+            "zh_TW": "Markdown編輯器功能",
+            "es_ES": "Funciones del editor Markdown",
+            "pt_BR": "Funcionalidades do Editor Markdown",
+            "ru_RU": "Функции редактора Markdown",
+            "ja_JP": "Markdownエディタ機能",
+            "ko_KR": "Markdown 편집기 기능",
+            "de_DE": "Funktionen des Markdown-Editors",
+            "fr_FR": "Fonctionnalités de l'éditeur Markdown"
           },
-          "tags": ["Markdown", "功能"],
+          "tags": [
+            "Markdown",
+            "功能"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
-          "prerequisites": ["markdown.basics"],
-          "relatedArticles": ["markdown.editor", "ai.completion"],
+          "prerequisites": [
+            "markdown.basics"
+          ],
+          "relatedArticles": [
+            "markdown.editor",
+            "ai.completion"
+          ],
           "file": "markdown/features.md"
         }
       ]
@@ -206,7 +434,15 @@
       "id": "latex",
       "title": {
         "zh_CN": "LaTeX编辑器",
-        "en_US": "LaTeX Editor"
+        "en_US": "LaTeX Editor",
+        "zh_TW": "LaTeX編輯器",
+        "es_ES": "Editor LaTeX",
+        "pt_BR": "Editor LaTeX",
+        "ru_RU": "Редактор LaTeX",
+        "ja_JP": "LaTeXエディタ",
+        "ko_KR": "LaTeX 편집기",
+        "de_DE": "LaTeX-Editor",
+        "fr_FR": "Éditeur LaTeX"
       },
       "icon": "📐",
       "articles": [
@@ -214,65 +450,145 @@
           "id": "latex.editor",
           "title": {
             "zh_CN": "LaTeX编辑器使用指南",
-            "en_US": "LaTeX Editor Guide"
+            "en_US": "LaTeX Editor Guide",
+            "zh_TW": "LaTeX編輯器使用指南",
+            "es_ES": "Guía de uso del editor LaTeX",
+            "pt_BR": "Guia de Uso do Editor LaTeX",
+            "ru_RU": "Руководство по использованию редактора LaTeX",
+            "ja_JP": "LaTeXエディタ利用ガイド",
+            "ko_KR": "LaTeX 편집기 사용 가이드",
+            "de_DE": "Anleitung zur Verwendung des LaTeX-Editors",
+            "fr_FR": "Guide d'utilisation de l'éditeur LaTeX"
           },
-          "tags": ["LaTeX", "编辑器"],
+          "tags": [
+            "LaTeX",
+            "编辑器"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["core.editor-basics"],
-          "relatedArticles": ["latex.basics", "latex.compilation", "latex.pdf-preview"],
+          "prerequisites": [
+            "core.editor-basics"
+          ],
+          "relatedArticles": [
+            "latex.basics",
+            "latex.compilation",
+            "latex.pdf-preview"
+          ],
           "file": "latex/editor.md"
         },
         {
           "id": "latex.basics",
           "title": {
             "zh_CN": "LaTeX语法",
-            "en_US": "LaTeX Syntax"
+            "en_US": "LaTeX Syntax",
+            "zh_TW": "LaTeX語法",
+            "es_ES": "Sintaxis de LaTeX",
+            "pt_BR": "Sintaxe LaTeX",
+            "ru_RU": "Синтаксис LaTeX",
+            "ja_JP": "LaTeX構文",
+            "ko_KR": "LaTeX 문법",
+            "de_DE": "LaTeX-Syntax",
+            "fr_FR": "Syntaxe LaTeX"
           },
-          "tags": ["LaTeX", "语法"],
+          "tags": [
+            "LaTeX",
+            "语法"
+          ],
           "difficulty": 2,
           "estimatedTime": 30,
-          "prerequisites": ["latex.editor"],
-          "relatedArticles": ["latex.compilation", "latex.editor"],
+          "prerequisites": [
+            "latex.editor"
+          ],
+          "relatedArticles": [
+            "latex.compilation",
+            "latex.editor"
+          ],
           "file": "latex/basics.md"
         },
         {
           "id": "latex.compilation",
           "title": {
             "zh_CN": "LaTeX编译与预览",
-            "en_US": "LaTeX Compilation and Preview"
+            "en_US": "LaTeX Compilation and Preview",
+            "zh_TW": "LaTeX編譯與預覽",
+            "es_ES": "Compilación y vista previa de LaTeX",
+            "pt_BR": "Compilação e Visualização LaTeX",
+            "ru_RU": "Компиляция и предпросмотр LaTeX",
+            "ja_JP": "LaTeXコンパイルとプレビュー",
+            "ko_KR": "LaTeX 컴파일 및 미리보기",
+            "de_DE": "LaTeX-Kompilierung und -Vorschau",
+            "fr_FR": "Compilation et prévisualisation LaTeX"
           },
-          "tags": ["LaTeX", "编译"],
+          "tags": [
+            "LaTeX",
+            "编译"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
-          "prerequisites": ["latex.basics"],
-          "relatedArticles": ["latex.pdf-preview", "latex.console"],
+          "prerequisites": [
+            "latex.basics"
+          ],
+          "relatedArticles": [
+            "latex.pdf-preview",
+            "latex.console"
+          ],
           "file": "latex/compilation.md"
         },
         {
           "id": "latex.pdf-preview",
           "title": {
             "zh_CN": "PDF预览功能",
-            "en_US": "PDF Preview"
+            "en_US": "PDF Preview",
+            "zh_TW": "PDF預覽功能",
+            "es_ES": "Funcionalidad de vista previa PDF",
+            "pt_BR": "Funcionalidade de Visualização de PDF",
+            "ru_RU": "Функция предпросмотра PDF",
+            "ja_JP": "PDFプレビュー機能",
+            "ko_KR": "PDF 미리보기 기능",
+            "de_DE": "PDF-Vorschaufunktion",
+            "fr_FR": "Fonction de prévisualisation PDF"
           },
-          "tags": ["PDF", "预览"],
+          "tags": [
+            "PDF",
+            "预览"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
-          "prerequisites": ["latex.compilation"],
-          "relatedArticles": ["latex.compilation", "latex.editor"],
+          "prerequisites": [
+            "latex.compilation"
+          ],
+          "relatedArticles": [
+            "latex.compilation",
+            "latex.editor"
+          ],
           "file": "latex/pdf-preview.md"
         },
         {
           "id": "latex.console",
           "title": {
             "zh_CN": "控制台输出",
-            "en_US": "Console Output"
+            "en_US": "Console Output",
+            "zh_TW": "控制台輸出",
+            "es_ES": "Salida de la consola",
+            "pt_BR": "Saída do Console",
+            "ru_RU": "Вывод консоли",
+            "ja_JP": "コンソール出力",
+            "ko_KR": "콘솔 출력",
+            "de_DE": "Konsolenausgabe",
+            "fr_FR": "Sortie de la console"
           },
-          "tags": ["控制台", "日志"],
+          "tags": [
+            "控制台",
+            "日志"
+          ],
           "difficulty": 1,
           "estimatedTime": 8,
-          "prerequisites": ["latex.compilation"],
-          "relatedArticles": ["latex.compilation"],
+          "prerequisites": [
+            "latex.compilation"
+          ],
+          "relatedArticles": [
+            "latex.compilation"
+          ],
           "file": "latex/console.md"
         }
       ]
@@ -281,7 +597,15 @@
       "id": "ai",
       "title": {
         "zh_CN": "AI功能",
-        "en_US": "AI Features"
+        "en_US": "AI Features",
+        "zh_TW": "AI功能",
+        "es_ES": "Funciones de IA",
+        "pt_BR": "Funcionalidades de IA",
+        "ru_RU": "Функции ИИ",
+        "ja_JP": "AI機能",
+        "ko_KR": "AI 기능",
+        "de_DE": "KI-Funktionen",
+        "fr_FR": "Fonctionnalités IA"
       },
       "icon": "🤖",
       "articles": [
@@ -289,78 +613,171 @@
           "id": "ai.chat",
           "title": {
             "zh_CN": "AI对话功能",
-            "en_US": "AI Chat"
+            "en_US": "AI Chat",
+            "zh_TW": "AI對話功能",
+            "es_ES": "Funcionalidad de diálogo con IA",
+            "pt_BR": "Funcionalidade de Diálogo com IA",
+            "ru_RU": "Функция диалога с ИИ",
+            "ja_JP": "AIチャット機能",
+            "ko_KR": "AI 대화 기능",
+            "de_DE": "KI-Chat-Funktion",
+            "fr_FR": "Fonction de dialogue IA"
           },
-          "tags": ["AI", "对话"],
+          "tags": [
+            "AI",
+            "对话"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["ai.llm-config", "ai.proofread"],
+          "relatedArticles": [
+            "ai.llm-config",
+            "ai.proofread"
+          ],
           "file": "ai/chat.md"
         },
         {
           "id": "ai.completion",
           "title": {
             "zh_CN": "AI自动补全",
-            "en_US": "AI Auto Completion"
+            "en_US": "AI Auto Completion",
+            "zh_TW": "AI自動補全",
+            "es_ES": "Autocompletado con IA",
+            "pt_BR": "Auto-completar com IA",
+            "ru_RU": "Автодополнение ИИ",
+            "ja_JP": "AIオートコンプリート",
+            "ko_KR": "AI 자동 완성",
+            "de_DE": "KI-Autovervollständigung",
+            "fr_FR": "Auto-complétion IA"
           },
-          "tags": ["AI", "补全"],
+          "tags": [
+            "AI",
+            "补全"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["ai.llm-config"],
-          "relatedArticles": ["ai.llm-config", "markdown.features"],
+          "prerequisites": [
+            "ai.llm-config"
+          ],
+          "relatedArticles": [
+            "ai.llm-config",
+            "markdown.features"
+          ],
           "file": "ai/completion.md"
         },
         {
           "id": "ai.proofread",
           "title": {
             "zh_CN": "AI校对功能",
-            "en_US": "AI Proofreading"
+            "en_US": "AI Proofreading",
+            "zh_TW": "AI校對功能",
+            "es_ES": "Funcionalidad de corrección con IA",
+            "pt_BR": "Funcionalidade de Revisão com IA",
+            "ru_RU": "Функция проверки ИИ",
+            "ja_JP": "AI校正機能",
+            "ko_KR": "AI 교정 기능",
+            "de_DE": "KI-Korrekturlesefunktion",
+            "fr_FR": "Fonction de relecture IA"
           },
-          "tags": ["AI", "校对"],
+          "tags": [
+            "AI",
+            "校对"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["ai.llm-config"],
-          "relatedArticles": ["ai.llm-config", "ai.chat"],
+          "prerequisites": [
+            "ai.llm-config"
+          ],
+          "relatedArticles": [
+            "ai.llm-config",
+            "ai.chat"
+          ],
           "file": "ai/proofread.md"
         },
         {
           "id": "ai.task-queue",
           "title": {
             "zh_CN": "AI任务队列",
-            "en_US": "AI Task Queue"
+            "en_US": "AI Task Queue",
+            "zh_TW": "AI任務佇列",
+            "es_ES": "Cola de tareas de IA",
+            "pt_BR": "Fila de Tarefas de IA",
+            "ru_RU": "Очередь задач ИИ",
+            "ja_JP": "AIタスクキュー",
+            "ko_KR": "AI 작업 큐",
+            "de_DE": "KI-Aufgabenwarteschlange",
+            "fr_FR": "File d'attente des tâches IA"
           },
-          "tags": ["AI", "任务"],
+          "tags": [
+            "AI",
+            "任务"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
-          "prerequisites": ["ai.chat"],
-          "relatedArticles": ["ai.chat", "ai.completion"],
+          "prerequisites": [
+            "ai.chat"
+          ],
+          "relatedArticles": [
+            "ai.chat",
+            "ai.completion"
+          ],
           "file": "ai/task-queue.md"
         },
         {
           "id": "ai.llm-config",
           "title": {
             "zh_CN": "LLM配置",
-            "en_US": "LLM Configuration"
+            "en_US": "LLM Configuration",
+            "zh_TW": "LLM配置",
+            "es_ES": "Configuración de LLM",
+            "pt_BR": "Configuração de LLM",
+            "ru_RU": "Настройка LLM",
+            "ja_JP": "LLM設定",
+            "ko_KR": "LLM 설정",
+            "de_DE": "LLM-Konfiguration",
+            "fr_FR": "Configuration LLM"
           },
-          "tags": ["AI", "配置"],
+          "tags": [
+            "AI",
+            "配置"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
           "prerequisites": [],
-          "relatedArticles": ["ai.chat", "ai.completion", "ai.proofread"],
+          "relatedArticles": [
+            "ai.chat",
+            "ai.completion",
+            "ai.proofread"
+          ],
           "file": "ai/llm-config.md"
         },
         {
           "id": "ai.assistants",
           "title": {
             "zh_CN": "AI助手功能",
-            "en_US": "AI Assistants"
+            "en_US": "AI Assistants",
+            "zh_TW": "AI助手功能",
+            "es_ES": "Funciones del asistente de IA",
+            "pt_BR": "Funcionalidade de Assistente de IA",
+            "ru_RU": "Функции ИИ-ассистента",
+            "ja_JP": "AIアシスタント機能",
+            "ko_KR": "AI 어시스턴트 기능",
+            "de_DE": "KI-Assistentenfunktion",
+            "fr_FR": "Fonction d'assistant IA"
           },
-          "tags": ["AI", "助手"],
+          "tags": [
+            "AI",
+            "助手"
+          ],
           "difficulty": 2,
           "estimatedTime": 25,
-          "prerequisites": ["ai.llm-config"],
-          "relatedArticles": ["ai.chat", "ai.completion"],
+          "prerequisites": [
+            "ai.llm-config"
+          ],
+          "relatedArticles": [
+            "ai.chat",
+            "ai.completion"
+          ],
           "file": "ai/assistants.md"
         }
       ]
@@ -369,7 +786,15 @@
       "id": "agent",
       "title": {
         "zh_CN": "Agent框架",
-        "en_US": "Agent Framework"
+        "en_US": "Agent Framework",
+        "zh_TW": "Agent框架",
+        "es_ES": "Marco de Agentes",
+        "pt_BR": "Estrutura de Agentes",
+        "ru_RU": "Фреймворк агентов",
+        "ja_JP": "Agentフレームワーク",
+        "ko_KR": "에이전트 프레임워크",
+        "de_DE": "Agenten-Framework",
+        "fr_FR": "Cadre Agent"
       },
       "icon": "⚙️",
       "articles": [
@@ -377,52 +802,114 @@
           "id": "agent.introduction",
           "title": {
             "zh_CN": "Agent框架概述",
-            "en_US": "Agent Framework Overview"
+            "en_US": "Agent Framework Overview",
+            "zh_TW": "Agent框架概述",
+            "es_ES": "Descripción general del marco de Agentes",
+            "pt_BR": "Visão Geral da Estrutura de Agentes",
+            "ru_RU": "Обзор фреймворка агентов",
+            "ja_JP": "Agentフレームワーク概要",
+            "ko_KR": "에이전트 프레임워크 개요",
+            "de_DE": "Überblick über das Agenten-Framework",
+            "fr_FR": "Aperçu du cadre Agent"
           },
-          "tags": ["Agent", "框架"],
+          "tags": [
+            "Agent",
+            "框架"
+          ],
           "difficulty": 3,
           "estimatedTime": 20,
-          "prerequisites": ["ai.llm-config"],
-          "relatedArticles": ["agent.session", "agent.config", "agent.tools"],
+          "prerequisites": [
+            "ai.llm-config"
+          ],
+          "relatedArticles": [
+            "agent.session",
+            "agent.config",
+            "agent.tools"
+          ],
           "file": "agent/introduction.md"
         },
         {
           "id": "agent.session",
           "title": {
             "zh_CN": "Agent会话管理",
-            "en_US": "Agent Session Management"
+            "en_US": "Agent Session Management",
+            "zh_TW": "Agent會話管理",
+            "es_ES": "Gestión de sesiones de Agentes",
+            "pt_BR": "Gerenciamento de Sessões de Agente",
+            "ru_RU": "Управление сеансами агентов",
+            "ja_JP": "Agentセッション管理",
+            "ko_KR": "에이전트 세션 관리",
+            "de_DE": "Verwaltung von Agenten-Sitzungen",
+            "fr_FR": "Gestion des sessions Agent"
           },
-          "tags": ["Agent", "会话"],
+          "tags": [
+            "Agent",
+            "会话"
+          ],
           "difficulty": 3,
           "estimatedTime": 25,
-          "prerequisites": ["agent.introduction"],
-          "relatedArticles": ["agent.config"],
+          "prerequisites": [
+            "agent.introduction"
+          ],
+          "relatedArticles": [
+            "agent.config"
+          ],
           "file": "agent/session.md"
         },
         {
           "id": "agent.config",
           "title": {
             "zh_CN": "Agent配置管理",
-            "en_US": "Agent Configuration"
+            "en_US": "Agent Configuration",
+            "zh_TW": "Agent配置管理",
+            "es_ES": "Gestión de configuración de Agentes",
+            "pt_BR": "Gerenciamento de Configuração de Agente",
+            "ru_RU": "Управление конфигурацией агентов",
+            "ja_JP": "Agent設定管理",
+            "ko_KR": "에이전트 설정 관리",
+            "de_DE": "Verwaltung der Agenten-Konfiguration",
+            "fr_FR": "Gestion de la configuration Agent"
           },
-          "tags": ["Agent", "配置"],
+          "tags": [
+            "Agent",
+            "配置"
+          ],
           "difficulty": 3,
           "estimatedTime": 25,
-          "prerequisites": ["agent.introduction"],
-          "relatedArticles": ["agent.tools"],
+          "prerequisites": [
+            "agent.introduction"
+          ],
+          "relatedArticles": [
+            "agent.tools"
+          ],
           "file": "agent/config.md"
         },
         {
           "id": "agent.tools",
           "title": {
             "zh_CN": "工具集管理",
-            "en_US": "Tool Collection Management"
+            "en_US": "Tool Collection Management",
+            "zh_TW": "工具集管理",
+            "es_ES": "Gestión de conjuntos de herramientas",
+            "pt_BR": "Gerenciamento de Conjunto de Ferramentas",
+            "ru_RU": "Управление набором инструментов",
+            "ja_JP": "ツールセット管理",
+            "ko_KR": "도구 집합 관리",
+            "de_DE": "Verwaltung des Werkzeugsatzes",
+            "fr_FR": "Gestion de la boîte à outils"
           },
-          "tags": ["Agent", "工具"],
+          "tags": [
+            "Agent",
+            "工具"
+          ],
           "difficulty": 3,
           "estimatedTime": 30,
-          "prerequisites": ["agent.introduction"],
-          "relatedArticles": ["agent.config"],
+          "prerequisites": [
+            "agent.introduction"
+          ],
+          "relatedArticles": [
+            "agent.config"
+          ],
           "file": "agent/tools.md"
         }
       ]
@@ -431,7 +918,15 @@
       "id": "knowledge-base",
       "title": {
         "zh_CN": "知识库",
-        "en_US": "Knowledge Base"
+        "en_US": "Knowledge Base",
+        "zh_TW": "知識庫",
+        "es_ES": "Base de conocimientos",
+        "pt_BR": "Base de Conhecimento",
+        "ru_RU": "База знаний",
+        "ja_JP": "ナレッジベース",
+        "ko_KR": "지식 베이스",
+        "de_DE": "Wissensdatenbank",
+        "fr_FR": "Base de connaissances"
       },
       "icon": "📚",
       "articles": [
@@ -439,9 +934,20 @@
           "id": "knowledge-base.usage",
           "title": {
             "zh_CN": "知识库使用",
-            "en_US": "Knowledge Base Usage"
+            "en_US": "Knowledge Base Usage",
+            "zh_TW": "知識庫使用",
+            "es_ES": "Uso de la base de conocimientos",
+            "pt_BR": "Uso da Base de Conhecimento",
+            "ru_RU": "Использование базы знаний",
+            "ja_JP": "ナレッジベースの利用",
+            "ko_KR": "지식 베이스 사용",
+            "de_DE": "Nutzung der Wissensdatenbank",
+            "fr_FR": "Utilisation de la base de connaissances"
           },
-          "tags": ["知识库", "RAG"],
+          "tags": [
+            "知识库",
+            "RAG"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
           "prerequisites": [],
@@ -456,26 +962,56 @@
           "id": "knowledge-base.management",
           "title": {
             "zh_CN": "知识库管理",
-            "en_US": "Knowledge Base Management"
+            "en_US": "Knowledge Base Management",
+            "zh_TW": "知識庫管理",
+            "es_ES": "Gestión de la base de conocimientos",
+            "pt_BR": "Gerenciamento da Base de Conhecimento",
+            "ru_RU": "Управление базой знаний",
+            "ja_JP": "ナレッジベース管理",
+            "ko_KR": "지식 베이스 관리",
+            "de_DE": "Verwaltung der Wissensdatenbank",
+            "fr_FR": "Gestion de la base de connaissances"
           },
-          "tags": ["知识库", "管理"],
+          "tags": [
+            "知识库",
+            "管理"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
           "prerequisites": [],
-          "relatedArticles": ["knowledge-base.config", "knowledge-base.usage"],
+          "relatedArticles": [
+            "knowledge-base.config",
+            "knowledge-base.usage"
+          ],
           "file": "knowledge-base/management.md"
         },
         {
           "id": "knowledge-base.config",
           "title": {
             "zh_CN": "知识库配置",
-            "en_US": "Knowledge Base Configuration"
+            "en_US": "Knowledge Base Configuration",
+            "zh_TW": "知識庫配置",
+            "es_ES": "Configuración de la base de conocimientos",
+            "pt_BR": "Configuração da Base de Conhecimento",
+            "ru_RU": "Настройка базы знаний",
+            "ja_JP": "ナレッジベース設定",
+            "ko_KR": "지식 베이스 설정",
+            "de_DE": "Konfiguration der Wissensdatenbank",
+            "fr_FR": "Configuration de la base de connaissances"
           },
-          "tags": ["知识库", "配置"],
+          "tags": [
+            "知识库",
+            "配置"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["knowledge-base.management"],
-          "relatedArticles": ["knowledge-base.management", "knowledge-base.usage"],
+          "prerequisites": [
+            "knowledge-base.management"
+          ],
+          "relatedArticles": [
+            "knowledge-base.management",
+            "knowledge-base.usage"
+          ],
           "file": "knowledge-base/config.md"
         }
       ]
@@ -484,7 +1020,15 @@
       "id": "settings",
       "title": {
         "zh_CN": "系统设置",
-        "en_US": "Settings"
+        "en_US": "Settings",
+        "zh_TW": "系統設定",
+        "es_ES": "Configuración del sistema",
+        "pt_BR": "Configurações do Sistema",
+        "ru_RU": "Системные настройки",
+        "ja_JP": "システム設定",
+        "ko_KR": "시스템 설정",
+        "de_DE": "Systemeinstellungen",
+        "fr_FR": "Paramètres système"
       },
       "icon": "⚙️",
       "articles": [
@@ -492,156 +1036,333 @@
           "id": "settings.basic",
           "title": {
             "zh_CN": "基础设置",
-            "en_US": "Basic Settings"
+            "en_US": "Basic Settings",
+            "zh_TW": "基礎設定",
+            "es_ES": "Configuración básica",
+            "pt_BR": "Configurações Básicas",
+            "ru_RU": "Основные настройки",
+            "ja_JP": "基本設定",
+            "ko_KR": "기본 설정",
+            "de_DE": "Grundeinstellungen",
+            "fr_FR": "Paramètres de base"
           },
-          "tags": ["设置", "基础"],
+          "tags": [
+            "设置",
+            "基础"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.theme", "settings.image"],
+          "relatedArticles": [
+            "settings.theme",
+            "settings.image"
+          ],
           "file": "settings/basic.md"
         },
         {
           "id": "settings.theme",
           "title": {
             "zh_CN": "主题配置",
-            "en_US": "Theme Configuration"
+            "en_US": "Theme Configuration",
+            "zh_TW": "主題配置",
+            "es_ES": "Configuración del tema",
+            "pt_BR": "Configuração de Tema",
+            "ru_RU": "Конфигурация темы",
+            "ja_JP": "テーマ設定",
+            "ko_KR": "테마 구성",
+            "de_DE": "Themenkonfiguration",
+            "fr_FR": "Configuration du thème"
           },
-          "tags": ["设置", "主题"],
+          "tags": [
+            "设置",
+            "主题"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.basic", "settings.theme-custom"],
+          "relatedArticles": [
+            "settings.basic",
+            "settings.theme-custom"
+          ],
           "file": "settings/theme.md"
         },
         {
           "id": "settings.theme-custom",
           "title": {
             "zh_CN": "自定义主题管理",
-            "en_US": "Custom Theme Management"
+            "en_US": "Custom Theme Management",
+            "zh_TW": "自訂主題管理",
+            "es_ES": "Gestión de temas personalizados",
+            "pt_BR": "Gerenciamento de Temas Personalizados",
+            "ru_RU": "Управление пользовательскими темами",
+            "ja_JP": "カスタムテーマ管理",
+            "ko_KR": "사용자 정의 테마 관리",
+            "de_DE": "Verwaltung benutzerdefinierter Themen",
+            "fr_FR": "Gestion des thèmes personnalisés"
           },
-          "tags": ["设置", "主题", "自定义"],
+          "tags": [
+            "设置",
+            "主题",
+            "自定义"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["settings.theme"],
-          "relatedArticles": ["settings.theme"],
+          "prerequisites": [
+            "settings.theme"
+          ],
+          "relatedArticles": [
+            "settings.theme"
+          ],
           "file": "settings/theme-custom.md"
         },
         {
           "id": "settings.image",
           "title": {
             "zh_CN": "图片上传配置",
-            "en_US": "Image Upload Configuration"
+            "en_US": "Image Upload Configuration",
+            "zh_TW": "圖片上傳配置",
+            "es_ES": "Configuración de carga de imágenes",
+            "pt_BR": "Configuração de Upload de Imagens",
+            "ru_RU": "Настройка загрузки изображений",
+            "ja_JP": "画像アップロード設定",
+            "ko_KR": "이미지 업로드 설정",
+            "de_DE": "Bildupload-Konfiguration",
+            "fr_FR": "Configuration du téléchargement d'images"
           },
-          "tags": ["设置", "图片"],
+          "tags": [
+            "设置",
+            "图片"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.basic", "settings.image-upload"],
+          "relatedArticles": [
+            "settings.basic",
+            "settings.image-upload"
+          ],
           "file": "settings/image.md"
         },
         {
           "id": "settings.image-upload",
           "title": {
             "zh_CN": "上传服务设置",
-            "en_US": "Upload Service Settings"
+            "en_US": "Upload Service Settings",
+            "zh_TW": "上傳服務設定",
+            "es_ES": "Configuración del servicio de carga",
+            "pt_BR": "Configuração do Serviço de Upload",
+            "ru_RU": "Настройка службы загрузки",
+            "ja_JP": "アップロードサービス設定",
+            "ko_KR": "업로드 서비스 설정",
+            "de_DE": "Einstellungen für Upload-Dienste",
+            "fr_FR": "Paramètres du service de téléchargement"
           },
-          "tags": ["设置", "图片", "上传"],
+          "tags": [
+            "设置",
+            "图片",
+            "上传"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["settings.image"],
-          "relatedArticles": ["settings.image"],
+          "prerequisites": [
+            "settings.image"
+          ],
+          "relatedArticles": [
+            "settings.image"
+          ],
           "file": "settings/image-upload.md"
         },
         {
           "id": "settings.logging",
           "title": {
             "zh_CN": "日志配置",
-            "en_US": "Logging Configuration"
+            "en_US": "Logging Configuration",
+            "zh_TW": "日誌配置",
+            "es_ES": "Configuración de registros",
+            "pt_BR": "Configuração de Logs",
+            "ru_RU": "Конфигурация журналов",
+            "ja_JP": "ログ設定",
+            "ko_KR": "로그 구성",
+            "de_DE": "Protokollkonfiguration",
+            "fr_FR": "Configuration des journaux"
           },
-          "tags": ["设置", "日志"],
+          "tags": [
+            "设置",
+            "日志"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.basic", "settings.about"],
+          "relatedArticles": [
+            "settings.basic",
+            "settings.about"
+          ],
           "file": "settings/logging.md"
         },
         {
           "id": "settings.about",
           "title": {
             "zh_CN": "关于信息",
-            "en_US": "About Information"
+            "en_US": "About Information",
+            "zh_TW": "關於資訊",
+            "es_ES": "Información sobre",
+            "pt_BR": "Informações Sobre",
+            "ru_RU": "Информация о программе",
+            "ja_JP": "バージョン情報",
+            "ko_KR": "정보",
+            "de_DE": "Über-Informationen",
+            "fr_FR": "Informations sur"
           },
-          "tags": ["设置", "关于"],
+          "tags": [
+            "设置",
+            "关于"
+          ],
           "difficulty": 1,
           "estimatedTime": 5,
           "prerequisites": [],
-          "relatedArticles": ["settings.basic"],
+          "relatedArticles": [
+            "settings.basic"
+          ],
           "file": "settings/about.md"
         },
         {
           "id": "settings.llm",
           "title": {
             "zh_CN": "LLM配置",
-            "en_US": "LLM Configuration"
+            "en_US": "LLM Configuration",
+            "zh_TW": "LLM配置",
+            "es_ES": "Configuración de LLM",
+            "pt_BR": "Configuração de LLM",
+            "ru_RU": "Настройка LLM",
+            "ja_JP": "LLM設定",
+            "ko_KR": "LLM 설정",
+            "de_DE": "LLM-Konfiguration",
+            "fr_FR": "Configuration LLM"
           },
-          "tags": ["设置", "LLM", "AI"],
+          "tags": [
+            "设置",
+            "LLM",
+            "AI"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
           "prerequisites": [],
-          "relatedArticles": ["settings.llm-management", "settings.llm-types", "ai.chat"],
+          "relatedArticles": [
+            "settings.llm-management",
+            "settings.llm-types",
+            "ai.chat"
+          ],
           "file": "settings/llm.md"
         },
         {
           "id": "settings.llm-management",
           "title": {
             "zh_CN": "LLM配置管理",
-            "en_US": "LLM Configuration Management"
+            "en_US": "LLM Configuration Management",
+            "zh_TW": "LLM配置管理",
+            "es_ES": "Gestión de configuración de LLM",
+            "pt_BR": "Gerenciamento de Configuração de LLM",
+            "ru_RU": "Управление конфигурацией LLM",
+            "ja_JP": "LLM設定管理",
+            "ko_KR": "LLM 설정 관리",
+            "de_DE": "Verwaltung der LLM-Konfiguration",
+            "fr_FR": "Gestion de la configuration LLM"
           },
-          "tags": ["设置", "LLM", "管理"],
+          "tags": [
+            "设置",
+            "LLM",
+            "管理"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
-          "prerequisites": ["settings.llm"],
-          "relatedArticles": ["settings.llm", "settings.llm-types"],
+          "prerequisites": [
+            "settings.llm"
+          ],
+          "relatedArticles": [
+            "settings.llm",
+            "settings.llm-types"
+          ],
           "file": "settings/llm-management.md"
         },
         {
           "id": "settings.llm-types",
           "title": {
             "zh_CN": "LLM类型配置",
-            "en_US": "LLM Type Configuration"
+            "en_US": "LLM Type Configuration",
+            "zh_TW": "LLM類型配置",
+            "es_ES": "Configuración de tipos de LLM",
+            "pt_BR": "Configuração de Tipo de LLM",
+            "ru_RU": "Конфигурация типов LLM",
+            "ja_JP": "LLMタイプ設定",
+            "ko_KR": "LLM 유형 구성",
+            "de_DE": "Konfiguration der LLM-Typen",
+            "fr_FR": "Configuration du type LLM"
           },
-          "tags": ["设置", "LLM", "配置"],
+          "tags": [
+            "设置",
+            "LLM",
+            "配置"
+          ],
           "difficulty": 2,
           "estimatedTime": 25,
-          "prerequisites": ["settings.llm"],
-          "relatedArticles": ["settings.llm", "settings.llm-management"],
+          "prerequisites": [
+            "settings.llm"
+          ],
+          "relatedArticles": [
+            "settings.llm",
+            "settings.llm-management"
+          ],
           "file": "settings/llm-types.md"
         },
         {
           "id": "settings.language",
           "title": {
             "zh_CN": "多语言支持",
-            "en_US": "Multi-language Support"
+            "en_US": "Multi-language Support",
+            "zh_TW": "多語言支援",
+            "es_ES": "Soporte multilingüe",
+            "pt_BR": "Suporte a Múltiplos Idiomas",
+            "ru_RU": "Поддержка нескольких языков",
+            "ja_JP": "多言語対応",
+            "ko_KR": "다국어 지원",
+            "de_DE": "Mehrsprachige Unterstützung",
+            "fr_FR": "Prise en charge multilingue"
           },
-          "tags": ["设置", "语言"],
+          "tags": [
+            "设置",
+            "语言"
+          ],
           "difficulty": 1,
           "estimatedTime": 5,
           "prerequisites": [],
-          "relatedArticles": ["settings.basic"],
+          "relatedArticles": [
+            "settings.basic"
+          ],
           "file": "settings/language.md"
         },
         {
           "id": "settings.menu",
           "title": {
             "zh_CN": "菜单配置",
-            "en_US": "Menu Configuration"
+            "en_US": "Menu Configuration",
+            "zh_TW": "選單配置",
+            "es_ES": "Configuración del menú",
+            "pt_BR": "Configuração de Menu",
+            "ru_RU": "Конфигурация меню",
+            "ja_JP": "メニュー設定",
+            "ko_KR": "메뉴 구성",
+            "de_DE": "Menükonfiguration",
+            "fr_FR": "Configuration du menu"
           },
-          "tags": ["设置", "菜单"],
+          "tags": [
+            "设置",
+            "菜单"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.basic"],
+          "relatedArticles": [
+            "settings.basic"
+          ],
           "file": "settings/menu.md"
         }
       ]
@@ -650,7 +1371,15 @@
       "id": "home",
       "title": {
         "zh_CN": "主页功能",
-        "en_US": "Home Features"
+        "en_US": "Home Features",
+        "zh_TW": "首頁功能",
+        "es_ES": "Funciones de la página principal",
+        "pt_BR": "Funcionalidade da Página Inicial",
+        "ru_RU": "Функции главной страницы",
+        "ja_JP": "ホーム機能",
+        "ko_KR": "홈 기능",
+        "de_DE": "Startseitenfunktionen",
+        "fr_FR": "Fonctionnalités de la page d'accueil"
       },
       "icon": "🏠",
       "articles": [
@@ -658,13 +1387,27 @@
           "id": "home.features",
           "title": {
             "zh_CN": "主页功能",
-            "en_US": "Home Features"
+            "en_US": "Home Features",
+            "zh_TW": "首頁功能",
+            "es_ES": "Funciones de la página de inicio",
+            "pt_BR": "Funcionalidade da Página Inicial",
+            "ru_RU": "Функции главной страницы",
+            "ja_JP": "ホーム機能",
+            "ko_KR": "홈 기능",
+            "de_DE": "Startseitenfunktionen",
+            "fr_FR": "Fonctionnalités de la page d'accueil"
           },
-          "tags": ["主页", "基础"],
+          "tags": [
+            "主页",
+            "基础"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["quick-start.guide", "core.file-operations"],
+          "relatedArticles": [
+            "quick-start.guide",
+            "core.file-operations"
+          ],
           "file": "home/features.md"
         }
       ]
@@ -673,7 +1416,15 @@
       "id": "user",
       "title": {
         "zh_CN": "用户功能",
-        "en_US": "User Features"
+        "en_US": "User Features",
+        "zh_TW": "使用者功能",
+        "es_ES": "Funciones del usuario",
+        "pt_BR": "Funcionalidade do Usuário",
+        "ru_RU": "Функции пользователя",
+        "ja_JP": "ユーザー機能",
+        "ko_KR": "사용자 기능",
+        "de_DE": "Benutzerfunktionen",
+        "fr_FR": "Fonctionnalités utilisateur"
       },
       "icon": "👤",
       "articles": [
@@ -681,26 +1432,54 @@
           "id": "user.profile",
           "title": {
             "zh_CN": "用户资料",
-            "en_US": "User Profile"
+            "en_US": "User Profile",
+            "zh_TW": "使用者資料",
+            "es_ES": "Perfil de usuario",
+            "pt_BR": "Perfil do Usuário",
+            "ru_RU": "Профиль пользователя",
+            "ja_JP": "ユーザープロフィール",
+            "ko_KR": "사용자 프로필",
+            "de_DE": "Benutzerprofil",
+            "fr_FR": "Profil utilisateur"
           },
-          "tags": ["用户", "设置"],
+          "tags": [
+            "用户",
+            "设置"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["home.features", "user.feedback"],
+          "relatedArticles": [
+            "home.features",
+            "user.feedback"
+          ],
           "file": "user/profile.md"
         },
         {
           "id": "user.feedback",
           "title": {
             "zh_CN": "用户反馈",
-            "en_US": "User Feedback"
+            "en_US": "User Feedback",
+            "zh_TW": "使用者回饋",
+            "es_ES": "Comentarios de usuarios",
+            "pt_BR": "Feedback do Usuário",
+            "ru_RU": "Обратная связь пользователя",
+            "ja_JP": "ユーザーフィードバック",
+            "ko_KR": "사용자 피드백",
+            "de_DE": "Benutzerfeedback",
+            "fr_FR": "Retour d'expérience utilisateur"
           },
-          "tags": ["用户", "反馈"],
+          "tags": [
+            "用户",
+            "反馈"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.about", "user.profile"],
+          "relatedArticles": [
+            "settings.about",
+            "user.profile"
+          ],
           "file": "user/feedback.md"
         }
       ]
@@ -709,7 +1488,15 @@
       "id": "workspace",
       "title": {
         "zh_CN": "工作目录",
-        "en_US": "Workspace"
+        "en_US": "Workspace",
+        "zh_TW": "工作目錄",
+        "es_ES": "Directorio de trabajo",
+        "pt_BR": "Diretório de Trabalho",
+        "ru_RU": "Рабочий каталог",
+        "ja_JP": "作業ディレクトリ",
+        "ko_KR": "작업 디렉토리",
+        "de_DE": "Arbeitsverzeichnis",
+        "fr_FR": "Répertoire de travail"
       },
       "icon": "📁",
       "articles": [
@@ -717,13 +1504,27 @@
           "id": "workspace.management",
           "title": {
             "zh_CN": "工作目录管理",
-            "en_US": "Workspace Management"
+            "en_US": "Workspace Management",
+            "zh_TW": "工作目錄管理",
+            "es_ES": "Gestión del directorio de trabajo",
+            "pt_BR": "Gerenciamento do Diretório de Trabalho",
+            "ru_RU": "Управление рабочим каталогом",
+            "ja_JP": "作業ディレクトリ管理",
+            "ko_KR": "작업 디렉토리 관리",
+            "de_DE": "Verwaltung des Arbeitsverzeichnisses",
+            "fr_FR": "Gestion du répertoire de travail"
           },
-          "tags": ["工作目录", "文件管理"],
+          "tags": [
+            "工作目录",
+            "文件管理"
+          ],
           "difficulty": 1,
           "estimatedTime": 15,
           "prerequisites": [],
-          "relatedArticles": ["core.file-operations", "core.multi-tab"],
+          "relatedArticles": [
+            "core.file-operations",
+            "core.multi-tab"
+          ],
           "file": "workspace/management.md"
         }
       ]
@@ -732,7 +1533,15 @@
       "id": "shortcuts",
       "title": {
         "zh_CN": "快捷键",
-        "en_US": "Shortcuts"
+        "en_US": "Shortcuts",
+        "zh_TW": "快速鍵",
+        "es_ES": "Atajos de teclado",
+        "pt_BR": "Atalhos de Teclado",
+        "ru_RU": "Горячие клавиши",
+        "ja_JP": "ショートカットキー",
+        "ko_KR": "단축키",
+        "de_DE": "Tastenkombinationen",
+        "fr_FR": "Raccourcis clavier"
       },
       "icon": "⌨️",
       "articles": [
@@ -740,26 +1549,56 @@
           "id": "shortcuts.global",
           "title": {
             "zh_CN": "全局快捷键",
-            "en_US": "Global Shortcuts"
+            "en_US": "Global Shortcuts",
+            "zh_TW": "全域快速鍵",
+            "es_ES": "Atajos de teclado globales",
+            "pt_BR": "Atalhos Globais",
+            "ru_RU": "Глобальные горячие клавиши",
+            "ja_JP": "グローバルショートカットキー",
+            "ko_KR": "전역 단축키",
+            "de_DE": "Globale Tastenkombinationen",
+            "fr_FR": "Raccourcis globaux"
           },
-          "tags": ["快捷键", "基础"],
+          "tags": [
+            "快捷键",
+            "基础"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["shortcuts.editor", "core.file-operations"],
+          "relatedArticles": [
+            "shortcuts.editor",
+            "core.file-operations"
+          ],
           "file": "shortcuts/global.md"
         },
         {
           "id": "shortcuts.editor",
           "title": {
             "zh_CN": "编辑器快捷键",
-            "en_US": "Editor Shortcuts"
+            "en_US": "Editor Shortcuts",
+            "zh_TW": "編輯器快速鍵",
+            "es_ES": "Atajos de teclado del editor",
+            "pt_BR": "Atalhos do Editor",
+            "ru_RU": "Горячие клавиши редактора",
+            "ja_JP": "エディタショートカットキー",
+            "ko_KR": "편집기 단축키",
+            "de_DE": "Editor-Tastenkombinationen",
+            "fr_FR": "Raccourcis de l'éditeur"
           },
-          "tags": ["快捷键", "编辑器"],
+          "tags": [
+            "快捷键",
+            "编辑器"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
-          "prerequisites": ["shortcuts.global"],
-          "relatedArticles": ["shortcuts.global", "core.editor-basics"],
+          "prerequisites": [
+            "shortcuts.global"
+          ],
+          "relatedArticles": [
+            "shortcuts.global",
+            "core.editor-basics"
+          ],
           "file": "shortcuts/editor.md"
         }
       ]
@@ -768,7 +1607,15 @@
       "id": "views",
       "title": {
         "zh_CN": "视图切换",
-        "en_US": "View Switching"
+        "en_US": "View Switching",
+        "zh_TW": "視圖切換",
+        "es_ES": "Cambio de vista",
+        "pt_BR": "Alternância de Visualização",
+        "ru_RU": "Переключение вида",
+        "ja_JP": "ビュー切り替え",
+        "ko_KR": "뷰 전환",
+        "de_DE": "Ansichtsumschaltung",
+        "fr_FR": "Changement de vue"
       },
       "icon": "👁️",
       "articles": [
@@ -776,13 +1623,27 @@
           "id": "views.types",
           "title": {
             "zh_CN": "视图类型",
-            "en_US": "View Types"
+            "en_US": "View Types",
+            "zh_TW": "視圖類型",
+            "es_ES": "Tipos de vista",
+            "pt_BR": "Tipos de Visualização",
+            "ru_RU": "Типы представлений",
+            "ja_JP": "ビュータイプ",
+            "ko_KR": "뷰 유형",
+            "de_DE": "Ansichtstypen",
+            "fr_FR": "Types de vue"
           },
-          "tags": ["视图", "界面"],
+          "tags": [
+            "视图",
+            "界面"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["core.multi-tab", "outline.basics"],
+          "relatedArticles": [
+            "core.multi-tab",
+            "outline.basics"
+          ],
           "file": "views/types.md"
         }
       ]
@@ -791,7 +1652,15 @@
       "id": "outline",
       "title": {
         "zh_CN": "大纲视图",
-        "en_US": "Outline View"
+        "en_US": "Outline View",
+        "zh_TW": "大綱視圖",
+        "es_ES": "Vista de esquema",
+        "pt_BR": "Visualização de Estrutura",
+        "ru_RU": "Представление структуры",
+        "ja_JP": "アウトラインビュー",
+        "ko_KR": "개요 뷰",
+        "de_DE": "Gliederungsansicht",
+        "fr_FR": "Vue hiérarchique"
       },
       "icon": "📑",
       "articles": [
@@ -799,12 +1668,25 @@
           "id": "outline.basics",
           "title": {
             "zh_CN": "大纲视图功能",
-            "en_US": "Outline View Basics"
+            "en_US": "Outline View Basics",
+            "zh_TW": "大綱視圖功能",
+            "es_ES": "Funciones de la vista de esquema",
+            "pt_BR": "Funcionalidade da Visualização de Estrutura",
+            "ru_RU": "Функции представления структуры",
+            "ja_JP": "アウトラインビュー機能",
+            "ko_KR": "개요 뷰 기능",
+            "de_DE": "Funktionen der Gliederungsansicht",
+            "fr_FR": "Fonctionnalités de la vue hiérarchique"
           },
-          "tags": ["大纲", "视图"],
+          "tags": [
+            "大纲",
+            "视图"
+          ],
           "difficulty": 1,
           "estimatedTime": 15,
-          "prerequisites": ["core.editor-basics"],
+          "prerequisites": [
+            "core.editor-basics"
+          ],
           "relatedArticles": [
             "views.types",
             "outline.ai-features",
@@ -816,13 +1698,31 @@
           "id": "outline.ai-features",
           "title": {
             "zh_CN": "大纲AI功能",
-            "en_US": "Outline AI Features"
+            "en_US": "Outline AI Features",
+            "zh_TW": "大綱AI功能",
+            "es_ES": "Funciones de IA en el esquema",
+            "pt_BR": "Funcionalidade de IA na Estrutura",
+            "ru_RU": "Функции ИИ для структуры",
+            "ja_JP": "アウトラインAI機能",
+            "ko_KR": "개요 AI 기능",
+            "de_DE": "KI-Funktionen der Gliederungsansicht",
+            "fr_FR": "Fonction IA de la vue hiérarchique"
           },
-          "tags": ["大纲", "AI"],
+          "tags": [
+            "大纲",
+            "AI"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
-          "prerequisites": ["outline.basics", "ai.llm-config"],
-          "relatedArticles": ["outline.basics", "ai.chat", "features.paragraph-optimization"],
+          "prerequisites": [
+            "outline.basics",
+            "ai.llm-config"
+          ],
+          "relatedArticles": [
+            "outline.basics",
+            "ai.chat",
+            "features.paragraph-optimization"
+          ],
           "file": "outline/ai-features.md"
         }
       ]
@@ -831,7 +1731,15 @@
       "id": "statistics",
       "title": {
         "zh_CN": "统计和监控",
-        "en_US": "Statistics and Monitoring"
+        "en_US": "Statistics and Monitoring",
+        "zh_TW": "統計和監控",
+        "es_ES": "Estadísticas y monitoreo",
+        "pt_BR": "Estatísticas e Monitoramento",
+        "ru_RU": "Статистика и мониторинг",
+        "ja_JP": "統計とモニタリング",
+        "ko_KR": "통계 및 모니터링",
+        "de_DE": "Statistiken und Überwachung",
+        "fr_FR": "Statistiques et surveillance"
       },
       "icon": "📊",
       "articles": [
@@ -839,26 +1747,55 @@
           "id": "statistics.llm",
           "title": {
             "zh_CN": "LLM统计",
-            "en_US": "LLM Statistics"
+            "en_US": "LLM Statistics",
+            "zh_TW": "LLM統計",
+            "es_ES": "Estadísticas de LLM",
+            "pt_BR": "Estatísticas de LLM",
+            "ru_RU": "Статистика LLM",
+            "ja_JP": "LLM統計",
+            "ko_KR": "LLM 통계",
+            "de_DE": "LLM-Statistiken",
+            "fr_FR": "Statistiques LLM"
           },
-          "tags": ["统计", "LLM"],
+          "tags": [
+            "统计",
+            "LLM"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["settings.llm", "ai.chat", "statistics.proofread"],
+          "relatedArticles": [
+            "settings.llm",
+            "ai.chat",
+            "statistics.proofread"
+          ],
           "file": "statistics/llm.md"
         },
         {
           "id": "statistics.proofread",
           "title": {
             "zh_CN": "校对工具统计",
-            "en_US": "Proofread Statistics"
+            "en_US": "Proofread Statistics",
+            "zh_TW": "校對工具統計",
+            "es_ES": "Estadísticas de la herramienta de corrección",
+            "pt_BR": "Estatísticas da Ferramenta de Revisão",
+            "ru_RU": "Статистика инструментов проверки",
+            "ja_JP": "校正ツール統計",
+            "ko_KR": "교정 도구 통계",
+            "de_DE": "Statistiken des Korrekturlesewerkzeugs",
+            "fr_FR": "Statistiques de l'outil de relecture"
           },
-          "tags": ["统计", "校对"],
+          "tags": [
+            "统计",
+            "校对"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["ai.proofread", "statistics.llm"],
+          "relatedArticles": [
+            "ai.proofread",
+            "statistics.llm"
+          ],
           "file": "statistics/proofread.md"
         }
       ]
@@ -867,7 +1804,15 @@
       "id": "features",
       "title": {
         "zh_CN": "功能特性",
-        "en_US": "Features"
+        "en_US": "Features",
+        "zh_TW": "功能特性",
+        "es_ES": "Características de la funcionalidad",
+        "pt_BR": "Características e Funcionalidades",
+        "ru_RU": "Особенности функций",
+        "ja_JP": "機能特性",
+        "ko_KR": "기능 특성",
+        "de_DE": "Funktionen und Eigenschaften",
+        "fr_FR": "Caractéristiques des fonctionnalités"
       },
       "icon": "✨",
       "articles": [
@@ -875,13 +1820,29 @@
           "id": "features.paragraph-optimization",
           "title": {
             "zh_CN": "段落优化功能",
-            "en_US": "Paragraph Optimization"
+            "en_US": "Paragraph Optimization",
+            "zh_TW": "段落優化功能",
+            "es_ES": "Funcionalidad de optimización de párrafos",
+            "pt_BR": "Funcionalidade de Otimização de Parágrafos",
+            "ru_RU": "Функция оптимизации абзацев",
+            "ja_JP": "段落最適化機能",
+            "ko_KR": "문단 최적화 기능",
+            "de_DE": "Absatzoptimierungsfunktion",
+            "fr_FR": "Fonction d'optimisation de paragraphe"
           },
-          "tags": ["功能", "AI"],
+          "tags": [
+            "功能",
+            "AI"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["outline.basics"],
-          "relatedArticles": ["outline.basics", "ai.chat"],
+          "prerequisites": [
+            "outline.basics"
+          ],
+          "relatedArticles": [
+            "outline.basics",
+            "ai.chat"
+          ],
           "file": "features/paragraph-optimization.md"
         }
       ]
@@ -890,7 +1851,15 @@
       "id": "formats",
       "title": {
         "zh_CN": "文档格式",
-        "en_US": "Document Formats"
+        "en_US": "Document Formats",
+        "zh_TW": "文件格式",
+        "es_ES": "Formato del documento",
+        "pt_BR": "Formato do Documento",
+        "ru_RU": "Формат документа",
+        "ja_JP": "ドキュメントフォーマット",
+        "ko_KR": "문서 형식",
+        "de_DE": "Dokumentformate",
+        "fr_FR": "Format de document"
       },
       "icon": "📄",
       "articles": [
@@ -898,13 +1867,27 @@
           "id": "formats.supported",
           "title": {
             "zh_CN": "支持的格式",
-            "en_US": "Supported Formats"
+            "en_US": "Supported Formats",
+            "zh_TW": "支援的格式",
+            "es_ES": "Formatos admitidos",
+            "pt_BR": "Formatos Suportados",
+            "ru_RU": "Поддерживаемые форматы",
+            "ja_JP": "サポートフォーマット",
+            "ko_KR": "지원 형식",
+            "de_DE": "Unterstützte Formate",
+            "fr_FR": "Formats pris en charge"
           },
-          "tags": ["格式", "基础"],
+          "tags": [
+            "格式",
+            "基础"
+          ],
           "difficulty": 1,
           "estimatedTime": 10,
           "prerequisites": [],
-          "relatedArticles": ["markdown.basics", "latex.basics"],
+          "relatedArticles": [
+            "markdown.basics",
+            "latex.basics"
+          ],
           "file": "formats/supported.md"
         }
       ]
@@ -913,7 +1896,15 @@
       "id": "development",
       "title": {
         "zh_CN": "开发工具",
-        "en_US": "Development Tools"
+        "en_US": "Development Tools",
+        "zh_TW": "開發工具",
+        "es_ES": "Herramientas de desarrollo",
+        "pt_BR": "Ferramentas de Desenvolvimento",
+        "ru_RU": "Инструменты разработки",
+        "ja_JP": "開発ツール",
+        "ko_KR": "개발 도구",
+        "de_DE": "Entwicklungswerkzeuge",
+        "fr_FR": "Outils de développement"
       },
       "icon": "🔧",
       "articles": [
@@ -921,13 +1912,26 @@
           "id": "development.debug",
           "title": {
             "zh_CN": "调试工具",
-            "en_US": "Debug Tools"
+            "en_US": "Debug Tools",
+            "zh_TW": "偵錯工具",
+            "es_ES": "Herramientas de depuración",
+            "pt_BR": "Ferramentas de Depuração",
+            "ru_RU": "Инструменты отладки",
+            "ja_JP": "デバッグツール",
+            "ko_KR": "디버깅 도구",
+            "de_DE": "Debugging-Werkzeuge",
+            "fr_FR": "Outils de débogage"
           },
-          "tags": ["开发", "调试"],
+          "tags": [
+            "开发",
+            "调试"
+          ],
           "difficulty": 3,
           "estimatedTime": 15,
           "prerequisites": [],
-          "relatedArticles": ["agent.session"],
+          "relatedArticles": [
+            "agent.session"
+          ],
           "file": "development/debug.md"
         }
       ]
@@ -936,7 +1940,15 @@
       "id": "charts",
       "title": {
         "zh_CN": "图表功能",
-        "en_US": "Charts"
+        "en_US": "Charts",
+        "zh_TW": "圖表功能",
+        "es_ES": "Funciones de gráficos",
+        "pt_BR": "Funcionalidade de Gráficos",
+        "ru_RU": "Функции диаграмм",
+        "ja_JP": "グラフ機能",
+        "ko_KR": "차트 기능",
+        "de_DE": "Diagrammfunktionen",
+        "fr_FR": "Fonctionnalités graphiques"
       },
       "icon": "📊",
       "articles": [
@@ -944,52 +1956,113 @@
           "id": "charts.introduction",
           "title": {
             "zh_CN": "图表功能介绍",
-            "en_US": "Charts Introduction"
+            "en_US": "Charts Introduction",
+            "zh_TW": "圖表功能介紹",
+            "es_ES": "Introducción a las funciones de gráficos",
+            "pt_BR": "Introdução à Funcionalidade de Gráficos",
+            "ru_RU": "Описание функций диаграмм",
+            "ja_JP": "グラフ機能の紹介",
+            "ko_KR": "차트 기능 소개",
+            "de_DE": "Einführung in Diagrammfunktionen",
+            "fr_FR": "Présentation des fonctionnalités graphiques"
           },
-          "tags": ["图表"],
+          "tags": [
+            "图表"
+          ],
           "difficulty": 2,
           "estimatedTime": 15,
-          "prerequisites": ["markdown.basics"],
-          "relatedArticles": ["charts.mermaid", "charts.plantuml", "charts.echarts"],
+          "prerequisites": [
+            "markdown.basics"
+          ],
+          "relatedArticles": [
+            "charts.mermaid",
+            "charts.plantuml",
+            "charts.echarts"
+          ],
           "file": "charts/introduction.md"
         },
         {
           "id": "charts.mermaid",
           "title": {
             "zh_CN": "Mermaid图表",
-            "en_US": "Mermaid Charts"
+            "en_US": "Mermaid Charts",
+            "zh_TW": "Mermaid圖表",
+            "es_ES": "Gráficos Mermaid",
+            "pt_BR": "Gráficos Mermaid",
+            "ru_RU": "Диаграммы Mermaid",
+            "ja_JP": "Mermaid図",
+            "ko_KR": "Mermaid 차트",
+            "de_DE": "Mermaid-Diagramme",
+            "fr_FR": "Diagrammes Mermaid"
           },
-          "tags": ["图表", "Mermaid"],
+          "tags": [
+            "图表",
+            "Mermaid"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
-          "prerequisites": ["charts.introduction"],
-          "relatedArticles": ["charts.introduction"],
+          "prerequisites": [
+            "charts.introduction"
+          ],
+          "relatedArticles": [
+            "charts.introduction"
+          ],
           "file": "charts/mermaid.md"
         },
         {
           "id": "charts.plantuml",
           "title": {
             "zh_CN": "PlantUML图表",
-            "en_US": "PlantUML Charts"
+            "en_US": "PlantUML Charts",
+            "zh_TW": "PlantUML圖表",
+            "es_ES": "Gráficos PlantUML",
+            "pt_BR": "Gráficos PlantUML",
+            "ru_RU": "Диаграммы PlantUML",
+            "ja_JP": "PlantUML図",
+            "ko_KR": "PlantUML 차트",
+            "de_DE": "PlantUML-Diagramme",
+            "fr_FR": "Diagrammes PlantUML"
           },
-          "tags": ["图表", "PlantUML"],
+          "tags": [
+            "图表",
+            "PlantUML"
+          ],
           "difficulty": 2,
           "estimatedTime": 20,
-          "prerequisites": ["charts.introduction"],
-          "relatedArticles": ["charts.introduction"],
+          "prerequisites": [
+            "charts.introduction"
+          ],
+          "relatedArticles": [
+            "charts.introduction"
+          ],
           "file": "charts/plantuml.md"
         },
         {
           "id": "charts.echarts",
           "title": {
             "zh_CN": "ECharts图表",
-            "en_US": "ECharts Charts"
+            "en_US": "ECharts Charts",
+            "zh_TW": "ECharts圖表",
+            "es_ES": "Gráficos ECharts",
+            "pt_BR": "Gráficos ECharts",
+            "ru_RU": "Диаграммы ECharts",
+            "ja_JP": "ECharts図",
+            "ko_KR": "ECharts 차트",
+            "de_DE": "ECharts-Diagramme",
+            "fr_FR": "Diagrammes ECharts"
           },
-          "tags": ["图表", "ECharts"],
+          "tags": [
+            "图表",
+            "ECharts"
+          ],
           "difficulty": 3,
           "estimatedTime": 25,
-          "prerequisites": ["charts.introduction"],
-          "relatedArticles": ["charts.introduction"],
+          "prerequisites": [
+            "charts.introduction"
+          ],
+          "relatedArticles": [
+            "charts.introduction"
+          ],
           "file": "charts/echarts.md"
         }
       ]

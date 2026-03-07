@@ -60,6 +60,7 @@
                 :show-voice="false"
                 :show-attach="false"
                 :show-knowledge-base="false"
+                :compact="true"
                 @submit="handleGenerate"
                 @cancel="handleCancel"
               />
@@ -1471,6 +1472,7 @@ onMounted(() => {
 
 .content-area {
   flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1487,6 +1489,8 @@ onMounted(() => {
 
 .dialog-container {
   flex: 1;
+  width: 100%;
+  min-width: 0;
   background-color: rgba(170, 221, 255, 0.11);
   padding: 20px;
   margin: 0;
@@ -1535,5 +1539,29 @@ onMounted(() => {
   max-width: min(960px, 100%);
   min-width: 0;
   box-sizing: border-box;
+}
+
+/* 强制 ChatComposer 内部撑满宽度，与 AIChat 一致：form/shell/scroll/el-scrollbar 全部 100% */
+.composer-wrapper :deep(.chat-composer) {
+  width: 100%;
+}
+
+.composer-wrapper :deep(.composer-shell) {
+  width: 100%;
+}
+
+.composer-wrapper :deep(.composer-scroll) {
+  width: 100%;
+  min-width: 0;
+}
+
+.composer-wrapper :deep(.el-scrollbar) {
+  width: 100%;
+  min-width: 0;
+}
+
+.composer-wrapper :deep(.el-scrollbar__wrap),
+.composer-wrapper :deep(.el-scrollbar__view) {
+  width: 100%;
 }
 </style>

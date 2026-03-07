@@ -203,7 +203,7 @@
       "chinese": "中国語",
       "japanese": "日本語",
       "korean": "韓国語",
-      "western": "西欧",
+      "western": "西ヨーロッパ",
       "centralEastern": "中欧/東欧",
       "russian": "ロシア語",
       "greek": "ギリシャ語",
@@ -520,7 +520,7 @@
       "redo": "やり直し",
       "headings": "見出し",
       "bold": "太字",
-      "italic": "斜体",
+      "italic": "イタリック",
       "strike": "打ち消し線",
       "link": "リンク",
       "list": "リスト",
@@ -1208,7 +1208,7 @@
       "mockUpdateVersion": "シミュレート更新バージョン",
       "mockUpdateVersionPlaceholder": "例: 0.14.0",
       "updateChannel": "更新チャンネル",
-      "channelRelease": "正式版",
+      "channelRelease": "リリース版",
       "channelDev": "内測版",
       "testScenario": "テストシナリオ",
       "newVersionFound": "新しいバージョン: {version}",
@@ -1467,7 +1467,7 @@
     "editorModeWysiwyg": "WYSIWYG（見たまま）",
     "editorModeWysiwygHint": "Markdownに不慣れなユーザーにも使いやすく、Markdownに詳しい方もシームレスにご利用いただけます。",
     "embeddingMode": "Embedding モード",
-    "embeddingModeApi": "外部 API",
+    "embeddingModeApi": "外部API",
     "embeddingModeApiHint": "外部 API を使用して埋め込みベクトルを生成します。グラフィックカードは不要です。",
     "embeddingModeLocal": "ローカルモデル",
     "embeddingModeLocalHint": "ローカルモデルを使用して埋め込みベクトルを生成します。グラフィックカードが必要ですが、ネットワークは不要です。",
@@ -1602,7 +1602,7 @@
     "requestNotFound": "リクエストが存在しないか、期限切れです",
     "resetConfig": "設定をリセット",
     "resetFailed": "リセットに失敗しました",
-    "saveChanges": "保存",
+    "saveChanges": "変更を保存",
     "saveCurrentAsConfig": "現在の設定を構成として保存",
     "saveFailed": "保存に失敗しました",
     "saveSuccess": "保存しました",
@@ -2316,7 +2316,7 @@
         "blank": {
           "description": "空白のMarkdownドキュメントを作成",
           "label": "空白のドキュメント",
-          "content": ""
+          "content": "新規ドキュメント"
         },
         "technicalDoc": {
           "label": "技術文書",
@@ -2390,7 +2390,7 @@
       "duplicate": "複製",
       "export": "エクスポート",
       "import": "インポート",
-      "references": "引用素材",
+      "references": "参考文献",
       "noExecutionNode": "再試行可能な実行ノードがありません",
       "retrySuccess": "再試行成功",
       "duplicateSuccess": "複製成功",
@@ -2575,8 +2575,8 @@
           "variance": "分散",
           "min": "最小値",
           "max": "最大値",
-          "q25": "第一四分位数",
-          "q75": "第三四分位数",
+          "q25": "第1四分位数",
+          "q75": "第3四分位数",
           "sum": "合計",
           "avg": "平均"
         },
@@ -2832,7 +2832,7 @@
         "filesCount": "合計{count}個のファイル",
         "summarized": "要約済み",
         "summary": "要約",
-        "content": "内容",
+        "content": "コンテンツ",
         "showContent": "コンテンツを表示",
         "hideContent": "コンテンツを隠す",
         "linesRange": "行{start}-{end} (合計{total}行)",
@@ -3107,7 +3107,7 @@
       "atTagRemove": "削除する"
     },
     "reference": {
-      "title": "引用素材管理",
+      "title": "参考文献管理",
       "add": "引用を追加",
       "edit": "引用を編集",
       "name": "名前",
@@ -3321,20 +3321,20 @@
   "fontSize": {
     "chuhao": "初号",
     "xiaochu": "小初",
-    "yihao": "一号",
-    "xiaoyi": "小一",
-    "erhao": "二号",
-    "xiaoer": "小二",
-    "sanhao": "三号",
-    "xiaosan": "小三",
-    "sihao": "四号",
-    "xiaosi": "小四",
-    "wuhao": "五号",
-    "xiaowu": "小五",
-    "liuhao": "六号",
-    "xiaoliu": "小六",
-    "qihao": "七号",
-    "bahao": "八号"
+    "yihao": "1号",
+    "xiaoyi": "小1",
+    "erhao": "2号",
+    "xiaoer": "小2",
+    "sanhao": "3号",
+    "xiaosan": "小3",
+    "sihao": "4号",
+    "xiaosi": "小4",
+    "wuhao": "5号",
+    "xiaowu": "小5",
+    "liuhao": "6号",
+    "xiaoliu": "小6",
+    "qihao": "7号",
+    "bahao": "8号"
   },
   "fontDebugPanel": {
     "title": "フォントデバッグパネル",
@@ -3414,10 +3414,31 @@
     "tabs": {
       "report": "分析レポート",
       "data": "元データ",
-      "analysis": "データ分析"
+      "analysis": "データ分析",
+      "preview": "データプレビュー",
+      "result": "分析結果"
     },
     "uploadHint": "ファイルをここにドラッグ、またはクリックしてアップロード",
-    "uploadTip": "CSV、Excel、JSON形式に対応"
+    "uploadTip": "CSV、Excel、JSON形式に対応",
+    "analyzing": "分析中...",
+    "column": "列{index}",
+    "copySuffix": "(コピー)",
+    "createSessionFailed": "セッションの作成に失敗しました",
+    "deleteFailed": "削除に失敗しました",
+    "duplicateFailed": "複製に失敗しました",
+    "ipcNotAvailable": "IPCレンダラーが利用できません",
+    "loadSessionFailed": "セッションの読み込みに失敗しました",
+    "loadSessionsFailed": "セッションリストの読み込みに失敗しました",
+    "loadingPreview": "データプレビューを読み込んでいます...",
+    "noHeaderPreview": "ヘッダーデータがありません",
+    "noReport": "分析レポートがありません",
+    "noSelectionHint": "ヒント：テーブルで行を選択すると、一部のデータのみを分析できます",
+    "noSession": "まずセッションを選択または作成してください",
+    "renameFailed": "名前の変更に失敗しました",
+    "saveFileFailed": "ファイル情報の保存に失敗しました",
+    "unknownFile": "不明なファイル",
+    "uploadFile": "ファイルをアップロード",
+    "uploadFileFirst": "まずデータファイルをアップロードしてください"
   },
   "userFeedback": {
     "uploadedToGist": "Gistにアップロードしました",
@@ -3491,6 +3512,9 @@
     "create": "作成",
     "failed": "タスクが失敗しました",
     "text": "開始"
+  },
+  "document": {
+    "aiAssistantGreeting": "### こんにちは！AIドキュメントアシスタントです。\nご要望をお聞かせください。できる限りお手伝いします。\n"
   },
   "agent-engine-executor": {
     "clear": "クリアしました",
@@ -3702,7 +3726,8 @@
         "mid": "やや定型",
         "low": "自然な締め"
       }
-    }
+    },
+    "paragraphN: 段落 {n}": "aigc.paragraphN: 段落 {n}"
   },
   "attachment": {
     "analysisSuccess": "分析完了",
@@ -3822,8 +3847,8 @@
         "a3": "A3",
         "a5": "A5",
         "b5": "B5",
-        "letter": "Letter",
-        "legal": "Legal"
+        "letter": "レターサイズ",
+        "legal": "リーガルサイズ"
       },
       "margins": {
         "label": "余白",

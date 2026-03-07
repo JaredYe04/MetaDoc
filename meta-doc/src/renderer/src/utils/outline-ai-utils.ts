@@ -15,6 +15,7 @@ import {
   polishContentPrompt
 } from './prompts'
 import { TREE_NODE_SCHEMA } from '../constants/document'
+import { getPromptByKey } from './prompts'
 import { removeTextFromOutline } from './document/outline'
 import { extractOuterJsonString } from './regex-utils'
 import { createRendererLogger } from './logger'
@@ -360,48 +361,16 @@ async function convertTextToJsonChapters(
   const parentTitleLevel = node.title_level || 0
   const childTitleLevel = parentTitleLevel + 1
 
-  const conversionPrompt = `${formatInstruction}
-
-你是一个专业的文档结构生成助手。请根据以下信息，生成符合大纲schema规范的JSON数组格式的章节列表。
-
-**大纲节点Schema规范**：
-${JSON.stringify(TREE_NODE_SCHEMA, null, 2)}
-
-**重要要求**：
-1. 必须严格按照上述schema规范生成JSON，每个节点必须包含：path、title、text、title_level、children字段
-2. path字段暂时留空（后续会自动生成），但必须包含该字段
-3. title字段：章节标题，根据文档格式使用正确的格式（Markdown或LaTeX）
-4. text字段：暂时留空字符串""
-5. title_level字段：子节点的层级应该是 ${childTitleLevel}（父节点层级${parentTitleLevel} + 1）
-6. children字段：空数组[]
-7. **必须返回完整的JSON数组，不要中途停止，不要只返回部分内容**
-8. **只返回JSON数组，不要包含任何其他说明文字、代码块标记或解释**
-
-**当前节点信息**：
-- 节点标题：${node.title || '根节点'}
-- 节点路径：${node.path}
-- 节点层级：${parentTitleLevel}
-
-**用户提示词**：${userPrompt || '无'}
-
-**AI返回的文本内容**（可能是自然语言描述、列表或其他格式）：
-${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
-
-**请严格按照schema规范返回完整的JSON数组格式**，例如：
-[
-  {"path": "", "title": "章节1", "text": "", "title_level": ${childTitleLevel}, "children": []},
-  {"path": "", "title": "章节2", "text": "", "title_level": ${childTitleLevel}, "children": []}
-]
-
-**关键要求**：
-- **必须返回完整的JSON数组，从 [ 开始，到 ] 结束**
-- **不要包含任何代码块标记（如\`\`\`json）**
-- **不要包含任何说明文字**
-- **确保JSON格式完全正确，可以被JSON.parse()解析**
-- **如果文本内容中包含章节信息，请提取并转换为符合schema的节点**
-- **如果文本内容只是说明文字（如"请确保JSON格式正确"），请根据用户提示词和当前节点信息，生成合理的章节列表**
-- **必须生成至少3个章节节点，确保返回完整的JSON数组**
-`
+  const conversionPrompt = getPromptByKey('outlineConversionPrompt', {
+    formatInstruction,
+    schema: JSON.stringify(TREE_NODE_SCHEMA, null, 2),
+    childTitleLevel: String(childTitleLevel),
+    parentTitleLevel: String(parentTitleLevel),
+    nodeTitle: node.title || '根节点',
+    nodePath: node.path,
+    userPrompt: userPrompt || '无',
+    text: text.substring(0, 2000) + (text.length > 2000 ? '...' : '')
+  })
 
   // 构建消息数组，将 prompt 转换为对话格式
   const messages: AIDialogMessage[] = []

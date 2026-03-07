@@ -129,26 +129,22 @@ def infer_context_hint(key):
     return "general"
 
 
-def build_prompt(locale_name, lang_hint, module_name, zh_items, locale_items):
+def build_prompt_fill_only(locale_name, lang_hint, module_name, zh_items):
+    """仅补全缺失键的翻译，不校对已有译文。"""
     lang = lang_hint or locale_name
-    return f"""你正在审阅一款文档编辑/写作软件（MetaDoc）的 {lang} 界面文案。以中文为蓝本做**校对与补翻**。
+    return f"""你正在将一款文档编辑/写作软件（MetaDoc）的界面文案从中文翻译为 {lang}。下方是需要补翻的条目，请为每条输出译文。
 
 **规则：**
-1. 结合语境判断每条是：UI 标签（按钮/菜单/标题）、提示/占位符（hint/placeholder）、悬浮说明（tooltip）、错误信息、长说明等；按该场景写出自然、地道的 {lang}。
-2. 专有名词（如 MetaDoc、RAG、LaTeX、Markdown）不翻译；占位符如 {{count}}、{{name}}、{{line}} 原样保留。
-3. **当前 {lang} 中标注为 (缺失) 的条目**：必须输出一行「完整键路径 + Tab + 译文」，为该键补充翻译。
-4. **当前 {lang} 中已有译文的条目**：仅当翻译不当、生硬、明显机翻或不符合该语境时才输出修正；认为无需改动的不要输出。
-5. 输出格式：每行一条，且仅包含「完整键路径 + 制表符(Tab) + 译文」。键路径与下方列表完全一致；译文中不要包含 Tab 或换行（若有请用空格代替）。
+1. 结合语境（UI 标签、提示、tooltip、错误信息等）写出自然、地道的 {lang}。
+2. 专有名词（MetaDoc、RAG、LaTeX、Markdown）不翻译；占位符如 {{count}}、{{name}}、{{line}} 原样保留。
+3. 输出格式：每行一条「完整键路径 + 制表符(Tab) + 译文」。键路径与下方列表完全一致；译文中不要包含 Tab 或换行（若有请用空格代替）。
    示例：agent.display.subagent.title\tSubagent
 
 **模块：** {module_name}
-**参考（中文）：**
+**参考（中文）→ 请译为 {lang}：**
 {zh_items}
 
-**当前 {lang} 文案（(缺失)= 需要补翻，其余= 按需修正）：**
-{locale_items}
-
-请按要求输出每行「键<Tab>译文」，无需解释。若某条无需修正且非缺失，则不要输出该条。
+请只输出每行「键<Tab>译文」，无需解释。每条都必须输出一行。
 """
 
 
@@ -263,15 +259,16 @@ def write_back_module(locales_dir, locale_file, corrections, file_locks):
         save_json(path, data)
 
 
-def run_one_task(api_key, locale_file, module_name, keys, flat_zh, flat_locale, lang_hint, dry_run):
+def run_one_task(api_key, locale_file, module_name, keys_to_translate, flat_zh, flat_locale, lang_hint, dry_run):
+    """仅对 keys_to_translate（缺失/未翻译的键）请求翻译，不校对已有译文。"""
     if dry_run:
         return (locale_file, [], None)
-    zh_lines = "\n".join(f"{k}: {flat_zh.get(k, '')}" for k in keys)
-    # 缺失的键用 (缺失) 标注，便于 AI 必须输出补翻
-    locale_lines = "\n".join(
-        f"{k}: {(flat_locale.get(k, '') or '').strip() or '(缺失)'}" for k in keys
+    if not keys_to_translate:
+        return (locale_file, [], None)
+    zh_lines = "\n".join(f"{k}: {flat_zh.get(k, '')}" for k in keys_to_translate)
+    prompt = build_prompt_fill_only(
+        locale_file.replace(".json", ""), lang_hint, module_name, zh_lines
     )
-    prompt = build_prompt(locale_file.replace(".json", ""), lang_hint, module_name, zh_lines, locale_lines)
     try:
         raw = call_deepseek(api_key, prompt)
         corrections = parse_corrections(raw)
@@ -339,10 +336,14 @@ def main():
     # 语言名提示（用于提示词）
     lang_names = {
         "en_us.json": "English",
+        "zh_tw.json": "Traditional Chinese",
         "ja_JP.json": "Japanese",
         "ko_KR.json": "Korean",
         "de_DE.json": "German",
         "fr_FR.json": "French",
+        "es_ES.json": "Spanish",
+        "pt_BR.json": "Portuguese (Brazil)",
+        "ru_RU.json": "Russian",
     }
 
     tasks = []
@@ -357,20 +358,18 @@ def main():
         for mod_name, keys in all_modules.items():
             if args.module and not (mod_name == args.module or mod_name.startswith(args.module + ".") or mod_name.startswith(args.module + "_")):
                 continue
-            # 始终以 zh_cn 的完整模块键列表为准；缺失的键由 AI 补翻并写回
-            missing_in_locale = [k for k in keys if k not in flat_loc]
+            # 始终以 zh_cn 的完整模块键列表为准；缺失的键或「非蓝本且值与源相同」由 AI 补翻并写回
+            missing_in_locale = [
+                k for k in keys
+                if k not in flat_loc
+                or (loc_file != BASE_FILE and (flat_loc.get(k) or '').strip() == (flat_zh.get(k) or ''))
+            ]
             stored_hash = hash_map.get((loc_file, mod_name))
             current_hash = current_module_hashes.get(mod_name)
-            if (loc_file, mod_name) in completed_set:
-                # 蓝本该模块内容变了 → 重校；或该语言在此模块有缺失键 → 补翻
-                if current_hash is not None and stored_hash is not None and stored_hash != current_hash:
-                    tasks.append((loc_file, mod_name, keys, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
-                elif missing_in_locale:
-                    tasks.append((loc_file, mod_name, keys, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
-                else:
-                    continue
-            else:
-                tasks.append((loc_file, mod_name, keys, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
+            # 只补全缺失/未翻译的键，不校对已有译文；无待补键则跳过
+            if not missing_in_locale:
+                continue
+            tasks.append((loc_file, mod_name, missing_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
 
     if not tasks:
         print("没有符合条件的任务（缺项或蓝本变更已处理完）。可尝试 --locale / --module 或 --reset-progress 全量重跑；或先 --record-hashes 再改蓝本后重跑以只重校变更模块。")
@@ -386,8 +385,8 @@ def main():
     print("进度格式: [当前/总数] 语言文件 | 模块 | 结果")
     print("-" * 60, flush=True)
     if args.dry_run:
-        for loc_file, mod_name, keys, _, _, _ in tasks:
-            print("  %s | %s | %d keys" % (loc_file, mod_name, len(keys)))
+        for loc_file, mod_name, keys_to_translate, _, _, _ in tasks:
+            print("  %s | %s | %d keys（仅补翻）" % (loc_file, mod_name, len(keys_to_translate)))
         return 0
 
     errors = []
@@ -421,7 +420,7 @@ def main():
                     write_back_module(locales_dir, loc_file, corrections, file_locks)
                     src_hash = current_module_hashes.get(mod_name)
                     append_progress(locales_dir, loc_file, mod_name, source_hash=src_hash)
-                    print("[%3d/%d] %s | %s | 完成，修正 %d 处，已写回并记入进度" % (completed, total, loc_file, mod_name, len(corrections)), flush=True)
+                    print("[%3d/%d] %s | %s | 完成，补翻 %d 处，已写回并记入进度" % (completed, total, loc_file, mod_name, len(corrections)), flush=True)
             except Exception as e:
                 errors.append((loc_file, mod_name, str(e)))
                 print("[%3d/%d] %s | %s | 异常: %s" % (completed, total, loc_file, mod_name, e), flush=True)

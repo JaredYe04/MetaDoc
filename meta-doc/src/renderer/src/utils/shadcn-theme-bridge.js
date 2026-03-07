@@ -56,8 +56,29 @@ function hexToHsl(hex) {
 }
 
 /**
+ * 根据背景色返回对比前景色（黑或白），用于 primary/secondary 等按钮文字，避免深色模式下白底白字
+ * @param {string} hex - HEX 背景色
+ * @returns {string} HSL 字符串，浅底返回深字 (9%)，深底返回浅字 (98%)
+ */
+function getContrastForegroundHsl(hex) {
+  let normalizedHex = hex.replace(/^#/, '')
+  if (normalizedHex.length === 3) {
+    normalizedHex = normalizedHex
+      .split('')
+      .map((c) => c + c)
+      .join('')
+  }
+  const r = parseInt(normalizedHex.substring(0, 2), 16) / 255
+  const g = parseInt(normalizedHex.substring(2, 4), 16) / 255
+  const b = parseInt(normalizedHex.substring(4, 6), 16) / 255
+  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return l > 0.5 ? '0 0% 9%' : '0 0% 98%'
+}
+
+/**
  * 将主题颜色同步到 shadcn-vue CSS 变量
  * 根据 themeState 中的颜色更新 document.documentElement 的 CSS 自定义属性
+ * primary-foreground / secondary-foreground / accent-foreground 使用对比色，避免深色模式下白底白字
  */
 function applyShadcnTheme() {
   const root = document.documentElement
@@ -75,13 +96,7 @@ function applyShadcnTheme() {
     { source: 'textColor2', target: '--muted-foreground' },
     {
       source: 'textColor',
-      target: [
-        '--primary-foreground',
-        '--card-foreground',
-        '--popover-foreground',
-        '--secondary-foreground',
-        '--accent-foreground'
-      ]
+      target: ['--card-foreground', '--popover-foreground']
     },
     { source: 'background', target: ['--card', '--popover'] },
     { source: 'secondaryColor', target: '--accent' }
@@ -101,6 +116,16 @@ function applyShadcnTheme() {
       }
     }
   })
+
+  // primary/secondary/accent 的前景用对比色，保证在任意主题下按钮文字可读（避免深色模式白底白字）
+  if (theme.primaryColor && theme.primaryColor.startsWith('#')) {
+    root.style.setProperty('--primary-foreground', getContrastForegroundHsl(theme.primaryColor))
+  }
+  if (theme.secondaryColor && theme.secondaryColor.startsWith('#')) {
+    const fg = getContrastForegroundHsl(theme.secondaryColor)
+    root.style.setProperty('--secondary-foreground', fg)
+    root.style.setProperty('--accent-foreground', fg)
+  }
 
   applyElementPlusTheme()
 }

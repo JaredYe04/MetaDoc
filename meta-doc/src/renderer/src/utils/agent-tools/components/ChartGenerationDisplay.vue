@@ -18,7 +18,7 @@
       <span>{{ $t('agent.display.chartGeneration.rendering') }}</span>
       <div v-if="displayData.chartCode" class="code-preview">
         <Collapsible class="code-collapsible">
-          <CollapsibleTrigger class="code-collapsible-trigger">
+          <CollapsibleTrigger class="code-collapsible-trigger" hide-icon>
             {{ $t('agent.display.chartGeneration.viewCode') }}
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -79,7 +79,7 @@
       <!-- 代码预览 -->
       <div v-if="displayData.chartCode" class="code-section">
         <Collapsible class="code-collapsible">
-          <CollapsibleTrigger class="code-collapsible-trigger">
+          <CollapsibleTrigger class="code-collapsible-trigger" hide-icon>
             {{ $t('agent.display.chartGeneration.viewCode') }}
           </CollapsibleTrigger>
           <CollapsibleContent>

@@ -305,6 +305,7 @@ export async function startAiTask(handle: string): Promise<void> {
       const toolId = typeof task.prompt === 'string' ? task.prompt : (task.meta?.toolId as string)
       const parameters = (task.meta?.parameters as Record<string, unknown>) || {}
       const session = task.meta?.session as any
+      const toolCallId = task.meta?.tool_call_id as string | undefined
 
       if (!toolId) {
         throw new Error('工具调用任务缺少工具ID')
@@ -315,8 +316,14 @@ export async function startAiTask(handle: string): Promise<void> {
       // 导入ToolRunner
       const { ToolRunner } = await import('./agent-framework/tool-runner')
 
-      // 执行工具
-      const observation = await ToolRunner.runTool(toolId, parameters, controller.signal, session)
+      // 执行工具（传入 toolCallId 以便 Display 组件能订阅到实时事件）
+      const observation = await ToolRunner.runTool(
+        toolId,
+        parameters,
+        controller.signal,
+        session,
+        toolCallId
+      )
 
       // 将完整的observation保存到task.meta中，供ToolCallQueue使用
       // 注意：必须在任务完成前保存，因为任务完成后会立即删除

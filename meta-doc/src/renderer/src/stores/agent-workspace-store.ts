@@ -57,6 +57,8 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
   /** 共享任务句柄：用于跨视图取消/解锁 */
   const currentAiTaskHandle = ref<string | null>(null)
   const aiTaskHandles = ref<Set<string>>(new Set())
+  /** 当前会话执行用的 AbortController，停止时 abort 以中断队列与下游请求 */
+  const currentAbortController = ref<AbortController | null>(null)
 
   const activeSession = computed(() => {
     const id = activeSessionId.value
@@ -345,6 +347,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     selectedEngineId,
     currentAiTaskHandle,
     aiTaskHandles,
+    currentAbortController,
     refreshWorkspaceRoot,
     loadFromMetadoc,
     saveToMetadoc,

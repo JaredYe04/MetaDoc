@@ -588,7 +588,8 @@ const {
   isGenerating,
   generatingSessionId,
   currentAiTaskHandle,
-  aiTaskHandles
+  aiTaskHandles,
+  currentAbortController
 } = storeToRefs(agentStore)
 
 const borderColor = computed(() =>
@@ -1593,8 +1594,9 @@ const executeAgentEngine = async (
   // 注意：UI锁和isGenerating状态已经在函数开始时设置（第1167-1168行）
   // 这里不需要重复设置
 
-  // 创建AbortController用于取消
+  // 创建AbortController用于取消（停止按钮会 abort，队列与工具任务会响应）
   const abortController = new AbortController()
+  currentAbortController.value = abortController
   const originKey = `agent-${session.id}-${Date.now()}`
 
   // 更新会话状态
@@ -1703,7 +1705,9 @@ const executeAgentEngine = async (
 
       // 创建工具调用队列（用于执行检测到的工具调用）
       const { ToolCallQueue } = await import('../utils/agent-framework/tool-call-queue')
-      const toolCallQueue = new ToolCallQueue(session as any, abortController.signal)
+      const toolCallQueue = new ToolCallQueue(session as any, abortController.signal, undefined, undefined, {
+        onToolTaskHandle: (handle) => aiTaskHandles.value.add(handle)
+      })
 
       // 创建工具调用检测回调
       const onToolCallsDetected = async (
@@ -1872,6 +1876,7 @@ const executeAgentEngine = async (
         aiTaskHandles.value.delete(currentAiTaskHandle.value)
       }
       currentAiTaskHandle.value = null
+      currentAbortController.value = null
       generatingSessionId.value = null
       isGenerating.value = false
     }
@@ -1938,6 +1943,7 @@ const executeAgentEngine = async (
         aiTaskHandles.value.delete(currentAiTaskHandle.value)
       }
       currentAiTaskHandle.value = null
+      currentAbortController.value = null
       generatingSessionId.value = null
       isGenerating.value = false
     }
@@ -2167,6 +2173,10 @@ const handleCancelGeneration = () => {
     return
   }
 
+  // 先 abort 当前会话的控制器，让队列和下游请求（LLM/工具）收到取消信号
+  currentAbortController.value?.abort()
+  currentAbortController.value = null
+
   // 获取所有AI任务
   const allTasks = useAiTasks()
 
@@ -2181,7 +2191,7 @@ const handleCancelGeneration = () => {
     cancelAiTask(task.handle, false)
   })
 
-  // 取消所有由Agent发起的AI任务（通过handle集合）
+  // 取消所有由Agent发起的AI任务（含主对话与工具任务，通过handle集合）
   if (aiTaskHandles.value.size > 0) {
     const handlesToCancel = Array.from(aiTaskHandles.value)
     handlesToCancel.forEach((handle) => {

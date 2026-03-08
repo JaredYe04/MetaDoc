@@ -61,6 +61,9 @@
       "default": {
         "systemPrompt:": "Vous êtes MetaDoc, un assistant IA professionnel. Votre responsabilité principale est d'utiliser de manière flexible les outils IA disponibles pour aider l'utilisateur à accomplir diverses tâches, en fonction de ses besoins, y compris mais sans s'y limiter : génération d'articles, analyse de données, analyse de rapports joints, recherche de connaissances, génération de contenu visuel, etc."
       },
+      "todolist": {
+        "onlyMarkCompleteWhenSucceeded": "## Liste de tâches : ne marquer comme terminé que si l'étape a réussi\nN'utilisez \\`markComplete\\` de todolist **qu'après** avoir confirmé que l'exécution de l'outil pour cette tâche a **réussi** (aucune erreur, pas de « syntaxe de commande incorrecte », « failed », « error » dans le résultat). Si l'étape précédente a échoué, **ne pas** la marquer comme terminée ; corriger la commande ou les paramètres et réessayer, ou signaler l'échec à l'utilisateur. Sinon, un échec en entraîne d'autres."
+      },
       "observationErrorPrompt:": "Observation : Résultat de l'exécution de l'outil non trouvé\\n\\nVeuillez continuer à raisonner et agir en fonction de cette erreur.",
       "planPrompt:": "=== Mode de génération de plan ===\\nVeuillez analyser les besoins de l'utilisateur et générer un plan d'exécution détaillé.\\nFormat du plan (JSON) :\\n```json\\n{\\n  \"steps\": [\\n    {\\n      \"description\": \"Description de l'étape\",\\n      \"tool_id\": \"ID de l'outil (si nécessaire)\",\\n      \"parameters\": {\"paramètre\": \"valeur\"}\\n    }\\n  ]\\n}\\n```\\n\\nSi une étape ne nécessite pas d'outil, vous pouvez omettre tool_id et parameters.",
       "observationErrorPrompt": "Observation : Résultat de l'exécution de l'outil non trouvé"

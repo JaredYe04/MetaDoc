@@ -12,13 +12,15 @@ import { agentConfigManager } from './agent-config-manager'
 export const SUBAGENT_COLLECTION_IDS = {
   workspaceReader: 'subagent-workspace-reader-tools',
   docWriter: 'subagent-doc-writer-tools',
-  search: 'subagent-search-tools'
+  search: 'subagent-search-tools',
+  chart: 'subagent-chart-tools'
 } as const
 
 export const SUBAGENT_CONFIG_IDS = {
   workspaceReader: 'subagent-workspace-reader',
   docWriter: 'subagent-doc-writer',
-  search: 'subagent-search'
+  search: 'subagent-search',
+  chart: 'subagent-chart'
 } as const
 
 function loc(name: string, desc: string): LocalizedText {
@@ -57,6 +59,14 @@ export function initializeSubagentPresets(): void {
     ['rag', 'web-crawler']
   )
 
+  // 4. 绘图/图表：workspace、grep、chart-generation
+  toolCollectionManager.getOrCreateCollection(
+    SUBAGENT_COLLECTION_IDS.chart,
+    loc('Subagent 绘图工具集', 'Subagent chart/drawing tool set'),
+    loc('工作区读取、grep 与图表生成，用于根据上下文生成并保存图表', 'Workspace, grep and chart generation for creating and saving charts'),
+    ['workspace', 'grep', 'chart-generation']
+  )
+
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.workspaceReader,
     loc('Subagent：工作区读取', 'Subagent: Workspace Reader'),
@@ -79,5 +89,13 @@ export function initializeSubagentPresets(): void {
     loc('负责知识库检索与联网查询，返回主 Agent 要求查找的信息', 'RAG and web search, return requested info'),
     [SUBAGENT_COLLECTION_IDS.search],
     { systemPromptKey: 'agent.subagent.search.systemPrompt', injectTimestamp: true }
+  )
+
+  agentConfigManager.getOrCreateConfig(
+    SUBAGENT_CONFIG_IDS.chart,
+    loc('Subagent：绘图/图表', 'Subagent: Chart/Drawing'),
+    loc('根据主 Agent 的提示生成图表，可使用工作区与 grep 获取上下文，将图表保存到指定路径并返回路径', 'Generate charts per main agent instructions; use workspace and grep for context; save charts to path and return path'),
+    [SUBAGENT_COLLECTION_IDS.chart],
+    { systemPromptKey: 'agent.subagent.chart.systemPrompt', injectTimestamp: true }
   )
 }

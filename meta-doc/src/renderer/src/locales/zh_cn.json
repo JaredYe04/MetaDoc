@@ -4404,7 +4404,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "词语",
-    "frequency": "词频"
+    "frequency": "词频",
+    "generating": "正在生成释义…"
   },
   "wordCountDialog": {
     "charactersNoSpaces": "字符数(不计空格)",

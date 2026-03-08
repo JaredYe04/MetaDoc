@@ -364,7 +364,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "Word",
-    "frequency": "Frequency"
+    "frequency": "Frequency",
+    "generating": "Generating…"
   },
   "aiChat": {
     "renameTitle": "Rename",

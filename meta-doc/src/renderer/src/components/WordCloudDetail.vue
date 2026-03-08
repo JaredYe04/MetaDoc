@@ -1,37 +1,74 @@
 <template>
-  <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
-    <div style="width: 100%; height: fit-content; align-items: end">
+  <div
+    class="wordcloud-detail-panel rounded-lg border shadow-lg flex flex-col overflow-hidden select-none"
+    :style="panelStyle"
+  >
+    <!-- 仅在此标题栏上拖拽，避免与内容区点击/选中冲突 -->
+    <div
+      class="drag-handle flex items-center gap-2 px-3 py-2.5 shrink-0 border-b"
+      :style="{
+        background: themeState.currentTheme.background2nd,
+        borderColor: themeState.currentTheme.borderColor,
+        color: themeState.currentTheme.textColor
+      }"
+      @mousedown="onDragStart"
+    >
+      <GripVertical
+        class="shrink-0 opacity-50"
+        :style="{ color: themeState.currentTheme.textColor2 }"
+        :size="16"
+      />
+      <div class="flex-1 min-w-0">
+        <span class="font-semibold truncate block" :style="{ color: themeState.currentTheme.textColor }">
+          {{ props.word ? props.word : t('wordCloudDetail.defaultWord') }}
+        </span>
+        <span
+          class="text-xs mt-0.5 block"
+          :style="{ color: themeState.currentTheme.textColor2 }"
+        >
+          {{ t('wordCloudDetail.frequency') }}: {{ props.frequency }}
+        </span>
+      </div>
       <Button
-        circle
-        plain
-        size="small"
-        type="danger"
+        variant="ghost"
+        size="icon"
+        class="shrink-0 h-8 w-8 rounded-md"
+        :style="{
+          color: themeState.currentTheme.textColor2
+        }"
         @click="handleClose"
-        class="aero-btn"
-        style="float: inline-start"
         @mousedown.stop
       >
+        <X class="h-4 w-4" />
       </Button>
-      <p style="font-weight: bold" @mousedown.stop>
-        {{ props.word ? props.word : t('wordCloudDetail.defaultWord') }}
-      </p>
-      <p :style="{ fontSize: '12px', color: themeState.currentTheme.textColor2 }" @mousedown.stop>
-        {{ t('wordCloudDetail.frequency') }}: {{ props.frequency }}
-      </p>
     </div>
+
     <ScrollArea
-      class="md-container max-h-[20vh] p-[5px] m-0"
       v-if="generated || generating"
-      @mousedown.stop
+      class="flex-1 min-h-0 max-h-[min(20vh,320px)] overflow-auto"
+      :style="{
+        background: themeState.currentTheme.background,
+        color: themeState.currentTheme.textColor
+      }"
     >
-      <MarkdownItEditor :source="generatedText" />
+      <div class="p-3 text-sm wordcloud-detail-content">
+        <MarkdownItEditor :source="generatedText" />
+      </div>
     </ScrollArea>
+    <div
+      v-else
+      class="flex-1 min-h-[80px] flex items-center justify-center text-sm"
+      :style="{ color: themeState.currentTheme.textColor2 }"
+    >
+      {{ generating ? (t('wordCloudDetail.generating') || '…') : '' }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Button } from '@renderer/components/ui/button'
+import { GripVertical, X } from 'lucide-vue-next'
 // @ts-ignore - vue3-markdown-it没有类型定义
 import MarkdownItEditor from 'vue3-markdown-it'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -69,14 +106,9 @@ const props = defineProps({
   }
 })
 
-// onMounted(() => {
-//   reset();
-//   generate();
-// })
 const emit = defineEmits(['accept', 'close'])
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
-import { getSetting } from '../utils/settings'
 import type { AIDialogMessage } from '@/types'
 const { t } = useI18n()
 
@@ -86,48 +118,23 @@ const handleClose = () => {
 const generate = async () => {
   generating.value = true
 
-  // 搜索词语在文档中的上下文
   let contexts: string[] = []
   if (props.adapter && props.documentContent && props.word) {
     try {
-      console.log('[WordCloudDetail] 开始搜索上下文:', {
-        word: props.word,
-        documentContentLength: props.documentContent.length,
-        adapter: props.adapter.getFormat()
-      })
-
       contexts = props.adapter.searchWordContexts(
         props.documentContent,
         props.word,
-        3, // 最多3个上下文
-        200 // 每个上下文200字符
+        3,
+        200
       )
-
-      console.log('[WordCloudDetail] 找到的上下文:', {
-        count: contexts.length,
-        contexts: contexts
-      })
     } catch (error) {
       console.error('[WordCloudDetail] 搜索上下文失败:', error)
     }
-  } else {
-    console.warn('[WordCloudDetail] 无法搜索上下文:', {
-      hasAdapter: !!props.adapter,
-      hasDocumentContent: !!props.documentContent,
-      hasWord: !!props.word
-    })
   }
 
   const prompt = explainWordPrompt(props.word, contexts)
-  console.log('[WordCloudDetail] 生成的提示词:', prompt)
-
-  const messages: AIDialogMessage[] = [
-    {
-      role: 'user',
-      content: prompt
-    }
-  ]
-  const { handle, done } = createAiTask(
+  const messages: AIDialogMessage[] = [{ role: 'user', content: prompt }]
+  const { done } = createAiTask(
     props.word,
     messages,
     generatedText,
@@ -150,28 +157,29 @@ const reset = () => {
   generatedText.value = ''
 }
 const generating = ref(false)
-const userPrompt = ref('')
 const generatedText = ref('')
 const generated = ref(false)
-// 定义计算属性 menuStyles
 const { activeDocument } = useActiveDocument()
 const currentOutline = computed(() => activeDocument.value?.outline ?? null)
-const articleContent = ref('') // 定义 articleContent 变量
-const menuStyles = computed(() => ({
+const articleContent = ref('')
+
+const menuPosition = ref({ top: props.position.top, left: props.position.left })
+const panelStyle = computed(() => ({
   position: 'absolute' as const,
   top: `${menuPosition.value.top}px`,
   left: `${menuPosition.value.left}px`,
-  border: '1px solid rgba(0, 0, 0, 0.1)',
-  padding: '12px',
-  boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.1)',
-  maxWidth: '1000px',
-  minWidth: '300px',
-  zIndex: 1000, // 保证层级
-  color: themeState.currentTheme.textColor2,
-  backdropFilter: 'blur(8px)',
-  background: themeState.currentTheme.titleMenuBackground,
-  borderRadius: '4px' // 更小的圆角半径
+  width: 'min(320px, calc(100vw - 24px))',
+  maxWidth: '380px',
+  minWidth: '280px',
+  zIndex: 1000,
+  background: themeState.currentTheme.background,
+  borderColor: themeState.currentTheme.borderColor,
+  boxShadow:
+    themeState.currentTheme.type === 'dark'
+      ? '0 4px 20px rgba(0,0,0,0.4)'
+      : '0 4px 16px rgba(0,0,0,0.08)'
 }))
+
 const refreshContent = () => {
   menuPosition.value = {
     top: props.position.top,
@@ -186,19 +194,17 @@ const refreshContent = () => {
     articleContent.value = ''
   }
 }
-//如果props的word变了，触发refreshContent
+
 watch(
   () => props.word,
-  (newVal, oldVal) => {
+  () => {
     refreshContent()
   }
 )
 
-const menuPosition = ref({ top: props.position.top, left: props.position.left })
-const isDragging = ref(false)
+// 拖拽：仅在标题栏 mousedown 时开始，避免内容区误触
 const dragStart = ref({ x: 0, y: 0 })
-const onMouseDown = (event: { clientX: number; clientY: number }) => {
-  isDragging.value = true
+const onDragStart = (event: MouseEvent) => {
   dragStart.value = {
     x: event.clientX - menuPosition.value.left,
     y: event.clientY - menuPosition.value.top
@@ -207,8 +213,7 @@ const onMouseDown = (event: { clientX: number; clientY: number }) => {
   document.addEventListener('mouseup', onMouseUp)
 }
 
-const onMouseMove = (event: { clientY: number; clientX: number }) => {
-  if (!isDragging.value) return
+const onMouseMove = (event: MouseEvent) => {
   menuPosition.value = {
     top: event.clientY - dragStart.value.y,
     left: event.clientX - dragStart.value.x
@@ -216,33 +221,35 @@ const onMouseMove = (event: { clientY: number; clientX: number }) => {
 }
 
 const onMouseUp = () => {
-  isDragging.value = false
   document.removeEventListener('mousemove', onMouseMove)
   document.removeEventListener('mouseup', onMouseUp)
 }
+
 onMounted(() => {
   refreshContent()
 })
-watch(
-  () => props.path,
-  (newVal, oldVal) => {
-    //refreshContent();
-  }
-)
 </script>
 
 <style scoped>
-.aero-div {
-  border-radius: 4px; /* 更小的圆角半径，更扁平化 */
+.wordcloud-detail-panel .drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+.wordcloud-detail-panel .drag-handle:active {
+  cursor: grabbing;
 }
 
-.md-container {
-  max-height: 400px;
-  overflow: auto;
-  padding: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(8px);
-  border-radius: 4px; /* 更小的圆角半径 */
-  margin-top: 8px;
+/* 释义内容与主题一致 */
+.wordcloud-detail-content :deep(.vditor-reset),
+.wordcloud-detail-content :deep(.md-editor-preview) {
+  color: inherit;
+  font-size: inherit;
+}
+.wordcloud-detail-content :deep(pre),
+.wordcloud-detail-content :deep(code) {
+  background: v-bind('themeState.currentTheme.background2nd');
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
 }
 </style>

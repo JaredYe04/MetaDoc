@@ -13,42 +13,15 @@
   >
     <table class="descriptions__table">
       <tbody>
-        <tr v-for="(row, rowIndex) in computedRows" :key="rowIndex" class="descriptions__row">
-          <template v-for="(item, itemIndex) in row" :key="itemIndex">
-            <td
-              :class="
-                cn(
-                  'descriptions__cell descriptions__cell--label',
-                  border && 'descriptions__cell--border descriptions__cell--border-label'
-                )
-              "
-            >
-              <span class="descriptions__label-text">{{ item.label }}</span>
-            </td>
-            <td
-              :class="
-                cn(
-                  'descriptions__cell descriptions__cell--content',
-                  border && 'descriptions__cell--border descriptions__cell--border-content'
-                )
-              "
-              :colspan="item.span"
-            >
-              <div class="descriptions__content-wrapper">
-                <slot :name="item.slotName" v-bind="item">
-                  <span class="descriptions__content-text">{{ item.content }}</span>
-                </slot>
-              </div>
-            </td>
-          </template>
-        </tr>
+        <!-- 直接渲染默认 slot，使 DescriptionsItem 挂载并各渲染一行，避免 register 模式下子组件未挂载导致 tbody 为空 -->
+        <slot />
       </tbody>
     </table>
   </div>
 </template>
 
 <script setup>
-import { computed, provide, ref } from 'vue'
+import { provide, computed } from 'vue'
 import { cn } from '../../../lib/utils'
 
 defineOptions({
@@ -72,7 +45,6 @@ const props = defineProps({
   }
 })
 
-// Provide props to child items
 provide(
   'descriptionsBorder',
   computed(() => props.border)
@@ -85,61 +57,6 @@ provide(
   'descriptionsSize',
   computed(() => props.size)
 )
-
-// Reactive items list from registered DescriptionsItem components
-const items = ref([])
-
-// Register/unregister functions provided to children
-provide('registerDescriptionsItem', (item) => {
-  items.value.push(item)
-})
-
-provide('unregisterDescriptionsItem', (item) => {
-  const index = items.value.indexOf(item)
-  if (index > -1) {
-    items.value.splice(index, 1)
-  }
-})
-
-// Compute rows based on column count and item spans
-const computedRows = computed(() => {
-  const rows = []
-  let currentRow = []
-  let currentColSpan = 0
-  const maxCols = Math.max(1, props.column)
-
-  items.value.forEach((item) => {
-    const itemSpan = Math.min(item.span || 1, maxCols)
-
-    // Check if item fits in current row
-    if (currentColSpan + itemSpan > maxCols && currentRow.length > 0) {
-      // Start new row
-      rows.push(currentRow)
-      currentRow = []
-      currentColSpan = 0
-    }
-
-    currentRow.push({
-      ...item,
-      span: itemSpan
-    })
-    currentColSpan += itemSpan
-
-    // If row is full, push it and reset
-    if (currentColSpan >= maxCols) {
-      rows.push(currentRow)
-      currentRow = []
-      currentColSpan = 0
-    }
-  })
-
-  // Push remaining items
-  if (currentRow.length > 0) {
-    rows.push(currentRow)
-  }
-
-  return rows
-})
 </script>
 
 <style scoped>

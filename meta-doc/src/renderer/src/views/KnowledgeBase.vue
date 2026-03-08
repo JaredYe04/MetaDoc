@@ -21,16 +21,24 @@
 
     <!-- 知识库正常界面 -->
     <div v-else class="kb-scroll-wrapper">
-      <div class="kb-container">
-        <!-- Left: list -->
-        <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
-          <!-- 上半部分: 知识库列表，占50%高度 -->
-          <div class="kb-list-wrapper">
+      <div ref="kbContainerRef" class="kb-container">
+        <!-- Left column -->
+        <div
+          class="kb-left"
+          :style="{
+            background: themeState.currentTheme.background,
+            width: leftWidthPercent + '%'
+          }"
+        >
+          <!-- 上: 知识库列表（与右列共用 topPercent，底边必对齐） -->
+          <div
+            class="kb-list-wrapper"
+            :style="{ flex: '0 0 ' + topPercent + '%', minHeight: 0 }"
+          >
             <Card
-              class="kb-panel"
+              class="kb-panel kb-panel-fill"
               :style="{
                 background: themeState.currentTheme.background2nd,
-                height: '100%',
                 position: 'relative'
               }"
             >
@@ -110,19 +118,21 @@
               </CardContent>
             </Card>
           </div>
-
-          <!-- 下半部分: 检索测试，占50%高度 -->
+          <div
+            class="kb-resize-bar kb-resize-h"
+            role="separator"
+            aria-label="调整上下高度"
+            @mousedown.prevent.stop="onResizeBarMouseDown('h', $event)"
+          />
+          <!-- 下: 检索测试（布局与右下配置信息一致，填满剩余高度） -->
           <div class="kb-search-wrapper">
             <Card
-              class="kb-panel"
+              class="kb-panel kb-search kb-panel-fill"
               :style="{
-                background: themeState.currentTheme.background2nd,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
+                background: themeState.currentTheme.background2nd
               }"
             >
-              <CardContent class="kb-card-content">
+              <CardContent class="kb-card-content kb-search-card-content">
                 <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
                 <FormItem :label="$t('setting.knowledgeBaseScoreThreshold')">
                   <div class="flex items-center gap-4" style="margin-bottom: 5px">
@@ -176,7 +186,7 @@
                   t('knowledgeBase.searchTest.searchBtn')
                 }}</Button>
 
-                <el-scrollbar style="flex-grow: 1; margin-top: 10px; min-height: 0">
+                <el-scrollbar class="kb-search-scroll">
                   <Card
                     class="kb-result-card"
                     v-for="(result, index) in searchResults"
@@ -203,15 +213,29 @@
             </Card>
           </div>
         </div>
-
-        <!-- 右边 -->
-        <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
-          <!-- 上：preview -->
-          <Card
-            class="kb-panel kb-preview"
-            :style="{ background: themeState.currentTheme.background2nd, position: 'relative' }"
+        <div
+          class="kb-resize-bar kb-resize-v"
+          role="separator"
+          aria-label="调整左右宽度"
+          @mousedown.prevent.stop="onResizeBarMouseDown('v', $event)"
+        />
+        <!-- Right column -->
+        <div
+          class="kb-right"
+          :style="{ background: themeState.currentTheme.background }"
+        >
+          <!-- 上: preview（与左列共用 topPercent，底边必对齐） -->
+          <div
+            class="kb-preview-wrapper"
+            :style="{ flex: '0 0 ' + topPercent + '%', minHeight: 0 }"
           >
-            <LoadingOverlay :show="!previewLoaded" :message="t('common.loading', '加载中...')" />
+          <Card
+            class="kb-panel kb-preview kb-panel-fill"
+            :style="{
+              background: themeState.currentTheme.background2nd,
+              position: 'relative'
+            }"
+          >
             <CardContent class="kb-card-content">
               <div class="kb-panel-header">
                 <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
@@ -227,18 +251,31 @@
                 </div>
               </div>
 
-              <div class="preview-container" v-if="previewText">
-                <div
-                  :id="previewEditorId"
-                  class="monaco-editor-container"
-                  :key="previewEditorId"
-                ></div>
-              </div>
-              <div v-else class="placeholder">{{ t('knowledgeBase.select_placeholder') }}</div>
+              <Skeleton
+                :loading="!!(selectedItem && !previewLoaded)"
+                :rows="12"
+                animated
+                class="kb-preview-skeleton"
+              >
+                <div class="preview-container" v-if="previewText">
+                  <div
+                    :id="previewEditorId"
+                    class="monaco-editor-container"
+                    :key="previewEditorId"
+                  ></div>
+                </div>
+                <div v-else class="placeholder">{{ t('knowledgeBase.select_placeholder') }}</div>
+              </Skeleton>
             </CardContent>
           </Card>
-
-          <!-- 下：config -->
+          </div>
+          <div
+            class="kb-resize-bar kb-resize-h"
+            role="separator"
+            aria-label="调整上下高度"
+            @mousedown.prevent.stop="onResizeBarMouseDown('h', $event)"
+          />
+          <!-- 下: config -->
           <Card
             class="kb-panel kb-config"
             :style="{ background: themeState.currentTheme.background2nd }"
@@ -249,6 +286,12 @@
               </div>
 
               <el-scrollbar class="config-scroll">
+                <Skeleton
+                  :loading="!!(selectedItem && configInfoLoading)"
+                  :rows="8"
+                  animated
+                  class="kb-config-skeleton"
+                >
                 <div v-if="selectedItem" class="config-content">
                   <Descriptions
                     :column="1"
@@ -354,6 +397,7 @@
                   </div>
                 </div>
                 <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
+                </Skeleton>
               </el-scrollbar>
             </CardContent>
           </Card>
@@ -391,6 +435,7 @@ import { Check, Close, Edit, Lock } from '@element-plus/icons-vue'
 import { queryKnowledgeBase } from '../utils/rag_utils'
 import { Card, CardContent } from '../components/ui/card'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Slider } from '@renderer/components/ui/slider'
@@ -442,6 +487,7 @@ interface KnowledgeBaseItem {
 }
 
 const previewLoaded = ref<boolean>(true)
+const configInfoLoading = ref<boolean>(false)
 const items = ref<KnowledgeBaseItem[]>([])
 const selectedId = ref<string | null>(null)
 const selectedItem = computed(() => items.value.find((i) => i.id === selectedId.value) || null)
@@ -455,6 +501,50 @@ const baseUrl = ref('')
 const knowledgeBaseEnabled = ref<boolean>(settings.enableKnowledgeBase ?? true)
 // Monaco Editor相关
 const previewEditorId = `kb-preview-editor-${Date.now()}`
+
+// 四宫格：左右宽度 + 统一的“上方面板高度”（左右共用，保证两个底下面板底边始终对齐）
+const kbContainerRef = ref<HTMLElement | null>(null)
+const leftWidthPercent = ref(50)
+const topPercent = ref(50) // 左右两列上方面板共用此比例，底边必对齐
+const resizeMode = ref<'v' | 'h' | null>(null)
+
+function clamp(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v))
+}
+
+function onResizeBarMouseDown(mode: 'v' | 'h', e: MouseEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  resizeMode.value = mode
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = mode === 'v' ? 'col-resize' : 'row-resize'
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', onResizeUp)
+}
+
+function onResizeMove(e: MouseEvent) {
+  const mode = resizeMode.value
+  if (!mode || !kbContainerRef.value) return
+  const cr = kbContainerRef.value.getBoundingClientRect()
+  if (mode === 'v') {
+    const p = ((e.clientX - cr.left) / cr.width) * 100
+    leftWidthPercent.value = clamp(p, 25, 75)
+    return
+  }
+  // 水平条：用容器整体高度算比例，左右共用 topPercent，保证底边对齐
+  if (mode === 'h') {
+    const p = ((e.clientY - cr.top) / cr.height) * 100
+    topPercent.value = clamp(p, 20, 80)
+  }
+}
+
+function onResizeUp() {
+  resizeMode.value = null
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeUp)
+}
 
 const ensureExpressReady = async (): Promise<void> => {
   await waitForService('express')
@@ -516,10 +606,11 @@ async function doSearch(): Promise<void> {
   }
 }
 
-// select row
+// select row（仅右上、右下 panel 用 skeleton 加载，无全局 loading）
 function selectRow(row: KnowledgeBaseItem): void {
   if (row.id === selectedId.value) return
   selectedId.value = row.id
+  configInfoLoading.value = true
   fetchInfo(row.id)
   fetchPreview(row.id)
 }
@@ -753,21 +844,21 @@ async function fetchPreview(id: string): Promise<void> {
   isTruncated.value = false
   try {
     await ensureExpressReady()
-    // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
     const encodedId = encodeURIComponent(id)
     const r = await fetch(`${baseUrl.value}/${encodedId}/preview`)
     const j = await r.json()
     previewText.value = j.preview || ''
     isTruncated.value = !!j.truncated
 
-    // 初始化或更新编辑器
+    // 先让 Skeleton 隐藏、插槽渲染出预览容器，再初始化 Monaco（否则 getElementById 取不到）
+    previewLoaded.value = true
     if (previewText.value) {
+      await nextTick()
       await initMonacoEditor()
       updateEditorContent()
     }
   } catch (e) {
     logger.error(e)
-  } finally {
     previewLoaded.value = true
   }
 }
@@ -799,6 +890,8 @@ async function fetchInfo(id: string): Promise<void> {
     }
   } catch (e) {
     logger.error(t('knowledgeBase.fetchKbDetailsError') || '获取知识库详情异常', e)
+  } finally {
+    configInfoLoading.value = false
   }
 }
 
@@ -1070,6 +1163,7 @@ onBeforeUnmount(() => {
   padding: 12px;
 }
 
+/* 两列同高，保证下方两个 panel 底边始终对齐 */
 .kb-container {
   display: flex;
   width: 100%;
@@ -1079,18 +1173,59 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   flex: 1;
   min-height: 0;
+  align-items: stretch;
 }
 
-.kb-left,
-.kb-right {
-  width: 50%;
+.kb-left {
+  flex-shrink: 0;
   height: 100%;
   min-height: 0;
-  padding: 10px;
+  padding: 10px 0 10px 10px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  overflow: hidden;
+}
+
+.kb-right {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 10px 10px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* resize 条默认隐形，hover 时显示细线，保留拖拽热区 */
+.kb-resize-bar.kb-resize-v {
+  width: 8px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  z-index: 2;
+}
+.kb-resize-bar.kb-resize-v:hover,
+.kb-resize-bar.kb-resize-v:active {
+  background: v-bind('themeState.currentTheme.borderColor');
+  opacity: 0.6;
+}
+
+.kb-resize-bar.kb-resize-h {
+  height: 8px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 0.15s;
+  z-index: 2;
+}
+.kb-resize-bar.kb-resize-h:hover,
+.kb-resize-bar.kb-resize-h:active {
+  background: v-bind('themeState.currentTheme.borderColor');
+  opacity: 0.6;
 }
 
 .kb-panel {
@@ -1100,11 +1235,60 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.kb-preview,
-.kb-config {
-  flex: 0 0 50%;
+/* 上方面板高度由 inline style 控制，下方面板 flex:1 填满剩余，保证底边对齐 */
+/* 左列上：固定比例，由 inline flex 控制；下：flex:1 填满，与右列底边对齐 */
+.kb-list-wrapper {
   min-height: 0;
-  max-height: 50%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kb-search-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 与右下配置信息一致：Card 填满 wrapper，CardContent 弹性布局，滚动区 flex:1 */
+.kb-search-wrapper .kb-card-content.kb-search-card-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kb-search-scroll {
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+}
+
+/* 上方面板用 wrapper 定高，内部 Card 填满，避免组件覆盖 flex */
+.kb-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kb-panel-fill {
+  height: 100%;
+  min-height: 0;
+}
+
+.kb-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-config {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .kb-panel-header {
@@ -1127,27 +1311,9 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.kb-list-wrapper {
-  flex: 0 0 50%;
-  min-height: 0;
-  max-height: 50%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
 .kb-list-scroll {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-}
-
-.kb-search-wrapper {
-  flex: 0 0 50%;
-  min-height: 0;
-  max-height: 50%;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
@@ -1182,9 +1348,28 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.kb-config .kb-card-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .config-scroll {
   flex: 1;
   min-height: 0;
+  overflow: auto;
+}
+
+.kb-preview-skeleton,
+.kb-config-skeleton {
+  padding: 8px 0;
+  flex: 1;
+  min-height: 0;
+}
+.kb-preview-skeleton :deep(> div),
+.kb-config-skeleton :deep(> div) {
+  gap: 10px;
 }
 
 .config-content {

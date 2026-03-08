@@ -1,5 +1,5 @@
 <template>
-  <div class="visualize-page">
+  <div ref="rootRef" class="visualize-page">
     <WordCloudDetail
       v-if="showTitleMenu"
       :word="current_word"
@@ -12,13 +12,13 @@
     />
     <div class="main-panel" :style="mainPanelStyle">
       <div class="visualize-container">
-        <!-- 左侧：文章大纲和字数统计 -->
+        <!-- 左侧：文章大纲和字数统计（用 class 供本实例 query，避免多 tab 重复 id） -->
         <div class="left-section">
           <div class="outline-section panel-item">
             <h3>{{ $t('visualize.articleOutline') }}</h3>
             <ScrollArea class="outline-scrollbar">
               <div
-                id="outline-graph"
+                class="js-outline-graph"
                 :style="{
                   color: themeState.currentTheme.textColor
                 }"
@@ -31,8 +31,7 @@
             <h3>{{ $t('visualize.wordCount') }}</h3>
             <div class="word-count-chart-container">
               <div
-                id="word-count-diagram"
-                class="chart-container"
+                class="js-word-count-diagram chart-container"
                 :style="{
                   color: themeState.currentTheme.textColor
                 }"
@@ -52,7 +51,7 @@
           >
             {{ $t('visualize.wordCloud') }}
           </h1>
-          <div id="wordcloud-3d" class="wordcloud-canvas"></div>
+          <div class="js-wordcloud-3d wordcloud-canvas"></div>
         </div>
 
         <!-- 右侧：段落分布和词频统计 -->
@@ -60,14 +59,14 @@
           <div class="pie-analysis panel-item">
             <h3>{{ $t('visualize.paragraphDistribution') }}</h3>
             <div class="pie-chart-container">
-              <div id="pie" class="chart-container"></div>
+              <div class="js-pie chart-container"></div>
             </div>
           </div>
 
           <div class="word-frequency-section panel-item">
             <h3>{{ $t('visualize.wordFrequency') }}</h3>
             <div class="word-frequency-chart-container">
-              <div id="word-frequency-diagram" class="chart-container"></div>
+              <div class="js-word-frequency-diagram chart-container"></div>
             </div>
           </div>
         </div>
@@ -79,6 +78,20 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue'
 
+const props = withDefaults(
+  defineProps<{
+    /** 当前实例对应的 tab id，用于多 tab 时只刷新当前激活 tab 的可视化，避免操作错 DOM */
+    tabId?: string
+  }>(),
+  { tabId: undefined }
+)
+
+// 根元素 ref，所有 DOM 查询限定在本实例内，避免多 tab 下 getElementById 总是拿到第一个
+const rootRef = ref<HTMLElement | null>(null)
+function getRoot(): HTMLElement | null {
+  return rootRef.value
+}
+
 // @ts-ignore - d3-cloud没有类型定义
 import cloud from 'd3-cloud'
 // @ts-ignore - d3类型定义可能不完整
@@ -87,7 +100,6 @@ import {
   generatePieFromData,
   generateWordCountBarChart,
   generateWordFrequencyTrendChart,
-  ConvertMarkdownToHtmlVditor,
   outlineToMindMap
 } from '../utils/md-utils'
 import { createVisualizeAdapter, type VisualizeAdapter } from '../utils/visualize-adapters'
@@ -182,12 +194,41 @@ const refreshAll = async () => {
     words.value = []
     return
   }
-  await processWords()
-  await generateWordCloud()
-  await generateOutlineGraph()
-  await generateWordFrequencyDiagram()
-  await generateWordCountDiagram()
-  await generatePie()
+  // 多 tab 时只刷新当前激活 tab 的实例，避免用错文档数据、画错 DOM
+  if (props.tabId != null && activeTabId.value !== props.tabId) return
+  if (!getRoot()) return
+  // 等待 DOM 布局完成后再测量容器尺寸，避免图表 init 时拿到 0 尺寸
+  await nextTick()
+  try {
+    await processWords()
+  } catch (e) {
+    console.error('[Visualize] processWords failed:', e)
+  }
+  try {
+    await generateWordCloud()
+  } catch (e) {
+    console.error('[Visualize] generateWordCloud failed:', e)
+  }
+  try {
+    await generateOutlineGraph()
+  } catch (e) {
+    console.error('[Visualize] generateOutlineGraph failed:', e)
+  }
+  try {
+    await generateWordFrequencyDiagram()
+  } catch (e) {
+    console.error('[Visualize] generateWordFrequencyDiagram failed:', e)
+  }
+  try {
+    await generateWordCountDiagram()
+  } catch (e) {
+    console.error('[Visualize] generateWordCountDiagram failed:', e)
+  }
+  try {
+    await generatePie()
+  } catch (e) {
+    console.error('[Visualize] generatePie failed:', e)
+  }
 }
 
 eventBus.on('refresh', refreshAll)
@@ -234,18 +275,38 @@ const handleResize = debounce(() => {
   if (wordCount.value.length > 0) {
     generateWordCloud()
   }
+  // 若之前因容器尺寸为 0 未成功初始化，在获得尺寸后补绘 ECharts（限定本实例根）
+  const root = getRoot()
+  if (!root) return
+  const pieNode = root.querySelector('.js-pie')
+  if (article_text.value?.trim() && pieNode && !echarts.getInstanceByDom(pieNode as HTMLElement)) {
+    generatePie()
+  }
+  const wcNode = root.querySelector('.js-word-count-diagram')
+  if (article_text.value?.trim() && wcNode && !echarts.getInstanceByDom(wcNode as HTMLElement)) {
+    generateWordCountDiagram()
+  }
+  const wfNode = root.querySelector('.js-word-frequency-diagram')
+  if (wordCount.value.length > 0 && article_text.value?.trim() && wfNode && !echarts.getInstanceByDom(wfNode as HTMLElement)) {
+    generateWordFrequencyDiagram()
+  }
 }, 300)
 
 onMounted(async () => {
-  // 初始化所有图表
+  // 先等一帧确保 v-show 生效且布局完成，再初始化图表（避免容器 clientWidth/clientHeight 为 0）
+  await nextTick()
+  await new Promise((r) => requestAnimationFrame(r))
   await refreshAll()
 
-  // 使用 ResizeObserver 监听容器大小变化
+  // 使用 ResizeObserver 监听容器大小变化（首次获得尺寸时补绘图表）
   await nextTick()
-  const mainPanel = document.querySelector('.main-panel')
+  const mainPanel = getRoot()?.querySelector('.main-panel')
   if (mainPanel) {
     resizeObserver = new ResizeObserver(() => {
       handleResize()
+      if (wordCount.value.length > 0 && !getRoot()?.querySelector('.js-wordcloud-3d svg')) {
+        generateWordCloud()
+      }
     })
     resizeObserver.observe(mainPanel)
   }
@@ -283,7 +344,7 @@ onBeforeUnmount(() => {
   }
 })
 const generatePie = async () => {
-  const node = document.getElementById('pie')
+  const node = getRoot()?.querySelector('.js-pie') as HTMLElement | null
   if (!node) return
 
   const adapter = currentAdapter.value
@@ -344,7 +405,7 @@ const generatePie = async () => {
 }
 
 const generateWordCountDiagram = async () => {
-  const node = document.getElementById('word-count-diagram')
+  const node = getRoot()?.querySelector('.js-word-count-diagram') as HTMLElement | null
   if (!node) return
   if (!article_text.value?.trim()) {
     return
@@ -365,7 +426,7 @@ const generateWordCountDiagram = async () => {
 }
 
 const generateWordFrequencyDiagram = async () => {
-  const node = document.getElementById('word-frequency-diagram')
+  const node = getRoot()?.querySelector('.js-word-frequency-diagram') as HTMLElement | null
   if (!node) return
   if (!wordCount.value.length || !article_text.value?.trim()) {
     return
@@ -387,8 +448,45 @@ const generateWordFrequencyDiagram = async () => {
   tryInit()
 }
 
+/** 将 outline 的简单 Markdown（仅 "- Title" 缩进列表）转为 HTML，不依赖 Vditor，避免多 tab 下 Vditor 访问已移除 DOM 导致 classList 为 null */
+function outlineMarkdownToHtml(md: string): string {
+  const escape = (s: string) =>
+    s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  const lines = md.split('\n').filter((l) => l.trim())
+  const stack: number[] = []
+  const out: string[] = []
+  for (const line of lines) {
+    const m = line.match(/^(\s*)-\s+(.*)$/)
+    if (!m) continue
+    const indent = m[1].length
+    const title = escape(m[2].trim())
+    while (stack.length && stack[stack.length - 1]! > indent) {
+      stack.pop()
+      out.push('</li></ul>')
+    }
+    if (stack.length && stack[stack.length - 1] === indent) {
+      out.push('</li>')
+    }
+    while ((!stack.length && indent > 0) || (stack.length && stack[stack.length - 1]! < indent)) {
+      out.push('<ul>')
+      stack.push(indent)
+    }
+    out.push('<li>', title)
+  }
+  while (stack.length) {
+    stack.pop()
+    out.push('</li></ul>')
+  }
+  return out.join('')
+}
+
 const generateOutlineGraph = async () => {
-  const node = document.getElementById('outline-graph')
+  const node = getRoot()?.querySelector('.js-outline-graph') as HTMLElement | null
   if (!node) return
 
   const doc = activeDocument.value
@@ -406,7 +504,7 @@ const generateOutlineGraph = async () => {
   }
 
   const md = outlineToMindMap(tree)
-  const html = await ConvertMarkdownToHtmlVditor(md)
+  const html = outlineMarkdownToHtml(md)
   node.innerHTML = html
   const lis = node.getElementsByTagName('li')
   for (let i = 0; i < lis.length; i++) {
@@ -473,7 +571,9 @@ const processWords = async () => {
   }
 }
 const generateWordCloud = async () => {
-  const container = d3.select('#wordcloud-3d')
+  const containerNode = getRoot()?.querySelector('.js-wordcloud-3d') as HTMLElement | null
+  if (!containerNode) return
+  const container = d3.select(containerNode)
   container.selectAll('svg').remove()
 
   if (!wordCount.value.length) {
@@ -488,9 +588,7 @@ const generateWordCloud = async () => {
     return
   }
 
-  // 获取容器实际大小
-  const containerNode = document.getElementById('wordcloud-3d')
-  if (!containerNode) return
+  // 获取容器实际大小（已取到 containerNode）
   const containerWidth = containerNode.clientWidth || 600
   const containerHeight = containerNode.clientHeight || 600
   const size = Math.min(containerWidth, containerHeight, 600)
@@ -540,7 +638,7 @@ const generateWordCloud = async () => {
       .style('opacity', 1)
       .text((d: any) => d.text)
 
-    d3.selectAll('.wordcloud-text').on('click', (event: MouseEvent, d: any) => {
+    container.selectAll('.wordcloud-text').on('click', (event: MouseEvent, d: any) => {
       current_word.value = d.text
       current_frequency.value = d.size
       showTitleMenu.value = false

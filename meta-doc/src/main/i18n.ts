@@ -125,6 +125,8 @@ export const dispatchLanguageToWindow = (
 export const broadcastLanguage = (locale: string = currentLocale): void => {
   const targetLocale = isSupportedLocale(locale) ? locale : FALLBACK_LOCALE
   BrowserWindow.getAllWindows().forEach((win) => {
-    dispatchLanguageToWindow(win, targetLocale)
+    if (!win.isDestroyed()) {
+      dispatchLanguageToWindow(win, targetLocale)
+    }
   })
 }

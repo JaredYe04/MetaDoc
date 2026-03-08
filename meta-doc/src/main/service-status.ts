@@ -23,7 +23,9 @@ const cloneStatus = (): ServiceStatusMap => ({
 const broadcastStatus = (): void => {
   const snapshot = cloneStatus()
   BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('service-status-updated', snapshot)
+    if (!win.isDestroyed()) {
+      win.webContents.send('service-status-updated', snapshot)
+    }
   })
 }
 

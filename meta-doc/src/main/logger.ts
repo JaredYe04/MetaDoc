@@ -58,6 +58,8 @@ let initialized = false
 
 let stream: fs.WriteStream | null = null
 let waitingForReady = false
+/** 关闭后不再向窗口广播，避免退出时对已销毁窗口 send 报错 */
+let loggerShutdown = false
 const logHistory: ConsoleHistoryEntry[] = []
 const MAX_HISTORY = 500
 
@@ -176,6 +178,7 @@ const appendToFile = (line: string) => {
 }
 
 const broadcastConsoleMessage = (level: LogLevel, line: string): void => {
+  if (loggerShutdown) return
   const channel = level === 'error' ? 'console-err' : 'console-out'
   const type =
     level === 'error' ? 'err' : level === 'warn' ? 'warn' : level === 'debug' ? 'debug' : 'out'
@@ -186,11 +189,16 @@ const broadcastConsoleMessage = (level: LogLevel, line: string): void => {
   }
 
   BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send(channel, {
-      key: 'logger',
-      content: line,
-      type
-    })
+    try {
+      if (win.isDestroyed() || win.webContents?.isDestroyed?.()) return
+      win.webContents.send(channel, {
+        key: 'logger',
+        content: line,
+        type
+      })
+    } catch {
+      // 关闭过程中窗口可能已被销毁，忽略
+    }
   })
 }
 
@@ -301,6 +309,7 @@ export const initLogger = (): void => {
 }
 
 export const shutdownLogger = (): void => {
+  loggerShutdown = true
   if (stream) {
     stream.end()
     stream = null
@@ -541,9 +550,15 @@ export const openLogDirectory = async (): Promise<void> => {
 }
 
 export const broadcastLoggerConfig = (): void => {
+  if (loggerShutdown) return
   const configSnapshot = getLoggerConfig()
   BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('logger-config-updated', configSnapshot)
+    try {
+      if (win.isDestroyed() || win.webContents?.isDestroyed?.()) return
+      win.webContents.send('logger-config-updated', configSnapshot)
+    } catch {
+      // 关闭过程中窗口可能已被销毁，忽略
+    }
   })
 }
 

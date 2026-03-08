@@ -3452,13 +3452,17 @@ function bindAITaskHandlers(): void {
 
   ipcBridge.registerOn('broadcast-cancel-ai-task', (event: IpcMainEvent, handle: string) => {
     BrowserWindow.getAllWindows().forEach((win) => {
-      win.webContents.send('cancel-task', handle)
+      if (!win.isDestroyed()) {
+        win.webContents.send('cancel-task', handle)
+      }
     })
   })
 
   ipcBridge.registerOn('start-task', (event: IpcMainEvent, handle: string) => {
     BrowserWindow.getAllWindows().forEach((win) => {
-      win.webContents.send('start-task', handle)
+      if (!win.isDestroyed()) {
+        win.webContents.send('start-task', handle)
+      }
     })
   })
 }

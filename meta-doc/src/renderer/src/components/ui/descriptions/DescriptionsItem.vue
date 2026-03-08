@@ -1,14 +1,6 @@
 <script setup>
-import {
-  inject,
-  onMounted,
-  onUnmounted,
-  getCurrentInstance,
-  computed,
-  ref,
-  watch,
-  useSlots
-} from 'vue'
+import { inject, computed } from 'vue'
+import { cn } from '../../../lib/utils'
 
 defineOptions({
   name: 'DescriptionsItem'
@@ -29,51 +21,36 @@ const props = defineProps({
   }
 })
 
-const register = inject('registerDescriptionsItem')
-const unregister = inject('unregisterDescriptionsItem')
-
-// Generate unique slot name
-const instance = getCurrentInstance()
-const slotName = `item-${instance?.uid || Math.random().toString(36).substr(2, 9)}`
-
-const slots = useSlots()
-
-// Create a reactive item object
-const item = ref({
-  label: props.label,
-  span: props.span,
-  content: props.content,
-  slotName,
-  hasSlot: computed(() => !!slots.default)
-})
-
-// Watch for prop changes and update item
-watch(
-  () => [props.label, props.span, props.content],
-  ([newLabel, newSpan, newContent]) => {
-    item.value.label = newLabel
-    item.value.span = newSpan
-    item.value.content = newContent
-  }
-)
-
-onMounted(() => {
-  if (register) {
-    register(item.value)
-  }
-})
-
-onUnmounted(() => {
-  if (unregister) {
-    unregister(item.value)
-  }
-})
+const border = inject('descriptionsBorder', computed(() => false))
+const size = inject('descriptionsSize', computed(() => 'default'))
 </script>
 
 <template>
-  <!-- This component doesn't render anything itself -->
-  <!-- It registers itself with the parent Descriptions component -->
-  <div style="display: none">
-    <slot />
-  </div>
+  <tr class="descriptions__row">
+    <td
+      :class="
+        cn(
+          'descriptions__cell descriptions__cell--label',
+          border && 'descriptions__cell--border descriptions__cell--border-label'
+        )
+      "
+    >
+      <span class="descriptions__label-text">{{ label }}</span>
+    </td>
+    <td
+      :class="
+        cn(
+          'descriptions__cell descriptions__cell--content',
+          border && 'descriptions__cell--border descriptions__cell--border-content'
+        )
+      "
+      :colspan="span"
+    >
+      <div class="descriptions__content-wrapper">
+        <slot>
+          <span class="descriptions__content-text">{{ content }}</span>
+        </slot>
+      </div>
+    </td>
+  </tr>
 </template>

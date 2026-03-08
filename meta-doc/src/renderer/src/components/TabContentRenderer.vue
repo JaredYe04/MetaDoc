@@ -49,6 +49,7 @@
                 getDocumentView(tab.id) === 'visualize'
               "
               :key="`visualize-${tab.id}`"
+              :tab-id="tab.id"
             />
           </keep-alive>
           <!-- Proofread视图 - 使用v-show代替v-if，配合keep-alive实现缓存 -->

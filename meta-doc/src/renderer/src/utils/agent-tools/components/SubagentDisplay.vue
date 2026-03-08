@@ -36,7 +36,7 @@
           <div class="subagent-result-text">{{ resultText }}</div>
         </div>
         <div v-else-if="!subagentMessages?.length" class="subagent-empty">
-          <template v-if="status === 'running' || status === 'pending'">
+          <template v-if="effectiveStatus === 'running' || effectiveStatus === 'pending'">
             <el-icon class="is-loading"><Loading /></el-icon>
             {{ $t('agent.display.subagent.running', '执行中...') }}
           </template>
@@ -55,12 +55,15 @@ import { Badge } from '@renderer/components/ui/badge'
 import { ChevronRight, ChevronDown } from 'lucide-vue-next'
 import { Loading } from '@element-plus/icons-vue'
 import type { AgentMessage } from '../../../types/agent'
+import { useToolDisplayRealtime } from '../composables/useToolDisplayRealtime'
 
 const props = withDefaults(
   defineProps<{
     data?: { subagentMessages?: AgentMessage[]; result?: string }
     status?: string
     compact?: boolean
+    invocationId?: string
+    progress?: unknown
   }>(),
   { compact: false }
 )
@@ -68,8 +71,18 @@ const props = withDefaults(
 const { t } = useI18n()
 const open = ref(!props.compact)
 
-const subagentMessages = computed(() => props.data?.subagentMessages ?? [])
-const resultText = computed(() => props.data?.result ?? '')
+// 使用实时数据（与 Terminal/TodoList 一致），便于后续在 runSubagent 中通过 tool-update 推送执行步骤
+const { realtimeData, realtimeStatus } = useToolDisplayRealtime(
+  props.invocationId,
+  props.data,
+  props.status,
+  props.progress
+)
+const effectiveData = computed(() => (realtimeData.value !== null ? realtimeData.value : props.data) ?? {})
+const effectiveStatus = computed(() => (realtimeStatus.value !== 'running' ? realtimeStatus.value : props.status) ?? '')
+
+const subagentMessages = computed(() => (effectiveData.value as any)?.subagentMessages ?? [])
+const resultText = computed(() => (effectiveData.value as any)?.result ?? '')
 const messageCount = computed(() => subagentMessages.value.length)
 const label = computed(() => t('agent.display.subagent.title', 'Subagent'))
 

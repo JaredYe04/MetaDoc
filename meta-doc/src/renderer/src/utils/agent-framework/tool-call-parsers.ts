@@ -120,6 +120,34 @@ class StandardToolCallParser implements ToolCallParser {
             }
           }
         } else {
+          // 先检查 DSML：一个 <tool_call> 块内可能包含多个 <｜DSML｜invoke>，需全部解析并入队
+          if (
+            /<｜DSML｜invoke/i.test(toolCallContent) ||
+            /<｜DSML｜function_calls>/i.test(toolCallContent) ||
+            /<｜DSML｜call/i.test(toolCallContent) ||
+            /<｜DSML｜_call/i.test(toolCallContent)
+          ) {
+            const dsmlParser = new DeepSeekDSMLParser()
+            const dsmlResults = dsmlParser.parse(toolCallContent, {})
+            if (dsmlResults && dsmlResults.length > 0) {
+              getLogger().debug(
+                '[StandardToolCallParser] DSML 解析到多个 invoke，全部入队:',
+                dsmlResults.length
+              )
+              for (let i = 0; i < dsmlResults.length; i++) {
+                const parsed = dsmlResults[i]
+                if (validateToolId && parsed.isValid && toolIdValidator) {
+                  if (!toolIdValidator(parsed.tool_id)) {
+                    parsed.isValid = false
+                    parsed.error = `工具ID "${parsed.tool_id}" 不存在或不可用`
+                  }
+                }
+                toolCalls.push(parsed)
+                index++
+              }
+              continue
+            }
+          }
           const parsed = this.parseSingleToolCall(toolCallContent, index)
           if (parsed) {
             if (validateToolId && parsed.isValid && toolIdValidator) {
@@ -159,6 +187,39 @@ class StandardToolCallParser implements ToolCallParser {
           return dsmlResults[0]
         }
         // 如果DSML解析失败，继续尝试JSON解析
+      }
+
+      // 兼容 LLM 错误格式：<tool_id> 换行后直接跟 JSON，例如 <subagent-doc-writer>\n{ "prompt": "..." }
+      // 未使用标准格式 {"name": "tool_id", "arguments": {...}}
+      const tagThenJsonMatch = toolCallContent.match(/^\s*<([a-zA-Z0-9_-]+)>\s*[\r\n]+\s*\{/)
+      if (tagThenJsonMatch) {
+        const toolId = tagThenJsonMatch[1]
+        // 从第一个 { 开始截取，保证 extractOuterJsonString 能解析完整 JSON（match[0] 可能含 {，slice 会丢掉）
+        const braceIdx = toolCallContent.indexOf('{', tagThenJsonMatch[0].length - 1)
+        const jsonPart = braceIdx >= 0 ? toolCallContent.slice(braceIdx) : toolCallContent.slice(tagThenJsonMatch[0].length)
+        const jsonStr = extractOuterJsonString(jsonPart) || jsonPart.trim()
+        if (jsonStr && jsonStr.startsWith('{')) {
+          let parameters: Record<string, unknown> | null = null
+          let parsed: any = parseLooseJson(jsonStr)
+          if (!parsed && tryFixJsonFormat(jsonStr)) {
+            parsed = parseLooseJson(tryFixJsonFormat(jsonStr)!)
+          }
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            parameters = parsed
+          }
+          if (parameters) {
+            getLogger().debug(
+              `[StandardToolCallParser] 兼容格式解析成功: toolId=${toolId}（<tag>\\n{...}）`
+            )
+            return {
+              id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+              tool_id: toolId,
+              parameters,
+              isValid: true,
+              rawContent: toolCallContent
+            }
+          }
+        }
       }
 
       // 尝试使用DOMParser解析XML格式
@@ -1802,6 +1863,9 @@ function parseLooseJson(jsonStr: string): any | null {
         //getLogger().debug('[parseLooseJson] 未闭合 JSON 已补全并解析成功')
         return parsed
       } catch {
+        // 字符串值内未转义的双引号（如 diff 中的 "神经元死亡"）导致解析失败时，尝试修复后再解析
+        const withQuotes = tryFixUnescapedQuotesInStrings(cleaned)
+        if (withQuotes != null) return JSON.parse(withQuotes)
         return null
       }
     }
@@ -1872,6 +1936,65 @@ function extractParameters(obj: any): Record<string, unknown> | null {
   }
 
   return {}
+}
+
+/**
+ * 尝试修复字符串值内未转义的双引号与原始换行（agent 常在 diff/filePath 等长字符串中写入未转义的 " 或真实换行）
+ * 规则：在字符串内部若遇到 " 且前一字符不是 \，且下一非空字符不是 : , } ]，则视为内容中的引号并转义；
+ * 在字符串内部将原始 \r\n / \n / \r 转为 \\n。
+ */
+function tryFixUnescapedQuotesInStrings(jsonStr: string): string | null {
+  let inString = false
+  let result = ''
+  let i = 0
+  const len = jsonStr.length
+  while (i < len) {
+    const c = jsonStr[i]
+    if (!inString) {
+      result += c
+      if (c === '"') inString = true
+      i++
+      continue
+    }
+    // 已在字符串内
+    if (c === '\\') {
+      result += c
+      if (i + 1 < len) {
+        result += jsonStr[i + 1]
+        i += 2
+      } else {
+        i++
+      }
+      continue
+    }
+    if (c === '"') {
+      const rest = jsonStr.slice(i + 1).replace(/^\s*/, '')
+      const next = rest[0]
+      if (next === undefined || next === ',' || next === '}' || next === ']' || next === ':') {
+        result += c
+        inString = false
+        i++
+        continue
+      }
+      result += '\\"'
+      i++
+      continue
+    }
+    if (c === '\r' || c === '\n') {
+      result += '\\n'
+      if (c === '\r' && i + 1 < len && jsonStr[i + 1] === '\n') i++
+      i++
+      continue
+    }
+    result += c
+    i++
+  }
+  try {
+    JSON.parse(result)
+    return result
+  } catch {
+    return null
+  }
 }
 
 /**

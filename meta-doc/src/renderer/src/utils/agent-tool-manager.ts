@@ -123,7 +123,8 @@ class AgentToolManager {
       status: ToolExecutionStatus,
       data?: ToolCallbackData,
       progress?: ToolProgress
-    ) => void
+    ) => void,
+    invocationId?: string
   ): Promise<ToolCallbackResult> {
     const resolvedId = resolveToolId(toolId)
     const tool = this.tools.get(resolvedId)
@@ -136,13 +137,13 @@ class AgentToolManager {
     }
 
     // 不再检查 tool.running，因为现在支持同一 Tool 的并发执行
-    // 每个 invocation 都有独立的 invocationId，通过 invocations Map 来管理
-
-    const invocationId = `invocation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // 每个 invocation 都有独立的 invocationId；若调用方传入（如 tool_call_id），则使用它以便 Display 收到事件
+    const resolvedInvocationId =
+      invocationId || `invocation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const controller = new AbortController()
 
     const context: ToolInvocationContext = {
-      invocationId,
+      invocationId: resolvedInvocationId,
       toolId,
       params,
       startTime: new Date().toISOString(),
@@ -154,7 +155,7 @@ class AgentToolManager {
       lastRefLength: 0 // 初始化最后ref长度
     }
 
-    this.invocations.set(invocationId, context)
+    this.invocations.set(resolvedInvocationId, context)
     // 设置 running 为 true（因为当前 invocation 即将开始运行）
     // 即使有其他正在运行的 invocation，这个标志也应该为 true
     tool.running = true
@@ -163,7 +164,7 @@ class AgentToolManager {
 
     // 通过eventBus发送初始化事件，包含invocationId
     const startEvent = {
-      invocationId,
+      invocationId: resolvedInvocationId,
       toolId,
       params,
       timestamp: Date.now()
@@ -181,7 +182,7 @@ class AgentToolManager {
         context.lastUpdateTime = Date.now()
 
         // 通过eventBus发送实时更新事件
-        emitToolUpdate(invocationId, data, progress)
+        emitToolUpdate(resolvedInvocationId, data, progress)
         // 同时调用原有的回调（保持兼容性）
         onStatusUpdate?.('running', data, progress)
       }
@@ -191,7 +192,7 @@ class AgentToolManager {
 
       // 更新状态：检查是否还有其他正在运行的 invocation
       const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
-        (inv) => inv.toolId === toolId && inv.invocationId !== invocationId
+        (inv) => inv.toolId === toolId && inv.invocationId !== resolvedInvocationId
       )
       if (!hasOtherRunningInvocations) {
         tool.running = false
@@ -205,7 +206,7 @@ class AgentToolManager {
           : result.status === 'running'
             ? 'succeeded'
             : 'failed'
-      emitToolComplete(invocationId, {
+      emitToolComplete(resolvedInvocationId, {
         status: completeStatus,
         data: result.data,
         error: result.error,
@@ -220,7 +221,7 @@ class AgentToolManager {
       const logger = createRendererLogger('AgentToolManager')
       // 更新状态：检查是否还有其他正在运行的 invocation
       const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
-        (inv) => inv.toolId === toolId && inv.invocationId !== invocationId
+        (inv) => inv.toolId === toolId && inv.invocationId !== resolvedInvocationId
       )
       if (!hasOtherRunningInvocations) {
         tool.running = false
@@ -234,13 +235,13 @@ class AgentToolManager {
       }
 
       // 通过eventBus发送失败事件
-      emitToolFailed(invocationId, errorMessage)
+      emitToolFailed(resolvedInvocationId, errorMessage)
 
       // 同时调用原有的回调（保持兼容性）
       onStatusUpdate?.('failed', undefined, undefined)
       return errorResult
     } finally {
-      this.invocations.delete(invocationId)
+      this.invocations.delete(resolvedInvocationId)
     }
   }
 

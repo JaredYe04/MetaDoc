@@ -30,8 +30,22 @@ import { getPromptByKey } from '../prompts'
 import { getRuntimeServerBaseUrlSync } from '../../config/runtime-server'
 import { extractOuterJsonString } from '../regex-utils'
 import { retryLLMCall } from './tool-utils'
+import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('ChartGenerationTool')
+
+/** 根据 format 得到文件扩展名 */
+function getExtensionForFormat(format: 'svg' | 'png' | 'pdf'): string {
+  return format === 'pdf' ? 'pdf' : format
+}
+
+/** 确保路径有扩展名；若无则按 format 补全 */
+function ensureExtension(filePath: string, format: 'svg' | 'png' | 'pdf'): string {
+  const ext = getExtensionForFormat(format)
+  if (filePath.endsWith(`.${ext}`)) return filePath
+  if (/\.(svg|png|pdf)$/i.test(filePath)) return filePath
+  return `${filePath.replace(/[/\\]+$/, '')}.${ext}`
+}
 
 // 图表类型映射
 const CHART_TYPE_MAP: Record<string, string> = {
@@ -796,6 +810,9 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
   const chartType = (params.chartType as string) || 'mermaid'
   const format = (params.format as 'svg' | 'png' | 'pdf') || 'svg'
   const chartName = (params.chartName as string) || `chart_${Date.now()}`
+  const savePath = params.savePath as string | undefined
+  const outputDir = params.outputDir as string | undefined
+  const filename = params.filename as string | undefined
 
   // 如果提供了 code 参数，则 prompt 不是必需的；否则 prompt 是必需的
   if (!chartCode && (!prompt || typeof prompt !== 'string')) {
@@ -1286,7 +1303,45 @@ ${currentCode}
       finalUrl = `${getRuntimeServerBaseUrlSync()}/images/${pdfFileName}`
     }
 
-    // 步骤4: 返回结果
+    // 步骤4: 可选——将图片保存到指定路径
+    let savedPath: string | undefined
+    const ext = getExtensionForFormat(format)
+    if (savePath || outputDir) {
+      let targetPath: string
+      if (savePath) {
+        targetPath = ensureExtension(savePath.trim(), format)
+      } else if (outputDir) {
+        const base = (filename || chartName).trim().replace(/[/\\]+/g, '_')
+        const name = base.endsWith(`.${ext}`) ? base : `${base}.${ext}`
+        targetPath = `${outputDir.replace(/[/\\]+$/, '')}/${name}`
+      } else {
+        targetPath = ''
+      }
+      if (targetPath) {
+        try {
+          const res = await fetch(finalUrl, { signal })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const buf = await res.arrayBuffer()
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+          await messageBridge.invoke('write-file-content', {
+            filePath: targetPath,
+            content: base64,
+            encoding: 'base64'
+          })
+          savedPath = targetPath
+          logger.info('[chart-generation] 已保存到:', targetPath)
+        } catch (saveErr) {
+          const msg = saveErr instanceof Error ? saveErr.message : String(saveErr)
+          logger.error('[chart-generation] 保存到文件失败:', saveErr)
+          return {
+            status: 'failed',
+            error: `图表已生成但保存到文件失败: ${msg}`
+          }
+        }
+      }
+    }
+
+    // 步骤5: 返回结果
     const result = {
       chartName,
       chartType: normalizedChartType,
@@ -1294,7 +1349,8 @@ ${currentCode}
       localPath,
       chartCode: finalChartCode, // 包含提取后的可直接渲染的代码
       // 如果是 PDF 格式，保存原始 SVG URL 用于显示
-      svgUrl: format === 'pdf' ? originalSvgUrl : undefined
+      svgUrl: format === 'pdf' ? originalSvgUrl : undefined,
+      ...(savedPath !== undefined && { savedPath })
     }
 
     onUpdate(
@@ -1366,8 +1422,11 @@ function getChartGenerationToolLocales(): ToolLocales {
   "prompt": "string",        // 可选，图表描述或需求（如果提供了code参数，则不需要prompt）
   "chartType": "string",     // 可选，图表类型（mermaid/echarts/plantuml/flowchart/graphviz），默认mermaid
   "format": "string",        // 可选，导出格式（svg/png/pdf），默认svg
-  "chartName": "string",     // 可选，图表名称，默认自动生成
-  "code": "string"           // 可选，直接提供图表代码（如果提供了code，则跳过LLM生成，prompt可以为空）
+  "chartName": "string",     // 可选，图表名称，默认自动生成，也可用于生成文件名
+  "code": "string",          // 可选，直接提供图表代码（如果提供了code，则跳过LLM生成，prompt可以为空）
+  "savePath": "string",      // 可选，保存图片的完整路径（如 D:/project/images/chart.svg），指定后会将图片写入该路径并返回 savedPath
+  "outputDir": "string",     // 可选，保存图片的目录；与 filename 或 chartName 组合成最终路径
+  "filename": "string"       // 可选，保存时的文件名（可含扩展名，否则按 format 补全）；与 outputDir 配合使用
 }
 \`\`\`
 
@@ -1428,22 +1487,32 @@ function getChartGenerationToolLocales(): ToolLocales {
 - \`chartName\`: 图表名称
 - \`chartType\`: 图表类型
 - \`url\`: **图表图片URL**（运行时服务器图片地址，形如 ${baseUrl}/images/xxx.svg）- **这是要插入到文档中的URL，不是代码！**
-- \`localPath\`: 本地绝对路径
+- \`localPath\`: 本地绝对路径（运行时缓存路径）
 - \`chartCode\`: 提取后的可直接渲染的图表代码（仅用于调试，**不应该插入到文档中**）
+- \`savedPath\`: **可选**，若调用了 \`savePath\` 或 \`outputDir\`，则返回实际写入的本地绝对路径，用于在文档中插入 \`![描述](savedPath)\` 或 LaTeX \`\\\\includegraphics{savedPath}\`
 
 ## ⚠️ 重要：插入图表到文档的方法
 
-**生成图表后，必须使用 \`edit\` 工具将图片URL插入到文档中，而不是插入图表代码！**
+**生成图表后，使用 \`edit\` 工具将图表插入到文档中。Markdown 可选用代码块或图片链接；LaTeX 必须使用图片引用。**
+- **Markdown**：可直接插入 \`\`\`mermaid / \`\`\`echarts 代码块（会渲染），也可保存图片后插入 \`![描述](url或savedPath)\`。
+- **LaTeX**：必须保存为文件（如 \`format: "pdf"\` 并指定 \`savePath\` 或 \`outputDir\`），再插入 \`\\\\includegraphics{路径}\`。
 
 ### 对于Markdown格式文档：
-插入图片URL使用Markdown图片语法：
+方式一：插入图片（可使用返回的 \`url\` 或 \`savedPath\`）：
 \`\`\`markdown
 ![图表描述](${baseUrl}/images/xxx.svg)
 \`\`\`
+方式二：直接插入代码块（会渲染为图表）：
+\`\`\`markdown
+\`\`\`mermaid
+graph LR
+  A --> B
+\`\`\`
+\`\`\`
 
 ### 对于LaTeX格式文档：
-1. **必须使用PDF格式**：LaTeX文档只支持PDF格式的图表，必须设置 \`format: "pdf"\`
-2. 插入图片URL使用LaTeX图片语法：
+1. **必须使用PDF格式**：LaTeX文档只支持PDF格式的图表，必须设置 \`format: "pdf"\`，并建议使用 \`savePath\` 或 \`outputDir\` 将图表保存到项目目录。
+2. 插入图片使用LaTeX语法（使用 \`savedPath\` 或 \`url\` 对应路径）：
 \`\`\`latex
 \\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}
 \`\`\`
@@ -1532,8 +1601,11 @@ Automatically generates various types of chart code based on user-provided promp
   "prompt": "string",        // Optional, chart description or requirement (not needed if code parameter is provided)
   "chartType": "string",     // Optional, chart type (mermaid/echarts/plantuml/flowchart/graphviz), default mermaid
   "format": "string",        // Optional, export format (svg/png/pdf), default svg
-  "chartName": "string",     // Optional, chart name, default auto-generated
-  "code": "string"           // Optional, directly provide chart code (if code is provided, LLM generation is skipped, prompt can be empty)
+  "chartName": "string",     // Optional, chart name, default auto-generated; also used for filename when saving
+  "code": "string",          // Optional, directly provide chart code (if code is provided, LLM generation is skipped, prompt can be empty)
+  "savePath": "string",      // Optional, full path to save the image (e.g. D:/project/images/chart.svg); returns savedPath in result
+  "outputDir": "string",     // Optional, directory to save the image; combined with filename or chartName
+  "filename": "string"       // Optional, filename when saving (extension added from format if missing); use with outputDir
 }
 \`\`\`
 
@@ -1594,22 +1666,32 @@ Returns JSON format result containing:
 - \`chartName\`: Chart name
 - \`chartType\`: Chart type
 - \`url\`: **Chart image URL** (${baseUrl}/images/...) - **This is the URL to insert into document, not code!**
-- \`localPath\`: Local absolute path
+- \`localPath\`: Local absolute path (runtime cache path)
 - \`chartCode\`: Extracted directly renderable chart code (for debugging only, **should not be inserted into document**)
+- \`savedPath\`: **Optional**; when \`savePath\` or \`outputDir\` was used, the actual saved file path for \`![desc](savedPath)\` or LaTeX \`\\\\includegraphics{savedPath}\`
 
 ## ⚠️ Important: Method to Insert Chart into Document
 
-**After generating chart, must use \`edit\` tool to insert image URL into document, not insert chart code!**
+**After generating chart, use \`edit\` tool to insert the chart into the document. Markdown: code block or image link; LaTeX: image reference only.**
+- **Markdown**: You can insert a \`\`\`mermaid / \`\`\`echarts code block (it will render), or save the image and insert \`![desc](url or savedPath)\`.
+- **LaTeX**: Must save to file (e.g. \`format: "pdf"\` with \`savePath\` or \`outputDir\`), then insert \`\\\\includegraphics{path}\`.
 
 ### For Markdown Format Documents:
-Insert image URL using Markdown image syntax:
+Option 1: Insert image (use returned \`url\` or \`savedPath\`):
 \`\`\`markdown
 ![Chart Description](${baseUrl}/images/xxx.svg)
 \`\`\`
+Option 2: Insert code block (renders as chart):
+\`\`\`markdown
+\`\`\`mermaid
+graph LR
+  A --> B
+\`\`\`
+\`\`\`
 
 ### For LaTeX Format Documents:
-1. **Must use PDF format**: LaTeX documents only support PDF format charts, must set \`format: "pdf"\`
-2. Insert image URL using LaTeX image syntax:
+1. **Must use PDF format**: LaTeX documents only support PDF format charts, set \`format: "pdf"\` and use \`savePath\` or \`outputDir\` to save under project.
+2. Insert image with LaTeX syntax (use \`savedPath\` or path from \`url\`):
 \`\`\`latex
 \\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}
 \`\`\`

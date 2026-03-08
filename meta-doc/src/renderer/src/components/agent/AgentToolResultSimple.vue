@@ -136,7 +136,8 @@ const TOOL_ID_TO_RENDERER: Record<string, string> = {
   rag: 'RAGToolDisplay',
   'subagent-workspace-reader': 'SubagentDisplay',
   'subagent-doc-writer': 'SubagentDisplay',
-  'subagent-search': 'SubagentDisplay'
+  'subagent-search': 'SubagentDisplay',
+  'subagent-chart': 'SubagentDisplay'
 }
 
 function getOutputRendererName(output: ToolOutputDescriptor): string | null {

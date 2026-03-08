@@ -290,7 +290,14 @@ const displayData = computed<TodoDisplayData>(() => {
   ) {
     return { stage: 'completed', todoList: obj as unknown as TodoList }
   }
-  return obj as TodoDisplayData
+  // 运行中占位数据可能是 { stage: 'loading' }，视为 generating 以显示“正在生成…”
+  let stage: TodoDisplayData['stage'] = 'analyzing'
+  if (obj.stage === 'loading') {
+    stage = 'generating'
+  } else if (['analyzing', 'generating', 'completed', 'error'].includes(String(obj.stage))) {
+    stage = obj.stage as TodoDisplayData['stage']
+  }
+  return { ...obj, stage } as TodoDisplayData
 })
 
 const completedCount = computed(() => {

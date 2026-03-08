@@ -274,6 +274,12 @@ export class AIContextManager {
       prompt += baseSystemPrompt + '\n\n'
     }
 
+    // 若当前语言有「仅在实际成功后再标记 todolist 完成」的独立文案，则追加（en/ja/ko/de/fr 等短 prompt 语言）
+    const todolistRule = getPromptByKey('agent.todolist.onlyMarkCompleteWhenSucceeded')
+    if (todolistRule && todolistRule.trim()) {
+      prompt += todolistRule.trim() + '\n\n'
+    }
+
     // 注入时间戳和系统信息
     if (agentConfig.llmConfig?.injectTimestamp) {
       const now = new Date()
@@ -860,7 +866,8 @@ export class AIContextManager {
       rag: 'RAGToolDisplay',
       'subagent-workspace-reader': 'SubagentDisplay',
       'subagent-doc-writer': 'SubagentDisplay',
-      'subagent-search': 'SubagentDisplay'
+      'subagent-search': 'SubagentDisplay',
+      'subagent-chart': 'SubagentDisplay'
     }
     const resolveRendererName = (fromComponent: string | undefined): string | undefined =>
       fromComponent ?? (toolId ? TOOL_ID_RENDERER[toolId] : undefined)
@@ -1029,7 +1036,8 @@ export class AIContextManager {
       rag: 'RAGToolDisplay',
       'subagent-workspace-reader': 'SubagentDisplay',
       'subagent-doc-writer': 'SubagentDisplay',
-      'subagent-search': 'SubagentDisplay'
+      'subagent-search': 'SubagentDisplay',
+      'subagent-chart': 'SubagentDisplay'
     }
     const resolveRendererName = (fromComponent: string | undefined): string | undefined =>
       fromComponent ?? (toolId ? TOOL_ID_RENDERER[toolId] : undefined)
@@ -1075,12 +1083,26 @@ export class AIContextManager {
             : (dc as any).name || (dc as any).__name || (dc as any).displayName
       }
       rendererName = resolveRendererName(rendererName)
+      // SubagentDisplay 需要 data 含 subagentMessages 与 result，避免显示“无内容”
+      const isSubagent =
+        toolId &&
+        ['subagent-workspace-reader', 'subagent-doc-writer', 'subagent-search', 'subagent-chart'].includes(
+          toolId
+        )
+      let payload: unknown = displayData
+      if (isSubagent && payload && typeof payload === 'object') {
+        const p = payload as Record<string, unknown>
+        payload = {
+          subagentMessages: Array.isArray(p.subagentMessages) ? p.subagentMessages : [],
+          result: p.result !== undefined ? p.result : (observation.result as any)?.result ?? ''
+        }
+      }
       outputs.push({
         id: 'result',
         label: '结果',
         format: 'json',
-        data: displayData,
-        renderer: rendererName
+        data: payload,
+        renderer: isSubagent ? 'SubagentDisplay' : rendererName
       })
     }
 

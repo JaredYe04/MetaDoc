@@ -53,7 +53,8 @@ export class ToolRunner {
     toolId: string,
     params: Record<string, unknown>,
     signal?: AbortSignal,
-    session?: AgentSession // 可选的session对象，用于工具访问session状态
+    session?: AgentSession, // 可选的session对象，用于工具访问session状态
+    toolCallId?: string // 可选，与 message.invocationId 一致，用于 Display 实时事件
   ): Promise<ToolObservation> {
     try {
       // 执行普通工具
@@ -86,11 +87,12 @@ export class ToolRunner {
         }
       }
 
-      // 调用工具
+      // 调用工具（传入 toolCallId 时 Display 组件能收到 tool-update/tool-complete 事件）
       const result = await agentToolManager.invokeTool(
         toolId,
         toolParams,
-        undefined // 状态更新回调（可选）
+        undefined, // 状态更新回调（可选）
+        toolCallId
       )
 
       // 包装为Observation（包含调用参数）

@@ -45,6 +45,10 @@ export class ToolCallQueue {
   private signal?: AbortSignal
   private onTaskComplete?: (task: ToolCallTask, observation: ToolObservation) => void
   private onQueueComplete?: () => void
+  /** 每批最大并发数，超出部分在本批完成后继续执行；0 表示不限制（全部并发） */
+  private readonly maxConcurrent: number
+  /** 工具任务创建时回调（用于停止时取消这些任务） */
+  private onToolTaskHandle?: (handle: string) => void
   private runningPromise: Promise<void> | null = null // 追踪队列执行的Promise
   private inputComplete = false // 标记输入（AI输出）是否已完成，只有输入完成且队列为空时，队列才算真正完成
 
@@ -52,12 +56,15 @@ export class ToolCallQueue {
     session: AgentSession | LegacyAgentSession,
     signal?: AbortSignal,
     onTaskComplete?: (task: ToolCallTask, observation: ToolObservation) => void,
-    onQueueComplete?: () => void
+    onQueueComplete?: () => void,
+    options?: { maxConcurrent?: number; onToolTaskHandle?: (handle: string) => void }
   ) {
     this.session = session
     this.signal = signal
     this.onTaskComplete = onTaskComplete
     this.onQueueComplete = onQueueComplete
+    this.maxConcurrent = options?.maxConcurrent ?? 0 // 0 = 不限制，保持原有“整批并发”
+    this.onToolTaskHandle = options?.onToolTaskHandle
   }
 
   /**
@@ -317,6 +324,7 @@ export class ToolCallQueue {
             stream: false // 工具调用不是流式的
           }
         )
+        this.onToolTaskHandle?.(handle)
 
         getLogger().debug('[ToolCallQueue] 已创建工具调用AI任务:', {
           handle,
@@ -464,8 +472,9 @@ export class ToolCallQueue {
         break
       }
 
-      const batch = this.queue.splice(0, this.queue.length)
-      getLogger().debug('[ToolCallQueue] 本批次并发执行任务数:', batch.length)
+      const batchSize = this.maxConcurrent > 0 ? this.maxConcurrent : this.queue.length
+      const batch = this.queue.splice(0, batchSize)
+      getLogger().debug('[ToolCallQueue] 本批次并发执行任务数:', batch.length, '剩余:', this.queue.length)
       await Promise.all(batch.map((task) => this.runTask(task)))
     }
 

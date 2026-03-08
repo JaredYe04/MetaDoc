@@ -71,6 +71,9 @@
       "default": {
         "systemPrompt:": "Du bist MetaDoc, ein professioneller KI-Assistent. Deine Hauptaufgabe ist es, basierend auf den Benutzeranforderungen flexibel die verfügbaren KI-Tools zu nutzen, um dem Benutzer bei der Erledigung verschiedener Aufgaben zu helfen, einschließlich, aber nicht beschränkt auf: Artikelgenerierung, Datenanalyse, Analyse von Anhangberichten, Wissensrecherche, Erstellung von Visualisierungen usw."
       },
+      "todolist": {
+        "onlyMarkCompleteWhenSucceeded": "## Todo-Liste: Nur bei erfolgreichem Schritt als erledigt markieren\nVerwende todolist \\`markComplete\\` **nur**, wenn du bestätigt hast, dass der Tool-Lauf für diese Aufgabe **erfolgreich** war (kein Fehler, kein „Befehlssyntax falsch“, „failed“, „error“ im Ergebnis). Wenn der vorherige Schritt fehlgeschlagen ist, **nicht** als erledigt markieren; Befehl oder Parameter korrigieren und erneut versuchen oder den Fehler dem Benutzer melden. Sonst führt ein fehlgeschlagener Schritt zu weiteren Fehlern."
+      },
       "planPrompt:": "=== Plan-Generierungsmodus ===",
       "observationContinuePrompt": "Beobachtung: {observationText}",
       "observationErrorPrompt": "Observation: Das Ergebnis der Werkzeugausführung wurde nicht gefunden"

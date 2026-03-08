@@ -1183,8 +1183,12 @@ export class LlmAdapter {
           }> = []
 
           for (const tc of allToolCalls) {
-            // 生成一个基于工具ID和参数的稳定签名
-            const signature = `${tc.tool_id}:${JSON.stringify(tc.parameters)}`
+            // 与 watch 内逻辑一致：基于 tool_id + 参数键排序的 canonical 签名去重
+            const canonicalParams =
+              typeof tc.parameters === 'object' && tc.parameters !== null
+                ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
+                : JSON.stringify(tc.parameters)
+            const signature = `${tc.tool_id}:${canonicalParams}`
             if (!toolCallSignatures.has(signature)) {
               toolCallSignatures.add(signature)
               newToolCalls.push(tc)

@@ -410,6 +410,12 @@ const todolistToolLocales: ToolLocales = {
 }
 \`\`\`
 
+## ⚠️ 标记完成前必须确认执行成功（必读）
+**只有在上一步工具明确执行成功时，才可使用 \`markComplete\` 标记该项任务完成。**
+- 若上一步工具返回了**错误、失败或异常**（例如「命令语法不正确」「failed」「error」、非零退出码、报错信息等），**不得**标记该任务为完成。
+- 应先根据报错修正命令或参数后重试，或向用户说明失败原因；否则会导致一步错步步错。
+- 确认方式：查看该任务对应工具调用的返回内容，无报错、无失败提示、无语法错误提示，再调用 \`markComplete\`。
+
 ## ⚠️ 重要：会话内状态管理 ⭐ 新功能
 **todolist工具支持在同一个Agent会话中维护统一的任务列表状态：**
 - **自动保存**：每次创建或更新任务列表时，会自动保存到当前Agent会话中
@@ -450,6 +456,7 @@ const todolistToolLocales: ToolLocales = {
 7. **字符串会自动转换**：列表中的字符串会自动转换为任务对象（title=字符串内容）
 8. **状态更新**：使用 \`markComplete\` 或 \`updateStatus\` 可以更新任务状态，类似Cursor的任务管理
 9. **自动标记下一个任务**：使用 \`{"markComplete": "true"}\` 可以自动找到最后一条已完成的任务，将下一条任务标记为完成，非常适合按顺序完成任务
+10. **⭐ 批量标记完成（推荐）**：当多个任务已完成时，应**一次性**用数组标记，例如 \`{"markComplete": ["task-1", "task-2", "task-3"]}\`，而不要多次单独调用 \`{"markComplete": "task-1"}\`。批量标记可减少请求次数、节省 token，并提高效率。
 `
   },
   en_us: {
@@ -546,6 +553,12 @@ Provide \`input\` parameter, and the tool will automatically analyze user intent
 ### Manual Creation Mode ⭐
 Directly provide \`todoList\` object, and the tool will use it directly. Suitable for scenarios requiring precise control over the todo list structure.
 
+## ⚠️ Only mark complete when the step actually succeeded (required)
+**Use \`markComplete\` only when the tool run for that task clearly succeeded.**
+- If the previous tool returned **error, failure, or exception** (e.g. "command syntax incorrect", "failed", "error", non-zero exit, error message), **do not** mark that task complete.
+- Fix the command or parameters and retry, or report the failure to the user; otherwise one failed step leads to more failures.
+- Check the tool result for that task: no error, no failure message, no syntax error — then call \`markComplete\`.
+
 ## Notes
 1. **Choose one mode**: Either provide \`input\` (automatic generation) or \`todoList\` (manual creation)
 2. Tasks should be arranged in logical order
@@ -553,6 +566,7 @@ Directly provide \`todoList\` object, and the tool will use it directly. Suitabl
 4. Priority settings should be reasonable
 5. Estimated time should be as accurate as possible
 6. When manually creating, must provide complete TodoList object structure, including items array
+7. **Batch mark complete (recommended)**: When multiple tasks are done, mark them in one call with an array, e.g. \`{"markComplete": ["task-1", "task-2", "task-3"]}\`, instead of calling the tool once per task. This saves tokens and reduces round-trips.
 `
   }
 }

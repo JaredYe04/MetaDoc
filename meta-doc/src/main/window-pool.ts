@@ -7,13 +7,15 @@ import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { is } from '@electron-toolkit/utils'
-import { registerMainWindow, getWindowId } from './index'
+import { registerMainWindow, getWindowId, getPoolParentWindow } from './index'
 import { createMainLogger } from './logger'
 
 const logger = createMainLogger('WindowPool')
 
 const POOL_SIZE = 2
 const pool: BrowserWindow[] = []
+/** 应用是否正在退出，用于避免退出过程中异步补充的窗口残留 */
+let isShuttingDown = false
 
 function getPoolUrl(): string {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -25,7 +27,9 @@ function getPoolUrl(): string {
 }
 
 function createPoolWindow(): BrowserWindow {
+  const parent = getPoolParentWindow()
   const win = new BrowserWindow({
+    parent: parent ?? undefined,
     width: 1366,
     height: 768,
     minWidth: 800,
@@ -84,9 +88,14 @@ function waitForVueReady(win: BrowserWindow): Promise<void> {
 
 /** 创建并预加载一个池窗口，就绪后加入 pool */
 async function createAndAddToPool(): Promise<void> {
+  if (isShuttingDown) return
   const win = createPoolWindow()
   win.loadURL(getPoolUrl())
   await waitForVueReady(win)
+  if (isShuttingDown) {
+    if (!win.isDestroyed()) win.destroy()
+    return
+  }
   if (!win.isDestroyed() && pool.length < POOL_SIZE) {
     pool.push(win)
     win.once('closed', () => {
@@ -113,6 +122,13 @@ export function acquirePoolWindow(params: {
   const win = pool.shift()
   if (!win || win.isDestroyed()) {
     return null
+  }
+
+  // 解除父子关系，使该窗口成为独立顶层窗口，避免随原父窗口关闭
+  try {
+    win.setParentWindow(null)
+  } catch (_) {
+    // 部分 Electron 版本或平台可能不支持，忽略
   }
 
   // 鼠标位置作为新窗口左上角，留 10px 安全边距避免贴边
@@ -143,4 +159,24 @@ export function initWindowPool(): void {
 
   // 主窗口加载后再创建池，避免竞争
   setTimeout(create, 3000)
+}
+
+/**
+ * 应用退出前销毁窗口池中所有预创建窗口，避免进程残留。
+ * 应在 before-quit 中调用。
+ */
+export function destroyWindowPool(): void {
+  isShuttingDown = true
+  const toDestroy = pool.splice(0, pool.length)
+  for (const win of toDestroy) {
+    if (!win.isDestroyed()) {
+      try {
+        const id = getWindowId(win)
+        win.destroy()
+        logger.debug(`窗口池: 已销毁预加载窗口 ${id}`)
+      } catch (e) {
+        logger.warn('窗口池: 销毁窗口时出错', e)
+      }
+    }
+  }
 }

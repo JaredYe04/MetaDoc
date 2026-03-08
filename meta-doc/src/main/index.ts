@@ -21,7 +21,7 @@ import {
   globalTabRegistry
 } from './main-calls'
 import { registerDragManagerIPC } from './drag-manager'
-import { initWindowPool } from './window-pool'
+import { initWindowPool, destroyWindowPool } from './window-pool'
 import { startFileRegistry, stopFileRegistry } from './file-registry'
 import {
   initUpdateService,
@@ -208,6 +208,16 @@ export function getAllMainWindows(): BrowserWindow[] {
  */
 export function getVisibleMainWindows(): BrowserWindow[] {
   return getAllMainWindows().filter((win) => !win.isDestroyed() && win.isVisible())
+}
+
+/**
+ * 返回当前作为“主窗口”的实例，供窗口池创建子窗口时作为 parent。
+ * 池窗口设为子窗口后，当父窗口被关闭（含强制结束进程）时子窗口会一并关闭，避免进程残留。
+ */
+export function getPoolParentWindow(): BrowserWindow | null {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) return mainWindow
+  const visible = getVisibleMainWindows()
+  return visible.length > 0 ? visible[0] : null
 }
 
 let isShortcutPressed: boolean = false
@@ -795,8 +805,9 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isAppQuitting = true
-  stopFileRegistry()
   shutdownLogger()
+  destroyWindowPool()
+  stopFileRegistry()
 })
 
 // ============ 自动更新检查 ============
@@ -1218,9 +1229,11 @@ export const initBroadcastChannel = (): void => {
       broadcastLanguage()
     }
 
-    // 向所有窗口广播消息
+    // 向所有窗口广播消息（跳过已销毁的窗口，避免关闭时报错）
     BrowserWindow.getAllWindows().forEach((win) => {
-      win.webContents.send('receive-broadcast', message)
+      if (!win.isDestroyed()) {
+        win.webContents.send('receive-broadcast', message)
+      }
     })
   })
 }

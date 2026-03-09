@@ -933,6 +933,7 @@
     "taskCancelled2": "Tarefa cancelada"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "Auto-completar com IA",
     "cancelDelay": "Cancelar atraso",
     "delayActive": "Conclusão ativada",
     "delayButton": "Atrasar {minutes} minutos",

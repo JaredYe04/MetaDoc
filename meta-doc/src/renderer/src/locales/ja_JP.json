@@ -1698,6 +1698,7 @@
     "showError": "エラーメッセージを表示"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "AI自動補完",
     "empty": "割り当てなし。",
     "error": "ロード失敗",
     "loading": "ローディング...",

@@ -1698,6 +1698,7 @@
     "showError": "오류 메시지 표시"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "AI 자동 완성",
     "empty": "작업 없음",
     "error": "로드 실패",
     "loading": "로드 중 ...",

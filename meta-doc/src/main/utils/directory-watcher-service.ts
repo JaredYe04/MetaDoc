@@ -59,9 +59,13 @@ class DirectoryWatcherService {
     try {
       // 创建目录监听器
       // 优化：使用函数过滤器，避免同步 I/O，只做快速字符串操作
+      // Windows 上默认的 ReadDirectoryChangesW 会占用目录句柄，导致用户在资源管理器中无法重命名/删除已展开目录；轮询不占句柄
+      const isWin = process.platform === 'win32'
       const watcher = chokidar.watch(normalizedPath, {
         persistent: true,
-        ignoreInitial: true, // 忽略初始事件
+        ignoreInitial: true,
+        usePolling: isWin,
+        interval: isWin ? 500 : undefined,
         ignored: (filePath: string) => {
           // 快速路径检查：只做字符串操作，不调用任何 I/O 操作
           const basename = path.basename(filePath)
@@ -148,16 +152,14 @@ class DirectoryWatcherService {
 
       // 监听错误
       watcher.on('error', (error: any) => {
-        // 如果是权限错误（EPERM），只是警告并跳过，不影响用户体验
+        // Windows 上删除/重命名文件夹时 chokidar 常会触发 EPERM，监听器通常继续有效，仅记 debug
         if (error.code === 'EPERM' || error.errno === -4048) {
-          logger.warn('目录监听权限错误，跳过该目录', {
+          logger.debug('目录监听 EPERM（删除/重命名时常见，可忽略）', {
             directoryPath: normalizedPath,
-            path: error.path || error.filename,
-            error: error.code || error.errno
+            path: error.path || error.filename
           })
           return
         }
-        // 其他错误才记录为错误
         logger.error('目录监听错误', { directoryPath: normalizedPath, error })
       })
 
@@ -168,7 +170,7 @@ class DirectoryWatcherService {
         webContents
       })
 
-      logger.info('开始监听目录', { directoryPath: normalizedPath })
+      //logger.info('开始监听目录', { directoryPath: normalizedPath })
     } catch (error) {
       logger.error('启动目录监听失败', { directoryPath: normalizedPath, error })
     }
@@ -192,7 +194,7 @@ class DirectoryWatcherService {
           clearTimeout(timer)
           this.changeDebounceTimers.delete(normalizedPath)
         }
-        logger.info('停止监听目录', { directoryPath: normalizedPath })
+        //logger.info('停止监听目录', { directoryPath: normalizedPath })
       } catch (error) {
         logger.error('停止目录监听失败', { directoryPath: normalizedPath, error })
       }
@@ -223,19 +225,21 @@ class DirectoryWatcherService {
       clearTimeout(existingTimer)
     }
 
-    // 设置新的防抖定时器（500ms）
+    // 设置新的防抖定时器（100ms，兼顾响应与合并短时连续事件）
     const timer = setTimeout(() => {
       this.changeDebounceTimers.delete(directoryPath)
 
-      // 发送目录变化事件到渲染进程
+      // 发送目录变化事件到渲染进程（VS Code 风格：携带直接父目录路径，便于渲染端做增量树更新）
+      const parentPath = path.normalize(path.dirname(filePath))
       webContents.send('directory-changed', {
         directoryPath,
+        parentPath,
         eventType,
-        filePath
+        filePath: path.normalize(filePath)
       })
 
-      logger.debug('目录变化事件', { directoryPath, eventType, filePath })
-    }, 500)
+      logger.debug('目录变化事件', { directoryPath, parentPath, eventType, filePath })
+    }, 100)
 
     this.changeDebounceTimers.set(directoryPath, timer)
   }

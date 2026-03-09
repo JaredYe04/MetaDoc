@@ -68,6 +68,7 @@
           <template v-for="(folderPath, index) in workspaceFolders" :key="folderPath">
             <WorkspaceTreeNode
               v-if="workspaceFolderNodes.get(folderPath)"
+              :key="`${folderPath}-${treeVersion}`"
               :node="workspaceFolderNodes.get(folderPath)!"
               :sibling-index="index"
               :expanded-paths="expandedPaths"
@@ -202,7 +203,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loading, Warning, Close } from '@element-plus/icons-vue'
 import { ElButton, ElIcon, ElEmpty, ElScrollbar, ElMessageBox } from 'element-plus'
@@ -214,6 +215,9 @@ import WorkspaceTreeNode from './WorkspaceTreeNode.vue'
 import ContextMenu from './ContextMenu.vue'
 import type { ContextMenuItem } from './contextMenus/types'
 import { dirname, basename, extname, join, relative } from '../utils/path-utils'
+import * as treeLogic from '../utils/workspace-tree-logic'
+
+const normalizePathForCompare = treeLogic.normalizePathForCompare
 import { useCloseTab } from '../composables/useCloseTab'
 import { formatRegistry } from '../utils/format-registry'
 import * as Comlink from 'comlink'
@@ -355,12 +359,84 @@ interface FileNode {
   path: string
   type: 'file' | 'directory' | 'workspaceRoot'
   children?: FileNode[]
+  parent?: FileNode
   expanded?: boolean
   isWorkspaceRoot?: boolean // 是否为工作文件夹根节点
 }
 
 const workspaceFolders = ref<string[]>([]) // 支持多个工作文件夹
-const workspaceFolderNodes = ref<Map<string, FileNode>>(new Map()) // 工作文件夹根节点
+const workspaceFolderNodes = ref<Map<string, FileNode>>(new Map()) // 工作文件夹根节点（key 为原始路径）
+/** 树结构版本：递增后强制整棵树重渲染，解决普通对象节点深层次变更 Vue 不追踪导致界面不刷新的问题 */
+const treeVersion = ref(0)
+// 路径索引：key 为 normalizePathForCompare(path)，O(1) 查找节点，对齐 VS Code 设计
+const nodeMap = new Map<string, FileNode>()
+
+function registerNode(node: FileNode, parent: FileNode | null): void {
+  treeLogic.registerNode(nodeMap, node, parent)
+}
+
+function unregisterNode(node: FileNode): void {
+  treeLogic.unregisterNode(nodeMap, node)
+}
+
+function unregisterNodeRecursive(node: FileNode): void {
+  treeLogic.unregisterNodeRecursive(nodeMap, node)
+}
+
+/** 从父节点的 children 中移除并反注册该子树 */
+function unregisterChildren(children: FileNode[]): void {
+  for (const c of children) {
+    unregisterNodeRecursive(c)
+  }
+}
+
+/** 判断是否为「路径/目录不存在」类错误（外部已删除时 read-directory 会报） */
+function isPathNotExistError(err: unknown): boolean {
+  return treeLogic.isPathNotExistError(err)
+}
+
+/** 从树中移除节点（外部删除目录/文件时用）：反注册、从父 children 移除、收展状态、停止监听、触发视图更新 */
+function removeNodeFromTree(node: FileNode): void {
+  expandedPaths.value.delete(node.path)
+  stopDirectoryWatcher(node.path)
+  unregisterNodeRecursive(node)
+  const parent = node.parent
+  if (parent) {
+    const next = (parent.children ?? []).filter((c) => c !== node)
+    parent.children = next.length ? next : []
+
+    // 若父节点是工作区根，用新根对象替换 Map 中的引用，否则 Vue 不追踪深层变更、界面不会刷新
+    if (parent.isWorkspaceRoot) {
+      const newRoot: FileNode = {
+        ...parent,
+        children: parent.children ? [...parent.children] : []
+      }
+      for (const c of newRoot.children ?? []) {
+        c.parent = newRoot
+      }
+      unregisterNode(parent)
+      treeLogic.registerNode(nodeMap, newRoot, null)
+      // 用与 workspaceFolders 一致的 key 更新，否则 get(folderPath) 取不到新根
+      const folderKey = workspaceFolders.value.find(
+        (f) => normalizePathForCompare(f) === normalizePathForCompare(parent.path)
+      )
+      const key = folderKey !== undefined ? folderKey : parent.path
+      workspaceFolderNodes.value.set(key, newRoot)
+      workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+      treeVersion.value++
+    } else {
+      treeVersion.value++
+      nextTick(() => {
+        workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+      })
+    }
+  } else {
+    treeVersion.value++
+    nextTick(() => {
+      workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+    })
+  }
+}
 const expandedPaths = ref<Set<string>>(new Set())
 const loading = ref<Map<string, boolean>>(new Map()) // 每个工作文件夹的加载状态
 const error = ref<string | null>(null)
@@ -458,6 +534,15 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       type: 'action',
       value: 'newFolder',
       label: 'workspaceExplorer.contextMenu.newFolder'
+    })
+    // 刷新工作区根目录
+    items.push({
+      type: 'divider'
+    })
+    items.push({
+      type: 'action',
+      value: 'refresh',
+      label: 'workspaceExplorer.contextMenu.refresh'
     })
     return items
   }
@@ -741,13 +826,12 @@ const removeWorkspaceFolder = async (folderPath: string) => {
   const index = workspaceFolders.value.indexOf(folderPath)
   if (index === -1) return
 
-  // 停止目录监听
   stopDirectoryWatcher(folderPath)
-
-  // 从列表中移除
+  const rootNode = workspaceFolderNodes.value.get(folderPath)
+  if (rootNode) {
+    unregisterNodeRecursive(rootNode)
+  }
   workspaceFolders.value.splice(index, 1)
-
-  // 移除节点
   workspaceFolderNodes.value.delete(folderPath)
 
   // 清除相关的选中状态
@@ -775,6 +859,7 @@ const createWorkspaceRootNode = async (folderPath: string) => {
       isWorkspaceRoot: true,
       children: []
     }
+    registerNode(rootNode, null)
 
     // 先设置节点（即使还没有子节点），这样模板可以渲染
     workspaceFolderNodes.value.set(folderPath, rootNode)
@@ -789,7 +874,8 @@ const createWorkspaceRootNode = async (folderPath: string) => {
     workspaceFolderNodes.value.set(folderPath, rootNode)
   } catch (err) {
     logger.error('创建工作文件夹根节点失败:', err)
-    // 如果创建失败，移除节点
+    const rootNode = workspaceFolderNodes.value.get(folderPath)
+    if (rootNode) unregisterNodeRecursive(rootNode)
     workspaceFolderNodes.value.delete(folderPath)
     throw err
   } finally {
@@ -833,8 +919,9 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
 
       return result
     } catch (err) {
+      // 目录已被外部删除时需上抛，供 loadSubDirectory 执行 removeNodeFromTree
+      if (isPathNotExistError(err)) throw err
       logger.error('加载目录内容失败:', { path: nodePath, error: err })
-      // 如果 Worker 处理失败，回退到主线程处理
       try {
         let entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
           name: string
@@ -844,6 +931,7 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
         entries = entries.filter((e) => e.name !== '.metadoc')
         return processDirectoryContentInMainThread(entries)
       } catch (fallbackErr) {
+        if (isPathNotExistError(fallbackErr)) throw fallbackErr
         logger.error('主线程回退处理也失败:', fallbackErr)
         return []
       }
@@ -892,14 +980,33 @@ const processDirectoryContentInMainThread = (
 const loadWorkspaceFolderChildren = async (rootNode: FileNode) => {
   if (!rootNode.path) return
 
-  // 先初始化为空数组，立即更新 UI
+  if (rootNode.children?.length) {
+    unregisterChildren(rootNode.children)
+  }
   rootNode.children = []
-
-  // 异步加载目录内容
-  const children = await loadDirectoryContent(rootNode.path)
-
-  // 更新节点子项（Vue 会自动响应式更新）
-  rootNode.children = children
+  try {
+    const children = await loadDirectoryContent(rootNode.path)
+    rootNode.children = children
+    for (const c of children) {
+      registerNode(c, rootNode)
+    }
+  } catch (err) {
+    if (isPathNotExistError(err)) {
+      logger.debug('工作区根目录已被外部删除，从工作区列表中移除', { path: rootNode.path })
+      expandedPaths.value.delete(rootNode.path)
+      stopDirectoryWatcher(rootNode.path)
+      unregisterNodeRecursive(rootNode)
+      const idx = workspaceFolders.value.indexOf(rootNode.path)
+      if (idx !== -1) workspaceFolders.value.splice(idx, 1)
+      workspaceFolderNodes.value.delete(rootNode.path)
+      nextTick(() => {
+        workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+      })
+      saveWorkspaceFolders()
+      return
+    }
+    throw err
+  }
 }
 
 // 刷新指定工作文件夹
@@ -984,90 +1091,43 @@ const findNodeByPath = (node: FileNode, targetPath: string): FileNode | null => 
   return null
 }
 
-// 刷新指定目录节点（用于子目录）
+// 刷新指定目录节点（用于子目录）；使用 nodeMap O(1) 查找，路径统一用 normalizePathForCompare
 const refreshDirectoryNode = async (directoryPath: string) => {
-  logger.info('refreshDirectoryNode 开始', { directoryPath })
+  const norm = normalizePathForCompare(directoryPath)
+  const targetNode = nodeMap.get(norm)
+  if (!targetNode) {
+    logger.warn('refreshDirectoryNode: 未找到节点', { directoryPath, norm })
+    treeVersion.value++
+    return
+  }
+  if (targetNode.type !== 'directory' && targetNode.type !== 'workspaceRoot') {
+    logger.warn('refreshDirectoryNode: 节点不是目录', { directoryPath })
+    return
+  }
 
-  // 保存当前状态
   const scrollPosition = saveScrollPosition()
   const savedExpandedPaths = new Set(expandedPaths.value)
-
-  // 设置 loading 状态（用于防抖）
   loading.value.set(directoryPath, true)
 
   try {
-    // 规范化路径格式：Windows 路径统一使用反斜杠，Unix 路径使用正斜杠
-    // 判断是否为 Windows 路径（以盘符开头）
-    const normalizedPath = /^[A-Za-z]:/.test(directoryPath)
-      ? directoryPath.replace(/\//g, '\\')
-      : directoryPath
-
-    // 先检查是否是工作文件夹根目录（需要规范化比较）
-    const isWorkspaceRoot = workspaceFolders.value.some((folder) => {
-      // 规范化工作文件夹路径
-      const normalizedFolder = /^[A-Za-z]:/.test(folder) ? folder.replace(/\//g, '\\') : folder
-      return normalizedFolder === normalizedPath
-    })
-
-    if (isWorkspaceRoot) {
-      logger.info('刷新工作文件夹根目录', { directoryPath, normalizedPath })
-      // 找到匹配的工作文件夹路径（使用原始格式）
-      const matchingFolder = workspaceFolders.value.find((folder) => {
-        const normalizedFolder = /^[A-Za-z]:/.test(folder) ? folder.replace(/\//g, '\\') : folder
-        return normalizedFolder === normalizedPath
-      })
-      if (matchingFolder) {
-        const rootNode = workspaceFolderNodes.value.get(matchingFolder)
-        if (rootNode) {
-          await loadWorkspaceFolderChildren(rootNode)
-        } else {
-          logger.warn('工作文件夹根节点不存在', { directoryPath, matchingFolder })
-        }
-      }
+    if (targetNode.isWorkspaceRoot) {
+      await loadWorkspaceFolderChildren(targetNode)
     } else {
-      // 在所有工作文件夹根节点中递归查找目标目录节点
-      logger.info('查找目录节点', { directoryPath, normalizedPath })
-      let targetNode: FileNode | null = null
-      for (const rootNode of workspaceFolderNodes.value.values()) {
-        // 使用规范化路径查找
-        targetNode = findNodeByPath(rootNode, normalizedPath)
-        if (!targetNode) {
-          // 如果找不到，尝试使用原始路径格式查找
-          targetNode = findNodeByPath(rootNode, directoryPath)
-        }
-        if (targetNode) {
-          logger.info('找到目录节点', { directoryPath, normalizedPath, nodePath: targetNode.path })
-          break
-        }
-      }
-
-      if (targetNode && (targetNode.type === 'directory' || targetNode.type === 'workspaceRoot')) {
-        logger.info('加载子目录', { directoryPath, normalizedPath, nodePath: targetNode.path })
-        await loadSubDirectory(targetNode)
-      } else {
-        logger.warn('未找到目录节点或节点类型不正确', {
-          directoryPath,
-          normalizedPath,
-          targetNode: targetNode ? targetNode.type : null
-        })
-      }
+      await loadSubDirectory(targetNode)
     }
-
-    // 恢复展开状态（使用 Set 的方法更新，保持响应式）
     const currentExpanded = expandedPaths.value
-    // 先清除所有，再添加保存的
     currentExpanded.clear()
     savedExpandedPaths.forEach((path) => currentExpanded.add(path))
-
-    // 恢复滚动位置
     restoreScrollPosition(scrollPosition)
-
-    logger.info('refreshDirectoryNode 完成', { directoryPath })
   } catch (err) {
+    if (isPathNotExistError(err)) {
+      logger.debug('刷新时发现目录已被外部删除，从树中移除', { directoryPath })
+      removeNodeFromTree(targetNode)
+      return
+    }
     logger.error('refreshDirectoryNode 失败', { directoryPath, error: err })
     throw err
   } finally {
-    // 清除 loading 状态
     loading.value.set(directoryPath, false)
   }
 }
@@ -1100,7 +1160,7 @@ const loadWorkspaceFolders = async () => {
             isWorkspaceRoot: true,
             children: [] // 懒加载：不在这里加载子目录
           }
-
+          registerNode(rootNode, null)
           workspaceFolderNodes.value.set(folderPath, rootNode)
 
           // 默认展开，但延迟加载内容
@@ -1151,14 +1211,24 @@ const refreshAllWorkspaceFolders = async () => {
 const loadSubDirectory = async (node: FileNode) => {
   if (!node.path || (node.type !== 'directory' && node.type !== 'workspaceRoot')) return
 
-  // 先初始化为空数组，立即更新 UI
+  if (node.children?.length) {
+    unregisterChildren(node.children)
+  }
   node.children = []
-
-  // 使用并发池异步加载目录内容
-  const children = await loadDirectoryContent(node.path)
-
-  // 更新节点子项（Vue 会自动响应式更新）
-  node.children = children
+  try {
+    const children = await loadDirectoryContent(node.path)
+    node.children = children
+    for (const c of children) {
+      registerNode(c, node)
+    }
+  } catch (err) {
+    if (isPathNotExistError(err)) {
+      logger.debug('加载子目录时发现已被外部删除，从树中移除', { path: node.path })
+      removeNodeFromTree(node)
+      return
+    }
+    throw err
+  }
 }
 
 // 切换展开/折叠
@@ -1166,9 +1236,11 @@ const handleToggle = async (node: FileNode) => {
   if (node.type !== 'directory' && node.type !== 'workspaceRoot') return
 
   if (expandedPaths.value.has(node.path)) {
-    // 折叠：停止目录监听
+    // 折叠：仅对非工作区根目录停止监听，工作区根目录始终监听以便自动刷新
     expandedPaths.value.delete(node.path)
-    stopDirectoryWatcher(node.path)
+    if (!node.isWorkspaceRoot) {
+      stopDirectoryWatcher(node.path)
+    }
   } else {
     // 展开：启动目录监听
     expandedPaths.value.add(node.path)
@@ -1255,7 +1327,7 @@ const startDirectoryWatcher = (folderPath: string) => {
 
   try {
     ipcRenderer.send('watch-directory', folderPath)
-    logger.info('启动目录监听', { folderPath })
+    //logger.info('启动目录监听', { folderPath })
   } catch (err) {
     logger.error('启动目录监听失败', { folderPath, error: err })
   }
@@ -1276,36 +1348,106 @@ const stopDirectoryWatcher = (folderPath: string) => {
   }
 }
 
-// 处理目录变化事件
-const handleDirectoryChange = async (payload: {
+// 基于文件系统事件的增量树更新（委托 workspace-tree-logic，再处理 UI：右键菜单、nextTick）
+const applyFsEventToTree = (payload: {
   directoryPath: string
+  parentPath?: string
   eventType: string
   filePath: string
-}) => {
-  const { directoryPath, eventType, filePath } = payload
-
-  if (!refreshService) return
-
-  // 使用刷新服务处理目录变化
-  const expandedURIs = new Set(
-    Array.from(expandedPaths.value).map((path) => URIUtils.pathToURI(path))
-  )
-  await refreshService.handleDirectoryChange(
-    directoryPath,
-    eventType,
-    filePath,
-    expandedURIs,
-    async (dirURI: URI) => {
-      const dirPath = URIUtils.uriToPath(dirURI)
-      // 如果是工作文件夹根目录，使用 refreshWorkspaceFolder
-      if (workspaceFolders.value.includes(dirPath)) {
-        await refreshWorkspaceFolder(dirPath)
-      } else {
-        // 否则刷新对应的目录节点
-        await refreshDirectoryNode(dirPath)
+}): boolean => {
+  const { eventType } = payload
+  const applied = treeLogic.applyFsEvent(nodeMap, payload, {
+    isSupportedFormat: (ext) => !!formatRegistry.getFormatByExtension(ext)
+  })
+  if (!applied) return false
+  if (eventType === 'unlink' || eventType === 'unlinkDir') {
+    const normFilePath = normalizePathForCompare(payload.filePath)
+    if (contextMenuVisible.value && contextMenuNode.value) {
+      const menuNorm = normalizePathForCompare(contextMenuNode.value.path)
+      const isMenuOnDeleted =
+        menuNorm === normFilePath ||
+        (eventType === 'unlinkDir' && menuNorm.startsWith(normFilePath + '/'))
+      if (isMenuOnDeleted) {
+        contextMenuVisible.value = false
       }
     }
+  }
+  nextTick(() => {
+    workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+    treeVersion.value++
+  })
+  return true
+}
+
+// 与 loadDirectoryContent 排序一致：目录在前、文件在后，同类型按名称排序
+function sortFileNodes(nodes: FileNode[]): void {
+  treeLogic.sortFileNodes(nodes)
+}
+
+// 处理目录变化事件（事件驱动：先增量更新树，失败则回退到整目录刷新）
+const handleDirectoryChange = async (payload: unknown) => {
+  if (!payload || typeof payload !== 'object' || !('directoryPath' in payload)) return
+  const { directoryPath, parentPath, eventType, filePath } = payload as {
+    directoryPath: string
+    parentPath?: string
+    eventType: string
+    filePath: string
+  }
+  const effectiveParent = (parentPath ?? directoryPath) || directoryPath
+
+  const applied = applyFsEventToTree({ directoryPath, parentPath, eventType, filePath })
+  if (applied) {
+    const norm = normalizePathForCompare(effectiveParent)
+    const isWorkspaceRoot = workspaceFolders.value.some(
+      (f) => normalizePathForCompare(f) === norm
+    )
+    try {
+      if (isWorkspaceRoot) {
+        const folder = workspaceFolders.value.find((f) => normalizePathForCompare(f) === norm)
+        if (folder) {
+          await refreshWorkspaceFolder(folder)
+          // 根目录 add/addDir 后强制用新根对象替换，否则 Vue 不追踪深层变更、新建文件夹不实时出现
+          const root = workspaceFolderNodes.value.get(folder)
+          if (root && (eventType === 'add' || eventType === 'addDir')) {
+            const newRoot: FileNode = {
+              ...root,
+              children: root.children ? [...root.children] : []
+            }
+            for (const c of newRoot.children ?? []) {
+              c.parent = newRoot
+            }
+            unregisterNode(root)
+            treeLogic.registerNode(nodeMap, newRoot, null)
+            workspaceFolderNodes.value.set(folder, newRoot)
+            workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+          }
+        }
+      } else {
+        await refreshDirectoryNode(effectiveParent)
+      }
+      nextTick(() => { treeVersion.value++ })
+    } catch (err) {
+      logger.warn('目录变化后刷新父目录失败', { effectiveParent, error: err })
+    }
+    return
+  }
+
+  // 增量更新未找到父节点（例如父目录未展开），则刷新该父目录以同步
+  const norm = normalizePathForCompare(effectiveParent)
+  const isWorkspaceRoot = workspaceFolders.value.some(
+    (f) => normalizePathForCompare(f) === norm
   )
+  try {
+    if (isWorkspaceRoot) {
+      const folder = workspaceFolders.value.find((f) => normalizePathForCompare(f) === norm)
+      if (folder) await refreshWorkspaceFolder(folder)
+    } else {
+      await refreshDirectoryNode(effectiveParent)
+    }
+    nextTick(() => { treeVersion.value++ })
+  } catch (err) {
+    logger.warn('目录变化回退刷新失败', { effectiveParent, error: err })
+  }
 }
 
 onMounted(async () => {
@@ -1315,31 +1457,19 @@ onMounted(async () => {
   // 监听切换事件
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
 
-  // 监听目录变化事件（来自主进程）
-  const ipcRenderer = getIpcRenderer()
-  if (ipcRenderer) {
-    ipcRenderer.on('directory-changed', handleDirectoryChange)
-  }
+  // 目录变化由 ViewMenuContainer 收 IPC 后 eventBus 转发，此处只订阅 eventBus（否则 v-if 未挂载时收不到）
+  eventBus.on('directory-changed', handleDirectoryChange)
 })
 
 onBeforeUnmount(() => {
-  // 停止所有目录监听（包括工作文件夹和已展开的子目录）
   for (const folderPath of workspaceFolders.value) {
     stopDirectoryWatcher(folderPath)
   }
-
-  // 停止所有已展开目录的监听
   for (const expandedPath of expandedPaths.value) {
     stopDirectoryWatcher(expandedPath)
   }
-
-  // 移除事件监听
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
-
-  const ipcRenderer = getIpcRenderer()
-  if (ipcRenderer) {
-    ipcRenderer.removeListener('directory-changed', handleDirectoryChange)
-  }
+  eventBus.off('directory-changed', handleDirectoryChange)
 
   // 清理 Worker
   cleanupWorker()
@@ -1605,6 +1735,10 @@ const handleContextMenuCommand = async (command: string) => {
             // 如果是普通目录，刷新该目录
             await refreshDirectoryNode(node.path)
           }
+          eventBus.emit('show-success', { message: t('workspaceExplorer.refreshSuccess') })
+        } else {
+          // 空白处右键选择刷新：刷新所有工作区根目录
+          await refreshAllWorkspaceFolders()
           eventBus.emit('show-success', { message: t('workspaceExplorer.refreshSuccess') })
         }
         break

@@ -715,7 +715,9 @@ function bindFileHandlers(): void {
     ): Promise<Array<{ name: string; path: string; isDirectory: boolean }>> => {
       try {
         if (!fs.existsSync(dirPath)) {
-          throw new Error(`目录不存在: ${dirPath}`)
+          const err = new Error(`目录不存在: ${dirPath}`) as Error & { code: string }
+          err.code = 'ENOENT'
+          throw err
         }
 
         const stats = fs.statSync(dirPath)

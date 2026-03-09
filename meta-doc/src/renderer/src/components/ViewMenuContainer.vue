@@ -145,6 +145,7 @@ import WorkspaceGrepPanel from './WorkspaceGrepPanel.vue'
 import MetaInfoPanel from './MetaInfoPanel.vue'
 import AgentViewCompact from './agent/AgentViewCompact.vue'
 import eventBus from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 import { getSetting, setSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
@@ -355,17 +356,33 @@ const updateWindowWidth = () => {
   windowWidth.value = window.innerWidth
 }
 
+function onDirectoryChanged(first: unknown, second?: unknown) {
+  const payload = second !== undefined ? second : first
+  if (payload && typeof payload === 'object' && 'directoryPath' in payload) {
+    eventBus.emit('directory-changed', payload)
+  }
+}
+
 onMounted(async () => {
   await loadSavedState()
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.on('toggle-workspace-grep', handleToggleWorkspaceGrep)
   window.addEventListener('resize', updateWindowWidth)
+  // directory-changed 必须在始终挂载的容器里监听，否则切到其他 tab 时 WorkspaceExplorer 未挂载收不到 IPC
+  const ipc = messageBridge.getIpc()
+  if (ipc?.on) {
+    ipc.on('directory-changed', onDirectoryChanged)
+  }
 })
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('toggle-workspace-grep', handleToggleWorkspaceGrep)
   window.removeEventListener('resize', updateWindowWidth)
+  const ipc = messageBridge.getIpc()
+  if (ipc?.removeListener) {
+    ipc.removeListener('directory-changed', onDirectoryChanged)
+  }
 })
 </script>
 

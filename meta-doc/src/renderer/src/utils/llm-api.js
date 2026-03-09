@@ -468,6 +468,32 @@ async function answerQuestionNonStream(
       return
     }
 
+    // 对于千问（DashScope 原生 API），使用 HTTP 请求
+    if (type === 'qwen') {
+      const url = adapter.getCompletionUrl()
+      const payloadMeta = { ...meta }
+      if (effectiveMaxTokens !== undefined) {
+        payloadMeta.max_tokens = effectiveMaxTokens
+      }
+      const payload = adapter.buildCompletionPayload(prompt, payloadMeta)
+      const headers = adapter.buildHeaders()
+
+      const result = await sendNonStreamRequest(url, payload, headers, signal)
+      const { text, usage } = adapter.convertResponse(result, 'completion')
+      const processedText = await processThinkTag(text)
+      ref.value = processedText
+
+      if (usage) {
+        try {
+          await recordLlmRequest(usage, selectedModel, 'completion')
+        } catch (error) {
+          const logger = createRendererLogger('LLM-API')
+          logger.warn('记录 token 统计失败:', error)
+        }
+      }
+      return
+    }
+
     // 对于OpenAI兼容的API，使用OpenAI SDK
     const baseURL =
       type === 'deepseek' && config.completionApiUrl
@@ -617,6 +643,59 @@ async function answerQuestionStream(
       }
 
       // 流式响应完成时，记录 token 统计
+      if (lastUsage) {
+        try {
+          await recordLlmRequest(lastUsage, selectedModel, 'completion')
+        } catch (error) {
+          const logger = createRendererLogger('LLM-API')
+          logger.warn('记录 token 统计失败:', error)
+        }
+      }
+      return
+    }
+
+    // 对于千问（DashScope 原生 API）流式补全
+    if (type === 'qwen') {
+      const streamUrl = adapter.getStreamUrl('completion') || adapter.getCompletionUrl()
+      const payloadMeta = { ...meta, stream: true }
+      if (effectiveMaxTokens !== undefined) {
+        payloadMeta.max_tokens = effectiveMaxTokens
+      }
+      const payload = adapter.buildCompletionPayload(prompt, payloadMeta)
+      const headers = adapter.buildStreamHeaders
+        ? adapter.buildStreamHeaders()
+        : adapter.buildHeaders()
+
+      ref.value = ''
+      let lastUsage = null
+
+      await sendStreamRequest(
+        streamUrl,
+        payload,
+        headers,
+        signal,
+        async (chunk) => {
+          const delta = adapter.extractStreamDelta(chunk, 'completion')
+          if (delta) {
+            ref.value += delta
+            const processed = await processThinkTag(ref.value)
+            if (processed !== ref.value) {
+              ref.value = processed
+            }
+          }
+          const usage = adapter.extractStreamUsage(chunk)
+          if (usage) {
+            lastUsage = usage
+          }
+        },
+        async (lastChunk) => {
+          const usage = adapter.extractStreamUsage(lastChunk)
+          if (usage) {
+            lastUsage = usage
+          }
+        }
+      )
+
       if (lastUsage) {
         try {
           await recordLlmRequest(lastUsage, selectedModel, 'completion')
@@ -931,6 +1010,27 @@ async function continueConversationNonStream(
       return
     }
 
+    // 对于千问（DashScope 原生 API）非流式对话
+    if (type === 'qwen') {
+      const url = adapter.getChatUrl()
+      const payload = adapter.buildChatPayload(convertedMsgs, effectiveMeta)
+      const headers = adapter.buildHeaders()
+
+      const result = await sendNonStreamRequest(url, payload, headers, signal)
+      const { text, usage } = adapter.convertResponse(result, 'chat')
+      const processedContent = await processThinkTag(text)
+      ref.value = processedContent
+
+      if (usage) {
+        try {
+          await recordLlmRequest(usage, selectedModel, 'chat')
+        } catch (error) {
+          logger.warn('记录 token 统计失败:', error)
+        }
+      }
+      return
+    }
+
     // 对于OpenAI兼容的API，使用OpenAI SDK
     const finalUrl = adapter.getChatUrl()
 
@@ -1089,6 +1189,54 @@ async function continueConversationStream(
       }
 
       // 流式响应完成时，记录 token 统计
+      if (lastUsage) {
+        try {
+          await recordLlmRequest(lastUsage, selectedModel, 'chat')
+        } catch (error) {
+          logger.warn('记录 token 统计失败:', error)
+        }
+      }
+      return
+    }
+
+    // 对于千问（DashScope 原生 API）流式对话
+    if (type === 'qwen') {
+      const streamUrl = adapter.getStreamUrl('chat') || adapter.getChatUrl()
+      const payload = adapter.buildChatPayload(convertedMsgs, { ...effectiveMeta, stream: true })
+      const headers = adapter.buildStreamHeaders
+        ? adapter.buildStreamHeaders()
+        : adapter.buildHeaders()
+
+      ref.value = ''
+      let lastUsage = null
+
+      await sendStreamRequest(
+        streamUrl,
+        payload,
+        headers,
+        signal,
+        async (chunk) => {
+          const delta = adapter.extractStreamDelta(chunk, 'chat')
+          if (delta) {
+            ref.value += delta
+            const processed = await processThinkTag(ref.value)
+            if (processed !== ref.value) {
+              ref.value = processed
+            }
+          }
+          const usage = adapter.extractStreamUsage(chunk)
+          if (usage) {
+            lastUsage = usage
+          }
+        },
+        async (lastChunk) => {
+          const usage = adapter.extractStreamUsage(lastChunk)
+          if (usage) {
+            lastUsage = usage
+          }
+        }
+      )
+
       if (lastUsage) {
         try {
           await recordLlmRequest(lastUsage, selectedModel, 'chat')

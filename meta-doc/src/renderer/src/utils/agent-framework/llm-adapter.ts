@@ -52,6 +52,7 @@ export interface LlmResponseConfig {
     | 'openai-official'
     | 'deepseek'
     | 'gemini'
+    | 'qwen'
     | 'openai-compatible'
     | 'manual'
   chatSuffix?: string
@@ -181,6 +182,23 @@ export class LlmAdapter {
             apiKey: (await getSetting('geminiApiKey')) || '',
             model: (await getSetting('geminiSelectedModel')) || 'gemini-2.5-flash',
             type: 'gemini',
+            chatSuffix: '',
+            completionSuffix: '',
+            enableMaxTokens,
+            maxTokens
+          }
+          break
+        }
+        case 'qwen': {
+          const enableMaxTokens = (await getSetting('qwenEnableMaxTokens')) ?? false
+          const maxTokens = (await getSetting('qwenMaxTokens')) || 4096
+          config = {
+            apiUrl:
+              (await getSetting('qwenApiUrl')) ||
+              'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            apiKey: (await getSetting('qwenApiKey')) || '',
+            model: (await getSetting('qwenSelectedModel')) || 'qwen-plus',
+            type: 'qwen',
             chatSuffix: '',
             completionSuffix: '',
             enableMaxTokens,
@@ -909,6 +927,18 @@ export class LlmAdapter {
 
     // 用于跟踪已经处理过的工具调用ID（避免重复处理）
     const processedToolCallIds = new Set<string>()
+    // 按签名跨 watch 与 fallback 去重，避免同一逻辑调用被触发多次（解析每次生成新 id）
+    const processedToolCallSignatures = new Set<string>()
+    const getToolCallSignature = (tc: {
+      tool_id: string
+      parameters: Record<string, unknown>
+    }): string => {
+      const canonicalParams =
+        typeof tc.parameters === 'object' && tc.parameters !== null
+          ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
+          : JSON.stringify(tc.parameters)
+      return `${tc.tool_id}:${canonicalParams}`
+    }
     // 记录最后一个已处理工具调用的结束位置（用于只解析新内容，避免重复解析）
     let lastProcessedEndIndex = 0
 
@@ -1010,12 +1040,14 @@ export class LlmAdapter {
                     }> = []
 
                     for (const tc of allToolCalls) {
-                      // 生成基于工具ID和参数的稳定签名（参数键排序，避免 JSON 与 DSML 同次调用的重复入队）
-                      const canonicalParams =
-                        typeof tc.parameters === 'object' && tc.parameters !== null
-                          ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
-                          : JSON.stringify(tc.parameters)
-                      const signature = `${tc.tool_id}:${canonicalParams}`
+                      const signature = getToolCallSignature(tc)
+                      if (processedToolCallSignatures.has(signature)) {
+                        getLogger().debug(
+                          '[callChatViaTask] 跳过已处理过的工具调用（跨轮签名去重）:',
+                          { tool_id: tc.tool_id, signature }
+                        )
+                        continue
+                      }
                       if (!toolCallSignatures.has(signature)) {
                         toolCallSignatures.add(signature)
                         newToolCalls.push(tc)
@@ -1031,8 +1063,11 @@ export class LlmAdapter {
                       // 更新最后处理位置
                       lastProcessedEndIndex = maxEndIndex
 
-                      // 标记这些工具调用为已处理（基于ID）
-                      newToolCalls.forEach((tc) => processedToolCallIds.add(tc.id))
+                      // 标记为已处理（ID + 签名，签名用于 fallback 时不再重复触发）
+                      newToolCalls.forEach((tc) => {
+                        processedToolCallIds.add(tc.id)
+                        processedToolCallSignatures.add(getToolCallSignature(tc))
+                      })
 
                       getLogger().debug(
                         '[callChatViaTask] ✅✅✅ 发现新的工具调用，准备触发回调:',
@@ -1174,7 +1209,7 @@ export class LlmAdapter {
         }
 
         if (allToolCalls && allToolCalls.length > 0) {
-          // 基于工具调用的内容生成稳定的ID（用于去重）
+          // 与 watch 一致：先按签名去重（同批内 + 跨轮已处理）
           const toolCallSignatures = new Set<string>()
           const newToolCalls: Array<{
             id: string
@@ -1183,12 +1218,14 @@ export class LlmAdapter {
           }> = []
 
           for (const tc of allToolCalls) {
-            // 与 watch 内逻辑一致：基于 tool_id + 参数键排序的 canonical 签名去重
-            const canonicalParams =
-              typeof tc.parameters === 'object' && tc.parameters !== null
-                ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
-                : JSON.stringify(tc.parameters)
-            const signature = `${tc.tool_id}:${canonicalParams}`
+            const signature = getToolCallSignature(tc)
+            if (processedToolCallSignatures.has(signature)) {
+              getLogger().debug(
+                '[callChatViaTask] 兜底解析跳过已处理过的工具调用（跨轮签名去重）:',
+                { tool_id: tc.tool_id, signature }
+              )
+              continue
+            }
             if (!toolCallSignatures.has(signature)) {
               toolCallSignatures.add(signature)
               newToolCalls.push(tc)
@@ -1204,8 +1241,11 @@ export class LlmAdapter {
             // 更新最后处理位置（整个内容都已处理）
             lastProcessedEndIndex = resultRef.value.length
 
-            // 标记这些工具调用为已处理
-            newToolCalls.forEach((tc) => processedToolCallIds.add(tc.id))
+            // 标记为已处理（ID + 签名）
+            newToolCalls.forEach((tc) => {
+              processedToolCallIds.add(tc.id)
+              processedToolCallSignatures.add(getToolCallSignature(tc))
+            })
 
             getLogger().debug('[callChatViaTask] ✅ 流式输出完成，发现未处理的工具调用:', {
               newToolCallsCount: newToolCalls.length,

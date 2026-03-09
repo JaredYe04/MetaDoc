@@ -13,6 +13,7 @@ import type { LlmConfig, CustomLlmConfig } from './types.ts'
 let OpenAiAdapterClass: typeof import('./openai-adapter.ts').OpenAiAdapter | null = null
 let GeminiAdapterClass: typeof import('./gemini-adapter.ts').GeminiAdapter | null = null
 let OllamaAdapterClass: typeof import('./ollama-adapter.ts').OllamaAdapter | null = null
+let QwenAdapterClass: typeof import('./qwen-adapter.ts').QwenAdapter | null = null
 
 async function getOpenAiAdapter() {
   if (!OpenAiAdapterClass) {
@@ -20,6 +21,14 @@ async function getOpenAiAdapter() {
     OpenAiAdapterClass = module.OpenAiAdapter
   }
   return OpenAiAdapterClass
+}
+
+async function getQwenAdapter() {
+  if (!QwenAdapterClass) {
+    const module = await import('./qwen-adapter.ts')
+    QwenAdapterClass = module.QwenAdapter
+  }
+  return QwenAdapterClass
 }
 
 async function getGeminiAdapter() {
@@ -54,6 +63,9 @@ export async function createAdapter(config: LlmConfig): Promise<BaseLlmAdapter> 
     case 'openai-official':
     case 'deepseek':
       return new (await getOpenAiAdapter())(config)
+
+    case 'qwen':
+      return new (await getQwenAdapter())(config)
 
     case 'gemini':
       return new (await getGeminiAdapter())(config)
@@ -187,6 +199,21 @@ export async function createAdapterFromSettings(
         config.selectedModel = ((await getSetting('ollamaSelectedModel')) as string) || ''
         const enableMaxTokens = (await getSetting('ollamaEnableMaxTokens')) ?? false
         const maxTokens = (await getSetting('ollamaMaxTokens')) || 4096
+        config.enableMaxTokens = enableMaxTokens
+        config.maxTokens = maxTokens
+        break
+      }
+
+      case 'qwen': {
+        config.apiKey = (await getSetting('qwenApiKey')) as string | undefined
+        // 使用 DashScope 原生 API（华北2 北京），不再使用 compatible-mode
+        config.apiUrl =
+          (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com'
+        config.selectedModel = ((await getSetting('qwenSelectedModel')) as string) || 'qwen-plus'
+        config.completionSuffix = ''
+        config.chatSuffix = ''
+        const enableMaxTokens = (await getSetting('qwenEnableMaxTokens')) ?? false
+        const maxTokens = (await getSetting('qwenMaxTokens')) || 4096
         config.enableMaxTokens = enableMaxTokens
         config.maxTokens = maxTokens
         break

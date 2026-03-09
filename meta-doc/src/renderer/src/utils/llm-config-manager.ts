@@ -21,7 +21,7 @@ export interface LlmConfigItem {
   id: string
   name: string
   isDefault?: boolean // 是否为默认配置（用于 i18n 显示）
-  type: 'metadoc' | 'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'manual'
+  type: 'metadoc' | 'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen' | 'manual'
   // Ollama配置
   ollama?: {
     apiUrl: string
@@ -56,6 +56,14 @@ export interface LlmConfigItem {
   // Gemini配置
   gemini?: {
     apiKey: string
+    selectedModel: string
+    enableMaxTokens?: boolean
+    maxTokens?: number
+  }
+  // 千问/百炼配置（阿里云 DashScope OpenAI 兼容）
+  qwen?: {
+    apiKey: string
+    apiUrl: string
     selectedModel: string
     enableMaxTokens?: boolean
     maxTokens?: number
@@ -169,6 +177,21 @@ function createDefaultConfigs(): LlmConfigItem[] {
       },
       createdAt: now,
       updatedAt: now
+    },
+    {
+      id: `${baseId}-qwen`,
+      name: '通义千问 (默认)',
+      isDefault: true,
+      type: 'qwen',
+      qwen: {
+        apiKey: '',
+        apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        selectedModel: 'qwen-plus',
+        enableMaxTokens: false,
+        maxTokens: 4096
+      },
+      createdAt: now,
+      updatedAt: now
     }
   ]
 }
@@ -177,12 +200,13 @@ function createDefaultConfigs(): LlmConfigItem[] {
  * 检查并补充缺失的默认配置
  */
 function ensureDefaultConfigs(): void {
-  const defaultTypes: Array<'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini'> = [
+  const defaultTypes: Array<'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen'> = [
     'ollama',
     'openai',
     'openai-official',
     'deepseek',
-    'gemini'
+    'gemini',
+    'qwen'
   ]
   const existingTypes = new Set(configs.value.filter((c) => c.isDefault).map((c) => c.type))
 
@@ -334,6 +358,14 @@ async function createConfigFromSettings(): Promise<
       enableMaxTokens: (await getSetting('geminiEnableMaxTokens')) ?? false,
       maxTokens: (await getSetting('geminiMaxTokens')) || 4096
     }
+  } else if (selectedLlm === 'qwen') {
+    config.qwen = {
+      apiKey: (await getSetting('qwenApiKey')) || '',
+      apiUrl: (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      selectedModel: (await getSetting('qwenSelectedModel')) || 'qwen-plus',
+      enableMaxTokens: (await getSetting('qwenEnableMaxTokens')) ?? false,
+      maxTokens: (await getSetting('qwenMaxTokens')) || 4096
+    }
   } else if (selectedLlm === 'metadoc') {
     config.metadoc = {
       selectedModel: (await getSetting('metadocSelectedModel')) || '',
@@ -418,6 +450,33 @@ export async function updateConfig(
 }
 
 /**
+ * 是否为预设配置（预设不可删除，但可编辑，且编辑时不可更改大模型类型）
+ */
+export function isPresetConfig(config: LlmConfigItem): boolean {
+  return config.isDefault === true
+}
+
+/**
+ * 复制配置（创建副本，新 id 与新名称 "xxx (副本)"）
+ */
+export function copyConfig(configId: string): LlmConfigItem | null {
+  const config = configs.value.find((c) => c.id === configId)
+  if (!config) return null
+
+  const copy: LlmConfigItem = {
+    ...JSON.parse(JSON.stringify(config)),
+    id: `config-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    name: `${config.name} (副本)`,
+    isDefault: false,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+  configs.value.push(copy)
+  saveLlmConfigs()
+  return copy
+}
+
+/**
  * 删除配置
  */
 export async function deleteConfig(id: string): Promise<boolean> {
@@ -425,9 +484,9 @@ export async function deleteConfig(id: string): Promise<boolean> {
   if (index === -1) return false
 
   const config = configs.value[index]
-  // 禁止删除默认配置
-  if (config.isDefault) {
-    throw new Error('不能删除默认配置')
+  // 禁止删除预设配置
+  if (isPresetConfig(config)) {
+    throw new Error('不能删除预设配置')
   }
 
   const wasCurrentConfig = currentConfigId.value === id
@@ -525,6 +584,9 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('deepseekSelectedModel', '')
     await setSetting('geminiApiKey', '')
     await setSetting('geminiSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
     await setSetting('metadocSelectedModel', '')
   } else if (config.type === 'openai' && config.openai) {
     await setSetting('openaiApiUrl', config.openai.apiUrl)
@@ -543,6 +605,9 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('deepseekSelectedModel', '')
     await setSetting('geminiApiKey', '')
     await setSetting('geminiSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
     await setSetting('metadocSelectedModel', '')
   } else if (config.type === 'openai-official' && config['openai-official']) {
     await setSetting('openaiOfficialApiKey', config['openai-official'].apiKey)
@@ -562,6 +627,9 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('deepseekSelectedModel', '')
     await setSetting('geminiApiKey', '')
     await setSetting('geminiSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
     await setSetting('metadocSelectedModel', '')
   } else if (config.type === 'deepseek' && config.deepseek) {
     await setSetting('deepseekApiKey', config.deepseek.apiKey)
@@ -578,6 +646,9 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('openaiOfficialSelectedModel', '')
     await setSetting('geminiApiKey', '')
     await setSetting('geminiSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
     await setSetting('metadocSelectedModel', '')
   } else if (config.type === 'gemini' && config.gemini) {
     await setSetting('geminiApiKey', config.gemini.apiKey)
@@ -594,6 +665,27 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('openaiOfficialSelectedModel', '')
     await setSetting('deepseekApiKey', '')
     await setSetting('deepseekSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
+    await setSetting('metadocSelectedModel', '')
+  } else if (config.type === 'qwen' && config.qwen) {
+    await setSetting('qwenApiKey', config.qwen.apiKey)
+    await setSetting('qwenApiUrl', config.qwen.apiUrl)
+    await setSetting('qwenSelectedModel', config.qwen.selectedModel)
+    await setSetting('qwenEnableMaxTokens', config.qwen.enableMaxTokens ?? false)
+    await setSetting('qwenMaxTokens', config.qwen.maxTokens || 4096)
+    await setSetting('ollamaApiUrl', '')
+    await setSetting('ollamaSelectedModel', '')
+    await setSetting('openaiApiUrl', '')
+    await setSetting('openaiApiKey', '')
+    await setSetting('openaiSelectedModel', '')
+    await setSetting('openaiOfficialApiKey', '')
+    await setSetting('openaiOfficialSelectedModel', '')
+    await setSetting('deepseekApiKey', '')
+    await setSetting('deepseekSelectedModel', '')
+    await setSetting('geminiApiKey', '')
+    await setSetting('geminiSelectedModel', '')
     await setSetting('metadocSelectedModel', '')
   } else if (config.type === 'metadoc' && config.metadoc) {
     await setSetting('metadocSelectedModel', config.metadoc.selectedModel)
@@ -611,6 +703,9 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('deepseekSelectedModel', '')
     await setSetting('geminiApiKey', '')
     await setSetting('geminiSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
   } else if (config.type === 'manual') {
     // 手动类型不需要额外配置，但需要清空其他类型
     await setSetting('ollamaApiUrl', '')
@@ -624,6 +719,9 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('deepseekSelectedModel', '')
     await setSetting('geminiApiKey', '')
     await setSetting('geminiSelectedModel', '')
+    await setSetting('qwenApiKey', '')
+    await setSetting('qwenApiUrl', '')
+    await setSetting('qwenSelectedModel', '')
     await setSetting('metadocSelectedModel', '')
   }
 
@@ -733,6 +831,18 @@ export async function checkWorkspaceModified(): Promise<boolean> {
       snapshot.gemini.selectedModel !== current.selectedModel ||
       snapshot.gemini.enableMaxTokens !== current.enableMaxTokens ||
       snapshot.gemini.maxTokens !== current.maxTokens
+    ) {
+      return true
+    }
+  } else if (snapshot.type === 'qwen' && snapshot.qwen) {
+    const current = currentSettings.qwen
+    if (!current) return true
+    if (
+      snapshot.qwen.apiKey !== current.apiKey ||
+      snapshot.qwen.apiUrl !== current.apiUrl ||
+      snapshot.qwen.selectedModel !== current.selectedModel ||
+      snapshot.qwen.enableMaxTokens !== current.enableMaxTokens ||
+      snapshot.qwen.maxTokens !== current.maxTokens
     ) {
       return true
     }

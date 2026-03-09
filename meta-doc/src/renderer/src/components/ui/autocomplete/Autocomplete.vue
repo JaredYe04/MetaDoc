@@ -191,12 +191,20 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 }
 
+const getInputElement = (): HTMLElement | null => {
+  const input = inputRef.value
+  if (!input) return null
+  if (input instanceof HTMLElement) return input
+  const el = (input as { $el?: HTMLElement }).$el
+  return el instanceof HTMLElement ? el : null
+}
+
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   const dropdown = dropdownRef.value
-  const input = inputRef.value
+  const inputEl = getInputElement()
 
-  if (dropdown && !dropdown.contains(target) && input && !input.contains(target)) {
+  if (dropdown && !dropdown.contains(target) && inputEl && !inputEl.contains(target)) {
     isOpen.value = false
   }
 }
@@ -323,9 +331,9 @@ watch(
       <div
         v-if="showDropdown"
         ref="dropdownRef"
-        class="absolute z-50 w-full mt-1 py-1 bg-popover border border-border rounded-md shadow-lg"
+        class="absolute z-50 w-full mt-1 py-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden"
       >
-        <ScrollArea class="max-h-[300px]">
+        <ScrollArea class="h-[300px]">
           <!-- Loading state -->
           <div
             v-if="isLoading || loading"

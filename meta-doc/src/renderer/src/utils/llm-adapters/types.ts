@@ -9,6 +9,7 @@ export type LlmType =
   | 'openai-official'
   | 'deepseek'
   | 'gemini'
+  | 'qwen'
   | 'manual'
 
 export type RequestMode = 'completion' | 'chat'

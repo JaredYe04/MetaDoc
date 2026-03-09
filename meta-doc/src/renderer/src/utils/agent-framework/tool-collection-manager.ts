@@ -133,7 +133,7 @@ class ToolCollectionManager {
 
     this.collections.set(id, updated)
     this.saveToStorage()
-    this.getLogger().info(`工具集已更新: ${id}`)
+    //this.getLogger().info(`工具集已更新: ${id}`)
   }
 
   /**

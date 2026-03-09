@@ -933,6 +933,7 @@
     "taskCancelled2": "Задача отменена"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "Автодополнение ИИ",
     "cancelDelay": "Отменить задержку",
     "delayActive": "Автодополнение активно",
     "delayButton": "Задержать на {minutes} мин.",

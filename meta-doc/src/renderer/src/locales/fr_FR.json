@@ -67,6 +67,7 @@
     "showError": "Afficher le message d'erreur"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "Complétion IA automatique",
     "empty": "Aucune tâche pour le moment",
     "error": "Le chargement a échoué",
     "loading": "Chargement...",

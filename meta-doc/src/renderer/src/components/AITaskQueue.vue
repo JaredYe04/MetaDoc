@@ -17,12 +17,13 @@
     :content-padding="10"
     @resize="onResize"
   >
-    <div class="queue-wrapper" :style="wrapperStyle">
-      <div class="queue-header">
+    <div class="queue-wrapper flex flex-col h-full text-foreground" :style="wrapperStyle">
+      <div class="queue-header flex items-center justify-between gap-3 border-b border-border pb-2 mb-2">
         <Tooltip :content="t('aiTaskQueue.switchWarning')" placement="right">
-          <h3>{{ t('aiTaskQueue.title') }}</h3>
+          <h3 class="text-sm font-medium m-0 text-foreground">{{ t('aiTaskQueue.title') }}</h3>
         </Tooltip>
-        <div class="header-actions">
+        <div class="header-actions flex items-center gap-2 shrink-0">
+          <span class="text-xs text-muted-foreground whitespace-nowrap">{{ t('aiTaskQueue.autoCompletionHint') }}</span>
           <Switch
             :checked="settings.autoCompletion"
             class="auto-switch"
@@ -36,33 +37,32 @@
         </div>
       </div>
 
-      <!-- {{ t('aiTaskQueue.delayControlArea') }} -->
-      <div v-if="settings.autoCompletion" class="delay-control">
-        <div class="delay-info">
-          <span v-if="remainingDelay > 0" class="delay-text">
+      <div v-if="settings.autoCompletion" class="delay-control flex items-center justify-between gap-2 py-2 mb-2 border-b border-border">
+        <div class="delay-info min-w-0">
+          <span v-if="remainingDelay > 0" class="text-xs text-muted-foreground">
             {{ t('aiTaskQueue.delayRemaining', { time: formatDelayTime(remainingDelay) }) }}
           </span>
-          <span v-else class="delay-text delay-active">
+          <span v-else class="text-xs text-foreground">
             {{ t('aiTaskQueue.delayActive') }}
           </span>
         </div>
-        <div class="delay-actions">
+        <div class="delay-actions flex gap-2 shrink-0">
           <Button
             v-if="remainingDelay > 0"
-            size="small"
-            type="danger"
+            size="sm"
+            variant="ghost"
+            class="text-muted-foreground hover:text-destructive"
             @click="cancelDelay"
-            class="delay-button"
           >
             {{ t('aiTaskQueue.cancelDelay') }}
           </Button>
-          <Button size="small" type="primary" @click="delayCompletion(5)" class="delay-button">
+          <Button size="sm" variant="outline" @click="delayCompletion(5)">
             {{ t('aiTaskQueue.delayButton', { minutes: 5 }) }}
           </Button>
         </div>
       </div>
 
-      <ScrollArea class="flex-1 max-w-full">
+      <ScrollArea class="flex-1 max-w-full min-h-0">
         <AITask
           v-for="task in tasks"
           :key="task.handle"
@@ -71,7 +71,7 @@
           @cancel="() => cancelAiTask(task.handle)"
         />
 
-        <div v-if="tasks.length === 0" class="empty-state">
+        <div v-if="tasks.length === 0" class="empty-state text-center py-4 text-sm text-muted-foreground">
           {{ t('aiTaskQueue.empty') }}
         </div>
       </ScrollArea>
@@ -167,17 +167,9 @@ type TaskType = (typeof tasks.value)[0]
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.3))
 const maxHeight = computed(() => Math.floor(window.innerHeight * 0.7))
 
-const wrapperStyle = computed(() => {
-  const isDark = themeState.currentTheme?.type === 'dark'
-  return {
-    color: themeState.currentTheme.textColor,
-    '--queue-border-color': isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)',
-    '--queue-item-bg': isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.02)',
-    '--queue-item-hover-bg': isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.05)',
-    '--queue-empty-opacity': isDark ? 0.6 : 0.4,
-    '--queue-time-opacity': isDark ? 0.7 : 0.45
-  }
-})
+const wrapperStyle = computed(() => ({
+  color: themeState.currentTheme?.textColor ?? 'inherit'
+}))
 
 // 面板尺寸变化处理
 function onResize(width: number, height: number) {
@@ -271,76 +263,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .queue-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  color: inherit;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-}
-
-.queue-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  user-select: none;
-  border-bottom: 1px solid var(--queue-border-color);
-  padding-bottom: 6px;
-}
-
-.queue-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-}
-
-/* 开关配色使用全局 element-plus-theme-override.css */
-
-.empty-state {
-  text-align: center;
-  padding: 16px 8px;
-  opacity: var(--queue-empty-opacity);
-  color: inherit;
-}
-
-.delay-control {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--queue-border-color);
-}
-
-.delay-info {
-  flex: 1;
-}
-
-.delay-text {
-  font-size: 12px;
-  opacity: var(--queue-time-opacity);
-  color: inherit;
-}
-
-.delay-text.delay-active {
-  opacity: 1;
-  color: var(--el-color-success);
-}
-
-.delay-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.delay-button {
-  flex-shrink: 0;
 }
 </style>

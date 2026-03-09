@@ -933,6 +933,7 @@
     "taskCancelled2": "任務已取消"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "AI自動補全",
     "cancelDelay": "取消延遲",
     "delayActive": "補全已啟用",
     "delayButton": "延遲{minutes}分鐘",

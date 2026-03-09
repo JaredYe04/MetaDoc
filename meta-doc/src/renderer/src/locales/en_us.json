@@ -1646,6 +1646,7 @@
     "showError": "Show Error Message"
   },
   "aiTaskQueue": {
+    "autoCompletionHint": "AI auto-completion",
     "empty": "No tasks",
     "error": "Loading failed",
     "loading": "Loading...",

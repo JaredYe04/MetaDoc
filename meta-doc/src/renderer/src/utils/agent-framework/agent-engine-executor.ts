@@ -39,6 +39,8 @@ export interface EngineExecuteOptions {
   onTaskCreated?: (handle: string) => void // AI任务创建时的回调，用于保存handle以便取消
   /** CLI 调试：每轮只执行一步（一次 LLM 或一次工具调用后即停，不自动继续） */
   singleStep?: boolean
+  /** 当前激活的引用 ID 列表，传给 AIContextManager.buildMessages 以只注入这些引用；不传则使用 session.referenceStore 全部 */
+  activeReferenceIds?: string[]
 }
 
 /**
@@ -799,7 +801,9 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
 
     // 构建上下文消息
     const toolPrompt = this.buildToolCallPrompt()
-    let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
+    let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
+      activeReferenceIds: this.options.activeReferenceIds
+    })
 
     // 添加ReAct提示词
     const reactPrompt = this.buildReActPrompt() + toolPrompt
@@ -1054,13 +1058,20 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
 }
 
 /**
- * AutoGPT引擎执行器
+ * AutoGPT / ReAct 统一引擎执行器
+ *
+ * 范式（ReAct/AutoGPT）：
+ * 1. LLM 生成回复（可含纯文本 + 工具调用）
+ * 2. 若无 tool_call → 任务结束
+ * 3. 若有 tool_call → 本轮所有工具在 tool-call-queue 中并发执行，信号量控制，全部完成后将结果加入上下文
+ * 4. 自动触发下一轮 LLM，直到本轮回复仅有纯文本（无 tool_call）则结束
+ * 同一条消息中混合纯文本与工具调用时：纯文本通过 reactiveMessage.markdown 流式输出，工具调用入队执行。
  */
 export class AutoGPTEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
-    // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
+    // 用户消息已在 handleComposerSubmit 中添加
 
-    // 步骤1: 意图识别并更新activeToolSpecs
+    // 步骤1: 意图识别并更新 activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
       message: 'Analyzing intent...'
@@ -1093,7 +1104,9 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 
     // 构建上下文消息
     const toolPrompt = this.buildToolCallPrompt()
-    let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
+    let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
+      activeReferenceIds: this.options.activeReferenceIds
+    })
 
     // 添加工具提示到最后一个系统消息
     if (contextMessages.length > 0 && contextMessages[0].role === 'system') {
@@ -1168,16 +1181,25 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       // AI输出完成
       this.isAiResponding = false
 
+      // 让一帧微任务执行完，确保 onToolCallsDetected 已写入 assistantMessage.tool_calls（尤其原生 tools 路径）
+      await Promise.resolve()
+
+      const existingToolCallsCount = ((assistantMessage as any).tool_calls || []).length
+      getLogger().debug('[AutoGPT] callChatViaTask 返回后 assistantMessage.tool_calls 数量', {
+        messageId: assistantMessage.id,
+        existingToolCallsCount
+      })
+
       // 检查是否有工具调用
-      // 优先使用流式输出过程中检测到的工具调用（已经在onToolCallsDetected中添加到tool_calls数组和队列）
-      // 如果没有，则从响应中解析（兜底机制）
+      // 原生 tools 路径（AI SDK）：工具由 onToolCallsDetected 写入 assistantMessage.tool_calls 并已入队，
+      // 此处以 assistantMessage.tool_calls 为唯一来源，避免依赖闭包变量导致第二轮误判为“无工具”而退出循环。
+      // 非原生路径（文本解析）：从响应内容解析并合并到 message，与原有逻辑一致。
       let toolCalls: Array<{
         id: string
         tool_id: string
         parameters: Record<string, unknown>
       }> | null = null
 
-      // 获取已经在assistantMessage中的tool_calls（由onToolCallsDetected添加）
       const existingToolCallsInMessage = (assistantMessage as any).tool_calls || []
       const existingToolCallIds = new Set(existingToolCallsInMessage.map((tc: any) => tc.id))
       const getSignatureForDedup = (tc: { tool_id: string; parameters: Record<string, unknown> }) => {
@@ -1193,29 +1215,27 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         )
       )
 
-      if (toolCallsDetectedDuringStream && detectedToolCalls !== null) {
-        // 流式过程中已经检测到工具调用，并且已经通过onToolCallsDetected添加到tool_calls数组和队列
-        // 使用assistantMessage中已有的tool_calls（可能包含多次检测到的工具调用）
-        const mappedToolCalls = existingToolCallsInMessage.map((tc: any) => ({
+      // 优先以 message 上的 tool_calls 为准（原生 tools 路径下由 SDK 回调写入，已入队）
+      if (existingToolCallsInMessage.length > 0) {
+        toolCalls = existingToolCallsInMessage.map((tc: any) => ({
           id: tc.id,
           tool_id: tc.tool_id,
           parameters: tc.parameters
         }))
-        toolCalls = mappedToolCalls
-        // 计算detectedToolCalls的长度（用于日志）
-        const detectedCountValue = (
-          detectedToolCalls as Array<{
-            id: string
-            tool_id: string
-            parameters: Record<string, unknown>
-          }>
-        ).length
-        getLogger().debug('[AutoGPT] 使用流式输出过程中检测到的工具调用', {
-          toolCallsCount: mappedToolCalls.length,
-          detectedCount: detectedCountValue,
-          existingCount: existingToolCallsInMessage.length
+        getLogger().debug('[AutoGPT] 使用 assistantMessage.tool_calls（原生 tools 或流式已写入）', {
+          toolCallsCount: toolCalls.length
         })
-      } else {
+      } else if (toolCallsDetectedDuringStream && detectedToolCalls !== null && detectedToolCalls.length > 0) {
+        // 流式过程中检测到但 message 尚未写入的兜底（如旧路径）
+        toolCalls = detectedToolCalls.map((tc) => ({
+          id: tc.id,
+          tool_id: tc.tool_id,
+          parameters: tc.parameters
+        }))
+        getLogger().debug('[AutoGPT] 使用流式检测到的 toolCalls（兜底）', { toolCallsCount: toolCalls.length })
+      }
+
+      if (toolCalls === null || toolCalls.length === 0) {
         // 从响应中解析工具调用（兜底机制：流式检测可能遗漏某些工具调用）
         const responseContent = response || assistantMessage.markdown || ''
         const parsedToolCalls = this.parseToolCalls(responseContent)
@@ -1434,15 +1454,16 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         }
 
         for (const toolCall of toolCalls) {
-          // 在当前消息之后查找对应的tool消息
+          // 在当前消息之后查找对应的tool消息（兼容 tool_call_id / invocationId）
           const currentMessageIndex = this.session.messages.indexOf(assistantMessage)
           if (currentMessageIndex !== -1) {
             for (let i = currentMessageIndex + 1; i < this.session.messages.length; i++) {
               const msg = this.session.messages[i]
+              const matchId = (msg as any).tool_call_id ?? (msg as any).invocationId
               if (
                 msg.type === 'tool' &&
                 msg.role === 'tool' &&
-                (msg as any).tool_call_id === toolCall.id
+                matchId === toolCall.id
               ) {
                 const toolMsg = msg as any
                 const toolName = toolMsg.tool?.name || toolCall.tool_id
@@ -1626,7 +1647,9 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       */
 
       // 重新构建上下文（包含新的工具结果）
-      contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
+      contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
+        activeReferenceIds: this.options.activeReferenceIds
+      })
       if (contextMessages.length > 0 && contextMessages[0].role === 'system') {
         contextMessages[0].content += toolPrompt
       } else {
@@ -1635,7 +1658,6 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           content: toolPrompt
         })
       }
-
       contextMessages.push({
         role: 'user',
         content: observationText + getPromptByKey('agent.toolResultContinuePrompt')
@@ -1644,6 +1666,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       // 检查是否达到最大迭代次数
       if (iterations >= maxIterations) {
         // 最后一次调用，要求返回最终结果 - 使用createAiTask
+        getLogger().debug('[AutoGPT] 已达最大迭代次数，进行最终回复轮')
         // 创建响应式消息对象用于实时流式显示
         const finalMessage = reactive({
           id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1679,6 +1702,14 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         })
         break
       }
+
+      // 未达最大迭代：工具结果已加入 contextMessages，显式进入下一轮 LLM
+      getLogger().debug('[AutoGPT] 工具结果已加入上下文，进入下一轮 LLM', {
+        iterations,
+        maxIterations,
+        nextIteration: iterations + 1
+      })
+      continue
     }
   }
 }
@@ -1723,7 +1754,9 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
     const llmConfig = await LlmAdapter.getLlmConfig(this.engine)
 
     // 构建上下文消息（不包含工具提示）
-    const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
+    const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
+      activeReferenceIds: this.options.activeReferenceIds
+    })
 
     // 创建新的工具调用队列（每次AI输出开始时）
     this.createToolCallQueue()
@@ -1879,7 +1912,9 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       message: '生成最终总结...'
     })
 
-    const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
+    const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
+      activeReferenceIds: this.options.activeReferenceIds
+    })
     contextMessages.push({
       role: 'user',
       content: getPromptByKey('agent.planSummaryPrompt')
@@ -1979,6 +2014,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
 
 /**
  * AgentEngine执行器工厂
+ * 统一范式：仅保留一套 ReAct/AutoGPT 风格引擎（多轮 LLM + 批量工具执行），react/plan-execute 复用同一实现
  */
 export class AgentEngineExecutorFactory {
   static create(
@@ -1989,15 +2025,14 @@ export class AgentEngineExecutorFactory {
   ): BaseEngineExecutor {
     switch (engine.engineType) {
       case 'autogpt':
-        return new AutoGPTEngineExecutor(engine, session, agentConfig, options)
       case 'react':
-        return new ReActEngineExecutor(engine, session, agentConfig, options)
       case 'plan-execute':
-        return new PlanExecuteEngineExecutor(engine, session, agentConfig, options)
+        // 统一使用同一套 ReAct/AutoGPT 范式：LLM → 无 tool_call 则结束；有则批量执行工具，等队列完成后下一轮
+        return new AutoGPTEngineExecutor(engine, session, agentConfig, options)
       case 'simple-chat':
         return new SimpleChatEngineExecutor(engine, session, agentConfig, options)
       default:
-        getLogger().warn(`未知引擎类型: ${engine.engineType}，使用AutoGPT引擎`)
+        getLogger().warn(`未知引擎类型: ${engine.engineType}，使用 AutoGPT 引擎`)
         return new AutoGPTEngineExecutor(engine, session, agentConfig, options)
     }
   }

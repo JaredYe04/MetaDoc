@@ -95,43 +95,51 @@
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent class="agent-compact-history-dropdown" align="end" :side-offset="4">
-            <div class="agent-compact-history-list">
-              <template v-for="group in historyGroups" :key="group.label">
-                <div class="agent-compact-history-group-label">{{ group.label }}</div>
-                <DropdownMenuItem
-                  v-for="s in group.sessions"
-                  :key="s.id"
-                  class="agent-compact-history-item"
-                  @contextmenu.prevent="openHistoryContextMenu($event, s)"
-                  @select="(openSessionFromHistory(s), historyOpen = false)"
-                >
-                  <span class="agent-compact-history-row">
-                    <span class="agent-compact-history-title">{{
-                      s.title || t('agent.compact.untitled')
-                    }}</span>
-                    <span class="agent-compact-history-time">{{
-                      formatHistoryTime(s.updatedAt)
-                    }}</span>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="agent-compact-history-item-close"
-                    :title="t('agent.compact.deleteSession')"
-                    @click.stop="confirmDeleteHistoryItem(s)"
+            <div class="agent-compact-history-list-wrap">
+              <el-scrollbar class="agent-compact-history-scrollbar" max-height="320px">
+                <div class="agent-compact-history-list">
+                  <template v-for="group in historyGroups" :key="group.label">
+                    <div class="agent-compact-history-group-label">{{ group.label }}</div>
+                    <DropdownMenuItem
+                      v-for="s in group.sessions"
+                      :key="s.id"
+                      class="agent-compact-history-item"
+                      @contextmenu.prevent="openHistoryContextMenu($event, s)"
+                      @select="(openSessionFromHistory(s), historyOpen = false)"
+                    >
+                      <span class="agent-compact-history-row">
+                        <span class="agent-compact-history-title">{{
+                          s.title || t('agent.compact.untitled')
+                        }}</span>
+                        <span class="agent-compact-history-time">{{
+                          formatHistoryTime(s.updatedAt)
+                        }}</span>
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="agent-compact-history-item-close"
+                        :title="t('agent.compact.deleteSession')"
+                        @click.stop="confirmDeleteHistoryItem(s)"
+                      >
+                        <X class="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuItem>
+                  </template>
+                  <div
+                    v-if="hasMoreHistory"
+                    class="agent-compact-history-more"
+                    role="button"
+                    tabindex="0"
+                    @click="historyLimit += 10"
+                    @keydown.enter.prevent="historyLimit += 10"
+                    @keydown.space.prevent="historyLimit += 10"
                   >
-                    <X class="h-3 w-3" />
-                  </Button>
-                </DropdownMenuItem>
-              </template>
-              <DropdownMenuItem
-                v-if="hasMoreHistory"
-                class="agent-compact-history-more"
-                @select="historyLimit += 10"
-              >
-                {{ t('agent.compact.loadMore') }}
-              </DropdownMenuItem>
+                    {{ t('agent.compact.loadMore') }}
+                  </div>
+                </div>
+              </el-scrollbar>
             </div>
           </DropdownMenuContent>
           <!-- 最近会话项右键菜单：modal=false 时 body 不设 pointer-events:none，Teleport 到 body 可正常显示和点击；下拉保持打开，仅点击外部/列表项/菜单项时关闭 -->
@@ -1338,8 +1346,13 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
     const { AgentEngineExecutorFactory } = await import(
       '../../utils/agent-framework/agent-engine-executor'
     )
+    const lastUserMsg = session.messages
+      .filter((m: any) => m.role === 'user' && m.type === 'chat')
+      .slice(-1)[0] as { referenceIds?: string[] } | undefined
+    const refIds = lastUserMsg?.referenceIds ?? activeReferenceIds.value
     const executor = AgentEngineExecutorFactory.create(engine, session as any, agentConfig, {
       signal: abortController.signal,
+      activeReferenceIds: refIds,
       onProgress: (progress: any) => {
         session.status = progress.stage as any
         // 注意：不要在流式输出期间频繁持久化（可能破坏 reactive 对象）
@@ -2113,10 +2126,26 @@ onMounted(async () => {
   animation: agent-compact-shake 1.5s ease-in-out;
 }
 
-/* 历史下拉 */
+/* 历史下拉：固定最大高度，内部用 el-scrollbar 滚动 */
 .agent-compact-history-dropdown {
-  max-height: 320px;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.agent-compact-history-list-wrap {
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.agent-compact-history-scrollbar {
+  flex: 1;
+  min-height: 0;
+}
+
+.agent-compact-history-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 
 .agent-compact-history-list {
@@ -2193,6 +2222,19 @@ onMounted(async () => {
   font-size: 12px;
   border-top: 1px solid rgba(128, 128, 128, 0.15);
   margin-top: 4px;
+  padding: 6px 8px 6px 12px;
+  cursor: pointer;
+  color: var(--el-text-color-primary);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  width: 100%;
+  text-align: left;
+  outline: none;
+}
+
+.agent-compact-history-more:hover {
+  background: var(--el-fill-color-light, rgba(128, 128, 128, 0.08));
 }
 
 .agent-rename-input {

@@ -91,7 +91,9 @@ export class AIContextManager {
     }
 
     // 2. 引用素材（作为系统消息的一部分，兼容新旧格式）
-    const referenceStore = (session as any).referenceStore
+    const referenceStore = Array.isArray((session as any).referenceStore)
+      ? (session as any).referenceStore
+      : []
     const activeReferenceIds = options.activeReferenceIds
     const enableBuiltInDocRef = (session as AgentSession).enableBuiltInDocumentReference !== false // 默认开启
 
@@ -113,9 +115,9 @@ export class AIContextManager {
       Array.isArray(referenceStore) &&
       referenceStore.length > 0
     ) {
-      // 如果指定了activeReferenceIds，只处理激活的引用
+      // 若调用方传入了 activeReferenceIds（含空数组），只注入这些引用；未传则注入 referenceStore 全部
       const userReferences =
-        activeReferenceIds && activeReferenceIds.length > 0
+        activeReferenceIds !== undefined && activeReferenceIds !== null
           ? (referenceStore as Reference[]).filter((ref) => activeReferenceIds.includes(ref.id))
           : (referenceStore as Reference[])
       referencesToInclude.push(...userReferences)

@@ -812,17 +812,16 @@ const processedContentParts = computed(() => {
     toolCallIndex++
   }
 
-  // 如果没有找到任何工具调用标记，但消息有tool_calls，在开头添加所有工具调用指示器
+  // 如果没有找到任何工具调用标记，但消息有 tool_calls（如原生 SDK tool calling），先显示 AI 纯文本，再显示工具调用指示器
   if (parts.length === 0 && toolCallMap.size > 0) {
-    for (const toolCallInfo of toolCallMap.values()) {
-      parts.push({ type: 'tool-call', text: toolCallInfo.text })
-    }
-    // 如果有markdown内容，添加在后面（用 cleanAllMarkers 清除 DSML 等，避免显示原始标记）
     if (content.trim()) {
       parts.push({
         type: 'markdown',
         content: toolCallParserManager.cleanAllMarkers(content.trim())
       })
+    }
+    for (const toolCallInfo of toolCallMap.values()) {
+      parts.push({ type: 'tool-call', text: toolCallInfo.text })
     }
   }
 

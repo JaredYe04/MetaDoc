@@ -10,6 +10,7 @@ import { toAISDKTools, type EngineToolSpec } from './tools-to-ai-sdk'
 import type { LlmConfig } from '../llm-adapters/types'
 import type { Message } from '../llm-adapters/types'
 import type { UsageStats } from '../llm-adapters/types'
+import { createRendererLogger } from '../logger'
 
 export interface StreamChatWithToolsOptions {
   config: LlmConfig
@@ -27,7 +28,9 @@ export interface StreamChatWithToolsOptions {
 }
 
 export interface StreamChatWithToolsResult {
-  consumeStream: (onDelta: (delta: string) => void) => Promise<UsageStats | null>
+  consumeStream: (
+    onDelta: (delta: string) => void
+  ) => Promise<{ usage: UsageStats | null; fullText?: string }>
 }
 
 /**
@@ -50,31 +53,103 @@ export async function streamChatWithTools(
     abortSignal
   })
 
+  const reportedToolCallIds = new Set<string>()
+  /** 已在流中上报过的 id，流结束后不再重复上报 */
+  const reportedInLoop = new Set<string>()
+  type ToolCallItem = { id: string; tool_id: string; parameters: Record<string, unknown> }
+  const collectedToolCalls: ToolCallItem[] = []
   return {
-    async consumeStream(onDelta: (delta: string) => void): Promise<UsageStats | null> {
+    async consumeStream(
+      onDelta: (delta: string) => void
+    ): Promise<{ usage: UsageStats | null; fullText?: string }> {
       try {
         for await (const part of result.fullStream) {
-          if (part.type === 'text-delta' && part.delta) {
-            onDelta(part.delta)
+          if (part.type === 'text-delta') {
+            const chunk = (part as { text?: string; delta?: string }).text ?? (part as { delta?: string }).delta ?? ''
+            if (chunk) onDelta(chunk)
           }
           if (part.type === 'tool-input-available' && onToolCall) {
-            const params =
-              typeof part.input === 'object' && part.input !== null
-                ? (part.input as Record<string, unknown>)
-                : {}
-            await onToolCall({
-              id: part.toolCallId,
-              tool_id: part.toolName,
-              parameters: params
-            })
+            if (!reportedToolCallIds.has(part.toolCallId)) {
+              reportedToolCallIds.add(part.toolCallId)
+              const params =
+                typeof part.input === 'object' && part.input !== null
+                  ? (part.input as Record<string, unknown>)
+                  : {}
+              const tc = {
+                id: part.toolCallId,
+                tool_id: part.toolName,
+                parameters: params
+              }
+              collectedToolCalls.push(tc)
+              // 仅当已有完整参数时在流中立即上报，避免 parameters 为空；无参数时等流结束后从 result.toolCalls 补全再上报
+              if (Object.keys(params).length > 0) {
+                reportedInLoop.add(tc.id)
+                await onToolCall(tc)
+              }
+            }
+          }
+        }
+        // 兜底：从 result.toolCalls 补全参数（部分 provider 流中 part.input 为空）并上报未在流中上报的 tool call
+        if (onToolCall) {
+          try {
+            const toolCalls = await result.toolCalls
+            if (Array.isArray(toolCalls)) {
+              for (const tc of toolCalls) {
+                const id = (tc as { toolCallId?: string }).toolCallId ?? (tc as { id?: string }).id
+                const toolName = (tc as { toolName?: string }).toolName ?? (tc as { name?: string }).name
+                const input = (tc as { input?: unknown }).input
+                const args =
+                  typeof input === 'object' && input !== null
+                    ? (input as Record<string, unknown>)
+                    : (tc as { args?: Record<string, unknown> }).args ??
+                      (tc as { parameters?: Record<string, unknown> }).parameters ??
+                      {}
+                const params = typeof args === 'object' && args !== null ? args : {}
+
+                const existing = collectedToolCalls.find((c) => c.id === id)
+                if (existing) {
+                  if (Object.keys(existing.parameters).length === 0 && Object.keys(params).length > 0) {
+                    existing.parameters = params
+                  }
+                } else if (id) {
+                  reportedToolCallIds.add(id)
+                  collectedToolCalls.push({
+                    id,
+                    tool_id: toolName ?? '',
+                    parameters: params
+                  })
+                }
+              }
+            }
+          } catch (e) {
+            // toolCalls 可能因 stream 已消费而不可用，忽略
+          }
+          const toReportAfterStream = collectedToolCalls.filter((tc) => !reportedInLoop.has(tc.id))
+          if (toReportAfterStream.length > 0) {
+            createRendererLogger('stream-chat-with-tools').debug(
+              '[streamChatWithTools] 流结束，上报 tool calls（含补全参数）',
+              { count: toReportAfterStream.length, toolIds: toReportAfterStream.map((t) => t.tool_id) }
+            )
+            for (const tc of toReportAfterStream) {
+              await onToolCall(tc)
+            }
           }
         }
         const totalUsage = await result.totalUsage
-        if (!totalUsage) return null
+        let fullText: string | undefined
+        try {
+          fullText = await result.text
+        } catch (_) {
+          fullText = undefined
+        }
+        if (!totalUsage) return { usage: null, fullText }
         return {
-          prompt_tokens: totalUsage.inputTokens ?? 0,
-          completion_tokens: totalUsage.outputTokens ?? 0,
-          total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0)
+          usage: {
+            prompt_tokens: totalUsage.inputTokens ?? 0,
+            completion_tokens: totalUsage.outputTokens ?? 0,
+            total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0)
+          },
+          fullText
         }
       } catch (err) {
         if (NoOutputGeneratedError.isInstance(err)) {

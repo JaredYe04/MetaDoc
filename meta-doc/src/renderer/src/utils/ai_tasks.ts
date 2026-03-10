@@ -79,13 +79,12 @@ export function createAiTask(
 ): CreateTaskResult {
   const logger = createRendererLogger('AiTasks')
 
-  // 关键：记录传入的meta参数
+  // 仅记录 meta 摘要，避免打印完整 meta（含 tools fullSpec、reactiveMessage 等）
   logger.debug(`[createAiTask] 收到调用，检查meta参数:`, {
     stream: meta?.stream,
     streamType: typeof meta?.stream,
     metaKeys: meta && typeof meta === 'object' ? Object.keys(meta) : [],
-    hasStream: meta && typeof meta === 'object' && 'stream' in meta,
-    fullMeta: JSON.stringify(meta)
+    hasStream: meta && typeof meta === 'object' && 'stream' in meta
   })
 
   const autoStart = true
@@ -108,8 +107,7 @@ export function createAiTask(
 
   logger.debug(`[createAiTask] 最终meta对象:`, {
     stream: finalMeta.stream,
-    streamType: typeof finalMeta.stream,
-    fullMeta: JSON.stringify(finalMeta)
+    streamType: typeof finalMeta.stream
   })
 
   const task: InternalAITaskInfo = {
@@ -153,8 +151,7 @@ export function createAiTask(
       try {
         payload.meta = JSON.parse(JSON.stringify(finalMeta))
         logger.debug(`[createAiTask] 非主窗口，序列化meta:`, {
-          stream: (payload.meta as any)?.stream,
-          fullMeta: JSON.stringify(payload.meta)
+          stream: (payload.meta as any)?.stream
         })
       } catch (_error) {
         payload.meta = {}
@@ -207,18 +204,16 @@ export async function startAiTask(handle: string): Promise<void> {
   try {
     if (task.type === ai_types.answer && task.target) {
       const logger = createRendererLogger('AiTasks')
-      console.log('task.prompt', task.prompt)
       logger.debug(
-        `[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : 'array'}, prompt前100字符=${typeof task.prompt === 'string' ? task.prompt.substring(0, 100) : 'array'}||, prompt后100字符=${typeof task.prompt === 'string' ? task.prompt.substring(task.prompt.length - 100) : 'array'}`
+        `[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : (Array.isArray(task.prompt) ? task.prompt.length + ' messages' : 'other')}`
       )
 
-      // 记录task.meta用于调试
+      // 仅记录 meta 摘要，避免打印完整 meta（含 tools、reactiveMessage）
       logger.debug(`[startAiTask] answer任务，task.meta:`, {
         stream: task.meta?.stream,
         streamType: typeof task.meta?.stream,
         metaKeys: task.meta ? Object.keys(task.meta) : [],
-        hasStream: 'stream' in (task.meta || {}),
-        metaValue: JSON.stringify(task.meta)
+        hasStream: 'stream' in (task.meta || {})
       })
 
       // 确保meta对象包含stream属性
@@ -231,8 +226,7 @@ export async function startAiTask(handle: string): Promise<void> {
 
       logger.debug(`[startAiTask] answer任务最终meta对象:`, {
         stream: finalMeta.stream,
-        streamType: typeof finalMeta.stream,
-        fullMeta: JSON.stringify(finalMeta)
+        streamType: typeof finalMeta.stream
       })
 
       // 提取自定义LLM配置
@@ -281,8 +275,7 @@ export async function startAiTask(handle: string): Promise<void> {
 
       logger.debug(`[startAiTask] 最终meta对象:`, {
         stream: finalMeta.stream,
-        streamType: typeof finalMeta.stream,
-        fullMeta: JSON.stringify(finalMeta)
+        streamType: typeof finalMeta.stream
       })
 
       const useNativeTools =
@@ -575,8 +568,16 @@ export function getTaskMap(): Map<string, InternalAITaskInfo> {
 // 在主窗口中：接收任务注册
 messageBridge.on('register-ai-task', (_: any, taskInfo: any) => {
   const logger = createRendererLogger('AiTasks')
-  logger.debug('主界面任务注册', taskInfo)
+  // 仅记录摘要，避免打印完整 taskInfo（含 prompt 全量消息、meta.tools fullSpec、reactiveMessage）
   const { handle, name, prompt, type, origin_key, meta: incomingMeta } = taskInfo
+  logger.debug('主界面任务注册', {
+    handle,
+    name,
+    type,
+    origin_key,
+    promptLength: typeof prompt === 'string' ? prompt.length : Array.isArray(prompt) ? prompt.length : 0,
+    metaKeys: incomingMeta && typeof incomingMeta === 'object' ? Object.keys(incomingMeta) : []
+  })
   if (taskMap.has(handle)) return // 防止重复添加
 
   // 为主窗口任务创建一个临时的 ref，用于接收结果

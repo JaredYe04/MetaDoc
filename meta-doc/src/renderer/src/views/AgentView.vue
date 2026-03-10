@@ -1889,8 +1889,13 @@ const executeAgentEngine = async (
       const { AgentEngineExecutorFactory } = await import(
         '../utils/agent-framework/agent-engine-executor'
       )
+      const lastUserMsg = session.messages
+        .filter((m: any) => m.role === 'user' && m.type === 'chat')
+        .slice(-1)[0] as ChatAgentMessage | undefined
+      const messageRefIds = lastUserMsg?.referenceIds ?? activeReferenceIds.value
       const executor = AgentEngineExecutorFactory.create(engine, session, agentConfig, {
         signal: abortController.signal,
+        activeReferenceIds: messageRefIds,
         onProgress: (progress) => {
           session.status = progress.stage as any
           persistSessions()

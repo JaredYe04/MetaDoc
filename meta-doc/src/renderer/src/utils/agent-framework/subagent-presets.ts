@@ -51,12 +51,12 @@ export function initializeSubagentPresets(): void {
     ['edit', 'outline-tree', 'workspace', 'grep']
   )
 
-  // 3. 知识库与联网：rag、web-crawler
+  // 3. 搜索 Subagent：工作区读取、grep、RAG、联网；多轮组合完成检索任务
   toolCollectionManager.getOrCreateCollection(
     SUBAGENT_COLLECTION_IDS.search,
     loc('Subagent 检索工具集', 'Subagent search tool set'),
-    loc('知识库检索与联网查询', 'RAG and web search'),
-    ['rag', 'web-crawler']
+    loc('工作区读文件与 grep、知识库 RAG、联网爬取，可多轮组合完成复杂检索', 'Workspace read + grep, RAG, web crawl; multi-turn combined search'),
+    ['workspace', 'grep', 'rag', 'web-crawler']
   )
 
   // 4. 绘图/图表：workspace、grep、chart-generation
@@ -85,8 +85,8 @@ export function initializeSubagentPresets(): void {
 
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.search,
-    loc('Subagent：知识库与联网查询', 'Subagent: Search'),
-    loc('负责知识库检索与联网查询，返回主 Agent 要求查找的信息', 'RAG and web search, return requested info'),
+    loc('Subagent：检索（工作区+联网+RAG）', 'Subagent: Search (workspace + web + RAG)'),
+    loc('多轮检索：读工作区文件、grep、RAG、联网爬取，可组合使用，完成如「论文进度」「撰写某主题文档所需资料」等任务', 'Multi-turn search: read workspace, grep, RAG, web; combine as needed for e.g. paper progress or gathering materials to write a doc'),
     [SUBAGENT_COLLECTION_IDS.search],
     { systemPromptKey: 'agent.subagent.search.systemPrompt', injectTimestamp: true }
   )

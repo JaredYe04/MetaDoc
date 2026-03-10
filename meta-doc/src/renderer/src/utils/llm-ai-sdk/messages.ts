@@ -20,14 +20,15 @@ function parseToolCallArgs(args: string): object {
  * 将单条 Message 转为 AI SDK ModelMessage
  */
 function convertOneMessage(msg: Message): ModelMessage {
-  const content = msg.content ?? ''
+  const raw = msg.content ?? ''
+  const content = typeof raw === 'string' ? raw : String(raw ?? '')
 
   if (msg.role === 'system') {
     return { role: 'system', content: content || '' }
   }
 
   if (msg.role === 'user') {
-    return { role: 'user', content: content }
+    return { role: 'user', content }
   }
 
   if (msg.role === 'assistant') {
@@ -41,10 +42,11 @@ function convertOneMessage(msg: Message): ModelMessage {
       parts.push({ type: 'text', text: content })
     }
     for (const tc of msg.tool_calls) {
+      const name = tc.function?.name ?? (tc as any).tool_id ?? tc.id ?? 'unknown'
       parts.push({
         type: 'tool-call',
         toolCallId: tc.id,
-        toolName: tc.function?.name ?? '',
+        toolName: String(name || 'unknown'),
         input: parseToolCallArgs(tc.function?.arguments ?? '{}')
       })
     }
@@ -52,14 +54,16 @@ function convertOneMessage(msg: Message): ModelMessage {
   }
 
   if (msg.role === 'tool') {
+    // AI SDK ModelMessage 要求 tool 消息的 content 为 ToolResultPart[]，且每项为 output（符合 ToolResultOutput），不能是 result
+    const textValue = typeof content === 'string' ? content : String(content ?? '')
     return {
       role: 'tool',
       content: [
         {
           type: 'tool-result',
           toolCallId: msg.tool_call_id ?? '',
-          toolName: msg.name ?? '',
-          result: content
+          toolName: msg.name ?? 'unknown',
+          output: { type: 'text', value: textValue }
         }
       ]
     }

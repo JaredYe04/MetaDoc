@@ -207,6 +207,7 @@ import OutlineTreeDisplay from './OutlineTreeDisplay.vue'
 import OutlineOptimizeDisplay from './OutlineOptimizeDisplay.vue'
 import messageBridge from '../../../bridge/message-bridge'
 import ColorDisplay from './ColorDisplay.vue'
+import TimestampDisplay from './TimestampDisplay.vue'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
@@ -225,7 +226,8 @@ const displayComponentMap: Record<string, any> = {
   MetadataDisplay: MetadataDisplay,
   OutlineTreeDisplay: OutlineTreeDisplay,
   OutlineOptimizeDisplay: OutlineOptimizeDisplay,
-  ColorDisplay: ColorDisplay
+  ColorDisplay: ColorDisplay,
+  TimestampDisplay: TimestampDisplay
 }
 
 // 获取Tool的Display组件

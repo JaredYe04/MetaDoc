@@ -79,6 +79,13 @@ export function createLlmError(error, context = {}) {
     return new LlmError(LlmErrorType.ABORTED, '请求已中止', error, context)
   }
 
+  // AI SDK 无输出：通常为端点错误或上游返回异常，优先展示 cause
+  if (error?.name === 'AI_NoOutputGeneratedError') {
+    const cause = error?.cause
+    const message = cause?.message || error?.message || 'No output generated. Check the stream for errors.'
+    return new LlmError(LlmErrorType.UNKNOWN_ERROR, message, error, { ...context, cause: cause ? String(cause) : undefined })
+  }
+
   // 处理网络错误
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return new LlmError(LlmErrorType.NETWORK_ERROR, '网络连接失败', error, context)

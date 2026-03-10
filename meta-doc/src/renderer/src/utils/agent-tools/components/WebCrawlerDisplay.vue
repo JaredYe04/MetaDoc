@@ -190,6 +190,7 @@ import { Link } from '@renderer/components/ui/link'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 
 const { t } = useI18n()
 const props = withDefaults(defineProps<ToolDisplayComponentProps & { mode?: string }>(), {
@@ -262,6 +263,8 @@ const xmlEditorId = ref(
 )
 let jsonMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let xmlMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+let jsonMonacoWheelCleanup: (() => void) | null = null
+let xmlMonacoWheelCleanup: (() => void) | null = null
 
 interface WebCrawlerResult {
   url: string
@@ -692,10 +695,17 @@ const initJsonMonacoEditor = async () => {
     fontFamily: 'JetBrains Mono, Consolas, monospace'
   })
 
-  // 确保容器有 ID
-  if (container) {
-    container.id = jsonEditorId.value
-  }
+  if (container) container.id = jsonEditorId.value
+  jsonMonacoWheelCleanup?.()
+  jsonMonacoWheelCleanup = attachMonacoWheelScrollChain(container, () => {
+    if (!jsonMonacoEditor) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+    const layout = jsonMonacoEditor.getLayoutInfo()
+    return {
+      scrollTop: jsonMonacoEditor.getScrollTop(),
+      scrollHeight: jsonMonacoEditor.getScrollHeight(),
+      height: layout?.height ?? container.clientHeight
+    }
+  })
 }
 
 // 初始化 XML Monaco 编辑器
@@ -739,14 +749,23 @@ const initXmlMonacoEditor = async () => {
     fontFamily: 'JetBrains Mono, Consolas, monospace'
   })
 
-  // 确保容器有 ID
-  if (container) {
-    container.id = xmlEditorId.value
-  }
+  if (container) container.id = xmlEditorId.value
+  xmlMonacoWheelCleanup?.()
+  xmlMonacoWheelCleanup = attachMonacoWheelScrollChain(container, () => {
+    if (!xmlMonacoEditor) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+    const layout = xmlMonacoEditor.getLayoutInfo()
+    return {
+      scrollTop: xmlMonacoEditor.getScrollTop(),
+      scrollHeight: xmlMonacoEditor.getScrollHeight(),
+      height: layout?.height ?? container.clientHeight
+    }
+  })
 }
 
 // 销毁编辑器
 const disposeJsonMonacoEditor = () => {
+  jsonMonacoWheelCleanup?.()
+  jsonMonacoWheelCleanup = null
   if (jsonMonacoEditor) {
     jsonMonacoEditor.dispose()
     jsonMonacoEditor = null
@@ -754,6 +773,8 @@ const disposeJsonMonacoEditor = () => {
 }
 
 const disposeXmlMonacoEditor = () => {
+  xmlMonacoWheelCleanup?.()
+  xmlMonacoWheelCleanup = null
   if (xmlMonacoEditor) {
     xmlMonacoEditor.dispose()
     xmlMonacoEditor = null
@@ -820,6 +841,7 @@ const webcrawlerCompactEditorId = ref(
   `webcrawler-compact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 )
 let webcrawlerCompactMonaco: monaco.editor.IStandaloneCodeEditor | null = null
+let webcrawlerCompactWheelCleanup: (() => void) | null = null
 const initWebcrawlerCompactMonaco = () => {
   if (!props.compact || !resultData.value?.content) return
   setupMonacoWorker()
@@ -843,6 +865,16 @@ const initWebcrawlerCompactMonaco = () => {
       fontSize: 12,
       fontFamily: 'JetBrains Mono, Consolas, monospace'
     })
+    webcrawlerCompactWheelCleanup?.()
+    webcrawlerCompactWheelCleanup = attachMonacoWheelScrollChain(el, () => {
+      if (!webcrawlerCompactMonaco) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+      const layout = webcrawlerCompactMonaco.getLayoutInfo()
+      return {
+        scrollTop: webcrawlerCompactMonaco!.getScrollTop(),
+        scrollHeight: webcrawlerCompactMonaco!.getScrollHeight(),
+        height: layout?.height ?? el.clientHeight
+      }
+    })
   })
 }
 watch(
@@ -856,6 +888,8 @@ watch(
 onBeforeUnmount(() => {
   disposeJsonMonacoEditor()
   disposeXmlMonacoEditor()
+  webcrawlerCompactWheelCleanup?.()
+  webcrawlerCompactWheelCleanup = null
   if (webcrawlerCompactMonaco) {
     webcrawlerCompactMonaco.dispose()
     webcrawlerCompactMonaco = null

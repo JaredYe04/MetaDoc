@@ -249,6 +249,7 @@ import { themeState } from '../../themes'
 import { createRendererLogger } from '../../logger'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 
 const { t } = useI18n()
 
@@ -536,6 +537,7 @@ const terminalOutputFullText = computed(() => {
   return parts.join('\n') || t('agent.display.terminalExecution.executingCommand') + '...'
 })
 let terminalCompactMonaco: monaco.editor.IStandaloneCodeEditor | null = null
+let terminalCompactMonacoWheelCleanup: (() => void) | null = null
 const initTerminalCompactMonaco = () => {
   if (!props.compact) return
   setupMonacoWorker()
@@ -559,6 +561,16 @@ const initTerminalCompactMonaco = () => {
       fontSize: 12,
       fontFamily: 'JetBrains Mono, Consolas, monospace'
     })
+    terminalCompactMonacoWheelCleanup?.()
+    terminalCompactMonacoWheelCleanup = attachMonacoWheelScrollChain(el, () => {
+      if (!terminalCompactMonaco) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+      const layout = terminalCompactMonaco.getLayoutInfo()
+      return {
+        scrollTop: terminalCompactMonaco!.getScrollTop(),
+        scrollHeight: terminalCompactMonaco!.getScrollHeight(),
+        height: layout?.height ?? el.clientHeight
+      }
+    })
   })
 }
 watch(
@@ -569,6 +581,8 @@ watch(
   { immediate: true }
 )
 onBeforeUnmount(() => {
+  terminalCompactMonacoWheelCleanup?.()
+  terminalCompactMonacoWheelCleanup = null
   if (terminalCompactMonaco) {
     terminalCompactMonaco.dispose()
     terminalCompactMonaco = null

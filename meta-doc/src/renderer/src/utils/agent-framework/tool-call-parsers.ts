@@ -17,6 +17,37 @@ function getLogger() {
   return loggerInstance
 }
 
+/** 从字符串中解析 DSML 风格参数（<…parameter name="x">…</…parameter>），用于纯 XML 标签内非 JSON 内容 */
+function parseDSMLStyleParameters(content: string): Record<string, unknown> {
+  const parameters: Record<string, unknown> = {}
+  // 支持全角 ｜ 与半角 |
+  const parameterStartPattern =
+    /<[|｜]\s*DSML\s*[|｜]\s*parameter\s+name=["']([^"']+)["'](?:\s+string=["']([^"']*)["'])?\s*(?:\/>|>)/gi
+  let startMatch
+  while ((startMatch = parameterStartPattern.exec(content)) !== null) {
+    const paramName = startMatch[1]
+    const stringValue = startMatch[2]
+    const tagEndPos = startMatch.index + startMatch[0].length
+    if (!paramName) continue
+    if (startMatch[0].endsWith('/>')) {
+      parameters[paramName] = stringValue !== undefined && stringValue !== '' && stringValue !== 'false' ? stringValue : ''
+      continue
+    }
+    const endTagPattern = /<\/[|｜]\s*DSML\s*[|｜]\s*parameter>/gi
+    endTagPattern.lastIndex = tagEndPos
+    const endMatch = endTagPattern.exec(content)
+    const innerContent = endMatch ? content.substring(tagEndPos, endMatch.index) : ''
+    if (innerContent && innerContent.trim()) {
+      parameters[paramName] = stringValue === 'true' ? innerContent.trim() : innerContent.trim()
+    } else if (stringValue !== undefined && stringValue !== '' && stringValue !== 'false') {
+      parameters[paramName] = stringValue
+    } else {
+      parameters[paramName] = ''
+    }
+  }
+  return parameters
+}
+
 /**
  * 工具调用解析器接口
  */
@@ -148,6 +179,16 @@ class StandardToolCallParser implements ToolCallParser {
               continue
             }
           }
+          // 适配 <tool_call><workspace>{"paths":[]}</workspace></tool_call> 或 <tool_call><edit>{"filePath":...,"diff":...}</edit></tool_call> 等格式：
+          // 块内为「标签名即 tool_id、内容即 JSON」的一个或多个闭合标签，与 subagent 等统一支持
+          const tagWrappedCalls = this.parseTagWrappedToolCalls(toolCallContent, index, validateToolId, toolIdValidator)
+          if (tagWrappedCalls.length > 0) {
+            for (const parsed of tagWrappedCalls) {
+              toolCalls.push(parsed)
+              index++
+            }
+            continue
+          }
           const parsed = this.parseSingleToolCall(toolCallContent, index)
           if (parsed) {
             if (validateToolId && parsed.isValid && toolIdValidator) {
@@ -167,6 +208,65 @@ class StandardToolCallParser implements ToolCallParser {
       getLogger().error('[StandardToolCallParser] 解析失败:', error)
       return null
     }
+  }
+
+  /** 保留标签名：这些不当作 tool_id 使用 */
+  private static readonly RESERVED_TAG_NAMES = [
+    'name',
+    'arguments',
+    'parameters',
+    'params',
+    'args',
+    'tool_call',
+    'tool-call',
+    'function_call',
+    'function-call'
+  ]
+
+  /**
+   * 解析「标签名即 tool_id、内容即 JSON」格式，支持一个块内多个标签。
+   * 例如：<tool_call><workspace>{"paths":[]}</workspace><edit>{"filePath":"x","diff":"..."}</edit></tool_call>
+   */
+  private parseTagWrappedToolCalls(
+    toolCallContent: string,
+    startIndex: number,
+    validateToolId: boolean,
+    toolIdValidator?: (toolId: string) => boolean
+  ): ParsedToolCall[] {
+    const results: ParsedToolCall[] = []
+    const re = /<([a-zA-Z0-9_-]+)>([\s\S]*?)<\/\1>/g
+    let m: RegExpExecArray | null
+    let index = startIndex
+    while ((m = re.exec(toolCallContent)) !== null) {
+      const tagName = m[1].toLowerCase()
+      if (StandardToolCallParser.RESERVED_TAG_NAMES.includes(tagName)) continue
+      const inner = m[2].trim()
+      let parameters: Record<string, unknown> | null = null
+      const jsonStr = extractOuterJsonString(inner) || inner
+      let parsed: any = parseLooseJson(jsonStr)
+      if (!parsed && tryFixJsonFormat(jsonStr)) parsed = parseLooseJson(tryFixJsonFormat(jsonStr)!)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) parameters = parsed
+      if (!parameters) continue
+      const toolId = m[1]
+      const call: ParsedToolCall = {
+        id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        tool_id: toolId,
+        parameters,
+        isValid: true,
+        rawContent: m[0]
+      }
+      if (validateToolId && toolIdValidator && !toolIdValidator(toolId)) {
+        call.isValid = false
+        call.error = `工具ID "${toolId}" 不存在或不可用`
+      }
+      results.push(call)
+      index++
+      getLogger().debug(
+        `[StandardToolCallParser] 解析到标签包装格式: toolId=${toolId}`,
+        { innerLength: inner.length }
+      )
+    }
+    return results
   }
 
   private parseSingleToolCall(toolCallContent: string, index: number): ParsedToolCall | null {
@@ -189,9 +289,9 @@ class StandardToolCallParser implements ToolCallParser {
         // 如果DSML解析失败，继续尝试JSON解析
       }
 
-      // 兼容 LLM 错误格式：<tool_id> 换行后直接跟 JSON，例如 <subagent-doc-writer>\n{ "prompt": "..." }
+      // 兼容 LLM 格式：<tool_id> 后直接或换行后跟 JSON，例如 <workspace>{"paths":[]}</workspace> 或 <subagent-doc-writer>\n{ "prompt": "..." }
       // 未使用标准格式 {"name": "tool_id", "arguments": {...}}
-      const tagThenJsonMatch = toolCallContent.match(/^\s*<([a-zA-Z0-9_-]+)>\s*[\r\n]+\s*\{/)
+      const tagThenJsonMatch = toolCallContent.match(/^\s*<([a-zA-Z0-9_-]+)>\s*[\r\n]*\s*\{/)
       if (tagThenJsonMatch) {
         const toolId = tagThenJsonMatch[1]
         // 从第一个 { 开始截取，保证 extractOuterJsonString 能解析完整 JSON（match[0] 可能含 {，slice 会丢掉）
@@ -344,7 +444,7 @@ class StandardToolCallParser implements ToolCallParser {
               return this.createInvalidToolCall(toolCallContent, index, '纯XML格式中标签名为空')
             }
 
-            // 尝试解析标签内容中的JSON
+            // 尝试解析标签内容：先 JSON，失败则尝试 DSML 风格参数（<…parameter name="x">…</…parameter>）
             let parameters: Record<string, unknown> | null = null
 
             // 先尝试提取JSON字符串
@@ -361,15 +461,32 @@ class StandardToolCallParser implements ToolCallParser {
               }
             }
 
-            // 如果仍然失败，尝试标准解析
+            // 如果仍然失败，尝试标准 JSON 解析
             if (!parsed) {
               try {
                 parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
-              } catch (parseError) {
+              } catch {
+                // JSON 解析失败时，若内容为 DSML 风格参数（如 <edit><｜DSML｜parameter name="filePath">...</｜DSML｜parameter></edit>），按参数解析
+                if (/<[|｜]\s*DSML\s*[|｜]\s*parameter\s+name=/i.test(jsonContent) || /parameter\s+name=["']/i.test(jsonContent)) {
+                  parameters = parseDSMLStyleParameters(jsonContent)
+                  if (Object.keys(parameters).length > 0) {
+                    getLogger().debug(
+                      `[StandardToolCallParser] 纯XML格式内 DSML 风格参数解析成功: toolId=${toolId}`,
+                      { paramKeys: Object.keys(parameters) }
+                    )
+                    return {
+                      id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+                      tool_id: toolId,
+                      parameters,
+                      isValid: true,
+                      rawContent: toolCallContent
+                    }
+                  }
+                }
                 return this.createInvalidToolCall(
                   toolCallContent,
                   index,
-                  `纯XML格式中JSON解析失败: ${parseError}`
+                  '纯XML格式中JSON解析失败，且非DSML参数格式'
                 )
               }
             }

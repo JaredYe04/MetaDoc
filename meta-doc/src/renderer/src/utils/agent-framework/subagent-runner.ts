@@ -1,6 +1,7 @@
 /**
  * Subagent 执行器
  * 在父会话上下文中以独立会话运行 Subagent，返回消息列表与最终结果文本
+ * 若传入 parentInvocationId，会通过 tool-update 事件向父级 Tool 消息推送子会话进度，供 SubagentDisplay 流式展示
  */
 
 import type { AgentSession, AgentConfig } from '../../types/agent-framework'
@@ -9,6 +10,7 @@ import { agentConfigManager } from './agent-config-manager'
 import { agentEngineManager } from './agent-engine-manager'
 import { AgentEngineExecutorFactory } from './agent-engine-executor'
 import { createRendererLogger } from '../logger'
+import { emitToolUpdate, emitToolComplete } from '../agent-tools/tool-display-communication'
 
 const logger = createRendererLogger('SubagentRunner')
 
@@ -23,14 +25,18 @@ export interface SubagentRunResult {
   error?: string
 }
 
+const SUBAGENT_POLL_INTERVAL_MS = 400
+
 /**
  * 运行 Subagent：创建临时会话，执行引擎，收集消息与结果
+ * @param parentInvocationId 父级 tool 消息的 invocationId（tool_call_id），传入时会周期性发送 tool-update 便于 SubagentDisplay 流式显示
  */
 export async function runSubagent(
   subagentConfigId: string,
   params: { prompt: string; [key: string]: unknown },
   parentSession: AgentSession,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  parentInvocationId?: string
 ): Promise<SubagentRunResult> {
   const config = agentConfigManager.getConfig(subagentConfigId)
   if (!config || !(config as any).isSubagent) {
@@ -102,17 +108,40 @@ export async function runSubagent(
     { signal }
   )
 
+  let pollTimer: ReturnType<typeof setInterval> | null = null
+  if (parentInvocationId) {
+    pollTimer = setInterval(() => {
+      emitToolUpdate(parentInvocationId, {
+        subagentMessages: tempSession.messages.slice(),
+        result: ''
+      })
+    }, SUBAGENT_POLL_INTERVAL_MS)
+  }
+
   try {
     await executor.execute(userPrompt)
   } catch (e) {
     const err = e instanceof Error ? e.message : String(e)
     logger.error('[runSubagent] 执行异常', err)
+    if (pollTimer) clearInterval(pollTimer)
+    if (parentInvocationId) {
+      emitToolComplete(parentInvocationId, {
+        status: 'failed',
+        data: { subagentMessages: tempSession.messages, result: '' },
+        error: err
+      })
+    }
     return {
       subagentMessages: tempSession.messages,
       resultText: `Subagent 执行异常: ${err}`,
       status: 'failed',
       error: err
     }
+  }
+
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
   }
 
   // 取最后一条 assistant 的 markdown 作为给主 Agent 的结果
@@ -126,6 +155,13 @@ export async function runSubagent(
   }
   if (!resultText) {
     resultText = '(Subagent 未返回文本结果)'
+  }
+
+  if (parentInvocationId) {
+    emitToolComplete(parentInvocationId, {
+      status: 'succeeded',
+      data: { subagentMessages: tempSession.messages, result: resultText }
+    })
   }
 
   return {

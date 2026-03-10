@@ -407,7 +407,19 @@ export abstract class BaseEngineExecutor {
     prompt +=
       '- If no tools are needed, reply with text directly, do not include tool call markers\n'
     prompt +=
+      '- **Call each tool only when necessary**: do not call the same tool repeatedly for the same purpose (e.g. call todolist once to create a plan and once per task when marking it complete, not to poll or refresh)\n'
+    prompt +=
+      '- **todolist-planning**: At most 2 calls per assistant turn (one to create/update the list, one to mark task(s) complete). Do not call in every response; do not use for general document writing.\n'
+    prompt +=
       '- **Important**: When calling tools, the parameter content in the marker format will not be displayed to users, it will only be processed internally by the system\n'
+    prompt +=
+      '\n## ⚠️ Strict tool-call format (OpenAI-style only)\n'
+    prompt +=
+      '- **You MUST use only this format** (same for main agent and subagent):\n'
+    prompt +=
+      '  `<tool_call>\n{"name": "<tool_id>", "arguments": {"param": "value"}}\n</tool_call>`\n'
+    prompt +=
+      '- **Do NOT use** any other form: no XML (`<name></name><arguments></arguments>`), no DSML (`<|DSML|invoke>`, `<|DSML|parameter>`), no custom tags like `<edit>...</edit>` or `<workspace>...</workspace>`. Only the JSON object with `name` and `arguments` inside `<tool_call></tool_call>` is accepted; other formats will fail or be misinterpreted.\n'
 
     return prompt
   }
@@ -535,7 +547,7 @@ export abstract class BaseEngineExecutor {
       })
     }
 
-    // 创建新的队列
+    // 创建新的队列（传入 onTaskCreated 以便终止时能取消工具型 AI 任务）
     this.currentToolCallQueue = new ToolCallQueue(
       this.session,
       this.options.signal,
@@ -549,7 +561,8 @@ export abstract class BaseEngineExecutor {
       () => {
         // 队列完成回调
         getLogger().debug('[BaseEngineExecutor] 工具调用队列完成')
-      }
+      },
+      this.options.onTaskCreated
     )
 
     // 重置队列状态（新队列，输入还未完成）
@@ -586,9 +599,22 @@ export abstract class BaseEngineExecutor {
         // 获取现有的tool_calls数组（如果存在）
         const existingToolCalls = (assistantMessage as any).tool_calls || []
         const existingToolCallIds = new Set(existingToolCalls.map((tc: any) => tc.id))
+        // 按签名去重：同一逻辑调用（tool_id + 参数）只入队一次，避免流式/兜底重复触发导致多次执行
+        const getSignature = (tc: { tool_id: string; parameters: Record<string, unknown> }) => {
+          const canonical =
+            typeof tc.parameters === 'object' && tc.parameters !== null
+              ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
+              : JSON.stringify(tc.parameters)
+          return `${tc.tool_id}:${canonical}`
+        }
+        const existingSignatures = new Set(
+          existingToolCalls.map((tc: any) => getSignature({ tool_id: tc.tool_id, parameters: tc.parameters || {} }))
+        )
 
-        // 过滤出新的工具调用（避免重复添加）
-        const newToolCalls = toolCalls.filter((tc) => !existingToolCallIds.has(tc.id))
+        // 过滤出新的工具调用（按 id 与 签名 双重去重）
+        const newToolCalls = toolCalls.filter(
+          (tc) => !existingToolCallIds.has(tc.id) && !existingSignatures.has(getSignature(tc))
+        )
 
         if (newToolCalls.length === 0) {
           getLogger().debug('[BaseEngineExecutor] 所有工具调用都已存在，跳过添加', {
@@ -828,6 +854,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         originKey: `agent-react-${this.session.id}-${Date.now()}-${iterations}`,
         reactiveMessage: assistantMessage,
         onTaskCreated: this.options.onTaskCreated,
+        tools: this.getAvailableTools(),
         onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
       })
 
@@ -951,6 +978,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           originKey: `agent-react-${this.session.id}-${Date.now()}-final`,
           reactiveMessage: finalMessage,
           onTaskCreated: this.options.onTaskCreated,
+          tools: this.getAvailableTools(),
           onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
         })
 
@@ -1125,6 +1153,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         originKey: `agent-autogpt-${this.session.id}-${Date.now()}-${iterations}`,
         reactiveMessage: assistantMessage,
         onTaskCreated: this.options.onTaskCreated,
+        tools: this.getAvailableTools(),
         onToolCallsDetected: async (
           toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>
         ) => {
@@ -1151,6 +1180,18 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       // 获取已经在assistantMessage中的tool_calls（由onToolCallsDetected添加）
       const existingToolCallsInMessage = (assistantMessage as any).tool_calls || []
       const existingToolCallIds = new Set(existingToolCallsInMessage.map((tc: any) => tc.id))
+      const getSignatureForDedup = (tc: { tool_id: string; parameters: Record<string, unknown> }) => {
+        const canonical =
+          typeof tc.parameters === 'object' && tc.parameters !== null
+            ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
+            : JSON.stringify(tc.parameters)
+        return `${tc.tool_id}:${canonical}`
+      }
+      const existingSignaturesInMessage = new Set(
+        existingToolCallsInMessage.map((tc: any) =>
+          getSignatureForDedup({ tool_id: tc.tool_id, parameters: tc.parameters || {} })
+        )
+      )
 
       if (toolCallsDetectedDuringStream && detectedToolCalls !== null) {
         // 流式过程中已经检测到工具调用，并且已经通过onToolCallsDetected添加到tool_calls数组和队列
@@ -1184,8 +1225,11 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         )
 
         if (parsedToolCalls && parsedToolCalls.length > 0) {
-          // 过滤出新的工具调用（避免重复）
-          const newToolCalls = parsedToolCalls.filter((tc) => !existingToolCallIds.has(tc.id))
+          // 过滤出新的工具调用（按 id 与 签名 双重去重，避免同一逻辑调用执行多次）
+          const newToolCalls = parsedToolCalls.filter(
+            (tc) =>
+              !existingToolCallIds.has(tc.id) && !existingSignaturesInMessage.has(getSignatureForDedup(tc))
+          )
 
           if (newToolCalls.length > 0) {
             getLogger().debug(
@@ -1621,6 +1665,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           originKey: `agent-autogpt-${this.session.id}-${Date.now()}-final`,
           reactiveMessage: finalMessage,
           onTaskCreated: this.options.onTaskCreated,
+          tools: this.getAvailableTools(),
           onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
         })
 
@@ -1708,6 +1753,7 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
       originKey: `agent-simplechat-${this.session.id}-${Date.now()}`,
       reactiveMessage: assistantMessage,
       onTaskCreated: this.options.onTaskCreated,
+      tools: this.getAvailableTools(),
       onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
     })
 
@@ -1860,6 +1906,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       originKey: `agent-planexecute-${this.session.id}-${Date.now()}-summary`,
       reactiveMessage: summaryMessage,
       onTaskCreated: this.options.onTaskCreated,
+      tools: this.getAvailableTools(),
       onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
     })
 

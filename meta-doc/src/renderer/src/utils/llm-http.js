@@ -19,7 +19,9 @@ export async function sendNonStreamRequest(url, payload, headers = {}, signal = 
     let errorMessage = `HTTP error! status: ${response.status}`
     try {
       const errorData = await response.json()
-      errorMessage = errorData.error?.message || errorMessage
+      const msg = errorData.error?.message ?? errorData.message ?? errorData.code
+      if (msg) errorMessage = typeof msg === 'string' ? msg : JSON.stringify(msg)
+      if (errorData.request_id) errorMessage += ` (request_id: ${errorData.request_id})`
     } catch {
       // 忽略 JSON 解析错误
     }

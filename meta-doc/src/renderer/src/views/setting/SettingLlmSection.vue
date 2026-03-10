@@ -102,169 +102,190 @@
       </CardContent>
     </Card>
 
-    <!-- 配置管理区域 -->
-    <div v-if="settings.llmEnabled" class="llm-config-layout">
-      <!-- 左侧：配置列表 -->
-      <Card class="config-list-card">
-        <CardHeader class="pb-3">
-          <div class="flex items-center justify-between">
-            <CardTitle class="text-sm font-medium">{{ t('setting.llmConfigList') }}</CardTitle>
-            <div class="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button
-                    size="icon"
-                    variant="default"
-                    class="h-8 w-8"
-                    @click="handleCreateConfig"
-                    :disabled="settings.selectedLlm === 'manual'"
-                  >
-                    <Plus class="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{{ t('setting.newConfig') }}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    class="h-8 w-8"
-                    @click="importDialogVisible = true"
-                  >
-                    <ClipboardCopy class="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{{ t('setting.importConfig') }}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    class="h-8 w-8"
-                    @click="handleExportAllConfigs"
-                  >
-                    <Download class="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{{ t('setting.exportAllConfigs') }}</TooltipContent>
-              </Tooltip>
-            </div>
+    <!-- 配置管理区域：网格+卡片 -->
+    <div v-if="settings.llmEnabled" class="llm-config-grid-wrap">
+      <Card class="config-grid-card">
+        <CardHeader class="pb-3 flex flex-row items-center justify-between">
+          <CardTitle class="text-sm font-medium">{{ t('setting.llmConfigList') }}</CardTitle>
+          <div class="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="checkAllLoading || llmConfigs.length === 0 || Object.values(checkLoadingMap).some(Boolean)"
+              @click="handleCheckAllConfigs"
+            >
+              <Loader2 v-if="checkAllLoading" class="h-4 w-4 mr-1 animate-spin" />
+              <CheckCircle2 v-else class="h-4 w-4 mr-1" />
+              {{ t('setting.checkAllConfigs') }}
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              :disabled="isCurrentConfigManual"
+              @click="handleCreateConfig"
+            >
+              <Plus class="h-4 w-4 mr-1" />
+              {{ t('setting.newConfig') }}
+            </Button>
+            <Button size="sm" variant="outline" @click="handleImportFromFiles">
+              <ClipboardCopy class="h-4 w-4 mr-1" />
+              {{ t('setting.importConfig') }}
+            </Button>
           </div>
         </CardHeader>
-        <CardContent class="p-0">
-          <ScrollArea class="config-list-scroll h-[400px]">
-            <RadioGroup
-              v-model="currentConfigId"
-              class="space-y-1 p-3"
-              @update:modelValue="handleConfigSwitch"
+        <CardContent>
+          <div class="config-grid">
+            <div
+              v-for="config in llmConfigs"
+              :key="config.id"
+              class="config-card-container"
+              @click="handleCardClick(config)"
+              @contextmenu.prevent="openContextMenu($event, config)"
             >
               <div
-                v-for="config in llmConfigs"
-                :key="config.id"
-                class="config-item"
-                :class="{
-                  selected: currentConfigId === config.id,
-                  dragging: draggingConfigId === config.id,
-                  'drop-before':
-                    dropPreview.targetId === config.id && dropPreview.mode === 'before',
-                  'drop-after': dropPreview.targetId === config.id && dropPreview.mode === 'after'
-                }"
-                :data-config-id="config.id"
-                @dragover.prevent="handleDragOver(config.id, $event)"
-                @drop.prevent="handleDrop(config.id, $event)"
+                class="config-card-bar"
+                :class="{ 'config-card-bar-selected': currentConfigId === config.id }"
+              />
+              <div
+                class="config-card"
+                :class="{ 'config-card-selected': currentConfigId === config.id }"
               >
+                <div class="config-card-body">
+                <div class="config-card-name">{{ getConfigDisplayName(config) }}</div>
+                <div class="config-card-type">{{ getConfigTypeLabel(config.type) }}</div>
                 <div
-                  class="flex items-center gap-2 p-2 rounded-md hover:bg-accent transition-colors"
+                  v-if="config.description"
+                  class="config-card-desc text-xs text-muted-foreground truncate max-w-full"
                 >
-                  <RadioGroupItem :value="config.id" :id="'config-' + config.id" class="sr-only" />
-                  <label
-                    :for="'config-' + config.id"
-                    class="flex-1 flex items-center gap-2 cursor-pointer select-none min-w-0"
-                    draggable="true"
-                    @dragstart.stop="handleDragStart(config.id, $event)"
-                    @dragover.prevent="handleDragOver(config.id, $event)"
-                    @dragleave="handleDragLeave($event)"
-                    @drop.stop.prevent="handleDrop(config.id, $event)"
-                    @dragend.stop="handleDragEnd"
-                  >
-                    <GripVertical class="h-4 w-4 text-muted-foreground flex-shrink-0 cursor-grab" />
-                    <span class="flex-1 truncate text-sm">{{ getConfigDisplayName(config) }}</span>
-                    <Badge
-                      v-if="currentConfigId === config.id && hasUnsavedChanges"
-                      variant="warning"
-                      class="text-xs"
-                    >
-                      {{ t('setting.unsavedChanges') }}
-                    </Badge>
-                  </label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="icon" class="h-7 w-7 flex-shrink-0" @click.stop>
-                        <MoreVertical class="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem @click="handleConfigMenuAction('export', config)">
-                        {{ t('setting.exportConfig') }}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        v-if="config.isDefault"
-                        @click="handleConfigMenuAction('reset', config)"
-                      >
-                        {{ t('setting.resetConfig') }}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        v-if="!config.isDefault"
-                        class="text-destructive focus:text-destructive"
-                        @click="handleConfigMenuAction('delete', config)"
-                        :disabled="llmConfigs.length <= 1"
-                      >
-                        {{ t('setting.deleteConfig') }}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {{ config.description }}
                 </div>
               </div>
-            </RadioGroup>
-          </ScrollArea>
+              <div class="config-card-check" @click.stop>
+                <Tooltip>
+                  <TooltipTrigger as-child>
+                    <button
+                      type="button"
+                      class="config-check-btn"
+                      :disabled="checkLoadingMap[config.id]"
+                      @click="handleCheckConfig(config)"
+                    >
+                      <Loader2
+                        v-if="checkLoadingMap[config.id]"
+                        class="h-4 w-4 animate-spin text-muted-foreground"
+                      />
+                      <CheckCircle2
+                        v-else-if="checkStatusMap[config.id]?.status === 'success'"
+                        class="h-4 w-4 text-green-600 dark:text-green-500"
+                      />
+                      <AlertCircle
+                        v-else-if="checkStatusMap[config.id]?.status === 'partial'"
+                        class="h-4 w-4 text-yellow-600 dark:text-yellow-500"
+                      />
+                      <XCircle
+                        v-else-if="checkStatusMap[config.id]?.status === 'error'"
+                        class="h-4 w-4 text-destructive"
+                      />
+                      <span v-else class="config-check-label">{{ t('setting.checkConfig') }}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" class="max-w-xs">
+                    <template v-if="checkStatusMap[config.id]?.details">
+                      <div class="space-y-1 text-xs">
+                        <div>
+                          {{ t('setting.testCompletionStream') }}:
+                          {{ checkStatusMap[config.id].details.streamCompletion ? t('setting.checkPass') : t('setting.checkFail') }}
+                        </div>
+                        <div>
+                          {{ t('setting.testCompletionNonStream') }}:
+                          {{ checkStatusMap[config.id].details.nonStreamCompletion ? t('setting.checkPass') : t('setting.checkFail') }}
+                        </div>
+                        <div>
+                          {{ t('setting.testChatStream') }}:
+                          {{ checkStatusMap[config.id].details.streamChat ? t('setting.checkPass') : t('setting.checkFail') }}
+                        </div>
+                        <div>
+                          {{ t('setting.testChatNonStream') }}:
+                          {{ checkStatusMap[config.id].details.nonStreamChat ? t('setting.checkPass') : t('setting.checkFail') }}
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else>
+                      {{ t('setting.checkConfigTooltip') }}
+                    </template>
+                  </TooltipContent>
+                </Tooltip>
+                <p
+                  v-if="checkStatusMap[config.id]?.status === 'error' && checkStatusMap[config.id]?.message"
+                  class="config-check-error text-xs text-destructive mt-0.5 truncate max-w-full"
+                >
+                  {{ checkStatusMap[config.id].message }}
+                </p>
+              </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <!-- 右侧：配置表单 -->
-      <Card class="config-form-card flex-1">
-        <CardHeader class="pb-3 border-b">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <Badge v-if="hasUnsavedChanges" variant="warning">
-                {{ t('setting.hasUnsavedChanges') }}
-              </Badge>
-              <span v-else class="text-sm text-muted-foreground">
-                {{ t('setting.allChangesSaved') }}
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                @click="handleDiscardChanges"
-                :disabled="!hasUnsavedChanges"
-              >
-                {{ t('setting.discardChanges') }}
-              </Button>
-              <Button size="sm" @click="handleSaveChanges" :disabled="!hasUnsavedChanges">
-                {{ t('setting.saveChanges') }}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="p-6">
-          <ScrollArea class="h-[400px]">
-            <div class="space-y-6">
-              <!-- LLM 类型选择 -->
+      <!-- 右键菜单 -->
+      <div
+        v-if="contextMenu.visible"
+        class="config-context-menu"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      >
+        <button class="context-menu-item" @click="handleContextCopy">
+          {{ t('setting.copyConfig') }}
+        </button>
+        <button class="context-menu-item" @click="handleContextEdit">
+          {{ t('setting.editConfig') }}
+        </button>
+        <button class="context-menu-item" @click="handleContextExport">
+          {{ t('setting.exportConfig') }}
+        </button>
+        <button
+          v-if="contextMenu.config && !isPresetConfig(contextMenu.config)"
+          class="context-menu-item text-destructive"
+          @click="handleContextDelete"
+        >
+          {{ t('setting.deleteConfig') }}
+        </button>
+      </div>
+      <div
+        v-if="contextMenu.visible"
+        class="context-menu-backdrop"
+        @click="contextMenu.visible = false"
+      />
+
+      <!-- 编辑配置对话框（内嵌原配置表单，仅改绑定到 editDraft） -->
+      <Dialog v-model:open="editDialogVisible">
+        <DialogContent class="edit-config-dialog-content sm:max-w-[600px]">
+          <DialogHeader class="shrink-0">
+            <DialogTitle>{{ isNewConfigMode ? t('setting.newConfig') : t('setting.editConfig') }}</DialogTitle>
+          </DialogHeader>
+          <el-scrollbar class="edit-config-scrollbar">
+            <div v-if="editDraft" class="space-y-6 py-4 pr-4">
+              <FormField name="configName" :label="t('setting.configName')">
+                <Input
+                  v-model="editDraft.name"
+                  class="max-w-md"
+                  @blur="onNewConfigNameBlur"
+                />
+              </FormField>
+              <template v-if="!isNewConfigMode || newConfigNameBlurred">
+              <FormField name="configDescription" :label="t('setting.configDescription')">
+                <Input
+                  v-model="editDraft.description"
+                  type="text"
+                  :placeholder="t('setting.configDescriptionPlaceholder')"
+                  class="max-w-md"
+                />
+              </FormField>
               <FormField name="llmType" :label="t('setting.llmType')">
-                <Select v-model="settings.selectedLlm" @update:model-value="handleLlmTypeChange">
+                <Select
+                  v-model="editDraft.selectedLlm"
+                  :disabled="editDraftLockType"
+                  @update:model-value="onEditDraftTypeChange"
+                >
                   <SelectTrigger class="w-[200px]">
                     <SelectValue :placeholder="t('setting.chooseLlm')" />
                   </SelectTrigger>
@@ -272,82 +293,47 @@
                     <SelectItem value="metadoc">{{ t('setting.metadoc') }}</SelectItem>
                     <SelectItem value="ollama">{{ t('setting.ollama') }}</SelectItem>
                     <SelectItem value="openai">{{ t('setting.openai') }}</SelectItem>
-                    <SelectItem value="openai-official">
-                      {{ t('setting.openaiOfficial') }}
-                    </SelectItem>
+                    <SelectItem value="openai-official">{{ t('setting.openaiOfficial') }}</SelectItem>
                     <SelectItem value="deepseek">{{ t('setting.deepseek') }}</SelectItem>
                     <SelectItem value="gemini">{{ t('setting.gemini') }}</SelectItem>
+                    <SelectItem value="qwen">{{ t('setting.qwen') }}</SelectItem>
                     <SelectItem v-if="isDev" value="manual">{{ t('setting.manual') }}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
 
-              <!-- Ollama 配置 -->
-              <template v-if="settings.selectedLlm === 'ollama'">
+              <!-- Ollama 配置（编辑用） -->
+              <template v-if="editDraft.selectedLlm === 'ollama' && editDraft.ollama">
                 <FormField name="apiBaseUrl" :label="t('setting.apiBaseUrl')">
-                  <Input
-                    v-model="settings.ollama.apiUrl"
-                    :placeholder="t('setting.ollamaApiUrl')"
-                    @change="handleFieldChange"
-                    class="max-w-md"
+                  <Input v-model="editDraft.ollama.apiUrl" :placeholder="t('setting.ollamaApiUrl')" class="max-w-md" />
+                </FormField>
+                <FormField name="chooseModel" :label="t('setting.chooseModel')">
+                  <Autocomplete
+                    :model-value="editDraft.ollama.selectedModel"
+                    :fetch-suggestions="fetchOllamaSuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft.ollama.selectedModel = v }"
                   />
                 </FormField>
-
-                <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Select
-                    v-model="settings.ollama.selectedModel"
-                    @update:model-value="handleFieldChange"
-                  >
-                    <SelectTrigger class="w-[240px]">
-                      <SelectValue :placeholder="t('setting.chooseModel')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="model in ollamaModels"
-                        :key="model.model"
-                        :value="model.model"
-                        @select="fetchOllamaModels"
-                      >
-                        {{ model.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormField>
-
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
-                      :checked="settings.ollama.enableMaxTokens"
-                      @update:checked="
-                        (val) => {
-                          settings.ollama.enableMaxTokens = val
-                          handleFieldChange()
-                        }
-                      "
+                      :checked="editDraft.ollama.enableMaxTokens"
+                      @update:checked="(val) => { editDraft.ollama.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
-                      {{
-                        settings.ollama.enableMaxTokens
-                          ? t('setting.enabled')
-                          : t('setting.disabled')
-                      }}
+                      {{ editDraft.ollama.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
                     </span>
                   </div>
                 </FormField>
-
                 <FormField
-                  v-if="settings.ollama.enableMaxTokens"
+                  v-if="editDraft.ollama.enableMaxTokens"
                   name="ollamaMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <NumberField
-                    v-model="settings.ollama.maxTokens"
-                    :min="1"
-                    :max="32768"
-                    :step="100"
-                    @update:modelValue="handleFieldChange"
-                    class="w-[200px]"
-                  >
+                  <NumberField v-model="editDraft.ollama.maxTokens" :min="1" :max="32768" :step="100" class="w-[200px]">
                     <NumberFieldDecrement />
                     <NumberFieldInput />
                     <NumberFieldIncrement />
@@ -355,97 +341,46 @@
                 </FormField>
               </template>
 
-              <!-- OpenAI 配置 -->
-              <template v-else-if="settings.selectedLlm === 'openai'">
+              <!-- OpenAI 配置（编辑用） -->
+              <template v-else-if="editDraft.selectedLlm === 'openai' && editDraft.openai">
                 <FormField name="apiBaseUrl" :label="t('setting.apiBaseUrl')">
-                  <Input
-                    v-model="settings.openai.apiUrl"
-                    :placeholder="t('setting.openaiApiUrl')"
-                    @change="handleFieldChange"
-                    class="max-w-md"
-                  />
+                  <Input v-model="editDraft.openai.apiUrl" :placeholder="t('setting.openaiApiUrl')" class="max-w-md" />
                 </FormField>
-
                 <FormField name="apiKey" :label="t('setting.apiKey')">
                   <Input
-                    v-model="settings.openai.apiKey"
+                    v-model="editDraft.openai.apiKey"
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
-                    @change="handleFieldChange"
                     class="max-w-md"
                   />
                 </FormField>
-
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Select
-                    v-model="settings.openai.selectedModel"
-                    @update:model-value="handleFieldChange"
-                  >
-                    <SelectTrigger class="w-[240px]">
-                      <SelectValue :placeholder="t('setting.chooseModel')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="model in openaiModels"
-                        :key="model.id"
-                        :value="model.id"
-                        @select="fetchOpenAIModels"
-                      >
-                        {{ model.id }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Autocomplete
+                    :model-value="editDraft.openai.selectedModel"
+                    :fetch-suggestions="fetchOpenAISuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft.openai.selectedModel = v }"
+                  />
                 </FormField>
-
-                <FormField name="suffixes" :label="t('setting.suffixes')">
-                  <div class="space-y-2 max-w-md">
-                    <Input
-                      v-model="settings.openai.completionSuffix"
-                      :placeholder="t('setting.completionSuffix')"
-                      @change="handleFieldChange"
-                    />
-                    <Input
-                      v-model="settings.openai.chatSuffix"
-                      :placeholder="t('setting.chatSuffix')"
-                      @change="handleFieldChange"
-                    />
-                  </div>
-                </FormField>
-
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
-                      :checked="settings.openai.enableMaxTokens"
-                      @update:checked="
-                        (val) => {
-                          settings.openai.enableMaxTokens = val
-                          handleFieldChange()
-                        }
-                      "
+                      :checked="editDraft.openai.enableMaxTokens"
+                      @update:checked="(val) => { editDraft.openai.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
-                      {{
-                        settings.openai.enableMaxTokens
-                          ? t('setting.enabled')
-                          : t('setting.disabled')
-                      }}
+                      {{ editDraft.openai.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
                     </span>
                   </div>
                 </FormField>
-
                 <FormField
-                  v-if="settings.openai.enableMaxTokens"
+                  v-if="editDraft.openai.enableMaxTokens"
                   name="openaiMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <NumberField
-                    v-model="settings.openai.maxTokens"
-                    :min="1"
-                    :max="32768"
-                    :step="100"
-                    @update:modelValue="handleFieldChange"
-                    class="w-[200px]"
-                  >
+                  <NumberField v-model="editDraft.openai.maxTokens" :min="1" :max="32768" :step="100" class="w-[200px]">
                     <NumberFieldDecrement />
                     <NumberFieldInput />
                     <NumberFieldIncrement />
@@ -453,71 +388,47 @@
                 </FormField>
               </template>
 
-              <!-- OpenAI Official 配置 -->
-              <template v-else-if="settings.selectedLlm === 'openai-official'">
+              <!-- OpenAI Official 配置（编辑用） -->
+              <template v-else-if="editDraft.selectedLlm === 'openai-official' && editDraft['openai-official']">
                 <FormField name="apiKey" :label="t('setting.apiKey')">
                   <Input
-                    v-model="settings['openai-official'].apiKey"
+                    v-model="editDraft['openai-official'].apiKey"
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
-                    @change="handleFieldChange"
                     class="max-w-md"
                   />
                 </FormField>
-
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Select
-                    v-model="settings['openai-official'].selectedModel"
-                    @update:model-value="handleFieldChange"
-                  >
-                    <SelectTrigger class="w-[240px]">
-                      <SelectValue :placeholder="t('setting.chooseModel')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="model in openaiOfficialModels"
-                        :key="model.id"
-                        :value="model.id"
-                        @select="fetchOpenAIOfficialModels"
-                      >
-                        {{ model.id }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Autocomplete
+                    :model-value="editDraft['openai-official'].selectedModel"
+                    :fetch-suggestions="fetchOpenAIOfficialSuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft['openai-official'].selectedModel = v }"
+                  />
                 </FormField>
-
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
-                      :checked="settings['openai-official'].enableMaxTokens"
-                      @update:checked="
-                        (val) => {
-                          settings['openai-official'].enableMaxTokens = val
-                          handleFieldChange()
-                        }
-                      "
+                      :checked="editDraft['openai-official'].enableMaxTokens"
+                      @update:checked="(val) => { editDraft['openai-official'].enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
-                      {{
-                        settings['openai-official'].enableMaxTokens
-                          ? t('setting.enabled')
-                          : t('setting.disabled')
-                      }}
+                      {{ editDraft['openai-official'].enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
                     </span>
                   </div>
                 </FormField>
-
                 <FormField
-                  v-if="settings['openai-official'].enableMaxTokens"
+                  v-if="editDraft['openai-official'].enableMaxTokens"
                   name="openaiOfficialMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
                   <NumberField
-                    v-model="settings['openai-official'].maxTokens"
+                    v-model="editDraft['openai-official'].maxTokens"
                     :min="1"
                     :max="32768"
                     :step="100"
-                    @update:modelValue="handleFieldChange"
                     class="w-[200px]"
                   >
                     <NumberFieldDecrement />
@@ -527,67 +438,43 @@
                 </FormField>
               </template>
 
-              <!-- DeepSeek 配置 -->
-              <template v-else-if="settings.selectedLlm === 'deepseek'">
+              <!-- DeepSeek 配置（编辑用） -->
+              <template v-else-if="editDraft.selectedLlm === 'deepseek' && editDraft.deepseek">
                 <FormField name="apiKey" :label="t('setting.apiKey')">
                   <Input
-                    v-model="settings.deepseek.apiKey"
+                    v-model="editDraft.deepseek.apiKey"
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
-                    @change="handleFieldChange"
                     class="max-w-md"
                   />
                 </FormField>
-
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Select
-                    v-model="settings.deepseek.selectedModel"
-                    @update:model-value="handleFieldChange"
-                  >
-                    <SelectTrigger class="w-[200px]">
-                      <SelectValue :placeholder="t('setting.chooseModel')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="deepseek-chat">deepseek-chat</SelectItem>
-                      <SelectItem value="deepseek-reasoner">deepseek-reasoner</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Autocomplete
+                    :model-value="editDraft.deepseek.selectedModel"
+                    :fetch-suggestions="fetchDeepSeekSuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft.deepseek.selectedModel = v }"
+                  />
                 </FormField>
-
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
-                      :checked="settings.deepseek.enableMaxTokens"
-                      @update:checked="
-                        (val) => {
-                          settings.deepseek.enableMaxTokens = val
-                          handleFieldChange()
-                        }
-                      "
+                      :checked="editDraft.deepseek.enableMaxTokens"
+                      @update:checked="(val) => { editDraft.deepseek.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
-                      {{
-                        settings.deepseek.enableMaxTokens
-                          ? t('setting.enabled')
-                          : t('setting.disabled')
-                      }}
+                      {{ editDraft.deepseek.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
                     </span>
                   </div>
                 </FormField>
-
                 <FormField
-                  v-if="settings.deepseek.enableMaxTokens"
+                  v-if="editDraft.deepseek.enableMaxTokens"
                   name="deepseekMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <NumberField
-                    v-model="settings.deepseek.maxTokens"
-                    :min="1"
-                    :max="32768"
-                    :step="100"
-                    @update:modelValue="handleFieldChange"
-                    class="w-[200px]"
-                  >
+                  <NumberField v-model="editDraft.deepseek.maxTokens" :min="1" :max="32768" :step="100" class="w-[200px]">
                     <NumberFieldDecrement />
                     <NumberFieldInput />
                     <NumberFieldIncrement />
@@ -595,73 +482,43 @@
                 </FormField>
               </template>
 
-              <!-- Gemini 配置 -->
-              <template v-else-if="settings.selectedLlm === 'gemini'">
+              <!-- Gemini 配置（编辑用） -->
+              <template v-else-if="editDraft.selectedLlm === 'gemini' && editDraft.gemini">
                 <FormField name="apiKey" :label="t('setting.apiKey')">
                   <Input
-                    v-model="settings.gemini.apiKey"
+                    v-model="editDraft.gemini.apiKey"
                     type="password"
                     :placeholder="t('setting.geminiApiKeyPlaceholder')"
-                    @change="handleFieldChange"
                     class="max-w-md"
                   />
                 </FormField>
-
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Select
-                    v-model="settings.gemini.selectedModel"
-                    @update:model-value="handleFieldChange"
-                  >
-                    <SelectTrigger class="w-[240px]">
-                      <SelectValue :placeholder="t('setting.chooseModel')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="model in geminiModels"
-                        :key="model.name"
-                        :value="model.name"
-                        @select="fetchGeminiModels"
-                      >
-                        {{ model.displayName || model.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Autocomplete
+                    :model-value="editDraft.gemini.selectedModel"
+                    :fetch-suggestions="fetchGeminiSuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft.gemini.selectedModel = v }"
+                  />
                 </FormField>
-
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
-                      :checked="settings.gemini.enableMaxTokens"
-                      @update:checked="
-                        (val) => {
-                          settings.gemini.enableMaxTokens = val
-                          handleFieldChange()
-                        }
-                      "
+                      :checked="editDraft.gemini.enableMaxTokens"
+                      @update:checked="(val) => { editDraft.gemini.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
-                      {{
-                        settings.gemini.enableMaxTokens
-                          ? t('setting.enabled')
-                          : t('setting.disabled')
-                      }}
+                      {{ editDraft.gemini.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
                     </span>
                   </div>
                 </FormField>
-
                 <FormField
-                  v-if="settings.gemini.enableMaxTokens"
+                  v-if="editDraft.gemini.enableMaxTokens"
                   name="geminiMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <NumberField
-                    v-model="settings.gemini.maxTokens"
-                    :min="1"
-                    :max="32768"
-                    :step="100"
-                    @update:modelValue="handleFieldChange"
-                    class="w-[200px]"
-                  >
+                  <NumberField v-model="editDraft.gemini.maxTokens" :min="1" :max="32768" :step="100" class="w-[200px]">
                     <NumberFieldDecrement />
                     <NumberFieldInput />
                     <NumberFieldIncrement />
@@ -669,63 +526,51 @@
                 </FormField>
               </template>
 
-              <!-- MetaDoc 配置 -->
-              <template v-else-if="settings.selectedLlm === 'metadoc'">
-                <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Select
-                    v-model="settings.metadoc.selectedModel"
-                    @update:model-value="handleFieldChange"
-                  >
-                    <SelectTrigger class="w-[240px]">
-                      <SelectValue :placeholder="t('setting.chooseModel')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="model in metadocModels"
-                        :key="model.label"
-                        :value="model.label"
-                        @select="fetchMetaDocModels"
-                      >
-                        {{ model.label }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+              <!-- 千问/百炼 配置（编辑用） -->
+              <template v-else-if="editDraft.selectedLlm === 'qwen' && editDraft.qwen">
+                <FormField name="apiBaseUrl" :label="t('setting.apiBaseUrl')">
+                  <Input
+                    v-model="editDraft.qwen.apiUrl"
+                    :placeholder="t('setting.qwenApiUrlPlaceholder')"
+                    class="max-w-md"
+                  />
+                  <p class="text-xs text-muted-foreground mt-1">{{ t('setting.qwenHint') }}</p>
                 </FormField>
-
+                <FormField name="apiKey" :label="t('setting.apiKey')">
+                  <Input
+                    v-model="editDraft.qwen.apiKey"
+                    type="password"
+                    :placeholder="t('setting.apiKeyPlaceholder')"
+                    class="max-w-md"
+                  />
+                </FormField>
+                <FormField name="chooseModel" :label="t('setting.chooseModel')">
+                  <Autocomplete
+                    :model-value="editDraft.qwen.selectedModel"
+                    :fetch-suggestions="fetchQwenSuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft.qwen.selectedModel = v }"
+                  />
+                </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
-                      :checked="settings.metadoc.enableMaxTokens"
-                      @update:checked="
-                        (val) => {
-                          settings.metadoc.enableMaxTokens = val
-                          handleFieldChange()
-                        }
-                      "
+                      :checked="editDraft.qwen.enableMaxTokens"
+                      @update:checked="(val) => { editDraft.qwen.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
-                      {{
-                        settings.metadoc.enableMaxTokens
-                          ? t('setting.enabled')
-                          : t('setting.disabled')
-                      }}
+                      {{ editDraft.qwen.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
                     </span>
                   </div>
                 </FormField>
-
                 <FormField
-                  v-if="settings.metadoc.enableMaxTokens"
-                  name="metadocMaxTokens"
+                  v-if="editDraft.qwen.enableMaxTokens"
+                  name="qwenMaxTokens"
                   :label="t('setting.maxTokens')"
                 >
-                  <NumberField
-                    v-model="settings.metadoc.maxTokens"
-                    :min="1"
-                    :max="32768"
-                    :step="100"
-                    @update:modelValue="handleFieldChange"
-                    class="w-[200px]"
-                  >
+                  <NumberField v-model="editDraft.qwen.maxTokens" :min="1" :max="32768" :step="100" class="w-[200px]">
                     <NumberFieldDecrement />
                     <NumberFieldInput />
                     <NumberFieldIncrement />
@@ -733,205 +578,73 @@
                 </FormField>
               </template>
 
-              <!-- Manual 配置 -->
-              <template v-else-if="settings.selectedLlm === 'manual'">
+              <!-- MetaDoc 配置（编辑用） -->
+              <template v-else-if="editDraft.selectedLlm === 'metadoc' && editDraft.metadoc">
+                <FormField name="chooseModel" :label="t('setting.chooseModel')">
+                  <Autocomplete
+                    :model-value="editDraft.metadoc.selectedModel"
+                    :fetch-suggestions="fetchMetaDocSuggestions"
+                    :placeholder="t('setting.chooseModelPlaceholder')"
+                    value-key="value"
+                    input-class="w-[240px] max-w-full"
+                    @update:model-value="(v) => { editDraft.metadoc.selectedModel = v }"
+                  />
+                </FormField>
+                <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
+                  <div class="flex items-center gap-2">
+                    <Switch
+                      :checked="editDraft.metadoc.enableMaxTokens"
+                      @update:checked="(val) => { editDraft.metadoc.enableMaxTokens = val }"
+                    />
+                    <span class="text-sm text-muted-foreground">
+                      {{ editDraft.metadoc.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
+                    </span>
+                  </div>
+                </FormField>
+                <FormField
+                  v-if="editDraft.metadoc.enableMaxTokens"
+                  name="metadocMaxTokens"
+                  :label="t('setting.maxTokens')"
+                >
+                  <NumberField v-model="editDraft.metadoc.maxTokens" :min="1" :max="32768" :step="100" class="w-[200px]">
+                    <NumberFieldDecrement />
+                    <NumberFieldInput />
+                    <NumberFieldIncrement />
+                  </NumberField>
+                </FormField>
+              </template>
+
+              <!-- Manual 配置仅提示，不在此编辑 -->
+              <template v-else-if="editDraft.selectedLlm === 'manual'">
                 <Alert>
                   <Info class="h-4 w-4" />
                   <AlertTitle>{{ t('setting.manualConfigHint') }}</AlertTitle>
                 </Alert>
-
-                <FormField name="manualTokenInput" :label="t('setting.manualTokenInput')">
-                  <Textarea
-                    v-model="manualTokenInput"
-                    :placeholder="t('setting.manualTokenInputPlaceholder')"
-                    rows="6"
-                    class="max-w-md"
-                    @input="saveManualTokenToCache"
-                  />
-                  <div class="flex items-center gap-2 mt-2">
-                    <Button size="sm" variant="outline" @click="clearManualToken">
-                      {{ t('setting.clearManualToken') }}
-                    </Button>
-                    <Button
-                      size="sm"
-                      @click="submitManualResponse"
-                      :disabled="!manualTokenInput.trim() || !pendingManualRequestId"
-                    >
-                      {{ t('setting.submitManualResponse') }}
-                    </Button>
-                    <Button size="sm" variant="outline" @click="openManualLLMInterface">
-                      {{ t('setting.openManualLLMInterface') }}
-                    </Button>
-                  </div>
-                  <p v-if="pendingManualRequestId" class="mt-2 text-xs text-muted-foreground">
-                    {{ t('setting.pendingRequestId') }}: {{ pendingManualRequestId }}
-                  </p>
-                </FormField>
               </template>
-
-              <Separator />
-
-              <!-- 自动补全设置 -->
-              <FormField name="autoCompletion" :label="t('setting.autoCompletion')">
-                <div class="flex items-center gap-2">
-                  <Switch
-                    :checked="settings.autoCompletion"
-                    @update:checked="
-                      (val) => {
-                        settings.autoCompletion = val
-                        saveSetting('autoCompletion', val)
-                      }
-                    "
-                  />
-                  <span class="text-sm text-muted-foreground">
-                    {{ settings.autoCompletion ? t('setting.enabled') : t('setting.disabled') }}
-                  </span>
-                </div>
-              </FormField>
-
-              <template v-if="settings.autoCompletion">
-                <FormField name="autoCompletionMode" :label="t('setting.autoCompletionMode')">
-                  <Select
-                    v-model="settings.autoCompletionMode"
-                    @update:model-value="
-                      saveSetting('autoCompletionMode', settings.autoCompletionMode)
-                    "
-                  >
-                    <SelectTrigger class="w-[200px]">
-                      <SelectValue :placeholder="t('setting.chooseAutoCompletionMode')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full">{{
-                        t('setting.autoCompletionFullMode')
-                      }}</SelectItem>
-                      <SelectItem value="stream">{{
-                        t('setting.autoCompletionStreamMode')
-                      }}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormField>
-
-                <FormField
-                  name="autoCompletionMaxTokens"
-                  :label="t('setting.autoCompletionMaxTokens')"
-                >
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <div class="flex items-center gap-2">
-                        <NumberField
-                          v-model="settings.autoCompletionMaxTokens"
-                          :min="20"
-                          :step="10"
-                          @update:modelValue="
-                            saveSetting('autoCompletionMaxTokens', settings.autoCompletionMaxTokens)
-                          "
-                          class="w-[160px]"
-                        >
-                          <NumberFieldDecrement />
-                          <NumberFieldInput />
-                          <NumberFieldIncrement />
-                        </NumberField>
-                        <span class="text-sm text-muted-foreground">
-                          {{
-                            settings.autoCompletionMaxTokens === 0
-                              ? t('setting.unlimited')
-                              : t('setting.tokens')
-                          }}
-                        </span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      {{ t('setting.autoCompletionMaxTokensHint') }}
-                    </TooltipContent>
-                  </Tooltip>
-                </FormField>
               </template>
-
-              <Separator />
-
-              <!-- 测试区域 -->
-              <div class="space-y-4">
-                <h4 class="text-sm font-medium">{{ t('setting.testLlm') }}</h4>
-
-                <FormField name="testScenario" :label="t('setting.testScenario')">
-                  <RadioGroup v-model="testScenario" class="flex flex-row gap-4 flex-wrap">
-                    <div class="flex items-center gap-2">
-                      <RadioGroupItem value="completion-stream" id="test-completion-stream" />
-                      <Label for="test-completion-stream" class="text-sm cursor-pointer">
-                        {{ t('setting.testCompletionStream') }}
-                      </Label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <RadioGroupItem value="completion-nonstream" id="test-completion-nonstream" />
-                      <Label for="test-completion-nonstream" class="text-sm cursor-pointer">
-                        {{ t('setting.testCompletionNonStream') }}
-                      </Label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <RadioGroupItem value="chat-stream" id="test-chat-stream" />
-                      <Label for="test-chat-stream" class="text-sm cursor-pointer">
-                        {{ t('setting.testChatStream') }}
-                      </Label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <RadioGroupItem value="chat-nonstream" id="test-chat-nonstream" />
-                      <Label for="test-chat-nonstream" class="text-sm cursor-pointer">
-                        {{ t('setting.testChatNonStream') }}
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </FormField>
-
-                <div class="flex items-center gap-2">
-                  <Button @click="testLlmApi" :disabled="testLoading">
-                    {{ t('setting.testLlm') }}
-                  </Button>
-                  <Button variant="outline" @click="clearTestResult">
-                    {{ t('setting.clearResult') }}
-                  </Button>
-                </div>
-
-                <FormField name="testResult" :label="t('setting.testResult')">
-                  <Textarea
-                    v-model="testResult"
-                    readonly
-                    :placeholder="t('setting.resultPlaceholder')"
-                    rows="6"
-                    class="font-mono text-sm"
-                  />
-                </FormField>
-              </div>
             </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+          </el-scrollbar>
+          <DialogFooter class="flex-wrap gap-2 shrink-0">
+            <Button
+              v-if="editDraft && editDialogIsPreset && !isNewConfigMode"
+              variant="outline"
+              class="mr-auto text-muted-foreground"
+              @click="handleResetConfigToPreset"
+            >
+              {{ t('setting.resetConfigToPreset') }}
+            </Button>
+            <div class="flex gap-2 ml-auto">
+              <Button variant="outline" @click="closeEditDialog">
+                {{ t('common.cancel') }}
+              </Button>
+              <Button @click="saveEditDialog">
+                {{ t('common.confirm') }}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-
-    <!-- 导入配置对话框 -->
-    <Dialog v-model:open="importDialogVisible">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{{ t('setting.importConfig') }}</DialogTitle>
-        </DialogHeader>
-        <div class="py-4">
-          <FormField name="importConfigJson" :label="t('setting.importConfigJson')">
-            <Textarea
-              v-model="importJsonText"
-              :placeholder="t('setting.importConfigJsonPlaceholder')"
-              rows="10"
-            />
-          </FormField>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" @click="importDialogVisible = false">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button @click="handleImportConfig" :disabled="!importJsonText.trim()">
-            {{ t('setting.importConfig') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
 
     <!-- 手动LLM界面对话框 -->
     <Dialog v-model:open="manualLLMDialogVisible">
@@ -987,7 +700,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
@@ -995,23 +708,24 @@ import eventBus from '../../utils/event-bus.js'
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
 import { createRendererLogger } from '../../utils/logger.ts'
 import { isDevEnvironment } from '../../utils/dev-env'
-import { ai_types, createAiTask } from '../../utils/ai_tasks.ts'
+import { ai_types, createAiTask, cancelAiTask } from '../../utils/ai_tasks.ts'
+import messageBridge from '../../bridge/message-bridge'
 import {
   getAllConfigs,
   getCurrentConfig,
   switchConfig,
   deleteConfig,
   createConfigFromCurrentSettings,
-  updateWorkspaceModifiedState,
-  saveWorkspace,
-  discardWorkspace,
-  getWorkspaceState,
+  getConfigDataFromCurrentSettings,
+  addConfig,
   exportConfig,
   exportAllConfigs,
   importConfigs,
-  resetDefaultConfig,
   loadLlmConfigs,
-  updateConfigOrder,
+  copyConfig,
+  isPresetConfig,
+  updateConfig,
+  resetConfigToPreset,
   type LlmConfigItem
 } from '../../utils/llm-config-manager'
 
@@ -1019,14 +733,15 @@ import {
 import {
   Plus,
   ClipboardCopy,
-  Copy,
   Download,
   Minus,
   Plus as PlusIcon,
   Info,
-  GripVertical,
-  MoreVertical,
-  HelpCircle
+  HelpCircle,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle
 } from 'lucide-vue-next'
 
 // shadcn-vue 组件
@@ -1044,7 +759,6 @@ import { Label } from '@renderer/components/ui/label'
 import { Switch } from '@renderer/components/ui/switch'
 import { Slider } from '@renderer/components/ui/slider'
 import { Badge } from '@renderer/components/ui/badge'
-import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle } from '@renderer/components/ui/alert'
 import { FormField } from '@renderer/components/ui/form'
 import {
@@ -1054,7 +768,6 @@ import {
   SelectContent,
   SelectItem
 } from '@renderer/components/ui/select'
-import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Dialog,
@@ -1076,6 +789,7 @@ import {
   NumberFieldDecrement
 } from '@renderer/components/ui/number-field'
 import { Separator } from '@renderer/components/ui/separator'
+import Autocomplete from '@renderer/components/ui/autocomplete/Autocomplete.vue'
 
 // Element Plus 消息组件
 import { ElMessageBox } from 'element-plus'
@@ -1108,9 +822,6 @@ const openaiModels = ref<OpenAIModel[]>([])
 const openaiOfficialModels = ref<OpenAIModel[]>([])
 const geminiModels = ref<Array<{ name: string; displayName?: string }>>([])
 const metadocModels = ref<MetaDocModel[]>([])
-const testResult = ref('')
-const testScenario = ref('completion-stream')
-const testLoading = ref(false)
 const isDev = ref(false)
 const llmConfigs = ref<LlmConfigItem[]>([])
 const currentConfigId = ref<string>('')
@@ -1119,13 +830,65 @@ const pendingManualRequestId = ref<string>('')
 const manualLLMDialogVisible = ref(false)
 const pendingRequests = ref<Array<{ requestId: string; type: string; stream: boolean }>>([])
 const selectedRequestId = ref<string>('')
-const hasUnsavedChanges = ref(false)
-const importDialogVisible = ref(false)
-const importJsonText = ref('')
-const draggingConfigId = ref<string | null>(null)
-const dropPreview = ref<{ targetId: string | null; mode: 'before' | 'after' | null }>({
-  targetId: null,
-  mode: null
+
+// 卡片检查状态：'success' 全过 | 'partial' 部分过 | 'error' 全不过；details 为四项测试结果
+const checkStatusMap = ref<
+  Record<
+    string,
+    {
+      status: 'success' | 'partial' | 'error'
+      message?: string
+      details?: {
+        streamCompletion: boolean
+        nonStreamCompletion: boolean
+        streamChat: boolean
+        nonStreamChat: boolean
+      }
+    }
+  >
+>({})
+const checkLoadingMap = ref<Record<string, boolean>>({})
+const checkAllLoading = ref(false)
+
+// 右键菜单
+const contextMenu = reactive<{ visible: boolean; x: number; y: number; config: LlmConfigItem | null }>({
+  visible: false,
+  x: 0,
+  y: 0,
+  config: null
+})
+
+// 编辑对话框
+const editDialogVisible = ref(false)
+const editDraft = ref<{
+  id: string
+  name: string
+  description?: string
+  selectedLlm: string
+  ollama?: LlmConfigItem['ollama']
+  openai?: LlmConfigItem['openai']
+  'openai-official'?: LlmConfigItem['openai-official']
+  deepseek?: LlmConfigItem['deepseek']
+  gemini?: LlmConfigItem['gemini']
+  qwen?: LlmConfigItem['qwen']
+  metadoc?: LlmConfigItem['metadoc']
+} | null>(null)
+const editDialogIsPreset = computed(() => {
+  if (!editDraft.value) return false
+  const c = llmConfigs.value.find((x) => x.id === editDraft.value!.id)
+  return c ? isPresetConfig(c) : false
+})
+const newConfigNameBlurred = ref(false)
+const isNewConfigMode = computed(() => editDraft.value?.id === 'new')
+const editDraftLockType = computed(() => {
+  if (!editDraft.value) return false
+  const c = llmConfigs.value.find((x) => x.id === editDraft.value!.id)
+  return c ? isPresetConfig(c) : false
+})
+
+const isCurrentConfigManual = computed(() => {
+  const c = getCurrentConfig()
+  return c?.type === 'manual'
 })
 
 const saveSetting = (key: string, value: unknown) => {
@@ -1140,6 +903,7 @@ const getConfigDisplayName = (config: LlmConfigItem): string => {
       'openai-official': 'setting.defaultConfigOpenaiOfficial',
       deepseek: 'setting.defaultConfigDeepseek',
       gemini: 'setting.defaultConfigGemini',
+      qwen: 'setting.defaultConfigQwen',
       metadoc: 'setting.defaultConfigMetadoc',
       manual: 'setting.defaultConfigManual'
     }
@@ -1149,6 +913,429 @@ const getConfigDisplayName = (config: LlmConfigItem): string => {
     }
   }
   return config.name
+}
+
+const getConfigTypeLabel = (type: string): string => {
+  const keyMap: Record<string, string> = {
+    metadoc: 'setting.metadoc',
+    ollama: 'setting.ollama',
+    openai: 'setting.openai',
+    'openai-official': 'setting.openaiOfficial',
+    deepseek: 'setting.deepseek',
+    gemini: 'setting.gemini',
+    qwen: 'setting.qwen',
+    manual: 'setting.manual'
+  }
+  return keyMap[type] ? t(keyMap[type]) : type
+}
+
+const handleCardClick = async (config: LlmConfigItem) => {
+  if (currentConfigId.value === config.id) return
+  await switchConfig(config.id)
+  currentConfigId.value = config.id
+  await fetchLlmSettings()
+  eventBus.emit('llm-api-updated')
+  notifySuccess(t('setting.configSwitched'))
+  if (config.type === 'metadoc') {
+    fetchMetaDocModels()
+  } else if (config.type === 'ollama' && config.ollama?.apiUrl) {
+    fetchOllamaModels()
+  } else if (config.type === 'openai' && config.openai?.apiUrl && config.openai?.apiKey) {
+    fetchOpenAIModels()
+  } else if (config.type === 'openai-official' && config['openai-official']?.apiKey) {
+    fetchOpenAIOfficialModels()
+  } else if (config.type === 'gemini' && config.gemini?.apiKey) {
+    fetchGeminiModels()
+  } else if (config.type === 'manual') {
+    loadManualTokenFromCache()
+    fetchPendingRequests()
+  }
+}
+
+const openContextMenu = (e: MouseEvent, config: LlmConfigItem) => {
+  contextMenu.visible = true
+  contextMenu.x = e.clientX
+  contextMenu.y = e.clientY
+  contextMenu.config = config
+}
+
+const handleContextCopy = () => {
+  if (!contextMenu.config) return
+  const copied = copyConfig(contextMenu.config.id)
+  if (copied) {
+    loadConfigs()
+    notifySuccess(t('setting.copyConfigSuccess'))
+  }
+  contextMenu.visible = false
+}
+
+const handleContextEdit = () => {
+  if (!contextMenu.config) return
+  openEditDialog(contextMenu.config)
+  contextMenu.visible = false
+}
+
+const handleContextExport = () => {
+  if (!contextMenu.config) return
+  handleExportConfig(contextMenu.config.id)
+  contextMenu.visible = false
+}
+
+const handleContextDelete = () => {
+  if (!contextMenu.config || isPresetConfig(contextMenu.config)) return
+  handleDeleteConfig(contextMenu.config.id)
+  contextMenu.visible = false
+}
+
+/** 将 LlmConfigItem 转为 createAdapterFromSettings 使用的 customConfig 形状，用于并发检查时不切换全局配置 */
+function buildCustomLlmConfigFromItem(item: LlmConfigItem): { baseUrl: string; apiKey?: string; model: string; type: string } | null {
+  const t = item.type
+  if (t === 'manual' || t === 'metadoc') return null
+  if (t === 'ollama' && item.ollama) {
+    return { baseUrl: item.ollama.apiUrl || '', model: item.ollama.selectedModel || '', type: 'ollama' }
+  }
+  if (t === 'openai' && item.openai) {
+    return {
+      baseUrl: item.openai.apiUrl || '',
+      apiKey: item.openai.apiKey,
+      model: item.openai.selectedModel || '',
+      type: 'openai'
+    }
+  }
+  if (t === 'openai-official' && item['openai-official']) {
+    return {
+      baseUrl: 'https://api.openai.com/v1',
+      apiKey: item['openai-official'].apiKey,
+      model: item['openai-official'].selectedModel || '',
+      type: 'openai-official'
+    }
+  }
+  if (t === 'deepseek' && item.deepseek) {
+    return {
+      baseUrl: 'https://api.deepseek.com',
+      apiKey: item.deepseek.apiKey,
+      model: item.deepseek.selectedModel || '',
+      type: 'deepseek'
+    }
+  }
+  if (t === 'gemini' && item.gemini) {
+    return {
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+      apiKey: item.gemini.apiKey,
+      model: item.gemini.selectedModel || '',
+      type: 'gemini'
+    }
+  }
+  if (t === 'qwen' && item.qwen) {
+    return {
+      baseUrl: item.qwen.apiUrl || 'https://dashscope.aliyuncs.com',
+      apiKey: item.qwen.apiKey,
+      model: item.qwen.selectedModel || '',
+      type: 'qwen'
+    }
+  }
+  return null
+}
+
+const runOneCheck = async (
+  type: 'answer' | 'chat',
+  stream: boolean,
+  configId: string,
+  prompt: string,
+  temperature: number,
+  customLlmConfig?: { baseUrl: string; apiKey?: string; model: string; type: string } | null
+): Promise<boolean> => {
+  const testRef = ref('')
+  const originKey = `llm-check-${configId}-${Date.now()}-${type}-${stream}`
+  const taskName =
+    type === 'answer'
+      ? stream
+        ? t('setting.testCompletionStream')
+        : t('setting.testCompletionNonStream')
+      : stream
+        ? t('setting.testChatStream')
+        : t('setting.testChatNonStream')
+  const meta = { stream, temperature, customLlmConfig: customLlmConfig || undefined }
+  try {
+    const payload =
+      type === 'answer' ? prompt : ([{ role: 'user', content: prompt }] as Array<{ role: string; content: string }>)
+    const { handle, done } = createAiTask(
+      taskName,
+      payload,
+      testRef,
+      type === 'answer' ? ai_types.answer : ai_types.chat,
+      originKey,
+      meta
+    )
+    if (stream) {
+      let resolved = false
+      const stop = watch(
+        () => testRef.value,
+        (val) => {
+          if (val && val.length > 0 && !resolved) {
+            resolved = true
+            stop()
+            cancelAiTask(handle, false)
+          }
+        }
+      )
+      await done
+      if (!resolved) resolved = true
+      return true
+    }
+    await done
+    return (testRef.value?.length ?? 0) > 0
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.includes('取消') || msg.includes('aborted') || msg.includes('cancelled')) return true
+    return false
+  }
+}
+
+const handleCheckConfig = async (config: LlmConfigItem, options?: { useCustomConfig?: boolean }) => {
+  if (checkLoadingMap.value[config.id]) return
+  const useCustomConfig = options?.useCustomConfig === true
+  const prevId = currentConfigId.value
+  checkLoadingMap.value = { ...checkLoadingMap.value, [config.id]: true }
+  checkStatusMap.value = { ...checkStatusMap.value, [config.id]: undefined as any }
+
+  try {
+    if (!useCustomConfig) {
+      await switchConfig(config.id)
+      currentConfigId.value = config.id
+      await fetchLlmSettings()
+    }
+
+    const temperature = (await getSetting('llmTemperature')) || 1.3
+    const prompt = `${new Date().toLocaleString()}\n${t('setting.testPrompt')}`
+    const customLlmConfig = useCustomConfig ? buildCustomLlmConfigFromItem(config) : undefined
+
+    const [streamCompletion, nonStreamCompletion, streamChat, nonStreamChat] = await Promise.all([
+      runOneCheck('answer', true, config.id, prompt, temperature, customLlmConfig ?? undefined),
+      runOneCheck('answer', false, config.id, prompt, temperature, customLlmConfig ?? undefined),
+      runOneCheck('chat', true, config.id, prompt, temperature, customLlmConfig ?? undefined),
+      runOneCheck('chat', false, config.id, prompt, temperature, customLlmConfig ?? undefined)
+    ])
+
+    const details = {
+      streamCompletion,
+      nonStreamCompletion,
+      streamChat,
+      nonStreamChat
+    }
+    const passCount =
+      (streamCompletion ? 1 : 0) +
+      (nonStreamCompletion ? 1 : 0) +
+      (streamChat ? 1 : 0) +
+      (nonStreamChat ? 1 : 0)
+    const status: 'success' | 'partial' | 'error' =
+      passCount === 4 ? 'success' : passCount === 0 ? 'error' : 'partial'
+
+    checkStatusMap.value = {
+      ...checkStatusMap.value,
+      [config.id]: { status, details }
+    }
+  } catch (err) {
+    checkStatusMap.value = {
+      ...checkStatusMap.value,
+      [config.id]: {
+        status: 'error',
+        message: (err instanceof Error ? err.message : String(err)).slice(0, 80)
+      }
+    }
+  } finally {
+    checkLoadingMap.value = { ...checkLoadingMap.value, [config.id]: false }
+    if (!useCustomConfig && prevId && prevId !== config.id) {
+      await switchConfig(prevId)
+      currentConfigId.value = prevId
+      await fetchLlmSettings()
+    }
+  }
+}
+
+const handleCheckAllConfigs = async () => {
+  if (checkAllLoading.value) return
+  const list = llmConfigs.value.filter((c) => c.type !== 'manual' && c.type !== 'metadoc' && buildCustomLlmConfigFromItem(c) != null)
+  if (list.length === 0) return
+  checkAllLoading.value = true
+  try {
+    await Promise.all(list.map((config) => handleCheckConfig(config, { useCustomConfig: true })))
+    notifySuccess(t('setting.checkAllConfigsDone'))
+  } finally {
+    checkAllLoading.value = false
+  }
+}
+
+const handleImportFromFiles = async () => {
+  try {
+    const result = await messageBridge.invoke('show-open-dialog', {
+      title: t('setting.importConfig'),
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (result?.canceled || !result?.filePaths?.length) return
+    let totalImported = 0
+    const errors: string[] = []
+    for (const filePath of result.filePaths) {
+      try {
+        const content = await messageBridge.invoke('read-file-content', filePath)
+        if (content == null) {
+          errors.push(t('setting.readFileFailed') || '无法读取文件')
+          continue
+        }
+        const res = importConfigs(content)
+        if (res.success) totalImported += res.imported
+        if (res.errors?.length) errors.push(...res.errors)
+      } catch (e) {
+        errors.push((e instanceof Error ? e.message : String(e)).slice(0, 60))
+      }
+    }
+    loadConfigs()
+    if (totalImported > 0) {
+      notifySuccess(t('setting.importSuccess', { count: totalImported }))
+    }
+    if (errors.length > 0) {
+      notifyWarning(errors.slice(0, 3).join('; '))
+    }
+  } catch (err) {
+    logger.error('批量导入配置失败', err)
+    notifyError(t('setting.importFailed'))
+  }
+}
+
+function buildEditDraftFromConfig(config: LlmConfigItem) {
+  const draft: NonNullable<typeof editDraft.value> = {
+    id: config.id,
+    name: config.name,
+    description: config.description ?? '',
+    selectedLlm: config.type
+  }
+  if (config.ollama) draft.ollama = { ...config.ollama }
+  if (config.openai) draft.openai = { ...config.openai }
+  if (config['openai-official']) draft['openai-official'] = { ...config['openai-official'] }
+  if (config.deepseek) draft.deepseek = { ...config.deepseek }
+  if (config.gemini) draft.gemini = { ...config.gemini }
+  if (config.qwen) draft.qwen = { ...config.qwen }
+  if (config.metadoc) draft.metadoc = { ...config.metadoc }
+  return draft
+}
+
+const openEditDialog = (config: LlmConfigItem) => {
+  editDraft.value = buildEditDraftFromConfig(config)
+  newConfigNameBlurred.value = false
+  editDialogVisible.value = true
+}
+
+const closeEditDialog = () => {
+  editDialogVisible.value = false
+  editDraft.value = null
+  newConfigNameBlurred.value = false
+}
+
+const onNewConfigNameBlur = () => {
+  if (isNewConfigMode.value) newConfigNameBlurred.value = true
+}
+
+const handleResetConfigToPreset = async () => {
+  if (!editDraft.value) return
+  const updated = await resetConfigToPreset(editDraft.value.id)
+  if (updated) {
+    loadConfigs()
+    editDraft.value = buildEditDraftFromConfig(updated)
+    notifySuccess(t('setting.resetConfigSuccess'))
+  }
+}
+
+const onEditDraftTypeChange = () => {
+  const type = editDraft.value?.selectedLlm
+  if (!type || type === 'manual') return
+  const defaults: Record<string, any> = {
+    ollama: {
+      apiUrl: 'http://localhost:11434/api',
+      selectedModel: '',
+      enableMaxTokens: false,
+      maxTokens: 4096
+    },
+    openai: {
+      apiUrl: 'https://api.openai.com/v1',
+      apiKey: '',
+      selectedModel: '',
+      enableMaxTokens: false,
+      maxTokens: 4096
+    },
+    'openai-official': { apiKey: '', selectedModel: '', enableMaxTokens: false, maxTokens: 4096 },
+    deepseek: { apiKey: '', selectedModel: 'deepseek-chat', enableMaxTokens: false, maxTokens: 4096 },
+    gemini: { apiKey: '', selectedModel: 'gemini-2.0-flash', enableMaxTokens: false, maxTokens: 4096 },
+    qwen: {
+      apiKey: '',
+      apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      selectedModel: 'qwen-plus',
+      enableMaxTokens: false,
+      maxTokens: 4096
+    },
+    metadoc: { selectedModel: '', enableMaxTokens: false, maxTokens: 4096 }
+  }
+  if (editDraft.value && defaults[type]) {
+    ;(editDraft.value as any)[type] = defaults[type]
+  }
+}
+
+const saveEditDialog = async () => {
+  if (!editDraft.value) return
+  const id = editDraft.value.id
+  const type = editDraft.value.selectedLlm
+  const name = (editDraft.value.name || '').trim()
+  if (!name) {
+    notifyError(t('setting.configNameRequired'))
+    return
+  }
+  if (id === 'new') {
+    const payload: Omit<LlmConfigItem, 'id' | 'createdAt' | 'updatedAt'> = {
+      name,
+      description: editDraft.value.description ?? undefined,
+      type: type as LlmConfigItem['type']
+    }
+    if (editDraft.value.ollama) payload.ollama = editDraft.value.ollama
+    if (editDraft.value.openai) payload.openai = editDraft.value.openai
+    if (editDraft.value['openai-official']) payload['openai-official'] = editDraft.value['openai-official']
+    if (editDraft.value.deepseek) payload.deepseek = editDraft.value.deepseek
+    if (editDraft.value.gemini) payload.gemini = editDraft.value.gemini
+    if (editDraft.value.qwen) payload.qwen = editDraft.value.qwen
+    if (editDraft.value.metadoc) payload.metadoc = editDraft.value.metadoc
+    const newConfig = addConfig(payload)
+    loadConfigs()
+    closeEditDialog()
+    currentConfigId.value = newConfig.id
+    await switchConfig(newConfig.id)
+    await fetchLlmSettings()
+    eventBus.emit('llm-api-updated')
+    notifySuccess(t('setting.configCreated'))
+    return
+  }
+  const updates: Partial<LlmConfigItem> = {
+    name,
+    description: editDraft.value.description ?? undefined,
+    type: type as LlmConfigItem['type']
+  }
+  if (editDraft.value.ollama) updates.ollama = editDraft.value.ollama
+  if (editDraft.value.openai) updates.openai = editDraft.value.openai
+  if (editDraft.value['openai-official']) updates['openai-official'] = editDraft.value['openai-official']
+  if (editDraft.value.deepseek) updates.deepseek = editDraft.value.deepseek
+  if (editDraft.value.gemini) updates.gemini = editDraft.value.gemini
+  if (editDraft.value.qwen) updates.qwen = editDraft.value.qwen
+  if (editDraft.value.metadoc) updates.metadoc = editDraft.value.metadoc
+  const success = await updateConfig(id, updates)
+  if (success) {
+    loadConfigs()
+    closeEditDialog()
+    if (currentConfigId.value === id) {
+      await fetchLlmSettings()
+      eventBus.emit('llm-api-updated')
+    }
+    notifySuccess(t('setting.configSaved'))
+  } else {
+    notifyError(t('setting.saveFailed'))
+  }
 }
 
 const handleTemperatureChange = (val: number) => {
@@ -1195,8 +1382,6 @@ const fetchLlmSettings = async () => {
       apiUrl: 'https://api.openai.com/v1',
       apiKey: '',
       selectedModel: '',
-      completionSuffix: '',
-      chatSuffix: '',
       enableMaxTokens: false,
       maxTokens: 4096
     }
@@ -1215,6 +1400,15 @@ const fetchLlmSettings = async () => {
   if (typeof settings.gemini !== 'object' || settings.gemini === null) {
     settings.gemini = { apiKey: '', selectedModel: '', enableMaxTokens: false, maxTokens: 4096 }
   }
+  if (typeof settings.qwen !== 'object' || settings.qwen === null) {
+    settings.qwen = {
+      apiKey: '',
+      apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      selectedModel: 'qwen-plus',
+      enableMaxTokens: false,
+      maxTokens: 4096
+    }
+  }
 
   settings.metadoc.selectedModel = (await getSetting('metadocSelectedModel')) || ''
   settings.metadoc.enableMaxTokens = (await getSetting('metadocEnableMaxTokens')) ?? false
@@ -1226,8 +1420,6 @@ const fetchLlmSettings = async () => {
   settings.openai.apiUrl = (await getSetting('openaiApiUrl')) || 'https://api.openai.com/v1'
   settings.openai.apiKey = (await getSetting('openaiApiKey')) || ''
   settings.openai.selectedModel = (await getSetting('openaiSelectedModel')) || ''
-  settings.openai.completionSuffix = (await getSetting('openaiCompletionSuffix')) || ''
-  settings.openai.chatSuffix = (await getSetting('openaiChatSuffix')) || ''
   settings.openai.enableMaxTokens = (await getSetting('openaiEnableMaxTokens')) ?? false
   settings.openai.maxTokens = (await getSetting('openaiMaxTokens')) || 4096
   settings['openai-official'].apiKey = (await getSetting('openaiOfficialApiKey')) || ''
@@ -1244,6 +1436,12 @@ const fetchLlmSettings = async () => {
   settings.gemini.selectedModel = (await getSetting('geminiSelectedModel')) || ''
   settings.gemini.enableMaxTokens = (await getSetting('geminiEnableMaxTokens')) ?? false
   settings.gemini.maxTokens = (await getSetting('geminiMaxTokens')) || 4096
+  settings.qwen.apiKey = (await getSetting('qwenApiKey')) || ''
+  settings.qwen.apiUrl =
+    (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+  settings.qwen.selectedModel = (await getSetting('qwenSelectedModel')) || 'qwen-plus'
+  settings.qwen.enableMaxTokens = (await getSetting('qwenEnableMaxTokens')) ?? false
+  settings.qwen.maxTokens = (await getSetting('qwenMaxTokens')) || 4096
 
   settings.llmTemperature = (await getSetting('llmTemperature')) || 1.3
   settings.autoRemoveThinkTag = (await getSetting('autoRemoveThinkTag')) ?? true
@@ -1262,8 +1460,6 @@ const updateLlmInfo = () => {
   setSetting('openaiApiUrl', settings.openai.apiUrl)
   setSetting('openaiApiKey', settings.openai.apiKey)
   setSetting('openaiSelectedModel', settings.openai.selectedModel)
-  setSetting('openaiCompletionSuffix', settings.openai.completionSuffix)
-  setSetting('openaiChatSuffix', settings.openai.chatSuffix)
   setSetting('openaiEnableMaxTokens', settings.openai.enableMaxTokens)
   setSetting('openaiMaxTokens', settings.openai.maxTokens)
   setSetting('openaiOfficialApiKey', settings['openai-official'].apiKey)
@@ -1278,15 +1474,15 @@ const updateLlmInfo = () => {
   setSetting('geminiSelectedModel', settings.gemini.selectedModel)
   setSetting('geminiEnableMaxTokens', settings.gemini.enableMaxTokens)
   setSetting('geminiMaxTokens', settings.gemini.maxTokens)
+  setSetting('qwenApiKey', settings.qwen.apiKey)
+  setSetting('qwenApiUrl', settings.qwen.apiUrl)
+  setSetting('qwenSelectedModel', settings.qwen.selectedModel)
+  setSetting('qwenEnableMaxTokens', settings.qwen.enableMaxTokens)
+  setSetting('qwenMaxTokens', settings.qwen.maxTokens)
   setSetting('agentTerminalExecutionAllowed', settings.agentTerminalExecutionAllowed)
   eventBus.emit('llm-api-updated')
 }
 
-const handleFieldChange = async () => {
-  updateLlmInfo()
-  await updateWorkspaceModifiedState()
-  hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges
-}
 
 const fetchMetaDocModels = async () => {
   try {
@@ -1386,23 +1582,77 @@ const fetchGeminiModels = async () => {
   }
 }
 
+// Autocomplete 建议：拉取后按 query 过滤，下拉随页面滚动
+const filterSuggestions = (list: { value: string; label?: string }[], query: string) => {
+  const q = query.trim().toLowerCase()
+  return q
+    ? list.filter(
+        (i) =>
+          (i.value && i.value.toLowerCase().includes(q)) ||
+          (i.label && i.label.toLowerCase().includes(q))
+      )
+    : list
+}
+const fetchOllamaSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  fetchOllamaModels().then(() => {
+    const list = ollamaModels.value.map((m) => ({ value: m.model, label: m.name }))
+    callback(filterSuggestions(list, query))
+  })
+}
+const fetchOpenAISuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  fetchOpenAIModels().then(() => {
+    const list = openaiModels.value.map((m) => ({ value: m.id, label: m.id }))
+    callback(filterSuggestions(list, query))
+  })
+}
+const fetchOpenAIOfficialSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  fetchOpenAIOfficialModels().then(() => {
+    const list = openaiOfficialModels.value.map((m) => ({ value: m.id, label: m.id }))
+    callback(filterSuggestions(list, query))
+  })
+}
+const DEEPSEEK_MODELS = [
+  { value: 'deepseek-chat', label: 'deepseek-chat' },
+  { value: 'deepseek-reasoner', label: 'deepseek-reasoner' }
+]
+const fetchDeepSeekSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  callback(filterSuggestions(DEEPSEEK_MODELS, query))
+}
+const fetchGeminiSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  fetchGeminiModels().then(() => {
+    const list = geminiModels.value.map((m) => ({ value: m.name, label: m.displayName || m.name }))
+    callback(filterSuggestions(list, query))
+  })
+}
+const fetchMetaDocSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  fetchMetaDocModels().then(() => {
+    const list = metadocModels.value.map((m) => ({ value: m.label, label: m.label }))
+    callback(filterSuggestions(list, query))
+  })
+}
+
+// 千问/百炼常用模型（阿里云 DashScope 兼容接口）
+const QWEN_MODELS = [
+  { value: 'qwen-turbo', label: 'qwen-turbo' },
+  { value: 'qwen-plus', label: 'qwen-plus' },
+  { value: 'qwen-max', label: 'qwen-max' },
+  { value: 'qwen-max-latest', label: 'qwen-max-latest' },
+  { value: 'qwen3-max', label: 'qwen3-max' },
+  { value: 'qwen3.5-plus', label: 'qwen3.5-plus' },
+  { value: 'qwen3.5-flash', label: 'qwen3.5-flash' },
+  { value: 'qwen3-coder-plus', label: 'qwen3-coder-plus' },
+  { value: 'qwq-plus', label: 'qwq-plus' }
+]
+const fetchQwenSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
+  callback(filterSuggestions(QWEN_MODELS, query))
+}
+
 const handleLlmToggle = (enabled: boolean) => {
   settings.llmEnabled = enabled
   if (!enabled) {
     settings.selectedLlm = ''
   }
   setSetting('llmEnabled', enabled)
-}
-
-const handleLlmTypeChange = async () => {
-  saveSetting('selectedLlm', settings.selectedLlm)
-  updateLlmInfo()
-  if (settings.selectedLlm === 'manual') {
-    loadManualTokenFromCache()
-    fetchPendingRequests()
-  }
-  await updateWorkspaceModifiedState()
-  hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges
 }
 
 const loadConfigs = () => {
@@ -1415,87 +1665,36 @@ const loadConfigs = () => {
   }
 }
 
-const handleConfigSwitch = async (id: string) => {
-  if (hasUnsavedChanges.value) {
-    try {
-      await ElMessageBox.confirm(t('setting.unsavedChangesConfirm'), t('setting.unsavedChanges'), {
-        confirmButtonText: t('setting.saveChanges'),
-        cancelButtonText: t('setting.discardChanges'),
-        distinguishCancelAndClose: true,
-        type: 'warning'
-      })
-      await handleSaveChanges()
-    } catch {
-      await handleDiscardChanges()
-    }
-  }
-
-  await switchConfig(id)
-  currentConfigId.value = id
-  await fetchLlmSettings()
-  await updateWorkspaceModifiedState()
-  hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges
-
-  if (settings.selectedLlm === 'metadoc') {
-    fetchMetaDocModels()
-  } else if (settings.selectedLlm === 'ollama' && settings.ollama.apiUrl) {
-    fetchOllamaModels()
-  } else if (
-    settings.selectedLlm === 'openai' &&
-    settings.openai.apiUrl &&
-    settings.openai.apiKey
-  ) {
-    fetchOpenAIModels()
-  } else if (settings.selectedLlm === 'openai-official' && settings['openai-official'].apiKey) {
-    fetchOpenAIOfficialModels()
-  } else if (settings.selectedLlm === 'gemini' && settings.gemini.apiKey) {
-    fetchGeminiModels()
-  } else if (settings.selectedLlm === 'manual') {
-    loadManualTokenFromCache()
-    fetchPendingRequests()
-  }
-  notifySuccess(t('setting.configSwitched'))
-}
-
 const handleCreateConfig = async () => {
   try {
     if (settings.selectedLlm === 'manual') {
       notifyWarning(t('setting.cannotCreateManualConfig'))
       return
     }
-
-    const { value: name } = await ElMessageBox.prompt(
-      t('setting.enterConfigName'),
-      t('setting.newConfig'),
-      {
-        confirmButtonText: t('common.confirm'),
-        cancelButtonText: t('common.cancel'),
-        inputPattern: /.+/,
-        inputErrorMessage: t('setting.configNameRequired')
-      }
-    )
-
-    const newConfig = await createConfigFromCurrentSettings(name)
-    await switchConfig(newConfig.id)
-    currentConfigId.value = newConfig.id
-    await fetchLlmSettings()
-    loadConfigs()
-    notifySuccess(t('setting.configCreated'))
-  } catch (error) {
-    if (error !== 'cancel') {
-      logger.error('创建配置失败', error)
-      notifyError(t('setting.configCreateFailed') || 'Failed to create configuration')
+    const data = await getConfigDataFromCurrentSettings()
+    if (data.type === 'manual') {
+      notifyWarning(t('setting.cannotCreateManualConfig'))
+      return
     }
-  }
-}
-
-const handleConfigMenuAction = async (action: string, config: LlmConfigItem) => {
-  if (action === 'export') {
-    await handleExportConfig(config.id)
-  } else if (action === 'delete') {
-    await handleDeleteConfig(config.id)
-  } else if (action === 'reset') {
-    await handleResetConfig(config.id)
+    const draft: NonNullable<typeof editDraft.value> = {
+      id: 'new',
+      name: '',
+      description: '',
+      selectedLlm: data.type
+    }
+    if (data.ollama) draft.ollama = { ...data.ollama }
+    if (data.openai) draft.openai = { ...data.openai }
+    if (data['openai-official']) draft['openai-official'] = { ...data['openai-official'] }
+    if (data.deepseek) draft.deepseek = { ...data.deepseek }
+    if (data.gemini) draft.gemini = { ...data.gemini }
+    if (data.qwen) draft.qwen = { ...data.qwen }
+    if (data.metadoc) draft.metadoc = { ...data.metadoc }
+    editDraft.value = draft
+    newConfigNameBlurred.value = false
+    editDialogVisible.value = true
+  } catch (error) {
+    logger.error('打开新建配置失败', error)
+    notifyError(t('setting.configCreateFailed') || 'Failed to create configuration')
   }
 }
 
@@ -1630,7 +1829,7 @@ const handleDeleteConfig = async (configId?: string) => {
   if (!targetId) return
 
   const config = llmConfigs.value.find((c) => c.id === targetId)
-  if (config?.isDefault) {
+  if (config && isPresetConfig(config)) {
     notifyWarning(t('setting.cannotDeleteDefaultConfig'))
     return
   }
@@ -1646,193 +1845,10 @@ const handleDeleteConfig = async (configId?: string) => {
     loadConfigs()
     notifySuccess(t('setting.configDeleted'))
   } catch (error) {
-    if (error instanceof Error && error.message === '不能删除默认配置') {
+    const msg = error instanceof Error ? error.message : ''
+    if (msg.includes('不能删除') && msg.includes('配置')) {
       notifyWarning(t('setting.cannotDeleteDefaultConfig'))
     }
-  }
-}
-
-const handleResetConfig = async (configId: string) => {
-  try {
-    await ElMessageBox.confirm(t('setting.confirmResetConfig'), t('setting.resetConfig'), {
-      confirmButtonText: t('common.confirm'),
-      cancelButtonText: t('common.cancel'),
-      type: 'warning'
-    })
-
-    const success = await resetDefaultConfig(configId)
-    if (success) {
-      await fetchLlmSettings()
-      loadConfigs()
-      notifySuccess(t('setting.configReset'))
-    } else {
-      notifyError(t('setting.resetFailed') || '重置失败')
-    }
-  } catch {
-    // 用户取消
-  }
-}
-
-const handleDragStart = (configId: string, event: DragEvent) => {
-  draggingConfigId.value = configId
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', configId)
-  }
-}
-
-const handleDragOver = (targetId: string, event: DragEvent) => {
-  if (!draggingConfigId.value || draggingConfigId.value === targetId) {
-    dropPreview.value.targetId = null
-    dropPreview.value.mode = null
-    return
-  }
-
-  event.preventDefault()
-  event.stopPropagation()
-
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'move'
-  }
-
-  const targetElement = event.currentTarget as HTMLElement
-  if (!targetElement) return
-
-  let configItemElement: HTMLElement | null = targetElement.closest('.config-item')
-  if (!configItemElement) {
-    let parent = targetElement.parentElement
-    while (parent && !parent.classList.contains('config-item')) {
-      parent = parent.parentElement
-    }
-    configItemElement = parent as HTMLElement | null
-  }
-
-  if (!configItemElement) return
-
-  const rect = configItemElement.getBoundingClientRect()
-  const midPoint = rect.top + rect.height / 2
-  const mode = event.clientY < midPoint ? 'before' : 'after'
-
-  dropPreview.value.targetId = targetId
-  dropPreview.value.mode = mode
-}
-
-const handleDragLeave = (event: DragEvent) => {
-  const relatedTarget = event.relatedTarget as HTMLElement | null
-  if (relatedTarget) {
-    const configItem = (event.currentTarget as HTMLElement)?.closest('.config-item')
-    if (configItem && configItem.contains(relatedTarget)) {
-      return
-    }
-  }
-  dropPreview.value.targetId = null
-  dropPreview.value.mode = null
-}
-
-const handleDrop = (targetId: string, event: DragEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
-
-  const fromId = draggingConfigId.value
-  const mode = dropPreview.value.mode
-
-  if (!fromId || fromId === targetId || !mode) {
-    draggingConfigId.value = null
-    dropPreview.value.targetId = null
-    dropPreview.value.mode = null
-    return
-  }
-
-  const fromIndex = llmConfigs.value.findIndex((c) => c.id === fromId)
-  const targetIndex = llmConfigs.value.findIndex((c) => c.id === targetId)
-
-  if (fromIndex === -1 || targetIndex === -1 || fromIndex === targetIndex) {
-    draggingConfigId.value = null
-    dropPreview.value.targetId = null
-    dropPreview.value.mode = null
-    return
-  }
-
-  let insertIndex = targetIndex
-  if (mode === 'after') {
-    insertIndex = targetIndex + 1
-  }
-
-  if (fromIndex < insertIndex) {
-    insertIndex -= 1
-  }
-
-  insertIndex = Math.max(0, Math.min(insertIndex, llmConfigs.value.length))
-
-  if (fromIndex !== insertIndex) {
-    const [config] = llmConfigs.value.splice(fromIndex, 1)
-    llmConfigs.value.splice(insertIndex, 0, config)
-
-    const newOrder = llmConfigs.value.map((c) => c.id)
-    updateConfigOrder(newOrder)
-  }
-
-  draggingConfigId.value = null
-  dropPreview.value.targetId = null
-  dropPreview.value.mode = null
-}
-
-const handleDragEnd = () => {
-  draggingConfigId.value = null
-  dropPreview.value.targetId = null
-  dropPreview.value.mode = null
-}
-
-const handleSaveChanges = async () => {
-  try {
-    const success = await saveWorkspace()
-    if (success) {
-      hasUnsavedChanges.value = false
-      await fetchLlmSettings()
-      loadConfigs()
-      notifySuccess(t('setting.changesSaved'))
-    } else {
-      notifyError(t('setting.saveFailed') || 'Save failed')
-    }
-  } catch (error) {
-    logger.error('保存配置失败', error)
-    notifyError(t('setting.saveFailed') || 'Save failed')
-  }
-}
-
-const handleDiscardChanges = async () => {
-  try {
-    await ElMessageBox.confirm(t('setting.confirmDiscardChanges'), t('setting.discardChanges'), {
-      confirmButtonText: t('common.confirm'),
-      cancelButtonText: t('common.cancel'),
-      type: 'warning'
-    })
-
-    const success = await discardWorkspace()
-    if (success) {
-      hasUnsavedChanges.value = false
-      await fetchLlmSettings()
-      if (settings.selectedLlm === 'metadoc') {
-        fetchMetaDocModels()
-      } else if (settings.selectedLlm === 'ollama' && settings.ollama.apiUrl) {
-        fetchOllamaModels()
-      } else if (
-        settings.selectedLlm === 'openai' &&
-        settings.openai.apiUrl &&
-        settings.openai.apiKey
-      ) {
-        fetchOpenAIModels()
-      } else if (settings.selectedLlm === 'openai-official' && settings['openai-official'].apiKey) {
-        fetchOpenAIOfficialModels()
-      } else if (settings.selectedLlm === 'gemini' && settings.gemini.apiKey) {
-        fetchGeminiModels()
-      }
-      notifySuccess(t('setting.changesDiscarded'))
-    } else {
-      notifyError(t('setting.discardFailed') || 'Discard failed')
-    }
-  } catch {
-    // 用户取消
   }
 }
 
@@ -1844,134 +1860,27 @@ const handleExportConfig = async (configId: string) => {
       return
     }
 
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
     const config = llmConfigs.value.find((c) => c.id === configId)
-    const filename = `${config?.name || 'config'}-${Date.now()}.json`
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const defaultName = `${config?.name || 'config'}-${Date.now()}.json`
+
+    const result = await messageBridge.invoke('save-file-dialog', {
+      defaultName,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+
+    if (result?.canceled || !result?.filePath) {
+      return
+    }
+
+    await messageBridge.invoke('write-file-content', {
+      filePath: result.filePath,
+      content: jsonString
+    })
 
     notifySuccess(t('setting.exportSuccess') || '导出成功')
   } catch (error) {
     logger.error('导出配置失败', error)
     notifyError(t('setting.exportFailed') || 'Export failed')
-  }
-}
-
-const handleImportConfig = async () => {
-  try {
-    if (!importJsonText.value.trim()) {
-      notifyWarning(t('setting.importConfigJsonRequired') || 'Please enter configuration JSON')
-      return
-    }
-
-    const result = importConfigs(importJsonText.value)
-    if (result.success) {
-      loadConfigs()
-      importDialogVisible.value = false
-      importJsonText.value = ''
-      notifySuccess(
-        t('setting.importSuccess', { count: result.imported }) ||
-          `Successfully imported ${result.imported} configuration(s)`
-      )
-      if (result.errors.length > 0) {
-        notifyWarning(result.errors.join('; '))
-      }
-    } else {
-      notifyError(result.errors.join('; ') || t('setting.importFailed') || 'Import failed')
-    }
-  } catch (error) {
-    logger.error('导入配置失败', error)
-    notifyError(t('setting.importFailed') || 'Import failed')
-  }
-}
-
-const handleExportAllConfigs = async () => {
-  try {
-    const jsonString = exportAllConfigs()
-
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    const filename = `llm-configs-${Date.now()}.json`
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-
-    notifySuccess(t('setting.exportSuccess') || '导出成功')
-  } catch (error) {
-    logger.error('导出所有配置失败', error)
-    notifyError(t('setting.exportFailed') || 'Failed to export all configurations')
-  }
-}
-
-const clearTestResult = () => {
-  testResult.value = ''
-}
-
-const testLlmApi = async () => {
-  if (testLoading.value) return
-
-  testLoading.value = true
-  testResult.value = ''
-
-  try {
-    const prompt = `Current time: ${new Date().toLocaleString()}\n${t('setting.testPrompt')}`
-    const temperature = (await getSetting('llmTemperature')) || 1.3
-
-    const parts = testScenario.value.split('-')
-    const useChat = parts[0] === 'chat'
-    const stream = parts[1] === 'stream'
-
-    const taskName = useChat
-      ? stream
-        ? t('setting.testChatStream')
-        : t('setting.testChatNonStream')
-      : stream
-        ? t('setting.testCompletionStream')
-        : t('setting.testCompletionNonStream')
-
-    const originKey = `llm-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
-
-    const { handle, done } = createAiTask(
-      taskName,
-      useChat ? [{ role: 'user', content: prompt }] : prompt,
-      testResult,
-      useChat ? ai_types.chat : ai_types.answer,
-      originKey,
-      { stream: stream, temperature }
-    )
-
-    try {
-      await done
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      if (
-        errorMessage.includes('取消') ||
-        errorMessage.includes('aborted') ||
-        errorMessage.includes('cancelled')
-      ) {
-        logger.debug('测试任务已取消')
-        return
-      }
-      throw error
-    }
-  } catch (error) {
-    logger.error(t('setting.testFailed'), error)
-    testResult.value =
-      t('setting.testResultFailed', '测试失败') +
-      ': ' +
-      (error instanceof Error ? error.message : String(error))
-  } finally {
-    testLoading.value = false
   }
 }
 
@@ -1994,8 +1903,6 @@ const loadDemoData = () => {
     apiUrl: 'https://api.openai.com/v1',
     apiKey: 'sk-demo-***',
     selectedModel: 'gpt-4',
-    completionSuffix: '/v1/completions',
-    chatSuffix: '/v1/chat/completions',
     enableMaxTokens: true,
     maxTokens: 2048
   }
@@ -2014,12 +1921,7 @@ const loadDemoData = () => {
   ]
   geminiModels.value = [{ name: 'gemini-pro', displayName: 'Gemini Pro' }]
 
-  // Demo state
   currentConfigId.value = 'demo-1'
-  hasUnsavedChanges.value = true
-  testResult.value =
-    t('setting.demoTestResult') ||
-    'This is a demo mode LLM test result. In actual use, real LLM response content will be displayed here.'
 }
 
 onMounted(async () => {
@@ -2033,11 +1935,6 @@ onMounted(async () => {
   await loadLlmConfigs()
   loadConfigs()
   await fetchLlmSettings()
-
-  if (currentConfigId.value) {
-    await updateWorkspaceModifiedState()
-    hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges
-  }
 
   if (settings.selectedLlm === 'metadoc') {
     fetchMetaDocModels()
@@ -2069,90 +1966,182 @@ onMounted(async () => {
   padding: 1rem;
 }
 
-.llm-config-layout {
-  display: flex;
-  gap: 1rem;
+.llm-config-grid-wrap {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
-.config-list-card {
-  width: 280px;
+.config-grid-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-grid-card :deep(.card-content) {
+  flex: 1;
+  overflow: auto;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.config-card-container {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.config-card-bar {
+  width: 4px;
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
+  border-radius: 4px;
+  background: hsl(var(--muted-foreground) / 0.35);
+  transition: background 0.2s;
 }
 
-.config-list-card :deep(.card-content) {
-  flex: 1;
-  overflow: hidden;
+.config-card-bar-selected {
+  background: hsl(142 76% 36%);
 }
 
-.config-form-card {
+.dark .config-card-bar-selected {
+  background: hsl(142 70% 45%);
+}
+
+.config-card {
   flex: 1;
+  min-width: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.2s, background 0.2s;
+  background: hsl(var(--card));
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+  min-height: 64px;
+}
+
+.config-card:hover {
+  border-color: hsl(var(--primary) / 0.4);
+}
+
+.config-card-selected {
+  border-color: hsl(var(--border));
+  background: hsl(var(--accent) / 0.08);
+}
+
+.config-card-body {
+  flex: 1;
   min-width: 0;
 }
 
-.config-form-card :deep(.card-content) {
-  flex: 1;
+.config-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
   overflow: hidden;
-  padding: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.config-item {
-  position: relative;
-  transition: opacity 0.2s;
+.config-card-type {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
 }
 
-.config-item.dragging {
-  opacity: 0.5;
+.config-card-check {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
-.config-item.drop-before::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: hsl(var(--primary));
-  border-radius: 1px;
-  z-index: 10;
+.config-check-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: var(--radius);
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
 }
 
-.config-item.drop-after::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: hsl(var(--primary));
-  border-radius: 1px;
-  z-index: 10;
+.config-check-btn:hover:not(:disabled) {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
-/* 左侧列表：防止滚动链（滚到底/顶时不带动整页）；当前选中项高亮 */
-.config-list-scroll :deep([data-reka-scroll-area-viewport]) {
-  overscroll-behavior: contain;
-}
-.config-item.selected .flex.items-center {
-  background-color: hsl(var(--accent));
-  font-weight: 500;
+.config-check-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .llm-config-layout {
-    flex-direction: column;
-  }
+.config-check-label {
+  white-space: nowrap;
+}
 
-  .config-list-card {
-    width: 100%;
-    max-height: 200px;
-  }
+.config-check-error {
+  max-width: 180px;
+  text-align: right;
+}
+
+.config-context-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 140px;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-lg);
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: hsl(var(--foreground));
+}
+
+.context-menu-item:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.context-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.edit-config-dialog-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  height: 85vh;
+}
+
+.edit-config-scrollbar {
+  flex: 1;
+  min-height: 200px;
+  margin: 0.25rem 0;
+}
+
+.edit-config-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 </style>

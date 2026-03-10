@@ -1,6 +1,8 @@
 /**
  * 工具调用队列管理器
- * 负责管理工具调用的串行执行，确保工具调用按顺序执行，且不会触发新的AI响应
+ * 使用信号量模型：每解析到一个任务就 +1 并立即异步执行，任务结束时 -1。
+ * 同一轮对话中所有工具并发执行，只有信号量归零且输入已标记完成时才进入下一轮。
+ * 避免「分批执行」导致后解析到的任务被延后或遗漏（如 AI 输出 [{任务1},{任务2},{任务3}] 时逐段解析）。
  */
 
 import { createRendererLogger } from '../logger'
@@ -35,40 +37,50 @@ interface ToolCallTask {
 }
 
 /**
- * 工具调用队列
- * 每个队列对应一次AI输出，生命周期是一次AI响应
+ * 工具调用队列（信号量 + 全并发）
+ * 每个队列对应一次 AI 输出；任务随解析到随执行，全部完成后才进入下一轮。
  */
 export class ToolCallQueue {
+  /** 已添加的任务列表（仅用于统计/日志，不参与批处理） */
   private queue: ToolCallTask[] = []
-  private isRunning = false
+  /** 当前正在执行中的任务数（信号量） */
+  private inFlight = 0
   private session: AgentSession | LegacyAgentSession
   private signal?: AbortSignal
   private onTaskComplete?: (task: ToolCallTask, observation: ToolObservation) => void
   private onQueueComplete?: () => void
-  /** 每批最大并发数，超出部分在本批完成后继续执行；0 表示不限制（全部并发） */
-  private readonly maxConcurrent: number
-  /** 工具任务创建时回调（用于停止时取消这些任务） */
-  private onToolTaskHandle?: (handle: string) => void
-  private runningPromise: Promise<void> | null = null // 追踪队列执行的Promise
-  private inputComplete = false // 标记输入（AI输出）是否已完成，只有输入完成且队列为空时，队列才算真正完成
+  private onTaskCreated?: (handle: string) => void
+  private inputComplete = false
+  /** waitForComplete 的 resolve，在 inputComplete && inFlight===0 时调用 */
+  private completeResolve: (() => void) | null = null
 
   constructor(
     session: AgentSession | LegacyAgentSession,
     signal?: AbortSignal,
     onTaskComplete?: (task: ToolCallTask, observation: ToolObservation) => void,
     onQueueComplete?: () => void,
-    options?: { maxConcurrent?: number; onToolTaskHandle?: (handle: string) => void }
+    onTaskCreated?: (handle: string) => void
   ) {
     this.session = session
     this.signal = signal
     this.onTaskComplete = onTaskComplete
     this.onQueueComplete = onQueueComplete
-    this.maxConcurrent = options?.maxConcurrent ?? 0 // 0 = 不限制，保持原有“整批并发”
-    this.onToolTaskHandle = options?.onToolTaskHandle
+    this.onTaskCreated = onTaskCreated
+  }
+
+  /** 若条件满足则解析 completeResolve 并触发 onQueueComplete */
+  private tryResolveComplete(): void {
+    if (this.inputComplete && this.inFlight === 0 && this.completeResolve) {
+      getLogger().debug('[ToolCallQueue] 信号量归零且输入已结束，触发完成')
+      const resolve = this.completeResolve
+      this.completeResolve = null
+      resolve()
+      this.onQueueComplete?.()
+    }
   }
 
   /**
-   * 添加工具调用任务到队列
+   * 添加工具调用任务：信号量 +1，立即异步执行该任务（不等待）
    */
   addTask(toolCall: { id: string; tool_id: string; parameters: Record<string, unknown> }): void {
     const task: ToolCallTask = {
@@ -79,27 +91,25 @@ export class ToolCallQueue {
     }
 
     this.queue.push(task)
-    getLogger().debug('[ToolCallQueue] 添加工具调用任务到队列:', {
+    this.inFlight++
+    getLogger().debug('[ToolCallQueue] 添加任务并启动执行（信号量+1）:', {
       toolId: task.tool_id,
-      queueLength: this.queue.length,
-      isRunning: this.isRunning
+      inFlight: this.inFlight,
+      queueLength: this.queue.length
     })
 
-    // 如果队列未运行，立即开始执行（异步执行，不阻塞）
-    if (!this.isRunning) {
-      // 使用 Promise.resolve().then() 确保异步执行，不阻塞当前调用
-      // 保存 Promise 以便 waitForComplete 可以等待它
-      this.runningPromise = Promise.resolve()
-        .then(() => {
-          return this.start()
+    this.runTask(task)
+      .finally(() => {
+        this.inFlight--
+        getLogger().debug('[ToolCallQueue] 任务结束（信号量-1）:', {
+          toolId: task.tool_id,
+          inFlight: this.inFlight
         })
-        .catch((error) => {
-          getLogger().error('[ToolCallQueue] 队列执行出错:', error)
-          this.isRunning = false
-          this.runningPromise = null
-          throw error
-        })
-    }
+        this.tryResolveComplete()
+      })
+      .catch((err) => {
+        getLogger().error('[ToolCallQueue] 任务执行未捕获错误:', err)
+      })
   }
 
   /**
@@ -214,7 +224,8 @@ export class ToolCallQueue {
               task.tool_id,
               task.parameters as { prompt: string },
               sessionForTool,
-              this.signal
+              this.signal,
+              task.tool_call_id
             )
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err)
@@ -324,7 +335,7 @@ export class ToolCallQueue {
             stream: false // 工具调用不是流式的
           }
         )
-        this.onToolTaskHandle?.(handle)
+        this.onTaskCreated?.(handle)
 
         getLogger().debug('[ToolCallQueue] 已创建工具调用AI任务:', {
           handle,
@@ -410,7 +421,7 @@ export class ToolCallQueue {
         getLogger().debug('[ToolCallQueue] 任务执行完成:', {
           toolId: task.tool_id,
           status: observation.status,
-          remainingTasks: this.queue.length
+          inFlight: this.inFlight
         })
 
         if (this.onTaskComplete) {
@@ -456,181 +467,64 @@ export class ToolCallQueue {
   }
 
   /**
-   * 开始执行队列（同一批次并发执行，多批次串行）
-   */
-  private async start(): Promise<void> {
-    if (this.isRunning) {
-      return
-    }
-
-    this.isRunning = true
-    getLogger().debug('[ToolCallQueue] 开始执行队列，任务数量:', this.queue.length)
-
-    while (this.queue.length > 0) {
-      if (this.signal?.aborted) {
-        getLogger().warn('[ToolCallQueue] 队列执行被取消')
-        break
-      }
-
-      const batchSize = this.maxConcurrent > 0 ? this.maxConcurrent : this.queue.length
-      const batch = this.queue.splice(0, batchSize)
-      getLogger().debug('[ToolCallQueue] 本批次并发执行任务数:', batch.length, '剩余:', this.queue.length)
-      await Promise.all(batch.map((task) => this.runTask(task)))
-    }
-
-    this.isRunning = false
-    getLogger().debug('[ToolCallQueue] 当前批次任务执行完成', {
-      queueLength: this.queue.length,
-      isRunning: this.isRunning,
-      inputComplete: this.inputComplete
-    })
-
-    if (this.queue.length > 0) {
-      getLogger().debug('[ToolCallQueue] 队列中还有新任务，继续执行')
-      this.runningPromise = this.start().catch((error) => {
-        getLogger().error('[ToolCallQueue] 队列继续执行出错:', error)
-        this.isRunning = false
-        this.runningPromise = null
-        throw error
-      })
-      return
-    }
-
-    this.runningPromise = null
-  }
-
-  /**
-   * 检查队列是否为空
+   * 是否已空闲：输入已标记完成且当前没有正在执行的任务（信号量归零）
    */
   isEmpty(): boolean {
-    return this.queue.length === 0 && !this.isRunning && this.inputComplete
+    return this.inputComplete && this.inFlight === 0
   }
 
   /**
-   * 重置队列状态（用于重新开始）
+   * 重置队列状态（用于重新开始一轮）
    */
   reset(): void {
     this.inputComplete = false
-    // 注意：不重置 queue、isRunning 等，因为这些会在新任务添加时自动处理
   }
 
   /**
-   * 标记输入（AI输出）已完成
-   * 只有在输入完成且队列中所有任务执行完成后，队列才算真正完成
+   * 标记输入（AI 输出）已结束；之后不再会有新任务加入，信号量归零即表示本轮全部完成
    */
   setInputComplete(): void {
     this.inputComplete = true
-    getLogger().debug('[ToolCallQueue] 输入已完成标记已设置', {
-      queueLength: this.queue.length,
-      isRunning: this.isRunning
+    getLogger().debug('[ToolCallQueue] 输入已结束', {
+      inFlight: this.inFlight,
+      queueLength: this.queue.length
     })
+    this.tryResolveComplete()
   }
 
   /**
-   * 等待队列完成
-   * 确保所有任务都已执行完成
-   * 队列的生命周期持续到：AI输出完成 AND 所有任务执行完成
+   * 等待本轮所有工具执行完成
+   * 条件：inputComplete 已设置 且 信号量 inFlight 为 0
    */
   async waitForComplete(): Promise<void> {
     getLogger().debug('[ToolCallQueue] waitForComplete 被调用', {
-      queueLength: this.queue.length,
-      isRunning: this.isRunning,
-      hasRunningPromise: !!this.runningPromise,
-      inputComplete: this.inputComplete
+      inFlight: this.inFlight,
+      inputComplete: this.inputComplete,
+      queueLength: this.queue.length
     })
 
-    // 如果队列未运行但有任务，启动队列
-    if (!this.isRunning && this.queue.length > 0) {
-      getLogger().debug('[ToolCallQueue] 队列未运行但有任务，启动队列')
-      this.runningPromise = this.start().catch((error) => {
-        getLogger().error('[ToolCallQueue] 队列启动出错:', error)
-        this.isRunning = false
-        this.runningPromise = null
-        throw error
-      })
+    if (this.inputComplete && this.inFlight === 0) {
+      getLogger().debug('[ToolCallQueue] 已满足完成条件，直接返回')
+      return
     }
 
-    // 如果有正在运行的 Promise，等待它完成
-    if (this.runningPromise) {
-      getLogger().debug('[ToolCallQueue] 等待正在运行的 Promise 完成')
-      try {
-        await this.runningPromise
-      } catch (error) {
-        getLogger().error('[ToolCallQueue] 等待 Promise 完成时出错:', error)
-        // 即使出错，也要继续检查队列状态
-      }
-    }
-
-    // 等待队列完成：只有在输入完成 AND 队列为空 AND 队列未运行时，才算真正完成
-    // 使用轮询方式等待，因为：
-    // 1. 在AI输出过程中，可能还有工具调用被检测到并添加到队列
-    // 2. 队列执行过程中，可能有新任务被添加
-    let retries = 0
-    const maxRetries = 1000 // 最多等待100秒（100 * 100ms）
-
-    while (retries < maxRetries) {
-      // 检查是否真正完成：输入完成 AND 队列为空 AND 队列未运行
-      const isTrulyComplete =
-        this.inputComplete && !this.isRunning && this.queue.length === 0 && !this.runningPromise
-
-      if (isTrulyComplete) {
-        getLogger().debug('[ToolCallQueue] 队列真正完成', {
-          queueLength: this.queue.length,
-          isRunning: this.isRunning,
-          inputComplete: this.inputComplete,
-          retries
-        })
-        // 队列真正完成，调用完成回调
-        if (this.onQueueComplete) {
-          this.onQueueComplete()
-        }
-        break
-      }
-
-      // 如果队列又有了任务但未运行，重新启动
-      if (!this.isRunning && this.queue.length > 0 && !this.runningPromise) {
-        getLogger().debug('[ToolCallQueue] 在等待过程中发现新任务，重新启动队列', {
-          queueLength: this.queue.length,
-          inputComplete: this.inputComplete
-        })
-        this.runningPromise = this.start().catch((error) => {
-          getLogger().error('[ToolCallQueue] 重新启动队列出错:', error)
-          this.isRunning = false
-          this.runningPromise = null
-          throw error
-        })
-        try {
-          await this.runningPromise
-        } catch (error) {
-          // 继续轮询
-        }
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      retries++
-    }
-
-    if (retries >= maxRetries) {
-      getLogger().warn('[ToolCallQueue] waitForComplete 超时，强制返回', {
-        queueLength: this.queue.length,
-        isRunning: this.isRunning,
-        hasRunningPromise: !!this.runningPromise,
-        inputComplete: this.inputComplete
-      })
-    }
+    return new Promise<void>((resolve) => {
+      this.completeResolve = resolve
+      this.tryResolveComplete()
+    })
   }
 
   /**
-   * 获取队列长度
+   * 已添加的任务数量（含已执行完的）
    */
   getLength(): number {
     return this.queue.length
   }
 
   /**
-   * 检查是否正在运行
+   * 是否有任务正在执行（信号量 > 0）
    */
   getIsRunning(): boolean {
-    return this.isRunning
+    return this.inFlight > 0
   }
 }

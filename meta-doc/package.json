@@ -84,6 +84,8 @@
     }
   ],
   "dependencies": {
+    "@ai-sdk/google": "^3.0.43",
+    "@ai-sdk/openai": "^3.0.41",
     "@babel/core": "^7.27.1",
     "@babel/plugin-transform-nullish-coalescing-operator": "^7.27.1",
     "@babel/plugin-transform-optional-chaining": "^7.27.1",
@@ -112,6 +114,7 @@
     "@xmldom/xmldom": "^0.8.11",
     "ag-grid-community": "^33.3.2",
     "ag-grid-vue3": "^33.3.2",
+    "ai": "^6.0.0",
     "axios": "^1.7.7",
     "better-sqlite3": "^12.5.0",
     "body-parser": "^2.2.0",

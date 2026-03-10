@@ -98,11 +98,9 @@ export const settings = reactive({
     maxTokens: 4096 // max_tokens 最大值
   },
   openai: {
-    apiUrl: 'https://api.openai.com/v1', // BaseURL
+    apiUrl: 'https://api.openai.com/v1', // BaseURL（路径按 OpenAI 规范固定为 /completions、/chat/completions）
     apiKey: '', //API Key
     selectedModel: '', //模型名称
-    completionSuffix: '', // 补全模式url后缀
-    chatSuffix: '', // 聊天模式url后缀
     enableMaxTokens: false, // 是否启用 max_tokens 限制
     maxTokens: 4096 // max_tokens 最大值
   },
@@ -123,6 +121,13 @@ export const settings = reactive({
     selectedModel: '', // 模型名称
     enableMaxTokens: false, // 是否启用 max_tokens 限制
     maxTokens: 4096 // max_tokens 最大值
+  },
+  qwen: {
+    apiKey: '', // 阿里云百炼/通义千问 API Key
+    apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', // OpenAI 兼容接口，见 https://help.aliyun.com/zh/model-studio/developer-reference/compatibility-of-openai-with-dashscope
+    selectedModel: 'qwen-plus', // 模型名称，如 qwen-plus、qwen-turbo、qwen-max
+    enableMaxTokens: false,
+    maxTokens: 4096
   },
   metadoc: {
     selectedModel: '', //模型名称

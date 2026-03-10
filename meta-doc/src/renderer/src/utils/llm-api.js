@@ -1,10 +1,10 @@
 import { getSetting } from './settings.js'
 import { handleLlmError, LlmError, LlmErrorType } from './llm-errors.js'
-import { sendNonStreamRequest, sendStreamRequest, processThinkTag } from './llm-http.js'
+import { processThinkTag } from './llm-http.js'
 import { recordLlmRequest } from './llm-statistics-service.js'
 import { createRendererLogger } from './logger.ts'
-import OpenAI from 'openai'
 import { createAdapterFromSettings } from './llm-adapters/adapter-factory.ts'
+import { streamChat, generateChat, streamChatWithTools } from './llm-ai-sdk/index.ts'
 import { queryKnowledgeBase } from './rag_utils.js'
 import { ragQueryReferencePrompt } from './prompts'
 
@@ -26,8 +26,6 @@ function getCustomLlmConfigObject(customConfig) {
     apiUrl: customConfig.baseUrl,
     apiKey: customConfig.apiKey,
     selectedModel: customConfig.model,
-    completionSuffix: customConfig.completionSuffix || '',
-    chatSuffix: customConfig.chatSuffix || '/chat/completions',
     completionApiUrl: type === 'deepseek' ? `${customConfig.baseUrl}/beta` : undefined,
     // 保留原始配置以便后续使用
     _customConfig: customConfig
@@ -379,8 +377,26 @@ function sanitizeMessages(messages) {
   })
 }
 
+/** 计算本次请求的 effectiveMaxTokens（与配置与 meta 一致） */
+function getEffectiveMaxTokens(config, meta) {
+  let effectiveMaxTokens = undefined
+  const configEnableMaxTokens = config?.enableMaxTokens ?? false
+  const configMaxTokens = config?.maxTokens
+  if (configEnableMaxTokens) {
+    if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
+      effectiveMaxTokens =
+        configMaxTokens !== undefined && configMaxTokens > 0
+          ? Math.min(meta.max_tokens, configMaxTokens)
+          : meta.max_tokens
+    } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
+      effectiveMaxTokens = configMaxTokens
+    }
+  }
+  return effectiveMaxTokens
+}
+
 /**
- * 非流式补全请求
+ * 非流式补全请求（通过 Vercel AI SDK 桥接层）
  */
 async function answerQuestionNonStream(
   prompt,
@@ -389,139 +405,25 @@ async function answerQuestionNonStream(
   signal = null,
   customLlmConfig = null
 ) {
-  // 如果有自定义配置，跳过全局验证
   if (!customLlmConfig && !(await validateApi())) {
     return
   }
 
   const adapter = await getLlmAdapter(customLlmConfig || meta?.customLlmConfig || null)
   const config = adapter.getConfig()
-  const { type, selectedModel } = config
+  const { selectedModel } = config
+  const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
   try {
-    // 根据配置决定是否使用 max_tokens
-    // 如果配置中 enableMaxTokens 为 false，则不传递 max_tokens
-    // 如果配置中 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限
-    let effectiveMaxTokens = undefined
-    const configEnableMaxTokens = config?.enableMaxTokens ?? false
-    const configMaxTokens = config?.maxTokens
-
-    if (configEnableMaxTokens) {
-      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
-        // 如果 meta 中指定了 max_tokens，取两者较小值
-        effectiveMaxTokens =
-          configMaxTokens !== undefined && configMaxTokens > 0
-            ? Math.min(meta.max_tokens, configMaxTokens)
-            : meta.max_tokens
-      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
-        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
-        effectiveMaxTokens = configMaxTokens
-      }
-    }
-    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
-
-    // 对于ollama和manual类型，使用原有的fetch方式
-    if (type === 'ollama' || type === 'manual') {
-      const url = adapter.getCompletionUrl()
-      const payloadMeta = { ...meta }
-      if (effectiveMaxTokens !== undefined) {
-        payloadMeta.max_tokens = effectiveMaxTokens
-      }
-      const payload = adapter.buildCompletionPayload(prompt, payloadMeta)
-      const headers = adapter.buildHeaders()
-
-      const result = await sendNonStreamRequest(url, payload, headers, signal)
-      const { text, usage } = adapter.convertResponse(result, 'completion')
-      const processedText = await processThinkTag(text)
-      ref.value = processedText
-
-      // 记录 token 统计
-      if (usage) {
-        try {
-          await recordLlmRequest(usage, selectedModel, 'completion')
-        } catch (error) {
-          const logger = createRendererLogger('LLM-API')
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于Gemini类型，使用 GoogleGenAI SDK
-    if (type === 'gemini') {
-      const geminiMeta = { ...meta }
-      if (effectiveMaxTokens !== undefined) {
-        geminiMeta.max_tokens = effectiveMaxTokens
-      }
-      const { text, usage } = await adapter.generateContentNonStream(prompt, geminiMeta, signal)
-      const processedText = await processThinkTag(text)
-      ref.value = processedText
-
-      if (usage) {
-        try {
-          await recordLlmRequest(usage, selectedModel, 'completion')
-        } catch (error) {
-          const logger = createRendererLogger('LLM-API')
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于千问（DashScope 原生 API），使用 HTTP 请求
-    if (type === 'qwen') {
-      const url = adapter.getCompletionUrl()
-      const payloadMeta = { ...meta }
-      if (effectiveMaxTokens !== undefined) {
-        payloadMeta.max_tokens = effectiveMaxTokens
-      }
-      const payload = adapter.buildCompletionPayload(prompt, payloadMeta)
-      const headers = adapter.buildHeaders()
-
-      const result = await sendNonStreamRequest(url, payload, headers, signal)
-      const { text, usage } = adapter.convertResponse(result, 'completion')
-      const processedText = await processThinkTag(text)
-      ref.value = processedText
-
-      if (usage) {
-        try {
-          await recordLlmRequest(usage, selectedModel, 'completion')
-        } catch (error) {
-          const logger = createRendererLogger('LLM-API')
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于OpenAI兼容的API，使用OpenAI SDK
-    const baseURL =
-      type === 'deepseek' && config.completionApiUrl
-        ? config.completionApiUrl
-        : adapter.getCompletionUrl()
-
-    const openai = new OpenAI({
-      apiKey: config.apiKey || 'dummy-key',
-      baseURL: baseURL,
-      defaultQuery: {},
-      defaultHeaders: {},
-      dangerouslyAllowBrowser: true
+    const { text, usage } = await generateChat({
+      config,
+      prompt,
+      temperature: meta.temperature ?? config.temperature,
+      maxTokens: effectiveMaxTokens,
+      abortSignal: signal ?? undefined
     })
-
-    const completionParams = adapter.buildCompletionPayload(prompt, {
-      ...meta,
-      max_tokens: effectiveMaxTokens
-    })
-
-    const completion = await openai.completions.create(completionParams, {
-      signal: signal
-    })
-
-    const { text, usage } = adapter.convertResponse(completion, 'completion')
     const processedText = await processThinkTag(text)
     ref.value = processedText
-
-    // 记录 token 统计
     if (usage) {
       try {
         await recordLlmRequest(usage, selectedModel, 'completion')
@@ -537,7 +439,7 @@ async function answerQuestionNonStream(
 }
 
 /**
- * 流式补全请求
+ * 流式补全请求（通过 Vercel AI SDK 桥接层）
  */
 async function answerQuestionStream(
   prompt,
@@ -546,199 +448,25 @@ async function answerQuestionStream(
   signal = undefined,
   customLlmConfig = null
 ) {
-  // 如果有自定义配置，跳过全局验证
   if (!customLlmConfig && !(await validateApi())) {
     return
   }
 
   const adapter = await getLlmAdapter(customLlmConfig || meta?.customLlmConfig || null)
   const config = adapter.getConfig()
-  const { type, selectedModel } = config
+  const { selectedModel } = config
+  const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
   try {
-    // 根据配置决定是否使用 max_tokens
-    // 如果配置中 enableMaxTokens 为 false，则不传递 max_tokens
-    // 如果配置中 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限
-    let effectiveMaxTokens = undefined
-    const configEnableMaxTokens = config?.enableMaxTokens ?? false
-    const configMaxTokens = config?.maxTokens
-
-    if (configEnableMaxTokens) {
-      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
-        // 如果 meta 中指定了 max_tokens，取两者较小值
-        effectiveMaxTokens =
-          configMaxTokens !== undefined && configMaxTokens > 0
-            ? Math.min(meta.max_tokens, configMaxTokens)
-            : meta.max_tokens
-      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
-        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
-        effectiveMaxTokens = configMaxTokens
-      }
-    }
-    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
-
-    // 对于ollama和manual类型，使用fetch方式
-    if (type === 'ollama' || type === 'manual') {
-      const streamUrl = adapter.getStreamUrl('completion') || adapter.getCompletionUrl()
-      const payloadMeta = { ...meta }
-      if (effectiveMaxTokens !== undefined) {
-        payloadMeta.max_tokens = effectiveMaxTokens
-      }
-      const payload = { ...adapter.buildCompletionPayload(prompt, payloadMeta), stream: true }
-      const headers = adapter.buildHeaders()
-
-      ref.value = ''
-      await sendStreamRequest(
-        streamUrl,
-        payload,
-        headers,
-        signal,
-        async (chunk) => {
-          const delta = adapter.extractStreamDelta(chunk, 'completion')
-          if (delta) {
-            ref.value += delta
-            const processed = await processThinkTag(ref.value)
-            if (processed !== ref.value) {
-              ref.value = processed
-            }
-          }
-        },
-        async (lastChunk) => {
-          const usage = adapter.extractStreamUsage(lastChunk)
-          if (usage) {
-            try {
-              await recordLlmRequest(usage, selectedModel, 'completion')
-            } catch (error) {
-              const logger = createRendererLogger('LLM-API')
-              logger.warn('记录 token 统计失败:', error)
-            }
-          }
-        }
-      )
-      return
-    }
-
-    // 对于Gemini类型，使用 GoogleGenAI SDK
-    if (type === 'gemini') {
-      ref.value = ''
-      let lastUsage = null
-
-      const geminiMeta = { ...meta }
-      if (effectiveMaxTokens !== undefined) {
-        geminiMeta.max_tokens = effectiveMaxTokens
-      }
-      const stream = adapter.generateContentStream(prompt, geminiMeta, signal)
-
-      for await (const { delta, usage } of stream) {
-        if (delta) {
-          ref.value += delta
-          const processed = await processThinkTag(ref.value)
-          if (processed !== ref.value) {
-            ref.value = processed
-          }
-        }
-        if (usage) {
-          lastUsage = usage
-        }
-      }
-
-      // 流式响应完成时，记录 token 统计
-      if (lastUsage) {
-        try {
-          await recordLlmRequest(lastUsage, selectedModel, 'completion')
-        } catch (error) {
-          const logger = createRendererLogger('LLM-API')
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于千问（DashScope 原生 API）流式补全
-    if (type === 'qwen') {
-      const streamUrl = adapter.getStreamUrl('completion') || adapter.getCompletionUrl()
-      const payloadMeta = { ...meta, stream: true }
-      if (effectiveMaxTokens !== undefined) {
-        payloadMeta.max_tokens = effectiveMaxTokens
-      }
-      const payload = adapter.buildCompletionPayload(prompt, payloadMeta)
-      const headers = adapter.buildStreamHeaders
-        ? adapter.buildStreamHeaders()
-        : adapter.buildHeaders()
-
-      ref.value = ''
-      let lastUsage = null
-
-      await sendStreamRequest(
-        streamUrl,
-        payload,
-        headers,
-        signal,
-        async (chunk) => {
-          const delta = adapter.extractStreamDelta(chunk, 'completion')
-          if (delta) {
-            ref.value += delta
-            const processed = await processThinkTag(ref.value)
-            if (processed !== ref.value) {
-              ref.value = processed
-            }
-          }
-          const usage = adapter.extractStreamUsage(chunk)
-          if (usage) {
-            lastUsage = usage
-          }
-        },
-        async (lastChunk) => {
-          const usage = adapter.extractStreamUsage(lastChunk)
-          if (usage) {
-            lastUsage = usage
-          }
-        }
-      )
-
-      if (lastUsage) {
-        try {
-          await recordLlmRequest(lastUsage, selectedModel, 'completion')
-        } catch (error) {
-          const logger = createRendererLogger('LLM-API')
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于OpenAI兼容的API，使用OpenAI SDK
-    const baseURL =
-      type === 'deepseek' && config.completionApiUrl
-        ? config.completionApiUrl
-        : adapter.getCompletionUrl()
-
-    const openai = new OpenAI({
-      apiKey: config.apiKey || 'dummy-key',
-      baseURL: baseURL,
-      defaultQuery: {},
-      defaultHeaders: {},
-      dangerouslyAllowBrowser: true
-    })
-
-    const completionMeta = { ...meta }
-    if (effectiveMaxTokens !== undefined) {
-      completionMeta.max_tokens = effectiveMaxTokens
-    }
-    const completionParams = {
-      ...adapter.buildCompletionPayload(prompt, completionMeta),
-      stream: true
-    }
-
     ref.value = ''
-    let lastUsage = null
-
-    const stream = await openai.completions.create(completionParams, {
-      signal: signal
+    const { consumeStream } = await streamChat({
+      config,
+      prompt,
+      temperature: meta.temperature ?? config.temperature,
+      maxTokens: effectiveMaxTokens,
+      abortSignal: signal ?? undefined
     })
-
-    for await (const chunk of stream) {
-      const delta = adapter.extractStreamDelta(chunk, 'completion')
+    const usage = await consumeStream(async (delta) => {
       if (delta) {
         ref.value += delta
         const processed = await processThinkTag(ref.value)
@@ -746,16 +474,10 @@ async function answerQuestionStream(
           ref.value = processed
         }
       }
-      const usage = adapter.extractStreamUsage(chunk)
-      if (usage) {
-        lastUsage = usage
-      }
-    }
-
-    // 流式响应完成时，记录 token 统计
-    if (lastUsage) {
+    })
+    if (usage) {
       try {
-        await recordLlmRequest(lastUsage, selectedModel, 'completion')
+        await recordLlmRequest(usage, selectedModel, 'completion')
       } catch (error) {
         const logger = createRendererLogger('LLM-API')
         logger.warn('记录 token 统计失败:', error)
@@ -920,135 +642,28 @@ async function continueConversationNonStream(
   }
 
   const config = adapter.getConfig()
-  const { type, selectedModel } = config
+  const { selectedModel } = config
 
   try {
-    // RAG查询注入（如果启用）
-    const enableKnowledgeBase = meta?.enableKnowledgeBase === true
     let processedConversation = conversation
-    if (enableKnowledgeBase) {
+    if (meta?.enableKnowledgeBase === true) {
       processedConversation = await ragQueryInjectionConversation(
-        JSON.parse(JSON.stringify(conversation)), // 深拷贝避免修改原数组
-        enableKnowledgeBase
+        JSON.parse(JSON.stringify(conversation)),
+        true
       )
     }
-    // 根据配置决定是否使用 max_tokens
-    let effectiveMaxTokens = undefined
-    const configEnableMaxTokens = config?.enableMaxTokens ?? false
-    const configMaxTokens = config?.maxTokens
 
-    if (configEnableMaxTokens) {
-      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
-        // 如果 meta 中指定了 max_tokens，取两者较小值
-        effectiveMaxTokens =
-          configMaxTokens !== undefined && configMaxTokens > 0
-            ? Math.min(meta.max_tokens, configMaxTokens)
-            : meta.max_tokens
-      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
-        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
-        effectiveMaxTokens = configMaxTokens
-      }
-    }
-    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
-
-    const effectiveMeta = { ...meta }
-    if (effectiveMaxTokens !== undefined) {
-      effectiveMeta.max_tokens = effectiveMaxTokens
-    } else if (effectiveMaxTokens === undefined && meta.max_tokens !== undefined) {
-      // 如果配置禁用了 max_tokens，移除 meta 中的 max_tokens
-      delete effectiveMeta.max_tokens
-    }
-
-    // 清理并验证消息格式
     let sanitizedMsgs = sanitizeMessages(processedConversation)
     sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger)
+    const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
-    // 对于Gemini类型，不需要预先转换消息格式，因为 generateChatNonStream 内部会自己转换
-    // 对于其他类型，转换消息格式（适配器可能需要转换）
-    const convertedMsgs = type === 'gemini' ? sanitizedMsgs : adapter.convertMessages(sanitizedMsgs)
-
-    // 对于ollama和manual类型，使用fetch方式
-    if (type === 'ollama' || type === 'manual') {
-      const url = adapter.getChatUrl()
-      const payload = adapter.buildChatPayload(convertedMsgs, effectiveMeta)
-      const headers = adapter.buildHeaders()
-
-      const result = await sendNonStreamRequest(url, payload, headers, signal)
-      const { text, usage } = adapter.convertResponse(result, 'chat')
-      const processedContent = await processThinkTag(text)
-      ref.value = processedContent
-
-      if (usage) {
-        try {
-          await recordLlmRequest(usage, selectedModel, 'chat')
-        } catch (error) {
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于Gemini类型，使用 GoogleGenAI SDK
-    // 注意：Gemini 适配器的 generateChatNonStream 内部会自己转换消息格式
-    // 所以这里应该传入原始的 sanitizedMsgs，而不是 convertedMsgs
-    if (type === 'gemini') {
-      const { text, usage } = await adapter.generateChatNonStream(
-        sanitizedMsgs,
-        effectiveMeta,
-        signal
-      )
-      const processedContent = await processThinkTag(text)
-      ref.value = processedContent
-
-      if (usage) {
-        try {
-          await recordLlmRequest(usage, selectedModel, 'chat')
-        } catch (error) {
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于千问（DashScope 原生 API）非流式对话
-    if (type === 'qwen') {
-      const url = adapter.getChatUrl()
-      const payload = adapter.buildChatPayload(convertedMsgs, effectiveMeta)
-      const headers = adapter.buildHeaders()
-
-      const result = await sendNonStreamRequest(url, payload, headers, signal)
-      const { text, usage } = adapter.convertResponse(result, 'chat')
-      const processedContent = await processThinkTag(text)
-      ref.value = processedContent
-
-      if (usage) {
-        try {
-          await recordLlmRequest(usage, selectedModel, 'chat')
-        } catch (error) {
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于OpenAI兼容的API，使用OpenAI SDK
-    const finalUrl = adapter.getChatUrl()
-
-    const openai = new OpenAI({
-      apiKey: config.apiKey || 'dummy-key',
-      baseURL: finalUrl,
-      defaultQuery: {},
-      defaultHeaders: {},
-      dangerouslyAllowBrowser: true
+    const { text, usage } = await generateChat({
+      config,
+      messages: sanitizedMsgs,
+      temperature: meta.temperature ?? config.temperature,
+      maxTokens: effectiveMaxTokens,
+      abortSignal: signal ?? undefined
     })
-
-    const chatParams = adapter.buildChatPayload(convertedMsgs, effectiveMeta)
-
-    const completion = await openai.chat.completions.create(chatParams, {
-      signal: signal
-    })
-
-    const { text, usage } = adapter.convertResponse(completion, 'chat')
     const processedContent = await processThinkTag(text)
     ref.value = processedContent
 
@@ -1066,7 +681,7 @@ async function continueConversationNonStream(
 }
 
 /**
- * 流式对话请求
+ * 流式对话请求（通过 Vercel AI SDK 桥接层）
  */
 async function continueConversationStream(
   conversation,
@@ -1083,192 +698,30 @@ async function continueConversationStream(
   }
 
   const config = adapter.getConfig()
-  const { type, selectedModel } = config
+  const { selectedModel } = config
 
   try {
-    // RAG查询注入（如果启用）
-    const enableKnowledgeBase = meta?.enableKnowledgeBase === true
     let processedConversation = conversation
-    if (enableKnowledgeBase) {
+    if (meta?.enableKnowledgeBase === true) {
       processedConversation = await ragQueryInjectionConversation(
-        JSON.parse(JSON.stringify(conversation)), // 深拷贝避免修改原数组
-        enableKnowledgeBase
+        JSON.parse(JSON.stringify(conversation)),
+        true
       )
     }
-    // 根据配置决定是否使用 max_tokens
-    let effectiveMaxTokens = undefined
-    const configEnableMaxTokens = config?.enableMaxTokens ?? false
-    const configMaxTokens = config?.maxTokens
 
-    if (configEnableMaxTokens) {
-      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
-        // 如果 meta 中指定了 max_tokens，取两者较小值
-        effectiveMaxTokens =
-          configMaxTokens !== undefined && configMaxTokens > 0
-            ? Math.min(meta.max_tokens, configMaxTokens)
-            : meta.max_tokens
-      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
-        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
-        effectiveMaxTokens = configMaxTokens
-      }
-    }
-    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
-
-    const effectiveMeta = { ...meta }
-    if (effectiveMaxTokens !== undefined) {
-      effectiveMeta.max_tokens = effectiveMaxTokens
-    } else if (effectiveMaxTokens === undefined && meta.max_tokens !== undefined) {
-      // 如果配置禁用了 max_tokens，移除 meta 中的 max_tokens
-      delete effectiveMeta.max_tokens
-    }
-
-    // 清理并验证消息格式
     let sanitizedMsgs = sanitizeMessages(processedConversation)
     sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger)
-
-    // 对于Gemini类型，不需要预先转换消息格式，因为 generateChatStream 内部会自己转换
-    // 对于其他类型，转换消息格式（适配器可能需要转换）
-    const convertedMsgs = type === 'gemini' ? sanitizedMsgs : adapter.convertMessages(sanitizedMsgs)
-
-    // 对于ollama和manual类型，使用fetch方式
-    if (type === 'ollama' || type === 'manual') {
-      const streamUrl = adapter.getStreamUrl('chat') || adapter.getChatUrl()
-      const payload = { ...adapter.buildChatPayload(convertedMsgs, effectiveMeta), stream: true }
-      const headers = adapter.buildHeaders()
-
-      ref.value = ''
-      await sendStreamRequest(
-        streamUrl,
-        payload,
-        headers,
-        signal,
-        async (chunk) => {
-          const delta = adapter.extractStreamDelta(chunk, 'chat')
-          if (delta) {
-            ref.value += delta
-            const processed = await processThinkTag(ref.value)
-            if (processed !== ref.value) {
-              ref.value = processed
-            }
-          }
-        },
-        async (lastChunk) => {
-          const usage = adapter.extractStreamUsage(lastChunk)
-          if (usage) {
-            try {
-              await recordLlmRequest(usage, selectedModel, 'chat')
-            } catch (error) {
-              logger.warn('记录 token 统计失败:', error)
-            }
-          }
-        }
-      )
-      return
-    }
-
-    // 对于Gemini类型，使用 GoogleGenAI SDK
-    // 注意：Gemini 适配器的 generateChatStream 内部会自己转换消息格式
-    // 所以这里应该传入原始的 sanitizedMsgs，而不是 convertedMsgs
-    if (type === 'gemini') {
-      ref.value = ''
-      let lastUsage = null
-
-      const stream = adapter.generateChatStream(sanitizedMsgs, effectiveMeta, signal)
-
-      for await (const { delta, usage } of stream) {
-        if (delta) {
-          ref.value += delta
-          const processed = await processThinkTag(ref.value)
-          if (processed !== ref.value) {
-            ref.value = processed
-          }
-        }
-        if (usage) {
-          lastUsage = usage
-        }
-      }
-
-      // 流式响应完成时，记录 token 统计
-      if (lastUsage) {
-        try {
-          await recordLlmRequest(lastUsage, selectedModel, 'chat')
-        } catch (error) {
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于千问（DashScope 原生 API）流式对话
-    if (type === 'qwen') {
-      const streamUrl = adapter.getStreamUrl('chat') || adapter.getChatUrl()
-      const payload = adapter.buildChatPayload(convertedMsgs, { ...effectiveMeta, stream: true })
-      const headers = adapter.buildStreamHeaders
-        ? adapter.buildStreamHeaders()
-        : adapter.buildHeaders()
-
-      ref.value = ''
-      let lastUsage = null
-
-      await sendStreamRequest(
-        streamUrl,
-        payload,
-        headers,
-        signal,
-        async (chunk) => {
-          const delta = adapter.extractStreamDelta(chunk, 'chat')
-          if (delta) {
-            ref.value += delta
-            const processed = await processThinkTag(ref.value)
-            if (processed !== ref.value) {
-              ref.value = processed
-            }
-          }
-          const usage = adapter.extractStreamUsage(chunk)
-          if (usage) {
-            lastUsage = usage
-          }
-        },
-        async (lastChunk) => {
-          const usage = adapter.extractStreamUsage(lastChunk)
-          if (usage) {
-            lastUsage = usage
-          }
-        }
-      )
-
-      if (lastUsage) {
-        try {
-          await recordLlmRequest(lastUsage, selectedModel, 'chat')
-        } catch (error) {
-          logger.warn('记录 token 统计失败:', error)
-        }
-      }
-      return
-    }
-
-    // 对于OpenAI兼容的API，使用OpenAI SDK
-    const finalUrl = adapter.getChatUrl()
-
-    const openai = new OpenAI({
-      apiKey: config.apiKey || 'dummy-key',
-      baseURL: finalUrl,
-      defaultQuery: {},
-      defaultHeaders: {},
-      dangerouslyAllowBrowser: true
-    })
-
-    const chatParams = { ...adapter.buildChatPayload(convertedMsgs, effectiveMeta), stream: true }
+    const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
     ref.value = ''
-    let lastUsage = null
-
-    const stream = await openai.chat.completions.create(chatParams, {
-      signal: signal
+    const { consumeStream } = await streamChat({
+      config,
+      messages: sanitizedMsgs,
+      temperature: meta.temperature ?? config.temperature,
+      maxTokens: effectiveMaxTokens,
+      abortSignal: signal ?? undefined
     })
-
-    for await (const chunk of stream) {
-      const delta = adapter.extractStreamDelta(chunk, 'chat')
+    const usage = await consumeStream(async (delta) => {
       if (delta) {
         ref.value += delta
         const processed = await processThinkTag(ref.value)
@@ -1276,16 +729,10 @@ async function continueConversationStream(
           ref.value = processed
         }
       }
-      const usage = adapter.extractStreamUsage(chunk)
-      if (usage) {
-        lastUsage = usage
-      }
-    }
-
-    // 流式响应完成时，记录 token 统计
-    if (lastUsage) {
+    })
+    if (usage) {
       try {
-        await recordLlmRequest(lastUsage, selectedModel, 'chat')
+        await recordLlmRequest(usage, selectedModel, 'chat')
       } catch (error) {
         logger.warn('记录 token 统计失败:', error)
       }
@@ -1342,7 +789,82 @@ async function continueConversation(conversation, ref, meta = {}, signal, custom
   }
 }
 
+/**
+ * 流式对话 + 原生工具调用（AI SDK streamText + tools）
+ * 当 meta.tools 与 meta.onToolCallsDetected 存在时由 startAiTask 调用
+ */
+async function continueConversationWithTools(
+  conversation,
+  ref,
+  meta,
+  signal = undefined,
+  customLlmConfig = null
+) {
+  const logger = createRendererLogger('LLM-API')
+  const effectiveCustomConfig = customLlmConfig || meta?.customLlmConfig || null
+  const adapter = await getConversationAdapter(conversation, signal, effectiveCustomConfig)
+  if (!adapter) {
+    return
+  }
+
+  const config = adapter.getConfig()
+  const { selectedModel } = config
+  const tools = meta?.tools || []
+  const onToolCallsDetected = meta?.onToolCallsDetected
+
+  if (!Array.isArray(tools) || tools.length === 0 || typeof onToolCallsDetected !== 'function') {
+    logger.warn('[continueConversationWithTools] 缺少 meta.tools 或 meta.onToolCallsDetected，回退到普通流式对话')
+    return continueConversationStream(conversation, ref, meta, signal, effectiveCustomConfig)
+  }
+
+  try {
+    let processedConversation = conversation
+    if (meta?.enableKnowledgeBase === true) {
+      processedConversation = await ragQueryInjectionConversation(
+        JSON.parse(JSON.stringify(conversation)),
+        true
+      )
+    }
+
+    const sanitizedMsgs = sanitizeMessages(processedConversation)
+    const finalMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger)
+    const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
+
+    ref.value = ''
+    const { consumeStream } = await streamChatWithTools({
+      config,
+      messages: finalMsgs,
+      tools,
+      temperature: meta.temperature ?? config.temperature,
+      maxTokens: effectiveMaxTokens,
+      abortSignal: signal ?? undefined,
+      onToolCall: async (tc) => {
+        await onToolCallsDetected([tc])
+      }
+    })
+    const usage = await consumeStream(async (delta) => {
+      if (delta) {
+        ref.value += delta
+        const processed = await processThinkTag(ref.value)
+        if (processed !== ref.value) {
+          ref.value = processed
+        }
+      }
+    })
+    if (usage) {
+      try {
+        await recordLlmRequest(usage, selectedModel, 'chat')
+      } catch (err) {
+        logger.warn('记录 token 统计失败:', err)
+      }
+    }
+  } catch (error) {
+    const llmError = handleLlmError(error, false)
+    throw llmError
+  }
+}
+
 // RAG查询注入功能已移除，现在通过Agent Tool系统调用
 
 // 导出sanitizeMessages函数，供其他模块使用
-export { answerQuestion, continueConversation, sanitizeMessages }
+export { answerQuestion, continueConversation, continueConversationWithTools, sanitizeMessages }

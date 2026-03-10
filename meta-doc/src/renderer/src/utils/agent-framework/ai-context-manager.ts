@@ -1083,26 +1083,12 @@ export class AIContextManager {
             : (dc as any).name || (dc as any).__name || (dc as any).displayName
       }
       rendererName = resolveRendererName(rendererName)
-      // SubagentDisplay 需要 data 含 subagentMessages 与 result，避免显示“无内容”
-      const isSubagent =
-        toolId &&
-        ['subagent-workspace-reader', 'subagent-doc-writer', 'subagent-search', 'subagent-chart'].includes(
-          toolId
-        )
-      let payload: unknown = displayData
-      if (isSubagent && payload && typeof payload === 'object') {
-        const p = payload as Record<string, unknown>
-        payload = {
-          subagentMessages: Array.isArray(p.subagentMessages) ? p.subagentMessages : [],
-          result: p.result !== undefined ? p.result : (observation.result as any)?.result ?? ''
-        }
-      }
       outputs.push({
         id: 'result',
         label: '结果',
         format: 'json',
-        data: payload,
-        renderer: isSubagent ? 'SubagentDisplay' : rendererName
+        data: displayData,
+        renderer: rendererName
       })
     }
 

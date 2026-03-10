@@ -285,18 +285,8 @@
       </Tooltip>
     </div>
 
-    <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
+    <!-- AI消息操作按钮（平铺在消息下方，仅显示删除；重新生成仅允许在用户消息下使用） -->
     <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
-      <Tooltip :content="t('agent.message.regenerate')" placement="bottom">
-        <Button
-          variant="ghost"
-          size="small"
-          class="ai-action-btn"
-          @click.stop="emit('regenerate', message)"
-        >
-          <el-icon><Refresh /></el-icon>
-        </Button>
-      </Tooltip>
       <Tooltip :content="t('agent.message.delete')" placement="bottom">
         <Button
           variant="ghost"

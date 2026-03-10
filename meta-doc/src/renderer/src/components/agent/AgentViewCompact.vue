@@ -463,6 +463,30 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- 会话重命名对话框（避免 ElMessageBox.prompt 与 Monaco context 冲突导致卡住） -->
+    <Dialog v-model:open="showRenameSessionDialog">
+      <DialogContent class="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.sessions.rename') }}</DialogTitle>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <input
+            v-model="renameSessionTitle"
+            type="text"
+            class="agent-rename-input"
+            :placeholder="t('agent.sessions.renamePlaceholder')"
+            @keydown.enter.prevent="handleConfirmRenameSession"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showRenameSessionDialog = false">
+            {{ t('common.cancel') }}
+          </Button>
+          <Button @click="handleConfirmRenameSession">{{ t('common.confirm') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -868,27 +892,34 @@ async function handleTabContextDelete() {
   await deleteSession(s)
 }
 
-async function handleTabContextRename() {
+function handleTabContextRename() {
   const s = tabContextSession.value
   tabContextSession.value = null
   if (!s) return
-  try {
-    const { value } = await ElMessageBox.prompt(
-      t('agent.sessions.renamePlaceholder'),
-      t('agent.sessions.rename'),
-      {
-        inputValue: s.title,
-        inputValidator: (v: string) => (v.trim() ? '' : t('agent.sessions.renameRequired'))
-      }
-    )
-    s.title = value.trim()
-    s.titleUserEdited = true
-    touchSession(s)
-    persistSessions()
-    notifySuccess(t('agent.sessions.renameSuccess'))
-  } catch {
-    /* cancel */
+  renameSession.value = s
+  renameSessionTitle.value = s.title ?? ''
+  showRenameSessionDialog.value = true
+}
+
+function handleConfirmRenameSession() {
+  const s = renameSession.value
+  if (!s) {
+    showRenameSessionDialog.value = false
+    return
   }
+  const value = renameSessionTitle.value.trim()
+  if (!value) {
+    notifyWarning(t('agent.sessions.renameRequired'))
+    return
+  }
+  s.title = value
+  s.titleUserEdited = true
+  touchSession(s)
+  persistSessions()
+  notifySuccess(t('agent.sessions.renameSuccess'))
+  showRenameSessionDialog.value = false
+  renameSession.value = null
+  renameSessionTitle.value = ''
 }
 
 async function handleTabContextExport() {
@@ -1125,9 +1156,13 @@ async function pathToFile(filePath: string): Promise<File> {
   return new File([blob], result.name, { type: result.mimeType })
 }
 
+const attachPickerOpenInProgress = ref(false)
+
 async function openAttachFilePicker() {
   const session = activeSession.value
   if (!session) return
+  if (attachPickerOpenInProgress.value) return
+  attachPickerOpenInProgress.value = true
   try {
     const filePaths = await selectReferenceFiles('all', true, t('aiChat.attachTooltip'))
     if (filePaths.length === 0) return
@@ -1144,6 +1179,8 @@ async function openAttachFilePicker() {
     }
   } catch (err) {
     notifyError(err instanceof Error ? err.message : String(err))
+  } finally {
+    attachPickerOpenInProgress.value = false
   }
 }
 
@@ -1437,6 +1474,18 @@ const showEditMessageDialog = ref(false)
 const editingMessage = ref<ChatAgentMessage | null>(null)
 const editingMessageContent = ref('')
 
+// 会话重命名（用自有 Dialog 替代 ElMessageBox.prompt，避免与 Monaco context 冲突）
+const showRenameSessionDialog = ref(false)
+const renameSession = ref<AgentSession | null>(null)
+const renameSessionTitle = ref('')
+
+watch(showRenameSessionDialog, (open) => {
+  if (!open) {
+    renameSession.value = null
+    renameSessionTitle.value = ''
+  }
+})
+
 function handleMessageEdit(message: AgentMessage) {
   if (message.role !== 'user' || message.type !== 'chat') return
   editingMessage.value = message as ChatAgentMessage
@@ -1504,52 +1553,33 @@ async function handleConfirmEditMessage() {
 async function handleMessageRegenerate(message: AgentMessage) {
   const session = activeSession.value
   if (!session) return
+  // 只允许在用户消息下重新生成，AI 与 tool 消息不提供重新生成以免造成状态错乱
+  if (message.role !== 'user' || message.type !== 'chat') return
   const messageIndex = session.messages.findIndex((m) => m.id === message.id)
   if (messageIndex === -1) return
 
-  if (message.role === 'user' && message.type === 'chat') {
-    session.messages = session.messages.slice(0, messageIndex + 1)
-    touchSession(session)
-    persistSessions()
-    try {
-      await executeAgentEngine((message as ChatAgentMessage).markdown, session)
-    } catch (err) {
-      notifyError(err instanceof Error ? err.message : String(err))
-    }
+  try {
+    await ElMessageBox.confirm(
+      t('agent.message.confirmRegenerate'),
+      t('agent.message.confirmRegenerateTitle'),
+      { type: 'warning' }
+    )
+  } catch {
     return
   }
 
-  if (message.role === 'assistant' && message.type === 'chat') {
-    if (messageIndex === 0) return
-    const prevIndex = messageIndex - 1
-    const prev = session.messages[prevIndex]
-    session.messages = session.messages.slice(0, prevIndex + 1)
-    cleanupUnfinishedToolCalls(session)
-    touchSession(session)
-    persistSessions()
-    if (prev.role === 'user' && prev.type === 'chat') {
-      try {
-        await executeAgentEngine((prev as ChatAgentMessage).markdown, session)
-      } catch (err) {
-        notifyError(err instanceof Error ? err.message : String(err))
-      }
-    } else if (prev.role === 'assistant' && prev.type === 'chat') {
-      let lastUserIndex = -1
-      for (let i = prevIndex - 1; i >= 0; i--) {
-        if (session.messages[i].role === 'user' && session.messages[i].type === 'chat') {
-          lastUserIndex = i
-          break
-        }
-      }
-      if (lastUserIndex >= 0) {
-        const userMsg = session.messages[lastUserIndex] as ChatAgentMessage
-        try {
-          await executeAgentEngine(userMsg.markdown, session)
-        } catch (err) {
-          notifyError(err instanceof Error ? err.message : String(err))
-        }
-      }
-    }
+  // 删除该条用户消息之后的所有内容（消息、工具调用、意图识别等），当作从未发生过
+  session.messages = session.messages.slice(0, messageIndex + 1)
+  cleanupUnfinishedToolCalls(session)
+  if (session.messageQueue) session.messageQueue = []
+  if (session.executionNodes) session.executionNodes = []
+  touchSession(session)
+  persistSessions()
+
+  try {
+    await executeAgentEngine((message as ChatAgentMessage).markdown, session)
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : String(err))
   }
 }
 
@@ -2163,5 +2193,20 @@ onMounted(async () => {
   font-size: 12px;
   border-top: 1px solid rgba(128, 128, 128, 0.15);
   margin-top: 4px;
+}
+
+.agent-rename-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  background: var(--el-fill-color-blank, #fff);
+  color: var(--el-text-color-primary);
+}
+.agent-rename-input:focus {
+  outline: none;
+  border-color: var(--el-color-primary);
 }
 </style>

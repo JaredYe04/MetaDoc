@@ -97,14 +97,12 @@ export async function createAdapterFromSettings(
   let config: LlmConfig
 
   if (customConfig) {
-    // 使用自定义配置
+    // 使用自定义配置（路径按 OpenAI 规范固定为 /completions、/chat/completions，由 SDK 拼接）
     config = {
       type: (customConfig.type || 'openai-compatible') as LlmConfig['type'],
       apiUrl: customConfig.baseUrl,
       apiKey: customConfig.apiKey,
       selectedModel: customConfig.model,
-      completionSuffix: customConfig.completionSuffix || '',
-      chatSuffix: customConfig.chatSuffix || '/chat/completions',
       completionApiUrl:
         customConfig.type === 'deepseek' ? `${customConfig.baseUrl}/beta` : undefined,
       temperature: customConfig.temperature
@@ -143,8 +141,6 @@ export async function createAdapterFromSettings(
         config.apiKey = (await getSetting('openaiApiKey')) as string | undefined
         config.apiUrl = (await getSetting('openaiApiUrl')) as string | undefined
         config.selectedModel = ((await getSetting('openaiSelectedModel')) as string) || ''
-        config.completionSuffix = (await getSetting('openaiCompletionSuffix')) as string | undefined
-        config.chatSuffix = (await getSetting('openaiChatSuffix')) as string | undefined
         const enableMaxTokens = (await getSetting('openaiEnableMaxTokens')) ?? false
         const maxTokens = (await getSetting('openaiMaxTokens')) || 4096
         config.enableMaxTokens = enableMaxTokens

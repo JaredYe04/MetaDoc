@@ -224,6 +224,7 @@ import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import type { GrepResult, GrepMatch } from '../grep-tool'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
@@ -691,6 +692,17 @@ const initMonacoEditor = async () => {
     return
   }
 
+  grepMonacoWheelCleanup?.()
+  grepMonacoWheelCleanup = attachMonacoWheelScrollChain(container, () => {
+    if (!monacoEditor) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+    const layout = monacoEditor.getLayoutInfo()
+    return {
+      scrollTop: monacoEditor.getScrollTop(),
+      scrollHeight: monacoEditor.getScrollHeight(),
+      height: layout?.height ?? container.clientHeight
+    }
+  })
+
   // 默认选中并高亮第一个匹配
   if (resultData.value.matches.length > 0) {
     selectedMatchIndex.value = 0
@@ -699,7 +711,11 @@ const initMonacoEditor = async () => {
   }
 }
 
+let grepMonacoWheelCleanup: (() => void) | null = null
+
 const disposeMonacoEditor = () => {
+  grepMonacoWheelCleanup?.()
+  grepMonacoWheelCleanup = null
   if (monacoEditor) {
     monacoEditor.dispose()
     monacoEditor = null

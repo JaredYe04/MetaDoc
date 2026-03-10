@@ -1,6 +1,6 @@
 // utils/ai_tasks.ts
 import { ref, watch, type Ref } from 'vue'
-import { answerQuestion, continueConversation } from './llm-api'
+import { answerQuestion, continueConversation, continueConversationWithTools } from './llm-api'
 import eventBus, { isMainWindow, getWindowType } from './event-bus'
 import messageBridge from '../bridge/message-bridge'
 import { ai_task_status } from './consts'
@@ -261,13 +261,13 @@ export async function startAiTask(handle: string): Promise<void> {
       const customLlmConfig = task.meta?.customLlmConfig || null
 
       // 记录task.meta用于调试
-      logger.debug(`[startAiTask] chat任务，task.meta:`, {
-        stream: task.meta?.stream,
-        streamType: typeof task.meta?.stream,
-        metaKeys: task.meta ? Object.keys(task.meta) : [],
-        hasStream: 'stream' in (task.meta || {}),
-        metaValue: JSON.stringify(task.meta)
-      })
+      // logger.debug(`[startAiTask] chat任务，task.meta:`, {
+      //   stream: task.meta?.stream,
+      //   streamType: typeof task.meta?.stream,
+      //   metaKeys: task.meta ? Object.keys(task.meta) : [],
+      //   hasStream: 'stream' in (task.meta || {}),
+      //   metaValue: JSON.stringify(task.meta)
+      // })
 
       // 确保meta对象包含stream属性，如果没有则默认使用流式输出
       // 创建一个新的meta对象，确保stream属性正确
@@ -285,13 +285,33 @@ export async function startAiTask(handle: string): Promise<void> {
         fullMeta: JSON.stringify(finalMeta)
       })
 
-      await continueConversation(
-        task.prompt as AIDialogMessage[],
-        task.target,
-        finalMeta as any,
-        controller.signal,
-        customLlmConfig as any
-      )
+      const useNativeTools =
+        Array.isArray(finalMeta.tools) &&
+        finalMeta.tools.length > 0 &&
+        typeof finalMeta.onToolCallsDetected === 'function'
+      if (useNativeTools) {
+        await (continueConversationWithTools as (
+          conv: AIDialogMessage[],
+          r: Ref<string>,
+          m: any,
+          signal: AbortSignal | undefined,
+          custom: any
+        ) => Promise<void>)(
+          task.prompt as AIDialogMessage[],
+          task.target,
+          finalMeta as any,
+          controller.signal,
+          customLlmConfig as any
+        )
+      } else {
+        await continueConversation(
+          task.prompt as AIDialogMessage[],
+          task.target,
+          finalMeta as any,
+          controller.signal,
+          customLlmConfig as any
+        )
+      }
       // 对于非流式输出，等待一小段时间确保ref.value已更新
       if (!task.meta?.stream && task.mirror) {
         await new Promise((resolve) => setTimeout(resolve, 100))

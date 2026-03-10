@@ -260,6 +260,7 @@ import type { EditResult, EditOperation, UnifiedDiffHunk } from '../edit-tool'
 import { parseUnifiedDiff } from '../edit-tool'
 import { useWorkspace } from '../../../stores/workspace'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 
 const { t } = useI18n()
 const props = withDefaults(defineProps<ToolDisplayComponentProps & { paramsDiff?: string }>(), {
@@ -433,23 +434,6 @@ let compactDiffMonaco: monaco.editor.IStandaloneCodeEditor | null = null
 let compactDiffDecorationIds: string[] = []
 let compactMonacoWheelCleanup: (() => void) | null = null
 
-function getScrollableAncestor(el: HTMLElement): HTMLElement | null {
-  // reka-ui / radix ScrollArea 的视口（Compact 消息列表用）
-  const viewport =
-    (el.closest('[data-reka-scroll-area-viewport]') as HTMLElement | null) ||
-    (el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null)
-  if (viewport && viewport.scrollHeight > viewport.clientHeight) return viewport
-  let p: HTMLElement | null = el.parentElement
-  while (p) {
-    const style = getComputedStyle(p)
-    const oy = style.overflowY
-    if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && p.scrollHeight > p.clientHeight)
-      return p
-    p = p.parentElement
-  }
-  return null
-}
-
 const compactMonacoStyle = computed(() => ({
   height: '280px',
   backgroundColor: themeState.currentTheme.background
@@ -553,27 +537,15 @@ const initCompactMonaco = (retryCount = 0) => {
     setTimeout(syncCompactMonacoValue, 100)
 
     compactMonacoWheelCleanup?.()
-    const onWheel = (e: WheelEvent) => {
-      if (!compactDiffMonaco) return
-      const st = compactDiffMonaco.getScrollTop()
-      const sh = compactDiffMonaco.getScrollHeight()
+    compactMonacoWheelCleanup = attachMonacoWheelScrollChain(el, () => {
+      if (!compactDiffMonaco) return { scrollTop: 0, scrollHeight: 0, height: 0 }
       const layout = compactDiffMonaco.getLayoutInfo()
-      const height = layout?.height ?? el.clientHeight
-      const atTop = st <= 0
-      const atBottom = st + height >= sh - 1
-      // 在顶部且用户向上滚(deltaY<0) 或 在底部且用户向下滚(deltaY>0)：把滚动交给外层消息框
-      if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
-        e.preventDefault()
-        e.stopPropagation()
-        const scrollable = getScrollableAncestor(el)
-        if (scrollable) scrollable.scrollBy(0, e.deltaY)
+      return {
+        scrollTop: compactDiffMonaco!.getScrollTop(),
+        scrollHeight: compactDiffMonaco!.getScrollHeight(),
+        height: layout?.height ?? el.clientHeight
       }
-    }
-    el.addEventListener('wheel', onWheel, { passive: false, capture: true })
-    compactMonacoWheelCleanup = () => {
-      el.removeEventListener('wheel', onWheel, { capture: true })
-      compactMonacoWheelCleanup = null
-    }
+    })
   }
   nextTick().then(() => nextTick().then(tryInit))
 }

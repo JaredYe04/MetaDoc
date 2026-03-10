@@ -176,6 +176,7 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
@@ -519,6 +520,8 @@ const editorContainerStyle = computed(() => ({
 const chunkBorderColor = computed(() => `${themeState.currentTheme.textColor2}20`)
 const splitBorderColor = computed(() => `${themeState.currentTheme.textColor2}20`)
 
+let diffMonacoWheelCleanups: Array<() => void> = []
+
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
   if (viewMode.value !== 'split') return
@@ -604,6 +607,27 @@ const initMonacoEditors = async () => {
       oldMonacoEditor.setScrollLeft(e.scrollLeft)
     }
   })
+
+  // 滚动到顶/底时让外层消息框继续滚动
+  diffMonacoWheelCleanups.forEach((f) => f())
+  diffMonacoWheelCleanups = [
+    attachMonacoWheelScrollChain(oldContainer, () => {
+      const layout = oldMonacoEditor.getLayoutInfo()
+      return {
+        scrollTop: oldMonacoEditor.getScrollTop(),
+        scrollHeight: oldMonacoEditor.getScrollHeight(),
+        height: layout?.height ?? oldContainer.clientHeight
+      }
+    }),
+    attachMonacoWheelScrollChain(newContainer, () => {
+      const layout = newMonacoEditor.getLayoutInfo()
+      return {
+        scrollTop: newMonacoEditor.getScrollTop(),
+        scrollHeight: newMonacoEditor.getScrollHeight(),
+        height: layout?.height ?? newContainer.clientHeight
+      }
+    })
+  ]
 
   // 根据diff chunks添加行装饰（高亮删除和插入的行）
   if (diffChunks.value.length > 0) {
@@ -695,6 +719,8 @@ const initMonacoEditors = async () => {
 
 // 清理 Monaco 编辑器
 const disposeMonacoEditors = () => {
+  diffMonacoWheelCleanups.forEach((f) => f())
+  diffMonacoWheelCleanups = []
   const editors = monaco.editor.getEditors()
   const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
   const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)

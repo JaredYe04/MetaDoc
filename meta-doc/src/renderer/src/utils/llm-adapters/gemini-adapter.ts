@@ -356,11 +356,11 @@ export class GeminiAdapter extends BaseLlmAdapter {
     const { selectedModel } = this.config
     const payload = this.buildChatPayload(messages, meta)
 
-    this.logger.debug('开始流式对话请求', {
-      model: selectedModel,
-      contentsLength: payload.contents.length,
-      config: payload.generationConfig
-    })
+    // this.logger.debug('开始流式对话请求', {
+    //   model: selectedModel,
+    //   contentsLength: payload.contents.length,
+    //   config: payload.generationConfig
+    // })
 
     try {
       // generateContentStream 返回 Promise<AsyncGenerator<...>>
@@ -379,13 +379,13 @@ export class GeminiAdapter extends BaseLlmAdapter {
       for await (const chunk of stream) {
         chunkCount++
 
-        // 添加详细的调试日志
-        this.logger.debug(`收到流式对话 chunk #${chunkCount}`, {
-          hasCandidates: !!chunk.candidates,
-          candidatesLength: chunk.candidates?.length || 0,
-          chunkKeys: Object.keys(chunk || {}),
-          chunkStructure: JSON.stringify(chunk, null, 2).substring(0, 500)
-        })
+        // // 添加详细的调试日志
+        // this.logger.debug(`收到流式对话 chunk #${chunkCount}`, {
+        //   hasCandidates: !!chunk.candidates,
+        //   candidatesLength: chunk.candidates?.length || 0,
+        //   chunkKeys: Object.keys(chunk || {}),
+        //   chunkStructure: JSON.stringify(chunk, null, 2).substring(0, 500)
+        // })
 
         // GoogleGenAI SDK 流式响应：每个 chunk 可能包含增量文本
         // 根据 SDK 文档，流式响应中每个 chunk 的 text 是增量，不是累积的

@@ -20,6 +20,8 @@ function getLogger() {
 export interface LlmConfigItem {
   id: string
   name: string
+  /** 可选描述，用于在卡片上显示或备注 */
+  description?: string
   isDefault?: boolean // 是否为默认配置（用于 i18n 显示）
   type: 'metadoc' | 'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen' | 'manual'
   // Ollama配置
@@ -29,13 +31,11 @@ export interface LlmConfigItem {
     enableMaxTokens?: boolean
     maxTokens?: number
   }
-  // OpenAI配置
+  // OpenAI配置（兼容 OpenAI 规范：补全 /completions，对话 /chat/completions，由 SDK/适配器固定路径）
   openai?: {
     apiUrl: string
     apiKey: string
     selectedModel: string
-    completionSuffix: string
-    chatSuffix: string
     enableMaxTokens?: boolean
     maxTokens?: number
   }
@@ -108,6 +108,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
     {
       id: `${baseId}-ollama`,
       name: 'Ollama (默认)', // 默认名称，UI 会根据 isDefault 和 type 进行 i18n 翻译
+      description: '',
       isDefault: true,
       type: 'ollama',
       ollama: {
@@ -122,14 +123,13 @@ function createDefaultConfigs(): LlmConfigItem[] {
     {
       id: `${baseId}-openai`,
       name: 'OpenAI兼容 (默认)',
+      description: '',
       isDefault: true,
       type: 'openai',
       openai: {
         apiUrl: 'https://api.openai.com/v1',
         apiKey: '',
         selectedModel: '',
-        completionSuffix: '',
-        chatSuffix: '',
         enableMaxTokens: false,
         maxTokens: 4096
       },
@@ -139,6 +139,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
     {
       id: `${baseId}-openai-official`,
       name: 'OpenAI官方 (默认)',
+      description: '',
       isDefault: true,
       type: 'openai-official',
       'openai-official': {
@@ -153,6 +154,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
     {
       id: `${baseId}-deepseek`,
       name: 'DeepSeek (默认)',
+      description: '',
       isDefault: true,
       type: 'deepseek',
       deepseek: {
@@ -167,6 +169,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
     {
       id: `${baseId}-gemini`,
       name: 'Google Gemini (默认)',
+      description: '',
       isDefault: true,
       type: 'gemini',
       gemini: {
@@ -181,11 +184,12 @@ function createDefaultConfigs(): LlmConfigItem[] {
     {
       id: `${baseId}-qwen`,
       name: '通义千问 (默认)',
+      description: '',
       isDefault: true,
       type: 'qwen',
       qwen: {
         apiKey: '',
-        apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        apiUrl: 'https://dashscope.aliyuncs.com',
         selectedModel: 'qwen-plus',
         enableMaxTokens: false,
         maxTokens: 4096
@@ -332,8 +336,6 @@ async function createConfigFromSettings(): Promise<
       apiUrl: (await getSetting('openaiApiUrl')) || 'https://api.openai.com/v1',
       apiKey: (await getSetting('openaiApiKey')) || '',
       selectedModel: (await getSetting('openaiSelectedModel')) || '',
-      completionSuffix: (await getSetting('openaiCompletionSuffix')) || '',
-      chatSuffix: (await getSetting('openaiChatSuffix')) || '',
       enableMaxTokens: (await getSetting('openaiEnableMaxTokens')) ?? false,
       maxTokens: (await getSetting('openaiMaxTokens')) || 4096
     }
@@ -454,6 +456,47 @@ export async function updateConfig(
  */
 export function isPresetConfig(config: LlmConfigItem): boolean {
   return config.isDefault === true
+}
+
+/**
+ * 按类型获取预设模板（不含 id、createdAt、updatedAt），用于重置预设配置
+ */
+export function getPresetTemplateByType(
+  type: LlmConfigItem['type']
+): Omit<LlmConfigItem, 'id' | 'createdAt' | 'updatedAt'> | null {
+  const defaults = createDefaultConfigs()
+  const found = defaults.find((c) => c.type === type)
+  if (!found) return null
+  const { id, createdAt, updatedAt, ...rest } = found
+  return rest
+}
+
+/**
+ * 将预设配置重置为初始预制状态（仅对 isDefault 的配置有效）
+ * @returns 重置后的配置，若非预设或未找到则返回 null
+ */
+export async function resetConfigToPreset(id: string): Promise<LlmConfigItem | null> {
+  const index = configs.value.findIndex((c) => c.id === id)
+  if (index === -1) return null
+  const config = configs.value[index]
+  if (!config.isDefault) return null
+
+  const template = getPresetTemplateByType(config.type)
+  if (!template) return null
+
+  const updated: LlmConfigItem = {
+    ...template,
+    id: config.id,
+    createdAt: config.createdAt,
+    updatedAt: Date.now()
+  }
+  configs.value[index] = updated
+  saveLlmConfigs()
+
+  if (currentConfigId.value === id) {
+    await applyConfigToSettings(updated)
+  }
+  return updated
 }
 
 /**
@@ -592,8 +635,6 @@ async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Pro
     await setSetting('openaiApiUrl', config.openai.apiUrl)
     await setSetting('openaiApiKey', config.openai.apiKey)
     await setSetting('openaiSelectedModel', config.openai.selectedModel)
-    await setSetting('openaiCompletionSuffix', config.openai.completionSuffix)
-    await setSetting('openaiChatSuffix', config.openai.chatSuffix)
     await setSetting('openaiEnableMaxTokens', config.openai.enableMaxTokens ?? false)
     await setSetting('openaiMaxTokens', config.openai.maxTokens || 4096)
     // 清空其他类型
@@ -747,6 +788,15 @@ async function applyConfigToSettings(config: LlmConfigItem): Promise<void> {
 }
 
 /**
+ * 从当前设置获取配置数据（不创建配置，用于新建配置对话框的初始表单）
+ */
+export async function getConfigDataFromCurrentSettings(): Promise<
+  Omit<LlmConfigItem, 'id' | 'name' | 'createdAt' | 'updatedAt'>
+> {
+  return createConfigFromSettings()
+}
+
+/**
  * 从当前设置创建配置
  */
 export async function createConfigFromCurrentSettings(name: string): Promise<LlmConfigItem> {
@@ -794,8 +844,6 @@ export async function checkWorkspaceModified(): Promise<boolean> {
       snapshot.openai.apiUrl !== current.apiUrl ||
       snapshot.openai.apiKey !== current.apiKey ||
       snapshot.openai.selectedModel !== current.selectedModel ||
-      snapshot.openai.completionSuffix !== current.completionSuffix ||
-      snapshot.openai.chatSuffix !== current.chatSuffix ||
       snapshot.openai.enableMaxTokens !== current.enableMaxTokens ||
       snapshot.openai.maxTokens !== current.maxTokens
     ) {

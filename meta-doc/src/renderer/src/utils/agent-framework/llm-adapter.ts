@@ -15,6 +15,7 @@ import { sanitizeMessages } from '../llm-api.js'
 import { extractOuterJsonString } from '../regex-utils'
 import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
 import { createAdapterFromSettings } from '../llm-adapters/adapter-factory.ts'
+import type { EngineToolSpec } from '../llm-ai-sdk/tools-to-ai-sdk'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -137,8 +138,8 @@ export class LlmAdapter {
             apiKey: (await getSetting('openaiApiKey')) || '',
             model: (await getSetting('openaiSelectedModel')) || '',
             type: 'openai',
-            chatSuffix: (await getSetting('openaiChatSuffix')) || '',
-            completionSuffix: (await getSetting('openaiCompletionSuffix')) || '',
+            chatSuffix: '/chat/completions',
+            completionSuffix: '/completions',
             enableMaxTokens,
             maxTokens
           }
@@ -666,6 +667,8 @@ export class LlmAdapter {
       originKey?: string
       reactiveMessage?: { markdown?: string; content?: string } // 可选的响应式消息对象，用于实时更新
       onTaskCreated?: (handle: string) => void // 任务创建时的回调，用于保存handle
+      /** 引擎工具列表（与 getAvailableTools() 一致）；与 onToolCallsDetected 同时提供时走 AI SDK 原生 tools 路径 */
+      tools?: EngineToolSpec[]
       onToolCallsDetected?: (
         toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>
       ) => Promise<void> // 工具调用检测回调
@@ -680,6 +683,7 @@ export class LlmAdapter {
       originKey,
       reactiveMessage,
       onTaskCreated,
+      tools: optionsTools,
       onToolCallsDetected
     } = options
 
@@ -704,9 +708,7 @@ export class LlmAdapter {
         model: config.model,
         temperature,
         maxTokens: effectiveMaxTokens,
-        type: 'openai-compatible',
-        chatSuffix: config.chatSuffix || '/chat/completions',
-        completionSuffix: config.completionSuffix || '/completions'
+        type: 'openai-compatible'
       }
     }
 
@@ -965,9 +967,9 @@ export class LlmAdapter {
             reactiveMessage.content = newValue
           }
 
-          // 检测工具调用标记（仅在流式输出且提供回调时）
-          // 重要：跟踪已处理的工具调用ID，只处理新的工具调用
-          if (onToolCallsDetected) {
+          // 检测工具调用标记（仅在流式输出、提供回调、且未走原生 tools 路径时）
+          // 当 meta.tools 存在时由 continueConversationWithTools 通过 SDK 上报工具调用，此处仅更新 UI
+          if (onToolCallsDetected && !(Array.isArray(optionsTools) && optionsTools.length > 0)) {
             // 检查是否有完整的工具调用标记块（必须同时包含开始和结束标记）
             const toolCallsBeginPattern = /<tool_call>/i
             const toolCallsEndPattern = /<\/tool_call>/i
@@ -1146,6 +1148,10 @@ export class LlmAdapter {
 
     try {
       // 使用createAiTask调用LLM
+      const useNativeTools =
+        Array.isArray(optionsTools) &&
+        optionsTools.length > 0 &&
+        typeof onToolCallsDetected === 'function'
       const { handle, done } = createAiTask(
         taskName,
         sanitizedMessages as AIDialogMessage[],
@@ -1156,7 +1162,11 @@ export class LlmAdapter {
           stream,
           temperature,
           maxTokens: effectiveMaxTokens,
-          customLlmConfig
+          customLlmConfig,
+          ...(useNativeTools && {
+            tools: optionsTools,
+            onToolCallsDetected
+          })
         }
       )
 
@@ -1184,8 +1194,8 @@ export class LlmAdapter {
         stopWatcher()
       }
 
-      // 如果流式输出完成，再次检查是否有未处理的工具调用（兜底机制）
-      if (onToolCallsDetected) {
+      // 如果流式输出完成，再次检查是否有未处理的工具调用（兜底机制；原生 tools 路径不解析文本）
+      if (onToolCallsDetected && !(Array.isArray(optionsTools) && optionsTools.length > 0)) {
         getLogger().debug(
           '[callChatViaTask] 流式输出完成，检查最终结果中是否包含未处理的工具调用:',
           {

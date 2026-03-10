@@ -588,8 +588,7 @@ const {
   isGenerating,
   generatingSessionId,
   currentAiTaskHandle,
-  aiTaskHandles,
-  currentAbortController
+  aiTaskHandles
 } = storeToRefs(agentStore)
 
 const borderColor = computed(() =>
@@ -1594,9 +1593,8 @@ const executeAgentEngine = async (
   // 注意：UI锁和isGenerating状态已经在函数开始时设置（第1167-1168行）
   // 这里不需要重复设置
 
-  // 创建AbortController用于取消（停止按钮会 abort，队列与工具任务会响应）
+  // 创建AbortController用于取消
   const abortController = new AbortController()
-  currentAbortController.value = abortController
   const originKey = `agent-${session.id}-${Date.now()}`
 
   // 更新会话状态
@@ -1703,11 +1701,17 @@ const executeAgentEngine = async (
       // 获取温度配置（优先使用engine的自定义配置，否则使用全局配置）
       const temperature = engine.customLlmConfig?.temperature ?? (await getLlmTemperature())
 
-      // 创建工具调用队列（用于执行检测到的工具调用）
+      // 创建工具调用队列（用于执行检测到的工具调用）；传入 onTaskCreated 以便终止时取消工具型 AI 任务
       const { ToolCallQueue } = await import('../utils/agent-framework/tool-call-queue')
-      const toolCallQueue = new ToolCallQueue(session as any, abortController.signal, undefined, undefined, {
-        onToolTaskHandle: (handle) => aiTaskHandles.value.add(handle)
-      })
+      const toolCallQueue = new ToolCallQueue(
+        session as any,
+        abortController.signal,
+        undefined,
+        undefined,
+        (handle: string) => {
+          aiTaskHandles.value.add(handle)
+        }
+      )
 
       // 创建工具调用检测回调
       const onToolCallsDetected = async (
@@ -1876,7 +1880,6 @@ const executeAgentEngine = async (
         aiTaskHandles.value.delete(currentAiTaskHandle.value)
       }
       currentAiTaskHandle.value = null
-      currentAbortController.value = null
       generatingSessionId.value = null
       isGenerating.value = false
     }
@@ -1943,7 +1946,6 @@ const executeAgentEngine = async (
         aiTaskHandles.value.delete(currentAiTaskHandle.value)
       }
       currentAiTaskHandle.value = null
-      currentAbortController.value = null
       generatingSessionId.value = null
       isGenerating.value = false
     }
@@ -2145,8 +2147,12 @@ async function pathToFile(filePath: string): Promise<File> {
   return new File([blob], result.name, { type: result.mimeType })
 }
 
+const attachPickerOpenInProgress = ref(false)
+
 async function openAttachFilePicker() {
   if (!activeSession.value) return
+  if (attachPickerOpenInProgress.value) return
+  attachPickerOpenInProgress.value = true
   try {
     const { selectReferenceFiles } = await import('../utils/agent-framework/reference-processor')
     const filePaths = await selectReferenceFiles('all', true, t('aiChat.attachTooltip'))
@@ -2164,6 +2170,8 @@ async function openAttachFilePicker() {
     }
   } catch (err) {
     notifyError(err instanceof Error ? err.message : String(err))
+  } finally {
+    attachPickerOpenInProgress.value = false
   }
 }
 
@@ -2172,10 +2180,6 @@ const handleCancelGeneration = () => {
   if (!session) {
     return
   }
-
-  // 先 abort 当前会话的控制器，让队列和下游请求（LLM/工具）收到取消信号
-  currentAbortController.value?.abort()
-  currentAbortController.value = null
 
   // 获取所有AI任务
   const allTasks = useAiTasks()
@@ -2191,7 +2195,7 @@ const handleCancelGeneration = () => {
     cancelAiTask(task.handle, false)
   })
 
-  // 取消所有由Agent发起的AI任务（含主对话与工具任务，通过handle集合）
+  // 取消所有由Agent发起的AI任务（通过handle集合）
   if (aiTaskHandles.value.size > 0) {
     const handlesToCancel = Array.from(aiTaskHandles.value)
     handlesToCancel.forEach((handle) => {
@@ -2724,142 +2728,40 @@ const handleConfirmEditMessage = async () => {
 }
 
 const handleMessageRegenerate = async (message: AgentMessage) => {
-  if (!activeSession.value) {
-    return
-  }
+  if (!activeSession.value) return
+  // 只允许在用户消息下重新生成，AI 与 tool 消息不提供重新生成以免造成状态错乱
+  if (message.role !== 'user' || message.type !== 'chat') return
 
-  // 找到消息在会话中的位置
   const session = activeSession.value
   const messageIndex = session.messages.findIndex((m) => m.id === message.id)
-  if (messageIndex === -1) {
+  if (messageIndex === -1) return
+
+  try {
+    await ElMessageBox.confirm(
+      t('agent.message.confirmRegenerate'),
+      t('agent.message.confirmRegenerateTitle'),
+      { type: 'warning' }
+    )
+  } catch {
     return
   }
 
-  // 如果是用户消息，重新触发AI生成
-  if (message.role === 'user' && message.type === 'chat') {
-    const userMessage = message as ChatAgentMessage
-    // 删除此消息之后的所有消息
-    session.messages = session.messages.slice(0, messageIndex + 1)
-    touchSession(session)
-    persistSessions()
+  const userMessage = message as ChatAgentMessage
+  // 删除该条用户消息之后的所有内容（消息、工具调用、意图识别等），当作从未发生过
+  session.messages = session.messages.slice(0, messageIndex + 1)
+  if (session.messageQueue) session.messageQueue = []
+  if (session.executionNodes) session.executionNodes = []
+  touchSession(session)
+  persistSessions()
 
-    // 重新执行AI生成（AgentView 不使用 RAG 功能）
-    await executeAgentEngine(
-      userMessage.markdown,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      false
-    )
-  }
-  // 如果是AI消息，重新生成回复
-  else if (message.role === 'assistant' && message.type === 'chat') {
-    // 找到此AI消息的上一个消息节点（可能是用户消息，也可能是其他AI消息）
-    if (messageIndex === 0) {
-      // 这是第一条消息，无法重新生成
-      return
-    }
-
-    const previousMessageIndex = messageIndex - 1
-    const previousMessage = session.messages[previousMessageIndex]
-
-    // 删除从上一个消息节点之后的所有消息（包括当前AI消息）
-    // 这样Agent会基于保留的消息历史重新生成
-    session.messages = session.messages.slice(0, previousMessageIndex + 1)
-
-    // 重要：清理所有保留消息中未完成的tool_calls
-    // OpenAI API要求：如果assistant消息有tool_calls，必须紧接着有对应的tool消息
-    // 由于我们删除了后续消息，如果某个assistant消息有tool_calls但对应的tool消息被删除了，
-    // 需要清理这些tool_calls避免LLM API报错
-    // 遍历所有保留的消息，检查是否有未完成的tool_calls
-    const toolCallIds = new Set<string>()
-    for (let i = 0; i < session.messages.length; i++) {
-      const msg = session.messages[i]
-      if (msg.role === 'assistant' && msg.type === 'chat') {
-        const assistantMsg = msg as ChatAgentMessage
-        const toolCalls = (assistantMsg as any).tool_calls
-        if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
-          // 记录所有tool_call_ids
-          for (const tc of toolCalls) {
-            if (tc.id) {
-              toolCallIds.add(tc.id)
-            }
-          }
-        }
-      } else if (msg.role === 'tool' && msg.type === 'tool') {
-        // 如果找到对应的tool消息，从集合中移除
-        const toolCallId = (msg as any).tool_call_id
-        if (toolCallId && toolCallIds.has(toolCallId)) {
-          toolCallIds.delete(toolCallId)
-        }
-      }
-    }
-
-    // 清理所有未完成的tool_calls（有tool_call_id但没有对应tool消息的）
-    if (toolCallIds.size > 0) {
-      for (let i = 0; i < session.messages.length; i++) {
-        const msg = session.messages[i]
-        if (msg.role === 'assistant' && msg.type === 'chat') {
-          const assistantMsg = msg as ChatAgentMessage
-          const toolCalls = (assistantMsg as any).tool_calls
-          if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
-            // 检查是否有未完成的tool_calls
-            const hasUnfinishedToolCalls = toolCalls.some(
-              (tc: any) => tc.id && toolCallIds.has(tc.id)
-            )
-            if (hasUnfinishedToolCalls) {
-              // 如果所有tool_calls都未完成，删除整个tool_calls
-              // 如果部分完成，只保留已完成的（但这种情况不应该发生，因为tool消息应该在assistant消息之后）
-              // 为了安全，如果发现任何未完成的tool_calls，就删除整个tool_calls
-              delete (assistantMsg as any).tool_calls
-            }
-          }
-        }
-      }
-    }
-
-    touchSession(session)
-    persistSessions()
-
-    // 如果上一个消息是用户消息，直接重新执行AI生成
-    if (previousMessage.role === 'user' && previousMessage.type === 'chat') {
-      const userMessage = previousMessage as ChatAgentMessage
-      await executeAgentEngine(userMessage.markdown)
-    }
-    // 如果上一个消息也是AI消息，需要找到触发这个AI消息链的用户消息
-    // 因为Agent是基于整个消息历史生成的，需要从用户消息开始重新执行
-    else if (previousMessage.role === 'assistant' && previousMessage.type === 'chat') {
-      // 向上查找，找到最后一个用户消息
-      let lastUserMessageIndex = -1
-      for (let i = previousMessageIndex - 1; i >= 0; i--) {
-        if (session.messages[i].role === 'user' && session.messages[i].type === 'chat') {
-          lastUserMessageIndex = i
-          break
-        }
-      }
-
-      if (lastUserMessageIndex === -1) {
-        // 没有找到用户消息，无法重新生成
-        return
-      }
-
-      // 重新执行AI生成（从用户消息开始，Agent会基于整个消息历史继续生成）
-      // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
-      const userMessage = session.messages[lastUserMessageIndex] as ChatAgentMessage
-      await executeAgentEngine(
-        userMessage.markdown,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false
-      )
-    } else {
-      // 上一个消息是tool消息或其他类型，无法重新生成
-      return
-    }
-  }
+  await executeAgentEngine(
+    userMessage.markdown,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    false
+  )
 }
 
 const handleMessageDuplicate = async (message: AgentMessage) => {

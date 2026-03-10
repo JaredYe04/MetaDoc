@@ -187,6 +187,7 @@ import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import type { ProofreadResult, ProofreadError } from '../proofread-tool'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -207,6 +208,7 @@ const correctedEditorId = ref(
 )
 let originalMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let correctedMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+let proofreadMonacoWheelCleanups: Array<() => void> = []
 
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
@@ -456,6 +458,28 @@ const initMonacoEditors = async () => {
     }
   })
 
+  proofreadMonacoWheelCleanups.forEach((f) => f())
+  proofreadMonacoWheelCleanups = [
+    attachMonacoWheelScrollChain(originalContainer, () => {
+      if (!originalMonacoEditor) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+      const layout = originalMonacoEditor.getLayoutInfo()
+      return {
+        scrollTop: originalMonacoEditor.getScrollTop(),
+        scrollHeight: originalMonacoEditor.getScrollHeight(),
+        height: layout?.height ?? originalContainer.clientHeight
+      }
+    }),
+    attachMonacoWheelScrollChain(correctedContainer, () => {
+      if (!correctedMonacoEditor) return { scrollTop: 0, scrollHeight: 0, height: 0 }
+      const layout = correctedMonacoEditor.getLayoutInfo()
+      return {
+        scrollTop: correctedMonacoEditor.getScrollTop(),
+        scrollHeight: correctedMonacoEditor.getScrollHeight(),
+        height: layout?.height ?? correctedContainer.clientHeight
+      }
+    })
+  ]
+
   // 高亮错误和修正
   highlightErrors()
 }
@@ -545,6 +569,8 @@ const highlightErrors = () => {
 }
 
 const disposeMonacoEditors = () => {
+  proofreadMonacoWheelCleanups.forEach((f) => f())
+  proofreadMonacoWheelCleanups = []
   if (originalMonacoEditor) {
     originalMonacoEditor.dispose()
     originalMonacoEditor = null

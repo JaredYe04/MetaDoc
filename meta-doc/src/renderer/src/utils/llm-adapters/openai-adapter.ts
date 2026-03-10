@@ -5,15 +5,16 @@
 import { BaseLlmAdapter } from './base-adapter.ts'
 import type { RequestMeta } from './types.ts'
 
+/** OpenAI 规范：补全 POST /completions，对话 POST /chat/completions，base 为 apiUrl（如 https://api.openai.com/v1） */
 export class OpenAiAdapter extends BaseLlmAdapter {
   getCompletionUrl(): string {
-    const { apiUrl = '', completionSuffix = '' } = this.config
-    return `${apiUrl}${completionSuffix}`
+    const { apiUrl = '' } = this.config
+    return `${apiUrl.replace(/\/$/, '')}/completions`
   }
 
   getChatUrl(): string {
-    const { apiUrl = '', chatSuffix = '' } = this.config
-    return `${apiUrl}${chatSuffix}`
+    const { apiUrl = '' } = this.config
+    return `${apiUrl.replace(/\/$/, '')}/chat/completions`
   }
 
   buildCompletionPayload(prompt: string, meta: RequestMeta = {}): any {

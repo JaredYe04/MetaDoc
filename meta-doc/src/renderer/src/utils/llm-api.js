@@ -469,12 +469,13 @@ async function answerQuestionStream(
     const usage = await consumeStream(async (delta) => {
       if (delta) {
         ref.value += delta
-        const processed = await processThinkTag(ref.value)
-        if (processed !== ref.value) {
-          ref.value = processed
-        }
+        // 流式过程中不把 processThinkTag 结果写回 ref，避免吞字；流结束后再统一处理
       }
     })
+    const finalProcessedAnswer = await processThinkTag(ref.value)
+    if (finalProcessedAnswer !== ref.value) {
+      ref.value = finalProcessedAnswer
+    }
     if (usage) {
       try {
         await recordLlmRequest(usage, selectedModel, 'completion')
@@ -724,12 +725,13 @@ async function continueConversationStream(
     const usage = await consumeStream(async (delta) => {
       if (delta) {
         ref.value += delta
-        const processed = await processThinkTag(ref.value)
-        if (processed !== ref.value) {
-          ref.value = processed
-        }
+        // 流式过程中不把 processThinkTag 结果写回 ref，避免吞字；流结束后再统一处理
       }
     })
+    const finalProcessedConv = await processThinkTag(ref.value)
+    if (finalProcessedConv !== ref.value) {
+      ref.value = finalProcessedConv
+    }
     if (usage) {
       try {
         await recordLlmRequest(usage, selectedModel, 'chat')
@@ -757,15 +759,14 @@ async function continueConversation(conversation, ref, meta = {}, signal, custom
     const shouldStream =
       meta?.stream !== false && (meta?.stream === true || meta?.stream === undefined)
 
-    // 记录meta信息用于调试
-    logger.debug('[continueConversation] meta参数检查:', {
-      stream: meta?.stream,
-      streamType: typeof meta?.stream,
-      metaKeys: meta && typeof meta === 'object' ? Object.keys(meta) : [],
-      hasStream: meta && typeof meta === 'object' && 'stream' in meta,
-      shouldStream: shouldStream,
-      metaValue: JSON.stringify(meta)
-    })
+    // // 仅记录 meta 摘要，避免打印完整 meta（含 tools、reactiveMessage、conversation）
+    // logger.debug('[continueConversation] meta参数检查:', {
+    //   stream: meta?.stream,
+    //   streamType: typeof meta?.stream,
+    //   metaKeys: meta && typeof meta === 'object' ? Object.keys(meta) : [],
+    //   hasStream: meta && typeof meta === 'object' && 'stream' in meta,
+    //   shouldStream
+    // })
 
     // 注意：effectiveMaxTokens 的计算逻辑在 continueConversationStream 和 continueConversationNonStream 内部实现
     // 因为需要先获取 adapter 才能访问配置，所以不能在外部计算
@@ -773,9 +774,9 @@ async function continueConversation(conversation, ref, meta = {}, signal, custom
       logger.debug('[continueConversation] 使用流式输出模式')
       await continueConversationStream(conversation, ref, meta, signal, effectiveCustomConfig)
     } else {
-      logger.warn(
-        `[continueConversation] 使用非流式输出模式！meta.stream=${meta?.stream}, meta=${JSON.stringify(meta)}`
-      )
+      // logger.warn(
+      //   `[continueConversation] 使用非流式输出模式！meta.stream=${meta?.stream}, metaKeys=${meta && typeof meta === 'object' ? Object.keys(meta).join(',') : 'n/a'}`
+      // )
       await continueConversationNonStream(conversation, ref, meta, signal, effectiveCustomConfig)
     }
   } catch (error) {
@@ -831,6 +832,7 @@ async function continueConversationWithTools(
     const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
     ref.value = ''
+    const reactiveMessage = meta?.reactiveMessage
     const { consumeStream } = await streamChatWithTools({
       config,
       messages: finalMsgs,
@@ -842,15 +844,55 @@ async function continueConversationWithTools(
         await onToolCallsDetected([tc])
       }
     })
-    const usage = await consumeStream(async (delta) => {
+    let lastFlushTime = 0
+    const FLUSH_INTERVAL_MS = 32 // ~30fps，在流式观感与性能间折中
+    const streamResult = await consumeStream(async (delta) => {
       if (delta) {
         ref.value += delta
+        // 展示用 processThinkTag 结果，但不要用 processed 覆盖 ref，否则流式中途会“吞字”（ref 被缩短后下一段 delta 是追加到缩短后的串上，导致前文丢失）
         const processed = await processThinkTag(ref.value)
-        if (processed !== ref.value) {
-          ref.value = processed
+        if (reactiveMessage) {
+          if ('markdown' in reactiveMessage) {
+            reactiveMessage.markdown = processed
+          } else if ('content' in reactiveMessage) {
+            reactiveMessage.content = processed
+          }
+          const now = Date.now()
+          if (now - lastFlushTime >= FLUSH_INTERVAL_MS) {
+            lastFlushTime = now
+            await new Promise((r) => {
+              if (typeof requestAnimationFrame !== 'undefined') {
+                requestAnimationFrame(r)
+              } else {
+                setTimeout(r, 0)
+              }
+            })
+          }
         }
       }
     })
+    const usage = streamResult?.usage ?? null
+    const fullText = streamResult?.fullText
+    // 兜底：若全程未收到任何 delta（ref 仍为空）但有 fullText，一次性写入（真流式应由 text-delta 驱动，此处仅作后备）
+    if (fullText && typeof fullText === 'string' && fullText.trim() && !ref.value?.trim()) {
+      ref.value = fullText
+      if (reactiveMessage) {
+        if ('markdown' in reactiveMessage) reactiveMessage.markdown = fullText
+        else if ('content' in reactiveMessage) reactiveMessage.content = fullText
+      }
+    }
+    // 流结束后：对完整内容做一次 processThinkTag 再写回 ref 与 reactiveMessage，保证落库/展示是去 think 后的结果，且流式过程中从未用“缩短后的串”覆盖 ref，避免吞字
+    const finalProcessed = await processThinkTag(ref.value)
+    if (finalProcessed !== ref.value) {
+      ref.value = finalProcessed
+    }
+    if (reactiveMessage && ref.value) {
+      if ('markdown' in reactiveMessage) {
+        reactiveMessage.markdown = ref.value
+      } else if ('content' in reactiveMessage) {
+        reactiveMessage.content = ref.value
+      }
+    }
     if (usage) {
       try {
         await recordLlmRequest(usage, selectedModel, 'chat')

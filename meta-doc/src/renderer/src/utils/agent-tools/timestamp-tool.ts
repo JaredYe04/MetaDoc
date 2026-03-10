@@ -12,6 +12,7 @@ import type {
   ToolLocales
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
+import TimestampDisplay from './components/TimestampDisplay.vue'
 import { i18n } from '../../i18n'
 import { createDetailedError } from './tool-utils'
 
@@ -230,6 +231,10 @@ function saveTimestamp(record: TimestampRecord): void {
 const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const format = (params.format as string) || 'all'
 
+  // 让出一帧，确保 running 的 tool 消息已渲染、Display 已挂载并订阅 tool-update/tool-complete，
+  // 否则同步完成时事件会在订阅前发出，导致界面一直卡在「正在获取时间」
+  await Promise.resolve()
+
   try {
     const now = new Date()
     const timestamp = now.getTime()
@@ -439,6 +444,7 @@ Returns current timestamp and persistently records each call's timestamp in the 
   enabled: true,
   requiresLLM: false,
   callback: timestampToolCallback,
+  displayComponent: TimestampDisplay,
   inputSchema: {
     type: 'object',
     properties: {

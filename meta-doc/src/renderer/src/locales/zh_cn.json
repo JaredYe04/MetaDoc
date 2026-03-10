@@ -220,6 +220,16 @@
         "updating": "正在更新元信息...",
         "processing": "正在处理..."
       },
+      "timestamp": {
+        "processing": "正在获取时间...",
+        "current": "当前时间",
+        "previous": "上次调用时间",
+        "timeDiff": "时间差",
+        "local": "本地",
+        "unixTimestamp": "Unix 时间戳",
+        "result": "结果",
+        "error": "获取时间失败"
+      },
       "outlineOptimize": {
         "loading": "正在加载文档...",
         "generating": "正在生成...",

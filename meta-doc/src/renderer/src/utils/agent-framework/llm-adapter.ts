@@ -1165,7 +1165,8 @@ export class LlmAdapter {
           customLlmConfig,
           ...(useNativeTools && {
             tools: optionsTools,
-            onToolCallsDetected
+            onToolCallsDetected,
+            reactiveMessage
           })
         }
       )
@@ -1194,7 +1195,36 @@ export class LlmAdapter {
         stopWatcher()
       }
 
-      // 如果流式输出完成，再次检查是否有未处理的工具调用（兜底机制；原生 tools 路径不解析文本）
+      // 兜底：确保 reactiveMessage 与 resultRef 最终一致（避免 watch 漏更新导致界面不显示流式内容）
+      if (reactiveMessage) {
+        if ('markdown' in reactiveMessage) {
+          reactiveMessage.markdown = resultRef.value
+        } else if ('content' in reactiveMessage) {
+          reactiveMessage.content = resultRef.value
+        }
+      }
+
+      // 原生 tools 路径兜底：SDK 有时（如第二轮）不通过 tool-input-available/result.toolCalls 上报，
+      // 若响应文本中含 <tool_call>，解析并上报，避免“有工具调用但未执行、会话直接结束”
+      if (useNativeTools && onToolCallsDetected && resultRef.value) {
+        let parsedFromText = parseToolCallsFromContent(resultRef.value)
+        if (!parsedFromText || parsedFromText.length === 0) {
+          parsedFromText = parseToolCallsFromContentLoose(resultRef.value)
+        }
+        if (parsedFromText && parsedFromText.length > 0) {
+          getLogger().debug('[callChatViaTask] 原生 tools 兜底：从响应文本解析到工具调用', {
+            count: parsedFromText.length,
+            toolIds: parsedFromText.map((tc) => tc.tool_id)
+          })
+          try {
+            await onToolCallsDetected(parsedFromText)
+          } catch (err) {
+            getLogger().error('[callChatViaTask] 原生 tools 兜底回调失败', err)
+          }
+        }
+      }
+
+      // 如果流式输出完成，再次检查是否有未处理的工具调用（兜底机制；非原生 tools 路径才解析文本）
       if (onToolCallsDetected && !(Array.isArray(optionsTools) && optionsTools.length > 0)) {
         getLogger().debug(
           '[callChatViaTask] 流式输出完成，检查最终结果中是否包含未处理的工具调用:',

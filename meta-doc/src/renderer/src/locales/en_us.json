@@ -2717,6 +2717,16 @@
         "updating": "Updating metadata...",
         "processing": "Processing..."
       },
+      "timestamp": {
+        "processing": "Getting time...",
+        "current": "Current time",
+        "previous": "Previous call time",
+        "timeDiff": "Time difference",
+        "local": "Local",
+        "unixTimestamp": "Unix timestamp",
+        "result": "Result",
+        "error": "Failed to get time"
+      },
       "outlineOptimize": {
         "loading": "Loading document...",
         "generating": "Generating...",

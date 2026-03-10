@@ -257,14 +257,12 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   const summarized = params.summarized === true
   const workspaceFolder = params.workspaceFolder as string | undefined
 
-  // 如果没有指定paths，返回目录树
-  if (!paths) {
+  /** 无 paths 或 paths 为空时，返回工作区根目录树（不报错，便于 AI 先“看看有什么”再读具体文件） */
+  const returnWorkspaceRootTree = async (): Promise<ToolCallbackResult> => {
     try {
       onUpdate(
         {
-          content: {
-            stage: 'loading-tree'
-          },
+          content: { stage: 'loading-tree' },
           format: 'json',
           componentName: 'WorkspaceDisplay'
         },
@@ -273,18 +271,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
           message: i18n.global.t('agent.tool.workspace.progress.loadingTree', '正在加载目录树...')
         }
       )
-
-      // 获取工作区文件夹列表
-      let folders: string[] = []
-
-      if (workspaceFolder) {
-        folders = [workspaceFolder]
-      } else {
-        // 尝试从eventBus获取工作区文件夹
-        const foldersFromEvent = await getWorkspaceFolders()
-        folders = foldersFromEvent.length > 0 ? foldersFromEvent : []
-      }
-
+      let folders: string[] = workspaceFolder ? [workspaceFolder] : await getWorkspaceFolders()
       if (folders.length === 0) {
         return {
           status: 'failed',
@@ -302,18 +289,11 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
           )
         }
       }
-
-      // 读取第一个工作区文件夹的目录树
       const folderPath = folders[0]
       const tree = await readDirectoryTree(folderPath)
-
       onUpdate(
         {
-          content: {
-            stage: 'completed',
-            tree: tree,
-            workspaceFolder: folderPath
-          },
+          content: { stage: 'completed', tree, workspaceFolder: folderPath },
           format: 'json',
           componentName: 'WorkspaceDisplay'
         },
@@ -322,22 +302,14 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
           message: i18n.global.t('agent.tool.workspace.progress.completed', '目录树加载完成')
         }
       )
-
       return {
         status: 'succeeded',
         data: {
-          content: {
-            stage: 'completed',
-            tree: tree,
-            workspaceFolder: folderPath
-          },
+          content: { stage: 'completed', tree, workspaceFolder: folderPath },
           format: 'json',
           componentName: 'WorkspaceDisplay'
         },
-        result: {
-          tree: tree,
-          workspaceFolder: folderPath
-        }
+        result: { tree, workspaceFolder: folderPath }
       }
     } catch (error) {
       logger.error('加载目录树失败:', error)
@@ -348,27 +320,18 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     }
   }
 
-  // 处理文件读取
-  const pathArray = Array.isArray(paths) ? paths : [paths]
+  // 未指定 paths 或 paths 为空数组/空字符串：返回工作区根目录树，不报错
+  const pathArray = Array.isArray(paths)
+    ? (paths as string[]).filter((p) => p != null && String(p).trim() !== '')
+    : paths != null && String(paths).trim() !== ''
+      ? [paths as string]
+      : []
 
   if (pathArray.length === 0) {
-    return {
-      status: 'failed',
-      error: createDetailedError(
-        '缺少必需参数: paths（文件路径）',
-        [
-          '{"paths": "path/to/file.txt"}  // 单个文件',
-          '{"paths": ["file1.txt", "file2.txt"]}  // 多个文件',
-          '{"paths": "file.txt:L123-L456"}  // 行数范围'
-        ],
-        [
-          'paths可以是字符串或字符串数组',
-          '支持行数范围：":L123-L456" 或 ":L123"',
-          '如果不指定行数范围，返回完整文件内容'
-        ]
-      )
-    }
+    return returnWorkspaceRootTree()
   }
+
+  // 处理文件读取
 
   try {
     onUpdate(
@@ -579,12 +542,12 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 const workspaceToolLocales: ToolLocales = {
   zh_cn: {
     name: '工作区文件读取',
-    description: '读取工作区文件夹中的文件，支持路径字符串和行数范围，可选择AI摘要'
+    description: '读取工作区文件或列出根目录。不传 paths 或 paths 为空时返回目录树；传 paths 时读取文件，支持行数范围与 AI 摘要'
   },
   en_us: {
     name: 'Workspace File Reader',
     description:
-      'Read files from workspace folders, supports path strings and line ranges, optional AI summarization'
+      'Read workspace files or list root directory. Omit paths or use empty paths to get directory tree; use paths to read file(s). Supports line ranges and optional AI summarization'
   },
   de_DE: {
     name: 'Arbeitsbereich-Dateileser',
@@ -615,25 +578,25 @@ export const workspaceToolConfig: AgentToolConfig = {
   spec: {
     name: 'workspace',
     brief:
-      'Read files from workspace folders. Supports path strings with optional line ranges (e.g., "file.txt:L123-L456"). Can read multiple files in batch. Optional AI summarization to save context space.',
+      'Read files from workspace folders, or list root directory. Call with no paths (or empty paths) to get workspace directory tree; use paths to read file(s). Supports path strings with optional line ranges (e.g., "file.txt:L123-L456"). Optional AI summarization.',
     fullSpec: `# Workspace File Reader Tool
 
 ## Description
-Read files from workspace folders. Supports reading single files, multiple files, or file line ranges. Can optionally use AI to summarize file contents to save context space.
+Read files from workspace folders, or list the workspace root directory. **Call with no \`paths\` or with \`paths\` empty/omitted to get the directory tree** (no error). Use \`paths\` when you need to read specific file(s). Supports single files, multiple files, or file line ranges. Optional AI summarization to save context space.
 
 **⚠️ Use this tool (not grep) when you need to read full file content or large portions of a file.** Grep only returns matching snippets; for full content use \`workspace\` with \`paths\`.
 
 ## Usage Scenarios
+- **List workspace root** – call with \`{}\` or \`{"paths": []}\` to get directory tree, then read specific files
 - Read workspace files to understand codebase structure
 - Read specific lines from large files
 - Batch read multiple related files
-- Get directory tree structure of workspace
 - Summarize long files to save token usage
 
 ## Input Format
 \`\`\`json
 {
-  "paths": "string|string[]",  // Optional, file path(s). If not provided, returns directory tree
+  "paths": "string|string[]",  // Optional. Omit, or use [] or "", to return workspace root directory tree; otherwise file path(s) to read
   "summarized": false,          // Optional, whether to use AI summarization, default false
   "workspaceFolder": "string"   // Optional, workspace folder path. If not provided, uses first workspace folder
 }
@@ -645,6 +608,8 @@ Read files from workspace folders. Supports reading single files, multiple files
 - \`"path/to/file.txt:L123-L456"\` - Read line range (lines 123 to 456)
 
 ## Output Format
+When \`paths\` is omitted or empty: returns \`{ tree, workspaceFolder }\` (directory tree).
+When \`paths\` is provided:
 \`\`\`json
 {
   "files": [
@@ -664,7 +629,7 @@ Read files from workspace folders. Supports reading single files, multiple files
 \`\`\`
 
 ## Important Notes
-- If \`paths\` is not provided, returns directory tree structure
+- **No paths or empty paths**: returns workspace root directory tree (no error). Use this to discover structure before reading files.
 - Line numbers are 1-based (first line is 1)
 - If line range exceeds file length, automatically truncates
 - AI summarization emphasizes concise language without redundant content
@@ -675,23 +640,23 @@ Read files from workspace folders. Supports reading single files, multiple files
 # 工作区文件读取工具
 
 ## 功能描述
-读取工作区文件夹中的文件，支持路径字符串和行数范围。可以读取单个文件、多个文件或指定行范围。支持可选的AI摘要功能，用于节省上下文空间。
+读取工作区文件夹中的文件，或列出工作区根目录。**不传 \`paths\` 或 \`paths\` 为空时，直接返回工作区根目录树（不报错）**，便于先查看结构再读具体文件。传 \`paths\` 时读取指定文件，支持路径字符串和行数范围。支持可选的AI摘要功能。
 
 **⚠️ 需要读整个文件或大段内容时请用本工具（不要用 grep）**。grep 只返回匹配片段；要完整内容请用 \`workspace\` 传 \`paths\`。
 
 ## 使用场景
+- **先看目录再读文件**：用 \`{}\` 或 \`{"paths": []}\` 获取根目录树，再根据结构传 \`paths\` 读文件
 - 读取工作区文件，了解代码库结构
 - 从大文件中读取特定行
 - 批量读取多个相关文件
-- 获取工作区目录树结构
 - 对长文件进行摘要，节省token使用
 
 ## 输入格式
 \`\`\`json
 {
-  "paths": "string|string[]",  // 可选，文件路径（字符串或数组）。如果不提供，返回目录树
+  "paths": "string|string[]",  // 可选。不传、传 [] 或 "" 时返回工作区根目录树；传路径时读取对应文件
   "summarized": false,          // 可选，是否使用AI摘要，默认false
-  "workspaceFolder": "string"   // 可选，工作区文件夹路径。如果不提供，使用第一个工作区文件夹
+  "workspaceFolder": "string"   // 可选，工作区文件夹路径。不提供则使用第一个工作区文件夹
 }
 \`\`\`
 
@@ -701,6 +666,8 @@ Read files from workspace folders. Supports reading single files, multiple files
 - \`"path/to/file.txt:L123-L456"\` - 读取行范围（第123行到第456行）
 
 ## 输出格式
+\`paths\` 为空或未传时：返回 \`{ tree, workspaceFolder }\`（目录树）。
+\`paths\` 有值时：
 \`\`\`json
 {
   "files": [
@@ -720,7 +687,7 @@ Read files from workspace folders. Supports reading single files, multiple files
 \`\`\`
 
 ## 注意事项
-- 如果不提供\`paths\`参数，返回目录树结构
+- **无 paths 或 paths 为空**：返回工作区根目录树（不报错），可先用来查看结构再读文件
 - 行号从1开始（第一行是1）
 - 如果行数范围超出文件总行数，自动截断（比如总共15行，请求第16行，忽略即可）
 - AI摘要功能强调语言简洁，不包含多余内容
@@ -740,7 +707,7 @@ Read files from workspace folders. Supports reading single files, multiple files
       paths: {
         oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
         description:
-          '文件路径（字符串或字符串数组）。如果不提供，返回目录树。支持行数范围：":L123-L456" 或 ":L123"'
+          '文件路径（字符串或数组）。不提供、空数组或空字符串时返回工作区根目录树；有值时读取对应文件。支持行数范围：":L123-L456" 或 ":L123"'
       },
       summarized: {
         type: 'boolean',

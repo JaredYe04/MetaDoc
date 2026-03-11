@@ -460,14 +460,14 @@
         </form>
       </ScrollArea>
 
-      <DialogFooter>
-        <Button @click="handleCancel">
+      <DialogFooter class="export-options-dialog-footer">
+        <Button class="export-options-btn-cancel" variant="outline" @click="handleCancel">
           {{ t('common.cancel') }}
         </Button>
-        <Button @click="handleConfirm">
+        <Button class="export-options-btn-export" @click="handleConfirm">
           {{ t('common.export') }}
         </Button>
-        <Button @click="handleReset" variant="outline">
+        <Button class="export-options-btn-reset" variant="outline" @click="handleReset">
           {{ t('common.reset') }}
         </Button>
       </DialogFooter>
@@ -916,5 +916,44 @@ html.dark :deep(.export-options-tabs-list [data-state='active']) {
 :deep(.export-options-tabs [role='tabpanel']:focus-visible) {
   outline: none;
   box-shadow: none;
+}
+
+/* 导出对话框底部按钮：深色模式下强制可读（避免白底白字） */
+.export-options-dialog-footer :deep(button) {
+  color: hsl(var(--foreground));
+}
+.export-options-dialog-footer :deep(.export-options-btn-cancel),
+.export-options-dialog-footer :deep(.export-options-btn-reset) {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+.export-options-dialog-footer :deep(.export-options-btn-cancel:hover),
+.export-options-dialog-footer :deep(.export-options-btn-reset:hover) {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+.export-options-dialog-footer :deep(.export-options-btn-export) {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.export-options-dialog-footer :deep(.export-options-btn-export:hover) {
+  filter: brightness(0.9);
+}
+/* 深色模式：确保主按钮为深底白字、次要按钮有边框与前景色 */
+html.dark .export-options-dialog-content .export-options-dialog-footer :deep(.export-options-btn-export) {
+  background-color: hsl(222.2 47.4% 11.2%);
+  color: hsl(210 40% 98%);
+}
+html.dark .export-options-dialog-content .export-options-dialog-footer :deep(.export-options-btn-cancel),
+html.dark .export-options-dialog-content .export-options-dialog-footer :deep(.export-options-btn-reset) {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border-color: hsl(var(--border));
+}
+html.dark .export-options-dialog-content .export-options-dialog-footer :deep(.export-options-btn-cancel:hover),
+html.dark .export-options-dialog-content .export-options-dialog-footer :deep(.export-options-btn-reset:hover) {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 </style>

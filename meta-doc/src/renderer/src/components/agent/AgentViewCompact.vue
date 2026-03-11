@@ -261,6 +261,7 @@
                 <Button
                   size="sm"
                   class="agent-staging-btn agent-staging-btn-accept"
+                  :disabled="!hasPendingEdits"
                   @click="stagingAcceptAll"
                 >
                   {{ t('agent.staging.acceptAll', '全部接受') }}
@@ -268,6 +269,7 @@
                 <Button
                   size="sm"
                   class="agent-staging-btn agent-staging-btn-reject"
+                  :disabled="!hasPendingEdits"
                   @click="stagingRejectAll"
                 >
                   {{ t('agent.staging.rejectAll', '全部拒绝') }}
@@ -372,6 +374,7 @@
                 compact
                 @select-file="handleReferencePickerFile"
                 @select-tab="handleReferencePickerTab"
+                @select-dir="handleReferencePickerDir"
               />
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
@@ -394,6 +397,53 @@
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="agent-context-ring-btn agent-context-ring-wrap"
+                    :disabled="isGenerating"
+                    :title="t('agent.contextBreakdown.tooltip')"
+                    @click="contextBreakdownDialogOpen = true"
+                  >
+                    <svg
+                      class="agent-context-ring-svg"
+                      viewBox="0 0 24 24"
+                      width="20"
+                      height="20"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        class="agent-context-ring-bg"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <circle
+                        class="agent-context-ring-fill"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-dasharray="62.83"
+                        :stroke-dashoffset="62.83 - (62.83 * contextUsage.percentage) / 100"
+                        stroke-linecap="round"
+                        transform="rotate(-90 12 12)"
+                      />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {{ contextUsageTooltip }}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </template>
         </ChatComposer>
@@ -448,6 +498,12 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- 上下文组成对话框 -->
+    <ContextBreakdownDialog
+      v-model:open="contextBreakdownDialogOpen"
+      :breakdown="contextBreakdown"
+    />
 
     <!-- 消息编辑对话框 -->
     <Dialog v-model:open="showEditMessageDialog">
@@ -520,7 +576,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
-import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
+import {
+  selectReferenceFiles,
+  resolveDirectoryToReference,
+  resolveFilePathToReference
+} from '../../utils/agent-framework/reference-processor'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Collapsible,
@@ -538,6 +598,7 @@ import ChatComposer from '../chat/ChatComposer.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
 import ReferenceManager from './ReferenceManager.vue'
 import AgentReferencePicker from './AgentReferencePicker.vue'
+import ContextBreakdownDialog from './ContextBreakdownDialog.vue'
 import type { AgentMessage, AgentSession, ChatAgentMessage } from '../../types/agent'
 import type { StagingEditRecord } from '../../stores/agent-edit-staging-store'
 import type { Reference } from '../../types/agent-framework'
@@ -546,8 +607,10 @@ import { notifyError, notifySuccess, notifyWarning } from '../../utils/notify'
 import {
   agentEngineManager,
   agentConfigManager,
-  agentSessionManager
+  agentSessionManager,
+  AIContextManager
 } from '../../utils/agent-framework'
+import type { ContextBreakdown } from '../../utils/agent-framework'
 import { generateConversationTitleByAi } from '../../utils/conversation-title'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 import { processTextReference } from '../../utils/agent-framework/reference-processor'
@@ -575,6 +638,73 @@ const stagingPanelOpen = ref(false)
 const stagingEdits = computed(() =>
   activeSession.value ? stagingStore.getEditsForSession(activeSession.value.id) : []
 )
+const hasPendingEdits = computed(
+  () => stagingEdits.value.some((e) => e.status === 'pending')
+)
+
+// 第一次出现 pending 编辑时自动展开暂存区，后续不再自动展开
+watch(
+  () => stagingEdits.value.filter((e) => e.status === 'pending').length,
+  (pendingCount, prevPendingCount) => {
+    if (pendingCount > 0 && (prevPendingCount ?? 0) === 0) {
+      stagingPanelOpen.value = true
+    }
+  }
+)
+
+const contextUsage = computed(() => {
+  const session = activeSession.value
+  const configId = (session as any)?.agentConfigId
+  if (!session || !configId) {
+    return { estimatedTokens: 0, maxTokens: 120000, percentage: 0 }
+  }
+  const config = agentConfigManager.getConfig(configId)
+  if (!config) return { estimatedTokens: 0, maxTokens: 120000, percentage: 0 }
+  return AIContextManager.getContextUsage(session, config, {})
+})
+const contextUsageTooltip = computed(() => {
+  const u = contextUsage.value
+  const k = Math.round(u.estimatedTokens / 1000)
+  const maxK = Math.round(u.maxTokens / 1000)
+  return `Context: ${u.percentage}% (${k}k / ${maxK}k tokens)`
+})
+
+const contextBreakdown = computed<ContextBreakdown | null>(() => {
+  const session = activeSession.value
+  const configId = (session as any)?.agentConfigId
+  if (!session || !configId) return null
+  const config = agentConfigManager.getConfig(configId)
+  if (!config) return null
+  return AIContextManager.getContextBreakdown(session, config, {})
+})
+const contextBreakdownDialogOpen = ref(false)
+
+async function resolveAtExtraReferences(content: string): Promise<Reference[]> {
+  const log = createRendererLogger('AgentViewCompact')
+  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
+  const extraRefs: Reference[] = []
+  for (const rawId of refIdsInInput) {
+    try {
+      if (rawId.startsWith('dir:')) {
+        const r = await resolveDirectoryToReference(rawId.slice(4))
+        if (r) extraRefs.push(r)
+      } else if (rawId.startsWith('tab:')) {
+        const tabId = rawId.slice(4)
+        const tab = workspace.tabs.find((t) => t.id === tabId)
+        if (tab?.path) {
+          const r = await resolveFilePathToReference(tab.path)
+          if (r) extraRefs.push(r)
+        }
+      } else if (rawId.includes('/') || rawId.includes('\\')) {
+        const r = await resolveFilePathToReference(rawId)
+        if (r) extraRefs.push(r)
+      }
+    } catch (e) {
+      log.warn('[resolveAtExtraReferences] 解析 @ 引用失败', rawId, e)
+    }
+  }
+  return extraRefs
+}
 
 // 与 LeftMenu、ViewMenuContainer 及子面板一致：统一用 sidebarPanelBackground
 const panelStyle = computed(() => ({
@@ -1122,6 +1252,10 @@ function getAtLabel(rawValue: string): string {
     const tab = workspace.tabs.find((t) => t.id === tabId)
     return tab?.title ?? t('agent.attachment.untitled', '未命名')
   }
+  if (rawValue.startsWith('dir:')) {
+    const dirPath = rawValue.slice(4)
+    return dirPath.replace(/^.*[/\\]/, '') || dirPath || t('agent.reference.directory', '目录')
+  }
   return rawValue.replace(/^.*[/\\]/, '') || rawValue
 }
 
@@ -1139,6 +1273,12 @@ function handleReferencePickerTab(payload: { type: 'tab'; tabId: string }) {
   } else {
     composerRef.value?.insertAtCursor('tab:' + payload.tabId)
   }
+  referencePickerOpen.value = false
+}
+
+function handleReferencePickerDir(payload: { type: 'dir'; path: string }) {
+  if (payload.type !== 'dir') return
+  composerRef.value?.insertAtCursor('dir:' + payload.path)
   referencePickerOpen.value = false
 }
 
@@ -1309,7 +1449,11 @@ const handleComposerReset = () => {
   agentStore.setComposerInput('')
 }
 
-const executeAgentEngine = async (userMessage: string, actualSession?: AgentSession) => {
+const executeAgentEngine = async (
+  userMessage: string,
+  actualSession?: AgentSession,
+  extraReferences?: Reference[]
+) => {
   isGenerating.value = true
 
   const session = actualSession || activeSession.value
@@ -1353,6 +1497,7 @@ const executeAgentEngine = async (userMessage: string, actualSession?: AgentSess
     const executor = AgentEngineExecutorFactory.create(engine, session as any, agentConfig, {
       signal: abortController.signal,
       activeReferenceIds: refIds,
+      extraReferences,
       onProgress: (progress: any) => {
         session.status = progress.stage as any
         // 注意：不要在流式输出期间频繁持久化（可能破坏 reactive 对象）
@@ -1415,7 +1560,14 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   if (session.activeToolIds) session.activeToolIds = []
 
   const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
-  const messageRefIds = refIdsInInput.length > 0 ? refIdsInInput : [...activeReferenceIds.value]
+  // @ 引用（文件/目录）是临时上下文：不写入 referenceStore，只在本次生成注入
+  const extraRefs = await resolveAtExtraReferences(content)
+
+  // 消息的 referenceIds 仅用于“附件引用”（referenceStore 的 ref-id），避免 @ 引用污染附件菜单
+  const storeIds = new Set((session.referenceStore || []).map((r) => r.id))
+  const attachmentIdsInInput = refIdsInInput.filter((id) => storeIds.has(id))
+  const messageRefIds =
+    attachmentIdsInInput.length > 0 ? attachmentIdsInInput : [...activeReferenceIds.value]
   const isFirstUserMessage = session.messages.length === 1
   const message = createChatMessage('user', content, messageRefIds)
   session.messages.push(message)
@@ -1429,7 +1581,7 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   scrollToBottom()
 
   try {
-    await executeAgentEngine(content, session)
+    await executeAgentEngine(content, session, extraRefs)
     // 第一轮对话完成后，根据整轮会话内容由 AI 生成标题（参考 AIChat.vue）
     if (isFirstUserMessage && !session.titleUserEdited) {
       generateConversationTitleByAi(
@@ -1923,6 +2075,37 @@ onMounted(async () => {
   height: 12px;
 }
 
+.agent-context-ring-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.agent-context-ring-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+.agent-context-ring-btn:hover .agent-context-ring-fill,
+.agent-context-ring-btn:hover .agent-context-ring-bg {
+  opacity: 1;
+}
+.agent-context-ring-btn:hover .agent-context-ring-bg {
+  opacity: 0.4;
+}
+.agent-context-ring-svg {
+  display: block;
+}
+.agent-context-ring-bg {
+  opacity: 0.25;
+}
+.agent-context-ring-fill {
+  opacity: 1;
+  transition: stroke-dashoffset 0.2s ease;
+}
+
 .agent-compact-composer :deep(.chat-composer) {
   width: 100%;
 }
@@ -1984,9 +2167,13 @@ onMounted(async () => {
   margin-bottom: 4px;
 }
 
-/* 底部按钮：背景色区分，文字颜色一致 */
+/* 底部按钮：紧凑高度，背景色区分，文字颜色一致 */
 .agent-staging-btn {
-  font-size: 12px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 22px;
   color: #fff !important;
 }
 .agent-staging-btn-accept {

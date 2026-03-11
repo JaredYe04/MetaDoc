@@ -2,7 +2,7 @@
   <div class="reference-manager" :style="containerStyle">
     <div class="manager-header">
       <h3>{{ t('agent.reference.title') }}</h3>
-      <div class="header-actions">
+      <div class="header-actions header-actions--equal">
         <Button
           variant="destructive"
           size="sm"
@@ -18,121 +18,102 @@
       </div>
     </div>
 
-    <!-- 内置0号reference开关 -->
-    <div class="built-in-reference-section">
-      <div class="built-in-reference-info">
-        <el-icon class="info-icon"><Document /></el-icon>
-        <div class="info-content">
-          <div class="info-title">
-            {{ t('agent.reference.builtInDocument.title', '当前文档引用') }}
-          </div>
-          <div class="info-description">
-            {{
-              t(
-                'agent.reference.builtInDocument.description',
-                '动态获取当前活动文档内容，实时更新，不占用历史消息空间'
-              )
-            }}
-          </div>
-        </div>
-      </div>
-      <div class="built-in-reference-actions">
-        <Button size="sm" variant="secondary" @click="handlePreviewBuiltInDocument">
-          <View class="w-4 h-4 mr-1" />
-          {{ t('agent.reference.builtInDocument.preview', '预览') }}
-        </Button>
-        <Switch :checked="enableBuiltInDocRef" @update:checked="handleToggleBuiltInDocRef" />
-      </div>
-    </div>
-
     <div class="table-container" style="position: relative">
       <LoadingOverlay :show="loading" :message="t('common.loading', '加载中...')" />
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead style="min-width: 150px">{{ t('agent.reference.name') }}</TableHead>
-            <TableHead style="width: 90px; text-align: center">{{
-              t('agent.reference.format')
-            }}</TableHead>
-            <TableHead style="min-width: 200px">{{ t('agent.reference.origin') }}</TableHead>
-            <TableHead style="min-width: 150px">{{ t('agent.reference.description') }}</TableHead>
-            <TableHead style="min-width: 200px">{{ t('agent.reference.content') }}</TableHead>
-            <TableHead style="width: 120px; text-align: center">{{
-              t('agent.reference.actions')
-            }}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="row in references" :key="row.id">
-            <TableCell>
-              <div class="table-cell-content">{{ row.name }}</div>
-            </TableCell>
-            <TableCell style="text-align: center">
-              <Badge variant="outline">{{ row.format || 'txt' }}</Badge>
-            </TableCell>
-            <TableCell>
-              <div class="table-cell-content">{{ row.origin }}</div>
-            </TableCell>
-            <TableCell>
-              <div class="table-cell-content">{{ row.description || '-' }}</div>
-            </TableCell>
-            <TableCell>
-              <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
-                {{
-                  row.parsedContent.length > 100
-                    ? row.parsedContent.substring(0, 100) + '...'
-                    : row.parsedContent
-                }}
-              </div>
-              <div
-                class="table-cell-content"
-                v-else
-                :style="{ color: themeState.currentTheme.textColor2 }"
-              >
-                -
-              </div>
-            </TableCell>
-            <TableCell style="text-align: center">
-              <div class="action-buttons">
+      <el-scrollbar class="reference-table-scroll" :wrap-style="{ overflowX: 'hidden', overflowY: 'auto' }">
+        <Table class="reference-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead class="col-name">{{ t('agent.reference.name') }}</TableHead>
+              <TableHead class="col-format">{{ t('agent.reference.format') }}</TableHead>
+              <TableHead class="col-origin">{{ t('agent.reference.origin') }}</TableHead>
+              <TableHead class="col-desc">{{ t('agent.reference.description') }}</TableHead>
+              <TableHead class="col-content">{{ t('agent.reference.content') }}</TableHead>
+              <TableHead class="col-actions">{{ t('agent.reference.actions') }}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="row in references" :key="row.id">
+              <TableCell>
+                <div class="table-cell-content">{{ row.name }}</div>
+              </TableCell>
+              <TableCell style="text-align: center">
+                <Badge variant="outline">{{ row.format || 'txt' }}</Badge>
+              </TableCell>
+              <TableCell class="cell-truncate">
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      class="h-8 w-8"
-                      @click="handleViewContent(row)"
-                    >
-                      <Document class="w-4 h-4" />
-                    </Button>
+                    <div class="table-cell-content table-cell-content--single">{{ row.origin }}</div>
                   </TooltipTrigger>
-                  <TooltipContent side="top">{{ t('agent.reference.viewContent') }}</TooltipContent>
+                  <TooltipContent side="top" class="max-w-[320px] break-words">
+                    {{ truncateForTooltip(row.origin, 400) }}
+                  </TooltipContent>
                 </Tooltip>
-                <Tooltip>
+              </TableCell>
+              <TableCell>
+                <div class="table-cell-content">{{ row.description || '-' }}</div>
+              </TableCell>
+              <TableCell class="cell-truncate">
+                <Tooltip v-if="row.parsedContent">
                   <TooltipTrigger as-child>
-                    <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
-                      <Edit class="w-4 h-4" />
-                    </Button>
+                    <div class="table-cell-content table-cell-content--single">
+                      {{ row.parsedContent }}
+                    </div>
                   </TooltipTrigger>
-                  <TooltipContent side="top">{{ t('common.edit') }}</TooltipContent>
+                  <TooltipContent side="top" class="max-w-[320px] break-words">
+                    {{ truncateForTooltip(row.parsedContent, 400) }}
+                  </TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      class="h-8 w-8"
-                      @click="handleDelete(row)"
-                    >
-                      <Delete class="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">{{ t('common.delete') }}</TooltipContent>
-                </Tooltip>
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+                <div
+                  v-else
+                  class="table-cell-content table-cell-content--single"
+                  :style="{ color: themeState.currentTheme.textColor2 }"
+                >
+                  -
+                </div>
+              </TableCell>
+              <TableCell style="text-align: center">
+                <div class="action-buttons">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        class="h-8 w-8"
+                        @click="handleViewContent(row)"
+                      >
+                        <Document class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{{ t('agent.reference.viewContent') }}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleEdit(row)">
+                        <Edit class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{{ t('common.edit') }}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        class="h-8 w-8"
+                        @click="handleDelete(row)"
+                      >
+                        <Delete class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{{ t('common.delete') }}</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </el-scrollbar>
     </div>
 
     <!-- 查看内容对话框 -->
@@ -355,7 +336,6 @@ import { Textarea } from '@renderer/components/ui/textarea'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { Form, FormField } from '@renderer/components/ui/form'
-import { Switch } from '@renderer/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -388,6 +368,13 @@ function getLogger() {
   return loggerInstance
 }
 
+/** 用于 tooltip 的截断，避免超长内容撑满浮层 */
+function truncateForTooltip(text: string | undefined | null, maxLen: number): string {
+  if (text == null || text === '') return ''
+  if (text.length <= maxLen) return text
+  return text.slice(0, maxLen) + '…'
+}
+
 const props = defineProps<{
   session: AgentSession
   mode?: string
@@ -395,7 +382,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   update: []
-  'update-built-in-doc-ref': [value: boolean]
 }>()
 
 // Demo mode support
@@ -468,100 +454,6 @@ const references = computed(() => {
   }
   return props.session.referenceStore || []
 })
-
-// 内置0号reference开关
-const enableBuiltInDocRef = computed({
-  get: () => (props.session as any).enableBuiltInDocumentReference !== false, // 默认开启
-  set: (value: boolean) => {
-    // 通过emit更新，由父组件处理
-    emit('update-built-in-doc-ref', value)
-  }
-})
-
-const handleToggleBuiltInDocRef = (value: boolean) => {
-  // 更新session的enableBuiltInDocumentReference字段
-  const newFormatSession: any = {
-    ...props.session,
-    entityType: 'agent-session',
-    createdAt:
-      typeof props.session.createdAt === 'string'
-        ? new Date(props.session.createdAt).getTime()
-        : props.session.createdAt,
-    updatedAt:
-      typeof props.session.updatedAt === 'string'
-        ? new Date(props.session.updatedAt).getTime()
-        : props.session.updatedAt,
-    messageQueue: props.session.messageQueue || [],
-    referenceStore: props.session.referenceStore || [],
-    publicContext: props.session.publicContext || {},
-    executionNodes: props.session.executionNodes || [],
-    status: props.session.status || 'idle',
-    enableBuiltInDocumentReference: value
-  }
-
-  // 直接更新session对象
-  Object.assign(props.session, { enableBuiltInDocumentReference: value } as any)
-  emit('update')
-}
-
-const handlePreviewBuiltInDocument = () => {
-  try {
-    // Demo mode: show demo built-in document
-    if (isDemo.value) {
-      const builtInRef: Reference = {
-        id: 'built-in-document-reference-0',
-        name: t('agent.reference.builtInDocument.title'),
-        origin: '/demo/current-document.md',
-        format: 'md',
-        parsedContent:
-          '# Demo Current Document\n\nThis is a demonstration of the built-in document reference feature. In real mode, this would show the content of the currently active document.',
-        description: `${t('agent.reference.builtInDocument.description')}${t('agent.reference.builtInDocument.formatSuffix', { format: 'Markdown' })}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }
-      viewingReference.value = builtInRef
-      contentDialogVisible.value = true
-      return
-    }
-
-    const activeDoc = workspace.activeDocument.value
-
-    if (!activeDoc) {
-      ElMessage.warning(t('agent.reference.builtInDocument.noActiveDocument', '没有活动的文档'))
-      return
-    }
-
-    // 确定文档格式
-    const docFormat = activeDoc.format === 'tex' ? 'tex' : 'md'
-    const formatName = docFormat === 'tex' ? 'LaTeX' : 'Markdown'
-
-    // 根据文档格式获取内容
-    const content = docFormat === 'tex' ? activeDoc.tex : activeDoc.markdown
-
-    if (!content || content.trim().length === 0) {
-      ElMessage.info(t('agent.reference.builtInDocument.emptyDocument', '当前文档为空'))
-      return
-    }
-
-    // 创建临时reference用于预览
-    const builtInRef: Reference = {
-      id: 'built-in-document-reference-0',
-      name: t('agent.reference.builtInDocument.title'),
-      origin: activeDoc.path || t('agent.reference.builtInDocument.currentActiveDocument'),
-      format: docFormat,
-      parsedContent: content,
-      description: `${t('agent.reference.builtInDocument.description')}${t('agent.reference.builtInDocument.formatSuffix', { format: formatName })}`,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    }
-
-    // 显示预览对话框
-    viewingReference.value = builtInRef
-    contentDialogVisible.value = true
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
-  }
-}
 
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -1116,6 +1008,18 @@ const handleClearAll = async () => {
   font-size: 16px;
 }
 
+.header-actions--equal {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.header-actions--equal :deep(button) {
+  width: 100%;
+  justify-content: center;
+}
+
 .table-container {
   flex: 1;
   min-height: 0;
@@ -1123,6 +1027,24 @@ const handleClearAll = async () => {
   display: flex;
   flex-direction: column;
 }
+
+.reference-table-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 表格填满容器，列宽按比例分配，不出现横向滚动 */
+.reference-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.reference-table .col-name { width: 14%; }
+.reference-table .col-format { width: 8%; text-align: center; }
+.reference-table .col-origin { width: 18%; }
+.reference-table .col-desc { width: 14%; }
+.reference-table .col-content { width: 28%; }
+.reference-table .col-actions { width: 18%; text-align: center; }
 
 .table-cell-content {
   padding: 4px 0;
@@ -1136,6 +1058,23 @@ const handleClearAll = async () => {
   -webkit-line-clamp: 3;
   line-clamp: 3;
   -webkit-box-orient: vertical;
+}
+
+/* 来源、内容列：单行省略，宽度由表格列比例决定 */
+.cell-truncate {
+  overflow: hidden;
+  max-width: 0; /* 配合 table-layout:fixed 让单元格服从列宽 */
+}
+
+.table-cell-content--single {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-height: none;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: unset;
 }
 
 .action-buttons {
@@ -1168,49 +1107,4 @@ const handleClearAll = async () => {
   min-width: 200px;
 }
 
-.built-in-reference-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background: var(--el-bg-color-page);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-light);
-}
-
-.built-in-reference-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.built-in-reference-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.info-icon {
-  font-size: 20px;
-  color: var(--el-color-primary);
-}
-
-.info-content {
-  flex: 1;
-}
-
-.info-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  margin-bottom: 4px;
-}
-
-.info-description {
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  line-height: 1.4;
-}
 </style>

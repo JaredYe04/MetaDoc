@@ -130,8 +130,21 @@ function getToolStatusType(status: string) {
   padding: 8px 10px;
   width: 100%;
   text-align: left;
-  background: var(--el-fill-color-light);
+  /* header：主题色 15%，浅白/深灰黑 85% */
+  background-color: color-mix(in srgb, hsl(var(--accent, 220 14% 18%)) 15%, #f0f0f0 85%);
   cursor: pointer;
+  /* 仅顶部圆角，底部直角（与 content 衔接），覆盖 CollapsibleTrigger 的 rounded-md */
+  border-radius: 8px 8px 0 0 !important;
+}
+html.dark .subagent-trigger {
+  background-color: color-mix(in srgb, hsl(var(--accent, 210 40% 98%)) 15%, #141414 85%);
+}
+.subagent-trigger:hover {
+  /* hover 混色程度更低：更多主题色、更少基底 */
+  background-color: color-mix(in srgb, hsl(var(--accent)) 75%, #f0f0f0 25%) !important;
+}
+html.dark .subagent-trigger:hover {
+  background-color: color-mix(in srgb, hsl(var(--accent)) 75%, #141414 25%) !important;
 }
 
 .subagent-chevron {
@@ -151,8 +164,12 @@ function getToolStatusType(status: string) {
 
 .subagent-content {
   padding: 8px 10px;
-  background: var(--el-fill-color-blank);
+  /* 执行界面：浅白/深灰黑 80%，主题色 20% */
+  background-color: color-mix(in srgb, hsl(var(--accent, 220 14% 18%)) 20%, #f0f0f0 80%);
   border-top: 1px solid var(--el-border-color-lighter);
+}
+html.dark .subagent-content {
+  background-color: color-mix(in srgb, hsl(var(--accent, 210 40% 98%)) 20%, #141414 80%);
 }
 
 .subagent-messages {
@@ -201,8 +218,12 @@ function getToolStatusType(status: string) {
   max-height: 200px;
   overflow: auto;
   padding: 6px 8px;
-  background: var(--el-fill-color-light);
+  /* 返回结果 panel：浅白/深灰黑 60%，主题色 40% */
+  background-color: color-mix(in srgb, hsl(var(--accent, 220 14% 18%)) 40%, #f0f0f0 60%);
   border-radius: 4px;
+}
+html.dark .subagent-result-text {
+  background-color: color-mix(in srgb, hsl(var(--accent, 210 40% 98%)) 40%, #141414 60%);
 }
 
 .subagent-empty {

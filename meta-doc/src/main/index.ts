@@ -15,6 +15,7 @@ import os from 'os'
 import {
   mainCalls,
   getInitialThemeClass,
+  getSkeletonThemeQueryString,
   refreshMainWindowTitle,
   openDoc,
   findWindowWithToolTab,
@@ -706,10 +707,9 @@ function createWindow(): void {
 function handleCommandLineArgs(initialFilePath?: string | null): void {
   const filePath = initialFilePath || findSupportedFileArgument(process.argv)
   const queryParams = filePath ? `&file=${encodeURIComponent(filePath)}` : ''
-  const themeClass = getInitialThemeClass()
-  const themeParam = `theme=${encodeURIComponent(themeClass)}`
+  const themeParam = getSkeletonThemeQueryString()
 
-  // 加载骨架页（skeleton.html），窗口先显示骨架与温和动画，再在后台加载完整应用
+  // 加载骨架页（skeleton.html），窗口先显示骨架与温和动画，再在后台加载完整应用；URL 带主题色参数以便骨架屏适配主题
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     const base = process.env['ELECTRON_RENDERER_URL'] + '/'
     mainWindow?.loadURL(`${base}skeleton.html?${themeParam}#/home?windowType=home${queryParams}`)

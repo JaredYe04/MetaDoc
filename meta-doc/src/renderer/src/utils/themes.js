@@ -860,6 +860,21 @@ export function applyElementPlusTheme() {
       mixColors(theme.primaryColor, '#000000', 0.2)
     )
   }
+
+  // el-scrollbar：主题色与深色/浅色基底大比例混色（混色程度偏深），避免自定义主题下滚动条过艳
+  // 使用自定义变量 --md-el-scrollbar-thumb，因 .el-scrollbar 组件内写死了 --el-scrollbar-bg-color
+  const isDark = theme.type === 'dark'
+  const scrollbarBase = isDark ? '#252525' : '#e5e5e5'
+  const scrollbarHoverBase = isDark ? '#353535' : '#d8d8d8'
+  const themeForScrollbar = theme.primaryColor || (isDark ? '#9ca3af' : '#374151')
+  root.style.setProperty(
+    '--md-el-scrollbar-thumb',
+    mixColors(themeForScrollbar, scrollbarBase, 0.85)
+  )
+  root.style.setProperty(
+    '--md-el-scrollbar-thumb-hover',
+    mixColors(themeForScrollbar, scrollbarHoverBase, 0.8)
+  )
 }
 
 /**

@@ -620,13 +620,13 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* 字体设置分组样式 */
+/* 字体设置分组：用当前主题的页面背景做基底混色（20% accent、80% --background），不写死灰，白底就偏白、深蓝就随主题 */
 .font-settings-group {
   margin-bottom: 24px;
   padding: 16px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
-  background-color: var(--el-fill-color-light);
+  background-color: color-mix(in srgb, hsl(var(--accent, 220 14% 18%)) 20%, hsl(var(--background, 0 0% 98%)) 80%);
 }
 
 .font-group-title {

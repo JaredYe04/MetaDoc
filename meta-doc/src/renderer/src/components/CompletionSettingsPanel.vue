@@ -257,11 +257,11 @@ onMounted(() => {
   color: var(--el-text-color-primary);
 }
 
-/* Preview section styles */
+/* Preview section styles：与页面背景混色，避免纯主题色突兀 */
 .preview-section {
   margin-top: 32px;
   padding: 16px;
-  background-color: var(--el-fill-color-light);
+  background-color: hsl(var(--panel-bg, 0 0% 96%));
   border-radius: 8px;
   border: 1px solid var(--el-border-color-light);
 }

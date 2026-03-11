@@ -59,7 +59,11 @@
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderCheck" :disabled="!isDocumentTab" @click="emitMenu('save')">
+        <UISubMenuItem
+          :icon="FolderCheck"
+          :disabled="!isDocumentTab"
+          @click="emitMenu('save', { tabId: activeTab?.id })"
+        >
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 
@@ -519,7 +523,11 @@
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderCheck" :disabled="!isDocumentTab" @click="emitMenu('save')">
+        <UISubMenuItem
+          :icon="FolderCheck"
+          :disabled="!isDocumentTab"
+          @click="emitMenu('save', { tabId: activeTab?.id })"
+        >
           {{ $t('leftMenu.save') }}
         </UISubMenuItem>
 

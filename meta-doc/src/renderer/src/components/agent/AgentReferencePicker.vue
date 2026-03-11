@@ -3,6 +3,7 @@
     <PopoverTrigger as-child>
       <slot name="trigger">
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           :class="['composer-btn', compact ? 'agent-ref-picker-trigger--compact' : '']"
@@ -33,7 +34,7 @@
                 ? 'agent-ref-picker-input--compact'
                 : 'w-full px-3 py-2 text-sm rounded-md border bg-background'
             "
-            :placeholder="t('agent.reference.pickerPlaceholder', '输入文件名或路径搜索…')"
+            :placeholder="t('agent.reference.pickerPlaceholder', '输入文件名、路径或目录名搜索…')"
             @keydown="onSearchKeydown"
           />
         </div>
@@ -73,6 +74,38 @@
                 <span class="truncate">{{
                   tab.title || t('agent.reference.untitled', '未命名')
                 }}</span>
+              </button>
+            </div>
+            <!-- 工作区目录 -->
+            <div v-if="workspaceDirsFiltered.length > 0" :class="compact ? 'mb-1' : 'mb-2'">
+              <div
+                :class="
+                  compact
+                    ? 'px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground'
+                    : 'px-2 py-1 text-xs font-medium text-muted-foreground'
+                "
+              >
+                {{ t('agent.reference.workspaceDirs', '工作区目录') }}
+              </div>
+              <button
+                v-for="item in workspaceDirsFiltered"
+                :key="item.path"
+                type="button"
+                :class="[
+                  'agent-ref-picker-item w-full text-left rounded-md hover:bg-accent flex items-center gap-2',
+                  compact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'
+                ]"
+                :title="item.path"
+                @click="selectDir(item)"
+              >
+                <Folder
+                  :class="
+                    compact
+                      ? 'w-3 h-3 shrink-0 text-muted-foreground'
+                      : 'w-4 h-4 shrink-0 text-muted-foreground'
+                  "
+                />
+                <span class="truncate flex-1 min-w-0">{{ item.name }}</span>
               </button>
             </div>
             <!-- 工作区文件 -->
@@ -142,7 +175,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { AtSign, File, FileText } from 'lucide-vue-next'
+import { AtSign, File, FileText, Folder } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { PopoverRoot, PopoverTrigger } from 'reka-ui'
@@ -152,6 +185,7 @@ import { useWorkspace } from '../../stores/workspace'
 import {
   listWorkspaceFiles,
   fuzzyMatchFile,
+  fuzzyMatchDir,
   type WorkspaceFileItem
 } from '../../utils/workspace-file-list'
 import type { WorkspaceTab } from '../../stores/workspace'
@@ -170,6 +204,7 @@ const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'select-file', payload: { type: 'file'; path: string }): void
   (e: 'select-tab', payload: { type: 'tab'; tabId: string }): void
+  (e: 'select-dir', payload: { type: 'dir'; path: string }): void
 }>()
 
 const { t } = useI18n()
@@ -204,17 +239,29 @@ const fileListLoading = ref(false)
 async function loadWorkspaceFiles() {
   fileListLoading.value = true
   try {
-    workspaceFileList.value = await listWorkspaceFiles({ maxDepth: 4, maxEntries: 400 })
+    workspaceFileList.value = await listWorkspaceFiles({
+      maxDepth: 4,
+      maxEntries: 400,
+      includeDirectories: true,
+      maxDirEntries: 150
+    })
   } finally {
     fileListLoading.value = false
   }
 }
 
+const workspaceDirsFiltered = computed(() => {
+  const q = searchQuery.value.trim()
+  const dirs = workspaceFileList.value.filter((item) => item.isDirectory)
+  if (!q) return dirs.slice(0, 40)
+  return dirs.filter((item) => fuzzyMatchDir(q, item)).slice(0, 40)
+})
+
 const workspaceFilesFiltered = computed(() => {
   const q = searchQuery.value.trim()
-  const list = workspaceFileList.value
-  if (!q) return list.slice(0, 50)
-  return list.filter((item) => fuzzyMatchFile(q, item)).slice(0, 50)
+  const files = workspaceFileList.value.filter((item) => !item.isDirectory)
+  if (!q) return files.slice(0, 50)
+  return files.filter((item) => fuzzyMatchFile(q, item)).slice(0, 50)
 })
 
 watch(
@@ -241,6 +288,12 @@ function selectFile(item: WorkspaceFileItem) {
 
 function selectTab(tab: WorkspaceTab) {
   emit('select-tab', { type: 'tab', tabId: tab.id })
+  openState.value = false
+}
+
+function selectDir(item: WorkspaceFileItem) {
+  if (!item.isDirectory) return
+  emit('select-dir', { type: 'dir', path: item.path })
   openState.value = false
 }
 </script>

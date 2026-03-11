@@ -49,16 +49,11 @@ const emit = defineEmits<{
   (e: 'toggle', referenceId: string): void
 }>()
 
-// 计算要显示的引用（排除内置0号reference）
+// 计算要显示的引用
 const displayReferences = computed<ReferenceDisplayItem[]>(() => {
-  // 过滤掉内置0号reference
-  const filteredReferences = props.references.filter(
-    (ref) => ref.id !== 'built-in-document-reference-0'
-  )
-
   if (props.readonly) {
     // 只读模式：只显示激活的引用
-    return filteredReferences
+    return props.references
       .filter((ref) => props.activeReferenceIds.includes(ref.id))
       .map((ref) => ({
         id: ref.id,
@@ -67,7 +62,7 @@ const displayReferences = computed<ReferenceDisplayItem[]>(() => {
       }))
   } else {
     // 可编辑模式：显示所有引用，根据activeReferenceIds判断是否激活
-    return filteredReferences.map((ref) => ({
+    return props.references.map((ref) => ({
       id: ref.id,
       name: ref.name,
       active: props.activeReferenceIds.includes(ref.id)

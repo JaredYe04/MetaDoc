@@ -12,20 +12,31 @@
           var q = new URLSearchParams(window.location.search);
           var t = q.get('theme');
           if (t === 'dark' || t === 'light') theme = t;
+          document.documentElement.classList.add(theme);
+          document.documentElement.classList.remove(theme === 'dark' ? 'light' : 'dark');
+          var root = document.documentElement.style;
+          var side = q.get('side');
+          var top = q.get('top');
+          var list = q.get('list');
+          var content = q.get('content');
+          var tip = q.get('tip');
+          if (side) root.setProperty('--md-skeleton-side', '#' + side.replace(/^#/, ''));
+          if (top) root.setProperty('--md-skeleton-top', '#' + top.replace(/^#/, ''));
+          if (list) root.setProperty('--md-skeleton-list', '#' + list.replace(/^#/, ''));
+          if (content) root.setProperty('--md-skeleton-content', '#' + content.replace(/^#/, ''));
+          if (tip) root.setProperty('--md-skeleton-tip-color', '#' + tip.replace(/^#/, ''));
         } catch (e) {}
-        document.documentElement.classList.add(theme);
-        document.documentElement.classList.remove(theme === 'dark' ? 'light' : 'dark');
       })();
     </script>
   </head>
   <body style="overflow: hidden; margin: 0; padding: 0">
     <div id="app">
       <div class="metadoc-skeleton" aria-hidden="true">
-        <div class="metadoc-skeleton__side"></div>
-        <div class="metadoc-skeleton__main">
-          <div class="metadoc-skeleton__top"></div>
-          <div class="metadoc-skeleton__body">
-            <div class="metadoc-skeleton__list"></div>
+        <div class="metadoc-skeleton__top"></div>
+        <div class="metadoc-skeleton__below">
+          <div class="metadoc-skeleton__side"></div>
+          <div class="metadoc-skeleton__main">
+            <div class="metadoc-skeleton__body">
             <div class="metadoc-skeleton__content">
               <div class="metadoc-skeleton__center">
                 <div class="metadoc-skeleton__logo-wrap" id="skeleton-logo" role="button" aria-label="Logo">
@@ -45,6 +56,8 @@
                   <span class="metadoc-skeleton__tips-inner hide" id="skeleton-tip-b"></span>
                 </div>
               </div>
+            </div>
+            <div class="metadoc-skeleton__list"></div>
             </div>
           </div>
         </div>

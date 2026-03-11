@@ -832,9 +832,7 @@ watch(
       const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
       const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
 
-      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-      if (oldEditor) monaco.editor.setTheme(theme)
-      if (newEditor) monaco.editor.setTheme(theme)
+      // Monaco 主题由 monaco-global-theme 统一管理
 
       // 更新 CSS 变量
       const root = document.documentElement

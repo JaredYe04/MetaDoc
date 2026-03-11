@@ -57,7 +57,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 /* Element Plus 极简主题覆盖（主色由蓝改为炭灰等） */
 import './assets/element-plus-theme-override.css'
 
-// 首帧主题已由 index.html 根据 URL 参数设置；此处仅同步 themeState 以匹配 document 上的 class，再在挂载后异步拉取完整主题（字体、自定义色等）
+// 首帧骨架屏已通过 URL 参数设置 theme 与主题色；此处先按 document class 给 themeState 临时值，挂载前再拉取完整主题
 if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
   themeState.currentTheme = darkTheme
 } else {
@@ -84,35 +84,42 @@ app.component('AppIcon', AppIcon)
 app.use(pinia)
 app.use(router)
 
-app.use(i18n).mount('#app')
-__startupMark('after_mount')
-
-// 挂载后再跑非关键初始化，避免拉长骨架屏到首屏时间
-function runAfterMount() {
-  initInputContextMenuHandler()
-  initServiceStatusWatcher()
-  registerAllAdapters()
-  initializeAgentTools()
-  initializeWorkspaceBroadcastListeners()
-  registerUnitTests()
-}
-if (typeof requestIdleCallback !== 'undefined') {
-  requestIdleCallback(runAfterMount, { timeout: 3000 })
-} else {
-  setTimeout(runAfterMount, 0)
-}
-
-// 延后批量注册图标，保证现有 <el-icon><X /></el-icon> 用法仍可用；新代码可用 <app-icon name="X" /> 按需加载
-const registerIcons = () => {
-  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component)
+// 挂载前先拉取并应用完整主题（设置中的 globalTheme/customThemeColor 等），保证程序一加载出来就是用户设置的主题，无默认再切换的闪烁
+;(async function () {
+  try {
+    await applyTheme()
+    syncShadcnTheme()
+  } catch (e) {
+    console.error('Apply theme before mount failed:', e)
   }
-}
-if (typeof requestIdleCallback !== 'undefined') {
-  requestIdleCallback(registerIcons, { timeout: 2000 })
-} else {
-  setTimeout(registerIcons, 0)
-}
+  app.use(i18n).mount('#app')
+  __startupMark('after_mount')
 
-// 挂载后异步应用完整主题（字体、自定义色、sync-color 等），首帧已通过 URL 保证亮/暗正确
-void applyTheme().then(() => syncShadcnTheme())
+  // 挂载后再跑非关键初始化
+  function runAfterMount() {
+    initInputContextMenuHandler()
+    initServiceStatusWatcher()
+    registerAllAdapters()
+    initializeAgentTools()
+    initializeWorkspaceBroadcastListeners()
+    registerUnitTests()
+  }
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(runAfterMount, { timeout: 3000 })
+  } else {
+    setTimeout(runAfterMount, 0)
+  }
+
+  const registerIcons = () => {
+    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+      app.component(key, component)
+    }
+  }
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(registerIcons, { timeout: 2000 })
+  } else {
+    setTimeout(registerIcons, 0)
+  }
+})()
+
+// 主题已在挂载前应用，此处不再重复调用

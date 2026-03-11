@@ -244,7 +244,7 @@ const filmstripTransform = computed(() => {
   margin-right: 20px;
   border-radius: 8px;
   border: 1px solid var(--el-border-color-lighter);
-  background-color: var(--el-fill-color-light);
+  background-color: hsl(var(--panel-bg, 0 0% 96%));
   display: flex;
   flex-direction: column;
   overflow: hidden;

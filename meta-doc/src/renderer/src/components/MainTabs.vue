@@ -607,6 +607,30 @@ const brutalistHoverBackgroundColor = computed(() => {
   }
 })
 
+// 按下态背景：浅白/深灰黑 80%、主题色 20%，避免纯白
+const brutalistActiveBackgroundColor = computed(() => {
+  try {
+    const isDark = themeState.currentTheme?.type === 'dark'
+    const primary = themeState.currentTheme?.primaryColor || (isDark ? '#9ca3af' : '#374151')
+    const base = isDark ? '#141414' : '#f0f0f0'
+    return mixColors(primary, base, 0.8)
+  } catch {
+    return '#e8e8e8'
+  }
+})
+
+// 关闭按钮按下态：深灰黑/浅白 80%、danger 20%，无边缘感
+const brutalistActiveCloseBackgroundColor = computed(() => {
+  try {
+    const isDark = themeState.currentTheme?.type === 'dark'
+    const danger = '#ef4444'
+    const base = isDark ? '#141414' : '#f0f0f0'
+    return mixColors(danger, base, 0.8)
+  } catch {
+    return '#fde2e2'
+  }
+})
+
 // 不活跃Tab的文本颜色 - 根据主题类型设置更深的灰色
 const inactiveTabTextColor = computed(() => {
   try {
@@ -1853,15 +1877,15 @@ onUnmounted(() => {
 
 .main-tab-label__close:hover {
   background-color: v-bind('brutalistHoverBackgroundColor');
-  border: 1px solid var(--el-border-color);
+  border: 1px solid transparent;
   color: var(--el-text-color-primary);
 }
 
 .main-tab-label__close:active {
-  border: 1px solid var(--el-color-primary) !important;
-  background-color: var(--el-color-primary-light-9) !important;
+  border: 1px solid transparent !important;
+  background-color: v-bind('brutalistActiveBackgroundColor') !important;
   color: var(--el-color-primary) !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .main-tab-label__close .el-icon {
@@ -1912,27 +1936,27 @@ onUnmounted(() => {
 
 .window-control-btn:hover {
   background-color: v-bind('brutalistHoverBackgroundColor');
-  border: 1px solid var(--el-border-color);
+  border: 1px solid transparent;
 }
 
 .window-control-btn:active {
-  border: 1px solid var(--el-color-primary) !important;
-  background-color: var(--el-color-primary-light-9) !important;
+  border: 1px solid transparent !important;
+  background-color: v-bind('brutalistActiveBackgroundColor') !important;
   color: var(--el-color-primary) !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .window-control-btn--close:hover {
   background-color: var(--el-color-danger);
-  border: 1px solid var(--el-color-danger);
+  border: 1px solid transparent;
   color: var(--el-color-white);
 }
 
 .window-control-btn--close:active {
-  background-color: var(--el-color-danger-light-9, #fde2e2) !important;
-  border: 1px solid var(--el-color-danger) !important;
+  background-color: v-bind('brutalistActiveCloseBackgroundColor') !important;
+  border: 1px solid transparent !important;
   color: var(--el-color-danger) !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .window-control-btn .el-icon {
@@ -1987,14 +2011,14 @@ onUnmounted(() => {
 
 .new-tab-button:hover:not(.is-locked) {
   background-color: v-bind('brutalistHoverBackgroundColor');
-  border: 1px solid var(--el-border-color);
+  border: 1px solid transparent;
 }
 
 .new-tab-button:active:not(.is-locked) {
-  border: 1px solid var(--el-color-primary) !important;
-  background-color: var(--el-color-primary-light-9) !important;
+  border: 1px solid transparent !important;
+  background-color: v-bind('brutalistActiveBackgroundColor') !important;
   color: var(--el-color-primary) !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .new-tab-button.is-locked {

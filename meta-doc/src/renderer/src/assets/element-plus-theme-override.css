@@ -101,6 +101,21 @@
   --el-switch-off-color: #b07d7d;
 }
 
+/* el-scrollbar：使用主题计算的混色（由 themes.applyElementPlusTheme 写入 --md-el-scrollbar-thumb），
+   覆盖组件内写死的 --el-scrollbar-bg-color，否则 :root 上的值会被 .el-scrollbar 覆盖 */
+.el-scrollbar {
+  --el-scrollbar-bg-color: var(--md-el-scrollbar-thumb, var(--el-text-color-secondary));
+  --el-scrollbar-hover-bg-color: var(--md-el-scrollbar-thumb-hover, var(--el-text-color-secondary));
+}
+
+/* Reka ScrollArea thumb：thumb 的类为 .relative.flex-1.rounded-full.bg-border，与 el-scrollbar 统一颜色 */
+.relative.flex-1.rounded-full.bg-border {
+  background-color: var(--md-el-scrollbar-thumb, var(--el-text-color-secondary)) !important;
+}
+.relative.flex-1.rounded-full.bg-border:hover {
+  background-color: var(--md-el-scrollbar-thumb-hover, var(--el-text-color-secondary)) !important;
+}
+
 /* ========== 暗色模式 ========== */
 html.dark {
   --el-font-family: 'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI',

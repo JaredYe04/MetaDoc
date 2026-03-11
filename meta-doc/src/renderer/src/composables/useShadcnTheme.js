@@ -60,6 +60,15 @@ function mapThemeToCSSVariables(theme) {
     '--muted': hexToHSL(theme.sidebarBackground2 || theme.background2nd || theme.background),
     '--muted-foreground': hexToHSL(theme.textColor2 || theme.textColor),
 
+    // Panel/group 背景：与页面背景混色，避免纯主题色在深色/浅色下突兀
+    '--panel-bg': hexToHSL(
+      mixColors(
+        theme.sidebarBackground2 || theme.background2nd || theme.background,
+        theme.background,
+        0.35
+      )
+    ),
+
     // Accent - 基于主题计算，与 activeBackgroundColor 逻辑一致
     '--accent': hexToHSL(accentColor),
     '--accent-foreground': getForegroundColor(accentColor),

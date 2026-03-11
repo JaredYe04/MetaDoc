@@ -41,6 +41,8 @@ export interface EngineExecuteOptions {
   singleStep?: boolean
   /** 当前激活的引用 ID 列表，传给 AIContextManager.buildMessages 以只注入这些引用；不传则使用 session.referenceStore 全部 */
   activeReferenceIds?: string[]
+  /** 临时引用：仅本次执行注入上下文，不写入 session.referenceStore */
+  extraReferences?: Array<import('../../types/agent-framework').Reference>
 }
 
 /**
@@ -824,7 +826,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
     // 构建上下文消息
     const toolPrompt = await this.buildToolCallPrompt()
     let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
-      activeReferenceIds: this.options.activeReferenceIds
+      activeReferenceIds: this.options.activeReferenceIds,
+      extraReferences: this.options.extraReferences
     })
 
     // 添加ReAct提示词
@@ -1138,7 +1141,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
     // 构建上下文消息
     const toolPrompt = await this.buildToolCallPrompt()
     let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
-      activeReferenceIds: this.options.activeReferenceIds
+      activeReferenceIds: this.options.activeReferenceIds,
+      extraReferences: this.options.extraReferences
     })
 
     // 添加工具提示到最后一个系统消息
@@ -1681,7 +1685,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 
       // 重新构建上下文（包含新的工具结果）
       contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
-        activeReferenceIds: this.options.activeReferenceIds
+        activeReferenceIds: this.options.activeReferenceIds,
+        extraReferences: this.options.extraReferences
       })
       if (contextMessages.length > 0 && contextMessages[0].role === 'system') {
         contextMessages[0].content += toolPrompt
@@ -1798,7 +1803,8 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
 
     // 构建上下文消息（不包含工具提示）
     const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
-      activeReferenceIds: this.options.activeReferenceIds
+      activeReferenceIds: this.options.activeReferenceIds,
+      extraReferences: this.options.extraReferences
     })
 
     // 创建新的工具调用队列（每次AI输出开始时）
@@ -1956,7 +1962,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
     })
 
     const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
-      activeReferenceIds: this.options.activeReferenceIds
+      activeReferenceIds: this.options.activeReferenceIds,
+      extraReferences: this.options.extraReferences
     })
     contextMessages.push({
       role: 'user',

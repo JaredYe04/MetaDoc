@@ -225,12 +225,19 @@ export interface AgentSession {
   status: AgentSessionStatus
   /** 是否只读（用于模板） */
   readonly?: boolean
-  /** 是否启用内置0号reference（动态获取当前文档内容，默认开启） */
-  enableBuiltInDocumentReference?: boolean
   /** 当前激活的工具完整说明（按需注入，每次用户消息时清空并重新填充） */
   activeToolSpecs?: Map<string, string>
   /** 会话元数据 */
   metadata?: Record<string, unknown>
+  /**
+   * 状态化上下文（Stateful Context）：历史摘要与滑动窗口
+   * - summary: 已摘要的旧对话内容，发送给 LLM 时作为 system 层
+   * - lastSummaryIndex: 上次摘要对应的消息截止索引（messages[0..lastSummaryIndex] 已进入 summary）
+   */
+  contextState?: {
+    summary?: string
+    lastSummaryIndex?: number
+  }
 }
 
 /**

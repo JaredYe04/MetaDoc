@@ -3080,6 +3080,32 @@ const terminalEncodings = new Map<string, string>()
 // Agent 单次调用的编码（invocationId -> encoding），用于强制 UTF-8 避免中文乱码，进程结束时清理
 const terminalInvocationEncodings = new Map<string, string>()
 
+/**
+ * 终端执行时实际使用的 Shell 配置（单一来源）。
+ * 执行命令与 get-terminal-environment 均据此返回，AI 必须按此 Shell 的语法发命令（如 cmd 用 &&，PowerShell 用 ;，不要混用）。
+ * 当前策略：Windows 使用 cmd.exe，macOS/Linux 使用 /bin/sh。若日后支持 PowerShell 等，在此处扩展即可。
+ */
+function getTerminalShellConfig(): {
+  shell: string
+  shellArgs: string[]
+  shellLabel: string
+  platformLabel: string
+} {
+  const platform = process.platform
+  const isWin = platform === 'win32'
+  const platformLabels: Record<string, string> = {
+    win32: 'Windows',
+    darwin: 'macOS',
+    linux: 'Linux'
+  }
+  return {
+    shell: isWin ? 'cmd.exe' : '/bin/sh',
+    shellArgs: isWin ? ['/c'] : ['-c'],
+    shellLabel: isWin ? 'Command Prompt (cmd.exe)' : 'Bourne shell (/bin/sh)',
+    platformLabel: platformLabels[platform] || platform
+  }
+}
+
 function bindTerminalHandlers(): void {
   // 获取或设置终端的当前工作目录
   ipcBridge.registerHandle(
@@ -3237,9 +3263,7 @@ function bindTerminalHandlers(): void {
           `执行命令: ${runCommand} (cwd: ${workingDir}, invocationId: ${invocationId}, consoleKey: ${consoleKey || 'none'})`
         )
 
-        // 根据平台选择shell
-        const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/sh'
-        const shellArgs = process.platform === 'win32' ? ['/c'] : ['-c']
+        const { shell, shellArgs } = getTerminalShellConfig()
 
         // 创建子进程（不设置 timeout，支持长时间运行）
         const childProcess = spawn(shell, [...shellArgs, runCommand], {
@@ -3565,6 +3589,25 @@ function bindSystemHandlers(): void {
       } catch (error) {
         logger.error('获取系统信息失败:', error)
         return { os: 'Unknown', cpu: 'Unknown', gpu: 'N/A', ram: 'N/A' }
+      }
+    }
+  )
+
+  // 终端执行工具用：返回当前 OS 与 Shell（与 execute-terminal-command 实际使用的 Shell 一致），供 AI 按该终端语法发命令
+  ipcBridge.registerHandle(
+    'get-terminal-environment',
+    async (): Promise<{
+      platform: string
+      platformLabel: string
+      shell: string
+      shellLabel: string
+    }> => {
+      const { shell, shellLabel, platformLabel } = getTerminalShellConfig()
+      return {
+        platform: process.platform,
+        platformLabel,
+        shell,
+        shellLabel
       }
     }
   )
@@ -4077,6 +4120,94 @@ export function getInitialThemeClass(): 'light' | 'dark' {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   }
   return 'light'
+}
+
+/** 骨架屏主题色查询串（theme=light|dark&side=...&top=...），供 loadURL(skeleton.html?...) 使用；逻辑内联避免构建后 require 单文件找不到模块 */
+export function getSkeletonThemeQueryString(): string {
+  const tinycolor = require('tinycolor2') as { (c: string): { getLuminance(): number; toHsl(): number[]; toHexString(): string }; mix(c1: any, c2: any, amount: number): any }
+  const mixColors = (hex1: string, hex2: string, w: number) =>
+    tinycolor.mix(tinycolor(hex1), tinycolor(hex2), w * 100).toHexString()
+  const getLuminance = (hex: string) => tinycolor(hex).getLuminance() * 255
+  const adjustSat = (hex: string, f: number) => {
+    const c = tinycolor(hex)
+    const { h, s, l } = c.toHsl()
+    return tinycolor({ h, s: Math.max(0, Math.min(1, s * f)), l }).toHexString()
+  }
+  const globalTheme = store.get('globalTheme') as string | undefined
+  const customThemeColor = store.get('customThemeColor') as string | undefined
+  const isOsDark = nativeTheme.shouldUseDarkColors
+
+  let type: 'light' | 'dark'
+  let themeColor: string
+  let side: string
+  let top: string
+  let list: string
+  let content: string
+  let tip: string
+
+  // 与 LeftMenu（sidebarPanelBackground）、MainTabs（mixColors(background,#888888,0.3)）、WorkspaceExplorer（sidebarPanelBackground）对齐，不用纯主题色
+  if (globalTheme === 'dark') {
+    type = 'dark'
+    side = '#3a3a3a' // LeftMenu: sidebarPanelBackground
+    top = mixColors('#2c2c2c', '#888888', 0.3) // MainTabs: tabsContainerBackgroundColor
+    list = '#3a3a3a' // WorkspaceExplorer: sidebarPanelBackground
+    content = '#2c2c2c' // background
+    tip = '#dddddd'
+  } else if (globalTheme === 'light' || globalTheme === undefined) {
+    type = 'light'
+    side = '#ebebeb' // LeftMenu: sidebarPanelBackground
+    top = mixColors('#ffffff', '#888888', 0.3) // MainTabs
+    list = '#ebebeb' // WorkspaceExplorer
+    content = '#ffffff'
+    tip = '#000000'
+  } else if (globalTheme === 'sync' || globalTheme === 'sync-color') {
+    type = isOsDark ? 'dark' : 'light'
+    if (type === 'dark') {
+      side = '#3a3a3a'
+      top = mixColors('#2c2c2c', '#888888', 0.3)
+      list = '#3a3a3a'
+      content = '#2c2c2c'
+      tip = '#dddddd'
+    } else {
+      side = '#ebebeb'
+      top = mixColors('#ffffff', '#888888', 0.3)
+      list = '#ebebeb'
+      content = '#ffffff'
+      tip = '#000000'
+    }
+  } else if (globalTheme === 'custom' && customThemeColor) {
+    type = getLuminance(customThemeColor) < 160 ? 'dark' : 'light'
+    themeColor = customThemeColor
+    if (type === 'dark') {
+      content = mixColors(themeColor, '#1a1a1a', 0.8)
+      side = mixColors(themeColor, '#2a2a2a', 0.85) // sidebarPanelBackground
+      list = side
+      top = mixColors(content, '#888888', 0.3) // MainTabs 与 content 同源
+      tip = adjustSat(mixColors(themeColor, '#cccccc', 0.85), 0.7)
+    } else {
+      content = mixColors(themeColor, '#ffffff', 0.7)
+      side = mixColors(themeColor, '#ebebeb', 0.25) // sidebarPanelBackground
+      list = side
+      top = mixColors(content, '#888888', 0.3)
+      tip = mixColors(themeColor, '#444444', 0.7)
+    }
+  } else {
+    type = 'light'
+    side = '#ebebeb'
+    top = mixColors('#ffffff', '#888888', 0.3)
+    list = '#ebebeb'
+    content = '#ffffff'
+    tip = '#000000'
+  }
+
+  const params = new URLSearchParams()
+  params.set('theme', type)
+  params.set('side', (side || '').replace(/^#/, ''))
+  params.set('top', (top || '').replace(/^#/, ''))
+  params.set('list', (list || '').replace(/^#/, ''))
+  params.set('content', (content || '').replace(/^#/, ''))
+  params.set('tip', (tip || '').replace(/^#/, ''))
+  return params.toString()
 }
 
 function setSetting(key: string, value: any): void {

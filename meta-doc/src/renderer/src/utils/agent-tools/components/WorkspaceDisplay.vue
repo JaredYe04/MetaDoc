@@ -1,163 +1,216 @@
 <template>
-  <div class="workspace-display" :style="containerStyle">
-    <div
-      v-if="displayData.stage === 'loading-tree' || displayData.stage === 'reading'"
-      class="status-message"
-      :style="statusMessageStyle"
-    >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ getStageMessage(displayData.stage) }}</span>
-    </div>
-
-    <!-- 目录树显示 -->
-    <div
-      v-else-if="displayData.stage === 'completed' && displayData.tree"
-      class="tree-view"
-      :style="treeViewStyle"
-    >
-      <div class="tree-header" :style="headerStyle">
-        <h3 class="tree-title" :style="titleStyle">
-          {{ $t('agent.display.workspace.directoryTree') }}
-        </h3>
-        <Badge variant="secondary"
-          >{{ $t('agent.display.workspace.workspaceFolder') }}:
-          {{ displayData.workspaceFolder }}</Badge
-        >
+  <el-scrollbar ref="rootScrollbarRef" class="workspace-display-scrollbar">
+    <div class="workspace-display" :style="containerStyle">
+      <div
+        v-if="
+          displayData.stage === 'loading-tree' ||
+          displayData.stage === 'reading' ||
+          displayData.stage === 'searching'
+        "
+        class="status-message"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ getStageMessage(displayData.stage) }}</span>
       </div>
-      <ScrollArea class="max-h-[500px]">
-        <div class="tree-content">
-          <div
-            v-for="(entry, index) in displayData.tree"
-            :key="index"
-            class="tree-entry"
-            :style="getTreeEntryStyle(entry)"
-          >
-            <el-icon v-if="entry.isDirectory" class="folder-icon">
-              <Folder />
-            </el-icon>
-            <el-icon v-else class="file-icon">
-              <Document />
-            </el-icon>
-            <span class="entry-name" :style="entryNameStyle">{{ entry.name }}</span>
-            <span class="entry-path" :style="entryPathStyle">{{ entry.path }}</span>
-          </div>
-        </div>
-      </ScrollArea>
-    </div>
 
-    <!-- 文件内容显示 -->
-    <div
-      v-else-if="
-        displayData.stage === 'completed' && displayData.result && displayData.result.files
-      "
-      class="files-view"
-      :style="filesViewStyle"
-    >
-      <div class="files-header" :style="headerStyle">
-        <h3 class="files-title" :style="titleStyle">
-          {{ $t('agent.display.workspace.filesTitle') }}
-        </h3>
-        <div class="header-tags" :style="headerTagsStyle">
-          <Badge variant="secondary">{{
-            $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles })
-          }}</Badge>
-          <Badge v-if="displayData.result.summarized">
-            {{ $t('agent.display.workspace.summarized') }}
+      <!-- 目录树显示（含模糊搜索结果） -->
+      <div
+        v-else-if="displayData.stage === 'completed' && displayData.tree"
+        class="tree-view"
+        :style="treeViewStyle"
+      >
+        <div class="tree-header" :style="headerStyle">
+          <h3 class="tree-title" :style="titleStyle">
+            {{
+              displayData.searchQuery
+                ? $t('agent.display.workspace.searchResultsTitle', {
+                    query: displayData.searchQuery
+                  })
+                : $t('agent.display.workspace.directoryTree')
+            }}
+          </h3>
+          <Badge variant="secondary">
+            <template v-if="displayData.searchQuery">
+              {{ $t('agent.display.workspace.matchCount', { count: displayData.tree.length }) }}
+            </template>
+            <template v-else>
+              {{ $t('agent.display.workspace.workspaceFolder') }}:
+              {{ displayData.workspaceFolder }}
+            </template>
           </Badge>
         </div>
-      </div>
-
-      <ScrollArea class="max-h-[600px]">
-        <div class="files-content">
-          <div
-            v-for="(file, index) in displayData.result.files"
-            :key="index"
-            class="file-item"
-            :style="getFileItemStyle(index)"
-          >
-            <div class="file-header" :style="fileHeaderStyle">
-              <Badge variant="default">{{ file.path }}</Badge>
-              <div class="file-meta" :style="fileMetaStyle">
-                <span v-if="file.startLine !== undefined && file.endLine !== undefined">
-                  {{
-                    $t('agent.display.workspace.linesRange', {
-                      start: file.startLine,
-                      end: file.endLine,
-                      total: file.totalLines
-                    })
-                  }}
-                </span>
-                <span v-else>
-                  {{ $t('agent.display.workspace.totalLines', { count: file.totalLines }) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- 摘要显示 -->
+        <el-scrollbar ref="treeScrollbarRef" class="workspace-tree-scrollbar max-h-[500px]">
+          <div class="tree-content">
             <div
-              v-if="file.summarized && file.summary"
-              class="file-summary"
-              :style="fileSummaryStyle"
+              v-for="(entry, index) in displayData.tree"
+              :key="index"
+              class="tree-entry"
+              :style="getTreeEntryStyle(entry)"
             >
-              <div class="summary-header" :style="summaryHeaderStyle">
-                <strong>{{ $t('agent.display.workspace.summary') }}</strong>
-              </div>
-              <div class="summary-content" :style="summaryContentStyle">{{ file.summary }}</div>
-            </div>
-
-            <!-- 文件内容显示 -->
-            <div
-              v-if="!file.summarized || displayFullContentMap.get(index)"
-              class="file-content"
-              :style="fileContentStyle"
-            >
-              <div class="content-header" :style="contentHeaderStyle">
-                <strong>{{ $t('agent.display.workspace.content') }}</strong>
-                <Button
-                  v-if="file.summarized && file.summary"
-                  size="sm"
-                  :variant="displayFullContentMap.get(index) ? 'outline' : 'default'"
-                  @click="toggleFullContent(index)"
-                >
-                  {{
-                    displayFullContentMap.get(index)
-                      ? $t('agent.display.workspace.hideContent')
-                      : $t('agent.display.workspace.showContent')
-                  }}
-                </Button>
-              </div>
-              <pre class="content-text" :style="contentTextStyle">{{ file.content }}</pre>
+              <el-icon v-if="entry.isDirectory" class="folder-icon">
+                <Folder />
+              </el-icon>
+              <el-icon v-else class="file-icon">
+                <Document />
+              </el-icon>
+              <span class="entry-name" :style="entryNameStyle">{{ entry.name }}</span>
+              <span class="entry-path" :style="entryPathStyle">{{ entry.path }}</span>
             </div>
           </div>
-        </div>
-      </ScrollArea>
-    </div>
+        </el-scrollbar>
+      </div>
 
-    <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.workspace.error') }}</AlertTitle>
-      </Alert>
+      <!-- 文件内容显示 -->
+      <div
+        v-else-if="
+          displayData.stage === 'completed' && displayData.result && displayData.result.files
+        "
+        class="files-view"
+        :style="filesViewStyle"
+      >
+        <div class="files-header" :style="headerStyle">
+          <h3 class="files-title" :style="titleStyle">
+            {{ $t('agent.display.workspace.filesTitle') }}
+          </h3>
+          <div class="header-tags" :style="headerTagsStyle">
+            <Badge variant="secondary">{{
+              $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles })
+            }}</Badge>
+            <Badge v-if="displayData.result.summarized">
+              {{ $t('agent.display.workspace.summarized') }}
+            </Badge>
+          </div>
+        </div>
+
+        <el-scrollbar ref="filesScrollbarRef" class="workspace-files-scrollbar max-h-[600px]">
+          <div ref="filesContentRef" class="files-content">
+            <div
+              v-for="(file, index) in displayData.result.files"
+              :key="index"
+              class="file-item"
+              :style="getFileItemStyle(index)"
+            >
+              <div class="file-header" :style="fileHeaderStyle">
+                <Badge variant="default">{{ file.path }}</Badge>
+                <div class="file-meta" :style="fileMetaStyle">
+                  <span v-if="file.startLine !== undefined && file.endLine !== undefined">
+                    {{
+                      $t('agent.display.workspace.linesRange', {
+                        start: file.startLine,
+                        end: file.endLine,
+                        total: file.totalLines
+                      })
+                    }}
+                  </span>
+                  <span v-else>
+                    {{ $t('agent.display.workspace.totalLines', { count: file.totalLines }) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 摘要显示 -->
+              <div
+                v-if="file.summarized && file.summary"
+                class="file-summary"
+                :style="fileSummaryStyle"
+              >
+                <div class="summary-header" :style="summaryHeaderStyle">
+                  <strong>{{ $t('agent.display.workspace.summary') }}</strong>
+                </div>
+                <div class="summary-content" :style="summaryContentStyle">{{ file.summary }}</div>
+              </div>
+
+              <!-- 文件内容显示 -->
+              <div
+                v-if="!file.summarized || displayFullContentMap.get(index)"
+                class="file-content"
+                :style="fileContentStyle"
+              >
+                <div class="content-header" :style="contentHeaderStyle">
+                  <strong>{{ $t('agent.display.workspace.content') }}</strong>
+                  <Button
+                    v-if="file.summarized && file.summary"
+                    size="sm"
+                    :variant="displayFullContentMap.get(index) ? 'outline' : 'default'"
+                    @click="toggleFullContent(index)"
+                  >
+                    {{
+                      displayFullContentMap.get(index)
+                        ? $t('agent.display.workspace.hideContent')
+                        : $t('agent.display.workspace.showContent')
+                    }}
+                  </Button>
+                </div>
+                <el-scrollbar class="file-content-scroll max-h-[400px]">
+                  <pre class="content-text" :style="contentTextStyle">{{ file.content }}</pre>
+                </el-scrollbar>
+              </div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </div>
+
+      <div v-else-if="displayData.stage === 'error'" class="error-state">
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ displayData.error || $t('agent.display.workspace.error') }}</AlertTitle>
+        </Alert>
+      </div>
     </div>
-  </div>
+  </el-scrollbar>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { Loading, Folder, Document } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Alert, AlertTitle } from '@renderer/components/ui/alert'
 import { XCircle } from 'lucide-vue-next'
-import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import type { WorkspaceToolResult } from '../workspace-tool'
+import { attachWheelScrollChainForElement } from '../monaco-scroll-chain'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
+
+const rootScrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
+const treeScrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
+const filesScrollbarRef = ref<InstanceType<typeof import('element-plus').ElScrollbar> | null>(null)
+const filesContentRef = ref<HTMLElement | null>(null)
+
+let scrollChainCleanups: Array<() => void> = []
+
+function attachScrollChains() {
+  scrollChainCleanups.forEach((f) => f())
+  scrollChainCleanups = []
+
+  const wrap = (el: HTMLElement | null) => {
+    if (!el) return
+    const w = el.querySelector?.('.el-scrollbar__wrap') as HTMLElement | null
+    if (w && w.scrollHeight > w.clientHeight) {
+      scrollChainCleanups.push(attachWheelScrollChainForElement(w))
+    }
+  }
+
+  wrap(rootScrollbarRef.value?.$el ?? null)
+  wrap(treeScrollbarRef.value?.$el ?? null)
+  wrap(filesScrollbarRef.value?.$el ?? null)
+
+  const filesEl = filesContentRef.value
+  if (filesEl) {
+    filesEl.querySelectorAll('.file-content-scroll .el-scrollbar__wrap').forEach((el) => {
+      const w = el as HTMLElement
+      if (w.scrollHeight > w.clientHeight) {
+        scrollChainCleanups.push(attachWheelScrollChainForElement(w))
+      }
+    })
+  }
+}
 
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
@@ -173,7 +226,7 @@ const displayData = computed(() => {
   const parsed = parseToolData(data) as any
 
   if (parsed && typeof parsed === 'object') {
-    const getStage = (): 'loading-tree' | 'reading' | 'completed' | 'error' => {
+    const getStage = (): 'loading-tree' | 'reading' | 'searching' | 'completed' | 'error' => {
       if (parsed.stage) {
         return parsed.stage
       }
@@ -205,11 +258,28 @@ const displayData = computed(() => {
 const toggleFullContent = (index: number) => {
   const current = displayFullContentMap.value.get(index) || false
   displayFullContentMap.value.set(index, !current)
+  nextTick(attachScrollChains)
 }
+
+onMounted(() => {
+  nextTick(attachScrollChains)
+})
+
+onBeforeUnmount(() => {
+  scrollChainCleanups.forEach((f) => f())
+  scrollChainCleanups = []
+})
+
+watch(
+  () => displayData.value,
+  () => nextTick(attachScrollChains),
+  { deep: true }
+)
 
 const getStageMessage = (stage: string) => {
   if (stage === 'loading-tree') return t('agent.display.workspace.loadingTree')
   if (stage === 'reading') return t('agent.display.workspace.reading')
+  if (stage === 'searching') return t('agent.display.workspace.searching')
   return t('agent.display.workspace.processing')
 }
 
@@ -356,20 +426,71 @@ const contentTextStyle = computed(() => ({
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
   overflowX: 'auto',
-  maxHeight: '400px',
-  overflowY: 'auto',
   color: themeState.currentTheme.textColor,
   margin: 0
 }))
 </script>
 
 <style scoped>
+.workspace-display-scrollbar {
+  width: 100%;
+  max-height: 80vh;
+}
+
+.workspace-display-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+}
+
 .workspace-display {
   width: 100%;
 }
 
+/* 目录树/搜索结果列表 panel：限制最大高度，使 el-scrollbar 内部可纵向滚动 */
+.workspace-tree-scrollbar {
+  width: 100%;
+  max-height: 500px;
+  display: block;
+}
+
+.workspace-files-scrollbar {
+  width: 100%;
+  max-height: 600px;
+  display: block;
+}
+
+/* el-scrollbar 内部可滚动区域：限制高度并启用滚动 */
+.workspace-tree-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+  overflow-y: scroll;
+  max-height: 500px;
+}
+
+.workspace-files-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+  overflow-y: scroll;
+  max-height: 600px;
+}
+
+.workspace-tree-scrollbar :deep(.el-scrollbar__view),
+.workspace-files-scrollbar :deep(.el-scrollbar__view) {
+  display: block;
+}
+
+/* 单个文件内容块内的 pre 滚动 */
+.file-content-scroll {
+  width: 100%;
+  max-height: 400px;
+  display: block;
+}
+
+.file-content-scroll :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+  overflow-y: scroll;
+  max-height: 400px;
+}
+
 .tree-content {
-  padding: '8px';
+  padding: 8px;
 }
 
 .tree-entry {
@@ -381,7 +502,7 @@ const contentTextStyle = computed(() => ({
 }
 
 .files-content {
-  padding: '8px';
+  padding: 8px;
 }
 
 .file-item {

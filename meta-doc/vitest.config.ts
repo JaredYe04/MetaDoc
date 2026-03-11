@@ -8,7 +8,8 @@ export default defineConfig({
     environment: 'node',
     include: [
       'src/renderer/src/utils/**/*.test.ts',
-      'src/converter/**/*.test.ts'
+      'src/converter/**/*.test.ts',
+      'src/main/utils/**/*.test.ts'
     ],
     globals: true
   },

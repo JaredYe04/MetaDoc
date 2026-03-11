@@ -33,6 +33,10 @@ import http from 'http'
 import net from 'net'
 import readline from 'readline'
 import iconv from 'iconv-lite'
+import {
+  decodeTerminalBuffer as decodeTerminalBufferUtil,
+  buildRunCommandForAgent
+} from './utils/terminal-encoding'
 
 // 内部模块导入
 import {
@@ -3021,51 +3025,13 @@ function bindUtilityHandlers(): void {
  * @param invocationId 本次调用的 ID（可选，用于 Agent 调用时强制 UTF-8，避免中文乱码）
  */
 function decodeBuffer(data: Buffer, consoleKey?: string, invocationId?: string): string {
-  // Agent 调用时若指定了该 invocation 使用 UTF-8，则优先用 UTF-8 解码（避免中文乱码）
+  let encoding: string | undefined
   if (invocationId && terminalInvocationEncodings.has(invocationId)) {
-    const enc = terminalInvocationEncodings.get(invocationId)!
-    if (enc === 'utf8' || enc === 'utf-8') {
-      const utf8Str = data.toString('utf8')
-      // Windows 下 chcp 65001 有时未生效，输出仍是 GBK，用 UTF-8 解码会得到乱码；若替换符过多则用 GBK 重解
-      if (process.platform === 'win32') {
-        const replacementCount = (utf8Str.match(/\uFFFD/g) || []).length
-        if (replacementCount > 0) {
-          try {
-            return iconv.decode(data, 'gbk')
-          } catch {
-            return utf8Str
-          }
-        }
-      }
-      return utf8Str
-    }
-    try {
-      return iconv.decode(data, enc)
-    } catch {
-      return data.toString('utf8')
-    }
+    encoding = terminalInvocationEncodings.get(invocationId)
+  } else if (consoleKey && terminalEncodings.has(consoleKey)) {
+    encoding = terminalEncodings.get(consoleKey)
   }
-
-  // 如果有 consoleKey，尝试使用该终端的字符集设置
-  if (consoleKey && terminalEncodings.has(consoleKey)) {
-    const encoding = terminalEncodings.get(consoleKey)!
-    try {
-      if (encoding === 'utf8' || encoding === 'utf-8') {
-        return data.toString('utf8')
-      } else {
-        return iconv.decode(data, encoding)
-      }
-    } catch (error) {
-      console.warn(`使用编码 ${encoding} 解码失败，回退到平台默认编码:`, error)
-    }
-  }
-
-  // 回退到平台默认编码
-  if (process.platform === 'win32') {
-    return iconv.decode(data, 'gbk')
-  } else {
-    return data.toString('utf8')
-  }
+  return decodeTerminalBufferUtil(data, { encoding, platform: process.platform })
 }
 
 /**
@@ -3244,11 +3210,8 @@ function bindTerminalHandlers(): void {
           terminalInvocationEncodings.set(invocationId, 'utf-8')
         }
 
-        // Windows 下使用 UTF-8 时先切换代码页，保证子进程输出为 UTF-8
-        let runCommand = command
-        if (process.platform === 'win32' && useUtf8) {
-          runCommand = `chcp 65001 >nul && ${command}`
-        }
+        // Windows 下使用 UTF-8 时先切换代码页，保证子进程输出为 UTF-8（中文等不再乱码）
+        const runCommand = buildRunCommandForAgent(command, useUtf8, process.platform)
 
         // 确定工作目录：优先使用传入的cwd，否则使用该终端维护的cwd，最后使用进程cwd
         let workingDir = cwd
@@ -3265,10 +3228,16 @@ function bindTerminalHandlers(): void {
 
         const { shell, shellArgs } = getTerminalShellConfig()
 
+        // 使用 UTF-8 时为子进程设置常用 UTF-8 环境变量，避免脚本（如 Python）按系统默认编码输出导致中文乱码
+        const env =
+          useUtf8 && process.platform === 'win32'
+            ? { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }
+            : process.env
+
         // 创建子进程（不设置 timeout，支持长时间运行）
         const childProcess = spawn(shell, [...shellArgs, runCommand], {
           cwd: workingDir,
-          env: process.env,
+          env,
           stdio: ['pipe', 'pipe', 'pipe']
         })
 

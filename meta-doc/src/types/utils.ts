@@ -114,6 +114,10 @@ export interface LaTeXCompileResult {
   status: 'success' | 'failed'
   pdfPath?: FilePath
   exitCode?: number
+  /** 编译过程的标准错误输出（可能与 success 并存，如警告） */
+  stderr?: string
+  /** 编译过程的标准输出（可选） */
+  stdout?: string
 }
 
 /** LaTeX 编译配置 */

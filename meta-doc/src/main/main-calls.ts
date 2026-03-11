@@ -5088,6 +5088,12 @@ async function renderEChartsToLocalImage(optionJson: string): Promise<string> {
   const echarts = require('echarts')
   const logger = createMainLogger('ECharts')
 
+  // 主进程无 DOM；打包后部分环境可能注入假的 document，导致 createElement('canvas') 返回无 getContext 的对象。
+  // 强制不创建 canvas，让 zrender 使用内置纯 JS 文字测量（DEFAULT_TEXT_WIDTH_MAP），避免 canvas.getContext is not a function。
+  echarts.setPlatformAPI({
+    createCanvas: () => null
+  })
+
   // 递归恢复函数（将字符串形式的函数转换回函数对象）
   function restoreFunctions(obj: any): any {
     if (obj === null || typeof obj !== 'object') {

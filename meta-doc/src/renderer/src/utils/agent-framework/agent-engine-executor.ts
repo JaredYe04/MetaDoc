@@ -7,7 +7,7 @@ import type { AgentEngine, AgentSession, AgentConfig } from '../../types/agent-f
 import type { AgentMessage, ChatAgentMessage } from '../../types/agent'
 import type { ToolObservation } from './tool-runner'
 import { ToolRunner } from './tool-runner'
-import { AIContextManager, type LlmMessage } from './ai-context-manager'
+import { AIContextManager, CONTEXT_CONFIG, type LlmMessage } from './ai-context-manager'
 import { LlmAdapter } from './llm-adapter'
 import { agentConfigManager } from './agent-config-manager'
 import { agentToolManager } from '../agent-tool-manager'
@@ -237,16 +237,18 @@ export abstract class BaseEngineExecutor {
   }
 
   /**
-   * 获取可用工具列表（包含brief和fullSpec信息）
+   * 获取可用工具列表（包含brief和fullSpec信息）；若工具提供 getDynamicSpec 则异步追加到 fullSpec
    */
-  protected getAvailableTools(): Array<{
-    id: string
-    name: string
-    description: string
-    schema: unknown
-    brief?: string
-    fullSpec?: string
-  }> {
+  protected async getAvailableTools(): Promise<
+    Array<{
+      id: string
+      name: string
+      description: string
+      schema: unknown
+      brief?: string
+      fullSpec?: string
+    }>
+  > {
     const toolIds = agentConfigManager.getAvailableToolIds(this.agentConfig.id)
     const tools: Array<{
       id: string
@@ -299,6 +301,16 @@ export abstract class BaseEngineExecutor {
         // 如果activeToolSpecs中有该工具的fullSpec，使用它（按需注入）
         if (activeToolSpecs.has(toolId)) {
           fullSpec = activeToolSpecs.get(toolId)
+        }
+
+        // 若工具提供 getDynamicSpec（如终端工具注入当前 OS/Shell），异步追加到 fullSpec
+        if (tool.config.getDynamicSpec) {
+          try {
+            const dynamic = await tool.config.getDynamicSpec()
+            if (dynamic) fullSpec = (fullSpec || '') + '\n\n' + dynamic
+          } catch (_) {
+            // 忽略单工具动态说明失败，继续使用静态 fullSpec
+          }
         }
 
         tools.push({
@@ -358,8 +370,8 @@ export abstract class BaseEngineExecutor {
   /**
    * 构建工具调用提示（支持brief和fullSpec），从 locale_prompts 读取模板并注入工具列表
    */
-  protected buildToolCallPrompt(): string {
-    const tools = this.getAvailableTools()
+  protected async buildToolCallPrompt(): Promise<string> {
+    const tools = await this.getAvailableTools()
     if (tools.length === 0) {
       return ''
     }
@@ -768,6 +780,16 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
 
+    if (this.session.messages.length > CONTEXT_CONFIG.summaryTrigger) {
+      this.options.onProgress?.({ stage: 'thinking', message: 'Updating context summary...' })
+      await AIContextManager.summarizeHistory(
+        this.session,
+        this.agentConfig,
+        this.engine,
+        this.options.signal
+      )
+    }
+
     // 步骤1: 意图识别并更新activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
@@ -800,7 +822,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
     const llmConfig = await LlmAdapter.getLlmConfig(this.engine)
 
     // 构建上下文消息
-    const toolPrompt = this.buildToolCallPrompt()
+    const toolPrompt = await this.buildToolCallPrompt()
     let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
       activeReferenceIds: this.options.activeReferenceIds
     })
@@ -858,7 +880,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         originKey: `agent-react-${this.session.id}-${Date.now()}-${iterations}`,
         reactiveMessage: assistantMessage,
         onTaskCreated: this.options.onTaskCreated,
-        tools: this.getAvailableTools(),
+        tools: await this.getAvailableTools(),
         onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
       })
 
@@ -982,7 +1004,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           originKey: `agent-react-${this.session.id}-${Date.now()}-final`,
           reactiveMessage: finalMessage,
           onTaskCreated: this.options.onTaskCreated,
-          tools: this.getAvailableTools(),
+          tools: await this.getAvailableTools(),
           onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
         })
 
@@ -1071,6 +1093,17 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已在 handleComposerSubmit 中添加
 
+    // 状态化上下文：消息数超过阈值时自动摘要，再构建 context
+    if (this.session.messages.length > CONTEXT_CONFIG.summaryTrigger) {
+      this.options.onProgress?.({ stage: 'thinking', message: 'Updating context summary...' })
+      await AIContextManager.summarizeHistory(
+        this.session,
+        this.agentConfig,
+        this.engine,
+        this.options.signal
+      )
+    }
+
     // 步骤1: 意图识别并更新 activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
@@ -1103,7 +1136,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
     const llmConfig = await LlmAdapter.getLlmConfig(this.engine)
 
     // 构建上下文消息
-    const toolPrompt = this.buildToolCallPrompt()
+    const toolPrompt = await this.buildToolCallPrompt()
     let contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
       activeReferenceIds: this.options.activeReferenceIds
     })
@@ -1166,7 +1199,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         originKey: `agent-autogpt-${this.session.id}-${Date.now()}-${iterations}`,
         reactiveMessage: assistantMessage,
         onTaskCreated: this.options.onTaskCreated,
-        tools: this.getAvailableTools(),
+        tools: await this.getAvailableTools(),
         onToolCallsDetected: async (
           toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>
         ) => {
@@ -1688,7 +1721,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           originKey: `agent-autogpt-${this.session.id}-${Date.now()}-final`,
           reactiveMessage: finalMessage,
           onTaskCreated: this.options.onTaskCreated,
-          tools: this.getAvailableTools(),
+          tools: await this.getAvailableTools(),
           onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
         })
 
@@ -1721,6 +1754,16 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 export class SimpleChatEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
+
+    if (this.session.messages.length > CONTEXT_CONFIG.summaryTrigger) {
+      this.options.onProgress?.({ stage: 'thinking', message: 'Updating context summary...' })
+      await AIContextManager.summarizeHistory(
+        this.session,
+        this.agentConfig,
+        this.engine,
+        this.options.signal
+      )
+    }
 
     // 步骤1: 意图识别并更新activeToolSpecs（即使SimpleChat也可能需要工具）
     this.options.onProgress?.({
@@ -1786,7 +1829,7 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
       originKey: `agent-simplechat-${this.session.id}-${Date.now()}`,
       reactiveMessage: assistantMessage,
       onTaskCreated: this.options.onTaskCreated,
-      tools: this.getAvailableTools(),
+      tools: await this.getAvailableTools(),
       onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
     })
 
@@ -1941,7 +1984,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       originKey: `agent-planexecute-${this.session.id}-${Date.now()}-summary`,
       reactiveMessage: summaryMessage,
       onTaskCreated: this.options.onTaskCreated,
-      tools: this.getAvailableTools(),
+      tools: await this.getAvailableTools(),
       onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
     })
 
@@ -1968,7 +2011,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       params?: Record<string, unknown>
     }>
   }> {
-    const toolPrompt = this.buildToolCallPrompt()
+    const toolPrompt = await this.buildToolCallPrompt()
     const planPrompt = getPromptByKey('agent.planPrompt')
 
     const contextMessages: LlmMessage[] = [

@@ -9,7 +9,8 @@
       <div class="new-document__formats">
         <RadioGroup v-model="selectedFormatId" class="flex format-group">
           <div
-            class="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground"
+            class="format-group-inner inline-flex h-9 items-center justify-center rounded-lg p-1 text-muted-foreground"
+            :style="{ backgroundColor: formatGroupBackground }"
           >
             <div v-for="format in formats" :key="format.id" class="flex items-center">
               <RadioGroupItem :value="format.id" :id="'format-' + format.id" class="sr-only peer" />
@@ -102,7 +103,7 @@ import { ElMessageBox } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
-import { themeState } from '../utils/themes'
+import { themeState, mixColors } from '../utils/themes'
 import { removeUserTemplate } from '../stores/user-templates'
 
 /** 根据主色亮度返回在按钮上可读的文字色（深色主色用白字，浅色主色用深字） */
@@ -131,6 +132,14 @@ const primaryButtonBg = computed(
 const primaryButtonText = computed(() =>
   getContrastTextColor(themeState.currentTheme?.primaryColor)
 )
+
+/** 格式选择器容器背景：与自定义主题色混色，深色模式=黑灰+主题色，浅色模式=浅白+主题色 */
+const formatGroupBackground = computed(() => {
+  const primary = themeState.currentTheme?.themeColor
+  const isDark = themeState.currentTheme?.type === 'dark'
+  const base = isDark ? '#1a1a1a' : '#f0f0f0'
+  return mixColors(primary, base, 0.6)
+})
 
 const formats = computed<SupportedFormat[]>(
   () => (workspace.supportedFormats as { value: SupportedFormat[] }).value ?? []

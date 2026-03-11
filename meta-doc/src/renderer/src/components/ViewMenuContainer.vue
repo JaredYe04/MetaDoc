@@ -251,11 +251,8 @@ const tabBarBackgroundColor = computed(() =>
   mixColors(sidebarPanelBackground.value, '#777777', 0.1)
 )
 
-// 与 LeftMenu 右侧边界一致：整个侧栏左侧明显分界线，避免与 LeftMenu 撞色难以区分
-const sidebarLeftBorderColor = computed(
-  () =>
-    (themeState.currentTheme as { borderColor?: string }).borderColor || 'rgba(128, 128, 128, 0.35)'
-)
+// 与 LeftMenu 右侧边界一致：固定中性灰分界线，不随主题色变化，仅用于划分 panel，存在但不明显
+const sidebarLeftBorderColor = computed(() => 'rgba(128, 128, 128, 0.2)')
 
 // 监听活动文档变化，自动切换到合适的 Tab
 watch(
@@ -401,10 +398,10 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* 左侧：与 LeftMenu 分界，避免撞色 */
+  /* 左侧：与 LeftMenu 分界，固定中性灰 */
   border-left: 1px solid v-bind('sidebarLeftBorderColor');
-  /* 右侧：与主内容区分 */
-  border-right: 1px solid rgba(128, 128, 128, 0.28);
+  /* 右侧：与主内容区分，固定中性灰 */
+  border-right: 1px solid rgba(128, 128, 128, 0.2);
   background-color: v-bind('sidebarPanelBackground');
 }
 

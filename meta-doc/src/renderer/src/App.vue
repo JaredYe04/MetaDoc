@@ -40,6 +40,7 @@ import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from './utils/logger'
 import { initMonacoEnvironment } from './utils/monaco-worker-config'
+import { initMonacoGlobalTheme } from './utils/monaco-global-theme'
 import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { aiCompletionService } from './utils/ai-completion-service'
 import { useWorkspace } from './stores/workspace'
@@ -280,6 +281,8 @@ onMounted(async () => {
 
   // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
   initMonacoEnvironment()
+  // 全局 Monaco 主题：仅 vs/vs-dark，在 sync-editor-theme 后用 nextTick 覆盖各组件自定义主题
+  initMonacoGlobalTheme()
 
   window.addEventListener('beforeunload', () => {
     clearAiTasks()

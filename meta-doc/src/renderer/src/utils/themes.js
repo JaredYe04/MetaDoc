@@ -436,7 +436,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         // 引用容器边框颜色
         referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5),
         // 左侧菜单 + 视图侧栏 + 面板统一背景（与 background2nd 一致，略浅）
-        sidebarPanelBackground: mixColors(themeColor, '#2a2a2a', 0.85)
+        sidebarPanelBackground: mixColors(themeColor, '#2a2a2a', 0.85),
+        themeColor: themeColor
       }
       // 应用覆盖值
       return { ...baseColors, ...overrides }
@@ -479,7 +480,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         // 引用容器边框颜色
         referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5),
         // 左侧菜单 + 视图侧栏 + 面板统一背景（浅色下柔和略深，避免纯白）
-        sidebarPanelBackground: mixColors(themeColor, '#ebebeb', 0.25)
+        sidebarPanelBackground: mixColors(themeColor, '#ebebeb', 0.25),
+        themeColor: themeColor
       }
       // 应用覆盖值
       return { ...baseColors, ...overrides }
@@ -535,7 +537,8 @@ export const lightTheme = customTheme('#ffffff', {
   referenceInactiveText: '#666666',
   // 引用容器边框颜色
   referenceContainerBorderColor: '#e0e0e0',
-  ...generateThemeIcons(false)
+  ...generateThemeIcons(false),
+  themeColor: '#ffffff'
 })
 
 // 深色主题：使用深灰色作为主题色，通过 customTheme 生成，但使用 overrides 保持原始颜色值
@@ -577,7 +580,8 @@ export const darkTheme = customTheme('#2c2c2c', {
   referenceInactiveText: '#cccccc',
   // 引用容器边框颜色
   referenceContainerBorderColor: '#404040',
-  ...generateThemeIcons(true)
+  ...generateThemeIcons(true),
+  themeColor: '#2c2c2c'
 })
 
 export const predefineColors = [

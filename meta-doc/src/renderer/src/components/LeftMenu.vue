@@ -1321,10 +1321,8 @@ const sidebarSubMenuBg = computed(
     themeState.currentTheme.sidebarBackground2 ||
     themeState.currentTheme.sidebarBackground
 )
-/* 与主界面之间的半透明边界，避免背景撞色时看不出分界 */
-const sidebarBorderColor = computed(
-  () => themeState.currentTheme.borderColor || 'rgba(128, 128, 128, 0.28)'
-)
+/* 与主界面之间的分界线：固定为中性灰，不随主题色变化，仅用于划分 panel，存在但不明显 */
+const sidebarBorderColor = computed(() => 'rgba(128, 128, 128, 0.2)')
 // VSCode 风格：悬停颜色使用半透明的主色调叠加
 const sidebarHoverColor = computed(() => {
   const baseColor = sidebarBackground.value
@@ -2189,8 +2187,8 @@ body
   border-radius: 6px !important;
 }
 
-/* VSCode 风格 - 整体容器样式，与主界面之间的半透明边界 */
+/* VSCode 风格 - 整体容器样式，与主界面之间的中性灰分界线（不随主题色变化） */
 .ui-menu {
-  border-right: 1px solid var(--sidebar-border, rgba(128, 128, 128, 0.28)) !important;
+  border-right: 1px solid var(--sidebar-border, rgba(128, 128, 128, 0.2)) !important;
 }
 </style>

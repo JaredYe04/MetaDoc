@@ -290,7 +290,7 @@ import { LaTeXSectionAdapter } from '../components/section-optimizer/adapters/la
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import AiLogo from '../assets/ai-logo.svg'
 import AiLogoWhite from '../assets/ai-logo-white.svg'
-import { mixColors, themeState } from '../utils/themes'
+import { themeState } from '../utils/themes'
 import { getSetting, setSetting } from '../utils/settings'
 import { useI18n } from 'vue-i18n'
 import AISuggestionGhost from '../components/AISuggestionGhost.vue'
@@ -636,6 +636,7 @@ function getEditorFontFamily(): string {
 }
 
 let handleFontSettingsChanged: (() => void) | null = null
+let handleSyncActiveEditorLaTeX: ((payload?: { tabId?: string }) => void) | null = null
 
 // 文本到大纲的同步（类似 MarkdownEditor）
 let suppressOutlineSync = false
@@ -3707,6 +3708,25 @@ watch(isActive, (active) => {
   }
 })
 
+// 切换到此 Tab 时强制把焦点移入当前编辑器，确保 Ctrl+S/Ctrl+C/Ctrl+V 等操作作用在当前 Tab
+// 必须先 blur 当前焦点（可能是另一个 tab 的编辑器），再用 setTimeout 在下一事件循环聚焦，否则粘贴会进错 tab
+watch(
+  () => isActive.value,
+  (active, wasActive) => {
+    if (active && !wasActive) {
+      const el = document.activeElement as HTMLElement | null
+      if (el && el !== document.body) el.blur()
+      nextTick(() => {
+        setTimeout(() => {
+          if (isActive.value && editor.value && !editor.value.hasTextFocus()) {
+            editor.value.focus()
+          }
+        }, 0)
+      })
+    }
+  }
+)
+
 const consoleHeight = ref(200)
 const editorConsoleContainerRef = ref<HTMLElement | null>(null)
 let isResizingConsole = false
@@ -3864,7 +3884,7 @@ const initEditor = () => {
   editor.value = monaco.editor.create(editorEl.value, {
     value: editorValue,
     language: 'latex', // 语言模式
-    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs', // 主题 (vs, vs-dark, hc-black)
+    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs', // 仅随深色/浅色切换
     mouseWheelZoom: true,
     automaticLayout: true, // 自动适应容器大小
     fontSize: 14,
@@ -4121,38 +4141,23 @@ onMounted(async () => {
       }
     })
 
-    eventBus.on('sync-editor-theme', () => {
-      const isDark = themeState.currentTheme.type === 'dark'
-      const themeName = isDark ? 'vs-dark' : 'vs'
-      const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
-      const deeperColor = (color: string) => {
-        if (isDark) return mixColors(color, '#000000', 0.3)
-        else return mixColors(color, '#FFFFFF', 0.3)
-      }
-      monaco.editor.defineTheme('myCustomTheme', {
-        base: themeName,
-        inherit: true,
-        rules: [
-          {
-            token: '',
-            background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
-            fontStyle: ''
-          }
-        ],
-        colors: {
-          'editor.background': deeperColor(themeState.currentTheme.background)
-        }
-      })
-      monaco.editor.setTheme('myCustomTheme')
-    })
-    eventBus.emit('sync-editor-theme')
-
     handleFontSettingsChanged = () => {
       const ed = getActiveMonacoEditor()
       if (ed) ed.updateOptions({ fontFamily: getEditorFontFamily() })
     }
     eventBus.on('font-settings-changed', handleFontSettingsChanged)
     eventBus.on('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
+
+    handleSyncActiveEditorLaTeX = (payload?: { tabId?: string }) => {
+      if (payload?.tabId !== props.tabId || !editor.value) return
+      const model = editor.value.getModel()
+      if (!model) return
+      const value = model.getValue()
+      if (value !== documentRef.value.tex) {
+        workspace.updateDocumentTex(props.tabId, value)
+      }
+    }
+    eventBus.on('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
 
     initPdfJs()
     await nextTick()
@@ -4309,6 +4314,11 @@ onUnmounted(() => {
   // 移除AI分析开关监听器
   eventBus.off('console-ai-analysis-toggle')
   eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
+
+  if (handleSyncActiveEditorLaTeX) {
+    eventBus.off('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
+    handleSyncActiveEditorLaTeX = null
+  }
 
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)

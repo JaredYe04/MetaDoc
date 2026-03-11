@@ -182,8 +182,7 @@ watch(
 watch(
   () => themeState.currentTheme.type,
   () => {
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    monaco.editor.setTheme(theme)
+    // Monaco 主题由 monaco-global-theme 统一管理
   }
 )
 

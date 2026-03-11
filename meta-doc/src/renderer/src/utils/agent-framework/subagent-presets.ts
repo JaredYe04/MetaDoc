@@ -63,7 +63,7 @@ export function initializeSubagentPresets(): void {
   toolCollectionManager.getOrCreateCollection(
     SUBAGENT_COLLECTION_IDS.chart,
     loc('Subagent 绘图工具集', 'Subagent chart/drawing tool set'),
-    loc('工作区读取、grep 与图表生成，用于根据上下文生成并保存图表', 'Workspace, grep and chart generation for creating and saving charts'),
+    loc('工作区读取、grep 与图表生成；可指定 savePath（目录+文件名，支持工作区相对路径）；Markdown 优先以代码块插入，LaTeX 须 PDF + figure 环境', 'Workspace, grep and chart generation; set savePath (dir+filename, workspace-relative); Markdown: prefer code blocks; LaTeX: PDF + figure env'),
     ['workspace', 'grep', 'chart-generation']
   )
 
@@ -94,7 +94,7 @@ export function initializeSubagentPresets(): void {
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.chart,
     loc('Subagent：绘图/图表', 'Subagent: Chart/Drawing'),
-    loc('根据主 Agent 的提示生成图表，可使用工作区与 grep 获取上下文，将图表保存到指定路径并返回路径', 'Generate charts per main agent instructions; use workspace and grep for context; save charts to path and return path'),
+    loc('根据主 Agent 的提示生成图表；可自选 savePath（目录+文件名，支持工作区相对路径）；Markdown 优先以代码块插入，LaTeX 须 PDF 并用 figure 环境插入', 'Generate charts per main agent; set savePath (dir+filename, workspace-relative); Markdown: prefer code blocks; LaTeX: PDF + figure env'),
     [SUBAGENT_COLLECTION_IDS.chart],
     { systemPromptKey: 'agent.subagent.chart.systemPrompt', injectTimestamp: true }
   )

@@ -5,9 +5,10 @@
 
 import { AgentMessage } from '../../types/agent'
 import type { AgentSession as LegacyAgentSession } from '../../types/agent'
-import type { AgentSession, Reference, PublicContext } from '../../types/agent-framework'
+import type { AgentSession, Reference, PublicContext, AgentEngine } from '../../types/agent-framework'
 import type { AgentConfig } from '../../types/agent-framework'
 import { createRendererLogger } from '../logger'
+import { LlmAdapter } from './llm-adapter'
 import { getPromptByKey } from '../prompts'
 import { ToolRunner, type ToolObservation } from './tool-runner'
 import { useWorkspace } from '../../stores/workspace'
@@ -39,15 +40,64 @@ export interface LlmMessage {
   }>
 }
 
+/** 上下文组成部分 ID（用于 i18n 与 UI） */
+export const CONTEXT_PART_IDS = [
+  'systemPrompt',
+  'references',
+  'summary',
+  'history'
+] as const
+
+export type ContextPartId = (typeof CONTEXT_PART_IDS)[number]
+
+/** 单一部分的占用信息 */
+export interface ContextPartUsage {
+  id: ContextPartId
+  chars: number
+  tokens: number
+}
+
+/** 上下文组成详情（供「上下文组成」对话框展示） */
+export interface ContextBreakdown {
+  parts: ContextPartUsage[]
+  totalChars: number
+  totalTokens: number
+  maxTokens: number
+  percentage: number
+}
+
+/** 状态化上下文默认参数 */
+export const CONTEXT_CONFIG = {
+  /** 滑动窗口：最近多少条完整消息发给 LLM */
+  recentMessagesDefault: 16,
+  /** 消息数超过此值时触发自动摘要 */
+  summaryTrigger: 40,
+  /** 每次摘要覆盖的消息条数（旧历史进入 summary） */
+  summaryBatch: 30,
+  /** 上下文 token 软上限，超过 80% 可触发强制摘要 */
+  maxContextTokens: 120000,
+  /** 工具输出压缩：单条结果最大字符数（terminal 等） */
+  toolOutputLimitChars: 2000,
+  /** read_file 类结果最大行数（超则提示用 read_file_range） */
+  readFileMaxLines: 200
+} as const
+
 /**
  * 上下文构建选项
  */
 export interface ContextBuildOptions {
   includeHistory?: boolean
   includeReferences?: boolean
+  /** 兼容旧逻辑：未使用 stateful 时使用的历史条数上限 */
   maxHistoryMessages?: number
+  /** 状态化上下文：最近 N 条完整消息（与 summary 配合） */
+  recentMessages?: number
   systemPromptOverride?: string
   activeReferenceIds?: string[] // 激活的引用ID列表，只处理这些引用
+  /** 临时引用（不写入 referenceStore，仅本次调用注入） */
+  extraReferences?: Reference[]
+  /** 是否使用状态化上下文（summary + recent）；不传时根据 session.contextState 自动判断 */
+  useStatefulContext?: boolean
 }
 
 /**
@@ -66,80 +116,303 @@ export class AIContextManager {
       includeHistory = true,
       includeReferences = true,
       maxHistoryMessages = 50,
-      systemPromptOverride
+      recentMessages = CONTEXT_CONFIG.recentMessagesDefault,
+      systemPromptOverride,
+      useStatefulContext
     } = options
+
+    const sessionAny = session as any
+    const contextState = sessionAny.contextState
+    const useStateful =
+      useStatefulContext ?? (contextState && typeof contextState.summary === 'string')
 
     const messages: LlmMessage[] = []
 
     // 1. 系统提示词
     const systemPrompt = this.buildSystemPrompt(session, agentConfig, systemPromptOverride)
     if (systemPrompt) {
-      // 记录系统提示词内容（用于调试格式提示词注入）
       const logger = createRendererLogger('AIContextManager')
-      logger.debug('[buildMessages] 构建系统提示词', {
-        promptLength: systemPrompt.length,
-        containsFormatWarning: systemPrompt.includes('⚠️ 重要：当前文档是'),
-        containsMarkdownWarning: systemPrompt.includes('Markdown 格式'),
-        containsLatexWarning: systemPrompt.includes('LaTeX 格式'),
-        promptPreview: systemPrompt.substring(0, 500) // 前500字符预览
-      })
-
-      messages.push({
-        role: 'system',
-        content: systemPrompt
-      })
+      // logger.debug('[buildMessages] 构建系统提示词', {
+      //   promptLength: systemPrompt.length,
+      //   containsFormatWarning: systemPrompt.includes('⚠️ 重要：当前文档是'),
+      //   containsMarkdownWarning: systemPrompt.includes('Markdown 格式'),
+      //   containsLatexWarning: systemPrompt.includes('LaTeX 格式'),
+      //   promptPreview: systemPrompt.substring(0, 500)
+      // })
+      messages.push({ role: 'system', content: systemPrompt })
     }
 
-    // 2. 引用素材（作为系统消息的一部分，兼容新旧格式）
-    const referenceStore = Array.isArray((session as any).referenceStore)
-      ? (session as any).referenceStore
-      : []
+    // 2. 引用素材
+    const referenceStore = Array.isArray(sessionAny.referenceStore) ? sessionAny.referenceStore : []
     const activeReferenceIds = options.activeReferenceIds
-    const enableBuiltInDocRef = (session as AgentSession).enableBuiltInDocumentReference !== false // 默认开启
+    const extraReferences = Array.isArray(options.extraReferences) ? options.extraReferences : []
 
-    // 构建要包含的引用列表
     let referencesToInclude: Reference[] = []
-
-    // 添加内置0号reference（如果启用）
-    if (enableBuiltInDocRef && includeReferences) {
-      const builtInRef = this.buildBuiltInDocumentReference()
-      if (builtInRef) {
-        referencesToInclude.push(builtInRef)
-      }
-    }
-
-    // 添加用户添加的引用
     if (
       includeReferences &&
       referenceStore &&
       Array.isArray(referenceStore) &&
       referenceStore.length > 0
     ) {
-      // 若调用方传入了 activeReferenceIds（含空数组），只注入这些引用；未传则注入 referenceStore 全部
       const userReferences =
         activeReferenceIds !== undefined && activeReferenceIds !== null
           ? (referenceStore as Reference[]).filter((ref) => activeReferenceIds.includes(ref.id))
           : (referenceStore as Reference[])
       referencesToInclude.push(...userReferences)
     }
-
+    if (includeReferences && extraReferences.length > 0) {
+      // 追加临时引用（本次消息 @ 引用解析出来的内容）
+      // - 不受 activeReferenceIds 过滤（这些引用只在本次生成中出现）
+      // - 去重：避免与 referenceStore 或 built-in 重复
+      const existing = new Set(referencesToInclude.map((r) => r.id))
+      for (const ref of extraReferences) {
+        if (ref && ref.id && !existing.has(ref.id)) {
+          referencesToInclude.push(ref)
+          existing.add(ref.id)
+        }
+      }
+    }
     if (referencesToInclude.length > 0) {
       const referencesContent = this.buildReferencesContent(referencesToInclude)
       if (referencesContent) {
-        messages.push({
-          role: 'system',
-          content: referencesContent
-        })
+        messages.push({ role: 'system', content: referencesContent })
       }
     }
 
-    // 3. 历史消息
+    // 3. 状态化上下文：历史摘要层
+    if (useStateful && contextState?.summary) {
+      messages.push({
+        role: 'system',
+        content: `=== 对话摘要（此前轮次） ===\n\n${contextState.summary}`
+      })
+    }
+
+    // 4. 历史消息：滑动窗口（状态化）或最近 N 条（兼容）
     if (includeHistory && session.messages) {
-      const historyMessages = this.buildHistoryMessages(session.messages, maxHistoryMessages)
+      const historyLimit = useStateful ? recentMessages : maxHistoryMessages
+      const historyMessages = this.buildHistoryMessages(session.messages, historyLimit)
       messages.push(...historyMessages)
     }
 
+    // 5. Token 安全：若超 80% 软上限，仅做日志与截断提示（强制摘要在执行器触发）
+    const estimated = this.estimateTokens(messages)
+    if (estimated > CONTEXT_CONFIG.maxContextTokens * 0.8) {
+      getLogger().warn('[buildMessages] 上下文 token 接近上限，建议触发摘要', {
+        estimated,
+        max: CONTEXT_CONFIG.maxContextTokens
+      })
+    }
+
     return messages
+  }
+
+  /**
+   * 估算消息列表的 token 数（约 4 字符/token，与常见模型一致）
+   */
+  static estimateTokens(messages: LlmMessage[]): number {
+    let chars = 0
+    for (const m of messages) {
+      if (m.content && typeof m.content === 'string') chars += m.content.length
+      if (Array.isArray(m.tool_calls)) {
+        for (const tc of m.tool_calls) {
+          if (tc.function?.arguments) chars += tc.function.arguments.length
+          if (tc.function?.name) chars += tc.function.name.length
+        }
+      }
+    }
+    return Math.ceil(chars / 4)
+  }
+
+  /**
+   * 获取当前上下文的 token 占用（供 UI 显示进度）
+   */
+  static getContextUsage(
+    session: AgentSession | LegacyAgentSession,
+    agentConfig: AgentConfig,
+    options: ContextBuildOptions = {}
+  ): { estimatedTokens: number; maxTokens: number; percentage: number } {
+    const messages = this.buildMessages(session, agentConfig, options)
+    const estimatedTokens = this.estimateTokens(messages)
+    const maxTokens = CONTEXT_CONFIG.maxContextTokens
+    const percentage = Math.min(100, Math.round((estimatedTokens / maxTokens) * 100))
+    return { estimatedTokens, maxTokens, percentage }
+  }
+
+  /**
+   * 获取当前上下文的组成明细（系统提示、引用、摘要、历史消息及各部分 token 占用）
+   */
+  static getContextBreakdown(
+    session: AgentSession | LegacyAgentSession,
+    agentConfig: AgentConfig,
+    options: ContextBuildOptions = {}
+  ): ContextBreakdown {
+    const messages = this.buildMessages(session, agentConfig, options)
+    const maxTokens = CONTEXT_CONFIG.maxContextTokens
+
+    const partIds: Array<ContextPartId> = ['systemPrompt', 'references', 'summary', 'history']
+    const partChars: Record<ContextPartId, number> = {
+      systemPrompt: 0,
+      references: 0,
+      summary: 0,
+      history: 0
+    }
+
+    let systemIndex = 0
+    for (const m of messages) {
+      const contentLength =
+        (typeof m.content === 'string' ? m.content.length : 0) +
+        (Array.isArray(m.tool_calls)
+          ? (m.tool_calls as any[]).reduce(
+              (acc, tc) =>
+                acc + (tc.function?.arguments?.length ?? 0) + (tc.function?.name?.length ?? 0),
+              0
+            )
+          : 0)
+
+      if (m.role === 'system') {
+        systemIndex++
+        if (systemIndex === 1) partChars.systemPrompt += contentLength
+        else if (systemIndex === 2) partChars.references += contentLength
+        else if (systemIndex >= 3) partChars.summary += contentLength
+      } else {
+        partChars.history += contentLength
+      }
+    }
+
+    const parts: ContextPartUsage[] = partIds.map((id) => ({
+      id,
+      chars: partChars[id],
+      tokens: Math.ceil(partChars[id] / 4)
+    }))
+
+    const totalChars = parts.reduce((sum, p) => sum + p.chars, 0)
+    const totalTokens = parts.reduce((sum, p) => sum + p.tokens, 0)
+    const percentage = Math.min(100, Math.round((totalTokens / maxTokens) * 100))
+
+    return {
+      parts,
+      totalChars,
+      totalTokens,
+      maxTokens,
+      percentage
+    }
+  }
+
+  /**
+   * 压缩工具输出，避免炸上下文（terminal / 大文件等）
+   */
+  static compressToolResult(toolId: string, content: string): string {
+    if (!content || typeof content !== 'string') return content
+    const limit = CONTEXT_CONFIG.toolOutputLimitChars
+    const id = (toolId || '').toLowerCase()
+
+    if (id === 'terminal' || id.includes('terminal')) {
+      if (content.length <= limit) return content
+      const head = content.slice(0, 1200)
+      const tail = content.slice(-400)
+      const hasError = /error|failed|✘|错误|失败/i.test(content)
+      const hasWarn = /warn|⚠/i.test(content)
+      return [
+        'Command output truncated for context (total ' + content.length + ' chars).',
+        hasError ? '✘ Contains errors.' : '✔ No errors in excerpt.',
+        hasWarn ? '⚠ Warnings present.' : '',
+        '--- First part ---',
+        head,
+        '...',
+        '--- Last part ---',
+        tail
+      ]
+        .filter(Boolean)
+        .join('\n')
+    }
+
+    if (id === 'workspace' || id === 'read_file' || id.includes('workspace')) {
+      const lines = content.split(/\r?\n/)
+      const maxLines = CONTEXT_CONFIG.readFileMaxLines
+      if (lines.length <= maxLines) return content
+      return (
+        `File too large (${lines.length} lines). Showing first ${maxLines} lines. Use read_file_range or grep for more.\n\n` +
+        lines.slice(0, maxLines).join('\n') +
+        '\n... (truncated)'
+      )
+    }
+
+    if (content.length > limit) {
+      return content.slice(0, limit) + '\n... (truncated, total ' + content.length + ' chars)'
+    }
+    return content
+  }
+
+  /**
+   * 自动历史摘要：将旧消息归纳为 summary，供状态化上下文使用
+   * 触发条件：session.messages.length > summaryTrigger 且存在 engine
+   */
+  static async summarizeHistory(
+    session: AgentSession | LegacyAgentSession,
+    _agentConfig: AgentConfig,
+    engine: AgentEngine,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const sessionAny = session as any
+    if (!session.messages || session.messages.length < CONTEXT_CONFIG.summaryTrigger) {
+      return
+    }
+    if (!sessionAny.contextState) {
+      sessionAny.contextState = {}
+    }
+    const endIndex = Math.max(
+      0,
+      session.messages.length - CONTEXT_CONFIG.recentMessagesDefault
+    )
+    if (endIndex <= 0) return
+
+    const lastSummaryIndex = sessionAny.contextState.lastSummaryIndex ?? 0
+    if (endIndex <= lastSummaryIndex) return
+
+    const toSummarize = session.messages.slice(0, endIndex)
+    const historyLines: string[] = []
+    const maxLineLen = 800
+    for (const msg of toSummarize) {
+      let line = ''
+      if (msg.role === 'user' && msg.type === 'chat') {
+        const t = (msg as any).markdown || ''
+        line = 'User: ' + (t.length > maxLineLen ? t.slice(0, maxLineLen) + '...' : t)
+      } else if (msg.role === 'assistant' && msg.type === 'chat') {
+        const t = (msg as any).markdown || ''
+        line = 'Assistant: ' + (t.length > maxLineLen ? t.slice(0, maxLineLen) + '...' : t)
+      } else if (msg.role === 'tool' && msg.type === 'tool') {
+        const name = (msg as any).tool?.name || (msg as any).tool?.id || 'tool'
+        const t = (msg as any).markdown || (msg as any).summary || ''
+        line = 'Tool (' + name + '): ' + (t.length > maxLineLen ? t.slice(0, maxLineLen) + '...' : t)
+      }
+      if (line) historyLines.push(line)
+    }
+    const historyText = historyLines.join('\n\n')
+    if (!historyText.trim()) return
+
+    const prompt = getPromptByKey('agent.contextSummary.prompt', { historyText })
+    try {
+      const llmConfig = await LlmAdapter.getLlmConfig(engine)
+      const summary = await LlmAdapter.callChat(
+        llmConfig,
+        [
+          { role: 'system', content: 'You summarize conversation history. Output only the summary, no preamble.' },
+          { role: 'user', content: prompt }
+        ],
+        { temperature: 0.3, maxTokens: 800, stream: false, signal }
+      )
+      const trimmed = (summary || '').trim()
+      if (trimmed) {
+        sessionAny.contextState.summary = trimmed
+        sessionAny.contextState.lastSummaryIndex = endIndex
+        getLogger().info('[summarizeHistory] 已更新对话摘要', {
+          endIndex,
+          summaryLength: trimmed.length
+        })
+      }
+    } catch (e) {
+      getLogger().warn('[summarizeHistory] 摘要失败，继续使用近期消息', e)
+    }
   }
 
   /**
@@ -400,57 +673,6 @@ export class AIContextManager {
   }
 
   /**
-   * 构建内置0号reference（动态获取当前文档内容）
-   */
-  private static buildBuiltInDocumentReference(): Reference | null {
-    try {
-      const workspace = useWorkspace()
-      const activeDoc = workspace.activeDocument.value
-
-      if (!activeDoc) {
-        return null
-      }
-
-      // 确定文档格式
-      const docFormat = activeDoc.format === 'tex' ? 'tex' : 'md'
-      const formatName = docFormat === 'tex' ? 'LaTeX' : 'Markdown'
-
-      // 根据文档格式获取内容
-      const content = docFormat === 'tex' ? activeDoc.tex : activeDoc.markdown
-
-      if (!content || content.trim().length === 0) {
-        return null
-      }
-
-      // 创建内置0号reference
-      const reference: Reference = {
-        id: 'built-in-document-reference-0',
-        name: '当前文档内容',
-        origin: activeDoc.path || '当前活动文档',
-        format: docFormat,
-        parsedContent: content,
-        description: `动态获取的当前活动文档内容（${formatName}格式，实时更新，不占用历史消息空间）`,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }
-
-      const logger = createRendererLogger('AIContextManager')
-      logger.debug('[buildBuiltInDocumentReference] 构建内置文档引用', {
-        format: docFormat,
-        formatName,
-        contentLength: content.length,
-        hasPath: !!activeDoc.path
-      })
-
-      return reference
-    } catch (error) {
-      const logger = createRendererLogger('AIContextManager')
-      logger.warn('[buildBuiltInDocumentReference] 构建内置文档引用失败:', error)
-      return null
-    }
-  }
-
-  /**
    * 构建引用素材内容
    */
   private static buildReferencesContent(references: Reference[]): string {
@@ -470,35 +692,14 @@ export class AIContextManager {
 
     let content = '=== 引用素材 ===\n\n'
     for (const ref of references) {
-      // 对于内置0号reference，使用更明确的格式说明
-      const isBuiltIn = ref.id === 'built-in-document-reference-0'
-      const formatDisplay =
-        ref.format === 'tex' ? 'LaTeX' : ref.format === 'md' ? 'Markdown' : ref.format
-
-      if (isBuiltIn) {
-        content += `[${ref.name}] (格式: ${formatDisplay}, 来源: ${ref.origin})\n`
-        content += `⚠️ 这是当前活动文档的实时内容，格式为 ${formatDisplay}。内容会在每次请求时动态获取，确保始终是最新的。\n`
-      } else {
-        content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
-      }
+      content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
 
       if (ref.description) {
         content += `描述: ${ref.description}\n`
       }
 
-      // 添加解析后的内容（供AI直接参考，上传时已解析）
       if (ref.parsedContent) {
-        // 对于内置0号reference，使用格式对应的代码块标记
-        const codeBlockLang =
-          ref.format === 'tex' ? 'latex' : ref.format === 'md' ? 'markdown' : 'text'
-        if (isBuiltIn) {
-          content += `\n当前文档内容（${formatDisplay}格式）:\n\`\`\`${codeBlockLang}\n${ref.parsedContent}\n\`\`\`\n`
-        } else {
-          content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
-        }
-        logger.debug(
-          `[buildReferencesContent] 引用 ${ref.name} 包含parsedContent，长度: ${ref.parsedContent.length}, 格式: ${ref.format}`
-        )
+        content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
       } else {
         logger.warn(`[buildReferencesContent] 引用 ${ref.name} 缺少parsedContent`)
       }
@@ -547,16 +748,16 @@ export class AIContextManager {
           const msgToolCalls = (msg as any).tool_calls
           const logger = createRendererLogger('AIContextManager')
 
-          // 记录调试信息
-          logger.debug('[buildHistoryMessages] 检查assistant消息tool_calls:', {
-            messageId: msg.id,
-            hasToolCalls: !!msgToolCalls,
-            toolCallsType: typeof msgToolCalls,
-            isArray: Array.isArray(msgToolCalls),
-            toolCallsLength: Array.isArray(msgToolCalls) ? msgToolCalls.length : 0,
-            messageKeys: Object.keys(msg),
-            toolCallsValue: msgToolCalls
-          })
+          // // 记录调试信息
+          // logger.debug('[buildHistoryMessages] 检查assistant消息tool_calls:', {
+          //   messageId: msg.id,
+          //   hasToolCalls: !!msgToolCalls,
+          //   toolCallsType: typeof msgToolCalls,
+          //   isArray: Array.isArray(msgToolCalls),
+          //   toolCallsLength: Array.isArray(msgToolCalls) ? msgToolCalls.length : 0,
+          //   messageKeys: Object.keys(msg),
+          //   toolCallsValue: msgToolCalls
+          // })
 
           if (msgToolCalls && Array.isArray(msgToolCalls) && msgToolCalls.length > 0) {
             const mappedCalls = msgToolCalls.map((tc: any) => {
@@ -863,6 +1064,7 @@ export class AIContextManager {
       'data-analysis': 'DataAnalysisDisplay',
       'web-crawler': 'WebCrawlerDisplay',
       terminal: 'TerminalExecutionDisplay',
+      'latex-compile': 'LaTeXCompileDisplay',
       metadata: 'MetadataDisplay',
       color: 'ColorDisplay',
       rag: 'RAGToolDisplay',
@@ -963,6 +1165,7 @@ export class AIContextManager {
         toolConfig
       }
       openaiContent = ToolRunner.serializeToOpenAIFormat(observation)
+      openaiContent = this.compressToolResult(toolId, openaiContent)
     }
 
     const message: AgentMessage = {
@@ -1033,6 +1236,7 @@ export class AIContextManager {
       'data-analysis': 'DataAnalysisDisplay',
       'web-crawler': 'WebCrawlerDisplay',
       terminal: 'TerminalExecutionDisplay',
+      'latex-compile': 'LaTeXCompileDisplay',
       metadata: 'MetadataDisplay',
       color: 'ColorDisplay',
       rag: 'RAGToolDisplay',
@@ -1094,7 +1298,7 @@ export class AIContextManager {
       })
     }
 
-    const openaiContent = ToolRunner.serializeToOpenAIFormat({
+    let openaiContent = ToolRunner.serializeToOpenAIFormat({
       toolId,
       toolName,
       status: observation.status,
@@ -1103,6 +1307,7 @@ export class AIContextManager {
       summary: observation.summary,
       toolConfig
     })
+    openaiContent = this.compressToolResult(toolId, openaiContent)
 
     const completed: AgentMessage = {
       ...existing,

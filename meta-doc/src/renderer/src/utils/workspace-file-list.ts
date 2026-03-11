@@ -30,24 +30,32 @@ function getWorkspaceRoots(): string[] {
 
 /**
  * 递归列出工作区中的文件（含有限深度和数量）
- * @param options maxDepth 最大深度，maxEntries 最大条目数（仅文件）
+ * @param options maxDepth 最大深度，maxEntries 最大条目数（仅文件），includeDirectories 是否同时返回目录
  */
 export async function listWorkspaceFiles(
   options: {
     maxDepth?: number
     maxEntries?: number
+    includeDirectories?: boolean
+    maxDirEntries?: number
   } = {}
 ): Promise<WorkspaceFileItem[]> {
-  const { maxDepth = 3, maxEntries = 500 } = options
+  const {
+    maxDepth = 3,
+    maxEntries = 500,
+    includeDirectories = false,
+    maxDirEntries = 200
+  } = options
   const roots = getWorkspaceRoots()
   if (roots.length === 0) return []
 
   if (!messageBridge.getIpc()) return []
 
   const result: WorkspaceFileItem[] = []
+  const dirsResult: WorkspaceFileItem[] = []
   const queue: Array<{ path: string; depth: number }> = roots.map((r) => ({ path: r, depth: 0 }))
 
-  while (queue.length > 0 && result.length < maxEntries) {
+  while (queue.length > 0 && (result.length < maxEntries || (includeDirectories && dirsResult.length < maxDirEntries))) {
     const { path: dirPath, depth } = queue.shift()!
     if (depth >= maxDepth) continue
 
@@ -58,17 +66,25 @@ export async function listWorkspaceFiles(
         isDirectory: boolean
       }>
       for (const e of entries) {
-        if (result.length >= maxEntries) break
         if (e.isDirectory) {
           if (!EXCLUDE_DIRS.has(e.name)) {
+            if (includeDirectories && dirsResult.length < maxDirEntries) {
+              dirsResult.push({
+                path: e.path,
+                name: e.name,
+                isDirectory: true
+              })
+            }
             queue.push({ path: e.path, depth: depth + 1 })
           }
         } else {
-          result.push({
-            path: e.path,
-            name: e.name,
-            isDirectory: false
-          })
+          if (result.length < maxEntries) {
+            result.push({
+              path: e.path,
+              name: e.name,
+              isDirectory: false
+            })
+          }
         }
       }
     } catch {
@@ -76,6 +92,9 @@ export async function listWorkspaceFiles(
     }
   }
 
+  if (includeDirectories && dirsResult.length > 0) {
+    return [...dirsResult, ...result]
+  }
   return result
 }
 
@@ -89,3 +108,6 @@ export function fuzzyMatchFile(query: string, item: WorkspaceFileItem): boolean 
   const path = item.path.toLowerCase()
   return name.includes(q) || path.includes(q)
 }
+
+/** 目录项也使用同一匹配逻辑 */
+export const fuzzyMatchDir = fuzzyMatchFile

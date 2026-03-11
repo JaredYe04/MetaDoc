@@ -670,6 +670,115 @@ export function getFileTypeCategories(): FileTypeCategory[] {
   return ['all', 'text', 'document', 'data', 'image', 'web']
 }
 
+/** 可作为目录引用内容读取的文本类扩展名 */
+const TEXT_EXT_FOR_DIR = new Set([
+  'txt', 'md', 'markdown', 'json', 'csv', 'html', 'htm', 'xml', 'yml', 'yaml', 'js', 'ts', 'mjs', 'cjs', 'vue', 'css', 'scss'
+])
+
+/**
+ * 将目录解析为单个引用（递归读取目录内文本文件并合并）
+ * @param dirPath 目录绝对路径
+ * @param options maxFiles 最大文件数，maxTotalChars 最大总字符数
+ * @returns Reference 的 id 为 "dir:" + dirPath，便于与输入中的 @[dir:path] 匹配
+ */
+export async function resolveDirectoryToReference(
+  dirPath: string,
+  options: { maxFiles?: number; maxTotalChars?: number } = {}
+): Promise<Reference | null> {
+  const { maxFiles = 50, maxTotalChars = 300000 } = options
+  if (!messageBridge.getIpc()) return null
+
+  const dirName = dirPath.replace(/[/\\]+$/, '').replace(/^.*[/\\]/, '') || dirPath
+  const parts: string[] = []
+  let totalChars = 0
+  let fileCount = 0
+
+  const queue: Array<{ path: string; depth: number }> = [{ path: dirPath, depth: 0 }]
+  const maxDepth = 4
+
+  while (queue.length > 0 && fileCount < maxFiles && totalChars < maxTotalChars) {
+    const { path: currentDir, depth } = queue.shift()!
+    if (depth >= maxDepth) continue
+
+    try {
+      const entries = (await messageBridge.invoke('read-directory', currentDir)) as Array<{
+        name: string
+        path: string
+        isDirectory: boolean
+      }>
+      for (const e of entries) {
+        if (fileCount >= maxFiles || totalChars >= maxTotalChars) break
+        if (e.isDirectory) {
+          if (!['.git', 'node_modules', '.metadoc'].includes(e.name)) {
+            queue.push({ path: e.path, depth: depth + 1 })
+          }
+        } else {
+          const ext = e.name.replace(/^.*\./, '').toLowerCase()
+          if (!TEXT_EXT_FOR_DIR.has(ext)) continue
+          try {
+            const content = (await messageBridge.invoke('read-file-content', e.path)) as string | null
+            if (content && content.length > 0) {
+              const take = Math.min(content.length, maxTotalChars - totalChars)
+              parts.push(`### ${e.name}\n\n${content.slice(0, take)}`)
+              totalChars += take
+              fileCount++
+            }
+          } catch {
+            // skip single file read errors
+          }
+        }
+      }
+    } catch {
+      // skip single dir read errors
+    }
+  }
+
+  if (parts.length === 0) return null
+
+  const refId = `dir:${dirPath}`
+  return {
+    id: refId,
+    name: dirName,
+    origin: dirPath,
+    format: 'txt',
+    parsedContent: parts.join('\n\n'),
+    description: `目录「${dirName}」下的 ${fileCount} 个文本文件`,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+}
+
+/**
+ * 将文件路径解析为单个引用（仅文本类文件，读取并过滤）
+ * @returns Reference 的 id 为原始 filePath，便于与输入中的 @[path] 匹配
+ */
+export async function resolveFilePathToReference(
+  filePath: string,
+  options: { maxChars?: number } = {}
+): Promise<Reference | null> {
+  const { maxChars = 200000 } = options
+  if (!messageBridge.getIpc()) return null
+  try {
+    const content = (await messageBridge.invoke('read-file-content', filePath)) as string | null
+    if (!content) return null
+    const sliced = content.slice(0, maxChars)
+    const filtered = filterTextContent(sliced)
+    const name = filePath.replace(/[/\\]+$/, '').replace(/^.*[/\\]/, '') || filePath
+    return {
+      id: filePath,
+      name,
+      origin: filePath,
+      format: 'txt',
+      parsedContent: filtered,
+      description: `文件「${name}」内容（最多 ${maxChars} 字符）`,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+  } catch {
+    return null
+  }
+}
+
 /**
  * 使用主进程文件选择服务选择文件
  * @param category 文件类型类别

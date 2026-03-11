@@ -129,7 +129,7 @@ class AgentSessionManager {
       executionNodes: [],
       status: 'idle',
       readonly: false,
-      enableBuiltInDocumentReference: true // 默认开启内置0号reference
+      contextState: {} // 状态化上下文：summary / lastSummaryIndex 在首次摘要时填充
     }
 
     this.getLogger().info(`Agent会话已创建: ${id}`)
@@ -595,14 +595,18 @@ class AgentSessionManager {
           parameters: tc.parameters ?? tc.function?.arguments ?? tc.arguments ?? {}
         }))
       }
+      // 导出/持久化不保留 tool_config，仅保留必要文本
+      delete m.tool_config
       return m
     }
     if (m.type === 'tool') {
       if (options.keepFullOutputForExternalTools && AgentSessionManager.isExternalToolMessage(m)) {
+        delete m.tool_config
         return m
       }
       // edit 工具需保留完整 output（含 rawDiff）供 EditDisplay 的 Monaco 显示，不截断
       if (m.tool?.id === 'edit') {
+        delete m.tool_config
         return m
       }
       // 持久化时保留完整 outputs（含 renderer 与 data），以便重新打开后能用 GrepDisplay/TodoListDisplay 等组件正确渲染，而不是显示裸 JSON

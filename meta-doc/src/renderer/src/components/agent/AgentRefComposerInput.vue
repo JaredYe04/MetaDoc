@@ -42,6 +42,10 @@ const savedInsertOffset = ref<number | null>(null)
 function getAtLabel(rawValue: string): string {
   if (props.getAtLabel) return props.getAtLabel(rawValue)
   if (rawValue.startsWith('tab:')) return rawValue.slice(4)
+  if (rawValue.startsWith('dir:')) {
+    const dirPath = rawValue.slice(4)
+    return dirPath.replace(/^.*[/\\]/, '') || dirPath || '目录'
+  }
   return rawValue.replace(/^.*[/\\]/, '') || rawValue
 }
 
@@ -233,6 +237,9 @@ function createAtTagSpan(atValue: string): HTMLSpanElement {
     if (atValue.startsWith('tab:')) {
       const tabId = atValue.slice(4)
       eventBus.emit('workspace-open-document', { tabId })
+    } else if (atValue.startsWith('dir:')) {
+      const dirPath = atValue.slice(4)
+      eventBus.emit('workspace-open-document', { path: dirPath })
     } else {
       eventBus.emit('workspace-open-document', { path: atValue })
     }

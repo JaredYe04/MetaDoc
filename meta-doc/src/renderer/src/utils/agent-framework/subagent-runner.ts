@@ -91,8 +91,7 @@ export async function runSubagent(
     referenceStore: parentSession.referenceStore ? [...parentSession.referenceStore] : [],
     publicContext,
     executionNodes: [],
-    status: 'idle',
-    enableBuiltInDocumentReference: parentSession.enableBuiltInDocumentReference ?? true
+    status: 'idle'
   }
 
   const engine = agentEngineManager.getEngine('default-autogpt-engine') || agentEngineManager.getDefaultEngine()

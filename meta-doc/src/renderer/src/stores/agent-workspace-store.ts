@@ -90,8 +90,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
           ? (s.publicContext as any)
           : undefined,
       executionNodes: Array.isArray(s.executionNodes) ? s.executionNodes : [],
-      status: typeof s.status === 'string' ? s.status : 'idle',
-      enableBuiltInDocumentReference: s.enableBuiltInDocumentReference !== false
+      status: typeof s.status === 'string' ? s.status : 'idle'
     } as AgentSession
   }
 

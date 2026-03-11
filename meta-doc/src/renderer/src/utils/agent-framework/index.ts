@@ -15,7 +15,7 @@ export {
 
 // 执行器
 export { ToolRunner } from './tool-runner'
-export { AIContextManager } from './ai-context-manager'
+export { AIContextManager, CONTEXT_CONFIG } from './ai-context-manager'
 export {
   AgentEngineExecutorFactory,
   BaseEngineExecutor,
@@ -26,7 +26,14 @@ export {
 } from './agent-engine-executor'
 export { LlmAdapter } from './llm-adapter'
 export type { ToolObservation } from './tool-runner'
-export type { LlmMessage, ContextBuildOptions } from './ai-context-manager'
+export type {
+  LlmMessage,
+  ContextBuildOptions,
+  ContextPartId,
+  ContextPartUsage,
+  ContextBreakdown
+} from './ai-context-manager'
+export { CONTEXT_PART_IDS } from './ai-context-manager'
 export type { EngineExecuteOptions } from './agent-engine-executor'
 
 // 类型

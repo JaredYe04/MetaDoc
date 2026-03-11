@@ -199,6 +199,7 @@
                         :disabled="isGenerating"
                         @select-file="handleReferencePickerFile"
                         @select-tab="handleReferencePickerTab"
+                        @select-dir="handleReferencePickerDir"
                       />
                       <DropdownMenu>
                         <DropdownMenuTrigger as-child>
@@ -221,6 +222,53 @@
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      <Tooltip>
+                        <TooltipTrigger as-child>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="agent-context-ring-btn agent-context-ring-wrap"
+                            :disabled="isGenerating"
+                            :title="t('agent.contextBreakdown.tooltip')"
+                            @click="contextBreakdownDialogOpen = true"
+                          >
+                            <svg
+                              class="agent-context-ring-svg"
+                              viewBox="0 0 24 24"
+                              width="20"
+                              height="20"
+                              aria-hidden="true"
+                            >
+                              <circle
+                                class="agent-context-ring-bg"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                              />
+                              <circle
+                                class="agent-context-ring-fill"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-dasharray="62.83"
+                                :stroke-dashoffset="62.83 - (62.83 * contextUsage.percentage) / 100"
+                                stroke-linecap="round"
+                                transform="rotate(-90 12 12)"
+                              />
+                            </svg>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {{ contextUsageTooltip }}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </template>
                 </ChatComposer>
@@ -448,6 +496,12 @@
       </DialogContent>
     </Dialog>
 
+    <!-- 上下文组成对话框 -->
+    <ContextBreakdownDialog
+      v-model:open="contextBreakdownDialogOpen"
+      :breakdown="contextBreakdown"
+    />
+
     <!-- 消息编辑对话框 -->
     <Dialog v-model:open="showEditMessageDialog">
       <DialogContent class="sm:max-w-[600px]">
@@ -513,6 +567,7 @@ import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
 import AgentReferencePicker from '../components/agent/AgentReferencePicker.vue'
+import ContextBreakdownDialog from '../components/agent/ContextBreakdownDialog.vue'
 import type {
   AgentMessage,
   AgentSession,
@@ -529,11 +584,16 @@ import {
   agentEngineManager,
   AIContextManager
 } from '../utils/agent-framework'
+import type { ContextBreakdown } from '../utils/agent-framework'
 import { generateConversationTitleByAi } from '../utils/conversation-title'
 import { createRendererLogger } from '../utils/logger'
 import { agentToolManager } from '../utils/agent-tool-manager'
 import { recognizeIntent } from '../utils/agent-framework/intent-processor'
-import { processTextReference } from '../utils/agent-framework/reference-processor'
+import {
+  processTextReference,
+  resolveDirectoryToReference,
+  resolveFilePathToReference
+} from '../utils/agent-framework/reference-processor'
 import messageBridge from '../bridge/message-bridge'
 import {
   ai_types,
@@ -903,6 +963,32 @@ const guardDemoAction = (actionName: string): boolean => {
   }
   return false
 }
+
+async function resolveAtExtraReferences(content: string): Promise<Reference[]> {
+  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
+  const extraRefs: Reference[] = []
+  for (const rawId of refIdsInInput) {
+    try {
+      if (rawId.startsWith('dir:')) {
+        const r = await resolveDirectoryToReference(rawId.slice(4))
+        if (r) extraRefs.push(r)
+      } else if (rawId.startsWith('tab:')) {
+        const tabId = rawId.slice(4)
+        const tab = workspace.tabs.find((t) => t.id === tabId)
+        if (tab?.path) {
+          const r = await resolveFilePathToReference(tab.path)
+          if (r) extraRefs.push(r)
+        }
+      } else if (rawId.includes('/') || rawId.includes('\\')) {
+        const r = await resolveFilePathToReference(rawId)
+        if (r) extraRefs.push(r)
+      }
+    } catch (e) {
+      logger.warn('[resolveAtExtraReferences] 解析 @ 引用失败', rawId, e)
+    }
+  }
+  return extraRefs
+}
 const showEditMessageDialog = ref(false)
 const editingMessage = ref<ChatAgentMessage | null>(null)
 const editingMessageContent = ref('')
@@ -913,6 +999,33 @@ const needsFormatSelection = computed(() => false)
 const activeSession = computed(
   () => sessionsState.value.find((session) => session.id === activeSessionId.value) ?? null
 )
+
+const contextUsage = computed(() => {
+  const session = activeSession.value
+  const configId = (session as any)?.agentConfigId
+  if (!session || !configId) {
+    return { estimatedTokens: 0, maxTokens: 120000, percentage: 0 }
+  }
+  const config = agentConfigManager.getConfig(configId)
+  if (!config) return { estimatedTokens: 0, maxTokens: 120000, percentage: 0 }
+  return AIContextManager.getContextUsage(session, config, {})
+})
+const contextUsageTooltip = computed(() => {
+  const u = contextUsage.value
+  const k = Math.round(u.estimatedTokens / 1000)
+  const maxK = Math.round(u.maxTokens / 1000)
+  return `Context: ${u.percentage}% (${k}k / ${maxK}k tokens)`
+})
+
+const contextBreakdown = computed<ContextBreakdown | null>(() => {
+  const session = activeSession.value
+  const configId = (session as any)?.agentConfigId
+  if (!session || !configId) return null
+  const config = agentConfigManager.getConfig(configId)
+  if (!config) return null
+  return AIContextManager.getContextBreakdown(session, config, {})
+})
+const contextBreakdownDialogOpen = ref(false)
 
 // 初始化activeReferenceIds（当activeSession变化时）
 watch(
@@ -1394,7 +1507,13 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   }
 
   const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
-  const messageRefIds = refIdsInInput.length > 0 ? refIdsInInput : [...activeReferenceIds.value]
+  const extraRefs = await resolveAtExtraReferences(content)
+
+  // 消息的 referenceIds 仅用于“附件引用”（referenceStore 的 ref-id），避免 @ 引用污染附件菜单
+  const storeIds = new Set((session.referenceStore || []).map((r) => r.id))
+  const attachmentIdsInInput = refIdsInInput.filter((id) => storeIds.has(id))
+  const messageRefIds =
+    attachmentIdsInInput.length > 0 ? attachmentIdsInInput : [...activeReferenceIds.value]
   const isFirstUserMessage = session.messages.length === 1
   const message = createChatMessage('user', content, messageRefIds)
   session.messages.push(message)
@@ -1469,7 +1588,8 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
         undefined,
         assistantMessage,
         actualSession,
-        shouldQueryKnowledgeBase
+        shouldQueryKnowledgeBase,
+        extraRefs
       )
 
       logger.debug('[handleComposerSubmit] 引擎执行完成')
@@ -1481,7 +1601,8 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
         undefined,
         undefined,
         undefined,
-        shouldQueryKnowledgeBase
+        shouldQueryKnowledgeBase,
+        extraRefs
       )
     }
     // 第一轮对话完成后，根据整轮会话内容由 AI 生成标题（参考 AIChat.vue）
@@ -1511,7 +1632,8 @@ const executeAgentEngine = async (
   stopWatcher?: (() => void) | null, // 保留参数以保持兼容性，但SimpleChat引擎不再使用
   assistantMessage?: ChatAgentMessage,
   actualSession?: AgentSession,
-  shouldQueryKnowledgeBase: boolean = false
+  shouldQueryKnowledgeBase: boolean = false,
+  extraReferences?: Reference[]
 ) => {
   isGenerating.value = true
 
@@ -1671,7 +1793,8 @@ const executeAgentEngine = async (
         .slice(-1)[0] as ChatAgentMessage | undefined
       const messageReferenceIds = lastUserMessage?.referenceIds || activeReferenceIds.value
       const contextMessages = AIContextManager.buildMessages(session, agentConfig, {
-        activeReferenceIds: messageReferenceIds
+        activeReferenceIds: messageReferenceIds,
+        extraReferences
       })
 
       // 准备自定义LLM配置（如果引擎有自定义配置）
@@ -1896,6 +2019,7 @@ const executeAgentEngine = async (
       const executor = AgentEngineExecutorFactory.create(engine, session, agentConfig, {
         signal: abortController.signal,
         activeReferenceIds: messageRefIds,
+        extraReferences,
         onProgress: (progress) => {
           session.status = progress.stage as any
           persistSessions()
@@ -2117,6 +2241,10 @@ function getAtLabel(rawValue: string): string {
     const tab = workspace.tabs.find((t) => t.id === tabId)
     return tab?.title ?? t('agent.attachment.untitled', '未命名')
   }
+  if (rawValue.startsWith('dir:')) {
+    const dirPath = rawValue.slice(4)
+    return dirPath.replace(/^.*[/\\]/, '') || dirPath || t('agent.reference.directory', '目录')
+  }
   return rawValue.replace(/^.*[/\\]/, '') || rawValue
 }
 
@@ -2134,6 +2262,12 @@ function handleReferencePickerTab(payload: { type: 'tab'; tabId: string }) {
   } else {
     composerRef.value?.insertAtCursor('tab:' + payload.tabId)
   }
+  referencePickerOpen.value = false
+}
+
+function handleReferencePickerDir(payload: { type: 'dir'; path: string }) {
+  if (payload.type !== 'dir') return
+  composerRef.value?.insertAtCursor('dir:' + payload.path)
   referencePickerOpen.value = false
 }
 
@@ -2728,7 +2862,8 @@ const handleConfirmEditMessage = async () => {
     editingMessageContent.value = ''
 
     // 重新触发AI生成（AgentView 不使用 RAG 功能）
-    await executeAgentEngine(content, undefined, undefined, undefined, undefined, false)
+    const extraRefs = await resolveAtExtraReferences(content)
+    await executeAgentEngine(content, undefined, undefined, undefined, undefined, false, extraRefs)
   }
 }
 
@@ -2759,14 +2894,8 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
   touchSession(session)
   persistSessions()
 
-  await executeAgentEngine(
-    userMessage.markdown,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    false
-  )
+  const extraRefs = await resolveAtExtraReferences(userMessage.markdown || '')
+  await executeAgentEngine(userMessage.markdown, undefined, undefined, undefined, undefined, false, extraRefs)
 }
 
 const handleMessageDuplicate = async (message: AgentMessage) => {
@@ -3088,6 +3217,37 @@ onBeforeUnmount(() => {
 .agent-view-composer-btn-icon {
   width: 12px;
   height: 12px;
+}
+
+.agent-context-ring-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.agent-context-ring-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+.agent-context-ring-btn:hover .agent-context-ring-fill,
+.agent-context-ring-btn:hover .agent-context-ring-bg {
+  opacity: 1;
+}
+.agent-context-ring-btn:hover .agent-context-ring-bg {
+  opacity: 0.4;
+}
+.agent-context-ring-svg {
+  display: block;
+}
+.agent-context-ring-bg {
+  opacity: 0.25;
+}
+.agent-context-ring-fill {
+  opacity: 1;
+  transition: stroke-dashoffset 0.2s ease;
 }
 
 .agent-view-attach-dropdown {

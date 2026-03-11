@@ -116,8 +116,6 @@ export interface AgentSession {
     createdAt: number
     updatedAt: number
   }>
-  /** 是否启用内置0号reference（动态获取当前文档内容，默认开启） */
-  enableBuiltInDocumentReference?: boolean
   publicContext?: {
     currentTime?: string
     timezone?: string
@@ -142,4 +140,9 @@ export interface AgentSession {
   status?: 'idle' | 'thinking' | 'generating' | 'tool-calling' | 'waiting-input' | 'error'
   readonly?: boolean
   metadata?: Record<string, unknown>
+  /** 状态化上下文（兼容新框架，可选） */
+  contextState?: {
+    summary?: string
+    lastSummaryIndex?: number
+  }
 }

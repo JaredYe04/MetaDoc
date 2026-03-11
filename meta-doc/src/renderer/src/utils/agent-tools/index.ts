@@ -19,6 +19,7 @@ import { grepToolConfig } from './grep-tool'
 import { proofreadToolConfig } from './proofread-tool'
 // outline-optimize-tool 不注册给 Agent，保留给用户在界面中手动使用；Agent 通过 edit + outline-tree 自行编写文档
 import { editToolConfig } from './edit-tool'
+import { latexCompileToolConfig } from './latex-compile-tool'
 import { metadataToolConfig } from './metadata-tool'
 import { titleFormatToolConfig } from './title-format-tool'
 import { toolSpecFetcherToolConfig } from './tool-spec-fetcher-tool'
@@ -71,6 +72,9 @@ export async function initializeAgentTools(): Promise<void> {
 
   // 注册文档编辑Tool
   agentToolManager.registerTool(editToolConfig)
+
+  // 注册 LaTeX 编译 Tool
+  agentToolManager.registerTool(latexCompileToolConfig)
 
   // 注册元信息管理Tool
   agentToolManager.registerTool(metadataToolConfig)

@@ -228,9 +228,9 @@ watch(
 </script>
 
 <template>
-  <div :class="cn('relative', props.class)">
+  <div :class="cn('relative min-w-0', props.class)">
     <Select v-model="selectedFont" @update:open="handleOpenChange">
-      <SelectTrigger class="w-[280px] pr-2">
+      <SelectTrigger class="w-full max-w-[280px] min-w-0 pr-2">
         <span class="min-w-0 flex-1 truncate text-start">
           <SelectValue :placeholder="placeholder || '选择字体'">
             <span :style="getFontStyle(selectedFont)">{{ selectedFont }}</span>

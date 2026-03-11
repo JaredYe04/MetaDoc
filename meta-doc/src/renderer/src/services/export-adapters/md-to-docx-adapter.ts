@@ -64,7 +64,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
       processFormula: true,
       showPageNumbers: false,
       showHeader: false,
-      autoNumberImages: false,
+      autoNumberImages: true,
       imageLabelFontSize: 10.5, // pt
       imageLabelFontFamily: editorChineseFont // 默认使用编辑器中文字体
     }
@@ -318,7 +318,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         label: '自动给图片编号',
         labelKey: 'export.options.autoNumberImages.label',
         type: 'boolean',
-        default: false,
+        default: true,
         description: '为文档中的图片自动添加编号标签（如图 1、图 2）',
         descriptionKey: 'export.options.autoNumberImages.description',
         tab: 'basic'
@@ -407,6 +407,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
       : undefined
 
     let markdown = filterMetaStep(data.md)
+    // 图表（echarts、mermaid、plantuml 等）始终预渲染为图片，与 generateCover/generateToc/processFormula 等选项无关
     markdown = await preRenderCharts(markdown, {
       format: 'bitmap',
       progressCallback

@@ -93,6 +93,8 @@
   --sidebar-accent-foreground: 240 5.9% 10%;
   --sidebar-border: 220 13% 91%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+  /* 分组/面板背景：与页面背景混色（JS 主题桥接会覆盖为实际混色值） */
+  --panel-bg: 0 0% 96%;
 }
 
 .dark {
@@ -123,6 +125,7 @@
   --sidebar-accent-foreground: 240 4.8% 95.9%;
   --sidebar-border: 240 3.7% 15.9%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+  --panel-bg: 217 32% 12%;
 }
 
 @layer base {

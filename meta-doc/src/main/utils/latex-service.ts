@@ -175,25 +175,29 @@ class LaTeXServiceImpl implements LaTeXService {
         }
         return {
           status: 'success',
-          pdfPath: outputFile
+          pdfPath: outputFile,
+          stderr: stderrBuffer.length ? stderrBuffer.join('') : undefined,
+          stdout: stdoutBuffer.length ? stdoutBuffer.join('') : undefined
         }
       } else {
         return {
           status: 'failed',
-          exitCode: result.exitCode || -1
+          exitCode: result.exitCode || -1,
+          stderr: stderrBuffer.length ? stderrBuffer.join('') : undefined,
+          stdout: stdoutBuffer.length ? stdoutBuffer.join('') : undefined
         }
       }
     } catch (error) {
       logger.error('LaTeX compilation error:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
       if (mainWindow) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
         mainWindow.webContents.send('console-err', {
           key: 'latex',
           content: errorMessage,
           type: 'err'
         })
       }
-      return { status: 'failed', exitCode: -1 }
+      return { status: 'failed', exitCode: -1, stderr: errorMessage }
     }
   }
 

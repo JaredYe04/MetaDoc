@@ -14,7 +14,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@renderer': resolve('src/renderer/src')
+      '@renderer': resolve('src/renderer/src'),
+      'monaco-editor': resolve('src/renderer/src/utils/__mocks__/monaco-editor-stub.js')
     }
   }
 })

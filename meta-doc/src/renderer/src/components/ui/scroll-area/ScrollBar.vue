@@ -26,6 +26,17 @@ const delegatedProps = reactiveOmit(props, 'class')
       )
     "
   >
+    <!-- 颜色与 el-scrollbar 统一，由下方 :deep 样式强制为 --md-el-scrollbar-thumb -->
     <ScrollAreaThumb class="relative flex-1 rounded-full bg-border" />
   </ScrollAreaScrollbar>
 </template>
+
+<style scoped>
+/* Reka Thumb 的 DOM 类为 relative flex-1 rounded-full bg-border，覆盖 bg-border 为与 el-scrollbar 同色 */
+:deep(.relative.flex-1.rounded-full.bg-border) {
+  background-color: var(--md-el-scrollbar-thumb, var(--el-text-color-secondary)) !important;
+}
+:deep(.relative.flex-1.rounded-full.bg-border:hover) {
+  background-color: var(--md-el-scrollbar-thumb-hover, var(--el-text-color-secondary)) !important;
+}
+</style>

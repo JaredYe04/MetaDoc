@@ -55,17 +55,10 @@ function getLogger() {
   return loggerInstance
 }
 
-const workspace = useWorkspace()
-const {
-  activeTabId,
-  activateTab,
-  ensureDocument,
-  markDocumentSaved,
-  updateDocumentDirty,
-  tabs,
-  saveDocument,
-  removeTab
-} = workspace
+// 懒加载 workspace，避免与 stores/workspace 的循环依赖（workspace 会 import 本模块）
+function getWorkspace() {
+  return useWorkspace()
+}
 
 const cloneDeep = (value) => JSON.parse(JSON.stringify(value))
 
@@ -86,17 +79,21 @@ const extractFileName = (filePath, fallbackTitle) => {
 }
 
 const getDocument = (tabId) => {
-  const targetId = typeof tabId === 'string' ? tabId : activeTabId.value
+  const ws = getWorkspace()
+  const targetId = typeof tabId === 'string' ? tabId : ws.activeTabId.value
   if (!targetId) return null
   try {
-    return ensureDocument(targetId)
+    return ws.ensureDocument(targetId)
   } catch (error) {
     getLogger().warn('获取文档失败', error)
     return null
   }
 }
 
-const resolveTargetTabId = (tabId) => (typeof tabId === 'string' ? tabId : activeTabId.value)
+const resolveTargetTabId = (tabId) => {
+  const ws = getWorkspace()
+  return typeof tabId === 'string' ? tabId : ws.activeTabId.value
+}
 
 const buildSavePayload = async (doc) => {
   // 在保存前，如果元信息标题为空，尝试从内容中提取标题
@@ -115,7 +112,7 @@ const buildSavePayload = async (doc) => {
         doc.meta = { ...doc.meta, title: sanitizedTitle }
         // 如果是第一次保存（没有路径），也更新标签页标题
         if (!doc.path) {
-          const tab = workspace.tabs.find((t) => t.id === doc.tabId)
+          const tab = getWorkspace().tabs.find((t) => t.id === doc.tabId)
           if (tab) {
             tab.subtitle = sanitizedTitle
           }
@@ -145,11 +142,11 @@ export const isElectronEnv = () => {
 }
 
 eventBus.on('sync-ai-dialogs', (dialogs) => {
-  //ai-chat -> home，一般来说只有home窗口会监听这个事件
+  const ws = getWorkspace()
   const doc = getDocument()
   if (!doc) return
   doc.aiDialogs = cloneDeep(dialogs)
-  updateDocumentDirty(doc.tabId)
+  ws.updateDocumentDirty(doc.tabId)
 })
 
 eventBus.on('request-ai-dialogs', () => {
@@ -161,11 +158,11 @@ eventBus.on('request-ai-dialogs', () => {
 })
 
 eventBus.on('response-ai-dialogs', (dialogs) => {
-  //主进程发送给AICHAT组件对话数据
+  const ws = getWorkspace()
   const doc = getDocument()
   if (!doc) return
   doc.aiDialogs = cloneDeep(dialogs)
-  updateDocumentDirty(doc.tabId)
+  ws.updateDocumentDirty(doc.tabId)
   eventBus.emit('ai-dialogs-loaded')
 })
 
@@ -180,7 +177,7 @@ messageBridge.on('os-theme-changed', (event) => {
 // 响应主进程请求获取活动文档信息
 messageBridge.on('request-active-document-info', () => {
   try {
-    const doc = workspace.activeDocument.value
+    const doc = getWorkspace().activeDocument.value
     if (!doc) {
       messageBridge.send('active-document-info-response', null)
       return
@@ -205,11 +202,12 @@ messageBridge.on('request-active-document-info', () => {
 // 响应主进程请求获取所有未保存的tabs信息
 messageBridge.on('request-unsaved-tabs-info', () => {
   try {
+    const ws = getWorkspace()
     const unsavedTabs = []
 
-    for (const tab of tabs) {
+    for (const tab of ws.tabs) {
       if (tab.dirty) {
-        const doc = ensureDocument(tab.id)
+        const doc = ws.ensureDocument(tab.id)
         const path = doc.path || ''
         const title = doc.meta?.title?.trim() || ''
         // 优先使用标题，其次使用路径中的文件名，最后使用默认值
@@ -238,13 +236,14 @@ messageBridge.on('request-unsaved-tabs-info', () => {
 // 响应主进程请求获取特定tab信息
 messageBridge.on('request-tab-info', (_event, tabId) => {
   try {
-    const tab = tabs.find((t) => t.id === tabId)
+    const ws = getWorkspace()
+    const tab = ws.tabs.find((t) => t.id === tabId)
     if (!tab) {
       messageBridge.send('tab-info-response', null)
       return
     }
 
-    const doc = ensureDocument(tabId)
+    const doc = ws.ensureDocument(tabId)
     const path = doc.path || ''
     const title = doc.meta?.title?.trim() || ''
     // 优先使用标题，其次使用路径中的文件名，最后使用默认值
@@ -290,7 +289,7 @@ messageBridge.on('agent-cli-run', async (_event, userContent) => {
 // 检查文件是否在当前窗口打开
 messageBridge.on('check-file-exists-in-window', (_event, filePath) => {
   try {
-    const tab = tabs.find((t) => t.path === filePath && (t.kind === 'file' || t.kind === 'new'))
+    const tab = getWorkspace().tabs.find((t) => t.path === filePath && (t.kind === 'file' || t.kind === 'new'))
     if (tab) {
       messageBridge.send('file-exists-in-window-response', { tabId: tab.id })
     } else {
@@ -306,7 +305,7 @@ messageBridge.on('check-file-exists-in-window', (_event, filePath) => {
 messageBridge.on('check-tool-tab-in-window', (_event, payload) => {
   try {
     const { toolType, route } = payload || {}
-    const tab = tabs.find((t) => {
+    const tab = getWorkspace().tabs.find((t) => {
       if (toolType && t.kind === 'tool' && t.toolType === toolType) return true
       if (route && t.kind === 'system' && t.route === route) return true
       return false
@@ -325,9 +324,10 @@ messageBridge.on('check-tool-tab-in-window', (_event, payload) => {
 // 激活指定的Tab
 messageBridge.on('activate-tab-by-id', (_event, tabId) => {
   try {
-    const tab = tabs.find((t) => t.id === tabId)
+    const ws = getWorkspace()
+    const tab = ws.tabs.find((t) => t.id === tabId)
     if (tab) {
-      activateTab(tabId)
+      ws.activateTab(tabId)
     }
   } catch (error) {
     getLogger().error('激活Tab失败:', error)
@@ -351,24 +351,25 @@ messageBridge.on('sync-theme', (event) => {
 messageBridge.on('update-current-path', (_event, path) => {
   if (!path) return
 
-  const existingTab = tabs.find((tab) => tab.path === path)
+  const ws = getWorkspace()
+  const existingTab = ws.tabs.find((tab) => tab.path === path)
   if (!existingTab) {
-    // 尚无任何 Tab 使用该 path，说明可能是「打开文档」流程，新 Tab 将由 workspace-open-document 创建，此处不更新当前 Tab
     return
   }
-  if (existingTab.id === activeTabId.value) {
+  if (existingTab.id === ws.activeTabId.value) {
     const doc = getDocument(existingTab.id)
     if (doc && doc.path !== path) {
       doc.path = path
-      markDocumentSaved(existingTab.id, path)
+      ws.markDocumentSaved(existingTab.id, path)
     }
   }
 })
 
 messageBridge.on('save-success', (_event, data = {}) => {
+  const ws = getWorkspace()
   const doc = getDocument()
   if (doc) {
-    markDocumentSaved(doc.tabId, data.path ?? doc.path)
+    ws.markDocumentSaved(doc.tabId, data.path ?? doc.path)
   }
 
   if (data.path) {
@@ -391,11 +392,12 @@ messageBridge.on('save-success', (_event, data = {}) => {
 })
 
 messageBridge.on('save-file-path', (_event, path) => {
+  const ws = getWorkspace()
   eventBus.emit('save-file-path', path)
   const doc = getDocument()
   if (!doc) return
   doc.path = path || ''
-  markDocumentSaved(doc.tabId, doc.path)
+  ws.markDocumentSaved(doc.tabId, doc.path)
 })
 messageBridge.on('export-success', (event, data) => {
   //console.log(data)
@@ -412,7 +414,7 @@ messageBridge.on('export-error', (event, data) => {
 })
 
 messageBridge.on('save-triggered', () => {
-  eventBus.emit('save')
+  eventBus.emit('save', { tabId: getWorkspace().activeTabId.value })
 })
 messageBridge.on('save-as-triggered', () => {
   eventBus.emit('save-as')
@@ -574,10 +576,7 @@ const save = async (mode = 'save', args, targetTabId) => {
     // 这样脏标记会立即消除，markDocumentSaved 会在保存成功后再次确认（更新路径等）
     // 使用 markDocumentSaved 可以确保逻辑一致，但会立即消除脏标记
     const currentPath = doc.path
-    // 关键修复：提前标记为已保存（乐观更新），立即消除脏标记
-    // 这样用户可以看到脏标记立即消除，提升用户体验
-    // 如果保存失败，会在后续流程中重新标记为脏
-    markDocumentSaved(resolvedTabId, currentPath)
+    getWorkspace().markDocumentSaved(resolvedTabId, currentPath)
 
     const payload = await buildSavePayload(doc)
     messageBridge.send(mode, {
@@ -590,17 +589,23 @@ const save = async (mode = 'save', args, targetTabId) => {
     eventBus.emit('sync-editor-theme')
   }
 }
-//监听save事件
+// 监听 save 事件：优先使用 payload.tabId（调用方显式传入），否则用当前 activeTabId
 eventBus.on('save', async (payload) => {
+  const ws = getWorkspace()
+  const explicitTabId =
+    payload && typeof payload === 'object' && typeof payload.tabId === 'string'
+      ? payload.tabId
+      : null
+  const targetTabId = explicitTabId ?? ws.activeTabId.value
   const { mode, args } = normalizeSavePayload(payload)
 
   if (mode === 'auto-save') {
-    const doc = getDocument()
+    const doc = getDocument(targetTabId)
     if (!doc || !doc.path) {
       return //如果尝试自动保存时，没有文件路径，则不进行自动保存
     }
   }
-  await save('save', args)
+  await save('save', args, targetTabId)
 })
 
 eventBus.on('is-need-save', (msg) => {
@@ -610,14 +615,14 @@ eventBus.on('is-need-save', (msg) => {
 
 eventBus.on('save-and-quit', async () => {
   eventBus.emit('is-need-save', false)
-  await save('save')
+  await save('save', undefined, getWorkspace().activeTabId.value)
   messageBridge.send('quit')
 })
 
 // 响应主进程请求保存特定tab
 messageBridge.on('save-tab', async (_event, tabId) => {
   try {
-    const result = await saveDocument(tabId, { saveAs: false })
+    const result = await getWorkspace().saveDocument(tabId, { saveAs: false })
     messageBridge.send('save-tab-response', { tabId, success: result })
   } catch (error) {
     getLogger().error('保存tab失败:', error)
@@ -628,7 +633,7 @@ messageBridge.on('save-tab', async (_event, tabId) => {
 // 响应主进程请求放弃特定tab的更改（直接关闭tab）
 messageBridge.on('discard-tab', (_event, tabId) => {
   try {
-    removeTab(tabId)
+    getWorkspace().removeTab(tabId)
     messageBridge.send('discard-tab-response', { tabId, success: true })
   } catch (error) {
     getLogger().error('关闭tab失败:', error)
@@ -639,11 +644,10 @@ messageBridge.on('discard-tab', (_event, tabId) => {
 // 响应主进程请求关闭所有剩余的tabs
 messageBridge.on('close-all-tabs', () => {
   try {
-    // 获取所有tab的ID（需要先复制数组，因为removeTab会修改tabs数组）
-    const tabIds = tabs.map((tab) => tab.id)
-    // 依次关闭所有tabs
+    const ws = getWorkspace()
+    const tabIds = ws.tabs.map((tab) => tab.id)
     for (const tabId of tabIds) {
-      removeTab(tabId)
+      ws.removeTab(tabId)
     }
     messageBridge.send('close-all-tabs-response', { success: true })
   } catch (error) {

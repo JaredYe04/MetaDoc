@@ -46,6 +46,33 @@ interface ApprovalRequest {
 // 存储待处理的批准请求
 const pendingApprovals = new Map<string, ApprovalRequest>()
 
+/** 获取终端执行环境说明（当前 OS + Shell），供 AI 使用正确语法；中英文一起返回 */
+async function getTerminalEnvironmentSpec(): Promise<string> {
+  try {
+    const ipc = messageBridge.getIpc()
+    if (!ipc) return ''
+    const env = await messageBridge.invoke('get-terminal-environment')
+    if (!env || typeof env.platform === 'undefined') return ''
+    const { platformLabel, shell, shellLabel } = env as {
+      platform: string
+      platformLabel: string
+      shell: string
+      shellLabel: string
+    }
+    const tipsZh = '下方 Shell 即主进程实际执行命令所用的终端，请仅使用该终端的语法。'
+    const tipsEn = 'The shell below is the one actually used to run your command; use only that shell’s syntax.'
+    return `
+## 当前执行环境 / Current execution environment
+- **OS / 操作系统**: ${platformLabel}
+- **Shell / 终端**: ${shell} (${shellLabel})
+- **说明 / Note**: ${tipsZh} ${tipsEn}
+`
+  } catch (e) {
+    logger.warn('获取终端环境失败，不注入环境说明', e)
+    return ''
+  }
+}
+
 const terminalToolLocales: ToolLocales = {
   zh_cn: {
     name: '终端执行',
@@ -94,6 +121,12 @@ const terminalToolLocales: ToolLocales = {
 2. 可以设置信任模式，允许AI自动执行命令
 3. 建议设置合理的超时时间
 4. 某些命令可能需要管理员权限
+
+## 执行环境与语法（重要）
+本工具在**主进程**中通过固定规则选择实际使用的终端（见下方「当前执行环境」）。**你必须先看下方块里写的是哪种 Shell（cmd.exe / PowerShell / /bin/sh 等），然后只使用该终端的语法**；用错语法会导致命令失败（例如在 cmd 下写 PowerShell 语法，或在 PowerShell 下写 cmd 的 \`&&\`）。
+- 若下方为 **cmd.exe**：用 \`&&\` 连接命令、\`^\` 转义；不要写 PowerShell 专有语法。
+- 若下方为 **PowerShell**：用 \`;\` 连接命令、\`$\` 变量等；不要写 cmd 专有语法。
+- 若下方为 **/bin/sh**：用 \`&&\` 或 \`;\` 连接；不要依赖仅 bash 支持的语法。
 `
   },
   en_us: {
@@ -114,6 +147,12 @@ Executes terminal/command line commands and returns results. Requires user appro
   "analyze": false // Optional, whether to use LLM to analyze output, default false
 }
 \`\`\`
+
+## Execution environment and syntax (important)
+Commands are run in the **main process** with a specific shell (see the "Current execution environment" block below). **You must read which Shell is shown there (cmd.exe / PowerShell / /bin/sh) and use only that terminal’s syntax**; wrong syntax causes failures (e.g. PowerShell syntax under cmd, or cmd \`&&\` under PowerShell).
+- If the block says **cmd.exe**: chain with \`&&\`, escape with \`^\`; do not use PowerShell-only syntax.
+- If it says **PowerShell**: chain with \`;\`, use \`$\` variables etc.; do not use cmd-only syntax.
+- If it says **/bin/sh**: chain with \`&&\` or \`;\`; do not rely on bash-only syntax.
 `
   },
   de_DE: {
@@ -687,9 +726,16 @@ Executes terminal/command line commands and returns results. Requires user appro
 1. Dangerous commands require explicit user approval
 2. Can set trust mode to allow AI to automatically execute commands
 3. Recommend setting reasonable timeout
-4. Some commands may require administrator privileges`
+4. Some commands may require administrator privileges
+
+## Execution environment and syntax (important)
+Commands are run in the **main process** with a specific shell (see the "Current execution environment" block below). **You must read which Shell is shown there (cmd.exe / PowerShell / /bin/sh) and use only that terminal’s syntax**; wrong syntax causes failures (e.g. PowerShell syntax under cmd, or cmd \`&&\` under PowerShell).
+- If the block says **cmd.exe**: chain with \`&&\`, escape with \`^\`; do not use PowerShell-only syntax.
+- If it says **PowerShell**: chain with \`;\`, use \`$\` variables etc.; do not use cmd-only syntax.
+- If it says **/bin/sh**: chain with \`&&\` or \`;\`; do not rely on bash-only syntax.`
   },
   instruction: terminalToolLocales,
+  getDynamicSpec: getTerminalEnvironmentSpec,
   tags: ['terminal', 'command', 'system', 'cli'],
   running: false,
   enabled: true,

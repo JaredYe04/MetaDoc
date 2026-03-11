@@ -142,6 +142,8 @@ export interface AgentToolConfig {
   instruction: string | ToolLocales
   /** Tool规范（用于优化上下文空间，如果提供则优先使用） */
   spec?: ToolSpec
+  /** 动态追加说明（如终端工具的当前 OS/Shell 环境），在构建工具列表时异步注入到 fullSpec 末尾 */
+  getDynamicSpec?: () => Promise<string>
   /** 回调函数（必须） */
   callback: ToolCallback
   /** 显示组件（可选） */

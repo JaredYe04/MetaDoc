@@ -13,6 +13,20 @@
   "agent": {
     "assistantLabel": "Assistente",
     "callParams": "Parâmetros de Chamada",
+    "contextBreakdown": {
+      "title": "Composição do contexto",
+      "description": "O que é incluído no contexto enviado ao modelo para esta sessão.",
+      "tooltip": "Ver composição e uso do contexto",
+      "totalTokens": "{used} / {max} tokens ({pct}%)",
+      "tokensChars": "{tokens} tokens ({chars} caracteres)",
+      "noSession": "Nenhuma sessão ou configuração selecionada; não é possível calcular o contexto.",
+      "parts": {
+        "systemPrompt": "Prompt do sistema",
+        "references": "Referências",
+        "summary": "Resumo do histórico",
+        "history": "Mensagens recentes"
+      }
+    },
     "conversation": {
       "emptyTitle": "Nenhuma conversa",
       "messages": "{count} mensagens",
@@ -332,7 +346,10 @@
         "hideContent": "Ocultar conteúdo completo",
         "linesRange": "Linhas {start}-{end} (total de {total} linhas)",
         "totalLines": "Total de {count} linhas",
-        "error": "Falha ao ler arquivo do workspace"
+        "error": "Falha ao ler arquivo do workspace",
+        "matchCount": "{count} correspondência(s)",
+        "searchResultsTitle": "Pesquisa difusa: 「{query}」",
+        "searching": "Pesquisa difusa em andamento…"
       },
       "edit": {
         "completed": "Edição concluída",
@@ -412,6 +429,24 @@
         "splitView": "Vista dividida",
         "originalText": "Texto original",
         "correctedText": "Texto corrigido"
+      },
+      "latexCompile": {
+        "compiling": "Compilando LaTeX...",
+        "failed": "Falha na compilação",
+        "outputPdfPath": "Caminho do PDF de saída",
+        "stderr": "Erro padrão",
+        "stdout": "Saída padrão",
+        "success": "Compilação bem-sucedida"
+      },
+      "timestamp": {
+        "current": "Hora atual",
+        "error": "Falha ao obter a hora",
+        "local": "Local",
+        "previous": "Hora da última chamada",
+        "processing": "Obtendo hora...",
+        "result": "Resultado",
+        "timeDiff": "Diferença de tempo",
+        "unixTimestamp": "Timestamp Unix"
       }
     },
     "error": "Ocorreu um erro",
@@ -550,7 +585,9 @@
       "intentRecognition": "Reconhecimento de intenção",
       "selectedTools": "Ferramentas selecionadas:",
       "noToolsNeeded": "Nenhuma ferramenta necessária para esta solicitação.",
-      "reasoning": "Raciocínio:"
+      "reasoning": "Raciocínio:",
+      "confirmRegenerate": "Regenerar irá excluir todo o conteúdo após esta mensagem (incluindo respostas da IA, chamadas de ferramentas, reconhecimento de intenções, etc.) e gerar novamente a partir desta mensagem do usuário. Continuar?",
+      "confirmRegenerateTitle": "Confirmar regeneração"
     },
     "attachment": {
       "untitled": "Sem título"
@@ -660,20 +697,11 @@
         "foundSlides": "Encontradas {count} slides",
         "foundImages": "Encontradas {count} imagens"
       },
-      "builtInDocument": {
-        "title": "Referência do documento atual",
-        "description": "Obtém dinamicamente o conteúdo do documento ativo atual, atualiza em tempo real, não ocupa espaço nas mensagens de histórico",
-        "enabled": "Ativado",
-        "disabled": "Desativado",
-        "preview": "Visualizar",
-        "noActiveDocument": "Nenhum documento ativo",
-        "emptyDocument": "O documento atual está vazio",
-        "currentActiveDocument": "Documento ativo atual",
-        "formatSuffix": "(Formato {format})"
-      },
       "error": {
         "cancelRequestFailed": "Falha ao enviar solicitação de cancelamento"
-      }
+      },
+      "directory": "Diretório",
+      "workspaceDirs": "Diretórios do Espaço de Trabalho"
     },
     "retry": "Repetir",
     "roles": {
@@ -762,13 +790,24 @@
           "loadingTree": "Carregando árvore de diretórios...",
           "reading": "Lendo arquivos...",
           "readingFile": "Lendo arquivo {index}/{total}: {path}",
-          "completed": "Leitura concluída, {count} arquivo(s) no total"
+          "completed": "Leitura concluída, {count} arquivo(s) no total",
+          "searchCompleted": "Pesquisa concluída: \"{query}\" corresponde a {count} itens",
+          "searching": "Pesquisando de forma difusa..."
         }
       },
       "nodeAgent": {
         "progress": {
           "syncing": "Sincronizando conteúdo do documento...",
           "completed": "Execução do agente de nó concluída"
+        }
+      },
+      "latexCompile": {
+        "error": {
+          "failed": "Falha na compilação do LaTeX: {error}"
+        },
+        "progress": {
+          "compiling": "Compilando LaTeX...",
+          "completed": "Compilação concluída"
         }
       }
     },
@@ -837,6 +876,88 @@
       "reviewWindow": "Revisão de edições",
       "openReview": "Revisar separadamente",
       "selectEdit": "Selecione uma edição à esquerda"
+    },
+    "toolLabels": {
+      "chart-generation": {
+        "description": "Gera vários tipos de gráficos (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) com base em prompts, suportando exportação para SVG, PNG, PDF",
+        "name": "Gera Gráficos"
+      },
+      "color-processing": {
+        "description": "Processa mistura de cores, ajuste de brilho/contraste, cores complementares, etc.",
+        "name": "Processamento de Cores"
+      },
+      "data-analysis": {
+        "description": "Analisa automaticamente dados CSV, JSON, etc., extraindo campos, estatísticas descritivas, análises de agregação",
+        "name": "Análise de Dados"
+      },
+      "data-calculation": {
+        "description": "Executa cálculos matemáticos complexos, incluindo operações numéricas, vetoriais, matriciais, etc.",
+        "name": "Cálculo de Dados"
+      },
+      "diff": {
+        "description": "Compara dois textos e retorna um diff unificado",
+        "name": "Comparação de Texto"
+      },
+      "edit": {
+        "description": "Aceita apenas diff no estilo git: insira uma string com linhas - (remover) e + (inserir)",
+        "name": "Edição de Documento"
+      },
+      "grep": {
+        "description": "Pesquisa ou pesquisa e substitui no documento/espaço de trabalho",
+        "name": "Pesquisa de Texto"
+      },
+      "latex-compile": {
+        "description": "Compila projetos LaTeX e retorna o caminho do PDF ou logs",
+        "name": "Compilação LaTeX"
+      },
+      "metadata": {
+        "description": "Acessa, modifica metadados do documento, chama IA para gerar título, descrição, palavras-chave, etc.",
+        "name": "Gerenciamento de Metadados"
+      },
+      "outline-optimize": {
+        "description": "Usa IA para gerar/otimizar o esboço do documento (apenas .md/.tex), especifique por filePath ou tabId",
+        "name": "Otimização de Esboço"
+      },
+      "outline-tree": {
+        "description": "Obtém a árvore de esboço do documento (apenas .md/.tex)",
+        "name": "Árvore de Esboço"
+      },
+      "proofread": {
+        "description": "Verifica erros gramaticais, ortográficos e de sintaxe LaTeX no texto",
+        "name": "Revisão de Texto"
+      },
+      "rag-retrieval": {
+        "description": "Recupera trechos de documentos relevantes da base de conhecimento para melhorar a precisão das respostas da IA",
+        "name": "Recuperação da Base de Conhecimento RAG"
+      },
+      "terminal-execution": {
+        "description": "Executa comandos de terminal, requer aprovação do usuário (modo de confiança configurável)",
+        "name": "Execução de Terminal"
+      },
+      "timestamp": {
+        "description": "Retorna o timestamp atual e registra cada chamada para calcular diferenças de tempo",
+        "name": "Timestamp"
+      },
+      "title-format": {
+        "description": "Formata títulos de documentos: ajusta níveis, adiciona/remove numeração, remove prefixos, etc.",
+        "name": "Formatação de Título"
+      },
+      "todolist-planning": {
+        "description": "Analisa a intenção do usuário e decompõe tarefas complexas em uma lista de tarefas estruturada",
+        "name": "Reconhecimento de Intenção e Planejamento de Tarefas"
+      },
+      "tool-spec-fetcher": {
+        "description": "Obtém a especificação completa (fullSpec) de uma ou mais ferramentas",
+        "name": "Obtenção de Especificação da Ferramenta"
+      },
+      "web-crawler": {
+        "description": "Acessa uma URL especificada, obtém conteúdo HTML da página ou resposta da API",
+        "name": "Acesso à Página Web"
+      },
+      "workspace": {
+        "description": "Lê arquivos do espaço de trabalho, pesquisa fuzzy por caminho/nome ou lista o diretório raiz",
+        "name": "Leitura de Arquivos do Espaço de Trabalho"
+      }
     }
   },
   "agent-engine-executor": {
@@ -3895,7 +4016,21 @@
     "tokens": "tokens",
     "unlimited": "Ilimitado",
     "unsavedChanges": "Alterações Não Salvas",
-    "unsavedChangesConfirm": "As configurações atuais têm alterações não salvas. Deseja salvá-las primeiro?"
+    "unsavedChangesConfirm": "As configurações atuais têm alterações não salvas. Deseja salvá-las primeiro?",
+    "checkAllConfigs": "Verificar todas as configurações com um clique",
+    "checkAllConfigsDone": "Todas as configurações verificadas",
+    "checkConfig": "Verificar",
+    "checkConfigFailed": "Falha na verificação",
+    "checkConfigTooltip": "Clique para verificar: conclusão de fluxo/não fluxo e diálogo",
+    "checkFail": "Falha",
+    "checkPass": "Aprovado",
+    "configDescription": "Descrição",
+    "configDescriptionPlaceholder": "Opcional, usado para exibir notas no cartão",
+    "copyConfig": "Copiar configuração",
+    "copyConfigSuccess": "Configuração copiada",
+    "readFileFailed": "Não foi possível ler o arquivo",
+    "resetConfigSuccess": "Redefinido para o estado pré-configurado",
+    "resetConfigToPreset": "Redefinir para o estado pré-configurado"
   },
   "settingBasicSection": {
     "failedSize": "Falha ao obter o tamanho do diretório",
@@ -4414,7 +4549,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "Palavra",
-    "frequency": "Frequência"
+    "frequency": "Frequência",
+    "generating": "Gerando explicação…"
   },
   "wordCountDialog": {
     "charactersNoSpaces": "Caracteres (sem espaços)",

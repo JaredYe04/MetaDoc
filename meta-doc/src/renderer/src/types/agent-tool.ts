@@ -138,8 +138,8 @@ export interface AgentToolConfig {
   description: LocalizedText
   /** Tool来源 */
   origin: ToolOrigin
-  /** Tool详细说明（Markdown格式，支持i18n） */
-  instruction: string | ToolLocales
+  /** Tool详细说明（Markdown格式，支持i18n）；可选，无则使用 spec.fullSpec */
+  instruction?: string | ToolLocales
   /** Tool规范（用于优化上下文空间，如果提供则优先使用） */
   spec?: ToolSpec
   /** 动态追加说明（如终端工具的当前 OS/Shell 环境），在构建工具列表时异步注入到 fullSpec 末尾 */

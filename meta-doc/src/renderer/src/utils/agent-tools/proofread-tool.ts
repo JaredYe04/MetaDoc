@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import type { DocumentOutlineNode } from '@/types'
 import { createRendererLogger } from '../logger'
@@ -266,11 +265,11 @@ async function proofreadWithCSpell(
 
     // 获取当前用户选择的语言
     // 确保使用正确的格式（下划线格式，如 'fr_FR', 'zh_CN'）
-    let currentLocale = getLocale()
+    let currentLocale: string = getLocale() ?? ''
 
     // 标准化语言格式：将连字符转换为下划线，确保格式一致
     // i18n 使用下划线格式（zh_CN, fr_FR），但某些地方可能使用连字符（zh-CN, fr-FR）
-    if (currentLocale && typeof currentLocale === 'string') {
+    if (currentLocale) {
       currentLocale = currentLocale.replace('-', '_')
     }
 
@@ -939,40 +938,14 @@ async function performProofread(
   }
 }
 
-const proofreadToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '文本校对',
-    description: '检查文本中的语法错误、拼写错误、LaTeX语法错误，返回错误位置和修改建议'
-  },
-  en_us: {
-    name: 'Proofread',
-    description:
-      'Check for grammar, spelling, and LaTeX syntax errors in text, return error locations and suggestions'
-  },
-  de_DE: {
-    name: 'Korrekturlesen',
-    description:
-      'Überprüfen Sie Text auf Grammatik-, Rechtschreib- und LaTeX-Syntaxfehler, geben Sie Fehlerpositionen und Vorschläge zurück'
-  },
-  fr_FR: {
-    name: 'Correction',
-    description:
-      "Vérifier les erreurs de grammaire, d'orthographe et de syntaxe LaTeX dans le texte, retourner les emplacements d'erreurs et suggestions"
-  },
-  ja_JP: {
-    name: '校正',
-    description: 'テキストの文法、スペル、LaTeX構文エラーをチェックし、エラー位置と提案を返す'
-  },
-  ko_KR: {
-    name: '교정',
-    description: '텍스트의 문법, 철자, LaTeX 구문 오류 확인, 오류 위치 및 제안 반환'
-  }
-}
+const PROOFREAD_TOOL_NAME = 'Proofread'
+const PROOFREAD_TOOL_DESCRIPTION =
+  'Check for grammar, spelling, and LaTeX syntax errors in text, return error locations and suggestions'
 
 export const proofreadToolConfig: AgentToolConfig = {
   id: 'proofread',
-  name: proofreadToolLocales,
-  description: proofreadToolLocales,
+  name: PROOFREAD_TOOL_NAME,
+  description: PROOFREAD_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'proofread',
@@ -1040,127 +1013,12 @@ Proofread specified section based on outline node path:
 ## Output Format
 Returns array of errors with line numbers, positions, suggestions, and severity levels.`
   },
-  instruction: `
-# 文本校对工具
-
-## 功能描述
-检查文本中的语法错误、拼写错误、LaTeX语法错误等问题，返回详细的错误信息和修改建议。
-
-## 使用场景
-- 检查文档的语法和拼写
-- 验证LaTeX文档的语法正确性
-- 提高文档质量
-- 自动发现文本问题
-
-## 输入格式
-
-支持多种输入方式：
-
-### 方式1：直接文本（传统方式）
-\`\`\`json
-{
-  "text": "要校对的文本内容",
-  "source": "text",
-  "format": "markdown"
-}
-\`\`\`
-
-### 方式2：文件路径或URL
-\`\`\`json
-{
-  "text": "/path/to/file.md",
-  "source": "file",
-  "format": "markdown"
-}
-\`\`\`
-
-### 方式3：校对全文 ⭐ 推荐（最简单）
-不提供任何参数，或明确指定source为"document"：
-\`\`\`json
-{}  // 校对当前活动文档的全文
-\`\`\`
-
-或：
-\`\`\`json
-{
-  "source": "document"
-}
-\`\`\`
-
-### 方式4：校对指定章节 ⭐ 推荐（高效）
-根据大纲节点路径校对指定章节：
-\`\`\`json
-{
-  "nodePath": "1"  // 校对第一个章节（包括其所有子章节）
-}
-\`\`\`
-
-或：
-\`\`\`json
-{
-  "nodePath": "1.1"  // 校对第一个章节的第一个子章节
-}
-\`\`\`
-
-**参数说明**：
-- \`text\`: 要校对的文本、文件路径或URL（与nodePath二选一）
-- \`source\`: 文本来源类型
-  - \`"text"\`: 直接文本（默认）
-  - \`"file"\`: 文件路径
-  - \`"url"\`: URL地址
-  - \`"document"\`: 当前活动文档全文（推荐）
-- \`nodePath\`: 大纲节点路径（如"1"、"1.1"、"1.2.3"），校对指定章节
-- \`format\`: 文本格式（"text"|"markdown"|"latex"），如果使用document或nodePath会自动识别
-- \`tabId\`: 文档标签页ID（可选，默认使用当前活动标签页）
-
-**推荐使用方式**：
-- **校对全文**：使用 \`{}\` 或 \`{"source": "document"}\`，最简单高效
-- **校对特定章节**：使用 \`{"nodePath": "1.1"}\`，可查看引用素材中的「当前文档内容」了解章节路径，或使用 \`workspace\`（工作区文件读取）工具查看文件
-
-## 输出格式
-\`\`\`json
-{
-  "errors": [
-    {
-      "type": "grammar|spelling|latex|style|other",
-      "line": 10,
-      "column": 5,
-      "length": 3,
-      "text": "错误的文本",
-      "suggestion": "修改建议",
-      "message": "错误描述",
-      "severity": "error"
-    }
-  ],
-  "totalErrors": 5,
-  "errorCounts": {
-    "grammar": 2,
-    "spelling": 1,
-    "latex": 1,
-    "style": 1,
-    "other": 0
-  },
-  "text": "string",
-  "format": "text|markdown|latex"
-}
-\`\`\`
-
-## 注意事项
-- **推荐使用全文比对或段落比对**：使用 \`{}\` 或 \`{"nodePath": "1.1"}\` 比手动输入文本更高效
-- 支持纯文本、Markdown和LaTeX格式
-- 支持从文本、文件路径和URL加载内容
-- 使用AI进行智能校对，可能无法发现所有错误
-- 错误位置基于行号和列号（1-based）
-- 严重程度分为：error（错误）、warning（警告）、info（信息）
-- 如果使用nodePath，校对的内容包括该节点及其所有子节点的文本
-- 可查看引用素材中的「当前文档内容」了解章节结构，或使用 \`workspace\`（工作区文件读取）工具查看文件获取节点路径
-`,
+  instruction: undefined,
   callback: proofreadToolCallback,
   displayComponent: ProofreadDisplay,
   tags: ['text', 'proofread', 'grammar', 'spelling'],
   enabled: true,
   editable: false,
-  locales: proofreadToolLocales,
   inputSchema: {
     type: 'object',
     properties: {

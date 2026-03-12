@@ -101,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, toRef } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { Alert, AlertTitle } from '../../../components/ui/alert'
@@ -113,16 +113,25 @@ import { themeState } from '../../themes'
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
 
+// 传 toRef 以便 message 完成后自动同步最终数据，避免执行过快未收到 tool-complete 时一直显示「正在获取时间」
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
   props.invocationId,
-  props.data,
-  props.status,
+  toRef(props, 'data'),
+  toRef(props, 'status'),
   props.progress
 )
 
 const displayData = computed(() => {
-  const data = realtimeData.value !== null ? realtimeData.value : props.data
-  const parsed = parseToolData(data) as any
+  // 无 invocationId 表示持久化恢复的会话，直接使用 props.data；否则优先 succeeded 的 props.data，再 fallback 到 realtimeData
+  const dataSource =
+    !props.invocationId && props.data != null
+      ? props.data
+      : props.status === 'succeeded' && props.data != null
+        ? props.data
+        : realtimeData.value != null && realtimeData.value !== undefined
+          ? realtimeData.value
+          : props.data
+  const parsed = parseToolData(dataSource) as any
 
   if (parsed && typeof parsed === 'object') {
     const getStage = (): 'loading' | 'running' | 'completed' | 'error' => {

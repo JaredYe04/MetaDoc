@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import type { AIDialogMessage } from '@/types'
 import { createAiTask } from '../ai_tasks'
@@ -257,240 +256,7 @@ export interface TodoList {
   metadata?: Record<string, unknown>
 }
 
-const todolistToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '意图识别与任务划分',
-    description: '分析用户意图，将复杂任务分解为结构化的任务列表（TodoList）',
-    instruction: `
-# 意图识别与任务划分工具
-
-## 功能描述
-根据用户输入的自然语言描述，识别用户意图，并将复杂任务分解为结构化的任务列表（TodoList）。
-
-## 使用场景
-- 用户提出复杂需求，需要分解为多个步骤
-- 项目管理，需要创建任务清单
-- 工作流程规划
-- 学习计划制定
-
-## 输入格式
-
-### 方式1：自动生成模式（使用input参数）
-\`\`\`json
-{
-  "input": "string", // 用户的自然语言输入，工具会分析并生成任务列表
-  "context": "string" // 可选，上下文信息
-}
-\`\`\`
-
-### 方式2：字符串列表（最简单）⭐ 推荐
-直接传入任务标题的字符串列表，工具会自动转换为任务列表：
-\`\`\`json
-{
-  "items": ["任务1", "任务2", "任务3"]
-}
-\`\`\`
-
-### 方式3：混合列表（灵活）⭐ 推荐
-列表中可以混合使用字符串和对象，字符串会被自动转换为任务，对象可以包含额外信息：
-\`\`\`json
-{
-  "items": [
-    "任务1",
-    {
-      "title": "任务2",
-      "description": "这是任务2的描述",
-      "tags": ["重要", "紧急"]
-    },
-    "任务3",
-    {
-      "title": "任务4",
-      "dependencies": ["task-1", "task-2"],
-      "priority": "high"
-    }
-  ]
-}
-\`\`\`
-
-### 方式4：完整对象模式（高级）
-提供完整的TodoList对象，支持所有字段：
-\`\`\`json
-{
-  "todoList": {
-    "title": "任务列表标题",
-    "items": [
-      {
-        "title": "任务1",
-        "description": "任务描述",
-        "status": "pending",
-        "priority": "high",
-        "tags": ["重要"],
-        "dependencies": []
-      }
-    ]
-  }
-}
-\`\`\`
-
-**注意**：以上方式任选一种
-- **推荐使用方式2或方式3**：简洁灵活，只需提供任务标题即可
-- **字段说明**：大多数字段都是可选的（priority、tags、status、dependencies等），只有title是必需的
-- 字符串会被自动转换为任务对象，id和status会自动生成
-
-## 输出格式
-返回符合TodoList JSON Schema的结构化任务列表：
-\`\`\`json
-{
-  "id": "string",
-  "title": "string",
-  "description": "string",
-  "createdAt": "string",
-  "updatedAt": "string",
-  "items": [
-    {
-      "id": "string",
-      "title": "string",
-      "description": "string",
-      "status": "pending|in_progress|completed|cancelled",
-      "priority": "low|medium|high|urgent",
-      "dueDate": "string",
-      "tags": ["string"],
-      "dependencies": ["string"],
-      "estimatedTime": "string",
-      "assignee": "string",
-      "metadata": {}
-    }
-  ],
-  "metadata": {}
-}
-\`\`\`
-
-## 使用方式
-
-### 自动生成模式
-提供 \`input\` 参数，工具会自动分析用户意图并生成任务列表。
-
-### 手动创建模式 ⭐ 推荐（更灵活）
-支持多种简化格式，**推荐使用字符串列表或混合列表**：
-
-**最简单的用法**（仅字符串列表）：
-\`\`\`json
-{"items": ["任务1", "任务2", "任务3"]}
-\`\`\`
-
-**灵活的用法**（混合列表，部分任务有额外信息）：
-\`\`\`json
-{
-  "items": [
-    "任务1",
-    {"title": "任务2", "tags": ["重要"]},
-    "任务3"
-  ]
-}
-\`\`\`
-
-## 字段说明（简化设计）
-
-任务对象的字段**大多是可选的**，只有 \`title\` 是必需的：
-- **必需**：\`title\`（任务标题）
-- **可选**：\`description\`、\`status\`、\`priority\`、\`tags\`、\`dependencies\`、\`dueDate\`、\`estimatedTime\`、\`assignee\` 等
-
-如果未提供，系统会自动生成默认值（如id自动生成，status默认为"pending"）。
-
-### 方式5：查看现有任务列表 ⭐ 新功能
-如果当前Agent会话中已有任务列表，可以直接查看（不提供任何参数）：
-\`\`\`json
-{}  // 返回当前会话中的任务列表
-\`\`\`
-
-### 方式6：更新任务状态 ⭐ 新功能（类似Cursor）
-标记任务为完成或其他状态：
-
-**标记单个任务为完成**：
-\`\`\`json
-{
-  "markComplete": "task-1"  // 标记指定任务ID为完成
-}
-\`\`\`
-
-**标记多个任务为完成**：
-\`\`\`json
-{
-  "markComplete": ["task-1", "task-2"]  // 标记多个任务为完成
-}
-\`\`\`
-
-**自动标记下一个任务为完成** ⭐ 推荐：
-\`\`\`json
-{
-  "markComplete": "true"  // 自动找到最后一条已完成的任务，将下一条任务标记为完成
-}
-\`\`\`
-例如：如果任务2已完成，调用 \`{"markComplete": "true"}\` 会将任务3标记为完成。如果没有已完成的任务，会标记第一条任务为完成。
-
-**更新任务状态**：
-\`\`\`json
-{
-  "updateStatus": {
-    "itemId": "task-1",
-    "status": "completed"  // pending | in_progress | completed | cancelled
-  }
-}
-\`\`\`
-
-## ⚠️ 标记完成前必须确认执行成功（必读）
-**只有在上一步工具明确执行成功时，才可使用 \`markComplete\` 标记该项任务完成。**
-- 若上一步工具返回了**错误、失败或异常**（例如「命令语法不正确」「failed」「error」、非零退出码、报错信息等），**不得**标记该任务为完成。
-- 应先根据报错修正命令或参数后重试，或向用户说明失败原因；否则会导致一步错步步错。
-- 确认方式：查看该任务对应工具调用的返回内容，无报错、无失败提示、无语法错误提示，再调用 \`markComplete\`。
-
-## ⚠️ 重要：会话内状态管理 ⭐ 新功能
-**todolist工具支持在同一个Agent会话中维护统一的任务列表状态：**
-- **自动保存**：每次创建或更新任务列表时，会自动保存到当前Agent会话中
-- **自动合并**：如果会话中已有任务列表，新添加的任务会自动合并到现有列表中
-- **状态持久化**：任务状态（pending、in_progress、completed等）会在会话中持久保存
-- **多次调用**：可以在同一个会话中多次调用todolist工具，查看进度、添加任务、更新状态
-- **查看进度**：不提供任何参数时，会返回当前会话中的任务列表，可以查看哪些任务已完成、哪些待完成
-
-**使用示例**：
-1. 第一次调用：创建任务列表
-   \`\`\`json
-   {"items": ["任务1", "任务2", "任务3"]}
-   \`\`\`
-2. 执行任务1后，标记为完成（方式1：指定任务ID）：
-   \`\`\`json
-   {"markComplete": "task-1"}
-   \`\`\`
-   或（方式2：自动标记下一个）⭐ 推荐：
-   \`\`\`json
-   {"markComplete": "true"}  // 自动标记下一个未完成的任务
-   \`\`\`
-3. 查看当前进度：
-   \`\`\`json
-   {}
-   \`\`\`
-4. 添加新任务：
-   \`\`\`json
-   {"items": ["任务4"]}
-   \`\`\`
-
-## 注意事项
-1. **多种输入方式**：可以使用 \`input\`（自动生成）、\`items\`（字符串/混合列表）或 \`todoList\`（完整对象）
-2. **推荐使用简化格式**：字符串列表或混合列表，简洁高效
-3. **会话内状态管理**：工具会自动在Agent会话中维护任务列表状态，支持多次调用和状态更新
-4. 任务应该按照逻辑顺序排列
-5. 如果任务之间有依赖关系，可以在dependencies中标注（可选）
-6. priority、tags、status等字段都是可选的，根据需要添加
-7. **字符串会自动转换**：列表中的字符串会自动转换为任务对象（title=字符串内容）
-8. **状态更新**：使用 \`markComplete\` 或 \`updateStatus\` 可以更新任务状态，类似Cursor的任务管理
-9. **自动标记下一个任务**：使用 \`{"markComplete": "true"}\` 可以自动找到最后一条已完成的任务，将下一条任务标记为完成，非常适合按顺序完成任务
-10. **⭐ 批量标记完成（推荐）**：当多个任务已完成时，应**一次性**用数组标记，例如 \`{"markComplete": ["task-1", "task-2", "task-3"]}\`，而不要多次单独调用 \`{"markComplete": "task-1"}\`。批量标记可减少请求次数、节省 token，并提高效率。
-`
-  },
-  en_us: {
-    name: 'Intent Recognition & Task Planning',
-    description: 'Analyze user intent and decompose complex tasks into structured todo lists',
-    instruction: `
+const TODOLIST_INSTRUCTION_EN = `
 # Intent Recognition & Task Planning Tool
 
 ## Description
@@ -588,16 +354,15 @@ Directly provide \`todoList\` object, and the tool will use it directly. Suitabl
 - Check the tool result for that task: no error, no failure message, no syntax error — then call \`markComplete\`.
 
 ## Notes
-1. **Choose one mode**: Either provide \`input\` (automatic generation) or \`todoList\` (manual creation)
-2. Tasks should be arranged in logical order
-3. If tasks have dependencies, mark them in dependencies
-4. Priority settings should be reasonable
-5. Estimated time should be as accurate as possible
-6. When manually creating, must provide complete TodoList object structure, including items array
-7. **Batch mark complete (recommended)**: When multiple tasks are done, mark them in one call with an array, e.g. \`{"markComplete": ["task-1", "task-2", "task-3"]}\`, instead of calling the tool once per task. This saves tokens and reduces round-trips.
+1. **Choose one mode**: Either provide \`input\` (automatic generation) or \`items\` / \`todoList\` (manual creation).
+2. **Keep tasks minimal**: When creating tasks, only include \`title\` (required) and optionally \`description\`. Do not add \`createdAt\`, \`updatedAt\`, \`metadata\`, \`dueDate\`, \`assignee\`, \`estimatedTime\` unless the user explicitly asks.
+3. Tasks should be arranged in logical order.
+4. **Batch mark complete (recommended)**: When multiple tasks are done, mark them in one call with an array, e.g. \`{"markComplete": ["task-1", "task-2", "task-3"]}\`, instead of calling the tool once per task. This saves tokens and reduces round-trips.
 `
-  }
-}
+
+const TODOLIST_TOOL_NAME = 'Intent Recognition & Task Planning'
+const TODOLIST_TOOL_DESCRIPTION =
+  'Analyze user intent and decompose complex tasks into structured todo lists'
 
 /**
  * 调用LLM生成TodoList（支持重试）
@@ -633,7 +398,7 @@ async function generateTodoListWithLLM(
     }
   ]
   const { handle, done } = createAiTask(
-    retryCount > 0 ? `重新生成任务列表（重试 ${retryCount}/${maxRetries}）` : '生成任务列表',
+    retryCount > 0 ? `Regenerate task list (retry ${retryCount}/${maxRetries})` : 'Generate task list',
     messages,
     target,
     'chat',
@@ -662,11 +427,11 @@ async function generateTodoListWithLLM(
           retryCount > 0
             ? i18n.global.t(
                 'agent.tool.todolist.progress.retrying',
-                `正在重试生成任务列表（${retryCount}/${maxRetries}）...（流式输出）`
+                `Retrying task list generation (${retryCount}/${maxRetries})... (streaming)`
               )
             : i18n.global.t(
                 'agent.tool.todolist.progress.generating',
-                '正在生成任务列表...（流式输出）'
+                'Generating task list... (streaming)'
               )
       }
     )
@@ -683,27 +448,27 @@ async function generateTodoListWithLLM(
   } catch (error) {
     // 如果任务被取消或出错，检查是否是因为取消
     if (signal?.aborted) {
-      throw new Error('操作已取消')
+      throw new Error('Operation cancelled')
     }
     // 重新抛出原始错误，让调用者知道任务失败
     const errorMessage = error instanceof Error ? error.message : String(error)
     logger.error('生成任务列表失败:', error)
-    throw new Error(`AI任务失败: ${errorMessage}`)
+    throw new Error(`AI task failed: ${errorMessage}`)
   }
 
   if (signal?.aborted) {
-    throw new Error('操作已取消')
+    throw new Error('Operation cancelled')
   }
 
   if (!target.value || target.value.trim() === '') {
-    throw new Error(i18n.global.t('agent.tool.todolist.error.emptyResult', 'LLM返回结果为空'))
+    throw new Error(i18n.global.t('agent.tool.todolist.error.emptyResult', 'LLM returned empty result'))
   }
 
   // 尝试解析JSON（带清理）
   const parseResult = parseJsonWithClean<TodoList>(target.value)
 
   if (!parseResult.success || !parseResult.data) {
-    const errorMessage = parseResult.error || 'JSON解析失败'
+    const errorMessage = parseResult.error || 'JSON parse failed'
     logger.error(`解析TodoList JSON失败 (重试 ${retryCount}/${maxRetries}):`, errorMessage)
 
     // 如果还有重试次数，递归重试
@@ -730,39 +495,29 @@ async function generateTodoListWithLLM(
  * TodoList Tool回调函数
  */
 /**
- * 将灵活的输入格式转换为标准TodoItem
+ * 将灵活的输入格式转换为标准TodoItem；仅保留有值的字段，避免冗长的空字段和时间戳
  */
 function normalizeTodoItem(item: FlexibleTodoItem, index: number): TodoItem {
   if (typeof item === 'string') {
-    // 如果是字符串，直接作为title
-    return {
-      id: `task-${index + 1}`,
-      title: item,
-      status: 'pending'
-    }
-  } else if (item && typeof item === 'object') {
-    // 如果是对象，保留已有字段，补充缺失字段
-    return {
-      id: item.id || `task-${index + 1}`,
-      title: item.title || `任务 ${index + 1}`, // title必需，如果没有则生成
-      description: item.description,
-      status: item.status || 'pending',
-      priority: item.priority,
-      dueDate: item.dueDate,
-      tags: item.tags,
-      dependencies: item.dependencies,
-      estimatedTime: item.estimatedTime,
-      assignee: item.assignee,
-      metadata: item.metadata
-    }
-  } else {
-    // 无效格式，返回默认值
-    return {
-      id: `task-${index + 1}`,
-      title: `任务 ${index + 1}`,
-      status: 'pending'
-    }
+    return { id: `task-${index + 1}`, title: item, status: 'pending' }
   }
+  if (item && typeof item === 'object') {
+    const base: TodoItem = {
+      id: item.id || `task-${index + 1}`,
+      title: item.title || `Task ${index + 1}`,
+      status: item.status || 'pending'
+    }
+    if (item.description != null && item.description !== '') base.description = item.description
+    if (item.priority != null) base.priority = item.priority
+    if (item.dueDate != null && item.dueDate !== '') base.dueDate = item.dueDate
+    if (item.tags != null && item.tags.length > 0) base.tags = item.tags
+    if (item.dependencies != null && item.dependencies.length > 0) base.dependencies = item.dependencies
+    if (item.estimatedTime != null && item.estimatedTime !== '') base.estimatedTime = item.estimatedTime
+    if (item.assignee != null && item.assignee !== '') base.assignee = item.assignee
+    if (item.metadata != null && Object.keys(item.metadata).length > 0) base.metadata = item.metadata
+    return base
+  }
+  return { id: `task-${index + 1}`, title: `Task ${index + 1}`, status: 'pending' }
 }
 
 /**
@@ -775,7 +530,7 @@ function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTod
   if (Array.isArray(input)) {
     return {
       id: `todolist-${Date.now()}`,
-      title: '任务列表',
+      title: 'Task list',
       description: '',
       createdAt: now,
       updatedAt: now,
@@ -791,7 +546,7 @@ function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTod
 
     return {
       id: input.id || `todolist-${Date.now()}`,
-      title: input.title || '任务列表',
+      title: input.title || 'Task list',
       description: input.description,
       createdAt: input.createdAt || (input as TodoList).createdAt || now,
       updatedAt: input.updatedAt || (input as TodoList).updatedAt || now,
@@ -800,10 +555,10 @@ function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTod
     }
   }
 
-  // 无效输入，返回空列表
+  // Invalid input, return empty list
   return {
     id: `todolist-${Date.now()}`,
-    title: '任务列表',
+    title: 'Task list',
     description: '',
     createdAt: now,
     updatedAt: now,
@@ -880,15 +635,15 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          '无法更新任务状态：当前会话中还没有任务列表。请先创建任务列表。',
+          'Cannot update status: no task list in current session. Create a task list first.',
           [
-            '{"items": ["任务1", "任务2", "任务3"]}  // 先创建任务列表',
-            '{"updateStatus": {"itemId": "task-1", "status": "completed"}}  // 然后更新状态'
+            '{"items": ["Task 1", "Task 2", "Task 3"]}  // Create list first',
+            '{"updateStatus": {"itemId": "task-1", "status": "completed"}}  // Then update'
           ],
           [
-            '需要先使用todolist工具创建任务列表',
-            '然后才能使用updateStatus更新任务状态',
-            '任务ID必须存在于任务列表中'
+            'Create a task list first using the todolist tool',
+            'Then use updateStatus to update task status',
+            'Task ID must exist in the current task list'
           ]
         )
       }
@@ -912,15 +667,15 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          `无法更新任务状态：任务ID "${updateStatus.itemId}" 不存在于当前任务列表中`,
+          `Cannot update status: task ID "${updateStatus.itemId}" not found in current task list`,
           [
-            `{"updateStatus": {"itemId": "task-1", "status": "completed"}}  // 确保任务ID正确`,
-            '{}  // 先查看当前任务列表，确认任务ID'
+            `{"updateStatus": {"itemId": "task-1", "status": "completed"}}  // Use valid task ID`,
+            '{}  // View current task list to confirm task IDs'
           ],
           [
-            '任务ID必须与任务列表中的任务ID匹配',
-            '可以使用空参数 {} 查看当前任务列表',
-            '任务ID格式通常是 "task-1", "task-2" 等'
+            'Task ID must match an existing task in the list',
+            'Use empty {} to view the current task list',
+            'Task IDs are usually "task-1", "task-2", etc.'
           ]
         )
       }
@@ -933,15 +688,15 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          '无法标记任务为完成：当前会话中还没有任务列表。请先创建任务列表。',
+          'Cannot mark complete: no task list in current session. Create a task list first.',
           [
-            '{"items": ["任务1", "任务2", "任务3"]}  // 先创建任务列表',
-            '{"markComplete": "task-1"}  // 然后标记任务为完成'
+            '{"items": ["Task 1", "Task 2", "Task 3"]}  // Create list first',
+            '{"markComplete": "task-1"}  // Then mark complete'
           ],
           [
-            '需要先使用todolist工具创建任务列表',
-            '然后才能使用markComplete标记任务为完成',
-            '任务ID必须存在于任务列表中'
+            'Create a task list first using the todolist tool',
+            'Then use markComplete to mark tasks complete',
+            'Task ID must exist in the current task list'
           ]
         )
       }
@@ -1002,14 +757,14 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         return {
           status: 'failed',
           error: createDetailedError(
-            '无法标记任务为完成：所有任务都已完成，没有下一个任务可以标记',
+            'Cannot mark complete: all tasks are already completed; no next task to mark',
             [
-              '{"markComplete": "true"}  // 只能标记下一个未完成的任务',
-              '{}  // 查看当前任务列表状态'
+              '{"markComplete": "true"}  // Only marks the next incomplete task',
+              '{}  // View current task list status'
             ],
             [
-              '所有任务都已完成时，无法使用 markComplete: "true"',
-              '可以使用 markComplete: "task-id" 来标记特定任务'
+              'When all tasks are done, markComplete: "true" has no effect',
+              'Use markComplete: "task-id" to mark a specific task'
             ]
           )
         }
@@ -1053,16 +808,16 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          `无法标记任务为完成：${displayInputs.length ? `"${displayInputs.join(', ')}"` : '任务ID'} 无法匹配到当前任务列表（支持 task-1 或任务标题）`,
+          `Cannot mark complete: ${displayInputs.length ? `"${displayInputs.join(', ')}"` : 'task ID'} did not match any task in the list (use task-1 or task title)`,
           [
-            `{"markComplete": "task-1"} 或按任务标题 {"markComplete": ["1. 分析开题报告..."]}`,
-            '{"markComplete": "true"}  // 或使用true标记下一个任务',
-            '{}  // 先查看当前任务列表，确认任务ID或标题'
+            `{"markComplete": "task-1"} or by title {"markComplete": ["1. Analyze proposal..."]}`,
+            '{"markComplete": "true"}  // Or use true to mark next task',
+            '{}  // View current task list to confirm IDs or titles'
           ],
           [
-            '任务ID（task-1）或任务标题必须与任务列表中的项匹配',
-            '可以使用空参数 {} 查看当前任务列表',
-            '或使用 "true" 自动标记下一个未完成的任务'
+            'Task ID (task-1) or task title must match an item in the list',
+            'Use empty {} to view the current task list',
+            'Or use "true" to auto-mark the next incomplete task'
           ]
         )
       }
@@ -1107,7 +862,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         },
         {
           percentage: 100,
-          message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表创建完成')
+          message: i18n.global.t('agent.tool.todolist.progress.completed', 'Task list created')
         }
       )
 
@@ -1129,15 +884,15 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          `创建任务列表失败: ${errorMessage}`,
+          `Failed to create task list: ${errorMessage}`,
           [
-            '{"items": ["任务1", "任务2", "任务3"]}',
-            '{"items": ["任务1", {"title": "任务2", "tags": ["重要"]}]}',
-            '确保items是数组'
+            '{"items": ["Task 1", "Task 2", "Task 3"]}',
+            '{"items": ["Task 1", {"title": "Task 2", "tags": ["important"]}]}',
+            'Ensure items is an array'
           ],
           [
-            'items可以是字符串数组，也可以是混合数组（字符串+对象）',
-            '每个对象只需要包含title字段，其他字段都是可选的'
+            'items can be string array or mixed (strings + objects)',
+            'Each object only needs title; other fields are optional'
           ]
         )
       }
@@ -1183,7 +938,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           normalized = normalizeTodoList(inputTodoList)
         }
       } else {
-        throw new Error('todoList参数格式无效，必须是数组或对象')
+        throw new Error('todoList must be an array or object')
       }
 
       // 保存到session
@@ -1202,7 +957,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         },
         {
           percentage: 100,
-          message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表创建完成')
+          message: i18n.global.t('agent.tool.todolist.progress.completed', 'Task list created')
         }
       )
 
@@ -1224,16 +979,16 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          `创建任务列表失败: ${errorMessage}`,
+          `Failed to create task list: ${errorMessage}`,
           [
-            '{"items": ["任务1", "任务2", "任务3"]}  // 最简单的字符串列表',
-            '{"items": ["任务1", {"title": "任务2", "tags": ["重要"]}]}  // 混合列表',
-            '{"todoList": {"items": ["任务1", "任务2"]}}  // 完整的对象格式'
+            '{"items": ["Task 1", "Task 2", "Task 3"]}  // Simple string list',
+            '{"items": ["Task 1", {"title": "Task 2", "tags": ["important"]}]}  // Mixed list',
+            '{"todoList": {"items": ["Task 1", "Task 2"]}}  // Full object'
           ],
           [
-            '支持多种格式：字符串列表、混合列表（字符串+对象）、完整对象',
-            '每个任务对象只需要包含title字段，其他字段都是可选的',
-            '字符串会被自动转换为任务对象（title=字符串内容）'
+            'Supported: string array, mixed (strings + objects), or full todoList object',
+            'Each task object only needs title; other fields optional',
+            'Strings are auto-converted to task objects (title=string content)'
           ]
         )
       }
@@ -1276,7 +1031,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       data: {
         content: {
           stage: 'empty',
-          message: '当前会话中还没有任务列表。请先创建任务列表。',
+          message: 'No task list in this session yet. Create a task list first.',
           todoList: null
         },
         format: 'json',
@@ -1297,25 +1052,25 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       logger.error('[todolistToolCallback] 逻辑错误：markComplete或updateStatus应该已经处理')
       return {
         status: 'failed',
-        error: createDetailedError('内部错误：状态更新处理失败', [], ['请重试操作'])
+        error: createDetailedError('Internal error: status update failed', [], ['Please retry'])
       }
     }
     return {
       status: 'failed',
-      error: createDetailedError(
-        '缺少必需参数: 必须提供 input（用于生成任务列表）、items（字符串列表）或 todoList（手动创建任务列表）之一',
+        error: createDetailedError(
+        'Missing required parameter: provide one of input (for LLM-generated list), items (string array), or todoList (manual object)',
         [
-          '{"input": "帮我写一篇关于人工智能的文章"}  // 方式1：自动生成',
-          '{"items": ["任务1", "任务2", "任务3"]}  // 方式2：字符串列表（最简单）',
-          '{"items": ["任务1", {"title": "任务2", "tags": ["重要"]}]}  // 方式3：混合列表',
-          '{"todoList": {"items": ["任务1", "任务2"]}}  // 方式4：完整对象'
+          '{"input": "Write an article about AI"}  // Mode 1: auto-generate',
+          '{"items": ["Task 1", "Task 2", "Task 3"]}  // Mode 2: string list',
+          '{"items": ["Task 1", {"title": "Task 2", "tags": ["important"]}]}  // Mode 3: mixed',
+          '{"todoList": {"items": ["Task 1", "Task 2"]}}  // Mode 4: full object'
         ],
         [
-          '方式1：使用input参数，工具会自动分析用户意图并生成任务列表',
-          '方式2：直接传入items数组（字符串列表）',
-          '方式3：传入混合列表（字符串和对象的组合）',
-          '方式4：传入完整的todoList对象',
-          '如果提供了items或todoList，input可以为空'
+          'Mode 1: use input, tool will analyze and generate task list',
+          'Mode 2: pass items array (strings)',
+          'Mode 3: mixed list (strings and objects)',
+          'Mode 4: full todoList object',
+          'If items or todoList is provided, input can be omitted'
         ]
       )
     }
@@ -1333,7 +1088,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       },
       {
         percentage: 10,
-        message: i18n.global.t('agent.tool.todolist.progress.analyzing', '正在分析用户意图...')
+        message: i18n.global.t('agent.tool.todolist.progress.analyzing', 'Analyzing user intent...')
       }
     )
 
@@ -1357,17 +1112,17 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          `解析任务列表JSON失败: ${errorMessage}`,
+          `Failed to parse task list JSON: ${errorMessage}`,
           [
-            '{"input": "帮我写一篇文章"}',
-            '{"input": "创建一个待办事项管理系统"}',
-            '确保input参数是有效的字符串'
+            '{"input": "Write an article"}',
+            '{"input": "Create a todo management system"}',
+            'Ensure input is a valid string'
           ],
           [
-            '工具会调用LLM分析用户输入并生成任务列表',
-            '如果JSON解析失败，请检查LLM响应格式',
-            '可以尝试提供更清晰的input描述',
-            '添加context参数可能有助于生成更准确的结果'
+            'Tool calls LLM to analyze input and generate task list',
+            'If JSON parse fails, check LLM response format',
+            'Try a clearer input description',
+            'Adding context may improve results'
           ]
         )
       }
@@ -1378,15 +1133,15 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          '任务列表结构无效：缺少items数组',
+          'Invalid task list structure: missing items array',
           [
-            '工具期望的JSON格式包含items数组',
-            '示例结构：{"items": [{"id": "1", "title": "任务1", "status": "pending"}]}'
+            'Expected JSON with items array',
+            'Example: {"items": [{"id": "1", "title": "Task 1", "status": "pending"}]}'
           ],
           [
-            '任务列表必须包含items数组，数组中每个元素代表一个任务',
-            '每个任务应该包含id、title、status等字段',
-            '如果生成失败，工具会自动重试'
+            'Task list must include items array; each element is a task',
+            'Each task should have id, title, status, etc.',
+            'Tool will retry automatically on generation failure'
           ]
         )
       }
@@ -1397,7 +1152,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       todoList.id = `todolist-${Date.now()}`
     }
     if (!todoList.title) {
-      todoList.title = '任务列表'
+      todoList.title = 'Task list'
     }
     const now = new Date().toISOString()
     if (!todoList.createdAt) {
@@ -1434,7 +1189,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       },
       {
         percentage: 100,
-        message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表生成完成')
+        message: i18n.global.t('agent.tool.todolist.progress.completed', 'Task list generated')
       }
     )
 
@@ -1456,17 +1211,17 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     return {
       status: 'failed',
       error: createDetailedError(
-        `生成任务列表失败: ${errorMessage}`,
+        `Failed to generate task list: ${errorMessage}`,
         [
-          '{"input": "帮我写一篇文章"}',
-          '{"input": "创建一个待办事项管理系统", "context": "需要包含前端和后端"}',
-          '确保input参数是有效的字符串'
+          '{"input": "Write an article for me"}',
+          '{"input": "Create a todo management system", "context": "Include frontend and backend"}',
+          'Ensure input is a valid string'
         ],
         [
-          '检查input参数是否正确提供',
-          '确保LLM服务可用且配置正确',
-          '可以尝试提供更清晰的输入描述',
-          '添加context参数可能有助于生成更准确的任务列表'
+          'Check that input is provided correctly',
+          'Ensure LLM service is available and configured',
+          'Try a clearer input description',
+          'Adding context may improve the generated task list'
         ]
       )
     }
@@ -1475,13 +1230,13 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 export const todolistToolConfig: AgentToolConfig = {
   id: 'todolist-planning',
-  name: todolistToolLocales,
-  description: todolistToolLocales,
+  name: TODOLIST_TOOL_NAME,
+  description: TODOLIST_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'todolist-planning',
     brief:
-      'Only when user explicitly asks for a task list, plan, or breakdown (e.g. "列个计划", "任务清单", "分解任务"). Do not use for general writing, editing, or document generation.',
+      'Only when user explicitly asks for a task list, plan, or breakdown (e.g. "make a plan", "task list", "break down tasks"). Do not use for general writing, editing, or document generation.',
     fullSpec: `# Intent Recognition & Task Planning Tool
 
 ## Description
@@ -1539,7 +1294,7 @@ Returns the created or updated todo list with all items and their status.
 - **Call only when necessary.** Typical usage: (1) Once to create or update the task list when the user asks for a plan or breakdown. (2) Once to mark a task as completed when you have actually finished that task.
 - **Do NOT** call repeatedly for the same purpose, or to poll status, or to "refresh" the list. Prefer a single call per logical action.`
   },
-  instruction: todolistToolLocales,
+  instruction: TODOLIST_INSTRUCTION_EN,
   tags: ['planning', 'task', 'todolist', 'intent'],
   running: false,
   enabled: true,
@@ -1551,15 +1306,15 @@ Returns the created or updated todo list with all items and their status.
     properties: {
       input: {
         type: 'string',
-        description: '用户的自然语言输入，描述需要完成的任务或目标（自动生成模式使用）'
+        description: 'Natural language input describing tasks or goals (auto-generate mode)'
       },
       context: {
         type: 'string',
-        description: '可选的上下文信息，帮助更好地理解用户意图'
+        description: 'Optional context to better understand user intent'
       },
       items: {
         type: 'array',
-        description: '任务列表数组，支持字符串列表或混合列表（字符串+对象），最简单的方式',
+        description: 'Task list: string array or mixed (strings + objects)',
         items: {
           oneOf: [{ type: 'string' }, { type: 'object' }]
         }
@@ -1567,7 +1322,7 @@ Returns the created or updated todo list with all items and their status.
       todoList: {
         type: 'object',
         description:
-          '手动创建的任务列表对象（手动创建模式使用），如果提供了items或todoList，input可以为空'
+          'Manually created task list object; if items or todoList provided, input can be omitted'
       },
       markComplete: {
         oneOf: [
@@ -1576,21 +1331,21 @@ Returns the created or updated todo list with all items and their status.
           { type: 'boolean' }
         ],
         description:
-          '标记任务为完成。可以是：1) 单个任务ID（字符串），如 "task-1"；2) 多个任务ID（字符串数组），如 ["task-1", "task-2"]；3) 布尔值 true 或字符串 "true"，自动标记最后一条已完成任务的下一条任务为完成'
+          'Mark task(s) complete: 1) single task ID string; 2) array of task IDs; 3) true to mark next after last completed'
       },
       updateStatus: {
         type: 'object',
         description:
-          '更新任务状态，包含itemId（任务ID）和status（状态：pending|in_progress|completed|cancelled）',
+          'Update task status: itemId (task ID) and status (pending|in_progress|completed|cancelled)',
         properties: {
           itemId: {
             type: 'string',
-            description: '要更新的任务ID'
+            description: 'Task ID to update'
           },
           status: {
             type: 'string',
             enum: ['pending', 'in_progress', 'completed', 'cancelled'],
-            description: '新的任务状态'
+            description: 'New status'
           }
         },
         required: ['itemId', 'status']
@@ -1600,11 +1355,11 @@ Returns the created or updated todo list with all items and their status.
   outputSchema: {
     type: 'object',
     properties: {
-      id: { type: 'string', description: '任务列表唯一标识符' },
-      title: { type: 'string', description: '任务列表标题' },
-      description: { type: 'string', description: '任务列表描述' },
-      createdAt: { type: 'string', description: '创建时间（ISO 8601）' },
-      updatedAt: { type: 'string', description: '更新时间（ISO 8601）' },
+      id: { type: 'string', description: 'Task list unique ID' },
+      title: { type: 'string', description: 'Task list title' },
+      description: { type: 'string', description: 'Task list description' },
+      createdAt: { type: 'string', description: 'Created at (ISO 8601)' },
+      updatedAt: { type: 'string', description: 'Updated at (ISO 8601)' },
       items: {
         type: 'array',
         items: {
@@ -1626,6 +1381,5 @@ Returns the created or updated todo list with all items and their status.
       },
       metadata: { type: 'object' }
     }
-  },
-  locales: todolistToolLocales
+  }
 }

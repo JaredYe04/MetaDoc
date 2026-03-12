@@ -13,6 +13,20 @@
   "agent": {
     "assistantLabel": "Asistente",
     "callParams": "Parámetros de llamada",
+    "contextBreakdown": {
+      "title": "Composición del contexto",
+      "description": "Qué se incluye en el contexto enviado al modelo para esta sesión.",
+      "tooltip": "Ver composición y uso del contexto",
+      "totalTokens": "{used} / {max} tokens ({pct}%)",
+      "tokensChars": "{tokens} tokens ({chars} caracteres)",
+      "noSession": "Ninguna sesión o configuración seleccionada; no se puede calcular el contexto.",
+      "parts": {
+        "systemPrompt": "Prompt del sistema",
+        "references": "Referencias",
+        "summary": "Resumen del historial",
+        "history": "Mensajes recientes"
+      }
+    },
     "conversation": {
       "emptyTitle": "Sin conversaciones por ahora",
       "messages": "{count} mensajes",
@@ -332,7 +346,10 @@
         "hideContent": "Ocultar contenido completo",
         "linesRange": "Líneas {start}-{end} (de {total} líneas)",
         "totalLines": "{count} líneas en total",
-        "error": "Error al leer el archivo del espacio de trabajo"
+        "error": "Error al leer el archivo del espacio de trabajo",
+        "matchCount": "Coinciden {count} elementos",
+        "searchResultsTitle": "Búsqueda difusa: 「{query}」",
+        "searching": "Buscando de forma difusa…"
       },
       "edit": {
         "completed": "Edición completada",
@@ -412,6 +429,24 @@
         "splitView": "Vista dividida",
         "originalText": "Texto original",
         "correctedText": "Texto corregido"
+      },
+      "latexCompile": {
+        "compiling": "Compilando LaTeX...",
+        "failed": "Compilación fallida",
+        "outputPdfPath": "Ruta del PDF de salida",
+        "stderr": "Error estándar",
+        "stdout": "Salida estándar",
+        "success": "Compilación exitosa"
+      },
+      "timestamp": {
+        "current": "Hora actual",
+        "error": "Error al obtener la hora",
+        "local": "Local",
+        "previous": "Hora de la última llamada",
+        "processing": "Obteniendo hora...",
+        "result": "Resultado",
+        "timeDiff": "Diferencia de tiempo",
+        "unixTimestamp": "Marca de tiempo Unix"
       }
     },
     "error": "Se ha producido un error",
@@ -550,7 +585,9 @@
       "intentRecognition": "Reconocimiento de intención",
       "selectedTools": "Herramientas seleccionadas:",
       "noToolsNeeded": "Esta solicitud no requiere herramientas.",
-      "reasoning": "Razonamiento:"
+      "reasoning": "Razonamiento:",
+      "confirmRegenerate": "¿Regenerar? Esto eliminará todo el contenido posterior a este mensaje (incluidas las respuestas de la IA, llamadas a herramientas, reconocimiento de intenciones, etc.) y lo regenerará basándose en este mensaje del usuario. ¿Continuar?",
+      "confirmRegenerateTitle": "Confirmar regeneración"
     },
     "attachment": {
       "untitled": "Sin título"
@@ -660,20 +697,11 @@
         "foundSlides": "Encontradas {count} diapositivas",
         "foundImages": "Encontradas {count} imágenes"
       },
-      "builtInDocument": {
-        "title": "Referencia del documento actual",
-        "description": "Obtiene dinámicamente el contenido del documento activo actual, se actualiza en tiempo real y no ocupa espacio en el historial de mensajes",
-        "enabled": "Habilitado",
-        "disabled": "Deshabilitado",
-        "preview": "Vista previa",
-        "noActiveDocument": "No hay ningún documento activo",
-        "emptyDocument": "El documento actual está vacío",
-        "currentActiveDocument": "Documento activo actual",
-        "formatSuffix": "(Formato {format})"
-      },
       "error": {
         "cancelRequestFailed": "Error al enviar la solicitud de cancelación"
-      }
+      },
+      "directory": "Directorio",
+      "workspaceDirs": "Directorios del espacio de trabajo"
     },
     "retry": "Reintentar",
     "roles": {
@@ -762,13 +790,24 @@
           "loadingTree": "Cargando árbol de directorios...",
           "reading": "Leyendo archivos...",
           "readingFile": "Leyendo archivo {index}/{total}: {path}",
-          "completed": "Lectura completada, {count} archivos en total"
+          "completed": "Lectura completada, {count} archivos en total",
+          "searchCompleted": "Búsqueda completada: «{query}» coincide con {count} elementos",
+          "searching": "Buscando de forma difusa..."
         }
       },
       "nodeAgent": {
         "progress": {
           "syncing": "Sincronizando el contenido del documento...",
           "completed": "Ejecución del agente de nodo completada"
+        }
+      },
+      "latexCompile": {
+        "error": {
+          "failed": "Error de compilación de LaTeX: {error}"
+        },
+        "progress": {
+          "compiling": "Compilando LaTeX...",
+          "completed": "Compilación completada"
         }
       }
     },
@@ -838,6 +877,88 @@
       "openReview": "Revisar de forma independiente",
       "selectEdit": "Seleccione una edición de la izquierda",
       "acceptado": "Aceptado"
+    },
+    "toolLabels": {
+      "chart-generation": {
+        "description": "Genera varios tipos de gráficos (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) según la indicación, con soporte para exportar SVG, PNG, PDF",
+        "name": "Generación de gráficos"
+      },
+      "color-processing": {
+        "description": "Procesa mezcla de colores, ajustes de brillo/contraste, colores complementarios, etc.",
+        "name": "Procesamiento de color"
+      },
+      "data-analysis": {
+        "description": "Analiza automáticamente datos como CSV, JSON, etc., para extraer campos, estadísticas descriptivas, análisis agregado, etc.",
+        "name": "Análisis de datos"
+      },
+      "data-calculation": {
+        "description": "Realiza cálculos matemáticos complejos, incluyendo operaciones numéricas, vectoriales, matriciales, etc.",
+        "name": "Cálculo de datos"
+      },
+      "diff": {
+        "description": "Compara dos textos y devuelve un diff unificado",
+        "name": "Comparación de texto"
+      },
+      "edit": {
+        "description": "Solo acepta diff estilo git: pasa una cadena con líneas - (eliminadas) y + (insertadas)",
+        "name": "Edición de documentos"
+      },
+      "grep": {
+        "description": "Busca o busca y reemplaza en el documento/espacio de trabajo",
+        "name": "Búsqueda de texto"
+      },
+      "latex-compile": {
+        "description": "Compila proyectos LaTeX y devuelve la ruta del PDF o el registro",
+        "name": "Compilación LaTeX"
+      },
+      "metadata": {
+        "description": "Accede, modifica metadatos del documento, invoca IA para generar título, descripción, palabras clave, etc.",
+        "name": "Gestión de metadatos"
+      },
+      "outline-optimize": {
+        "description": "Usa IA para generar/optimizar el esquema del documento (solo .md/.tex), especifica el documento por filePath o tabId",
+        "name": "Optimización de esquema"
+      },
+      "outline-tree": {
+        "description": "Obtiene el árbol de esquema del documento (solo .md/.tex)",
+        "name": "Árbol de esquema"
+      },
+      "proofread": {
+        "description": "Verifica errores gramaticales, ortográficos y de sintaxis LaTeX en el texto",
+        "name": "Corrección de texto"
+      },
+      "rag-retrieval": {
+        "description": "Recupera fragmentos de documentos relevantes de la base de conocimiento para mejorar la precisión de las respuestas de IA",
+        "name": "Recuperación de base de conocimiento RAG"
+      },
+      "terminal-execution": {
+        "description": "Ejecuta comandos de terminal, requiere aprobación del usuario (se puede configurar modo de confianza)",
+        "name": "Ejecución de terminal"
+      },
+      "timestamp": {
+        "description": "Devuelve la marca de tiempo actual y registra el tiempo de cada llamada para calcular la diferencia",
+        "name": "Marca de tiempo"
+      },
+      "title-format": {
+        "description": "Formatea títulos de documentos: ajusta niveles de título, añade/elimina numeración, elimina prefijos, etc.",
+        "name": "Formateo de títulos"
+      },
+      "todolist-planning": {
+        "description": "Analiza la intención del usuario y descompone tareas complejas en una lista estructurada de tareas pendientes",
+        "name": "Reconocimiento de intención y planificación de tareas"
+      },
+      "tool-spec-fetcher": {
+        "description": "Obtiene la descripción completa (fullSpec) de una o varias herramientas",
+        "name": "Obtención de especificaciones de herramientas"
+      },
+      "web-crawler": {
+        "description": "Accede a una URL especificada, obtiene contenido HTML de la página web o respuesta de API",
+        "name": "Acceso a páginas web"
+      },
+      "workspace": {
+        "description": "Lee archivos del espacio de trabajo, busca difusamente por ruta/nombre o lista el directorio raíz",
+        "name": "Lectura de archivos del espacio de trabajo"
+      }
     }
   },
   "agent-engine-executor": {
@@ -3894,7 +4015,21 @@
     "tokens": "tokens",
     "unlimited": "Ilimitado",
     "unsavedChanges": "Cambios no guardados",
-    "unsavedChangesConfirm": "Hay cambios no guardados en la configuración actual. ¿Desea guardarlos primero?"
+    "unsavedChangesConfirm": "Hay cambios no guardados en la configuración actual. ¿Desea guardarlos primero?",
+    "checkAllConfigs": "Comprobar todo con un clic",
+    "checkAllConfigsDone": "Todas las configuraciones comprobadas",
+    "checkConfig": "Comprobar",
+    "checkConfigFailed": "Error en la comprobación",
+    "checkConfigTooltip": "Haz clic para verificar: Completado por flujo / sin flujo y diálogo",
+    "checkFail": "Falló",
+    "checkPass": "Aprobado",
+    "configDescription": "Descripción",
+    "configDescriptionPlaceholder": "Opcional, para mostrar notas en la tarjeta",
+    "copyConfig": "Copiar configuración",
+    "copyConfigSuccess": "Configuración copiada",
+    "readFileFailed": "No se pudo leer el archivo",
+    "resetConfigSuccess": "Restablecido al estado predefinido",
+    "resetConfigToPreset": "Restablecer al estado predefinido"
   },
   "settingBasicSection": {
     "failedSize": "Error al obtener el tamaño del directorio",
@@ -4413,7 +4548,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "Palabra",
-    "frequency": "Frecuencia"
+    "frequency": "Frecuencia",
+    "generating": "Generando explicación…"
   },
   "wordCountDialog": {
     "charactersNoSpaces": "Caracteres (sin espacios)",

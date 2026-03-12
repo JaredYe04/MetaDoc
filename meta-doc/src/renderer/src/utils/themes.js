@@ -240,10 +240,25 @@ export const generateLogoColors = (primaryColor, isDark) => {
   }
 }
 
-// 辅助函数：计算颜色亮度（0-255）
+// 辅助函数：计算颜色亮度（0-255），线性值，仅用于混色等
 const getLuminance = (hex) => {
   const { r, g, b } = hexToRgb(hex)
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/**
+ * 判断颜色在视觉上属于深色还是浅色（用于主题模式判定）
+ * 使用 WCAG 相对亮度（sRGB 伽马校正），阈值 0.5 对应感知上的明暗中点
+ * @param {string} color - 任意 CSS 颜色（hex、rgb、hsl 等）
+ * @returns {boolean} true 表示深色，false 表示浅色
+ */
+export function isColorDark(color) {
+  if (!color || typeof color !== 'string') return false
+  const tc = tinycolor(color)
+  if (!tc.isValid()) return false
+  // getLuminance() 返回 0–1 的 WCAG 相对亮度（含 sRGB 线性化）
+  const relativeLuminance = tc.getLuminance()
+  return relativeLuminance < 0.5
 }
 
 // 辅助函数：调整颜色饱和度
@@ -391,9 +406,8 @@ const generateThemeIcons = (isDarkMode) => {
 // themeColor: 主题色
 // overrides: 可选的覆盖对象，用于覆盖某些颜色值（主要用于保持 lightTheme 和 darkTheme 的原始值）
 export const customTheme = (themeColor = '#000000', overrides = {}) => {
-  // 确定主题模式（基于主题色亮度）
-  const baseLuminance = getLuminance(themeColor)
-  const isDarkMode = baseLuminance < 160
+  // 确定主题模式：使用 WCAG 相对亮度（感知亮度）判断深/浅色，阈值 0.5
+  const isDarkMode = isColorDark(themeColor)
 
   // 核心颜色生成算法
   const generateColorSet = () => {

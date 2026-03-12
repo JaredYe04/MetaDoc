@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { queryKnowledgeBase } from '../rag_utils'
 import { getSetting } from '../settings'
@@ -190,61 +189,10 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 }
 
-const ragToolLocales: ToolLocales = {
-  zh_cn: {
-    name: 'RAG知识库检索',
-    description: '从知识库中检索与问题相关的文档片段，用于增强AI回答的准确性',
-    instruction: `# RAG知识库检索工具
-
-## 功能描述
-从用户的知识库中检索与查询问题相关的文档片段。使用向量相似度搜索和关键词匹配的混合评分机制，返回最相关的内容。
-
-## 使用场景
-- 当用户的问题需要参考已上传的文档内容时
-- 当需要基于知识库内容进行回答时
-- 当需要查找特定文档中的信息时
-
-## 输入参数
-\`\`\`json
-{
-  "question": "string",  // 必需，要检索的问题或关键词
-  "scoreThreshold": 0.5  // 可选，相似度阈值（0-1），用于过滤低相关性结果。如果不提供，将使用设置中的默认值
-}
-\`\`\`
-
-**参数说明：**
-- \`question\`: 必需参数，要检索的问题或关键词
-- \`scoreThreshold\`: 可选参数，相似度阈值（0-1之间的数字）
-  - 值越大，返回的结果相关性越高，但可能结果更少
-  - 值越小，返回的结果更多，但可能包含相关性较低的内容
-  - 如果不提供此参数，将使用设置中配置的默认阈值（默认0.5）
-
-## 输出格式
-返回JSON格式的检索结果数组，每个结果包含：
-- \`text\`: 文档片段文本
-- \`score\`: 相似度评分（0-1）
-- \`metadata\`: 文档元数据（如果有）
-
-## 注意事项
-1. 需要先在知识库中上传文档
-2. 需要在设置中启用知识库功能
-3. 相似度阈值可以在调用时通过\`scoreThreshold\`参数指定，也可以在设置中配置默认值（默认0.5）
-4. 如果检索结果为空，说明没有找到相关文档，应该告知用户
-5. 检索结果应该与用户问题高度相关，如果相关性低，应该明确告知用户
-6. 根据查询需求灵活调整\`scoreThreshold\`：
-   - 需要高精度结果时，可以设置较高的阈值（如0.7-0.9）
-   - 需要更多结果时，可以设置较低的阈值（如0.3-0.5）
-
-## 与其他Tool的区别
-- 这是唯一的知识库检索工具
-- 主要用于文档内容检索，不涉及其他功能
-- 如果用户问题不需要参考文档，不应该调用此工具`
-  },
-  en_us: {
-    name: 'RAG Knowledge Base Retrieval',
-    description:
-      'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy',
-    instruction: `# RAG Knowledge Base Retrieval Tool
+const RAG_TOOL_NAME = 'RAG Knowledge Base Retrieval'
+const RAG_TOOL_DESCRIPTION =
+  'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy'
+const RAG_INSTRUCTION = `# RAG Knowledge Base Retrieval Tool
 
 ## Description
 Retrieve relevant document chunks from the user's knowledge base based on query questions. Uses a hybrid scoring mechanism combining vector similarity search and keyword matching to return the most relevant content.
@@ -289,34 +237,11 @@ Returns JSON array of retrieval results, each containing:
 - This is the only knowledge base retrieval tool
 - Mainly for document content retrieval, does not involve other functions
 - Should not call this tool if user questions do not need to reference documents`
-  },
-  de_DE: {
-    name: 'RAG-Wissensdatenbank-Abruf',
-    description:
-      'Ruft relevante Dokumentfragmente aus der Wissensdatenbank ab, um die Genauigkeit der KI-Antworten zu verbessern'
-  },
-  fr_FR: {
-    name: 'Récupération de base de connaissances RAG',
-    description:
-      'Récupère des fragments de documents pertinents de la base de connaissances pour améliorer la précision des réponses IA'
-  },
-  ja_JP: {
-    name: 'RAG知識ベース検索',
-    description: '知識ベースから関連する文書チャンクを検索し、AI回答の精度を向上'
-  },
-  ko_KR: {
-    name: 'RAG 지식 베이스 검색',
-    description: '지식 베이스에서 관련 문서 청크를 검색하여 AI 응답 정확도 향상'
-  }
-}
 
-/**
- * RAG Tool配置
- */
 export const ragToolConfig: AgentToolConfig = {
   id: 'rag-retrieval',
-  name: ragToolLocales,
-  description: ragToolLocales,
+  name: RAG_TOOL_NAME,
+  description: RAG_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'rag-retrieval',
@@ -368,11 +293,10 @@ Returns JSON array of retrieval results, each containing:
 - Mainly for document content retrieval, does not involve other functions
 - Should not call this tool if user questions do not need to reference documents`
   },
-  instruction: ragToolLocales,
+  instruction: RAG_INSTRUCTION,
   callback: ragToolCallback,
   displayComponent: RAGToolDisplay,
   tags: ['rag', 'retrieval', 'knowledge-base', 'internal'],
   enabled: true,
-  editable: false,
-  locales: ragToolLocales
+  editable: false
 }

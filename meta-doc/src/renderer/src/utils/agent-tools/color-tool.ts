@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { mixColors } from '../themes'
 import { createRendererLogger } from '../logger'
@@ -20,54 +19,10 @@ import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('ColorTool')
 
-const colorToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '颜色处理',
-    description: '处理颜色混合、亮度/对比度调整、互补色等颜色操作',
-    instruction: `
-# 颜色处理工具
-
-## 功能描述
-提供各种颜色处理功能：
-- 颜色混合（按权重混合两种颜色）
-- 亮度调整（提高或降低亮度）
-- 对比度调整
-- 获取互补色
-- 颜色格式转换（HEX、RGB、HSL等）
-- 颜色分析（获取色相、饱和度、明度等）
-
-## 使用场景
-- 主题颜色设计
-- UI颜色方案生成
-- 颜色搭配建议
-- 颜色调整和优化
-
-## 输入格式
-\`\`\`json
-{
-  "operation": "string", // 操作类型：mix|brightness|contrast|complementary|convert|analyze
-  "color1": "string", // 颜色1（HEX格式，如#FF0000）
-  "color2": "string", // 颜色2（仅mix操作需要）
-  "weight": 0.5, // 混合权重（0-1，仅mix操作需要）
-  "amount": 0.2, // 调整量（-1到1，brightness/contrast操作需要）
-  "format": "hex" // 输出格式（hex|rgb|hsl，仅convert操作需要）
-}
-\`\`\`
-
-## 输出格式
-\`\`\`json
-{
-  "result": "string|object", // 处理结果
-  "operation": "string", // 执行的操作
-  "input": "string|object" // 输入颜色信息
-}
-\`\`\`
-`
-  },
-  en_us: {
-    name: 'Color Processing',
-    description: 'Process color mixing, brightness/contrast adjustment, complementary colors, etc.',
-    instruction: `
+const COLOR_TOOL_NAME = 'Color Processing'
+const COLOR_TOOL_DESCRIPTION =
+  'Process color mixing, brightness/contrast adjustment, complementary colors, etc.'
+const COLOR_INSTRUCTION = `
 # Color Processing Tool
 
 ## Description
@@ -91,8 +46,6 @@ Provides various color processing functions:
 }
 \`\`\`
 `
-  }
-}
 
 /**
  * 颜色处理Tool回调函数
@@ -328,8 +281,8 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 export const colorToolConfig: AgentToolConfig = {
   id: 'color-processing',
-  name: colorToolLocales,
-  description: colorToolLocales,
+  name: COLOR_TOOL_NAME,
+  description: COLOR_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'color-processing',
@@ -373,7 +326,7 @@ Provides various color processing functions:
 }
 \`\`\``
   },
-  instruction: colorToolLocales,
+  instruction: COLOR_INSTRUCTION,
   tags: ['color', 'design', 'ui'],
   running: false,
   enabled: true,
@@ -429,5 +382,4 @@ Provides various color processing functions:
       input: { type: 'object', description: '输入参数' }
     }
   },
-  locales: colorToolLocales
 }

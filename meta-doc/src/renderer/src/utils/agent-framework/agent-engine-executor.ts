@@ -405,37 +405,47 @@ export abstract class BaseEngineExecutor {
         }
       }
     }
-    let prompt = getPromptByKey('agent.toolCallSpec.prompt', { toolList })
-    const concurrentNote = getPromptByKey('agent.toolCallSpec.concurrentSubagentNote')?.trim()
-    const concurrentNoteFallback =
-      '## Concurrent and Subagent capability\nYou **can and should** issue multiple <tool_call> in one response when the user asks to run multiple subagents or tasks in parallel. The system will **run them concurrently**; do not claim you cannot create or run multiple subagents. If the tool list includes Subagents (e.g. subagent-doc-writer), call them directly as needed.'
-    if (concurrentNote || concurrentNoteFallback) {
-      prompt += '\n\n' + (concurrentNote || concurrentNoteFallback)
+    // 有工具时走 SDK/OpenAI 原生 tool calling，提示词只讲 API 规范，不提及 <tool_call> 文本格式，避免模型混用两套
+    const useNativeTools = tools.length > 0
+    let prompt: string
+    if (useNativeTools) {
+      prompt = getPromptByKey('agent.toolCallSpec.sdkPrompt', { toolList }) || ''
+      const sdkConcurrent = getPromptByKey('agent.toolCallSpec.sdkConcurrentNote')?.trim()
+      if (sdkConcurrent) prompt += '\n\n' + sdkConcurrent
+    } else {
+      prompt = getPromptByKey('agent.toolCallSpec.prompt', { toolList })
+      const concurrentNote = getPromptByKey('agent.toolCallSpec.concurrentSubagentNote')?.trim()
+      const concurrentNoteFallback =
+        '## Concurrent and Subagent capability\nYou **can and should** issue multiple <tool_call> in one response when the user asks to run multiple subagents or tasks in parallel. The system will **run them concurrently**; do not claim you cannot create or run multiple subagents. If the tool list includes Subagents (e.g. subagent-doc-writer), call them directly as needed.'
+      if (concurrentNote || concurrentNoteFallback) {
+        prompt += '\n\n' + (concurrentNote || concurrentNoteFallback)
+      }
     }
     prompt += '\n\n## Notes When Calling Tools\n'
     prompt += "- Read each tool's instructions and parameter requirements carefully\n"
     prompt += '- Ensure parameter types are correct (string, number, boolean, object, etc.)\n'
-    prompt += '- Parameters must be in valid JSON string format\n'
+    prompt += '- Parameters must be in valid JSON format\n'
     prompt +=
       '- If a tool call fails, do not retry the same tool repeatedly; try once with corrected parameters at most, then report the error to the user or use another approach\n'
     prompt +=
-      '- Tool call results will be provided in subsequent conversations, you can continue processing based on results\n'
-    prompt +=
-      '- If no tools are needed, reply with text directly, do not include tool call markers\n'
+      '- Tool call results will be provided in subsequent turns; you can continue based on results\n'
+    prompt += '- If no tools are needed, reply with text only; do not emit tool calls\n'
     prompt +=
       '- **Call each tool only when necessary**: do not call the same tool repeatedly for the same purpose (e.g. call todolist once to create a plan and once per task when marking it complete, not to poll or refresh)\n'
     prompt +=
       '- **todolist-planning**: At most 2 calls per assistant turn (one to create/update the list, one to mark task(s) complete). Do not call in every response; do not use for general document writing.\n'
-    prompt +=
-      '- **Important**: When calling tools, the parameter content in the marker format will not be displayed to users, it will only be processed internally by the system\n'
-    prompt +=
-      '\n## ⚠️ Strict tool-call format (OpenAI-style only)\n'
-    prompt +=
-      '- **You MUST use only this format** (same for main agent and subagent):\n'
-    prompt +=
-      '  `<tool_call>\n{"name": "<tool_id>", "arguments": {"param": "value"}}\n</tool_call>`\n'
-    prompt +=
-      '- **Do NOT use** any other form: no XML (`<name></name><arguments></arguments>`), no DSML (`<|DSML|invoke>`, `<|DSML|parameter>`), no custom tags like `<edit>...</edit>` or `<workspace>...</workspace>`. Only the JSON object with `name` and `arguments` inside `<tool_call></tool_call>` is accepted; other formats will fail or be misinterpreted.\n'
+    if (!useNativeTools) {
+      prompt +=
+        '- **Important**: When calling tools, the parameter content in the marker format will not be displayed to users, it will only be processed internally by the system\n'
+      prompt +=
+        '\n## ⚠️ Strict tool-call format (text fallback only)\n'
+      prompt +=
+        '- **You MUST use only this format** when tools are invoked via text:\n'
+      prompt +=
+        '  `<tool_call>\n{"name": "<tool_id>", "arguments": {"param": "value"}}\n</tool_call>`\n'
+      prompt +=
+        '- **Do NOT use** any other form: no XML, no DSML, no custom tags. Only the JSON object with `name` and `arguments` inside `<tool_call></tool_call>` is accepted.\n'
+    }
 
     return prompt
   }
@@ -520,28 +530,23 @@ export abstract class BaseEngineExecutor {
 
       for (const parsed of parsedToolCalls) {
         if (parsed.isValid) {
-          // 有效的工具调用
           toolCalls.push({
             id: parsed.id,
             tool_id: parsed.tool_id,
             parameters: parsed.parameters
           })
         } else {
-          // 无效的工具调用：使用dummy-tool处理
-          getLogger().warn(
-            `[parseMarkedToolCalls] 检测到无效的工具调用，使用dummy-tool处理:`,
-            parsed.error
+          // 无效块（如正文中举例导致误匹配）：仅打日志，不加入列表，避免误执行并报错
+          getLogger().debug(
+            '[parseMarkedToolCalls] 跳过无效块（不当作工具调用）:',
+            parsed.error,
+            { rawPreview: (parsed.rawContent || '').slice(0, 80) }
           )
-          toolCalls.push({
-            id: parsed.id,
-            tool_id: 'dummy-tool', // 使用dummy-tool作为fallback
-            parameters: parsed.parameters // 包含错误信息
-          })
         }
       }
 
       getLogger().debug(
-        `[parseMarkedToolCalls] 解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter((p) => p.isValid).length}, 无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`
+        `[parseMarkedToolCalls] 解析完成，有效工具调用: ${toolCalls.length}（跳过无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`
       )
       return toolCalls.length > 0 ? toolCalls : null
     } catch (error) {
@@ -1367,7 +1372,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           contextMessages.push({
             role: 'user',
             content:
-              '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：\n\n<tool_call>\n{"name": "工具ID", "arguments": {"参数名": "参数值"}}\n</tool_call>\n\n**重要**：工具调用标记必须直接输出，不要放在代码块中！'
+              '⚠️ 请通过系统提供的工具调用接口完成所需的工具调用，不要在图示或说明中混入未完成的调用内容。'
           })
           // 继续循环，不break（确保队列已完成）
           continue

@@ -2,7 +2,7 @@
 
 ## Overview
 
-LLM (Large Language Model) configuration is the core setting for MetaDoc AI features. By configuring the LLM, you can enable intelligent functions such as AI chat, AI proofreading, and AI completion. MetaDoc supports multiple LLM service providers, allowing you to choose the appropriate model based on your needs.
+LLM (Large Language Model) configuration is the core setting for MetaDoc AI features. By configuring LLM, you can enable intelligent functions such as AI chat, AI proofreading, and AI completion. MetaDoc supports multiple LLM service providers, allowing you to choose the appropriate model based on your needs.
 
 ## Enabling LLM
 
@@ -12,8 +12,8 @@ LLM (Large Language Model) configuration is the core setting for MetaDoc AI feat
 
 On the LLM settings page, you first need to enable the LLM feature:
 
-1.  Locate the "Enable LLM" switch.
-2.  Toggle the switch to the "Enabled" state.
+1.  Locate the "Enable LLM" toggle switch.
+2.  Switch the toggle to the "Enabled" state.
 3.  The system will automatically load the default LLM configuration.
 
 You can access the settings via the top menu bar:
@@ -22,19 +22,18 @@ You can access the settings via the top menu bar:
 
 ### LLM Settings Interface
 
-The following diagram shows the main functional areas of the LLM configuration page:
+The following diagram illustrates the main functional areas of the LLM configuration page:
 
 <SettingLlmSection mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-The above diagram illustrates the main components of the LLM settings interface:
+The above diagram shows the main components of the LLM settings interface:
 
--   **Global Settings**: LLM enable switch, Temperature adjustment slider, think tag removal option.
--   **Configuration List**: Displays all configured LLM providers (e.g., OpenAI, Ollama, Gemini, etc.) on the left.
--   **Configuration Details**: Shows detailed parameters (API address, model selection, token limits, etc.) for the selected configuration on the right.
--   **Test Area**: Allows testing if the current configuration is working correctly.
--   **Action Buttons**: Functions such as creating a new configuration, importing/exporting configurations, and deleting configurations.
+-   **Global Settings**: LLM enable toggle, Temperature adjustment slider, think tag removal option, default terminal execution permission, etc.
+-   **Configuration Grid**: Displays all configurations in card format, each card showing the configuration name and type (e.g., OpenAI, Tongyi Qianwen, DeepSeek, Ollama, etc.); click a card to switch to using it, with the current configuration highlighted by a green border.
+-   **Card Actions**: Click "Check" on the right side of a card to test its Q&A and chat streaming capabilities; the right-click menu supports Copy, Edit, Export, and Delete.
+-   **Top Actions**: Use the buttons in the top-right corner of the grid to create a new configuration or batch import configurations from a file.
 
 In demo mode, you can interactively view the interface layout, but modifications will not be saved.
 
@@ -43,14 +42,14 @@ After enabling LLM, you can use the following AI features:
 -   AI Chat
 -   AI Proofreading
 -   AI Auto-completion
--   AI Assistant Functions
+-   AI Assistant Features
 -   Agent Framework
 
 **Important Notes**:
 
--   After enabling LLM, some features may call APIs, potentially incurring costs.
+-   After enabling LLM, certain features may call APIs and incur costs.
 -   It is recommended to configure your LLM service before enabling it.
--   If AI features are not needed, you can keep it disabled to save resources.
+-   If AI features are not needed, you can keep LLM disabled to conserve resources.
 
 ## LLM Temperature Setting
 
@@ -69,26 +68,26 @@ Temperature is a parameter that controls the randomness of AI-generated text:
 -   **Technical Documentation**: Recommended 0.3-0.5 to ensure content accuracy.
 -   **Creative Writing**: Recommended 0.7-1.0 to increase content diversity.
 -   **Code Generation**: Recommended 0.2-0.4 to guarantee code accuracy.
--   **Conversational Interaction**: Recommended 0.7-0.9 to keep the dialogue natural and fluent.
+-   **Conversational Exchange**: Recommended 0.7-0.9 to maintain natural and fluent dialogue.
 
-The temperature setting affects all features using the LLM, including AI chat, AI completion, AI proofreading, etc.
+The temperature setting affects all features using LLM, including AI Chat, AI Completion, AI Proofreading, etc.
 
-## Auto-Remove Think Tags
+## Auto-Remove Reasoning Tags
 
 ### Feature Description
 
-Some LLMs may include a thinking process when generating content, often marked with special tags. When "Auto-Remove Think Tags" is enabled, MetaDoc automatically filters out these tags, retaining only the final generated content.
+Some LLMs may include a reasoning process (thinking process) when generating content, often marked with special tags. When "Auto-Remove Reasoning Tags" is enabled, MetaDoc automatically filters out these tags, retaining only the final generated content.
 
 **Applicable Scenarios**:
 
--   Using LLMs that support a thinking process (e.g., certain open-source models).
+-   Using LLMs that support reasoning processes (e.g., certain open-source models).
 -   Desiring more concise output.
 -   Not needing to view the AI's thought process.
 
 **Important Notes**:
 
--   If your LLM does not support think tags, this option will have no effect.
--   In some cases, retaining the thinking process may help in understanding the AI's decision logic.
+-   If your LLM does not support reasoning tags, this option will have no effect.
+-   In some cases, retaining the reasoning process may help understand the AI's decision logic.
 
 ## Configuration Management
 
@@ -104,41 +103,13 @@ MetaDoc supports creating multiple LLM configurations, allowing you to use diffe
 
 ### Switching Configurations
 
-In the configuration list on the left side of the LLM settings page, you can:
+In the configuration grid on the LLM settings page, you can:
 
-1.  **Select a Configuration**: Click on a configuration item to switch to it.
-2.  **View Configuration Info**: The configuration name is displayed in the list.
-3.  **Identify Current Configuration**: The currently active configuration is highlighted.
+1.  **Select a Configuration**: Click any configuration card to switch to that configuration.
+2.  **View Configuration Info**: Each card displays the configuration name and type.
+3.  **Identify Current Configuration**: The card for the currently used configuration is highlighted with a green border.
 
-After switching configurations, all AI features will immediately use the LLM service from the new configuration.
-
-## Configuration Status Indicators
-
-<SettingLlmSection mode="demo" />
-
-### Unsaved Changes
-
-When you have modified a configuration but not yet saved it, the system displays an "Unsaved Changes" prompt:
-
--   A warning icon appears next to the configuration name.
--   The workspace status bar shows "Unsaved changes exist."
--   You must click the "Save Changes" button to save modifications.
-
-### Saving Changes
-
-After modifying a configuration, remember to click the "Save Changes" button:
-
-1.  Click the "Save Changes" button in the top-right corner of the workspace.
-2.  The system saves all modifications to the current configuration.
-3.  Upon successful save, the status updates to "All changes saved."
-
-### Discarding Changes
-
-If you do not wish to save the current modifications:
-
-1.  Click the "Discard Changes" button.
-2.  The system reverts to the last saved state.
-3.  All unsaved modifications will be discarded.
+After switching configurations, all AI features will immediately use the LLM service from the new configuration. To edit a configuration, use the "Edit Configuration" option in the card's right-click menu to open a dialog. Make changes in the dialog and click "OK" to save or "Cancel" to discard; the interface no longer distinguishes an "Unsaved" state.
 
 ## Important Notes
 

@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
@@ -17,59 +16,10 @@ import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('CalculationTool')
 
-const calculationToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '数据计算',
-    description: '执行复杂的数学计算，包括数值、向量、矩阵等运算，支持表达式求值',
-    instruction: `
-# 数据计算工具
-
-## 功能描述
-执行各种数学计算，包括：
-- 基本数学运算（加减乘除、幂运算等）
-- 三角函数、对数函数等
-- 向量运算（点积、叉积、模长等）
-- 矩阵运算（矩阵乘法、转置、行列式等）
-- 统计计算（平均值、方差、标准差等）
-- 表达式求值（支持eval操作）
-
-## 使用场景
-- 数值计算
-- 科学计算
-- 数据分析中的计算部分
-- 公式验证
-
-## 输入格式
-\`\`\`json
-{
-  "expression": "string", // 必需，要计算的表达式或计算描述
-  "variables": {}, // 可选，变量值映射
-  "precision": 10 // 可选，结果精度（小数位数），默认10
-}
-\`\`\`
-
-## 输出格式
-\`\`\`json
-{
-  "result": "number|string|object", // 计算结果
-  "expression": "string", // 原始表达式
-  "steps": ["string"], // 可选，计算步骤
-  "unit": "string" // 可选，单位
-}
-\`\`\`
-
-## 注意事项
-1. 表达式必须安全，避免执行恶意代码
-2. 支持常见的数学函数和常量（Math对象）
-3. 向量和矩阵使用数组表示
-4. 结果会保留指定精度
-`
-  },
-  en_us: {
-    name: 'Data Calculation',
-    description:
-      'Perform complex mathematical calculations including numerical, vector, and matrix operations',
-    instruction: `
+const CALCULATION_TOOL_NAME = 'Data Calculation'
+const CALCULATION_TOOL_DESCRIPTION =
+  'Perform complex mathematical calculations including numerical, vector, and matrix operations'
+const CALCULATION_INSTRUCTION = `
 # Data Calculation Tool
 
 ## Description
@@ -106,8 +56,6 @@ Performs various mathematical calculations including:
 }
 \`\`\`
 `
-  }
-}
 
 /**
  * 安全的表达式求值
@@ -325,8 +273,8 @@ const calculationToolCallback: ToolCallback = async (params, signal, onUpdate) =
 
 export const calculationToolConfig: AgentToolConfig = {
   id: 'data-calculation',
-  name: calculationToolLocales,
-  description: calculationToolLocales,
+  name: CALCULATION_TOOL_NAME,
+  description: CALCULATION_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'data-calculation',
@@ -374,7 +322,7 @@ Performs various mathematical calculations including:
 3. Vectors and matrices are represented as arrays
 4. Results will retain specified precision`
   },
-  instruction: calculationToolLocales,
+  instruction: CALCULATION_INSTRUCTION,
   tags: ['calculation', 'math', 'numeric'],
   running: false,
   enabled: true,
@@ -413,5 +361,4 @@ Performs various mathematical calculations including:
       }
     }
   },
-  locales: calculationToolLocales
 }

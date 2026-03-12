@@ -2,16 +2,18 @@
 
 ## Übersicht
 
-Die LLM-Konfigurationsverwaltung ermöglicht es Ihnen, mehrere LLM-Konfigurationen zu erstellen, zu bearbeiten, zu löschen und zu verwalten. Durch die Konfigurationsverwaltung können Sie für verschiedene Anwendungsszenarien unterschiedliche LLM-Dienste einrichten und flexibel wechseln, um verschiedene Anforderungen zu erfüllen.
+Die LLM-Konfigurationsverwaltung ermöglicht es Ihnen, mehrere LLM-Konfigurationen zu erstellen, zu bearbeiten, zu löschen und zu verwalten. Konfigurationen werden als **Rasterkarten** angezeigt, ähnlich wie bei Agent-Clients: Jede Karte zeigt den Konfigurationsnamen und -typ an. Ein Klick schaltet auf die entsprechende Konfiguration um. Sie können die Konnektivität direkt auf der Karte prüfen und über das Kontextmenü Funktionen wie Kopieren, Bearbeiten, Exportieren und Löschen nutzen.
 
-## Konfiguration erstellen
+## Benutzeroberflächen-Layout
 
-### Neue Konfiguration erstellen
+### Raster und Karten
 
-1.  Klicken Sie auf der LLM-Einstellungsseite auf die Schaltfläche "Neue Konfiguration" (+ Symbol) über der Konfigurationsliste auf der linken Seite.
-2.  Geben Sie im daraufhin erscheinenden Dialogfeld den Konfigurationsnamen ein.
-3.  Das System erstellt eine neue Konfiguration basierend auf den aktuellen Einstellungen.
-4.  Nach erfolgreicher Erstellung wird automatisch zur neuen Konfiguration gewechselt.
+1.  Nachdem Sie die LLM-Einstellungen auf der LLM-Seite aktiviert haben, wird unten das **Konfigurationsraster** angezeigt.
+2.  Jede **Konfigurationskarte** enthält:
+    -   **Erste Zeile**: Konfigurationsname
+    -   **Zweite Zeile**: Großes Sprachmodell-Typ (z.B. OpenAI, Tongyi Qianwen, DeepSeek, Ollama usw.)
+3.  **Klicken Sie auf eine Karte**, um zu dieser Konfiguration zu wechseln. Die aktuell verwendete Konfigurationskarte wird mit einem **grünen Rahmen** hervorgehoben.
+4.  In der oberen rechten Ecke des Rasters befinden sich die Schaltflächen **Neue Konfiguration** und **Konfiguration importieren**.
 
 Sie können über die obere Menüleiste auf die LLM-Einstellungen zugreifen:
 
@@ -23,248 +25,82 @@ Die folgende Abbildung zeigt die Hauptfunktionen der LLM-Konfigurationsverwaltun
 
 <SettingLlmSection mode="demo" />
 
-**Wichtige Hinweise**:
+## Konfiguration wechseln
 
--   Der Konfigurationsname darf nicht leer sein.
--   Der Konfigurationsname sollte beschreibend sein, um eine einfache Identifizierung zu ermöglichen.
--   Neue Konfigurationen erben alle aktuellen Einstellungen.
--   Der Konfigurationstyp "manuell" (manual) unterstützt das Erstellen neuer Konfigurationen nicht.
+-   **Klicken Sie auf eine beliebige Karte** im Konfigurationsraster, um zu dieser Konfiguration zu wechseln.
+-   Die aktuelle Konfiguration wird durch einen grünen Rahmen und eine leichte Hervorhebung angezeigt. Alle KI-Funktionen verwenden sofort den LLM-Dienst dieser Konfiguration.
 
-```mermaid
-graph TB
-    A[LLM-Einstellungen öffnen] --> B[Konfigurationsliste anzeigen]
-    B --> C{Aktionstyp}
-    C -->|Erstellen| D[Neue Konfiguration]
-    C -->|Bearbeiten| E[Konfiguration auswählen]
-    C -->|Löschen| F[Konfiguration löschen]
-    C -->|Zurücksetzen| G[Konfiguration zurücksetzen]
-    D --> H[Konfigurationsnamen eingeben]
-    E --> I[Parameter ändern]
-    F --> J[Löschen bestätigen]
-    G --> K[Zurücksetzen bestätigen]
-    H --> L[Konfiguration speichern]
-    I --> L
-    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style L fill:#e5e7eb,stroke:#6b7280
-```
+## Konnektivität prüfen
 
-### Aus aktuellen Einstellungen erstellen
+-   Auf der rechten Seite jeder Karte befindet sich eine **"Prüfen"**-Schaltfläche. Ein Klick testet die **Frage-Antwort-Streaming**- und **Dialog-Streaming**-Fähigkeiten dieser Konfiguration.
+-   Während des Tests wird ein Ladesymbol angezeigt. Bei normaler Ausgabe stoppt der Test automatisch und zeigt ein **grünes Häkchen** an. Bei einem Anfragefehler wird ein **rotes Kreuz** mit einer kurzen Fehlermeldung angezeigt.
+-   Unabhängig vom Ergebnis kann durch erneutes Klicken der Test neu gestartet werden.
 
-Beim Erstellen einer neuen Konfiguration führt das System folgende Schritte aus:
+## Kontextmenü
 
--   Kopiert den aktuell ausgewählten LLM-Typ.
--   Kopiert alle aktuellen Konfigurationsparameter (API-URL, API-Schlüssel, Modell usw.).
--   Erstellt eine neue Konfigurations-ID.
--   Fügt die neue Konfiguration zur Konfigurationsliste hinzu.
+Ein **Rechtsklick** auf eine Konfigurationskarte öffnet ein Menü mit folgenden Optionen:
 
-Sie können eine neue Konfiguration basierend auf einer bestehenden erstellen und dann die Parameter ändern, um so schnell ähnliche Konfigurationen zu erstellen.
+-   **Konfiguration kopieren**: Erstellt eine Kopie dieser Konfiguration (der neue Name enthält "(Kopie)").
+-   **Konfiguration bearbeiten**: Öffnet den Bearbeitungsdialog zum Ändern von Name, Typ und verschiedenen Parametern. **Bestätigen** speichert, **Abbrechen** verwirft die Änderungen.
+-   **Konfiguration exportieren**: Exportiert die aktuelle Konfiguration als JSON-Datei.
+-   **Konfiguration löschen**: Löscht diese Konfiguration (**Voreingestellte Konfigurationen können nicht gelöscht werden**, siehe unten).
 
-<DialogDemo mode="demo" dialogType="llm-config" />
+## Voreingestellte Konfigurationen
 
-## Konfiguration bearbeiten
+**Voreingestellte Konfigurationen** für die folgenden Typen (z.B. "Ollama (Standard)", "Tongyi Qianwen (Standard)" usw.) **können nicht gelöscht**, aber **bearbeitet werden** (der **Sprachmodelltyp kann beim Bearbeiten nicht geändert werden**):
 
-### Konfigurationsparameter ändern
+-   Tongyi Qianwen, DeepSeek, OpenAI offiziell, OpenAI kompatibel, Google Gemini, Ollama
 
-1.  Wählen Sie die zu bearbeitende Konfiguration in der Konfigurationsliste aus.
-2.  Ändern Sie die verschiedenen Parameter im Formular auf der rechten Seite.
-3.  Nach einer Änderung wird die Konfiguration als "Ungespeicherte Änderungen" markiert.
-4.  Klicken Sie auf die Schaltfläche "Änderungen speichern", um die Änderungen zu speichern.
+Benutzerdefinierte Konfigurationen und durch Kopieren erstellte Konfigurationen können normal gelöscht werden.
 
-<DialogDemo mode="demo" dialogType="api-config" />
+## Konfiguration erstellen
 
-### Erklärung der Konfigurationsparameter
+### Neue Konfiguration
 
-Die Konfigurationsparameter unterscheiden sich je nach LLM-Typ:
+1.  Klicken Sie in der oberen rechten Ecke des Rasters auf **"Neue Konfiguration"**.
+2.  Geben Sie im Popup-Fenster einen Konfigurationsnamen ein und bestätigen Sie.
+3.  Das System erstellt eine neue Konfiguration basierend auf der **aktuell ausgewählten Konfiguration** und wechselt automatisch zu dieser neuen Konfiguration.
 
--   **MetaDoc API**: Modellauswahl
--   **Ollama**: API-URL, Modellauswahl, maximale Token-Anzahl
--   **OpenAI-kompatibel**: API-URL, API-Schlüssel, Modellauswahl, Suffix-Konfiguration
--   **OpenAI offiziell**: API-Schlüssel, Modellauswahl
--   **DeepSeek**: API-Schlüssel, Modellauswahl
--   **Gemini**: API-Schlüssel, Modellauswahl
-
-### Echtzeit-Vorschau
-
-Beim Ändern von Konfigurationsparametern erkennt das System Änderungen in Echtzeit:
-
--   Bei ungespeicherten Änderungen wird eine Warnmarkierung angezeigt.
--   Sie können jederzeit auf "Änderungen verwerfen" klicken, um zum ursprünglichen Zustand zurückzukehren.
--   Nach dem Speichern treten die Änderungen sofort in Kraft.
-
-<AIChat mode="demo" />
-
-## Konfiguration löschen
-
-### Konfiguration löschen
-
-1.  Klicken Sie auf die Schaltfläche "Mehr" (drei Punkte Symbol) rechts neben dem Konfigurationseintrag.
-2.  Wählen Sie "Konfiguration löschen".
-3.  Bestätigen Sie den Löschvorgang.
-
-**Einschränkungen**:
-
--   Mindestens eine Konfiguration muss erhalten bleiben, die letzte Konfiguration kann nicht gelöscht werden.
--   Standardkonfigurationen (isDefault) können nicht gelöscht, sondern nur zurückgesetzt werden.
--   Der Löschvorgang kann nicht rückgängig gemacht werden. Bitte gehen Sie vorsichtig vor.
-
-### Löschbestätigung
-
-Vor dem Löschen einer Konfiguration fordert das System Sie zur Bestätigung auf:
-
--   Nach der Bestätigung wird die Konfiguration dauerhaft gelöscht.
--   Wenn die aktuell verwendete Konfiguration gelöscht wird, wechselt das System automatisch zu einer anderen Konfiguration.
--   Gelöschte Konfigurationen können nicht wiederhergestellt werden. Stellen Sie sicher, dass Sie die Konfiguration nicht mehr benötigen.
-
-<DialogDemo mode="demo" dialogType="confirm-delete" />
-
-## Konfiguration zurücksetzen
-
-### Standardkonfiguration zurücksetzen
-
-Für Standardkonfigurationen (z. B. "Ollama (Standard)") können Sie diese auf die Ausgangswerte zurücksetzen:
-
-1.  Klicken Sie auf die Schaltfläche "Mehr" rechts neben dem Konfigurationseintrag.
-2.  Wählen Sie "Konfiguration zurücksetzen".
-3.  Bestätigen Sie den Zurücksetzvorgang.
-
-Nach dem Zurücksetzen wird die Konfiguration auf die Standardwerte zurückgesetzt, die bei der Erstellung galten. Alle benutzerdefinierten Änderungen werden entfernt.
-
-**Anwendungsfälle**:
-
--   Konfiguration wurde versehentlich geändert und muss auf Standardwerte zurückgesetzt werden.
--   Nach dem Testen einer Konfiguration muss diese zurückgesetzt werden.
--   Bereinigung nicht benötigter benutzerdefinierter Einstellungen.
-
-## Konfiguration exportieren
-
-### Einzelne Konfiguration exportieren
-
-1.  Klicken Sie auf die Schaltfläche "Mehr" rechts neben dem Konfigurationseintrag.
-2.  Wählen Sie "Konfiguration exportieren".
-3.  Das System generiert eine Konfigurationsdatei im JSON-Format.
-4.  Speichern Sie die Datei lokal.
-
-<DialogDemo mode="demo" dialogType="export-config" />
-
-Die exportierte Konfigurationsdatei enthält:
-
--   Konfigurations-ID und Name
--   LLM-Typ
--   Alle Konfigurationsparameter
--   Erstellungs- und Aktualisierungszeitpunkt
-
-### Alle Konfigurationen exportieren
-
-1.  Klicken Sie auf die Schaltfläche "Alle Konfigurationen exportieren" (Download-Symbol) über der Konfigurationsliste.
-2.  Das System exportiert alle Konfigurationen in eine JSON-Datei.
-3.  Speichern Sie die Datei lokal.
-
-Das Exportieren aller Konfigurationen kann verwendet werden für:
-
--   Sicherung aller Konfigurationen
--   Migration auf andere Geräte
--   Teilen von Konfigurationen mit anderen Benutzern
-
-## Konfiguration importieren
+**Hinweis**: Wenn die aktuell ausgewählte Konfiguration vom Typ "Manuell" ist, ist die Schaltfläche "Neu" nicht verfügbar.
 
 ### Konfiguration importieren
 
-1.  Klicken Sie auf die Schaltfläche "Konfiguration importieren" (Dokument-Kopieren-Symbol) über der Konfigurationsliste.
-2.  Wählen Sie eine zuvor exportierte Konfigurationsdatei aus.
-3.  Das System analysiert und importiert die Konfiguration.
-4.  Die importierte Konfiguration wird der Konfigurationsliste hinzugefügt.
+1.  Klicken Sie in der oberen rechten Ecke des Rasters auf **"Konfiguration importieren"**.
+2.  Wählen Sie im geöffneten Dateidialog eine oder mehrere JSON-Konfigurationsdateien aus (**Stapelauswahl wird unterstützt**).
+3.  Das System liest und importiert die Dateien nacheinander. Importierte Konfigurationen werden an die Liste angehängt.
 
-<DialogDemo mode="demo" dialogType="import-config" />
+Es werden JSON-Formate mit einzelnen Konfigurationsobjekten oder Konfigurationsarrays unterstützt. Beim Import wird eine neue ID generiert, um Konflikte mit vorhandenen Konfigurationen zu vermeiden.
 
-**Importregeln**:
+## Konfiguration bearbeiten
 
--   Unterstützt den Import einzelner Konfigurationen oder von Konfigurations-Arrays.
--   Wenn die ID einer importierten Konfiguration bereits existiert, wird eine neue ID erstellt, um Konflikte zu vermeiden.
--   Nach dem Import muss manuell zur neuen Konfiguration gewechselt werden.
+1.  **Rechtsklicken** Sie auf eine Konfigurationskarte und wählen Sie **"Konfiguration bearbeiten"**.
+2.  Ändern Sie im Bearbeitungsdialog den **Konfigurationsnamen**, den **Sprachmodelltyp** (bei nicht voreingestellten Konfigurationen änderbar) sowie die verschiedenen Parameter für diesen Typ (API-Adresse, Schlüssel, Modell usw.).
+3.  Klicken Sie auf **Bestätigen** zum Speichern oder auf **Abbrechen**, um die Änderungen zu verwerfen. **Es gibt keinen "Ungespeichert"-Zustand**: Änderungen werden erst nach Bestätigung übernommen.
 
-### Importformat
+Erläuterungen zu den Konfigurationsparametern für verschiedene LLM-Typen finden Sie unter [[settings.llm-types|LLM-Typkonfiguration]].
 
-Die Konfigurationsdatei sollte im JSON-Format vorliegen und folgende Struktur unterstützen:
+## Konfiguration löschen
 
-```json
-{
-  "id": "config-xxx",
-  "name": "Konfigurationsname",
-  "type": "ollama",
-  "ollama": {
-    "apiUrl": "http://localhost:11434/api",
-    "selectedModel": "llama2"
-  }
-}
-```
+1.  **Rechtsklicken** Sie auf eine Konfigurationskarte und wählen Sie **"Konfiguration löschen"** (bei voreingestellten Konfigurationen ist diese Option nicht sichtbar).
+2.  Bestätigen Sie den Löschvorgang im Bestätigungsdialog.
+3.  Wenn die aktuell verwendete Konfiguration gelöscht wird, wechselt das System automatisch zu einer anderen Konfiguration.
 
-Oder ein Konfigurations-Array:
+## Konfiguration exportieren
 
-```json
-[
-  { "id": "config-1", ... },
-  { "id": "config-2", ... }
-]
-```
-
-## Konfiguration sortieren
-
-### Drag & Drop-Sortierung
-
-Die Konfigurationsliste unterstützt die Sortierung per Drag & Drop:
-
-1.  Klicken und halten Sie einen Konfigurationseintrag.
-2.  Ziehen Sie ihn an die Zielposition.
-3.  Lassen Sie die Maustaste los, um die Sortierung abzuschließen.
-
-Die sortierte Reihenfolge wird gespeichert und bleibt beim nächsten Öffnen der Einstellungsseite erhalten.
-
-**Anwendungsfälle**:
-
--   Häufig verwendete Konfigurationen oben platzieren
--   Sortierung nach Nutzungshäufigkeit
--   Gruppierung nach LLM-Typ
-
-## Konfigurationsstatus
-
-### Aktuelle Konfiguration
-
-Die aktuell verwendete Konfiguration wird:
-
--   In der Liste hervorgehoben angezeigt.
--   Mit dem Label "Ungespeicherte Änderungen" markiert (falls ungespeicherte Änderungen vorliegen).
--   Von allen KI-Funktionen für den LLM-Dienst verwendet.
-
-### Konfigurationswechsel
-
-Beim Wechseln der Konfiguration:
-
--   Prüft das System, ob die aktuelle Konfiguration ungespeicherte Änderungen hat.
--   Falls ungespeicherte Änderungen vorliegen, wird empfohlen, diese zuerst zu speichern oder zu verwerfen.
--   Der Wechsel tritt sofort in Kraft, alle KI-Funktionen verwenden die neue Konfiguration.
+-   **Einzelexport**: Rechtsklick auf Karte → **Konfiguration exportieren**, um die aktuelle Konfiguration als JSON-Datei zu speichern.
+-   Die exportierte Datei kann zur Sicherung oder zum Wiederherstellen auf anderen Geräten/Konten über "Konfiguration importieren" verwendet werden.
 
 ## Best Practices
 
-1.  **Namenskonvention**: Verwenden Sie klare Konfigurationsnamen wie "Arbeit-Ollama", "Experiment-OpenAI".
-2.  **Regelmäßige Sicherung**: Wichtige Konfigurationen regelmäßig exportieren und sichern.
-3.  **Konfiguration testen**: Neue Konfigurationen nach der Erstellung zuerst testen und erst nach Bestätigung der Funktionsfähigkeit verwenden.
-4.  **Unbenutzte Konfigurationen bereinigen**: Regelmäßig nicht mehr benötigte Konfigurationen löschen, um die Liste übersichtlich zu halten.
-5.  **Dokumentation**: Für komplexe Konfigurationen Notizen oder Dokumentation hinzufügen.
-
-## Wichtige Hinweise
-
-1.  **Konfigurationssicherheit**: Konfigurationen mit API-Schlüsseln sicher aufbewahren und nicht teilen.
-2.  **Konfigurationskonflikte**: Achten Sie bei Konfigurationsimporten auf ID-Konflikte.
-3.  **Standardkonfigurationen**: Standardkonfigurationen können nicht gelöscht, nur zurückgesetzt werden.
-4.  **Konfigurationsabhängigkeiten**: Einige Funktionen können von bestimmten Konfigurationen abhängen. Vor dem Löschen überprüfen.
-5.  **Multi-Fenster-Synchronisation**: Konfigurationsänderungen werden zwischen allen Fenstern synchronisiert.
+1.  **Namenskonventionen**: Verwenden Sie klare Konfigurationsnamen wie "Arbeit-Ollama", "Experiment-OpenAI".
+2.  **Regelmäßige Sicherungen**: Wichtige Konfigurationen regelmäßig exportieren und sichern.
+3.  **Vor Nutzung prüfen**: Neue oder geänderte Konfigurationen mit der "Prüfen"-Funktion auf der Karte auf Konnektivität testen.
+4.  **Unbenutzte Konfigurationen bereinigen**: Regelmäßig nicht mehr verwendete Konfigurationen löschen, um die Liste übersichtlich zu halten.
 
 ## Verwandte Dokumentation
 
 -   [[settings.llm|LLM-Konfiguration]]
--   [[settings.llm-types|LLM-Typ-Konfiguration]]
+-   [[settings.llm-types|LLM-Typkonfiguration]]
 -   [[ai.chat|KI-Chat-Funktion]]
 -   [[agent.config|Agent-Konfigurationsverwaltung]]
 

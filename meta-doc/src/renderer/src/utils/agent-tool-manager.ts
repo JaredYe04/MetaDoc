@@ -16,6 +16,7 @@ import type {
 } from '../types/agent-tool'
 import { createRendererLogger } from './logger'
 import { i18n } from '../i18n'
+import { getLocalizedText as getLocalizedTextFromHelper } from './agent-tools/i18n-helper'
 import {
   emitToolUpdate,
   emitToolComplete,
@@ -300,8 +301,8 @@ class AgentToolManager {
       return null
     }
 
-    // 获取Tool显示名称
-    const toolName = this.getLocalizedText(tool.config.name)
+    // 获取Tool显示名称（优先使用 locales 中的 toolLabels 以支持界面本地化）
+    const toolName = this.getLocalizedToolName(tool.config.id, String(tool.config.name || tool.config.id))
 
     // 创建Tool配置快照（不包含函数和组件）
     const toolConfigSnapshot = {
@@ -570,7 +571,7 @@ class AgentToolManager {
                 // 发送失败事件
                 emitToolFailed(
                   runningInvocation.invocationId,
-                  '工具调用连续超时3次且无输出内容，已自动取消'
+                  'Tool call timed out 3 times with no output; automatically cancelled'
                 )
                 // 从invocations中移除
                 this.invocations.delete(runningInvocation.invocationId)
@@ -680,68 +681,34 @@ class AgentToolManager {
   }
 
   /**
-   * 获取本地化文本
-   * @param text 文本或ToolLocales对象
-   * @returns 本地化后的字符串
+   * Get display text (English only for tool name/description).
    */
   getLocalizedText(text: string | ToolLocales): string {
-    if (typeof text === 'string') {
-      return text
-    }
-    if (typeof text !== 'object' || text === null) {
-      return ''
-    }
+    return getLocalizedTextFromHelper(text)
+  }
 
-    const currentLocale = String((i18n.global.locale as any).value || 'zh_CN')
-      .replace('-', '_')
-      .toLowerCase()
-    const locales = text as ToolLocales
-
-    // 1. 尝试当前语言
-    if (locales[currentLocale]) {
-      const localeData = locales[currentLocale]
-      if (typeof localeData === 'object' && localeData !== null) {
-        return localeData.name || localeData.description || ''
-      }
+  /**
+   * Get localized tool display name from locales (agent.toolLabels.<toolId>.name).
+   * Falls back to fallback when no translation exists.
+   */
+  getLocalizedToolName(toolId: string, fallback: string): string {
+    const key = `agent.toolLabels.${toolId}.name`
+    if (typeof i18n?.global?.te === 'function' && i18n.global.te(key)) {
+      return i18n.global.t(key) as string
     }
+    return fallback
+  }
 
-    // 2. 回退到en_us
-    if (locales['en_us']) {
-      const localeData = locales['en_us']
-      if (typeof localeData === 'object' && localeData !== null) {
-        return localeData.name || localeData.description || ''
-      }
+  /**
+   * Get localized tool description from locales (agent.toolLabels.<toolId>.description).
+   * Falls back to fallback when no translation exists.
+   */
+  getLocalizedToolDescription(toolId: string, fallback: string): string {
+    const key = `agent.toolLabels.${toolId}.description`
+    if (typeof i18n?.global?.te === 'function' && i18n.global.te(key)) {
+      return i18n.global.t(key) as string
     }
-
-    // 3. 回退到en_US
-    if (locales['en_US']) {
-      const localeData = locales['en_US']
-      if (typeof localeData === 'object' && localeData !== null) {
-        return localeData.name || localeData.description || ''
-      }
-    }
-
-    // 4. 尝试其他支持的语言
-    const supportedLocales = ['zh_cn', 'de_DE', 'fr_FR', 'ja_JP', 'ko_KR']
-    for (const locale of supportedLocales) {
-      if (locales[locale]) {
-        const localeData = locales[locale]
-        if (typeof localeData === 'object' && localeData !== null) {
-          return localeData.name || localeData.description || ''
-        }
-      }
-    }
-
-    // 5. 返回第一个可用的值
-    const values = Object.values(locales)
-    if (values.length > 0) {
-      const first = values[0]
-      if (typeof first === 'object' && first !== null) {
-        return first.name || first.description || ''
-      }
-    }
-
-    return ''
+    return fallback
   }
 }
 

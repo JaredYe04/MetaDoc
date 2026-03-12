@@ -22,7 +22,16 @@ agent-tools/
 └── components/*Display.vue   # 各工具对应的展示组件
 ```
 
-## 二、工具调用从解析到执行的完整流程
+## 二、工具调用的来源：SDK 托管 vs 自解析
+
+- **主路径（SDK 托管）**：当 `LlmAdapter.callChatViaTask` 传入 **tools + onToolCallsDetected** 时，使用 **AI SDK**（`streamText` + tools）。工具调用由 SDK 通过 **tool-input-available** 和流结束后的 **result.toolCalls** 上报，由 `onToolCallsDetected` 收到后入队执行。**不再依赖从模型文本里解析 `<tool_call>`**。
+- **兜底 / 无 tools 路径（自解析）**：
+  - 未传 tools 或未传 onToolCallsDetected 时，仅从 **assistant 消息的 content/markdown** 里检测 `<tool_call>...</tool_call>`，用 **parseToolCalls**（tool-call-processor + tool-call-parsers）解析后触发 `onToolCallsDetected`。
+  - 即使用 SDK 时，流结束后也会用 **parseToolCallsFromContent** 对最终文本做一次兜底解析，以防 SDK 未上报但模型在文本里输出了工具调用。
+- **无效块（误匹配）**：若模型在正文中举例或讨论「`<tool_call>` 和 JSON」等，可能被误识别为工具调用块；解析器会得到 **isValid: false**（dummy-tool）。**当前策略**：解析层 **只把有效工具调用** 传给 `onToolCallsDetected`，无效块仅打日志、不入队，避免普通文本触发「工具调用格式错误」的报错。队列里若仍收到 dummy-tool（兜底），会对明显非 JSON 的内容做简短提示而非长文说明。
+- **提示词与格式统一**：当存在 tools（走 SDK）时，**仅**在提示词中说明「使用系统/API 提供的工具调用接口（OpenAI 规范）」，**不**再提及 `<tool_call>` 文本格式，避免模型混用两套格式。无 tools 时的兜底路径仍保留 `<tool_call>` 文本格式说明（见 `agent.toolCallSpec.prompt` 与 `buildToolCallPrompt` 中的分支）。
+
+## 三、工具调用从解析到执行的完整流程
 
 ### 1. 解析（tool-call-parsers.ts / tool-call-processor.ts）
 
@@ -36,7 +45,7 @@ agent-tools/
   - OpenAIFunctionCallParser
 - **输出**：`ParsedToolCall[]`（`id`, `tool_id`, `parameters`, `isValid` 等）。
 
-### 2. 检测与入队（agent-engine-executor.ts）
+### 2. 检测与入队（llm-adapter.ts + agent-engine-executor.ts）
 
 - 流式 LLM 输出时，`LlmAdapter.callChatViaTask` 内部会检测「完整」的 tool_call 片段。
 - 检测到后调用 **`onToolCallsDetected`**（由 `createToolCallsDetectedHandler(assistantMessage)` 生成）：
@@ -68,7 +77,7 @@ agent-tools/
 | 执行时机 | **全并发**：每解析到一个就启动一个，不按批、不等待前一批；只有 **inputComplete 且 inFlight===0** 才进入下一轮 |
 | 进度/结果 | 先插入 running 的 tool 消息（带 `tool_call_id`/`invocationId`），工具内部若调用 `onUpdate` 则通过 eventBus 发 `tool-update:{invocationId}`；完成时 `completeToolMessage` 替换该条消息 |
 
-## 三、工具执行与实时进度回传
+## 四、工具执行与实时进度回传
 
 ### 1. invocationId 的传递链
 
@@ -110,7 +119,7 @@ agent-tools/
 - 需要「执行中」进度条或中间状态的工具，应在执行过程中调用 **`onUpdate(data, progress)`**。
 - 若仍出现不刷新，可对消息列表项使用 **`:key="message.id + message.status"`** 等，强制在状态变化时重新挂载。
 
-## 四、Subagent 与 SubagentDisplay
+## 五、Subagent 与 SubagentDisplay
 
 - Subagent 在 **tool-call-queue** 的 **runTask** 里直接调用 **runSubagent**，不经过 ToolRunner，也不会发 **tool-update**。
 - **runSubagent** 内部只做：创建临时 session → 执行引擎 → 返回 **subagentMessages + resultText**；执行期间没有向父会话的 tool 消息推送中间状态。

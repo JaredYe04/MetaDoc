@@ -825,28 +825,23 @@ export class LlmAdapter {
 
         for (const parsed of parsedToolCalls) {
           if (parsed.isValid) {
-            // 有效的工具调用
             toolCalls.push({
               id: parsed.id,
               tool_id: parsed.tool_id,
               parameters: parsed.parameters
             })
           } else {
-            // 无效的工具调用：使用dummy-tool处理
-            getLogger().warn(
-              `[parseToolCallsFromContentLoose] 检测到无效的工具调用，使用dummy-tool处理:`,
-              parsed.error
+            // 无效块（如模型在正文中举例或讨论 <tool_call> 导致误匹配）：仅打日志，不加入列表，避免误当工具调用执行并报错
+            getLogger().debug(
+              '[parseToolCallsFromContentLoose] 跳过无效块（不当作工具调用）:',
+              parsed.error,
+              { rawPreview: (parsed.rawContent || '').slice(0, 80) }
             )
-            toolCalls.push({
-              id: parsed.id,
-              tool_id: 'dummy-tool',
-              parameters: parsed.parameters // 包含错误信息
-            })
           }
         }
 
         getLogger().debug(
-          `[parseToolCallsFromContentLoose] ✅ 宽松解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter((p) => p.isValid).length}, 无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`,
+          `[parseToolCallsFromContentLoose] ✅ 宽松解析完成，有效工具调用: ${toolCalls.length}（跳过无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`,
           {
             toolCalls: toolCalls.map((tc) => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
           }
@@ -894,28 +889,23 @@ export class LlmAdapter {
 
         for (const parsed of parsedToolCalls) {
           if (parsed.isValid) {
-            // 有效的工具调用
             toolCalls.push({
               id: parsed.id,
               tool_id: parsed.tool_id,
               parameters: parsed.parameters
             })
           } else {
-            // 无效的工具调用：使用dummy-tool处理
-            getLogger().warn(
-              `[parseToolCallsFromContent] 检测到无效的工具调用，使用dummy-tool处理:`,
-              parsed.error
+            // 无效块（如模型在正文中举例或讨论 <tool_call> 导致误匹配）：仅打日志，不加入列表
+            getLogger().debug(
+              '[parseToolCallsFromContent] 跳过无效块（不当作工具调用）:',
+              parsed.error,
+              { rawPreview: (parsed.rawContent || '').slice(0, 80) }
             )
-            toolCalls.push({
-              id: parsed.id,
-              tool_id: 'dummy-tool',
-              parameters: parsed.parameters // 包含错误信息
-            })
           }
         }
 
         getLogger().debug(
-          `[parseToolCallsFromContent] ✅ 解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter((p) => p.isValid).length}, 无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`,
+          `[parseToolCallsFromContent] ✅ 解析完成，有效工具调用: ${toolCalls.length}（跳过无效: ${parsedToolCalls.filter((p) => !p.isValid).length}）`,
           {
             toolCalls: toolCalls.map((tc) => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
           }

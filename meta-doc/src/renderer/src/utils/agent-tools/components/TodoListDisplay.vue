@@ -275,7 +275,13 @@ type TodoDisplayData = {
 }
 
 const displayData = computed<TodoDisplayData>(() => {
-  const raw = realtimeData.value !== null ? realtimeData.value : props.data
+  // 无 invocationId 表示持久化恢复的会话，直接使用 props.data，否则用 realtimeData 或 props.data
+  const raw =
+    !props.invocationId && props.data != null
+      ? props.data
+      : realtimeData.value !== null && realtimeData.value !== undefined
+        ? realtimeData.value
+        : props.data
   const data = ensureParsed(raw)
   const parsed = parseToolData(data)
 

@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import type { ArticleMetaData, AIDialogMessage } from '@/types'
 import { useWorkspace } from '../../stores/workspace'
@@ -1023,41 +1022,14 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 }
 
-const metadataToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '元信息管理',
-    description: '访问、修改文档元信息，调用AI工具生成标题、描述、关键词等'
-  },
-  en_us: {
-    name: 'Metadata Management',
-    description:
-      'Access and modify document metadata, use AI to generate title, description, keywords, etc.'
-  },
-  de_DE: {
-    name: 'Metadatenverwaltung',
-    description:
-      'Zugriff auf und Änderung von Dokumentmetadaten, Verwendung von KI zur Generierung von Titel, Beschreibung, Schlüsselwörtern usw.'
-  },
-  fr_FR: {
-    name: 'Gestion des métadonnées',
-    description:
-      "Accéder et modifier les métadonnées du document, utiliser l'IA pour générer le titre, la description, les mots-clés, etc."
-  },
-  ja_JP: {
-    name: 'メタデータ管理',
-    description:
-      'ドキュメントメタデータへのアクセスと変更、AIを使用してタイトル、説明、キーワードなどを生成'
-  },
-  ko_KR: {
-    name: '메타데이터 관리',
-    description: '문서 메타데이터 액세스 및 수정, AI를 사용하여 제목, 설명, 키워드 등 생성'
-  }
-}
+const METADATA_TOOL_NAME = 'Metadata Management'
+const METADATA_TOOL_DESCRIPTION =
+  'Access and modify document metadata, use AI to generate title, description, keywords, etc.'
 
 export const metadataToolConfig: AgentToolConfig = {
   id: 'metadata',
-  name: metadataToolLocales,
-  description: metadataToolLocales,
+  name: METADATA_TOOL_NAME,
+  description: METADATA_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'metadata',
@@ -1122,72 +1094,12 @@ Use AI to generate metadata.
 - All string fields automatically trim leading/trailing spaces
 - keywords automatically deduplicated`
   },
-  instruction: `
-# 元信息管理工具
-
-## 功能描述
-访问、修改文档元信息，或使用AI自动生成标题、描述、关键词等元信息。
-
-## 使用场景
-- 查看文档元信息
-- 修改文档标题、作者、描述、关键词
-- 使用AI自动生成元信息
-- 批量更新元信息
-
-## 输入格式
-\`\`\`json
-{
-  "operation": "get|set|generate",
-  "field": "title|description|keywords|author|all",  // set和generate操作需要
-  "value": "string|string[]|object",  // set操作需要
-  "tabId": "string"  // 可选，文档标签页ID，默认使用当前活动标签页
-}
-\`\`\`
-
-## 操作类型说明
-
-### get
-获取当前文档的元信息。不需要field参数。
-
-### set
-设置元信息的某个字段或所有字段。
-- 单个字段：field指定字段名，value为对应的值
-- 所有字段：field为"all"，value为包含所有字段的对象
-
-### generate
-使用AI生成元信息。
-- 单个字段：field指定要生成的字段（title、description、keywords）
-- 所有字段：field为"all"，会依次生成title、description、keywords
-
-## 输出格式
-\`\`\`json
-{
-  "operation": "get|set|generate",
-  "field": "string",  // generate和set操作
-  "metadata": {
-    "title": "string",
-    "author": "string",
-    "description": "string",
-    "keywords": ["string"]
-  },
-  "generatedValue": "string|string[]|object"  // generate操作
-}
-\`\`\`
-
-## 注意事项
-- 元信息包括：title（标题）、author（作者）、description（描述）、keywords（关键词数组）
-- generate操作会基于文档大纲树生成元信息
-- 生成的元信息会自动更新到文档
-- keywords字段必须是字符串数组
-- 所有字符串字段会自动去除首尾空格
-- keywords会自动去重
-`,
+  instruction: undefined,
   callback: metadataToolCallback,
   displayComponent: MetadataDisplay,
   tags: ['metadata', 'document', 'ai'],
   enabled: true,
   editable: false,
-  locales: metadataToolLocales,
   inputSchema: {
     type: 'object',
     properties: {

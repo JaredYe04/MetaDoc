@@ -123,26 +123,26 @@ export class ToolCallQueue {
 
     let runningMsg: AgentMessage | undefined
     try {
-      // 处理 dummy-tool（无效的工具调用）
+      // 处理 dummy-tool（无效的工具调用；正常流程下解析层已不再上报无效块，此处仅兜底）
       if (task.tool_id === 'dummy-tool') {
           const errorInfo = (task.parameters.error as string) || '工具调用格式错误'
           const rawContent = (task.parameters.rawContent as string) || ''
           const parsed = task.parameters.parsed as any
 
-          // 构建详细的错误信息
-          let errorMessage = `工具调用格式错误：${errorInfo}\n\n`
-          errorMessage += `**原始内容：**\n\`\`\`\n${rawContent}\n\`\`\`\n\n`
-
-          if (parsed) {
-            errorMessage += `**解析结果：**\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n\n`
+          // 若原始内容明显不是 JSON（如正文讨论/举例被误匹配），仅简短提示，避免刷屏
+          const head = rawContent.trim().slice(0, 200)
+          const looksLikeJson = /^\s*\{/.test(rawContent.trim()) || head.includes('"name"') || head.includes('"tool_id"')
+          let errorMessage: string
+          if (!looksLikeJson && rawContent.length > 20) {
+            errorMessage = `工具调用格式错误：${errorInfo}（内容疑似非工具调用，已忽略）`
+          } else {
+            errorMessage = `工具调用格式错误：${errorInfo}\n\n`
+            errorMessage += `**原始内容：**\n\`\`\`\n${rawContent}\n\`\`\`\n\n`
+            if (parsed) {
+              errorMessage += `**解析结果：**\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n\n`
+            }
+            errorMessage += `**说明：** 工具调用应通过系统/API 提供的工具调用接口（结构化格式）发起，不要在消息正文中以文本形式输出工具调用。`
           }
-
-          errorMessage += `**正确的调用格式：**\n\`\`\`\n<tool_call>\n{"name": "工具ID", "arguments": {"参数名": "参数值"}}\n</tool_call>\n\`\`\`\n\n`
-          errorMessage += `**注意事项：**\n`
-          errorMessage += `1. 必须包含 "name" 字段指定工具ID\n`
-          errorMessage += `2. 必须包含 "arguments" 字段（对象类型）\n`
-          errorMessage += `3. 标记必须完整：<tool_call>...</tool_call>\n`
-          errorMessage += `4. JSON格式必须正确（注意引号、逗号等）`
 
           const failedObservation: ToolObservation = {
             toolId: 'dummy-tool',

@@ -497,24 +497,22 @@ export class AIContextManager {
       }
     } catch (error) {
       const logger = createRendererLogger('AIContextManager')
-      logger.warn('[getSystemInfo] 获取系统信息失败:', error)
+      logger.warn('[getSystemInfo] Failed to get system info:', error)
     }
 
-    // 格式化平台名称
     const platformNames: Record<string, string> = {
       win32: 'Windows',
       darwin: 'macOS',
       linux: 'Linux',
-      unknown: '未知系统'
+      unknown: 'Unknown'
     }
 
-    // 格式化架构名称
     const archNames: Record<string, string> = {
-      x64: 'x64 (64位)',
-      ia32: 'x86 (32位)',
+      x64: 'x64 (64-bit)',
+      ia32: 'x86 (32-bit)',
       arm64: 'ARM64',
       arm: 'ARM',
-      unknown: '未知架构'
+      unknown: 'Unknown'
     }
 
     return {
@@ -555,16 +553,16 @@ export class AIContextManager {
       prompt += todolistRule.trim() + '\n\n'
     }
 
-    // 注入时间戳和系统信息
+    // Inject timestamp and system info (English only for agent prompts)
     if (agentConfig.llmConfig?.injectTimestamp) {
       const now = new Date()
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
       const systemInfo = this.getSystemInfo()
 
-      prompt += `当前时间: ${now.toISOString()}\n`
-      prompt += `当前时区: ${timeZone}\n`
-      prompt += `系统环境: ${systemInfo.platform}\n`
-      prompt += `处理器架构: ${systemInfo.arch}\n\n`
+      prompt += `Current time: ${now.toISOString()}\n`
+      prompt += `Timezone: ${timeZone}\n`
+      prompt += `Platform: ${systemInfo.platform}\n`
+      prompt += `Architecture: ${systemInfo.arch}\n\n`
     }
 
     // 注入当前打开的文档 Tab 列表与工作区信息（与时间戳、当前 tab reference 同级）
@@ -587,9 +585,9 @@ export class AIContextManager {
           format: tab.format || 'md'
         }))
       if (documentTabs.length > 0) {
-        prompt += `当前打开的文档 Tab（共 ${documentTabs.length} 个）：\n`
+        prompt += `Open document tabs (${documentTabs.length}):\n`
         documentTabs.forEach((t, i) => {
-          prompt += `  ${i + 1}. id=${t.id}, title=${t.title || '(无标题)'}, path=${t.path || '(未保存)'}, format=${t.format}\n`
+          prompt += `  ${i + 1}. id=${t.id}, title=${t.title || '(untitled)'}, path=${t.path || '(unsaved)'}, format=${t.format}\n`
         })
         prompt += '\n'
       }
@@ -606,27 +604,27 @@ export class AIContextManager {
         // ignore
       }
       if (roots.length > 0) {
-        prompt += `工作区根路径: ${roots.join(', ')}\n\n`
+        prompt += `Workspace roots: ${roots.join(', ')}\n\n`
       } else {
-        prompt += '工作区: 全局 default 工作区（未打开文件夹）\n\n'
+        prompt += 'Workspace: default (no folder open)\n\n'
       }
     } catch (e) {
-      getLogger().warn('[buildSystemPrompt] 注入 openTabs/workspace 失败', e)
+      getLogger().warn('[buildSystemPrompt] Failed to inject openTabs/workspace', e)
     }
 
     // 公共上下文（兼容新旧格式）
     const publicCtx = (session as any).publicContext
     if (publicCtx) {
       if (publicCtx.currentTime) {
-        prompt += `系统时间: ${publicCtx.currentTime}\n`
+        prompt += `System time: ${publicCtx.currentTime}\n`
       }
       if (publicCtx.timezone) {
-        prompt += `时区: ${publicCtx.timezone}\n`
+        prompt += `Timezone: ${publicCtx.timezone}\n`
       }
       if (publicCtx.document) {
-        prompt += `当前文档: ${publicCtx.document.title || publicCtx.document.path}\n`
+        prompt += `Current document: ${publicCtx.document.title || publicCtx.document.path}\n`
         const docFormat = publicCtx.document.format || 'md'
-        prompt += `**文档格式: ${docFormat === 'tex' ? 'LaTeX' : 'Markdown'}**\n\n`
+        prompt += `**Document format: ${docFormat === 'tex' ? 'LaTeX' : 'Markdown'}**\n\n`
 
         // 记录日志：文档格式检测和提示词注入
         const logger = createRendererLogger('AIContextManager')
@@ -639,29 +637,29 @@ export class AIContextManager {
 
         // 根据文档格式添加格式特定的重要提示
         if (docFormat === 'tex') {
-          logger.info('[buildSystemPrompt] 注入LaTeX格式提示词')
-          prompt += `## ⚠️ 重要：当前文档是 LaTeX 格式\n\n`
-          prompt += `**你必须严格遵循以下规则：**\n`
-          prompt += `1. **所有生成的内容必须使用 LaTeX 语法**，包括：\n`
-          prompt += `   - 标题使用 \\section{}, \\subsection{}, \\subsubsection{} 等命令\n`
-          prompt += `   - **绝对不要使用 Markdown 的 #、##、### 等标题标记**\n`
-          prompt += `   - 列表使用 \\begin{itemize} 或 \\begin{enumerate}\n`
-          prompt += `   - 强调使用 \\textbf{}, \\textit{} 等命令\n`
-          prompt += `2. **图表插入**：必须使用 PDF 格式，插入语法：\\includegraphics[width=0.8\\textwidth]{图片URL}\n`
-          prompt += `3. **不要混淆格式**：当前文档是 LaTeX，不要生成 Markdown 格式的内容\n\n`
-          logger.info('[buildSystemPrompt] LaTeX格式提示词注入完成')
+          logger.info('[buildSystemPrompt] Inject LaTeX format prompt')
+          prompt += `## ⚠️ Important: Current document is LaTeX format\n\n`
+          prompt += `**You must follow these rules:**\n`
+          prompt += `1. **All generated content must use LaTeX syntax**:\n`
+          prompt += `   - Use \\section{}, \\subsection{}, \\subsubsection{} for headings\n`
+          prompt += `   - **Do not use Markdown #, ##, ### for headings**\n`
+          prompt += `   - Use \\begin{itemize} or \\begin{enumerate} for lists\n`
+          prompt += `   - Use \\textbf{}, \\textit{} for emphasis\n`
+          prompt += `2. **Chart insertion**: Use PDF format, syntax: \\includegraphics[width=0.8\\textwidth]{imageURL}\n`
+          prompt += `3. **Do not mix formats**: Current document is LaTeX; do not generate Markdown.\n\n`
+          logger.info('[buildSystemPrompt] LaTeX format prompt injected')
         } else {
-          logger.info('[buildSystemPrompt] 注入Markdown格式提示词')
-          prompt += `## ⚠️ 重要：当前文档是 Markdown 格式\n\n`
-          prompt += `**你必须严格遵循以下规则：**\n`
-          prompt += `1. **所有生成的内容必须使用 Markdown 语法**，包括：\n`
-          prompt += `   - 标题使用 #、##、### 等标记\n`
-          prompt += `   - **绝对不要使用 LaTeX 的 \\section{}, \\subsection{} 等命令**\n`
-          prompt += `   - 列表使用 - 或 1. 等标记\n`
-          prompt += `   - 强调使用 **粗体** 或 *斜体*\n`
-          prompt += `2. **图表插入**：使用 SVG 或 PNG 格式，插入语法：![描述](图片URL)\n`
-          prompt += `3. **不要混淆格式**：当前文档是 Markdown，不要生成 LaTeX 格式的内容\n\n`
-          logger.info('[buildSystemPrompt] Markdown格式提示词注入完成')
+          logger.info('[buildSystemPrompt] Inject Markdown format prompt')
+          prompt += `## ⚠️ Important: Current document is Markdown format\n\n`
+          prompt += `**You must follow these rules:**\n`
+          prompt += `1. **All generated content must use Markdown syntax**:\n`
+          prompt += `   - Use #, ##, ### for headings\n`
+          prompt += `   - **Do not use LaTeX \\section{}, \\subsection{}**\n`
+          prompt += `   - Use - or 1. for lists\n`
+          prompt += `   - Use **bold** or *italic* for emphasis\n`
+          prompt += `2. **Chart insertion**: Use SVG or PNG, syntax: ![description](imageURL)\n`
+          prompt += `3. **Do not mix formats**: Current document is Markdown; do not generate LaTeX.\n\n`
+          logger.info('[buildSystemPrompt] Markdown format prompt injected')
         }
       }
       if (!publicCtx.document) {
@@ -679,7 +677,7 @@ export class AIContextManager {
     if (references.length === 0) return ''
 
     const logger = createRendererLogger('AIContextManager')
-    logger.info('[buildReferencesContent] 开始构建引用素材内容', {
+    logger.info('[buildReferencesContent] Building reference content', {
       referenceCount: references.length,
       references: references.map((ref) => ({
         id: ref.id,
@@ -690,23 +688,23 @@ export class AIContextManager {
       }))
     })
 
-    let content = '=== 引用素材 ===\n\n'
+    let content = '=== Reference Materials ===\n\n'
     for (const ref of references) {
-      content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
+      content += `[${ref.name}] (format: ${ref.format}, origin: ${ref.origin})\n`
 
       if (ref.description) {
-        content += `描述: ${ref.description}\n`
+        content += `Description: ${ref.description}\n`
       }
 
       if (ref.parsedContent) {
-        content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
+        content += `\nParsed content (data analysis/text extraction):\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
       } else {
-        logger.warn(`[buildReferencesContent] 引用 ${ref.name} 缺少parsedContent`)
+        logger.warn(`[buildReferencesContent] Reference ${ref.name} missing parsedContent`)
       }
       content += '\n'
     }
 
-    logger.info('[buildReferencesContent] 构建完成', {
+    logger.info('[buildReferencesContent] Build complete', {
       totalContentLength: content.length
     })
 
@@ -1224,6 +1222,7 @@ export class AIContextManager {
     const TOOL_ID_RENDERER: Record<string, string> = {
       edit: 'EditDisplay',
       grep: 'GrepDisplay',
+      timestamp: 'TimestampDisplay',
       todolist: 'TodoListDisplay',
       'todolist-planning': 'TodoListDisplay',
       workspace: 'WorkspaceDisplay',

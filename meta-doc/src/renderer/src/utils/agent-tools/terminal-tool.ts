@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import type { AIDialogMessage } from '@/types'
 import { createRendererLogger } from '../logger'
@@ -73,66 +72,10 @@ async function getTerminalEnvironmentSpec(): Promise<string> {
   }
 }
 
-const terminalToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '终端执行',
-    description: '执行终端命令，执行前需要用户批准（可设置信任模式）',
-    instruction: `
-# 终端执行工具
-
-## 禁止用途（必须遵守）
-- **禁止用本工具创建、写入或修改任何文件内容**。不要用 echo、type、重定向（>、>>）等方式写文件。
-- **创建/编辑文本文件（含新建 .txt、.md 并写入中文或任意内容）一律使用 \`edit\` 工具**，否则会产生乱码且不符合规范。
-- 本工具仅用于：执行命令（如 dir、mkdir、运行程序）、查看输出；不用于写文件。
-
-## 功能描述
-执行终端/命令行指令，并返回执行结果。执行前默认需要用户批准，用户可以选择信任AI让其自动执行所有命令。
-
-## 使用场景
-- 执行系统命令（如 dir、ls、mkdir）
-- 运行CLI程序
-- 系统管理
-- **不用于**：创建文件、写入文件内容、编辑文件 → 请用 \`edit\` 工具
-
-## 输入格式
-\`\`\`json
-{
-  "command": "string", // 必需，要执行的命令
-  "cwd": "string", // 可选，工作目录
-  "timeout": 30000, // 可选，超时时间（毫秒），默认30秒
-  "analyze": false // 可选，是否使用LLM分析输出结果，默认false
-}
-\`\`\`
-
-## 输出格式
-\`\`\`json
-{
-  "command": "string",
-  "exitCode": 0,
-  "stdout": "string",
-  "stderr": "string",
-  "summary": "string", // LLM分析的结果摘要
-  "approved": true
-}
-\`\`\`
-
-## 注意事项
-1. 危险命令需要用户明确批准
-2. 可以设置信任模式，允许AI自动执行命令
-3. 建议设置合理的超时时间
-4. 某些命令可能需要管理员权限
-
-## 执行环境与语法（重要）
-本工具在**主进程**中通过固定规则选择实际使用的终端（见下方「当前执行环境」）。**你必须先看下方块里写的是哪种 Shell（cmd.exe / PowerShell / /bin/sh 等），然后只使用该终端的语法**；用错语法会导致命令失败（例如在 cmd 下写 PowerShell 语法，或在 PowerShell 下写 cmd 的 \`&&\`）。
-- 若下方为 **cmd.exe**：用 \`&&\` 连接命令、\`^\` 转义；不要写 PowerShell 专有语法。
-- 若下方为 **PowerShell**：用 \`;\` 连接命令、\`$\` 变量等；不要写 cmd 专有语法。
-- 若下方为 **/bin/sh**：用 \`&&\` 或 \`;\` 连接；不要依赖仅 bash 支持的语法。
-`
-  },
-  en_us: {
-    name: 'Terminal Execution',
-    description: 'Execute terminal commands, requires user approval (can set trust mode)',
-    instruction: `
+const TERMINAL_TOOL_NAME = 'Terminal Execution'
+const TERMINAL_TOOL_DESCRIPTION =
+  'Execute terminal commands, requires user approval (can set trust mode)'
+const TERMINAL_INSTRUCTION = `
 # Terminal Execution Tool
 
 ## Description
@@ -154,26 +97,6 @@ Commands are run in the **main process** with a specific shell (see the "Current
 - If it says **PowerShell**: chain with \`;\`, use \`$\` variables etc.; do not use cmd-only syntax.
 - If it says **/bin/sh**: chain with \`&&\` or \`;\`; do not rely on bash-only syntax.
 `
-  },
-  de_DE: {
-    name: 'Terminal-Ausführung',
-    description:
-      'Führt Terminal-Befehle aus, erfordert Benutzerbestätigung (Vertrauensmodus kann eingestellt werden)'
-  },
-  fr_FR: {
-    name: 'Exécution de terminal',
-    description:
-      "Exécute des commandes de terminal, nécessite l'approbation de l'utilisateur (mode de confiance peut être défini)"
-  },
-  ja_JP: {
-    name: 'ターミナル実行',
-    description: 'ターミナルコマンドを実行、ユーザー承認が必要（信頼モード設定可能）'
-  },
-  ko_KR: {
-    name: '터미널 실행',
-    description: '터미널 명령 실행, 사용자 승인 필요(신뢰 모드 설정 가능)'
-  }
-}
 
 /**
  * 检查是否处于信任模式（用户曾在确认弹窗中勾选“信任模式”）
@@ -677,8 +600,8 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 export const terminalToolConfig: AgentToolConfig = {
   id: 'terminal-execution',
-  name: terminalToolLocales,
-  description: terminalToolLocales,
+  name: TERMINAL_TOOL_NAME,
+  description: TERMINAL_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'terminal-execution',
@@ -734,7 +657,7 @@ Commands are run in the **main process** with a specific shell (see the "Current
 - If it says **PowerShell**: chain with \`;\`, use \`$\` variables etc.; do not use cmd-only syntax.
 - If it says **/bin/sh**: chain with \`&&\` or \`;\`; do not rely on bash-only syntax.`
   },
-  instruction: terminalToolLocales,
+  instruction: TERMINAL_INSTRUCTION,
   getDynamicSpec: getTerminalEnvironmentSpec,
   tags: ['terminal', 'command', 'system', 'cli'],
   running: false,
@@ -747,20 +670,20 @@ Commands are run in the **main process** with a specific shell (see the "Current
     properties: {
       command: {
         type: 'string',
-        description: '要执行的终端命令'
+        description: 'Terminal command to execute'
       },
       cwd: {
         type: 'string',
-        description: '工作目录'
+        description: 'Working directory'
       },
       timeout: {
         type: 'number',
-        description: '超时时间（毫秒）',
+        description: 'Timeout in milliseconds',
         default: 30000
       },
       analyze: {
         type: 'boolean',
-        description: '是否使用LLM分析输出结果',
+        description: 'Whether to use LLM to analyze output',
         default: true
       }
     },
@@ -776,8 +699,7 @@ Commands are run in the **main process** with a specific shell (see the "Current
       summary: { type: 'string' },
       approved: { type: 'boolean' }
     }
-  },
-  locales: terminalToolLocales
+  }
 }
 
 // 导出信任模式相关函数供UI使用

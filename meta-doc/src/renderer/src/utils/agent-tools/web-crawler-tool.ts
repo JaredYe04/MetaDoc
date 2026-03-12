@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
@@ -50,59 +49,10 @@ function extractPlainTextFromHtml(html: string): string {
   }
 }
 
-const webCrawlerToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '网页访问',
-    description: '访问指定URL，获取网页HTML内容或API响应',
-    instruction: `
-# 网页访问工具
-
-## 功能描述
-发送HTTP请求访问指定URL，获取网页内容或API响应。
-
-## 使用场景
-- 获取网页内容进行分析
-- 调用API接口
-- 数据抓取
-- 内容监控
-
-## 输入格式
-\`\`\`json
-{
-  "url": "string", // 必需，要访问的URL
-  "method": "string", // 可选，HTTP方法（GET|POST|PUT|DELETE），默认GET
-  "headers": {}, // 可选，请求头
-  "body": "string|object", // 可选，请求体（POST/PUT时使用）
-  "timeout": 30000, // 可选，超时时间（毫秒），默认30秒
-  "useCurl": false // 可选，是否使用后端代理（绕过CORS），默认false使用axios
-}
-\`\`\`
-
-## 输出格式
-\`\`\`json
-{
-  "url": "string",
-  "status": 200,
-  "statusText": "OK",
-  "headers": {},
-  "content": "string",
-  "contentType": "string",
-  "size": 1024
-}
-\`\`\`
-
-## 注意事项
-1. **axios模式（默认）**：在浏览器环境中使用，受CORS限制，适合访问支持CORS的API
-2. **curl代理模式（useCurl=true）**：通过主进程代理执行，可绕过CORS限制，适合访问普通网页
-3. 某些网站可能有反爬虫机制
-4. 建议设置合理的超时时间
-5. 大文件可能影响性能
-`
-  },
-  en_us: {
-    name: 'Web Crawler',
-    description: 'Access specified URL and fetch webpage HTML content or API response',
-    instruction: `
+const WEB_CRAWLER_TOOL_NAME = 'Web Crawler'
+const WEB_CRAWLER_TOOL_DESCRIPTION =
+  'Access specified URL and fetch webpage HTML content or API response'
+const WEB_CRAWLER_INSTRUCTION = `
 # Web Crawler Tool
 
 ## Description
@@ -119,26 +69,6 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
 }
 \`\`\`
 `
-  },
-  de_DE: {
-    name: 'Web-Crawler',
-    description:
-      'Greift auf die angegebene URL zu und ruft HTML-Inhalt der Webseite oder API-Antwort ab'
-  },
-  fr_FR: {
-    name: 'Explorateur Web',
-    description:
-      "Accède à l'URL spécifiée et récupère le contenu HTML de la page Web ou la réponse API"
-  },
-  ja_JP: {
-    name: 'ウェブクローラー',
-    description: '指定されたURLにアクセスし、ウェブページのHTMLコンテンツまたはAPIレスポンスを取得'
-  },
-  ko_KR: {
-    name: '웹 크롤러',
-    description: '지정된 URL에 액세스하여 웹페이지 HTML 콘텐츠 또는 API 응답 가져오기'
-  }
-}
 
 /**
  * 通过主进程代理执行HTTP请求（绕过CORS限制）
@@ -603,8 +533,8 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
 
 export const webCrawlerToolConfig: AgentToolConfig = {
   id: 'web-crawler',
-  name: webCrawlerToolLocales,
-  description: webCrawlerToolLocales,
+  name: WEB_CRAWLER_TOOL_NAME,
+  description: WEB_CRAWLER_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'web-crawler',
@@ -653,7 +583,7 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
 4. Recommend setting reasonable timeout
 5. Large files may affect performance`
   },
-  instruction: webCrawlerToolLocales,
+  instruction: WEB_CRAWLER_INSTRUCTION,
   tags: ['web', 'crawler', 'http', 'url'],
   running: false,
   enabled: true,
@@ -705,5 +635,4 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
       size: { type: 'number' }
     }
   },
-  locales: webCrawlerToolLocales
 }

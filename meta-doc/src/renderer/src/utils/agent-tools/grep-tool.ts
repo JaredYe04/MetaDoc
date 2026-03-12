@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
@@ -1117,42 +1116,14 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 }
 
-const grepToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '文本搜索',
-    description: '在当前文档和metadata中搜索文本或正则表达式，返回匹配内容和上下文'
-  },
-  en_us: {
-    name: 'Text Search',
-    description:
-      'Search for text or regex patterns in current document and metadata, return matches with context'
-  },
-  de_DE: {
-    name: 'Textsuche',
-    description:
-      'Suchen Sie nach Text- oder Regex-Mustern im aktuellen Dokument und in Metadaten, geben Sie Übereinstimmungen mit Kontext zurück'
-  },
-  fr_FR: {
-    name: 'Recherche de texte',
-    description:
-      'Rechercher des modèles de texte ou regex dans le document actuel et les métadonnées, retourner les correspondances avec contexte'
-  },
-  ja_JP: {
-    name: 'テキスト検索',
-    description:
-      '現在のドキュメントとメタデータでテキストまたは正規表現パターンを検索し、コンテキスト付きの一致を返す'
-  },
-  ko_KR: {
-    name: '텍스트 검색',
-    description:
-      '현재 문서 및 메타데이터에서 텍스트 또는 정규식 패턴 검색, 컨텍스트와 일치 항목 반환'
-  }
-}
+const GREP_TOOL_NAME = 'Text Search'
+const GREP_TOOL_DESCRIPTION =
+  'Search for text or regex patterns in current document and metadata, return matches with context'
 
 export const grepToolConfig: AgentToolConfig = {
   id: 'grep',
-  name: grepToolLocales,
-  description: grepToolLocales,
+  name: GREP_TOOL_NAME,
+  description: GREP_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'grep',
@@ -1223,218 +1194,12 @@ Use when you don't remember exact keywords, based on similarity matching, **very
 ## Output Format
 Returns array of matches with line numbers, positions, and context.`
   },
-  instruction: `
-# 文本搜索工具
-
-## 功能描述
-在当前活动文档、metadata 以及**工作区**中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。支持**搜索和替换**功能，可以一次性完成查找和替换操作。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位和修改文档内容。
-
-**scope \`workspace\`**：有工作区根时，默认搜索范围包含整个工作区目录（排除 .git、node_modules、.metadoc）。可仅指定 \`scope: ["workspace"]\` 只搜工作区文件。
-
-**⚠️ 本工具不返回完整文件内容**，只返回**匹配行及上下文片段**。若需要**读取整个文件或大段内容**，请使用 **\`workspace\`（工作区文件读取）** 工具传 \`paths\`，不要用 grep。
-
-## ⭐ 推荐频繁使用
-
-此工具设计为轻量级、高效的查询工具，**建议频繁调用**以：
-- **快速定位内容**：查找特定文本在文档中的位置
-- **了解上下文**：不仅找到匹配项，还能看到其周围的上下文
-- **辅助编辑决策**：在插入、替换内容前，先搜索了解文档结构
-- **验证内容存在性**：检查某个概念、术语是否已在文档中出现
-
-**使用示例**：在插入内容前，可以先搜索相关内容的位置，根据匹配结果和上下文确定插入位置。
-
-## 使用场景
-- 查找文档中的特定内容
-- 搜索关键词
-- 使用正则表达式进行复杂搜索
-- **模糊搜索**：不记得确切关键词，使用相似度匹配（类似搜索引擎）
-- 在metadata中查找信息
-- **定位插入位置**：搜索关键词，根据匹配位置和上下文确定插入点
-- **验证内容**：检查某个内容是否已存在
-- **快速了解文档结构**：通过搜索关键术语了解文档内容分布
-- **批量替换**：使用正则表达式和捕获组进行批量替换
-- **选择性替换**：只替换指定的匹配项
-
-## 搜索模式
-
-### 1. 精确搜索（默认）
-完全匹配搜索模式，区分大小写。
-
-### 2. 正则表达式搜索
-使用正则表达式进行模式匹配。
-
-### 3. 模糊搜索 ⭐ 推荐（类似搜索引擎）
-不记得确切关键词时使用，基于相似度匹配，**非常灵活**，适合中文文本搜索。
-
-**模糊搜索的特点**：
-- 不需要完全匹配，相似度高的文本也会被找到
-- 支持容错：即使有少量字符错误或不同，也能找到相关内容
-- 返回相似度分数，可以按相似度排序
-- 特别适合中文文本的模糊匹配
-
-**使用场景**：
-- 不记得确切的术语或关键词
-- 关键词可能有拼写错误或变化
-- 想找到相似或相关的内容
-- 类似搜索引擎的智能搜索
-
-## 输入格式
-\`\`\`json
-{
-  "pattern": "string",           // 必需，搜索模式（文本、正则表达式或模糊搜索关键词）
-  "isRegex": false,              // 可选，是否为正则表达式，默认false（与fuzzy不能同时为true）
-  "fuzzy": false,                // 可选，是否使用模糊搜索，默认false（与isRegex不能同时为true）
-  "similarityThreshold": 0.6,    // 可选，模糊搜索相似度阈值（0-1），默认0.6，值越高要求越严格
-  "contextLines": 3,             // 可选，上下文行数，默认3
-  "scope": ["workspace", "document", "metadata"],  // 可选；有工作区根时默认包含 workspace（整个工作区目录）
-  "tabId": "string",             // 可选，指定文档标签页ID，默认使用当前活动标签页
-  "replaceText": "string",      // 可选，替换文本（如果提供，将执行替换操作）
-  "replaceAll": false,           // 可选，是否替换所有匹配项，默认false（只替换第一个）
-  "replaceIndices": [0, 2, 5]   // 可选，要替换的匹配项索引数组（0-based），与replaceAll互斥
-}
-\`\`\`
-
-## 使用示例
-
-### 示例1：精确搜索
-\`\`\`json
-{
-  "pattern": "人工智能",
-  "scope": ["document"]
-}
-\`\`\`
-
-### 示例2：模糊搜索 ⭐ 推荐（不记得确切关键词时）
-\`\`\`json
-{
-  "pattern": "人工智",  // 不完整的关键词
-  "fuzzy": true,        // 启用模糊搜索
-  "similarityThreshold": 0.6  // 相似度阈值（可以调整，0.6-0.8比较合适）
-}
-\`\`\`
-
-### 示例3：模糊搜索（高相似度要求）
-\`\`\`json
-{
-  "pattern": "机器学习",
-  "fuzzy": true,
-  "similarityThreshold": 0.8  // 要求更高的相似度（更严格）
-}
-\`\`\`
-
-### 示例4：定位插入位置（推荐流程）
-\`\`\`json
-// 步骤1：使用模糊搜索找到相关内容
-{
-  "pattern": "相关章节",
-  "fuzzy": true,
-  "similarityThreshold": 0.7
-}
-// 返回结果包含行号和列号，可以用这些位置信息配合edit工具插入内容
-\`\`\`
-
-### 示例5：替换第一个匹配项
-\`\`\`json
-{
-  "pattern": "旧文本",
-  "replaceText": "新文本"
-}
-\`\`\`
-
-### 示例6：替换所有匹配项
-\`\`\`json
-{
-  "pattern": "旧文本",
-  "replaceText": "新文本",
-  "replaceAll": true
-}
-\`\`\`
-
-### 示例7：替换指定的匹配项（使用索引）
-\`\`\`json
-{
-  "pattern": "旧文本",
-  "replaceText": "新文本",
-  "replaceIndices": [0, 2, 5]  // 只替换索引为0、2、5的匹配项
-}
-\`\`\`
-
-### 示例8：正则表达式替换（使用捕获组）
-\`\`\`json
-{
-  "pattern": "(\\d+)-(\\d+)",  // 匹配 "123-456"
-  "isRegex": true,
-  "replaceText": "$2-$1",      // 替换为 "456-123"（交换两个数字）
-  "replaceAll": true
-}
-\`\`\`
-
-### 示例9：正则表达式替换（使用多个捕获组）
-\`\`\`json
-{
-  "pattern": "Hello (\\w+)",   // 匹配 "Hello World"
-  "isRegex": true,
-  "replaceText": "Hi $1",      // 替换为 "Hi World"
-  "replaceAll": true
-}
-\`\`\`
-
-## 输出格式
-\`\`\`json
-{
-  "matches": [
-    {
-      "line": 10,
-      "column": 5,
-      "match": "匹配的文本",
-      "preContext": "前置上下文",
-      "postContext": "后置上下文",
-      "context": "完整上下文",
-      "similarity": 0.85,  // 模糊搜索模式下提供，相似度分数（0-1）
-      "groups": ["完整匹配", "捕获组1", "捕获组2"]  // 正则表达式搜索模式下提供，捕获组数组
-    }
-  ],
-  "totalMatches": 5,
-  "searchPattern": "pattern",
-  "isRegex": false,
-  "isFuzzy": false,  // 是否使用模糊搜索
-  "similarityThreshold": 0.6,  // 模糊搜索阈值（如果使用模糊搜索）
-  "scope": ["document", "metadata"],
-  "replacedCount": 3,  // 替换的数量（如果执行了替换）
-  "replacementText": "新文本"  // 替换文本（如果执行了替换）
-}
-\`\`\`
-
-## 注意事项
-- **鼓励频繁使用**：这是一个轻量级工具，可以随时调用，无需担心性能问题
-- **模糊搜索推荐**：当不记得确切关键词时，使用 \`fuzzy: true\` 可以找到相似内容，非常灵活
-- 支持纯文本搜索、正则表达式搜索和模糊搜索三种模式
-- **模糊搜索和正则搜索不能同时启用**：\`fuzzy\` 和 \`isRegex\` 不能同时为 \`true\`
-- 模糊搜索返回的结果按相似度降序排序，最相似的结果排在前面
-- 模糊搜索的相似度阈值（\`similarityThreshold\`）：
-  - 默认 0.6：较宽松，能找到更多相关结果
-  - 0.7-0.8：中等严格，平衡结果数量和准确性
-  - 0.9+：非常严格，只返回几乎完全匹配的结果
-- 返回每个匹配的行号、列号和上下文，便于定位和了解周围内容
-- 可以指定搜索范围：workspace（整个工作区）、仅文档、仅 metadata 或组合；有工作区根时默认包含 workspace
-- 上下文行数可以自定义（默认3行），帮助理解匹配项在文档中的位置
-- 正则表达式使用JavaScript RegExp语法
-- **定位插入位置的好方法**：可以搜索关键词，根据匹配位置确定插入点，比总是从行1列1插入更准确
-- **替换功能**：
-  - 支持全部替换（\`replaceAll: true\`）和部分替换（\`replaceIndices: [0, 2, 5]\`）
-  - 默认只替换第一个匹配项
-  - \`replaceAll\` 和 \`replaceIndices\` 互斥，不能同时使用
-  - 替换操作只支持文档内容，不支持替换metadata
-  - 正则表达式替换支持捕获组引用：\`$1\`, \`$2\` 等表示捕获组，\`$$\` 表示字面量 \`$\`
-  - 替换文本中的捕获组引用会在替换时自动展开为实际的捕获组内容
-- \`verbose\` 参数可选，默认false。如果设置为true，会在结果中包含完整的原始内容和替换后内容（originalContent和replacedContent），用于Display组件显示完整的文档对比。**默认不包含完整内容以节省token**，只有在需要查看完整文档内容时才设置为true。
-`,
+  instruction: undefined,
   callback: grepToolCallback,
   displayComponent: GrepDisplay,
   tags: ['search', 'text', 'regex'],
   enabled: true,
   editable: false,
-  locales: grepToolLocales,
   inputSchema: {
     type: 'object',
     properties: {

@@ -1621,7 +1621,21 @@
     "themeSync:": "Suivre le mode système",
     "themeSyncColor:": "Suivre la couleur système",
     "themes:": "Thèmes",
-    "tokens:": "jetons"
+    "tokens:": "jetons",
+    "checkAllConfigs": "Vérifier d'un clic",
+    "checkAllConfigsDone": "Toutes les configurations ont été vérifiées",
+    "checkConfig": "Vérifier",
+    "checkConfigFailed": "Échec de la vérification",
+    "checkConfigTooltip": "Cliquez pour vérifier : complétion en flux continu / non continu et dialogue",
+    "checkFail": "Échec",
+    "checkPass": "Réussi",
+    "configDescription": "Description",
+    "configDescriptionPlaceholder": "Optionnel, utilisé pour afficher une note sur la carte",
+    "copyConfig": "Copier la configuration",
+    "copyConfigSuccess": "Configuration copiée",
+    "readFileFailed": "Impossible de lire le fichier",
+    "resetConfigSuccess": "Réinitialisé à l'état prédéfini",
+    "resetConfigToPreset": "Réinitialiser à l'état prédéfini"
   },
   "titleMenu": {
     "contextMarks": {
@@ -1744,7 +1758,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "Mot",
-    "frequency": "Fr&eacute;quence"
+    "frequency": "Fr&eacute;quence",
+    "generating": "Génération de l'explication en cours…"
   },
   "knowledgeBase": {
     "add": "Ajouter",
@@ -2357,6 +2372,20 @@
     "removeTemplateTitle": "Supprimer le modèle"
   },
   "agent": {
+    "contextBreakdown": {
+      "title": "Composition du contexte",
+      "description": "Contenu du contexte envoyé au modèle pour cette session.",
+      "tooltip": "Voir la composition et l'utilisation du contexte",
+      "totalTokens": "{used} / {max} tokens ({pct}%)",
+      "tokensChars": "{tokens} tokens ({chars} caractères)",
+      "noSession": "Aucune session ou configuration sélectionnée ; impossible de calculer le contexte.",
+      "parts": {
+        "systemPrompt": "Invite système",
+        "references": "Références",
+        "summary": "Résumé de l'historique",
+        "history": "Messages récents"
+      }
+    },
     "conversation": {
       "emptyTitle": "Aucune conversation",
       "messages": "{count} message(s)",
@@ -2448,13 +2477,24 @@
           "loadingTree": "Chargement de l'arborescence...",
           "reading": "Lecture du fichier...",
           "readingFile": "Lecture du fichier {index}/{total} : {path}",
-          "completed": "Lecture terminée, {count} fichier(s) au total"
+          "completed": "Lecture terminée, {count} fichier(s) au total",
+          "searchCompleted": "Recherche terminée : « {query} » correspond à {count} élément(s)",
+          "searching": "Recherche approximative en cours…"
         }
       },
       "nodeAgent": {
         "progress": {
           "syncing": "Synchronisation du contenu du document...",
           "completed": "Exécution de l'agent de nœuds terminée"
+        }
+      },
+      "latexCompile": {
+        "error": {
+          "failed": "Échec de la compilation LaTeX : {error}"
+        },
+        "progress": {
+          "compiling": "Compilation LaTeX en cours...",
+          "completed": "Compilation terminée"
         }
       }
     },
@@ -2801,7 +2841,10 @@
         "hideContent": "Masquer le contenu complet",
         "linesRange": "Lignes {start}-{end} (sur un total de {total})",
         "totalLines": "{count} ligne(s) au total",
-        "error": "Échec de la lecture du fichier de l'espace de travail"
+        "error": "Échec de la lecture du fichier de l'espace de travail",
+        "matchCount": "{count} correspondance(s)",
+        "searchResultsTitle": "Recherche approximative : « {query} »",
+        "searching": "Recherche approximative en cours…"
       },
       "edit": {
         "completed": "Édition terminée",
@@ -2893,6 +2936,24 @@
         "roleUser": "Utilisateur",
         "running": "Exécution en cours...",
         "title": "Sous-agent"
+      },
+      "latexCompile": {
+        "compiling": "Compilation LaTeX en cours...",
+        "failed": "Échec de la compilation",
+        "outputPdfPath": "Chemin du PDF de sortie",
+        "stderr": "Erreur standard",
+        "stdout": "Sortie standard",
+        "success": "Compilation réussie"
+      },
+      "timestamp": {
+        "current": "Heure actuelle",
+        "error": "Échec de l'obtention de l'heure",
+        "local": "Local",
+        "previous": "Heure du dernier appel",
+        "processing": "Obtention de l'heure en cours...",
+        "result": "Résultat",
+        "timeDiff": "Différence de temps",
+        "unixTimestamp": "Horodatage Unix"
       }
     },
     "userLabel": "Utilisateur",
@@ -3045,7 +3106,9 @@
       "intentRecognition": "Reconnaissance d'intention",
       "selectedTools": "Outils sélectionnés :",
       "noToolsNeeded": "Aucun outil nécessaire pour cette demande.",
-      "reasoning": "Raisonnement :"
+      "reasoning": "Raisonnement :",
+      "confirmRegenerate": "La régénération supprimera tout le contenu après ce message (y compris les réponses de l'IA, les appels d'outils, la reconnaissance d'intention, etc.) et régénérera à partir de ce message utilisateur. Voulez-vous continuer ?",
+      "confirmRegenerateTitle": "Confirmer la régénération"
     },
     "attachment": {
       "untitled": "Sans nom"
@@ -3155,20 +3218,11 @@
         "foundSlides": "{count} diapositive(s) détectée(s)",
         "foundImages": "{count} image(s) détectée(s)"
       },
-      "builtInDocument": {
-        "title": "Référence au document actuel",
-        "description": "Récupère dynamiquement le contenu du document actif, mis à jour en temps réel, sans occuper d'espace dans l'historique des messages",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "preview": "Aperçu",
-        "noActiveDocument": "Aucun document actif",
-        "emptyDocument": "Le document actuel est vide",
-        "currentActiveDocument": "Document actif courant",
-        "formatSuffix": "(format {format})"
-      },
       "error": {
         "cancelRequestFailed": "Échec de l'envoi de la demande d'annulation"
-      }
+      },
+      "directory": "Répertoire",
+      "workspaceDirs": "Répertoires de l'espace de travail"
     },
     "compact": {
       "untitled": "Session sans titre",
@@ -3206,7 +3260,89 @@
     },
     "welcomeTitle": "Bonjour ! Je suis l'assistant IA MetaDoc !",
     "welcomeDescription": "Je suis votre assistant intelligent pour la rédaction de documents. Je peux vous aider à rédiger, modifier et peaufiner vos documents avec des suggestions et des corrections alimentées par l'IA.",
-    "tellMeYourNeeds": "Dites-moi ce dont vous avez besoin et je vous aiderai à accomplir vos tâches de création de documents !"
+    "tellMeYourNeeds": "Dites-moi ce dont vous avez besoin et je vous aiderai à accomplir vos tâches de création de documents !",
+    "toolLabels": {
+      "chart-generation": {
+        "description": "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) à partir d'un prompt, avec export en SVG, PNG, PDF",
+        "name": "Génération de graphiques"
+      },
+      "color-processing": {
+        "description": "Traitement des couleurs : mélange, ajustement de la luminosité/du contraste, couleurs complémentaires, etc.",
+        "name": "Traitement des couleurs"
+      },
+      "data-analysis": {
+        "description": "Analyse automatique de données (CSV, JSON, etc.) : extraction de champs, statistiques descriptives, agrégation, etc.",
+        "name": "Analyse de données"
+      },
+      "data-calculation": {
+        "description": "Exécute des calculs mathématiques complexes, incluant les opérations numériques, vectorielles et matricielles.",
+        "name": "Calcul de données"
+      },
+      "diff": {
+        "description": "Compare deux textes et retourne un diff unifié.",
+        "name": "Comparaison de texte"
+      },
+      "edit": {
+        "description": "N'accepte que les diff de style git : chaîne de caractères avec lignes - (suppression) et + (insertion).",
+        "name": "Édition de document"
+      },
+      "grep": {
+        "description": "Recherche ou recherche-remplacement dans le document/l'espace de travail.",
+        "name": "Recherche de texte"
+      },
+      "latex-compile": {
+        "description": "Compile un projet LaTeX et retourne le chemin du PDF ou les logs.",
+        "name": "Compilation LaTeX"
+      },
+      "metadata": {
+        "description": "Accède et modifie les métadonnées du document, utilise l'IA pour générer titre, description, mots-clés, etc.",
+        "name": "Gestion des métadonnées"
+      },
+      "outline-optimize": {
+        "description": "Utilise l'IA pour générer/optimiser le plan d'un document (.md/.tex uniquement), spécifié par filePath ou tabId.",
+        "name": "Optimisation du plan"
+      },
+      "outline-tree": {
+        "description": "Obtient l'arborescence du plan du document (.md/.tex uniquement).",
+        "name": "Arborescence du plan"
+      },
+      "proofread": {
+        "description": "Vérifie la grammaire, l'orthographe et les erreurs de syntaxe LaTeX dans le texte.",
+        "name": "Relecture de texte"
+      },
+      "rag-retrieval": {
+        "description": "Récupère des extraits de documents pertinents depuis la base de connaissances pour améliorer la précision des réponses de l'IA.",
+        "name": "Recherche RAG dans la base de connaissances"
+      },
+      "terminal-execution": {
+        "description": "Exécute des commandes terminal, nécessite l'approbation de l'utilisateur (mode de confiance configurable).",
+        "name": "Exécution terminal"
+      },
+      "timestamp": {
+        "description": "Retourne l'horodatage actuel et enregistre chaque appel pour calculer les écarts de temps.",
+        "name": "Horodatage"
+      },
+      "title-format": {
+        "description": "Formate les titres du document : ajuste les niveaux, ajoute/supprime la numérotation, supprime les préfixes, etc.",
+        "name": "Formatage des titres"
+      },
+      "todolist-planning": {
+        "description": "Analyse l'intention de l'utilisateur et décompose les tâches complexes en une liste de tâches structurée.",
+        "name": "Reconnaissance d'intention et planification de tâches"
+      },
+      "tool-spec-fetcher": {
+        "description": "Récupère la description complète (fullSpec) d'un ou plusieurs outils.",
+        "name": "Récupération de la spécification d'outil"
+      },
+      "web-crawler": {
+        "description": "Accède à une URL spécifiée et récupère le contenu HTML de la page ou la réponse d'une API.",
+        "name": "Accès web"
+      },
+      "workspace": {
+        "description": "Lit les fichiers de l'espace de travail, effectue une recherche floue par chemin/nom ou liste le répertoire racine.",
+        "name": "Lecture des fichiers de l'espace de travail"
+      }
+    }
   },
   "sectionOptimizer": {
     "clear": "Vider",

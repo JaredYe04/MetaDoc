@@ -25,6 +25,7 @@ const TITLE_MAX_LEN = 32
 const TOOL_ID_TO_RENDERER: Record<string, string> = {
   edit: 'EditDisplay',
   grep: 'GrepDisplay',
+  timestamp: 'TimestampDisplay',
   todolist: 'TodoListDisplay',
   'todolist-planning': 'TodoListDisplay',
   workspace: 'WorkspaceDisplay',

@@ -1,5 +1,16 @@
 {
-  "suggestionPresets": [],
+  "suggestionPresets": [
+    { "labelKey": "home.suggestion.productIntroduction", "prompt": "Write an article introducing a product, including features, benefits, and use cases." },
+    { "labelKey": "home.suggestion.technicalTutorial", "prompt": "Write a step-by-step technical tutorial that is clear and easy to follow." },
+    { "labelKey": "home.suggestion.projectSummary", "prompt": "Write a project summary covering objectives, process, results, and conclusions." },
+    { "labelKey": "home.suggestion.meetingMinutes", "prompt": "Write meeting minutes with agenda, discussion points, decisions, and action items." },
+    { "labelKey": "home.suggestion.weeklyReport", "prompt": "Write a weekly work report summarizing progress, issues, and next steps." },
+    { "labelKey": "home.suggestion.blogPost", "prompt": "Write an engaging blog post with a clear viewpoint and readable structure." },
+    { "labelKey": "home.suggestion.userGuide", "prompt": "Write a user guide with overview, prerequisites, steps, and troubleshooting." },
+    { "labelKey": "home.suggestion.apiDocumentation", "prompt": "Write API documentation including purpose, parameters, examples, and notes." },
+    { "labelKey": "home.suggestion.researchOutline", "prompt": "Write a research outline with background, methods, expected results, and references." },
+    { "labelKey": "home.suggestion.releaseNotes", "prompt": "Write release notes with new features, improvements, and known issues." }
+  ],
   "presets": [],
   "prompts": {
     "generateTitlePrompt": "You are an excellent editor. The following is a tree JSON structure of an article outline. Please automatically determine what the article is about and generate a title.\n\nPlease output the title directly without any explanations, descriptions, or other unnecessary content. The title should be within 15 words.\n\nArticle outline: {treeJson}",

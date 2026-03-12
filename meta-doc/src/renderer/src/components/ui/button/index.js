@@ -14,6 +14,8 @@ export const buttonVariants = cva(
           'border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70',
+        success:
+          'bg-green-600 text-white hover:bg-green-700 active:bg-green-800 dark:bg-green-700 dark:hover:bg-green-600 dark:active:bg-green-500',
         ghost: 'hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
         link: 'text-primary underline-offset-4 hover:underline active:opacity-80'
       },
@@ -64,6 +66,13 @@ export const buttonVariants = cva(
         variant: 'secondary',
         class:
           '!bg-muted/80 !text-muted-foreground hover:!bg-muted hover:!text-foreground active:!bg-muted/90 active:!text-foreground border-0'
+      },
+      // success 圆形：绿色成功样式
+      {
+        circle: true,
+        variant: 'success',
+        class:
+          '!bg-green-600 !text-white hover:!bg-green-700 active:!bg-green-800 dark:!bg-green-700 dark:hover:!bg-green-600 dark:active:!bg-green-500 border-0'
       }
     ],
     defaultVariants: {

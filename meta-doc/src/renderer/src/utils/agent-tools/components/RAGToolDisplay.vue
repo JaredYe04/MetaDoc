@@ -1,78 +1,91 @@
 <template>
-  <div
-    class="rag-tool-display"
-    :style="containerStyle"
-    :class="{ 'rag-tool-display--compact': compact }"
-  >
+  <el-scrollbar class="rag-tool-display-scrollbar">
     <div
-      v-if="displayData.stage === 'searching'"
-      class="searching-state"
-      :style="statusMessageStyle"
+      class="rag-tool-display"
+      :style="containerStyle"
+      :class="{ 'rag-tool-display--compact': compact }"
     >
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ $t('agent.display.ragTool.searching') }}</span>
-    </div>
-
-    <div
-      v-else-if="displayData.stage === 'completed'"
-      class="completed-state"
-      :style="completedStateStyle"
-    >
-      <div class="result-header" :style="resultHeaderStyle">
-        <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
-          {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
-        </Badge>
-        <span v-if="!compact" class="question-text" :style="questionTextStyle">{{
-          displayData.question
-        }}</span>
+      <div
+        v-if="displayData.stage === 'searching'"
+        class="searching-state"
+        :style="statusMessageStyle"
+      >
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>{{ $t('agent.display.ragTool.searching') }}</span>
       </div>
 
-      <div v-if="displayData.results && displayData.results.length > 0" class="results-container">
-        <ScrollArea :class="compact ? 'max-h-[240px]' : 'max-h-[400px]'">
-          <Card
-            v-for="(result, index) in displayData.results"
-            :key="index"
-            class="result-card"
-            :style="cardStyle"
+      <div
+        v-else-if="displayData.stage === 'completed'"
+        class="completed-state"
+        :style="completedStateStyle"
+      >
+        <div class="result-header" :style="resultHeaderStyle">
+          <Badge variant="default" class="bg-green-600 hover:bg-green-700 text-white">
+            {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
+          </Badge>
+          <div v-if="!compact && effectiveQuestion" class="question-text-wrapper">
+            <el-tooltip
+              :content="effectiveQuestion"
+              placement="top"
+              :show-after="300"
+            >
+              <span class="question-text question-text--truncate" :style="questionTextStyle">{{
+                effectiveQuestion
+              }}</span>
+            </el-tooltip>
+          </div>
+        </div>
+
+        <div v-if="displayData.results && displayData.results.length > 0" class="results-container">
+          <el-scrollbar
+            :class="compact ? 'rag-results-scrollbar max-h-[240px]' : 'rag-results-scrollbar max-h-[400px]'"
           >
-            <CardContent class="result-content">
-              <pre class="result-text" :style="resultTextStyle">{{ result }}</pre>
-            </CardContent>
-          </Card>
-        </ScrollArea>
+            <div class="results-inner">
+              <Card
+                v-for="(result, index) in displayData.results"
+                :key="index"
+                class="result-card"
+                :style="cardStyle"
+              >
+                <CardContent class="result-content">
+                  <pre class="result-text" :style="resultTextStyle">{{ result }}</pre>
+                </CardContent>
+              </Card>
+            </div>
+          </el-scrollbar>
+        </div>
+
+        <div v-else class="no-results">
+          <Empty :description="$t('agent.display.ragTool.noResults')" :image-size="80" />
+          <p class="hint" :style="hintStyle">
+            {{ $t('agent.display.ragTool.hint') }}
+          </p>
+        </div>
       </div>
 
-      <div v-else class="no-results">
-        <Empty :description="$t('agent.display.ragTool.noResults')" :image-size="80" />
-        <p class="hint" :style="hintStyle">
-          {{ $t('agent.display.ragTool.hint') }}
-        </p>
+      <div v-else-if="displayData.stage === 'error'" class="error-state">
+        <Alert variant="destructive">
+          <XCircle class="h-4 w-4" />
+          <AlertTitle>{{ displayData.error || $t('agent.display.ragTool.searchFailed') }}</AlertTitle>
+        </Alert>
+      </div>
+
+      <!-- 进度条 -->
+      <div v-if="effectiveProgress && effectiveProgress.percentage > 0" style="margin-top: 12px">
+        <Progress
+          :percentage="effectiveProgress.percentage"
+          :status="progressStatus"
+          :stroke-width="6"
+          :show-text="true"
+        />
       </div>
     </div>
-
-    <div v-else-if="displayData.stage === 'error'" class="error-state">
-      <Alert variant="destructive">
-        <XCircle class="h-4 w-4" />
-        <AlertTitle>{{ displayData.error || $t('agent.display.ragTool.searchFailed') }}</AlertTitle>
-      </Alert>
-    </div>
-
-    <!-- 进度条 -->
-    <div v-if="effectiveProgress && effectiveProgress.percentage > 0" style="margin-top: 12px">
-      <Progress
-        :percentage="effectiveProgress.percentage"
-        :status="progressStatus"
-        :stroke-width="6"
-        :show-text="true"
-      />
-    </div>
-  </div>
+  </el-scrollbar>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
-import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
 import { Progress } from '@renderer/components/ui/progress'
@@ -86,9 +99,12 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 
 const { t } = useI18n()
 
-const props = withDefaults(defineProps<ToolDisplayComponentProps & { mode?: string }>(), {
-  compact: false
-})
+const props = withDefaults(
+  defineProps<
+    ToolDisplayComponentProps & { mode?: string; params?: Record<string, unknown> }
+  >(),
+  { compact: false }
+)
 const isDemo = computed(() => props.mode === 'demo')
 
 // Demo data
@@ -145,6 +161,16 @@ const displayData = computed(() => {
     }
   }
   return { stage: 'searching' }
+})
+
+// 检索词：优先用结果里的 question，否则用工具调用参数 params.question（兼容未带 question 的旧数据）
+const effectiveQuestion = computed(() => {
+  const fromData = displayData.value && typeof displayData.value === 'object' && 'question' in displayData.value
+    ? (displayData.value as { question?: string }).question
+    : undefined
+  const fromParams =
+    props.params && typeof props.params.question === 'string' ? props.params.question : undefined
+  return (fromData ?? fromParams ?? '') as string
 })
 
 // 进度状态（优先使用实时状态）
@@ -204,6 +230,45 @@ const cardStyle = computed(() => ({
 </script>
 
 <style scoped>
+.rag-tool-display-scrollbar {
+  width: 100%;
+  max-height: 80vh;
+}
+
+.rag-tool-display-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+}
+
+.rag-results-scrollbar {
+  width: 100%;
+  display: block;
+}
+
+.rag-results-scrollbar.max-h-\[240px\] {
+  max-height: 240px;
+}
+
+.rag-results-scrollbar.max-h-\[400px\] {
+  max-height: 400px;
+}
+
+.rag-results-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+  overflow-y: scroll;
+}
+
+.rag-results-scrollbar.max-h-\[240px\] :deep(.el-scrollbar__wrap) {
+  max-height: 240px;
+}
+
+.rag-results-scrollbar.max-h-\[400px\] :deep(.el-scrollbar__wrap) {
+  max-height: 400px;
+}
+
+.rag-results-scrollbar :deep(.el-scrollbar__view) {
+  display: block;
+}
+
 .rag-tool-display {
   width: 100%;
 }
@@ -218,7 +283,7 @@ const cardStyle = computed(() => ({
 }
 
 .rag-tool-display--compact .result-content {
-  padding: 4px 0;
+  padding: 8px 12px;
 }
 
 .rag-tool-display--compact .result-text {
@@ -246,29 +311,42 @@ const cardStyle = computed(() => ({
   border-bottom: 1px solid;
 }
 
+.question-text-wrapper {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .question-text {
   font-size: 14px;
-  flex: 1;
+}
+
+.question-text--truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
 .results-container {
   margin-top: 12px;
 }
 
+.results-inner {
+  padding: 4px 12px;
+}
+
 .result-card {
   margin-bottom: 8px;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: box-shadow 0.2s;
 }
 
 .result-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .result-content {
-  padding: 8px 0;
+  padding: 12px 16px;
 }
 
 .result-text {

@@ -1937,6 +1937,18 @@
     "subtitle": "现代文档编辑与创作工具",
     "suggestionLabel": "建议标签",
     "suggestionTagsTitle": "建议标签",
+    "suggestion": {
+      "productIntroduction": "产品介绍",
+      "technicalTutorial": "技术教程",
+      "projectSummary": "项目总结",
+      "meetingMinutes": "会议纪要",
+      "weeklyReport": "周报",
+      "blogPost": "博客文章",
+      "userGuide": "用户指南",
+      "apiDocumentation": "API 文档",
+      "researchOutline": "研究提纲",
+      "releaseNotes": "发布说明"
+    },
     "tab": {
       "aiAssistant": "AI 助手",
       "documentInfo": "文档信息"

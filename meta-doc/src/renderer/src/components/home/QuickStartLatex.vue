@@ -27,12 +27,18 @@
         <!-- 右侧：控制面板 -->
         <div class="control-section">
           <div class="tab-switch-wrapper">
-            <ToggleGroup v-model="tab" type="single" class="tab-switch">
+            <ToggleGroup
+              :model-value="tab"
+              type="single"
+              class="tab-switch"
+              @update:model-value="onTabChange"
+            >
               <ToggleGroupItem
                 v-for="option in segmentOptions"
                 :key="option"
                 :value="option"
                 class="quickstart-tab-item"
+                :disabled="option === segmentOptions[1] && !generated"
               >
                 {{ option }}
               </ToggleGroupItem>
@@ -301,6 +307,13 @@ let editorId: string | null = null
 
 const segmentOptions = computed(() => [t('home.tab.aiAssistant'), t('home.tab.documentInfo')])
 
+// 不允许取消选择当前 tab：点击已选中的项时不清空
+function onTabChange(value: string | undefined) {
+  if (value != null && value !== '') {
+    tab.value = value
+  }
+}
+
 function generateRandomButtons(): { label: string; prompt: string }[] {
   const randomCount = 6
   const randomButtons: { label: string; prompt: string }[] = []
@@ -309,7 +322,10 @@ function generateRandomButtons(): { label: string; prompt: string }[] {
   while (randomButtons.length < randomCount && used.size < presets.length) {
     const index = Math.floor(Math.random() * presets.length)
     if (!used.has(index)) {
-      randomButtons.push(presets[index])
+      randomButtons.push({
+        label: t(presets[index].labelKey),
+        prompt: presets[index].prompt
+      })
       used.add(index)
     }
   }
@@ -370,9 +386,7 @@ const generate = async () => {
 
   try {
     await done
-    generated.value = true
-
-    // 自动生成标题、摘要、关键词
+    // 先完成标题、摘要、关键词等元信息生成后，再视为生成完成（底部才出现「接受」等）
     await autoGenerateMetaInfo()
 
     // 设置作者
@@ -381,6 +395,7 @@ const generate = async () => {
     } else {
       metaAuthor.value = 'MetaDoc'
     }
+    generated.value = true
   } catch (error) {
     logger.warn('LaTeX 任务失败或取消', error)
   } finally {
@@ -534,20 +549,22 @@ const cleanupEditor = () => {
   }
 }
 
-const accept = async () => {
-  logger.info('[QuickStartLatex] accept 开始')
+// 接受生成内容：仅切换到文档信息面板，不创建新 tab
+const accept = () => {
+  tab.value = segmentOptions.value[1]
+}
+
+// 准备就绪：创建新文档 tab 并进入编辑器
+const allSet = async () => {
+  logger.info('[QuickStartLatex] allSet 开始')
 
   const latexContent = generatedText.value
 
-  // 创建并激活新文档 tab
   const tabObj = openNewDocumentTab()
   const tabId = tabObj.id
   activateTab(tabId)
 
-  // 初始化文档
   initializeDocumentFromTemplate(tabId, 'tex')
-
-  // 更新内容
   updateDocumentTex(tabId, latexContent)
   updateDocumentMarkdown(tabId, convertLatexToMarkdown(latexContent))
   updateDocumentMeta(tabId, (meta) => {
@@ -559,22 +576,14 @@ const accept = async () => {
   const outline =
     extractOutlineTreeFromMarkdown(convertLatexToMarkdown(latexContent)) ?? DEFAULT_OUTLINE_TREE
   updateDocumentOutline(tabId, outline)
-
-  // 切换视图
   updateDocumentLastView(tabId, 'editor')
 
-  // 清理临时编辑器
   cleanupEditor()
   await nextTick()
 
   eventBus.emit('nav-to', '/editor')
   emitClose()
-  logger.info('[QuickStartLatex] accept - 完成', { tabId })
-}
-
-const allSet = () => {
-  eventBus.emit('nav-to', '/editor')
-  emitClose()
+  logger.info('[QuickStartLatex] allSet - 完成', { tabId })
 }
 
 const highlightM = () => {
@@ -599,6 +608,11 @@ const containerStyle = computed(() => ({
       ? themeState.currentTheme.quickStartBackground1
       : themeState.currentTheme.quickStartBackground2
 }))
+
+// 深色主题下 primaryColor 为浅色，激活 tab 需深色字；浅色主题下为白字
+const tabSwitchActiveTextColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? '#1a1a1a' : '#ffffff'
+)
 
 const labelStyle = computed(() => ({
   color: themeState.currentTheme.textColor
@@ -687,6 +701,12 @@ onMounted(async () => {
 
   // 监听主题变化
   eventBus.on('sync-editor-theme', syncEditorTheme)
+})
+
+watch(generated, (isGenerated) => {
+  if (!isGenerated && tab.value === segmentOptions.value[1]) {
+    tab.value = segmentOptions.value[0]
+  }
 })
 
 watch(
@@ -838,9 +858,9 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: v-bind('themeState.currentTheme.background || "#f5f5f5"');
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
   border-radius: 8px;
-  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
 }
 
 .quickstart-tab-item {
@@ -850,11 +870,12 @@ onBeforeUnmount(() => {
   font-size: 14px;
   text-align: center;
   transition: all 0.2s ease;
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .quickstart-tab-item[data-state='on'] {
-  background: v-bind('themeState.currentTheme.primary || "#409eff"');
-  color: white;
+  background: v-bind('themeState.currentTheme.primaryColor');
+  color: v-bind('tabSwitchActiveTextColor');
 }
 
 .control-panel {

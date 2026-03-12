@@ -68,7 +68,12 @@
         <div class="panel-divider" />
         <div class="panel-body__right">
           <div class="tab-switch">
-            <ToggleGroup v-model="activeTab" type="single" class="quickstart-tab-toggle">
+            <ToggleGroup
+              :model-value="activeTab"
+              type="single"
+              class="quickstart-tab-toggle"
+              @update:model-value="onActiveTabChange"
+            >
               <ToggleGroupItem
                 v-for="option in tabOptions"
                 :key="option"
@@ -303,12 +308,22 @@ const formatOptionStyle = computed(() => ({
   background: themeState.currentTheme.quickStartBackground2
 }))
 
+const tabSwitchActiveTextColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? '#1a1a1a' : '#ffffff'
+)
+
 const buttons = ref<{ label: string; prompt: string }[]>([])
 const temperature = ref(50)
 const tabOptions = computed(() => [t('home.tab.aiAssistant'), t('home.tab.documentInfo')])
 const aiTabLabel = computed(() => tabOptions.value[0] ?? '')
 const documentTabLabel = computed(() => tabOptions.value[1] ?? '')
 const activeTab = ref(aiTabLabel.value)
+
+function onActiveTabChange(value: string | undefined) {
+  if (value != null && value !== '') {
+    activeTab.value = value
+  }
+}
 const mood = ref<string[]>([t('home.mood.peaceful')])
 const userPrompt = ref('')
 const generated = ref(false)
@@ -377,7 +392,7 @@ function generateRandomButtons() {
     if (used.has(index)) continue
     used.add(index)
     randomButtons.push({
-      label: presets[index].label,
+      label: t(presets[index].labelKey),
       prompt: presets[index].prompt
     })
   }
@@ -799,9 +814,9 @@ watch(
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: v-bind('themeState.currentTheme.background || "#f5f5f5"');
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
   border-radius: 8px;
-  border: 1px solid v-bind('themeState.currentTheme.borderColor || "#dcdcdc"');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
 }
 
 .quickstart-tab-item {
@@ -809,11 +824,12 @@ watch(
   border-radius: 6px;
   font-size: 14px;
   transition: all 0.2s ease;
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .quickstart-tab-item[data-state='on'] {
-  background: v-bind('themeState.currentTheme.primary || "#409eff"');
-  color: white;
+  background: v-bind('themeState.currentTheme.primaryColor');
+  color: v-bind('tabSwitchActiveTextColor');
 }
 
 .document-info,

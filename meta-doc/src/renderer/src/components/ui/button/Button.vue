@@ -26,7 +26,7 @@ const computedVariant = computed(() => {
     case 'primary':
       return 'default'
     case 'success':
-      return 'secondary'
+      return 'success'
     case 'warning':
       return 'secondary'
     case 'danger':

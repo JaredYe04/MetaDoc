@@ -6,7 +6,7 @@ import promptsEn from './locale_prompts/en_US.json'
 
 // Single English prompts config; all prompts are managed in locale_prompts/en_US.json
 const promptsConfig = promptsEn as {
-  suggestionPresets: Array<{ label: string; prompt: string }>
+  suggestionPresets: Array<{ labelKey: string; prompt: string }>
   presets: Array<{ value: string }>
   prompts: Record<string, unknown>
 }
@@ -425,12 +425,13 @@ Description: (one or more lines, within 50 words)`
 }
 
 export interface SuggestionPreset {
-  label: string
+  /** i18n key for the label (e.g. home.suggestion.productIntroduction) */
+  labelKey: string
   prompt: string
 }
 
 /**
- * Get suggestion presets for quick start (English only).
+ * Get suggestion presets for quick start. Labels are resolved via i18n in the component.
  */
 export function getSuggestionPresets(): SuggestionPreset[] {
   return promptsConfig.suggestionPresets || []

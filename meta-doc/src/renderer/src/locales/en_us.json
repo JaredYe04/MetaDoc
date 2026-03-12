@@ -656,6 +656,18 @@
     },
     "aiAssistantLabel": "AI Assistant Settings",
     "suggestionLabel": "Suggested Tags",
+    "suggestion": {
+      "productIntroduction": "Product Introduction",
+      "technicalTutorial": "Technical Tutorial",
+      "projectSummary": "Project Summary",
+      "meetingMinutes": "Meeting Minutes",
+      "weeklyReport": "Weekly Report",
+      "blogPost": "Blog Post",
+      "userGuide": "User Guide",
+      "apiDocumentation": "API Documentation",
+      "researchOutline": "Research Outline",
+      "releaseNotes": "Release Notes"
+    },
     "mood": {
       "happy": "Happy",
       "lyrical": "Lyrical",

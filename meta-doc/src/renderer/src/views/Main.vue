@@ -846,7 +846,7 @@ function initMainEventListeners() {
   }
   eventBus.on('open-doc-success', handleOpenDocSuccess)
 
-  // PDF tab（临时或正式）在 ViewMenu 切到非 Home 时：先关掉当前 tab，再按「双击」流程转 PDF→MD 并新建正式 tab
+  // PDF tab（临时或正式）在 ViewMenu 切到非 Home 时：先转 PDF→MD，再关预览 tab，新建带转换内容的正式 MD tab
   const handleConvertPdfPreviewTabToMd = async (payload: unknown) => {
     const tabId =
       payload && typeof payload === 'object' && 'tabId' in payload
@@ -863,30 +863,80 @@ function initMainEventListeners() {
 
     if (!isPdfTab) return
 
-    // 保存路径
     const pdfPath = path
 
-    // 先释放文件占用（如果是预览tab），然后移除tab
-    // 注意：正式打开的PDF tab在转换时也会释放占用（见上面的修复）
-    if (tab.preview && pdfPath) {
-      try {
-        if (messageBridge.getIpc()?.invoke) {
-          await messageBridge.invoke('release-file-claim', pdfPath)
-        }
-      } catch (error) {
-        logger.warn('释放PDF文件占用失败:', error)
-      }
+    if (!messageBridge.getIpc()?.invoke) {
+      eventBus.emit('show-error', t('main.notification.error.title', '操作失败'))
+      return
     }
 
-    removeTab(tabId)
+    try {
+      // 先执行 PDF→Markdown 转换，再关闭预览 tab，避免依赖 workspace-open-document 的异步与 claim 导致内容未正确应用
+      const result = (await messageBridge.invoke('convert-pdf-to-markdown', pdfPath)) as {
+        success: boolean
+        markdown?: string
+        error?: string
+      }
+      if (!result.success || !result.markdown) {
+        throw new Error(result.error || 'PDF转换失败')
+      }
 
-    // 按「双击」流程转 PDF→MD 并新建正式 tab
-    eventBus.emit('workspace-open-document', {
-      path: pdfPath,
-      format: 'pdf',
-      content: '',
-      preview: false
-    })
+      const loaded = await loadDocumentFromMarkdown(result.markdown, undefined)
+      const snapshot = createSnapshotFromLoadedData(loaded)
+      snapshot.path = ''
+      snapshot.dirty = true
+      // 设为 editor 视图，与「点击编辑器」一致
+      snapshot.lastView = 'editor'
+
+      // 再释放并移除预览 tab，然后新建正式 tab
+      if (tab.preview && pdfPath) {
+        try {
+          await messageBridge.invoke('release-file-claim', pdfPath)
+        } catch (err) {
+          logger.warn('释放PDF文件占用失败:', err)
+        }
+      }
+      removeTab(tabId)
+
+      const newTab = addDocumentTab(snapshot, {
+        kind: 'file',
+        dirty: true,
+        path: '',
+        format: 'md',
+        preview: false
+      })
+      const doc = ensureDocument(newTab.id)
+      doc.path = ''
+      doc.format = 'md'
+      doc.lastView = 'editor'
+      const pdfFileName = extractFileName(pdfPath)
+      if (pdfFileName) {
+        doc.meta.title = pdfFileName.replace(/\.pdf$/i, '')
+      }
+
+      refreshActiveTabMetadata()
+      activateTab(newTab.id)
+      eventBus.emit('open-doc-success', {
+        tabId: newTab.id,
+        path: '',
+        fileName: doc.meta?.title?.trim() || pdfFileName || t('workspace.untitledDocument')
+      })
+      eventBus.emit('is-need-save', true)
+      if (pdfPath) {
+        await messageBridge.invoke('release-file-claim', pdfPath)
+      }
+    } catch (error) {
+      logger.error('PDF 预览转编辑器失败:', error)
+      const message = error instanceof Error ? error.message : String(error)
+      eventBus.emit('show-error', `PDF转换失败: ${message}`)
+      if (tab.preview && pdfPath && messageBridge.getIpc()?.invoke) {
+        try {
+          await messageBridge.invoke('release-file-claim', pdfPath)
+        } catch (_) {
+          // ignore
+        }
+      }
+    }
   }
   eventBus.on('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd)
 

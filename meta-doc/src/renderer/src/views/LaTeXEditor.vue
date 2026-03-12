@@ -2403,8 +2403,8 @@ const compile = async () => {
       eventBus.emit('show-success', t('latexEditor.notification.compileSuccess'))
       const newPdfUrl = encodeFilePathToUrl((compileResult.pdfPath || '').replace(/\\/g, '/'))
 
-      // 编译成功后，无论URL是否变化，都应该强制重新加载PDF
-      pdfUrl.value = newPdfUrl
+      // 编译成功后，无论URL是否变化，都应该强制重新加载PDF；加时间戳避免浏览器/缓存沿用旧 PDF
+      pdfUrl.value = newPdfUrl + '?t=' + Date.now()
       // 有有效 PDF URL 就显示面板，让 PdfPreviewPanel 自己加载；不依赖 loadPdf 返回值（loadPdf 可能因 ref 在子组件而失败）
       if (newPdfUrl && newPdfUrl !== 'file:///' && newPdfUrl.trim() !== '') {
         showPdfPanel.value = true
@@ -3255,6 +3255,17 @@ const executeMonacoCommand = async (command: string) => {
   }
 }
 
+// 全局 editor-command 事件：由 useGlobalShortcuts 在快捷键时按当前 tabId 派发，仅当前 tab 的实例执行
+const handleEditorCommand = (payload: { command?: string; tabId?: string }) => {
+  if (payload?.tabId !== props.tabId) return
+  const cmd = payload.command
+  if (cmd === 'paste') executeMonacoCommand('editor.action.clipboardPasteAction')
+  else if (cmd === 'copy') executeMonacoCommand('editor.action.clipboardCopyAction')
+  else if (cmd === 'cut') executeMonacoCommand('editor.action.clipboardCutAction')
+  else if (cmd === 'undo') undo()
+  else if (cmd === 'redo') redo()
+}
+
 // 菜单项点击事件处理
 const handleMenuClick = async (item: string) => {
   switch (item) {
@@ -3709,19 +3720,23 @@ watch(isActive, (active) => {
 })
 
 // 切换到此 Tab 时强制把焦点移入当前编辑器，确保 Ctrl+S/Ctrl+C/Ctrl+V 等操作作用在当前 Tab
-// 必须先 blur 当前焦点（可能是另一个 tab 的编辑器），再用 setTimeout 在下一事件循环聚焦，否则粘贴会进错 tab
+// 原因：所有 Tab 使用 v-show 保持挂载，切换后焦点可能仍在上一 Tab 的 Monaco 上，导致粘贴/保存作用到错误 Tab
+// 必须先 blur 当前焦点，再在布局稳定后 focus 当前编辑器（requestAnimationFrame + 短延迟确保 v-show 已生效）
 watch(
   () => isActive.value,
   (active, wasActive) => {
     if (active && !wasActive) {
       const el = document.activeElement as HTMLElement | null
       if (el && el !== document.body) el.blur()
+      const tryFocus = () => {
+        if (isActive.value && editor.value && !editor.value.hasTextFocus()) {
+          editor.value.focus()
+        }
+      }
       nextTick(() => {
-        setTimeout(() => {
-          if (isActive.value && editor.value && !editor.value.hasTextFocus()) {
-            editor.value.focus()
-          }
-        }, 0)
+        requestAnimationFrame(() => {
+          setTimeout(tryFocus, 0)
+        })
       })
     }
   }
@@ -3991,63 +4006,7 @@ const initEditor = () => {
     }
   })
 
-  // 拦截 Monaco 的粘贴命令（处理 Ctrl+V 粘贴图片）
-  // 使用 addCommand 来拦截粘贴命令，这样可以在 Monaco 处理之前检查图片
-  // 注意：必须在编辑器完全初始化后注册，使用 nextTick 确保 DOM 和 Monaco 都准备好
-  // 这样可以避免快捷键失效的问题（DOM 事件监听器可能会干扰 Monaco 的内部处理）
-  nextTick(() => {
-    if (editor.value) {
-      editor.value.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
-        // 确保编辑器有焦点（快捷键需要焦点才能工作）
-        if (editor.value && !editor.value.hasTextFocus()) {
-          editor.value.focus()
-        }
-
-        // 先尝试 IPC 读取图片（更可靠）
-        // 使用 Promise.race 确保不会阻塞太久，减少超时时间以提高响应速度
-        const imageHandled = await Promise.race([
-          handlePasteImage(),
-          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 50)) // 50ms 超时，更快响应
-        ])
-
-        if (imageHandled) {
-          // 图片已处理，阻止默认粘贴行为（不执行任何操作）
-          return
-        }
-
-        // 如果没有图片，使用 textEditorAdapter 的 paste 方法执行文本粘贴
-        // 这和使用右键菜单的方式一致，确保行为统一
-        if (textEditorAdapter.value && typeof textEditorAdapter.value.paste === 'function') {
-          try {
-            await textEditorAdapter.value.paste()
-          } catch (error) {
-            logger.warn('粘贴文本失败', error)
-            // 如果 textEditorAdapter 失败，尝试使用 Monaco 的原生命令
-            if (editor.value) {
-              try {
-                editor.value.trigger('keyboard', 'editor.action.clipboardPasteAction', null)
-              } catch (triggerError) {
-                logger.warn('Monaco Editor 粘贴命令失败', triggerError)
-              }
-            }
-          }
-        } else {
-          // 如果 textEditorAdapter 不可用，使用 Monaco 的原生命令
-          if (editor.value) {
-            try {
-              editor.value.trigger('keyboard', 'editor.action.clipboardPasteAction', null)
-            } catch (error) {
-              logger.warn('Monaco Editor 粘贴命令失败', error)
-            }
-          }
-        }
-      })
-    }
-  })
-
-  // 注意：不再使用 DOM paste 事件监听器，完全依赖 Monaco 的 addCommand
-  // 这样可以避免事件冲突和时序问题，确保快捷键正常工作
-  // DOM 事件监听器可能会在 Monaco 内部处理之前拦截事件，导致快捷键失效
+  // 粘贴/复制/剪切已由 App.vue 全局托管（editor-command 事件），按当前 Tab 派发，不再在此实例上 addCommand
 
   // 监听键盘事件，检测Enter、Space等触发按键
   editor.value.onKeyDown((e: monaco.IKeyboardEvent) => {
@@ -4158,6 +4117,7 @@ onMounted(async () => {
       }
     }
     eventBus.on('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
+    eventBus.on('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
     initPdfJs()
     await nextTick()
@@ -4319,6 +4279,7 @@ onUnmounted(() => {
     eventBus.off('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
     handleSyncActiveEditorLaTeX = null
   }
+  eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)

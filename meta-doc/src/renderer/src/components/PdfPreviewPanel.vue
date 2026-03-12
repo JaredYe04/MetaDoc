@@ -163,6 +163,13 @@
             class="pdf-page-wrapper"
             :data-page-number="pageNum"
           >
+            <!-- 唯一流式子元素，用其尺寸撑开 wrapper，使 wrapper 与 page 紧贴 -->
+            <div
+              class="pdf-page-sizer"
+              :style="{ width: placeholderPageWidth + 'px', height: placeholderPageHeight + 'px' }"
+              aria-hidden="true"
+            />
+            <div class="pdf-page-placeholder" aria-hidden="true" />
             <VuePdf
               :key="`vue-pdf-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
               :src="pdfUrl"
@@ -193,7 +200,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, Refresh } from '@element-plus/icons-vue'
-import { VuePdf } from 'vue3-pdfjs'
+import { VuePdf, createLoadingTask } from 'vue3-pdfjs'
 import { themeState } from '../utils/themes'
 import { debounce } from 'lodash'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
@@ -220,10 +227,22 @@ const props = withDefaults(
 )
 
 const PDF_RENDER_SCALE = 2.5
+/** A4 在 PDF 坐标系下的默认尺寸 (pt)，用于占位框默认大小，避免未加载时布局抖动 */
+const A4_WIDTH_PT = 595.28
+const A4_HEIGHT_PT = 841.89
 const pdfScrollbarRef = ref<InstanceType<typeof ScrollArea> | null>(null)
 const pdfPagesContainer = ref<HTMLElement | null>(null)
 const pdfPagesWrapper = ref<HTMLElement | null>(null)
 const pageRefs = new Map<number, HTMLElement>()
+
+/** 获取 ScrollArea 的视口元素（reka-ui 与 radix 属性兼容） */
+function getScrollViewport(scrollbarEl: HTMLElement | null | undefined): HTMLElement | null {
+  if (!scrollbarEl) return null
+  return (
+    scrollbarEl.querySelector('[data-reka-scroll-area-viewport]') ||
+    scrollbarEl.querySelector('[data-radix-scroll-area-viewport]')
+  ) as HTMLElement | null
+}
 const pagesPerRow = ref(props.defaultPagesPerRow)
 const pdfViewMode = ref<'pointer' | 'hand'>('pointer')
 const zoomScale = ref(1.0)
@@ -231,8 +250,43 @@ const currentPdfPage = ref(1)
 const totalPdfPages = ref(0)
 const inputPdfPage = ref(1)
 const pdfRenderKey = ref(0)
-const pdfWrapperHeight = ref<number | string>('auto')
-const pdfWrapperWidth = ref<number | string>('auto')
+/** 单页占位尺寸（与 VuePdf 渲染尺寸一致，用于等大占位避免顺序加载时的细小闪烁） */
+const placeholderPageWidth = ref(A4_WIDTH_PT * PDF_RENDER_SCALE)
+const placeholderPageHeight = ref(A4_HEIGHT_PT * PDF_RENDER_SCALE)
+/** 与 .pdf-pages-container 的 padding、grid gap 一致 */
+const CONTAINER_PADDING = 20
+const GRID_GAP = 20
+/** 由「页数 + 边距」直接算出容器未缩放时的尺寸，避免依赖 DOM 测量（易被拉伸导致空白） */
+const baseContainerHeight = computed(() => {
+  const n = displayPageCount.value
+  const cols = pagesPerRow.value
+  const rows = Math.ceil(n / cols)
+  if (rows <= 0) return 0
+  return (
+    CONTAINER_PADDING * 2 +
+    rows * placeholderPageHeight.value +
+    (rows - 1) * GRID_GAP
+  )
+})
+const baseContainerWidth = computed(() => {
+  const n = displayPageCount.value
+  const cols = pagesPerRow.value
+  if (cols <= 0) return 0
+  return (
+    CONTAINER_PADDING * 2 +
+    cols * placeholderPageWidth.value +
+    (cols - 1) * GRID_GAP
+  )
+})
+/** 与 zoomScale 同步计算，避免缩放时先改 scale 再异步改 wrapper 导致闪烁 */
+const pdfWrapperHeight = computed(() => {
+  if (baseContainerHeight.value <= 0) return 'auto'
+  return baseContainerHeight.value * (zoomScale.value / PDF_RENDER_SCALE)
+})
+const pdfWrapperWidth = computed(() => {
+  if (baseContainerWidth.value <= 0) return 'auto'
+  return baseContainerWidth.value * (zoomScale.value / PDF_RENDER_SCALE)
+})
 let isDragging = false
 let dragStartX = 0
 let dragStartY = 0
@@ -352,9 +406,7 @@ async function scrollToPage(pageNumber: number) {
   const scrollbar = pdfScrollbarRef.value
   if (!pageElement || !scrollbar) return
   const scrollbarEl = (scrollbar as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector(
-    '[data-radix-scroll-area-viewport]'
-  ) as HTMLElement | null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const pageRect = pageElement.getBoundingClientRect()
@@ -373,28 +425,8 @@ async function scrollToPage(pageNumber: number) {
   })
 }
 
-function updateWrapperSize() {
-  if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return
-      let containerHeight = pdfPagesContainer.value.scrollHeight
-      let containerWidth = pdfPagesContainer.value.scrollWidth
-      if (containerHeight === 0 || containerWidth === 0) {
-        containerHeight = pdfPagesContainer.value.offsetHeight
-        containerWidth = pdfPagesContainer.value.offsetWidth
-      }
-      if (containerHeight > 0 && containerWidth > 0) {
-        const scaleFactor = zoomScale.value / PDF_RENDER_SCALE
-        pdfWrapperHeight.value = containerHeight * scaleFactor
-        pdfWrapperWidth.value = containerWidth * scaleFactor
-      } else {
-        pdfWrapperHeight.value = 'auto'
-        pdfWrapperWidth.value = 'auto'
-      }
-    })
-  })
-}
+/** 占位/缩放变化时占位已由 computed 同步，此处保留空实现以兼容现有调用 */
+function updateWrapperSize() {}
 
 function handleNumPages(numPages: number) {
   totalPdfPages.value = numPages
@@ -406,6 +438,25 @@ function handlePdfLoaded(pdf: any) {
     totalPdfPages.value = pdf.numPages
     nextTick(updateWrapperSize)
   }
+  // 用第一页实际 page 尺寸（vue-pdf-main / vue-pdf-wrapper）校准 sizer，使 wrapper 与 page 紧贴
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const firstEl = pageRefs.get(1)
+      if (!firstEl) return
+      const pageEl =
+        firstEl.querySelector('.vue-pdf-main') ||
+        firstEl.querySelector('.vue-pdf-wrapper')
+      if (pageEl) {
+        const w = (pageEl as HTMLElement).offsetWidth
+        const h = (pageEl as HTMLElement).offsetHeight
+        if (w > 0 && h > 0) {
+          placeholderPageWidth.value = w
+          placeholderPageHeight.value = h
+          nextTick(updateWrapperSize)
+        }
+      }
+    })
+  })
 }
 
 function handlePdfError(_err: any, _pageNum: number) {
@@ -415,9 +466,7 @@ function handlePdfError(_err: any, _pageNum: number) {
 function handleHandModeMouseDown(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !pdfScrollbarRef.value || e.button !== 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector(
-    '[data-radix-scroll-area-viewport]'
-  ) as HTMLElement | null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
   if (!scrollbarWrap) return
   isDragging = true
   dragStartX = e.clientX
@@ -439,9 +488,7 @@ function handleHandModeMouseMove(e: MouseEvent) {
 function handleHandModeMouseMoveGlobal(e: MouseEvent) {
   if (pdfViewMode.value !== 'hand' || !isDragging || !pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector(
-    '[data-radix-scroll-area-viewport]'
-  ) as HTMLElement | null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
   if (!scrollbarWrap) return
   scrollbarWrap.scrollLeft = scrollStartX + (dragStartX - e.clientX)
   scrollbarWrap.scrollTop = scrollStartY + (dragStartY - e.clientY)
@@ -466,21 +513,75 @@ function handleHandModeMouseUp() {
 
 function handlePdfWheel(event: WheelEvent) {
   if (!isPdfContainerReady()) return
+  const scrollbarEl = pdfScrollbarRef.value ? (pdfScrollbarRef.value as any).$el as HTMLElement : null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
+  const delta = event.deltaY > 0 ? -0.1 : 0.1
+  const newScale = Math.min(Math.max(zoomScale.value + delta, 0.2), 5)
+  const optimalScale = calculateOptimalScale(newScale)
+  const willChange = Math.abs(optimalScale - zoomScale.value) > 0.05
+
   if (pdfViewMode.value === 'hand') {
     event.preventDefault()
     event.stopPropagation()
-    const delta = event.deltaY > 0 ? -0.1 : 0.1
-    const newScale = Math.min(Math.max(zoomScale.value + delta, 0.2), 5)
-    if (Math.abs(calculateOptimalScale(newScale) - zoomScale.value) > 0.05) {
-      safeUpdateZoomScale(calculateOptimalScale(newScale))
+    if (!willChange) return
+    // 以鼠标位置为圆心缩放：记录当前鼠标下的内容坐标，缩放后调整滚动使该点仍在鼠标下
+    let viewportX = 0
+    let viewportY = 0
+    let contentX = 0
+    let contentY = 0
+    if (scrollbarWrap) {
+      const rect = scrollbarWrap.getBoundingClientRect()
+      viewportX = event.clientX - rect.left
+      viewportY = event.clientY - rect.top
+      contentX = scrollbarWrap.scrollLeft + viewportX
+      contentY = scrollbarWrap.scrollTop + viewportY
+    }
+    const scaleFactor = optimalScale / zoomScale.value
+    safeUpdateZoomScale(optimalScale)
+    if (scrollbarWrap && scaleFactor !== 1) {
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const wrap = getScrollViewport((pdfScrollbarRef.value as any)?.$el)
+            if (!wrap) return
+            const newScrollLeft = contentX * scaleFactor - viewportX
+            const newScrollTop = contentY * scaleFactor - viewportY
+            wrap.scrollLeft = Math.max(0, Math.min(newScrollLeft, wrap.scrollWidth - wrap.clientWidth))
+            wrap.scrollTop = Math.max(0, Math.min(newScrollTop, wrap.scrollHeight - wrap.clientHeight))
+          })
+        })
+      })
     }
   } else if (event.ctrlKey || event.metaKey) {
     event.preventDefault()
     event.stopPropagation()
-    const delta = event.deltaY > 0 ? -0.1 : 0.1
-    const newScale = Math.min(Math.max(zoomScale.value + delta, 0.2), 5)
-    if (Math.abs(calculateOptimalScale(newScale) - zoomScale.value) > 0.05) {
-      safeUpdateZoomScale(calculateOptimalScale(newScale))
+    if (!willChange) return
+    let viewportX = 0
+    let viewportY = 0
+    let contentX = 0
+    let contentY = 0
+    if (scrollbarWrap) {
+      const rect = scrollbarWrap.getBoundingClientRect()
+      viewportX = event.clientX - rect.left
+      viewportY = event.clientY - rect.top
+      contentX = scrollbarWrap.scrollLeft + viewportX
+      contentY = scrollbarWrap.scrollTop + viewportY
+    }
+    const scaleFactor = optimalScale / zoomScale.value
+    safeUpdateZoomScale(optimalScale)
+    if (scrollbarWrap && scaleFactor !== 1) {
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const wrap = getScrollViewport((pdfScrollbarRef.value as any)?.$el)
+            if (!wrap) return
+            const newScrollLeft = contentX * scaleFactor - viewportX
+            const newScrollTop = contentY * scaleFactor - viewportY
+            wrap.scrollLeft = Math.max(0, Math.min(newScrollLeft, wrap.scrollWidth - wrap.clientWidth))
+            wrap.scrollTop = Math.max(0, Math.min(newScrollTop, wrap.scrollHeight - wrap.clientHeight))
+          })
+        })
+      })
     }
   }
 }
@@ -488,9 +589,7 @@ function handlePdfWheel(event: WheelEvent) {
 function detectCurrentPage() {
   if (!pdfScrollbarRef.value || !pdfPagesContainer.value || totalPdfPages.value === 0) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector(
-    '[data-radix-scroll-area-viewport]'
-  ) as HTMLElement | null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
   if (!scrollbarWrap) return
   const containerRect = scrollbarWrap.getBoundingClientRect()
   const viewportCenterX = containerRect.left + containerRect.width / 2
@@ -534,9 +633,7 @@ const handleScrollDebounced = debounce(detectCurrentPage, 100)
 function setupScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector(
-    '[data-radix-scroll-area-viewport]'
-  ) as HTMLElement | null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
   if (scrollbarWrap)
     scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true })
 }
@@ -544,9 +641,7 @@ function setupScrollListener() {
 function removeScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
-  const scrollbarWrap = scrollbarEl?.querySelector(
-    '[data-radix-scroll-area-viewport]'
-  ) as HTMLElement | null
+  const scrollbarWrap = getScrollViewport(scrollbarEl)
   if (scrollbarWrap) scrollbarWrap.removeEventListener('scroll', handleScrollDebounced)
 }
 
@@ -564,12 +659,30 @@ watch(
 
 watch(
   () => props.pdfUrl,
-  () => {
+  (url) => {
     pdfRenderKey.value++
     currentPdfPage.value = 1
     inputPdfPage.value = 1
     totalPdfPages.value = 0
     pageRefs.clear()
+    placeholderPageWidth.value = A4_WIDTH_PT * PDF_RENDER_SCALE
+    placeholderPageHeight.value = A4_HEIGHT_PT * PDF_RENDER_SCALE
+    if (
+      url &&
+      url !== '' &&
+      url !== 'file:///' &&
+      String(url).trim() !== ''
+    ) {
+      createLoadingTask(url)
+        .promise.then((pdf: any) => pdf.getPage(1))
+        .then((page: any) => {
+          const vp = page.getViewport({ scale: PDF_RENDER_SCALE })
+          placeholderPageWidth.value = vp.width
+          placeholderPageHeight.value = vp.height
+          nextTick(updateWrapperSize)
+        })
+        .catch(() => {})
+    }
   }
 )
 
@@ -712,14 +825,36 @@ defineExpose({
   -moz-osx-font-smoothing: grayscale;
 }
 .pdf-page-wrapper {
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
-  background-color: var(--pdf-page-bg, #ffffff);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  width: fit-content;
+  position: relative;
+  display: block;
   margin: 0;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  align-self: start;
+  justify-self: start;
+}
+/* 唯一流式子元素，尺寸由内联 style 决定，撑开 wrapper 与 page 紧贴 */
+.pdf-page-sizer {
+  display: block;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+.pdf-page-placeholder {
+  position: absolute;
+  inset: 0;
+  background-color: var(--pdf-page-bg, #f5f5f5);
+  pointer-events: none;
+}
+/* VuePdf 绝对定位叠在上方，不参与流式布局，不撑大 wrapper；超出由 wrapper overflow 裁剪 */
+.pdf-page-wrapper .vue-pdf-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 .vue-pdf-wrapper {
   display: inline-block;

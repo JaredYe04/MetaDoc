@@ -3,6 +3,9 @@
 """
 MetaDoc 一键 i18n：按顺序执行 UI 文案、用户手册、提示词 的补全/翻译，一次命令跑完所有步骤。
 
+- UI 文案（locales）：以 zh_cn.json 为蓝本，仅对其他语言缺失的键调用 AI 补翻并写回；进度持久化到
+  .i18n_ai_review_progress.txt，再次执行时跳过「已完成且蓝本未变」的 (语言, 模块)，实现增量补全。
+
 依赖：
 - 各子脚本所在目录下 .deepseek_api_key 或环境变量 DEEPSEEK_API_KEY（UI、手册、提示词脚本会各自查找）
 - Python 3
@@ -66,16 +69,15 @@ def main():
             tit_cmd += ["--dry-run"]
         steps.append(("manuals index (translate titles)", tit_cmd))
 
-    # 1. UI 文案校对（locales）
-    # if not args.review_ui:
-    #     ui_cmd = [sys.executable, os.path.join(LOCALES_DIR, "i18n_ai_review.py"), "--max-workers", "50"]
-    #     if args.locale:
-    #         ui_cmd += ["--locale", args.locale]
-    #     if args.reset_progress:
-    #         ui_cmd += ["--reset-progress"]
-    #     if args.dry_run:
-    #         ui_cmd += ["--dry-run"]
-    #     steps.append(("UI locales", ui_cmd))
+    # 1. UI 文案增量补全（locales：以 zh_cn 为蓝本，按其他语言缺失的键补翻并写回，进度持久化避免重复请求）
+    ui_cmd = [sys.executable, os.path.join(LOCALES_DIR, "i18n_ai_review.py"), "--max-workers", str(args.max_workers)]
+    if args.locale:
+        ui_cmd += ["--locale", args.locale]
+    if args.reset_progress:
+        ui_cmd += ["--reset-progress"]
+    if args.dry_run:
+        ui_cmd += ["--dry-run"]
+    steps.append(("UI locales (incremental fill from zh_cn)", ui_cmd))
 
     # 2. 用户手册 .md 翻译
     if not args.skip_manuals:
@@ -88,16 +90,16 @@ def main():
             man_cmd += ["--dry-run"]
         steps.append(("manuals .md", man_cmd))
 
-    # 3. 提示词 locale_prompts
-    if not args.skip_prompts:
-        pr_cmd = [sys.executable, os.path.join(PROMPTS_DIR, "locale_prompts_i18n_review.py"), "--max-workers", "50"]
-        if args.locale:
-            pr_cmd += ["--locale", args.locale]
-        if args.reset_progress:
-            pr_cmd += ["--reset-progress"]
-        if args.dry_run:
-            pr_cmd += ["--dry-run"]
-        steps.append(("locale_prompts", pr_cmd))
+    # # 3. 提示词 locale_prompts
+    # if not args.skip_prompts:
+    #     pr_cmd = [sys.executable, os.path.join(PROMPTS_DIR, "locale_prompts_i18n_review.py"), "--max-workers", "50"]
+    #     if args.locale:
+    #         pr_cmd += ["--locale", args.locale]
+    #     if args.reset_progress:
+    #         pr_cmd += ["--reset-progress"]
+    #     if args.dry_run:
+    #         pr_cmd += ["--dry-run"]
+    #     steps.append(("locale_prompts", pr_cmd))
 
     for name, cmd in steps:
         print("\n" + "=" * 60)

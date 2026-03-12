@@ -3,7 +3,7 @@
  * 提供统一的eventBus实时更新机制
  */
 
-import { ref, computed, onBeforeUnmount, watch } from 'vue'
+import { ref, onBeforeUnmount, watch, isRef } from 'vue'
 import type { ToolExecutionStatus, ToolProgress } from '../../../types/agent-tool'
 import { onToolUpdate, onToolComplete, onToolFailed } from '../tool-display-communication'
 import { createRendererLogger } from '../../logger'
@@ -11,22 +11,47 @@ import { createRendererLogger } from '../../logger'
 /**
  * 使用Tool Display实时通信
  * 首帧与持久化重开时以 initialData（通常为 props.data）为准；有 invocationId 时再通过事件增量更新。
+ * 当 message 完成但未收到 tool-complete 时（如工具执行过快），若传入 ref（如 toRef(props,'data')），会同步最终结果，避免界面一直停在 loading。
  * @param invocationId - Tool执行ID（可选，无则仅用 initialData 渲染快照）
- * @param initialData - 初始/快照数据（message.outputs[].data）
- * @param initialStatus - 初始状态
+ * @param initialData - 初始/快照数据；传 toRef(props, 'data') 可在 message 完成时自动同步
+ * @param initialStatus - 初始状态；传 toRef(props, 'status') 可自动同步
  * @param initialProgress - 初始进度
  * @returns 实时数据、状态、进度
  */
 export function useToolDisplayRealtime(
   invocationId: string | undefined,
   initialData: unknown = null,
-  initialStatus: ToolExecutionStatus = 'running',
+  initialStatus: ToolExecutionStatus | import('vue').Ref<ToolExecutionStatus> = 'running',
   initialProgress?: ToolProgress
 ) {
-  // 实时数据：首帧为 initialData，有 invocationId 时由 tool-update/tool-complete 更新
-  const realtimeData = ref<any>(initialData)
-  const realtimeStatus = ref<ToolExecutionStatus>(initialStatus)
-  const realtimeProgress = ref<ToolProgress | undefined>(initialProgress)
+  const dataVal = isRef(initialData) ? initialData.value : initialData
+  const statusVal = isRef(initialStatus) ? initialStatus.value : initialStatus
+  const progressVal = initialProgress
+
+  const realtimeData = ref<any>(dataVal)
+  const realtimeStatus = ref<ToolExecutionStatus>(statusVal)
+  const realtimeProgress = ref<ToolProgress | undefined>(progressVal)
+
+  // message 完成后用 props 同步最终数据（解决执行过快未收到 tool-complete 导致一直 loading）
+  // 仅当 data 有实质内容（含 stage/result）时才写入，避免 status 先更新、data 未到时把 realtimeData 置空
+  if (isRef(initialData) && isRef(initialStatus)) {
+    watch(
+      [initialData, initialStatus],
+      ([data, status]) => {
+        if (status !== 'succeeded') return
+        if (data == null) return
+        const hasContent =
+          typeof data === 'object' &&
+          (('result' in (data as object) && (data as any).result !== undefined) ||
+            ('stage' in (data as object) && (data as any).stage === 'completed'))
+        if (hasContent) {
+          realtimeData.value = data
+          realtimeStatus.value = 'succeeded'
+        }
+      },
+      { immediate: true }
+    )
+  }
 
   // 取消监听器函数
   let updateUnsub: (() => void) | null = null
@@ -173,20 +198,20 @@ export function parseToolData(data: unknown): unknown {
       return dataObj
     }
 
-    // 如果data有content字段，并且content是对象
+    // 如果data有content字段，并且content是对象（持久化后可能是 { content, format } 包装）
     if (dataObj.content !== undefined && typeof dataObj.content === 'object') {
       const content = dataObj.content
-      // 检查content是否包含我们期望的字段（如outlineTree、stage）
+      // 检查content是否包含我们期望的字段（outlineTree/stage/tree/result/todoList）
       if (
         content.outlineTree !== undefined ||
         content.stage !== undefined ||
-        content.tree !== undefined
+        content.tree !== undefined ||
+        content.result !== undefined ||
+        content.todoList !== undefined
       ) {
-        // content是期望的结构，提取它
         return content
       }
-      // content不是期望的结构，检查dataObj本身是否可能是期望的结构
-      // 如果dataObj有format字段，说明它是ToolCallbackData包装器，应该提取content
+      // 如果dataObj有format字段，说明是 ToolCallbackData 包装器，应提取 content（如 Timestamp/TodoList 持久化后）
       if (dataObj.format !== undefined) {
         return content
       }

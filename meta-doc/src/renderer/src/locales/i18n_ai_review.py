@@ -347,6 +347,7 @@ def main():
     }
 
     tasks = []
+    skipped_by_progress = 0  # 因进度文件已完成且蓝本未变而跳过的 (locale, module) 数
     for loc_file in sorted(locale_files):
         loc_path = os.path.join(locales_dir, loc_file)
         try:
@@ -358,7 +359,7 @@ def main():
         for mod_name, keys in all_modules.items():
             if args.module and not (mod_name == args.module or mod_name.startswith(args.module + ".") or mod_name.startswith(args.module + "_")):
                 continue
-            # 始终以 zh_cn 的完整模块键列表为准；缺失的键或「非蓝本且值与源相同」由 AI 补翻并写回
+            # 以 zh_cn 为蓝本：仅对「该语言缺失或未翻译的键」补全
             missing_in_locale = [
                 k for k in keys
                 if k not in flat_loc
@@ -366,9 +367,15 @@ def main():
             ]
             stored_hash = hash_map.get((loc_file, mod_name))
             current_hash = current_module_hashes.get(mod_name)
-            # 只补全缺失/未翻译的键，不校对已有译文；无待补键则跳过
+            # 无待补键则跳过
             if not missing_in_locale:
                 continue
+            # 增量：进度中已存在且蓝本哈希未变则跳过，避免重复请求 API
+            if (loc_file, mod_name) in completed_set:
+                if current_hash and stored_hash == current_hash:
+                    skipped_by_progress += 1
+                    continue
+                # 蓝本该模块有变更，重新补全该模块
             tasks.append((loc_file, mod_name, missing_in_locale, flat_zh, flat_loc, lang_names.get(loc_file, loc_file)))
 
     if not tasks:
@@ -378,8 +385,10 @@ def main():
         return 0
 
     total = len(tasks)
-    if completed_set:
-        print("已跳过进度文件中 %d 项，本次待执行: %d（并发 %d）" % (len(completed_set), total, args.max_workers), flush=True)
+    if skipped_by_progress:
+        print("以 zh_cn 为蓝本：进度中已完成且蓝本未变，跳过 %d 项；本次待执行: %d（并发 %d）" % (skipped_by_progress, total, args.max_workers), flush=True)
+    elif completed_set and total == 0:
+        print("进度文件已记录 %d 项；本次无新任务（缺键已补全或蓝本未变）。" % len(completed_set), flush=True)
     else:
         print("任务数: %d（并发 %d）" % (total, args.max_workers))
     print("进度格式: [当前/总数] 语言文件 | 模块 | 结果")

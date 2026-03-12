@@ -60,11 +60,11 @@ export class ToolRunner {
       // 执行普通工具
       const tool = agentToolManager.getTool(toolId)
       if (!tool) {
-        throw new Error(`工具 ${toolId} 未找到`)
+        throw new Error(`Tool ${toolId} not found`)
       }
 
       if (!tool.config.enabled) {
-        throw new Error(`工具 ${toolId} 已禁用`)
+        throw new Error(`Tool ${toolId} is disabled`)
       }
 
       getLogger().debug(`执行工具: ${toolId}`, params)
@@ -117,7 +117,7 @@ export class ToolRunner {
         toolName:
           typeof tool.config.name === 'string'
             ? tool.config.name
-            : tool.config.name['zh_cn']?.name || tool.config.name['en_us']?.name || toolId,
+            : tool.config.name['en_us']?.name || tool.config.name['en_US']?.name || (tool.config.name as any)['zh_cn']?.name || toolId,
         status: result.status === 'succeeded' ? 'succeeded' : 'failed',
         result: observationResult,
         error: result.error,
@@ -129,7 +129,7 @@ export class ToolRunner {
         params: params // 保存调用参数，用于快照导出
       }
     } catch (error) {
-      getLogger().error(`工具执行失败: ${toolId}`, error)
+      getLogger().error(`Tool execution failed: ${toolId}`, error)
       return {
         toolId,
         toolName: toolId,
@@ -166,7 +166,7 @@ export class ToolRunner {
   ): { valid: boolean; errors: string[] } {
     const tool = agentToolManager.getTool(toolId)
     if (!tool) {
-      return { valid: false, errors: [`工具 ${toolId} 未找到`] }
+      return { valid: false, errors: [`Tool ${toolId} not found`] }
     }
 
     const errors: string[] = []
@@ -176,21 +176,19 @@ export class ToolRunner {
       const properties = (schema as any).properties || {}
       const required = (schema as any).required || []
 
-      // 检查必需参数
       for (const field of required) {
         if (!(field in params) || params[field] === undefined || params[field] === null) {
-          errors.push(`缺少必需参数: ${field}`)
+          errors.push(`Missing required parameter: ${field}`)
         }
       }
 
-      // 类型检查（简化版）
       for (const [field, value] of Object.entries(params)) {
         if (field in properties) {
           const fieldSchema = properties[field]
           const expectedType = fieldSchema.type
 
           if (expectedType && !this.validateType(value, expectedType)) {
-            errors.push(`参数 ${field} 类型不匹配，期望 ${expectedType}`)
+            errors.push(`Parameter ${field} type mismatch, expected ${expectedType}`)
           }
         }
       }
@@ -264,8 +262,8 @@ export class ToolRunner {
       if (data === null || data === undefined) {
         // 如果没有数据，返回状态信息
         return observation.status === 'succeeded'
-          ? `工具 ${observation.toolName} 执行成功。`
-          : `工具 ${observation.toolName} 执行失败: ${observation.error || '未知错误'}`
+          ? `Tool ${observation.toolName} succeeded.`
+          : `Tool ${observation.toolName} failed: ${observation.error || 'Unknown error'}`
       }
 
       // 如果是字符串，直接返回
@@ -298,11 +296,10 @@ export class ToolRunner {
       })
       return stringResult
     } catch (error) {
-      getLogger().error(`序列化工具结果失败: ${observation.toolId}`, error)
-      // 如果序列化失败，返回错误信息
+      getLogger().error(`Serialize tool result failed: ${observation.toolId}`, error)
       return observation.status === 'succeeded'
-        ? `工具 ${observation.toolName} 执行成功，但结果序列化失败。`
-        : `工具 ${observation.toolName} 执行失败: ${observation.error || '未知错误'}`
+        ? `Tool ${observation.toolName} succeeded but result serialization failed.`
+        : `Tool ${observation.toolName} failed: ${observation.error || 'Unknown error'}`
     }
   }
 

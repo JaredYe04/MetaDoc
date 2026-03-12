@@ -806,8 +806,8 @@ const tools = computed(() => {
       .filter((tool) => availableToolIds.includes(tool.config.id))
       .map((tool) => ({
         id: tool.config.id,
-        name: agentToolManager.getLocalizedText(tool.config.name),
-        description: agentToolManager.getLocalizedText(tool.config.description),
+        name: agentToolManager.getLocalizedToolName(tool.config.id, String(tool.config.name ?? tool.config.id)),
+        description: agentToolManager.getLocalizedToolDescription(tool.config.id, String(tool.config.description ?? '')),
         origin: (tool.config.origin === 'internal'
           ? 'renderer'
           : tool.config.origin === 'mcp'

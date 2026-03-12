@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
@@ -438,39 +437,14 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 }
 
-const diffToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '文本比对',
-    description: '比对两段文本、URL或文件，返回详细的差异结果'
-  },
-  en_us: {
-    name: 'Text Diff',
-    description: 'Compare two texts, URLs or files and return detailed diff results'
-  },
-  de_DE: {
-    name: 'Text-Vergleich',
-    description:
-      'Vergleichen Sie zwei Texte, URLs oder Dateien und geben Sie detaillierte Diff-Ergebnisse zurück'
-  },
-  fr_FR: {
-    name: 'Comparaison de texte',
-    description:
-      'Comparer deux textes, URLs ou fichiers et retourner des résultats de diff détaillés'
-  },
-  ja_JP: {
-    name: 'テキスト差分',
-    description: '2つのテキスト、URL、またはファイルを比較し、詳細な差分結果を返す'
-  },
-  ko_KR: {
-    name: '텍스트 비교',
-    description: '두 텍스트, URL 또는 파일을 비교하고 상세한 diff 결과 반환'
-  }
-}
+const DIFF_TOOL_NAME = 'Text Diff'
+const DIFF_TOOL_DESCRIPTION =
+  'Compare two texts, URLs or files and return detailed diff results'
 
 export const diffToolConfig: AgentToolConfig = {
   id: 'diff',
-  name: diffToolLocales,
-  description: diffToolLocales,
+  name: DIFF_TOOL_NAME,
+  description: DIFF_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'diff',
@@ -527,87 +501,33 @@ Compares two text contents, URLs, or local files and generates a detailed diff r
 - Diff calculation is based on line-level comparison
 - Diff types include: equal (same), insert (insertion), delete (deletion), replace (replacement)`
   },
-  instruction: `
-# 文本比对工具
-
-## 功能描述
-比对两段文本、URL或本地文件，返回详细的差异结果。类似于Git diff和WinMerge的功能。
-
-## 使用场景
-- 比较文档的不同版本
-- 检查代码变更
-- 对比配置文件
-- 分析文本差异
-
-## 输入格式
-\`\`\`json
-{
-  "text1": "string",        // 必需，第一段文本、文件路径或URL
-  "text2": "string",        // 必需，第二段文本、文件路径或URL
-  "source1": "text|file|url",  // 可选，text1的来源类型，默认"text"
-  "source2": "text|file|url"  // 可选，text2的来源类型，默认"text"
-}
-\`\`\`
-
-## 输出格式
-\`\`\`json
-{
-  "chunks": [
-    {
-      "type": "equal|insert|delete|replace",
-      "oldStart": 1,
-      "oldEnd": 5,
-      "newStart": 1,
-      "newEnd": 6,
-      "oldLines": ["line1", "line2"],
-      "newLines": ["line1", "line2", "line3"]
-    }
-  ],
-  "summary": {
-    "totalChanges": 10,
-    "insertions": 15,
-    "deletions": 8,
-    "replacements": 3
-  },
-  "oldText": "string",
-  "newText": "string"
-}
-\`\`\`
-
-## 注意事项
-- 支持纯文本、文件路径和URL三种来源
-- 文件路径必须是绝对路径或相对于项目根目录的路径
-- URL会自动处理重定向和CORS问题
-- 差异计算基于行级比较
-- 差异类型包括：equal（相同）、insert（插入）、delete（删除）、replace（替换）
-`,
+  instruction: undefined,
   callback: diffToolCallback,
   displayComponent: DiffDisplay,
   tags: ['text', 'comparison', 'diff'],
   enabled: true,
   editable: false,
-  locales: diffToolLocales,
   inputSchema: {
     type: 'object',
     properties: {
       text1: {
         type: 'string',
-        description: '第一段文本、文件路径或URL'
+        description: 'First text, file path, or URL'
       },
       text2: {
         type: 'string',
-        description: '第二段文本、文件路径或URL'
+        description: 'Second text, file path, or URL'
       },
       source1: {
         type: 'string',
         enum: ['text', 'file', 'url'],
-        description: 'text1的来源类型',
+        description: 'Source type for text1',
         default: 'text'
       },
       source2: {
         type: 'string',
         enum: ['text', 'file', 'url'],
-        description: 'text2的来源类型',
+        description: 'Source type for text2',
         default: 'text'
       }
     },
@@ -618,19 +538,19 @@ Compares two text contents, URLs, or local files and generates a detailed diff r
     properties: {
       chunks: {
         type: 'array',
-        description: '差异块列表'
+        description: 'List of diff chunks'
       },
       summary: {
         type: 'object',
-        description: '差异统计信息'
+        description: 'Diff summary statistics'
       },
       oldText: {
         type: 'string',
-        description: '原始文本'
+        description: 'Original text'
       },
       newText: {
         type: 'string',
-        description: '新文本'
+        description: 'New text'
       }
     }
   }

@@ -1628,7 +1628,9 @@
       "networkTimeout": "Network connection timeout",
       "autoSaveSuccess": "Auto-save successful"
     },
-    "testResultFailed": "Test failed"
+    "testResultFailed": "Test failed",
+    "copyConfig": "Copy Configuration",
+    "copyConfigSuccess": "Configuration Copied"
   },
   "visualize": {
     "articleOutline": "Article Outline",
@@ -2303,6 +2305,8 @@
         "progress": {
           "loadingTree": "Loading directory tree...",
           "reading": "Reading file...",
+          "searching": "Fuzzy searching…",
+          "searchCompleted": "Search completed: \"{query}\" — {count} match(es)",
           "readingFile": "Reading file {index}/{total}: {path}",
           "completed": "Read completed, {count} files total"
         }
@@ -2312,6 +2316,97 @@
           "syncing": "Syncing document content...",
           "completed": "Node agent execution completed"
         }
+      },
+      "latexCompile": {
+        "progress": {
+          "compiling": "Compiling LaTeX...",
+          "completed": "Compilation completed"
+        },
+        "error": {
+          "failed": "LaTeX compilation failed: {error}"
+        }
+      }
+    },
+    "toolLabels": {
+      "edit": {
+        "name": "Document Edit",
+        "description": "Accepts only git-style diff: pass a string with - lines (delete) and + lines (insert)"
+      },
+      "terminal-execution": {
+        "name": "Terminal Execution",
+        "description": "Execute terminal commands, requires user approval (can set trust mode)"
+      },
+      "todolist-planning": {
+        "name": "Intent Recognition & Task Planning",
+        "description": "Analyze user intent and decompose complex tasks into structured todo lists"
+      },
+      "timestamp": {
+        "name": "Timestamp",
+        "description": "Returns current timestamp and records each call time for calculating time differences"
+      },
+      "latex-compile": {
+        "name": "LaTeX Compile",
+        "description": "Compile LaTeX project and return PDF path or log"
+      },
+      "outline-tree": {
+        "name": "Outline Tree",
+        "description": "Get document outline tree (only .md/.tex)"
+      },
+      "tool-spec-fetcher": {
+        "name": "Tool Spec Fetcher",
+        "description": "Fetch the full specification (fullSpec) of one or more tools"
+      },
+      "workspace": {
+        "name": "Workspace File Reader",
+        "description": "Read workspace files, fuzzy-search by path/name, or list root directory"
+      },
+      "diff": {
+        "name": "Text Diff",
+        "description": "Compare two texts and return unified diff"
+      },
+      "grep": {
+        "name": "Text Search",
+        "description": "Search or search-and-replace in document/workspace"
+      },
+      "proofread": {
+        "name": "Proofread",
+        "description": "Check for grammar, spelling, and LaTeX syntax errors in text"
+      },
+      "data-calculation": {
+        "name": "Data Calculation",
+        "description": "Perform complex mathematical calculations including numerical, vector, and matrix operations"
+      },
+      "color-processing": {
+        "name": "Color Processing",
+        "description": "Process color mixing, brightness/contrast adjustment, complementary colors, etc."
+      },
+      "metadata": {
+        "name": "Metadata Management",
+        "description": "Access and modify document metadata, use AI to generate title, description, keywords, etc."
+      },
+      "title-format": {
+        "name": "Title Formatting",
+        "description": "Format document titles: adjust title levels, add/remove title numbering, remove title prefixes, etc."
+      },
+      "outline-optimize": {
+        "name": "Outline Optimization",
+        "description": "Use AI to generate/optimize document outline (only .md/.tex). Specify doc by filePath or tabId."
+      },
+      "web-crawler": {
+        "name": "Web Crawler",
+        "description": "Access specified URL and fetch webpage HTML content or API response"
+      },
+      "rag-retrieval": {
+        "name": "RAG Knowledge Base Retrieval",
+        "description": "Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy"
+      },
+      "data-analysis": {
+        "name": "Data Analysis",
+        "description": "Automatically analyze CSV, JSON data, extract fields, descriptive statistics, aggregations, etc."
+      },
+      "chart-generation": {
+        "name": "Chart Generation",
+        "description": "Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats"
       }
     },
     "sessions": {
@@ -2379,6 +2474,20 @@
       "reviewWindow": "Edit Review",
       "openReview": "Open in Review",
       "selectEdit": "Select an edit from the left"
+    },
+    "contextBreakdown": {
+      "title": "Context Breakdown",
+      "description": "What is included in the context sent to the model for this session.",
+      "tooltip": "View context composition and usage",
+      "totalTokens": "{used} / {max} tokens ({pct}%)",
+      "tokensChars": "{tokens} tokens ({chars} chars)",
+      "noSession": "No session or config selected; cannot compute context.",
+      "parts": {
+        "systemPrompt": "System prompt",
+        "references": "References",
+        "summary": "History summary",
+        "history": "Recent messages"
+      }
     },
     "conversation": {
       "emptyTitle": "No Conversations",
@@ -2553,6 +2662,14 @@
         "rejected": "Command execution rejected",
         "executionFailed": "Command Execution Failed",
         "terminalOutput": "Terminal Output"
+      },
+      "latexCompile": {
+        "compiling": "Compiling LaTeX...",
+        "success": "Compilation succeeded",
+        "failed": "Compilation failed",
+        "outputPdfPath": "Output PDF path",
+        "stderr": "Standard error",
+        "stdout": "Standard output"
       },
       "todoList": {
         "analyzing": "Analyzing user intent...",
@@ -2803,8 +2920,11 @@
       "workspace": {
         "loadingTree": "Loading directory tree...",
         "reading": "Reading file...",
+        "searching": "Fuzzy searching…",
         "processing": "Processing...",
         "directoryTree": "Directory Tree",
+        "searchResultsTitle": "Fuzzy search: \"{query}\"",
+        "matchCount": "{count} match(es)",
         "workspaceFolder": "Workspace Folder",
         "filesTitle": "File Contents",
         "filesCount": "{count} files in total",
@@ -2912,9 +3032,11 @@
       "clearAllSuccess": "All references cleared",
       "tagRemove": "Remove Reference",
       "pickerButton": "Reference a File or Document",
-      "pickerPlaceholder": "Search by file name or path…",
+      "pickerPlaceholder": "Search by file name, path or directory…",
       "unsavedDocs": "Unsaved documents",
+      "workspaceDirs": "Workspace directories",
       "workspaceFiles": "Workspace files",
+      "directory": "Directory",
       "noMatch": "No matching files",
       "noWorkspaceFiles": "No workspace or folder is currently open",
       "untitled": "Untitled",
@@ -2998,17 +3120,6 @@
         "foundCharts": "Found {count} chart(s)"
       },
       "nameAndUrlRequired": "Name and URL cannot be empty",
-      "builtInDocument": {
-        "title": "Current Document Reference",
-        "description": "Dynamically fetches content from the current active document, with real-time updates and no history message usage.",
-        "enabled": "Enabled",
-        "disabled": "Disabled",
-        "preview": "Preview",
-        "noActiveDocument": "No active document",
-        "emptyDocument": "Current document is empty",
-        "currentActiveDocument": "Current Document",
-        "formatSuffix": "({format} format)"
-      },
       "error": {
         "cancelRequestFailed": "Failed to send cancellation request"
       }
@@ -4807,5 +4918,10 @@
   "A[New Document] -": "B[Open Document]",
   "skeleton": {
     "tips": "[\"Press F1 to open the user manual\", \"Ctrl+S to quickly save the current document\", \"Drag the left sidebar to resize its width\", \"Supports both Markdown and LaTeX formats\", \"Link a knowledge base to local documents for enhanced AI replies\", \"Formula recognition supports handwriting and screenshots\", \"Agent supports multi-turn conversations and tool calls\", \"Visualize view can be exported as an image\", \"Switch between light/dark/system themes in Settings\", \"Paste images directly from the clipboard\", \"Outline can be folded and reordered by dragging\", \"Summon AI for completions anytime while writing\", \"Proofreading tool detects grammar and word choice\", \"Data parsing tool supports CSV and Excel\", \"RAG retrieval prioritizes your linked knowledge base\", \"Create new documents from templates\", \"Edit multiple documents in tabs simultaneously\", \"Export to PDF, Word, and other formats\", \"Ctrl+F to find in the whole document, with regex support\", \"Request AI polishing for individual paragraphs\", \"Today is good for writing docs, bad for procrastinating.\", \"When stuck, try letting AI write the opening line.\", \"Comments in code blocks are also respected.\", \"Paste CSV to generate a table instantly\", \"For long documents, outline first, then expand.\", \"Write formulas in LaTeX; let MetaDoc handle the rendering.\", \"Chart generation supports bar charts, line charts, and more\", \"Agent engines include ReAct, Plan-Execute, and others\", \"Configure local models and APIs simultaneously\", \"Debug panel shows startup time breakdown\", \"Window pool enables faster new window creation\", \"Load on demand for a lighter startup.\", \"In dual-pane editing, each pane scrolls independently\", \"Supports diagram syntax like Mermaid and PlantUML\", \"Blockquotes and code blocks have keyboard shortcuts\", \"Set AI completion to delay trigger to save tokens\", \"Knowledge base supports PDF, Word, TXT, and other formats\", \"Formula recognition results can be inserted directly as LaTeX\", \"Drag tabs between windows to move documents\", \"Export PDF with customizable margins and fonts\", \"Theme color can follow system or be customized\", \"Workspace sidebar can hold multiple folders\", \"Find and replace supports case sensitivity and whole word matching\", \"Paragraph optimization retains your core expression\", \"Different Agent engines offer different styles\", \"RAG retrieval highlights matches in the source text\", \"Hand data tables to Agent for simple analysis\", \"For papers: build a knowledge base before asking the Agent\", \"LaTeX compilation errors show line numbers in the console\", \"Switch between Monaco and Vditor anytime\", \"Plain-text mode is suitable when you don't want rendering\", \"Attachment parser can extract images from PDFs\", \"Proofreading not only fixes typos but also improves sentence flow\", \"Flowcharts in Visualize view can be exported as SVG\", \"Try right-clicking a paragraph for 'AI Analysis'\", \"New document welcome page has quick access shortcuts\", \"Paste CSV to generate Markdown tables\", \"Stuck? Click the logo and give it a shake.\", \"Rumor has it that writing more docs boosts your experience.\", \"This tip will disappear, but the F1 manual won't.\"]"
+  },
+  "setting_part9": {
+    "setting": {
+      "readFileFailed": "Failed to read file"
+    }
   }
 }

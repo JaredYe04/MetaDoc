@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
@@ -1047,7 +1046,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         if (!messageBridge.getIpc()?.invoke) {
           return {
             status: 'failed',
-            error: createDetailedError('filePath 编辑需要 IPC（仅 Electron 环境可用）', [], [])
+            error: createDetailedError('filePath editing requires IPC (Electron environment only)', [], [])
           }
         }
         const absPath = resolveFilePath(filePathParam)
@@ -1912,102 +1911,45 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 }
 
-const editToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '文档编辑',
-    description: '仅支持 git diff 格式：传入 - 行（删除）与 + 行（新增）的字符串进行编辑'
-  },
-  en_us: {
-    name: 'Document Edit',
-    description:
-      'Accepts only git-style diff: pass a string with - lines (delete) and + lines (insert)'
-  },
-  de_DE: {
-    name: 'Dokument bearbeiten',
-    description:
-      'Dokument direkt bearbeiten, unterstützt Suchen-Ersetzen (global/einzeln) und positionsbasierte Bearbeitung, unterstützt mehrere Ersetzungsvorgänge in einem Aufruf'
-  },
-  fr_FR: {
-    name: 'Édition de document',
-    description:
-      "Modifier directement le document, prendre en charge la recherche-remplacement (globale/unique) et l'édition basée sur la position, prendre en charge plusieurs opérations de remplacement en un seul appel"
-  },
-  ja_JP: {
-    name: 'ドキュメント編集',
-    description:
-      'ドキュメントを直接編集し、検索置換（グローバル/単一）と位置ベースの編集をサポートし、1回の呼び出しで複数の置換操作をサポート'
-  },
-  ko_KR: {
-    name: '문서 편집',
-    description:
-      '문서를 직접 편집하고 찾기-바꾸기(전역/단일) 및 위치 기반 편집을 지원하며, 한 번의 호출로 여러 바꾸기 작업 지원'
-  }
-}
+const EDIT_TOOL_NAME = 'Document Edit'
+const EDIT_TOOL_DESCRIPTION =
+  'Accepts only git-style diff: pass a string with - lines (delete) and + lines (insert)'
 
 export const editToolConfig: AgentToolConfig = {
   id: 'edit',
-  name: editToolLocales,
-  description: editToolLocales,
+  name: EDIT_TOOL_NAME,
+  description: EDIT_TOOL_DESCRIPTION,
   origin: 'internal',
   instruction:
-    '编辑文档时：1) 必须指定要编辑的文件：传 filePath（工作区相对路径）或 tabId（文档标签页 ID）；不传则使用当前活动文档（若当前不是文档页会报错）。2) 只使用 diff 参数，git 风格：- 行删除，+ 行新增，@@ -行,数 +行,数 @@。不要使用 operations。',
+    'Edit documents with git-style diff only. 1) Specify target: filePath (workspace path) or tabId (document tab ID); omit for current active document. 2) Use only the diff parameter: - lines delete, + lines insert, @@ -start,count +start,count @@. Do not use operations.',
   spec: {
     name: 'edit',
     brief:
       'Edit or create workspace files with git-style diff. Must specify target: filePath or tabId. Use filePath + diff for "create file" with @@ -0,0 +1,N @@. Do not use terminal to write files.',
     fullSpec: `
-# 文档编辑工具（仅支持 git diff 格式）
+# Document Edit Tool (git diff format only)
 
-**必须指定要编辑的文件**：调用时传 \`filePath\`（工作区相对/绝对路径）或 \`tabId\`（已打开的文档标签页 ID）。若两者都不传，则使用“当前活动文档”标签页（若当前活动的是 Agent 等非文档页会报错，编辑不会生效）。用户说“略写当前文档”时，应从上下文中拿到当前文档的路径或 tabId 并传入。
+**Specify target file**: Pass \`filePath\` (workspace-relative or absolute) or \`tabId\` (document tab ID). If both omitted, uses current active document tab (fails if active tab is not a document).
 
-**唯一用法**：\`diff\` 参数为 **git 风格 Unified diff**：\`-旧行\` 表示删除，\`+新行\` 表示新增。不支持 \`operations\`。
+**Only usage**: \`diff\` parameter must be **git-style Unified diff**: \`-\` lines = delete, \`+\` lines = insert. \`operations\` is not supported.
 
-**创建新文件**：传 \`filePath\` 和 \`diff\`（新建用 \`@@ -0,0 +1,N @@\` 后跟 \`+行1\` \`+行2\` …）。示例：\`{"filePath": "agent-test.txt", "diff": "@@ -0,0 +1,1 @@\\n+你好世界。"}\`
+**Create new file**: Pass \`filePath\` and \`diff\` with \`@@ -0,0 +1,N @@\` followed by \`+line1\` \`+line2\` ...
 
-## 功能描述
-对指定文件或当前活动文档进行编辑，**仅接受 Unified diff 格式**（与 Git diff 相同）。**必须通过 filePath 或 tabId 指定要改的文件。**
+## Unified Diff format (only accepted input)
+- **Format**: \`@@ -oldStart,oldCount +newStart,newCount @@\` then line contents
+- **Delete**: lines starting with \`-\`
+- **Insert**: lines starting with \`+\`
+- **Context**: optional unchanged lines for better matching
 
-### Unified Diff 格式（本工具唯一接受的输入）
-- **标准格式**：\`@@ -oldStart,oldCount +newStart,newCount @@\` 后跟行内容
-- **删除行**：以 \`-\` 开头的行（不要省略减号）
-- **新增行**：以 \`+\` 开头的行（不要省略加号）
-- **上下文行**：可选，不变的行可直接写，用于提高定位准确性
-- **智能定位**：行号优先，上下文 fallback，行号失效时仍可匹配
+## Input examples
+- Replace: \`{"diff": "@@ -5,2 +5,2 @@\\n-old1\\n-old2\\n+new1\\n+new2"}\`
+- Insert: \`{"diff": "@@ -5,0 +5,2 @@\\n+line1\\n+line2"}\`
+- Delete: \`{"diff": "@@ -5,2 +5,0 @@\\n-line1\\n-line2"}\`
 
-## 输入格式（仅 diff）
-
-**示例1**：简单替换
-\`\`\`json
-{"diff": "@@ -5,2 +5,2 @@\\n-旧文本1\\n-旧文本2\\n+新文本1\\n+新文本2"}
-\`\`\`
-
-**示例2**：带上下文行（推荐）
-\`\`\`json
-{"diff": "@@ -10,3 +10,3 @@\\n 上下文行1\\n-要删除的行\\n+要添加的行\\n 上下文行2"}
-\`\`\`
-
-**示例3**：多个 hunk
-\`\`\`json
-{"diff": "@@ -10,1 +10,1 @@\\n-旧内容1\\n+新内容1\\n@@ -20,1 +20,1 @@\\n-旧内容2\\n+新内容2"}
-\`\`\`
-
-**示例4**：插入
-\`\`\`json
-{"diff": "@@ -5,0 +5,2 @@\\n+插入的行1\\n+插入的行2"}
-\`\`\`
-
-**示例5**：删除
-\`\`\`json
-{"diff": "@@ -5,2 +5,0 @@\\n-删除的行1\\n-删除的行2"}
-\`\`\`
-
-**定位**：行号优先，上下文 fallback；行号失效时自动用上下文匹配。
-
-## 注意事项
-- **只接受 \`diff\` 参数**（git 风格），不要使用 operations 等其它格式。
-- \`filePath\` 可选：与 \`diff\` 配合可编辑磁盘文件或新建文件（新建用 \`@@ -0,0 +1,N @@\`）。
-- \`tabId\` 可选，默认当前活动文档。
-
+## Notes
+- Use only \`diff\` (git-style); do not use operations.
+- \`filePath\` optional: with \`diff\` edits or creates the file.
+- \`tabId\` optional; default is current active document.
 `
   },
   callback: editToolCallback,
@@ -2017,7 +1959,6 @@ export const editToolConfig: AgentToolConfig = {
   tags: ['edit', 'document', 'text'],
   enabled: true,
   editable: false,
-  locales: editToolLocales,
   inputSchema: {
     type: 'object',
     properties: {

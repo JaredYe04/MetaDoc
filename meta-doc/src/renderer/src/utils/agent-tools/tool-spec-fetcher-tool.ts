@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { agentToolManager } from '../agent-tool-manager'
 import { agentConfigManager } from '../agent-framework/agent-config-manager'
@@ -77,10 +76,11 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
         let toolName: string = toolId
 
         if (tool && tool.config.enabled) {
-          toolName =
+          const fallbackName =
             typeof tool.config.name === 'string'
               ? tool.config.name
-              : tool.config.name['zh_cn']?.name || tool.config.name['en_us']?.name || toolId
+              : (tool.config.name as any)?.['en_us']?.name ?? toolId
+          toolName = agentToolManager.getLocalizedToolName(tool.config.id, fallbackName)
 
           if (tool.config.spec?.fullSpec) {
             fullSpec = tool.config.spec.fullSpec
@@ -113,7 +113,7 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
                 : subagentConfig.description['zh_cn']?.description ||
                   subagentConfig.description['en_us']?.description ||
               ''
-            fullSpec = `Subagent: ${toolName}\n\n${desc}\n\nParameters: { "prompt": "给此 Subagent 的指示或要完成的任务描述（必填）" }\n\n调用方式：在同一条回复中可与其他工具/Subagent 一起用 <tool_call> 调用，系统会并发执行。`
+            fullSpec = `Subagent: ${toolName}\n\n${desc}\n\nParameters: { "prompt": "给此 Subagent 的指示或要完成的任务描述（必填）" }\n\n调用方式：通过系统提供的工具调用接口调用；同一条回复中可发起多个工具/Subagent 调用，系统会并发执行。`
           } else {
             specs.push({
               toolId,
@@ -173,21 +173,14 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
   }
 }
 
-const toolSpecFetcherToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '工具说明获取器',
-    description: '获取一个或多个工具的完整使用说明（fullSpec）'
-  },
-  en_us: {
-    name: 'Tool Spec Fetcher',
-    description: 'Fetch the full specification (fullSpec) of one or more tools'
-  }
-}
+const TOOL_SPEC_FETCHER_NAME = 'Tool Spec Fetcher'
+const TOOL_SPEC_FETCHER_DESCRIPTION =
+  'Fetch the full specification (fullSpec) of one or more tools'
 
 export const toolSpecFetcherToolConfig: AgentToolConfig = {
   id: 'tool-spec-fetcher',
-  name: toolSpecFetcherToolLocales,
-  description: toolSpecFetcherToolLocales,
+  name: TOOL_SPEC_FETCHER_NAME,
+  description: TOOL_SPEC_FETCHER_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'tool-spec-fetcher',

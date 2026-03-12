@@ -2946,17 +2946,10 @@ const getActivePanels = (entry: any): string[] => {
 const getToolDisplayName = (config: any): string => {
   if (!config) return ''
 
-  const name = config.name
-  if (typeof name === 'string') {
-    return name
-  }
-
-  if (typeof name === 'object' && name !== null) {
-    // 使用agentToolManager的getLocalizedText方法
-    return agentToolManager.getLocalizedText(name) || config.id
-  }
-
-  return config.id || ''
+  // 使用 locales 中的 toolLabels 以支持界面本地化
+  const fallback =
+    typeof config.name === 'string' ? config.name : (config.name as any)?.en_us?.name ?? config.id ?? ''
+  return agentToolManager.getLocalizedToolName(config.id, String(fallback))
 }
 
 // 获取当前选中工具的instruction

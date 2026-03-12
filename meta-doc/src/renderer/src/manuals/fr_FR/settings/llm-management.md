@@ -1,17 +1,19 @@
-# Gestion de configuration LLM
+# Gestion des configurations LLM
 
 ## Vue d'ensemble
 
-La gestion de configuration LLM vous permet de créer, modifier, supprimer et gérer plusieurs configurations LLM. Grâce à la gestion des configurations, vous pouvez configurer différents services LLM pour différents scénarios d'utilisation et basculer entre eux de manière flexible pour répondre à divers besoins.
+La gestion des configurations LLM vous permet de créer, modifier, supprimer et gérer plusieurs configurations LLM. Les configurations sont présentées sous forme de **cartes en grille**, similaires à un client d'agent : chaque carte affiche le nom et le type de la configuration, un clic permet de basculer vers son utilisation, elle permet de vérifier la connectivité directement sur la carte et offre un menu contextuel pour la copie, l'édition, l'exportation et la suppression.
 
-## Créer une configuration
+## Disposition de l'interface
 
-### Créer une nouvelle configuration
+### Grille et cartes
 
-1. Sur la page des paramètres LLM, cliquez sur le bouton "Nouvelle configuration" (icône +) au-dessus de la liste des configurations à gauche.
-2. Saisissez le nom de la configuration dans la boîte de dialogue qui s'affiche.
-3. Le système créera une nouvelle configuration basée sur les paramètres actuels.
-4. Après la création réussie, le système basculera automatiquement vers la nouvelle configuration.
+1. Après avoir activé le LLM dans la page des paramètres LLM, une **grille de configurations** s'affiche en dessous.
+2. Chaque **carte de configuration** contient :
+   - **Première ligne** : Nom de la configuration
+   - **Deuxième ligne** : Type de grand modèle (par exemple OpenAI, Tongyi Qianwen, DeepSeek, Ollama, etc.)
+3. **Cliquez sur une carte** pour basculer vers cette configuration. La carte de configuration actuellement utilisée est mise en évidence par une **bordure verte**.
+4. En haut à droite de la grille se trouvent les boutons **Nouvelle configuration** et **Importer configuration**.
 
 Vous pouvez accéder aux paramètres LLM via la barre de menu supérieure :
 
@@ -23,250 +25,84 @@ L'illustration suivante présente les principales fonctionnalités de l'interfac
 
 <SettingLlmSection mode="demo" />
 
-**Points à noter** :
+## Changer de configuration
 
-- Le nom de la configuration ne peut pas être vide.
-- Le nom de la configuration doit être descriptif pour faciliter son identification.
-- La nouvelle configuration créée héritera de tous les paramètres actuels.
-- Le type de configuration manuelle (manual) ne prend pas en charge la création de nouvelles configurations.
+- **Cliquez sur n'importe quelle carte** dans la grille de configurations pour basculer vers cette configuration.
+- La configuration active est affichée avec une bordure verte et un léger surlignage. Toutes les fonctionnalités IA utiliseront immédiatement le service LLM de cette configuration.
 
-```mermaid
-graph TB
-    A[Ouvrir les paramètres LLM] --> B[Consulter la liste des configurations]
-    B --> C{Type d'opération}
-    C -->|Créer| D[Nouvelle configuration]
-    C -->|Modifier| E[Sélectionner une configuration]
-    C -->|Supprimer| F[Supprimer la configuration]
-    C -->|Réinitialiser| G[Réinitialiser la configuration]
-    D --> H[Saisir le nom de la configuration]
-    E --> I[Modifier les paramètres]
-    F --> J[Confirmer la suppression]
-    G --> K[Confirmer la réinitialisation]
-    H --> L[Sauvegarder la configuration]
-    I --> L
-    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style L fill:#e5e7eb,stroke:#6b7280
-```
+## Vérifier la connectivité
 
-### Créer à partir des paramètres actuels
+- Chaque carte possède un bouton **« Vérifier »** sur sa droite. Un clic teste les capacités de **flux de questions-réponses** et de **flux de conversation** de cette configuration.
+- Une icône de chargement s'affiche pendant le test ; si une sortie normale est obtenue, le test s'arrête automatiquement et affiche une **coche verte** ; en cas d'erreur de requête, une **croix rouge** et un bref message d'erreur sont affichés.
+- Quel que soit le résultat, un nouveau clic permet de relancer le test.
 
-Lors de la création d'une nouvelle configuration, le système :
+## Menu contextuel
 
-- Copie le type LLM actuellement sélectionné.
-- Copie tous les paramètres de configuration actuels (URL de l'API, Clé API, modèle, etc.).
-- Crée un nouvel ID de configuration.
-- Ajoute la nouvelle configuration à la liste des configurations.
+Un **clic droit** sur une carte de configuration ouvre un menu proposant :
 
-Vous pouvez créer une nouvelle configuration basée sur une configuration existante, puis modifier les paramètres, ce qui permet de créer rapidement des configurations similaires.
+- **Copier la configuration** : Crée une copie de cette configuration (le nouveau nom inclut « (copie) »).
+- **Modifier la configuration** : Ouvre la boîte de dialogue d'édition pour modifier le nom, le type et les différents paramètres. **OK** pour enregistrer, **Annuler** pour quitter sans sauvegarder.
+- **Exporter la configuration** : Exporte la configuration actuelle vers un fichier JSON.
+- **Supprimer la configuration** : Supprime cette configuration (**les configurations prédéfinies ne peuvent pas être supprimées**, voir ci-dessous).
 
-<DialogDemo mode="demo" dialogType="llm-config" />
+## Configurations prédéfinies
 
-## Modifier une configuration
+Les **configurations prédéfinies** correspondant aux types suivants (comme « Ollama (par défaut) », « Tongyi Qianwen (par défaut) », etc.) **ne peuvent pas être supprimées**, mais **peuvent être modifiées** (lors de l'édition, **le type de grand modèle ne peut pas être changé**) :
 
-### Modifier les paramètres de configuration
+- Tongyi Qianwen, DeepSeek, OpenAI officiel, OpenAI compatible, Google Gemini, Ollama
 
-1. Sélectionnez la configuration à modifier dans la liste des configurations.
-2. Modifiez les différents paramètres dans le formulaire à droite.
-3. Après modification, le système marquera la configuration comme "Modifications non enregistrées".
-4. Cliquez sur le bouton "Enregistrer les modifications" pour sauvegarder les modifications.
+Les configurations personnalisées et celles obtenues par copie peuvent être supprimées normalement.
 
-<DialogDemo mode="demo" dialogType="api-config" />
+## Créer une configuration
 
-### Explication des paramètres de configuration
+### Nouvelle configuration
 
-Les paramètres de configuration diffèrent selon le type de LLM :
+1. Cliquez sur **« Nouvelle configuration »** en haut à droite de la grille.
+2. Saisissez le nom de la configuration dans la fenêtre contextuelle et confirmez.
+3. Le système crée une nouvelle configuration basée sur **la configuration actuellement sélectionnée** et bascule automatiquement vers elle.
 
-- **API MetaDoc** : Sélection du modèle.
-- **Ollama** : URL de l'API, Sélection du modèle, Nombre maximum de tokens.
-- **Compatible OpenAI** : URL de l'API, Clé API, Sélection du modèle, Configuration du suffixe.
-- **OpenAI officiel** : Clé API, Sélection du modèle.
-- **DeepSeek** : Clé API, Sélection du modèle.
-- **Gemini** : Clé API, Sélection du modèle.
-
-### Aperçu en temps réel
-
-Lors de la modification des paramètres de configuration, le système détecte les changements en temps réel :
-
-- Un avertissement s'affiche lorsqu'il y a des modifications non enregistrées.
-- Vous pouvez cliquer sur "Abandonner les modifications" à tout moment pour revenir à l'état précédent.
-- Les modifications prennent effet immédiatement après l'enregistrement.
-
-<AIChat mode="demo" />
-
-## Supprimer une configuration
-
-### Supprimer une configuration
-
-1. Cliquez sur le bouton "Plus" (icône à trois points) à droite de l'élément de configuration.
-2. Sélectionnez "Supprimer la configuration".
-3. Confirmez l'opération de suppression.
-
-**Restrictions** :
-
-- Au moins une configuration doit être conservée ; la dernière configuration ne peut pas être supprimée.
-- La configuration par défaut (isDefault) ne peut pas être supprimée, elle peut seulement être réinitialisée.
-- L'opération de suppression est irréversible ; veuillez l'effectuer avec prudence.
-
-### Confirmation de suppression
-
-Avant de supprimer une configuration, le système vous demandera de confirmer :
-
-- Après confirmation, la configuration sera définitivement supprimée.
-- Si la configuration actuellement utilisée est supprimée, le système basculera automatiquement vers une autre configuration.
-- La suppression est irréversible ; assurez-vous de ne plus avoir besoin de cette configuration.
-
-<DialogDemo mode="demo" dialogType="confirm-delete" />
-
-## Réinitialiser une configuration
-
-### Réinitialiser la configuration par défaut
-
-Pour la configuration par défaut (par exemple, "Ollama (par défaut)"), vous pouvez la réinitialiser à ses valeurs initiales :
-
-1. Cliquez sur le bouton "Plus" à droite de l'élément de configuration.
-2. Sélectionnez "Réinitialiser la configuration".
-3. Confirmez l'opération de réinitialisation.
-
-Après la réinitialisation, la configuration reviendra à ses valeurs par défaut d'origine, et toutes les modifications personnalisées seront effacées.
-
-**Cas d'utilisation** :
-
-- La configuration a été modifiée accidentellement et doit être restaurée aux valeurs par défaut.
-- Réinitialisation nécessaire après des tests de configuration.
-- Nettoyage des paramètres personnalisés inutiles.
-
-## Exporter une configuration
-
-### Exporter une configuration individuelle
-
-1. Cliquez sur le bouton "Plus" à droite de l'élément de configuration.
-2. Sélectionnez "Exporter la configuration".
-3. Le système générera un fichier de configuration au format JSON.
-4. Enregistrez le fichier localement.
-
-<DialogDemo mode="demo" dialogType="export-config" />
-
-Le fichier de configuration exporté contient :
-
-- L'ID et le nom de la configuration.
-- Le type de LLM.
-- Tous les paramètres de configuration.
-- Les dates de création et de mise à jour.
-
-### Exporter toutes les configurations
-
-1. Cliquez sur le bouton "Exporter toutes les configurations" (icône de téléchargement) au-dessus de la liste des configurations.
-2. Le système exportera toutes les configurations dans un seul fichier JSON.
-3. Enregistrez le fichier localement.
-
-L'exportation de toutes les configurations peut être utilisée pour :
-
-- Sauvegarder toutes les configurations.
-- Migrer vers un autre appareil.
-- Partager des configurations avec d'autres utilisateurs.
-
-## Importer une configuration
+**Remarque** : Le bouton de nouvelle configuration est indisponible lorsque la configuration actuellement sélectionnée est de type « manuel ».
 
 ### Importer une configuration
 
-1. Cliquez sur le bouton "Importer une configuration" (icône de copie de document) au-dessus de la liste des configurations.
-2. Sélectionnez le fichier de configuration précédemment exporté.
-3. Le système analysera et importera la configuration.
-4. La configuration importée sera ajoutée à la liste des configurations.
+1. Cliquez sur **« Importer configuration »** en haut à droite de la grille.
+2. Dans la boîte de dialogue de sélection de fichiers, choisissez un ou plusieurs fichiers de configuration JSON (prise en charge de la **sélection multiple**).
+3. Le système les lit et les importe un par un. Les configurations importées sont ajoutées à la liste.
 
-<DialogDemo mode="demo" dialogType="import-config" />
+Les formats JSON d'objet de configuration unique ou de tableau de configurations sont pris en charge. L'importation génère un nouvel ID pour éviter les conflits avec les configurations existantes.
 
-**Règles d'importation** :
+## Modifier une configuration
 
-- Prend en charge l'importation d'une configuration individuelle ou d'un tableau de configurations.
-- Si l'ID de la configuration importée existe déjà, un nouvel ID sera créé pour éviter les conflits.
-- Après l'importation, vous devez basculer manuellement vers la nouvelle configuration.
+1. Effectuez un **clic droit** sur une carte de configuration et sélectionnez **« Modifier la configuration »**.
+2. Dans la boîte de dialogue d'édition, modifiez le **nom de la configuration**, le **type de grand modèle** (modifiable pour les configurations non prédéfinies) ainsi que les différents paramètres spécifiques à ce type (adresse API, clé, modèle, etc.).
+3. Cliquez sur **OK** pour enregistrer, ou sur **Annuler** pour abandonner les modifications. **Il n'y a pas d'état « non enregistré »** : les modifications ne sont écrites qu'après confirmation.
 
-### Format d'importation
+Pour les détails des paramètres de configuration selon les types de LLM, consultez [[settings.llm-types|Configuration des types LLM]].
 
-Le fichier de configuration doit être au format JSON et prendre en charge les structures suivantes :
+## Supprimer une configuration
 
-```json
-{
-  "id": "config-xxx",
-  "name": "Nom de la configuration",
-  "type": "ollama",
-  "ollama": {
-    "apiUrl": "http://localhost:11434/api",
-    "selectedModel": "llama2"
-  }
-}
-```
+1. Effectuez un **clic droit** sur une carte de configuration et sélectionnez **« Supprimer la configuration »** (cette option n'est pas affichée pour les configurations prédéfinies).
+2. Confirmez la suppression dans la boîte de dialogue de confirmation.
+3. Si la configuration supprimée était celle en cours d'utilisation, le système bascule automatiquement vers une autre configuration.
 
-Ou un tableau de configurations :
+## Exporter une configuration
 
-```json
-[
-  { "id": "config-1", ... },
-  { "id": "config-2", ... }
-]
-```
-
-## Trier les configurations
-
-### Tri par glisser-déposer
-
-La liste des configurations prend en charge le tri par glisser-déposer :
-
-1. Cliquez et maintenez l'élément de configuration.
-2. Faites-le glisser vers la position souhaitée.
-3. Relâchez la souris pour terminer le tri.
-
-L'ordre après tri sera sauvegardé et conservé lors de la prochaine ouverture de la page des paramètres.
-
-**Cas d'utilisation** :
-
-- Placer les configurations fréquemment utilisées en haut.
-- Trier par fréquence d'utilisation.
-- Grouper par type de LLM.
-
-## État de la configuration
-
-### Configuration actuelle
-
-La configuration actuellement utilisée :
-
-- Sera mise en évidence dans la liste.
-- Affichera l'étiquette "Modifications non enregistrées" (s'il y a des modifications non sauvegardées).
-- Toutes les fonctionnalités d'IA utiliseront le service LLM de cette configuration.
-
-### Changement de configuration
-
-Lors du changement de configuration :
-
-- Le système vérifiera si la configuration actuelle a des modifications non enregistrées.
-- S'il y a des modifications non enregistrées, il est recommandé de les enregistrer ou de les abandonner d'abord.
-- Le changement prend effet immédiatement ; toutes les fonctionnalités d'IA utiliseront la nouvelle configuration.
+- **Exportation individuelle** : Clic droit sur la carte → **Exporter la configuration**, pour enregistrer la configuration actuelle dans un fichier JSON.
+- Le fichier exporté peut être utilisé pour la sauvegarde ou pour restaurer la configuration sur un autre appareil/compte via la fonction « Importer configuration ».
 
 ## Bonnes pratiques
 
-1. **Conventions de nommage** : Utilisez des noms de configuration clairs, tels que "Travail-Ollama", "Expérimentation-OpenAI".
-2. **Sauvegarde régulière** : Exportez régulièrement des sauvegardes des configurations importantes.
-3. **Tester la configuration** : Testez d'abord une nouvelle configuration après sa création, et ne l'utilisez qu'après avoir confirmé qu'elle fonctionne.
-4. **Nettoyer les configurations inutiles** : Supprimez régulièrement les configurations qui ne sont plus utilisées pour garder la liste propre.
-5. **Documentation** : Ajoutez des notes ou une documentation pour les configurations complexes.
-
-## Points à noter
-
-1. **Sécurité des configurations** : Conservez soigneusement les configurations contenant une clé API ; ne les partagez pas.
-2. **Conflits de configuration** : Faites attention aux conflits d'ID lors de l'importation de configurations.
-3. **Configuration par défaut** : La configuration par défaut ne peut pas être supprimée, seulement réinitialisée.
-4. **Dépendances de configuration** : Certaines fonctionnalités peuvent dépendre de configurations spécifiques ; vérifiez avant de supprimer.
-5. **Synchronisation multi-fenêtres** : Les modifications de configuration seront synchronisées entre toutes les fenêtres.
+1. **Convention de nommage** : Utilisez des noms de configuration clairs, comme « Travail-Ollama », « Expérimentation-OpenAI ».
+2. **Sauvegarde régulière** : Exportez régulièrement vos configurations importantes pour les sauvegarder.
+3. **Vérifier avant utilisation** : Pour une nouvelle configuration ou après modification, utilisez le bouton « Vérifier » sur la carte pour confirmer la connectivité.
+4. **Nettoyer les configurations inutiles** : Supprimez régulièrement les configurations qui ne sont plus utilisées pour garder la liste organisée.
 
 ## Documentation associée
 
 - [[settings.llm|Configuration LLM]]
 - [[settings.llm-types|Configuration des types LLM]]
-- [[ai.chat|Fonctionnalité de dialogue IA]]
-- [[agent.config|Gestion de configuration Agent]]
+- [[ai.chat|Fonctionnalité de conversation IA]]
+- [[agent.config|Gestion de la configuration Agent]]
 
 <QuickStartPanel mode="demo" />
 

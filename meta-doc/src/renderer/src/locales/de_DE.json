@@ -1585,7 +1585,18 @@
     "themeNamePlaceholder": "Bitte geben Sie den Themennamen ein",
     "themeNameRequired": "Bitte geben Sie den Themennamen ein",
     "unsavedChanges": "Nicht gespeicherte Änderungen",
-    "unsavedChangesConfirm": "Es gibt ungespeicherte Änderungen in den Einstellungen. Möchten Sie diese zuerst speichern?"
+    "unsavedChangesConfirm": "Es gibt ungespeicherte Änderungen in den Einstellungen. Möchten Sie diese zuerst speichern?",
+    "checkAllConfigs": "Alle Konfigurationen prüfen",
+    "checkAllConfigsDone": "Alle Konfigurationen wurden geprüft",
+    "checkConfig": "Prüfen",
+    "checkConfigFailed": "Prüfung fehlgeschlagen",
+    "checkConfigTooltip": "Klicken zum Prüfen: Streaming-/Nicht-Streaming-Vervollständigung und Dialog",
+    "checkFail": "Fehlgeschlagen",
+    "checkPass": "Bestanden",
+    "configDescription": "Beschreibung",
+    "configDescriptionPlaceholder": "Optional, zur Anzeige einer Notiz auf der Karte",
+    "copyConfig": "Konfiguration kopieren",
+    "copyConfigSuccess": "Konfiguration kopiert"
   },
   "titleMenu": {
     "contextMarks": {
@@ -1708,7 +1719,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "Wort",
-    "frequency": "Häufigkeit"
+    "frequency": "Häufigkeit",
+    "generating": "Erklärung wird generiert…"
   },
   "knowledgeBase": {
     "add": "Hinzufügen",
@@ -2380,6 +2392,20 @@
     "removeTemplateTitle": "Vorlage entfernen"
   },
   "agent": {
+    "contextBreakdown": {
+      "title": "Kontextaufteilung",
+      "description": "Was in den Kontext einfließt, der für diese Sitzung an das Modell gesendet wird.",
+      "tooltip": "Kontextaufteilung und -nutzung anzeigen",
+      "totalTokens": "{used} / {max} Tokens ({pct}%)",
+      "tokensChars": "{tokens} Tokens ({chars} Zeichen)",
+      "noSession": "Keine Sitzung oder Konfiguration ausgewählt; Kontext kann nicht berechnet werden.",
+      "parts": {
+        "systemPrompt": "Systemaufforderung",
+        "references": "Referenzen",
+        "summary": "Verlaufszusammenfassung",
+        "history": "Letzte Nachrichten"
+      }
+    },
     "conversation": {
       "emptyTitle": "Keine Konversationen",
       "messages": "{count} Nachrichten",
@@ -2470,6 +2496,8 @@
         "progress": {
           "loadingTree": "Verzeichnisbaum wird geladen...",
           "reading": "Dateien werden gelesen...",
+          "searching": "Fuzzy-Suche…",
+          "searchCompleted": "Suche abgeschlossen: \"{query}\" — {count} Treffer",
           "readingFile": "Datei {index}/{total} wird gelesen: {path}",
           "completed": "Lesevorgang abgeschlossen, insgesamt {count} Dateien"
         }
@@ -2478,6 +2506,15 @@
         "progress": {
           "syncing": "Dokumentinhalt wird synchronisiert...",
           "completed": "Knotenagent-Ausführung abgeschlossen"
+        }
+      },
+      "latexCompile": {
+        "error": {
+          "failed": "LaTeX-Kompilierung fehlgeschlagen: {error}"
+        },
+        "progress": {
+          "compiling": "LaTeX wird kompiliert...",
+          "completed": "Kompilierung abgeschlossen"
         }
       }
     },
@@ -2874,8 +2911,11 @@
       "workspace": {
         "loadingTree": "Verzeichnisbaum wird geladen...",
         "reading": "Datei wird gelesen...",
+        "searching": "Fuzzy-Suche…",
         "processing": "Wird verarbeitet...",
         "directoryTree": "Verzeichnisbaum",
+        "searchResultsTitle": "Fuzzy-Suche: \"{query}\"",
+        "matchCount": "{count} Treffer",
         "workspaceFolder": "Arbeitsbereichsordner",
         "filesTitle": "Dateiinhalte",
         "filesCount": "{count} Dateien insgesamt",
@@ -3026,6 +3066,24 @@
         "roleUser": "Benutzer",
         "running": "Wird ausgeführt...",
         "title": "Subagent"
+      },
+      "latexCompile": {
+        "compiling": "LaTeX wird kompiliert...",
+        "failed": "Kompilierung fehlgeschlagen",
+        "outputPdfPath": "Ausgabe-PDF-Pfad",
+        "stderr": "Standardfehler",
+        "stdout": "Standardausgabe",
+        "success": "Kompilierung erfolgreich"
+      },
+      "timestamp": {
+        "current": "Aktuelle Zeit",
+        "error": "Zeit konnte nicht abgerufen werden",
+        "local": "Lokal",
+        "previous": "Zeitpunkt des letzten Aufrufs",
+        "processing": "Zeit wird abgerufen...",
+        "result": "Ergebnis",
+        "timeDiff": "Zeitdifferenz",
+        "unixTimestamp": "Unix-Zeitstempel"
       }
     },
     "manage": {
@@ -3167,7 +3225,9 @@
       "intentRecognition": "Absichtserkennung",
       "selectedTools": "Ausgewählte Tools:",
       "noToolsNeeded": "Für diese Anfrage sind keine Tools erforderlich.",
-      "reasoning": "Überlegungen:"
+      "reasoning": "Überlegungen:",
+      "confirmRegenerate": "Die Neuberechnung löscht alle Inhalte nach dieser Nachricht (einschließlich KI-Antworten, Tool-Aufrufe, Intent-Erkennung etc.) und generiert sie basierend auf dieser Nutzernachricht neu. Fortfahren?",
+      "confirmRegenerateTitle": "Neuberechnung bestätigen"
     },
     "attachment": {
       "untitled": "Unbenannt"
@@ -3293,17 +3353,6 @@
         "renderingHtml:": "HTML wird zu PDF gerendert...",
         "urlFormatInvalid:": "Ungültiges URL-Format."
       },
-      "builtInDocument": {
-        "title": "Referenz auf aktuelles Dokument",
-        "description": "Dynamischer Abruf des Inhalts des aktuellen aktiven Dokuments in Echtzeit, ohne Nachrichtenverlauf zu belegen",
-        "enabled": "Aktiviert",
-        "disabled": "Deaktiviert",
-        "preview": "Vorschau",
-        "noActiveDocument": "Kein aktives Dokument",
-        "emptyDocument": "Das aktuelle Dokument ist leer",
-        "currentActiveDocument": "Aktuelles aktives Dokument",
-        "formatSuffix": "({format}-Format)"
-      },
       "error": {
         "cancelRequestFailed": "Senden der Abbruchanforderung fehlgeschlagen"
       },
@@ -3315,7 +3364,9 @@
       "updateSuccess:": "Referenz erfolgreich aktualisiert",
       "urlPlaceholder:": "Bitte URL eingeben.",
       "urlRequired:": "URL darf nicht leer sein.",
-      "workspaceFiles:": "Arbeitsbereichdateien"
+      "workspaceFiles:": "Arbeitsbereichdateien",
+      "directory": "Verzeichnis",
+      "workspaceDirs": "Arbeitsbereichsverzeichnisse"
     },
     "userLabel": "Benutzer",
     "assistantLabel": "Assistent",
@@ -3367,7 +3418,89 @@
     },
     "welcomeTitle": "Hallo! Ich bin MetaDoc AI Assistant!",
     "welcomeDescription": "Ich bin Ihr intelligenter Assistent für das Schreiben von Dokumenten. Ich kann Ihnen beim Schreiben, Bearbeiten und Optimieren Ihrer Dokumente mit KI-gestützten Vorschlägen und Korrekturen helfen.",
-    "tellMeYourNeeds": "Sagen Sie mir, was Sie brauchen, und ich helfe Ihnen bei der Erledigung Ihrer Dokumentenerstellungsaufgaben!"
+    "tellMeYourNeeds": "Sagen Sie mir, was Sie brauchen, und ich helfe Ihnen bei der Erledigung Ihrer Dokumentenerstellungsaufgaben!",
+    "toolLabels": {
+      "chart-generation": {
+        "description": "Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, flowchart, graphviz usw.) basierend auf Eingabeaufforderungen und unterstützt den Export als SVG, PNG, PDF",
+        "name": "Diagrammgenerierung"
+      },
+      "color-processing": {
+        "description": "Verarbeitet Farbmischung, Helligkeits-/Kontrastanpassung, Komplementärfarben usw.",
+        "name": "Farbverarbeitung"
+      },
+      "data-analysis": {
+        "description": "Analysiert automatisch Daten (CSV, JSON usw.), extrahiert Felder, beschreibende Statistiken, Aggregationsanalysen usw.",
+        "name": "Datenanalyse"
+      },
+      "data-calculation": {
+        "description": "Führt komplexe mathematische Berechnungen durch, einschließlich numerischer, Vektor- und Matrixoperationen",
+        "name": "Datenberechnung"
+      },
+      "diff": {
+        "description": "Vergleicht zwei Textabschnitte und gibt ein einheitliches Diff zurück",
+        "name": "Textvergleich"
+      },
+      "edit": {
+        "description": "Nur Git-Stil-Diff akzeptiert: Übergeben Sie einen String mit - (entfernten) und + (eingefügten) Zeilen",
+        "name": "Dokumentbearbeitung"
+      },
+      "grep": {
+        "description": "Durchsucht Dokumente/Arbeitsbereich oder sucht und ersetzt",
+        "name": "Textsuche"
+      },
+      "latex-compile": {
+        "description": "Kompiliert LaTeX-Projekte und gibt den PDF-Pfad oder das Protokoll zurück",
+        "name": "LaTeX-Kompilierung"
+      },
+      "metadata": {
+        "description": "Greift auf Dokument-Metadaten zu, ändert sie und ruft KI auf, um Titel, Beschreibung, Schlüsselwörter usw. zu generieren",
+        "name": "Metadatenverwaltung"
+      },
+      "outline-optimize": {
+        "description": "Verwendet KI, um Dokumentgliederungen zu generieren/optimieren (nur .md/.tex), Dokument wird über filePath oder tabId angegeben",
+        "name": "Gliederungsoptimierung"
+      },
+      "outline-tree": {
+        "description": "Ruft die Dokumentgliederungsstruktur ab (nur .md/.tex)",
+        "name": "Gliederungsbaum"
+      },
+      "proofread": {
+        "description": "Überprüft Text auf Grammatik-, Rechtschreib- und LaTeX-Syntaxfehler",
+        "name": "Textkorrektur"
+      },
+      "rag-retrieval": {
+        "description": "Ruft aus der Wissensdatenbank relevante Dokumentenausschnitte für eine Frage ab, um die Genauigkeit von KI-Antworten zu verbessern",
+        "name": "RAG-Wissensdatenbankabfrage"
+      },
+      "terminal-execution": {
+        "description": "Führt Terminalbefehle aus, erfordert Benutzerfreigabe (Vertrauensmodus kann eingestellt werden)",
+        "name": "Terminalausführung"
+      },
+      "timestamp": {
+        "description": "Gibt den aktuellen Zeitstempel zurück und zeichnet jede Aufrufzeit auf, um Zeitdifferenzen zu berechnen",
+        "name": "Zeitstempel"
+      },
+      "title-format": {
+        "description": "Formatiert Dokumenttitel: Passt Überschriftenebenen an, fügt Nummerierung hinzu/entfernt sie, entfernt Präfixe usw.",
+        "name": "Titelformatierung"
+      },
+      "todolist-planning": {
+        "description": "Analysiert die Benutzerabsicht und zerlegt komplexe Aufgaben in strukturierte To-do-Listen",
+        "name": "Absichtserkennung und Aufgabenplanung"
+      },
+      "tool-spec-fetcher": {
+        "description": "Ruft die vollständige Beschreibung (fullSpec) für ein oder mehrere Werkzeuge ab",
+        "name": "Werkzeugbeschreibungsabruf"
+      },
+      "web-crawler": {
+        "description": "Greift auf eine bestimmte URL zu und ruft HTML-Inhalte der Webseite oder API-Antworten ab",
+        "name": "Webseitenzugriff"
+      },
+      "workspace": {
+        "description": "Liest Arbeitsbereichsdateien, führt unscharfe Suche nach Pfad/Namen durch oder listet das Stammverzeichnis auf",
+        "name": "Arbeitsbereichsdateilesen"
+      }
+    }
   },
   "agent-engine-executor": {
     "clear": "Bereinigt",
@@ -4918,5 +5051,12 @@
   "lang: Zh_CN": "lang: de_DE",
   "skeleton": {
     "tips": "[\"Drücke F1, um das Benutzerhandbuch zu öffnen\", \"Strg+S speichert das aktuelle Dokument schnell\", \"Die Breite der linken Seitenleiste lässt sich per Drag-and-Drop anpassen\", \"Unterstützt sowohl Markdown als auch LaTeX\", \"Verknüpfen Sie lokale Dokumente mit der Wissensdatenbank, um KI-Antworten zu verbessern\", \"Formelerkennung unterstützt Handschrift und Screenshots\", \"Agent unterstützt Mehrrunden-Dialoge und Tool-Aufrufe\", \"Visualisierungsansicht kann als Bild exportiert werden\", \"In den Einstellungen zwischen Hell, Dunkel und System wechseln\", \"Bilder direkt aus der Zwischenablage einfügen\", \"Gliederung einklappbar und per Drag-and-Drop sortierbar\", \"Beim Schreiben jederzeit KI-Vervollständigung aufrufen\", \"Korrekturwerkzeug erkennt Grammatik und Wortwahl\", \"Datenanalyse-Tool unterstützt CSV und Excel\", \"RAG-Suche priorisiert verknüpfte Wissensdatenbanken\", \"Neue Dokumente aus Vorlagen erstellen\", \"Mehrere Tabs für gleichzeitiges Bearbeiten\", \"Export in Formate wie PDF oder Word\", \"Strg+F für Volltextsuche, unterstützt reguläre Ausdrücke\", \"Einzelne Absätze können von der KI überarbeitet werden\", \"Heute ist ein guter Tag zum Schreiben, nicht zum Aufschieben.\", \"Wenn Sie nicht weiterkommen, lassen Sie die KI den Anfang machen.\", \"Kommentare in Codeblöcken werden respektiert.\", \"Tabellen lassen sich per CSV-Einfügen mit einem Klick generieren\", \"Bei langen Dokumenten zuerst eine Gliederung erstellen, dann ausarbeiten\", \"Formeln in LaTeX schreiben, das Rendering überlässt man MetaDoc\", \"Diagramm-Generierung unterstützt Balken-, Linien- und andere Diagramme\", \"Agent-Engine kann z.B. ReAct oder Plan-Execute sein\", \"Lokale Modelle und API können gleichzeitig konfiguriert werden\", \"Debug-Panel zeigt Startzeiten an\", \"Fenster-Pool ermöglicht schnelles Ziehen neuer Fenster\", \"On-Demand-Ladung für schnelleren Start.\", \"Im Zwei-Spalten-Editor kann jede Seite unabhängig gescrollt werden\", \"Unterstützt Diagramm-Syntax wie Mermaid und PlantUML\", \"Zitat- und Codeblöcke haben Tastenkürzel\", \"KI-Vervollständigung kann verzögert ausgelöst werden, um Tokens zu sparen\", \"Wissensdatenbank unterstützt PDF, Word, TXT und weitere Formate\", \"Ergebnisse der Formelerkennung können direkt als LaTeX eingefügt werden\", \"Tabs können zwischen Fenstern per Drag-and-Drop verschoben werden\", \"Beim PDF-Export können Seitenränder und Schriftarten gewählt werden\", \"Designfarbe kann dem System folgen oder angepasst werden\", \"Im Seitenleisten-Arbeitsbereich können mehrere Ordner hinzugefügt werden\", \"Suchen und Ersetzen unterstützt Groß-/Kleinschreibung und ganze Wörter\", \"Absatzoptimierung bewahrt Ihren Kernausdruck.\", \"Agent kann verschiedene Engines nutzen, die unterschiedliche Stile haben\", \"RAG-Suchergebnisse werden im Originaltext hervorgehoben\", \"Datentabellen können vom Agent für einfache Analysen verwendet werden\", \"Für wissenschaftliche Arbeiten: erst Wissensdatenbank anlegen, dann den Agent fragen\", \"Bei LaTeX-Kompilierungsfehlern zeigt die Konsole die Zeilennummer an\", \"Zwischen Monaco und Vditor kann jederzeit gewechselt werden\", \"Nur-Text-Modus eignet sich für Szenarien ohne Rendering\", \"Anhang-Parser kann Bilder aus PDFs extrahieren\", \"Korrektur verbessert nicht nur Tippfehler, sondern auch den Satzfluss\", \"Flussdiagramme in der Visualisierungsansicht können als SVG exportiert werden\", \"Rechtsklick auf einen Absatz → \\\"KI-Analyse\\\"\", \"Die Willkommensseite für neue Dokumente bietet Schnellzugriffe\", \"Markdown-Tabellen lassen sich per CSV-Einfügen generieren\", \"Wenn Sie nicht weiterkommen, klicken Sie auf das Logo und schütteln Sie.\", \"Der Legende nach steigert Schreiben die Erfahrungspunkte.\", \"Dieser Tipp verschwindet, das F1-Handbuch bleibt.\"]"
+  },
+  "setting_part9": {
+    "setting": {
+      "readFileFailed": "Datei konnte nicht gelesen werden",
+      "resetConfigSuccess": "Erfolgreich auf voreingestellten Zustand zurückgesetzt",
+      "resetConfigToPreset": "Auf voreingestellten Zustand zurücksetzen"
+    }
   }
 }

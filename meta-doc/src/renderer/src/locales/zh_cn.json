@@ -13,6 +13,20 @@
   "agent": {
     "assistantLabel": "助手",
     "callParams": "调用参数",
+    "contextBreakdown": {
+      "title": "上下文组成",
+      "description": "当前会话发送给模型时包含的上下文各部分及占用情况。",
+      "tooltip": "查看上下文组成与占用",
+      "totalTokens": "已用 {used} / {max} tokens（{pct}%）",
+      "tokensChars": "{tokens} tokens（{chars} 字符）",
+      "noSession": "暂无会话或未选择配置，无法计算上下文。",
+      "parts": {
+        "systemPrompt": "系统提示词",
+        "references": "引用素材",
+        "summary": "历史摘要",
+        "history": "近期对话"
+      }
+    },
     "conversation": {
       "emptyTitle": "暂无会话",
       "messages": "消息 {count} 条",
@@ -101,6 +115,14 @@
         "aiSummary": "AI分析摘要",
         "rejected": "命令执行已被拒绝",
         "executionFailed": "命令执行失败"
+      },
+      "latexCompile": {
+        "compiling": "正在编译 LaTeX...",
+        "success": "编译成功",
+        "failed": "编译失败",
+        "outputPdfPath": "输出 PDF 路径",
+        "stderr": "标准错误",
+        "stdout": "标准输出"
       },
       "todoList": {
         "analyzing": "正在分析用户意图...",
@@ -330,8 +352,11 @@
       "workspace": {
         "loadingTree": "正在加载目录树...",
         "reading": "正在读取文件...",
+        "searching": "正在模糊搜索…",
         "processing": "正在处理...",
         "directoryTree": "目录树",
+        "searchResultsTitle": "模糊搜索: 「{query}」",
+        "matchCount": "匹配 {count} 项",
         "workspaceFolder": "工作区文件夹",
         "filesTitle": "文件内容",
         "filesCount": "共 {count} 个文件",
@@ -603,9 +628,11 @@
       "clearAllSuccess": "已清空所有引用",
       "tagRemove": "移除引用",
       "pickerButton": "引用工作区文件或文档",
-      "pickerPlaceholder": "输入文件名或路径搜索…",
+      "pickerPlaceholder": "输入文件名、路径或目录名搜索…",
       "unsavedDocs": "未保存文档",
+      "workspaceDirs": "工作区目录",
       "workspaceFiles": "工作区文件",
+      "directory": "目录",
       "noMatch": "无匹配文件",
       "noWorkspaceFiles": "暂无工作区或未打开工作区",
       "untitled": "未命名",
@@ -671,17 +698,6 @@
         "processingSlide": "正在处理幻灯片 {current}/{total}",
         "foundSlides": "找到 {count} 张幻灯片",
         "foundImages": "找到 {count} 张图片"
-      },
-      "builtInDocument": {
-        "title": "当前文档引用",
-        "description": "动态获取当前活动文档内容，实时更新，不占用历史消息空间",
-        "enabled": "已启用",
-        "disabled": "已禁用",
-        "preview": "预览",
-        "noActiveDocument": "没有活动的文档",
-        "emptyDocument": "当前文档为空",
-        "currentActiveDocument": "当前活动文档",
-        "formatSuffix": "（{format}格式）"
       },
       "error": {
         "cancelRequestFailed": "发送取消请求失败"
@@ -773,6 +789,8 @@
         "progress": {
           "loadingTree": "正在加载目录树...",
           "reading": "正在读取文件...",
+          "searching": "正在模糊搜索…",
+          "searchCompleted": "搜索完成: 「{query}」匹配 {count} 项",
           "readingFile": "正在读取文件 {index}/{total}: {path}",
           "completed": "读取完成，共 {count} 个文件"
         }
@@ -782,7 +800,38 @@
           "syncing": "正在同步文档内容...",
           "completed": "节点智能体执行完成"
         }
+      },
+      "latexCompile": {
+        "progress": {
+          "compiling": "正在编译 LaTeX...",
+          "completed": "编译完成"
+        },
+        "error": {
+          "failed": "LaTeX 编译失败: {error}"
+        }
       }
+    },
+    "toolLabels": {
+      "edit": { "name": "文档编辑", "description": "仅接受 git 风格 diff：传入带 -（删除）和 +（插入）行的字符串" },
+      "terminal-execution": { "name": "终端执行", "description": "执行终端命令，需用户批准（可设置信任模式）" },
+      "todolist-planning": { "name": "意图识别与任务规划", "description": "分析用户意图并将复杂任务分解为结构化待办列表" },
+      "timestamp": { "name": "时间戳", "description": "返回当前时间戳并记录每次调用时间以计算时间差" },
+      "latex-compile": { "name": "LaTeX 编译", "description": "编译 LaTeX 项目并返回 PDF 路径或日志" },
+      "outline-tree": { "name": "大纲树", "description": "获取文档大纲树（仅 .md/.tex）" },
+      "tool-spec-fetcher": { "name": "工具说明获取", "description": "获取一个或多个工具的完整说明（fullSpec）" },
+      "workspace": { "name": "工作区文件读取", "description": "读取工作区文件、按路径/名称模糊搜索或列出根目录" },
+      "diff": { "name": "文本对比", "description": "对比两段文本并返回统一 diff" },
+      "grep": { "name": "文本搜索", "description": "在文档/工作区内搜索或搜索并替换" },
+      "proofread": { "name": "文本校对", "description": "检查文本中的语法、拼写和 LaTeX 语法错误" },
+      "data-calculation": { "name": "数据计算", "description": "执行复杂数学计算，包括数值、向量、矩阵等运算" },
+      "color-processing": { "name": "颜色处理", "description": "处理颜色混合、亮度/对比度调整、互补色等" },
+      "metadata": { "name": "元信息管理", "description": "访问、修改文档元信息，调用 AI 生成标题、描述、关键词等" },
+      "title-format": { "name": "标题格式化", "description": "格式化文档标题：调整标题层级、添加/移除编号、移除前缀等" },
+      "outline-optimize": { "name": "大纲优化", "description": "使用 AI 生成/优化文档大纲（仅 .md/.tex），按 filePath 或 tabId 指定文档" },
+      "web-crawler": { "name": "网页访问", "description": "访问指定 URL，获取网页 HTML 内容或 API 响应" },
+      "rag-retrieval": { "name": "RAG 知识库检索", "description": "从知识库检索与问题相关的文档片段，增强 AI 回答准确性" },
+      "data-analysis": { "name": "数据分析", "description": "自动分析 CSV、JSON 等数据，提取字段、描述统计、聚合分析等" },
+      "chart-generation": { "name": "图表生成", "description": "根据提示词生成各类图表（Mermaid、ECharts、PlantUML、flowchart、graphviz 等），支持导出 SVG、PNG、PDF" }
     },
     "toolCall": "调用工具",
     "toolResult": "工具结果",

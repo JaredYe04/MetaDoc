@@ -402,7 +402,8 @@
   },
   "wordCloudDetail": {
     "defaultWord": "단어",
-    "frequency": "빈도수"
+    "frequency": "빈도수",
+    "generating": "의미 생성 중…"
   },
   "aiChat": {
     "renameTitle": "이름 변경",
@@ -1648,7 +1649,21 @@
     "testPrompt:": "안녕하세요! 간단하게 자기소개를 해 주세요.",
     "themeSync:": "시스템 테마와 동기화",
     "tokens:": "토큰",
-    "selectPendingRequest:": "대기 중인 요청 선택"
+    "selectPendingRequest:": "대기 중인 요청 선택",
+    "checkAllConfigs": "일괄 점검",
+    "checkAllConfigsDone": "모든 설정 점검 완료",
+    "checkConfig": "점검",
+    "checkConfigFailed": "점검 실패",
+    "checkConfigTooltip": "클릭하여 확인: 스트리밍/비스트리밍 완성 및 대화",
+    "checkFail": "실패",
+    "checkPass": "통과",
+    "configDescription": "설명",
+    "configDescriptionPlaceholder": "선택사항, 카드에 메모를 표시하는 데 사용",
+    "copyConfig": "구성 복사",
+    "copyConfigSuccess": "구성이 복사됨",
+    "readFileFailed": "파일을 읽을 수 없습니다",
+    "resetConfigSuccess": "기본 설정으로 초기화되었습니다",
+    "resetConfigToPreset": "기본 설정으로 초기화"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -2336,6 +2351,20 @@
     "removeTemplateTitle": "템플릿 제거"
   },
   "agent": {
+    "contextBreakdown": {
+      "title": "컨텍스트 구성",
+      "description": "이 세션에서 모델에 전송되는 컨텍스트의 구성입니다.",
+      "tooltip": "컨텍스트 구성 및 사용량 보기",
+      "totalTokens": "{used} / {max} 토큰({pct}%)",
+      "tokensChars": "{tokens} 토큰({chars}자)",
+      "noSession": "세션이나 설정이 선택되지 않았습니다. 컨텍스트를 계산할 수 없습니다.",
+      "parts": {
+        "systemPrompt": "시스템 프롬프트",
+        "references": "참조",
+        "summary": "기록 요약",
+        "history": "최근 메시지"
+      }
+    },
     "conversation": {
       "emptyTitle": "대화 없음",
       "messages": "메시지 {count}개",
@@ -2427,13 +2456,24 @@
           "loadingTree": "디렉토리 트리 로드 중...",
           "reading": "파일 읽는 중...",
           "readingFile": "파일 읽는 중 {index}/{total}: {path}",
-          "completed": "읽기 완료, 총 {count}개 파일"
+          "completed": "읽기 완료, 총 {count}개 파일",
+          "searchCompleted": "검색 완료: 「{query}」 {count}개 항목 일치",
+          "searching": "퍼지 검색 중..."
         }
       },
       "nodeAgent": {
         "progress": {
           "syncing": "문서 내용 동기화 중...",
           "completed": "노드 에이전트 실행 완료"
+        }
+      },
+      "latexCompile": {
+        "error": {
+          "failed": "LaTeX 컴파일 실패: {error}"
+        },
+        "progress": {
+          "compiling": "LaTeX 컴파일 중...",
+          "completed": "컴파일 완료"
         }
       }
     },
@@ -2717,7 +2757,10 @@
         "hideContent": "전체 내용 숨기기",
         "linesRange": "행 {start}-{end} (총 {total}행)",
         "totalLines": "총 {count}행",
-        "error": "작업 공간 파일 읽기 오류"
+        "error": "작업 공간 파일 읽기 오류",
+        "matchCount": "{count}개 일치",
+        "searchResultsTitle": "유사 검색: 「{query}」",
+        "searching": "유사 검색 중…"
       },
       "edit": {
         "completed": "편집 완료",
@@ -2913,6 +2956,24 @@
         "roleUser": "사용자",
         "running": "실행 중...",
         "title": "Subagent"
+      },
+      "latexCompile": {
+        "compiling": "LaTeX 컴파일 중...",
+        "failed": "컴파일 실패",
+        "outputPdfPath": "PDF 출력 경로",
+        "stderr": "표준 오류",
+        "stdout": "표준 출력",
+        "success": "컴파일 성공"
+      },
+      "timestamp": {
+        "current": "현재 시간",
+        "error": "시간 가져오기 실패",
+        "local": "로컬",
+        "previous": "이전 호출 시간",
+        "processing": "시간 가져오는 중...",
+        "result": "결과",
+        "timeDiff": "시간 차이",
+        "unixTimestamp": "Unix 타임스탬프"
       }
     },
     "manage": {
@@ -3050,7 +3111,9 @@
       "intentRecognition": "의도 인식",
       "selectedTools": "선택된 도구: ",
       "noToolsNeeded": "이 요청에는 도구가 필요하지 않습니다.",
-      "reasoning": "추론: "
+      "reasoning": "추론: ",
+      "confirmRegenerate": "재생성하면 이 메시지 이후의 모든 내용(AI 응답, 도구 호출, 의도 인식 등 포함)이 삭제되고, 해당 사용자 메시지를 기반으로 다시 생성됩니다. 계속하시겠습니까?",
+      "confirmRegenerateTitle": "재생성 확인"
     },
     "attachment": {
       "untitled": "제목 없음"
@@ -3160,20 +3223,11 @@
         "foundSlides": "{count}개 슬라이드 찾음",
         "foundImages": "{count}개 이미지 찾음"
       },
-      "builtInDocument": {
-        "title": "현재 문서 참조",
-        "description": "현재 활성 문서의 내용을 동적으로 가져와 실시간으로 업데이트되며, 기록 메시지 공간을 차지하지 않습니다",
-        "enabled": "활성화됨",
-        "disabled": "비활성화됨",
-        "preview": "미리보기",
-        "noActiveDocument": "활성 문서가 없습니다",
-        "emptyDocument": "현재 문서가 비어 있습니다",
-        "currentActiveDocument": "현재 활성 문서",
-        "formatSuffix": "({format} 형식)"
-      },
       "error": {
         "cancelRequestFailed": "취소 요청 전송 실패"
-      }
+      },
+      "directory": "디렉터리",
+      "workspaceDirs": "작업 공간 디렉터리"
     },
     "userLabel": "사용자",
     "assistantLabel": "어시스턴트",
@@ -3225,7 +3279,89 @@
     },
     "welcomeTitle": "안녕하세요! MetaDoc AI 어시스턴트입니다!",
     "welcomeDescription": "당신의 지능형 문서 작성 어시스턴트입니다. AI 기반 제안과 수정으로 문서 작성, 편집 및 다듬기를 도와드립니다.",
-    "tellMeYourNeeds": "필요한 것을 말씀해 주세요. 문서 작성 작업을 완료하는 데 도움을 드리겠습니다!"
+    "tellMeYourNeeds": "필요한 것을 말씀해 주세요. 문서 작성 작업을 완료하는 데 도움을 드리겠습니다!",
+    "toolLabels": {
+      "chart-generation": {
+        "description": "프롬프트에 따라 다양한 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하고 SVG, PNG, PDF로 내보내기 지원",
+        "name": "차트 생성"
+      },
+      "color-processing": {
+        "description": "색상 혼합, 밝기/대비 조정, 보색 처리 등",
+        "name": "색상 처리"
+      },
+      "data-analysis": {
+        "description": "CSV, JSON 등 데이터를 자동 분석하여 필드 추출, 기술 통계, 집계 분석 등 수행",
+        "name": "데이터 분석"
+      },
+      "data-calculation": {
+        "description": "수치, 벡터, 행렬 연산을 포함한 복잡한 수학 계산 수행",
+        "name": "데이터 계산"
+      },
+      "diff": {
+        "description": "두 텍스트를 비교하여 통합 diff 반환",
+        "name": "텍스트 비교"
+      },
+      "edit": {
+        "description": "git 스타일 diff만 허용: - (삭제) 및 + (삽입) 행이 포함된 문자열 전달",
+        "name": "문서 편집"
+      },
+      "grep": {
+        "description": "문서/작업 공간 내에서 검색 또는 검색 후 바꾸기",
+        "name": "텍스트 검색"
+      },
+      "latex-compile": {
+        "description": "LaTeX 프로젝트를 컴파일하여 PDF 경로 또는 로그 반환",
+        "name": "LaTeX 컴파일"
+      },
+      "metadata": {
+        "description": "문서 메타정보 접근 및 수정, AI를 호출하여 제목, 설명, 키워드 등 생성",
+        "name": "메타정보 관리"
+      },
+      "outline-optimize": {
+        "description": "AI를 사용하여 문서 개요 생성/최적화(.md/.tex 파일만), filePath 또는 tabId로 문서 지정",
+        "name": "개요 최적화"
+      },
+      "outline-tree": {
+        "description": "문서 개요 트리 가져오기(.md/.tex 파일만)",
+        "name": "개요 트리"
+      },
+      "proofread": {
+        "description": "텍스트의 문법, 맞춤법 및 LaTeX 구문 오류 검사",
+        "name": "텍스트 교정"
+      },
+      "rag-retrieval": {
+        "description": "지식베이스에서 질문과 관련된 문서 조각을 검색하여 AI 응답 정확도 향상",
+        "name": "RAG 지식베이스 검색"
+      },
+      "terminal-execution": {
+        "description": "터미널 명령 실행, 사용자 승인 필요(신뢰 모드 설정 가능)",
+        "name": "터미널 실행"
+      },
+      "timestamp": {
+        "description": "현재 타임스탬프 반환 및 각 호출 시간을 기록하여 시간 차이 계산",
+        "name": "타임스탬프"
+      },
+      "title-format": {
+        "description": "문서 제목 서식 지정: 제목 계층 조정, 번호 추가/제거, 접두사 제거 등",
+        "name": "제목 서식 지정"
+      },
+      "todolist-planning": {
+        "description": "사용자 의도를 분석하고 복잡한 작업을 구조화된 할 일 목록으로 분해",
+        "name": "의도 인식 및 작업 계획"
+      },
+      "tool-spec-fetcher": {
+        "description": "하나 이상의 도구에 대한 전체 설명(fullSpec) 가져오기",
+        "name": "도구 설명 가져오기"
+      },
+      "web-crawler": {
+        "description": "지정된 URL에 접속하여 웹페이지 HTML 콘텐츠 또는 API 응답 가져오기",
+        "name": "웹페이지 접속"
+      },
+      "workspace": {
+        "description": "작업 공간 파일 읽기, 경로/이름으로 유사 검색 또는 루트 디렉토리 목록 표시",
+        "name": "작업 공간 파일 읽기"
+      }
+    }
   },
   "sectionOptimizer": {
     "clear": "지우기",

@@ -2,264 +2,100 @@
 
 ## Overview
 
-LLM Configuration Management allows you to create, edit, delete, and manage multiple LLM configurations. Through configuration management, you can set up different LLM services for various usage scenarios and flexibly switch between them to meet diverse needs.
+LLM Configuration Management allows you to create, edit, delete, and manage multiple LLM configurations. Configurations are displayed as **grid cards**, similar to agent clients: each card shows the configuration name and type. Clicking a card switches to using that configuration. You can test connectivity directly on the card and use the right-click menu to copy, edit, export, or delete configurations.
 
-## Creating Configurations
+## Interface Layout
 
-### Create a New Configuration
+### Grid and Cards
 
-1. On the LLM Settings page, click the "New Configuration" button (+ icon) above the configuration list on the left.
-2. Enter a configuration name in the pop-up dialog.
-3. The system will create a new configuration based on the current settings.
-4. After successful creation, it will automatically switch to the new configuration.
+1. After enabling LLM on the LLM Settings page, a **Configuration Grid** will appear below.
+2. Each **Configuration Card** contains:
+   - **First line**: Configuration name
+   - **Second line**: Large model type (e.g., OpenAI, Tongyi Qianwen, DeepSeek, Ollama, etc.)
+3. **Click a card** to switch to that configuration. The currently active configuration card is highlighted with a **green border**.
+4. The top-right corner of the grid has **New Configuration** and **Import Configuration** buttons.
 
-You can access LLM Settings via the top menu bar:
+You can access LLM settings via the top menu bar:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
 ### Configuration Interface Demo
 
-The following figure shows the main features of the LLM Configuration Management interface:
+The following image demonstrates the main features of the LLM Configuration Management interface:
 
 <SettingLlmSection mode="demo" />
 
-**Notes**:
+## Switching Configurations
 
-- Configuration names cannot be empty.
-- Configuration names should be descriptive for easy identification.
-- Newly created configurations inherit all current settings.
-- The manual configuration type does not support creating new configurations.
+- **Click any card** in the configuration grid to switch to that configuration.
+- The current configuration is indicated by a green border and slight highlighting. All AI features will immediately use the LLM service defined by this configuration.
 
-```mermaid
-graph TB
-    A[Open LLM Settings] --> B[View Configuration List]
-    B --> C{Operation Type}
-    C -->|Create| D[New Configuration]
-    C -->|Edit| E[Select Configuration]
-    C -->|Delete| F[Delete Configuration]
-    C -->|Reset| G[Reset Configuration]
-    D --> H[Enter Configuration Name]
-    E --> I[Modify Parameters]
-    F --> J[Confirm Deletion]
-    G --> K[Confirm Reset]
-    H --> L[Save Configuration]
-    I --> L
-    style A fill:#f3f4f6,stroke:#374151,stroke-width:2px
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style L fill:#e5e7eb,stroke:#6b7280
-```
+## Checking Connectivity
 
-### Create from Current Settings
+- Each card has a **"Check"** button on its right side. Clicking it tests the configuration's **Q&A streaming** and **chat streaming** capabilities.
+- A loading icon is displayed during the test. If output is normal, the test stops automatically and shows a **green checkmark**. If there is a request error, it shows a **red cross** and a brief error message.
+- Regardless of the result, clicking the button again will restart the test.
 
-When creating a new configuration, the system will:
+## Right-Click Menu
 
-- Copy the currently selected LLM type.
-- Copy all current configuration parameters (API URL, API Key, model, etc.).
-- Create a new configuration ID.
-- Add the new configuration to the configuration list.
+**Right-click** on a configuration card to open a menu with the following options:
 
-You can create a new configuration based on an existing one and then modify parameters, allowing for quick creation of similar configurations.
+- **Copy Configuration**: Creates a duplicate of the configuration (the new name will have "(Copy)" appended).
+- **Edit Configuration**: Opens the edit dialog to modify the name, type, and various parameters. Click **OK** to save or **Cancel** to discard changes.
+- **Export Configuration**: Exports the current configuration as a JSON file.
+- **Delete Configuration**: Deletes the configuration (**Preset configurations cannot be deleted**, see below).
 
-<DialogDemo mode="demo" dialogType="llm-config" />
+## Preset Configurations
 
-## Editing Configurations
+**Preset configurations** for the following types (e.g., "Ollama (Default)", "Tongyi Qianwen (Default)", etc.) **cannot be deleted** but **can be edited** (the **large model type cannot be changed** during editing):
 
-### Modifying Configuration Parameters
+- Tongyi Qianwen, DeepSeek, Official OpenAI, OpenAI-compatible, Google Gemini, Ollama
 
-1. Select the configuration to edit from the configuration list.
-2. Modify various parameters in the form on the right.
-3. After modification, the system will mark it as "Unsaved Changes".
-4. Click the "Save Changes" button to save the modifications.
+Custom configurations and those created by copying can be deleted normally.
 
-<DialogDemo mode="demo" dialogType="api-config" />
+## Creating Configurations
 
-### Configuration Parameter Description
+### New Configuration
 
-Configuration parameters differ by LLM type:
+1. Click **"New Configuration"** in the top-right corner of the grid.
+2. Enter a configuration name in the pop-up window and confirm.
+3. The system creates a new configuration based on the **currently selected configuration** and automatically switches to it.
 
-- **MetaDoc API**: Model selection
-- **Ollama**: API URL, Model selection, Max Tokens
-- **OpenAI Compatible**: API URL, API Key, Model selection, Suffix configuration
-- **OpenAI Official**: API Key, Model selection
-- **DeepSeek**: API Key, Model selection
-- **Gemini**: API Key, Model selection
+**Note**: The "New Configuration" button is unavailable when the currently selected configuration is of the "Manual" type.
 
-### Live Preview
+### Import Configuration
 
-When modifying configuration parameters, the system detects changes in real-time:
+1. Click **"Import Configuration"** in the top-right corner of the grid.
+2. In the file dialog that opens, select one or more JSON configuration files (**batch selection is supported**).
+3. The system reads and imports them one by one. Imported configurations are appended to the list.
 
-- A warning label appears when there are unsaved changes.
-- You can click "Discard Changes" at any time to revert.
-- Changes take effect immediately after saving.
+The JSON format supports either a single configuration object or an array of configurations. New IDs are generated upon import to avoid conflicts with existing configurations.
 
-<AIChat mode="demo" />
+## Editing a Configuration
 
-## Deleting Configurations
+1. **Right-click** on a configuration card and select **"Edit Configuration"**.
+2. In the edit dialog, modify the **Configuration Name**, **Large Model Type** (changeable for non-preset configurations), and the various parameters for that type (API address, key, model, etc.).
+3. Click **OK** to save or **Cancel** to discard changes. **There is no "unsaved" state**: changes are only written after confirmation.
 
-### Delete a Configuration
+For explanations of configuration parameters for different LLM types, see [[settings.llm-types|LLM Type Configuration]].
 
-1. Click the "More" button (three dots icon) to the right of the configuration item.
-2. Select "Delete Configuration".
-3. Confirm the deletion operation.
+## Deleting a Configuration
 
-**Restrictions**:
+1. **Right-click** on a configuration card and select **"Delete Configuration"** (this option is not shown for preset configurations).
+2. Confirm the deletion in the confirmation dialog.
+3. If the deleted configuration was the one currently in use, the system automatically switches to another configuration.
 
-- At least one configuration must remain; the last configuration cannot be deleted.
-- Default configurations (isDefault) cannot be deleted, only reset.
-- Deletion is irreversible; please proceed with caution.
+## Exporting a Configuration
 
-### Deletion Confirmation
-
-Before deleting a configuration, the system will ask for confirmation:
-
-- After confirmation, the configuration will be permanently deleted.
-- If the currently active configuration is deleted, the system will automatically switch to another configuration.
-- Deleted configurations cannot be recovered; ensure the configuration is no longer needed.
-
-<DialogDemo mode="demo" dialogType="confirm-delete" />
-
-## Resetting Configurations
-
-### Reset Default Configuration
-
-For default configurations (e.g., "Ollama (Default)"), you can reset them to their initial values:
-
-1. Click the "More" button to the right of the configuration item.
-2. Select "Reset Configuration".
-3. Confirm the reset operation.
-
-After resetting, the configuration reverts to its default values at creation, and all custom modifications will be cleared.
-
-**Applicable Scenarios**:
-
-- Configuration was accidentally modified and needs to be restored to defaults.
-- Need to reset after testing a configuration.
-- Cleaning up unwanted custom settings.
-
-## Exporting Configurations
-
-### Export a Single Configuration
-
-1. Click the "More" button to the right of the configuration item.
-2. Select "Export Configuration".
-3. The system generates a configuration file in JSON format.
-4. Save the file locally.
-
-<DialogDemo mode="demo" dialogType="export-config" />
-
-The exported configuration file contains:
-
-- Configuration ID and name
-- LLM type
-- All configuration parameters
-- Creation and update timestamps
-
-### Export All Configurations
-
-1. Click the "Export All Configurations" button (download icon) above the configuration list.
-2. The system exports all configurations to a single JSON file.
-3. Save the file locally.
-
-Exporting all configurations can be used for:
-
-- Backing up all configurations.
-- Migrating to another device.
-- Sharing configurations with other users.
-
-## Importing Configurations
-
-### Import a Configuration
-
-1. Click the "Import Configuration" button (document copy icon) above the configuration list.
-2. Select a previously exported configuration file.
-3. The system parses and imports the configuration.
-4. The imported configuration is added to the configuration list.
-
-<DialogDemo mode="demo" dialogType="import-config" />
-
-**Import Rules**:
-
-- Supports importing a single configuration or an array of configurations.
-- If an imported configuration ID already exists, a new ID is created to avoid conflicts.
-- After import, you need to manually switch to the new configuration.
-
-### Import Format
-
-The configuration file should be in JSON format, supporting the following structures:
-
-```json
-{
-  "id": "config-xxx",
-  "name": "Configuration Name",
-  "type": "ollama",
-  "ollama": {
-    "apiUrl": "http://localhost:11434/api",
-    "selectedModel": "llama2"
-  }
-}
-```
-
-Or an array of configurations:
-
-```json
-[
-  { "id": "config-1", ... },
-  { "id": "config-2", ... }
-]
-```
-
-## Configuration Sorting
-
-### Drag-and-Drop Sorting
-
-The configuration list supports drag-and-drop sorting:
-
-1. Click and hold a configuration item.
-2. Drag it to the target position.
-3. Release the mouse button to complete the sorting.
-
-The sorted order is saved and will persist the next time you open the settings page.
-
-**Use Cases**:
-
-- Place frequently used configurations at the top.
-- Sort by usage frequency.
-- Group by LLM type.
-
-## Configuration Status
-
-### Current Configuration
-
-The currently active configuration will:
-
-- Be highlighted in the list.
-- Display an "Unsaved Changes" label (if there are unsaved modifications).
-- Be used by all AI features for their LLM service.
-
-### Switching Configurations
-
-When switching configurations:
-
-- The system checks if the current configuration has unsaved changes.
-- If there are unsaved changes, it's recommended to save or discard them first.
-- The switch takes effect immediately; all AI features use the new configuration.
+- **Single Export**: Right-click on a card → **Export Configuration** to save the current configuration as a JSON file.
+- Exported files can be used for backup or to restore configurations on other devices/accounts via "Import Configuration".
 
 ## Best Practices
 
-1. **Naming Convention**: Use clear configuration names, such as "Work-Ollama", "Experiment-OpenAI".
-2. **Regular Backups**: Regularly export and back up important configurations.
-3. **Test Configurations**: Test new configurations after creation to confirm usability before using them.
-4. **Clean Up Unused Configurations**: Periodically delete configurations no longer in use to keep the list tidy.
-5. **Documentation**: Add notes or documentation for complex configurations.
-
-## Important Notes
-
-1. **Configuration Security**: Keep configurations containing API Keys secure; do not share them.
-2. **Configuration Conflicts**: Be aware of ID conflicts when importing configurations.
-3. **Default Configurations**: Default configurations cannot be deleted, only reset.
-4. **Configuration Dependencies**: Some features may depend on specific configurations; verify before deletion.
-5. **Multi-Window Synchronization**: Configuration modifications are synchronized across all windows.
+1. **Naming Convention**: Use clear configuration names, such as "Work-Ollama" or "Experiment-OpenAI".
+2. **Regular Backups**: Periodically export and back up important configurations.
+3. **Check Before Use**: Use the "Check" button on the card to verify connectivity for new or modified configurations.
+4. **Clean Up Unused Configs**: Regularly delete configurations that are no longer in use to keep the list tidy.
 
 ## Related Documentation
 

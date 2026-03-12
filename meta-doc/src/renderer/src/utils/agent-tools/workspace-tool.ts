@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
@@ -694,43 +693,14 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   }
 }
 
-const workspaceToolLocales: ToolLocales = {
-  zh_cn: {
-    name: '工作区文件读取',
-    description:
-      '读取工作区文件、模糊搜索或列出根目录。传 search 时在整个工作区内模糊匹配路径/文件名（类似 Everything）；不传 paths 时返回目录树；传 paths 时读取文件，支持行数范围与 AI 摘要'
-  },
-  en_us: {
-    name: 'Workspace File Reader',
-    description:
-      'Read workspace files, fuzzy-search by path/name, or list root directory. Use search to match paths across the whole workspace (Everything-style); omit paths to get directory tree; use paths to read file(s). Supports line ranges and optional AI summarization'
-  },
-  de_DE: {
-    name: 'Arbeitsbereich-Dateileser',
-    description:
-      'Dateien lesen, Fuzzy-Suche nach Pfad/Name im gesamten Arbeitsbereich oder Stammverzeichnis auflisten. Pfadzeichenfolgen, Zeilenbereiche, optionale KI-Zusammenfassung'
-  },
-  fr_FR: {
-    name: "Lecteur de fichiers d'espace de travail",
-    description:
-      "Lire les fichiers, recherche floue par chemin/nom sur tout l'espace de travail ou lister la racine. Chaînes de chemin, plages de lignes, résumé IA optionnel"
-  },
-  ja_JP: {
-    name: 'ワークスペースファイルリーダー',
-    description:
-      'ファイル読み取り、パス/ファイル名の曖昧検索（ワークスペース全体）、またはルート一覧。行範囲・AI要約対応'
-  },
-  ko_KR: {
-    name: '작업 공간 파일 읽기',
-    description:
-      '파일 읽기, 전체 작업 공간에서 경로/파일명 퍼지 검색 또는 루트 목록. 줄 범위 및 AI 요약 지원'
-  }
-}
+const WORKSPACE_TOOL_NAME = 'Workspace File Reader'
+const WORKSPACE_TOOL_DESCRIPTION =
+  'Read workspace files, fuzzy-search by path/name, or list root directory. Use search to match paths across the whole workspace (Everything-style); omit paths to get directory tree; use paths to read file(s). Supports line ranges and optional AI summarization'
 
 export const workspaceToolConfig: AgentToolConfig = {
   id: 'workspace',
-  name: workspaceToolLocales,
-  description: workspaceToolLocales,
+  name: WORKSPACE_TOOL_NAME,
+  description: WORKSPACE_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'workspace',
@@ -801,79 +771,12 @@ Read files from workspace folders, **fuzzy-search** by path/file name across the
 - Supports batch reading of multiple files
 - Paths can be relative to workspace folder or absolute`
   },
-  instruction: `
-# 工作区文件读取工具
-
-## 功能描述
-读取工作区文件、**模糊搜索**（类似 Everything：输入文本即可按路径/文件名模糊匹配整个工作区，展示匹配项的路径与目录结构），或列出工作区根目录。
-
-- **\`search\`（推荐在不知道确切路径时使用）**：传字符串，在整个工作区内对文件/文件夹路径做模糊匹配，返回匹配项及完整路径与结构，无需先列根目录。
-- **不传 \`paths\` 且不传 \`search\`**：返回工作区根目录树（不报错）。
-- **传 \`paths\`**：读取指定文件，支持路径字符串和行数范围。支持可选的AI摘要。
-
-**⚠️ 需要读整个文件或大段内容时请用本工具（不要用 grep）**。grep 只返回匹配片段；要完整内容请用 \`workspace\` 传 \`paths\`。
-
-## 使用场景
-- **模糊搜索**：\`{"search": "wrktool"}\` 或 \`{"search": "config"}\` 在整个工作区内按名称找文件/文件夹，再根据返回的 path 用 \`paths\` 读具体文件
-- **先看目录再读文件**：\`{}\` 或 \`{"paths": []}\` 获取根目录树
-- 读取工作区文件，了解代码库结构
-- 从大文件中读取特定行
-- 批量读取多个相关文件
-- 对长文件进行摘要，节省token使用
-
-## 输入格式
-\`\`\`json
-{
-  "search": "string",           // 可选。模糊搜索关键词：在整个工作区内匹配路径/文件名（类似 Everything）。有值时返回匹配项及路径与结构，无需先列根目录
-  "paths": "string|string[]",   // 可选。不传或为空时返回目录树或搜索结果；有值时读取对应文件
-  "summarized": false,          // 可选，是否使用AI摘要，默认false
-  "workspaceFolder": "string"   // 可选，工作区文件夹路径。不提供则使用第一个工作区文件夹
-}
-\`\`\`
-
-## 路径字符串格式
-- \`"path/to/file.txt"\` - 读取完整文件
-- \`"path/to/file.txt:L123"\` - 读取单行（第123行）
-- \`"path/to/file.txt:L123-L456"\` - 读取行范围（第123行到第456行）
-
-## 输出格式
-- 传了 \`search\` 时：返回 \`{ tree, workspaceFolder, searchQuery, matchCount }\`，\`tree\` 为匹配项列表（每项 \`{ name, path, isDirectory }\`），按路径排序。
-- \`paths\` 未传或为空且未传 \`search\`：返回 \`{ tree, workspaceFolder }\`（完整目录树）。
-- \`paths\` 有值时：
-\`\`\`json
-{
-  "files": [
-    {
-      "path": "string",
-      "content": "string",
-      "startLine": 123,      // 可选，如果指定了行范围
-      "endLine": 456,        // 可选，如果指定了行范围
-      "totalLines": 1000,
-      "summarized": false,
-      "summary": "string"    // 可选，如果summarized=true，包含AI生成的摘要
-    }
-  ],
-  "totalFiles": 1,
-  "summarized": false
-}
-\`\`\`
-
-## 注意事项
-- **\`search\`**：模糊匹配（类似 Everything），关键词字符按顺序出现在路径/名称中即算匹配（如 \`wrktool\` 可匹配 \`workspace-tool.ts\`）。搜索范围为整个工作区。不知道确切路径时优先用 \`search\`。
-- **无 paths 且无 search**：返回工作区根目录树（不报错）。
-- 行号从1开始（第一行是1）
-- 如果行数范围超出文件总行数，自动截断
-- AI摘要功能强调语言简洁，不包含多余内容
-- 支持批量读取多个文件
-- 路径可以是相对于工作区文件夹的相对路径，也可以是绝对路径
-- 如果文件不存在或无法读取，会跳过该文件，继续处理其他文件
-`,
+  instruction: WORKSPACE_TOOL_DESCRIPTION,
   callback: workspaceToolCallback,
   displayComponent: WorkspaceDisplay,
   tags: ['workspace', 'file', 'read'],
   enabled: true,
   editable: false,
-  locales: workspaceToolLocales,
   inputSchema: {
     type: 'object',
     properties: {

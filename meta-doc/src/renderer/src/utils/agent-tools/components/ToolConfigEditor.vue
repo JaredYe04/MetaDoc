@@ -226,16 +226,18 @@ const loadToolConfig = (toolId: string) => {
       instruction = getLocalizedInstruction(instruction)
     }
 
-    // 处理name和description
-    let name = config.name
-    if (typeof name === 'object' && name !== null) {
-      name = agentToolManager.getLocalizedText(name)
-    }
-
-    let description = config.description
-    if (typeof description === 'object' && description !== null) {
-      description = agentToolManager.getLocalizedText(description)
-    }
+    // 处理 name 和 description（使用 locales 中的 toolLabels 以支持界面本地化）
+    const name =
+      typeof config.name === 'string'
+        ? agentToolManager.getLocalizedToolName(config.id, config.name)
+        : agentToolManager.getLocalizedToolName(config.id, String((config.name as any)?.en_us?.name ?? config.id))
+    const description =
+      typeof config.description === 'string'
+        ? agentToolManager.getLocalizedToolDescription(config.id, config.description)
+        : agentToolManager.getLocalizedToolDescription(
+            config.id,
+            String((config.description as any)?.en_us?.description ?? '')
+          )
 
     Object.assign(formData, {
       ...config,

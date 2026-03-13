@@ -1,14 +1,14 @@
 # Atajos del editor
 
-## Descripción general
+## Resumen
 
-Los atajos del editor son combinaciones de teclas utilizadas en la interfaz del editor, que incluyen funciones como edición de texto, buscar y reemplazar, formateo, etc. Dominar estos atajos puede mejorar la eficiencia de la edición.
+Los atajos del editor son combinaciones de teclas utilizadas en la interfaz del editor, que incluyen funciones como edición de texto, buscar y reemplazar, y formateo. Dominar estos atajos puede mejorar la eficiencia de edición.
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 
-**Nota**: Buscar/Reemplazar (Ctrl+F, Ctrl+H) se implementa a nivel global de la aplicación; Negrita/Cursiva/Enlace/Bloque de código, etc., los proporciona el editor subyacente (Markdown usa Vditor, LaTeX usa Monaco). Si no funcionan, guíese por el comportamiento real del editor.
+**Nota**: Buscar/Reemplazar (Ctrl+F, Ctrl+H) se implementa a nivel global de la aplicación; las funciones como negrita/cursiva/enlace/bloque de código las proporciona el editor subyacente (Vditor para Markdown, Monaco para LaTeX). Si no funcionan, guíese por el comportamiento real del editor.
 
 ## Buscar y reemplazar
 
@@ -29,7 +29,7 @@ graph LR
     A[Atajos del editor] --> B[Buscar y reemplazar]
     A --> C[Formateo de texto]
     A --> D[Completado por IA]
-    A --> E[Operaciones de bloque de código]
+    A --> E[Operaciones con bloques de código]
     A --> F[Plegar/Desplegar]
     A --> G[Edición multicursor]
     B --> H[Ctrl+F Buscar]
@@ -47,11 +47,11 @@ graph LR
 
 El cuadro de diálogo de búsqueda admite las siguientes funciones:
 
-- **Buscar texto**: Ingrese el texto a buscar
-- **Reemplazar texto**: Ingrese el texto de reemplazo
+- **Buscar texto**: Introducir el texto a buscar
+- **Reemplazar texto**: Introducir el texto de reemplazo
 - **Expresiones regulares**: Admite búsqueda con expresiones regulares
 - **Coincidir mayúsculas/minúsculas**: Distingue entre mayúsculas y minúsculas
-- **Coincidir palabra completa**: Coincide con palabras completas
+- **Coincidir palabra completa**: Coincide solo con palabras enteras
 
 La interfaz del menú de buscar y reemplazar es la siguiente:
 
@@ -79,7 +79,7 @@ La interfaz del menú de buscar y reemplazar es la siguiente:
 
 - **Atajo**: `Ctrl+K` (Windows/Linux) o `Cmd+K` (macOS)
 - **Función**: Insertar un enlace
-- **Caso de uso**: Agregar un hipervínculo
+- **Caso de uso**: Añadir un hipervínculo
 
 **Precaución**: Este atajo puede entrar en conflicto con Guardar todo (Ctrl+K S). Es necesario presionar primero Ctrl+K y luego K, no simultáneamente.
 
@@ -92,17 +92,17 @@ La interfaz del menú de buscar y reemplazar es la siguiente:
 ### Disparar completado manualmente
 
 - **Atajo**: `Shift+Tab`
-- **Función**: Disparar manualmente el autocompletado por IA
-- **Caso de uso**: Disparar manualmente cuando se necesita completado por IA
+- **Función**: Disparar manualmente el completado automático por IA
+- **Caso de uso**: Disparar manualmente cuando se necesite completado por IA
 
 ### Teclas de activación del completado
 
 El completado por IA también se puede activar automáticamente con las siguientes teclas:
 
-- **Enter**: Se activa al presionar Enter
-- **Espacio**: Se activa al presionar la barra espaciadora
-- **Punto y coma**: Se activa al presionar punto y coma (;)
-- **Barra diagonal**: Se activa al presionar barra diagonal (/)
+- **Enter**: Presionar Enter para activar
+- **Espacio**: Presionar la barra espaciadora para activar
+- **Punto y coma**: Presionar punto y coma (;) para activar
+- **Barra diagonal**: Presionar barra diagonal (/) para activar
 
 Estas teclas de activación se pueden configurar en [[settings.llm|Configuración de LLM]].
 
@@ -112,7 +112,7 @@ Estas teclas de activación se pueden configurar en [[settings.llm|Configuració
 
 - **Atajo**: `Ctrl+Shift+K` (Editor Markdown)
 - **Función**: Insertar un bloque de código
-- **Caso de uso**: Agregar un ejemplo de código
+- **Caso de uso**: Añadir un ejemplo de código
 
 ## Plegar y desplegar
 
@@ -133,7 +133,7 @@ Estas teclas de activación se pueden configurar en [[settings.llm|Configuració
 ### Seleccionar todas las palabras iguales
 
 - **Atajo**: `Ctrl+Shift+L` (Windows/Linux) o `Cmd+Shift+L` (macOS)
-- **Función**: Seleccionar todas las palabras iguales en el documento y agregar cursores
+- **Función**: Seleccionar todas las palabras idénticas en el documento y añadir cursores
 - **Caso de uso**: Editar en lote texto idéntico
 
 ## Deshacer y rehacer
@@ -244,7 +244,7 @@ El editor LaTeX está basado en Monaco Editor y admite los siguientes atajos:
 - **Plegar**: `Ctrl+Shift+[`
 - **Desplegar**: `Ctrl+Shift+]`
 - **Seleccionar todas las palabras iguales**: `Ctrl+Shift+L`
-- **Edición multicursor**: `Alt+Click` para agregar un cursor
+- **Edición multicursor**: `Alt+Click` para añadir cursores
 
 ## Consejos para usar los atajos
 
@@ -257,13 +257,13 @@ El editor LaTeX está basado en Monaco Editor y admite los siguientes atajos:
 Se pueden combinar varios atajos:
 
 1. **Buscar y reemplazar**: `Ctrl+H` para abrir buscar y reemplazar, luego usar Tab para cambiar entre cuadros de entrada.
-2. **Formatear texto**: Seleccionar texto y luego usar `Ctrl+B` o `Ctrl+I` para formatear.
+2. **Formatear texto**: Seleccionar texto y usar `Ctrl+B` o `Ctrl+I` para formatear.
 3. **Edición en lote**: Usar `Ctrl+Shift+L` para seleccionar todas las palabras iguales y luego editarlas uniformemente.
 
 ### Memoria de atajos
 
 - **Formateo**: B (Bold/Negrita), I (Italic/Cursiva) corresponden a negrita y cursiva.
-- **Buscar**: F (Find/Buscar), H (Hunt/Buscar y reemplazar).
+- **Búsqueda**: F (Find/Buscar), H (Hunt/Buscar y reemplazar).
 - **Plegar**: `[` y `]` corresponden a plegar y desplegar.
 
 ## Mejores prácticas
@@ -271,7 +271,7 @@ Se pueden combinar varios atajos:
 <MainTabs mode="demo" />
 
 1. **Dominar el uso**: Dominar los atajos de edición más comunes.
-2. **Operaciones combinadas**: Combinar múltiples atajos para completar ediciones complejas.
+2. **Operaciones combinadas**: Combinar múltiples atajos para realizar ediciones complejas.
 3. **Edición en lote**: Usar la función multicursor para editar en lote.
 4. **Formateo rápido**: Usar atajos para formatear texto rápidamente.
 5. **Buscar y reemplazar**: Usar la función buscar y reemplazar para mejorar la eficiencia.
@@ -281,7 +281,7 @@ Se pueden combinar varios atajos:
 1. **Diferencias de plataforma**: Windows/Linux usan Ctrl, macOS usa Cmd.
 2. **Conflictos de atajos**: Algunos atajos pueden entrar en conflicto con funciones del editor.
 3. **Dependencia del contexto**: Algunos atajos solo son efectivos en contextos específicos.
-4. **Diferencias entre editores**: Los atajos admitidos por los editores Markdown y LaTeX pueden diferir.
+4. **Diferencias entre editores**: Los atajos admitidos pueden variar entre los editores Markdown y LaTeX.
 5. **Completado por IA**: Shift+Tab es la activación manual; la activación automática requiere configurar las teclas de activación.
 
 ## Documentación relacionada
@@ -289,7 +289,7 @@ Se pueden combinar varios atajos:
 - [[shortcuts.global|Atajos globales]]
 - [[core.editor-basics|Operaciones básicas del editor]]
 - [[markdown.features|Funciones del editor Markdown]]
-- [[ai.completion|Autocompletado por IA]]
+- [[ai.completion|Completado automático por IA]]
 
 <MenuItemsDemo mode="demo" :items='[{"id": "file"}]' />
 

@@ -2,9 +2,9 @@
 
 ## Übersicht
 
-Globale Tastenkombinationen sind in MetaDoc auf jeder Oberfläche verwendbare Shortcuts. Das Beherrschen dieser Tastenkombinationen kann die Arbeitseffizienz erheblich steigern.
+Globale Tastenkombinationen sind in MetaDoc Tastenkürzel, die auf jeder Benutzeroberfläche verwendet werden können. Das Beherrschen dieser Tastenkombinationen kann die Arbeitseffizienz erheblich steigern.
 
-**Hinweis**: Die Tastenkombinationen in diesem Dokument wurden mit der aktuellen Code-Implementierung abgeglichen und sind im Hauptprozess oder Renderer-Prozess implementiert und verfügbar.
+**Hinweis**: Die Tastenkombinationen in diesem Dokument wurden mit der aktuellen Code-Implementierung abgeglichen und sind sowohl im Hauptprozess als auch im Renderer-Prozess implementiert und verfügbar.
 
 ## Dateioperationen
 
@@ -24,7 +24,7 @@ Globale Tastenkombinationen sind in MetaDoc auf jeder Oberfläche verwendbare Sh
 
 - **Tastenkombination**: `Ctrl+S` (Windows/Linux) oder `Cmd+S` (macOS)
 - **Funktion**: Speichert das aktuelle Dokument
-- **Anwendungsfall**: Speichern von Bearbeitungen, um Datenverlust zu verhindern
+- **Anwendungsfall**: Speichern von Bearbeitungsinhalten, um Datenverlust zu verhindern
 
 ### Speichern unter
 
@@ -37,7 +37,7 @@ Globale Tastenkombinationen sind in MetaDoc auf jeder Oberfläche verwendbare Sh
 - **Tastenkombination**: `Ctrl+K S` (Windows/Linux) oder `Cmd+K S` (macOS)
 - **Funktion**: Speichert alle geöffneten Dokumente
 - **Verwendung**: Zuerst `Ctrl+K` (oder `Cmd+K`) drücken, dann `S`
-- **Anwendungsfall**: Alle Dokumente auf einmal speichern
+- **Anwendungsfall**: Einmaliges Speichern aller Dokumente
 
 <MenuItemsDemo mode="demo" :items='[{"id": "file", "items": ["save-all"]}]' />
 
@@ -45,7 +45,7 @@ Globale Tastenkombinationen sind in MetaDoc auf jeder Oberfläche verwendbare Sh
 
 - **Tastenkombination**: `Ctrl+W` (Windows/Linux) oder `Cmd+W` (macOS)
 - **Funktion**: Schließt den aktuellen Tab
-- **Anwendungsfall**: Schließen eines nicht benötigten Dokuments
+- **Anwendungsfall**: Schließen nicht benötigter Dokumente
 
 ```mermaid
 graph LR
@@ -84,7 +84,7 @@ Die Tab-Leiste zeigt alle geöffneten Dokumente an und unterstützt Operationen 
 
 - **Tastenkombination**: `Ctrl+Tab` (Windows/Linux) oder `Cmd+Tab` (macOS)
 - **Funktion**: Wechselt zum nächsten Tab
-- **Verwendung**: Halten von `Ctrl+Tab` zeigt ein Tab-Wechsel-Overlay an, mit Tab kann weitergeschaltet oder direkt geklickt werden
+- **Verwendung**: Halten von `Ctrl+Tab` zeigt ein Tab-Wechsel-Overlay an, dann kann mit weiterem Drücken der Tab-Taste ausgewählt oder direkt geklickt werden
 - **Anwendungsfall**: Schnelles Wechseln zwischen mehreren Dokumenten
 
 <TabSwitcherOverlay mode="demo" />
@@ -93,12 +93,12 @@ Die Tab-Leiste zeigt alle geöffneten Dokumente an und unterstützt Operationen 
 
 - **Tastenkombination**: `Ctrl+Shift+Tab` (Windows/Linux) oder `Cmd+Shift+Tab` (macOS)
 - **Funktion**: Wechselt zum vorherigen Tab
-- **Anwendungsfall**: Rückwärts durch die Tabs navigieren
+- **Anwendungsfall**: Rückwärts durch Tabs navigieren
 
 ### Geschlossenen Tab wieder öffnen
 
 - **Tastenkombination**: `Ctrl+Shift+T` (Windows/Linux) oder `Cmd+Shift+T` (macOS)
-- **Funktion**: Öffnet den zuletzt geschlossenen Tab erneut
+- **Funktion**: Öffnet den zuletzt geschlossenen Tab wieder
 - **Verwendung**: Kann wiederholt verwendet werden, um die zuletzt geschlossenen Tabs der Reihe nach wiederherzustellen (bis zu 20)
 - **Anwendungsfall**: Schnelle Wiederherstellung nach versehentlichem Schließen eines Tabs
 
@@ -110,7 +110,7 @@ Die Tab-Leiste zeigt alle geöffneten Dokumente an und unterstützt Operationen 
 
 - **Tastenkombination**: `F1`
 - **Funktion**: Öffnet die Benutzerhandbuch-Seite
-- **Anwendungsfall**: Wenn die Hilfedokumentation benötigt wird
+- **Anwendungsfall**: Wenn Hilfe oder Dokumentation benötigt wird
 
 <MenuItemsDemo mode="demo" :items='[{"id": "help"}]' />
 
@@ -155,37 +155,48 @@ Die Tab-Leiste zeigt alle geöffneten Dokumente an und unterstützt Operationen 
 Einige Tastenkombinationen müssen nacheinander gedrückt werden:
 
 - **Alle speichern**: Zuerst `Ctrl+K`, dann `S` (nicht gleichzeitig)
-- **Tab-Wechsel**: `Ctrl+Tab` gedrückt halten zeigt das Overlay, dann mit Tab weiterwählen
+- **Tab-Wechsel**: `Ctrl+Tab` gedrückt halten zeigt das Overlay, dann mit Tab-Taste weiter auswählen
+
+### Benutzerdefinierte Tastenkombinationen
+
+Sie können globale Tastenkombinationen unter **Einstellungen → Tastenkombinationen** verwalten:
+
+- **Tastenschema**: Das Programm bietet drei Standardschemata für Windows, Linux und macOS. Beim ersten Start wird automatisch basierend auf dem aktuellen System ausgewählt.
+- **Schema erstellen/bearbeiten**: Sie können benutzerdefinierte Schemata erstellen und die Tasten für jede Aktion ändern.
+- **Importieren/Exportieren**: Unterstützt den Export von Schemata als JSON-Datei oder den Import von Schemata aus einer Datei.
+- **Standard wiederherstellen**: Für jeden Tasteneintrag, der vom Standardschema abweicht, kann durch Klicken auf "Standard wiederherstellen" der ursprüngliche Zustand wiederhergestellt werden.
+
+Änderungen an einem Schema werden erst nach einem Klick auf "Speichern" am unteren Rand wirksam.
 
 ### Tastenkombinationskonflikte
 
 Falls Tastenkombinationen mit dem System oder anderer Software kollidieren:
 
-- **System-Tastenkombinationen**: Einige System-Shortcuts haben möglicherweise Vorrang
-- **Andere Software**: Konfliktträchtige Software schließen oder deren Tastenkombinationen ändern
-- **Benutzerdefinierte Tastenkombinationen**: Zukünftige Versionen könnten benutzerdefinierte Tastenkombinationen unterstützen
+- **System-Tastenkombinationen**: Einige System-Tastenkombinationen haben möglicherweise Vorrang.
+- **Andere Software**: Konfliktträchtige Software schließen oder deren Tastenkombinationen ändern.
+- **Benutzerdefinierte Tastenkombinationen**: Unter **Einstellungen → Tastenkombinationen** können Sie andere Tasten zuweisen.
 
 ### Merkhilfen
 
-- **Dateioperationen**: Verwenden Sie die standardmäßigen Dateioperationstasten (Ctrl+N/O/S)
-- **Tab-Operationen**: Verwenden Sie Tab-bezogene Kombinationen
-- **Alle speichern**: Verwenden Sie Ctrl+K als Befehlspräfix
+- **Dateioperationen**: Verwenden Sie die standardmäßigen Dateioperationstasten (Ctrl+N/O/S).
+- **Tab-Operationen**: Verwenden Sie Tab-bezogene Kombinationen.
+- **Alle speichern**: Verwenden Sie Ctrl+K als Befehlspräfix.
 
 ## Best Practices
 
-1.  **Routineaufbau**: Häufig genutzte Tastenkombinationen routiniert beherrschen, um die Effizienz zu steigern
-2.  **Kombinierte Nutzung**: Mehrere Tastenkombinationen kombinieren, um komplexe Operationen durchzuführen
-3.  **Tab-Wechsel**: Ctrl+Tab für schnelles Wechseln verwenden, Mausoperationen vermeiden
-4.  **Regelmäßiges Speichern**: Gewohnheit entwickeln, regelmäßig mit Ctrl+S zu speichern
-5.  **Schnelle Wiederherstellung**: Bei versehentlichem Schließen eines Tabs Ctrl+Shift+T zur schnellen Wiederherstellung verwenden
+1.  **Regelmäßige Nutzung**: Beherrschen Sie häufig verwendete Tastenkombinationen, um die Effizienz zu steigern.
+2.  **Kombinierte Nutzung**: Kombinieren Sie mehrere Tastenkombinationen, um komplexe Operationen durchzuführen.
+3.  **Tab-Wechsel**: Verwenden Sie Ctrl+Tab für schnelles Wechseln, um Mausoperationen zu vermeiden.
+4.  **Regelmäßiges Speichern**: Entwickeln Sie die Gewohnheit, regelmäßig mit Ctrl+S zu speichern.
+5.  **Schnelle Wiederherstellung**: Verwenden Sie Ctrl+Shift+T, um versehentlich geschlossene Tabs schnell wiederherzustellen.
 
 ## Wichtige Hinweise
 
-1.  **Plattformunterschiede**: Windows/Linux verwenden Ctrl, macOS verwendet Cmd
-2.  **Tastenkombinationskonflikte**: Auf Konflikte mit anderen Programmen achten
-3.  **Reihenfolge von Tastenkombinationen**: Einige Tastenkombinationen müssen nacheinander gedrückt werden
-4.  **Tab-Wechsel**: Ctrl+Tab zeigt ein Overlay an, aus dem weiter ausgewählt werden kann
-5.  **Alle speichern**: Ctrl+K S erfordert zuerst Ctrl+K, dann S
+1.  **Plattformunterschiede**: Windows/Linux verwenden Ctrl, macOS verwendet Cmd.
+2.  **Tastenkombinationskonflikte**: Achten Sie auf Konflikte mit Tastenkombinationen anderer Software.
+3.  **Reihenfolge von Tastenkombinationen**: Einige Tastenkombinationen müssen nacheinander gedrückt werden.
+4.  **Tab-Wechsel**: Ctrl+Tab zeigt ein Overlay an, aus dem weiter ausgewählt werden kann.
+5.  **Alle speichern**: Ctrl+K S erfordert zuerst Ctrl+K, dann S.
 
 ## Verwandte Dokumentation
 

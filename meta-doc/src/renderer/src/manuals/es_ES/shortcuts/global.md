@@ -1,14 +1,14 @@
 # Atajos globales
 
-## Descripción general
+## Resumen
 
-Los atajos globales son combinaciones de teclas que se pueden utilizar en cualquier interfaz de MetaDoc. Dominar estos atajos puede mejorar significativamente la eficiencia del trabajo.
+Los atajos globales son combinaciones de teclas en MetaDoc que se pueden utilizar en cualquier interfaz. Dominar estos atajos puede mejorar significativamente la eficiencia del trabajo.
 
-**Nota**: Los atajos de teclado en este documento han sido verificados con la implementación actual del código y están implementados y disponibles tanto en el proceso principal como en el proceso de renderizado.
+**Nota**: Los atajos en este documento han sido verificados con la implementación actual del código y están implementados y disponibles en el proceso principal o en el proceso de renderizado.
 
 ## Operaciones de archivo
 
-### Crear nuevo documento
+### Nuevo documento
 
 - **Atajo**: `Ctrl+N` (Windows/Linux) o `Cmd+N` (macOS)
 - **Función**: Crear un nuevo documento en blanco
@@ -80,11 +80,11 @@ La barra de pestañas muestra todos los documentos abiertos y admite operaciones
 
 ### Cambiar de pestaña
 
-#### Siguiente pestaña
+#### Pestaña siguiente
 
 - **Atajo**: `Ctrl+Tab` (Windows/Linux) o `Cmd+Tab` (macOS)
 - **Función**: Cambiar a la siguiente pestaña
-- **Instrucciones de uso**: Mantener presionado `Ctrl+Tab` mostrará una superposición de cambio de pestañas, puede continuar presionando Tab para seleccionar o hacer clic directamente
+- **Instrucciones de uso**: Mantener presionado `Ctrl+Tab` mostrará una superposición para cambiar de pestaña, puede continuar presionando Tab para seleccionar o hacer clic directamente
 - **Caso de uso**: Cambiar rápidamente entre múltiples documentos
 
 <TabSwitcherOverlay mode="demo" />
@@ -99,7 +99,7 @@ La barra de pestañas muestra todos los documentos abiertos y admite operaciones
 
 - **Atajo**: `Ctrl+Shift+T` (Windows/Linux) o `Cmd+Shift+T` (macOS)
 - **Función**: Reabrir la pestaña cerrada más recientemente
-- **Instrucciones de uso**: Se puede usar de forma continua para restaurar sucesivamente las pestañas cerradas más recientemente (hasta 20)
+- **Instrucciones de uso**: Se puede usar repetidamente para restaurar secuencialmente las pestañas cerradas más recientemente (hasta 20)
 - **Caso de uso**: Recuperar rápidamente una pestaña cerrada por error
 
 <MainTabs mode="demo" />
@@ -120,14 +120,14 @@ La barra de pestañas muestra todos los documentos abiertos y admite operaciones
 
 | Función                    | Atajo                |
 | -------------------------- | -------------------- |
-| Crear nuevo documento      | `Ctrl+N`             |
+| Nuevo documento            | `Ctrl+N`             |
 | Abrir documento            | `Ctrl+O`             |
 | Guardar documento          | `Ctrl+S`             |
 | Guardar como               | `Ctrl+Shift+S`       |
 | Guardar todos              | `Ctrl+K S`           |
 | Cerrar pestaña             | `Ctrl+W`             |
 | Nueva pestaña              | `Ctrl+T`             |
-| Siguiente pestaña          | `Ctrl+Tab`           |
+| Pestaña siguiente          | `Ctrl+Tab`           |
 | Pestaña anterior           | `Ctrl+Shift+Tab`     |
 | Reabrir pestaña cerrada    | `Ctrl+Shift+T`       |
 | Abrir manual de usuario    | `F1`                 |
@@ -136,56 +136,67 @@ La barra de pestañas muestra todos los documentos abiertos y admite operaciones
 
 | Función                    | Atajo                |
 | -------------------------- | -------------------- |
-| Crear nuevo documento      | `Cmd+N`              |
+| Nuevo documento            | `Cmd+N`              |
 | Abrir documento            | `Cmd+O`              |
 | Guardar documento          | `Cmd+S`              |
 | Guardar como               | `Cmd+Shift+S`        |
 | Guardar todos              | `Cmd+K S`            |
 | Cerrar pestaña             | `Cmd+W`              |
 | Nueva pestaña              | `Cmd+T`              |
-| Siguiente pestaña          | `Cmd+Tab`            |
+| Pestaña siguiente          | `Cmd+Tab`            |
 | Pestaña anterior           | `Cmd+Shift+Tab`      |
 | Reabrir pestaña cerrada    | `Cmd+Shift+T`        |
 | Abrir manual de usuario    | `F1`                 |
 
-## Técnicas de uso de atajos
+## Técnicas para usar atajos
 
-### Orden de combinaciones de teclas
+### Orden de las combinaciones de teclas
 
 Algunos atajos requieren presionar las teclas en secuencia:
 
 - **Guardar todos**: Primero presione `Ctrl+K`, luego presione `S` (no simultáneamente)
-- **Cambio de pestañas**: Mantenga presionado `Ctrl+Tab` para mostrar la superposición, luego continúe presionando Tab para seleccionar
+- **Cambio de pestaña**: Mantenga presionado `Ctrl+Tab` para mostrar la superposición, luego continúe presionando Tab para seleccionar
+
+### Personalizar atajos
+
+Puede gestionar los atajos globales en **Configuración → Atajos de teclado**:
+
+- **Esquema de teclas**: El programa proporciona tres esquemas predeterminados: Windows, Linux y macOS. Al iniciar por primera vez, se selecciona automáticamente según el sistema actual.
+- **Crear/Editar esquema**: Puede crear un esquema personalizado y modificar las teclas para cada acción.
+- **Importar/Exportar**: Admite exportar el esquema como un archivo JSON o importar un esquema desde un archivo.
+- **Restaurar predeterminados**: Para cada elemento de tecla que difiera del esquema predeterminado, puede hacer clic en "Restaurar predeterminado" para revertirlo.
+
+Después de cambiar un esquema, debe hacer clic en "Guardar" en la parte inferior para que surta efecto.
 
 ### Conflictos de atajos
 
 Si un atajo entra en conflicto con el sistema u otro software:
 
-- **Atajos del sistema**: Algunos atajos del sistema pueden tener prioridad
-- **Otro software**: Cierre el software en conflicto o modifique sus atajos
-- **Atajos personalizados**: Las versiones futuras podrían admitir atajos personalizados
+- **Atajos del sistema**: Algunos atajos del sistema pueden tener prioridad.
+- **Otro software**: Cierre el software conflictivo o modifique sus atajos.
+- **Atajos personalizados**: En **Configuración → Atajos de teclado** puede modificarlos a otras teclas.
 
 ### Técnicas de memorización
 
-- **Operaciones de archivo**: Use los atajos estándar de operaciones de archivo (Ctrl+N/O/S)
-- **Operaciones de pestañas**: Use combinaciones relacionadas con la tecla Tab
-- **Guardar todos**: Use Ctrl+K como prefijo de comando
+- **Operaciones de archivo**: Use los atajos estándar para operaciones de archivo (Ctrl+N/O/S).
+- **Operaciones de pestañas**: Use combinaciones relacionadas con la tecla Tab.
+- **Guardar todos**: Use Ctrl+K como prefijo de comando.
 
 ## Mejores prácticas
 
-1. **Dominar el uso**: Domine los atajos comunes para mejorar la eficiencia
-2. **Uso combinado**: Combine múltiples atajos para completar operaciones complejas
-3. **Cambio de pestañas**: Use Ctrl+Tab para cambiar rápidamente, evitando operaciones con el mouse
-4. **Guardar periódicamente**: Adquiera el hábito de usar Ctrl+S para guardar periódicamente
-5. **Recuperación rápida**: Use Ctrl+Shift+T para recuperar rápidamente una pestaña cerrada por error
+1. **Dominar el uso**: Domine los atajos comunes para mejorar la eficiencia.
+2. **Uso combinado**: Combine múltiples atajos para completar operaciones complejas.
+3. **Cambio de pestañas**: Use Ctrl+Tab para cambiar rápidamente, evitando operaciones con el ratón.
+4. **Guardar periódicamente**: Adquiera el hábito de usar Ctrl+S para guardar periódicamente.
+5. **Recuperación rápida**: Use Ctrl+Shift+T para recuperar rápidamente una pestaña cerrada por error.
 
 ## Consideraciones
 
-1. **Diferencias de plataforma**: Windows/Linux usan Ctrl, macOS usa Cmd
-2. **Conflictos de atajos**: Preste atención a conflictos con atajos de otro software
-3. **Orden de combinaciones**: Algunos atajos requieren presionar las teclas en secuencia
-4. **Cambio de pestañas**: Ctrl+Tab mostrará una superposición, donde puede continuar seleccionando
-5. **Guardar todos**: Ctrl+K S requiere presionar primero Ctrl+K, luego S
+1. **Diferencias de plataforma**: Windows/Linux usan Ctrl, macOS usa Cmd.
+2. **Conflictos de atajos**: Preste atención a conflictos con atajos de otro software.
+3. **Orden de combinaciones**: Algunos atajos requieren presionar las teclas en secuencia.
+4. **Cambio de pestañas**: Ctrl+Tab mostrará una superposición, donde puede continuar seleccionando.
+5. **Guardar todos**: Ctrl+K S requiere presionar primero Ctrl+K, luego S.
 
 ## Documentación relacionada
 

@@ -2,13 +2,13 @@
 
 ## Visão Geral
 
-Os atalhos do editor são combinações de teclas utilizadas na interface do editor, incluindo funções como edição de texto, localizar e substituir, formatação, entre outras. Dominar esses atalhos pode aumentar significativamente a eficiência na edição.
+Os atalhos do editor são combinações de teclas usadas na interface do editor, incluindo funções como edição de texto, localizar e substituir, formatação, entre outras. Dominar esses atalhos pode aumentar significativamente a eficiência na edição.
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit"}]' />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 
-**Observação**: Localizar/Substituir (Ctrl+F, Ctrl+H) são implementados globalmente pela aplicação; Negrito/Itálico/Link/Bloco de código, etc., são fornecidos pelo editor subjacente (Markdown usa Vditor, LaTeX usa Monaco). Se não funcionarem, considere o comportamento real do editor.
+**Observação**: Localizar/Substituir (Ctrl+F, Ctrl+H) são implementados globalmente pelo aplicativo; Negrito/Itálico/Link/Bloco de código, etc., são fornecidos pelo editor subjacente (Markdown usa Vditor, LaTeX usa Monaco). Se não funcionarem, considere o comportamento real do editor como referência.
 
 ## Localizar e Substituir
 
@@ -49,8 +49,8 @@ A caixa de diálogo de localização suporta as seguintes funcionalidades:
 
 - **Localizar texto**: Insira o texto a ser encontrado
 - **Substituir texto**: Insira o texto de substituição
-- **Expressões regulares**: Suporte a busca por expressões regulares
-- **Diferenciar maiúsculas/minúsculas**: Busca sensível a caixa
+- **Expressões regulares**: Suporte a busca com regex
+- **Diferenciar maiúsculas/minúsculas**: Busca sensível a caso
 - **Palavra inteira**: Corresponder apenas palavras completas
 
 A interface do menu Localizar e Substituir é a seguinte:
@@ -104,7 +104,7 @@ O complemento por IA também pode ser acionado automaticamente pelas seguintes t
 - **Ponto e vírgula**: Acionado pela tecla ponto e vírgula (;)
 - **Barra**: Acionado pela tecla barra (/)
 
-Essas teclas de acionamento podem ser configuradas em [[settings.llm|Configuração de LLM]].
+Essas teclas de acionamento podem ser configuradas em [[settings.llm|Configurações de LLM]].
 
 ## Operações em Blocos de Código
 
@@ -134,7 +134,7 @@ Essas teclas de acionamento podem ser configuradas em [[settings.llm|Configuraç
 
 - **Atalho**: `Ctrl+Shift+L` (Windows/Linux) ou `Cmd+Shift+L` (macOS)
 - **Função**: Seleciona todas as palavras idênticas no documento e adiciona cursores
-- **Cenário de uso**: Editar em massa textos idênticos
+- **Cenário de uso**: Editar em lote textos idênticos
 
 ## Desfazer e Refazer
 
@@ -256,32 +256,32 @@ O editor LaTeX é baseado no Monaco Editor e suporta os seguintes atalhos:
 
 É possível combinar vários atalhos:
 
-1.  **Localizar e Substituir**: `Ctrl+H` para abrir a caixa de diálogo, depois use Tab para alternar entre os campos.
+1.  **Localizar e Substituir**: Use `Ctrl+H` para abrir a caixa de diálogo, depois use a tecla Tab para alternar entre os campos de entrada.
 2.  **Formatar Texto**: Selecione o texto e use `Ctrl+B` ou `Ctrl+I` para formatar.
-3.  **Edição em Massa**: Use `Ctrl+Shift+L` para selecionar todas as palavras iguais e editar simultaneamente.
+3.  **Edição em Lote**: Use `Ctrl+Shift+L` para selecionar todas as palavras iguais e editar simultaneamente.
 
 ### Memorização de Atalhos
 
 - **Formatação**: B (Bold/Negrito), I (Italic/Itálico) correspondem a negrito e itálico.
-- **Localizar**: F (Find/Encontrar), H (Hunt/Procurar e substituir).
+- **Localizar**: F (Find/Encontrar), H (Hunt/Procurar substituir).
 - **Recolher**: `[` e `]` correspondem a recolher e expandir.
 
 ## Melhores Práticas
 
 <MainTabs mode="demo" />
 
-1.  **Domine o uso**: Familiarize-se com os atalhos de edição mais comuns.
-2.  **Combine operações**: Use múltiplos atalhos em sequência para tarefas complexas.
-3.  **Edição em massa**: Utilize a funcionalidade de múltiplos cursores para editar em massa.
-4.  **Formatação rápida**: Use atalhos para formatar texto rapidamente.
-5.  **Localizar e substituir**: Use a função de localizar e substituir para aumentar a eficiência.
+1.  **Domine o Uso**: Domine os atalhos de edição mais comuns.
+2.  **Combine Operações**: Combine múltiplos atalhos para realizar edições complexas.
+3.  **Edição em Lote**: Use a funcionalidade multicursor para editar em lote.
+4.  **Formatação Rápida**: Use atalhos para formatar texto rapidamente.
+5.  **Localizar e Substituir**: Use a funcionalidade de localizar e substituir para aumentar a eficiência.
 
-## Observações Importantes
+## Considerações Importantes
 
-1.  **Diferenças de plataforma**: Windows/Linux usam Ctrl, macOS usa Cmd.
-2.  **Conflitos de atalhos**: Alguns atalhos podem entrar em conflito com funções do editor.
-3.  **Contexto específico**: Alguns atalhos só funcionam em contextos específicos.
-4.  **Diferenças entre editores**: Os editores Markdown e LaTeX podem suportar atalhos diferentes.
+1.  **Diferenças de Plataforma**: Windows/Linux usam Ctrl, macOS usa Cmd.
+2.  **Conflitos de Atalhos**: Alguns atalhos podem entrar em conflito com funcionalidades do editor.
+3.  **Contexto Dependente**: Alguns atalhos só são efetivos em contextos específicos.
+4.  **Diferenças entre Editores**: Os atalhos suportados pelos editores Markdown e LaTeX podem ser diferentes.
 5.  **Complemento por IA**: Shift+Tab é o acionamento manual; o acionamento automático requer configuração das teclas de gatilho.
 
 ## Documentação Relacionada

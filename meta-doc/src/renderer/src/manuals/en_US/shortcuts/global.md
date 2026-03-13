@@ -99,7 +99,7 @@ The tab bar displays all open documents and supports operations like new, switch
 
 - **Shortcut**: `Ctrl+Shift+T` (Windows/Linux) or `Cmd+Shift+T` (macOS)
 - **Function**: Reopen the most recently closed tab
-- **Usage Instructions**: Can be used consecutively to restore recently closed tabs in order (up to 20 tabs)
+- **Usage Instructions**: Can be used consecutively to restore recently closed tabs in order (up to 20 tabs can be restored)
 - **Use Case**: Quickly recover a tab closed by mistake
 
 <MainTabs mode="demo" />
@@ -157,13 +157,24 @@ Some shortcuts require keys to be pressed in sequence:
 - **Save All**: First press `Ctrl+K`, then press `S` (not simultaneously)
 - **Tab Switching**: Hold `Ctrl+Tab` to display the overlay, then continue pressing Tab to select
 
+### Customizing Shortcuts
+
+You can manage global shortcuts in **Settings → Shortcuts**:
+
+- **Key Schemes**: The program provides three default schemes for Windows, Linux, and macOS. The appropriate one is automatically selected based on your system upon first launch.
+- **Create/Edit Scheme**: You can create custom schemes and modify the keys for each action.
+- **Import/Export**: Supports exporting a scheme as a JSON file or importing a scheme from a file.
+- **Restore Default**: For each key binding that differs from the default scheme, you can click "Restore Default" to revert it.
+
+Changes to a scheme only take effect after clicking "Save" at the bottom.
+
 ### Shortcut Conflicts
 
 If a shortcut conflicts with the system or other software:
 
-- **System Shortcuts**: Some system shortcuts may take priority
-- **Other Software**: Close the conflicting software or modify its shortcuts
-- **Custom Shortcuts**: Future versions may support custom shortcuts
+- **System Shortcuts**: Some system shortcuts may take priority.
+- **Other Software**: Close the conflicting software or modify its shortcuts.
+- **Custom Shortcuts**: You can modify them to other keys in **Settings → Shortcuts**.
 
 ### Memorization Tips
 
@@ -173,19 +184,19 @@ If a shortcut conflicts with the system or other software:
 
 ## Best Practices
 
-1. **Master Usage**: Proficiently master commonly used shortcuts to improve efficiency
-2. **Combine Usage**: Combine multiple shortcuts to complete complex operations
-3. **Tab Switching**: Use Ctrl+Tab to switch quickly, avoiding mouse operations
-4. **Regular Saving**: Develop the habit of using Ctrl+S to save regularly
-5. **Quick Recovery**: Use Ctrl+Shift+T to quickly recover a tab closed by mistake
+1. **Master Common Shortcuts**: Become proficient with frequently used shortcuts to improve efficiency.
+2. **Combine Shortcuts**: Use multiple shortcuts together to complete complex operations.
+3. **Tab Switching**: Use Ctrl+Tab for quick switching to avoid mouse operations.
+4. **Save Regularly**: Develop the habit of using Ctrl+S to save periodically.
+5. **Quick Recovery**: Use Ctrl+Shift+T to quickly recover a tab closed by mistake.
 
 ## Notes
 
-1. **Platform Differences**: Windows/Linux use Ctrl, macOS uses Cmd
-2. **Shortcut Conflicts**: Be aware of conflicts with shortcuts in other software
-3. **Key Combination Order**: Some shortcuts require keys to be pressed in sequence
-4. **Tab Switching**: Ctrl+Tab displays an overlay, allowing further selection
-5. **Save All**: Ctrl+K S requires pressing Ctrl+K first, then S
+1. **Platform Differences**: Windows/Linux use Ctrl, macOS uses Cmd.
+2. **Shortcut Conflicts**: Be aware of conflicts with shortcuts in other software.
+3. **Key Combination Order**: Some shortcuts require keys to be pressed in sequence.
+4. **Tab Switching**: Ctrl+Tab displays an overlay where you can continue selecting.
+5. **Save All**: Ctrl+K S requires pressing Ctrl+K first, then S.
 
 ## Related Documents
 

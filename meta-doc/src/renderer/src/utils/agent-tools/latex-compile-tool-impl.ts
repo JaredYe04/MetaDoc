@@ -68,7 +68,7 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
     return {
       status: 'failed',
       error: createDetailedError(
-        '缺少必需参数: outputPdfPath（输出的 PDF 路径，如 path/to/file.pdf）',
+        'Missing required parameter: outputPdfPath (output PDF path, e.g. path/to/file.pdf)',
         [
           '{"tex": "\\\\documentclass{article}\\\\begin{document}Hello\\\\end{document}", "outputPdfPath": "out.pdf"}',
           '{"texFilePath": "doc.tex", "outputPdfPath": "doc.pdf"}'
@@ -107,7 +107,7 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
   if (!ipc?.invoke) {
     return {
       status: 'failed',
-      error: createDetailedError('LaTeX 编译仅在 Electron 环境中可用', [], [])
+      error: createDetailedError('LaTeX compile is only available in Electron environment', [], [])
     }
   }
 
@@ -179,7 +179,7 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
       if (content === null || content === undefined) {
         return {
           status: 'failed',
-          error: createDetailedError(`无法读取 .tex 文件: ${absTexPath}`, [], [])
+          error: createDetailedError(`Cannot read .tex file: ${absTexPath}`, [], [])
         }
       }
       texPath = absTexPath

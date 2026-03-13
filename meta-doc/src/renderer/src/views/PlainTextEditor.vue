@@ -560,6 +560,17 @@ const handleMenuClick = async (item: string) => {
   contextMenuVisible.value = false
 }
 
+// 全局 editor-command：由 useGlobalShortcuts 在快捷键时按当前 tabId 派发，仅当前 tab 执行
+const handleEditorCommand = async (payload: { command?: string; tabId?: string }) => {
+  if (payload?.tabId !== props.tabId) return
+  const cmd = payload.command
+  if (cmd === 'paste' && textEditorAdapter.value?.paste) await textEditorAdapter.value.paste()
+  else if (cmd === 'copy' && textEditorAdapter.value?.copy) await textEditorAdapter.value.copy()
+  else if (cmd === 'cut' && textEditorAdapter.value?.cut) await textEditorAdapter.value.cut()
+  else if (cmd === 'undo') undo()
+  else if (cmd === 'redo') redo()
+}
+
 const refreshContextMenu = async () => {
   articleContextMenuItems.value = (await getArticleContextMenuItems({
     isPlainTextEditor: true
@@ -746,6 +757,28 @@ watch(isActive, (active) => {
   }
 })
 
+// 切换到此 Tab 时强制把焦点移入当前编辑器，确保 Ctrl+S/Ctrl+C/Ctrl+V 等操作作用在当前 Tab
+// 与 LaTeXEditor 一致：所有 Tab 使用 v-show 保持挂载，切换后焦点可能仍在上一 Tab，需主动 focus
+watch(
+  () => isActive.value,
+  (active, wasActive) => {
+    if (active && !wasActive) {
+      const el = document.activeElement as HTMLElement | null
+      if (el && el !== document.body) el.blur()
+      const tryFocus = () => {
+        if (isActive.value && editor.value && !editor.value.hasTextFocus()) {
+          editor.value.focus()
+        }
+      }
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          setTimeout(tryFocus, 0)
+        })
+      })
+    }
+  }
+)
+
 // 处理控制台输入
 const handleConsoleInput = async (payload: any) => {
   if (!payload || payload.key !== 'plaintext') return
@@ -878,28 +911,32 @@ onMounted(async () => {
     messageBridge.on('terminal-error', handleTerminalError)
 
     eventBus.on('sync-editor-theme', () => {
-      const isDark = themeState.currentTheme.type === 'dark'
-      const themeName = isDark ? 'vs-dark' : 'vs'
-      const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
-      const deeperColor = (color: string) => {
-        if (isDark) return mixColors(color, '#000000', 0.3)
-        else return mixColors(color, '#FFFFFF', 0.3)
-      }
-      monaco.editor.defineTheme('myCustomTheme', {
-        base: themeName,
-        inherit: true,
-        rules: [
-          {
-            token: '',
-            background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
-            fontStyle: ''
-          }
-        ],
-        colors: {
-          'editor.background': deeperColor(themeState.currentTheme.background)
+      try {
+        const isDark = themeState.currentTheme.type === 'dark'
+        const themeName = isDark ? 'vs-dark' : 'vs'
+        const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
+        const deeperColor = (color: string) => {
+          if (isDark) return mixColors(color, '#000000', 0.3)
+          else return mixColors(color, '#FFFFFF', 0.3)
         }
-      })
-      monaco.editor.setTheme('myCustomTheme')
+        monaco.editor.defineTheme('myCustomTheme', {
+          base: themeName,
+          inherit: true,
+          rules: [
+            {
+              token: '',
+              background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
+              fontStyle: ''
+            }
+          ],
+          colors: {
+            'editor.background': deeperColor(themeState.currentTheme.background)
+          }
+        })
+        monaco.editor.setTheme('myCustomTheme')
+      } catch (e) {
+        logger.warn('sync-editor-theme: Monaco setTheme 失败', e)
+      }
     })
     eventBus.emit('sync-editor-theme')
 
@@ -909,6 +946,7 @@ onMounted(async () => {
     }
     eventBus.on('font-settings-changed', handleFontSettingsChanged)
     eventBus.on('editor-goto-position', handleEditorGotoPosition)
+    eventBus.on('editor-command', handleEditorCommand as (payload?: unknown) => void)
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('plaintextEditor.init_failed') + e)
@@ -920,6 +958,7 @@ onMounted(async () => {
 onUnmounted(() => {
   aiCompletionService.removeAdapter()
   eventBus.off('editor-goto-position', handleEditorGotoPosition)
+  eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)

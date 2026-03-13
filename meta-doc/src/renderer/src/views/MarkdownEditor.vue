@@ -712,6 +712,29 @@ const executeEditorCommand = (command: string) => {
   }
 }
 
+// 全局 editor-command：由 useGlobalShortcuts 在快捷键时按当前 tabId 派发，仅当前 tab 执行
+const handleEditorCommand = (payload: { command?: string; tabId?: string }) => {
+  if (payload?.tabId !== props.tabId) return
+  if (payload.command === 'paste' || payload.command === 'copy' || payload.command === 'cut') {
+    executeEditorCommand(payload.command)
+    return
+  }
+  if (payload.command === 'undo' || payload.command === 'redo') {
+    const editorRoot = getEditorRoot()
+    if (!editorRoot || !vditor.value) return
+    const editableElement =
+      editorRoot.querySelector('.vditor-content') ||
+      editorRoot.querySelector('.vditor-ir') ||
+      editorRoot.querySelector('.vditor-wysiwyg') ||
+      editorRoot.querySelector('.vditor-sv') ||
+      editorRoot
+    if (editableElement) {
+      ;(editableElement as HTMLElement).focus()
+      document.execCommand(payload.command)
+    }
+  }
+}
+
 // 菜单项点击事件处理
 const handleMenuClick = async (item: string) => {
   switch (item) {
@@ -921,7 +944,13 @@ const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
   // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
   isSavingFromEditor = true
   try {
-    const latest = vditor.value.getValue()
+    let latest: string
+    try {
+      latest = vditor.value.getValue()
+    } catch (e) {
+      logger.warn('sync-active-editor: Vditor 不可用或已销毁，跳过同步', e)
+      return
+    }
     const currentContent = currentMarkdown.value
 
     // 规范化函数：将 \r\n 转换为 \n（与 workspace 中的 normalizeContent 保持一致）
@@ -954,6 +983,7 @@ const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
   }
 }
 eventBus.on('sync-active-editor', handleSyncActiveEditor as (payload?: unknown) => void)
+eventBus.on('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
 const handleSearchReplace = (payload?: { expandReplace?: boolean }) => {
   if (!isActive.value) return
@@ -2666,6 +2696,7 @@ onBeforeUnmount(() => {
   }
   eventBus.off('refresh', handleRefresh)
   eventBus.off('sync-active-editor')
+  eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
   eventBus.off('search-replace')
   eventBus.off('vditor-sync-with-html', handleSyncWithHtml)
   eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
@@ -2835,6 +2866,19 @@ watch(
     setTimeout(() => {
       bindTitleMenu()
     }, 50)
+    // 切换到此 Tab 时让编辑器获得焦点，确保 Ctrl+S/Ctrl+C/Ctrl+V 等操作作用在当前 Tab
+    await nextTick()
+    const editorRoot = getEditorRoot()
+    if (editorRoot && vditor.value) {
+      const editableElement =
+        editorRoot.querySelector('.vditor-content') ||
+        editorRoot.querySelector('.vditor-ir') ||
+        editorRoot.querySelector('.vditor-wysiwyg') ||
+        editorRoot.querySelector('.vditor-sv')
+      if (editableElement) {
+        ;(editableElement as HTMLElement).focus()
+      }
+    }
   },
   { immediate: true }
 )

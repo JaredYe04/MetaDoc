@@ -1,54 +1,55 @@
 /**
  * Monaco Editor Worker 配置工具
  * 统一管理所有 Monaco 编辑器的 Worker 配置，避免重复代码
+ *
+ * 使用 Vite ?worker 打包方式，不依赖运行时服务器，避免 Worker 未正确加载时
+ * Monaco 内部无限等待导致整进程卡死（无报错、CPU 100%）。
  */
 
 import * as monaco from 'monaco-editor'
 import { i18n } from '../i18n.js'
-import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
+
+// Vite 打包 Worker，保证在 Electron 中可靠加载，无需依赖 getRuntimeServerBaseUrlSync
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-ignore - Vite 对 ?worker 的解析
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
+// @ts-ignore
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
+// @ts-ignore
+import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
+// @ts-ignore
+import HtmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
+// @ts-ignore
+import TsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 
 /**
  * 配置 Monaco Environment 的 Worker
  * 应该在创建任何 Monaco 编辑器之前调用
  */
 export function setupMonacoWorker(): void {
-  // 如果已经配置过，直接返回
   if ((window as any).MonacoEnvironment?.getWorker) {
     return
   }
 
-  const baseUrl = getRuntimeServerBaseUrlSync()
-
   ;(window as any).MonacoEnvironment = {
-    getWorker: function (moduleId: string, label: string) {
-      let workerPath = ''
-
+    getWorker(_moduleId: string, label: string): Worker {
       switch (label) {
         case 'json':
-          workerPath = `${baseUrl}/monaco/language/json/json.worker.js`
-          break
+          return new (JsonWorker as any)()
         case 'css':
         case 'scss':
         case 'less':
-          workerPath = `${baseUrl}/monaco/language/css/css.worker.js`
-          break
+          return new (CssWorker as any)()
         case 'html':
         case 'handlebars':
         case 'razor':
-          workerPath = `${baseUrl}/monaco/language/html/html.worker.js`
-          break
+          return new (HtmlWorker as any)()
         case 'typescript':
         case 'javascript':
-          workerPath = `${baseUrl}/monaco/language/typescript/ts.worker.js`
-          break
+          return new (TsWorker as any)()
         default:
-          workerPath = `${baseUrl}/monaco/editor/editor.worker.js`
+          return new (EditorWorker as any)()
       }
-
-      // ESM worker: 用 import() 动态导入
-      const blob = new Blob([`import("${workerPath}");`], { type: 'application/javascript' })
-
-      return new Worker(URL.createObjectURL(blob), { type: 'module' })
     }
   }
 }

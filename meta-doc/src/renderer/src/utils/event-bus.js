@@ -549,28 +549,13 @@ const normalizeSavePayload = (payload) => {
 const save = async (mode = 'save', args, targetTabId) => {
   const { isSaveInProgress } = await import('./save-guard')
   isSaveInProgress.value = true
-  // 保存触发时立即同步编辑器主题，并等待同步完成后再继续，避免保存流程中主题变浅
-  await new Promise((resolve) => {
-    eventBus.emit('sync-editor-theme', { resolve })
-  })
   try {
     const resolvedTabId = resolveTargetTabId(targetTabId)
-    if (resolvedTabId) {
-      // 关键修复：同步执行 sync-active-editor，确保内容同步完成后再保存
-      // 使用 Promise 确保同步完成（等待下一个 tick）
-      await new Promise((resolve) => {
-        eventBus.emit('sync-active-editor', { tabId: resolvedTabId })
-        // 等待下一个 tick，确保 sync-active-editor 处理完成
-        setTimeout(() => {
-          resolve()
-        }, 0)
-      })
-    }
-    const doc = getDocument(resolvedTabId)
+    const doc = resolvedTabId ? getDocument(resolvedTabId) : null
     if (!doc) return
+    // 不再在此路径中调用 sync-active-editor，与「保存全部」一致使用 workspace 内数据，避免单 tab 保存卡死
 
-    // 关键修复：在保存前就标记为不脏（乐观更新），立即消除脏标记，提升用户体验
-    // 注意：这里在 sync-active-editor 完成后更新，确保内容已经同步
+    // 在保存前标记为不脏（乐观更新），立即消除脏标记
     // 如果保存失败，会在后续流程中重新标记为脏（通过 updateDocumentDirty）
     // 但是，为了确保立即消除脏标记，我们在保存前就更新 savedMarkdown 等（但使用当前路径）
     // 这样脏标记会立即消除，markDocumentSaved 会在保存成功后再次确认（更新路径等）
@@ -590,6 +575,7 @@ const save = async (mode = 'save', args, targetTabId) => {
   }
 }
 // 监听 save 事件：优先使用 payload.tabId（调用方显式传入），否则用当前 activeTabId
+// 与「保存全部」一致：对 file tab 直接走 workspace.saveDocument + invoke('workspace-save-document')，不经过 sync-active-editor 和 send('save')，避免单 tab 保存卡死
 eventBus.on('save', async (payload) => {
   const ws = getWorkspace()
   const explicitTabId =
@@ -605,6 +591,20 @@ eventBus.on('save', async (payload) => {
       return //如果尝试自动保存时，没有文件路径，则不进行自动保存
     }
   }
+
+  const tab = ws.tabs.find((t) => t.id === targetTabId)
+  if (tab && tab.kind === 'file') {
+    const doc = getDocument(targetTabId)
+    if (!doc) return
+    try {
+      await ws.saveDocument(targetTabId, { saveAs: !doc.path })
+    } catch (err) {
+      getLogger().warn('保存当前文档失败', err)
+    }
+    return
+  }
+
+  // new tab 或其它：走原有 save()（可能打开另存为对话框）
   await save('save', args, targetTabId)
 })
 

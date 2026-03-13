@@ -660,35 +660,38 @@ const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
 const syncEditorTheme = () => {
   const editor = getEditor()
   if (!editor) return
-  const isDark = themeState.currentTheme.type === 'dark'
-  const themeName = isDark ? 'vs-dark' : 'vs'
+  try {
+    const isDark = themeState.currentTheme.type === 'dark'
+    const themeName = isDark ? 'vs-dark' : 'vs'
 
-  // 定义自定义主题
-  const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
-  const deeperColor = (color: string) => {
-    if (isDark) {
-      return mixColors(color, '#000000', 0.3)
-    } else {
-      return mixColors(color, '#FFFFFF', 0.3)
-    }
-  }
-
-  monaco.editor.defineTheme('quickStartLatexTheme', {
-    base: themeName,
-    inherit: true,
-    rules: [
-      {
-        token: '',
-        background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
-        fontStyle: ''
+    const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
+    const deeperColor = (color: string) => {
+      if (isDark) {
+        return mixColors(color, '#000000', 0.3)
+      } else {
+        return mixColors(color, '#FFFFFF', 0.3)
       }
-    ],
-    colors: {
-      'editor.background': deeperColor(themeState.currentTheme.background),
-      'editor.foreground': themeState.currentTheme.textColor
     }
-  })
-  monaco.editor.setTheme('quickStartLatexTheme')
+
+    monaco.editor.defineTheme('quickStartLatexTheme', {
+      base: themeName,
+      inherit: true,
+      rules: [
+        {
+          token: '',
+          background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
+          fontStyle: ''
+        }
+      ],
+      colors: {
+        'editor.background': deeperColor(themeState.currentTheme.background),
+        'editor.foreground': themeState.currentTheme.textColor
+      }
+    })
+    monaco.editor.setTheme('quickStartLatexTheme')
+  } catch (e) {
+    if (typeof console !== 'undefined') console.warn('[QuickStartLatex] sync-editor-theme 失败', e)
+  }
 }
 
 onMounted(async () => {

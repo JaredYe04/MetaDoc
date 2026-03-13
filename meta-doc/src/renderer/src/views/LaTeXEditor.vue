@@ -4109,11 +4109,15 @@ onMounted(async () => {
 
     handleSyncActiveEditorLaTeX = (payload?: { tabId?: string }) => {
       if (payload?.tabId !== props.tabId || !editor.value) return
-      const model = editor.value.getModel()
-      if (!model) return
-      const value = model.getValue()
-      if (value !== documentRef.value.tex) {
-        workspace.updateDocumentTex(props.tabId, value)
+      try {
+        const model = editor.value.getModel()
+        if (!model) return
+        const value = model.getValue()
+        if (value !== documentRef.value.tex) {
+          workspace.updateDocumentTex(props.tabId, value)
+        }
+      } catch (e) {
+        logger.warn('sync-active-editor: Monaco 不可用或已销毁，跳过同步', e)
       }
     }
     eventBus.on('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)

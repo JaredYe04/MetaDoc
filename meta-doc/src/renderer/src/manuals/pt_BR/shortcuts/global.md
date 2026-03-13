@@ -45,7 +45,7 @@ Os atalhos globais são combinações de teclas no MetaDoc que podem ser usadas 
 
 - **Atalho**: `Ctrl+W` (Windows/Linux) ou `Cmd+W` (macOS)
 - **Função**: Fechar a aba atual
-- **Cenário de Uso**: Fechar documentos não necessários
+- **Cenário de Uso**: Fechar documentos desnecessários
 
 ```mermaid
 graph LR
@@ -84,7 +84,7 @@ A barra de abas exibe todos os documentos abertos e suporta operações como cri
 
 - **Atalho**: `Ctrl+Tab` (Windows/Linux) ou `Cmd+Tab` (macOS)
 - **Função**: Alternar para a próxima aba
-- **Instruções de Uso**: Manter pressionado `Ctrl+Tab` exibe uma sobreposição de alternância de abas, você pode continuar pressionando Tab para selecionar ou clicar diretamente
+- **Instruções de Uso**: Segurar `Ctrl+Tab` exibe uma sobreposição de alternância de abas, você pode continuar pressionando Tab para selecionar ou clicar diretamente
 - **Cenário de Uso**: Alternar rapidamente entre vários documentos
 
 <TabSwitcherOverlay mode="demo" />
@@ -99,8 +99,8 @@ A barra de abas exibe todos os documentos abertos e suporta operações como cri
 
 - **Atalho**: `Ctrl+Shift+T` (Windows/Linux) ou `Cmd+Shift+T` (macOS)
 - **Função**: Reabrir a aba fechada mais recentemente
-- **Instruções de Uso**: Pode ser usado repetidamente para restaurar sequencialmente as abas fechadas mais recentemente (até 20)
-- **Cenário de Uso**: Restaurar rapidamente após fechar uma aba por engano
+- **Instruções de Uso**: Pode ser usado consecutivamente para restaurar as abas fechadas mais recentemente (até 20)
+- **Cenário de Uso**: Restaurar rapidamente uma aba fechada por engano
 
 <MainTabs mode="demo" />
 
@@ -148,44 +148,55 @@ A barra de abas exibe todos os documentos abertos e suporta operações como cri
 | Reabrir Fechada       | `Cmd+Shift+T`     |
 | Abrir Manual do Usuário | `F1`              |
 
-## Dicas de Uso de Atalhos
+## Técnicas de Uso de Atalhos
 
 ### Sequência de Teclas de Combinação
 
-Alguns atalhos requerem pressionar as teclas em sequência:
+Alguns atalhos exigem que as teclas sejam pressionadas em sequência:
 
 - **Salvar Todos**: Primeiro pressione `Ctrl+K`, depois pressione `S` (não simultaneamente)
-- **Alternar Abas**: Mantenha pressionado `Ctrl+Tab` para exibir a sobreposição, depois continue pressionando Tab para selecionar
+- **Alternar Abas**: Segure `Ctrl+Tab` para exibir a sobreposição, depois continue pressionando Tab para selecionar
+
+### Personalizar Atalhos
+
+Você pode gerenciar os atalhos globais em **Configurações → Atalhos**:
+
+- **Esquema de Teclas**: O programa fornece três esquemas padrão: Windows, Linux e macOS. Na primeira inicialização, o esquema é selecionado automaticamente com base no sistema atual.
+- **Criar/Editar Esquema**: É possível criar um esquema personalizado e modificar as teclas para cada ação.
+- **Importar/Exportar**: Suporta exportar o esquema para um arquivo JSON ou importar um esquema de um arquivo.
+- **Restaurar Padrão**: Para cada item de tecla que difere do esquema padrão, você pode clicar em "Restaurar Padrão" para reverter.
+
+Após alterar um esquema, é necessário clicar em "Salvar" na parte inferior para que as alterações entrem em vigor.
 
 ### Conflitos de Atalhos
 
 Se um atalho entrar em conflito com o sistema ou outro software:
 
-- **Atalhos do Sistema**: Alguns atalhos do sistema podem ter prioridade
-- **Outro Software**: Feche o software conflitante ou modifique seus atalhos
-- **Atalhos Personalizados**: Versões futuras podem suportar personalização de atalhos
+- **Atalhos do Sistema**: Alguns atalhos do sistema podem ter prioridade.
+- **Outro Software**: Feche o software conflitante ou modifique seus atalhos.
+- **Atalhos Personalizados**: Em **Configurações → Atalhos**, você pode alterar para outras teclas.
 
 ### Técnicas de Memorização
 
-- **Operações de Arquivo**: Use os atalhos padrão de operação de arquivos (Ctrl+N/O/S)
-- **Operações de Abas**: Use combinações relacionadas à tecla Tab
-- **Salvar Todos**: Use Ctrl+K como prefixo de comando
+- **Operações de Arquivo**: Use os atalhos padrão de operações de arquivo (Ctrl+N/O/S).
+- **Operações de Abas**: Use combinações relacionadas à tecla Tab.
+- **Salvar Todos**: Use Ctrl+K como prefixo de comando.
 
 ## Melhores Práticas
 
-1.  **Uso Proficiente**: Domine os atalhos comuns para aumentar a eficiência
-2.  **Uso Combinado**: Combine vários atalhos para realizar operações complexas
-3.  **Alternância de Abas**: Use Ctrl+Tab para alternar rapidamente, evitando o uso do mouse
-4.  **Salvamento Regular**: Cultive o hábito de salvar regularmente com Ctrl+S
-5.  **Recuperação Rápida**: Use Ctrl+Shift+T para recuperar rapidamente uma aba fechada por engano
+1.  **Uso Proficiente**: Domine os atalhos comuns para aumentar a eficiência.
+2.  **Uso Combinado**: Combine vários atalhos para realizar operações complexas.
+3.  **Alternar Abas**: Use Ctrl+Tab para alternar rapidamente, evitando operações com o mouse.
+4.  **Salvar Regularmente**: Cultive o hábito de usar Ctrl+S para salvar regularmente.
+5.  **Recuperação Rápida**: Use Ctrl+Shift+T para recuperar rapidamente uma aba fechada por engano.
 
 ## Observações
 
-1.  **Diferenças de Plataforma**: Windows/Linux usam Ctrl, macOS usa Cmd
-2.  **Conflitos de Atalhos**: Atenção a conflitos com atalhos de outros softwares
-3.  **Sequência de Teclas**: Alguns atalhos precisam ser pressionados em sequência
-4.  **Alternância de Abas**: Ctrl+Tab exibe uma sobreposição, onde você pode continuar a seleção
-5.  **Salvar Todos**: Ctrl+K S requer pressionar Ctrl+K primeiro, depois S
+1.  **Diferenças de Plataforma**: Windows/Linux usam Ctrl, macOS usa Cmd.
+2.  **Conflitos de Atalhos**: Atenção a conflitos com atalhos de outros softwares.
+3.  **Sequência de Teclas de Combinação**: Alguns atalhos precisam ser pressionados em sequência.
+4.  **Alternar Abas**: Ctrl+Tab exibe uma sobreposição, onde você pode continuar a seleção.
+5.  **Salvar Todos**: Ctrl+K S requer pressionar Ctrl+K primeiro, depois S.
 
 ## Documentação Relacionada
 

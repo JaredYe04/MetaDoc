@@ -8,7 +8,7 @@ Les raccourcis clavier de l'éditeur sont des combinaisons de touches utilisées
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline"]' />
 
-**Remarque** : La recherche/remplacement (Ctrl+F, Ctrl+H) est implémentée globalement par l'application ; le gras/l'italique/les liens/les blocs de code, etc., sont fournis par l'éditeur sous-jacent (Vditor pour Markdown, Monaco pour LaTeX). En cas d'inefficacité, veuillez vous référer au comportement réel de l'éditeur.
+**Remarque** : La recherche/remplacement (Ctrl+F, Ctrl+H) est implémentée globalement par l'application ; le gras/l'italique/les liens/les blocs de code, etc., sont fournis par l'éditeur sous-jacent (Vditor pour Markdown, Monaco pour LaTeX). S'ils ne fonctionnent pas, référez-vous au comportement réel de l'éditeur.
 
 ## Recherche et remplacement
 
@@ -26,7 +26,7 @@ Les raccourcis clavier de l'éditeur sont des combinaisons de touches utilisées
 
 ```mermaid
 graph LR
-    A[Raccourcis éditeur] --> B[Recherche/Remplacer]
+    A[Éditeur Raccourcis] --> B[Recherche/Remplacer]
     A --> C[Mise en forme texte]
     A --> D[Complétion IA]
     A --> E[Opérations bloc code]
@@ -47,10 +47,10 @@ graph LR
 
 La boîte de dialogue de recherche prend en charge les fonctionnalités suivantes :
 
-- **Rechercher du texte** : Saisir le texte à trouver
+- **Rechercher du texte** : Saisir le texte à rechercher
 - **Remplacer par** : Saisir le texte de remplacement
 - **Expression régulière** : Prise en charge de la recherche par expressions régulières
-- **Respecter la casse** : Différencier majuscules/minuscules
+- **Respecter la casse** : Différencier les majuscules/minuscules
 - **Mot entier** : Correspondre au mot complet
 
 L'interface du menu de recherche/remplacement est la suivante :
@@ -67,7 +67,7 @@ L'interface du menu de recherche/remplacement est la suivante :
 
 - **Raccourci** : `Ctrl+B` (Windows/Linux) ou `Cmd+B` (macOS)
 - **Fonction** : Met le texte sélectionné en gras
-- **Cas d'utilisation** : Souligner un contenu important
+- **Cas d'utilisation** : Mettre en avant un contenu important
 
 ### Italique
 
@@ -78,10 +78,10 @@ L'interface du menu de recherche/remplacement est la suivante :
 ### Insérer un lien
 
 - **Raccourci** : `Ctrl+K` (Windows/Linux) ou `Cmd+K` (macOS)
-- **Fonction** : Insère un lien hypertexte
+- **Fonction** : Insère un lien
 - **Cas d'utilisation** : Ajouter un hyperlien
 
-**Note** : Ce raccourci peut entrer en conflit avec "Enregistrer tout" (Ctrl+K S). Il faut d'abord appuyer sur Ctrl+K, puis sur K, et non pas simultanément.
+**Note** : Ce raccourci peut entrer en conflit avec "Enregistrer tout" (Ctrl+K S). Il faut d'abord appuyer sur Ctrl+K, puis sur K, et non les deux simultanément.
 
 ## Complétion IA
 
@@ -99,10 +99,10 @@ L'interface du menu de recherche/remplacement est la suivante :
 
 La complétion IA peut également être déclenchée automatiquement par les touches suivantes :
 
-- **Entrée** : Déclenché par la touche Entrée
-- **Espace** : Déclenché par la barre d'espace
-- **Point-virgule** : Déclenché par le point-virgule (;)
-- **Barre oblique** : Déclenché par la barre oblique (/)
+- **Entrée** : Déclenchée par la touche Entrée
+- **Espace** : Déclenchée par la barre d'espace
+- **Point-virgule** : Déclenchée par le point-virgule (;)
+- **Barre oblique** : Déclenchée par la barre oblique (/)
 
 Ces touches de déclenchement peuvent être configurées dans les [[settings.llm|paramètres LLM]].
 
@@ -114,13 +114,13 @@ Ces touches de déclenchement peuvent être configurées dans les [[settings.llm
 - **Fonction** : Insère un bloc de code
 - **Cas d'utilisation** : Ajouter un exemple de code
 
-## Plier et déplier
+## Plier/Déplier
 
 ### Plier un bloc de code
 
 - **Raccourci** : `Ctrl+Shift+[` (Windows/Linux) ou `Cmd+Option+[` (macOS)
 - **Fonction** : Plie le bloc de code ou l'environnement actuel
-- **Cas d'utilisation** : Masquer le code non nécessaire à la visualisation
+- **Cas d'utilisation** : Masquer le code qu'il n'est pas nécessaire de voir
 
 ### Déplier un bloc de code
 
@@ -136,18 +136,18 @@ Ces touches de déclenchement peuvent être configurées dans les [[settings.llm
 - **Fonction** : Sélectionne toutes les occurrences identiques d'un mot dans le document et ajoute des curseurs
 - **Cas d'utilisation** : Éditer en masse un texte identique
 
-## Annuler et rétablir
+## Annuler et Rétablir
 
 ### Annuler
 
 - **Raccourci** : `Ctrl+Z` (Windows/Linux) ou `Cmd+Z` (macOS)
-- **Fonction** : Annule la dernière action
+- **Fonction** : Annule la dernière opération
 - **Cas d'utilisation** : Annuler une opération erronée
 
 ### Rétablir
 
 - **Raccourci** : `Ctrl+Y` ou `Ctrl+Shift+Z` (Windows/Linux) ou `Cmd+Shift+Z` (macOS)
-- **Fonction** : Rétablit l'action annulée
+- **Fonction** : Rétablit l'opération annulée
 - **Cas d'utilisation** : Restaurer une opération annulée
 
 ## Opérations de sélection
@@ -176,7 +176,7 @@ Ces touches de déclenchement peuvent être configurées dans les [[settings.llm
 - **Fonction** : Coupe le texte sélectionné
 - **Cas d'utilisation** : Déplacer du contenu texte
 
-## Liste des raccourcis clavier de l'éditeur
+## Liste des raccourcis de l'éditeur
 
 ### Raccourcis Windows/Linux
 
@@ -258,7 +258,7 @@ Il est possible de combiner plusieurs raccourcis :
 
 1. **Rechercher et remplacer** : `Ctrl+H` pour ouvrir la recherche/remplacement, puis utiliser la touche Tab pour naviguer entre les champs.
 2. **Mettre en forme le texte** : Sélectionner le texte puis utiliser `Ctrl+B` ou `Ctrl+I` pour le formater.
-3. **Édition en masse** : Utiliser `Ctrl+Shift+L` pour sélectionner toutes les occurrences identiques, puis les éditer uniformément.
+3. **Édition en masse** : Utiliser `Ctrl+Shift+L` pour sélectionner tous les mots identiques, puis les éditer uniformément.
 
 ### Mémorisation des raccourcis
 

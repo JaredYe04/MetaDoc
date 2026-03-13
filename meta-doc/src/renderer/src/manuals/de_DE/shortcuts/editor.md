@@ -92,17 +92,17 @@ Die Menüoberfläche für Suchen und Ersetzen sieht wie folgt aus:
 ### Manuelle Vervollständigung auslösen
 
 - **Tastenkombination**: `Umschalt+Tab`
-- **Funktion**: KI-Autovervollständigung manuell auslösen
+- **Funktion**: Manuell die KI-Autovervollständigung auslösen
 - **Anwendungsfall**: Manuelles Auslösen, wenn KI-Vervollständigung benötigt wird
 
 ### Auslösetasten für Vervollständigung
 
 Die KI-Vervollständigung kann auch automatisch durch folgende Tasten ausgelöst werden:
 
-- **Eingabetaste**: Drücken der Eingabetaste löst sie aus
-- **Leertaste**: Drücken der Leertaste löst sie aus
-- **Semikolon**: Drücken des Semikolons (;) löst sie aus
-- **Schrägstrich**: Drücken des Schrägstrichs (/) löst sie aus
+- **Eingabetaste**: Durch Drücken der Eingabetaste auslösen
+- **Leertaste**: Durch Drücken der Leertaste auslösen
+- **Semikolon**: Durch Drücken des Semikolons (;) auslösen
+- **Schrägstrich**: Durch Drücken des Schrägstrichs (/) auslösen
 
 Diese Auslösetasten können in den [[settings.llm|LLM-Einstellungen]] konfiguriert werden.
 
@@ -112,7 +112,7 @@ Diese Auslösetasten können in den [[settings.llm|LLM-Einstellungen]] konfiguri
 
 - **Tastenkombination**: `Strg+Umschalt+K` (Markdown-Editor)
 - **Funktion**: Codeblock einfügen
-- **Anwendungsfall**: Codebeispiel hinzufügen
+- **Anwendungsfall**: Codebeispiele hinzufügen
 
 ## Einklappen/Entfalten
 
@@ -142,13 +142,13 @@ Diese Auslösetasten können in den [[settings.llm|LLM-Einstellungen]] konfiguri
 
 - **Tastenkombination**: `Strg+Z` (Windows/Linux) oder `Cmd+Z` (macOS)
 - **Funktion**: Letzte Aktion rückgängig machen
-- **Anwendungsfall**: Fehlerhafte Aktion rückgängig machen
+- **Anwendungsfall**: Versehentliche Aktionen rückgängig machen
 
 ### Wiederholen
 
 - **Tastenkombination**: `Strg+Y` oder `Strg+Umschalt+Z` (Windows/Linux) oder `Cmd+Umschalt+Z` (macOS)
 - **Funktion**: Rückgängig gemachte Aktion wiederherstellen
-- **Anwendungsfall**: Rückgängig gemachte Aktion wiederholen
+- **Anwendungsfall**: Rückgängig gemachte Operation wiederholen
 
 ## Auswahloperationen
 
@@ -274,7 +274,7 @@ Mehrere Tastenkombinationen können kombiniert werden:
 2. **Kombinierte Operationen**: Mehrere Tastenkombinationen für komplexe Bearbeitungen kombinieren
 3. **Stapelbearbeitung**: Mehrfachcursor-Funktion für stapelweise Bearbeitung nutzen
 4. **Schnellformatierung**: Tastenkombinationen für schnelle Textformatierung verwenden
-5. **Suchen und Ersetzen**: Such- und Ersetzfunktion zur Effizienzsteigerung nutzen
+5. **Suchen und Ersetzen**: Such- und Ersetzfunktionen zur Effizienzsteigerung nutzen
 
 ## Wichtige Hinweise
 

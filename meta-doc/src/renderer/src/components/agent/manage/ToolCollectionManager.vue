@@ -118,7 +118,7 @@ const formData = ref({
 const availableTools = computed(() => {
   return agentToolManager.getAllTools().map((tool) => ({
     id: tool.config.id,
-    name: agentToolManager.getLocalizedText(tool.config.name)
+    name: agentToolManager.getLocalizedToolName(tool.config.id, String(tool.config.name ?? tool.config.id))
   }))
 })
 

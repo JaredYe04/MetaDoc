@@ -152,7 +152,7 @@
             <CollapsibleTrigger class="tool-message-trigger">
               <div class="tool-message-header-preview">
                 <span class="tool-message-title">{{
-                  (message as ToolAgentMessage).tool.name
+                  getToolDisplayName(message as ToolAgentMessage)
                 }}</span>
                 <Badge
                   class="tool-status-badge"
@@ -739,7 +739,9 @@ const processedContentParts = computed(() => {
   const toolCallMap = new Map<string, { id: string; tool_id: string; text: string }>()
   for (const toolCall of chatMsg.tool_calls) {
     const tool = agentToolManager.getTool(toolCall.tool_id)
-    const toolName = tool ? agentToolManager.getLocalizedText(tool.config.name) : toolCall.tool_id
+    const toolName = tool
+      ? agentToolManager.getLocalizedToolName(tool.config.id, String(tool.config.name ?? tool.config.id))
+      : toolCall.tool_id
     const text = t('agent.message.toolCallInitiated', { tool: toolName })
     toolCallMap.set(toolCall.id, {
       id: toolCall.id,
@@ -880,7 +882,7 @@ const toolCallsText = computed(() => {
   const toolNames = chatMsg.tool_calls.map((tc) => {
     const tool = agentToolManager.getTool(tc.tool_id)
     if (tool) {
-      return agentToolManager.getLocalizedText(tool.config.name)
+      return agentToolManager.getLocalizedToolName(tool.config.id, String(tool.config.name ?? tool.config.id))
     }
     return tc.tool_id
   })
@@ -1035,13 +1037,18 @@ const handleActionCommand = (command: string) => {
   }
 }
 
-// 获取工具名称（用于显示）
+// 获取工具名称（用于显示，使用 locales 中的 toolLabels 以支持界面本地化）
 const getToolName = (toolId: string): string => {
   const tool = agentToolManager.getTool(toolId)
   if (tool) {
-    return agentToolManager.getLocalizedText(tool.config.name)
+    return agentToolManager.getLocalizedToolName(tool.config.id, String(tool.config.name ?? tool.config.id))
   }
   return toolId
+}
+
+// 工具消息的展示用名称（按当前语言解析，使切换语言后标题显示对应翻译）
+function getToolDisplayName(msg: ToolAgentMessage): string {
+  return agentToolManager.getLocalizedToolName(msg.tool.id, msg.tool.name || msg.tool.id)
 }
 
 onBeforeUnmount(() => {

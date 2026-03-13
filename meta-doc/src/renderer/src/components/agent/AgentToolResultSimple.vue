@@ -5,7 +5,7 @@
   >
     <header class="tool-result-simple-header">
       <div class="tool-result-simple-title-row">
-        <span class="tool-result-simple-name">{{ message.tool.name }}</span>
+        <span class="tool-result-simple-name">{{ displayToolName }}</span>
         <Badge
           class="tool-result-simple-badge"
           size="small"
@@ -47,6 +47,7 @@
           :error="message.error"
           :tool-config="toolConfig"
           :invocation-id="message.invocationId"
+          :params="message.params"
           :params-diff="message.params?.diff"
           :compact="compact"
         />
@@ -85,6 +86,14 @@ const { t } = useI18n()
 
 const toolConfig = computed(() => agentToolManager.getTool(props.message.tool.id)?.config)
 
+// 按当前语言解析工具名，使切换语言后 header 显示对应翻译
+const displayToolName = computed(() =>
+  agentToolManager.getLocalizedToolName(
+    props.message.tool.id,
+    props.message.tool.name || props.message.tool.id
+  )
+)
+
 function getToolStatusTagType(status: ToolAgentMessage['status']) {
   switch (status) {
     case 'pending':
@@ -119,6 +128,7 @@ function getToolStatusLabel(status: ToolAgentMessage['status']) {
 const TOOL_ID_TO_RENDERER: Record<string, string> = {
   edit: 'EditDisplay',
   grep: 'GrepDisplay',
+  timestamp: 'TimestampDisplay',
   todolist: 'TodoListDisplay',
   'todolist-planning': 'TodoListDisplay',
   workspace: 'WorkspaceDisplay',

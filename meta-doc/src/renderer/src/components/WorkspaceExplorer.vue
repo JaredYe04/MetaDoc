@@ -1379,6 +1379,7 @@ function sortFileNodes(nodes: FileNode[]): void {
 }
 
 // 处理目录变化事件（事件驱动：先增量更新树，失败则回退到整目录刷新）
+// eventType 含义：add=新文件，addDir=新目录，unlink=文件删除，unlinkDir=目录删除，change=仅文件内容/元数据变化（树结构不变）
 const handleDirectoryChange = async (payload: unknown) => {
   if (!payload || typeof payload !== 'object' || !('directoryPath' in payload)) return
   const { directoryPath, parentPath, eventType, filePath } = payload as {
@@ -1387,6 +1388,9 @@ const handleDirectoryChange = async (payload: unknown) => {
     eventType: string
     filePath: string
   }
+  // 仅内容修改（保存文件等）：不改变文件树结构，跳过刷新避免闪烁
+  if (eventType === 'change') return
+
   const effectiveParent = (parentPath ?? directoryPath) || directoryPath
 
   const applied = applyFsEventToTree({ directoryPath, parentPath, eventType, filePath })

@@ -334,36 +334,39 @@ export abstract class BaseEngineExecutor {
       }
     }
 
-    // 添加 Subagent 配置作为可调用“工具”（主 Agent 可见）
-    const subagentConfigs = agentConfigManager.getSubagentConfigs()
-    for (const config of subagentConfigs) {
-      const name =
-        typeof config.name === 'string'
-          ? config.name
-          : config.name['zh_cn']?.name || config.name['en_us']?.name || config.id
-      const description =
-        typeof config.description === 'string'
-          ? config.description
-          : config.description['zh_cn']?.description ||
-            config.description['en_us']?.description ||
-            ''
-      tools.push({
-        id: config.id,
-        name,
-        description,
-        schema: {
-          type: 'object',
-          properties: {
-            prompt: {
-              type: 'string',
-              description: '给 Subagent 的指示或要完成的任务描述'
-            }
+    // 仅主 Agent 可见 Subagent：Subagent 不能再调用 Subagent，只能使用自身工具集（如绘图只有 workspace/grep/chart-generation）
+    const isSubagent = (this.agentConfig as { isSubagent?: boolean }).isSubagent === true
+    if (!isSubagent) {
+      const subagentConfigs = agentConfigManager.getSubagentConfigs()
+      for (const config of subagentConfigs) {
+        const name =
+          typeof config.name === 'string'
+            ? config.name
+            : config.name['zh_cn']?.name || config.name['en_us']?.name || config.id
+        const description =
+          typeof config.description === 'string'
+            ? config.description
+            : config.description['zh_cn']?.description ||
+              config.description['en_us']?.description ||
+              ''
+        tools.push({
+          id: config.id,
+          name,
+          description,
+          schema: {
+            type: 'object',
+            properties: {
+              prompt: {
+                type: 'string',
+                description: '给 Subagent 的指示或要完成的任务描述'
+              }
+            },
+            required: ['prompt']
           },
-          required: ['prompt']
-        },
-        brief: description.length > 120 ? description.substring(0, 120) + '...' : description,
-        fullSpec: `调用此 Subagent 完成子任务。参数 prompt：给 Subagent 的指示或要查找/完成的内容。`
-      })
+          brief: description.length > 120 ? description.substring(0, 120) + '...' : description,
+          fullSpec: `调用此 Subagent 完成子任务。参数 prompt：给 Subagent 的指示或要查找/完成的内容。`
+        })
+      }
     }
 
     return tools

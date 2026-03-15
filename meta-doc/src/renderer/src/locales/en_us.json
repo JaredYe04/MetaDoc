@@ -2988,7 +2988,15 @@
         "hideContent": "Hide full content",
         "linesRange": "Lines {start}-{end} (of {total} lines total)",
         "totalLines": "{count} lines in total",
-        "error": "Failed to read workspace files"
+        "error": "Failed to read workspace files",
+        "truncated": "truncated",
+        "directoryListingsCount": "{count} directory listing(s)",
+        "directoryListing": "Directory listing",
+        "entries": " entries",
+        "operationsTitle": "File/Directory operations",
+        "operationsCount": "{count} operation(s)",
+        "targetPath": "Target path",
+        "message": "Message"
       },
       "edit": {
         "completed": "Edit completed",

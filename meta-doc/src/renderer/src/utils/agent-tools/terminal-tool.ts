@@ -24,6 +24,9 @@ import { getSetting } from '../settings.js'
 
 const logger = createRendererLogger('TerminalTool')
 
+/** 终端输出（stdout+stderr）最大总字符数，超过则截断以控制上下文长度 */
+const MAX_TERMINAL_OUTPUT_CHARS = 50000
+
 const STORAGE_KEY = 'agent-tool-terminal-trust-mode'
 const SETTING_KEY_TERMINAL_ALLOWED = 'agentTerminalExecutionAllowed'
 
@@ -34,6 +37,9 @@ interface TerminalExecutionResult {
   stderr: string
   summary?: string
   approved: boolean
+  /** 输出是否因过长被截断 */
+  outputTruncated?: boolean
+  truncationMessage?: string
 }
 
 interface ApprovalRequest {
@@ -517,8 +523,28 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     )
 
     // 使用累积的输出（如果流式输出已更新）
-    const finalStdout = accumulatedStdout || stdout
-    const finalStderr = accumulatedStderr || stderr
+    let finalStdout = accumulatedStdout || stdout
+    let finalStderr = accumulatedStderr || stderr
+
+    // 上下文省略：总输出过长时截断，避免占满 agent 上下文
+    let outputTruncated = false
+    let truncationMessage: string | undefined
+    const totalLen = finalStdout.length + finalStderr.length
+    if (totalLen > MAX_TERMINAL_OUTPUT_CHARS) {
+      const maxStdout = Math.floor(MAX_TERMINAL_OUTPUT_CHARS * 0.6)
+      const maxStderr = Math.floor(MAX_TERMINAL_OUTPUT_CHARS * 0.4)
+      if (finalStdout.length > maxStdout) {
+        finalStdout = finalStdout.slice(0, maxStdout) + '\n...[stdout 已截断]'
+        outputTruncated = true
+      }
+      if (finalStderr.length > maxStderr) {
+        finalStderr = finalStderr.slice(0, maxStderr) + '\n...[stderr 已截断]'
+        outputTruncated = true
+      }
+      if (outputTruncated) {
+        truncationMessage = `终端输出过长，已截断至约 ${MAX_TERMINAL_OUTPUT_CHARS} 字符（原约 ${totalLen} 字符）。如需完整输出请缩小命令输出范围。`
+      }
+    }
 
     onUpdate(
       {
@@ -554,7 +580,8 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       stdout: finalStdout,
       stderr: finalStderr,
       summary,
-      approved: true
+      approved: true,
+      ...(outputTruncated && { outputTruncated: true, truncationMessage })
     }
 
     onUpdate(

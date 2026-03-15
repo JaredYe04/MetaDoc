@@ -5,7 +5,8 @@
         v-if="
           displayData.stage === 'loading-tree' ||
           displayData.stage === 'reading' ||
-          displayData.stage === 'searching'
+          displayData.stage === 'searching' ||
+          displayData.stage === 'operating'
         "
         class="status-message"
         :style="statusMessageStyle"
@@ -32,13 +33,20 @@
           </h3>
           <Badge variant="secondary">
             <template v-if="displayData.searchQuery">
-              {{ $t('agent.display.workspace.matchCount', { count: displayData.tree.length }) }}
+              {{ $t('agent.display.workspace.matchCount', {
+                count: displayData.treeTotalCount ?? displayData.tree.length
+              }) }}
+              <template v-if="displayData.treeTruncated"> ({{ $t('agent.display.workspace.truncated') }})</template>
             </template>
             <template v-else>
               {{ $t('agent.display.workspace.workspaceFolder') }}:
               {{ displayData.workspaceFolder }}
+              <template v-if="displayData.treeTruncated"> — {{ $t('agent.display.workspace.truncated') }}</template>
             </template>
           </Badge>
+        </div>
+        <div v-if="displayData.treeTruncationMessage" class="truncation-notice" :style="truncationNoticeStyle">
+          {{ displayData.treeTruncationMessage }}
         </div>
         <el-scrollbar ref="treeScrollbarRef" class="workspace-tree-scrollbar max-h-[500px]">
           <div class="tree-content">
@@ -61,10 +69,63 @@
         </el-scrollbar>
       </div>
 
-      <!-- 文件内容显示 -->
+      <!-- 文件/目录操作结果显示 -->
       <div
         v-else-if="
-          displayData.stage === 'completed' && displayData.result && displayData.result.files
+          displayData.stage === 'completed' &&
+          displayData.operations &&
+          Array.isArray(displayData.operations)
+        "
+        class="operations-view"
+        :style="filesViewStyle"
+      >
+        <div class="files-header" :style="headerStyle">
+          <h3 class="files-title" :style="titleStyle">
+            {{ $t('agent.display.workspace.operationsTitle') }}
+          </h3>
+          <div class="header-tags" :style="headerTagsStyle">
+            <Badge variant="secondary">{{
+              $t('agent.display.workspace.operationsCount', {
+                count: displayData.operations.length
+              })
+            }}</Badge>
+          </div>
+        </div>
+
+        <el-scrollbar class="workspace-files-scrollbar max-h-[400px]">
+          <div class="files-content">
+            <div
+              v-for="(op, index) in displayData.operations"
+              :key="index"
+              class="file-item"
+              :style="getOperationItemStyle(op)"
+            >
+              <div class="file-header" :style="fileHeaderStyle">
+                <Badge :variant="op.success ? 'default' : 'destructive'">
+                  {{ op.type }} — {{ op.success ? $t('common.success') : $t('common.failed') }}
+                </Badge>
+              </div>
+              <div class="file-meta" :style="fileMetaStyle">
+                <div>
+                  <strong>{{ $t('agent.display.workspace.targetPath') }}:</strong>
+                  <span>{{ op.path }}</span>
+                </div>
+                <div v-if="op.message">
+                  <strong>{{ $t('agent.display.workspace.message') }}:</strong>
+                  <span>{{ op.message }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </div>
+
+      <!-- 文件内容 / 目录列表显示 -->
+      <div
+        v-else-if="
+          displayData.stage === 'completed' &&
+          displayData.result &&
+          (displayData.result.files?.length || displayData.result.directoryListings?.length)
         "
         class="files-view"
         :style="filesViewStyle"
@@ -75,15 +136,56 @@
           </h3>
           <div class="header-tags" :style="headerTagsStyle">
             <Badge variant="secondary">{{
-              $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles })
+              $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles ?? 0 })
             }}</Badge>
+            <Badge v-if="displayData.result.directoryListings?.length" variant="outline">
+              {{ $t('agent.display.workspace.directoryListingsCount', {
+                count: displayData.result.directoryListings.length
+              }) }}
+            </Badge>
             <Badge v-if="displayData.result.summarized">
               {{ $t('agent.display.workspace.summarized') }}
             </Badge>
           </div>
         </div>
 
-        <el-scrollbar ref="filesScrollbarRef" class="workspace-files-scrollbar max-h-[600px]">
+        <!-- 目录列举（paths 中传入目录时） -->
+        <div
+          v-for="(listing, listIdx) in displayData.result.directoryListings"
+          :key="'dir-' + listIdx"
+          class="directory-listing-block"
+          :style="directoryListingBlockStyle"
+        >
+          <div class="directory-listing-header" :style="fileHeaderStyle">
+            <el-icon class="folder-icon"><Folder /></el-icon>
+            <strong>{{ $t('agent.display.workspace.directoryListing') }}:</strong>
+            <span>{{ listing.path }}</span>
+            <Badge v-if="listing.truncated || listing.totalEntries" variant="secondary">
+              {{ listing.totalEntries ?? listing.tree?.length }}{{ $t('agent.display.workspace.entries') }}
+            </Badge>
+          </div>
+          <div v-if="listing.message" class="truncation-notice" :style="truncationNoticeStyle">
+            {{ listing.message }}
+          </div>
+          <el-scrollbar class="workspace-tree-scrollbar max-h-[300px]">
+            <div class="tree-content">
+              <div
+                v-for="(entry, idx) in listing.tree"
+                :key="idx"
+                class="tree-entry"
+                :style="getTreeEntryStyle(entry)"
+              >
+                <el-icon v-if="entry.isDirectory" class="folder-icon"><Folder /></el-icon>
+                <el-icon v-else class="file-icon"><Document /></el-icon>
+                <span class="entry-name" :style="entryNameStyle">{{ entry.name }}</span>
+                <span class="entry-path" :style="entryPathStyle">{{ entry.path }}</span>
+              </div>
+            </div>
+          </el-scrollbar>
+        </div>
+
+        <!-- 文件内容 -->
+        <el-scrollbar v-if="displayData.result.files?.length" ref="filesScrollbarRef" class="workspace-files-scrollbar max-h-[600px]">
           <div ref="filesContentRef" class="files-content">
             <div
               v-for="(file, index) in displayData.result.files"
@@ -106,7 +208,13 @@
                   <span v-else>
                     {{ $t('agent.display.workspace.totalLines', { count: file.totalLines }) }}
                   </span>
+                  <Badge v-if="file.truncated" variant="outline" class="ml-1">
+                    {{ $t('agent.display.workspace.truncated') }}
+                  </Badge>
                 </div>
+              </div>
+              <div v-if="file.truncationMessage" class="truncation-notice" :style="truncationNoticeStyle">
+                {{ file.truncationMessage }}
               </div>
 
               <!-- 摘要显示 -->
@@ -226,7 +334,7 @@ const displayData = computed(() => {
   const parsed = parseToolData(data) as any
 
   if (parsed && typeof parsed === 'object') {
-    const getStage = (): 'loading-tree' | 'reading' | 'searching' | 'completed' | 'error' => {
+    const getStage = (): 'loading-tree' | 'reading' | 'searching' | 'operating' | 'completed' | 'error' => {
       if (parsed.stage) {
         return parsed.stage
       }
@@ -280,6 +388,7 @@ const getStageMessage = (stage: string) => {
   if (stage === 'loading-tree') return t('agent.display.workspace.loadingTree')
   if (stage === 'reading') return t('agent.display.workspace.reading')
   if (stage === 'searching') return t('agent.display.workspace.searching')
+  if (stage === 'operating') return t('agent.tool.workspace.progress.operating', '正在执行文件/目录操作...')
   return t('agent.display.workspace.processing')
 }
 
@@ -304,6 +413,18 @@ const getFileItemStyle = (index: number) => {
     borderRadius: '6px',
     padding: '16px',
     marginBottom: '16px'
+  }
+}
+
+const getOperationItemStyle = (op: { success?: boolean }) => {
+  return {
+    backgroundColor: themeState.currentTheme.background,
+    border: `1px solid ${
+      op.success ? `${themeState.currentTheme.primaryColor}60` : `${themeState.currentTheme.textColor2}60`
+    }`,
+    borderRadius: '6px',
+    padding: '12px',
+    marginBottom: '12px'
   }
 }
 
@@ -381,6 +502,23 @@ const fileMetaStyle = computed(() => ({
   color: themeState.currentTheme.textColor2,
   fontSize: '12px',
   fontFamily: 'monospace'
+}))
+
+const truncationNoticeStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontSize: '12px',
+  marginBottom: '8px',
+  padding: '6px 10px',
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderRadius: '4px'
+}))
+
+const directoryListingBlockStyle = computed(() => ({
+  marginBottom: '16px',
+  padding: '12px',
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderRadius: '6px',
+  border: `1px solid ${themeState.currentTheme.textColor2}20`
 }))
 
 const fileSummaryStyle = computed(() => ({

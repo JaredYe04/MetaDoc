@@ -155,6 +155,14 @@
           }}</span>
         </div>
 
+        <div
+          v-if="(effectiveData as any)?.outputTruncated && (effectiveData as any)?.truncationMessage"
+          class="truncation-notice"
+          :style="truncationNoticeStyle"
+        >
+          {{ (effectiveData as any).truncationMessage }}
+        </div>
+
         <div v-if="(effectiveData as any)?.stdout" class="output-section">
           <div class="output-header" :style="outputHeaderStyle">
             <strong>{{ $t('agent.display.terminalExecution.stdout') }}</strong>
@@ -404,6 +412,15 @@ const errorTextStyle = computed(() => ({
 const summaryTextStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor
+}))
+
+const truncationNoticeStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontSize: '12px',
+  marginBottom: '8px',
+  padding: '6px 10px',
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderRadius: '4px'
 }))
 
 const terminalOutputStyle = computed(() => ({

@@ -433,7 +433,7 @@ async function answerQuestionNonStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, false)
+    const llmError = handleLlmError(error, true)
     throw llmError
   }
 }
@@ -485,7 +485,7 @@ async function answerQuestionStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, false)
+    const llmError = handleLlmError(error, true)
     throw llmError
   }
 }
@@ -676,7 +676,7 @@ async function continueConversationNonStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, false)
+    const llmError = handleLlmError(error, true)
     throw llmError
   }
 }
@@ -740,7 +740,7 @@ async function continueConversationStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, false)
+    const llmError = handleLlmError(error, true)
     throw llmError
   }
 }
@@ -901,7 +901,7 @@ async function continueConversationWithTools(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, false)
+    const llmError = handleLlmError(error, true)
     throw llmError
   }
 }

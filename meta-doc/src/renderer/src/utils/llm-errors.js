@@ -86,6 +86,42 @@ export function createLlmError(error, context = {}) {
     return new LlmError(LlmErrorType.UNKNOWN_ERROR, message, error, { ...context, cause: cause ? String(cause) : undefined })
   }
 
+  // AI SDK API 调用错误（如 402 余额不足、4xx/5xx）：统一转为可展示的 LlmError
+  if (error?.name === 'AI_APICallError') {
+    const status = error?.statusCode ?? error?.status ?? error?.response?.status
+    const rawMessage = error?.message || error?.cause?.message || ''
+    if (status === 402 || /insufficient balance|余额不足|quota|余额|欠费/i.test(rawMessage)) {
+      return new LlmError(
+        LlmErrorType.API_ERROR,
+        'API 余额不足，请充值后重试',
+        error,
+        { ...context, status: status || 402 }
+      )
+    }
+    if (status === 401 || status === 403) {
+      return new LlmError(
+        LlmErrorType.AUTH_ERROR,
+        rawMessage || 'API 认证失败，请检查 API Key',
+        error,
+        { ...context, status }
+      )
+    }
+    if (status !== undefined) {
+      return new LlmError(
+        LlmErrorType.HTTP_ERROR,
+        rawMessage || `API 请求失败 (${status})`,
+        error,
+        { ...context, status }
+      )
+    }
+    return new LlmError(
+      LlmErrorType.API_ERROR,
+      rawMessage || 'API 调用失败',
+      error,
+      context
+    )
+  }
+
   // 处理网络错误
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return new LlmError(LlmErrorType.NETWORK_ERROR, '网络连接失败', error, context)

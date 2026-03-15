@@ -1523,6 +1523,8 @@ const executeAgentEngine = async (
 
     if (isCancelled) {
       logger.debug('Agent引擎任务已取消')
+      // 取消/中断后移除本轮的未完成 assistant 气泡，确保下次发送时上下文干净、请求完整
+      removeLastIncompleteAssistantMessage(session)
       session.status = 'idle'
       persistSessions()
       return
@@ -1631,6 +1633,8 @@ const handleCancelGeneration = () => {
   generatingSessionId.value = null
   isGenerating.value = false
   session.status = 'idle'
+  // 中断后立即移除未完成的 assistant 气泡，下次发送时请求上下文完整
+  removeLastIncompleteAssistantMessage(session)
   persistSessions()
 }
 
@@ -1685,6 +1689,37 @@ function cleanupUnfinishedToolCalls(session: AgentSession) {
         else (msg as any).tool_calls = completed
       }
     }
+  }
+}
+
+/**
+ * 取消/中断后移除最后一条未完成的 assistant 消息（空内容或仅有 tool_calls 无对应 tool 结果），
+ * 确保下次发送时 session 末尾是 user，API 请求上下文完整。
+ */
+function removeLastIncompleteAssistantMessage(session: AgentSession) {
+  const messages = session.messages
+  if (!messages?.length) return
+  const last = messages[messages.length - 1]
+  if (last.role !== 'assistant' || last.type !== 'chat') return
+  const md = (last as ChatAgentMessage).markdown
+  const toolCalls = (last as any).tool_calls
+  const hasToolCalls = Array.isArray(toolCalls) && toolCalls.length > 0
+  const emptyContent = !md || !String(md).trim()
+  // 若最后一条是空内容 assistant，或带 tool_calls 但后面没有对应 tool 消息（本轮被中断），则移除
+  if (emptyContent) {
+    messages.pop()
+    return
+  }
+  if (!hasToolCalls) return
+  const tcIds = new Set((toolCalls as Array<{ id?: string }>).map((tc) => tc.id).filter(Boolean))
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if (m.role === 'tool' && (m as any).tool_call_id && tcIds.has((m as any).tool_call_id)) {
+      tcIds.delete((m as any).tool_call_id)
+    }
+  }
+  if (tcIds.size > 0) {
+    messages.pop()
   }
 }
 

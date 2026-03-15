@@ -367,7 +367,15 @@
         "hideContent": "隐藏完整内容",
         "linesRange": "行 {start}-{end} (共 {total} 行)",
         "totalLines": "共 {count} 行",
-        "error": "工作区文件读取失败"
+        "error": "工作区文件读取失败",
+        "truncated": "已截断",
+        "directoryListingsCount": "{count} 个目录列表",
+        "directoryListing": "目录列表",
+        "entries": " 项",
+        "operationsTitle": "文件/目录操作结果",
+        "operationsCount": "{count} 项操作",
+        "targetPath": "目标路径",
+        "message": "说明"
       },
       "edit": {
         "completed": "编辑完成",

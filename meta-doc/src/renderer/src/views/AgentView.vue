@@ -1961,12 +1961,10 @@ const executeAgentEngine = async (
       const isCancelled = isAbortErrorName || isLlmAborted
 
       if (isCancelled) {
-        // 用户手动取消，不记录为错误，只更新消息内容
         logger.debug('Agent引擎任务已取消')
+        removeLastIncompleteAssistantMessage(session)
         session.status = 'idle'
-        // 注意：LlmAdapter.callChatViaTask已经通过reactiveMessage更新了markdown
         persistSessions()
-        // 不抛出错误，正常返回
         return
       }
 
@@ -2048,11 +2046,10 @@ const executeAgentEngine = async (
           error.name === 'AbortError')
 
       if (isCancelled) {
-        // 用户手动取消，不记录为错误
         logger.debug('Agent引擎任务已取消')
+        removeLastIncompleteAssistantMessage(session)
         session.status = 'idle'
         persistSessions()
-        // 不抛出错误，正常返回
         return
       }
 
@@ -2314,6 +2311,35 @@ async function openAttachFilePicker() {
   }
 }
 
+/**
+ * 取消/中断后移除最后一条未完成的 assistant 消息，确保下次发送时 session 末尾是 user，API 请求上下文完整。
+ */
+function removeLastIncompleteAssistantMessage(session: AgentSession) {
+  const messages = session.messages
+  if (!messages?.length) return
+  const last = messages[messages.length - 1]
+  if (last.role !== 'assistant' || last.type !== 'chat') return
+  const md = (last as ChatAgentMessage).markdown
+  const toolCalls = (last as any).tool_calls
+  const hasToolCalls = Array.isArray(toolCalls) && toolCalls.length > 0
+  const emptyContent = !md || !String(md).trim()
+  if (emptyContent) {
+    messages.pop()
+    return
+  }
+  if (!hasToolCalls) return
+  const tcIds = new Set((toolCalls as Array<{ id?: string }>).map((tc) => tc.id).filter(Boolean))
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if (m.role === 'tool' && (m as any).tool_call_id && tcIds.has((m as any).tool_call_id)) {
+      tcIds.delete((m as any).tool_call_id)
+    }
+  }
+  if (tcIds.size > 0) {
+    messages.pop()
+  }
+}
+
 const handleCancelGeneration = () => {
   const session = activeSession.value
   if (!session) {
@@ -2352,6 +2378,7 @@ const handleCancelGeneration = () => {
   generatingSessionId.value = null
   isGenerating.value = false
   session.status = 'idle'
+  removeLastIncompleteAssistantMessage(session)
   persistSessions()
 }
 

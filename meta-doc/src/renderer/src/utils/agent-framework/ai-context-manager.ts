@@ -955,6 +955,54 @@ export class AIContextManager {
       )
     }
 
+    // 再做一层安全过滤：移除历史中「找不到任一 assistant.tool_calls 对应关系」的孤立 tool 消息，
+    // 避免 AI SDK / OpenAI 报错 “Messages with role 'tool' must be a response to a preceding message with 'tool_calls'”
+    const validToolCallIds = new Set<string>()
+    for (const m of llmMessages as any[]) {
+      if (m.role === 'assistant' && Array.isArray(m.tool_calls)) {
+        for (const tc of m.tool_calls) {
+          if (tc && typeof tc.id === 'string' && tc.id) {
+            validToolCallIds.add(tc.id)
+          }
+        }
+      }
+    }
+    if (validToolCallIds.size > 0) {
+      for (let i = llmMessages.length - 1; i >= 0; i--) {
+        const m: any = llmMessages[i]
+        if (m.role === 'tool') {
+          const tcId = m.tool_call_id
+          // 没有 tool_call_id 或在任何 assistant.tool_calls 中都不存在，视为「孤立 tool」，从上下文中移除
+          if (!tcId || !validToolCallIds.has(tcId)) {
+            llmMessages.splice(i, 1)
+          }
+        }
+      }
+    } else {
+      // 没有任何 assistant.tool_calls，则所有历史 tool 消息对当前调用都是多余的，全部移除以避免协议错误
+      for (let i = llmMessages.length - 1; i >= 0; i--) {
+        if ((llmMessages[i] as any).role === 'tool') {
+          llmMessages.splice(i, 1)
+        }
+      }
+    }
+
+    // 移除末尾「仅空白内容」的 assistant 消息（取消/中断后残留），确保 API 不收到空 assistant 导致“思考后无输出”
+    while (llmMessages.length > 0) {
+      const last = llmMessages[llmMessages.length - 1] as any
+      if (last.role === 'assistant') {
+        const content = last.content
+        const isEmpty =
+          content == null || (typeof content === 'string' && !String(content).trim())
+        const noToolCalls = !Array.isArray(last.tool_calls) || last.tool_calls.length === 0
+        if (isEmpty && noToolCalls) {
+          llmMessages.pop()
+          continue
+        }
+      }
+      break
+    }
+
     return llmMessages
   }
 

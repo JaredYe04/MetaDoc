@@ -97,17 +97,20 @@ function getAvailableToolBriefs(
     }
   }
 
-  // 添加 Subagent 配置作为可调用“工具”（仅 Subagent 会暴露 spec 给主 Agent）
-  const subagentConfigs = agentConfigManager.getSubagentConfigs()
-  for (const config of subagentConfigs) {
-    const desc =
-      typeof config.description === 'string'
-        ? config.description
-        : config.description['zh_cn']?.description ||
-          config.description['en_us']?.description ||
-          ''
-    const brief = desc.length > 120 ? desc.substring(0, 120) + '...' : desc
-    toolBriefs.push({ id: config.id, brief })
+  // 仅主 Agent 可见 Subagent：Subagent 不能再调用 Subagent，意图识别时也不加入 Subagent 选项
+  const isSubagent = (agentConfig as { isSubagent?: boolean }).isSubagent === true
+  if (!isSubagent) {
+    const subagentConfigs = agentConfigManager.getSubagentConfigs()
+    for (const config of subagentConfigs) {
+      const desc =
+        typeof config.description === 'string'
+          ? config.description
+          : config.description['zh_cn']?.description ||
+            config.description['en_us']?.description ||
+            ''
+      const brief = desc.length > 120 ? desc.substring(0, 120) + '...' : desc
+      toolBriefs.push({ id: config.id, brief })
+    }
   }
 
   return toolBriefs

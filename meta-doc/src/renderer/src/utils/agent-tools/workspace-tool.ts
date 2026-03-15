@@ -14,6 +14,7 @@ import { createDetailedError } from './tool-utils'
 import WorkspaceDisplay from './components/WorkspaceDisplay.vue'
 import eventBus from '../event-bus'
 import messageBridge from '../../bridge/message-bridge'
+import { ensureDirectoryRecursive as ensureDirectoryRecursiveImpl } from './workspace-directory-helper'
 
 const logger = createRendererLogger('WorkspaceTool')
 
@@ -172,57 +173,12 @@ function isInMetaDoc(path: string): boolean {
   return n.includes('/.metadoc/') || n.endsWith('/.metadoc')
 }
 
-/**
- * 递归创建目录（类似 mkdir -p）
- * - 如果中间某些层级不存在，会自动创建
- * - 如果目录已经存在，则视为成功并返回对应提示
- */
 async function ensureDirectoryRecursive(fullPath: string): Promise<{ created: boolean; message: string }> {
-  if (!messageBridge.getIpc()) {
+  const ipc = messageBridge.getIpc()
+  if (!ipc) {
     throw new Error('IPC renderer not available')
   }
-
-  const ipc = messageBridge.getIpc()
-  const normalized = normalizePath(fullPath)
-
-  // Windows 盘符前缀单独处理
-  let prefix = ''
-  let rest = normalized
-  const winMatch = normalized.match(/^([A-Za-z]:)(\/.*)?$/)
-  if (winMatch) {
-    prefix = winMatch[1]
-    rest = winMatch[2] || ''
-  }
-
-  const segments = rest.split('/').filter((s) => s.length > 0)
-  let current = prefix || (normalized.startsWith('/') ? '/' : '')
-  let createdAny = false
-
-  for (const seg of segments) {
-    if (!seg) continue
-    if (current === '' || current === '/') {
-      current = prefix ? `${prefix}/${seg}` : `/${seg}`
-    } else {
-      current = `${current}/${seg}`
-    }
-
-    try {
-      const exists = await ipc.invoke('file-exists', current)
-      if (!exists) {
-        await ipc.invoke('create-directory', current)
-        createdAny = true
-      }
-    } catch (error) {
-      logger.warn(`创建目录失败: ${current}`, error)
-      throw new Error(`创建目录失败: ${current}`)
-    }
-  }
-
-  if (createdAny) {
-    return { created: true, message: `目录已创建: ${normalized}` }
-  }
-
-  return { created: false, message: `目录已存在，未重复创建: ${normalized}` }
+  return ensureDirectoryRecursiveImpl(fullPath, ipc)
 }
 
 /**

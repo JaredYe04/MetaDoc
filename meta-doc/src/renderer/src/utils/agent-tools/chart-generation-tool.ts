@@ -8,8 +8,7 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress,
-  ToolLocales
+  ToolProgress
 } from '../../types/agent-tool'
 import type { AIDialogMessage } from '@/types'
 import {
@@ -33,6 +32,34 @@ import { retryLLMCall } from './tool-utils'
 import messageBridge from '../../bridge/message-bridge'
 
 const logger = createRendererLogger('ChartGenerationTool')
+
+/** 获取工作区根目录列表（与 edit-tool 一致，用于解析相对路径） */
+function getWorkspaceRoots(): string[] {
+  try {
+    const saved = localStorage.getItem('workspaceFolders')
+    if (!saved) return []
+    const arr = JSON.parse(saved)
+    return Array.isArray(arr)
+      ? arr.filter((p: unknown) => typeof p === 'string' && (p as string).length > 0)
+      : []
+  } catch {
+    return []
+  }
+}
+
+/** 将可能为工作区相对路径的路径解析为绝对路径；已是绝对路径则原样返回 */
+function resolveSavePath(pathInput: string): string {
+  const normalized = pathInput.replace(/\\/g, '/').trim()
+  if (!normalized) return normalized
+  if (normalized.startsWith('/') || /^[A-Za-z]:[/\\]/.test(normalized)) {
+    return normalized
+  }
+  const roots = getWorkspaceRoots()
+  const root = roots[0]
+  if (!root) return normalized
+  const base = root.replace(/\\/g, '/').replace(/\/$/, '')
+  return `${base}/${normalized}`
+}
 
 /** 根据 format 得到文件扩展名 */
 function getExtensionForFormat(format: 'svg' | 'png' | 'pdf'): string {
@@ -811,8 +838,6 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
   const format = (params.format as 'svg' | 'png' | 'pdf') || 'svg'
   const chartName = (params.chartName as string) || `chart_${Date.now()}`
   const savePath = params.savePath as string | undefined
-  const outputDir = params.outputDir as string | undefined
-  const filename = params.filename as string | undefined
 
   // 如果提供了 code 参数，则 prompt 不是必需的；否则 prompt 是必需的
   if (!chartCode && (!prompt || typeof prompt !== 'string')) {
@@ -1303,40 +1328,28 @@ ${currentCode}
       finalUrl = `${getRuntimeServerBaseUrlSync()}/images/${pdfFileName}`
     }
 
-    // 步骤4: 可选——将图片保存到指定路径
+    // 步骤4: 可选——将图片保存到指定路径（支持绝对路径或相对工作区根路径；路径含目录+文件名，如 images/fig1.svg）
     let savedPath: string | undefined
-    const ext = getExtensionForFormat(format)
-    if (savePath || outputDir) {
-      let targetPath: string
-      if (savePath) {
-        targetPath = ensureExtension(savePath.trim(), format)
-      } else if (outputDir) {
-        const base = (filename || chartName).trim().replace(/[/\\]+/g, '_')
-        const name = base.endsWith(`.${ext}`) ? base : `${base}.${ext}`
-        targetPath = `${outputDir.replace(/[/\\]+$/, '')}/${name}`
-      } else {
-        targetPath = ''
-      }
-      if (targetPath) {
-        try {
-          const res = await fetch(finalUrl, { signal })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const buf = await res.arrayBuffer()
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
-          await messageBridge.invoke('write-file-content', {
-            filePath: targetPath,
-            content: base64,
-            encoding: 'base64'
-          })
-          savedPath = targetPath
-          logger.info('[chart-generation] 已保存到:', targetPath)
-        } catch (saveErr) {
-          const msg = saveErr instanceof Error ? saveErr.message : String(saveErr)
-          logger.error('[chart-generation] 保存到文件失败:', saveErr)
-          return {
-            status: 'failed',
-            error: `图表已生成但保存到文件失败: ${msg}`
-          }
+    if (savePath) {
+      const targetPath = ensureExtension(resolveSavePath(savePath.trim()), format)
+      try {
+        const res = await fetch(finalUrl, { signal })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const buf = await res.arrayBuffer()
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+        await messageBridge.invoke('write-file-content', {
+          filePath: targetPath,
+          content: base64,
+          encoding: 'base64'
+        })
+        savedPath = targetPath
+        logger.info('[chart-generation] 已保存到:', targetPath)
+      } catch (saveErr) {
+        const msg = saveErr instanceof Error ? saveErr.message : String(saveErr)
+        logger.error('[chart-generation] 保存到文件失败:', saveErr)
+        return {
+          status: 'failed',
+          error: `图表已生成但保存到文件失败: ${msg}`
         }
       }
     }
@@ -1392,399 +1405,17 @@ ${currentCode}
   }
 }
 
-function getChartGenerationToolLocales(): ToolLocales {
-  const baseUrl = getRuntimeServerBaseUrlSync()
-  return {
-    zh_cn: {
-      name: '图表生成',
-      description:
-        '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
-      instruction: `# 图表生成工具
-
-## 功能描述
-根据用户提供的提示词，自动生成各种类型的图表代码，并渲染为图片。支持多种图表类型和导出格式。
-
-## 支持的图表类型
-- **Mermaid**: 流程图、UML序列图、甘特图、UML类图、思维导图、饼图
-- **ECharts**: 折线图、条形图、散点图、K线图、饼图、雷达图、和弦图、力导向布局图、地图、仪表盘图、漏斗图、事件河流图
-- **PlantUML**: UML类图、UML序列图、UML活动图、UML状态图、UML用例图、UML组件图
-- **Flowchart**: 流程图
-- **Graphviz**: 流程图
-
-## 使用场景
-- 需要快速生成数据可视化图表
-- 需要绘制流程图、UML图等
-- 需要将图表导出为不同格式用于文档
-
-## 输入参数
-\`\`\`json
-{
-  "prompt": "string",        // 可选，图表描述或需求（如果提供了code参数，则不需要prompt）
-  "chartType": "string",     // 可选，图表类型（mermaid/echarts/plantuml/flowchart/graphviz），默认mermaid
-  "format": "string",        // 可选，导出格式（svg/png/pdf），默认svg
-  "chartName": "string",     // 可选，图表名称，默认自动生成，也可用于生成文件名
-  "code": "string",          // 可选，直接提供图表代码（如果提供了code，则跳过LLM生成，prompt可以为空）
-  "savePath": "string",      // 可选，保存图片的完整路径（如 D:/project/images/chart.svg），指定后会将图片写入该路径并返回 savedPath
-  "outputDir": "string",     // 可选，保存图片的目录；与 filename 或 chartName 组合成最终路径
-  "filename": "string"       // 可选，保存时的文件名（可含扩展名，否则按 format 补全）；与 outputDir 配合使用
-}
-\`\`\`
-
-**注意**：
-- 如果提供了 \`code\` 参数，则 \`prompt\` 可以为空，工具会直接使用提供的代码进行渲染
-- 如果没有提供 \`code\` 参数，则必须提供 \`prompt\` 参数，工具会调用LLM生成代码
-
-## ⚠️ 重要：数据分析场景下的使用方式
-
-**在数据分析后绘制图表时，必须提供 \`code\` 参数，不能使用 \`prompt\` 参数！**
-
-原因：
-- 图表生成工具**无法感知附件数据**：工具在调用LLM生成代码时，LLM无法访问你之前分析的数据、附件或引用素材
-- 图表生成工具**不知道具体数据**：如果使用自然语言描述（\`prompt\`），LLM无法知道具体的数据值、数据结构和分析结果
-- **正确做法**：在数据分析后，你需要自己根据分析结果生成图表代码（如ECharts配置JSON），然后通过 \`code\` 参数提供给工具
-
-### 数据分析后绘制图表的正确流程：
-
-\`\`\`json
-// 步骤1：使用数据分析工具分析数据
-{
-  "tool": "data-analysis",
-  "params": {
-    "data": "/path/to/data.csv",
-    "dataSource": "file",
-    "analysisRequest": "分析销售趋势并绘制折线图"
-  }
-}
-// 返回分析结果，包含数据摘要、统计信息等
-
-// 步骤2：根据分析结果，自己生成ECharts配置代码（包含具体数据）
-{
-  "tool": "chart-generation",
-  "params": {
-    "code": "{"title": {"text": "销售趋势"}, "xAxis": {"type": "category", "data": ["1月", "2月", "3月"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
-    "chartType": "echarts",
-    "format": "svg"
-  }
-}
-// ⚠️ 注意：必须提供 code 参数，包含完整的图表配置和具体数据值
-\`\`\`
-
-### 错误示例（不要这样做）：
-
-\`\`\`json
-// ❌ 错误：在数据分析后使用 prompt 参数
-{
-  "tool": "chart-generation",
-  "params": {
-    "prompt": "根据刚才的数据分析结果绘制折线图",  // ❌ 工具无法知道"刚才的数据"是什么
-    "chartType": "echarts"
-  }
-}
-\`\`\`
-
-## 输出格式
-返回JSON格式的结果，包含：
-- \`chartName\`: 图表名称
-- \`chartType\`: 图表类型
-- \`url\`: **图表图片URL**（运行时服务器图片地址，形如 ${baseUrl}/images/xxx.svg）- **这是要插入到文档中的URL，不是代码！**
-- \`localPath\`: 本地绝对路径（运行时缓存路径）
-- \`chartCode\`: 提取后的可直接渲染的图表代码（仅用于调试，**不应该插入到文档中**）
-- \`savedPath\`: **可选**，若调用了 \`savePath\` 或 \`outputDir\`，则返回实际写入的本地绝对路径，用于在文档中插入 \`![描述](savedPath)\` 或 LaTeX \`\\\\includegraphics{savedPath}\`
-
-## ⚠️ 重要：插入图表到文档的方法
-
-**生成图表后，使用 \`edit\` 工具将图表插入到文档中。Markdown 可选用代码块或图片链接；LaTeX 必须使用图片引用。**
-- **Markdown**：可直接插入 \`\`\`mermaid / \`\`\`echarts 代码块（会渲染），也可保存图片后插入 \`![描述](url或savedPath)\`。
-- **LaTeX**：必须保存为文件（如 \`format: "pdf"\` 并指定 \`savePath\` 或 \`outputDir\`），再插入 \`\\\\includegraphics{路径}\`。
-
-### 对于Markdown格式文档：
-方式一：插入图片（可使用返回的 \`url\` 或 \`savedPath\`）：
-\`\`\`markdown
-![图表描述](${baseUrl}/images/xxx.svg)
-\`\`\`
-方式二：直接插入代码块（会渲染为图表）：
-\`\`\`markdown
-\`\`\`mermaid
-graph LR
-  A --> B
-\`\`\`
-\`\`\`
-
-### 对于LaTeX格式文档：
-1. **必须使用PDF格式**：LaTeX文档只支持PDF格式的图表，必须设置 \`format: "pdf"\`，并建议使用 \`savePath\` 或 \`outputDir\` 将图表保存到项目目录。
-2. 插入图片使用LaTeX语法（使用 \`savedPath\` 或 \`url\` 对应路径）：
-\`\`\`latex
-\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}
-\`\`\`
-或者使用完整路径：
-\`\`\`latex
-\\includegraphics[width=0.8\\textwidth]{/完整/本地/路径/xxx.pdf}
-\`\`\`
-
-### 完整工作流程示例 ⭐
-\`\`\`json
-// 步骤1：生成图表（根据文档格式选择format）
-{
-  "tool": "chart-generation",
-  "params": {
-    "prompt": "生成一个展示数据趋势的折线图",
-    "chartType": "echarts",
-    "format": "svg"  // Markdown使用svg或png，LaTeX必须使用pdf
-  }
-}
-// 返回结果包含 url: "${baseUrl}/images/xxx.svg"
-
-// 步骤2：使用edit工具插入图片URL（不是插入代码！）
-{
-  "tool": "edit",
-  "params": {
-    "operations": [{
-      "type": "insert",
-      "range": {
-        "start": {"line": 15, "column": 1},  // 先查看引用素材或使用 workspace 工作区文件读取工具查看文件定位位置
-        "end": {"line": 15, "column": 1}
-      },
-      "content": "![数据趋势图](${baseUrl}/images/xxx.svg)\n"  // Markdown格式
-      // 或者对于LaTeX：
-      // "content": "\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}\n"
-    }]
-  }
-}
-\`\`\`
-
-## 注意事项
-1. **⚠️ 插入URL，不是代码**：生成图表后，必须将返回的 \`url\` 字段插入到文档中，而不是插入 \`chartCode\`
-2. **格式选择**：
-   - Markdown文档：使用 \`svg\` 或 \`png\` 格式
-   - LaTeX文档：**必须使用 \`pdf\` 格式**
-3. **插入位置**：插入图表前，先查看引用素材或使用 \`workspace\`（工作区文件读取）工具查看文件确定合适的位置，不要总是从行1列1插入
-4. **插入语法**：
-   - Markdown: \`![描述](图片URL)\`
-   - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{图片URL或路径}\`
-5. **⚠️ 数据分析场景必须提供代码**：在数据分析后绘制图表时，**必须提供 \`code\` 参数**，包含完整的图表配置和具体数据值，不能使用 \`prompt\` 参数（因为工具无法感知数据）
-6. 如果提供了 \`code\` 参数，工具会直接使用该代码进行渲染，不需要 \`prompt\` 参数
-7. 如果不提供 \`code\` 参数，必须提供 \`prompt\` 参数，工具会调用LLM生成图表代码（仅适用于不依赖具体数据的场景，如流程图、示意图等）
-8. 返回的 \`chartCode\` 是经过提取和清理后的可直接渲染的代码（仅用于调试，不应插入文档）
-9. ECharts需要提供JSON格式的配置对象
-10. 图表代码会自动清理，移除markdown代码块标记
-11. ECharts会自动去除动画效果
-
-## 与其他Tool的区别
-- 这是唯一的图表生成工具
-- 支持多种图表类型和格式
-- 可以调用LLM辅助生成代码`
-    },
-    en_us: {
-      name: 'Chart Generation',
-      description:
-        'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
-      instruction: `# Chart Generation Tool
-
-## Description
-Automatically generates various types of chart code based on user-provided prompts and renders them as images. Supports multiple chart types and export formats.
-
-## Supported Chart Types
-- **Mermaid**: Flowcharts, UML sequence diagrams, Gantt charts, UML class diagrams, mind maps, pie charts
-- **ECharts**: Line charts, bar charts, scatter plots, candlestick charts, pie charts, radar charts, chord charts, force-directed layout charts, maps, gauge charts, funnel charts, event river charts
-- **PlantUML**: UML class diagrams, UML sequence diagrams, UML activity diagrams, UML state diagrams, UML use case diagrams, UML component diagrams
-- **Flowchart**: Flowcharts
-- **Graphviz**: Flowcharts
-
-## Usage Scenarios
-- Need to quickly generate data visualization charts
-- Need to draw flowcharts, UML diagrams, etc.
-- Need to export charts in different formats for documents
-
-## Input Parameters
-\`\`\`json
-{
-  "prompt": "string",        // Optional, chart description or requirement (not needed if code parameter is provided)
-  "chartType": "string",     // Optional, chart type (mermaid/echarts/plantuml/flowchart/graphviz), default mermaid
-  "format": "string",        // Optional, export format (svg/png/pdf), default svg
-  "chartName": "string",     // Optional, chart name, default auto-generated; also used for filename when saving
-  "code": "string",          // Optional, directly provide chart code (if code is provided, LLM generation is skipped, prompt can be empty)
-  "savePath": "string",      // Optional, full path to save the image (e.g. D:/project/images/chart.svg); returns savedPath in result
-  "outputDir": "string",     // Optional, directory to save the image; combined with filename or chartName
-  "filename": "string"       // Optional, filename when saving (extension added from format if missing); use with outputDir
-}
-\`\`\`
-
-**Note**:
-- If \`code\` parameter is provided, \`prompt\` can be empty, tool will directly use provided code for rendering
-- If \`code\` parameter is not provided, \`prompt\` parameter must be provided, tool will call LLM to generate code
-
-## ⚠️ Important: Usage in Data Analysis Scenarios
-
-**When drawing charts after data analysis, you MUST provide the \`code\` parameter, NOT the \`prompt\` parameter!**
-
-Reasons:
-- Chart generation tool **cannot access attachment data**: When the tool calls LLM to generate code, the LLM cannot access the data, attachments, or references you analyzed earlier
-- Chart generation tool **does not know specific data**: If you use natural language description (\`prompt\`), the LLM cannot know specific data values, data structures, or analysis results
-- **Correct approach**: After data analysis, you need to generate chart code yourself (such as ECharts configuration JSON) based on the analysis results, then provide it to the tool via the \`code\` parameter
-
-### Correct Workflow for Drawing Charts After Data Analysis:
-
-\`\`\`json
-// Step 1: Use data analysis tool to analyze data
-{
-  "tool": "data-analysis",
-  "params": {
-    "data": "/path/to/data.csv",
-    "dataSource": "file",
-    "analysisRequest": "Analyze sales trends and draw a line chart"
-  }
-}
-// Returns analysis results, including data summary, statistics, etc.
-
-// Step 2: Based on analysis results, generate ECharts configuration code yourself (including specific data)
-{
-  "tool": "chart-generation",
-  "params": {
-    "code": "{"title": {"text": "Sales Trends"}, "xAxis": {"type": "category", "data": ["Jan", "Feb", "Mar"]}, "yAxis": {"type": "value"}, "series": [{"data": [120, 200, 150], "type": "line"}]}",
-    "chartType": "echarts",
-    "format": "svg"
-  }
-}
-// ⚠️ Note: Must provide code parameter, including complete chart configuration and specific data values
-\`\`\`
-
-### Wrong Example (Do NOT do this):
-
-\`\`\`json
-// ❌ Wrong: Using prompt parameter after data analysis
-{
-  "tool": "chart-generation",
-  "params": {
-    "prompt": "Draw a line chart based on the previous data analysis results",  // ❌ Tool cannot know what "previous data" is
-    "chartType": "echarts"
-  }
-}
-\`\`\`
-
-## Output Format
-Returns JSON format result containing:
-- \`chartName\`: Chart name
-- \`chartType\`: Chart type
-- \`url\`: **Chart image URL** (${baseUrl}/images/...) - **This is the URL to insert into document, not code!**
-- \`localPath\`: Local absolute path (runtime cache path)
-- \`chartCode\`: Extracted directly renderable chart code (for debugging only, **should not be inserted into document**)
-- \`savedPath\`: **Optional**; when \`savePath\` or \`outputDir\` was used, the actual saved file path for \`![desc](savedPath)\` or LaTeX \`\\\\includegraphics{savedPath}\`
-
-## ⚠️ Important: Method to Insert Chart into Document
-
-**After generating chart, use \`edit\` tool to insert the chart into the document. Markdown: code block or image link; LaTeX: image reference only.**
-- **Markdown**: You can insert a \`\`\`mermaid / \`\`\`echarts code block (it will render), or save the image and insert \`![desc](url or savedPath)\`.
-- **LaTeX**: Must save to file (e.g. \`format: "pdf"\` with \`savePath\` or \`outputDir\`), then insert \`\\\\includegraphics{path}\`.
-
-### For Markdown Format Documents:
-Option 1: Insert image (use returned \`url\` or \`savedPath\`):
-\`\`\`markdown
-![Chart Description](${baseUrl}/images/xxx.svg)
-\`\`\`
-Option 2: Insert code block (renders as chart):
-\`\`\`markdown
-\`\`\`mermaid
-graph LR
-  A --> B
-\`\`\`
-\`\`\`
-
-### For LaTeX Format Documents:
-1. **Must use PDF format**: LaTeX documents only support PDF format charts, set \`format: "pdf"\` and use \`savePath\` or \`outputDir\` to save under project.
-2. Insert image with LaTeX syntax (use \`savedPath\` or path from \`url\`):
-\`\`\`latex
-\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}
-\`\`\`
-Or use full path:
-\`\`\`latex
-\\includegraphics[width=0.8\\textwidth]{/full/local/path/xxx.pdf}
-\`\`\`
-
-### Complete Workflow Example ⭐
-\`\`\`json
-// Step 1: Generate chart (choose format based on document format)
-{
-  "tool": "chart-generation",
-  "params": {
-    "prompt": "Generate a line chart showing data trends",
-    "chartType": "echarts",
-    "format": "svg"  // Markdown uses svg or png, LaTeX must use pdf
-  }
-}
-// Returns result containing url: "${baseUrl}/images/xxx.svg"
-
-// Step 2: Use edit tool to insert image URL (not insert code!)
-{
-  "tool": "edit",
-  "params": {
-    "operations": [{
-      "type": "insert",
-      "range": {
-        "start": {"line": 15, "column": 1},  // First check reference or use workspace tool to read file and locate position
-        "end": {"line": 15, "column": 1}
-      },
-      "content": "![Data Trend Chart](${baseUrl}/images/xxx.svg)\n"  // Markdown format
-      // Or for LaTeX:
-      // "content": "\\includegraphics[width=0.8\\textwidth]{${baseUrl}/images/xxx.pdf}\n"
-    }]
-  }
-}
-\`\`\`
-
-## Notes
-1. **⚠️ Insert URL, not code**: After generating chart, must insert returned \`url\` field into document, not insert \`chartCode\`
-2. **Format selection**:
-   - Markdown documents: Use \`svg\` or \`png\` format
-   - LaTeX documents: **Must use \`pdf\` format**
-3. **Insert position**: Before inserting chart, first check reference or use \`workspace\` (workspace file reader) tool to read file and locate appropriate position, don't always insert from line 1 column 1
-4. **Insert syntax**:
-   - Markdown: \`![Description](Image URL)\`
-   - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{Image URL or path}\`
-5. **⚠️ Data analysis scenarios must provide code**: When drawing charts after data analysis, **must provide \`code\` parameter**, including complete chart configuration and specific data values, cannot use \`prompt\` parameter (because tool cannot access data)
-6. If \`code\` parameter is provided, tool will directly use that code for rendering, \`prompt\` parameter not needed
-7. If \`code\` parameter is not provided, must provide \`prompt\` parameter, tool will call LLM to generate chart code (only suitable for scenarios that don't depend on specific data, such as flowcharts, diagrams, etc.)
-8. Returned \`chartCode\` is extracted and cleaned directly renderable code (for debugging only, should not be inserted into document)
-9. ECharts requires JSON format configuration object
-10. Chart code will be automatically cleaned, removing markdown code block markers
-11. ECharts will automatically remove animation effects
-
-## Differences from Other Tools
-- This is the only chart generation tool
-- Supports multiple chart types and formats
-- Can call LLM to assist in generating code`
-    },
-    de_DE: {
-      name: 'Diagramm-Generierung',
-      description:
-        'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
-    },
-    fr_FR: {
-      name: 'Génération de graphiques',
-      description:
-        "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l'export en SVG, PNG ou PDF"
-    },
-    ja_JP: {
-      name: 'チャート生成',
-      description:
-        'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
-    },
-    ko_KR: {
-      name: '차트 생성',
-      description:
-        '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
-    }
-  }
-}
-
-const chartGenerationToolLocales = getChartGenerationToolLocales()
+const CHART_GENERATION_TOOL_NAME = 'Chart Generation'
+const CHART_GENERATION_TOOL_DESCRIPTION =
+  'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats'
 
 /**
  * 图表生成Tool配置
  */
 export const chartGenerationToolConfig: AgentToolConfig = {
   id: 'chart-generation',
-  name: chartGenerationToolLocales,
-  description: chartGenerationToolLocales,
+  name: CHART_GENERATION_TOOL_NAME,
+  description: CHART_GENERATION_TOOL_DESCRIPTION,
   origin: 'internal',
   spec: {
     name: 'chart-generation',
@@ -1810,27 +1441,25 @@ Generate various types of charts based on prompts, including:
 ## Input Format
 \`\`\`json
 {
-  "prompt": "string", // Required, description of the chart to generate
-  "type": "string", // Required, chart type: mermaid|echarts|plantuml|flowchart|graphviz
-  "width": 800, // Optional, chart width in pixels
-  "height": 600 // Optional, chart height in pixels
+  "prompt": "string",   // Chart description (or use "code" to provide chart code directly)
+  "chartType": "string", // mermaid|echarts|plantuml|flowchart|graphviz
+  "format": "string",   // svg|png|pdf (Markdown: svg/png; LaTeX: pdf required)
+  "savePath": "string"  // Optional, path (dir + filename) to save file, absolute or workspace-relative (e.g. images/fig1.svg)
 }
 \`\`\`
 
 ## Output Format
-Returns chart code or rendered chart URL depending on the chart type. For Mermaid and ECharts, returns the code that can be rendered directly.
+Returns chart code, URL, and optionally savedPath. For Markdown, prefer inserting code blocks (\`\`\`mermaid, \`\`\`echarts, \`\`\`plantuml) over image links. For LaTeX, must save as PDF and insert using \u005cbegin{figure}...\u005cend{figure} with \u005cincludegraphics.
 
 ## Important Notes
-1. For ECharts: Must return valid JSON format, use English punctuation (commas, colons, quotes)
-2. For Mermaid: Ensure syntax is correct, use proper diagram type identifiers
-3. For PlantUML: Must include @startuml and @enduml markers
-4. The tool will automatically validate syntax and retry if needed`
+1. Use savePath when the chart is for document insertion (path = directory + filename, workspace-relative e.g. images/fig1.pdf).
+2. Markdown: Prefer code-block insertion; LaTeX: format "pdf", save to project, then use figure environment.
+3. For ECharts: valid JSON, English punctuation; Mermaid/PlantUML: correct syntax and markers. Tool validates and retries if needed.`
   },
-  instruction: chartGenerationToolLocales,
+  instruction: undefined,
   callback: chartGenerationCallback,
   displayComponent: ChartGenerationDisplay,
   tags: ['chart', 'visualization', 'generation', 'internal'],
   enabled: true,
-  editable: false,
-  locales: chartGenerationToolLocales
+  editable: false
 }

@@ -363,6 +363,17 @@ const displayData = computed(() => {
   }
 })
 
+/** 用于 attachScrollChains 的依赖：仅当“结构”变化时重挂滚动链，避免对 displayData 做 deep watch 导致大结果时频繁跑全量逻辑 */
+const displayDataScrollSignature = computed(() => {
+  const d = displayData.value as any
+  if (!d || typeof d !== 'object') return ''
+  const stage = d.stage ?? ''
+  const treeLen = Array.isArray(d.tree) ? d.tree.length : 0
+  const filesLen = d.result?.files?.length ?? 0
+  const dirListLen = d.result?.directoryListings?.length ?? 0
+  return `${stage}-${treeLen}-${filesLen}-${dirListLen}`
+})
+
 const toggleFullContent = (index: number) => {
   const current = displayFullContentMap.value.get(index) || false
   displayFullContentMap.value.set(index, !current)
@@ -379,9 +390,9 @@ onBeforeUnmount(() => {
 })
 
 watch(
-  () => displayData.value,
+  displayDataScrollSignature,
   () => nextTick(attachScrollChains),
-  { deep: true }
+  { immediate: true }
 )
 
 const getStageMessage = (stage: string) => {

@@ -444,40 +444,34 @@ const initToolMessageCollapse = () => {
   }
 }
 
-// 监听messages变化，当有新的tool消息出现时，折叠之前的tool消息
+// 监听 messages 数量变化（仅当有新消息追加时处理折叠），避免 deep watch 导致任意消息内容更新时所有 AgentMessageRenderer 都触发回调造成卡顿
 watch(
-  () => props.messages,
-  (newMessages, oldMessages) => {
-    if (!newMessages || props.messageIndex === undefined || props.message.type !== 'tool') {
+  () => props.messages?.length ?? 0,
+  (newLen, oldLen) => {
+    if (!props.messages || props.messageIndex === undefined || props.message.type !== 'tool') {
       return
     }
 
-    // 检查是否有新的tool消息出现在当前消息之后
-    if (oldMessages && newMessages.length > oldMessages.length) {
+    // 仅当消息数量增加（新消息追加）时，检查当前消息之后是否有新 tool 消息并折叠
+    if (oldLen !== undefined && newLen > oldLen) {
       const currentIndex = props.messageIndex
-      const currentMsgId = props.message.id
-
-      // 查找当前消息之后是否有新的tool消息
       let hasNewToolAfter = false
-      for (let i = currentIndex + 1; i < newMessages.length; i++) {
-        if (newMessages[i].type === 'tool') {
+      for (let i = currentIndex + 1; i < props.messages.length; i++) {
+        if (props.messages[i].type === 'tool') {
           hasNewToolAfter = true
           break
         }
       }
-
-      // 如果有新的tool消息在当前消息之后，折叠当前消息（强制折叠，因为这是自动行为）
       if (hasNewToolAfter) {
         isToolMessageOpen.value = false
       }
     }
 
-    // 如果还未初始化，进行初始化
     if (!collapseInitialized.value) {
       initToolMessageCollapse()
     }
   },
-  { deep: true, immediate: true }
+  { immediate: true }
 )
 
 // 监听isLatestToolMessage变化，当变成不是最新时，折叠当前消息

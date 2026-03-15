@@ -11,7 +11,7 @@ import { AIContextManager } from './ai-context-manager'
 import { agentToolManager } from '../agent-tool-manager'
 import { agentConfigManager } from './agent-config-manager'
 import { createAiTask, ai_types } from '../ai_tasks'
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import type { AgentSession } from '../../types/agent-framework'
 import type { AgentSession as LegacyAgentSession, AgentMessage } from '../../types/agent'
 import { runSubagent } from './subagent-runner'
@@ -229,13 +229,11 @@ export class ToolCallQueue {
             )
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err)
-            AIContextManager.completeToolMessage(
-              this.session,
-              runningMsg.id,
-              { toolId: task.tool_id, toolName, status: 'failed', error: errMsg },
-              task.parameters
-            )
-            if (this.onTaskComplete) this.onTaskComplete(task, { toolId: task.tool_id, toolName, status: 'failed', error: errMsg })
+            const failedObs = { toolId: task.tool_id, toolName, status: 'failed' as const, error: errMsg }
+            nextTick(() => {
+              AIContextManager.completeToolMessage(this.session, runningMsg.id, failedObs, task.parameters)
+            })
+            if (this.onTaskComplete) this.onTaskComplete(task, failedObs)
             return
           }
           const observation: ToolObservation = {
@@ -249,7 +247,9 @@ export class ToolCallQueue {
             error: result.error,
             summary: result.resultText?.substring(0, 200)
           }
-          AIContextManager.completeToolMessage(this.session, runningMsg.id, observation, task.parameters)
+          nextTick(() => {
+            AIContextManager.completeToolMessage(this.session, runningMsg.id, observation, task.parameters)
+          })
           if (this.onTaskComplete) this.onTaskComplete(task, observation)
           return
         }
@@ -410,13 +410,14 @@ export class ToolCallQueue {
           toolConfig = toolObj?.config
         }
 
-        // 替换 running 消息为完成状态，触发 Vue 响应式更新
-        AIContextManager.completeToolMessage(
-          this.session,
-          runningMsg.id,
-          observation,
-          observation.params || task.parameters
-        )
+        // 替换 running 消息为完成状态；放到 nextTick 避免同一帧内大结果对象赋值阻塞 UI，减轻长消息/workspace 结果时的卡顿
+        const session = this.session
+        const msgId = runningMsg.id
+        const obs = observation
+        const params = observation.params || task.parameters
+        nextTick(() => {
+          AIContextManager.completeToolMessage(session, msgId, obs, params)
+        })
 
         getLogger().debug('[ToolCallQueue] 任务执行完成:', {
           toolId: task.tool_id,
@@ -436,14 +437,15 @@ export class ToolCallQueue {
           status: 'failed',
           error: errorMessage
         }
-        // 若此前已插入 running 消息（普通工具路径），则原地更新为失败；否则插入一条失败消息
+        // 若此前已插入 running 消息（普通工具路径），则原地更新为失败；否则插入一条失败消息（失败分支也 nextTick 保持一致性）
         if (typeof runningMsg !== 'undefined' && runningMsg != null) {
-          AIContextManager.completeToolMessage(
-            this.session,
-            runningMsg.id,
-            failedObservation,
-            task.parameters
-          )
+          const session = this.session
+          const msgId = runningMsg.id
+          const obs = failedObservation
+          const params = task.parameters
+          nextTick(() => {
+            AIContextManager.completeToolMessage(session, msgId, obs, params)
+          })
         } else {
           const tool = agentToolManager.getTool(task.tool_id)
           const toolConfig = tool?.config

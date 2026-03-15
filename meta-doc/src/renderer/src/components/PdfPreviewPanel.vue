@@ -308,10 +308,11 @@ const displayPageCount = computed(() => Math.max(1, totalPdfPages.value))
 
 const pdfContainerStyle = computed(() => ({
   display: 'grid',
-  gridTemplateColumns: `repeat(${pagesPerRow.value}, 1fr)`,
+  gridTemplateColumns: `repeat(${pagesPerRow.value}, minmax(${placeholderPageWidth.value}px, 1fr))`,
   gap: '20px',
   gridAutoRows: 'min-content',
-  justifyItems: 'start'
+  justifyItems: 'start',
+  minWidth: `${baseContainerWidth.value}px`
 }))
 
 const pdfWrapperStyle = computed(() => ({

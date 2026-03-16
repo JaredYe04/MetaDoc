@@ -54,7 +54,9 @@
               v-for="(entry, index) in displayData.tree"
               :key="index"
               class="tree-entry"
+              :class="{ 'is-file-clickable': !entry.isDirectory }"
               :style="getTreeEntryStyle(entry)"
+              @click="!entry.isDirectory && openFileInPreview(entry.path, displayData.workspaceFolder)"
             >
               <el-icon v-if="entry.isDirectory" class="folder-icon">
                 <Folder />
@@ -98,7 +100,9 @@
               v-for="(op, index) in displayData.operations"
               :key="index"
               class="file-item"
+              :class="{ 'is-path-clickable': op.type === 'createFile' }"
               :style="getOperationItemStyle(op)"
+              @click="op.type === 'createFile' && openFileInPreview(op.path)"
             >
               <div class="file-header" :style="fileHeaderStyle">
                 <Badge :variant="op.success ? 'default' : 'destructive'">
@@ -173,7 +177,9 @@
                 v-for="(entry, idx) in listing.tree"
                 :key="idx"
                 class="tree-entry"
+                :class="{ 'is-file-clickable': !entry.isDirectory }"
                 :style="getTreeEntryStyle(entry)"
+                @click="!entry.isDirectory && openFileInPreview(entry.path)"
               >
                 <el-icon v-if="entry.isDirectory" class="folder-icon"><Folder /></el-icon>
                 <el-icon v-else class="file-icon"><Document /></el-icon>
@@ -190,8 +196,9 @@
             <div
               v-for="(file, index) in displayData.result.files"
               :key="index"
-              class="file-item"
+              class="file-item is-file-clickable"
               :style="getFileItemStyle(index)"
+              @click="openFileInPreview(file.path)"
             >
               <div class="file-header" :style="fileHeaderStyle">
                 <Badge variant="default">{{ file.path }}</Badge>
@@ -282,6 +289,9 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 import { themeState } from '../../themes'
 import type { WorkspaceToolResult } from '../workspace-tool'
 import { attachWheelScrollChainForElement } from '../monaco-scroll-chain'
+import eventBus from '../../event-bus'
+import { extname, isAbsolute } from '../../path-utils'
+import { formatRegistry } from '../../format-registry'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -378,6 +388,37 @@ const toggleFullContent = (index: number) => {
   const current = displayFullContentMap.value.get(index) || false
   displayFullContentMap.value.set(index, !current)
   nextTick(attachScrollChains)
+}
+
+/** 解析路径为绝对路径（相对路径则基于工作区根目录） */
+function resolveFilePath(pathStr: string, workspaceFolder?: string): string {
+  if (!pathStr || typeof pathStr !== 'string') return ''
+  const normalized = pathStr.replace(/\\/g, '/').trim()
+  if (isAbsolute(normalized)) return normalized
+  try {
+    const saved = localStorage.getItem('workspaceFolders')
+    const root = workspaceFolder || (saved ? (JSON.parse(saved) as string[])?.[0] : null)
+    if (root) {
+      const base = root.replace(/[/\\]+$/, '')
+      const clean = normalized.replace(/^[/\\]+/, '')
+      return `${base}/${clean}`.replace(/\/+/g, '/')
+    }
+  } catch {}
+  return normalized
+}
+
+/** 打开文件到预览 tab（已打开则 focus） */
+function openFileInPreview(filePath: string, workspaceFolder?: string) {
+  const resolved = resolveFilePath(filePath, workspaceFolder)
+  if (!resolved) return
+  const ext = extname(resolved)
+  const formatId = formatRegistry.getFormatByExtension(ext) || 'txt'
+  eventBus.emit('workspace-open-document', {
+    path: resolved,
+    format: formatId,
+    content: '',
+    preview: true
+  })
 }
 
 onMounted(() => {
@@ -648,6 +689,12 @@ const contentTextStyle = computed(() => ({
 
 .tree-entry:hover {
   background-color: v-bind('themeState.currentTheme.background2nd');
+}
+
+.tree-entry.is-file-clickable,
+.file-item.is-file-clickable,
+.file-item.is-path-clickable {
+  cursor: pointer;
 }
 
 .files-content {

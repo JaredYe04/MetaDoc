@@ -3,7 +3,11 @@
     <!-- 紧凑模式：默认折叠的单一 Monaco 面板，仅文件名 + diff -->
     <template v-if="compact">
       <Collapsible v-model:open="compactPanelOpen" class="edit-display-compact-panel">
-        <CollapsibleTrigger class="edit-display-compact-trigger">
+        <CollapsibleTrigger
+          class="edit-display-compact-trigger"
+          :class="{ 'is-file-clickable': !!editFilePath }"
+          @click="editFilePath && openFileInPreview()"
+        >
           <ChevronRight v-if="!compactPanelOpen" class="edit-display-compact-chevron" />
           <ChevronDown v-else class="edit-display-compact-chevron" />
           <span class="edit-display-compact-filename">{{
@@ -27,7 +31,12 @@
     <template v-else>
       <!-- Cursor 风格内联：文件名 + 最多 4 行 diff + 可展开 -->
       <div v-if="showCompactInline" class="edit-compact-inline" :style="compactInlineStyle">
-        <div class="edit-compact-header" :style="chunkHeaderStyle">
+        <div
+          class="edit-compact-header"
+          :class="{ 'is-file-clickable': !!editFilePath }"
+          :style="chunkHeaderStyle"
+          @click="editFilePath && openFileInPreview()"
+        >
           <span class="edit-compact-filename">{{
             editFileName || t('agent.display.edit.title')
           }}</span>
@@ -87,7 +96,13 @@
         class="completed-state"
         :style="completedStateStyle"
       >
-        <div v-if="resultData" class="edit-header" :style="headerStyle">
+        <div
+          v-if="resultData"
+          class="edit-header"
+          :class="{ 'is-file-clickable': !!editFilePath }"
+          :style="headerStyle"
+          @click="editFilePath && openFileInPreview()"
+        >
           <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
           <div class="edit-stats" :style="statsStyle">
             <Badge variant="default"
@@ -122,7 +137,12 @@
                 class="diff-chunk"
                 :style="diffChunkStyle"
               >
-                <div class="chunk-header" :style="chunkHeaderStyle">
+                <div
+                  class="chunk-header"
+                  :class="{ 'is-file-clickable': !!editFilePath }"
+                  :style="chunkHeaderStyle"
+                  @click="editFilePath && openFileInPreview()"
+                >
                   <span class="chunk-info" :style="chunkInfoStyle">
                     @@ -{{ hunk.oldStart }},{{ hunk.oldCount }} +{{ hunk.newStart }},{{
                       hunk.newCount
@@ -189,7 +209,9 @@
                 v-for="(operation, index) in resultData.operations"
                 :key="index"
                 class="operation-item"
+                :class="{ 'is-file-clickable': !!editFilePath }"
                 :style="operationItemStyle"
+                @click="editFilePath && openFileInPreview()"
               >
                 <div class="operation-header" :style="operationHeaderStyle">
                   <Badge :variant="getOperationTypeTag(operation.type)">
@@ -255,6 +277,9 @@ import {
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
+import eventBus from '../../event-bus'
+import { extname } from '../../path-utils'
+import { formatRegistry } from '../../format-registry'
 import * as monaco from 'monaco-editor'
 import type { EditResult, EditOperation, UnifiedDiffHunk } from '../edit-tool'
 import { parseUnifiedDiff } from '../edit-tool'
@@ -389,6 +414,28 @@ const editFileName = computed(() => {
   const path = data?.filePath ?? data?.content?.filePath
   return path ? String(path).replace(/^.*[/\\]/, '') : ''
 })
+
+// 编辑文件的完整路径（用于点击打开）
+const editFilePath = computed(() => {
+  const r = resultData.value
+  if (r?.filePath) return r.filePath
+  const data = displayData.value as any
+  return data?.filePath ?? data?.content?.filePath ?? ''
+})
+
+/** 打开文件到预览 tab（已打开则 focus） */
+function openFileInPreview() {
+  const path = editFilePath.value
+  if (!path || typeof path !== 'string') return
+  const ext = extname(path)
+  const formatId = formatRegistry.getFormatByExtension(ext) || 'txt'
+  eventBus.emit('workspace-open-document', {
+    path,
+    format: formatId,
+    content: '',
+    preview: true
+  })
+}
 
 // 是否显示 Cursor 风格内联面板（有 filePath 且有 hunks 或进行中）
 const showCompactInline = computed(() => {
@@ -1081,6 +1128,14 @@ const diffCompactStyle = computed(() => ({
   color: inherit;
   cursor: pointer;
   text-align: left;
+}
+
+.edit-display-compact-trigger.is-file-clickable,
+.edit-compact-header.is-file-clickable,
+.edit-header.is-file-clickable,
+.chunk-header.is-file-clickable,
+.operation-item.is-file-clickable {
+  cursor: pointer;
 }
 
 .edit-display-compact-chevron {

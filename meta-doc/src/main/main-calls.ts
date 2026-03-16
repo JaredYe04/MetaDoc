@@ -754,7 +754,7 @@ function bindFileHandlers(): void {
     'file-exists',
     async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
       try {
-        return fs.existsSync(filePath)
+        return fs.existsSync(path.normalize(filePath))
       } catch (error) {
         logger.error('检查文件是否存在失败:', error)
         return false
@@ -1078,8 +1078,11 @@ function bindFileHandlers(): void {
       try {
         const { parentPath, folderName } = payload
 
-        if (!fs.existsSync(parentPath)) {
-          throw new Error('父目录不存在')
+        // 规范化路径，确保 Windows 下正斜杠/反斜杠一致
+        const normalizedParent = path.normalize(parentPath)
+
+        if (!fs.existsSync(normalizedParent)) {
+          throw new Error(`父目录不存在: ${normalizedParent}`)
         }
 
         // 验证文件夹名称
@@ -1087,17 +1090,17 @@ function bindFileHandlers(): void {
           throw new Error('文件夹名称不能为空')
         }
 
-        // 检查非法字符
+        // 检查非法字符（路径分隔符 \ / 不应出现在单层目录名中）
         const invalidChars = /[<>:"|?*\\/]/
         if (invalidChars.test(folderName)) {
-          throw new Error('文件夹名称包含非法字符')
+          throw new Error(`文件夹名称包含非法字符: ${folderName}`)
         }
 
-        const newPath = path.join(parentPath, folderName)
+        const newPath = path.join(normalizedParent, folderName)
 
         // 检查目标路径是否已存在
         if (fs.existsSync(newPath)) {
-          throw new Error('文件夹已存在')
+          throw new Error(`文件夹已存在: ${newPath}`)
         }
 
         fs.mkdirSync(newPath, { recursive: true })
@@ -1166,8 +1169,11 @@ function bindFileHandlers(): void {
       try {
         const { parentPath, fileName, content = '' } = payload
 
-        if (!fs.existsSync(parentPath)) {
-          throw new Error('父目录不存在')
+        // 规范化路径，确保 Windows 下正斜杠/反斜杠一致
+        const normalizedParent = path.normalize(parentPath)
+
+        if (!fs.existsSync(normalizedParent)) {
+          throw new Error(`父目录不存在: ${normalizedParent}`)
         }
 
         // 验证文件名称
@@ -1175,23 +1181,23 @@ function bindFileHandlers(): void {
           throw new Error('文件名称不能为空')
         }
 
-        // 检查非法字符
+        // 检查非法字符（路径分隔符 \ / 不应出现在文件名中）
         const invalidChars = /[<>:"|?*\\/]/
         if (invalidChars.test(fileName)) {
-          throw new Error('文件名称包含非法字符')
+          throw new Error(`文件名称包含非法字符: ${fileName}`)
         }
 
         // 检查文件扩展名是否在支持的格式列表中
         const ext = path.extname(fileName).toLowerCase()
         if (!isSupportedFormat(ext)) {
-          throw new Error(`不支持创建 ${ext} 格式的文件。支持的格式包括：.md, .tex, .txt, .json 等`)
+          throw new Error(`不支持创建 ${ext} 格式的文件。支持的格式包括：.md, .tex, .txt, .json, .py 等`)
         }
 
-        const newPath = path.join(parentPath, fileName)
+        const newPath = path.join(normalizedParent, fileName)
 
         // 检查目标路径是否已存在
         if (fs.existsSync(newPath)) {
-          throw new Error('文件已存在')
+          throw new Error(`文件已存在: ${newPath}`)
         }
 
         fs.writeFileSync(newPath, content, 'utf-8')

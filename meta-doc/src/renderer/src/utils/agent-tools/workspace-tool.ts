@@ -220,12 +220,19 @@ async function createFileWithDirs(
     await ensureDirectoryRecursive(dir)
   }
 
+  // 主进程 create-file 接收 { parentPath, fileName, content }
+  const fileName = normalized.split('/').pop() ?? ''
   try {
-    await ipc.invoke('create-file', normalized, content ?? '')
+    await ipc.invoke('create-file', {
+      parentPath: dir,
+      fileName,
+      content: content ?? ''
+    })
     return { created: true, message: `文件已创建: ${normalized}` }
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
     logger.warn(`创建文件失败: ${normalized}`, error)
-    throw new Error(`创建文件失败: ${normalized}`)
+    throw new Error(`创建文件失败: ${normalized}。${msg}`)
   }
 }
 
@@ -631,8 +638,9 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         return { status: 'cancelled' }
       }
 
+      let fullPath = ''
       try {
-        const fullPath = await resolveTargetPath(op.path)
+        fullPath = await resolveTargetPath(op.path)
         let resMessage = ''
         let success = true
 
@@ -675,7 +683,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 
         results.push({
           type: op.type,
-          path: await resolveTargetPath(op.path),
+          path: fullPath,
           success,
           message: resMessage
         })
@@ -683,7 +691,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         logger.warn('执行 workspace 文件操作失败:', error)
         results.push({
           type: op.type,
-          path: op.path,
+          path: fullPath || op.path,
           success: false,
           message: error instanceof Error ? error.message : String(error)
         })

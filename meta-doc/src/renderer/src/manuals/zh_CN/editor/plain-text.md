@@ -262,11 +262,24 @@ flowchart LR
 
 多光标编辑可以同时修改多个位置，提高编辑效率。
 
+## 集成终端
+
+纯文本编辑器底部提供集成终端面板，基于 xterm.js 与 node-pty 实现真实终端环境，支持交互式程序（如 vim、python）和 Shell 切换。
+
+<ConsoleTerminal mode="demo" consoleKey="plaintext" :history='[]' />
+
+### 终端功能
+
+- **真实终端**：使用 node-pty 持久 PTY，支持 vim、python 等交互式程序
+- **Shell 切换**：可在 cmd / PowerShell / bash 等 Shell 之间切换
+- **工作目录**：终端初始工作目录为当前打开文件所在目录
+- **清屏 / 复制 / 保存**：支持清屏、复制输出、保存日志到文件
+
+点击工具栏的终端图标可显示或隐藏终端面板。
+
 ## 使用技巧
 
 <LaTeXEditorDemo mode="demo" />
-
-<ConsoleTerminal mode="demo" consoleKey="plaintext" :history='[]' />
 
 ### 高效编辑
 

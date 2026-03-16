@@ -94,6 +94,8 @@ import MultiBranchIconBlack from '../assets/icons/multi-branch-black.svg'
 import MultiBranchIconWhite from '../assets/icons/multi-branch-white.svg'
 import FormatIconBlack from '../assets/icons/format-black.svg'
 import FormatIconWhite from '../assets/icons/format-white.svg'
+import DeleteIconBlack from '../assets/icons/delete-black.svg'
+import DeleteIconWhite from '../assets/icons/delete-white.svg'
 // Logo icons
 // theme.js
 export const contentThemes = [
@@ -398,6 +400,10 @@ const generateThemeIcons = (isDarkMode) => {
     ReplaceAllIcon: selectIconByTheme(isDarkMode, {
       light: ReplaceAllIconBlack,
       dark: ReplaceAllIconWhite
+    }),
+    DeleteIcon: selectIconByTheme(isDarkMode, {
+      light: DeleteIconBlack,
+      dark: DeleteIconWhite
     })
   }
 }

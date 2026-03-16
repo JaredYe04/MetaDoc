@@ -66,7 +66,7 @@
       </Button>
     </div>
     <div
-      v-if="isExpanded && node.children"
+      v-if="isExpanded && (node.children || isCreatingParent)"
       class="workspace-tree-node-children"
       :class="{ 'is-drag-target-area': isDragTargetArea }"
       @dragover="handleChildrenDragOver"
@@ -74,7 +74,7 @@
       @drop="handleChildrenDrop"
     >
       <WorkspaceTreeNode
-        v-for="(child, index) in node.children"
+        v-for="(child, index) in (node.children || [])"
         :key="child.path"
         :node="child"
         :depth="depth + 1"
@@ -85,6 +85,7 @@
         :focused-path="focusedPath"
         :last-selected-index="lastSelectedIndex"
         :drag-target-path="dragTargetPath"
+        :pending-create="pendingCreate"
         @toggle="$emit('toggle', $event)"
         @open-file="$emit('open-file', $event)"
         @open-file-permanent="$emit('open-file-permanent', $event)"
@@ -94,13 +95,48 @@
         @drag-over="$emit('drag-over', $event)"
         @drag-leave="$emit('drag-leave', $event)"
         @drop="$emit('drop', $event)"
+        @creating-complete="$emit('creating-complete', $event)"
+        @creating-cancel="$emit('creating-cancel')"
       />
+      <!-- 内联创建行（在列表末尾，类似 VS Code） -->
+      <div
+        v-if="isCreatingParent"
+        class="workspace-tree-node-item workspace-tree-node-creating"
+        :style="{ paddingLeft: `${(depth + 1) * 12 + 8}px` }"
+      >
+        <img
+          v-if="pendingCreate!.type === 'directory'"
+          :src="(themeState.currentTheme as any).FolderIcon"
+          class="workspace-tree-node-file-icon"
+          alt=""
+        />
+        <img
+          v-else
+          :src="getFileIcon('')"
+          class="workspace-tree-node-file-icon"
+          alt=""
+        />
+        <input
+          ref="creatingInputRef"
+          v-model="creatingName"
+          type="text"
+          class="workspace-tree-node-creating-input"
+          :placeholder="
+            pendingCreate!.type === 'directory'
+              ? $t('workspaceExplorer.newFolderDialog.placeholder')
+              : $t('workspaceExplorer.newFileDialog.placeholder')
+          "
+          @blur="handleCreatingBlur"
+          @keydown.enter.prevent="handleCreatingEnter"
+          @keydown.escape="handleCreatingEscape"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { ChevronRight, ChevronDown, X } from 'lucide-vue-next'
 import { ElIcon } from 'element-plus'
 import { Button } from '@renderer/components/ui/button'
@@ -119,6 +155,12 @@ interface FileNode {
   isWorkspaceRoot?: boolean
 }
 
+interface PendingCreate {
+  parentPath: string
+  type: 'file' | 'directory'
+  workspaceFolder: string
+}
+
 interface Props {
   node: FileNode
   depth?: number
@@ -129,6 +171,7 @@ interface Props {
   lastSelectedIndex?: number
   siblingIndex?: number // 同级节点中的索引（从上到下，从0开始）
   dragTargetPath?: string | null // 拖拽目标路径（用于高亮显示）
+  pendingCreate?: PendingCreate | null // 内联创建（新建文件/文件夹）
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -148,6 +191,8 @@ const emit = defineEmits<{
   'drag-leave': [event: { node: FileNode; event: DragEvent }]
   drop: [event: { node: FileNode; event: DragEvent }]
   'drag-end': [event: DragEvent]
+  'creating-complete': [name: string]
+  'creating-cancel': []
 }>()
 
 const isExpanded = computed(() => {
@@ -156,6 +201,53 @@ const isExpanded = computed(() => {
     props.expandedPaths.has(props.node.path)
   )
 })
+
+// 内联创建：当前节点是否为创建目标父节点
+const isCreatingParent = computed(
+  () =>
+    !!props.pendingCreate && props.pendingCreate.parentPath === props.node.path
+)
+
+const creatingName = ref('')
+const creatingInputRef = ref<HTMLInputElement | null>(null)
+const creatingHandled = ref(false)
+
+// 当显示创建行时自动聚焦输入框
+watch(
+  () => isCreatingParent.value,
+  (val) => {
+    if (val) {
+      creatingName.value = ''
+      creatingHandled.value = false
+      nextTick(() => creatingInputRef.value?.focus())
+    }
+  },
+  { immediate: true }
+)
+
+const finishCreating = (name: string | null) => {
+  if (creatingHandled.value) return
+  creatingHandled.value = true
+  if (name) {
+    emit('creating-complete', name)
+  } else {
+    emit('creating-cancel')
+  }
+}
+
+const handleCreatingBlur = () => {
+  if (!props.pendingCreate) return
+  finishCreating(creatingName.value.trim() || null)
+}
+
+const handleCreatingEnter = () => {
+  if (!props.pendingCreate) return
+  finishCreating(creatingName.value.trim() || null)
+}
+
+const handleCreatingEscape = () => {
+  finishCreating(null)
+}
 
 const isSelected = computed(() => {
   // 工作文件夹根节点不可选中
@@ -570,5 +662,26 @@ const handleDragEnd = (event: DragEvent) => {
   margin-left: 0;
   margin-top: 0;
   margin-bottom: 0;
+}
+
+.workspace-tree-node-creating {
+  cursor: default;
+}
+
+.workspace-tree-node-creating-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  margin: 0;
+  border: 1px solid v-bind('themeState.currentTheme.primaryColor || "#409eff"');
+  border-radius: 2px;
+  font-size: 13px;
+  background-color: v-bind('themeState.currentTheme.background || "#fff"');
+  color: v-bind('themeState.currentTheme.textColor || "#333"');
+  outline: none;
+}
+
+.workspace-tree-node-creating-input::placeholder {
+  color: v-bind('themeState.currentTheme.SideTextColor2');
 }
 </style>

@@ -21,6 +21,12 @@ import TerminalExecutionDisplay from './components/TerminalExecutionDisplay.vue'
 import { createDetailedError } from './tool-utils'
 import messageBridge from '../../bridge/message-bridge'
 import { getSetting } from '../settings.js'
+import {
+  getSessionCwd,
+  setSessionCwd,
+  updateSessionAfterRun,
+  tryParseCdTarget
+} from './terminal-session-manager'
 
 const logger = createRendererLogger('TerminalTool')
 
@@ -85,15 +91,18 @@ const TERMINAL_INSTRUCTION = `
 # Terminal Execution Tool
 
 ## Description
-Executes terminal/command line commands and returns results. Requires user approval by default, user can choose to trust AI for automatic execution.
+Executes terminal/command line commands and returns results. Requires user approval by default, user can choose to trust AI for automatic execution. Supports session context (same terminal), batch execution, and async mode.
 
 ## Input Format
 \`\`\`json
 {
-  "command": "string", // Required, command to execute
-  "cwd": "string", // Optional, working directory
+  "command": "string", // Required (or use "commands" for batch)
+  "commands": [{"command":"...","cwd":"...","sessionId":"..."}], // Optional, batch
+  "sessionId": "string", // Optional, reuse same terminal context (shared cwd)
+  "cwd": "string", // Optional, working directory (overrides session cwd)
   "timeout": 30000, // Optional, timeout in milliseconds, default 30s
-  "analyze": false // Optional, whether to use LLM to analyze output, default false
+  "analyze": false, // Optional, whether to use LLM to analyze output
+  "async": false // Optional, if true, run without waiting (returns taskId)
 }
 \`\`\`
 
@@ -375,29 +384,60 @@ ${stderr ? `标准错误:\n${stderr}` : ''}
   return target.value.trim()
 }
 
+/** 单条命令项（batch 模式） */
+export interface CommandItem {
+  command: string
+  cwd?: string
+  sessionId?: string
+}
+
+/** 解析并规范化输入：支持 command 或 commands */
+export function normalizeCommands(params: Record<string, unknown>): CommandItem[] | null {
+  const commands = params.commands as CommandItem[] | undefined
+  if (Array.isArray(commands) && commands.length > 0) {
+    const valid = commands.filter((c) => c && typeof c.command === 'string' && c.command.trim())
+    if (valid.length === 0) return null
+    return valid
+  }
+  const cmd = params.command as string | undefined
+  if (cmd && typeof cmd === 'string' && cmd.trim()) {
+    return [{ command: cmd.trim(), cwd: params.cwd as string | undefined, sessionId: params.sessionId as string | undefined }]
+  }
+  return null
+}
+
+/** 解析单条命令的 cwd（考虑 session 继承） */
+export function resolveCwd(item: CommandItem, explicitCwd?: string): string | undefined {
+  if (explicitCwd) return explicitCwd
+  if (item.cwd) return item.cwd
+  if (item.sessionId) return getSessionCwd(item.sessionId)
+  return undefined
+}
+
 /**
  * 终端执行Tool回调函数
  */
 const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
-  const command = params.command as string
-  const cwd = params.cwd as string | undefined
   const timeout = (params.timeout as number) || 30000
-  const analyze = params.analyze ?? false // 默认false
+  const analyze = params.analyze ?? false
+  const asyncMode = params.async === true
+  const batch = normalizeCommands(params as Record<string, unknown>)
 
-  if (!command || typeof command !== 'string') {
+  if (!batch) {
     return {
       status: 'failed',
       error: createDetailedError(
-        '缺少必需参数: command（要执行的终端命令）',
+        '缺少必需参数: command 或 commands（要执行的终端命令）',
         [
           '{"command": "ls -la"}',
           '{"command": "echo Hello", "cwd": "/path/to/directory"}',
-          '{"command": "npm install", "timeout": 300000}'
+          '{"commands": [{"command": "cd /tmp"}, {"command": "ls"}], "sessionId": "s1"}',
+          '{"command": "npm install", "async": true}'
         ],
         [
-          '可以设置cwd参数指定命令执行的工作目录',
-          '可以设置timeout参数指定超时时间（毫秒）',
-          '命令执行需要用户批准，确保安全',
+          '可以设置 sessionId 在同一终端上下文中连续执行',
+          '可以设置 commands 批量执行多条命令',
+          '可以设置 async: true 异步执行不等待结果',
           '支持Windows、macOS和Linux命令'
         ]
       )
@@ -405,211 +445,178 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   try {
-    // 检查是否需要用户批准（默认允许执行，避免权限弹窗未展示时卡住）
-    let approved = false
-    if (isAgentCliActive()) {
-      approved = true
-      logger.info('agent-cli 模式，自动批准终端命令')
-    } else if (isTrustMode()) {
-      approved = true
-      logger.info('信任模式已启用，自动批准命令执行')
-    } else if (await isTerminalExecutionAllowedBySetting()) {
-      approved = true
-      logger.info('设置中已默认允许终端执行，自动批准命令')
-    } else {
-      // 显示等待批准状态
-      onUpdate(
-        {
-          content: {
-            stage: 'waiting_approval',
-            command
-          },
+    // 异步模式：后台执行，立即返回
+    if (asyncMode) {
+      const taskId = `async-terminal-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      const first = batch[0]
+      const cwd = resolveCwd(first, params.cwd as string | undefined)
+      ;(async () => {
+        try {
+          for (let i = 0; i < batch.length; i++) {
+            const item = batch[i]
+            const itemCwd = resolveCwd(item, params.cwd as string | undefined)
+            await executeCommand(item.command, itemCwd, timeout)
+            if (item.sessionId) {
+              const cdTarget = tryParseCdTarget(item.command)
+              updateSessionAfterRun(item.sessionId, {
+                cwd: cdTarget || itemCwd,
+                exitCode: 0,
+                command: item.command
+              })
+            }
+          }
+        } catch (e) {
+          logger.warn('异步终端任务执行失败', e)
+        }
+      })()
+      return {
+        status: 'succeeded',
+        data: {
+          content: { stage: 'async_started', taskId, commandsCount: batch.length },
           format: 'json',
           componentName: 'TerminalExecutionDisplay'
         },
-        {
-          percentage: 10,
-          message: i18n.global.t('agent.tool.terminal.progress.approving', '等待用户批准...')
-        }
-      )
+        result: { taskId, message: '命令已在后台执行', commandsCount: batch.length }
+      }
+    }
 
-      // 请求用户批准
-      try {
-        approved = await requestApproval(command)
-      } catch (error) {
-        // 用户拒绝
+    // 同步模式：逐条执行 batch，或单条
+    const results: TerminalExecutionResult[] = []
+    let lastCwd: string | undefined = params.cwd as string | undefined
+
+    for (let idx = 0; idx < batch.length; idx++) {
+      const item = batch[idx]
+      const command = item.command
+      const cwd = resolveCwd(item, lastCwd)
+
+      // 检查是否需要用户批准
+      let approved = false
+      if (isAgentCliActive()) {
+        approved = true
+      } else if (isTrustMode()) {
+        approved = true
+      } else if (await isTerminalExecutionAllowedBySetting()) {
+        approved = true
+      } else {
         onUpdate(
           {
-            content: {
-              stage: 'rejected',
-              command
-            },
+            content: { stage: 'waiting_approval', command },
             format: 'json',
             componentName: 'TerminalExecutionDisplay'
           },
-          {
-            percentage: 0,
-            message: i18n.global.t('agent.tool.terminal.progress.rejected', '命令执行已被拒绝')
-          }
+          { percentage: 10, message: i18n.global.t('agent.tool.terminal.progress.approving', '等待用户批准...') }
         )
-        return {
-          status: 'failed',
-          error: i18n.global.t('agent.tool.terminal.error.rejected', '用户拒绝了命令执行')
+        try {
+          approved = await requestApproval(command)
+        } catch {
+          onUpdate(
+            {
+              content: { stage: 'rejected', command },
+              format: 'json',
+              componentName: 'TerminalExecutionDisplay'
+            },
+            { percentage: 0, message: i18n.global.t('agent.tool.terminal.progress.rejected', '命令执行已被拒绝') }
+          )
+          return { status: 'failed', error: i18n.global.t('agent.tool.terminal.error.rejected', '用户拒绝了命令执行') }
         }
       }
-    }
 
-    // 生成 invocationId 用于流式输出
-    const invocationId = `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const invocationId = `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      let accumulatedStdout = ''
+      let accumulatedStderr = ''
 
-    // 用于累积流式输出
-    let accumulatedStdout = ''
-    let accumulatedStderr = ''
-
-    // 流式输出更新回调
-    const handleStreamUpdate = (type: 'stdout' | 'stderr', data: string) => {
-      if (type === 'stdout') {
-        accumulatedStdout += data
-      } else {
-        accumulatedStderr += data
-      }
-
-      // 实时更新显示
-      onUpdate(
-        {
-          content: {
-            stage: 'executing',
-            command,
-            approved,
-            stdout: accumulatedStdout,
-            stderr: accumulatedStderr
+      const handleStreamUpdate = (type: 'stdout' | 'stderr', data: string) => {
+        if (type === 'stdout') accumulatedStdout += data
+        else accumulatedStderr += data
+        onUpdate(
+          {
+            content: { stage: 'executing', command, approved, stdout: accumulatedStdout, stderr: accumulatedStderr },
+            format: 'json',
+            componentName: 'TerminalExecutionDisplay'
           },
-          format: 'json',
-          componentName: 'TerminalExecutionDisplay'
-        },
-        {
-          percentage:
-            20 + Math.min(50, ((accumulatedStdout.length + accumulatedStderr.length) / 1000) * 30),
-          message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
-        }
+          { percentage: 20 + Math.min(50, ((accumulatedStdout.length + accumulatedStderr.length) / 1000) * 30), message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...') }
+        )
+      }
+
+      onUpdate(
+        { content: { stage: 'executing', command, approved, stdout: '', stderr: '' }, format: 'json', componentName: 'TerminalExecutionDisplay' },
+        { percentage: 20, message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...') }
       )
+
+      const { exitCode, stdout, stderr } = await executeCommand(command, cwd, timeout, invocationId, handleStreamUpdate)
+      let finalStdout = accumulatedStdout || stdout
+      let finalStderr = accumulatedStderr || stderr
+
+      // 更新 session cwd（若为 cd 命令），供后续同 session 命令继承
+      if (item.sessionId) {
+        const cdTarget = tryParseCdTarget(command)
+        if (cdTarget) {
+          setSessionCwd(item.sessionId, cdTarget)
+          lastCwd = cdTarget
+        } else {
+          lastCwd = cwd
+        }
+        updateSessionAfterRun(item.sessionId, { cwd: cdTarget || cwd, exitCode, command })
+      } else {
+        lastCwd = cwd
+      }
+
+      let outputTruncated = false
+      let truncationMessage: string | undefined
+      const totalLen = finalStdout.length + finalStderr.length
+      if (totalLen > MAX_TERMINAL_OUTPUT_CHARS) {
+        const maxStdout = Math.floor(MAX_TERMINAL_OUTPUT_CHARS * 0.6)
+        const maxStderr = Math.floor(MAX_TERMINAL_OUTPUT_CHARS * 0.4)
+        if (finalStdout.length > maxStdout) {
+          finalStdout = finalStdout.slice(0, maxStdout) + '\n...[stdout 已截断]'
+          outputTruncated = true
+        }
+        if (finalStderr.length > maxStderr) {
+          finalStderr = finalStderr.slice(0, maxStderr) + '\n...[stderr 已截断]'
+          outputTruncated = true
+        }
+        truncationMessage = `终端输出过长，已截断至约 ${MAX_TERMINAL_OUTPUT_CHARS} 字符。`
+      }
+
+      let summary: string | undefined
+      if (analyze && batch.length === 1) {
+        try {
+          summary = await analyzeOutput(command, finalStdout, finalStderr, exitCode, signal, onUpdate)
+        } catch (error) {
+          logger.warn('LLM分析输出失败:', error)
+        }
+      }
+
+      const result: TerminalExecutionResult = {
+        command,
+        exitCode,
+        stdout: finalStdout,
+        stderr: finalStderr,
+        summary,
+        approved: true,
+        ...(outputTruncated && { outputTruncated: true, truncationMessage })
+      }
+      results.push(result)
     }
 
+    const lastResult = results[results.length - 1]!
     onUpdate(
       {
-        content: {
-          stage: 'executing',
-          command,
-          approved,
-          stdout: '',
-          stderr: ''
-        },
+        content: { stage: 'completed', ...lastResult, batchResults: batch.length > 1 ? results : undefined },
         format: 'json',
         componentName: 'TerminalExecutionDisplay'
       },
-      {
-        percentage: 20,
-        message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
-      }
-    )
-
-    // 执行命令（支持流式输出）
-    const { exitCode, stdout, stderr } = await executeCommand(
-      command,
-      cwd,
-      timeout,
-      invocationId,
-      handleStreamUpdate
-    )
-
-    // 使用累积的输出（如果流式输出已更新）
-    let finalStdout = accumulatedStdout || stdout
-    let finalStderr = accumulatedStderr || stderr
-
-    // 上下文省略：总输出过长时截断，避免占满 agent 上下文
-    let outputTruncated = false
-    let truncationMessage: string | undefined
-    const totalLen = finalStdout.length + finalStderr.length
-    if (totalLen > MAX_TERMINAL_OUTPUT_CHARS) {
-      const maxStdout = Math.floor(MAX_TERMINAL_OUTPUT_CHARS * 0.6)
-      const maxStderr = Math.floor(MAX_TERMINAL_OUTPUT_CHARS * 0.4)
-      if (finalStdout.length > maxStdout) {
-        finalStdout = finalStdout.slice(0, maxStdout) + '\n...[stdout 已截断]'
-        outputTruncated = true
-      }
-      if (finalStderr.length > maxStderr) {
-        finalStderr = finalStderr.slice(0, maxStderr) + '\n...[stderr 已截断]'
-        outputTruncated = true
-      }
-      if (outputTruncated) {
-        truncationMessage = `终端输出过长，已截断至约 ${MAX_TERMINAL_OUTPUT_CHARS} 字符（原约 ${totalLen} 字符）。如需完整输出请缩小命令输出范围。`
-      }
-    }
-
-    onUpdate(
-      {
-        content: {
-          stage: 'analyzing',
-          command,
-          exitCode,
-          stdout: finalStdout,
-          stderr: finalStderr
-        },
-        format: 'json',
-        componentName: 'TerminalExecutionDisplay'
-      },
-      {
-        percentage: 70,
-        message: i18n.global.t('agent.tool.terminal.progress.analyzing', '正在分析输出...')
-      }
-    )
-
-    // 使用LLM分析输出（如果启用）
-    let summary: string | undefined
-    if (analyze) {
-      try {
-        summary = await analyzeOutput(command, finalStdout, finalStderr, exitCode, signal, onUpdate)
-      } catch (error) {
-        logger.warn('LLM分析输出失败:', error)
-      }
-    }
-
-    const result: TerminalExecutionResult = {
-      command,
-      exitCode,
-      stdout: finalStdout,
-      stderr: finalStderr,
-      summary,
-      approved: true,
-      ...(outputTruncated && { outputTruncated: true, truncationMessage })
-    }
-
-    onUpdate(
-      {
-        content: {
-          stage: 'completed',
-          ...result
-        },
-        format: 'json',
-        componentName: 'TerminalExecutionDisplay'
-      },
-      {
-        percentage: 100,
-        message: i18n.global.t('agent.tool.terminal.progress.completed', '命令执行完成')
-      }
+      { percentage: 100, message: i18n.global.t('agent.tool.terminal.progress.completed', '命令执行完成') }
     )
 
     return {
       status: 'succeeded',
       data: {
-        content: {
-          stage: 'completed',
-          ...result
-        },
+        content: { stage: 'completed', ...lastResult, batchResults: batch.length > 1 ? results : undefined },
         format: 'json',
         componentName: 'TerminalExecutionDisplay'
       },
-      result
+      result: batch.length > 1 ? { batchResults: results } : lastResult
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -695,26 +702,27 @@ Commands are run in the **main process** with a specific shell (see the "Current
   inputSchema: {
     type: 'object',
     properties: {
-      command: {
-        type: 'string',
-        description: 'Terminal command to execute'
+      command: { type: 'string', description: 'Terminal command to execute' },
+      commands: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            command: { type: 'string' },
+            cwd: { type: 'string' },
+            sessionId: { type: 'string' }
+          },
+          required: ['command']
+        },
+        description: 'Batch commands (sequential)'
       },
-      cwd: {
-        type: 'string',
-        description: 'Working directory'
-      },
-      timeout: {
-        type: 'number',
-        description: 'Timeout in milliseconds',
-        default: 30000
-      },
-      analyze: {
-        type: 'boolean',
-        description: 'Whether to use LLM to analyze output',
-        default: true
-      }
+      sessionId: { type: 'string', description: 'Reuse same terminal context (shared cwd)' },
+      cwd: { type: 'string', description: 'Working directory' },
+      timeout: { type: 'number', description: 'Timeout in milliseconds', default: 30000 },
+      analyze: { type: 'boolean', description: 'Whether to use LLM to analyze output', default: false },
+      async: { type: 'boolean', description: 'Run without waiting (fire and forget)', default: false }
     },
-    required: ['command']
+    required: []
   },
   outputSchema: {
     type: 'object',
@@ -731,3 +739,12 @@ Commands are run in the **main process** with a specific shell (see the "Current
 
 // 导出信任模式相关函数供UI使用
 export { isTrustMode, requestApproval }
+
+// 导出会话管理供测试使用
+export {
+  getSessionCwd,
+  setSessionCwd,
+  clearSession,
+  clearAllSessions,
+  getAllSessionIds
+} from './terminal-session-manager'

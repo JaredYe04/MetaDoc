@@ -225,7 +225,7 @@ class DirectoryWatcherService {
       clearTimeout(existingTimer)
     }
 
-    // 设置新的防抖定时器（100ms，兼顾响应与合并短时连续事件）
+    // 设置新的防抖定时器（50ms，兼顾响应与合并短时连续事件）
     const timer = setTimeout(() => {
       this.changeDebounceTimers.delete(directoryPath)
 
@@ -239,7 +239,7 @@ class DirectoryWatcherService {
       })
 
       logger.debug('目录变化事件', { directoryPath, parentPath, eventType, filePath })
-    }, 100)
+    }, 50)
 
     this.changeDebounceTimers.set(directoryPath, timer)
   }

@@ -37,6 +37,13 @@ import {
   decodeTerminalBuffer as decodeTerminalBufferUtil,
   buildRunCommandForAgent
 } from './utils/terminal-encoding'
+import {
+  createPty,
+  writeToPty,
+  resizePty,
+  killPty,
+  getAvailableShells
+} from './utils/terminal-pty-service'
 
 // 内部模块导入
 import {
@@ -3376,6 +3383,58 @@ function bindTerminalHandlers(): void {
           error: error instanceof Error ? error.message : String(error)
         }
       }
+    }
+  )
+
+  // ========== PTY 终端（node-pty + xterm.js）==========
+  ipcBridge.registerHandle(
+    'terminal-create',
+    async (
+      event: IpcMainInvokeEvent,
+      options: { consoleKey: string; cwd?: string; shell?: string; cols?: number; rows?: number }
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { consoleKey, cwd, shell, cols, rows } = options
+      return createPty(consoleKey, event.sender, { cwd, shell, cols, rows })
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'terminal-write',
+    async (
+      event: IpcMainInvokeEvent,
+      options: { consoleKey: string; data: string }
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { consoleKey, data } = options
+      return writeToPty(consoleKey, data)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'terminal-resize',
+    async (
+      event: IpcMainInvokeEvent,
+      options: { consoleKey: string; cols: number; rows: number }
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { consoleKey, cols, rows } = options
+      return resizePty(consoleKey, cols, rows)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'terminal-kill',
+    async (
+      event: IpcMainInvokeEvent,
+      options: { consoleKey: string }
+    ): Promise<{ success: boolean; error?: string }> => {
+      const { consoleKey } = options
+      return killPty(consoleKey)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'terminal-get-shells',
+    async (): Promise<Array<{ id: string; path: string; label: string }>> => {
+      return getAvailableShells()
     }
   )
 }

@@ -65,6 +65,9 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'copy':
       case 'cut':
       case 'paste':
+        // 焦点在 Xterm 终端内时，不拦截：Ctrl+C 发 SIGINT，Ctrl+V 粘贴，Ctrl+Z 发 SIGTSTP
+        const inTerminal = target.closest('.xterm, .xterm-instance')
+        if (inTerminal) return
         if (!inDialog && inEditor) {
           e.preventDefault()
           e.stopPropagation()
@@ -75,6 +78,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
 
       case 'undo':
       case 'redo':
+        if (target.closest('.xterm, .xterm-instance')) return
         if (!inDialog && inEditor) {
           e.preventDefault()
           e.stopPropagation()

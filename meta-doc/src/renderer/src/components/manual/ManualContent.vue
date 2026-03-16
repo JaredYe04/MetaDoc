@@ -645,8 +645,9 @@ function processInternalLinks() {
   margin: 0 auto !important;
 }
 
-/* ConsoleTerminal: 在手册中限制最大高度 */
-.markdown-preview :deep(.manual-demo-inline .console-terminal) {
+/* ConsoleTerminal / XtermConsole: 在手册中限制最大高度 */
+.markdown-preview :deep(.manual-demo-inline .console-terminal),
+.markdown-preview :deep(.manual-demo-inline .xterm-console-container) {
   position: relative !important;
   width: 100% !important;
   max-width: 100% !important;

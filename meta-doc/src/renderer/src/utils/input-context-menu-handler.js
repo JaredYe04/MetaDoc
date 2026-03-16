@@ -4,7 +4,7 @@
  */
 
 const EXCLUDE_SELECTORS =
-  '.monaco-editor, .vditor, .vditor-toolbar, [data-editor], .ql-editor, .tox-edit-area, .cm-editor, .CodeMirror, .ace_editor'
+  '.monaco-editor, .vditor, .vditor-toolbar, [data-editor], .ql-editor, .tox-edit-area, .cm-editor, .CodeMirror, .ace_editor, .xterm, .xterm-instance'
 
 function getEditableElement(target) {
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {

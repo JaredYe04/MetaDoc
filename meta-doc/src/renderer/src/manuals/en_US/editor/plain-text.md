@@ -262,11 +262,24 @@ The editor supports editing with multiple cursors simultaneously:
 
 Multi-cursor editing allows modifying multiple positions at once, improving editing efficiency.
 
+## Integrated Terminal
+
+The plain text editor provides an integrated terminal panel at the bottom, powered by xterm.js and node-pty for a real terminal environment. It supports interactive programs (e.g. vim, python) and shell switching.
+
+<ConsoleTerminal mode="demo" consoleKey="plaintext" :history='[]' />
+
+### Terminal Features
+
+- **Real Terminal**: Uses node-pty PTY for persistent sessions; supports vim, python, and other interactive programs.
+- **Shell Switching**: Switch between cmd, PowerShell, bash, or other shells.
+- **Working Directory**: Terminal starts in the directory of the currently open file.
+- **Clear / Copy / Save**: Clear screen, copy output, or save logs to file.
+
+Click the terminal icon in the toolbar to show or hide the terminal panel.
+
 ## Usage Tips
 
 <LaTeXEditorDemo mode="demo" />
-
-<ConsoleTerminal mode="demo" consoleKey="plaintext" :history='[]' />
 
 ### Efficient Editing
 

@@ -69,7 +69,14 @@
         <Button size="sm" @click="saveConsole">{{ $t('console.saveLog') }}</Button>
       </div>
     </div>
-    <div class="console-editor" ref="editorContainer"></div>
+    <div class="console-editor-wrapper">
+      <div class="console-editor" ref="editorContainer"></div>
+      <SyncScrollbar
+        :get-scroll-info="getMonacoScrollInfo"
+        :set-scroll-top="setMonacoScrollTop"
+        :poll-interval="100"
+      />
+    </div>
   </div>
 </template>
 
@@ -96,6 +103,7 @@ if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
 }
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
+import SyncScrollbar from './SyncScrollbar.vue'
 import { dirname, join, normalize, isAbsolute } from '../utils/path-utils'
 
 const { t } = useI18n()
@@ -211,6 +219,21 @@ const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
   const editors = (monaco.editor as any).getEditors?.() ?? []
   const found = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId)
   return found ?? null
+}
+
+function getMonacoScrollInfo() {
+  const ed = getEditor()
+  if (!ed) return { scrollTop: 0, scrollHeight: 0, clientHeight: 0 }
+  const info = ed.getLayoutInfo()
+  return {
+    scrollTop: ed.getScrollTop(),
+    scrollHeight: ed.getScrollHeight(),
+    clientHeight: info.height
+  }
+}
+
+function setMonacoScrollTop(top: number) {
+  getEditor()?.setScrollTop(top)
 }
 
 const ensureConsoleFont = async () => {
@@ -366,6 +389,13 @@ const currentInvocationId = ref<string | null>(null)
 
 // 是否在多行命令输入中
 const isMultiLineInput = ref(false)
+
+// 防止 Enter 键重复触发（解决命令执行两次的 bug）
+const lastEnterProcessedAt = ref(0)
+const ENTER_DEBOUNCE_MS = 300
+
+// 防止历史记录显示时与编辑器内容不同步（解决方向键上出现多条命令的 bug）
+const isInHistoryNavigation = ref(false)
 
 // 维护独立的终端工作目录（使用主进程维护的状态）
 const terminalCwd = ref<string>('')
@@ -805,9 +835,11 @@ const createEditor = async () => {
         e.stopPropagation()
 
         if (commandHistory.value.length > 0) {
+          isInHistoryNavigation.value = true
           if (historyIndex.value === -1) {
-            // 第一次按上箭头：保存当前输入（不添加到历史）
-            tempInputBeforeHistory.value = currentInput.value || userInput.trim()
+            // 第一次按上箭头：保存当前输入（不添加到历史），仅保存最后一行（避免多行污染）
+            const toSave = (currentInput.value || userInput).trim()
+            tempInputBeforeHistory.value = toSave.includes('\n') ? toSave.split('\n').pop() || '' : toSave
             historyIndex.value = commandHistory.value.length - 1
           } else if (historyIndex.value > 0) {
             historyIndex.value--
@@ -816,7 +848,7 @@ const createEditor = async () => {
           if (historyIndex.value >= 0 && historyIndex.value < commandHistory.value.length) {
             currentInput.value = commandHistory.value[historyIndex.value]
             isMultiLineInput.value = false
-            renderConsole()
+            nextTick(() => renderConsole())
           }
         }
         return
@@ -838,8 +870,9 @@ const createEditor = async () => {
             currentInput.value = tempInputBeforeHistory.value
             tempInputBeforeHistory.value = ''
             isMultiLineInput.value = false
+            isInHistoryNavigation.value = false
           }
-          renderConsole()
+          nextTick(() => renderConsole())
         }
         return
       }
@@ -849,9 +882,17 @@ const createEditor = async () => {
         e.preventDefault()
         e.stopPropagation()
 
+        // 防止重复触发（解决命令执行两次的 bug）
+        const now = Date.now()
+        if (now - lastEnterProcessedAt.value < ENTER_DEBOUNCE_MS) {
+          return
+        }
+        lastEnterProcessedAt.value = now
+
         // 重置历史索引（执行命令后退出历史模式）
         historyIndex.value = -1
         tempInputBeforeHistory.value = ''
+        isInHistoryNavigation.value = false
 
         // 重置 Tab 补全状态
         tabCompletionCandidates.value = []
@@ -1536,8 +1577,31 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
+.console-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.console-actions > * {
+  flex-shrink: 0;
+}
+
 .console-actions button {
-  margin-left: 5px;
+  margin-left: 2px;
+}
+
+.console-editor-wrapper {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.console-editor-wrapper :deep(.monaco-scrollable-element > .scrollbar.vertical) {
+  display: none !important;
 }
 
 .console-editor {

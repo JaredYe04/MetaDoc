@@ -101,8 +101,18 @@
       <Divider />
 
       <div class="logger-console">
-        <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
-        <ConsoleOutput console-key="logger" :history="logHistory" :show-ai-analysis="false" />
+        <LoggerConsoleContent
+          ref="loggerContentRef"
+          :title="t('setting.loggerConsoleTitle')"
+          :filter-text="settings.loggingFilter"
+          :filter-placeholder="t('setting.loggingFilterPlaceholder')"
+          :filter-level="displayLogLevel"
+          :history="normalizedLogHistory"
+@update:filter-text="onDisplayFilterChange"
+@update:filter-level="displayLogLevel = $event as LogLevel"
+@clear="loggerContentRef?.clear?.()"
+          @save="handleSaveLogs"
+        />
       </div>
     </Form>
   </div>
@@ -116,6 +126,8 @@ import { settings as globalSettings, setSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.ts'
 import type { LoggerHistoryEntry } from '../../utils/logger.ts'
+import type { LogLevel } from '../../../../common/logger-constants'
+import { LOG_LEVEL_PRIORITY } from '../../../../common/logger-constants'
 import messageBridge from '../../bridge/message-bridge'
 import ConsoleOutput from '../../components/ConsoleOutput.vue'
 import { Button } from '@renderer/components/ui/button'
@@ -152,6 +164,8 @@ const settings = isDemo.value ? demoSettings : globalSettings
 const logFilePath = ref('')
 const logDirectory = ref('')
 const logHistory = ref<LoggerHistoryEntry[]>([])
+const displayLogLevel = ref<LogLevel>('info')
+const loggerContentRef = ref<InstanceType<typeof LoggerConsoleContent> | null>(null)
 
 const levelOptions = computed(() => [
   { value: 'debug', label: t('setting.loggingLevels.debug') },
@@ -159,6 +173,51 @@ const levelOptions = computed(() => [
   { value: 'warn', label: t('setting.loggingLevels.warn') },
   { value: 'error', label: t('setting.loggingLevels.error') }
 ])
+
+const entryLevelPriority = (type: LoggerHistoryEntry['type']): number => {
+  const map: Record<LoggerHistoryEntry['type'], number> = {
+    debug: 0,
+    out: 1,
+    warn: 2,
+    err: 3
+  }
+  return map[type] ?? 1
+}
+
+const matchesScopeFilter = (content: string, filter: string): boolean => {
+  if (!filter?.trim()) return true
+  const scopeMatch = content.match(/\[([^\]]+)\]/g)
+  if (!scopeMatch) return false
+  const filterLower = filter.trim().toLowerCase()
+  return scopeMatch.some((m) => m.toLowerCase().includes(filterLower))
+}
+
+const normalizedLogHistory = computed((): LoggerHistoryEntry[] => {
+  const raw = logHistory.value
+  const result: LoggerHistoryEntry[] = []
+  for (const entry of raw) {
+    let content: string
+    let type: LoggerHistoryEntry['type'] = 'out'
+    if ('content' in entry && typeof entry.content === 'string') {
+      content = entry.content
+      type = (entry as LoggerHistoryEntry).type ?? 'out'
+    } else if ('message' in entry) {
+      const e = entry as { timestamp?: number; level?: string; message?: string; source?: string }
+      const d = e.timestamp ? new Date(e.timestamp) : new Date()
+      const ts = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+      content = `${ts} [${(e.level || 'info').toUpperCase()}] [${e.source || 'main'}] ${e.message || ''}`
+      const l = (e.level || 'info').toLowerCase()
+      if (l === 'error' || l === 'err') type = 'err'
+      else if (l === 'warn' || l === 'warning') type = 'warn'
+      else if (l === 'debug') type = 'debug'
+    } else continue
+    if (!matchesScopeFilter(content, settings.loggingFilter || '')) continue
+    const minLevel = LOG_LEVEL_PRIORITY[displayLogLevel.value] ?? 1
+    if (entryLevelPriority(type) < minLevel) continue
+    result.push({ content, type })
+  }
+  return result
+})
 
 const retentionPeriodOptions = computed(() => [
   { value: 'none', label: t('setting.logRetentionPeriods.none') },
@@ -188,6 +247,11 @@ const handleFilterChange = () => {
   saveSetting('loggingFilter', settings.loggingFilter)
 }
 
+const onDisplayFilterChange = (v: string) => {
+  settings.loggingFilter = v
+  handleFilterChange()
+}
+
 const handleRetentionPeriodChange = () => {
   saveSetting('logRetentionPeriod', settings.logRetentionPeriod)
 }
@@ -198,6 +262,30 @@ const openLogFile = () => {
 
 const openLogDirectory = () => {
   eventBus.emit('open-log-directory')
+}
+
+const handleSaveLogs = async () => {
+  const text = loggerContentRef.value?.getFullBufferText?.() || ''
+  if (!text) return
+  try {
+    const result = (await messageBridge.invoke('save-file-dialog', {
+      defaultName: 'logger-output.log',
+      filters: [
+        { name: 'Log Files', extensions: ['log', 'txt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })) as { canceled?: boolean; filePath?: string }
+    if (result.canceled || !result.filePath) return
+    await messageBridge.invoke('write-file-content', {
+      filePath: result.filePath,
+      content: text,
+      encoding: 'utf8'
+    })
+    eventBus.emit('show-success', '日志已保存')
+  } catch (e) {
+    console.error('Save logs failed:', e)
+    eventBus.emit('show-error', '保存日志失败')
+  }
 }
 
 const applyLoggerConfig = (config: { logFilePath?: string; logDirectory?: string }) => {
@@ -368,9 +456,9 @@ onBeforeUnmount(() => {
   line-height: 1.4;
 }
 
-.logger-console :deep(.console-container) {
+.logger-console :deep(.logger-console-content) {
   min-height: 240px;
-  height: 240px;
+  height: 280px;
   max-height: 50vh;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;

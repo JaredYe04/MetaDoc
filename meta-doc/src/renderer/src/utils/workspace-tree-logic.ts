@@ -159,3 +159,34 @@ export function applyFsEvent(
   }
   return true
 }
+
+/**
+ * 增量添加节点到树（用于程序化创建，不检查格式、不依赖文件系统事件）
+ */
+export function addNodeToTree(
+  nodeMap: NodeMap,
+  parentPath: string,
+  filePath: string,
+  type: 'file' | 'directory'
+): boolean {
+  const normFilePath = normalizePathForCompare(filePath)
+  const name = basename(filePath)
+  if (name === '.metadoc') return true
+
+  const parent = nodeMap.get(normalizePathForCompare(parentPath))
+  if (!parent || (parent.type !== 'directory' && parent.type !== 'workspaceRoot')) {
+    return false
+  }
+  if (nodeMap.has(normFilePath)) return true
+
+  const children = parent.children ?? []
+  const newNode: FileNode =
+    type === 'directory'
+      ? { name, path: filePath, type: 'directory', children: undefined }
+      : { name, path: filePath, type: 'file' }
+  registerNode(nodeMap, newNode, parent)
+  const next = [...children, newNode]
+  sortFileNodes(next)
+  parent.children = next
+  return true
+}

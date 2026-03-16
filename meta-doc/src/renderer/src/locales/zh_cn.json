@@ -1372,7 +1372,12 @@
     "yesterday": "昨天"
   },
   "console": {
+    "compileSessionLimit": "保留编译信息",
+    "newSession": "新建会话",
+    "closeSession": "关闭会话",
     "clear": "清屏",
+    "scrollToNextCommand": "滚动到下一条命令",
+    "scrollToPreviousCommand": "滚动到上一条命令",
     "copiedToClipboard": "已复制到剪贴板",
     "copy": "复制",
     "enableAiAnalysis": "AI错误分析",
@@ -1405,6 +1410,7 @@
     "logSaveFailed": "保存日志失败",
     "logSaved": "日志已保存",
     "saveLog": "保存日志",
+    "shell": "Shell",
     "title": "终端输出",
     "cdFailed": "无法切换目录",
     "invalidArgument": "无效的参数"

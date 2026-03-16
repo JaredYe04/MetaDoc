@@ -16,7 +16,7 @@ import TitleMenu from '../components/TitleMenu.vue'
 import SectionOptimizer from '../components/SectionOptimizer.vue'
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
-import ConsoleTerminal from '../components/ConsoleTerminal.vue'
+import XtermConsole from '../components/XtermConsole.vue'
 import MetaInfoPanel from '../components/MetaInfoPanel.vue'
 import LaTeXCompilerPanel from '../components/LaTeXCompilerPanel.vue'
 import LaTeXEditorDemo from '../components/LaTeXEditorDemo.vue'
@@ -61,7 +61,8 @@ registerDemoComponent('TitleMenu', TitleMenu)
 registerDemoComponent('SectionOptimizer', SectionOptimizer)
 registerDemoComponent('SearchReplaceMenu', SearchReplaceMenu)
 registerDemoComponent('PdfPreviewPanel', PdfPreviewPanel)
-registerDemoComponent('ConsoleTerminal', ConsoleTerminal)
+// 手册中 ConsoleTerminal 使用 XtermConsole 渲染（兼容 mode/consoleKey/history）
+registerDemoComponent('ConsoleTerminal', XtermConsole)
 registerDemoComponent('MetaInfoPanel', MetaInfoPanel)
 registerDemoComponent('LaTeXCompilerPanel', LaTeXCompilerPanel)
 registerDemoComponent('LaTeXEditorDemo', LaTeXEditorDemo)

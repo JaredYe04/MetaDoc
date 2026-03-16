@@ -54,11 +54,10 @@
             <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
             <!-- 使用 v-show 而不是 v-if/v-else，避免 DOM 元素被销毁和重建 -->
             <Skeleton v-show="isRendering" :rows="15" animated class="content-preview-skeleton" />
-            <div
-              v-show="!isRendering"
-              ref="monacoPreviewRef"
-              class="content-preview monaco-preview"
-            ></div>
+            <div v-show="!isRendering" class="content-preview monaco-preview">
+              <!-- 使用独立内层容器创建 Monaco，避免 content-preview/monaco-preview 与 Monaco 内部 context 冲突 -->
+              <div ref="monacoPreviewRef" class="monaco-preview-inner"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1136,6 +1135,16 @@ onBeforeUnmount(() => {
   padding: 0; /* Monaco 编辑器内部有 padding */
   box-sizing: border-box;
   overflow: hidden; /* 防止内容溢出 */
+  display: flex;
+  flex-direction: column;
+}
+
+.monaco-preview-inner {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Skeleton 加载样式 */

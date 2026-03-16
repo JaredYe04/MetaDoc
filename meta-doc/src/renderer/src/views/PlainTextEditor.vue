@@ -136,10 +136,11 @@
                   background: themeState.currentTheme.background
                 }"
               >
-                <ConsoleTerminal
+                <XtermConsole
                   console-key="plaintext"
-                  :show-ai-analysis="false"
                   :initial-directory="getCurrentDirectory()"
+                  :visible="showConsole"
+                  @all-sessions-closed="showConsole = false"
                 />
               </div>
             </div>
@@ -181,7 +182,7 @@ import { MonacoEditorAdapter } from '../utils/editor-adapters'
 import '../assets/ai-suggestion.css'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
-import ConsoleTerminal from '../components/ConsoleTerminal.vue'
+import XtermConsole from '../components/XtermConsole.vue'
 import { ElLoading } from 'element-plus'
 import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
@@ -192,8 +193,6 @@ import { debounce } from 'lodash'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import { getMonacoLanguage } from '../utils/format-initializer'
-import messageBridge from '../bridge/message-bridge'
-
 const { t } = useI18n()
 const logger = createRendererLogger('PlainTextEditor', {
   windowTypeProvider: () => getWindowType()
@@ -400,11 +399,6 @@ function onResizingConsole(e: MouseEvent) {
   // 只有当新高度有效时才更新
   if (clampedHeight >= minHeight && clampedHeight <= maxHeight) {
     consoleHeight.value = clampedHeight
-
-    // 在 resize 过程中，确保 Console 滚动到底部
-    nextTick(() => {
-      scrollConsoleToBottom()
-    })
   }
 }
 
@@ -420,17 +414,6 @@ function stopResizeConsole() {
   if (consoleHeight.value < 100) {
     consoleHeight.value = 200
   }
-
-  // resize 结束后，确保 Console 滚动到底部
-  nextTick(() => {
-    scrollConsoleToBottom()
-  })
-}
-
-// 滚动 Console 到底部
-function scrollConsoleToBottom() {
-  // 通过 eventBus 通知 ConsoleTerminal 组件滚动到底部
-  eventBus.emit('console-scroll-to-bottom', { key: 'plaintext' })
 }
 
 const toggleConsole = async () => {
@@ -779,119 +762,6 @@ watch(
   }
 )
 
-// 处理控制台输入
-const handleConsoleInput = async (payload: any) => {
-  if (!payload || payload.key !== 'plaintext') return
-
-  const command = payload.content?.trim()
-  if (!command) return
-
-  try {
-    // 生成 invocationId
-    const invocationId = `plaintext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    currentInvocationId.value = invocationId
-
-    // 执行命令（不等待完成，支持交互式输入）
-    // 传递consoleKey，主进程会使用维护的 cwd 状态
-    const result = (await messageBridge.invoke('execute-terminal-command', {
-      command,
-      invocationId,
-      consoleKey: 'plaintext'
-    })) as { success: boolean; invocationId: string; error?: string }
-
-    if (!result.success) {
-      eventBus.emit('console-err', {
-        key: 'plaintext',
-        content: `错误: ${result.error || '执行命令失败'}\n`
-      })
-      currentInvocationId.value = null
-    }
-    // 注意：命令已经通过 shell 执行，不需要再发送到 stdin
-    // 如果需要交互式输入，可以通过 terminal-send-input 发送
-    // 注意：不再在这里显示输出，因为输出会通过流式事件实时显示
-    // 退出代码会通过 terminal-close 事件发送
-  } catch (error) {
-    logger.error('执行命令失败:', error)
-    eventBus.emit('console-err', {
-      key: 'plaintext',
-      content: `错误: ${error instanceof Error ? error.message : String(error)}\n`
-    })
-    currentInvocationId.value = null
-  }
-}
-
-// 存储当前执行的命令的 invocationId
-const currentInvocationId = ref<string | null>(null)
-
-// 监听终端输出流（实时输出）
-const handleTerminalStdoutStream = (_event: any, payload: any) => {
-  if (!payload || !payload.invocationId || payload.invocationId !== currentInvocationId.value)
-    return
-
-  // 命令执行期间的输出，应该追加（但 Console 会检查 isCommandExecuting，确保追加到新行）
-  eventBus.emit('console-out', {
-    key: 'plaintext',
-    content: payload.data || '',
-    append: true // 追加到当前输出行（但 Console 会检查状态，确保追加到新行）
-  })
-}
-
-const handleTerminalStderrStream = (_event: any, payload: any) => {
-  if (!payload || !payload.invocationId || payload.invocationId !== currentInvocationId.value)
-    return
-
-  // 命令执行期间的输出，应该追加（但 Console 会检查 isCommandExecuting，确保追加到新行）
-  eventBus.emit('console-err', {
-    key: 'plaintext',
-    content: payload.data || '',
-    append: true // 追加到当前输出行（但 Console 会检查状态，确保追加到新行）
-  })
-}
-
-// 监听终端关闭事件（显示退出代码）
-const handleTerminalClose = (_event: any, payload: any) => {
-  if (!payload || !payload.invocationId || payload.invocationId !== currentInvocationId.value)
-    return
-
-  // 标记命令执行完成
-  eventBus.emit('console-command-finished', {
-    key: 'plaintext',
-    invocationId: payload.invocationId
-  })
-
-  // 显示退出代码（如果不是0）
-  if (payload.exitCode !== 0) {
-    eventBus.emit('console-err', {
-      key: 'plaintext',
-      content: `\n进程退出，退出代码: ${payload.exitCode}\n`,
-      append: false // 退出代码应该在新行显示
-    })
-  }
-
-  // 清除 invocationId
-  currentInvocationId.value = null
-}
-
-// 监听终端错误事件
-const handleTerminalError = (_event: any, payload: any) => {
-  if (!payload || !payload.invocationId || payload.invocationId !== currentInvocationId.value)
-    return
-
-  // 标记命令执行完成（错误）
-  eventBus.emit('console-command-finished', {
-    key: 'plaintext',
-    invocationId: payload.invocationId
-  })
-
-  eventBus.emit('console-err', {
-    key: 'plaintext',
-    content: `错误: ${payload.error || '未知错误'}\n`,
-    append: false // 错误应该在新行显示
-  })
-
-  currentInvocationId.value = null
-}
-
 onMounted(async () => {
   try {
     if (typeof window !== 'undefined') {
@@ -900,15 +770,6 @@ onMounted(async () => {
     await waitForService('express')
     await refreshContextMenu()
     await initEditor() // initEditor 现在是 async 函数
-
-    // 监听控制台输入
-    eventBus.on('console-input', handleConsoleInput)
-
-    // 监听终端输出流和事件（如果主进程支持）
-    messageBridge.on('terminal-stdout-stream', handleTerminalStdoutStream)
-    messageBridge.on('terminal-stderr-stream', handleTerminalStderrStream)
-    messageBridge.on('terminal-close', handleTerminalClose)
-    messageBridge.on('terminal-error', handleTerminalError)
 
     eventBus.on('sync-editor-theme', () => {
       try {
@@ -964,15 +825,6 @@ onUnmounted(() => {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)
     handleFontSettingsChanged = null
   }
-
-  // 移除控制台输入监听
-  eventBus.off('console-input', handleConsoleInput)
-
-  // 移除终端输出流监听
-  messageBridge.removeListener('terminal-stdout-stream', handleTerminalStdoutStream)
-  messageBridge.removeListener('terminal-stderr-stream', handleTerminalStderrStream)
-  messageBridge.removeListener('terminal-close', handleTerminalClose)
-  messageBridge.removeListener('terminal-error', handleTerminalError)
 
   if (contentChangeListener) {
     contentChangeListener.dispose()

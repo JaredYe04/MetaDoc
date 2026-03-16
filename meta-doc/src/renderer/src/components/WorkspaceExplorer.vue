@@ -77,6 +77,7 @@
               :focused-path="focusedPath"
               :last-selected-index="lastSelectedIndex"
               :drag-target-path="dragTargetPath"
+              :pending-create="pendingCreate"
               @toggle="handleToggle"
               @open-file="handleOpenFile"
               @open-file-permanent="handleOpenFilePermanent"
@@ -88,6 +89,8 @@
               @drag-leave="handleDragLeave"
               @drop="handleDrop"
               @drag-end="handleDragEnd"
+              @creating-complete="handleCreatingComplete"
+              @creating-cancel="handleCreatingCancel"
             />
           </template>
         </div>
@@ -149,52 +152,6 @@
       <template #footer>
         <el-button @click="handleRenameDialogClose">{{ $t('common.cancel') }}</el-button>
         <el-button type="primary" @click="handleRenameConfirm">{{
-          $t('common.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
-    <!-- 新建文件对话框 -->
-    <el-dialog
-      v-model="newFileDialogVisible"
-      :title="$t('workspaceExplorer.newFileDialog.title')"
-      width="400px"
-      @close="handleNewFileDialogClose"
-    >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.newFileDialog.name')">
-          <el-input
-            v-model="newFileName"
-            :placeholder="$t('workspaceExplorer.newFileDialog.placeholder')"
-            @keyup.enter="handleNewFileConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleNewFileDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleNewFileConfirm">{{
-          $t('common.confirm')
-        }}</el-button>
-      </template>
-    </el-dialog>
-    <!-- 新建文件夹对话框 -->
-    <el-dialog
-      v-model="newFolderDialogVisible"
-      :title="$t('workspaceExplorer.newFolderDialog.title')"
-      width="400px"
-      @close="handleNewFolderDialogClose"
-    >
-      <el-form>
-        <el-form-item :label="$t('workspaceExplorer.newFolderDialog.name')">
-          <el-input
-            v-model="newFolderName"
-            :placeholder="$t('workspaceExplorer.newFolderDialog.placeholder')"
-            @keyup.enter="handleNewFolderConfirm"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleNewFolderDialogClose">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleNewFolderConfirm">{{
           $t('common.confirm')
         }}</el-button>
       </template>
@@ -704,13 +661,12 @@ const renameDialogVisible = ref(false)
 const renameName = ref('')
 const renameTargetPath = ref<string | null>(null)
 
-const newFileDialogVisible = ref(false)
-const newFileName = ref('')
-const newFileParentPath = ref<string | null>(null)
-
-const newFolderDialogVisible = ref(false)
-const newFolderName = ref('')
-const newFolderParentPath = ref<string | null>(null)
+// 内联创建（类似 VS Code，在树中直接编辑）
+const pendingCreate = ref<{
+  parentPath: string
+  type: 'file' | 'directory'
+  workspaceFolder: string
+} | null>(null)
 
 // 组件引用
 const workspaceExplorerRef = ref<HTMLElement | null>(null)
@@ -1395,38 +1351,7 @@ const handleDirectoryChange = async (payload: unknown) => {
 
   const applied = applyFsEventToTree({ directoryPath, parentPath, eventType, filePath })
   if (applied) {
-    const norm = normalizePathForCompare(effectiveParent)
-    const isWorkspaceRoot = workspaceFolders.value.some(
-      (f) => normalizePathForCompare(f) === norm
-    )
-    try {
-      if (isWorkspaceRoot) {
-        const folder = workspaceFolders.value.find((f) => normalizePathForCompare(f) === norm)
-        if (folder) {
-          await refreshWorkspaceFolder(folder)
-          // 根目录 add/addDir 后强制用新根对象替换，否则 Vue 不追踪深层变更、新建文件夹不实时出现
-          const root = workspaceFolderNodes.value.get(folder)
-          if (root && (eventType === 'add' || eventType === 'addDir')) {
-            const newRoot: FileNode = {
-              ...root,
-              children: root.children ? [...root.children] : []
-            }
-            for (const c of newRoot.children ?? []) {
-              c.parent = newRoot
-            }
-            unregisterNode(root)
-            treeLogic.registerNode(nodeMap, newRoot, null)
-            workspaceFolderNodes.value.set(folder, newRoot)
-            workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
-          }
-        }
-      } else {
-        await refreshDirectoryNode(effectiveParent)
-      }
-      nextTick(() => { treeVersion.value++ })
-    } catch (err) {
-      logger.warn('目录变化后刷新父目录失败', { effectiveParent, error: err })
-    }
+    // 增量更新已成功，无需整目录刷新
     return
   }
 
@@ -1700,30 +1625,50 @@ const handleContextMenuCommand = async (command: string) => {
           await ipcRenderer.invoke('show-item-in-folder', node.path)
         }
         break
-      case 'newFile':
-        // 如果右键的是工作文件夹节点或目录节点，使用该节点的路径；否则使用 contextMenuTargetPath 或第一个工作文件夹
+      case 'newFile': {
+        let parentPath: string | null = null
+        let wsFolder: string | null = null
         if (node && (node.isWorkspaceRoot || node.type === 'directory')) {
-          newFileParentPath.value = node.path
+          parentPath = node.path
+          wsFolder = findWorkspaceFolderForPath(parentPath)
         } else {
-          newFileParentPath.value =
+          parentPath =
             contextMenuTargetPath.value ||
             (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+          wsFolder = parentPath ? findWorkspaceFolderForPath(parentPath) : parentPath
         }
-        newFileName.value = ''
-        newFileDialogVisible.value = true
+        if (parentPath && wsFolder) {
+          expandedPaths.value.add(parentPath)
+          if (node && node.type === 'directory') {
+            if (!node.children || node.children.length === 0) await loadSubDirectory(node)
+            startDirectoryWatcher(parentPath)
+          }
+          pendingCreate.value = { parentPath, type: 'file', workspaceFolder: wsFolder }
+        }
         break
-      case 'newFolder':
-        // 如果右键的是工作文件夹节点或目录节点，使用该节点的路径；否则使用 contextMenuTargetPath 或第一个工作文件夹
+      }
+      case 'newFolder': {
+        let parentPath: string | null = null
+        let wsFolder: string | null = null
         if (node && (node.isWorkspaceRoot || node.type === 'directory')) {
-          newFolderParentPath.value = node.path
+          parentPath = node.path
+          wsFolder = findWorkspaceFolderForPath(parentPath)
         } else {
-          newFolderParentPath.value =
+          parentPath =
             contextMenuTargetPath.value ||
             (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+          wsFolder = parentPath ? findWorkspaceFolderForPath(parentPath) : parentPath
         }
-        newFolderName.value = ''
-        newFolderDialogVisible.value = true
+        if (parentPath && wsFolder) {
+          expandedPaths.value.add(parentPath)
+          if (node && node.type === 'directory') {
+            if (!node.children || node.children.length === 0) await loadSubDirectory(node)
+            startDirectoryWatcher(parentPath)
+          }
+          pendingCreate.value = { parentPath, type: 'directory', workspaceFolder: wsFolder }
+        }
         break
+      }
       case 'refresh':
         if (node) {
           // 如果是工作文件夹根节点，使用 refreshWorkspaceFolder
@@ -1808,11 +1753,41 @@ const handlePaste = async (targetPathParam: string | null) => {
 
     const targetDirURI = URIUtils.pathToURI(targetDir)
 
+    // 剪切时需在 paste 前保存源路径（paste 成功后会清空剪贴板）
+    const clipboardPayload = operations.getClipboardPayload()
+
     // 使用新的操作模型执行粘贴
     const pastedURIs = await operations.paste(targetDirURI)
 
-    // 刷新目标目录
-    await refreshDirectoryNode(targetDir)
+    // 瞬时增量更新树
+    // 剪切：先从树中移除源节点
+    if (clipboardPayload?.type === 'cut' && clipboardPayload.sources?.length) {
+      for (const srcUri of clipboardPayload.sources) {
+        const srcPath = URIUtils.uriToPath(srcUri)
+        const parentPath = dirname(srcPath)
+        const n = nodeMap.get(normalizePathForCompare(srcPath))
+        const isDir = n ? (n.type === 'directory' || n.type === 'workspaceRoot') : false
+        applyFsEventToTree({
+          directoryPath: parentPath,
+          parentPath,
+          eventType: isDir ? 'unlinkDir' : 'unlink',
+          filePath: srcPath
+        })
+      }
+    }
+    // 添加粘贴后的新节点
+    for (const uri of pastedURIs) {
+      const path = URIUtils.uriToPath(uri)
+      const parentPath = dirname(path)
+      const isDir = (await ipcRenderer.invoke('check-path-is-directory', path)) as boolean
+      treeLogic.addNodeToTree(nodeMap, parentPath, path, isDir ? 'directory' : 'file')
+    }
+    if (pastedURIs.length > 0) {
+      nextTick(() => {
+        workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+        treeVersion.value++
+      })
+    }
 
     // 选中粘贴后生成的文件（已在 operations.paste 中处理）
     if (pastedURIs.length > 0) {
@@ -1967,59 +1942,51 @@ const refreshWorkspaceFolderForPath = async (filePath: string) => {
 const handleDelete = async (node: FileNode | null) => {
   if (!operations || !ipcRenderer) return
 
-  let urisToDelete: string[] = []
+  const itemsToDelete: { uri: string; path: string; isDirectory: boolean }[] = []
 
   if (selectedPaths.value.size > 0) {
-    // 批量删除选中的项
-    urisToDelete = Array.from(selectedPaths.value).map((path) => URIUtils.pathToURI(path))
-  } else if (node) {
-    // 单个删除
-    urisToDelete = [URIUtils.pathToURI(node.path)]
-  } else {
-    return
+    for (const path of selectedPaths.value) {
+      const n = nodeMap.get(normalizePathForCompare(path))
+      if (n && !n.isWorkspaceRoot) {
+        itemsToDelete.push({
+          uri: URIUtils.pathToURI(path),
+          path,
+          isDirectory: n.type === 'directory' || n.type === 'workspaceRoot'
+        })
+      }
+    }
+  } else if (node && !node.isWorkspaceRoot) {
+    itemsToDelete.push({
+      uri: URIUtils.pathToURI(node.path),
+      path: node.path,
+      isDirectory: node.type === 'directory' || node.type === 'workspaceRoot'
+    })
   }
 
-  // 收集需要刷新的目录（在删除前收集）
-  const directoriesToRefresh = new Set<string>()
-  for (const uri of urisToDelete) {
-    const path = URIUtils.uriToPath(uri)
-    // 获取目录路径（dirname 返回正斜杠，需要转换为 Windows 格式）
-    const dirPath = dirname(path)
-    // 规范化路径格式：Windows 路径统一使用反斜杠，Unix 路径使用正斜杠
-    // 判断是否为 Windows 路径（以盘符开头）
-    const normalizedDirPath = /^[A-Za-z]:/.test(dirPath) ? dirPath.replace(/\//g, '\\') : dirPath
-    directoriesToRefresh.add(normalizedDirPath)
+  if (itemsToDelete.length === 0) return
 
-    // 如果删除的是当前打开的文件，关闭对应的标签
-    const tab = workspace.tabs.find((t) => t.path === path)
-    if (tab) {
-      workspace.removeTab(tab.id)
-    }
+  for (const item of itemsToDelete) {
+    const tab = workspace.tabs.find((t) => t.path === item.path)
+    if (tab) workspace.removeTab(tab.id)
   }
 
-  // 使用新的操作模型执行删除
-  const success = await operations.deleteItems(urisToDelete, async () => {
-    // 删除前回调：可以在这里做额外处理
-  })
+  const success = await operations.deleteItems(
+    itemsToDelete.map((i) => i.uri),
+    async () => {}
+  )
 
-  logger.info('删除操作完成', { success, directoriesToRefresh: Array.from(directoriesToRefresh) })
-
-  // 无论删除成功与否，都尝试刷新受影响的目录（确保 UI 同步）
-  // 因为即使部分删除失败，已删除的项目也应该从 UI 中移除
-  // 注意：删除操作是异步的，executor.execute 会等待所有步骤完成，所以这里可以直接刷新
-  // 使用与粘贴操作相同的刷新方式，确保一致性（粘贴操作没有延迟，直接刷新）
-  const refreshPromises = Array.from(directoriesToRefresh).map(async (dirPath) => {
-    try {
-      logger.info('开始刷新目录', { dirPath })
-      // 直接刷新目录节点（与粘贴操作使用相同的方法，不延迟）
-      await refreshDirectoryNode(dirPath)
-      logger.info('目录刷新完成', { dirPath })
-    } catch (err) {
-      logger.error(`刷新目录失败: ${dirPath}`, err)
+  if (success) {
+    // 瞬时增量更新树，不等待目录监听
+    for (const item of itemsToDelete) {
+      const parentPath = dirname(item.path)
+      applyFsEventToTree({
+        directoryPath: parentPath,
+        parentPath,
+        eventType: item.isDirectory ? 'unlinkDir' : 'unlink',
+        filePath: item.path
+      })
     }
-  })
-  await Promise.all(refreshPromises)
-  logger.info('所有目录刷新完成')
+  }
 }
 
 // 处理重命名
@@ -2044,8 +2011,22 @@ const handleRenameConfirm = async () => {
         }
       }
 
-      // 刷新相关的工作文件夹
-      await refreshWorkspaceFolderForPath(renameTargetPath.value)
+      // 瞬时增量更新树：移除旧节点、添加新节点
+      const oldPath = renameTargetPath.value
+      const parentPath = dirname(oldPath)
+      const oldNode = nodeMap.get(normalizePathForCompare(oldPath))
+      const isDir = oldNode ? (oldNode.type === 'directory' || oldNode.type === 'workspaceRoot') : false
+      applyFsEventToTree({
+        directoryPath: parentPath,
+        parentPath,
+        eventType: isDir ? 'unlinkDir' : 'unlink',
+        filePath: oldPath
+      })
+      treeLogic.addNodeToTree(nodeMap, parentPath, newPath, isDir ? 'directory' : 'file')
+      nextTick(() => {
+        workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+        treeVersion.value++
+      })
 
       handleRenameDialogClose()
     }
@@ -2061,85 +2042,64 @@ const handleRenameDialogClose = () => {
   renameTargetPath.value = null
 }
 
-// 处理新建文件
-const handleNewFileConfirm = async () => {
-  if (!newFileParentPath.value || !newFileName.value.trim()) return
+// 内联创建完成（确认）
+const handleCreatingComplete = async (name: string) => {
+  const pending = pendingCreate.value
+  if (!pending || !name.trim()) return
 
   const ipcRenderer = getIpcRenderer()
   if (!ipcRenderer) return
 
   try {
-    // 确保文件名有扩展名
-    let fileName = newFileName.value.trim()
-    if (!fileName.includes('.')) {
-      // 如果没有扩展名，使用 Markdown 格式的默认扩展名（从 formatRegistry 获取）
-      const mdFormat = formatRegistry.getFormat('md')
-      const defaultExtension = mdFormat?.defaultExtension || '.md'
-      fileName = fileName + defaultExtension
+    if (pending.type === 'file') {
+      let fileName = name.trim()
+      if (!fileName.includes('.')) {
+        const mdFormat = formatRegistry.getFormat('md')
+        const defaultExtension = mdFormat?.defaultExtension || '.md'
+        fileName = fileName + defaultExtension
+      }
+      const filePath = await ipcRenderer.invoke('create-file', {
+        parentPath: pending.parentPath,
+        fileName,
+        content: ''
+      })
+      // 增量添加节点，不整目录刷新
+      treeLogic.addNodeToTree(nodeMap, pending.parentPath, filePath, 'file')
+      nextTick(() => {
+        workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+        treeVersion.value++
+      })
+      selectedPaths.value.clear()
+      lastSelectedIndex.value = -1
+      pendingCreate.value = null
+      eventBus.emit('show-success', { message: t('workspaceExplorer.newFileSuccess') })
+      await handleOpenFile(filePath)
+    } else {
+      const folderName = name.trim()
+      const dirPath = await ipcRenderer.invoke('create-directory', {
+        parentPath: pending.parentPath,
+        folderName
+      }) as string
+      // 增量添加节点，不整目录刷新
+      treeLogic.addNodeToTree(nodeMap, pending.parentPath, dirPath, 'directory')
+      nextTick(() => {
+        workspaceFolderNodes.value = new Map(workspaceFolderNodes.value)
+        treeVersion.value++
+      })
+      selectedPaths.value.clear()
+      lastSelectedIndex.value = -1
+      pendingCreate.value = null
+      eventBus.emit('show-success', { message: t('workspaceExplorer.newFolderSuccess') })
     }
-
-    const filePath = await ipcRenderer.invoke('create-file', {
-      parentPath: newFileParentPath.value,
-      fileName,
-      content: ''
-    })
-
-    // 刷新相关的工作文件夹
-    await refreshWorkspaceFolderForPath(newFileParentPath.value)
-
-    // 清除选中状态
-    selectedPaths.value.clear()
-    lastSelectedIndex.value = -1
-
-    handleNewFileDialogClose()
-    eventBus.emit('show-success', { message: t('workspaceExplorer.newFileSuccess') })
-
-    // 自动打开新文件
-    await handleOpenFile(filePath)
   } catch (err) {
-    logger.error('新建文件失败:', err)
+    logger.error('新建失败:', err)
     eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
   }
 }
 
-const handleNewFileDialogClose = () => {
-  newFileDialogVisible.value = false
-  newFileName.value = ''
-  newFileParentPath.value = null
-}
-
-// 处理新建文件夹
-const handleNewFolderConfirm = async () => {
-  if (!newFolderParentPath.value || !newFolderName.value.trim()) return
-
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return
-
-  try {
-    await ipcRenderer.invoke('create-directory', {
-      parentPath: newFolderParentPath.value,
-      folderName: newFolderName.value.trim()
-    })
-
-    // 刷新相关的工作文件夹
-    await refreshWorkspaceFolderForPath(newFolderParentPath.value)
-
-    // 清除选中状态
-    selectedPaths.value.clear()
-    lastSelectedIndex.value = -1
-
-    handleNewFolderDialogClose()
-    eventBus.emit('show-success', { message: t('workspaceExplorer.newFolderSuccess') })
-  } catch (err) {
-    logger.error('新建文件夹失败:', err)
-    eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
-  }
-}
-
-const handleNewFolderDialogClose = () => {
-  newFolderDialogVisible.value = false
-  newFolderName.value = ''
-  newFolderParentPath.value = null
+// 内联创建取消（空名称或失焦取消）
+const handleCreatingCancel = () => {
+  pendingCreate.value = null
 }
 
 // 处理焦点

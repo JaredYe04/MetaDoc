@@ -22,29 +22,29 @@
       :class="{ 'demo-mode': props.mode === 'demo' }"
       :style="wrapperStyle"
     >
-      <div class="logger-console-header">
-        <h3>{{ t('setting.loggerConsoleTitle') }}</h3>
-        <Button
-          size="sm"
-          variant="ghost"
-          class="text-red-500 hover:text-red-600"
-          @click="closePanel"
-        >
-          {{ t('common.close') }}
-        </Button>
-      </div>
-      <div class="logger-filter">
-        <div class="relative">
-          <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            v-model="filterText"
-            :placeholder="t('setting.loggingFilterPlaceholder')"
-            class="pl-9 w-full"
-            @input="handleFilterChange"
-          />
-        </div>
-      </div>
-      <ConsoleOutput console-key="logger" :history="filteredLogHistory" :mode="props.mode" />
+      <LoggerConsoleContent
+        ref="loggerContentRef"
+        :title="t('setting.loggerConsoleTitle')"
+        :filter-text="filterText"
+        :filter-placeholder="t('setting.loggingFilterPlaceholder')"
+        :filter-level="filterLevel"
+        :history="filteredLogHistory"
+        @update:filter-text="onFilterTextChange"
+        @update:filter-level="filterLevel = $event as LogLevel"
+        @clear="clearLogs"
+        @save="saveLogs"
+      >
+        <template #extra-actions>
+          <Button
+            size="sm"
+            variant="ghost"
+            class="text-red-500 hover:text-red-600"
+            @click="closePanel"
+          >
+            {{ t('common.close') }}
+          </Button>
+        </template>
+      </LoggerConsoleContent>
     </div>
   </ResizablePanel>
 </template>
@@ -54,14 +54,17 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search } from '@element-plus/icons-vue'
 import ResizablePanel from './base/ResizablePanel.vue'
-import ConsoleOutput from './ConsoleOutput.vue'
+import LoggerConsoleContent from './LoggerConsoleContent.vue'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import eventBus from '../utils/event-bus'
+import messageBridge from '../bridge/message-bridge'
 import { themeState } from '../utils/themes'
-import { fetchLoggerHistory } from '../utils/logger.ts'
+import { fetchLoggerHistory, getRendererLoggerConfig } from '../utils/logger.ts'
 import type { LoggerHistoryEntry } from '../utils/logger.ts'
 import { settings, setSetting } from '../utils/settings.js'
+import { LOG_LEVEL_PRIORITY } from '../../../common/logger-constants'
+import type { LogLevel } from '../../../common/logger-constants'
 
 const { t } = useI18n()
 
@@ -77,6 +80,12 @@ const visible = ref(props.mode === 'demo' ? true : false)
 const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
 const logHistory = ref<LoggerHistoryEntry[]>([])
 const filterText = ref(settings.loggingFilter || '')
+const filterLevel = ref<LogLevel>('info')
+const loggerContentRef = ref<InstanceType<typeof LoggerConsoleContent> | null>(null)
+
+const onLoggerConfigUpdated = (_event: unknown, config: { level?: LogLevel }) => {
+  if (config?.level) filterLevel.value = config.level
+}
 
 /**
  * 从日志内容中提取 scope 信息
@@ -137,14 +146,27 @@ const matchesLogFilter = (content: string, filter: string): boolean => {
   return false
 }
 
+const entryLevelPriority = (type: LoggerHistoryEntry['type']): number => {
+  const map: Record<LoggerHistoryEntry['type'], number> = {
+    debug: 0,
+    out: 1,
+    warn: 2,
+    err: 3
+  }
+  return map[type] ?? 1
+}
+
 /**
- * 过滤后的日志历史
+ * 过滤后的日志历史（scope + 日志等级）
  */
 const filteredLogHistory = computed(() => {
-  if (!filterText.value || !filterText.value.trim()) {
-    return logHistory.value
+  let result = logHistory.value
+  if (filterText.value?.trim()) {
+    result = result.filter((entry) => matchesLogFilter(entry.content, filterText.value))
   }
-  return logHistory.value.filter((entry) => matchesLogFilter(entry.content, filterText.value))
+  const minLevel = LOG_LEVEL_PRIORITY[filterLevel.value] ?? 1
+  result = result.filter((entry) => entryLevelPriority(entry.type) >= minLevel)
+  return result
 })
 
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.6))
@@ -167,8 +189,54 @@ function closePanel() {
   visible.value = false
 }
 
-function handleFilterChange() {
-  setSetting('loggingFilter', filterText.value)
+function onFilterTextChange(v: string) {
+  filterText.value = v
+  setSetting('loggingFilter', v)
+}
+
+function renderLogsToTerminal() {
+  loggerContentRef.value?.renderLogs?.()
+}
+
+function clearLogs() {
+  loggerContentRef.value?.clear?.()
+}
+
+async function saveLogs() {
+  const text = loggerContentRef.value?.getFullBufferText?.() || ''
+  if (!text) return
+  try {
+    if (!messageBridge.getIpc()) {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'logger-output.log'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      eventBus.emit('show-success', t('console.logSaved'))
+      return
+    }
+    const result = (await messageBridge.invoke('save-file-dialog', {
+      defaultName: 'logger-output.log',
+      filters: [
+        { name: 'Log Files', extensions: ['log', 'txt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })) as { canceled?: boolean; filePath?: string }
+    if (result.canceled || !result.filePath) return
+    await messageBridge.invoke('write-file-content', {
+      filePath: result.filePath,
+      content: text,
+      encoding: 'utf8'
+    })
+    eventBus.emit('show-success', t('console.logSaved'))
+  } catch (e) {
+    console.error('Save logs failed:', e)
+    eventBus.emit('show-error', t('console.logSaveFailed') || '保存日志失败')
+  }
 }
 
 // 处理点击外部区域关闭面板
@@ -176,6 +244,11 @@ function handleClickOutside(event: MouseEvent) {
   if (!visible.value) return
 
   const target = event.target as HTMLElement
+
+  // 如果点击的是日志等级 Dropdown 内部（通过 Portal 渲染在 body 下），不关闭
+  if (target.closest('.logger-level-dropdown')) {
+    return
+  }
 
   // 获取面板DOM元素
   const panelElement = panelRef.value?.$el as HTMLElement | undefined
@@ -220,17 +293,30 @@ watch(visible, (isVisible) => {
   }
 })
 
-onMounted(() => {
+watch(filteredLogHistory, renderLogsToTerminal, { deep: true })
+
+watch(visible, (v) => {
+  if (v) nextTick(renderLogsToTerminal)
+})
+
+onMounted(async () => {
+  try {
+    const config = await getRendererLoggerConfig()
+    filterLevel.value = config.level
+  } catch (_) {}
   fetchLoggerHistory().then((history) => {
     logHistory.value = history
+    renderLogsToTerminal()
   })
   eventBus.on('toggle-logger-console', toggleVisibility)
   eventBus.on('close-logger-console', closePanel)
+  messageBridge.on('logger-config-updated', onLoggerConfigUpdated)
 })
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-logger-console', toggleVisibility)
   eventBus.off('close-logger-console', closePanel)
+  messageBridge.removeListener('logger-config-updated', onLoggerConfigUpdated)
   document.removeEventListener('click', handleClickOutside, true)
 })
 </script>
@@ -254,35 +340,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-.logger-filter {
-  flex-shrink: 0;
-  margin-bottom: 8px;
-}
-
-.logger-console-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-/* 确保 Console 组件不会超出容器 */
-.logger-console-wrapper :deep(.console-container) {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.logger-console-wrapper :deep(.console-body) {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  user-select: text !important;
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  -ms-user-select: text !important;
-}
 
 /* Demo 模式：在手册中展示时需要固定高度 */
 .logger-console-wrapper.demo-mode {

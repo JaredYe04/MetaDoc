@@ -33,11 +33,10 @@
         class="preview-container"
       />
       <!-- LaTeX预览（使用Monaco） -->
-      <div
-        v-if="language === 'latex'"
-        ref="previewContainerRef"
-        class="preview-container monaco-preview"
-      ></div>
+      <div v-if="language === 'latex'" class="preview-container monaco-preview">
+        <!-- 使用独立内层容器创建 Monaco，避免与 Monaco 内部 context 冲突 -->
+        <div ref="previewContainerRef" class="monaco-preview-inner"></div>
+      </div>
     </div>
 
     <!-- 改进的提示词输入框，参考ChatComposer -->
@@ -833,6 +832,14 @@ watch(
 .monaco-preview {
   min-height: 200px;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.monaco-preview-inner {
+  flex: 1;
+  width: 100%;
+  min-height: 200px;
 }
 
 /* ChatComposer风格的输入框样式 */

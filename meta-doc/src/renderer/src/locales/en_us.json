@@ -4339,7 +4339,11 @@
     "validateFailedFailedValidate": "Syntax validation failed"
   },
   "console": {
+    "newSession": "New session",
+    "closeSession": "Close session",
     "clear": "Clear screen",
+    "scrollToNextCommand": "Scroll to next command",
+    "scrollToPreviousCommand": "Scroll to previous command",
     "copiedToClipboard": "Copied to clipboard",
     "copy": "Copy",
     "enableAiAnalysis": "AI Error Analysis",

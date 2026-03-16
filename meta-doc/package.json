@@ -27,7 +27,7 @@
     "temp-build": "electron-vite build",
     "build:sequential": "npm run prebuild && node scripts/build-sequential.js",
     "postinstall": "node scripts/postinstall-electron.js && (electron-builder install-app-deps || echo \"Warning: Some native dependencies (e.g. canvas) may need manual setup\") && npm run rebuild-native",
-    "rebuild-native": "electron-rebuild -f -w better-sqlite3 --only better-sqlite3",
+    "rebuild-native": "electron-rebuild -f -w better-sqlite3,node-pty --only better-sqlite3,node-pty",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build:only && electron-builder --win",
     "temp-build:win": "npm run temp-build && electron-builder --win",
@@ -201,7 +201,10 @@
     "vue3-pdfjs": "^0.1.6",
     "word-extractor": "^1.0.4",
     "xlsx": "^0.18.5",
-    "xmldom": "^0.6.0"
+    "xmldom": "^0.6.0",
+    "node-pty": "^1.0.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-methods": "^7.18.6",

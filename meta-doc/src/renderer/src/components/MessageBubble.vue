@@ -11,8 +11,8 @@ import {
   RefreshCw,
   Trash2
 } from 'lucide-vue-next'
-import { ElMessage } from 'element-plus'
-import { ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '@renderer/utils/messageBox'
 import { MdEditor, MdPreview, MdCatalog } from 'md-editor-v3'
 import { themeState } from '../utils/themes'
 import '../assets/md-editor-v3-style.css'
@@ -88,7 +88,7 @@ const regenerateMsg = () => {
 }
 
 const onMsgDelete = () => {
-  ElMessageBox.confirm(
+  messageBox.confirm(
     t('messageBubble.deleteConfirmMessage'),
     t('messageBubble.deleteConfirmTitle'),
     {
@@ -122,10 +122,10 @@ const saveEdit = () => {
 const copyContent = async () => {
   try {
     await navigator.clipboard.writeText(content.value)
-    ElMessage.success(t('common.copySuccess', '复制成功'))
+    toast.success(t('common.copySuccess', '复制成功'))
   } catch (error) {
     console.error('复制失败:', error)
-    ElMessage.error(t('common.copyFailed', '复制失败'))
+    toast.error(t('common.copyFailed', '复制失败'))
   }
 }
 
@@ -143,7 +143,7 @@ const exportToNewDocument = () => {
   eventBus.emit('ai-chat-export-to-document', {
     content: content.value
   })
-  ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+  toast.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
 }
 
 // 处理下拉菜单命令

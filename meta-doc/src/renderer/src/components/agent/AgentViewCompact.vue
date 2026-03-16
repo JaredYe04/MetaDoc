@@ -559,7 +559,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { Clock, ChevronDown, ChevronUp, Paperclip, Plus, X } from 'lucide-vue-next'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
 import {
@@ -968,7 +968,7 @@ async function deleteSession(session: AgentSession) {
     return
   }
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.sessions.confirmDelete', { title: session.title }),
       t('agent.sessions.delete'),
       { type: 'warning' }
@@ -987,7 +987,7 @@ async function deleteSession(session: AgentSession) {
 function createDefaultSession() {
   try {
     const session = agentSessionManager.createSession(
-      'default-agent-config',
+      agentConfigManager.getDefaultConfigId(),
       t('agent.sessions.defaultTitle'),
       ''
     )
@@ -1137,7 +1137,7 @@ function handleTabContextDuplicate() {
 
 function createNewSession() {
   try {
-    const defaultConfigId = 'default-agent-config'
+    const defaultConfigId = agentConfigManager.getDefaultConfigId()
     const session = agentSessionManager.createSession(
       defaultConfigId,
       t('agent.compact.newSessionTitle'),
@@ -1759,7 +1759,7 @@ async function handleMessageRegenerate(message: AgentMessage) {
   if (messageIndex === -1) return
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.message.confirmRegenerate'),
       t('agent.message.confirmRegenerateTitle'),
       { type: 'warning' }
@@ -1787,7 +1787,7 @@ async function handleMessageDelete(message: AgentMessage) {
   const session = activeSession.value
   if (!session) return
   try {
-    await ElMessageBox.confirm(t('agent.message.confirmDelete'), t('agent.message.delete'), {
+    await messageBox.confirm(t('agent.message.confirmDelete'), t('agent.message.delete'), {
       type: 'warning'
     })
     const messageIndex = session.messages.findIndex((m) => m.id === message.id)

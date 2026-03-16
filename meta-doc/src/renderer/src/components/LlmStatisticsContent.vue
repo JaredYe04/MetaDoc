@@ -77,7 +77,8 @@ import {
   clearStatistics
 } from '../utils/llm-statistics-service.js'
 import * as echarts from 'echarts'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '@renderer/utils/messageBox'
 import { createRendererLogger } from '../utils/logger'
 import * as XLSX from 'xlsx'
 import messageBridge from '../bridge/message-bridge'
@@ -246,7 +247,7 @@ async function loadStatistics() {
     updateCharts()
   } catch (error) {
     logger.error('加载统计数据失败:', error)
-    ElMessage.error(t('llmStatistics.loadFailed'))
+    toast.error(t('llmStatistics.loadFailed'))
   }
 }
 
@@ -632,7 +633,7 @@ function convertToXLSX(data: any): ArrayBuffer {
 async function handleExport() {
   // Demo mode: simulate export
   if (props.isDemo) {
-    ElMessage.success('Demo mode: Statistics exported (simulated)')
+    toast.success('Demo mode: Statistics exported (simulated)')
     return
   }
 
@@ -644,16 +645,15 @@ async function handleExport() {
       { label: t('llmStatistics.formatXlsx'), value: 'xlsx' }
     ]
 
-    // 使用 ElMessageBox.prompt 让用户选择格式
-    const formatChoice = await ElMessageBox.prompt(
+    // 使用 messageBox.prompt 让用户选择格式
+    const formatChoice = await messageBox.prompt(
       `${t('llmStatistics.exportFormatMessage')}\n\n1. ${formatOptions[0].label}\n2. ${formatOptions[1].label}\n3. ${formatOptions[2].label}`,
       t('llmStatistics.exportFormatTitle'),
       {
         confirmButtonText: t('llmStatistics.confirm'),
         cancelButtonText: t('llmStatistics.cancel'),
-        inputPattern: /^[1-3]$/,
-        inputErrorMessage: t('llmStatistics.exportFormatInvalid'),
-        inputPlaceholder: '1-3'
+        inputValue: '',
+        inputValidator: (val) => /^[1-3]$/.test(val.trim()) || t('llmStatistics.exportFormatInvalid')
       }
     ).catch(() => null)
 
@@ -663,7 +663,7 @@ async function handleExport() {
 
     const choice = parseInt(formatChoice.value.trim())
     if (choice < 1 || choice > 3) {
-      ElMessage.warning(t('llmStatistics.exportFormatInvalid'))
+      toast.warning(t('llmStatistics.exportFormatInvalid'))
       return
     }
 
@@ -743,11 +743,11 @@ async function handleExport() {
       })
     }
 
-    ElMessage.success(t('llmStatistics.exportSuccess'))
+    toast.success(t('llmStatistics.exportSuccess'))
   } catch (error: any) {
     if (error !== 'cancel' && error !== 'close') {
       logger.error('导出统计数据失败:', error)
-      ElMessage.error(t('llmStatistics.exportFailed'))
+      toast.error(t('llmStatistics.exportFailed'))
     }
   }
 }
@@ -756,7 +756,7 @@ async function handleExport() {
 async function handleClear() {
   // Demo mode: simulate clear
   if (props.isDemo) {
-    ElMessage.success('Demo mode: Statistics cleared (simulated)')
+    toast.success('Demo mode: Statistics cleared (simulated)')
     // Reset demo data
     statistics.value = {
       requests: [],
@@ -771,7 +771,7 @@ async function handleClear() {
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('llmStatistics.clearConfirm'),
       t('llmStatistics.clearConfirmTitle'),
       {
@@ -781,7 +781,7 @@ async function handleClear() {
       }
     )
 
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('llmStatistics.clearConfirmAgain'),
       t('llmStatistics.clearConfirmTitle'),
       {
@@ -793,11 +793,11 @@ async function handleClear() {
 
     await clearStatistics()
     await loadStatistics()
-    ElMessage.success(t('llmStatistics.clearSuccess'))
+    toast.success(t('llmStatistics.clearSuccess'))
   } catch (error) {
     if (error !== 'cancel') {
       logger.error('清空统计数据失败:', error)
-      ElMessage.error(t('llmStatistics.clearFailed'))
+      toast.error(t('llmStatistics.clearFailed'))
     }
   }
 }

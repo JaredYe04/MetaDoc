@@ -60,49 +60,65 @@
             </div>
           </div>
 
-          <!-- 卡片操作按钮 -->
+          <!-- 卡片操作按钮：使用 ItemActionMenu 统一规范（与 SessionList 右键菜单同源） -->
           <div v-if="showActions" class="card-item__actions" @click.stop>
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button variant="secondary" circle size="sm" class="card-item__actions-btn">
-                  <More />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem
-                  v-for="action in getActions(item)"
-                  :key="action.command"
-                  :disabled="action.disabled"
-                  @click="handleAction(action.command, item)"
-                >
-                  {{ action.label }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <button
+              type="button"
+              class="card-item__actions-btn"
+              aria-haspopup="true"
+              :aria-expanded="openMenuItem === item"
+              @click="openMenu($event, item)"
+            >
+              <el-icon><More /></el-icon>
+            </button>
           </div>
         </div>
       </div>
     </ScrollArea>
+    <ItemActionMenu
+      :visible="!!openMenuItem"
+      :position="menuPosition"
+      :items="openMenuItem ? getActions(openMenuItem) : []"
+      @command="handleMenuCommand"
+      @close="closeMenu"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Document, More } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
-import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
+import ItemActionMenu from './ItemActionMenu.vue'
+import { Badge } from '@renderer/components/ui/badge'
 
 const { t } = useI18n()
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem
-} from '@renderer/components/ui/dropdown-menu'
-import { Badge } from '@renderer/components/ui/badge'
+
+const openMenuItem = ref<CardGridItem | null>(null)
+const menuPosition = ref<{ x: number; y: number } | null>(null)
+
+const openMenu = (e: MouseEvent, item: CardGridItem) => {
+  e.stopPropagation()
+  const target = e.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  openMenuItem.value = item
+  menuPosition.value = { x: rect.left, y: rect.bottom + 4 }
+}
+
+const closeMenu = () => {
+  openMenuItem.value = null
+  menuPosition.value = null
+}
+
+const handleMenuCommand = (command: string) => {
+  if (openMenuItem.value) {
+    emit('action', command, openMenuItem.value)
+  }
+  closeMenu()
+}
 
 export interface CardGridAction {
   command: string
@@ -171,10 +187,6 @@ const handleItemDoubleClick = (item: CardGridItem) => {
   if (!props.isDisabled(item)) {
     emit('itemDoubleClick', item)
   }
-}
-
-const handleAction = (command: string, item: CardGridItem) => {
-  emit('action', command, item)
 }
 </script>
 
@@ -346,17 +358,23 @@ const handleAction = (command: string, item: CardGridItem) => {
   z-index: 2;
 }
 
-/* 操作按钮始终显示背景，不依赖 hover */
+/* 操作按钮：圆形，与 SessionList 菜单风格统一 */
 .card-item__actions-btn {
-  background-color: v-bind('themeState.currentTheme.background2nd') !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background-color: v-bind('themeState.currentTheme.background2nd');
   border: 1px solid v-bind('themeState.currentTheme.textColor2 + "30"');
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 .card-item__actions-btn:hover {
-  background-color: v-bind('themeState.currentTheme.textColor2 + "18"') !important;
-}
-
-.card-item__actions :deep(.el-dropdown-menu__item.danger) {
-  color: var(--el-color-danger);
+  background-color: v-bind('themeState.currentTheme.textColor2 + "18"');
 }
 
 @media (max-width: 768px) {

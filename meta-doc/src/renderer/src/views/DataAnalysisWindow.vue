@@ -320,7 +320,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 
 // Demo mode support

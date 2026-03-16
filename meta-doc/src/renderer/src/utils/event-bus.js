@@ -15,8 +15,7 @@ import { convertLatexToMarkdown } from './latex-utils'
 import { NotImplementedExportError, prepareExportPayload } from '../services/export-manager.ts'
 import { createRendererLogger } from './logger.ts'
 import { i18n } from '../i18n.js'
-import { ElMessage } from 'element-plus'
-import { ElMessageBox } from 'element-plus'
+import { toast } from '../utils/toast'
 
 const eventBus = mitt()
 if (typeof window !== 'undefined') {
@@ -692,13 +691,13 @@ eventBus.on('export-as-template', (payload) => {
       description: description || '',
       content
     })
-    ElMessage.success(
+    toast.success(
       i18n?.global?.t?.('leftMenu.exportAsTemplateSuccess', '已添加为模板，可在新建文档时选择') ??
         '已添加为模板'
     )
   } catch (e) {
     getLogger().error('export-as-template failed', e)
-    ElMessage.error(i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败')
+    toast.error(i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败')
   }
 })
 
@@ -757,14 +756,14 @@ eventBus.on('export', async ({ format, filename, options }) => {
     if (error instanceof NotImplementedExportError) {
       const message =
         i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ?? '该导出功能尚未实现'
-      ElMessage.error(message)
+      toast.error(message)
       getLogger().warn(error.message)
     } else {
       const message =
         error instanceof Error
           ? error.message
           : i18n?.global?.t?.('export.unknownError', '导出失败')
-      ElMessage.error(message)
+      toast.error(message)
       getLogger().error('导出失败', error)
     }
   } finally {

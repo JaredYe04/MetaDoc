@@ -15,7 +15,6 @@ import messageBridge from '../bridge/message-bridge'
 
 const logger = createRendererLogger('AgentCliRunner')
 
-const DEFAULT_AGENT_CONFIG_ID = 'default-agent-config'
 const DEFAULT_ENGINE_ID = 'default-autogpt-engine'
 const CLI_SESSION_TITLE = 'CLI'
 
@@ -44,14 +43,15 @@ export async function runAgentCliTurn(userContent: string): Promise<string> {
     await store.loadFromMetadoc()
   }
 
+  const defaultConfigId = agentConfigManager.getDefaultConfigId()
   let session: AgentSession | null = store.activeSession ?? null
-  if (!session || session.agentConfigId !== DEFAULT_AGENT_CONFIG_ID) {
-    const existing = store.sessions.find((s) => s.agentConfigId === DEFAULT_AGENT_CONFIG_ID)
+  if (!session || session.agentConfigId !== defaultConfigId) {
+    const existing = store.sessions.find((s) => s.agentConfigId === defaultConfigId)
     if (existing) {
       session = existing
       store.setActiveSessionId(existing.id)
     } else {
-      session = agentSessionManager.createSession(DEFAULT_AGENT_CONFIG_ID, CLI_SESSION_TITLE)
+      session = agentSessionManager.createSession(defaultConfigId, CLI_SESSION_TITLE)
       store.sessions.push(session)
       store.setActiveSessionId(session.id)
     }

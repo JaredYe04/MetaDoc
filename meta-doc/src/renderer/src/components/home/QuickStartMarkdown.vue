@@ -252,7 +252,6 @@ import {
   generateKeywordsPrompt
 } from '../../utils/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
-import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['close'])
 

@@ -130,7 +130,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { Button } from '@renderer/components/ui/button'
 import { Progress } from '@renderer/components/ui/progress'
 import { Empty } from '@renderer/components/ui/empty'
@@ -255,14 +255,14 @@ const progressStatus = computed(() => {
 // 下载图表
 const downloadChart = async () => {
   if (isDemo.value) {
-    ElMessage.info(t('agent.display.chartGeneration.demoMode', '演示模式：下载功能已禁用'))
+    toast.info(t('agent.display.chartGeneration.demoMode', '演示模式：下载功能已禁用'))
     return
   }
 
   // 优先使用 url（可能是 PDF），如果没有则使用 svgUrl
   const downloadUrl = displayData.value.url || displayData.value.svgUrl
   if (!downloadUrl) {
-    ElMessage.warning(t('agent.display.chartGeneration.noChart'))
+    toast.warning(t('agent.display.chartGeneration.noChart'))
     return
   }
 
@@ -279,9 +279,9 @@ const downloadChart = async () => {
     a.click()
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
-    ElMessage.success(t('agent.display.chartGeneration.downloadSuccess'))
+    toast.success(t('agent.display.chartGeneration.downloadSuccess'))
   } catch (error) {
-    ElMessage.error(
+    toast.error(
       `${t('agent.display.chartGeneration.downloadFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   }

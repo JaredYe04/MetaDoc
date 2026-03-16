@@ -130,7 +130,7 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Button } from '@renderer/components/ui/button'
 import { Skeleton } from '@renderer/components/ui/skeleton'
@@ -1189,7 +1189,7 @@ const handleConvertLatexFormulas = async () => {
 
   try {
     // 显示确认对话框
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('article.toolbar.convert_latex_formulas_message'),
       t('article.toolbar.convert_latex_formulas_title'),
       {

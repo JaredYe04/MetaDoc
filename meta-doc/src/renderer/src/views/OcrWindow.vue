@@ -433,7 +433,7 @@ const props = defineProps({
   }
 })
 const isDemo = computed(() => props.mode === 'demo')
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import { Button } from '../components/ui/button'
@@ -1669,7 +1669,7 @@ const handleOcr = async () => {
 const handleDeleteImage = async (index: number) => {
   try {
     // 显示确认对话框
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('ocr.deleteConfirm', { defaultValue: '确定要删除这张图片吗？' }),
       t('ocr.deleteTitle', { defaultValue: '删除图片' }),
       {

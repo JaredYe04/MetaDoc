@@ -74,7 +74,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '../../../utils/messageBox'
 import { Plus } from '@element-plus/icons-vue'
 import { themeState } from '../../../utils/themes'
 import { toolCollectionManager } from '../../../utils/agent-framework'
@@ -197,7 +198,7 @@ const handleEdit = (collection: ToolCollection) => {
 
 const handleSave = () => {
   if (!formData.value.name.trim()) {
-    ElMessage.warning(t('agent.manage.toolCollection.nameRequired'))
+    toast.warning(t('agent.manage.toolCollection.nameRequired'))
     return
   }
 
@@ -209,7 +210,7 @@ const handleSave = () => {
         description: formData.value.description,
         toolIds: formData.value.toolIds
       })
-      ElMessage.success(t('agent.manage.toolCollection.updateSuccess'))
+      toast.success(t('agent.manage.toolCollection.updateSuccess'))
     } else {
       // 创建
       toolCollectionManager.createCollection(
@@ -217,33 +218,33 @@ const handleSave = () => {
         formData.value.description,
         formData.value.toolIds
       )
-      ElMessage.success(t('agent.manage.toolCollection.createSuccess'))
+      toast.success(t('agent.manage.toolCollection.createSuccess'))
     }
     dialogVisible.value = false
     loadCollections()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
 const handleDelete = async (collection: ToolCollection) => {
   if (collection.isBuiltIn) {
-    ElMessage.warning(t('agent.manage.toolCollection.cannotDeleteDefault'))
+    toast.warning(t('agent.manage.toolCollection.cannotDeleteDefault'))
     return
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.manage.toolCollection.confirmDelete', { name: getLocalizedText(collection.name) }),
       t('common.confirm'),
       { type: 'warning' }
     )
     toolCollectionManager.deleteCollection(collection.id)
-    ElMessage.success(t('agent.manage.toolCollection.deleteSuccess'))
+    toast.success(t('agent.manage.toolCollection.deleteSuccess'))
     loadCollections()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -260,10 +261,10 @@ const handleExport = (collection: ToolCollection) => {
       a.download = `tool-collection-${collection.id}.json`
       a.click()
       URL.revokeObjectURL(url)
-      ElMessage.success(t('agent.manage.exportSuccess'))
+      toast.success(t('agent.manage.exportSuccess'))
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -279,10 +280,10 @@ const handleDuplicate = async (collection: ToolCollection) => {
           ''
 
     toolCollectionManager.createCollection(newName, desc, [...collection.toolIds])
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    toast.success(t('agent.sessions.duplicateSuccess'))
     loadCollections()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 

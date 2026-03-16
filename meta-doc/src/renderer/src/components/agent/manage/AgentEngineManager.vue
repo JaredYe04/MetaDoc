@@ -236,7 +236,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '../../../utils/messageBox'
 import { Plus } from '@element-plus/icons-vue'
 import { themeState } from '../../../utils/themes'
 import { agentEngineManager } from '../../../utils/agent-framework'
@@ -446,21 +447,21 @@ const handleEdit = (engine: AgentEngine) => {
 
 const handleSave = () => {
   if (!formData.value.name.trim()) {
-    ElMessage.warning(t('agent.manage.agentEngine.nameRequired'))
+    toast.warning(t('agent.manage.agentEngine.nameRequired'))
     return
   }
 
   if (formData.value.llmConfigMode === 'custom') {
     if (!formData.value.customLlmConfig.baseUrl) {
-      ElMessage.warning(t('agent.manage.agentEngine.baseUrlRequired'))
+      toast.warning(t('agent.manage.agentEngine.baseUrlRequired'))
       return
     }
     if (!formData.value.customLlmConfig.apiKey) {
-      ElMessage.warning(t('agent.manage.agentEngine.apiKeyRequired'))
+      toast.warning(t('agent.manage.agentEngine.apiKeyRequired'))
       return
     }
     if (!formData.value.customLlmConfig.model) {
-      ElMessage.warning(t('agent.manage.agentEngine.modelRequired'))
+      toast.warning(t('agent.manage.agentEngine.modelRequired'))
       return
     }
   }
@@ -468,7 +469,7 @@ const handleSave = () => {
   try {
     if (editingEngine.value) {
       if (editingEngine.value.isBuiltIn) {
-        ElMessage.warning(t('agent.manage.agentEngine.cannotEditBuiltIn'))
+        toast.warning(t('agent.manage.agentEngine.cannotEditBuiltIn'))
         return
       }
 
@@ -480,7 +481,7 @@ const handleSave = () => {
           formData.value.llmConfigMode === 'custom' ? formData.value.customLlmConfig : undefined,
         engineConfig: formData.value.engineConfig
       })
-      ElMessage.success(t('agent.manage.agentEngine.updateSuccess'))
+      toast.success(t('agent.manage.agentEngine.updateSuccess'))
     } else {
       agentEngineManager.createEngine(
         formData.value.name,
@@ -489,12 +490,12 @@ const handleSave = () => {
         formData.value.llmConfigMode,
         formData.value.llmConfigMode === 'custom' ? formData.value.customLlmConfig : undefined
       )
-      ElMessage.success(t('agent.manage.agentEngine.createSuccess'))
+      toast.success(t('agent.manage.agentEngine.createSuccess'))
     }
     dialogVisible.value = false
     loadEngines()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -522,31 +523,31 @@ const handleDuplicate = async (engine: AgentEngine) => {
       tags: engine.tags
     })
 
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    toast.success(t('agent.sessions.duplicateSuccess'))
     loadEngines()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
 const handleDelete = async (engine: AgentEngine) => {
   if (engine.isBuiltIn) {
-    ElMessage.warning(t('agent.manage.agentEngine.cannotDeleteBuiltIn'))
+    toast.warning(t('agent.manage.agentEngine.cannotDeleteBuiltIn'))
     return
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.manage.agentEngine.confirmDelete', { name: getLocalizedText(engine.name) }),
       t('common.confirm'),
       { type: 'warning' }
     )
     agentEngineManager.deleteEngine(engine.id)
-    ElMessage.success(t('agent.manage.agentEngine.deleteSuccess'))
+    toast.success(t('agent.manage.agentEngine.deleteSuccess'))
     loadEngines()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -555,14 +556,14 @@ const handleValidate = (engine: AgentEngine) => {
   const validation = agentEngineManager.validateEngine(engine)
   if (validation.valid) {
     if (validation.warnings.length > 0) {
-      ElMessage.warning(
+      toast.warning(
         t('agent.manage.agentEngine.validationWarnings') + ': ' + validation.warnings.join(', ')
       )
     } else {
-      ElMessage.success(t('agent.manage.agentEngine.validationSuccess'))
+      toast.success(t('agent.manage.agentEngine.validationSuccess'))
     }
   } else {
-    ElMessage.error(
+    toast.error(
       t('agent.manage.agentEngine.validationFailed') + ': ' + validation.errors.join(', ')
     )
   }
@@ -580,10 +581,10 @@ const handleExport = (engine: AgentEngine) => {
       a.download = `agent-engine-${engine.id}.json`
       a.click()
       URL.revokeObjectURL(url)
-      ElMessage.success(t('agent.manage.exportSuccess'))
+      toast.success(t('agent.manage.exportSuccess'))
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -599,10 +600,10 @@ const handleImport = () => {
       const text = await file.text()
       const entity = JSON.parse(text)
       agentEngineManager.importEngine(entity, true)
-      ElMessage.success(t('agent.manage.importSuccess'))
+      toast.success(t('agent.manage.importSuccess'))
       loadEngines()
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
   input.click()

@@ -208,13 +208,12 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
   /** 若无会话则创建默认会话 */
   function ensureDefaultSession(): void {
     if (sessions.value.length > 0) return
-    const allConfigs = agentConfigManager.getAllConfigs()
-    const firstConfigId = allConfigs[0]?.id
-    if (!firstConfigId) {
+    const defaultConfigId = agentConfigManager.getDefaultConfigId()
+    if (!defaultConfigId) {
       logger.warn('无可用 Agent 配置，无法创建默认会话')
       return
     }
-    const raw = agentSessionManager.createSession(firstConfigId, '默认会话', undefined)
+    const raw = agentSessionManager.createSession(defaultConfigId, '默认会话', undefined)
     const session = normalizeSession(raw as unknown as Record<string, unknown>)
     if (!session) return
     session.publicContext = session.publicContext || {}

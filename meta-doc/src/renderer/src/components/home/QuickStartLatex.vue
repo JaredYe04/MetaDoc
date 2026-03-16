@@ -250,7 +250,6 @@ import {
   generateKeywordsPrompt
 } from '../../utils/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
-import { ElMessage } from 'element-plus'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 
 const emit = defineEmits(['close'])

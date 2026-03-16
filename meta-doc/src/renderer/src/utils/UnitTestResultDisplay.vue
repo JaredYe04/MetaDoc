@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { useI18n } from 'vue-i18n'
 import { Document, Download, Check, Close } from '@element-plus/icons-vue'
 import { themeState } from '../utils/themes'
@@ -192,9 +192,9 @@ const formatResult = (result: any): string => {
 const copyMarkdown = async () => {
   try {
     await navigator.clipboard.writeText(props.markdownSummary)
-    ElMessage.success(t('setting.debug.unitTest.copySuccess'))
+    toast.success(t('setting.debug.unitTest.copySuccess'))
   } catch (error) {
-    ElMessage.error(
+    toast.error(
       `${t('setting.debug.unitTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -210,7 +210,7 @@ const downloadMarkdown = () => {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
-  ElMessage.success(t('setting.debug.unitTest.downloadSuccess'))
+  toast.success(t('setting.debug.unitTest.downloadSuccess'))
 }
 
 // 主题样式

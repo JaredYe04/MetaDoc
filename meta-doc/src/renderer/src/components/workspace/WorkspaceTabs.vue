@@ -95,7 +95,7 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace, type WorkspaceTab } from '../../stores/workspace'
 import eventBus from '../../utils/event-bus'
@@ -189,7 +189,7 @@ const handleRemove = async (id: string | number) => {
     const doc = workspace.ensureDocument?.(tabId)
     if (doc?.dirty) {
       try {
-        await ElMessageBox.confirm(
+        await messageBox.confirm(
           t('main.dialogs.closeTabMessage'),
           t('main.dialogs.closeTabTitle'),
           {

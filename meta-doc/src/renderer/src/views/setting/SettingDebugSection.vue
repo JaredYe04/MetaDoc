@@ -2082,7 +2082,7 @@ const props = defineProps<{
   mode?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
 import { CheckCircle2, Info, XCircle, Timer } from 'lucide-vue-next'
@@ -3076,7 +3076,7 @@ const saveCurrentConfig = async () => {
   )
   if (existingConfig) {
     try {
-      await ElMessageBox.confirm(
+      await messageBox.confirm(
         t('setting.overwriteConfigConfirm', { name: saveConfigName.value.trim() }),
         t('setting.overwriteConfigTitle'),
         {
@@ -3132,7 +3132,7 @@ const deleteSavedConfig = async () => {
   if (!selectedConfigId.value) return
 
   try {
-    await ElMessageBox.confirm(t('setting.confirmDeleteConfig'), t('setting.deleteConfig'), {
+    await messageBox.confirm(t('setting.confirmDeleteConfig'), t('setting.deleteConfig'), {
       confirmButtonText: t('common.confirm'),
       cancelButtonText: t('common.cancel'),
       type: 'warning'
@@ -5201,7 +5201,7 @@ const handleImportSessionJson = () => {
       if (existingIndex !== -1) {
         // 询问是否覆盖
         try {
-          await ElMessageBox.confirm(
+          await messageBox.confirm(
             `会话 "${legacySession.title}" 已存在，是否覆盖？`,
             '确认覆盖',
             { type: 'warning' }
@@ -5237,7 +5237,7 @@ const handleRevertToNode = async (nodeId: string) => {
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要回溯到节点 ${nodeId.substring(0, 16)}... 吗？此操作将删除该节点之后的所有内容。`,
       '确认回溯',
       { type: 'warning' }
@@ -5310,7 +5310,7 @@ const handleReplayMessage = async (messageId: string) => {
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       '确定要重新执行此消息吗？此操作将删除该消息之后的所有内容，然后重新触发Agent执行。',
       '确认重新执行',
       { type: 'warning' }
@@ -5423,7 +5423,7 @@ const handleReplayToolCall = async (nodeId: string) => {
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       '确定要重新执行此工具调用吗？此操作将删除该工具调用之后的所有内容。',
       '确认重新执行',
       { type: 'warning' }
@@ -5453,7 +5453,7 @@ const handleReplayToolCallFromMessage = async (toolCallIdOrMessageId: string) =>
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       '确定要重新执行此工具调用吗？此操作将删除该工具调用之后的所有内容。',
       '确认重新执行',
       { type: 'warning' }

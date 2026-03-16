@@ -11,10 +11,36 @@ import { toolCollectionManager } from './tool-collection-manager'
 /**
  * Agent配置管理器类
  */
+const DEFAULT_CONFIG_STORAGE_KEY = 'agent-default-config-id'
+
 class AgentConfigManager {
   private configs: Map<string, AgentConfig> = new Map()
   private readonly STORAGE_KEY = 'agent-configs'
   private logger: ReturnType<typeof createRendererLogger> | null = null
+
+  /**
+   * 获取新建会话时使用的默认配置 ID
+   */
+  getDefaultConfigId(): string {
+    try {
+      const id = localStorage.getItem(DEFAULT_CONFIG_STORAGE_KEY)
+      if (id && this.configs.has(id)) return id
+    } catch {
+      // ignore
+    }
+    return 'default-agent-config'
+  }
+
+  /**
+   * 设置新建会话时使用的默认配置
+   */
+  setDefaultConfigId(id: string): void {
+    if (!this.configs.has(id)) {
+      throw new Error(`Agent配置 ${id} 未找到`)
+    }
+    localStorage.setItem(DEFAULT_CONFIG_STORAGE_KEY, id)
+    this.getLogger().info(`默认Agent配置已设置为: ${id}`)
+  }
 
   constructor() {
     // 延迟初始化logger，避免循环依赖

@@ -187,7 +187,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { MoreVertical, Plus, Check, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
@@ -637,7 +637,7 @@ const handleAction = async (command: string, theme: ThemeConfig) => {
     showCreateDialog.value = true
   } else if (command === 'delete') {
     try {
-      await ElMessageBox.confirm(
+      await messageBox.confirm(
         t('setting.deleteThemeConfirm', { name: theme.name }),
         t('setting.deleteTheme'),
         {

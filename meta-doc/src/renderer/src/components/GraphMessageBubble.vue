@@ -27,8 +27,8 @@ import {
   DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Avatar, AvatarImage, AvatarFallback } from '@renderer/components/ui/avatar'
-import { ElMessage } from 'element-plus'
-import { ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '@renderer/utils/messageBox'
 import { MdEditor, MdPreview } from 'md-editor-v3'
 import { themeState } from '../utils/themes'
 import '../assets/md-editor-v3-style.css'
@@ -163,7 +163,7 @@ const regenerateMsg = () => {
 }
 
 const onMsgDelete = () => {
-  ElMessageBox.confirm(
+  messageBox.confirm(
     t('messageBubble.deleteConfirmMessage'),
     t('messageBubble.deleteConfirmTitle'),
     {
@@ -201,10 +201,10 @@ const copyContent = async () => {
   try {
     const textToCopy = props.message.chartMarkdown || props.message.code || content.value
     await navigator.clipboard.writeText(textToCopy)
-    ElMessage.success(t('common.copySuccess', '复制成功'))
+    toast.success(t('common.copySuccess', '复制成功'))
   } catch (error) {
     console.error('复制失败:', error)
-    ElMessage.error(t('common.copyFailed', '复制失败'))
+    toast.error(t('common.copyFailed', '复制失败'))
   }
 }
 
@@ -227,7 +227,7 @@ const exportToNewDocument = () => {
   eventBus.emit('ai-chat-export-to-document', {
     content: contentToExport
   })
-  ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+  toast.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
 }
 
 // 处理下拉菜单命令

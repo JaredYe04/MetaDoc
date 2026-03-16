@@ -99,7 +99,7 @@ import type { WorkspaceTabFormat } from '../stores/workspace'
 import type { SupportedFormat, DocumentTemplate } from '../types/formats'
 import { useI18n } from 'vue-i18n'
 import { X } from 'lucide-vue-next'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
@@ -319,7 +319,7 @@ function selectTemplate(templateId: string) {
 
 async function deleteUserTemplate(userTemplateId: string, templateName?: string) {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('newDocument.removeTemplateConfirm', { name: templateName ?? '' }),
       t('newDocument.removeTemplateTitle'),
       {

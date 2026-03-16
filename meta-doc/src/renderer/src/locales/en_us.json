@@ -3266,7 +3266,9 @@
         "injectTimestampHint": "When enabled, the current timestamp will be automatically prepended to the system prompt each time an Agent instance is created with this configuration.",
         "isSubagent": "As Subagent",
         "isSubagentLabel": "As Subagent (callable by main Agent only)",
-        "isSubagentHint": "When checked, this config is exposed to the main Agent as a tool; the main Agent can invoke subagents concurrently to complete subtasks. The default Agent config cannot be a Subagent."
+        "isSubagentHint": "When checked, this config is exposed to the main Agent as a tool; the main Agent can invoke subagents concurrently to complete subtasks. The default Agent config cannot be a Subagent.",
+        "setAsDefault": "Set as Default",
+        "setAsDefaultSuccess": "Set as default config for new sessions"
       },
       "agentEngine": {
         "title": "Agent Engine Management",

@@ -1071,7 +1071,7 @@ import {
   type Ref,
   type ComponentPublicInstance
 } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifyError, notifyInfo } from '@renderer/utils/notify'
 
 // Demo mode support
@@ -1444,7 +1444,7 @@ function copyBasketItem(item: MaterialBasketItem) {
 }
 
 function deleteBasketItem(item: MaterialBasketItem) {
-  ElMessageBox.confirm(t('outline.materialBasket.deleteConfirm'), t('outline.warning'), {
+  messageBox.confirm(t('outline.materialBasket.deleteConfirm'), t('outline.warning'), {
     confirmButtonText: t('outline.confirm'),
     cancelButtonText: t('outline.cancel'),
     type: 'warning'
@@ -2256,7 +2256,7 @@ const editNode = () => {
 const deleteNode = () => {
   const node = selectedNode.value
   if (!node) return
-  ElMessageBox.confirm(t('outline.deleteConfirm'), t('outline.warning'), {
+  messageBox.confirm(t('outline.deleteConfirm'), t('outline.warning'), {
     confirmButtonText: t('outline.confirm'),
     cancelButtonText: t('outline.cancel'),
     type: 'warning'

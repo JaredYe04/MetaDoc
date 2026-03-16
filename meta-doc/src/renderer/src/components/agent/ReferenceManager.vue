@@ -316,7 +316,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import eventBus from '../../utils/event-bus'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '@renderer/utils/messageBox'
 import { Plus, View, Edit, Delete, Document, Loading } from '@element-plus/icons-vue'
 import { themeState } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
@@ -516,7 +517,7 @@ const handleSelectFile = async () => {
     if (!formData.value.name.trim()) {
       formData.value.name = demoFileName
     }
-    ElMessage.info('Demo mode: File selection simulated')
+    toast.info('Demo mode: File selection simulated')
     return
   }
 
@@ -544,7 +545,7 @@ const handleSelectFile = async () => {
     // 立即开始解析
     await startParsingFile(file)
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -597,7 +598,7 @@ const startParsingFile = async (file: File) => {
       return // 已取消，不显示错误
     }
 
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
     parsingMessage.value = t('agent.reference.parseFailed')
   } finally {
     if (!abortController.value?.signal.aborted) {
@@ -640,7 +641,7 @@ const startParsingUrl = async (url: string) => {
       return
     }
 
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
     parsingMessage.value = t('agent.reference.parseFailed')
   } finally {
     if (!abortController.value?.signal.aborted) {
@@ -679,7 +680,7 @@ const handleCancelParsing = () => {
     message: '',
     percentage: 0
   })
-  ElMessage.info(t('agent.reference.parseCancelled'))
+  toast.info(t('agent.reference.parseCancelled'))
 }
 
 const handleDialogClose = () => {
@@ -719,9 +720,9 @@ const handleCopyContent = async () => {
       if (!isDemo.value) {
         await navigator.clipboard.writeText(viewingReference.value.parsedContent)
       }
-      ElMessage.success(t('common.copySuccess'))
+      toast.success(t('common.copySuccess'))
     } catch (error) {
-      ElMessage.error(t('common.copyFailed'))
+      toast.error(t('common.copyFailed'))
     }
   }
 }
@@ -743,7 +744,7 @@ const handleEdit = (reference: Reference) => {
 
 const handleSave = async () => {
   if (!formData.value.name.trim()) {
-    ElMessage.warning(t('agent.reference.nameRequired'))
+    toast.warning(t('agent.reference.nameRequired'))
     return
   }
 
@@ -753,17 +754,17 @@ const handleSave = async () => {
     !editingReference.value &&
     !isDemo.value
   ) {
-    ElMessage.warning(t('agent.reference.fileRequired'))
+    toast.warning(t('agent.reference.fileRequired'))
     return
   }
 
   if (formData.value.inputType === 'url' && !formData.value.url.trim()) {
-    ElMessage.warning(t('agent.reference.urlRequired'))
+    toast.warning(t('agent.reference.urlRequired'))
     return
   }
 
   if (formData.value.inputType === 'text' && !formData.value.text.trim()) {
-    ElMessage.warning(t('agent.reference.textRequired'))
+    toast.warning(t('agent.reference.textRequired'))
     return
   }
 
@@ -780,7 +781,7 @@ const handleSave = async () => {
             description: formData.value.description
           }
         }
-        ElMessage.success(t('agent.reference.updateSuccess'))
+        toast.success(t('agent.reference.updateSuccess'))
       } else {
         // Add mode: create new demo reference
         const newRef: Reference = {
@@ -804,13 +805,13 @@ const handleSave = async () => {
           updatedAt: Date.now()
         }
         demoReferences.value.push(newRef)
-        ElMessage.success(t('agent.reference.addSuccess'))
+        toast.success(t('agent.reference.addSuccess'))
       }
       dialogVisible.value = false
       selectedFile.value = null
       parsedReference.value = null
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     }
     return
   }
@@ -843,7 +844,7 @@ const handleSave = async () => {
         name: formData.value.name,
         description: formData.value.description
       })
-      ElMessage.success(t('agent.reference.updateSuccess'))
+      toast.success(t('agent.reference.updateSuccess'))
     } else {
       // 添加模式：处理文件上传、URL或文本
       let reference: Reference
@@ -878,14 +879,14 @@ const handleSave = async () => {
       }
 
       agentSessionManager.addReferenceObject(newFormatSession, reference)
-      ElMessage.success(t('agent.reference.addSuccess'))
+      toast.success(t('agent.reference.addSuccess'))
     }
 
     dialogVisible.value = false
     selectedFile.value = null
     emit('update')
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   } finally {
     loading.value = false
   }
@@ -893,7 +894,7 @@ const handleSave = async () => {
 
 const handleDelete = async (reference: Reference) => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.reference.confirmDelete', { name: reference.name }),
       t('common.confirm'),
       { type: 'warning' }
@@ -902,7 +903,7 @@ const handleDelete = async (reference: Reference) => {
     // Demo mode: remove from demo list
     if (isDemo.value) {
       demoReferences.value = demoReferences.value.filter((r) => r.id !== reference.id)
-      ElMessage.success(t('agent.reference.deleteSuccess'))
+      toast.success(t('agent.reference.deleteSuccess'))
       return
     }
 
@@ -926,7 +927,7 @@ const handleDelete = async (reference: Reference) => {
     }
 
     agentSessionManager.removeReference(newFormatSession, reference.id)
-    ElMessage.success(t('agent.reference.deleteSuccess'))
+    toast.success(t('agent.reference.deleteSuccess'))
     emit('update')
   } catch {
     // 用户取消
@@ -935,7 +936,7 @@ const handleDelete = async (reference: Reference) => {
 
 const handleClearAll = async () => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.reference.confirmClearAll', { count: references.value.length }),
       t('agent.reference.clearAllConfirmTitle'),
       {
@@ -948,7 +949,7 @@ const handleClearAll = async () => {
     // Demo mode: clear demo list
     if (isDemo.value) {
       demoReferences.value = []
-      ElMessage.success(t('agent.reference.clearAllSuccess'))
+      toast.success(t('agent.reference.clearAllSuccess'))
       return
     }
 
@@ -977,7 +978,7 @@ const handleClearAll = async () => {
       agentSessionManager.removeReference(newFormatSession, id)
     })
 
-    ElMessage.success(t('agent.reference.clearAllSuccess'))
+    toast.success(t('agent.reference.clearAllSuccess'))
     emit('update')
   } catch {
     // 用户取消

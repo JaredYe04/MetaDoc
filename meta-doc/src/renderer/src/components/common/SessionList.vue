@@ -121,6 +121,14 @@
                 {{ duplicateLabel }}
               </button>
               <button
+                v-if="showExport"
+                type="button"
+                class="item-menu__item"
+                @click="handleMenuAction('export', contextMenuItem)"
+              >
+                {{ exportLabel }}
+              </button>
+              <button
                 type="button"
                 class="item-menu__item danger"
                 @click="handleMenuAction('delete', contextMenuItem)"
@@ -159,7 +167,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import ResizableContainer from '../base/ResizableContainer.vue'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { themeState, mixColors } from '../../utils/themes'
 import { useI18n } from 'vue-i18n'
@@ -199,12 +207,14 @@ const props = withDefaults(
     renameLabel?: string
     duplicateLabel?: string
     deleteLabel?: string
+    exportLabel?: string
     renameDialogTitle?: string
     renamePlaceholder?: string
     cancelLabel?: string
     confirmLabel?: string
     showDuplicate?: boolean
     groupByDate?: boolean
+    showExport?: boolean
   }>(),
   {
     disabled: false,
@@ -212,12 +222,14 @@ const props = withDefaults(
     renameLabel: '',
     duplicateLabel: '',
     deleteLabel: '',
+    exportLabel: '',
     renameDialogTitle: '',
     renamePlaceholder: '',
     cancelLabel: '',
     confirmLabel: '',
     showDuplicate: true,
-    groupByDate: true
+    groupByDate: true,
+    showExport: false
   }
 )
 
@@ -227,6 +239,7 @@ const emit = defineEmits<{
   rename: [item: SessionListItem, newTitle: string]
   duplicate: [item: SessionListItem]
   delete: [item: SessionListItem]
+  export: [item: SessionListItem]
 }>()
 
 const openMenuId = ref<string | null>(null)
@@ -409,7 +422,7 @@ const handleSelect = (item: SessionListItem) => {
 }
 
 const handleMenuAction = async (
-  action: 'rename' | 'duplicate' | 'delete',
+  action: 'rename' | 'duplicate' | 'delete' | 'export',
   item: SessionListItem | null
 ) => {
   if (!item) return
@@ -423,9 +436,11 @@ const handleMenuAction = async (
     renameDialogVisible.value = true
   } else if (action === 'duplicate') {
     emit('duplicate', item)
+  } else if (action === 'export') {
+    emit('export', item)
   } else if (action === 'delete') {
     try {
-      await ElMessageBox.confirm(
+      await messageBox.confirm(
         t('common.confirmDelete', { name: item.title }, `确定要删除"${item.title}"吗？`),
         t('common.delete', '删除'),
         { type: 'warning' }

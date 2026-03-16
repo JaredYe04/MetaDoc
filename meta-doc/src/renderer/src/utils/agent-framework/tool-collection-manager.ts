@@ -41,7 +41,14 @@ class ToolCollectionManager {
   ): ToolCollection {
     const existing = this.collections.get(id)
     if (existing) {
-      this.updateCollection(id, { toolIds, name, description, updatedAt: Date.now() })
+      this.updateCollection(id, {
+        toolIds,
+        name,
+        description,
+        updatedAt: Date.now(),
+        isBuiltIn: true,
+        tags: Array.from(new Set([...(existing.tags || []), 'built-in', 'subagent']))
+      })
       return this.collections.get(id)!
     }
     const now = Date.now()
@@ -55,7 +62,8 @@ class ToolCollectionManager {
       updatedAt: now,
       toolIds,
       enabled: true,
-      tags: []
+      tags: ['built-in', 'subagent'],
+      isBuiltIn: true
     }
     this.collections.set(id, collection)
     this.saveToStorage()
@@ -263,7 +271,7 @@ class ToolCollectionManager {
 
     // 检查是否已存在
     if (this.collections.has(defaultId)) {
-      // 更新工具列表（确保包含所有内置tool）
+      // 更新工具列表（确保包含所有内置tool），并强制 isBuiltIn
       this.updateCollection(defaultId, {
         toolIds: allToolIds,
         name: {
@@ -273,7 +281,8 @@ class ToolCollectionManager {
         description: {
           zh_cn: { description: 'MetaDoc内置的全部Agent工具，不可删除' },
           en_us: { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
-        }
+        },
+        isBuiltIn: true
       })
       return
     }
@@ -314,7 +323,12 @@ class ToolCollectionManager {
         const data = JSON.parse(stored)
         if (Array.isArray(data)) {
           data.forEach((item: ToolCollection) => {
-            this.collections.set(item.id, item)
+            // 默认工具集与 Subagent 工具集必须保持 isBuiltIn，防止旧数据或误删
+            if (item.id === 'default-tool-set' || (item.tags && item.tags.includes('subagent'))) {
+              this.collections.set(item.id, { ...item, isBuiltIn: true })
+            } else {
+              this.collections.set(item.id, item)
+            }
           })
           // 延迟记录日志，避免在构造函数中初始化logger
           if (this.logger) {

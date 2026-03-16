@@ -1,14 +1,17 @@
 <template>
   <div class="common-layout">
-    <!-- 顶部区域：Logo + MainTabs -->
-    <!-- macOS: LogoTab 在右边；其他平台: LogoTab 在左边 -->
-    <div class="top-header-container" :class="{ 'is-mac': isMac }">
-      <LogoTab v-if="!isMac" />
-      <el-header class="top-header">
-        <MainTabs />
-      </el-header>
-      <LogoTab v-if="isMac" />
-    </div>
+    <!-- 占位：保持布局，实际内容通过 Teleport 渲染到 body 以始终置顶 -->
+    <div class="top-header-container top-header-placeholder" :class="{ 'is-mac': isMac }" />
+    <!-- 顶部区域：Logo + MainTabs，Teleport 到 body 确保无条件始终在最顶层 -->
+    <Teleport to="body">
+      <div class="top-header-container top-header-floating" :class="{ 'is-mac': isMac }">
+        <LogoTab v-if="!isMac" />
+        <el-header class="top-header">
+          <MainTabs />
+        </el-header>
+        <LogoTab v-if="isMac" />
+      </div>
+    </Teleport>
     <!-- 主内容区域：左边LeftMenu，中间ViewMenuContainer，右边内容 -->
     <el-container class="main-shell">
       <el-aside class="side-menu">
@@ -95,7 +98,7 @@ import GlobalProgressBar from '../components/GlobalProgressBar.vue'
 import { onMounted, onBeforeUnmount, ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { getSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
@@ -965,7 +968,7 @@ function initMainEventListeners() {
       const doc = ensureDocument(tabId)
       if (doc?.dirty) {
         try {
-          await ElMessageBox.confirm(
+          await messageBox.confirm(
             t('main.dialogs.closeTabMessage'),
             t('main.dialogs.closeTabTitle'),
             {
@@ -1156,11 +1159,10 @@ function initMainEventListeners() {
       } else if (doc.format === 'tex') {
         // LaTeX格式，询问用户选择
         try {
-          await ElMessageBox.confirm(
+          await messageBox.confirm(
             t('aiChat.insertToLatexMessage', '请选择插入方式：'),
             t('aiChat.insertToLatexTitle', '插入到LaTeX文档'),
             {
-              distinguishCancelAndClose: true,
               confirmButtonText: t('aiChat.insertAsLatex', '转换为LaTeX插入'),
               cancelButtonText: t('aiChat.insertAsMarkdown', '插入Markdown原文'),
               type: 'info'
@@ -1465,6 +1467,21 @@ onBeforeUnmount(() => {
   border: none;
   /* border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   z-index: 100;
+}
+
+/* 占位：保持布局高度 */
+.top-header-placeholder {
+  flex-shrink: 0;
+}
+
+/* 浮动置顶：Teleport 到 body，无条件始终在最顶层，高于 Dialog(10000) 和 GlobalMessageBox(100002) */
+.top-header-floating {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100003 !important;
+  flex-shrink: 0;
 }
 
 /* macOS 平台：调整布局顺序 */

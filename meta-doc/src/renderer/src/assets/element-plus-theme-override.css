@@ -489,6 +489,11 @@ html.dark {
   transition: none !important;
 }
 
+.el-dropdown-menu__item:hover {
+  background-color: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-primary) !important;
+}
+
 .el-dropdown-menu__item:active {
   outline: 2px solid var(--el-color-primary) !important;
   outline-offset: -2px !important;

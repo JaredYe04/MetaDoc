@@ -28,17 +28,20 @@
         :rename-label="t('agent.sessions.rename')"
         :duplicate-label="t('agent.sessions.duplicate')"
         :delete-label="t('agent.sessions.delete')"
+        :export-label="t('agent.sessions.export')"
         :rename-dialog-title="t('agent.sessions.rename')"
         :rename-placeholder="t('agent.sessions.renamePlaceholder')"
         :cancel-label="t('common.cancel')"
         :confirm-label="t('common.confirm')"
         :show-duplicate="true"
+        :show-export="true"
         :group-by-date="true"
-        @create="showCreateSessionDialog = true"
+        @create="createSession(agentConfigManager.getDefaultConfigId())"
         @select="handleSessionListSelect"
         @rename="handleSessionListRename"
         @duplicate="handleSessionListDuplicate"
         @delete="handleSessionListDelete"
+        @export="handleSessionListExport"
       >
         <template #sidebar-footer>
           <div class="sidebar-footer-content">
@@ -49,17 +52,17 @@
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem @click="handleManageCommand('tool-collection')">
+                <DropdownMenuItem @select="handleManageCommand('tool-collection')">
                   {{ t('agent.manage.toolCollection.title') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem @click="handleManageCommand('agent-config')">
+                <DropdownMenuItem @select="handleManageCommand('agent-config')">
                   {{ t('agent.manage.agentConfig.title') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem @click="handleManageCommand('agent-engine')">
+                <DropdownMenuItem @select="handleManageCommand('agent-engine')">
                   {{ t('agent.manage.agentEngine.title') }}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem @click="handleManageCommand('import-session')">
+                <DropdownMenuItem @select="handleManageCommand('import-session')">
                   {{ t('agent.sessions.import') }}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -123,21 +126,6 @@
                     <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
                   </TooltipContent>
                 </Tooltip>
-                <DropdownMenu>
-                  <DropdownMenuTrigger as-child>
-                    <Button type="text" size="small" class="[&_svg]:size-4">
-                      <More class="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem @click="handleSessionAction('retry')">
-                      {{ t('agent.sessions.retry') }}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem @click="handleSessionAction('export')">
-                      {{ t('agent.sessions.export') }}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </header>
 
@@ -385,65 +373,6 @@
       </SessionList>
     </div>
 
-    <!-- 创建会话对话框 -->
-    <Dialog v-model:open="showCreateSessionDialog">
-      <DialogContent class="sm:max-w-[80%]" :style="dialogStyle">
-        <DialogHeader>
-          <DialogTitle>{{ t('agent.sessions.new') }}</DialogTitle>
-          <DialogDescription>
-            {{ t('agent.sessions.selectAgentConfig') }}
-          </DialogDescription>
-        </DialogHeader>
-        <div style="height: 60vh; display: flex; flex-direction: column">
-          <div style="flex: 1; min-height: 0">
-            <CardGrid
-              :items="availableAgentConfigs"
-              :loading="false"
-              :show-thumbnail="false"
-              :show-actions="false"
-              :get-item-id="(item) => item.id || ''"
-              :get-item-title="
-                (item) =>
-                  typeof item.name === 'string'
-                    ? item.name
-                    : item.name['zh_cn']?.name || item.id || ''
-              "
-              :get-item-description="
-                (item) =>
-                  typeof item.description === 'string'
-                    ? item.description
-                    : item.description['zh_cn']?.description || ''
-              "
-              :get-item-meta="
-                (item) => [
-                  t('agent.manage.agentConfig.toolCount') +
-                    ': ' +
-                    agentConfigManager.getAvailableToolIds(item.id || '').length,
-                  item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
-                ]
-              "
-              :get-badge="
-                (item) =>
-                  item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null
-              "
-              :is-selected="(item) => item.id === selectedAgentConfigId"
-              :is-disabled="() => false"
-              @item-click="handleSelectAgentConfig"
-              @item-double-click="handleDoubleClickAgentConfig"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" @click="showCreateSessionDialog = false">{{
-            t('common.cancel')
-          }}</Button>
-          <Button @click="createSession(selectedAgentConfigId)" :disabled="!selectedAgentConfigId">
-            {{ t('common.create') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
     <!-- 管理界面对话框 -->
     <Dialog v-model:open="showManageDialog">
       <DialogContent class="sm:max-w-[90%]" :style="dialogStyle">
@@ -538,11 +467,12 @@ const props = defineProps<{
   mode?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
-import { ElMessageBox, ElLoading } from 'element-plus'
+import { ElLoading } from 'element-plus'
+import { messageBox } from '../utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notify'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { Plus, More, Setting } from '@element-plus/icons-vue'
+import { Plus, Setting } from '@element-plus/icons-vue'
 import { Paperclip } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
@@ -835,11 +765,9 @@ const shouldBootstrapDemoSessions = false // 不再使用示例会话
 const demoAppliedDocs = new Set<string>()
 const openSessionMenuId = ref<string | null>(null)
 // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
-const showCreateSessionDialog = ref(false)
 const showManageDialog = ref(false)
 const manageDialogType = ref<'tool-collection' | 'agent-config' | 'agent-engine' | null>(null)
 const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
-const selectedAgentConfigId = ref<string>('')
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
 const referencePickerOpen = ref(false)
@@ -1244,6 +1172,7 @@ const referenceCount = computed(() => activeSession.value?.referenceStore?.lengt
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow()
 
 const createSession = (agentConfigId?: string) => {
+  const configId = agentConfigId || agentConfigManager.getDefaultConfigId()
   // 演示模式：直接创建演示会话
   if (isDemo.value) {
     const demoSession: AgentSession = {
@@ -1253,7 +1182,7 @@ const createSession = (agentConfigId?: string) => {
       updatedAt: new Date().toISOString(),
       messages: [],
       activeToolIds: [],
-      agentConfigId: agentConfigId || 'default-agent-config',
+      agentConfigId: configId,
       messageQueue: [],
       referenceStore: [],
       publicContext: {},
@@ -1262,19 +1191,13 @@ const createSession = (agentConfigId?: string) => {
     }
     agentStore.setSessions([demoSession, ...agentStore.sessions])
     agentStore.setActiveSessionId(demoSession.id)
-    showCreateSessionDialog.value = false
     notifySuccess(t('agent.sessions.createSuccess', '会话创建成功'))
-    return
-  }
-
-  if (!agentConfigId) {
-    showCreateSessionDialog.value = true
     return
   }
 
   try {
     const session = agentSessionManager.createSession(
-      agentConfigId,
+      configId,
       t('agent.sessions.newTitle', { index: sessionsState.value.length + 1 }),
       ''
     )
@@ -1314,8 +1237,6 @@ const createSession = (agentConfigId?: string) => {
     ensureActiveSessionId()
     agentStore.setActiveSessionId(session.id)
     persistSessions()
-    showCreateSessionDialog.value = false
-    selectedAgentConfigId.value = ''
   } catch (error) {
     notifyError(error instanceof Error ? error.message : String(error))
   }
@@ -1342,7 +1263,7 @@ const deleteSession = async (session?: AgentSession) => {
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.sessions.confirmDelete', { title: target.title }),
       t('agent.sessions.delete'),
       { type: 'warning' }
@@ -1363,7 +1284,7 @@ const deleteSession = async (session?: AgentSession) => {
 
 const createDefaultSession = () => {
   try {
-    const defaultConfigId = 'default-agent-config'
+    const defaultConfigId = agentConfigManager.getDefaultConfigId()
     const defaultSession = agentSessionManager.createSession(
       defaultConfigId,
       t('agent.sessions.defaultTitle'),
@@ -1396,19 +1317,23 @@ const createDefaultSession = () => {
 }
 
 const renameSession = async (session: AgentSession) => {
-  const { value } = await ElMessageBox.prompt(
-    t('agent.sessions.renamePlaceholder'),
-    t('agent.sessions.rename'),
-    {
-      inputValue: session.title,
-      inputValidator: (val: string) => !!val.trim() || t('agent.sessions.renameRequired')
-    }
-  )
-  session.title = value.trim()
-  session.titleUserEdited = true
-  touchSession(session)
-  persistSessions()
-  notifySuccess(t('agent.sessions.renameSuccess'))
+  try {
+    const { value } = await messageBox.prompt(
+      t('agent.sessions.renamePlaceholder'),
+      t('agent.sessions.rename'),
+      {
+        inputValue: session.title,
+        inputValidator: (val: string) => !!val.trim() || t('agent.sessions.renameRequired')
+      }
+    )
+    session.title = value.trim()
+    session.titleUserEdited = true
+    touchSession(session)
+    persistSessions()
+    notifySuccess(t('agent.sessions.renameSuccess'))
+  } catch {
+    // canceled
+  }
 }
 
 // 工具选择功能已移除，工具列表现在为只读模式（显示当前会话可用的工具）
@@ -2743,17 +2668,6 @@ const handleSessionListDelete = (item: SessionListItem) => {
   }
 }
 
-// 对话头部的会话操作（retry / export）
-const handleSessionAction = (command: string) => {
-  const session = activeSession.value
-  if (!session) return
-  if (command === 'retry') {
-    handleRetrySession(session)
-  } else if (command === 'export') {
-    handleExportSession(session)
-  }
-}
-
 // === ResizableDivider 工具面板宽度 ===
 const TOOL_PANE_WIDTH_KEY = 'agent-view-tool-pane-width'
 const DEFAULT_TOOL_PANE_WIDTH = 360
@@ -2787,16 +2701,6 @@ const handleDocumentClick = () => {
 
 const toggleToolPane = () => {
   showToolPane.value = !showToolPane.value
-}
-
-const handleSelectAgentConfig = (config: any) => {
-  selectedAgentConfigId.value = config.id
-}
-
-const handleDoubleClickAgentConfig = (config: any) => {
-  selectedAgentConfigId.value = config.id
-  // 双击时直接创建会话
-  createSession(config.id)
 }
 
 // 消息操作方法
@@ -2904,7 +2808,7 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
   if (messageIndex === -1) return
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.message.confirmRegenerate'),
       t('agent.message.confirmRegenerateTitle'),
       { type: 'warning' }
@@ -2996,7 +2900,7 @@ const handleMessageDelete = async (message: AgentMessage) => {
   }
 
   try {
-    await ElMessageBox.confirm(t('agent.message.confirmDelete'), t('agent.message.delete'), {
+    await messageBox.confirm(t('agent.message.confirmDelete'), t('agent.message.delete'), {
       type: 'warning'
     })
 

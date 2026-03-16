@@ -792,7 +792,7 @@ import { Separator } from '@renderer/components/ui/separator'
 import Autocomplete from '@renderer/components/ui/autocomplete/Autocomplete.vue'
 
 // Element Plus 消息组件
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 
 interface OllamaModel {
@@ -1835,7 +1835,7 @@ const handleDeleteConfig = async (configId?: string) => {
   }
 
   try {
-    await ElMessageBox.confirm(t('setting.confirmDeleteConfig'), t('setting.deleteConfig'), {
+    await messageBox.confirm(t('setting.confirmDeleteConfig'), t('setting.deleteConfig'), {
       confirmButtonText: t('common.confirm'),
       cancelButtonText: t('common.cancel'),
       type: 'warning'

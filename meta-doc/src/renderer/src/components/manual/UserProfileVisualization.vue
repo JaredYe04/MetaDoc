@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import type { UserProfile } from '../../stores/userManual'
 import { Refresh } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
@@ -75,7 +75,7 @@ const { t } = useI18n()
 
 const handleReanalyze = async () => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('userManual.profile.reanalyzeConfirmMessage') ||
         '重置用户画像将清空当前学习进度，是否继续？',
       t('userManual.profile.reanalyzeConfirmTitle') || '重置用户画像',

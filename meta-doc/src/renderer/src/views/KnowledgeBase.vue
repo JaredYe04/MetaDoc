@@ -418,7 +418,7 @@ import {
   watch,
   nextTick
 } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { useI18n } from 'vue-i18n'
 
 // Demo mode support
@@ -692,7 +692,7 @@ async function uploadFile(file: File): Promise<void> {
 // delete
 function confirmDelete(): void {
   if (!selectedItem.value) return
-  ElMessageBox.confirm(
+  messageBox.confirm(
     t('knowledgeBase.delete_confirm', { name: selectedItem.value.name }),
     t('knowledgeBase.delete_confirm_title'),
     {
@@ -703,7 +703,7 @@ function confirmDelete(): void {
   ).then(() => deleteItem(selectedItem.value!.id))
 }
 function confirmClearAll(): void {
-  ElMessageBox.confirm(
+  messageBox.confirm(
     t('knowledgeBase.clear_all_confirm'),
     t('knowledgeBase.clear_all_confirm_title'),
     {

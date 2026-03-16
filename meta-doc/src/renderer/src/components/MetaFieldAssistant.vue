@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { Refresh, Check } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'

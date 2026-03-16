@@ -33,7 +33,7 @@
       "
       :get-badge="
         (item) =>
-          (item as AgentConfig).id === 'default-agent-config'
+          (item as AgentConfig).id === agentConfigManager.getDefaultConfigId()
             ? t('agent.manage.agentConfig.default')
             : null
       "
@@ -178,7 +178,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '../../../utils/messageBox'
 import { Plus } from '@element-plus/icons-vue'
 import { themeState } from '../../../utils/themes'
 import { agentConfigManager, toolCollectionManager } from '../../../utils/agent-framework'
@@ -246,18 +247,24 @@ const getItemTitle = (item: AgentConfig): string => {
 }
 
 const getActions = (item: AgentConfig): CardGridAction[] => {
-  const isDefault = item.id === 'default-agent-config'
+  const isBuiltinDefault = item.id === 'default-agent-config'
+  const isCurrentDefault = item.id === agentConfigManager.getDefaultConfigId()
   return [
     {
       command: 'view',
-      label: isDefault ? t('agent.manage.agentConfig.view') : t('agent.manage.edit'),
+      label: isBuiltinDefault ? t('agent.manage.agentConfig.view') : t('agent.manage.edit'),
       disabled: false
     },
-    { command: 'edit', label: t('agent.manage.edit'), disabled: isDefault },
+    { command: 'edit', label: t('agent.manage.edit'), disabled: isBuiltinDefault },
+    {
+      command: 'setAsDefault',
+      label: t('agent.manage.agentConfig.setAsDefault'),
+      disabled: isCurrentDefault
+    },
     { command: 'validate', label: t('agent.manage.validate') },
     { command: 'duplicate', label: t('agent.sessions.duplicate') },
     { command: 'export', label: t('agent.manage.export') },
-    { command: 'delete', label: t('agent.manage.delete'), disabled: isDefault, danger: true }
+    { command: 'delete', label: t('agent.manage.delete'), disabled: isBuiltinDefault, danger: true }
   ]
 }
 
@@ -266,6 +273,8 @@ const handleAction = async (command: string, config: AgentConfig) => {
     handleView(config)
   } else if (command === 'edit') {
     handleEdit(config)
+  } else if (command === 'setAsDefault') {
+    handleSetAsDefault(config)
   } else if (command === 'validate') {
     handleValidate(config)
   } else if (command === 'duplicate') {
@@ -275,6 +284,12 @@ const handleAction = async (command: string, config: AgentConfig) => {
   } else if (command === 'delete') {
     await handleDelete(config)
   }
+}
+
+const handleSetAsDefault = (config: AgentConfig) => {
+  agentConfigManager.setDefaultConfigId(config.id)
+  toast.success(t('agent.manage.agentConfig.setAsDefaultSuccess'))
+  loadConfigs() // 刷新列表以更新 badge
 }
 
 const dialogStyle = computed(() => ({
@@ -359,12 +374,12 @@ const handleEdit = (config: AgentConfig) => {
 
 const handleSave = () => {
   if (!formData.value.name.trim()) {
-    ElMessage.warning(t('agent.manage.agentConfig.nameRequired'))
+    toast.warning(t('agent.manage.agentConfig.nameRequired'))
     return
   }
 
   if (formData.value.toolCollectionIds.length === 0) {
-    ElMessage.warning(t('agent.manage.agentConfig.toolCollectionRequired'))
+    toast.warning(t('agent.manage.agentConfig.toolCollectionRequired'))
     return
   }
 
@@ -372,7 +387,7 @@ const handleSave = () => {
     if (editingConfig.value) {
       // 更新（默认配置不允许保存）
       if (editingConfig.value.id === 'default-agent-config') {
-        ElMessage.warning(t('agent.manage.agentConfig.cannotEditDefault'))
+        toast.warning(t('agent.manage.agentConfig.cannotEditDefault'))
         return
       }
 
@@ -387,7 +402,7 @@ const handleSave = () => {
           injectTimestamp: formData.value.injectTimestamp || false
         }
       })
-      ElMessage.success(t('agent.manage.agentConfig.updateSuccess'))
+      toast.success(t('agent.manage.agentConfig.updateSuccess'))
     } else {
       // 创建
       const created = agentConfigManager.createConfig(
@@ -403,12 +418,12 @@ const handleSave = () => {
           injectTimestamp: formData.value.injectTimestamp || false
         }
       })
-      ElMessage.success(t('agent.manage.agentConfig.createSuccess'))
+      toast.success(t('agent.manage.agentConfig.createSuccess'))
     }
     dialogVisible.value = false
     loadConfigs()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -432,30 +447,30 @@ const handleDuplicate = async (config: AgentConfig) => {
       tags: config.tags
     })
 
-    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    toast.success(t('agent.sessions.duplicateSuccess'))
     loadConfigs()
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 const handleDelete = async (config: AgentConfig) => {
   if (config.id === 'default-agent-config') {
-    ElMessage.warning(t('agent.manage.agentConfig.cannotDeleteDefault'))
+    toast.warning(t('agent.manage.agentConfig.cannotDeleteDefault'))
     return
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('agent.manage.agentConfig.confirmDelete', { name: getLocalizedText(config.name) }),
       t('common.confirm'),
       { type: 'warning' }
     )
     agentConfigManager.deleteConfig(config.id)
-    ElMessage.success(t('agent.manage.agentConfig.deleteSuccess'))
+    toast.success(t('agent.manage.agentConfig.deleteSuccess'))
     loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -464,14 +479,14 @@ const handleValidate = (config: AgentConfig) => {
   const validation = agentConfigManager.validateConfig(config)
   if (validation.valid) {
     if (validation.warnings.length > 0) {
-      ElMessage.warning(
+      toast.warning(
         t('agent.manage.agentConfig.validationWarnings') + ': ' + validation.warnings.join(', ')
       )
     } else {
-      ElMessage.success(t('agent.manage.agentConfig.validationSuccess'))
+      toast.success(t('agent.manage.agentConfig.validationSuccess'))
     }
   } else {
-    ElMessage.error(
+    toast.error(
       t('agent.manage.agentConfig.validationFailed') + ': ' + validation.errors.join(', ')
     )
   }
@@ -489,10 +504,10 @@ const handleExport = (config: AgentConfig) => {
       a.download = `agent-config-${config.id}.json`
       a.click()
       URL.revokeObjectURL(url)
-      ElMessage.success(t('agent.manage.exportSuccess'))
+      toast.success(t('agent.manage.exportSuccess'))
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error))
+    toast.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -508,10 +523,10 @@ const handleImport = () => {
       const text = await file.text()
       const entity = JSON.parse(text)
       agentConfigManager.importConfig(entity, true)
-      ElMessage.success(t('agent.manage.importSuccess'))
+      toast.success(t('agent.manage.importSuccess'))
       loadConfigs()
     } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
   input.click()

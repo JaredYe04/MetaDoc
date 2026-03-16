@@ -225,6 +225,12 @@
         </button>
       </div>
     </transition>
+    <!-- 全局 MessageBox：Teleport 到 body，z-index 高于 Dialog(10000)，低于 MainTabs(100003)；点击遮罩不关闭 -->
+    <Teleport to="body">
+      <GlobalMessageBox />
+    </Teleport>
+    <!-- 全局 Toast：替代 ElMessage，顶层显示，主题适配 -->
+    <GlobalToast />
   </div>
 </template>
 
@@ -248,6 +254,8 @@ import {
   prefetchDragThumbnail
 } from '../composables/useTabDrag'
 import { useTabAnimation } from '../composables/useTabAnimation'
+import GlobalMessageBox from './global/GlobalMessageBox.vue'
+import GlobalToast from './global/GlobalToast.vue'
 
 // 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
 const windowControlIcons = computed(() => {
@@ -1611,6 +1619,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* MainTabs 无条件始终在最顶层，GlobalMessageBox 渲染于其内 */
 .main-tabs-wrapper {
   display: flex;
   align-items: stretch;
@@ -1623,6 +1632,7 @@ onUnmounted(() => {
   /* -webkit-app-region: drag; */
   position: relative;
   box-sizing: border-box;
+  z-index: 99999;
 }
 
 /* 可交互元素需要禁用拖拽窗口功能 */

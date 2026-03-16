@@ -116,7 +116,6 @@ import { getSetting } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
 import { useWorkspace } from '../stores/workspace'
-import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
 if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {

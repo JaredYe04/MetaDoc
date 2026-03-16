@@ -170,7 +170,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Divider } from '@renderer/components/ui/separator'
@@ -512,14 +512,14 @@ const formatDataForDisplay = (result: any, status?: string) => {
 
 const copyMarkdown = async () => {
   if (isDemo.value) {
-    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：复制功能已禁用'))
+    toast.info(t('agent.display.autoTest.demoMode', '演示模式：复制功能已禁用'))
     return
   }
   try {
     await navigator.clipboard.writeText(effectiveMarkdownSummary.value)
-    ElMessage.success(t('agent.display.autoTest.copySuccess'))
+    toast.success(t('agent.display.autoTest.copySuccess'))
   } catch (error) {
-    ElMessage.error(
+    toast.error(
       `${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -529,9 +529,9 @@ const copyTestCaseId = async (testCaseId: string) => {
   if (!testCaseId) return
   try {
     await navigator.clipboard.writeText(testCaseId)
-    ElMessage.success(t('agent.display.autoTest.testCaseIdCopied', { id: testCaseId }))
+    toast.success(t('agent.display.autoTest.testCaseIdCopied', { id: testCaseId }))
   } catch (error) {
-    ElMessage.error(
+    toast.error(
       `${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -540,13 +540,13 @@ const copyTestCaseId = async (testCaseId: string) => {
 // 导出测试结果快照
 const exportResultSnapshot = async (result: TestResult) => {
   if (isDemo.value) {
-    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：导出功能已禁用'))
+    toast.info(t('agent.display.autoTest.demoMode', '演示模式：导出功能已禁用'))
     return
   }
   try {
     const tool = agentToolManager.getTool(result.toolId)
     if (!tool) {
-      ElMessage.error('找不到工具配置')
+      toast.error('找不到工具配置')
       return
     }
 
@@ -618,7 +618,7 @@ const exportResultSnapshot = async (result: TestResult) => {
 
     if (saveResult.success) {
       logger.debug('[导出快照] 文件保存成功，路径:', saveResult.path)
-      ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+      toast.success(t('agent.tool.exportSnapshotSuccess'))
     } else {
       // 用户取消对话框，不显示错误
       if (saveResult.canceled) {
@@ -631,7 +631,7 @@ const exportResultSnapshot = async (result: TestResult) => {
     }
   } catch (error) {
     console.error('导出快照失败:', error)
-    ElMessage.error(
+    toast.error(
       `${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`
     )
   }
@@ -639,7 +639,7 @@ const exportResultSnapshot = async (result: TestResult) => {
 
 const downloadMarkdown = () => {
   if (isDemo.value) {
-    ElMessage.info(t('agent.display.autoTest.demoMode', '演示模式：下载功能已禁用'))
+    toast.info(t('agent.display.autoTest.demoMode', '演示模式：下载功能已禁用'))
     return
   }
   const blob = new Blob([effectiveMarkdownSummary.value], { type: 'text/markdown;charset=utf-8' })
@@ -651,7 +651,7 @@ const downloadMarkdown = () => {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
-  ElMessage.success(t('agent.display.autoTest.downloadSuccess'))
+  toast.success(t('agent.display.autoTest.downloadSuccess'))
 }
 
 // 主题样式

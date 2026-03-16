@@ -79,8 +79,14 @@ onUnmounted(() => {
 
 <template>
   <DialogPortal :to="'body'">
-    <DialogOverlay class="fixed inset-0 z-[9999] bg-black/60 dialog-overlay dialog-viewport-full" />
-    <DialogContent v-bind="forwardedForRoot">
+    <!-- overlay 必须在 MainTabs(40px) 下方，不遮挡任务栏 -->
+    <DialogOverlay class="fixed z-[9999] bg-black/60 dialog-overlay dialog-viewport-below-tabs" />
+    <!-- 点击 overlay 不关闭：preventDefault 阻止 pointerDownOutside/interactOutside 的默认关闭行为 -->
+    <DialogContent
+      v-bind="forwardedForRoot"
+      @pointer-down-outside="(e: any) => e?.preventDefault?.()"
+      @interact-outside="(e: any) => e?.preventDefault?.()"
+    >
       <!-- 内容盒：居中于整个视口，宽度由调用方 class 控制；有自定义 class 时不加 max-w-lg 以免限制宽度 -->
       <div
         :class="
@@ -151,15 +157,15 @@ onUnmounted(() => {
   height: 100vh !important;
 }
 
-/* 对话框内容层：必须铺满视口并居中，不能受调用方 class 影响宽度 */
+/* 对话框内容层：必须在 MainTabs 下方，铺满剩余视口并居中 */
 .dialog-content-viewport {
   position: fixed !important;
-  top: 0 !important;
+  top: 40px !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: calc(100vh - 40px) !important;
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -208,5 +214,22 @@ onUnmounted(() => {
   pointer-events: none !important;
   animation: overlay-exit 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   opacity: 0 !important;
+}
+</style>
+
+<!-- 非 scoped：overlay 通过 Portal 渲染到 body，需全局样式确保尺寸与 pointer-events 生效 -->
+<style>
+.dialog-overlay.dialog-viewport-below-tabs {
+  position: fixed !important;
+  top: 40px !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: calc(100vh - 40px) !important;
+}
+
+.dialog-overlay.dialog-viewport-below-tabs[data-state='open'] {
+  pointer-events: auto !important;
 }
 </style>

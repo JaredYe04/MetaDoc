@@ -190,7 +190,7 @@ import { SHORTCUT_ACTION_IDS } from '@renderer/utils/keyboard-scheme-types'
 import eventBus from '@renderer/utils/event-bus'
 import { refreshShortcutBindings } from '@renderer/composables/useGlobalShortcuts'
 import { notifySuccess, notifyError } from '@renderer/utils/notify'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { Card, CardHeader, CardTitle, CardContent } from '@renderer/components/ui/card'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -376,7 +376,7 @@ async function handleResetBuiltinScheme() {
   const scheme = currentScheme.value
   if (!scheme?.isBuiltin) return
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('setting.shortcuts.confirmResetBuiltinScheme'),
       t('setting.shortcuts.resetSchemeToDefault'),
       {
@@ -446,7 +446,7 @@ async function handleDeleteScheme() {
   const scheme = currentScheme.value
   if (!scheme || scheme.isBuiltin) return
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('setting.shortcuts.confirmDeleteScheme'),
       t('setting.shortcuts.deleteScheme'),
       {

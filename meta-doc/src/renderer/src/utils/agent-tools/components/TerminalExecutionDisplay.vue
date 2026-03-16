@@ -239,7 +239,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading, WarningFilled } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -326,13 +326,13 @@ const saveTrustMode = (enabled: boolean) => {
 const handleTrustModeChange = (enabled: boolean) => {
   saveTrustMode(enabled)
   if (enabled) {
-    ElMessage.success(
+    toast.success(
       t('agent.display.terminalExecution.trustMode') +
         ' - ' +
         t('agent.display.terminalExecution.approveWithTrust')
     )
   } else {
-    ElMessage.info(t('agent.display.terminalExecution.resetTrust'))
+    toast.info(t('agent.display.terminalExecution.resetTrust'))
   }
 }
 
@@ -340,7 +340,7 @@ const handleTrustModeChange = (enabled: boolean) => {
 const resetTrustMode = () => {
   trustMode.value = false
   saveTrustMode(false)
-  ElMessage.info(t('agent.display.terminalExecution.resetTrust'))
+  toast.info(t('agent.display.terminalExecution.resetTrust'))
 }
 
 // 主题样式

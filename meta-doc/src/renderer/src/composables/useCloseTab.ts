@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
@@ -54,7 +54,7 @@ export const useCloseTab = () => {
       if (doc?.dirty) {
         if (!messageBridge.getIpc()) {
           try {
-            await ElMessageBox.confirm(
+            await messageBox.confirm(
               t('main.dialogs.closeTabMessage'),
               t('main.dialogs.closeTabTitle'),
               {

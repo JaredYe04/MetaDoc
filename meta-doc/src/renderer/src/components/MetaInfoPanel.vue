@@ -190,7 +190,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { Loader2, Edit } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -349,11 +349,11 @@ const handleKeywordsGenerate = async () => {
       throw new Error(t('article.generate_keywords_parse_error'))
     }
     emitUpdate({ keywords: nextKeywords })
-    ElMessage.success(t('article.apply_keywords_success'))
+    toast.success(t('article.apply_keywords_success'))
   } catch (error) {
     emitUpdate({ keywords: previousKeywords })
     const message = error instanceof Error ? error.message : t('article.generate_keywords_failed')
-    ElMessage.error(message)
+    toast.error(message)
   } finally {
     keywordsGenerating.value = false
   }

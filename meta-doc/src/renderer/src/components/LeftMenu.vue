@@ -1012,7 +1012,7 @@ import {
 } from 'lucide-vue-next'
 
 import eventBus from '../utils/event-bus'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { themeState, mixColors } from '../utils/themes'
 import { avatar } from '../stores/user'
 import { useActiveDocument } from '../composables/useActiveDocument'
@@ -1633,7 +1633,7 @@ async function generateTemplateTitleDescriptionByAi() {
     if (title) exportAsTemplateTitle.value = title
     if (description) exportAsTemplateDescription.value = description
   } catch (e) {
-    ElMessage.error(t('llmDialog.generateFailedError'))
+    toast.error(t('llmDialog.generateFailedError'))
   } finally {
     exportAsTemplateAiLoading.value = false
   }

@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
 import { X } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -283,17 +283,17 @@ const handleSave = async () => {
     // 验证配置
     const validation = toolPluginManager.validateToolConfig(formData as Partial<AgentToolConfig>)
     if (!validation.valid) {
-      ElMessage.error(`配置验证失败: ${validation.errors.join(', ')}`)
+      toast.error(`配置验证失败: ${validation.errors.join(', ')}`)
       return
     }
 
     // 保存配置
     if (isEdit.value && props.toolId) {
       agentToolManager.updateToolConfig(props.toolId, formData as Partial<AgentToolConfig>)
-      ElMessage.success('Tool配置已更新')
+      toast.success('Tool配置已更新')
     } else {
       // 新建Tool需要提供callback
-      ElMessage.warning('新建Tool需要提供callback实现，请使用导入功能或联系开发者')
+      toast.warning('新建Tool需要提供callback实现，请使用导入功能或联系开发者')
     }
 
     emit('saved', formData.id!)
@@ -314,7 +314,7 @@ const handleExport = () => {
     a.download = `${props.toolId}.json`
     a.click()
     URL.revokeObjectURL(url)
-    ElMessage.success('Tool配置已导出')
+    toast.success('Tool配置已导出')
   }
 }
 </script>

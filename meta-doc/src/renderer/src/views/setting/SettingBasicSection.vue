@@ -327,7 +327,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
+import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { HelpCircle } from 'lucide-vue-next'
 import MicrophoneTest from '../../components/MicrophoneTest.vue'
@@ -471,7 +471,7 @@ const openReferenceDir = async () => {
 // 清空reference目录
 const clearReferenceDir = async () => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t(
         'setting.clearReferenceDirConfirm',
         '确定要清空引用文件目录吗？此操作将删除目录中的所有文件，且无法恢复。'

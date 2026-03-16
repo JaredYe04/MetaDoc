@@ -166,7 +166,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { toast } from '@renderer/utils/toast'
+import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile, ManualCategory } from '../../stores/userManual'
@@ -306,7 +307,7 @@ const startLearningStep = (articleId: string) => {
 /** 清空当前推荐路径的学习进度 */
 const handleClearProgress = async () => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       t('userManual.progress.clearProgressConfirm'),
       t('userManual.progress.clearProgress') || '清空学习进度',
       {
@@ -316,7 +317,7 @@ const handleClearProgress = async () => {
       }
     )
     clearLearningProgress()
-    ElMessage.success(t('userManual.progress.clearProgressDone') || '学习进度已清空')
+    toast.success(t('userManual.progress.clearProgressDone') || '学习进度已清空')
   } catch {
     // 用户取消
   }

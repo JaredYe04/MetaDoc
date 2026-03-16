@@ -122,7 +122,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
 import { Button } from '@renderer/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'

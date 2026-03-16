@@ -41,10 +41,15 @@ export async function ensureDirectoryRecursive(
     const fullPathForSeg =
       !current || current === '/' ? (prefix ? `${prefix}/${seg}` : `/${seg}`) : `${current}/${seg}`
 
-    const exists = await ipc.invoke('file-exists', fullPathForSeg)
-    if (!exists) {
-      await ipc.invoke('create-directory', { parentPath, folderName })
-      createdAny = true
+    try {
+      const exists = await ipc.invoke('file-exists', fullPathForSeg)
+      if (!exists) {
+        await ipc.invoke('create-directory', { parentPath, folderName })
+        createdAny = true
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(`创建目录失败: ${normalized}。${msg}`)
     }
     current = fullPathForSeg
   }

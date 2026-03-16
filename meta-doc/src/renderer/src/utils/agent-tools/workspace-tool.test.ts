@@ -101,5 +101,21 @@ describe('workspace-directory-helper', () => {
       const badCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'create-directory' && typeof c[1] === 'string')
       expect(badCalls).toHaveLength(0)
     })
+
+    it('create-directory 失败时抛出包含完整路径的错误', async () => {
+      mockInvoke.mockImplementation((channel: string, arg: unknown) => {
+        if (channel === 'file-exists') return Promise.resolve(false)
+        if (channel === 'create-directory') {
+          return Promise.reject(new Error('父目录不存在'))
+        }
+        return Promise.reject(new Error(`unknown: ${channel}`))
+      })
+
+      const ipc = { invoke: mockInvoke }
+      const fullPath = 'C:/test/图表测试'
+      await expect(ensureDirectoryRecursive(fullPath, ipc)).rejects.toThrow(/创建目录失败/)
+      await expect(ensureDirectoryRecursive(fullPath, ipc)).rejects.toThrow(fullPath)
+      await expect(ensureDirectoryRecursive(fullPath, ipc)).rejects.toThrow(/父目录不存在/)
+    })
   })
 })

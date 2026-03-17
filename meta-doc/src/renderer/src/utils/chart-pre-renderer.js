@@ -1164,7 +1164,15 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
   // 按索引从后往前排序，避免替换时索引变化
   allMatches.sort((a, b) => b.index - a.index)
 
-  // 并发渲染所有图表，完成后统一替换
+  // PlantUML 串行渲染，避免多进程并发导致 Java OOM
+  let plantumlMutex = Promise.resolve()
+  const runPlantumlSerial = (fn) => {
+    const next = plantumlMutex.then(() => fn())
+    plantumlMutex = next
+    return next
+  }
+
+  // 并发渲染所有图表（PlantUML 串行），完成后统一替换
   const targetFormat = format === 'bitmap' ? 'png' : 'svg'
   const renderTasks = allMatches.map(async ({ chartType, fullMatch, code, config }, index) => {
     if (!code) {
@@ -1206,7 +1214,10 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
             throw new Error('PlantUML 代码包含 XML 标签，代码提取可能有问题')
           }
 
-          imageUrl = await renderPlantUMLViaIpc(cleanCode, targetFormat)
+          // 串行渲染，避免多进程并发导致 Java OOM
+          imageUrl = await runPlantumlSerial(() =>
+            renderPlantUMLViaIpc(cleanCode, targetFormat)
+          )
         } else {
           throw new Error(`不支持的 IPC 渲染类型: ${chartType}`)
         }

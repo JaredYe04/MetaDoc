@@ -56,9 +56,9 @@ function mapThemeToCSSVariables(theme) {
     '--secondary': hexToHSL(theme.secondaryColor),
     '--secondary-foreground': getForegroundColor(theme.secondaryColor),
 
-    // Muted - subtle background variation
-    '--muted': hexToHSL(theme.sidebarBackground2 || theme.background2nd || theme.background),
-    '--muted-foreground': hexToHSL(theme.textColor2 || theme.textColor),
+    // Muted - 使用中性灰，避免自定义主题色时与主题色趋同（深色与黑灰混深，浅色与白灰混浅）
+    '--muted': isDark ? '217.2 32.6% 17.5%' : '210 40% 96.1%',
+    '--muted-foreground': isDark ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%',
 
     // Panel/group 背景：与页面背景混色，避免纯主题色在深色/浅色下突兀
     '--panel-bg': hexToHSL(

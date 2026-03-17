@@ -257,9 +257,10 @@
                     }}
                   </Button>
                 </div>
-                <el-scrollbar class="file-content-scroll max-h-[400px]">
-                  <pre class="content-text" :style="contentTextStyle">{{ file.content }}</pre>
-                </el-scrollbar>
+                <WorkspaceFileContent
+                  :file="file"
+                  :content-text-style="contentTextStyle"
+                />
               </div>
             </div>
           </div>
@@ -292,6 +293,7 @@ import { attachWheelScrollChainForElement } from '../monaco-scroll-chain'
 import eventBus from '../../event-bus'
 import { extname, isAbsolute } from '../../path-utils'
 import { formatRegistry } from '../../format-registry'
+import WorkspaceFileContent from './WorkspaceFileContent.vue'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()

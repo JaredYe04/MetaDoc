@@ -73,8 +73,8 @@ export async function processMarkdownImages(
     // embedImagesInline 可以处理 HTTP URL、file:// URL 和本地路径
     // 但如果输入已经是 HTTP URL，就不需要先转换
     const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
-    const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const hasHttpUrl = new RegExp('!\\\\[.*?\\\\]\\\\(' + imagesPrefixEscaped).test(markdown)
+    // 使用 includes 替代动态正则，避免 URL 中特殊字符导致 "Unterminated group" 等正则错误
+    const hasHttpUrl = markdown.includes(imagesPrefix)
     const hasFileUrl = /!\[.*?\]\(file:\/\//.test(markdown)
 
     let processed = markdown

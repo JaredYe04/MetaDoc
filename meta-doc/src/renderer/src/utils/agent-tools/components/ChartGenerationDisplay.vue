@@ -149,6 +149,7 @@ import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import { createRendererLogger } from '../../logger'
+import messageBridge from '../../../bridge/message-bridge'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps & { mode?: string }>()
@@ -252,7 +253,7 @@ const progressStatus = computed(() => {
   return undefined
 })
 
-// 下载图表
+// 下载图表：弹出保存对话框，写入用户选择的路径
 const downloadChart = async () => {
   if (isDemo.value) {
     toast.info(t('agent.display.chartGeneration.demoMode', '演示模式：下载功能已禁用'))
@@ -266,19 +267,71 @@ const downloadChart = async () => {
     return
   }
 
+  const fileExtension = getFileExtension(downloadUrl)
+  const defaultName = `${displayData.value.chartName || 'chart'}.${fileExtension}`
+
   try {
+    // 1. 弹出保存对话框
+    const filters =
+      fileExtension === 'svg'
+        ? [
+            { name: 'SVG Files', extensions: ['svg'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        : fileExtension === 'pdf'
+          ? [
+              { name: 'PDF Files', extensions: ['pdf'] },
+              { name: 'All Files', extensions: ['*'] }
+            ]
+          : [
+              { name: 'PNG Files', extensions: ['png'] },
+              { name: 'All Files', extensions: ['*'] }
+            ]
+
+    const result = (await messageBridge.invoke('save-file-dialog', {
+      defaultName,
+      filters
+    })) as { canceled?: boolean; filePath?: string } | null
+
+    if (!result || result.canceled || !result.filePath) {
+      return
+    }
+
+    const filePath = result.filePath
+
+    // 2. 获取文件内容
     const response = await fetch(downloadUrl)
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    // 根据 URL 确定文件扩展名
-    const fileExtension = getFileExtension(downloadUrl)
-    a.download = `${displayData.value.chartName || 'chart'}.${fileExtension}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    // 3. 根据格式写入文件
+    if (fileExtension === 'svg') {
+      const content = await response.text()
+      await messageBridge.invoke('write-file-content', {
+        filePath,
+        content,
+        encoding: 'utf8'
+      })
+    } else {
+      const blob = await response.blob()
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = String(reader.result || '')
+          const commaIdx = dataUrl.indexOf(',')
+          resolve(commaIdx >= 0 ? dataUrl.substring(commaIdx + 1) : '')
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      await messageBridge.invoke('write-file-content', {
+        filePath,
+        content: base64,
+        encoding: 'base64'
+      })
+    }
+
     toast.success(t('agent.display.chartGeneration.downloadSuccess'))
   } catch (error) {
     toast.error(

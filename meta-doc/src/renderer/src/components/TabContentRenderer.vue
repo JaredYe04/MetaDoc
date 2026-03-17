@@ -94,6 +94,8 @@ import type { DocumentView } from '../stores/workspace'
 
 import Home from '../views/Home.vue'
 import Editor from '../views/Editor.vue'
+import { IMAGE_EXTENSIONS } from '../utils/file-display-utils'
+import { extname } from '../utils/path-utils'
 import Outline from '../views/Outline.vue'
 import Visualize from '../views/Visualize.vue'
 import ProofreadView from '../views/ProofreadView.vue'
@@ -108,7 +110,12 @@ const getDocumentView = (tabId: string): string => {
     return 'editor'
   }
   const doc = ensureDocument(tabId)
-  const view = doc.lastView || 'editor'
+  let view = doc.lastView || 'editor'
+  // 图片 tab 仅支持主页，强制为 home
+  const path = tab.path || doc.path || ''
+  if (path && IMAGE_EXTENSIONS.has(extname(path).toLowerCase())) {
+    view = 'home'
+  }
   return view
 }
 

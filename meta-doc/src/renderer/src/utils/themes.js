@@ -761,7 +761,9 @@ export function applyShadcnTheme() {
   const foreground = getHsl('textColor') || (isDarkMode ? '210 40% 98%' : '222.2 84% 4.9%')
   const primary = getHsl('primaryColor') || (isDarkMode ? '210 40% 98%' : '222.2 47.4% 11.2%')
   const secondary = getHsl('secondaryColor') || (isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%')
-  const muted = getHsl('background2nd') || (isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%')
+  // muted 使用中性灰，避免自定义主题色时与主题色趋同（深色与黑灰混深，浅色与白灰混浅）
+  const muted = isDarkMode ? '217.2 32.6% 17.5%' : '210 40% 96.1%'
+  const mutedForeground = isDarkMode ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'
   const border = getHsl('borderColor') || (isDarkMode ? '217.2 32.6% 17.5%' : '214.3 31.8% 91.4%')
   const sidebarBg = getHsl('sidebarBackground') || (isDarkMode ? '240 5.9% 10%' : '0 0% 98%')
 
@@ -787,10 +789,9 @@ export function applyShadcnTheme() {
     '--secondary': secondary,
     '--secondary-foreground': foreground,
 
-    // 静音色
+    // 静音色（中性灰，避免自定义主题色时趋同）
     '--muted': muted,
-    '--muted-foreground':
-      getHsl('textColor2') || (isDarkMode ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'),
+    '--muted-foreground': mutedForeground,
 
     // 强调色
     '--accent': secondary,

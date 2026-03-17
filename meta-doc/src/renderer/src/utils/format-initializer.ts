@@ -207,6 +207,17 @@ export function initializeFormats(): void {
     extensions: [
       '.txt',
       '.text',
+      // 可渲染格式（工作区树中显示，Home 中直接渲染）
+      '.svg',
+      '.html',
+      '.htm',
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.webp',
+      '.bmp',
+      '.ico',
       // 代码文件
       '.js',
       '.jsx',
@@ -230,8 +241,6 @@ export function initializeFormats(): void {
       '.bash',
       '.zsh',
       '.ps1',
-      '.html',
-      '.htm',
       '.css',
       '.scss',
       '.sass',

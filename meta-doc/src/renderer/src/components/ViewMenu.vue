@@ -19,8 +19,9 @@
         @select="handleSelect"
       />
 
-      <!-- Editor -->
+      <!-- Editor：图片 tab 不显示（仅主页） -->
       <ViewMenuItem
+        v-if="!isImageTab"
         index="editor"
         :label="$t('headMenu.editor')"
         :icon-image="themeState.currentTheme.EditorIcon"
@@ -30,9 +31,9 @@
         @select="handleSelect"
       />
 
-      <!-- 大纲树：纯文本格式不显示；PDF 预览 tab 只显示主页和编辑器 -->
+      <!-- 大纲树：纯文本格式不显示；PDF/图片 tab 只显示主页（和编辑器） -->
       <ViewMenuItem
-        v-if="!isPlainTextFormat && !isPdfPreviewTab"
+        v-if="!isPlainTextFormat && !isPdfPreviewTab && !isImageTab"
         index="outline"
         :label="$t('headMenu.outline')"
         :icon-image="themeState.currentTheme.OutlineIcon"
@@ -42,9 +43,9 @@
         @select="handleSelect"
       />
 
-      <!-- 可视化：纯文本格式不显示；PDF 预览 tab 只显示主页和编辑器 -->
+      <!-- 可视化：纯文本格式不显示；PDF/图片 tab 只显示主页（和编辑器） -->
       <ViewMenuItem
-        v-if="!isPlainTextFormat && !isPdfPreviewTab"
+        v-if="!isPlainTextFormat && !isPdfPreviewTab && !isImageTab"
         index="visualize"
         :label="$t('headMenu.visualize')"
         :icon-image="themeState.currentTheme.VisualIcon"
@@ -54,9 +55,9 @@
         @select="handleSelect"
       />
 
-      <!-- 文章校对：纯文本格式不显示，需要活动文档；PDF 预览 tab 只显示主页和编辑器 -->
+      <!-- 文章校对：纯文本格式不显示，需要活动文档；PDF/图片 tab 只显示主页（和编辑器） -->
       <ViewMenuItem
-        v-if="activeDocument && !isPlainTextFormat && !isPdfPreviewTab"
+        v-if="activeDocument && !isPlainTextFormat && !isPdfPreviewTab && !isImageTab"
         index="proofread"
         :label="$t('headMenu.proofread')"
         :icon-image="themeState.currentTheme.ProofreadIcon"
@@ -84,6 +85,8 @@ import { useWorkspace, type DocumentView } from '../stores/workspace'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import ViewMenuItem from './ViewMenuItem.vue'
+import { IMAGE_EXTENSIONS } from '../utils/file-display-utils'
+import { extname } from '../utils/path-utils'
 
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
@@ -104,6 +107,16 @@ const isPdfPreviewTab = computed(() => {
   const path = (tab.path || activeDocument.value?.path || '').toLowerCase()
   const format = (tab.format || activeDocument.value?.format || '').toLowerCase()
   return tab.preview === true && path.endsWith('.pdf') && format === 'pdf'
+})
+
+// 判断是否为图片 tab（仅显示主页，不显示编辑器）
+const isImageTab = computed(() => {
+  const tab = workspace.activeTab.value
+  if (!tab || tab.kind !== 'file') return false
+  const path = tab.path || activeDocument.value?.path || ''
+  if (!path) return false
+  const ext = extname(path).toLowerCase()
+  return IMAGE_EXTENSIONS.has(ext)
 })
 
 // 折叠状态 - 默认折叠
@@ -142,6 +155,8 @@ onMounted(() => {
 // 直接使用 doc.lastView，这个值已经在创建/打开文档时根据内容正确设置了
 const activeMenuIndex = computed(() => {
   if (!activeDocument.value) return 'editor'
+  // 图片 tab 仅支持主页
+  if (isImageTab.value) return 'home'
   // lastView 已经在创建文档时根据内容正确设置：空文档 -> 'editor'，有内容 -> 'home'
   return activeDocument.value.lastView || 'editor'
 })

@@ -224,23 +224,35 @@
                               getPreprocessingParams(index).sharpness
                             }}</span>
                           </div>
-                          <div class="param-item flex items-center gap-2">
+                          <div class="param-item param-item-row">
                             <Checkbox
+                              :id="`ocr-grayscale-${index}`"
                               :model-value="getPreprocessingParams(index).grayscale"
                               @update:model-value="
                                 (val: boolean) => updatePreprocessingParam(index, 'grayscale', val)
                               "
                             />
-                            <label class="text-sm">{{ t('ocr.grayscale') }}</label>
+                            <label
+                              :for="`ocr-grayscale-${index}`"
+                              class="param-item-row-label"
+                            >
+                              {{ t('ocr.grayscale') }}
+                            </label>
                           </div>
-                          <div class="param-item flex items-center gap-2">
+                          <div class="param-item param-item-row">
                             <Checkbox
+                              :id="`ocr-normalize-${index}`"
                               :model-value="getPreprocessingParams(index).normalize"
                               @update:model-value="
                                 (val: boolean) => updatePreprocessingParam(index, 'normalize', val)
                               "
                             />
-                            <label class="text-sm">{{ t('ocr.normalize') }}</label>
+                            <label
+                              :for="`ocr-normalize-${index}`"
+                              class="param-item-row-label"
+                            >
+                              {{ t('ocr.normalize') }}
+                            </label>
                           </div>
                         </div>
                       </div>
@@ -3047,6 +3059,7 @@ const preStyle = computed(() => ({
   height: 100%;
   max-height: 100%;
   gap: 8px;
+  overflow-x: hidden;
 }
 
 .image-preview {
@@ -3123,6 +3136,21 @@ const preStyle = computed(() => ({
   gap: 6px;
 }
 
+/* checkbox 行：横向排列，label 在 checkbox 右侧 */
+.param-item-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-item-row-label {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor');
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .param-item label {
   font-size: 12px;
   color: v-bind('themeState.currentTheme.textColor');
@@ -3147,9 +3175,34 @@ const preStyle = computed(() => ({
 .image-actions {
   flex-shrink: 0;
   display: flex;
-  justify-content: center;
+  flex-wrap: nowrap;
+  justify-content: stretch;
+  align-items: center;
   gap: 8px;
   padding-top: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 按钮自适应：平分空间并随容器缩小 */
+.image-actions > * {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.image-actions :deep(button) {
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 单按钮时不拉伸，保持自然宽度 */
+.image-actions > *:only-child {
+  flex: 0 1 auto;
 }
 
 .ai-logo-icon-small {

@@ -86,14 +86,20 @@ function applyShadcnTheme() {
 
   if (!theme) return
 
+  // muted / muted-foreground 使用中性灰，避免自定义主题色时与主题色趋同
+  // 深色主题：与黑灰混深；浅色主题：与白灰混浅
+  const isDark = theme.type === 'dark'
+  const neutralMuted = isDark ? '217.2 32.6% 17.5%' : '210 40% 96.1%'
+  const neutralMutedForeground = isDark ? '215 20.2% 65.1%' : '215.4 16.3% 46.9%'
+  root.style.setProperty('--muted', neutralMuted)
+  root.style.setProperty('--muted-foreground', neutralMutedForeground)
+
   const colorMappings = [
     { source: 'primaryColor', target: '--primary' },
     { source: 'background', target: '--background' },
     { source: 'textColor', target: '--foreground' },
-    { source: 'background2nd', target: '--muted' },
     { source: 'borderColor', target: '--border' },
     { source: 'secondaryColor', target: '--secondary' },
-    { source: 'textColor2', target: '--muted-foreground' },
     {
       source: 'textColor',
       target: ['--card-foreground', '--popover-foreground']

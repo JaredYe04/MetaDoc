@@ -4422,7 +4422,7 @@
     "copyFixedText": "修正後のテキストをコピーする",
     "copyOriginalText": "元のテキストをコピーする",
     "copySuccess": "テキストをクリップボードにコピーしました",
-    "copyText": "テキストをコピーする",
+    "copyText": "コピー",
     "defaultParams": "推奨設定",
     "defaultTitle": "新しいOCRセッション",
     "deleteConfirm": "この画像を削除してもよろしいですか？",

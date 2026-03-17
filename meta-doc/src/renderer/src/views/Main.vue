@@ -122,6 +122,10 @@ import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
 import { verifyToken } from '../utils/web-utils.ts'
 import { createRendererLogger } from '../utils/logger.ts'
 import { extname } from '../utils/path-utils'
+import {
+  IMAGE_EXTENSIONS,
+  RENDERABLE_TEXT_EXTENSIONS
+} from '../utils/file-display-utils'
 import { formatRegistry } from '../utils/format-registry'
 
 import TabSwitcherOverlay from '../components/TabSwitcherOverlay.vue'
@@ -591,6 +595,14 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     const doc = ensureDocument(tab.id)
     doc.path = resolvedPath
     doc.format = loaded.format
+    // SVG、HTML、图片等可渲染格式：默认显示主页（与 tex/md 一致）
+    const ext = resolvedPath ? extname(resolvedPath).toLowerCase() : ''
+    if (
+      resolvedPath &&
+      (RENDERABLE_TEXT_EXTENSIONS.has(ext) || IMAGE_EXTENSIONS.has(ext))
+    ) {
+      doc.lastView = 'home'
+    }
     markDocumentSaved(tab.id, resolvedPath || undefined)
     activateTab(tab.id)
     activated = true

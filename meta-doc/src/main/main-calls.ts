@@ -5021,6 +5021,10 @@ async function renderPlantUMLToLocalImage(
     plantuml = require('node-plantuml-2')
   }
 
+  // 设置 JVM 堆内存，缓解 Java OOM（多图表并发或复杂图时易触发 "insufficient memory"）
+  const prevJavaToolOpts = process.env.JAVA_TOOL_OPTIONS
+  process.env.JAVA_TOOL_OPTIONS = '-Xmx768m'
+
   try {
     // 清理代码：移除 BOM，保留 !theme 指令（node-plantuml-2 会自动处理）
     let cleanCode = plantumlCode.replace(/^\uFEFF/, '').trim()
@@ -5239,6 +5243,12 @@ async function renderPlantUMLToLocalImage(
   } catch (error) {
     logger.error('PlantUML 渲染失败:', error)
     throw error
+  } finally {
+    if (prevJavaToolOpts !== undefined) {
+      process.env.JAVA_TOOL_OPTIONS = prevJavaToolOpts
+    } else {
+      delete process.env.JAVA_TOOL_OPTIONS
+    }
   }
 }
 

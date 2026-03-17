@@ -1129,15 +1129,18 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
       try {
         imageUrl = (await renderPlantUMLViaIpc(finalChartCode, targetFormat)) as string
       } catch (renderError) {
-        // 如果渲染失败，尝试重新生成
+        // 如果渲染失败，尝试重新生成（含 GraphViz/PlantUML 崩溃类错误）
         const renderErrorMsg =
           renderError instanceof Error ? renderError.message : String(renderError)
-        if (
-          !params._retryAttempted &&
-          (renderErrorMsg.includes('syntax') ||
-            renderErrorMsg.includes('语法') ||
-            renderErrorMsg.includes('error'))
-        ) {
+        const shouldRetry =
+          renderErrorMsg.includes('syntax') ||
+          renderErrorMsg.includes('语法') ||
+          renderErrorMsg.includes('error') ||
+          renderErrorMsg.includes('GraphViz') ||
+          renderErrorMsg.includes('IllegalStateException') ||
+          renderErrorMsg.includes('crashed') ||
+          renderErrorMsg.includes('未返回有效的 SVG')
+        if (!params._retryAttempted && shouldRetry) {
           logger.info('PlantUML渲染失败，尝试重新生成代码...')
           const codeTarget = ref('')
           const retryCode = await generateChartCodeWithLLM(

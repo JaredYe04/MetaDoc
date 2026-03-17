@@ -88,7 +88,7 @@
           "default": "3. Ensure the syntax is completely correct and avoid syntax errors",
           "echarts": "3. Return a valid JSON format configuration object (must be valid JSON)",
           "mermaid": "3. Ensure the Mermaid syntax is completely correct",
-          "plantuml": "3. Ensure the PlantUML syntax is completely correct"
+          "plantuml": "3. Ensure the PlantUML syntax is completely correct. Prefer sequence diagrams or activity diagrams over complex class diagrams (class diagrams with many classes/relations can crash GraphViz). Keep class diagrams simple: fewer than 10 classes, minimal inheritance. Avoid layouts that stress GraphViz."
         }
       },
       "todolist": {

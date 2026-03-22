@@ -3275,7 +3275,10 @@
     "thinking": "생각 중...",
     "toolCall": "도구 호출",
     "toolResult": "도구 결과",
-    "error": "오류가 발생했습니다",
+    "error": {
+      "generic": "오류가 발생했습니다",
+      "executionFailed": "Agent 실행 실패: {message}"
+    },
     "retry": "다시 시도",
     "saveFailed": "저장 실패",
     "callParams": "호출 매개변수",

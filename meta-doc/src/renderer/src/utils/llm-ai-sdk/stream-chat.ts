@@ -52,9 +52,13 @@ export async function streamChat(options: StreamChatOptions): Promise<StreamChat
 
   return {
     async consumeStream(onDelta: (delta: string) => void): Promise<UsageStats | null> {
+      let receivedAnyText = false
       try {
         for await (const chunk of result.textStream) {
-          if (chunk) onDelta(chunk)
+          if (chunk) {
+            receivedAnyText = true
+            onDelta(chunk)
+          }
         }
         const totalUsage = await result.totalUsage
         if (!totalUsage) return null
@@ -64,8 +68,15 @@ export async function streamChat(options: StreamChatOptions): Promise<StreamChat
           total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0)
         }
       } catch (err) {
-        // 部分后端（或错误响应）会导致 SDK 认为「无输出」而抛错；已输出的 delta 已通过 onDelta 写入，此处当作无 usage 正常结束
+        // 部分后端（或错误响应）会导致 SDK 抛 NoOutputGeneratedError；若已输出过文本则仅损失 usage
         if (NoOutputGeneratedError.isInstance(err)) {
+          if (!receivedAnyText) {
+            const wrap = new Error(
+              'LLM 未返回任何内容（常见于 API 密钥无效、账户余额或配额不足、或请求被服务端拒绝）。请检查提供商控制台与网络。'
+            )
+            wrap.cause = err
+            throw wrap
+          }
           return null
         }
         throw err

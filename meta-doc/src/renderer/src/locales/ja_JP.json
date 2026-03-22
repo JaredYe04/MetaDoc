@@ -3044,7 +3044,10 @@
     "thinking": "思考中...",
     "toolCall": "ツールを呼び出しています",
     "toolResult": "ツール実行結果",
-    "error": "エラーが発生しました",
+    "error": {
+      "generic": "エラーが発生しました",
+      "executionFailed": "Agent の実行に失敗しました：{message}"
+    },
     "retry": "リトライ",
     "saveFailed": "保存に失敗しました",
     "callParams": "呼び出しパラメータ",

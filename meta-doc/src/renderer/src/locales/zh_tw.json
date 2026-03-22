@@ -449,7 +449,10 @@
         "success": "編譯成功"
       }
     },
-    "error": "發生錯誤",
+    "error": {
+      "generic": "發生錯誤",
+      "executionFailed": "Agent 執行失敗：{message}"
+    },
     "manage": {
       "status": "狀態",
       "title": "管理",

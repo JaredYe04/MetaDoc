@@ -2648,6 +2648,13 @@ const handleSessionListDuplicate = (item: SessionListItem) => {
   }
 }
 
+const handleSessionListExport = (item: SessionListItem) => {
+  const session = sessionsState.value.find((s) => s.id === item.id)
+  if (session) {
+    void handleExportSession(session)
+  }
+}
+
 const handleSessionListDelete = (item: SessionListItem) => {
   // SessionList 已经显示了确认对话框，直接删除即可
   const session = sessionsState.value.find((s) => s.id === item.id)

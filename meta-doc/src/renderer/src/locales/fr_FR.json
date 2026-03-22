@@ -3002,7 +3002,10 @@
     "thinking": "Réflexion en cours...",
     "toolCall": "Appel d'outil",
     "toolResult": "Résultat de l'outil",
-    "error": "Erreur",
+    "error": {
+      "generic": "Erreur",
+      "executionFailed": "Échec de l'exécution de l'agent : {message}"
+    },
     "retry": "Réessayer",
     "saveFailed": "Échec de l'enregistrement",
     "callParams": "Paramètres d'appel",

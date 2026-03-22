@@ -18,6 +18,10 @@ import EditDisplay from './components/EditDisplay.vue'
 import { createDetailedError } from './tool-utils'
 import messageBridge from '../../bridge/message-bridge'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
+import { newLinesToContent, parseUnifiedDiff, type UnifiedDiffHunk } from './edit-diff-parse'
+
+export type { UnifiedDiffHunk } from './edit-diff-parse'
+export { parseUnifiedDiff } from './edit-diff-parse'
 
 const logger = createRendererLogger('EditTool')
 const workspace = useWorkspace()
@@ -93,19 +97,6 @@ export interface FindReplaceOperation {
  * 联合类型：所有支持的编辑操作
  */
 export type AnyEditOperation = EditOperation | FindReplaceOperation
-
-/**
- * Unified diff hunk（一个编辑块）
- */
-export interface UnifiedDiffHunk {
-  oldStart: number // 旧文本起始行号（1-based）
-  oldCount: number // 旧文本行数
-  newStart: number // 新文本起始行号（1-based）
-  newCount: number // 新文本行数
-  oldLines: string[] // 要删除的行（去除-前缀）
-  newLines: string[] // 要添加的行（去除+前缀）
-  contextLines: string[] // 上下文行（不变的行，用于匹配）
-}
 
 /**
  * 编辑结果
@@ -403,95 +394,6 @@ function applyEditToText(text: string, edit: EditOperation): string {
   }
 
   throw new Error(`未知的编辑类型: ${edit.type}`)
-}
-
-/**
- * 将 diff 的 newLines 转为实际要插入的字符串。
- * 单独一行的 "+" 表示插入空行，parse 后为 [""]，join('\n') 得 ""，需显式转为 "\n"。
- */
-function newLinesToContent(newLines: string[]): string {
-  return newLines.length === 1 && newLines[0] === '' ? '\n' : newLines.join('\n')
-}
-
-/**
- * 解析 Unified diff 格式字符串
- * @param diff Unified diff 格式的字符串
- * @returns 解析后的 hunk 数组
- */
-export function parseUnifiedDiff(diff: string): UnifiedDiffHunk[] {
-  if (!diff || !diff.trim()) {
-    throw new Error('Diff 字符串不能为空')
-  }
-
-  const lines = diff.split(/\r?\n/)
-  const hunks: UnifiedDiffHunk[] = []
-  let currentHunk: UnifiedDiffHunk | null = null
-  let i = 0
-
-  while (i < lines.length) {
-    const line = lines[i]
-
-    // 匹配 hunk 头部：@@ -oldStart,oldCount +newStart,newCount @@
-    const hunkHeaderMatch = line.match(/^@@\s+-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/)
-    if (hunkHeaderMatch) {
-      // 保存之前的 hunk
-      if (currentHunk) {
-        hunks.push(currentHunk)
-      }
-
-      // 创建新的 hunk
-      const oldStart = parseInt(hunkHeaderMatch[1], 10)
-      const oldCount = hunkHeaderMatch[2] ? parseInt(hunkHeaderMatch[2], 10) : 1
-      const newStart = parseInt(hunkHeaderMatch[3], 10)
-      const newCount = hunkHeaderMatch[4] ? parseInt(hunkHeaderMatch[4], 10) : 1
-
-      currentHunk = {
-        oldStart,
-        oldCount,
-        newStart,
-        newCount,
-        oldLines: [],
-        newLines: [],
-        contextLines: []
-      }
-      i++
-      continue
-    }
-
-    // 如果没有当前 hunk，跳过
-    if (!currentHunk) {
-      i++
-      continue
-    }
-
-    // 解析 diff 行
-    if (line.startsWith('-')) {
-      // 删除的行（去除-前缀）
-      currentHunk.oldLines.push(line.substring(1))
-    } else if (line.startsWith('+')) {
-      // 新增的行（去除+前缀）
-      currentHunk.newLines.push(line.substring(1))
-    } else if (line.startsWith('\\')) {
-      // 忽略 \ No newline at end of file
-      // 不做处理
-    } else {
-      // 上下文行（不变的行）
-      currentHunk.contextLines.push(line)
-    }
-
-    i++
-  }
-
-  // 保存最后一个 hunk
-  if (currentHunk) {
-    hunks.push(currentHunk)
-  }
-
-  if (hunks.length === 0) {
-    throw new Error('未找到有效的 diff hunk')
-  }
-
-  return hunks
 }
 
 /**
@@ -1088,7 +990,27 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
               )
             }
           }
-          const newContent = newLinesToContent(hunks.flatMap((h) => h.newLines))
+          const linesToWrite = hunks.flatMap((h) =>
+            h.newLines.length > 0
+              ? h.newLines
+              : h.oldCount === 0
+                ? h.contextLines
+                : []
+          )
+          const newContent = newLinesToContent(linesToWrite)
+          if (!newContent) {
+            return {
+              status: 'failed',
+              error: createDetailedError(
+                '新建文件解析后内容为空',
+                [
+                  '请在 diff 正文中为每一行使用 + 前缀，例如：@@ -0,0 +1,2 @@\\n+第一行\\n+第二行',
+                  '若已写正文但无 + 前缀，请升级客户端；仍失败请检查 hunk 头与行数是否一致'
+                ],
+                []
+              )
+            }
+          }
           onUpdate(
             {
               content: { stage: 'updating', editCount: 1, appliedCount: 1, failedCount: 0 },
@@ -1913,7 +1835,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 const EDIT_TOOL_NAME = 'Document Edit'
 const EDIT_TOOL_DESCRIPTION =
-  'Accepts only git-style diff: pass a string with - lines (delete) and + lines (insert)'
+  'Git unified diff only: `diff` string with @@ hunk headers; `-` delete, `+` insert; optional leading-space context lines; for new/empty files use @@ -0,0 +1,N @@ and prefer every body line prefixed with +'
 
 export const editToolConfig: AgentToolConfig = {
   id: 'edit',
@@ -1921,35 +1843,42 @@ export const editToolConfig: AgentToolConfig = {
   description: EDIT_TOOL_DESCRIPTION,
   origin: 'internal',
   instruction:
-    'Edit documents with git-style diff only. 1) Specify target: filePath (workspace path) or tabId (document tab ID); omit for current active document. 2) Use only the diff parameter: - lines delete, + lines insert, @@ -start,count +start,count @@. Do not use operations.',
+    'Edit with git unified diff only (`diff`). Target: `filePath` (workspace relative/abs) or `tabId`, else active document tab. Each line after the @@ header must follow diff rules: lines to remove start with `-`, lines to add start with `+`, unchanged context lines start with a single space (standard git) so they match the file exactly. For **new or empty files** use `@@ -0,0 +1,N @@` and **prefix every inserted line with `+`** (recommended). Keep real newlines inside the string (JSON `\\n`), not the two characters backslash-n. Do not use `operations`.',
   spec: {
     name: 'edit',
     brief:
-      'Edit or create workspace files with git-style diff. Must specify target: filePath or tabId. Use filePath + diff for "create file" with @@ -0,0 +1,N @@. Do not use terminal to write files.',
+      'Workspace file edits via unified diff in `diff` only. Set `filePath`+`diff` to create files (`@@ -0,0 +1,N @@`, each new line with `+`). For patches, include `-`/`+` and optional space-prefixed context lines so line boundaries stay correct. Never use terminal to write file text.',
     fullSpec: `
-# Document Edit Tool (git diff format only)
+# Document Edit Tool (git unified diff only)
 
 **Specify target file**: Pass \`filePath\` (workspace-relative or absolute) or \`tabId\` (document tab ID). If both omitted, uses current active document tab (fails if active tab is not a document).
 
-**Only usage**: \`diff\` parameter must be **git-style Unified diff**: \`-\` lines = delete, \`+\` lines = insert. \`operations\` is not supported.
+**Only usage**: \`diff\` parameter must be **git-style Unified diff**. \`operations\` is not supported.
 
-**Create new file**: Pass \`filePath\` and \`diff\` with \`@@ -0,0 +1,N @@\` followed by \`+line1\` \`+line2\` ...
+**Line rules (critical for correct newlines and no “stuck together” lines)**:
+- After each \`@@ -oldStart,oldCount +newStart,newCount @@\` header, every body line must have a **prefix**:
+  - \`-\` = line removed from the old file
+  - \`+\` = line added in the new file
+  - **Single leading space** = unchanged **context** line (must match the file line exactly, without that space)
+- **New or empty file**: use \`@@ -0,0 +1,N @@\` then **each line of the new file must start with \`+\`**. This is the most reliable form and avoids empty writes.
+- The implementation may tolerate omitted \`+\` on “old side zero lines” hunks, but **always emit \`+\`** for portability.
+- In JSON/tool arguments, the \`diff\` value must contain **real newline characters** (escape as \`\\n\` in JSON), not the literal letters \\\\n inside one long line.
 
-## Unified Diff format (only accepted input)
-- **Format**: \`@@ -oldStart,oldCount +newStart,newCount @@\` then line contents
-- **Delete**: lines starting with \`-\`
-- **Insert**: lines starting with \`+\`
-- **Context**: optional unchanged lines for better matching
+**Create new file**: \`{"filePath":"rel/or/abs.md","diff":"@@ -0,0 +1,3 @@\\n+line1\\n+line2\\n+line3"}\`
 
-## Input examples
-- Replace: \`{"diff": "@@ -5,2 +5,2 @@\\n-old1\\n-old2\\n+new1\\n+new2"}\`
+## Unified Diff format
+- **Hunk header**: \`@@ -oldStart,oldCount +newStart,newCount @@\`
+- **Delete / insert**: as above
+- **Context**: optional; use a **single space** as the first character, then the exact file text
+
+## Examples
+- Replace: \`{"diff": "@@ -5,2 +5,2 @@\\n unchanged line above\\n-old1\\n-old2\\n+new1\\n+new2"}\` (note space before \`unchanged\`)
 - Insert: \`{"diff": "@@ -5,0 +5,2 @@\\n+line1\\n+line2"}\`
 - Delete: \`{"diff": "@@ -5,2 +5,0 @@\\n-line1\\n-line2"}\`
 
 ## Notes
-- Use only \`diff\` (git-style); do not use operations.
-- \`filePath\` optional: with \`diff\` edits or creates the file.
-- \`tabId\` optional; default is current active document.
+- Prefer \`filePath\` when editing workspace files so the tool does not depend on the active tab.
+- Do not use the terminal tool to create or edit text file bodies (encoding and newlines).
 `
   },
   callback: editToolCallback,
@@ -1966,12 +1895,12 @@ export const editToolConfig: AgentToolConfig = {
       diff: {
         type: 'string',
         description:
-          '【唯一接受】Unified diff 字符串（git 风格）：- 行表示删除，+ 行表示新增。格式：@@ -行号,行数 +行号,行数 @@ 后跟 - 行和 + 行。示例：{"diff": "@@ -5,2 +5,2 @@\\n-旧内容\\n+新内容"}。本工具只接受 diff，不要使用 operations。'
+          '【唯一接受】git unified diff 字符串。hunk 头：@@ -oldStart,oldCount +newStart,newCount @@；正文每行须有前缀：- 删除、+ 新增、行首单空格+原文为上下文（须与文件行完全一致）。新建/空文件用 @@ -0,0 +1,N @@ 且建议每行以 + 开头；参数里用真实换行（JSON 写 \\n）。示例：{"diff": "@@ -5,2 +5,2 @@\\n 上文\\n-旧\\n+新"}。勿用 operations。'
       },
       filePath: {
         type: 'string',
         description:
-          '工作区相对路径或绝对路径（可选）。与 diff 配合使用可编辑磁盘文件或新建文件；未指定时使用 tabId/当前文档。可配合：filePath + diff。'
+          '工作区相对路径或绝对路径（可选）。编辑/新建磁盘文件时务必传 filePath，避免仅依赖当前标签页；与 diff 联用。新建：filePath + @@ -0,0 +1,N @@ + 各行 + 前缀。'
       },
       tabId: {
         type: 'string',

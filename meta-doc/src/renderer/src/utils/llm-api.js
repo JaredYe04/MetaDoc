@@ -695,7 +695,9 @@ async function continueConversationStream(
   const effectiveCustomConfig = customLlmConfig || meta?.customLlmConfig || null
   const adapter = await getConversationAdapter(conversation, signal, effectiveCustomConfig)
   if (!adapter) {
-    return
+    throw new Error(
+      '无法初始化 LLM 对话：未找到可用的模型适配器（请检查 API 地址、密钥与模型配置是否已保存并可用）。'
+    )
   }
 
   const config = adapter.getConfig()
@@ -805,7 +807,9 @@ async function continueConversationWithTools(
   const effectiveCustomConfig = customLlmConfig || meta?.customLlmConfig || null
   const adapter = await getConversationAdapter(conversation, signal, effectiveCustomConfig)
   if (!adapter) {
-    return
+    throw new Error(
+      '无法初始化 LLM 对话：未找到可用的模型适配器（请检查 API 地址、密钥与模型配置是否已保存并可用）。'
+    )
   }
 
   const config = adapter.getConfig()
@@ -871,6 +875,12 @@ async function continueConversationWithTools(
         }
       }
     })
+    // 兜底：旧版 consumeStream 在 NoOutputGeneratedError 时曾返回 null，导致任务“成功”但无内容
+    if (streamResult === null && !(ref.value && String(ref.value).trim())) {
+      throw new Error(
+        'LLM 未返回任何内容（可能被接口拒绝、配额或余额不足、或网络错误）。请检查控制台与账户状态。'
+      )
+    }
     const usage = streamResult?.usage ?? null
     const fullText = streamResult?.fullText
     // 兜底：若全程未收到任何 delta（ref 仍为空）但有 fullText，一次性写入（真流式应由 text-delta 驱动，此处仅作后备）

@@ -449,7 +449,10 @@
         "unixTimestamp": "Timestamp Unix"
       }
     },
-    "error": "Ocorreu um erro",
+    "error": {
+      "generic": "Ocorreu um erro",
+      "executionFailed": "Falha na execução do agente: {message}"
+    },
     "manage": {
       "status": "Status",
       "title": "Gerenciar",

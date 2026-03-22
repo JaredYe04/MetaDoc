@@ -3191,7 +3191,10 @@
     "thinking": "Thinking...",
     "toolCall": "Calling Tool",
     "toolResult": "Tool Result",
-    "error": "Something went wrong",
+    "error": {
+      "generic": "Something went wrong",
+      "executionFailed": "Agent execution failed: {message}"
+    },
     "retry": "Retry",
     "saveFailed": "Save failed",
     "callParams": "Call Parameters",

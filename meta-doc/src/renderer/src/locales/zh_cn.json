@@ -457,7 +457,10 @@
         "correctedText": "修正文本"
       }
     },
-    "error": "出错了",
+    "error": {
+      "generic": "出错了",
+      "executionFailed": "Agent 执行失败：{message}"
+    },
     "manage": {
       "status": "状态",
       "title": "管理",
